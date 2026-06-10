@@ -1,5 +1,5 @@
 import type { Component } from 'vue';
-import type { PropertyDefinition, IDeviceVisibilityConfig, TLandingDeviceKey } from '../../types/landing';
+import type { PropertyDefinition, IDeviceVisibilityConfig, TLandingDeviceKey } from '../../common/types/landing';
 import type {
     ComponentVariantsMap,
     IComponentVariant,

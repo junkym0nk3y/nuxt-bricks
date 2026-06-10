@@ -10,7 +10,7 @@ import type {
     SliderLayoutProps,
     AccordionLayoutProps,
     SectionLayoutProps,
-} from '../../../types/landing';
+} from '../../../common/types/landing';
 
 // Vue
 import { h } from 'vue';

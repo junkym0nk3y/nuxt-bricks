@@ -8,15 +8,15 @@ import type {
     LandingSchema,
     PropertyDefinition,
     ComponentLibraryItem,
-} from '../../types/landing';
+} from '../../common/types/landing';
 import type {
     ComponentVariantsMap,
     IComponentVariant,
     PropertyEditorType,
 } from '../components/sidebar/properties.types';
 import type { ComputedRef, CSSProperties, Ref, VNodeRef } from 'vue';
-import type { useLandingSidebarStore } from '../../stores/landing/sidebar';
-import type { useLandingHistoryStore } from '../../stores/landing/history';
+import type { useLandingSidebarStore } from '../stores/sidebar';
+import type { useLandingHistoryStore } from '../stores/history';
 import type { usePublishStore } from '../stores/publish';
 import type { IMediaItem, TMediaGalleryContext } from '../../media/types/media';
 import type { IBuilderSidebarExpose } from './builder';

@@ -1,5 +1,5 @@
 import { computed, ref } from 'vue';
-import type { ComponentSlotDefinition } from '../../types/landing';
+import type { ComponentSlotDefinition } from '../../common/types/landing';
 import type {
     ILandingCanvasDropIndicator,
     ILandingCanvasDropsOptions,

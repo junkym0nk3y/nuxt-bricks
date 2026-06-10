@@ -1,16 +1,16 @@
 // #region Imports
 // Types
-import type { ComponentSlotDefinition, LandingComponent } from '../../types/landing';
+import type { ComponentSlotDefinition, LandingComponent } from '../../common/types/landing';
 import type { ISlotRenderData, IUseComponentSlotsReturn } from '../types/composables';
 
 // Vue
 import { computed, ref, watch } from 'vue';
 
 // Pinia
-import { useLandingComponentsStore } from '../../stores/landing/components';
+import { useLandingComponentsStore } from '../stores/components';
 
 // Composables
-import { useStoryImports } from '../../composables/useStoryImports';
+import { useStoryImports } from '../../common/composables/useStoryImports';
 // #endregion
 
 /**

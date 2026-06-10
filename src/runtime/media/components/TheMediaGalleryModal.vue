@@ -8,7 +8,7 @@ import type {
     IMediaItem,
     IMediaUpdateMetaRequest,
 } from '../types/media';
-import type { IAppConfig } from '../../types/config';
+import type { IAppConfig } from '../../common/types/config';
 
 // Vue
 import { ref, computed, watch, onMounted } from 'vue';

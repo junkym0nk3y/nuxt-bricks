@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { ILandingInlineContentSegment } from '../types/layouts';
-import type { InlineEditingPropType } from '../../stores/landing/inlineEditing';
+import type { InlineEditingPropType } from '../../editor/stores/inlineEditing';
 
 // Vue
 import { computed, inject, watch, useCssModule, type ComputedRef } from 'vue';

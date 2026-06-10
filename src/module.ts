@@ -8,7 +8,7 @@ import {
     installModule,
 } from '@nuxt/kit';
 import { defu } from 'defu';
-import { brickWatchPlugin } from './runtime/utils/routing/vite-brick-watch';
+import { brickWatchPlugin } from './runtime/common/utils/routing/vite-brick-watch';
 
 // #region Types
 export interface IBricksModuleOptions {

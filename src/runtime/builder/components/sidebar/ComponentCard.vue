@@ -19,17 +19,17 @@ import {
 } from 'vue';
 
 // Pinia
-import { useLandingComponentsStore } from '../../../stores/landing/components';
+import { useLandingComponentsStore } from '../../stores/components';
 
 // Components
 import BricksTooltip from '../../../ui/tooltip/BricksTooltip.vue';
 import BricksTooltipHint from '../../../ui/tooltip/BricksTooltipHint.vue';
 
 // Composables
-import { useStoryImports } from '../../../composables/useStoryImports';
+import { useStoryImports } from '../../../common/composables/useStoryImports';
 
 // Utils
-import { convertRemToPx } from '../../../utils/main';
+import { convertRemToPx } from '../../../common/utils/main';
 
 // #endregion
 

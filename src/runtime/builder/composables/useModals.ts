@@ -4,8 +4,8 @@ import type { Component } from 'vue';
 import type { TModalKey, IModalOption } from '../types/modals';
 
 // Composables
-import { useApiClient } from '../../composables/useApiClient';
-import { useStoryImports } from '../../composables/useStoryImports';
+import { useApiClient } from '../../common/composables/useApiClient';
+import { useStoryImports } from '../../common/composables/useStoryImports';
 // #endregion
 
 // #region Data

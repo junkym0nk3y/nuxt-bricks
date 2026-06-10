@@ -1,13 +1,13 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { LandingComponent, SliderLayoutProps } from '../../types/landing';
+import type { LandingComponent, SliderLayoutProps } from '../../common/types/landing';
 
 // Vue
 import { computed, defineComponent, h, inject, ref, type PropType, type VNodeChild } from 'vue';
 
 // Pinia
-import { useLandingCanvasStore } from '../../stores/landing/canvas';
+import { useLandingCanvasStore } from '../../builder/stores/canvas';
 
 // Components
 import { Swiper, SwiperSlide } from 'swiper/vue';

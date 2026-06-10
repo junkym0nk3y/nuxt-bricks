@@ -3,7 +3,7 @@
  */
 
 import type { CSSProperties, Ref } from 'vue';
-import type { ComponentLibraryItem, LandingComponent } from '../../../types/landing';
+import type { ComponentLibraryItem, LandingComponent } from '../../../common/types/landing';
 import type { ILandingInlineContentSegment } from '../../../layouts-blocks/types/layouts';
 
 export interface ILandingCanvasItemProps {

@@ -12,7 +12,7 @@ import type {
 import { computed } from 'vue';
 
 // Composables
-import { useLandingConfig } from '../../../composables/useLandingConfig';
+import { useLandingConfig } from '../../../common/composables/useLandingConfig';
 
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';

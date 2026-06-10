@@ -1,19 +1,19 @@
 // #region Imports
 // Types
 import type { ILandingCanvasItemProps } from '../components/canvas/types';
-import type { PropertyDefinition } from '../../types/landing';
+import type { PropertyDefinition } from '../../common/types/landing';
 import type { ILandValues } from '../../types';
 
 // Vue
 import { computed, nextTick, type ComputedRef, type Ref } from 'vue';
 
 // Pinia
-import { useLandingComponentsStore } from '../../stores/landing/components';
-import { useLandingCanvasStore } from '../../stores/landing/canvas';
-import { useLandingSidebarStore } from '../../stores/landing/sidebar';
+import { useLandingComponentsStore } from '../stores/components';
+import { useLandingCanvasStore } from '../stores/canvas';
+import { useLandingSidebarStore } from '../stores/sidebar';
 
 // Composables
-import { useStoryImports } from '../../composables/useStoryImports';
+import { useStoryImports } from '../../common/composables/useStoryImports';
 import { useComponentProperties } from './useComponentProperties';
 
 // Utils

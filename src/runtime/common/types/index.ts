@@ -91,9 +91,9 @@ export interface ILandExportModule {
         category?: string;
         description?: string;
         slots?: Record<string, ILandSlotDefinition> | Array<string | ILandSlotDefinition>;
-        dataSources?: import('../render/types/landing-data-source').ILandDataSource[];
+        dataSources?: import('../../render/types/landing-data-source').ILandDataSource[];
     };
 }
 
-export type { ILandDataSource, ILandDataSourceParam } from '../render/types/landing-data-source';
-export type { ILandingGalleryItem, ILandingInlineContentSegment } from '../layouts-blocks/types/layouts';
+export type { ILandDataSource, ILandDataSourceParam } from '../../render/types/landing-data-source';
+export type { ILandingGalleryItem, ILandingInlineContentSegment } from '../../layouts-blocks/types/layouts';

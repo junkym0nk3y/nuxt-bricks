@@ -1,8 +1,8 @@
 import { ref, computed, watch } from 'vue';
-import { useLandingCanvasStore } from '../../stores/landing/canvas';
-import { useLandingSidebarStore } from '../../stores/landing/sidebar';
-import { convertRemToPx } from '../../utils/main';
-import { useLandingConfig } from '../../composables/useLandingConfig';
+import { useLandingCanvasStore } from '../stores/canvas';
+import { useLandingSidebarStore } from '../stores/sidebar';
+import { convertRemToPx } from '../../common/utils/main';
+import { useLandingConfig } from '../../common/composables/useLandingConfig';
 import { useCanvasRemBase } from './useCanvasRemBase';
 
 /**

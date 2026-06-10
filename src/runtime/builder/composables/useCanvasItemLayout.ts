@@ -8,15 +8,15 @@ import type {
     GridRowHeight,
     FlexLayoutProps,
     TLandingDeviceKey,
-} from '../../types/landing';
+} from '../../common/types/landing';
 import type { IItemStyle, ILandingCanvasItemProps } from '../components/canvas/types';
 
 // Vue
 import { computed, inject } from 'vue';
 
 // Pinia
-import { useLandingComponentsStore } from '../../stores/landing/components';
-import { useLandingCanvasStore } from '../../stores/landing/canvas';
+import { useLandingComponentsStore } from '../stores/components';
+import { useLandingCanvasStore } from '../stores/canvas';
 // #endregion
 
 /** Нормализует значение rowHeight для Grid */

@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { ILandingInlineContentSegment, ILandingGalleryItem } from '../../../layouts-blocks/types/layouts';
-import type { IAccordionItem } from '../../../types/landing';
+import type { IAccordionItem } from '../../../common/types/landing';
 import type {
     ISidebarPropertyEditorRowProps,
     TInlineGalleryPayload,

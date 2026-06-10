@@ -2,7 +2,7 @@ import type {
     ComponentSlotDefinition,
     LandingComponent,
     LandingComponentSlot,
-} from '../../types/landing';
+} from '../../common/types/landing';
 
 /**
  * Инициализирует слоты layout-компонента на основе метаданных.

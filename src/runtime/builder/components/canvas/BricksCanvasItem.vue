@@ -10,8 +10,8 @@ import { computed, ref, inject, provide, watch } from 'vue';
 import { useElementBounding } from '@vueuse/core';
 
 // Pinia
-import { useLandingComponentsStore } from '../../../stores/landing/components';
-import { useLandingCanvasStore } from '../../../stores/landing/canvas';
+import { useLandingComponentsStore } from '../../stores/components';
+import { useLandingCanvasStore } from '../../stores/canvas';
 
 // Composables
 import { useCanvasItemLayout } from '../../composables/useCanvasItemLayout';
@@ -21,7 +21,7 @@ import { useCanvasItemDrag } from '../../composables/useCanvasItemDrag';
 import { useCanvasItemActions } from '../../composables/useCanvasItemActions';
 
 // Utils
-import { buildDeviceVisibilityClasses } from '../../../utils/landing/deviceVisibility';
+import { buildDeviceVisibilityClasses } from '../../../common/utils/landing/deviceVisibility';
 
 // Components
 import BricksCanvasItemLayout from './BricksCanvasItemLayout.vue';

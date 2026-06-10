@@ -1,6 +1,6 @@
 import type { Ref } from 'vue';
 import type { IDragComposableCanvas } from '../components/canvas/types';
-import type { LandingComponentsStore } from '../../stores/landing/components';
+import type { LandingComponentsStore } from '../stores/components';
 
 export interface ILandingCanvasDropIndicator {
     index: number;

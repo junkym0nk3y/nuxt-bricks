@@ -1,18 +1,18 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { LandingComponent, PropertyDefinition } from '../../../types/landing';
+import type { LandingComponent, PropertyDefinition } from '../../../common/types/landing';
 import type { ILandValues } from '../../../types';
 
 // Vue
 import { computed, nextTick } from 'vue';
 
 // Pinia
-import { useLandingComponentsStore } from '../../../stores/landing/components';
-import { useLandingCanvasStore } from '../../../stores/landing/canvas';
+import { useLandingComponentsStore } from '../../stores/components';
+import { useLandingCanvasStore } from '../../stores/canvas';
 
 // Composables
-import { useStoryImports } from '../../../composables/useStoryImports';
+import { useStoryImports } from '../../../common/composables/useStoryImports';
 import { useComponentProperties } from '../../composables/useComponentProperties';
 
 // Utils

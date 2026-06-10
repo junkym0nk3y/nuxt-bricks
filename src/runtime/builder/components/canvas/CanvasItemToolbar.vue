@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IDeviceVisibilityConfig, TLandingDeviceKey } from '../../../types/landing';
+import type { IDeviceVisibilityConfig, TLandingDeviceKey } from '../../../common/types/landing';
 
 // Vue
 import { ref, computed } from 'vue';

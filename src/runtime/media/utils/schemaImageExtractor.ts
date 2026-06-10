@@ -4,7 +4,7 @@
 
 // #region Imports
 // Types
-import type { LandingSchema, LandingComponent } from '../../types/landing';
+import type { LandingSchema, LandingComponent } from '../../common/types/landing';
 import type {
     IExtractedImageUrl,
     IImageLocation,

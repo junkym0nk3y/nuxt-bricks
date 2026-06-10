@@ -3,14 +3,14 @@ import type {
     IDeviceVisibilityConfig,
     TLandingDeviceKey,
     ILandingSchemaMeta,
-} from '../../../types/landing';
-import { deserializeSchema, serializeSchema } from '../../../builder/utils/history';
+} from '../../../common/types/landing';
+import { deserializeSchema, serializeSchema } from '../../utils/history';
 import { useLandingSidebarStore } from '../sidebar';
 import { useLandingHistoryStore } from '../history';
 import { useNavigationStore } from '../navigation';
 import type { ILandingComponentsSchemaActions, ILandingComponentsStore } from '../types';
-import { normalizeDeviceVisibility } from '../../../utils/landing/deviceVisibility';
-import { debounce } from '../../../utils/main';
+import { normalizeDeviceVisibility } from '../../../common/utils/landing/deviceVisibility';
+import { debounce } from '../../../common/utils/main';
 
 const debouncedSaveToHistory = debounce((store: ILandingComponentsStore) => {
     store.saveToHistory();

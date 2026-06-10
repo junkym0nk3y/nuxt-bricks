@@ -11,7 +11,7 @@ import { computed, ref, watch, useCssModule } from 'vue';
 import type { IBricksHexInputProps, IBricksHexInputEmits } from './types.d.ts';
 
 // Utils
-import { validateHex, normalizeHex } from '../../utils/main';
+import { validateHex, normalizeHex } from '../../common/utils/main';
 // #endregion
 
 // #region Props

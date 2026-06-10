@@ -1,8 +1,8 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IPublishedPage } from '../../types/landing-api';
-import type { LandingComponent } from '../../types/landing';
+import type { IPublishedPage } from '../../common/types/landing-api';
+import type { LandingComponent } from '../../common/types/landing';
 import type { ILandDataSource } from '../types/landing-data-source';
 
 // Vue
@@ -10,11 +10,11 @@ import { computed, onMounted, onUnmounted, ref, watch, type Ref } from 'vue';
 import { createError, useNuxtData } from '#imports';
 
 // Composables
-import { useStoryImports } from '../../composables/useStoryImports';
+import { useStoryImports } from '../../common/composables/useStoryImports';
 import { useLandingRendererStories } from '../composables/useLandingRendererStories';
 import { useLandingDataSources } from '../composables/useLandingDataSources';
-import { useLandingConfig } from '../../composables/useLandingConfig';
-import { normalizeStoryPath } from '../../utils/landing/paths';
+import { useLandingConfig } from '../../common/composables/useLandingConfig';
+import { normalizeStoryPath } from '../../common/utils/landing/paths';
 
 // Components
 import BricksRenderer from '../components/BricksRenderer.vue';

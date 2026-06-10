@@ -7,7 +7,7 @@ import type {
     IDeviceVisibilityConfig,
     PropertyDefinition,
     TLandingDeviceKey,
-} from '../../types/landing';
+} from '../../common/types/landing';
 import type {
     TInlineGalleryPayload,
     TMediaContext,
@@ -18,12 +18,12 @@ import type {
 import { computed, defineAsyncComponent, ref, watch, type Component } from 'vue';
 
 // Pinia
-import { useLandingComponentsStore } from '../../stores/landing/components';
-import { useLandingCanvasStore } from '../../stores/landing/canvas';
+import { useLandingComponentsStore } from '../stores/components';
+import { useLandingCanvasStore } from '../stores/canvas';
 
 // Composables
 import { usePropertyVariants } from './usePropertyVariants';
-import { useStoryImports } from '../../composables/useStoryImports';
+import { useStoryImports } from '../../common/composables/useStoryImports';
 
 // Utils
 import {
@@ -35,7 +35,7 @@ import {
     cloneInlineSegments,
     createInlineMediaSegmentFromItem,
 } from '../../layouts-blocks/utils/inlineContent';
-import { normalizeDeviceVisibility } from '../../utils/landing/deviceVisibility';
+import { normalizeDeviceVisibility } from '../../common/utils/landing/deviceVisibility';
 
 // Constants
 import { LAYOUT_COMPONENTS } from '../constants/layoutComponents';

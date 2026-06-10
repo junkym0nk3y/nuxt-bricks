@@ -1,7 +1,7 @@
 // TODO(persistence, Шаг 6): переедет в runtime/persistence/ при введении StorageAdapter/PublishAdapter
 import { createError } from 'h3';
-import { getLandingCategoriesFromJson } from '../../../utils/routing/landings-api';
-import type { INuxtLandRoute } from '../../../utils/routing/types.d.ts';
+import { getLandingCategoriesFromJson } from '../../../common/utils/routing/landings-api';
+import type { INuxtLandRoute } from '../../../common/utils/routing/types.d.ts';
 
 /**
  * Возвращает список компонентов по категории или весь словарь категорий.

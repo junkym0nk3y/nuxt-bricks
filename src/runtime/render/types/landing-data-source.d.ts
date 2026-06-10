@@ -1,4 +1,4 @@
-import type { TPublishFormState } from '../../types/landing-api';
+import type { TPublishFormState } from '../../common/types/landing-api';
 
 export interface ILandDataSourceParam {
     from?: string;

@@ -10,11 +10,11 @@ import { computed, provide, watch, type ComputedRef } from 'vue';
 import { useEventListener } from '@vueuse/core';
 
 // Pinia
-import { useLandingInlineEditingStore } from '../../stores/landing/inlineEditing';
-import { useLandingCanvasStore } from '../../stores/landing/canvas';
+import { useLandingInlineEditingStore } from '../../editor/stores/inlineEditing';
+import { useLandingCanvasStore } from '../stores/canvas';
 
 // Composables
-import { useStoryImports } from '../../composables/useStoryImports';
+import { useStoryImports } from '../../common/composables/useStoryImports';
 
 // Utils
 import { getLayoutProperties } from '../utils/layoutProperties';

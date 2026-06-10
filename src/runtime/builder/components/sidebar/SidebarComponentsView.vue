@@ -1,13 +1,13 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { ComponentLibraryItem } from '../../../types/landing';
+import type { ComponentLibraryItem } from '../../../common/types/landing';
 
 // Vue
 import { computed, ref } from 'vue';
 
 // Utils
-import { loadFavoritesFromStorage } from '../../../stores/landing/actions/favorites';
+import { loadFavoritesFromStorage } from '../../stores/actions/favorites';
 
 // Components
 import ComponentCard from './ComponentCard.vue';

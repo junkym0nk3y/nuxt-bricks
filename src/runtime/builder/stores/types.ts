@@ -5,7 +5,7 @@ import type {
     LandingSchema,
     IDeviceVisibilityConfig,
     TLandingDeviceKey,
-} from '../../types/landing';
+} from '../../common/types/landing';
 
 export interface IComponentClipboardSnapshot {
     rootId: string;

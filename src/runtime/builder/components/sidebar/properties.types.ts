@@ -1,4 +1,4 @@
-import type { PropertyDefinition } from '../../../types/landing';
+import type { PropertyDefinition } from '../../../common/types/landing';
 
 export interface ISelectOption {
     label: string;

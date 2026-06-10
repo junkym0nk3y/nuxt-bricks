@@ -4,8 +4,8 @@
 import { computed } from 'vue';
 
 // Pinia
-import { useNavigationStore } from '../../../stores/landing/navigation';
-import { useLandingComponentsStore } from '../../../stores/landing/components';
+import { useNavigationStore } from '../../stores/navigation';
+import { useLandingComponentsStore } from '../../stores/components';
 
 // Components
 import BricksInput from '../../../ui/inputs/BricksInput.vue';

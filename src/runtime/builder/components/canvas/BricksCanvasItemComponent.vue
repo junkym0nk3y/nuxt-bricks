@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { Component } from 'vue';
-import type { LandingComponent } from '../../../types/landing';
+import type { LandingComponent } from '../../../common/types/landing';
 
 // Composables
 import { useComponentSlots } from '../../composables/useComponentSlots';

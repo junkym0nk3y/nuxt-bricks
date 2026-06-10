@@ -1,6 +1,6 @@
 // #region Imports
 // Types
-import type { INavigationItem, INavigationMeta, ILandingSchemaMeta } from '../../types/landing';
+import type { INavigationItem, INavigationMeta, ILandingSchemaMeta } from '../../common/types/landing';
 
 // Utils
 import sha256 from 'tiny-sha256';

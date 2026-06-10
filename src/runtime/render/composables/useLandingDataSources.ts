@@ -5,11 +5,11 @@ import type {
     ILandDataSourceParam,
     ILandDataSourceContext,
 } from '../types/landing-data-source';
-import type { LandingComponent } from '../../types/landing';
-import type { TPublishFormState } from '../../types/landing-api';
+import type { LandingComponent } from '../../common/types/landing';
+import type { TPublishFormState } from '../../common/types/landing-api';
 
 // Composables
-import { useApiClient } from '../../composables/useApiClient';
+import { useApiClient } from '../../common/composables/useApiClient';
 // #endregion
 
 /**

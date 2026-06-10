@@ -1,14 +1,14 @@
 // #region Imports
 // Types
 import type { ILandingCanvasItemProps, IDragComposableCanvas } from '../components/canvas/types';
-import type { ComponentLibraryItem } from '../../types/landing';
+import type { ComponentLibraryItem } from '../../common/types/landing';
 import type { ComputedRef } from 'vue';
 
 // Pinia
-import { useLandingCanvasStore } from '../../stores/landing/canvas';
+import { useLandingCanvasStore } from '../stores/canvas';
 
 // Utils
-import { convertPxToRem } from '../../utils/main';
+import { convertPxToRem } from '../../common/utils/main';
 // #endregion
 
 /**

@@ -1,13 +1,13 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { GridLayoutProps, GridLayoutVariant, GridRowHeight } from '../../types/landing';
+import type { GridLayoutProps, GridLayoutVariant, GridRowHeight } from '../../common/types/landing';
 
 // Vue
 import { computed, ref, inject, onMounted, onBeforeUnmount, type Ref } from 'vue';
 
 // Utils
-import { convertPxToRem } from '../../utils/main';
+import { convertPxToRem } from '../../common/utils/main';
 // #endregion
 
 // #region Props

@@ -1,6 +1,6 @@
 // #region Imports
 // Types
-import type { PropertyDefinition } from '../../types/landing';
+import type { PropertyDefinition } from '../../common/types/landing';
 
 // Utils
 import { isPrimitiveArrayValue, parseListInput } from './propertyFormatters';

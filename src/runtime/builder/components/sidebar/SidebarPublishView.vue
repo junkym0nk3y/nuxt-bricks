@@ -1,10 +1,10 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { TPublishFormState } from '../../../types/landing-api';
+import type { TPublishFormState } from '../../../common/types/landing-api';
 import type { IMediaItem } from '../../../media/types/media';
 import type { ILandDemoValues } from '../../../types';
-import type { LandingSchema } from '../../../types/landing';
+import type { LandingSchema } from '../../../common/types/landing';
 
 // Vue
 import { computed, onMounted, ref } from 'vue';
@@ -13,12 +13,12 @@ import { computed, onMounted, ref } from 'vue';
 import { Form, Field } from 'vee-validate';
 
 // Composables
-import { useLandingConfig } from '../../../composables/useLandingConfig';
+import { useLandingConfig } from '../../../common/composables/useLandingConfig';
 import { usePublishValidationSchema } from '../../composables/usePublishValidationSchema';
 
 // Pinia
 import { usePublishStore } from '../../stores/publish';
-import { useLandingComponentsStore } from '../../../stores/landing/components';
+import { useLandingComponentsStore } from '../../stores/components';
 
 // Components
 import BricksInput from '../../../ui/inputs/BricksInput.vue';

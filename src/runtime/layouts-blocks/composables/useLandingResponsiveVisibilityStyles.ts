@@ -3,7 +3,7 @@
 import { useHead } from 'nuxt/app';
 
 // Composables
-import { useLandingConfig } from '../../composables/useLandingConfig';
+import { useLandingConfig } from '../../common/composables/useLandingConfig';
 // #endregion
 
 /**

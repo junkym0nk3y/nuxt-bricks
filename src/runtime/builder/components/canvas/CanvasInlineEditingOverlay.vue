@@ -23,12 +23,12 @@ import { useElementBounding, useResizeObserver } from '@vueuse/core';
 import { useNuxtApp } from 'nuxt/app';
 
 // Pinia
-import { useLandingInlineEditingStore } from '../../../stores/landing/inlineEditing';
-import { useLandingCanvasStore } from '../../../stores/landing/canvas';
-import { useLandingComponentsStore } from '../../../stores/landing/components';
+import { useLandingInlineEditingStore } from '../../../editor/stores/inlineEditing';
+import { useLandingCanvasStore } from '../../stores/canvas';
+import { useLandingComponentsStore } from '../../stores/components';
 
 // Composables
-import { useLandingConfig } from '../../../composables/useLandingConfig';
+import { useLandingConfig } from '../../../common/composables/useLandingConfig';
 
 // Components
 import BricksTextEditorToolbar from '../../../ui/inputs/BricksTextEditorToolbar.vue';

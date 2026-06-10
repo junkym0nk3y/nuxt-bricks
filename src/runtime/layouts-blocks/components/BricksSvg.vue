@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { ILandingSvgProps } from '../../types/landing';
+import type { ILandingSvgProps } from '../../common/types/landing';
 
 // Vue
 import { computed } from 'vue';

@@ -6,8 +6,8 @@ import type {
     IMediaUpdateCategoryRequest,
     IMediaUpdateMetaRequest,
 } from '../types/media';
-import { useApiClient } from '../../composables/useApiClient';
-import { toCamelCase, toSnakeCase } from '../../utils/case-transform';
+import { useApiClient } from '../../common/composables/useApiClient';
+import { toCamelCase, toSnakeCase } from '../../common/utils/case-transform';
 // #endregion
 
 // #region Data

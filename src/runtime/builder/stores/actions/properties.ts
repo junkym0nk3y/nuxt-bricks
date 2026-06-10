@@ -1,8 +1,8 @@
 import type { ILandingComponentsPropertyActions, ILandingComponentsStore } from '../types';
-import type { TLandingDeviceKey } from '../../../types/landing';
+import type { TLandingDeviceKey } from '../../../common/types/landing';
 
 // Utils
-import { debounce } from '../../../utils/main';
+import { debounce } from '../../../common/utils/main';
 
 /**
  * Debounced saveToHistory для property-обновлений.

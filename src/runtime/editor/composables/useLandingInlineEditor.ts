@@ -15,11 +15,11 @@ import {
 } from 'vue';
 
 // Pinia
-import { useLandingComponentsStore } from '../../stores/landing/components';
+import { useLandingComponentsStore } from '../../builder/stores/components';
 import {
     useLandingInlineEditingStore,
     type InlineEditingPropType,
-} from '../../stores/landing/inlineEditing';
+} from '../stores/inlineEditing';
 
 // Utils
 import { segmentsToTiptapDoc, tiptapDocToSegments } from '../utils/inlineContentTiptap';

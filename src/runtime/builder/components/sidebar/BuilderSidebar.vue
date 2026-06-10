@@ -1,15 +1,15 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { ComponentLibraryItem, LandingSchema } from '../../../types/landing';
+import type { ComponentLibraryItem, LandingSchema } from '../../../common/types/landing';
 import type { IMediaItem, TMediaGalleryContext } from '../../../media/types/media';
 
 // Vue
 import { computed, ref } from 'vue';
 
 // Pinia
-import { useLandingComponentsStore } from '../../../stores/landing/components';
-import { useLandingSidebarStore } from '../../../stores/landing/sidebar';
+import { useLandingComponentsStore } from '../../stores/components';
+import { useLandingSidebarStore } from '../../stores/sidebar';
 import { usePublishStore } from '../../stores/publish';
 
 // Components

@@ -1,4 +1,4 @@
-import type { SelectedComponent } from '../../../types/landing';
+import type { SelectedComponent } from '../../../common/types/landing';
 import { useLandingSidebarStore } from '../sidebar';
 import type { ILandingComponentsSelectionActions, ILandingComponentsStore } from '../types';
 

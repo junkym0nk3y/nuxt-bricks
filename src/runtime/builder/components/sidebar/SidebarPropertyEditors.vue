@@ -5,7 +5,7 @@ import type {
     ISidebarPropertyEditorsProps,
     TInlineGalleryPayload,
 } from '../../types/sidebarProperties';
-import type { PropertyDefinition } from '../../../types/landing';
+import type { PropertyDefinition } from '../../../common/types/landing';
 
 // Vue
 import { computed, ref, watch } from 'vue';

@@ -1,4 +1,4 @@
-import type { ILandExportModule } from '../types';
+import type { ILandExportModule } from '../../types';
 import { normalizeStoryPath } from '../utils/landing/paths';
 
 /**

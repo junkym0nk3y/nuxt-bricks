@@ -10,7 +10,7 @@ import { ref, computed, watch } from 'vue';
 import { onClickOutside, useElementBounding } from '@vueuse/core';
 
 // Utils
-import { validateHex, normalizeHex } from '../../utils/main';
+import { validateHex, normalizeHex } from '../../common/utils/main';
 // #endregion
 
 // #region Props

@@ -1,6 +1,6 @@
 // #region Imports
 // Types
-import type { ComponentLibraryItem, LandingSchema } from '../../types/landing';
+import type { ComponentLibraryItem, LandingSchema } from '../../common/types/landing';
 import type { IMediaItem, TMediaGalleryContext } from '../../media/types/media';
 import type { IBuilderSidebarExpose } from '../types/builder';
 import type { IBuilderToastState, IUseLandingBuilderPageReturn } from '../types/composables';
@@ -12,18 +12,18 @@ import { computed, onUnmounted, provide, reactive, ref, watch } from 'vue';
 import { useAsyncData } from '#imports';
 
 // Composables
-import { useApiClient } from '../../composables/useApiClient';
-import { useStoryImports } from '../../composables/useStoryImports';
+import { useApiClient } from '../../common/composables/useApiClient';
+import { useStoryImports } from '../../common/composables/useStoryImports';
 import { useComponentLibraryDrag } from './useDraggableComponent';
 import { useModals } from './useModals';
-import { useLandingConfig } from '../../composables/useLandingConfig';
+import { useLandingConfig } from '../../common/composables/useLandingConfig';
 import { useSchemaImageResolver } from '../../media/composables/useSchemaImageResolver';
 
 // Pinia
-import { useLandingComponentsStore } from '../../stores/landing/components';
-import { useLandingSidebarStore } from '../../stores/landing/sidebar';
-import { useLandingHistoryStore } from '../../stores/landing/history';
-import { useLandingInlineEditingStore } from '../../stores/landing/inlineEditing';
+import { useLandingComponentsStore } from '../stores/components';
+import { useLandingSidebarStore } from '../stores/sidebar';
+import { useLandingHistoryStore } from '../stores/history';
+import { useLandingInlineEditingStore } from '../../editor/stores/inlineEditing';
 import { usePublishStore, setPublishStoreBackgroundColor } from '../stores/publish';
 
 // Constants

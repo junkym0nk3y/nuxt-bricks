@@ -2,16 +2,16 @@
 // #region Imports
 // Types
 import type { ILandingRendererProps } from '../types/render';
-import type { LandingComponent } from '../../types/landing';
+import type { LandingComponent } from '../../common/types/landing';
 
 // Vue
 import { computed, h, useCssModule } from 'vue';
 
 // Composables
-import { useStoryImports } from '../../composables/useStoryImports';
+import { useStoryImports } from '../../common/composables/useStoryImports';
 import { useLandingRendererStories } from '../composables/useLandingRendererStories';
 import { useLandingRendererLayouts } from '../composables/useLandingRendererLayouts';
-import { useLandingConfig } from '../../composables/useLandingConfig';
+import { useLandingConfig } from '../../common/composables/useLandingConfig';
 
 // Components
 import BricksRendererPlaceholder from './BricksRendererPlaceholder.vue';
@@ -20,7 +20,7 @@ import BricksRendererPlaceholder from './BricksRendererPlaceholder.vue';
 import {
     buildDeviceVisibilityClasses,
     shouldAriaHideComponent,
-} from '../../utils/landing/deviceVisibility';
+} from '../../common/utils/landing/deviceVisibility';
 // #endregion
 
 // #region Props

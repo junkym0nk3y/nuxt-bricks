@@ -6,10 +6,10 @@ import type { TViewportType } from '../components/canvas/types';
 import { computed } from 'vue';
 
 // Pinia
-import { useLandingCanvasStore } from '../../stores/landing/canvas';
+import { useLandingCanvasStore } from '../stores/canvas';
 
 // Composables
-import { useLandingConfig } from '../../composables/useLandingConfig';
+import { useLandingConfig } from '../../common/composables/useLandingConfig';
 // #endregion
 
 /** Базовое значение rem библиотеки (px). */

@@ -1,7 +1,7 @@
-import type { LandingComponent, LandingSchema, ILandingSchemaMeta } from '../../types/landing';
-import { cloneLandingComponent } from '../../utils/landing/components';
-import { normalizeDeviceVisibility } from '../../utils/landing/deviceVisibility';
-import { normalizeStoryPath } from '../../utils/landing/paths';
+import type { LandingComponent, LandingSchema, ILandingSchemaMeta } from '../../common/types/landing';
+import { cloneLandingComponent } from '../../common/utils/landing/components';
+import { normalizeDeviceVisibility } from '../../common/utils/landing/deviceVisibility';
+import { normalizeStoryPath } from '../../common/utils/landing/paths';
 
 /**
  * Ограничивает размер истории и позицию индекса.

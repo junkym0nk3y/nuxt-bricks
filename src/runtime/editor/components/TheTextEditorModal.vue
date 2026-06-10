@@ -19,10 +19,10 @@ import {
 import { useNuxtApp } from 'nuxt/app';
 
 // Composables
-import { useLandingConfig } from '../../composables/useLandingConfig';
+import { useLandingConfig } from '../../common/composables/useLandingConfig';
 
 // Pinia
-import { useLandingInlineEditingStore } from '../../stores/landing/inlineEditing';
+import { useLandingInlineEditingStore } from '../stores/inlineEditing';
 
 // Components
 import BricksButton from '../../ui/base/button/BricksButton.vue';

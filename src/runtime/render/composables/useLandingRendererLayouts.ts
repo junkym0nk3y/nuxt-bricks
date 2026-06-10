@@ -9,11 +9,11 @@ import type {
     LandingComponent,
     SectionLayoutProps,
     SliderLayoutProps,
-} from '../../types/landing';
+} from '../../common/types/landing';
 import type { ILandingRendererLayoutsOptions } from '../types/render';
 
 // Utils
-import { convertPxToRem } from '../../utils/main';
+import { convertPxToRem } from '../../common/utils/main';
 
 // Components
 import BricksText from '../../layouts-blocks/components/BricksText.vue';

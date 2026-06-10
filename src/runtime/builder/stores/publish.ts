@@ -1,16 +1,16 @@
 // TODO(persistence, Шаг 6): переедет в runtime/persistence/ при введении StorageAdapter/PublishAdapter
 import { defineStore } from 'pinia';
-import type { LandingSchema } from '../../types/landing';
+import type { LandingSchema } from '../../common/types/landing';
 import type {
     IUpdateLandingPayload,
     IPublishedLandingPageSummary,
     IPublishedPage,
     TPublishFormState,
     TRequestErrorLike,
-} from '../../types/landing-api';
+} from '../../common/types/landing-api';
 import type { IBuilderDraftEntry } from '../types/builder-drafts';
-import { useApiClient } from '../../composables/useApiClient';
-import { toCamelCase, toSnakeCaseShallow } from '../../utils/case-transform';
+import { useApiClient } from '../../common/composables/useApiClient';
+import { toCamelCase, toSnakeCaseShallow } from '../../common/utils/case-transform';
 
 const DEFAULT_BACKGROUND_COLOR = '#FFFFFF';
 const DEFAULT_LAYOUT = 'default';

@@ -1,5 +1,5 @@
-import type { LandingSchema } from '../../types/landing';
-import type { TPublishFormState } from '../../types/landing-api';
+import type { LandingSchema } from '../../common/types/landing';
+import type { TPublishFormState } from '../../common/types/landing-api';
 
 export interface IBuilderDraftSnapshot {
     schema: LandingSchema;

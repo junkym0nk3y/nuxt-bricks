@@ -1,6 +1,6 @@
 // #region Imports
 import type { ILandValues } from '../../types';
-import type { InlineEditingPropType } from '../../stores/landing/inlineEditing';
+import type { InlineEditingPropType } from '../../editor/stores/inlineEditing';
 import type { ILayoutProperty } from '../components/canvas/types';
 // #endregion
 

@@ -2,22 +2,22 @@
 // #region Imports
 // Types
 import type { TViewportType, IDragComposableCanvas } from './types';
-import type { IDeviceVisibilityConfig } from '../../../types/landing';
+import type { IDeviceVisibilityConfig } from '../../../common/types/landing';
 
 // Vue
 import { computed, ref, inject, provide, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
 
 // Pinia
-import { useLandingComponentsStore } from '../../../stores/landing/components';
-import { useLandingCanvasStore } from '../../../stores/landing/canvas';
+import { useLandingComponentsStore } from '../../stores/components';
+import { useLandingCanvasStore } from '../../stores/canvas';
 import { usePublishStore } from '../../stores/publish';
 
 // Composables
-import { useLandingConfig } from '../../../composables/useLandingConfig';
+import { useLandingConfig } from '../../../common/composables/useLandingConfig';
 import { useLandingCanvasDrops } from '../../composables/useLandingCanvasDrops';
 
 // Utils
-import { convertPxToRem } from '../../../utils/main';
+import { convertPxToRem } from '../../../common/utils/main';
 
 // Components
 import BricksCanvasItem from './BricksCanvasItem.vue';

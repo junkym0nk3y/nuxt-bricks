@@ -16,7 +16,7 @@ import {
 } from 'vue';
 
 // Composables
-import { useStoryImports } from '../../composables/useStoryImports';
+import { useStoryImports } from '../../common/composables/useStoryImports';
 // #endregion
 
 const FORCE_RENDER_DEBOUNCE_MS = 500;

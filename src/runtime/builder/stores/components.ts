@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import type { LandingComponent } from '../../types/landing';
+import type { LandingComponent } from '../../common/types/landing';
 import { componentActions } from './componentActions';
 import { loadFavoritesFromStorage } from './actions/favorites';
 import type { ILandingComponentsState, ISelectedComponentData } from './types';

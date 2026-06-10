@@ -10,19 +10,19 @@ import { ref, computed, inject, provide, onMounted, onBeforeUnmount, nextTick, w
 import { useDebounceFn } from '@vueuse/core';
 
 // Pinia
-import { useLandingComponentsStore } from '../../../stores/landing/components';
-import { useLandingCanvasStore } from '../../../stores/landing/canvas';
-import { useLandingSidebarStore } from '../../../stores/landing/sidebar';
+import { useLandingComponentsStore } from '../../stores/components';
+import { useLandingCanvasStore } from '../../stores/canvas';
+import { useLandingSidebarStore } from '../../stores/sidebar';
 import { usePublishStore } from '../../stores/publish';
 
 // Composables
 import { useLandingCanvas } from '../../composables/useLandingCanvas';
-import { useLandingConfig } from '../../../composables/useLandingConfig';
+import { useLandingConfig } from '../../../common/composables/useLandingConfig';
 import { useLandingCanvasDrops } from '../../composables/useLandingCanvasDrops';
 import { useLandingCanvasPan } from '../../composables/useLandingCanvasPan';
 
 // Utils
-import { convertPxToRem } from '../../../utils/main';
+import { convertPxToRem } from '../../../common/utils/main';
 import { scrollToComponentOnCanvas } from '../../utils/scrollToComponent';
 
 // Components

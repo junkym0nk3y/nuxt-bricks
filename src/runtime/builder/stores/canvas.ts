@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { useAppConfig } from 'nuxt/app';
-import type { CanvasState } from '../../types/landing';
-import { convertRemToPx } from '../../utils/main';
+import type { CanvasState } from '../../common/types/landing';
+import { convertRemToPx } from '../../common/utils/main';
 import { useLandingSidebarStore } from './sidebar';
 
 const VIEWPORT_BASE_HEIGHT: Record<'mobile' | 'tablet' | 'desktop', number> = {

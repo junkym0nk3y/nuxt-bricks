@@ -1,13 +1,13 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { FlexLayoutProps } from '../../types/landing';
+import type { FlexLayoutProps } from '../../common/types/landing';
 
 // Vue
 import { computed, ref, inject, type CSSProperties, type Ref } from 'vue';
 
 // Utils
-import { convertPxToRem } from '../../utils/main';
+import { convertPxToRem } from '../../common/utils/main';
 // #endregion
 
 // #region Props

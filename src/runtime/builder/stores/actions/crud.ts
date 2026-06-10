@@ -1,11 +1,11 @@
-import type { LandingComponent } from '../../../types/landing';
+import type { LandingComponent } from '../../../common/types/landing';
 import {
     cloneComponentProps,
     createComponentSlot,
     isLayoutComponent,
     removeChildFromLayout as removeChildFromLayoutHelper,
-} from '../../../utils/landing/components';
-import { generateComponentId, normalizeStoryPath } from '../../../utils/landing/paths';
+} from '../../../common/utils/landing/components';
+import { generateComponentId, normalizeStoryPath } from '../../../common/utils/landing/paths';
 import { useLandingSidebarStore } from '../sidebar';
 import type {
     ILandingComponentsStore,

@@ -1,13 +1,13 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { LandingComponent } from '../../../types/landing';
+import type { LandingComponent } from '../../../common/types/landing';
 
 // Vue
 import { computed, ref } from 'vue';
 
 // Pinia
-import { useLandingComponentsStore } from '../../../stores/landing/components';
+import { useLandingComponentsStore } from '../../stores/components';
 // #endregion
 
 // #region Interfaces

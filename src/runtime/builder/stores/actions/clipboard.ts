@@ -1,6 +1,6 @@
-import type { LandingComponent } from '../../../types/landing';
-import { cloneLandingComponent } from '../../../utils/landing/components';
-import { generateComponentId } from '../../../utils/landing/paths';
+import type { LandingComponent } from '../../../common/types/landing';
+import { cloneLandingComponent } from '../../../common/utils/landing/components';
+import { generateComponentId } from '../../../common/utils/landing/paths';
 import type {
     ILandingComponentsClipboardActions,
     ILandingComponentsStore,

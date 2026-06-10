@@ -3,14 +3,14 @@
 import { defineNuxtPlugin } from '#imports';
 
 // Types
-import type { IPublishedLandingPageSummary } from '../types/landing-api';
+import type { IPublishedLandingPageSummary } from '../common/types/landing-api';
 import type { Router } from 'vue-router';
 
 // Composables
-import { useApiClient } from '../composables/useApiClient';
+import { useApiClient } from '../common/composables/useApiClient';
 
 // Utils
-import { toCamelCase } from '../utils/case-transform';
+import { toCamelCase } from '../common/utils/case-transform';
 // #endregion
 
 const ROUTE_NAME_PREFIX = 'landing-direct-';

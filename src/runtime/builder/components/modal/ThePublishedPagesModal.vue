@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { IPublishedPagesModalProps, IPublishedPagesModalEmits } from './types';
-import type { IPublishedPage } from '../../../types/landing-api';
+import type { IPublishedPage } from '../../../common/types/landing-api';
 
 // Vue
 import { ref, computed, watch } from 'vue';

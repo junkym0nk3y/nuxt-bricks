@@ -1,9 +1,9 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { LandingSchema } from '../../types/landing';
+import type { LandingSchema } from '../../common/types/landing';
 import type { TMediaGalleryContext } from '../../media/types/media';
-import type { TPublishFormState } from '../../types/landing-api';
+import type { TPublishFormState } from '../../common/types/landing-api';
 import type { IBuilderDraftEntry, IBuilderDraftSnapshot } from '../types/builder-drafts';
 
 // Vue
@@ -13,10 +13,10 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { definePageMeta, useHead, useRoute, useRouter, useCookie } from '#imports';
 
 // Pinia
-import { useLandingComponentsStore } from '../../stores/landing/components';
-import { useLandingCanvasStore } from '../../stores/landing/canvas';
-import { useLandingSidebarStore } from '../../stores/landing/sidebar';
-import { useLandingHistoryStore } from '../../stores/landing/history';
+import { useLandingComponentsStore } from '../stores/components';
+import { useLandingCanvasStore } from '../stores/canvas';
+import { useLandingSidebarStore } from '../stores/sidebar';
+import { useLandingHistoryStore } from '../stores/history';
 import { usePublishStore } from '../stores/publish';
 
 // Composables
@@ -24,7 +24,7 @@ import { useLandingBuilderPage } from '../composables/useLandingBuilderPage';
 
 // Utils
 import { serializeSchema } from '../utils/history';
-import { loadFavoritesFromStorage } from '../../stores/landing/actions/favorites';
+import { loadFavoritesFromStorage } from '../stores/actions/favorites';
 
 // Components
 import BricksBuilderToolbar from '../components/toolbar/BricksBuilderToolbar.vue';
