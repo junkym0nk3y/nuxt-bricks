@@ -29,6 +29,20 @@ npx oxlint <changed-file>
 
 ## Architecture
 
+### Доменная структура `src/runtime/` (модульный монолит)
+
+Каждый домен держит свои компоненты/композаблы/типы/утилиты рядом (см. documents/refactor.md):
+
+- `ui/` — Reka UI-кит (base/inputs/feedback/tooltip)
+- `builder/` — редактор: `components/{canvas,sidebar,toolbar,modal}`, `composables/`, `stores/`, `pages/`, `utils/`, `constants/`, `types/`
+- `render/` — рендер опубликованной страницы (самодостаточен, store не использует)
+- `layouts-blocks/` — landing-блоки (Grid/Flex/Section/Slider/...)
+- `editor/` — TipTap: компоненты, расширения (`tiptap/`), inline editing
+- `media/` — медиа-галерея и image resolver
+- `stores/landing/`, `composables/`, `utils/`, `types/` — top-level только общее (2+ доменов)
+
+Направления зависимостей: `builder` → любой домен; `render` — только shared + layouts-blocks; `layouts-blocks` → `stores`, `editor`. Импорты — явные относительные (auto-import локального кода отключён).
+
 ### Component System (Story-based)
 
 1. **Story Files** (`.idaland.ts`) — метаданные компонента + редактируемые свойства (`category`, `values`)
@@ -63,12 +77,12 @@ export const story = {
 - Свойства без `group` отображаются плоско (обратная совместимость)
 - Группы открыты по умолчанию
 
-**Ключевые файлы:**
+**Ключевые файлы** (пути — от `src/runtime/`):
 
 - `types/landing.ts` → `PropertyDefinition.group`
 - `types/index.ts` → `ILandValues.group`
-- `components/canvas/types.d.ts` → `ILayoutProperty.group`
-- `components/sidebar/SidebarPropertyEditors.vue` → рендеринг аккордеонов
+- `builder/components/canvas/types.d.ts` → `ILayoutProperty.group`
+- `builder/components/sidebar/SidebarPropertyEditors.vue` → рендеринг аккордеонов
 
 ### Property Unit Suffix
 
@@ -78,7 +92,7 @@ export const story = {
 { name: 'width', type: 'input', label: 'Width', default: '100%', unit: 'rem' }
 ```
 
-Суффикс отображается в `IdaInput.vue` справа от поля (серый текст, read-only).
+Суффикс отображается в `ui/inputs/BricksInput.vue` справа от поля (серый текст, read-only).
 
 ### Responsive Properties (Адаптивные свойства)
 
@@ -134,20 +148,20 @@ function resolveResponsive(base: number, key: string): number {
 
 **Ключевые файлы:**
 
-- `composables/useLandingResponsiveLayoutStyles.ts` — CSS rules для layout-компонентов
-- `composables/useLandingRendererLayouts.ts` — рендеринг с CSS-переменными (`makeResponsiveVars`)
-- `composables/useCanvasItemLayout.ts` — `effectiveViewport`, `resolveLayoutProps()`
-- `composables/useSidebarPropertiesPanel.ts` — `isResponsiveComponent`, `layoutDeviceScope`
-- `utils/landing/layoutProperties.ts` — разметка `responsive: true` и `group`
+- `layouts-blocks/composables/useLandingResponsiveLayoutStyles.ts` — CSS rules для layout-компонентов
+- `render/composables/useLandingRendererLayouts.ts` — рендеринг с CSS-переменными (`makeResponsiveVars`)
+- `builder/composables/useCanvasItemLayout.ts` — `effectiveViewport`, `resolveLayoutProps()`
+- `builder/composables/useSidebarPropertiesPanel.ts` — `isResponsiveComponent`, `layoutDeviceScope`
+- `builder/utils/layoutProperties.ts` — разметка `responsive: true` и `group`
 
 ### Toolbar: % и rem в letter-spacing / line-height
 
-`IdaToolbarEditableSelect` поддерживает ввод `%` рядом с числовыми значениями. Ввод `120%` для line-height или `5%` для letter-spacing сохраняется как есть в inline style.
+`BricksToolbarEditableSelect` поддерживает ввод `%` рядом с числовыми значениями. Ввод `120%` для line-height или `5%` для letter-spacing сохраняется как есть в inline style.
 
 **Ключевые файлы:**
 
 - `plugins/text-editor-toolbar.ts` — `transformInput` различает `%` и `rem`
-- `components/ui/inputs/IdaToolbarEditableSelect.vue` — `sanitizeNumericInput()` сохраняет `%`
+- `ui/inputs/BricksToolbarEditableSelect.vue` — `sanitizeNumericInput()` сохраняет `%`
 
 ### Canvas & Layout
 
@@ -159,8 +173,8 @@ function resolveResponsive(base: number, key: string): number {
 
 При изменении дефолтов — обновить **ДВА файла** (значения должны совпадать):
 
-1. `constants/layoutComponents.ts` → `defaultProps` (создание компонента)
-2. `utils/landing/layoutProperties.ts` → `default` (редактор свойств)
+1. `builder/constants/layoutComponents.ts` → `defaultProps` (создание компонента)
+2. `builder/utils/layoutProperties.ts` → `default` (редактор свойств)
 
 #### Rem-компенсация (`remBase`)
 
@@ -189,11 +203,11 @@ landing: {
 
 **Ключевые файлы:**
 
-- `composables/useCanvasRemBase.ts` — вычисление коэффициента
-- `composables/useLandingCanvas.ts` — применение к `canvasTransform`
-- `pages/builder.vue` — инлайн `font-size: 10px` на `<html>`
+- `builder/composables/useCanvasRemBase.ts` — вычисление коэффициента
+- `builder/composables/useLandingCanvas.ts` — применение к `canvasTransform`
+- `builder/pages/builder.vue` — инлайн `font-size: 10px` на `<html>`
 
-**Figma Mode:** каждый viewport применяет свою компенсацию через `transform: scale()` на `.canvas` элементе (inject `getRemCompensation` из `LandingCanvas.vue`).
+**Figma Mode:** каждый viewport применяет свою компенсацию через `transform: scale()` на `.canvas` элементе (inject `getRemCompensation` из `BricksCanvas.vue`).
 
 #### Override Container (`overrideContainer`)
 
@@ -229,7 +243,7 @@ landing: {
 **Ключевые файлы:**
 
 - `composables/useLandingStyles.ts` — генерация override CSS
-- `components/render/LandingRenderer.vue` — добавление `data-ida-container`
+- `render/components/BricksRenderer.vue` — добавление `data-ida-container`
 - `plugins/landing-styles.ts` — инжектит стили на все страницы (и builder, и published)
 
 ### Inline Editing (TipTap)
@@ -298,6 +312,6 @@ Markdown-статьи во встроенной документации бил�
 
 **Критические нюансы:**
 
-- **`normalizePublishedPage` дублируется** в `store/publish.ts` и `middleware/landing-page-layout.global.ts` — обновлять **обе** копии при добавлении полей
+- **`normalizePublishedPage` дублируется** в `builder/stores/publish.ts` и `middleware/landing-page-layout.global.ts` — обновлять **обе** копии при добавлении полей
 - **`validateOptionalRoutingFields`** — отдельный action в store, чтобы не превышать complexity (max 20)
 - Preview (`?preview=true`) не проверяет subdomain

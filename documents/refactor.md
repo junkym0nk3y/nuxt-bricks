@@ -40,21 +40,21 @@ nuxt-bricks/
 ├── src/
 │   ├── module.ts                 # defineNuxtModule — регистрирует всё
 │   └── runtime/
-│       ├── ui/                   # headless UI-кит на Reka UI (бывш. components/ui)
-│       ├── builder/              # canvas + sidebar + toolbar (редактор)
-│       ├── render/               # рендер опубликованной страницы
-│       ├── layouts-blocks/       # landing-блоки (Grid/Flex/Section/Slider/...)
-│       ├── editor/               # tiptap rich-text
-│       ├── media/                # галерея/медиа-пикеры
-│       ├── persistence/          # storage/publish-абстракция + адаптеры
-│       ├── stores/               # pinia stores (landing/*)
-│       ├── composables/          # общие композаблы
-│       ├── pages/                # builder + landing страницы
-│       ├── plugins/              # nuxt-плагины
-│       ├── server/               # api-ручки (через persistence)
-│       ├── assets/scss/          # стили, токены (дебрендинг префиксов)
-│       ├── utils/                # утилиты (db/landing/routing/story-gen)
-│       └── types/                # типы
+│       ├── ui/                   # headless UI-кит на Reka UI (base/inputs/feedback/tooltip)
+│       ├── builder/              # редактор: components/{canvas,sidebar,toolbar,modal},
+│       │                         #   composables/, stores/(publish), pages/, utils/, constants/, types/
+│       ├── render/               # рендер опубликованной страницы: components/, composables/, pages/, types/
+│       ├── layouts-blocks/       # landing-блоки (Grid/Flex/Section/Slider/...): components/, composables/, utils/, types/
+│       ├── editor/               # tiptap rich-text: components/, composables/, tiptap/(расширения), utils/, types/
+│       ├── media/                # галерея/медиа-пикеры: components/, composables/, stores/, utils/, types/
+│       ├── persistence/          # (Шаг 6, не создан) storage/publish-абстракция + адаптеры
+│       ├── stores/landing/       # общий pinia store (потребляют builder + layouts-blocks + editor)
+│       ├── composables/          # ТОЛЬКО общие (useLandingConfig, useStoryImports, useApiClient, useLandingStyles)
+│       ├── plugins/              # nuxt-плагины (тонкие entry-points, импортируют из доменов)
+│       ├── server/               # api-ручки + utils/db (→ persistence на Шаге 6)
+│       ├── assets/scss/          # стили, токены
+│       ├── utils/                # общие утилиты (landing/{paths,components,deviceVisibility}, routing/ — build-time)
+│       └── types/                # общие типы (landing, config, global, landing-api)
 ├── playground/                   # demo Nuxt-app для разработки/проверки
 ├── test/                         # vitest + @nuxt/test-utils
 ├── build.config.ts               # unbuild config (module-builder)
@@ -63,14 +63,22 @@ nuxt-bricks/
 ```
 
 > Деление на домены = **Modular Approach**: каждый домен держит свои компоненты/композаблы/типы рядом.
-> `builder` зависит от `ui`/`stores`/`render`; `render` самодостаточен (нужен потребителю для показа лендинга).
+> `builder` может зависеть от любого домена; `render` самодостаточен (только shared + layouts-blocks);
+> `layouts-blocks` → `stores`, `editor`; `ui` → `editor` только lazy.
+
+### Зафиксированные кросс-доменные связки (tech-debt)
+
+- `stores/landing/` — top-level, а не в `builder/`: `BricksSlider` статически импортирует `useLandingCanvasStore`, `BricksText/BricksTitle` — inline-editing. Развязать через provide/inject → store опустится в `builder/`.
+- `ui/inputs/BricksTextArea.vue` лениво (`import()`) тянет `editor/` (TheTextEditorModal, tiptap-расширения) — кандидат на развязку.
+- `middleware/landing-page-layout.global.ts` нигде не регистрируется (`module.ts` без `addRouteMiddleware`) — pre-existing gap.
+- Будущие md-статьи документации класть в `runtime/builder/docs/guide/` (glob `../docs/guide/**/*.md` в `useDocumentationArticles`).
 
 ## Статус выполнения (обновлено 2026-06-10)
 
 | Шаг                         | Статус       | Комментарий                                                                                                                                                                                                                                                             |
 | --------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0. Scaffold модуля          | ✅ Готово    | `src/module.ts`, `build.config.ts`, `playground/`, пакет `nuxt-bricks@0.1.0` на `@nuxt/module-builder`                                                                                                                                                                  |
-| 1. Перенос в `src/runtime/` | ✅ Готово    | Структура зеркалирует ida-landing (осознанное решение вместо доменного деления)                                                                                                                                                                                         |
+| 1. Перенос в `src/runtime/` | ✅ Готово    | Доменное деление выполнено (2026-06-10): домены ui/builder/render/layouts-blocks/editor/media + общие stores/composables/utils/types. Перенос — одноразовым codemod (git mv + переписывание ~600 относительных импортов), скрипт удалён после миграции                  |
 | 2. `module.ts` регистрация  | ✅ Готово    | —                                                                                                                                                                                                                                                                       |
 | 3. Дебрендинг               | ✅ Готово    | Компоненты `Landing*` → `Bricks*` (20 файлов), `IIda*` → `IBricks*`, `BricksClodeModal` → `BricksCloseButton`, удалены пустые `types/shims-idaproject-*`. Композаблы `useLanding*` и типы `ILanding*` оставлены — «landing» доменное имя, не бренд                       |
 | 4. UI → Reka UI             | ✅ Готово    | См. таблицу маппинга ниже — у каждой строки проставлен статус                                                                                                                                                                                                           |
@@ -81,13 +89,13 @@ nuxt-bricks/
 
 ### Известные доработки (pre-existing, не блокируют)
 
-`npx vue-tsc --noEmit` падает в файлах, не связанных с Reka-миграцией:
+`npx vue-tsc --noEmit` падает в файлах, не связанных с Reka-миграцией (18 ошибок):
 
-- `components/canvas/BricksCanvas.vue`, `layouts/BricksGrid.vue`, `layouts/BricksSpace.vue` — TS2769 (computed возвращает union с `undefined`-полями, не совместим с `Record<string, string>`)
-- `composables/useApiClient.ts`, `useModals.ts`, `useLandingBuilderPage.ts`, `plugins/landing-dynamic-routes.ts` — TS2304: nuxt auto-imports (`useRuntimeConfig`, `useCookie`, `useRouter`, `useState`) и кросс-композабл импорты не резолвятся при standalone `vue-tsc` — нужно явное импортирование из `#imports`/относительных путей
-- `composables/useLandingRendererLayouts.ts` — oxlint `max-lines` (1021 строка при лимите 1000) — нужно разнести на части
-- `composables/useDocumentationArticles.ts` — `import.meta.glob` с `query` не типизируется
-- `pages/landing/[pagename].vue` — типизация `useAsyncData`-обёртки
+- `builder/components/canvas/BricksCanvas.vue`, `layouts-blocks/components/BricksGrid.vue`, `BricksSpace.vue` — TS2769 (computed возвращает union с `undefined`-полями, не совместим с `Record<string, string>`)
+- `composables/useApiClient.ts`, `plugins/landing-dynamic-routes.ts` — TS2304: nuxt auto-imports (`useRuntimeConfig`, `useCookie`, `useRouter`, `useState`) не резолвятся при standalone `vue-tsc` — нужно явное импортирование из `#imports` (кросс-композабл импорты в `useModals`/`useLandingBuilderPage` починены явными импортами при доменной миграции)
+- `render/composables/useLandingRendererLayouts.ts` — oxlint `max-lines` (1021 строка при лимите 1000) — нужно разнести на части
+- `builder/composables/useDocumentationArticles.ts` — `import.meta.glob` с `query` не типизируется
+- `render/pages/[pagename].vue` — типизация `useAsyncData`-обёртки
 - `middleware/landing-page-layout.global.ts` — `LayoutKey` из `#build/types/layouts`
 - `server/middleware/proxy.client.ts` — TS2345
 
