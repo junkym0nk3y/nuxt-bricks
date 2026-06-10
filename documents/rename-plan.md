@@ -63,7 +63,14 @@
 - `CanvasItemLayout.vue` — импорты `BricksCanvasItem`, `ConditionalContainer` (~29–30). Импорты `Bricks*`-блоков из layouts-blocks НЕ трогать (шаги 8–9).
 - Комментарии/логи: `useCanvasItemActions.ts:169` (`[BricksCanvasItem]`), `editor/composables/useLandingInlineEditor.ts:282` (коммент про Escape).
 
-## Шаг 3. sidebar — корень и дети ✅/❌
+## Шаг 3. sidebar — корень и дети ✅ (2026-06-11)
+
+> Примечание: корневым классом `ComponentCard.vue` оказался `.cardWrapper` → переименован
+> в `.SidebarComponentCard`; внутренний `.ComponentCard` → `.cardInner`. Заодно зачищены
+> старые имена в типах: `IBuilderSidebarExpose` → `ISidebarExpose`,
+> `IComponentCardProps` → `ISidebarComponentCardProps`, `ISchemaTreeItemProps` →
+> `ISidebarSchemaTreeItemProps`, реф `builderSidebarRef` → `sidebarRef`.
+> Рекурсивный self-тег в `SidebarSchemaTreeItem.vue` обновлён (резолвится по имени файла).
 
 | git mv (в `modules/builder/components/sidebar/`) | Новый корневой класс |
 | ------------------------------------------------ | -------------------- |

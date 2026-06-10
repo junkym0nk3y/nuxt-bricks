@@ -19,7 +19,7 @@ import type { useLandingSidebarStore } from '../stores/sidebar';
 import type { useLandingHistoryStore } from '../stores/history';
 import type { usePublishStore } from '../stores/publish';
 import type { IMediaItem, TMediaGalleryContext } from '../../media/types/media';
-import type { IBuilderSidebarExpose } from './builder';
+import type { ISidebarExpose } from './builder';
 import type { IImageResolverState, TImageResolveAction } from '../../media/types/schemaImageResolver';
 
 // #region useComponentSlots
@@ -64,7 +64,7 @@ export interface IUseLandingBuilderPageReturn {
     isDocumentationModalOpen: Ref<boolean>;
     isMediaGalleryModalOpen: Ref<boolean>;
     mediaGalleryContext: Ref<TMediaGalleryContext>;
-    builderSidebarRef: Ref<IBuilderSidebarExpose | null>;
+    sidebarRef: Ref<ISidebarExpose | null>;
     toast: IBuilderToastState;
     isEditingExistingPage: ComputedRef<boolean>;
     hasSelectedComponent: ComputedRef<boolean>;

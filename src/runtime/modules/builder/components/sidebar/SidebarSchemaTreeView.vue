@@ -23,7 +23,7 @@ import { scrollToComponentOnCanvas } from '../../utils/scrollToComponent';
 import { LAYOUT_COMPONENTS } from '../../constants/layoutComponents';
 
 // Components
-import SchemaTreeItem from './SchemaTreeItem.vue';
+import SidebarSchemaTreeItem from './SidebarSchemaTreeItem.vue';
 import BricksCloseButton from '../../../ui/base/modal/BricksCloseButton.vue';
 // #endregion
 
@@ -191,7 +191,7 @@ async function handleSelectComponent(id: string): Promise<void> {
 
         <div :class="[$style.content, 'scrollbox']">
             <div v-if="hasComponents" :class="$style.tree">
-                <SchemaTreeItem
+                <SidebarSchemaTreeItem
                     v-for="(component, index) in rootComponents"
                     :key="component.id"
                     :component="component"

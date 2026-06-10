@@ -4,7 +4,7 @@
 
 import type { ComponentLibraryItem } from '../../../common/types/landing';
 
-export interface IComponentCardProps {
+export interface ISidebarComponentCardProps {
     component: ComponentLibraryItem;
     isLayout?: boolean;
 }

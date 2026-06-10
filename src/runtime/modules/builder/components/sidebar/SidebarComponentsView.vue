@@ -10,7 +10,7 @@ import { computed, ref } from 'vue';
 import { loadFavoritesFromStorage } from '../../stores/actions/favorites';
 
 // Components
-import ComponentCard from './ComponentCard.vue';
+import SidebarComponentCard from './SidebarComponentCard.vue';
 import BricksCloseButton from '../../../ui/base/modal/BricksCloseButton.vue';
 // #endregion
 
@@ -167,7 +167,7 @@ function handleClose(): void {
                             : $style.componentListSingle,
                     ]"
                 >
-                    <ComponentCard
+                    <SidebarComponentCard
                         v-for="component in groupedComponents"
                         :key="component.storyPath"
                         :component="component"

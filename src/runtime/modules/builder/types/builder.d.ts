@@ -1,5 +1,5 @@
 import type { IMediaItem } from '../../media/types/media';
 
-export interface IBuilderSidebarExpose {
+export interface ISidebarExpose {
     handleMediaSelect: (item: IMediaItem) => void;
 }

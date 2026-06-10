@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IComponentCardProps, IDragComposable } from './types';
+import type { ISidebarComponentCardProps, IDragComposable } from './types';
 import type { ILandExportModule } from '../../../common/types/index';
 
 // Vue
@@ -34,7 +34,7 @@ import { convertRemToPx } from '../../../common/utils/main';
 // #endregion
 
 // #region Props
-const props = withDefaults(defineProps<IComponentCardProps>(), {
+const props = withDefaults(defineProps<ISidebarComponentCardProps>(), {
     isLayout: false,
 });
 // #endregion
@@ -245,11 +245,11 @@ watch(
  * @param event - DragEvent от браузера
  */
 function handleDragStart(event: DragEvent): void {
-    console.log('[ComponentCard] Drag start:', props.component.name);
+    console.log('[SidebarComponentCard] Drag start:', props.component.name);
     if (dragComposable) {
         dragComposable.startDrag(props.component, event);
     } else {
-        console.error('[ComponentCard] No drag composable found!');
+        console.error('[SidebarComponentCard] No drag composable found!');
     }
 }
 
@@ -259,8 +259,8 @@ function handleDragStart(event: DragEvent): void {
 <template>
     <BricksTooltip v-if="props.component.description" bottom>
         <template #activator>
-            <div :class="$style.cardWrapper" draggable="true" @dragstart="handleDragStart">
-                <div :class="$style.ComponentCard">
+            <div :class="$style.SidebarComponentCard" draggable="true" @dragstart="handleDragStart">
+                <div :class="$style.cardInner">
                     <!-- Контейнер миниатюры -->
                     <div :class="[$style.thumbnail, { [$style.layoutThumbnail]: props.isLayout }]">
                         <!-- Статичная превью-картинка для layout-компонентов -->
@@ -312,8 +312,8 @@ function handleDragStart(event: DragEvent): void {
         </template>
     </BricksTooltip>
 
-    <div v-else :class="$style.cardWrapper" draggable="true" @dragstart="handleDragStart">
-        <div :class="$style.ComponentCard">
+    <div v-else :class="$style.SidebarComponentCard" draggable="true" @dragstart="handleDragStart">
+        <div :class="$style.cardInner">
             <!-- Контейнер миниатюры -->
             <div :class="[$style.thumbnail, { [$style.layoutThumbnail]: props.isLayout }]">
                 <!-- Статичная превью-картинка для layout-компонентов -->
@@ -356,7 +356,7 @@ function handleDragStart(event: DragEvent): void {
 </template>
 
 <style module lang="scss">
-.cardWrapper {
+.SidebarComponentCard {
     box-sizing: border-box;
     overflow: hidden;
     width: 100%;
@@ -378,7 +378,7 @@ function handleDragStart(event: DragEvent): void {
     }
 }
 
-.ComponentCard {
+.cardInner {
     display: flex;
     flex-direction: column;
     width: 100%;

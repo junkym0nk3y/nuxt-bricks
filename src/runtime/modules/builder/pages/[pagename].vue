@@ -29,7 +29,7 @@ import { loadFavoritesFromStorage } from '../stores/actions/favorites';
 // Components
 import BricksBuilderToolbar from '../components/toolbar/BricksBuilderToolbar.vue';
 import BuilderVerticalNav from '../components/toolbar/BuilderVerticalNav.vue';
-import BuilderSidebar from '../components/sidebar/BuilderSidebar.vue';
+import TheSidebar from '../components/sidebar/TheSidebar.vue';
 import TheCanvas from '../components/canvas/TheCanvas.vue';
 import BuilderLoader from '../components/BuilderLoader.vue';
 import ThePublishedPagesModal from '../components/modal/ThePublishedPagesModal.vue';
@@ -64,7 +64,7 @@ const {
     isDocumentationModalOpen,
     isMediaGalleryModalOpen,
     mediaGalleryContext,
-    builderSidebarRef,
+    sidebarRef,
     toast,
     isEditingExistingPage,
     hasSelectedComponent,
@@ -549,8 +549,8 @@ onBeforeUnmount(() => {
                 @toggle-dark-mode="handleToggleDarkMode"
             />
 
-            <BuilderSidebar
-                ref="builderSidebarRef"
+            <TheSidebar
+                ref="sidebarRef"
                 :components="componentLibraryList"
                 @open-media-gallery="handleOpenMediaGalleryWithContext"
                 @import-schema="handleImportSchema"

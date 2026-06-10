@@ -11,7 +11,7 @@ import { useLandingComponentsStore } from '../../stores/components';
 // #endregion
 
 // #region Interfaces
-interface ISchemaTreeItemProps {
+interface ISidebarSchemaTreeItemProps {
     component: LandingComponent;
     depth?: number;
     isLast?: boolean;
@@ -19,7 +19,7 @@ interface ISchemaTreeItemProps {
 // #endregion
 
 // #region Props
-const props = withDefaults(defineProps<ISchemaTreeItemProps>(), {
+const props = withDefaults(defineProps<ISidebarSchemaTreeItemProps>(), {
     depth: 0,
     isLast: false,
 });
@@ -139,7 +139,7 @@ function handleDrop(event: DragEvent): void {
 </script>
 
 <template>
-    <div :class="[$style.SchemaTreeItem, { [$style._hasChildren]: hasChildren }]">
+    <div :class="[$style.SidebarSchemaTreeItem, { [$style._hasChildren]: hasChildren }]">
         <div :class="$style.rowWrapper">
             <!-- Линии дерева -->
             <div
@@ -201,7 +201,7 @@ function handleDrop(event: DragEvent): void {
         </div>
 
         <div v-if="hasChildren" :class="$style.children">
-            <SchemaTreeItem
+            <SidebarSchemaTreeItem
                 v-for="(child, index) in childComponents"
                 :key="child.id"
                 :component="child"
@@ -218,7 +218,7 @@ function handleDrop(event: DragEvent): void {
 </template>
 
 <style module lang="scss">
-.SchemaTreeItem {
+.SidebarSchemaTreeItem {
     position: relative;
     width: 100%;
 }

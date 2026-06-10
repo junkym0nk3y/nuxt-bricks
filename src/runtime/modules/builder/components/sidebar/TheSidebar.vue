@@ -124,7 +124,7 @@ defineExpose({
 
 <template>
     <Transition name="sidebar-slide">
-        <aside v-show="isVisible" :class="$style.Sidebar" :style="{ width: sidebarWidth }">
+        <aside v-show="isVisible" :class="$style.TheSidebar" :style="{ width: sidebarWidth }">
             <Transition name="library-sidebar-view" mode="out-in">
                 <SidebarComponentsView
                     v-if="activeView === 'components'"
@@ -161,7 +161,7 @@ defineExpose({
 </template>
 
 <style module lang="scss">
-.Sidebar {
+.TheSidebar {
     position: fixed;
     top: 6rem;
     bottom: 0;

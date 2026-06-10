@@ -2,7 +2,7 @@
 // Types
 import type { ComponentLibraryItem, LandingSchema } from '../../common/types/landing';
 import type { IMediaItem, TMediaGalleryContext } from '../../media/types/media';
-import type { IBuilderSidebarExpose } from '../types/builder';
+import type { ISidebarExpose } from '../types/builder';
 import type { IBuilderToastState, IUseLandingBuilderPageReturn } from '../types/composables';
 
 // Vue
@@ -147,7 +147,7 @@ export async function useLandingBuilderPage(): Promise<IUseLandingBuilderPageRet
     const isDocumentationModalOpen = ref(false);
     const isMediaGalleryModalOpen = ref(false);
     const mediaGalleryContext = ref<TMediaGalleryContext>('manager');
-    const builderSidebarRef = ref<IBuilderSidebarExpose | null>(null);
+    const sidebarRef = ref<ISidebarExpose | null>(null);
     const toast = reactive<IBuilderToastState>({
         visible: false,
         message: '',
@@ -680,7 +680,7 @@ export async function useLandingBuilderPage(): Promise<IUseLandingBuilderPageRet
             return;
         }
 
-        builderSidebarRef.value?.handleMediaSelect(item);
+        sidebarRef.value?.handleMediaSelect(item);
         isMediaGalleryModalOpen.value = false;
         mediaGalleryContext.value = 'manager';
     }
@@ -756,7 +756,7 @@ export async function useLandingBuilderPage(): Promise<IUseLandingBuilderPageRet
         isDocumentationModalOpen,
         isMediaGalleryModalOpen,
         mediaGalleryContext,
-        builderSidebarRef,
+        sidebarRef,
         toast,
         isEditingExistingPage,
         hasSelectedComponent,
