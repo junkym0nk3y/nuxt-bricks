@@ -46,7 +46,7 @@ export function useCanvasItemInlineEditing(
     );
     // #endregion
 
-    // Provide inline-editing контекст для дочерних layout-компонентов (BricksTitle, BricksText)
+    // Provide inline-editing контекст для дочерних layout-компонентов (BlockTitle, BlockText)
     provide('inlineEditingContext', {
         componentId: computed(() => (isInlineEditing.value ? props.component.id : null)),
         propName: computed(() => (isInlineEditing.value ? inlineEditingStore.propName : null)),

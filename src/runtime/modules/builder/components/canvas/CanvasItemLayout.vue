@@ -20,12 +20,12 @@ import BlockGrid from '../../../layouts-blocks/components/BlockGrid.vue';
 import BlockFlex from '../../../layouts-blocks/components/BlockFlex.vue';
 import BlockSection from '../../../layouts-blocks/components/BlockSection.vue';
 import BlockSpace from '../../../layouts-blocks/components/BlockSpace.vue';
-import BricksTitle from '../../../layouts-blocks/components/BricksTitle.vue';
-import BricksText from '../../../layouts-blocks/components/BricksText.vue';
+import BlockTitle from '../../../layouts-blocks/components/BlockTitle.vue';
+import BlockText from '../../../layouts-blocks/components/BlockText.vue';
 import BlockMedia from '../../../layouts-blocks/components/BlockMedia.vue';
-import BricksSvg from '../../../layouts-blocks/components/BricksSvg.vue';
-import BricksSlider from '../../../layouts-blocks/components/BricksSlider.vue';
-import BricksAccordion from '../../../layouts-blocks/components/BricksAccordion.vue';
+import BlockSvg from '../../../layouts-blocks/components/BlockSvg.vue';
+import BlockSlider from '../../../layouts-blocks/components/BlockSlider.vue';
+import BlockAccordion from '../../../layouts-blocks/components/BlockAccordion.vue';
 import CanvasItem from './CanvasItem.vue';
 import CanvasConditionalContainer from './CanvasConditionalContainer.vue';
 // #endregion
@@ -113,14 +113,14 @@ const renderLayoutChild = (child: LandingComponent) =>
             :layout-props="props.layoutProps as SpaceProps"
         />
 
-        <BricksTitle
+        <BlockTitle
             v-else-if="props.layoutName === 'title'"
             :id="props.component.htmlId || undefined"
             :component-id="props.component.id"
             v-bind="props.componentBoundProps"
         />
 
-        <BricksText
+        <BlockText
             v-else-if="props.layoutName === 'text'"
             :id="props.component.htmlId || undefined"
             :component-id="props.component.id"
@@ -136,7 +136,7 @@ const renderLayoutChild = (child: LandingComponent) =>
             :border-radius="(props.layoutProps as Record<string, string | number>).borderRadius"
         />
 
-        <BricksSlider
+        <BlockSlider
             v-else-if="props.layoutName === 'slider'"
             :id="props.component.htmlId || undefined"
             :layout-props="props.layoutProps as SliderLayoutProps"
@@ -146,14 +146,14 @@ const renderLayoutChild = (child: LandingComponent) =>
             :is-editor="true"
         />
 
-        <BricksSvg
+        <BlockSvg
             v-else-if="props.layoutName === 'svg'"
             :id="props.component.htmlId || undefined"
             :component-id="props.component.id"
             v-bind="props.componentBoundProps"
         />
 
-        <BricksAccordion
+        <BlockAccordion
             v-else-if="props.layoutName === 'accordion'"
             :id="props.component.htmlId || undefined"
             :layout-props="props.layoutProps as AccordionLayoutProps"

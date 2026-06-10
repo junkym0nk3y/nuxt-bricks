@@ -17,7 +17,7 @@ import { Navigation, Pagination, Autoplay, A11y } from 'swiper/modules';
 
 // #region Components
 const SlideRenderer = defineComponent({
-    name: 'BricksSliderSlideRenderer',
+    name: 'BlockSliderSlideRenderer',
     props: {
         component: {
             type: Object as PropType<LandingComponent>,
@@ -417,7 +417,7 @@ function updateDropIndicator(event: DragEvent): void {
     <div
         ref="sliderRef"
         :class="[
-            $style.BricksSlider,
+            $style.BlockSlider,
             {
                 [$style._editor]: isEditor,
                 [$style._empty]: !hasSlides,
@@ -511,7 +511,7 @@ function updateDropIndicator(event: DragEvent): void {
 </template>
 
 <style module lang="scss">
-.BricksSlider {
+.BlockSlider {
     position: relative;
     overflow: hidden;
     width: 100%;

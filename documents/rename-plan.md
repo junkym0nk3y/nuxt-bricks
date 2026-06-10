@@ -183,7 +183,12 @@
 - `builder/components/canvas/CanvasItemLayout.vue` — импорты (~19–27) + теги `<BricksGrid>` и т.д.
 - `render/composables/useLandingRendererLayouts.ts:21` — импорт `BricksMedia` + использование в `h()`.
 
-## Шаг 9. layouts-blocks, часть 2: Svg/Slider/Text/Title/Accordion ✅/❌
+## Шаг 9. layouts-blocks, часть 2: Svg/Slider/Text/Title/Accordion ✅ (2026-06-11)
+
+> Примечание: заодно переименован внутренний рендерер слайдов
+> `BricksSliderSlideRenderer` → `BlockSliderSlideRenderer` (BlockSlider.vue) и
+> упоминание `BricksText` в комментарии `assets/scss/default.scss`. Глобальный
+> класс `bricks-text` в `BlockText.vue` не трогался (не CSS Module).
 
 | git mv (в `modules/layouts-blocks/components/`) | Новый корневой класс |
 | ------------------------------------------------ | -------------------- |

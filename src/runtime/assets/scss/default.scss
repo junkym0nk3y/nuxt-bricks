@@ -165,7 +165,7 @@ body.bricks-page {
     }
 
     // Block-контент (ul, ol, p, blockquote, table) — только внутри rich-text контейнеров.
-    // [data-tiptap-content] — v-html в BricksText, .ProseMirror — TipTap-редактор.
+    // [data-tiptap-content] — v-html в BlockText, .ProseMirror — TipTap-редактор.
     // Без этого ограничения ul/ol в вёрстке компонентов (навигация, фичи и т.д.) получают лишний padding.
     .bricks-text [data-tiptap-content],
     .ProseMirror {
