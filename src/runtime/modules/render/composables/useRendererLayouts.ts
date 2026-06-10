@@ -57,7 +57,7 @@ function makeResponsiveVars(
  * @param options - Опции с данными схемы, стилями и функцией рендеринга дочерних компонентов.
  * @returns Объект с функциями needsContainerWrapper и renderLayoutComponent.
  */
-export function useLandingRendererLayouts({
+export function useRendererLayouts({
     allComponents,
     styles,
     renderChild,

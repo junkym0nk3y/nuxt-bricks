@@ -244,7 +244,9 @@
 - `useInlineEditor`: `editor/stores/inlineEditing.ts`, `layouts-blocks/components/BlockText.vue`, `BlockTitle.vue`.
 - `useResponsive*Styles`: `plugins/landing-styles.ts` (вне `modules/`, путь `src/runtime/plugins/`).
 
-## Шаг 12. composables render ✅/❌
+## Шаг 12. composables render ✅ (2026-06-11)
+
+> Примечание: заодно обновлена строка render в `common/composables/README.md`.
 
 | git mv (в `modules/render/composables/`) | Функция |
 | ------------------------------------------ | ------- |

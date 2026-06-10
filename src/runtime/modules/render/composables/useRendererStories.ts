@@ -84,7 +84,7 @@ async function loadStoryComponent(
  * @param options - Опции, содержащие функцию поиска loader-а по пути story.
  * @returns Утилиты для резолва story-компонентов.
  */
-export function useLandingRendererStories({
+export function useRendererStories({
     findImportModule,
 }: ILandingRendererStoryResolverOptions) {
     /**

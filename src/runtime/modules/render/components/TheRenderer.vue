@@ -9,8 +9,8 @@ import { computed, h, useCssModule } from 'vue';
 
 // Composables
 import { useStoryImports } from '../../common/composables/useStoryImports';
-import { useLandingRendererStories } from '../composables/useLandingRendererStories';
-import { useLandingRendererLayouts } from '../composables/useLandingRendererLayouts';
+import { useRendererStories } from '../composables/useRendererStories';
+import { useRendererLayouts } from '../composables/useRendererLayouts';
 import { useLandingConfig } from '../../common/composables/useLandingConfig';
 
 // Components
@@ -33,9 +33,9 @@ const props = withDefaults(defineProps<ILandingRendererProps>(), {
 // #region Data
 const styles = useCssModule();
 const { findImportModule } = useStoryImports();
-const { resolveStoryComponent } = useLandingRendererStories({ findImportModule });
+const { resolveStoryComponent } = useRendererStories({ findImportModule });
 const allComponents = computed(() => props.allComponents ?? []);
-const { renderLayoutComponent, needsContainerWrapper } = useLandingRendererLayouts({
+const { renderLayoutComponent, needsContainerWrapper } = useRendererLayouts({
     allComponents,
     styles,
     renderChild: (component) => renderComponent(component),

@@ -11,7 +11,7 @@ import { createError, useNuxtData } from '#imports';
 
 // Composables
 import { useStoryImports } from '../../common/composables/useStoryImports';
-import { useLandingRendererStories } from '../composables/useLandingRendererStories';
+import { useRendererStories } from '../composables/useRendererStories';
 import { useLandingDataSources } from '../composables/useLandingDataSources';
 import { useLandingConfig } from '../../common/composables/useLandingConfig';
 import { normalizeStoryPath } from '../../common/utils/landing/paths';
@@ -49,7 +49,7 @@ if (!page.value && !isPreview) {
 }
 
 const { findImportModule } = useStoryImports();
-const { prefetchStoryComponent } = useLandingRendererStories({ findImportModule });
+const { prefetchStoryComponent } = useRendererStories({ findImportModule });
 const { executeDataSource: executeDataSourceRequest } = useLandingDataSources();
 const dataSourceKey = `landing-datasources-${pagename}-${isPreview ? 'preview' : 'live'}`;
 
