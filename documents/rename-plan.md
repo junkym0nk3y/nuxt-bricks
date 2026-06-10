@@ -226,7 +226,12 @@
 - `useCanvas`, `useCanvasPan`: `canvas/TheCanvas.vue`.
 - `useCanvasDrops`: `canvas/TheCanvas.vue`, `canvas/CanvasViewport.vue`.
 
-## Шаг 11. composables editor + layouts-blocks ✅/❌
+## Шаг 11. composables editor + layouts-blocks ✅ (2026-06-11)
+
+> Примечание: заодно переименованы внутренние типы `IUseLandingInlineEditorOptions`/
+> `IUseLandingInlineEditorReturn` → `IUseInlineEditor*` и обновлены строки в
+> `common/composables/README.md`. Стор `useLandingInlineEditingStore` не тронут
+> (сторы не входят в шаг).
 
 | git mv | Функция |
 | ------ | ------- |

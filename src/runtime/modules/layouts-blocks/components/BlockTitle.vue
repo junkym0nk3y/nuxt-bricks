@@ -11,7 +11,7 @@ import { computed, inject, watch, useCssModule, type ComputedRef } from 'vue';
 import { applyColorToSvgContent } from '../utils/inlineContent';
 
 // Composables
-import { useLandingInlineEditor } from '../../editor/composables/useLandingInlineEditor';
+import { useInlineEditor } from '../../editor/composables/useInlineEditor';
 // #endregion
 
 // #region Interfaces
@@ -59,7 +59,7 @@ const $style = useCssModule();
 const inlineEditingContext = inject<IInlineEditingContext | null>('inlineEditingContext', null);
 
 const inlineEditor = props.componentId
-    ? useLandingInlineEditor({
+    ? useInlineEditor({
           componentId: props.componentId,
           propName: 'inlineContent',
           propType: 'inline-content',

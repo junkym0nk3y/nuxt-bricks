@@ -16,7 +16,7 @@ import { useLandingConfig } from '../../common/composables/useLandingConfig';
  *
  * Реализация SSR-safe: никаких JS device detection, только CSS.
  */
-export function useLandingResponsiveLayoutStyles(): void {
+export function useResponsiveLayoutStyles(): void {
     const config = useLandingConfig();
     const breakpoints = config.breakpoints;
 

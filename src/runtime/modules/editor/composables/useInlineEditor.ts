@@ -26,13 +26,13 @@ import { segmentsToTiptapDoc, tiptapDocToSegments } from '../utils/inlineContent
 // #endregion
 
 // #region Interfaces
-interface IUseLandingInlineEditorOptions {
+interface IUseInlineEditorOptions {
     componentId: string;
     propName: string;
     propType: InlineEditingPropType;
 }
 
-interface IUseLandingInlineEditorReturn {
+interface IUseInlineEditorReturn {
     editor: ShallowRef<Editor | null>;
     editorContent: ShallowRef<Component | null>;
     isActive: ComputedRef<boolean>;
@@ -49,9 +49,9 @@ interface IUseLandingInlineEditorReturn {
  *
  * @param options - ID компонента, имя свойства, тип свойства.
  */
-export function useLandingInlineEditor(
-    options: IUseLandingInlineEditorOptions
-): IUseLandingInlineEditorReturn {
+export function useInlineEditor(
+    options: IUseInlineEditorOptions
+): IUseInlineEditorReturn {
     const componentsStore = useLandingComponentsStore();
     const inlineEditingStore = useLandingInlineEditingStore();
 
@@ -237,7 +237,7 @@ export function useLandingInlineEditor(
             // Публикуем editor в store для доступа из CanvasInlineEditingOverlay
             inlineEditingStore.setEditor(editor.value);
         } catch (error) {
-            console.error('[useLandingInlineEditor] Failed to init editor:', error);
+            console.error('[useInlineEditor] Failed to init editor:', error);
         }
     }
 

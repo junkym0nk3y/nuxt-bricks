@@ -15,7 +15,7 @@ import { useLandingConfig } from '../../common/composables/useLandingConfig';
  *
  * Реализация SSR-safe: правила задаются через CSS (`display: none`), без JS device detection.
  */
-export function useLandingResponsiveVisibilityStyles(): void {
+export function useResponsiveVisibilityStyles(): void {
     const config = useLandingConfig();
     const breakpoints = config.breakpoints;
 

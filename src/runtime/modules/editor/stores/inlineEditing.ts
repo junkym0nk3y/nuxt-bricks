@@ -193,7 +193,7 @@ export const useLandingInlineEditingStore = defineStore('landingInlineEditing', 
 
     /**
      * Регистрирует активный TipTap editor-инстанс.
-     * Вызывается из useLandingInlineEditor после инициализации TipTap.
+     * Вызывается из useInlineEditor после инициализации TipTap.
      *
      * @param e - Инстанс Editor или null при уничтожении.
      */
