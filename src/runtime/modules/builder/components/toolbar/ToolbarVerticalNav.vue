@@ -9,7 +9,7 @@ import BricksTooltipHint from '../../../ui/tooltip/BricksTooltipHint.vue';
 // #endregion
 
 // #region Interfaces
-interface IBuilderVerticalNavProps {
+interface IToolbarVerticalNavProps {
     isLibraryActive?: boolean;
     isPropertiesActive?: boolean;
     isSchemaActive?: boolean;
@@ -19,7 +19,7 @@ interface IBuilderVerticalNavProps {
     isDarkMode?: boolean;
 }
 
-interface IBuilderVerticalNavEmits {
+interface IToolbarVerticalNavEmits {
     toggleLibrary: [];
     toggleProperties: [];
     toggleSchema: [];
@@ -30,7 +30,7 @@ interface IBuilderVerticalNavEmits {
 // #endregion
 
 // #region Props
-const props = withDefaults(defineProps<IBuilderVerticalNavProps>(), {
+const props = withDefaults(defineProps<IToolbarVerticalNavProps>(), {
     isLibraryActive: false,
     isPropertiesActive: false,
     isSchemaActive: false,
@@ -42,7 +42,7 @@ const props = withDefaults(defineProps<IBuilderVerticalNavProps>(), {
 // #endregion
 
 // #region Emits
-const emit = defineEmits<IBuilderVerticalNavEmits>();
+const emit = defineEmits<IToolbarVerticalNavEmits>();
 // #endregion
 
 // #region Data
@@ -141,7 +141,7 @@ function handleToggleDarkMode(): void {
 </script>
 
 <template>
-    <nav :class="$style.BuilderVerticalNav">
+    <nav :class="$style.ToolbarVerticalNav">
         <button
             v-for="item in NAV_ITEMS"
             :key="item.key"
@@ -197,7 +197,7 @@ function handleToggleDarkMode(): void {
 </template>
 
 <style module lang="scss">
-.BuilderVerticalNav {
+.ToolbarVerticalNav {
     position: relative;
     z-index: 60;
     display: flex;

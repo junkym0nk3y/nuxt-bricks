@@ -129,7 +129,11 @@
 - Импортёры `properties.types.ts` — найти grep'ом, поправить пути.
 - Внутренние импорты самих редакторов (относительные `../`, после смены папки глубина не меняется — но проверить).
 
-## Шаг 6. toolbar + loader ✅/❌
+## Шаг 6. toolbar + loader ✅ (2026-06-11)
+
+> Примечание: заодно переименованы интерфейсы `IBuilderVerticalNavProps`/`IBuilderVerticalNavEmits`
+> → `IToolbarVerticalNav*`. Pre-existing ошибки vue-tsc в `render/pages/[pagename].vue`
+> (TS2554/TS2339, useAsyncData) не связаны с шагом — проверено на чистом дереве.
 
 | git mv | Новый корневой класс |
 | ------ | -------------------- |

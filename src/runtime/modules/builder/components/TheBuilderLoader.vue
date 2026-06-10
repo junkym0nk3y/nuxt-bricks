@@ -214,7 +214,7 @@ onUnmounted(() => {
 
 <template>
     <Transition name="fade">
-        <div v-if="isVisible" :class="$style.BuilderLoader">
+        <div v-if="isVisible" :class="$style.TheBuilderLoader">
             <div :class="$style.grid"></div>
 
             <div :class="$style.content">
@@ -238,7 +238,7 @@ onUnmounted(() => {
 </template>
 
 <style module lang="scss">
-.BuilderLoader {
+.TheBuilderLoader {
     position: absolute;
     top: 0;
     left: 0;

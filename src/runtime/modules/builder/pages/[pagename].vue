@@ -27,11 +27,11 @@ import { serializeSchema } from '../utils/history';
 import { loadFavoritesFromStorage } from '../stores/actions/favorites';
 
 // Components
-import BricksBuilderToolbar from '../components/toolbar/BricksBuilderToolbar.vue';
-import BuilderVerticalNav from '../components/toolbar/BuilderVerticalNav.vue';
+import TheToolbar from '../components/toolbar/TheToolbar.vue';
+import ToolbarVerticalNav from '../components/toolbar/ToolbarVerticalNav.vue';
 import TheSidebar from '../components/sidebar/TheSidebar.vue';
 import TheCanvas from '../components/canvas/TheCanvas.vue';
-import BuilderLoader from '../components/BuilderLoader.vue';
+import TheBuilderLoader from '../components/TheBuilderLoader.vue';
 import ThePublishedPagesModal from '../components/modal/ThePublishedPagesModal.vue';
 import TheDocumentationModal from '../components/modal/TheDocumentationModal.vue';
 import TheMediaGalleryModal from '../../media/components/TheMediaGalleryModal.vue';
@@ -512,7 +512,7 @@ onBeforeUnmount(() => {
 
 <template>
     <div :class="[$style.LandingBuilder, 'bricks-text']">
-        <BricksBuilderToolbar
+        <TheToolbar
             :history-index="historyStore.historyIndex"
             :history-length="historyStore.history.length"
             :is-editing-existing-page="isEditingExistingPage"
@@ -533,7 +533,7 @@ onBeforeUnmount(() => {
         />
 
         <div :class="$style.content">
-            <BuilderVerticalNav
+            <ToolbarVerticalNav
                 :is-library-active="isLibraryActive"
                 :is-properties-active="isPropertiesActive"
                 :is-schema-active="isSchemaActive"
@@ -557,7 +557,7 @@ onBeforeUnmount(() => {
             />
 
             <div :class="$style.canvasWrapper">
-                <BuilderLoader :is-loading="isSessionLoading" />
+                <TheBuilderLoader :is-loading="isSessionLoading" />
                 <TheCanvas />
             </div>
         </div>
