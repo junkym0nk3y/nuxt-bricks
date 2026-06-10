@@ -11,7 +11,7 @@ import { useCanvasRemBase } from './useCanvasRemBase';
  *
  * @returns Объект с ссылками на DOM, реактивные стили и методы масштабирования.
  */
-export function useLandingCanvas() {
+export function useCanvas() {
     const canvasStore = useLandingCanvasStore();
     const sidebarStore = useLandingSidebarStore();
     const config = useLandingConfig();

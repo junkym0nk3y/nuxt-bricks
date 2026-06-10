@@ -12,7 +12,7 @@ import type {
  *
  * @param options - Параметры, необходимые для работы обработчиков.
  */
-export function useLandingCanvasDrops({
+export function useCanvasDrops({
     dragComposable,
     componentsStore,
     canvasRef,

@@ -16,10 +16,10 @@ import { useLandingSidebarStore } from '../../stores/sidebar';
 import { usePublishStore } from '../../stores/publish';
 
 // Composables
-import { useLandingCanvas } from '../../composables/useLandingCanvas';
+import { useCanvas } from '../../composables/useCanvas';
 import { useLandingConfig } from '../../../common/composables/useLandingConfig';
-import { useLandingCanvasDrops } from '../../composables/useLandingCanvasDrops';
-import { useLandingCanvasPan } from '../../composables/useLandingCanvasPan';
+import { useCanvasDrops } from '../../composables/useCanvasDrops';
+import { useCanvasPan } from '../../composables/useCanvasPan';
 
 // Utils
 import { convertPxToRem } from '../../../common/utils/main';
@@ -47,7 +47,7 @@ const {
     figmaGap,
     getRemCompensation,
     handleResize,
-} = useLandingCanvas();
+} = useCanvas();
 
 const dragComposable = inject<IDragComposableCanvas | undefined>('dragComposable');
 
@@ -75,14 +75,14 @@ const {
     handleCanvasDragOver,
     handleLayoutDrop,
     handleSlotDrop,
-} = useLandingCanvasDrops({
+} = useCanvasDrops({
     dragComposable,
     componentsStore,
     canvasRef,
     containerRef,
 });
 
-const { isPanning, handleCanvasAreaPointerDown } = useLandingCanvasPan(canvasContainer);
+const { isPanning, handleCanvasAreaPointerDown } = useCanvasPan(canvasContainer);
 
 let containerResizeObserver: ResizeObserver | null = null;
 let centerAnimationFrame: number | null = null;

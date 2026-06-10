@@ -20,7 +20,7 @@ import { useLandingHistoryStore } from '../stores/history';
 import { usePublishStore } from '../stores/publish';
 
 // Composables
-import { useLandingBuilderPage } from '../composables/useLandingBuilderPage';
+import { useBuilderPage } from '../composables/useBuilderPage';
 
 // Utils
 import { serializeSchema } from '../utils/history';
@@ -56,7 +56,7 @@ const sidebarStore = useLandingSidebarStore();
 const historyStore = useLandingHistoryStore();
 const publishStore = usePublishStore();
 
-const builder = await useLandingBuilderPage();
+const builder = await useBuilderPage();
 
 const {
     componentLibraryList,

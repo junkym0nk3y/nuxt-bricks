@@ -14,7 +14,7 @@ import { usePublishStore } from '../../stores/publish';
 
 // Composables
 import { useLandingConfig } from '../../../common/composables/useLandingConfig';
-import { useLandingCanvasDrops } from '../../composables/useLandingCanvasDrops';
+import { useCanvasDrops } from '../../composables/useCanvasDrops';
 
 // Utils
 import { convertPxToRem } from '../../../common/utils/main';
@@ -75,7 +75,7 @@ const {
     handleCanvasDragOver,
     handleLayoutDrop,
     handleSlotDrop,
-} = useLandingCanvasDrops({
+} = useCanvasDrops({
     dragComposable,
     componentsStore,
     canvasRef,

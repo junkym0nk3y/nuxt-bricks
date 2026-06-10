@@ -36,7 +36,7 @@ let cachedBackgroundColor: string | null = null;
 
 /**
  * Устанавливает кэшированный цвет фона из app config.
- * Вызывать из Vue setup контекста (например, в useLandingBuilderPage).
+ * Вызывать из Vue setup контекста (например, в useBuilderPage).
  *
  * @param color - Цвет фона из конфига.
  */

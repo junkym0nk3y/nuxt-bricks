@@ -3,7 +3,7 @@
 import type { ComponentLibraryItem, LandingSchema } from '../../common/types/landing';
 import type { IMediaItem, TMediaGalleryContext } from '../../media/types/media';
 import type { ISidebarExpose } from '../types/builder';
-import type { IBuilderToastState, IUseLandingBuilderPageReturn } from '../types/composables';
+import type { IBuilderToastState, IUseBuilderPageReturn } from '../types/composables';
 
 // Vue
 import { computed, onUnmounted, provide, reactive, ref, watch } from 'vue';
@@ -33,7 +33,7 @@ import { LAYOUT_COMPONENTS } from '../constants/layoutComponents';
 /**
  * Собирает всю бизнес-логику страницы билдера и отдаёт Vue-компоненту только необходимые состояния.
  */
-export async function useLandingBuilderPage(): Promise<IUseLandingBuilderPageReturn> {
+export async function useBuilderPage(): Promise<IUseBuilderPageReturn> {
     // #region Stores & Composables
     const componentsStore = useLandingComponentsStore();
     const sidebarStore = useLandingSidebarStore();

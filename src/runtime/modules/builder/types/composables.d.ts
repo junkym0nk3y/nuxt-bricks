@@ -41,7 +41,7 @@ export interface IUseComponentSlotsReturn {
 }
 // #endregion
 
-// #region useLandingBuilderPage
+// #region useBuilderPage
 /**
  * Состояние toast-уведомления.
  */
@@ -53,9 +53,9 @@ export interface IBuilderToastState {
 }
 
 /**
- * Возвращаемое значение composable useLandingBuilderPage.
+ * Возвращаемое значение composable useBuilderPage.
  */
-export interface IUseLandingBuilderPageReturn {
+export interface IUseBuilderPageReturn {
     sidebarStore: ReturnType<typeof useLandingSidebarStore>;
     historyStore: ReturnType<typeof useLandingHistoryStore>;
     publishStore: ReturnType<typeof usePublishStore>;

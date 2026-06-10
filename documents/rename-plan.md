@@ -204,7 +204,12 @@
 - `render/composables/useLandingRendererLayouts.ts:19–24` — импорты `BricksText/Title/Svg/Slider/Accordion` + использования в `h()` (в т.ч. `h(BricksAccordion, ...)` ~строка 937).
 - `builder/composables/useCanvasItemInlineEditing.ts` — текстовые упоминания `BricksText`/`BricksTitle` (grep).
 
-## Шаг 10. composables builder: убрать `Landing`-шум ✅/❌
+## Шаг 10. composables builder: убрать `Landing`-шум ✅ (2026-06-11)
+
+> Примечание: тип оказался `IUseLandingBuilderPageReturn` (не `ILandingBuilderPage*`) →
+> переименован в `IUseBuilderPageReturn`. Заодно обновлены упоминания 4 composables в
+> `common/composables/README.md`. Сторы (`useLandingCanvasStore` и др.) не тронуты —
+> они не входят в шаг.
 
 Переименовываются файл **и** экспортируемая функция.
 

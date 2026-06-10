@@ -6,7 +6,7 @@ import type { ILandingCanvasPanState } from '../types/canvas';
  *
  * @param containerRef - Ссылка на скроллируемый контейнер канваса.
  */
-export function useLandingCanvasPan(containerRef: Ref<HTMLElement | null>) {
+export function useCanvasPan(containerRef: Ref<HTMLElement | null>) {
     const isPanning = ref(false);
     const panState: ILandingCanvasPanState = {
         startX: 0,
