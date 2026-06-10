@@ -77,6 +77,103 @@ nuxt-bricks/
 - `middleware/landing-page-layout.global.ts` нигде не регистрируется (`module.ts` без `addRouteMiddleware`) — pre-existing gap.
 - Будущие md-статьи документации класть в `runtime/modules/builder/docs/guide/` (glob `../docs/guide/**/*.md` в `useDocumentationArticles`).
 
+## Свод правил нейминга и структуры внутри доменов
+
+Конвенции для консолидации имён после доменного деления. Дополняют `.claude/rules/*`
+(structure.md, vue-best-practices.md), применяются ко всему `src/runtime/modules/`.
+
+### Компоненты
+
+1. **Контекстное наследование от фичевой папки.** Компонент носит префикс своей
+   feature-папки и читается без пути: `canvas/CanvasItem.vue`,
+   `sidebar/SidebarPropertiesView.vue`, `toolbar/ToolbarVerticalNav.vue`.
+   Дочерние компоненты продолжают цепочку родителя: `CanvasItem` → `CanvasItemToolbar`.
+2. **`The` — только для синглтонов.** Компонент, который монтируется в приложении
+   ровно один раз (корень фичи, глобальные модалки): `TheCanvas.vue`, `TheSidebar.vue`,
+   `TheToolbar.vue`, `The*Modal.vue`. «Импортируется в одном месте» ≠ синглтон:
+   `CanvasItemComponent` рендерится на каждый item — без `The`.
+3. **Префикс `Bricks` — только в `ui/`.** UI-кит — единственное место, где префикс несёт
+   смысл (неймспейс переиспользуемого кита). В остальных доменах префикс убрать —
+   контекст задаёт домен/папка.
+4. **Минимум два слова в имени.** `Grid.vue`, `Text.vue` запрещены (конфликты с HTML/нативными
+   понятиями). Для `layouts-blocks/` сущность — «блок»: `BlockGrid.vue`, `BlockText.vue`.
+5. **`modal/` — исключение из правила 1:** модалки именуются по содержимому
+   (`TheDocumentationModal`, `ConfirmActionModal`), дети — по родителю (`PublishedPageCard`).
+6. Компонент, используемый 2+ фичами одного домена, поднимается на уровень домена
+   (`builder/components/`) и получает префикс домена: `BuilderLogo.vue`.
+7. **Корневой CSS-класс = имя компонента** (CSS Modules, PascalCase): `TheCanvas.vue` →
+   `:class="$style.TheCanvas"`. Исключение — классы-конвенции опубликованной страницы
+   (`.container` в рендерере) не трогаем.
+
+> Пошаговый план выполнения переименований — `documents/rename-plan.md`.
+
+### Композаблы
+
+- `use<Фича><Деталь>`: фичевый префикс совпадает с компонентным (`useCanvasItemDrag`,
+  `useSidebarPropertiesPanel`).
+- Слово **`Landing` допустимо только для сущности «лендинг»** (конфиг, стили, данные
+  страницы: `useLandingConfig`, `useLandingStyles`, `useLandingDataSources`).
+  Как универсальный префикс-шум — убрать: `useLandingCanvas` → `useCanvas`,
+  `useLandingInlineEditor` → `useInlineEditor`.
+
+### Файлы типов и утилит
+
+- Доменные типы — `<домен>/types/*.d.ts`; локальные типы фичи — `types.d.ts` рядом с ней.
+  Единый стиль: `properties.types.ts` — привести (`property-editors/types.d.ts`).
+- Имена файлов composables/stores/utils — camelCase (`deviceVisibility.ts`);
+  kebab-case — только build-time/CLI-скрипты (`vite-brick-watch.ts`).
+
+### Решение: builder дальше на домены не разбиваем
+
+Canvas/sidebar/toolbar жёстко связаны общими stores (`components`, `canvas`, `history`) —
+выделение их в top-level домены даст циклические зависимости. Вместо этого суб-фичи
+выражаются папками `components/{canvas,sidebar,toolbar,modal}` и фичевыми префиксами
+composables/stores (правила выше). Если позже захочется feature-first
+(`builder/features/canvas/{components,composables,stores}`) — отдельным шагом, не сейчас.
+
+### Целевые переименования (компоненты)
+
+| Текущее                                              | Целевое                                  | Примечание                                  |
+| ---------------------------------------------------- | ---------------------------------------- | ------------------------------------------- |
+| `builder/.../canvas/BricksCanvas.vue`                | `TheCanvas.vue`                          | синглтон                                    |
+| `canvas/BricksCanvasEmptyState.vue`                  | `CanvasEmptyState.vue`                   |                                             |
+| `canvas/BricksCanvasItem.vue`                        | `CanvasItem.vue`                         |                                             |
+| `canvas/BricksCanvasItemComponent.vue`               | `CanvasItemComponent.vue`                |                                             |
+| `canvas/BricksCanvasItemLayout.vue`                  | `CanvasItemLayout.vue`                   |                                             |
+| `canvas/BricksCanvasToolbar.vue`                     | `CanvasToolbar.vue`                      | ребёнок TheCanvas, без `The`                |
+| `canvas/BricksCanvasViewport.vue`                    | `CanvasViewport.vue`                     |                                             |
+| `canvas/ConditionalContainer.vue`                    | `CanvasConditionalContainer.vue`         | оба использования — внутри canvas           |
+| `sidebar/BuilderSidebar.vue`                         | `TheSidebar.vue`                         | синглтон                                    |
+| `sidebar/ComponentCard.vue`                          | `SidebarComponentCard.vue`               |                                             |
+| `sidebar/SchemaTreeItem.vue`                         | `SidebarSchemaTreeItem.vue`              |                                             |
+| `sidebar/LogoLand.vue`                               | `builder/components/BuilderLogo.vue`     | используется toolbar+loader → уровень домена; заодно дебрендинг «Land» |
+| `sidebar/properties-types/` (папка)                  | `sidebar/property-editors/`              |                                             |
+| `properties-types/Bricks*Editor.vue`, `BricksMediaPicker.vue` | `Property*Editor.vue`, `PropertyMediaPicker.vue` | `PropertyJsonEditor` и т.п.   |
+| `toolbar/BricksBuilderToolbar.vue`                   | `TheToolbar.vue`                         | синглтон                                    |
+| `toolbar/BuilderVerticalNav.vue`                     | `ToolbarVerticalNav.vue`                 |                                             |
+| `builder/components/BuilderLoader.vue`               | `TheBuilderLoader.vue`                   | синглтон                                    |
+| `render/components/BricksRenderer.vue`               | `TheRenderer.vue`                        | один на страницу                            |
+| `render/components/BricksRendererPlaceholder.vue`    | `RendererPlaceholder.vue`                |                                             |
+| `layouts-blocks/components/Bricks*.vue` (10 шт.)     | `Block*.vue`                             | `BlockGrid`, `BlockText`, …; логические имена (`'Grid'`) в данных/stories не меняются |
+| `editor/`, `media/`, `modal/`, `ui/`                 | без переименований                       | уже по конвенции; `ui/` сохраняет `Bricks*` |
+
+### Целевые переименования (композаблы)
+
+| Текущее                                                  | Целевое                            |
+| -------------------------------------------------------- | ---------------------------------- |
+| `builder/composables/useLandingBuilderPage.ts`            | `useBuilderPage.ts`                |
+| `builder/composables/useLandingCanvas.ts`                 | `useCanvas.ts`                     |
+| `builder/composables/useLandingCanvasDrops.ts`            | `useCanvasDrops.ts`                |
+| `builder/composables/useLandingCanvasPan.ts`              | `useCanvasPan.ts`                  |
+| `editor/composables/useLandingInlineEditor.ts`            | `useInlineEditor.ts`               |
+| `layouts-blocks/.../useLandingResponsiveLayoutStyles.ts`  | `useResponsiveLayoutStyles.ts`     |
+| `layouts-blocks/.../useLandingResponsiveVisibilityStyles.ts` | `useResponsiveVisibilityStyles.ts` |
+| `render/composables/useLandingRendererLayouts.ts`         | `useRendererLayouts.ts`            |
+| `render/composables/useLandingRendererStories.ts`         | `useRendererStories.ts`            |
+| `common/useLanding*`, `render/useLandingDataSources`      | без изменений (сущность «лендинг») |
+
+> После переименований обновить ссылки на файлы в `CLAUDE.md`, `documents/*` и README композаблов.
+
 ## Статус выполнения (обновлено 2026-06-10)
 
 | Шаг                         | Статус       | Комментарий                                                                                                                                                                                                                                                             |
@@ -204,7 +301,7 @@ Layer-инъекция (`extends`) заменяется явной регист�
 | Что                         | Из                                           | В                                            |
 | --------------------------- | -------------------------------------------- | -------------------------------------------- |
 | npm-имя / author / registry | `@idaproject/ida-landing`, `npm.idacloud.ru` | `nuxt-bricks`, публичный npm                 |
-| Префикс компонентов         | `Ida*` / `Landing*`                          | `Bricks*`                                    |
+| Префикс компонентов         | `Ida*` / `Landing*`                          | `Bricks*` только в `ui/`; остальные домены — по «Своду правил нейминга» (без префикса) |
 | CSS body-класс              | `.ida-landing-page`                          | `.bricks-page`                               |
 | data-атрибуты               | `data-ida-container`, `data-ida-layout`      | `data-bricks-*`                              |
 | CSS-переменные              | `--ida-*`, `--land-*`                        | `--bricks-*`                                 |

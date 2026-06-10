@@ -27,9 +27,9 @@ import { scrollToComponentOnCanvas } from '../../utils/scrollToComponent';
 
 // Components
 import BricksCanvasItem from './BricksCanvasItem.vue';
-import BricksCanvasToolbar from './BricksCanvasToolbar.vue';
-import BricksCanvasEmptyState from './BricksCanvasEmptyState.vue';
-import BricksCanvasViewport from './BricksCanvasViewport.vue';
+import CanvasToolbar from './CanvasToolbar.vue';
+import CanvasEmptyState from './CanvasEmptyState.vue';
+import CanvasViewport from './CanvasViewport.vue';
 import CanvasInlineEditingOverlay from './CanvasInlineEditingOverlay.vue';
 // #endregion
 
@@ -132,7 +132,7 @@ const canvasStyle = computed<Record<string, string>>(() => {
 
 /**
  * Стили для обёртки Figma Mode — базовый scale без rem-компенсации.
- * Per-viewport компенсация применяется внутри каждого BricksCanvasViewport.
+ * Per-viewport компенсация применяется внутри каждого CanvasViewport.
  */
 const figmaWrapperStyle = computed<Record<string, string>>(() => {
     if (!isMounted.value) {
@@ -480,9 +480,9 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div :class="$style.LandingCanvasContainer">
+    <div :class="$style.TheCanvas">
         <!-- Canvas Toolbar -->
-        <BricksCanvasToolbar
+        <CanvasToolbar
             :scale="canvasStore.scale"
             :viewport="canvasStore.viewport"
             :sidebar-offset="leftSidebarOffset"
@@ -507,9 +507,9 @@ onBeforeUnmount(() => {
                 :class="$style.figmaWrapper"
                 :style="figmaWrapperStyle"
             >
-                <BricksCanvasViewport viewport="mobile" />
-                <BricksCanvasViewport viewport="tablet" />
-                <BricksCanvasViewport viewport="desktop" />
+                <CanvasViewport viewport="mobile" />
+                <CanvasViewport viewport="tablet" />
+                <CanvasViewport viewport="desktop" />
             </div>
 
             <!-- Normal Mode: один канвас -->
@@ -556,7 +556,7 @@ onBeforeUnmount(() => {
                         </div>
                     </div>
 
-                    <BricksCanvasEmptyState v-if="componentsStore.sortedComponents.length === 0" />
+                    <CanvasEmptyState v-if="componentsStore.sortedComponents.length === 0" />
                 </div>
             </div>
         </div>
@@ -567,7 +567,7 @@ onBeforeUnmount(() => {
 </template>
 
 <style module lang="scss">
-.LandingCanvasContainer {
+.TheCanvas {
     position: relative;
     overflow: hidden;
     display: flex;

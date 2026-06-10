@@ -30,7 +30,7 @@ import { loadFavoritesFromStorage } from '../stores/actions/favorites';
 import BricksBuilderToolbar from '../components/toolbar/BricksBuilderToolbar.vue';
 import BuilderVerticalNav from '../components/toolbar/BuilderVerticalNav.vue';
 import BuilderSidebar from '../components/sidebar/BuilderSidebar.vue';
-import BricksCanvas from '../components/canvas/BricksCanvas.vue';
+import TheCanvas from '../components/canvas/TheCanvas.vue';
 import BuilderLoader from '../components/BuilderLoader.vue';
 import ThePublishedPagesModal from '../components/modal/ThePublishedPagesModal.vue';
 import TheDocumentationModal from '../components/modal/TheDocumentationModal.vue';
@@ -558,7 +558,7 @@ onBeforeUnmount(() => {
 
             <div :class="$style.canvasWrapper">
                 <BuilderLoader :is-loading="isSessionLoading" />
-                <BricksCanvas />
+                <TheCanvas />
             </div>
         </div>
 

@@ -108,7 +108,7 @@ function handleToggleFigmaMode(): void {
 </script>
 
 <template>
-    <div :class="$style.BricksCanvasToolbar" :style="toolbarStyle">
+    <div :class="$style.CanvasToolbar" :style="toolbarStyle">
         <!-- Viewport switcher -->
         <div :class="$style.viewportGroup">
             <BricksButton
@@ -175,7 +175,7 @@ function handleToggleFigmaMode(): void {
 </template>
 
 <style module lang="scss">
-.BricksCanvasToolbar {
+.CanvasToolbar {
     position: absolute;
     z-index: 1;
     display: flex;

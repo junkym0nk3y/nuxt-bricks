@@ -241,7 +241,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div :class="$style.BricksCanvasViewport">
+    <div :class="$style.CanvasViewport">
         <div :class="$style.label">{{ viewportLabel }}</div>
 
         <div
@@ -286,7 +286,7 @@ onBeforeUnmount(() => {
 </template>
 
 <style module lang="scss">
-.BricksCanvasViewport {
+.CanvasViewport {
     display: flex;
     flex-direction: column;
     align-items: center;

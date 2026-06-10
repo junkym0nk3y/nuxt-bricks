@@ -14,7 +14,7 @@ const emptyState: ILandingCanvasEmptyStateData = {
 </script>
 
 <template>
-    <div :class="$style.emptyState">
+    <div :class="$style.CanvasEmptyState">
         <BricksLandIcon :class="$style.emptyIcon" :icon="emptyState.icon" />
         <h3 :class="$style.emptyTitle">
             {{ emptyState.title }}
@@ -26,7 +26,7 @@ const emptyState: ILandingCanvasEmptyStateData = {
 </template>
 
 <style module lang="scss">
-.emptyState {
+.CanvasEmptyState {
     position: absolute;
     top: 50%;
     left: 50%;

@@ -39,7 +39,7 @@ const canvasStore = useLandingCanvasStore();
 const dragComposable = inject<IDragComposableCanvas | undefined>('dragComposable');
 const availableFonts = inject<string[]>('availableFonts', []);
 
-/** Viewport из BricksCanvasViewport (Figma mode) или null (Normal mode) */
+/** Viewport из CanvasViewport (Figma mode) или null (Normal mode) */
 const figmaViewport = inject<string | null>('canvasViewport', null);
 
 /** Ref корневого элемента для позиционирования телепортированного тулбара */

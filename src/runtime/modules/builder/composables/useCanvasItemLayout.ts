@@ -203,7 +203,7 @@ export function useCanvasItemLayout(props: ILandingCanvasItemProps) {
     const canvasStore = useLandingCanvasStore();
     const injectedViewport = inject<TLandingDeviceKey | null>('canvasViewport', null);
 
-    /** В Figma mode используем injected viewport от BricksCanvasViewport, иначе глобальный */
+    /** В Figma mode используем injected viewport от CanvasViewport, иначе глобальный */
     const effectiveViewport = computed<TLandingDeviceKey>(
         () => injectedViewport ?? canvasStore.viewport
     );
