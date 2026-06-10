@@ -16,13 +16,13 @@ import type {
 import { h } from 'vue';
 
 // Components
-import BricksGrid from '../../../layouts-blocks/components/BricksGrid.vue';
-import BricksFlex from '../../../layouts-blocks/components/BricksFlex.vue';
-import BricksSection from '../../../layouts-blocks/components/BricksSection.vue';
-import BricksSpace from '../../../layouts-blocks/components/BricksSpace.vue';
+import BlockGrid from '../../../layouts-blocks/components/BlockGrid.vue';
+import BlockFlex from '../../../layouts-blocks/components/BlockFlex.vue';
+import BlockSection from '../../../layouts-blocks/components/BlockSection.vue';
+import BlockSpace from '../../../layouts-blocks/components/BlockSpace.vue';
 import BricksTitle from '../../../layouts-blocks/components/BricksTitle.vue';
 import BricksText from '../../../layouts-blocks/components/BricksText.vue';
-import BricksMedia from '../../../layouts-blocks/components/BricksMedia.vue';
+import BlockMedia from '../../../layouts-blocks/components/BlockMedia.vue';
 import BricksSvg from '../../../layouts-blocks/components/BricksSvg.vue';
 import BricksSlider from '../../../layouts-blocks/components/BricksSlider.vue';
 import BricksAccordion from '../../../layouts-blocks/components/BricksAccordion.vue';
@@ -65,7 +65,7 @@ const renderLayoutChild = (child: LandingComponent) =>
 
 <template>
     <CanvasConditionalContainer :use-container="props.needsContainerWrapper">
-        <BricksGrid
+        <BlockGrid
             v-if="props.layoutName === 'grid'"
             :id="props.component.htmlId || undefined"
             :layout-props="props.layoutProps as GridLayoutProps"
@@ -77,9 +77,9 @@ const renderLayoutChild = (child: LandingComponent) =>
                 :key="child.id"
                 :component="child"
             />
-        </BricksGrid>
+        </BlockGrid>
 
-        <BricksFlex
+        <BlockFlex
             v-else-if="props.layoutName === 'flex'"
             :id="props.component.htmlId || undefined"
             :layout-props="props.layoutProps as FlexLayoutProps"
@@ -91,9 +91,9 @@ const renderLayoutChild = (child: LandingComponent) =>
                 :key="child.id"
                 :component="child"
             />
-        </BricksFlex>
+        </BlockFlex>
 
-        <BricksSection
+        <BlockSection
             v-else-if="props.layoutName === 'section'"
             :id="props.component.htmlId || undefined"
             :layout-props="props.layoutProps as SectionLayoutProps"
@@ -105,9 +105,9 @@ const renderLayoutChild = (child: LandingComponent) =>
                 :key="child.id"
                 :component="child"
             />
-        </BricksSection>
+        </BlockSection>
 
-        <BricksSpace
+        <BlockSpace
             v-else-if="props.layoutName === 'space'"
             :id="props.component.htmlId || undefined"
             :layout-props="props.layoutProps as SpaceProps"
@@ -127,7 +127,7 @@ const renderLayoutChild = (child: LandingComponent) =>
             v-bind="props.componentBoundProps"
         />
 
-        <BricksMedia
+        <BlockMedia
             v-else-if="props.layoutName === 'media'"
             :id="props.component.htmlId || undefined"
             v-bind="props.componentBoundProps"

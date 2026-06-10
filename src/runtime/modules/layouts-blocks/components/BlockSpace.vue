@@ -102,7 +102,7 @@ const dividerStyle = computed<TSpaceStyle>(() => {
 </script>
 
 <template>
-    <div :class="[$style.space, { [$style.gridHidden]: !showGrid }]" :style="spaceStyle">
+    <div :class="[$style.BlockSpace, { [$style.gridHidden]: !showGrid }]" :style="spaceStyle">
         <hr
             v-if="props.layoutProps.showDivider"
             :class="[
@@ -115,7 +115,7 @@ const dividerStyle = computed<TSpaceStyle>(() => {
 </template>
 
 <style module lang="scss">
-.space {
+.BlockSpace {
     position: relative;
     border: 1px dashed rgb(var(--rgb-gray) / 30%);
     background: repeating-linear-gradient(

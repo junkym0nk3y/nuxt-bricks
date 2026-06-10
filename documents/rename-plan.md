@@ -158,7 +158,11 @@
 - `TheRenderer.vue:17` — импорт `BricksRendererPlaceholder` + тег.
 - `render/composables/useLandingRendererStories.ts` — текстовое упоминание `BricksRenderer` (grep).
 
-## Шаг 8. layouts-blocks, часть 1: Grid/Flex/Section/Space/Media ✅/❌
+## Шаг 8. layouts-blocks, часть 1: Grid/Flex/Section/Space/Media ✅ (2026-06-11)
+
+> Примечание: pre-existing TS2769 теперь живут в `BlockGrid.vue` и `BlockSpace.vue`
+> (в `BlockFlex.vue` не воспроизводится). Pre-existing oxlint `max-lines` (1021/1000)
+> в `useLandingRendererLayouts.ts` — см. шаг 12.
 
 Логические имена (`'Grid'`, `'Flex'`...) в данных/stories/`layoutComponents.ts` **не меняются** —
 переименовываются только файлы/импорты/классы.

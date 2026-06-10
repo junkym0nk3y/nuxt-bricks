@@ -175,7 +175,7 @@ function handleDrop(event: DragEvent): void {
     const componentId = event.dataTransfer?.getData('component-id');
 
     if (componentId && props.layoutId && componentId === props.layoutId) {
-        console.warn('[BricksFlex] Ignoring self drop attempt');
+        console.warn('[BlockFlex] Ignoring self drop attempt');
         isDragOver.value = false;
         dropIndicator.value = null;
         dropInsertIndex.value = null;
@@ -245,7 +245,7 @@ function updateDropIndicator(event: DragEvent): void {
     const halfGap = (props.layoutProps.gap || 0) / 2;
 
     if (children.length === 0) {
-        console.debug('[BricksFlex] updateDropIndicator: empty, set index 0');
+        console.debug('[BlockFlex] updateDropIndicator: empty, set index 0');
         dropIndicator.value = { index: 0, offset: 0 };
         dropInsertIndex.value = 0;
         return;
@@ -293,7 +293,7 @@ function updateDropIndicator(event: DragEvent): void {
 
     offset = Math.max(0, Math.min(offset, containerExtent));
 
-    console.debug('[BricksFlex] updateDropIndicator', {
+    console.debug('[BlockFlex] updateDropIndicator', {
         pointerPosition,
         targetIndex,
         offset,
@@ -314,7 +314,7 @@ function updateDropIndicator(event: DragEvent): void {
     <div
         ref="flexRef"
         :class="[
-            $style.flexLayout,
+            $style.BlockFlex,
             { [$style.dragOver]: isDragOver, [$style.gridHidden]: !showGrid },
         ]"
         :style="flexStyle"
@@ -348,7 +348,7 @@ function updateDropIndicator(event: DragEvent): void {
 </template>
 
 <style module lang="scss">
-.flexLayout {
+.BlockFlex {
     position: relative;
     min-width: 0;
     border: 1px dashed rgb(var(--rgb-layout-flex) / 30%);

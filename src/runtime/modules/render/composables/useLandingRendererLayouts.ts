@@ -18,7 +18,7 @@ import { convertPxToRem } from '../../common/utils/main';
 // Components
 import BricksText from '../../layouts-blocks/components/BricksText.vue';
 import BricksTitle from '../../layouts-blocks/components/BricksTitle.vue';
-import BricksMedia from '../../layouts-blocks/components/BricksMedia.vue';
+import BlockMedia from '../../layouts-blocks/components/BlockMedia.vue';
 import BricksSvg from '../../layouts-blocks/components/BricksSvg.vue';
 import BricksSlider from '../../layouts-blocks/components/BricksSlider.vue';
 import BricksAccordion from '../../layouts-blocks/components/BricksAccordion.vue';
@@ -823,7 +823,7 @@ export function useLandingRendererLayouts({
             style.gridRow = component.gridRow;
         }
 
-        return h(BricksMedia, {
+        return h(BlockMedia, {
             ...cp,
             width: 'var(--bricks-media-width)',
             height: 'var(--bricks-media-height)',

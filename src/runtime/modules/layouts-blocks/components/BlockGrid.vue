@@ -465,7 +465,7 @@ function handleDrop(event: DragEvent): void {
     const componentId = event.dataTransfer?.getData('component-id');
 
     if (componentId && props.layoutId && componentId === props.layoutId) {
-        console.warn('[BricksGrid] Ignoring self drop attempt');
+        console.warn('[BlockGrid] Ignoring self drop attempt');
         return;
     }
 
@@ -477,7 +477,7 @@ function handleDrop(event: DragEvent): void {
         if (isMove && componentId && isChildOfThisGrid(componentId)) {
             // Внутреннее перемещение — пропускаем проверку
         } else {
-            console.warn('[BricksGrid] Grid is at capacity, ignoring drop');
+            console.warn('[BlockGrid] Grid is at capacity, ignoring drop');
             return;
         }
     }
@@ -522,7 +522,7 @@ onMounted(() => {
     <div
         ref="gridRef"
         :class="[
-            $style.gridLayout,
+            $style.BlockGrid,
             {
                 [$style.dragOver]: isDragOver,
                 [$style.gridHidden]: !showGrid,
@@ -604,7 +604,7 @@ onMounted(() => {
 </template>
 
 <style module lang="scss">
-.gridLayout {
+.BlockGrid {
     --landing-grid-accent-span: 2;
 
     position: relative;

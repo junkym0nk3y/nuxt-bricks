@@ -252,7 +252,7 @@ function updateDropIndicator(event: DragEvent): void {
     <div
         ref="sectionRef"
         :class="[
-            $style.sectionLayout,
+            $style.BlockSection,
             { [$style.dragOver]: isDragOver, [$style.gridHidden]: !showGrid },
         ]"
         :style="sectionStyle"
@@ -283,7 +283,7 @@ function updateDropIndicator(event: DragEvent): void {
 </template>
 
 <style module lang="scss">
-.sectionLayout {
+.BlockSection {
     position: relative;
     min-width: 0;
     border: 1px dashed rgb(var(--rgb-layout-section) / 30%);

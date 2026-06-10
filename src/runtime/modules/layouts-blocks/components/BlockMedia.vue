@@ -69,7 +69,7 @@ const hasSource = computed(() => Boolean(props.src));
 </script>
 
 <template>
-    <div :class="$style.BricksMedia">
+    <div :class="$style.BlockMedia">
         <!-- Image -->
         <img
             v-if="isImage && hasSource"
@@ -107,7 +107,7 @@ const hasSource = computed(() => Boolean(props.src));
 </template>
 
 <style module lang="scss">
-.BricksMedia {
+.BlockMedia {
     position: relative;
     display: flex;
     width: 100%;
