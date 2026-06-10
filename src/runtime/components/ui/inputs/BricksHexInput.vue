@@ -8,20 +8,20 @@ import BricksTooltipHint from '../tooltip/BricksTooltipHint.vue';
 import { computed, ref, watch, useCssModule } from 'vue';
 
 // Types
-import type { IIdaHexInputProps, IIdaHexInputEmits } from './types.d.ts';
+import type { IBricksHexInputProps, IBricksHexInputEmits } from './types.d.ts';
 
 // Utils
 import { validateHex, normalizeHex } from '../../../utils/main';
 // #endregion
 
 // #region Props
-const props = withDefaults(defineProps<IIdaHexInputProps>(), {
+const props = withDefaults(defineProps<IBricksHexInputProps>(), {
     disabled: false,
 });
 // #endregion
 
 // #region Emits
-const emit = defineEmits<IIdaHexInputEmits>();
+const emit = defineEmits<IBricksHexInputEmits>();
 // #endregion
 
 // #region Data

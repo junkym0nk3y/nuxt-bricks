@@ -10,7 +10,7 @@ import { ref, watch } from 'vue';
 import { useDocumentationArticles } from '../../composables/useDocumentationArticles';
 
 // Components
-import BricksClodeModal from '../ui/base/modal/BricksClodeModal.vue';
+import BricksCloseButton from '../ui/base/modal/BricksCloseButton.vue';
 import BricksModal from '../ui/base/modal/BricksModal.vue';
 // #endregion
 
@@ -92,7 +92,7 @@ watch(
             <!-- Header -->
             <div :class="$style.header">
                 <h2 :class="$style.title">Документация</h2>
-                <BricksClodeModal @click="handleClose" />
+                <BricksCloseButton @click="handleClose" />
             </div>
 
             <!-- Body -->

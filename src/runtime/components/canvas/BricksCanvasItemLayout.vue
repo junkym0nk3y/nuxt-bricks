@@ -16,23 +16,23 @@ import type {
 import { h } from 'vue';
 
 // Components
-import LandingGrid from '../layouts/LandingGrid.vue';
-import LandingFlex from '../layouts/LandingFlex.vue';
-import LandingSection from '../layouts/LandingSection.vue';
-import LandingSpace from '../layouts/LandingSpace.vue';
-import LandingTitle from '../layouts/LandingTitle.vue';
-import LandingText from '../layouts/LandingText.vue';
-import LandingMedia from '../layouts/LandingMedia.vue';
-import LandingSvg from '../layouts/LandingSvg.vue';
-import LandingSlider from '../layouts/LandingSlider.vue';
-import LandingAccordion from '../layouts/LandingAccordion.vue';
-import LandingCanvasItem from './LandingCanvasItem.vue';
+import BricksGrid from '../layouts/BricksGrid.vue';
+import BricksFlex from '../layouts/BricksFlex.vue';
+import BricksSection from '../layouts/BricksSection.vue';
+import BricksSpace from '../layouts/BricksSpace.vue';
+import BricksTitle from '../layouts/BricksTitle.vue';
+import BricksText from '../layouts/BricksText.vue';
+import BricksMedia from '../layouts/BricksMedia.vue';
+import BricksSvg from '../layouts/BricksSvg.vue';
+import BricksSlider from '../layouts/BricksSlider.vue';
+import BricksAccordion from '../layouts/BricksAccordion.vue';
+import BricksCanvasItem from './BricksCanvasItem.vue';
 import ConditionalContainer from './ConditionalContainer.vue';
 // #endregion
 
 // #region Interfaces
 /**
- * Пропсы для компонента LandingCanvasItemLayout
+ * Пропсы для компонента BricksCanvasItemLayout
  */
 interface ILandingCanvasItemLayoutProps {
     /** Экземпляр landing-компонента для рендеринга */
@@ -56,7 +56,7 @@ const props = defineProps<ILandingCanvasItemLayoutProps>();
 
 // #region Methods
 const renderLayoutChild = (child: LandingComponent) =>
-    h(LandingCanvasItem, {
+    h(BricksCanvasItem, {
         component: child,
         key: child.id,
     });
@@ -65,69 +65,69 @@ const renderLayoutChild = (child: LandingComponent) =>
 
 <template>
     <ConditionalContainer :use-container="props.needsContainerWrapper">
-        <LandingGrid
+        <BricksGrid
             v-if="props.layoutName === 'grid'"
             :id="props.component.htmlId || undefined"
             :layout-props="props.layoutProps as GridLayoutProps"
             :layout-id="props.component.id"
             data-bricks-layout="grid"
         >
-            <LandingCanvasItem
+            <BricksCanvasItem
                 v-for="child in props.childComponents"
                 :key="child.id"
                 :component="child"
             />
-        </LandingGrid>
+        </BricksGrid>
 
-        <LandingFlex
+        <BricksFlex
             v-else-if="props.layoutName === 'flex'"
             :id="props.component.htmlId || undefined"
             :layout-props="props.layoutProps as FlexLayoutProps"
             :layout-id="props.component.id"
             data-bricks-layout="flex"
         >
-            <LandingCanvasItem
+            <BricksCanvasItem
                 v-for="child in props.childComponents"
                 :key="child.id"
                 :component="child"
             />
-        </LandingFlex>
+        </BricksFlex>
 
-        <LandingSection
+        <BricksSection
             v-else-if="props.layoutName === 'section'"
             :id="props.component.htmlId || undefined"
             :layout-props="props.layoutProps as SectionLayoutProps"
             :layout-id="props.component.id"
             data-bricks-layout="section"
         >
-            <LandingCanvasItem
+            <BricksCanvasItem
                 v-for="child in props.childComponents"
                 :key="child.id"
                 :component="child"
             />
-        </LandingSection>
+        </BricksSection>
 
-        <LandingSpace
+        <BricksSpace
             v-else-if="props.layoutName === 'space'"
             :id="props.component.htmlId || undefined"
             :layout-props="props.layoutProps as SpaceProps"
         />
 
-        <LandingTitle
+        <BricksTitle
             v-else-if="props.layoutName === 'title'"
             :id="props.component.htmlId || undefined"
             :component-id="props.component.id"
             v-bind="props.componentBoundProps"
         />
 
-        <LandingText
+        <BricksText
             v-else-if="props.layoutName === 'text'"
             :id="props.component.htmlId || undefined"
             :component-id="props.component.id"
             v-bind="props.componentBoundProps"
         />
 
-        <LandingMedia
+        <BricksMedia
             v-else-if="props.layoutName === 'media'"
             :id="props.component.htmlId || undefined"
             v-bind="props.componentBoundProps"
@@ -136,7 +136,7 @@ const renderLayoutChild = (child: LandingComponent) =>
             :border-radius="(props.layoutProps as Record<string, string | number>).borderRadius"
         />
 
-        <LandingSlider
+        <BricksSlider
             v-else-if="props.layoutName === 'slider'"
             :id="props.component.htmlId || undefined"
             :layout-props="props.layoutProps as SliderLayoutProps"
@@ -146,14 +146,14 @@ const renderLayoutChild = (child: LandingComponent) =>
             :is-editor="true"
         />
 
-        <LandingSvg
+        <BricksSvg
             v-else-if="props.layoutName === 'svg'"
             :id="props.component.htmlId || undefined"
             :component-id="props.component.id"
             v-bind="props.componentBoundProps"
         />
 
-        <LandingAccordion
+        <BricksAccordion
             v-else-if="props.layoutName === 'accordion'"
             :id="props.component.htmlId || undefined"
             :layout-props="props.layoutProps as AccordionLayoutProps"

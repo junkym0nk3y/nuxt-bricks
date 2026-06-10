@@ -166,7 +166,7 @@ export function useCanvasItemActions(
                         }
                     }
                 } catch (error) {
-                    console.error('[LandingCanvasItem] Failed to load story:', error);
+                    console.error('[BricksCanvasItem] Failed to load story:', error);
                 }
             }
         }

@@ -8,13 +8,13 @@ import BricksButton from '../../ui/base/button/BricksButton.vue';
 // #endregion
 
 // #region Props
-interface IIdaMediaPickerProps {
+interface IBricksMediaPickerProps {
     modelValue?: string;
     label?: string;
     type?: 'image' | 'video';
 }
 
-const props = withDefaults(defineProps<IIdaMediaPickerProps>(), {
+const props = withDefaults(defineProps<IBricksMediaPickerProps>(), {
     modelValue: '',
     label: 'Media',
     type: 'image',
@@ -22,12 +22,12 @@ const props = withDefaults(defineProps<IIdaMediaPickerProps>(), {
 // #endregion
 
 // #region Emits
-interface IIdaMediaPickerEmits {
+interface IBricksMediaPickerEmits {
     'update:modelValue': [value: string];
     openGallery: [];
 }
 
-const emit = defineEmits<IIdaMediaPickerEmits>();
+const emit = defineEmits<IBricksMediaPickerEmits>();
 // #endregion
 
 // #region Computed

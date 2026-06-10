@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IIdaSwitchProps, IIdaSwitchEmits } from './types.d.ts';
+import type { IBricksSwitchProps, IBricksSwitchEmits } from './types.d.ts';
 
 // Vue
 import { computed, useCssModule } from 'vue';
@@ -11,7 +11,7 @@ import { SwitchRoot } from 'reka-ui';
 // #endregion
 
 // #region Props
-const props = withDefaults(defineProps<IIdaSwitchProps>(), {
+const props = withDefaults(defineProps<IBricksSwitchProps>(), {
     trueValue: false,
     falseValue: false,
     disabled: false,
@@ -22,7 +22,7 @@ const props = withDefaults(defineProps<IIdaSwitchProps>(), {
 // #endregion
 
 // #region Emits
-const emit = defineEmits<IIdaSwitchEmits>();
+const emit = defineEmits<IBricksSwitchEmits>();
 // #endregion
 
 // #region Data

@@ -87,7 +87,7 @@ function handleUpdateValues(values: string | string[] | undefined): void {
         type="multiple"
         :model-value="openValues"
         :class="[
-            $style.LandingAccordion,
+            $style.BricksAccordion,
             {
                 [$style.accordionCard]: isCardMode,
                 [$style.accented]: !!props.layoutProps.accentColor,
@@ -142,7 +142,7 @@ function handleUpdateValues(values: string | string[] | undefined): void {
 
 <style module lang="scss">
 /* Единый блок (gap = 0) */
-.LandingAccordion {
+.BricksAccordion {
     overflow: hidden;
     width: 100%;
     border-radius: var(--accordion-radius, 0.8rem);

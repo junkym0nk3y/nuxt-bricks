@@ -2,7 +2,7 @@
 // #region Imports
 // Components
 import BricksButton from '../ui/base/button/BricksButton.vue';
-import BricksClodeModal from '../ui/base/modal/BricksClodeModal.vue';
+import BricksCloseButton from '../ui/base/modal/BricksCloseButton.vue';
 import SidebarPropertyEditors from './SidebarPropertyEditors.vue';
 import BricksTooltip from '../ui/tooltip/BricksTooltip.vue';
 import BricksTooltipHint from '../ui/tooltip/BricksTooltipHint.vue';
@@ -96,7 +96,7 @@ defineExpose({
                     </template>
                 </BricksTooltip>
             </div>
-            <BricksClodeModal @click="handleClose" />
+            <BricksCloseButton @click="handleClose" />
         </div>
 
         <div v-if="isResponsiveComponent" :class="$style.deviceScope">

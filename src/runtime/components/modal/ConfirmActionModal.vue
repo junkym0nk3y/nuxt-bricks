@@ -8,7 +8,7 @@ import { computed } from 'vue';
 
 // Components
 import BricksButton from '../ui/base/button/BricksButton.vue';
-import BricksClodeModal from '../ui/base/modal/BricksClodeModal.vue';
+import BricksCloseButton from '../ui/base/modal/BricksCloseButton.vue';
 import BricksModal from '../ui/base/modal/BricksModal.vue';
 // #endregion
 
@@ -66,7 +66,7 @@ function handleConfirm(): void {
         <div :class="$style.modal">
             <div :class="$style.header">
                 <h3 :class="$style.title">{{ props.title }}</h3>
-                <BricksClodeModal :disabled="props.isLoading" @click="handleClose" />
+                <BricksCloseButton :disabled="props.isLoading" @click="handleClose" />
             </div>
 
             <div v-if="normalizedDescription" :class="$style.content">

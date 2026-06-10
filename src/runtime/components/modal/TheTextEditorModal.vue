@@ -26,7 +26,7 @@ import { useLandingInlineEditingStore } from '../../store/landing/inlineEditing'
 
 // Components
 import BricksButton from '../ui/base/button/BricksButton.vue';
-import BricksClodeModal from '../ui/base/modal/BricksClodeModal.vue';
+import BricksCloseButton from '../ui/base/modal/BricksCloseButton.vue';
 import BricksModal from '../ui/base/modal/BricksModal.vue';
 import BricksTextEditorToolbar from '../ui/inputs/BricksTextEditorToolbar.vue';
 import TiptapImageFloatPopover from '../tiptap/TiptapImageFloatPopover.vue';
@@ -339,7 +339,7 @@ onBeforeUnmount(() => {
                         <span>{{ isCodeView ? 'Рендер' : 'Код' }}</span>
                     </BricksButton>
 
-                    <BricksClodeModal @click="handleDone" />
+                    <BricksCloseButton @click="handleDone" />
                 </div>
             </div>
 

@@ -15,9 +15,9 @@
 
 | Composable              | Описание                                                 | Использование                         |
 | ----------------------- | -------------------------------------------------------- | ------------------------------------- |
-| `useLandingCanvas`      | Управление viewport, масштабированием и размерами canvas | `components/canvas/LandingCanvas.vue` |
-| `useLandingCanvasPan`   | Панорамирование (перетаскивание) canvas                  | `components/canvas/LandingCanvas.vue` |
-| `useLandingCanvasDrops` | Обработка drop событий на canvas                         | `components/canvas/LandingCanvas.vue` |
+| `useLandingCanvas`      | Управление viewport, масштабированием и размерами canvas | `components/canvas/BricksCanvas.vue` |
+| `useLandingCanvasPan`   | Панорамирование (перетаскивание) canvas                  | `components/canvas/BricksCanvas.vue` |
+| `useLandingCanvasDrops` | Обработка drop событий на canvas                         | `components/canvas/BricksCanvas.vue` |
 | `useLandingStyles`      | Инъекция динамических стилей лендинга в `<head>`         | `pages/builder.vue`, рендерер         |
 
 ### Drag & Drop
@@ -52,8 +52,8 @@
 
 | Composable                  | Описание                             | Использование                           |
 | --------------------------- | ------------------------------------ | --------------------------------------- |
-| `useLandingRendererLayouts` | Рендеринг layout-компонентов         | `components/render/LandingRenderer.vue` |
-| `useLandingRendererStories` | Рендеринг story-компонентов          | `components/render/LandingRenderer.vue` |
+| `useLandingRendererLayouts` | Рендеринг layout-компонентов         | `components/render/BricksRenderer.vue` |
+| `useLandingRendererStories` | Рендеринг story-компонентов          | `components/render/BricksRenderer.vue` |
 | `useLandingDataSources`     | Работа с data sources в landing page | Компоненты с динамическими данными      |
 
 ### Валидация

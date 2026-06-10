@@ -16,12 +16,12 @@ import type { ILandingRendererLayoutsOptions } from '../types/render';
 import { convertPxToRem } from '../utils/main';
 
 // Components
-import LandingText from '../components/layouts/LandingText.vue';
-import LandingTitle from '../components/layouts/LandingTitle.vue';
-import LandingMedia from '../components/layouts/LandingMedia.vue';
-import LandingSvg from '../components/layouts/LandingSvg.vue';
-import LandingSlider from '../components/layouts/LandingSlider.vue';
-import LandingAccordion from '../components/layouts/LandingAccordion.vue';
+import BricksText from '../components/layouts/BricksText.vue';
+import BricksTitle from '../components/layouts/BricksTitle.vue';
+import BricksMedia from '../components/layouts/BricksMedia.vue';
+import BricksSvg from '../components/layouts/BricksSvg.vue';
+import BricksSlider from '../components/layouts/BricksSlider.vue';
+import BricksAccordion from '../components/layouts/BricksAccordion.vue';
 // #endregion
 
 /** Округляет значение в rem до 1 десятичного знака */
@@ -750,7 +750,7 @@ export function useLandingRendererLayouts({
             style.gridRow = component.gridRow;
         }
 
-        return h(LandingTitle, {
+        return h(BricksTitle, {
             ...componentProps,
             key: component.id,
             id: component.htmlId || undefined,
@@ -780,7 +780,7 @@ export function useLandingRendererLayouts({
             style.gridRow = component.gridRow;
         }
 
-        return h(LandingText, {
+        return h(BricksText, {
             ...componentProps,
             key: component.id,
             id: component.htmlId || undefined,
@@ -823,7 +823,7 @@ export function useLandingRendererLayouts({
             style.gridRow = component.gridRow;
         }
 
-        return h(LandingMedia, {
+        return h(BricksMedia, {
             ...cp,
             width: 'var(--bricks-media-width)',
             height: 'var(--bricks-media-height)',
@@ -866,7 +866,7 @@ export function useLandingRendererLayouts({
             style.gridRow = component.gridRow;
         }
 
-        return h(LandingSvg, {
+        return h(BricksSvg, {
             ...cp,
             width: 'var(--bricks-media-width)',
             height: 'var(--bricks-media-height)',
@@ -900,7 +900,7 @@ export function useLandingRendererLayouts({
             style.gridRow = component.gridRow;
         }
 
-        return h(LandingSlider, {
+        return h(BricksSlider, {
             layoutProps: componentProps,
             layoutId: component.id,
             slides: childComponents,
@@ -934,7 +934,7 @@ export function useLandingRendererLayouts({
             style.gridRow = component.gridRow;
         }
 
-        return h(LandingAccordion, {
+        return h(BricksAccordion, {
             layoutProps: componentProps,
             key: component.id,
             id: component.htmlId || undefined,

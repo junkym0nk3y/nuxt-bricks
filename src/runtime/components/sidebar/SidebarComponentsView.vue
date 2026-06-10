@@ -11,7 +11,7 @@ import { loadFavoritesFromStorage } from '../../store/landing/actions/favorites'
 
 // Components
 import ComponentCard from './ComponentCard.vue';
-import BricksClodeModal from '../ui/base/modal/BricksClodeModal.vue';
+import BricksCloseButton from '../ui/base/modal/BricksCloseButton.vue';
 // #endregion
 
 // #region Props
@@ -113,7 +113,7 @@ function handleClose(): void {
     <div :class="$style.SidebarComponentsView">
         <div :class="$style.header">
             <h2 :class="$style.title">Добавить компонент</h2>
-            <BricksClodeModal @click="handleClose" />
+            <BricksCloseButton @click="handleClose" />
         </div>
 
         <div :class="$style.search">

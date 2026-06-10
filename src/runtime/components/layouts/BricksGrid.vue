@@ -465,7 +465,7 @@ function handleDrop(event: DragEvent): void {
     const componentId = event.dataTransfer?.getData('component-id');
 
     if (componentId && props.layoutId && componentId === props.layoutId) {
-        console.warn('[LandingGrid] Ignoring self drop attempt');
+        console.warn('[BricksGrid] Ignoring self drop attempt');
         return;
     }
 
@@ -477,7 +477,7 @@ function handleDrop(event: DragEvent): void {
         if (isMove && componentId && isChildOfThisGrid(componentId)) {
             // Внутреннее перемещение — пропускаем проверку
         } else {
-            console.warn('[LandingGrid] Grid is at capacity, ignoring drop');
+            console.warn('[BricksGrid] Grid is at capacity, ignoring drop');
             return;
         }
     }

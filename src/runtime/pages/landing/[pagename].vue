@@ -17,8 +17,8 @@ import { useLandingConfig } from '../../composables/useLandingConfig';
 import { normalizeStoryPath } from '../../utils/landing';
 
 // Components
-import LandingRenderer from '../../components/render/LandingRenderer.vue';
-import BricksClodeModal from '../../components/ui/base/modal/BricksClodeModal.vue';
+import BricksRenderer from '../../components/render/BricksRenderer.vue';
+import BricksCloseButton from '../../components/ui/base/modal/BricksCloseButton.vue';
 // #endregion
 
 // #region Data
@@ -402,12 +402,12 @@ useHead(() => {
                     <span :class="$style.previewText">Режим превью</span>
                     <BricksLandIcon :icon="currentDevice.icon" :class="$style.previewDeviceIcon" />
                     <span :class="$style.previewResolution">{{ resolutionText }}</span>
-                    <BricksClodeModal size="sm" :class="$style.previewClose" @click="closePreview" />
+                    <BricksCloseButton size="sm" :class="$style.previewClose" @click="closePreview" />
                 </div>
             </div>
 
             <!-- Render only root-level components (not children of layouts) -->
-            <LandingRenderer
+            <BricksRenderer
                 v-for="component in rootComponents"
                 :key="component.id"
                 :component="component"

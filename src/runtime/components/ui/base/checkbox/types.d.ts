@@ -1,4 +1,4 @@
-export interface IIdaCheckboxProps {
+export interface IBricksCheckboxProps {
     value: boolean;
     disabled?: boolean;
     label?: string;
@@ -6,7 +6,7 @@ export interface IIdaCheckboxProps {
     name?: string;
 }
 
-export interface IIdaCheckboxEmits {
+export interface IBricksCheckboxEmits {
     'update:value': [value: boolean];
     focus: [event: FocusEvent];
     blur: [event: FocusEvent];

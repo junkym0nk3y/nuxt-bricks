@@ -21,7 +21,7 @@ import { useMediaStore } from '../../store/media';
 
 // Components
 import BricksButton from '../ui/base/button/BricksButton.vue';
-import BricksClodeModal from '../ui/base/modal/BricksClodeModal.vue';
+import BricksCloseButton from '../ui/base/modal/BricksCloseButton.vue';
 import BricksModal from '../ui/base/modal/BricksModal.vue';
 import BricksToast from '../ui/feedback/BricksToast.vue';
 import ConfirmActionModal from './ConfirmActionModal.vue';
@@ -391,7 +391,7 @@ watch(selectedItem, (item) => {
             <!-- Header -->
             <div :class="$style.header">
                 <h2 :class="$style.title">Управление медия-контентом</h2>
-                <BricksClodeModal @click="handleClose" />
+                <BricksCloseButton @click="handleClose" />
             </div>
 
             <!-- Content -->

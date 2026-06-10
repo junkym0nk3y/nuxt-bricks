@@ -1,11 +1,11 @@
 import type { TIdaButtonSize } from '../button/types.d.ts';
 
-export interface IIdaClodeModalProps {
+export interface IBricksCloseButtonProps {
     disabled?: boolean;
     size?: TIdaButtonSize;
 }
 
-export interface IIdaClodeModalEmits {
+export interface IBricksCloseButtonEmits {
     click: [event: MouseEvent];
 }
 

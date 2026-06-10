@@ -11,11 +11,11 @@ import { computed, useCssModule } from 'vue';
 import { Primitive } from 'reka-ui';
 
 // Types
-import type { IIdaButtonProps, IIdaButtonEmits } from './types.d.ts';
+import type { IBricksButtonProps, IBricksButtonEmits } from './types.d.ts';
 // #endregion
 
 // #region Props
-const props = withDefaults(defineProps<IIdaButtonProps>(), {
+const props = withDefaults(defineProps<IBricksButtonProps>(), {
     variant: 'secondary',
     size: 'md',
     disabled: false,
@@ -29,7 +29,7 @@ const props = withDefaults(defineProps<IIdaButtonProps>(), {
 // #endregion
 
 // #region Emits
-const emit = defineEmits<IIdaButtonEmits>();
+const emit = defineEmits<IBricksButtonEmits>();
 // #endregion
 
 // #region Data

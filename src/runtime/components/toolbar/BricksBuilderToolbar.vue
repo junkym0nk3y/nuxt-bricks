@@ -178,7 +178,7 @@ function handleToggleGrid(): void {
 </script>
 
 <template>
-    <div :class="$style.LandingBuilderToolbar">
+    <div :class="$style.BricksBuilderToolbar">
         <div :class="$style.center">
             <h1 :class="$style.title">
                 <span :class="$style.titlePrimary">
@@ -296,7 +296,7 @@ function handleToggleGrid(): void {
 </template>
 
 <style module lang="scss">
-.LandingBuilderToolbar {
+.BricksBuilderToolbar {
     position: relative;
     z-index: 100;
     display: flex;

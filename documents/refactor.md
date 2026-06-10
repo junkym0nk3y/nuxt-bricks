@@ -72,9 +72,9 @@ nuxt-bricks/
 | 0. Scaffold модуля          | ✅ Готово    | `src/module.ts`, `build.config.ts`, `playground/`, пакет `nuxt-bricks@0.1.0` на `@nuxt/module-builder`                                                                                                                                                                  |
 | 1. Перенос в `src/runtime/` | ✅ Готово    | Структура зеркалирует ida-landing (осознанное решение вместо доменного деления)                                                                                                                                                                                         |
 | 2. `module.ts` регистрация  | ✅ Готово    | —                                                                                                                                                                                                                                                                       |
-| 3. Дебрендинг               | 🟡 Почти     | Строки чистые (`grep -ri "idaproject\|idaland\|--ida-\|idacloud"` по `src/` пуст). **Хвосты:** ~20 компонентов ещё с префиксом `Landing*`; интерфейсы в `types.d.ts` ещё `IIda*` (напр. `IIdaButtonProps`); опечатка в имени `BricksClodeModal` (→ `BricksCloseButton`) |
+| 3. Дебрендинг               | ✅ Готово    | Компоненты `Landing*` → `Bricks*` (20 файлов), `IIda*` → `IBricks*`, `BricksClodeModal` → `BricksCloseButton`, удалены пустые `types/shims-idaproject-*`. Композаблы `useLanding*` и типы `ILanding*` оставлены — «landing» доменное имя, не бренд                       |
 | 4. UI → Reka UI             | ✅ Готово    | См. таблицу маппинга ниже — у каждой строки проставлен статус                                                                                                                                                                                                           |
-| 5. Чистка зависимостей      | 🟡 Почти     | `@idaproject/*` из `package.json` убраны. **Осталось:** `tiny-sha256` в `store/landing/navigation.ts` → `node:crypto` (сейчас TS2307 — модуль не находится)                                                                                                             |
+| 5. Чистка зависимостей      | ✅ Готово    | `@idaproject/*` из `package.json` убраны. `tiny-sha256` **оставлен** (добавлен в `dependencies` + shim `types/shims-tiny-sha256.d.ts`): решение — выпиливаем только идевские зависимости; `crypto.randomUUID` не годится (в браузере доступен только в secure context)   |
 | 6. Persistence-абстракция   | ❌ Не начато | `StorageAdapter`/`PublishAdapter` нет; серверная часть — `server/routes/mock-api/*` + `server/middleware/`                                                                                                                                                              |
 | 7. Playground + тесты       | 🟡 Частично  | `playground/` есть; `test/` (vitest + @nuxt/test-utils) отсутствует                                                                                                                                                                                                     |
 | 8. Сборка и публикация      | ❌ Не начато | В репо ещё нет ни одного коммита; README/LICENSE/bin `bricks-gen` не сделаны                                                                                                                                                                                            |
@@ -83,13 +83,13 @@ nuxt-bricks/
 
 `npx vue-tsc --noEmit` падает в файлах, не связанных с Reka-миграцией:
 
-- `components/canvas/LandingCanvas.vue`, `layouts/LandingGrid.vue`, `layouts/LandingSpace.vue` — TS2769 (computed возвращает union с `undefined`-полями, не совместим с `Record<string, string>`)
+- `components/canvas/BricksCanvas.vue`, `layouts/BricksGrid.vue`, `layouts/BricksSpace.vue` — TS2769 (computed возвращает union с `undefined`-полями, не совместим с `Record<string, string>`)
 - `composables/useApiClient.ts`, `useModals.ts`, `useLandingBuilderPage.ts`, `plugins/landing-dynamic-routes.ts` — TS2304: nuxt auto-imports (`useRuntimeConfig`, `useCookie`, `useRouter`, `useState`) и кросс-композабл импорты не резолвятся при standalone `vue-tsc` — нужно явное импортирование из `#imports`/относительных путей
+- `composables/useLandingRendererLayouts.ts` — oxlint `max-lines` (1021 строка при лимите 1000) — нужно разнести на части
 - `composables/useDocumentationArticles.ts` — `import.meta.glob` с `query` не типизируется
 - `pages/landing/[pagename].vue` — типизация `useAsyncData`-обёртки
 - `middleware/landing-page-layout.global.ts` — `LayoutKey` из `#build/types/layouts`
 - `server/middleware/proxy.client.ts` — TS2345
-- `store/landing/navigation.ts` — `tiny-sha256` (см. шаг 5)
 
 ## Этапы (по шагам)
 
@@ -213,7 +213,7 @@ Layer-инъекция (`extends`) заменяется явной регист�
 `gsap` (если используется в анимациях), `scroll-lock`, `normalize.css`.
 **Добавить:** `reka-ui`, иконки (`@iconify`/оставить `@kalimahapps/vue-icons` — проверить лицензию/бренд).
 **Серверные (в зависимости от дефолтного адаптера):** `@aws-sdk/client-s3`, `sharp`, драйвер Postgres, `upath`.
-**Удалить:** все `@idaproject/*` (core/device/filter/form/seo/ymaps3), `tiny-sha256` (заменить на `node:crypto`), приватный registry.
+**Удалить:** все `@idaproject/*` (core/device/filter/form/seo/ymaps3), приватный registry. `tiny-sha256` оставляем (не идевская зависимость; `crypto.randomUUID` в браузере работает только в secure context).
 **Dev/сборка:** `@nuxt/module-builder`, `@nuxt/test-utils`, `vitest`, `oxlint`, `prettier`, `stylelint*`, `sass`, `typescript`, `vue-tsc`. Привести в порядок `patch-package` (патч `vite-plugin-checker` не idaproject-специфичен — оставить при необходимости).
 
 ## Верификация

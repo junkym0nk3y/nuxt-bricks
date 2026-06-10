@@ -75,7 +75,7 @@ export function useLandingCanvas() {
     });
 
     // CSS-трансформация обёртки Figma Mode — без rem-компенсации,
-    // т.к. у каждого viewport своя компенсация (применяется в LandingCanvasViewport)
+    // т.к. у каждого viewport своя компенсация (применяется в BricksCanvasViewport)
     const figmaBaseTransform = computed(() => {
         return `scale(${canvasStore.scale})`;
     });

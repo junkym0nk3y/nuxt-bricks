@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { Editor } from '@tiptap/vue-3';
-import type { IIdaTextAreaProps, IIdaTextAreaEmits } from './types.d.ts';
+import type { IBricksTextAreaProps, IBricksTextAreaEmits } from './types.d.ts';
 import type { IToolbarGroup } from '../../../types/text-editor-toolbar.d.ts';
 
 // Vue
@@ -40,7 +40,7 @@ const TiptapImageFloatPopover = defineAsyncComponent(
 // #endregion
 
 // #region Props
-const props = withDefaults(defineProps<IIdaTextAreaProps>(), {
+const props = withDefaults(defineProps<IBricksTextAreaProps>(), {
     value: '',
     label: '',
     placeholder: '',
@@ -52,7 +52,7 @@ const props = withDefaults(defineProps<IIdaTextAreaProps>(), {
 // #endregion
 
 // #region Emits
-const emit = defineEmits<IIdaTextAreaEmits>();
+const emit = defineEmits<IBricksTextAreaEmits>();
 // #endregion
 
 // #region Data

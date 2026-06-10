@@ -103,7 +103,7 @@ function resolveDimension(value: string | number | undefined): string {
 </script>
 
 <template>
-    <div :class="$style.LandingSvg" :style="wrapperStyle">
+    <div :class="$style.BricksSvg" :style="wrapperStyle">
         <!-- Inline SVG (when svgContent available from media gallery) -->
         <!-- eslint-disable vue/no-v-html -->
         <div
@@ -132,7 +132,7 @@ function resolveDimension(value: string | number | undefined): string {
 </template>
 
 <style module lang="scss">
-.LandingSvg {
+.BricksSvg {
     position: relative;
     width: 100%;
 }

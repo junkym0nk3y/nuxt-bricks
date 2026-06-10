@@ -26,10 +26,10 @@ import { convertPxToRem } from '../../utils/main';
 import { scrollToComponentOnCanvas } from '../../utils/landing/scrollToComponent';
 
 // Components
-import LandingCanvasItem from './LandingCanvasItem.vue';
-import LandingCanvasToolbar from './LandingCanvasToolbar.vue';
-import LandingCanvasEmptyState from './LandingCanvasEmptyState.vue';
-import LandingCanvasViewport from './LandingCanvasViewport.vue';
+import BricksCanvasItem from './BricksCanvasItem.vue';
+import BricksCanvasToolbar from './BricksCanvasToolbar.vue';
+import BricksCanvasEmptyState from './BricksCanvasEmptyState.vue';
+import BricksCanvasViewport from './BricksCanvasViewport.vue';
 import CanvasInlineEditingOverlay from './CanvasInlineEditingOverlay.vue';
 // #endregion
 
@@ -132,7 +132,7 @@ const canvasStyle = computed<Record<string, string>>(() => {
 
 /**
  * Стили для обёртки Figma Mode — базовый scale без rem-компенсации.
- * Per-viewport компенсация применяется внутри каждого LandingCanvasViewport.
+ * Per-viewport компенсация применяется внутри каждого BricksCanvasViewport.
  */
 const figmaWrapperStyle = computed<Record<string, string>>(() => {
     if (!isMounted.value) {
@@ -482,7 +482,7 @@ onBeforeUnmount(() => {
 <template>
     <div :class="$style.LandingCanvasContainer">
         <!-- Canvas Toolbar -->
-        <LandingCanvasToolbar
+        <BricksCanvasToolbar
             :scale="canvasStore.scale"
             :viewport="canvasStore.viewport"
             :sidebar-offset="leftSidebarOffset"
@@ -507,9 +507,9 @@ onBeforeUnmount(() => {
                 :class="$style.figmaWrapper"
                 :style="figmaWrapperStyle"
             >
-                <LandingCanvasViewport viewport="mobile" />
-                <LandingCanvasViewport viewport="tablet" />
-                <LandingCanvasViewport viewport="desktop" />
+                <BricksCanvasViewport viewport="mobile" />
+                <BricksCanvasViewport viewport="tablet" />
+                <BricksCanvasViewport viewport="desktop" />
             </div>
 
             <!-- Normal Mode: один канвас -->
@@ -539,7 +539,7 @@ onBeforeUnmount(() => {
                             @dragleave="handleRootDragLeave"
                         >
                             <!-- Components (only root-level, children will be rendered inside layouts) -->
-                            <LandingCanvasItem
+                            <BricksCanvasItem
                                 v-for="component in componentsStore.getRootComponents()"
                                 :key="component.id"
                                 :component="component"
@@ -556,7 +556,7 @@ onBeforeUnmount(() => {
                         </div>
                     </div>
 
-                    <LandingCanvasEmptyState v-if="componentsStore.sortedComponents.length === 0" />
+                    <BricksCanvasEmptyState v-if="componentsStore.sortedComponents.length === 0" />
                 </div>
             </div>
         </div>

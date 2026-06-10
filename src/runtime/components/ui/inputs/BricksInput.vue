@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IIdaInputProps, IIdaInputEmits } from './types.d.ts';
+import type { IBricksInputProps, IBricksInputEmits } from './types.d.ts';
 
 // Vue
 import { computed, ref, useCssModule, watch } from 'vue';
@@ -11,7 +11,7 @@ import { validate } from 'vee-validate';
 // #endregion
 
 // #region Props
-const props = withDefaults(defineProps<IIdaInputProps>(), {
+const props = withDefaults(defineProps<IBricksInputProps>(), {
     label: '',
     placeholder: '',
     disabled: false,
@@ -24,7 +24,7 @@ const props = withDefaults(defineProps<IIdaInputProps>(), {
 // #endregion
 
 // #region Emits
-const emit = defineEmits<IIdaInputEmits>();
+const emit = defineEmits<IBricksInputEmits>();
 // #endregion
 
 // #region Data
@@ -96,7 +96,7 @@ const showStepper = computed(() => props.type === 'number' && !props.disabled);
  * @param value - External value.
  * @returns String representation of the value.
  */
-function normalizeIncomingValue(value: IIdaInputProps['value']): string {
+function normalizeIncomingValue(value: IBricksInputProps['value']): string {
     if (value === null || typeof value === 'undefined') {
         return '';
     }

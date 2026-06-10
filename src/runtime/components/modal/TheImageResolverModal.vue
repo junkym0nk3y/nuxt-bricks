@@ -8,7 +8,7 @@ import { computed } from 'vue';
 
 // Components
 import BricksButton from '../ui/base/button/BricksButton.vue';
-import BricksClodeModal from '../ui/base/modal/BricksClodeModal.vue';
+import BricksCloseButton from '../ui/base/modal/BricksCloseButton.vue';
 import BricksModal from '../ui/base/modal/BricksModal.vue';
 import ImageResolverItem from './ImageResolverItem.vue';
 // #endregion
@@ -100,7 +100,7 @@ function handleGlobalActionChange(event: Event): void {
                     Найдены новые изображения
                     <span :class="$style.count">{{ imageCount }}</span>
                 </h3>
-                <BricksClodeModal @click="handleClose" />
+                <BricksCloseButton @click="handleClose" />
             </div>
 
             <div :class="$style.globalAction">

@@ -24,7 +24,7 @@ import { LAYOUT_COMPONENTS } from '../../constants/layoutComponents';
 
 // Components
 import SchemaTreeItem from './SchemaTreeItem.vue';
-import BricksClodeModal from '../ui/base/modal/BricksClodeModal.vue';
+import BricksCloseButton from '../ui/base/modal/BricksCloseButton.vue';
 // #endregion
 
 // #region Emits
@@ -186,7 +186,7 @@ async function handleSelectComponent(id: string): Promise<void> {
     <div :class="$style.SidebarSchemaTreeView">
         <div :class="$style.header">
             <h2 :class="$style.title">Схема страницы</h2>
-            <BricksClodeModal @click="handleClose" />
+            <BricksCloseButton @click="handleClose" />
         </div>
 
         <div :class="[$style.content, 'scrollbox']">

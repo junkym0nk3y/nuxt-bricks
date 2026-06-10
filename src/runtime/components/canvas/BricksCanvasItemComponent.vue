@@ -9,13 +9,13 @@ import { useComponentSlots } from '../../composables/useComponentSlots';
 import { useSlotDragDrop } from '../../composables/useSlotDragDrop';
 
 // Components
-import LandingCanvasItem from './LandingCanvasItem.vue';
+import BricksCanvasItem from './BricksCanvasItem.vue';
 import ConditionalContainer from './ConditionalContainer.vue';
 // #endregion
 
 // #region Interfaces
 /**
- * Пропсы для компонента LandingCanvasItemComponent
+ * Пропсы для компонента BricksCanvasItemComponent
  */
 interface ILandingCanvasItemComponentProps {
     /** Экземпляр landing-компонента для рендеринга */
@@ -71,7 +71,7 @@ const {
                     @dragleave="handleSlotDragLeave(slotData.slot.name, $event)"
                     @drop="handleSlotDrop(slotData.slot.name, $event)"
                 >
-                    <LandingCanvasItem
+                    <BricksCanvasItem
                         v-for="child in slotData.children"
                         :key="child.id"
                         :component="child"

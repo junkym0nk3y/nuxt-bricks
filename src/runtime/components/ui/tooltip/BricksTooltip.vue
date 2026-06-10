@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IIdaTooltipProps } from './types.d.ts';
+import type { IBricksTooltipProps } from './types.d.ts';
 
 // Vue
 import { computed, useCssModule } from 'vue';
@@ -23,7 +23,7 @@ defineOptions({
 // #endregion
 
 // #region Props
-const props = withDefaults(defineProps<IIdaTooltipProps>(), {
+const props = withDefaults(defineProps<IBricksTooltipProps>(), {
     attach: '#app',
     nudge: 8,
     offsetY: 12,

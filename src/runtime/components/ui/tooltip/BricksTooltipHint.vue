@@ -4,11 +4,11 @@
  */
 
 // #region Imports
-import type { IIdaTooltipHintProps } from './types.d.ts';
+import type { IBricksTooltipHintProps } from './types.d.ts';
 // #endregion
 
 // #region Props
-const props = withDefaults(defineProps<IIdaTooltipHintProps>(), {
+const props = withDefaults(defineProps<IBricksTooltipHintProps>(), {
     text: '',
 });
 // #endregion

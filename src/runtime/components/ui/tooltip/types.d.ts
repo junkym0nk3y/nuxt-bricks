@@ -1,4 +1,4 @@
-export interface IIdaTooltipProps {
+export interface IBricksTooltipProps {
     attach?: string;
     nudge?: number;
     offsetY?: number;
@@ -11,6 +11,6 @@ export interface IIdaTooltipProps {
     text?: string;
 }
 
-export interface IIdaTooltipHintProps {
+export interface IBricksTooltipHintProps {
     text: string;
 }

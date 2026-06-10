@@ -131,7 +131,7 @@ const isEditing = computed<boolean>(() => {
 });
 
 const headingClasses = computed(() => [
-    $style.LandingTitle,
+    $style.BricksTitle,
     $style[`_${props.headingType}`],
     { [$style.isEditing]: isEditing.value },
 ]);
@@ -292,7 +292,7 @@ function handleEditorClick(event: MouseEvent): void {
 </template>
 
 <style module lang="scss">
-.LandingTitle {
+.BricksTitle {
     line-height: 1.2;
     color: var(--land-base-900);
 

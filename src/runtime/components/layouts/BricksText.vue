@@ -89,7 +89,7 @@ function handleEditorClick(event: MouseEvent): void {
 
 <template>
     <div
-        :class="[$style.LandingText, 'bricks-text', { [$style.isEditing]: isEditing }]"
+        :class="[$style.BricksText, 'bricks-text', { [$style.isEditing]: isEditing }]"
         :style="textStyle"
         @click.stop="isEditing ? handleEditorClick($event) : undefined"
     >
@@ -110,7 +110,7 @@ function handleEditorClick(event: MouseEvent): void {
 </template>
 
 <style module lang="scss">
-.LandingText {
+.BricksText {
     font-size: 1.4rem;
     line-height: 1.6;
 

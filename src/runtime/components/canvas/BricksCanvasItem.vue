@@ -24,8 +24,8 @@ import { useCanvasItemActions } from '../../composables/useCanvasItemActions';
 import { buildDeviceVisibilityClasses } from '../../utils/landing/deviceVisibility';
 
 // Components
-import LandingCanvasItemLayout from './LandingCanvasItemLayout.vue';
-import LandingCanvasItemComponent from './LandingCanvasItemComponent.vue';
+import BricksCanvasItemLayout from './BricksCanvasItemLayout.vue';
+import BricksCanvasItemComponent from './BricksCanvasItemComponent.vue';
 import CanvasItemToolbar from './CanvasItemToolbar.vue';
 // #endregion
 
@@ -39,7 +39,7 @@ const canvasStore = useLandingCanvasStore();
 const dragComposable = inject<IDragComposableCanvas | undefined>('dragComposable');
 const availableFonts = inject<string[]>('availableFonts', []);
 
-/** Viewport из LandingCanvasViewport (Figma mode) или null (Normal mode) */
+/** Viewport из BricksCanvasViewport (Figma mode) или null (Normal mode) */
 const figmaViewport = inject<string | null>('canvasViewport', null);
 
 /** Ref корневого элемента для позиционирования телепортированного тулбара */
@@ -177,7 +177,7 @@ watch(
         <div v-if="isHidden && canvasStore.showGrid" :class="$style.hiddenLabel">Отключен</div>
 
         <!-- Render Layout Component -->
-        <LandingCanvasItemLayout
+        <BricksCanvasItemLayout
             v-if="isLayout"
             :component="props.component"
             :layout-name="layoutName"
@@ -188,7 +188,7 @@ watch(
         />
 
         <!-- Render UI Component -->
-        <LandingCanvasItemComponent
+        <BricksCanvasItemComponent
             v-else-if="ComponentInstance"
             :key="forceRenderKey"
             :component="props.component"

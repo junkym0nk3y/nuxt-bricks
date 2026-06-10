@@ -175,7 +175,7 @@ function handleDrop(event: DragEvent): void {
     const componentId = event.dataTransfer?.getData('component-id');
 
     if (componentId && props.layoutId && componentId === props.layoutId) {
-        console.warn('[LandingFlex] Ignoring self drop attempt');
+        console.warn('[BricksFlex] Ignoring self drop attempt');
         isDragOver.value = false;
         dropIndicator.value = null;
         dropInsertIndex.value = null;
@@ -245,7 +245,7 @@ function updateDropIndicator(event: DragEvent): void {
     const halfGap = (props.layoutProps.gap || 0) / 2;
 
     if (children.length === 0) {
-        console.debug('[LandingFlex] updateDropIndicator: empty, set index 0');
+        console.debug('[BricksFlex] updateDropIndicator: empty, set index 0');
         dropIndicator.value = { index: 0, offset: 0 };
         dropInsertIndex.value = 0;
         return;
@@ -293,7 +293,7 @@ function updateDropIndicator(event: DragEvent): void {
 
     offset = Math.max(0, Math.min(offset, containerExtent));
 
-    console.debug('[LandingFlex] updateDropIndicator', {
+    console.debug('[BricksFlex] updateDropIndicator', {
         pointerPosition,
         targetIndex,
         offset,

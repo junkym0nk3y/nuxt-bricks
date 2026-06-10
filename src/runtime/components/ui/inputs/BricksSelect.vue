@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IIdaSelectProps, IIdaSelectEmits } from './types.d.ts';
+import type { IBricksSelectProps, IBricksSelectEmits } from './types.d.ts';
 import type { ILandDemoValues } from '../../../types.d.ts';
 
 // Vue
@@ -28,13 +28,13 @@ defineOptions({
 // #endregion
 
 // #region Props
-const props = withDefaults(defineProps<IIdaSelectProps>(), {
+const props = withDefaults(defineProps<IBricksSelectProps>(), {
     disabled: false,
 });
 // #endregion
 
 // #region Emits
-const emit = defineEmits<IIdaSelectEmits>();
+const emit = defineEmits<IBricksSelectEmits>();
 // #endregion
 
 // #region Data

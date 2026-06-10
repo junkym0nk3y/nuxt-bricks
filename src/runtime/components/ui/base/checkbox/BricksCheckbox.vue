@@ -7,11 +7,11 @@ import { useCssModule, computed } from 'vue';
 import { CheckboxRoot } from 'reka-ui';
 
 // Types
-import type { IIdaCheckboxProps, IIdaCheckboxEmits } from './types.d.ts';
+import type { IBricksCheckboxProps, IBricksCheckboxEmits } from './types.d.ts';
 // #endregion
 
 // #region Props
-const props = withDefaults(defineProps<IIdaCheckboxProps>(), {
+const props = withDefaults(defineProps<IBricksCheckboxProps>(), {
     disabled: false,
     label: '',
     size: 'md',
@@ -20,7 +20,7 @@ const props = withDefaults(defineProps<IIdaCheckboxProps>(), {
 // #endregion
 
 // #region Emits
-const emit = defineEmits<IIdaCheckboxEmits>();
+const emit = defineEmits<IBricksCheckboxEmits>();
 // #endregion
 
 // #region Data

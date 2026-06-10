@@ -20,7 +20,7 @@ import { useLandingCanvasDrops } from '../../composables/useLandingCanvasDrops';
 import { convertPxToRem } from '../../utils/main';
 
 // Components
-import LandingCanvasItem from './LandingCanvasItem.vue';
+import BricksCanvasItem from './BricksCanvasItem.vue';
 // #endregion
 
 // #region Interfaces
@@ -44,7 +44,7 @@ const getRemCompensation = inject<((viewport: TViewportType) => number) | undefi
     'getRemCompensation'
 );
 
-/** Провайдим viewport для дочерних LandingCanvasItem (используется для Figma mode) */
+/** Провайдим viewport для дочерних BricksCanvasItem (используется для Figma mode) */
 provide('canvasViewport', props.viewport);
 
 const canvasRef = ref<HTMLElement | null>(null);
@@ -241,7 +241,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div :class="$style.LandingCanvasViewport">
+    <div :class="$style.BricksCanvasViewport">
         <div :class="$style.label">{{ viewportLabel }}</div>
 
         <div
@@ -265,7 +265,7 @@ onBeforeUnmount(() => {
                     @dragover="handleRootDragOver"
                     @dragleave="handleRootDragLeave"
                 >
-                    <LandingCanvasItem
+                    <BricksCanvasItem
                         v-for="component in componentsStore.getRootComponents()"
                         :key="component.id"
                         :component="component"
@@ -286,7 +286,7 @@ onBeforeUnmount(() => {
 </template>
 
 <style module lang="scss">
-.LandingCanvasViewport {
+.BricksCanvasViewport {
     display: flex;
     flex-direction: column;
     align-items: center;

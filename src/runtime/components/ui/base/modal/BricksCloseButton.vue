@@ -1,21 +1,21 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IIdaClodeModalEmits, IIdaClodeModalProps } from './types.d.ts';
+import type { IBricksCloseButtonEmits, IBricksCloseButtonProps } from './types.d.ts';
 
 // Components
 import BricksButton from '../button/BricksButton.vue';
 // #endregion
 
 // #region Props
-const props = withDefaults(defineProps<IIdaClodeModalProps>(), {
+const props = withDefaults(defineProps<IBricksCloseButtonProps>(), {
     disabled: false,
     size: 'sm',
 });
 // #endregion
 
 // #region Emits
-const emit = defineEmits<IIdaClodeModalEmits>();
+const emit = defineEmits<IBricksCloseButtonEmits>();
 // #endregion
 
 // #region Methods
@@ -34,7 +34,7 @@ function handleClick(event: MouseEvent): void {
     <BricksButton
         :size="props.size"
         variant="outline"
-        :class="$style.BricksClodeModal"
+        :class="$style.BricksCloseButton"
         :disabled="props.disabled"
         @click="handleClick"
     >
@@ -43,7 +43,7 @@ function handleClick(event: MouseEvent): void {
 </template>
 
 <style module lang="scss">
-.BricksClodeModal {
+.BricksCloseButton {
     min-width: 3.2rem;
     min-height: 3.2rem;
     padding: 0;

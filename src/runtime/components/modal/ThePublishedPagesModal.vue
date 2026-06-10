@@ -10,7 +10,7 @@ import { ref, computed, watch } from 'vue';
 // Components
 import PublishedPageCard from './PublishedPageCard.vue';
 import ConfirmActionModal from './ConfirmActionModal.vue';
-import BricksClodeModal from '../ui/base/modal/BricksClodeModal.vue';
+import BricksCloseButton from '../ui/base/modal/BricksCloseButton.vue';
 import BricksModal from '../ui/base/modal/BricksModal.vue';
 
 // Pinia
@@ -237,7 +237,7 @@ watch(
             <!-- Header -->
             <div :class="$style.header">
                 <h2 :class="$style.title">Сохранённые страницы</h2>
-                <BricksClodeModal @click="handleClose" />
+                <BricksCloseButton @click="handleClose" />
             </div>
 
             <!-- Content -->

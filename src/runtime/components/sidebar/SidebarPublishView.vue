@@ -25,7 +25,7 @@ import BricksInput from '../ui/inputs/BricksInput.vue';
 import BricksButton from '../ui/base/button/BricksButton.vue';
 import BricksHexInput from '../ui/inputs/BricksHexInput.vue';
 import BricksSelect from '../ui/inputs/BricksSelect.vue';
-import BricksClodeModal from '../ui/base/modal/BricksClodeModal.vue';
+import BricksCloseButton from '../ui/base/modal/BricksCloseButton.vue';
 import SidebarNavigationEditor from './SidebarNavigationEditor.vue';
 // #endregion
 
@@ -243,7 +243,7 @@ onMounted(() => {
     <div :class="$style.SidebarPublishView">
         <div :class="$style.header">
             <h2 :class="$style.title">{{ panelTitle }}</h2>
-            <BricksClodeModal :disabled="isSubmitting" @click="handleClose" />
+            <BricksCloseButton :disabled="isSubmitting" @click="handleClose" />
         </div>
 
         <Form

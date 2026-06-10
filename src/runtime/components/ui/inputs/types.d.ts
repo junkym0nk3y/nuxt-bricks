@@ -8,18 +8,18 @@ export interface ILandUiCommonProp {
     placeholder?: string;
 }
 
-export interface IIdaSelectProps {
+export interface IBricksSelectProps {
     specs: ILandUiCommonProp[];
     facets: ILandDemoValues[];
     value: ILandDemoValues;
     disabled?: boolean;
 }
 
-export interface IIdaSelectEmits {
+export interface IBricksSelectEmits {
     'update:value': [value: ILandDemoValues | null];
 }
 
-export interface IIdaInputProps {
+export interface IBricksInputProps {
     value: string | number | boolean | null | undefined;
     label?: string;
     disabled?: boolean;
@@ -35,12 +35,12 @@ export interface IIdaInputProps {
     unit?: string;
 }
 
-export interface IIdaInputEmits {
+export interface IBricksInputEmits {
     'update:value': [value: string];
     'validation-state': [payload: { valid: boolean; message: string | null }];
 }
 
-export interface IIdaTextAreaProps {
+export interface IBricksTextAreaProps {
     value?: string;
     label?: string;
     placeholder?: string;
@@ -50,11 +50,11 @@ export interface IIdaTextAreaProps {
     useRichEditor?: boolean;
 }
 
-export interface IIdaTextAreaEmits {
+export interface IBricksTextAreaEmits {
     'update:value': [value: string];
 }
 
-export interface IIdaSwitchProps {
+export interface IBricksSwitchProps {
     value: string | boolean;
     trueValue?: string | boolean;
     falseValue?: string | boolean;
@@ -64,16 +64,16 @@ export interface IIdaSwitchProps {
     size?: 'medium' | 'small';
 }
 
-export interface IIdaSwitchEmits {
+export interface IBricksSwitchEmits {
     'update:value': [value: boolean | string];
 }
 
-export interface IIdaHexInputProps {
+export interface IBricksHexInputProps {
     value: string;
     disabled?: boolean;
 }
 
-export interface IIdaHexInputEmits {
+export interface IBricksHexInputEmits {
     'update:value': [value: string];
     change: [value: string];
 }

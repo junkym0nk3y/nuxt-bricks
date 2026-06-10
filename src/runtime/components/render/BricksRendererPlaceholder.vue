@@ -12,7 +12,7 @@ const props = withDefaults(defineProps<ILandingRendererPlaceholderProps>(), {
 </script>
 
 <template>
-    <div :class="$style.LandingRendererPlaceholder">
+    <div :class="$style.BricksRendererPlaceholder">
         <h3 :class="$style.title">
             {{ props.title }}
         </h3>
@@ -23,7 +23,7 @@ const props = withDefaults(defineProps<ILandingRendererPlaceholderProps>(), {
 </template>
 
 <style module lang="scss">
-.LandingRendererPlaceholder {
+.BricksRendererPlaceholder {
     display: flex;
     align-items: center;
     justify-content: center;

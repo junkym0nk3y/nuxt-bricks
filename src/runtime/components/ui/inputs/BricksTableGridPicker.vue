@@ -11,13 +11,13 @@ import { onClickOutside, useElementBounding } from '@vueuse/core';
 // #endregion
 
 // #region Interfaces
-interface IIdaTableGridPickerProps {
+interface IBricksTableGridPickerProps {
     item: IToolbarTablePicker;
 }
 // #endregion
 
 // #region Props
-const props = withDefaults(defineProps<IIdaTableGridPickerProps>(), {});
+const props = withDefaults(defineProps<IBricksTableGridPickerProps>(), {});
 // #endregion
 
 // #region Data

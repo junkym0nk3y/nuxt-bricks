@@ -12,7 +12,7 @@ export type TIdaButtonVariant =
 
 export type TIdaButtonSize = 'sm' | 'md' | 'lg';
 
-export interface IIdaButtonProps {
+export interface IBricksButtonProps {
     variant?: TIdaButtonVariant;
     size?: TIdaButtonSize;
     disabled?: boolean;
@@ -24,6 +24,6 @@ export interface IIdaButtonProps {
     equal?: boolean;
 }
 
-export interface IIdaButtonEmits {
+export interface IBricksButtonEmits {
     click: [event: MouseEvent];
 }

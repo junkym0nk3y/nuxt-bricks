@@ -27,10 +27,10 @@ import { serializeSchema } from '../../utils/landing';
 import { loadFavoritesFromStorage } from '../../store/landing/actions/favorites';
 
 // Components
-import LandingBuilderToolbar from '../../components/toolbar/LandingBuilderToolbar.vue';
+import BricksBuilderToolbar from '../../components/toolbar/BricksBuilderToolbar.vue';
 import BuilderVerticalNav from '../../components/toolbar/BuilderVerticalNav.vue';
 import BuilderSidebar from '../../components/sidebar/BuilderSidebar.vue';
-import LandingCanvas from '../../components/canvas/LandingCanvas.vue';
+import BricksCanvas from '../../components/canvas/BricksCanvas.vue';
 import BuilderLoader from '../../components/builder/BuilderLoader.vue';
 import ThePublishedPagesModal from '../../components/modal/ThePublishedPagesModal.vue';
 import TheDocumentationModal from '../../components/modal/TheDocumentationModal.vue';
@@ -512,7 +512,7 @@ onBeforeUnmount(() => {
 
 <template>
     <div :class="[$style.LandingBuilder, 'bricks-text']">
-        <LandingBuilderToolbar
+        <BricksBuilderToolbar
             :history-index="historyStore.historyIndex"
             :history-length="historyStore.history.length"
             :is-editing-existing-page="isEditingExistingPage"
@@ -558,7 +558,7 @@ onBeforeUnmount(() => {
 
             <div :class="$style.canvasWrapper">
                 <BuilderLoader :is-loading="isSessionLoading" />
-                <LandingCanvas />
+                <BricksCanvas />
             </div>
         </div>
 
