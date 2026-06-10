@@ -1,5 +1,5 @@
 import { appendHeader, defineEventHandler } from 'h3';
-import { resolveLandingComponents } from '../../../utils/db/landing-components';
+import { resolveLandingComponents } from '../../utils/db/landing-components';
 
 /**
  * GET /mock-api/landing-components — возвращает весь список категорий или компоненты выбранной

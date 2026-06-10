@@ -125,11 +125,17 @@ const FILE_MOVES = {
 
 /** Маппинг абсолютного старого пути файла → абсолютный новый (identity, если не двигается). */
 function mapPath(abs) {
-    if (!abs.startsWith(RT + path.sep)) return abs;
+    if (!abs.startsWith(RT + path.sep)) {
+        return abs;
+    }
     const rel = path.relative(RT, abs).split(path.sep).join('/');
-    if (FILE_MOVES[rel]) return path.join(RT, FILE_MOVES[rel]);
+    if (FILE_MOVES[rel]) {
+        return path.join(RT, FILE_MOVES[rel]);
+    }
     for (const [from, to] of DIR_MOVES) {
-        if (rel.startsWith(from)) return path.join(RT, to + rel.slice(from.length));
+        if (rel.startsWith(from)) {
+            return path.join(RT, to + rel.slice(from.length));
+        }
     }
     return abs;
 }
@@ -138,8 +144,11 @@ function mapPath(abs) {
 function collectFiles(dir, out = []) {
     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
         const p = path.join(dir, e.name);
-        if (e.isDirectory()) collectFiles(p, out);
-        else if (/\.(ts|vue|mjs)$/.test(e.name)) out.push(p);
+        if (e.isDirectory()) {
+            collectFiles(p, out);
+        } else if (/\.(ts|vue|mjs)$/.test(e.name)) {
+            out.push(p);
+        }
     }
     return out;
 }
@@ -150,7 +159,9 @@ function resolveSpec(fromDir, spec) {
     const probes = ['', '.ts', '.d.ts', '.vue', '.mjs', '/index.ts'];
     for (const suf of probes) {
         const p = base + suf;
-        if (fs.existsSync(p) && fs.statSync(p).isFile()) return [p, suf];
+        if (fs.existsSync(p) && fs.statSync(p).isFile()) {
+            return [p, suf];
+        }
     }
     return null;
 }
@@ -163,7 +174,9 @@ function rebuildSpec(newFromDir, newTarget, addedSuffix) {
         target = target.slice(0, -addedSuffix.length);
     }
     let rel = path.relative(newFromDir, target).split(path.sep).join('/');
-    if (!rel.startsWith('.')) rel = './' + rel;
+    if (!rel.startsWith('.')) {
+        rel = './' + rel;
+    }
     return rel;
 }
 
@@ -178,13 +191,17 @@ const warnings = [];
 
 for (const file of files) {
     const newFile = mapPath(file);
-    if (newFile !== file) moves.push([file, newFile]);
+    if (newFile !== file) {
+        moves.push([file, newFile]);
+    }
 
     const content = fs.readFileSync(file, 'utf8');
     const fileRewrites = [];
     for (const m of content.matchAll(SPEC_RE)) {
         const spec = m[3];
-        if (!spec.startsWith('./') && !spec.startsWith('../')) continue;
+        if (!spec.startsWith('./') && !spec.startsWith('../')) {
+            continue;
+        }
         if (spec.includes('*')) {
             warnings.push(`${path.relative(ROOT, file)}: glob-спецификатор пропущен: ${spec}`);
             continue;
@@ -197,17 +214,25 @@ for (const file of files) {
         const [target, addedSuffix] = resolved;
         const newTarget = mapPath(target);
         const newSpec = rebuildSpec(path.dirname(newFile), newTarget, addedSuffix);
-        if (newSpec !== spec) fileRewrites.push([spec, newSpec]);
+        if (newSpec !== spec) {
+            fileRewrites.push([spec, newSpec]);
+        }
     }
-    if (fileRewrites.length) rewrites.set(file, fileRewrites);
+    if (fileRewrites.length) {
+        rewrites.set(file, fileRewrites);
+    }
 }
 
 // Отчёт
 console.log(`Файлов просканировано: ${files.length}`);
 console.log(`Перемещений: ${moves.length}`);
 console.log(`Файлов с переписанными импортами: ${rewrites.size}`);
-for (const w of warnings) console.log(`WARN  ${w}`);
-for (const e of errors) console.log(`ERROR ${e}`);
+for (const w of warnings) {
+    console.log(`WARN  ${w}`);
+}
+for (const e of errors) {
+    console.log(`ERROR ${e}`);
+}
 if (errors.length) {
     console.error(`\nAbort: ${errors.length} нерезолвящихся импортов. Ничего не изменено.`);
     process.exit(1);
@@ -219,7 +244,9 @@ if (DRY) {
     }
     for (const [file, rws] of rewrites) {
         console.log(`RW ${path.relative(ROOT, file)}`);
-        for (const [o, n] of rws) console.log(`     ${o} -> ${n}`);
+        for (const [o, n] of rws) {
+            console.log(`     ${o} -> ${n}`);
+        }
     }
     console.log('\n--dry: изменения не применены.');
     process.exit(0);

@@ -131,24 +131,24 @@ export default defineNuxtModule<IBricksModuleOptions>({
                 {
                     name: 'bricks-builder',
                     path: '/builder',
-                    file: resolve(runtimeDir, 'pages/builder.vue'),
+                    file: resolve(runtimeDir, 'builder/pages/builder.vue'),
                     children: [
                         {
                             name: 'bricks-builder-index',
                             path: '',
-                            file: resolve(runtimeDir, 'pages/builder/index.vue'),
+                            file: resolve(runtimeDir, 'builder/pages/index.vue'),
                         },
                         {
                             name: 'bricks-builder-pagename',
                             path: ':pagename',
-                            file: resolve(runtimeDir, 'pages/builder/[pagename].vue'),
+                            file: resolve(runtimeDir, 'builder/pages/[pagename].vue'),
                         },
                     ],
                 },
                 {
                     name: 'bricks-landing-pagename',
                     path: '/landing/:pagename',
-                    file: resolve(runtimeDir, 'pages/landing/[pagename].vue'),
+                    file: resolve(runtimeDir, 'render/pages/[pagename].vue'),
                 }
             );
         });

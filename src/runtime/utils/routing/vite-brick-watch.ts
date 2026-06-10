@@ -1,5 +1,5 @@
 import type { Plugin } from 'vite';
-import generateStoriesJson from '../routing/generate-stories-json.mjs';
+import generateStoriesJson from './generate-stories-json.mjs';
 
 const BRICK_PATTERN = /\.brick\.ts$/;
 

@@ -32,7 +32,7 @@ function escapePagenameForRegex(pagename: string): string {
  * @param pages Список опубликованных страниц из API.
  */
 function registerPublishedRoutes(router: Router, pages: IPublishedLandingPageSummary[]): void {
-    const landingComponent = () => import('../pages/landing/[pagename].vue');
+    const landingComponent = () => import('../render/pages/[pagename].vue');
 
     pages.forEach(({ pagename, urlPrefix }) => {
         const routeName = `${ROUTE_NAME_PREFIX}${pagename}`;

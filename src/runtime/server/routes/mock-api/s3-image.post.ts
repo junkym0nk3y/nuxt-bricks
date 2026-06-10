@@ -2,8 +2,8 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { randomUUID } from 'crypto';
 import { createError, defineEventHandler, readMultipartFormData, type MultiPartData } from 'h3';
-import { getFileExtension, isVideoFile, resolveMediaConfig } from '../../../utils/db/images';
-import { validateAndOptimizeImage, validateVideo } from '../../../utils/db/media';
+import { getFileExtension, isVideoFile, resolveMediaConfig } from '../../utils/db/images';
+import { validateAndOptimizeImage, validateVideo } from '../../utils/db/media';
 // #endregion
 
 // #region Data

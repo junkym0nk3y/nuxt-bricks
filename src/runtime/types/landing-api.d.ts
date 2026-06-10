@@ -1,3 +1,4 @@
+// TODO(persistence, Шаг 6): переедет в runtime/persistence/ при введении StorageAdapter/PublishAdapter
 import type { LandingSchema } from './landing';
 
 /**
