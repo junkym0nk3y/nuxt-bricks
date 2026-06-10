@@ -42,19 +42,21 @@ nuxt-bricks/
 │   └── runtime/
 │       ├── ui/                   # headless UI-кит на Reka UI (base/inputs/feedback/tooltip)
 │       ├── builder/              # редактор: components/{canvas,sidebar,toolbar,modal},
-│       │                         #   composables/, stores/(publish), pages/, utils/, constants/, types/
+│       │                         #   composables/, stores/ (canvas, components+actions, sidebar,
+│       │                         #   history, navigation, publish), pages/, utils/, constants/, types/
 │       ├── render/               # рендер опубликованной страницы: components/, composables/, pages/, types/
 │       ├── layouts-blocks/       # landing-блоки (Grid/Flex/Section/Slider/...): components/, composables/, utils/, types/
-│       ├── editor/               # tiptap rich-text: components/, composables/, tiptap/(расширения), utils/, types/
+│       ├── editor/               # tiptap rich-text: components/, composables/, stores/(inlineEditing),
+│       │                         #   tiptap/(расширения), utils/, types/
 │       ├── media/                # галерея/медиа-пикеры: components/, composables/, stores/, utils/, types/
 │       ├── persistence/          # (Шаг 6, не создан) storage/publish-абстракция + адаптеры
-│       ├── stores/landing/       # общий pinia store (потребляют builder + layouts-blocks + editor)
-│       ├── composables/          # ТОЛЬКО общие (useLandingConfig, useStoryImports, useApiClient, useLandingStyles)
+│       ├── common/               # ТОЛЬКО общее (2+ доменов): composables/ (useLandingConfig,
+│       │                         #   useStoryImports, useApiClient, useLandingStyles),
+│       │                         #   utils/landing/{paths,components,deviceVisibility},
+│       │                         #   utils/routing/ (build-time), types/ (landing, config, global, landing-api)
 │       ├── plugins/              # nuxt-плагины (тонкие entry-points, импортируют из доменов)
 │       ├── server/               # api-ручки + utils/db (→ persistence на Шаге 6)
-│       ├── assets/scss/          # стили, токены
-│       ├── utils/                # общие утилиты (landing/{paths,components,deviceVisibility}, routing/ — build-time)
-│       └── types/                # общие типы (landing, config, global, landing-api)
+│       └── assets/scss/          # стили, токены
 ├── playground/                   # demo Nuxt-app для разработки/проверки
 ├── test/                         # vitest + @nuxt/test-utils
 ├── build.config.ts               # unbuild config (module-builder)
@@ -68,7 +70,8 @@ nuxt-bricks/
 
 ### Зафиксированные кросс-доменные связки (tech-debt)
 
-- `stores/landing/` — top-level, а не в `builder/`: `BricksSlider` статически импортирует `useLandingCanvasStore`, `BricksText/BricksTitle` — inline-editing. Развязать через provide/inject → store опустится в `builder/`.
+- `layouts-blocks/BricksSlider.vue` статически импортирует `builder/stores/canvas` (viewport на канвасе) — развязать через provide/inject.
+- `editor/composables/useLandingInlineEditor.ts` импортирует `builder/stores/components` — рассмотреть инверсию через параметры/inject.
 - `ui/inputs/BricksTextArea.vue` лениво (`import()`) тянет `editor/` (TheTextEditorModal, tiptap-расширения) — кандидат на развязку.
 - `middleware/landing-page-layout.global.ts` нигде не регистрируется (`module.ts` без `addRouteMiddleware`) — pre-existing gap.
 - Будущие md-статьи документации класть в `runtime/builder/docs/guide/` (glob `../docs/guide/**/*.md` в `useDocumentationArticles`).

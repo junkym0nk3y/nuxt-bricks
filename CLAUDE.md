@@ -34,14 +34,14 @@ npx oxlint <changed-file>
 Каждый домен держит свои компоненты/композаблы/типы/утилиты рядом (см. documents/refactor.md):
 
 - `ui/` — Reka UI-кит (base/inputs/feedback/tooltip)
-- `builder/` — редактор: `components/{canvas,sidebar,toolbar,modal}`, `composables/`, `stores/`, `pages/`, `utils/`, `constants/`, `types/`
+- `builder/` — редактор: `components/{canvas,sidebar,toolbar,modal}`, `composables/`, `stores/` (canvas, components+actions, sidebar, history, navigation, publish), `pages/`, `utils/`, `constants/`, `types/`
 - `render/` — рендер опубликованной страницы (самодостаточен, store не использует)
 - `layouts-blocks/` — landing-блоки (Grid/Flex/Section/Slider/...)
-- `editor/` — TipTap: компоненты, расширения (`tiptap/`), inline editing
-- `media/` — медиа-галерея и image resolver
-- `stores/landing/`, `composables/`, `utils/`, `types/` — top-level только общее (2+ доменов)
+- `editor/` — TipTap: компоненты, расширения (`tiptap/`), inline editing, `stores/inlineEditing.ts`
+- `media/` — медиа-галерея и image resolver (свой `stores/media.ts`)
+- `common/` — только общее (2+ доменов): `composables/` (useLandingConfig, useStoryImports, useApiClient, useLandingStyles), `utils/landing/` (paths, components, deviceVisibility), `utils/routing/` (build-time), `types/`
 
-Направления зависимостей: `builder` → любой домен; `render` — только shared + layouts-blocks; `layouts-blocks` → `stores`, `editor`. Импорты — явные относительные (auto-import локального кода отключён).
+Направления зависимостей: `builder` → любой домен; `render` — только common + layouts-blocks; `layouts-blocks` → `editor` (+ tech-debt: BricksSlider → builder/stores/canvas). Импорты — явные относительные (auto-import локального кода отключён).
 
 ### Component System (Story-based)
 
