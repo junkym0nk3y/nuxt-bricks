@@ -4,7 +4,7 @@ import type {
     TLandingDeviceKey,
     ILandingSchemaMeta,
 } from '../../../types/landing';
-import { deserializeSchema, serializeSchema } from '../../../utils/landing';
+import { deserializeSchema, serializeSchema } from '../../../utils/landing/history';
 import { useLandingSidebarStore } from '../sidebar';
 import { useLandingHistoryStore } from '../history';
 import { useNavigationStore } from '../navigation';

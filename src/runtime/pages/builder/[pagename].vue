@@ -23,7 +23,7 @@ import { usePublishStore } from '../../store/publish';
 import { useLandingBuilderPage } from '../../composables/useLandingBuilderPage';
 
 // Utils
-import { serializeSchema } from '../../utils/landing';
+import { serializeSchema } from '../../utils/landing/history';
 import { loadFavoritesFromStorage } from '../../store/landing/actions/favorites';
 
 // Components

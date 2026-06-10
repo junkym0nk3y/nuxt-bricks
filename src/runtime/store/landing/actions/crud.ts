@@ -2,11 +2,10 @@ import type { LandingComponent } from '../../../types/landing';
 import {
     cloneComponentProps,
     createComponentSlot,
-    generateComponentId,
     isLayoutComponent,
-    normalizeStoryPath,
     removeChildFromLayout as removeChildFromLayoutHelper,
-} from '../../../utils/landing';
+} from '../../../utils/landing/components';
+import { generateComponentId, normalizeStoryPath } from '../../../utils/landing/paths';
 import { useLandingSidebarStore } from '../sidebar';
 import type {
     ILandingComponentsStore,

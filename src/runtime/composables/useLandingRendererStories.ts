@@ -1,6 +1,6 @@
 import { defineAsyncComponent, type Component } from 'vue';
 import type { ILandingRendererStoryResolverOptions } from '../types/render';
-import { normalizeStoryPath } from '../utils/landing';
+import { normalizeStoryPath } from '../utils/landing/paths';
 
 const componentCache = new Map<string, Component | null>();
 

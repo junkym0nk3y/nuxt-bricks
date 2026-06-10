@@ -1,5 +1,5 @@
 import type { ComponentSlotDefinition } from '../../../types/landing';
-import { applySlotDefinitions, findSlot } from '../../../utils/landing';
+import { applySlotDefinitions, findSlot } from '../../../utils/landing/slots';
 import type {
     ILandingComponentsSlotActions,
     ILandingComponentsStore,

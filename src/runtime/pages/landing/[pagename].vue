@@ -14,7 +14,7 @@ import { useStoryImports } from '../../composables/useStoryImports';
 import { useLandingRendererStories } from '../../composables/useLandingRendererStories';
 import { useLandingDataSources } from '../../composables/useLandingDataSources';
 import { useLandingConfig } from '../../composables/useLandingConfig';
-import { normalizeStoryPath } from '../../utils/landing';
+import { normalizeStoryPath } from '../../utils/landing/paths';
 
 // Components
 import BricksRenderer from '../../components/render/BricksRenderer.vue';

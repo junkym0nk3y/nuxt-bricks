@@ -1,5 +1,5 @@
 import type { ILandExportModule } from '../types';
-import { normalizeStoryPath } from '../utils/landing';
+import { normalizeStoryPath } from '../utils/landing/paths';
 
 /**
  * Приводит glob-результаты (eager/lazy) к единому виду: функция-лоадер Promise<Module>.

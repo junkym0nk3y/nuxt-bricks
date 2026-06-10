@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import type { LandingSchema } from '../../types/landing';
-import { clampHistory } from '../../utils/landing';
+import { clampHistory } from '../../utils/landing/history';
 
 interface ILandingHistoryState {
     history: LandingSchema[];
