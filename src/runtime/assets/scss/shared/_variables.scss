@@ -1,0 +1,154 @@
+/**
+ * UI Landing Builder - Library Variables
+ */
+
+/* CSS Variables */
+:root {
+    --land-font-family-base: 'Onest', 'Roboto', sans-serif;
+    --font-size-sm: 1.2rem;
+    --font-size-base: 1.4rem;
+    --default-transition: 300ms ease;
+
+    --border-radius-xs: 0.4rem;
+    --border-radius-sm: 0.8rem;
+    --border-radius-md: 1.2rem;
+
+    /* === Base gray colors (light to dark) === */
+    --land-base-0: #fff;
+    --land-base-50: #f9fafb;
+    --land-base-100: #f3f4f6;
+    --land-base-200: #e5e7eb;
+    --land-base-300: #d1d5db;
+    --land-base-400: #b9c6cc;
+    --land-base-500: #6b7280;
+    --land-base-600: #4b5563;
+    --land-base-800: #1f2937;
+    --land-base-900: #111827;
+
+    /* === Primary blue colors (light to dark) === */
+    --land-primary-50: #eff6ff;
+    --land-primary-100: #dbeafe;
+    --land-primary-200: #bfdbfe;
+    --land-primary-300: #93c5fd;
+    --land-primary-500: #3b82f6;
+    --land-primary: #4d79e9;
+
+    /* === Danger/Error red colors (light to dark) === */
+    --land-danger-500: #ef4444;
+    --land-danger-600: #dc2626;
+
+    /* === Other accent colors === */
+    --land-green: #10b981;
+    --land-yellow: #f59e0b;
+
+    /* === RGB Channels === */
+    --rgb-base-900: 17 24 39; /* from #111827 */
+    --rgb-base-0: 255 255 255; /* from #fff */
+    --rgb-indigo: 99 102 241; /* indigo accent */
+    --rgb-gray: 150 150 150; /* neutral gray */
+
+    /* Layout indicator colors */
+    --rgb-layout-flex: 255 120 0; /* orange */
+    --rgb-layout-grid: 0 120 255; /* blue */
+    --rgb-layout-slider: 125 87 255; /* purple */
+    --rgb-layout-section: 16 185 129; /* green/teal */
+    --rgb-layout-svg: 236 72 153; /* pink */
+
+    /* === Shadows === */
+    --shadow-sm: 0 0.2rem 0.4rem rgb(var(--rgb-base-900) / 10%);
+    --shadow-md: 0 0.8rem 1.6rem rgb(var(--rgb-base-900) / 10%);
+    --shadow-focus: 0 0 0 0.4rem rgb(var(--rgb-indigo) / 25%);
+
+    /* === Overlays === */
+    --overlay-dark: rgb(var(--rgb-base-900) / 60%);
+    --overlay-light: rgb(var(--rgb-base-0) / 20%);
+    --overlay-modal-start: rgb(var(--rgb-base-900) / 45%);
+    --overlay-modal-end: rgb(var(--rgb-base-900) / 70%);
+}
+
+/* === Dark theme overrides === */
+.land-dark {
+    --land-base-0: #1a1b1e;
+    --land-base-50: #212226;
+    --land-base-100: #2b2c31;
+    --land-base-200: #353639;
+    --land-base-300: #3e3f44;
+    --land-base-400: #32343b;
+    --land-base-500: #8b8d94;
+    --land-base-600: #a8aab0;
+    --land-base-800: #d0d1d4;
+    --land-base-900: #e4e5e8;
+
+    --land-primary-50: #1e2233;
+    --land-primary-100: #1e2d4d;
+    --land-primary-200: #2a3d66;
+    --land-primary-300: #4a6eb3;
+    --land-primary-500: #5b9bf5;
+    --land-primary: #6b8ef0;
+
+    --land-danger-500: #f87171;
+    --land-danger-600: #ef4444;
+
+    --land-green: #34d399;
+    --land-yellow: #fbbf24;
+
+    --rgb-base-900: 228 229 232;
+    --rgb-base-0: 26 27 30;
+
+    --shadow-sm: 0 0.2rem 0.4rem rgb(0 0 0 / 20%);
+    --shadow-md: 0 0.8rem 1.6rem rgb(0 0 0 / 30%);
+    --shadow-focus: 0 0 0 0.4rem rgb(var(--rgb-indigo) / 30%);
+
+    --overlay-dark: rgb(0 0 0 / 60%);
+    --overlay-light: rgb(var(--rgb-base-0) / 30%);
+    --overlay-modal-start: rgb(0 0 0 / 55%);
+    --overlay-modal-end: rgb(0 0 0 / 75%);
+
+    /* === Canvas reset: компоненты на канвасе остаются в светлой теме === */
+    .landing-canvas {
+        --land-base-0: #fff;
+        --land-base-50: #f9fafb;
+        --land-base-100: #f3f4f6;
+        --land-base-200: #e5e7eb;
+        --land-base-300: #d1d5db;
+        --land-base-500: #6b7280;
+        --land-base-600: #4b5563;
+        --land-base-800: #1f2937;
+        --land-base-900: #111827;
+
+        --land-primary-50: #eff6ff;
+        --land-primary-100: #dbeafe;
+        --land-primary-200: #bfdbfe;
+        --land-primary-300: #93c5fd;
+        --land-primary-500: #3b82f6;
+        --land-primary: #4d79e9;
+
+        --land-danger-500: #ef4444;
+        --land-danger-600: #dc2626;
+
+        --land-green: #10b981;
+        --land-yellow: #f59e0b;
+
+        --rgb-base-900: 17 24 39;
+        --rgb-base-0: 255 255 255;
+
+        --shadow-sm: 0 0.2rem 0.4rem rgb(var(--rgb-base-900) / 10%);
+        --shadow-md: 0 0.8rem 1.6rem rgb(var(--rgb-base-900) / 10%);
+        --shadow-focus: 0 0 0 0.4rem rgb(var(--rgb-indigo) / 25%);
+
+        /* Reset playground variables for canvas components (VTitle, etc.) */
+        --body-color: #1b1d24;
+        --base-0: #fff;
+        --base-50: #f4f4f6;
+        --base-100: #e1e2e5;
+        --base-200: #c7c8ce;
+        --base-300: #a1a4ad;
+        --base-400: #7b808c;
+        --base-500: #696d7b;
+        --base-600: #43495a;
+        --base-900: #1b1d24;
+        --background-color: transparent;
+
+        color: #1b1d24;
+    }
+}

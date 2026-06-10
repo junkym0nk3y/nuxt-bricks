@@ -1,0 +1,25 @@
+# Nuxt
+.output
+.env
+.nuxt
+playground/.nuxt
+
+# Build
+dist
+
+# Node
+node_modules
+*.log*
+
+# System
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/*
+!.vscode/settings.json
+.idea
+
+# Generated
+public/bricks.json
+playground/public/bricks.json

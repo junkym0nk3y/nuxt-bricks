@@ -1,0 +1,185 @@
+/* Sidebar slide */
+.library-sidebar-enter-active,
+.library-sidebar-leave-active {
+    transition:
+        opacity 0.3s ease,
+        transform 0.3s ease;
+}
+
+.library-sidebar-enter-from {
+    opacity: 0;
+    transform: translate3d(-100%, 0, 0);
+}
+
+.library-sidebar-leave-to {
+    opacity: 0;
+    transform: translate3d(-100%, 0, 0);
+}
+
+.library-sidebar-enter-to,
+.library-sidebar-leave-from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+}
+
+/* Sidebar view switch */
+.library-sidebar-view-enter-active,
+.library-sidebar-view-leave-active {
+    transition:
+        opacity 0.2s ease,
+        transform 0.2s ease;
+}
+
+.library-sidebar-view-enter-from {
+    opacity: 0;
+    transform: translate3d(0.8rem, 0, 0);
+}
+
+.library-sidebar-view-leave-to {
+    opacity: 0;
+    transform: translate3d(-0.8rem, 0, 0);
+}
+
+.library-sidebar-view-enter-to,
+.library-sidebar-view-leave-from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+}
+
+/* Modal transitions */
+.library-modal-fade-enter-active,
+.library-modal-fade-leave-active {
+    transition: opacity 0.3s ease;
+}
+
+.library-modal-fade-enter-from,
+.library-modal-fade-leave-to {
+    opacity: 0;
+}
+
+.library-modal-fade-enter-active .modal,
+.library-modal-fade-leave-active .modal {
+    transition: transform 0.3s ease;
+}
+
+.library-modal-fade-enter-from .modal {
+    transform: scale(0.95) translateY(-2rem);
+}
+
+.library-modal-fade-leave-to .modal {
+    transform: scale(0.95) translateY(-2rem);
+}
+
+/* Dropdown transitions */
+.library-dropdown-enter-active,
+.library-dropdown-leave-active {
+    transition:
+        opacity 0.2s ease,
+        transform 0.2s ease;
+}
+
+.library-dropdown-enter-from {
+    opacity: 0;
+    transform: translateY(1rem);
+}
+
+.library-dropdown-leave-to {
+    opacity: 0;
+    transform: translateY(1rem);
+}
+
+.library-dropdown-enter-to,
+.library-dropdown-leave-from {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Toast notification */
+.library-toast-enter-active,
+.library-toast-leave-active {
+    transition:
+        opacity 300ms ease,
+        transform 300ms ease;
+}
+
+.library-toast-enter-from,
+.library-toast-leave-to {
+    opacity: 0;
+    transform: translateY(1.2rem);
+}
+
+/* Fade fast */
+.library-fade-fast-enter-active,
+.library-fade-fast-leave-active {
+    transition: opacity var(--default-transition);
+}
+
+.library-fade-fast-enter-from,
+.library-fade-fast-leave-to {
+    opacity: 0;
+}
+
+/* Fade (standard) */
+.library-fade-enter-active,
+.library-fade-leave-active {
+    transition: opacity var(--default-transition);
+}
+
+.library-fade-enter-from,
+.library-fade-leave-to {
+    opacity: 0;
+}
+
+/* Canvas toolbar fade */
+.library-canvas-toolbar-enter-active,
+.library-canvas-toolbar-leave-active {
+    transition:
+        opacity 0.2s ease,
+        transform 0.2s ease;
+}
+
+.library-canvas-toolbar-enter-from,
+.library-canvas-toolbar-leave-to {
+    opacity: 0;
+    transform: translateY(0.4rem);
+}
+
+/* Canvas toolbar accordion */
+.library-canvas-toolbar-accordion-enter-active,
+.library-canvas-toolbar-accordion-leave-active {
+    overflow: hidden;
+    transition:
+        max-width 0.3s ease,
+        opacity 0.2s ease;
+}
+
+.library-canvas-toolbar-accordion-enter-from,
+.library-canvas-toolbar-accordion-leave-to {
+    max-width: 0;
+    opacity: 0;
+}
+
+.library-canvas-toolbar-accordion-enter-to,
+.library-canvas-toolbar-accordion-leave-from {
+    max-width: 80rem;
+    opacity: 1;
+}
+
+/* Tooltip transitions */
+.library-tooltip-enter-active {
+    transition:
+        opacity 0.3s,
+        transform 0.3s;
+}
+
+.library-tooltip-leave-active {
+    transition:
+        opacity 0.15s,
+        transform 0.15s;
+}
+
+.library-tooltip-enter-from,
+.library-tooltip-leave-active {
+    opacity: 0;
+    transform: translateY(-1.6rem);
+}

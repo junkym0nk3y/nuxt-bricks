@@ -1,0 +1,5 @@
+node_modules/*
+.nuxt/*
+playground/.nuxt/*
+src/runtime/assets/scss/shared/*
+dist/*

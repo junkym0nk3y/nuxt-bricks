@@ -1,0 +1,409 @@
+/**
+ * UI Landing Builder - Default Styles
+ */
+
+body.bricks-page {
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+    background: var(--land-base-0);
+    font-family: var(--land-font-family-base), serif;
+    font-size: var(--land-font-size-base);
+    color: var(--land-base-900);
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        letter-spacing: normal;
+    }
+}
+
+// Стили для HTML-контента в документации билдера
+.bricks-docs {
+    h1 {
+        margin: 0 0 1.6rem;
+        font-size: 2.4rem;
+        font-weight: 700;
+        color: var(--land-base-900);
+    }
+
+    h2 {
+        margin: 2.4rem 0 1.2rem;
+        font-size: 1.8rem;
+        font-weight: 600;
+        color: var(--land-base-900);
+    }
+
+    h3 {
+        margin: 2rem 0 1rem;
+        font-size: 1.6rem;
+        font-weight: 600;
+        color: var(--land-base-900);
+    }
+
+    p {
+        margin: 0 0 1.2rem;
+    }
+
+    ul,
+    ol {
+        margin: 0 0 1.2rem;
+        padding-left: 2.4rem;
+        list-style-position: outside;
+    }
+
+    ul {
+        list-style-type: disc;
+    }
+
+    ol {
+        list-style-type: decimal;
+    }
+
+    li {
+        margin-bottom: 0.4rem;
+        list-style: inherit;
+    }
+
+    code {
+        padding: 0.2rem 0.4rem;
+        border-radius: 0.4rem;
+        background-color: var(--land-base-100);
+        font-family: monospace;
+        font-size: 1.2rem;
+        color: var(--land-base-800);
+    }
+
+    pre {
+        overflow-x: auto;
+        margin: 0 0 1.6rem;
+        padding: 1.6rem;
+        border-radius: 0.8rem;
+        background-color: var(--land-base-100);
+
+        code {
+            padding: 0;
+            background: none;
+        }
+    }
+
+    a {
+        text-decoration: none;
+        color: var(--land-primary);
+        transition: color var(--default-transition);
+
+        &:hover {
+            text-decoration: underline;
+        }
+    }
+
+    img {
+        max-width: 100%;
+        border-radius: 0.8rem;
+    }
+
+    blockquote {
+        margin: 0 0 1.6rem;
+        padding: 1.2rem 1.6rem;
+        border-left: 0.4rem solid var(--land-primary);
+        background-color: var(--land-base-50, var(--land-base-100));
+        color: var(--land-base-700);
+    }
+
+    table {
+        width: 100%;
+        margin: 0 0 1.6rem;
+        border-collapse: collapse;
+        font-size: 1.3rem;
+        line-height: 1.6;
+    }
+
+    thead tr {
+        border-bottom: 1px solid var(--land-base-300);
+    }
+
+    th {
+        padding: 0.8rem 1.2rem;
+        text-align: left;
+        font-weight: 600;
+        color: var(--land-base-900);
+    }
+
+    td {
+        padding: 0.8rem 1.2rem;
+        color: var(--land-base-700);
+    }
+
+    tbody tr {
+        border-bottom: 1px solid var(--land-base-200);
+
+        &:last-child {
+            border-bottom: none;
+        }
+    }
+}
+
+// Типографика TipTap-контента — обёрнута в @layer для возможности переопределения в проекте-потребителе.
+// Чтобы переопределить — просто напишите те же селекторы вне @layer, они победят по каскаду.
+// Что не переопределено — остаётся из библиотеки.
+@layer bricks-typography {
+    // Inline-форматирование (strong, em) — безопасны для всех элементов
+    .bricks-text,
+    .ProseMirror {
+        strong,
+        b {
+            font-weight: 600;
+        }
+
+        em,
+        i {
+            font-style: italic;
+        }
+    }
+
+    // Block-контент (ul, ol, p, blockquote, table) — только внутри rich-text контейнеров.
+    // [data-tiptap-content] — v-html в LandingText, .ProseMirror — TipTap-редактор.
+    // Без этого ограничения ul/ol в вёрстке компонентов (навигация, фичи и т.д.) получают лишний padding.
+    .bricks-text [data-tiptap-content],
+    .ProseMirror {
+        p {
+            margin: 0 0 0.2em;
+        }
+
+        ul,
+        ol {
+            padding-left: 2rem;
+            list-style-position: outside;
+        }
+
+        ul {
+            list-style-type: disc;
+        }
+
+        ol {
+            list-style-type: decimal;
+        }
+
+        li {
+            margin: 0.6rem 0;
+            list-style: inherit;
+        }
+
+        blockquote {
+            margin: 0 0 1.6rem;
+            padding-left: 1.6rem;
+            border-left: 0.4rem solid currentcolor;
+            font-style: italic;
+        }
+
+        code {
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.4rem;
+            border: 1px solid currentcolor;
+            font-family: 'JetBrains Mono', Menlo, Monaco, Consolas, monospace;
+        }
+
+        pre {
+            overflow-x: auto;
+            margin: 0 0 1.6rem;
+            padding: 1.6rem;
+            border-radius: 0.8rem;
+            border: 1px solid currentcolor;
+
+            code {
+                padding: 0;
+                border: none;
+            }
+        }
+
+        table {
+            width: 100%;
+            margin: 1.6rem 0;
+            border-collapse: collapse;
+            border: 1px solid currentcolor;
+        }
+
+        th,
+        td {
+            padding: 0.8rem 1.2rem;
+            border: 1px solid currentcolor;
+            vertical-align: top;
+            text-align: left;
+        }
+
+        th {
+            font-weight: 600;
+        }
+
+        // Изображения из TipTap textarea-редактора
+        img[data-display='block'] {
+            display: block;
+        }
+
+        img[data-align='center'] {
+            margin-right: auto;
+            margin-left: auto;
+        }
+
+        img[data-align='right'] {
+            margin-right: 0;
+            margin-left: auto;
+        }
+
+        img[data-float='left'] {
+            float: left;
+            margin: 0 1.6rem 1.6rem 0;
+        }
+
+        img[data-float='right'] {
+            float: right;
+            margin: 0 0 1.6rem 1.6rem;
+        }
+
+        // Float через CSS-классы (TipTap v3 Image extension)
+        .float-left {
+            float: left;
+            margin: 0 1.6rem 1.6rem 0;
+        }
+
+        .float-right {
+            float: right;
+            margin: 0 0 1.6rem 1.6rem;
+        }
+
+        .float-none {
+            float: none;
+            margin: 0;
+        }
+
+        // Vertical-align через CSS-классы (TipTap Video extension)
+        .valign-baseline {
+            vertical-align: baseline;
+        }
+
+        .valign-middle {
+            vertical-align: middle;
+        }
+
+        .valign-top {
+            vertical-align: top;
+        }
+
+        .valign-bottom {
+            vertical-align: bottom;
+        }
+    }
+
+    // Ограничение размера картинок только для TipTap-контента (v-html и редактор)
+    .bricks-text [data-tiptap-content] img,
+    .ProseMirror img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 0.4rem;
+    }
+
+    // Видео в TipTap-контенте (v-html и редактор)
+    .bricks-text [data-tiptap-content] video,
+    .ProseMirror video {
+        max-width: 100%;
+        height: auto;
+        border-radius: 0.4rem;
+    }
+}
+
+// TipTap v3 Resizable Image — стили для хэндлов ресайза
+.ProseMirror {
+    // Обёртка NodeView — relative для позиционирования хэндлов
+    [data-resize-wrapper] {
+        position: relative;
+        display: inline-block;
+    }
+
+    // Визуальная обратная связь при выделении изображения/видео
+    .ProseMirror-selectednode [data-resize-wrapper] img,
+    .ProseMirror-selectednode [data-resize-wrapper] video {
+        outline: 2px solid var(--land-primary, #6366f1);
+        outline-offset: 2px;
+    }
+
+    // Resize хэндлы — dataset.resizeHandle = direction (e.g. "bottom-right")
+    [data-resize-handle] {
+        position: absolute;
+        z-index: 10;
+        width: 1rem;
+        height: 1rem;
+        border-radius: 50%;
+        border: 2px solid var(--land-primary, #6366f1);
+        background: var(--land-base-0, #fff);
+        transition: transform 0.15s ease;
+        cursor: pointer;
+
+        &:hover {
+            transform: scale(1.3);
+        }
+
+        // Угловые хэндлы — позиции и курсоры
+        &[data-resize-handle='top-left'] {
+            top: -0.5rem;
+            left: -0.5rem;
+            cursor: nw-resize;
+        }
+
+        &[data-resize-handle='top-right'] {
+            top: -0.5rem;
+            right: -0.5rem;
+            cursor: ne-resize;
+        }
+
+        &[data-resize-handle='bottom-left'] {
+            bottom: -0.5rem;
+            left: -0.5rem;
+            cursor: sw-resize;
+        }
+
+        &[data-resize-handle='bottom-right'] {
+            right: -0.5rem;
+            bottom: -0.5rem;
+            cursor: se-resize;
+        }
+    }
+}
+
+.scrollbox {
+    overflow: auto;
+
+    // Modern CSS Scrollbars Styling (Firefox, Chrome 121+)
+    scrollbar-width: thin;
+    scrollbar-color: var(--land-base-500) transparent;
+
+    // Fallback for older WebKit browsers (Chrome < 121, Safari)
+    &::-webkit-scrollbar {
+        width: 0.6rem;
+        height: 0.6rem;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-track-piece {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        border-radius: var(--border-radius-xs);
+        background-color: var(--land-base-500);
+        cursor: pointer;
+
+        &:hover {
+            background-color: var(--land-primary);
+        }
+    }
+
+    &::-webkit-scrollbar-corner {
+        background: transparent;
+    }
+}
