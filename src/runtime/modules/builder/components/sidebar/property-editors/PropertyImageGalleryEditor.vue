@@ -14,14 +14,14 @@ import BricksTagsEditor from '../../../../ui/inputs/BricksTagsEditor.vue';
 // #endregion
 
 // #region Interfaces
-interface IImageGalleryEditorProps {
+interface IPropertyImageGalleryEditorProps {
     modelValue?: ILandingGalleryItem[];
     label?: string;
     /** Конфигурация дополнительных полей (title, tags) */
     fields?: ILandGalleryFieldsConfig;
 }
 
-interface IImageGalleryEditorEmits {
+interface IPropertyImageGalleryEditorEmits {
     'update:modelValue': [value: ILandingGalleryItem[]];
     openGallery: [
         {
@@ -34,7 +34,7 @@ interface IImageGalleryEditorEmits {
 // #endregion
 
 // #region Props
-const props = withDefaults(defineProps<IImageGalleryEditorProps>(), {
+const props = withDefaults(defineProps<IPropertyImageGalleryEditorProps>(), {
     modelValue: () => [],
     label: 'Галерея изображений',
     fields: () => ({}),
@@ -42,7 +42,7 @@ const props = withDefaults(defineProps<IImageGalleryEditorProps>(), {
 // #endregion
 
 // #region Emits
-const emit = defineEmits<IImageGalleryEditorEmits>();
+const emit = defineEmits<IPropertyImageGalleryEditorEmits>();
 // #endregion
 
 // #region Data
@@ -182,7 +182,7 @@ function handleReplaceImage(index: number): void {
 </script>
 
 <template>
-    <div :class="$style.ImageGalleryEditor">
+    <div :class="$style.PropertyImageGalleryEditor">
         <div :class="$style.header">
             <span :class="$style.title">{{ props.label }}</span>
             <BricksButton size="sm" variant="primary" @click="handleAddImage">
@@ -272,7 +272,7 @@ function handleReplaceImage(index: number): void {
 </template>
 
 <style module lang="scss">
-.ImageGalleryEditor {
+.PropertyImageGalleryEditor {
     display: flex;
     flex-direction: column;
     gap: 1.2rem;

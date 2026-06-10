@@ -102,7 +102,13 @@
 
 Заодно дебрендинг: внутри компонента проверить упоминания «Land»/«ida» (alt, aria-label).
 
-## Шаг 5. property-editors (папка + 5 компонентов) ✅/❌
+## Шаг 5. property-editors (папка + 5 компонентов) ✅ (2026-06-11)
+
+> Примечание: в `properties.types.ts` есть рантайм-код (`PROPERTY_EDITOR_ORDER`), поэтому
+> файл стал `property-editors/types.ts` (не `.d.ts`). Его внутренний импорт
+> `common/types/landing` углублён на один уровень (`../../../../`). Заодно переименованы
+> интерфейсы редакторов: `IAccordionItemsEditor*`/`IImageGalleryEditor*`/`IInlineContentEditor*`/
+> `IJsonEditor*` → `IProperty<Имя>Editor*`, `IBricksMediaPicker*` → `IPropertyMediaPicker*`.
 
 Папка: `modules/builder/components/sidebar/properties-types/` → `property-editors/`.
 

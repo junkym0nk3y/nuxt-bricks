@@ -1,6 +1,6 @@
 // #region Imports
 // Types
-import type { PropertyEditorType } from '../components/sidebar/properties.types';
+import type { PropertyEditorType } from '../components/sidebar/property-editors/types';
 import type { IMediaItem } from '../../media/types/media';
 import type { ILandingInlineContentSegment, ILandingGalleryItem } from '../../layouts-blocks/types/layouts';
 import type {
@@ -64,24 +64,24 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
         input: defineAsyncComponent(() => import('../../ui/inputs/BricksInput.vue')),
         textarea: defineAsyncComponent(() => import('../../ui/inputs/BricksTextArea.vue')),
         json: defineAsyncComponent(
-            () => import('../components/sidebar/properties-types/BricksJsonEditor.vue')
+            () => import('../components/sidebar/property-editors/PropertyJsonEditor.vue')
         ),
         'inline-content': defineAsyncComponent(
-            () => import('../components/sidebar/properties-types/BricksInlineContentEditor.vue')
+            () => import('../components/sidebar/property-editors/PropertyInlineContentEditor.vue')
         ),
         tags: defineAsyncComponent(() => import('../../ui/inputs/BricksTagsEditor.vue')),
         'image-gallery': defineAsyncComponent(
-            () => import('../components/sidebar/properties-types/BricksImageGalleryEditor.vue')
+            () => import('../components/sidebar/property-editors/PropertyImageGalleryEditor.vue')
         ),
         'accordion-items': defineAsyncComponent(
-            () => import('../components/sidebar/properties-types/BricksAccordionItemsEditor.vue')
+            () => import('../components/sidebar/property-editors/PropertyAccordionItemsEditor.vue')
         ),
         color: defineAsyncComponent(() => import('../../ui/inputs/BricksHexInput.vue')),
         image: defineAsyncComponent(
-            () => import('../components/sidebar/properties-types/BricksMediaPicker.vue')
+            () => import('../components/sidebar/property-editors/PropertyMediaPicker.vue')
         ),
         video: defineAsyncComponent(
-            () => import('../components/sidebar/properties-types/BricksMediaPicker.vue')
+            () => import('../components/sidebar/property-editors/PropertyMediaPicker.vue')
         ),
     };
     // #endregion

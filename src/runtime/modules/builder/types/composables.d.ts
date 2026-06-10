@@ -13,7 +13,7 @@ import type {
     ComponentVariantsMap,
     IComponentVariant,
     PropertyEditorType,
-} from '../components/sidebar/properties.types';
+} from '../components/sidebar/property-editors/types';
 import type { ComputedRef, CSSProperties, Ref, VNodeRef } from 'vue';
 import type { useLandingSidebarStore } from '../stores/sidebar';
 import type { useLandingHistoryStore } from '../stores/history';

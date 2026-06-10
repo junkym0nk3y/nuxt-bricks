@@ -4,7 +4,7 @@ import type {
     ComponentVariantsMap,
     IComponentVariant,
     PropertyEditorType,
-} from '../components/sidebar/properties.types';
+} from '../components/sidebar/property-editors/types';
 
 export type TInlineGalleryPayload = {
     action: 'append' | 'replace';

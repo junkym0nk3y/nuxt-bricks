@@ -12,25 +12,25 @@ import BricksTextArea from '../../../../ui/inputs/BricksTextArea.vue';
 // #endregion
 
 // #region Interfaces
-interface IAccordionItemsEditorProps {
+interface IPropertyAccordionItemsEditorProps {
     modelValue?: IAccordionItem[];
     label?: string;
 }
 
-interface IAccordionItemsEditorEmits {
+interface IPropertyAccordionItemsEditorEmits {
     'update:modelValue': [value: IAccordionItem[]];
 }
 // #endregion
 
 // #region Props
-const props = withDefaults(defineProps<IAccordionItemsEditorProps>(), {
+const props = withDefaults(defineProps<IPropertyAccordionItemsEditorProps>(), {
     modelValue: () => [],
     label: 'Элементы аккордеона',
 });
 // #endregion
 
 // #region Emits
-const emit = defineEmits<IAccordionItemsEditorEmits>();
+const emit = defineEmits<IPropertyAccordionItemsEditorEmits>();
 // #endregion
 
 // #region Computed
@@ -140,7 +140,7 @@ function handleMoveDown(index: number): void {
 </script>
 
 <template>
-    <div :class="$style.AccordionItemsEditor">
+    <div :class="$style.PropertyAccordionItemsEditor">
         <div :class="$style.header">
             <span :class="$style.label">{{ props.label }}</span>
             <BricksButton size="sm" variant="primary" @click="handleAddItem">
@@ -208,7 +208,7 @@ function handleMoveDown(index: number): void {
 </template>
 
 <style module lang="scss">
-.AccordionItemsEditor {
+.PropertyAccordionItemsEditor {
     display: flex;
     flex-direction: column;
     gap: 1.2rem;

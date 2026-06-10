@@ -5,25 +5,25 @@ import { ref, watch } from 'vue';
 // #endregion
 
 // #region Interfaces
-interface IJsonEditorProps {
+interface IPropertyJsonEditorProps {
     modelValue?: unknown;
     label?: string;
 }
 
-interface IJsonEditorEmits {
+interface IPropertyJsonEditorEmits {
     'update:modelValue': [value: unknown];
 }
 // #endregion
 
 // #region Props
-const props = withDefaults(defineProps<IJsonEditorProps>(), {
+const props = withDefaults(defineProps<IPropertyJsonEditorProps>(), {
     modelValue: () => ({}),
     label: 'JSON',
 });
 // #endregion
 
 // #region Emits
-const emit = defineEmits<IJsonEditorEmits>();
+const emit = defineEmits<IPropertyJsonEditorEmits>();
 // #endregion
 
 // #region Data
@@ -54,7 +54,7 @@ watch(
 
 <template>
     <ClientOnly>
-        <div :class="$style.JsonEditor">
+        <div :class="$style.PropertyJsonEditor">
             <span v-if="props.label" :class="$style.label">{{ props.label }}</span>
             <div :class="$style.editorWrapper">
                 <JsonEditorVue
@@ -70,7 +70,7 @@ watch(
         </div>
 
         <template #fallback>
-            <div :class="$style.JsonEditor">
+            <div :class="$style.PropertyJsonEditor">
                 <span v-if="props.label" :class="$style.label">{{ props.label }}</span>
                 <div :class="$style.editorWrapper">
                     <div :class="$style.loading">Загрузка редактора...</div>
@@ -81,7 +81,7 @@ watch(
 </template>
 
 <style module lang="scss">
-.JsonEditor {
+.PropertyJsonEditor {
     /* Фиксируем светлую тему для JSON-редактора */
     --land-base-0: #fff;
     --land-base-50: #f9fafb;

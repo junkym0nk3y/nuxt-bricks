@@ -8,13 +8,13 @@ import BricksButton from '../../../../ui/base/button/BricksButton.vue';
 // #endregion
 
 // #region Props
-interface IBricksMediaPickerProps {
+interface IPropertyMediaPickerProps {
     modelValue?: string;
     label?: string;
     type?: 'image' | 'video';
 }
 
-const props = withDefaults(defineProps<IBricksMediaPickerProps>(), {
+const props = withDefaults(defineProps<IPropertyMediaPickerProps>(), {
     modelValue: '',
     label: 'Media',
     type: 'image',
@@ -22,12 +22,12 @@ const props = withDefaults(defineProps<IBricksMediaPickerProps>(), {
 // #endregion
 
 // #region Emits
-interface IBricksMediaPickerEmits {
+interface IPropertyMediaPickerEmits {
     'update:modelValue': [value: string];
     openGallery: [];
 }
 
-const emit = defineEmits<IBricksMediaPickerEmits>();
+const emit = defineEmits<IPropertyMediaPickerEmits>();
 // #endregion
 
 // #region Computed
@@ -56,7 +56,7 @@ function handleRemove(): void {
 </script>
 
 <template>
-    <div :class="$style.BricksMediaPicker">
+    <div :class="$style.PropertyMediaPicker">
         <label v-if="label" :class="$style.label">{{ label }}</label>
 
         <!-- Media Preview -->
@@ -116,7 +116,7 @@ function handleRemove(): void {
 </template>
 
 <style module lang="scss">
-.BricksMediaPicker {
+.PropertyMediaPicker {
     display: flex;
     flex-direction: column;
     gap: 1.2rem;

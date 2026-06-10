@@ -11,7 +11,7 @@ import type { PropertyDefinition } from '../../../common/types/landing';
 import { computed, ref, watch } from 'vue';
 
 // Constants/Components
-import { PROPERTY_EDITOR_ORDER, type PropertyEditorType } from './properties.types';
+import { PROPERTY_EDITOR_ORDER, type PropertyEditorType } from './property-editors/types';
 import SidebarPropertyEditorRow from './SidebarPropertyEditorRow.vue';
 import BricksInput from '../../../ui/inputs/BricksInput.vue';
 // #endregion

@@ -20,11 +20,11 @@ import {
 // #endregion
 
 // #region Interfaces
-interface IInlineContentEditorProps {
+interface IPropertyInlineContentEditorProps {
     modelValue?: ILandingInlineContentSegment[];
 }
 
-interface IInlineContentEditorEmits {
+interface IPropertyInlineContentEditorEmits {
     'update:modelValue': [value: ILandingInlineContentSegment[]];
     openGallery: [
         {
@@ -37,13 +37,13 @@ interface IInlineContentEditorEmits {
 // #endregion
 
 // #region Props
-const props = withDefaults(defineProps<IInlineContentEditorProps>(), {
+const props = withDefaults(defineProps<IPropertyInlineContentEditorProps>(), {
     modelValue: () => [],
 });
 // #endregion
 
 // #region Emits
-const emit = defineEmits<IInlineContentEditorEmits>();
+const emit = defineEmits<IPropertyInlineContentEditorEmits>();
 // #endregion
 
 // #region Data
@@ -188,7 +188,7 @@ function formatDimensionValue(value?: string | number): string {
 </script>
 
 <template>
-    <div :class="$style.InlineContentEditor">
+    <div :class="$style.PropertyInlineContentEditor">
         <div :class="$style.header">
             <div :class="$style.headerActions">
                 <BricksButton size="sm" variant="secondary" @click="handleAddTextSegment">
@@ -298,7 +298,7 @@ function formatDimensionValue(value?: string | number): string {
 </template>
 
 <style module lang="scss">
-.InlineContentEditor {
+.PropertyInlineContentEditor {
     display: flex;
     padding: 1.2rem;
     border-radius: 0.8rem;

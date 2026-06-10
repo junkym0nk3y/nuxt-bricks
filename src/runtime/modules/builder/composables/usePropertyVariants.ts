@@ -19,7 +19,7 @@ import {
     type IComponentVariant,
     type PropertyVariantContext,
     type PropertyEditorType,
-} from '../components/sidebar/properties.types';
+} from '../components/sidebar/property-editors/types';
 // #endregion
 
 // Реэкспорт типа для внешнего использования
