@@ -26,7 +26,7 @@ import { convertPxToRem } from '../../../common/utils/main';
 import { scrollToComponentOnCanvas } from '../../utils/scrollToComponent';
 
 // Components
-import BricksCanvasItem from './BricksCanvasItem.vue';
+import CanvasItem from './CanvasItem.vue';
 import CanvasToolbar from './CanvasToolbar.vue';
 import CanvasEmptyState from './CanvasEmptyState.vue';
 import CanvasViewport from './CanvasViewport.vue';
@@ -539,7 +539,7 @@ onBeforeUnmount(() => {
                             @dragleave="handleRootDragLeave"
                         >
                             <!-- Components (only root-level, children will be rendered inside layouts) -->
-                            <BricksCanvasItem
+                            <CanvasItem
                                 v-for="component in componentsStore.getRootComponents()"
                                 :key="component.id"
                                 :component="component"

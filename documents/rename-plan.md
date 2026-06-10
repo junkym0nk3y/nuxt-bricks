@@ -41,7 +41,11 @@
 - `builder/pages/[pagename].vue:33` — `import BricksCanvas from '../components/canvas/BricksCanvas.vue'` → `TheCanvas`.
 - Комментарии/логи: `builder/composables/useLandingCanvasDrops.ts` (3 × `console.warn('[BricksCanvas]...')`), упоминания `BricksCanvasViewport`/`BricksCanvas` в комментариях `useCanvasItemLayout.ts`, `useLandingCanvas.ts`.
 
-## Шаг 2. canvas — items ✅/❌
+## Шаг 2. canvas — items ✅ (2026-06-11)
+
+> Примечание: `.slotContainer` в `CanvasItemComponent.vue` оказался **не** корневым классом
+> (корень — динамический `component`/`CanvasConditionalContainer`, а `slotContainer` — внутренняя
+> slot drop-zone), поэтому оставлен как есть.
 
 | git mv (в `modules/builder/components/canvas/`) | Новый корневой класс |
 | ----------------------------------------------- | -------------------- |

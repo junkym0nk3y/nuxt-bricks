@@ -279,7 +279,7 @@ export function useLandingInlineEditor(
         inlineEditingStore.setEditor(null);
     }
 
-    // Если editing остановлен извне (Escape из BricksCanvasItem) — сохраняем и уничтожаем
+    // Если editing остановлен извне (Escape из CanvasItem) — сохраняем и уничтожаем
     watch(
         () => inlineEditingStore.componentId,
         (newId) => {

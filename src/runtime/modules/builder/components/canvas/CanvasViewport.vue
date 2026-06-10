@@ -20,7 +20,7 @@ import { useLandingCanvasDrops } from '../../composables/useLandingCanvasDrops';
 import { convertPxToRem } from '../../../common/utils/main';
 
 // Components
-import BricksCanvasItem from './BricksCanvasItem.vue';
+import CanvasItem from './CanvasItem.vue';
 // #endregion
 
 // #region Interfaces
@@ -44,7 +44,7 @@ const getRemCompensation = inject<((viewport: TViewportType) => number) | undefi
     'getRemCompensation'
 );
 
-/** Провайдим viewport для дочерних BricksCanvasItem (используется для Figma mode) */
+/** Провайдим viewport для дочерних CanvasItem (используется для Figma mode) */
 provide('canvasViewport', props.viewport);
 
 const canvasRef = ref<HTMLElement | null>(null);
@@ -265,7 +265,7 @@ onBeforeUnmount(() => {
                     @dragover="handleRootDragOver"
                     @dragleave="handleRootDragLeave"
                 >
-                    <BricksCanvasItem
+                    <CanvasItem
                         v-for="component in componentsStore.getRootComponents()"
                         :key="component.id"
                         :component="component"

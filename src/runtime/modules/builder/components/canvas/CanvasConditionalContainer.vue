@@ -4,16 +4,16 @@
 
 // #region Interfaces
 /**
- * Пропсы для компонента ConditionalContainer
+ * Пропсы для компонента CanvasConditionalContainer
  */
-interface IConditionalContainerProps {
+interface ICanvasConditionalContainerProps {
     /** Нужно ли оборачивать контент в div.container */
     useContainer: boolean;
 }
 // #endregion
 
 // #region Props
-const props = defineProps<IConditionalContainerProps>();
+const props = defineProps<ICanvasConditionalContainerProps>();
 // #endregion
 </script>
 

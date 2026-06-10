@@ -9,13 +9,13 @@ import { useComponentSlots } from '../../composables/useComponentSlots';
 import { useSlotDragDrop } from '../../composables/useSlotDragDrop';
 
 // Components
-import BricksCanvasItem from './BricksCanvasItem.vue';
-import ConditionalContainer from './ConditionalContainer.vue';
+import CanvasItem from './CanvasItem.vue';
+import CanvasConditionalContainer from './CanvasConditionalContainer.vue';
 // #endregion
 
 // #region Interfaces
 /**
- * Пропсы для компонента BricksCanvasItemComponent
+ * Пропсы для компонента CanvasItemComponent
  */
 interface ILandingCanvasItemComponentProps {
     /** Экземпляр landing-компонента для рендеринга */
@@ -53,7 +53,7 @@ const {
 </script>
 
 <template>
-    <ConditionalContainer :use-container="props.needsContainerWrapper">
+    <CanvasConditionalContainer :use-container="props.needsContainerWrapper">
         <component :is="props.componentInstance" v-bind="props.componentBoundProps">
             <template
                 v-for="slotData in slotRenderData"
@@ -71,7 +71,7 @@ const {
                     @dragleave="handleSlotDragLeave(slotData.slot.name, $event)"
                     @drop="handleSlotDrop(slotData.slot.name, $event)"
                 >
-                    <BricksCanvasItem
+                    <CanvasItem
                         v-for="child in slotData.children"
                         :key="child.id"
                         :component="child"
@@ -91,7 +91,7 @@ const {
                 <span v-html="slotStringContent"></span>
             </template>
         </component>
-    </ConditionalContainer>
+    </CanvasConditionalContainer>
 </template>
 
 <style module lang="scss">

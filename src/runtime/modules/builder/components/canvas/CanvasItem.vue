@@ -24,8 +24,8 @@ import { useCanvasItemActions } from '../../composables/useCanvasItemActions';
 import { buildDeviceVisibilityClasses } from '../../../common/utils/landing/deviceVisibility';
 
 // Components
-import BricksCanvasItemLayout from './BricksCanvasItemLayout.vue';
-import BricksCanvasItemComponent from './BricksCanvasItemComponent.vue';
+import CanvasItemLayout from './CanvasItemLayout.vue';
+import CanvasItemComponent from './CanvasItemComponent.vue';
 import CanvasItemToolbar from './CanvasItemToolbar.vue';
 // #endregion
 
@@ -151,7 +151,7 @@ watch(
     <div
         ref="canvasItemRef"
         :class="[
-            $style.canvasItem,
+            $style.CanvasItem,
             ...deviceVisibilityClasses,
             {
                 [$style.selected]: isSelected,
@@ -177,7 +177,7 @@ watch(
         <div v-if="isHidden && canvasStore.showGrid" :class="$style.hiddenLabel">Отключен</div>
 
         <!-- Render Layout Component -->
-        <BricksCanvasItemLayout
+        <CanvasItemLayout
             v-if="isLayout"
             :component="props.component"
             :layout-name="layoutName"
@@ -188,7 +188,7 @@ watch(
         />
 
         <!-- Render UI Component -->
-        <BricksCanvasItemComponent
+        <CanvasItemComponent
             v-else-if="ComponentInstance"
             :key="forceRenderKey"
             :component="props.component"
@@ -230,7 +230,7 @@ watch(
 </template>
 
 <style module lang="scss">
-.canvasItem {
+.CanvasItem {
     position: relative;
     display: flex;
     flex-direction: column;

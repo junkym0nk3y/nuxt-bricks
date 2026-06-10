@@ -531,7 +531,7 @@ function updateDropIndicator(event: DragEvent): void {
         }
 
         // pointer-events: auto для дочерних элементов внутри Swiper,
-        // чтобы преодолеть наследование pointer-events: none от canvasItem > * *
+        // чтобы преодолеть наследование pointer-events: none от CanvasItem > * *
         .slideInner {
             pointer-events: auto;
         }

@@ -26,13 +26,13 @@ import BricksMedia from '../../../layouts-blocks/components/BricksMedia.vue';
 import BricksSvg from '../../../layouts-blocks/components/BricksSvg.vue';
 import BricksSlider from '../../../layouts-blocks/components/BricksSlider.vue';
 import BricksAccordion from '../../../layouts-blocks/components/BricksAccordion.vue';
-import BricksCanvasItem from './BricksCanvasItem.vue';
-import ConditionalContainer from './ConditionalContainer.vue';
+import CanvasItem from './CanvasItem.vue';
+import CanvasConditionalContainer from './CanvasConditionalContainer.vue';
 // #endregion
 
 // #region Interfaces
 /**
- * Пропсы для компонента BricksCanvasItemLayout
+ * Пропсы для компонента CanvasItemLayout
  */
 interface ILandingCanvasItemLayoutProps {
     /** Экземпляр landing-компонента для рендеринга */
@@ -56,7 +56,7 @@ const props = defineProps<ILandingCanvasItemLayoutProps>();
 
 // #region Methods
 const renderLayoutChild = (child: LandingComponent) =>
-    h(BricksCanvasItem, {
+    h(CanvasItem, {
         component: child,
         key: child.id,
     });
@@ -64,7 +64,7 @@ const renderLayoutChild = (child: LandingComponent) =>
 </script>
 
 <template>
-    <ConditionalContainer :use-container="props.needsContainerWrapper">
+    <CanvasConditionalContainer :use-container="props.needsContainerWrapper">
         <BricksGrid
             v-if="props.layoutName === 'grid'"
             :id="props.component.htmlId || undefined"
@@ -72,7 +72,7 @@ const renderLayoutChild = (child: LandingComponent) =>
             :layout-id="props.component.id"
             data-bricks-layout="grid"
         >
-            <BricksCanvasItem
+            <CanvasItem
                 v-for="child in props.childComponents"
                 :key="child.id"
                 :component="child"
@@ -86,7 +86,7 @@ const renderLayoutChild = (child: LandingComponent) =>
             :layout-id="props.component.id"
             data-bricks-layout="flex"
         >
-            <BricksCanvasItem
+            <CanvasItem
                 v-for="child in props.childComponents"
                 :key="child.id"
                 :component="child"
@@ -100,7 +100,7 @@ const renderLayoutChild = (child: LandingComponent) =>
             :layout-id="props.component.id"
             data-bricks-layout="section"
         >
-            <BricksCanvasItem
+            <CanvasItem
                 v-for="child in props.childComponents"
                 :key="child.id"
                 :component="child"
@@ -158,5 +158,5 @@ const renderLayoutChild = (child: LandingComponent) =>
             :id="props.component.htmlId || undefined"
             :layout-props="props.layoutProps as AccordionLayoutProps"
         />
-    </ConditionalContainer>
+    </CanvasConditionalContainer>
 </template>
