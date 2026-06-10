@@ -12,7 +12,7 @@ import BricksButton from '../../../ui/base/button/BricksButton.vue';
 import BricksActionButton from '../../../ui/base/action-button/BricksActionButton.vue';
 import BricksTooltip from '../../../ui/tooltip/BricksTooltip.vue';
 import BricksTooltipHint from '../../../ui/tooltip/BricksTooltipHint.vue';
-import LogoLand from '../sidebar/LogoLand.vue';
+import BuilderLogo from '../BuilderLogo.vue';
 // #endregion
 
 // #region Props
@@ -182,7 +182,7 @@ function handleToggleGrid(): void {
         <div :class="$style.center">
             <h1 :class="$style.title">
                 <span :class="$style.titlePrimary">
-                    <LogoLand :class="$style.logo" text="" :to="null" />
+                    <BuilderLogo :class="$style.logo" text="" :to="null" />
                 </span>
                 <span v-if="currentPageTitle" :class="$style.titleDivider">/</span>
                 <span v-if="currentPageTitle" :class="$style.titleSecondary">

@@ -85,7 +85,11 @@
 - `SidebarSchemaTreeView.vue:26` — импорт `SchemaTreeItem` + тег (внимание: рекурсивный? проверить self-импорт в `SidebarSchemaTreeItem.vue`).
 - Типы/комментарии: `builder/types/builder.d.ts`, `builder/types/composables.d.ts`, `builder/components/sidebar/types.d.ts`, `builder/composables/useLandingBuilderPage.ts` — упоминания `BuilderSidebar`/`ComponentCard` (текстовые, проверить grep'ом).
 
-## Шаг 4. LogoLand → BuilderLogo (уровень домена) ✅/❌
+## Шаг 4. LogoLand → BuilderLogo (уровень домена) ✅ (2026-06-11)
+
+> Примечание: alt/aria-label в компоненте не оказалось; дебрендинг — убран брендовый
+> дефолт пропа `text` (`'От Иды, <br /> С любовью'` → `''`, оба использования и так
+> передают `text=""`), заодно удалён дефолт несуществующего пропа `color`.
 
 | git mv | Новый корневой класс |
 | ------ | -------------------- |

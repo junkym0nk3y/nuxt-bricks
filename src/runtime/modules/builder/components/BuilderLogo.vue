@@ -15,8 +15,7 @@ const props = withDefaults(
         isInfiniteAnimation?: boolean;
     }>(),
     {
-        color: 'white',
-        text: 'От Иды, <br /> С любовью',
+        text: '',
         isTouch: false,
         to: '/',
         external: false,
@@ -66,7 +65,7 @@ function onMouseenter() {
 </script>
 
 <template>
-    <div :class="[$style.LogoLand, classList]">
+    <div :class="[$style.BuilderLogo, classList]">
         <component
             :is="isLink ? 'a' : 'div'"
             v-bind="isLink ? componentBind : {}"
@@ -130,7 +129,7 @@ function onMouseenter() {
 </template>
 
 <style lang="scss" module>
-.LogoLand {
+.BuilderLogo {
     user-select: none;
 }
 

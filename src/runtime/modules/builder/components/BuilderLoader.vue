@@ -4,7 +4,7 @@
 import { computed, onUnmounted, ref, watch } from 'vue';
 
 // Components
-import LogoLand from './sidebar/LogoLand.vue';
+import BuilderLogo from './BuilderLogo.vue';
 // #endregion
 
 // #region Props
@@ -219,7 +219,7 @@ onUnmounted(() => {
 
             <div :class="$style.content">
                 <div :class="$style.logoWrapper">
-                    <LogoLand
+                    <BuilderLogo
                         text=""
                         target="_self"
                         :is-touch="true"
