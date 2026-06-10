@@ -1,4 +1,3 @@
-import './external.d.ts';
 import 'vue';
 
 declare global {
