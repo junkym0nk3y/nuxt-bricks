@@ -1,4 +1,4 @@
-import type { ILandDemoValues } from '../../types.d.ts';
+import type { ILandDemoValues } from '../../common/types/index';
 
 // Ensure all value types match component expectations
 export interface ILandUiCommonProp {

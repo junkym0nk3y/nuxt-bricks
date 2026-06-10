@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { LandingComponent, PropertyDefinition } from '../../../common/types/landing';
-import type { ILandValues } from '../../../types';
+import type { ILandValues } from '../../../common/types/index';
 
 // Vue
 import { computed, nextTick } from 'vue';

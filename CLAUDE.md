@@ -29,9 +29,9 @@ npx oxlint <changed-file>
 
 ## Architecture
 
-### Доменная структура `src/runtime/` (модульный монолит)
+### Доменная структура `src/runtime/modules/` (модульный монолит)
 
-Каждый домен держит свои компоненты/композаблы/типы/утилиты рядом (см. documents/refactor.md):
+Все домены лежат в `src/runtime/modules/`. Каждый домен держит свои компоненты/композаблы/типы/утилиты рядом (см. documents/refactor.md):
 
 - `ui/` — Reka UI-кит (base/inputs/feedback/tooltip)
 - `builder/` — редактор: `components/{canvas,sidebar,toolbar,modal}`, `composables/`, `stores/` (canvas, components+actions, sidebar, history, navigation, publish), `pages/`, `utils/`, `constants/`, `types/`
@@ -40,6 +40,8 @@ npx oxlint <changed-file>
 - `editor/` — TipTap: компоненты, расширения (`tiptap/`), inline editing, `stores/inlineEditing.ts`
 - `media/` — медиа-галерея и image resolver (свой `stores/media.ts`)
 - `common/` — только общее (2+ доменов): `composables/` (useLandingConfig, useStoryImports, useApiClient, useLandingStyles), `utils/landing/` (paths, components, deviceVisibility), `utils/routing/` (build-time), `types/`
+
+Вне `modules/` в `src/runtime/` остаётся инфраструктура Nuxt: `plugins/`, `server/`, `middleware/`, `layouts/`, `assets/`, `types.d.ts` (шим, реэкспортирует `modules/common/types`).
 
 Направления зависимостей: `builder` → любой домен; `render` — только common + layouts-blocks; `layouts-blocks` → `editor` (+ tech-debt: BricksSlider → builder/stores/canvas). Импорты — явные относительные (auto-import локального кода отключён).
 
@@ -77,10 +79,10 @@ export const story = {
 - Свойства без `group` отображаются плоско (обратная совместимость)
 - Группы открыты по умолчанию
 
-**Ключевые файлы** (пути — от `src/runtime/`):
+**Ключевые файлы** (пути — от `src/runtime/modules/`):
 
-- `types/landing.ts` → `PropertyDefinition.group`
-- `types/index.ts` → `ILandValues.group`
+- `common/types/landing.ts` → `PropertyDefinition.group`
+- `common/types/index.ts` → `ILandValues.group`
 - `builder/components/canvas/types.d.ts` → `ILayoutProperty.group`
 - `builder/components/sidebar/SidebarPropertyEditors.vue` → рендеринг аккордеонов
 
@@ -242,7 +244,7 @@ landing: {
 
 **Ключевые файлы:**
 
-- `composables/useLandingStyles.ts` — генерация override CSS
+- `common/composables/useLandingStyles.ts` — генерация override CSS
 - `render/components/BricksRenderer.vue` — добавление `data-ida-container`
 - `plugins/landing-styles.ts` — инжектит стили на все страницы (и builder, и published)
 

@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { ILandingGalleryItem } from '../../../../layouts-blocks/types/layouts';
-import type { ILandGalleryFieldsConfig } from '../../../../types';
+import type { ILandGalleryFieldsConfig } from '../../../../common/types/index';
 
 // Vue
 import { computed, useCssModule } from 'vue';

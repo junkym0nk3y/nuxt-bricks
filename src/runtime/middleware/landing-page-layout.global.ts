@@ -1,11 +1,11 @@
 import type { LayoutKey } from '#build/types/layouts';
 import { defineNuxtRouteMiddleware, useNuxtApp, setPageLayout } from '#app';
 import { createError, useState, useRequestHeaders } from '#imports';
-import type { LandingSchema } from '../common/types/landing';
-import type { IPublishedLandingPageSummary, IPublishedPage } from '../common/types/landing-api';
-import { normalizeLandingError } from '../common/utils/main';
-import { useApiClient } from '../common/composables/useApiClient';
-import { toCamelCase } from '../common/utils/case-transform';
+import type { LandingSchema } from '../modules/common/types/landing';
+import type { IPublishedLandingPageSummary, IPublishedPage } from '../modules/common/types/landing-api';
+import { normalizeLandingError } from '../modules/common/utils/main';
+import { useApiClient } from '../modules/common/composables/useApiClient';
+import { toCamelCase } from '../modules/common/utils/case-transform';
 
 const DEFAULT_BACKGROUND_COLOR = '#FFFFFF';
 const DEFAULT_LAYOUT = 'default';

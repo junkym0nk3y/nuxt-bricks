@@ -1,7 +1,7 @@
 // #region Imports
 // Types
 import type { ILandingCanvasItemProps } from '../components/canvas/types';
-import type { ILandExportModule, ILandValues } from '../../types';
+import type { ILandExportModule, ILandValues } from '../../common/types/index';
 
 // Vue
 import {

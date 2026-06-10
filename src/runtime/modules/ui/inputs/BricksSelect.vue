@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { IBricksSelectProps, IBricksSelectEmits } from './types.d.ts';
-import type { ILandDemoValues } from '../../types.d.ts';
+import type { ILandDemoValues } from '../../common/types/index';
 
 // Vue
 import { computed, ref, toValue, useCssModule } from 'vue';

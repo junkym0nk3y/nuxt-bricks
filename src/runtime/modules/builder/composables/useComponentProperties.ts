@@ -1,5 +1,5 @@
 import type { PropertyDefinition, PropertyType } from '../../common/types/landing';
-import type { ILandValues } from '../../types';
+import type { ILandValues } from '../../common/types/index';
 import { getModalOptions } from './useModals';
 
 /**

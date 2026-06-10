@@ -3,9 +3,9 @@
 import { defineNuxtPlugin } from '#imports';
 
 // Composables
-import { useLandingStyles } from '../common/composables/useLandingStyles';
-import { useLandingResponsiveVisibilityStyles } from '../layouts-blocks/composables/useLandingResponsiveVisibilityStyles';
-import { useLandingResponsiveLayoutStyles } from '../layouts-blocks/composables/useLandingResponsiveLayoutStyles';
+import { useLandingStyles } from '../modules/common/composables/useLandingStyles';
+import { useLandingResponsiveVisibilityStyles } from '../modules/layouts-blocks/composables/useLandingResponsiveVisibilityStyles';
+import { useLandingResponsiveLayoutStyles } from '../modules/layouts-blocks/composables/useLandingResponsiveLayoutStyles';
 // #endregion
 
 /**

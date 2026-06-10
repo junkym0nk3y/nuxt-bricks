@@ -2,7 +2,7 @@
 // Types
 import type { ILandingCanvasItemProps } from '../components/canvas/types';
 import type { PropertyDefinition } from '../../common/types/landing';
-import type { ILandValues } from '../../types';
+import type { ILandValues } from '../../common/types/index';
 
 // Vue
 import { computed, nextTick, type ComputedRef, type Ref } from 'vue';

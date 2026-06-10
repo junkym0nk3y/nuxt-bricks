@@ -3,7 +3,7 @@
 // Types
 import type { TPublishFormState } from '../../../common/types/landing-api';
 import type { IMediaItem } from '../../../media/types/media';
-import type { ILandDemoValues } from '../../../types';
+import type { ILandDemoValues } from '../../../common/types/index';
 import type { LandingSchema } from '../../../common/types/landing';
 
 // Vue

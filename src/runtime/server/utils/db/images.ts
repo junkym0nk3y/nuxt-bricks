@@ -2,7 +2,7 @@
 // #region Imports
 import { useAppConfig } from 'nitropack/runtime';
 import sharp from 'sharp';
-import type { TFormData, TMediaOptimization, TResolvedMediaConfig } from '../../../media/types/media';
+import type { TFormData, TMediaOptimization, TResolvedMediaConfig } from '../../../modules/media/types/media';
 // #endregion
 
 // #region Data

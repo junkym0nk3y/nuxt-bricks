@@ -3,14 +3,14 @@
 import { defineNuxtPlugin } from '#imports';
 
 // Types
-import type { IPublishedLandingPageSummary } from '../common/types/landing-api';
+import type { IPublishedLandingPageSummary } from '../modules/common/types/landing-api';
 import type { Router } from 'vue-router';
 
 // Composables
-import { useApiClient } from '../common/composables/useApiClient';
+import { useApiClient } from '../modules/common/composables/useApiClient';
 
 // Utils
-import { toCamelCase } from '../common/utils/case-transform';
+import { toCamelCase } from '../modules/common/utils/case-transform';
 // #endregion
 
 const ROUTE_NAME_PREFIX = 'landing-direct-';
@@ -32,7 +32,7 @@ function escapePagenameForRegex(pagename: string): string {
  * @param pages Список опубликованных страниц из API.
  */
 function registerPublishedRoutes(router: Router, pages: IPublishedLandingPageSummary[]): void {
-    const landingComponent = () => import('../render/pages/[pagename].vue');
+    const landingComponent = () => import('../modules/render/pages/[pagename].vue');
 
     pages.forEach(({ pagename, urlPrefix }) => {
         const routeName = `${ROUTE_NAME_PREFIX}${pagename}`;

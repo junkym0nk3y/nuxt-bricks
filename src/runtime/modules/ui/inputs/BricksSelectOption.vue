@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { ILandDemoValues } from '../../types.d.ts';
+import type { ILandDemoValues } from '../../common/types/index';
 import type { ILandUiCommonProp } from './types.d.ts';
 
 // Vue

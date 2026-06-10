@@ -1,7 +1,7 @@
 // #region Imports
 // Types
 import type { ILandingCanvasItemProps } from '../components/canvas/types';
-import type { ILandValues } from '../../types';
+import type { ILandValues } from '../../common/types/index';
 
 // Vue
 import { computed, provide, watch, type ComputedRef } from 'vue';

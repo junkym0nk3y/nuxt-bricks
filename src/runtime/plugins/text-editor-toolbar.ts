@@ -5,7 +5,7 @@ import type {
     ITextEditorToolbar,
     ITextEditorToolbarConfigParams,
     IToolbarStateRefs,
-} from '../editor/types/text-editor-toolbar.d.ts';
+} from '../modules/editor/types/text-editor-toolbar.d.ts';
 import type { Editor } from '@tiptap/core';
 
 // Side-effect import: augments @tiptap/core Commands with table methods

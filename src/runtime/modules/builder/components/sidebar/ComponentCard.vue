@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { IComponentCardProps, IDragComposable } from './types';
-import type { ILandExportModule } from '../../../types';
+import type { ILandExportModule } from '../../../common/types/index';
 
 // Vue
 import {

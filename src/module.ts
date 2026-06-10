@@ -8,7 +8,7 @@ import {
     installModule,
 } from '@nuxt/kit';
 import { defu } from 'defu';
-import { brickWatchPlugin } from './runtime/common/utils/routing/vite-brick-watch';
+import { brickWatchPlugin } from './runtime/modules/common/utils/routing/vite-brick-watch';
 
 // #region Types
 export interface IBricksModuleOptions {
@@ -131,24 +131,24 @@ export default defineNuxtModule<IBricksModuleOptions>({
                 {
                     name: 'bricks-builder',
                     path: '/builder',
-                    file: resolve(runtimeDir, 'builder/pages/builder.vue'),
+                    file: resolve(runtimeDir, 'modules/builder/pages/builder.vue'),
                     children: [
                         {
                             name: 'bricks-builder-index',
                             path: '',
-                            file: resolve(runtimeDir, 'builder/pages/index.vue'),
+                            file: resolve(runtimeDir, 'modules/builder/pages/index.vue'),
                         },
                         {
                             name: 'bricks-builder-pagename',
                             path: ':pagename',
-                            file: resolve(runtimeDir, 'builder/pages/[pagename].vue'),
+                            file: resolve(runtimeDir, 'modules/builder/pages/[pagename].vue'),
                         },
                     ],
                 },
                 {
                     name: 'bricks-landing-pagename',
                     path: '/landing/:pagename',
-                    file: resolve(runtimeDir, 'render/pages/[pagename].vue'),
+                    file: resolve(runtimeDir, 'modules/render/pages/[pagename].vue'),
                 }
             );
         });

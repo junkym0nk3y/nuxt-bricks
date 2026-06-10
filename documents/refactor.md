@@ -13,7 +13,7 @@
 - почистить зависимости, оставив только нужные;
 - превратить проект в самостоятельный **Nuxt Module** (`modules: ['nuxt-bricks']`, **без nuxt-layers**) с реальной сборкой;
 - вшить серверные ручки прямо в модуль через абстракцию хранилища (дефолт Postgres+S3, заменяемый);
-- организовать **модульную архитектуру** (модульный монолит, деление `src/runtime/` на самодостаточные домены), опубликовать в GitHub и npm.
+- организовать **модульную архитектуру** (модульный монолит, самодостаточные домены в `src/runtime/modules/`), опубликовать в GitHub и npm.
 
 **Ключевой факт из анализа:** основной код билдера (`components/`, `composables/`, `store/`, `pages/`,
 `plugins/`, `utils/`, `types/`) **почти не содержит** импортов `@idaproject/*`. Все 6 пакетов
@@ -31,7 +31,7 @@
 | Серверная часть        | Ручки вшиты в модуль через **абстракцию storage/publish**, дефолтный адаптер Postgres+S3 (заменяемый) |
 | `.playground` (старый) | **Не переносим**. Новый минимальный `playground/` + тесты                                             |
 | Тестирование           | `playground/` (demo Nuxt-app с `modules: ['../src/module']`) + `vitest` + `@nuxt/test-utils`          |
-| Архитектура            | **Modular** — деление `src/runtime/` на домены                                                        |
+| Архитектура            | **Modular** — домены в `src/runtime/modules/`                                                         |
 
 ## Целевая структура каталогов
 
@@ -40,17 +40,18 @@ nuxt-bricks/
 ├── src/
 │   ├── module.ts                 # defineNuxtModule — регистрирует всё
 │   └── runtime/
-│       ├── ui/                   # headless UI-кит на Reka UI (base/inputs/feedback/tooltip)
-│       ├── builder/              # редактор: components/{canvas,sidebar,toolbar,modal},
-│       │                         #   composables/, stores/ (canvas, components+actions, sidebar,
-│       │                         #   history, navigation, publish), pages/, utils/, constants/, types/
-│       ├── render/               # рендер опубликованной страницы: components/, composables/, pages/, types/
-│       ├── layouts-blocks/       # landing-блоки (Grid/Flex/Section/Slider/...): components/, composables/, utils/, types/
-│       ├── editor/               # tiptap rich-text: components/, composables/, stores/(inlineEditing),
-│       │                         #   tiptap/(расширения), utils/, types/
-│       ├── media/                # галерея/медиа-пикеры: components/, composables/, stores/, utils/, types/
-│       ├── persistence/          # (Шаг 6, не создан) storage/publish-абстракция + адаптеры
-│       ├── common/               # ТОЛЬКО общее (2+ доменов): composables/ (useLandingConfig,
+│       ├── modules/              # домены (модульный монолит)
+│       │   ├── ui/               # headless UI-кит на Reka UI (base/inputs/feedback/tooltip)
+│       │   ├── builder/          # редактор: components/{canvas,sidebar,toolbar,modal},
+│       │   │                     #   composables/, stores/ (canvas, components+actions, sidebar,
+│       │   │                     #   history, navigation, publish), pages/, utils/, constants/, types/
+│       │   ├── render/           # рендер опубликованной страницы: components/, composables/, pages/, types/
+│       │   ├── layouts-blocks/   # landing-блоки (Grid/Flex/Section/Slider/...): components/, composables/, utils/, types/
+│       │   ├── editor/           # tiptap rich-text: components/, composables/, stores/(inlineEditing),
+│       │   │                     #   tiptap/(расширения), utils/, types/
+│       │   ├── media/            # галерея/медиа-пикеры: components/, composables/, stores/, utils/, types/
+│       │   ├── persistence/      # (Шаг 6, не создан) storage/publish-абстракция + адаптеры
+│       │   └── common/           # ТОЛЬКО общее (2+ доменов): composables/ (useLandingConfig,
 │       │                         #   useStoryImports, useApiClient, useLandingStyles),
 │       │                         #   utils/landing/{paths,components,deviceVisibility},
 │       │                         #   utils/routing/ (build-time), types/ (landing, config, global, landing-api)
@@ -74,14 +75,14 @@ nuxt-bricks/
 - `editor/composables/useLandingInlineEditor.ts` импортирует `builder/stores/components` — рассмотреть инверсию через параметры/inject.
 - `ui/inputs/BricksTextArea.vue` лениво (`import()`) тянет `editor/` (TheTextEditorModal, tiptap-расширения) — кандидат на развязку.
 - `middleware/landing-page-layout.global.ts` нигде не регистрируется (`module.ts` без `addRouteMiddleware`) — pre-existing gap.
-- Будущие md-статьи документации класть в `runtime/builder/docs/guide/` (glob `../docs/guide/**/*.md` в `useDocumentationArticles`).
+- Будущие md-статьи документации класть в `runtime/modules/builder/docs/guide/` (glob `../docs/guide/**/*.md` в `useDocumentationArticles`).
 
 ## Статус выполнения (обновлено 2026-06-10)
 
 | Шаг                         | Статус       | Комментарий                                                                                                                                                                                                                                                             |
 | --------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0. Scaffold модуля          | ✅ Готово    | `src/module.ts`, `build.config.ts`, `playground/`, пакет `nuxt-bricks@0.1.0` на `@nuxt/module-builder`                                                                                                                                                                  |
-| 1. Перенос в `src/runtime/` | ✅ Готово    | Доменное деление выполнено (2026-06-10): домены ui/builder/render/layouts-blocks/editor/media + общие stores/composables/utils/types. Перенос — одноразовым codemod (git mv + переписывание ~600 относительных импортов), скрипт удалён после миграции                  |
+| 1. Перенос в `src/runtime/` | ✅ Готово    | Доменное деление выполнено (2026-06-10): домены ui/builder/render/layouts-blocks/editor/media + общие stores/composables/utils/types. Перенос — одноразовым codemod (git mv + переписывание ~600 относительных импортов), скрипт удалён после миграции. Затем все домены собраны в `src/runtime/modules/` (импорты между доменами не менялись — переезжали вместе) |
 | 2. `module.ts` регистрация  | ✅ Готово    | —                                                                                                                                                                                                                                                                       |
 | 3. Дебрендинг               | ✅ Готово    | Компоненты `Landing*` → `Bricks*` (20 файлов), `IIda*` → `IBricks*`, `BricksClodeModal` → `BricksCloseButton`, удалены пустые `types/shims-idaproject-*`. Композаблы `useLanding*` и типы `ILanding*` оставлены — «landing» доменное имя, не бренд                       |
 | 4. UI → Reka UI             | ✅ Готово    | См. таблицу маппинга ниже — у каждой строки проставлен статус                                                                                                                                                                                                           |
