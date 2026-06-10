@@ -42,7 +42,7 @@ function extractStoryComponent(module: unknown, storyPath: string): Component | 
         return (module as Record<string, unknown>).default as Component;
     }
 
-    console.error(`[BricksRenderer] Module ${storyPath} has no usable component export`);
+    console.error(`[TheRenderer] Module ${storyPath} has no usable component export`);
     return null;
 }
 
@@ -61,7 +61,7 @@ async function loadStoryComponent(
     const importModule = findImportModule(storyPath);
 
     if (!importModule) {
-        console.warn('[BricksRenderer] No story module found for:', storyPath);
+        console.warn('[TheRenderer] No story module found for:', storyPath);
         // НЕ кэшируем null — компонент может появиться после HMR
         return null;
     }
@@ -72,7 +72,7 @@ async function loadStoryComponent(
         componentCache.set(cacheKey, component);
         return component;
     } catch (error) {
-        console.error(`[BricksRenderer] Failed to load component for ${storyPath}:`, error);
+        console.error(`[TheRenderer] Failed to load component for ${storyPath}:`, error);
         // НЕ кэшируем null при ошибке — компонент может заработать после HMR
         return null;
     }
@@ -95,7 +95,7 @@ export function useLandingRendererStories({
      */
     function resolveStoryComponent(storyPath: string): Component | null {
         if (!storyPath) {
-            console.warn('[BricksRenderer] Missing storyPath for component');
+            console.warn('[TheRenderer] Missing storyPath for component');
             return null;
         }
 

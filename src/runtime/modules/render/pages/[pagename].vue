@@ -17,7 +17,7 @@ import { useLandingConfig } from '../../common/composables/useLandingConfig';
 import { normalizeStoryPath } from '../../common/utils/landing/paths';
 
 // Components
-import BricksRenderer from '../components/BricksRenderer.vue';
+import TheRenderer from '../components/TheRenderer.vue';
 import BricksCloseButton from '../../ui/base/modal/BricksCloseButton.vue';
 // #endregion
 
@@ -407,7 +407,7 @@ useHead(() => {
             </div>
 
             <!-- Render only root-level components (not children of layouts) -->
-            <BricksRenderer
+            <TheRenderer
                 v-for="component in rootComponents"
                 :key="component.id"
                 :component="component"

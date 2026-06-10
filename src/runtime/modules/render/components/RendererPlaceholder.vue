@@ -12,7 +12,7 @@ const props = withDefaults(defineProps<ILandingRendererPlaceholderProps>(), {
 </script>
 
 <template>
-    <div :class="$style.BricksRendererPlaceholder">
+    <div :class="$style.RendererPlaceholder">
         <h3 :class="$style.title">
             {{ props.title }}
         </h3>
@@ -23,7 +23,7 @@ const props = withDefaults(defineProps<ILandingRendererPlaceholderProps>(), {
 </template>
 
 <style module lang="scss">
-.BricksRendererPlaceholder {
+.RendererPlaceholder {
     display: flex;
     align-items: center;
     justify-content: center;

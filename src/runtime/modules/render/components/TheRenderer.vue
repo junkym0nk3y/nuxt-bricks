@@ -14,7 +14,7 @@ import { useLandingRendererLayouts } from '../composables/useLandingRendererLayo
 import { useLandingConfig } from '../../common/composables/useLandingConfig';
 
 // Components
-import BricksRendererPlaceholder from './BricksRendererPlaceholder.vue';
+import RendererPlaceholder from './RendererPlaceholder.vue';
 
 // Utils
 import {
@@ -109,7 +109,7 @@ function renderUiComponent(
         });
     }
 
-    return h(BricksRendererPlaceholder, {
+    return h(RendererPlaceholder, {
         key: component.id,
         id: component.htmlId || undefined,
         title: `${component.componentName || 'Компонент'} недоступен`,
