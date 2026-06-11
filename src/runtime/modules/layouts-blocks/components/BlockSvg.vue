@@ -125,7 +125,7 @@ function resolveDimension(value: string | number | undefined): string {
 
         <!-- Placeholder -->
         <div v-else :class="$style.placeholder">
-            <BricksLandIcon :class="$style.placeholderIcon" icon="md:outlined-image" />
+            <BricksIcon :class="$style.placeholderIcon" icon="md:outlined-image" />
             <span :class="$style.placeholderText">Выберите SVG из медиа</span>
         </div>
     </div>
@@ -162,8 +162,8 @@ function resolveDimension(value: string | number | undefined): string {
     width: 100%;
     min-height: 10rem;
     border-radius: 0.8rem;
-    border: 0.2rem dashed var(--land-base-300);
-    background: var(--land-base-50);
+    border: 0.2rem dashed var(--bricks-base-300);
+    background: var(--bricks-base-50);
     text-align: center;
     flex-direction: column;
     gap: 1.2rem;
@@ -171,11 +171,11 @@ function resolveDimension(value: string | number | undefined): string {
 
 .placeholderIcon {
     font-size: 4.8rem;
-    color: var(--land-base-300);
+    color: var(--bricks-base-300);
 }
 
 .placeholderText {
     font-size: 1.4rem;
-    color: var(--land-base-500);
+    color: var(--bricks-base-500);
 }
 </style>

@@ -102,7 +102,7 @@ function handleTogglePublished(value: boolean | string): void {
                                 :disabled="props.isPublishing"
                                 @update:value="handleTogglePublished"
                             >
-                                <BricksLandIcon
+                                <BricksIcon
                                     :icon="props.page.published ? 'fa:eye' : 'fa:reg-eye'"
                                 />
                             </BricksSwitch>
@@ -135,8 +135,8 @@ function handleTogglePublished(value: boolean | string): void {
     display: grid;
     padding: 1.6rem;
     border-radius: var(--border-radius-sm);
-    border: 1px solid var(--land-base-200);
-    background-color: var(--land-base-0);
+    border: 1px solid var(--bricks-base-200);
+    background-color: var(--bricks-base-0);
     grid-template-columns: 1fr auto;
     gap: 1.6rem;
 }
@@ -151,19 +151,19 @@ function handleTogglePublished(value: boolean | string): void {
     margin: 0;
     font-size: 1.8rem;
     font-weight: 600;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
 }
 
 .pagename {
     margin: 0;
     font-size: 1.4rem;
-    color: var(--land-base-500);
+    color: var(--bricks-base-500);
 }
 
 .description {
     margin: 0.4rem 0 0;
     font-size: 1.4rem;
-    color: var(--land-base-700);
+    color: var(--bricks-base-700);
 }
 
 .meta {
@@ -172,7 +172,7 @@ function handleTogglePublished(value: boolean | string): void {
     align-items: center;
     margin-top: 0.8rem;
     font-size: 1.4rem;
-    color: var(--land-base-500);
+    color: var(--bricks-base-500);
 }
 
 .date {

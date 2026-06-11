@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { LandingComponent, PropertyDefinition } from '../../../common/types/landing';
-import type { ILandValues } from '../../../common/types/index';
+import type { IBrickValues } from '../../../common/types/index';
 
 // Vue
 import { computed, nextTick } from 'vue';
@@ -148,7 +148,7 @@ async function handleSelectComponent(id: string): Promise<void> {
 
                     if (story.values !== undefined) {
                         properties = storyValuesToProperties(
-                            story.values as Record<string, ILandValues>
+                            story.values as Record<string, IBrickValues>
                         );
                     }
                 }
@@ -203,7 +203,7 @@ async function handleSelectComponent(id: string): Promise<void> {
             </div>
 
             <div v-else :class="$style.empty">
-                <BricksLandIcon icon="re:drag-drop-line" :class="$style.emptyIcon" />
+                <BricksIcon icon="re:drag-drop-line" :class="$style.emptyIcon" />
                 <p>Нет компонентов</p>
                 <p :class="$style.emptyHint">Добавьте компоненты на канвас из библиотеки</p>
             </div>
@@ -224,14 +224,14 @@ async function handleSelectComponent(id: string): Promise<void> {
     align-items: center;
     justify-content: space-between;
     padding: 1.6rem 2rem;
-    border-bottom: 1px solid var(--land-base-300);
+    border-bottom: 1px solid var(--bricks-base-300);
 }
 
 .title {
     margin: 0;
     font-size: 1.6rem;
     font-weight: 600;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
 }
 
 .content {
@@ -252,7 +252,7 @@ async function handleSelectComponent(id: string): Promise<void> {
     justify-content: center;
     height: 100%;
     text-align: center;
-    color: var(--land-base-400);
+    color: var(--bricks-base-400);
 
     p {
         margin: 0.8rem 0;
@@ -263,11 +263,11 @@ async function handleSelectComponent(id: string): Promise<void> {
     width: 6.4rem;
     height: 6.4rem;
     margin-bottom: 1.6rem;
-    color: var(--land-base-300);
+    color: var(--bricks-base-300);
 }
 
 .emptyHint {
     font-size: 1.2rem;
-    color: var(--land-base-400);
+    color: var(--bricks-base-400);
 }
 </style>

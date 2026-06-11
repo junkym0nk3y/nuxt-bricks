@@ -707,7 +707,7 @@ export function useRendererLayouts({
      * Рендерит линию-разделитель внутри Space.
      */
     function renderSpaceDivider(spaceProps: Record<string, any>, isVertical: boolean): VNode {
-        const color = spaceProps.dividerColor || 'var(--land-base-200)';
+        const color = spaceProps.dividerColor || 'var(--bricks-base-200)';
         const borderWidth = `${Math.max(1, Number(spaceProps.dividerWidth) || 1)}px`;
         const lineStyle = spaceProps.dividerStyle || 'solid';
         const mx = Math.round(Math.max(0, Number(spaceProps.dividerMarginX) || 0) * 10) / 10;

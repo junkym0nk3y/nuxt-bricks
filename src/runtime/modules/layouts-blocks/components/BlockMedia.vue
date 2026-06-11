@@ -95,7 +95,7 @@ const hasSource = computed(() => Boolean(props.src));
 
         <!-- Placeholder -->
         <div v-else :class="$style.placeholder">
-            <BricksLandIcon
+            <BricksIcon
                 :class="$style.placeholderIcon"
                 :icon="isVideo ? 'md:sharp-video-library' : 'md:outlined-image'"
             />
@@ -126,8 +126,8 @@ const hasSource = computed(() => Boolean(props.src));
     width: 100%;
     min-height: 20rem;
     border-radius: 0.8rem;
-    border: 0.2rem dashed var(--land-base-300);
-    background: var(--land-base-50);
+    border: 0.2rem dashed var(--bricks-base-300);
+    background: var(--bricks-base-50);
     text-align: center;
     flex-direction: column;
     gap: 1.2rem;
@@ -135,11 +135,11 @@ const hasSource = computed(() => Boolean(props.src));
 
 .placeholderIcon {
     font-size: 6.4rem;
-    color: var(--land-base-300);
+    color: var(--bricks-base-300);
 }
 
 .placeholderText {
     font-size: 1.4rem;
-    color: var(--land-base-500);
+    color: var(--bricks-base-500);
 }
 </style>

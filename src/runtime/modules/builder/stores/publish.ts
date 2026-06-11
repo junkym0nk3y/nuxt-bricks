@@ -212,7 +212,7 @@ function toRequestError(method: string, url: string, error: unknown): Error {
 /**
  * Pinia-стор для публикации, черновиков и загрузки страниц лендинга.
  */
-export const usePublishStore = defineStore('publish', {
+export const usePublishStore = defineStore('bricksPublish', {
     state: () => ({
         publishedPages: [] as IPublishedPage[],
         currentFormState: buildDefaultFormState(),

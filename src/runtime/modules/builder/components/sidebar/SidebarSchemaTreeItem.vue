@@ -169,27 +169,27 @@ function handleDrop(event: DragEvent): void {
                 @drop="handleDrop"
             >
                 <span :class="$style.name">
-                    <BricksLandIcon
+                    <BricksIcon
                         v-if="isLayout"
                         icon="an:outlined-appstore-add"
                         :class="$style.typeIcon"
                     />
-                    <BricksLandIcon v-else icon="ui:component" :class="$style.typeIcon" />
+                    <BricksIcon v-else icon="ui:component" :class="$style.typeIcon" />
                     {{ displayName }}
                 </span>
 
                 <span :class="$style.icons">
-                    <BricksLandIcon v-if="isHidden" icon="fa:reg-eye" :class="$style.hiddenIcon" />
+                    <BricksIcon v-if="isHidden" icon="fa:reg-eye" :class="$style.hiddenIcon" />
 
-                    <BricksLandIcon
+                    <BricksIcon
                         icon="ak:mobile-device"
                         :class="[$style.deviceIcon, { [$style._inactive]: !isMobileVisible }]"
                     />
-                    <BricksLandIcon
+                    <BricksIcon
                         icon="ak:credit-card-alt-1"
                         :class="[$style.deviceIcon, { [$style._inactive]: !isTabletVisible }]"
                     />
-                    <BricksLandIcon
+                    <BricksIcon
                         icon="ak:desktop-device"
                         :class="[$style.deviceIcon, { [$style._inactive]: !isDesktopVisible }]"
                     />
@@ -240,11 +240,11 @@ function handleDrop(event: DragEvent): void {
     cursor: grab;
 
     &:hover {
-        background-color: var(--land-base-100);
+        background-color: var(--bricks-base-100);
     }
 
     &._selected {
-        background-color: var(--land-primary-100, var(--land-base-200));
+        background-color: var(--bricks-primary-100, var(--bricks-base-200));
     }
 
     &._hidden {
@@ -264,7 +264,7 @@ function handleDrop(event: DragEvent): void {
     white-space: nowrap;
     font-size: 1.3rem;
     font-weight: 500;
-    color: var(--land-base-800);
+    color: var(--bricks-base-800);
     gap: 0.4rem;
 }
 
@@ -272,7 +272,7 @@ function handleDrop(event: DragEvent): void {
     flex-shrink: 0;
     width: 1.4rem;
     height: 1.4rem;
-    color: var(--land-base-500);
+    color: var(--bricks-base-500);
 }
 
 .icons {
@@ -286,7 +286,7 @@ function handleDrop(event: DragEvent): void {
 .deviceIcon {
     width: 1.2rem;
     height: 1.2rem;
-    color: var(--land-base-600);
+    color: var(--bricks-base-600);
     transition: opacity var(--default-transition);
 
     &._inactive {
@@ -297,7 +297,7 @@ function handleDrop(event: DragEvent): void {
 .hiddenIcon {
     width: 1.2rem;
     height: 1.2rem;
-    color: var(--land-danger-600);
+    color: var(--bricks-danger-600);
 }
 
 .children {
@@ -320,7 +320,7 @@ function handleDrop(event: DragEvent): void {
     left: 0;
     width: 1px;
     height: calc(50% + 0.4rem);
-    border-left: 1px dashed var(--land-base-300);
+    border-left: 1px dashed var(--bricks-base-300);
 
     &._last {
         height: calc(50% + 0.4rem);
@@ -333,7 +333,7 @@ function handleDrop(event: DragEvent): void {
     left: 0;
     width: 1.2rem;
     height: 1px;
-    border-top: 1px dashed var(--land-base-300);
+    border-top: 1px dashed var(--bricks-base-300);
 }
 
 .dropIndicator {

@@ -3,7 +3,7 @@
 // Types
 import type { TPublishFormState } from '../../../common/types/landing-api';
 import type { IMediaItem } from '../../../media/types/media';
-import type { ILandDemoValues } from '../../../common/types/index';
+import type { IBrickDemoValues } from '../../../common/types/index';
 import type { LandingSchema } from '../../../common/types/landing';
 
 // Vue
@@ -145,7 +145,7 @@ function handleClearSocialImage(): void {
  *
  * @param value - выбранное значение layout.
  */
-function handleLayoutChange(value: ILandDemoValues) {
+function handleLayoutChange(value: IBrickDemoValues) {
     const nextLayout =
         typeof value === 'string' && value ? value : settings.value.layout || defaultLayout.value;
     handleUpdateField('layout', nextLayout);
@@ -418,7 +418,7 @@ onMounted(() => {
                             :disabled="isSubmitting"
                             @click="handleOpenMediaGallery"
                         >
-                            <BricksLandIcon icon="md:outlined-image" />
+                            <BricksIcon icon="md:outlined-image" />
                             Выбрать из медиабиблиотеки
                         </BricksButton>
 
@@ -463,7 +463,7 @@ onMounted(() => {
                         :disabled="isSubmitting"
                         @click="handleExportSchema"
                     >
-                        <BricksLandIcon icon="ph:download" />
+                        <BricksIcon icon="ph:download" />
                         Экспорт JSON
                     </BricksButton>
                     <BricksButton
@@ -472,7 +472,7 @@ onMounted(() => {
                         :disabled="isSubmitting"
                         @click="handleImportClick"
                     >
-                        <BricksLandIcon icon="ph:upload" />
+                        <BricksIcon icon="ph:upload" />
                         Импорт JSON
                     </BricksButton>
                 </div>
@@ -508,14 +508,14 @@ onMounted(() => {
     align-items: center;
     justify-content: space-between;
     padding: 1.6rem 2rem;
-    border-bottom: 1px solid var(--land-base-300);
+    border-bottom: 1px solid var(--bricks-base-300);
 }
 
 .title {
     margin: 0;
     font-size: 1.6rem;
     font-weight: 600;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
 }
 
 .content {
@@ -543,78 +543,78 @@ onMounted(() => {
     margin-bottom: 0.8rem;
     font-size: 1.4rem;
     font-weight: 500;
-    color: var(--land-base-600);
+    color: var(--bricks-base-600);
 }
 
 .charCount {
     margin-left: auto;
     font-size: 1.2rem;
     font-weight: 400;
-    color: var(--land-base-400);
+    color: var(--bricks-base-400);
 }
 
 .textarea {
     /* Фиксируем светлую тему для области ввода контента */
-    --land-base-0: #fff;
-    --land-base-300: #d1d5db;
-    --land-base-900: #111827;
+    --bricks-base-0: #fff;
+    --bricks-base-300: #d1d5db;
+    --bricks-base-900: #111827;
 
     width: 100%;
     min-height: 8rem;
     padding: 1.2rem;
     border-radius: var(--border-radius-sm);
-    border: 1px solid var(--land-base-300);
-    background-color: var(--land-base-0);
+    border: 1px solid var(--bricks-base-300);
+    background-color: var(--bricks-base-0);
     font-size: 1.4rem;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
     transition: border-color 150ms ease;
     resize: vertical;
 
     &:focus {
-        border-color: var(--land-base-300);
+        border-color: var(--bricks-base-300);
     }
 
     &:disabled {
-        background-color: var(--land-base-300);
-        color: var(--land-base-400);
+        background-color: var(--bricks-base-300);
+        color: var(--bricks-base-400);
     }
 }
 
 .inputError {
-    border-color: var(--land-danger-500);
+    border-color: var(--bricks-danger-500);
 }
 
 .hint {
     margin-top: 0.4rem;
     font-size: 1.2rem;
-    color: var(--land-base-400);
+    color: var(--bricks-base-400);
 }
 
 .urlPreview {
     margin-bottom: 1.6rem;
     padding: 0.8rem 1.2rem;
     border-radius: var(--border-radius-sm);
-    background-color: var(--land-base-50);
+    background-color: var(--bricks-base-50);
     font-family: monospace;
     font-size: 1.2rem;
-    color: var(--land-base-600);
+    color: var(--bricks-base-600);
     word-break: break-all;
 }
 
 .error {
     margin-top: 0.4rem;
     font-size: 1.2rem;
-    color: var(--land-danger-500);
+    color: var(--bricks-danger-500);
 }
 
 .generalError {
     margin-bottom: 1.6rem;
     padding: 1rem 1.2rem;
     border-radius: var(--border-radius-sm);
-    border: 1px solid var(--land-danger-500);
+    border: 1px solid var(--bricks-danger-500);
     background-color: rgb(239 68 68 / 10%);
     font-size: 1.3rem;
-    color: var(--land-danger-500);
+    color: var(--bricks-danger-500);
 }
 
 .mediaRow {
@@ -630,8 +630,8 @@ onMounted(() => {
     width: 8rem;
     height: 8rem;
     border-radius: var(--border-radius-sm);
-    border: 1px solid var(--land-base-300);
-    background-color: var(--land-base-50);
+    border: 1px solid var(--bricks-base-300);
+    background-color: var(--bricks-base-50);
 }
 
 .mediaImage {
@@ -661,12 +661,12 @@ onMounted(() => {
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: 1.2rem;
-    color: var(--land-base-500);
+    color: var(--bricks-base-500);
 }
 
 .divider {
     margin: 0.8rem 0 1.6rem;
-    border-top: 1px solid var(--land-base-200);
+    border-top: 1px solid var(--bricks-base-200);
 }
 
 .schemaActions {

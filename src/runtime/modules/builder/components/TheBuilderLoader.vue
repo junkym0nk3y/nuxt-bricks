@@ -248,14 +248,14 @@ onUnmounted(() => {
     justify-content: center;
     width: 100%;
     height: 100%;
-    background: var(--land-base-0); /* Light semi-transparent background */
+    background: var(--bricks-base-0); /* Light semi-transparent background */
 }
 
 .grid {
     position: absolute;
     background-image:
-        linear-gradient(var(--land-base-900) 1px, transparent 1px),
-        linear-gradient(90deg, var(--land-base-900) 1px, transparent 1px);
+        linear-gradient(var(--bricks-base-900) 1px, transparent 1px),
+        linear-gradient(90deg, var(--bricks-base-900) 1px, transparent 1px);
     background-size: 40px 40px;
     opacity: 0.1;
     inset: 0;
@@ -276,7 +276,7 @@ onUnmounted(() => {
 
 .logoWrapper {
     margin-bottom: 2.4rem;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
     transform: scale(1.4); /* Make logo 3x bigger */
 }
 
@@ -286,7 +286,7 @@ onUnmounted(() => {
     width: 100%;
     height: 1.4rem;
     border-radius: 0.4rem;
-    background: var(--land-base-300); /* Light gray track */
+    background: var(--bricks-base-300); /* Light gray track */
 }
 
 .barFill {
@@ -295,7 +295,7 @@ onUnmounted(() => {
     left: 0;
     height: 100%;
     border-radius: 0.4rem;
-    background: var(--land-base-900);
+    background: var(--bricks-base-900);
 }
 
 .barGlow {
@@ -312,6 +312,6 @@ onUnmounted(() => {
     margin-top: 0.8rem;
     font-family: monospace;
     font-size: 1.2rem;
-    color: var(--land-base-500);
+    color: var(--bricks-base-500);
 }
 </style>

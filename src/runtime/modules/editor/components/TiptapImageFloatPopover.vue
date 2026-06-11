@@ -490,7 +490,7 @@ onBeforeUnmount(() => {
                             :class="[$style.button, { [$style._active]: currentFloat === 'left' }]"
                             @mousedown.prevent="setFloat('left')"
                         >
-                            <BricksLandIcon icon="bs:text-indent-left" />
+                            <BricksIcon icon="bs:text-indent-left" />
                         </button>
                     </template>
                     <BricksTooltipHint text="Обтекание слева" />
@@ -503,7 +503,7 @@ onBeforeUnmount(() => {
                             :class="[$style.button, { [$style._active]: currentFloat === 'right' }]"
                             @mousedown.prevent="setFloat('right')"
                         >
-                            <BricksLandIcon icon="bs:text-indent-right" />
+                            <BricksIcon icon="bs:text-indent-right" />
                         </button>
                     </template>
                     <BricksTooltipHint text="Обтекание справа" />
@@ -516,7 +516,7 @@ onBeforeUnmount(() => {
                             :class="[$style.button, { [$style._active]: currentFloat === null }]"
                             @mousedown.prevent="setFloat(null)"
                         >
-                            <BricksLandIcon icon="ph:x" />
+                            <BricksIcon icon="ph:x" />
                         </button>
                     </template>
                     <BricksTooltipHint text="Без обтекания" />
@@ -536,7 +536,7 @@ onBeforeUnmount(() => {
                             ]"
                             @mousedown.prevent="setVerticalAlign(option.value)"
                         >
-                            <BricksLandIcon :icon="option.icon" />
+                            <BricksIcon :icon="option.icon" />
                         </button>
                     </template>
                     <BricksTooltipHint :text="option.label" />
@@ -551,7 +551,7 @@ onBeforeUnmount(() => {
                             :class="[$style.button, { [$style._active]: showSizePanel }]"
                             @mousedown.prevent="toggleSizePanel"
                         >
-                            <BricksLandIcon icon="ph:arrows-out" />
+                            <BricksIcon icon="ph:arrows-out" />
                         </button>
                     </template>
                     <BricksTooltipHint text="Размер" />
@@ -583,7 +583,7 @@ onBeforeUnmount(() => {
                                     ]"
                                     @mousedown.prevent="lockAspectRatio = !lockAspectRatio"
                                 >
-                                    <BricksLandIcon
+                                    <BricksIcon
                                         :icon="lockAspectRatio ? 'ph:link' : 'ph:link-break'"
                                     />
                                 </button>
@@ -632,8 +632,8 @@ onBeforeUnmount(() => {
     gap: 0.2rem;
     padding: 0.4rem;
     border-radius: var(--border-radius-sm);
-    border: 1px solid var(--land-base-200);
-    background: var(--land-base-0);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-base-0);
     box-shadow: var(--shadow-sm);
 }
 
@@ -646,7 +646,7 @@ onBeforeUnmount(() => {
     border-radius: var(--border-radius-xs);
     border: none;
     background: transparent;
-    color: var(--land-base-600);
+    color: var(--bricks-base-600);
     transition:
         background-color var(--default-transition),
         color var(--default-transition);
@@ -658,20 +658,20 @@ onBeforeUnmount(() => {
     }
 
     &:hover {
-        background-color: var(--land-base-100);
-        color: var(--land-base-900);
+        background-color: var(--bricks-base-100);
+        color: var(--bricks-base-900);
     }
 
     &._active {
-        background-color: var(--land-primary-100);
-        color: var(--land-primary);
+        background-color: var(--bricks-primary-100);
+        color: var(--bricks-primary);
     }
 }
 
 .separator {
     width: 1px;
     margin: 0.4rem 0.2rem;
-    background: var(--land-base-200);
+    background: var(--bricks-base-200);
 }
 
 .sizePanel {
@@ -683,8 +683,8 @@ onBeforeUnmount(() => {
     flex-direction: column;
     gap: 0.4rem;
     padding: 0.8rem;
-    background: var(--land-base-0);
-    border: 1px solid var(--land-base-200);
+    background: var(--bricks-base-0);
+    border: 1px solid var(--bricks-base-200);
     border-radius: var(--border-radius-sm);
     box-shadow: var(--shadow-sm);
 }
@@ -698,7 +698,7 @@ onBeforeUnmount(() => {
 .sizeLabel {
     font-size: 1.1rem;
     font-weight: 600;
-    color: var(--land-base-500);
+    color: var(--bricks-base-500);
     width: 1.6rem;
     text-align: center;
     user-select: none;
@@ -707,16 +707,16 @@ onBeforeUnmount(() => {
 .sizeInput {
     width: 7rem;
     padding: 0.4rem 0.6rem;
-    border: 1px solid var(--land-base-200);
+    border: 1px solid var(--bricks-base-200);
     border-radius: var(--border-radius-xs);
     font-size: 1.2rem;
     line-height: 1.4;
-    color: var(--land-base-900);
-    background: var(--land-base-0);
+    color: var(--bricks-base-900);
+    background: var(--bricks-base-0);
     outline: none;
 
     &:focus {
-        border-color: var(--land-primary);
+        border-color: var(--bricks-primary);
     }
 }
 
@@ -737,7 +737,7 @@ onBeforeUnmount(() => {
     border: none;
     border-radius: var(--border-radius-xs);
     background: transparent;
-    color: var(--land-base-400);
+    color: var(--bricks-base-400);
     cursor: pointer;
     transition:
         background-color var(--default-transition),
@@ -749,28 +749,28 @@ onBeforeUnmount(() => {
     }
 
     &:hover {
-        background-color: var(--land-base-100);
-        color: var(--land-base-600);
+        background-color: var(--bricks-base-100);
+        color: var(--bricks-base-600);
     }
 
     &._locked {
-        color: var(--land-primary);
+        color: var(--bricks-primary);
     }
 }
 
 .unitButton {
     padding: 0.2rem 0.6rem;
-    border: 1px solid var(--land-base-200);
+    border: 1px solid var(--bricks-base-200);
     border-radius: var(--border-radius-xs);
-    background: var(--land-base-50);
-    color: var(--land-base-600);
+    background: var(--bricks-base-50);
+    color: var(--bricks-base-600);
     font-size: 1.1rem;
     font-weight: 500;
     cursor: pointer;
     transition: background-color var(--default-transition);
 
     &:hover {
-        background: var(--land-base-100);
+        background: var(--bricks-base-100);
     }
 }
 </style>

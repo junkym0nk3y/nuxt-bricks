@@ -415,7 +415,7 @@ onBeforeUnmount(() => {
                     size="sm"
                     @click="toggleCodeView"
                 >
-                    <BricksLandIcon :icon="isCodeView ? 'ph:eye' : 'ph:code'" />
+                    <BricksIcon :icon="isCodeView ? 'ph:eye' : 'ph:code'" />
                     <span>{{ isCodeView ? 'Рендер' : 'Код' }}</span>
                 </BricksButton>
             </div>
@@ -460,7 +460,7 @@ onBeforeUnmount(() => {
                                 :disabled="props.disabled"
                                 @click="isExpandedModalOpen = true"
                             >
-                                <BricksLandIcon icon="ph:arrows-out" />
+                                <BricksIcon icon="ph:arrows-out" />
                             </button>
                         </template>
                         <BricksTooltipHint text="Развернуть" />
@@ -486,7 +486,7 @@ onBeforeUnmount(() => {
                                 :disabled="props.disabled"
                                 @click="isExpandedModalOpen = true"
                             >
-                                <BricksLandIcon icon="ph:arrows-out" />
+                                <BricksIcon icon="ph:arrows-out" />
                             </button>
                         </template>
                         <BricksTooltipHint text="Развернуть" />
@@ -538,7 +538,7 @@ onBeforeUnmount(() => {
 .label {
     font-size: 1.3rem;
     font-weight: 600;
-    color: var(--land-base-600);
+    color: var(--bricks-base-600);
     user-select: none;
 }
 
@@ -564,50 +564,50 @@ onBeforeUnmount(() => {
 
 .editor {
     /* Фиксируем светлую тему для области ввода контента */
-    --land-base-0: #fff;
-    --land-base-300: #d1d5db;
-    --land-base-900: #111827;
+    --bricks-base-0: #fff;
+    --bricks-base-300: #d1d5db;
+    --bricks-base-900: #111827;
 
     overflow: hidden;
     min-height: inherit;
     padding: 1.2rem;
     border-radius: var(--border-radius-sm);
-    border: 1px solid var(--land-base-300);
-    background-color: var(--land-base-0);
+    border: 1px solid var(--bricks-base-300);
+    background-color: var(--bricks-base-0);
     font-size: 1.4rem;
     line-height: 1.6;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
 
     :global(.ProseMirror) {
         min-height: inherit;
         outline: none;
 
         &:focus {
-            border-color: var(--land-primary);
+            border-color: var(--bricks-primary);
         }
     }
 }
 
 .fallbackArea {
     /* Фиксируем светлую тему для области ввода контента */
-    --land-base-0: #fff;
-    --land-base-300: #d1d5db;
-    --land-base-900: #111827;
+    --bricks-base-0: #fff;
+    --bricks-base-300: #d1d5db;
+    --bricks-base-900: #111827;
 
     width: 100%;
     min-height: inherit;
     padding: 1.2rem;
     border-radius: var(--border-radius-sm);
-    border: 1px solid var(--land-base-300);
-    background-color: var(--land-base-0);
+    border: 1px solid var(--bricks-base-300);
+    background-color: var(--bricks-base-0);
     font-size: 1.4rem;
     line-height: 1.6;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
     resize: vertical;
     transition: border-color 0.2s ease;
 
     &:focus {
-        border-color: var(--land-primary);
+        border-color: var(--bricks-primary);
         outline: none;
     }
 }
@@ -615,7 +615,7 @@ onBeforeUnmount(() => {
 .error {
     margin: 0;
     font-size: 1.2rem;
-    color: var(--land-danger-600);
+    color: var(--bricks-danger-600);
 }
 
 .toolbarSection {
@@ -637,8 +637,8 @@ onBeforeUnmount(() => {
     width: 100%;
     padding: 0.6rem;
     border-radius: var(--border-radius-sm);
-    border: 1px solid var(--land-base-300);
-    background-color: var(--land-base-50);
+    border: 1px solid var(--bricks-base-300);
+    background-color: var(--bricks-base-50);
 }
 
 .codeToggle {
@@ -677,9 +677,9 @@ onBeforeUnmount(() => {
     width: 2.8rem;
     height: 2.8rem;
     border-radius: var(--border-radius-xs);
-    border: 1px solid var(--land-base-200);
-    background: var(--land-base-0);
-    color: var(--land-base-500);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-base-0);
+    color: var(--bricks-base-500);
     transition:
         border-color var(--default-transition),
         color var(--default-transition);
@@ -691,8 +691,8 @@ onBeforeUnmount(() => {
     }
 
     &:hover {
-        border-color: var(--land-primary);
-        color: var(--land-primary);
+        border-color: var(--bricks-primary);
+        color: var(--bricks-primary);
     }
 }
 </style>

@@ -2,7 +2,7 @@
 // Types
 import type { ICanvasItemProps } from '../components/canvas/types';
 import type { PropertyDefinition } from '../../common/types/landing';
-import type { ILandValues } from '../../common/types/index';
+import type { IBrickValues } from '../../common/types/index';
 
 // Vue
 import { computed, nextTick, type ComputedRef, type Ref } from 'vue';
@@ -160,7 +160,7 @@ export function useCanvasItemActions(
                             properties = storyValuesToProperties(
                                 (module.story as Record<string, unknown>).values as Record<
                                     string,
-                                    ILandValues
+                                    IBrickValues
                                 >
                             );
                         }

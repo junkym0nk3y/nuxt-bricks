@@ -1,4 +1,4 @@
-# Roadmap: ida-landing builder improvements
+# Roadmap: nuxt-bricks builder improvements
 
 ## Context
 
@@ -8,8 +8,8 @@
 
 **Файлы:**
 
-- `.playground/components/navigation/ProjectNavigation.vue` — **новый файл**, компонент навигации
-- `.playground/components/navigation/ProjectNavigation.idaland.ts` — **новый файл**, story для билдера
+- `playground/components/navigation/ProjectNavigation.vue` — **новый файл**, компонент навигации
+- `playground/components/navigation/ProjectNavigation.brick.ts` — **новый файл**, story для билдера
 - Модификация Title-компонента — добавить поддержку `anchorId` prop (якорь для навигации)
 
 **Поведение:**
@@ -22,7 +22,7 @@
 
 ---
 
-## 4. Рефакторинг под модульную архитектуру
+## 4. Рефакторинг под модульную архитектуру — ✅ выполнено (доменное деление в `src/runtime/modules/`, 2026-06)
 
 **Цель:** Привести кодовую базу в соответствие с правилами SFC и best practices проекта. Разбить монолитные компоненты и файлы на изолированные сущности с чёткими зонами ответственности.
 
@@ -52,7 +52,7 @@
 
 Для каждой задачи:
 
-1. `npm run dev` в `ida-landing` — запустить playground
+1. `npm run dev` — запустить playground
 2. Проверить функционал в браузере на `/builder`
 3. `npm run type-check` — убедиться в отсутствии TS ошибок
 4. `npm run lint:fix` — пройти линтинг

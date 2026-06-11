@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import type { ILandObject, INuxtLandRoute, IBricksLandFile } from './types.d.ts';
+import type { IBrickObject, IBrickRoute, IBricksManifest } from './types.d.ts';
 
 /**
  * Reads the generated `bricks.json` (source of landing meta) and groups entries by category.
@@ -10,11 +10,11 @@ import type { ILandObject, INuxtLandRoute, IBricksLandFile } from './types.d.ts'
  */
 export function getLandingCategoriesFromJson(
     row = false
-): Record<string, INuxtLandRoute> | IBricksLandFile {
+): Record<string, IBrickRoute> | IBricksManifest {
     try {
         const jsonPath = join(process.cwd(), 'public/bricks.json');
         const rawContent = readFileSync(jsonPath, 'utf-8');
-        const parsedContent = JSON.parse(rawContent) as IBricksLandFile;
+        const parsedContent = JSON.parse(rawContent) as IBricksManifest;
 
         if (row) {
             return parsedContent;
@@ -22,9 +22,9 @@ export function getLandingCategoriesFromJson(
 
         const { stories } = parsedContent;
 
-        const categories: Record<string, INuxtLandRoute> = {};
+        const categories: Record<string, IBrickRoute> = {};
 
-        stories.forEach((story: ILandObject) => {
+        stories.forEach((story: IBrickObject) => {
             const category = story.category;
             const entry = (categories[category] ||= { components: [] });
             entry.components.push({

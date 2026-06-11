@@ -152,7 +152,7 @@ function handleGlobalActionChange(event: Event): void {
     max-width: 64rem;
     max-height: 80vh;
     border-radius: var(--border-radius-md);
-    background: var(--land-base-0);
+    background: var(--bricks-base-0);
     box-shadow: var(--shadow-xl);
     flex-direction: column;
 }
@@ -163,7 +163,7 @@ function handleGlobalActionChange(event: Event): void {
     justify-content: space-between;
     flex-shrink: 0;
     padding: 1.6rem 2rem;
-    border-bottom: 1px solid var(--land-base-200);
+    border-bottom: 1px solid var(--bricks-base-200);
 }
 
 .title {
@@ -173,7 +173,7 @@ function handleGlobalActionChange(event: Event): void {
     margin: 0;
     font-size: 1.6rem;
     font-weight: 600;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
 }
 
 .count {
@@ -184,10 +184,10 @@ function handleGlobalActionChange(event: Event): void {
     height: 2.4rem;
     padding: 0 0.6rem;
     border-radius: 1.2rem;
-    background: var(--land-primary-100);
+    background: var(--bricks-primary-100);
     font-size: 1.2rem;
     font-weight: 600;
-    color: var(--land-primary-600);
+    color: var(--bricks-primary-600);
 }
 
 .globalAction {
@@ -195,8 +195,8 @@ function handleGlobalActionChange(event: Event): void {
     align-items: center;
     flex-shrink: 0;
     padding: 1.2rem 2rem;
-    border-bottom: 1px solid var(--land-base-200);
-    background: var(--land-base-50);
+    border-bottom: 1px solid var(--bricks-base-200);
+    background: var(--bricks-base-50);
     gap: 1.2rem;
 }
 
@@ -204,21 +204,21 @@ function handleGlobalActionChange(event: Event): void {
     white-space: nowrap;
     font-size: 1.4rem;
     font-weight: 500;
-    color: var(--land-base-700);
+    color: var(--bricks-base-700);
 }
 
 .globalSelect {
     /* Фиксируем светлую тему */
-    --land-base-0: #fff;
-    --land-base-200: #e5e7eb;
-    --land-base-900: #111827;
+    --bricks-base-0: #fff;
+    --bricks-base-200: #e5e7eb;
+    --bricks-base-900: #111827;
 
     padding: 0.6rem 1rem;
     border-radius: var(--border-radius-sm);
-    border: 1px solid var(--land-base-200);
-    background: var(--land-base-0);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-base-0);
     font-size: 1.4rem;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
     cursor: pointer;
 }
 
@@ -237,7 +237,7 @@ function handleGlobalActionChange(event: Event): void {
     justify-content: space-between;
     flex-shrink: 0;
     padding: 1.2rem 2rem;
-    border-top: 1px solid var(--land-base-200);
+    border-top: 1px solid var(--bricks-base-200);
 }
 
 .actionsRight {

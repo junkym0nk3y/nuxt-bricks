@@ -4,7 +4,7 @@
 
 /* CSS Variables */
 :root {
-    --land-font-family-base: 'Onest', 'Roboto', sans-serif;
+    --bricks-font-family-base: 'Onest', 'Roboto', sans-serif;
     --font-size-sm: 1.2rem;
     --font-size-base: 1.4rem;
     --default-transition: 300ms ease;
@@ -14,32 +14,32 @@
     --border-radius-md: 1.2rem;
 
     /* === Base gray colors (light to dark) === */
-    --land-base-0: #fff;
-    --land-base-50: #f9fafb;
-    --land-base-100: #f3f4f6;
-    --land-base-200: #e5e7eb;
-    --land-base-300: #d1d5db;
-    --land-base-400: #b9c6cc;
-    --land-base-500: #6b7280;
-    --land-base-600: #4b5563;
-    --land-base-800: #1f2937;
-    --land-base-900: #111827;
+    --bricks-base-0: #fff;
+    --bricks-base-50: #f9fafb;
+    --bricks-base-100: #f3f4f6;
+    --bricks-base-200: #e5e7eb;
+    --bricks-base-300: #d1d5db;
+    --bricks-base-400: #b9c6cc;
+    --bricks-base-500: #6b7280;
+    --bricks-base-600: #4b5563;
+    --bricks-base-800: #1f2937;
+    --bricks-base-900: #111827;
 
     /* === Primary blue colors (light to dark) === */
-    --land-primary-50: #eff6ff;
-    --land-primary-100: #dbeafe;
-    --land-primary-200: #bfdbfe;
-    --land-primary-300: #93c5fd;
-    --land-primary-500: #3b82f6;
-    --land-primary: #4d79e9;
+    --bricks-primary-50: #eff6ff;
+    --bricks-primary-100: #dbeafe;
+    --bricks-primary-200: #bfdbfe;
+    --bricks-primary-300: #93c5fd;
+    --bricks-primary-500: #3b82f6;
+    --bricks-primary: #4d79e9;
 
     /* === Danger/Error red colors (light to dark) === */
-    --land-danger-500: #ef4444;
-    --land-danger-600: #dc2626;
+    --bricks-danger-500: #ef4444;
+    --bricks-danger-600: #dc2626;
 
     /* === Other accent colors === */
-    --land-green: #10b981;
-    --land-yellow: #f59e0b;
+    --bricks-green: #10b981;
+    --bricks-yellow: #f59e0b;
 
     /* === RGB Channels === */
     --rgb-base-900: 17 24 39; /* from #111827 */
@@ -67,30 +67,30 @@
 }
 
 /* === Dark theme overrides === */
-.land-dark {
-    --land-base-0: #1a1b1e;
-    --land-base-50: #212226;
-    --land-base-100: #2b2c31;
-    --land-base-200: #353639;
-    --land-base-300: #3e3f44;
-    --land-base-400: #32343b;
-    --land-base-500: #8b8d94;
-    --land-base-600: #a8aab0;
-    --land-base-800: #d0d1d4;
-    --land-base-900: #e4e5e8;
+.bricks-dark {
+    --bricks-base-0: #1a1b1e;
+    --bricks-base-50: #212226;
+    --bricks-base-100: #2b2c31;
+    --bricks-base-200: #353639;
+    --bricks-base-300: #3e3f44;
+    --bricks-base-400: #32343b;
+    --bricks-base-500: #8b8d94;
+    --bricks-base-600: #a8aab0;
+    --bricks-base-800: #d0d1d4;
+    --bricks-base-900: #e4e5e8;
 
-    --land-primary-50: #1e2233;
-    --land-primary-100: #1e2d4d;
-    --land-primary-200: #2a3d66;
-    --land-primary-300: #4a6eb3;
-    --land-primary-500: #5b9bf5;
-    --land-primary: #6b8ef0;
+    --bricks-primary-50: #1e2233;
+    --bricks-primary-100: #1e2d4d;
+    --bricks-primary-200: #2a3d66;
+    --bricks-primary-300: #4a6eb3;
+    --bricks-primary-500: #5b9bf5;
+    --bricks-primary: #6b8ef0;
 
-    --land-danger-500: #f87171;
-    --land-danger-600: #ef4444;
+    --bricks-danger-500: #f87171;
+    --bricks-danger-600: #ef4444;
 
-    --land-green: #34d399;
-    --land-yellow: #fbbf24;
+    --bricks-green: #34d399;
+    --bricks-yellow: #fbbf24;
 
     --rgb-base-900: 228 229 232;
     --rgb-base-0: 26 27 30;
@@ -106,28 +106,28 @@
 
     /* === Canvas reset: компоненты на канвасе остаются в светлой теме === */
     .landing-canvas {
-        --land-base-0: #fff;
-        --land-base-50: #f9fafb;
-        --land-base-100: #f3f4f6;
-        --land-base-200: #e5e7eb;
-        --land-base-300: #d1d5db;
-        --land-base-500: #6b7280;
-        --land-base-600: #4b5563;
-        --land-base-800: #1f2937;
-        --land-base-900: #111827;
+        --bricks-base-0: #fff;
+        --bricks-base-50: #f9fafb;
+        --bricks-base-100: #f3f4f6;
+        --bricks-base-200: #e5e7eb;
+        --bricks-base-300: #d1d5db;
+        --bricks-base-500: #6b7280;
+        --bricks-base-600: #4b5563;
+        --bricks-base-800: #1f2937;
+        --bricks-base-900: #111827;
 
-        --land-primary-50: #eff6ff;
-        --land-primary-100: #dbeafe;
-        --land-primary-200: #bfdbfe;
-        --land-primary-300: #93c5fd;
-        --land-primary-500: #3b82f6;
-        --land-primary: #4d79e9;
+        --bricks-primary-50: #eff6ff;
+        --bricks-primary-100: #dbeafe;
+        --bricks-primary-200: #bfdbfe;
+        --bricks-primary-300: #93c5fd;
+        --bricks-primary-500: #3b82f6;
+        --bricks-primary: #4d79e9;
 
-        --land-danger-500: #ef4444;
-        --land-danger-600: #dc2626;
+        --bricks-danger-500: #ef4444;
+        --bricks-danger-600: #dc2626;
 
-        --land-green: #10b981;
-        --land-yellow: #f59e0b;
+        --bricks-green: #10b981;
+        --bricks-yellow: #f59e0b;
 
         --rgb-base-900: 17 24 39;
         --rgb-base-0: 255 255 255;

@@ -293,7 +293,7 @@ watch(
             position: absolute;
             inset: 0;
             z-index: 15;
-            background: var(--land-base-0, #fff);
+            background: var(--bricks-base-0, #fff);
             opacity: 0.7;
             pointer-events: none;
         }
@@ -315,10 +315,10 @@ watch(
         height: auto;
         padding: 0.4rem 0.8rem;
         border-radius: var(--border-radius-xs);
-        background: var(--land-base-900);
+        background: var(--bricks-base-900);
         font-size: 1.6rem;
         line-height: 1;
-        color: var(--land-base-0);
+        color: var(--bricks-base-0);
         opacity: 0.7;
         pointer-events: none;
     }
@@ -334,6 +334,6 @@ watch(
     background: rgb(var(--rgb-gray) / 10%);
     text-align: center;
     font-size: 1.4rem;
-    color: var(--land-base-600);
+    color: var(--bricks-base-600);
 }
 </style>

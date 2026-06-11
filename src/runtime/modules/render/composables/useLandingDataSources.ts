@@ -1,9 +1,9 @@
 // #region Imports
 // Types
 import type {
-    ILandDataSource,
-    ILandDataSourceParam,
-    ILandDataSourceContext,
+    IBrickDataSource,
+    IBrickDataSourceParam,
+    IBrickDataSourceContext,
 } from '../types/landing-data-source';
 import type { LandingComponent } from '../../common/types/landing';
 import type { TPublishFormState } from '../../common/types/landing-api';
@@ -55,11 +55,11 @@ export function useLandingDataSources() {
      * @returns Разрешённое значение параметра или undefined.
      */
     function resolveParamValue(
-        param: ILandDataSourceParam,
+        param: IBrickDataSourceParam,
         component: LandingComponent,
         pageSettings: TPublishFormState | null
     ): unknown {
-        const context: ILandDataSourceContext = {
+        const context: IBrickDataSourceContext = {
             pageSettings,
             componentProps: component.props ?? {},
         };
@@ -130,7 +130,7 @@ export function useLandingDataSources() {
      * @returns Результат запроса после применения map функции или null при ошибке.
      */
     async function executeDataSource(
-        source: ILandDataSource,
+        source: IBrickDataSource,
         component: LandingComponent,
         pageSettings: TPublishFormState | null
     ): Promise<Record<string, unknown> | null> {
@@ -186,7 +186,7 @@ export function useLandingDataSources() {
                 hasData: Boolean(response),
             });
 
-            const context: ILandDataSourceContext = {
+            const context: IBrickDataSourceContext = {
                 pageSettings,
                 componentProps: component.props ?? {},
             };

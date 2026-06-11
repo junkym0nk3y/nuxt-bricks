@@ -233,9 +233,9 @@ const SYSTEM_ICONS: Record<string, any> = {
 };
 
 export default defineNuxtPlugin((nuxtApp) => {
-    // Регистрируем глобальный компонент BricksLandIcon
+    // Регистрируем глобальный компонент BricksIcon
     nuxtApp.vueApp.component(
-        'BricksLandIcon',
+        'BricksIcon',
         defineComponent({
             props: {
                 icon: {
@@ -252,7 +252,7 @@ export default defineNuxtPlugin((nuxtApp) => {
                     if (typeof props.icon === 'string') {
                         iconComponent = SYSTEM_ICONS[props.icon];
                         if (!iconComponent) {
-                            console.warn(`[BricksLandIcon] Icon not found: ${props.icon}`);
+                            console.warn(`[BricksIcon] Icon not found: ${props.icon}`);
                             return null;
                         }
                     } else {

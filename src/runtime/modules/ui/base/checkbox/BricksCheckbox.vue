@@ -118,7 +118,7 @@ function onKeydown(event: KeyboardEvent): void {
 
     .label {
         font-weight: 500;
-        color: var(--land-base-900);
+        color: var(--bricks-base-900);
         transition: color var(--default-transition);
     }
 
@@ -126,9 +126,9 @@ function onKeydown(event: KeyboardEvent): void {
         position: relative;
         flex-shrink: 0;
         border-radius: var(--border-radius-xs);
-        border: 1px solid var(--land-base-300);
+        border: 1px solid var(--bricks-base-300);
         background: transparent;
-        color: var(--land-base-50);
+        color: var(--bricks-base-50);
         transition: all var(--default-transition);
 
         &:after {
@@ -203,8 +203,8 @@ function onKeydown(event: KeyboardEvent): void {
 
     &._active {
         .input {
-            border-color: var(--land-primary);
-            background-color: var(--land-primary);
+            border-color: var(--bricks-primary);
+            background-color: var(--bricks-primary);
 
             &:after {
                 opacity: 1;
@@ -215,18 +215,18 @@ function onKeydown(event: KeyboardEvent): void {
 
     &:focus-within {
         .input {
-            border-color: var(--land-primary);
+            border-color: var(--bricks-primary);
             outline: none;
         }
     }
 
     &:hover:not(._disabled) {
         .input {
-            border-color: var(--land-primary);
+            border-color: var(--bricks-primary);
         }
 
         .label {
-            color: var(--land-primary);
+            color: var(--bricks-primary);
         }
     }
 }

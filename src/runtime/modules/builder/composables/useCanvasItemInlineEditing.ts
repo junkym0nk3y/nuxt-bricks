@@ -1,7 +1,7 @@
 // #region Imports
 // Types
 import type { ICanvasItemProps } from '../components/canvas/types';
-import type { ILandValues } from '../../common/types/index';
+import type { IBrickValues } from '../../common/types/index';
 
 // Vue
 import { computed, provide, watch, type ComputedRef } from 'vue';
@@ -80,7 +80,7 @@ export function useCanvasItemInlineEditing(
             const componentProps = (props.component.props as Record<string, unknown>) || {};
 
             return findAllInlineEditableStoryProps(
-                module.story.values as Record<string, ILandValues>,
+                module.story.values as Record<string, IBrickValues>,
                 componentProps
             );
         } catch {

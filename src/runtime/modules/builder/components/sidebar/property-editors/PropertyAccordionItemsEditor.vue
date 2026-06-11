@@ -144,7 +144,7 @@ function handleMoveDown(index: number): void {
         <div :class="$style.header">
             <span :class="$style.label">{{ props.label }}</span>
             <BricksButton size="sm" variant="primary" @click="handleAddItem">
-                <BricksLandIcon icon="ph:plus" />
+                <BricksIcon icon="ph:plus" />
                 Добавить
             </BricksButton>
         </div>
@@ -180,7 +180,7 @@ function handleMoveDown(index: number): void {
                                 :disabled="index === 0"
                                 @click="handleMoveUp(index)"
                             >
-                                <BricksLandIcon icon="md:arrow-up" />
+                                <BricksIcon icon="md:arrow-up" />
                             </BricksButton>
                             <BricksButton
                                 size="sm"
@@ -188,10 +188,10 @@ function handleMoveDown(index: number): void {
                                 :disabled="index === items.length - 1"
                                 @click="handleMoveDown(index)"
                             >
-                                <BricksLandIcon icon="md:arrow-down" />
+                                <BricksIcon icon="md:arrow-down" />
                             </BricksButton>
                             <BricksButton size="sm" variant="ghost" @click="handleRemoveItem(index)">
-                                <BricksLandIcon icon="md:delete-outline" />
+                                <BricksIcon icon="md:delete-outline" />
                             </BricksButton>
                         </div>
                     </div>
@@ -201,7 +201,7 @@ function handleMoveDown(index: number): void {
         </div>
 
         <button v-else type="button" :class="$style.empty" @click="handleAddItem">
-            <BricksLandIcon :class="$style.emptyIcon" icon="ph:list-plus" />
+            <BricksIcon :class="$style.emptyIcon" icon="ph:list-plus" />
             <span>Нажмите, чтобы добавить элемент</span>
         </button>
     </div>
@@ -224,7 +224,7 @@ function handleMoveDown(index: number): void {
 .label {
     font-size: 1.4rem;
     font-weight: 600;
-    color: var(--land-base-800);
+    color: var(--bricks-base-800);
 }
 
 .list {
@@ -237,8 +237,8 @@ function handleMoveDown(index: number): void {
     display: flex;
     padding: 1.2rem;
     border-radius: 0.8rem;
-    border: 1px solid var(--land-base-200);
-    background: var(--land-base-0);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-base-0);
     gap: 1rem;
 }
 
@@ -255,7 +255,7 @@ function handleMoveDown(index: number): void {
     left: 0;
     width: 100%;
     height: 1px;
-    background: var(--land-base-200);
+    background: var(--bricks-base-200);
 }
 
 .fieldGroup {
@@ -267,7 +267,7 @@ function handleMoveDown(index: number): void {
 .fieldLabel {
     font-size: 1.2rem;
     font-weight: 500;
-    color: var(--land-base-500);
+    color: var(--bricks-base-500);
     user-select: none;
 }
 
@@ -282,10 +282,10 @@ function handleMoveDown(index: number): void {
     justify-content: center;
     padding: 2.4rem;
     border-radius: 0.8rem;
-    border: 2px dashed var(--land-base-300);
-    background: var(--land-base-50);
+    border: 2px dashed var(--bricks-base-300);
+    background: var(--bricks-base-50);
     font-size: 1.4rem;
-    color: var(--land-base-500);
+    color: var(--bricks-base-500);
     transition:
         border-color 150ms ease,
         background 150ms ease,
@@ -295,9 +295,9 @@ function handleMoveDown(index: number): void {
     gap: 0.8rem;
 
     &:hover {
-        border-color: var(--land-primary-400);
-        background: var(--land-primary-50);
-        color: var(--land-primary-600);
+        border-color: var(--bricks-primary-400);
+        background: var(--bricks-primary-50);
+        color: var(--bricks-primary-600);
     }
 }
 

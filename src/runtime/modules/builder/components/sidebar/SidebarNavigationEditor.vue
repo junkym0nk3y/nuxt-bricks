@@ -116,7 +116,7 @@ function handleMoveDown(index: number): void {
                         title="Переместить вверх"
                         @click="handleMoveUp(index)"
                     >
-                        <BricksLandIcon icon="ph:caret-up" />
+                        <BricksIcon icon="ph:caret-up" />
                     </button>
                     <button
                         type="button"
@@ -125,7 +125,7 @@ function handleMoveDown(index: number): void {
                         title="Переместить вниз"
                         @click="handleMoveDown(index)"
                     >
-                        <BricksLandIcon icon="ph:caret-down" />
+                        <BricksIcon icon="ph:caret-down" />
                     </button>
                     <button
                         type="button"
@@ -133,14 +133,14 @@ function handleMoveDown(index: number): void {
                         title="Удалить"
                         @click="handleRemoveItem(item.id)"
                     >
-                        <BricksLandIcon icon="ph:trash" />
+                        <BricksIcon icon="ph:trash" />
                     </button>
                 </div>
             </div>
         </div>
 
         <BricksButton size="md" variant="secondary" @click="handleAddItem">
-            <BricksLandIcon icon="ph:plus" />
+            <BricksIcon icon="ph:plus" />
             Добавить пункт
         </BricksButton>
     </div>
@@ -159,7 +159,7 @@ function handleMoveDown(index: number): void {
     gap: 0.8rem;
     font-size: 1.4rem;
     font-weight: 500;
-    color: var(--land-base-600);
+    color: var(--bricks-base-600);
 }
 
 .count {
@@ -170,10 +170,10 @@ function handleMoveDown(index: number): void {
     height: 2rem;
     padding: 0 0.6rem;
     border-radius: 1rem;
-    background-color: var(--land-base-100);
+    background-color: var(--bricks-base-100);
     font-size: 1.2rem;
     font-weight: 600;
-    color: var(--land-base-500);
+    color: var(--bricks-base-500);
 }
 
 .list {
@@ -187,8 +187,8 @@ function handleMoveDown(index: number): void {
     gap: 0.8rem;
     padding: 1.2rem;
     border-radius: var(--border-radius-sm);
-    border: 1px solid var(--land-base-200);
-    background-color: var(--land-base-50);
+    border: 1px solid var(--bricks-base-200);
+    background-color: var(--bricks-base-50);
 }
 
 .itemInputs {
@@ -217,15 +217,15 @@ function handleMoveDown(index: number): void {
     border: none;
     background: transparent;
     font-size: 1.4rem;
-    color: var(--land-base-500);
+    color: var(--bricks-base-500);
     transition:
         background-color var(--default-transition),
         color var(--default-transition);
     cursor: pointer;
 
     &:hover:not(:disabled) {
-        background-color: var(--land-base-100);
-        color: var(--land-base-700);
+        background-color: var(--bricks-base-100);
+        color: var(--bricks-base-700);
     }
 
     &:disabled {
@@ -237,7 +237,7 @@ function handleMoveDown(index: number): void {
 .actionBtnDanger {
     &:hover:not(:disabled) {
         background-color: rgb(239 68 68 / 10%);
-        color: var(--land-danger-500);
+        color: var(--bricks-danger-500);
     }
 }
 </style>

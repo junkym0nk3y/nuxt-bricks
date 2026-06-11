@@ -80,13 +80,13 @@ function onOpenChange(open: boolean): void {
             @update:open="onOpenChange"
         >
             <div :class="$style.iconWrapper">
-                <BricksLandIcon
+                <BricksIcon
                     v-if="props.variant === 'success'"
                     :class="$style.icon"
                     icon="ph:check-circle"
                 />
 
-                <BricksLandIcon v-else :class="$style.icon" icon="ph:x-circle" />
+                <BricksIcon v-else :class="$style.icon" icon="ph:x-circle" />
             </div>
 
             <ToastTitle :class="$style.message">
@@ -94,7 +94,7 @@ function onOpenChange(open: boolean): void {
             </ToastTitle>
 
             <ToastClose :class="$style.closeButton" aria-label="Close">
-                <BricksLandIcon icon="gl:close" />
+                <BricksIcon icon="gl:close" />
             </ToastClose>
         </ToastRoot>
 
@@ -123,18 +123,18 @@ function onOpenChange(open: boolean): void {
     max-width: min(38rem, calc(100vw - 4.8rem));
     padding: 1.2rem 1.6rem;
     border-radius: var(--border-radius-sm);
-    background-color: var(--land-primary);
-    color: var(--land-base-0);
+    background-color: var(--bricks-primary);
+    color: var(--bricks-base-0);
     gap: 1.2rem;
     box-shadow: var(--shadow-md);
     user-select: none;
 
     &._success {
-        background-color: var(--land-primary);
+        background-color: var(--bricks-primary);
     }
 
     &._error {
-        background-color: var(--land-danger-500);
+        background-color: var(--bricks-danger-500);
     }
 }
 

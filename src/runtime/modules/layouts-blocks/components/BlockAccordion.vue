@@ -146,7 +146,7 @@ function handleUpdateValues(values: string | string[] | undefined): void {
     overflow: hidden;
     width: 100%;
     border-radius: var(--accordion-radius, 0.8rem);
-    border: 1px solid var(--land-base-200);
+    border: 1px solid var(--bricks-base-200);
 }
 
 /* Карточный режим (gap > 0) */
@@ -161,11 +161,11 @@ function handleUpdateValues(values: string | string[] | undefined): void {
     .item {
         overflow: hidden;
         border-radius: var(--accordion-radius, 0.8rem);
-        border: 1px solid var(--land-base-200);
-        border-bottom: 1px solid var(--land-base-200);
+        border: 1px solid var(--bricks-base-200);
+        border-bottom: 1px solid var(--bricks-base-200);
 
         &:last-child {
-            border-bottom: 1px solid var(--land-base-200);
+            border-bottom: 1px solid var(--bricks-base-200);
         }
     }
 }
@@ -198,7 +198,7 @@ function handleUpdateValues(values: string | string[] | undefined): void {
 }
 
 .item {
-    border-bottom: 1px solid var(--land-base-200);
+    border-bottom: 1px solid var(--bricks-base-200);
 
     &:last-child {
         border-bottom: none;
@@ -212,13 +212,13 @@ function handleUpdateValues(values: string | string[] | undefined): void {
     width: 100%;
     padding: 1.6rem 2.4rem;
     border: none;
-    background: var(--land-base-0);
+    background: var(--bricks-base-0);
     text-align: left;
     transition: background-color var(--accordion-duration, 250ms) ease;
     cursor: pointer;
 
     &:hover {
-        background: var(--land-base-50);
+        background: var(--bricks-base-50);
     }
 
     &[data-state='open'] .icon {
@@ -231,7 +231,7 @@ function handleUpdateValues(values: string | string[] | undefined): void {
     font-size: 1.6rem;
     font-weight: 500;
     line-height: 1.5;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
 }
 
 .icon {
@@ -242,13 +242,13 @@ function handleUpdateValues(values: string | string[] | undefined): void {
     width: 2rem;
     height: 2rem;
     margin-left: 1.6rem;
-    color: var(--land-base-500);
+    color: var(--bricks-base-500);
     transition: transform var(--accordion-duration, 250ms) ease;
 }
 
 .body {
     overflow: hidden;
-    background: var(--land-base-0);
+    background: var(--bricks-base-0);
 
     &[data-state='open'] {
         animation: accordion-slide-down var(--accordion-duration, 250ms) ease;
@@ -263,14 +263,14 @@ function handleUpdateValues(values: string | string[] | undefined): void {
     padding: 0 2.4rem 1.6rem;
     font-size: 1.4rem;
     line-height: 1.6;
-    color: var(--land-base-600);
+    color: var(--bricks-base-600);
 }
 
 .empty {
     padding: 2.4rem;
     text-align: center;
     font-size: 1.4rem;
-    color: var(--land-base-400);
+    color: var(--bricks-base-400);
 }
 
 @keyframes accordion-slide-down {

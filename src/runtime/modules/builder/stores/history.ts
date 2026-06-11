@@ -11,7 +11,7 @@ interface IHistoryState {
  * Управляет стэком истории изменений канваса: хранит сериализованные схемы,
  * предоставляет undo/redo и очистку с ограничением на максимальный размер.
  */
-export const useHistoryStore = defineStore('landingHistory', {
+export const useHistoryStore = defineStore('bricksHistory', {
     state: (): IHistoryState => ({
         history: [],
         historyIndex: -1,

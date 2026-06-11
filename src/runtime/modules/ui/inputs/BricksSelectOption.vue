@@ -1,8 +1,8 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { ILandDemoValues } from '../../common/types/index';
-import type { ILandUiCommonProp } from './types.d.ts';
+import type { IBrickDemoValues } from '../../common/types/index';
+import type { IBrickUiCommonProp } from './types.d.ts';
 
 // Vue
 import { computed, useCssModule } from 'vue';
@@ -11,8 +11,8 @@ import { computed, useCssModule } from 'vue';
 // #region Props
 const props = withDefaults(
     defineProps<{
-        spec: ILandUiCommonProp;
-        value: ILandDemoValues;
+        spec: IBrickUiCommonProp;
+        value: IBrickDemoValues;
         disabled?: boolean;
         isHighlighted?: boolean;
     }>(),
@@ -25,7 +25,7 @@ const props = withDefaults(
 
 // #region Emits
 const emit = defineEmits<{
-    click: [value: ILandUiCommonProp];
+    click: [value: IBrickUiCommonProp];
 }>();
 // #endregion
 
@@ -78,13 +78,13 @@ function onOptionClick(): void {
 
     &._selected {
         border-radius: var(--border-radius-sm);
-        background-color: var(--land-base-300);
+        background-color: var(--bricks-base-300);
     }
 
     &._highlighted,
     &._selected {
         border-radius: var(--border-radius-sm);
-        background-color: var(--land-base-300);
+        background-color: var(--bricks-base-300);
     }
 
     &._disabled {

@@ -36,7 +36,7 @@ function normalizeMediaItem(rawItem: IMediaItem): IMediaItem {
 }
 // #endregion
 
-export const useMediaStore = defineStore('media', {
+export const useMediaStore = defineStore('bricksMedia', {
     state: () => ({
         items: [] as IMediaItem[],
         isUploading: false,

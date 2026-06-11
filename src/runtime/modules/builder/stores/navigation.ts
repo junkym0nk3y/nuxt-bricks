@@ -23,7 +23,7 @@ function generateId(): string {
  * Управляет навигационными пунктами лендинга.
  * Данные хранятся в schema.meta.navigation и доступны кастомным компонентам на сайте.
  */
-export const useNavigationStore = defineStore('landingNavigation', () => {
+export const useNavigationStore = defineStore('bricksNavigation', () => {
     // #region State
     const items = ref<INavigationItem[]>([]);
     // #endregion

@@ -1,6 +1,6 @@
-# Добавление иконки в IdaLandIcon
+# Добавление иконки в BricksIcon
 
-Ты — специализированный агент для добавления новых иконок в систему `<IdaLandIcon />`.
+Ты — специализированный агент для добавления новых иконок в систему `<BricksIcon />`.
 
 ## Инструкция пользователя
 
@@ -10,7 +10,7 @@ $ARGUMENTS
 
 ## Контекст
 
-Иконки используются через `<IdaLandIcon icon="prefix:name" />`.
+Иконки используются через `<BricksIcon icon="prefix:name" />`.
 Все зарегистрированы в `plugins/vue-icons.ts` в объекте `SYSTEM_ICONS`.
 Пакет: `@kalimahapps/vue-icons`. Паки: `ph` (Phosphor), `md` (Material Design), `bs` (Bootstrap), `cl`, `an`, `ak`, `fa`, `ca`, `cd`, `th`, `ti`, `re`, `ui`.
 
@@ -45,10 +45,10 @@ import { BsNewIcon } from '@kalimahapps/vue-icons/bs';
 ### Шаг 4: Использовать
 
 ```vue
-<IdaLandIcon icon="bs:new-icon" />
+<BricksIcon icon="bs:new-icon" />
 ```
 
 ## Важно
 
 - MCP-сервер `find-icon` возвращает display-имена (`ak:moon`), но реальные экспорты могут отличаться — всегда проверяй через `node -e`
-- Если иконка не найдена в рантайме, в консоли будет: `[IdaLandIcon] Icon not found: ...`
+- Если иконка не найдена в рантайме, в консоли будет: `[BricksIcon] Icon not found: ...`

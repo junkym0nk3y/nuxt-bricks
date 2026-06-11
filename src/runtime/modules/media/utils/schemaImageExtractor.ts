@@ -14,7 +14,7 @@ import type { IGalleryItem, IInlineContentSegment } from '../../layouts-blocks/t
 // #endregion
 
 // #region Constants
-const PLACEHOLDER_IMAGE_URL = '/images/land-empty.webp';
+const PLACEHOLDER_IMAGE_URL = '/images/brick-empty.webp';
 
 const IMAGE_EXTENSIONS_RE = /\.(webp|png|jpg|jpeg|gif|svg|avif)(\?|$)/i;
 const CDN_PATTERNS_RE = /storage\.yandexcloud\.net|amazonaws\.com|cdn\./i;

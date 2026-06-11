@@ -103,7 +103,7 @@ function handleConfirm(): void {
     width: 100%;
     max-width: 52rem;
     border-radius: var(--border-radius-md);
-    background: var(--land-base-0);
+    background: var(--bricks-base-0);
     box-shadow: var(--shadow-xl);
     flex-direction: column;
 }
@@ -113,14 +113,14 @@ function handleConfirm(): void {
     align-items: center;
     justify-content: space-between;
     padding: 1.6rem 2rem;
-    border-bottom: 1px solid var(--land-base-200);
+    border-bottom: 1px solid var(--bricks-base-200);
 }
 
 .title {
     margin: 0;
     font-size: 1.6rem;
     font-weight: 600;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
 }
 
 .content {
@@ -131,7 +131,7 @@ function handleConfirm(): void {
     margin: 0;
     font-size: 1.4rem;
     line-height: 1.5;
-    color: var(--land-base-700);
+    color: var(--bricks-base-700);
 }
 
 .actions {
@@ -139,6 +139,6 @@ function handleConfirm(): void {
     justify-content: flex-end;
     gap: 0.8rem;
     padding: 1.6rem 2rem;
-    border-top: 1px solid var(--land-base-200);
+    border-top: 1px solid var(--bricks-base-200);
 }
 </style>

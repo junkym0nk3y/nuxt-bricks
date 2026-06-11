@@ -1,5 +1,5 @@
 import type { PropertyDefinition, PropertyType } from '../../common/types/landing';
-import type { ILandValues } from '../../common/types/index';
+import type { IBrickValues } from '../../common/types/index';
 import { getModalOptions } from './useModals';
 
 /**
@@ -10,7 +10,7 @@ export function useComponentProperties() {
      * Определяет тип свойства на основе значения из story.
      */
     // eslint-disable-next-line complexity
-    const inferPropertyType = (value: ILandValues): PropertyType => {
+    const inferPropertyType = (value: IBrickValues): PropertyType => {
         if (value.type === 'switch') {
             return 'switch';
         }
@@ -86,7 +86,7 @@ export function useComponentProperties() {
      * Конвертирует значения story в определения свойств.
      */
     const storyValuesToProperties = (
-        storyValues: Record<string, ILandValues>
+        storyValues: Record<string, IBrickValues>
     ): PropertyDefinition[] => {
         const properties: PropertyDefinition[] = [];
 

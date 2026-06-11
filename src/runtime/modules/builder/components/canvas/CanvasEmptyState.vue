@@ -15,7 +15,7 @@ const emptyState: ICanvasEmptyStateData = {
 
 <template>
     <div :class="$style.CanvasEmptyState">
-        <BricksLandIcon :class="$style.emptyIcon" :icon="emptyState.icon" />
+        <BricksIcon :class="$style.emptyIcon" :icon="emptyState.icon" />
         <h3 :class="$style.emptyTitle">
             {{ emptyState.title }}
         </h3>
@@ -34,7 +34,7 @@ const emptyState: ICanvasEmptyStateData = {
     align-items: center;
     justify-content: center;
     text-align: center;
-    color: var(--land-base-300);
+    color: var(--bricks-base-300);
     transform: translate(-50%, -50%);
     flex-direction: column;
     pointer-events: none;
@@ -44,14 +44,14 @@ const emptyState: ICanvasEmptyStateData = {
     display: block;
     margin-bottom: 1.6rem;
     font-size: 8rem;
-    color: var(--land-base-300);
+    color: var(--bricks-base-300);
 }
 
 .emptyTitle {
     margin: 0 0 0.8rem 0;
     font-size: 2rem;
     font-weight: 600;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
 }
 
 .emptyText {

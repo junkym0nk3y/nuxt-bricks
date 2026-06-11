@@ -168,8 +168,8 @@ defineExpose({
     left: 7.2rem;
     z-index: 50;
     display: flex;
-    border-right: 1px solid var(--land-base-300);
-    background-color: var(--land-base-0);
+    border-right: 1px solid var(--bricks-base-300);
+    background-color: var(--bricks-base-0);
     flex-direction: column;
     box-shadow: var(--shadow-md);
 }

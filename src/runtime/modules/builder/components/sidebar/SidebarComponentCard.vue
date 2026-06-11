@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { ISidebarComponentCardProps, IDragComposable } from './types';
-import type { ILandExportModule } from '../../../common/types/index';
+import type { IBrickExportModule } from '../../../common/types/index';
 
 // Vue
 import {
@@ -56,7 +56,7 @@ if (importModule) {
     ComponentPreview.value = defineAsyncComponent<Component>({
         loader: async () => {
             const mod = await importModule();
-            const exported = (mod as ILandExportModule).default;
+            const exported = (mod as IBrickExportModule).default;
             if (!exported) {
                 throw new Error(`Missing default export for component: ${props.component.name}`);
             }
@@ -292,12 +292,12 @@ function handleDragStart(event: DragEvent): void {
                                 </div>
                             </div>
                         </div>
-                        <BricksLandIcon v-else :class="$style.icon" icon="ui:component" />
+                        <BricksIcon v-else :class="$style.icon" icon="ui:component" />
                     </div>
 
                     <div :class="$style.info">
                         <h4 :class="$style.name">{{ props.component.name }}</h4>
-                        <BricksLandIcon
+                        <BricksIcon
                             v-if="isFavorite"
                             :class="$style.favoriteIndicator"
                             icon="ph:star-fill"
@@ -345,7 +345,7 @@ function handleDragStart(event: DragEvent): void {
                         </div>
                     </div>
                 </div>
-                <BricksLandIcon v-else :class="$style.icon" icon="ui:component" />
+                <BricksIcon v-else :class="$style.icon" icon="ui:component" />
             </div>
 
             <div :class="$style.info">
@@ -361,14 +361,14 @@ function handleDragStart(event: DragEvent): void {
     overflow: hidden;
     width: 100%;
     border-radius: var(--border-radius-sm);
-    border: 1px solid var(--land-base-300);
+    border: 1px solid var(--bricks-base-300);
     background-color: transparent;
     transition: all 150ms ease;
     cursor: grab;
     user-select: none;
 
     &:hover {
-        border-color: var(--land-base-300);
+        border-color: var(--bricks-base-300);
         box-shadow: var(--shadow-md);
         transform: translateY(-0.2rem);
     }
@@ -386,8 +386,8 @@ function handleDragStart(event: DragEvent): void {
 
 .thumbnail {
     /* Фиксируем светлую тему для превью компонентов */
-    --land-base-0: #fff;
-    --land-base-300: #d1d5db;
+    --bricks-base-0: #fff;
+    --bricks-base-300: #d1d5db;
 
     /* Reset playground variables (VTitle и другие playground-компоненты) */
     --body-color: #1b1d24;
@@ -406,8 +406,8 @@ function handleDragStart(event: DragEvent): void {
     overflow: hidden;
     width: 100%;
     height: 18rem;
-    border-bottom: 1px solid var(--land-base-300);
-    background-color: var(--land-base-0);
+    border-bottom: 1px solid var(--bricks-base-300);
+    background-color: var(--bricks-base-0);
     color: var(--body-color);
 }
 
@@ -454,7 +454,7 @@ function handleDragStart(event: DragEvent): void {
 
 .icon {
     font-size: 4.8rem;
-    color: var(--land-base-300);
+    color: var(--bricks-base-300);
 }
 
 .info {
@@ -471,7 +471,7 @@ function handleDragStart(event: DragEvent): void {
     white-space: nowrap;
     font-size: 1.4rem;
     font-weight: 500;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
 }
 
 .favoriteIndicator {

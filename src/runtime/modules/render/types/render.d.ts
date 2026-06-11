@@ -1,9 +1,9 @@
 import type { Ref, VNodeChild } from 'vue';
 import type { LandingComponent } from '../../common/types/landing';
-import type { ILandExportModule } from '../../common/types/index';
+import type { IBrickExportModule } from '../../common/types/index';
 
 export interface IRendererStoryResolverOptions {
-    findImportModule: (storyPath: string) => (() => Promise<ILandExportModule>) | undefined;
+    findImportModule: (storyPath: string) => (() => Promise<IBrickExportModule>) | undefined;
 }
 
 export interface IRendererProps {

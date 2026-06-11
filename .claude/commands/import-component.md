@@ -8,8 +8,8 @@
 
 1. Находишь исходный компонент
 2. Анализируешь его props, emits, slots
-3. Создаёшь wrapper `.vue` и `.idaland.ts` файлы в `.playground/components/landings/`
-4. Регенерируешь `ida-lands.json`
+3. Создаёшь wrapper `.vue` и `.brick.ts` файлы в `playground/components/`
+4. Регенерируешь `bricks.json`
 5. Проверяешь типы
 
 ## Инструкция пользователя
@@ -117,7 +117,7 @@ const dataObject = computed<IOriginalInterface>(() => ({
 - `props.propertyName` в template — всегда через `props.`
 - `withDefaults` — обязательно
 - CSS Modules (`<style module lang="scss">`) — если нужны стили
-- rem единицы (кратные 0.2), `var(--land-*)` переменные
+- rem единицы (кратные 0.2), `var(--bricks-*)` переменные
 - Без `px` (кроме `1px` border), без `!important`
 - **`data-tiptap-content`** — если элемент рендерит проп с `type: 'textarea'` через `v-html`, **обязательно** добавить атрибут `data-tiptap-content`. Без него `ul`, `ol`, `p`, `blockquote` внутри не получат стили:
     ```html
@@ -128,9 +128,9 @@ const dataObject = computed<IOriginalInterface>(() => ({
     ```
     Добавлять также на дочерние компоненты, которые рендерят pass-through textarea контент. **НЕ** добавлять на `v-html` с простым текстом (заголовки, лейблы) и на `ul`/`ol` в собственной вёрстке компонента.
 
-### Шаг 4: Создать `.idaland.ts` story файл
+### Шаг 4: Создать `.brick.ts` story файл
 
-#### Шаблон `.idaland.ts`:
+#### Шаблон `.brick.ts`:
 
 ```typescript
 import { defineComponent, h } from 'vue';
@@ -239,7 +239,7 @@ setup(_, { attrs }) {
 **Выбор паттерна:**
 
 - Если wrapper `.vue` принимает все props напрямую → Паттерн A (wrapper сам обработает)
-- Если `.idaland.ts` импортирует wrapper, и wrapper трансформирует → Паттерн A
+- Если `.brick.ts` импортирует wrapper, и wrapper трансформирует → Паттерн A
 - Если нет wrapper, и нужна демо с дефолтами → Паттерн B
 - Если компонент с множеством pass-through props → Паттерн C
 
@@ -261,10 +261,10 @@ export interface IMyItem {
 }
 ```
 
-### Шаг 6: Регенерировать ida-lands.json
+### Шаг 6: Регенерировать bricks.json
 
 ```bash
-npm run landing:gen
+npm run bricks:gen
 ```
 
 ### Шаг 7: Проверить типы

@@ -87,7 +87,7 @@ function onClick(event: MouseEvent): void {
     background-color: transparent;
     font-weight: 500;
     line-height: 1.2;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
     transition: var(--default-transition);
     cursor: pointer;
     user-select: none;
@@ -126,110 +126,110 @@ function onClick(event: MouseEvent): void {
     }
 
     &._primary {
-        border-color: var(--land-primary);
-        background-color: var(--land-primary);
-        color: var(--land-base-0);
+        border-color: var(--bricks-primary);
+        background-color: var(--bricks-primary);
+        color: var(--bricks-base-0);
 
         &:not(._disabled):hover {
-            border-color: var(--land-primary);
-            background-color: var(--land-primary);
+            border-color: var(--bricks-primary);
+            background-color: var(--bricks-primary);
         }
     }
 
     &._secondary {
-        border-color: var(--land-base-400);
-        background-color: var(--land-base-0);
-        color: var(--land-base-900);
+        border-color: var(--bricks-base-400);
+        background-color: var(--bricks-base-0);
+        color: var(--bricks-base-900);
 
         &:not(._disabled):hover {
-            border-color: var(--land-primary);
+            border-color: var(--bricks-primary);
         }
 
         &._active {
-            border-color: var(--land-primary);
-            color: var(--land-primary);
+            border-color: var(--bricks-primary);
+            color: var(--bricks-primary);
         }
     }
 
     &._ghost {
         border-color: transparent;
         background-color: transparent;
-        color: var(--land-base-600);
+        color: var(--bricks-base-600);
 
         &:not(._disabled):hover {
-            border-color: var(--land-base-300);
-            background-color: var(--land-base-300);
+            border-color: var(--bricks-base-300);
+            background-color: var(--bricks-base-300);
         }
     }
 
     &._danger {
-        border-color: var(--land-danger-600);
-        background-color: var(--land-danger-500);
-        color: var(--land-base-0);
+        border-color: var(--bricks-danger-600);
+        background-color: var(--bricks-danger-500);
+        color: var(--bricks-base-0);
 
         &:not(._disabled):hover {
-            border-color: var(--land-danger-600);
-            background-color: var(--land-danger-600);
+            border-color: var(--bricks-danger-600);
+            background-color: var(--bricks-danger-600);
         }
     }
 
     &._outline {
-        border-color: var(--land-base-300);
-        background-color: var(--land-base-0);
-        color: var(--land-base-600);
+        border-color: var(--bricks-base-300);
+        background-color: var(--bricks-base-0);
+        color: var(--bricks-base-600);
 
         &:not(._disabled):hover {
-            border-color: var(--land-base-300);
-            background-color: var(--land-base-300);
+            border-color: var(--bricks-base-300);
+            background-color: var(--bricks-base-300);
         }
     }
 
     &._active {
-        border-color: var(--land-primary);
-        color: var(--land-primary);
+        border-color: var(--bricks-primary);
+        color: var(--bricks-primary);
     }
 
     &._red {
-        border-color: var(--land-danger-600);
-        background-color: var(--land-danger-600);
-        color: var(--land-base-0);
+        border-color: var(--bricks-danger-600);
+        background-color: var(--bricks-danger-600);
+        color: var(--bricks-base-0);
 
         &:not(._disabled):hover {
-            border-color: var(--land-danger-600);
-            background-color: var(--land-danger-600);
+            border-color: var(--bricks-danger-600);
+            background-color: var(--bricks-danger-600);
         }
     }
 
     &._green {
-        border-color: var(--land-green);
-        background-color: var(--land-green);
-        color: var(--land-base-0);
+        border-color: var(--bricks-green);
+        background-color: var(--bricks-green);
+        color: var(--bricks-base-0);
 
         &:not(._disabled):hover {
-            border-color: var(--land-green);
-            background-color: var(--land-green);
+            border-color: var(--bricks-green);
+            background-color: var(--bricks-green);
         }
     }
 
     &._yellow {
-        border-color: var(--land-yellow);
-        background-color: var(--land-yellow);
-        color: var(--land-base-0);
+        border-color: var(--bricks-yellow);
+        background-color: var(--bricks-yellow);
+        color: var(--bricks-base-0);
 
         &:not(._disabled):hover {
-            border-color: var(--land-yellow);
-            background-color: var(--land-yellow);
+            border-color: var(--bricks-yellow);
+            background-color: var(--bricks-yellow);
         }
     }
 
     &._grey {
-        border-color: var(--land-base-900);
-        background-color: var(--land-base-900);
-        color: var(--land-base-0);
+        border-color: var(--bricks-base-900);
+        background-color: var(--bricks-base-900);
+        color: var(--bricks-base-0);
 
         &:not(._disabled):hover {
-            border-color: var(--land-base-900);
-            background-color: var(--land-base-900);
+            border-color: var(--bricks-base-900);
+            background-color: var(--bricks-base-900);
         }
     }
 
@@ -253,7 +253,7 @@ function onClick(event: MouseEvent): void {
     }
 
     &._fill {
-        color: var(--land-primary);
+        color: var(--bricks-primary);
     }
 }
 

@@ -156,7 +156,7 @@ function handleToggleInteractivePreview(event: MouseEvent): void {
                     @click="handleToggleCollapsed"
                 >
                     <span :class="$style.componentNameText">{{ props.componentName }}</span>
-                    <BricksLandIcon :icon="isCollapsed ? 'ph:caret-left' : 'ph:caret-right'" />
+                    <BricksIcon :icon="isCollapsed ? 'ph:caret-left' : 'ph:caret-right'" />
                 </button>
             </template>
             <BricksTooltipHint text="Панель инструментов" />
@@ -173,7 +173,7 @@ function handleToggleInteractivePreview(event: MouseEvent): void {
                                 type="button"
                                 @click="handleToggleFavorite"
                             >
-                                <BricksLandIcon
+                                <BricksIcon
                                     :icon="props.isFavorite ? 'ph:star-fill' : 'ph:star'"
                                     :class="{ [$style.starActive]: props.isFavorite }"
                                 />
@@ -195,7 +195,7 @@ function handleToggleInteractivePreview(event: MouseEvent): void {
                                 type="button"
                                 @click="handleToggleInteractivePreview"
                             >
-                                <BricksLandIcon icon="ph:cursor-click" />
+                                <BricksIcon icon="ph:cursor-click" />
                             </button>
                         </template>
                         <BricksTooltipHint
@@ -213,7 +213,7 @@ function handleToggleInteractivePreview(event: MouseEvent): void {
                     <BricksTooltip top>
                         <template #activator>
                             <button :class="$style.btn" type="button" @click="handleCopy">
-                                <BricksLandIcon icon="ph:copy" />
+                                <BricksIcon icon="ph:copy" />
                             </button>
                         </template>
                         <BricksTooltipHint text="Дублировать" />
@@ -222,7 +222,7 @@ function handleToggleInteractivePreview(event: MouseEvent): void {
                     <BricksTooltip top>
                         <template #activator>
                             <button :class="$style.btn" type="button" @click="handleDelete">
-                                <BricksLandIcon icon="ph:trash" />
+                                <BricksIcon icon="ph:trash" />
                             </button>
                         </template>
                         <BricksTooltipHint text="Удалить" />
@@ -238,7 +238,7 @@ function handleToggleInteractivePreview(event: MouseEvent): void {
                                 type="button"
                                 @click="handleToggleHidden"
                             >
-                                <BricksLandIcon icon="ph:power" />
+                                <BricksIcon icon="ph:power" />
                             </button>
                         </template>
                         <BricksTooltipHint :text="props.isHidden ? 'Включить' : 'Отключить'" />
@@ -250,7 +250,7 @@ function handleToggleInteractivePreview(event: MouseEvent): void {
                             type="button"
                             @click="handleToggleDropdown"
                         >
-                            <BricksLandIcon icon="ph:caret-down" />
+                            <BricksIcon icon="ph:caret-down" />
                         </button>
 
                         <div v-if="isDeviceDropdownOpen" :class="$style.dropdown" @click.stop>
@@ -292,7 +292,7 @@ function handleToggleInteractivePreview(event: MouseEvent): void {
                                 type="button"
                                 @click="handleMoveUp"
                             >
-                                <BricksLandIcon icon="ph:arrow-up-bold" />
+                                <BricksIcon icon="ph:arrow-up-bold" />
                             </button>
                         </template>
                         <BricksTooltipHint text="Вверх" />
@@ -306,7 +306,7 @@ function handleToggleInteractivePreview(event: MouseEvent): void {
                                 type="button"
                                 @click="handleMoveDown"
                             >
-                                <BricksLandIcon icon="ph:arrow-down-bold" />
+                                <BricksIcon icon="ph:arrow-down-bold" />
                             </button>
                         </template>
                         <BricksTooltipHint text="Вниз" />
@@ -327,12 +327,12 @@ function handleToggleInteractivePreview(event: MouseEvent): void {
     gap: 0.4rem;
     pointer-events: auto;
 
-    --toolbar-bg: var(--land-base-0, #fff);
-    --toolbar-border: var(--land-base-300, #d1d5db);
-    --toolbar-color: var(--land-base-500, #4b5563);
-    --toolbar-color-hover: var(--land-base-900, #111827);
-    --toolbar-bg-hover: var(--land-base-50, #f9fafb);
-    --toolbar-primary: var(--land-primary, #4d79e9);
+    --toolbar-bg: var(--bricks-base-0, #fff);
+    --toolbar-border: var(--bricks-base-300, #d1d5db);
+    --toolbar-color: var(--bricks-base-500, #4b5563);
+    --toolbar-color-hover: var(--bricks-base-900, #111827);
+    --toolbar-bg-hover: var(--bricks-base-50, #f9fafb);
+    --toolbar-primary: var(--bricks-primary, #4d79e9);
     --toolbar-shadow: 0 0.2rem 0.4rem rgb(0 0 0 / 8%);
     --toolbar-shadow-hover: 0 0.2rem 0.8rem rgb(0 0 0 / 12%);
 

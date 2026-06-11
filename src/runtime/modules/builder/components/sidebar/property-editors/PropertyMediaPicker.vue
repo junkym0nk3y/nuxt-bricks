@@ -80,7 +80,7 @@ function handleRemove(): void {
 
             <!-- Empty State -->
             <div v-else :class="$style.previewEmpty">
-                <BricksLandIcon :class="$style.previewIcon" :icon="previewIcon" />
+                <BricksIcon :class="$style.previewIcon" :icon="previewIcon" />
             </div>
         </div>
 
@@ -92,7 +92,7 @@ function handleRemove(): void {
                 :class="$style.button"
                 @click="handleOpenGallery"
             >
-                <BricksLandIcon icon="md:folder-open" />
+                <BricksIcon icon="md:folder-open" />
                 Выбрать
             </BricksButton>
 
@@ -103,7 +103,7 @@ function handleRemove(): void {
                 :class="$style.button"
                 @click="handleRemove"
             >
-                <BricksLandIcon icon="md:delete" />
+                <BricksIcon icon="md:delete" />
                 Удалить
             </BricksButton>
         </div>
@@ -125,20 +125,20 @@ function handleRemove(): void {
 .label {
     font-size: 1.4rem;
     font-weight: 500;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
 }
 
 .preview {
     /* Фиксируем светлую тему для области превью */
-    --land-base-50: #f9fafb;
-    --land-base-300: #d1d5db;
+    --bricks-base-50: #f9fafb;
+    --bricks-base-300: #d1d5db;
 
     overflow: hidden;
     width: 100%;
     height: 16rem;
     border-radius: 0.8rem;
-    border: 0.2rem solid var(--land-base-300);
-    background: var(--land-base-50);
+    border: 0.2rem solid var(--bricks-base-300);
+    background: var(--bricks-base-50);
 }
 
 .previewImage {
@@ -158,7 +158,7 @@ function handleRemove(): void {
 
 .previewIcon {
     font-size: 4.8rem;
-    color: var(--land-base-300);
+    color: var(--bricks-base-300);
 }
 
 .actions {
@@ -174,7 +174,7 @@ function handleRemove(): void {
     overflow: hidden;
     padding: 0.8rem;
     border-radius: 0.4rem;
-    background: var(--land-base-100);
+    background: var(--bricks-base-100);
 }
 
 .url {
@@ -184,6 +184,6 @@ function handleRemove(): void {
     white-space: nowrap;
     font-family: monospace;
     font-size: 1.2rem;
-    color: var(--land-base-600);
+    color: var(--bricks-base-600);
 }
 </style>

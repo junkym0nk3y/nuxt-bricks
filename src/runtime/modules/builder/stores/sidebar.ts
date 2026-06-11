@@ -12,7 +12,7 @@ interface ISidebarState {
 /**
  * Контролирует состояние левого сайдбара конструктора: его видимость, ширину и активный раздел.
  */
-export const useSidebarStore = defineStore('landingSidebar', {
+export const useSidebarStore = defineStore('bricksSidebar', {
     state: (): ISidebarState => ({
         left: {
             visible: false,

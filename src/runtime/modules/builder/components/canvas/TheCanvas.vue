@@ -115,7 +115,7 @@ const canvasStyle = computed<Record<string, string>>(() => {
     const baseStyle = {
         width: convertPxToRem(canvasStore.width),
         height: convertPxToRem(canvasStore.height),
-        backgroundColor: publishStore.currentFormState.backgroundColor || 'var(--land-base-0)',
+        backgroundColor: publishStore.currentFormState.backgroundColor || 'var(--bricks-base-0)',
         fontFamily: config.defaultFont,
     };
 
@@ -611,7 +611,7 @@ onBeforeUnmount(() => {
     overflow: visible;
     margin-top: 2rem;
     border-radius: var(--border-radius-xs);
-    background-color: var(--land-base-0);
+    background-color: var(--bricks-base-0);
     transform-origin: top center;
     transition: transform 250ms ease;
     box-shadow: var(--shadow-md);

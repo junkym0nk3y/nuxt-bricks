@@ -103,7 +103,7 @@ const canvasStyle = computed<Record<string, string>>(() => {
     const style: Record<string, string> = {
         width: convertPxToRem(viewportWidth.value),
         height: convertPxToRem(viewportHeight.value),
-        backgroundColor: publishStore.currentFormState.backgroundColor || 'var(--land-base-0)',
+        backgroundColor: publishStore.currentFormState.backgroundColor || 'var(--bricks-base-0)',
         fontFamily: config.defaultFont,
     };
 
@@ -299,14 +299,14 @@ onBeforeUnmount(() => {
     font-size: 2.4rem;
     font-weight: 600;
     letter-spacing: 0.05rem;
-    color: var(--land-base-500);
+    color: var(--bricks-base-500);
 }
 
 .canvas {
     position: relative;
     overflow: visible;
     border-radius: var(--border-radius-xs);
-    background-color: var(--land-base-0);
+    background-color: var(--bricks-base-0);
     box-shadow: var(--shadow-md);
     container-type: inline-size;
     container-name: landing;

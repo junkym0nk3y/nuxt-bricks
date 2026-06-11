@@ -6,10 +6,10 @@ body.bricks-page {
     overflow: hidden;
     margin: 0;
     padding: 0;
-    background: var(--land-base-0);
-    font-family: var(--land-font-family-base), serif;
-    font-size: var(--land-font-size-base);
-    color: var(--land-base-900);
+    background: var(--bricks-base-0);
+    font-family: var(--bricks-font-family-base), serif;
+    font-size: var(--bricks-font-size-base);
+    color: var(--bricks-base-900);
 
     h1,
     h2,
@@ -27,21 +27,21 @@ body.bricks-page {
         margin: 0 0 1.6rem;
         font-size: 2.4rem;
         font-weight: 700;
-        color: var(--land-base-900);
+        color: var(--bricks-base-900);
     }
 
     h2 {
         margin: 2.4rem 0 1.2rem;
         font-size: 1.8rem;
         font-weight: 600;
-        color: var(--land-base-900);
+        color: var(--bricks-base-900);
     }
 
     h3 {
         margin: 2rem 0 1rem;
         font-size: 1.6rem;
         font-weight: 600;
-        color: var(--land-base-900);
+        color: var(--bricks-base-900);
     }
 
     p {
@@ -71,10 +71,10 @@ body.bricks-page {
     code {
         padding: 0.2rem 0.4rem;
         border-radius: 0.4rem;
-        background-color: var(--land-base-100);
+        background-color: var(--bricks-base-100);
         font-family: monospace;
         font-size: 1.2rem;
-        color: var(--land-base-800);
+        color: var(--bricks-base-800);
     }
 
     pre {
@@ -82,7 +82,7 @@ body.bricks-page {
         margin: 0 0 1.6rem;
         padding: 1.6rem;
         border-radius: 0.8rem;
-        background-color: var(--land-base-100);
+        background-color: var(--bricks-base-100);
 
         code {
             padding: 0;
@@ -92,7 +92,7 @@ body.bricks-page {
 
     a {
         text-decoration: none;
-        color: var(--land-primary);
+        color: var(--bricks-primary);
         transition: color var(--default-transition);
 
         &:hover {
@@ -108,9 +108,9 @@ body.bricks-page {
     blockquote {
         margin: 0 0 1.6rem;
         padding: 1.2rem 1.6rem;
-        border-left: 0.4rem solid var(--land-primary);
-        background-color: var(--land-base-50, var(--land-base-100));
-        color: var(--land-base-700);
+        border-left: 0.4rem solid var(--bricks-primary);
+        background-color: var(--bricks-base-50, var(--bricks-base-100));
+        color: var(--bricks-base-700);
     }
 
     table {
@@ -122,23 +122,23 @@ body.bricks-page {
     }
 
     thead tr {
-        border-bottom: 1px solid var(--land-base-300);
+        border-bottom: 1px solid var(--bricks-base-300);
     }
 
     th {
         padding: 0.8rem 1.2rem;
         text-align: left;
         font-weight: 600;
-        color: var(--land-base-900);
+        color: var(--bricks-base-900);
     }
 
     td {
         padding: 0.8rem 1.2rem;
-        color: var(--land-base-700);
+        color: var(--bricks-base-700);
     }
 
     tbody tr {
-        border-bottom: 1px solid var(--land-base-200);
+        border-bottom: 1px solid var(--bricks-base-200);
 
         &:last-child {
             border-bottom: none;
@@ -325,7 +325,7 @@ body.bricks-page {
     // Визуальная обратная связь при выделении изображения/видео
     .ProseMirror-selectednode [data-resize-wrapper] img,
     .ProseMirror-selectednode [data-resize-wrapper] video {
-        outline: 2px solid var(--land-primary, #6366f1);
+        outline: 2px solid var(--bricks-primary, #6366f1);
         outline-offset: 2px;
     }
 
@@ -336,8 +336,8 @@ body.bricks-page {
         width: 1rem;
         height: 1rem;
         border-radius: 50%;
-        border: 2px solid var(--land-primary, #6366f1);
-        background: var(--land-base-0, #fff);
+        border: 2px solid var(--bricks-primary, #6366f1);
+        background: var(--bricks-base-0, #fff);
         transition: transform 0.15s ease;
         cursor: pointer;
 
@@ -377,7 +377,7 @@ body.bricks-page {
 
     // Modern CSS Scrollbars Styling (Firefox, Chrome 121+)
     scrollbar-width: thin;
-    scrollbar-color: var(--land-base-500) transparent;
+    scrollbar-color: var(--bricks-base-500) transparent;
 
     // Fallback for older WebKit browsers (Chrome < 121, Safari)
     &::-webkit-scrollbar {
@@ -395,11 +395,11 @@ body.bricks-page {
 
     &::-webkit-scrollbar-thumb {
         border-radius: var(--border-radius-xs);
-        background-color: var(--land-base-500);
+        background-color: var(--bricks-base-500);
         cursor: pointer;
 
         &:hover {
-            background-color: var(--land-primary);
+            background-color: var(--bricks-primary);
         }
     }
 

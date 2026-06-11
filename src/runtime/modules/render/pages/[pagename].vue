@@ -3,7 +3,7 @@
 // Types
 import type { IPublishedPage } from '../../common/types/landing-api';
 import type { LandingComponent } from '../../common/types/landing';
-import type { ILandDataSource } from '../types/landing-data-source';
+import type { IBrickDataSource } from '../types/landing-data-source';
 
 // Vue
 import { computed, onMounted, onUnmounted, ref, watch, type Ref } from 'vue';
@@ -22,7 +22,7 @@ import BricksCloseButton from '../../ui/base/modal/BricksCloseButton.vue';
 // #endregion
 
 // #region Data
-const storyDataSourcesCache = new Map<string, ILandDataSource[] | null>();
+const storyDataSourcesCache = new Map<string, IBrickDataSource[] | null>();
 const route = useRoute();
 const pagename = route.params.pagename as string;
 const isPreview = route.query.preview === 'true';
@@ -165,7 +165,7 @@ const pageTitle = computed(() => page.value?.title || 'Landing Page');
 const pageDescription = computed(() => page.value?.description || '');
 const pageKeywords = computed(() => page.value?.keywords || '');
 const pageSocialImage = computed(() => page.value?.socialImage || '');
-const pageBackgroundColor = computed(() => page.value?.backgroundColor || 'var(--land-base-0)');
+const pageBackgroundColor = computed(() => page.value?.backgroundColor || 'var(--bricks-base-0)');
 
 const DEVICE_ICONS: Record<string, string> = {
     desktop: 'ak:desktop-device',
@@ -257,7 +257,7 @@ function closePreview(): void {
  * @param storyPath - путь до story-файла.
  * @returns Список dataSources для компонента или пустой массив.
  */
-async function loadStoryDataSources(storyPath: string): Promise<ILandDataSource[]> {
+async function loadStoryDataSources(storyPath: string): Promise<IBrickDataSource[]> {
     if (!storyPath) {
         return [];
     }
@@ -277,7 +277,7 @@ async function loadStoryDataSources(storyPath: string): Promise<ILandDataSource[
 
     try {
         const storyModule = await importModule();
-        const dataSources = (storyModule?.story?.dataSources ?? []) as ILandDataSource[];
+        const dataSources = (storyModule?.story?.dataSources ?? []) as IBrickDataSource[];
         storyDataSourcesCache.set(cacheKey, dataSources);
         return dataSources;
     } catch (error) {
@@ -293,13 +293,13 @@ async function loadStoryDataSources(storyPath: string): Promise<ILandDataSource[
  * @returns Список запросов с компонентом и его источником данных.
  */
 async function collectDataSourceRequests(): Promise<
-    Array<{ component: LandingComponent; source: ILandDataSource }>
+    Array<{ component: LandingComponent; source: IBrickDataSource }>
 > {
     if (!page.value?.schema?.components?.length) {
         return [];
     }
 
-    const requests: Array<{ component: LandingComponent; source: ILandDataSource }> = [];
+    const requests: Array<{ component: LandingComponent; source: IBrickDataSource }> = [];
 
     // Собираем все data sources, объявленные в story-файлах компонентов
     for (const component of page.value.schema.components) {
@@ -400,7 +400,7 @@ useHead(() => {
             <div v-if="isPreview" :class="$style.previewBanner">
                 <div :class="$style.previewContent">
                     <span :class="$style.previewText">Режим превью</span>
-                    <BricksLandIcon :icon="currentDevice.icon" :class="$style.previewDeviceIcon" />
+                    <BricksIcon :icon="currentDevice.icon" :class="$style.previewDeviceIcon" />
                     <span :class="$style.previewResolution">{{ resolutionText }}</span>
                     <BricksCloseButton size="sm" :class="$style.previewClose" @click="closePreview" />
                 </div>
@@ -441,7 +441,7 @@ useHead(() => {
     z-index: 1000;
     padding: 1rem 0;
     border-radius: 2rem;
-    background: var(--land-primary-500);
+    background: var(--bricks-primary-500);
     color: white;
     box-shadow: var(--shadow-md);
     opacity: 0.9;

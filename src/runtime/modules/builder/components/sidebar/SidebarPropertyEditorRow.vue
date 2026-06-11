@@ -211,14 +211,14 @@ function handleAccordionItemsChange(value: IAccordionItem[]): void {
     text-transform: uppercase;
     font-size: 1.2rem;
     font-weight: 600;
-    color: var(--land-base-500);
+    color: var(--bricks-base-500);
 }
 
 .fieldLabel {
     margin-bottom: 0.8rem;
     font-size: 1.2rem;
     font-weight: 500;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
     user-select: none;
 }
 
@@ -228,7 +228,7 @@ function handleAccordionItemsChange(value: IAccordionItem[]): void {
     font-size: 1.4rem;
     font-weight: 400;
     line-height: 1.4;
-    color: var(--land-base-600);
+    color: var(--bricks-base-600);
     user-select: none;
 }
 </style>

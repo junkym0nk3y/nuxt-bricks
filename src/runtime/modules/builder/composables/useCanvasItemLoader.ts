@@ -1,7 +1,7 @@
 // #region Imports
 // Types
 import type { ICanvasItemProps } from '../components/canvas/types';
-import type { ILandExportModule, ILandValues } from '../../common/types/index';
+import type { IBrickExportModule, IBrickValues } from '../../common/types/index';
 
 // Vue
 import {
@@ -46,7 +46,7 @@ export function useCanvasItemLoader(
             ComponentInstance.value = defineAsyncComponent<Component>({
                 loader: async () => {
                     const mod = await importModule();
-                    const exported = (mod as ILandExportModule).default;
+                    const exported = (mod as IBrickExportModule).default;
 
                     if (!exported) {
                         throw new Error(
@@ -55,7 +55,7 @@ export function useCanvasItemLoader(
                     }
 
                     if (mod?.story?.values) {
-                        const storyValues = mod.story.values as Record<string, ILandValues>;
+                        const storyValues = mod.story.values as Record<string, IBrickValues>;
                         const forceProps: string[] = [];
 
                         for (const [propName, propConfig] of Object.entries(storyValues)) {

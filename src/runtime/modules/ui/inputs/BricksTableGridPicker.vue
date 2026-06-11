@@ -121,7 +121,7 @@ onClickOutside(
             @mousedown.prevent
             @click.prevent="togglePopup"
         >
-            <BricksLandIcon :icon="props.item.icon" />
+            <BricksIcon :icon="props.item.icon" />
         </button>
 
         <Teleport to="body">
@@ -248,11 +248,11 @@ onClickOutside(
     width: var(--toolbar-btn-size, 3.2rem);
     height: var(--toolbar-btn-size, 3.2rem);
     border-radius: var(--border-radius-xs);
-    border: 1px solid var(--land-base-200);
+    border: 1px solid var(--bricks-base-200);
     background: transparent;
     font-size: 1.3rem;
     font-weight: 600;
-    color: var(--land-base-600);
+    color: var(--bricks-base-600);
     transition: all var(--default-transition);
     cursor: pointer;
 
@@ -262,13 +262,13 @@ onClickOutside(
     }
 
     &:hover {
-        border-color: var(--land-primary);
-        color: var(--land-primary);
+        border-color: var(--bricks-primary);
+        color: var(--bricks-primary);
     }
 
     &._active {
-        border-color: var(--land-primary);
-        background: var(--land-primary);
+        border-color: var(--bricks-primary);
+        background: var(--bricks-primary);
         color: #fff;
     }
 }
@@ -278,8 +278,8 @@ onClickOutside(
     flex-direction: column;
     padding: 0.8rem;
     border-radius: var(--border-radius-sm);
-    border: 1px solid var(--land-base-200);
-    background: var(--land-base-0);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-base-0);
     box-shadow: var(--shadow-md);
 }
 
@@ -293,7 +293,7 @@ onClickOutside(
     text-align: center;
     white-space: nowrap;
     font-size: 1.2rem;
-    color: var(--land-base-500);
+    color: var(--bricks-base-500);
 }
 
 .grid {
@@ -311,22 +311,22 @@ onClickOutside(
     width: 2rem;
     height: 2rem;
     border-radius: 0.2rem;
-    border: 1px solid var(--land-base-200);
-    background: var(--land-base-50);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-base-50);
     transition:
         background var(--default-transition),
         border-color var(--default-transition);
     cursor: pointer;
 
     &._highlighted {
-        border-color: var(--land-primary);
-        background: var(--land-primary-100, rgb(99 102 241 / 15%));
+        border-color: var(--bricks-primary);
+        background: var(--bricks-primary-100, rgb(99 102 241 / 15%));
     }
 }
 
 .divider {
     margin: 0.4rem 0;
-    border-top: 1px solid var(--land-base-200);
+    border-top: 1px solid var(--bricks-base-200);
 }
 
 .controlsSection {
@@ -346,21 +346,21 @@ onClickOutside(
     text-align: left;
     white-space: nowrap;
     font-size: 1.2rem;
-    color: var(--land-base-700);
+    color: var(--bricks-base-700);
     transition:
         background var(--default-transition),
         color var(--default-transition);
     cursor: pointer;
 
     &:hover {
-        background: var(--land-base-100);
+        background: var(--bricks-base-100);
     }
 
     &._danger {
-        color: var(--land-danger-600, #dc2626);
+        color: var(--bricks-danger-600, #dc2626);
 
         &:hover {
-            background: var(--land-danger-50, #fef2f2);
+            background: var(--bricks-danger-50, #fef2f2);
         }
     }
 }

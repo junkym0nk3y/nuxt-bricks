@@ -91,7 +91,7 @@ async function handleEdit(pageId: string): Promise<void> {
     justify-content: center;
     min-height: 100vh;
     padding: 2rem;
-    background-color: var(--land-base-100);
+    background-color: var(--bricks-base-100);
 }
 
 .content {
@@ -99,8 +99,8 @@ async function handleEdit(pageId: string): Promise<void> {
     max-width: 52rem;
     padding: 2.4rem;
     border-radius: var(--border-radius-md);
-    border: 1px solid var(--land-base-300);
-    background: var(--land-base-0);
+    border: 1px solid var(--bricks-base-300);
+    background: var(--bricks-base-0);
     box-shadow: var(--shadow-md);
 }
 
@@ -108,13 +108,13 @@ async function handleEdit(pageId: string): Promise<void> {
     margin: 0;
     font-size: 2.4rem;
     font-weight: 700;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
 }
 
 .subtitle {
     margin: 0.8rem 0 0;
     font-size: 1.4rem;
-    color: var(--land-base-600);
+    color: var(--bricks-base-600);
 }
 
 .actions {

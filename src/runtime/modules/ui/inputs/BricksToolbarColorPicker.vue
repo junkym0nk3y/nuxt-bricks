@@ -124,7 +124,7 @@ watch(
             @click.prevent="togglePopup"
         >
             <span v-if="props.item.icon" :class="$style.triggerIcon">
-                <BricksLandIcon :icon="props.item.icon" />
+                <BricksIcon :icon="props.item.icon" />
             </span>
             <span
                 :class="$style.colorSwatch"
@@ -185,15 +185,15 @@ watch(
     height: var(--toolbar-btn-size, 2.6rem);
     padding: 0 0.4rem;
     border-radius: var(--border-radius-xs);
-    border: 1px solid var(--land-base-200);
+    border: 1px solid var(--bricks-base-200);
     background: transparent;
-    color: var(--land-base-600);
+    color: var(--bricks-base-600);
     transition: all var(--default-transition);
     cursor: pointer;
 
     &:hover {
-        border-color: var(--land-primary);
-        color: var(--land-primary);
+        border-color: var(--bricks-primary);
+        color: var(--bricks-primary);
     }
 }
 
@@ -214,7 +214,7 @@ watch(
     width: 1.4rem;
     height: 1.4rem;
     border-radius: 0.2rem;
-    border: 1px solid var(--land-base-300);
+    border: 1px solid var(--bricks-base-300);
 }
 
 .popup {
@@ -224,8 +224,8 @@ watch(
     width: 18rem;
     padding: 0.8rem;
     border-radius: var(--border-radius-sm);
-    border: 1px solid var(--land-base-200);
-    background: var(--land-base-0);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-base-0);
     box-shadow: var(--shadow-md);
 }
 
@@ -239,7 +239,7 @@ watch(
     height: 3.2rem;
     padding: 0.2rem;
     border-radius: var(--border-radius-xs);
-    border: 1px solid var(--land-base-200);
+    border: 1px solid var(--bricks-base-200);
     background: transparent;
     cursor: pointer;
 
@@ -263,7 +263,7 @@ watch(
     flex-shrink: 0;
     font-size: 1.2rem;
     font-weight: 600;
-    color: var(--land-base-500);
+    color: var(--bricks-base-500);
 }
 
 .hexInput {
@@ -272,29 +272,29 @@ watch(
     height: 2.4rem;
     padding: 0 0.6rem;
     border-radius: var(--border-radius-xs);
-    border: 1px solid var(--land-base-200);
-    background: var(--land-base-50);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-base-50);
     font-family: monospace;
     font-size: 1.2rem;
-    color: var(--land-base-800);
+    color: var(--bricks-base-800);
     transition: border-color var(--default-transition);
 
     &::placeholder {
-        color: var(--land-base-400);
+        color: var(--bricks-base-400);
     }
 
     &:focus {
-        border-color: var(--land-primary);
+        border-color: var(--bricks-primary);
         outline: none;
     }
 
     &._error {
-        border-color: var(--land-danger-600, #dc2626);
+        border-color: var(--bricks-danger-600, #dc2626);
     }
 }
 
 .errorText {
     font-size: 1.1rem;
-    color: var(--land-danger-600, #dc2626);
+    color: var(--bricks-danger-600, #dc2626);
 }
 </style>

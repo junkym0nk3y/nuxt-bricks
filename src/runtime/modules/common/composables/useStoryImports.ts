@@ -1,4 +1,4 @@
-import type { ILandExportModule } from '../types/index';
+import type { IBrickExportModule } from '../types/index';
 import { normalizeStoryPath } from '../utils/landing/paths';
 
 /**
@@ -8,16 +8,16 @@ import { normalizeStoryPath } from '../utils/landing/paths';
  * @returns Карта loader-ов.
  */
 function normalizeGlobLoaders(
-    modules: Record<string, ILandExportModule | (() => Promise<ILandExportModule>)>
-): Record<string, () => Promise<ILandExportModule>> {
-    return Object.entries(modules).reduce<Record<string, () => Promise<ILandExportModule>>>(
+    modules: Record<string, IBrickExportModule | (() => Promise<IBrickExportModule>)>
+): Record<string, () => Promise<IBrickExportModule>> {
+    return Object.entries(modules).reduce<Record<string, () => Promise<IBrickExportModule>>>(
         (acc, [path, loader]) => {
             if (typeof loader === 'function') {
-                acc[path] = loader as () => Promise<ILandExportModule>;
+                acc[path] = loader as () => Promise<IBrickExportModule>;
                 return acc;
             }
 
-            acc[path] = () => Promise.resolve(loader as ILandExportModule);
+            acc[path] = () => Promise.resolve(loader as IBrickExportModule);
             return acc;
         },
         {}
@@ -32,18 +32,18 @@ function normalizeGlobLoaders(
  */
 export function useStoryImports() {
     // Глоб локальных компонентов проекта-потребителя (от его rootDir)
-    const localModules = import.meta.glob<ILandExportModule>('/components/**/*.brick.ts');
-    const localModulesSub = import.meta.glob<ILandExportModule>('/components/**/**/*.brick.ts');
+    const localModules = import.meta.glob<IBrickExportModule>('/components/**/*.brick.ts');
+    const localModulesSub = import.meta.glob<IBrickExportModule>('/components/**/**/*.brick.ts');
 
     // Глоб для локальных layers
-    const localLayersModules = import.meta.glob<ILandExportModule>('/layers/**/*.brick.ts');
-    const localLayersModulesSub = import.meta.glob<ILandExportModule>('/layers/**/**/*.brick.ts');
+    const localLayersModules = import.meta.glob<IBrickExportModule>('/layers/**/*.brick.ts');
+    const localLayersModulesSub = import.meta.glob<IBrickExportModule>('/layers/**/**/*.brick.ts');
 
     /**
      * Совокупная карта всех доступных через glob модулей. Ключи соответствуют путям,
      * которые возвращает Vite, значения — lazy loader-ы.
      */
-    const allModules: Record<string, () => Promise<ILandExportModule>> = {
+    const allModules: Record<string, () => Promise<IBrickExportModule>> = {
         ...normalizeGlobLoaders(localModules),
         ...normalizeGlobLoaders(localModulesSub),
         ...normalizeGlobLoaders(localLayersModules),
@@ -57,7 +57,7 @@ export function useStoryImports() {
      * @param storyPath - Значение `storyPath`, сохранённое в схеме компонента.
      * @returns Функция-лоадер Vite или `undefined`, если найти файл не удалось.
      */
-    function findImportModule(storyPath: string): (() => Promise<ILandExportModule>) | undefined {
+    function findImportModule(storyPath: string): (() => Promise<IBrickExportModule>) | undefined {
         // Пропускаем встроенные layout-компоненты без story-файлов
         if (storyPath.startsWith('layout')) {
             // console.log('[useStoryImports] Skipping built-in layout:', storyPath);

@@ -120,7 +120,7 @@ function handleToggleFigmaMode(): void {
                 :class="$style.viewportButton"
                 @click="handleViewportChange(vp.value)"
             >
-                <BricksLandIcon :icon="vp.icon" />
+                <BricksIcon :icon="vp.icon" />
                 <span :class="$style.viewportLabel">{{ vp.label }}</span>
                 <span :class="$style.viewportWidth">{{ vp.width }}px</span>
             </BricksButton>
@@ -132,7 +132,7 @@ function handleToggleFigmaMode(): void {
                 :class="$style.viewportButton"
                 @click="handleToggleFigmaMode"
             >
-                <BricksLandIcon icon="ak:figma-fill" />
+                <BricksIcon icon="ak:figma-fill" />
                 <span :class="$style.viewportLabel">Figma Like</span>
             </BricksButton>
         </div>
@@ -146,7 +146,7 @@ function handleToggleFigmaMode(): void {
                 title="Zoom out"
                 @click="handleZoomOut"
             >
-                <BricksLandIcon :class="$style.zoomIcon" icon="an:outlined-zoom-out" />
+                <BricksIcon :class="$style.zoomIcon" icon="an:outlined-zoom-out" />
             </BricksButton>
 
             <client-only>
@@ -168,7 +168,7 @@ function handleToggleFigmaMode(): void {
                 title="Zoom in"
                 @click="handleZoomIn"
             >
-                <BricksLandIcon :class="$style.zoomIcon" icon="an:outlined-zoom-in" />
+                <BricksIcon :class="$style.zoomIcon" icon="an:outlined-zoom-in" />
             </BricksButton>
         </div>
     </div>
@@ -221,7 +221,7 @@ function handleToggleFigmaMode(): void {
 .zoomIcon {
     font-size: 2rem;
     font-weight: 300;
-    color: var(--land-base-600);
+    color: var(--bricks-base-600);
 }
 
 .scaleButton {

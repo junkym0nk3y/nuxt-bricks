@@ -93,12 +93,12 @@ function onUpdate(checked: boolean): void {
 
     &._oneSide {
         &._active .label._left {
-            color: var(--land-base-300);
+            color: var(--bricks-base-300);
         }
 
         .label {
             &._left {
-                color: var(--land-base-300);
+                color: var(--bricks-base-300);
             }
         }
     }
@@ -107,12 +107,12 @@ function onUpdate(checked: boolean): void {
         font-size: 1.4rem;
         font-weight: 500;
         line-height: 1.2;
-        color: var(--land-base-300);
+        color: var(--bricks-base-300);
         transition: color var(--default-transition);
 
         &._left {
             margin-right: 1.6rem;
-            color: var(--land-base-300);
+            color: var(--bricks-base-300);
         }
 
         &._right {
@@ -126,7 +126,7 @@ function onUpdate(checked: boolean): void {
         width: 3.6rem;
         height: 2rem;
         border-radius: 10rem;
-        background-color: var(--land-base-300);
+        background-color: var(--bricks-base-300);
         transition: background-color var(--default-transition);
 
         &:after {
@@ -135,7 +135,7 @@ function onUpdate(checked: boolean): void {
             width: 1.4rem;
             height: 1.4rem;
             border-radius: 50%;
-            background-color: var(--land-base-0);
+            background-color: var(--bricks-base-0);
             transform: translate(0.2rem, 0.2rem);
             transition: transform var(--default-transition);
             box-shadow: var(--shadow-sm);
@@ -144,15 +144,15 @@ function onUpdate(checked: boolean): void {
     }
 
     &._active .label._left {
-        color: var(--land-base-400);
+        color: var(--bricks-base-400);
     }
 
     &._active .label._right {
-        color: var(--land-base-900);
+        color: var(--bricks-base-900);
     }
 
     &._active .core {
-        background-color: var(--land-primary-500);
+        background-color: var(--bricks-primary-500);
 
         &:after {
             transform: translate(1.8rem, 0.2rem);

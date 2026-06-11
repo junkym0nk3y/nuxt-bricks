@@ -1,17 +1,17 @@
-export interface ILandObject {
+export interface IBrickObject {
     name: string;
     category: string;
     storyPath: string;
 }
 
-export interface INuxtLandRoute {
+export interface IBrickRoute {
     components: Array<{
         name: string;
         storyPath: string;
     }>;
 }
 
-export interface IBricksLandFile {
-    stories: ILandObject[];
+export interface IBricksManifest {
+    stories: IBrickObject[];
     hash: string;
 }

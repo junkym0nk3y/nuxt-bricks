@@ -1,5 +1,5 @@
 // #region Imports
-import type { ILandValues } from '../../common/types/index';
+import type { IBrickValues } from '../../common/types/index';
 import type { InlineEditingPropType } from '../../editor/stores/inlineEditing';
 import type { ILayoutProperty } from '../components/canvas/types';
 // #endregion
@@ -55,7 +55,7 @@ function capitalize(str: string): string {
  * @returns true если условие выполнено или отсутствует.
  */
 function isShowWhenSatisfied(
-    propConfig: ILandValues,
+    propConfig: IBrickValues,
     componentProps: Record<string, unknown>
 ): boolean {
     if (!propConfig.showWhen) {
@@ -74,7 +74,7 @@ function isShowWhenSatisfied(
  * @returns Массив editable свойств.
  */
 export function findAllInlineEditableStoryProps(
-    storyValues: Record<string, ILandValues>,
+    storyValues: Record<string, IBrickValues>,
     componentProps: Record<string, unknown> = {}
 ): IInlineEditableProp[] {
     const result: IInlineEditableProp[] = [];

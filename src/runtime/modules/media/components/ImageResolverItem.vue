@@ -80,7 +80,7 @@ function handleImgError(): void {
                 @error="handleImgError"
             />
             <div v-else :class="$style.previewFallback">
-                <BricksLandIcon icon="md:outlined-image" />
+                <BricksIcon icon="md:outlined-image" />
             </div>
         </div>
 
@@ -110,12 +110,12 @@ function handleImgError(): void {
     gap: 1.2rem;
     padding: 1rem 1.2rem;
     border-radius: var(--border-radius-sm);
-    border: 1px solid var(--land-base-200);
-    background: var(--land-base-0);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-base-0);
     transition: border-color 150ms ease;
 
     &:hover {
-        border-color: var(--land-base-300);
+        border-color: var(--bricks-base-300);
     }
 }
 
@@ -125,8 +125,8 @@ function handleImgError(): void {
     width: 4.8rem;
     height: 4.8rem;
     border-radius: var(--border-radius-sm);
-    border: 1px solid var(--land-base-200);
-    background: var(--land-base-50);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-base-50);
 }
 
 .previewImg {
@@ -142,7 +142,7 @@ function handleImgError(): void {
     width: 100%;
     height: 100%;
     font-size: 2rem;
-    color: var(--land-base-400);
+    color: var(--bricks-base-400);
 }
 
 .info {
@@ -156,7 +156,7 @@ function handleImgError(): void {
 .componentName {
     font-size: 1.3rem;
     font-weight: 500;
-    color: var(--land-base-800);
+    color: var(--bricks-base-800);
 }
 
 .url {
@@ -165,7 +165,7 @@ function handleImgError(): void {
     white-space: nowrap;
     font-family: monospace;
     font-size: 1.2rem;
-    color: var(--land-base-500);
+    color: var(--bricks-base-500);
 }
 
 .actionWrapper {
@@ -174,16 +174,16 @@ function handleImgError(): void {
 
 .actionSelect {
     /* Фиксируем светлую тему для select */
-    --land-base-0: #fff;
-    --land-base-200: #e5e7eb;
-    --land-base-900: #111827;
+    --bricks-base-0: #fff;
+    --bricks-base-200: #e5e7eb;
+    --bricks-base-900: #111827;
 
     padding: 0.4rem 0.8rem;
     border-radius: var(--border-radius-sm);
-    border: 1px solid var(--land-base-200);
-    background: var(--land-base-0);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-base-0);
     font-size: 1.2rem;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
     cursor: pointer;
 
     &:disabled {

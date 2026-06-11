@@ -377,13 +377,13 @@ watch(
     font-size: 1.1rem;
     font-weight: 600;
     letter-spacing: 0.08em;
-    color: var(--land-base-500);
+    color: var(--bricks-base-500);
 }
 
 .sectionDivider {
     flex: 1;
     height: 1px;
-    background-color: var(--land-base-300);
+    background-color: var(--bricks-base-300);
 }
 
 .propsWrapper {
@@ -407,7 +407,7 @@ watch(
 .optTitle {
     font-size: 1.4rem;
     font-weight: 500;
-    color: var(--land-base-700);
+    color: var(--bricks-base-700);
 }
 
 .propertyGroup {
@@ -425,13 +425,13 @@ watch(
     font-size: 1.2rem;
     font-weight: 600;
     letter-spacing: 0.06em;
-    color: var(--land-base-500);
+    color: var(--bricks-base-500);
     transition: color var(--default-transition);
     cursor: pointer;
     gap: 0.6rem;
 
     &:hover {
-        color: var(--land-base-700);
+        color: var(--bricks-base-700);
     }
 }
 

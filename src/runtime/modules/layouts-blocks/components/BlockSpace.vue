@@ -81,7 +81,7 @@ const isVerticalDivider = computed<boolean>(
 
 const dividerStyle = computed<TSpaceStyle>(() => {
     const lp = props.layoutProps;
-    const color = lp.dividerColor || 'var(--land-base-200)';
+    const color = lp.dividerColor || 'var(--bricks-base-200)';
     const borderWidth = `${Math.max(1, Number(lp.dividerWidth) || 1)}px`;
     const lineStyle = lp.dividerStyle || 'solid';
     const mx = Math.round(Math.max(0, Number(lp.dividerMarginX) || 0) * 10) / 10;

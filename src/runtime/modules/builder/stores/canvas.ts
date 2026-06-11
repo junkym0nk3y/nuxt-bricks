@@ -15,7 +15,7 @@ const CANVAS_HEIGHT_BUFFER = 400;
  * Инкапсулирует логику размеров холста: ширину, высоту, масштаб и текущий viewport.
  * Используется для расчёта настройки канваса и синхронизации с реальными размерами контента.
  */
-export const useCanvasStore = defineStore('landingCanvas', {
+export const useCanvasStore = defineStore('bricksCanvas', {
     state: (): CanvasState => ({
         width: 1920,
         height: VIEWPORT_BASE_HEIGHT.desktop,

@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { IGalleryItem } from '../../../../layouts-blocks/types/layouts';
-import type { ILandGalleryFieldsConfig } from '../../../../common/types/index';
+import type { IBrickGalleryFieldsConfig } from '../../../../common/types/index';
 
 // Vue
 import { computed, useCssModule } from 'vue';
@@ -18,7 +18,7 @@ interface IPropertyImageGalleryEditorProps {
     modelValue?: IGalleryItem[];
     label?: string;
     /** Конфигурация дополнительных полей (title, tags) */
-    fields?: ILandGalleryFieldsConfig;
+    fields?: IBrickGalleryFieldsConfig;
 }
 
 interface IPropertyImageGalleryEditorEmits {
@@ -186,7 +186,7 @@ function handleReplaceImage(index: number): void {
         <div :class="$style.header">
             <span :class="$style.title">{{ props.label }}</span>
             <BricksButton size="sm" variant="primary" @click="handleAddImage">
-                <BricksLandIcon icon="ph:plus" />
+                <BricksIcon icon="ph:plus" />
                 Добавить
             </BricksButton>
         </div>
@@ -199,7 +199,7 @@ function handleReplaceImage(index: number): void {
             >
                 <div :class="$style.imageWrapper" @click="handleReplaceImage(index)">
                     <div v-if="isVideoItem(item)" :class="$style.videoPlaceholder">
-                        <BricksLandIcon icon="md:sharp-video-library" />
+                        <BricksIcon icon="md:sharp-video-library" />
                     </div>
                     <img
                         v-else-if="item.url"
@@ -208,10 +208,10 @@ function handleReplaceImage(index: number): void {
                         :class="$style.image"
                     />
                     <div v-else :class="$style.placeholder">
-                        <BricksLandIcon icon="md:image-plus" />
+                        <BricksIcon icon="md:image-plus" />
                     </div>
                     <div :class="$style.imageOverlay">
-                        <BricksLandIcon icon="ph:pencil" />
+                        <BricksIcon icon="ph:pencil" />
                     </div>
                 </div>
 
@@ -246,7 +246,7 @@ function handleReplaceImage(index: number): void {
                             :disabled="index === 0"
                             @click="handleMoveUp(index)"
                         >
-                            <BricksLandIcon icon="md:arrow-up" />
+                            <BricksIcon icon="md:arrow-up" />
                         </BricksButton>
                         <BricksButton
                             size="sm"
@@ -254,10 +254,10 @@ function handleReplaceImage(index: number): void {
                             :disabled="index === items.length - 1"
                             @click="handleMoveDown(index)"
                         >
-                            <BricksLandIcon icon="md:arrow-down" />
+                            <BricksIcon icon="md:arrow-down" />
                         </BricksButton>
                         <BricksButton size="sm" variant="ghost" @click="handleRemoveItem(index)">
-                            <BricksLandIcon icon="md:delete-outline" />
+                            <BricksIcon icon="md:delete-outline" />
                         </BricksButton>
                     </div>
                 </div>
@@ -265,7 +265,7 @@ function handleReplaceImage(index: number): void {
         </div>
 
         <div v-else :class="$style.empty" @click="handleAddImage">
-            <BricksLandIcon :class="$style.emptyIcon" icon="md:image-multiple" />
+            <BricksIcon :class="$style.emptyIcon" icon="md:image-multiple" />
             <span>Нажмите, чтобы добавить изображение</span>
         </div>
     </div>
@@ -288,7 +288,7 @@ function handleReplaceImage(index: number): void {
 .title {
     font-size: 1.4rem;
     font-weight: 600;
-    color: var(--land-base-800);
+    color: var(--bricks-base-800);
 }
 
 .grid {
@@ -302,12 +302,12 @@ function handleReplaceImage(index: number): void {
     gap: 1.2rem;
     padding: 1rem;
     border-radius: 0.8rem;
-    border: 1px solid var(--land-base-200);
-    background: var(--land-base-0);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-base-0);
 }
 
 .imageWrapper {
-    --land-base-100: #f3f4f6;
+    --bricks-base-100: #f3f4f6;
 
     position: relative;
     overflow: hidden;
@@ -315,7 +315,7 @@ function handleReplaceImage(index: number): void {
     width: 8rem;
     height: 8rem;
     border-radius: 0.6rem;
-    background: var(--land-base-100);
+    background: var(--bricks-base-100);
     cursor: pointer;
 
     &:hover .imageOverlay {
@@ -336,7 +336,7 @@ function handleReplaceImage(index: number): void {
     width: 100%;
     height: 100%;
     font-size: 2.4rem;
-    color: var(--land-base-400);
+    color: var(--bricks-base-400);
 }
 
 .videoPlaceholder {
@@ -345,9 +345,9 @@ function handleReplaceImage(index: number): void {
     justify-content: center;
     width: 100%;
     height: 100%;
-    background: var(--land-base-100, #f3f4f6);
+    background: var(--bricks-base-100, #f3f4f6);
     font-size: 2.4rem;
-    color: var(--land-base-400);
+    color: var(--bricks-base-400);
 }
 
 .imageOverlay {
@@ -357,7 +357,7 @@ function handleReplaceImage(index: number): void {
     justify-content: center;
     background: rgb(0 0 0 / 50%);
     font-size: 2rem;
-    color: var(--land-base-0);
+    color: var(--bricks-base-0);
     opacity: 0;
     transition: opacity 0.2s;
     inset: 0;
@@ -383,10 +383,10 @@ function handleReplaceImage(index: number): void {
     justify-content: center;
     padding: 2.4rem;
     border-radius: 0.8rem;
-    border: 2px dashed var(--land-base-300);
-    background: var(--land-base-50);
+    border: 2px dashed var(--bricks-base-300);
+    background: var(--bricks-base-50);
     font-size: 1.4rem;
-    color: var(--land-base-500);
+    color: var(--bricks-base-500);
     transition:
         border-color 0.2s,
         background 0.2s;
@@ -395,9 +395,9 @@ function handleReplaceImage(index: number): void {
     gap: 0.8rem;
 
     &:hover {
-        border-color: var(--land-primary-400);
-        background: var(--land-primary-50);
-        color: var(--land-primary-600);
+        border-color: var(--bricks-primary-400);
+        background: var(--bricks-primary-50);
+        color: var(--bricks-primary-600);
     }
 }
 

@@ -30,10 +30,10 @@ const props = withDefaults(defineProps<IRendererPlaceholderProps>(), {
     min-height: 10rem;
     padding: 2rem;
     border-radius: 0.8rem;
-    border: 0.2rem dashed var(--land-base-300);
-    background-color: var(--land-base-50);
+    border: 0.2rem dashed var(--bricks-base-300);
+    background-color: var(--bricks-base-50);
     text-align: center;
-    color: var(--land-base-500);
+    color: var(--bricks-base-500);
     flex-direction: column;
     gap: 1.6rem;
 }

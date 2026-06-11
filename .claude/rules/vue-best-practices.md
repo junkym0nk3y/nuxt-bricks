@@ -177,4 +177,4 @@ function handleEdit(): void {
 - ❌ **Do NOT mutate data** directly: use the spread operator `[...array]`, `{...object}`
 - ✅ **Clean up resources** in `onUnmounted()`: timers (`clearInterval`), event listeners (`removeEventListener`)
 - ✅ Use **IntersectionObserver** for lazy loading/infinite scroll
-- ✅ Use **debounce/throttle** for frequent events (search, scroll, resize): use the ones from `@idaproject/core`
+- ✅ Use **debounce/throttle** for frequent events (search, scroll, resize): use the ones from `@vueuse/core` (`useDebounceFn`, `useThrottleFn`)

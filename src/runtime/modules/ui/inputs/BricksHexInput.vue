@@ -108,7 +108,7 @@ function update(value: string, fireChange = true) {
 .BricksHexInput {
     display: flex;
     align-items: center;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
     flex-direction: row;
 
     &._disabled {
@@ -127,7 +127,7 @@ function update(value: string, fireChange = true) {
     margin-right: 1rem;
     border-radius: var(--border-radius-xs);
     border: 1px solid;
-    background: var(--land-base-0);
+    background: var(--bricks-base-0);
 }
 
 .colorInput {

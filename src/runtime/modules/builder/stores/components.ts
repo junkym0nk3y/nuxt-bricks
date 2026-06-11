@@ -8,7 +8,7 @@ import type { IComponentsState, ISelectedComponentData } from './types';
  * Отвечает за плоский список компонентов канваса, управление их иерархией и выбранным элементом.
  * Все операции (CRUD, слоты, история, выбор) проксируются через агрегированный набор действий.
  */
-export const useComponentsStore = defineStore('landingComponents', {
+export const useComponentsStore = defineStore('bricksComponents', {
     state: (): IComponentsState => ({
         components: [],
         selectedComponent: null,

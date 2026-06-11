@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { IToolbarProps, IToolbarEmits } from './types';
-import type { ILandUiCommonProp } from '../../../ui/inputs/types.d.ts';
+import type { IBrickUiCommonProp } from '../../../ui/inputs/types.d.ts';
 
 // Vue
 import { computed } from 'vue';
@@ -85,9 +85,9 @@ const currentPageTitle = computed(() => {
  */
 const publishButtonConfig = computed<{
     label: string;
-    options: ILandUiCommonProp[];
+    options: IBrickUiCommonProp[];
 }>(() => {
-    const baseOptions: ILandUiCommonProp[] = [
+    const baseOptions: IBrickUiCommonProp[] = [
         {
             label: 'Сохранить изменения',
             value: 'draft',
@@ -201,7 +201,7 @@ function handleToggleGrid(): void {
                         :active="props.showGrid"
                         @click="handleToggleGrid"
                     >
-                        <BricksLandIcon :class="$style.icon" icon="md:outlined-grid-3x3" />
+                        <BricksIcon :class="$style.icon" icon="md:outlined-grid-3x3" />
                     </BricksButton>
                 </template>
 
@@ -219,7 +219,7 @@ function handleToggleGrid(): void {
                         :disabled="!canUndo"
                         @click="handleUndo"
                     >
-                        <BricksLandIcon :class="$style.icon" icon="cl:arrow-undo-down-left" />
+                        <BricksIcon :class="$style.icon" icon="cl:arrow-undo-down-left" />
                     </BricksButton>
                 </template>
 
@@ -237,7 +237,7 @@ function handleToggleGrid(): void {
                         :disabled="!canRedo"
                         @click="handleRedo"
                     >
-                        <BricksLandIcon :class="$style.icon" icon="cl:arrow-undo-down-right" />
+                        <BricksIcon :class="$style.icon" icon="cl:arrow-undo-down-right" />
                     </BricksButton>
                 </template>
 
@@ -249,7 +249,7 @@ function handleToggleGrid(): void {
             <BricksTooltip bottom>
                 <template #activator>
                     <BricksButton size="md" variant="outline" equal @click="handleOpenPublishedPages">
-                        <BricksLandIcon :class="$style.icon" icon="ca:document-multiple-02" />
+                        <BricksIcon :class="$style.icon" icon="ca:document-multiple-02" />
                     </BricksButton>
                 </template>
 
@@ -261,7 +261,7 @@ function handleToggleGrid(): void {
             <BricksTooltip bottom>
                 <template #activator>
                     <BricksButton size="md" variant="outline" equal @click="handleOpenMediaGallery">
-                        <BricksLandIcon :class="$style.icon" icon="cd:file-media" />
+                        <BricksIcon :class="$style.icon" icon="cd:file-media" />
                     </BricksButton>
                 </template>
 
@@ -273,7 +273,7 @@ function handleToggleGrid(): void {
             <BricksTooltip bottom>
                 <template #activator>
                     <BricksButton size="md" variant="outline" equal @click="handlePreview">
-                        <BricksLandIcon :class="$style.icon" icon="md:outlined-preview" />
+                        <BricksIcon :class="$style.icon" icon="md:outlined-preview" />
                     </BricksButton>
                 </template>
 
@@ -289,7 +289,7 @@ function handleToggleGrid(): void {
                 @save-as-copy="handleSaveAsCopy"
                 @save-draft="handleSaveDraft"
             >
-                <BricksLandIcon icon="th:save" />
+                <BricksIcon icon="th:save" />
             </BricksActionButton>
         </div>
     </div>
@@ -304,8 +304,8 @@ function handleToggleGrid(): void {
     justify-content: space-between;
     height: 6rem;
     padding: 0 2rem;
-    border-bottom: 1px solid var(--land-base-300);
-    background-color: var(--land-base-0);
+    border-bottom: 1px solid var(--bricks-base-300);
+    background-color: var(--bricks-base-0);
     box-shadow: var(--shadow-sm);
 }
 
@@ -330,7 +330,7 @@ function handleToggleGrid(): void {
     margin: 0;
     font-size: 1.8rem;
     font-weight: 600;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
     gap: 0.8rem;
 }
 
@@ -346,12 +346,12 @@ function handleToggleGrid(): void {
 }
 
 .titleDivider {
-    color: var(--land-base-300);
+    color: var(--bricks-base-300);
 }
 
 .titleSecondary {
     font-weight: 500;
-    color: var(--land-base-600);
+    color: var(--bricks-base-600);
 }
 
 .icon {

@@ -156,7 +156,7 @@ function handleToggleDarkMode(): void {
             @click="handleClick(item.event, item.key)"
         >
             <span :class="$style.iconWrapper">
-                <BricksLandIcon :class="$style.icon" :icon="item.icon" />
+                <BricksIcon :class="$style.icon" :icon="item.icon" />
                 <span
                     v-if="item.key === 'settings' && showSettingsDanger"
                     :class="$style.dangerDot"
@@ -170,7 +170,7 @@ function handleToggleDarkMode(): void {
         <BricksTooltip right>
             <template #activator>
                 <button :class="$style.themeToggle" @click="handleOpenDocs">
-                    <BricksLandIcon :class="$style.icon" icon="ph:book-open-text" />
+                    <BricksIcon :class="$style.icon" icon="ph:book-open-text" />
                 </button>
             </template>
 
@@ -185,7 +185,7 @@ function handleToggleDarkMode(): void {
                     :class="[$style.themeToggle, { [$style._active]: props.isDarkMode }]"
                     @click="handleToggleDarkMode"
                 >
-                    <BricksLandIcon :class="$style.icon" :icon="darkModeIcon" />
+                    <BricksIcon :class="$style.icon" :icon="darkModeIcon" />
                 </button>
             </template>
 
@@ -205,8 +205,8 @@ function handleToggleDarkMode(): void {
     width: 7.2rem;
     min-width: 7.2rem;
     padding-top: 1.6rem;
-    border-right: 1px solid var(--land-base-300);
-    background-color: var(--land-base-0);
+    border-right: 1px solid var(--bricks-base-300);
+    background-color: var(--bricks-base-0);
     flex-direction: column;
     gap: 0.4rem;
 }
@@ -220,7 +220,7 @@ function handleToggleDarkMode(): void {
     border: none;
     background: transparent;
     font-size: 1rem;
-    color: var(--land-base-600);
+    color: var(--bricks-base-600);
     transition:
         color var(--default-transition),
         background-color var(--default-transition);
@@ -229,13 +229,13 @@ function handleToggleDarkMode(): void {
     gap: 0.4rem;
 
     &:hover:not(.\_disabled) {
-        background-color: var(--land-base-100);
-        color: var(--land-base-900);
+        background-color: var(--bricks-base-100);
+        color: var(--bricks-base-900);
     }
 
     &._active {
-        background-color: var(--land-primary-50, rgb(99 102 241 / 8%));
-        color: var(--land-primary);
+        background-color: var(--bricks-primary-50, rgb(99 102 241 / 8%));
+        color: var(--bricks-primary);
     }
 
     &._disabled {
@@ -262,7 +262,7 @@ function handleToggleDarkMode(): void {
     width: 0.6rem;
     height: 0.6rem;
     border-radius: 50%;
-    background-color: var(--land-danger-500);
+    background-color: var(--bricks-danger-500);
 }
 
 .label {
@@ -286,22 +286,22 @@ function handleToggleDarkMode(): void {
     border-radius: 0.8rem;
     border: none;
     background: transparent;
-    color: var(--land-base-500);
+    color: var(--bricks-base-500);
     transition:
         color var(--default-transition),
         background-color var(--default-transition);
     cursor: pointer;
 
     &:hover {
-        background-color: var(--land-base-100);
-        color: var(--land-base-900);
+        background-color: var(--bricks-base-100);
+        color: var(--bricks-base-900);
     }
 
     &._active {
-        color: var(--land-yellow);
+        color: var(--bricks-yellow);
 
         &:hover {
-            color: var(--land-yellow);
+            color: var(--bricks-yellow);
         }
     }
 }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { ILandUiCommonProp } from './types.d.ts';
+import type { IBrickUiCommonProp } from './types.d.ts';
 
 // Vue
 import { computed, ref, useCssModule } from 'vue';
@@ -25,7 +25,7 @@ const props = withDefaults(
     defineProps<{
         disabled?: boolean;
         isSubmitting?: boolean;
-        options: ILandUiCommonProp[];
+        options: IBrickUiCommonProp[];
     }>(),
     {
         disabled: false,
@@ -64,7 +64,7 @@ const resolvedOptions = computed(() => props.options ?? []);
  *
  * @param option - Selected option metadata.
  */
-function handleOptionSelect(option: ILandUiCommonProp): void {
+function handleOptionSelect(option: IBrickUiCommonProp): void {
     switch (option.value) {
         case 'copy':
             emit('saveAsCopy');
@@ -137,7 +137,7 @@ function handleOptionSelect(option: ILandUiCommonProp): void {
         width: 0;
         height: 0;
         border: 0.4rem solid transparent;
-        border-top-color: var(--land-base-0);
+        border-top-color: var(--bricks-base-0);
         transform: translateY(-25%);
         transition:
             transform 150ms ease,
@@ -160,8 +160,8 @@ function handleOptionSelect(option: ILandUiCommonProp): void {
     min-width: 22rem;
     padding: 0.8rem;
     border-radius: var(--border-radius-sm);
-    border: 1px solid var(--land-base-200);
-    background-color: var(--land-base-0);
+    border: 1px solid var(--bricks-base-200);
+    background-color: var(--bricks-base-0);
     box-shadow: var(--shadow-md);
 
     &[data-state='open'] {
@@ -181,7 +181,7 @@ function handleOptionSelect(option: ILandUiCommonProp): void {
 
     &[data-highlighted] {
         border-radius: var(--border-radius-sm);
-        background-color: var(--land-base-300);
+        background-color: var(--bricks-base-300);
     }
 }
 

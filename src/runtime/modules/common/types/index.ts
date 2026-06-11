@@ -1,11 +1,11 @@
 export interface ILandingFileStructure {
     category?: string;
     description?: string;
-    values: Record<string, ILandValues>;
-    slots?: Record<string, ILandSlotDefinition> | Array<string | ILandSlotDefinition>;
+    values: Record<string, IBrickValues>;
+    slots?: Record<string, IBrickSlotDefinition> | Array<string | IBrickSlotDefinition>;
 }
 
-export type ILandDemoValues =
+export type IBrickDemoValues =
     | string
     | number
     | boolean
@@ -19,7 +19,7 @@ export type ILandDemoValues =
 /**
  * Конфигурация дополнительных полей для image-gallery редактора.
  */
-export interface ILandGalleryFieldsConfig {
+export interface IBrickGalleryFieldsConfig {
     /** Показывать поле title (default: true) */
     title?: boolean;
     /** Показывать поле caption (default: false) */
@@ -28,12 +28,12 @@ export interface ILandGalleryFieldsConfig {
     tags?: boolean;
 }
 
-export interface ILandShowWhen {
+export interface IBrickShowWhen {
     field: string;
-    equals: ILandDemoValues;
+    equals: IBrickDemoValues;
 }
 
-export interface ILandValues {
+export interface IBrickValues {
     type:
         | 'select'
         | 'tabs'
@@ -51,14 +51,14 @@ export interface ILandValues {
         | 'inline-content'
         | 'tags'
         | string;
-    default?: ILandDemoValues;
-    defaultValue?: ILandDemoValues;
-    newValue?: ILandDemoValues;
+    default?: IBrickDemoValues;
+    defaultValue?: IBrickDemoValues;
+    newValue?: IBrickDemoValues;
     desc?: string;
-    vars?: ILandDemoValues[];
+    vars?: IBrickDemoValues[];
     listDelimiter?: string;
     /** Конфигурация полей для image-gallery */
-    fields?: ILandGalleryFieldsConfig;
+    fields?: IBrickGalleryFieldsConfig;
     /** При изменении пропа с forceRender компонент полностью пересоздаётся (для lazy-load) */
     forceRender?: boolean;
     /** Минимальное значение для number-свойств */
@@ -67,7 +67,7 @@ export interface ILandValues {
     max?: number;
     /** Шаг для number-свойств */
     step?: number;
-    showWhen?: ILandShowWhen;
+    showWhen?: IBrickShowWhen;
     /** Имя свойства, куда сохранять svgContent при выборе SVG из галереи */
     svgContentProperty?: string;
     /** Суффикс единицы измерения для инпута (например, 'rem') */
@@ -78,22 +78,22 @@ export interface ILandValues {
     responsive?: boolean;
 }
 
-export interface ILandSlotDefinition {
+export interface IBrickSlotDefinition {
     label?: string;
     description?: string;
     allowMultiple?: boolean;
 }
 
-export interface ILandExportModule {
+export interface IBrickExportModule {
     default?: unknown;
     story?: {
-        values?: Record<string, ILandValues>;
+        values?: Record<string, IBrickValues>;
         category?: string;
         description?: string;
-        slots?: Record<string, ILandSlotDefinition> | Array<string | ILandSlotDefinition>;
-        dataSources?: import('../../render/types/landing-data-source').ILandDataSource[];
+        slots?: Record<string, IBrickSlotDefinition> | Array<string | IBrickSlotDefinition>;
+        dataSources?: import('../../render/types/landing-data-source').IBrickDataSource[];
     };
 }
 
-export type { ILandDataSource, ILandDataSourceParam } from '../../render/types/landing-data-source';
+export type { IBrickDataSource, IBrickDataSourceParam } from '../../render/types/landing-data-source';
 export type { IGalleryItem, IInlineContentSegment } from '../../layouts-blocks/types/layouts';

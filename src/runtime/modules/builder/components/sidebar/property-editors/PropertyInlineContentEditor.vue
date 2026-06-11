@@ -217,7 +217,7 @@ function formatDimensionValue(value?: string | number): string {
                             :disabled="index === 0"
                             @click="handleMoveSegment(index, 'up')"
                         >
-                            <BricksLandIcon icon="md:arrow-up" />
+                            <BricksIcon icon="md:arrow-up" />
                         </BricksButton>
                         <BricksButton
                             size="sm"
@@ -225,10 +225,10 @@ function formatDimensionValue(value?: string | number): string {
                             :disabled="index === segments.length - 1"
                             @click="handleMoveSegment(index, 'down')"
                         >
-                            <BricksLandIcon icon="md:arrow-down" />
+                            <BricksIcon icon="md:arrow-down" />
                         </BricksButton>
                         <BricksButton size="sm" variant="ghost" @click="handleRemoveSegment(index)">
-                            <BricksLandIcon icon="md:delete-outline" />
+                            <BricksIcon icon="md:delete-outline" />
                         </BricksButton>
                     </div>
                 </div>
@@ -261,7 +261,7 @@ function formatDimensionValue(value?: string | number): string {
                     </div>
                     <div :class="$style.mediaActions">
                         <BricksButton size="sm" variant="ghost" @click="handleReplaceMedia(index)">
-                            <BricksLandIcon icon="md:folder-edit" />
+                            <BricksIcon icon="md:folder-edit" />
                             Заменить медиа
                         </BricksButton>
                     </div>
@@ -291,7 +291,7 @@ function formatDimensionValue(value?: string | number): string {
         </div>
 
         <div v-else :class="$style.emptyState">
-            <BricksLandIcon :class="$style.emptyIcon" icon="md:text-box-outline" />
+            <BricksIcon :class="$style.emptyIcon" icon="md:text-box-outline" />
             <p>Добавьте текст или медиа, чтобы собрать сложный заголовок</p>
         </div>
     </div>
@@ -302,8 +302,8 @@ function formatDimensionValue(value?: string | number): string {
     display: flex;
     padding: 1.2rem;
     border-radius: 0.8rem;
-    border: 1px solid var(--land-base-200);
-    background: var(--land-base-50);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-base-50);
     flex-direction: column;
     gap: 1.6rem;
 }
@@ -318,7 +318,7 @@ function formatDimensionValue(value?: string | number): string {
 .title {
     font-size: 1.4rem;
     font-weight: 600;
-    color: var(--land-base-800);
+    color: var(--bricks-base-800);
 }
 
 .headerActions {
@@ -335,8 +335,8 @@ function formatDimensionValue(value?: string | number): string {
 .segmentItem {
     padding: 1.2rem;
     border-radius: 0.6rem;
-    border: 1px solid var(--land-base-200);
-    background: var(--land-base-0);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-base-0);
 }
 
 .segmentHeader {
@@ -368,16 +368,16 @@ function formatDimensionValue(value?: string | number): string {
     gap: 0.4rem;
     padding: 0.4rem 0.8rem;
     border-radius: 0.4rem;
-    background: var(--land-base-100);
+    background: var(--bricks-base-100);
     font-size: 1.3rem;
     font-weight: 600;
-    color: var(--land-base-700);
+    color: var(--bricks-base-700);
 }
 
 .lineBreakHint {
     margin: 0;
     font-size: 1.2rem;
-    color: var(--land-base-500);
+    color: var(--bricks-base-500);
 }
 
 .mediaPreview {
@@ -387,8 +387,8 @@ function formatDimensionValue(value?: string | number): string {
     min-height: 10rem;
     padding: 1rem;
     border-radius: 0.6rem;
-    border: 1px dashed var(--land-base-300);
-    background: var(--land-base-50);
+    border: 1px dashed var(--bricks-base-300);
+    background: var(--bricks-base-50);
 }
 
 .previewImage {
@@ -427,15 +427,15 @@ function formatDimensionValue(value?: string | number): string {
     justify-content: center;
     padding: 2rem;
     border-radius: 0.6rem;
-    border: 1px dashed var(--land-base-300);
+    border: 1px dashed var(--bricks-base-300);
     text-align: center;
-    color: var(--land-base-600);
+    color: var(--bricks-base-600);
     flex-direction: column;
     gap: 0.8rem;
 }
 
 .emptyIcon {
     font-size: 3.2rem;
-    color: var(--land-base-400);
+    color: var(--bricks-base-400);
 }
 </style>

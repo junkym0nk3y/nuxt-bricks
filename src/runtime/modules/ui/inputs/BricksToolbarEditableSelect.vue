@@ -189,7 +189,7 @@ async function focusCustomInput(): Promise<void> {
                 @mousedown.prevent
             >
                 <span v-if="props.item.icon" :class="$style.triggerIcon">
-                    <BricksLandIcon :icon="props.item.icon" />
+                    <BricksIcon :icon="props.item.icon" />
                 </span>
                 <span v-if="displayValue" :class="$style.triggerValue">{{ displayValue }}</span>
             </ComboboxTrigger>
@@ -262,20 +262,20 @@ async function focusCustomInput(): Promise<void> {
     height: var(--toolbar-btn-size, 2.6rem);
     padding: 0 0.6rem;
     border-radius: var(--border-radius-xs);
-    border: 1px solid var(--land-base-200);
+    border: 1px solid var(--bricks-base-200);
     background: transparent;
     font-size: var(--toolbar-font-size, 1.2rem);
-    color: var(--land-base-600);
+    color: var(--bricks-base-600);
     transition: all var(--default-transition);
     cursor: pointer;
 
     &:hover {
-        border-color: var(--land-primary);
-        color: var(--land-primary);
+        border-color: var(--bricks-primary);
+        color: var(--bricks-primary);
     }
 
     &._hasValue {
-        color: var(--land-base-800);
+        color: var(--bricks-base-800);
     }
 }
 
@@ -305,8 +305,8 @@ async function focusCustomInput(): Promise<void> {
     width: 16rem;
     padding: 0.6rem;
     border-radius: var(--border-radius-sm);
-    border: 1px solid var(--land-base-200);
-    background: var(--land-base-0);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-base-0);
     box-shadow: var(--shadow-md);
 }
 
@@ -329,7 +329,7 @@ async function focusCustomInput(): Promise<void> {
     text-align: left;
     white-space: nowrap;
     font-size: 1.2rem;
-    color: var(--land-base-700);
+    color: var(--bricks-base-700);
     transition:
         background var(--default-transition),
         color var(--default-transition);
@@ -337,19 +337,19 @@ async function focusCustomInput(): Promise<void> {
 
     &:hover,
     &[data-highlighted] {
-        background: var(--land-base-100);
+        background: var(--bricks-base-100);
     }
 
     &._selected {
-        background: var(--land-primary-100, rgb(99 102 241 / 15%));
+        background: var(--bricks-primary-100, rgb(99 102 241 / 15%));
         font-weight: 600;
-        color: var(--land-primary);
+        color: var(--bricks-primary);
     }
 }
 
 .divider {
     margin: 0.4rem 0;
-    border-top: 1px solid var(--land-base-200);
+    border-top: 1px solid var(--bricks-base-200);
 }
 
 .customInputRow {
@@ -364,23 +364,23 @@ async function focusCustomInput(): Promise<void> {
     height: 2.4rem;
     padding: 0 0.6rem;
     border-radius: var(--border-radius-xs);
-    border: 1px solid var(--land-base-200);
-    background: var(--land-base-50);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-base-50);
     font-size: 1.2rem;
-    color: var(--land-base-800);
+    color: var(--bricks-base-800);
     transition: border-color var(--default-transition);
 
     &::placeholder {
-        color: var(--land-base-400);
+        color: var(--bricks-base-400);
     }
 
     &:focus {
-        border-color: var(--land-primary);
+        border-color: var(--bricks-primary);
         outline: none;
     }
 
     &._error {
-        border-color: var(--land-danger-600, #dc2626);
+        border-color: var(--bricks-danger-600, #dc2626);
     }
 }
 
@@ -392,8 +392,8 @@ async function focusCustomInput(): Promise<void> {
     width: 2.4rem;
     height: 2.4rem;
     border-radius: var(--border-radius-xs);
-    border: 1px solid var(--land-base-200);
-    background: var(--land-primary);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-primary);
     font-size: 1.2rem;
     font-weight: 600;
     color: #fff;
@@ -413,6 +413,6 @@ async function focusCustomInput(): Promise<void> {
 .errorText {
     margin-top: 0.2rem;
     font-size: 1.1rem;
-    color: var(--land-danger-600, #dc2626);
+    color: var(--bricks-danger-600, #dc2626);
 }
 </style>

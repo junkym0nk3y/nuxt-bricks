@@ -119,7 +119,7 @@ function handleClose(): void {
         <div :class="$style.search">
             <div :class="$style.searchRow">
                 <div :class="$style.searchInner">
-                    <BricksLandIcon :class="$style.searchIcon" icon="ph:magnifying-glass" />
+                    <BricksIcon :class="$style.searchIcon" icon="ph:magnifying-glass" />
                     <input
                         v-model="searchQuery"
                         :class="$style.searchInput"
@@ -133,7 +133,7 @@ function handleClose(): void {
                         type="button"
                         @click="searchQuery = ''"
                     >
-                        <BricksLandIcon icon="ph:x" />
+                        <BricksIcon icon="ph:x" />
                     </button>
                 </div>
                 <button
@@ -144,7 +144,7 @@ function handleClose(): void {
                     type="button"
                     @click="showFavoritesOnly = !showFavoritesOnly"
                 >
-                    <BricksLandIcon :icon="showFavoritesOnly ? 'ph:star-fill' : 'ph:star'" />
+                    <BricksIcon :icon="showFavoritesOnly ? 'ph:star-fill' : 'ph:star'" />
                 </button>
             </div>
         </div>
@@ -178,7 +178,7 @@ function handleClose(): void {
 
             <div v-if="hasAvailableComponents && !hasFilteredResults" :class="$style.empty">
                 <span :class="$style.emptyIcon">
-                    <BricksLandIcon icon="ph:magnifying-glass" />
+                    <BricksIcon icon="ph:magnifying-glass" />
                 </span>
                 <p>Ничего не найдено</p>
                 <p :class="$style.emptyHint">Попробуйте изменить поисковый запрос</p>
@@ -186,7 +186,7 @@ function handleClose(): void {
 
             <div v-if="!hasAvailableComponents" :class="$style.empty">
                 <span :class="$style.emptyIcon">
-                    <BricksLandIcon icon="ph:package" />
+                    <BricksIcon icon="ph:package" />
                 </span>
                 <p>No components available</p>
                 <p :class="$style.emptyHint">
@@ -210,19 +210,19 @@ function handleClose(): void {
     align-items: center;
     justify-content: space-between;
     padding: 1.6rem 2rem;
-    border-bottom: 1px solid var(--land-base-300);
+    border-bottom: 1px solid var(--bricks-base-300);
 }
 
 .title {
     margin: 0;
     font-size: 1.6rem;
     font-weight: 600;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
 }
 
 .search {
     padding: 1.2rem 2rem;
-    border-bottom: 1px solid var(--land-base-300);
+    border-bottom: 1px solid var(--bricks-base-300);
 }
 
 .searchRow {
@@ -240,9 +240,9 @@ function handleClose(): void {
     height: 3.6rem;
     padding: 0;
     border-radius: 0.8rem;
-    border: 1px solid var(--land-base-300);
-    background-color: var(--land-base-50);
-    color: var(--land-base-400);
+    border: 1px solid var(--bricks-base-300);
+    background-color: var(--bricks-base-50);
+    color: var(--bricks-base-400);
     transition: all var(--default-transition);
     cursor: pointer;
 
@@ -252,19 +252,19 @@ function handleClose(): void {
     }
 
     &:hover {
-        border-color: var(--land-primary);
-        color: var(--land-primary);
+        border-color: var(--bricks-primary);
+        color: var(--bricks-primary);
     }
 }
 
 .favoritesToggleActive {
-    border-color: var(--land-primary);
-    background-color: var(--land-primary);
-    color: var(--land-base-0);
+    border-color: var(--bricks-primary);
+    background-color: var(--bricks-primary);
+    color: var(--bricks-base-0);
 
     &:hover {
-        background-color: var(--land-primary);
-        color: var(--land-base-0);
+        background-color: var(--bricks-primary);
+        color: var(--bricks-base-0);
     }
 }
 
@@ -273,12 +273,12 @@ function handleClose(): void {
     display: flex;
     align-items: center;
     border-radius: 0.8rem;
-    border: 1px solid var(--land-base-300);
-    background-color: var(--land-base-50);
+    border: 1px solid var(--bricks-base-300);
+    background-color: var(--bricks-base-50);
     transition: border-color var(--default-transition);
 
     &:focus-within {
-        border-color: var(--land-primary);
+        border-color: var(--bricks-primary);
     }
 }
 
@@ -287,7 +287,7 @@ function handleClose(): void {
     left: 1rem;
     width: 1.6rem;
     height: 1.6rem;
-    color: var(--land-base-400);
+    color: var(--bricks-base-400);
     pointer-events: none;
 }
 
@@ -299,10 +299,10 @@ function handleClose(): void {
     outline: none;
     font-size: 1.4rem;
     line-height: 1.6rem;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
 
     &::placeholder {
-        color: var(--land-base-400);
+        color: var(--bricks-base-400);
     }
 }
 
@@ -317,12 +317,12 @@ function handleClose(): void {
     border-radius: 0.4rem;
     border: none;
     background: transparent;
-    color: var(--land-base-400);
+    color: var(--bricks-base-400);
     transition: color var(--default-transition);
     cursor: pointer;
 
     &:hover {
-        color: var(--land-base-700);
+        color: var(--bricks-base-700);
     }
 
     svg {
@@ -351,7 +351,7 @@ function handleClose(): void {
     font-size: 1.2rem;
     font-weight: 600;
     letter-spacing: 0.05rem;
-    color: var(--land-base-600);
+    color: var(--bricks-base-600);
 }
 
 .componentList {
@@ -374,7 +374,7 @@ function handleClose(): void {
     justify-content: center;
     height: 100%;
     text-align: center;
-    color: var(--land-base-300);
+    color: var(--bricks-base-300);
 
     p {
         margin: 0.8rem 0;
@@ -383,7 +383,7 @@ function handleClose(): void {
 
 .emptyIcon {
     margin-bottom: 1.6rem;
-    color: var(--land-base-300);
+    color: var(--bricks-base-300);
 
     svg {
         width: 4.8rem;
@@ -393,12 +393,12 @@ function handleClose(): void {
 
 .emptyHint {
     font-size: 1.2rem;
-    color: var(--land-base-300);
+    color: var(--bricks-base-300);
 
     code {
         padding: 0.2rem 0.6rem;
         border-radius: var(--border-radius-xs);
-        background-color: var(--land-base-300);
+        background-color: var(--bricks-base-300);
         font-family: monospace;
     }
 }

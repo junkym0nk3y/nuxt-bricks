@@ -165,7 +165,7 @@ function onMouseenter() {
         height: 100%;
         background: linear-gradient(
                 to right,
-                var(--land-base-900, currentColor) 50%,
+                var(--bricks-base-900, currentColor) 50%,
                 transparent 50%
             )
             100%;
@@ -221,7 +221,7 @@ function onMouseenter() {
 .logoIcon {
     width: 100%;
     height: 100%;
-    color: var(--land-base-900, currentColor);
+    color: var(--bricks-base-900, currentColor);
     transform: translate3d(0, 0, 0);
 }
 

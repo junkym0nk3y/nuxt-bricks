@@ -334,7 +334,7 @@ watch(
                     aria-label="Увеличить"
                     @click="handleStep(1)"
                 >
-                    <BricksLandIcon icon="ph:plus" />
+                    <BricksIcon icon="ph:plus" />
                 </button>
                 <button
                     type="button"
@@ -343,7 +343,7 @@ watch(
                     aria-label="Уменьшить"
                     @click="handleStep(-1)"
                 >
-                    <BricksLandIcon icon="ph:minus" />
+                    <BricksIcon icon="ph:minus" />
                 </button>
             </div>
         </div>
@@ -367,12 +367,12 @@ watch(
 
     &._invalid {
         .inner:after {
-            background-color: var(--land-danger-600);
+            background-color: var(--bricks-danger-600);
             transform: scaleX(1);
         }
 
         .native {
-            color: var(--land-danger-600);
+            color: var(--bricks-danger-600);
         }
 
         .errorMessage {
@@ -404,7 +404,7 @@ watch(
         margin-bottom: 0.8rem;
         font-size: 1.4rem;
         font-weight: 500;
-        color: var(--land-base-600);
+        color: var(--bricks-base-600);
         pointer-events: none;
 
         @media (width <= 768px) {
@@ -427,12 +427,12 @@ watch(
         left: 0;
         width: 100%;
         height: 1px;
-        background-color: var(--land-base-300);
+        background-color: var(--bricks-base-300);
     }
 
     &:after {
         z-index: 2;
-        background-color: var(--land-primary);
+        background-color: var(--bricks-primary);
         transform: scaleX(0);
         transform-origin: left center;
         transition: all var(--default-transition);
@@ -447,7 +447,7 @@ watch(
     outline: none;
     font-size: 1.4rem;
     line-height: 1.6rem;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
 
     &:focus {
         outline: none;
@@ -464,7 +464,7 @@ watch(
     bottom: 1rem;
     font-size: 1.2rem;
     line-height: 1.6rem;
-    color: var(--land-base-400);
+    color: var(--bricks-base-400);
     pointer-events: none;
     user-select: none;
 }
@@ -488,7 +488,7 @@ watch(
     height: 1.2rem;
     border: none;
     background-color: transparent;
-    color: var(--land-base-500);
+    color: var(--bricks-base-500);
     transition:
         background-color var(--default-transition),
         color var(--default-transition);
@@ -496,7 +496,7 @@ watch(
 
     &:hover {
         background-color: var(--primary-indigo-12);
-        color: var(--land-base-600);
+        color: var(--bricks-base-600);
     }
 
     svg {
@@ -509,7 +509,7 @@ watch(
     margin: 0.4rem 0 0;
     font-size: 1.2rem;
     line-height: 1.4;
-    color: var(--land-danger-600);
+    color: var(--bricks-danger-600);
     opacity: 0;
     transition: opacity var(--default-transition);
 }

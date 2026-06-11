@@ -1,7 +1,7 @@
-import type { ILandDemoValues } from '../../common/types/index';
+import type { IBrickDemoValues } from '../../common/types/index';
 
 // Ensure all value types match component expectations
-export interface ILandUiCommonProp {
+export interface IBrickUiCommonProp {
     label: string;
     value: string | boolean;
     disabled?: boolean;
@@ -9,14 +9,14 @@ export interface ILandUiCommonProp {
 }
 
 export interface IBricksSelectProps {
-    specs: ILandUiCommonProp[];
-    facets: ILandDemoValues[];
-    value: ILandDemoValues;
+    specs: IBrickUiCommonProp[];
+    facets: IBrickDemoValues[];
+    value: IBrickDemoValues;
     disabled?: boolean;
 }
 
 export interface IBricksSelectEmits {
-    'update:value': [value: ILandDemoValues | null];
+    'update:value': [value: IBrickDemoValues | null];
 }
 
 export interface IBricksInputProps {

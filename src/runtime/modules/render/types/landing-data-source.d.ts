@@ -1,21 +1,21 @@
 import type { TPublishFormState } from '../../common/types/landing-api';
 
-export interface ILandDataSourceParam {
+export interface IBrickDataSourceParam {
     from?: string;
     value?: unknown;
-    map?: (value: unknown, context: ILandDataSourceContext) => unknown;
+    map?: (value: unknown, context: IBrickDataSourceContext) => unknown;
 }
 
-export interface ILandDataSourceContext {
+export interface IBrickDataSourceContext {
     pageSettings: TPublishFormState | null;
     componentProps: Record<string, unknown>;
 }
 
-export interface ILandDataSource {
+export interface IBrickDataSource {
     key: string;
     url: string;
     method?: string;
-    params?: Record<string, ILandDataSourceParam>;
+    params?: Record<string, IBrickDataSourceParam>;
     props: string[];
-    map?: (response: unknown, context: ILandDataSourceContext) => Record<string, unknown>;
+    map?: (response: unknown, context: IBrickDataSourceContext) => Record<string, unknown>;
 }

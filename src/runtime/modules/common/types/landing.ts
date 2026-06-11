@@ -32,7 +32,7 @@ export interface SpaceProps {
     size: string | number; // number в rem (2.4) или строка с единицей ('2.4rem')
     direction: 'vertical' | 'horizontal' | 'both';
     showDivider?: boolean;
-    dividerColor?: string; // CSS color, default: var(--land-base-200)
+    dividerColor?: string; // CSS color, default: var(--bricks-base-200)
     dividerWidth?: number; // px, default: 1
     dividerStyle?: 'solid' | 'dashed' | 'dotted';
     dividerMarginX?: number; // rem, отступы по бокам

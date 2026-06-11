@@ -112,7 +112,7 @@ function focusInput(): void {
                     :disabled="props.disabled"
                     @click.stop="removeTag(index)"
                 >
-                    <BricksLandIcon icon="md:close" />
+                    <BricksIcon icon="md:close" />
                 </button>
             </span>
 
@@ -136,7 +136,7 @@ function focusInput(): void {
             :disabled="props.disabled"
             @click.stop="addTag"
         >
-            <BricksLandIcon icon="ph:plus" />
+            <BricksIcon icon="ph:plus" />
         </BricksButton>
     </div>
 </template>
@@ -148,14 +148,14 @@ function focusInput(): void {
     min-height: 3.2rem;
     padding: 0.4rem 0.8rem;
     border-radius: 0.6rem;
-    border: 1px solid var(--land-base-200);
-    background: var(--land-base-0);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-base-0);
     transition: border-color 0.2s;
     cursor: text;
     gap: 0.4rem;
 
     &:focus-within {
-        border-color: var(--land-primary-400);
+        border-color: var(--bricks-primary-400);
     }
 
     &._disabled {
@@ -178,10 +178,10 @@ function focusInput(): void {
     align-items: center;
     padding: 0.2rem 0.6rem;
     border-radius: 0.4rem;
-    background: var(--land-primary-100);
+    background: var(--bricks-primary-100);
     font-size: 1.2rem;
     line-height: 1.4;
-    color: var(--land-primary-700);
+    color: var(--bricks-primary-700);
     gap: 0.2rem;
 }
 
@@ -201,12 +201,12 @@ function focusInput(): void {
     padding: 0;
     border: none;
     background: transparent;
-    color: var(--land-primary-500);
+    color: var(--bricks-primary-500);
     transition: color 0.2s;
     cursor: pointer;
 
     &:hover {
-        color: var(--land-danger-500);
+        color: var(--bricks-danger-500);
     }
 
     svg {
@@ -223,10 +223,10 @@ function focusInput(): void {
     background: transparent;
     outline: none;
     font-size: 1.2rem;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
 
     &::placeholder {
-        color: var(--land-base-400);
+        color: var(--bricks-base-400);
     }
 }
 

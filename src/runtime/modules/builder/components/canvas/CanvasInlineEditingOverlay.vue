@@ -701,8 +701,8 @@ function handleRequestImage(): void {
     max-width: 80rem;
     padding: 0.6rem;
     border-radius: var(--border-radius-sm);
-    border: 1px solid var(--land-base-200);
-    background: var(--land-base-0);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-base-0);
     resize: horizontal;
     flex-direction: column;
     gap: 0.4rem;
@@ -725,7 +725,7 @@ function handleRequestImage(): void {
     flex-shrink: 0;
     height: 1.8rem;
     border-radius: var(--border-radius-xs);
-    color: var(--land-base-300);
+    color: var(--bricks-base-300);
     transition:
         background var(--default-transition),
         color var(--default-transition);
@@ -733,8 +733,8 @@ function handleRequestImage(): void {
     user-select: none;
 
     &:hover {
-        background: var(--land-base-100);
-        color: var(--land-base-500);
+        background: var(--bricks-base-100);
+        color: var(--bricks-base-500);
     }
 }
 
@@ -767,12 +767,12 @@ function handleRequestImage(): void {
     border-radius: var(--border-radius-xs);
     border: none;
     background: transparent;
-    color: var(--land-base-600);
+    color: var(--bricks-base-600);
     cursor: pointer;
 
     &:hover:not(:disabled) {
-        background: var(--land-base-100);
-        color: var(--land-base-900);
+        background: var(--bricks-base-100);
+        color: var(--bricks-base-900);
     }
 
     &:disabled {
@@ -784,7 +784,7 @@ function handleRequestImage(): void {
 .propCounter {
     white-space: nowrap;
     font-size: 1.1rem;
-    color: var(--land-base-500);
+    color: var(--bricks-base-500);
     user-select: none;
 }
 
@@ -793,14 +793,14 @@ function handleRequestImage(): void {
     align-items: center;
     gap: 0.8rem;
     padding-top: 0.4rem;
-    border-top: 1px solid var(--land-base-200);
+    border-top: 1px solid var(--bricks-base-200);
 }
 
 .doneButton {
     padding: 0.3rem 1rem;
     border-radius: var(--border-radius-xs);
     border: none;
-    background: var(--land-primary);
+    background: var(--bricks-primary);
     white-space: nowrap;
     font-size: 1.2rem;
     font-weight: 600;
@@ -816,19 +816,19 @@ function handleRequestImage(): void {
 .hint {
     white-space: nowrap;
     font-size: 1.1rem;
-    color: var(--land-base-500);
+    color: var(--bricks-base-500);
 }
 
 .fallbackEditorWrapper {
-    --land-base-0: #fff;
+    --bricks-base-0: #fff;
 
     overflow-y: auto;
     max-height: 20rem;
     padding: 0.4rem;
     border-radius: var(--border-radius-xs);
-    border: 1px solid var(--land-base-200);
-    background: var(--land-base-0);
-    background-color: var(--land-base-0);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-base-0);
+    background-color: var(--bricks-base-0);
     font-size: 1.4rem;
     line-height: 1.5;
     color: initial;

@@ -47,11 +47,11 @@ export const PROPERTY_EDITOR_ORDER = [
 
 ### Шаг 3: Добавить распознавание типа в `composables/useComponentProperties.ts`
 
-**ЭТО КРИТИЧЕСКИ ВАЖНЫЙ ШАГ!** Функция `inferPropertyType` преобразует тип из `.idaland.ts` в `PropertyType`. Без этого шага тип будет игнорироваться и фолбечиться на `array` или `textarea`!
+**ЭТО КРИТИЧЕСКИ ВАЖНЫЙ ШАГ!** Функция `inferPropertyType` преобразует тип из `.brick.ts` в `PropertyType`. Без этого шага тип будет игнорироваться и фолбечиться на `array` или `textarea`!
 
 ```typescript
 // composables/useComponentProperties.ts
-const inferPropertyType = (value: ILandValues): PropertyType => {
+const inferPropertyType = (value: IBrickValues): PropertyType => {
     // ... существующие проверки ...
 
     if (value.type === 'my-new-type') {

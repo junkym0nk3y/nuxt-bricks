@@ -181,7 +181,7 @@ const SECTION_PROPERTIES: ILayoutProperty[] = [
         type: 'color' as const,
         label: 'Цвет фона',
         default: '',
-        description: 'CSS color или CSS variable (например, var(--land-base-900))',
+        description: 'CSS color или CSS variable (например, var(--bricks-base-900))',
         group: 'Фон',
     },
     {
@@ -282,7 +282,7 @@ const SPACE_PROPERTIES: ILayoutProperty[] = [
         type: 'color' as const,
         label: 'Цвет разделителя',
         default: '',
-        description: 'Пустое значение = var(--land-base-200)',
+        description: 'Пустое значение = var(--bricks-base-200)',
         group: 'Разделитель',
     },
     {

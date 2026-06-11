@@ -10,7 +10,7 @@ $ARGUMENTS
 
 ## Контекст
 
-Любой компонент с `category: 'Modal'` в `.idaland.ts` автоматически:
+Любой компонент с `category: 'Modal'` в `.brick.ts` автоматически:
 
 - Обнаруживается через stories system
 - Исключается из левого сайдбара (не перетаскивается на канвас)
@@ -26,10 +26,10 @@ $ARGUMENTS
 
 ### Шаг 1: Создать Vue компонент модалки
 
-Размести в `.playground/components/landings/modals/` (или соответствующей папке).
+Размести в `playground/components/modals/` (или соответствующей папке).
 Следуй конвенциям из `.claude/rules/vue-sfc.md`.
 
-### Шаг 2: Создать `.idaland.ts` story файл
+### Шаг 2: Создать `.brick.ts` story файл
 
 ```typescript
 import { defineComponent, h } from 'vue';
@@ -53,12 +53,12 @@ export default defineComponent({
 ### Шаг 3: Регенерировать stories
 
 ```bash
-npm run landing:gen
+npm run bricks:gen
 ```
 
 ### Шаг 4: Использование в компонентах
 
-В `.idaland.ts` компонента-потребителя добавить prop с типом `modal-select`:
+В `.brick.ts` компонента-потребителя добавить prop с типом `modal-select`:
 
 ```typescript
 export const story = {

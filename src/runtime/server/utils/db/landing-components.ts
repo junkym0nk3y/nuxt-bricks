@@ -1,7 +1,7 @@
 // TODO(persistence, Шаг 6): переедет в runtime/persistence/ при введении StorageAdapter/PublishAdapter
 import { createError } from 'h3';
 import { getLandingCategoriesFromJson } from '../../../modules/common/utils/routing/landings-api';
-import type { INuxtLandRoute } from '../../../modules/common/utils/routing/types.d.ts';
+import type { IBrickRoute } from '../../../modules/common/utils/routing/types.d.ts';
 
 /**
  * Возвращает список компонентов по категории или весь словарь категорий.
@@ -29,7 +29,7 @@ export function resolveLandingComponents(category?: string) {
     }
 
     if (typeof allRoutes === 'object' && !Array.isArray(allRoutes)) {
-        return (allRoutes as Record<string, INuxtLandRoute>)[match]?.components;
+        return (allRoutes as Record<string, IBrickRoute>)[match]?.components;
     }
 
     return [];

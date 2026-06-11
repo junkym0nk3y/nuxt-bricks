@@ -335,7 +335,7 @@ onBeforeUnmount(() => {
                         :disabled="props.disabled"
                         @click="toggleCodeView"
                     >
-                        <BricksLandIcon :icon="isCodeView ? 'ph:eye' : 'ph:code'" />
+                        <BricksIcon :icon="isCodeView ? 'ph:eye' : 'ph:code'" />
                         <span>{{ isCodeView ? 'Рендер' : 'Код' }}</span>
                     </BricksButton>
 
@@ -408,7 +408,7 @@ onBeforeUnmount(() => {
     max-width: 90vw;
     height: 80vh;
     border-radius: 1.2rem;
-    background-color: var(--land-base-0);
+    background-color: var(--bricks-base-0);
     box-shadow: var(--shadow-md);
     flex-direction: column;
 }
@@ -418,14 +418,14 @@ onBeforeUnmount(() => {
     align-items: center;
     justify-content: space-between;
     padding: 1.6rem 2.4rem;
-    border-bottom: 1px solid var(--land-base-300);
+    border-bottom: 1px solid var(--bricks-base-300);
 }
 
 .title {
     margin: 0;
     font-size: 1.8rem;
     font-weight: 600;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
 }
 
 .headerActions {
@@ -443,8 +443,8 @@ onBeforeUnmount(() => {
     display: flex;
     flex-wrap: wrap;
     padding: 0.8rem 2.4rem;
-    border-bottom: 1px solid var(--land-base-200);
-    background-color: var(--land-base-50);
+    border-bottom: 1px solid var(--bricks-base-200);
+    background-color: var(--bricks-base-50);
 }
 
 .body {
@@ -474,16 +474,16 @@ onBeforeUnmount(() => {
 
 .editor {
     /* Фиксируем светлую тему для области ввода контента */
-    --land-base-0: #fff;
-    --land-base-300: #d1d5db;
-    --land-base-900: #111827;
+    --bricks-base-0: #fff;
+    --bricks-base-300: #d1d5db;
+    --bricks-base-900: #111827;
 
     flex: 1;
     padding: 2.4rem;
-    background-color: var(--land-base-0);
+    background-color: var(--bricks-base-0);
     font-size: 1.4rem;
     line-height: 1.6;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
 
     :global(.ProseMirror) {
         min-height: 100%;
@@ -496,13 +496,13 @@ onBeforeUnmount(() => {
     width: 100%;
     padding: 2.4rem;
     border: none;
-    background-color: var(--land-base-0);
+    background-color: var(--bricks-base-0);
     outline: none;
     white-space: pre-wrap;
     font-family: 'JetBrains Mono', Menlo, Monaco, Consolas, monospace;
     font-size: 1.4rem;
     line-height: 1.6;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
     resize: none;
 }
 
@@ -510,6 +510,6 @@ onBeforeUnmount(() => {
     display: flex;
     justify-content: flex-end;
     padding: 1.2rem 2.4rem;
-    border-top: 1px solid var(--land-base-300);
+    border-top: 1px solid var(--bricks-base-300);
 }
 </style>

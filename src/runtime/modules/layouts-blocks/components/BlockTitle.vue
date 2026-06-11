@@ -294,7 +294,7 @@ function handleEditorClick(event: MouseEvent): void {
 <style module lang="scss">
 .BlockTitle {
     line-height: 1.2;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
 
     &._h1,
     &._h2,

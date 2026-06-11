@@ -109,7 +109,7 @@ function getTooltipText(title: string): string {
                                 <template v-if="item.icon">
                                     <transition name="library-fade-fast">
                                         <span :key="`icon_${item.icon}`">
-                                            <BricksLandIcon :icon="item.icon" />
+                                            <BricksIcon :icon="item.icon" />
                                         </span>
                                     </transition>
                                 </template>
@@ -129,7 +129,7 @@ function getTooltipText(title: string): string {
                         @mousedown.prevent
                         @click.prevent="item.run()"
                     >
-                        <BricksLandIcon v-if="item.icon" :icon="item.icon" />
+                        <BricksIcon v-if="item.icon" :icon="item.icon" />
                         <strong v-else-if="item.label === 'B'">B</strong>
                         <em v-else-if="item.label === 'I'">I</em>
                         <u v-else-if="item.label === 'U'">U</u>
@@ -147,7 +147,7 @@ function getTooltipText(title: string): string {
                         <template #activator>
                             <div :class="$style.toolbarSelectInner">
                                 <span v-if="item.icon" :class="$style.toolbarSelectIcon">
-                                    <BricksLandIcon :icon="item.icon" />
+                                    <BricksIcon :icon="item.icon" />
                                 </span>
                                 <span v-else-if="item.label" :class="$style.toolbarSelectLabel">
                                     {{ item.label }}
@@ -174,7 +174,7 @@ function getTooltipText(title: string): string {
                     </BricksTooltip>
                     <div v-else :class="$style.toolbarSelectWrapper">
                         <span v-if="item.icon" :class="$style.toolbarSelectIcon">
-                            <BricksLandIcon :icon="item.icon" />
+                            <BricksIcon :icon="item.icon" />
                         </span>
                         <span v-else-if="item.label" :class="$style.toolbarSelectLabel">
                             {{ item.label }}
@@ -245,7 +245,7 @@ function getTooltipText(title: string): string {
                         @mousedown.prevent
                         @click="emit('requestImage')"
                     >
-                        <BricksLandIcon icon="ph:image" />
+                        <BricksIcon icon="ph:image" />
                     </button>
                 </template>
                 <BricksTooltipHint :text="getTooltipText('Insert Image')" />
@@ -258,7 +258,7 @@ function getTooltipText(title: string): string {
                 @mousedown.prevent
                 @click="emit('requestImage')"
             >
-                <BricksLandIcon icon="ph:image" />
+                <BricksIcon icon="ph:image" />
             </button>
         </div>
 
@@ -276,7 +276,7 @@ function getTooltipText(title: string): string {
                         @mousedown.prevent
                         @click="emit('toggleBackground')"
                     >
-                        <BricksLandIcon icon="ph:circle-half-tilt" />
+                        <BricksIcon icon="ph:circle-half-tilt" />
                     </button>
                 </template>
                 <BricksTooltipHint :text="getTooltipText('Dark Background')" />
@@ -290,7 +290,7 @@ function getTooltipText(title: string): string {
                 @mousedown.prevent
                 @click="emit('toggleBackground')"
             >
-                <BricksLandIcon icon="ph:circle-half-tilt" />
+                <BricksIcon icon="ph:circle-half-tilt" />
             </button>
         </div>
     </div>
@@ -331,7 +331,7 @@ function getTooltipText(title: string): string {
     align-items: center;
     gap: 0.2rem;
     padding-right: 0.6rem;
-    border-right: 1px solid var(--land-base-200);
+    border-right: 1px solid var(--bricks-base-200);
 
     &:last-child {
         padding-right: 0;
@@ -352,11 +352,11 @@ function getTooltipText(title: string): string {
     width: var(--toolbar-btn-size);
     height: var(--toolbar-btn-size);
     border-radius: var(--border-radius-xs);
-    border: 1px solid var(--land-base-200);
+    border: 1px solid var(--bricks-base-200);
     background: transparent;
     font-size: 1.3rem;
     font-weight: 600;
-    color: var(--land-base-600);
+    color: var(--bricks-base-600);
     transition: all var(--default-transition);
     cursor: pointer;
 
@@ -366,13 +366,13 @@ function getTooltipText(title: string): string {
     }
 
     &:hover {
-        border-color: var(--land-primary);
-        color: var(--land-primary);
+        border-color: var(--bricks-primary);
+        color: var(--bricks-primary);
     }
 
     &._active {
-        border-color: var(--land-primary);
-        background: var(--land-primary);
+        border-color: var(--bricks-primary);
+        background: var(--bricks-primary);
         color: #fff;
     }
 }
@@ -396,7 +396,7 @@ function getTooltipText(title: string): string {
     flex-shrink: 0;
     white-space: nowrap;
     font-size: var(--toolbar-font-size);
-    color: var(--land-base-500);
+    color: var(--bricks-base-500);
 }
 
 .toolbarSelectIcon {
@@ -404,7 +404,7 @@ function getTooltipText(title: string): string {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    color: var(--land-base-500);
+    color: var(--bricks-base-500);
 
     svg {
         width: 1.6rem;
@@ -419,21 +419,21 @@ function getTooltipText(title: string): string {
     height: var(--toolbar-btn-size);
     padding: 0 0.6rem;
     border-radius: var(--border-radius-xs);
-    border: 1px solid var(--land-base-200);
-    background: var(--land-base-50);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-base-50);
     font-size: var(--toolbar-font-size);
-    color: var(--land-base-800);
+    color: var(--bricks-base-800);
     transition: border-color var(--default-transition);
     cursor: pointer;
 
     option {
-        background: var(--land-base-0);
-        color: var(--land-base-800);
+        background: var(--bricks-base-0);
+        color: var(--bricks-base-800);
     }
 
     &:hover,
     &:focus {
-        border-color: var(--land-primary);
+        border-color: var(--bricks-primary);
         outline: none;
     }
 }
@@ -442,7 +442,7 @@ function getTooltipText(title: string): string {
     display: flex;
     align-items: center;
     padding-right: 0.6rem;
-    border-right: 1px solid var(--land-base-200);
+    border-right: 1px solid var(--bricks-base-200);
 }
 
 .bgToggleGroup {

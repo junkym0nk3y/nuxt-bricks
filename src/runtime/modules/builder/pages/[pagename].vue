@@ -104,7 +104,7 @@ const EMPTY_SCHEMA: LandingSchema = {
     components: [],
 };
 
-const darkModeCookie = useCookie<boolean>('land-dark-mode', {
+const darkModeCookie = useCookie<boolean>('bricks-dark-mode', {
     default: () => false,
     maxAge: 60 * 60 * 24 * 365,
 });
@@ -481,11 +481,11 @@ watch(
 
 // #region Lifecycle
 /**
- * Класс body формируется реактивно — включает land-dark при активной тёмной теме.
+ * Класс body формируется реактивно — включает bricks-dark при активной тёмной теме.
  * Работает на SSR: cookie читается на сервере, класс рендерится сразу.
  */
 const bodyClass = computed(() =>
-    isDarkMode.value ? 'bricks-page land-dark' : 'bricks-page'
+    isDarkMode.value ? 'bricks-page bricks-dark' : 'bricks-page'
 );
 
 useHead({
@@ -615,7 +615,7 @@ onBeforeUnmount(() => {
     display: flex;
     width: 100vw;
     height: 100vh;
-    background-color: var(--land-base-100);
+    background-color: var(--bricks-base-100);
     flex-direction: column;
 }
 

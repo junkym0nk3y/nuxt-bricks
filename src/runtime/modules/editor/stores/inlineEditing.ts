@@ -20,7 +20,7 @@ export type InlineEditingPropType = 'inline-content' | 'textarea';
  * Управляет состоянием inline-editing на канвасе.
  * Хранит ID активного компонента, имя/тип свойства и экземпляр TipTap-редактора.
  */
-export const useInlineEditingStore = defineStore('landingInlineEditing', () => {
+export const useInlineEditingStore = defineStore('bricksInlineEditing', () => {
     // #region State
     const componentId = ref<string | null>(null);
     const propName = ref<string | null>(null);

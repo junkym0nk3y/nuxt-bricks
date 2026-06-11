@@ -85,8 +85,8 @@ $primary-color: #6366f1; // FORBIDDEN
 
 ## Dark Theme / Color Scheme
 
-- `.land-dark` на `<body>` через `useHead({ bodyAttrs })` — переменные `--land-*` наследуются каскадом
+- `.bricks-dark` на `<body>` через `useHead({ bodyAttrs })` — переменные `--bricks-*` наследуются каскадом
 - Teleport-элементы тоже получают тему (дочерние body)
-- **НЕ дублировать** переменные через `data-*` или unscoped стили — `var(--land-*)` в CSS modules достаточно
-- Кастомные переменные привязывать к глобальным: `--my-bg: var(--land-base-0)`
-- `--land-base-0` = фон (белый/тёмный), `--land-base-900` = текст. Не путать!
+- **НЕ дублировать** переменные через `data-*` или unscoped стили — `var(--bricks-*)` в CSS modules достаточно
+- Кастомные переменные привязывать к глобальным: `--my-bg: var(--bricks-base-0)`
+- `--bricks-base-0` = фон (белый/тёмный), `--bricks-base-900` = текст. Не путать!

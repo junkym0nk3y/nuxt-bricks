@@ -443,7 +443,7 @@ watch(selectedItem, (item) => {
                         :class="$style.fileInput"
                         @change="handleFileChange"
                     />
-                    <BricksLandIcon :class="$style.uploadIcon" icon="md:cloud-upload" />
+                    <BricksIcon :class="$style.uploadIcon" icon="md:cloud-upload" />
                     <p :class="$style.uploadText">
                         Перетащите файлы сюда или нажмите, чтобы выбрать
                     </p>
@@ -472,7 +472,7 @@ watch(selectedItem, (item) => {
                                 v-if="item.mimeType.startsWith('video/')"
                                 :class="$style.videoPlaceholder"
                             >
-                                <BricksLandIcon
+                                <BricksIcon
                                     :class="$style.videoPlayIcon"
                                     icon="md:sharp-video-library"
                                 />
@@ -491,7 +491,7 @@ watch(selectedItem, (item) => {
                                 title="Полноэкранный просмотр"
                                 @click.stop="handleOpenPreview(item)"
                             >
-                                <BricksLandIcon icon="ph:magnifying-glass" />
+                                <BricksIcon icon="ph:magnifying-glass" />
                             </button>
                         </div>
                         <div :class="$style.itemInfo">
@@ -503,19 +503,19 @@ watch(selectedItem, (item) => {
                 </div>
 
                 <div v-else-if="hasItems && !isUploading" :class="$style.emptyState">
-                    <BricksLandIcon :class="$style.emptyIcon" icon="md:filter-list" />
+                    <BricksIcon :class="$style.emptyIcon" icon="md:filter-list" />
                     <p :class="$style.emptyText">Нет файлов, подходящих под фильтр</p>
                 </div>
 
                 <!-- Empty State -->
                 <div v-else-if="!isUploading" :class="$style.emptyState">
-                    <BricksLandIcon :class="$style.emptyIcon" icon="md:outlined-image" />
+                    <BricksIcon :class="$style.emptyIcon" icon="md:outlined-image" />
                     <p :class="$style.emptyText">Нет загруженных изображений</p>
                 </div>
 
                 <!-- Loading State -->
                 <div v-if="isUploading" :class="$style.loading">
-                    <BricksLandIcon :class="$style.loadingIcon" icon="ui:loading" />
+                    <BricksIcon :class="$style.loadingIcon" icon="ui:loading" />
                     <p>Загружаю файл...</p>
                 </div>
             </div>
@@ -580,7 +580,7 @@ watch(selectedItem, (item) => {
                         variant="danger"
                         @click="handleRemoveItem"
                     >
-                        <BricksLandIcon icon="md:delete" />
+                        <BricksIcon icon="md:delete" />
                     </BricksButton>
                 </div>
                 <div v-if="shouldShowPickerActions" :class="$style.footerRight">
@@ -603,7 +603,7 @@ watch(selectedItem, (item) => {
         <Transition name="library-modal-fade">
             <div v-if="previewItem" :class="$style.previewOverlay" @click.self="handleClosePreview">
                 <button type="button" :class="$style.previewClose" @click="handleClosePreview">
-                    <BricksLandIcon icon="gl:close" />
+                    <BricksIcon icon="gl:close" />
                 </button>
                 <video
                     v-if="previewItem.mimeType.startsWith('video/')"
@@ -647,7 +647,7 @@ watch(selectedItem, (item) => {
     max-width: 140rem;
     max-height: 80vh;
     border-radius: var(--border-radius-md);
-    background: var(--land-base-0);
+    background: var(--bricks-base-0);
     box-shadow: var(--shadow-xl);
     flex-direction: column;
 }
@@ -657,14 +657,14 @@ watch(selectedItem, (item) => {
     align-items: center;
     justify-content: space-between;
     padding: 2rem;
-    border-bottom: 1px solid var(--land-base-200);
+    border-bottom: 1px solid var(--bricks-base-200);
 }
 
 .title {
     margin: 0;
     font-size: 2rem;
     font-weight: 600;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
 }
 
 .content {
@@ -691,7 +691,7 @@ watch(selectedItem, (item) => {
 .selectorLabel {
     font-size: 1.4rem;
     font-weight: 500;
-    color: var(--land-base-700);
+    color: var(--bricks-base-700);
 }
 
 .chipGroup {
@@ -703,17 +703,17 @@ watch(selectedItem, (item) => {
 .filterChip {
     padding: 0.6rem 1.2rem;
     border-radius: 999px;
-    border: 1px solid var(--land-base-300);
+    border: 1px solid var(--bricks-base-300);
     background: transparent;
     font-size: 1.2rem;
-    color: var(--land-base-600);
+    color: var(--bricks-base-600);
     transition: all 150ms ease;
     cursor: pointer;
 
     &._active {
-        border-color: var(--land-primary-500);
-        background: var(--land-primary-50);
-        color: var(--land-primary-600);
+        border-color: var(--bricks-primary-500);
+        background: var(--bricks-primary-50);
+        color: var(--bricks-primary-600);
     }
 }
 
@@ -722,10 +722,10 @@ watch(selectedItem, (item) => {
     min-width: 22rem;
     padding: 0.8rem 1.2rem;
     border-radius: 0.6rem;
-    border: 1px solid var(--land-base-300);
-    background: var(--land-base-50);
+    border: 1px solid var(--bricks-base-300);
+    background: var(--bricks-base-50);
     font-size: 1.4rem;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
 }
 
 .uploadArea {
@@ -735,21 +735,21 @@ watch(selectedItem, (item) => {
     justify-content: center;
     padding: 3.2rem 2rem;
     border-radius: var(--border-radius-md);
-    border: 0.2rem dashed var(--land-base-300);
-    background: var(--land-base-50);
+    border: 0.2rem dashed var(--bricks-base-300);
+    background: var(--bricks-base-50);
     transition: all 200ms ease;
     cursor: pointer;
     flex-direction: column;
     gap: 1.2rem;
 
     &:hover {
-        border-color: var(--land-primary-400);
-        background: var(--land-primary-50);
+        border-color: var(--bricks-primary-400);
+        background: var(--bricks-primary-50);
     }
 
     &.dragOver {
-        border-color: var(--land-primary-500);
-        background: var(--land-primary-100);
+        border-color: var(--bricks-primary-500);
+        background: var(--bricks-primary-100);
     }
 }
 
@@ -763,20 +763,20 @@ watch(selectedItem, (item) => {
 
 .uploadIcon {
     font-size: 4.8rem;
-    color: var(--land-base-400);
+    color: var(--bricks-base-400);
 }
 
 .uploadText,
 .emptyText {
     margin: 0;
     font-size: 1.6rem;
-    color: var(--land-base-600);
+    color: var(--bricks-base-600);
 }
 
 .uploadHint {
     margin: 0;
     font-size: 1.2rem;
-    color: var(--land-base-400);
+    color: var(--bricks-base-400);
 }
 
 .gallery {
@@ -787,27 +787,27 @@ watch(selectedItem, (item) => {
 }
 
 .galleryItem {
-    --land-base-0: #fff;
-    --land-base-200: #e5e7eb;
-    --land-base-500: #6b7280;
-    --land-base-600: #4b5563;
-    --land-base-900: #111827;
+    --bricks-base-0: #fff;
+    --bricks-base-200: #e5e7eb;
+    --bricks-base-500: #6b7280;
+    --bricks-base-600: #4b5563;
+    --bricks-base-900: #111827;
 
     position: relative;
     overflow: hidden;
     border-radius: var(--border-radius-md);
     border: 0.2rem solid transparent;
-    background: var(--land-base-0);
+    background: var(--bricks-base-0);
     transition: all 200ms ease;
     cursor: pointer;
 
     &:hover {
-        border-color: var(--land-primary-300);
+        border-color: var(--bricks-primary-300);
         box-shadow: var(--shadow-md);
     }
 
     &.selected {
-        border-color: var(--land-primary-500);
+        border-color: var(--bricks-primary-500);
         box-shadow: 0 0 0 0.4rem rgb(var(--rgb-primary-500) / 20%);
     }
 }
@@ -833,12 +833,12 @@ watch(selectedItem, (item) => {
     justify-content: center;
     width: 100%;
     height: 12rem;
-    background: var(--land-base-100, #f3f4f6);
+    background: var(--bricks-base-100, #f3f4f6);
 }
 
 .videoPlayIcon {
     font-size: 4rem;
-    color: var(--land-base-400);
+    color: var(--bricks-base-400);
 }
 
 .previewBtn {
@@ -876,11 +876,11 @@ watch(selectedItem, (item) => {
     align-self: flex-start;
     padding: 0.2rem 0.8rem;
     border-radius: 999px;
-    border: 1px solid var(--land-base-200);
-    background: var(--land-base-0);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-base-0);
     text-transform: capitalize;
     font-size: 1.2rem;
-    color: var(--land-base-600);
+    color: var(--bricks-base-600);
 }
 
 .filename {
@@ -889,12 +889,12 @@ watch(selectedItem, (item) => {
     white-space: nowrap;
     font-size: 1.4rem;
     font-weight: 500;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
 }
 
 .filesize {
     font-size: 1.2rem;
-    color: var(--land-base-500);
+    color: var(--bricks-base-500);
 }
 
 .emptyState,
@@ -914,12 +914,12 @@ watch(selectedItem, (item) => {
 
 .emptyIcon {
     font-size: 8rem;
-    color: var(--land-base-300);
+    color: var(--bricks-base-300);
 }
 
 .loadingIcon {
     font-size: 4rem;
-    color: var(--land-primary-500);
+    color: var(--bricks-primary-500);
     animation: spin 1s linear infinite;
 }
 
@@ -934,8 +934,8 @@ watch(selectedItem, (item) => {
     align-items: center;
     justify-content: space-between;
     padding: 2rem;
-    border-top: 1px solid var(--land-base-200);
-    background: var(--land-base-50);
+    border-top: 1px solid var(--bricks-base-200);
+    background: var(--bricks-base-50);
 }
 
 .footerLeft,
@@ -959,17 +959,17 @@ watch(selectedItem, (item) => {
 .categorySelect {
     padding: 0.6rem 0.8rem;
     border-radius: 0.6rem;
-    border: 1px solid var(--land-base-300);
-    background: var(--land-base-0);
+    border: 1px solid var(--bricks-base-300);
+    background: var(--bricks-base-0);
     font-size: 1.4rem;
-    color: var(--land-base-800);
+    color: var(--bricks-base-800);
 }
 
 .metaInput {
     min-width: 18rem;
 
     &:focus {
-        border-color: var(--land-primary-400);
+        border-color: var(--bricks-primary-400);
         outline: none;
     }
 }

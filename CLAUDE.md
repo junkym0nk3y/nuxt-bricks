@@ -16,16 +16,16 @@ npx oxlint <changed-file>
 
 ## Project Overview
 
-`@idaproject/ui-landing` — визуальный билдер лендингов для Nuxt 3 с drag-and-drop компонентами.
-Часть монорепо `@idaproject/front-lib`, зависит от `@idaproject/core`.
+`nuxt-bricks` — визуальный билдер лендингов для Nuxt 3 с drag-and-drop компонентами.
+Самостоятельный Nuxt Module (бывший `@idaproject/ui-landing`, мигрирован из Nuxt layer).
 
 ## Development Commands
 
-- `npm run dev` — dev server (playground из `.playground/`)
+- `npm run dev` — dev server (playground из `playground/`)
 - `npm run build` / `npm run preview` — production build
 - `npm run type-check` — TypeScript проверка
 - `npm run lint:fix` — все линтеры + форматтеры
-- `npm run landing:gen` — генерация `ida-lands.json` из `.idaland.ts`
+- `npm run bricks:gen` — генерация `bricks.json` из `.brick.ts`
 
 ## Architecture
 
@@ -47,8 +47,8 @@ npx oxlint <changed-file>
 
 ### Component System (Story-based)
 
-1. **Story Files** (`.idaland.ts`) — метаданные компонента + редактируемые свойства (`category`, `values`)
-2. **Discovery** — `npm run landing:gen` сканирует `.idaland.ts` → `public/ida-lands.json`
+1. **Story Files** (`.brick.ts`) — метаданные компонента + редактируемые свойства (`category`, `values`)
+2. **Discovery** — `npm run bricks:gen` сканирует `.brick.ts` → `public/bricks.json`
 3. **Property Editing** — панель свойств рендерит контролы по story definitions
 
 ### Available Property Types
@@ -62,7 +62,7 @@ npx oxlint <changed-file>
 Свойства в панели редактора можно группировать в сворачиваемые аккордеоны через поле `group` в определении свойства.
 
 ```typescript
-// В .idaland.ts
+// В .brick.ts
 export const story = {
     values: {
         paddingTop: { default: 4, type: 'number', group: 'Отступы' },
@@ -82,7 +82,7 @@ export const story = {
 **Ключевые файлы** (пути — от `src/runtime/modules/`):
 
 - `common/types/landing.ts` → `PropertyDefinition.group`
-- `common/types/index.ts` → `ILandValues.group`
+- `common/types/index.ts` → `IBrickValues.group`
 - `builder/components/canvas/types.d.ts` → `ILayoutProperty.group`
 - `builder/components/sidebar/SidebarPropertyEditors.vue` → рендеринг аккордеонов
 
@@ -109,7 +109,7 @@ export const story = {
 
 **Архитектура CSS-переменных (published page):**
 
-- Рендерер ставит per-device inline CSS vars: `--ida-section-pt-mobile`, `--ida-section-pt-tablet`, `--ida-section-pt-desktop`
+- Рендерер ставит per-device inline CSS vars: `--bricks-section-pt-mobile`, `--bricks-section-pt-tablet`, `--bricks-section-pt-desktop`
 - CSS rules в `useResponsiveLayoutStyles.ts` выбирают активную переменную по viewport/media query
 
 **Архитектура на канвасе (builder):**
@@ -120,7 +120,7 @@ export const story = {
 #### Для Story Values (обычные UI-компоненты)
 
 ```typescript
-// .idaland.ts
+// .brick.ts
 export const story: ILandingFileStructure = {
     values: {
         height: { default: 62, type: 'input', responsive: true },
@@ -234,9 +234,9 @@ landing: {
 
 **Как работает:**
 
-- `useLandingStyles.ts` генерирует дополнительный CSS с media queries, таргетящий `.container[data-ida-container]`
-- `TheRenderer.vue` добавляет `data-ida-container` атрибут на container-обёртки
-- Селектор `[data-ida-container]` обеспечивает специфичность выше проектного `.container`
+- `useLandingStyles.ts` генерирует дополнительный CSS с media queries, таргетящий `.container[data-bricks-container]`
+- `TheRenderer.vue` добавляет `data-bricks-container` атрибут на container-обёртки
+- Селектор `[data-bricks-container]` обеспечивает специфичность выше проектного `.container`
 - Media queries используют device breakpoints (`device.breakpoints`), не canvas breakpoints
 - Гранулярно: можно включить только для отдельных viewport'ов
 
@@ -245,7 +245,7 @@ landing: {
 **Ключевые файлы:**
 
 - `common/composables/useLandingStyles.ts` — генерация override CSS
-- `render/components/TheRenderer.vue` — добавление `data-ida-container`
+- `render/components/TheRenderer.vue` — добавление `data-bricks-container`
 - `plugins/landing-styles.ts` — инжектит стили на все страницы (и builder, и published)
 
 ### Inline Editing (TipTap)
@@ -272,17 +272,17 @@ landing: {
 
 Без атрибута — `ul`/`ol` внутри не получат стили. **НЕ** добавлять на `v-html` с простым текстом и на `ul`/`ol` в собственной вёрстке.
 
-CSS: `.ida-landing-text [data-tiptap-content]` — **с пробелом** (descendant selector)! Без пробела не матчится.
+CSS: `.bricks-text [data-tiptap-content]` — **с пробелом** (descendant selector)! Без пробела не матчится.
 
 ### Modal System
 
-Компонент с `category: 'Modal'` в `.idaland.ts` автоматически обнаруживается, исключается из сайдбара, появляется в `modal-select`.
+Компонент с `category: 'Modal'` в `.brick.ts` автоматически обнаруживается, исключается из сайдбара, появляется в `modal-select`.
 
 > Добавление модалки: `/add-modal`
 
 ### Icons
 
-`<IdaLandIcon icon="prefix:name" />`. Регистрация в `plugins/vue-icons.ts` → `SYSTEM_ICONS`.
+`<BricksIcon icon="prefix:name" />`. Регистрация в `plugins/vue-icons.ts` → `SYSTEM_ICONS`.
 
 > Добавление иконки: `/add-icon`
 
@@ -302,11 +302,11 @@ Markdown-статьи во встроенной документации бил�
 
 **S3:** `YANDEX_STORAGE_ACCESS_KEY_ID`, `YANDEX_STORAGE_SECRET_ACCESS_KEY`, `YANDEX_STORAGE_BUCKET_NAME`
 
-**Basic Auth:** `BASIC_AUTH_USERNAME` (дефолт: `admin`), `BASIC_AUTH_PASSWORD` (дефолт: `ida112233`). Защищает `/builder/**`, preview, S3 и модифицирующие API.
+**Basic Auth:** `BASIC_AUTH_USERNAME` (дефолт: `admin`), `BASIC_AUTH_PASSWORD` (дефолт: `change-me`). Защищает `/builder/**`, preview, S3 и модифицирующие API.
 
 ## Известная проблема: glob-кэш Vite
 
-После добавления нового `.idaland.ts` файла компонент может не появиться в списке. Решение: **Hard refresh** (`Cmd+Shift+R`), или `rm -rf .nuxt node_modules/.vite && npm run dev`.
+После добавления нового `.brick.ts` файла компонент может не появиться в списке. Решение: **Hard refresh** (`Cmd+Shift+R`), или `rm -rf .nuxt node_modules/.vite && npm run dev`.
 
 ## URL Prefix и Subdomain
 

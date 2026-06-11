@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { IBricksSelectProps, IBricksSelectEmits } from './types.d.ts';
-import type { ILandDemoValues } from '../../common/types/index';
+import type { IBrickDemoValues } from '../../common/types/index';
 
 // Vue
 import { computed, ref, toValue, useCssModule } from 'vue';
@@ -74,7 +74,7 @@ const classList = computed(() => [
  * @param value - Значение выбранной опции.
  */
 function onUpdate(value: AcceptableValue): void {
-    emit('update:value', (value ?? null) as ILandDemoValues | null);
+    emit('update:value', (value ?? null) as IBrickDemoValues | null);
 }
 // #endregion
 </script>
@@ -152,7 +152,7 @@ function onUpdate(value: AcceptableValue): void {
         font-size: 1.4rem;
         font-weight: 500;
         line-height: 1;
-        color: var(--land-base-900);
+        color: var(--bricks-base-900);
         transition:
             color var(--default-transition),
             opacity var(--default-transition),
@@ -169,8 +169,8 @@ function onUpdate(value: AcceptableValue): void {
         cursor: not-allowed;
 
         .nativeInput {
-            color: var(--land-base-300);
-            -webkit-text-fill-color: var(--land-base-300);
+            color: var(--bricks-base-300);
+            -webkit-text-fill-color: var(--bricks-base-300);
             opacity: 1;
         }
 
@@ -180,16 +180,16 @@ function onUpdate(value: AcceptableValue): void {
     }
 
     &._opened .field {
-        border-color: var(--land-base-900);
+        border-color: var(--bricks-base-900);
 
         &:after {
-            color: var(--land-base-300);
+            color: var(--bricks-base-300);
             transform: translateY(-80%) rotate(180deg);
         }
     }
 
     &._empty .nativeInput {
-        color: var(--land-base-300);
+        color: var(--bricks-base-300);
     }
 
     &:after {
@@ -199,7 +199,7 @@ function onUpdate(value: AcceptableValue): void {
         left: 0;
         width: 100%;
         height: 1px;
-        background-color: var(--land-base-300);
+        background-color: var(--bricks-base-300);
     }
 }
 
@@ -208,8 +208,8 @@ function onUpdate(value: AcceptableValue): void {
     width: var(--reka-select-trigger-width);
     padding: 0.8rem 0;
     border-radius: 1.2rem;
-    background: var(--land-base-0);
-    color: var(--land-base-900);
+    background: var(--bricks-base-0);
+    color: var(--bricks-base-900);
     box-shadow: var(--shadow-md);
 }
 
@@ -239,7 +239,7 @@ function onUpdate(value: AcceptableValue): void {
     &[data-highlighted],
     &[data-state='checked'] {
         border-radius: var(--border-radius-sm);
-        background-color: var(--land-base-300);
+        background-color: var(--bricks-base-300);
     }
 
     &[data-disabled] {

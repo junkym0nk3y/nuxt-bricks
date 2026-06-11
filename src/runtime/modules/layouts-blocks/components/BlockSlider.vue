@@ -517,8 +517,8 @@ function updateDropIndicator(event: DragEvent): void {
     width: 100%;
     padding: 1.6rem;
     border-radius: 1.2rem;
-    border: 1px solid var(--land-base-200);
-    background-color: var(--land-base-0);
+    border: 1px solid var(--bricks-base-200);
+    background-color: var(--bricks-base-0);
 
     &._editor {
         border-radius: 0.4rem;
@@ -591,8 +591,8 @@ function updateDropIndicator(event: DragEvent): void {
     display: flex;
     padding: 0.8rem 1.6rem;
     border-radius: 0.8rem;
-    border: 1px solid var(--land-base-200);
-    background: var(--land-base-0);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-base-0);
     white-space: nowrap;
     transition: all 200ms ease;
     cursor: pointer;
@@ -600,14 +600,14 @@ function updateDropIndicator(event: DragEvent): void {
     gap: 0.2rem;
 
     &:hover {
-        border-color: var(--land-base-300);
-        background: var(--land-base-50);
+        border-color: var(--bricks-base-300);
+        background: var(--bricks-base-50);
     }
 }
 
 .captionTabActive {
-    border-color: var(--land-primary-500);
-    background: var(--land-primary-50);
+    border-color: var(--bricks-primary-500);
+    background: var(--bricks-primary-50);
 }
 
 .captionText {
@@ -615,17 +615,17 @@ function updateDropIndicator(event: DragEvent): void {
     font-size: 1.2rem;
     font-weight: 600;
     letter-spacing: 0.05rem;
-    color: var(--land-base-600);
+    color: var(--bricks-base-600);
 
     .captionTabActive & {
-        color: var(--land-primary-500);
+        color: var(--bricks-primary-500);
     }
 }
 
 .captionSubtitle {
     font-size: 1.1rem;
     font-weight: 400;
-    color: var(--land-base-500);
+    color: var(--bricks-base-500);
 }
 
 .dropIndicator {
@@ -634,7 +634,7 @@ function updateDropIndicator(event: DragEvent): void {
     width: 0.3rem;
     height: calc(100% - 2.4rem);
     border-radius: 0.3rem;
-    background-color: var(--land-primary-400);
+    background-color: var(--bricks-primary-400);
     opacity: 0;
     transition: opacity 120ms ease;
     pointer-events: none;
@@ -646,7 +646,7 @@ function updateDropIndicator(event: DragEvent): void {
     height: 3.2rem;
     border-radius: 999rem;
     background-color: rgb(0 0 0 / 35%);
-    color: var(--land-base-0);
+    color: var(--bricks-base-0);
 
     &:after {
         font-size: 1.2rem;
@@ -654,12 +654,12 @@ function updateDropIndicator(event: DragEvent): void {
 }
 
 :global(.swiper-pagination-bullet) {
-    background-color: var(--land-base-500);
+    background-color: var(--bricks-base-500);
     opacity: 0.4;
 }
 
 :global(.swiper-pagination-bullet-active) {
-    background-color: var(--land-primary-500);
+    background-color: var(--bricks-primary-500);
     opacity: 1;
 }
 </style>

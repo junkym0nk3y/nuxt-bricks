@@ -108,7 +108,7 @@ const {
     right: 0;
     left: 0;
     height: 0.2rem;
-    background-color: var(--land-primary);
+    background-color: var(--bricks-primary);
     opacity: 0;
     transform: translateY(0);
     transition: opacity var(--default-transition);

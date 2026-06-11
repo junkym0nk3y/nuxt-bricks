@@ -10,7 +10,7 @@
 .LandingLayout {
     display: flex;
     min-height: 100vh;
-    background-color: var(--land-base-0);
+    background-color: var(--bricks-base-0);
     flex-direction: column;
 }
 </style>

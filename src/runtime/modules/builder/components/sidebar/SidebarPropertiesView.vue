@@ -87,7 +87,7 @@ defineExpose({
                 <BricksTooltip v-if="selectedComponentDescription" bottom>
                     <template #activator>
                         <div :class="$style.descriptionIcon">
-                            <BricksLandIcon icon="ph:info" />
+                            <BricksIcon icon="ph:info" />
                         </div>
                     </template>
 
@@ -173,7 +173,7 @@ defineExpose({
 
             <div :class="$style.actions">
                 <BricksButton variant="danger" size="md" block @click="handleDelete">
-                    <BricksLandIcon :class="$style.buttonIcon" icon="ti:outline-delete" />
+                    <BricksIcon :class="$style.buttonIcon" icon="ti:outline-delete" />
                     <span>Удалить</span>
                 </BricksButton>
             </div>
@@ -194,7 +194,7 @@ defineExpose({
     align-items: baseline;
     justify-content: space-between;
     padding: 1.6rem 2rem;
-    border-bottom: 1px solid var(--land-base-300);
+    border-bottom: 1px solid var(--bricks-base-300);
 }
 
 .headerInfo {
@@ -210,7 +210,7 @@ defineExpose({
     margin: 0;
     font-size: 1.6rem;
     font-weight: 600;
-    color: var(--land-base-900);
+    color: var(--bricks-base-900);
 }
 
 .content {
@@ -233,7 +233,7 @@ defineExpose({
     flex-direction: column;
     gap: 0.8rem;
     padding: 1.2rem 2rem;
-    border-bottom: 1px solid var(--land-base-300);
+    border-bottom: 1px solid var(--bricks-base-300);
 }
 
 .deviceScopeHeader {
@@ -246,7 +246,7 @@ defineExpose({
 .deviceScopeTitle {
     font-size: 1.2rem;
     font-weight: 600;
-    color: var(--land-base-700);
+    color: var(--bricks-base-700);
 }
 
 .deviceScopeButtons {
@@ -270,8 +270,8 @@ defineExpose({
 .debug {
     margin: 1rem 0;
     padding: 2rem;
-    border: 1px solid var(--land-base-300);
-    background-color: var(--land-base-300);
+    border: 1px solid var(--bricks-base-300);
+    background-color: var(--bricks-base-300);
 
     p {
         margin: 0.6rem 0;
