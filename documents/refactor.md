@@ -68,32 +68,8 @@ nuxt-bricks/
 
 ## Оставшиеся шаги
 
-> Решение «слово landing — сущность, не переименовывается» отменено 2026-06-11:
-> ребрендинг выполнен полностью, слово `landing` в идентификаторах/путях/ключах запрещено
-> (см. `.claude/rules/naming.md`). ⚠️ Пути `/api/bricks/*` требуют синхронного обновления
-> роутов на Python-бэкенде (он будет переписан на Node — принято осознанно).
-
-### Шаг 6. Серверная часть: абстракция хранилища ✅ (2026-06-11)
-
-Реализовано:
-
-- `modules/persistence/types/adapters.d.ts` — `IStorageAdapter` (CRUD страниц + медиа-метаданных)
-  и `IPublishAdapter` (файлы публикации: upload/delete/list).
-- Дефолтные адаптеры: `modules/persistence/server/postgres/` (pg, таблицы `bricks_pages`/`bricks_media`,
-  динамический `await import('pg')` — optional peer) и `modules/persistence/server/s3/` (Yandex S3).
-- Реестр `modules/persistence/server/registry.ts`: `use/setBricksStorageAdapter`,
-  `use/setBricksPublishAdapter` — кастомный адаптер ставится из Nitro-плагина потребителя
-  (subpath-export `nuxt-bricks/persistence` — задача Шага 8).
-- Ручки `runtime/server/api/bricks/**` (11 шт.) регистрируются в `module.ts` всегда; выбор режима —
-  runtime в `proxy.client.ts`: БД задана → локальные ручки, иначе `/api/*` → `PROXY_URL`.
-- Конфиг: `bricks: { database: { url }, s3: {...}, proxy: { url } }` в `nuxt.config`;
-  ENV: `NUXT_BRICKS_DATABASE_URL`/`NUXT_BRICKS_S3_*` (legacy fallback: `DATABASE_URL`, `YANDEX_STORAGE_*`).
-- `database/init.sql` + `docker-compose.yml` (postgres:16-alpine) для локальной разработки;
-  `playground/.env.example`.
-- Case-конвенция: вход top-level snake_case → `toCamelCaseShallow` (`schema` не трогается),
-  выход — camelCase через SQL-алиасы (фронтовый `toCamelCase` идемпотентен, фронт не менялся).
-- Опция `fields` (кастомный маппинг колонок) — **отложена (YAGNI)**.
-- В README (Шаг 8) — описать SQL-инициализацию и конфиг адаптеров.
+> ⚠️ Пути `/api/bricks/*` требуют синхронного обновления роутов на Python-бэкенде
+> (он будет переписан на Node — принято осознанно).
 
 ### Шаг 7. Тесты
 
@@ -104,7 +80,10 @@ nuxt-bricks/
 ### Шаг 8. Сборка и публикация
 
 - `npm run build` (`nuxt-module-build`) → `dist/` (ESM + типы + `runtime/`); проверить `exports`/`files`/`prepack`.
+- Subpath-export `nuxt-bricks/persistence` (для установки кастомного адаптера из Nitro-плагина потребителя,
+  см. `modules/persistence/server/registry.ts`).
 - README (установка `npm i nuxt-bricks` + `modules: ['nuxt-bricks']`, конфиг `bricks: {...}`,
+  SQL-инициализация `database/init.sql` и конфиг адаптеров persistence,
   предупреждение про дефолты basic-auth), LICENSE.
 - `npm pack` — в тарболе только `dist/` (+ README/LICENSE).
 - `npm publish` (проверить занятость имени `nuxt-bricks`), пуш в GitHub.
@@ -124,9 +103,9 @@ nuxt-bricks/
 
 ### Кросс-доменные связки (tech-debt)
 
-- `layouts-blocks/BlockSlider.vue` статически импортирует `builder/stores/canvas` — развязать через provide/inject.
-- `editor/composables/useInlineEditor.ts` импортирует `builder/stores/components` — рассмотреть инверсию через параметры/inject.
-- `ui/inputs/BricksTextArea.vue` лениво (`import()`) тянет `editor/` — кандидат на развязку.
+- Архитектурные нарушения графа зависимостей (BlockSlider → builder/stores, ui → editor,
+  циклы builder↔editor/media и др.) — вынесены в **`documents/architecture-cleanup.md`**
+  (полный roadmap + registry для layouts-blocks), здесь не дублируются.
 - `middleware/bricks-page-layout.global.ts` нигде не регистрируется (`module.ts` без `addRouteMiddleware`) — pre-existing gap.
 - Будущие md-статьи документации класть в `runtime/modules/builder/docs/guide/`
   (glob `../docs/guide/**/*.md` в `useDocumentationArticles`).
@@ -137,7 +116,8 @@ nuxt-bricks/
   TS2769 (computed возвращает union с `undefined`-полями, не совместим с `Record<string, string>`)
 - `common/composables/useApiClient.ts`, `plugins/bricks-dynamic-routes.ts` — TS2304: nuxt auto-imports
   не резолвятся при standalone `vue-tsc` — нужен явный импорт из `#imports`
-- `render/composables/useRendererLayouts.ts` — oxlint `max-lines` (1021/1000) — разнести на части
+- `render/composables/useRendererLayouts.ts` — oxlint `max-lines` (1021/1000) — решается шагом B5
+  registry-рефакторинга (`architecture-cleanup.md`)
 - `builder/composables/useDocumentationArticles.ts` — `import.meta.glob` с `query` не типизируется
 - `render/pages/[pagename].vue` — типизация `useAsyncData`-обёртки
 - `middleware/bricks-page-layout.global.ts` — `LayoutKey` из `#build/types/layouts`
@@ -155,4 +135,4 @@ nuxt-bricks/
 
 ## Порядок
 
-6 (persistence) → 7 (тесты) → 8 (публикация).
+7 (тесты) → 8 (публикация). Параллельно — `documents/architecture-cleanup.md`.
