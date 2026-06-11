@@ -20,6 +20,33 @@ export interface IBricksModuleOptions {
         username?: string;
         password?: string;
     };
+    /**
+     * PostgreSQL для дефолтного storage-адаптера (persistence).
+     * Если url задан — /api/bricks/** обслуживаются локальными Nitro-ручками.
+     * ENV-переопределение: NUXT_BRICKS_DATABASE_URL (legacy: DATABASE_URL).
+     */
+    database?: {
+        url?: string;
+    };
+    /**
+     * S3-совместимое хранилище для дефолтного publish-адаптера.
+     * ENV-переопределение: NUXT_BRICKS_S3_* (legacy: YANDEX_STORAGE_*).
+     */
+    s3?: {
+        endpoint?: string;
+        region?: string;
+        bucket?: string;
+        accessKeyId?: string;
+        secretAccessKey?: string;
+        prefix?: string;
+    };
+    /**
+     * Проксирование /api/* на внешний backend (dev-режим / свой REST API).
+     * Если database.url не задан, /api/bricks/** тоже уходят на прокси.
+     */
+    proxy?: {
+        url?: string;
+    };
 }
 // #endregion
 
@@ -52,6 +79,73 @@ const VITE_OPTIMIZE_INCLUDE = [
 ];
 // #endregion
 
+// #region Helpers
+/**
+ * Логирует выбранный persistence-режим при старте модуля.
+ *
+ * @param hasDatabase - Сконфигурирована ли локальная БД.
+ * @param hasProxy - Задан ли PROXY_URL.
+ */
+function logPersistenceMode(hasDatabase: boolean, hasProxy: boolean): void {
+    if (hasDatabase) {
+        console.info('[nuxt-bricks] Persistence: local PostgreSQL adapter (/api/bricks/**)');
+        return;
+    }
+
+    if (hasProxy) {
+        console.info('[nuxt-bricks] Persistence: proxy mode (/api/* → PROXY_URL)');
+        return;
+    }
+
+    console.warn(
+        '[nuxt-bricks] Neither bricks.database.url nor PROXY_URL is configured — /api/bricks/** will fail at runtime'
+    );
+}
+
+/**
+ * Заполняет runtimeConfig модуля: basic-auth, persistence (Postgres/S3), proxy.
+ * Дефолты переопределяемы в production через ENV (NUXT_BRICKS_*, legacy-имена — fallback).
+ *
+ * @param runtimeConfig - nuxt.options.runtimeConfig.
+ * @param options - Опции модуля из nuxt.config.
+ */
+function applyBricksRuntimeConfig(
+    runtimeConfig: Record<string, unknown>,
+    options: IBricksModuleOptions
+): void {
+    runtimeConfig.basicAuthUsername =
+        runtimeConfig.basicAuthUsername ??
+        process.env.BASIC_AUTH_USERNAME ??
+        options.basicAuth?.username;
+    runtimeConfig.basicAuthPassword =
+        runtimeConfig.basicAuthPassword ??
+        process.env.BASIC_AUTH_PASSWORD ??
+        options.basicAuth?.password;
+
+    // Persistence: PostgreSQL (server-only, секреты не в public)
+    runtimeConfig.bricksDatabaseUrl =
+        runtimeConfig.bricksDatabaseUrl ?? options.database?.url ?? process.env.DATABASE_URL ?? '';
+
+    // Persistence: S3-хранилище (server-only)
+    runtimeConfig.bricksS3 = defu(runtimeConfig.bricksS3 as object | undefined, options.s3, {
+        endpoint: 'https://storage.yandexcloud.net',
+        region: 'ru-central1',
+        bucket: process.env.YANDEX_STORAGE_BUCKET_NAME ?? '',
+        accessKeyId: process.env.YANDEX_STORAGE_ACCESS_KEY_ID ?? '',
+        secretAccessKey: process.env.YANDEX_STORAGE_SECRET_ACCESS_KEY ?? '',
+        prefix: 'bricks-media/',
+    });
+
+    // Proxy-режим: /api/* → внешний backend
+    const publicConfig = (runtimeConfig.public ?? {}) as Record<string, unknown>;
+    runtimeConfig.public = publicConfig;
+    publicConfig.PROXY_URL =
+        publicConfig.PROXY_URL ?? options.proxy?.url ?? process.env.PROXY_URL ?? '';
+
+    logPersistenceMode(Boolean(runtimeConfig.bricksDatabaseUrl), Boolean(publicConfig.PROXY_URL));
+}
+// #endregion
+
 export default defineNuxtModule<IBricksModuleOptions>({
     meta: {
         name: 'nuxt-bricks',
@@ -73,14 +167,7 @@ export default defineNuxtModule<IBricksModuleOptions>({
 
         // #region runtimeConfig
         const runtimeConfig = nuxt.options.runtimeConfig as Record<string, unknown>;
-        runtimeConfig.basicAuthUsername =
-            runtimeConfig.basicAuthUsername ??
-            process.env.BASIC_AUTH_USERNAME ??
-            options.basicAuth?.username;
-        runtimeConfig.basicAuthPassword =
-            runtimeConfig.basicAuthPassword ??
-            process.env.BASIC_AUTH_PASSWORD ??
-            options.basicAuth?.password;
+        applyBricksRuntimeConfig(runtimeConfig, options);
         // #endregion
 
         // #region Experimental flags (нужны для defineRouteRules / appManifest)
@@ -189,6 +276,56 @@ export default defineNuxtModule<IBricksModuleOptions>({
             route: '/mock-api/bricks-components',
             handler: resolve(runtimeDir, 'server/routes/mock-api/bricks-components'),
         });
+        // #endregion
+
+        // #region Server (api/bricks — persistence-ручки)
+        // Регистрируются всегда; выбор режима (локальная БД vs прокси) — runtime,
+        // в proxy.client.ts: при заданном bricksDatabaseUrl /api/bricks/** не проксируются.
+        const apiHandlers: Array<{
+            route: string;
+            method?: 'get' | 'post' | 'put' | 'patch' | 'delete';
+            file: string;
+        }> = [
+            { route: '/api/bricks', method: 'get', file: 'server/api/bricks/index.get' },
+            { route: '/api/bricks', method: 'post', file: 'server/api/bricks/index.post' },
+            {
+                route: '/api/bricks/published',
+                method: 'get',
+                file: 'server/api/bricks/published.get',
+            },
+            {
+                route: '/api/bricks/media',
+                method: 'get',
+                file: 'server/api/bricks/media/index.get',
+            },
+            {
+                route: '/api/bricks/media',
+                method: 'post',
+                file: 'server/api/bricks/media/index.post',
+            },
+            {
+                route: '/api/bricks/media/:id',
+                method: 'patch',
+                file: 'server/api/bricks/media/[id].patch',
+            },
+            {
+                route: '/api/bricks/media/:id',
+                method: 'delete',
+                file: 'server/api/bricks/media/[id].delete',
+            },
+            { route: '/api/bricks/:id', method: 'get', file: 'server/api/bricks/[id].get' },
+            { route: '/api/bricks/:id', method: 'put', file: 'server/api/bricks/[id].put' },
+            { route: '/api/bricks/:id', method: 'patch', file: 'server/api/bricks/[id].patch' },
+            { route: '/api/bricks/:id', method: 'delete', file: 'server/api/bricks/[id].delete' },
+        ];
+
+        for (const { route, method, file } of apiHandlers) {
+            addServerHandler({
+                route,
+                method,
+                handler: resolve(runtimeDir, file),
+            });
+        }
         // #endregion
     },
 });

@@ -1,12 +1,15 @@
 /**
- * Server middleware для проксирования /api запросов на Python backend.
+ * Server middleware для проксирования /api запросов на внешний backend.
  *
  * Логика проксирования:
- * - Все /api/* → проксируются на PROXY_URL
- * - /mock-api/* → НИКОГДА не проксируется (локальный json)
+ * - /mock-api/* → НИКОГДА не проксируется (локальные Nitro-роуты)
+ * - /api/bricks/** → НЕ проксируется, если сконфигурирована БД
+ *   (bricks.database.url / NUXT_BRICKS_DATABASE_URL / DATABASE_URL) —
+ *   запросы обслуживают локальные persistence-ручки (см. server/api/bricks/)
+ * - остальные /api/* → проксируются на PROXY_URL (если задан)
  *
  * Это позволяет компонентам билдера (.brick.ts) делать API запросы,
- * которые будут проксироваться на backend.
+ * которые будут проксироваться на backend проекта.
  */
 
 import { createProxyEventHandler } from 'h3-proxy';
@@ -15,6 +18,7 @@ import { useRuntimeConfig } from 'nitropack/runtime';
 
 const config = useRuntimeConfig();
 const API_PREFIX = '/api';
+const LOCAL_API_PREFIX = '/api/bricks';
 
 /**
  * Создает proxy handler для проксирования запросов на backend
@@ -30,9 +34,15 @@ function createHandler(targetUrl: string, pathPrefix: string): EventHandler | nu
     });
 }
 
-const proxyHandler = config.public.PROXY_URL
-    ? createHandler(config.public.PROXY_URL, API_PREFIX)
-    : null;
+const proxyTarget = (config.public.PROXY_URL as string | undefined) || '';
+const proxyHandler = proxyTarget ? createHandler(proxyTarget, API_PREFIX) : null;
+
+/**
+ * Проверяет, сконфигурирована ли локальная БД (persistence-режим).
+ */
+function hasLocalDatabase(): boolean {
+    return Boolean((config.bricksDatabaseUrl as string | undefined) || process.env.DATABASE_URL);
+}
 
 /**
  * Проверяет, должен ли URL проксироваться на backend
@@ -44,6 +54,11 @@ function shouldProxy(url: string | undefined): boolean {
 
     // Mock API - НИКОГДА не проксируем
     if (url.startsWith('/mock-api')) {
+        return false;
+    }
+
+    // При сконфигурированной БД /api/bricks/** обслуживают локальные ручки
+    if (url.startsWith(LOCAL_API_PREFIX) && hasLocalDatabase()) {
         return false;
     }
 

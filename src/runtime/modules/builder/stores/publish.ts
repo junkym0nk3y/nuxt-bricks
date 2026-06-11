@@ -1,4 +1,3 @@
-// TODO(persistence, Шаг 6): переедет в runtime/persistence/ при введении StorageAdapter/PublishAdapter
 import { defineStore } from 'pinia';
 import type { BricksSchema } from '../../common/types/brick';
 import type {

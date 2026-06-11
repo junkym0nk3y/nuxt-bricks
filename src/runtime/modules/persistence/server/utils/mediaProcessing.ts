@@ -1,4 +1,3 @@
-// TODO(persistence, Шаг 6): переедет в runtime/persistence/ при введении StorageAdapter/PublishAdapter
 // #region Imports
 import { createError } from 'h3';
 import type {
@@ -6,7 +5,7 @@ import type {
     IValidatedImage,
     IValidatedVideo,
     TMediaOptimization,
-} from '../../../modules/media/types/media';
+} from '../../../media/types/media';
 import {
     getFileExtension,
     isImageFile,
@@ -15,7 +14,7 @@ import {
     optimizeToWebp,
     resolveVideoMime,
     toBuffer,
-} from './images';
+} from './imageProcessing';
 // #endregion
 
 /**

@@ -1,0 +1,14 @@
+import { defineEventHandler } from 'h3';
+import { useBricksStorageAdapter } from '../../../modules/persistence/server/registry';
+import { toHttpError } from '../../../modules/persistence/server/utils/handlerHelpers';
+
+/**
+ * GET /api/bricks — возвращает список всех страниц билдера.
+ */
+export default defineEventHandler(async () => {
+    try {
+        return await useBricksStorageAdapter().listPages();
+    } catch (error: unknown) {
+        toHttpError(error, 'Failed to fetch pages');
+    }
+});

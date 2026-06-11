@@ -43,6 +43,23 @@ export function toCamelCase<T>(obj: unknown): T {
 }
 
 /**
+ * Конвертирует только top-level ключи объекта из snake_case в camelCase.
+ * Значения (включая вложенные объекты, например `schema`) остаются без изменений.
+ *
+ * @param obj - Объект с ключами в snake_case.
+ * @returns Новый объект с top-level ключами в camelCase.
+ */
+export function toCamelCaseShallow<T>(obj: object): T {
+    const result: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(obj)) {
+        result[toCamelCaseString(key)] = value;
+    }
+
+    return result as T;
+}
+
+/**
  * Конвертирует строку из camelCase в snake_case.
  *
  * @param str - Строка в camelCase.

@@ -1,20 +1,16 @@
 // #region Imports
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { randomUUID } from 'crypto';
 import { createError, defineEventHandler, readMultipartFormData, type MultiPartData } from 'h3';
-import { getFileExtension, isVideoFile, resolveMediaConfig } from '../../utils/db/images';
-import { validateAndOptimizeImage, validateVideo } from '../../utils/db/media';
-// #endregion
-
-// #region Data
-const s3Client = new S3Client({
-    region: 'ru-central1',
-    endpoint: 'https://storage.yandexcloud.net',
-    credentials: {
-        accessKeyId: process.env.YANDEX_STORAGE_ACCESS_KEY_ID || '',
-        secretAccessKey: process.env.YANDEX_STORAGE_SECRET_ACCESS_KEY || '',
-    },
-});
+import { useBricksPublishAdapter } from '../../../modules/persistence/server/registry';
+import {
+    getFileExtension,
+    isVideoFile,
+    resolveMediaConfig,
+} from '../../../modules/persistence/server/utils/imageProcessing';
+import {
+    validateAndOptimizeImage,
+    validateVideo,
+} from '../../../modules/persistence/server/utils/mediaProcessing';
 // #endregion
 
 // #region Interfaces
@@ -48,29 +44,11 @@ function assertUploadedFile(
 
     return file;
 }
-
-/**
- * Проверяет наличие bucket name в окружении.
- *
- * @returns Название bucket.
- */
-function requireBucketName(): string {
-    const bucketName = process.env.YANDEX_STORAGE_BUCKET_NAME;
-
-    if (!bucketName) {
-        throw createError({
-            statusCode: 500,
-            message: 'Bucket name not configured',
-        });
-    }
-
-    return bucketName;
-}
 // #endregion
 
 /**
- * POST /mock-api/s3-image — загружает файл в S3 и возвращает URL.
- * Не сохраняет метаданные в БД — только загрузка в хранилище.
+ * POST /mock-api/s3-image — загружает файл в хранилище публикации и возвращает URL.
+ * Не сохраняет метаданные в БД — только загрузка через publish-адаптер.
  */
 export default defineEventHandler(async (event): Promise<IS3UploadResponse> => {
     try {
@@ -84,7 +62,6 @@ export default defineEventHandler(async (event): Promise<IS3UploadResponse> => {
         }
 
         const file = assertUploadedFile(formData);
-        const bucketName = requireBucketName();
         const config = resolveMediaConfig();
         const fileExtension = getFileExtension(file.filename);
         const isVideo = isVideoFile(file.type, fileExtension);
@@ -117,24 +94,17 @@ export default defineEventHandler(async (event): Promise<IS3UploadResponse> => {
         const uniqueFilename = `${randomUUID()}.${targetExtension}`;
         const key = `bricks-media/${uniqueFilename}`;
 
-        // Загружаем в S3
-        await s3Client.send(
-            new PutObjectCommand({
-                Bucket: bucketName,
-                Key: key,
-                Body: uploadBuffer,
-                ContentType: mimeType,
-                ACL: 'public-read',
-            })
-        );
-
-        const url = `https://storage.yandexcloud.net/${bucketName}/${key}`;
+        const uploaded = await useBricksPublishAdapter().uploadFile({
+            buffer: uploadBuffer,
+            mimeType,
+            key,
+        });
 
         return {
             success: true,
-            url,
+            url: uploaded.url,
             filename: file.filename || uniqueFilename,
-            size: uploadBuffer.length,
+            size: uploaded.size,
             mimeType,
         };
     } catch (error: unknown) {

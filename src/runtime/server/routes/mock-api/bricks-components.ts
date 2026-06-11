@@ -1,5 +1,5 @@
 import { appendHeader, defineEventHandler } from 'h3';
-import { resolveBricksComponents } from '../../utils/db/bricks-components';
+import { resolveBricksComponents } from '../../utils/bricksComponents';
 
 /**
  * GET /mock-api/bricks-components — возвращает весь список категорий или компоненты выбранной

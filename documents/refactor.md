@@ -8,15 +8,15 @@
 
 ## Принятые решения
 
-| Вопрос                 | Решение                                                                                               |
-| ---------------------- | ----------------------------------------------------------------------------------------------------- |
-| Формат пакета          | **Nuxt Module** на `@nuxt/module-builder` + `@nuxt/kit` (не layer)                                    |
-| Имя пакета / репо      | **`nuxt-bricks`**                                                                                     |
-| UI-кит                 | **Reka UI** (headless), поверх — текущие SCSS-стили                                                   |
-| Серверная часть        | Ручки вшиты в модуль через **абстракцию storage/publish**, дефолтный адаптер Postgres+S3 (заменяемый) |
-| Старый `.playground`   | **Не переносим**. Новый минимальный `playground/` + тесты                                             |
-| Тестирование           | `playground/` (demo Nuxt-app с `modules: ['../src/module']`) + `vitest` + `@nuxt/test-utils`          |
-| Архитектура            | **Modular** — домены в `src/runtime/modules/`                                                         |
+| Вопрос               | Решение                                                                                               |
+| -------------------- | ----------------------------------------------------------------------------------------------------- |
+| Формат пакета        | **Nuxt Module** на `@nuxt/module-builder` + `@nuxt/kit` (не layer)                                    |
+| Имя пакета / репо    | **`nuxt-bricks`**                                                                                     |
+| UI-кит               | **Reka UI** (headless), поверх — текущие SCSS-стили                                                   |
+| Серверная часть      | Ручки вшиты в модуль через **абстракцию storage/publish**, дефолтный адаптер Postgres+S3 (заменяемый) |
+| Старый `.playground` | **Не переносим**. Новый минимальный `playground/` + тесты                                             |
+| Тестирование         | `playground/` (demo Nuxt-app с `modules: ['../src/module']`) + `vitest` + `@nuxt/test-utils`          |
+| Архитектура          | **Modular** — домены в `src/runtime/modules/`                                                         |
 
 ## Структура каталогов (текущая)
 
@@ -37,10 +37,10 @@ nuxt-bricks/
 │       │   ├── layouts-blocks/   # блоки лендинга (Grid/Flex/Section/Slider/...)
 │       │   ├── editor/           # tiptap rich-text + inline editing
 │       │   ├── media/            # галерея/медиа-пикеры
-│       │   ├── persistence/      # ❌ не создан — Шаг 6: storage/publish-абстракция + адаптеры
+│       │   ├── persistence/      # storage/publish-абстракция: types/ + server/ (postgres, s3, registry)
 │       │   └── common/           # ТОЛЬКО общее (2+ доменов): composables/, utils/, types/
 │       ├── plugins/              # nuxt-плагины (тонкие entry-points, импортируют из доменов)
-│       ├── server/               # api-ручки + utils/db (→ persistence на Шаге 6)
+│       ├── server/               # тонкие api-ручки (/api/bricks/**, mock-api) + middleware
 │       └── assets/scss/          # стили, токены
 ├── playground/                   # demo Nuxt-app
 ├── test/                         # ❌ не создан — Шаг 7: vitest + @nuxt/test-utils
@@ -52,17 +52,17 @@ nuxt-bricks/
 
 ## Статус
 
-| Шаг                            | Статус       | Комментарий                                                                                      |
-| ------------------------------ | ------------ | ------------------------------------------------------------------------------------------------ |
-| 0–2. Scaffold, перенос, module | ✅ Готово    | Домены в `src/runtime/modules/`, регистрация через `@nuxt/kit`                                   |
-| 3. Дебрендинг                  | ✅ Готово    | Добиты хвосты (2026-06-11): pinia ids → `bricks*`, `ILand*` → `IBrick*`, `--land-*` → `--bricks-*`, `.land-dark` → `.bricks-dark`, `BricksLandIcon` → `BricksIcon`; CLAUDE.md/rules актуализированы |
-| 4. UI → Reka UI                | ✅ Готово    | Осталась только ручная регрессия (см. «Известные доработки»)                                     |
-| 5. Чистка зависимостей         | ✅ Готово    | `@idaproject/*` убраны; `tiny-sha256` оставлен осознанно                                         |
-| Нейминг-консолидация           | ✅ Готово    | Все 15 шагов выполнены, план (`rename-plan.md`) удалён; правила — `.claude/rules/naming.md`      |
+| Шаг                            | Статус       | Комментарий                                                                                                                                                                                                                                                                                                        |
+| ------------------------------ | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0–2. Scaffold, перенос, module | ✅ Готово    | Домены в `src/runtime/modules/`, регистрация через `@nuxt/kit`                                                                                                                                                                                                                                                     |
+| 3. Дебрендинг                  | ✅ Готово    | Добиты хвосты (2026-06-11): pinia ids → `bricks*`, `ILand*` → `IBrick*`, `--land-*` → `--bricks-*`, `.land-dark` → `.bricks-dark`, `BricksLandIcon` → `BricksIcon`; CLAUDE.md/rules актуализированы                                                                                                                |
+| 4. UI → Reka UI                | ✅ Готово    | Осталась только ручная регрессия (см. «Известные доработки»)                                                                                                                                                                                                                                                       |
+| 5. Чистка зависимостей         | ✅ Готово    | `@idaproject/*` убраны; `tiny-sha256` оставлен осознанно                                                                                                                                                                                                                                                           |
+| Нейминг-консолидация           | ✅ Готово    | Все 15 шагов выполнены, план (`rename-plan.md`) удалён; правила — `.claude/rules/naming.md`                                                                                                                                                                                                                        |
 | Ребрендинг landing → bricks    | ✅ Готово    | Полный (2026-06-11): идентификаторы/файлы `*Landing*` → `*Bricks*`, `/api/landing` → `/api/bricks`, URL `/landing/:pagename` → `/bricks/:pagename`, `appConfig.landing` → `appConfig.bricks`, layout `landing` → `bricks` (+legacy-маппинг в `normalizePublishedPage`), `ida-tiptap-table` → `bricks-tiptap-table` |
-| 6. Persistence-абстракция      | ❌ Не начато | `StorageAdapter`/`PublishAdapter` нет; сейчас — `server/routes/mock-api/*` + `server/middleware/` |
-| 7. Playground + тесты          | 🟡 Частично  | `playground/` есть; `test/` отсутствует                                                          |
-| 8. Сборка и публикация         | ❌ Не начато | README/LICENSE нет, `npm pack`/`publish` не проверялись                                          |
+| 6. Persistence-абстракция      | ✅ Готово    | `IStorageAdapter`/`IPublishAdapter` в `modules/persistence/`, дефолт Postgres+S3, ручки `/api/bricks/**` локально; proxy-режим остался fallback'ом. `fields` отложено (YAGNI)                                                                                                                                      |
+| 7. Playground + тесты          | 🟡 Частично  | `playground/` есть; `test/` отсутствует                                                                                                                                                                                                                                                                            |
+| 8. Сборка и публикация         | ❌ Не начато | README/LICENSE нет, `npm pack`/`publish` не проверялись                                                                                                                                                                                                                                                            |
 
 ---
 
@@ -73,16 +73,27 @@ nuxt-bricks/
 > (см. `.claude/rules/naming.md`). ⚠️ Пути `/api/bricks/*` требуют синхронного обновления
 > роутов на Python-бэкенде (он будет переписан на Node — принято осознанно).
 
-### Шаг 6. Серверная часть: абстракция хранилища
+### Шаг 6. Серверная часть: абстракция хранилища ✅ (2026-06-11)
 
-- Ввести интерфейсы `StorageAdapter` (CRUD лендингов) и `PublishAdapter` (публикация/медиа в S3)
-  в `runtime/modules/persistence/`.
-- Перенести текущую реализацию (Postgres из `server/utils/db` + `@aws-sdk` S3) как **дефолтный адаптер**.
-- Ручки `runtime/server/*` работают через адаптер; адаптер выбирается из опций модуля/`runtimeConfig`.
-- Разработчик задаёт `bricks: { database: {...}, s3: {...}, fields: {...} }` в `nuxt.config` (+ `.env`);
-  опционально передаёт свой адаптер.
-- В README — описать необходимые поля/таблицы (SQL-инициализация).
-- Серверные зависимости (по дефолтному адаптеру): `@aws-sdk/client-s3`, `sharp`, драйвер Postgres, `upath`.
+Реализовано:
+
+- `modules/persistence/types/adapters.d.ts` — `IStorageAdapter` (CRUD страниц + медиа-метаданных)
+  и `IPublishAdapter` (файлы публикации: upload/delete/list).
+- Дефолтные адаптеры: `modules/persistence/server/postgres/` (pg, таблицы `bricks_pages`/`bricks_media`,
+  динамический `await import('pg')` — optional peer) и `modules/persistence/server/s3/` (Yandex S3).
+- Реестр `modules/persistence/server/registry.ts`: `use/setBricksStorageAdapter`,
+  `use/setBricksPublishAdapter` — кастомный адаптер ставится из Nitro-плагина потребителя
+  (subpath-export `nuxt-bricks/persistence` — задача Шага 8).
+- Ручки `runtime/server/api/bricks/**` (11 шт.) регистрируются в `module.ts` всегда; выбор режима —
+  runtime в `proxy.client.ts`: БД задана → локальные ручки, иначе `/api/*` → `PROXY_URL`.
+- Конфиг: `bricks: { database: { url }, s3: {...}, proxy: { url } }` в `nuxt.config`;
+  ENV: `NUXT_BRICKS_DATABASE_URL`/`NUXT_BRICKS_S3_*` (legacy fallback: `DATABASE_URL`, `YANDEX_STORAGE_*`).
+- `database/init.sql` + `docker-compose.yml` (postgres:16-alpine) для локальной разработки;
+  `playground/.env.example`.
+- Case-конвенция: вход top-level snake_case → `toCamelCaseShallow` (`schema` не трогается),
+  выход — camelCase через SQL-алиасы (фронтовый `toCamelCase` идемпотентен, фронт не менялся).
+- Опция `fields` (кастомный маппинг колонок) — **отложена (YAGNI)**.
+- В README (Шаг 8) — описать SQL-инициализацию и конфиг адаптеров.
 
 ### Шаг 7. Тесты
 

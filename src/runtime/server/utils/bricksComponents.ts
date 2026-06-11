@@ -1,7 +1,6 @@
-// TODO(persistence, Шаг 6): переедет в runtime/persistence/ при введении StorageAdapter/PublishAdapter
 import { createError } from 'h3';
-import { getBricksCategoriesFromJson } from '../../../modules/common/utils/routing/bricks-api';
-import type { IBrickRoute } from '../../../modules/common/utils/routing/types.d.ts';
+import { getBricksCategoriesFromJson } from '../../modules/common/utils/routing/bricks-api';
+import type { IBrickRoute } from '../../modules/common/utils/routing/types.d.ts';
 
 /**
  * Возвращает список компонентов по категории или весь словарь категорий.
