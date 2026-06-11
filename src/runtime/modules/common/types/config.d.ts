@@ -17,8 +17,6 @@ export interface IBricksBreakpointConfig {
     maxWidth?: string;
     /** Базовый rem для viewport, напр. "10px" или "0.6944vw". Default: "10px" */
     remBase?: string;
-    /** Переопределить проектный .container на published-странице значениями aside/maxWidth */
-    overrideContainer?: boolean;
 }
 
 export interface IBricksMediaConfig {

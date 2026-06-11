@@ -10,7 +10,7 @@
 | `useBricksConfig` | Конфигурация лендинга с дефолтными значениями. Читает из `app.config.ts`  |
 | `useApiClient`     | Работа с API через прокси или напрямую                                    |
 | `useStoryImports`  | Динамический импорт story-файлов компонентов                              |
-| `useBricksStyles` | Инъекция динамических стилей лендинга в `<head>` (override `.container`)  |
+| `useBricksStyles` | Инъекция динамических стилей лендинга в `<head>` (стили `.bricks-container`)  |
 
 ## Доменные композаблы
 

@@ -170,7 +170,7 @@ function resolveResponsive(base: number, key: string): number {
 
 ### Canvas & Layout
 
-- Fixed Width Canvas (1920px), responsive viewports (mobile/tablet/desktop)
+- Ширина канваса = `width` активного viewport из конфига (дефолт desktop: 1600px), responsive viewports (mobile/tablet/desktop)
 - Layout-компоненты (`BlockGrid`, `BlockFlex`, `BlockSpace`) содержат children
 - Компоненты имеют `parent` (layout ID) и `children` (массив ID)
 
@@ -214,41 +214,32 @@ bricks: {
 
 **Figma Mode:** каждый viewport применяет свою компенсацию через `transform: scale()` на `.canvas` элементе (inject `getRemCompensation` из `TheCanvas.vue`).
 
-#### Override Container (`overrideContainer`)
+#### Контейнер контента (`.bricks-container`)
 
-На опубликованной странице `.container` стилизуется проектным CSS (из `default.scss`). Параметры `aside`/`maxWidth` из конфига влияют **только на canvas билдера**. Если нужно переопределить проектный `.container` и на published-странице — используется `overrideContainer: true`.
-
-**Конфигурация** — поле `overrideContainer` в breakpoint'ах (`app.config.ts`):
+Билдер полностью владеет контейнером контента — и на канвасе, и на published-странице. Проектный `.container` не используется и не наследуется (бывший костыль `overrideContainer` удалён 2026-06-11). Единственный источник значений — `aside`/`maxWidth`/`minWidth` в breakpoint'ах (`app.config.ts`):
 
 ```typescript
 bricks: {
     breakpoints: {
-        desktop: {
-            width: 1600,
-            aside: '2rem',
-            maxWidth: '192rem',
-            overrideContainer: true,  // переопределит проектный .container
-        },
-        tablet: { width: 768, aside: '0.8rem', overrideContainer: true },
-        mobile: { width: 375, aside: '0.4rem' },  // без override — проектный .container
+        desktop: { width: 1600, aside: '2rem', maxWidth: '192rem' },
+        tablet:  { width: 768,  aside: '0.8rem' },
+        mobile:  { width: 375,  aside: '0.4rem' },
     }
 }
 ```
 
 **Как работает:**
 
-- `useBricksStyles.ts` генерирует дополнительный CSS с media queries, таргетящий `.container[data-bricks-container]`
-- `TheRenderer.vue` добавляет `data-bricks-container` атрибут на container-обёртки
-- Селектор `[data-bricks-container]` обеспечивает специфичность выше проектного `.container`
-- Media queries используют device breakpoints (`device.breakpoints`), не canvas breakpoints
-- Гранулярно: можно включить только для отдельных viewport'ов
-
-Без `overrideContainer` → поведение не меняется (проектный `.container` применяется как обычно).
+- `useBricksStyles.ts` генерирует CSS для `.bricks-container` безусловно
+- Канвас: правила `[data-bricks-viewport]` (по выбранному viewport билдера)
+- Published: media queries по device breakpoints (`device.breakpoints`), селектор обёрнут в `:where(:not(.bricks-canvas *))`, чтобы не протекать в канвас
+- Fallback'и без конфига: maxWidth = `width` в rem, aside = `2rem`/`0.8rem`/`0.4rem`
 
 **Ключевые файлы:**
 
-- `common/composables/useBricksStyles.ts` — генерация override CSS
-- `render/components/TheRenderer.vue` — добавление `data-bricks-container`
+- `common/composables/useBricksStyles.ts` — генерация CSS (канвас + published)
+- `render/components/TheRenderer.vue` — обёртка `bricks-container` на published
+- `canvas/components/CanvasConditionalContainer.vue` — обёртка на канвасе
 - `plugins/bricks-styles.ts` — инжектит стили на все страницы (и builder, и published)
 
 ### Inline Editing (TipTap)

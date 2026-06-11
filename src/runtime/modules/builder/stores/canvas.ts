@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { useAppConfig } from 'nuxt/app';
 import type { CanvasState } from '../../common/types/brick';
+import type { IAppConfig } from '../../common/types/config';
 import { convertRemToPx } from '../../common/utils/main';
 import { useSidebarStore } from './sidebar';
 
@@ -10,6 +11,22 @@ const VIEWPORT_BASE_HEIGHT: Record<'mobile' | 'tablet' | 'desktop', number> = {
     desktop: 1080,
 };
 const CANVAS_HEIGHT_BUFFER = 400;
+
+/**
+ * Возвращает ширину холста для viewport из конфига (с дефолтами).
+ */
+function getConfiguredViewportWidth(viewport: 'mobile' | 'tablet' | 'desktop'): number {
+    const appConfig = useAppConfig() as IAppConfig;
+    const canvasBreakpoints = appConfig?.bricks?.breakpoints;
+
+    const widths = {
+        mobile: canvasBreakpoints?.mobile?.width ?? 375,
+        tablet: canvasBreakpoints?.tablet?.width ?? 768,
+        desktop: canvasBreakpoints?.desktop?.width ?? 1600,
+    };
+
+    return widths[viewport];
+}
 
 /**
  * Инкапсулирует логику размеров холста: ширину, высоту, масштаб и текущий viewport.
@@ -52,6 +69,16 @@ export const useCanvasStore = defineStore('bricksCanvas', {
     },
 
     actions: {
+        /**
+         * Синхронизирует размеры холста с конфигом для текущего viewport.
+         * Вызывается при инициализации билдера: дефолт state (1920) может
+         * не совпадать с шириной viewport из app.config.
+         */
+        initCanvasSize() {
+            this.width = getConfiguredViewportWidth(this.viewport);
+            this.height = VIEWPORT_BASE_HEIGHT[this.viewport] ?? VIEWPORT_BASE_HEIGHT.desktop;
+        },
+
         /**
          * Устанавливает масштаб холста в допустимых пределах.
          *
@@ -102,21 +129,7 @@ export const useCanvasStore = defineStore('bricksCanvas', {
                 this._preFigmaHeight = null;
             } else {
                 this.viewport = viewport;
-
-                const appConfig = useAppConfig() as any;
-                const canvasBreakpoints = appConfig?.bricks?.breakpoints ?? {
-                    mobile: { width: 375 },
-                    tablet: { width: 768 },
-                    desktop: { width: 1600 },
-                };
-
-                const widths = {
-                    mobile: canvasBreakpoints.mobile?.width ?? 375,
-                    tablet: canvasBreakpoints.tablet?.width ?? 768,
-                    desktop: canvasBreakpoints.desktop?.width ?? 1600,
-                };
-
-                this.width = widths[viewport];
+                this.width = getConfiguredViewportWidth(viewport);
 
                 const baseHeight = VIEWPORT_BASE_HEIGHT[viewport] ?? VIEWPORT_BASE_HEIGHT.desktop;
                 this.height = baseHeight;

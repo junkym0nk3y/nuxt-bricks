@@ -11,7 +11,6 @@ import { computed, h, useCssModule } from 'vue';
 import { useStoryImports } from '../../common/composables/useStoryImports';
 import { useRendererStories } from '../composables/useRendererStories';
 import { useRendererLayouts } from '../composables/useRendererLayouts';
-import { useBricksConfig } from '../../common/composables/useBricksConfig';
 
 // Components
 import RendererPlaceholder from './RendererPlaceholder.vue';
@@ -40,13 +39,6 @@ const { renderLayoutComponent, needsContainerWrapper } = useRendererLayouts({
     styles,
     renderChild: (component) => renderComponent(component),
 });
-
-const config = useBricksConfig();
-const cbp = config.canvasBreakpoints;
-
-/** Флаг: хотя бы один breakpoint имеет overrideContainer */
-const hasContainerOverride =
-    cbp.desktop.overrideContainer || cbp.tablet.overrideContainer || cbp.mobile.overrideContainer;
 // #endregion
 
 // #region Methods
@@ -139,16 +131,11 @@ function wrapWithContainer(
         return content;
     }
 
-    const containerAttrs: Record<string, string | undefined> = { ...extraAttrs };
-    if (hasContainerOverride) {
-        containerAttrs['data-bricks-container'] = '';
-    }
-
     return h(
         'div',
         {
-            class: ['container', styles.container, ...visibilityClasses],
-            ...containerAttrs,
+            class: ['bricks-container', styles.container, ...visibilityClasses],
+            ...extraAttrs,
         },
         [content]
     );

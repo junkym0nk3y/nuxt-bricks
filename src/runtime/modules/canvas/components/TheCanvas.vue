@@ -135,14 +135,14 @@ const canvasStyle = computed<Record<string, string>>(() => {
  * Per-viewport компенсация применяется внутри каждого CanvasViewport.
  */
 const figmaWrapperStyle = computed<Record<string, string>>(() => {
-    if (!isMounted.value) {
-        return {};
+    const style: Record<string, string> = {};
+
+    if (isMounted.value) {
+        style.transform = figmaBaseTransform.value;
+        style.gap = figmaGap;
     }
 
-    return {
-        transform: figmaBaseTransform.value,
-        gap: figmaGap,
-    };
+    return style;
 });
 // #endregion
 
@@ -419,6 +419,9 @@ function updateContainerMetrics(): void {
  * 7. Подписка на кастомные события layout-drop и slot-drop для drag-and-drop
  */
 onMounted(async () => {
+    // Синхронизация размеров холста с конфигом до расчёта scale/центрирования
+    canvasStore.initCanvasSize();
+
     // Ожидание полной готовности DOM
     await nextTick();
 

@@ -7,7 +7,7 @@
  * Пропсы для компонента CanvasConditionalContainer
  */
 interface ICanvasConditionalContainerProps {
-    /** Нужно ли оборачивать контент в div.container */
+    /** Нужно ли оборачивать контент в div.bricks-container */
     useContainer: boolean;
 }
 // #endregion
@@ -18,7 +18,7 @@ const props = defineProps<ICanvasConditionalContainerProps>();
 </script>
 
 <template>
-    <div v-if="props.useContainer" class="container">
+    <div v-if="props.useContainer" class="bricks-container">
         <slot />
     </div>
     <slot v-else />

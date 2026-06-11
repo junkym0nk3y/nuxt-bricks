@@ -32,91 +32,18 @@ function buildContainerProps(
 }
 
 /**
- * Генерирует CSS для переопределения .container на published-странице.
- * Применяется только для breakpoints с overrideContainer: true.
- * Использует media queries на основе device breakpoints.
- */
-function buildContainerOverrideCss(
-    cbp: {
-        mobile: IBricksBreakpointConfig;
-        tablet: IBricksBreakpointConfig;
-        desktop: IBricksBreakpointConfig;
-    },
-    deviceBreakpoints: { mobile: number; tablet: number; desktop: number }
-): string {
-    const hasOverride =
-        cbp.desktop.overrideContainer ||
-        cbp.tablet.overrideContainer ||
-        cbp.mobile.overrideContainer;
-
-    if (!hasOverride) {
-        return '';
-    }
-
-    let css = `
-        /* Override .container на published-странице */
-        .container[data-bricks-container] {
-            width: 100%;
-            margin: 0 auto;
-        }`;
-
-    if (cbp.desktop.overrideContainer) {
-        const aside = cbp.desktop.aside ?? '2rem';
-        const { maxWidth, minWidth } = cbp.desktop;
-        css += `
-
-        @media (min-width: ${deviceBreakpoints.desktop}px) {
-            .container[data-bricks-container] {
-                padding: 0 ${aside};${maxWidth ? `\n                max-width: ${maxWidth};` : ''}${minWidth ? `\n                min-width: ${minWidth};` : ''}
-            }
-        }`;
-    }
-
-    if (cbp.tablet.overrideContainer) {
-        const aside = cbp.tablet.aside ?? '0.8rem';
-        const { maxWidth, minWidth } = cbp.tablet;
-        css += `
-
-        @media (min-width: ${deviceBreakpoints.tablet}px) and (max-width: ${deviceBreakpoints.desktop - 1}px) {
-            .container[data-bricks-container] {
-                padding: 0 ${aside};${maxWidth ? `\n                max-width: ${maxWidth};` : ''}${minWidth ? `\n                min-width: ${minWidth};` : ''}
-            }
-        }`;
-    }
-
-    if (cbp.mobile.overrideContainer) {
-        const aside = cbp.mobile.aside ?? '0.4rem';
-        const { maxWidth, minWidth } = cbp.mobile;
-        css += `
-
-        @media (max-width: ${deviceBreakpoints.tablet - 1}px) {
-            .container[data-bricks-container] {
-                padding: 0 ${aside};${maxWidth ? `\n                max-width: ${maxWidth};` : ''}${minWidth ? `\n                min-width: ${minWidth};` : ''}
-            }
-        }`;
-    }
-
-    return css;
-}
-
-/**
  * Composable для инъекции динамических стилей лендинга в <head>
  *
- * Генерирует CSS с Container Queries на основе конфигурации canvas breakpoints:
- * - desktop (1920px) - maxWidth: 1600px (или настраиваемый), aside: 2rem
- * - tablet (768px) - maxWidth: 768px (или настраиваемый), aside: 0.8rem
- * - mobile (375px) - maxWidth: 375px (или настраиваемый), aside: 0.4rem
+ * Билдер полностью владеет контейнером контента (.bricks-container) — и на канвасе,
+ * и на published-странице. Источник значений один: canvas breakpoints из конфига
+ * (aside / maxWidth / minWidth, fallback'и от width).
  *
- * Container queries применяются к .bricks-canvas элементу, что позволяет
- * компонентам внутри канваса адаптироваться к размеру viewport без медиа-запросов.
+ * Канвас: Container Queries + [data-bricks-viewport] на .bricks-canvas — компоненты
+ * адаптируются к размеру канваса, а не окна браузера (критично для превью в билдере).
  *
- * Класс .container получает:
- * - max-width для ограничения ширины контента
- * - padding (aside) для боковых отступов
- *
- * При наличии overrideContainer: true в breakpoint, дополнительно генерирует
- * CSS с media queries для переопределения проектного .container на published-странице
- * через селектор .container[data-bricks-container].
+ * Published-страница: media queries по device breakpoints применяют те же значения
+ * к .bricks-container. Селектор обёрнут в :where(:not(.bricks-canvas *)), чтобы
+ * media-query-правила не протекали в канвас (там действуют только viewport-правила).
  *
  * @example
  * // В компоненте или странице
@@ -124,7 +51,7 @@ function buildContainerOverrideCss(
  *
  * // В HTML
  * <div class="bricks-canvas" data-bricks-viewport="desktop">
- *   <div class="container">
+ *   <div class="bricks-container">
  *     Контент ограничен max-width и имеет боковые отступы
  *   </div>
  * </div>
@@ -132,6 +59,7 @@ function buildContainerOverrideCss(
 export function useBricksStyles() {
     const config = useBricksConfig();
     const cbp = config.canvasBreakpoints;
+    const dbp = config.breakpoints;
 
     const desktopContainerProps = buildContainerProps(
         cbp.desktop,
@@ -149,44 +77,53 @@ export function useBricksStyles() {
         '0.4rem'
     );
 
-    /**
-     * CSS контент с Container Queries для адаптивных стилей
-     *
-     * Настройка:
-     * 1. .bricks-canvas - определяет контейнер для Container Queries (inline-size)
-     * 2. .container - базовые стили для контейнера контента (width: 100%, margin: auto)
-     * 3. [data-bricks-viewport="desktop/tablet/mobile"] .container - применяет
-     *    max-width и padding в зависимости от выбранного viewport
-     *
-     * Container Queries вместо Media Queries позволяют компонентам адаптироваться
-     * к размеру канваса, а не размеру окна браузера, что критично для превью в билдере.
-     */
-    let styleContent = `
+    const styleContent = `
         /* Канвас как контейнер для Container Queries */
         .bricks-canvas {
             container-type: inline-size;
             container-name: bricks;
         }
 
-        .bricks-canvas .container {
+        /* Базовые стили контейнера контента (канвас и published-страница).
+           box-sizing задаётся явно: модуль не полагается на глобальный reset хост-проекта,
+           иначе width: 100% + padding (aside) выталкивает контейнер за пределы канваса */
+        .bricks-container {
+            box-sizing: border-box;
             width: 100%;
             margin: 0 auto;
         }
 
-        .bricks-canvas[data-bricks-viewport="desktop"] .container {
+        /* Канвас: стили по выбранному viewport */
+        .bricks-canvas[data-bricks-viewport="desktop"] .bricks-container {
             ${desktopContainerProps}
         }
 
-        .bricks-canvas[data-bricks-viewport="tablet"] .container {
+        .bricks-canvas[data-bricks-viewport="tablet"] .bricks-container {
             ${tabletContainerProps}
         }
 
-        .bricks-canvas[data-bricks-viewport="mobile"] .container {
+        .bricks-canvas[data-bricks-viewport="mobile"] .bricks-container {
             ${mobileContainerProps}
-        }`;
+        }
 
-    // Добавляем override CSS для published-страницы если задан overrideContainer
-    styleContent += buildContainerOverrideCss(cbp, config.breakpoints);
+        /* Published-страница: те же значения через media queries по device breakpoints */
+        @media (min-width: ${dbp.desktop}px) {
+            .bricks-container:where(:not(.bricks-canvas *)) {
+                ${desktopContainerProps}
+            }
+        }
+
+        @media (min-width: ${dbp.tablet}px) and (max-width: ${dbp.desktop - 1}px) {
+            .bricks-container:where(:not(.bricks-canvas *)) {
+                ${tabletContainerProps}
+            }
+        }
+
+        @media (max-width: ${dbp.tablet - 1}px) {
+            .bricks-container:where(:not(.bricks-canvas *)) {
+                ${mobileContainerProps}
+            }
+        }`;
 
     // Инъекция сгенерированных стилей в <head> через useHead
     useHead({
