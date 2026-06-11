@@ -261,7 +261,15 @@
 > Напоминание: `useRendererLayouts.ts` — 1021 строка при лимите oxlint `max-lines: 1000`
 > (pre-existing). Переименование не чинит — не считать регрессией.
 
-## Шаг 13. Документация ✅/❌
+## Шаг 13. Документация ✅ (2026-06-11)
+
+> Примечание: заодно обновлены `.claude/commands/add-inline-editing.md` (пути устарели ещё
+> с доменной миграции: `store/landing/` → `editor/stores/`, `findInlineEditableLayoutProp` →
+> `findAllInlineEditableLayoutProps`) и `add-property-editor.md` (`properties-types/Ida*` →
+> `property-editors/Property*`). Финальный grep по `src/` ловит только намеренно не тронутые
+> сторы (`useLandingCanvasStore`, `useLandingInlineEditingStore`) и интерфейсы
+> `ILandingCanvasItem*`/`ILandingRenderer*` — типы в план не входили. Старые имена в таблицах
+> «было → стало» этого файла и `refactor.md` — историческая запись, не правятся.
 
 Обновить пути/имена после всех шагов:
 

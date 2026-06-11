@@ -23,12 +23,13 @@ Inline editing позволяет редактировать текст двой
 ### Ключевые файлы
 
 ```
-store/landing/inlineEditing.ts          — Pinia setup-store
-composables/useLandingInlineEditor.ts   — TipTap lifecycle, lazy init
-components/canvas/CanvasInlineEditingOverlay.vue — Floating toolbar
-components/canvas/LandingCanvasItem.vue — dblclick → startEditing
-components/canvas/LandingCanvasItemLayout.vue    — передаёт :component-id
-utils/landing/inlineEditableProp.ts     — находит inline-редактируемое свойство
+(пути — от src/runtime/modules/)
+editor/stores/inlineEditing.ts             — Pinia setup-store
+editor/composables/useInlineEditor.ts      — TipTap lifecycle, lazy init
+builder/components/canvas/CanvasInlineEditingOverlay.vue — Floating toolbar
+builder/components/canvas/CanvasItem.vue   — dblclick → startEditing
+builder/components/canvas/CanvasItemLayout.vue — передаёт :component-id
+builder/utils/inlineEditableProp.ts        — находит inline-редактируемое свойство
 ```
 
 ## Алгоритм
@@ -42,10 +43,10 @@ utils/landing/inlineEditableProp.ts     — находит inline-редакти
 
 ```typescript
 import { inject } from 'vue';
-import { useLandingInlineEditor } from '../../composables/useLandingInlineEditor';
+import { useInlineEditor } from '../../editor/composables/useInlineEditor';
 
 const inlineEditingContext = inject('inlineEditingContext', null);
-const { isEditing, editor, editorContent, initEditor } = useLandingInlineEditor({
+const { isEditing, editor, editorContent, initEditor } = useInlineEditor({
     componentId: props.componentId,
     propName: 'myProp', // имя prop
     propType: 'textarea', // или 'inline-content'
@@ -75,13 +76,13 @@ watch(isEditing, async (editing) => {
 
 **Важно**: на `v-html` элементе обязательно `data-tiptap-content` для rich-text стилей!
 
-### Шаг 5: LandingCanvasItemLayout.vue
+### Шаг 5: CanvasItemLayout.vue
 
 Передать `:component-id="props.component.id"` в новый компонент.
 
 ### Шаг 6: inlineEditableProp.ts
 
-Добавить распознавание нового пропа в `findInlineEditableLayoutProp`.
+Добавить распознавание нового пропа в `findAllInlineEditableLayoutProps`.
 
 ### Шаг 7: Проверить
 
@@ -94,7 +95,7 @@ npx oxlint <changed-files>
 
 | Симптом                          | Причина                                                     | Где смотреть                                 |
 | -------------------------------- | ----------------------------------------------------------- | -------------------------------------------- |
-| Тулбар не появляется             | `setEditor()` не вызван                                     | `useLandingInlineEditor.ts` → `initEditor()` |
+| Тулбар не появляется             | `setEditor()` не вызван                                     | `useInlineEditor.ts` → `initEditor()`        |
 | Кнопки не реагируют на выделение | Нет подписки на `editor.on('transaction')`                  | `CanvasInlineEditingOverlay.vue`             |
 | Клик по кнопке снимает выделение | Нет `@mousedown.prevent`                                    | Кнопки тулбара                               |
 | Бесконечный цикл обновлений      | `isInternalUpdate` не сброшен                               | `saveToStore()`                              |

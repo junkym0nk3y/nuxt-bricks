@@ -71,8 +71,8 @@ nuxt-bricks/
 
 ### Зафиксированные кросс-доменные связки (tech-debt)
 
-- `layouts-blocks/BricksSlider.vue` статически импортирует `builder/stores/canvas` (viewport на канвасе) — развязать через provide/inject.
-- `editor/composables/useLandingInlineEditor.ts` импортирует `builder/stores/components` — рассмотреть инверсию через параметры/inject.
+- `layouts-blocks/BlockSlider.vue` статически импортирует `builder/stores/canvas` (viewport на канвасе) — развязать через provide/inject.
+- `editor/composables/useInlineEditor.ts` импортирует `builder/stores/components` — рассмотреть инверсию через параметры/inject.
 - `ui/inputs/BricksTextArea.vue` лениво (`import()`) тянет `editor/` (TheTextEditorModal, tiptap-расширения) — кандидат на развязку.
 - `middleware/landing-page-layout.global.ts` нигде не регистрируется (`module.ts` без `addRouteMiddleware`) — pre-existing gap.
 - Будущие md-статьи документации класть в `runtime/modules/builder/docs/guide/` (glob `../docs/guide/**/*.md` в `useDocumentationArticles`).
@@ -119,7 +119,8 @@ nuxt-bricks/
 ### Файлы типов и утилит
 
 - Доменные типы — `<домен>/types/*.d.ts`; локальные типы фичи — `types.d.ts` рядом с ней.
-  Единый стиль: `properties.types.ts` — привести (`property-editors/types.d.ts`).
+  Единый стиль: `properties.types.ts` приведён к `property-editors/types.ts` (✅ 2026-06-11;
+  остался `.ts`, а не `.d.ts` — в файле рантайм-код `PROPERTY_EDITOR_ORDER`).
 - Имена файлов composables/stores/utils — camelCase (`deviceVisibility.ts`);
   kebab-case — только build-time/CLI-скрипты (`vite-brick-watch.ts`).
 
@@ -131,9 +132,9 @@ Canvas/sidebar/toolbar жёстко связаны общими stores (`compone
 composables/stores (правила выше). Если позже захочется feature-first
 (`builder/features/canvas/{components,composables,stores}`) — отдельным шагом, не сейчас.
 
-### Целевые переименования (компоненты)
+### Целевые переименования (компоненты) — ✅ выполнено (2026-06-11, шаги 1–9 `rename-plan.md`)
 
-| Текущее                                              | Целевое                                  | Примечание                                  |
+| Было                                                 | Стало                                    | Примечание                                  |
 | ---------------------------------------------------- | ---------------------------------------- | ------------------------------------------- |
 | `builder/.../canvas/BricksCanvas.vue`                | `TheCanvas.vue`                          | синглтон                                    |
 | `canvas/BricksCanvasEmptyState.vue`                  | `CanvasEmptyState.vue`                   |                                             |
@@ -157,9 +158,9 @@ composables/stores (правила выше). Если позже захочет
 | `layouts-blocks/components/Bricks*.vue` (10 шт.)     | `Block*.vue`                             | `BlockGrid`, `BlockText`, …; логические имена (`'Grid'`) в данных/stories не меняются |
 | `editor/`, `media/`, `modal/`, `ui/`                 | без переименований                       | уже по конвенции; `ui/` сохраняет `Bricks*` |
 
-### Целевые переименования (композаблы)
+### Целевые переименования (композаблы) — ✅ выполнено (2026-06-11, шаги 10–12 `rename-plan.md`)
 
-| Текущее                                                  | Целевое                            |
+| Было                                                      | Стало                              |
 | -------------------------------------------------------- | ---------------------------------- |
 | `builder/composables/useLandingBuilderPage.ts`            | `useBuilderPage.ts`                |
 | `builder/composables/useLandingCanvas.ts`                 | `useCanvas.ts`                     |
@@ -172,7 +173,7 @@ composables/stores (правила выше). Если позже захочет
 | `render/composables/useLandingRendererStories.ts`         | `useRendererStories.ts`            |
 | `common/useLanding*`, `render/useLandingDataSources`      | без изменений (сущность «лендинг») |
 
-> После переименований обновить ссылки на файлы в `CLAUDE.md`, `documents/*` и README композаблов.
+> Ссылки на файлы в `CLAUDE.md`, `documents/*`, README композаблов и `.claude/commands/*` обновлены (шаг 13, 2026-06-11). Сторы (`useLandingCanvasStore`, `useLandingInlineEditingStore`) в переименования не входили.
 
 ## Статус выполнения (обновлено 2026-06-10)
 
@@ -192,9 +193,9 @@ composables/stores (правила выше). Если позже захочет
 
 `npx vue-tsc --noEmit` падает в файлах, не связанных с Reka-миграцией (18 ошибок):
 
-- `builder/components/canvas/BricksCanvas.vue`, `layouts-blocks/components/BricksGrid.vue`, `BricksSpace.vue` — TS2769 (computed возвращает union с `undefined`-полями, не совместим с `Record<string, string>`)
-- `composables/useApiClient.ts`, `plugins/landing-dynamic-routes.ts` — TS2304: nuxt auto-imports (`useRuntimeConfig`, `useCookie`, `useRouter`, `useState`) не резолвятся при standalone `vue-tsc` — нужно явное импортирование из `#imports` (кросс-композабл импорты в `useModals`/`useLandingBuilderPage` починены явными импортами при доменной миграции)
-- `render/composables/useLandingRendererLayouts.ts` — oxlint `max-lines` (1021 строка при лимите 1000) — нужно разнести на части
+- `builder/components/canvas/TheCanvas.vue`, `layouts-blocks/components/BlockGrid.vue`, `BlockSpace.vue` — TS2769 (computed возвращает union с `undefined`-полями, не совместим с `Record<string, string>`)
+- `composables/useApiClient.ts`, `plugins/landing-dynamic-routes.ts` — TS2304: nuxt auto-imports (`useRuntimeConfig`, `useCookie`, `useRouter`, `useState`) не резолвятся при standalone `vue-tsc` — нужно явное импортирование из `#imports` (кросс-композабл импорты в `useModals`/`useBuilderPage` починены явными импортами при доменной миграции)
+- `render/composables/useRendererLayouts.ts` — oxlint `max-lines` (1021 строка при лимите 1000) — нужно разнести на части
 - `builder/composables/useDocumentationArticles.ts` — `import.meta.glob` с `query` не типизируется
 - `render/pages/[pagename].vue` — типизация `useAsyncData`-обёртки
 - `middleware/landing-page-layout.global.ts` — `LayoutKey` из `#build/types/layouts`
@@ -287,10 +288,10 @@ Layer-инъекция (`extends`) заменяется явной регист�
 | `BricksTooltip`                                                         | `TooltipProvider/Root/Trigger/Content`                                                                                                                                                                                                                                                               | ✅                  |
 | `BricksTooltipHint`                                                     | Чистая презентация (контент тултипа) — Reka не нужен                                                                                                                                                                                                                                                 | ✅                  |
 | `BricksToast`                                                           | `ToastProvider/Root/Title/Description/Viewport`                                                                                                                                                                                                                                                      | ✅                  |
-| `LandingAccordion`                                                      | `AccordionRoot/Item/Header/Trigger/Content`, анимация через `--reka-accordion-content-height`; single-режим эмулируется поверх `type="multiple"`                                                                                                                                                     | ✅                  |
+| `BlockAccordion` (бывш. `LandingAccordion`)                             | `AccordionRoot/Item/Header/Trigger/Content`, анимация через `--reka-accordion-content-height`; single-режим эмулируется поверх `type="multiple"`                                                                                                                                                     | ✅                  |
 | `BricksInput`, `BricksTextArea`, `BricksHexInput`                       | Уже нативные; `NumberField` не уместен (мультирежимный инпут со строковым контрактом + vee-validate)                                                                                                                                                                                                 | ✅ без изменений    |
 | `BricksToolbarColorPicker`, `BricksTableGridPicker`, `BricksTagsEditor` | Свои (нет прямого примитива) — оставить, причесать                                                                                                                                                                                                                                                   | ⏸ по плану остаются |
-| `LandingSlider`                                                         | оставить `swiper` (headless-карусели в Reka нет)                                                                                                                                                                                                                                                     | ⏸ по плану остаётся |
+| `BlockSlider` (бывш. `LandingSlider`)                                   | оставить `swiper` (headless-карусели в Reka нет)                                                                                                                                                                                                                                                     | ⏸ по плану остаётся |
 
 > ⚠️ Reka-миграция модалок/комбобокса/аккордеона проверена только типами и линтом —
 > нужна ручная регрессия в `/builder` (открытие/закрытие модалок, Esc в медиа-галерее

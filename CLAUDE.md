@@ -43,7 +43,7 @@ npx oxlint <changed-file>
 
 Вне `modules/` в `src/runtime/` остаётся инфраструктура Nuxt: `plugins/`, `server/`, `middleware/`, `layouts/`, `assets/`, `types.d.ts` (шим, реэкспортирует `modules/common/types`).
 
-Направления зависимостей: `builder` → любой домен; `render` — только common + layouts-blocks; `layouts-blocks` → `editor` (+ tech-debt: BricksSlider → builder/stores/canvas). Импорты — явные относительные (auto-import локального кода отключён).
+Направления зависимостей: `builder` → любой домен; `render` — только common + layouts-blocks; `layouts-blocks` → `editor` (+ tech-debt: BlockSlider → builder/stores/canvas). Импорты — явные относительные (auto-import локального кода отключён).
 
 ### Component System (Story-based)
 
@@ -110,7 +110,7 @@ export const story = {
 **Архитектура CSS-переменных (published page):**
 
 - Рендерер ставит per-device inline CSS vars: `--ida-section-pt-mobile`, `--ida-section-pt-tablet`, `--ida-section-pt-desktop`
-- CSS rules в `useLandingResponsiveLayoutStyles.ts` выбирают активную переменную по viewport/media query
+- CSS rules в `useResponsiveLayoutStyles.ts` выбирают активную переменную по viewport/media query
 
 **Архитектура на канвасе (builder):**
 
@@ -150,8 +150,8 @@ function resolveResponsive(base: number, key: string): number {
 
 **Ключевые файлы:**
 
-- `layouts-blocks/composables/useLandingResponsiveLayoutStyles.ts` — CSS rules для layout-компонентов
-- `render/composables/useLandingRendererLayouts.ts` — рендеринг с CSS-переменными (`makeResponsiveVars`)
+- `layouts-blocks/composables/useResponsiveLayoutStyles.ts` — CSS rules для layout-компонентов
+- `render/composables/useRendererLayouts.ts` — рендеринг с CSS-переменными (`makeResponsiveVars`)
 - `builder/composables/useCanvasItemLayout.ts` — `effectiveViewport`, `resolveLayoutProps()`
 - `builder/composables/useSidebarPropertiesPanel.ts` — `isResponsiveComponent`, `layoutDeviceScope`
 - `builder/utils/layoutProperties.ts` — разметка `responsive: true` и `group`
@@ -168,7 +168,7 @@ function resolveResponsive(base: number, key: string): number {
 ### Canvas & Layout
 
 - Fixed Width Canvas (1920px), responsive viewports (mobile/tablet/desktop)
-- Layout-компоненты (`LandingGrid`, `LandingFlex`, `LandingSpace`) содержат children
+- Layout-компоненты (`BlockGrid`, `BlockFlex`, `BlockSpace`) содержат children
 - Компоненты имеют `parent` (layout ID) и `children` (массив ID)
 
 #### Синхронизация defaultProps для Layout-компонентов
@@ -206,10 +206,10 @@ landing: {
 **Ключевые файлы:**
 
 - `builder/composables/useCanvasRemBase.ts` — вычисление коэффициента
-- `builder/composables/useLandingCanvas.ts` — применение к `canvasTransform`
+- `builder/composables/useCanvas.ts` — применение к `canvasTransform`
 - `builder/pages/builder.vue` — инлайн `font-size: 10px` на `<html>`
 
-**Figma Mode:** каждый viewport применяет свою компенсацию через `transform: scale()` на `.canvas` элементе (inject `getRemCompensation` из `BricksCanvas.vue`).
+**Figma Mode:** каждый viewport применяет свою компенсацию через `transform: scale()` на `.canvas` элементе (inject `getRemCompensation` из `TheCanvas.vue`).
 
 #### Override Container (`overrideContainer`)
 
@@ -235,7 +235,7 @@ landing: {
 **Как работает:**
 
 - `useLandingStyles.ts` генерирует дополнительный CSS с media queries, таргетящий `.container[data-ida-container]`
-- `LandingRenderer.vue` добавляет `data-ida-container` атрибут на container-обёртки
+- `TheRenderer.vue` добавляет `data-ida-container` атрибут на container-обёртки
 - Селектор `[data-ida-container]` обеспечивает специфичность выше проектного `.container`
 - Media queries используют device breakpoints (`device.breakpoints`), не canvas breakpoints
 - Гранулярно: можно включить только для отдельных viewport'ов
@@ -245,7 +245,7 @@ landing: {
 **Ключевые файлы:**
 
 - `common/composables/useLandingStyles.ts` — генерация override CSS
-- `render/components/BricksRenderer.vue` — добавление `data-ida-container`
+- `render/components/TheRenderer.vue` — добавление `data-ida-container`
 - `plugins/landing-styles.ts` — инжектит стили на все страницы (и builder, и published)
 
 ### Inline Editing (TipTap)
