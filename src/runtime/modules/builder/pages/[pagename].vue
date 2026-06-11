@@ -396,6 +396,10 @@ function handleToggleDarkMode(): void {
 // #endregion
 
 // #region Watchers
+// Без immediate: при immediate колбэк выполняется синхронно в setup ещё до гидрации
+// и успевает заполнить publishStore.currentFormState (pagename из URL), из-за чего
+// клиентский рендер расходится с SSR (hydration mismatch в TheToolbar).
+// Первичное открытие сессии — в onMounted, watcher отвечает только за смену маршрута.
 watch(
     () => routePagename.value,
     (next) => {
@@ -406,8 +410,7 @@ watch(
         openBuilderSession(next).catch((error: unknown) => {
             console.error('[Builder] Failed to open builder session:', error);
         });
-    },
-    { immediate: true }
+    }
 );
 
 watch(
@@ -497,6 +500,12 @@ useHead({
 onMounted(() => {
     window.addEventListener('keydown', handleKeyDown);
     componentsStore.favorites = loadFavoritesFromStorage();
+
+    if (routePagename.value) {
+        openBuilderSession(routePagename.value).catch((error: unknown) => {
+            console.error('[Builder] Failed to open builder session:', error);
+        });
+    }
 });
 
 onBeforeUnmount(() => {

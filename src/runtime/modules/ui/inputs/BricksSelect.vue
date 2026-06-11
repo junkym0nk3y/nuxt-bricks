@@ -40,6 +40,13 @@ const emit = defineEmits<IBricksSelectEmits>();
 // #region Data
 const $style = useCssModule();
 const isOpened = ref(false);
+
+/**
+ * Reka UI запрещает SelectItem с value === '' (пустая строка зарезервирована
+ * под сброс выбора). Пустые значения опций ('По-умолчанию' и т.п.) подменяем
+ * sentinel-значением внутри селекта и возвращаем '' наружу при выборе.
+ */
+const EMPTY_VALUE_SENTINEL = '__bricks-select-empty__';
 // #endregion
 
 // #region Computed
@@ -69,19 +76,30 @@ const classList = computed(() => [
 
 // #region Methods
 /**
- * Обрабатывает выбор опции и пробрасывает значение наружу.
+ * Подменяет пустую строку sentinel-значением для Reka UI.
+ *
+ * @param value - Внешнее значение опции.
+ */
+function toInternalValue(value: unknown): AcceptableValue {
+    return (value === '' ? EMPTY_VALUE_SENTINEL : value) as AcceptableValue;
+}
+
+/**
+ * Обрабатывает выбор опции и пробрасывает значение наружу,
+ * возвращая sentinel обратно в пустую строку.
  *
  * @param value - Значение выбранной опции.
  */
 function onUpdate(value: AcceptableValue): void {
-    emit('update:value', (value ?? null) as IBrickDemoValues | null);
+    const external = value === EMPTY_VALUE_SENTINEL ? '' : value;
+    emit('update:value', (external ?? null) as IBrickDemoValues | null);
 }
 // #endregion
 </script>
 
 <template>
     <SelectRoot
-        :model-value="(props.value as AcceptableValue)"
+        :model-value="toInternalValue(props.value)"
         :disabled="isDisabled"
         @update:model-value="onUpdate"
         @update:open="isOpened = $event"
@@ -98,7 +116,7 @@ function onUpdate(value: AcceptableValue): void {
                     <SelectItem
                         v-for="(spec, index) in props.specs"
                         :key="`${index}_${spec.value}`"
-                        :value="(spec.value as AcceptableValue)"
+                        :value="toInternalValue(spec.value)"
                         :disabled="!props.facets.includes(spec.value)"
                         :class="$style.listItem"
                     >

@@ -5,6 +5,9 @@ import type { IncomingHttpHeaders } from 'http';
 // Utils
 import { getRequestURL, type H3Event } from 'h3';
 import { $fetch, type $Fetch } from 'ofetch';
+
+// Nuxt
+import { useCookie, useRequestEvent, useRuntimeConfig } from '#imports';
 // #endregion
 
 // #region Data
@@ -61,35 +64,46 @@ function resolveLocalBaseUrl(event: H3Event | null): string {
 // #endregion
 
 /**
- * Composable для работы с API через прокси к Python backend.
+ * Composable для работы с API билдера.
  *
- * Все /api/* запросы проксируются на PROXY_URL (Python backend).
- * /mock-api/* запросы обрабатываются локально.
+ * Маршрутизация запросов:
+ * - /mock-api/* — всегда локальные Nitro-роуты
+ * - /api/bricks/** — локальные persistence-ручки, если сконфигурирована БД
+ * - остальные /api/* — внешний backend (PROXY_URL), на клиенте через proxy middleware
  *
  * Поддерживает:
- * - CSRF токен из cookie (для Django backend)
+ * - CSRF токен из cookie (для REST backend)
  * - Проброс headers на SSR (x-forwarded-*, cookie, IP)
  * - credentials: 'include' для автоматической отправки cookies на клиенте
  */
 export function useApiClient() {
     const config = useRuntimeConfig();
 
+    // Проброс headers из SSR-запроса (x-forwarded-*, cookie, IP)
+    const event = useRequestEvent();
+
+    // Локальный persistence-режим: server-only ключ, на клиенте не читаем
+    // (доступ к приватным ключам runtimeConfig на клиенте даёт warning;
+    // клиентский роутинг /api/bricks решает proxy middleware)
+    const hasLocalDatabase = import.meta.server
+        ? Boolean(config.bricksDatabaseUrl as string | undefined)
+        : false;
+
     let endpoint: string;
 
     if (import.meta.server) {
-        // SSR: используем PROXY_URL или NUXT_SERVER_CACHE_URL для обращения к Python backend
+        // SSR: внешний backend (PROXY_URL / NUXT_SERVER_CACHE_URL),
+        // иначе — сам Nuxt-сервер (локальные persistence-ручки)
         const proxyEndpoint =
             (config.public?.PROXY_URL as string | undefined) ||
             (config.public?.NUXT_SERVER_CACHE_URL as string | undefined);
 
-        endpoint = proxyEndpoint || 'http://nginx:8088/';
+        endpoint = proxyEndpoint || resolveLocalBaseUrl((event as H3Event | null) ?? null);
     } else {
         // Client: используем origin чтобы запросы шли через proxy middleware
         endpoint = window.location.origin + '/';
     }
 
-    // Проброс headers из SSR-запроса (x-forwarded-*, cookie, IP)
-    const event = useRequestEvent();
     const headers = getHeaders(event?.node?.req?.headers, targetHeadersList);
 
     // Добавляем CSRF токен из cookie (для Django backend)
@@ -103,7 +117,17 @@ export function useApiClient() {
         credentials: 'include', // Для автоматической отправки cookies на клиенте
         headers, // Для проброса headers на SSR
         onRequest({ request, options }) {
-            if (typeof request === 'string' && request.startsWith('/mock-api/')) {
+            if (typeof request !== 'string') {
+                return;
+            }
+
+            // Локальные ручки: /mock-api/* всегда; /api/bricks/** — при заданной БД
+            // (зеркало логики proxy.client.ts, актуально для SSR с заданным PROXY_URL)
+            const isLocalRoute =
+                request.startsWith('/mock-api/') ||
+                (hasLocalDatabase && request.startsWith('/api/bricks'));
+
+            if (isLocalRoute) {
                 options.baseURL = resolveLocalBaseUrl(event as H3Event | null);
             }
         },

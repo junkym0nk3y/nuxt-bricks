@@ -170,6 +170,16 @@ export default defineNuxtModule<IBricksModuleOptions>({
         applyBricksRuntimeConfig(runtimeConfig, options);
         // #endregion
 
+        // #region Public assets (превью layout-блоков, плейсхолдеры, картинки документации)
+        nuxt.hook('nitro:config', (nitroConfig) => {
+            nitroConfig.publicAssets = nitroConfig.publicAssets || [];
+            nitroConfig.publicAssets.push({
+                dir: resolve(runtimeDir, 'public'),
+                maxAge: 60 * 60 * 24 * 7,
+            });
+        });
+        // #endregion
+
         // #region Experimental flags (нужны для defineRouteRules / appManifest)
         nuxt.options.experimental.appManifest = nuxt.options.experimental.appManifest ?? true;
         nuxt.options.experimental.inlineRouteRules =
