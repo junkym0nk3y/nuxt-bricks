@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { FlexLayoutProps } from '../../common/types/landing';
+import type { FlexLayoutProps } from '../../common/types/brick';
 
 // Vue
 import { computed, ref, inject, type CSSProperties, type Ref } from 'vue';

@@ -34,9 +34,9 @@ $ARGUMENTS
 ```typescript
 import { defineComponent, h } from 'vue';
 import Component from './MyModal.vue';
-import type { ILandingFileStructure } from '@idaproject/ida-landing/types';
+import type { IBrickFileStructure } from '../../common/types';
 
-export const story: ILandingFileStructure = {
+export const story: IBrickFileStructure = {
     category: 'Modal', // <-- Обязательно 'Modal'
     values: {}, // <-- Пустой для модалок
 };

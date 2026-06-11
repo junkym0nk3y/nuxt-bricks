@@ -3,13 +3,13 @@
  *
  * Защищает:
  * - /builder/** — редактор лендингов
- * - /landing/*?preview=true — preview режим
+ * - /bricks/*?preview=true — preview режим
  * - /mock-api/s3-* — S3 операции (загрузка/удаление)
- * - /api/landing/** POST/PUT/DELETE — модификация лендингов и медиа
+ * - /api/bricks/** POST/PUT/DELETE — модификация лендингов и медиа
  *
  * НЕ защищает:
- * - /landing/* без ?preview=true — опубликованные страницы
- * - /api/landing/** GET — чтение данных (публичные лендинги)
+ * - /bricks/* без ?preview=true — опубликованные страницы
+ * - /api/bricks/** GET — чтение данных (публичные лендинги)
  *
  * Настройка через ENV:
  * - BASIC_AUTH_USERNAME (дефолт: admin)
@@ -34,7 +34,7 @@ function requiresAuth(event: H3Event, parsedUrl: URL): boolean {
     }
 
     // Preview режим — защищён
-    if (pathname.startsWith('/landing/') && parsedUrl.searchParams.get('preview') === 'true') {
+    if (pathname.startsWith('/bricks/') && parsedUrl.searchParams.get('preview') === 'true') {
         return true;
     }
 
@@ -43,8 +43,8 @@ function requiresAuth(event: H3Event, parsedUrl: URL): boolean {
         return true;
     }
 
-    // Landing API — защищаем только модифицирующие методы
-    if (pathname.startsWith('/api/landing') && MUTATION_METHODS.includes(method)) {
+    // Bricks API — защищаем только модифицирующие методы
+    if (pathname.startsWith('/api/bricks') && MUTATION_METHODS.includes(method)) {
         return true;
     }
 

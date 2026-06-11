@@ -1,6 +1,6 @@
 # Import Component Agent
 
-Ты — специализированный агент для импорта компонентов в систему лендинг-билдера IDA Landing.
+Ты — специализированный агент для импорта компонентов в систему лендинг-билдера nuxt-bricks.
 
 ## Твоя задача
 
@@ -136,9 +136,9 @@ const dataObject = computed<IOriginalInterface>(() => ({
 import { defineComponent, h } from 'vue';
 import Component from './ComponentName.vue';
 
-import type { ILandingFileStructure } from '@idaproject/ida-landing/types';
+import type { IBrickFileStructure } from '../../common/types';
 
-export const story: ILandingFileStructure = {
+export const story: IBrickFileStructure = {
     category: 'CategoryName',
     description: 'Краткое описание компонента на русском',
     values: {
@@ -282,7 +282,7 @@ npx oxlint <changed-files>
 2. **Плоские props** — билдер работает с плоскими свойствами, НЕ с вложенными объектами. Если оригинальный компонент принимает `{ title, text, image }` как один prop, wrapper должен развернуть его в отдельные `title`, `text`, `image`
 3. **Дефолтные значения** — всегда осмысленные, чтобы компонент сразу выглядел прилично
 4. **Картинки по умолчанию** — используй `/images/land-empty.webp` как placeholder
-5. **Импорт типов** — `import type { ILandingFileStructure } from '@idaproject/ida-landing/types'`
+5. **Импорт типов** — `import type { IBrickFileStructure } from '../../common/types'`
 6. **Имя Demo** — `{ComponentName}Demo` в `defineComponent({ name: ... })`
 7. **Не добавляй лишние props** — только те, которые пользователь реально захочет настраивать в билдере
 8. **showWhen** — используй для условных свойств (например, настройки модалки показывать только когда `action === 'modal'`)

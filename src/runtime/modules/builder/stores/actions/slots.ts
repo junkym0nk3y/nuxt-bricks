@@ -1,4 +1,4 @@
-import type { ComponentSlotDefinition } from '../../../common/types/landing';
+import type { ComponentSlotDefinition } from '../../../common/types/brick';
 import { applySlotDefinitions, findSlot } from '../../utils/slots';
 import type {
     IComponentsSlotActions,
@@ -115,13 +115,13 @@ export const slotActions: IComponentsSlotActions = {
         const child = this.getComponentById(childId);
 
         if (!parent || !child || !parent.slots?.length) {
-            console.warn('[Landing Store] moveComponentToSlot: invalid parent or slots missing');
+            console.warn('[Bricks Store] moveComponentToSlot: invalid parent or slots missing');
             return;
         }
 
         const targetSlot = findSlot(parent, slotName);
         if (!targetSlot) {
-            console.warn('[Landing Store] moveComponentToSlot: slot not found', slotName);
+            console.warn('[Bricks Store] moveComponentToSlot: slot not found', slotName);
             return;
         }
 

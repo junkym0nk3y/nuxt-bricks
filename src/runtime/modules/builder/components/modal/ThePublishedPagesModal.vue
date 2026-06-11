@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { IPublishedPagesModalProps, IPublishedPagesModalEmits } from './types';
-import type { IPublishedPage } from '../../../common/types/landing-api';
+import type { IPublishedPage } from '../../../common/types/bricks-api';
 
 // Vue
 import { ref, computed, watch } from 'vue';
@@ -53,7 +53,7 @@ const deleteConfirmationDescription = computed(() => {
         return 'Вы уверены, что хотите удалить эту страницу?';
     }
 
-    return `Вы уверены, что хотите удалить страницу «${page.title}» (/landing/${page.pagename})?`;
+    return `Вы уверены, что хотите удалить страницу «${page.title}» (/bricks/${page.pagename})?`;
 });
 // #endregion
 
@@ -72,7 +72,7 @@ async function fetchPages(): Promise<void> {
             (error instanceof Error
                 ? error.message
                 : 'Не удалось загрузить опубликованные страницы');
-        const message = `GET /api/landing: ${errorMessage}`;
+        const message = `GET /api/bricks: ${errorMessage}`;
         console.error('[PublishedPagesModal] Failed to load pages:', error);
         pages.value = [];
         publishStore.publishedPages = [];

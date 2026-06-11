@@ -1,10 +1,10 @@
 /**
- * Извлечение и замена image URL в LandingSchema.
+ * Извлечение и замена image URL в BricksSchema.
  */
 
 // #region Imports
 // Types
-import type { LandingSchema, LandingComponent } from '../../common/types/landing';
+import type { BricksSchema, BricksComponent } from '../../common/types/brick';
 import type {
     IExtractedImageUrl,
     IImageLocation,
@@ -143,7 +143,7 @@ function addUrlToMap(
  */
 function createLocation(
     componentIndex: number,
-    component: LandingComponent,
+    component: BricksComponent,
     propName: string,
     sourceType: TImageSourceType,
     extra?: { arrayIndex?: number; segmentIndex?: number }
@@ -170,7 +170,7 @@ function createLocation(
 function extractFromHtml(
     html: string,
     componentIndex: number,
-    component: LandingComponent,
+    component: BricksComponent,
     propName: string,
     urlMap: Map<string, IImageLocation[]>
 ): void {
@@ -194,10 +194,10 @@ function extractFromHtml(
 /**
  * Извлекает все уникальные URL изображений из схемы лендинга.
  *
- * @param schema - LandingSchema для анализа.
+ * @param schema - BricksSchema для анализа.
  * @returns Массив уникальных URL с информацией о местоположениях.
  */
-export function extractSchemaImageUrls(schema: LandingSchema): IExtractedImageUrl[] {
+export function extractSchemaImageUrls(schema: BricksSchema): IExtractedImageUrl[] {
     const urlMap = new Map<string, IImageLocation[]>();
 
     schema.components.forEach((component, componentIndex) => {
@@ -282,9 +282,9 @@ export function extractSchemaImageUrls(schema: LandingSchema): IExtractedImageUr
  * @returns Новая схема с заменёнными URL.
  */
 export function replaceSchemaImageUrls(
-    schema: LandingSchema,
+    schema: BricksSchema,
     urlMap: Map<string, string>
-): LandingSchema {
+): BricksSchema {
     if (urlMap.size === 0) {
         return schema;
     }

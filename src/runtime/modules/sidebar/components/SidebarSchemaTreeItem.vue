@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { LandingComponent } from '../../common/types/landing';
+import type { BricksComponent } from '../../common/types/brick';
 
 // Vue
 import { computed, ref } from 'vue';
@@ -12,7 +12,7 @@ import { useComponentsStore } from '../../builder/stores/components';
 
 // #region Interfaces
 interface ISidebarSchemaTreeItemProps {
-    component: LandingComponent;
+    component: BricksComponent;
     depth?: number;
     isLast?: boolean;
 }
@@ -50,14 +50,14 @@ const isDesktopVisible = computed<boolean>(
 
 const isHidden = computed<boolean>(() => props.component.isHidden === true);
 
-const childComponents = computed<LandingComponent[]>(() => {
+const childComponents = computed<BricksComponent[]>(() => {
     if (!props.component.children?.length) {
         return [];
     }
 
     return props.component.children
         .map((childId) => componentsStore.getComponentById(childId))
-        .filter((child): child is LandingComponent => Boolean(child));
+        .filter((child): child is BricksComponent => Boolean(child));
 });
 
 const displayName = computed<string>(() => props.component.componentName);

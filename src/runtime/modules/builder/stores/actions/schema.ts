@@ -1,15 +1,15 @@
 import type {
-    LandingSchema,
+    BricksSchema,
     IDeviceVisibilityConfig,
-    TLandingDeviceKey,
-    ILandingSchemaMeta,
-} from '../../../common/types/landing';
+    TBricksDeviceKey,
+    IBricksSchemaMeta,
+} from '../../../common/types/brick';
 import { deserializeSchema, serializeSchema } from '../../utils/history';
 import { useSidebarStore } from '../sidebar';
 import { useHistoryStore } from '../history';
 import { useNavigationStore } from '../navigation';
 import type { IComponentsSchemaActions, IComponentsStore } from '../types';
-import { normalizeDeviceVisibility } from '../../../common/utils/landing/deviceVisibility';
+import { normalizeDeviceVisibility } from '../../../common/utils/bricks/deviceVisibility';
 import { debounce } from '../../../common/utils/main';
 
 const debouncedSaveToHistory = debounce((store: IComponentsStore) => {
@@ -19,9 +19,9 @@ const debouncedSaveToHistory = debounce((store: IComponentsStore) => {
 /**
  * Собирает meta из navigation store для включения в схему.
  */
-function collectSchemaMeta(): ILandingSchemaMeta | undefined {
+function collectSchemaMeta(): IBricksSchemaMeta | undefined {
     const navigationStore = useNavigationStore();
-    const meta: ILandingSchemaMeta = {};
+    const meta: IBricksSchemaMeta = {};
 
     if (navigationStore.hasItems) {
         meta.navigation = navigationStore.toMeta();
@@ -112,7 +112,7 @@ export const schemaActions: IComponentsSchemaActions = {
     setComponentDeviceVisibilityFlag(
         this: IComponentsStore,
         id: string,
-        device: TLandingDeviceKey,
+        device: TBricksDeviceKey,
         value: boolean
     ) {
         const component = this.getComponentById(id);
@@ -131,10 +131,10 @@ export const schemaActions: IComponentsSchemaActions = {
     /**
      * Собирает текущую схему и выводит полезную информацию в консоль для отладки.
      *
-     * @returns Сериализованная схема landing-страницы.
+     * @returns Сериализованная схема страницы.
      */
     exportSchema(this: IComponentsStore) {
-        console.log('[Landing Store] Exporting schema:', {
+        console.log('[Bricks Store] Exporting schema:', {
             components: this.components.length,
             componentProps: this.components.map((component) => ({
                 id: component.id,
@@ -185,7 +185,7 @@ export const schemaActions: IComponentsSchemaActions = {
      */
     loadSchema(
         this: IComponentsStore,
-        schema: LandingSchema,
+        schema: BricksSchema,
         options?: { resetHistory?: boolean }
     ) {
         this.components = deserializeSchema(schema);

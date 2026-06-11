@@ -6,7 +6,7 @@
 
 // #region Imports
 // Types
-import type { LandingSchema } from '../../common/types/landing';
+import type { BricksSchema } from '../../common/types/brick';
 import type {
     IExtractedImageUrl,
     IImageResolverState,
@@ -29,7 +29,7 @@ import {
 
 // #region Interfaces
 interface IResolverPromise {
-    resolve: (schema: LandingSchema | null) => void;
+    resolve: (schema: BricksSchema | null) => void;
 }
 // #endregion
 
@@ -41,7 +41,7 @@ export function useSchemaImageResolver() {
     const mediaStore = useMediaStore();
 
     const isModalOpen = ref(false);
-    const pendingSchema = ref<LandingSchema | null>(null);
+    const pendingSchema = ref<BricksSchema | null>(null);
     const pendingPromise = ref<IResolverPromise | null>(null);
 
     const state = reactive<IImageResolverState>({
@@ -83,7 +83,7 @@ export function useSchemaImageResolver() {
      * @param schema - Импортируемая схема.
      * @returns Promise с обработанной схемой или null (отмена).
      */
-    async function startResolving(schema: LandingSchema): Promise<LandingSchema | null> {
+    async function startResolving(schema: BricksSchema): Promise<BricksSchema | null> {
         resetState();
 
         // Загружаем медиа-галерею если ещё не загружена
@@ -113,7 +113,7 @@ export function useSchemaImageResolver() {
         isModalOpen.value = true;
 
         // Возвращаем Promise, который резолвится при confirm/cancel/skip
-        return new Promise<LandingSchema | null>((resolve) => {
+        return new Promise<BricksSchema | null>((resolve) => {
             pendingPromise.value = { resolve };
         });
     }

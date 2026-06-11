@@ -1,9 +1,9 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IPublishedPage } from '../../common/types/landing-api';
-import type { LandingComponent } from '../../common/types/landing';
-import type { IBrickDataSource } from '../types/landing-data-source';
+import type { IPublishedPage } from '../../common/types/bricks-api';
+import type { BricksComponent } from '../../common/types/brick';
+import type { IBrickDataSource } from '../types/bricks-data-source';
 
 // Vue
 import { computed, onMounted, onUnmounted, ref, watch, type Ref } from 'vue';
@@ -12,9 +12,9 @@ import { createError, useNuxtData } from '#imports';
 // Composables
 import { useStoryImports } from '../../common/composables/useStoryImports';
 import { useRendererStories } from '../composables/useRendererStories';
-import { useLandingDataSources } from '../composables/useLandingDataSources';
-import { useLandingConfig } from '../../common/composables/useLandingConfig';
-import { normalizeStoryPath } from '../../common/utils/landing/paths';
+import { useBricksDataSources } from '../composables/useBricksDataSources';
+import { useBricksConfig } from '../../common/composables/useBricksConfig';
+import { normalizeStoryPath } from '../../common/utils/bricks/paths';
 
 // Components
 import TheRenderer from '../components/TheRenderer.vue';
@@ -32,7 +32,7 @@ const isClientDataSourceDebug = import.meta.dev && import.meta.client;
 const windowWidth: Ref<number> = ref(0);
 const windowHeight: Ref<number> = ref(0);
 
-const pageDataKey = `landing-page-${pagename}-${isPreview ? 'preview' : 'live'}`;
+const pageDataKey = `bricks-page-${pagename}-${isPreview ? 'preview' : 'live'}`;
 const { data: middlewarePageData } = useNuxtData<IPublishedPage>(pageDataKey);
 
 // Данные live-синхронизации превью: обновляются через BroadcastChannel без перезагрузки страницы
@@ -44,14 +44,14 @@ const page = computed(() => livePreviewData.value || middlewarePageData.value ||
 if (!page.value && !isPreview) {
     throw createError({
         statusCode: 404,
-        statusMessage: 'Landing page not found',
+        statusMessage: 'Page not found',
     });
 }
 
 const { findImportModule } = useStoryImports();
 const { prefetchStoryComponent } = useRendererStories({ findImportModule });
-const { executeDataSource: executeDataSourceRequest } = useLandingDataSources();
-const dataSourceKey = `landing-datasources-${pagename}-${isPreview ? 'preview' : 'live'}`;
+const { executeDataSource: executeDataSourceRequest } = useBricksDataSources();
+const dataSourceKey = `bricks-datasources-${pagename}-${isPreview ? 'preview' : 'live'}`;
 
 // Считаем и мержим все data sources из stories для текущей страницы
 const dataSourceAsyncData = await useAsyncData<Record<string, Record<string, unknown>>>(
@@ -87,7 +87,7 @@ const dataSourceAsyncData = await useAsyncData<Record<string, Record<string, unk
             })
         );
 
-        // console.log('[Landing DataSources] Resolved props for components:', Object.keys(result));
+        // console.log('[Bricks DataSources] Resolved props for components:', Object.keys(result));
 
         return result;
     },
@@ -113,7 +113,7 @@ if (isPreview && import.meta.client) {
         resizeObserver.observe(document.documentElement);
 
         try {
-            const stored = window.localStorage.getItem('landing-preview-page');
+            const stored = window.localStorage.getItem('bricks-preview-page');
             if (stored) {
                 const parsed = JSON.parse(stored) as IPublishedPage;
                 if (parsed.pagename === pagename) {
@@ -126,7 +126,7 @@ if (isPreview && import.meta.client) {
     });
 
     // Подписываемся на realtime-обновления схемы от builder-вкладки
-    const previewChannel = new BroadcastChannel('landing-preview-sync');
+    const previewChannel = new BroadcastChannel('bricks-preview-sync');
 
     previewChannel.onmessage = (event: MessageEvent) => {
         const { type, pagename: msgPagename, schema } = event.data ?? {};
@@ -161,7 +161,7 @@ if (isPreview && import.meta.client) {
 // #endregion
 
 // #region Computed
-const pageTitle = computed(() => page.value?.title || 'Landing Page');
+const pageTitle = computed(() => page.value?.title || 'Bricks Page');
 const pageDescription = computed(() => page.value?.description || '');
 const pageKeywords = computed(() => page.value?.keywords || '');
 const pageSocialImage = computed(() => page.value?.socialImage || '');
@@ -175,7 +175,7 @@ const DEVICE_ICONS: Record<string, string> = {
     mobile: 'ak:mobile-device',
 };
 
-const { breakpoints: deviceBreakpoints } = useLandingConfig();
+const { breakpoints: deviceBreakpoints } = useBricksConfig();
 
 const sortedDeviceBreakpoints = computed(() =>
     Object.entries(deviceBreakpoints)
@@ -204,17 +204,17 @@ const resolutionText = computed(() => `${windowWidth.value}×${windowHeight.valu
 // #endregion
 
 // #region Methods
-const allComponents = computed<LandingComponent[]>(() => {
+const allComponents = computed<BricksComponent[]>(() => {
     const components = page.value?.schema?.components ?? [];
-    // console.log('[Landing Page] All components:', components);
+    // console.log('[Bricks Page] All components:', components);
     return components.filter((c) => !c.isHidden);
 });
 
-const rootComponents = computed<LandingComponent[]>(() => {
+const rootComponents = computed<BricksComponent[]>(() => {
     const components = allComponents.value.filter(
-        (component: LandingComponent) => !component.parent
+        (component: BricksComponent) => !component.parent
     );
-    // console.log('[Landing Page] Root components:', components);
+    // console.log('[Bricks Page] Root components:', components);
     return components;
 });
 
@@ -227,7 +227,7 @@ async function prefetchPageStories(): Promise<void> {
     const storyPaths = Array.from(
         new Set<string>(
             components
-                .map((component: LandingComponent) => component.storyPath)
+                .map((component: BricksComponent) => component.storyPath)
                 .filter(
                     (storyPath): storyPath is string =>
                         Boolean(storyPath) && !storyPath.startsWith('layout')
@@ -247,7 +247,7 @@ function closePreview(): void {
         return;
     }
 
-    window.localStorage.removeItem('landing-preview-page');
+    window.localStorage.removeItem('bricks-preview-page');
     window.close();
 }
 
@@ -281,7 +281,7 @@ async function loadStoryDataSources(storyPath: string): Promise<IBrickDataSource
         storyDataSourcesCache.set(cacheKey, dataSources);
         return dataSources;
     } catch (error) {
-        console.error('[Landing Page] Failed to load dataSources for story:', storyPath, error);
+        console.error('[Bricks Page] Failed to load dataSources for story:', storyPath, error);
         storyDataSourcesCache.set(cacheKey, null);
         return [];
     }
@@ -293,13 +293,13 @@ async function loadStoryDataSources(storyPath: string): Promise<IBrickDataSource
  * @returns Список запросов с компонентом и его источником данных.
  */
 async function collectDataSourceRequests(): Promise<
-    Array<{ component: LandingComponent; source: IBrickDataSource }>
+    Array<{ component: BricksComponent; source: IBrickDataSource }>
 > {
     if (!page.value?.schema?.components?.length) {
         return [];
     }
 
-    const requests: Array<{ component: LandingComponent; source: IBrickDataSource }> = [];
+    const requests: Array<{ component: BricksComponent; source: IBrickDataSource }> = [];
 
     // Собираем все data sources, объявленные в story-файлах компонентов
     for (const component of page.value.schema.components) {
@@ -319,9 +319,9 @@ async function collectDataSourceRequests(): Promise<
     return requests;
 }
 
-// Все вспомогательные функции для data sources перенесены в composable useLandingDataSources
+// Все вспомогательные функции для data sources перенесены в composable useBricksDataSources
 if (isClientDataSourceDebug) {
-    const debugLabel = `[Landing DataSources][client:${pagename}]`;
+    const debugLabel = `[Bricks DataSources][client:${pagename}]`;
 
     // Логируем смену статуса загрузки data sources (в превью дебаг-режиме)
     watch(
@@ -391,7 +391,7 @@ useHead(() => {
 </script>
 
 <template>
-    <div :class="[$style.landingPage, 'bricks-text', 'page']">
+    <div :class="[$style.bricksPage, 'bricks-text', 'page']">
         <div
             v-if="page"
             :class="[$style.pageContent, { [$style.pageContentPreview]: isPreview }]"
@@ -421,7 +421,7 @@ useHead(() => {
 </template>
 
 <style module lang="scss">
-.landingPage {
+.bricksPage {
     width: 100%;
 }
 

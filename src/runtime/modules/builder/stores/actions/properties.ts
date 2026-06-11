@@ -1,5 +1,5 @@
 import type { IComponentsPropertyActions, IComponentsStore } from '../types';
-import type { TLandingDeviceKey } from '../../../common/types/landing';
+import type { TBricksDeviceKey } from '../../../common/types/brick';
 
 // Utils
 import { debounce } from '../../../common/utils/main';
@@ -31,7 +31,7 @@ export const propertyActions: IComponentsPropertyActions = {
     ) {
         const component = this.getComponentById(id);
         if (!component) {
-            console.warn('[Landing Store] updateComponentProp: component not found', id);
+            console.warn('[Bricks Store] updateComponentProp: component not found', id);
             return;
         }
 
@@ -69,13 +69,13 @@ export const propertyActions: IComponentsPropertyActions = {
     updateComponentResponsiveProp(
         this: IComponentsStore,
         id: string,
-        device: TLandingDeviceKey,
+        device: TBricksDeviceKey,
         propName: string,
         value: string | number | boolean | Record<string, unknown> | Array<unknown>
     ) {
         const component = this.getComponentById(id);
         if (!component) {
-            console.warn('[Landing Store] updateComponentResponsiveProp: component not found', id);
+            console.warn('[Bricks Store] updateComponentResponsiveProp: component not found', id);
             return;
         }
 
@@ -124,12 +124,12 @@ export const propertyActions: IComponentsPropertyActions = {
     resetComponentResponsivePropsForDevice(
         this: IComponentsStore,
         id: string,
-        device: TLandingDeviceKey
+        device: TBricksDeviceKey
     ) {
         const component = this.getComponentById(id);
         if (!component) {
             console.warn(
-                '[Landing Store] resetComponentResponsivePropsForDevice: component not found',
+                '[Bricks Store] resetComponentResponsivePropsForDevice: component not found',
                 id
             );
             return;

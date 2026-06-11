@@ -2,7 +2,7 @@
  * Типы для composables домена sidebar.
  */
 
-import type { PropertyDefinition } from '../../common/types/landing';
+import type { PropertyDefinition } from '../../common/types/brick';
 import type {
     ComponentVariantsMap,
     IComponentVariant,

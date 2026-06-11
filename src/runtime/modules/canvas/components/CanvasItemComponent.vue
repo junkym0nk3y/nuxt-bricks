@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { Component } from 'vue';
-import type { LandingComponent } from '../../common/types/landing';
+import type { BricksComponent } from '../../common/types/brick';
 
 // Composables
 import { useComponentSlots } from '../composables/useComponentSlots';
@@ -18,8 +18,8 @@ import CanvasConditionalContainer from './CanvasConditionalContainer.vue';
  * Пропсы для компонента CanvasItemComponent
  */
 interface ICanvasItemComponentProps {
-    /** Экземпляр landing-компонента для рендеринга */
-    component: LandingComponent;
+    /** Экземпляр компонента для рендеринга */
+    component: BricksComponent;
     /** Динамически загруженный экземпляр Vue-компонента */
     componentInstance: Component | null;
     /** Вычисленные пропсы для передачи в компонент (исключая внутренние) */

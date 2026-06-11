@@ -1,4 +1,4 @@
-import type { IDeviceVisibilityConfig } from '../../types/landing';
+import type { IDeviceVisibilityConfig } from '../../types/brick';
 
 export const DEFAULT_DEVICE_VISIBILITY: IDeviceVisibilityConfig = {
     mobile: true,

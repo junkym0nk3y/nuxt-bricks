@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { IRendererProps } from '../types/render';
-import type { LandingComponent } from '../../common/types/landing';
+import type { BricksComponent } from '../../common/types/brick';
 
 // Vue
 import { computed, h, useCssModule } from 'vue';
@@ -11,7 +11,7 @@ import { computed, h, useCssModule } from 'vue';
 import { useStoryImports } from '../../common/composables/useStoryImports';
 import { useRendererStories } from '../composables/useRendererStories';
 import { useRendererLayouts } from '../composables/useRendererLayouts';
-import { useLandingConfig } from '../../common/composables/useLandingConfig';
+import { useBricksConfig } from '../../common/composables/useBricksConfig';
 
 // Components
 import RendererPlaceholder from './RendererPlaceholder.vue';
@@ -20,7 +20,7 @@ import RendererPlaceholder from './RendererPlaceholder.vue';
 import {
     buildDeviceVisibilityClasses,
     shouldAriaHideComponent,
-} from '../../common/utils/landing/deviceVisibility';
+} from '../../common/utils/bricks/deviceVisibility';
 // #endregion
 
 // #region Props
@@ -41,7 +41,7 @@ const { renderLayoutComponent, needsContainerWrapper } = useRendererLayouts({
     renderChild: (component) => renderComponent(component),
 });
 
-const config = useLandingConfig();
+const config = useBricksConfig();
 const cbp = config.canvasBreakpoints;
 
 /** Флаг: хотя бы один breakpoint имеет overrideContainer */
@@ -56,7 +56,7 @@ const hasContainerOverride =
  * @param component - Компонент схемы, который необходимо визуализировать.
  * @returns VNode отрисованного компонента.
  */
-function renderComponent(component: LandingComponent) {
+function renderComponent(component: BricksComponent) {
     const visibilityClasses = buildDeviceVisibilityClasses(component.deviceVisibility);
     const ariaAttrs: Record<string, string | undefined> = {};
 
@@ -80,7 +80,7 @@ function renderComponent(component: LandingComponent) {
  * @returns VNode UI-компонента или placeholder.
  */
 function renderUiComponent(
-    component: LandingComponent,
+    component: BricksComponent,
     visibilityClasses: string[],
     extraAttrs: Record<string, string | undefined> = {}
 ) {
@@ -103,7 +103,7 @@ function renderUiComponent(
             ...mergedProps,
             key: component.id,
             id: component.htmlId || undefined,
-            class: [styles.landingComponent, ...visibilityClasses],
+            class: [styles.bricksComponent, ...visibilityClasses],
             style: Object.keys(gridItemStyle).length ? gridItemStyle : undefined,
             ...extraAttrs,
         });
@@ -114,7 +114,7 @@ function renderUiComponent(
         id: component.htmlId || undefined,
         title: `${component.componentName || 'Компонент'} недоступен`,
         description: 'Компонент не найден в библиотеке. Обновите stories или schema.',
-        class: [styles.landingPlaceholder, ...visibilityClasses],
+        class: [styles.bricksPlaceholder, ...visibilityClasses],
         style: Object.keys(gridItemStyle).length ? gridItemStyle : undefined,
         ...extraAttrs,
     });
@@ -129,7 +129,7 @@ function renderUiComponent(
  */
 function wrapWithContainer(
     content: ReturnType<typeof h>,
-    component: LandingComponent,
+    component: BricksComponent,
     visibilityClasses: string[],
     extraAttrs: Record<string, string | undefined> = {}
 ) {
@@ -166,7 +166,7 @@ function wrapWithContainer(
     margin: 0 auto;
 }
 
-.landingGrid {
+.bricksGrid {
     position: relative;
     grid-auto-flow: var(--bricks-grid-auto-flow, row);
     grid-template-rows: var(--bricks-grid-rows, auto);
@@ -181,7 +181,7 @@ function wrapWithContainer(
     }
 }
 
-.landingFlex {
+.bricksFlex {
     position: relative;
     min-width: 0;
 
@@ -189,41 +189,41 @@ function wrapWithContainer(
         min-width: 0;
     }
 
-    > .landingComponent {
+    > .bricksComponent {
         width: auto;
     }
 }
 
-.landingGrid > *:first-child {
+.bricksGrid > *:first-child {
     grid-column: var(--bricks-grid-lead-left, auto);
 }
 
-.landingGrid > *:last-child {
+.bricksGrid > *:last-child {
     grid-column: var(--bricks-grid-lead-right, auto);
 }
 
-.landingSpace {
+.bricksSpace {
     display: block;
     width: 100%;
 }
 
-.landingText {
+.bricksText {
     display: block;
 }
 
-.landingTitle {
+.bricksTitle {
     display: block;
 }
 
-.landingImage {
+.bricksImage {
     min-width: 0;
 }
 
-.landingPlaceholder {
+.bricksPlaceholder {
     width: 100%;
 }
 
-.landingComponent {
+.bricksComponent {
     display: block;
     width: 100%;
 }

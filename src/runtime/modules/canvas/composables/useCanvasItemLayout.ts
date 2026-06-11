@@ -1,14 +1,14 @@
 // #region Imports
 // Types
 import type {
-    LandingComponent,
+    BricksComponent,
     LayoutProps,
     GridLayoutProps,
     GridLayoutVariant,
     GridRowHeight,
     FlexLayoutProps,
-    TLandingDeviceKey,
-} from '../../common/types/landing';
+    TBricksDeviceKey,
+} from '../../common/types/brick';
 import type { IItemStyle, ICanvasItemProps } from '../components/types';
 
 // Vue
@@ -114,7 +114,7 @@ function resolveFlexLayoutProps(
 
 /** Возвращает типизированные пропсы layout-компонента с учётом responsive overrides */
 function resolveLayoutProps(
-    component: LandingComponent,
+    component: BricksComponent,
     viewport: 'mobile' | 'tablet' | 'desktop'
 ): LayoutProps {
     const currentLayout = component.componentName.toLowerCase();
@@ -201,10 +201,10 @@ function clampGridColumnToColumns(gridColumn: string, columns: number): string |
 export function useCanvasItemLayout(props: ICanvasItemProps) {
     const componentsStore = useComponentsStore();
     const canvasStore = useCanvasStore();
-    const injectedViewport = inject<TLandingDeviceKey | null>('canvasViewport', null);
+    const injectedViewport = inject<TBricksDeviceKey | null>('canvasViewport', null);
 
     /** В Figma mode используем injected viewport от CanvasViewport, иначе глобальный */
-    const effectiveViewport = computed<TLandingDeviceKey>(
+    const effectiveViewport = computed<TBricksDeviceKey>(
         () => injectedViewport ?? canvasStore.viewport
     );
 
@@ -216,7 +216,7 @@ export function useCanvasItemLayout(props: ICanvasItemProps) {
      * Возвращает количество колонок родительского Grid-layout для текущего viewport.
      */
     function getParentGridColumns(
-        component: LandingComponent,
+        component: BricksComponent,
         viewport: 'mobile' | 'tablet' | 'desktop'
     ): number | null {
         if (!component.parent) {
@@ -273,14 +273,14 @@ export function useCanvasItemLayout(props: ICanvasItemProps) {
         return resolveLayoutProps(props.component, effectiveViewport.value);
     });
 
-    const childComponents = computed<LandingComponent[]>(() => {
+    const childComponents = computed<BricksComponent[]>(() => {
         if (!isLayout.value || !props.component.children) {
             return [];
         }
 
         return props.component.children
             .map((childId) => componentsStore.getComponentById(childId))
-            .filter(Boolean) as LandingComponent[];
+            .filter(Boolean) as BricksComponent[];
     });
 
     return {

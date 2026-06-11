@@ -1,8 +1,8 @@
 import type {
     ComponentSlotDefinition,
-    LandingComponent,
-    LandingComponentSlot,
-} from '../../types/landing';
+    BricksComponent,
+    BricksComponentSlot,
+} from '../../types/brick';
 
 /**
  * Создаёт копию объекта пропсов для безопасного использования в истории/драг&дропе.
@@ -24,7 +24,7 @@ export function cloneComponentProps<T extends Record<string, any>>(props: T | un
  * @param slot - Исходное описание из story.
  * @returns Структура слота с пустыми children.
  */
-export function createComponentSlot(slot: ComponentSlotDefinition): LandingComponentSlot {
+export function createComponentSlot(slot: ComponentSlotDefinition): BricksComponentSlot {
     return {
         ...slot,
         label: slot.label ?? slot.name,
@@ -39,7 +39,7 @@ export function createComponentSlot(slot: ComponentSlotDefinition): LandingCompo
  * @param slot - Слот, сохранённый у компонента.
  * @returns Полностью независимая копия слота.
  */
-export function cloneComponentSlot(slot: LandingComponentSlot): LandingComponentSlot {
+export function cloneComponentSlot(slot: BricksComponentSlot): BricksComponentSlot {
     return {
         ...slot,
         label: slot.label ?? slot.name,
@@ -49,12 +49,12 @@ export function cloneComponentSlot(slot: LandingComponentSlot): LandingComponent
 }
 
 /**
- * Создаёт глубокую копию компонента landing-холста.
+ * Создаёт глубокую копию компонента холста.
  *
  * @param component - Компонент, который требуется клонировать.
  * @returns Клон с независимыми ссылками для props, children и slots.
  */
-export function cloneLandingComponent(component: LandingComponent): LandingComponent {
+export function cloneBricksComponent(component: BricksComponent): BricksComponent {
     return {
         ...component,
         props: cloneComponentProps(component.props),
@@ -72,7 +72,7 @@ export function cloneLandingComponent(component: LandingComponent): LandingCompo
  * @param component - Компонент Canvas.
  * @returns true, если `type === 'layout'`.
  */
-export function isLayoutComponent(component: LandingComponent | undefined): boolean {
+export function isLayoutComponent(component: BricksComponent | undefined): boolean {
     return Boolean(component && component.type === 'layout');
 }
 
@@ -83,7 +83,7 @@ export function isLayoutComponent(component: LandingComponent | undefined): bool
  * @param childId - ID дочернего компонента.
  * @returns true, если удаление произошло.
  */
-export function removeChildFromLayout(layout: LandingComponent, childId: string): boolean {
+export function removeChildFromLayout(layout: BricksComponent, childId: string): boolean {
     if (!layout.children) {
         return false;
     }

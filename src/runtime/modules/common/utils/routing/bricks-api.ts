@@ -3,12 +3,12 @@ import { join } from 'path';
 import type { IBrickObject, IBrickRoute, IBricksManifest } from './types.d.ts';
 
 /**
- * Reads the generated `bricks.json` (source of landing meta) and groups entries by category.
+ * Reads the generated `bricks.json` (source of brick meta) and groups entries by category.
  *
  * @returns A map where each key is a category and its value contains
  *          a `components` array of `{ name, storyPath }` entries.
  */
-export function getLandingCategoriesFromJson(
+export function getBricksCategoriesFromJson(
     row = false
 ): Record<string, IBrickRoute> | IBricksManifest {
     try {

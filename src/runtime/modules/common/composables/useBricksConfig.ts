@@ -1,6 +1,6 @@
 // #region Imports
 // Types
-import type { IAppConfig, ILandingBreakpoints, ILandingBreakpointConfig } from '../types/config';
+import type { IAppConfig, IBricksBreakpoints, IBricksBreakpointConfig } from '../types/config';
 
 // Nuxt
 import { useAppConfig } from 'nuxt/app';
@@ -10,25 +10,25 @@ import { useAppConfig } from 'nuxt/app';
  * Composable для конфигурации лендинга с дефолтными значениями.
  * Читает конфигурацию из app.config.ts и возвращает значения по умолчанию, если не указаны.
  */
-export function useLandingConfig(): {
+export function useBricksConfig(): {
     defaultFont: string;
     fonts?: string[];
     backgroundColor: string;
     layouts: string[];
-    breakpoints: ILandingBreakpoints;
+    breakpoints: IBricksBreakpoints;
     canvasBreakpoints: {
-        mobile: ILandingBreakpointConfig;
-        tablet: ILandingBreakpointConfig;
-        desktop: ILandingBreakpointConfig;
+        mobile: IBricksBreakpointConfig;
+        tablet: IBricksBreakpointConfig;
+        desktop: IBricksBreakpointConfig;
     };
 } {
     const appConfig = useAppConfig() as IAppConfig;
 
     return {
-        defaultFont: appConfig.landing?.defaultFont ?? 'Inter, sans-serif',
-        fonts: appConfig.landing?.fonts,
-        backgroundColor: appConfig.landing?.backgroundColor ?? '#FFFFFF',
-        layouts: appConfig.landing?.layouts ?? [],
+        defaultFont: appConfig.bricks?.defaultFont ?? 'Inter, sans-serif',
+        fonts: appConfig.bricks?.fonts,
+        backgroundColor: appConfig.bricks?.backgroundColor ?? '#FFFFFF',
+        layouts: appConfig.bricks?.layouts ?? [],
         breakpoints: appConfig.device?.breakpoints ?? {
             mobile: 0,
             tablet: 768,
@@ -37,15 +37,15 @@ export function useLandingConfig(): {
             ultra: 1921,
         },
         canvasBreakpoints: {
-            mobile: appConfig.landing?.breakpoints?.mobile ?? {
+            mobile: appConfig.bricks?.breakpoints?.mobile ?? {
                 width: 375,
                 aside: '0.4rem',
             },
-            tablet: appConfig.landing?.breakpoints?.tablet ?? {
+            tablet: appConfig.bricks?.breakpoints?.tablet ?? {
                 width: 768,
                 aside: '0.8rem',
             },
-            desktop: appConfig.landing?.breakpoints?.desktop ?? {
+            desktop: appConfig.bricks?.breakpoints?.desktop ?? {
                 width: 1600,
                 aside: '2rem',
                 maxWidth: '192rem',

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { SpaceProps } from '../../common/types/landing';
+import type { SpaceProps } from '../../common/types/brick';
 
 // Vue
 import { computed, ref, inject, type Ref } from 'vue';

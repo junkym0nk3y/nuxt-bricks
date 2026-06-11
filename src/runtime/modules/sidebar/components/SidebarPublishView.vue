@@ -1,10 +1,10 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { TPublishFormState } from '../../common/types/landing-api';
+import type { TPublishFormState } from '../../common/types/bricks-api';
 import type { IMediaItem } from '../../media/types/media';
 import type { IBrickDemoValues } from '../../common/types/index';
-import type { LandingSchema } from '../../common/types/landing';
+import type { BricksSchema } from '../../common/types/brick';
 
 // Vue
 import { computed, onMounted, ref } from 'vue';
@@ -13,7 +13,7 @@ import { computed, onMounted, ref } from 'vue';
 import { Form, Field } from 'vee-validate';
 
 // Composables
-import { useLandingConfig } from '../../common/composables/useLandingConfig';
+import { useBricksConfig } from '../../common/composables/useBricksConfig';
 import { usePublishValidationSchema } from '../composables/usePublishValidationSchema';
 
 // Pinia
@@ -33,14 +33,14 @@ import SidebarNavigationEditor from './SidebarNavigationEditor.vue';
 const emit = defineEmits<{
     close: [];
     openMediaGallery: [];
-    importSchema: [schema: LandingSchema];
+    importSchema: [schema: BricksSchema];
 }>();
 // #endregion
 
 // #region Data
 const publishStore = usePublishStore();
 const componentsStore = useComponentsStore();
-const landingConfig = useLandingConfig();
+const bricksConfig = useBricksConfig();
 const fileInputRef = ref<HTMLInputElement | null>(null);
 const importError = ref<string | null>(null);
 const isEditing = computed<boolean>(() => publishStore.editingPageId !== null);
@@ -52,7 +52,7 @@ const { validationSchema } = usePublishValidationSchema(isEditing.value);
 // #region Computed
 const settings = computed(() => publishStore.currentFormState);
 const isSubmitting = computed(() => publishStore.isSubmitting);
-const defaultBackgroundColor = computed<string>(() => landingConfig.backgroundColor || '#FFFFFF');
+const defaultBackgroundColor = computed<string>(() => bricksConfig.backgroundColor || '#FFFFFF');
 const defaultLayout = computed<string>(() => 'default');
 const initialValues = computed(() => ({
     pagename: settings.value.pagename || '',
@@ -68,8 +68,8 @@ const formKey = computed(() => {
     return `form-${base}`;
 });
 const layoutOptions = computed(() => {
-    const baseOptions = ['default', 'landing'];
-    const customLayouts = landingConfig.layouts || [];
+    const baseOptions = ['default', 'bricks'];
+    const customLayouts = bricksConfig.layouts || [];
     const unique = Array.from(new Set([...baseOptions, ...customLayouts].filter(Boolean)));
 
     return unique.map((value) => ({
@@ -162,7 +162,7 @@ function handleExportSchema(): void {
 
     const link = document.createElement('a');
     link.href = url;
-    link.download = `landing-schema-${Date.now()}.json`;
+    link.download = `bricks-schema-${Date.now()}.json`;
     link.click();
     URL.revokeObjectURL(url);
 }
@@ -198,7 +198,7 @@ function handleFileSelect(event: Event): void {
 
     reader.onload = () => {
         try {
-            const parsed = JSON.parse(reader.result as string) as LandingSchema;
+            const parsed = JSON.parse(reader.result as string) as BricksSchema;
 
             if (!parsed.components || !Array.isArray(parsed.components)) {
                 importError.value = 'Невалидная схема: отсутствует массив components';
@@ -278,7 +278,7 @@ onMounted(() => {
                         type="slug"
                         :required="true"
                         :max-length="80"
-                        placeholder="my-landing-page"
+                        placeholder="my-page"
                         :disabled="isSubmitting"
                         @update:value="
                             (val: string) => {
@@ -397,7 +397,7 @@ onMounted(() => {
                     label="Meta Keywords"
                     :value="settings.keywords"
                     type="text"
-                    placeholder="landing, page, marketing"
+                    placeholder="promo, page, marketing"
                     :disabled="isSubmitting"
                     @update:value="(val: string) => handleUpdateField('keywords', val)"
                 />

@@ -21,7 +21,7 @@ import { useCanvasItemDrag } from '../composables/useCanvasItemDrag';
 import { useCanvasItemActions } from '../composables/useCanvasItemActions';
 
 // Utils
-import { buildDeviceVisibilityClasses } from '../../common/utils/landing/deviceVisibility';
+import { buildDeviceVisibilityClasses } from '../../common/utils/bricks/deviceVisibility';
 
 // Components
 import CanvasItemLayout from './CanvasItemLayout.vue';

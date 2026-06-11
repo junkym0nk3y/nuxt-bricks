@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { GridLayoutProps, GridLayoutVariant, GridRowHeight } from '../../common/types/landing';
+import type { GridLayoutProps, GridLayoutVariant, GridRowHeight } from '../../common/types/brick';
 
 // Vue
 import { computed, ref, inject, onMounted, onBeforeUnmount, type Ref } from 'vue';
@@ -109,7 +109,7 @@ const gridStyle = computed<Record<string, string>>(() => {
         gridAutoFlow: gridAutoFlow.value,
         alignItems: 'stretch',
         minHeight: DEFAULT_GRID_MIN_HEIGHT,
-        '--landing-grid-accent-span': String(accentSpan.value),
+        '--bricks-grid-accent-span': String(accentSpan.value),
     };
 
     const px = normalizedPaddingX.value;
@@ -605,7 +605,7 @@ onMounted(() => {
 
 <style module lang="scss">
 .BlockGrid {
-    --landing-grid-accent-span: 2;
+    --bricks-grid-accent-span: 2;
 
     position: relative;
     min-width: 0;
@@ -647,13 +647,13 @@ onMounted(() => {
 
     &[data-grid-variant='lead-left'] {
         > :global([data-layout-drop-item='true']:nth-of-type(1)) {
-            grid-column: span var(--landing-grid-accent-span, 2);
+            grid-column: span var(--bricks-grid-accent-span, 2);
         }
     }
 
     &[data-grid-variant='lead-right'] {
         > :global([data-layout-drop-item='true']:nth-last-of-type(1)) {
-            grid-column: span var(--landing-grid-accent-span, 2);
+            grid-column: span var(--bricks-grid-accent-span, 2);
         }
     }
 }

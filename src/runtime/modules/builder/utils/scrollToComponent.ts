@@ -11,7 +11,7 @@ export function scrollToComponentOnCanvas(componentId: string, viewport?: string
 
     if (viewport) {
         const viewportContainer = document.querySelector<HTMLElement>(
-            `[data-landing-viewport="${viewport}"]`
+            `[data-bricks-viewport="${viewport}"]`
         );
         if (viewportContainer) {
             el = viewportContainer.querySelector<HTMLElement>(

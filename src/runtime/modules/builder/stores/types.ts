@@ -1,11 +1,11 @@
 import type {
-    LandingComponent,
+    BricksComponent,
     SelectedComponent,
     ComponentSlotDefinition,
-    LandingSchema,
+    BricksSchema,
     IDeviceVisibilityConfig,
-    TLandingDeviceKey,
-} from '../../common/types/landing';
+    TBricksDeviceKey,
+} from '../../common/types/brick';
 
 export interface IComponentClipboardSnapshot {
     rootId: string;
@@ -13,7 +13,7 @@ export interface IComponentClipboardSnapshot {
     slotName?: string;
     insertIndex: number | null;
     fullWidth?: boolean;
-    tree: LandingComponent[];
+    tree: BricksComponent[];
     /** Свойства компонента для отображения в редакторе после вставки */
     properties?: SelectedComponent['properties'];
     /** Описание компонента */
@@ -21,7 +21,7 @@ export interface IComponentClipboardSnapshot {
 }
 
 export interface IComponentsState {
-    components: LandingComponent[];
+    components: BricksComponent[];
     selectedComponent: SelectedComponent | null;
     clipboard: IComponentClipboardSnapshot | null;
     favorites: string[];
@@ -31,7 +31,7 @@ export interface IComponentsState {
 
 export interface ISelectedComponentData {
     id: string;
-    component: LandingComponent;
+    component: BricksComponent;
     properties: SelectedComponent['properties'];
     description?: SelectedComponent['description'];
 }
@@ -48,7 +48,7 @@ export type TMoveComponentToLayoutOptions = {
 };
 
 export type TComponentInsertPayload = Omit<
-    LandingComponent,
+    BricksComponent,
     'id' | 'zIndex' | 'type' | 'children' | 'slotName' | 'slots'
 > & {
     slots?: ComponentSlotDefinition[];
@@ -91,7 +91,7 @@ export interface IComponentsCrudActions {
         targetIndex?: number | null,
         options?: THistoryOptions
     ): void;
-    getRootComponents(this: IComponentsStore): LandingComponent[];
+    getRootComponents(this: IComponentsStore): BricksComponent[];
 }
 
 export interface IComponentsSlotActions {
@@ -135,14 +135,14 @@ export interface IComponentsPropertyActions {
     updateComponentResponsiveProp(
         this: IComponentsStore,
         id: string,
-        device: TLandingDeviceKey,
+        device: TBricksDeviceKey,
         propName: string,
         value: string | number | boolean | Record<string, unknown> | Array<unknown>
     ): void;
     resetComponentResponsivePropsForDevice(
         this: IComponentsStore,
         id: string,
-        device: TLandingDeviceKey
+        device: TBricksDeviceKey
     ): void;
 }
 
@@ -169,16 +169,16 @@ export interface IComponentsSchemaActions {
     setComponentDeviceVisibilityFlag(
         this: IComponentsStore,
         id: string,
-        device: TLandingDeviceKey,
+        device: TBricksDeviceKey,
         value: boolean
     ): void;
-    exportSchema(this: IComponentsStore): LandingSchema;
+    exportSchema(this: IComponentsStore): BricksSchema;
     saveToHistory(this: IComponentsStore): void;
     undo(this: IComponentsStore): void;
     redo(this: IComponentsStore): void;
     loadSchema(
         this: IComponentsStore,
-        schema: LandingSchema,
+        schema: BricksSchema,
         options?: { resetHistory?: boolean }
     ): void;
 }
@@ -209,9 +209,9 @@ export type IComponentsActions = IComponentsCrudActions &
     IComponentsFavoritesActions;
 
 export interface IComponentsComputed {
-    getComponentById: (id: string) => LandingComponent | undefined;
+    getComponentById: (id: string) => BricksComponent | undefined;
     selectedComponentData: ISelectedComponentData | null;
-    sortedComponents: LandingComponent[];
+    sortedComponents: BricksComponent[];
     isComponentSelected: (id: string) => boolean;
     isFavorite: (componentName: string) => boolean;
     hasComponents: boolean;

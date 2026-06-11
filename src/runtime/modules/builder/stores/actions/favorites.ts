@@ -1,6 +1,6 @@
 import type { IComponentsFavoritesActions, IComponentsStore } from '../types';
 
-const STORAGE_KEY = 'landing-favorite-components';
+const STORAGE_KEY = 'bricks-favorite-components';
 
 /**
  * Загружает список избранных storyPath из localStorage.

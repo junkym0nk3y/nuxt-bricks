@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { AccordionLayoutProps, IAccordionItem } from '../../common/types/landing';
+import type { AccordionLayoutProps, IAccordionItem } from '../../common/types/brick';
 
 // Vue
 import { computed, ref } from 'vue';

@@ -1,6 +1,6 @@
 // TODO(persistence, Шаг 6): переедет в runtime/persistence/ при введении StorageAdapter/PublishAdapter
 import { createError } from 'h3';
-import { getLandingCategoriesFromJson } from '../../../modules/common/utils/routing/landings-api';
+import { getBricksCategoriesFromJson } from '../../../modules/common/utils/routing/bricks-api';
 import type { IBrickRoute } from '../../../modules/common/utils/routing/types.d.ts';
 
 /**
@@ -8,12 +8,12 @@ import type { IBrickRoute } from '../../../modules/common/utils/routing/types.d.
  * Бросает 404, если категория не найдена в сгенерированном bricks.json.
  * @param category Название категории из запроса.
  */
-export function resolveLandingComponents(category?: string) {
+export function resolveBricksComponents(category?: string) {
     if (!category) {
-        return getLandingCategoriesFromJson(true);
+        return getBricksCategoriesFromJson(true);
     }
 
-    const allRoutes = getLandingCategoriesFromJson();
+    const allRoutes = getBricksCategoriesFromJson();
     const match = Object.keys(allRoutes).find(
         (key) => key.toLowerCase() === category.toLowerCase()
     );

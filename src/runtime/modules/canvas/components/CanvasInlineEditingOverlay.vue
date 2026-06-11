@@ -28,7 +28,7 @@ import { useCanvasStore } from '../../builder/stores/canvas';
 import { useComponentsStore } from '../../builder/stores/components';
 
 // Composables
-import { useLandingConfig } from '../../common/composables/useLandingConfig';
+import { useBricksConfig } from '../../common/composables/useBricksConfig';
 
 // Components
 import BricksTextEditorToolbar from '../../ui/inputs/BricksTextEditorToolbar.vue';
@@ -40,7 +40,7 @@ const $style = useCssModule();
 const inlineEditingStore = useInlineEditingStore();
 const canvasStore = useCanvasStore();
 const componentsStore = useComponentsStore();
-const config = useLandingConfig();
+const config = useBricksConfig();
 const { $textEditorToolbar } = useNuxtApp();
 
 const overlayRef = ref<HTMLElement | null>(null);
@@ -439,7 +439,7 @@ async function initFallbackTiptapEditor(): Promise<void> {
                 }),
                 Table.configure({
                     resizable: false,
-                    HTMLAttributes: { class: 'ida-tiptap-table' },
+                    HTMLAttributes: { class: 'bricks-tiptap-table' },
                 }),
                 TableRow,
                 TableCell,

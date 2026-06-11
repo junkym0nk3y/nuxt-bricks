@@ -1,11 +1,11 @@
 // TODO(persistence, Шаг 6): переедет в runtime/persistence/ при введении StorageAdapter/PublishAdapter
-import type { LandingSchema } from './landing';
+import type { BricksSchema } from './brick';
 
 /**
  * Формат данных для фронтенда.
  * БД возвращает snake_case, но Vue автоматически конвертирует в camelCase.
  */
-export interface ILandingPageRow {
+export interface IBricksPageRow {
     id: number;
     pagename: string;
     title: string | null;
@@ -16,7 +16,7 @@ export interface ILandingPageRow {
     socialImage: string | null;
     urlPrefix: string | null;
     subdomain: string | null;
-    schema: LandingSchema;
+    schema: BricksSchema;
     published: boolean;
     createdAt: string;
     updatedAt: string;
@@ -36,14 +36,14 @@ export interface IPublishedPage {
     socialImage: string | null;
     urlPrefix: string | null;
     subdomain: string | null;
-    schema: LandingSchema;
+    schema: BricksSchema;
     published: boolean;
     createdAt: string;
     updatedAt: string;
     isPreview?: boolean;
 }
 
-export interface IPublishedLandingPageSummary {
+export interface IPublishedPageSummary {
     id: number;
     pagename: string;
     published: boolean;
@@ -51,7 +51,7 @@ export interface IPublishedLandingPageSummary {
     subdomain: string | null;
 }
 
-export interface ICreateLandingPayload {
+export interface ICreatePagePayload {
     pagename: string;
     title?: string;
     description?: string;
@@ -61,11 +61,11 @@ export interface ICreateLandingPayload {
     backgroundColor?: string | null;
     urlPrefix?: string | null;
     subdomain?: string | null;
-    schema: LandingSchema;
+    schema: BricksSchema;
     published?: boolean;
 }
 
-export interface IUpdateLandingPayload {
+export interface IUpdatePagePayload {
     pagename?: string;
     title?: string;
     description?: string;
@@ -75,11 +75,11 @@ export interface IUpdateLandingPayload {
     backgroundColor?: string | null;
     urlPrefix?: string | null;
     subdomain?: string | null;
-    schema?: LandingSchema;
+    schema?: BricksSchema;
     published?: boolean;
 }
 
-export interface IUpdateLandingResult {
+export interface IUpdatePageResult {
     id: number;
     pagename: string;
 }

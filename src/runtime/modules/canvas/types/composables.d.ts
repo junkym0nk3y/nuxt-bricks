@@ -2,7 +2,7 @@
  * Типы для composables домена canvas.
  */
 
-import type { ComponentSlotDefinition, LandingComponent } from '../../common/types/landing';
+import type { ComponentSlotDefinition, BricksComponent } from '../../common/types/brick';
 import type { ComputedRef, CSSProperties, Ref, VNodeRef } from 'vue';
 
 // #region useComponentSlots
@@ -11,7 +11,7 @@ import type { ComputedRef, CSSProperties, Ref, VNodeRef } from 'vue';
  */
 export interface ISlotRenderData {
     slot: ComponentSlotDefinition;
-    children: LandingComponent[];
+    children: BricksComponent[];
 }
 
 /**

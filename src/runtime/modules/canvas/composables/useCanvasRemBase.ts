@@ -9,7 +9,7 @@ import { computed } from 'vue';
 import { useCanvasStore } from '../../builder/stores/canvas';
 
 // Composables
-import { useLandingConfig } from '../../common/composables/useLandingConfig';
+import { useBricksConfig } from '../../common/composables/useBricksConfig';
 // #endregion
 
 /** Базовое значение rem библиотеки (px). */
@@ -25,7 +25,7 @@ const LIBRARY_REM_BASE = 10;
  *
  * @example
  * // app.config.ts
- * landing: {
+ * bricks: {
  *     breakpoints: {
  *         desktop: { width: 1600, remBase: '0.6944vw' },
  *         tablet:  { width: 768,  remBase: '10px' },
@@ -35,7 +35,7 @@ const LIBRARY_REM_BASE = 10;
  */
 export function useCanvasRemBase() {
     const canvasStore = useCanvasStore();
-    const config = useLandingConfig();
+    const config = useBricksConfig();
 
     /**
      * Вычисляет целевой rem (в px) для указанного viewport на основе remBase из конфига.

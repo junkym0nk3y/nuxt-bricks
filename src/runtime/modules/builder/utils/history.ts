@@ -1,7 +1,7 @@
-import type { LandingComponent, LandingSchema, ILandingSchemaMeta } from '../../common/types/landing';
-import { cloneLandingComponent } from '../../common/utils/landing/components';
-import { normalizeDeviceVisibility } from '../../common/utils/landing/deviceVisibility';
-import { normalizeStoryPath } from '../../common/utils/landing/paths';
+import type { BricksComponent, BricksSchema, IBricksSchemaMeta } from '../../common/types/brick';
+import { cloneBricksComponent } from '../../common/utils/bricks/components';
+import { normalizeDeviceVisibility } from '../../common/utils/bricks/deviceVisibility';
+import { normalizeStoryPath } from '../../common/utils/bricks/paths';
 
 /**
  * Ограничивает размер истории и позицию индекса.
@@ -12,10 +12,10 @@ import { normalizeStoryPath } from '../../common/utils/landing/paths';
  * @returns Обновлённые { history, historyIndex }.
  */
 export function clampHistory(
-    history: LandingSchema[],
+    history: BricksSchema[],
     historyIndex: number,
     limit: number = 50
-): { history: LandingSchema[]; historyIndex: number } {
+): { history: BricksSchema[]; historyIndex: number } {
     const result = [...history];
     let index = historyIndex;
 
@@ -29,19 +29,19 @@ export function clampHistory(
 }
 
 /**
- * Сериализует массив компонентов в LandingSchema.
+ * Сериализует массив компонентов в BricksSchema.
  *
  * @param components - Компоненты Canvas.
  * @param meta - Опциональные метаданные схемы (навигация и др.).
- * @returns LandingSchema с нормализованными путями.
+ * @returns BricksSchema с нормализованными путями.
  */
 export function serializeSchema(
-    components: LandingComponent[],
-    meta?: ILandingSchemaMeta
-): LandingSchema {
-    const schema: LandingSchema = {
+    components: BricksComponent[],
+    meta?: IBricksSchemaMeta
+): BricksSchema {
+    const schema: BricksSchema = {
         components: components.map((component) => {
-            const cloned = cloneLandingComponent(component);
+            const cloned = cloneBricksComponent(component);
             cloned.storyPath = normalizeStoryPath(component.storyPath);
             return cloned;
         }),
@@ -60,9 +60,9 @@ export function serializeSchema(
  * @param schema - Сохранённая схема.
  * @returns Компоненты с нормализованными путями.
  */
-export function deserializeSchema(schema: LandingSchema): LandingComponent[] {
+export function deserializeSchema(schema: BricksSchema): BricksComponent[] {
     return (schema.components || []).map((component) => {
-        const cloned = cloneLandingComponent({
+        const cloned = cloneBricksComponent({
             ...component,
             storyPath: normalizeStoryPath(component.storyPath),
         });

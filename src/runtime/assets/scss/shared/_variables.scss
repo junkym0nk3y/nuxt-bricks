@@ -1,5 +1,5 @@
 /**
- * UI Landing Builder - Library Variables
+ * nuxt-bricks - Library Variables
  */
 
 /* CSS Variables */
@@ -105,7 +105,7 @@
     --overlay-modal-end: rgb(0 0 0 / 75%);
 
     /* === Canvas reset: компоненты на канвасе остаются в светлой теме === */
-    .landing-canvas {
+    .bricks-canvas {
         --bricks-base-0: #fff;
         --bricks-base-50: #f9fafb;
         --bricks-base-100: #f3f4f6;

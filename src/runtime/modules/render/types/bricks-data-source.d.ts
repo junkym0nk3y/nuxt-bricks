@@ -1,4 +1,4 @@
-import type { TPublishFormState } from '../../common/types/landing-api';
+import type { TPublishFormState } from '../../common/types/bricks-api';
 
 export interface IBrickDataSourceParam {
     from?: string;

@@ -1,5 +1,5 @@
 import type { IBrickExportModule } from '../types/index';
-import { normalizeStoryPath } from '../utils/landing/paths';
+import { normalizeStoryPath } from '../utils/bricks/paths';
 
 /**
  * Приводит glob-результаты (eager/lazy) к единому виду: функция-лоадер Promise<Module>.

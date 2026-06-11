@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { TViewportType, IDragComposableCanvas } from './types';
-import type { IDeviceVisibilityConfig } from '../../common/types/landing';
+import type { IDeviceVisibilityConfig } from '../../common/types/brick';
 
 // Vue
 import { computed, ref, inject, provide, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
@@ -13,7 +13,7 @@ import { useCanvasStore } from '../../builder/stores/canvas';
 import { usePublishStore } from '../../builder/stores/publish';
 
 // Composables
-import { useLandingConfig } from '../../common/composables/useLandingConfig';
+import { useBricksConfig } from '../../common/composables/useBricksConfig';
 import { useCanvasDrops } from '../composables/useCanvasDrops';
 
 // Utils
@@ -37,7 +37,7 @@ const props = defineProps<ICanvasViewportProps>();
 const componentsStore = useComponentsStore();
 const canvasStore = useCanvasStore();
 const publishStore = usePublishStore();
-const config = useLandingConfig();
+const config = useBricksConfig();
 
 const dragComposable = inject<IDragComposableCanvas | undefined>('dragComposable');
 const getRemCompensation = inject<((viewport: TViewportType) => number) | undefined>(
@@ -246,9 +246,9 @@ onBeforeUnmount(() => {
 
         <div
             ref="canvasRef"
-            :class="[$style.canvas, 'landing-canvas']"
+            :class="[$style.canvas, 'bricks-canvas']"
             :style="canvasStyle"
-            :data-landing-viewport="props.viewport"
+            :data-bricks-viewport="props.viewport"
             @drop="handleViewportDrop"
             @dragover="handleCanvasDragOver"
             @click="handleCanvasClick"
@@ -309,7 +309,7 @@ onBeforeUnmount(() => {
     background-color: var(--bricks-base-0);
     box-shadow: var(--shadow-md);
     container-type: inline-size;
-    container-name: landing;
+    container-name: bricks;
 }
 
 .screenContent {

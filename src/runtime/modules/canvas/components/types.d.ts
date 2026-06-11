@@ -3,10 +3,10 @@
  */
 
 import type { CSSProperties, Ref } from 'vue';
-import type { ComponentLibraryItem, LandingComponent } from '../../common/types/landing';
+import type { ComponentLibraryItem, BricksComponent } from '../../common/types/brick';
 
 export interface ICanvasItemProps {
-    component: LandingComponent;
+    component: BricksComponent;
 }
 
 export interface ICanvasItemEmits {

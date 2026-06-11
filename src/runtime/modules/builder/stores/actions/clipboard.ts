@@ -1,6 +1,6 @@
-import type { LandingComponent } from '../../../common/types/landing';
-import { cloneLandingComponent } from '../../../common/utils/landing/components';
-import { generateComponentId } from '../../../common/utils/landing/paths';
+import type { BricksComponent } from '../../../common/types/brick';
+import { cloneBricksComponent } from '../../../common/utils/bricks/components';
+import { generateComponentId } from '../../../common/utils/bricks/paths';
 import type {
     IComponentsClipboardActions,
     IComponentsStore,
@@ -17,7 +17,7 @@ import type {
  */
 function resolveDirectChildren(
     store: IComponentsStore,
-    component: LandingComponent
+    component: BricksComponent
 ): string[] {
     const directIds = new Set<string>();
 
@@ -51,10 +51,10 @@ function resolveDirectChildren(
  * @param rootId - Идентификатор копируемого корневого элемента.
  * @returns Массив клонов компонентов (с оригинальными ID).
  */
-function collectComponentTree(store: IComponentsStore, rootId: string): LandingComponent[] {
+function collectComponentTree(store: IComponentsStore, rootId: string): BricksComponent[] {
     const queue: string[] = [rootId];
     const visited = new Set<string>();
-    const result: LandingComponent[] = [];
+    const result: BricksComponent[] = [];
 
     while (queue.length > 0) {
         const id = queue.shift();
@@ -68,7 +68,7 @@ function collectComponentTree(store: IComponentsStore, rootId: string): LandingC
             continue;
         }
 
-        result.push(cloneLandingComponent(component));
+        result.push(cloneBricksComponent(component));
 
         const childIds = resolveDirectChildren(store, component);
         childIds.forEach((childId) => {
@@ -90,7 +90,7 @@ function collectComponentTree(store: IComponentsStore, rootId: string): LandingC
  */
 function resolveInsertIndex(
     store: IComponentsStore,
-    component: LandingComponent
+    component: BricksComponent
 ): number | null {
     if (component.parent) {
         const parent = store.getComponentById(component.parent);
@@ -133,7 +133,7 @@ function createClipboardSnapshot(
 ): IComponentClipboardSnapshot | null {
     const root = store.getComponentById(rootId);
     if (!root) {
-        console.warn('[Landing Store] copyComponentToClipboard: component not found', rootId);
+        console.warn('[Bricks Store] copyComponentToClipboard: component not found', rootId);
         return null;
     }
 
@@ -179,9 +179,9 @@ function pasteClipboardSnapshot(
         idMap.set(component.id, generateComponentId());
     });
 
-    const clones: Array<{ originalId: string; component: LandingComponent }> = snapshot.tree.map(
+    const clones: Array<{ originalId: string; component: BricksComponent }> = snapshot.tree.map(
         (component) => {
-            const clone = cloneLandingComponent(component);
+            const clone = cloneBricksComponent(component);
             const newId = idMap.get(component.id)!;
             clone.id = newId;
 
@@ -218,7 +218,7 @@ function pasteClipboardSnapshot(
 
     const rootClone = clones.find((entry) => entry.originalId === snapshot.rootId)?.component;
     if (!rootClone) {
-        console.warn('[Landing Store] pasteFromClipboard: root clone not found');
+        console.warn('[Bricks Store] pasteFromClipboard: root clone not found');
         return null;
     }
 
@@ -287,7 +287,7 @@ export const clipboardActions: IComponentsClipboardActions = {
      */
     pasteFromClipboard(this: IComponentsStore) {
         if (!this.clipboard) {
-            console.warn('[Landing Store] pasteFromClipboard: clipboard is empty');
+            console.warn('[Bricks Store] pasteFromClipboard: clipboard is empty');
             return;
         }
 

@@ -6,8 +6,8 @@ import type { IInlineContentSegment, IGalleryItem } from '../../layouts-blocks/t
 import type {
     IDeviceVisibilityConfig,
     PropertyDefinition,
-    TLandingDeviceKey,
-} from '../../common/types/landing';
+    TBricksDeviceKey,
+} from '../../common/types/brick';
 import type {
     TInlineGalleryPayload,
     TMediaContext,
@@ -35,7 +35,7 @@ import {
     cloneInlineSegments,
     createInlineMediaSegmentFromItem,
 } from '../../layouts-blocks/utils/inlineContent';
-import { normalizeDeviceVisibility } from '../../common/utils/landing/deviceVisibility';
+import { normalizeDeviceVisibility } from '../../common/utils/bricks/deviceVisibility';
 
 // Constants
 import { LAYOUT_COMPONENTS } from '../../builder/constants/layoutComponents';
@@ -120,7 +120,7 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
         return isResponsiveLayout.value || hasResponsiveStoryValues.value;
     });
 
-    const layoutDeviceScope = ref<TLandingDeviceKey>('desktop');
+    const layoutDeviceScope = ref<TBricksDeviceKey>('desktop');
 
     const responsiveOverridesForScope = computed<Record<string, unknown> | null>(() => {
         const selected = store.selectedComponentData;
@@ -416,7 +416,7 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
      * @param device - Ключ устройства (mobile/tablet/desktop).
      * @param value - Новый флаг видимости.
      */
-    function handleToggleDeviceVisibility(device: TLandingDeviceKey, value: boolean): void {
+    function handleToggleDeviceVisibility(device: TBricksDeviceKey, value: boolean): void {
         const selected = store.selectedComponentData;
         if (!selected) {
             return;
@@ -585,7 +585,7 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
      *
      * @param scope - Ключ устройства (desktop/tablet/mobile).
      */
-    function handleSetLayoutDeviceScope(scope: TLandingDeviceKey): void {
+    function handleSetLayoutDeviceScope(scope: TBricksDeviceKey): void {
         layoutDeviceScope.value = scope;
     }
 

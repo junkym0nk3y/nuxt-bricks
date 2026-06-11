@@ -286,7 +286,7 @@ function handleDragStart(event: DragEvent): void {
                                 <div
                                     ref="componentWrapperRef"
                                     :class="$style.componentWrapper"
-                                    data-landing-viewport="desktop"
+                                    data-bricks-viewport="desktop"
                                 >
                                     <component :is="ComponentPreview" v-bind="componentProps" />
                                 </div>
@@ -339,7 +339,7 @@ function handleDragStart(event: DragEvent): void {
                         <div
                             ref="componentWrapperRef"
                             :class="$style.componentWrapper"
-                            data-landing-viewport="desktop"
+                            data-bricks-viewport="desktop"
                         >
                             <component :is="ComponentPreview" v-bind="componentProps" />
                         </div>

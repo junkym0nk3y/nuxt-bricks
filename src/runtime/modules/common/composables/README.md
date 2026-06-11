@@ -7,17 +7,17 @@
 
 | Composable         | Описание                                                                  |
 | ------------------ | ------------------------------------------------------------------------- |
-| `useLandingConfig` | Конфигурация лендинга с дефолтными значениями. Читает из `app.config.ts`  |
+| `useBricksConfig` | Конфигурация лендинга с дефолтными значениями. Читает из `app.config.ts`  |
 | `useApiClient`     | Работа с API через прокси или напрямую                                    |
 | `useStoryImports`  | Динамический импорт story-файлов компонентов                              |
-| `useLandingStyles` | Инъекция динамических стилей лендинга в `<head>` (override `.container`)  |
+| `useBricksStyles` | Инъекция динамических стилей лендинга в `<head>` (override `.container`)  |
 
 ## Доменные композаблы
 
 | Где                           | Что                                                                                                                                                                                                                                                                                                                           |
 | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `builder/composables/`        | `useCanvas{,Pan,Drops}`, `useCanvasItem*`, `useCanvasRemBase`, `useDraggableComponent`, `useSlotDragDrop`, `useComponent{Properties,Slots}`, `usePropertyVariants`, `useSidebarPropertiesPanel`, `useBuilderPage`, `useModals`, `useDocumentationArticles`, `useMarkdownRenderer`, `usePublishValidationSchema` |
-| `render/composables/`         | `useRenderer{Layouts,Stories}`, `useLandingDataSources`                                                                                                                                                                                                                                                                        |
+| `render/composables/`         | `useRenderer{Layouts,Stories}`, `useBricksDataSources`                                                                                                                                                                                                                                                                        |
 | `layouts-blocks/composables/` | `useResponsive{Layout,Visibility}Styles`                                                                                                                                                                                                                                                                                       |
 | `editor/composables/`         | `useInlineEditor`                                                                                                                                                                                                                                                                                                              |
 | `media/composables/`          | `useSchemaImageResolver`                                                                                                                                                                                                                                                                                                       |

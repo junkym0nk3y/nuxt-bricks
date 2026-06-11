@@ -12,12 +12,12 @@ $ARGUMENTS
 
 При добавлении нового типа редактора свойств (например, `my-new-type`) необходимо изменить **7+ файлов** в строгом порядке. **НЕ ПРОПУСКАЙ НИ ОДНОГО ШАГА!**
 
-### Шаг 1: Добавить тип в `types/landing.ts`
+### Шаг 1: Добавить тип в `types/brick.ts`
 
 Добавь новый тип в union `PropertyType`:
 
 ```typescript
-// types/landing.ts
+// types/brick.ts
 export type PropertyType =
     | 'string'
     | 'number'
@@ -147,7 +147,7 @@ function handleMyNewTypeVariant({
 
 ## Чеклист
 
-- [ ] `types/landing.ts` — добавлен в `PropertyType`
+- [ ] `types/brick.ts` — добавлен в `PropertyType`
 - [ ] `sidebar/components/property-editors/types.ts` — добавлен в `PROPERTY_EDITOR_ORDER`
 - [ ] `composables/useComponentProperties.ts` — добавлен в `inferPropertyType` **(!)**
 - [ ] `sidebar/components/property-editors/Property*.vue` — создан компонент

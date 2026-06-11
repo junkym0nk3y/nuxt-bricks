@@ -2,7 +2,7 @@
  * Типы для composables.
  */
 
-import type { ComponentLibraryItem, LandingSchema } from '../../common/types/landing';
+import type { ComponentLibraryItem, BricksSchema } from '../../common/types/brick';
 import type { ComputedRef, Ref } from 'vue';
 import type { useSidebarStore } from '../stores/sidebar';
 import type { useHistoryStore } from '../stores/history';
@@ -63,7 +63,7 @@ export interface IUseBuilderPageReturn {
     handleRedo: () => void;
     isImageResolverModalOpen: Ref<boolean>;
     imageResolverState: IImageResolverState;
-    handleImportSchema: (schema: LandingSchema) => Promise<void>;
+    handleImportSchema: (schema: BricksSchema) => Promise<void>;
     handleImageResolverConfirm: () => void;
     handleImageResolverCancel: () => void;
     handleImageResolverSkip: () => void;

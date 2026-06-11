@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import type { SidebarView } from '../../common/types/landing';
+import type { SidebarView } from '../../common/types/brick';
 
 interface ISidebarState {
     left: {

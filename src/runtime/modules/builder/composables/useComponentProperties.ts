@@ -1,4 +1,4 @@
-import type { PropertyDefinition, PropertyType } from '../../common/types/landing';
+import type { PropertyDefinition, PropertyType } from '../../common/types/brick';
 import type { IBrickValues } from '../../common/types/index';
 import { getModalOptions } from './useModals';
 

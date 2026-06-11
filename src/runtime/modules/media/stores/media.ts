@@ -54,7 +54,7 @@ export const useMediaStore = defineStore('bricksMedia', {
 
             try {
                 const response = await apiFetcher<IMediaListResponse | IMediaItem[]>(
-                    '/api/landing/media/'
+                    '/api/bricks/media/'
                 );
 
                 // Django возвращает массив напрямую, локальный API - объект с items
@@ -73,7 +73,7 @@ export const useMediaStore = defineStore('bricksMedia', {
                 const message =
                     (error as { data?: { message?: string } })?.data?.message ||
                     (error instanceof Error ? error.message : 'Не удалось загрузить медиа');
-                const formatted = `GET /api/landing/media: ${message}`;
+                const formatted = `GET /api/bricks/media: ${message}`;
                 console.error('[Media Store] Failed to load items from backend:', error);
                 this.items = [];
                 throw new Error(formatted);
@@ -84,7 +84,7 @@ export const useMediaStore = defineStore('bricksMedia', {
          * Загружает файл в S3 и сохраняет метаданные в Django backend.
          * Двухэтапная загрузка:
          * 1. POST /mock-api/s3-image — загрузка файла в S3, получение URL
-         * 2. POST /api/landing/media/ — сохранение метаданных в Django
+         * 2. POST /api/bricks/media/ — сохранение метаданных в Django
          *
          * @param file - Файл, который нужно загрузить.
          * @param category - Категория, которая будет назначена (если задана).
@@ -129,7 +129,7 @@ export const useMediaStore = defineStore('bricksMedia', {
                 }
 
                 // Этап 2: Сохранение метаданных в Django (snake_case для backend)
-                const response = await apiFetcher<IMediaItem>('/api/landing/media/', {
+                const response = await apiFetcher<IMediaItem>('/api/bricks/media/', {
                     method: 'POST',
                     body: toSnakeCase({
                         url: s3Response.url,
@@ -158,7 +158,7 @@ export const useMediaStore = defineStore('bricksMedia', {
          * Удаляет медиафайл из S3 и метаданные из Django.
          * Двухэтапное удаление:
          * 1. POST /mock-api/s3-delete — удаление файла из S3
-         * 2. DELETE /api/landing/media/:id — удаление метаданных из Django
+         * 2. DELETE /api/bricks/media/:id — удаление метаданных из Django
          *
          * @param id - Идентификатор удаляемого медиафайла.
          */
@@ -183,7 +183,7 @@ export const useMediaStore = defineStore('bricksMedia', {
 
             try {
                 // Этап 2: Удаление метаданных из Django
-                await apiFetcher(`/api/landing/media/${encodeURIComponent(id)}/`, {
+                await apiFetcher(`/api/bricks/media/${encodeURIComponent(id)}/`, {
                     method: 'DELETE',
                 });
             } catch (error) {
@@ -208,7 +208,7 @@ export const useMediaStore = defineStore('bricksMedia', {
 
             try {
                 const response = await apiFetcher<IMediaItem>(
-                    `/api/landing/media/${encodeURIComponent(id)}/`,
+                    `/api/bricks/media/${encodeURIComponent(id)}/`,
                     {
                         method: 'PATCH',
                         body: {
@@ -241,7 +241,7 @@ export const useMediaStore = defineStore('bricksMedia', {
 
             try {
                 const response = await apiFetcher<IMediaItem>(
-                    `/api/landing/media/${encodeURIComponent(id)}/`,
+                    `/api/bricks/media/${encodeURIComponent(id)}/`,
                     {
                         method: 'PATCH',
                         body: meta,

@@ -52,9 +52,9 @@ const DEFAULT_MAX_IMAGE_SIZE_MB = 10;
 const DEFAULT_MAX_VIDEO_SIZE_MB = 100;
 
 const appConfig = useAppConfig() as IAppConfig;
-const MAX_IMAGE_SIZE_MB = appConfig.landing?.media?.maxUploadSizeMb ?? DEFAULT_MAX_IMAGE_SIZE_MB;
+const MAX_IMAGE_SIZE_MB = appConfig.bricks?.media?.maxUploadSizeMb ?? DEFAULT_MAX_IMAGE_SIZE_MB;
 const MAX_VIDEO_SIZE_MB =
-    appConfig.landing?.media?.maxVideoUploadSizeMb ?? DEFAULT_MAX_VIDEO_SIZE_MB;
+    appConfig.bricks?.media?.maxVideoUploadSizeMb ?? DEFAULT_MAX_VIDEO_SIZE_MB;
 
 const mediaStore = useMediaStore();
 const fileInputRef = ref<HTMLInputElement | null>(null);

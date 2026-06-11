@@ -1,6 +1,6 @@
 // #region Imports
 // Types
-import type { ComponentLibraryItem, LandingSchema } from '../../common/types/landing';
+import type { ComponentLibraryItem, BricksSchema } from '../../common/types/brick';
 import type { IMediaItem, TMediaGalleryContext } from '../../media/types/media';
 import type { ISidebarExpose } from '../types/builder';
 import type { IBuilderToastState, IUseBuilderPageReturn } from '../types/composables';
@@ -16,7 +16,7 @@ import { useApiClient } from '../../common/composables/useApiClient';
 import { useStoryImports } from '../../common/composables/useStoryImports';
 import { useComponentLibraryDrag } from './useDraggableComponent';
 import { useModals } from './useModals';
-import { useLandingConfig } from '../../common/composables/useLandingConfig';
+import { useBricksConfig } from '../../common/composables/useBricksConfig';
 import { useSchemaImageResolver } from '../../media/composables/useSchemaImageResolver';
 
 // Pinia
@@ -43,13 +43,13 @@ export async function useBuilderPage(): Promise<IUseBuilderPageReturn> {
     const { findImportModule } = useStoryImports();
     const dragComposable = useComponentLibraryDrag();
     const { loadModals } = useModals();
-    const landingConfig = useLandingConfig();
+    const bricksConfig = useBricksConfig();
 
     // Кэшируем backgroundColor для использования в store (вне Vue контекста)
-    setPublishStoreBackgroundColor(landingConfig.backgroundColor || '#FFFFFF');
+    setPublishStoreBackgroundColor(bricksConfig.backgroundColor || '#FFFFFF');
 
     provide('dragComposable', dragComposable);
-    provide('availableFonts', landingConfig.fonts ?? [landingConfig.defaultFont]);
+    provide('availableFonts', bricksConfig.fonts ?? [bricksConfig.defaultFont]);
 
     // Загружаем модалки при старте билдера (не блокируя setup)
     loadModals();
@@ -75,12 +75,12 @@ export async function useBuilderPage(): Promise<IUseBuilderPageReturn> {
 
         if (typeof window !== 'undefined') {
             try {
-                const stored = window.localStorage.getItem('landing-preview-page');
+                const stored = window.localStorage.getItem('bricks-preview-page');
                 if (stored) {
                     const parsed = JSON.parse(stored) as Record<string, unknown>;
                     if (parsed.pagename === previewPagename) {
                         parsed.schema = schema;
-                        window.localStorage.setItem('landing-preview-page', JSON.stringify(parsed));
+                        window.localStorage.setItem('bricks-preview-page', JSON.stringify(parsed));
                     }
                 }
             } catch {
@@ -108,7 +108,7 @@ export async function useBuilderPage(): Promise<IUseBuilderPageReturn> {
         previewPagename = pagename;
 
         if (!previewBroadcastChannel) {
-            previewBroadcastChannel = new BroadcastChannel('landing-preview-sync');
+            previewBroadcastChannel = new BroadcastChannel('bricks-preview-sync');
         }
     }
 
@@ -222,10 +222,10 @@ export async function useBuilderPage(): Promise<IUseBuilderPageReturn> {
 
     // #region Async data
     const componentLibrary = await useAsyncData<(ComponentLibraryItem | null)[] | null>(
-        'landing-components',
+        'bricks-components',
         async () => {
             const { apiFetcher } = useApiClient();
-            const response = await apiFetcher<{ stories: any[] }>('/mock-api/landing-components/');
+            const response = await apiFetcher<{ stories: any[] }>('/mock-api/bricks-components/');
             const stories = response?.stories || [];
 
             const componentsWithMeta = await Promise.all(
@@ -233,7 +233,7 @@ export async function useBuilderPage(): Promise<IUseBuilderPageReturn> {
                     try {
                         const moduleLoader = findImportModule(story.storyPath);
                         if (!moduleLoader) {
-                            console.error(`[LandingBuilder] No loader for ${story.storyPath}`);
+                            console.error(`[BricksBuilder] No loader for ${story.storyPath}`);
                             return null;
                         }
 
@@ -259,7 +259,7 @@ export async function useBuilderPage(): Promise<IUseBuilderPageReturn> {
                             slots,
                         } as ComponentLibraryItem;
                     } catch (error) {
-                        console.error(`[LandingBuilder] Failed loading ${story.name}`, error);
+                        console.error(`[BricksBuilder] Failed loading ${story.name}`, error);
                         return null;
                     }
                 })
@@ -526,14 +526,14 @@ export async function useBuilderPage(): Promise<IUseBuilderPageReturn> {
      * @param successMessage - Сообщение для отображения при успехе.
      * @returns true при успешном сохранении, false при ошибке.
      */
-    async function submitLandingWithPublishState(
+    async function submitPageWithPublishState(
         published: boolean,
         successMessage: string
     ): Promise<boolean> {
         const previousPublished = publishStore.currentFormState.published;
         publishStore.setCurrentFormField('published', published);
         const schema = componentsStore.exportSchema();
-        const result = await publishStore.publishCurrentLanding(schema);
+        const result = await publishStore.publishCurrentPage(schema);
 
         if (result !== null) {
             showToast(successMessage, 'success');
@@ -575,7 +575,7 @@ export async function useBuilderPage(): Promise<IUseBuilderPageReturn> {
             : published
               ? 'Страница опубликована'
               : 'Черновик сохранён';
-        await submitLandingWithPublishState(published, message);
+        await submitPageWithPublishState(published, message);
     }
 
     /**
@@ -584,7 +584,7 @@ export async function useBuilderPage(): Promise<IUseBuilderPageReturn> {
      */
     async function handleSaveAsCopy(): Promise<void> {
         const schema = componentsStore.exportSchema();
-        const result = await publishStore.saveCurrentLandingAsCopy(schema);
+        const result = await publishStore.saveCurrentPageAsCopy(schema);
         if (result !== null) {
             try {
                 await publishStore.loadAllPages();
@@ -612,11 +612,11 @@ export async function useBuilderPage(): Promise<IUseBuilderPageReturn> {
      */
     async function handlePreview(): Promise<void> {
         const schema = componentsStore.exportSchema();
-        const success = publishStore.previewCurrentLanding(schema);
+        const success = publishStore.previewCurrentPage(schema);
 
         if (success && import.meta.client) {
             try {
-                const stored = window.localStorage.getItem('landing-preview-page');
+                const stored = window.localStorage.getItem('bricks-preview-page');
                 if (stored) {
                     const parsed = JSON.parse(stored) as Record<string, unknown>;
                     startPreviewSync(String(parsed.pagename ?? ''));
@@ -708,7 +708,7 @@ export async function useBuilderPage(): Promise<IUseBuilderPageReturn> {
         if (page) {
             componentsStore.loadSchema(page.schema, { resetHistory: true });
         } else {
-            console.error('[LandingBuilder] handleEditPage: page not found', pageId);
+            console.error('[BricksBuilder] handleEditPage: page not found', pageId);
         }
         publishStore.startEditingPage(pageId);
         sidebarStore.showSidebarView('publish');
@@ -738,7 +738,7 @@ export async function useBuilderPage(): Promise<IUseBuilderPageReturn> {
      *
      * @param schema - Импортируемая схема.
      */
-    async function handleImportSchema(schema: LandingSchema): Promise<void> {
+    async function handleImportSchema(schema: BricksSchema): Promise<void> {
         const resolved = await imageResolver.startResolving(schema);
         if (resolved) {
             componentsStore.loadSchema(resolved, { resetHistory: true });

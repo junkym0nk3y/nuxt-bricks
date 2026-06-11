@@ -1,8 +1,8 @@
-import type { LandingSchema } from '../../common/types/landing';
-import type { TPublishFormState } from '../../common/types/landing-api';
+import type { BricksSchema } from '../../common/types/brick';
+import type { TPublishFormState } from '../../common/types/bricks-api';
 
 export interface IBuilderDraftSnapshot {
-    schema: LandingSchema;
+    schema: BricksSchema;
     formState: TPublishFormState;
 }
 

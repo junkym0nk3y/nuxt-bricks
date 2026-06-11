@@ -1,9 +1,9 @@
 import { defineStore } from 'pinia';
-import type { LandingSchema } from '../../common/types/landing';
+import type { BricksSchema } from '../../common/types/brick';
 import { clampHistory } from '../utils/history';
 
 interface IHistoryState {
-    history: LandingSchema[];
+    history: BricksSchema[];
     historyIndex: number;
 }
 
@@ -32,7 +32,7 @@ export const useHistoryStore = defineStore('bricksHistory', {
          *
          * @param schema - Текущее состояние схемы, сериализованное в DTO.
          */
-        capture(schema: LandingSchema) {
+        capture(schema: BricksSchema) {
             if (this.historyIndex < this.history.length - 1) {
                 this.history.splice(this.historyIndex + 1);
             }
@@ -50,7 +50,7 @@ export const useHistoryStore = defineStore('bricksHistory', {
          *
          * @returns Предыдущее состояние схемы или `null`, если ход невозможен.
          */
-        undo(): LandingSchema | null {
+        undo(): BricksSchema | null {
             if (!this.canUndo) {
                 return null;
             }
@@ -64,7 +64,7 @@ export const useHistoryStore = defineStore('bricksHistory', {
          *
          * @returns Следующее состояние схемы или `null`, если redo недоступен.
          */
-        redo(): LandingSchema | null {
+        redo(): BricksSchema | null {
             if (!this.canRedo) {
                 return null;
             }

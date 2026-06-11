@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { useAppConfig } from 'nuxt/app';
-import type { CanvasState } from '../../common/types/landing';
+import type { CanvasState } from '../../common/types/brick';
 import { convertRemToPx } from '../../common/utils/main';
 import { useSidebarStore } from './sidebar';
 
@@ -104,7 +104,7 @@ export const useCanvasStore = defineStore('bricksCanvas', {
                 this.viewport = viewport;
 
                 const appConfig = useAppConfig() as any;
-                const canvasBreakpoints = appConfig?.landing?.breakpoints ?? {
+                const canvasBreakpoints = appConfig?.bricks?.breakpoints ?? {
                     mobile: { width: 375 },
                     tablet: { width: 768 },
                     desktop: { width: 1600 },

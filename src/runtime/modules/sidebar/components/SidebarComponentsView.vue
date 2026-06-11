@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { ComponentLibraryItem } from '../../common/types/landing';
+import type { ComponentLibraryItem } from '../../common/types/brick';
 
 // Vue
 import { computed, ref } from 'vue';
@@ -190,7 +190,7 @@ function handleClose(): void {
                 </span>
                 <p>No components available</p>
                 <p :class="$style.emptyHint">
-                    Run <code>npm run landing:gen</code> to generate component list
+                    Run <code>npm run bricks:gen</code> to generate component list
                 </p>
             </div>
         </div>

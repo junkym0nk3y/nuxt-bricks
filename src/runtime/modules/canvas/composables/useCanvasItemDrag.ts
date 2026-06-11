@@ -1,7 +1,7 @@
 // #region Imports
 // Types
 import type { ICanvasItemProps, IDragComposableCanvas } from '../components/types';
-import type { ComponentLibraryItem } from '../../common/types/landing';
+import type { ComponentLibraryItem } from '../../common/types/brick';
 import type { ComputedRef } from 'vue';
 
 // Pinia
@@ -80,7 +80,7 @@ export function useCanvasItemDrag(
         clone.style.boxSizing = 'border-box';
         clone.style.overflow = 'hidden';
         clone.style.width = convertPxToRem(canvasStore.width);
-        clone.setAttribute('data-landing-viewport', canvasStore.viewport);
+        clone.setAttribute('data-bricks-viewport', canvasStore.viewport);
 
         const allChildren = clone.querySelectorAll('*');
         const wrapper = allChildren[0] as HTMLElement;

@@ -29,7 +29,7 @@ async function loadModals(): Promise<void> {
         const { apiFetcher } = useApiClient();
         const response = await apiFetcher<{
             stories: Array<{ name: string; category: string; storyPath: string }>;
-        }>('/mock-api/landing-components');
+        }>('/mock-api/bricks-components');
         const stories = response?.stories || [];
 
         // Фильтруем только модалки

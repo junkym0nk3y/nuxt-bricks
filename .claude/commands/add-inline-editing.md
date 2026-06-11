@@ -100,5 +100,5 @@ npx oxlint <changed-files>
 | Клик по кнопке снимает выделение | Нет `@mousedown.prevent`                                    | Кнопки тулбара                               |
 | Бесконечный цикл обновлений      | `isInternalUpdate` не сброшен                               | `saveToStore()`                              |
 | Editor глубоко реактивный        | `ref()` вместо `shallowRef()`                               | store + composable                           |
-| `strong/b` не жирный (v-html)    | Нет пробела в CSS: `.ida-landing-text[data-tiptap-content]` | `default.scss`                               |
+| `strong/b` не жирный (v-html)    | Нет пробела в CSS: `.bricks-text[data-tiptap-content]` | `default.scss`                               |
 | Редактор не фокусируется         | Нет `await initEditor()`                                    | watch на isEditing                           |

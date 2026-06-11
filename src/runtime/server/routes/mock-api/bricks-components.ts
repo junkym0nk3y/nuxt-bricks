@@ -1,8 +1,8 @@
 import { appendHeader, defineEventHandler } from 'h3';
-import { resolveLandingComponents } from '../../utils/db/landing-components';
+import { resolveBricksComponents } from '../../utils/db/bricks-components';
 
 /**
- * GET /mock-api/landing-components — возвращает весь список категорий или компоненты выбранной
+ * GET /mock-api/bricks-components — возвращает весь список категорий или компоненты выбранной
  категории.
  */
 export default defineEventHandler(async (event) => {
@@ -10,5 +10,5 @@ export default defineEventHandler(async (event) => {
     const url = new URL(event.node.req.url || '', 'http://localhost');
     const category = url.searchParams.get('category');
 
-    return resolveLandingComponents(category || undefined);
+    return resolveBricksComponents(category || undefined);
 });

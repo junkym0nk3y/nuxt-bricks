@@ -39,10 +39,10 @@ npx oxlint <changed-file>
 - `sidebar/` — сайдбар редактора: `components/` (TheSidebar, Sidebar*, property-editors/), `composables/` (useSidebarPropertiesPanel, usePropertyVariants, usePublishValidationSchema), `utils/`, `types/`
 - `toolbar/` — тулбар редактора: чисто презентационный, `components/` (TheToolbar, ToolbarVerticalNav)
 - `render/` — рендер опубликованной страницы (самодостаточен, store не использует)
-- `layouts-blocks/` — landing-блоки (Grid/Flex/Section/Slider/...)
+- `layouts-blocks/` — блоки лендинга (Grid/Flex/Section/Slider/...)
 - `editor/` — TipTap: компоненты, расширения (`tiptap/`), inline editing, `stores/inlineEditing.ts`
 - `media/` — медиа-галерея и image resolver (свой `stores/media.ts`)
-- `common/` — только общее (2+ доменов): `composables/` (useLandingConfig, useStoryImports, useApiClient, useLandingStyles), `utils/landing/` (paths, components, deviceVisibility), `utils/routing/` (build-time), `types/`
+- `common/` — только общее (2+ доменов): `composables/` (useBricksConfig, useStoryImports, useApiClient, useBricksStyles), `utils/bricks/` (paths, components, deviceVisibility), `utils/routing/` (build-time), `types/`
 
 Вне `modules/` в `src/runtime/` остаётся инфраструктура Nuxt: `plugins/`, `server/`, `middleware/`, `layouts/`, `assets/`, `types.d.ts` (шим, реэкспортирует `modules/common/types`).
 
@@ -84,7 +84,7 @@ export const story = {
 
 **Ключевые файлы** (пути — от `src/runtime/modules/`):
 
-- `common/types/landing.ts` → `PropertyDefinition.group`
+- `common/types/brick.ts` → `PropertyDefinition.group`
 - `common/types/index.ts` → `IBrickValues.group`
 - `builder/types/layoutProperties.d.ts` → `ILayoutProperty.group`
 - `sidebar/components/SidebarPropertyEditors.vue` → рендеринг аккордеонов
@@ -124,7 +124,7 @@ export const story = {
 
 ```typescript
 // .brick.ts
-export const story: ILandingFileStructure = {
+export const story: IBrickFileStructure = {
     values: {
         height: { default: 62, type: 'input', responsive: true },
         slidesPerView: { default: 1.5, type: 'input', responsive: true },
@@ -138,7 +138,7 @@ export const story: ILandingFileStructure = {
 - Если хотя бы одно story-свойство имеет `responsive: true` — в сайдбаре появляются device-табы (Desktop/Tablet/Mobile)
 - При редактировании на non-desktop табе: свойства с `responsive: true` пишутся в `props.responsive[device]`, остальные — обновляют base value
 - Рендерер передаёт `props.responsive` компоненту как есть → компонент **сам** резолвит значения по viewport
-- Компонент должен реализовать резолвинг `props.responsive?.[device]?.[key]` (через ResizeObserver / `data-landing-viewport` для билдера)
+- Компонент должен реализовать резолвинг `props.responsive?.[device]?.[key]` (через ResizeObserver / `data-bricks-viewport` для билдера)
 
 **Паттерн в компоненте:**
 
@@ -195,7 +195,7 @@ remCompensation = targetRemPx / 10
 **Конфигурация** — поле `remBase` в breakpoint'ах (`app.config.ts`):
 
 ```typescript
-landing: {
+bricks: {
     breakpoints: {
         desktop: { width: 1600, remBase: '0.6944vw' }, // 0.6944 * 1600 / 100 = 11.11px → compensation = 1.111
         tablet:  { width: 768,  remBase: '10px' },      // compensation = 1.0
@@ -221,7 +221,7 @@ landing: {
 **Конфигурация** — поле `overrideContainer` в breakpoint'ах (`app.config.ts`):
 
 ```typescript
-landing: {
+bricks: {
     breakpoints: {
         desktop: {
             width: 1600,
@@ -237,7 +237,7 @@ landing: {
 
 **Как работает:**
 
-- `useLandingStyles.ts` генерирует дополнительный CSS с media queries, таргетящий `.container[data-bricks-container]`
+- `useBricksStyles.ts` генерирует дополнительный CSS с media queries, таргетящий `.container[data-bricks-container]`
 - `TheRenderer.vue` добавляет `data-bricks-container` атрибут на container-обёртки
 - Селектор `[data-bricks-container]` обеспечивает специфичность выше проектного `.container`
 - Media queries используют device breakpoints (`device.breakpoints`), не canvas breakpoints
@@ -247,9 +247,9 @@ landing: {
 
 **Ключевые файлы:**
 
-- `common/composables/useLandingStyles.ts` — генерация override CSS
+- `common/composables/useBricksStyles.ts` — генерация override CSS
 - `render/components/TheRenderer.vue` — добавление `data-bricks-container`
-- `plugins/landing-styles.ts` — инжектит стили на все страницы (и builder, и published)
+- `plugins/bricks-styles.ts` — инжектит стили на все страницы (и builder, и published)
 
 ### Inline Editing (TipTap)
 
@@ -317,6 +317,6 @@ Markdown-статьи во встроенной документации бил�
 
 **Критические нюансы:**
 
-- **`normalizePublishedPage` дублируется** в `builder/stores/publish.ts` и `middleware/landing-page-layout.global.ts` — обновлять **обе** копии при добавлении полей
+- **`normalizePublishedPage` дублируется** в `builder/stores/publish.ts` и `middleware/bricks-page-layout.global.ts` — обновлять **обе** копии при добавлении полей
 - **`validateOptionalRoutingFields`** — отдельный action в store, чтобы не превышать complexity (max 20)
 - Preview (`?preview=true`) не проверяет subdomain

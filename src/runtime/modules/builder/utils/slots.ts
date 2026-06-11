@@ -1,8 +1,8 @@
 import type {
     ComponentSlotDefinition,
-    LandingComponent,
-    LandingComponentSlot,
-} from '../../common/types/landing';
+    BricksComponent,
+    BricksComponentSlot,
+} from '../../common/types/brick';
 
 /**
  * Инициализирует слоты layout-компонента на основе метаданных.
@@ -12,7 +12,7 @@ import type {
  * @param resolveChildren - Функция, которая возвращает id дочерних элементов для слота.
  */
 export function applySlotDefinitions(
-    component: LandingComponent,
+    component: BricksComponent,
     slots: ComponentSlotDefinition[],
     resolveChildren?: (slotName: string) => string[]
 ): void {
@@ -37,8 +37,8 @@ export function applySlotDefinitions(
  * @returns Найденный слот или undefined.
  */
 export function findSlot(
-    component: LandingComponent | undefined,
+    component: BricksComponent | undefined,
     slotName: string
-): LandingComponentSlot | undefined {
+): BricksComponentSlot | undefined {
     return component?.slots?.find((slot) => slot.name === slotName);
 }

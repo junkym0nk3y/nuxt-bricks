@@ -17,7 +17,7 @@ import { usePublishStore } from '../../builder/stores/publish';
 
 // Composables
 import { useCanvas } from '../composables/useCanvas';
-import { useLandingConfig } from '../../common/composables/useLandingConfig';
+import { useBricksConfig } from '../../common/composables/useBricksConfig';
 import { useCanvasDrops } from '../composables/useCanvasDrops';
 import { useCanvasPan } from '../composables/useCanvasPan';
 
@@ -38,7 +38,7 @@ const componentsStore = useComponentsStore();
 const canvasStore = useCanvasStore();
 const sidebarStore = useSidebarStore();
 const publishStore = usePublishStore();
-const config = useLandingConfig();
+const config = useBricksConfig();
 const {
     canvasContainer,
     canvasTransform,
@@ -516,9 +516,9 @@ onBeforeUnmount(() => {
             <div v-else ref="canvasWrapperRef" :class="$style.canvasWrapper">
                 <div
                     ref="canvasRef"
-                    :class="[$style.canvas, 'landing-canvas']"
+                    :class="[$style.canvas, 'bricks-canvas']"
                     :style="canvasStyle"
-                    :data-landing-viewport="canvasStore.viewport"
+                    :data-bricks-viewport="canvasStore.viewport"
                     data-canvas-area="true"
                     @drop="handleCanvasDrop"
                     @dragover="handleCanvasDragOver"
@@ -616,7 +616,7 @@ onBeforeUnmount(() => {
     transition: transform 250ms ease;
     box-shadow: var(--shadow-md);
     container-type: inline-size;
-    container-name: landing;
+    container-name: bricks;
 }
 
 .screenContent {

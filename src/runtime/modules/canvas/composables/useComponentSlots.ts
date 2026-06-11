@@ -1,6 +1,6 @@
 // #region Imports
 // Types
-import type { ComponentSlotDefinition, LandingComponent } from '../../common/types/landing';
+import type { ComponentSlotDefinition, BricksComponent } from '../../common/types/brick';
 import type { ISlotRenderData, IUseComponentSlotsReturn } from '../types/composables';
 
 // Vue
@@ -125,7 +125,7 @@ export function useComponentSlots(
             slot,
             children: slot.children
                 .map((childId) => componentsStore.getComponentById(childId))
-                .filter(Boolean) as LandingComponent[],
+                .filter(Boolean) as BricksComponent[],
         }));
     });
 

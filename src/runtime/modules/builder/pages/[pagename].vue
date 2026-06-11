@@ -1,9 +1,9 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { LandingSchema } from '../../common/types/landing';
+import type { BricksSchema } from '../../common/types/brick';
 import type { TMediaGalleryContext } from '../../media/types/media';
-import type { TPublishFormState } from '../../common/types/landing-api';
+import type { TPublishFormState } from '../../common/types/bricks-api';
 import type { IBuilderDraftEntry, IBuilderDraftSnapshot } from '../types/builder-drafts';
 
 // Vue
@@ -42,7 +42,7 @@ import BricksToast from '../../ui/feedback/BricksToast.vue';
 
 // #region Meta
 definePageMeta({
-    layout: 'landing',
+    layout: 'bricks',
 });
 // #endregion
 
@@ -100,7 +100,7 @@ const {
     handleSetGlobalAction,
 } = builder;
 
-const EMPTY_SCHEMA: LandingSchema = {
+const EMPTY_SCHEMA: BricksSchema = {
     components: [],
 };
 
@@ -511,7 +511,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div :class="[$style.LandingBuilder, 'bricks-text']">
+    <div :class="[$style.BricksBuilder, 'bricks-text']">
         <TheToolbar
             :history-index="historyStore.historyIndex"
             :history-length="historyStore.history.length"
@@ -610,7 +610,7 @@ onBeforeUnmount(() => {
 </template>
 
 <style module lang="scss">
-.LandingBuilder {
+.BricksBuilder {
     overflow: hidden;
     display: flex;
     width: 100vw;

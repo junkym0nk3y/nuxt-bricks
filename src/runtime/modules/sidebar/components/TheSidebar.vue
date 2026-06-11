@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { ComponentLibraryItem, LandingSchema } from '../../common/types/landing';
+import type { ComponentLibraryItem, BricksSchema } from '../../common/types/brick';
 import type { IMediaItem, TMediaGalleryContext } from '../../media/types/media';
 
 // Vue
@@ -28,7 +28,7 @@ const props = defineProps<{
 // #region Emits
 const emit = defineEmits<{
     openMediaGallery: [context: TMediaGalleryContext];
-    importSchema: [schema: LandingSchema];
+    importSchema: [schema: BricksSchema];
 }>();
 // #endregion
 
@@ -111,7 +111,7 @@ function handleMediaSelect(item: IMediaItem): void {
  *
  * @param schema - Импортированная схема.
  */
-function handleImportSchema(schema: LandingSchema): void {
+function handleImportSchema(schema: BricksSchema): void {
     emit('importSchema', schema);
 }
 

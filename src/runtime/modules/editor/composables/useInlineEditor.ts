@@ -217,7 +217,7 @@ export function useInlineEditor(
                         }),
                         Table.configure({
                             resizable: false,
-                            HTMLAttributes: { class: 'ida-tiptap-table' },
+                            HTMLAttributes: { class: 'bricks-tiptap-table' },
                         }),
                         TableRow,
                         TableCell,

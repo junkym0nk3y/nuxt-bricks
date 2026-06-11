@@ -27,9 +27,11 @@
 
 - `use<Фича><Деталь>`: фичевый префикс совпадает с компонентным (`useCanvasItemDrag`,
   `useSidebarPropertiesPanel`).
-- Слово **`Landing` допустимо только для сущности «лендинг»** (конфиг, стили, данные
-  страницы: `useLandingConfig`, `useLandingStyles`, `useLandingDataSources`).
-  Как универсальный префикс-шум — запрещено (`useLandingCanvas` ❌ → `useCanvas` ✅).
+- Слово **`Landing` в идентификаторах запрещено** (полный ребрендинг 2026-06-11).
+  Для сущностей уровня модуля (схема, конфиг, стили, данные страницы) используется
+  `Bricks`: `useBricksConfig`, `useBricksStyles`, `useBricksDataSources`, `BricksSchema`.
+  Как универсальный префикс-шум `Bricks` тоже не использовать
+  (`useBricksCanvas` ❌ → `useCanvas` ✅) — контекст задаёт домен/папка.
 
 ## Файлы типов и утилит
 

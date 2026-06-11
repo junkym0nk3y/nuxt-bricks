@@ -2,7 +2,7 @@
  * Sidebar component types
  */
 
-import type { ComponentLibraryItem } from '../../common/types/landing';
+import type { ComponentLibraryItem } from '../../common/types/brick';
 
 export interface ISidebarComponentCardProps {
     component: ComponentLibraryItem;

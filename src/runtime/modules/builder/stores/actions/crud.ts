@@ -1,11 +1,11 @@
-import type { LandingComponent } from '../../../common/types/landing';
+import type { BricksComponent } from '../../../common/types/brick';
 import {
     cloneComponentProps,
     createComponentSlot,
     isLayoutComponent,
     removeChildFromLayout as removeChildFromLayoutHelper,
-} from '../../../common/utils/landing/components';
-import { generateComponentId, normalizeStoryPath } from '../../../common/utils/landing/paths';
+} from '../../../common/utils/bricks/components';
+import { generateComponentId, normalizeStoryPath } from '../../../common/utils/bricks/paths';
 import { useSidebarStore } from '../sidebar';
 import type {
     IComponentsStore,
@@ -61,7 +61,7 @@ export const crudActions: IComponentsCrudActions = {
         const maxZIndex = Math.max(0, ...this.components.map((c) => c.zIndex));
         const isLayout = component.storyPath.startsWith('layout/');
 
-        const newComponent: LandingComponent = {
+        const newComponent: BricksComponent = {
             ...component,
             id,
             type: isLayout ? 'layout' : 'component',
@@ -95,7 +95,7 @@ export const crudActions: IComponentsCrudActions = {
         this.detachComponentFromParent(id, { skipHistory: true });
 
         const idsToRemove = new Set<string>();
-        const queue: LandingComponent[] = [target];
+        const queue: BricksComponent[] = [target];
 
         while (queue.length > 0) {
             const current = queue.shift();
@@ -286,7 +286,7 @@ export const crudActions: IComponentsCrudActions = {
         const component = this.getComponentById(childId);
 
         if (!layout || !isLayoutComponent(layout) || !component) {
-            console.warn('[Landing Store] Unable to move component to layout', {
+            console.warn('[Bricks Store] Unable to move component to layout', {
                 layoutId,
                 childId,
             });
@@ -374,7 +374,7 @@ export const crudActions: IComponentsCrudActions = {
     ) {
         const componentIndex = this.components.findIndex((component) => component.id === childId);
         if (componentIndex === -1) {
-            console.warn('[Landing Store] moveComponentToRoot: component not found', childId);
+            console.warn('[Bricks Store] moveComponentToRoot: component not found', childId);
             return;
         }
 
@@ -418,7 +418,7 @@ export const crudActions: IComponentsCrudActions = {
     /**
      * Возвращает все компоненты верхнего уровня (без родителя).
      */
-    getRootComponents(this: IComponentsStore): LandingComponent[] {
+    getRootComponents(this: IComponentsStore): BricksComponent[] {
         return this.components.filter((component) => !component.parent);
     },
 };

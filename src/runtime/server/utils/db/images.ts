@@ -175,7 +175,7 @@ function resolveNumber(value: unknown, fallback: number): number {
  */
 export function resolveMediaConfig(): TResolvedMediaConfig {
     const appConfig = useAppConfig();
-    const mediaConfig = appConfig.landing?.media ?? {};
+    const mediaConfig = appConfig.bricks?.media ?? {};
     const optimization = mediaConfig.optimization ?? {};
     const maxWidth = resolveNumber(optimization.maxWidth, DEFAULT_OPTIMIZATION_CONFIG.maxWidth);
     const quality = resolveNumber(optimization.quality, DEFAULT_OPTIMIZATION_CONFIG.quality);

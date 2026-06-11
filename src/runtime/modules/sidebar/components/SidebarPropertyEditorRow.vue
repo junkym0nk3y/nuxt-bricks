@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { IInlineContentSegment, IGalleryItem } from '../../layouts-blocks/types/layouts';
-import type { IAccordionItem } from '../../common/types/landing';
+import type { IAccordionItem } from '../../common/types/brick';
 import type {
     ISidebarPropertyEditorRowProps,
     TInlineGalleryPayload,

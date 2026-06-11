@@ -1,13 +1,13 @@
 // TODO(persistence, Шаг 6): переедет в runtime/persistence/ при введении StorageAdapter/PublishAdapter
 import { defineStore } from 'pinia';
-import type { LandingSchema } from '../../common/types/landing';
+import type { BricksSchema } from '../../common/types/brick';
 import type {
-    IUpdateLandingPayload,
-    IPublishedLandingPageSummary,
+    IUpdatePagePayload,
+    IPublishedPageSummary,
     IPublishedPage,
     TPublishFormState,
     TRequestErrorLike,
-} from '../../common/types/landing-api';
+} from '../../common/types/bricks-api';
 import type { IBuilderDraftEntry } from '../types/builder-drafts';
 import { useApiClient } from '../../common/composables/useApiClient';
 import { toCamelCase, toSnakeCaseShallow } from '../../common/utils/case-transform';
@@ -16,11 +16,11 @@ const DEFAULT_BACKGROUND_COLOR = '#FFFFFF';
 const DEFAULT_LAYOUT = 'default';
 
 /**
- * Проверяет, что значение похоже на LandingSchema.
+ * Проверяет, что значение похоже на BricksSchema.
  *
  * @param value - Проверяемое значение.
  */
-function isLandingSchema(value: unknown): value is LandingSchema {
+function isBricksSchema(value: unknown): value is BricksSchema {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
         return false;
     }
@@ -111,7 +111,7 @@ function normalizeFormState(formState: Partial<TPublishFormState>): TPublishForm
  * @returns Ключ для localStorage.
  */
 function buildBuilderDraftKey(pagename: string): string {
-    return `landing-builder:draft:${pagename}`;
+    return `bricks-builder:draft:${pagename}`;
 }
 
 /**
@@ -120,12 +120,12 @@ function buildBuilderDraftKey(pagename: string): string {
  * @param schema - Схема лендинга.
  * @returns Нормализованная схема.
  */
-function preserveSchema(schema: LandingSchema | null | undefined): LandingSchema {
+function preserveSchema(schema: BricksSchema | null | undefined): BricksSchema {
     if (!schema) {
         return { components: [] };
     }
 
-    const result: LandingSchema = {
+    const result: BricksSchema = {
         components: schema.components ?? [],
     };
 
@@ -152,10 +152,12 @@ function normalizePublishedPage(rawPage: Partial<IPublishedPage>): IPublishedPag
     const page = toCamelCase<Partial<IPublishedPage>>(rest);
 
     const backgroundColor: string = page.backgroundColor ?? resolveDefaultBackgroundColor();
-    const layout: string = page.layout ?? DEFAULT_LAYOUT;
+    // Страницы, опубликованные до ребрендинга, могут хранить layout 'landing'
+    const rawLayout: string = page.layout ?? DEFAULT_LAYOUT;
+    const layout: string = rawLayout === 'landing' ? 'bricks' : rawLayout;
     const createdAt = page.createdAt ?? '';
     const updatedAt = page.updatedAt ?? createdAt;
-    const schema = isLandingSchema(rawSchema) ? rawSchema : { components: [] };
+    const schema = isBricksSchema(rawSchema) ? rawSchema : { components: [] };
 
     return {
         id: page.id as number,
@@ -367,12 +369,12 @@ export const usePublishStore = defineStore('bricksPublish', {
          * @param schema - Схема лендинга.
          * @param formState - Данные формы публикации.
          */
-        async publishPage(schema: LandingSchema, formState: TPublishFormState): Promise<number> {
+        async publishPage(schema: BricksSchema, formState: TPublishFormState): Promise<number> {
             const { apiFetcher } = useApiClient();
 
             try {
                 const response = await apiFetcher<{ id: number; pagename: string }>(
-                    '/api/landing/',
+                    '/api/bricks/',
                     {
                         method: 'POST',
                         body: {
@@ -398,7 +400,7 @@ export const usePublishStore = defineStore('bricksPublish', {
 
                 return response.id;
             } catch (error: unknown) {
-                const requestError = toRequestError('POST', '/api/landing', error);
+                const requestError = toRequestError('POST', '/api/bricks', error);
                 console.error('[Publish Store] Failed to publish page:', error);
                 throw requestError;
             }
@@ -413,13 +415,13 @@ export const usePublishStore = defineStore('bricksPublish', {
          */
         async updatePage(
             id: string | number,
-            schema: LandingSchema,
+            schema: BricksSchema,
             formState: TPublishFormState
         ): Promise<void> {
             const { apiFetcher } = useApiClient();
 
             try {
-                await apiFetcher(`/api/landing/${id}/`, {
+                await apiFetcher(`/api/bricks/${id}/`, {
                     method: 'PUT',
                     body: {
                         pagename: formState.pagename,
@@ -441,26 +443,23 @@ export const usePublishStore = defineStore('bricksPublish', {
                 // Перезагружаем список страниц
                 await this.loadAllPages();
             } catch (error: unknown) {
-                const requestError = toRequestError('PUT', `/api/landing/${id}`, error);
+                const requestError = toRequestError('PUT', `/api/bricks/${id}`, error);
                 console.error('[Publish Store] Failed to update page:', error);
                 throw requestError;
             }
         },
 
         /**
-         * Частично обновляет страницу через PATCH /api/landing/:id.
+         * Частично обновляет страницу через PATCH /api/bricks/:id.
          *
          * @param id - Идентификатор страницы.
          * @param payload - Частичный payload обновления.
          */
-        async patchPage(
-            id: string | number,
-            payload: IUpdateLandingPayload
-        ): Promise<IPublishedPage> {
+        async patchPage(id: string | number, payload: IUpdatePagePayload): Promise<IPublishedPage> {
             const { apiFetcher } = useApiClient();
 
             try {
-                const response = await apiFetcher<IPublishedPage>(`/api/landing/${id}/`, {
+                const response = await apiFetcher<IPublishedPage>(`/api/bricks/${id}/`, {
                     method: 'PATCH',
                     body: toSnakeCaseShallow(payload),
                 });
@@ -478,7 +477,7 @@ export const usePublishStore = defineStore('bricksPublish', {
 
                 return normalized;
             } catch (error: unknown) {
-                const requestError = toRequestError('PATCH', `/api/landing/${id}`, error);
+                const requestError = toRequestError('PATCH', `/api/bricks/${id}`, error);
                 console.error('[Publish Store] Failed to patch page:', error);
                 throw requestError;
             }
@@ -493,7 +492,7 @@ export const usePublishStore = defineStore('bricksPublish', {
             const { apiFetcher } = useApiClient();
 
             try {
-                await apiFetcher(`/api/landing/${id}/`, {
+                await apiFetcher(`/api/bricks/${id}/`, {
                     method: 'DELETE',
                 });
 
@@ -507,7 +506,7 @@ export const usePublishStore = defineStore('bricksPublish', {
                     this.publishedPages.splice(index, 1);
                 }
             } catch (error: unknown) {
-                const requestError = toRequestError('DELETE', `/api/landing/${id}`, error);
+                const requestError = toRequestError('DELETE', `/api/bricks/${id}`, error);
                 console.error('[Publish Store] Failed to delete page:', error);
                 throw requestError;
             }
@@ -520,10 +519,10 @@ export const usePublishStore = defineStore('bricksPublish', {
             const { apiFetcher } = useApiClient();
 
             try {
-                const response = await apiFetcher<IPublishedPage[]>('/api/landing/');
+                const response = await apiFetcher<IPublishedPage[]>('/api/bricks/');
                 this.publishedPages = response.map((page) => normalizePublishedPage(page));
             } catch (error: unknown) {
-                const requestError = toRequestError('GET', '/api/landing', error);
+                const requestError = toRequestError('GET', '/api/bricks', error);
                 this.generalError = requestError.message;
                 console.error('[Publish Store] Failed to load pages:', error);
                 throw requestError;
@@ -537,23 +536,23 @@ export const usePublishStore = defineStore('bricksPublish', {
          */
         async loadPageByPagename(pagename: string): Promise<IPublishedPage | null> {
             const { apiFetcher } = useApiClient();
-            let errorUrl = `/api/landing/published (lookup ${pagename})`;
+            let errorUrl = `/api/bricks/published (lookup ${pagename})`;
 
             try {
                 const publishedPages =
-                    await apiFetcher<IPublishedLandingPageSummary[]>('/api/landing/published/');
+                    await apiFetcher<IPublishedPageSummary[]>('/api/bricks/published/');
 
                 const publishedPage = publishedPages.find(
                     (candidate) => candidate.pagename === pagename && candidate.published
                 );
 
                 if (!publishedPage) {
-                    this.generalError = `GET /api/landing/published: page "${pagename}" is not published`;
+                    this.generalError = `GET /api/bricks/published: page "${pagename}" is not published`;
                     return null;
                 }
 
-                errorUrl = `/api/landing/${publishedPage.id}`;
-                const page = await apiFetcher<IPublishedPage>(`/api/landing/${publishedPage.id}/`);
+                errorUrl = `/api/bricks/${publishedPage.id}`;
+                const page = await apiFetcher<IPublishedPage>(`/api/bricks/${publishedPage.id}/`);
                 return normalizePublishedPage(page);
             } catch (error: unknown) {
                 const requestError = toRequestError('GET', errorUrl, error);
@@ -728,7 +727,7 @@ export const usePublishStore = defineStore('bricksPublish', {
          * @param schema - Схема лендинга из канваса.
          * @returns ID страницы или null при ошибке.
          */
-        async publishCurrentLanding(schema: LandingSchema): Promise<string | number | null> {
+        async publishCurrentPage(schema: BricksSchema): Promise<string | number | null> {
             if (!this.validateCurrentFormState()) {
                 return null;
             }
@@ -747,7 +746,7 @@ export const usePublishStore = defineStore('bricksPublish', {
                 this.lastSuccessfulSaveAt = Date.now();
                 return createdId;
             } catch (error: unknown) {
-                console.error('[Publish Store] publishCurrentLanding failed:', error);
+                console.error('[Publish Store] publishCurrentPage failed:', error);
                 this.generalError =
                     (error as Error)?.message ||
                     'Не удалось опубликовать страницу. Попробуйте ещё раз.';
@@ -764,7 +763,7 @@ export const usePublishStore = defineStore('bricksPublish', {
          * @returns Уникальный `pagename` для копии.
          */
         generateCopyPagename(base: string): string {
-            const safeBase = base?.trim() ? base.trim() : 'landing';
+            const safeBase = base?.trim() ? base.trim() : 'page';
             const normalizedBase = safeBase.replace(/-copy(?:-\d+)?$/, '');
             let candidate = `${normalizedBase}-copy`;
             let suffix = 1;
@@ -783,7 +782,7 @@ export const usePublishStore = defineStore('bricksPublish', {
          * @param schema - Схема лендинга из канваса.
          * @returns ID копии или null при ошибке.
          */
-        async saveCurrentLandingAsCopy(schema: LandingSchema): Promise<string | number | null> {
+        async saveCurrentPageAsCopy(schema: BricksSchema): Promise<string | number | null> {
             const originalFormState = { ...this.currentFormState };
             const originalEditingPageId = this.editingPageId;
             const originalValidationErrors = { ...this.validationErrors };
@@ -819,7 +818,7 @@ export const usePublishStore = defineStore('bricksPublish', {
             try {
                 return await this.publishPage(schema, this.currentFormState);
             } catch (error: unknown) {
-                console.error('[Publish Store] saveCurrentLandingAsCopy failed:', error);
+                console.error('[Publish Store] saveCurrentPageAsCopy failed:', error);
                 this.generalError =
                     (error as Error)?.message || 'Не удалось сохранить копию. Попробуйте ещё раз.';
                 return null;
@@ -838,7 +837,7 @@ export const usePublishStore = defineStore('bricksPublish', {
          * @param schema - Схема лендинга.
          * @returns Открыта ли вкладка превью.
          */
-        previewCurrentLanding(schema: LandingSchema): boolean {
+        previewCurrentPage(schema: BricksSchema): boolean {
             try {
                 // For preview, we only need a pagename (or generate a temp one)
                 const pagename = this.currentFormState.pagename.trim() || `preview-${Date.now()}`;
@@ -862,11 +861,11 @@ export const usePublishStore = defineStore('bricksPublish', {
                 };
 
                 if (typeof window === 'undefined') {
-                    console.warn('[Publish Store] previewCurrentLanding: window is not available');
+                    console.warn('[Publish Store] previewCurrentPage: window is not available');
                     return false;
                 }
 
-                window.localStorage.setItem('landing-preview-page', JSON.stringify(previewData));
+                window.localStorage.setItem('bricks-preview-page', JSON.stringify(previewData));
                 const previewUrl = `${this.generatePreviewUrl(pagename)}`;
                 window.open(previewUrl, '_blank');
                 return true;
@@ -883,7 +882,7 @@ export const usePublishStore = defineStore('bricksPublish', {
          * @param pagename - ЧПУ страницы.
          */
         generatePreviewUrl(pagename: string): string {
-            return `/landing/${pagename}?preview=true`;
+            return `/bricks/${pagename}?preview=true`;
         },
     },
 });

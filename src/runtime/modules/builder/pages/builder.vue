@@ -6,7 +6,7 @@ import { definePageMeta, useHead } from '#imports';
 
 // #region Meta
 definePageMeta({
-    layout: 'landing',
+    layout: 'bricks',
 });
 // #endregion
 
@@ -16,7 +16,7 @@ useHead({
     },
     bodyAttrs: {
         class: 'bricks-page',
-        'data-landing-builder': '',
+        'data-bricks-builder': '',
     },
 });
 </script>

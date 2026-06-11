@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import type { LandingComponent } from '../../common/types/landing';
+import type { BricksComponent } from '../../common/types/brick';
 import { componentActions } from './componentActions';
 import { loadFavoritesFromStorage } from './actions/favorites';
 import type { IComponentsState, ISelectedComponentData } from './types';
@@ -58,7 +58,7 @@ export const useComponentsStore = defineStore('bricksComponents', {
         /**
          * Возвращает копию списка компонентов, отсортированную по z-index для корректного рендеринга.
          */
-        sortedComponents(): LandingComponent[] {
+        sortedComponents(): BricksComponent[] {
             return [...this.components].sort((a, b) => a.zIndex - b.zIndex);
         },
 
@@ -83,4 +83,4 @@ export const useComponentsStore = defineStore('bricksComponents', {
     actions: componentActions,
 });
 
-export type LandingComponentsStore = ReturnType<typeof useComponentsStore>;
+export type BricksComponentsStore = ReturnType<typeof useComponentsStore>;

@@ -3,7 +3,7 @@
 import { defineNuxtPlugin } from '#imports';
 
 // Types
-import type { IPublishedLandingPageSummary } from '../modules/common/types/landing-api';
+import type { IPublishedPageSummary } from '../modules/common/types/bricks-api';
 import type { Router } from 'vue-router';
 
 // Composables
@@ -13,7 +13,7 @@ import { useApiClient } from '../modules/common/composables/useApiClient';
 import { toCamelCase } from '../modules/common/utils/case-transform';
 // #endregion
 
-const ROUTE_NAME_PREFIX = 'landing-direct-';
+const ROUTE_NAME_PREFIX = 'bricks-direct-';
 
 /**
  * Экранирует имя страницы для безопасного использования в regex-маршруте.
@@ -26,13 +26,13 @@ function escapePagenameForRegex(pagename: string): string {
 }
 
 /**
- * Добавляет прямые маршруты вида /pagename, указывающие на /landing/[pagename].
+ * Добавляет прямые маршруты вида /pagename, указывающие на /bricks/[pagename].
  *
  * @param router Экземпляр Vue Router.
  * @param pages Список опубликованных страниц из API.
  */
-function registerPublishedRoutes(router: Router, pages: IPublishedLandingPageSummary[]): void {
-    const landingComponent = () => import('../modules/render/pages/[pagename].vue');
+function registerPublishedRoutes(router: Router, pages: IPublishedPageSummary[]): void {
+    const bricksComponent = () => import('../modules/render/pages/[pagename].vue');
 
     pages.forEach(({ pagename, urlPrefix }) => {
         const routeName = `${ROUTE_NAME_PREFIX}${pagename}`;
@@ -51,9 +51,9 @@ function registerPublishedRoutes(router: Router, pages: IPublishedLandingPageSum
         router.addRoute({
             name: routeName,
             path,
-            component: landingComponent,
+            component: bricksComponent,
             meta: {
-                isPublishedLanding: true,
+                isPublishedBricksPage: true,
             },
         });
     });
@@ -63,18 +63,18 @@ export default defineNuxtPlugin(async () => {
     const router = useRouter();
     const { apiFetcher } = useApiClient();
 
-    const publishedPages = useState<IPublishedLandingPageSummary[]>(
-        'landing-published-pages',
+    const publishedPages = useState<IPublishedPageSummary[]>(
+        'bricks-published-pages',
         () => []
     );
 
     if (publishedPages.value.length === 0) {
         try {
             const response =
-                await apiFetcher<IPublishedLandingPageSummary[]>('/api/landing/published/');
-            publishedPages.value = toCamelCase<IPublishedLandingPageSummary[]>(response);
+                await apiFetcher<IPublishedPageSummary[]>('/api/bricks/published/');
+            publishedPages.value = toCamelCase<IPublishedPageSummary[]>(response);
         } catch (error) {
-            console.error('[Landing Routes] Failed to load published pages list', error);
+            console.error('[Bricks Routes] Failed to load published pages list', error);
             return;
         }
     }

@@ -1,5 +1,5 @@
 /**
- * Types for Landing Builder
+ * Types for Bricks Builder
  */
 
 // Layout component props
@@ -95,7 +95,7 @@ export interface IBlockSvgProps {
     marginBottom?: number;
 }
 
-export type TLandingDeviceKey = 'mobile' | 'tablet' | 'desktop';
+export type TBricksDeviceKey = 'mobile' | 'tablet' | 'desktop';
 
 export interface IDeviceVisibilityConfig {
     mobile: boolean;
@@ -120,11 +120,11 @@ export interface ComponentSlotDefinition {
     allowMultiple?: boolean;
 }
 
-export interface LandingComponentSlot extends ComponentSlotDefinition {
+export interface BricksComponentSlot extends ComponentSlotDefinition {
     children: string[];
 }
 
-export interface LandingComponent {
+export interface BricksComponent {
     id: string;
     type: 'layout' | 'component'; // Новое: различаем Layout и обычные компоненты
     componentName: string; // 'grid', 'flex', 'space' для layout, или название UI компонента
@@ -134,7 +134,7 @@ export interface LandingComponent {
     // Вложенность
     parent?: string; // ID родительского компонента
     children?: string[]; // Массив ID дочерних компонентов (только для layout)
-    slots?: LandingComponentSlot[];
+    slots?: BricksComponentSlot[];
     slotName?: string;
     fullWidth?: boolean;
     isHidden?: boolean;
@@ -168,14 +168,14 @@ export interface INavigationMeta {
     items: INavigationItem[];
 }
 
-export interface ILandingSchemaMeta {
+export interface IBricksSchemaMeta {
     navigation?: INavigationMeta;
     [key: string]: unknown;
 }
 
-export interface LandingSchema {
-    components: LandingComponent[];
-    meta?: ILandingSchemaMeta;
+export interface BricksSchema {
+    components: BricksComponent[];
+    meta?: IBricksSchemaMeta;
 }
 
 // Canvas state

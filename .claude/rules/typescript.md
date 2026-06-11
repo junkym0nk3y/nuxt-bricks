@@ -11,13 +11,13 @@
 ```ts
 // ❌ BAD — inline interface
 const appConfig = useAppConfig() as {
-    landing?: { maxWidth?: string };
+    bricks?: { maxWidth?: string };
 };
 
 // ✅ GOOD — stored in types/*.d.ts
 // types/config.d.ts
 export interface IAppConfig {
-    landing?: { maxWidth?: string };
+    bricks?: { maxWidth?: string };
 }
 
 // usage

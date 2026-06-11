@@ -1,12 +1,12 @@
 // #region Imports
 // Types
-import type { ILandingBreakpointConfig } from '../types/config';
+import type { IBricksBreakpointConfig } from '../types/config';
 
 // Nuxt
 import { useHead } from 'nuxt/app';
 
 // Composables
-import { useLandingConfig } from './useLandingConfig';
+import { useBricksConfig } from './useBricksConfig';
 
 // Utils
 import { convertPxToRem } from '../utils/main';
@@ -16,7 +16,7 @@ import { convertPxToRem } from '../utils/main';
  * Возвращает CSS-свойства контейнера для breakpoint.
  */
 function buildContainerProps(
-    bp: ILandingBreakpointConfig,
+    bp: IBricksBreakpointConfig,
     fallbackMaxWidth: string,
     fallbackAside: string
 ): string {
@@ -38,9 +38,9 @@ function buildContainerProps(
  */
 function buildContainerOverrideCss(
     cbp: {
-        mobile: ILandingBreakpointConfig;
-        tablet: ILandingBreakpointConfig;
-        desktop: ILandingBreakpointConfig;
+        mobile: IBricksBreakpointConfig;
+        tablet: IBricksBreakpointConfig;
+        desktop: IBricksBreakpointConfig;
     },
     deviceBreakpoints: { mobile: number; tablet: number; desktop: number }
 ): string {
@@ -107,7 +107,7 @@ function buildContainerOverrideCss(
  * - tablet (768px) - maxWidth: 768px (или настраиваемый), aside: 0.8rem
  * - mobile (375px) - maxWidth: 375px (или настраиваемый), aside: 0.4rem
  *
- * Container queries применяются к .landing-canvas элементу, что позволяет
+ * Container queries применяются к .bricks-canvas элементу, что позволяет
  * компонентам внутри канваса адаптироваться к размеру viewport без медиа-запросов.
  *
  * Класс .container получает:
@@ -120,17 +120,17 @@ function buildContainerOverrideCss(
  *
  * @example
  * // В компоненте или странице
- * useLandingStyles();
+ * useBricksStyles();
  *
  * // В HTML
- * <div class="landing-canvas" data-landing-viewport="desktop">
+ * <div class="bricks-canvas" data-bricks-viewport="desktop">
  *   <div class="container">
  *     Контент ограничен max-width и имеет боковые отступы
  *   </div>
  * </div>
  */
-export function useLandingStyles() {
-    const config = useLandingConfig();
+export function useBricksStyles() {
+    const config = useBricksConfig();
     const cbp = config.canvasBreakpoints;
 
     const desktopContainerProps = buildContainerProps(
@@ -153,9 +153,9 @@ export function useLandingStyles() {
      * CSS контент с Container Queries для адаптивных стилей
      *
      * Настройка:
-     * 1. .landing-canvas - определяет контейнер для Container Queries (inline-size)
+     * 1. .bricks-canvas - определяет контейнер для Container Queries (inline-size)
      * 2. .container - базовые стили для контейнера контента (width: 100%, margin: auto)
-     * 3. [data-landing-viewport="desktop/tablet/mobile"] .container - применяет
+     * 3. [data-bricks-viewport="desktop/tablet/mobile"] .container - применяет
      *    max-width и padding в зависимости от выбранного viewport
      *
      * Container Queries вместо Media Queries позволяют компонентам адаптироваться
@@ -163,25 +163,25 @@ export function useLandingStyles() {
      */
     let styleContent = `
         /* Канвас как контейнер для Container Queries */
-        .landing-canvas {
+        .bricks-canvas {
             container-type: inline-size;
-            container-name: landing;
+            container-name: bricks;
         }
 
-        .landing-canvas .container {
+        .bricks-canvas .container {
             width: 100%;
             margin: 0 auto;
         }
 
-        .landing-canvas[data-landing-viewport="desktop"] .container {
+        .bricks-canvas[data-bricks-viewport="desktop"] .container {
             ${desktopContainerProps}
         }
 
-        .landing-canvas[data-landing-viewport="tablet"] .container {
+        .bricks-canvas[data-bricks-viewport="tablet"] .container {
             ${tabletContainerProps}
         }
 
-        .landing-canvas[data-landing-viewport="mobile"] .container {
+        .bricks-canvas[data-bricks-viewport="mobile"] .container {
             ${mobileContainerProps}
         }`;
 

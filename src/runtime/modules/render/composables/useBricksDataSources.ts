@@ -4,21 +4,21 @@ import type {
     IBrickDataSource,
     IBrickDataSourceParam,
     IBrickDataSourceContext,
-} from '../types/landing-data-source';
-import type { LandingComponent } from '../../common/types/landing';
-import type { TPublishFormState } from '../../common/types/landing-api';
+} from '../types/bricks-data-source';
+import type { BricksComponent } from '../../common/types/brick';
+import type { TPublishFormState } from '../../common/types/bricks-api';
 
 // Composables
 import { useApiClient } from '../../common/composables/useApiClient';
 // #endregion
 
 /**
- * Composable для работы с data sources в landing page.
+ * Composable для работы с data sources опубликованной страницы.
  * Использует useApiClient для проксирования запросов с SSR-заголовками и CSRF.
  *
  * @returns Объект с методом executeDataSource для выполнения запросов к data sources.
  */
-export function useLandingDataSources() {
+export function useBricksDataSources() {
     // #region Data
     const { apiFetcher } = useApiClient();
     // #endregion
@@ -56,7 +56,7 @@ export function useLandingDataSources() {
      */
     function resolveParamValue(
         param: IBrickDataSourceParam,
-        component: LandingComponent,
+        component: BricksComponent,
         pageSettings: TPublishFormState | null
     ): unknown {
         const context: IBrickDataSourceContext = {
@@ -131,7 +131,7 @@ export function useLandingDataSources() {
      */
     async function executeDataSource(
         source: IBrickDataSource,
-        component: LandingComponent,
+        component: BricksComponent,
         pageSettings: TPublishFormState | null
     ): Promise<Record<string, unknown> | null> {
         const params: Record<string, string | number> = {};
@@ -152,7 +152,7 @@ export function useLandingDataSources() {
             method = source.method || 'GET';
 
             if (url.includes(':')) {
-                console.warn('[Landing DataSource] Skip - unresolved params:', {
+                console.warn('[Bricks DataSource] Skip - unresolved params:', {
                     key: source.key,
                     url,
                     component: component.id,
@@ -162,7 +162,7 @@ export function useLandingDataSources() {
                 return null;
             }
 
-            console.info('[Landing DataSource] Fetching:', {
+            console.info('[Bricks DataSource] Fetching:', {
                 key: source.key,
                 url,
                 method,
@@ -175,7 +175,7 @@ export function useLandingDataSources() {
 
             const response = await apiFetcher<unknown>(url, { method });
 
-            console.info('[Landing DataSource] Response received:', {
+            console.info('[Bricks DataSource] Response received:', {
                 key: source.key,
                 url,
                 method,
@@ -193,7 +193,7 @@ export function useLandingDataSources() {
 
             if (typeof source.map === 'function') {
                 const mapped = source.map(response, context);
-                console.info('[Landing DataSource] Mapped result:', {
+                console.info('[Bricks DataSource] Mapped result:', {
                     key: source.key,
                     componentId: component.id,
                     storyPath: component.storyPath,
@@ -213,7 +213,7 @@ export function useLandingDataSources() {
 
             return null;
         } catch (error) {
-            console.error('[Landing DataSource] Fetch failed:', {
+            console.error('[Bricks DataSource] Fetch failed:', {
                 key: source.key,
                 url,
                 method,

@@ -118,14 +118,14 @@ export default defineNuxtModule<IBricksModuleOptions>({
         // #region Layout
         addLayout(
             {
-                src: resolve(runtimeDir, 'layouts/landing.vue'),
-                filename: 'landing.vue',
+                src: resolve(runtimeDir, 'layouts/bricks.vue'),
+                filename: 'bricks.vue',
             },
-            'landing'
+            'bricks'
         );
         // #endregion
 
-        // #region Pages (builder + landing)
+        // #region Pages (builder + published page)
         extendPages((pages) => {
             pages.unshift(
                 {
@@ -146,8 +146,8 @@ export default defineNuxtModule<IBricksModuleOptions>({
                     ],
                 },
                 {
-                    name: 'bricks-landing-pagename',
-                    path: '/landing/:pagename',
+                    name: 'bricks-pagename',
+                    path: '/bricks/:pagename',
                     file: resolve(runtimeDir, 'modules/render/pages/[pagename].vue'),
                 }
             );
@@ -158,8 +158,8 @@ export default defineNuxtModule<IBricksModuleOptions>({
         addPlugin(resolve(runtimeDir, 'plugins/vue-icons'));
         addPlugin(resolve(runtimeDir, 'plugins/vee-validate'));
         addPlugin(resolve(runtimeDir, 'plugins/text-editor-toolbar'));
-        addPlugin(resolve(runtimeDir, 'plugins/landing-styles'));
-        addPlugin(resolve(runtimeDir, 'plugins/landing-dynamic-routes'));
+        addPlugin(resolve(runtimeDir, 'plugins/bricks-styles'));
+        addPlugin(resolve(runtimeDir, 'plugins/bricks-dynamic-routes'));
         addPlugin({
             src: resolve(runtimeDir, 'plugins/json-editor-vue.client'),
             mode: 'client',
@@ -186,8 +186,8 @@ export default defineNuxtModule<IBricksModuleOptions>({
             handler: resolve(runtimeDir, 'server/routes/mock-api/s3-delete.post'),
         });
         addServerHandler({
-            route: '/mock-api/landing-components',
-            handler: resolve(runtimeDir, 'server/routes/mock-api/landing-components'),
+            route: '/mock-api/bricks-components',
+            handler: resolve(runtimeDir, 'server/routes/mock-api/bricks-components'),
         });
         // #endregion
     },

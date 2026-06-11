@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { LandingComponent, PropertyDefinition } from '../../common/types/landing';
+import type { BricksComponent, PropertyDefinition } from '../../common/types/brick';
 import type { IBrickValues } from '../../common/types/index';
 
 // Vue
@@ -44,7 +44,7 @@ const { storyValuesToProperties } = useComponentProperties();
 /**
  * Возвращает корневые компоненты (без parent) для построения дерева.
  */
-const rootComponents = computed<LandingComponent[]>(() => componentsStore.getRootComponents());
+const rootComponents = computed<BricksComponent[]>(() => componentsStore.getRootComponents());
 
 const hasComponents = computed<boolean>(() => componentsStore.hasComponents);
 // #endregion
@@ -83,7 +83,7 @@ function handleReorder(draggedId: string, targetId: string, position: 'before' |
  * @param component - Компонент для проверки видимости.
  * @returns true, если viewport был переключён.
  */
-function ensureViewportForComponent(component: LandingComponent): boolean {
+function ensureViewportForComponent(component: BricksComponent): boolean {
     const currentViewport = canvasStore.viewport;
     const visibility = component.deviceVisibility;
 

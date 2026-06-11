@@ -1,9 +1,9 @@
 import type { LayoutKey } from '#build/types/layouts';
 import { defineNuxtRouteMiddleware, useNuxtApp, setPageLayout } from '#app';
 import { createError, useState, useRequestHeaders } from '#imports';
-import type { LandingSchema } from '../modules/common/types/landing';
-import type { IPublishedLandingPageSummary, IPublishedPage } from '../modules/common/types/landing-api';
-import { normalizeLandingError } from '../modules/common/utils/main';
+import type { BricksSchema } from '../modules/common/types/brick';
+import type { IPublishedPageSummary, IPublishedPage } from '../modules/common/types/bricks-api';
+import { normalizeBricksError } from '../modules/common/utils/main';
 import { useApiClient } from '../modules/common/composables/useApiClient';
 import { toCamelCase } from '../modules/common/utils/case-transform';
 
@@ -11,11 +11,11 @@ const DEFAULT_BACKGROUND_COLOR = '#FFFFFF';
 const DEFAULT_LAYOUT = 'default';
 
 /**
- * Проверяет, что значение похоже на LandingSchema.
+ * Проверяет, что значение похоже на BricksSchema.
  *
  * @param value - Проверяемое значение.
  */
-function isLandingSchema(value: unknown): value is LandingSchema {
+function isBricksSchema(value: unknown): value is BricksSchema {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
         return false;
     }
@@ -30,12 +30,12 @@ function isLandingSchema(value: unknown): value is LandingSchema {
  * @param schema - Схема лендинга.
  * @returns Нормализованная схема.
  */
-function preserveSchema(schema: LandingSchema | null | undefined): LandingSchema {
+function preserveSchema(schema: BricksSchema | null | undefined): BricksSchema {
     if (!schema) {
         return { components: [] };
     }
 
-    const result: LandingSchema = {
+    const result: BricksSchema = {
         components: schema.components ?? [],
     };
 
@@ -64,7 +64,7 @@ function normalizePublishedPage(rawPage: unknown): IPublishedPage {
     delete rest.schema;
 
     const page = toCamelCase<Partial<IPublishedPage>>(rest);
-    const schema = isLandingSchema(rawSchema) ? rawSchema : { components: [] };
+    const schema = isBricksSchema(rawSchema) ? rawSchema : { components: [] };
 
     const createdAt = page.createdAt ?? '';
     const updatedAt = page.updatedAt ?? createdAt;
@@ -76,7 +76,8 @@ function normalizePublishedPage(rawPage: unknown): IPublishedPage {
         description: page.description ?? '',
         keywords: page.keywords ?? '',
         backgroundColor: page.backgroundColor ?? DEFAULT_BACKGROUND_COLOR,
-        layout: page.layout ?? DEFAULT_LAYOUT,
+        // Страницы, опубликованные до ребрендинга, могут хранить layout 'landing'
+        layout: page.layout === 'landing' ? 'bricks' : (page.layout ?? DEFAULT_LAYOUT),
         socialImage: page.socialImage ?? '',
         urlPrefix: page.urlPrefix ?? null,
         subdomain: page.subdomain ?? null,
@@ -91,16 +92,16 @@ function normalizePublishedPage(rawPage: unknown): IPublishedPage {
 /**
  * Middleware для динамической установки layout на основе данных из БД.
  * Применяется к страницам лендингов:
- * - /landing/[pagename] (встроенный маршрут)
+ * - /bricks/[pagename] (встроенный маршрут)
  * - /[pagename] (динамически зарегистрированные ЧПУ маршруты)
  */
 // eslint-disable-next-line complexity
 export default defineNuxtRouteMiddleware(async (to) => {
     // Применяем middleware к встроенному маршруту или динамическим ЧПУ маршрутам
-    const isLandingRoute = to.name === 'landing-pagename';
-    const isDirectLandingRoute = to.meta?.isPublishedLanding === true;
+    const isBricksRoute = to.name === 'bricks-pagename';
+    const isDirectBricksRoute = to.meta?.isPublishedBricksPage === true;
 
-    if (!isLandingRoute && !isDirectLandingRoute) {
+    if (!isBricksRoute && !isDirectBricksRoute) {
         return;
     }
 
@@ -109,7 +110,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     const isPreview = to.query.preview === 'true';
     const { apiFetcher } = useApiClient();
 
-    const pageDataKey = `landing-page-${pagename}-${isPreview ? 'preview' : 'live'}`;
+    const pageDataKey = `bricks-page-${pagename}-${isPreview ? 'preview' : 'live'}`;
 
     // Пытаемся получить данные из payload, если они уже были загружены этим middleware
     // Это обрабатывает клиентскую навигацию, когда middleware может запуститься повторно
@@ -117,7 +118,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
     if (!page) {
         if (isPreview && import.meta.client) {
-            const previewData = window.localStorage.getItem('landing-preview-page');
+            const previewData = window.localStorage.getItem('bricks-preview-page');
 
             if (previewData) {
                 const tempPage = JSON.parse(previewData) as IPublishedPage;
@@ -131,17 +132,17 @@ export default defineNuxtRouteMiddleware(async (to) => {
         // Если данные не были получены из localStorage (или это не превью), загружаем из API
         if (!page) {
             // Для preview ищем среди всех страниц, для обычного режима — только среди опубликованных
-            const apiEndpoint = isPreview ? '/api/landing/' : '/api/landing/published/';
-            const stateKey = isPreview ? 'landing-all-pages' : 'landing-published-pages';
+            const apiEndpoint = isPreview ? '/api/bricks/' : '/api/bricks/published/';
+            const stateKey = isPreview ? 'bricks-all-pages' : 'bricks-published-pages';
 
-            const pagesList = useState<IPublishedLandingPageSummary[]>(stateKey, () => []);
+            const pagesList = useState<IPublishedPageSummary[]>(stateKey, () => []);
 
             if (!pagesList.value.length) {
                 try {
-                    const response = await apiFetcher<IPublishedLandingPageSummary[]>(apiEndpoint);
-                    pagesList.value = toCamelCase<IPublishedLandingPageSummary[]>(response);
+                    const response = await apiFetcher<IPublishedPageSummary[]>(apiEndpoint);
+                    pagesList.value = toCamelCase<IPublishedPageSummary[]>(response);
                 } catch (error) {
-                    return createError(normalizeLandingError(error, 'Failed to load pages list'));
+                    return createError(normalizeBricksError(error, 'Failed to load pages list'));
                 }
             }
 
@@ -154,7 +155,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
                 if (!currentHost.includes(targetPage.subdomain)) {
                     return createError({
                         statusCode: 404,
-                        statusMessage: 'Landing page not found',
+                        statusMessage: 'Page not found',
                     });
                 }
             }
@@ -166,21 +167,21 @@ export default defineNuxtRouteMiddleware(async (to) => {
                     return;
                 }
 
-                console.warn('[Landing Middleware] Page not found:', {
+                console.warn('[Bricks Middleware] Page not found:', {
                     pagename,
                     availablePages: pagesList.value.map((p) => p.pagename),
                 });
                 return createError({
                     statusCode: 404,
-                    statusMessage: 'Landing page not found',
+                    statusMessage: 'Page not found',
                 });
             }
 
             try {
-                const response = await apiFetcher<IPublishedPage>(`/api/landing/${targetPage.id}/`);
+                const response = await apiFetcher<IPublishedPage>(`/api/bricks/${targetPage.id}/`);
                 page = normalizePublishedPage(response);
             } catch (error) {
-                return createError(normalizeLandingError(error, 'Failed to load landing page'));
+                return createError(normalizeBricksError(error, 'Failed to load page'));
             }
         }
         // Сохраняем данные в payload, чтобы избежать повторной загрузки в компоненте страницы
@@ -192,13 +193,13 @@ export default defineNuxtRouteMiddleware(async (to) => {
         try {
             setPageLayout(layout as LayoutKey);
         } catch (error) {
-            console.warn('[Landing Middleware] Failed to apply layout:', layout, error);
+            console.warn('[Bricks Middleware] Failed to apply layout:', layout, error);
         }
     } else if (!isPreview && !page) {
         // Этот случай в идеале должен обрабатываться createError выше, но на всякий случай
         return createError({
             statusCode: 404,
-            statusMessage: 'Landing page not found',
+            statusMessage: 'Page not found',
         });
     }
 });

@@ -30,7 +30,7 @@ export interface IPublishedPagesModalEmits {
 }
 
 export interface IPublishedPageCardProps {
-    page: import('../../../common/types/landing-api').IPublishedPage;
+    page: import('../../../common/types/bricks-api').IPublishedPage;
     isPublishing?: boolean;
 }
 

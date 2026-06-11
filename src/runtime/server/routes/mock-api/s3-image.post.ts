@@ -115,7 +115,7 @@ export default defineEventHandler(async (event): Promise<IS3UploadResponse> => {
         }
 
         const uniqueFilename = `${randomUUID()}.${targetExtension}`;
-        const key = `landing-media/${uniqueFilename}`;
+        const key = `bricks-media/${uniqueFilename}`;
 
         // Загружаем в S3
         await s3Client.send(

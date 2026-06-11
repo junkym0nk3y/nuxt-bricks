@@ -1,8 +1,8 @@
 /**
- * Landing configuration types
+ * Bricks configuration types
  */
 
-export interface ILandingBreakpoints {
+export interface IBricksBreakpoints {
     mobile: number;
     tablet: number;
     laptop: number;
@@ -10,7 +10,7 @@ export interface ILandingBreakpoints {
     ultra: number;
 }
 
-export interface ILandingBreakpointConfig {
+export interface IBricksBreakpointConfig {
     width: number;
     aside?: string;
     minWidth?: string;
@@ -21,7 +21,7 @@ export interface ILandingBreakpointConfig {
     overrideContainer?: boolean;
 }
 
-export interface ILandingMediaConfig {
+export interface IBricksMediaConfig {
     maxUploadSizeMb?: number;
     maxVideoUploadSizeMb?: number;
     optimization?: {
@@ -30,46 +30,46 @@ export interface ILandingMediaConfig {
     };
 }
 
-export interface ILandingConfig {
+export interface IBricksConfig {
     defaultFont?: string;
     fonts?: string[];
     backgroundColor?: string;
     layouts?: string[];
     nuxt4?: boolean;
     breakpoints?: {
-        mobile?: ILandingBreakpointConfig;
-        tablet?: ILandingBreakpointConfig;
-        desktop?: ILandingBreakpointConfig;
+        mobile?: IBricksBreakpointConfig;
+        tablet?: IBricksBreakpointConfig;
+        desktop?: IBricksBreakpointConfig;
     };
-    media?: ILandingMediaConfig;
+    media?: IBricksMediaConfig;
 }
 
 export interface IDeviceConfig {
-    breakpoints: ILandingBreakpoints;
+    breakpoints: IBricksBreakpoints;
 }
 
 export interface IAppConfig {
-    landing?: {
+    bricks?: {
         defaultFont?: string;
         fonts?: string[];
         backgroundColor?: string;
         layouts?: string[];
         nuxt4?: boolean;
         breakpoints?: {
-            mobile?: ILandingBreakpointConfig;
-            tablet?: ILandingBreakpointConfig;
-            desktop?: ILandingBreakpointConfig;
+            mobile?: IBricksBreakpointConfig;
+            tablet?: IBricksBreakpointConfig;
+            desktop?: IBricksBreakpointConfig;
         };
-        media?: ILandingMediaConfig;
+        media?: IBricksMediaConfig;
     };
     device?: {
-        breakpoints?: ILandingBreakpoints;
+        breakpoints?: IBricksBreakpoints;
     };
 }
 
 declare module '@nuxt/schema' {
     interface AppConfigInput {
-        landing?: ILandingConfig;
+        bricks?: IBricksConfig;
         device?: IDeviceConfig;
     }
 }

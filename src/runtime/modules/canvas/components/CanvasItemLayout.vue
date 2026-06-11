@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type {
-    LandingComponent,
+    BricksComponent,
     LayoutProps,
     GridLayoutProps,
     FlexLayoutProps,
@@ -10,7 +10,7 @@ import type {
     SliderLayoutProps,
     AccordionLayoutProps,
     SectionLayoutProps,
-} from '../../common/types/landing';
+} from '../../common/types/brick';
 
 // Vue
 import { h } from 'vue';
@@ -35,8 +35,8 @@ import CanvasConditionalContainer from './CanvasConditionalContainer.vue';
  * Пропсы для компонента CanvasItemLayout
  */
 interface ICanvasItemLayoutProps {
-    /** Экземпляр landing-компонента для рендеринга */
-    component: LandingComponent;
+    /** Экземпляр компонента для рендеринга */
+    component: BricksComponent;
     /** Имя типа layout в нижнем регистре (grid, flex, space, title, text, media) */
     layoutName: string;
     /** Специфичные пропсы layout-компонента */
@@ -46,7 +46,7 @@ interface ICanvasItemLayoutProps {
     /** Нужно ли оборачивать компонент в контейнер */
     needsContainerWrapper: boolean;
     /** Дочерние компоненты для layout-контейнеров */
-    childComponents: LandingComponent[];
+    childComponents: BricksComponent[];
 }
 // #endregion
 
@@ -55,7 +55,7 @@ const props = defineProps<ICanvasItemLayoutProps>();
 // #endregion
 
 // #region Methods
-const renderLayoutChild = (child: LandingComponent) =>
+const renderLayoutChild = (child: BricksComponent) =>
     h(CanvasItem, {
         component: child,
         key: child.id,

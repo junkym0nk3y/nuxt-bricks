@@ -6,10 +6,10 @@ import type {
     GridLayoutVariant,
     GridRowHeight,
     IBlockSvgProps,
-    LandingComponent,
+    BricksComponent,
     SectionLayoutProps,
     SliderLayoutProps,
-} from '../../common/types/landing';
+} from '../../common/types/brick';
 import type { IRendererLayoutsOptions } from '../types/render';
 
 // Utils
@@ -133,14 +133,14 @@ export function useRendererLayouts({
      * @param component - Родительский layout.
      * @returns Отфильтрованный список дочерних компонентов.
      */
-    function getChildComponents(component: LandingComponent): LandingComponent[] {
+    function getChildComponents(component: BricksComponent): BricksComponent[] {
         if (!component.children || !allComponents.value.length) {
             return [];
         }
 
         return component.children
             .map((childId) => allComponents.value.find((item) => item.id === childId))
-            .filter(Boolean) as LandingComponent[];
+            .filter(Boolean) as BricksComponent[];
     }
 
     /**
@@ -149,7 +149,7 @@ export function useRendererLayouts({
      * @param component - Компонент верхнего уровня.
      * @returns Требуется ли контейнер.
      */
-    function needsContainerWrapper(component: LandingComponent): boolean {
+    function needsContainerWrapper(component: BricksComponent): boolean {
         if (component.parent) {
             return false;
         }
@@ -171,7 +171,7 @@ export function useRendererLayouts({
      * @returns VNode layout-компонента или `null`.
      */
     function renderLayoutComponent(
-        component: LandingComponent,
+        component: BricksComponent,
         extraClasses: string[] = [],
         extraAttrs: Record<string, string | undefined> = {}
     ): VNode | null {
@@ -252,7 +252,7 @@ export function useRendererLayouts({
      */
     // eslint-disable-next-line complexity
     function renderGridComponent(
-        component: LandingComponent,
+        component: BricksComponent,
         extraClasses: string[],
         extraAttrs: Record<string, string | undefined>
     ): VNode {
@@ -424,7 +424,7 @@ export function useRendererLayouts({
             {
                 id: component.htmlId || undefined,
                 style,
-                class: [styles.landingGrid, ...extraClasses],
+                class: [styles.bricksGrid, ...extraClasses],
                 'data-bricks-layout': 'grid',
                 ...extraAttrs,
             },
@@ -439,7 +439,7 @@ export function useRendererLayouts({
      * @returns VNode flex-компонента.
      */
     function renderFlexComponent(
-        component: LandingComponent,
+        component: BricksComponent,
         extraClasses: string[],
         extraAttrs: Record<string, string | undefined>
     ): VNode {
@@ -540,7 +540,7 @@ export function useRendererLayouts({
             {
                 id: component.htmlId || undefined,
                 style,
-                class: [styles.landingFlex, ...extraClasses],
+                class: [styles.bricksFlex, ...extraClasses],
                 'data-bricks-layout': 'flex',
                 ...extraAttrs,
             },
@@ -555,7 +555,7 @@ export function useRendererLayouts({
      * @returns VNode section-компонента.
      */
     function renderSectionComponent(
-        component: LandingComponent,
+        component: BricksComponent,
         extraClasses: string[],
         extraAttrs: Record<string, string | undefined>
     ): VNode {
@@ -622,7 +622,7 @@ export function useRendererLayouts({
             {
                 id: component.htmlId || undefined,
                 style,
-                class: [styles.landingSection, ...extraClasses],
+                class: [styles.bricksSection, ...extraClasses],
                 'data-bricks-layout': 'section',
                 ...extraAttrs,
             },
@@ -637,7 +637,7 @@ export function useRendererLayouts({
      * @returns VNode spacer-компонента.
      */
     function renderSpaceComponent(
-        component: LandingComponent,
+        component: BricksComponent,
         extraClasses: string[],
         extraAttrs: Record<string, string | undefined>
     ): VNode {
@@ -695,7 +695,7 @@ export function useRendererLayouts({
             {
                 id: component.htmlId || undefined,
                 style,
-                class: [styles.landingSpace, ...extraClasses],
+                class: [styles.bricksSpace, ...extraClasses],
                 'data-bricks-layout': 'space',
                 ...extraAttrs,
             },
@@ -737,7 +737,7 @@ export function useRendererLayouts({
      * @returns VNode Title.
      */
     function renderTitleComponent(
-        component: LandingComponent,
+        component: BricksComponent,
         extraClasses: string[],
         extraAttrs: Record<string, string | undefined>
     ): VNode {
@@ -754,7 +754,7 @@ export function useRendererLayouts({
             ...componentProps,
             key: component.id,
             id: component.htmlId || undefined,
-            class: [styles.landingTitle, ...extraClasses],
+            class: [styles.bricksTitle, ...extraClasses],
             style: Object.keys(style).length ? style : undefined,
             ...extraAttrs,
         });
@@ -767,7 +767,7 @@ export function useRendererLayouts({
      * @returns VNode Text.
      */
     function renderTextComponent(
-        component: LandingComponent,
+        component: BricksComponent,
         extraClasses: string[],
         extraAttrs: Record<string, string | undefined>
     ): VNode {
@@ -784,7 +784,7 @@ export function useRendererLayouts({
             ...componentProps,
             key: component.id,
             id: component.htmlId || undefined,
-            class: [styles.landingText, ...extraClasses],
+            class: [styles.bricksText, ...extraClasses],
             style: Object.keys(style).length ? style : undefined,
             ...extraAttrs,
         });
@@ -797,7 +797,7 @@ export function useRendererLayouts({
      * @returns VNode медиа-компонента.
      */
     function renderMediaComponent(
-        component: LandingComponent,
+        component: BricksComponent,
         extraClasses: string[],
         extraAttrs: Record<string, string | undefined>
     ): VNode {
@@ -830,7 +830,7 @@ export function useRendererLayouts({
             borderRadius: 'var(--bricks-media-radius)',
             key: component.id,
             id: component.htmlId || undefined,
-            class: [styles.landingImage, ...extraClasses],
+            class: [styles.bricksImage, ...extraClasses],
             style,
             'data-bricks-layout': 'media',
             ...extraAttrs,
@@ -844,7 +844,7 @@ export function useRendererLayouts({
      * @returns VNode SVG-блока.
      */
     function renderSvgComponent(
-        component: LandingComponent,
+        component: BricksComponent,
         extraClasses: string[],
         extraAttrs: Record<string, string | undefined>
     ): VNode {
@@ -872,7 +872,7 @@ export function useRendererLayouts({
             height: 'var(--bricks-media-height)',
             key: component.id,
             id: component.htmlId || undefined,
-            class: [styles.landingSvg, ...extraClasses],
+            class: [styles.bricksSvg, ...extraClasses],
             style,
             'data-bricks-layout': 'svg',
             ...extraAttrs,
@@ -886,7 +886,7 @@ export function useRendererLayouts({
      * @returns VNode слайдера.
      */
     function renderSliderComponent(
-        component: LandingComponent,
+        component: BricksComponent,
         extraClasses: string[],
         extraAttrs: Record<string, string | undefined>
     ): VNode {
@@ -904,7 +904,7 @@ export function useRendererLayouts({
             layoutProps: componentProps,
             layoutId: component.id,
             slides: childComponents,
-            renderSlide: (child: LandingComponent) => renderChild(child),
+            renderSlide: (child: BricksComponent) => renderChild(child),
             isEditor: false,
             key: component.id,
             id: component.htmlId || undefined,
@@ -921,7 +921,7 @@ export function useRendererLayouts({
      * @returns VNode аккордеона.
      */
     function renderAccordionComponent(
-        component: LandingComponent,
+        component: BricksComponent,
         extraClasses: string[],
         extraAttrs: Record<string, string | undefined>
     ): VNode {

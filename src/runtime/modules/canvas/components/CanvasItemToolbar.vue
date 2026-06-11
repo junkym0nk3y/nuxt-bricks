@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IDeviceVisibilityConfig, TLandingDeviceKey } from '../../common/types/landing';
+import type { IDeviceVisibilityConfig, TBricksDeviceKey } from '../../common/types/brick';
 
 // Vue
 import { ref, computed } from 'vue';
@@ -27,7 +27,7 @@ interface ICanvasItemToolbarEmits {
     copy: [];
     delete: [];
     'toggle-hidden': [];
-    'toggle-device': [device: TLandingDeviceKey];
+    'toggle-device': [device: TBricksDeviceKey];
     'move-up': [];
     'move-down': [];
     'toggle-favorite': [];

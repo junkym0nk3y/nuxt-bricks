@@ -82,7 +82,7 @@ function handleTogglePublished(value: boolean | string): void {
     <div :class="$style.PublishedPageCard">
         <div :class="$style.info">
             <h3 :class="$style.title">{{ props.page.title }}</h3>
-            <p :class="$style.pagename">/landing/{{ props.page.pagename }}</p>
+            <p :class="$style.pagename">/bricks/{{ props.page.pagename }}</p>
             <p :class="$style.description">
                 {{ props.page.description }}
             </p>

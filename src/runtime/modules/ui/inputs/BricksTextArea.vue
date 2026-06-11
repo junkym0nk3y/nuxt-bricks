@@ -23,7 +23,7 @@ import {
 import { useNuxtApp } from 'nuxt/app';
 
 // Composables
-import { useLandingConfig } from '../../common/composables/useLandingConfig';
+import { useBricksConfig } from '../../common/composables/useBricksConfig';
 
 // Pinia
 import { useInlineEditingStore } from '../../editor/stores/inlineEditing';
@@ -57,7 +57,7 @@ const emit = defineEmits<IBricksTextAreaEmits>();
 
 // #region Data
 const { $textEditorToolbar } = useNuxtApp();
-const config = useLandingConfig();
+const config = useBricksConfig();
 const inlineEditingStore = useInlineEditingStore();
 const $style = useCssModule();
 const innerValue = ref<string>(props.value ?? '');
@@ -335,7 +335,7 @@ async function initEditor(): Promise<void> {
                 }),
                 Table.configure({
                     resizable: false,
-                    HTMLAttributes: { class: 'ida-tiptap-table' },
+                    HTMLAttributes: { class: 'bricks-tiptap-table' },
                 }),
                 TableRow,
                 TableCell,

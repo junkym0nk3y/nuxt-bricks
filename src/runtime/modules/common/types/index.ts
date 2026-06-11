@@ -1,4 +1,4 @@
-export interface ILandingFileStructure {
+export interface IBrickFileStructure {
     category?: string;
     description?: string;
     values: Record<string, IBrickValues>;
@@ -91,9 +91,9 @@ export interface IBrickExportModule {
         category?: string;
         description?: string;
         slots?: Record<string, IBrickSlotDefinition> | Array<string | IBrickSlotDefinition>;
-        dataSources?: import('../../render/types/landing-data-source').IBrickDataSource[];
+        dataSources?: import('../../render/types/bricks-data-source').IBrickDataSource[];
     };
 }
 
-export type { IBrickDataSource, IBrickDataSourceParam } from '../../render/types/landing-data-source';
+export type { IBrickDataSource, IBrickDataSourceParam } from '../../render/types/bricks-data-source';
 export type { IGalleryItem, IInlineContentSegment } from '../../layouts-blocks/types/layouts';

@@ -122,7 +122,7 @@ export function normalizeHex(hex: string): string {
  * @param fallbackStatus - Код статуса по умолчанию, если в ошибке не найден конкретный статус.
  * @returns Объект с statusCode и statusMessage.
  */
-export function normalizeLandingError(
+export function normalizeBricksError(
     error: unknown,
     fallbackMessage: string,
     fallbackStatus = 500

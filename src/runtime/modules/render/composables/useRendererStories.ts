@@ -1,6 +1,6 @@
 import { defineAsyncComponent, type Component } from 'vue';
 import type { IRendererStoryResolverOptions } from '../types/render';
-import { normalizeStoryPath } from '../../common/utils/landing/paths';
+import { normalizeStoryPath } from '../../common/utils/bricks/paths';
 
 const componentCache = new Map<string, Component | null>();
 

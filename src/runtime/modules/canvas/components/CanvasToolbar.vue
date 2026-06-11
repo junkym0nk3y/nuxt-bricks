@@ -12,7 +12,7 @@ import type {
 import { computed } from 'vue';
 
 // Composables
-import { useLandingConfig } from '../../common/composables/useLandingConfig';
+import { useBricksConfig } from '../../common/composables/useBricksConfig';
 
 // Components
 import BricksButton from '../../ui/base/button/BricksButton.vue';
@@ -27,7 +27,7 @@ const emit = defineEmits<ICanvasToolbarEmits>();
 // #endregion
 
 // #region Data
-const config = useLandingConfig();
+const config = useBricksConfig();
 
 const VIEWPORTS: readonly IViewportOption[] = [
     {

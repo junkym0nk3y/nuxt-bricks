@@ -1,6 +1,6 @@
 // #region Imports
 // Types
-import type { ComponentLibraryItem } from '../../common/types/landing';
+import type { ComponentLibraryItem } from '../../common/types/brick';
 
 // Utils
 import { createInlineTextSegment } from '../../layouts-blocks/utils/inlineContent';

@@ -1,5 +1,5 @@
 import type { Component } from 'vue';
-import type { PropertyDefinition, IDeviceVisibilityConfig, TLandingDeviceKey } from '../../common/types/landing';
+import type { PropertyDefinition, IDeviceVisibilityConfig, TBricksDeviceKey } from '../../common/types/brick';
 import type {
     ComponentVariantsMap,
     IComponentVariant,
@@ -50,7 +50,7 @@ export interface ISidebarPropertyEditorsProps {
     handleOpenMediaGallery: (property: PropertyDefinition, payload?: TInlineGalleryPayload) => void;
     handleToggleFullWidth: (value: boolean) => void;
     handleToggleHidden: (value: boolean) => void;
-    handleToggleDeviceVisibility: (device: TLandingDeviceKey, value: boolean) => void;
+    handleToggleDeviceVisibility: (device: TBricksDeviceKey, value: boolean) => void;
     htmlIdValue: string;
     handleSetHtmlId: (htmlId: string) => void;
     propertyOrder?: readonly PropertyEditorType[];

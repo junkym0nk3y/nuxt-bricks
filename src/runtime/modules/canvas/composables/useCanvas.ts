@@ -2,7 +2,7 @@ import { ref, computed, watch } from 'vue';
 import { useCanvasStore } from '../../builder/stores/canvas';
 import { useSidebarStore } from '../../builder/stores/sidebar';
 import { convertRemToPx } from '../../common/utils/main';
-import { useLandingConfig } from '../../common/composables/useLandingConfig';
+import { useBricksConfig } from '../../common/composables/useBricksConfig';
 import { useCanvasRemBase } from './useCanvasRemBase';
 
 /**
@@ -14,7 +14,7 @@ import { useCanvasRemBase } from './useCanvasRemBase';
 export function useCanvas() {
     const canvasStore = useCanvasStore();
     const sidebarStore = useSidebarStore();
-    const config = useLandingConfig();
+    const config = useBricksConfig();
     const { remCompensation, getRemCompensation } = useCanvasRemBase();
     const canvasContainer = ref<HTMLElement | null>(null);
 

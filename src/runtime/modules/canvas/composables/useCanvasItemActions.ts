@@ -1,7 +1,7 @@
 // #region Imports
 // Types
 import type { ICanvasItemProps } from '../components/types';
-import type { PropertyDefinition } from '../../common/types/landing';
+import type { PropertyDefinition } from '../../common/types/brick';
 import type { IBrickValues } from '../../common/types/index';
 
 // Vue

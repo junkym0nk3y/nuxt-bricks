@@ -3,7 +3,7 @@
 import { useHead } from 'nuxt/app';
 
 // Composables
-import { useLandingConfig } from '../../common/composables/useLandingConfig';
+import { useBricksConfig } from '../../common/composables/useBricksConfig';
 // #endregion
 
 /**
@@ -17,7 +17,7 @@ import { useLandingConfig } from '../../common/composables/useLandingConfig';
  * Реализация SSR-safe: никаких JS device detection, только CSS.
  */
 export function useResponsiveLayoutStyles(): void {
-    const config = useLandingConfig();
+    const config = useBricksConfig();
     const breakpoints = config.breakpoints;
 
     const tabletMin = Number(breakpoints.tablet ?? 768);
@@ -46,7 +46,7 @@ export function useResponsiveLayoutStyles(): void {
         }
 
 	        /* ===== Responsive layout vars: Builder (canvas viewport) ===== */
-	        .landing-canvas[data-landing-viewport="mobile"] [data-bricks-layout="grid"] {
+	        .bricks-canvas[data-bricks-viewport="mobile"] [data-bricks-layout="grid"] {
 	            --bricks-grid-columns: var(--bricks-grid-columns-mobile);
 	            --bricks-grid-rows: var(--bricks-grid-rows-mobile);
 	            --bricks-grid-auto-rows: var(--bricks-grid-auto-rows-mobile);
@@ -55,7 +55,7 @@ export function useResponsiveLayoutStyles(): void {
 	            --bricks-grid-lead-left: var(--bricks-grid-lead-left-mobile);
 	            --bricks-grid-lead-right: var(--bricks-grid-lead-right-mobile);
 	        }
-	        .landing-canvas[data-landing-viewport="tablet"] [data-bricks-layout="grid"] {
+	        .bricks-canvas[data-bricks-viewport="tablet"] [data-bricks-layout="grid"] {
 	            --bricks-grid-columns: var(--bricks-grid-columns-tablet);
 	            --bricks-grid-rows: var(--bricks-grid-rows-tablet);
 	            --bricks-grid-auto-rows: var(--bricks-grid-auto-rows-tablet);
@@ -64,7 +64,7 @@ export function useResponsiveLayoutStyles(): void {
 	            --bricks-grid-lead-left: var(--bricks-grid-lead-left-tablet);
 	            --bricks-grid-lead-right: var(--bricks-grid-lead-right-tablet);
 	        }
-	        .landing-canvas[data-landing-viewport="desktop"] [data-bricks-layout="grid"] {
+	        .bricks-canvas[data-bricks-viewport="desktop"] [data-bricks-layout="grid"] {
 	            --bricks-grid-columns: var(--bricks-grid-columns-desktop);
 	            --bricks-grid-rows: var(--bricks-grid-rows-desktop);
 	            --bricks-grid-auto-rows: var(--bricks-grid-auto-rows-desktop);
@@ -74,19 +74,19 @@ export function useResponsiveLayoutStyles(): void {
 	            --bricks-grid-lead-right: var(--bricks-grid-lead-right-desktop);
 	        }
 
-        .landing-canvas[data-landing-viewport="mobile"] [data-bricks-layout="flex"] {
+        .bricks-canvas[data-bricks-viewport="mobile"] [data-bricks-layout="flex"] {
             --bricks-flex-direction: var(--bricks-flex-direction-mobile);
             --bricks-flex-justify: var(--bricks-flex-justify-mobile);
             --bricks-flex-wrap: var(--bricks-flex-wrap-mobile);
             --bricks-flex-gap: var(--bricks-flex-gap-mobile);
         }
-        .landing-canvas[data-landing-viewport="tablet"] [data-bricks-layout="flex"] {
+        .bricks-canvas[data-bricks-viewport="tablet"] [data-bricks-layout="flex"] {
             --bricks-flex-direction: var(--bricks-flex-direction-tablet);
             --bricks-flex-justify: var(--bricks-flex-justify-tablet);
             --bricks-flex-wrap: var(--bricks-flex-wrap-tablet);
             --bricks-flex-gap: var(--bricks-flex-gap-tablet);
         }
-        .landing-canvas[data-landing-viewport="desktop"] [data-bricks-layout="flex"] {
+        .bricks-canvas[data-bricks-viewport="desktop"] [data-bricks-layout="flex"] {
             --bricks-flex-direction: var(--bricks-flex-direction-desktop);
             --bricks-flex-justify: var(--bricks-flex-justify-desktop);
             --bricks-flex-wrap: var(--bricks-flex-wrap-desktop);
@@ -103,21 +103,21 @@ export function useResponsiveLayoutStyles(): void {
         }
 
         /* Section: Builder viewport */
-        .landing-canvas[data-landing-viewport="mobile"] [data-bricks-layout="section"] {
+        .bricks-canvas[data-bricks-viewport="mobile"] [data-bricks-layout="section"] {
             --bricks-section-pt: var(--bricks-section-pt-mobile);
             --bricks-section-pb: var(--bricks-section-pb-mobile);
             --bricks-section-px: var(--bricks-section-px-mobile);
             --bricks-section-radius: var(--bricks-section-radius-mobile);
             --bricks-section-min-h: var(--bricks-section-min-h-mobile);
         }
-        .landing-canvas[data-landing-viewport="tablet"] [data-bricks-layout="section"] {
+        .bricks-canvas[data-bricks-viewport="tablet"] [data-bricks-layout="section"] {
             --bricks-section-pt: var(--bricks-section-pt-tablet);
             --bricks-section-pb: var(--bricks-section-pb-tablet);
             --bricks-section-px: var(--bricks-section-px-tablet);
             --bricks-section-radius: var(--bricks-section-radius-tablet);
             --bricks-section-min-h: var(--bricks-section-min-h-tablet);
         }
-        .landing-canvas[data-landing-viewport="desktop"] [data-bricks-layout="section"] {
+        .bricks-canvas[data-bricks-viewport="desktop"] [data-bricks-layout="section"] {
             --bricks-section-pt: var(--bricks-section-pt-desktop);
             --bricks-section-pb: var(--bricks-section-pb-desktop);
             --bricks-section-px: var(--bricks-section-px-desktop);
@@ -132,15 +132,15 @@ export function useResponsiveLayoutStyles(): void {
         }
 
         /* Space: Builder viewport */
-        .landing-canvas[data-landing-viewport="mobile"] [data-bricks-layout="space"] {
+        .bricks-canvas[data-bricks-viewport="mobile"] [data-bricks-layout="space"] {
             --bricks-space-size: var(--bricks-space-size-mobile);
             --bricks-space-divider-mx: var(--bricks-space-divider-mx-mobile);
         }
-        .landing-canvas[data-landing-viewport="tablet"] [data-bricks-layout="space"] {
+        .bricks-canvas[data-bricks-viewport="tablet"] [data-bricks-layout="space"] {
             --bricks-space-size: var(--bricks-space-size-tablet);
             --bricks-space-divider-mx: var(--bricks-space-divider-mx-tablet);
         }
-        .landing-canvas[data-landing-viewport="desktop"] [data-bricks-layout="space"] {
+        .bricks-canvas[data-bricks-viewport="desktop"] [data-bricks-layout="space"] {
             --bricks-space-size: var(--bricks-space-size-desktop);
             --bricks-space-divider-mx: var(--bricks-space-divider-mx-desktop);
         }
@@ -154,20 +154,20 @@ export function useResponsiveLayoutStyles(): void {
         }
 
         /* Media: Builder viewport */
-        .landing-canvas[data-landing-viewport="mobile"] [data-bricks-layout="media"],
-        .landing-canvas[data-landing-viewport="mobile"] [data-bricks-layout="svg"] {
+        .bricks-canvas[data-bricks-viewport="mobile"] [data-bricks-layout="media"],
+        .bricks-canvas[data-bricks-viewport="mobile"] [data-bricks-layout="svg"] {
             --bricks-media-width: var(--bricks-media-width-mobile);
             --bricks-media-height: var(--bricks-media-height-mobile);
             --bricks-media-radius: var(--bricks-media-radius-mobile);
         }
-        .landing-canvas[data-landing-viewport="tablet"] [data-bricks-layout="media"],
-        .landing-canvas[data-landing-viewport="tablet"] [data-bricks-layout="svg"] {
+        .bricks-canvas[data-bricks-viewport="tablet"] [data-bricks-layout="media"],
+        .bricks-canvas[data-bricks-viewport="tablet"] [data-bricks-layout="svg"] {
             --bricks-media-width: var(--bricks-media-width-tablet);
             --bricks-media-height: var(--bricks-media-height-tablet);
             --bricks-media-radius: var(--bricks-media-radius-tablet);
         }
-        .landing-canvas[data-landing-viewport="desktop"] [data-bricks-layout="media"],
-        .landing-canvas[data-landing-viewport="desktop"] [data-bricks-layout="svg"] {
+        .bricks-canvas[data-bricks-viewport="desktop"] [data-bricks-layout="media"],
+        .bricks-canvas[data-bricks-viewport="desktop"] [data-bricks-layout="svg"] {
             --bricks-media-width: var(--bricks-media-width-desktop);
             --bricks-media-height: var(--bricks-media-height-desktop);
             --bricks-media-radius: var(--bricks-media-radius-desktop);
