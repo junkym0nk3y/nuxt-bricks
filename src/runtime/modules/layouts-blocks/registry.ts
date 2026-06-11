@@ -2,7 +2,7 @@
 // Types
 import type { ComponentLibraryItem, TBricksDeviceKey } from '../common/types/brick';
 import type { ILayoutProperty } from '../common/types/layoutProperty';
-import type { IBlockDefinition } from './types/registry';
+import type { IBlockCanvasContext, IBlockDefinition } from './types/registry';
 
 // Definitions
 import { blockGridDefinition } from './components/blockGrid.definition';
@@ -18,8 +18,10 @@ import { blockSvgDefinition } from './components/blockSvg.definition';
 // #endregion
 
 /**
- * Registry layout-блоков. Definitions data-only — `.vue`-компоненты НЕ импортируются
- * (bundle firewall: канвас-мапа лежит отдельно в canvasBlockComponents.ts).
+ * Registry layout-блоков. Bundle firewall: definitions контейнеров (Grid/Flex/Section/Space)
+ * НЕ импортируют свои `.vue` — их published-рендер это `h('div')`, а канвас-мапа лежит
+ * отдельно в canvasBlockComponents.ts. Leaf-definitions импортируют свои компоненты
+ * для `renderPublished` — ровно сегодняшний состав published-бандла.
  * Порядок ключей = порядок блоков в библиотеке компонентов.
  */
 export const BLOCK_REGISTRY: Record<string, IBlockDefinition> = {
@@ -177,11 +179,46 @@ export function resolveBlockProps(
         }
     }
 
-    for (const property of getBlockProperties(definition.name)) {
+    // Title: properties — функция от runtime availableFonts; options select'ов
+    // без контекста неполные, коэрция сбросила бы валидный шрифт. Пропускаем
+    // (паритет со старым useCanvasItemLayout: leaf-блоки коэрции не имели).
+    if (typeof definition.properties === 'function') {
+        return resolved;
+    }
+
+    for (const property of definition.properties) {
         if (property.name in resolved) {
             resolved[property.name] = coercePropValue(resolved[property.name], property);
         }
     }
 
     return resolved;
+}
+
+/**
+ * Возвращает канвас-биндинг блока: кастомный canvasBind из definition либо
+ * generic-биндинг (контейнер — layoutProps + layoutId + data-bricks-layout,
+ * leaf — только layoutProps).
+ *
+ * @param definition - Definition блока.
+ * @param ctx - Контекст биндинга канваса.
+ * @returns Пропсы для канвасного компонента блока.
+ */
+export function resolveCanvasBind(
+    definition: IBlockDefinition,
+    ctx: IBlockCanvasContext
+): Record<string, unknown> {
+    if (definition.canvasBind) {
+        return definition.canvasBind(ctx);
+    }
+
+    if (definition.hasChildren) {
+        return {
+            layoutProps: ctx.layoutProps,
+            layoutId: ctx.component.id,
+            'data-bricks-layout': definition.name.toLowerCase(),
+        };
+    }
+
+    return { layoutProps: ctx.layoutProps };
 }

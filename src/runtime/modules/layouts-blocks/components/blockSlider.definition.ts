@@ -1,16 +1,62 @@
 // Types
-import type { IBlockDefinition } from '../types/registry';
+import type { BricksComponent } from '../../common/types/brick';
+import type { SliderLayoutProps } from '../types/blockProps';
+import type { IBlockDefinition, IBlockRenderContext } from '../types/registry';
+
+// Vue
+import { h, type VNode } from 'vue';
+
+// Utils
+import { gridPlacementStyle } from '../utils/responsiveVars';
+
+// Components
+import BlockSlider from './BlockSlider.vue';
 
 /**
- * Definition блока Slider: swiper-контейнер; children идут через canvasBind (шаг B4),
- * а не default slot. Дефолты captions/captionPosition/showCaptionNavigation войдут
- * в derived defaultProps (поведенчески нейтрально — сверка дефолтов, Часть B).
+ * Published-рендер Slider: children идут пропами slides/renderSlide, isEditor: false.
+ *
+ * @param ctx - Контекст рендера published-страницы.
+ * @returns VNode слайдера.
+ */
+function renderSliderPublished(ctx: IBlockRenderContext): VNode {
+    const { component, extraClasses, extraAttrs, renderChild, getChildComponents } = ctx;
+    const componentProps = component.props as SliderLayoutProps;
+    const childComponents = getChildComponents(component);
+    const style = gridPlacementStyle(component);
+
+    return h(BlockSlider, {
+        layoutProps: componentProps,
+        layoutId: component.id,
+        slides: childComponents,
+        renderSlide: (child: BricksComponent) => renderChild(child),
+        isEditor: false,
+        key: component.id,
+        id: component.htmlId || undefined,
+        class: extraClasses,
+        style: Object.keys(style).length ? style : undefined,
+        ...extraAttrs,
+    });
+}
+
+/**
+ * Definition блока Slider: swiper-контейнер; children идут через canvasBind
+ * (пропы slides/renderSlide), а не default slot. Дефолты
+ * captions/captionPosition/showCaptionNavigation войдут в derived defaultProps
+ * (поведенчески нейтрально — сверка дефолтов, Часть B).
  */
 export const blockSliderDefinition: IBlockDefinition = {
     name: 'Slider',
     description: 'Слайдер-контейнер (swiper) для прокрутки дочерних элементов.',
     thumbnail: '/images/layouts/slider.svg',
     responsiveMode: 'none',
+    canvasBind: (ctx) => ({
+        layoutProps: ctx.layoutProps,
+        layoutId: ctx.component.id,
+        slides: ctx.childComponents,
+        renderSlide: ctx.renderChild,
+        isEditor: true,
+    }),
+    renderPublished: renderSliderPublished,
     properties: [
         {
             name: 'spaceBetween',

@@ -1,13 +1,7 @@
 // #region Imports
 // Types
 import type { BricksComponent, TBricksDeviceKey } from '../../common/types/brick';
-import type {
-    LayoutProps,
-    GridLayoutProps,
-    GridLayoutVariant,
-    GridRowHeight,
-    FlexLayoutProps,
-} from '../../layouts-blocks/types/blockProps';
+import type { LayoutProps } from '../../layouts-blocks/types/blockProps';
 import type { IItemStyle, ICanvasItemProps } from '../components/types';
 
 // Vue
@@ -16,135 +10,11 @@ import { computed, inject } from 'vue';
 // Pinia
 import { useComponentsStore } from '../../builder/stores/components';
 import { useCanvasStore } from '../../builder/stores/canvas';
+
+// Utils
+import { resolveBlockProps } from '../../layouts-blocks/registry';
 import { CANVAS_VIEWPORT_KEY } from '../../common/constants/injectionKeys';
 // #endregion
-
-/** Нормализует значение rowHeight для Grid */
-function normalizeGridRowHeight(value: unknown): GridRowHeight {
-    if (value === 'auto' || value === '1fr' || value === 'min-content' || value === 'max-content') {
-        return value;
-    }
-
-    return 'auto';
-}
-
-/** Возвращает responsive overrides для выбранного viewport */
-function getResponsiveOverridesForViewport(
-    baseProps: Record<string, unknown>,
-    viewport: 'mobile' | 'tablet' | 'desktop'
-): Record<string, unknown> {
-    if (viewport === 'desktop') {
-        return {};
-    }
-
-    const responsive = (baseProps.responsive ?? {}) as Partial<
-        Record<'mobile' | 'tablet' | 'desktop', Record<string, unknown>>
-    >;
-
-    return (responsive[viewport] ?? {}) as Record<string, unknown>;
-}
-
-/** Собирает типизированные props для Grid-layout с учётом overrides */
-function resolveGridLayoutProps(
-    baseProps: Record<string, unknown>,
-    overrides: Record<string, unknown>
-): GridLayoutProps {
-    const rawColumns = overrides.columns ?? baseProps.columns;
-    const rawRows = overrides.rows ?? baseProps.rows;
-    const rawGap = overrides.gap ?? baseProps.gap;
-    const rawVariant = overrides.variant ?? baseProps.variant;
-    const rawRowHeight = overrides.rowHeight ?? baseProps.rowHeight;
-    const rawMinRowHeight = overrides.minRowHeight ?? baseProps.minRowHeight;
-    const rawPaddingX = overrides.paddingX ?? baseProps.paddingX;
-    const rawPaddingY = overrides.paddingY ?? baseProps.paddingY;
-
-    return {
-        columns: Math.max(1, Math.floor(Number(rawColumns) || 1)),
-        rows: Math.max(1, Math.floor(Number(rawRows) || 1)),
-        gap: Math.max(0, Number(rawGap) || 0),
-        variant: typeof rawVariant === 'string' ? (rawVariant as GridLayoutVariant) : undefined,
-        rowHeight: normalizeGridRowHeight(rawRowHeight),
-        minRowHeight: Math.max(0, Number(rawMinRowHeight) || 0),
-        paddingX: Math.max(0, Number(rawPaddingX) || 0),
-        paddingY: Math.max(0, Number(rawPaddingY) || 0),
-    };
-}
-
-/** Собирает типизированные props для Flex-layout с учётом overrides */
-function resolveFlexLayoutProps(
-    baseProps: Record<string, unknown>,
-    overrides: Record<string, unknown>
-): FlexLayoutProps {
-    const rawDirection = overrides.direction ?? baseProps.direction;
-    const rawJustify = overrides.justify ?? baseProps.justify;
-    const rawAlign = overrides.align ?? baseProps.align;
-    const rawGap = overrides.gap ?? baseProps.gap;
-    const rawWrap = overrides.wrap ?? baseProps.wrap;
-    const rawPaddingX = overrides.paddingX ?? baseProps.paddingX;
-    const rawPaddingY = overrides.paddingY ?? baseProps.paddingY;
-
-    const direction: FlexLayoutProps['direction'] = rawDirection === 'column' ? 'column' : 'row';
-
-    const justify: FlexLayoutProps['justify'] =
-        rawJustify === 'center' ||
-        rawJustify === 'end' ||
-        rawJustify === 'space-between' ||
-        rawJustify === 'space-around'
-            ? rawJustify
-            : 'start';
-
-    const align: FlexLayoutProps['align'] =
-        rawAlign === 'start' ||
-        rawAlign === 'center' ||
-        rawAlign === 'end' ||
-        rawAlign === 'baseline'
-            ? rawAlign
-            : 'stretch';
-
-    return {
-        direction,
-        justify,
-        align,
-        gap: Math.max(0, Number(rawGap) || 0),
-        wrap: Boolean(rawWrap),
-        paddingX: Math.max(0, Number(rawPaddingX) || 0),
-        paddingY: Math.max(0, Number(rawPaddingY) || 0),
-    };
-}
-
-/** Возвращает типизированные пропсы layout-компонента с учётом responsive overrides */
-function resolveLayoutProps(
-    component: BricksComponent,
-    viewport: 'mobile' | 'tablet' | 'desktop'
-): LayoutProps {
-    const currentLayout = component.componentName.toLowerCase();
-
-    const baseProps = (component.props ?? {}) as Record<string, unknown>;
-
-    if (
-        currentLayout !== 'grid' &&
-        currentLayout !== 'flex' &&
-        currentLayout !== 'section' &&
-        currentLayout !== 'space' &&
-        currentLayout !== 'media' &&
-        currentLayout !== 'svg'
-    ) {
-        return baseProps as LayoutProps;
-    }
-
-    const overrides = getResponsiveOverridesForViewport(baseProps, viewport);
-
-    if (currentLayout === 'grid') {
-        return resolveGridLayoutProps(baseProps, overrides);
-    }
-
-    if (currentLayout === 'flex') {
-        return resolveFlexLayoutProps(baseProps, overrides);
-    }
-
-    // Section, Space, Media, Svg — простой merge responsive overrides
-    return { ...baseProps, ...overrides } as LayoutProps;
-}
 
 /** Нормализует значение `grid-column`, чтобы не создавать implicit columns при смене viewport */
 function clampGridColumnToColumns(gridColumn: string, columns: number): string | undefined {
@@ -197,6 +67,8 @@ function clampGridColumnToColumns(gridColumn: string, columns: number): string |
 /**
  * Инкапсулирует логику layout-разрешения для элемента канваса:
  * itemStyle, layoutProps, layoutName, childComponents, isSpaceLayout.
+ * Резолв пропсов по viewport делегирован registry (resolveBlockProps);
+ * здесь остаётся item-level логика (grid-column clamp по родительскому Grid).
  */
 export function useCanvasItemLayout(props: ICanvasItemProps) {
     const componentsStore = useComponentsStore();
@@ -217,7 +89,7 @@ export function useCanvasItemLayout(props: ICanvasItemProps) {
      */
     function getParentGridColumns(
         component: BricksComponent,
-        viewport: 'mobile' | 'tablet' | 'desktop'
+        viewport: TBricksDeviceKey
     ): number | null {
         if (!component.parent) {
             return null;
@@ -232,7 +104,11 @@ export function useCanvasItemLayout(props: ICanvasItemProps) {
             return null;
         }
 
-        const parentLayoutProps = resolveLayoutProps(parent, viewport) as GridLayoutProps;
+        const parentLayoutProps = resolveBlockProps(
+            parent.componentName,
+            (parent.props ?? {}) as Record<string, unknown>,
+            viewport
+        );
         return Math.max(1, Number(parentLayoutProps.columns) || 1);
     }
 
@@ -270,7 +146,11 @@ export function useCanvasItemLayout(props: ICanvasItemProps) {
             return props.component.props as LayoutProps;
         }
 
-        return resolveLayoutProps(props.component, effectiveViewport.value);
+        return resolveBlockProps(
+            props.component.componentName,
+            (props.component.props ?? {}) as Record<string, unknown>,
+            effectiveViewport.value
+        ) as LayoutProps;
     });
 
     const childComponents = computed<BricksComponent[]>(() => {

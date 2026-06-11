@@ -1,5 +1,53 @@
 // Types
-import type { IBlockDefinition } from '../types/registry';
+import type { IBlockDefinition, IBlockRenderContext } from '../types/registry';
+
+// Vue
+import { h, type VNode } from 'vue';
+
+// Utils
+import { getResponsiveOverrides, gridPlacementStyle, makeResponsiveVars } from '../utils/responsiveVars';
+
+// Components
+import BlockMedia from './BlockMedia.vue';
+
+/**
+ * Published-рендер Media: компонент в CSS-var-обёртке (per-device размеры).
+ *
+ * @param ctx - Контекст рендера published-страницы.
+ * @returns VNode медиа-компонента.
+ */
+function renderMediaPublished(ctx: IBlockRenderContext): VNode {
+    const { component, extraClasses, extraAttrs, styles } = ctx;
+    const cp = component.props as Record<string, any>;
+    const mOv = getResponsiveOverrides(cp, 'mobile');
+    const tOv = getResponsiveOverrides(cp, 'tablet');
+
+    const style: Record<string, string> = {
+        ...makeResponsiveVars('--bricks-media-width', cp.width || '100%', tOv, mOv, 'width'),
+        ...makeResponsiveVars('--bricks-media-height', cp.height || 'auto', tOv, mOv, 'height'),
+        ...makeResponsiveVars(
+            '--bricks-media-radius',
+            cp.borderRadius || '0',
+            tOv,
+            mOv,
+            'borderRadius'
+        ),
+    };
+    Object.assign(style, gridPlacementStyle(component));
+
+    return h(BlockMedia, {
+        ...cp,
+        width: 'var(--bricks-media-width)',
+        height: 'var(--bricks-media-height)',
+        borderRadius: 'var(--bricks-media-radius)',
+        key: component.id,
+        id: component.htmlId || undefined,
+        class: [styles.bricksImage, ...extraClasses],
+        style,
+        'data-bricks-layout': 'media',
+        ...extraAttrs,
+    });
+}
 
 /**
  * Definition блока Media: изображение/видео.
@@ -10,6 +58,13 @@ export const blockMediaDefinition: IBlockDefinition = {
     description: 'Медиа-блок (изображение или видео) с настройками отображения.',
     thumbnail: '/images/layouts/media.svg',
     responsiveMode: 'all',
+    canvasBind: (ctx) => ({
+        ...ctx.boundProps,
+        width: ctx.layoutProps.width,
+        height: ctx.layoutProps.height,
+        borderRadius: ctx.layoutProps.borderRadius,
+    }),
+    renderPublished: renderMediaPublished,
     extraDefaults: {
         autoplay: false,
         loop: false,

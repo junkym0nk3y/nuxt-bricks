@@ -453,6 +453,23 @@ Title `marginBottom: 0`, Text `content` RU / `marginBottom: 0` (санкцион
 
 ### B4. canvas — generic-диспатч
 
+**Статус: выполнено (2026-06-12).** `CanvasItemLayout.vue` → `<component :is>` по
+`CANVAS_BLOCK_COMPONENTS[def.name]` + `v-bind="resolveCanvasBind(def, ctx)"` (новый
+экспорт registry: generic — контейнер `layoutProps`+`layoutId`+`data-bricks-layout`,
+leaf — только `layoutProps`); children в default slot при `hasChildren`. `canvasBind`
+добавлен в 5 definitions: Slider (slides/renderSlide/isEditor), Media
+(boundProps + width/height/borderRadius из layoutProps), Title/Text/Svg — общий хелпер
+`utils/canvasBindings.ts: bindBoundPropsWithComponentId`. `useCanvasItemLayout.ts`:
+per-layout resolve + name-allowlist → `resolveBlockProps`; `clampGridColumnToColumns`
+и parent-grid-логика остались. Sidebar: `RESPONSIVE_LAYOUTS`-set →
+`getBlockDefinition(name)?.responsiveMode === 'all'` (write-path эквивалентен:
+`handleChangeValues` использует тот же `isResponsiveLayout`). Фикс сверх плана:
+`resolveBlockProps` пропускает коэрцию при function-valued `properties` — иначе
+select-валидация `fontFamily` Title по options с пустым `availableFonts` сбрасывала бы
+валидный шрифт (паритет: leaf-блоки коэрции и не имели). vue-tsc: 12 = baseline;
+oxlint чисто; parity-тест 8/8; depcruise 0 violations (309 модулей); dev-smoke:
+builder отвечает 200 без ошибок Vite.
+
 - `canvas/components/CanvasItemLayout.vue`: 10 импортов + 10 `v-else-if` →
   `<component :is="canvasBlockComponents[name]" v-bind="def.canvasBind?.(ctx) ?? genericBind(ctx)">`
   + `<CanvasItem v-for>` в default slot при `hasChildren`.
@@ -464,6 +481,27 @@ Title `marginBottom: 0`, Text `content` RU / `marginBottom: 0` (санкцион
 - Самый тяжёлый smoke-шаг (см. Verification).
 
 ### B5. render — registry-диспатч
+
+**Статус: выполнено (2026-06-12).** Все 10 definitions получили `renderPublished`
+(перенос verbatim): контейнеры Grid/Flex/Section/Space — `h('div')` + CSS-vars,
+блок-специфичные хелперы (`normalizeGridVariant`, `mapFlex*`, `normalizeSpacingSize`,
+`renderSpaceDivider`…) остались локальными функциями в definitions (в
+`responsiveVars.ts` не понадобились — между блоками не шарятся); leaf-блоки
+(Title/Text/Media/Svg/Slider/Accordion) импортируют свои `.vue` — published-бандл
+ровно с сегодняшним набором, bundle firewall контейнеров цел. `useRendererLayouts.ts`
+925 → 92 строки: `getBlockDefinition(componentName)?.renderPublished?.(ctx) ?? null`
+(generic-фоллбэк не нужен — renderPublished есть у всех; null = фоллбэк на UI-рендер).
+Generic-фоллбэк `genericPublishedRender` из плана не реализован — кастомные рендеры
+есть у всех 10 блоков, мёртвая ветка. Попутно: исправлен copy-paste-каст Title
+(`as SliderLayoutProps` → `Record<string, any>`, поведенчески нейтрально — spread).
+Pixel-parity проверена автоматизированно: `test/publishedRenderer.parity.spec.ts`
+(12 тестов; legacy-реализация из git HEAD сохранена в
+`test/legacy/useRendererLayouts.legacy.ts`, VNode-выход сравнивается на фикстурах
+всех 10 блоков — Grid lead-варианты, Section responsive-vars, Space divider,
+responsive overrides; удаляется на шаге 14). Инфраструктура: registry теперь тянет
+`.vue` → создан `vitest.config.ts` с `@vitejs/plugin-vue` (добавлен в devDeps).
+vue-tsc: 12 = baseline; oxlint чисто; тесты 20/20; depcruise 0 violations
+(309 модулей, 1004 зависимости); dev-smoke: builder 200 без ошибок Vite.
 
 - `render/composables/useRendererLayouts.ts`: switch + 10 render-функций →
   `def.renderPublished?.(ctx) ?? genericPublishedRender(def, ctx)`.
@@ -511,8 +549,8 @@ Title `marginBottom: 0`, Text `content` RU / `marginBottom: 0` (санкцион
 - [x] **8. B1** — `registry.d.ts`, `blockProps.d.ts`, `utils/responsiveVars.ts` (2026-06-12)
 - [x] **9. B2** — 10 definitions + `registry.ts` + `canvasBlockComponents.ts` + parity-тест (2026-06-12)
 - [x] **10. B3** — builder-wrappers, удаление дублей (2026-06-12)
-- [ ] **11. B4** — canvas generic + sidebar `responsiveMode`
-- [ ] **12. B5** — render registry-диспатч
+- [x] **11. B4** — canvas generic + sidebar `responsiveMode` (2026-06-12)
+- [x] **12. B5** — render registry-диспатч (2026-06-12, + parity-тест published-рендера)
 - [ ] **13. B6** (опц.) — генерация CSS-vars
 - [ ] **14. Docs** — обновить CLAUDE.md (убрать «sync two files»-warning, новый процесс
       добавления блока), создать skill `/add-layout-block`, удалить parity-тест и legacy

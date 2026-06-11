@@ -1,8 +1,37 @@
 // Types
-import type { IBlockDefinition } from '../types/registry';
+import type { IBlockDefinition, IBlockRenderContext } from '../types/registry';
+
+// Vue
+import { h, type VNode } from 'vue';
 
 // Utils
 import { createInlineTextSegment } from '../utils/inlineContent';
+import { bindBoundPropsWithComponentId } from '../utils/canvasBindings';
+import { gridPlacementStyle } from '../utils/responsiveVars';
+
+// Components
+import BlockTitle from './BlockTitle.vue';
+
+/**
+ * Published-рендер Title: канвасный компонент без editor chrome — рендерим напрямую.
+ *
+ * @param ctx - Контекст рендера published-страницы.
+ * @returns VNode Title.
+ */
+function renderTitlePublished(ctx: IBlockRenderContext): VNode {
+    const { component, extraClasses, extraAttrs, styles } = ctx;
+    const componentProps = component.props as Record<string, any>;
+    const style = gridPlacementStyle(component);
+
+    return h(BlockTitle, {
+        ...componentProps,
+        key: component.id,
+        id: component.htmlId || undefined,
+        class: [styles.bricksTitle, ...extraClasses],
+        style: Object.keys(style).length ? style : undefined,
+        ...extraAttrs,
+    });
+}
 
 /**
  * Definition блока Title: заголовок с inline-контентом.
@@ -14,6 +43,8 @@ export const blockTitleDefinition: IBlockDefinition = {
     description: 'Заголовок с поддержкой inline-контента (текст/медиа).',
     thumbnail: '/images/layouts/title.svg',
     responsiveMode: 'none',
+    canvasBind: bindBoundPropsWithComponentId,
+    renderPublished: renderTitlePublished,
     properties: ({ availableFonts }) => [
         {
             name: 'inlineContent',

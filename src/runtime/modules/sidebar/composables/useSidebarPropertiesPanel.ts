@@ -36,6 +36,7 @@ import {
     createInlineMediaSegmentFromItem,
 } from '../../layouts-blocks/utils/inlineContent';
 import { normalizeDeviceVisibility } from '../../common/utils/bricks/deviceVisibility';
+import { getBlockDefinition } from '../../layouts-blocks/registry';
 
 // Constants
 import { LAYOUT_COMPONENTS } from '../../builder/constants/layoutComponents';
@@ -87,8 +88,6 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
     // #endregion
 
     // #region Computed
-    const RESPONSIVE_LAYOUTS = new Set(['Grid', 'Flex', 'Section', 'Space', 'Media', 'Svg']);
-
     const isResponsiveLayout = computed<boolean>(() => {
         const selected = store.selectedComponentData;
         if (!selected) {
@@ -99,7 +98,7 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
             return false;
         }
 
-        return RESPONSIVE_LAYOUTS.has(selected.component.componentName);
+        return getBlockDefinition(selected.component.componentName)?.responsiveMode === 'all';
     });
 
     /**

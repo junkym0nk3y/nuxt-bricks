@@ -1,5 +1,50 @@
 // Types
-import type { IBlockDefinition } from '../types/registry';
+import type { IBlockSvgProps } from '../types/blockProps';
+import type { IBlockDefinition, IBlockRenderContext } from '../types/registry';
+
+// Vue
+import { h, type VNode } from 'vue';
+
+// Utils
+import { bindBoundPropsWithComponentId } from '../utils/canvasBindings';
+import { getResponsiveOverrides, gridPlacementStyle, makeResponsiveVars } from '../utils/responsiveVars';
+
+// Components
+import BlockSvg from './BlockSvg.vue';
+
+/**
+ * Published-рендер Svg: компонент в CSS-var-обёртке (per-device размеры).
+ *
+ * @param ctx - Контекст рендера published-страницы.
+ * @returns VNode SVG-блока.
+ */
+function renderSvgPublished(ctx: IBlockRenderContext): VNode {
+    const { component, extraClasses, extraAttrs, styles } = ctx;
+    const cp = component.props as IBlockSvgProps;
+    const mOv = getResponsiveOverrides(cp as Record<string, any>, 'mobile');
+    const tOv = getResponsiveOverrides(cp as Record<string, any>, 'tablet');
+
+    const style: Record<string, string> = {
+        ...makeResponsiveVars('--bricks-media-width', cp.width || '4.8rem', tOv, mOv, 'width'),
+        ...makeResponsiveVars('--bricks-media-height', cp.height || '4.8rem', tOv, mOv, 'height'),
+        '--bricks-media-radius-desktop': '0',
+        '--bricks-media-radius-tablet': '0',
+        '--bricks-media-radius-mobile': '0',
+    };
+    Object.assign(style, gridPlacementStyle(component));
+
+    return h(BlockSvg, {
+        ...cp,
+        width: 'var(--bricks-media-width)',
+        height: 'var(--bricks-media-height)',
+        key: component.id,
+        id: component.htmlId || undefined,
+        class: [styles.bricksSvg, ...extraClasses],
+        style,
+        'data-bricks-layout': 'svg',
+        ...extraAttrs,
+    });
+}
 
 /**
  * Definition блока Svg: inline-SVG с перекраской.
@@ -10,6 +55,8 @@ export const blockSvgDefinition: IBlockDefinition = {
     description: 'SVG-блок с настройкой цвета и размера.',
     thumbnail: '/images/layouts/svg.svg',
     responsiveMode: 'all',
+    canvasBind: bindBoundPropsWithComponentId,
+    renderPublished: renderSvgPublished,
     extraDefaults: {
         svgContent: '',
     },

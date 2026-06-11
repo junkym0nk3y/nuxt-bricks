@@ -1,5 +1,36 @@
 // Types
-import type { IBlockDefinition } from '../types/registry';
+import type { AccordionLayoutProps } from '../types/blockProps';
+import type { IBlockDefinition, IBlockRenderContext } from '../types/registry';
+
+// Vue
+import { h, type VNode } from 'vue';
+
+// Utils
+import { gridPlacementStyle } from '../utils/responsiveVars';
+
+// Components
+import BlockAccordion from './BlockAccordion.vue';
+
+/**
+ * Published-рендер Accordion: канвасный компонент без editor chrome — рендерим напрямую.
+ *
+ * @param ctx - Контекст рендера published-страницы.
+ * @returns VNode аккордеона.
+ */
+function renderAccordionPublished(ctx: IBlockRenderContext): VNode {
+    const { component, extraClasses, extraAttrs } = ctx;
+    const componentProps = component.props as AccordionLayoutProps;
+    const style = gridPlacementStyle(component);
+
+    return h(BlockAccordion, {
+        layoutProps: componentProps,
+        key: component.id,
+        id: component.htmlId || undefined,
+        class: extraClasses,
+        style: Object.keys(style).length ? style : undefined,
+        ...extraAttrs,
+    });
+}
 
 /**
  * Definition блока Accordion: раскрывающиеся элементы.
@@ -10,6 +41,7 @@ export const blockAccordionDefinition: IBlockDefinition = {
     thumbnail: '/images/layouts/accordion.svg',
     isInteractive: true,
     responsiveMode: 'none',
+    renderPublished: renderAccordionPublished,
     properties: [
         {
             name: 'items',
