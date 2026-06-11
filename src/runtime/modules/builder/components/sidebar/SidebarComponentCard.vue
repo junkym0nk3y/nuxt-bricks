@@ -19,7 +19,7 @@ import {
 } from 'vue';
 
 // Pinia
-import { useLandingComponentsStore } from '../../stores/components';
+import { useComponentsStore } from '../../stores/components';
 
 // Components
 import BricksTooltip from '../../../ui/tooltip/BricksTooltip.vue';
@@ -40,7 +40,7 @@ const props = withDefaults(defineProps<ISidebarComponentCardProps>(), {
 // #endregion
 
 // #region Data
-const componentsStore = useLandingComponentsStore();
+const componentsStore = useComponentsStore();
 const { findImportModule } = useStoryImports();
 const ComponentPreview = shallowRef<Component | null>(null);
 const previewWrapperRef = ref<HTMLElement | null>(null);

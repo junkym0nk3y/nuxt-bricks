@@ -1,15 +1,15 @@
 import type { ComponentSlotDefinition } from '../../../common/types/landing';
 import { applySlotDefinitions, findSlot } from '../../utils/slots';
 import type {
-    ILandingComponentsSlotActions,
-    ILandingComponentsStore,
+    IComponentsSlotActions,
+    IComponentsStore,
     THistoryOptions,
 } from '../types';
 
 /**
  * Оперирует слотами layout-компонентов: инициализация, добавление/удаление и перемещение детей.
  */
-export const slotActions: ILandingComponentsSlotActions = {
+export const slotActions: IComponentsSlotActions = {
     /**
      * Создаёт структуру слотов у компонента согласно декларации story-файла.
      *
@@ -17,7 +17,7 @@ export const slotActions: ILandingComponentsSlotActions = {
      * @param slots - Описание слотов из story.
      */
     initializeComponentSlots(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         componentId: string,
         slots: ComponentSlotDefinition[]
     ) {
@@ -37,7 +37,7 @@ export const slotActions: ILandingComponentsSlotActions = {
      * Упрощённая обёртка над `moveComponentToSlot` для добавления элемента.
      */
     addComponentToSlot(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         parentId: string,
         slotName: string,
         childId: string,
@@ -56,7 +56,7 @@ export const slotActions: ILandingComponentsSlotActions = {
      * @param options - Настройки истории.
      */
     removeComponentFromSlot(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         parentId: string,
         slotName: string,
         childId: string,
@@ -104,7 +104,7 @@ export const slotActions: ILandingComponentsSlotActions = {
      * @param options - Флаг пропуска истории.
      */
     moveComponentToSlot(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         parentId: string,
         slotName: string,
         childId: string,

@@ -173,7 +173,7 @@ composables/stores (правила выше). Если позже захочет
 | `render/composables/useLandingRendererStories.ts`         | `useRendererStories.ts`            |
 | `common/useLanding*`, `render/useLandingDataSources`      | без изменений (сущность «лендинг») |
 
-> Ссылки на файлы в `CLAUDE.md`, `documents/*`, README композаблов и `.claude/commands/*` обновлены (шаг 13, 2026-06-11). Сторы (`useLandingCanvasStore`, `useLandingInlineEditingStore`) в переименования не входили.
+> Ссылки на файлы в `CLAUDE.md`, `documents/*`, README композаблов и `.claude/commands/*` обновлены (шаг 13, 2026-06-11). Сторы и типы с `Landing`-шумом (`useLandingCanvasStore` → `useCanvasStore`, `ILandingCanvas*` → `ICanvas*` и др.) переименованы шагом 14; pinia store ids (`'landingCanvas'` и т.п.) не тронуты — их смена будет при дебрендинге, с префиксом модуля.
 
 ## Статус выполнения (обновлено 2026-06-10)
 

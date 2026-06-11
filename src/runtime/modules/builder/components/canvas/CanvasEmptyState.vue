@@ -1,10 +1,10 @@
 <script setup lang="ts">
 // #region Imports
-import type { ILandingCanvasEmptyStateData } from '../../types/canvas';
+import type { ICanvasEmptyStateData } from '../../types/canvas';
 // #endregion
 
 // #region Data
-const emptyState: ILandingCanvasEmptyStateData = {
+const emptyState: ICanvasEmptyStateData = {
     icon: 're:drag-drop-line',
     title: 'Добавьте новые компоненты',
     description:

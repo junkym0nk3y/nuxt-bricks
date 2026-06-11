@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { ILandingCanvasItemProps, IDragComposableCanvas } from './types';
+import type { ICanvasItemProps, IDragComposableCanvas } from './types';
 
 // Vue
 import { computed, ref, inject, provide, watch } from 'vue';
@@ -10,8 +10,8 @@ import { computed, ref, inject, provide, watch } from 'vue';
 import { useElementBounding } from '@vueuse/core';
 
 // Pinia
-import { useLandingComponentsStore } from '../../stores/components';
-import { useLandingCanvasStore } from '../../stores/canvas';
+import { useComponentsStore } from '../../stores/components';
+import { useCanvasStore } from '../../stores/canvas';
 
 // Composables
 import { useCanvasItemLayout } from '../../composables/useCanvasItemLayout';
@@ -30,12 +30,12 @@ import CanvasItemToolbar from './CanvasItemToolbar.vue';
 // #endregion
 
 // #region Props
-const props = defineProps<ILandingCanvasItemProps>();
+const props = defineProps<ICanvasItemProps>();
 // #endregion
 
 // #region Data
-const componentsStore = useLandingComponentsStore();
-const canvasStore = useLandingCanvasStore();
+const componentsStore = useComponentsStore();
+const canvasStore = useCanvasStore();
 const dragComposable = inject<IDragComposableCanvas | undefined>('dragComposable');
 const availableFonts = inject<string[]>('availableFonts', []);
 

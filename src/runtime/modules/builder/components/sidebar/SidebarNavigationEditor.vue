@@ -5,7 +5,7 @@ import { computed } from 'vue';
 
 // Pinia
 import { useNavigationStore } from '../../stores/navigation';
-import { useLandingComponentsStore } from '../../stores/components';
+import { useComponentsStore } from '../../stores/components';
 
 // Components
 import BricksInput from '../../../ui/inputs/BricksInput.vue';
@@ -14,7 +14,7 @@ import BricksButton from '../../../ui/base/button/BricksButton.vue';
 
 // #region Data
 const navigationStore = useNavigationStore();
-const componentsStore = useLandingComponentsStore();
+const componentsStore = useComponentsStore();
 // #endregion
 
 // #region Computed

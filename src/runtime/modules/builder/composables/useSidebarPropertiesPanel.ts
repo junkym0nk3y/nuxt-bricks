@@ -18,8 +18,8 @@ import type {
 import { computed, defineAsyncComponent, ref, watch, type Component } from 'vue';
 
 // Pinia
-import { useLandingComponentsStore } from '../stores/components';
-import { useLandingCanvasStore } from '../stores/canvas';
+import { useComponentsStore } from '../stores/components';
+import { useCanvasStore } from '../stores/canvas';
 
 // Composables
 import { usePropertyVariants } from './usePropertyVariants';
@@ -49,8 +49,8 @@ import { LAYOUT_COMPONENTS } from '../constants/layoutComponents';
  */
 export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOptions) {
     // #region Data
-    const store = useLandingComponentsStore();
-    const canvasStore = useLandingCanvasStore();
+    const store = useComponentsStore();
+    const canvasStore = useCanvasStore();
     const currentMediaContext = ref<TMediaContext | null>(null);
     const storyDescription = ref<string>('');
     const { findImportModule } = useStoryImports();

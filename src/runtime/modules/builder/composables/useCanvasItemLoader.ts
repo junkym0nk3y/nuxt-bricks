@@ -1,6 +1,6 @@
 // #region Imports
 // Types
-import type { ILandingCanvasItemProps } from '../components/canvas/types';
+import type { ICanvasItemProps } from '../components/canvas/types';
 import type { ILandExportModule, ILandValues } from '../../common/types/index';
 
 // Vue
@@ -26,7 +26,7 @@ const FORCE_RENDER_DEBOUNCE_MS = 500;
  * и механизмом принудительного перерендера при изменении forceRender-пропов.
  */
 export function useCanvasItemLoader(
-    props: ILandingCanvasItemProps,
+    props: ICanvasItemProps,
     isLayout: ComputedRef<boolean>
 ) {
     const { findImportModule } = useStoryImports();

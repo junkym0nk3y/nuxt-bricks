@@ -1,6 +1,6 @@
 // #region Imports
 // Types
-import type { ILandingCanvasItemProps } from '../components/canvas/types';
+import type { ICanvasItemProps } from '../components/canvas/types';
 import type { PropertyDefinition } from '../../common/types/landing';
 import type { ILandValues } from '../../common/types/index';
 
@@ -8,9 +8,9 @@ import type { ILandValues } from '../../common/types/index';
 import { computed, nextTick, type ComputedRef, type Ref } from 'vue';
 
 // Pinia
-import { useLandingComponentsStore } from '../stores/components';
-import { useLandingCanvasStore } from '../stores/canvas';
-import { useLandingSidebarStore } from '../stores/sidebar';
+import { useComponentsStore } from '../stores/components';
+import { useCanvasStore } from '../stores/canvas';
+import { useSidebarStore } from '../stores/sidebar';
 
 // Composables
 import { useStoryImports } from '../../common/composables/useStoryImports';
@@ -30,7 +30,7 @@ import { LAYOUT_COMPONENTS } from '../constants/layoutComponents';
  * обработчик клика с загрузкой properties, вычисляемые состояния тулбара.
  */
 export function useCanvasItemActions(
-    props: ILandingCanvasItemProps,
+    props: ICanvasItemProps,
     isLayout: ComputedRef<boolean>,
     layoutName: ComputedRef<string>,
     availableFonts: string[],
@@ -39,9 +39,9 @@ export function useCanvasItemActions(
     itemRight: Ref<number>,
     isSelected: ComputedRef<boolean>
 ) {
-    const componentsStore = useLandingComponentsStore();
-    const canvasStore = useLandingCanvasStore();
-    const sidebarStore = useLandingSidebarStore();
+    const componentsStore = useComponentsStore();
+    const canvasStore = useCanvasStore();
+    const sidebarStore = useSidebarStore();
     const { findImportModule } = useStoryImports();
     const { storyValuesToProperties } = useComponentProperties();
 

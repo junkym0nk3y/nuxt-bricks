@@ -15,8 +15,8 @@ import type {
     PropertyEditorType,
 } from '../components/sidebar/property-editors/types';
 import type { ComputedRef, CSSProperties, Ref, VNodeRef } from 'vue';
-import type { useLandingSidebarStore } from '../stores/sidebar';
-import type { useLandingHistoryStore } from '../stores/history';
+import type { useSidebarStore } from '../stores/sidebar';
+import type { useHistoryStore } from '../stores/history';
 import type { usePublishStore } from '../stores/publish';
 import type { IMediaItem, TMediaGalleryContext } from '../../media/types/media';
 import type { ISidebarExpose } from './builder';
@@ -56,8 +56,8 @@ export interface IBuilderToastState {
  * Возвращаемое значение composable useBuilderPage.
  */
 export interface IUseBuilderPageReturn {
-    sidebarStore: ReturnType<typeof useLandingSidebarStore>;
-    historyStore: ReturnType<typeof useLandingHistoryStore>;
+    sidebarStore: ReturnType<typeof useSidebarStore>;
+    historyStore: ReturnType<typeof useHistoryStore>;
     publishStore: ReturnType<typeof usePublishStore>;
     componentLibraryList: ComputedRef<ComponentLibraryItem[]>;
     isPublishedPagesModalOpen: Ref<boolean>;

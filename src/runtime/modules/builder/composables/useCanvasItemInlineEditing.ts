@@ -1,6 +1,6 @@
 // #region Imports
 // Types
-import type { ILandingCanvasItemProps } from '../components/canvas/types';
+import type { ICanvasItemProps } from '../components/canvas/types';
 import type { ILandValues } from '../../common/types/index';
 
 // Vue
@@ -10,8 +10,8 @@ import { computed, provide, watch, type ComputedRef } from 'vue';
 import { useEventListener } from '@vueuse/core';
 
 // Pinia
-import { useLandingInlineEditingStore } from '../../editor/stores/inlineEditing';
-import { useLandingCanvasStore } from '../stores/canvas';
+import { useInlineEditingStore } from '../../editor/stores/inlineEditing';
+import { useCanvasStore } from '../stores/canvas';
 
 // Composables
 import { useStoryImports } from '../../common/composables/useStoryImports';
@@ -31,13 +31,13 @@ import {
  * обрабатывает Escape и смену viewport, пробрасывает контекст дочерним компонентам.
  */
 export function useCanvasItemInlineEditing(
-    props: ILandingCanvasItemProps,
+    props: ICanvasItemProps,
     isLayout: ComputedRef<boolean>,
     layoutName: ComputedRef<string>,
     availableFonts: string[]
 ) {
-    const inlineEditingStore = useLandingInlineEditingStore();
-    const canvasStore = useLandingCanvasStore();
+    const inlineEditingStore = useInlineEditingStore();
+    const canvasStore = useCanvasStore();
     const { findImportModule } = useStoryImports();
 
     // #region Computed

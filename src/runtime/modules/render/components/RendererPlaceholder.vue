@@ -1,10 +1,10 @@
 <script setup lang="ts">
 // #region Imports
-import type { ILandingRendererPlaceholderProps } from '../types/render';
+import type { IRendererPlaceholderProps } from '../types/render';
 // #endregion
 
 // #region Props
-const props = withDefaults(defineProps<ILandingRendererPlaceholderProps>(), {
+const props = withDefaults(defineProps<IRendererPlaceholderProps>(), {
     title: 'Компонент недоступен',
     description: 'Проверьте storyPath или перегенерируйте схему.',
 });

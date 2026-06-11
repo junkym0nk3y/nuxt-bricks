@@ -9,14 +9,14 @@ import type {
     FlexLayoutProps,
     TLandingDeviceKey,
 } from '../../common/types/landing';
-import type { IItemStyle, ILandingCanvasItemProps } from '../components/canvas/types';
+import type { IItemStyle, ICanvasItemProps } from '../components/canvas/types';
 
 // Vue
 import { computed, inject } from 'vue';
 
 // Pinia
-import { useLandingComponentsStore } from '../stores/components';
-import { useLandingCanvasStore } from '../stores/canvas';
+import { useComponentsStore } from '../stores/components';
+import { useCanvasStore } from '../stores/canvas';
 // #endregion
 
 /** Нормализует значение rowHeight для Grid */
@@ -198,9 +198,9 @@ function clampGridColumnToColumns(gridColumn: string, columns: number): string |
  * Инкапсулирует логику layout-разрешения для элемента канваса:
  * itemStyle, layoutProps, layoutName, childComponents, isSpaceLayout.
  */
-export function useCanvasItemLayout(props: ILandingCanvasItemProps) {
-    const componentsStore = useLandingComponentsStore();
-    const canvasStore = useLandingCanvasStore();
+export function useCanvasItemLayout(props: ICanvasItemProps) {
+    const componentsStore = useComponentsStore();
+    const canvasStore = useCanvasStore();
     const injectedViewport = inject<TLandingDeviceKey | null>('canvasViewport', null);
 
     /** В Figma mode используем injected viewport от CanvasViewport, иначе глобальный */

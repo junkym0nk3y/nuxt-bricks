@@ -10,7 +10,7 @@ import type {
     SectionLayoutProps,
     SliderLayoutProps,
 } from '../../common/types/landing';
-import type { ILandingRendererLayoutsOptions } from '../types/render';
+import type { IRendererLayoutsOptions } from '../types/render';
 
 // Utils
 import { convertPxToRem } from '../../common/utils/main';
@@ -61,7 +61,7 @@ export function useRendererLayouts({
     allComponents,
     styles,
     renderChild,
-}: ILandingRendererLayoutsOptions) {
+}: IRendererLayoutsOptions) {
     // #region Methods
     /**
      * Нормализует вариант Grid.

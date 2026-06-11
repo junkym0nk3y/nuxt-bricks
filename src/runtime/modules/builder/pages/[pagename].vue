@@ -13,10 +13,10 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { definePageMeta, useHead, useRoute, useRouter, useCookie } from '#imports';
 
 // Pinia
-import { useLandingComponentsStore } from '../stores/components';
-import { useLandingCanvasStore } from '../stores/canvas';
-import { useLandingSidebarStore } from '../stores/sidebar';
-import { useLandingHistoryStore } from '../stores/history';
+import { useComponentsStore } from '../stores/components';
+import { useCanvasStore } from '../stores/canvas';
+import { useSidebarStore } from '../stores/sidebar';
+import { useHistoryStore } from '../stores/history';
 import { usePublishStore } from '../stores/publish';
 
 // Composables
@@ -50,10 +50,10 @@ definePageMeta({
 const route = useRoute();
 const router = useRouter();
 
-const componentsStore = useLandingComponentsStore();
-const canvasStore = useLandingCanvasStore();
-const sidebarStore = useLandingSidebarStore();
-const historyStore = useLandingHistoryStore();
+const componentsStore = useComponentsStore();
+const canvasStore = useCanvasStore();
+const sidebarStore = useSidebarStore();
+const historyStore = useHistoryStore();
 const publishStore = usePublishStore();
 
 const builder = await useBuilderPage();

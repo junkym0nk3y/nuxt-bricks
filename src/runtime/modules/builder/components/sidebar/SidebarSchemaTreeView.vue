@@ -8,8 +8,8 @@ import type { ILandValues } from '../../../common/types/index';
 import { computed, nextTick } from 'vue';
 
 // Pinia
-import { useLandingComponentsStore } from '../../stores/components';
-import { useLandingCanvasStore } from '../../stores/canvas';
+import { useComponentsStore } from '../../stores/components';
+import { useCanvasStore } from '../../stores/canvas';
 
 // Composables
 import { useStoryImports } from '../../../common/composables/useStoryImports';
@@ -34,8 +34,8 @@ const emit = defineEmits<{
 // #endregion
 
 // #region Data
-const componentsStore = useLandingComponentsStore();
-const canvasStore = useLandingCanvasStore();
+const componentsStore = useComponentsStore();
+const canvasStore = useCanvasStore();
 const { findImportModule } = useStoryImports();
 const { storyValuesToProperties } = useComponentProperties();
 // #endregion

@@ -1,6 +1,6 @@
 import { ref, computed, watch } from 'vue';
-import { useLandingCanvasStore } from '../stores/canvas';
-import { useLandingSidebarStore } from '../stores/sidebar';
+import { useCanvasStore } from '../stores/canvas';
+import { useSidebarStore } from '../stores/sidebar';
 import { convertRemToPx } from '../../common/utils/main';
 import { useLandingConfig } from '../../common/composables/useLandingConfig';
 import { useCanvasRemBase } from './useCanvasRemBase';
@@ -12,8 +12,8 @@ import { useCanvasRemBase } from './useCanvasRemBase';
  * @returns Объект с ссылками на DOM, реактивные стили и методы масштабирования.
  */
 export function useCanvas() {
-    const canvasStore = useLandingCanvasStore();
-    const sidebarStore = useLandingSidebarStore();
+    const canvasStore = useCanvasStore();
+    const sidebarStore = useSidebarStore();
     const config = useLandingConfig();
     const { remCompensation, getRemCompensation } = useCanvasRemBase();
     const canvasContainer = ref<HTMLElement | null>(null);

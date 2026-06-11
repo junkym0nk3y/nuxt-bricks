@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import type { SidebarView } from '../../common/types/landing';
 
-interface ILandingSidebarState {
+interface ISidebarState {
     left: {
         visible: boolean;
         width: string;
@@ -12,8 +12,8 @@ interface ILandingSidebarState {
 /**
  * Контролирует состояние левого сайдбара конструктора: его видимость, ширину и активный раздел.
  */
-export const useLandingSidebarStore = defineStore('landingSidebar', {
-    state: (): ILandingSidebarState => ({
+export const useSidebarStore = defineStore('landingSidebar', {
+    state: (): ISidebarState => ({
         left: {
             visible: false,
             width: '37.2rem',

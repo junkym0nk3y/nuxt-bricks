@@ -18,7 +18,7 @@ import { usePublishValidationSchema } from '../../composables/usePublishValidati
 
 // Pinia
 import { usePublishStore } from '../../stores/publish';
-import { useLandingComponentsStore } from '../../stores/components';
+import { useComponentsStore } from '../../stores/components';
 
 // Components
 import BricksInput from '../../../ui/inputs/BricksInput.vue';
@@ -39,7 +39,7 @@ const emit = defineEmits<{
 
 // #region Data
 const publishStore = usePublishStore();
-const componentsStore = useLandingComponentsStore();
+const componentsStore = useComponentsStore();
 const landingConfig = useLandingConfig();
 const fileInputRef = ref<HTMLInputElement | null>(null);
 const importError = ref<string | null>(null);

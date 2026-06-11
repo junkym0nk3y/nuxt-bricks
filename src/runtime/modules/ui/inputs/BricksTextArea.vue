@@ -26,7 +26,7 @@ import { useNuxtApp } from 'nuxt/app';
 import { useLandingConfig } from '../../common/composables/useLandingConfig';
 
 // Pinia
-import { useLandingInlineEditingStore } from '../../editor/stores/inlineEditing';
+import { useInlineEditingStore } from '../../editor/stores/inlineEditing';
 // Components
 import BricksButton from '../base/button/BricksButton.vue';
 import BricksTextEditorToolbar from './BricksTextEditorToolbar.vue';
@@ -58,7 +58,7 @@ const emit = defineEmits<IBricksTextAreaEmits>();
 // #region Data
 const { $textEditorToolbar } = useNuxtApp();
 const config = useLandingConfig();
-const inlineEditingStore = useLandingInlineEditingStore();
+const inlineEditingStore = useInlineEditingStore();
 const $style = useCssModule();
 const innerValue = ref<string>(props.value ?? '');
 const isClient = ref(false);

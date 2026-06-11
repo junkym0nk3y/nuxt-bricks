@@ -8,8 +8,8 @@ import type { IMediaItem, TMediaGalleryContext } from '../../../media/types/medi
 import { computed, ref } from 'vue';
 
 // Pinia
-import { useLandingComponentsStore } from '../../stores/components';
-import { useLandingSidebarStore } from '../../stores/sidebar';
+import { useComponentsStore } from '../../stores/components';
+import { useSidebarStore } from '../../stores/sidebar';
 import { usePublishStore } from '../../stores/publish';
 
 // Components
@@ -33,8 +33,8 @@ const emit = defineEmits<{
 // #endregion
 
 // #region Data
-const componentsStore = useLandingComponentsStore();
-const sidebarStore = useLandingSidebarStore();
+const componentsStore = useComponentsStore();
+const sidebarStore = useSidebarStore();
 const publishStore = usePublishStore();
 const propertiesViewRef = ref<InstanceType<typeof SidebarPropertiesView> | null>(null);
 const publishViewRef = ref<InstanceType<typeof SidebarPublishView> | null>(null);

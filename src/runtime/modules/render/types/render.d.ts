@@ -2,25 +2,25 @@ import type { Ref, VNodeChild } from 'vue';
 import type { LandingComponent } from '../../common/types/landing';
 import type { ILandExportModule } from '../../common/types/index';
 
-export interface ILandingRendererStoryResolverOptions {
+export interface IRendererStoryResolverOptions {
     findImportModule: (storyPath: string) => (() => Promise<ILandExportModule>) | undefined;
 }
 
-export interface ILandingRendererProps {
+export interface IRendererProps {
     component: LandingComponent;
     allComponents?: LandingComponent[];
     resolvedProps?: Record<string, Record<string, unknown>>;
 }
 
-export type TLandingRendererChildRenderer = (component: LandingComponent) => VNodeChild;
+export type TRendererChildRenderer = (component: LandingComponent) => VNodeChild;
 
-export interface ILandingRendererLayoutsOptions {
+export interface IRendererLayoutsOptions {
     allComponents: Ref<LandingComponent[]>;
     styles: Record<string, string>;
-    renderChild: TLandingRendererChildRenderer;
+    renderChild: TRendererChildRenderer;
 }
 
-export interface ILandingRendererPlaceholderProps {
+export interface IRendererPlaceholderProps {
     title?: string;
     description?: string;
 }

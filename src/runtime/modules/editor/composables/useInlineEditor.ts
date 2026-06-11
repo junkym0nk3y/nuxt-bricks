@@ -15,9 +15,9 @@ import {
 } from 'vue';
 
 // Pinia
-import { useLandingComponentsStore } from '../../builder/stores/components';
+import { useComponentsStore } from '../../builder/stores/components';
 import {
-    useLandingInlineEditingStore,
+    useInlineEditingStore,
     type InlineEditingPropType,
 } from '../stores/inlineEditing';
 
@@ -52,8 +52,8 @@ interface IUseInlineEditorReturn {
 export function useInlineEditor(
     options: IUseInlineEditorOptions
 ): IUseInlineEditorReturn {
-    const componentsStore = useLandingComponentsStore();
-    const inlineEditingStore = useLandingInlineEditingStore();
+    const componentsStore = useComponentsStore();
+    const inlineEditingStore = useInlineEditingStore();
 
     const editor = shallowRef<Editor | null>(null);
     const editorContent = shallowRef<Component | null>(null);

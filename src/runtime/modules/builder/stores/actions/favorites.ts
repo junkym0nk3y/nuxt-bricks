@@ -1,4 +1,4 @@
-import type { ILandingComponentsFavoritesActions, ILandingComponentsStore } from '../types';
+import type { IComponentsFavoritesActions, IComponentsStore } from '../types';
 
 const STORAGE_KEY = 'landing-favorite-components';
 
@@ -32,13 +32,13 @@ function saveFavoritesToStorage(favorites: string[]): void {
 /**
  * Набор действий для управления избранными компонентами.
  */
-export const favoritesActions: ILandingComponentsFavoritesActions = {
+export const favoritesActions: IComponentsFavoritesActions = {
     /**
      * Добавляет или убирает компонент из избранного по имени.
      *
      * @param componentName - Имя компонента.
      */
-    toggleFavorite(this: ILandingComponentsStore, componentName: string) {
+    toggleFavorite(this: IComponentsStore, componentName: string) {
         const index = this.favorites.indexOf(componentName);
         if (index === -1) {
             this.favorites.push(componentName);

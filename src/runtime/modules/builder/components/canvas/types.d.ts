@@ -6,11 +6,11 @@ import type { CSSProperties, Ref } from 'vue';
 import type { ComponentLibraryItem, LandingComponent } from '../../../common/types/landing';
 import type { ILandingInlineContentSegment } from '../../../layouts-blocks/types/layouts';
 
-export interface ILandingCanvasItemProps {
+export interface ICanvasItemProps {
     component: LandingComponent;
 }
 
-export interface ILandingCanvasItemEmits {
+export interface ICanvasItemEmits {
     select: [id: string];
 }
 
@@ -77,14 +77,14 @@ export interface IDragComposableCanvas {
 
 export type TViewportType = 'mobile' | 'tablet' | 'desktop';
 
-export interface ILandingCanvasToolbarProps {
+export interface ICanvasToolbarProps {
     scale: number;
     viewport: TViewportType;
     sidebarOffset?: string;
     isFigmaMode?: boolean;
 }
 
-export interface ILandingCanvasToolbarEmits {
+export interface ICanvasToolbarEmits {
     'update:scale': [scale: number];
     'update:viewport': [viewport: TViewportType];
     zoomIn: [];

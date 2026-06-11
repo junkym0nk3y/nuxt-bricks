@@ -1,4 +1,4 @@
-import type { ILandingComponentsOrderActions, ILandingComponentsStore } from '../types';
+import type { IComponentsOrderActions, IComponentsStore } from '../types';
 
 /**
  * Находит индекс компонента среди siblings (root или children layout-а).
@@ -8,7 +8,7 @@ import type { ILandingComponentsOrderActions, ILandingComponentsStore } from '..
  * @returns Объект с массивом siblings и индексом, или null.
  */
 function findSiblingContext(
-    store: ILandingComponentsStore,
+    store: IComponentsStore,
     id: string
 ): { siblings: string[]; index: number; parentId: string | null } | null {
     const component = store.getComponentById(id);
@@ -46,13 +46,13 @@ function findSiblingContext(
 /**
  * Набор действий для перемещения компонентов вверх/вниз.
  */
-export const orderActions: ILandingComponentsOrderActions = {
+export const orderActions: IComponentsOrderActions = {
     /**
      * Перемещает компонент на одну позицию вверх среди siblings.
      *
      * @param id - Идентификатор компонента.
      */
-    moveComponentUp(this: ILandingComponentsStore, id: string) {
+    moveComponentUp(this: IComponentsStore, id: string) {
         const context = findSiblingContext(this, id);
         if (!context || context.index <= 0) {
             return;
@@ -80,7 +80,7 @@ export const orderActions: ILandingComponentsOrderActions = {
      *
      * @param id - Идентификатор компонента.
      */
-    moveComponentDown(this: ILandingComponentsStore, id: string) {
+    moveComponentDown(this: IComponentsStore, id: string) {
         const context = findSiblingContext(this, id);
         if (!context || context.index >= context.siblings.length - 1) {
             return;

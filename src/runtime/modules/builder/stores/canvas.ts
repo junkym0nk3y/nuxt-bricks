@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { useAppConfig } from 'nuxt/app';
 import type { CanvasState } from '../../common/types/landing';
 import { convertRemToPx } from '../../common/utils/main';
-import { useLandingSidebarStore } from './sidebar';
+import { useSidebarStore } from './sidebar';
 
 const VIEWPORT_BASE_HEIGHT: Record<'mobile' | 'tablet' | 'desktop', number> = {
     mobile: 812,
@@ -15,7 +15,7 @@ const CANVAS_HEIGHT_BUFFER = 400;
  * Инкапсулирует логику размеров холста: ширину, высоту, масштаб и текущий viewport.
  * Используется для расчёта настройки канваса и синхронизации с реальными размерами контента.
  */
-export const useLandingCanvasStore = defineStore('landingCanvas', {
+export const useCanvasStore = defineStore('landingCanvas', {
     state: (): CanvasState => ({
         width: 1920,
         height: VIEWPORT_BASE_HEIGHT.desktop,
@@ -39,7 +39,7 @@ export const useLandingCanvasStore = defineStore('landingCanvas', {
                 return 1;
             }
 
-            const sidebarStore = useLandingSidebarStore();
+            const sidebarStore = useSidebarStore();
             const leftWidth = sidebarStore.left.visible ? sidebarStore.left.width : '0';
             const availableWidth = window.innerWidth - convertRemToPx(leftWidth || '0') - 40;
             const availableHeight = window.innerHeight - 40;

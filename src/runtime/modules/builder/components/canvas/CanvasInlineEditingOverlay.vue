@@ -23,9 +23,9 @@ import { useElementBounding, useResizeObserver } from '@vueuse/core';
 import { useNuxtApp } from 'nuxt/app';
 
 // Pinia
-import { useLandingInlineEditingStore } from '../../../editor/stores/inlineEditing';
-import { useLandingCanvasStore } from '../../stores/canvas';
-import { useLandingComponentsStore } from '../../stores/components';
+import { useInlineEditingStore } from '../../../editor/stores/inlineEditing';
+import { useCanvasStore } from '../../stores/canvas';
+import { useComponentsStore } from '../../stores/components';
 
 // Composables
 import { useLandingConfig } from '../../../common/composables/useLandingConfig';
@@ -37,9 +37,9 @@ import TiptapImageFloatPopover from '../../../editor/components/TiptapImageFloat
 
 // #region Data
 const $style = useCssModule();
-const inlineEditingStore = useLandingInlineEditingStore();
-const canvasStore = useLandingCanvasStore();
-const componentsStore = useLandingComponentsStore();
+const inlineEditingStore = useInlineEditingStore();
+const canvasStore = useCanvasStore();
+const componentsStore = useComponentsStore();
 const config = useLandingConfig();
 const { $textEditorToolbar } = useNuxtApp();
 

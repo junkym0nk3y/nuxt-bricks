@@ -2,8 +2,8 @@ import type { LandingComponent } from '../../../common/types/landing';
 import { cloneLandingComponent } from '../../../common/utils/landing/components';
 import { generateComponentId } from '../../../common/utils/landing/paths';
 import type {
-    ILandingComponentsClipboardActions,
-    ILandingComponentsStore,
+    IComponentsClipboardActions,
+    IComponentsStore,
     IComponentClipboardSnapshot,
 } from '../types';
 
@@ -16,7 +16,7 @@ import type {
  * @returns Уникальный список идентификаторов дочерних элементов.
  */
 function resolveDirectChildren(
-    store: ILandingComponentsStore,
+    store: IComponentsStore,
     component: LandingComponent
 ): string[] {
     const directIds = new Set<string>();
@@ -51,7 +51,7 @@ function resolveDirectChildren(
  * @param rootId - Идентификатор копируемого корневого элемента.
  * @returns Массив клонов компонентов (с оригинальными ID).
  */
-function collectComponentTree(store: ILandingComponentsStore, rootId: string): LandingComponent[] {
+function collectComponentTree(store: IComponentsStore, rootId: string): LandingComponent[] {
     const queue: string[] = [rootId];
     const visited = new Set<string>();
     const result: LandingComponent[] = [];
@@ -89,7 +89,7 @@ function collectComponentTree(store: ILandingComponentsStore, rootId: string): L
  * @returns Индекс вставки или null, если позиция не определена.
  */
 function resolveInsertIndex(
-    store: ILandingComponentsStore,
+    store: IComponentsStore,
     component: LandingComponent
 ): number | null {
     if (component.parent) {
@@ -128,7 +128,7 @@ function resolveInsertIndex(
  * @returns Структура клипборда либо null при ошибке.
  */
 function createClipboardSnapshot(
-    store: ILandingComponentsStore,
+    store: IComponentsStore,
     rootId: string
 ): IComponentClipboardSnapshot | null {
     const root = store.getComponentById(rootId);
@@ -167,7 +167,7 @@ function createClipboardSnapshot(
  * @returns ID новосозданного корневого компонента.
  */
 function pasteClipboardSnapshot(
-    store: ILandingComponentsStore,
+    store: IComponentsStore,
     snapshot: IComponentClipboardSnapshot
 ): string | null {
     if (!snapshot.tree.length) {
@@ -258,13 +258,13 @@ function pasteClipboardSnapshot(
 /**
  * Набор действий для работы с клипбордом компонентов (копирование/вставка/дублирование).
  */
-export const clipboardActions: ILandingComponentsClipboardActions = {
+export const clipboardActions: IComponentsClipboardActions = {
     /**
      * Копирует компонент по ID в буфер обмена стор.
      *
      * @param id - Идентификатор корневого компонента.
      */
-    copyComponentToClipboard(this: ILandingComponentsStore, id: string) {
+    copyComponentToClipboard(this: IComponentsStore, id: string) {
         const snapshot = createClipboardSnapshot(this, id);
         if (!snapshot) {
             return;
@@ -275,7 +275,7 @@ export const clipboardActions: ILandingComponentsClipboardActions = {
     /**
      * Копирует текущий выбранный компонент, если он существует.
      */
-    copySelectedComponent(this: ILandingComponentsStore) {
+    copySelectedComponent(this: IComponentsStore) {
         if (!this.selectedComponent) {
             return;
         }
@@ -285,7 +285,7 @@ export const clipboardActions: ILandingComponentsClipboardActions = {
     /**
      * Вставляет дерево из клипборда, если оно существует.
      */
-    pasteFromClipboard(this: ILandingComponentsStore) {
+    pasteFromClipboard(this: IComponentsStore) {
         if (!this.clipboard) {
             console.warn('[Landing Store] pasteFromClipboard: clipboard is empty');
             return;
@@ -300,7 +300,7 @@ export const clipboardActions: ILandingComponentsClipboardActions = {
      *
      * @param id - Идентификатор компонента для дублирования.
      */
-    duplicateComponent(this: ILandingComponentsStore, id: string) {
+    duplicateComponent(this: IComponentsStore, id: string) {
         const snapshot = createClipboardSnapshot(this, id);
         if (!snapshot) {
             return;

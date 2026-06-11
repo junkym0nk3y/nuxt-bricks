@@ -1,4 +1,4 @@
-import type { ILandingComponentsPropertyActions, ILandingComponentsStore } from '../types';
+import type { IComponentsPropertyActions, IComponentsStore } from '../types';
 import type { TLandingDeviceKey } from '../../../common/types/landing';
 
 // Utils
@@ -8,14 +8,14 @@ import { debounce } from '../../../common/utils/main';
  * Debounced saveToHistory для property-обновлений.
  * Предотвращает десятки сериализаций при быстром изменении значений (напр. кнопки +/-).
  */
-const debouncedSaveToHistory = debounce((store: ILandingComponentsStore) => {
+const debouncedSaveToHistory = debounce((store: IComponentsStore) => {
     store.saveToHistory();
 }, 300);
 
 /**
  * Действия по обновлению props уже размещённых компонентов.
  */
-export const propertyActions: ILandingComponentsPropertyActions = {
+export const propertyActions: IComponentsPropertyActions = {
     /**
      * Обновляет значение конкретного пропса с приведением типов (строка → число и т.д.).
      *
@@ -24,7 +24,7 @@ export const propertyActions: ILandingComponentsPropertyActions = {
      * @param value - Новое значение из UI.
      */
     updateComponentProp(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         id: string,
         propName: string,
         value: string | number | boolean | Record<string, unknown> | Array<unknown>
@@ -67,7 +67,7 @@ export const propertyActions: ILandingComponentsPropertyActions = {
      * @param value - Новое значение из UI.
      */
     updateComponentResponsiveProp(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         id: string,
         device: TLandingDeviceKey,
         propName: string,
@@ -122,7 +122,7 @@ export const propertyActions: ILandingComponentsPropertyActions = {
      * @param device - Устройство (mobile/tablet/desktop).
      */
     resetComponentResponsivePropsForDevice(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         id: string,
         device: TLandingDeviceKey
     ) {

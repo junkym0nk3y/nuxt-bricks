@@ -1,5 +1,5 @@
 import { defineAsyncComponent, type Component } from 'vue';
-import type { ILandingRendererStoryResolverOptions } from '../types/render';
+import type { IRendererStoryResolverOptions } from '../types/render';
 import { normalizeStoryPath } from '../../common/utils/landing/paths';
 
 const componentCache = new Map<string, Component | null>();
@@ -86,7 +86,7 @@ async function loadStoryComponent(
  */
 export function useRendererStories({
     findImportModule,
-}: ILandingRendererStoryResolverOptions) {
+}: IRendererStoryResolverOptions) {
     /**
      * Возвращает Vue-компонент по `storyPath`, используя динамический импорт.
      *

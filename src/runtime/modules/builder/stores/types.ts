@@ -20,7 +20,7 @@ export interface IComponentClipboardSnapshot {
     description?: SelectedComponent['description'];
 }
 
-export interface ILandingComponentsState {
+export interface IComponentsState {
     components: LandingComponent[];
     selectedComponent: SelectedComponent | null;
     clipboard: IComponentClipboardSnapshot | null;
@@ -54,54 +54,54 @@ export type TComponentInsertPayload = Omit<
     slots?: ComponentSlotDefinition[];
 };
 
-export interface ILandingComponentsCrudActions {
+export interface IComponentsCrudActions {
     addComponent(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         component: TComponentInsertPayload,
         options?: THistoryOptions
     ): string;
-    removeComponent(this: ILandingComponentsStore, id: string): void;
+    removeComponent(this: IComponentsStore, id: string): void;
     detachComponentFromParent(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         childId: string,
         options?: THistoryOptions
     ): void;
     addChildToLayout(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         layoutId: string,
         childId: string,
         index?: number | null,
         options?: THistoryOptions
     ): void;
     removeChildFromLayout(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         layoutId: string,
         childId: string,
         options?: THistoryOptions
     ): void;
     moveComponentToLayout(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         layoutId: string,
         childId: string,
         options?: TMoveComponentToLayoutOptions
     ): void;
     moveComponentToRoot(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         childId: string,
         targetIndex?: number | null,
         options?: THistoryOptions
     ): void;
-    getRootComponents(this: ILandingComponentsStore): LandingComponent[];
+    getRootComponents(this: IComponentsStore): LandingComponent[];
 }
 
-export interface ILandingComponentsSlotActions {
+export interface IComponentsSlotActions {
     initializeComponentSlots(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         componentId: string,
         slots: ComponentSlotDefinition[]
     ): void;
     addComponentToSlot(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         parentId: string,
         slotName: string,
         childId: string,
@@ -109,14 +109,14 @@ export interface ILandingComponentsSlotActions {
         options?: THistoryOptions
     ): void;
     removeComponentFromSlot(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         parentId: string,
         slotName: string,
         childId: string,
         options?: THistoryOptions
     ): void;
     moveComponentToSlot(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         parentId: string,
         slotName: string,
         childId: string,
@@ -125,90 +125,90 @@ export interface ILandingComponentsSlotActions {
     ): void;
 }
 
-export interface ILandingComponentsPropertyActions {
+export interface IComponentsPropertyActions {
     updateComponentProp(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         id: string,
         propName: string,
         value: string | number | boolean | Record<string, unknown> | Array<unknown>
     ): void;
     updateComponentResponsiveProp(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         id: string,
         device: TLandingDeviceKey,
         propName: string,
         value: string | number | boolean | Record<string, unknown> | Array<unknown>
     ): void;
     resetComponentResponsivePropsForDevice(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         id: string,
         device: TLandingDeviceKey
     ): void;
 }
 
-export interface ILandingComponentsSelectionActions {
+export interface IComponentsSelectionActions {
     selectComponent(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         id: string,
         properties?: SelectedComponent['properties'],
         description?: SelectedComponent['description']
     ): void;
-    deselectComponent(this: ILandingComponentsStore): void;
-    toggleInteractivePreview(this: ILandingComponentsStore, id: string): void;
+    deselectComponent(this: IComponentsStore): void;
+    toggleInteractivePreview(this: IComponentsStore, id: string): void;
 }
 
-export interface ILandingComponentsSchemaActions {
-    setComponentFullWidth(this: ILandingComponentsStore, id: string, fullWidth: boolean): void;
-    setComponentHidden(this: ILandingComponentsStore, id: string, hidden: boolean): void;
-    setComponentHtmlId(this: ILandingComponentsStore, id: string, htmlId: string): void;
+export interface IComponentsSchemaActions {
+    setComponentFullWidth(this: IComponentsStore, id: string, fullWidth: boolean): void;
+    setComponentHidden(this: IComponentsStore, id: string, hidden: boolean): void;
+    setComponentHtmlId(this: IComponentsStore, id: string, htmlId: string): void;
     setComponentDeviceVisibility(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         id: string,
         visibility: Partial<IDeviceVisibilityConfig>
     ): void;
     setComponentDeviceVisibilityFlag(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         id: string,
         device: TLandingDeviceKey,
         value: boolean
     ): void;
-    exportSchema(this: ILandingComponentsStore): LandingSchema;
-    saveToHistory(this: ILandingComponentsStore): void;
-    undo(this: ILandingComponentsStore): void;
-    redo(this: ILandingComponentsStore): void;
+    exportSchema(this: IComponentsStore): LandingSchema;
+    saveToHistory(this: IComponentsStore): void;
+    undo(this: IComponentsStore): void;
+    redo(this: IComponentsStore): void;
     loadSchema(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         schema: LandingSchema,
         options?: { resetHistory?: boolean }
     ): void;
 }
 
-export interface ILandingComponentsClipboardActions {
-    copyComponentToClipboard(this: ILandingComponentsStore, id: string): void;
-    copySelectedComponent(this: ILandingComponentsStore): void;
-    pasteFromClipboard(this: ILandingComponentsStore): void;
-    duplicateComponent(this: ILandingComponentsStore, id: string): void;
+export interface IComponentsClipboardActions {
+    copyComponentToClipboard(this: IComponentsStore, id: string): void;
+    copySelectedComponent(this: IComponentsStore): void;
+    pasteFromClipboard(this: IComponentsStore): void;
+    duplicateComponent(this: IComponentsStore, id: string): void;
 }
 
-export interface ILandingComponentsOrderActions {
-    moveComponentUp(this: ILandingComponentsStore, id: string): void;
-    moveComponentDown(this: ILandingComponentsStore, id: string): void;
+export interface IComponentsOrderActions {
+    moveComponentUp(this: IComponentsStore, id: string): void;
+    moveComponentDown(this: IComponentsStore, id: string): void;
 }
 
-export interface ILandingComponentsFavoritesActions {
-    toggleFavorite(this: ILandingComponentsStore, componentName: string): void;
+export interface IComponentsFavoritesActions {
+    toggleFavorite(this: IComponentsStore, componentName: string): void;
 }
 
-export type ILandingComponentsActions = ILandingComponentsCrudActions &
-    ILandingComponentsSlotActions &
-    ILandingComponentsPropertyActions &
-    ILandingComponentsSelectionActions &
-    ILandingComponentsSchemaActions &
-    ILandingComponentsClipboardActions &
-    ILandingComponentsOrderActions &
-    ILandingComponentsFavoritesActions;
+export type IComponentsActions = IComponentsCrudActions &
+    IComponentsSlotActions &
+    IComponentsPropertyActions &
+    IComponentsSelectionActions &
+    IComponentsSchemaActions &
+    IComponentsClipboardActions &
+    IComponentsOrderActions &
+    IComponentsFavoritesActions;
 
-export interface ILandingComponentsComputed {
+export interface IComponentsComputed {
     getComponentById: (id: string) => LandingComponent | undefined;
     selectedComponentData: ISelectedComponentData | null;
     sortedComponents: LandingComponent[];
@@ -217,5 +217,5 @@ export interface ILandingComponentsComputed {
     hasComponents: boolean;
 }
 
-export interface ILandingComponentsStore
-    extends ILandingComponentsState, ILandingComponentsComputed, ILandingComponentsActions {}
+export interface IComponentsStore
+    extends IComponentsState, IComponentsComputed, IComponentsActions {}

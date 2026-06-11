@@ -282,3 +282,41 @@
   переименования выполненными в этом файле.
 - README композаблов (`grep -rln "useLanding" --include="*.md" .`) и прочие md в `documents/`.
 - Финальная проверка: `grep -rnE "BricksCanvas|BuilderSidebar|LogoLand|properties-types|BricksRenderer|BricksGrid|useLandingCanvas|useLandingRenderer|useLandingInline|useLandingResponsive|useLandingBuilderPage" src/ documents/ CLAUDE.md` → пусто.
+
+## Шаг 14. Сторы и интерфейсы: убрать `Landing`-шум ✅ (2026-06-11)
+
+> Примечание: затронуто 54 файла (замена префиксов sed-ом). vue-tsc — те же 18
+> pre-existing ошибок, регрессий нет; oxlint — только pre-existing `max-lines`
+> в `useRendererLayouts.ts`. Финальный grep по `src/` пуст.
+
+Файлы не переезжают — переименовываются экспортируемые функции сторов и типы.
+**Pinia store ids (`'landingCanvas'` и т.п.) не трогаем** — это рантайм-ключи (devtools,
+SSR payload); их смена — задача дебрендинга (`--ida-*` → `--bricks-*`), с префиксом модуля.
+
+Сторы (id остаётся):
+
+| Функция | Новое имя | Использований |
+| ------- | --------- | ------------- |
+| `useLandingCanvasStore` | `useCanvasStore` | 15 файлов |
+| `useLandingComponentsStore` | `useComponentsStore` | 18 файлов |
+| `useLandingHistoryStore` | `useHistoryStore` | 5 файлов |
+| `useLandingSidebarStore` | `useSidebarStore` | 12 файлов |
+| `useLandingInlineEditingStore` | `useInlineEditingStore` | 7 файлов |
+
+Типы (префиксная замена):
+
+| Паттерн | Новый префикс | Где объявлены |
+| ------- | ------------- | ------------- |
+| `ILandingComponents*` (13 имён) | `IComponents*` | `builder/stores/types.ts` (+ 10 файлов-импортёров в `stores/actions/`) |
+| `ILandingCanvas*` (11 имён) | `ICanvas*` | `builder/types/canvas.d.ts`, `builder/components/canvas/types.d.ts` + локальные в `CanvasItemComponent/CanvasViewport/CanvasItemLayout` |
+| `ILandingRenderer*` / `TLandingRenderer*` (5 имён) | `IRenderer*` / `TRenderer*` | `render/types/render.d.ts` |
+| `ILandingHistoryState`, `ILandingSidebarState` | `IHistoryState`, `ISidebarState` | локальные в `stores/history.ts`, `stores/sidebar.ts` |
+
+Вне шага (сущность «лендинг» либо кандидаты на шаг 15): `ILandingPageRow`,
+`ILandingBreakpoint*`, `ILandingMediaConfig`, `ILandingSchemaMeta`, `TLandingDeviceKey`,
+`ILandingFileStructure` — остаются; `ILandingText/Title/Media/SvgProps` (→ `IBlock*Props`),
+`ILandingBuilderToolbar*` (→ `IToolbar*`), `ILandingInlineContentSegment`,
+`ILandingGalleryItem` — возможный шаг 15.
+
+После замены: обновить строку про сторы в `refactor.md` («Ссылки на файлы... обновлены»),
+финальный grep `useLandingCanvasStore|useLandingComponentsStore|useLandingHistoryStore|useLandingSidebarStore|useLandingInlineEditingStore|ILandingComponents|ILandingCanvas|ILandingRenderer|TLandingRenderer|ILandingHistoryState|ILandingSidebarState` по `src/` → пусто.

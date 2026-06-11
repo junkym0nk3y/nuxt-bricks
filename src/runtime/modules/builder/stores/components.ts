@@ -2,14 +2,14 @@ import { defineStore } from 'pinia';
 import type { LandingComponent } from '../../common/types/landing';
 import { componentActions } from './componentActions';
 import { loadFavoritesFromStorage } from './actions/favorites';
-import type { ILandingComponentsState, ISelectedComponentData } from './types';
+import type { IComponentsState, ISelectedComponentData } from './types';
 
 /**
  * Отвечает за плоский список компонентов канваса, управление их иерархией и выбранным элементом.
  * Все операции (CRUD, слоты, история, выбор) проксируются через агрегированный набор действий.
  */
-export const useLandingComponentsStore = defineStore('landingComponents', {
-    state: (): ILandingComponentsState => ({
+export const useComponentsStore = defineStore('landingComponents', {
+    state: (): IComponentsState => ({
         components: [],
         selectedComponent: null,
         clipboard: null,
@@ -83,4 +83,4 @@ export const useLandingComponentsStore = defineStore('landingComponents', {
     actions: componentActions,
 });
 
-export type LandingComponentsStore = ReturnType<typeof useLandingComponentsStore>;
+export type LandingComponentsStore = ReturnType<typeof useComponentsStore>;

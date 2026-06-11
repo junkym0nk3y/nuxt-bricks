@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { ILandingRendererProps } from '../types/render';
+import type { IRendererProps } from '../types/render';
 import type { LandingComponent } from '../../common/types/landing';
 
 // Vue
@@ -24,7 +24,7 @@ import {
 // #endregion
 
 // #region Props
-const props = withDefaults(defineProps<ILandingRendererProps>(), {
+const props = withDefaults(defineProps<IRendererProps>(), {
     allComponents: () => [],
     resolvedProps: () => ({}) as Record<string, Record<string, unknown>>,
 });

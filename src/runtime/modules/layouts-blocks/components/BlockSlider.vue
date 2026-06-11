@@ -7,7 +7,7 @@ import type { LandingComponent, SliderLayoutProps } from '../../common/types/lan
 import { computed, defineComponent, h, inject, ref, type PropType, type VNodeChild } from 'vue';
 
 // Pinia
-import { useLandingCanvasStore } from '../../builder/stores/canvas';
+import { useCanvasStore } from '../../builder/stores/canvas';
 
 // Components
 import { Swiper, SwiperSlide } from 'swiper/vue';
@@ -61,7 +61,7 @@ const isDragOver = ref(false);
 const dropIndicator = ref<{ index: number; offset: number } | null>(null);
 const dropInsertIndex = ref<number | null>(null);
 const dragDepth = ref(0);
-const canvasStore = useLandingCanvasStore();
+const canvasStore = useCanvasStore();
 const injectedViewport = inject<string | undefined>('canvasViewport', undefined);
 const activeSlideIndex = ref(0);
 // #endregion

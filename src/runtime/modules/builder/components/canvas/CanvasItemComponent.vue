@@ -17,7 +17,7 @@ import CanvasConditionalContainer from './CanvasConditionalContainer.vue';
 /**
  * Пропсы для компонента CanvasItemComponent
  */
-interface ILandingCanvasItemComponentProps {
+interface ICanvasItemComponentProps {
     /** Экземпляр landing-компонента для рендеринга */
     component: LandingComponent;
     /** Динамически загруженный экземпляр Vue-компонента */
@@ -30,7 +30,7 @@ interface ILandingCanvasItemComponentProps {
 // #endregion
 
 // #region Props
-const props = defineProps<ILandingCanvasItemComponentProps>();
+const props = defineProps<ICanvasItemComponentProps>();
 // #endregion
 
 // #region Data

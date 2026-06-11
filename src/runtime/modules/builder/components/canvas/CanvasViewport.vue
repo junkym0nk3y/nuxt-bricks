@@ -8,8 +8,8 @@ import type { IDeviceVisibilityConfig } from '../../../common/types/landing';
 import { computed, ref, inject, provide, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
 
 // Pinia
-import { useLandingComponentsStore } from '../../stores/components';
-import { useLandingCanvasStore } from '../../stores/canvas';
+import { useComponentsStore } from '../../stores/components';
+import { useCanvasStore } from '../../stores/canvas';
 import { usePublishStore } from '../../stores/publish';
 
 // Composables
@@ -24,18 +24,18 @@ import CanvasItem from './CanvasItem.vue';
 // #endregion
 
 // #region Interfaces
-interface ILandingCanvasViewportProps {
+interface ICanvasViewportProps {
     viewport: TViewportType;
 }
 // #endregion
 
 // #region Props
-const props = defineProps<ILandingCanvasViewportProps>();
+const props = defineProps<ICanvasViewportProps>();
 // #endregion
 
 // #region Data
-const componentsStore = useLandingComponentsStore();
-const canvasStore = useLandingCanvasStore();
+const componentsStore = useComponentsStore();
+const canvasStore = useCanvasStore();
 const publishStore = usePublishStore();
 const config = useLandingConfig();
 

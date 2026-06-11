@@ -7,7 +7,7 @@ import type { ISlotRenderData, IUseComponentSlotsReturn } from '../types/composa
 import { computed, ref, watch } from 'vue';
 
 // Pinia
-import { useLandingComponentsStore } from '../stores/components';
+import { useComponentsStore } from '../stores/components';
 
 // Composables
 import { useStoryImports } from '../../common/composables/useStoryImports';
@@ -101,7 +101,7 @@ export function useComponentSlots(
     componentProps: Record<string, unknown> | undefined
 ): IUseComponentSlotsReturn {
     // #region Data
-    const componentsStore = useLandingComponentsStore();
+    const componentsStore = useComponentsStore();
     const { findImportModule } = useStoryImports();
     const hasLoadedSlots = ref(false);
     // #endregion

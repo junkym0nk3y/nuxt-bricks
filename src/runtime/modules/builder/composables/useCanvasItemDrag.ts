@@ -1,11 +1,11 @@
 // #region Imports
 // Types
-import type { ILandingCanvasItemProps, IDragComposableCanvas } from '../components/canvas/types';
+import type { ICanvasItemProps, IDragComposableCanvas } from '../components/canvas/types';
 import type { ComponentLibraryItem } from '../../common/types/landing';
 import type { ComputedRef } from 'vue';
 
 // Pinia
-import { useLandingCanvasStore } from '../stores/canvas';
+import { useCanvasStore } from '../stores/canvas';
 
 // Utils
 import { convertPxToRem } from '../../common/utils/main';
@@ -16,11 +16,11 @@ import { convertPxToRem } from '../../common/utils/main';
  * создание drag-image с клоном компонента, установка dataTransfer, очистка состояния.
  */
 export function useCanvasItemDrag(
-    props: ILandingCanvasItemProps,
+    props: ICanvasItemProps,
     isInlineEditing: ComputedRef<boolean>,
     dragComposable: IDragComposableCanvas | undefined
 ) {
-    const canvasStore = useLandingCanvasStore();
+    const canvasStore = useCanvasStore();
 
     // #region Methods
     /**

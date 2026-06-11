@@ -1,8 +1,8 @@
 import { computed, ref } from 'vue';
 import type { ComponentSlotDefinition } from '../../common/types/landing';
 import type {
-    ILandingCanvasDropIndicator,
-    ILandingCanvasDropsOptions,
+    ICanvasDropIndicator,
+    ICanvasDropsOptions,
     ILayoutDropDetail,
     ISlotDropDetail,
 } from '../types/canvas';
@@ -17,8 +17,8 @@ export function useCanvasDrops({
     componentsStore,
     canvasRef,
     containerRef,
-}: ILandingCanvasDropsOptions) {
-    const rootDropIndicator = ref<ILandingCanvasDropIndicator | null>(null);
+}: ICanvasDropsOptions) {
+    const rootDropIndicator = ref<ICanvasDropIndicator | null>(null);
     const rootDropIndicatorRef = ref<HTMLElement | null>(null);
     const rootDropInsertIndex = ref<number | null>(null);
     const rootDragDepth = ref(0);

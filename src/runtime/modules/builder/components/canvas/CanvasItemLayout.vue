@@ -34,7 +34,7 @@ import CanvasConditionalContainer from './CanvasConditionalContainer.vue';
 /**
  * Пропсы для компонента CanvasItemLayout
  */
-interface ILandingCanvasItemLayoutProps {
+interface ICanvasItemLayoutProps {
     /** Экземпляр landing-компонента для рендеринга */
     component: LandingComponent;
     /** Имя типа layout в нижнем регистре (grid, flex, space, title, text, media) */
@@ -51,7 +51,7 @@ interface ILandingCanvasItemLayoutProps {
 // #endregion
 
 // #region Props
-const props = defineProps<ILandingCanvasItemLayoutProps>();
+const props = defineProps<ICanvasItemLayoutProps>();
 // #endregion
 
 // #region Methods

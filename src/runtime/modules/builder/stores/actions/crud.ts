@@ -6,10 +6,10 @@ import {
     removeChildFromLayout as removeChildFromLayoutHelper,
 } from '../../../common/utils/landing/components';
 import { generateComponentId, normalizeStoryPath } from '../../../common/utils/landing/paths';
-import { useLandingSidebarStore } from '../sidebar';
+import { useSidebarStore } from '../sidebar';
 import type {
-    ILandingComponentsStore,
-    ILandingComponentsCrudActions,
+    IComponentsStore,
+    IComponentsCrudActions,
     TComponentInsertPayload,
     THistoryOptions,
     TMoveComponentToLayoutOptions,
@@ -44,7 +44,7 @@ function resolveGridProperty(
 /**
  * Набор CRUD-операций по управлению компонентами канваса и их иерархией.
  */
-export const crudActions: ILandingComponentsCrudActions = {
+export const crudActions: IComponentsCrudActions = {
     /**
      * Создаёт новый компонент канваса с уникальным ID и корректным z-index.
      *
@@ -53,7 +53,7 @@ export const crudActions: ILandingComponentsCrudActions = {
      * @returns Сгенерированный идентификатор компонента.
      */
     addComponent(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         component: TComponentInsertPayload,
         options?: THistoryOptions
     ) {
@@ -86,7 +86,7 @@ export const crudActions: ILandingComponentsCrudActions = {
      *
      * @param id - Идентификатор компонента, который требуется удалить.
      */
-    removeComponent(this: ILandingComponentsStore, id: string) {
+    removeComponent(this: IComponentsStore, id: string) {
         const target = this.getComponentById(id);
         if (!target) {
             return;
@@ -143,7 +143,7 @@ export const crudActions: ILandingComponentsCrudActions = {
 
         if (this.selectedComponent && idsToRemove.has(this.selectedComponent.id)) {
             this.selectedComponent = null;
-            const sidebarStore = useLandingSidebarStore();
+            const sidebarStore = useSidebarStore();
             if (sidebarStore.activeView === 'properties') {
                 sidebarStore.setActiveView('components');
             }
@@ -159,7 +159,7 @@ export const crudActions: ILandingComponentsCrudActions = {
      * @param options - Опции для пропуска записи в историю.
      */
     detachComponentFromParent(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         childId: string,
         options?: THistoryOptions
     ) {
@@ -198,7 +198,7 @@ export const crudActions: ILandingComponentsCrudActions = {
      * @param options - Дополнительные настройки истории.
      */
     addChildToLayout(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         layoutId: string,
         childId: string,
         index?: number | null,
@@ -242,7 +242,7 @@ export const crudActions: ILandingComponentsCrudActions = {
      * @param options - Управление историей.
      */
     removeChildFromLayout(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         layoutId: string,
         childId: string,
         options?: THistoryOptions
@@ -277,7 +277,7 @@ export const crudActions: ILandingComponentsCrudActions = {
      * @param options - Параметры позиции и сетки.
      */
     moveComponentToLayout(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         layoutId: string,
         childId: string,
         options?: TMoveComponentToLayoutOptions
@@ -367,7 +367,7 @@ export const crudActions: ILandingComponentsCrudActions = {
      * @param options - Настройки записи в историю.
      */
     moveComponentToRoot(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         childId: string,
         targetIndex?: number | null,
         options?: THistoryOptions
@@ -418,7 +418,7 @@ export const crudActions: ILandingComponentsCrudActions = {
     /**
      * Возвращает все компоненты верхнего уровня (без родителя).
      */
-    getRootComponents(this: ILandingComponentsStore): LandingComponent[] {
+    getRootComponents(this: IComponentsStore): LandingComponent[] {
         return this.components.filter((component) => !component.parent);
     },
 };

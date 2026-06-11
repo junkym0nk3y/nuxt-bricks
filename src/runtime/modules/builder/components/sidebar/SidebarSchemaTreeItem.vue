@@ -7,7 +7,7 @@ import type { LandingComponent } from '../../../common/types/landing';
 import { computed, ref } from 'vue';
 
 // Pinia
-import { useLandingComponentsStore } from '../../stores/components';
+import { useComponentsStore } from '../../stores/components';
 // #endregion
 
 // #region Interfaces
@@ -33,7 +33,7 @@ const emit = defineEmits<{
 // #endregion
 
 // #region Data
-const componentsStore = useLandingComponentsStore();
+const componentsStore = useComponentsStore();
 const dragOverPosition = ref<'before' | 'after' | null>(null);
 // #endregion
 

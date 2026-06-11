@@ -2,8 +2,8 @@
 // #region Imports
 // Types
 import type {
-    ILandingCanvasToolbarProps,
-    ILandingCanvasToolbarEmits,
+    ICanvasToolbarProps,
+    ICanvasToolbarEmits,
     IViewportOption,
     TViewportType,
 } from './types';
@@ -19,11 +19,11 @@ import BricksButton from '../../../ui/base/button/BricksButton.vue';
 // #endregion
 
 // #region Props
-const props = defineProps<ILandingCanvasToolbarProps>();
+const props = defineProps<ICanvasToolbarProps>();
 // #endregion
 
 // #region Emits
-const emit = defineEmits<ILandingCanvasToolbarEmits>();
+const emit = defineEmits<ICanvasToolbarEmits>();
 // #endregion
 
 // #region Data

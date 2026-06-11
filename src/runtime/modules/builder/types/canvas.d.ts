@@ -2,26 +2,26 @@ import type { Ref } from 'vue';
 import type { IDragComposableCanvas } from '../components/canvas/types';
 import type { LandingComponentsStore } from '../stores/components';
 
-export interface ILandingCanvasDropIndicator {
+export interface ICanvasDropIndicator {
     index: number;
     offset: number;
 }
 
-export interface ILandingCanvasDropsOptions {
+export interface ICanvasDropsOptions {
     dragComposable?: IDragComposableCanvas;
     componentsStore: LandingComponentsStore;
     canvasRef: Ref<HTMLElement | null>;
     containerRef: Ref<HTMLElement | null>;
 }
 
-export interface ILandingCanvasPanState {
+export interface ICanvasPanState {
     startX: number;
     startY: number;
     scrollLeft: number;
     scrollTop: number;
 }
 
-export interface ILandingCanvasEmptyStateData {
+export interface ICanvasEmptyStateData {
     icon: string;
     title: string;
     description: string;

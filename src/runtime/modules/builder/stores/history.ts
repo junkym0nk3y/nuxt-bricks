@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import type { LandingSchema } from '../../common/types/landing';
 import { clampHistory } from '../utils/history';
 
-interface ILandingHistoryState {
+interface IHistoryState {
     history: LandingSchema[];
     historyIndex: number;
 }
@@ -11,8 +11,8 @@ interface ILandingHistoryState {
  * Управляет стэком истории изменений канваса: хранит сериализованные схемы,
  * предоставляет undo/redo и очистку с ограничением на максимальный размер.
  */
-export const useLandingHistoryStore = defineStore('landingHistory', {
-    state: (): ILandingHistoryState => ({
+export const useHistoryStore = defineStore('landingHistory', {
+    state: (): IHistoryState => ({
         history: [],
         historyIndex: -1,
     }),

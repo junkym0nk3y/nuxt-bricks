@@ -1,5 +1,5 @@
 import { onBeforeUnmount, ref, type Ref } from 'vue';
-import type { ILandingCanvasPanState } from '../types/canvas';
+import type { ICanvasPanState } from '../types/canvas';
 
 /**
  * Предоставляет поведение перетаскивания средней кнопкой мыши для обертки канваса.
@@ -8,7 +8,7 @@ import type { ILandingCanvasPanState } from '../types/canvas';
  */
 export function useCanvasPan(containerRef: Ref<HTMLElement | null>) {
     const isPanning = ref(false);
-    const panState: ILandingCanvasPanState = {
+    const panState: ICanvasPanState = {
         startX: 0,
         startY: 0,
         scrollLeft: 0,

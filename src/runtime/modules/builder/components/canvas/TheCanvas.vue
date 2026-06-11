@@ -10,9 +10,9 @@ import { ref, computed, inject, provide, onMounted, onBeforeUnmount, nextTick, w
 import { useDebounceFn } from '@vueuse/core';
 
 // Pinia
-import { useLandingComponentsStore } from '../../stores/components';
-import { useLandingCanvasStore } from '../../stores/canvas';
-import { useLandingSidebarStore } from '../../stores/sidebar';
+import { useComponentsStore } from '../../stores/components';
+import { useCanvasStore } from '../../stores/canvas';
+import { useSidebarStore } from '../../stores/sidebar';
 import { usePublishStore } from '../../stores/publish';
 
 // Composables
@@ -34,9 +34,9 @@ import CanvasInlineEditingOverlay from './CanvasInlineEditingOverlay.vue';
 // #endregion
 
 // #region Data
-const componentsStore = useLandingComponentsStore();
-const canvasStore = useLandingCanvasStore();
-const sidebarStore = useLandingSidebarStore();
+const componentsStore = useComponentsStore();
+const canvasStore = useCanvasStore();
+const sidebarStore = useSidebarStore();
 const publishStore = usePublishStore();
 const config = useLandingConfig();
 const {

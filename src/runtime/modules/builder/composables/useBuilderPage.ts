@@ -20,10 +20,10 @@ import { useLandingConfig } from '../../common/composables/useLandingConfig';
 import { useSchemaImageResolver } from '../../media/composables/useSchemaImageResolver';
 
 // Pinia
-import { useLandingComponentsStore } from '../stores/components';
-import { useLandingSidebarStore } from '../stores/sidebar';
-import { useLandingHistoryStore } from '../stores/history';
-import { useLandingInlineEditingStore } from '../../editor/stores/inlineEditing';
+import { useComponentsStore } from '../stores/components';
+import { useSidebarStore } from '../stores/sidebar';
+import { useHistoryStore } from '../stores/history';
+import { useInlineEditingStore } from '../../editor/stores/inlineEditing';
 import { usePublishStore, setPublishStoreBackgroundColor } from '../stores/publish';
 
 // Constants
@@ -35,10 +35,10 @@ import { LAYOUT_COMPONENTS } from '../constants/layoutComponents';
  */
 export async function useBuilderPage(): Promise<IUseBuilderPageReturn> {
     // #region Stores & Composables
-    const componentsStore = useLandingComponentsStore();
-    const sidebarStore = useLandingSidebarStore();
-    const historyStore = useLandingHistoryStore();
-    const inlineEditingStore = useLandingInlineEditingStore();
+    const componentsStore = useComponentsStore();
+    const sidebarStore = useSidebarStore();
+    const historyStore = useHistoryStore();
+    const inlineEditingStore = useInlineEditingStore();
     const publishStore = usePublishStore();
     const { findImportModule } = useStoryImports();
     const dragComposable = useComponentLibraryDrag();

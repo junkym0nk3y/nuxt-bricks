@@ -1,11 +1,11 @@
 import type { SelectedComponent } from '../../../common/types/landing';
-import { useLandingSidebarStore } from '../sidebar';
-import type { ILandingComponentsSelectionActions, ILandingComponentsStore } from '../types';
+import { useSidebarStore } from '../sidebar';
+import type { IComponentsSelectionActions, IComponentsStore } from '../types';
 
 /**
  * Управляет выбором компонентов и синхронизацией с панелью свойств.
  */
-export const selectionActions: ILandingComponentsSelectionActions = {
+export const selectionActions: IComponentsSelectionActions = {
     /**
      * Помечает компонент выбранным и открывает панель свойств.
      *
@@ -13,7 +13,7 @@ export const selectionActions: ILandingComponentsSelectionActions = {
      * @param properties - Метаданные свойств из story-файла.
      */
     selectComponent(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         id: string,
         properties: SelectedComponent['properties'] = [],
         description?: SelectedComponent['description']
@@ -34,17 +34,17 @@ export const selectionActions: ILandingComponentsSelectionActions = {
             description,
         };
 
-        const sidebarStore = useLandingSidebarStore();
+        const sidebarStore = useSidebarStore();
         sidebarStore.showSidebarView('properties');
     },
 
     /**
      * Сбрасывает выбор и возвращает сайдбар в список компонентов.
      */
-    deselectComponent(this: ILandingComponentsStore) {
+    deselectComponent(this: IComponentsStore) {
         this.selectedComponent = null;
         this.interactivePreviewId = null;
-        const sidebarStore = useLandingSidebarStore();
+        const sidebarStore = useSidebarStore();
         if (sidebarStore.activeView === 'properties') {
             sidebarStore.setActiveView('components');
         }
@@ -56,7 +56,7 @@ export const selectionActions: ILandingComponentsSelectionActions = {
      *
      * @param id - Идентификатор компонента.
      */
-    toggleInteractivePreview(this: ILandingComponentsStore, id: string) {
+    toggleInteractivePreview(this: IComponentsStore, id: string) {
         this.interactivePreviewId = this.interactivePreviewId === id ? null : id;
     },
 };

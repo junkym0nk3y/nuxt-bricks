@@ -5,14 +5,14 @@ import type {
     ILandingSchemaMeta,
 } from '../../../common/types/landing';
 import { deserializeSchema, serializeSchema } from '../../utils/history';
-import { useLandingSidebarStore } from '../sidebar';
-import { useLandingHistoryStore } from '../history';
+import { useSidebarStore } from '../sidebar';
+import { useHistoryStore } from '../history';
 import { useNavigationStore } from '../navigation';
-import type { ILandingComponentsSchemaActions, ILandingComponentsStore } from '../types';
+import type { IComponentsSchemaActions, IComponentsStore } from '../types';
 import { normalizeDeviceVisibility } from '../../../common/utils/landing/deviceVisibility';
 import { debounce } from '../../../common/utils/main';
 
-const debouncedSaveToHistory = debounce((store: ILandingComponentsStore) => {
+const debouncedSaveToHistory = debounce((store: IComponentsStore) => {
     store.saveToHistory();
 }, 300);
 
@@ -33,14 +33,14 @@ function collectSchemaMeta(): ILandingSchemaMeta | undefined {
 /**
  * Действия, связанные с экспортом/импортом схемы и взаимодействием с историей.
  */
-export const schemaActions: ILandingComponentsSchemaActions = {
+export const schemaActions: IComponentsSchemaActions = {
     /**
      * Включает режим растягивания компонента на всю ширину или отключает его.
      *
      * @param id - Целевой компонент.
      * @param fullWidth - Новое значение признака.
      */
-    setComponentFullWidth(this: ILandingComponentsStore, id: string, fullWidth: boolean) {
+    setComponentFullWidth(this: IComponentsStore, id: string, fullWidth: boolean) {
         const component = this.getComponentById(id);
         if (!component) {
             return;
@@ -56,7 +56,7 @@ export const schemaActions: ILandingComponentsSchemaActions = {
      * @param id - Целевой компонент.
      * @param htmlId - Значение атрибута id (пустая строка — удаляет).
      */
-    setComponentHtmlId(this: ILandingComponentsStore, id: string, htmlId: string) {
+    setComponentHtmlId(this: IComponentsStore, id: string, htmlId: string) {
         const component = this.getComponentById(id);
         if (!component) {
             return;
@@ -72,7 +72,7 @@ export const schemaActions: ILandingComponentsSchemaActions = {
      * @param id - Целевой компонент.
      * @param hidden - Новое значение признака скрытия.
      */
-    setComponentHidden(this: ILandingComponentsStore, id: string, hidden: boolean) {
+    setComponentHidden(this: IComponentsStore, id: string, hidden: boolean) {
         const component = this.getComponentById(id);
         if (!component) {
             return;
@@ -89,7 +89,7 @@ export const schemaActions: ILandingComponentsSchemaActions = {
      * @param visibility - Новая конфигурация видимости.
      */
     setComponentDeviceVisibility(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         id: string,
         visibility: Partial<IDeviceVisibilityConfig>
     ) {
@@ -110,7 +110,7 @@ export const schemaActions: ILandingComponentsSchemaActions = {
      * @param value - Новый флаг видимости.
      */
     setComponentDeviceVisibilityFlag(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         id: string,
         device: TLandingDeviceKey,
         value: boolean
@@ -133,7 +133,7 @@ export const schemaActions: ILandingComponentsSchemaActions = {
      *
      * @returns Сериализованная схема landing-страницы.
      */
-    exportSchema(this: ILandingComponentsStore) {
+    exportSchema(this: IComponentsStore) {
         console.log('[Landing Store] Exporting schema:', {
             components: this.components.length,
             componentProps: this.components.map((component) => ({
@@ -149,8 +149,8 @@ export const schemaActions: ILandingComponentsSchemaActions = {
     /**
      * Сохраняет текущее состояние схемы в историю.
      */
-    saveToHistory(this: ILandingComponentsStore) {
-        const historyStore = useLandingHistoryStore();
+    saveToHistory(this: IComponentsStore) {
+        const historyStore = useHistoryStore();
         const schema = serializeSchema(this.components, collectSchemaMeta());
         historyStore.capture(schema);
     },
@@ -158,8 +158,8 @@ export const schemaActions: ILandingComponentsSchemaActions = {
     /**
      * Выполняет undo: восстанавливает предыдущую схему из истории.
      */
-    undo(this: ILandingComponentsStore) {
-        const historyStore = useLandingHistoryStore();
+    undo(this: IComponentsStore) {
+        const historyStore = useHistoryStore();
         const schema = historyStore.undo();
         if (schema) {
             this.loadSchema(schema);
@@ -169,8 +169,8 @@ export const schemaActions: ILandingComponentsSchemaActions = {
     /**
      * Выполняет redo и применяет полученную схему к текущему состоянию.
      */
-    redo(this: ILandingComponentsStore) {
-        const historyStore = useLandingHistoryStore();
+    redo(this: IComponentsStore) {
+        const historyStore = useHistoryStore();
         const schema = historyStore.redo();
         if (schema) {
             this.loadSchema(schema);
@@ -184,7 +184,7 @@ export const schemaActions: ILandingComponentsSchemaActions = {
      * @param options - Дополнительные флаги (например, сброс истории).
      */
     loadSchema(
-        this: ILandingComponentsStore,
+        this: IComponentsStore,
         schema: LandingSchema,
         options?: { resetHistory?: boolean }
     ) {
@@ -205,14 +205,14 @@ export const schemaActions: ILandingComponentsSchemaActions = {
             !this.components.some((component) => component.id === this.selectedComponent?.id)
         ) {
             this.selectedComponent = null;
-            const sidebarStore = useLandingSidebarStore();
+            const sidebarStore = useSidebarStore();
             if (sidebarStore.activeView === 'properties') {
                 sidebarStore.setActiveView('components');
             }
         }
 
         if (options?.resetHistory) {
-            const historyStore = useLandingHistoryStore();
+            const historyStore = useHistoryStore();
             historyStore.reset();
             historyStore.capture(serializeSchema(this.components, collectSchemaMeta()));
         }

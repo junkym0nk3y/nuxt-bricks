@@ -6,7 +6,7 @@ import type { TViewportType } from '../components/canvas/types';
 import { computed } from 'vue';
 
 // Pinia
-import { useLandingCanvasStore } from '../stores/canvas';
+import { useCanvasStore } from '../stores/canvas';
 
 // Composables
 import { useLandingConfig } from '../../common/composables/useLandingConfig';
@@ -34,7 +34,7 @@ const LIBRARY_REM_BASE = 10;
  * }
  */
 export function useCanvasRemBase() {
-    const canvasStore = useLandingCanvasStore();
+    const canvasStore = useCanvasStore();
     const config = useLandingConfig();
 
     /**
