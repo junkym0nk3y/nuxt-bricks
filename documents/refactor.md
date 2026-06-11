@@ -28,8 +28,11 @@ nuxt-bricks/
 │   └── runtime/
 │       ├── modules/              # домены (модульный монолит)
 │       │   ├── ui/               # headless UI-кит на Reka UI (base/inputs/feedback/tooltip)
-│       │   ├── builder/          # редактор: components/{canvas,sidebar,toolbar,modal},
-│       │   │                     #   composables/, stores/, pages/, utils/, constants/, types/
+│       │   ├── builder/          # ядро редактора: stores/, pages/ (composition root),
+│       │   │                     #   components/modal/, общие composables/, utils/, constants/, types/
+│       │   ├── canvas/           # канвас редактора: components/, composables/ (useCanvas*), types/
+│       │   ├── sidebar/          # сайдбар: components/ (+property-editors/), composables/, utils/, types/
+│       │   ├── toolbar/          # тулбар: чисто презентационные components/
 │       │   ├── render/           # рендер опубликованной страницы (самодостаточен)
 │       │   ├── layouts-blocks/   # landing-блоки (Grid/Flex/Section/Slider/...)
 │       │   ├── editor/           # tiptap rich-text + inline editing
@@ -116,7 +119,7 @@ nuxt-bricks/
 
 ### Ошибки vue-tsc / oxlint (18 шт., не связаны с миграцией)
 
-- `builder/components/canvas/TheCanvas.vue`, `layouts-blocks/components/BlockGrid.vue`, `BlockSpace.vue` —
+- `canvas/components/TheCanvas.vue`, `layouts-blocks/components/BlockGrid.vue`, `BlockSpace.vue` —
   TS2769 (computed возвращает union с `undefined`-полями, не совместим с `Record<string, string>`)
 - `common/composables/useApiClient.ts`, `plugins/landing-dynamic-routes.ts` — TS2304: nuxt auto-imports
   не резолвятся при standalone `vue-tsc` — нужен явный импорт из `#imports`

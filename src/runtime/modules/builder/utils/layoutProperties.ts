@@ -1,6 +1,6 @@
 // #region Imports
 // Types
-import type { ILayoutProperty } from '../components/canvas/types';
+import type { ILayoutProperty } from '../types/layoutProperties';
 
 // Utils
 import { createInlineTextSegment } from '../../layouts-blocks/utils/inlineContent';

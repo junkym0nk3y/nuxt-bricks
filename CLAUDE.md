@@ -34,7 +34,10 @@ npx oxlint <changed-file>
 Все домены лежат в `src/runtime/modules/`. Каждый домен держит свои компоненты/композаблы/типы/утилиты рядом (см. documents/refactor.md):
 
 - `ui/` — Reka UI-кит (base/inputs/feedback/tooltip)
-- `builder/` — редактор: `components/{canvas,sidebar,toolbar,modal}`, `composables/`, `stores/` (canvas, components+actions, sidebar, history, navigation, publish), `pages/`, `utils/`, `constants/`, `types/`
+- `builder/` — ядро редактора: `stores/` (canvas, components+actions, sidebar, history, navigation, publish), `pages/` (composition root), `components/modal/`, общие `composables/`, `utils/`, `constants/`, `types/`
+- `canvas/` — канвас редактора: `components/` (TheCanvas, CanvasItem*, CanvasViewport...), `composables/` (useCanvas*, useComponentSlots, useSlotDragDrop), `types/`
+- `sidebar/` — сайдбар редактора: `components/` (TheSidebar, Sidebar*, property-editors/), `composables/` (useSidebarPropertiesPanel, usePropertyVariants, usePublishValidationSchema), `utils/`, `types/`
+- `toolbar/` — тулбар редактора: чисто презентационный, `components/` (TheToolbar, ToolbarVerticalNav)
 - `render/` — рендер опубликованной страницы (самодостаточен, store не использует)
 - `layouts-blocks/` — landing-блоки (Grid/Flex/Section/Slider/...)
 - `editor/` — TipTap: компоненты, расширения (`tiptap/`), inline editing, `stores/inlineEditing.ts`
@@ -43,7 +46,7 @@ npx oxlint <changed-file>
 
 Вне `modules/` в `src/runtime/` остаётся инфраструктура Nuxt: `plugins/`, `server/`, `middleware/`, `layouts/`, `assets/`, `types.d.ts` (шим, реэкспортирует `modules/common/types`).
 
-Направления зависимостей: `builder` → любой домен; `render` — только common + layouts-blocks; `layouts-blocks` → `editor` (+ tech-debt: BlockSlider → builder/stores/canvas). Импорты — явные относительные (auto-import локального кода отключён).
+Направления зависимостей: `builder/pages` (composition root) → canvas/sidebar/toolbar/media/ui; `canvas`/`sidebar` → builder (stores/utils/constants/types) + любой домен; `toolbar` → ui + builder/components (BuilderLogo); stores остаются в `builder/` — они общие для canvas и sidebar, перенос в фичевые домены дал бы цикл canvas↔sidebar. `render` — только common + layouts-blocks; `layouts-blocks` → `editor` (+ tech-debt: BlockSlider → builder/stores/canvas). Импорты — явные относительные (auto-import локального кода отключён).
 
 ### Component System (Story-based)
 
@@ -83,8 +86,8 @@ export const story = {
 
 - `common/types/landing.ts` → `PropertyDefinition.group`
 - `common/types/index.ts` → `IBrickValues.group`
-- `builder/components/canvas/types.d.ts` → `ILayoutProperty.group`
-- `builder/components/sidebar/SidebarPropertyEditors.vue` → рендеринг аккордеонов
+- `builder/types/layoutProperties.d.ts` → `ILayoutProperty.group`
+- `sidebar/components/SidebarPropertyEditors.vue` → рендеринг аккордеонов
 
 ### Property Unit Suffix
 
@@ -152,8 +155,8 @@ function resolveResponsive(base: number, key: string): number {
 
 - `layouts-blocks/composables/useResponsiveLayoutStyles.ts` — CSS rules для layout-компонентов
 - `render/composables/useRendererLayouts.ts` — рендеринг с CSS-переменными (`makeResponsiveVars`)
-- `builder/composables/useCanvasItemLayout.ts` — `effectiveViewport`, `resolveLayoutProps()`
-- `builder/composables/useSidebarPropertiesPanel.ts` — `isResponsiveComponent`, `layoutDeviceScope`
+- `canvas/composables/useCanvasItemLayout.ts` — `effectiveViewport`, `resolveLayoutProps()`
+- `sidebar/composables/useSidebarPropertiesPanel.ts` — `isResponsiveComponent`, `layoutDeviceScope`
 - `builder/utils/layoutProperties.ts` — разметка `responsive: true` и `group`
 
 ### Toolbar: % и rem в letter-spacing / line-height
@@ -205,8 +208,8 @@ landing: {
 
 **Ключевые файлы:**
 
-- `builder/composables/useCanvasRemBase.ts` — вычисление коэффициента
-- `builder/composables/useCanvas.ts` — применение к `canvasTransform`
+- `canvas/composables/useCanvasRemBase.ts` — вычисление коэффициента
+- `canvas/composables/useCanvas.ts` — применение к `canvasTransform`
 - `builder/pages/builder.vue` — инлайн `font-size: 10px` на `<html>`
 
 **Figma Mode:** каждый viewport применяет свою компенсацию через `transform: scale()` на `.canvas` элементе (inject `getRemCompensation` из `TheCanvas.vue`).

@@ -1,7 +1,7 @@
 // #region Imports
 import type { IBrickValues } from '../../common/types/index';
 import type { InlineEditingPropType } from '../../editor/stores/inlineEditing';
-import type { ILayoutProperty } from '../components/canvas/types';
+import type { ILayoutProperty } from '../types/layoutProperties';
 // #endregion
 
 /** Inline-editable типы для layout-компонентов (без input — иначе ловит CSS-пропы в Media) */

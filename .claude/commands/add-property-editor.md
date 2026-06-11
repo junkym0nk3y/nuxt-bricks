@@ -25,12 +25,12 @@ export type PropertyType =
     | 'my-new-type'; // <-- ДОБАВЬ СЮДА
 ```
 
-### Шаг 2: Добавить в `PROPERTY_EDITOR_ORDER` в `components/sidebar/property-editors/types.ts`
+### Шаг 2: Добавить в `PROPERTY_EDITOR_ORDER` в `sidebar/components/property-editors/types.ts`
 
 Это определяет порядок отображения редакторов в панели свойств:
 
 ```typescript
-// components/sidebar/property-editors/types.ts
+// sidebar/components/property-editors/types.ts
 export const PROPERTY_EDITOR_ORDER = [
     'boolean',
     'switch',
@@ -62,7 +62,7 @@ const inferPropertyType = (value: IBrickValues): PropertyType => {
 };
 ```
 
-### Шаг 4: Создать компонент редактора в `components/sidebar/property-editors/`
+### Шаг 4: Создать компонент редактора в `sidebar/components/property-editors/`
 
 Создай Vue компонент `Property{Name}Editor.vue` для редактирования свойства. Следуй конвенциям из `.claude/rules/vue-sfc.md`:
 
@@ -78,7 +78,7 @@ const inferPropertyType = (value: IBrickValues): PropertyType => {
 
 ```typescript
 'my-new-type': defineAsyncComponent(
-    () => import('../components/sidebar/property-editors/PropertyMyNewTypeEditor.vue')
+    () => import('../components/property-editors/PropertyMyNewTypeEditor.vue')
 ),
 ```
 
@@ -148,12 +148,12 @@ function handleMyNewTypeVariant({
 ## Чеклист
 
 - [ ] `types/landing.ts` — добавлен в `PropertyType`
-- [ ] `components/sidebar/property-editors/types.ts` — добавлен в `PROPERTY_EDITOR_ORDER`
+- [ ] `sidebar/components/property-editors/types.ts` — добавлен в `PROPERTY_EDITOR_ORDER`
 - [ ] `composables/useComponentProperties.ts` — добавлен в `inferPropertyType` **(!)**
-- [ ] `components/sidebar/property-editors/Property*.vue` — создан компонент
+- [ ] `sidebar/components/property-editors/Property*.vue` — создан компонент
 - [ ] `composables/useSidebarPropertiesPanel.ts` — зарегистрирован в `componentEditors`
 - [ ] `composables/usePropertyVariants.ts` — добавлен `handle*Variant`
-- [ ] `components/sidebar/SidebarPropertyEditorRow.vue` — добавлена обработка (если нужна)
+- [ ] `sidebar/components/SidebarPropertyEditorRow.vue` — добавлена обработка (если нужна)
 - [ ] `types/layouts.d.ts` — добавлен интерфейс данных (если нужен)
 - [ ] `types/index.ts` — экспортирован интерфейс (если нужен)
 - [ ] `vue-tsc --noEmit` — без ошибок

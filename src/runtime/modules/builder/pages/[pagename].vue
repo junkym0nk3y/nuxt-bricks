@@ -27,10 +27,10 @@ import { serializeSchema } from '../utils/history';
 import { loadFavoritesFromStorage } from '../stores/actions/favorites';
 
 // Components
-import TheToolbar from '../components/toolbar/TheToolbar.vue';
-import ToolbarVerticalNav from '../components/toolbar/ToolbarVerticalNav.vue';
-import TheSidebar from '../components/sidebar/TheSidebar.vue';
-import TheCanvas from '../components/canvas/TheCanvas.vue';
+import TheToolbar from '../../toolbar/components/TheToolbar.vue';
+import ToolbarVerticalNav from '../../toolbar/components/ToolbarVerticalNav.vue';
+import TheSidebar from '../../sidebar/components/TheSidebar.vue';
+import TheCanvas from '../../canvas/components/TheCanvas.vue';
 import TheBuilderLoader from '../components/TheBuilderLoader.vue';
 import ThePublishedPagesModal from '../components/modal/ThePublishedPagesModal.vue';
 import TheDocumentationModal from '../components/modal/TheDocumentationModal.vue';

@@ -26,9 +26,9 @@ Inline editing позволяет редактировать текст двой
 (пути — от src/runtime/modules/)
 editor/stores/inlineEditing.ts             — Pinia setup-store
 editor/composables/useInlineEditor.ts      — TipTap lifecycle, lazy init
-builder/components/canvas/CanvasInlineEditingOverlay.vue — Floating toolbar
-builder/components/canvas/CanvasItem.vue   — dblclick → startEditing
-builder/components/canvas/CanvasItemLayout.vue — передаёт :component-id
+canvas/components/CanvasInlineEditingOverlay.vue — Floating toolbar
+canvas/components/CanvasItem.vue   — dblclick → startEditing
+canvas/components/CanvasItemLayout.vue — передаёт :component-id
 builder/utils/inlineEditableProp.ts        — находит inline-редактируемое свойство
 ```
 

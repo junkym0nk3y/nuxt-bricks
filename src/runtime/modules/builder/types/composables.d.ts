@@ -2,44 +2,14 @@
  * Типы для composables.
  */
 
-import type {
-    ComponentSlotDefinition,
-    LandingComponent,
-    LandingSchema,
-    PropertyDefinition,
-    ComponentLibraryItem,
-} from '../../common/types/landing';
-import type {
-    ComponentVariantsMap,
-    IComponentVariant,
-    PropertyEditorType,
-} from '../components/sidebar/property-editors/types';
-import type { ComputedRef, CSSProperties, Ref, VNodeRef } from 'vue';
+import type { ComponentLibraryItem, LandingSchema } from '../../common/types/landing';
+import type { ComputedRef, Ref } from 'vue';
 import type { useSidebarStore } from '../stores/sidebar';
 import type { useHistoryStore } from '../stores/history';
 import type { usePublishStore } from '../stores/publish';
 import type { IMediaItem, TMediaGalleryContext } from '../../media/types/media';
 import type { ISidebarExpose } from './builder';
 import type { IImageResolverState, TImageResolveAction } from '../../media/types/schemaImageResolver';
-
-// #region useComponentSlots
-/**
- * Данные для рендеринга слота с дочерними компонентами.
- */
-export interface ISlotRenderData {
-    slot: ComponentSlotDefinition;
-    children: LandingComponent[];
-}
-
-/**
- * Возвращаемое значение composable useComponentSlots.
- */
-export interface IUseComponentSlotsReturn {
-    slotRenderData: ComputedRef<ISlotRenderData[]>;
-    slotStringContent: ComputedRef<string>;
-    hasLoadedSlots: Ref<boolean>;
-}
-// #endregion
 
 // #region useBuilderPage
 /**
@@ -99,58 +69,5 @@ export interface IUseBuilderPageReturn {
     handleImageResolverSkip: () => void;
     handleSetImageAction: (url: string, action: TImageResolveAction) => void;
     handleSetGlobalAction: (action: TImageResolveAction) => void;
-}
-// #endregion
-
-// #region usePropertyVariants
-/**
- * Данные выбранного компонента для обработки свойств.
- */
-export interface ISelectedComponentData {
-    id: string;
-    component: {
-        componentName: string;
-        props: Record<string, unknown>;
-        parent?: string | null;
-        fullWidth?: boolean;
-    };
-    properties: PropertyDefinition[];
-    description?: string;
-}
-
-/**
- * Возвращаемое значение composable usePropertyVariants.
- */
-export interface IUsePropertyVariantsReturn {
-    componentVariants: ComputedRef<ComponentVariantsMap>;
-    handleNormalizeProps: (
-        data: IComponentVariant,
-        editorType: PropertyEditorType
-    ) => Record<string, unknown>;
-}
-// #endregion
-
-// #region useSlotDragDrop
-/**
- * Состояние drag-and-drop для одного слота.
- */
-export interface ISlotState {
-    dragDepth: number;
-    isDragOver: boolean;
-    dropIndicator: { index: number; offset: number } | null;
-    dropInsertIndex: number | null;
-}
-
-/**
- * Возвращаемое значение composable useSlotDragDrop.
- */
-export interface IUseSlotDragDropReturn {
-    slotIndicatorStyles: ComputedRef<Record<string, CSSProperties>>;
-    getSlotIndicatorStyle: (slotName: string) => CSSProperties;
-    setSlotContainerRef: (slotName: string) => VNodeRef;
-    handleSlotDragEnter: (slotName: string, event: DragEvent) => void;
-    handleSlotDragOver: (slotName: string, event: DragEvent) => void;
-    handleSlotDragLeave: (slotName: string, event: DragEvent) => void;
-    handleSlotDrop: (slotName: string, event: DragEvent) => void;
 }
 // #endregion

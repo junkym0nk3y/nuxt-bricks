@@ -38,8 +38,12 @@
 - Имена файлов composables/stores/utils — camelCase (`deviceVisibility.ts`);
   kebab-case — только build-time/CLI-скрипты (`vite-brick-watch.ts`).
 
-## Решение: builder дальше на домены не разбиваем
+## Решение: canvas/sidebar/toolbar — отдельные домены, stores остаются в builder
 
-Canvas/sidebar/toolbar жёстко связаны общими stores (`components`, `canvas`, `history`) —
-выделение их в top-level домены даст циклические зависимости. Суб-фичи выражаются папками
-`components/{canvas,sidebar,toolbar,modal}` и фичевыми префиксами composables/stores.
+Canvas/sidebar/toolbar выделены в top-level домены (2026-06-11). Общие stores
+(`components`, `canvas`, `history`, `sidebar`, `publish`, `navigation`) остаются в
+`builder/stores/` — это ядро состояния, перенос их в фичевые домены дал бы цикл
+canvas↔sidebar (sidebar читает canvas-store, canvas читает sidebar-store).
+Направление зависимостей: `canvas`/`sidebar`/`toolbar` → `builder` (stores/utils/types),
+`builder/pages` — composition root, собирает все три домена. Обратных импортов
+из builder-ядра в фичевые домены быть не должно.
