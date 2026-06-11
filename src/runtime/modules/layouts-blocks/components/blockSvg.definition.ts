@@ -55,6 +55,11 @@ export const blockSvgDefinition: IBlockDefinition = {
     description: 'SVG-блок с настройкой цвета и размера.',
     thumbnail: '/images/layouts/svg.svg',
     responsiveMode: 'all',
+    // Svg шарит media-переменные (--bricks-media-*) с Media — обёртка у обоих одинаковая
+    responsiveCssVars: {
+        prefix: 'media',
+        vars: ['width', 'height', 'radius'],
+    },
     canvasBind: bindBoundPropsWithComponentId,
     renderPublished: renderSvgPublished,
     extraDefaults: {

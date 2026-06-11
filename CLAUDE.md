@@ -153,11 +153,11 @@ function resolveResponsive(base: number, key: string): number {
 
 **Ключевые файлы:**
 
-- `layouts-blocks/composables/useResponsiveLayoutStyles.ts` — CSS rules для layout-компонентов
-- `render/composables/useRendererLayouts.ts` — рендеринг с CSS-переменными (`makeResponsiveVars`)
-- `canvas/composables/useCanvasItemLayout.ts` — `effectiveViewport`, `resolveLayoutProps()`
-- `sidebar/composables/useSidebarPropertiesPanel.ts` — `isResponsiveComponent`, `layoutDeviceScope`
-- `builder/utils/layoutProperties.ts` — разметка `responsive: true` и `group`
+- `layouts-blocks/utils/responsiveCss.ts` — генерация CSS rules из `responsiveCssVars` definitions (инжект — `composables/useResponsiveLayoutStyles.ts`)
+- `layouts-blocks/components/blockX.definition.ts` — `renderPublished` с CSS-переменными (`makeResponsiveVars` из `utils/responsiveVars.ts`), разметка `responsive: true` и `group` в `properties`
+- `render/composables/useRendererLayouts.ts` — диспатч published-рендера через registry
+- `canvas/composables/useCanvasItemLayout.ts` — `effectiveViewport`, `resolveBlockProps` из registry
+- `sidebar/composables/useSidebarPropertiesPanel.ts` — `isResponsiveComponent`, `layoutDeviceScope` (по `responsiveMode` definition)
 
 ### Toolbar: % и rem в letter-spacing / line-height
 
@@ -174,12 +174,20 @@ function resolveResponsive(base: number, key: string): number {
 - Layout-компоненты (`BlockGrid`, `BlockFlex`, `BlockSpace`) содержат children
 - Компоненты имеют `parent` (layout ID) и `children` (массив ID)
 
-#### Синхронизация defaultProps для Layout-компонентов
+#### Registry layout-блоков (single source of truth)
 
-При изменении дефолтов — обновить **ДВА файла** (значения должны совпадать):
+Каждый блок описан **одним** файлом `layouts-blocks/components/blockX.definition.ts`
+(`IBlockDefinition`): свойства панели (`properties` + `default`), `extraDefaults`,
+`responsiveMode`, `responsiveCssVars`, опциональные `canvasBind`/`renderPublished`.
+Всё остальное derived:
 
-1. `builder/constants/layoutComponents.ts` → `defaultProps` (создание компонента)
-2. `builder/utils/layoutProperties.ts` → `default` (редактор свойств)
+- `layouts-blocks/registry.ts` — `BLOCK_REGISTRY`, `getBlockDefinition`, `getBlockProperties`, `resolveBlockProps`, `getLayoutLibraryItems` (defaultProps = `properties[].default` + `extraDefaults`)
+- `builder/constants/layoutComponents.ts`, `builder/utils/layoutProperties.ts` — тонкие обёртки над registry (API сохранён)
+- `layouts-blocks/canvasBlockComponents.ts` — eager-мапа `.vue` для канваса (**bundle firewall**: импортируется только канвасом; definitions контейнеров Grid/Flex/Section/Space НЕ импортируют свои `.vue` — published рендерит их `h('div')` через `renderPublished`)
+
+**Добавление блока:** `BlockX.vue` + `blockX.definition.ts` + 2 однострочные регистрации (`registry.ts`, `canvasBlockComponents.ts`).
+
+> Добавление layout-блока: `/add-layout-block`
 
 #### Rem-компенсация (`remBase`)
 

@@ -58,6 +58,10 @@ export const blockMediaDefinition: IBlockDefinition = {
     description: 'Медиа-блок (изображение или видео) с настройками отображения.',
     thumbnail: '/images/layouts/media.svg',
     responsiveMode: 'all',
+    responsiveCssVars: {
+        prefix: 'media',
+        vars: ['width', 'height', 'radius'],
+    },
     canvasBind: (ctx) => ({
         ...ctx.boundProps,
         width: ctx.layoutProps.width,

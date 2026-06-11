@@ -167,6 +167,10 @@ export const blockFlexDefinition: IBlockDefinition = {
     thumbnail: '/images/layouts/flex.svg',
     hasChildren: true,
     responsiveMode: 'all',
+    responsiveCssVars: {
+        prefix: 'flex',
+        vars: ['direction', 'justify', 'wrap', 'gap'],
+    },
     renderPublished: renderFlexPublished,
     properties: [
         {

@@ -90,6 +90,10 @@ export const blockSectionDefinition: IBlockDefinition = {
     thumbnail: '/images/layouts/section.svg',
     hasChildren: true,
     responsiveMode: 'all',
+    responsiveCssVars: {
+        prefix: 'section',
+        vars: ['pt', 'pb', 'px', 'radius', 'min-h'],
+    },
     renderPublished: renderSectionPublished,
     properties: [
         {

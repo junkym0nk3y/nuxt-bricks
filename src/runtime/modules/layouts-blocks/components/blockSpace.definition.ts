@@ -139,6 +139,10 @@ export const blockSpaceDefinition: IBlockDefinition = {
     description: 'Отступ (spacer) между блоками по вертикали или горизонтали.',
     thumbnail: '/images/layouts/space.svg',
     responsiveMode: 'all',
+    responsiveCssVars: {
+        prefix: 'space',
+        vars: ['size', 'divider-mx'],
+    },
     renderPublished: renderSpacePublished,
     properties: [
         {

@@ -267,6 +267,10 @@ export const blockGridDefinition: IBlockDefinition = {
     thumbnail: '/images/layouts/grid.svg',
     hasChildren: true,
     responsiveMode: 'all',
+    responsiveCssVars: {
+        prefix: 'grid',
+        vars: ['columns', 'rows', 'auto-rows', 'gap', 'auto-flow', 'lead-left', 'lead-right'],
+    },
     renderPublished: renderGridPublished,
     properties: [
         {

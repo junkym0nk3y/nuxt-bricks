@@ -517,6 +517,20 @@ vue-tsc: 12 = baseline; oxlint чисто; тесты 20/20; depcruise 0 violati
 `.bricks-canvas[data-bricks-viewport=…]`, published media queries).
 До этого шага текущий файл работает нетронутым.
 
+**Статус: выполнено (2026-06-12).** `responsiveCssVars` заполнен у 6 definitions
+(Grid/Flex/Section/Space/Media/Svg; Svg шарит prefix `media` с Media — селекторы
+свои, переменные общие, как в ручном CSS). Генератор — чистая функция
+`buildResponsiveLayoutCss` в новом `layouts-blocks/utils/responsiveCss.ts`
+(без nuxt-импортов — тестируется vitest'ом); композабл стал 38-строчной обёрткой
+(useBricksConfig + useHead). Parity проверена одноразовым тестом: канонизация
+обоих CSS в множества (media query, селектор, декларация) — старый ручной CSS
+из git HEAD и генерация **идентичны** (комбинированные селекторы media+svg
+разрезаны на отдельные правила — единственное косметическое отличие).
+Постоянный тест — `test/responsiveLayoutCss.spec.ts` (6 тестов: дефолты,
+builder-правила, границы media queries, отсутствие правил у блоков без
+`responsiveCssVars`, покрытие registry). vue-tsc: 0 ошибок по изменённым файлам;
+oxlint чисто; depcruise 0 violations (310 модулей).
+
 ### Честные escape hatches (НЕ генерализуются)
 
 - **Grid/Flex/Section/Space published** — custom `renderPublished` (`h('div')` +
@@ -551,9 +565,16 @@ vue-tsc: 12 = baseline; oxlint чисто; тесты 20/20; depcruise 0 violati
 - [x] **10. B3** — builder-wrappers, удаление дублей (2026-06-12)
 - [x] **11. B4** — canvas generic + sidebar `responsiveMode` (2026-06-12)
 - [x] **12. B5** — render registry-диспатч (2026-06-12, + parity-тест published-рендера)
-- [ ] **13. B6** (опц.) — генерация CSS-vars
-- [ ] **14. Docs** — обновить CLAUDE.md (убрать «sync two files»-warning, новый процесс
+- [x] **13. B6** (опц.) — генерация CSS-vars (2026-06-12, parity со старым ручным CSS
+      подтверждена потестово)
+- [x] **14. Docs** — обновить CLAUDE.md (убрать «sync two files»-warning, новый процесс
       добавления блока), создать skill `/add-layout-block`, удалить parity-тест и legacy
+      (2026-06-12: CLAUDE.md — секция «Registry layout-блоков» вместо sync-warning +
+      актуализированы ключевые файлы responsive; `.claude/commands/add-layout-block.md`;
+      удалены `test/blockRegistry.parity.spec.ts`, `test/publishedRenderer.parity.spec.ts`,
+      `test/legacy/`; остался `test/responsiveLayoutCss.spec.ts`)
+
+**Roadmap закрыт полностью (2026-06-12).** Остаточный tech-debt — Часть E (backlog).
 
 ## Часть D. Риски
 
