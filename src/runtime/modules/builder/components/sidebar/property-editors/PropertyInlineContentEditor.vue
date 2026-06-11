@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { ILandingInlineContentSegment } from '../../../../layouts-blocks/types/layouts';
+import type { IInlineContentSegment } from '../../../../layouts-blocks/types/layouts';
 
 // Vue
 import { computed, useCssModule } from 'vue';
@@ -21,11 +21,11 @@ import {
 
 // #region Interfaces
 interface IPropertyInlineContentEditorProps {
-    modelValue?: ILandingInlineContentSegment[];
+    modelValue?: IInlineContentSegment[];
 }
 
 interface IPropertyInlineContentEditorEmits {
-    'update:modelValue': [value: ILandingInlineContentSegment[]];
+    'update:modelValue': [value: IInlineContentSegment[]];
     openGallery: [
         {
             action: 'append' | 'replace';
@@ -51,7 +51,7 @@ const $style = useCssModule();
 // #endregion
 
 // #region Computed
-const segments = computed<ILandingInlineContentSegment[]>(() => props.modelValue || []);
+const segments = computed<IInlineContentSegment[]>(() => props.modelValue || []);
 const hasSegments = computed<boolean>(() => segments.value.length > 0);
 // #endregion
 
@@ -61,7 +61,7 @@ const hasSegments = computed<boolean>(() => segments.value.length > 0);
  *
  * @param value - Обновлённый список сегментов.
  */
-function updateSegments(value: ILandingInlineContentSegment[]): void {
+function updateSegments(value: IInlineContentSegment[]): void {
     emit('update:modelValue', value);
 }
 
@@ -116,7 +116,7 @@ function handleTextChange(index: number, value: string): void {
  * @param index - Индекс сегмента.
  * @param patch - Изменения свойств.
  */
-function patchSegment(index: number, patch: Partial<ILandingInlineContentSegment>): void {
+function patchSegment(index: number, patch: Partial<IInlineContentSegment>): void {
     const next = cloneInlineSegments(segments.value);
     if (!next[index]) {
         return;

@@ -1,6 +1,6 @@
 // #region Imports
 // Types
-import type { ILandingInlineContentSegment } from '../types/layouts';
+import type { IInlineContentSegment } from '../types/layouts';
 import type { IMediaItem } from '../../media/types/media';
 // #endregion
 
@@ -19,7 +19,7 @@ function generateInlineSegmentId(): string {
  * @param text - Текстовое содержимое сегмента.
  * @returns Новый текстовый сегмент.
  */
-export function createInlineTextSegment(text = ''): ILandingInlineContentSegment {
+export function createInlineTextSegment(text = ''): IInlineContentSegment {
     return {
         id: generateInlineSegmentId(),
         kind: 'text',
@@ -32,7 +32,7 @@ export function createInlineTextSegment(text = ''): ILandingInlineContentSegment
  *
  * @returns Новый сегмент переноса строки.
  */
-export function createInlineLineBreakSegment(): ILandingInlineContentSegment {
+export function createInlineLineBreakSegment(): IInlineContentSegment {
     return {
         id: generateInlineSegmentId(),
         kind: 'line-break',
@@ -55,7 +55,7 @@ function normalizeSvgContent(svgContent: string): string {
  * @param item - Элемент медиа-галереи.
  * @returns Сгенерированный сегмент (svg или изображение).
  */
-export function createInlineMediaSegmentFromItem(item: IMediaItem): ILandingInlineContentSegment {
+export function createInlineMediaSegmentFromItem(item: IMediaItem): IInlineContentSegment {
     if (item.mimeType === 'image/svg+xml' && item.svgContent) {
         return {
             id: generateInlineSegmentId(),
@@ -115,8 +115,8 @@ export function applyColorToSvgContent(svgContent: string, color?: string): stri
  * @returns Глубокая копия массива сегментов.
  */
 export function cloneInlineSegments(
-    segments: ILandingInlineContentSegment[]
-): ILandingInlineContentSegment[] {
+    segments: IInlineContentSegment[]
+): IInlineContentSegment[] {
     return segments.map((segment) => ({ ...segment }));
 }
 // #endregion

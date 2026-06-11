@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { ILandingInlineContentSegment, ILandingGalleryItem } from '../../../layouts-blocks/types/layouts';
+import type { IInlineContentSegment, IGalleryItem } from '../../../layouts-blocks/types/layouts';
 import type { IAccordionItem } from '../../../common/types/landing';
 import type {
     ISidebarPropertyEditorRowProps,
@@ -63,7 +63,7 @@ const resolvedInputType = computed<string | undefined>(() => {
  *
  * @param value - Массив сегментов inline контента.
  */
-function handleInlineChange(value: ILandingInlineContentSegment[]): void {
+function handleInlineChange(value: IInlineContentSegment[]): void {
     props.handleChangeValues(props.variant.property, value as unknown as Array<unknown>);
 }
 
@@ -101,7 +101,7 @@ function handleInlineGallery(payload?: TInlineGalleryPayload): void {
  *
  * @param value - Массив элементов галереи.
  */
-function handleImageGalleryChange(value: ILandingGalleryItem[]): void {
+function handleImageGalleryChange(value: IGalleryItem[]): void {
     props.handleChangeValues(props.variant.property, value as unknown as Array<unknown>);
 }
 
@@ -147,7 +147,7 @@ function handleAccordionItemsChange(value: IAccordionItem[]): void {
             <component
                 :is="resolvedEditorComponent"
                 :label="props.variant.label"
-                :model-value="(props.variant.value as ILandingInlineContentSegment[]) || []"
+                :model-value="(props.variant.value as IInlineContentSegment[]) || []"
                 @update:model-value="handleInlineChange"
                 @open-gallery="handleInlineGallery"
             />
@@ -156,7 +156,7 @@ function handleAccordionItemsChange(value: IAccordionItem[]): void {
             <component
                 :is="resolvedEditorComponent"
                 :label="props.variant.label"
-                :model-value="(props.variant.value as ILandingGalleryItem[]) || []"
+                :model-value="(props.variant.value as IGalleryItem[]) || []"
                 :fields="props.variant.property.fields"
                 @update:model-value="handleImageGalleryChange"
                 @open-gallery="handleImageGalleryOpen"

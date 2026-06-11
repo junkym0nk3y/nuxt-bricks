@@ -2,7 +2,7 @@
  * Toolbar component types
  */
 
-export interface ILandingBuilderToolbarProps {
+export interface IToolbarProps {
     historyIndex: number;
     historyLength: number;
     isEditingExistingPage: boolean;
@@ -15,7 +15,7 @@ export interface ILandingBuilderToolbarProps {
     isPublished?: boolean;
 }
 
-export interface ILandingBuilderToolbarEmits {
+export interface IToolbarEmits {
     openPublishedPages: [];
     openMediaGallery: [];
     saveAsCopy: [];

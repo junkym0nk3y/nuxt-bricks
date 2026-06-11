@@ -96,4 +96,4 @@ export interface ILandExportModule {
 }
 
 export type { ILandDataSource, ILandDataSourceParam } from '../../render/types/landing-data-source';
-export type { ILandingGalleryItem, ILandingInlineContentSegment } from '../../layouts-blocks/types/layouts';
+export type { IGalleryItem, IInlineContentSegment } from '../../layouts-blocks/types/layouts';

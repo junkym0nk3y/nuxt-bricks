@@ -1,6 +1,6 @@
 // #region Imports
 import type { JSONContent } from '@tiptap/core';
-import type { ILandingInlineContentSegment } from '../../layouts-blocks/types/layouts';
+import type { IInlineContentSegment } from '../../layouts-blocks/types/layouts';
 // #endregion
 
 /**
@@ -10,7 +10,7 @@ import type { ILandingInlineContentSegment } from '../../layouts-blocks/types/la
  * @param segments - Массив сегментов inline-content.
  * @returns TipTap JSONContent документ.
  */
-export function segmentsToTiptapDoc(segments: ILandingInlineContentSegment[]): JSONContent {
+export function segmentsToTiptapDoc(segments: IInlineContentSegment[]): JSONContent {
     if (!segments || segments.length === 0) {
         return {
             type: 'doc',
@@ -74,22 +74,22 @@ export function segmentsToTiptapDoc(segments: ILandingInlineContentSegment[]): J
  *
  * @param doc - TipTap JSONContent документ.
  * @param originalSegments - Оригинальные сегменты для восстановления медиа-данных.
- * @returns Массив ILandingInlineContentSegment.
+ * @returns Массив IInlineContentSegment.
  */
 export function tiptapDocToSegments(
     doc: JSONContent,
-    originalSegments: ILandingInlineContentSegment[]
-): ILandingInlineContentSegment[] {
+    originalSegments: IInlineContentSegment[]
+): IInlineContentSegment[] {
     if (!doc.content || doc.content.length === 0) {
         return [];
     }
 
-    const originalMap = new Map<string, ILandingInlineContentSegment>();
+    const originalMap = new Map<string, IInlineContentSegment>();
     for (const seg of originalSegments) {
         originalMap.set(seg.id, seg);
     }
 
-    const result: ILandingInlineContentSegment[] = [];
+    const result: IInlineContentSegment[] = [];
     let textIdCounter = 0;
 
     for (let i = 0; i < doc.content.length; i++) {

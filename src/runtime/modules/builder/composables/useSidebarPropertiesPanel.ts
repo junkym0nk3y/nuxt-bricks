@@ -2,7 +2,7 @@
 // Types
 import type { PropertyEditorType } from '../components/sidebar/property-editors/types';
 import type { IMediaItem } from '../../media/types/media';
-import type { ILandingInlineContentSegment, ILandingGalleryItem } from '../../layouts-blocks/types/layouts';
+import type { IInlineContentSegment, IGalleryItem } from '../../layouts-blocks/types/layouts';
 import type {
     IDeviceVisibilityConfig,
     PropertyDefinition,
@@ -492,7 +492,7 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
 
         const property = context.property;
         const currentSegments = Array.isArray(selected.component.props[property.name])
-            ? (selected.component.props[property.name] as ILandingInlineContentSegment[])
+            ? (selected.component.props[property.name] as IInlineContentSegment[])
             : [];
         const segments = cloneInlineSegments(currentSegments);
 
@@ -533,12 +533,12 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
     ): void {
         const property = context.property;
         const currentItems = Array.isArray(selected.component.props[property.name])
-            ? (selected.component.props[property.name] as ILandingGalleryItem[])
+            ? (selected.component.props[property.name] as IGalleryItem[])
             : [];
 
         const items = currentItems.map((galleryItem) => ({ ...galleryItem }));
 
-        const newGalleryItem: ILandingGalleryItem = {
+        const newGalleryItem: IGalleryItem = {
             id: `gallery_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
             url: item.url,
             title: item.filename || '',

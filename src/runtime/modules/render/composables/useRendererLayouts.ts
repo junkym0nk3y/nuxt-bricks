@@ -5,7 +5,7 @@ import type {
     AccordionLayoutProps,
     GridLayoutVariant,
     GridRowHeight,
-    ILandingSvgProps,
+    IBlockSvgProps,
     LandingComponent,
     SectionLayoutProps,
     SliderLayoutProps,
@@ -848,7 +848,7 @@ export function useRendererLayouts({
         extraClasses: string[],
         extraAttrs: Record<string, string | undefined>
     ): VNode {
-        const cp = component.props as ILandingSvgProps;
+        const cp = component.props as IBlockSvgProps;
         const mOv = getResponsiveOverrides(cp as Record<string, any>, 'mobile');
         const tOv = getResponsiveOverrides(cp as Record<string, any>, 'tablet');
 

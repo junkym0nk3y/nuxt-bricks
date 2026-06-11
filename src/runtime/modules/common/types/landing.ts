@@ -83,7 +83,7 @@ export interface SectionLayoutProps {
     minHeight?: number; // rem, минимальная высота секции
 }
 
-export interface ILandingSvgProps {
+export interface IBlockSvgProps {
     componentId?: string;
     src?: string; // URL из медиа-галереи
     svgContent?: string; // Raw SVG content (заполняется через svgContentProperty)
@@ -110,7 +110,7 @@ export type LayoutProps =
     | SliderLayoutProps
     | AccordionLayoutProps
     | SectionLayoutProps
-    | ILandingSvgProps;
+    | IBlockSvgProps;
 
 // Component instance on canvas
 export interface ComponentSlotDefinition {

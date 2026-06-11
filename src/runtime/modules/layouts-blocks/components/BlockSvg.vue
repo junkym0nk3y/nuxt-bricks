@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { ILandingSvgProps } from '../../common/types/landing';
+import type { IBlockSvgProps } from '../../common/types/landing';
 
 // Vue
 import { computed } from 'vue';
@@ -11,7 +11,7 @@ import { applyColorToSvgContent } from '../utils/inlineContent';
 // #endregion
 
 // #region Props
-const props = withDefaults(defineProps<ILandingSvgProps>(), {
+const props = withDefaults(defineProps<IBlockSvgProps>(), {
     componentId: undefined,
     src: '',
     svgContent: '',

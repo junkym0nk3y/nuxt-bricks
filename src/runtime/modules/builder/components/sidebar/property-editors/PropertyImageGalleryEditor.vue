@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { ILandingGalleryItem } from '../../../../layouts-blocks/types/layouts';
+import type { IGalleryItem } from '../../../../layouts-blocks/types/layouts';
 import type { ILandGalleryFieldsConfig } from '../../../../common/types/index';
 
 // Vue
@@ -15,14 +15,14 @@ import BricksTagsEditor from '../../../../ui/inputs/BricksTagsEditor.vue';
 
 // #region Interfaces
 interface IPropertyImageGalleryEditorProps {
-    modelValue?: ILandingGalleryItem[];
+    modelValue?: IGalleryItem[];
     label?: string;
     /** Конфигурация дополнительных полей (title, tags) */
     fields?: ILandGalleryFieldsConfig;
 }
 
 interface IPropertyImageGalleryEditorEmits {
-    'update:modelValue': [value: ILandingGalleryItem[]];
+    'update:modelValue': [value: IGalleryItem[]];
     openGallery: [
         {
             action: 'append' | 'replace';
@@ -50,7 +50,7 @@ const $style = useCssModule();
 // #endregion
 
 // #region Computed
-const items = computed<ILandingGalleryItem[]>(() => props.modelValue || []);
+const items = computed<IGalleryItem[]>(() => props.modelValue || []);
 const hasItems = computed<boolean>(() => items.value.length > 0);
 
 /** Показывать поле title (по умолчанию true) */
@@ -65,14 +65,14 @@ const showTags = computed<boolean>(() => props.fields?.tags === true);
 /**
  * Клонирует массив элементов галереи.
  */
-function cloneItems(source: ILandingGalleryItem[]): ILandingGalleryItem[] {
+function cloneItems(source: IGalleryItem[]): IGalleryItem[] {
     return source.map((item) => ({ ...item }));
 }
 
 /**
  * Эмитит новое значение галереи.
  */
-function updateItems(value: ILandingGalleryItem[]): void {
+function updateItems(value: IGalleryItem[]): void {
     emit('update:modelValue', value);
 }
 
@@ -115,7 +115,7 @@ function handleCaptionChange(index: number, value: string): void {
 /**
  * Проверяет, является ли элемент видео по mimeType.
  */
-function isVideoItem(item: ILandingGalleryItem): boolean {
+function isVideoItem(item: IGalleryItem): boolean {
     return Boolean(item.mimeType?.startsWith('video/'));
 }
 

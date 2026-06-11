@@ -320,3 +320,31 @@ SSR payload); их смена — задача дебрендинга (`--ida-*`
 
 После замены: обновить строку про сторы в `refactor.md` («Ссылки на файлы... обновлены»),
 финальный grep `useLandingCanvasStore|useLandingComponentsStore|useLandingHistoryStore|useLandingSidebarStore|useLandingInlineEditingStore|ILandingComponents|ILandingCanvas|ILandingRenderer|TLandingRenderer|ILandingHistoryState|ILandingSidebarState` по `src/` → пусто.
+
+## Шаг 15. Остаточные типы: убрать `Landing`-шум ✅ (2026-06-11)
+
+> Примечание: затронуто 19 файлов. vue-tsc — те же 18 pre-existing ошибок, oxlint —
+> только pre-existing `max-lines` в `useRendererLayouts.ts`. `IBlockSvgProps` остался
+> объявлен в `common/types/landing.ts` (используется render-ом) — перенос в
+> `layouts-blocks/types/` не делался, шаг только про имена.
+
+| Тип | Новое имя | Где объявлен |
+| --- | --------- | ------------ |
+| `ILandingSvgProps` | `IBlockSvgProps` | `common/types/landing.ts` |
+| `ILandingBuilderToolbarProps`/`Emits` | `IToolbarProps`/`IToolbarEmits` | `builder/components/toolbar/types.d.ts` (пропсы `TheToolbar`) |
+| `ILandingInlineContentSegment` | `IInlineContentSegment` | `layouts-blocks/types/layouts.d.ts` (11 файлов-импортёров) |
+| `ILandingGalleryItem` | `IGalleryItem` | `layouts-blocks/types/layouts.d.ts` (6 файлов) |
+| `ILandingTextProps` | `IBlockTextProps` | локальный, `BlockText.vue` |
+| `ILandingMediaProps` | `IBlockMediaProps` | локальный, `BlockMedia.vue` |
+| `ILandingTitleProps` | `IBlockTitleProps` | локальный, `BlockTitle.vue` |
+
+Не трогаем (осознанно):
+
+- Сущность «лендинг»: `ILandingConfig`, `ILandingBreakpoint*`, `ILandingMediaConfig`,
+  `ILandingPageRow`, `ILandingSchemaMeta`, `ILandingFileStructure`, `TLandingDeviceKey`.
+- Префикс `ILand*` story-структуры (`ILandValues`, `ILandDemoValues`, `ILandSlotDefinition`,
+  `ILandExportModule`, `ILandShowWhen`, `ILandGalleryFieldsConfig`, `ILandObject`,
+  `ILandUiCommonProp`, `ILandDataSource*`) — это контракт story-файлов (`.idaland.ts`),
+  переименовывается вместе с дебрендингом формата (`*.idaland.ts` → `*.brick.ts`).
+
+Финальный grep: `grep -rnE "ILandingSvgProps|ILandingBuilderToolbar|ILandingInlineContentSegment|ILandingGalleryItem|ILandingTextProps|ILandingMediaProps|ILandingTitleProps" src/` → пусто.

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { ILandingBuilderToolbarProps, ILandingBuilderToolbarEmits } from './types';
+import type { IToolbarProps, IToolbarEmits } from './types';
 import type { ILandUiCommonProp } from '../../../ui/inputs/types.d.ts';
 
 // Vue
@@ -16,11 +16,11 @@ import BuilderLogo from '../BuilderLogo.vue';
 // #endregion
 
 // #region Props
-const props = defineProps<ILandingBuilderToolbarProps>();
+const props = defineProps<IToolbarProps>();
 // #endregion
 
 // #region Emits
-const emit = defineEmits<ILandingBuilderToolbarEmits>();
+const emit = defineEmits<IToolbarEmits>();
 // #endregion
 
 // #region Computed

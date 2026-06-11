@@ -11,7 +11,7 @@ import { useInlineEditor } from '../../editor/composables/useInlineEditor';
 // #endregion
 
 // #region Interfaces
-interface ILandingTextProps {
+interface IBlockTextProps {
     componentId?: string;
     content?: string;
     marginTop?: string | number;
@@ -27,7 +27,7 @@ interface IInlineEditingContext {
 // #endregion
 
 // #region Props
-const props = withDefaults(defineProps<ILandingTextProps>(), {
+const props = withDefaults(defineProps<IBlockTextProps>(), {
     componentId: '',
     content: '<p>Начните вводить текст...</p>',
     marginTop: 0,

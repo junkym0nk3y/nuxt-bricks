@@ -5,7 +5,7 @@ import { computed, useCssModule } from 'vue';
 // #endregion
 
 // #region Props
-interface ILandingMediaProps {
+interface IBlockMediaProps {
     src?: string;
     alt?: string;
     type?: 'image' | 'video';
@@ -19,7 +19,7 @@ interface ILandingMediaProps {
     controls?: boolean;
 }
 
-const props = withDefaults(defineProps<ILandingMediaProps>(), {
+const props = withDefaults(defineProps<IBlockMediaProps>(), {
     src: '',
     alt: 'Media',
     type: 'image',

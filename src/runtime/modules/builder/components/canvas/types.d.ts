@@ -4,7 +4,7 @@
 
 import type { CSSProperties, Ref } from 'vue';
 import type { ComponentLibraryItem, LandingComponent } from '../../../common/types/landing';
-import type { ILandingInlineContentSegment } from '../../../layouts-blocks/types/layouts';
+import type { IInlineContentSegment } from '../../../layouts-blocks/types/layouts';
 
 export interface ICanvasItemProps {
     component: LandingComponent;
@@ -30,7 +30,7 @@ export interface ILayoutProperty {
         | 'accordion-items'
         | 'color';
     label: string;
-    default: string | number | boolean | ILandingInlineContentSegment[] | Record<string, unknown>[];
+    default: string | number | boolean | IInlineContentSegment[] | Record<string, unknown>[];
     options?: Array<{ label: string; value: string | number }>;
     description?: string;
     min?: number;

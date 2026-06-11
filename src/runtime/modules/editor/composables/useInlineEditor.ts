@@ -1,7 +1,7 @@
 // #region Imports
 // Types
 import type { Editor } from '@tiptap/vue-3';
-import type { ILandingInlineContentSegment } from '../../layouts-blocks/types/layouts';
+import type { IInlineContentSegment } from '../../layouts-blocks/types/layouts';
 
 // Vue
 import {
@@ -59,7 +59,7 @@ export function useInlineEditor(
     const editorContent = shallowRef<Component | null>(null);
 
     /** Оригинальные сегменты для round-trip восстановления медиа */
-    let originalSegments: ILandingInlineContentSegment[] = [];
+    let originalSegments: IInlineContentSegment[] = [];
 
     /**
      * Флаг для предотвращения циклического обновления:
@@ -139,7 +139,7 @@ export function useInlineEditor(
 
                 editorContent.value = EditorContent;
                 const segments = Array.isArray(currentValue)
-                    ? (currentValue as ILandingInlineContentSegment[])
+                    ? (currentValue as IInlineContentSegment[])
                     : [];
                 originalSegments = [...segments];
 

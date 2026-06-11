@@ -2,7 +2,7 @@
  * Layout-specific shared types
  */
 
-export interface ILandingInlineContentSegment {
+export interface IInlineContentSegment {
     id: string;
     kind: 'text' | 'image' | 'svg' | 'line-break';
     text?: string;
@@ -17,7 +17,7 @@ export interface ILandingInlineContentSegment {
 /**
  * Элемент галереи изображений для image-gallery редактора.
  */
-export interface ILandingGalleryItem {
+export interface IGalleryItem {
     id: string;
     url: string;
     title?: string;

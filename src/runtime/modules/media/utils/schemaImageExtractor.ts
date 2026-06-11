@@ -10,7 +10,7 @@ import type {
     IImageLocation,
     TImageSourceType,
 } from '../types/schemaImageResolver';
-import type { ILandingGalleryItem, ILandingInlineContentSegment } from '../../layouts-blocks/types/layouts';
+import type { IGalleryItem, IInlineContentSegment } from '../../layouts-blocks/types/layouts';
 // #endregion
 
 // #region Constants
@@ -84,7 +84,7 @@ function isBareImageUrl(value: string): boolean {
  *
  * @param value - Значение для проверки.
  */
-function isGalleryArray(value: unknown): value is ILandingGalleryItem[] {
+function isGalleryArray(value: unknown): value is IGalleryItem[] {
     if (!Array.isArray(value) || value.length === 0) {
         return false;
     }
@@ -104,7 +104,7 @@ function isGalleryArray(value: unknown): value is ILandingGalleryItem[] {
  *
  * @param value - Значение для проверки.
  */
-function isInlineContentArray(value: unknown): value is ILandingInlineContentSegment[] {
+function isInlineContentArray(value: unknown): value is IInlineContentSegment[] {
     if (!Array.isArray(value) || value.length === 0) {
         return false;
     }

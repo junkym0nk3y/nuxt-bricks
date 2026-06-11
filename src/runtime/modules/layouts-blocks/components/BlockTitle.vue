@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { ILandingInlineContentSegment } from '../types/layouts';
+import type { IInlineContentSegment } from '../types/layouts';
 import type { InlineEditingPropType } from '../../editor/stores/inlineEditing';
 
 // Vue
@@ -15,7 +15,7 @@ import { useInlineEditor } from '../../editor/composables/useInlineEditor';
 // #endregion
 
 // #region Interfaces
-interface ILandingTitleProps {
+interface IBlockTitleProps {
     componentId?: string;
     headingType?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
     fontFamily?: string;
@@ -26,7 +26,7 @@ interface ILandingTitleProps {
     textAlign?: 'left' | 'center' | 'right';
     fontSize?: string | number;
     letterSpacing?: string | number;
-    inlineContent?: ILandingInlineContentSegment[];
+    inlineContent?: IInlineContentSegment[];
 }
 
 interface IInlineEditingContext {
@@ -38,7 +38,7 @@ interface IInlineEditingContext {
 // #endregion
 
 // #region Props
-const props = withDefaults(defineProps<ILandingTitleProps>(), {
+const props = withDefaults(defineProps<IBlockTitleProps>(), {
     componentId: '',
     headingType: 'h2',
     fontFamily: '',
@@ -136,7 +136,7 @@ const headingClasses = computed(() => [
     { [$style.isEditing]: isEditing.value },
 ]);
 
-const inlineSegments = computed<ILandingInlineContentSegment[]>(() => {
+const inlineSegments = computed<IInlineContentSegment[]>(() => {
     if (Array.isArray(props.inlineContent) && props.inlineContent.length > 0) {
         return props.inlineContent;
     }
@@ -175,7 +175,7 @@ function resolveDimension(value?: string | number): string | undefined {
  * @param segment - SVG сегмент.
  * @returns Строка SVG.
  */
-function getSegmentSvgContent(segment: ILandingInlineContentSegment): string {
+function getSegmentSvgContent(segment: IInlineContentSegment): string {
     return applyColorToSvgContent(segment.svgContent || '', segment.color);
 }
 
@@ -185,7 +185,7 @@ function getSegmentSvgContent(segment: ILandingInlineContentSegment): string {
  * @param segment - Индивидуальный сегмент.
  * @returns Inline стили.
  */
-function getSvgWrapperStyle(segment: ILandingInlineContentSegment): Record<string, string> {
+function getSvgWrapperStyle(segment: IInlineContentSegment): Record<string, string> {
     const style: Record<string, string> = {
         display: 'inline-flex',
         alignItems: 'center',
@@ -215,7 +215,7 @@ function getSvgWrapperStyle(segment: ILandingInlineContentSegment): Record<strin
  * @param segment - Сегмент изображения.
  * @returns Объект стилей.
  */
-function getImageStyle(segment: ILandingInlineContentSegment): Record<string, string> {
+function getImageStyle(segment: IInlineContentSegment): Record<string, string> {
     const style: Record<string, string> = {};
     const width = resolveDimension(segment.width);
     const height = resolveDimension(segment.height);
