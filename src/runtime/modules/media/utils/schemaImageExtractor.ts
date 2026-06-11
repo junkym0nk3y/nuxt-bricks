@@ -10,7 +10,7 @@ import type {
     IImageLocation,
     TImageSourceType,
 } from '../types/schemaImageResolver';
-import type { IGalleryItem, IInlineContentSegment } from '../../layouts-blocks/types/layouts';
+import type { IGalleryItem, IInlineContentSegment } from '../../common/types/content';
 // #endregion
 
 // #region Constants

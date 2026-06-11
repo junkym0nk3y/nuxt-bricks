@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IGalleryItem } from '../../../layouts-blocks/types/layouts';
+import type { IGalleryItem } from '../../../common/types/content';
 import type { IBrickGalleryFieldsConfig } from '../../../common/types/index';
 
 // Vue

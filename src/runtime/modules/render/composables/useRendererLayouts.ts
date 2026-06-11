@@ -1,19 +1,26 @@
 // #region Imports
 // Vue
 import { h, type VNode } from 'vue';
+import type { BricksComponent } from '../../common/types/brick';
 import type {
     AccordionLayoutProps,
     GridLayoutVariant,
     GridRowHeight,
     IBlockSvgProps,
-    BricksComponent,
     SectionLayoutProps,
     SliderLayoutProps,
-} from '../../common/types/brick';
+} from '../../layouts-blocks/types/blockProps';
 import type { IRendererLayoutsOptions } from '../types/render';
 
 // Utils
 import { convertPxToRem } from '../../common/utils/main';
+import {
+    getResponsiveOverrides,
+    gridPlacementStyle,
+    makeResponsiveVars,
+    resolveResponsiveValue,
+    toRem,
+} from '../../layouts-blocks/utils/responsiveVars';
 
 // Components
 import BlockText from '../../layouts-blocks/components/BlockText.vue';
@@ -23,32 +30,6 @@ import BlockSvg from '../../layouts-blocks/components/BlockSvg.vue';
 import BlockSlider from '../../layouts-blocks/components/BlockSlider.vue';
 import BlockAccordion from '../../layouts-blocks/components/BlockAccordion.vue';
 // #endregion
-
-/** Округляет значение в rem до 1 десятичного знака */
-function toRem(v: unknown): string {
-    return `${Math.round(Math.max(0, Number(v) || 0) * 10) / 10}rem`;
-}
-
-/** Resolve значения с учётом override */
-function resolveRV<T>(base: T, overrides: Record<string, any>, key: string): T {
-    return key in overrides ? (overrides[key] as T) : base;
-}
-
-/** Создаёт тройку CSS-переменных (desktop/tablet/mobile) для responsive свойства */
-function makeResponsiveVars(
-    prefix: string,
-    base: unknown,
-    tabletOv: Record<string, any>,
-    mobileOv: Record<string, any>,
-    key: string,
-    transform: (v: unknown) => string = String
-): Record<string, string> {
-    return {
-        [`${prefix}-desktop`]: transform(base),
-        [`${prefix}-tablet`]: transform(resolveRV(base, tabletOv, key)),
-        [`${prefix}-mobile`]: transform(resolveRV(base, mobileOv, key)),
-    };
-}
 
 /**
  * Composable для рендеринга layout-компонентов лендинга.
@@ -102,30 +83,6 @@ export function useRendererLayouts({
 
         return 'auto';
     }
-
-    /**
-     * Возвращает объект overrides для конкретного device из `props.responsive`.
-     *
-     * @param props - Пропсы layout-компонента.
-     * @param device - Ключ устройства.
-     */
-    function getResponsiveOverrides(
-        props: Record<string, any>,
-        device: 'mobile' | 'tablet' | 'desktop'
-    ): Record<string, any> {
-        const rawResponsive = props?.responsive;
-        if (!rawResponsive || typeof rawResponsive !== 'object') {
-            return {};
-        }
-
-        const responsive = rawResponsive as Record<string, unknown>;
-        const overrides = responsive[device];
-
-        return overrides && typeof overrides === 'object' ? (overrides as Record<string, any>) : {};
-    }
-
-    /** @see resolveRV — module-level alias */
-    const resolveResponsiveValue = resolveRV;
 
     /**
      * Возвращает список дочерних компонентов.
@@ -410,12 +367,7 @@ export function useRendererLayouts({
             style.padding = `${basePaddingY}rem ${basePaddingX}rem`;
         }
 
-        if (component.gridColumn) {
-            style.gridColumn = component.gridColumn;
-        }
-        if (component.gridRow) {
-            style.gridRow = component.gridRow;
-        }
+        Object.assign(style, gridPlacementStyle(component));
 
         const childComponents = getChildComponents(component);
 
@@ -526,12 +478,7 @@ export function useRendererLayouts({
             (style as Record<string, string>).padding = `${basePaddingY}rem ${basePaddingX}rem`;
         }
 
-        if (component.gridColumn) {
-            (style as Record<string, string>).gridColumn = component.gridColumn;
-        }
-        if (component.gridRow) {
-            (style as Record<string, string>).gridRow = component.gridRow;
-        }
+        Object.assign(style as Record<string, string>, gridPlacementStyle(component));
 
         const childComponents = getChildComponents(component);
 
@@ -608,12 +555,7 @@ export function useRendererLayouts({
             style.backgroundPosition = 'center';
         }
 
-        if (component.gridColumn) {
-            style.gridColumn = component.gridColumn;
-        }
-        if (component.gridRow) {
-            style.gridRow = component.gridRow;
-        }
+        Object.assign(style, gridPlacementStyle(component));
 
         const childComponents = getChildComponents(component);
 
@@ -677,12 +619,7 @@ export function useRendererLayouts({
             style.justifyContent = 'center';
         }
 
-        if (component.gridColumn) {
-            style.gridColumn = component.gridColumn;
-        }
-        if (component.gridRow) {
-            style.gridRow = component.gridRow;
-        }
+        Object.assign(style, gridPlacementStyle(component));
 
         const isVertical =
             currentProps.direction === 'vertical' || currentProps.direction === 'both';
@@ -742,13 +679,7 @@ export function useRendererLayouts({
         extraAttrs: Record<string, string | undefined>
     ): VNode {
         const componentProps = component.props as SliderLayoutProps;
-        const style: Record<string, string> = {};
-        if (component.gridColumn) {
-            style.gridColumn = component.gridColumn;
-        }
-        if (component.gridRow) {
-            style.gridRow = component.gridRow;
-        }
+        const style = gridPlacementStyle(component);
 
         return h(BlockTitle, {
             ...componentProps,
@@ -772,13 +703,7 @@ export function useRendererLayouts({
         extraAttrs: Record<string, string | undefined>
     ): VNode {
         const componentProps = component.props as Record<string, any>;
-        const style: Record<string, string> = {};
-        if (component.gridColumn) {
-            style.gridColumn = component.gridColumn;
-        }
-        if (component.gridRow) {
-            style.gridRow = component.gridRow;
-        }
+        const style = gridPlacementStyle(component);
 
         return h(BlockText, {
             ...componentProps,
@@ -816,12 +741,7 @@ export function useRendererLayouts({
                 'borderRadius'
             ),
         };
-        if (component.gridColumn) {
-            style.gridColumn = component.gridColumn;
-        }
-        if (component.gridRow) {
-            style.gridRow = component.gridRow;
-        }
+        Object.assign(style, gridPlacementStyle(component));
 
         return h(BlockMedia, {
             ...cp,
@@ -859,12 +779,7 @@ export function useRendererLayouts({
             '--bricks-media-radius-tablet': '0',
             '--bricks-media-radius-mobile': '0',
         };
-        if (component.gridColumn) {
-            style.gridColumn = component.gridColumn;
-        }
-        if (component.gridRow) {
-            style.gridRow = component.gridRow;
-        }
+        Object.assign(style, gridPlacementStyle(component));
 
         return h(BlockSvg, {
             ...cp,
@@ -892,13 +807,7 @@ export function useRendererLayouts({
     ): VNode {
         const componentProps = component.props as SliderLayoutProps;
         const childComponents = getChildComponents(component);
-        const style: Record<string, string> = {};
-        if (component.gridColumn) {
-            style.gridColumn = component.gridColumn;
-        }
-        if (component.gridRow) {
-            style.gridRow = component.gridRow;
-        }
+        const style = gridPlacementStyle(component);
 
         return h(BlockSlider, {
             layoutProps: componentProps,
@@ -926,13 +835,7 @@ export function useRendererLayouts({
         extraAttrs: Record<string, string | undefined>
     ): VNode {
         const componentProps = component.props as AccordionLayoutProps;
-        const style: Record<string, string> = {};
-        if (component.gridColumn) {
-            style.gridColumn = component.gridColumn;
-        }
-        if (component.gridRow) {
-            style.gridRow = component.gridRow;
-        }
+        const style = gridPlacementStyle(component);
 
         return h(BlockAccordion, {
             layoutProps: componentProps,

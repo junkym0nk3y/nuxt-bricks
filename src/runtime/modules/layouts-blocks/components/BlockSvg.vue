@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IBlockSvgProps } from '../../common/types/brick';
+import type { IBlockSvgProps } from '../types/blockProps';
 
 // Vue
 import { computed } from 'vue';

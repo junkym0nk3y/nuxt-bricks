@@ -1,7 +1,7 @@
 // #region Imports
 // Types
 import type { ICanvasItemProps } from '../components/types';
-import type { PropertyDefinition } from '../../common/types/brick';
+import type { PropertyDefinition, TBricksDeviceKey } from '../../common/types/brick';
 import type { IBrickValues } from '../../common/types/index';
 
 // Vue
@@ -34,7 +34,7 @@ export function useCanvasItemActions(
     isLayout: ComputedRef<boolean>,
     layoutName: ComputedRef<string>,
     availableFonts: string[],
-    figmaViewport: string | null,
+    figmaViewport: Ref<TBricksDeviceKey> | null,
     itemTop: Ref<number>,
     itemRight: Ref<number>,
     isSelected: ComputedRef<boolean>
@@ -106,7 +106,7 @@ export function useCanvasItemActions(
         if (
             figmaViewport &&
             canvasStore.isFigmaMode &&
-            figmaViewport !== canvasStore.activeViewport
+            figmaViewport.value !== canvasStore.activeViewport
         ) {
             return false;
         }
@@ -178,7 +178,7 @@ export function useCanvasItemActions(
         componentsStore.selectComponent(props.component.id, properties, description);
 
         if (canvasStore.isFigmaMode && figmaViewport) {
-            canvasStore.activeViewport = figmaViewport as 'mobile' | 'tablet' | 'desktop';
+            canvasStore.activeViewport = figmaViewport.value;
         }
 
         // Скроллим до компонента после открытия сайдбара
@@ -186,7 +186,8 @@ export function useCanvasItemActions(
         // Если открывался — ждём завершения анимации (300ms transition + буфер)
         // В Figma mode скоупим поиск на активный viewport
         const componentId = props.component.id;
-        const scrollViewport = canvasStore.isFigmaMode && figmaViewport ? figmaViewport : undefined;
+        const scrollViewport =
+            canvasStore.isFigmaMode && figmaViewport ? figmaViewport.value : undefined;
 
         if (sidebarAlreadyOpen) {
             await nextTick();

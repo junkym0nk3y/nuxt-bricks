@@ -1,9 +1,13 @@
 // #region Imports
 // Types
 import type { ComponentLibraryItem, BricksSchema } from '../../common/types/brick';
-import type { IMediaItem, TMediaGalleryContext } from '../../media/types/media';
+import type { IMediaItem, TMediaGalleryContext } from '../../common/types/media';
 import type { ISidebarExpose } from '../types/builder';
-import type { IBuilderToastState, IUseBuilderPageReturn } from '../types/composables';
+import type {
+    IBuilderToastState,
+    IInlineMediaBridge,
+    IUseBuilderPageReturn,
+} from '../types/composables';
 
 // Vue
 import { computed, onUnmounted, provide, reactive, ref, watch } from 'vue';
@@ -23,7 +27,6 @@ import { useSchemaImageResolver } from '../../media/composables/useSchemaImageRe
 import { useComponentsStore } from '../stores/components';
 import { useSidebarStore } from '../stores/sidebar';
 import { useHistoryStore } from '../stores/history';
-import { useInlineEditingStore } from '../../editor/stores/inlineEditing';
 import { usePublishStore, setPublishStoreBackgroundColor } from '../stores/publish';
 
 // Constants
@@ -32,13 +35,17 @@ import { LAYOUT_COMPONENTS } from '../constants/layoutComponents';
 
 /**
  * Собирает всю бизнес-логику страницы билдера и отдаёт Vue-компоненту только необходимые состояния.
+ *
+ * @param inlineMediaBridge - Мост media-запросов inline-редактора; собирается
+ * composition root'ом (`pages/[pagename].vue`), чтобы builder-ядро не зависело от editor.
  */
-export async function useBuilderPage(): Promise<IUseBuilderPageReturn> {
+export async function useBuilderPage(
+    inlineMediaBridge: IInlineMediaBridge
+): Promise<IUseBuilderPageReturn> {
     // #region Stores & Composables
     const componentsStore = useComponentsStore();
     const sidebarStore = useSidebarStore();
     const historyStore = useHistoryStore();
-    const inlineEditingStore = useInlineEditingStore();
     const publishStore = usePublishStore();
     const { findImportModule } = useStoryImports();
     const dragComposable = useComponentLibraryDrag();
@@ -663,7 +670,7 @@ export async function useBuilderPage(): Promise<IUseBuilderPageReturn> {
     function handleCloseMediaGallery(): void {
         isMediaGalleryModalOpen.value = false;
         mediaGalleryContext.value = 'manager';
-        inlineEditingStore.cancelMediaRequest();
+        inlineMediaBridge.cancelMediaRequest();
     }
 
     /**
@@ -673,8 +680,8 @@ export async function useBuilderPage(): Promise<IUseBuilderPageReturn> {
      * @param item - Выбранный медиа-элемент.
      */
     function handleMediaSelect(item: IMediaItem): void {
-        if (inlineEditingStore.isRequestingMedia) {
-            inlineEditingStore.resolveMediaRequest(item);
+        if (inlineMediaBridge.isRequestingMedia.value) {
+            inlineMediaBridge.resolveMediaRequest(item);
             isMediaGalleryModalOpen.value = false;
             mediaGalleryContext.value = 'manager';
             return;
@@ -687,7 +694,7 @@ export async function useBuilderPage(): Promise<IUseBuilderPageReturn> {
 
     // Открываем MediaGallery когда inline editor запрашивает изображение
     watch(
-        () => inlineEditingStore.isRequestingMedia,
+        inlineMediaBridge.isRequestingMedia,
         (requesting) => {
             if (requesting) {
                 handleOpenMediaGallery('properties');

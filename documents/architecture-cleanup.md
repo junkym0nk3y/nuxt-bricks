@@ -24,6 +24,7 @@
 | Разъехавшиеся дефолты layout-блоков | **По поведению создания**: истинны значения из `builder/constants/layoutComponents.ts` (Flex `wrap: false`, Title `marginBottom: 0`, RU-текст в Text). Новые компоненты создаются ровно как сейчас. |
 | Registry vs unification с `.brick.ts` | **Runtime TS-registry в `layouts-blocks/`.** `bricks.json` — build-time JSON: не может нести component-refs, render-функции, function-valued properties (Title зависит от runtime `availableFonts`), коэрцию. Unification всё равно потребовала бы второй runtime-механизм. |
 | editor в графе зависимостей | editor — фичевый домен уровня canvas/sidebar: `editor → builder` (stores/utils/types/constants) разрешено; `builder/* (кроме pages) → editor` запрещено. |
+| `ui → common` (решение на шаге A2, 2026-06-12) | **Разрешить.** common — нижний слой контрактов/утилит и наверх не смотрит; дублировать `validateHex`/`normalizeHex` и `IBrickDemoValues` в ui ради строгости — хуже для поддержки. Правило `ui-is-bottom`: `ui → (?!ui\|common)` запрещён. |
 
 ---
 
@@ -101,6 +102,17 @@ toolbar → ui 7, builder 1 ✅
 
 ## Часть A. Исправление нарушений
 
+### Этапы выполнения (разбивка по сессиям, чтобы не переполнять контекст)
+
+- [x] **Этап 1** — A7: dependency-cruiser scaffold + baseline (warn) — выполнено 2026-06-11
+- [x] **Этап 2** — A1: контрактные типы → `common/types/` → flip `common-is-bottom` — выполнено 2026-06-12
+- [x] **Этап 3** — A4 + A2: `BricksConfirmModal` → ui; toolbar-типы → ui;
+      `TextEditorArea` → editor → flip `media-deps`, `ui-is-bottom` — выполнено 2026-06-12
+- [x] **Этап 4** — A3 + A5: `useBuilderPage` — editor-мост через DI (`IInlineMediaBridge`);
+      `RendererCloseButton` → flip `builder-core-no-features`, `editor-deps`, `render-lean` — выполнено 2026-06-12
+- [x] **Этап 5** — A6: viewport-inject (6 точек атомарно) → flip `layouts-blocks-deps`,
+      `no-circular` — выполнено 2026-06-12. **Часть A полностью закрыта: 0 violations.**
+
 ### A7 (выполняется первым — scaffold). dependency-cruiser
 
 - devDep `dependency-cruiser`; файл `.dependency-cruiser.cjs` в корне;
@@ -110,6 +122,24 @@ toolbar → ui 7, builder 1 ✅
   каждое правило флипается в `error` по мере выполнения соответствующего шага.
 - Проверить, что depcruise парсит `.vue` (нужен резолв `@vue/compiler-sfc` — есть
   через Nuxt). Fallback — самописный import-scanner (~60 строк) на тот же allowlist.
+
+**Статус: выполнено (2026-06-11).** `.dependency-cruiser.cjs` в корне, скрипт
+`deps:check` добавлен в `lint:check`. depcruise парсит `.vue` из коробки —
+fallback-сканер не понадобился. Baseline: **32 warnings, 0 errors**
+(286 модулей, 926 зависимостей). Exit code 0 при warn — CI не падает до флипов.
+
+Находки сверх ревью:
+
+- **`ui → common` тоже флагается** (6 импортов: BricksSelect, BricksSelectOption,
+  BricksHexInput, BricksToolbarColorPicker×1, BricksTextArea×1 → `common/types`,
+  `common/utils/main`, `common/composables/useBricksConfig`). Правило `ui-is-bottom`
+  сознательно строгое («ui не импортирует ничего вне ui»); разобраться на шаге A2.
+- **Внутренние циклы canvas**: `CanvasItem ↔ CanvasItemLayout` и
+  `CanvasItem ↔ CanvasItemComponent` — легитимная рекурсия Vue-компонентов
+  (дерево канваса). Перед флипом `no-circular` в error добавить исключение
+  (`viaNot` по `canvas/components`) — чинить их не нужно.
+- `layouts-blocks/utils/inlineContent.ts → media/types/media.d.ts` — закрывается
+  переездом media-типов в common (A1).
 
 Скелет правил (forbidden-инверсии allowlist):
 
@@ -139,6 +169,18 @@ module.exports = { forbidden: [
 Чистые type-переезды, нулевой поведенческий риск. Закрывает нарушения 4 и 7,
 разблокирует A2/A3 и всю Часть B.
 
+**Статус: выполнено (2026-06-12).** Создано 5 файлов в `common/types/`
+(`dataSource`, `content`, `media`, `inlineEditing`, `layoutProperty`), удалены
+`render/types/bricks-data-source.d.ts`, `layouts-blocks/types/layouts.d.ts`
+(папка пустая — удалена), `builder/types/layoutProperties.d.ts`. Серверные типы
+обработки медиа (`TFormData`, `IValidated*`, `IBuildUploadedItemParams`,
+`TMediaOptimization`, `TResolvedMediaConfig`) и UI-типы галереи остались в
+`media/types/media.d.ts` (persistence → media — легальное ребро). Обратная
+совместимость: реэкспорты `InlineEditingPropType` из editor-store и
+`IInlineEditableProp` из `builder/utils/inlineEditableProp.ts`. Baseline depcruise:
+32 → 27 warnings; `common-is-bottom` флипнут в **error**. vue-tsc: 0 новых ошибок
+(12 pre-existing, сверено через git stash).
+
 | Новый файл в `common/types/` | Содержимое, откуда | Кого править |
 |---|---|---|
 | `dataSource.d.ts` | `IBrickDataSource`, `IBrickDataSourceParam`, `IBrickDataSourceContext` из `render/types/bricks-data-source.d.ts` | `render/composables/useBricksDataSources.ts`, `render/pages/[pagename].vue`, `common/types/index.ts` (инлайн-`import()` на ~94 становится локальным) |
@@ -154,6 +196,10 @@ layouts-blocks — всем layouts-blocks доступен). В `common/types/b
 
 ### A4. `ConfirmActionModal` → `ui/feedback/BricksConfirmModal.vue`
 
+**Статус: выполнено (2026-06-12).** Типы — в новом `ui/feedback/types.d.ts`,
+3 импортёра переведены, старый компонент и `IConfirmActionModal*` удалены.
+`media-deps` флипнут в **error**.
+
 Проверено: зависит только от `ui/base` и локальных типов — переезд чистый.
 
 - `builder/components/modal/ConfirmActionModal.vue` → `ui/feedback/BricksConfirmModal.vue`
@@ -165,6 +211,14 @@ layouts-blocks — всем layouts-blocks доступен). В `common/types/b
 - Результат: цикл builder ↔ media разорван.
 
 ### A2. Очистка `ui/` от editor-зависимостей
+
+**Статус: выполнено (2026-06-12).** Типы тулбара → `ui/inputs/textEditorToolbar.d.ts`
+(NuxtApp-аугментация уехала с файлом, путь в `plugins/text-editor-toolbar.ts` обновлён);
+`BricksTextArea` → `editor/components/TextEditorArea.vue` (типы —
+`ITextEditorAreaProps/Emits` в новом `editor/components/types.d.ts`; корневой
+CSS-класс переименован). `editor/types/` опустела и удалена. Остаточные `ui → common`
+(4 импорта) — разрешены решением выше. `ui-is-bottom` флипнут в **error**.
+vue-tsc: 0 новых ошибок. Baseline: 27 → 10 → 5 warnings (после обоих флипов).
 
 1. **Типы тулбара — в ui** (это контракт ui-примитивов тулбара):
    `editor/types/text-editor-toolbar.d.ts` → `ui/inputs/textEditorToolbar.d.ts`,
@@ -188,17 +242,29 @@ layouts-blocks — всем layouts-blocks доступен). В `common/types/b
 
 ### A3. Разрыв цикла builder ↔ editor
 
+**Статус: выполнено (2026-06-12), пересмотрено в тот же день.** Первая версия
+перевозила `useBuilderPage.ts` в `builder/pages/` — отменено (композаблам не место
+в `pages/`). Итоговое решение — **инверсия зависимости**: композабл остался в
+`builder/composables/`, editor-связка вынесена в параметр
+`inlineMediaBridge: IInlineMediaBridge` (`builder/types/composables.d.ts`:
+`isRequestingMedia: ComputedRef<boolean>` + `resolveMediaRequest`/`cancelMediaRequest`).
+Мост собирает `[pagename].vue` (composition root) из `useInlineEditingStore` —
+editor подключается только там. Type-половина умерла в A1.
+`builder-core-no-features` и `editor-deps` флипнуты в **error**.
+
 - Type-половина цикла умирает в A1 (`common/types/inlineEditing.d.ts`).
-- Runtime-половина: `builder/composables/useBuilderPage.ts` →
-  **`builder/pages/useBuilderPage.ts`**. Обоснование: композабл page-scoped
-  (единственный потребитель — `builder/pages/[pagename].vue`), использует
-  `useInlineEditingStore` только как мост media-запросов (watch `isRequestingMedia` →
-  открыть галерею; `resolveMediaRequest`/`cancelMediaRequest`). `builder/pages` —
-  composition root, ему editor разрешён. Правится один импорт в `[pagename].vue`.
+- Runtime-половина: `useBuilderPage` использовал `useInlineEditingStore` только как
+  мост media-запросов (watch `isRequestingMedia` → открыть галерею;
+  `resolveMediaRequest`/`cancelMediaRequest`) — этот контракт инвертирован в параметр.
 - `editor/composables/useInlineEditor.ts` → `builder/stores/components` —
   санкционированное ребро (editor — фичевый домен).
 
 ### A5. render → ui: копия кнопки
+
+**Статус: выполнено (2026-06-12).** `RendererCloseButton.vue` — самодостаточная копия
+(нативный `<button>` без импорта `BricksButton`, иначе render → ui осталось бы;
+`BricksIcon` — глобальный компонент из плагина, импорта не требует). TODO-комментарий
+на месте. `render-lean` флипнут в **error**.
 
 - Скопировать `ui/base/modal/BricksCloseButton.vue` →
   `render/components/RendererCloseButton.vue` (нейминг по домену, без `Bricks`-префикса;
@@ -208,6 +274,20 @@ layouts-blocks — всем layouts-blocks доступен). В `common/types/b
 - Правило `render-lean` (только common + layouts-blocks) флипается в `error`.
 
 ### A6. BlockSlider: инъекция viewport вместо builder-store
+
+**Статус: выполнено (2026-06-12).** Точек оказалось 6, а не 4 — добавились потребители
+строкового ключа `'canvasViewport'`, не учтённые в ревью:
+
+5. `canvas/components/CanvasItem.vue:43` — `figmaViewport` (детект Figma mode);
+   переведён на `inject(CANVAS_VIEWPORT_KEY, null)`.
+6. `canvas/composables/useCanvasItemActions.ts` — параметр `figmaViewport` сменил тип
+   `string | null` → `Ref<TBricksDeviceKey> | null` (3 использования через `.value`).
+   Безопасно: все ветки защищены `canvasStore.isFigmaMode`, в обычном режиме
+   значение не читается.
+
+`BlockSlider` больше не импортирует `builder/stores/canvas`; fallback на published —
+`'desktop'` (Swiper работает через breakpoints). `layouts-blocks-deps` флипнут в
+**error**. Бонус закрыт: Pinia + canvas-store ушли из бандла published-страницы.
 
 Типизированный inject-контракт, работающий в обычном режиме, Figma mode и на published:
 
@@ -246,6 +326,18 @@ CSS-vars в `layouts-blocks/composables/useResponsiveLayoutStyles.ts` →
 (map в `registry.ts` и map в `canvasBlockComponents.ts`; позже можно авто-glob).
 
 ### B1. Типы и утилиты
+
+**Статус: выполнено (2026-06-12).** Создано: `layouts-blocks/types/registry.d.ts`
+(по спеке ниже, без неиспользуемого импорта `Component`),
+`layouts-blocks/types/blockProps.d.ts` (юнион + supporting-типы `ISliderCaption`,
+`IAccordionItem`; `TBricksDeviceKey`/`IDeviceVisibilityConfig` остались в
+`common/types/brick.ts`), `layouts-blocks/utils/responsiveVars.ts` (`toRem`,
+`resolveResponsiveValue`, `makeResponsiveVars`, `getResponsiveOverrides`,
+`gridPlacementStyle`). Импортёры обновлены: canvas ×2, render ×1, sidebar ×2
+(`IAccordionItem`), layouts-blocks ×7. `useRendererLayouts.ts` переведён на утилиты —
+10 дублей grid-placement-блоков заменены на `gridPlacementStyle`. Реэкспорта из
+brick.ts нет (нарушил бы `common-is-bottom`). vue-tsc: 12 ошибок = baseline;
+depcruise: 0 violations (296 модулей).
 
 - `layouts-blocks/types/registry.d.ts`:
 
@@ -302,6 +394,18 @@ export interface IBlockDefinition {
 
 ### B2. Definitions + registry + parity-тест (ничего не потребляет — zero risk)
 
+**Статус: выполнено (2026-06-12).** 10 файлов `block*.definition.ts` colocated с `.vue`
+(data-only, `.vue` не импортируют — bundle firewall соблюдён), `registry.ts`
+(`BLOCK_REGISTRY`, `getBlockDefinition` — регистронезависимый, канвас оперирует
+lowercase; `getBlockProperties`, `getLayoutLibraryItems`, `resolveBlockProps`
+с коэрцией number/boolean/select), `canvasBlockComponents.ts` (eager-мапа,
+пока никем не импортируется — заберёт canvas на B4),
+`test/blockRegistry.parity.spec.ts` (8 тестов, зелёные; случайные id
+inline-сегментов нормализуются `stripSegmentIds`). `hasChildren: true` —
+Grid/Flex/Section (Slider получит children через `canvasBind` на B4).
+Находка сверх таблицы сверки: **Text `marginBottom`: 0 (создание) vs 2 (панель)** —
+по принципу «истина — создание» взят `0`. vue-tsc: baseline; depcruise: 0 violations.
+
 - 10 файлов `layouts-blocks/components/blockX.definition.ts`, colocated с `.vue`.
 - `layouts-blocks/registry.ts`: `BLOCK_REGISTRY: Record<string, IBlockDefinition>` +
   - `getBlockDefinition(name)`;
@@ -333,6 +437,14 @@ export interface IBlockDefinition {
 | Media `autoplay/loop/muted/controls`, Svg `svgContent` только в defaultProps | → `extraDefaults` |
 
 ### B3. builder — wrappers
+
+**Статус: выполнено (2026-06-12).** Оба файла — обёртки над registry
+(`LAYOUT_COMPONENTS = getLayoutLibraryItems()`; `getLayoutProperties` →
+`getBlockProperties`), дублированные `X_PROPERTIES`-массивы удалены. 7 импортёров
+(sidebar ×2, canvas ×2, builder ×1 и сами файлы) не тронуты — API сохранён.
+Parity-тест после B3 тавтологичен по wrapper-ветке (ожидаемо, остаётся до шага 14).
+Внимание: дефолты панели свойств изменились — Flex `wrap: false`,
+Title `marginBottom: 0`, Text `content` RU / `marginBottom: 0` (санкционировано).
 
 - `builder/constants/layoutComponents.ts` →
   `export const LAYOUT_COMPONENTS = getLayoutLibraryItems()` (места импорта не меняются).
@@ -388,16 +500,17 @@ export interface IBlockDefinition {
 переводится warn → error. Проверка на каждом шаге: `npx vue-tsc --noEmit`,
 `npx oxlint` по изменённым файлам, `npm run test`, dev-smoke.
 
-- [ ] **1. A7** — dependency-cruiser (warn) + `deps:check` + baseline нарушений
-- [ ] **2. A1** — контрактные типы → `common/types/` → flip `common-is-bottom`
-- [ ] **3. A4** — `BricksConfirmModal` → ui/feedback → flip `media-deps`
-- [ ] **4. A2** — toolbar-типы → ui; `TextEditorArea` → editor → flip `ui-is-bottom`
-- [ ] **5. A3** — `useBuilderPage` → builder/pages → flip `builder-core-no-features`, `editor-deps`
-- [ ] **6. A5** — `RendererCloseButton` копия в render
-- [ ] **7. A6** — viewport-inject (4 точки атомарно) → flip `layouts-blocks-deps`, `render-lean`
-- [ ] **8. B1** — `registry.d.ts`, `blockProps.d.ts`, `utils/responsiveVars.ts`
-- [ ] **9. B2** — 10 definitions + `registry.ts` + `canvasBlockComponents.ts` + parity-тест
-- [ ] **10. B3** — builder-wrappers, удаление дублей
+- [x] **1. A7** — dependency-cruiser (warn) + `deps:check` + baseline нарушений (2026-06-11, 32 warnings)
+- [x] **2. A1** — контрактные типы → `common/types/` → flip `common-is-bottom` (2026-06-12, 27 warnings)
+- [x] **3. A4** — `BricksConfirmModal` → ui/feedback → flip `media-deps` (2026-06-12)
+- [x] **4. A2** — toolbar-типы → ui; `TextEditorArea` → editor → flip `ui-is-bottom` (2026-06-12, 5 warnings)
+- [x] **5. A3** — `useBuilderPage`: editor-мост → параметр `IInlineMediaBridge` (DI из `[pagename].vue`) → flip `builder-core-no-features`, `editor-deps` (2026-06-12)
+- [x] **6. A5** — `RendererCloseButton` копия в render → flip `render-lean` (2026-06-12, 3 warnings)
+- [x] **7. A6** — viewport-inject (6 точек атомарно) → flip `layouts-blocks-deps`,
+      `no-circular` (с `viaNot`-исключением для рекурсии CanvasItem*) (2026-06-12, **0 violations**)
+- [x] **8. B1** — `registry.d.ts`, `blockProps.d.ts`, `utils/responsiveVars.ts` (2026-06-12)
+- [x] **9. B2** — 10 definitions + `registry.ts` + `canvasBlockComponents.ts` + parity-тест (2026-06-12)
+- [x] **10. B3** — builder-wrappers, удаление дублей (2026-06-12)
 - [ ] **11. B4** — canvas generic + sidebar `responsiveMode`
 - [ ] **12. B5** — render registry-диспатч
 - [ ] **13. B6** (опц.) — генерация CSS-vars

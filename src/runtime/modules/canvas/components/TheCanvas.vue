@@ -23,6 +23,9 @@ import { useCanvasPan } from '../composables/useCanvasPan';
 
 // Utils
 import { convertPxToRem } from '../../common/utils/main';
+
+// Constants
+import { CANVAS_VIEWPORT_KEY } from '../../common/constants/injectionKeys';
 import { scrollToComponentOnCanvas } from '../../builder/utils/scrollToComponent';
 
 // Components
@@ -54,6 +57,12 @@ const dragComposable = inject<IDragComposableCanvas | undefined>('dragComposable
 provide(
     'showGrid',
     computed(() => canvasStore.showGrid)
+);
+
+/** Активный viewport для обычного режима (в Figma mode перекрывается CanvasViewport) */
+provide(
+    CANVAS_VIEWPORT_KEY,
+    computed(() => canvasStore.viewport)
 );
 
 /** Rem-компенсация для per-viewport scaling в Figma Mode */

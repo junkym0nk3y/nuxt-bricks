@@ -19,6 +19,9 @@ import { useCanvasDrops } from '../composables/useCanvasDrops';
 // Utils
 import { convertPxToRem } from '../../common/utils/main';
 
+// Constants
+import { CANVAS_VIEWPORT_KEY } from '../../common/constants/injectionKeys';
+
 // Components
 import CanvasItem from './CanvasItem.vue';
 // #endregion
@@ -44,8 +47,11 @@ const getRemCompensation = inject<((viewport: TViewportType) => number) | undefi
     'getRemCompensation'
 );
 
-/** Провайдим viewport для дочерних CanvasItem (используется для Figma mode) */
-provide('canvasViewport', props.viewport);
+/** Провайдим viewport для дочерних CanvasItem (Figma mode, ближайший провайдер выигрывает) */
+provide(
+    CANVAS_VIEWPORT_KEY,
+    computed(() => props.viewport)
+);
 
 const canvasRef = ref<HTMLElement | null>(null);
 const containerRef = ref<HTMLElement | null>(null);

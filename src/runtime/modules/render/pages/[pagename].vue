@@ -3,7 +3,7 @@
 // Types
 import type { IPublishedPage } from '../../common/types/bricks-api';
 import type { BricksComponent } from '../../common/types/brick';
-import type { IBrickDataSource } from '../types/bricks-data-source';
+import type { IBrickDataSource } from '../../common/types/dataSource';
 
 // Vue
 import { computed, onMounted, onUnmounted, ref, watch, type Ref } from 'vue';
@@ -18,7 +18,7 @@ import { normalizeStoryPath } from '../../common/utils/bricks/paths';
 
 // Components
 import TheRenderer from '../components/TheRenderer.vue';
-import BricksCloseButton from '../../ui/base/modal/BricksCloseButton.vue';
+import RendererCloseButton from '../components/RendererCloseButton.vue';
 // #endregion
 
 // #region Data
@@ -402,7 +402,7 @@ useHead(() => {
                     <span :class="$style.previewText">Режим превью</span>
                     <BricksIcon :icon="currentDevice.icon" :class="$style.previewDeviceIcon" />
                     <span :class="$style.previewResolution">{{ resolutionText }}</span>
-                    <BricksCloseButton size="sm" :class="$style.previewClose" @click="closePreview" />
+                    <RendererCloseButton :class="$style.previewClose" @click="closePreview" />
                 </div>
             </div>
 

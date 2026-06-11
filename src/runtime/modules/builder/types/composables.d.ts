@@ -7,11 +7,21 @@ import type { ComputedRef, Ref } from 'vue';
 import type { useSidebarStore } from '../stores/sidebar';
 import type { useHistoryStore } from '../stores/history';
 import type { usePublishStore } from '../stores/publish';
-import type { IMediaItem, TMediaGalleryContext } from '../../media/types/media';
+import type { IMediaItem, TMediaGalleryContext } from '../../common/types/media';
 import type { ISidebarExpose } from './builder';
 import type { IImageResolverState, TImageResolveAction } from '../../media/types/schemaImageResolver';
 
 // #region useBuilderPage
+/**
+ * Мост media-запросов inline-редактора (editor → media-галерея).
+ * Собирается composition root'ом из editor-store, чтобы builder-ядро не импортировало editor.
+ */
+export interface IInlineMediaBridge {
+    isRequestingMedia: ComputedRef<boolean>;
+    resolveMediaRequest: (item: IMediaItem) => void;
+    cancelMediaRequest: () => void;
+}
+
 /**
  * Состояние toast-уведомления.
  */

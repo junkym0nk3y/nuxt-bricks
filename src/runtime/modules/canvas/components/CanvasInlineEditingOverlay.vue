@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IToolbarGroup } from '../../editor/types/text-editor-toolbar.d.ts';
+import type { IToolbarGroup } from '../../ui/inputs/textEditorToolbar.d.ts';
 import type { Editor } from '@tiptap/vue-3';
 
 // Vue

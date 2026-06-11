@@ -4,7 +4,7 @@
  */
 import { useBricksPublishAdapter, useBricksStorageAdapter } from '../registry';
 import { detectMimeTypeByFilename, fetchSvgContent } from './mediaProcessing';
-import type { IMediaItem } from '../../../media/types/media';
+import type { IMediaItem } from '../../../common/types/media';
 import type { ICreateMediaPayload, IStoredFileInfo } from '../../types/adapters';
 
 const DEFAULT_MEDIA_CATEGORY = 'other';

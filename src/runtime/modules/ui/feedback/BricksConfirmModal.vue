@@ -1,19 +1,19 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IConfirmActionModalEmits, IConfirmActionModalProps } from './types';
+import type { IBricksConfirmModalEmits, IBricksConfirmModalProps } from './types';
 
 // Vue
 import { computed } from 'vue';
 
 // Components
-import BricksButton from '../../../ui/base/button/BricksButton.vue';
-import BricksCloseButton from '../../../ui/base/modal/BricksCloseButton.vue';
-import BricksModal from '../../../ui/base/modal/BricksModal.vue';
+import BricksButton from '../base/button/BricksButton.vue';
+import BricksCloseButton from '../base/modal/BricksCloseButton.vue';
+import BricksModal from '../base/modal/BricksModal.vue';
 // #endregion
 
 // #region Props
-const props = withDefaults(defineProps<IConfirmActionModalProps>(), {
+const props = withDefaults(defineProps<IBricksConfirmModalProps>(), {
     description: '',
     confirmText: 'Подтвердить',
     cancelText: 'Отмена',
@@ -23,7 +23,7 @@ const props = withDefaults(defineProps<IConfirmActionModalProps>(), {
 // #endregion
 
 // #region Emits
-const emit = defineEmits<IConfirmActionModalEmits>();
+const emit = defineEmits<IBricksConfirmModalEmits>();
 // #endregion
 
 // #region Computed
@@ -63,7 +63,7 @@ function handleConfirm(): void {
         :duration="200"
         @close="handleClose"
     >
-        <div :class="$style.modal">
+        <div :class="$style.BricksConfirmModal">
             <div :class="$style.header">
                 <h3 :class="$style.title">{{ props.title }}</h3>
                 <BricksCloseButton :disabled="props.isLoading" @click="handleClose" />
@@ -97,7 +97,7 @@ function handleConfirm(): void {
 </template>
 
 <style module lang="scss">
-.modal {
+.BricksConfirmModal {
     overflow: hidden;
     display: flex;
     width: 100%;

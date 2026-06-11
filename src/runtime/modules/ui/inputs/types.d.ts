@@ -40,20 +40,6 @@ export interface IBricksInputEmits {
     'validation-state': [payload: { valid: boolean; message: string | null }];
 }
 
-export interface IBricksTextAreaProps {
-    value?: string;
-    label?: string;
-    placeholder?: string;
-    disabled?: boolean;
-    toolbar?: boolean;
-    minHeight?: number;
-    useRichEditor?: boolean;
-}
-
-export interface IBricksTextAreaEmits {
-    'update:value': [value: string];
-}
-
 export interface IBricksSwitchProps {
     value: string | boolean;
     trueValue?: string | boolean;

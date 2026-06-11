@@ -15,7 +15,7 @@ import type {
     IUpdatePagePayload,
     IPublishedPageSummary,
 } from '../../../common/types/bricks-api';
-import type { IMediaItem } from '../../../media/types/media';
+import type { IMediaItem } from '../../../common/types/media';
 
 /**
  * Создаёт Postgres-реализацию IStorageAdapter.

@@ -1,20 +1,17 @@
 // #region Imports
 import type { IBrickValues } from '../../common/types/index';
-import type { InlineEditingPropType } from '../../editor/stores/inlineEditing';
-import type { ILayoutProperty } from '../types/layoutProperties';
+import type { IInlineEditableProp, InlineEditingPropType } from '../../common/types/inlineEditing';
+import type { ILayoutProperty } from '../../common/types/layoutProperty';
 // #endregion
+
+// Реэкспорт для обратной совместимости импортёров (useCanvasItemInlineEditing)
+export type { IInlineEditableProp } from '../../common/types/inlineEditing';
 
 /** Inline-editable типы для layout-компонентов (без input — иначе ловит CSS-пропы в Media) */
 const INLINE_EDITABLE_LAYOUT_TYPES = new Set<string>(['inline-content', 'textarea']);
 
 /** Inline-editable типы для story-компонентов (включая input для заголовков и т.д.) */
 const INLINE_EDITABLE_STORY_TYPES = new Set<string>(['inline-content', 'textarea', 'input']);
-
-export interface IInlineEditableProp {
-    propName: string;
-    propType: InlineEditingPropType;
-    label: string;
-}
 
 /**
  * Находит все inline-editable свойства среди layout properties.

@@ -1,7 +1,7 @@
 // #region Imports
 // Types
 import type { Editor } from '@tiptap/vue-3';
-import type { IInlineContentSegment } from '../../layouts-blocks/types/layouts';
+import type { IInlineContentSegment } from '../../common/types/content';
 
 // Vue
 import {

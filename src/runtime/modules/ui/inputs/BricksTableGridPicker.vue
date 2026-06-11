@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IToolbarTablePicker } from '../../editor/types/text-editor-toolbar.d.ts';
+import type { IToolbarTablePicker } from './textEditorToolbar.d.ts';
 
 // Vue
 import { ref, computed } from 'vue';

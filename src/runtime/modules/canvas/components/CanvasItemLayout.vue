@@ -1,8 +1,8 @@
 <script setup lang="ts">
 // #region Imports
 // Types
+import type { BricksComponent } from '../../common/types/brick';
 import type {
-    BricksComponent,
     LayoutProps,
     GridLayoutProps,
     FlexLayoutProps,
@@ -10,7 +10,7 @@ import type {
     SliderLayoutProps,
     AccordionLayoutProps,
     SectionLayoutProps,
-} from '../../common/types/brick';
+} from '../../layouts-blocks/types/blockProps';
 
 // Vue
 import { h } from 'vue';

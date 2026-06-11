@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IInlineContentSegment } from '../../../layouts-blocks/types/layouts';
+import type { IInlineContentSegment } from '../../../common/types/content';
 
 // Vue
 import { computed, useCssModule } from 'vue';

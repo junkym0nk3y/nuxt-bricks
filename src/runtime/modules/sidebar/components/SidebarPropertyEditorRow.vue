@@ -1,8 +1,8 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IInlineContentSegment, IGalleryItem } from '../../layouts-blocks/types/layouts';
-import type { IAccordionItem } from '../../common/types/brick';
+import type { IInlineContentSegment, IGalleryItem } from '../../common/types/content';
+import type { IAccordionItem } from '../../layouts-blocks/types/blockProps';
 import type {
     ISidebarPropertyEditorRowProps,
     TInlineGalleryPayload,

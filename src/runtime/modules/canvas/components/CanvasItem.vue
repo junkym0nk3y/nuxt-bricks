@@ -22,6 +22,7 @@ import { useCanvasItemActions } from '../composables/useCanvasItemActions';
 
 // Utils
 import { buildDeviceVisibilityClasses } from '../../common/utils/bricks/deviceVisibility';
+import { CANVAS_VIEWPORT_KEY } from '../../common/constants/injectionKeys';
 
 // Components
 import CanvasItemLayout from './CanvasItemLayout.vue';
@@ -39,8 +40,8 @@ const canvasStore = useCanvasStore();
 const dragComposable = inject<IDragComposableCanvas | undefined>('dragComposable');
 const availableFonts = inject<string[]>('availableFonts', []);
 
-/** Viewport из CanvasViewport (Figma mode) или null (Normal mode) */
-const figmaViewport = inject<string | null>('canvasViewport', null);
+/** Активный viewport (в Figma mode — per-viewport от CanvasViewport); используется только при isFigmaMode */
+const figmaViewport = inject(CANVAS_VIEWPORT_KEY, null);
 
 /** Ref корневого элемента для позиционирования телепортированного тулбара */
 const canvasItemRef = ref<HTMLElement | null>(null);

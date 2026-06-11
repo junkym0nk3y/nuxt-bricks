@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { ComponentLibraryItem, BricksSchema } from '../../common/types/brick';
-import type { IMediaItem, TMediaGalleryContext } from '../../media/types/media';
+import type { IMediaItem, TMediaGalleryContext } from '../../common/types/media';
 
 // Vue
 import { computed, ref } from 'vue';

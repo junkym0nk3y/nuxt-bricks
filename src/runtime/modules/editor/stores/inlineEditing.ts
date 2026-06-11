@@ -1,8 +1,8 @@
 // #region Imports
 // Types
 import type { Editor } from '@tiptap/vue-3';
-import type { IMediaItem } from '../../media/types/media';
-import type { IInlineEditableProp } from '../../builder/utils/inlineEditableProp';
+import type { IMediaItem } from '../../common/types/media';
+import type { IInlineEditableProp, InlineEditingPropType } from '../../common/types/inlineEditing';
 
 // Vue
 import { ref, computed, shallowRef } from 'vue';
@@ -11,10 +11,8 @@ import { ref, computed, shallowRef } from 'vue';
 import { defineStore } from 'pinia';
 // #endregion
 
-/**
- * Тип редактируемого свойства для inline editing.
- */
-export type InlineEditingPropType = 'inline-content' | 'textarea';
+// Реэкспорт для обратной совместимости импортёров (BlockText, BlockTitle, useInlineEditor)
+export type { InlineEditingPropType } from '../../common/types/inlineEditing';
 
 /**
  * Управляет состоянием inline-editing на канвасе.

@@ -1,6 +1,6 @@
 // #region Imports
 import type { JSONContent } from '@tiptap/core';
-import type { IInlineContentSegment } from '../../layouts-blocks/types/layouts';
+import type { IInlineContentSegment } from '../../common/types/content';
 // #endregion
 
 /**

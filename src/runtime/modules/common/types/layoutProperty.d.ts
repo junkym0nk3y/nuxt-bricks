@@ -1,9 +1,10 @@
 /**
  * Типы конфигурации свойств layout-компонентов.
- * Общие для builder-ядра (utils/layoutProperties.ts) и домена canvas.
+ * Контракт панели свойств: используется builder-ядром, canvas и sidebar;
+ * обязателен в common для Части B (layouts-blocks не должен импортировать builder).
  */
 
-import type { IInlineContentSegment } from '../../layouts-blocks/types/layouts';
+import type { IInlineContentSegment } from './content';
 
 export interface ILayoutProperty {
     name: string;

@@ -1,8 +1,8 @@
 // #region Imports
 // Types
 import type { PropertyEditorType } from '../components/property-editors/types';
-import type { IMediaItem } from '../../media/types/media';
-import type { IInlineContentSegment, IGalleryItem } from '../../layouts-blocks/types/layouts';
+import type { IMediaItem } from '../../common/types/media';
+import type { IInlineContentSegment, IGalleryItem } from '../../common/types/content';
 import type {
     IDeviceVisibilityConfig,
     PropertyDefinition,
@@ -62,7 +62,7 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
         switch: defineAsyncComponent(() => import('../../ui/inputs/BricksSwitch.vue')),
         select: defineAsyncComponent(() => import('../../ui/inputs/BricksSelect.vue')),
         input: defineAsyncComponent(() => import('../../ui/inputs/BricksInput.vue')),
-        textarea: defineAsyncComponent(() => import('../../ui/inputs/BricksTextArea.vue')),
+        textarea: defineAsyncComponent(() => import('../../editor/components/TextEditorArea.vue')),
         json: defineAsyncComponent(
             () => import('../components/property-editors/PropertyJsonEditor.vue')
         ),

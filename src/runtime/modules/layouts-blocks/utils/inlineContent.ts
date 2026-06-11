@@ -1,7 +1,7 @@
 // #region Imports
 // Types
-import type { IInlineContentSegment } from '../types/layouts';
-import type { IMediaItem } from '../../media/types/media';
+import type { IInlineContentSegment } from '../../common/types/content';
+import type { IMediaItem } from '../../common/types/media';
 // #endregion
 
 // #region Constants

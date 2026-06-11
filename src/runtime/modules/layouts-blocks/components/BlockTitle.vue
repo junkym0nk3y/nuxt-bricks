@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IInlineContentSegment } from '../types/layouts';
+import type { IInlineContentSegment } from '../../common/types/content';
 import type { InlineEditingPropType } from '../../editor/stores/inlineEditing';
 
 // Vue

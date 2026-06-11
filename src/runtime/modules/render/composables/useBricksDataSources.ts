@@ -4,7 +4,7 @@ import type {
     IBrickDataSource,
     IBrickDataSourceParam,
     IBrickDataSourceContext,
-} from '../types/bricks-data-source';
+} from '../../common/types/dataSource';
 import type { BricksComponent } from '../../common/types/brick';
 import type { TPublishFormState } from '../../common/types/bricks-api';
 

@@ -9,7 +9,7 @@ import { ref, computed, watch } from 'vue';
 
 // Components
 import PublishedPageCard from './PublishedPageCard.vue';
-import ConfirmActionModal from './ConfirmActionModal.vue';
+import BricksConfirmModal from '../../../ui/feedback/BricksConfirmModal.vue';
 import BricksCloseButton from '../../../ui/base/modal/BricksCloseButton.vue';
 import BricksModal from '../../../ui/base/modal/BricksModal.vue';
 
@@ -268,7 +268,7 @@ watch(
         </div>
     </BricksModal>
 
-    <ConfirmActionModal
+    <BricksConfirmModal
         :is-open="isDeleteConfirmationOpen"
         title="Удалить страницу?"
         :description="deleteConfirmationDescription"

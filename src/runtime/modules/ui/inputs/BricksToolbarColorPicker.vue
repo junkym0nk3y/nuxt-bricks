@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IToolbarColorPicker } from '../../editor/types/text-editor-toolbar.d.ts';
+import type { IToolbarColorPicker } from './textEditorToolbar.d.ts';
 
 // Vue
 import { ref, computed, watch } from 'vue';

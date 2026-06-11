@@ -1,13 +1,14 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { BricksComponent, SliderLayoutProps } from '../../common/types/brick';
+import type { BricksComponent } from '../../common/types/brick';
+import type { SliderLayoutProps } from '../types/blockProps';
 
 // Vue
 import { computed, defineComponent, h, inject, ref, type PropType, type VNodeChild } from 'vue';
 
-// Pinia
-import { useCanvasStore } from '../../builder/stores/canvas';
+// Constants
+import { CANVAS_VIEWPORT_KEY } from '../../common/constants/injectionKeys';
 
 // Components
 import { Swiper, SwiperSlide } from 'swiper/vue';
@@ -61,8 +62,7 @@ const isDragOver = ref(false);
 const dropIndicator = ref<{ index: number; offset: number } | null>(null);
 const dropInsertIndex = ref<number | null>(null);
 const dragDepth = ref(0);
-const canvasStore = useCanvasStore();
-const injectedViewport = inject<string | undefined>('canvasViewport', undefined);
+const injectedViewport = inject(CANVAS_VIEWPORT_KEY, null);
 const activeSlideIndex = ref(0);
 // #endregion
 
@@ -101,11 +101,11 @@ const sliderLoop = computed<boolean>(() => {
 const spaceBetween = computed<number>(() => Number(props.layoutProps.spaceBetween) || 16);
 
 /**
- * slidesPerView для текущего viewport канваса.
- * В Figma Mode — из injected viewport, иначе — из store.
+ * slidesPerView для текущего viewport канваса (из injected CANVAS_VIEWPORT_KEY).
+ * На published провайдера нет — fallback 'desktop' (Swiper работает через breakpoints).
  */
 const currentSlidesPerView = computed<number>(() => {
-    const viewport = injectedViewport ?? canvasStore.viewport;
+    const viewport = injectedViewport?.value ?? 'desktop';
 
     if (viewport === 'mobile') {
         return Math.max(1, Number(props.layoutProps.slidesPerViewMobile) || 1);

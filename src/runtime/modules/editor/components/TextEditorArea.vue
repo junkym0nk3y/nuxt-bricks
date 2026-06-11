@@ -2,8 +2,8 @@
 // #region Imports
 // Types
 import type { Editor } from '@tiptap/vue-3';
-import type { IBricksTextAreaProps, IBricksTextAreaEmits } from './types.d.ts';
-import type { IToolbarGroup } from '../../editor/types/text-editor-toolbar.d.ts';
+import type { ITextEditorAreaProps, ITextEditorAreaEmits } from './types.d.ts';
+import type { IToolbarGroup } from '../../ui/inputs/textEditorToolbar.d.ts';
 
 // Vue
 import {
@@ -26,21 +26,21 @@ import { useNuxtApp } from 'nuxt/app';
 import { useBricksConfig } from '../../common/composables/useBricksConfig';
 
 // Pinia
-import { useInlineEditingStore } from '../../editor/stores/inlineEditing';
+import { useInlineEditingStore } from '../stores/inlineEditing';
 // Components
-import BricksButton from '../base/button/BricksButton.vue';
-import BricksTextEditorToolbar from './BricksTextEditorToolbar.vue';
-import BricksTooltip from '../tooltip/BricksTooltip.vue';
-import BricksTooltipHint from '../tooltip/BricksTooltipHint.vue';
+import BricksButton from '../../ui/base/button/BricksButton.vue';
+import BricksTextEditorToolbar from '../../ui/inputs/BricksTextEditorToolbar.vue';
+import BricksTooltip from '../../ui/tooltip/BricksTooltip.vue';
+import BricksTooltipHint from '../../ui/tooltip/BricksTooltipHint.vue';
 
-const TheTextEditorModal = defineAsyncComponent(() => import('../../editor/components/TheTextEditorModal.vue'));
+const TheTextEditorModal = defineAsyncComponent(() => import('./TheTextEditorModal.vue'));
 const TiptapImageFloatPopover = defineAsyncComponent(
-    () => import('../../editor/components/TiptapImageFloatPopover.vue')
+    () => import('./TiptapImageFloatPopover.vue')
 );
 // #endregion
 
 // #region Props
-const props = withDefaults(defineProps<IBricksTextAreaProps>(), {
+const props = withDefaults(defineProps<ITextEditorAreaProps>(), {
     value: '',
     label: '',
     placeholder: '',
@@ -52,7 +52,7 @@ const props = withDefaults(defineProps<IBricksTextAreaProps>(), {
 // #endregion
 
 // #region Emits
-const emit = defineEmits<IBricksTextAreaEmits>();
+const emit = defineEmits<ITextEditorAreaEmits>();
 // #endregion
 
 // #region Data
@@ -95,7 +95,7 @@ const editorStyles = computed(() => ({
  * CSS классы для wrapper компонента
  */
 const wrapperClasses = computed(() => [
-    $style.BricksTextArea,
+    $style.TextEditorArea,
     {
         [$style._disabled]: props.disabled,
         [$style._error]: Boolean(loadingError.value),
@@ -297,14 +297,14 @@ async function initEditor(): Promise<void> {
             import('@tiptap/extension-color'),
             import('@tiptap/extension-font-family'),
             import('@tiptap/extension-text-align'),
-            import('../../editor/tiptap/fontSize'),
-            import('../../editor/tiptap/fontWeight'),
-            import('../../editor/tiptap/lineHeight'),
-            import('../../editor/tiptap/letterSpacing'),
+            import('../tiptap/fontSize'),
+            import('../tiptap/fontWeight'),
+            import('../tiptap/lineHeight'),
+            import('../tiptap/letterSpacing'),
             import('@tiptap/extension-table'),
-            import('../../editor/tiptap/resizableImage'),
-            import('../../editor/tiptap/resizableVideo'),
-            import('../../editor/tiptap/boldOverride'),
+            import('../tiptap/resizableImage'),
+            import('../tiptap/resizableVideo'),
+            import('../tiptap/boldOverride'),
         ]);
 
         EditorContentComponent.value = EditorContent;
@@ -523,7 +523,7 @@ onBeforeUnmount(() => {
 </template>
 
 <style module lang="scss">
-.BricksTextArea {
+.TextEditorArea {
     display: flex;
     flex-direction: column;
     gap: 0.8rem;

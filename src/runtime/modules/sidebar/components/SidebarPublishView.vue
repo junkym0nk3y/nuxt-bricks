@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { TPublishFormState } from '../../common/types/bricks-api';
-import type { IMediaItem } from '../../media/types/media';
+import type { IMediaItem } from '../../common/types/media';
 import type { IBrickDemoValues } from '../../common/types/index';
 import type { BricksSchema } from '../../common/types/brick';
 

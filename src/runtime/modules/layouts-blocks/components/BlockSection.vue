@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { SectionLayoutProps } from '../../common/types/brick';
+import type { SectionLayoutProps } from '../types/blockProps';
 
 // Vue
 import { computed, ref, inject, type CSSProperties, type Ref } from 'vue';

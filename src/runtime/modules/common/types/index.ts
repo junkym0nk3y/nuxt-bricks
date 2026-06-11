@@ -91,9 +91,9 @@ export interface IBrickExportModule {
         category?: string;
         description?: string;
         slots?: Record<string, IBrickSlotDefinition> | Array<string | IBrickSlotDefinition>;
-        dataSources?: import('../../render/types/bricks-data-source').IBrickDataSource[];
+        dataSources?: import('./dataSource').IBrickDataSource[];
     };
 }
 
-export type { IBrickDataSource, IBrickDataSourceParam } from '../../render/types/bricks-data-source';
-export type { IGalleryItem, IInlineContentSegment } from '../../layouts-blocks/types/layouts';
+export type { IBrickDataSource, IBrickDataSourceParam } from './dataSource';
+export type { IGalleryItem, IInlineContentSegment } from './content';

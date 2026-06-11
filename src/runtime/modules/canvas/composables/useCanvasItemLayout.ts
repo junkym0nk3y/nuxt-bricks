@@ -1,14 +1,13 @@
 // #region Imports
 // Types
+import type { BricksComponent, TBricksDeviceKey } from '../../common/types/brick';
 import type {
-    BricksComponent,
     LayoutProps,
     GridLayoutProps,
     GridLayoutVariant,
     GridRowHeight,
     FlexLayoutProps,
-    TBricksDeviceKey,
-} from '../../common/types/brick';
+} from '../../layouts-blocks/types/blockProps';
 import type { IItemStyle, ICanvasItemProps } from '../components/types';
 
 // Vue
@@ -17,6 +16,7 @@ import { computed, inject } from 'vue';
 // Pinia
 import { useComponentsStore } from '../../builder/stores/components';
 import { useCanvasStore } from '../../builder/stores/canvas';
+import { CANVAS_VIEWPORT_KEY } from '../../common/constants/injectionKeys';
 // #endregion
 
 /** Нормализует значение rowHeight для Grid */
@@ -201,11 +201,11 @@ function clampGridColumnToColumns(gridColumn: string, columns: number): string |
 export function useCanvasItemLayout(props: ICanvasItemProps) {
     const componentsStore = useComponentsStore();
     const canvasStore = useCanvasStore();
-    const injectedViewport = inject<TBricksDeviceKey | null>('canvasViewport', null);
+    const injectedViewport = inject(CANVAS_VIEWPORT_KEY, null);
 
-    /** В Figma mode используем injected viewport от CanvasViewport, иначе глобальный */
+    /** В Figma mode — per-viewport от CanvasViewport, в обычном — от TheCanvas (fallback — store) */
     const effectiveViewport = computed<TBricksDeviceKey>(
-        () => injectedViewport ?? canvasStore.viewport
+        () => injectedViewport?.value ?? canvasStore.viewport
     );
 
     const isLayout = computed<boolean>(() => props.component.type === 'layout');

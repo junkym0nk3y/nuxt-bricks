@@ -2,12 +2,8 @@
 // #region Imports
 
 // Types
-import type {
-    IMediaGalleryProps,
-    IMediaGalleryEmits,
-    IMediaItem,
-    IMediaUpdateMetaRequest,
-} from '../types/media';
+import type { IMediaItem, IMediaUpdateMetaRequest } from '../../common/types/media';
+import type { IMediaGalleryProps, IMediaGalleryEmits } from '../types/media';
 import type { IAppConfig } from '../../common/types/config';
 
 // Vue
@@ -24,7 +20,7 @@ import BricksButton from '../../ui/base/button/BricksButton.vue';
 import BricksCloseButton from '../../ui/base/modal/BricksCloseButton.vue';
 import BricksModal from '../../ui/base/modal/BricksModal.vue';
 import BricksToast from '../../ui/feedback/BricksToast.vue';
-import ConfirmActionModal from '../../builder/components/modal/ConfirmActionModal.vue';
+import BricksConfirmModal from '../../ui/feedback/BricksConfirmModal.vue';
 // #endregion
 
 // #region Props
@@ -627,7 +623,7 @@ watch(selectedItem, (item) => {
     <BricksToast v-model:visible="toastVisible" :message="toastMessage" variant="error" />
 
     <!-- Delete Confirmation Modal -->
-    <ConfirmActionModal
+    <BricksConfirmModal
         :is-open="isDeleteConfirmOpen"
         title="Удалить изображение?"
         description="Это действие нельзя отменить. Изображение будет удалено безвозвратно."

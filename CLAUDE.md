@@ -86,7 +86,7 @@ export const story = {
 
 - `common/types/brick.ts` → `PropertyDefinition.group`
 - `common/types/index.ts` → `IBrickValues.group`
-- `builder/types/layoutProperties.d.ts` → `ILayoutProperty.group`
+- `common/types/layoutProperty.d.ts` → `ILayoutProperty.group`
 - `sidebar/components/SidebarPropertyEditors.vue` → рендеринг аккордеонов
 
 ### Property Unit Suffix

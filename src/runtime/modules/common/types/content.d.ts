@@ -1,5 +1,6 @@
 /**
- * Layout-specific shared types
+ * Контрактные типы контента — схема данных, общая для редактора,
+ * рендерера и панели свойств.
  */
 
 export interface IInlineContentSegment {

@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { BricksSchema } from '../../common/types/brick';
-import type { TMediaGalleryContext } from '../../media/types/media';
+import type { TMediaGalleryContext } from '../../common/types/media';
 import type { TPublishFormState } from '../../common/types/bricks-api';
 import type { IBuilderDraftEntry, IBuilderDraftSnapshot } from '../types/builder-drafts';
 
@@ -18,6 +18,7 @@ import { useCanvasStore } from '../stores/canvas';
 import { useSidebarStore } from '../stores/sidebar';
 import { useHistoryStore } from '../stores/history';
 import { usePublishStore } from '../stores/publish';
+import { useInlineEditingStore } from '../../editor/stores/inlineEditing';
 
 // Composables
 import { useBuilderPage } from '../composables/useBuilderPage';
@@ -35,7 +36,7 @@ import TheBuilderLoader from '../components/TheBuilderLoader.vue';
 import ThePublishedPagesModal from '../components/modal/ThePublishedPagesModal.vue';
 import TheDocumentationModal from '../components/modal/TheDocumentationModal.vue';
 import TheMediaGalleryModal from '../../media/components/TheMediaGalleryModal.vue';
-import ConfirmActionModal from '../components/modal/ConfirmActionModal.vue';
+import BricksConfirmModal from '../../ui/feedback/BricksConfirmModal.vue';
 import TheImageResolverModal from '../../media/components/TheImageResolverModal.vue';
 import BricksToast from '../../ui/feedback/BricksToast.vue';
 // #endregion
@@ -56,7 +57,13 @@ const sidebarStore = useSidebarStore();
 const historyStore = useHistoryStore();
 const publishStore = usePublishStore();
 
-const builder = await useBuilderPage();
+// Мост media-запросов inline-редактора: editor подключается только здесь (composition root)
+const inlineEditingStore = useInlineEditingStore();
+const builder = await useBuilderPage({
+    isRequestingMedia: computed(() => inlineEditingStore.isRequestingMedia),
+    resolveMediaRequest: (item) => inlineEditingStore.resolveMediaRequest(item),
+    cancelMediaRequest: () => inlineEditingStore.cancelMediaRequest(),
+});
 
 const {
     componentLibraryList,
@@ -588,7 +595,7 @@ onBeforeUnmount(() => {
             @select="handleMediaSelect"
         />
 
-        <ConfirmActionModal
+        <BricksConfirmModal
             :is-open="isRestoreDraftModalOpen"
             title="Восстановить несохранённые изменения?"
             description="Мы нашли изменения, которые не были сохранены. Восстановить их?"

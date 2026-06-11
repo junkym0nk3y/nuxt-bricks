@@ -41,21 +41,6 @@ export interface IPublishedPageCardEmits {
     togglePublished: [pageId: string, value: boolean];
 }
 
-export interface IConfirmActionModalProps {
-    isOpen: boolean;
-    title: string;
-    description?: string;
-    confirmText?: string;
-    cancelText?: string;
-    confirmVariant?: import('../../../ui/base/button/types.d.ts').TIdaButtonVariant;
-    isLoading?: boolean;
-}
-
-export interface IConfirmActionModalEmits {
-    close: [];
-    confirm: [];
-}
-
 /**
  * Documentation Modal types
  */

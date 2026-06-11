@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { GridLayoutProps, GridLayoutVariant, GridRowHeight } from '../../common/types/brick';
+import type { GridLayoutProps, GridLayoutVariant, GridRowHeight } from '../types/blockProps';
 
 // Vue
 import { computed, ref, inject, onMounted, onBeforeUnmount, type Ref } from 'vue';

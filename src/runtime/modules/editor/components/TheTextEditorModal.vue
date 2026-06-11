@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { Editor } from '@tiptap/vue-3';
-import type { IToolbarGroup } from '../types/text-editor-toolbar.d.ts';
+import type { IToolbarGroup } from '../../ui/inputs/textEditorToolbar.d.ts';
 
 // Vue
 import {

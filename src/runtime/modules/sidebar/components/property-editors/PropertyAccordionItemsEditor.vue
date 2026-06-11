@@ -1,14 +1,14 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IAccordionItem } from '../../../common/types/brick';
+import type { IAccordionItem } from '../../../layouts-blocks/types/blockProps';
 
 // Vue
 import { computed } from 'vue';
 
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
-import BricksTextArea from '../../../ui/inputs/BricksTextArea.vue';
+import TextEditorArea from '../../../editor/components/TextEditorArea.vue';
 // #endregion
 
 // #region Interfaces
@@ -155,7 +155,7 @@ function handleMoveDown(index: number): void {
                     <div :class="$style.cardBody">
                         <div :class="$style.fieldGroup">
                             <span :class="$style.fieldLabel">Заголовок: {{ index + 1 }}</span>
-                            <BricksTextArea
+                            <TextEditorArea
                                 :value="item.title"
                                 placeholder="Введите заголовок..."
                                 :min-height="60"
@@ -165,7 +165,7 @@ function handleMoveDown(index: number): void {
 
                         <div :class="$style.fieldGroup">
                             <span :class="$style.fieldLabel">Содержимое: {{ index + 1 }} </span>
-                            <BricksTextArea
+                            <TextEditorArea
                                 :value="item.content"
                                 placeholder="Введите текст..."
                                 :min-height="100"

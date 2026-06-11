@@ -1,46 +1,10 @@
 /**
- * Media gallery types
+ * Media gallery types (UI и серверная обработка).
+ * Контрактные data-типы (IMediaItem, ответы API, TMediaGalleryContext)
+ * живут в common/types/media.d.ts.
  */
 
-export interface IMediaItem {
-    id: number;
-    url: string;
-    filename: string;
-    alt: string;
-    size: number;
-    uploadedAt: string;
-    mimeType: string;
-    category: string;
-    thumbnailUrl?: string;
-    svgContent: string | null;
-}
-
-export interface IMediaUpdateMetaRequest {
-    filename?: string;
-    alt?: string;
-}
-
-export interface IMediaUploadResponse {
-    success: boolean;
-    url: string;
-    error?: string;
-    filename: string;
-    size: number;
-    key: string;
-    item?: IMediaItem;
-}
-
-export interface IMediaListResponse {
-    success: boolean;
-    items: IMediaItem[];
-    error?: string;
-}
-
-export interface IMediaUpdateCategoryRequest {
-    category: string;
-}
-
-export type TMediaGalleryContext = 'manager' | 'publish' | 'properties';
+import type { IMediaItem, TMediaGalleryContext } from '../../common/types/media';
 
 export interface IMediaGalleryProps {
     visible: boolean;
