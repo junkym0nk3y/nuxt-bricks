@@ -1,6 +1,6 @@
 // #region Imports
 // Nuxt
-import { defineNuxtPlugin } from '#imports';
+import { defineNuxtPlugin, useRouter, useState } from '#imports';
 
 // Types
 import type { IPublishedPageSummary } from '../modules/common/types/bricks-api';

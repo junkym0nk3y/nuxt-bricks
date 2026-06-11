@@ -3,6 +3,7 @@ import {
     createResolver,
     addPlugin,
     addLayout,
+    addRouteMiddleware,
     addServerHandler,
     extendPages,
     installModule,
@@ -248,6 +249,14 @@ export default defineNuxtModule<IBricksModuleOptions>({
                     file: resolve(runtimeDir, 'modules/render/pages/[pagename].vue'),
                 }
             );
+        });
+        // #endregion
+
+        // #region Route middleware (layout + загрузка данных published-страниц)
+        addRouteMiddleware({
+            name: 'bricks-page-layout',
+            path: resolve(runtimeDir, 'middleware/bricks-page-layout.global'),
+            global: true,
         });
         // #endregion
 
