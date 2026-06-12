@@ -36,18 +36,20 @@ npx oxlint <changed-file>
     - `core/` — ядро состояния: `stores/` (components + actions/, canvas, sidebar, history, navigation, componentActions), `utils/`, `constants/`, `composables/` (useComponentProperties), `components/` (BuilderLogo)
     - `shell/` — рамка редактора: `sidebar/` (components + property-editors/, composables, utils, types), `toolbar/` (чисто презентационный)
     - `canvas/` — слайсы `viewport/`, `item/`, `editing/` (каждый — `components/` + `composables/`) + общий `types/`
-    - `publish/` — управление страницами: `pages/` (index.vue — дашборд), `components/` (TheBuilderPublishPagesModal, BuilderPublishPageCard), `stores/publish.ts`, `types/`
+    - `publish/` — управление страницами: `pages/` (index.vue — дашборд), `components/` (TheBuilderPublishPagesModal, BuilderPublishPageCard), `stores/publish.ts`, `utils/` (черновики, payload, ошибки запросов), `types/`
     - `documentation/` — TheBuilderDocumentationModal, `composables/`, `docs/guide/` (markdown-статьи), `types/`
-    - `media/` — медиа-галерея и image resolver (свой `stores/media.ts`)
+    - `media/` — медиа-галерея и image resolver: `stores/media.ts`, `composables/` (useMediaUpload, useSchemaImageResolver), `utils/`
 - `text-editor/` — TipTap (бывший `editor/`): компоненты, расширения (`tiptap/`), inline editing, `stores/inlineEditing.ts`
 - `render/` — рендер опубликованной страницы (самодостаточен, store не использует)
 - `layouts-blocks/` — блоки лендинга (Grid/Flex/Section/Slider/...)
-- `persistence/` — серверные адаптеры хранения (`server/postgres/`, `server/s3/`, `server/registry.ts`); используется только из `src/runtime/server/api/bricks/**`
-- `common/` — только общее (2+ доменов): `composables/` (useBricksConfig, useStoryImports, useApiClient, useBricksStyles), `utils/bricks/` (paths, components, deviceVisibility), `utils/routing/` (build-time), `types/`
+- `persistence/` — серверные адаптеры хранения (`server/postgres/`, `server/s3/`, `server/registry.ts`, `server/utils/` — общая логика Nitro-ручек); используется только из `src/runtime/server/api/bricks/**`
+- `common/` — только общее (2+ доменов): `composables/` (useBricksConfig, useStoryImports, useApiClient, useBricksStyles), `utils/` (main, case-transform; `bricks/` — paths, components, deviceVisibility, publishedPage; `routing/` — build-time), `constants/` (injectionKeys), `types/`
 
 Вне `modules/` в `src/runtime/` остаётся инфраструктура Nuxt: `plugins/`, `server/`, `middleware/`, `layouts/`, `assets/`, `types.d.ts` (шим, реэкспортирует `modules/common/types`).
 
-Направления зависимостей: `builder/app` (composition root) → все поддомены builder + text-editor + ui; `builder/canvas`/`builder/shell` → `builder/core`, `builder/publish`, text-editor, layouts-blocks, ui, common; `builder/core` НЕ импортирует canvas/shell — stores остаются в `core/`, перенос в фичевые поддомены дал бы цикл canvas↔shell. `render` — только common + layouts-blocks; `layouts-blocks` → `text-editor` (+ tech-debt: BlockSlider → builder/core/stores/canvas). Tech-debt: `text-editor/composables/useInlineEditor.ts` → builder/core/stores/components и `core/composables/useComponentProperties.ts` → app/composables/useModals (`getModalOptions`) — кандидаты на DI из composition root. Импорты — явные относительные (auto-import локального кода отключён).
+Направления зависимостей: `builder/app` (composition root) → все поддомены builder + text-editor + ui; `builder/canvas`/`builder/shell` → `builder/core`, `builder/publish`, text-editor, layouts-blocks, ui, common; `builder/core` НЕ импортирует canvas/shell — stores остаются в `core/`, перенос в фичевые поддомены дал бы цикл canvas↔shell. `render` — только common + layouts-blocks; `layouts-blocks` → `text-editor` (viewport канваса блоки получают через inject `CANVAS_VIEWPORT_KEY` из `common/constants/injectionKeys`, прямых импортов builder нет). Tech-debt: `text-editor/composables/useInlineEditor.ts` → builder/core/stores/components и `core/composables/useComponentProperties.ts` → app/composables/useModals (`getModalOptions`) — кандидаты на DI из composition root. Импорты — явные относительные (auto-import локального кода отключён).
+
+В каждой папке `composables/` и `utils/` лежит `README.md` с таблицей «файл → назначение» для навигации — поддерживать при добавлении/удалении файлов.
 
 ### Component System (Story-based)
 

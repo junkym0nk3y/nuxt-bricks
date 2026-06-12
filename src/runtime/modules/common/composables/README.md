@@ -1,30 +1,18 @@
-# Composables
+# common/composables
 
-Композаблы распределены по доменам (см. `documents/refactor.md`): здесь, в `common/composables/`,
-живут только общие (используются 2+ доменами). Доменные — рядом со своим кодом.
+Общие композаблы (используются 2+ доменами). Доменные композаблы живут рядом со своим кодом —
+в каждой папке `composables/`/`utils/` есть свой README с таблицей файлов.
 
-## common/composables/ (общие)
-
-| Composable         | Описание                                                                  |
-| ------------------ | ------------------------------------------------------------------------- |
-| `useBricksConfig` | Конфигурация лендинга с дефолтными значениями. Читает из `app.config.ts`  |
-| `useApiClient`     | Работа с API через прокси или напрямую                                    |
-| `useStoryImports`  | Динамический импорт story-файлов компонентов                              |
-| `useBricksStyles` | Инъекция динамических стилей лендинга в `<head>` (стили `.bricks-container`)  |
-
-## Доменные композаблы
-
-| Где                           | Что                                                                                                                                                                                                                                                                                                                           |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `builder/composables/`        | `useCanvas{,Pan,Drops}`, `useCanvasItem*`, `useCanvasRemBase`, `useDraggableComponent`, `useSlotDragDrop`, `useComponent{Properties,Slots}`, `usePropertyVariants`, `useSidebarPropertiesPanel`, `useBuilderPage`, `useModals`, `useDocumentationArticles`, `useMarkdownRenderer`, `usePublishValidationSchema` |
-| `render/composables/`         | `useRenderer{Layouts,Stories}`, `useBricksDataSources`                                                                                                                                                                                                                                                                        |
-| `layouts-blocks/composables/` | `useResponsive{Layout,Visibility}Styles`                                                                                                                                                                                                                                                                                       |
-| `editor/composables/`         | `useInlineEditor`                                                                                                                                                                                                                                                                                                              |
-| `media/composables/`          | `useSchemaImageResolver`                                                                                                                                                                                                                                                                                                       |
+| Файл                 | Назначение                                                                                  |
+| -------------------- | ------------------------------------------------------------------------------------------- |
+| `useBricksConfig.ts` | Конфигурация билдера с дефолтными значениями. Читает из `app.config.ts`                      |
+| `useApiClient.ts`    | Работа с API через прокси или напрямую (SSR-заголовки, CSRF)                                 |
+| `useStoryImports.ts` | Динамический импорт story-файлов компонентов (нормализация eager/lazy glob-результатов)      |
+| `useBricksStyles.ts` | Генерация и инъекция стилей `.bricks-container` в `<head>` (канвас + published media queries) |
 
 ## Правила
 
-1. **Интерфейсы** хранятся в `*/types/composables.d.ts` (builder) или `common/types/`, не инлайн в файлах
+1. **Интерфейсы** хранятся в `types/` домена (`*.d.ts`), не инлайн в файлах
 2. **Комментарии** на русском языке
 3. **JSDoc** обязателен для всех публичных функций
 4. **#region** комментарии для группировки кода
