@@ -8,6 +8,9 @@ import { computed, ref, inject, onMounted, onBeforeUnmount, type Ref } from 'vue
 
 // Utils
 import { convertPxToRem } from '../../common/utils/main';
+
+// Composables
+import { useLayoutDropZone } from '../composables/useLayoutDropZone';
 // #endregion
 
 // #region Props
@@ -25,7 +28,6 @@ const slots = defineSlots<{
 const showGrid = inject<Ref<boolean>>('showGrid', ref(true));
 const gridRef = ref<HTMLElement | null>(null);
 const containerSize = ref({ width: 0, height: 0 });
-const isDragOver = ref(false);
 
 /** Грид заполнен и drop невозможен (визуальная обратная связь) */
 const isGridFull = ref(false);
@@ -320,80 +322,50 @@ function isChildOfThisGrid(componentId: string): boolean {
 }
 
 /**
- * Устанавливает dropEffect на основе типа перетаскиваемого элемента.
- * Без явного dropEffect браузер может отклонить drop.
+ * Dragover-проверка ёмкости. Во время dragover нельзя прочитать данные из
+ * dataTransfer (security), но можно проверить types. Если есть component-id —
+ * это перемещение существующего компонента (возможно внутри этого же грида →
+ * swap). Блокируем только добавление новых из библиотеки при полном гриде.
  *
- * @param event - Текущее drag-событие.
+ * @param event - Dragover-событие браузера.
  */
-function updateDropEffect(event: DragEvent): void {
-    if (!event.dataTransfer) {
-        return;
-    }
-
-    const types = Array.from(event.dataTransfer.types || []);
-    const isExisting = types.includes('component-id') || types.includes('text/plain');
-    const isLibrary = types.includes('application/json');
-
-    if (!isExisting && !isLibrary) {
-        event.dataTransfer.dropEffect = 'none';
-        return;
-    }
-
-    event.dataTransfer.dropEffect = isExisting ? 'move' : 'copy';
-}
-
-/**
- * Обрабатывает вход курсора в область Grid layout во время перетаскивания.
- * Без preventDefault на dragenter браузер может не считать Grid валидной drop-зоной.
- *
- * @param event - Текущее dragenter-событие.
- */
-function handleDragEnter(event: DragEvent): void {
-    event.preventDefault();
-    event.stopPropagation();
-    isDragOver.value = true;
-    updateDropEffect(event);
-}
-
-/**
- * Activates drag-over state and allows dropping on the layout.
- *
- * @param event - Drag event triggered when an element is dragged over the layout.
- */
-function handleDragOver(event: DragEvent): void {
-    event.preventDefault();
-    event.stopPropagation();
-
-    updateDropEffect(event);
-
-    // Во время dragover нельзя прочитать данные из dataTransfer (security),
-    // но можно проверить types. Если есть component-id — это перемещение
-    // существующего компонента (возможно внутри этого же грида → swap).
-    // Блокируем только добавление новых из библиотеки при полном гриде.
+function canAcceptGridDragOver(event: DragEvent): boolean {
     const types = Array.from(event.dataTransfer?.types || []);
     const isExistingComponent = types.includes('component-id');
 
     if (!isExistingComponent && checkGridAtCapacity()) {
-        if (event.dataTransfer) {
-            event.dataTransfer.dropEffect = 'none';
-        }
         isGridFull.value = true;
-        isDragOver.value = false;
-        return;
+        return false;
     }
 
     isGridFull.value = false;
-    isDragOver.value = true;
+    return true;
 }
 
 /**
- * Clears drag-over state when pointer leaves the layout.
+ * Drop-проверка ёмкости: в заполненном гриде разрешены только перемещения
+ * его собственных детей (внутренний swap ёмкость не меняет).
  *
- * @param event - Drag event fired when leaving the drop zone.
+ * @param _event - Drop-событие браузера (не используется).
+ * @param movedComponentId - ID перемещаемого компонента или null для нового.
  */
-function handleDragLeave(event: DragEvent): void {
-    event.stopPropagation();
-    isDragOver.value = false;
+function canAcceptGridDrop(_event: DragEvent, movedComponentId: string | null): boolean {
+    if (!checkGridAtCapacity()) {
+        return true;
+    }
+
+    if (movedComponentId && isChildOfThisGrid(movedComponentId)) {
+        return true;
+    }
+
+    console.warn('[BlockGrid] Grid is at capacity, ignoring drop');
+    return false;
+}
+
+/**
+ * Сбрасывает флаг заполненности грида.
+ */
+function clearGridFull(): void {
     isGridFull.value = false;
 }
 
@@ -450,54 +422,20 @@ function calculateDropTargetIndex(event: DragEvent): number | null {
 
     return row * columns + column;
 }
+// #endregion
 
-/**
- * Handles drop action and emits layout-drop event with positioning information.
- *
- * @param event - Drag event raised when an item is dropped inside the layout.
- */
-function handleDrop(event: DragEvent): void {
-    event.preventDefault();
-    event.stopPropagation();
-    isDragOver.value = false;
-    isGridFull.value = false;
-
-    const componentId = event.dataTransfer?.getData('component-id');
-
-    if (componentId && props.layoutId && componentId === props.layoutId) {
-        console.warn('[BlockGrid] Ignoring self drop attempt');
-        return;
-    }
-
-    // Проверка ёмкости грида при фиксированных rows
-    if (checkGridAtCapacity()) {
-        const isMove = Boolean(componentId);
-
-        // Перемещение внутри этого же грида — ёмкость не меняется, разрешаем
-        if (isMove && componentId && isChildOfThisGrid(componentId)) {
-            // Внутреннее перемещение — пропускаем проверку
-        } else {
-            console.warn('[BlockGrid] Grid is at capacity, ignoring drop');
-            return;
-        }
-    }
-
-    const targetIndex = calculateDropTargetIndex(event);
-    if (targetIndex === null) {
-        return;
-    }
-
-    const layoutDropEvent = new CustomEvent('layout-drop', {
-        detail: {
-            layoutId: props.layoutId,
-            movedComponentId: componentId || null,
-            targetIndex,
-            swap: true,
-        },
-        bubbles: true,
+// #region Drop zone
+const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop } =
+    useLayoutDropZone({
+        containerRef: gridRef,
+        layoutId: () => props.layoutId,
+        canAcceptDragOver: canAcceptGridDragOver,
+        canAcceptDrop: canAcceptGridDrop,
+        resolveDropIndex: calculateDropTargetIndex,
+        requireDropIndex: true,
+        onReset: clearGridFull,
+        extraDropDetail: { swap: true },
     });
-    gridRef.value?.dispatchEvent(layoutDropEvent);
-}
 // #endregion
 
 // #region Lifecycle

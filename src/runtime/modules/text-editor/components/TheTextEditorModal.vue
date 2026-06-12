@@ -18,6 +18,9 @@ import {
 // Nuxt
 import { useNuxtApp } from 'nuxt/app';
 
+// Utils
+import { createTiptapEditor } from '../utils/createTiptapEditor';
+
 // Composables
 import { useBricksConfig } from '../../common/composables/useBricksConfig';
 
@@ -111,78 +114,16 @@ async function initEditor(): Promise<void> {
         return;
     }
 
-    const [
-        { Editor: TiptapEditor, EditorContent },
-        { default: StarterKit },
-        { default: Underline },
-        { TextStyle },
-        { default: Color },
-        { default: FontFamily },
-        { default: TextAlign },
-        { FontSize },
-        { FontWeight },
-        { LineHeight },
-        { LetterSpacing },
-        { Table, TableRow, TableCell, TableHeader },
-        { ResizableImage },
-        { ResizableVideo },
-        { BoldOverride },
-    ] = await Promise.all([
-        import('@tiptap/vue-3'),
-        import('@tiptap/starter-kit'),
-        import('@tiptap/extension-underline'),
-        import('@tiptap/extension-text-style'),
-        import('@tiptap/extension-color'),
-        import('@tiptap/extension-font-family'),
-        import('@tiptap/extension-text-align'),
-        import('../tiptap/fontSize'),
-        import('../tiptap/fontWeight'),
-        import('../tiptap/lineHeight'),
-        import('../tiptap/letterSpacing'),
-        import('@tiptap/extension-table'),
-        import('../tiptap/resizableImage'),
-        import('../tiptap/resizableVideo'),
-        import('../tiptap/boldOverride'),
-    ]);
-
-    EditorContentComponent.value = EditorContent;
-
-    editor.value = new TiptapEditor({
+    const { editor: createdEditor, EditorContent } = await createTiptapEditor({
         content: props.value,
         editable: !props.disabled,
-        extensions: [
-            StarterKit.configure({
-                bold: false,
-                bulletList: { keepMarks: true },
-                orderedList: { keepMarks: true },
-            }),
-            BoldOverride,
-            Underline,
-            TextStyle,
-            Color,
-            FontFamily,
-            FontSize,
-            FontWeight,
-            LineHeight,
-            LetterSpacing,
-            TextAlign.configure({
-                types: ['heading', 'paragraph'],
-                alignments: ['left', 'center', 'right', 'justify'],
-            }),
-            Table.configure({
-                resizable: false,
-                HTMLAttributes: { class: 'bricks-tiptap-table' },
-            }),
-            TableRow,
-            TableCell,
-            TableHeader,
-            ResizableImage,
-            ResizableVideo,
-        ],
         onUpdate: ({ editor: instance }) => {
             codeValue.value = instance.getHTML();
         },
     });
+
+    EditorContentComponent.value = EditorContent;
+    editor.value = createdEditor;
 
     codeValue.value = props.value;
 }

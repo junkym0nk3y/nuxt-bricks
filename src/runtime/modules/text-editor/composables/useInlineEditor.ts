@@ -22,6 +22,7 @@ import {
 } from '../stores/inlineEditing';
 
 // Utils
+import { createTiptapEditor } from '../utils/createTiptapEditor';
 import { segmentsToTiptapDoc, tiptapDocToSegments } from '../utils/inlineContentTiptap';
 // #endregion
 
@@ -156,75 +157,10 @@ export function useInlineEditor(
                     onUpdate: saveToStore,
                 });
             } else {
-                const [
-                    { Editor: TiptapEditor, EditorContent },
-                    { default: StarterKit },
-                    { default: Underline },
-                    { TextStyle },
-                    { default: Color },
-                    { default: FontFamily },
-                    { default: TextAlign },
-                    { FontSize },
-                    { FontWeight },
-                    { LineHeight },
-                    { LetterSpacing },
-                    { Table, TableRow, TableCell, TableHeader },
-                    { ResizableImage },
-                    { ResizableVideo },
-                    { BoldOverride },
-                ] = await Promise.all([
-                    import('@tiptap/vue-3'),
-                    import('@tiptap/starter-kit'),
-                    import('@tiptap/extension-underline'),
-                    import('@tiptap/extension-text-style'),
-                    import('@tiptap/extension-color'),
-                    import('@tiptap/extension-font-family'),
-                    import('@tiptap/extension-text-align'),
-                    import('../tiptap/fontSize'),
-                    import('../tiptap/fontWeight'),
-                    import('../tiptap/lineHeight'),
-                    import('../tiptap/letterSpacing'),
-                    import('@tiptap/extension-table'),
-                    import('../tiptap/resizableImage'),
-                    import('../tiptap/resizableVideo'),
-                    import('../tiptap/boldOverride'),
-                ]);
-
-                editorContent.value = EditorContent;
                 const htmlContent = typeof currentValue === 'string' ? currentValue : '';
 
-                editor.value = new TiptapEditor({
+                const { editor: createdEditor, EditorContent } = await createTiptapEditor({
                     content: htmlContent,
-                    extensions: [
-                        StarterKit.configure({
-                            bold: false,
-                            bulletList: { keepMarks: true },
-                            orderedList: { keepMarks: true },
-                            underline: false,
-                        }),
-                        BoldOverride,
-                        Underline,
-                        TextStyle,
-                        Color,
-                        FontFamily,
-                        FontSize,
-                        FontWeight,
-                        LineHeight,
-                        LetterSpacing,
-                        TextAlign.configure({
-                            types: ['heading', 'paragraph'],
-                            alignments: ['left', 'center', 'right', 'justify'],
-                        }),
-                        Table.configure({
-                            resizable: false,
-                            HTMLAttributes: { class: 'bricks-tiptap-table' },
-                        }),
-                        TableRow,
-                        TableCell,
-                        TableHeader,
-                        ResizableImage,
-                        ResizableVideo,
-                    ],
                     editorProps: {
                         attributes: {
                             style: 'outline: none;',
@@ -232,6 +168,9 @@ export function useInlineEditor(
                     },
                     onUpdate: saveToStore,
                 });
+
+                editorContent.value = EditorContent;
+                editor.value = createdEditor;
             }
 
             // Публикуем editor в store для доступа из BuilderCanvasInlineEditingOverlay

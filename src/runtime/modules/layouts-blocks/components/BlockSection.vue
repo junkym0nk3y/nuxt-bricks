@@ -5,6 +5,9 @@ import type { SectionLayoutProps } from '../types/blockProps';
 
 // Vue
 import { computed, ref, inject, type CSSProperties, type Ref } from 'vue';
+
+// Composables
+import { useLayoutDropZone } from '../composables/useLayoutDropZone';
 // #endregion
 
 // #region Props
@@ -21,11 +24,9 @@ const slots = defineSlots<{
 // #region Data
 const showGrid = inject<Ref<boolean>>('showGrid', ref(true));
 const sectionRef = ref<HTMLElement | null>(null);
-const isDragOver = ref(false);
 const dropIndicator = ref<{ index: number; offset: number } | null>(null);
 const dropInsertIndex = ref<number | null>(null);
 const dropIndicatorRef = ref<HTMLElement | null>(null);
-const dragDepth = ref(0);
 // #endregion
 
 // #region Computed
@@ -94,99 +95,11 @@ const dropIndicatorStyle = computed<CSSProperties>(() => {
 
 // #region Methods
 /**
- * Handles dragenter event for the section layout.
+ * Сбрасывает состояние drop-индикатора.
  */
-function handleDragEnter(event: DragEvent): void {
-    event.preventDefault();
-    event.stopPropagation();
-    dragDepth.value += 1;
-    isDragOver.value = true;
-    updateDropEffect(event);
-    updateDropIndicator(event);
-}
-
-/**
- * Handles dragover event for the section layout.
- */
-function handleDragOver(event: DragEvent): void {
-    event.preventDefault();
-    event.stopPropagation();
-    isDragOver.value = true;
-    updateDropEffect(event);
-    updateDropIndicator(event);
-}
-
-/**
- * Handles dragleave event for the section layout.
- */
-function handleDragLeave(event: DragEvent): void {
-    event.stopPropagation();
-    dragDepth.value = Math.max(0, dragDepth.value - 1);
-    if (dragDepth.value > 0) {
-        return;
-    }
-
-    isDragOver.value = false;
+function clearDropIndicator(): void {
     dropIndicator.value = null;
     dropInsertIndex.value = null;
-}
-
-/**
- * Handles drop event for the section layout.
- */
-function handleDrop(event: DragEvent): void {
-    event.preventDefault();
-    event.stopPropagation();
-    updateDropEffect(event);
-    updateDropIndicator(event);
-
-    const targetIndex = dropInsertIndex.value;
-    const componentId = event.dataTransfer?.getData('component-id');
-
-    if (componentId && props.layoutId && componentId === props.layoutId) {
-        isDragOver.value = false;
-        dropIndicator.value = null;
-        dropInsertIndex.value = null;
-        dragDepth.value = 0;
-        return;
-    }
-
-    const layoutDropEvent = new CustomEvent('layout-drop', {
-        detail: {
-            layoutId: props.layoutId,
-            movedComponentId: componentId || null,
-            targetIndex,
-        },
-        bubbles: true,
-    });
-    sectionRef.value?.dispatchEvent(layoutDropEvent);
-
-    isDragOver.value = false;
-    dropIndicator.value = null;
-    dropInsertIndex.value = null;
-    dragDepth.value = 0;
-}
-
-/**
- * Sets the cursor drop effect based on drag payload type.
- */
-function updateDropEffect(event: DragEvent): void {
-    if (!event.dataTransfer) {
-        return;
-    }
-
-    const types = Array.from(event.dataTransfer.types || []);
-    const isExisting = types.includes('component-id') || types.includes('text/plain');
-    const isLibrary = types.includes('application/json');
-
-    if (!isExisting && !isLibrary) {
-        dropIndicator.value = null;
-        dropInsertIndex.value = null;
-        event.dataTransfer.dropEffect = 'none';
-        return;
-    }
-
-    event.dataTransfer.dropEffect = isExisting ? 'move' : 'copy';
 }
 
 /**
@@ -245,6 +158,18 @@ function updateDropIndicator(event: DragEvent): void {
     dropIndicator.value = { index: targetIndex, offset };
     dropInsertIndex.value = targetIndex;
 }
+// #endregion
+
+// #region Drop zone
+const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop } =
+    useLayoutDropZone({
+        containerRef: sectionRef,
+        layoutId: () => props.layoutId,
+        useDragDepth: true,
+        onDragMove: updateDropIndicator,
+        onReset: clearDropIndicator,
+        resolveDropIndex: () => dropInsertIndex.value,
+    });
 // #endregion
 </script>
 

@@ -27,6 +27,9 @@ import { useInlineEditingStore } from '../../../../text-editor/stores/inlineEdit
 import { useCanvasStore } from '../../../core/stores/canvas';
 import { useComponentsStore } from '../../../core/stores/components';
 
+// Utils
+import { createTiptapEditor } from '../../../../text-editor/utils/createTiptapEditor';
+
 // Composables
 import { useBricksConfig } from '../../../../common/composables/useBricksConfig';
 
@@ -380,73 +383,8 @@ async function initFallbackTiptapEditor(): Promise<void> {
         const currentValue = getCurrentPropValue();
         const htmlContent = typeof currentValue === 'string' ? currentValue : '';
 
-        const [
-            { Editor: TiptapEditor, EditorContent },
-            { default: StarterKit },
-            { default: Underline },
-            { TextStyle },
-            { default: Color },
-            { default: FontFamily },
-            { default: TextAlign },
-            { FontSize },
-            { FontWeight },
-            { LineHeight },
-            { LetterSpacing },
-            { Table, TableRow, TableCell, TableHeader },
-            { ResizableImage },
-            { ResizableVideo },
-            { BoldOverride },
-        ] = await Promise.all([
-            import('@tiptap/vue-3'),
-            import('@tiptap/starter-kit'),
-            import('@tiptap/extension-underline'),
-            import('@tiptap/extension-text-style'),
-            import('@tiptap/extension-color'),
-            import('@tiptap/extension-font-family'),
-            import('@tiptap/extension-text-align'),
-            import('../../../../text-editor/tiptap/fontSize'),
-            import('../../../../text-editor/tiptap/fontWeight'),
-            import('../../../../text-editor/tiptap/lineHeight'),
-            import('../../../../text-editor/tiptap/letterSpacing'),
-            import('@tiptap/extension-table'),
-            import('../../../../text-editor/tiptap/resizableImage'),
-            import('../../../../text-editor/tiptap/resizableVideo'),
-            import('../../../../text-editor/tiptap/boldOverride'),
-        ]);
-
-        fallbackEditorContent.value = EditorContent;
-
-        const ed = new TiptapEditor({
+        const { editor: ed, EditorContent } = await createTiptapEditor({
             content: htmlContent,
-            extensions: [
-                StarterKit.configure({
-                    bold: false,
-                    bulletList: { keepMarks: true },
-                    orderedList: { keepMarks: true },
-                }),
-                BoldOverride,
-                Underline,
-                TextStyle,
-                Color,
-                FontFamily,
-                FontSize,
-                FontWeight,
-                LineHeight,
-                LetterSpacing,
-                TextAlign.configure({
-                    types: ['heading', 'paragraph'],
-                    alignments: ['left', 'center', 'right', 'justify'],
-                }),
-                Table.configure({
-                    resizable: false,
-                    HTMLAttributes: { class: 'bricks-tiptap-table' },
-                }),
-                TableRow,
-                TableCell,
-                TableHeader,
-                ResizableImage,
-                ResizableVideo,
-            ],
             editorProps: {
                 attributes: {
                     style: 'outline: none; min-height: 4rem; padding: 0.4rem;',
@@ -455,6 +393,7 @@ async function initFallbackTiptapEditor(): Promise<void> {
             onUpdate: saveFallbackToStore,
         });
 
+        fallbackEditorContent.value = EditorContent;
         fallbackEditor.value = ed;
         inlineEditingStore.setEditor(ed);
 

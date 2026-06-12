@@ -8,6 +8,9 @@ import { computed, ref, inject, type CSSProperties, type Ref } from 'vue';
 
 // Utils
 import { convertPxToRem } from '../../common/utils/main';
+
+// Composables
+import { useLayoutDropZone } from '../composables/useLayoutDropZone';
 // #endregion
 
 // #region Props
@@ -24,11 +27,9 @@ const slots = defineSlots<{
 // #region Data
 const showGrid = inject<Ref<boolean>>('showGrid', ref(true));
 const flexRef = ref<HTMLElement | null>(null);
-const isDragOver = ref(false);
 const dropIndicator = ref<{ index: number; offset: number } | null>(null);
 const dropInsertIndex = ref<number | null>(null);
 const dropIndicatorRef = ref<HTMLElement | null>(null);
-const dragDepth = ref(0);
 
 const justifyMap: Record<FlexLayoutProps['justify'], CSSProperties['justifyContent']> = {
     start: 'flex-start',
@@ -118,106 +119,18 @@ const dropIndicatorStyle = computed<CSSProperties>(() => {
 
 // #region Methods
 /**
- * Prevents default drag behavior to enable dropping on the flex layout.
- *
- * @param event - Drag event fired when dragging over the layout.
+ * Сбрасывает состояние drop-индикатора.
  */
-function handleDragEnter(event: DragEvent): void {
-    event.preventDefault();
-    event.stopPropagation();
-    dragDepth.value += 1;
-    isDragOver.value = true;
-
-    updateDropEffect(event);
-    updateDropIndicator(event);
-}
-
-function handleDragOver(event: DragEvent): void {
-    event.preventDefault();
-    event.stopPropagation();
-    isDragOver.value = true;
-
-    updateDropEffect(event);
-    updateDropIndicator(event);
-}
-
-/**
- * Resets drag-over state when the cursor leaves the layout area.
- *
- * @param event - Drag event triggered when the pointer leaves the drop zone.
- */
-function handleDragLeave(event: DragEvent): void {
-    event.stopPropagation();
-    dragDepth.value = Math.max(0, dragDepth.value - 1);
-    if (dragDepth.value > 0) {
-        return;
-    }
-
-    isDragOver.value = false;
+function clearDropIndicator(): void {
     dropIndicator.value = null;
     dropInsertIndex.value = null;
 }
 
 /**
- * Emits layout-drop event with component information when an item is dropped.
+ * Пересчитывает позицию индикатора вставки по текущей позиции курсора.
  *
- * @param event - Drag event fired on drop.
+ * @param event - Dragover-событие браузера.
  */
-function handleDrop(event: DragEvent): void {
-    event.preventDefault();
-    event.stopPropagation();
-
-    updateDropEffect(event);
-    updateDropIndicator(event);
-
-    const targetIndex = dropInsertIndex.value;
-
-    const componentId = event.dataTransfer?.getData('component-id');
-
-    if (componentId && props.layoutId && componentId === props.layoutId) {
-        console.warn('[BlockFlex] Ignoring self drop attempt');
-        isDragOver.value = false;
-        dropIndicator.value = null;
-        dropInsertIndex.value = null;
-        dragDepth.value = 0;
-        return;
-    }
-
-    const layoutDropEvent = new CustomEvent('layout-drop', {
-        detail: {
-            layoutId: props.layoutId,
-            movedComponentId: componentId || null,
-            targetIndex,
-        },
-        bubbles: true,
-    });
-    flexRef.value?.dispatchEvent(layoutDropEvent);
-
-    isDragOver.value = false;
-    dropIndicator.value = null;
-    dropInsertIndex.value = null;
-    dragDepth.value = 0;
-}
-
-function updateDropEffect(event: DragEvent): void {
-    if (!event.dataTransfer) {
-        return;
-    }
-
-    const types = Array.from(event.dataTransfer.types || []);
-    const isExisting = types.includes('component-id') || types.includes('text/plain');
-    const isLibrary = types.includes('application/json');
-
-    if (!isExisting && !isLibrary) {
-        dropIndicator.value = null;
-        dropInsertIndex.value = null;
-        event.dataTransfer.dropEffect = 'none';
-        return;
-    }
-
-    event.dataTransfer.dropEffect = isExisting ? 'move' : 'copy';
-}
-
 function updateDropIndicator(event: DragEvent): void {
     const container = flexRef.value;
     if (!container) {
@@ -307,6 +220,18 @@ function updateDropIndicator(event: DragEvent): void {
 
     dropInsertIndex.value = targetIndex;
 }
+// #endregion
+
+// #region Drop zone
+const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop } =
+    useLayoutDropZone({
+        containerRef: flexRef,
+        layoutId: () => props.layoutId,
+        useDragDepth: true,
+        onDragMove: updateDropIndicator,
+        onReset: clearDropIndicator,
+        resolveDropIndex: () => dropInsertIndex.value,
+    });
 // #endregion
 </script>
 

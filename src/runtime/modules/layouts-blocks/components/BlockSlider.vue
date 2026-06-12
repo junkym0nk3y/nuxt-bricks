@@ -10,6 +10,9 @@ import { computed, defineComponent, h, inject, ref, type PropType, type VNodeChi
 // Constants
 import { CANVAS_VIEWPORT_KEY } from '../../common/constants/injectionKeys';
 
+// Composables
+import { useLayoutDropZone } from '../composables/useLayoutDropZone';
+
 // Components
 import { Swiper, SwiperSlide } from 'swiper/vue';
 import { Navigation, Pagination, Autoplay, A11y } from 'swiper/modules';
@@ -58,10 +61,8 @@ const props = withDefaults(
 // #region Data
 const sliderRef = ref<HTMLElement | null>(null);
 const dropIndicatorRef = ref<HTMLElement | null>(null);
-const isDragOver = ref(false);
 const dropIndicator = ref<{ index: number; offset: number } | null>(null);
 const dropInsertIndex = ref<number | null>(null);
-const dragDepth = ref(0);
 const injectedViewport = inject(CANVAS_VIEWPORT_KEY, null);
 const activeSlideIndex = ref(0);
 // #endregion
@@ -238,124 +239,11 @@ function getDraggableSlides(): HTMLElement[] {
 }
 
 /**
- * Обрабатывает вход курсора в область slider layout во время перетаскивания.
- *
- * @param event - Текущее dragenter событие.
+ * Сбрасывает состояние drop-индикатора.
  */
-function handleDragEnter(event: DragEvent): void {
-    if (!isEditor.value) {
-        return;
-    }
-    event.preventDefault();
-    event.stopPropagation();
-    dragDepth.value += 1;
-    isDragOver.value = true;
-    updateDropEffect(event);
-    updateDropIndicator(event);
-}
-
-/**
- * Обновляет состояние при перемещении курсора внутри slider layout.
- *
- * @param event - Dragover событие браузера.
- */
-function handleDragOver(event: DragEvent): void {
-    if (!isEditor.value) {
-        return;
-    }
-    event.preventDefault();
-    event.stopPropagation();
-    isDragOver.value = true;
-    updateDropEffect(event);
-    updateDropIndicator(event);
-}
-
-/**
- * Сбрасывает состояние drag&drop при выходе курсора за пределы layout.
- *
- * @param event - Dragleave событие браузера.
- */
-function handleDragLeave(event: DragEvent): void {
-    if (!isEditor.value) {
-        return;
-    }
-    event.stopPropagation();
-    dragDepth.value = Math.max(0, dragDepth.value - 1);
-    if (dragDepth.value > 0) {
-        return;
-    }
-    resetDropState();
-}
-
-/**
- * Триггерит кастомное событие `layout-drop` при отпускании компонента.
- *
- * @param event - Событие drop.
- */
-function handleDrop(event: DragEvent): void {
-    if (!isEditor.value) {
-        return;
-    }
-    event.preventDefault();
-    event.stopPropagation();
-    updateDropEffect(event);
-    updateDropIndicator(event);
-
-    const targetIndex =
-        typeof dropInsertIndex.value === 'number'
-            ? dropInsertIndex.value
-            : (dropIndicator.value?.index ?? null);
-
-    const movedComponentId = event.dataTransfer?.getData('component-id') || null;
-
-    if (!props.layoutId) {
-        resetDropState();
-        return;
-    }
-
-    const layoutDropEvent = new CustomEvent('layout-drop', {
-        detail: {
-            layoutId: props.layoutId,
-            movedComponentId,
-            targetIndex,
-        },
-        bubbles: true,
-    });
-    sliderRef.value?.dispatchEvent(layoutDropEvent);
-    resetDropState();
-}
-
-/**
- * Полностью очищает локальное состояние drag&drop индикатора.
- */
-function resetDropState(): void {
-    isDragOver.value = false;
+function clearDropIndicator(): void {
     dropIndicator.value = null;
     dropInsertIndex.value = null;
-    dragDepth.value = 0;
-}
-
-/**
- * Устанавливает эффект курсора в зависимости от источника перетаскивания.
- *
- * @param event - Drag-событие с payload.
- */
-function updateDropEffect(event: DragEvent): void {
-    if (!event.dataTransfer) {
-        return;
-    }
-    const types = Array.from(event.dataTransfer.types || []);
-    const isExisting = types.includes('component-id') || types.includes('text/plain');
-    const isLibrary = types.includes('application/json');
-
-    if (!isExisting && !isLibrary) {
-        event.dataTransfer.dropEffect = 'none';
-        dropIndicator.value = null;
-        dropInsertIndex.value = null;
-        return;
-    }
-
-    event.dataTransfer.dropEffect = isExisting ? 'move' : 'copy';
 }
 
 /**
@@ -410,6 +298,22 @@ function updateDropIndicator(event: DragEvent): void {
     };
     dropInsertIndex.value = targetIndex;
 }
+// #endregion
+
+// #region Drop zone
+const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop } =
+    useLayoutDropZone({
+        containerRef: sliderRef,
+        layoutId: () => props.layoutId,
+        isEnabled: isEditor,
+        useDragDepth: true,
+        onDragMove: updateDropIndicator,
+        onReset: clearDropIndicator,
+        resolveDropIndex: () =>
+            typeof dropInsertIndex.value === 'number'
+                ? dropInsertIndex.value
+                : (dropIndicator.value?.index ?? null),
+    });
 // #endregion
 </script>
 

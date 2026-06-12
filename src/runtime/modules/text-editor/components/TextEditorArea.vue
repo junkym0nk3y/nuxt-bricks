@@ -22,6 +22,9 @@ import {
 // Nuxt
 import { useNuxtApp } from 'nuxt/app';
 
+// Utils
+import { createTiptapEditor } from '../utils/createTiptapEditor';
+
 // Composables
 import { useBricksConfig } from '../../common/composables/useBricksConfig';
 
@@ -273,76 +276,9 @@ async function initEditor(): Promise<void> {
     }
 
     try {
-        const [
-            { Editor: TiptapEditor, EditorContent },
-            { default: StarterKit },
-            { default: Underline },
-            { TextStyle },
-            { default: Color },
-            { default: FontFamily },
-            { default: TextAlign },
-            { FontSize },
-            { FontWeight },
-            { LineHeight },
-            { LetterSpacing },
-            { Table, TableRow, TableCell, TableHeader },
-            { ResizableImage },
-            { ResizableVideo },
-            { BoldOverride },
-        ] = await Promise.all([
-            import('@tiptap/vue-3'),
-            import('@tiptap/starter-kit'),
-            import('@tiptap/extension-underline'),
-            import('@tiptap/extension-text-style'),
-            import('@tiptap/extension-color'),
-            import('@tiptap/extension-font-family'),
-            import('@tiptap/extension-text-align'),
-            import('../tiptap/fontSize'),
-            import('../tiptap/fontWeight'),
-            import('../tiptap/lineHeight'),
-            import('../tiptap/letterSpacing'),
-            import('@tiptap/extension-table'),
-            import('../tiptap/resizableImage'),
-            import('../tiptap/resizableVideo'),
-            import('../tiptap/boldOverride'),
-        ]);
-
-        EditorContentComponent.value = EditorContent;
-
-        const createdEditor = new TiptapEditor({
-            element: document.createElement('div'),
+        const { editor: createdEditor, EditorContent } = await createTiptapEditor({
             content: innerValue.value,
             editable: !props.disabled,
-            extensions: [
-                StarterKit.configure({
-                    bold: false,
-                    bulletList: { keepMarks: true },
-                    orderedList: { keepMarks: true },
-                    underline: false,
-                }),
-                BoldOverride,
-                Underline,
-                TextStyle,
-                Color,
-                FontFamily,
-                FontSize,
-                FontWeight,
-                LineHeight,
-                LetterSpacing,
-                TextAlign.configure({
-                    types: ['heading', 'paragraph'],
-                    alignments: ['left', 'center', 'right', 'justify'],
-                }),
-                Table.configure({
-                    resizable: false,
-                    HTMLAttributes: { class: 'bricks-tiptap-table' },
-                }),
-                TableRow,
-                TableCell,
-                TableHeader,
-                ResizableImage,
-                ResizableVideo,
-            ],
             onUpdate: ({ editor: instance }) => {
                 const html = instance.getHTML();
                 if (html !== innerValue.value) {
@@ -351,13 +287,9 @@ async function initEditor(): Promise<void> {
             },
         });
 
-        editor.value = createdEditor ?? null;
-
-        if (!editor.value) {
-            loadingError.value = new Error('Editor failed to initialize');
-        } else {
-            loadingError.value = null;
-        }
+        EditorContentComponent.value = EditorContent;
+        editor.value = createdEditor;
+        loadingError.value = null;
     } catch (error) {
         loadingError.value =
             error instanceof Error ? error : new Error('Failed to load rich text editor');
