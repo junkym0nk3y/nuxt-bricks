@@ -208,7 +208,7 @@ export type IComponentsActions = IComponentsCrudActions &
     IComponentsOrderActions &
     IComponentsFavoritesActions;
 
-export interface IComponentsComputed {
+interface IComponentsComputed {
     getComponentById: (id: string) => BricksComponent | undefined;
     selectedComponentData: ISelectedComponentData | null;
     sortedComponents: BricksComponent[];

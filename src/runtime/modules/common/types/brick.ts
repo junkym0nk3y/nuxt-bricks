@@ -151,14 +151,6 @@ export interface PropertyDefinition {
 
 export type SidebarView = 'components' | 'properties' | 'publish' | 'schema';
 
-// Sidebar state
-export interface SidebarState {
-    left: {
-        visible: boolean;
-        width: string;
-    };
-}
-
 // Selected component
 export interface SelectedComponent {
     id: string;

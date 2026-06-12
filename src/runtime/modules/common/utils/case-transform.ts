@@ -9,7 +9,7 @@
  * @param str - Строка в snake_case.
  * @returns Строка в camelCase.
  */
-export function toCamelCaseString(str: string): string {
+function toCamelCaseString(str: string): string {
     return str.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
 }
 

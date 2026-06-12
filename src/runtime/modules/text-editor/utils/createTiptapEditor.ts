@@ -26,7 +26,7 @@ export interface ICreateTiptapEditorResult {
  * Lazy-загружает все TipTap-модули полнофункционального rich-text редактора
  * одним Promise.all (сохраняет code-splitting — TipTap не попадает в основной бандл).
  */
-export async function loadTiptapModules() {
+async function loadTiptapModules() {
     const [
         { Editor: TiptapEditor, EditorContent },
         { default: StarterKit },

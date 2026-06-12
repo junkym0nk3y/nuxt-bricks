@@ -7,7 +7,7 @@ import type { TRequestErrorLike } from '../../../common/types/bricks-api';
  * @param url - URL запроса.
  * @param error - Исходная ошибка.
  */
-export function formatRequestError(method: string, url: string, error: unknown): string {
+function formatRequestError(method: string, url: string, error: unknown): string {
     const payload = (error ?? {}) as TRequestErrorLike;
     const message =
         payload.data?.message ||

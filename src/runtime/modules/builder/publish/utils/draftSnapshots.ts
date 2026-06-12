@@ -15,7 +15,7 @@ export function isValidPagename(value: string): boolean {
  *
  * @param formState - Состояние формы.
  */
-export function pickComparableFormState(formState: TPublishFormState): Record<string, unknown> {
+function pickComparableFormState(formState: TPublishFormState): Record<string, unknown> {
     return {
         pagename: (formState.pagename ?? '').trim(),
         title: (formState.title ?? '').trim(),

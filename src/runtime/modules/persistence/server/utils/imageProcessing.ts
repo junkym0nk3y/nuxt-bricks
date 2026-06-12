@@ -1,11 +1,7 @@
 // #region Imports
 import { useAppConfig } from 'nitropack/runtime';
 import sharp from 'sharp';
-import type {
-    TFormData,
-    IMediaOptimization,
-    IResolvedMediaConfig,
-} from '../../types/media';
+import type { IMediaOptimization, IResolvedMediaConfig } from '../../types/media';
 // #endregion
 
 // #region Data
@@ -43,24 +39,6 @@ const VIDEO_EXTENSION_MIME: Record<string, string> = {
 
 // #region Helpers
 /**
- * Достает поле из multipart-формы и приводит к строке, если нужно.
- * @param formData Коллекция частей формы.
- * @param name Имя поля.
- */
-export function extractFormField(formData: TFormData, name: string): string | undefined {
-    const field = formData?.find((item) => item.name === name);
-    if (!field || field.data === undefined) {
-        return undefined;
-    }
-
-    if (typeof field.data === 'string') {
-        return field.data;
-    }
-
-    return field.data.toString('utf-8');
-}
-
-/**
  * Возвращает расширение файла в нижнем регистре без точки или пустую строку, если его нет.
  * @param filename Имя файла.
  */
@@ -77,25 +55,6 @@ export function getFileExtension(filename?: string): string {
     }
 
     return trimmed.slice(lastDotIndex + 1).toLowerCase();
-}
-
-/**
- * Возвращает имя файла без расширения.
- * @param filename Имя файла.
- */
-export function getFilenameWithoutExtension(filename?: string): string {
-    if (!filename) {
-        return '';
-    }
-
-    const trimmed = filename.trim();
-    const lastDotIndex = trimmed.lastIndexOf('.');
-
-    if (lastDotIndex <= 0) {
-        return trimmed;
-    }
-
-    return trimmed.slice(0, lastDotIndex);
 }
 
 /**

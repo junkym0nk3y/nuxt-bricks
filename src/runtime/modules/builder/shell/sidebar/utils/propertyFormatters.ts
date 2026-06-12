@@ -40,7 +40,7 @@ export function formatPrimitiveArrayValue(value: unknown): string {
  * @param value - Значение для форматирования
  * @returns JSON строка или пустая строка в случае ошибки
  */
-export function formatJsonDisplayValue(value: unknown): string {
+function formatJsonDisplayValue(value: unknown): string {
     try {
         if (value === undefined || value === null) {
             return '';

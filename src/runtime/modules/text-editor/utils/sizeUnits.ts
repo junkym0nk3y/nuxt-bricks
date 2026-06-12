@@ -7,7 +7,7 @@ export const SIZE_UNITS = ['px', 'rem', 'em', '%'] as const;
 
 export type TSizeUnit = (typeof SIZE_UNITS)[number];
 
-export const PX_PER_REM = 10;
+const PX_PER_REM = 10;
 export const DEFAULT_PX_PER_EM = 16;
 
 /**

@@ -5,7 +5,7 @@ import type { Editor } from '@tiptap/vue-3';
 import { NodeSelection } from '@tiptap/pm/state';
 
 /** Типы медиа-нодов, поддерживаемые попавером обтекания/размера. */
-export const SUPPORTED_MEDIA_NODES = ['image', 'video'] as const;
+const SUPPORTED_MEDIA_NODES = ['image', 'video'] as const;
 
 export interface ISelectedMediaNode {
     nodeName: (typeof SUPPORTED_MEDIA_NODES)[number];

@@ -1,6 +1,6 @@
 import type { IDeviceVisibilityConfig } from '../../types/brick';
 
-export const DEFAULT_DEVICE_VISIBILITY: IDeviceVisibilityConfig = {
+const DEFAULT_DEVICE_VISIBILITY: IDeviceVisibilityConfig = {
     mobile: true,
     tablet: true,
     desktop: true,

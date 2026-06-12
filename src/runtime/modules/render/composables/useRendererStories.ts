@@ -5,21 +5,6 @@ import { normalizeStoryPath } from '../../common/utils/bricks/paths';
 const componentCache = new Map<string, Component | null>();
 
 /**
- * Очищает кэш компонентов. Вызывается при HMR для сброса закэшированных null-значений.
- */
-export function clearComponentCache(): void {
-    componentCache.clear();
-}
-
-/**
- * Удаляет конкретный компонент из кэша по storyPath.
- */
-export function invalidateCachedComponent(storyPath: string): void {
-    const cacheKey = normalizeStoryPath(storyPath);
-    componentCache.delete(cacheKey);
-}
-
-/**
  * Извлекает Vue-компонент из загруженного story-модуля.
  *
  * @param module Story-модуль с компонентом.
@@ -84,9 +69,7 @@ async function loadStoryComponent(
  * @param options - Опции, содержащие функцию поиска loader-а по пути story.
  * @returns Утилиты для резолва story-компонентов.
  */
-export function useRendererStories({
-    findImportModule,
-}: IRendererStoryResolverOptions) {
+export function useRendererStories({ findImportModule }: IRendererStoryResolverOptions) {
     /**
      * Возвращает Vue-компонент по `storyPath`, используя динамический импорт.
      *

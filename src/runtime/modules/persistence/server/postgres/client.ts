@@ -38,7 +38,7 @@ function resolveConnectionString(): string {
  *
  * @returns Пул соединений.
  */
-export async function getPool(): Promise<Pool> {
+async function getPool(): Promise<Pool> {
     if (!pool) {
         const connectionString = resolveConnectionString();
         const { Pool: PgPool } = await import('pg');
@@ -92,14 +92,4 @@ export async function query<T>(text: string, params?: unknown[]): Promise<T[]> {
 export async function queryOne<T>(text: string, params?: unknown[]): Promise<T | null> {
     const rows = await query<T>(text, params);
     return rows.length > 0 ? rows[0] : null;
-}
-
-/**
- * Закрывает пул соединений; пригодно для graceful shutdown/test teardown.
- */
-export async function closePool(): Promise<void> {
-    if (pool) {
-        await pool.end();
-        pool = null;
-    }
 }

@@ -39,7 +39,7 @@ export function createComponentSlot(slot: ComponentSlotDefinition): BricksCompon
  * @param slot - Слот, сохранённый у компонента.
  * @returns Полностью независимая копия слота.
  */
-export function cloneComponentSlot(slot: BricksComponentSlot): BricksComponentSlot {
+function cloneComponentSlot(slot: BricksComponentSlot): BricksComponentSlot {
     return {
         ...slot,
         label: slot.label ?? slot.name,

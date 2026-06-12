@@ -17,7 +17,7 @@ import { ref, toValue } from 'vue';
  * @param el - Элемент drop-зоны, из которого всплывает событие.
  * @param detail - Параметры вставки (layoutId, movedComponentId, targetIndex, …).
  */
-export function dispatchLayoutDrop(el: HTMLElement | null, detail: ILayoutDropZoneDetail): void {
+function dispatchLayoutDrop(el: HTMLElement | null, detail: ILayoutDropZoneDetail): void {
     const layoutDropEvent = new CustomEvent('layout-drop', {
         detail,
         bubbles: true,
