@@ -1,6 +1,6 @@
 // #region Imports
 // Types
-import type { ISlotState, IUseSlotDragDropReturn } from '../types/composables';
+import type { ISlotState, IUseSlotDragDropReturn } from '../../types/composables';
 
 // Vue
 import {

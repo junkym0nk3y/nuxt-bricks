@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { ICanvasItemProps, IDragComposableCanvas } from '../types/components';
+import type { ICanvasItemProps, IDragComposableCanvas } from '../../types/components';
 
 // Vue
 import { computed, ref, inject, provide, watch } from 'vue';
@@ -10,24 +10,24 @@ import { computed, ref, inject, provide, watch } from 'vue';
 import { useElementBounding } from '@vueuse/core';
 
 // Pinia
-import { useComponentsStore } from '../../core/stores/components';
-import { useCanvasStore } from '../../core/stores/canvas';
+import { useComponentsStore } from '../../../core/stores/components';
+import { useCanvasStore } from '../../../core/stores/canvas';
 
 // Composables
-import { useCanvasItemLayout } from '../item/useCanvasItemLayout';
-import { useCanvasItemLoader } from '../item/useCanvasItemLoader';
-import { useCanvasItemInlineEditing } from '../editing/useCanvasItemInlineEditing';
-import { useCanvasItemDrag } from '../item/useCanvasItemDrag';
-import { useCanvasItemActions } from '../item/useCanvasItemActions';
+import { useCanvasItemLayout } from '../composables/useCanvasItemLayout';
+import { useCanvasItemLoader } from '../composables/useCanvasItemLoader';
+import { useCanvasItemInlineEditing } from '../../editing/composables/useCanvasItemInlineEditing';
+import { useCanvasItemDrag } from '../composables/useCanvasItemDrag';
+import { useCanvasItemActions } from '../composables/useCanvasItemActions';
 
 // Utils
-import { buildDeviceVisibilityClasses } from '../../../common/utils/bricks/deviceVisibility';
-import { CANVAS_VIEWPORT_KEY } from '../../../common/constants/injectionKeys';
+import { buildDeviceVisibilityClasses } from '../../../../common/utils/bricks/deviceVisibility';
+import { CANVAS_VIEWPORT_KEY } from '../../../../common/constants/injectionKeys';
 
 // Components
-import BuilderCanvasItemLayout from '../item/BuilderCanvasItemLayout.vue';
-import BuilderCanvasItemComponent from '../item/BuilderCanvasItemComponent.vue';
-import BuilderCanvasItemToolbar from '../item/BuilderCanvasItemToolbar.vue';
+import BuilderCanvasItemLayout from './BuilderCanvasItemLayout.vue';
+import BuilderCanvasItemComponent from './BuilderCanvasItemComponent.vue';
+import BuilderCanvasItemToolbar from './BuilderCanvasItemToolbar.vue';
 // #endregion
 
 // #region Props

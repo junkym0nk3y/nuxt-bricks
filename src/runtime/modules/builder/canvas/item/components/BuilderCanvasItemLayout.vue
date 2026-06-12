@@ -1,20 +1,20 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { BricksComponent } from '../../../common/types/brick';
-import type { LayoutProps } from '../../../layouts-blocks/types/blockProps';
-import type { IBlockCanvasContext } from '../../../layouts-blocks/types/registry';
+import type { BricksComponent } from '../../../../common/types/brick';
+import type { LayoutProps } from '../../../../layouts-blocks/types/blockProps';
+import type { IBlockCanvasContext } from '../../../../layouts-blocks/types/registry';
 
 // Utils
-import { getBlockDefinition, resolveCanvasBind } from '../../../layouts-blocks/registry';
+import { getBlockDefinition, resolveCanvasBind } from '../../../../layouts-blocks/registry';
 
 // Vue
 import { computed, h } from 'vue';
 
 // Components
-import { CANVAS_BLOCK_COMPONENTS } from '../../../layouts-blocks/canvasBlockComponents';
-import BuilderCanvasItem from '../item/BuilderCanvasItem.vue';
-import BuilderCanvasConditionalContainer from '../viewport/BuilderCanvasConditionalContainer.vue';
+import { CANVAS_BLOCK_COMPONENTS } from '../../../../layouts-blocks/canvasBlockComponents';
+import BuilderCanvasItem from './BuilderCanvasItem.vue';
+import BuilderCanvasConditionalContainer from '../../viewport/components/BuilderCanvasConditionalContainer.vue';
 // #endregion
 
 // #region Interfaces

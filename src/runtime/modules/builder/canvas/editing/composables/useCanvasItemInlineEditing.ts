@@ -1,7 +1,7 @@
 // #region Imports
 // Types
-import type { ICanvasItemProps } from '../types/components';
-import type { IBrickValues } from '../../../common/types/index';
+import type { ICanvasItemProps } from '../../types/components';
+import type { IBrickValues } from '../../../../common/types/index';
 
 // Vue
 import { computed, provide, watch, type ComputedRef } from 'vue';
@@ -10,19 +10,19 @@ import { computed, provide, watch, type ComputedRef } from 'vue';
 import { useEventListener } from '@vueuse/core';
 
 // Pinia
-import { useInlineEditingStore } from '../../../text-editor/stores/inlineEditing';
-import { useCanvasStore } from '../../core/stores/canvas';
+import { useInlineEditingStore } from '../../../../text-editor/stores/inlineEditing';
+import { useCanvasStore } from '../../../core/stores/canvas';
 
 // Composables
-import { useStoryImports } from '../../../common/composables/useStoryImports';
+import { useStoryImports } from '../../../../common/composables/useStoryImports';
 
 // Utils
-import { getLayoutProperties } from '../../core/utils/layoutProperties';
+import { getLayoutProperties } from '../../../core/utils/layoutProperties';
 import {
     findAllInlineEditableLayoutProps,
     findAllInlineEditableStoryProps,
     type IInlineEditableProp,
-} from '../../core/utils/inlineEditableProp';
+} from '../../../core/utils/inlineEditableProp';
 // #endregion
 
 /**

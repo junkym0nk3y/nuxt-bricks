@@ -1,5 +1,5 @@
 import { onBeforeUnmount, ref, type Ref } from 'vue';
-import type { ICanvasPanState } from '../types/canvas';
+import type { ICanvasPanState } from '../../types/canvas';
 
 /**
  * Предоставляет поведение перетаскивания средней кнопкой мыши для обертки канваса.

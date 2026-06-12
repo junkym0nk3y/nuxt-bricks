@@ -31,7 +31,7 @@ import { loadFavoritesFromStorage } from '../../core/stores/actions/favorites';
 import TheBuilderShellToolbar from '../../shell/toolbar/components/TheBuilderShellToolbar.vue';
 import BuilderShellToolbarVerticalNav from '../../shell/toolbar/components/BuilderShellToolbarVerticalNav.vue';
 import TheBuilderShellSidebar from '../../shell/sidebar/components/TheBuilderShellSidebar.vue';
-import TheBuilderCanvas from '../../canvas/viewport/TheBuilderCanvas.vue';
+import TheBuilderCanvas from '../../canvas/viewport/components/TheBuilderCanvas.vue';
 import TheBuilderLoader from '../components/TheBuilderLoader.vue';
 import TheBuilderPublishPagesModal from '../../publish/components/TheBuilderPublishPagesModal.vue';
 import TheBuilderDocumentationModal from '../../documentation/components/TheBuilderDocumentationModal.vue';

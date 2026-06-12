@@ -2,15 +2,15 @@
 // #region Imports
 // Types
 import type { Component } from 'vue';
-import type { BricksComponent } from '../../../common/types/brick';
+import type { BricksComponent } from '../../../../common/types/brick';
 
 // Composables
-import { useComponentSlots } from '../item/useComponentSlots';
-import { useSlotDragDrop } from '../item/useSlotDragDrop';
+import { useComponentSlots } from '../composables/useComponentSlots';
+import { useSlotDragDrop } from '../composables/useSlotDragDrop';
 
 // Components
-import BuilderCanvasItem from '../item/BuilderCanvasItem.vue';
-import BuilderCanvasConditionalContainer from '../viewport/BuilderCanvasConditionalContainer.vue';
+import BuilderCanvasItem from './BuilderCanvasItem.vue';
+import BuilderCanvasConditionalContainer from '../../viewport/components/BuilderCanvasConditionalContainer.vue';
 // #endregion
 
 // #region Interfaces

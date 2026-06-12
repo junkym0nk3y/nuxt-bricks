@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IToolbarGroup } from '../../../ui/inputs/textEditorToolbar.d.ts';
+import type { IToolbarGroup } from '../../../../ui/inputs/textEditorToolbar.d.ts';
 import type { Editor } from '@tiptap/vue-3';
 
 // Vue
@@ -23,16 +23,16 @@ import { useElementBounding, useResizeObserver } from '@vueuse/core';
 import { useNuxtApp } from 'nuxt/app';
 
 // Pinia
-import { useInlineEditingStore } from '../../../text-editor/stores/inlineEditing';
-import { useCanvasStore } from '../../core/stores/canvas';
-import { useComponentsStore } from '../../core/stores/components';
+import { useInlineEditingStore } from '../../../../text-editor/stores/inlineEditing';
+import { useCanvasStore } from '../../../core/stores/canvas';
+import { useComponentsStore } from '../../../core/stores/components';
 
 // Composables
-import { useBricksConfig } from '../../../common/composables/useBricksConfig';
+import { useBricksConfig } from '../../../../common/composables/useBricksConfig';
 
 // Components
-import BricksTextEditorToolbar from '../../../ui/inputs/BricksTextEditorToolbar.vue';
-import TextEditorImageFloatPopover from '../../../text-editor/components/TextEditorImageFloatPopover.vue';
+import BricksTextEditorToolbar from '../../../../ui/inputs/BricksTextEditorToolbar.vue';
+import TextEditorImageFloatPopover from '../../../../text-editor/components/TextEditorImageFloatPopover.vue';
 // #endregion
 
 // #region Data
@@ -404,14 +404,14 @@ async function initFallbackTiptapEditor(): Promise<void> {
             import('@tiptap/extension-color'),
             import('@tiptap/extension-font-family'),
             import('@tiptap/extension-text-align'),
-            import('../../../text-editor/tiptap/fontSize'),
-            import('../../../text-editor/tiptap/fontWeight'),
-            import('../../../text-editor/tiptap/lineHeight'),
-            import('../../../text-editor/tiptap/letterSpacing'),
+            import('../../../../text-editor/tiptap/fontSize'),
+            import('../../../../text-editor/tiptap/fontWeight'),
+            import('../../../../text-editor/tiptap/lineHeight'),
+            import('../../../../text-editor/tiptap/letterSpacing'),
             import('@tiptap/extension-table'),
-            import('../../../text-editor/tiptap/resizableImage'),
-            import('../../../text-editor/tiptap/resizableVideo'),
-            import('../../../text-editor/tiptap/boldOverride'),
+            import('../../../../text-editor/tiptap/resizableImage'),
+            import('../../../../text-editor/tiptap/resizableVideo'),
+            import('../../../../text-editor/tiptap/boldOverride'),
         ]);
 
         fallbackEditorContent.value = EditorContent;

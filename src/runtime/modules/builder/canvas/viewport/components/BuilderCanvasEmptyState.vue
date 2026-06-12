@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // #region Imports
-import type { ICanvasEmptyStateData } from '../types/canvas';
+import type { ICanvasEmptyStateData } from '../../types/canvas';
 // #endregion
 
 // #region Data

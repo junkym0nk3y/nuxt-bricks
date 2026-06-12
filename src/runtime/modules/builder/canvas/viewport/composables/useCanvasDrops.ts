@@ -1,11 +1,11 @@
 import { computed, ref } from 'vue';
-import type { ComponentSlotDefinition } from '../../../common/types/brick';
+import type { ComponentSlotDefinition } from '../../../../common/types/brick';
 import type {
     ICanvasDropIndicator,
     ICanvasDropsOptions,
     ILayoutDropDetail,
     ISlotDropDetail,
-} from '../types/canvas';
+} from '../../types/canvas';
 
 /**
  * Собирает всю drag & drop-логику корневой области канваса в одном месте.

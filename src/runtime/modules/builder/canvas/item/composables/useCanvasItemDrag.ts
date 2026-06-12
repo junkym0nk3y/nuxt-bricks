@@ -1,14 +1,14 @@
 // #region Imports
 // Types
-import type { ICanvasItemProps, IDragComposableCanvas } from '../types/components';
-import type { ComponentLibraryItem } from '../../../common/types/brick';
+import type { ICanvasItemProps, IDragComposableCanvas } from '../../types/components';
+import type { ComponentLibraryItem } from '../../../../common/types/brick';
 import type { ComputedRef } from 'vue';
 
 // Pinia
-import { useCanvasStore } from '../../core/stores/canvas';
+import { useCanvasStore } from '../../../core/stores/canvas';
 
 // Utils
-import { convertPxToRem } from '../../../common/utils/main';
+import { convertPxToRem } from '../../../../common/utils/main';
 // #endregion
 
 /**
