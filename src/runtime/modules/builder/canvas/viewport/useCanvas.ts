@@ -1,8 +1,8 @@
 import { ref, computed, watch } from 'vue';
-import { useCanvasStore } from '../../builder/stores/canvas';
-import { useSidebarStore } from '../../builder/stores/sidebar';
-import { convertRemToPx } from '../../common/utils/main';
-import { useBricksConfig } from '../../common/composables/useBricksConfig';
+import { useCanvasStore } from '../../stores/canvas';
+import { useSidebarStore } from '../../stores/sidebar';
+import { convertRemToPx } from '../../../common/utils/main';
+import { useBricksConfig } from '../../../common/composables/useBricksConfig';
 import { useCanvasRemBase } from './useCanvasRemBase';
 
 /**

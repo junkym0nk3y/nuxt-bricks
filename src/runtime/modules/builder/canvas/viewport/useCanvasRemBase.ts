@@ -1,15 +1,15 @@
 // #region Imports
 // Types
-import type { TViewportType } from '../components/types';
+import type { TViewportType } from '../types/components';
 
 // Vue
 import { computed } from 'vue';
 
 // Pinia
-import { useCanvasStore } from '../../builder/stores/canvas';
+import { useCanvasStore } from '../../stores/canvas';
 
 // Composables
-import { useBricksConfig } from '../../common/composables/useBricksConfig';
+import { useBricksConfig } from '../../../common/composables/useBricksConfig';
 // #endregion
 
 /** Базовое значение rem библиотеки (px). */

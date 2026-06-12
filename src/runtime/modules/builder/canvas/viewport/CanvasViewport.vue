@@ -1,29 +1,29 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { TViewportType, IDragComposableCanvas } from './types';
-import type { IDeviceVisibilityConfig } from '../../common/types/brick';
+import type { TViewportType, IDragComposableCanvas } from '../types/components';
+import type { IDeviceVisibilityConfig } from '../../../common/types/brick';
 
 // Vue
 import { computed, ref, inject, provide, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
 
 // Pinia
-import { useComponentsStore } from '../../builder/stores/components';
-import { useCanvasStore } from '../../builder/stores/canvas';
-import { usePublishStore } from '../../builder/stores/publish';
+import { useComponentsStore } from '../../stores/components';
+import { useCanvasStore } from '../../stores/canvas';
+import { usePublishStore } from '../../stores/publish';
 
 // Composables
-import { useBricksConfig } from '../../common/composables/useBricksConfig';
-import { useCanvasDrops } from '../composables/useCanvasDrops';
+import { useBricksConfig } from '../../../common/composables/useBricksConfig';
+import { useCanvasDrops } from '../viewport/useCanvasDrops';
 
 // Utils
-import { convertPxToRem } from '../../common/utils/main';
+import { convertPxToRem } from '../../../common/utils/main';
 
 // Constants
-import { CANVAS_VIEWPORT_KEY } from '../../common/constants/injectionKeys';
+import { CANVAS_VIEWPORT_KEY } from '../../../common/constants/injectionKeys';
 
 // Components
-import CanvasItem from './CanvasItem.vue';
+import CanvasItem from '../item/CanvasItem.vue';
 // #endregion
 
 // #region Interfaces

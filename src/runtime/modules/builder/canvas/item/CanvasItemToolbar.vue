@@ -1,15 +1,15 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IDeviceVisibilityConfig, TBricksDeviceKey } from '../../common/types/brick';
+import type { IDeviceVisibilityConfig, TBricksDeviceKey } from '../../../common/types/brick';
 
 // Vue
 import { ref, computed } from 'vue';
 
 // Components
-import BricksTooltip from '../../ui/tooltip/BricksTooltip.vue';
-import BricksTooltipHint from '../../ui/tooltip/BricksTooltipHint.vue';
-import BricksCheckbox from '../../ui/base/checkbox/BricksCheckbox.vue';
+import BricksTooltip from '../../../ui/tooltip/BricksTooltip.vue';
+import BricksTooltipHint from '../../../ui/tooltip/BricksTooltipHint.vue';
+import BricksCheckbox from '../../../ui/base/checkbox/BricksCheckbox.vue';
 // #endregion
 
 // #region Interfaces

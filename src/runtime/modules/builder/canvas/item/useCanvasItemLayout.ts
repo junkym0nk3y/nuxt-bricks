@@ -1,19 +1,19 @@
 // #region Imports
 // Types
-import type { BricksComponent, TBricksDeviceKey } from '../../common/types/brick';
-import type { LayoutProps } from '../../layouts-blocks/types/blockProps';
-import type { IItemStyle, ICanvasItemProps } from '../components/types';
+import type { BricksComponent, TBricksDeviceKey } from '../../../common/types/brick';
+import type { LayoutProps } from '../../../layouts-blocks/types/blockProps';
+import type { IItemStyle, ICanvasItemProps } from '../types/components';
 
 // Vue
 import { computed, inject } from 'vue';
 
 // Pinia
-import { useComponentsStore } from '../../builder/stores/components';
-import { useCanvasStore } from '../../builder/stores/canvas';
+import { useComponentsStore } from '../../stores/components';
+import { useCanvasStore } from '../../stores/canvas';
 
 // Utils
-import { resolveBlockProps } from '../../layouts-blocks/registry';
-import { CANVAS_VIEWPORT_KEY } from '../../common/constants/injectionKeys';
+import { resolveBlockProps } from '../../../layouts-blocks/registry';
+import { CANVAS_VIEWPORT_KEY } from '../../../common/constants/injectionKeys';
 // #endregion
 
 /** Нормализует значение `grid-column`, чтобы не создавать implicit columns при смене viewport */

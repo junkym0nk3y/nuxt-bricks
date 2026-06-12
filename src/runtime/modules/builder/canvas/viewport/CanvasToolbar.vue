@@ -6,16 +6,16 @@ import type {
     ICanvasToolbarEmits,
     IViewportOption,
     TViewportType,
-} from './types';
+} from '../types/components';
 
 // Vue
 import { computed } from 'vue';
 
 // Composables
-import { useBricksConfig } from '../../common/composables/useBricksConfig';
+import { useBricksConfig } from '../../../common/composables/useBricksConfig';
 
 // Components
-import BricksButton from '../../ui/base/button/BricksButton.vue';
+import BricksButton from '../../../ui/base/button/BricksButton.vue';
 // #endregion
 
 // #region Props

@@ -1,7 +1,7 @@
 // #region Imports
 // Types
-import type { ICanvasItemProps } from '../components/types';
-import type { IBrickExportModule, IBrickValues } from '../../common/types/index';
+import type { ICanvasItemProps } from '../types/components';
+import type { IBrickExportModule, IBrickValues } from '../../../common/types/index';
 
 // Vue
 import {
@@ -16,7 +16,7 @@ import {
 } from 'vue';
 
 // Composables
-import { useStoryImports } from '../../common/composables/useStoryImports';
+import { useStoryImports } from '../../../common/composables/useStoryImports';
 // #endregion
 
 const FORCE_RENDER_DEBOUNCE_MS = 500;

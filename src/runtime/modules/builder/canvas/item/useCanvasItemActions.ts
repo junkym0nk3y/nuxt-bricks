@@ -1,27 +1,27 @@
 // #region Imports
 // Types
-import type { ICanvasItemProps } from '../components/types';
-import type { PropertyDefinition, TBricksDeviceKey } from '../../common/types/brick';
-import type { IBrickValues } from '../../common/types/index';
+import type { ICanvasItemProps } from '../types/components';
+import type { PropertyDefinition, TBricksDeviceKey } from '../../../common/types/brick';
+import type { IBrickValues } from '../../../common/types/index';
 
 // Vue
 import { computed, nextTick, type ComputedRef, type Ref } from 'vue';
 
 // Pinia
-import { useComponentsStore } from '../../builder/stores/components';
-import { useCanvasStore } from '../../builder/stores/canvas';
-import { useSidebarStore } from '../../builder/stores/sidebar';
+import { useComponentsStore } from '../../stores/components';
+import { useCanvasStore } from '../../stores/canvas';
+import { useSidebarStore } from '../../stores/sidebar';
 
 // Composables
-import { useStoryImports } from '../../common/composables/useStoryImports';
-import { useComponentProperties } from '../../builder/composables/useComponentProperties';
+import { useStoryImports } from '../../../common/composables/useStoryImports';
+import { useComponentProperties } from '../../composables/useComponentProperties';
 
 // Utils
-import { getLayoutProperties } from '../../builder/utils/layoutProperties';
-import { scrollToComponentOnCanvas } from '../../builder/utils/scrollToComponent';
+import { getLayoutProperties } from '../../utils/layoutProperties';
+import { scrollToComponentOnCanvas } from '../../utils/scrollToComponent';
 
 // Constants
-import { LAYOUT_COMPONENTS } from '../../builder/constants/layoutComponents';
+import { LAYOUT_COMPONENTS } from '../../constants/layoutComponents';
 // #endregion
 
 /**

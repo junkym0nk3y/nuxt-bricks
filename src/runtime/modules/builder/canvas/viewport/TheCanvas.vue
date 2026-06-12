@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IDragComposableCanvas } from './types';
+import type { IDragComposableCanvas } from '../types/components';
 
 // Vue
 import { ref, computed, inject, provide, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
@@ -10,30 +10,30 @@ import { ref, computed, inject, provide, onMounted, onBeforeUnmount, nextTick, w
 import { useDebounceFn } from '@vueuse/core';
 
 // Pinia
-import { useComponentsStore } from '../../builder/stores/components';
-import { useCanvasStore } from '../../builder/stores/canvas';
-import { useSidebarStore } from '../../builder/stores/sidebar';
-import { usePublishStore } from '../../builder/stores/publish';
+import { useComponentsStore } from '../../stores/components';
+import { useCanvasStore } from '../../stores/canvas';
+import { useSidebarStore } from '../../stores/sidebar';
+import { usePublishStore } from '../../stores/publish';
 
 // Composables
-import { useCanvas } from '../composables/useCanvas';
-import { useBricksConfig } from '../../common/composables/useBricksConfig';
-import { useCanvasDrops } from '../composables/useCanvasDrops';
-import { useCanvasPan } from '../composables/useCanvasPan';
+import { useCanvas } from '../viewport/useCanvas';
+import { useBricksConfig } from '../../../common/composables/useBricksConfig';
+import { useCanvasDrops } from '../viewport/useCanvasDrops';
+import { useCanvasPan } from '../viewport/useCanvasPan';
 
 // Utils
-import { convertPxToRem } from '../../common/utils/main';
+import { convertPxToRem } from '../../../common/utils/main';
 
 // Constants
-import { CANVAS_VIEWPORT_KEY } from '../../common/constants/injectionKeys';
-import { scrollToComponentOnCanvas } from '../../builder/utils/scrollToComponent';
+import { CANVAS_VIEWPORT_KEY } from '../../../common/constants/injectionKeys';
+import { scrollToComponentOnCanvas } from '../../utils/scrollToComponent';
 
 // Components
-import CanvasItem from './CanvasItem.vue';
-import CanvasToolbar from './CanvasToolbar.vue';
-import CanvasEmptyState from './CanvasEmptyState.vue';
-import CanvasViewport from './CanvasViewport.vue';
-import CanvasInlineEditingOverlay from './CanvasInlineEditingOverlay.vue';
+import CanvasItem from '../item/CanvasItem.vue';
+import CanvasToolbar from '../viewport/CanvasToolbar.vue';
+import CanvasEmptyState from '../viewport/CanvasEmptyState.vue';
+import CanvasViewport from '../viewport/CanvasViewport.vue';
+import CanvasInlineEditingOverlay from '../editing/CanvasInlineEditingOverlay.vue';
 // #endregion
 
 // #region Data

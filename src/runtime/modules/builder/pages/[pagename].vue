@@ -31,7 +31,7 @@ import { loadFavoritesFromStorage } from '../stores/actions/favorites';
 import TheToolbar from '../shell/toolbar/components/TheToolbar.vue';
 import ToolbarVerticalNav from '../shell/toolbar/components/ToolbarVerticalNav.vue';
 import TheSidebar from '../shell/sidebar/components/TheSidebar.vue';
-import TheCanvas from '../../canvas/components/TheCanvas.vue';
+import TheCanvas from '../canvas/viewport/TheCanvas.vue';
 import TheBuilderLoader from '../components/TheBuilderLoader.vue';
 import ThePublishedPagesModal from '../components/modal/ThePublishedPagesModal.vue';
 import TheDocumentationModal from '../components/modal/TheDocumentationModal.vue';

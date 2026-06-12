@@ -3,7 +3,7 @@
  */
 
 import type { CSSProperties, Ref } from 'vue';
-import type { ComponentLibraryItem, BricksComponent } from '../../common/types/brick';
+import type { ComponentLibraryItem, BricksComponent } from '../../../common/types/brick';
 
 export interface ICanvasItemProps {
     component: BricksComponent;

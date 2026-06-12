@@ -1,6 +1,6 @@
 import type { Ref } from 'vue';
-import type { IDragComposableCanvas } from '../components/types';
-import type { BricksComponentsStore } from '../../builder/stores/components';
+import type { IDragComposableCanvas } from './components';
+import type { BricksComponentsStore } from '../../stores/components';
 
 export interface ICanvasDropIndicator {
     index: number;
@@ -31,4 +31,4 @@ export type {
     IDragComposableCanvas,
     ILayoutDropDetail,
     ISlotDropDetail,
-} from '../components/types';
+} from './components';

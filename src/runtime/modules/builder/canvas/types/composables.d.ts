@@ -2,7 +2,7 @@
  * Типы для composables домена canvas.
  */
 
-import type { ComponentSlotDefinition, BricksComponent } from '../../common/types/brick';
+import type { ComponentSlotDefinition, BricksComponent } from '../../../common/types/brick';
 import type { ComputedRef, CSSProperties, Ref, VNodeRef } from 'vue';
 
 // #region useComponentSlots

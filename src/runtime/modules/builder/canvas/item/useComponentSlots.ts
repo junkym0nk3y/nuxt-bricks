@@ -1,16 +1,16 @@
 // #region Imports
 // Types
-import type { ComponentSlotDefinition, BricksComponent } from '../../common/types/brick';
+import type { ComponentSlotDefinition, BricksComponent } from '../../../common/types/brick';
 import type { ISlotRenderData, IUseComponentSlotsReturn } from '../types/composables';
 
 // Vue
 import { computed, ref, watch } from 'vue';
 
 // Pinia
-import { useComponentsStore } from '../../builder/stores/components';
+import { useComponentsStore } from '../../stores/components';
 
 // Composables
-import { useStoryImports } from '../../common/composables/useStoryImports';
+import { useStoryImports } from '../../../common/composables/useStoryImports';
 // #endregion
 
 /**
