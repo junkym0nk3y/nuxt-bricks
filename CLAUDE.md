@@ -1,8 +1,5 @@
 # CLAUDE.md
 
-Проект хранится здесь
-/Users/saintfr3ak/Documents/Projects/front-lib/ida-landing/package.json
-Его надо мигрировать и рефакторить согласно documents/refactor.md
 ## Обязательная проверка после изменений
 
 После **каждого** изменения `.vue`, `.ts` файлов запускать:
@@ -31,7 +28,7 @@ npx oxlint <changed-file>
 
 ### Доменная структура `src/runtime/modules/` (модульный монолит)
 
-Все домены лежат в `src/runtime/modules/`. Каждый домен держит свои компоненты/композаблы/типы/утилиты рядом (см. documents/refactor.md, documents/modules-restructure.md):
+Все домены лежат в `src/runtime/modules/`. Каждый домен держит свои компоненты/композаблы/типы/утилиты рядом:
 
 - `ui/` — Reka UI-кит (base/inputs/feedback/tooltip, общие типы в `types/`)
 - `builder/` — редактор целиком, поддомены:

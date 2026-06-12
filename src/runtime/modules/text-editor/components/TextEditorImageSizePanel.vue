@@ -303,12 +303,12 @@ onMounted(() => {
     right: 0;
     z-index: 1;
     display: flex;
+    padding: 0.8rem;
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-base-0);
     flex-direction: column;
     gap: 0.4rem;
-    padding: 0.8rem;
-    background: var(--bricks-base-0);
-    border: 1px solid var(--bricks-base-200);
-    border-radius: var(--border-radius-sm);
     box-shadow: var(--shadow-sm);
 }
 
@@ -319,24 +319,24 @@ onMounted(() => {
 }
 
 .sizeLabel {
+    width: 1.6rem;
+    text-align: center;
     font-size: 1.1rem;
     font-weight: 600;
     color: var(--bricks-base-500);
-    width: 1.6rem;
-    text-align: center;
     user-select: none;
 }
 
 .sizeInput {
     width: 7rem;
     padding: 0.4rem 0.6rem;
-    border: 1px solid var(--bricks-base-200);
     border-radius: var(--border-radius-xs);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-base-0);
+    outline: none;
     font-size: 1.2rem;
     line-height: 1.4;
     color: var(--bricks-base-900);
-    background: var(--bricks-base-0);
-    outline: none;
 
     &:focus {
         border-color: var(--bricks-primary);
@@ -357,14 +357,14 @@ onMounted(() => {
     justify-content: center;
     width: 2.2rem;
     height: 2.2rem;
-    border: none;
     border-radius: var(--border-radius-xs);
+    border: none;
     background: transparent;
     color: var(--bricks-base-400);
-    cursor: pointer;
     transition:
         background-color var(--default-transition),
         color var(--default-transition);
+    cursor: pointer;
 
     svg {
         width: 1.4rem;
@@ -383,14 +383,14 @@ onMounted(() => {
 
 .unitButton {
     padding: 0.2rem 0.6rem;
-    border: 1px solid var(--bricks-base-200);
     border-radius: var(--border-radius-xs);
+    border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-50);
-    color: var(--bricks-base-600);
     font-size: 1.1rem;
     font-weight: 500;
-    cursor: pointer;
+    color: var(--bricks-base-600);
     transition: background-color var(--default-transition);
+    cursor: pointer;
 
     &:hover {
         background: var(--bricks-base-100);

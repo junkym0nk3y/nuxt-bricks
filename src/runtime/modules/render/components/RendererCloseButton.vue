@@ -53,8 +53,8 @@ function handleClick(event: MouseEvent): void {
     min-width: 3.2rem;
     min-height: 3.2rem;
     padding: 0;
-    border: 1px solid var(--bricks-base-300);
     border-radius: var(--border-radius-md);
+    border: 1px solid var(--bricks-base-300);
     background-color: var(--bricks-base-0);
     color: var(--bricks-base-600);
     cursor: pointer;
@@ -64,8 +64,8 @@ function handleClick(event: MouseEvent): void {
     }
 
     &:disabled {
-        cursor: not-allowed;
         opacity: 0.5;
+        cursor: not-allowed;
     }
 
     svg {
