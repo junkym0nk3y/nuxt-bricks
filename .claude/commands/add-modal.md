@@ -12,7 +12,7 @@ $ARGUMENTS
 
 Любой компонент с `category: 'Modal'` в `.brick.ts` автоматически:
 
-- Обнаруживается через stories system
+- Обнаруживается через bricks system
 - Исключается из левого сайдбара (не перетаскивается на канвас)
 - Появляется в `modal-select` селекторах
 
@@ -29,14 +29,14 @@ $ARGUMENTS
 Размести в `playground/components/modals/` (или соответствующей папке).
 Следуй конвенциям из `.claude/rules/vue-sfc.md`.
 
-### Шаг 2: Создать `.brick.ts` story файл
+### Шаг 2: Создать `.brick.ts` brick файл
 
 ```typescript
 import { defineComponent, h } from 'vue';
 import Component from './MyModal.vue';
 import type { IBrickFileStructure } from '../../common/types';
 
-export const story: IBrickFileStructure = {
+export const brick: IBrickFileStructure = {
     category: 'Modal', // <-- Обязательно 'Modal'
     values: {}, // <-- Пустой для модалок
 };
@@ -50,7 +50,7 @@ export default defineComponent({
 });
 ```
 
-### Шаг 3: Регенерировать stories
+### Шаг 3: Регенерировать bricks
 
 ```bash
 npm run bricks:gen
@@ -61,7 +61,7 @@ npm run bricks:gen
 В `.brick.ts` компонента-потребителя добавить prop с типом `modal-select`:
 
 ```typescript
-export const story = {
+export const brick = {
     category: 'UI',
     values: {
         modalComponent: {

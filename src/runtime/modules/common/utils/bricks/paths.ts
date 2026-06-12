@@ -1,10 +1,10 @@
 /**
- * Нормализует путь к story-файлу, приводя слэши к POSIX-формату.
+ * Нормализует путь к brick-файлу, приводя слэши к POSIX-формату.
  *
  * @param path - Исходный путь (может содержать символы Windows).
  * @returns Путь с прямыми слэшами или пустая строка, если вход невалидный.
  */
-export function normalizeStoryPath(path: string | null | undefined): string {
+export function normalizeBrickPath(path: string | null | undefined): string {
     if (!path) {
         return '';
     }

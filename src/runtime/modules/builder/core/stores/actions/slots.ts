@@ -7,10 +7,10 @@ import type { IComponentsSlotActions, IComponentsStore, THistoryOptions } from '
  */
 export const slotActions: IComponentsSlotActions = {
     /**
-     * Создаёт структуру слотов у компонента согласно декларации story-файла.
+     * Создаёт структуру слотов у компонента согласно декларации brick-файла.
      *
      * @param componentId - Идентификатор родительского компонента.
-     * @param slots - Описание слотов из story.
+     * @param slots - Описание слотов из brick.
      */
     initializeComponentSlots(
         this: IComponentsStore,

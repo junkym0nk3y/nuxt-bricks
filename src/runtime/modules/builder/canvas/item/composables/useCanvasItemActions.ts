@@ -13,7 +13,7 @@ import { useCanvasStore } from '../../../core/stores/canvas';
 import { useSidebarStore } from '../../../core/stores/sidebar';
 
 // Composables
-import { useStoryImports } from '../../../../common/composables/useStoryImports';
+import { useBrickImports } from '../../../../common/composables/useBrickImports';
 import { useComponentProperties } from '../../../core/composables/useComponentProperties';
 
 // Utils
@@ -42,8 +42,8 @@ export function useCanvasItemActions(
     const componentsStore = useComponentsStore();
     const canvasStore = useCanvasStore();
     const sidebarStore = useSidebarStore();
-    const { findImportModule } = useStoryImports();
-    const { storyValuesToProperties } = useComponentProperties();
+    const { findImportModule } = useBrickImports();
+    const { brickValuesToProperties } = useComponentProperties();
 
     // #region Computed
     /**
@@ -144,21 +144,21 @@ export function useCanvasItemActions(
         if (isLayout.value) {
             properties = getLayoutProperties(layoutName.value, availableFonts);
             description = LAYOUT_COMPONENTS.find(
-                (item) => item.storyPath === props.component.storyPath
+                (item) => item.brickPath === props.component.brickPath
             )?.description;
         } else {
-            const moduleLoader = findImportModule(props.component.storyPath);
+            const moduleLoader = findImportModule(props.component.brickPath);
             if (moduleLoader) {
                 try {
                     const module = await moduleLoader();
-                    if (module?.story) {
-                        description = (module.story as Record<string, unknown>).description as
+                    if (module?.brick) {
+                        description = (module.brick as Record<string, unknown>).description as
                             | string
                             | undefined;
 
-                        if ((module.story as Record<string, unknown>).values !== undefined) {
-                            properties = storyValuesToProperties(
-                                (module.story as Record<string, unknown>).values as Record<
+                        if ((module.brick as Record<string, unknown>).values !== undefined) {
+                            properties = brickValuesToProperties(
+                                (module.brick as Record<string, unknown>).values as Record<
                                     string,
                                     IBrickValues
                                 >
@@ -166,7 +166,7 @@ export function useCanvasItemActions(
                         }
                     }
                 } catch (error) {
-                    console.error('[BuilderCanvasItem] Failed to load story:', error);
+                    console.error('[BuilderCanvasItem] Failed to load brick:', error);
                 }
             }
         }

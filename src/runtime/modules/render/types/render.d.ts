@@ -2,8 +2,8 @@ import type { Ref, VNodeChild } from 'vue';
 import type { IBricksComponent } from '../../common/types/brick';
 import type { IBrickExportModule } from '../../common/types/index';
 
-export interface IRendererStoryResolverOptions {
-    findImportModule: (storyPath: string) => (() => Promise<IBrickExportModule>) | undefined;
+export interface IRendererBrickResolverOptions {
+    findImportModule: (brickPath: string) => (() => Promise<IBrickExportModule>) | undefined;
 }
 
 export interface IRendererProps {

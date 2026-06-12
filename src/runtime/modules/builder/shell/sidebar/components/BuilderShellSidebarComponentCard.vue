@@ -26,7 +26,7 @@ import BricksTooltip from '../../../../ui/tooltip/BricksTooltip.vue';
 import BricksTooltipHint from '../../../../ui/tooltip/BricksTooltipHint.vue';
 
 // Composables
-import { useStoryImports } from '../../../../common/composables/useStoryImports';
+import { useBrickImports } from '../../../../common/composables/useBrickImports';
 
 // Utils
 import { convertRemToPx } from '../../../../common/utils/main';
@@ -41,7 +41,7 @@ const props = withDefaults(defineProps<ISidebarComponentCardProps>(), {
 
 // #region Data
 const componentsStore = useComponentsStore();
-const { findImportModule } = useStoryImports();
+const { findImportModule } = useBrickImports();
 const ComponentPreview = shallowRef<Component | null>(null);
 const previewWrapperRef = ref<HTMLElement | null>(null);
 const previewContentRef = ref<HTMLElement | null>(null);
@@ -51,7 +51,7 @@ let resizeObserver: ResizeObserver | null = null;
 
 const dragComposable = inject<IDragComposable | undefined>('dragComposable');
 
-const importModule = findImportModule(props.component.storyPath);
+const importModule = findImportModule(props.component.brickPath);
 if (importModule) {
     ComponentPreview.value = defineAsyncComponent<Component>({
         loader: async () => {
@@ -259,7 +259,11 @@ function handleDragStart(event: DragEvent): void {
 <template>
     <BricksTooltip v-if="props.component.description" bottom>
         <template #activator>
-            <div :class="$style.BuilderShellSidebarComponentCard" draggable="true" @dragstart="handleDragStart">
+            <div
+                :class="$style.BuilderShellSidebarComponentCard"
+                draggable="true"
+                @dragstart="handleDragStart"
+            >
                 <div :class="$style.cardInner">
                     <!-- Контейнер миниатюры -->
                     <div :class="[$style.thumbnail, { [$style.layoutThumbnail]: props.isLayout }]">
@@ -312,7 +316,12 @@ function handleDragStart(event: DragEvent): void {
         </template>
     </BricksTooltip>
 
-    <div v-else :class="$style.BuilderShellSidebarComponentCard" draggable="true" @dragstart="handleDragStart">
+    <div
+        v-else
+        :class="$style.BuilderShellSidebarComponentCard"
+        draggable="true"
+        @dragstart="handleDragStart"
+    >
         <div :class="$style.cardInner">
             <!-- Контейнер миниатюры -->
             <div :class="[$style.thumbnail, { [$style.layoutThumbnail]: props.isLayout }]">

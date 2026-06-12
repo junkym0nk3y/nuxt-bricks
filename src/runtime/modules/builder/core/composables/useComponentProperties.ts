@@ -11,7 +11,7 @@ import { getModalOptions } from '../../app/composables/useModals';
  */
 export function useComponentProperties() {
     /**
-     * Определяет тип свойства на основе значения из story.
+     * Определяет тип свойства на основе значения из brick.
      */
     // eslint-disable-next-line complexity
     const inferPropertyType = (value: IBrickValues): TPropertyType => {
@@ -87,14 +87,14 @@ export function useComponentProperties() {
     };
 
     /**
-     * Конвертирует значения story в определения свойств.
+     * Конвертирует значения brick в определения свойств.
      */
-    const storyValuesToProperties = (
-        storyValues: Record<string, IBrickValues>
+    const brickValuesToProperties = (
+        brickValues: Record<string, IBrickValues>
     ): IPropertyDefinition[] => {
         const properties: IPropertyDefinition[] = [];
 
-        Object.entries(storyValues).forEach(([key, value]) => {
+        Object.entries(brickValues).forEach(([key, value]) => {
             const property: IPropertyDefinition = {
                 name: key,
                 label: key.charAt(0).toUpperCase() + key.slice(1),
@@ -194,7 +194,7 @@ export function useComponentProperties() {
     };
 
     return {
-        storyValuesToProperties,
+        brickValuesToProperties,
         inferPropertyType,
         getSelectorType,
         validatePropertyValue,

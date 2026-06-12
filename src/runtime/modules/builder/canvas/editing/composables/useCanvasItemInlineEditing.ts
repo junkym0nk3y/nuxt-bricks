@@ -14,13 +14,13 @@ import { useInlineEditingStore } from '../../../../text-editor/stores/inlineEdit
 import { useCanvasStore } from '../../../core/stores/canvas';
 
 // Composables
-import { useStoryImports } from '../../../../common/composables/useStoryImports';
+import { useBrickImports } from '../../../../common/composables/useBrickImports';
 
 // Utils
 import { getLayoutProperties } from '../../../core/utils/layoutProperties';
 import {
     findAllInlineEditableLayoutProps,
-    findAllInlineEditableStoryProps,
+    findAllInlineEditableBrickProps,
     type IInlineEditableProp,
 } from '../../../core/utils/inlineEditableProp';
 // #endregion
@@ -38,7 +38,7 @@ export function useCanvasItemInlineEditing(
 ) {
     const inlineEditingStore = useInlineEditingStore();
     const canvasStore = useCanvasStore();
-    const { findImportModule } = useStoryImports();
+    const { findImportModule } = useBrickImports();
 
     // #region Computed
     const isInlineEditing = computed<boolean>(() =>
@@ -57,7 +57,7 @@ export function useCanvasItemInlineEditing(
     // #region Methods
     /**
      * Находит все inline-editable свойства у компонента.
-     * Для layout — из getLayoutProperties(), для story — из загруженного модуля.
+     * Для layout — из getLayoutProperties(), для brick — из загруженного модуля.
      */
     async function findAllInlineEditableProps(): Promise<IInlineEditableProp[]> {
         if (isLayout.value) {
@@ -66,21 +66,21 @@ export function useCanvasItemInlineEditing(
             );
         }
 
-        const moduleLoader = findImportModule(props.component.storyPath);
+        const moduleLoader = findImportModule(props.component.brickPath);
         if (!moduleLoader) {
             return [];
         }
 
         try {
             const module = await moduleLoader();
-            if (!module?.story?.values) {
+            if (!module?.brick?.values) {
                 return [];
             }
 
             const componentProps = (props.component.props as Record<string, unknown>) || {};
 
-            return findAllInlineEditableStoryProps(
-                module.story.values as Record<string, IBrickValues>,
+            return findAllInlineEditableBrickProps(
+                module.brick.values as Record<string, IBrickValues>,
                 componentProps
             );
         } catch {

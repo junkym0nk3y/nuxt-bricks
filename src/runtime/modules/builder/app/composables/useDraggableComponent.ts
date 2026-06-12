@@ -168,7 +168,7 @@ export function useComponentLibraryDrag() {
     function createComponentData(draggedComp: IComponentLibraryItem): TComponentInsertPayload {
         return {
             componentName: draggedComp.name,
-            storyPath: draggedComp.storyPath,
+            brickPath: draggedComp.brickPath,
             props: JSON.parse(JSON.stringify(draggedComp.defaultProps || {})),
             isInteractive: draggedComp.isInteractive || undefined,
             slots: Array.isArray(draggedComp.slots)

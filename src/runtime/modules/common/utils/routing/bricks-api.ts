@@ -6,7 +6,7 @@ import type { IBrickObject, IBrickRoute, IBricksManifest } from './types.d.ts';
  * Reads the generated `bricks.json` (source of brick meta) and groups entries by category.
  *
  * @returns A map where each key is a category and its value contains
- *          a `components` array of `{ name, storyPath }` entries.
+ *          a `components` array of `{ name, brickPath }` entries.
  */
 export function getBricksCategoriesFromJson(
     row = false
@@ -20,16 +20,16 @@ export function getBricksCategoriesFromJson(
             return parsedContent;
         }
 
-        const { stories } = parsedContent;
+        const { bricks } = parsedContent;
 
         const categories: Record<string, IBrickRoute> = {};
 
-        stories.forEach((story: IBrickObject) => {
-            const category = story.category;
+        bricks.forEach((brick: IBrickObject) => {
+            const category = brick.category;
             const entry = (categories[category] ||= { components: [] });
             entry.components.push({
-                name: story.name,
-                storyPath: story.storyPath,
+                name: brick.name,
+                brickPath: brick.brickPath,
             });
         });
 

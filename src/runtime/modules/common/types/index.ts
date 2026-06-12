@@ -81,7 +81,7 @@ export interface IBrickSlotDefinition {
 
 export interface IBrickExportModule {
     default?: unknown;
-    story?: {
+    brick?: {
         values?: Record<string, IBrickValues>;
         category?: string;
         description?: string;

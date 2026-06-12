@@ -26,7 +26,7 @@
         "dist"
     ],
     "bin": {
-        "bricks-gen": "dist/cli/stories-generate.mjs"
+        "bricks-gen": "dist/cli/bricks-generate.mjs"
     },
     "engines": {
         "node": ">=22.17"
@@ -38,7 +38,7 @@
         "dev": "nuxi dev playground",
         "dev:build": "nuxi build playground",
         "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxi prepare playground",
-        "bricks:gen": "node ./src/cli/stories-generate.mjs",
+        "bricks:gen": "node ./src/cli/bricks-generate.mjs",
         "el:check": "oxlint .",
         "el:fix": "oxlint --fix .",
         "sl:check": "stylelint \"**/*.{scss,vue}\"",

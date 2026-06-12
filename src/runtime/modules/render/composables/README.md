@@ -5,5 +5,5 @@
 | Файл                      | Назначение                                                                                 |
 | ------------------------- | -------------------------------------------------------------------------------------------- |
 | `useRendererLayouts.ts`   | Рендеринг layout-блоков через registry: каждый блок несёт свой `renderPublished` в definition |
-| `useRendererStories.ts`   | Извлечение Vue-компонента из загруженного story-модуля                                        |
+| `useRendererBricks.ts`   | Извлечение Vue-компонента из загруженного brick-модуля                                        |
 | `useBricksDataSources.ts` | Выполнение data sources опубликованной страницы (через useApiClient: SSR-заголовки, CSRF)     |

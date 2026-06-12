@@ -6,7 +6,7 @@ import { globby } from 'globby';
 import { join } from 'pathe';
 import { fileURLToPath } from 'url';
 
-// Извлекает категорию компонента из содержимого story-файла.
+// Извлекает категорию компонента из содержимого brick-файла.
 function extractCategory(content) {
     const categoryMatch = content.match(/category\s*:\s*(['"])(.*?)\1/);
     return categoryMatch ? categoryMatch[2] : null;
@@ -17,11 +17,11 @@ function computeHash(data) {
 }
 
 /**
- * Сканирует проект на `*.brick.ts` story-файлы и собирает манифест `public/bricks.json`.
+ * Сканирует проект на `*.brick.ts` brick-файлы и собирает манифест `public/bricks.json`.
  */
-export default async function generateStoriesJson(isPlayground = false) {
+export default async function generateBricksJson(isPlayground = false) {
     console.warn('Generating bricks.json...');
-    const storiesJson = { stories: [] };
+    const bricksJson = { bricks: [] };
 
     // Nuxt 4 (app/) паттерны включены всегда — если директории нет, globby вернёт пустой результат
     const files = await globby(
@@ -60,29 +60,29 @@ export default async function generateStoriesJson(isPlayground = false) {
 
         const content = fs.readFileSync(fullPath, 'utf-8');
 
-        let storyPath = `/${relativePath}`;
+        let brickPath = `/${relativePath}`;
         if (fullPath.includes('playground')) {
-            storyPath = `../${relativePath}`;
+            brickPath = `../${relativePath}`;
         }
 
-        storiesJson.stories.push({
+        bricksJson.bricks.push({
             name: componentName,
             category: extractCategory(content) || 'Common',
-            storyPath: storyPath,
+            brickPath: brickPath,
         });
     }
 
-    const hash = computeHash(JSON.stringify(storiesJson.stories));
-    storiesJson.hash = hash;
+    const hash = computeHash(JSON.stringify(bricksJson.bricks));
+    bricksJson.hash = hash;
 
     const outputDir = join(process.cwd(), '/public');
     fs.mkdirSync(outputDir, { recursive: true });
-    fs.writeFileSync(`${outputDir}/bricks.json`, JSON.stringify(storiesJson, null, 2));
+    fs.writeFileSync(`${outputDir}/bricks.json`, JSON.stringify(bricksJson, null, 2));
 
     console.log('Routes generated successfully with hash:', hash);
 }
 
 // Запуск при прямом вызове файла
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-    generateStoriesJson();
+    generateBricksJson();
 }

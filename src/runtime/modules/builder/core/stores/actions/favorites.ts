@@ -3,7 +3,7 @@ import type { IComponentsFavoritesActions, IComponentsStore } from '../types';
 const STORAGE_KEY = 'bricks-favorite-components';
 
 /**
- * Загружает список избранных storyPath из localStorage.
+ * Загружает список избранных brickPath из localStorage.
  */
 export function loadFavoritesFromStorage(): string[] {
     try {
@@ -19,7 +19,7 @@ export function loadFavoritesFromStorage(): string[] {
 }
 
 /**
- * Сохраняет список избранных storyPath в localStorage.
+ * Сохраняет список избранных brickPath в localStorage.
  */
 function saveFavoritesToStorage(favorites: string[]): void {
     try {

@@ -322,7 +322,7 @@ export function useCanvasDrops({
 
         const componentData = {
             componentName: draggedComponent.name,
-            storyPath: draggedComponent.storyPath,
+            brickPath: draggedComponent.brickPath,
             width: 0,
             height: 0,
             gridColumn: gridColumn || undefined,
@@ -384,7 +384,7 @@ export function useCanvasDrops({
 
         const componentData = {
             componentName: draggedComponent.name,
-            storyPath: draggedComponent.storyPath,
+            brickPath: draggedComponent.brickPath,
             width: 0,
             height: 0,
             props: JSON.parse(JSON.stringify(draggedComponent.defaultProps || {})),

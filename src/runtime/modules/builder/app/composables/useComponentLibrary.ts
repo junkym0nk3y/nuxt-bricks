@@ -2,10 +2,10 @@
 // Types
 import type { IComponentLibraryItem } from '../../../common/types/brick';
 import type { IBrickValues } from '../../../common/types/index';
-import type { IStoriesResponse, IStoryListItem } from '../types/composables';
+import type { IBricksResponse, IBrickListItem } from '../types/composables';
 
 // Utils
-import { extractStorySlots } from '../utils/storySlots';
+import { extractBrickSlots } from '../utils/brickSlots';
 
 // Vue
 import { computed } from 'vue';
@@ -15,39 +15,39 @@ import { useAsyncData } from '#imports';
 
 // Composables
 import { useApiClient } from '../../../common/composables/useApiClient';
-import { useStoryImports } from '../../../common/composables/useStoryImports';
+import { useBrickImports } from '../../../common/composables/useBrickImports';
 
 // Constants
 import { LAYOUT_COMPONENTS } from '../../core/constants/layoutComponents';
 // #endregion
 
 /**
- * Загружает библиотеку компонентов: список stories с бэкенда + метаданные
+ * Загружает библиотеку компонентов: список bricks с бэкенда + метаданные
  * из `.brick.ts`-модулей (defaultProps, slots) + layout-компоненты.
  */
 export async function useComponentLibrary() {
-    const { findImportModule } = useStoryImports();
+    const { findImportModule } = useBrickImports();
 
     const componentLibrary = await useAsyncData<(IComponentLibraryItem | null)[] | null>(
         'bricks-components',
         async () => {
             const { apiFetcher } = useApiClient();
-            const response = await apiFetcher<IStoriesResponse>('/mock-api/bricks-components/');
-            const stories = response?.stories || [];
+            const response = await apiFetcher<IBricksResponse>('/mock-api/bricks-components/');
+            const bricks = response?.bricks || [];
 
             const componentsWithMeta = await Promise.all(
-                stories.map(async (story: IStoryListItem) => {
+                bricks.map(async (brick: IBrickListItem) => {
                     try {
-                        const moduleLoader = findImportModule(story.storyPath);
+                        const moduleLoader = findImportModule(brick.brickPath);
                         if (!moduleLoader) {
-                            console.error(`[BricksBuilder] No loader for ${story.storyPath}`);
+                            console.error(`[BricksBuilder] No loader for ${brick.brickPath}`);
                             return null;
                         }
 
                         const module = await moduleLoader();
-                        const storyData = module?.story;
-                        const values = storyData?.values || {};
-                        const slots = extractStorySlots(storyData);
+                        const brickData = module?.brick;
+                        const values = brickData?.values || {};
+                        const slots = extractBrickSlots(brickData);
                         const defaultProps = Object.entries(values).reduce(
                             (acc: Record<string, unknown>, [key, val]: [string, IBrickValues]) => {
                                 acc[key] = val.default;
@@ -57,16 +57,16 @@ export async function useComponentLibrary() {
                         );
 
                         return {
-                            name: story.name,
-                            category: story.category || storyData?.category || 'Other',
-                            storyPath: story.storyPath,
-                            description: storyData?.description,
+                            name: brick.name,
+                            category: brick.category || brickData?.category || 'Other',
+                            brickPath: brick.brickPath,
+                            description: brickData?.description,
                             thumbnail: '',
                             defaultProps,
                             slots,
                         } as IComponentLibraryItem;
                     } catch (error) {
-                        console.error(`[BricksBuilder] Failed loading ${story.name}`, error);
+                        console.error(`[BricksBuilder] Failed loading ${brick.name}`, error);
                         return null;
                     }
                 })

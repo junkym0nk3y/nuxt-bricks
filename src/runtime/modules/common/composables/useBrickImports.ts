@@ -1,5 +1,5 @@
 import type { IBrickExportModule } from '../types/index';
-import { normalizeStoryPath } from '../utils/bricks/paths';
+import { normalizeBrickPath } from '../utils/bricks/paths';
 
 /**
  * Приводит glob-результаты (eager/lazy) к единому виду: функция-лоадер Promise<Module>.
@@ -30,7 +30,7 @@ function normalizeGlobLoaders(
  *
  * @returns Объект с общей картой модулей и вспомогательными функциями поиска.
  */
-export function useStoryImports() {
+export function useBrickImports() {
     // Глоб локальных компонентов проекта-потребителя (от его rootDir)
     const localModules = import.meta.glob<IBrickExportModule>('/components/**/*.brick.ts');
     const localModulesSub = import.meta.glob<IBrickExportModule>('/components/**/**/*.brick.ts');
@@ -54,44 +54,44 @@ export function useStoryImports() {
      * Пытается подобрать соответствующий loader по исходному или нормализованному пути истории.
      * Если прямой ключ не найден, поочерёдно проверяются всевозможные вариации относительных путей.
      *
-     * @param storyPath - Значение `storyPath`, сохранённое в схеме компонента.
+     * @param brickPath - Значение `brickPath`, сохранённое в схеме компонента.
      * @returns Функция-лоадер Vite или `undefined`, если найти файл не удалось.
      */
-    function findImportModule(storyPath: string): (() => Promise<IBrickExportModule>) | undefined {
-        // Пропускаем встроенные layout-компоненты без story-файлов
-        if (storyPath.startsWith('layout')) {
-            // console.log('[useStoryImports] Skipping built-in layout:', storyPath);
+    function findImportModule(brickPath: string): (() => Promise<IBrickExportModule>) | undefined {
+        // Пропускаем встроенные layout-компоненты без brick-файлов
+        if (brickPath.startsWith('layout')) {
+            // console.log('[useBrickImports] Skipping built-in layout:', brickPath);
             return undefined;
         }
 
-        const normalizedPath = normalizeStoryPath(storyPath);
+        const normalizedPath = normalizeBrickPath(brickPath);
 
-        // console.log('[useStoryImports] Looking for:', storyPath, 'normalized to:', normalizedPath);
+        // console.log('[useBrickImports] Looking for:', brickPath, 'normalized to:', normalizedPath);
 
-        let importModule = allModules[normalizedPath] || allModules[storyPath];
+        let importModule = allModules[normalizedPath] || allModules[brickPath];
 
         // If not found, try different path variations
         if (!importModule) {
             // console.warn(
-            //     `[useStoryImports] Component not found in glob patterns: ${storyPath}, trying path variations...`
+            //     `[useBrickImports] Component not found in glob patterns: ${brickPath}, trying path variations...`
             // );
 
             // Generate flexible path variations
             const pathVariations = new Set([
-                storyPath,
+                brickPath,
                 normalizedPath,
-                ...generatePathVariations(storyPath),
+                ...generatePathVariations(brickPath),
                 ...generatePathVariations(normalizedPath),
             ]);
-            // console.log('[useStoryImports] Generated path variations:', [...pathVariations]);
+            // console.log('[useBrickImports] Generated path variations:', [...pathVariations]);
 
             for (const path of pathVariations) {
-                const normalizedVariation = normalizeStoryPath(path);
+                const normalizedVariation = normalizeBrickPath(path);
                 const loader = allModules[normalizedVariation] || allModules[path];
 
                 if (loader) {
                     importModule = loader;
-                    // console.log('[useStoryImports] Found module with path variation:', path);
+                    // console.log('[useBrickImports] Found module with path variation:', path);
                     break;
                 }
             }
@@ -99,9 +99,9 @@ export function useStoryImports() {
             // If still not found, log error
             if (!importModule) {
                 console.error(
-                    `[useStoryImports] Component not found in any glob patterns: ${storyPath}`
+                    `[useBrickImports] Component not found in any glob patterns: ${brickPath}`
                 );
-                console.error('[useStoryImports] Available glob keys:', Object.keys(allModules));
+                console.error('[useBrickImports] Available glob keys:', Object.keys(allModules));
             }
         }
 
@@ -109,7 +109,7 @@ export function useStoryImports() {
     }
 
     /**
-     * Строит множество возможных путей до story-файла, исходя из оригинального значения,
+     * Строит множество возможных путей до brick-файла, исходя из оригинального значения,
      * чтобы повысить шанс найти совпадение с результатами `import.meta.glob`.
      *
      * @param originalPath - Исходный относительный путь из схемы.

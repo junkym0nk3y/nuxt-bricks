@@ -5,7 +5,7 @@ import {
     isLayoutComponent,
     removeChildFromLayout as removeChildFromLayoutHelper,
 } from '../../../../common/utils/bricks/components';
-import { generateComponentId, normalizeStoryPath } from '../../../../common/utils/bricks/paths';
+import { generateComponentId, normalizeBrickPath } from '../../../../common/utils/bricks/paths';
 import { useSidebarStore } from '../sidebar';
 import type {
     IComponentsStore,
@@ -59,7 +59,7 @@ export const crudActions: IComponentsCrudActions = {
     ) {
         const id = generateComponentId();
         const maxZIndex = Math.max(0, ...this.components.map((c) => c.zIndex));
-        const isLayout = component.storyPath.startsWith('layout/');
+        const isLayout = component.brickPath.startsWith('layout/');
 
         const newComponent: IBricksComponent = {
             ...component,
@@ -68,7 +68,7 @@ export const crudActions: IComponentsCrudActions = {
             zIndex: maxZIndex + 1,
             children: isLayout ? [] : undefined,
             slots: component.slots?.map((slot) => createComponentSlot(slot)),
-            storyPath: normalizeStoryPath(component.storyPath),
+            brickPath: normalizeBrickPath(component.brickPath),
             props: cloneComponentProps(component.props),
             fullWidth: false,
         };

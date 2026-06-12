@@ -8,8 +8,8 @@ import type { IBricksComponent } from '../../common/types/brick';
 import { computed, h, useCssModule } from 'vue';
 
 // Composables
-import { useStoryImports } from '../../common/composables/useStoryImports';
-import { useRendererStories } from '../composables/useRendererStories';
+import { useBrickImports } from '../../common/composables/useBrickImports';
+import { useRendererBricks } from '../composables/useRendererBricks';
 import { useRendererLayouts } from '../composables/useRendererLayouts';
 
 // Components
@@ -31,8 +31,8 @@ const props = withDefaults(defineProps<IRendererProps>(), {
 
 // #region Data
 const styles = useCssModule();
-const { findImportModule } = useStoryImports();
-const { resolveStoryComponent } = useRendererStories({ findImportModule });
+const { findImportModule } = useBrickImports();
+const { resolveBrickComponent } = useRendererBricks({ findImportModule });
 const allComponents = computed(() => props.allComponents ?? []);
 const { renderLayoutComponent, needsContainerWrapper } = useRendererLayouts({
     allComponents,
@@ -66,9 +66,9 @@ function renderComponent(component: IBricksComponent) {
 }
 
 /**
- * Рендерит UI-компонент или placeholder, если story не найден.
+ * Рендерит UI-компонент или placeholder, если brick не найден.
  *
- * @param component - Компонент схемы, соответствующий story-файлу.
+ * @param component - Компонент схемы, соответствующий brick-файлу.
  * @returns VNode UI-компонента или placeholder.
  */
 function renderUiComponent(
@@ -81,7 +81,7 @@ function renderUiComponent(
         ...componentProps,
         ...(props.resolvedProps?.[component.id] ?? {}),
     };
-    const storyComponent = resolveStoryComponent(component.storyPath);
+    const brickComponent = resolveBrickComponent(component.brickPath);
     const gridItemStyle: Record<string, string> = {};
     if (component.gridColumn) {
         gridItemStyle.gridColumn = component.gridColumn;
@@ -90,8 +90,8 @@ function renderUiComponent(
         gridItemStyle.gridRow = component.gridRow;
     }
 
-    if (storyComponent) {
-        return h(storyComponent, {
+    if (brickComponent) {
+        return h(brickComponent, {
             ...mergedProps,
             key: component.id,
             id: component.htmlId || undefined,
@@ -105,7 +105,7 @@ function renderUiComponent(
         key: component.id,
         id: component.htmlId || undefined,
         title: `${component.componentName || 'Компонент'} недоступен`,
-        description: 'Компонент не найден в библиотеке. Обновите stories или schema.',
+        description: 'Компонент не найден в библиотеке. Обновите bricks или schema.',
         class: [styles.bricksPlaceholder, ...visibilityClasses],
         style: Object.keys(gridItemStyle).length ? gridItemStyle : undefined,
         ...extraAttrs,

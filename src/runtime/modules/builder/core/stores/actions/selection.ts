@@ -10,7 +10,7 @@ export const selectionActions: IComponentsSelectionActions = {
      * Помечает компонент выбранным и открывает панель свойств.
      *
      * @param id - Идентификатор выбранного элемента.
-     * @param properties - Метаданные свойств из story-файла.
+     * @param properties - Метаданные свойств из brick-файла.
      */
     selectComponent(
         this: IComponentsStore,

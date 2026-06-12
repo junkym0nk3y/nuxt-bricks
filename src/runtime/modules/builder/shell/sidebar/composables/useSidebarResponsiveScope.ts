@@ -34,9 +34,9 @@ export function useSidebarResponsiveScope() {
     });
 
     /**
-     * Есть ли у выбранного компонента story-свойства с responsive: true.
+     * Есть ли у выбранного компонента brick-свойства с responsive: true.
      */
-    const hasResponsiveStoryValues = computed<boolean>(() => {
+    const hasResponsiveBrickValues = computed<boolean>(() => {
         const selected = store.selectedComponentData;
         if (!selected) {
             return false;
@@ -45,10 +45,10 @@ export function useSidebarResponsiveScope() {
     });
 
     /**
-     * Компонент поддерживает responsive: layout-компонент или обычный с responsive story values.
+     * Компонент поддерживает responsive: layout-компонент или обычный с responsive brick values.
      */
     const isResponsiveComponent = computed<boolean>(() => {
-        return isResponsiveLayout.value || hasResponsiveStoryValues.value;
+        return isResponsiveLayout.value || hasResponsiveBrickValues.value;
     });
 
     const layoutDeviceScope = ref<TBricksDeviceKey>('desktop');
@@ -162,7 +162,7 @@ export function useSidebarResponsiveScope() {
 
     return {
         isResponsiveLayout,
-        hasResponsiveStoryValues,
+        hasResponsiveBrickValues,
         isResponsiveComponent,
         layoutDeviceScope,
         hasResponsiveOverridesForScope,

@@ -1,6 +1,6 @@
 /**
  * Контракт data sources для brick-компонентов.
- * Определяется в story (.brick.ts), резолвится рендерером published-страницы.
+ * Определяется в brick (.brick.ts), резолвится рендерером published-страницы.
  */
 
 import type { TPublishFormState } from './bricks-api';

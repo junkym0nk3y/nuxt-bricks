@@ -26,19 +26,19 @@ export type TShowToast = (
 
 // #region useComponentLibrary
 /**
- * Элемент списка stories из mock-api `/mock-api/bricks-components/`.
+ * Элемент списка bricks из mock-api `/mock-api/bricks-components/`.
  */
-export interface IStoryListItem {
+export interface IBrickListItem {
     name: string;
     category?: string;
-    storyPath: string;
+    brickPath: string;
 }
 
 /**
- * Ответ mock-api со списком stories.
+ * Ответ mock-api со списком bricks.
  */
-export interface IStoriesResponse {
-    stories: IStoryListItem[];
+export interface IBricksResponse {
+    bricks: IBrickListItem[];
 }
 // #endregion
 

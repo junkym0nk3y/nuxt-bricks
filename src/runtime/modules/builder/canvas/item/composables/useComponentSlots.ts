@@ -10,17 +10,17 @@ import { computed, ref, watch } from 'vue';
 import { useComponentsStore } from '../../../core/stores/components';
 
 // Composables
-import { useStoryImports } from '../../../../common/composables/useStoryImports';
+import { useBrickImports } from '../../../../common/composables/useBrickImports';
 // #endregion
 
 /**
- * Нормализует сырые определения слотов из story-файлов в формат IComponentSlotDefinition.
+ * Нормализует сырые определения слотов из brick-файлов в формат IComponentSlotDefinition.
  * Обрабатывает массивы, объекты и строковые определения слотов.
  *
- * @param rawSlots - Сырое определение слота из story-файла (массив, объект или null)
+ * @param rawSlots - Сырое определение слота из brick-файла (массив, объект или null)
  * @returns Нормализованный массив определений слотов
  */
-function normalizeStorySlots(rawSlots: unknown): IComponentSlotDefinition[] {
+function normalizeBrickSlots(rawSlots: unknown): IComponentSlotDefinition[] {
     if (!rawSlots) {
         return [];
     }
@@ -89,20 +89,20 @@ function normalizeStorySlots(rawSlots: unknown): IComponentSlotDefinition[] {
  * Обрабатывает загрузку, нормализацию и подготовку данных для рендеринга слотов.
  *
  * @param componentId - ID компонента для управления слотами
- * @param storyPath - Путь к story-файлу компонента
+ * @param brickPath - Путь к brick-файлу компонента
  * @param isLayout - Является ли компонент layout-компонентом
  * @param componentProps - Пропсы компонента для извлечения строкового контента слота
  * @returns Объект с данными для рендеринга слотов, строковым контентом и состоянием загрузки
  */
 export function useComponentSlots(
     componentId: string,
-    storyPath: string,
+    brickPath: string,
     isLayout: boolean,
     componentProps: Record<string, unknown> | undefined
 ): IUseComponentSlotsReturn {
     // #region Data
     const componentsStore = useComponentsStore();
-    const { findImportModule } = useStoryImports();
+    const { findImportModule } = useBrickImports();
     const hasLoadedSlots = ref(false);
     // #endregion
 
@@ -141,7 +141,7 @@ export function useComponentSlots(
     // #region Methods
     /**
      * Обеспечивает наличие загруженных определений слотов компонента.
-     * Загружает метаданные слотов из story-файла, если они еще не загружены.
+     * Загружает метаданные слотов из brick-файла, если они еще не загружены.
      */
     async function ensureComponentSlotsPresence(): Promise<void> {
         if (isLayout || hasLoadedSlots.value) {
@@ -158,7 +158,7 @@ export function useComponentSlots(
             return;
         }
 
-        const moduleLoader = findImportModule(storyPath);
+        const moduleLoader = findImportModule(brickPath);
         if (!moduleLoader) {
             hasLoadedSlots.value = true;
             return;
@@ -166,10 +166,10 @@ export function useComponentSlots(
 
         try {
             const module = await moduleLoader();
-            const storySlots = (module as Record<string, unknown>)?.story
-                ? ((module as Record<string, unknown>).story as Record<string, unknown>).slots
+            const brickSlots = (module as Record<string, unknown>)?.brick
+                ? ((module as Record<string, unknown>).brick as Record<string, unknown>).slots
                 : undefined;
-            const definitions = normalizeStorySlots(storySlots);
+            const definitions = normalizeBrickSlots(brickSlots);
             if (definitions.length > 0) {
                 componentsStore.initializeComponentSlots(componentId, definitions);
             }

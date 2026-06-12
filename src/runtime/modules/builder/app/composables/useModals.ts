@@ -5,14 +5,14 @@ import type { TModalKey, IModalOption } from '../types/modals';
 
 // Composables
 import { useApiClient } from '../../../common/composables/useApiClient';
-import { useStoryImports } from '../../../common/composables/useStoryImports';
+import { useBrickImports } from '../../../common/composables/useBrickImports';
 // #endregion
 
 // #region Data
 /**
  * Глобальный кеш модальных окон
  */
-let modalsCache: Array<{ name: string; storyPath: string }> = [];
+let modalsCache: Array<{ name: string; brickPath: string }> = [];
 let isCacheLoaded = false;
 // #endregion
 
@@ -28,16 +28,16 @@ async function loadModals(): Promise<void> {
     try {
         const { apiFetcher } = useApiClient();
         const response = await apiFetcher<{
-            stories: Array<{ name: string; category: string; storyPath: string }>;
+            bricks: Array<{ name: string; category: string; brickPath: string }>;
         }>('/mock-api/bricks-components');
-        const stories = response?.stories || [];
+        const bricks = response?.bricks || [];
 
         // Фильтруем только модалки
-        modalsCache = stories
-            .filter((story) => story.category === 'Modal')
-            .map((story) => ({
-                name: story.name,
-                storyPath: story.storyPath,
+        modalsCache = bricks
+            .filter((brick) => brick.category === 'Modal')
+            .map((brick) => ({
+                name: brick.name,
+                brickPath: brick.brickPath,
             }));
 
         isCacheLoaded = true;
@@ -65,7 +65,7 @@ export function getModalOptions(): IModalOption[] {
 
 /**
  * Получить компонент модалки по имени (синхронная версия)
- * Использует существующую систему useStoryImports для загрузки компонента
+ * Использует существующую систему useBrickImports для загрузки компонента
  * @param modalName - Имя модального компонента (например 'CallbackFormModal')
  * @returns Функция динамического импорта компонента или null
  */
@@ -75,19 +75,19 @@ function getModalComponent(modalName: TModalKey | null): (() => Promise<Componen
     }
 
     // Ищем модалку по имени в кеше
-    const modalStory = modalsCache.find((modal) => modal.name === modalName);
+    const modalBrick = modalsCache.find((modal) => modal.name === modalName);
 
-    if (!modalStory) {
+    if (!modalBrick) {
         console.error(`[getModalComponent] Modal not found: ${modalName}`);
         return null;
     }
 
     // Используем существующую систему импортов
-    const { findImportModule } = useStoryImports();
-    const moduleLoader = findImportModule(modalStory.storyPath);
+    const { findImportModule } = useBrickImports();
+    const moduleLoader = findImportModule(modalBrick.brickPath);
 
     if (!moduleLoader) {
-        console.error(`[getModalComponent] No loader found for: ${modalStory.storyPath}`);
+        console.error(`[getModalComponent] No loader found for: ${modalBrick.brickPath}`);
         return null;
     }
 

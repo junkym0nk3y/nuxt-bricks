@@ -1,5 +1,5 @@
 import type { Plugin, ViteDevServer, HotUpdateOptions } from 'vite';
-import generateStoriesJson from './generate-stories-json.mjs';
+import generateBricksJson from './generate-bricks-json.mjs';
 
 const BRICK_PATTERN = /\.brick\.ts$/;
 
@@ -14,7 +14,7 @@ function sendFullReload(server: ViteDevServer): void {
 
 /**
  * Vite plugin to watch *.brick.ts files,
- * re-generate the stories JSON, and force a full-reload.
+ * re-generate the bricks JSON, and force a full-reload.
  *
  * Примечание: при добавлении НОВЫХ файлов `import.meta.glob` может не подхватить их
  * без перезапуска dev server. В этом случае нужен hard refresh (Cmd+Shift+R)
@@ -34,7 +34,7 @@ export function brickWatchPlugin(isPlayground = false): Plugin {
                 }
 
                 console.log(`[brick-watch] File added: ${file}`);
-                await generateStoriesJson(isPlayground);
+                await generateBricksJson(isPlayground);
                 sendFullReload(server);
             };
 
@@ -47,7 +47,7 @@ export function brickWatchPlugin(isPlayground = false): Plugin {
                 }
 
                 console.log(`[brick-watch] File removed: ${file}`);
-                await generateStoriesJson(isPlayground);
+                await generateBricksJson(isPlayground);
                 sendFullReload(server);
             };
 
@@ -62,7 +62,7 @@ export function brickWatchPlugin(isPlayground = false): Plugin {
         // Vite 6+ hook (приоритетный)
         hotUpdate(ctx: HotUpdateOptions) {
             if (BRICK_PATTERN.test(ctx.file)) {
-                generateStoriesJson(isPlayground).then(() => {
+                generateBricksJson(isPlayground).then(() => {
                     sendFullReload(ctx.server);
                 });
             }
@@ -70,7 +70,7 @@ export function brickWatchPlugin(isPlayground = false): Plugin {
         // Vite 5 fallback (deprecated в Vite 6+, но нужен для Nuxt 3)
         async handleHotUpdate(ctx) {
             if (BRICK_PATTERN.test(ctx.file)) {
-                await generateStoriesJson(isPlayground);
+                await generateBricksJson(isPlayground);
                 sendFullReload(ctx.server);
             }
         },

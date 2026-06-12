@@ -12,7 +12,7 @@ import { useComponentsStore } from '../../../core/stores/components';
 import { useCanvasStore } from '../../../core/stores/canvas';
 
 // Composables
-import { useStoryImports } from '../../../../common/composables/useStoryImports';
+import { useBrickImports } from '../../../../common/composables/useBrickImports';
 import { useComponentProperties } from '../../../core/composables/useComponentProperties';
 
 // Utils
@@ -36,8 +36,8 @@ const emit = defineEmits<{
 // #region Data
 const componentsStore = useComponentsStore();
 const canvasStore = useCanvasStore();
-const { findImportModule } = useStoryImports();
-const { storyValuesToProperties } = useComponentProperties();
+const { findImportModule } = useBrickImports();
+const { brickValuesToProperties } = useComponentProperties();
 // #endregion
 
 // #region Computed
@@ -114,7 +114,7 @@ function ensureViewportForComponent(component: IBricksComponent): boolean {
 }
 
 /**
- * Выбирает компонент, загружает его properties из story и открывает панель свойств.
+ * Выбирает компонент, загружает его properties из brick и открывает панель свойств.
  * Переключает viewport, если компонент не виден на текущем устройстве, и скроллит до него.
  *
  * @param id - ID выбранного компонента.
@@ -135,25 +135,25 @@ async function handleSelectComponent(id: string): Promise<void> {
     if (component.type === 'layout') {
         properties = getLayoutProperties(component.componentName.toLowerCase());
         description = LAYOUT_COMPONENTS.find(
-            (item) => item.storyPath === component.storyPath
+            (item) => item.brickPath === component.brickPath
         )?.description;
     } else {
-        const moduleLoader = findImportModule(component.storyPath);
+        const moduleLoader = findImportModule(component.brickPath);
         if (moduleLoader) {
             try {
                 const module = await moduleLoader();
-                if (module?.story) {
-                    const story = module.story as Record<string, unknown>;
-                    description = story.description as string | undefined;
+                if (module?.brick) {
+                    const brick = module.brick as Record<string, unknown>;
+                    description = brick.description as string | undefined;
 
-                    if (story.values !== undefined) {
-                        properties = storyValuesToProperties(
-                            story.values as Record<string, IBrickValues>
+                    if (brick.values !== undefined) {
+                        properties = brickValuesToProperties(
+                            brick.values as Record<string, IBrickValues>
                         );
                     }
                 }
             } catch (error) {
-                console.error('[BuilderShellSidebarSchemaTreeView] Failed to load story:', error);
+                console.error('[BuilderShellSidebarSchemaTreeView] Failed to load brick:', error);
             }
         }
     }

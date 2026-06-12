@@ -9,7 +9,7 @@
 **Файлы:**
 
 - `playground/components/navigation/ProjectNavigation.vue` — **новый файл**, компонент навигации
-- `playground/components/navigation/ProjectNavigation.brick.ts` — **новый файл**, story для билдера
+- `playground/components/navigation/ProjectNavigation.brick.ts` — **новый файл**, brick для билдера
 - Модификация Title-компонента — добавить поддержку `anchorId` prop (якорь для навигации)
 
 **Поведение:**

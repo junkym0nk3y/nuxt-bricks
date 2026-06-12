@@ -5,7 +5,7 @@ import type {
 } from '../../../common/types/brick';
 import { cloneBricksComponent } from '../../../common/utils/bricks/components';
 import { normalizeDeviceVisibility } from '../../../common/utils/bricks/deviceVisibility';
-import { normalizeStoryPath } from '../../../common/utils/bricks/paths';
+import { normalizeBrickPath } from '../../../common/utils/bricks/paths';
 
 /**
  * Ограничивает размер истории и позицию индекса.
@@ -46,7 +46,7 @@ export function serializeSchema(
     const schema: IBricksSchema = {
         components: components.map((component) => {
             const cloned = cloneBricksComponent(component);
-            cloned.storyPath = normalizeStoryPath(component.storyPath);
+            cloned.brickPath = normalizeBrickPath(component.brickPath);
             return cloned;
         }),
     };
@@ -68,7 +68,7 @@ export function deserializeSchema(schema: IBricksSchema): IBricksComponent[] {
     return (schema.components || []).map((component) => {
         const cloned = cloneBricksComponent({
             ...component,
-            storyPath: normalizeStoryPath(component.storyPath),
+            brickPath: normalizeBrickPath(component.brickPath),
         });
         cloned.deviceVisibility = normalizeDeviceVisibility(component.deviceVisibility);
         return cloned;

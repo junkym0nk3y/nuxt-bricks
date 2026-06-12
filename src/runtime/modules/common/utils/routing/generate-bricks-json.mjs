@@ -16,9 +16,9 @@ function computeHash(data) {
     return crypto.createHash('sha256').update(data, 'utf8').digest('hex');
 }
 
-export default async function generateStoriesJson(isPlayground = false) {
+export default async function generateBricksJson(isPlayground = false) {
     console.warn('Generating bricks.json...');
-    const storiesJson = { stories: [] };
+    const bricksJson = { bricks: [] };
 
     // Find files based on the glob pattern
     // Nuxt 4 (app/) паттерны включены всегда — если директории нет, globby просто вернёт пустой результат
@@ -60,32 +60,32 @@ export default async function generateStoriesJson(isPlayground = false) {
         const content = fs.readFileSync(fullPath, 'utf-8');
 
         // Generate path that matches glob pattern
-        let storyPath = `/${relativePath}`;
+        let brickPath = `/${relativePath}`;
         if (fullPath.includes('playground')) {
-            storyPath = `../${relativePath}`;
+            brickPath = `../${relativePath}`;
         }
 
-        storiesJson.stories.push({
+        bricksJson.bricks.push({
             name: componentName,
             category: extractCategory(content) || 'Common',
-            storyPath: storyPath,
+            brickPath: brickPath,
         });
     }
 
-    // Generate the hash of storiesJson
-    const hash = computeHash(JSON.stringify(storiesJson.stories));
+    // Generate the hash of bricksJson
+    const hash = computeHash(JSON.stringify(bricksJson.bricks));
 
     // Add hash to the JSON data
-    storiesJson.hash = hash;
+    bricksJson.hash = hash;
 
     const outputDir = join(process.cwd(), '/public');
     fs.mkdirSync(outputDir, { recursive: true });
-    fs.writeFileSync(`${outputDir}/bricks.json`, JSON.stringify(storiesJson, null, 2));
+    fs.writeFileSync(`${outputDir}/bricks.json`, JSON.stringify(bricksJson, null, 2));
 
     console.log('Routes generated successfully with hash:', hash);
 }
 
 // Run the function when executed directly
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-    generateStoriesJson();
+    generateBricksJson();
 }

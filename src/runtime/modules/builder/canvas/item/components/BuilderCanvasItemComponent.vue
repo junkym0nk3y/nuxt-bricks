@@ -36,7 +36,7 @@ const props = defineProps<ICanvasItemComponentProps>();
 // #region Data
 const { slotRenderData, slotStringContent } = useComponentSlots(
     props.component.id,
-    props.component.storyPath,
+    props.component.brickPath,
     false,
     props.component.props
 );

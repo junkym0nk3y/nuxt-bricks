@@ -17,7 +17,7 @@ const FALLBACK_INIT_DELAY_MS = 300;
 
 /**
  * Lifecycle fallback TipTap-редактора в inline editing overlay: создаётся, когда
- * ни один layout-компонент не инициализировал свой editor (story-компоненты
+ * ни один layout-компонент не инициализировал свой editor (brick-компоненты
  * с textarea/inline-content), сохраняет значение в components store,
  * переинициализируется при переключении свойства.
  */
@@ -50,7 +50,7 @@ export function useInlineEditingFallback(options: IInlineEditingFallbackOptions 
     let fallbackInitTimer: ReturnType<typeof setTimeout> | null = null;
 
     /**
-     * Показывать ли fallback EditorContent в overlay (для story-компонентов).
+     * Показывать ли fallback EditorContent в overlay (для brick-компонентов).
      */
     const showFallbackEditor = computed<boolean>(
         () =>

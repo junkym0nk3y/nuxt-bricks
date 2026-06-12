@@ -2,15 +2,15 @@ import type { IComponentSlotDefinition } from '../../../common/types/brick';
 import type { IBrickFileStructure, IBrickSlotDefinition } from '../../../common/types/index';
 
 /**
- * Извлекает определения слотов из данных story.
+ * Извлекает определения слотов из данных brick.
  *
- * @param storyData - Данные story компонента.
+ * @param brickData - Данные brick компонента.
  * @returns Нормализованный массив слотов или undefined.
  */
-export function extractStorySlots(
-    storyData: Partial<IBrickFileStructure> | null | undefined
+export function extractBrickSlots(
+    brickData: Partial<IBrickFileStructure> | null | undefined
 ): IComponentSlotDefinition[] | undefined {
-    const rawSlots = storyData?.slots;
+    const rawSlots = brickData?.slots;
     if (!rawSlots) {
         return undefined;
     }

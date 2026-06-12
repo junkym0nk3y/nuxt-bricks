@@ -10,11 +10,11 @@ import { computed, onMounted, onUnmounted, ref, watch, type Ref } from 'vue';
 import { createError, useAsyncData, useNuxtData, useRoute } from '#imports';
 
 // Composables
-import { useStoryImports } from '../../common/composables/useStoryImports';
-import { useRendererStories } from '../composables/useRendererStories';
+import { useBrickImports } from '../../common/composables/useBrickImports';
+import { useRendererBricks } from '../composables/useRendererBricks';
 import { useBricksDataSources } from '../composables/useBricksDataSources';
 import { useBricksConfig } from '../../common/composables/useBricksConfig';
-import { normalizeStoryPath } from '../../common/utils/bricks/paths';
+import { normalizeBrickPath } from '../../common/utils/bricks/paths';
 
 // Components
 import TheRenderer from '../components/TheRenderer.vue';
@@ -22,7 +22,7 @@ import RendererCloseButton from '../components/RendererCloseButton.vue';
 // #endregion
 
 // #region Data
-const storyDataSourcesCache = new Map<string, IBrickDataSource[] | null>();
+const brickDataSourcesCache = new Map<string, IBrickDataSource[] | null>();
 const route = useRoute();
 const pagename = route.params.pagename as string;
 const isPreview = route.query.preview === 'true';
@@ -48,12 +48,12 @@ if (!page.value && !isPreview) {
     });
 }
 
-const { findImportModule } = useStoryImports();
-const { prefetchStoryComponent } = useRendererStories({ findImportModule });
+const { findImportModule } = useBrickImports();
+const { prefetchBrickComponent } = useRendererBricks({ findImportModule });
 const { executeDataSource: executeDataSourceRequest } = useBricksDataSources();
 const dataSourceKey = `bricks-datasources-${pagename}-${isPreview ? 'preview' : 'live'}`;
 
-// Считаем и мержим все data sources из stories для текущей страницы
+// Считаем и мержим все data sources из bricks для текущей страницы
 const dataSourceAsyncData = await useAsyncData<Record<string, Record<string, unknown>>>(
     dataSourceKey,
     async () => {
@@ -265,24 +265,24 @@ const rootComponents = computed<IBricksComponent[]>(() => {
 });
 
 /**
- * Предзагружает story-компоненты, чтобы избежать рассинхрона SSR/CSR при первом рендере.
+ * Предзагружает brick-компоненты, чтобы избежать рассинхрона SSR/CSR при первом рендере.
  * Загружает только UI-компоненты (layout исключены), чтобы не тормозить и не тянуть лишнее.
  */
-async function prefetchPageStories(): Promise<void> {
+async function prefetchPageBricks(): Promise<void> {
     const components = page.value?.schema?.components ?? [];
-    const storyPaths = Array.from(
+    const brickPaths = Array.from(
         new Set<string>(
             components
-                .map((component: IBricksComponent) => component.storyPath)
+                .map((component: IBricksComponent) => component.brickPath)
                 .filter(
-                    (storyPath): storyPath is string =>
-                        Boolean(storyPath) && !storyPath.startsWith('layout')
+                    (brickPath): brickPath is string =>
+                        Boolean(brickPath) && !brickPath.startsWith('layout')
                 )
-                .map((storyPath) => normalizeStoryPath(storyPath))
+                .map((brickPath) => normalizeBrickPath(brickPath))
         )
     );
 
-    await Promise.all(storyPaths.map((storyPath) => prefetchStoryComponent(storyPath)));
+    await Promise.all(brickPaths.map((brickPath) => prefetchBrickComponent(brickPath)));
 }
 
 /**
@@ -298,37 +298,37 @@ function closePreview(): void {
 }
 
 /**
- * Загружает dataSources из story-файла и кеширует результат.
+ * Загружает dataSources из brick-файла и кеширует результат.
  *
- * @param storyPath - путь до story-файла.
+ * @param brickPath - путь до brick-файла.
  * @returns Список dataSources для компонента или пустой массив.
  */
-async function loadStoryDataSources(storyPath: string): Promise<IBrickDataSource[]> {
-    if (!storyPath) {
+async function loadBrickDataSources(brickPath: string): Promise<IBrickDataSource[]> {
+    if (!brickPath) {
         return [];
     }
 
-    const cacheKey = normalizeStoryPath(storyPath);
+    const cacheKey = normalizeBrickPath(brickPath);
 
-    if (storyDataSourcesCache.has(cacheKey)) {
-        return storyDataSourcesCache.get(cacheKey) ?? [];
+    if (brickDataSourcesCache.has(cacheKey)) {
+        return brickDataSourcesCache.get(cacheKey) ?? [];
     }
 
-    const importModule = findImportModule(cacheKey) ?? findImportModule(storyPath);
+    const importModule = findImportModule(cacheKey) ?? findImportModule(brickPath);
 
     if (!importModule) {
-        storyDataSourcesCache.set(cacheKey, null);
+        brickDataSourcesCache.set(cacheKey, null);
         return [];
     }
 
     try {
-        const storyModule = await importModule();
-        const dataSources = (storyModule?.story?.dataSources ?? []) as IBrickDataSource[];
-        storyDataSourcesCache.set(cacheKey, dataSources);
+        const brickModule = await importModule();
+        const dataSources = (brickModule?.brick?.dataSources ?? []) as IBrickDataSource[];
+        brickDataSourcesCache.set(cacheKey, dataSources);
         return dataSources;
     } catch (error) {
-        console.error('[Bricks Page] Failed to load dataSources for story:', storyPath, error);
-        storyDataSourcesCache.set(cacheKey, null);
+        console.error('[Bricks Page] Failed to load dataSources for brick:', brickPath, error);
+        brickDataSourcesCache.set(cacheKey, null);
         return [];
     }
 }
@@ -347,14 +347,14 @@ async function collectDataSourceRequests(): Promise<
 
     const requests: Array<{ component: IBricksComponent; source: IBrickDataSource }> = [];
 
-    // Собираем все data sources, объявленные в story-файлах компонентов
+    // Собираем все data sources, объявленные в brick-файлах компонентов
     for (const component of page.value.schema.components) {
-        if (!component.storyPath) {
+        if (!component.brickPath) {
             continue;
         }
 
         // Загружаем список источников для конкретного компонента
-        const sources = await loadStoryDataSources(component.storyPath);
+        const sources = await loadBrickDataSources(component.brickPath);
 
         // Добавляем каждый источник в очередь выполнения
         sources.forEach((source) => {
@@ -406,7 +406,7 @@ if (isClientDataSourceDebug) {
 // #endregion
 
 // #region Lifecycle
-await prefetchPageStories();
+await prefetchPageBricks();
 // #endregion
 
 // #region Meta

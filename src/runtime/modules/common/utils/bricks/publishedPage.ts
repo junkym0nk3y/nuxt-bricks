@@ -76,8 +76,7 @@ export function normalizePublishedPage(
         description: page.description ?? '',
         keywords: page.keywords ?? '',
         backgroundColor: page.backgroundColor ?? defaultBackgroundColor,
-        // Страницы, опубликованные до ребрендинга, могут хранить layout 'landing'
-        layout: page.layout === 'landing' ? 'bricks' : (page.layout ?? DEFAULT_LAYOUT),
+        layout: page.layout ?? DEFAULT_LAYOUT,
         socialImage: page.socialImage ?? '',
         urlPrefix: page.urlPrefix ?? null,
         subdomain: page.subdomain ?? null,

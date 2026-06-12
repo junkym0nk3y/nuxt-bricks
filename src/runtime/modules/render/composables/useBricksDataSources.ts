@@ -157,7 +157,7 @@ export function useBricksDataSources() {
                     url,
                     component: component.id,
                     params,
-                    storyPath: component.storyPath,
+                    brickPath: component.brickPath,
                 });
                 return null;
             }
@@ -168,7 +168,7 @@ export function useBricksDataSources() {
                 method,
                 params,
                 componentId: component.id,
-                storyPath: component.storyPath,
+                brickPath: component.brickPath,
                 componentProps: component.props,
                 page: pageSettings?.pagename,
             });
@@ -180,7 +180,7 @@ export function useBricksDataSources() {
                 url,
                 method,
                 componentId: component.id,
-                storyPath: component.storyPath,
+                brickPath: component.brickPath,
                 responseType: Array.isArray(response) ? 'array' : typeof response,
                 responsePreview: getResponsePreview(response),
                 hasData: Boolean(response),
@@ -196,7 +196,7 @@ export function useBricksDataSources() {
                 console.info('[Bricks DataSource] Mapped result:', {
                     key: source.key,
                     componentId: component.id,
-                    storyPath: component.storyPath,
+                    brickPath: component.brickPath,
                     mappedKeys: mapped ? Object.keys(mapped) : [],
                     mappedPreview: mapped ? getResponsePreview(mapped) : null,
                 });
@@ -219,7 +219,7 @@ export function useBricksDataSources() {
                 method,
                 params,
                 componentId: component.id,
-                storyPath: component.storyPath,
+                brickPath: component.brickPath,
                 error,
             });
             return null;

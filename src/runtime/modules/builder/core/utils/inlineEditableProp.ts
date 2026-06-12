@@ -13,8 +13,8 @@ export type { IInlineEditableProp } from '../../../common/types/inlineEditing';
 /** Inline-editable типы для layout-компонентов (без input — иначе ловит CSS-пропы в Media) */
 const INLINE_EDITABLE_LAYOUT_TYPES = new Set<string>(['inline-content', 'textarea']);
 
-/** Inline-editable типы для story-компонентов (включая input для заголовков и т.д.) */
-const INLINE_EDITABLE_STORY_TYPES = new Set<string>(['inline-content', 'textarea', 'input']);
+/** Inline-editable типы для brick-компонентов (включая input для заголовков и т.д.) */
+const INLINE_EDITABLE_BRICK_TYPES = new Set<string>(['inline-content', 'textarea', 'input']);
 
 /**
  * Находит все inline-editable свойства среди layout properties.
@@ -50,7 +50,7 @@ function capitalize(str: string): string {
 /**
  * Проверяет, выполнено ли условие showWhen для свойства.
  *
- * @param propConfig - Конфиг свойства из story.
+ * @param propConfig - Конфиг свойства из brick.
  * @param componentProps - Текущие props компонента.
  * @returns true если условие выполнено или отсутствует.
  */
@@ -66,21 +66,21 @@ function isShowWhenSatisfied(
 }
 
 /**
- * Находит все inline-editable свойства среди story values.
+ * Находит все inline-editable свойства среди brick values.
  * Учитывает showWhen условия для фильтрации неактивных свойств.
  *
- * @param storyValues - Объект values из .brick.ts story.
+ * @param brickValues - Объект values из .brick.ts brick.
  * @param componentProps - Текущие props компонента для проверки showWhen.
  * @returns Массив editable свойств.
  */
-export function findAllInlineEditableStoryProps(
-    storyValues: Record<string, IBrickValues>,
+export function findAllInlineEditableBrickProps(
+    brickValues: Record<string, IBrickValues>,
     componentProps: Record<string, unknown> = {}
 ): IInlineEditableProp[] {
     const result: IInlineEditableProp[] = [];
 
-    for (const [propName, propConfig] of Object.entries(storyValues)) {
-        if (!INLINE_EDITABLE_STORY_TYPES.has(propConfig.type)) {
+    for (const [propName, propConfig] of Object.entries(brickValues)) {
+        if (!INLINE_EDITABLE_BRICK_TYPES.has(propConfig.type)) {
             continue;
         }
 

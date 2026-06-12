@@ -40,8 +40,7 @@
   `Builder`-цепочки (`useCanvasItemDrag`, `useSidebarPropertiesPanel`) — в отличие
   от компонентов, контекст композабла задаёт доменная папка. То же для типов
   (`ICanvasItemProps`, `ISidebarPropertyEditorsProps`).
-- Слово **`Landing` в идентификаторах запрещено** (полный ребрендинг 2026-06-11).
-  Для сущностей уровня модуля (схема, конфиг, стили, данные страницы) используется
+- Для сущностей уровня модуля (схема, конфиг, стили, данные страницы) используется
   `Bricks`: `useBricksConfig`, `useBricksStyles`, `useBricksDataSources`, `IBricksSchema`.
   Как универсальный префикс-шум `Bricks` тоже не использовать
   (`useBricksCanvas` ❌ → `useCanvas` ✅) — контекст задаёт домен/папка.

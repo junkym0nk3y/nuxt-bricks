@@ -16,20 +16,17 @@ import {
 } from 'vue';
 
 // Composables
-import { useStoryImports } from '../../../../common/composables/useStoryImports';
+import { useBrickImports } from '../../../../common/composables/useBrickImports';
 // #endregion
 
 const FORCE_RENDER_DEBOUNCE_MS = 500;
 
 /**
- * Управляет асинхронной загрузкой Vue-компонента из story-модуля
+ * Управляет асинхронной загрузкой Vue-компонента из brick-модуля
  * и механизмом принудительного перерендера при изменении forceRender-пропов.
  */
-export function useCanvasItemLoader(
-    props: ICanvasItemProps,
-    isLayout: ComputedRef<boolean>
-) {
-    const { findImportModule } = useStoryImports();
+export function useCanvasItemLoader(props: ICanvasItemProps, isLayout: ComputedRef<boolean>) {
+    const { findImportModule } = useBrickImports();
 
     // #region Data
     const ComponentInstance = shallowRef<Component | null>(null);
@@ -40,7 +37,7 @@ export function useCanvasItemLoader(
 
     // #region Lifecycle
     if (!isLayout.value) {
-        const importModule = findImportModule(props.component.storyPath);
+        const importModule = findImportModule(props.component.brickPath);
 
         if (importModule) {
             ComponentInstance.value = defineAsyncComponent<Component>({
@@ -50,15 +47,15 @@ export function useCanvasItemLoader(
 
                     if (!exported) {
                         throw new Error(
-                            `Component module ${props.component.storyPath} has no default export`
+                            `Component module ${props.component.brickPath} has no default export`
                         );
                     }
 
-                    if (mod?.story?.values) {
-                        const storyValues = mod.story.values as Record<string, IBrickValues>;
+                    if (mod?.brick?.values) {
+                        const brickValues = mod.brick.values as Record<string, IBrickValues>;
                         const forceProps: string[] = [];
 
-                        for (const [propName, propConfig] of Object.entries(storyValues)) {
+                        for (const [propName, propConfig] of Object.entries(brickValues)) {
                             if (propConfig.forceRender === true) {
                                 forceProps.push(propName);
                             }

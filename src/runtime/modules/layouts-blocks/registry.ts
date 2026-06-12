@@ -104,7 +104,7 @@ export function getLayoutLibraryItems(): IComponentLibraryItem[] {
     return Object.values(BLOCK_REGISTRY).map((definition) => ({
         name: definition.name,
         category: 'Layout',
-        storyPath: `layout/${definition.name.toLowerCase()}`,
+        brickPath: `layout/${definition.name.toLowerCase()}`,
         description: definition.description,
         thumbnail: definition.thumbnail,
         ...(definition.isInteractive ? { isInteractive: true } : {}),

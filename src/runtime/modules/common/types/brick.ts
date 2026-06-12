@@ -9,7 +9,7 @@ export type TBricksDeviceKey = 'mobile' | 'tablet' | 'desktop';
 /** Значение редактируемого свойства брика (единый источник правды для props-значений) */
 export type TBrickPropValue = string | number | boolean | Record<string, unknown> | Array<unknown>;
 
-/** Demo/default-значение story: TBrickPropValue + редкие примитивы и nullable-варианты */
+/** Demo/default-значение brick: TBrickPropValue + редкие примитивы и nullable-варианты */
 export type TBrickDemoValues =
     | string
     | number
@@ -43,7 +43,7 @@ export interface IBricksComponent {
     id: string;
     type: 'layout' | 'component'; // Новое: различаем Layout и обычные компоненты
     componentName: string; // 'grid', 'flex', 'space' для layout, или название UI компонента
-    storyPath: string;
+    brickPath: string;
     zIndex: number;
     props: Record<string, any>;
     // Вложенность
@@ -65,7 +65,7 @@ export interface IBricksComponent {
 export interface IComponentLibraryItem {
     name: string;
     category: string;
-    storyPath: string;
+    brickPath: string;
     description?: string;
     thumbnail?: string;
     defaultProps?: Record<string, any>;

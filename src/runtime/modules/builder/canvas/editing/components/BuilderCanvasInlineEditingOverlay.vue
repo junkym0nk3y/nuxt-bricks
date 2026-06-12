@@ -34,13 +34,12 @@ const overlayRef = ref<HTMLElement | null>(null);
  * Toolbar-синк с TipTap-транзакциями: состояние selects + конфигурация групп.
  * Группы пустые вне textarea-типа (тулбар показывается только для него).
  */
-const { toolbarGroups, resetToolbarState } = useToolbarStateSync(
-    () => inlineEditingStore.editor,
-    { isEnabled: () => inlineEditingStore.propType === 'textarea' }
-);
+const { toolbarGroups, resetToolbarState } = useToolbarStateSync(() => inlineEditingStore.editor, {
+    isEnabled: () => inlineEditingStore.propType === 'textarea',
+});
 
 /**
- * Fallback TipTap editor для story-компонентов с textarea/inline-content:
+ * Fallback TipTap editor для brick-компонентов с textarea/inline-content:
  * создаётся, если ни один layout-компонент не инициализировал свой editor.
  */
 const {
@@ -176,7 +175,10 @@ function handleRequestImage(): void {
             <div
                 v-if="isVisible && !canvasStore.isViewportSwitching"
                 ref="overlayRef"
-                :class="[$style.BuilderCanvasInlineEditingOverlay, { [$style._dragging]: isDragging }]"
+                :class="[
+                    $style.BuilderCanvasInlineEditingOverlay,
+                    { [$style._dragging]: isDragging },
+                ]"
                 :style="overlayStyle"
             >
                 <!-- Drag handle -->
@@ -216,7 +218,7 @@ function handleRequestImage(): void {
                     @toggle-background="toggleEditorBackground"
                 />
 
-                <!-- Fallback TipTap editor (для story-компонентов с textarea/inline-content) -->
+                <!-- Fallback TipTap editor (для brick-компонентов с textarea/inline-content) -->
                 <div v-if="showFallbackEditor" :class="fallbackWrapperClasses">
                     <component :is="fallbackEditorContent!" :editor="fallbackEditor!" />
                 </div>

@@ -128,7 +128,7 @@ const dataObject = computed<IOriginalInterface>(() => ({
     ```
     Добавлять также на дочерние компоненты, которые рендерят pass-through textarea контент. **НЕ** добавлять на `v-html` с простым текстом (заголовки, лейблы) и на `ul`/`ol` в собственной вёрстке компонента.
 
-### Шаг 4: Создать `.brick.ts` story файл
+### Шаг 4: Создать `.brick.ts` brick файл
 
 #### Шаблон `.brick.ts`:
 
@@ -138,7 +138,7 @@ import Component from './ComponentName.vue';
 
 import type { IBrickFileStructure } from '../../common/types';
 
-export const story: IBrickFileStructure = {
+export const brick: IBrickFileStructure = {
     category: 'CategoryName',
     description: 'Краткое описание компонента на русском',
     values: {
@@ -221,9 +221,9 @@ setup() {
 setup() {
     return () =>
         h(Component, {
-            title: String(story.values?.title?.default ?? ''),
-            count: Number(story.values?.count?.default ?? 0),
-            isActive: Boolean(story.values?.isActive?.default),
+            title: String(brick.values?.title?.default ?? ''),
+            count: Number(brick.values?.count?.default ?? 0),
+            isActive: Boolean(brick.values?.isActive?.default),
         });
 },
 ```

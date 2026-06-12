@@ -24,7 +24,7 @@ export interface IGalleryItem {
     title?: string;
     caption?: string;
     alt?: string;
-    /** Теги элемента (опционально, включается через fields.tags в story) */
+    /** Теги элемента (опционально, включается через fields.tags в brick) */
     tags?: string[];
     /** Опциональный inline svg (для редактора image-gallery). */
     svgContent?: string;

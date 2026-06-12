@@ -37,7 +37,7 @@ export function useCanvasItemDrag(
         if (dragComposable?.draggedComponent) {
             const snapshot: IComponentLibraryItem = {
                 name: props.component.componentName,
-                storyPath: props.component.storyPath,
+                brickPath: props.component.brickPath,
                 defaultProps: JSON.parse(JSON.stringify(props.component.props || {})),
                 category: 'Existing',
                 thumbnail: '',

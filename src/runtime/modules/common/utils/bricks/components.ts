@@ -21,7 +21,7 @@ export function cloneComponentProps<T extends Record<string, any>>(props: T | un
 /**
  * Создаёт описание слота на основе входящих данных.
  *
- * @param slot - Исходное описание из story.
+ * @param slot - Исходное описание из brick.
  * @returns Структура слота с пустыми children.
  */
 export function createComponentSlot(slot: IComponentSlotDefinition): IBricksComponentSlot {

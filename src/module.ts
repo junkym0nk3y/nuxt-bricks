@@ -204,7 +204,7 @@ export default defineNuxtModule<IBricksModuleOptions>({
         );
         // #endregion
 
-        // #region Vite (optimizeDeps + watch story-файлов)
+        // #region Vite (optimizeDeps + watch brick-файлов)
         nuxt.options.vite = defu(nuxt.options.vite, {
             optimizeDeps: {
                 include: VITE_OPTIMIZE_INCLUDE,

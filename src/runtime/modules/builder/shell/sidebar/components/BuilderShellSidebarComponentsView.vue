@@ -169,7 +169,7 @@ function handleClose(): void {
                 >
                     <BuilderShellSidebarComponentCard
                         v-for="component in groupedComponents"
-                        :key="component.storyPath"
+                        :key="component.brickPath"
                         :component="component"
                         :is-layout="category === 'Layout'"
                     />

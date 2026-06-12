@@ -8,7 +8,7 @@ import type {
  * Инициализирует слоты layout-компонента на основе метаданных.
  *
  * @param component - Layout-компонент, у которого нужно заполнить слоты.
- * @param slots - Описание слотов из story.
+ * @param slots - Описание слотов из brick.
  * @param resolveChildren - Функция, которая возвращает id дочерних элементов для слота.
  */
 export function applySlotDefinitions(

@@ -13,7 +13,7 @@
 | 3 | 7 из 10 `as unknown as` — следствие п.1, вероятно лишние | **high** | S |
 | 4 | `useDraggableComponent.ts`: 8×`any` при готовых типах | **high** | M |
 | 5 | Дубль трио handlers в `sidebarProperties.d.ts` | medium | S |
-| 6 | `storySlots.ts` + `useComponentLibrary.ts`: any вместо `IBrickFileStructure` | medium | M |
+| 6 | `brickSlots.ts` + `useComponentLibrary.ts`: any вместо `IBrickFileStructure` | medium | M |
 | 7 | Нейминг: 17 интерфейсов без `I`, 11 type без `T` | medium | L (механика) |
 | 8 | 16 компонентов с inline `defineProps<{...}>` | low | M |
 | 9 | Modal-типы, Swiper-any, global.d.ts шимы | low | — |
@@ -65,8 +65,8 @@ Union `string | number | boolean | Record<string, unknown> | Array<unknown>` п�
 | Файл | Кол-во | Что делать |
 | --- | --- | --- |
 | `builder/app/composables/useDraggableComponent.ts` | 8 | `store: any` → уже существует `BricksComponentsStore` (`core/stores/components.ts:86`); `component/draggedComp: any` → `ComponentLibraryItem`/`BricksComponent` из `common/types/brick.ts`. Все типы готовы — только подставить |
-| `builder/app/utils/storySlots.ts` | 6 | `storyData: any` → `IBrickFileStructure` (`common/types/index.ts:1`); `(config as any).label` ×4 → типизировать `IBrickSlotDefinition` |
-| `builder/app/composables/useComponentLibrary.ts` | 2 | `{ stories: any[] }` → типизированный ответ mock-api |
+| `builder/app/utils/brickSlots.ts` | 6 | `brickData: any` → `IBrickFileStructure` (`common/types/index.ts:1`); `(config as any).label` ×4 → типизировать `IBrickSlotDefinition` |
+| `builder/app/composables/useComponentLibrary.ts` | 2 | `{ bricks: any[] }` → типизированный ответ mock-api |
 | `common/utils/routing/vite-brick-watch.ts` | 2 | `server: any` → `ViteDevServer`, `ctx: any` → `HmrContext` (типы vite доступны) |
 | `plugins/vue-icons.ts` | 1 | `iconComponent: any` → `Component` из vue |
 | `common/types/brick.ts:123,124` | 2 | `default: any` и `options.value: any` в `PropertyDefinition` → `TBrickPropValue` из §1.2 |
@@ -109,7 +109,7 @@ Union `string | number | boolean | Record<string, unknown> | Array<unknown>` п�
 **2026-06-12 — заходы 1–3 выполнены:**
 
 - ✅ Заход 1: `TBrickPropValue` введён в `common/types/brick.ts`, все 7+ inline-union'ов заменены (включая `useSidebarPropertiesPanel`, `BuilderShellSidebarPropertyEditors.vue`, `property-editors/types.ts`); 7 кастов `as unknown as Array<unknown>` удалены (§3); `TViewportType` удалён, 3 потребителя + `canvas.ts` + `CanvasState` переведены на `TBricksDeviceKey` (§1.1); база `ISidebarPropertyHandlers` + `extends` (§1.3).
-- ✅ Заход 2: типизированы `useDraggableComponent` (store → `TBricksComponentsStore`, payload → `TComponentInsertPayload`), `storySlots` (`IBrickFileStructure`/`IBrickSlotDefinition`, добавлено `name?` в slot definition), `useComponentLibrary` (`IStoriesResponse`/`IStoryListItem` в `app/types/composables.d.ts`), `vite-brick-watch` (`ViteDevServer`/`HotUpdateOptions`), `vue-icons` (`Component` + `PropType`). `PropertyDefinition.default`/`options.value` → `IBrickDemoValues` (не `TBrickPropValue`: реальные значения включают null/undefined); `IBrickDemoValues` перенесён в `brick.ts` (re-export из index), его array-член расширен до `Array<unknown>` (массивы интерфейсов типа `IInlineContentSegment[]`). Точечные касты: `useComponentProperties` (vars), `usePropertyVariants` ×2 (`?? {}`-выражения), `propertyValueCoercion` (fallback default). `IDragComposableCanvas.handleDrop.store: unknown` → типизирован.
+- ✅ Заход 2: типизированы `useDraggableComponent` (store → `TBricksComponentsStore`, payload → `TComponentInsertPayload`), `brickSlots` (`IBrickFileStructure`/`IBrickSlotDefinition`, добавлено `name?` в slot definition), `useComponentLibrary` (`IBricksResponse`/`IBrickListItem` в `app/types/composables.d.ts`), `vite-brick-watch` (`ViteDevServer`/`HotUpdateOptions`), `vue-icons` (`Component` + `PropType`). `PropertyDefinition.default`/`options.value` → `IBrickDemoValues` (не `TBrickPropValue`: реальные значения включают null/undefined); `IBrickDemoValues` перенесён в `brick.ts` (re-export из index), его array-член расширен до `Array<unknown>` (массивы интерфейсов типа `IInlineContentSegment[]`). Точечные касты: `useComponentProperties` (vars), `usePropertyVariants` ×2 (`?? {}`-выражения), `propertyValueCoercion` (fallback default). `IDragComposableCanvas.handleDrop.store: unknown` → типизирован.
 - ✅ Заход 3: механический rename 15 интерфейсов + 12 типов (полный инвентарь, word-boundary perl по всем `.ts`/`.vue`): `I*` — BricksComponent(Slot), BricksSchema, CanvasState, ComponentLibraryItem, ComponentSlotDefinition, *LayoutProps ×6, PropertyDefinition, PropertyVariantContext, SelectedComponent; `T*` — BricksComponentsStore, ComponentVariantsMap, GridLayoutVariant, GridRowHeight, IBrickDemoValues→TBrickDemoValues, IComponentsActions→TComponentsActions, IItemStyle→TItemStyle, InlineEditingPropType, LayoutProps, PropertyEditorType, PropertyType, SidebarView. Обновлены упоминания в CLAUDE.md и naming.md.
 - Не делалось (по плану): §1.4 modal-типы (оставить), §5 inline props (по мере касания файлов), §2.2 (global.d.ts шимы, Swiper, debounce — полулегитимные).
 - Проверки: `vue-tsc --noEmit` — чисто (кроме 3 pre-existing ошибок: playground/definePageMeta, middleware/LayoutKey, useDocumentationArticles/glob query); `oxlint` — чисто.
@@ -117,7 +117,7 @@ Union `string | number | boolean | Record<string, unknown> | Array<unknown>` п�
 ## Рекомендуемый порядок выполнения
 
 1. **Заход 1 (S, чистая выгода):** `TBrickPropValue` в common/types → замена ×7 (§1.2) → попытка удалить 7 кастов (§3) → удалить `TViewportType` (§1.1) → база handlers в sidebar (§1.3). Всё связано общим корнем, делается одним PR.
-2. **Заход 2 (M):** типизация `useDraggableComponent` / `storySlots` / `useComponentLibrary` / `vite-brick-watch` / `vue-icons` (§2.1).
+2. **Заход 2 (M):** типизация `useDraggableComponent` / `brickSlots` / `useComponentLibrary` / `vite-brick-watch` / `vue-icons` (§2.1).
 3. **Заход 3 (L, механика):** rename'ы нейминга (§4) через LSP, отдельными коммитами по доменам.
 4. **Фоном:** inline props (§5) — по мере касания файлов.
 

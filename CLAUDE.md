@@ -14,7 +14,7 @@ npx oxlint <changed-file>
 ## Project Overview
 
 `nuxt-bricks` — визуальный билдер лендингов для Nuxt 3 с drag-and-drop компонентами.
-Самостоятельный Nuxt Module (бывший `@idaproject/ui-landing`, мигрирован из Nuxt layer).
+Самостоятельный Nuxt Module.
 
 ## Development Commands
 
@@ -32,7 +32,7 @@ npx oxlint <changed-file>
 
 - `ui/` — Reka UI-кит (base/inputs/feedback/tooltip, общие типы в `types/`)
 - `builder/` — редактор целиком, поддомены:
-    - `app/` — composition root: `pages/` (builder.vue, [pagename].vue), `components/` (TheBuilderLoader), `composables/` (фасад useBuilderPage + useBuilderSession/DraftPersistence/PagenameSync, useComponentLibrary, useBuilderShortcuts, useBuilderToast, usePreviewSync, useModals, useDraggableComponent), `utils/` (storySlots), `types/`
+    - `app/` — composition root: `pages/` (builder.vue, [pagename].vue), `components/` (TheBuilderLoader), `composables/` (фасад useBuilderPage + useBuilderSession/DraftPersistence/PagenameSync, useComponentLibrary, useBuilderShortcuts, useBuilderToast, usePreviewSync, useModals, useDraggableComponent), `utils/` (brickSlots), `types/`
     - `core/` — ядро состояния: `stores/` (components + actions/, canvas, sidebar, history, navigation, componentActions), `utils/`, `constants/`, `composables/` (useComponentProperties), `components/` (BuilderLogo)
     - `shell/` — рамка редактора: `sidebar/` (components + property-editors/, composables, utils, types), `toolbar/` (чисто презентационный)
     - `canvas/` — слайсы `viewport/`, `item/`, `editing/` (каждый — `components/` + `composables/`) + общий `types/`
@@ -43,7 +43,7 @@ npx oxlint <changed-file>
 - `render/` — рендер опубликованной страницы (самодостаточен, store не использует)
 - `layouts-blocks/` — блоки лендинга (Grid/Flex/Section/Slider/...)
 - `persistence/` — серверные адаптеры хранения (`server/postgres/`, `server/s3/`, `server/registry.ts`, `server/utils/` — общая логика Nitro-ручек); используется только из `src/runtime/server/api/bricks/**`
-- `common/` — только общее (2+ доменов): `composables/` (useBricksConfig, useStoryImports, useApiClient, useBricksStyles), `utils/` (main, case-transform; `bricks/` — paths, components, deviceVisibility, publishedPage; `routing/` — build-time), `constants/` (injectionKeys), `types/`
+- `common/` — только общее (2+ доменов): `composables/` (useBricksConfig, useBrickImports, useApiClient, useBricksStyles), `utils/` (main, case-transform; `bricks/` — paths, components, deviceVisibility, publishedPage; `routing/` — build-time), `constants/` (injectionKeys), `types/`
 
 Вне `modules/` в `src/runtime/` остаётся инфраструктура Nuxt: `plugins/`, `server/`, `middleware/`, `layouts/`, `assets/`, `types.d.ts` (шим, реэкспортирует `modules/common/types`).
 
@@ -51,11 +51,11 @@ npx oxlint <changed-file>
 
 В каждой папке `composables/` и `utils/` лежит `README.md` с таблицей «файл → назначение» для навигации — поддерживать при добавлении/удалении файлов.
 
-### Component System (Story-based)
+### Component System (Brick-based)
 
-1. **Story Files** (`.brick.ts`) — метаданные компонента + редактируемые свойства (`category`, `values`)
+1. **Brick Files** (`.brick.ts`) — метаданные компонента + редактируемые свойства (`category`, `values`)
 2. **Discovery** — `npm run bricks:gen` сканирует `.brick.ts` → `public/bricks.json`
-3. **Property Editing** — панель свойств рендерит контролы по story definitions
+3. **Property Editing** — панель свойств рендерит контролы по brick definitions
 
 ### Available Property Types
 
@@ -69,7 +69,7 @@ npx oxlint <changed-file>
 
 ```typescript
 // В .brick.ts
-export const story = {
+export const brick = {
     values: {
         paddingTop: { default: 4, type: 'number', group: 'Отступы' },
         paddingBottom: { default: 4, type: 'number', group: 'Отступы' },
@@ -123,11 +123,11 @@ export const story = {
 - `useCanvasItemLayout.ts` → `effectiveViewport` использует `inject('canvasViewport')` в Figma mode, иначе `canvasStore.viewport`
 - `resolveLayoutProps()` merge'ит `props.responsive.{device}` overrides
 
-#### Для Story Values (обычные UI-компоненты)
+#### Для Brick Values (обычные UI-компоненты)
 
 ```typescript
 // .brick.ts
-export const story: IBrickFileStructure = {
+export const brick: IBrickFileStructure = {
     values: {
         height: { default: 62, type: 'input', responsive: true },
         slidesPerView: { default: 1.5, type: 'input', responsive: true },
@@ -138,7 +138,7 @@ export const story: IBrickFileStructure = {
 
 **Как работает:**
 
-- Если хотя бы одно story-свойство имеет `responsive: true` — в сайдбаре появляются device-табы (Desktop/Tablet/Mobile)
+- Если хотя бы одно brick-свойство имеет `responsive: true` — в сайдбаре появляются device-табы (Desktop/Tablet/Mobile)
 - При редактировании на non-desktop табе: свойства с `responsive: true` пишутся в `props.responsive[device]`, остальные — обновляют base value
 - Рендерер передаёт `props.responsive` компоненту как есть → компонент **сам** резолвит значения по viewport
 - Компонент должен реализовать резолвинг `props.responsive?.[device]?.[key]` (через ResizeObserver / `data-bricks-viewport` для билдера)

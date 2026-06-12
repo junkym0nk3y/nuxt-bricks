@@ -18,7 +18,7 @@ import { useComponentsStore } from '../../../core/stores/components';
 import { usePropertyVariants } from './usePropertyVariants';
 import { useSidebarResponsiveScope } from './useSidebarResponsiveScope';
 import { useSidebarMediaSelection } from './useSidebarMediaSelection';
-import { useStoryDescription } from './useStoryDescription';
+import { useSidebarBrickDescription } from './useSidebarBrickDescription';
 
 // Utils
 import {
@@ -31,7 +31,7 @@ import { normalizeDeviceVisibility } from '../../../../common/utils/bricks/devic
 // #endregion
 
 /**
- * Фасад панели свойств: собирает responsive scope, выбор медиа, описание story
+ * Фасад панели свойств: собирает responsive scope, выбор медиа, описание brick
  * и предоставляет готовые обработчики для UI. API сохранён — компоненты не трогаем.
  *
  * @param options - Колбэки взаимодействия с внешними частями интерфейса.
@@ -60,7 +60,7 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
         applyPropertyValue: handleChangeValues,
     });
 
-    const { storyDescription } = useStoryDescription();
+    const { brickDescription } = useSidebarBrickDescription();
     // #endregion
 
     // #region Computed
@@ -68,7 +68,7 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
         () => store.selectedComponentData?.component?.componentName || ''
     );
 
-    const selectedComponentDescription = computed(() => storyDescription.value);
+    const selectedComponentDescription = computed(() => brickDescription.value);
 
     const orderedPropertyNames = computed<string[]>(() => {
         const selected = selectedComponentDataForVariants.value;

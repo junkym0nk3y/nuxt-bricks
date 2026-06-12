@@ -6,7 +6,7 @@ import type { IRendererPlaceholderProps } from '../types/render';
 // #region Props
 const props = withDefaults(defineProps<IRendererPlaceholderProps>(), {
     title: 'Компонент недоступен',
-    description: 'Проверьте storyPath или перегенерируйте схему.',
+    description: 'Проверьте brickPath или перегенерируйте схему.',
 });
 // #endregion
 </script>

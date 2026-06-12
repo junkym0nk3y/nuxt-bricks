@@ -10,7 +10,7 @@
 | `useBuilderPagenameSync.ts`    | Синхронизация URL с pagename формы публикации (`history.replaceState`, миграция черновика)        |
 | `useBuilderShortcuts.ts`       | Горячие клавиши: Delete/Backspace, Ctrl/Cmd+C/V, undo/redo                                        |
 | `useBuilderToast.ts`           | Состояние toast-уведомления билдера и единая функция показа                                       |
-| `useComponentLibrary.ts`       | Загрузка библиотеки компонентов: stories с бэкенда + метаданные `.brick.ts` + layout-блоки        |
+| `useComponentLibrary.ts`       | Загрузка библиотеки компонентов: bricks с бэкенда + метаданные `.brick.ts` + layout-блоки        |
 | `useDraggableComponent.ts`     | Drag-and-drop компонентов из библиотеки на канвас                                                 |
 | `useModals.ts`                 | Глобальный кеш модальных окон (`category: 'Modal'`), `getModalOptions`                            |
 | `usePreviewSync.ts`            | Синхронизация схемы с preview-вкладкой через BroadcastChannel (debounce 300ms)                    |
