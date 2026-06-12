@@ -13,10 +13,19 @@ declare global {
     function $fetch<T = any>(input: any, init?: any): Promise<T>;
     const useNuxtApp: () => any;
 
+    interface IImportGlobOptions {
+        import?: string;
+        query?: string | Record<string, string | number | boolean>;
+    }
+
     interface ImportMeta {
         glob<T = unknown>(
             pattern: string | string[],
-            options?: { eager?: boolean }
+            options: IImportGlobOptions & { eager: true }
+        ): Record<string, T>;
+        glob<T = unknown>(
+            pattern: string | string[],
+            options?: IImportGlobOptions & { eager?: false }
         ): Record<string, () => Promise<T>>;
     }
 }

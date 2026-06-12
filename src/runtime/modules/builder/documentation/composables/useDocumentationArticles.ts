@@ -10,16 +10,16 @@ import { useMarkdownRenderer } from './useMarkdownRenderer';
 // #endregion
 
 // #region Data
-const mdFiles = import.meta.glob('../docs/guide/**/*.md', {
+const mdFiles = import.meta.glob<string>('../docs/guide/**/*.md', {
     query: '?raw',
     import: 'default',
-}) as Record<string, () => Promise<string>>;
+});
 
-const mdFilesEager = import.meta.glob('../docs/guide/**/*.md', {
+const mdFilesEager = import.meta.glob<string>('../docs/guide/**/*.md', {
     query: '?raw',
     import: 'default',
     eager: true,
-}) as Record<string, string>;
+});
 // #endregion
 
 /**

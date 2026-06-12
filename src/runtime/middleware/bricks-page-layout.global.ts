@@ -1,4 +1,4 @@
-import type { LayoutKey } from '#build/types/layouts';
+import type { LayoutKey } from 'nuxt/app';
 import { defineNuxtRouteMiddleware, useNuxtApp, setPageLayout } from '#app';
 import { createError, useState, useRequestHeaders } from '#imports';
 import type { IPublishedPageSummary, IPublishedPage } from '../modules/common/types/bricks-api';
