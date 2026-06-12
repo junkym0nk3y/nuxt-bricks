@@ -1,16 +1,16 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { ComponentLibraryItem, BricksSchema } from '../../common/types/brick';
-import type { IMediaItem, TMediaGalleryContext } from '../../common/types/media';
+import type { ComponentLibraryItem, BricksSchema } from '../../../../common/types/brick';
+import type { IMediaItem, TMediaGalleryContext } from '../../../../common/types/media';
 
 // Vue
 import { computed, ref } from 'vue';
 
 // Pinia
-import { useComponentsStore } from '../../builder/stores/components';
-import { useSidebarStore } from '../../builder/stores/sidebar';
-import { usePublishStore } from '../../builder/stores/publish';
+import { useComponentsStore } from '../../../stores/components';
+import { useSidebarStore } from '../../../stores/sidebar';
+import { usePublishStore } from '../../../stores/publish';
 
 // Components
 import SidebarComponentsView from './SidebarComponentsView.vue';

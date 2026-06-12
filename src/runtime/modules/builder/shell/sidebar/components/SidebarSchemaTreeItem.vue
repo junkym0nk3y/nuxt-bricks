@@ -1,13 +1,13 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { BricksComponent } from '../../common/types/brick';
+import type { BricksComponent } from '../../../../common/types/brick';
 
 // Vue
 import { computed, ref } from 'vue';
 
 // Pinia
-import { useComponentsStore } from '../../builder/stores/components';
+import { useComponentsStore } from '../../../stores/components';
 // #endregion
 
 // #region Interfaces

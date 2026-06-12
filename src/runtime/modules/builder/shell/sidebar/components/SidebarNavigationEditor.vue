@@ -4,12 +4,12 @@
 import { computed } from 'vue';
 
 // Pinia
-import { useNavigationStore } from '../../builder/stores/navigation';
-import { useComponentsStore } from '../../builder/stores/components';
+import { useNavigationStore } from '../../../stores/navigation';
+import { useComponentsStore } from '../../../stores/components';
 
 // Components
-import BricksInput from '../../ui/inputs/BricksInput.vue';
-import BricksButton from '../../ui/base/button/BricksButton.vue';
+import BricksInput from '../../../../ui/inputs/BricksInput.vue';
+import BricksButton from '../../../../ui/base/button/BricksButton.vue';
 // #endregion
 
 // #region Data

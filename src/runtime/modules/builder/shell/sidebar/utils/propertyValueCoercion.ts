@@ -1,6 +1,6 @@
 // #region Imports
 // Types
-import type { PropertyDefinition } from '../../common/types/brick';
+import type { PropertyDefinition } from '../../../../common/types/brick';
 
 // Utils
 import { isPrimitiveArrayValue, parseListInput } from './propertyFormatters';

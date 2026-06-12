@@ -1,11 +1,11 @@
 <script setup lang="ts">
 // #region Imports
 // Components
-import BricksButton from '../../ui/base/button/BricksButton.vue';
-import BricksCloseButton from '../../ui/base/modal/BricksCloseButton.vue';
+import BricksButton from '../../../../ui/base/button/BricksButton.vue';
+import BricksCloseButton from '../../../../ui/base/modal/BricksCloseButton.vue';
 import SidebarPropertyEditors from './SidebarPropertyEditors.vue';
-import BricksTooltip from '../../ui/tooltip/BricksTooltip.vue';
-import BricksTooltipHint from '../../ui/tooltip/BricksTooltipHint.vue';
+import BricksTooltip from '../../../../ui/tooltip/BricksTooltip.vue';
+import BricksTooltipHint from '../../../../ui/tooltip/BricksTooltipHint.vue';
 
 // Composables
 import { useSidebarPropertiesPanel } from '../composables/useSidebarPropertiesPanel';

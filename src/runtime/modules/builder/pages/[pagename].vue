@@ -28,9 +28,9 @@ import { serializeSchema } from '../utils/history';
 import { loadFavoritesFromStorage } from '../stores/actions/favorites';
 
 // Components
-import TheToolbar from '../../toolbar/components/TheToolbar.vue';
-import ToolbarVerticalNav from '../../toolbar/components/ToolbarVerticalNav.vue';
-import TheSidebar from '../../sidebar/components/TheSidebar.vue';
+import TheToolbar from '../shell/toolbar/components/TheToolbar.vue';
+import ToolbarVerticalNav from '../shell/toolbar/components/ToolbarVerticalNav.vue';
+import TheSidebar from '../shell/sidebar/components/TheSidebar.vue';
 import TheCanvas from '../../canvas/components/TheCanvas.vue';
 import TheBuilderLoader from '../components/TheBuilderLoader.vue';
 import ThePublishedPagesModal from '../components/modal/ThePublishedPagesModal.vue';

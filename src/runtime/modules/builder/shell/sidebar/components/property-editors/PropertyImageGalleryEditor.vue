@@ -1,16 +1,16 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IGalleryItem } from '../../../common/types/content';
-import type { IBrickGalleryFieldsConfig } from '../../../common/types/index';
+import type { IGalleryItem } from '../../../../../common/types/content';
+import type { IBrickGalleryFieldsConfig } from '../../../../../common/types/index';
 
 // Vue
 import { computed, useCssModule } from 'vue';
 
 // Components
-import BricksButton from '../../../ui/base/button/BricksButton.vue';
-import BricksInput from '../../../ui/inputs/BricksInput.vue';
-import BricksTagsEditor from '../../../ui/inputs/BricksTagsEditor.vue';
+import BricksButton from '../../../../../ui/base/button/BricksButton.vue';
+import BricksInput from '../../../../../ui/inputs/BricksInput.vue';
+import BricksTagsEditor from '../../../../../ui/inputs/BricksTagsEditor.vue';
 // #endregion
 
 // #region Interfaces

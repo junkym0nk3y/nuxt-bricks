@@ -1,14 +1,14 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IAccordionItem } from '../../../layouts-blocks/types/blockProps';
+import type { IAccordionItem } from '../../../../../layouts-blocks/types/blockProps';
 
 // Vue
 import { computed } from 'vue';
 
 // Components
-import BricksButton from '../../../ui/base/button/BricksButton.vue';
-import TextEditorArea from '../../../editor/components/TextEditorArea.vue';
+import BricksButton from '../../../../../ui/base/button/BricksButton.vue';
+import TextEditorArea from '../../../../../editor/components/TextEditorArea.vue';
 // #endregion
 
 // #region Interfaces

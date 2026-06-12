@@ -2,17 +2,17 @@
 // #region Imports
 // Types
 import type { IToolbarProps, IToolbarEmits } from './types';
-import type { IBrickUiCommonProp } from '../../ui/inputs/types.d.ts';
+import type { IBrickUiCommonProp } from '../../../../ui/inputs/types.d.ts';
 
 // Vue
 import { computed } from 'vue';
 
 // Components
-import BricksButton from '../../ui/base/button/BricksButton.vue';
-import BricksActionButton from '../../ui/base/action-button/BricksActionButton.vue';
-import BricksTooltip from '../../ui/tooltip/BricksTooltip.vue';
-import BricksTooltipHint from '../../ui/tooltip/BricksTooltipHint.vue';
-import BuilderLogo from '../../builder/components/BuilderLogo.vue';
+import BricksButton from '../../../../ui/base/button/BricksButton.vue';
+import BricksActionButton from '../../../../ui/base/action-button/BricksActionButton.vue';
+import BricksTooltip from '../../../../ui/tooltip/BricksTooltip.vue';
+import BricksTooltipHint from '../../../../ui/tooltip/BricksTooltipHint.vue';
+import BuilderLogo from '../../../components/BuilderLogo.vue';
 // #endregion
 
 // #region Props

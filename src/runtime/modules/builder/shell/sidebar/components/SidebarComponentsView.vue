@@ -1,17 +1,17 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { ComponentLibraryItem } from '../../common/types/brick';
+import type { ComponentLibraryItem } from '../../../../common/types/brick';
 
 // Vue
 import { computed, ref } from 'vue';
 
 // Utils
-import { loadFavoritesFromStorage } from '../../builder/stores/actions/favorites';
+import { loadFavoritesFromStorage } from '../../../stores/actions/favorites';
 
 // Components
 import SidebarComponentCard from './SidebarComponentCard.vue';
-import BricksCloseButton from '../../ui/base/modal/BricksCloseButton.vue';
+import BricksCloseButton from '../../../../ui/base/modal/BricksCloseButton.vue';
 // #endregion
 
 // #region Props

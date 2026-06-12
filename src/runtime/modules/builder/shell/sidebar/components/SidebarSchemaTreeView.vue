@@ -1,30 +1,30 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { BricksComponent, PropertyDefinition } from '../../common/types/brick';
-import type { IBrickValues } from '../../common/types/index';
+import type { BricksComponent, PropertyDefinition } from '../../../../common/types/brick';
+import type { IBrickValues } from '../../../../common/types/index';
 
 // Vue
 import { computed, nextTick } from 'vue';
 
 // Pinia
-import { useComponentsStore } from '../../builder/stores/components';
-import { useCanvasStore } from '../../builder/stores/canvas';
+import { useComponentsStore } from '../../../stores/components';
+import { useCanvasStore } from '../../../stores/canvas';
 
 // Composables
-import { useStoryImports } from '../../common/composables/useStoryImports';
-import { useComponentProperties } from '../../builder/composables/useComponentProperties';
+import { useStoryImports } from '../../../../common/composables/useStoryImports';
+import { useComponentProperties } from '../../../composables/useComponentProperties';
 
 // Utils
-import { getLayoutProperties } from '../../builder/utils/layoutProperties';
-import { scrollToComponentOnCanvas } from '../../builder/utils/scrollToComponent';
+import { getLayoutProperties } from '../../../utils/layoutProperties';
+import { scrollToComponentOnCanvas } from '../../../utils/scrollToComponent';
 
 // Constants
-import { LAYOUT_COMPONENTS } from '../../builder/constants/layoutComponents';
+import { LAYOUT_COMPONENTS } from '../../../constants/layoutComponents';
 
 // Components
 import SidebarSchemaTreeItem from './SidebarSchemaTreeItem.vue';
-import BricksCloseButton from '../../ui/base/modal/BricksCloseButton.vue';
+import BricksCloseButton from '../../../../ui/base/modal/BricksCloseButton.vue';
 // #endregion
 
 // #region Emits

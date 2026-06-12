@@ -4,8 +4,8 @@
 import { computed } from 'vue';
 
 // Components
-import BricksTooltip from '../../ui/tooltip/BricksTooltip.vue';
-import BricksTooltipHint from '../../ui/tooltip/BricksTooltipHint.vue';
+import BricksTooltip from '../../../../ui/tooltip/BricksTooltip.vue';
+import BricksTooltipHint from '../../../../ui/tooltip/BricksTooltipHint.vue';
 // #endregion
 
 // #region Interfaces

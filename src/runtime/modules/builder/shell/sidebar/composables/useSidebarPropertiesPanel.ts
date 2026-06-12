@@ -1,13 +1,13 @@
 // #region Imports
 // Types
 import type { PropertyEditorType } from '../components/property-editors/types';
-import type { IMediaItem } from '../../common/types/media';
-import type { IInlineContentSegment, IGalleryItem } from '../../common/types/content';
+import type { IMediaItem } from '../../../../common/types/media';
+import type { IInlineContentSegment, IGalleryItem } from '../../../../common/types/content';
 import type {
     IDeviceVisibilityConfig,
     PropertyDefinition,
     TBricksDeviceKey,
-} from '../../common/types/brick';
+} from '../../../../common/types/brick';
 import type {
     TInlineGalleryPayload,
     TMediaContext,
@@ -18,12 +18,12 @@ import type {
 import { computed, defineAsyncComponent, ref, watch, type Component } from 'vue';
 
 // Pinia
-import { useComponentsStore } from '../../builder/stores/components';
-import { useCanvasStore } from '../../builder/stores/canvas';
+import { useComponentsStore } from '../../../stores/components';
+import { useCanvasStore } from '../../../stores/canvas';
 
 // Composables
 import { usePropertyVariants } from './usePropertyVariants';
-import { useStoryImports } from '../../common/composables/useStoryImports';
+import { useStoryImports } from '../../../../common/composables/useStoryImports';
 
 // Utils
 import {
@@ -34,12 +34,12 @@ import {
 import {
     cloneInlineSegments,
     createInlineMediaSegmentFromItem,
-} from '../../layouts-blocks/utils/inlineContent';
-import { normalizeDeviceVisibility } from '../../common/utils/bricks/deviceVisibility';
-import { getBlockDefinition } from '../../layouts-blocks/registry';
+} from '../../../../layouts-blocks/utils/inlineContent';
+import { normalizeDeviceVisibility } from '../../../../common/utils/bricks/deviceVisibility';
+import { getBlockDefinition } from '../../../../layouts-blocks/registry';
 
 // Constants
-import { LAYOUT_COMPONENTS } from '../../builder/constants/layoutComponents';
+import { LAYOUT_COMPONENTS } from '../../../constants/layoutComponents';
 // #endregion
 
 /**
@@ -58,26 +58,26 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
 
     const componentEditors: Record<PropertyEditorType, Component> = {
         boolean: defineAsyncComponent(
-            () => import('../../ui/base/checkbox/BricksCheckbox.vue')
+            () => import('../../../../ui/base/checkbox/BricksCheckbox.vue')
         ),
-        switch: defineAsyncComponent(() => import('../../ui/inputs/BricksSwitch.vue')),
-        select: defineAsyncComponent(() => import('../../ui/inputs/BricksSelect.vue')),
-        input: defineAsyncComponent(() => import('../../ui/inputs/BricksInput.vue')),
-        textarea: defineAsyncComponent(() => import('../../editor/components/TextEditorArea.vue')),
+        switch: defineAsyncComponent(() => import('../../../../ui/inputs/BricksSwitch.vue')),
+        select: defineAsyncComponent(() => import('../../../../ui/inputs/BricksSelect.vue')),
+        input: defineAsyncComponent(() => import('../../../../ui/inputs/BricksInput.vue')),
+        textarea: defineAsyncComponent(() => import('../../../../editor/components/TextEditorArea.vue')),
         json: defineAsyncComponent(
             () => import('../components/property-editors/PropertyJsonEditor.vue')
         ),
         'inline-content': defineAsyncComponent(
             () => import('../components/property-editors/PropertyInlineContentEditor.vue')
         ),
-        tags: defineAsyncComponent(() => import('../../ui/inputs/BricksTagsEditor.vue')),
+        tags: defineAsyncComponent(() => import('../../../../ui/inputs/BricksTagsEditor.vue')),
         'image-gallery': defineAsyncComponent(
             () => import('../components/property-editors/PropertyImageGalleryEditor.vue')
         ),
         'accordion-items': defineAsyncComponent(
             () => import('../components/property-editors/PropertyAccordionItemsEditor.vue')
         ),
-        color: defineAsyncComponent(() => import('../../ui/inputs/BricksHexInput.vue')),
+        color: defineAsyncComponent(() => import('../../../../ui/inputs/BricksHexInput.vue')),
         image: defineAsyncComponent(
             () => import('../components/property-editors/PropertyMediaPicker.vue')
         ),

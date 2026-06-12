@@ -1,5 +1,5 @@
 import type { Component } from 'vue';
-import type { PropertyDefinition, IDeviceVisibilityConfig, TBricksDeviceKey } from '../../common/types/brick';
+import type { PropertyDefinition, IDeviceVisibilityConfig, TBricksDeviceKey } from '../../../../common/types/brick';
 import type {
     ComponentVariantsMap,
     IComponentVariant,

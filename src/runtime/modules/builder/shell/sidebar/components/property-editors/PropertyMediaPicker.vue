@@ -4,7 +4,7 @@
 import { computed } from 'vue';
 
 // Components
-import BricksButton from '../../../ui/base/button/BricksButton.vue';
+import BricksButton from '../../../../../ui/base/button/BricksButton.vue';
 // #endregion
 
 // #region Props

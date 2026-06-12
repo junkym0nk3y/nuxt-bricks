@@ -1,4 +1,4 @@
-import type { PropertyDefinition } from '../../../common/types/brick';
+import type { PropertyDefinition } from '../../../../../common/types/brick';
 
 export interface ISelectOption {
     label: string;

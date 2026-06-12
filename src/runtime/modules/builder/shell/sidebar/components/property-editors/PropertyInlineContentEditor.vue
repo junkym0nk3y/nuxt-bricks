@@ -1,22 +1,22 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IInlineContentSegment } from '../../../common/types/content';
+import type { IInlineContentSegment } from '../../../../../common/types/content';
 
 // Vue
 import { computed, useCssModule } from 'vue';
 
 // Components
-import BricksButton from '../../../ui/base/button/BricksButton.vue';
-import BricksInput from '../../../ui/inputs/BricksInput.vue';
-import BricksHexInput from '../../../ui/inputs/BricksHexInput.vue';
+import BricksButton from '../../../../../ui/base/button/BricksButton.vue';
+import BricksInput from '../../../../../ui/inputs/BricksInput.vue';
+import BricksHexInput from '../../../../../ui/inputs/BricksHexInput.vue';
 
 // Utils
 import {
     cloneInlineSegments,
     createInlineTextSegment,
     createInlineLineBreakSegment,
-} from '../../../layouts-blocks/utils/inlineContent';
+} from '../../../../../layouts-blocks/utils/inlineContent';
 // #endregion
 
 // #region Interfaces

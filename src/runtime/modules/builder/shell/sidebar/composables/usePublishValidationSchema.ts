@@ -1,5 +1,5 @@
 import { object, string } from 'yup';
-import { usePublishStore } from '../../builder/stores/publish';
+import { usePublishStore } from '../../../stores/publish';
 
 /**
  * Composable для получения validation schema формы публикации.

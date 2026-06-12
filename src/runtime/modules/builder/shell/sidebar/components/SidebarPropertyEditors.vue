@@ -5,7 +5,7 @@ import type {
     ISidebarPropertyEditorsProps,
     TInlineGalleryPayload,
 } from '../types/sidebarProperties';
-import type { PropertyDefinition } from '../../common/types/brick';
+import type { PropertyDefinition } from '../../../../common/types/brick';
 
 // Vue
 import { computed, ref, watch } from 'vue';
@@ -13,7 +13,7 @@ import { computed, ref, watch } from 'vue';
 // Constants/Components
 import { PROPERTY_EDITOR_ORDER, type PropertyEditorType } from './property-editors/types';
 import SidebarPropertyEditorRow from './SidebarPropertyEditorRow.vue';
-import BricksInput from '../../ui/inputs/BricksInput.vue';
+import BricksInput from '../../../../ui/inputs/BricksInput.vue';
 // #endregion
 
 // #region Props

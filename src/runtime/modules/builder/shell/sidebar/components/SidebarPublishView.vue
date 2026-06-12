@@ -1,10 +1,10 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { TPublishFormState } from '../../common/types/bricks-api';
-import type { IMediaItem } from '../../common/types/media';
-import type { IBrickDemoValues } from '../../common/types/index';
-import type { BricksSchema } from '../../common/types/brick';
+import type { TPublishFormState } from '../../../../common/types/bricks-api';
+import type { IMediaItem } from '../../../../common/types/media';
+import type { IBrickDemoValues } from '../../../../common/types/index';
+import type { BricksSchema } from '../../../../common/types/brick';
 
 // Vue
 import { computed, onMounted, ref } from 'vue';
@@ -13,19 +13,19 @@ import { computed, onMounted, ref } from 'vue';
 import { Form, Field } from 'vee-validate';
 
 // Composables
-import { useBricksConfig } from '../../common/composables/useBricksConfig';
+import { useBricksConfig } from '../../../../common/composables/useBricksConfig';
 import { usePublishValidationSchema } from '../composables/usePublishValidationSchema';
 
 // Pinia
-import { usePublishStore } from '../../builder/stores/publish';
-import { useComponentsStore } from '../../builder/stores/components';
+import { usePublishStore } from '../../../stores/publish';
+import { useComponentsStore } from '../../../stores/components';
 
 // Components
-import BricksInput from '../../ui/inputs/BricksInput.vue';
-import BricksButton from '../../ui/base/button/BricksButton.vue';
-import BricksHexInput from '../../ui/inputs/BricksHexInput.vue';
-import BricksSelect from '../../ui/inputs/BricksSelect.vue';
-import BricksCloseButton from '../../ui/base/modal/BricksCloseButton.vue';
+import BricksInput from '../../../../ui/inputs/BricksInput.vue';
+import BricksButton from '../../../../ui/base/button/BricksButton.vue';
+import BricksHexInput from '../../../../ui/inputs/BricksHexInput.vue';
+import BricksSelect from '../../../../ui/inputs/BricksSelect.vue';
+import BricksCloseButton from '../../../../ui/base/modal/BricksCloseButton.vue';
 import SidebarNavigationEditor from './SidebarNavigationEditor.vue';
 // #endregion
 
