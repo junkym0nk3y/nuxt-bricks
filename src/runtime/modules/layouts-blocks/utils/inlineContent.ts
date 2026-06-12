@@ -114,9 +114,7 @@ export function applyColorToSvgContent(svgContent: string, color?: string): stri
  * @param segments - Исходные сегменты.
  * @returns Глубокая копия массива сегментов.
  */
-export function cloneInlineSegments(
-    segments: IInlineContentSegment[]
-): IInlineContentSegment[] {
+export function cloneInlineSegments(segments: IInlineContentSegment[]): IInlineContentSegment[] {
     return segments.map((segment) => ({ ...segment }));
 }
 // #endregion

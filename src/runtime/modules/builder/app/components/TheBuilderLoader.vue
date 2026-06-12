@@ -275,9 +275,12 @@ onUnmounted(() => {
 }
 
 .logoWrapper {
+    /* Реальный размер вместо transform: scale — scale растеризует SVG на мелком layout-размере и мылит анимацию */
+    --builder-logo-width: 10rem;
+    --builder-logo-height: 9.4rem;
+
     margin-bottom: 2.4rem;
     color: var(--bricks-base-900);
-    transform: scale(1.4); /* Make logo 3x bigger */
 }
 
 .barContainer {

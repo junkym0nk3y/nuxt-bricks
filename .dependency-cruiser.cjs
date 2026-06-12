@@ -1,7 +1,8 @@
 /**
- * Правила слоистости доменов src/runtime/modules/ (см. documents/architecture-cleanup.md).
- * Все правила стартуют с severity: 'warn' — текущие нарушения задокументированы как baseline;
- * по мере выполнения шагов Части A каждое правило флипается в 'error'.
+ * Правила слоистости доменов src/runtime/modules/ (см. CLAUDE.md → «Направления зависимостей»).
+ * Структура 2026-06-12: builder/{app,core,shell,canvas,publish,documentation,media},
+ * text-editor, render, layouts-blocks, persistence, ui, common.
+ * builder/app — composition root, ограничений не имеет (кроме глобальных правил).
  */
 const M = 'src/runtime/modules';
 
@@ -9,66 +10,129 @@ module.exports = {
     forbidden: [
         {
             name: 'no-circular',
-            severity: 'error', // A3/A4 выполнены
+            severity: 'error',
             from: {},
             to: {
                 circular: true,
                 // легитимная рекурсия Vue-компонентов дерева канваса:
-                // CanvasItem ↔ CanvasItemLayout, CanvasItem ↔ CanvasItemComponent
-                viaNot: `^${M}/canvas/components/CanvasItem(Layout|Component)\\.vue$`,
+                // BuilderCanvasItem ↔ BuilderCanvasItemLayout, BuilderCanvasItem ↔ BuilderCanvasItemComponent
+                viaNot: `^${M}/builder/canvas/item/components/BuilderCanvasItem(Layout|Component)\\.vue$`,
             },
         },
         {
-            name: 'ui-is-bottom',
-            severity: 'error', // A2 выполнен; ui → common разрешено (common — нижний слой контрактов/утилит)
-            from: { path: `^${M}/ui` },
-            to: { path: `^${M}/(?!ui|common)` },
-        },
-        {
             name: 'common-is-bottom',
-            severity: 'error', // A1 выполнен
+            severity: 'error',
             from: { path: `^${M}/common` },
             to: { path: `^${M}/(?!common)` },
         },
         {
+            name: 'ui-is-bottom',
+            severity: 'error',
+            from: { path: `^${M}/ui` },
+            to: { path: `^${M}/(?!ui|common)` },
+        },
+        {
+            // render самодостаточен: только common + layouts-blocks, ничего из builder
             name: 'render-lean',
-            severity: 'error', // A5 выполнен
+            severity: 'error',
             from: { path: `^${M}/render` },
             to: { path: `^${M}/(?!render|common|layouts-blocks)` },
         },
         {
+            // блоки не знают про builder; viewport — через inject(CANVAS_VIEWPORT_KEY)
             name: 'layouts-blocks-deps',
-            severity: 'error', // A6 выполнен
+            severity: 'error',
             from: { path: `^${M}/layouts-blocks` },
-            to: { path: `^${M}/(?!layouts-blocks|common|ui|editor)` },
+            to: { path: `^${M}/(?!layouts-blocks|common|ui|text-editor)` },
         },
         {
-            name: 'editor-deps',
-            severity: 'error', // A3 выполнен
-            from: { path: `^${M}/editor` },
+            name: 'text-editor-deps',
+            severity: 'error',
+            from: {
+                path: `^${M}/text-editor`,
+                // tech-debt: useInlineEditor → builder/core/stores/components (кандидат на DI)
+                pathNot: `^${M}/text-editor/composables/useInlineEditor\\.ts$`,
+            },
+            to: { path: `^${M}/(?!text-editor|common|ui)` },
+        },
+        {
+            name: 'text-editor-tech-debt-scope',
+            severity: 'error',
+            from: { path: `^${M}/text-editor/composables/useInlineEditor\\.ts$` },
+            to: { path: `^${M}/(?!text-editor|common|ui|builder/core/stores)` },
+        },
+        {
+            // ядро состояния не знает про фичевые поддомены — иначе цикл canvas↔shell
+            name: 'builder-core-deps',
+            severity: 'error',
+            from: {
+                path: `^${M}/builder/core`,
+                // tech-debt: useComponentProperties → app/composables/useModals (кандидат на DI)
+                pathNot: `^${M}/builder/core/composables/useComponentProperties\\.ts$`,
+            },
+            to: { path: `^${M}/(?!builder/core|common|ui|layouts-blocks)` },
+        },
+        {
+            name: 'builder-core-tech-debt-scope',
+            severity: 'error',
+            from: { path: `^${M}/builder/core/composables/useComponentProperties\\.ts$` },
             to: {
-                path: `^${M}/(?!editor|common|ui|media|builder/(stores|utils|types|constants)|layouts-blocks)`,
+                path: `^${M}/(?!builder/core|common|ui|layouts-blocks|builder/app/composables/useModals)`,
             },
         },
         {
-            name: 'builder-core-no-features',
-            severity: 'error', // A3 выполнен
-            from: { path: `^${M}/builder/(?!pages)` },
-            to: { path: `^${M}/(canvas|sidebar|toolbar|editor|render)` },
+            // canvas/shell → core/publish/media + text-editor/layouts-blocks/ui/common;
+            // не друг в друга и не в composition root (app)
+            name: 'builder-canvas-shell-deps',
+            severity: 'error',
+            from: { path: `^${M}/builder/(canvas|shell)` },
+            to: {
+                path: `^${M}/(?!builder/(canvas|shell|core|publish|media)|text-editor|layouts-blocks|ui|common)`,
+            },
         },
         {
-            name: 'toolbar-deps',
-            severity: 'error', // нарушений нет — сразу error
-            from: { path: `^${M}/toolbar` },
-            to: { path: `^${M}/(?!toolbar|ui|common|builder/components)` },
+            name: 'builder-canvas-shell-no-cross',
+            severity: 'error',
+            from: { path: `^${M}/builder/canvas` },
+            to: { path: `^${M}/builder/shell` },
         },
         {
-            name: 'media-deps',
-            severity: 'error', // A4 выполнен
-            from: { path: `^${M}/media` },
-            to: { path: `^${M}/(canvas|sidebar|toolbar|render|editor|builder)` },
+            name: 'builder-shell-no-canvas',
+            severity: 'error',
+            from: { path: `^${M}/builder/shell` },
+            to: { path: `^${M}/builder/canvas` },
         },
-        // builder/pages — composition root, может импортировать всё; правило не нужно
+        {
+            name: 'builder-publish-deps',
+            severity: 'error',
+            from: { path: `^${M}/builder/publish` },
+            to: { path: `^${M}/(?!builder/publish|builder/core|ui|common)` },
+        },
+        {
+            name: 'builder-media-deps',
+            severity: 'error',
+            from: { path: `^${M}/builder/media` },
+            to: { path: `^${M}/(?!builder/media|builder/core|ui|common)` },
+        },
+        {
+            name: 'builder-documentation-deps',
+            severity: 'error',
+            from: { path: `^${M}/builder/documentation` },
+            to: { path: `^${M}/(?!builder/documentation|ui|common)` },
+        },
+        {
+            // серверные адаптеры: используются только из src/runtime/server/api/bricks/**
+            name: 'persistence-is-server-only',
+            severity: 'error',
+            from: { path: `^${M}/(?!persistence)` },
+            to: { path: `^${M}/persistence` },
+        },
+        {
+            name: 'persistence-deps',
+            severity: 'error',
+            from: { path: `^${M}/persistence` },
+            to: { path: `^${M}/(?!persistence|common)` },
+        },
     ],
     options: {
         doNotFollow: { path: 'node_modules' },

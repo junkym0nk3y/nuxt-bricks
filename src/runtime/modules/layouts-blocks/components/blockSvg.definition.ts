@@ -7,7 +7,11 @@ import { h, type VNode } from 'vue';
 
 // Utils
 import { bindBoundPropsWithComponentId } from '../utils/canvasBindings';
-import { getResponsiveOverrides, gridPlacementStyle, makeResponsiveVars } from '../utils/responsiveVars';
+import {
+    getResponsiveOverrides,
+    gridPlacementStyle,
+    makeResponsiveVars,
+} from '../utils/responsiveVars';
 
 // Components
 import BlockSvg from './BlockSvg.vue';

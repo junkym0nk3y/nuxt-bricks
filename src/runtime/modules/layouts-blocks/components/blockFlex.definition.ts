@@ -90,8 +90,16 @@ function renderFlexPublished(ctx: IBlockRenderContext): VNode {
     );
     const justifyDesktop = baseJustify;
 
-    const wrapMobileRaw = resolveResponsiveValue(Boolean(currentProps.wrap), mobileOverrides, 'wrap');
-    const wrapTabletRaw = resolveResponsiveValue(Boolean(currentProps.wrap), tabletOverrides, 'wrap');
+    const wrapMobileRaw = resolveResponsiveValue(
+        Boolean(currentProps.wrap),
+        mobileOverrides,
+        'wrap'
+    );
+    const wrapTabletRaw = resolveResponsiveValue(
+        Boolean(currentProps.wrap),
+        tabletOverrides,
+        'wrap'
+    );
     const wrapDesktopRaw = Boolean(currentProps.wrap);
 
     const wrapMobile = wrapMobileRaw ? 'wrap' : 'nowrap';
@@ -111,7 +119,8 @@ function renderFlexPublished(ctx: IBlockRenderContext): VNode {
     const style = {
         display: 'flex',
         flexDirection: 'var(--bricks-flex-direction, var(--bricks-flex-direction-desktop, row))',
-        justifyContent: 'var(--bricks-flex-justify, var(--bricks-flex-justify-desktop, flex-start))',
+        justifyContent:
+            'var(--bricks-flex-justify, var(--bricks-flex-justify-desktop, flex-start))',
         alignItems: mapFlexAlign(currentProps.align),
         flexWrap: 'var(--bricks-flex-wrap, var(--bricks-flex-wrap-desktop, nowrap))',
         gap: 'var(--bricks-flex-gap, var(--bricks-flex-gap-desktop, 0rem))',

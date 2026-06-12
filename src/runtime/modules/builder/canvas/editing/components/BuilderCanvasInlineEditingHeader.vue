@@ -1,10 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type {
-    IInlineEditingHeaderProps,
-    IInlineEditingHeaderEmits,
-} from '../../types/components';
+import type { IInlineEditingHeaderProps, IInlineEditingHeaderEmits } from '../../types/components';
 // #endregion
 
 // #region Props

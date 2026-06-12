@@ -5,7 +5,11 @@ import type { IBlockDefinition, IBlockRenderContext } from '../types/registry';
 import { h, type VNode } from 'vue';
 
 // Utils
-import { getResponsiveOverrides, gridPlacementStyle, makeResponsiveVars } from '../utils/responsiveVars';
+import {
+    getResponsiveOverrides,
+    gridPlacementStyle,
+    makeResponsiveVars,
+} from '../utils/responsiveVars';
 
 // Components
 import BlockMedia from './BlockMedia.vue';

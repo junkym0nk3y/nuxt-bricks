@@ -248,7 +248,12 @@ function handleToggleGrid(): void {
 
             <BricksTooltip bottom>
                 <template #activator>
-                    <BricksButton size="md" variant="outline" equal @click="handleOpenPublishedPages">
+                    <BricksButton
+                        size="md"
+                        variant="outline"
+                        equal
+                        @click="handleOpenPublishedPages"
+                    >
                         <BricksIcon :class="$style.icon" icon="ca:document-multiple-02" />
                     </BricksButton>
                 </template>

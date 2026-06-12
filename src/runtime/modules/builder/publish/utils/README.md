@@ -2,8 +2,8 @@
 
 | Файл                | Назначение                                                                                       |
 | ------------------- | ------------------------------------------------------------------------------------------------ |
-| `draftSnapshots.ts` | Валидация pagename (`isValidPagename`), сравнение снапшотов черновика (`isSnapshotEqual`)         |
-| `draftStorage.ts`   | Ключи localStorage для черновиков билдера                                                         |
-| `formState.ts`      | Дефолтное/нормализованное состояние формы публикации, кэш цвета фона из app config                |
-| `pagePayload.ts`    | Сборка payload создания/обновления страницы из схемы и формы (camelCase, snake_case — на вызове)  |
-| `requestErrors.ts`  | Форматирование ошибок запросов в человекочитаемые сообщения                                       |
+| `draftSnapshots.ts` | Валидация pagename (`isValidPagename`), сравнение снапшотов черновика (`isSnapshotEqual`)        |
+| `draftStorage.ts`   | Ключи localStorage для черновиков билдера                                                        |
+| `formState.ts`      | Дефолтное/нормализованное состояние формы публикации, кэш цвета фона из app config               |
+| `pagePayload.ts`    | Сборка payload создания/обновления страницы из схемы и формы (camelCase, snake_case — на вызове) |
+| `requestErrors.ts`  | Форматирование ошибок запросов в человекочитаемые сообщения                                      |

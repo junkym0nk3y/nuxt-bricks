@@ -103,7 +103,10 @@ export function buildResponsiveLayoutCss(breakpoints: IResponsiveCssBreakpoints)
 
     const publishedQueries: Array<[string, TBricksDeviceKey]> = [
         [`@media (max-width: ${mobileMax}px)`, 'mobile'],
-        [`@media (min-width: ${breakpoints.tabletMin}px) and (max-width: ${tabletMax}px)`, 'tablet'],
+        [
+            `@media (min-width: ${breakpoints.tabletMin}px) and (max-width: ${tabletMax}px)`,
+            'tablet',
+        ],
         [`@media (min-width: ${breakpoints.desktopMin}px)`, 'desktop'],
     ];
 

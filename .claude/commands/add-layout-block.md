@@ -57,14 +57,14 @@ export const blockXDefinition: IBlockDefinition = {
 
 Решения по полям:
 
-| Ситуация | Что делать |
-|---|---|
-| Контейнер (children) | `hasChildren: true`; `renderPublished` = `h('div')` + CSS-vars (см. `blockGrid.definition.ts`), `.vue` НЕ импортировать |
-| Leaf-блок | `renderPublished` импортирует свой `.vue` (см. `blockMedia.definition.ts`); без `renderPublished` блок на published не отрисуется |
-| Адаптивные размеры/отступы | `responsiveMode: 'all'` + `responsive: true` на свойствах + `responsiveCssVars: { prefix, vars }`; в `renderPublished` ставить per-device переменные через `makeResponsiveVars` |
-| Inline editing (Title/Text/Svg-паттерн) | `canvasBind: bindBoundPropsWithComponentId` из `utils/canvasBindings.ts` |
-| Нестандартный биндинг канваса | свой `canvasBind(ctx)` (см. Slider/Media) |
-| Свойства зависят от runtime (шрифты) | `properties` как функция `(ctx) => ILayoutProperty[]` (см. Title); коэрция тогда пропускается |
+| Ситуация                                | Что делать                                                                                                                                                                      |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Контейнер (children)                    | `hasChildren: true`; `renderPublished` = `h('div')` + CSS-vars (см. `blockGrid.definition.ts`), `.vue` НЕ импортировать                                                         |
+| Leaf-блок                               | `renderPublished` импортирует свой `.vue` (см. `blockMedia.definition.ts`); без `renderPublished` блок на published не отрисуется                                               |
+| Адаптивные размеры/отступы              | `responsiveMode: 'all'` + `responsive: true` на свойствах + `responsiveCssVars: { prefix, vars }`; в `renderPublished` ставить per-device переменные через `makeResponsiveVars` |
+| Inline editing (Title/Text/Svg-паттерн) | `canvasBind: bindBoundPropsWithComponentId` из `utils/canvasBindings.ts`                                                                                                        |
+| Нестандартный биндинг канваса           | свой `canvasBind(ctx)` (см. Slider/Media)                                                                                                                                       |
+| Свойства зависят от runtime (шрифты)    | `properties` как функция `(ctx) => ILayoutProperty[]` (см. Title); коэрция тогда пропускается                                                                                   |
 
 ### Шаг 3: Две регистрации
 

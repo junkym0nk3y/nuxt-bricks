@@ -89,8 +89,7 @@ function handleDrop(event: DragEvent): void {
             Выбрать файлы
         </BricksButton>
         <p :class="$style.uploadHint">
-            Изображения — до {{ props.maxImageSizeMb }} МБ, видео — до
-            {{ props.maxVideoSizeMb }} МБ
+            Изображения — до {{ props.maxImageSizeMb }} МБ, видео — до {{ props.maxVideoSizeMb }} МБ
         </p>
     </div>
 </template>

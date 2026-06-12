@@ -93,12 +93,12 @@ npx oxlint <changed-files>
 
 ## Частые баги
 
-| Симптом                          | Причина                                                     | Где смотреть                                 |
-| -------------------------------- | ----------------------------------------------------------- | -------------------------------------------- |
-| Тулбар не появляется             | `setEditor()` не вызван                                     | `useInlineEditor.ts` → `initEditor()`        |
-| Кнопки не реагируют на выделение | Нет подписки на `editor.on('transaction')`                  | `BuilderCanvasInlineEditingOverlay.vue`      |
-| Клик по кнопке снимает выделение | Нет `@mousedown.prevent`                                    | Кнопки тулбара                               |
-| Бесконечный цикл обновлений      | `isInternalUpdate` не сброшен                               | `saveToStore()`                              |
-| Editor глубоко реактивный        | `ref()` вместо `shallowRef()`                               | store + composable                           |
-| `strong/b` не жирный (v-html)    | Нет пробела в CSS: `.bricks-text[data-tiptap-content]` | `default.scss`                               |
-| Редактор не фокусируется         | Нет `await initEditor()`                                    | watch на isEditing                           |
+| Симптом                          | Причина                                                | Где смотреть                            |
+| -------------------------------- | ------------------------------------------------------ | --------------------------------------- |
+| Тулбар не появляется             | `setEditor()` не вызван                                | `useInlineEditor.ts` → `initEditor()`   |
+| Кнопки не реагируют на выделение | Нет подписки на `editor.on('transaction')`             | `BuilderCanvasInlineEditingOverlay.vue` |
+| Клик по кнопке снимает выделение | Нет `@mousedown.prevent`                               | Кнопки тулбара                          |
+| Бесконечный цикл обновлений      | `isInternalUpdate` не сброшен                          | `saveToStore()`                         |
+| Editor глубоко реактивный        | `ref()` вместо `shallowRef()`                          | store + composable                      |
+| `strong/b` не жирный (v-html)    | Нет пробела в CSS: `.bricks-text[data-tiptap-content]` | `default.scss`                          |
+| Редактор не фокусируется         | Нет `await initEditor()`                               | watch на isEditing                      |

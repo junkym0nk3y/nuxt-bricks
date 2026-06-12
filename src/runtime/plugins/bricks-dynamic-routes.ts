@@ -63,15 +63,11 @@ export default defineNuxtPlugin(async () => {
     const router = useRouter();
     const { apiFetcher } = useApiClient();
 
-    const publishedPages = useState<IPublishedPageSummary[]>(
-        'bricks-published-pages',
-        () => []
-    );
+    const publishedPages = useState<IPublishedPageSummary[]>('bricks-published-pages', () => []);
 
     if (publishedPages.value.length === 0) {
         try {
-            const response =
-                await apiFetcher<IPublishedPageSummary[]>('/api/bricks/published/');
+            const response = await apiFetcher<IPublishedPageSummary[]>('/api/bricks/published/');
             publishedPages.value = toCamelCase<IPublishedPageSummary[]>(response);
         } catch (error) {
             console.error('[Bricks Routes] Failed to load published pages list', error);

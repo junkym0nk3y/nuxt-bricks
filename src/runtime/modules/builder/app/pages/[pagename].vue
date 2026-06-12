@@ -126,7 +126,12 @@ const {
 } = useBuilderSession({ routePagename, showToast });
 
 // Автосохранение черновика (debounce) + синхронизация URL с pagename формы
-useBuilderDraftPersistence({ routePagename, isSessionLoading, savedSnapshot, buildCurrentSnapshot });
+useBuilderDraftPersistence({
+    routePagename,
+    isSessionLoading,
+    savedSnapshot,
+    buildCurrentSnapshot,
+});
 useBuilderPagenameSync(routePagename);
 // #endregion
 
@@ -193,9 +198,7 @@ function handleToggleDarkMode(): void {
  * Класс body формируется реактивно — включает bricks-dark при активной тёмной теме.
  * Работает на SSR: cookie читается на сервере, класс рендерится сразу.
  */
-const bodyClass = computed(() =>
-    isDarkMode.value ? 'bricks-page bricks-dark' : 'bricks-page'
-);
+const bodyClass = computed(() => (isDarkMode.value ? 'bricks-page bricks-dark' : 'bricks-page'));
 
 useHead({
     bodyAttrs: {
@@ -279,7 +282,10 @@ onBeforeUnmount(() => {
             @error="handlePublishedPagesError"
         />
 
-        <TheBuilderDocumentationModal :is-open="isDocumentationModalOpen" @close="handleCloseDocs" />
+        <TheBuilderDocumentationModal
+            :is-open="isDocumentationModalOpen"
+            @close="handleCloseDocs"
+        />
 
         <TheBuilderMediaGalleryModal
             :visible="isMediaGalleryModalOpen"

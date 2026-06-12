@@ -190,7 +190,11 @@ function handleMoveDown(index: number): void {
                             >
                                 <BricksIcon icon="md:arrow-down" />
                             </BricksButton>
-                            <BricksButton size="sm" variant="ghost" @click="handleRemoveItem(index)">
+                            <BricksButton
+                                size="sm"
+                                variant="ghost"
+                                @click="handleRemoveItem(index)"
+                            >
                                 <BricksIcon icon="md:delete-outline" />
                             </BricksButton>
                         </div>

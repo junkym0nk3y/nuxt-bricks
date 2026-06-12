@@ -18,8 +18,7 @@ const DEFAULT_MAX_VIDEO_SIZE_MB = 100;
  */
 export function useMediaUpload(options: IMediaUploadOptions) {
     const appConfig = useAppConfig() as IAppConfig;
-    const maxImageSizeMb =
-        appConfig.bricks?.media?.maxUploadSizeMb ?? DEFAULT_MAX_IMAGE_SIZE_MB;
+    const maxImageSizeMb = appConfig.bricks?.media?.maxUploadSizeMb ?? DEFAULT_MAX_IMAGE_SIZE_MB;
     const maxVideoSizeMb =
         appConfig.bricks?.media?.maxVideoUploadSizeMb ?? DEFAULT_MAX_VIDEO_SIZE_MB;
 

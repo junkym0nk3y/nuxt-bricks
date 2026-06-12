@@ -31,9 +31,7 @@ const editableAlt = ref('');
 const categoryOptions = computed(() =>
     MEDIA_CATEGORY_OPTIONS.filter((option) => option.value !== 'all')
 );
-const selectedCategory = computed(
-    () => props.selectedItem?.category || DEFAULT_MEDIA_CATEGORY
-);
+const selectedCategory = computed(() => props.selectedItem?.category || DEFAULT_MEDIA_CATEGORY);
 // #endregion
 
 // #region Methods
