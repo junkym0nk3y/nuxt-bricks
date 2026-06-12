@@ -65,24 +65,24 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
         input: defineAsyncComponent(() => import('../../../../ui/inputs/BricksInput.vue')),
         textarea: defineAsyncComponent(() => import('../../../../text-editor/components/TextEditorArea.vue')),
         json: defineAsyncComponent(
-            () => import('../components/property-editors/PropertyJsonEditor.vue')
+            () => import('../components/property-editors/BuilderShellSidebarPropertyJsonEditor.vue')
         ),
         'inline-content': defineAsyncComponent(
-            () => import('../components/property-editors/PropertyInlineContentEditor.vue')
+            () => import('../components/property-editors/BuilderShellSidebarPropertyInlineContentEditor.vue')
         ),
         tags: defineAsyncComponent(() => import('../../../../ui/inputs/BricksTagsEditor.vue')),
         'image-gallery': defineAsyncComponent(
-            () => import('../components/property-editors/PropertyImageGalleryEditor.vue')
+            () => import('../components/property-editors/BuilderShellSidebarPropertyImageGalleryEditor.vue')
         ),
         'accordion-items': defineAsyncComponent(
-            () => import('../components/property-editors/PropertyAccordionItemsEditor.vue')
+            () => import('../components/property-editors/BuilderShellSidebarPropertyAccordionItemsEditor.vue')
         ),
         color: defineAsyncComponent(() => import('../../../../ui/inputs/BricksHexInput.vue')),
         image: defineAsyncComponent(
-            () => import('../components/property-editors/PropertyMediaPicker.vue')
+            () => import('../components/property-editors/BuilderShellSidebarPropertyMediaPicker.vue')
         ),
         video: defineAsyncComponent(
-            () => import('../components/property-editors/PropertyMediaPicker.vue')
+            () => import('../components/property-editors/BuilderShellSidebarPropertyMediaPicker.vue')
         ),
     };
     // #endregion

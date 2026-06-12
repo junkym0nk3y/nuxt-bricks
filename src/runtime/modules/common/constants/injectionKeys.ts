@@ -5,7 +5,7 @@ import type { TBricksDeviceKey } from '../types/brick';
 
 /**
  * Активный viewport канваса (реактивный).
- * Провайдится `TheCanvas` (обычный режим, из canvas-store) и `CanvasViewport`
+ * Провайдится `TheBuilderCanvas` (обычный режим, из canvas-store) и `BuilderCanvasViewport`
  * (Figma mode, per-viewport — ближайший провайдер выигрывает).
  * На published-странице провайдера нет — потребители используют fallback.
  */

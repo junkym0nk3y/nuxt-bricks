@@ -265,7 +265,7 @@ export function useCanvasDrops({
         const { movedComponentId } = detail;
 
         if (detail.layoutId && movedComponentId && detail.layoutId === movedComponentId) {
-            console.warn('[TheCanvas] Ignoring layout drop on self', detail);
+            console.warn('[TheBuilderCanvas] Ignoring layout drop on self', detail);
             return;
         }
 
@@ -316,7 +316,7 @@ export function useCanvasDrops({
         const draggedComponent = dragComposable?.draggedComponent?.value;
 
         if (!draggedComponent) {
-            console.warn('[TheCanvas] No dragged component found', dragComposable);
+            console.warn('[TheBuilderCanvas] No dragged component found', dragComposable);
             return;
         }
 
@@ -362,7 +362,7 @@ export function useCanvasDrops({
         const { parentId, slotName, movedComponentId, targetIndex } = detail || {};
 
         if (!parentId || !slotName) {
-            console.warn('[TheCanvas] Invalid slot drop detail', detail);
+            console.warn('[TheBuilderCanvas] Invalid slot drop detail', detail);
             return;
         }
 
@@ -378,7 +378,7 @@ export function useCanvasDrops({
 
         const draggedComponent = dragComposable?.draggedComponent?.value;
         if (!draggedComponent) {
-            console.warn('[TheCanvas] Slot drop without dragged component metadata');
+            console.warn('[TheBuilderCanvas] Slot drop without dragged component metadata');
             return;
         }
 

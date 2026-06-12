@@ -234,7 +234,7 @@ export function useInlineEditor(
                 });
             }
 
-            // Публикуем editor в store для доступа из CanvasInlineEditingOverlay
+            // Публикуем editor в store для доступа из BuilderCanvasInlineEditingOverlay
             inlineEditingStore.setEditor(editor.value);
         } catch (error) {
             console.error('[useInlineEditor] Failed to init editor:', error);
@@ -279,7 +279,7 @@ export function useInlineEditor(
         inlineEditingStore.setEditor(null);
     }
 
-    // Если editing остановлен извне (Escape из CanvasItem) — сохраняем и уничтожаем
+    // Если editing остановлен извне (Escape из BuilderCanvasItem) — сохраняем и уничтожаем
     watch(
         () => inlineEditingStore.componentId,
         (newId) => {

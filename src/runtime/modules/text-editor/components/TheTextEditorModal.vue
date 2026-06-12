@@ -29,7 +29,7 @@ import BricksButton from '../../ui/base/button/BricksButton.vue';
 import BricksCloseButton from '../../ui/base/modal/BricksCloseButton.vue';
 import BricksModal from '../../ui/base/modal/BricksModal.vue';
 import BricksTextEditorToolbar from '../../ui/inputs/BricksTextEditorToolbar.vue';
-import TiptapImageFloatPopover from './TiptapImageFloatPopover.vue';
+import TextEditorImageFloatPopover from './TextEditorImageFloatPopover.vue';
 // #endregion
 
 // #region Interfaces
@@ -375,7 +375,7 @@ onBeforeUnmount(() => {
                             :class="$style.editor"
                         />
 
-                        <TiptapImageFloatPopover :editor="editor" />
+                        <TextEditorImageFloatPopover :editor="editor" />
                     </div>
                     <div v-else :class="$style.editorWrapper">
                         <textarea

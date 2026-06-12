@@ -28,16 +28,16 @@ import { serializeSchema } from '../../core/utils/history';
 import { loadFavoritesFromStorage } from '../../core/stores/actions/favorites';
 
 // Components
-import TheToolbar from '../../shell/toolbar/components/TheToolbar.vue';
-import ToolbarVerticalNav from '../../shell/toolbar/components/ToolbarVerticalNav.vue';
-import TheSidebar from '../../shell/sidebar/components/TheSidebar.vue';
-import TheCanvas from '../../canvas/viewport/TheCanvas.vue';
+import TheBuilderShellToolbar from '../../shell/toolbar/components/TheBuilderShellToolbar.vue';
+import BuilderShellToolbarVerticalNav from '../../shell/toolbar/components/BuilderShellToolbarVerticalNav.vue';
+import TheBuilderShellSidebar from '../../shell/sidebar/components/TheBuilderShellSidebar.vue';
+import TheBuilderCanvas from '../../canvas/viewport/TheBuilderCanvas.vue';
 import TheBuilderLoader from '../components/TheBuilderLoader.vue';
-import ThePublishedPagesModal from '../../publish/components/ThePublishedPagesModal.vue';
-import TheDocumentationModal from '../../documentation/components/TheDocumentationModal.vue';
-import TheMediaGalleryModal from '../../media/components/TheMediaGalleryModal.vue';
+import TheBuilderPublishPagesModal from '../../publish/components/TheBuilderPublishPagesModal.vue';
+import TheBuilderDocumentationModal from '../../documentation/components/TheBuilderDocumentationModal.vue';
+import TheBuilderMediaGalleryModal from '../../media/components/TheBuilderMediaGalleryModal.vue';
 import BricksConfirmModal from '../../../ui/feedback/BricksConfirmModal.vue';
-import TheImageResolverModal from '../../media/components/TheImageResolverModal.vue';
+import TheBuilderMediaImageResolverModal from '../../media/components/TheBuilderMediaImageResolverModal.vue';
 import BricksToast from '../../../ui/feedback/BricksToast.vue';
 // #endregion
 
@@ -405,7 +405,7 @@ function handleToggleDarkMode(): void {
 // #region Watchers
 // Без immediate: при immediate колбэк выполняется синхронно в setup ещё до гидрации
 // и успевает заполнить publishStore.currentFormState (pagename из URL), из-за чего
-// клиентский рендер расходится с SSR (hydration mismatch в TheToolbar).
+// клиентский рендер расходится с SSR (hydration mismatch в TheBuilderShellToolbar).
 // Первичное открытие сессии — в onMounted, watcher отвечает только за смену маршрута.
 watch(
     () => routePagename.value,
@@ -528,7 +528,7 @@ onBeforeUnmount(() => {
 
 <template>
     <div :class="[$style.BricksBuilder, 'bricks-text']">
-        <TheToolbar
+        <TheBuilderShellToolbar
             :history-index="historyStore.historyIndex"
             :history-length="historyStore.history.length"
             :is-editing-existing-page="isEditingExistingPage"
@@ -549,7 +549,7 @@ onBeforeUnmount(() => {
         />
 
         <div :class="$style.content">
-            <ToolbarVerticalNav
+            <BuilderShellToolbarVerticalNav
                 :is-library-active="isLibraryActive"
                 :is-properties-active="isPropertiesActive"
                 :is-schema-active="isSchemaActive"
@@ -565,7 +565,7 @@ onBeforeUnmount(() => {
                 @toggle-dark-mode="handleToggleDarkMode"
             />
 
-            <TheSidebar
+            <TheBuilderShellSidebar
                 ref="sidebarRef"
                 :components="componentLibraryList"
                 @open-media-gallery="handleOpenMediaGalleryWithContext"
@@ -574,20 +574,20 @@ onBeforeUnmount(() => {
 
             <div :class="$style.canvasWrapper">
                 <TheBuilderLoader :is-loading="isSessionLoading" />
-                <TheCanvas />
+                <TheBuilderCanvas />
             </div>
         </div>
 
-        <ThePublishedPagesModal
+        <TheBuilderPublishPagesModal
             :is-open="isPublishedPagesModalOpen"
             @close="handleClosePublishedPagesModal"
             @edit="handleEditFromModal"
             @error="handlePublishedPagesError"
         />
 
-        <TheDocumentationModal :is-open="isDocumentationModalOpen" @close="handleCloseDocs" />
+        <TheBuilderDocumentationModal :is-open="isDocumentationModalOpen" @close="handleCloseDocs" />
 
-        <TheMediaGalleryModal
+        <TheBuilderMediaGalleryModal
             :visible="isMediaGalleryModalOpen"
             :context="mediaGalleryContext"
             @close="handleCloseMediaGallery"
@@ -606,7 +606,7 @@ onBeforeUnmount(() => {
             @confirm="handleRestoreDraft"
         />
 
-        <TheImageResolverModal
+        <TheBuilderMediaImageResolverModal
             :is-open="isImageResolverModalOpen"
             :state="imageResolverState"
             @confirm="handleImageResolverConfirm"

@@ -18,7 +18,7 @@ export interface IBlockRenderContext {
     getChildComponents: (c: BricksComponent) => BricksComponent[];
 }
 
-/** Контекст биндинга на канвасе (из CanvasItemLayout) */
+/** Контекст биндинга на канвасе (из BuilderCanvasItemLayout) */
 export interface IBlockCanvasContext {
     component: BricksComponent;
     layoutProps: Record<string, unknown>; // уже resolved по viewport

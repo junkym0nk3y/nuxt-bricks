@@ -34,8 +34,8 @@ import BricksTooltip from '../../ui/tooltip/BricksTooltip.vue';
 import BricksTooltipHint from '../../ui/tooltip/BricksTooltipHint.vue';
 
 const TheTextEditorModal = defineAsyncComponent(() => import('./TheTextEditorModal.vue'));
-const TiptapImageFloatPopover = defineAsyncComponent(
-    () => import('./TiptapImageFloatPopover.vue')
+const TextEditorImageFloatPopover = defineAsyncComponent(
+    () => import('./TextEditorImageFloatPopover.vue')
 );
 // #endregion
 
@@ -450,7 +450,7 @@ onBeforeUnmount(() => {
                         :class="$style.editor"
                     />
 
-                    <TiptapImageFloatPopover :editor="editor" />
+                    <TextEditorImageFloatPopover :editor="editor" />
 
                     <BricksTooltip bottom :class="$style.expandButtonWrapper">
                         <template #activator>

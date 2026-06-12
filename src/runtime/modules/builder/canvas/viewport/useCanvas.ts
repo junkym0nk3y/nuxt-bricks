@@ -75,7 +75,7 @@ export function useCanvas() {
     });
 
     // CSS-трансформация обёртки Figma Mode — без rem-компенсации,
-    // т.к. у каждого viewport своя компенсация (применяется в CanvasViewport)
+    // т.к. у каждого viewport своя компенсация (применяется в BuilderCanvasViewport)
     const figmaBaseTransform = computed(() => {
         return `scale(${canvasStore.scale})`;
     });

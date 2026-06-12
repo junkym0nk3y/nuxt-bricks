@@ -101,7 +101,7 @@ const SYSTEM_ICONS: Record<string, any> = {
     'ph:x-circle': PhXCircle,
     'gl:close': MdClose,
 
-    // PublishedPageCard / Modal
+    // BuilderPublishPageCard / Modal
     'md:preview': MdPreview,
     'cl:note-edit': ClNoteEdit,
     'md:outlined-delete-sweep': MdOutlinedDeleteSweep,

@@ -75,7 +75,7 @@ export function useCanvasItemLayout(props: ICanvasItemProps) {
     const canvasStore = useCanvasStore();
     const injectedViewport = inject(CANVAS_VIEWPORT_KEY, null);
 
-    /** В Figma mode — per-viewport от CanvasViewport, в обычном — от TheCanvas (fallback — store) */
+    /** В Figma mode — per-viewport от BuilderCanvasViewport, в обычном — от TheBuilderCanvas (fallback — store) */
     const effectiveViewport = computed<TBricksDeviceKey>(
         () => injectedViewport?.value ?? canvasStore.viewport
     );

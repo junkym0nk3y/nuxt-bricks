@@ -10,7 +10,7 @@ import { useRouter } from '#imports';
 import { usePublishStore } from '../stores/publish';
 
 // Components
-import ThePublishedPagesModal from '../components/ThePublishedPagesModal.vue';
+import TheBuilderPublishPagesModal from '../components/TheBuilderPublishPagesModal.vue';
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
 // #endregion
 
@@ -76,7 +76,7 @@ async function handleEdit(pageId: string): Promise<void> {
             </div>
         </div>
 
-        <ThePublishedPagesModal
+        <TheBuilderPublishPagesModal
             :is-open="isPublishedPagesModalOpen"
             @close="handleClosePages"
             @edit="handleEdit"
