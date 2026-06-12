@@ -17,8 +17,8 @@ import { useBricksConfig } from '../../../../common/composables/useBricksConfig'
 import { usePublishValidationSchema } from '../composables/usePublishValidationSchema';
 
 // Pinia
-import { usePublishStore } from '../../../stores/publish';
-import { useComponentsStore } from '../../../stores/components';
+import { usePublishStore } from '../../../publish/stores/publish';
+import { useComponentsStore } from '../../../core/stores/components';
 
 // Components
 import BricksInput from '../../../../ui/inputs/BricksInput.vue';

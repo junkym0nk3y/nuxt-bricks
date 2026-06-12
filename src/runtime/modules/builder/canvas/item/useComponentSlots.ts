@@ -7,7 +7,7 @@ import type { ISlotRenderData, IUseComponentSlotsReturn } from '../types/composa
 import { computed, ref, watch } from 'vue';
 
 // Pinia
-import { useComponentsStore } from '../../stores/components';
+import { useComponentsStore } from '../../core/stores/components';
 
 // Composables
 import { useStoryImports } from '../../../common/composables/useStoryImports';

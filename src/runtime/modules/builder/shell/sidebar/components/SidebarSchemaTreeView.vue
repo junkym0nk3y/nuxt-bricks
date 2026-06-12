@@ -8,19 +8,19 @@ import type { IBrickValues } from '../../../../common/types/index';
 import { computed, nextTick } from 'vue';
 
 // Pinia
-import { useComponentsStore } from '../../../stores/components';
-import { useCanvasStore } from '../../../stores/canvas';
+import { useComponentsStore } from '../../../core/stores/components';
+import { useCanvasStore } from '../../../core/stores/canvas';
 
 // Composables
 import { useStoryImports } from '../../../../common/composables/useStoryImports';
-import { useComponentProperties } from '../../../composables/useComponentProperties';
+import { useComponentProperties } from '../../../core/composables/useComponentProperties';
 
 // Utils
-import { getLayoutProperties } from '../../../utils/layoutProperties';
-import { scrollToComponentOnCanvas } from '../../../utils/scrollToComponent';
+import { getLayoutProperties } from '../../../core/utils/layoutProperties';
+import { scrollToComponentOnCanvas } from '../../../core/utils/scrollToComponent';
 
 // Constants
-import { LAYOUT_COMPONENTS } from '../../../constants/layoutComponents';
+import { LAYOUT_COMPONENTS } from '../../../core/constants/layoutComponents';
 
 // Components
 import SidebarSchemaTreeItem from './SidebarSchemaTreeItem.vue';

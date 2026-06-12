@@ -229,17 +229,17 @@ export default defineNuxtModule<IBricksModuleOptions>({
                 {
                     name: 'bricks-builder',
                     path: '/builder',
-                    file: resolve(runtimeDir, 'modules/builder/pages/builder.vue'),
+                    file: resolve(runtimeDir, 'modules/builder/app/pages/builder.vue'),
                     children: [
                         {
                             name: 'bricks-builder-index',
                             path: '',
-                            file: resolve(runtimeDir, 'modules/builder/pages/index.vue'),
+                            file: resolve(runtimeDir, 'modules/builder/publish/pages/index.vue'),
                         },
                         {
                             name: 'bricks-builder-pagename',
                             path: ':pagename',
-                            file: resolve(runtimeDir, 'modules/builder/pages/[pagename].vue'),
+                            file: resolve(runtimeDir, 'modules/builder/app/pages/[pagename].vue'),
                         },
                     ],
                 },

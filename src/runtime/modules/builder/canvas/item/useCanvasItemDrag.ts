@@ -5,7 +5,7 @@ import type { ComponentLibraryItem } from '../../../common/types/brick';
 import type { ComputedRef } from 'vue';
 
 // Pinia
-import { useCanvasStore } from '../../stores/canvas';
+import { useCanvasStore } from '../../core/stores/canvas';
 
 // Utils
 import { convertPxToRem } from '../../../common/utils/main';

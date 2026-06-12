@@ -7,7 +7,7 @@ import type { ComponentLibraryItem } from '../../../../common/types/brick';
 import { computed, ref } from 'vue';
 
 // Utils
-import { loadFavoritesFromStorage } from '../../../stores/actions/favorites';
+import { loadFavoritesFromStorage } from '../../../core/stores/actions/favorites';
 
 // Components
 import SidebarComponentCard from './SidebarComponentCard.vue';

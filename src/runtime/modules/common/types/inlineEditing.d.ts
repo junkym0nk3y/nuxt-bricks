@@ -1,6 +1,6 @@
 /**
  * Контракт inline editing — разрывает циклический type-импорт
- * builder/utils/inlineEditableProp ↔ editor/stores/inlineEditing.
+ * builder/core/utils/inlineEditableProp ↔ editor/stores/inlineEditing.
  */
 
 /**

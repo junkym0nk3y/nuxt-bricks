@@ -10,10 +10,10 @@ import { ref, computed, inject, provide, onMounted, onBeforeUnmount, nextTick, w
 import { useDebounceFn } from '@vueuse/core';
 
 // Pinia
-import { useComponentsStore } from '../../stores/components';
-import { useCanvasStore } from '../../stores/canvas';
-import { useSidebarStore } from '../../stores/sidebar';
-import { usePublishStore } from '../../stores/publish';
+import { useComponentsStore } from '../../core/stores/components';
+import { useCanvasStore } from '../../core/stores/canvas';
+import { useSidebarStore } from '../../core/stores/sidebar';
+import { usePublishStore } from '../../publish/stores/publish';
 
 // Composables
 import { useCanvas } from '../viewport/useCanvas';
@@ -26,7 +26,7 @@ import { convertPxToRem } from '../../../common/utils/main';
 
 // Constants
 import { CANVAS_VIEWPORT_KEY } from '../../../common/constants/injectionKeys';
-import { scrollToComponentOnCanvas } from '../../utils/scrollToComponent';
+import { scrollToComponentOnCanvas } from '../../core/utils/scrollToComponent';
 
 // Components
 import CanvasItem from '../item/CanvasItem.vue';

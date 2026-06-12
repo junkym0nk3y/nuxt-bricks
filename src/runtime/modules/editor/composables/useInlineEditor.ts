@@ -15,7 +15,7 @@ import {
 } from 'vue';
 
 // Pinia
-import { useComponentsStore } from '../../builder/stores/components';
+import { useComponentsStore } from '../../builder/core/stores/components';
 import {
     useInlineEditingStore,
     type InlineEditingPropType,

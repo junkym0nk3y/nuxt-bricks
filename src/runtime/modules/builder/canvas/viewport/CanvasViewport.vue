@@ -8,9 +8,9 @@ import type { IDeviceVisibilityConfig } from '../../../common/types/brick';
 import { computed, ref, inject, provide, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
 
 // Pinia
-import { useComponentsStore } from '../../stores/components';
-import { useCanvasStore } from '../../stores/canvas';
-import { usePublishStore } from '../../stores/publish';
+import { useComponentsStore } from '../../core/stores/components';
+import { useCanvasStore } from '../../core/stores/canvas';
+import { usePublishStore } from '../../publish/stores/publish';
 
 // Composables
 import { useBricksConfig } from '../../../common/composables/useBricksConfig';

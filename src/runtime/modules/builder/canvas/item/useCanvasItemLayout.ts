@@ -8,8 +8,8 @@ import type { IItemStyle, ICanvasItemProps } from '../types/components';
 import { computed, inject } from 'vue';
 
 // Pinia
-import { useComponentsStore } from '../../stores/components';
-import { useCanvasStore } from '../../stores/canvas';
+import { useComponentsStore } from '../../core/stores/components';
+import { useCanvasStore } from '../../core/stores/canvas';
 
 // Utils
 import { resolveBlockProps } from '../../../layouts-blocks/registry';

@@ -24,8 +24,8 @@ import { useNuxtApp } from 'nuxt/app';
 
 // Pinia
 import { useInlineEditingStore } from '../../../editor/stores/inlineEditing';
-import { useCanvasStore } from '../../stores/canvas';
-import { useComponentsStore } from '../../stores/components';
+import { useCanvasStore } from '../../core/stores/canvas';
+import { useComponentsStore } from '../../core/stores/components';
 
 // Composables
 import { useBricksConfig } from '../../../common/composables/useBricksConfig';

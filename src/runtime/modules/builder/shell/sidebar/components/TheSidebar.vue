@@ -8,9 +8,9 @@ import type { IMediaItem, TMediaGalleryContext } from '../../../../common/types/
 import { computed, ref } from 'vue';
 
 // Pinia
-import { useComponentsStore } from '../../../stores/components';
-import { useSidebarStore } from '../../../stores/sidebar';
-import { usePublishStore } from '../../../stores/publish';
+import { useComponentsStore } from '../../../core/stores/components';
+import { useSidebarStore } from '../../../core/stores/sidebar';
+import { usePublishStore } from '../../../publish/stores/publish';
 
 // Components
 import SidebarComponentsView from './SidebarComponentsView.vue';

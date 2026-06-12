@@ -6,7 +6,7 @@ import type { TViewportType } from '../types/components';
 import { computed } from 'vue';
 
 // Pinia
-import { useCanvasStore } from '../../stores/canvas';
+import { useCanvasStore } from '../../core/stores/canvas';
 
 // Composables
 import { useBricksConfig } from '../../../common/composables/useBricksConfig';

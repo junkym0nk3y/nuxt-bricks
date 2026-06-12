@@ -19,7 +19,7 @@ import {
 } from 'vue';
 
 // Pinia
-import { useComponentsStore } from '../../../stores/components';
+import { useComponentsStore } from '../../../core/stores/components';
 
 // Components
 import BricksTooltip from '../../../../ui/tooltip/BricksTooltip.vue';

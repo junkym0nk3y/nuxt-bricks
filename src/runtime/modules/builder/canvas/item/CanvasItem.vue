@@ -10,8 +10,8 @@ import { computed, ref, inject, provide, watch } from 'vue';
 import { useElementBounding } from '@vueuse/core';
 
 // Pinia
-import { useComponentsStore } from '../../stores/components';
-import { useCanvasStore } from '../../stores/canvas';
+import { useComponentsStore } from '../../core/stores/components';
+import { useCanvasStore } from '../../core/stores/canvas';
 
 // Composables
 import { useCanvasItemLayout } from '../item/useCanvasItemLayout';

@@ -12,7 +12,7 @@ import BricksButton from '../../../../ui/base/button/BricksButton.vue';
 import BricksActionButton from '../../../../ui/base/action-button/BricksActionButton.vue';
 import BricksTooltip from '../../../../ui/tooltip/BricksTooltip.vue';
 import BricksTooltipHint from '../../../../ui/tooltip/BricksTooltipHint.vue';
-import BuilderLogo from '../../../components/BuilderLogo.vue';
+import BuilderLogo from '../../../core/components/BuilderLogo.vue';
 // #endregion
 
 // #region Props

@@ -18,8 +18,8 @@ import type {
 import { computed, defineAsyncComponent, ref, watch, type Component } from 'vue';
 
 // Pinia
-import { useComponentsStore } from '../../../stores/components';
-import { useCanvasStore } from '../../../stores/canvas';
+import { useComponentsStore } from '../../../core/stores/components';
+import { useCanvasStore } from '../../../core/stores/canvas';
 
 // Composables
 import { usePropertyVariants } from './usePropertyVariants';
@@ -39,7 +39,7 @@ import { normalizeDeviceVisibility } from '../../../../common/utils/bricks/devic
 import { getBlockDefinition } from '../../../../layouts-blocks/registry';
 
 // Constants
-import { LAYOUT_COMPONENTS } from '../../../constants/layoutComponents';
+import { LAYOUT_COMPONENTS } from '../../../core/constants/layoutComponents';
 // #endregion
 
 /**

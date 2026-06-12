@@ -7,7 +7,7 @@ import type { BricksComponent } from '../../../../common/types/brick';
 import { computed, ref } from 'vue';
 
 // Pinia
-import { useComponentsStore } from '../../../stores/components';
+import { useComponentsStore } from '../../../core/stores/components';
 // #endregion
 
 // #region Interfaces

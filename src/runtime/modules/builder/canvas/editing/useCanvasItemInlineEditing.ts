@@ -11,18 +11,18 @@ import { useEventListener } from '@vueuse/core';
 
 // Pinia
 import { useInlineEditingStore } from '../../../editor/stores/inlineEditing';
-import { useCanvasStore } from '../../stores/canvas';
+import { useCanvasStore } from '../../core/stores/canvas';
 
 // Composables
 import { useStoryImports } from '../../../common/composables/useStoryImports';
 
 // Utils
-import { getLayoutProperties } from '../../utils/layoutProperties';
+import { getLayoutProperties } from '../../core/utils/layoutProperties';
 import {
     findAllInlineEditableLayoutProps,
     findAllInlineEditableStoryProps,
     type IInlineEditableProp,
-} from '../../utils/inlineEditableProp';
+} from '../../core/utils/inlineEditableProp';
 // #endregion
 
 /**
