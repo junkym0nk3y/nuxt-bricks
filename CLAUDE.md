@@ -320,6 +320,6 @@ Markdown-статьи во встроенной документации бил�
 
 **Критические нюансы:**
 
-- **`normalizePublishedPage` дублируется** в `builder/publish/stores/publish.ts` и `middleware/bricks-page-layout.global.ts` — обновлять **обе** копии при добавлении полей
+- **`normalizePublishedPage`** (с `isBricksSchema`, `preserveSchema`) — единая копия в `common/utils/bricks/publishedPage.ts`, используется store'ом и middleware; новые поля добавлять только там
 - **`validateOptionalRoutingFields`** — отдельный action в store, чтобы не превышать complexity (max 20)
 - Preview (`?preview=true`) не проверяет subdomain

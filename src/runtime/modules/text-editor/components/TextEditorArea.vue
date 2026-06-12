@@ -3,7 +3,6 @@
 // Types
 import type { Editor } from '@tiptap/vue-3';
 import type { ITextEditorAreaProps, ITextEditorAreaEmits } from './types.d.ts';
-import type { IToolbarGroup } from '../../ui/inputs/textEditorToolbar.d.ts';
 
 // Vue
 import {
@@ -15,18 +14,15 @@ import {
     shallowRef,
     useCssModule,
     watch,
-    watchEffect,
     type Component,
 } from 'vue';
 
-// Nuxt
-import { useNuxtApp } from 'nuxt/app';
-
 // Utils
 import { createTiptapEditor } from '../utils/createTiptapEditor';
+import { insertMediaIntoEditor } from '../utils/insertMediaIntoEditor';
 
 // Composables
-import { useBricksConfig } from '../../common/composables/useBricksConfig';
+import { useToolbarStateSync } from '../composables/useToolbarStateSync';
 
 // Pinia
 import { useInlineEditingStore } from '../stores/inlineEditing';
@@ -59,22 +55,11 @@ const emit = defineEmits<ITextEditorAreaEmits>();
 // #endregion
 
 // #region Data
-const { $textEditorToolbar } = useNuxtApp();
-const config = useBricksConfig();
 const inlineEditingStore = useInlineEditingStore();
 const $style = useCssModule();
 const innerValue = ref<string>(props.value ?? '');
 const isClient = ref(false);
 const loadingError = ref<unknown | null>(null);
-const currentFontSize = ref<string>('1.6rem');
-const currentFontWeight = ref<string>('');
-const currentColor = ref<string>('#000000');
-const currentFontFamily = ref<string>('');
-const currentLineHeight = ref<string>('');
-const currentLetterSpacing = ref<string>('');
-
-/** Счётчик транзакций для реактивного обновления toolbar */
-const editorTransactionCount = ref<number>(0);
 
 const isCodeView = ref(false);
 const isDarkEditorBackground = ref(false);
@@ -82,8 +67,9 @@ const isExpandedModalOpen = ref(false);
 const editor = shallowRef<Editor | null>(null);
 const EditorContentComponent = shallowRef<Component | null>(null);
 
-const availableFonts = computed(() => config.fonts ?? []);
-
+const { toolbarGroups } = useToolbarStateSync(editor, {
+    isEnabled: () => props.useRichEditor !== false && isClient.value,
+});
 // #endregion
 
 // #region Computed
@@ -111,31 +97,6 @@ const editorWrapperClasses = computed(() => [
         [$style._darkPreview]: isDarkEditorBackground.value,
     },
 ]);
-
-/**
- * Конфигурация toolbar групп из плагина
- */
-const toolbarGroups = computed<IToolbarGroup[]>(() => {
-    if (
-        props.useRichEditor === false ||
-        !editor.value ||
-        !isClient.value ||
-        editorTransactionCount.value < 0
-    ) {
-        return [];
-    }
-
-    return $textEditorToolbar.createToolbarConfig({
-        editor: editor.value,
-        availableFonts: availableFonts.value,
-        currentFontSize,
-        currentFontWeight,
-        currentColor,
-        currentFontFamily,
-        currentLineHeight,
-        currentLetterSpacing,
-    });
-});
 
 const isToolbarVisible = computed(
     () =>
@@ -252,19 +213,7 @@ function handleRequestImage(): void {
     }
 
     const ed = editor.value;
-    inlineEditingStore.requestMedia((item) => {
-        if (item.mimeType.startsWith('video/')) {
-            ed.chain().focus().setVideo({ src: item.url }).run();
-        } else {
-            ed.chain()
-                .focus()
-                .setImage({
-                    src: item.url,
-                    alt: item.alt || item.filename,
-                })
-                .run();
-        }
-    });
+    inlineEditingStore.requestMedia((item) => insertMediaIntoEditor(ed, item));
 }
 
 /**
@@ -296,33 +245,6 @@ async function initEditor(): Promise<void> {
     }
 }
 // #endregion
-
-/**
- * Подписывается на TipTap-транзакции для синхронизации toolbar state с курсором.
- */
-watchEffect((onCleanup) => {
-    const ed = editor.value;
-    if (!ed) {
-        return;
-    }
-
-    function handleTransaction(): void {
-        editorTransactionCount.value++;
-        $textEditorToolbar.syncToolbarState(ed!, {
-            currentFontSize,
-            currentFontWeight,
-            currentColor,
-            currentFontFamily,
-            currentLineHeight,
-            currentLetterSpacing,
-        });
-    }
-
-    ed.on('transaction', handleTransaction);
-    onCleanup(() => {
-        ed.off('transaction', handleTransaction);
-    });
-});
 
 onMounted(() => {
     isClient.value = true;

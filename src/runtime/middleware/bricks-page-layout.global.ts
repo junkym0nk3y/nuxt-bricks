@@ -1,93 +1,11 @@
 import type { LayoutKey } from '#build/types/layouts';
 import { defineNuxtRouteMiddleware, useNuxtApp, setPageLayout } from '#app';
 import { createError, useState, useRequestHeaders } from '#imports';
-import type { BricksSchema } from '../modules/common/types/brick';
 import type { IPublishedPageSummary, IPublishedPage } from '../modules/common/types/bricks-api';
 import { normalizeBricksError } from '../modules/common/utils/main';
 import { useApiClient } from '../modules/common/composables/useApiClient';
 import { toCamelCase } from '../modules/common/utils/case-transform';
-
-const DEFAULT_BACKGROUND_COLOR = '#FFFFFF';
-const DEFAULT_LAYOUT = 'default';
-
-/**
- * Проверяет, что значение похоже на BricksSchema.
- *
- * @param value - Проверяемое значение.
- */
-function isBricksSchema(value: unknown): value is BricksSchema {
-    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-        return false;
-    }
-
-    const record = value as Record<string, unknown>;
-    return Array.isArray(record.components);
-}
-
-/**
- * Нормализует схему: гарантирует наличие components, сохраняет meta если не пуста.
- *
- * @param schema - Схема лендинга.
- * @returns Нормализованная схема.
- */
-function preserveSchema(schema: BricksSchema | null | undefined): BricksSchema {
-    if (!schema) {
-        return { components: [] };
-    }
-
-    const result: BricksSchema = {
-        components: schema.components ?? [],
-    };
-
-    if (schema.meta && Object.keys(schema.meta).length > 0) {
-        result.meta = schema.meta;
-    }
-
-    return result;
-}
-
-/**
- * Нормализует ответ API в форму IPublishedPage.
- * Конвертирует snake_case ключи из Django backend в camelCase, но не трогает `schema`.
- *
- * @param rawPage - Данные страницы из API (может быть в snake_case).
- * @returns Нормализованная опубликованная страница.
- */
-function normalizePublishedPage(rawPage: unknown): IPublishedPage {
-    const rawRecord: Record<string, unknown> =
-        typeof rawPage === 'object' && rawPage !== null && !Array.isArray(rawPage)
-            ? (rawPage as Record<string, unknown>)
-            : {};
-
-    const rawSchema = rawRecord.schema;
-    const rest: Record<string, unknown> = { ...rawRecord };
-    delete rest.schema;
-
-    const page = toCamelCase<Partial<IPublishedPage>>(rest);
-    const schema = isBricksSchema(rawSchema) ? rawSchema : { components: [] };
-
-    const createdAt = page.createdAt ?? '';
-    const updatedAt = page.updatedAt ?? createdAt;
-
-    return {
-        id: page.id as number,
-        pagename: page.pagename as string,
-        title: page.title ?? '',
-        description: page.description ?? '',
-        keywords: page.keywords ?? '',
-        backgroundColor: page.backgroundColor ?? DEFAULT_BACKGROUND_COLOR,
-        // Страницы, опубликованные до ребрендинга, могут хранить layout 'landing'
-        layout: page.layout === 'landing' ? 'bricks' : (page.layout ?? DEFAULT_LAYOUT),
-        socialImage: page.socialImage ?? '',
-        urlPrefix: page.urlPrefix ?? null,
-        subdomain: page.subdomain ?? null,
-        schema: preserveSchema(schema),
-        published: Boolean(page.published),
-        createdAt,
-        updatedAt,
-        isPreview: page.isPreview,
-    };
-}
+import { normalizePublishedPage } from '../modules/common/utils/bricks/publishedPage';
 
 /**
  * Middleware для динамической установки layout на основе данных из БД.

@@ -9,6 +9,9 @@ import type {
     IUseBuilderPageReturn,
 } from '../types/composables';
 
+// Utils
+import { setPublishStoreBackgroundColor } from '../../publish/utils/formState';
+
 // Vue
 import { computed, onUnmounted, provide, reactive, ref, watch } from 'vue';
 
@@ -27,7 +30,7 @@ import { useSchemaImageResolver } from '../../media/composables/useSchemaImageRe
 import { useComponentsStore } from '../../core/stores/components';
 import { useSidebarStore } from '../../core/stores/sidebar';
 import { useHistoryStore } from '../../core/stores/history';
-import { usePublishStore, setPublishStoreBackgroundColor } from '../../publish/stores/publish';
+import { usePublishStore } from '../../publish/stores/publish';
 
 // Constants
 import { LAYOUT_COMPONENTS } from '../../core/constants/layoutComponents';

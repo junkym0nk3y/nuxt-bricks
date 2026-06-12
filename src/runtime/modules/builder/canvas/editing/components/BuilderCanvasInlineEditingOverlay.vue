@@ -1,26 +1,13 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IToolbarGroup } from '../../../../ui/inputs/textEditorToolbar.d.ts';
 import type { Editor } from '@tiptap/vue-3';
 
 // Vue
-import {
-    computed,
-    ref,
-    shallowRef,
-    watch,
-    watchEffect,
-    useCssModule,
-    nextTick,
-    type Component,
-} from 'vue';
+import { computed, ref, shallowRef, watch, useCssModule, nextTick, type Component } from 'vue';
 
 // VueUse
 import { useElementBounding, useResizeObserver } from '@vueuse/core';
-
-// Nuxt
-import { useNuxtApp } from 'nuxt/app';
 
 // Pinia
 import { useInlineEditingStore } from '../../../../text-editor/stores/inlineEditing';
@@ -29,9 +16,10 @@ import { useComponentsStore } from '../../../core/stores/components';
 
 // Utils
 import { createTiptapEditor } from '../../../../text-editor/utils/createTiptapEditor';
+import { insertMediaIntoEditor } from '../../../../text-editor/utils/insertMediaIntoEditor';
 
 // Composables
-import { useBricksConfig } from '../../../../common/composables/useBricksConfig';
+import { useToolbarStateSync } from '../../../../text-editor/composables/useToolbarStateSync';
 
 // Components
 import BricksTextEditorToolbar from '../../../../ui/inputs/BricksTextEditorToolbar.vue';
@@ -43,8 +31,6 @@ const $style = useCssModule();
 const inlineEditingStore = useInlineEditingStore();
 const canvasStore = useCanvasStore();
 const componentsStore = useComponentsStore();
-const config = useBricksConfig();
-const { $textEditorToolbar } = useNuxtApp();
 
 const overlayRef = ref<HTMLElement | null>(null);
 
@@ -70,19 +56,14 @@ const dragOffset = ref({ x: 0, y: 0 });
 /** Флаг активного перетаскивания */
 const isDragging = ref(false);
 
-/** Состояния для toolbar selects — используются в createToolbarConfig */
-const currentFontSize = ref<string>('1.6rem');
-const currentFontWeight = ref<string>('');
-const currentColor = ref<string>('#000000');
-const currentFontFamily = ref<string>('');
-const currentLineHeight = ref<string>('');
-const currentLetterSpacing = ref<string>('');
-
 /**
- * Счётчик транзакций TipTap для форсирования ре-рендера toolbar
- * (чтобы isActive() кнопок обновлялись при смене выделения/курсора).
+ * Toolbar-синк с TipTap-транзакциями: состояние selects + конфигурация групп.
+ * Группы пустые вне textarea-типа (тулбар показывается только для него).
  */
-const editorTransactionCount = ref<number>(0);
+const { toolbarGroups, resetToolbarState } = useToolbarStateSync(
+    () => inlineEditingStore.editor,
+    { isEnabled: () => inlineEditingStore.propType === 'textarea' }
+);
 
 /**
  * Fallback TipTap editor — создаётся overlay, когда ни один layout-компонент
@@ -147,37 +128,6 @@ const fallbackWrapperClasses = computed(() => [
         [$style._darkPreview]: isDarkEditorBackground.value,
     },
 ]);
-
-/**
- * Доступные шрифты из конфига.
- */
-const availableFonts = computed<string[]>(() => config.fonts || []);
-
-/**
- * Конфигурация групп тулбара.
- * Зависит от editorTransactionCount для ре-рендера при смене выделения.
- */
-const toolbarGroups = computed<IToolbarGroup[]>(() => {
-    const ed = inlineEditingStore.editor;
-
-    // Включаем счётчик транзакций в условие — это создаёт реактивную зависимость,
-    // чтобы computed пересчитывался при каждой транзакции редактора (обновление isActive()).
-    // editorTransactionCount никогда не уходит в минус, поэтому поведение не меняется.
-    if (!ed || inlineEditingStore.propType !== 'textarea' || editorTransactionCount.value < 0) {
-        return [];
-    }
-
-    return $textEditorToolbar.createToolbarConfig({
-        editor: ed,
-        availableFonts: availableFonts.value,
-        currentFontSize,
-        currentFontWeight,
-        currentColor,
-        currentFontFamily,
-        currentLineHeight,
-        currentLetterSpacing,
-    });
-});
 
 /**
  * Fixed стили позиционирования overlay.
@@ -259,13 +209,7 @@ watch(
             return;
         }
 
-        // Сброс toolbar state
-        currentFontSize.value = '1.6rem';
-        currentFontWeight.value = '';
-        currentColor.value = '#000000';
-        currentFontFamily.value = '';
-        currentLineHeight.value = '';
-        currentLetterSpacing.value = '';
+        resetToolbarState();
 
         // Переинициализация fallback editor при переключении свойства
         if (!isFallbackMode.value || !inlineEditingStore.isEditing) {
@@ -311,34 +255,6 @@ watch(
         }, 300);
     }
 );
-
-/**
- * Подписывается на TipTap-транзакции для обновления состояний тулбара.
- * watchEffect автоматически очищает предыдущий listener при смене editor.
- */
-watchEffect((onCleanup) => {
-    const ed = inlineEditingStore.editor;
-    if (!ed) {
-        return;
-    }
-
-    function handleTransaction(): void {
-        editorTransactionCount.value++;
-        $textEditorToolbar.syncToolbarState(ed!, {
-            currentFontSize,
-            currentFontWeight,
-            currentColor,
-            currentFontFamily,
-            currentLineHeight,
-            currentLetterSpacing,
-        });
-    }
-
-    ed.on('transaction', handleTransaction);
-    onCleanup(() => {
-        ed.off('transaction', handleTransaction);
-    });
-});
 // #endregion
 
 // #region Methods
@@ -503,19 +419,7 @@ function handleRequestImage(): void {
         return;
     }
 
-    inlineEditingStore.requestMedia((item) => {
-        if (item.mimeType.startsWith('video/')) {
-            ed.chain().focus().setVideo({ src: item.url }).run();
-        } else {
-            ed.chain()
-                .focus()
-                .setImage({
-                    src: item.url,
-                    alt: item.alt || item.filename,
-                })
-                .run();
-        }
-    });
+    inlineEditingStore.requestMedia((item) => insertMediaIntoEditor(ed, item));
 }
 // #endregion
 </script>

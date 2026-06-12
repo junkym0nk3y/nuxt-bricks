@@ -52,9 +52,9 @@ export interface IPublishedPageSummary {
 
 export interface ICreatePagePayload {
     pagename: string;
-    title?: string;
-    description?: string;
-    keywords?: string;
+    title?: string | null;
+    description?: string | null;
+    keywords?: string | null;
     socialImage?: string | null;
     layout?: string | null;
     backgroundColor?: string | null;

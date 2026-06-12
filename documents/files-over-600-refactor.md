@@ -242,6 +242,66 @@ flex/section/slider — свои `updateDropIndicator`.
 Верификация: oxlint чисто, vue-tsc без новых ошибок. Ручная проверка drag&drop — TODO
 перед коммитом.
 
+### ✅ Шаг 3 (D5) — `normalizePublishedPage` → common — 2026-06-12
+
+Создан `common/utils/bricks/publishedPage.ts`: `isBricksSchema`, `preserveSchema`,
+`normalizePublishedPage(rawPage, defaultBackgroundColor?)` + экспорт констант
+`DEFAULT_BACKGROUND_COLOR`/`DEFAULT_LAYOUT`. Обе копии удалены; store и middleware
+импортируют util. CLAUDE.md обновлён (ловушка «обновлять обе копии» снята).
+
+**Сознательные унификации при слиянии копий (расхождения версий):**
+- вход — `unknown` с проверкой record (строгая версия из middleware); store раньше
+  принимал `Partial<IPublishedPage>` — вызовы совместимы;
+- дефолтный фон — параметром: store передаёт `resolveDefaultBackgroundColor()`
+  (кэш app config), middleware использует дефолт `#FFFFFF` — поведение обоих сохранено;
+- `isPreview` теперь прокидывается и в store-пути (раньше только в middleware) —
+  поле опциональное, `TPublishFormState` его исключает, на формы не влияет.
+
+publish.ts 887→818, middleware 205→123. Верификация: oxlint чисто; vue-tsc — без новых ошибок
+(`LayoutKey` из `#build/types/layouts` в middleware — pre-existing, есть на чистом дереве).
+
+### ✅ Шаг 4 (D2+D3) — toolbar-sync + insertMedia — 2026-06-12
+
+Созданы:
+- `text-editor/composables/useToolbarStateSync.ts` (138 строк) — шесть refs состояния
+  + `editorTransactionCount` + watchEffect-подписка на `transaction` + computed
+  `toolbarGroups` (`createToolbarConfig`); `useBricksConfig`/`useNuxtApp` вызываются
+  внутри. Принимает `MaybeRefOrGetter<Editor | null>` (shallowRef компонента или getter
+  store), опция `isEnabled` — внешний guard видимости; экспортирует `resetToolbarState()`;
+- `text-editor/utils/insertMediaIntoEditor.ts` — ветвление image/video → `setImage`/`setVideo`.
+
+Переведены **3** файла (план обещал 2–3 — модалка тоже дублировала оба блока):
+TextEditorArea.vue 698→552, TheTextEditorModal.vue 457→374,
+BuilderCanvasInlineEditingOverlay.vue 850→693 (−386 строк суммарно).
+Из всех трёх ушли `$textEditorToolbar`/`useBricksConfig`/`availableFonts`; сброс
+toolbar state в overlay при смене `propName` — через `resetToolbarState()`.
+
+Верификация: oxlint чисто, vue-tsc — 0 ошибок по изменённым файлам. Ручная проверка
+toolbar (выделение/курсор-синк selects, вставка медиа в трёх редакторах) — TODO перед коммитом.
+
+### ✅ Шаг 5 — publish.ts → utils (п.2) — 2026-06-12
+
+Созданы `builder/publish/utils/`:
+- `formState.ts` — кэш `cachedBackgroundColor` + `setPublishStoreBackgroundColor` (импорт
+  в `useBuilderPage.ts` обновлён на utils), `resolveDefaultBackgroundColor`,
+  `buildDefaultFormState`, `normalizeFormState`;
+- `requestErrors.ts` — `formatRequestError`, `toRequestError`;
+- `draftStorage.ts` — `buildBuilderDraftKey` (приватный) + `get/set/remove/migrateBuilderDraft`
+  как чистые функции над localStorage; actions стора — однострочные обёртки
+  (API стора сохранён, вызывающие не тронуты — [pagename].vue перейдёт на utils в шаге 6);
+- `pagePayload.ts` — `buildPagePayload(schema, formState): ICreatePagePayload` (camelCase),
+  store шлёт `toSnakeCaseShallow(buildPagePayload(...))` — снят snake_case-дубль
+  publishPage/updatePage и переиспользован существующий `case-transform`.
+
+**Сознательная правка типов:** `ICreatePagePayload.title/description/keywords` расширены до
+`string | null` — старый inline-body уже отправлял null (`TPublishFormState` наследует
+null от `IPublishedPage`), сервер делает `payload.title ?? null`; тип приведён к реальности.
+
+publish.ts 818→614 (до ~450 не дошёл: в сторе остались обёртки c JSDoc и настоящая
+логика — валидация, copy, preview; module-level хелперов больше нет).
+Верификация: oxlint чисто, vue-tsc — 0 ошибок по изменённым файлам (остались только
+pre-existing из «Заметок»). Ручная проверка публикации/черновиков — TODO перед коммитом.
+
 ### Заметки / всплывшее по ходу
 
 - **Pre-existing ошибки vue-tsc на main** (не из рефакторинга, починить отдельно):

@@ -5,210 +5,22 @@ import type {
     IPublishedPageSummary,
     IPublishedPage,
     TPublishFormState,
-    TRequestErrorLike,
 } from '../../../common/types/bricks-api';
 import type { IBuilderDraftEntry } from '../types/builderDrafts';
 import { useApiClient } from '../../../common/composables/useApiClient';
-import { toCamelCase, toSnakeCaseShallow } from '../../../common/utils/case-transform';
-
-const DEFAULT_BACKGROUND_COLOR = '#FFFFFF';
-const DEFAULT_LAYOUT = 'default';
-
-/**
- * Проверяет, что значение похоже на BricksSchema.
- *
- * @param value - Проверяемое значение.
- */
-function isBricksSchema(value: unknown): value is BricksSchema {
-    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-        return false;
-    }
-
-    const record = value as Record<string, unknown>;
-    return Array.isArray(record.components);
-}
-
-/**
- * Кэш цвета фона из app config (устанавливается из Vue контекста).
- */
-let cachedBackgroundColor: string | null = null;
-
-/**
- * Устанавливает кэшированный цвет фона из app config.
- * Вызывать из Vue setup контекста (например, в useBuilderPage).
- *
- * @param color - Цвет фона из конфига.
- */
-export function setPublishStoreBackgroundColor(color: string): void {
-    cachedBackgroundColor = color;
-}
-
-/**
- * Возвращает цвет фона из кэша или дефолт.
- *
- * @returns Цвет фона по умолчанию.
- */
-function resolveDefaultBackgroundColor(): string {
-    return cachedBackgroundColor || DEFAULT_BACKGROUND_COLOR;
-}
-
-/**
- * Собирает дефолтное состояние формы публикации с учётом конфигурации.
- *
- * @returns Дефолтное состояние формы публикации.
- */
-function buildDefaultFormState(): TPublishFormState {
-    const backgroundColor = resolveDefaultBackgroundColor();
-
-    return {
-        pagename: '',
-        title: '',
-        description: '',
-        keywords: '',
-        published: false,
-        backgroundColor,
-        layout: DEFAULT_LAYOUT,
-        socialImage: '',
-        urlPrefix: null,
-        subdomain: null,
-        createdAt: '',
-        updatedAt: '',
-    };
-}
-
-/**
- * Стабилизирует состояние формы публикации: заполняет отсутствующие поля дефолтами.
- *
- * @param formState - Произвольное состояние формы (например из localStorage).
- * @returns Полная структура TPublishFormState.
- */
-function normalizeFormState(formState: Partial<TPublishFormState>): TPublishFormState {
-    const defaults = buildDefaultFormState();
-
-    return {
-        ...defaults,
-        ...formState,
-        pagename: formState.pagename ?? defaults.pagename,
-        title: formState.title ?? defaults.title,
-        description: formState.description ?? defaults.description,
-        keywords: formState.keywords ?? defaults.keywords,
-        published: Boolean(formState.published),
-        backgroundColor: formState.backgroundColor ?? defaults.backgroundColor,
-        layout: formState.layout ?? defaults.layout,
-        socialImage: formState.socialImage ?? defaults.socialImage,
-        urlPrefix: formState.urlPrefix ?? null,
-        subdomain: formState.subdomain ?? null,
-        createdAt: formState.createdAt ?? defaults.createdAt,
-        updatedAt: formState.updatedAt ?? defaults.updatedAt,
-    };
-}
-
-/**
- * Формирует ключ localStorage для черновика билдера.
- *
- * @param pagename - ЧПУ страницы.
- * @returns Ключ для localStorage.
- */
-function buildBuilderDraftKey(pagename: string): string {
-    return `bricks-builder:draft:${pagename}`;
-}
-
-/**
- * Нормализует схему: гарантирует наличие components, сохраняет meta если не пуста.
- *
- * @param schema - Схема лендинга.
- * @returns Нормализованная схема.
- */
-function preserveSchema(schema: BricksSchema | null | undefined): BricksSchema {
-    if (!schema) {
-        return { components: [] };
-    }
-
-    const result: BricksSchema = {
-        components: schema.components ?? [],
-    };
-
-    if (schema.meta && Object.keys(schema.meta).length > 0) {
-        result.meta = schema.meta;
-    }
-
-    return result;
-}
-
-/**
- * Нормализует ответ API в форму IPublishedPage.
- * Конвертирует snake_case ключи из Django backend в camelCase, но не трогает `schema`.
- *
- * @param rawPage - Данные страницы из API (может быть в snake_case).
- * @returns Нормализованная опубликованная страница в camelCase.
- */
-function normalizePublishedPage(rawPage: Partial<IPublishedPage>): IPublishedPage {
-    // Конвертируем snake_case → camelCase, но schema оставляем как есть (это пользовательский JSON)
-    const rawRecord = rawPage as Record<string, unknown>;
-    const rawSchema = rawRecord.schema;
-    const rest: Record<string, unknown> = { ...rawRecord };
-    delete rest.schema;
-    const page = toCamelCase<Partial<IPublishedPage>>(rest);
-
-    const backgroundColor: string = page.backgroundColor ?? resolveDefaultBackgroundColor();
-    // Страницы, опубликованные до ребрендинга, могут хранить layout 'landing'
-    const rawLayout: string = page.layout ?? DEFAULT_LAYOUT;
-    const layout: string = rawLayout === 'landing' ? 'bricks' : rawLayout;
-    const createdAt = page.createdAt ?? '';
-    const updatedAt = page.updatedAt ?? createdAt;
-    const schema = isBricksSchema(rawSchema) ? rawSchema : { components: [] };
-
-    return {
-        id: page.id as number,
-        pagename: page.pagename as string,
-        title: page.title ?? '',
-        description: page.description ?? '',
-        keywords: page.keywords ?? '',
-        backgroundColor,
-        layout,
-        socialImage: page.socialImage ?? '',
-        urlPrefix: page.urlPrefix ?? null,
-        subdomain: page.subdomain ?? null,
-        schema: preserveSchema(schema),
-        published: Boolean(page.published),
-        createdAt,
-        updatedAt,
-    };
-}
-
-/**
- * Форматирует ошибку запроса в человекочитаемое сообщение.
- *
- * @param method - HTTP-метод.
- * @param url - URL запроса.
- * @param error - Исходная ошибка.
- */
-function formatRequestError(method: string, url: string, error: unknown): string {
-    const payload = (error ?? {}) as TRequestErrorLike;
-    const message =
-        payload.data?.message ||
-        payload.message ||
-        (error instanceof Error ? error.message : 'Неизвестная ошибка');
-    const code = payload.data?.code || payload.code || payload.statusCode;
-    const codePart = code ? ` (code: ${String(code)})` : '';
-
-    return `${method} ${url}: ${message}${codePart}`;
-}
-
-/**
- * Приводит произвольную ошибку к Error с понятным текстом.
- *
- * @param method - HTTP-метод.
- * @param url - URL запроса.
- * @param error - Исходная ошибка.
- */
-function toRequestError(method: string, url: string, error: unknown): Error {
-    if (error instanceof Error && error.message.includes('/api/')) {
-        return error;
-    }
-
-    return new Error(formatRequestError(method, url, error));
-}
+import { toSnakeCaseShallow } from '../../../common/utils/case-transform';
+import {
+    DEFAULT_LAYOUT,
+    normalizePublishedPage,
+} from '../../../common/utils/bricks/publishedPage';
+import {
+    buildDefaultFormState,
+    normalizeFormState,
+    resolveDefaultBackgroundColor,
+} from '../utils/formState';
+import { toRequestError } from '../utils/requestErrors';
+import { buildPagePayload } from '../utils/pagePayload';
+import * as draftStorage from '../utils/draftStorage';
 
 /**
  * Pinia-стор для публикации, черновиков и загрузки страниц лендинга.
@@ -256,22 +68,7 @@ export const usePublishStore = defineStore('bricksPublish', {
          * @param pagename - ЧПУ страницы.
          */
         getBuilderDraft(pagename: string): IBuilderDraftEntry | null {
-            if (typeof window === 'undefined') {
-                return null;
-            }
-
-            const key = buildBuilderDraftKey(pagename);
-            const raw = window.localStorage.getItem(key);
-            if (!raw) {
-                return null;
-            }
-
-            try {
-                return JSON.parse(raw) as IBuilderDraftEntry;
-            } catch (error) {
-                console.warn('[Publish Store] Failed to parse builder draft:', { key, error });
-                return null;
-            }
+            return draftStorage.getBuilderDraft(pagename);
         },
 
         /**
@@ -280,30 +77,7 @@ export const usePublishStore = defineStore('bricksPublish', {
          * @param draft - Данные черновика.
          */
         setBuilderDraft(draft: IBuilderDraftEntry): void {
-            if (typeof window === 'undefined') {
-                return;
-            }
-
-            const normalized: IBuilderDraftEntry = {
-                ...draft,
-                draftSnapshot: {
-                    schema: draft.draftSnapshot.schema,
-                    formState: normalizeFormState(draft.draftSnapshot.formState),
-                },
-                savedSnapshot: draft.savedSnapshot
-                    ? {
-                          schema: draft.savedSnapshot.schema,
-                          formState: normalizeFormState(draft.savedSnapshot.formState),
-                      }
-                    : undefined,
-            };
-
-            const key = buildBuilderDraftKey(draft.pagename);
-            try {
-                window.localStorage.setItem(key, JSON.stringify(normalized));
-            } catch (error) {
-                console.warn('[Publish Store] Failed to save builder draft:', { key, error });
-            }
+            draftStorage.setBuilderDraft(draft);
         },
 
         /**
@@ -312,12 +86,7 @@ export const usePublishStore = defineStore('bricksPublish', {
          * @param pagename - ЧПУ страницы.
          */
         removeBuilderDraft(pagename: string): void {
-            if (typeof window === 'undefined') {
-                return;
-            }
-
-            const key = buildBuilderDraftKey(pagename);
-            window.localStorage.removeItem(key);
+            draftStorage.removeBuilderDraft(pagename);
         },
 
         /**
@@ -327,30 +96,7 @@ export const usePublishStore = defineStore('bricksPublish', {
          * @param toPagename - Новый pagename.
          */
         migrateBuilderDraft(fromPagename: string, toPagename: string): void {
-            if (typeof window === 'undefined') {
-                return;
-            }
-
-            const fromKey = buildBuilderDraftKey(fromPagename);
-            const toKey = buildBuilderDraftKey(toPagename);
-
-            if (fromKey === toKey) {
-                return;
-            }
-
-            const raw = window.localStorage.getItem(fromKey);
-            if (!raw) {
-                return;
-            }
-
-            try {
-                const parsed = JSON.parse(raw) as IBuilderDraftEntry;
-                parsed.pagename = toPagename;
-                window.localStorage.setItem(toKey, JSON.stringify(parsed));
-                window.localStorage.removeItem(fromKey);
-            } catch (error) {
-                console.warn('[Publish Store] Failed to migrate builder draft:', { error });
-            }
+            draftStorage.migrateBuilderDraft(fromPagename, toPagename);
         },
 
         /**
@@ -376,19 +122,7 @@ export const usePublishStore = defineStore('bricksPublish', {
                     '/api/bricks/',
                     {
                         method: 'POST',
-                        body: {
-                            pagename: formState.pagename,
-                            title: formState.title,
-                            description: formState.description,
-                            keywords: formState.keywords,
-                            social_image: formState.socialImage || null,
-                            background_color: formState.backgroundColor || DEFAULT_BACKGROUND_COLOR,
-                            layout: formState.layout || DEFAULT_LAYOUT,
-                            url_prefix: formState.urlPrefix || null,
-                            subdomain: formState.subdomain || null,
-                            schema: preserveSchema(schema),
-                            published: formState.published,
-                        },
+                        body: toSnakeCaseShallow(buildPagePayload(schema, formState)),
                     }
                 );
 
@@ -422,19 +156,7 @@ export const usePublishStore = defineStore('bricksPublish', {
             try {
                 await apiFetcher(`/api/bricks/${id}/`, {
                     method: 'PUT',
-                    body: {
-                        pagename: formState.pagename,
-                        title: formState.title,
-                        description: formState.description,
-                        keywords: formState.keywords,
-                        social_image: formState.socialImage || null,
-                        background_color: formState.backgroundColor || DEFAULT_BACKGROUND_COLOR,
-                        layout: formState.layout || DEFAULT_LAYOUT,
-                        url_prefix: formState.urlPrefix || null,
-                        subdomain: formState.subdomain || null,
-                        schema: preserveSchema(schema),
-                        published: formState.published,
-                    },
+                    body: toSnakeCaseShallow(buildPagePayload(schema, formState)),
                 });
 
                 console.log('[Publish Store] Page updated successfully');
@@ -463,7 +185,10 @@ export const usePublishStore = defineStore('bricksPublish', {
                     body: toSnakeCaseShallow(payload),
                 });
 
-                const normalized = normalizePublishedPage(response);
+                const normalized = normalizePublishedPage(
+                    response,
+                    resolveDefaultBackgroundColor()
+                );
 
                 const index = this.publishedPages.findIndex(
                     (page) => String(page.id) === String(id)
@@ -519,7 +244,9 @@ export const usePublishStore = defineStore('bricksPublish', {
 
             try {
                 const response = await apiFetcher<IPublishedPage[]>('/api/bricks/');
-                this.publishedPages = response.map((page) => normalizePublishedPage(page));
+                this.publishedPages = response.map((page) =>
+                    normalizePublishedPage(page, resolveDefaultBackgroundColor())
+                );
             } catch (error: unknown) {
                 const requestError = toRequestError('GET', '/api/bricks', error);
                 this.generalError = requestError.message;
@@ -552,7 +279,7 @@ export const usePublishStore = defineStore('bricksPublish', {
 
                 errorUrl = `/api/bricks/${publishedPage.id}`;
                 const page = await apiFetcher<IPublishedPage>(`/api/bricks/${publishedPage.id}/`);
-                return normalizePublishedPage(page);
+                return normalizePublishedPage(page, resolveDefaultBackgroundColor());
             } catch (error: unknown) {
                 const requestError = toRequestError('GET', errorUrl, error);
                 this.generalError = requestError.message;
