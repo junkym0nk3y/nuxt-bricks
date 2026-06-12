@@ -10,6 +10,36 @@ import type { usePublishStore } from '../../publish/stores/publish';
 import type { IMediaItem, TMediaGalleryContext } from '../../../common/types/media';
 import type { ISidebarExpose } from './builder';
 import type { IImageResolverState, TImageResolveAction } from '../../media/types/schemaImageResolver';
+import type { IBuilderDraftSnapshot } from '../../publish/types/builderDrafts';
+
+/**
+ * Функция показа toast-уведомления билдера.
+ */
+export type TShowToast = (
+    message: string,
+    variant?: 'success' | 'error',
+    duration?: number
+) => void;
+
+// #region useBuilderSession / useBuilderDraftPersistence
+/**
+ * Опции composable useBuilderSession.
+ */
+export interface IBuilderSessionOptions {
+    routePagename: ComputedRef<string>;
+    showToast: TShowToast;
+}
+
+/**
+ * Опции composable useBuilderDraftPersistence.
+ */
+export interface IBuilderDraftPersistenceOptions {
+    routePagename: ComputedRef<string>;
+    isSessionLoading: Ref<boolean>;
+    savedSnapshot: Ref<IBuilderDraftSnapshot | null>;
+    buildCurrentSnapshot: () => IBuilderDraftSnapshot;
+}
+// #endregion
 
 // #region useBuilderPage
 /**
@@ -51,7 +81,7 @@ export interface IUseBuilderPageReturn {
     leftSidebarOffset: ComputedRef<string>;
     currentPublishPageTitle: ComputedRef<string>;
     handleKeyDown: (event: KeyboardEvent) => void;
-    showToast: (message: string, variant?: 'success' | 'error', duration?: number) => void;
+    showToast: TShowToast;
     handleToggleLibrary: () => void;
     handleToggleProperties: () => void;
     handleToggleSchema: () => void;

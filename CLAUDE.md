@@ -35,7 +35,7 @@ npx oxlint <changed-file>
 
 - `ui/` — Reka UI-кит (base/inputs/feedback/tooltip, общие типы в `types/`)
 - `builder/` — редактор целиком, поддомены:
-    - `app/` — composition root: `pages/` (builder.vue, [pagename].vue), `components/` (TheBuilderLoader), `composables/` (useBuilderPage, useModals, useDraggableComponent), `types/`
+    - `app/` — composition root: `pages/` (builder.vue, [pagename].vue), `components/` (TheBuilderLoader), `composables/` (фасад useBuilderPage + useBuilderSession/DraftPersistence/PagenameSync, useComponentLibrary, useBuilderShortcuts, useBuilderToast, usePreviewSync, useModals, useDraggableComponent), `utils/` (storySlots), `types/`
     - `core/` — ядро состояния: `stores/` (components + actions/, canvas, sidebar, history, navigation, componentActions), `utils/`, `constants/`, `composables/` (useComponentProperties), `components/` (BuilderLogo)
     - `shell/` — рамка редактора: `sidebar/` (components + property-editors/, composables, utils, types), `toolbar/` (чисто презентационный)
     - `canvas/` — слайсы `viewport/`, `item/`, `editing/` (каждый — `components/` + `composables/`) + общий `types/`

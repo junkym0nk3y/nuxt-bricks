@@ -6,7 +6,6 @@ import type {
     IPublishedPage,
     TPublishFormState,
 } from '../../../common/types/bricks-api';
-import type { IBuilderDraftEntry } from '../types/builderDrafts';
 import { useApiClient } from '../../../common/composables/useApiClient';
 import { toSnakeCaseShallow } from '../../../common/utils/case-transform';
 import {
@@ -20,7 +19,6 @@ import {
 } from '../utils/formState';
 import { toRequestError } from '../utils/requestErrors';
 import { buildPagePayload } from '../utils/pagePayload';
-import * as draftStorage from '../utils/draftStorage';
 
 /**
  * Pinia-стор для публикации, черновиков и загрузки страниц лендинга.
@@ -62,43 +60,6 @@ export const usePublishStore = defineStore('bricksPublish', {
     },
 
     actions: {
-        /**
-         * Возвращает черновик билдера из localStorage.
-         *
-         * @param pagename - ЧПУ страницы.
-         */
-        getBuilderDraft(pagename: string): IBuilderDraftEntry | null {
-            return draftStorage.getBuilderDraft(pagename);
-        },
-
-        /**
-         * Сохраняет черновик билдера в localStorage.
-         *
-         * @param draft - Данные черновика.
-         */
-        setBuilderDraft(draft: IBuilderDraftEntry): void {
-            draftStorage.setBuilderDraft(draft);
-        },
-
-        /**
-         * Удаляет черновик билдера.
-         *
-         * @param pagename - ЧПУ страницы.
-         */
-        removeBuilderDraft(pagename: string): void {
-            draftStorage.removeBuilderDraft(pagename);
-        },
-
-        /**
-         * Переносит черновик билдера на новый pagename.
-         *
-         * @param fromPagename - Старый pagename.
-         * @param toPagename - Новый pagename.
-         */
-        migrateBuilderDraft(fromPagename: string, toPagename: string): void {
-            draftStorage.migrateBuilderDraft(fromPagename, toPagename);
-        },
-
         /**
          * Полностью заменяет состояние формы публикации (например, при восстановлении черновика).
          *

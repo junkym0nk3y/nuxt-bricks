@@ -1,28 +1,24 @@
 // #region Imports
 // Types
-import type { ComponentLibraryItem, BricksSchema } from '../../../common/types/brick';
+import type { BricksSchema } from '../../../common/types/brick';
 import type { IMediaItem, TMediaGalleryContext } from '../../../common/types/media';
 import type { ISidebarExpose } from '../types/builder';
-import type {
-    IBuilderToastState,
-    IInlineMediaBridge,
-    IUseBuilderPageReturn,
-} from '../types/composables';
+import type { IInlineMediaBridge, IUseBuilderPageReturn } from '../types/composables';
 
 // Utils
 import { setPublishStoreBackgroundColor } from '../../publish/utils/formState';
+import { removeBuilderDraft } from '../../publish/utils/draftStorage';
 
 // Vue
-import { computed, onUnmounted, provide, reactive, ref, watch } from 'vue';
-
-// Nuxt
-import { useAsyncData } from '#imports';
+import { computed, provide, ref, watch } from 'vue';
 
 // Composables
-import { useApiClient } from '../../../common/composables/useApiClient';
-import { useStoryImports } from '../../../common/composables/useStoryImports';
 import { useComponentLibraryDrag } from './useDraggableComponent';
 import { useModals } from './useModals';
+import { useComponentLibrary } from './useComponentLibrary';
+import { useBuilderShortcuts } from './useBuilderShortcuts';
+import { useBuilderToast } from './useBuilderToast';
+import { usePreviewSync } from './usePreviewSync';
 import { useBricksConfig } from '../../../common/composables/useBricksConfig';
 import { useSchemaImageResolver } from '../../media/composables/useSchemaImageResolver';
 
@@ -31,9 +27,6 @@ import { useComponentsStore } from '../../core/stores/components';
 import { useSidebarStore } from '../../core/stores/sidebar';
 import { useHistoryStore } from '../../core/stores/history';
 import { usePublishStore } from '../../publish/stores/publish';
-
-// Constants
-import { LAYOUT_COMPONENTS } from '../../core/constants/layoutComponents';
 // #endregion
 
 /**
@@ -50,7 +43,6 @@ export async function useBuilderPage(
     const sidebarStore = useSidebarStore();
     const historyStore = useHistoryStore();
     const publishStore = usePublishStore();
-    const { findImportModule } = useStoryImports();
     const dragComposable = useComponentLibraryDrag();
     const { loadModals } = useModals();
     const bricksConfig = useBricksConfig();
@@ -65,91 +57,10 @@ export async function useBuilderPage(
     loadModals();
 
     const imageResolver = useSchemaImageResolver();
-    // #endregion
-
-    // #region Preview sync
-    let previewBroadcastChannel: BroadcastChannel | null = null;
-    let previewSyncTimer: ReturnType<typeof setTimeout> | null = null;
-    let previewPagename = '';
-
-    /**
-     * Отправляет актуальную схему канваса в открытую вкладку превью через BroadcastChannel.
-     * Параллельно обновляет localStorage, чтобы перезагрузка вкладки показывала свежие данные.
-     */
-    function sendPreviewSchemaUpdate(): void {
-        if (!previewBroadcastChannel || !previewPagename) {
-            return;
-        }
-
-        const schema = componentsStore.exportSchema();
-
-        if (typeof window !== 'undefined') {
-            try {
-                const stored = window.localStorage.getItem('bricks-preview-page');
-                if (stored) {
-                    const parsed = JSON.parse(stored) as Record<string, unknown>;
-                    if (parsed.pagename === previewPagename) {
-                        parsed.schema = schema;
-                        window.localStorage.setItem('bricks-preview-page', JSON.stringify(parsed));
-                    }
-                }
-            } catch {
-                // ignore storage errors
-            }
-        }
-
-        previewBroadcastChannel.postMessage({
-            type: 'schema-update',
-            pagename: previewPagename,
-            schema,
-        });
-    }
-
-    /**
-     * Открывает BroadcastChannel для синхронизации preview-вкладки.
-     *
-     * @param pagename - ЧПУ страницы, открытой в превью.
-     */
-    function startPreviewSync(pagename: string): void {
-        if (!import.meta.client) {
-            return;
-        }
-
-        previewPagename = pagename;
-
-        if (!previewBroadcastChannel) {
-            previewBroadcastChannel = new BroadcastChannel('bricks-preview-sync');
-        }
-    }
-
-    // Отправляем обновления схемы в preview при изменении компонентов на канвасе (debounce 300ms)
-    watch(
-        () => componentsStore.components,
-        () => {
-            if (!previewBroadcastChannel) {
-                return;
-            }
-
-            if (previewSyncTimer) {
-                clearTimeout(previewSyncTimer);
-            }
-
-            previewSyncTimer = setTimeout(() => {
-                sendPreviewSchemaUpdate();
-                previewSyncTimer = null;
-            }, 300);
-        },
-        { deep: true }
-    );
-
-    onUnmounted(() => {
-        if (previewSyncTimer) {
-            clearTimeout(previewSyncTimer);
-            previewSyncTimer = null;
-        }
-        previewBroadcastChannel?.close();
-        previewBroadcastChannel = null;
-    });
+    const { startPreviewSync } = usePreviewSync();
+    const { handleKeyDown } = useBuilderShortcuts();
+    const { toast, showToast } = useBuilderToast();
+    const { componentLibraryList } = await useComponentLibrary();
     // #endregion
 
     // #region State
@@ -158,133 +69,9 @@ export async function useBuilderPage(
     const isMediaGalleryModalOpen = ref(false);
     const mediaGalleryContext = ref<TMediaGalleryContext>('manager');
     const sidebarRef = ref<ISidebarExpose | null>(null);
-    const toast = reactive<IBuilderToastState>({
-        visible: false,
-        message: '',
-        variant: 'success',
-        duration: 4000,
-    });
-    // #endregion
-
-    // #region Helpers
-    /**
-     * Извлекает определения слотов из данных story.
-     *
-     * @param storyData - Данные story компонента.
-     * @returns Нормализованный массив слотов или undefined.
-     */
-    function extractStorySlots(storyData: any) {
-        const rawSlots = storyData?.slots;
-        if (!rawSlots) {
-            return undefined;
-        }
-
-        if (Array.isArray(rawSlots)) {
-            const normalized = rawSlots
-                .map((slot: any) => {
-                    if (typeof slot === 'string') {
-                        return {
-                            name: slot,
-                            label: slot,
-                            allowMultiple: true,
-                        };
-                    }
-                    if (slot && typeof slot === 'object' && typeof slot.name === 'string') {
-                        return {
-                            name: slot.name,
-                            label: slot.label ?? slot.name,
-                            description: slot.description,
-                            allowMultiple:
-                                typeof slot.allowMultiple === 'boolean' ? slot.allowMultiple : true,
-                        };
-                    }
-                    return null;
-                })
-                .filter(Boolean);
-            return normalized.length > 0 ? normalized : undefined;
-        }
-
-        if (typeof rawSlots === 'object') {
-            const entries = Object.entries(rawSlots).map(([name, config]) => {
-                if (config && typeof config === 'object') {
-                    return {
-                        name,
-                        label: (config as any).label ?? name,
-                        description: (config as any).description,
-                        allowMultiple:
-                            typeof (config as any).allowMultiple === 'boolean'
-                                ? (config as any).allowMultiple
-                                : true,
-                    };
-                }
-                return {
-                    name,
-                    label: name,
-                    allowMultiple: true,
-                };
-            });
-            return entries.length > 0 ? entries : undefined;
-        }
-
-        return undefined;
-    }
-    // #endregion
-
-    // #region Async data
-    const componentLibrary = await useAsyncData<(ComponentLibraryItem | null)[] | null>(
-        'bricks-components',
-        async () => {
-            const { apiFetcher } = useApiClient();
-            const response = await apiFetcher<{ stories: any[] }>('/mock-api/bricks-components/');
-            const stories = response?.stories || [];
-
-            const componentsWithMeta = await Promise.all(
-                stories.map(async (story: any) => {
-                    try {
-                        const moduleLoader = findImportModule(story.storyPath);
-                        if (!moduleLoader) {
-                            console.error(`[BricksBuilder] No loader for ${story.storyPath}`);
-                            return null;
-                        }
-
-                        const module = await moduleLoader();
-                        const storyData = module?.story || {};
-                        const values = storyData.values || {};
-                        const slots = extractStorySlots(storyData);
-                        const defaultProps = Object.entries(values).reduce(
-                            (acc: Record<string, unknown>, [key, val]: [string, any]) => {
-                                acc[key] = val.default;
-                                return acc;
-                            },
-                            {}
-                        );
-
-                        return {
-                            name: story.name,
-                            category: story.category || storyData.category || 'Other',
-                            storyPath: story.storyPath,
-                            description: storyData.description,
-                            thumbnail: '',
-                            defaultProps,
-                            slots,
-                        } as ComponentLibraryItem;
-                    } catch (error) {
-                        console.error(`[BricksBuilder] Failed loading ${story.name}`, error);
-                        return null;
-                    }
-                })
-            );
-
-            return [...LAYOUT_COMPONENTS, ...componentsWithMeta.filter(Boolean)];
-        }
-    );
     // #endregion
 
     // #region Computed
-    const componentLibraryList = computed<ComponentLibraryItem[]>(() => {
-        const list = componentLibrary.data.value;
-        return (Array.isArray(list) ? list : []).filter(Boolean) as ComponentLibraryItem[];
-    });
     const isEditingExistingPage = computed(() => publishStore.editingPageId !== null);
     const hasSelectedComponent = computed(() => Boolean(componentsStore.selectedComponent));
     const leftSidebarOffset = computed(() =>
@@ -294,163 +81,6 @@ export async function useBuilderPage(
         const { title, pagename } = publishStore.currentFormState;
         return (title ?? '').trim() || (pagename ?? '').trim() || '';
     });
-    // #endregion
-
-    // #region Toast helpers
-    /**
-     * Показывает toast с сообщением и вариантом.
-     *
-     * @param message - Текст уведомления.
-     * @param variant - Тип уведомления.
-     */
-    function showToast(message: string, variant: 'success' | 'error' = 'success'): void {
-        toast.message = message;
-        toast.variant = variant;
-        toast.duration = 4000;
-        toast.visible = false;
-
-        requestAnimationFrame(() => {
-            toast.visible = true;
-        });
-    }
-
-    /**
-     * Показывает toast с произвольной длительностью.
-     *
-     * @param message - Текст уведомления.
-     * @param variant - Тип уведомления.
-     * @param duration - Длительность показа (мс).
-     */
-    function showToastWithDuration(
-        message: string,
-        variant: 'success' | 'error' = 'success',
-        duration = 4000
-    ): void {
-        toast.message = message;
-        toast.variant = variant;
-        toast.duration = duration;
-        toast.visible = false;
-
-        requestAnimationFrame(() => {
-            toast.visible = true;
-        });
-    }
-
-    /**
-     * Гарантирует видимость панели настроек публикации.
-     * Всегда открывает панель публикации при ошибках валидации, чтобы подсветить поля.
-     *
-     * @param _message - Сообщение об ошибке (не используется напрямую).
-     */
-    function ensurePublishSettingsVisible(_message: string): void {
-        handleOpenPublishSettings();
-    }
-    // #endregion
-
-    // #region Keyboard shortcuts
-    /**
-     * Проверяет, следует ли игнорировать событие клавиатуры.
-     * Игнорируются события в полях ввода, текстовых областях и редактируемых элементах.
-     *
-     * @param target - HTML-элемент, на котором произошло событие.
-     * @returns true, если событие следует игнорировать.
-     */
-    function shouldIgnoreKeyEvent(target: HTMLElement): boolean {
-        return (
-            target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
-        );
-    }
-
-    /**
-     * Обрабатывает горячую клавишу удаления компонента (Delete/Backspace).
-     *
-     * @param event - Событие клавиатуры.
-     * @returns true, если событие было обработано.
-     */
-    function handleDeleteShortcut(event: KeyboardEvent): boolean {
-        if (event.key !== 'Delete' && event.key !== 'Backspace') {
-            return false;
-        }
-        if (!componentsStore.selectedComponent) {
-            return false;
-        }
-        event.preventDefault();
-        componentsStore.removeComponent(componentsStore.selectedComponent.id);
-        return true;
-    }
-
-    /**
-     * Обрабатывает горячую клавишу копирования компонента (Ctrl/Cmd+C).
-     *
-     * @param event - Событие клавиатуры.
-     * @returns true, если событие было обработано.
-     */
-    function handleCopyShortcut(event: KeyboardEvent): boolean {
-        if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'c') {
-            return false;
-        }
-        if (!componentsStore.selectedComponent) {
-            return false;
-        }
-        event.preventDefault();
-        componentsStore.copyComponentToClipboard(componentsStore.selectedComponent.id);
-        return true;
-    }
-
-    /**
-     * Обрабатывает горячую клавишу вставки компонента (Ctrl/Cmd+V).
-     *
-     * @param event - Событие клавиатуры.
-     * @returns true, если событие было обработано.
-     */
-    function handlePasteShortcut(event: KeyboardEvent): boolean {
-        if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'v') {
-            return false;
-        }
-        event.preventDefault();
-        componentsStore.pasteFromClipboard();
-        return true;
-    }
-
-    /**
-     * Обрабатывает горячие клавиши отмены/повтора действий (Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z).
-     *
-     * @param event - Событие клавиатуры.
-     */
-    function handleUndoRedoShortcut(event: KeyboardEvent): void {
-        if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'z') {
-            return;
-        }
-        event.preventDefault();
-        if (event.shiftKey) {
-            componentsStore.redo();
-            return;
-        }
-        componentsStore.undo();
-    }
-
-    /**
-     * Главный обработчик событий клавиатуры.
-     * Делегирует обработку специализированным функциям в зависимости от нажатой клавиши.
-     *
-     * @param event - Событие клавиатуры.
-     */
-    function handleKeyDown(event: KeyboardEvent): void {
-        const target = event.target as HTMLElement;
-        if (shouldIgnoreKeyEvent(target)) {
-            return;
-        }
-        if (handleDeleteShortcut(event)) {
-            return;
-        }
-        if (handleCopyShortcut(event)) {
-            return;
-        }
-        if (handlePasteShortcut(event)) {
-            return;
-        }
-        handleUndoRedoShortcut(event);
-    }
     // #endregion
 
     // #region Sidebar toggles
@@ -498,6 +128,16 @@ export async function useBuilderPage(
             }
         }
         sidebarStore.toggleSidebarView('publish');
+    }
+
+    /**
+     * Гарантирует видимость панели настроек публикации.
+     * Всегда открывает панель публикации при ошибках валидации, чтобы подсветить поля.
+     *
+     * @param _message - Сообщение об ошибке (не используется напрямую).
+     */
+    function ensurePublishSettingsVisible(_message: string): void {
+        handleOpenPublishSettings();
     }
 
     /**
@@ -553,7 +193,7 @@ export async function useBuilderPage(
 
             const currentPagename = publishStore.currentFormState.pagename;
             if (currentPagename) {
-                publishStore.removeBuilderDraft(currentPagename);
+                removeBuilderDraft(currentPagename);
 
                 // Синхронизируем URL с актуальным pagename после сохранения
                 const currentUrl = window.location.pathname;
@@ -752,7 +392,7 @@ export async function useBuilderPage(
         const resolved = await imageResolver.startResolving(schema);
         if (resolved) {
             componentsStore.loadSchema(resolved, { resetHistory: true });
-            showToastWithDuration('Схема импортирована', 'success');
+            showToast('Схема импортирована', 'success');
         }
     }
     // #endregion
@@ -773,7 +413,7 @@ export async function useBuilderPage(
         leftSidebarOffset,
         currentPublishPageTitle,
         handleKeyDown,
-        showToast: showToastWithDuration,
+        showToast,
         handleToggleLibrary,
         handleToggleProperties,
         handleToggleSchema,

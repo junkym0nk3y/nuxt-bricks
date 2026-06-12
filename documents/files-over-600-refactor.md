@@ -302,6 +302,38 @@ publish.ts 818→614 (до ~450 не дошёл: в сторе остались 
 Верификация: oxlint чисто, vue-tsc — 0 ошибок по изменённым файлам (остались только
 pre-existing из «Заметок»). Ручная проверка публикации/черновиков — TODO перед коммитом.
 
+### ✅ Шаг 6 — useBuilderPage (п.4) + [pagename].vue (п.10) — 2026-06-12
+
+**useBuilderPage.ts 805→445** — стал фасадом. Созданы в `app/composables/`:
+- `usePreviewSync.ts` (100) — BroadcastChannel + debounce-watch + cleanup; наружу только `startPreviewSync`;
+- `useBuilderShortcuts.ts` (119) — все shortcut-хендлеры; наружу `handleKeyDown` (подписка — на странице);
+- `useComponentLibrary.ts` (83) — `useAsyncData('bricks-components')` + `componentLibraryList`;
+  `extractStorySlots` → `app/utils/storySlots.ts` (типизирован `ComponentSlotDefinition[]`);
+- `useBuilderToast.ts` (43) — D6: `showToast`/`showToastWithDuration` слиты в один
+  `showToast(message, variant = 'success', duration = 4000)`; API фасада не изменился
+  (возврат `showToast` и раньше указывал на вариант с duration).
+
+**[pagename].vue 651→345** — по правилу «композаблы в pages/ запрещены» логика в `app/composables/`:
+- `useBuilderSession.ts` (195) — `openBuilderSession`, draft-модалка, `savedSnapshot`,
+  `buildCurrentSnapshot`, watch routePagename/lastSuccessfulSaveAt; `EMPTY_SCHEMA` уехал сюда;
+- `useBuilderDraftPersistence.ts` (102) — persist/schedule + debounce 800ms, cleanup в
+  `onBeforeUnmount` внутри композабла; опции `{ routePagename, isSessionLoading, savedSnapshot,
+  buildCurrentSnapshot }` (типы опций — в `app/types/composables.d.ts`);
+- `useBuilderPagenameSync.ts` (80) — debounce 600ms URL-sync + миграция черновика, cleanup внутри;
+- чистые `isValidPagename`, `pickComparableFormState`, `isSnapshotEqual` →
+  `publish/utils/draftSnapshots.ts` (49).
+
+**Бонус (заметка из шага 5 закрыта):** все вызывающие переведены с store-обёрток на
+`publish/utils/draftStorage.ts` напрямую; 4 обёртки (`get/set/remove/migrateBuilderDraft`)
+удалены из publish.ts → 614→575. В `composables.d.ts` добавлен тип `TShowToast`.
+Страница осталась: meta, dark mode, computed-флаги панелей, 3 мелких хендлера, template.
+
+Верификация: oxlint чисто, vue-tsc — 0 ошибок по изменённым файлам (pre-existing
+`render/pages/[pagename].vue` — см. Заметки). Ручная проверка перед коммитом: открытие
+сессии (существующая/новая страница), restore-draft модалка, автосейв черновика,
+URL-sync при вводе pagename, превью с live-синком, hotkeys, импорт схемы, toast.
+CLAUDE.md: обновлён состав `app/` (composables + utils).
+
 ### Заметки / всплывшее по ходу
 
 - **Pre-existing ошибки vue-tsc на main** (не из рефакторинга, починить отдельно):
