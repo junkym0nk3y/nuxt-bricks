@@ -2,9 +2,9 @@
 // #region Imports
 
 // Types
-import type { IMediaItem, IMediaUpdateMetaRequest } from '../../common/types/media';
+import type { IMediaItem, IMediaUpdateMetaRequest } from '../../../common/types/media';
 import type { IMediaGalleryProps, IMediaGalleryEmits } from '../types/media';
-import type { IAppConfig } from '../../common/types/config';
+import type { IAppConfig } from '../../../common/types/config';
 
 // Vue
 import { ref, computed, watch, onMounted } from 'vue';
@@ -16,11 +16,11 @@ import { useAppConfig } from 'nuxt/app';
 import { useMediaStore } from '../stores/media';
 
 // Components
-import BricksButton from '../../ui/base/button/BricksButton.vue';
-import BricksCloseButton from '../../ui/base/modal/BricksCloseButton.vue';
-import BricksModal from '../../ui/base/modal/BricksModal.vue';
-import BricksToast from '../../ui/feedback/BricksToast.vue';
-import BricksConfirmModal from '../../ui/feedback/BricksConfirmModal.vue';
+import BricksButton from '../../../ui/base/button/BricksButton.vue';
+import BricksCloseButton from '../../../ui/base/modal/BricksCloseButton.vue';
+import BricksModal from '../../../ui/base/modal/BricksModal.vue';
+import BricksToast from '../../../ui/feedback/BricksToast.vue';
+import BricksConfirmModal from '../../../ui/feedback/BricksConfirmModal.vue';
 // #endregion
 
 // #region Props

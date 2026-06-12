@@ -5,7 +5,7 @@ import type {
     IValidatedImage,
     IValidatedVideo,
     TMediaOptimization,
-} from '../../../media/types/media';
+} from '../../types/media';
 import {
     getFileExtension,
     isImageFile,

@@ -9,7 +9,7 @@ import type { useHistoryStore } from '../stores/history';
 import type { usePublishStore } from '../stores/publish';
 import type { IMediaItem, TMediaGalleryContext } from '../../common/types/media';
 import type { ISidebarExpose } from './builder';
-import type { IImageResolverState, TImageResolveAction } from '../../media/types/schemaImageResolver';
+import type { IImageResolverState, TImageResolveAction } from '../media/types/schemaImageResolver';
 
 // #region useBuilderPage
 /**

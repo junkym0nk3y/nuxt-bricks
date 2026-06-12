@@ -21,7 +21,7 @@ import { useStoryImports } from '../../common/composables/useStoryImports';
 import { useComponentLibraryDrag } from './useDraggableComponent';
 import { useModals } from './useModals';
 import { useBricksConfig } from '../../common/composables/useBricksConfig';
-import { useSchemaImageResolver } from '../../media/composables/useSchemaImageResolver';
+import { useSchemaImageResolver } from '../media/composables/useSchemaImageResolver';
 
 // Pinia
 import { useComponentsStore } from '../stores/components';

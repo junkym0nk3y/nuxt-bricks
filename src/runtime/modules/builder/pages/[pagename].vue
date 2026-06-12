@@ -35,9 +35,9 @@ import TheCanvas from '../canvas/viewport/TheCanvas.vue';
 import TheBuilderLoader from '../components/TheBuilderLoader.vue';
 import ThePublishedPagesModal from '../components/modal/ThePublishedPagesModal.vue';
 import TheDocumentationModal from '../components/modal/TheDocumentationModal.vue';
-import TheMediaGalleryModal from '../../media/components/TheMediaGalleryModal.vue';
+import TheMediaGalleryModal from '../media/components/TheMediaGalleryModal.vue';
 import BricksConfirmModal from '../../ui/feedback/BricksConfirmModal.vue';
-import TheImageResolverModal from '../../media/components/TheImageResolverModal.vue';
+import TheImageResolverModal from '../media/components/TheImageResolverModal.vue';
 import BricksToast from '../../ui/feedback/BricksToast.vue';
 // #endregion
 

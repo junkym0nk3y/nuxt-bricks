@@ -4,13 +4,13 @@
 
 // #region Imports
 // Types
-import type { BricksSchema, BricksComponent } from '../../common/types/brick';
+import type { BricksSchema, BricksComponent } from '../../../common/types/brick';
 import type {
     IExtractedImageUrl,
     IImageLocation,
     TImageSourceType,
 } from '../types/schemaImageResolver';
-import type { IGalleryItem, IInlineContentSegment } from '../../common/types/content';
+import type { IGalleryItem, IInlineContentSegment } from '../../../common/types/content';
 // #endregion
 
 // #region Constants

@@ -7,9 +7,9 @@ import type { IImageResolverState, TImageResolveAction } from '../types/schemaIm
 import { computed } from 'vue';
 
 // Components
-import BricksButton from '../../ui/base/button/BricksButton.vue';
-import BricksCloseButton from '../../ui/base/modal/BricksCloseButton.vue';
-import BricksModal from '../../ui/base/modal/BricksModal.vue';
+import BricksButton from '../../../ui/base/button/BricksButton.vue';
+import BricksCloseButton from '../../../ui/base/modal/BricksCloseButton.vue';
+import BricksModal from '../../../ui/base/modal/BricksModal.vue';
 import ImageResolverItem from './ImageResolverItem.vue';
 // #endregion
 

@@ -6,7 +6,7 @@
 
 // #region Imports
 // Types
-import type { BricksSchema } from '../../common/types/brick';
+import type { BricksSchema } from '../../../common/types/brick';
 import type {
     IExtractedImageUrl,
     IImageResolverState,

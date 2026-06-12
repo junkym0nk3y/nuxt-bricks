@@ -5,7 +5,7 @@ import type {
     TFormData,
     TMediaOptimization,
     TResolvedMediaConfig,
-} from '../../../media/types/media';
+} from '../../types/media';
 // #endregion
 
 // #region Data
