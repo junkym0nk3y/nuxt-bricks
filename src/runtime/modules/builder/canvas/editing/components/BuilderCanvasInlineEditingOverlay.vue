@@ -1,13 +1,7 @@
 <script setup lang="ts">
 // #region Imports
-// Types
-import type { Editor } from '@tiptap/vue-3';
-
 // Vue
-import { computed, ref, shallowRef, watch, useCssModule, nextTick, type Component } from 'vue';
-
-// VueUse
-import { useElementBounding, useResizeObserver } from '@vueuse/core';
+import { computed, ref, watch, useCssModule } from 'vue';
 
 // Pinia
 import { useInlineEditingStore } from '../../../../text-editor/stores/inlineEditing';
@@ -15,15 +9,17 @@ import { useCanvasStore } from '../../../core/stores/canvas';
 import { useComponentsStore } from '../../../core/stores/components';
 
 // Utils
-import { createTiptapEditor } from '../../../../text-editor/utils/createTiptapEditor';
 import { insertMediaIntoEditor } from '../../../../text-editor/utils/insertMediaIntoEditor';
 
 // Composables
 import { useToolbarStateSync } from '../../../../text-editor/composables/useToolbarStateSync';
+import { useInlineEditingFallback } from '../composables/useInlineEditingFallback';
+import { useDraggableOverlay } from '../composables/useDraggableOverlay';
 
 // Components
 import BricksTextEditorToolbar from '../../../../ui/inputs/BricksTextEditorToolbar.vue';
 import TextEditorImageFloatPopover from '../../../../text-editor/components/TextEditorImageFloatPopover.vue';
+import BuilderCanvasInlineEditingHeader from './BuilderCanvasInlineEditingHeader.vue';
 // #endregion
 
 // #region Data
@@ -33,28 +29,6 @@ const canvasStore = useCanvasStore();
 const componentsStore = useComponentsStore();
 
 const overlayRef = ref<HTMLElement | null>(null);
-
-/** Размеры overlay — обновляются только при изменении размера (не при скролле) */
-const overlaySize = ref({ width: 400, height: 120 });
-
-useResizeObserver(overlayRef, (entries) => {
-    const { width, height } = entries[0].contentRect;
-    overlaySize.value = { width, height };
-});
-
-/**
- * Ref на DOM-элемент редактируемого компонента — для привязки позиции при скролле.
- * В Figma Mode несколько экземпляров одного компонента присутствуют в DOM одновременно,
- * поэтому используем элемент из стора (тот, на котором был dblclick), а не querySelector.
- */
-const editingElementRef = computed<HTMLElement | null>(() => inlineEditingStore.editingElement);
-const { top: elTop, left: elLeft } = useElementBounding(editingElementRef);
-
-/** Смещение overlay, заданное пользователем через перетаскивание */
-const dragOffset = ref({ x: 0, y: 0 });
-
-/** Флаг активного перетаскивания */
-const isDragging = ref(false);
 
 /**
  * Toolbar-синк с TipTap-транзакциями: состояние selects + конфигурация групп.
@@ -66,29 +40,31 @@ const { toolbarGroups, resetToolbarState } = useToolbarStateSync(
 );
 
 /**
- * Fallback TipTap editor — создаётся overlay, когда ни один layout-компонент
- * не инициализировал свой editor (для story-компонентов с textarea/inline-content).
- * shallowRef — TipTap Editor нельзя делать глубоко реактивным.
+ * Fallback TipTap editor для story-компонентов с textarea/inline-content:
+ * создаётся, если ни один layout-компонент не инициализировал свой editor.
  */
-const fallbackEditor = shallowRef<Editor | null>(null);
+const {
+    isFallbackMode,
+    fallbackEditor,
+    fallbackEditorContent,
+    showFallbackEditor,
+    isDarkEditorBackground,
+    toggleEditorBackground,
+    saveFallbackToStore,
+    destroyFallbackEditor,
+} = useInlineEditingFallback({ onPropSwitch: resetToolbarState });
 
 /**
- * Компонент EditorContent для рендеринга fallback-редактора в template.
+ * Перетаскивание и позиционирование overlay. В Figma Mode несколько экземпляров
+ * одного компонента присутствуют в DOM одновременно, поэтому якорь — элемент
+ * из стора (тот, на котором был dblclick), а не querySelector.
  */
-const fallbackEditorContent = shallowRef<Component | null>(null);
-
-/**
- * Флаг — используется ли fallback-редактор (overlay создал свой editor).
- */
-const isFallbackMode = ref(false);
-
-/**
- * Тёмный фон для fallback-редактора.
- */
-const isDarkEditorBackground = ref(false);
-
-/** Таймер для ожидания инициализации editor из layout-компонента */
-let fallbackInitTimer: ReturnType<typeof setTimeout> | null = null;
+const { isDragging, overlayStyle, onDragHandleMousedown } = useDraggableOverlay({
+    overlayRef,
+    anchorElement: () => inlineEditingStore.editingElement,
+    cursorOffset: () => inlineEditingStore.cursorOffset,
+    resetKey: () => inlineEditingStore.componentId,
+});
 // #endregion
 
 // #region Computed
@@ -105,16 +81,6 @@ const showToolbar = computed<boolean>(
 );
 
 /**
- * Показывать ли fallback EditorContent в overlay (для story-компонентов).
- */
-const showFallbackEditor = computed<boolean>(
-    () =>
-        isFallbackMode.value &&
-        fallbackEditor.value !== null &&
-        fallbackEditorContent.value !== null
-);
-
-/**
  * Показывать ли кнопку переключения фона (есть fallback wrapper).
  */
 const hasFallbackWrapper = computed<boolean>(() => showFallbackEditor.value);
@@ -128,53 +94,9 @@ const fallbackWrapperClasses = computed(() => [
         [$style._darkPreview]: isDarkEditorBackground.value,
     },
 ]);
-
-/**
- * Fixed стили позиционирования overlay.
- * Привязан к редактируемому элементу через useElementBounding (следует при скролле).
- * Левый край совпадает с позицией курсора в момент dblclick, верх — над курсором.
- */
-const overlayStyle = computed(() => {
-    const offset = inlineEditingStore.cursorOffset;
-    const GAP = 42;
-
-    const vw = typeof window !== 'undefined' ? window.innerWidth : 1920;
-    const vh = typeof window !== 'undefined' ? window.innerHeight : 1080;
-
-    const overlayH = overlaySize.value.height;
-    const overlayW = overlaySize.value.width;
-
-    const cursorY = elTop.value + (offset?.y ?? 0) + dragOffset.value.y;
-    const rawLeft = elLeft.value + (offset?.x ?? 0) + dragOffset.value.x;
-    const rawTop = cursorY - overlayH - GAP;
-
-    const left = Math.max(GAP, Math.min(vw - overlayW - GAP, rawLeft));
-
-    // Если overlay уходит за верхний край — размещаем ниже курсора
-    let top = rawTop < GAP ? cursorY + GAP : rawTop;
-    // Ограничиваем снизу и сверху, чтобы overlay всегда оставался в пределах viewport
-    top = Math.max(GAP, Math.min(top, vh - overlayH - GAP));
-
-    return {
-        position: 'fixed' as const,
-        top: `${top}px`,
-        left: `${left}px`,
-    };
-});
 // #endregion
 
 // #region Lifecycle
-/**
- * Сбрасывает drag-смещение при смене редактируемого компонента.
- */
-watch(
-    () => inlineEditingStore.componentId,
-    () => {
-        dragOffset.value = { x: 0, y: 0 };
-    },
-    { immediate: true }
-);
-
 /**
  * Закрывает тулбар, если редактируемый компонент перестал быть выбранным в билдере.
  */
@@ -198,146 +120,9 @@ watch(
         }
     }
 );
-
-/**
- * При переключении свойства: сбрасываем toolbar state и переинициализируем fallback editor.
- */
-watch(
-    () => inlineEditingStore.propName,
-    (newName, oldName) => {
-        if (newName === oldName) {
-            return;
-        }
-
-        resetToolbarState();
-
-        // Переинициализация fallback editor при переключении свойства
-        if (!isFallbackMode.value || !inlineEditingStore.isEditing) {
-            return;
-        }
-
-        destroyFallbackEditor();
-        isFallbackMode.value = true;
-        initFallbackTiptapEditor();
-    }
-);
-
-/**
- * Fallback: если editing активен, но через 300ms editor всё ещё null —
- * ни один layout-компонент не создал editor → создаём fallback в overlay.
- */
-watch(
-    () => inlineEditingStore.isEditing,
-    (editing) => {
-        if (!editing) {
-            if (isFallbackMode.value) {
-                saveFallbackToStore();
-                componentsStore.saveToHistory();
-            }
-            destroyFallbackEditor();
-            return;
-        }
-
-        fallbackInitTimer = setTimeout(() => {
-            fallbackInitTimer = null;
-
-            // Layout-компонент уже создал editor — fallback не нужен
-            if (inlineEditingStore.editor) {
-                return;
-            }
-
-            isFallbackMode.value = true;
-            const pType = inlineEditingStore.propType;
-
-            if (pType === 'textarea' || pType === 'inline-content') {
-                initFallbackTiptapEditor();
-            }
-        }, 300);
-    }
-);
 // #endregion
 
 // #region Methods
-/**
- * Получает текущее значение редактируемого свойства из store.
- */
-function getCurrentPropValue(): unknown {
-    const cId = inlineEditingStore.componentId;
-    const pName = inlineEditingStore.propName;
-    if (!cId || !pName) {
-        return undefined;
-    }
-    const component = componentsStore.getComponentById(cId);
-    if (!component?.props) {
-        return undefined;
-    }
-    return (component.props as Record<string, unknown>)[pName];
-}
-
-/**
- * Сохраняет значение fallback-редактора в store.
- */
-function saveFallbackToStore(): void {
-    const cId = inlineEditingStore.componentId;
-    const pName = inlineEditingStore.propName;
-    if (!cId || !pName) {
-        return;
-    }
-
-    if (fallbackEditor.value) {
-        const html = fallbackEditor.value.getHTML();
-        componentsStore.updateComponentProp(cId, pName, html);
-    }
-}
-
-/**
- * Инициализирует fallback TipTap editor для textarea-типа.
- * Вызывается когда layout-компонент не создал свой editor.
- */
-async function initFallbackTiptapEditor(): Promise<void> {
-    try {
-        const currentValue = getCurrentPropValue();
-        const htmlContent = typeof currentValue === 'string' ? currentValue : '';
-
-        const { editor: ed, EditorContent } = await createTiptapEditor({
-            content: htmlContent,
-            editorProps: {
-                attributes: {
-                    style: 'outline: none; min-height: 4rem; padding: 0.4rem;',
-                },
-            },
-            onUpdate: saveFallbackToStore,
-        });
-
-        fallbackEditorContent.value = EditorContent;
-        fallbackEditor.value = ed;
-        inlineEditingStore.setEditor(ed);
-
-        await nextTick();
-        ed.commands.focus();
-    } catch (error) {
-        console.error('[BuilderCanvasInlineEditingOverlay] Failed to init fallback editor:', error);
-    }
-}
-
-/**
- * Очищает fallback-редактор.
- */
-function destroyFallbackEditor(): void {
-    if (fallbackInitTimer) {
-        clearTimeout(fallbackInitTimer);
-        fallbackInitTimer = null;
-    }
-
-    if (fallbackEditor.value) {
-        fallbackEditor.value.destroy();
-        fallbackEditor.value = null;
-    }
-    fallbackEditorContent.value = null;
-    isFallbackMode.value = false;
-    isDarkEditorBackground.value = false;
-}
-
 /**
  * Переключает на предыдущее свойство.
  */
@@ -368,45 +153,6 @@ function handleDone(): void {
         destroyFallbackEditor();
     }
     inlineEditingStore.stopEditing();
-}
-
-/**
- * Запускает перетаскивание overlay по drag handle.
- */
-function onDragHandleMousedown(event: MouseEvent): void {
-    event.preventDefault();
-
-    isDragging.value = true;
-    document.body.style.cursor = 'grabbing';
-    document.body.style.userSelect = 'none';
-
-    const startX = event.clientX - dragOffset.value.x;
-    const startY = event.clientY - dragOffset.value.y;
-
-    function handleMousemove(e: MouseEvent): void {
-        dragOffset.value = {
-            x: e.clientX - startX,
-            y: e.clientY - startY,
-        };
-    }
-
-    function handleMouseup(): void {
-        isDragging.value = false;
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
-        document.removeEventListener('mousemove', handleMousemove);
-        document.removeEventListener('mouseup', handleMouseup);
-    }
-
-    document.addEventListener('mousemove', handleMousemove);
-    document.addEventListener('mouseup', handleMouseup);
-}
-
-/**
- * Переключает фон fallback-редактора между светлым и тёмным.
- */
-function toggleEditorBackground(): void {
-    isDarkEditorBackground.value = !isDarkEditorBackground.value;
 }
 
 /**
@@ -445,60 +191,15 @@ function handleRequestImage(): void {
                     </svg>
                 </div>
 
-                <div :class="$style.inlineEditHeader">
-                    <div :class="$style.inlineEditTitle">
-                        {{ inlineEditingStore.currentPropLabel || 'Инлайн редактор' }}
-                    </div>
-
-                    <div
-                        v-if="inlineEditingStore.editablePropsCount > 1"
-                        :class="$style.propSwitcher"
-                    >
-                        <button
-                            :disabled="!inlineEditingStore.canSwitchPrev"
-                            :class="$style.switchButton"
-                            @mousedown.prevent
-                            @click="handleSwitchPrev"
-                        >
-                            <svg
-                                width="12"
-                                height="12"
-                                viewBox="0 0 12 12"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="1.5"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            >
-                                <path d="M7.5 9L4.5 6L7.5 3" />
-                            </svg>
-                        </button>
-                        <span :class="$style.propCounter">
-                            {{ inlineEditingStore.currentPropIndex + 1 }}/{{
-                                inlineEditingStore.editablePropsCount
-                            }}
-                        </span>
-                        <button
-                            :disabled="!inlineEditingStore.canSwitchNext"
-                            :class="$style.switchButton"
-                            @mousedown.prevent
-                            @click="handleSwitchNext"
-                        >
-                            <svg
-                                width="12"
-                                height="12"
-                                viewBox="0 0 12 12"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="1.5"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            >
-                                <path d="M4.5 3L7.5 6L4.5 9" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
+                <BuilderCanvasInlineEditingHeader
+                    :prop-label="inlineEditingStore.currentPropLabel || 'Инлайн редактор'"
+                    :editable-props-count="inlineEditingStore.editablePropsCount"
+                    :current-prop-index="inlineEditingStore.currentPropIndex"
+                    :can-switch-prev="inlineEditingStore.canSwitchPrev"
+                    :can-switch-next="inlineEditingStore.canSwitchNext"
+                    @switch-prev="handleSwitchPrev"
+                    @switch-next="handleSwitchNext"
+                />
 
                 <!-- TipTap Toolbar (только для textarea-типа или fallback wrapper) -->
                 <BricksTextEditorToolbar
@@ -579,56 +280,6 @@ function handleRequestImage(): void {
         background: var(--bricks-base-100);
         color: var(--bricks-base-500);
     }
-}
-
-.inlineEditHeader {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.6rem;
-}
-
-.inlineEditTitle {
-    text-align: center;
-    font-size: 1.2rem;
-    user-select: none;
-}
-
-.propSwitcher {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.4rem;
-}
-
-.switchButton {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 2rem;
-    height: 2rem;
-    border-radius: var(--border-radius-xs);
-    border: none;
-    background: transparent;
-    color: var(--bricks-base-600);
-    cursor: pointer;
-
-    &:hover:not(:disabled) {
-        background: var(--bricks-base-100);
-        color: var(--bricks-base-900);
-    }
-
-    &:disabled {
-        opacity: 0.3;
-        cursor: default;
-    }
-}
-
-.propCounter {
-    white-space: nowrap;
-    font-size: 1.1rem;
-    color: var(--bricks-base-500);
-    user-select: none;
 }
 
 .footer {

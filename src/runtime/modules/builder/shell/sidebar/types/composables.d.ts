@@ -8,6 +8,7 @@ import type {
     PropertyEditorType,
 } from '../components/property-editors/types';
 import type { ComputedRef } from 'vue';
+import type { BricksSchema } from '../../../../common/types/brick';
 
 // #region usePropertyVariants
 /**
@@ -24,5 +25,15 @@ export interface IUsePropertyVariantsReturn {
         data: IComponentVariant,
         editorType: PropertyEditorType
     ) => Record<string, unknown>;
+}
+// #endregion
+
+// #region useSchemaFileTransfer
+/**
+ * Опции composable useSchemaFileTransfer (экспорт/импорт схемы JSON-файлом).
+ */
+export interface ISchemaFileTransferOptions {
+    /** Вызывается с провалидированной схемой из выбранного файла. */
+    onImport: (schema: BricksSchema) => void;
 }
 // #endregion

@@ -7,7 +7,7 @@ import type { IBrickDemoValues } from '../../../../common/types/index';
 import type { BricksSchema } from '../../../../common/types/brick';
 
 // Vue
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted } from 'vue';
 
 // Vee-validate
 import { Form, Field } from 'vee-validate';
@@ -18,15 +18,15 @@ import { usePublishValidationSchema } from '../composables/usePublishValidationS
 
 // Pinia
 import { usePublishStore } from '../../../publish/stores/publish';
-import { useComponentsStore } from '../../../core/stores/components';
 
 // Components
 import BricksInput from '../../../../ui/inputs/BricksInput.vue';
-import BricksButton from '../../../../ui/base/button/BricksButton.vue';
 import BricksHexInput from '../../../../ui/inputs/BricksHexInput.vue';
 import BricksSelect from '../../../../ui/inputs/BricksSelect.vue';
 import BricksCloseButton from '../../../../ui/base/modal/BricksCloseButton.vue';
 import BuilderShellSidebarNavigationEditor from './BuilderShellSidebarNavigationEditor.vue';
+import BuilderShellSidebarPublishSchemaActions from './BuilderShellSidebarPublishSchemaActions.vue';
+import BuilderShellSidebarPublishSocialImage from './BuilderShellSidebarPublishSocialImage.vue';
 // #endregion
 
 // #region Emits
@@ -39,10 +39,7 @@ const emit = defineEmits<{
 
 // #region Data
 const publishStore = usePublishStore();
-const componentsStore = useComponentsStore();
 const bricksConfig = useBricksConfig();
-const fileInputRef = ref<HTMLInputElement | null>(null);
-const importError = ref<string | null>(null);
 const isEditing = computed<boolean>(() => publishStore.editingPageId !== null);
 
 // Validation schema
@@ -152,74 +149,12 @@ function handleLayoutChange(value: IBrickDemoValues) {
 }
 
 /**
- * Экспортирует текущую схему в JSON-файл и скачивает его.
- */
-function handleExportSchema(): void {
-    const schema = componentsStore.exportSchema();
-    const json = JSON.stringify(schema, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `bricks-schema-${Date.now()}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-}
-
-/**
- * Открывает диалог выбора JSON-файла.
- */
-function handleImportClick(): void {
-    importError.value = null;
-    fileInputRef.value?.click();
-}
-
-/**
- * Читает выбранный JSON-файл и загружает схему в store без сохранения.
+ * Пробрасывает импортированную схему наверх (загрузка без сохранения).
  *
- * @param event - Событие выбора файла.
+ * @param schema - Провалидированная схема из JSON-файла.
  */
-function handleFileSelect(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-
-    if (!file) {
-        return;
-    }
-
-    if (!file.name.endsWith('.json')) {
-        importError.value = 'Выберите файл формата .json';
-        input.value = '';
-        return;
-    }
-
-    const reader = new FileReader();
-
-    reader.onload = () => {
-        try {
-            const parsed = JSON.parse(reader.result as string) as BricksSchema;
-
-            if (!parsed.components || !Array.isArray(parsed.components)) {
-                importError.value = 'Невалидная схема: отсутствует массив components';
-                return;
-            }
-
-            emit('importSchema', parsed);
-            importError.value = null;
-        } catch {
-            importError.value = 'Ошибка парсинга JSON-файла';
-        }
-
-        input.value = '';
-    };
-
-    reader.onerror = () => {
-        importError.value = 'Ошибка чтения файла';
-        input.value = '';
-    };
-
-    reader.readAsText(file);
+function handleImportSchema(schema: BricksSchema): void {
+    emit('importSchema', schema);
 }
 
 defineExpose({
@@ -405,38 +340,12 @@ onMounted(() => {
 
             <div :class="$style.formGroup">
                 <label :class="$style.label">OG/Twitter image</label>
-                <div :class="$style.mediaRow">
-                    <Transition mode="out-in" name="library-fade-fast">
-                        <div v-if="settings.socialImage" :class="$style.mediaPreview">
-                            <img :src="settings.socialImage" alt="" :class="$style.mediaImage" />
-                        </div>
-                    </Transition>
-                    <div :class="$style.mediaActions">
-                        <BricksButton
-                            size="md"
-                            variant="secondary"
-                            :disabled="isSubmitting"
-                            @click="handleOpenMediaGallery"
-                        >
-                            <BricksIcon icon="md:outlined-image" />
-                            Выбрать из медиабиблиотеки
-                        </BricksButton>
-
-                        <Transition mode="out-in" name="library-fade-fast">
-                            <div v-if="settings.socialImage" :class="$style.mediaFooter">
-                                <span :class="$style.mediaUrl">{{ settings.socialImage }}</span>
-                                <BricksButton
-                                    size="sm"
-                                    variant="ghost"
-                                    :disabled="isSubmitting"
-                                    @click="handleClearSocialImage"
-                                >
-                                    Очистить
-                                </BricksButton>
-                            </div>
-                        </Transition>
-                    </div>
-                </div>
+                <BuilderShellSidebarPublishSocialImage
+                    :social-image="settings.socialImage || null"
+                    :is-submitting="isSubmitting"
+                    @open-media-gallery="handleOpenMediaGallery"
+                    @clear="handleClearSocialImage"
+                />
             </div>
 
             <div :class="$style.formGroup">
@@ -456,40 +365,10 @@ onMounted(() => {
 
             <div :class="$style.formGroup">
                 <label :class="$style.label">Схема страницы</label>
-                <div :class="$style.schemaActions">
-                    <BricksButton
-                        size="md"
-                        variant="secondary"
-                        :disabled="isSubmitting"
-                        @click="handleExportSchema"
-                    >
-                        <BricksIcon icon="ph:download" />
-                        Экспорт JSON
-                    </BricksButton>
-                    <BricksButton
-                        size="md"
-                        variant="secondary"
-                        :disabled="isSubmitting"
-                        @click="handleImportClick"
-                    >
-                        <BricksIcon icon="ph:upload" />
-                        Импорт JSON
-                    </BricksButton>
-                </div>
-
-                <input
-                    ref="fileInputRef"
-                    type="file"
-                    accept=".json"
-                    :class="$style.hiddenInput"
-                    @change="handleFileSelect"
+                <BuilderShellSidebarPublishSchemaActions
+                    :is-submitting="isSubmitting"
+                    @import-schema="handleImportSchema"
                 />
-
-                <Transition mode="out-in" name="library-fade-fast">
-                    <div v-if="importError" :class="$style.error">
-                        {{ importError }}
-                    </div>
-                </Transition>
             </div>
         </Form>
     </div>
@@ -617,69 +496,8 @@ onMounted(() => {
     color: var(--bricks-danger-500);
 }
 
-.mediaRow {
-    display: flex;
-    align-items: center;
-    flex-direction: column;
-    gap: 1.2rem;
-}
-
-.mediaPreview {
-    overflow: hidden;
-    flex-shrink: 0;
-    width: 8rem;
-    height: 8rem;
-    border-radius: var(--border-radius-sm);
-    border: 1px solid var(--bricks-base-300);
-    background-color: var(--bricks-base-50);
-}
-
-.mediaImage {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.mediaActions {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    gap: 0.8rem;
-    max-width: 100%;
-}
-
-.mediaFooter {
-    display: flex;
-    align-items: center;
-    gap: 0.8rem;
-}
-
-.mediaUrl {
-    overflow: hidden;
-    display: inline-block;
-    max-width: 100%;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 1.2rem;
-    color: var(--bricks-base-500);
-}
-
 .divider {
     margin: 0.8rem 0 1.6rem;
     border-top: 1px solid var(--bricks-base-200);
-}
-
-.schemaActions {
-    display: flex;
-    gap: 0.8rem;
-}
-
-.hiddenInput {
-    position: absolute;
-    overflow: hidden;
-    width: 0;
-    height: 0;
-    opacity: 0;
-    pointer-events: none;
 }
 </style>

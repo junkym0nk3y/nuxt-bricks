@@ -50,6 +50,15 @@ export interface IPublishedPageSummary {
     subdomain: string | null;
 }
 
+/**
+ * Снапшот страницы для превью в localStorage (`bricks-preview-page`).
+ * `storedAt` — момент записи; превью сравнивает его с `updatedAt` из БД,
+ * чтобы устаревший снапшот не перетирал свежие сохранённые данные.
+ */
+export interface IPreviewStoredPage extends IPublishedPage {
+    storedAt?: string;
+}
+
 export interface ICreatePagePayload {
     pagename: string;
     title?: string | null;

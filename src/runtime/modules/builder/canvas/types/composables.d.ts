@@ -3,7 +3,7 @@
  */
 
 import type { ComponentSlotDefinition, BricksComponent } from '../../../common/types/brick';
-import type { ComputedRef, CSSProperties, Ref, VNodeRef } from 'vue';
+import type { ComputedRef, CSSProperties, MaybeRefOrGetter, Ref, VNodeRef } from 'vue';
 
 // #region useComponentSlots
 /**
@@ -46,5 +46,46 @@ export interface IUseSlotDragDropReturn {
     handleSlotDragOver: (slotName: string, event: DragEvent) => void;
     handleSlotDragLeave: (slotName: string, event: DragEvent) => void;
     handleSlotDrop: (slotName: string, event: DragEvent) => void;
+}
+// #endregion
+
+// #region useDraggableOverlay
+/**
+ * Опции composable useDraggableOverlay (перетаскиваемый fixed-overlay,
+ * привязанный к якорному элементу на канвасе).
+ */
+export interface IDraggableOverlayOptions {
+    /** Корневой элемент overlay (для ResizeObserver). */
+    overlayRef: Ref<HTMLElement | null>;
+    /** Якорный элемент, к которому привязана позиция overlay. */
+    anchorElement: MaybeRefOrGetter<HTMLElement | null>;
+    /** Смещение курсора в момент открытия (от верхнего левого угла якоря). */
+    cursorOffset: () => { x: number; y: number } | null;
+    /** При смене значения drag-смещение сбрасывается. */
+    resetKey: () => unknown;
+}
+// #endregion
+
+// #region useInlineEditingFallback
+/**
+ * Опции composable useInlineEditingFallback.
+ */
+export interface IInlineEditingFallbackOptions {
+    /** Вызывается при переключении редактируемого свойства (сброс toolbar state). */
+    onPropSwitch?: () => void;
+}
+// #endregion
+
+// #region useCanvasContainerMetrics
+/**
+ * Опции composable useCanvasContainerMetrics.
+ */
+export interface ICanvasContainerMetricsOptions {
+    /** Корневой контейнер контента канваса (data-root-drop-zone). */
+    containerRef: Ref<HTMLElement | null>;
+    /** Планировщик горизонтального центрирования канваса. */
+    scheduleCanvasCenter: (behavior?: ScrollBehavior) => void;
+    /** Скролл до выбранного компонента после смены viewport / выхода из Figma mode. */
+    scrollToSelected: () => void;
 }
 // #endregion

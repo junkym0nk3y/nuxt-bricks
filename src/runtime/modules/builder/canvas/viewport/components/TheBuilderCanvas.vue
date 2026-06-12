@@ -4,7 +4,7 @@
 import type { IDragComposableCanvas } from '../../types/components';
 
 // Vue
-import { ref, computed, inject, provide, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
+import { ref, computed, inject, provide, onMounted, onBeforeUnmount, nextTick } from 'vue';
 
 // VueUse
 import { useDebounceFn } from '@vueuse/core';
@@ -20,6 +20,9 @@ import { useCanvas } from '../composables/useCanvas';
 import { useBricksConfig } from '../../../../common/composables/useBricksConfig';
 import { useCanvasDrops } from '../composables/useCanvasDrops';
 import { useCanvasPan } from '../composables/useCanvasPan';
+import { useCanvasCentering } from '../composables/useCanvasCentering';
+import { useCanvasContainerMetrics } from '../composables/useCanvasContainerMetrics';
+import { useInteractivePreviewDismiss } from '../composables/useInteractivePreviewDismiss';
 
 // Utils
 import { convertPxToRem } from '../../../../common/utils/main';
@@ -93,9 +96,15 @@ const {
 
 const { isPanning, handleCanvasAreaPointerDown } = useCanvasPan(canvasContainer);
 
-let containerResizeObserver: ResizeObserver | null = null;
-let centerAnimationFrame: number | null = null;
-let pendingCenterBehavior: ScrollBehavior = 'auto';
+const { scheduleCanvasCenter } = useCanvasCentering(canvasContainer);
+
+const { updateContainerMetrics, initMetricsObserver } = useCanvasContainerMetrics({
+    containerRef,
+    scheduleCanvasCenter,
+    scrollToSelected: scrollToSelectedAfterViewportSwitch,
+});
+
+useInteractivePreviewDismiss();
 // #endregion
 
 // #region Computed
@@ -157,66 +166,6 @@ const figmaWrapperStyle = computed<Record<string, string>>(() => {
 
 // #region Methods
 /**
- * Центрирует канвас по горизонтали относительно доступной ширины.
- *
- * @param options - Настройки прокрутки контейнера.
- */
-function centerCanvasHorizontally(options: { behavior?: ScrollBehavior } = {}): void {
-    if (typeof window === 'undefined') {
-        return;
-    }
-
-    const container = canvasContainer.value;
-
-    if (!container) {
-        return;
-    }
-
-    const maxScrollLeft = container.scrollWidth - container.clientWidth;
-    const behavior = options.behavior ?? 'auto';
-
-    if (maxScrollLeft <= 0) {
-        container.scrollLeft = 0;
-        return;
-    }
-
-    const targetLeft = maxScrollLeft / 2;
-
-    if (behavior === 'smooth' && typeof container.scrollTo === 'function') {
-        container.scrollTo({
-            left: targetLeft,
-            behavior,
-        });
-        return;
-    }
-
-    container.scrollLeft = targetLeft;
-}
-
-/**
- * Планирует центрирование канваса в ближайшем кадре анимации.
- *
- * @param behavior - Поведение прокрутки (`auto` или `smooth`).
- */
-function scheduleCanvasCenter(behavior: ScrollBehavior = 'auto'): void {
-    if (behavior === 'smooth') {
-        pendingCenterBehavior = 'smooth';
-    } else if (pendingCenterBehavior !== 'smooth') {
-        pendingCenterBehavior = behavior;
-    }
-
-    if (centerAnimationFrame !== null) {
-        cancelAnimationFrame(centerAnimationFrame);
-    }
-
-    centerAnimationFrame = requestAnimationFrame(() => {
-        centerAnimationFrame = null;
-        centerCanvasHorizontally({ behavior: pendingCenterBehavior });
-        pendingCenterBehavior = 'auto';
-    });
-}
-
-/**
  * Debounced обработчик изменения размера окна
  * Пересчитывает масштаб канваса и центрирует его по горизонтали
  * Задержка 150мс для оптимизации производительности при resize
@@ -235,32 +184,6 @@ function handleCanvasClick(event: MouseEvent): void {
     if (event.target === canvasRef.value) {
         componentsStore.deselectComponent();
     }
-}
-
-/**
- * Capture-фаза: сбрасывает интерактивный предпросмотр при клике вне компонента.
- * Capture срабатывает ДО stopPropagation в дочерних элементах,
- * поэтому работает даже когда интерактивный компонент перехватывает события.
- */
-function handleInteractivePreviewOutsideClick(event: PointerEvent): void {
-    const previewId = componentsStore.interactivePreviewId;
-    if (!previewId) {
-        return;
-    }
-
-    const target = event.target as HTMLElement;
-
-    // Клик внутри самого интерактивного компонента — не сбрасываем
-    if (target.closest(`[data-component-id="${previewId}"]`)) {
-        return;
-    }
-
-    // Клик по тулбару (телепортирован в body) — не сбрасываем
-    if (target.closest('[data-canvas-toolbar]')) {
-        return;
-    }
-
-    componentsStore.interactivePreviewId = null;
 }
 
 /**
@@ -293,129 +216,6 @@ function scrollToSelectedAfterViewportSwitch(): void {
 
 // #region Lifecycle
 /**
- * Пересчитывает высоту канваса при изменении состава компонентов.
- *
- * Два источника покрывают все кейсы:
- * - `components` (ссылка) — ловит полную замену массива (loadSchema, undo/redo)
- * - `components.length` — ловит мутации (push в addComponent, splice в moveComponentToRoot)
- *
- * ResizeObserver не срабатывает при уменьшении контента (minHeight не даёт контейнеру сжаться),
- * поэтому нужен явный пересчёт при add/remove/import.
- */
-watch([() => componentsStore.components, () => componentsStore.components.length], () => {
-    nextTick(() => {
-        updateContainerMetrics();
-    });
-});
-
-/**
- * Отслеживает появление canvasContainer и центрирует канвас
- * При монтировании контейнера автоматически центрирует его по горизонтали
- */
-watch(
-    () => canvasContainer.value,
-    (container) => {
-        if (container) {
-            scheduleCanvasCenter('auto');
-        }
-    }
-);
-
-/**
- * Отслеживает изменения масштаба и ширины канваса.
- * При изменении этих параметров пересчитывает центрирование.
- */
-watch(
-    () => [canvasStore.scale, canvasStore.width],
-    () => {
-        scheduleCanvasCenter('auto');
-    }
-);
-
-/**
- * Пересчитывает высоту канваса после смены viewport.
- *
- * При смене адаптива (mobile → tablet → desktop) контент перестраивается:
- * компоненты меняют высоту из-за другой ширины, grid-колонки перестраиваются,
- * container queries переключаются. Высота сбрасывается до базовой в setViewport,
- * здесь подбираем правильную после рендера.
- */
-watch(
-    () => canvasStore.viewport,
-    () => {
-        nextTick(() => {
-            updateContainerMetrics();
-            scrollToSelectedAfterViewportSwitch();
-        });
-    }
-);
-
-/**
- * Отслеживает видимость и ширину левого сайдбара
- * При открытии/закрытии сайдбара плавно центрирует канвас (с анимацией)
- */
-watch(
-    () => [sidebarStore.left.visible, sidebarStore.left.width],
-    () => {
-        scheduleCanvasCenter('smooth');
-    }
-);
-
-/**
- * Переподключает ResizeObserver при смене containerRef.
- *
- * При переключении Figma ↔ Normal режимов v-if уничтожает старый DOM-элемент
- * и создаёт новый. ResizeObserver остаётся на старом (уничтоженном) элементе,
- * поэтому updateContainerMetrics() перестаёт вызываться автоматически.
- */
-watch(containerRef, (newContainer, oldContainer) => {
-    if (containerResizeObserver) {
-        if (oldContainer) {
-            containerResizeObserver.unobserve(oldContainer);
-        }
-        if (newContainer) {
-            containerResizeObserver.observe(newContainer);
-        }
-    }
-});
-
-/**
- * Отслеживает переключение Figma Mode.
- * Ждёт обновления DOM (v-if рендерит/убирает figmaWrapper),
- * затем пересчитывает высоту канваса и центрирует его.
- */
-watch(
-    () => canvasStore.isFigmaMode,
-    (isFigma) => {
-        nextTick(() => {
-            updateContainerMetrics();
-            scheduleCanvasCenter('auto');
-
-            // При выходе из Figma mode — скроллим до выбранного компонента
-            if (!isFigma) {
-                scrollToSelectedAfterViewportSwitch();
-            }
-        });
-    }
-);
-
-/**
- * Обновляет высоту канваса исходя из содержимого корневого контейнера.
- */
-function updateContainerMetrics(): void {
-    const container = containerRef.value;
-    if (!container) {
-        return;
-    }
-
-    const previousMinHeight = container.style.minHeight;
-    container.style.minHeight = '';
-    const contentHeight = container.scrollHeight;
-    container.style.minHeight = previousMinHeight;
-    canvasStore.syncCanvasHeightWithContent(contentHeight, componentsStore.hasComponents);
-}
-
-/**
  * Инициализация канваса при монтировании компонента
  *
  * Последовательность:
@@ -441,19 +241,12 @@ onMounted(async () => {
     await nextTick();
 
     window.addEventListener('resize', debouncedResize);
-    document.addEventListener('pointerdown', handleInteractivePreviewOutsideClick, true);
     handleResize();
     updateContainerMetrics();
     scheduleCanvasCenter('auto');
 
     // Отслеживание изменений размера контейнера
-    containerResizeObserver = new ResizeObserver(() => {
-        updateContainerMetrics();
-        scheduleCanvasCenter('auto');
-    });
-    if (containerRef.value) {
-        containerResizeObserver.observe(containerRef.value);
-    }
+    initMetricsObserver();
 
     // Подписка на события drag-and-drop для layout компонентов
     if (canvasRef.value) {
@@ -464,28 +257,13 @@ onMounted(async () => {
 
 /**
  * Очистка ресурсов при размонтировании компонента
- *
- * Удаляет:
- * - Слушатель события resize окна
- * - Слушатели кастомных событий drag-and-drop
- * - ResizeObserver для контейнера
- * - Запланированный кадр анимации центрирования
+ * (ResizeObserver и rAF центрирования чистят свои composables).
  */
 onBeforeUnmount(() => {
     window.removeEventListener('resize', debouncedResize);
-    document.removeEventListener('pointerdown', handleInteractivePreviewOutsideClick, true);
     if (canvasRef.value) {
         canvasRef.value.removeEventListener('layout-drop', handleLayoutDrop as EventListener);
         canvasRef.value.removeEventListener('slot-drop', handleSlotDrop as EventListener);
-    }
-    if (containerResizeObserver && containerRef.value) {
-        containerResizeObserver.unobserve(containerRef.value);
-    }
-    containerResizeObserver?.disconnect();
-    containerResizeObserver = null;
-    if (centerAnimationFrame !== null) {
-        cancelAnimationFrame(centerAnimationFrame);
-        centerAnimationFrame = null;
     }
 });
 // #endregion

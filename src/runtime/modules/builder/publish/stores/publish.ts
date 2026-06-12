@@ -4,6 +4,7 @@ import type {
     IUpdatePagePayload,
     IPublishedPageSummary,
     IPublishedPage,
+    IPreviewStoredPage,
     TPublishFormState,
 } from '../../../common/types/bricks-api';
 import { useApiClient } from '../../../common/composables/useApiClient';
@@ -529,7 +530,7 @@ export const usePublishStore = defineStore('bricksPublish', {
                 // For preview, we only need a pagename (or generate a temp one)
                 const pagename = this.currentFormState.pagename.trim() || `preview-${Date.now()}`;
                 const tempPageId = `preview-${Date.now()}`;
-                const previewData: IPublishedPage = {
+                const previewData: IPreviewStoredPage = {
                     id: Number(tempPageId.replace('preview-', '')),
                     pagename,
                     title: this.currentFormState.title || 'Превью',
@@ -545,6 +546,7 @@ export const usePublishStore = defineStore('bricksPublish', {
                     updatedAt: this.currentFormState.updatedAt,
                     schema,
                     isPreview: true,
+                    storedAt: new Date().toISOString(),
                 };
 
                 if (typeof window === 'undefined') {

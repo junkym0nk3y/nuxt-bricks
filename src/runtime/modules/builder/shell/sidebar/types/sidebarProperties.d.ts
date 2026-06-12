@@ -31,6 +31,13 @@ export interface IUseSidebarPropertiesPanelOptions {
     onOpenMediaGallery: () => void;
 }
 
+export interface IUseSidebarMediaSelectionOptions {
+    /** Открывает модалку медиагалереи (внешний UI). */
+    onOpenMediaGallery: () => void;
+    /** Применяет выбранный url к свойству с учётом coercion и responsive scope. */
+    applyPropertyValue: (property: PropertyDefinition, value: string) => void;
+}
+
 export interface ISidebarPropertyEditorsProps {
     componentEditors: Record<PropertyEditorType, Component>;
     componentVariants: ComponentVariantsMap;

@@ -62,3 +62,16 @@ export interface IViewportOption {
     icon: string;
     width: number;
 }
+
+export interface IInlineEditingHeaderProps {
+    propLabel: string;
+    editablePropsCount: number;
+    currentPropIndex: number;
+    canSwitchPrev: boolean;
+    canSwitchNext: boolean;
+}
+
+export interface IInlineEditingHeaderEmits {
+    'switch-prev': [];
+    'switch-next': [];
+}

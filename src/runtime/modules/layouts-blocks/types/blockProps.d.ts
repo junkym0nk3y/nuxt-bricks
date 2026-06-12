@@ -95,6 +95,22 @@ export interface IBlockSvgProps {
     marginBottom?: number;
 }
 
+export interface IBlockGridOverlayProps {
+    containerSize: { width: number; height: number };
+    columns: number;
+    gap: number;
+    rowSizes: number[];
+}
+
+export interface IBlockSliderCaptionsProps {
+    captions: ISliderCaption[];
+    activeIndex: number;
+}
+
+export interface IBlockSliderCaptionsEmits {
+    select: [index: number];
+}
+
 export type LayoutProps =
     | GridLayoutProps
     | FlexLayoutProps

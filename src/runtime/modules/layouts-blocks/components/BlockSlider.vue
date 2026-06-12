@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { BricksComponent } from '../../common/types/brick';
-import type { SliderLayoutProps } from '../types/blockProps';
+import type { SliderLayoutProps, ISliderCaption } from '../types/blockProps';
 
 // Vue
 import { computed, defineComponent, h, inject, ref, type PropType, type VNodeChild } from 'vue';
@@ -10,12 +10,17 @@ import { computed, defineComponent, h, inject, ref, type PropType, type VNodeChi
 // Constants
 import { CANVAS_VIEWPORT_KEY } from '../../common/constants/injectionKeys';
 
+// Utils
+import { parseSliderCaptions } from '../utils/sliderCaptions';
+
 // Composables
 import { useLayoutDropZone } from '../composables/useLayoutDropZone';
+import { useSliderDropIndicator } from '../composables/useSliderDropIndicator';
 
 // Components
 import { Swiper, SwiperSlide } from 'swiper/vue';
 import { Navigation, Pagination, Autoplay, A11y } from 'swiper/modules';
+import BlockSliderCaptions from './BlockSliderCaptions.vue';
 
 // #endregion
 
@@ -61,10 +66,16 @@ const props = withDefaults(
 // #region Data
 const sliderRef = ref<HTMLElement | null>(null);
 const dropIndicatorRef = ref<HTMLElement | null>(null);
-const dropIndicator = ref<{ index: number; offset: number } | null>(null);
-const dropInsertIndex = ref<number | null>(null);
 const injectedViewport = inject(CANVAS_VIEWPORT_KEY, null);
 const activeSlideIndex = ref(0);
+
+const {
+    dropIndicator,
+    dropInsertIndex,
+    dropIndicatorStyle,
+    updateDropIndicator,
+    clearDropIndicator,
+} = useSliderDropIndicator(sliderRef);
 // #endregion
 
 // #region Computed
@@ -132,54 +143,13 @@ const sliderBreakpoints = computed(() => ({
     },
 }));
 
-const dropIndicatorStyle = computed<Record<string, string>>(() => {
-    if (!dropIndicator.value) {
-        return {
-            opacity: '0',
-            left: '0',
-        };
-    }
-    return {
-        opacity: '1',
-        left: `${dropIndicator.value.offset}px`,
-    };
-});
-
 const sliderRootStyle = computed<Record<string, string>>(() => ({
     pointerEvents: 'auto',
 }));
 
-const parsedCaptions = computed<Array<{ text: string; subtitle?: string }>>(() => {
-    const raw = props.layoutProps.captions;
-    if (!raw) {
-        return [];
-    }
-
-    if (Array.isArray(raw)) {
-        return raw.filter(
-            (item): item is { text: string; subtitle?: string } =>
-                typeof item === 'object' && item !== null && typeof item.text === 'string'
-        );
-    }
-
-    if (typeof raw === 'string') {
-        try {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed)) {
-                return parsed.filter(
-                    (item: unknown): item is { text: string; subtitle?: string } =>
-                        typeof item === 'object' &&
-                        item !== null &&
-                        typeof (item as Record<string, unknown>).text === 'string'
-                );
-            }
-        } catch {
-            return [];
-        }
-    }
-
-    return [];
-});
+const parsedCaptions = computed<ISliderCaption[]>(() =>
+    parseSliderCaptions(props.layoutProps.captions)
+);
 
 const hasCaptions = computed<boolean>(() => parsedCaptions.value.length > 0);
 
@@ -217,86 +187,6 @@ function handleCaptionClick(index: number): void {
     }
 
     activeSlideIndex.value = index;
-}
-
-/**
- * Возвращает список элементов слайдов, доступных для drag&drop (исключая дубликаты Swiper).
- *
- * @returns Коллекция HTMLElement, которые можно использовать как drop-мишени.
- */
-function getDraggableSlides(): HTMLElement[] {
-    if (!sliderRef.value) {
-        return [];
-    }
-    const candidates = Array.from(
-        sliderRef.value.querySelectorAll<HTMLElement>('[data-layout-drop-item="true"]')
-    );
-
-    return candidates.filter((el) => {
-        const slideEl = el.closest('.swiper-slide');
-        return !(slideEl && slideEl.classList.contains('swiper-slide-duplicate'));
-    });
-}
-
-/**
- * Сбрасывает состояние drop-индикатора.
- */
-function clearDropIndicator(): void {
-    dropIndicator.value = null;
-    dropInsertIndex.value = null;
-}
-
-/**
- * Пересчитывает позицию индикатора вставки на основании текущей позиции курсора.
- *
- * @param event - Dragover событие.
- */
-function updateDropIndicator(event: DragEvent): void {
-    if (!sliderRef.value) {
-        return;
-    }
-    const slides = getDraggableSlides();
-    const rect = sliderRef.value.getBoundingClientRect();
-    const pointerX = event.clientX;
-    const containerWidth = sliderRef.value.clientWidth;
-
-    if (slides.length === 0) {
-        const offset = Math.max(0, Math.min(pointerX - rect.left, containerWidth));
-        dropIndicator.value = {
-            index: 0,
-            offset,
-        };
-        dropInsertIndex.value = 0;
-        return;
-    }
-
-    let targetIndex = slides.length;
-    let offset = containerWidth;
-
-    for (let index = 0; index < slides.length; index += 1) {
-        const slide = slides[index];
-        const slideRect = slide.getBoundingClientRect();
-        const midpoint = slideRect.left + slideRect.width / 2;
-
-        if (pointerX < midpoint) {
-            targetIndex = index;
-            offset = slideRect.left - rect.left;
-            break;
-        }
-    }
-
-    if (targetIndex === slides.length) {
-        const lastRect = slides[slides.length - 1].getBoundingClientRect();
-        offset = lastRect.right - rect.left;
-    }
-
-    offset = Math.max(0, Math.min(offset, containerWidth));
-
-    dropIndicator.value = {
-        index: targetIndex,
-        offset,
-    };
-    dropInsertIndex.value = targetIndex;
 }
 // #endregion
 
@@ -336,24 +226,12 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
         @drop="handleDrop"
     >
         <!-- Caption navigation (top) -->
-        <div v-if="hasCaptions && captionPosition === 'top'" :class="$style.captions">
-            <button
-                v-for="(caption, index) in parsedCaptions"
-                :key="index"
-                :class="[
-                    $style.captionTab,
-                    { [$style.captionTabActive]: activeSlideIndex === index },
-                ]"
-                type="button"
-                @mousedown.prevent
-                @click="handleCaptionClick(index)"
-            >
-                <span :class="$style.captionText">{{ caption.text }}</span>
-                <span v-if="caption.subtitle" :class="$style.captionSubtitle">
-                    {{ caption.subtitle }}
-                </span>
-            </button>
-        </div>
+        <BlockSliderCaptions
+            v-if="hasCaptions && captionPosition === 'top'"
+            :captions="parsedCaptions"
+            :active-index="activeSlideIndex"
+            @select="handleCaptionClick"
+        />
 
         <ClientOnly>
             <Swiper
@@ -385,24 +263,12 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
         </ClientOnly>
 
         <!-- Caption navigation (bottom) -->
-        <div v-if="hasCaptions && captionPosition === 'bottom'" :class="$style.captions">
-            <button
-                v-for="(caption, index) in parsedCaptions"
-                :key="index"
-                :class="[
-                    $style.captionTab,
-                    { [$style.captionTabActive]: activeSlideIndex === index },
-                ]"
-                type="button"
-                @mousedown.prevent
-                @click="handleCaptionClick(index)"
-            >
-                <span :class="$style.captionText">{{ caption.text }}</span>
-                <span v-if="caption.subtitle" :class="$style.captionSubtitle">
-                    {{ caption.subtitle }}
-                </span>
-            </button>
-        </div>
+        <BlockSliderCaptions
+            v-if="hasCaptions && captionPosition === 'bottom'"
+            :captions="parsedCaptions"
+            :active-index="activeSlideIndex"
+            @select="handleCaptionClick"
+        />
 
         <div
             v-if="isEditor"
@@ -477,59 +343,6 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
     > * {
         flex: 1;
     }
-}
-
-.captions {
-    overflow-x: auto;
-    display: flex;
-    padding: 0 0.4rem;
-    gap: 0.8rem;
-    scrollbar-width: none;
-
-    &::-webkit-scrollbar {
-        display: none;
-    }
-}
-
-.captionTab {
-    display: flex;
-    padding: 0.8rem 1.6rem;
-    border-radius: 0.8rem;
-    border: 1px solid var(--bricks-base-200);
-    background: var(--bricks-base-0);
-    white-space: nowrap;
-    transition: all 200ms ease;
-    cursor: pointer;
-    flex-direction: column;
-    gap: 0.2rem;
-
-    &:hover {
-        border-color: var(--bricks-base-300);
-        background: var(--bricks-base-50);
-    }
-}
-
-.captionTabActive {
-    border-color: var(--bricks-primary-500);
-    background: var(--bricks-primary-50);
-}
-
-.captionText {
-    text-transform: uppercase;
-    font-size: 1.2rem;
-    font-weight: 600;
-    letter-spacing: 0.05rem;
-    color: var(--bricks-base-600);
-
-    .captionTabActive & {
-        color: var(--bricks-primary-500);
-    }
-}
-
-.captionSubtitle {
-    font-size: 1.1rem;
-    font-weight: 400;
-    color: var(--bricks-base-500);
 }
 
 .dropIndicator {

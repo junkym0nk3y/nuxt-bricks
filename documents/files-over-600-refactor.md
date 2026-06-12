@@ -334,6 +334,71 @@ pre-existing из «Заметок»). Ручная проверка публи�
 URL-sync при вводе pagename, превью с live-синком, hotkeys, импорт схемы, toast.
 CLAUDE.md: обновлён состав `app/` (composables + utils).
 
+### ✅ Шаг 7 — покомпонентные разбиения (п.1, 3, 5, 7–9, 11–12) — 2026-06-12
+
+Все восемь файлов разобраны. Итоговые размеры (план → факт):
+
+| Файл | Было | Стало |
+|---|---|---|
+| TheBuilderMediaGalleryModal.vue | 1017 | 425 |
+| BuilderCanvasInlineEditingOverlay.vue | 693 | 344 |
+| TextEditorImageFloatPopover.vue | 776 | 303 |
+| BlockGrid.vue | 626 | 420 |
+| BuilderShellSidebarPublishView.vue | 685 | 503 |
+| BlockSlider.vue | 569 | 382 |
+| TheBuilderCanvas.vue | 649 | 427 |
+| useSidebarPropertiesPanel.ts | 637 | 291 |
+
+**П.1 — медиа-галерея.** 5 дочерних компонентов (`BuilderMediaGalleryFilters/UploadArea/
+Grid/MetaPanel/PreviewLightbox.vue`) + `composables/useMediaUpload.ts` (лимиты из app config,
+валидация типа/размера, опции `resolveCategory`/`onError`) + `utils/formatFileSize.ts` +
+`constants/mediaCategories.ts` (`MEDIA_CATEGORY_OPTIONS`, `DEFAULT_MEDIA_CATEGORY`).
+Родитель — контроллер: store, выбор, фильтрация (computed), confirm-удаление, toast.
+
+**П.3 — inline editing overlay.** `useInlineEditingFallback.ts` (весь lifecycle fallback-
+редактора, включая dark background; опция `onPropSwitch` → `resetToolbarState`),
+`useDraggableOverlay.ts` (универсальный: `overlayRef`/`anchorElement`/`cursorOffset`/`resetKey`),
+`BuilderCanvasInlineEditingHeader.vue` (заголовок + prop-switcher).
+
+**П.5 — float popover.** `utils/sizeUnits.ts` (`SIZE_UNITS`, `TSizeUnit`, конверсии,
+em-пиксели параметром; мёртвый `convertBetweenUnits` удалён — D6), `utils/selectedMediaNode.ts`
+(`findSelectedMediaNode` — чистый, без side effect на `activeNodeType`),
+`TextEditorImageSizePanel.vue` (size-state + apply/cycle/lock; `readCurrentSize` в `onMounted`
+вместо вызова из `toggleSizePanel`).
+
+**П.7 — BlockGrid.** `utils/gridOverlayGeometry.ts` (4 чистые функции границ/gap),
+`utils/gridDropPlacement.ts` (`calculateGridDropTargetIndex(event, el, columns, rows)`),
+`BlockGridOverlay.vue` (SVG; `overlayStyle` передаётся fallthrough `:style`).
+Pre-existing TS2769 на `overlayStyle` остался (см. Заметки).
+
+**П.8 — publish view.** `composables/useSchemaFileTransfer.ts` (export/import + валидация,
+опция `onImport`), `BuilderShellSidebarPublishSchemaActions.vue`,
+`BuilderShellSidebarPublishSocialImage.vue`; типы — новый `types/components.d.ts`.
+503 строки (>450 из плана — форма vee-validate осталась целиком, дальше резать некуда).
+
+**П.9 — BlockSlider.** `composables/useSliderDropIndicator.ts` (индикатор + `getDraggableSlides`),
+`utils/sliderCaptions.ts` (`parseSliderCaptions` + type guard), `BlockSliderCaptions.vue`
+(один экземпляр на позицию, рендерится дважды по `captionPosition`; D6 закрыт).
+
+**П.11 — TheBuilderCanvas.** `useCanvasCentering.ts` (rAF-планировщик + 3 watcher'а +
+cleanup в `onBeforeUnmount` композабла), `useCanvasContainerMetrics.ts` (метрики + ResizeObserver
+c переподключением + watcher'ы components/viewport/figmaMode; `initMetricsObserver()` зовётся
+из `onMounted` компонента; колбэки `scheduleCanvasCenter`/`scrollToSelected`),
+`useInteractivePreviewDismiss.ts` (document capture-listener, lifecycle внутри).
+`scrollToSelectedAfterViewportSwitch` остался в компоненте (передаётся колбэком).
+
+**П.12 — useSidebarPropertiesPanel.** `utils/propertyEditorComponents.ts` (module-level мапа),
+`useSidebarResponsiveScope.ts`, `useSidebarMediaSelection.ts` (опция `applyPropertyValue` —
+DI `handleChangeValues` из фасада, разрывает цикл scope↔media), `useStoryDescription.ts`.
+Возвращаемый API фасада сохранён 1:1 (компоненты не тронуты), `handleChangeValues` — в фасаде.
+
+Верификация: oxlint чисто по всем модулям; vue-tsc — только pre-existing ошибки
+(совпадают с чистым деревом). Ручная проверка перед коммитом: медиа-галерея
+(фильтры/загрузка/превью/meta), inline editing (fallback, drag overlay, переключение свойств),
+размер изображения в попавере, drag&drop в Grid (ёмкость/ячейки) и Slider (индикатор),
+публикация (экспорт/импорт схемы, social image), Figma mode/центрирование, панель свойств
+(responsive-табы, выбор медиа для image/inline-content/gallery).
+
 ### Заметки / всплывшее по ходу
 
 - **Pre-existing ошибки vue-tsc на main** (не из рефакторинга, починить отдельно):

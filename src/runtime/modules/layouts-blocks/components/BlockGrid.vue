@@ -8,9 +8,13 @@ import { computed, ref, inject, onMounted, onBeforeUnmount, type Ref } from 'vue
 
 // Utils
 import { convertPxToRem } from '../../common/utils/main';
+import { calculateGridDropTargetIndex } from '../utils/gridDropPlacement';
 
 // Composables
 import { useLayoutDropZone } from '../composables/useLayoutDropZone';
+
+// Components
+import BlockGridOverlay from './BlockGridOverlay.vue';
 // #endregion
 
 // #region Props
@@ -124,8 +128,6 @@ const gridStyle = computed<Record<string, string>>(() => {
     return style;
 });
 
-const contentHeight = computed(() => containerSize.value.height);
-
 const overlayStyle = computed<Record<string, string>>(() => {
     const px = normalizedPaddingX.value;
     const py = normalizedPaddingY.value;
@@ -138,117 +140,6 @@ const overlayStyle = computed<Record<string, string>>(() => {
     }
 
     return {};
-});
-
-const columnBoundaries = computed<number[]>(() => {
-    const width = containerSize.value.width;
-    const columns = normalizedColumns.value;
-
-    if (width <= 0 || columns <= 0) {
-        return [0];
-    }
-
-    const gap = normalizedGap.value;
-    const totalGap = (columns - 1) * gap;
-    const columnWidth = (width - totalGap) / columns;
-
-    const boundaries: number[] = [0];
-    let position = 0;
-
-    for (let index = 0; index < columns; index += 1) {
-        position += columnWidth;
-        boundaries.push(position);
-
-        if (index < columns - 1) {
-            position += gap;
-        }
-    }
-
-    boundaries[boundaries.length - 1] = width;
-    return boundaries;
-});
-
-const gapRects = computed(() => {
-    const width = containerSize.value.width;
-    const columns = normalizedColumns.value;
-    const gap = normalizedGap.value;
-
-    if (width <= 0 || columns <= 1 || gap <= 0) {
-        return [];
-    }
-
-    const totalGap = (columns - 1) * gap;
-    const columnWidth = (width - totalGap) / columns;
-    const rects: Array<{ x: number; width: number }> = [];
-
-    let position = columnWidth;
-
-    for (let index = 0; index < columns - 1; index += 1) {
-        rects.push({
-            x: position,
-            width: gap,
-        });
-
-        position += gap + columnWidth;
-    }
-
-    return rects;
-});
-
-/**
- * Вычисляет границы строк для визуализации сетки.
- * Использует реальные размеры строк из DOM.
- */
-const rowBoundaries = computed<number[]>(() => {
-    const rowSizes = actualRowSizes.value;
-
-    // Показываем сетку строк только если есть реальные данные о строках
-    if (rowSizes.length <= 1) {
-        return [];
-    }
-
-    const gap = normalizedGap.value;
-    const boundaries: number[] = [0];
-    let position = 0;
-
-    for (let index = 0; index < rowSizes.length; index += 1) {
-        position += rowSizes[index];
-        boundaries.push(position);
-
-        if (index < rowSizes.length - 1) {
-            position += gap;
-        }
-    }
-
-    return boundaries;
-});
-
-/**
- * Вычисляет прямоугольники горизонтальных gap между строками.
- * Использует реальные размеры строк из DOM.
- */
-const horizontalGapRects = computed(() => {
-    const width = containerSize.value.width;
-    const rowSizes = actualRowSizes.value;
-    const gap = normalizedGap.value;
-
-    if (width <= 0 || rowSizes.length <= 1 || gap <= 0) {
-        return [];
-    }
-
-    const rects: Array<{ y: number; height: number }> = [];
-    let position = rowSizes[0];
-
-    for (let index = 0; index < rowSizes.length - 1; index += 1) {
-        rects.push({
-            y: position,
-            height: gap,
-        });
-
-        position += gap + rowSizes[index + 1];
-    }
-
-    return rects;
 });
 // #endregion
 
@@ -371,56 +262,14 @@ function clearGridFull(): void {
 
 /**
  * Вычисляет targetIndex (ячейку грида) по позиции курсора.
- * Учитывает CSS transform (canvas scale), padding и реальный gap из computed style.
- *
- * @param event - Drop-событие с координатами курсора.
- * @returns targetIndex или null, если невозможно вычислить.
  */
 function calculateDropTargetIndex(event: DragEvent): number | null {
-    const rect = gridRef.value?.getBoundingClientRect();
-    if (!rect || !gridRef.value) {
-        return null;
-    }
-
-    // getBoundingClientRect() возвращает визуальные размеры (после canvas scale),
-    // а CSS gap/padding — в CSS-пикселях. Для согласованного расчёта
-    // читаем реальный gap из computed style и вычисляем масштаб.
-    const computedStyle = window.getComputedStyle(gridRef.value);
-    const cssGap = parseFloat(computedStyle.columnGap || computedStyle.gap || '0') || 0;
-    const cssRowGap = parseFloat(computedStyle.rowGap || computedStyle.gap || '0') || 0;
-
-    // Масштаб: отношение visual к CSS (учитывает transform: scale на canvas)
-    const offsetW = gridRef.value.offsetWidth;
-    const scale = offsetW > 0 ? rect.width / offsetW : 1;
-
-    // Переводим gap в визуальные пиксели
-    const visualGap = cssGap * scale;
-    const visualRowGap = cssRowGap * scale;
-
-    // Учитываем padding (тоже в визуальных пикселях)
-    const padLeft = (parseFloat(computedStyle.paddingLeft) || 0) * scale;
-    const padTop = (parseFloat(computedStyle.paddingTop) || 0) * scale;
-    const padRight = (parseFloat(computedStyle.paddingRight) || 0) * scale;
-    const padBottom = (parseFloat(computedStyle.paddingBottom) || 0) * scale;
-
-    const columns = normalizedColumns.value;
-    const contentWidth = rect.width - padLeft - padRight;
-    const columnWidth = (contentWidth - (columns - 1) * visualGap) / columns;
-
-    const x = event.clientX - rect.left - padLeft;
-    let column = Math.floor(x / (columnWidth + visualGap));
-    column = Math.max(0, Math.min(column, columns - 1));
-
-    const rows = normalizedRows.value;
-    const contentHeight = rect.height - padTop - padBottom;
-    const availableHeight = contentHeight - (rows - 1) * visualRowGap;
-    const singleRowHeight = availableHeight / rows;
-
-    const y = event.clientY - rect.top - padTop;
-    let row = Math.floor(y / (singleRowHeight + visualRowGap));
-    row = Math.max(0, Math.min(row, rows - 1));
-
-    return row * columns + column;
+    return calculateGridDropTargetIndex(
+        event,
+        gridRef.value,
+        normalizedColumns.value,
+        normalizedRows.value
+    );
 }
 // #endregion
 
@@ -477,61 +326,14 @@ onMounted(() => {
         @drop="handleDrop"
     >
         <!-- Grid visualization SVG overlay -->
-        <svg
+        <BlockGridOverlay
             v-if="showGrid && containerSize.width > 0"
-            :class="$style.gridOverlay"
             :style="overlayStyle"
-            :width="containerSize.width"
-            :height="containerSize.height"
-            :viewBox="`0 0 ${containerSize.width} ${containerSize.height}`"
-            preserveAspectRatio="none"
-        >
-            <!-- Vertical gap highlight (columns) -->
-            <rect
-                v-for="(gapRect, gapIndex) in gapRects"
-                :key="`col-gap-${gapIndex}`"
-                :x="gapRect.x"
-                :y="0"
-                :width="gapRect.width"
-                :height="contentHeight"
-                fill="rgb(var(--rgb-indigo) / 12%)"
-            />
-
-            <!-- Horizontal gap highlight (rows) -->
-            <rect
-                v-for="(gapRect, gapIndex) in horizontalGapRects"
-                :key="`row-gap-${gapIndex}`"
-                :x="0"
-                :y="gapRect.y"
-                :width="containerSize.width"
-                :height="gapRect.height"
-                fill="rgb(var(--rgb-indigo) / 12%)"
-            />
-
-            <!-- Vertical lines (columns) -->
-            <line
-                v-for="(position, index) in columnBoundaries"
-                :key="`v-${index}`"
-                :x1="position"
-                :y1="0"
-                :x2="position"
-                :y2="containerSize.height"
-                stroke="rgba(99, 102, 241, 0.4)"
-                stroke-width="1"
-            />
-
-            <!-- Horizontal lines (rows) -->
-            <line
-                v-for="(position, index) in rowBoundaries"
-                :key="`h-${index}`"
-                :x1="0"
-                :y1="position"
-                :x2="containerSize.width"
-                :y2="position"
-                stroke="rgba(99, 102, 241, 0.4)"
-                stroke-width="1"
-            />
-        </svg>
+            :container-size="containerSize"
+            :columns="normalizedColumns"
+            :gap="normalizedGap"
+            :row-sizes="actualRowSizes"
+        />
 
         <!-- Content -->
         <slot />
@@ -604,14 +406,6 @@ onMounted(() => {
         border-color: transparent;
         background: transparent;
     }
-}
-
-.gridOverlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 0;
-    pointer-events: none;
 }
 
 .emptyPlaceholder {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IPublishedPage } from '../../common/types/bricks-api';
+import type { IPublishedPage, IPreviewStoredPage } from '../../common/types/bricks-api';
 import type { BricksComponent } from '../../common/types/brick';
 import type { IBrickDataSource } from '../../common/types/dataSource';
 
@@ -104,7 +104,31 @@ const resolvedProps = computed<Record<string, Record<string, unknown>>>(() => {
 if (isPreview && import.meta.client) {
     let resizeObserver: ResizeObserver | null = null;
 
-    // При монтировании читаем актуальные данные из localStorage (имеют приоритет над данными БД из SSR payload)
+    /**
+     * Проверяет, что снапшот превью из localStorage не старее данных БД из SSR payload.
+     * Записи без `storedAt` (легаси) при наличии данных БД считаются устаревшими —
+     * иначе замороженный снапшот перетирал бы свежесохранённую страницу.
+     */
+    function isStoredPreviewFresh(stored: IPreviewStoredPage): boolean {
+        const dbPage = middlewarePageData.value;
+        if (!dbPage) {
+            return true;
+        }
+
+        const storedAt = Date.parse(stored.storedAt ?? '');
+        if (Number.isNaN(storedAt)) {
+            return false;
+        }
+
+        const updatedAt = Date.parse(dbPage.updatedAt ?? '');
+        if (Number.isNaN(updatedAt)) {
+            return true;
+        }
+
+        return storedAt >= updatedAt;
+    }
+
+    // При монтировании читаем данные из localStorage — но только если они свежее БД
     onMounted(() => {
         resizeObserver = new ResizeObserver(() => {
             windowWidth.value = window.innerWidth;
@@ -115,8 +139,8 @@ if (isPreview && import.meta.client) {
         try {
             const stored = window.localStorage.getItem('bricks-preview-page');
             if (stored) {
-                const parsed = JSON.parse(stored) as IPublishedPage;
-                if (parsed.pagename === pagename) {
+                const parsed = JSON.parse(stored) as IPreviewStoredPage;
+                if (parsed.pagename === pagename && isStoredPreviewFresh(parsed)) {
                     livePreviewData.value = parsed;
                 }
             }
@@ -140,7 +164,29 @@ if (isPreview && import.meta.client) {
         }
     };
 
+    /**
+     * Запрашивает свежую схему у билдер-вкладки: восстанавливает live-синк
+     * после перезагрузки превью или самого билдера.
+     */
+    function requestFreshSchema(): void {
+        previewChannel.postMessage({ type: 'request-schema', pagename });
+    }
+
+    /**
+     * Повторный запрос при возврате на вкладку — билдер мог перезагрузиться,
+     * пока превью было в фоне.
+     */
+    function handleVisibilityChange(): void {
+        if (!document.hidden) {
+            requestFreshSchema();
+        }
+    }
+
+    requestFreshSchema();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     onUnmounted(() => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
         previewChannel.close();
         resizeObserver?.disconnect();
         resizeObserver = null;
