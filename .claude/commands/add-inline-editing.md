@@ -24,12 +24,12 @@ Inline editing позволяет редактировать текст двой
 
 ```
 (пути — от src/runtime/modules/)
-editor/stores/inlineEditing.ts             — Pinia setup-store
-editor/composables/useInlineEditor.ts      — TipTap lifecycle, lazy init
-canvas/components/CanvasInlineEditingOverlay.vue — Floating toolbar
-canvas/components/CanvasItem.vue   — dblclick → startEditing
-canvas/components/CanvasItemLayout.vue — передаёт :component-id
-builder/utils/inlineEditableProp.ts        — находит inline-редактируемое свойство
+text-editor/stores/inlineEditing.ts              — Pinia setup-store
+text-editor/composables/useInlineEditor.ts       — TipTap lifecycle, lazy init
+builder/canvas/editing/components/BuilderCanvasInlineEditingOverlay.vue — Floating toolbar
+builder/canvas/item/components/BuilderCanvasItem.vue       — dblclick → startEditing
+builder/canvas/item/components/BuilderCanvasItemLayout.vue — передаёт :component-id
+builder/core/utils/inlineEditableProp.ts         — находит inline-редактируемое свойство
 ```
 
 ## Алгоритм
@@ -43,7 +43,7 @@ builder/utils/inlineEditableProp.ts        — находит inline-редак�
 
 ```typescript
 import { inject } from 'vue';
-import { useInlineEditor } from '../../editor/composables/useInlineEditor';
+import { useInlineEditor } from '../../text-editor/composables/useInlineEditor';
 
 const inlineEditingContext = inject('inlineEditingContext', null);
 const { isEditing, editor, editorContent, initEditor } = useInlineEditor({
@@ -76,7 +76,7 @@ watch(isEditing, async (editing) => {
 
 **Важно**: на `v-html` элементе обязательно `data-tiptap-content` для rich-text стилей!
 
-### Шаг 5: CanvasItemLayout.vue
+### Шаг 5: BuilderCanvasItemLayout.vue
 
 Передать `:component-id="props.component.id"` в новый компонент.
 
@@ -96,7 +96,7 @@ npx oxlint <changed-files>
 | Симптом                          | Причина                                                     | Где смотреть                                 |
 | -------------------------------- | ----------------------------------------------------------- | -------------------------------------------- |
 | Тулбар не появляется             | `setEditor()` не вызван                                     | `useInlineEditor.ts` → `initEditor()`        |
-| Кнопки не реагируют на выделение | Нет подписки на `editor.on('transaction')`                  | `CanvasInlineEditingOverlay.vue`             |
+| Кнопки не реагируют на выделение | Нет подписки на `editor.on('transaction')`                  | `BuilderCanvasInlineEditingOverlay.vue`      |
 | Клик по кнопке снимает выделение | Нет `@mousedown.prevent`                                    | Кнопки тулбара                               |
 | Бесконечный цикл обновлений      | `isInternalUpdate` не сброшен                               | `saveToStore()`                              |
 | Editor глубоко реактивный        | `ref()` вместо `shallowRef()`                               | store + composable                           |

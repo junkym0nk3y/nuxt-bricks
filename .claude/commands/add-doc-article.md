@@ -10,21 +10,21 @@ $ARGUMENTS
 
 ## Контекст
 
-Встроенная документация — markdown-статьи в `docs/guide/`, рендерящиеся в модальном окне билдера.
+Встроенная документация — markdown-статьи в `builder/documentation/docs/guide/`, рендерящиеся в модальном окне билдера.
 
-Ключевые файлы:
+Ключевые файлы (пути — от `src/runtime/modules/`):
 
-- `docs/guide/` — markdown-статьи
-- `public/docs/guide/images/` — публичные изображения
-- `composables/useDocumentationArticles.ts` — import.meta.glob, навигация
-- `composables/useMarkdownRenderer.ts` — markdown-it рендеринг
-- `components/modal/TheDocumentationModal.vue` — UI модалки
+- `builder/documentation/docs/guide/` — markdown-статьи
+- `src/runtime/public/docs/guide/images/` — публичные изображения
+- `builder/documentation/composables/useDocumentationArticles.ts` — import.meta.glob, навигация
+- `builder/documentation/composables/useMarkdownRenderer.ts` — markdown-it рендеринг
+- `builder/documentation/components/TheBuilderDocumentationModal.vue` — UI модалки
 
 ## Алгоритм
 
 ### Шаг 1: Создать markdown-файл
 
-Файл: `docs/guide/NN-slug.md`
+Файл: `builder/documentation/docs/guide/NN-slug.md`
 
 - Числовой префикс `NN-` определяет порядок в навигации
 - Посмотри существующие файлы для выбора следующего номера
@@ -47,7 +47,7 @@ $ARGUMENTS
 
 ### Шаг 3: Изображения
 
-Помести в `public/docs/guide/images/`. Ссылайся как `./images/file.png`.
+Помести в `src/runtime/public/docs/guide/images/`. Ссылайся как `./images/file.png`.
 
 ### Шаг 4: Кросс-ссылки
 

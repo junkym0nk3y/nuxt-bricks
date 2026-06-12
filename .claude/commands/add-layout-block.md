@@ -84,7 +84,7 @@ Dev-smoke: `npm run dev` → блок виден в библиотеке, бро
 
 ## Чего НЕ делать
 
-- ❌ Дублировать дефолты где-либо кроме definition (`builder/constants/layoutComponents.ts` и `builder/utils/layoutProperties.ts` — обёртки registry, не трогать)
+- ❌ Дублировать дефолты где-либо кроме definition (`builder/core/constants/layoutComponents.ts` и `builder/core/utils/layoutProperties.ts` — обёртки registry, не трогать)
 - ❌ Импортировать `.vue` контейнера в definition (ломает bundle firewall published-страницы)
 - ❌ Импортировать builder-stores из `layouts-blocks` (depcruise-правило `layouts-blocks-deps` = error); viewport — через `inject(CANVAS_VIEWPORT_KEY)` из `common/constants/injectionKeys.ts`
-- ❌ Добавлять ветки в `CanvasItemLayout.vue` / `useRendererLayouts.ts` — диспатч generic, всё через definition
+- ❌ Добавлять ветки в `BuilderCanvasItemLayout.vue` / `useRendererLayouts.ts` — диспатч generic, всё через definition
