@@ -1,12 +1,5 @@
 import type { IBrickDemoValues } from '../../common/types/index';
-
-// Ensure all value types match component expectations
-export interface IBrickUiCommonProp {
-    label: string;
-    value: string | boolean;
-    disabled?: boolean;
-    placeholder?: string;
-}
+import type { IBrickUiCommonProp } from '../types/common';
 
 export interface IBricksSelectProps {
     specs: IBrickUiCommonProp[];

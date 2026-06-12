@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IBrickUiCommonProp } from './types.d.ts';
+import type { IBrickUiCommonProp } from '../../types/common';
 
 // Vue
 import { computed, ref, useCssModule } from 'vue';

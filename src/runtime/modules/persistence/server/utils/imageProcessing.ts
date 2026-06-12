@@ -3,8 +3,8 @@ import { useAppConfig } from 'nitropack/runtime';
 import sharp from 'sharp';
 import type {
     TFormData,
-    TMediaOptimization,
-    TResolvedMediaConfig,
+    IMediaOptimization,
+    IResolvedMediaConfig,
 } from '../../types/media';
 // #endregion
 
@@ -12,7 +12,7 @@ import type {
 const BYTES_IN_MB = 1024 * 1024;
 const DEFAULT_MAX_UPLOAD_SIZE_MB = 10;
 const DEFAULT_MAX_VIDEO_UPLOAD_SIZE_MB = 100;
-const DEFAULT_OPTIMIZATION_CONFIG: TMediaOptimization = {
+const DEFAULT_OPTIMIZATION_CONFIG: IMediaOptimization = {
     maxWidth: 1920,
     quality: 70,
 };
@@ -176,7 +176,7 @@ function resolveNumber(value: unknown, fallback: number): number {
 /**
  * Читает медиа-настройки (лимит и параметры оптимизации) из app config с дефолтами.
  */
-export function resolveMediaConfig(): TResolvedMediaConfig {
+export function resolveMediaConfig(): IResolvedMediaConfig {
     const appConfig = useAppConfig();
     const mediaConfig = appConfig.bricks?.media ?? {};
     const optimization = mediaConfig.optimization ?? {};
@@ -207,7 +207,7 @@ export function resolveMediaConfig(): TResolvedMediaConfig {
  */
 export async function optimizeToWebp(
     buffer: Buffer,
-    optimization: TMediaOptimization
+    optimization: IMediaOptimization
 ): Promise<Buffer> {
     return sharp(buffer)
         .resize({

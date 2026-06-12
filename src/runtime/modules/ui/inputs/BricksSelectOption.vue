@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { IBrickDemoValues } from '../../common/types/index';
-import type { IBrickUiCommonProp } from './types.d.ts';
+import type { IBrickUiCommonProp } from '../types/common';
 
 // Vue
 import { computed, useCssModule } from 'vue';

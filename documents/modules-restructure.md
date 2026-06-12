@@ -118,7 +118,13 @@ src/runtime/modules/
   - Без корневого класса остались wrapper'ы: `BuilderCanvasItemComponent`/`BuilderCanvasConditionalContainer`/`BuilderCanvasItemLayout` (корень — чужой компонент/рендер-функция), медиа-модалки (корень — `BricksModal`) — переименовывать нечего.
   - Verification: vue-tsc — те же унаследованные ошибки (12, см. этап 5), oxlint чисто, grep по старым именам/классам пуст, smoke `/builder` — 200 (500 от `/api/bricks/published/` — локальный Postgres не поднят).
 - [x] **Этап 6б.** По фидбеку: внутри canvas-слайсов (`viewport/`, `item/`, `editing/`) плоская смесь файлов разведена на `components/` + `composables/` (`types/` без изменений). `git mv` + сдвиг относительных импортов на уровень глубже; кросс-слайсовые ссылки — через подпапки (`../../item/components/...`). Внешний импортёр один — `app/pages/[pagename].vue`. Stores остаются в `core/stores/` (решение подтверждено).
-- [ ] **Этап 7.** Ревизия типов (дубли, `T*`-интерфейсы, орфаны).
+- [x] **Этап 7.** Ревизия типов. По факту:
+  - Дубль `ISelectedComponentData` устранён: единственное определение в `core/stores/types.ts` (поля совместимы: sidebar-копия была структурным подмножеством с инлайн-shape вместо `BricksComponent`); `sidebar/types/composables.d.ts` реэкспортирует. Заодно удалён неиспользуемый реэкспорт из `usePropertyVariants.ts`.
+  - Дубль `IBrickUiCommonProp` → общий `ui/types/common.d.ts`; `ui/base/action-button/types.d.ts` удалён (содержал только дубль).
+  - `T*`-интерфейсы: `TMediaOptimization`/`TResolvedMediaConfig` → `IMediaOptimization`/`IResolvedMediaConfig` (persistence). `TFormData` — настоящий type alias, оставлен.
+  - Типы со старым ребрендингом этапа 6: `IPublishedPagesModal*`/`IPublishedPageCard*` → `IPublishPagesModal*`/`IPublishPageCard*` (компоненты теперь `*PublishPagesModal`/`*PublishPageCard`). Остальные типы (`ICanvasItem*`, `ISidebar*`, `IToolbar*`, …) сохраняют короткий хвост без `Builder`-цепочки — как и композаблы, контекст задаёт доменная папка.
+  - Орфаны удалены (0 использований вне объявления): `ICanvasItemEmits`, `IPublishModalProps`, `IPublishModalEmits`, `IUpdatePageResult`, `IMediaUploadResponse`.
+  - Вне скоупа (зафиксировано): `export type I*`-алиасы (`IBrickDemoValues`, `IComponentsActions`, `IItemStyle`) — формально нарушают `I`/`T`-конвенцию в обратную сторону, в плане заявлены только `T*`-интерфейсы.
 - [ ] **Этап 8.** Обновить `CLAUDE.md` (Architecture, «Ключевые файлы»), `.claude/rules/naming.md` (правило модульной цепочки; modal-исключение отменяется).
 
 ## Verification (после каждого этапа)

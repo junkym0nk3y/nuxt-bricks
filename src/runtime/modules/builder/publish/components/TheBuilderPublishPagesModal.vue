@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IPublishedPagesModalProps, IPublishedPagesModalEmits } from '../types/modal';
+import type { IPublishPagesModalProps, IPublishPagesModalEmits } from '../types/modal';
 import type { IPublishedPage } from '../../../common/types/bricks-api';
 
 // Vue
@@ -18,11 +18,11 @@ import { usePublishStore } from '../stores/publish';
 // #endregion
 
 // #region Props
-const props = defineProps<IPublishedPagesModalProps>();
+const props = defineProps<IPublishPagesModalProps>();
 // #endregion
 
 // #region Emits
-const emit = defineEmits<IPublishedPagesModalEmits>();
+const emit = defineEmits<IPublishPagesModalEmits>();
 // #endregion
 
 // #region Data

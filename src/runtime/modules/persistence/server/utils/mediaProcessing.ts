@@ -4,7 +4,7 @@ import type {
     IBuildUploadedItemParams,
     IValidatedImage,
     IValidatedVideo,
-    TMediaOptimization,
+    IMediaOptimization,
 } from '../../types/media';
 import {
     getFileExtension,
@@ -72,7 +72,7 @@ export async function validateAndOptimizeImage(
     file: IBuildUploadedItemParams['file'],
     maxUploadSizeBytes: number,
     maxUploadSizeMb: number,
-    optimization: TMediaOptimization
+    optimization: IMediaOptimization
 ): Promise<IValidatedImage> {
     const originalExtension = getFileExtension(file.filename);
     const fileBuffer = toBuffer(file.data);

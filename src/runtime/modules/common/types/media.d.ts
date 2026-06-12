@@ -21,16 +21,6 @@ export interface IMediaUpdateMetaRequest {
     alt?: string;
 }
 
-export interface IMediaUploadResponse {
-    success: boolean;
-    url: string;
-    error?: string;
-    filename: string;
-    size: number;
-    key: string;
-    item?: IMediaItem;
-}
-
 export interface IMediaListResponse {
     success: boolean;
     items: IMediaItem[];

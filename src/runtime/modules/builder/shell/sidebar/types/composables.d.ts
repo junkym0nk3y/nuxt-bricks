@@ -2,7 +2,6 @@
  * Типы для composables домена sidebar.
  */
 
-import type { PropertyDefinition } from '../../../../common/types/brick';
 import type {
     ComponentVariantsMap,
     IComponentVariant,
@@ -12,19 +11,9 @@ import type { ComputedRef } from 'vue';
 
 // #region usePropertyVariants
 /**
- * Данные выбранного компонента для обработки свойств.
+ * Данные выбранного компонента — единственное определение в core (см. modules-restructure.md).
  */
-export interface ISelectedComponentData {
-    id: string;
-    component: {
-        componentName: string;
-        props: Record<string, unknown>;
-        parent?: string | null;
-        fullWidth?: boolean;
-    };
-    properties: PropertyDefinition[];
-    description?: string;
-}
+export type { ISelectedComponentData } from '../../../core/stores/types';
 
 /**
  * Возвращаемое значение composable usePropertyVariants.

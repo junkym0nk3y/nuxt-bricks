@@ -78,11 +78,6 @@ export interface IUpdatePagePayload {
     published?: boolean;
 }
 
-export interface IUpdatePageResult {
-    id: number;
-    pagename: string;
-}
-
 /**
  * Данные формы публикации (без schema).
  */

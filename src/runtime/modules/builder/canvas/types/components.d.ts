@@ -9,10 +9,6 @@ export interface ICanvasItemProps {
     component: BricksComponent;
 }
 
-export interface ICanvasItemEmits {
-    select: [id: string];
-}
-
 export type IItemStyle = CSSProperties;
 
 export interface ILayoutDropDetail {

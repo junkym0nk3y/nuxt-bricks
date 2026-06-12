@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IPublishedPageCardEmits, IPublishedPageCardProps } from '../types/modal';
+import type { IPublishPageCardEmits, IPublishPageCardProps } from '../types/modal';
 
 // Vue
 import { computed } from 'vue';
@@ -14,11 +14,11 @@ import BricksTooltipHint from '../../../ui/tooltip/BricksTooltipHint.vue';
 // #endregion
 
 // #region Props
-const props = defineProps<IPublishedPageCardProps>();
+const props = defineProps<IPublishPageCardProps>();
 // #endregion
 
 // #region Emits
-const emit = defineEmits<IPublishedPageCardEmits>();
+const emit = defineEmits<IPublishPageCardEmits>();
 // #endregion
 
 // #region Computed

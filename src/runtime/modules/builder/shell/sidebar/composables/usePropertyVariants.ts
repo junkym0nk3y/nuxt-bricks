@@ -22,9 +22,6 @@ import {
 } from '../components/property-editors/types';
 // #endregion
 
-// Реэкспорт типа для внешнего использования
-export type { ISelectedComponentData } from '../types/composables';
-
 /**
  * Composable для управления вариантами свойств компонентов.
  * Преобразует определения свойств в варианты для различных типов редакторов.

@@ -1,26 +1,12 @@
 /**
- * Publish Modal types
- */
-
-export interface IPublishModalProps {
-    isOpen: boolean;
-    editingPageId?: string;
-}
-
-export interface IPublishModalEmits {
-    close: [];
-    published: [pageId: string];
-}
-
-/**
  * Published Pages Modal types
  */
 
-export interface IPublishedPagesModalProps {
+export interface IPublishPagesModalProps {
     isOpen: boolean;
 }
 
-export interface IPublishedPagesModalEmits {
+export interface IPublishPagesModalEmits {
     close: [];
     edit: [pageId: string];
     preview: [pageId: string];
@@ -29,12 +15,12 @@ export interface IPublishedPagesModalEmits {
     error: [message: string];
 }
 
-export interface IPublishedPageCardProps {
+export interface IPublishPageCardProps {
     page: import('../../../common/types/bricks-api').IPublishedPage;
     isPublishing?: boolean;
 }
 
-export interface IPublishedPageCardEmits {
+export interface IPublishPageCardEmits {
     preview: [pageId: string];
     edit: [pageId: string];
     delete: [pageId: string];

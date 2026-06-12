@@ -5,17 +5,17 @@
 
 export type TFormData = import('h3').MultiPartData[] | undefined;
 
-export interface TMediaOptimization {
+export interface IMediaOptimization {
     maxWidth: number;
     quality: number;
 }
 
-export interface TResolvedMediaConfig {
+export interface IResolvedMediaConfig {
     maxUploadSizeBytes: number;
     maxUploadSizeMb: number;
     maxVideoUploadSizeBytes: number;
     maxVideoUploadSizeMb: number;
-    optimization: TMediaOptimization;
+    optimization: IMediaOptimization;
 }
 
 export interface IValidatedVideo {

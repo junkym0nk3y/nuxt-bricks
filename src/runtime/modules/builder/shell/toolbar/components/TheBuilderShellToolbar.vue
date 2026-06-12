@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { IToolbarProps, IToolbarEmits } from './types';
-import type { IBrickUiCommonProp } from '../../../../ui/inputs/types.d.ts';
+import type { IBrickUiCommonProp } from '../../../../ui/types/common';
 
 // Vue
 import { computed } from 'vue';
