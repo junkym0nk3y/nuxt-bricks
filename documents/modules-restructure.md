@@ -1,6 +1,6 @@
 # Реструктуризация `src/runtime/modules/`: смысловая группировка + модульный нейминг
 
-Статус: **в работе**. Выполняем поэтапно, каждый этап — отдельный коммит, в конце этапа зелёный `npx vue-tsc --noEmit` + `npx oxlint src/`.
+Статус: **завершено** (2026-06-12, этапы 0–8). Выполняли поэтапно, каждый этап — отдельный коммит, в конце этапа зелёный `npx vue-tsc --noEmit` + `npx oxlint src/`.
 
 ## Мотивация
 
@@ -125,7 +125,10 @@ src/runtime/modules/
   - Типы со старым ребрендингом этапа 6: `IPublishedPagesModal*`/`IPublishedPageCard*` → `IPublishPagesModal*`/`IPublishPageCard*` (компоненты теперь `*PublishPagesModal`/`*PublishPageCard`). Остальные типы (`ICanvasItem*`, `ISidebar*`, `IToolbar*`, …) сохраняют короткий хвост без `Builder`-цепочки — как и композаблы, контекст задаёт доменная папка.
   - Орфаны удалены (0 использований вне объявления): `ICanvasItemEmits`, `IPublishModalProps`, `IPublishModalEmits`, `IUpdatePageResult`, `IMediaUploadResponse`.
   - Вне скоупа (зафиксировано): `export type I*`-алиасы (`IBrickDemoValues`, `IComponentsActions`, `IItemStyle`) — формально нарушают `I`/`T`-конвенцию в обратную сторону, в плане заявлены только `T*`-интерфейсы.
-- [ ] **Этап 8.** Обновить `CLAUDE.md` (Architecture, «Ключевые файлы»), `.claude/rules/naming.md` (правило модульной цепочки; modal-исключение отменяется).
+- [x] **Этап 8.** Обновить `CLAUDE.md` (Architecture, «Ключевые файлы»), `.claude/rules/naming.md` (правило модульной цепочки; modal-исключение отменяется). По факту:
+  - `CLAUDE.md` Architecture: доменный список переписан под двухуровневую структуру (builder/app|core|shell|canvas|publish|documentation|media, text-editor), добавлен `persistence/`, направления зависимостей — из этого плана (+ оба tech-debt: text-editor→core/stores/components, core→app/getModalOptions). «Ключевые файлы» обновлены в 6 разделах (Property Groups, Responsive, Registry, Rem-компенсация, Контейнер, URL Prefix).
+  - `naming.md`: правило 1 → модульная цепочка (Builder → Shell → …, технические сегменты и `app`/`core` в имя не входят); правило 5 (modal-исключение) отменено — модалки по цепочке; правило 7 дополнено wrapper'ами без корневого класса; раздел про stores переписан под `builder/core/stores/` (publish.ts — в `builder/publish/stores/`). Композаблы и типы — явно без `Builder`-цепочки.
+  - Код не менялся — vue-tsc/oxlint не требуются; grep по старым путям/именам в обоих файлах пуст.
 
 ## Verification (после каждого этапа)
 

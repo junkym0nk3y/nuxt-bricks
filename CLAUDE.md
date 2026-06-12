@@ -31,22 +31,26 @@ npx oxlint <changed-file>
 
 ### Доменная структура `src/runtime/modules/` (модульный монолит)
 
-Все домены лежат в `src/runtime/modules/`. Каждый домен держит свои компоненты/композаблы/типы/утилиты рядом (см. documents/refactor.md):
+Все домены лежат в `src/runtime/modules/`. Каждый домен держит свои компоненты/композаблы/типы/утилиты рядом (см. documents/refactor.md, documents/modules-restructure.md):
 
-- `ui/` — Reka UI-кит (base/inputs/feedback/tooltip)
-- `builder/` — ядро редактора: `stores/` (canvas, components+actions, sidebar, history, navigation, publish), `pages/` (composition root), `components/modal/`, общие `composables/`, `utils/`, `constants/`, `types/`
-- `canvas/` — канвас редактора: `components/` (TheCanvas, CanvasItem*, CanvasViewport...), `composables/` (useCanvas*, useComponentSlots, useSlotDragDrop), `types/`
-- `sidebar/` — сайдбар редактора: `components/` (TheSidebar, Sidebar*, property-editors/), `composables/` (useSidebarPropertiesPanel, usePropertyVariants, usePublishValidationSchema), `utils/`, `types/`
-- `toolbar/` — тулбар редактора: чисто презентационный, `components/` (TheToolbar, ToolbarVerticalNav)
+- `ui/` — Reka UI-кит (base/inputs/feedback/tooltip, общие типы в `types/`)
+- `builder/` — редактор целиком, поддомены:
+    - `app/` — composition root: `pages/` (builder.vue, [pagename].vue), `components/` (TheBuilderLoader), `composables/` (useBuilderPage, useModals, useDraggableComponent), `types/`
+    - `core/` — ядро состояния: `stores/` (components + actions/, canvas, sidebar, history, navigation, componentActions), `utils/`, `constants/`, `composables/` (useComponentProperties), `components/` (BuilderLogo)
+    - `shell/` — рамка редактора: `sidebar/` (components + property-editors/, composables, utils, types), `toolbar/` (чисто презентационный)
+    - `canvas/` — слайсы `viewport/`, `item/`, `editing/` (каждый — `components/` + `composables/`) + общий `types/`
+    - `publish/` — управление страницами: `pages/` (index.vue — дашборд), `components/` (TheBuilderPublishPagesModal, BuilderPublishPageCard), `stores/publish.ts`, `types/`
+    - `documentation/` — TheBuilderDocumentationModal, `composables/`, `docs/guide/` (markdown-статьи), `types/`
+    - `media/` — медиа-галерея и image resolver (свой `stores/media.ts`)
+- `text-editor/` — TipTap (бывший `editor/`): компоненты, расширения (`tiptap/`), inline editing, `stores/inlineEditing.ts`
 - `render/` — рендер опубликованной страницы (самодостаточен, store не использует)
 - `layouts-blocks/` — блоки лендинга (Grid/Flex/Section/Slider/...)
-- `editor/` — TipTap: компоненты, расширения (`tiptap/`), inline editing, `stores/inlineEditing.ts`
-- `media/` — медиа-галерея и image resolver (свой `stores/media.ts`)
+- `persistence/` — серверные адаптеры хранения (`server/postgres/`, `server/s3/`, `server/registry.ts`); используется только из `src/runtime/server/api/bricks/**`
 - `common/` — только общее (2+ доменов): `composables/` (useBricksConfig, useStoryImports, useApiClient, useBricksStyles), `utils/bricks/` (paths, components, deviceVisibility), `utils/routing/` (build-time), `types/`
 
 Вне `modules/` в `src/runtime/` остаётся инфраструктура Nuxt: `plugins/`, `server/`, `middleware/`, `layouts/`, `assets/`, `types.d.ts` (шим, реэкспортирует `modules/common/types`).
 
-Направления зависимостей: `builder/pages` (composition root) → canvas/sidebar/toolbar/media/ui; `canvas`/`sidebar` → builder (stores/utils/constants/types) + любой домен; `toolbar` → ui + builder/components (BuilderLogo); stores остаются в `builder/` — они общие для canvas и sidebar, перенос в фичевые домены дал бы цикл canvas↔sidebar. `render` — только common + layouts-blocks; `layouts-blocks` → `editor` (+ tech-debt: BlockSlider → builder/stores/canvas). Импорты — явные относительные (auto-import локального кода отключён).
+Направления зависимостей: `builder/app` (composition root) → все поддомены builder + text-editor + ui; `builder/canvas`/`builder/shell` → `builder/core`, `builder/publish`, text-editor, layouts-blocks, ui, common; `builder/core` НЕ импортирует canvas/shell — stores остаются в `core/`, перенос в фичевые поддомены дал бы цикл canvas↔shell. `render` — только common + layouts-blocks; `layouts-blocks` → `text-editor` (+ tech-debt: BlockSlider → builder/core/stores/canvas). Tech-debt: `text-editor/composables/useInlineEditor.ts` → builder/core/stores/components и `core/composables/useComponentProperties.ts` → app/composables/useModals (`getModalOptions`) — кандидаты на DI из composition root. Импорты — явные относительные (auto-import локального кода отключён).
 
 ### Component System (Story-based)
 
@@ -87,7 +91,7 @@ export const story = {
 - `common/types/brick.ts` → `PropertyDefinition.group`
 - `common/types/index.ts` → `IBrickValues.group`
 - `common/types/layoutProperty.d.ts` → `ILayoutProperty.group`
-- `sidebar/components/SidebarPropertyEditors.vue` → рендеринг аккордеонов
+- `builder/shell/sidebar/components/BuilderShellSidebarPropertyEditors.vue` → рендеринг аккордеонов
 
 ### Property Unit Suffix
 
@@ -156,8 +160,8 @@ function resolveResponsive(base: number, key: string): number {
 - `layouts-blocks/utils/responsiveCss.ts` — генерация CSS rules из `responsiveCssVars` definitions (инжект — `composables/useResponsiveLayoutStyles.ts`)
 - `layouts-blocks/components/blockX.definition.ts` — `renderPublished` с CSS-переменными (`makeResponsiveVars` из `utils/responsiveVars.ts`), разметка `responsive: true` и `group` в `properties`
 - `render/composables/useRendererLayouts.ts` — диспатч published-рендера через registry
-- `canvas/composables/useCanvasItemLayout.ts` — `effectiveViewport`, `resolveBlockProps` из registry
-- `sidebar/composables/useSidebarPropertiesPanel.ts` — `isResponsiveComponent`, `layoutDeviceScope` (по `responsiveMode` definition)
+- `builder/canvas/item/composables/useCanvasItemLayout.ts` — `effectiveViewport`, `resolveBlockProps` из registry
+- `builder/shell/sidebar/composables/useSidebarPropertiesPanel.ts` — `isResponsiveComponent`, `layoutDeviceScope` (по `responsiveMode` definition)
 
 ### Toolbar: % и rem в letter-spacing / line-height
 
@@ -182,7 +186,7 @@ function resolveResponsive(base: number, key: string): number {
 Всё остальное derived:
 
 - `layouts-blocks/registry.ts` — `BLOCK_REGISTRY`, `getBlockDefinition`, `getBlockProperties`, `resolveBlockProps`, `getLayoutLibraryItems` (defaultProps = `properties[].default` + `extraDefaults`)
-- `builder/constants/layoutComponents.ts`, `builder/utils/layoutProperties.ts` — тонкие обёртки над registry (API сохранён)
+- `builder/core/constants/layoutComponents.ts`, `builder/core/utils/layoutProperties.ts` — тонкие обёртки над registry (API сохранён)
 - `layouts-blocks/canvasBlockComponents.ts` — eager-мапа `.vue` для канваса (**bundle firewall**: импортируется только канвасом; definitions контейнеров Grid/Flex/Section/Space НЕ импортируют свои `.vue` — published рендерит их `h('div')` через `renderPublished`)
 
 **Добавление блока:** `BlockX.vue` + `blockX.definition.ts` + 2 однострочные регистрации (`registry.ts`, `canvasBlockComponents.ts`).
@@ -216,11 +220,11 @@ bricks: {
 
 **Ключевые файлы:**
 
-- `canvas/composables/useCanvasRemBase.ts` — вычисление коэффициента
-- `canvas/composables/useCanvas.ts` — применение к `canvasTransform`
-- `builder/pages/builder.vue` — инлайн `font-size: 10px` на `<html>`
+- `builder/canvas/viewport/composables/useCanvasRemBase.ts` — вычисление коэффициента
+- `builder/canvas/viewport/composables/useCanvas.ts` — применение к `canvasTransform`
+- `builder/app/pages/builder.vue` — инлайн `font-size: 10px` на `<html>`
 
-**Figma Mode:** каждый viewport применяет свою компенсацию через `transform: scale()` на `.canvas` элементе (inject `getRemCompensation` из `TheCanvas.vue`).
+**Figma Mode:** каждый viewport применяет свою компенсацию через `transform: scale()` на `.canvas` элементе (inject `getRemCompensation` из `TheBuilderCanvas.vue`).
 
 #### Контейнер контента (`.bricks-container`)
 
@@ -247,7 +251,7 @@ bricks: {
 
 - `common/composables/useBricksStyles.ts` — генерация CSS (канвас + published)
 - `render/components/TheRenderer.vue` — обёртка `bricks-container` на published
-- `canvas/components/CanvasConditionalContainer.vue` — обёртка на канвасе
+- `builder/canvas/viewport/components/BuilderCanvasConditionalContainer.vue` — обёртка на канвасе
 - `plugins/bricks-styles.ts` — инжектит стили на все страницы (и builder, и published)
 
 ### Inline Editing (TipTap)
@@ -316,6 +320,6 @@ Markdown-статьи во встроенной документации бил�
 
 **Критические нюансы:**
 
-- **`normalizePublishedPage` дублируется** в `builder/stores/publish.ts` и `middleware/bricks-page-layout.global.ts` — обновлять **обе** копии при добавлении полей
+- **`normalizePublishedPage` дублируется** в `builder/publish/stores/publish.ts` и `middleware/bricks-page-layout.global.ts` — обновлять **обе** копии при добавлении полей
 - **`validateOptionalRoutingFields`** — отдельный action в store, чтобы не превышать complexity (max 20)
 - Preview (`?preview=true`) не проверяет subdomain
