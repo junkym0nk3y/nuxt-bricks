@@ -102,14 +102,15 @@ src/runtime/modules/
 - [x] **Этап 1.** toolbar, sidebar → `builder/shell/` — `git mv` целиком + правка относительных импортов (глубина +2). Без переименований компонентов. _(коммит dbd9bf5)_
 - [x] **Этап 2.** canvas → `builder/canvas/` с нарезкой на `viewport/`, `item/`, `editing/` (файлы плоско), `components/types.d.ts` → `types/components.d.ts`. _(коммит f758769)_
 - [x] **Этап 3.** media → `builder/media/` — `git mv`, правка импортов. Дополнительно: серверные media-типы (`TFormData`, `TMediaOptimization`, `TResolvedMediaConfig`, `IValidated*`, `IBuildUploadedItemParams`) вынесены из `media/types/media.d.ts` в `persistence/types/media.d.ts` — их использовал только persistence, иначе persistence зависел бы от builder. _(коммит 4ce4c41)_
-- [ ] **Этап 4.** Разрез корня builder на `app/`, `core/`, `publish/`, `documentation/` + разнос `builder/types/*`. Обновить `src/module.ts` (`extendPages`): `modules/builder/app/pages/builder.vue`, `modules/builder/publish/pages/index.vue`, `modules/builder/app/pages/[pagename].vue`. `stores/navigation.ts` остаётся в `core/`.
+- [x] **Этап 4.** Разрез корня builder на `app/`, `core/`, `publish/`, `documentation/` + разнос `builder/types/*`. Обновить `src/module.ts` (`extendPages`): `modules/builder/app/pages/builder.vue`, `modules/builder/publish/pages/index.vue`, `modules/builder/app/pages/[pagename].vue`. `stores/navigation.ts` остаётся в `core/`.
   Уточнения по результатам разведки (этапы 1–3):
   - `composables/useComponentProperties.ts` → **`core/composables/`** (не app: его импортируют canvas/item/useCanvasItemActions и shell/sidebar/SidebarSchemaTreeView).
   - `components/BuilderLogo.vue` → **`core/components/`** (не app: его импортирует shell/toolbar/TheToolbar). `TheBuilderLoader.vue` → `app/components/` (только app).
   - `components/modal/types.d.ts` разрезать: `IPublishModal*`, `IPublishedPagesModal*`, `IPublishedPageCard*` → `publish/types/`; `IDocumentationModal*` → `documentation/types/`.
   - `types/builder-drafts.d.ts` → `publish/types/builderDrafts.d.ts` (camelCase по naming.md).
   - Tech-debt (не чинить, обновить путь): `editor/composables/useInlineEditor.ts` импортирует `builder/stores/components` → станет `builder/core/stores/components`. text-editor не должен зависеть от builder — кандидат на DI из composition root, отдельной задачей.
-  - Взаимные ссылки `stores/ ↔ utils/ ↔ constants/` сохраняют форму `../X/`, т.к. все едут в `core/` вместе. Аналогично `publish/stores ↔ publish/types` и `documentation/composables ↔ documentation/types`.
+  - Взаимные ссылки `stores/ ↔ utils/ ↔ constants/` сохраняют форму `../X/`, т.к. все едут в `core/` вместе. Аналогично `publish/stores ↔ publish/types` и `documentation/composables ↔ documentation/types`. _(коммит d56d612)_
+  Заметка по факту: `core/composables/useComponentProperties.ts` импортирует `getModalOptions` из `app/composables/useModals` — обратная зависимость core → app, кандидат на вынос `getModalOptions` отдельной задачей (вместе с tech-debt editor → builder/core).
 - [ ] **Этап 5.** editor → `text-editor/` — `git mv` + правка импортёров + grep по `src/runtime/plugins/`, `src/module.ts`, `src/runtime/server/`.
 - [ ] **Этап 6.** Переименование компонентов по таблице (под-этапы: shell → canvas → модалки/media → text-editor). Файл + импорты + template + `$style`-классы.
 - [ ] **Этап 7.** Ревизия типов (дубли, `T*`-интерфейсы, орфаны).
