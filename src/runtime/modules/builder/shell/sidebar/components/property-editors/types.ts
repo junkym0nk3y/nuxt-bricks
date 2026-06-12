@@ -1,4 +1,4 @@
-import type { PropertyDefinition } from '../../../../../common/types/brick';
+import type { IPropertyDefinition, TBrickPropValue } from '../../../../../common/types/brick';
 
 interface ISelectOption {
     label: string;
@@ -7,7 +7,7 @@ interface ISelectOption {
 
 export interface IComponentVariant {
     label: string;
-    value: string | boolean | number | Record<string, unknown> | Array<unknown>;
+    value: TBrickPropValue;
     disabled: boolean;
     placeholder?: string;
     specs?: ISelectOption[];
@@ -17,7 +17,7 @@ export interface IComponentVariant {
     falseValue?: string | boolean;
     falseLabel?: string;
     size?: 'small' | 'medium';
-    property: PropertyDefinition;
+    property: IPropertyDefinition;
 }
 
 export const PROPERTY_EDITOR_ORDER = [
@@ -36,12 +36,12 @@ export const PROPERTY_EDITOR_ORDER = [
     'video',
 ] as const;
 
-export type PropertyEditorType = (typeof PROPERTY_EDITOR_ORDER)[number];
+export type TPropertyEditorType = (typeof PROPERTY_EDITOR_ORDER)[number];
 
-export type ComponentVariantsMap = Record<PropertyEditorType, IComponentVariant[]>;
+export type TComponentVariantsMap = Record<TPropertyEditorType, IComponentVariant[]>;
 
-export interface PropertyVariantContext {
-    property: PropertyDefinition;
+export interface IPropertyVariantContext {
+    property: IPropertyDefinition;
     componentProps: Record<string, unknown>;
-    variants: ComponentVariantsMap;
+    variants: TComponentVariantsMap;
 }

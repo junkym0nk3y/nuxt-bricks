@@ -1,12 +1,12 @@
 import { defineStore } from 'pinia';
-import type { SidebarView } from '../../../common/types/brick';
+import type { TSidebarView } from '../../../common/types/brick';
 
 interface ISidebarState {
     left: {
         visible: boolean;
         width: string;
     };
-    activeView: SidebarView;
+    activeView: TSidebarView;
 }
 
 /**
@@ -27,7 +27,7 @@ export const useSidebarStore = defineStore('bricksSidebar', {
          *
          * @param view - Раздел для отображения.
          */
-        showSidebarView(view: SidebarView) {
+        showSidebarView(view: TSidebarView) {
             // Сначала меняем activeView, затем показываем sidebar
             // Это предотвращает двойную анимацию при открытии скрытого sidebar
             this.activeView = view;
@@ -39,7 +39,7 @@ export const useSidebarStore = defineStore('bricksSidebar', {
          *
          * @param view - Раздел, который нужно отобразить.
          */
-        toggleSidebarView(view: SidebarView) {
+        toggleSidebarView(view: TSidebarView) {
             const isSameViewVisible = this.left.visible && this.activeView === view;
 
             if (isSameViewVisible) {
@@ -71,7 +71,7 @@ export const useSidebarStore = defineStore('bricksSidebar', {
          *
          * @param view - Новый раздел.
          */
-        setActiveView(view: SidebarView) {
+        setActiveView(view: TSidebarView) {
             this.activeView = view;
         },
     },

@@ -1,4 +1,4 @@
-import type { BricksComponent } from '../../../../common/types/brick';
+import type { IBricksComponent } from '../../../../common/types/brick';
 import { cloneBricksComponent } from '../../../../common/utils/bricks/components';
 import { generateComponentId } from '../../../../common/utils/bricks/paths';
 import type {
@@ -15,10 +15,7 @@ import type {
  * @param component - Компонент, для которого определяется поддерево.
  * @returns Уникальный список идентификаторов дочерних элементов.
  */
-function resolveDirectChildren(
-    store: IComponentsStore,
-    component: BricksComponent
-): string[] {
+function resolveDirectChildren(store: IComponentsStore, component: IBricksComponent): string[] {
     const directIds = new Set<string>();
 
     component.children?.forEach((childId) => {
@@ -51,10 +48,10 @@ function resolveDirectChildren(
  * @param rootId - Идентификатор копируемого корневого элемента.
  * @returns Массив клонов компонентов (с оригинальными ID).
  */
-function collectComponentTree(store: IComponentsStore, rootId: string): BricksComponent[] {
+function collectComponentTree(store: IComponentsStore, rootId: string): IBricksComponent[] {
     const queue: string[] = [rootId];
     const visited = new Set<string>();
-    const result: BricksComponent[] = [];
+    const result: IBricksComponent[] = [];
 
     while (queue.length > 0) {
         const id = queue.shift();
@@ -88,10 +85,7 @@ function collectComponentTree(store: IComponentsStore, rootId: string): BricksCo
  * @param component - Оригинальный компонент.
  * @returns Индекс вставки или null, если позиция не определена.
  */
-function resolveInsertIndex(
-    store: IComponentsStore,
-    component: BricksComponent
-): number | null {
+function resolveInsertIndex(store: IComponentsStore, component: IBricksComponent): number | null {
     if (component.parent) {
         const parent = store.getComponentById(component.parent);
         if (!parent) {
@@ -179,7 +173,7 @@ function pasteClipboardSnapshot(
         idMap.set(component.id, generateComponentId());
     });
 
-    const clones: Array<{ originalId: string; component: BricksComponent }> = snapshot.tree.map(
+    const clones: Array<{ originalId: string; component: IBricksComponent }> = snapshot.tree.map(
         (component) => {
             const clone = cloneBricksComponent(component);
             const newId = idMap.get(component.id)!;

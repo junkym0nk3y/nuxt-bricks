@@ -1,5 +1,5 @@
 // Types
-import type { AccordionLayoutProps } from '../types/blockProps';
+import type { IAccordionLayoutProps } from '../types/blockProps';
 import type { IBlockDefinition, IBlockRenderContext } from '../types/registry';
 
 // Vue
@@ -19,7 +19,7 @@ import BlockAccordion from './BlockAccordion.vue';
  */
 function renderAccordionPublished(ctx: IBlockRenderContext): VNode {
     const { component, extraClasses, extraAttrs } = ctx;
-    const componentProps = component.props as AccordionLayoutProps;
+    const componentProps = component.props as IAccordionLayoutProps;
     const style = gridPlacementStyle(component);
 
     return h(BlockAccordion, {

@@ -1,5 +1,5 @@
 import type { IComponentsPropertyActions, IComponentsStore } from '../types';
-import type { TBricksDeviceKey } from '../../../../common/types/brick';
+import type { TBricksDeviceKey, TBrickPropValue } from '../../../../common/types/brick';
 
 // Utils
 import { debounce } from '../../../../common/utils/main';
@@ -27,7 +27,7 @@ export const propertyActions: IComponentsPropertyActions = {
         this: IComponentsStore,
         id: string,
         propName: string,
-        value: string | number | boolean | Record<string, unknown> | Array<unknown>
+        value: TBrickPropValue
     ) {
         const component = this.getComponentById(id);
         if (!component) {
@@ -35,8 +35,7 @@ export const propertyActions: IComponentsPropertyActions = {
             return;
         }
 
-        let finalValue: string | number | boolean | Record<string, unknown> | Array<unknown> =
-            value;
+        let finalValue: TBrickPropValue = value;
 
         if (typeof value === 'string') {
             const trimmedValue = value.trim();
@@ -71,7 +70,7 @@ export const propertyActions: IComponentsPropertyActions = {
         id: string,
         device: TBricksDeviceKey,
         propName: string,
-        value: string | number | boolean | Record<string, unknown> | Array<unknown>
+        value: TBrickPropValue
     ) {
         const component = this.getComponentById(id);
         if (!component) {
@@ -79,8 +78,7 @@ export const propertyActions: IComponentsPropertyActions = {
             return;
         }
 
-        let finalValue: string | number | boolean | Record<string, unknown> | Array<unknown> =
-            value;
+        let finalValue: TBrickPropValue = value;
 
         if (typeof value === 'string') {
             const trimmedValue = value.trim();

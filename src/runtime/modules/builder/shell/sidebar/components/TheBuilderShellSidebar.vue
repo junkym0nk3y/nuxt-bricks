@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { ComponentLibraryItem, BricksSchema } from '../../../../common/types/brick';
+import type { IComponentLibraryItem, IBricksSchema } from '../../../../common/types/brick';
 import type { IMediaItem, TMediaGalleryContext } from '../../../../common/types/media';
 
 // Vue
@@ -21,14 +21,14 @@ import BuilderShellSidebarSchemaTreeView from './BuilderShellSidebarSchemaTreeVi
 
 // #region Props
 const props = defineProps<{
-    components: ComponentLibraryItem[];
+    components: IComponentLibraryItem[];
 }>();
 // #endregion
 
 // #region Emits
 const emit = defineEmits<{
     openMediaGallery: [context: TMediaGalleryContext];
-    importSchema: [schema: BricksSchema];
+    importSchema: [schema: IBricksSchema];
 }>();
 // #endregion
 
@@ -111,7 +111,7 @@ function handleMediaSelect(item: IMediaItem): void {
  *
  * @param schema - Импортированная схема.
  */
-function handleImportSchema(schema: BricksSchema): void {
+function handleImportSchema(schema: IBricksSchema): void {
     emit('importSchema', schema);
 }
 
@@ -124,7 +124,11 @@ defineExpose({
 
 <template>
     <Transition name="sidebar-slide">
-        <aside v-show="isVisible" :class="$style.TheBuilderShellSidebar" :style="{ width: sidebarWidth }">
+        <aside
+            v-show="isVisible"
+            :class="$style.TheBuilderShellSidebar"
+            :style="{ width: sidebarWidth }"
+        >
             <Transition name="library-sidebar-view" mode="out-in">
                 <BuilderShellSidebarComponentsView
                     v-if="activeView === 'components'"

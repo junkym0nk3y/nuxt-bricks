@@ -5,7 +5,7 @@ import type {
     IBrickDataSourceParam,
     IBrickDataSourceContext,
 } from '../../common/types/dataSource';
-import type { BricksComponent } from '../../common/types/brick';
+import type { IBricksComponent } from '../../common/types/brick';
 import type { TPublishFormState } from '../../common/types/bricks-api';
 
 // Composables
@@ -56,7 +56,7 @@ export function useBricksDataSources() {
      */
     function resolveParamValue(
         param: IBrickDataSourceParam,
-        component: BricksComponent,
+        component: IBricksComponent,
         pageSettings: TPublishFormState | null
     ): unknown {
         const context: IBrickDataSourceContext = {
@@ -131,7 +131,7 @@ export function useBricksDataSources() {
      */
     async function executeDataSource(
         source: IBrickDataSource,
-        component: BricksComponent,
+        component: IBricksComponent,
         pageSettings: TPublishFormState | null
     ): Promise<Record<string, unknown> | null> {
         const params: Record<string, string | number> = {};

@@ -1,6 +1,13 @@
 // #region Imports
 // Types
 import type { IDropZoneData, IDropEventData, IDropOptions } from '../types/draggable';
+import type {
+    IBricksComponent,
+    IComponentLibraryItem,
+    IComponentSlotDefinition,
+} from '../../../common/types/brick';
+import type { TBricksComponentsStore } from '../../core/stores/components';
+import type { TComponentInsertPayload } from '../../core/stores/types';
 
 // Vue
 import { ref } from 'vue';
@@ -13,7 +20,7 @@ import { ref } from 'vue';
  */
 export function useComponentLibraryDrag() {
     // #region Data
-    const draggedComponent = ref<any>(null);
+    const draggedComponent = ref<IComponentLibraryItem | null>(null);
     // #endregion
 
     // #region Methods
@@ -23,7 +30,7 @@ export function useComponentLibraryDrag() {
      * @param component - Компонент для перетаскивания
      * @param event - Событие drag start
      */
-    function startDrag(component: any, event: DragEvent): void {
+    function startDrag(component: IComponentLibraryItem, event: DragEvent): void {
         draggedComponent.value = component;
         if (event.dataTransfer) {
             event.dataTransfer.effectAllowed = 'copy';
@@ -117,7 +124,7 @@ export function useComponentLibraryDrag() {
      */
     function moveExistingComponentToRoot(
         componentId: string,
-        store: any,
+        store: TBricksComponentsStore,
         rootTargetIndex: number | null
     ): void {
         console.log('[useDraggableComponent] Moving existing component:', componentId);
@@ -134,7 +141,7 @@ export function useComponentLibraryDrag() {
             store.moveComponentToRoot(componentId, rootTargetIndex, { skipHistory: true });
             console.log(
                 '[useDraggableComponent] Root components after move:',
-                store.getRootComponents()?.map((rootComp: any) => rootComp?.id) || []
+                store.getRootComponents()?.map((rootComp: IBricksComponent) => rootComp?.id) || []
             );
         } else if (component.parent) {
             // Fallback: удаляем из layout вручную
@@ -158,14 +165,14 @@ export function useComponentLibraryDrag() {
      * @param draggedComp - Перетаскиваемый компонент из библиотеки
      * @returns Данные компонента для store
      */
-    function createComponentData(draggedComp: any): any {
+    function createComponentData(draggedComp: IComponentLibraryItem): TComponentInsertPayload {
         return {
             componentName: draggedComp.name,
             storyPath: draggedComp.storyPath,
             props: JSON.parse(JSON.stringify(draggedComp.defaultProps || {})),
             isInteractive: draggedComp.isInteractive || undefined,
             slots: Array.isArray(draggedComp.slots)
-                ? draggedComp.slots.map((slot: any) => ({
+                ? draggedComp.slots.map((slot: IComponentSlotDefinition) => ({
                       name: slot.name,
                       label: slot.label,
                       description: slot.description,
@@ -181,7 +188,10 @@ export function useComponentLibraryDrag() {
      * @param store - Store с компонентами
      * @param rootTargetIndex - Целевой индекс в root
      */
-    function addNewComponentToCanvas(store: any, rootTargetIndex: number | null): void {
+    function addNewComponentToCanvas(
+        store: TBricksComponentsStore,
+        rootTargetIndex: number | null
+    ): void {
         if (!draggedComponent.value) {
             console.warn('[useDraggableComponent] No dragged component found');
             return;
@@ -220,7 +230,7 @@ export function useComponentLibraryDrag() {
     function handleDrop(
         event: DragEvent,
         canvasEl: HTMLElement,
-        store: any,
+        store: TBricksComponentsStore,
         options?: IDropOptions
     ): void {
         event.preventDefault();

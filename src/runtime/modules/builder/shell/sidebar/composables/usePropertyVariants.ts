@@ -1,6 +1,7 @@
 // #region Imports
 // Types
 import type { ISelectedComponentData, IUsePropertyVariantsReturn } from '../types/composables';
+import type { TBrickPropValue } from '../../../../common/types/brick';
 
 // Vue
 import { computed, type ComputedRef } from 'vue';
@@ -15,10 +16,10 @@ import {
 // Constants
 import {
     PROPERTY_EDITOR_ORDER,
-    type ComponentVariantsMap,
+    type TComponentVariantsMap,
     type IComponentVariant,
-    type PropertyVariantContext,
-    type PropertyEditorType,
+    type IPropertyVariantContext,
+    type TPropertyEditorType,
 } from '../components/property-editors/types';
 // #endregion
 
@@ -36,7 +37,7 @@ export function usePropertyVariants(
     /**
      * Вычисляемые варианты свойств для всех типов редакторов
      */
-    const componentVariants = computed<ComponentVariantsMap>(() => {
+    const componentVariants = computed<TComponentVariantsMap>(() => {
         const selected = selectedComponentData.value;
         if (!selected) {
             return createEmptyVariants();
@@ -69,11 +70,11 @@ export function usePropertyVariants(
      *
      * @returns Объект с пустыми массивами для каждого типа редактора
      */
-    function createEmptyVariants(): ComponentVariantsMap {
+    function createEmptyVariants(): TComponentVariantsMap {
         return PROPERTY_EDITOR_ORDER.reduce((acc, key) => {
             acc[key] = [];
             return acc;
-        }, {} as ComponentVariantsMap);
+        }, {} as TComponentVariantsMap);
     }
 
     /**
@@ -81,7 +82,7 @@ export function usePropertyVariants(
      *
      * @param context - Контекст с информацией о свойстве и вариантах
      */
-    function addVariantForProperty(context: PropertyVariantContext): void {
+    function addVariantForProperty(context: IPropertyVariantContext): void {
         if (!shouldRenderProperty(context.property, context.componentProps)) {
             return;
         }
@@ -132,7 +133,7 @@ export function usePropertyVariants(
      * Проверяет условие показа свойства в панели.
      */
     function shouldRenderProperty(
-        property: PropertyVariantContext['property'],
+        property: IPropertyVariantContext['property'],
         componentProps: Record<string, unknown>
     ): boolean {
         const showWhen = property.showWhen;
@@ -153,7 +154,7 @@ export function usePropertyVariants(
         property,
         componentProps,
         variants,
-    }: PropertyVariantContext): boolean {
+    }: IPropertyVariantContext): boolean {
         if (!Array.isArray(property.options) || property.options.length < 2) {
             return false;
         }
@@ -185,7 +186,7 @@ export function usePropertyVariants(
         property,
         componentProps,
         variants,
-    }: PropertyVariantContext): boolean {
+    }: IPropertyVariantContext): boolean {
         if (property.type !== 'switch') {
             return false;
         }
@@ -215,7 +216,7 @@ export function usePropertyVariants(
         property,
         componentProps,
         variants,
-    }: PropertyVariantContext): boolean {
+    }: IPropertyVariantContext): boolean {
         if (property.type !== 'boolean') {
             return false;
         }
@@ -240,7 +241,7 @@ export function usePropertyVariants(
         property,
         componentProps,
         variants,
-    }: PropertyVariantContext): boolean {
+    }: IPropertyVariantContext): boolean {
         if (property.type !== 'textarea') {
             return false;
         }
@@ -266,7 +267,7 @@ export function usePropertyVariants(
         property,
         componentProps,
         variants,
-    }: PropertyVariantContext): boolean {
+    }: IPropertyVariantContext): boolean {
         if (property.type !== 'inline-content') {
             return false;
         }
@@ -296,7 +297,7 @@ export function usePropertyVariants(
         property,
         componentProps,
         variants,
-    }: PropertyVariantContext): boolean {
+    }: IPropertyVariantContext): boolean {
         if (property.type !== 'image-gallery') {
             return false;
         }
@@ -326,7 +327,7 @@ export function usePropertyVariants(
         property,
         componentProps,
         variants,
-    }: PropertyVariantContext): boolean {
+    }: IPropertyVariantContext): boolean {
         if (property.type !== 'accordion-items') {
             return false;
         }
@@ -356,7 +357,7 @@ export function usePropertyVariants(
         property,
         componentProps,
         variants,
-    }: PropertyVariantContext): boolean {
+    }: IPropertyVariantContext): boolean {
         if (property.type !== 'color') {
             return false;
         }
@@ -378,7 +379,7 @@ export function usePropertyVariants(
         property,
         componentProps,
         variants,
-    }: PropertyVariantContext): boolean {
+    }: IPropertyVariantContext): boolean {
         if (property.type !== 'tags') {
             return false;
         }
@@ -408,7 +409,7 @@ export function usePropertyVariants(
         property,
         componentProps,
         variants,
-    }: PropertyVariantContext): boolean {
+    }: IPropertyVariantContext): boolean {
         if (property.type !== 'image') {
             return false;
         }
@@ -433,7 +434,7 @@ export function usePropertyVariants(
         property,
         componentProps,
         variants,
-    }: PropertyVariantContext): boolean {
+    }: IPropertyVariantContext): boolean {
         if (property.type !== 'video') {
             return false;
         }
@@ -458,7 +459,7 @@ export function usePropertyVariants(
         property,
         componentProps,
         variants,
-    }: PropertyVariantContext): boolean {
+    }: IPropertyVariantContext): boolean {
         if (property.type !== 'array') {
             return false;
         }
@@ -487,7 +488,7 @@ export function usePropertyVariants(
 
         variants.json.push({
             label: property.label || property.name,
-            value: currentValue ?? property.default ?? [],
+            value: (currentValue ?? property.default ?? []) as TBrickPropValue,
             disabled: false,
             property,
         });
@@ -505,14 +506,14 @@ export function usePropertyVariants(
         property,
         componentProps,
         variants,
-    }: PropertyVariantContext): boolean {
+    }: IPropertyVariantContext): boolean {
         if (property.type !== 'object') {
             return false;
         }
 
         variants.json.push({
             label: property.label || property.name,
-            value: componentProps[property.name] ?? property.default ?? {},
+            value: (componentProps[property.name] ?? property.default ?? {}) as TBrickPropValue,
             disabled: false,
             property,
         });
@@ -525,7 +526,11 @@ export function usePropertyVariants(
      *
      * @param context - Контекст с информацией о свойстве
      */
-    function addInputVariant({ property, componentProps, variants }: PropertyVariantContext): void {
+    function addInputVariant({
+        property,
+        componentProps,
+        variants,
+    }: IPropertyVariantContext): void {
         variants.input.push({
             label: property.label || property.name,
             value: formatDisplayValue(componentProps[property.name]),
@@ -543,7 +548,7 @@ export function usePropertyVariants(
      */
     function handleNormalizeProps(
         data: IComponentVariant,
-        _editorType: PropertyEditorType
+        _editorType: TPropertyEditorType
     ): Record<string, unknown> {
         if (data.specs) {
             return {

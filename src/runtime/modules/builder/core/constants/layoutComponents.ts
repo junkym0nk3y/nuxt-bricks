@@ -1,6 +1,6 @@
 // #region Imports
 // Types
-import type { ComponentLibraryItem } from '../../../common/types/brick';
+import type { IComponentLibraryItem } from '../../../common/types/brick';
 
 // Utils
 import { getLayoutLibraryItems } from '../../../layouts-blocks/registry';
@@ -11,4 +11,4 @@ import { getLayoutLibraryItems } from '../../../layouts-blocks/registry';
  * Wrapper над registry (шаг B3): метаданные и дефолты derive'ятся
  * из definitions в layouts-blocks (single source of truth).
  */
-export const LAYOUT_COMPONENTS: ComponentLibraryItem[] = getLayoutLibraryItems();
+export const LAYOUT_COMPONENTS: IComponentLibraryItem[] = getLayoutLibraryItems();

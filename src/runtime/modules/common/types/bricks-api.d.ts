@@ -1,4 +1,4 @@
-import type { BricksSchema } from './brick';
+import type { IBricksSchema } from './brick';
 
 /**
  * Формат данных для фронтенда.
@@ -15,7 +15,7 @@ export interface IBricksPageRow {
     socialImage: string | null;
     urlPrefix: string | null;
     subdomain: string | null;
-    schema: BricksSchema;
+    schema: IBricksSchema;
     published: boolean;
     createdAt: string;
     updatedAt: string;
@@ -35,7 +35,7 @@ export interface IPublishedPage {
     socialImage: string | null;
     urlPrefix: string | null;
     subdomain: string | null;
-    schema: BricksSchema;
+    schema: IBricksSchema;
     published: boolean;
     createdAt: string;
     updatedAt: string;
@@ -69,7 +69,7 @@ export interface ICreatePagePayload {
     backgroundColor?: string | null;
     urlPrefix?: string | null;
     subdomain?: string | null;
-    schema: BricksSchema;
+    schema: IBricksSchema;
     published?: boolean;
 }
 
@@ -83,7 +83,7 @@ export interface IUpdatePagePayload {
     backgroundColor?: string | null;
     urlPrefix?: string | null;
     subdomain?: string | null;
-    schema?: BricksSchema;
+    schema?: IBricksSchema;
     published?: boolean;
 }
 

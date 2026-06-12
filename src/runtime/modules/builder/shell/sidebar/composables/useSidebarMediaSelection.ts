@@ -1,7 +1,7 @@
 // Types
 import type { IMediaItem } from '../../../../common/types/media';
 import type { IInlineContentSegment, IGalleryItem } from '../../../../common/types/content';
-import type { PropertyDefinition } from '../../../../common/types/brick';
+import type { IPropertyDefinition } from '../../../../common/types/brick';
 import type {
     TInlineGalleryPayload,
     TMediaContext,
@@ -36,7 +36,7 @@ export function useSidebarMediaSelection(options: IUseSidebarMediaSelectionOptio
      * @param inlinePayload - Дополнительные данные для inline/gallery редактора.
      */
     function handleOpenMediaGallery(
-        property: PropertyDefinition,
+        property: IPropertyDefinition,
         inlinePayload?: TInlineGalleryPayload
     ): void {
         if (property.type === 'inline-content' && inlinePayload) {

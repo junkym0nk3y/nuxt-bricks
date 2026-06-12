@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { IBricksSelectProps, IBricksSelectEmits } from './types.d.ts';
-import type { IBrickDemoValues } from '../../common/types/index';
+import type { TBrickDemoValues } from '../../common/types/index';
 
 // Vue
 import { computed, ref, toValue, useCssModule } from 'vue';
@@ -92,7 +92,7 @@ function toInternalValue(value: unknown): AcceptableValue {
  */
 function onUpdate(value: AcceptableValue): void {
     const external = value === EMPTY_VALUE_SENTINEL ? '' : value;
-    emit('update:value', (external ?? null) as IBrickDemoValues | null);
+    emit('update:value', (external ?? null) as TBrickDemoValues | null);
 }
 // #endregion
 </script>

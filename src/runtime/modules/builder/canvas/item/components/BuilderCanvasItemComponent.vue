@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { Component } from 'vue';
-import type { BricksComponent } from '../../../../common/types/brick';
+import type { IBricksComponent } from '../../../../common/types/brick';
 
 // Composables
 import { useComponentSlots } from '../composables/useComponentSlots';
@@ -19,7 +19,7 @@ import BuilderCanvasConditionalContainer from '../../viewport/components/Builder
  */
 interface ICanvasItemComponentProps {
     /** Экземпляр компонента для рендеринга */
-    component: BricksComponent;
+    component: IBricksComponent;
     /** Динамически загруженный экземпляр Vue-компонента */
     componentInstance: Component | null;
     /** Вычисленные пропсы для передачи в компонент (исключая внутренние) */

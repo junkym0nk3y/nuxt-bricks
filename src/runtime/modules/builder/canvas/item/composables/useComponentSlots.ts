@@ -1,6 +1,6 @@
 // #region Imports
 // Types
-import type { ComponentSlotDefinition, BricksComponent } from '../../../../common/types/brick';
+import type { IComponentSlotDefinition, IBricksComponent } from '../../../../common/types/brick';
 import type { ISlotRenderData, IUseComponentSlotsReturn } from '../../types/composables';
 
 // Vue
@@ -14,13 +14,13 @@ import { useStoryImports } from '../../../../common/composables/useStoryImports'
 // #endregion
 
 /**
- * Нормализует сырые определения слотов из story-файлов в формат ComponentSlotDefinition.
+ * Нормализует сырые определения слотов из story-файлов в формат IComponentSlotDefinition.
  * Обрабатывает массивы, объекты и строковые определения слотов.
  *
  * @param rawSlots - Сырое определение слота из story-файла (массив, объект или null)
  * @returns Нормализованный массив определений слотов
  */
-function normalizeStorySlots(rawSlots: unknown): ComponentSlotDefinition[] {
+function normalizeStorySlots(rawSlots: unknown): IComponentSlotDefinition[] {
     if (!rawSlots) {
         return [];
     }
@@ -33,7 +33,7 @@ function normalizeStorySlots(rawSlots: unknown): ComponentSlotDefinition[] {
                         name: slot,
                         label: slot,
                         allowMultiple: true,
-                    } as ComponentSlotDefinition;
+                    } as IComponentSlotDefinition;
                 }
 
                 if (
@@ -50,12 +50,12 @@ function normalizeStorySlots(rawSlots: unknown): ComponentSlotDefinition[] {
                             typeof slotObj.allowMultiple === 'boolean'
                                 ? slotObj.allowMultiple
                                 : true,
-                    } as ComponentSlotDefinition;
+                    } as IComponentSlotDefinition;
                 }
 
                 return null;
             })
-            .filter(Boolean) as ComponentSlotDefinition[];
+            .filter(Boolean) as IComponentSlotDefinition[];
     }
 
     if (typeof rawSlots === 'object') {
@@ -70,14 +70,14 @@ function normalizeStorySlots(rawSlots: unknown): ComponentSlotDefinition[] {
                         typeof configObj.allowMultiple === 'boolean'
                             ? configObj.allowMultiple
                             : true,
-                } as ComponentSlotDefinition;
+                } as IComponentSlotDefinition;
             }
 
             return {
                 name,
                 label: name,
                 allowMultiple: true,
-            } as ComponentSlotDefinition;
+            } as IComponentSlotDefinition;
         });
     }
 
@@ -125,7 +125,7 @@ export function useComponentSlots(
             slot,
             children: slot.children
                 .map((childId) => componentsStore.getComponentById(childId))
-                .filter(Boolean) as BricksComponent[],
+                .filter(Boolean) as IBricksComponent[],
         }));
     });
 

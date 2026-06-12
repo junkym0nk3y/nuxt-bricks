@@ -6,10 +6,10 @@
 /**
  * Тип редактируемого свойства для inline editing.
  */
-export type InlineEditingPropType = 'inline-content' | 'textarea';
+export type TInlineEditingPropType = 'inline-content' | 'textarea';
 
 export interface IInlineEditableProp {
     propName: string;
-    propType: InlineEditingPropType;
+    propType: TInlineEditingPropType;
     label: string;
 }

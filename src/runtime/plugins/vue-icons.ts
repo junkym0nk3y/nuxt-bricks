@@ -1,5 +1,5 @@
 // plugins/vue-icons.ts
-import { h, defineComponent } from 'vue';
+import { h, defineComponent, type Component, type PropType } from 'vue';
 import { defineNuxtPlugin } from '#imports';
 
 // Прямые импорты каждой иконки (избегаем barrel file)
@@ -95,7 +95,7 @@ import { McLineHeightLine, McLetterSpacingLine, McTextColorLine } from '@kalimah
 import { TaOutlineTextSize, TaOutlineTypography } from '@kalimahapps/vue-icons/ta';
 
 // Map string names to component objects
-const SYSTEM_ICONS: Record<string, any> = {
+const SYSTEM_ICONS: Record<string, Component> = {
     // Toast
     'ph:check-circle': PhCheckCircle,
     'ph:x-circle': PhXCircle,
@@ -239,15 +239,14 @@ export default defineNuxtPlugin((nuxtApp) => {
         defineComponent({
             props: {
                 icon: {
-                    type: [String, Object, Function],
+                    type: [String, Object, Function] as PropType<string | Component>,
                     required: true,
                 },
             },
 
             setup(props, { attrs }) {
                 return () => {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    let iconComponent: any;
+                    let iconComponent: Component;
 
                     if (typeof props.icon === 'string') {
                         iconComponent = SYSTEM_ICONS[props.icon];

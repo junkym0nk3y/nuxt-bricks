@@ -1,5 +1,5 @@
 import type { Ref, VNodeChild } from 'vue';
-import type { BricksComponent } from '../../common/types/brick';
+import type { IBricksComponent } from '../../common/types/brick';
 import type { IBrickExportModule } from '../../common/types/index';
 
 export interface IRendererStoryResolverOptions {
@@ -7,15 +7,15 @@ export interface IRendererStoryResolverOptions {
 }
 
 export interface IRendererProps {
-    component: BricksComponent;
-    allComponents?: BricksComponent[];
+    component: IBricksComponent;
+    allComponents?: IBricksComponent[];
     resolvedProps?: Record<string, Record<string, unknown>>;
 }
 
-export type TRendererChildRenderer = (component: BricksComponent) => VNodeChild;
+export type TRendererChildRenderer = (component: IBricksComponent) => VNodeChild;
 
 export interface IRendererLayoutsOptions {
-    allComponents: Ref<BricksComponent[]>;
+    allComponents: Ref<IBricksComponent[]>;
     styles: Record<string, string>;
     renderChild: TRendererChildRenderer;
 }

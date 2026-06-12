@@ -5,8 +5,8 @@ import type {
     ICanvasToolbarProps,
     ICanvasToolbarEmits,
     IViewportOption,
-    TViewportType,
 } from '../../types/components';
+import type { TBricksDeviceKey } from '../../../../common/types/brick';
 
 // Vue
 import { computed } from 'vue';
@@ -93,7 +93,7 @@ function handleZoomReset(): void {
  *
  * @param viewport - Next viewport preset selected by the user.
  */
-function handleViewportChange(viewport: TViewportType): void {
+function handleViewportChange(viewport: TBricksDeviceKey): void {
     emit('update:viewport', viewport);
 }
 

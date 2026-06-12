@@ -2,13 +2,13 @@
  * Sidebar component types
  */
 
-import type { ComponentLibraryItem } from '../../../../common/types/brick';
+import type { IComponentLibraryItem } from '../../../../common/types/brick';
 
 export interface ISidebarComponentCardProps {
-    component: ComponentLibraryItem;
+    component: IComponentLibraryItem;
     isLayout?: boolean;
 }
 
 export interface IDragComposable {
-    startDrag: (component: ComponentLibraryItem, event: DragEvent) => void;
+    startDrag: (component: IComponentLibraryItem, event: DragEvent) => void;
 }

@@ -1,8 +1,8 @@
 // #region Imports
 // Types
-import type { BricksComponent, TBricksDeviceKey } from '../../../../common/types/brick';
-import type { LayoutProps } from '../../../../layouts-blocks/types/blockProps';
-import type { IItemStyle, ICanvasItemProps } from '../../types/components';
+import type { IBricksComponent, TBricksDeviceKey } from '../../../../common/types/brick';
+import type { TLayoutProps } from '../../../../layouts-blocks/types/blockProps';
+import type { TItemStyle, ICanvasItemProps } from '../../types/components';
 
 // Vue
 import { computed, inject } from 'vue';
@@ -88,7 +88,7 @@ export function useCanvasItemLayout(props: ICanvasItemProps) {
      * Возвращает количество колонок родительского Grid-layout для текущего viewport.
      */
     function getParentGridColumns(
-        component: BricksComponent,
+        component: IBricksComponent,
         viewport: TBricksDeviceKey
     ): number | null {
         if (!component.parent) {
@@ -112,8 +112,8 @@ export function useCanvasItemLayout(props: ICanvasItemProps) {
         return Math.max(1, Number(parentLayoutProps.columns) || 1);
     }
 
-    const itemStyle = computed<IItemStyle>(() => {
-        const style: IItemStyle = { position: 'relative' };
+    const itemStyle = computed<TItemStyle>(() => {
+        const style: TItemStyle = { position: 'relative' };
 
         if (props.component.gridColumn) {
             const parentGridColumns = getParentGridColumns(
@@ -141,26 +141,26 @@ export function useCanvasItemLayout(props: ICanvasItemProps) {
         return style;
     });
 
-    const layoutProps = computed<LayoutProps>(() => {
+    const layoutProps = computed<TLayoutProps>(() => {
         if (!isLayout.value) {
-            return props.component.props as LayoutProps;
+            return props.component.props as TLayoutProps;
         }
 
         return resolveBlockProps(
             props.component.componentName,
             (props.component.props ?? {}) as Record<string, unknown>,
             effectiveViewport.value
-        ) as LayoutProps;
+        ) as TLayoutProps;
     });
 
-    const childComponents = computed<BricksComponent[]>(() => {
+    const childComponents = computed<IBricksComponent[]>(() => {
         if (!isLayout.value || !props.component.children) {
             return [];
         }
 
         return props.component.children
             .map((childId) => componentsStore.getComponentById(childId))
-            .filter(Boolean) as BricksComponent[];
+            .filter(Boolean) as IBricksComponent[];
     });
 
     return {

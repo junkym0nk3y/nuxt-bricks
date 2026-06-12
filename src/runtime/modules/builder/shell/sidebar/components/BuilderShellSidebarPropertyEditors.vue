@@ -5,13 +5,17 @@ import type {
     ISidebarPropertyEditorsProps,
     TInlineGalleryPayload,
 } from '../types/sidebarProperties';
-import type { PropertyDefinition } from '../../../../common/types/brick';
+import type {
+    IPropertyDefinition,
+    TBrickPropValue,
+    TBricksDeviceKey,
+} from '../../../../common/types/brick';
 
 // Vue
 import { computed, ref, watch } from 'vue';
 
 // Constants/Components
-import { PROPERTY_EDITOR_ORDER, type PropertyEditorType } from './property-editors/types';
+import { PROPERTY_EDITOR_ORDER, type TPropertyEditorType } from './property-editors/types';
 import BuilderShellSidebarPropertyEditorRow from './BuilderShellSidebarPropertyEditorRow.vue';
 import BricksInput from '../../../../ui/inputs/BricksInput.vue';
 // #endregion
@@ -39,7 +43,7 @@ const orderedEditorItems = computed(() => {
     const itemsByProperty = new Map<
         string,
         {
-            type: PropertyEditorType;
+            type: TPropertyEditorType;
             componentData: (typeof editorGroups.value)[number]['items'][number];
         }
     >();
@@ -72,7 +76,7 @@ const orderedEditorItems = computed(() => {
 });
 
 type TEditorItem = {
-    type: PropertyEditorType;
+    type: TPropertyEditorType;
     componentData: (typeof editorGroups.value)[number]['items'][number];
 };
 
@@ -156,10 +160,7 @@ function handleVisibilityToggle(value: boolean): void {
  * @param device - Ключ устройства.
  * @param value - Новый флаг видимости.
  */
-function handleDeviceVisibilityToggle(
-    device: 'mobile' | 'tablet' | 'desktop',
-    value: boolean
-): void {
+function handleDeviceVisibilityToggle(device: TBricksDeviceKey, value: boolean): void {
     props.handleToggleDeviceVisibility(device, Boolean(value));
 }
 
@@ -169,17 +170,14 @@ function handleDeviceVisibilityToggle(
  * @param property - Определение редактируемого свойства.
  * @param value - Новое значение.
  */
-function emitChange(
-    property: PropertyDefinition,
-    value: string | number | boolean | Record<string, unknown> | Array<unknown>
-): void {
+function emitChange(property: IPropertyDefinition, value: TBrickPropValue): void {
     props.handleChangeValues(property, value);
 }
 
 /**
  * Открывает медиагалерею для выбора изображения/видео
  */
-function openMedia(property: PropertyDefinition, payload?: TInlineGalleryPayload): void {
+function openMedia(property: IPropertyDefinition, payload?: TInlineGalleryPayload): void {
     props.handleOpenMediaGallery(property, payload);
 }
 

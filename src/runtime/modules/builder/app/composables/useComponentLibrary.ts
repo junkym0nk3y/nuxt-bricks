@@ -1,6 +1,8 @@
 // #region Imports
 // Types
-import type { ComponentLibraryItem } from '../../../common/types/brick';
+import type { IComponentLibraryItem } from '../../../common/types/brick';
+import type { IBrickValues } from '../../../common/types/index';
+import type { IStoriesResponse, IStoryListItem } from '../types/composables';
 
 // Utils
 import { extractStorySlots } from '../utils/storySlots';
@@ -26,15 +28,15 @@ import { LAYOUT_COMPONENTS } from '../../core/constants/layoutComponents';
 export async function useComponentLibrary() {
     const { findImportModule } = useStoryImports();
 
-    const componentLibrary = await useAsyncData<(ComponentLibraryItem | null)[] | null>(
+    const componentLibrary = await useAsyncData<(IComponentLibraryItem | null)[] | null>(
         'bricks-components',
         async () => {
             const { apiFetcher } = useApiClient();
-            const response = await apiFetcher<{ stories: any[] }>('/mock-api/bricks-components/');
+            const response = await apiFetcher<IStoriesResponse>('/mock-api/bricks-components/');
             const stories = response?.stories || [];
 
             const componentsWithMeta = await Promise.all(
-                stories.map(async (story: any) => {
+                stories.map(async (story: IStoryListItem) => {
                     try {
                         const moduleLoader = findImportModule(story.storyPath);
                         if (!moduleLoader) {
@@ -43,11 +45,11 @@ export async function useComponentLibrary() {
                         }
 
                         const module = await moduleLoader();
-                        const storyData = module?.story || {};
-                        const values = storyData.values || {};
+                        const storyData = module?.story;
+                        const values = storyData?.values || {};
                         const slots = extractStorySlots(storyData);
                         const defaultProps = Object.entries(values).reduce(
-                            (acc: Record<string, unknown>, [key, val]: [string, any]) => {
+                            (acc: Record<string, unknown>, [key, val]: [string, IBrickValues]) => {
                                 acc[key] = val.default;
                                 return acc;
                             },
@@ -56,13 +58,13 @@ export async function useComponentLibrary() {
 
                         return {
                             name: story.name,
-                            category: story.category || storyData.category || 'Other',
+                            category: story.category || storyData?.category || 'Other',
                             storyPath: story.storyPath,
-                            description: storyData.description,
+                            description: storyData?.description,
                             thumbnail: '',
                             defaultProps,
                             slots,
-                        } as ComponentLibraryItem;
+                        } as IComponentLibraryItem;
                     } catch (error) {
                         console.error(`[BricksBuilder] Failed loading ${story.name}`, error);
                         return null;
@@ -74,9 +76,9 @@ export async function useComponentLibrary() {
         }
     );
 
-    const componentLibraryList = computed<ComponentLibraryItem[]>(() => {
+    const componentLibraryList = computed<IComponentLibraryItem[]>(() => {
         const list = componentLibrary.data.value;
-        return (Array.isArray(list) ? list : []).filter(Boolean) as ComponentLibraryItem[];
+        return (Array.isArray(list) ? list : []).filter(Boolean) as IComponentLibraryItem[];
     });
 
     return { componentLibraryList };

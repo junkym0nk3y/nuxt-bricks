@@ -3,8 +3,8 @@
 // Types
 import type { TPublishFormState } from '../../../../common/types/bricks-api';
 import type { IMediaItem } from '../../../../common/types/media';
-import type { IBrickDemoValues } from '../../../../common/types/index';
-import type { BricksSchema } from '../../../../common/types/brick';
+import type { TBrickDemoValues } from '../../../../common/types/index';
+import type { IBricksSchema } from '../../../../common/types/brick';
 
 // Vue
 import { computed, onMounted } from 'vue';
@@ -33,7 +33,7 @@ import BuilderShellSidebarPublishSocialImage from './BuilderShellSidebarPublishS
 const emit = defineEmits<{
     close: [];
     openMediaGallery: [];
-    importSchema: [schema: BricksSchema];
+    importSchema: [schema: IBricksSchema];
 }>();
 // #endregion
 
@@ -142,7 +142,7 @@ function handleClearSocialImage(): void {
  *
  * @param value - выбранное значение layout.
  */
-function handleLayoutChange(value: IBrickDemoValues) {
+function handleLayoutChange(value: TBrickDemoValues) {
     const nextLayout =
         typeof value === 'string' && value ? value : settings.value.layout || defaultLayout.value;
     handleUpdateField('layout', nextLayout);
@@ -153,7 +153,7 @@ function handleLayoutChange(value: IBrickDemoValues) {
  *
  * @param schema - Провалидированная схема из JSON-файла.
  */
-function handleImportSchema(schema: BricksSchema): void {
+function handleImportSchema(schema: IBricksSchema): void {
     emit('importSchema', schema);
 }
 

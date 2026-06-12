@@ -2,7 +2,7 @@
  * Типы для composables домена canvas.
  */
 
-import type { ComponentSlotDefinition, BricksComponent } from '../../../common/types/brick';
+import type { IComponentSlotDefinition, IBricksComponent } from '../../../common/types/brick';
 import type { ComputedRef, CSSProperties, MaybeRefOrGetter, Ref, VNodeRef } from 'vue';
 
 // #region useComponentSlots
@@ -10,8 +10,8 @@ import type { ComputedRef, CSSProperties, MaybeRefOrGetter, Ref, VNodeRef } from
  * Данные для рендеринга слота с дочерними компонентами.
  */
 export interface ISlotRenderData {
-    slot: ComponentSlotDefinition;
-    children: BricksComponent[];
+    slot: IComponentSlotDefinition;
+    children: IBricksComponent[];
 }
 
 /**

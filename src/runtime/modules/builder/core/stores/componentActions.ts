@@ -6,12 +6,12 @@ import { schemaActions } from './actions/schema';
 import { clipboardActions } from './actions/clipboard';
 import { orderActions } from './actions/order';
 import { favoritesActions } from './actions/favorites';
-import type { IComponentsActions } from './types';
+import type { TComponentsActions } from './types';
 
 /**
  * Собирает все действия над компонентами в единый объект для подключения к стору.
  */
-export const componentActions: IComponentsActions = {
+export const componentActions: TComponentsActions = {
     ...crudActions,
     ...slotActions,
     ...propertyActions,

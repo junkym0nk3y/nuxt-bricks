@@ -2,14 +2,17 @@
  * Типы для composables.
  */
 
-import type { ComponentLibraryItem, BricksSchema } from '../../../common/types/brick';
+import type { IComponentLibraryItem, IBricksSchema } from '../../../common/types/brick';
 import type { ComputedRef, Ref } from 'vue';
 import type { useSidebarStore } from '../../core/stores/sidebar';
 import type { useHistoryStore } from '../../core/stores/history';
 import type { usePublishStore } from '../../publish/stores/publish';
 import type { IMediaItem, TMediaGalleryContext } from '../../../common/types/media';
 import type { ISidebarExpose } from './builder';
-import type { IImageResolverState, TImageResolveAction } from '../../media/types/schemaImageResolver';
+import type {
+    IImageResolverState,
+    TImageResolveAction,
+} from '../../media/types/schemaImageResolver';
 import type { IBuilderDraftSnapshot } from '../../publish/types/builderDrafts';
 
 /**
@@ -20,6 +23,24 @@ export type TShowToast = (
     variant?: 'success' | 'error',
     duration?: number
 ) => void;
+
+// #region useComponentLibrary
+/**
+ * Элемент списка stories из mock-api `/mock-api/bricks-components/`.
+ */
+export interface IStoryListItem {
+    name: string;
+    category?: string;
+    storyPath: string;
+}
+
+/**
+ * Ответ mock-api со списком stories.
+ */
+export interface IStoriesResponse {
+    stories: IStoryListItem[];
+}
+// #endregion
 
 // #region useBuilderSession / useBuilderDraftPersistence
 /**
@@ -69,7 +90,7 @@ export interface IUseBuilderPageReturn {
     sidebarStore: ReturnType<typeof useSidebarStore>;
     historyStore: ReturnType<typeof useHistoryStore>;
     publishStore: ReturnType<typeof usePublishStore>;
-    componentLibraryList: ComputedRef<ComponentLibraryItem[]>;
+    componentLibraryList: ComputedRef<IComponentLibraryItem[]>;
     isPublishedPagesModalOpen: Ref<boolean>;
     isDocumentationModalOpen: Ref<boolean>;
     isMediaGalleryModalOpen: Ref<boolean>;
@@ -103,7 +124,7 @@ export interface IUseBuilderPageReturn {
     handleRedo: () => void;
     isImageResolverModalOpen: Ref<boolean>;
     imageResolverState: IImageResolverState;
-    handleImportSchema: (schema: BricksSchema) => Promise<void>;
+    handleImportSchema: (schema: IBricksSchema) => Promise<void>;
     handleImageResolverConfirm: () => void;
     handleImageResolverCancel: () => void;
     handleImageResolverSkip: () => void;

@@ -1,7 +1,7 @@
 // #region Imports
 // Types
 import type { ICanvasItemProps } from '../../types/components';
-import type { PropertyDefinition, TBricksDeviceKey } from '../../../../common/types/brick';
+import type { IPropertyDefinition, TBricksDeviceKey } from '../../../../common/types/brick';
 import type { IBrickValues } from '../../../../common/types/index';
 
 // Vue
@@ -138,7 +138,7 @@ export function useCanvasItemActions(
 
         event.stopPropagation();
 
-        let properties: PropertyDefinition[] = [];
+        let properties: IPropertyDefinition[] = [];
         let description: string | undefined;
 
         if (isLayout.value) {

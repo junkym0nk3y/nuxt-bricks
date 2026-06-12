@@ -1,20 +1,13 @@
+import type { TBrickDemoValues } from './brick';
+
+export type { TBrickDemoValues } from './brick';
+
 export interface IBrickFileStructure {
     category?: string;
     description?: string;
     values: Record<string, IBrickValues>;
     slots?: Record<string, IBrickSlotDefinition> | Array<string | IBrickSlotDefinition>;
 }
-
-export type IBrickDemoValues =
-    | string
-    | number
-    | boolean
-    | symbol
-    | bigint
-    | null
-    | undefined
-    | Record<string, unknown>
-    | Array<string | number | boolean | Record<string, unknown> | Array<unknown>>;
 
 /**
  * Конфигурация дополнительных полей для image-gallery редактора.
@@ -30,7 +23,7 @@ export interface IBrickGalleryFieldsConfig {
 
 export interface IBrickShowWhen {
     field: string;
-    equals: IBrickDemoValues;
+    equals: TBrickDemoValues;
 }
 
 export interface IBrickValues {
@@ -51,11 +44,11 @@ export interface IBrickValues {
         | 'inline-content'
         | 'tags'
         | string;
-    default?: IBrickDemoValues;
-    defaultValue?: IBrickDemoValues;
-    newValue?: IBrickDemoValues;
+    default?: TBrickDemoValues;
+    defaultValue?: TBrickDemoValues;
+    newValue?: TBrickDemoValues;
     desc?: string;
-    vars?: IBrickDemoValues[];
+    vars?: TBrickDemoValues[];
     listDelimiter?: string;
     /** Конфигурация полей для image-gallery */
     fields?: IBrickGalleryFieldsConfig;
@@ -79,6 +72,8 @@ export interface IBrickValues {
 }
 
 export interface IBrickSlotDefinition {
+    /** Имя слота — обязательно для array-формы определения, в Record-форме берётся из ключа */
+    name?: string;
     label?: string;
     description?: string;
     allowMultiple?: boolean;

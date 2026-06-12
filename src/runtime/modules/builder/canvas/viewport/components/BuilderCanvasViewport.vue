@@ -1,8 +1,8 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { TViewportType, IDragComposableCanvas } from '../../types/components';
-import type { IDeviceVisibilityConfig } from '../../../../common/types/brick';
+import type { IDragComposableCanvas } from '../../types/components';
+import type { IDeviceVisibilityConfig, TBricksDeviceKey } from '../../../../common/types/brick';
 
 // Vue
 import { computed, ref, inject, provide, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
@@ -28,7 +28,7 @@ import BuilderCanvasItem from '../../item/components/BuilderCanvasItem.vue';
 
 // #region Interfaces
 interface ICanvasViewportProps {
-    viewport: TViewportType;
+    viewport: TBricksDeviceKey;
 }
 // #endregion
 
@@ -43,7 +43,7 @@ const publishStore = usePublishStore();
 const config = useBricksConfig();
 
 const dragComposable = inject<IDragComposableCanvas | undefined>('dragComposable');
-const getRemCompensation = inject<((viewport: TViewportType) => number) | undefined>(
+const getRemCompensation = inject<((viewport: TBricksDeviceKey) => number) | undefined>(
     'getRemCompensation'
 );
 
@@ -56,7 +56,7 @@ provide(
 const canvasRef = ref<HTMLElement | null>(null);
 const containerRef = ref<HTMLElement | null>(null);
 
-const VIEWPORT_HEIGHTS: Record<TViewportType, number> = {
+const VIEWPORT_HEIGHTS: Record<TBricksDeviceKey, number> = {
     mobile: 812,
     tablet: 1024,
     desktop: 1080,
@@ -64,7 +64,7 @@ const VIEWPORT_HEIGHTS: Record<TViewportType, number> = {
 
 const CANVAS_HEIGHT_BUFFER = 400;
 
-const DEVICE_VISIBILITY_MAP: Record<TViewportType, IDeviceVisibilityConfig> = {
+const DEVICE_VISIBILITY_MAP: Record<TBricksDeviceKey, IDeviceVisibilityConfig> = {
     mobile: { mobile: true, tablet: false, desktop: false },
     tablet: { mobile: false, tablet: true, desktop: false },
     desktop: { mobile: false, tablet: false, desktop: true },
@@ -94,7 +94,7 @@ let containerResizeObserver: ResizeObserver | null = null;
 // #region Computed
 const viewportWidth = computed<number>(() => {
     const breakpoints = config.canvasBreakpoints;
-    const widths: Record<TViewportType, number> = {
+    const widths: Record<TBricksDeviceKey, number> = {
         mobile: breakpoints.mobile.width,
         tablet: breakpoints.tablet.width,
         desktop: breakpoints.desktop.width,
@@ -122,7 +122,7 @@ const canvasStyle = computed<Record<string, string>>(() => {
 });
 
 const viewportLabel = computed<string>(() => {
-    const labels: Record<TViewportType, string> = {
+    const labels: Record<TBricksDeviceKey, string> = {
         mobile: 'Mobile',
         tablet: 'Tablet',
         desktop: 'Desktop',

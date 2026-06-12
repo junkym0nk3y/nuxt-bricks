@@ -1,4 +1,8 @@
-import type { BricksComponent, BricksSchema, IBricksSchemaMeta } from '../../../common/types/brick';
+import type {
+    IBricksComponent,
+    IBricksSchema,
+    IBricksSchemaMeta,
+} from '../../../common/types/brick';
 import { cloneBricksComponent } from '../../../common/utils/bricks/components';
 import { normalizeDeviceVisibility } from '../../../common/utils/bricks/deviceVisibility';
 import { normalizeStoryPath } from '../../../common/utils/bricks/paths';
@@ -12,10 +16,10 @@ import { normalizeStoryPath } from '../../../common/utils/bricks/paths';
  * @returns Обновлённые { history, historyIndex }.
  */
 export function clampHistory(
-    history: BricksSchema[],
+    history: IBricksSchema[],
     historyIndex: number,
     limit: number = 50
-): { history: BricksSchema[]; historyIndex: number } {
+): { history: IBricksSchema[]; historyIndex: number } {
     const result = [...history];
     let index = historyIndex;
 
@@ -29,17 +33,17 @@ export function clampHistory(
 }
 
 /**
- * Сериализует массив компонентов в BricksSchema.
+ * Сериализует массив компонентов в IBricksSchema.
  *
  * @param components - Компоненты Canvas.
  * @param meta - Опциональные метаданные схемы (навигация и др.).
- * @returns BricksSchema с нормализованными путями.
+ * @returns IBricksSchema с нормализованными путями.
  */
 export function serializeSchema(
-    components: BricksComponent[],
+    components: IBricksComponent[],
     meta?: IBricksSchemaMeta
-): BricksSchema {
-    const schema: BricksSchema = {
+): IBricksSchema {
+    const schema: IBricksSchema = {
         components: components.map((component) => {
             const cloned = cloneBricksComponent(component);
             cloned.storyPath = normalizeStoryPath(component.storyPath);
@@ -60,7 +64,7 @@ export function serializeSchema(
  * @param schema - Сохранённая схема.
  * @returns Компоненты с нормализованными путями.
  */
-export function deserializeSchema(schema: BricksSchema): BricksComponent[] {
+export function deserializeSchema(schema: IBricksSchema): IBricksComponent[] {
     return (schema.components || []).map((component) => {
         const cloned = cloneBricksComponent({
             ...component,

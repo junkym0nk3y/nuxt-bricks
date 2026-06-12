@@ -16,10 +16,7 @@ import {
 
 // Pinia
 import { useComponentsStore } from '../../builder/core/stores/components';
-import {
-    useInlineEditingStore,
-    type InlineEditingPropType,
-} from '../stores/inlineEditing';
+import { useInlineEditingStore, type TInlineEditingPropType } from '../stores/inlineEditing';
 
 // Utils
 import { createTiptapEditor } from '../utils/createTiptapEditor';
@@ -30,7 +27,7 @@ import { segmentsToTiptapDoc, tiptapDocToSegments } from '../utils/inlineContent
 interface IUseInlineEditorOptions {
     componentId: string;
     propName: string;
-    propType: InlineEditingPropType;
+    propType: TInlineEditingPropType;
 }
 
 interface IUseInlineEditorReturn {
@@ -50,9 +47,7 @@ interface IUseInlineEditorReturn {
  *
  * @param options - ID компонента, имя свойства, тип свойства.
  */
-export function useInlineEditor(
-    options: IUseInlineEditorOptions
-): IUseInlineEditorReturn {
+export function useInlineEditor(options: IUseInlineEditorOptions): IUseInlineEditorReturn {
     const componentsStore = useComponentsStore();
     const inlineEditingStore = useInlineEditingStore();
 
@@ -99,11 +94,7 @@ export function useInlineEditor(
         if (options.propType === 'inline-content') {
             const doc = editor.value.getJSON();
             const segments = tiptapDocToSegments(doc, originalSegments);
-            componentsStore.updateComponentProp(
-                options.componentId,
-                options.propName,
-                segments as unknown as Array<unknown>
-            );
+            componentsStore.updateComponentProp(options.componentId, options.propName, segments);
         } else {
             const html = editor.value.getHTML();
             componentsStore.updateComponentProp(options.componentId, options.propName, html);
@@ -191,7 +182,7 @@ export function useInlineEditor(
                 componentsStore.updateComponentProp(
                     options.componentId,
                     options.propName,
-                    segments as unknown as Array<unknown>
+                    segments
                 );
             } else {
                 const html = editor.value.getHTML();
@@ -229,7 +220,7 @@ export function useInlineEditor(
                     componentsStore.updateComponentProp(
                         options.componentId,
                         options.propName,
-                        segments as unknown as Array<unknown>
+                        segments
                     );
                 } else {
                     const html = editor.value.getHTML();
@@ -262,7 +253,7 @@ export function useInlineEditor(
                     componentsStore.updateComponentProp(
                         options.componentId,
                         options.propName,
-                        segments as unknown as Array<unknown>
+                        segments
                     );
                 } else {
                     const html = editor.value.getHTML();

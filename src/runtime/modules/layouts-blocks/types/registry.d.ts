@@ -5,26 +5,26 @@
  */
 
 import type { VNode, VNodeChild } from 'vue';
-import type { BricksComponent } from '../../common/types/brick';
+import type { IBricksComponent } from '../../common/types/brick';
 import type { ILayoutProperty } from '../../common/types/layoutProperty';
 
 /** Контекст рендера published-страницы (из TheRenderer) */
 export interface IBlockRenderContext {
-    component: BricksComponent;
+    component: IBricksComponent;
     extraClasses: string[];
     extraAttrs: Record<string, string | undefined>;
     styles: Record<string, string>; // CSS module
-    renderChild: (child: BricksComponent) => VNodeChild;
-    getChildComponents: (c: BricksComponent) => BricksComponent[];
+    renderChild: (child: IBricksComponent) => VNodeChild;
+    getChildComponents: (c: IBricksComponent) => IBricksComponent[];
 }
 
 /** Контекст биндинга на канвасе (из BuilderCanvasItemLayout) */
 export interface IBlockCanvasContext {
-    component: BricksComponent;
+    component: IBricksComponent;
     layoutProps: Record<string, unknown>; // уже resolved по viewport
     boundProps: Record<string, unknown>; // componentBoundProps
-    childComponents: BricksComponent[];
-    renderChild: (child: BricksComponent) => VNodeChild; // slider slides
+    childComponents: IBricksComponent[];
+    renderChild: (child: IBricksComponent) => VNodeChild; // slider slides
 }
 
 export interface IBlockDefinition {

@@ -1,5 +1,5 @@
 import type {
-    BricksSchema,
+    IBricksSchema,
     IDeviceVisibilityConfig,
     TBricksDeviceKey,
     IBricksSchemaMeta,
@@ -185,7 +185,7 @@ export const schemaActions: IComponentsSchemaActions = {
      */
     loadSchema(
         this: IComponentsStore,
-        schema: BricksSchema,
+        schema: IBricksSchema,
         options?: { resetHistory?: boolean }
     ) {
         this.components = deserializeSchema(schema);

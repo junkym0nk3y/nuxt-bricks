@@ -1,11 +1,11 @@
 import { defineStore } from 'pinia';
 import { useAppConfig } from 'nuxt/app';
-import type { CanvasState } from '../../../common/types/brick';
+import type { ICanvasState, TBricksDeviceKey } from '../../../common/types/brick';
 import type { IAppConfig } from '../../../common/types/config';
 import { convertRemToPx } from '../../../common/utils/main';
 import { useSidebarStore } from './sidebar';
 
-const VIEWPORT_BASE_HEIGHT: Record<'mobile' | 'tablet' | 'desktop', number> = {
+const VIEWPORT_BASE_HEIGHT: Record<TBricksDeviceKey, number> = {
     mobile: 812,
     tablet: 1024,
     desktop: 1080,
@@ -15,7 +15,7 @@ const CANVAS_HEIGHT_BUFFER = 400;
 /**
  * Возвращает ширину холста для viewport из конфига (с дефолтами).
  */
-function getConfiguredViewportWidth(viewport: 'mobile' | 'tablet' | 'desktop'): number {
+function getConfiguredViewportWidth(viewport: TBricksDeviceKey): number {
     const appConfig = useAppConfig() as IAppConfig;
     const canvasBreakpoints = appConfig?.bricks?.breakpoints;
 
@@ -33,7 +33,7 @@ function getConfiguredViewportWidth(viewport: 'mobile' | 'tablet' | 'desktop'): 
  * Используется для расчёта настройки канваса и синхронизации с реальными размерами контента.
  */
 export const useCanvasStore = defineStore('bricksCanvas', {
-    state: (): CanvasState => ({
+    state: (): ICanvasState => ({
         width: 1920,
         height: VIEWPORT_BASE_HEIGHT.desktop,
         scale: 1,
@@ -115,7 +115,7 @@ export const useCanvasStore = defineStore('bricksCanvas', {
          *
          * @param viewport - Новый viewport.
          */
-        setViewport(viewport: 'mobile' | 'tablet' | 'desktop') {
+        setViewport(viewport: TBricksDeviceKey) {
             const wasInFigma = this.isFigmaMode;
             this.isViewportSwitching = true;
             this.isFigmaMode = false;

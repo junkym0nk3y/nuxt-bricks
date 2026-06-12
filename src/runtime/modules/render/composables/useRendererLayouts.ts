@@ -1,7 +1,7 @@
 // #region Imports
 // Types
 import type { VNode } from 'vue';
-import type { BricksComponent } from '../../common/types/brick';
+import type { IBricksComponent } from '../../common/types/brick';
 import type { IRendererLayoutsOptions } from '../types/render';
 
 // Utils
@@ -28,14 +28,14 @@ export function useRendererLayouts({
      * @param component - Родительский layout.
      * @returns Отфильтрованный список дочерних компонентов.
      */
-    function getChildComponents(component: BricksComponent): BricksComponent[] {
+    function getChildComponents(component: IBricksComponent): IBricksComponent[] {
         if (!component.children || !allComponents.value.length) {
             return [];
         }
 
         return component.children
             .map((childId) => allComponents.value.find((item) => item.id === childId))
-            .filter(Boolean) as BricksComponent[];
+            .filter(Boolean) as IBricksComponent[];
     }
 
     /**
@@ -44,7 +44,7 @@ export function useRendererLayouts({
      * @param component - Компонент верхнего уровня.
      * @returns Требуется ли контейнер.
      */
-    function needsContainerWrapper(component: BricksComponent): boolean {
+    function needsContainerWrapper(component: IBricksComponent): boolean {
         if (component.parent) {
             return false;
         }
@@ -62,7 +62,7 @@ export function useRendererLayouts({
      * @returns VNode layout-блока или `null` для не-layout компонентов.
      */
     function renderLayoutComponent(
-        component: BricksComponent,
+        component: IBricksComponent,
         extraClasses: string[] = [],
         extraAttrs: Record<string, string | undefined> = {}
     ): VNode | null {

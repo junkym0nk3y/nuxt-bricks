@@ -1,10 +1,11 @@
 import type {
-    BricksComponent,
-    SelectedComponent,
-    ComponentSlotDefinition,
-    BricksSchema,
+    IBricksComponent,
+    ISelectedComponent,
+    IComponentSlotDefinition,
+    IBricksSchema,
     IDeviceVisibilityConfig,
     TBricksDeviceKey,
+    TBrickPropValue,
 } from '../../../common/types/brick';
 
 export interface IComponentClipboardSnapshot {
@@ -13,16 +14,16 @@ export interface IComponentClipboardSnapshot {
     slotName?: string;
     insertIndex: number | null;
     fullWidth?: boolean;
-    tree: BricksComponent[];
+    tree: IBricksComponent[];
     /** Свойства компонента для отображения в редакторе после вставки */
-    properties?: SelectedComponent['properties'];
+    properties?: ISelectedComponent['properties'];
     /** Описание компонента */
-    description?: SelectedComponent['description'];
+    description?: ISelectedComponent['description'];
 }
 
 export interface IComponentsState {
-    components: BricksComponent[];
-    selectedComponent: SelectedComponent | null;
+    components: IBricksComponent[];
+    selectedComponent: ISelectedComponent | null;
     clipboard: IComponentClipboardSnapshot | null;
     favorites: string[];
     /** Transient: id компонента в режиме интерактивного предпросмотра (не экспортируется в схему) */
@@ -31,9 +32,9 @@ export interface IComponentsState {
 
 export interface ISelectedComponentData {
     id: string;
-    component: BricksComponent;
-    properties: SelectedComponent['properties'];
-    description?: SelectedComponent['description'];
+    component: IBricksComponent;
+    properties: ISelectedComponent['properties'];
+    description?: ISelectedComponent['description'];
 }
 
 export type THistoryOptions = {
@@ -48,10 +49,10 @@ export type TMoveComponentToLayoutOptions = {
 };
 
 export type TComponentInsertPayload = Omit<
-    BricksComponent,
+    IBricksComponent,
     'id' | 'zIndex' | 'type' | 'children' | 'slotName' | 'slots'
 > & {
-    slots?: ComponentSlotDefinition[];
+    slots?: IComponentSlotDefinition[];
 };
 
 export interface IComponentsCrudActions {
@@ -91,14 +92,14 @@ export interface IComponentsCrudActions {
         targetIndex?: number | null,
         options?: THistoryOptions
     ): void;
-    getRootComponents(this: IComponentsStore): BricksComponent[];
+    getRootComponents(this: IComponentsStore): IBricksComponent[];
 }
 
 export interface IComponentsSlotActions {
     initializeComponentSlots(
         this: IComponentsStore,
         componentId: string,
-        slots: ComponentSlotDefinition[]
+        slots: IComponentSlotDefinition[]
     ): void;
     addComponentToSlot(
         this: IComponentsStore,
@@ -130,14 +131,14 @@ export interface IComponentsPropertyActions {
         this: IComponentsStore,
         id: string,
         propName: string,
-        value: string | number | boolean | Record<string, unknown> | Array<unknown>
+        value: TBrickPropValue
     ): void;
     updateComponentResponsiveProp(
         this: IComponentsStore,
         id: string,
         device: TBricksDeviceKey,
         propName: string,
-        value: string | number | boolean | Record<string, unknown> | Array<unknown>
+        value: TBrickPropValue
     ): void;
     resetComponentResponsivePropsForDevice(
         this: IComponentsStore,
@@ -150,8 +151,8 @@ export interface IComponentsSelectionActions {
     selectComponent(
         this: IComponentsStore,
         id: string,
-        properties?: SelectedComponent['properties'],
-        description?: SelectedComponent['description']
+        properties?: ISelectedComponent['properties'],
+        description?: ISelectedComponent['description']
     ): void;
     deselectComponent(this: IComponentsStore): void;
     toggleInteractivePreview(this: IComponentsStore, id: string): void;
@@ -172,13 +173,13 @@ export interface IComponentsSchemaActions {
         device: TBricksDeviceKey,
         value: boolean
     ): void;
-    exportSchema(this: IComponentsStore): BricksSchema;
+    exportSchema(this: IComponentsStore): IBricksSchema;
     saveToHistory(this: IComponentsStore): void;
     undo(this: IComponentsStore): void;
     redo(this: IComponentsStore): void;
     loadSchema(
         this: IComponentsStore,
-        schema: BricksSchema,
+        schema: IBricksSchema,
         options?: { resetHistory?: boolean }
     ): void;
 }
@@ -199,7 +200,7 @@ export interface IComponentsFavoritesActions {
     toggleFavorite(this: IComponentsStore, componentName: string): void;
 }
 
-export type IComponentsActions = IComponentsCrudActions &
+export type TComponentsActions = IComponentsCrudActions &
     IComponentsSlotActions &
     IComponentsPropertyActions &
     IComponentsSelectionActions &
@@ -209,13 +210,13 @@ export type IComponentsActions = IComponentsCrudActions &
     IComponentsFavoritesActions;
 
 interface IComponentsComputed {
-    getComponentById: (id: string) => BricksComponent | undefined;
+    getComponentById: (id: string) => IBricksComponent | undefined;
     selectedComponentData: ISelectedComponentData | null;
-    sortedComponents: BricksComponent[];
+    sortedComponents: IBricksComponent[];
     isComponentSelected: (id: string) => boolean;
     isFavorite: (componentName: string) => boolean;
     hasComponents: boolean;
 }
 
 export interface IComponentsStore
-    extends IComponentsState, IComponentsComputed, IComponentsActions {}
+    extends IComponentsState, IComponentsComputed, TComponentsActions {}

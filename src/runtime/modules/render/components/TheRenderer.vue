@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { IRendererProps } from '../types/render';
-import type { BricksComponent } from '../../common/types/brick';
+import type { IBricksComponent } from '../../common/types/brick';
 
 // Vue
 import { computed, h, useCssModule } from 'vue';
@@ -48,7 +48,7 @@ const { renderLayoutComponent, needsContainerWrapper } = useRendererLayouts({
  * @param component - Компонент схемы, который необходимо визуализировать.
  * @returns VNode отрисованного компонента.
  */
-function renderComponent(component: BricksComponent) {
+function renderComponent(component: IBricksComponent) {
     const visibilityClasses = buildDeviceVisibilityClasses(component.deviceVisibility);
     const ariaAttrs: Record<string, string | undefined> = {};
 
@@ -72,7 +72,7 @@ function renderComponent(component: BricksComponent) {
  * @returns VNode UI-компонента или placeholder.
  */
 function renderUiComponent(
-    component: BricksComponent,
+    component: IBricksComponent,
     visibilityClasses: string[],
     extraAttrs: Record<string, string | undefined> = {}
 ) {
@@ -121,7 +121,7 @@ function renderUiComponent(
  */
 function wrapWithContainer(
     content: ReturnType<typeof h>,
-    component: BricksComponent,
+    component: IBricksComponent,
     visibilityClasses: string[],
     extraAttrs: Record<string, string | undefined> = {}
 ) {

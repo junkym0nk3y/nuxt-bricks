@@ -1,6 +1,6 @@
 // Types
-import type { BricksComponent } from '../../common/types/brick';
-import type { SliderLayoutProps } from '../types/blockProps';
+import type { IBricksComponent } from '../../common/types/brick';
+import type { ISliderLayoutProps } from '../types/blockProps';
 import type { IBlockDefinition, IBlockRenderContext } from '../types/registry';
 
 // Vue
@@ -20,7 +20,7 @@ import BlockSlider from './BlockSlider.vue';
  */
 function renderSliderPublished(ctx: IBlockRenderContext): VNode {
     const { component, extraClasses, extraAttrs, renderChild, getChildComponents } = ctx;
-    const componentProps = component.props as SliderLayoutProps;
+    const componentProps = component.props as ISliderLayoutProps;
     const childComponents = getChildComponents(component);
     const style = gridPlacementStyle(component);
 
@@ -28,7 +28,7 @@ function renderSliderPublished(ctx: IBlockRenderContext): VNode {
         layoutProps: componentProps,
         layoutId: component.id,
         slides: childComponents,
-        renderSlide: (child: BricksComponent) => renderChild(child),
+        renderSlide: (child: IBricksComponent) => renderChild(child),
         isEditor: false,
         key: component.id,
         id: component.htmlId || undefined,

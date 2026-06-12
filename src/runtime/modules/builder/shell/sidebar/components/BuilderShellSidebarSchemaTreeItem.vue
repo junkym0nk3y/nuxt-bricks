@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { BricksComponent } from '../../../../common/types/brick';
+import type { IBricksComponent } from '../../../../common/types/brick';
 
 // Vue
 import { computed, ref } from 'vue';
@@ -12,7 +12,7 @@ import { useComponentsStore } from '../../../core/stores/components';
 
 // #region Interfaces
 interface ISidebarSchemaTreeItemProps {
-    component: BricksComponent;
+    component: IBricksComponent;
     depth?: number;
     isLast?: boolean;
 }
@@ -50,14 +50,14 @@ const isDesktopVisible = computed<boolean>(
 
 const isHidden = computed<boolean>(() => props.component.isHidden === true);
 
-const childComponents = computed<BricksComponent[]>(() => {
+const childComponents = computed<IBricksComponent[]>(() => {
     if (!props.component.children?.length) {
         return [];
     }
 
     return props.component.children
         .map((childId) => componentsStore.getComponentById(childId))
-        .filter((child): child is BricksComponent => Boolean(child));
+        .filter((child): child is IBricksComponent => Boolean(child));
 });
 
 const displayName = computed<string>(() => props.component.componentName);
@@ -139,7 +139,9 @@ function handleDrop(event: DragEvent): void {
 </script>
 
 <template>
-    <div :class="[$style.BuilderShellSidebarSchemaTreeItem, { [$style._hasChildren]: hasChildren }]">
+    <div
+        :class="[$style.BuilderShellSidebarSchemaTreeItem, { [$style._hasChildren]: hasChildren }]"
+    >
         <div :class="$style.rowWrapper">
             <!-- Линии дерева -->
             <div

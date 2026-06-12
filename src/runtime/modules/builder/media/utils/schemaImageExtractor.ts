@@ -1,10 +1,10 @@
 /**
- * Извлечение и замена image URL в BricksSchema.
+ * Извлечение и замена image URL в IBricksSchema.
  */
 
 // #region Imports
 // Types
-import type { BricksSchema, BricksComponent } from '../../../common/types/brick';
+import type { IBricksSchema, IBricksComponent } from '../../../common/types/brick';
 import type {
     IExtractedImageUrl,
     IImageLocation,
@@ -143,7 +143,7 @@ function addUrlToMap(
  */
 function createLocation(
     componentIndex: number,
-    component: BricksComponent,
+    component: IBricksComponent,
     propName: string,
     sourceType: TImageSourceType,
     extra?: { arrayIndex?: number; segmentIndex?: number }
@@ -170,7 +170,7 @@ function createLocation(
 function extractFromHtml(
     html: string,
     componentIndex: number,
-    component: BricksComponent,
+    component: IBricksComponent,
     propName: string,
     urlMap: Map<string, IImageLocation[]>
 ): void {
@@ -194,10 +194,10 @@ function extractFromHtml(
 /**
  * Извлекает все уникальные URL изображений из схемы лендинга.
  *
- * @param schema - BricksSchema для анализа.
+ * @param schema - IBricksSchema для анализа.
  * @returns Массив уникальных URL с информацией о местоположениях.
  */
-export function extractSchemaImageUrls(schema: BricksSchema): IExtractedImageUrl[] {
+export function extractSchemaImageUrls(schema: IBricksSchema): IExtractedImageUrl[] {
     const urlMap = new Map<string, IImageLocation[]>();
 
     schema.components.forEach((component, componentIndex) => {
@@ -282,9 +282,9 @@ export function extractSchemaImageUrls(schema: BricksSchema): IExtractedImageUrl
  * @returns Новая схема с заменёнными URL.
  */
 export function replaceSchemaImageUrls(
-    schema: BricksSchema,
+    schema: IBricksSchema,
     urlMap: Map<string, string>
-): BricksSchema {
+): IBricksSchema {
     if (urlMap.size === 0) {
         return schema;
     }

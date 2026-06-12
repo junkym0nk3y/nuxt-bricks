@@ -1,8 +1,8 @@
-import type { BricksSchema } from '../../../common/types/brick';
+import type { IBricksSchema } from '../../../common/types/brick';
 import type { TPublishFormState } from '../../../common/types/bricks-api';
 
 export interface IBuilderDraftSnapshot {
-    schema: BricksSchema;
+    schema: IBricksSchema;
     formState: TPublishFormState;
 }
 

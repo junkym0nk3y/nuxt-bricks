@@ -1,4 +1,4 @@
-import type { Plugin } from 'vite';
+import type { Plugin, ViteDevServer, HotUpdateOptions } from 'vite';
 import generateStoriesJson from './generate-stories-json.mjs';
 
 const BRICK_PATTERN = /\.brick\.ts$/;
@@ -7,7 +7,7 @@ const BRICK_PATTERN = /\.brick\.ts$/;
  * Sends full-reload to connected clients.
  * Vite 6+ uses server.hot, older versions use server.ws.
  */
-function sendFullReload(server: any): void {
+function sendFullReload(server: ViteDevServer): void {
     const channel = server.hot ?? server.ws;
     channel?.send({ type: 'full-reload' });
 }
@@ -60,7 +60,7 @@ export function brickWatchPlugin(isPlayground = false): Plugin {
             });
         },
         // Vite 6+ hook (приоритетный)
-        hotUpdate(ctx: any) {
+        hotUpdate(ctx: HotUpdateOptions) {
             if (BRICK_PATTERN.test(ctx.file)) {
                 generateStoriesJson(isPlayground).then(() => {
                     sendFullReload(ctx.server);

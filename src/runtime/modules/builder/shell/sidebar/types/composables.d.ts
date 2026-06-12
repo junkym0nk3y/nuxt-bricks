@@ -3,12 +3,12 @@
  */
 
 import type {
-    ComponentVariantsMap,
+    TComponentVariantsMap,
     IComponentVariant,
-    PropertyEditorType,
+    TPropertyEditorType,
 } from '../components/property-editors/types';
 import type { ComputedRef } from 'vue';
-import type { BricksSchema } from '../../../../common/types/brick';
+import type { IBricksSchema } from '../../../../common/types/brick';
 
 // #region usePropertyVariants
 /**
@@ -20,10 +20,10 @@ export type { ISelectedComponentData } from '../../../core/stores/types';
  * Возвращаемое значение composable usePropertyVariants.
  */
 export interface IUsePropertyVariantsReturn {
-    componentVariants: ComputedRef<ComponentVariantsMap>;
+    componentVariants: ComputedRef<TComponentVariantsMap>;
     handleNormalizeProps: (
         data: IComponentVariant,
-        editorType: PropertyEditorType
+        editorType: TPropertyEditorType
     ) => Record<string, unknown>;
 }
 // #endregion
@@ -34,6 +34,6 @@ export interface IUsePropertyVariantsReturn {
  */
 export interface ISchemaFileTransferOptions {
     /** Вызывается с провалидированной схемой из выбранного файла. */
-    onImport: (schema: BricksSchema) => void;
+    onImport: (schema: IBricksSchema) => void;
 }
 // #endregion

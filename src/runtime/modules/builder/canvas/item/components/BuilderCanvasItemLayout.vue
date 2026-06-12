@@ -1,8 +1,8 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { BricksComponent } from '../../../../common/types/brick';
-import type { LayoutProps } from '../../../../layouts-blocks/types/blockProps';
+import type { IBricksComponent } from '../../../../common/types/brick';
+import type { TLayoutProps } from '../../../../layouts-blocks/types/blockProps';
 import type { IBlockCanvasContext } from '../../../../layouts-blocks/types/registry';
 
 // Utils
@@ -23,17 +23,17 @@ import BuilderCanvasConditionalContainer from '../../viewport/components/Builder
  */
 interface ICanvasItemLayoutProps {
     /** Экземпляр компонента для рендеринга */
-    component: BricksComponent;
+    component: IBricksComponent;
     /** Имя типа layout в нижнем регистре (grid, flex, space, title, text, media) */
     layoutName: string;
     /** Специфичные пропсы layout-компонента */
-    layoutProps: LayoutProps;
+    layoutProps: TLayoutProps;
     /** Вычисленные пропсы для передачи в компонент (исключая внутренние) */
     componentBoundProps: Record<string, unknown>;
     /** Нужно ли оборачивать компонент в контейнер */
     needsContainerWrapper: boolean;
     /** Дочерние компоненты для layout-контейнеров */
-    childComponents: BricksComponent[];
+    childComponents: IBricksComponent[];
 }
 // #endregion
 
@@ -42,7 +42,7 @@ const props = defineProps<ICanvasItemLayoutProps>();
 // #endregion
 
 // #region Methods
-const renderLayoutChild = (child: BricksComponent) =>
+const renderLayoutChild = (child: IBricksComponent) =>
     h(BuilderCanvasItem, {
         component: child,
         key: child.id,

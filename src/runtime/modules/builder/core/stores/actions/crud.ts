@@ -1,4 +1,4 @@
-import type { BricksComponent } from '../../../../common/types/brick';
+import type { IBricksComponent } from '../../../../common/types/brick';
 import {
     cloneComponentProps,
     createComponentSlot,
@@ -61,7 +61,7 @@ export const crudActions: IComponentsCrudActions = {
         const maxZIndex = Math.max(0, ...this.components.map((c) => c.zIndex));
         const isLayout = component.storyPath.startsWith('layout/');
 
-        const newComponent: BricksComponent = {
+        const newComponent: IBricksComponent = {
             ...component,
             id,
             type: isLayout ? 'layout' : 'component',
@@ -95,7 +95,7 @@ export const crudActions: IComponentsCrudActions = {
         this.detachComponentFromParent(id, { skipHistory: true });
 
         const idsToRemove = new Set<string>();
-        const queue: BricksComponent[] = [target];
+        const queue: IBricksComponent[] = [target];
 
         while (queue.length > 0) {
             const current = queue.shift();
@@ -158,11 +158,7 @@ export const crudActions: IComponentsCrudActions = {
      * @param childId - Идентификатор дочернего компонента.
      * @param options - Опции для пропуска записи в историю.
      */
-    detachComponentFromParent(
-        this: IComponentsStore,
-        childId: string,
-        options?: THistoryOptions
-    ) {
+    detachComponentFromParent(this: IComponentsStore, childId: string, options?: THistoryOptions) {
         const child = this.getComponentById(childId);
         if (!child?.parent) {
             return;
@@ -418,7 +414,7 @@ export const crudActions: IComponentsCrudActions = {
     /**
      * Возвращает все компоненты верхнего уровня (без родителя).
      */
-    getRootComponents(this: IComponentsStore): BricksComponent[] {
+    getRootComponents(this: IComponentsStore): IBricksComponent[] {
         return this.components.filter((component) => !component.parent);
     },
 };

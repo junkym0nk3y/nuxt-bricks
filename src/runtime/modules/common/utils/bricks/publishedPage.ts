@@ -1,4 +1,4 @@
-import type { BricksSchema } from '../../types/brick';
+import type { IBricksSchema } from '../../types/brick';
 import type { IPublishedPage } from '../../types/bricks-api';
 import { toCamelCase } from '../case-transform';
 
@@ -6,11 +6,11 @@ export const DEFAULT_BACKGROUND_COLOR = '#FFFFFF';
 export const DEFAULT_LAYOUT = 'default';
 
 /**
- * Проверяет, что значение похоже на BricksSchema.
+ * Проверяет, что значение похоже на IBricksSchema.
  *
  * @param value - Проверяемое значение.
  */
-export function isBricksSchema(value: unknown): value is BricksSchema {
+export function isBricksSchema(value: unknown): value is IBricksSchema {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
         return false;
     }
@@ -25,12 +25,12 @@ export function isBricksSchema(value: unknown): value is BricksSchema {
  * @param schema - Схема лендинга.
  * @returns Нормализованная схема.
  */
-export function preserveSchema(schema: BricksSchema | null | undefined): BricksSchema {
+export function preserveSchema(schema: IBricksSchema | null | undefined): IBricksSchema {
     if (!schema) {
         return { components: [] };
     }
 
-    const result: BricksSchema = {
+    const result: IBricksSchema = {
         components: schema.components ?? [],
     };
 

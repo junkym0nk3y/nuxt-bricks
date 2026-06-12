@@ -1,5 +1,5 @@
 // Types
-import type { BricksSchema } from '../../../../common/types/brick';
+import type { IBricksSchema } from '../../../../common/types/brick';
 import type { ISchemaFileTransferOptions } from '../types/composables';
 
 // Vue
@@ -65,7 +65,7 @@ export function useSchemaFileTransfer(options: ISchemaFileTransferOptions) {
 
         reader.onload = () => {
             try {
-                const parsed = JSON.parse(reader.result as string) as BricksSchema;
+                const parsed = JSON.parse(reader.result as string) as IBricksSchema;
 
                 if (!parsed.components || !Array.isArray(parsed.components)) {
                     importError.value = 'Невалидная схема: отсутствует массив components';

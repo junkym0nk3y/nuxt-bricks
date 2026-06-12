@@ -1,8 +1,8 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { BricksComponent } from '../../common/types/brick';
-import type { SliderLayoutProps, ISliderCaption } from '../types/blockProps';
+import type { IBricksComponent } from '../../common/types/brick';
+import type { ISliderLayoutProps, ISliderCaption } from '../types/blockProps';
 
 // Vue
 import { computed, defineComponent, h, inject, ref, type PropType, type VNodeChild } from 'vue';
@@ -29,12 +29,12 @@ const SlideRenderer = defineComponent({
     name: 'BlockSliderSlideRenderer',
     props: {
         component: {
-            type: Object as PropType<BricksComponent>,
+            type: Object as PropType<IBricksComponent>,
             required: true,
         },
 
         renderFn: {
-            type: Function as PropType<(component: BricksComponent) => VNodeChild>,
+            type: Function as PropType<(component: IBricksComponent) => VNodeChild>,
             required: true,
         },
     },
@@ -48,10 +48,10 @@ const SlideRenderer = defineComponent({
 // #region Props
 const props = withDefaults(
     defineProps<{
-        layoutProps: SliderLayoutProps;
+        layoutProps: ISliderLayoutProps;
         layoutId?: string;
-        slides?: BricksComponent[];
-        renderSlide?: (component: BricksComponent) => VNodeChild;
+        slides?: IBricksComponent[];
+        renderSlide?: (component: IBricksComponent) => VNodeChild;
         isEditor?: boolean;
     }>(),
     {

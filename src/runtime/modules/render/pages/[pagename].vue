@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { IPublishedPage, IPreviewStoredPage } from '../../common/types/bricks-api';
-import type { BricksComponent } from '../../common/types/brick';
+import type { IBricksComponent } from '../../common/types/brick';
 import type { IBrickDataSource } from '../../common/types/dataSource';
 
 // Vue
@@ -250,15 +250,15 @@ const resolutionText = computed(() => `${windowWidth.value}×${windowHeight.valu
 // #endregion
 
 // #region Methods
-const allComponents = computed<BricksComponent[]>(() => {
+const allComponents = computed<IBricksComponent[]>(() => {
     const components = page.value?.schema?.components ?? [];
     // console.log('[Bricks Page] All components:', components);
     return components.filter((c) => !c.isHidden);
 });
 
-const rootComponents = computed<BricksComponent[]>(() => {
+const rootComponents = computed<IBricksComponent[]>(() => {
     const components = allComponents.value.filter(
-        (component: BricksComponent) => !component.parent
+        (component: IBricksComponent) => !component.parent
     );
     // console.log('[Bricks Page] Root components:', components);
     return components;
@@ -273,7 +273,7 @@ async function prefetchPageStories(): Promise<void> {
     const storyPaths = Array.from(
         new Set<string>(
             components
-                .map((component: BricksComponent) => component.storyPath)
+                .map((component: IBricksComponent) => component.storyPath)
                 .filter(
                     (storyPath): storyPath is string =>
                         Boolean(storyPath) && !storyPath.startsWith('layout')
@@ -339,13 +339,13 @@ async function loadStoryDataSources(storyPath: string): Promise<IBrickDataSource
  * @returns Список запросов с компонентом и его источником данных.
  */
 async function collectDataSourceRequests(): Promise<
-    Array<{ component: BricksComponent; source: IBrickDataSource }>
+    Array<{ component: IBricksComponent; source: IBrickDataSource }>
 > {
     if (!page.value?.schema?.components?.length) {
         return [];
     }
 
-    const requests: Array<{ component: BricksComponent; source: IBrickDataSource }> = [];
+    const requests: Array<{ component: IBricksComponent; source: IBrickDataSource }> = [];
 
     // Собираем все data sources, объявленные в story-файлах компонентов
     for (const component of page.value.schema.components) {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { AccordionLayoutProps, IAccordionItem } from '../types/blockProps';
+import type { IAccordionLayoutProps, IAccordionItem } from '../types/blockProps';
 
 // Vue
 import { computed, ref } from 'vue';
@@ -18,7 +18,7 @@ import {
 
 // #region Props
 const props = defineProps<{
-    layoutProps: AccordionLayoutProps;
+    layoutProps: IAccordionLayoutProps;
 }>();
 // #endregion
 

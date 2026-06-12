@@ -1,6 +1,6 @@
 // #region Imports
 // Types
-import type { BricksSchema } from '../../../common/types/brick';
+import type { IBricksSchema } from '../../../common/types/brick';
 import type { IBuilderDraftEntry, IBuilderDraftSnapshot } from '../../publish/types/builderDrafts';
 import type { IBuilderSessionOptions } from '../types/composables';
 
@@ -17,7 +17,7 @@ import { useComponentsStore } from '../../core/stores/components';
 import { usePublishStore } from '../../publish/stores/publish';
 // #endregion
 
-const EMPTY_SCHEMA: BricksSchema = {
+const EMPTY_SCHEMA: IBricksSchema = {
     components: [],
 };
 

@@ -1,6 +1,6 @@
 import type { Ref } from 'vue';
 import type { IDragComposableCanvas } from './components';
-import type { BricksComponentsStore } from '../../core/stores/components';
+import type { TBricksComponentsStore } from '../../core/stores/components';
 
 export interface ICanvasDropIndicator {
     index: number;
@@ -9,7 +9,7 @@ export interface ICanvasDropIndicator {
 
 export interface ICanvasDropsOptions {
     dragComposable?: IDragComposableCanvas;
-    componentsStore: BricksComponentsStore;
+    componentsStore: TBricksComponentsStore;
     canvasRef: Ref<HTMLElement | null>;
     containerRef: Ref<HTMLElement | null>;
 }
@@ -27,8 +27,4 @@ export interface ICanvasEmptyStateData {
     description: string;
 }
 
-export type {
-    IDragComposableCanvas,
-    ILayoutDropDetail,
-    ISlotDropDetail,
-} from './components';
+export type { IDragComposableCanvas, ILayoutDropDetail, ISlotDropDetail } from './components';

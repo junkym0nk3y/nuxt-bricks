@@ -1,7 +1,7 @@
 import type {
-    ComponentSlotDefinition,
-    BricksComponent,
-    BricksComponentSlot,
+    IComponentSlotDefinition,
+    IBricksComponent,
+    IBricksComponentSlot,
 } from '../../types/brick';
 
 /**
@@ -24,7 +24,7 @@ export function cloneComponentProps<T extends Record<string, any>>(props: T | un
  * @param slot - Исходное описание из story.
  * @returns Структура слота с пустыми children.
  */
-export function createComponentSlot(slot: ComponentSlotDefinition): BricksComponentSlot {
+export function createComponentSlot(slot: IComponentSlotDefinition): IBricksComponentSlot {
     return {
         ...slot,
         label: slot.label ?? slot.name,
@@ -39,7 +39,7 @@ export function createComponentSlot(slot: ComponentSlotDefinition): BricksCompon
  * @param slot - Слот, сохранённый у компонента.
  * @returns Полностью независимая копия слота.
  */
-function cloneComponentSlot(slot: BricksComponentSlot): BricksComponentSlot {
+function cloneComponentSlot(slot: IBricksComponentSlot): IBricksComponentSlot {
     return {
         ...slot,
         label: slot.label ?? slot.name,
@@ -54,7 +54,7 @@ function cloneComponentSlot(slot: BricksComponentSlot): BricksComponentSlot {
  * @param component - Компонент, который требуется клонировать.
  * @returns Клон с независимыми ссылками для props, children и slots.
  */
-export function cloneBricksComponent(component: BricksComponent): BricksComponent {
+export function cloneBricksComponent(component: IBricksComponent): IBricksComponent {
     return {
         ...component,
         props: cloneComponentProps(component.props),
@@ -72,7 +72,7 @@ export function cloneBricksComponent(component: BricksComponent): BricksComponen
  * @param component - Компонент Canvas.
  * @returns true, если `type === 'layout'`.
  */
-export function isLayoutComponent(component: BricksComponent | undefined): boolean {
+export function isLayoutComponent(component: IBricksComponent | undefined): boolean {
     return Boolean(component && component.type === 'layout');
 }
 
@@ -83,7 +83,7 @@ export function isLayoutComponent(component: BricksComponent | undefined): boole
  * @param childId - ID дочернего компонента.
  * @returns true, если удаление произошло.
  */
-export function removeChildFromLayout(layout: BricksComponent, childId: string): boolean {
+export function removeChildFromLayout(layout: IBricksComponent, childId: string): boolean {
     if (!layout.children) {
         return false;
     }

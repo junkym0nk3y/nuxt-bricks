@@ -104,6 +104,16 @@ Union `string | number | boolean | Record<string, unknown> | Array<unknown>` п�
 
 **Рекомендация:** для блоков — допустимо оставить (двухполевая обёртка); для остальных — выносить в `types/components.d.ts` своего домена по мере касания файлов, не отдельным заходом.
 
+## Журнал выполнения
+
+**2026-06-12 — заходы 1–3 выполнены:**
+
+- ✅ Заход 1: `TBrickPropValue` введён в `common/types/brick.ts`, все 7+ inline-union'ов заменены (включая `useSidebarPropertiesPanel`, `BuilderShellSidebarPropertyEditors.vue`, `property-editors/types.ts`); 7 кастов `as unknown as Array<unknown>` удалены (§3); `TViewportType` удалён, 3 потребителя + `canvas.ts` + `CanvasState` переведены на `TBricksDeviceKey` (§1.1); база `ISidebarPropertyHandlers` + `extends` (§1.3).
+- ✅ Заход 2: типизированы `useDraggableComponent` (store → `TBricksComponentsStore`, payload → `TComponentInsertPayload`), `storySlots` (`IBrickFileStructure`/`IBrickSlotDefinition`, добавлено `name?` в slot definition), `useComponentLibrary` (`IStoriesResponse`/`IStoryListItem` в `app/types/composables.d.ts`), `vite-brick-watch` (`ViteDevServer`/`HotUpdateOptions`), `vue-icons` (`Component` + `PropType`). `PropertyDefinition.default`/`options.value` → `IBrickDemoValues` (не `TBrickPropValue`: реальные значения включают null/undefined); `IBrickDemoValues` перенесён в `brick.ts` (re-export из index), его array-член расширен до `Array<unknown>` (массивы интерфейсов типа `IInlineContentSegment[]`). Точечные касты: `useComponentProperties` (vars), `usePropertyVariants` ×2 (`?? {}`-выражения), `propertyValueCoercion` (fallback default). `IDragComposableCanvas.handleDrop.store: unknown` → типизирован.
+- ✅ Заход 3: механический rename 15 интерфейсов + 12 типов (полный инвентарь, word-boundary perl по всем `.ts`/`.vue`): `I*` — BricksComponent(Slot), BricksSchema, CanvasState, ComponentLibraryItem, ComponentSlotDefinition, *LayoutProps ×6, PropertyDefinition, PropertyVariantContext, SelectedComponent; `T*` — BricksComponentsStore, ComponentVariantsMap, GridLayoutVariant, GridRowHeight, IBrickDemoValues→TBrickDemoValues, IComponentsActions→TComponentsActions, IItemStyle→TItemStyle, InlineEditingPropType, LayoutProps, PropertyEditorType, PropertyType, SidebarView. Обновлены упоминания в CLAUDE.md и naming.md.
+- Не делалось (по плану): §1.4 modal-типы (оставить), §5 inline props (по мере касания файлов), §2.2 (global.d.ts шимы, Swiper, debounce — полулегитимные).
+- Проверки: `vue-tsc --noEmit` — чисто (кроме 3 pre-existing ошибок: playground/definePageMeta, middleware/LayoutKey, useDocumentationArticles/glob query); `oxlint` — чисто.
+
 ## Рекомендуемый порядок выполнения
 
 1. **Заход 1 (S, чистая выгода):** `TBrickPropValue` в common/types → замена ×7 (§1.2) → попытка удалить 7 кастов (§3) → удалить `TViewportType` (§1.1) → база handlers в sidebar (§1.3). Всё связано общим корнем, делается одним PR.

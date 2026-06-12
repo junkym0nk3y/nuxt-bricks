@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { ComponentLibraryItem } from '../../../../common/types/brick';
+import type { IComponentLibraryItem } from '../../../../common/types/brick';
 
 // Vue
 import { computed, ref } from 'vue';
@@ -16,7 +16,7 @@ import BricksCloseButton from '../../../../ui/base/modal/BricksCloseButton.vue';
 
 // #region Props
 const props = defineProps<{
-    components: ComponentLibraryItem[];
+    components: IComponentLibraryItem[];
 }>();
 // #endregion
 
@@ -36,7 +36,7 @@ const showFavoritesOnly = ref(false);
  * Фильтрует компоненты по поисковому запросу и избранному
  * @returns Массив компонентов, соответствующих фильтрам
  */
-const filteredComponents = computed<ComponentLibraryItem[]>(() => {
+const filteredComponents = computed<IComponentLibraryItem[]>(() => {
     let result = props.components;
 
     if (showFavoritesOnly.value) {
@@ -66,8 +66,8 @@ const filteredComponents = computed<ComponentLibraryItem[]>(() => {
  *
  * @returns Объект где ключ - название категории, значение - массив компонентов
  */
-const categorizedComponents = computed<Record<string, ComponentLibraryItem[]>>(() => {
-    const grouped: Record<string, ComponentLibraryItem[]> = {};
+const categorizedComponents = computed<Record<string, IComponentLibraryItem[]>>(() => {
+    const grouped: Record<string, IComponentLibraryItem[]> = {};
 
     filteredComponents.value.forEach((component) => {
         if (component.category === 'Modal') {

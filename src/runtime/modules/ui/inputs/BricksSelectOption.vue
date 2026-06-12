@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IBrickDemoValues } from '../../common/types/index';
+import type { TBrickDemoValues } from '../../common/types/index';
 import type { IBrickUiCommonProp } from '../types/common';
 
 // Vue
@@ -12,7 +12,7 @@ import { computed, useCssModule } from 'vue';
 const props = withDefaults(
     defineProps<{
         spec: IBrickUiCommonProp;
-        value: IBrickDemoValues;
+        value: TBrickDemoValues;
         disabled?: boolean;
         isHighlighted?: boolean;
     }>(),

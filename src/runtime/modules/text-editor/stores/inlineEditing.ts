@@ -2,7 +2,7 @@
 // Types
 import type { Editor } from '@tiptap/vue-3';
 import type { IMediaItem } from '../../common/types/media';
-import type { IInlineEditableProp, InlineEditingPropType } from '../../common/types/inlineEditing';
+import type { IInlineEditableProp, TInlineEditingPropType } from '../../common/types/inlineEditing';
 
 // Vue
 import { ref, computed, shallowRef } from 'vue';
@@ -12,7 +12,7 @@ import { defineStore } from 'pinia';
 // #endregion
 
 // Реэкспорт для обратной совместимости импортёров (BlockText, BlockTitle, useInlineEditor)
-export type { InlineEditingPropType } from '../../common/types/inlineEditing';
+export type { TInlineEditingPropType } from '../../common/types/inlineEditing';
 
 /**
  * Управляет состоянием inline-editing на канвасе.
@@ -22,7 +22,7 @@ export const useInlineEditingStore = defineStore('bricksInlineEditing', () => {
     // #region State
     const componentId = ref<string | null>(null);
     const propName = ref<string | null>(null);
-    const propType = ref<InlineEditingPropType | null>(null);
+    const propType = ref<TInlineEditingPropType | null>(null);
 
     /**
      * Смещение курсора мыши относительно top-left редактируемого элемента в момент dblclick.
@@ -120,7 +120,7 @@ export const useInlineEditingStore = defineStore('bricksInlineEditing', () => {
     function startEditing(
         cId: string,
         pName: string,
-        pType: InlineEditingPropType,
+        pType: TInlineEditingPropType,
         allProps: IInlineEditableProp[],
         offset?: { x: number; y: number },
         element?: HTMLElement | null

@@ -1,6 +1,9 @@
 // #region Imports
 import type { IBrickValues } from '../../../common/types/index';
-import type { IInlineEditableProp, InlineEditingPropType } from '../../../common/types/inlineEditing';
+import type {
+    IInlineEditableProp,
+    TInlineEditingPropType,
+} from '../../../common/types/inlineEditing';
 import type { ILayoutProperty } from '../../../common/types/layoutProperty';
 // #endregion
 
@@ -28,7 +31,7 @@ export function findAllInlineEditableLayoutProps(
         if (INLINE_EDITABLE_LAYOUT_TYPES.has(prop.type)) {
             result.push({
                 propName: prop.name,
-                propType: prop.type as InlineEditingPropType,
+                propType: prop.type as TInlineEditingPropType,
                 label: prop.label,
             });
         }
@@ -86,8 +89,8 @@ export function findAllInlineEditableStoryProps(
         }
 
         // input маппится на textarea — TipTap справляется с plain text
-        const propType: InlineEditingPropType =
-            propConfig.type === 'input' ? 'textarea' : (propConfig.type as InlineEditingPropType);
+        const propType: TInlineEditingPropType =
+            propConfig.type === 'input' ? 'textarea' : (propConfig.type as TInlineEditingPropType);
 
         result.push({
             propName,

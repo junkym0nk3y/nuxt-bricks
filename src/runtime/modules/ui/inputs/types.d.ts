@@ -1,15 +1,15 @@
-import type { IBrickDemoValues } from '../../common/types/index';
+import type { TBrickDemoValues } from '../../common/types/index';
 import type { IBrickUiCommonProp } from '../types/common';
 
 export interface IBricksSelectProps {
     specs: IBrickUiCommonProp[];
-    facets: IBrickDemoValues[];
-    value: IBrickDemoValues;
+    facets: TBrickDemoValues[];
+    value: TBrickDemoValues;
     disabled?: boolean;
 }
 
 export interface IBricksSelectEmits {
-    'update:value': [value: IBrickDemoValues | null];
+    'update:value': [value: TBrickDemoValues | null];
 }
 
 export interface IBricksInputProps {

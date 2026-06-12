@@ -1,4 +1,4 @@
-import type { BricksSchema } from '../../../common/types/brick';
+import type { IBricksSchema } from '../../../common/types/brick';
 import type { ICreatePagePayload, TPublishFormState } from '../../../common/types/bricks-api';
 import {
     DEFAULT_BACKGROUND_COLOR,
@@ -15,7 +15,7 @@ import {
  * @returns Полный payload страницы.
  */
 export function buildPagePayload(
-    schema: BricksSchema,
+    schema: IBricksSchema,
     formState: TPublishFormState
 ): ICreatePagePayload {
     return {

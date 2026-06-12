@@ -85,7 +85,7 @@ export const story = {
 
 **Ключевые файлы** (пути — от `src/runtime/modules/`):
 
-- `common/types/brick.ts` → `PropertyDefinition.group`
+- `common/types/brick.ts` → `IPropertyDefinition.group`
 - `common/types/index.ts` → `IBrickValues.group`
 - `common/types/layoutProperty.d.ts` → `ILayoutProperty.group`
 - `builder/shell/sidebar/components/BuilderShellSidebarPropertyEditors.vue` → рендеринг аккордеонов

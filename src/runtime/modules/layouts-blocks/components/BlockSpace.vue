@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { SpaceProps } from '../types/blockProps';
+import type { ISpaceProps } from '../types/blockProps';
 
 // Vue
 import { computed, ref, inject, type Ref } from 'vue';
@@ -9,7 +9,7 @@ import { computed, ref, inject, type Ref } from 'vue';
 
 // #region Props
 const props = defineProps<{
-    layoutProps: SpaceProps;
+    layoutProps: ISpaceProps;
 }>();
 // #endregion
 

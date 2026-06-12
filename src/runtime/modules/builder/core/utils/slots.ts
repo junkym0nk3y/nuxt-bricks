@@ -1,7 +1,7 @@
 import type {
-    ComponentSlotDefinition,
-    BricksComponent,
-    BricksComponentSlot,
+    IComponentSlotDefinition,
+    IBricksComponent,
+    IBricksComponentSlot,
 } from '../../../common/types/brick';
 
 /**
@@ -12,8 +12,8 @@ import type {
  * @param resolveChildren - Функция, которая возвращает id дочерних элементов для слота.
  */
 export function applySlotDefinitions(
-    component: BricksComponent,
-    slots: ComponentSlotDefinition[],
+    component: IBricksComponent,
+    slots: IComponentSlotDefinition[],
     resolveChildren?: (slotName: string) => string[]
 ): void {
     if (!slots?.length) {
@@ -37,8 +37,8 @@ export function applySlotDefinitions(
  * @returns Найденный слот или undefined.
  */
 export function findSlot(
-    component: BricksComponent | undefined,
+    component: IBricksComponent | undefined,
     slotName: string
-): BricksComponentSlot | undefined {
+): IBricksComponentSlot | undefined {
     return component?.slots?.find((slot) => slot.name === slotName);
 }

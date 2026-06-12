@@ -1,6 +1,6 @@
 // #region Imports
 // Types
-import type { ComponentLibraryItem, TBricksDeviceKey } from '../common/types/brick';
+import type { IComponentLibraryItem, TBricksDeviceKey } from '../common/types/brick';
 import type { ILayoutProperty } from '../common/types/layoutProperty';
 import type { IBlockCanvasContext, IBlockDefinition } from './types/registry';
 
@@ -100,7 +100,7 @@ function deriveDefaultProps(definition: IBlockDefinition): Record<string, unknow
  *
  * @returns Массив элементов библиотеки с derived defaultProps.
  */
-export function getLayoutLibraryItems(): ComponentLibraryItem[] {
+export function getLayoutLibraryItems(): IComponentLibraryItem[] {
     return Object.values(BLOCK_REGISTRY).map((definition) => ({
         name: definition.name,
         category: 'Layout',

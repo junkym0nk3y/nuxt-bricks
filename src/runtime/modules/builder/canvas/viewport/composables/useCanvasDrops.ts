@@ -1,5 +1,5 @@
 import { computed, ref } from 'vue';
-import type { ComponentSlotDefinition } from '../../../../common/types/brick';
+import type { IComponentSlotDefinition } from '../../../../common/types/brick';
 import type {
     ICanvasDropIndicator,
     ICanvasDropsOptions,
@@ -329,7 +329,7 @@ export function useCanvasDrops({
             gridRow: gridRow || undefined,
             props: JSON.parse(JSON.stringify(draggedComponent.defaultProps || {})),
             slots: Array.isArray(draggedComponent.slots)
-                ? draggedComponent.slots.map((slot: ComponentSlotDefinition) => ({
+                ? draggedComponent.slots.map((slot: IComponentSlotDefinition) => ({
                       name: slot.name,
                       label: slot.label,
                       description: slot.description,
@@ -389,7 +389,7 @@ export function useCanvasDrops({
             height: 0,
             props: JSON.parse(JSON.stringify(draggedComponent.defaultProps || {})),
             slots: Array.isArray(draggedComponent.slots)
-                ? draggedComponent.slots.map((slot: ComponentSlotDefinition) => ({
+                ? draggedComponent.slots.map((slot: IComponentSlotDefinition) => ({
                       name: slot.name,
                       label: slot.label,
                       description: slot.description,

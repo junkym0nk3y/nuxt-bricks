@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { BricksComponent, PropertyDefinition } from '../../../../common/types/brick';
+import type { IBricksComponent, IPropertyDefinition } from '../../../../common/types/brick';
 import type { IBrickValues } from '../../../../common/types/index';
 
 // Vue
@@ -44,7 +44,7 @@ const { storyValuesToProperties } = useComponentProperties();
 /**
  * Возвращает корневые компоненты (без parent) для построения дерева.
  */
-const rootComponents = computed<BricksComponent[]>(() => componentsStore.getRootComponents());
+const rootComponents = computed<IBricksComponent[]>(() => componentsStore.getRootComponents());
 
 const hasComponents = computed<boolean>(() => componentsStore.hasComponents);
 // #endregion
@@ -83,7 +83,7 @@ function handleReorder(draggedId: string, targetId: string, position: 'before' |
  * @param component - Компонент для проверки видимости.
  * @returns true, если viewport был переключён.
  */
-function ensureViewportForComponent(component: BricksComponent): boolean {
+function ensureViewportForComponent(component: IBricksComponent): boolean {
     const currentViewport = canvasStore.viewport;
     const visibility = component.deviceVisibility;
 
@@ -129,7 +129,7 @@ async function handleSelectComponent(id: string): Promise<void> {
     const viewportSwitched = ensureViewportForComponent(component);
 
     // 2. Загружаем properties
-    let properties: PropertyDefinition[] = [];
+    let properties: IPropertyDefinition[] = [];
     let description: string | undefined;
 
     if (component.type === 'layout') {

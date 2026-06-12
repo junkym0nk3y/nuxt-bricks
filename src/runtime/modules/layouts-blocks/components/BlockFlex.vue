@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { FlexLayoutProps } from '../types/blockProps';
+import type { IFlexLayoutProps } from '../types/blockProps';
 
 // Vue
 import { computed, ref, inject, type CSSProperties, type Ref } from 'vue';
@@ -15,7 +15,7 @@ import { useLayoutDropZone } from '../composables/useLayoutDropZone';
 
 // #region Props
 const props = defineProps<{
-    layoutProps: FlexLayoutProps;
+    layoutProps: IFlexLayoutProps;
     layoutId?: string;
 }>();
 
@@ -31,7 +31,7 @@ const dropIndicator = ref<{ index: number; offset: number } | null>(null);
 const dropInsertIndex = ref<number | null>(null);
 const dropIndicatorRef = ref<HTMLElement | null>(null);
 
-const justifyMap: Record<FlexLayoutProps['justify'], CSSProperties['justifyContent']> = {
+const justifyMap: Record<IFlexLayoutProps['justify'], CSSProperties['justifyContent']> = {
     start: 'flex-start',
     center: 'center',
     end: 'flex-end',
@@ -39,7 +39,7 @@ const justifyMap: Record<FlexLayoutProps['justify'], CSSProperties['justifyConte
     'space-around': 'space-around',
 };
 
-const alignMap: Record<FlexLayoutProps['align'], CSSProperties['alignItems']> = {
+const alignMap: Record<IFlexLayoutProps['align'], CSSProperties['alignItems']> = {
     stretch: 'stretch',
     start: 'flex-start',
     center: 'center',

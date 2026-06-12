@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { GridLayoutProps, GridLayoutVariant, GridRowHeight } from '../types/blockProps';
+import type { IGridLayoutProps, TGridLayoutVariant, TGridRowHeight } from '../types/blockProps';
 
 // Vue
 import { computed, ref, inject, onMounted, onBeforeUnmount, type Ref } from 'vue';
@@ -19,7 +19,7 @@ import BlockGridOverlay from './BlockGridOverlay.vue';
 
 // #region Props
 const props = defineProps<{
-    layoutProps: GridLayoutProps;
+    layoutProps: IGridLayoutProps;
     layoutId?: string;
 }>();
 
@@ -62,7 +62,7 @@ const normalizedRows = computed<number>(() => {
 
 const accentSpan = computed<number>(() => Math.max(1, Math.round(normalizedColumns.value / 2)));
 
-const gridVariant = computed<GridLayoutVariant>(() => props.layoutProps.variant ?? 'default');
+const gridVariant = computed<TGridLayoutVariant>(() => props.layoutProps.variant ?? 'default');
 
 const gridAutoFlow = computed<string>(() =>
     gridVariant.value === 'default' ? 'row' : 'row dense'
@@ -70,7 +70,7 @@ const gridAutoFlow = computed<string>(() =>
 
 const normalizedGap = computed<number>(() => Math.max(0, Number(props.layoutProps.gap) || 0));
 
-const rowHeight = computed<GridRowHeight>(() => props.layoutProps.rowHeight ?? 'auto');
+const rowHeight = computed<TGridRowHeight>(() => props.layoutProps.rowHeight ?? 'auto');
 
 const minRowHeight = computed<number>(() =>
     Math.max(0, Number(props.layoutProps.minRowHeight) || 0)

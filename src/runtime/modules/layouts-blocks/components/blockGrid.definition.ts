@@ -1,5 +1,5 @@
 // Types
-import type { GridLayoutVariant, GridRowHeight } from '../types/blockProps';
+import type { TGridLayoutVariant, TGridRowHeight } from '../types/blockProps';
 import type { IBlockDefinition, IBlockRenderContext } from '../types/registry';
 
 // Vue
@@ -19,7 +19,7 @@ import {
  * @param value - Любое значение из props.
  * @returns Валидный вариант Grid.
  */
-function normalizeGridVariant(value: unknown): GridLayoutVariant {
+function normalizeGridVariant(value: unknown): TGridLayoutVariant {
     if (value === 'lead-left' || value === 'lead-right' || value === 'default') {
         return value;
     }
@@ -36,7 +36,7 @@ function normalizeGridVariant(value: unknown): GridLayoutVariant {
  * @returns Значение для `grid-column`.
  */
 function buildGridLeadColumn(
-    variant: GridLayoutVariant,
+    variant: TGridLayoutVariant,
     side: 'left' | 'right',
     span: number
 ): string {
@@ -59,7 +59,7 @@ function buildGridLeadColumn(
  * @param value - Значение из props.
  * @returns Валидное значение rowHeight.
  */
-function normalizeGridRowHeight(value: unknown): GridRowHeight {
+function normalizeGridRowHeight(value: unknown): TGridRowHeight {
     if (value === 'auto' || value === '1fr' || value === 'min-content' || value === 'max-content') {
         return value;
     }
@@ -75,7 +75,11 @@ function normalizeGridRowHeight(value: unknown): GridRowHeight {
  * @param minRowHeight - Минимальная высота строки в rem.
  * @returns CSS-значение для gridTemplateRows.
  */
-function buildGridTemplateRows(rows: number, rowHeight: GridRowHeight, minRowHeight: number): string {
+function buildGridTemplateRows(
+    rows: number,
+    rowHeight: TGridRowHeight,
+    minRowHeight: number
+): string {
     const normalizedRows = Math.max(1, rows);
 
     if (minRowHeight > 0) {
@@ -193,8 +197,10 @@ function renderGridPublished(ctx: IBlockRenderContext): VNode {
     );
 
     // gridAutoRows для новых строк
-    const autoRowsMobile = minRowHeightMobile > 0 ? `minmax(${minRowHeightMobile}rem, auto)` : 'auto';
-    const autoRowsTablet = minRowHeightTablet > 0 ? `minmax(${minRowHeightTablet}rem, auto)` : 'auto';
+    const autoRowsMobile =
+        minRowHeightMobile > 0 ? `minmax(${minRowHeightMobile}rem, auto)` : 'auto';
+    const autoRowsTablet =
+        minRowHeightTablet > 0 ? `minmax(${minRowHeightTablet}rem, auto)` : 'auto';
     const autoRowsDesktop =
         minRowHeightDesktop > 0 ? `minmax(${minRowHeightDesktop}rem, auto)` : 'auto';
 

@@ -3,13 +3,18 @@
  */
 
 import type { CSSProperties, Ref } from 'vue';
-import type { ComponentLibraryItem, BricksComponent } from '../../../common/types/brick';
+import type {
+    IComponentLibraryItem,
+    IBricksComponent,
+    TBricksDeviceKey,
+} from '../../../common/types/brick';
+import type { TBricksComponentsStore } from '../../core/stores/components';
 
 export interface ICanvasItemProps {
-    component: BricksComponent;
+    component: IBricksComponent;
 }
 
-export type IItemStyle = CSSProperties;
+export type TItemStyle = CSSProperties;
 
 export interface ILayoutDropDetail {
     layoutId: string;
@@ -31,25 +36,23 @@ export interface IDragComposableCanvas {
     handleDrop: (
         event: DragEvent,
         element: HTMLElement,
-        store: unknown,
+        store: TBricksComponentsStore,
         options?: { rootTargetIndex?: number | null }
     ) => void;
     handleDragOver: (event: DragEvent) => void;
-    draggedComponent: Ref<ComponentLibraryItem | null>;
+    draggedComponent: Ref<IComponentLibraryItem | null>;
 }
-
-export type TViewportType = 'mobile' | 'tablet' | 'desktop';
 
 export interface ICanvasToolbarProps {
     scale: number;
-    viewport: TViewportType;
+    viewport: TBricksDeviceKey;
     sidebarOffset?: string;
     isFigmaMode?: boolean;
 }
 
 export interface ICanvasToolbarEmits {
     'update:scale': [scale: number];
-    'update:viewport': [viewport: TViewportType];
+    'update:viewport': [viewport: TBricksDeviceKey];
     zoomIn: [];
     zoomOut: [];
     zoomReset: [];
@@ -57,7 +60,7 @@ export interface ICanvasToolbarEmits {
 }
 
 export interface IViewportOption {
-    value: TViewportType;
+    value: TBricksDeviceKey;
     label: string;
     icon: string;
     width: number;

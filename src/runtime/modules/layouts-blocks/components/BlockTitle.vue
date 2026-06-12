@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { IInlineContentSegment } from '../../common/types/content';
-import type { InlineEditingPropType } from '../../text-editor/stores/inlineEditing';
+import type { TInlineEditingPropType } from '../../text-editor/stores/inlineEditing';
 
 // Vue
 import { computed, inject, watch, useCssModule, type ComputedRef } from 'vue';
@@ -32,7 +32,7 @@ interface IBlockTitleProps {
 interface IInlineEditingContext {
     componentId: ComputedRef<string | null>;
     propName: ComputedRef<string | null>;
-    propType: ComputedRef<InlineEditingPropType | null>;
+    propType: ComputedRef<TInlineEditingPropType | null>;
     isEditing: ComputedRef<boolean>;
 }
 // #endregion

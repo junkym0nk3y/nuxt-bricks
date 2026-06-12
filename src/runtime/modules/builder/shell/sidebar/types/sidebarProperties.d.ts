@@ -1,9 +1,14 @@
 import type { Component } from 'vue';
-import type { PropertyDefinition, IDeviceVisibilityConfig, TBricksDeviceKey } from '../../../../common/types/brick';
 import type {
-    ComponentVariantsMap,
+    IPropertyDefinition,
+    IDeviceVisibilityConfig,
+    TBricksDeviceKey,
+    TBrickPropValue,
+} from '../../../../common/types/brick';
+import type {
+    TComponentVariantsMap,
     IComponentVariant,
-    PropertyEditorType,
+    TPropertyEditorType,
 } from '../components/property-editors/types';
 
 export type TInlineGalleryPayload = {
@@ -16,15 +21,15 @@ export type TInlineGalleryPayload = {
 export type TMediaContext =
     | {
           kind: 'property';
-          property: PropertyDefinition;
+          property: IPropertyDefinition;
       }
     | ({
           kind: 'inline-content';
-          property: PropertyDefinition;
+          property: IPropertyDefinition;
       } & TInlineGalleryPayload)
     | ({
           kind: 'image-gallery';
-          property: PropertyDefinition;
+          property: IPropertyDefinition;
       } & TInlineGalleryPayload);
 
 export interface IUseSidebarPropertiesPanelOptions {
@@ -35,46 +40,41 @@ export interface IUseSidebarMediaSelectionOptions {
     /** Открывает модалку медиагалереи (внешний UI). */
     onOpenMediaGallery: () => void;
     /** Применяет выбранный url к свойству с учётом coercion и responsive scope. */
-    applyPropertyValue: (property: PropertyDefinition, value: string) => void;
+    applyPropertyValue: (property: IPropertyDefinition, value: string) => void;
 }
 
-export interface ISidebarPropertyEditorsProps {
-    componentEditors: Record<PropertyEditorType, Component>;
-    componentVariants: ComponentVariantsMap;
+/** Общие обработчики свойств, пробрасываемые в редакторы панели */
+export interface ISidebarPropertyHandlers {
+    handleNormalizeProps: (
+        data: IComponentVariant,
+        editorType: TPropertyEditorType
+    ) => Record<string, unknown>;
+    handleChangeValues: (property: IPropertyDefinition, value: TBrickPropValue) => void;
+    handleOpenMediaGallery: (
+        property: IPropertyDefinition,
+        payload?: TInlineGalleryPayload
+    ) => void;
+}
+
+export interface ISidebarPropertyEditorsProps extends ISidebarPropertyHandlers {
+    componentEditors: Record<TPropertyEditorType, Component>;
+    componentVariants: TComponentVariantsMap;
     orderedPropertyNames?: string[];
     fullWidthValue: boolean;
     showFullWidthControl: boolean;
     isHiddenValue: boolean;
     deviceVisibilityValue: IDeviceVisibilityConfig;
-    handleNormalizeProps: (
-        data: IComponentVariant,
-        editorType: PropertyEditorType
-    ) => Record<string, unknown>;
-    handleChangeValues: (
-        property: PropertyDefinition,
-        value: string | boolean | number | Record<string, unknown> | Array<unknown>
-    ) => void;
-    handleOpenMediaGallery: (property: PropertyDefinition, payload?: TInlineGalleryPayload) => void;
     handleToggleFullWidth: (value: boolean) => void;
     handleToggleHidden: (value: boolean) => void;
     handleToggleDeviceVisibility: (device: TBricksDeviceKey, value: boolean) => void;
     htmlIdValue: string;
     handleSetHtmlId: (htmlId: string) => void;
-    propertyOrder?: readonly PropertyEditorType[];
+    propertyOrder?: readonly TPropertyEditorType[];
 }
 
-export interface ISidebarPropertyEditorRowProps {
-    type: PropertyEditorType;
+export interface ISidebarPropertyEditorRowProps extends ISidebarPropertyHandlers {
+    type: TPropertyEditorType;
     variant: IComponentVariant;
-    componentEditors: Record<PropertyEditorType, Component>;
+    componentEditors: Record<TPropertyEditorType, Component>;
     showGroupLabel?: boolean;
-    handleNormalizeProps: (
-        data: IComponentVariant,
-        editorType: PropertyEditorType
-    ) => Record<string, unknown>;
-    handleChangeValues: (
-        property: PropertyDefinition,
-        value: string | boolean | number | Record<string, unknown> | Array<unknown>
-    ) => void;
-    handleOpenMediaGallery: (property: PropertyDefinition, payload?: TInlineGalleryPayload) => void;
 }

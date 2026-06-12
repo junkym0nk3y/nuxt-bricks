@@ -1,10 +1,6 @@
-import type { ComponentSlotDefinition } from '../../../../common/types/brick';
+import type { IComponentSlotDefinition } from '../../../../common/types/brick';
 import { applySlotDefinitions, findSlot } from '../../utils/slots';
-import type {
-    IComponentsSlotActions,
-    IComponentsStore,
-    THistoryOptions,
-} from '../types';
+import type { IComponentsSlotActions, IComponentsStore, THistoryOptions } from '../types';
 
 /**
  * Оперирует слотами layout-компонентов: инициализация, добавление/удаление и перемещение детей.
@@ -19,7 +15,7 @@ export const slotActions: IComponentsSlotActions = {
     initializeComponentSlots(
         this: IComponentsStore,
         componentId: string,
-        slots: ComponentSlotDefinition[]
+        slots: IComponentSlotDefinition[]
     ) {
         const component = this.getComponentById(componentId);
         if (!component || !slots?.length || component.slots?.length) {

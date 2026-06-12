@@ -1,4 +1,5 @@
-import type { ComponentSlotDefinition } from '../../../common/types/brick';
+import type { IComponentSlotDefinition } from '../../../common/types/brick';
+import type { IBrickFileStructure, IBrickSlotDefinition } from '../../../common/types/index';
 
 /**
  * Извлекает определения слотов из данных story.
@@ -6,7 +7,9 @@ import type { ComponentSlotDefinition } from '../../../common/types/brick';
  * @param storyData - Данные story компонента.
  * @returns Нормализованный массив слотов или undefined.
  */
-export function extractStorySlots(storyData: any): ComponentSlotDefinition[] | undefined {
+export function extractStorySlots(
+    storyData: Partial<IBrickFileStructure> | null | undefined
+): IComponentSlotDefinition[] | undefined {
     const rawSlots = storyData?.slots;
     if (!rawSlots) {
         return undefined;
@@ -14,7 +17,7 @@ export function extractStorySlots(storyData: any): ComponentSlotDefinition[] | u
 
     if (Array.isArray(rawSlots)) {
         const normalized = rawSlots
-            .map((slot: any) => {
+            .map((slot: string | IBrickSlotDefinition) => {
                 if (typeof slot === 'string') {
                     return {
                         name: slot,
@@ -33,7 +36,7 @@ export function extractStorySlots(storyData: any): ComponentSlotDefinition[] | u
                 }
                 return null;
             })
-            .filter(Boolean) as ComponentSlotDefinition[];
+            .filter(Boolean) as IComponentSlotDefinition[];
         return normalized.length > 0 ? normalized : undefined;
     }
 
@@ -42,12 +45,10 @@ export function extractStorySlots(storyData: any): ComponentSlotDefinition[] | u
             if (config && typeof config === 'object') {
                 return {
                     name,
-                    label: (config as any).label ?? name,
-                    description: (config as any).description,
+                    label: config.label ?? name,
+                    description: config.description,
                     allowMultiple:
-                        typeof (config as any).allowMultiple === 'boolean'
-                            ? (config as any).allowMultiple
-                            : true,
+                        typeof config.allowMultiple === 'boolean' ? config.allowMultiple : true,
                 };
             }
             return {

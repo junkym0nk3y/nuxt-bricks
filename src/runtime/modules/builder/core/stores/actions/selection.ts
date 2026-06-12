@@ -1,4 +1,4 @@
-import type { SelectedComponent } from '../../../../common/types/brick';
+import type { ISelectedComponent } from '../../../../common/types/brick';
 import { useSidebarStore } from '../sidebar';
 import type { IComponentsSelectionActions, IComponentsStore } from '../types';
 
@@ -15,8 +15,8 @@ export const selectionActions: IComponentsSelectionActions = {
     selectComponent(
         this: IComponentsStore,
         id: string,
-        properties: SelectedComponent['properties'] = [],
-        description?: SelectedComponent['description']
+        properties: ISelectedComponent['properties'] = [],
+        description?: ISelectedComponent['description']
     ) {
         const component = this.getComponentById(id);
         if (!component) {

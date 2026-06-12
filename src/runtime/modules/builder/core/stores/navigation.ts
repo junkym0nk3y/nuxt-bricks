@@ -1,6 +1,10 @@
 // #region Imports
 // Types
-import type { INavigationItem, INavigationMeta, IBricksSchemaMeta } from '../../../common/types/brick';
+import type {
+    INavigationItem,
+    INavigationMeta,
+    IBricksSchemaMeta,
+} from '../../../common/types/brick';
 
 // Utils
 import sha256 from 'tiny-sha256';
@@ -46,7 +50,7 @@ export const useNavigationStore = defineStore('bricksNavigation', () => {
     /**
      * Загружает навигацию из schema.meta.
      *
-     * @param meta - Объект meta из BricksSchema.
+     * @param meta - Объект meta из IBricksSchema.
      */
     function loadFromMeta(meta?: IBricksSchemaMeta): void {
         const navItems = meta?.navigation?.items;

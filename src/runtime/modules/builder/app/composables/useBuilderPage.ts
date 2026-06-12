@@ -1,6 +1,6 @@
 // #region Imports
 // Types
-import type { BricksSchema } from '../../../common/types/brick';
+import type { IBricksSchema } from '../../../common/types/brick';
 import type { IMediaItem, TMediaGalleryContext } from '../../../common/types/media';
 import type { ISidebarExpose } from '../types/builder';
 import type { IInlineMediaBridge, IUseBuilderPageReturn } from '../types/composables';
@@ -336,14 +336,11 @@ export async function useBuilderPage(
     }
 
     // Открываем MediaGallery когда inline editor запрашивает изображение
-    watch(
-        inlineMediaBridge.isRequestingMedia,
-        (requesting) => {
-            if (requesting) {
-                handleOpenMediaGallery('properties');
-            }
+    watch(inlineMediaBridge.isRequestingMedia, (requesting) => {
+        if (requesting) {
+            handleOpenMediaGallery('properties');
         }
-    );
+    });
     // #endregion
 
     // #region Published pages actions
@@ -388,7 +385,7 @@ export async function useBuilderPage(
      *
      * @param schema - Импортируемая схема.
      */
-    async function handleImportSchema(schema: BricksSchema): Promise<void> {
+    async function handleImportSchema(schema: IBricksSchema): Promise<void> {
         const resolved = await imageResolver.startResolving(schema);
         if (resolved) {
             componentsStore.loadSchema(resolved, { resetHistory: true });

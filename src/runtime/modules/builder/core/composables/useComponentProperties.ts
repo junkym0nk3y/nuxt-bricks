@@ -1,4 +1,8 @@
-import type { PropertyDefinition, PropertyType } from '../../../common/types/brick';
+import type {
+    TBrickDemoValues,
+    IPropertyDefinition,
+    TPropertyType,
+} from '../../../common/types/brick';
 import type { IBrickValues } from '../../../common/types/index';
 import { getModalOptions } from '../../app/composables/useModals';
 
@@ -10,7 +14,7 @@ export function useComponentProperties() {
      * Определяет тип свойства на основе значения из story.
      */
     // eslint-disable-next-line complexity
-    const inferPropertyType = (value: IBrickValues): PropertyType => {
+    const inferPropertyType = (value: IBrickValues): TPropertyType => {
         if (value.type === 'switch') {
             return 'switch';
         }
@@ -87,11 +91,11 @@ export function useComponentProperties() {
      */
     const storyValuesToProperties = (
         storyValues: Record<string, IBrickValues>
-    ): PropertyDefinition[] => {
-        const properties: PropertyDefinition[] = [];
+    ): IPropertyDefinition[] => {
+        const properties: IPropertyDefinition[] = [];
 
         Object.entries(storyValues).forEach(([key, value]) => {
-            const property: PropertyDefinition = {
+            const property: IPropertyDefinition = {
                 name: key,
                 label: key.charAt(0).toUpperCase() + key.slice(1),
                 type: inferPropertyType(value),
@@ -123,7 +127,7 @@ export function useComponentProperties() {
                     if (typeof v === 'object' && v !== null && 'label' in v && 'value' in v) {
                         return {
                             label: String(v.label),
-                            value: v.value,
+                            value: v.value as TBrickDemoValues,
                         };
                     }
                     // Иначе автопреобразование примитива
@@ -143,7 +147,7 @@ export function useComponentProperties() {
     /**
      * Возвращает тип селектора компонента для свойства.
      */
-    const getSelectorType = (property: PropertyDefinition): string => {
+    const getSelectorType = (property: IPropertyDefinition): string => {
         switch (property.type) {
             case 'boolean':
                 return 'checkbox';
@@ -168,7 +172,7 @@ export function useComponentProperties() {
      * Валидирует значение свойства.
      */
     // eslint-disable-next-line complexity
-    const validatePropertyValue = (property: PropertyDefinition, value: any): boolean => {
+    const validatePropertyValue = (property: IPropertyDefinition, value: any): boolean => {
         switch (property.type) {
             case 'boolean':
                 return typeof value === 'boolean';

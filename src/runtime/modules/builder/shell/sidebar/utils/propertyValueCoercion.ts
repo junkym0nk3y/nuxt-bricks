@@ -1,6 +1,6 @@
 // #region Imports
 // Types
-import type { PropertyDefinition } from '../../../../common/types/brick';
+import type { IPropertyDefinition } from '../../../../common/types/brick';
 
 // Utils
 import { isPrimitiveArrayValue, parseListInput } from './propertyFormatters';
@@ -131,7 +131,7 @@ export function coerceNumberValue(value: unknown, currentValue: unknown): number
  * @returns Преобразованный массив или null в случае ошибки
  */
 export function coerceArrayValue(
-    property: PropertyDefinition,
+    property: IPropertyDefinition,
     value: unknown,
     currentValue: unknown
 ): unknown[] | null {
@@ -161,7 +161,7 @@ export function coerceArrayValue(
  * @returns Преобразованный объект/массив или null в случае ошибки
  */
 export function coerceObjectValue(
-    property: PropertyDefinition,
+    property: IPropertyDefinition,
     value: unknown,
     currentValue: unknown
 ): Record<string, unknown> | Array<unknown> | null {
@@ -182,7 +182,7 @@ export function coerceObjectValue(
         console.warn('[PropertyValueCoercion] Parsed value is not an object', parsed);
         return currentValue && typeof currentValue === 'object'
             ? (currentValue as Record<string, unknown>)
-            : property.default;
+            : (property.default as Record<string, unknown> | Array<unknown> | null);
     } catch (error) {
         console.error('[PropertyValueCoercion] Failed to parse JSON object', error);
         return null;

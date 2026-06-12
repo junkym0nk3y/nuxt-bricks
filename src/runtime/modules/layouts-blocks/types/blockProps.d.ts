@@ -3,22 +3,22 @@
  * Домен layouts-blocks — владелец этих контрактов; canvas/render/sidebar импортируют отсюда.
  */
 
-export type GridLayoutVariant = 'default' | 'lead-left' | 'lead-right';
+export type TGridLayoutVariant = 'default' | 'lead-left' | 'lead-right';
 
-export type GridRowHeight = 'auto' | '1fr' | 'min-content' | 'max-content';
+export type TGridRowHeight = 'auto' | '1fr' | 'min-content' | 'max-content';
 
-export interface GridLayoutProps {
+export interface IGridLayoutProps {
     columns: number;
     rows?: number; // минимум 1
     gap: number;
-    variant?: GridLayoutVariant;
-    rowHeight?: GridRowHeight; // режим высоты строк
+    variant?: TGridLayoutVariant;
+    rowHeight?: TGridRowHeight; // режим высоты строк
     minRowHeight?: number; // минимальная высота строки в rem
     paddingX?: number; // горизонтальный padding контейнера в rem
     paddingY?: number; // вертикальный padding контейнера в rem
 }
 
-export interface FlexLayoutProps {
+export interface IFlexLayoutProps {
     direction: 'row' | 'column';
     justify: 'start' | 'center' | 'end' | 'space-between' | 'space-around';
     align: 'stretch' | 'start' | 'center' | 'end' | 'baseline';
@@ -28,7 +28,7 @@ export interface FlexLayoutProps {
     paddingY?: number; // вертикальный padding контейнера в rem
 }
 
-export interface SpaceProps {
+export interface ISpaceProps {
     size: string | number; // number в rem (2.4) или строка с единицей ('2.4rem')
     direction: 'vertical' | 'horizontal' | 'both';
     showDivider?: boolean;
@@ -43,7 +43,7 @@ export interface ISliderCaption {
     subtitle?: string;
 }
 
-export interface SliderLayoutProps {
+export interface ISliderLayoutProps {
     spaceBetween: number;
     slidesPerViewDesktop: number;
     slidesPerViewTablet: number;
@@ -63,7 +63,7 @@ export interface IAccordionItem {
     content: string;
 }
 
-export interface AccordionLayoutProps {
+export interface IAccordionLayoutProps {
     items: IAccordionItem[];
     allowMultiple: boolean;
     initialOpenIndex: number; // -1 = все закрыты
@@ -73,7 +73,7 @@ export interface AccordionLayoutProps {
     animationDuration?: number; // ms, скорость анимации
 }
 
-export interface SectionLayoutProps {
+export interface ISectionLayoutProps {
     backgroundColor?: string; // CSS color / CSS variable
     backgroundImage?: string; // URL фонового изображения
     paddingTop?: number; // rem
@@ -111,11 +111,11 @@ export interface IBlockSliderCaptionsEmits {
     select: [index: number];
 }
 
-export type LayoutProps =
-    | GridLayoutProps
-    | FlexLayoutProps
-    | SpaceProps
-    | SliderLayoutProps
-    | AccordionLayoutProps
-    | SectionLayoutProps
+export type TLayoutProps =
+    | IGridLayoutProps
+    | IFlexLayoutProps
+    | ISpaceProps
+    | ISliderLayoutProps
+    | IAccordionLayoutProps
+    | ISectionLayoutProps
     | IBlockSvgProps;

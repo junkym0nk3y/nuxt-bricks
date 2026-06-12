@@ -1,7 +1,7 @@
 // #region Imports
 // Types
 import type { ICanvasItemProps, IDragComposableCanvas } from '../../types/components';
-import type { ComponentLibraryItem } from '../../../../common/types/brick';
+import type { IComponentLibraryItem } from '../../../../common/types/brick';
 import type { ComputedRef } from 'vue';
 
 // Pinia
@@ -35,7 +35,7 @@ export function useCanvasItemDrag(
         }
 
         if (dragComposable?.draggedComponent) {
-            const snapshot: ComponentLibraryItem = {
+            const snapshot: IComponentLibraryItem = {
                 name: props.component.componentName,
                 storyPath: props.component.storyPath,
                 defaultProps: JSON.parse(JSON.stringify(props.component.props || {})),

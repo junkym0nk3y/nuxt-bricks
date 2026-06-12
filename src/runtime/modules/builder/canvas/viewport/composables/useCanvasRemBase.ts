@@ -1,6 +1,6 @@
 // #region Imports
 // Types
-import type { TViewportType } from '../../types/components';
+import type { TBricksDeviceKey } from '../../../../common/types/brick';
 
 // Vue
 import { computed } from 'vue';
@@ -43,7 +43,7 @@ export function useCanvasRemBase() {
      * @param viewport - Тип viewport (mobile / tablet / desktop).
      * @returns Целевое значение 1rem в пикселях.
      */
-    function computeTargetRemPx(viewport: TViewportType): number {
+    function computeTargetRemPx(viewport: TBricksDeviceKey): number {
         const bp = config.canvasBreakpoints[viewport];
         const remBase = bp.remBase ?? `${LIBRARY_REM_BASE}px`;
 
@@ -78,7 +78,7 @@ export function useCanvasRemBase() {
      * @param viewport - Тип viewport.
      * @returns Коэффициент компенсации.
      */
-    function getRemCompensation(viewport: TViewportType): number {
+    function getRemCompensation(viewport: TBricksDeviceKey): number {
         return computeTargetRemPx(viewport) / LIBRARY_REM_BASE;
     }
 

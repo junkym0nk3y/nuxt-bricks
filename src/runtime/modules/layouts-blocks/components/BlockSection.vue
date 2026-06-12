@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { SectionLayoutProps } from '../types/blockProps';
+import type { ISectionLayoutProps } from '../types/blockProps';
 
 // Vue
 import { computed, ref, inject, type CSSProperties, type Ref } from 'vue';
@@ -12,7 +12,7 @@ import { useLayoutDropZone } from '../composables/useLayoutDropZone';
 
 // #region Props
 const props = defineProps<{
-    layoutProps: SectionLayoutProps;
+    layoutProps: ISectionLayoutProps;
     layoutId?: string;
 }>();
 

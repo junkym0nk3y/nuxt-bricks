@@ -1,5 +1,5 @@
 // Types
-import type { SectionLayoutProps } from '../types/blockProps';
+import type { ISectionLayoutProps } from '../types/blockProps';
 import type { IBlockDefinition, IBlockRenderContext } from '../types/registry';
 
 // Vue
@@ -22,7 +22,7 @@ import {
  */
 function renderSectionPublished(ctx: IBlockRenderContext): VNode {
     const { component, extraClasses, extraAttrs, styles, renderChild, getChildComponents } = ctx;
-    const cp = component.props as SectionLayoutProps;
+    const cp = component.props as ISectionLayoutProps;
     const mOv = getResponsiveOverrides(cp as Record<string, any>, 'mobile');
     const tOv = getResponsiveOverrides(cp as Record<string, any>, 'tablet');
 

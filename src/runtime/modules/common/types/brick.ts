@@ -6,6 +6,21 @@
 
 export type TBricksDeviceKey = 'mobile' | 'tablet' | 'desktop';
 
+/** Значение редактируемого свойства брика (единый источник правды для props-значений) */
+export type TBrickPropValue = string | number | boolean | Record<string, unknown> | Array<unknown>;
+
+/** Demo/default-значение story: TBrickPropValue + редкие примитивы и nullable-варианты */
+export type TBrickDemoValues =
+    | string
+    | number
+    | boolean
+    | symbol
+    | bigint
+    | null
+    | undefined
+    | Record<string, unknown>
+    | Array<unknown>;
+
 export interface IDeviceVisibilityConfig {
     mobile: boolean;
     tablet: boolean;
@@ -13,18 +28,18 @@ export interface IDeviceVisibilityConfig {
 }
 
 // Component instance on canvas
-export interface ComponentSlotDefinition {
+export interface IComponentSlotDefinition {
     name: string;
     label?: string;
     description?: string;
     allowMultiple?: boolean;
 }
 
-export interface BricksComponentSlot extends ComponentSlotDefinition {
+export interface IBricksComponentSlot extends IComponentSlotDefinition {
     children: string[];
 }
 
-export interface BricksComponent {
+export interface IBricksComponent {
     id: string;
     type: 'layout' | 'component'; // Новое: различаем Layout и обычные компоненты
     componentName: string; // 'grid', 'flex', 'space' для layout, или название UI компонента
@@ -34,7 +49,7 @@ export interface BricksComponent {
     // Вложенность
     parent?: string; // ID родительского компонента
     children?: string[]; // Массив ID дочерних компонентов (только для layout)
-    slots?: BricksComponentSlot[];
+    slots?: IBricksComponentSlot[];
     slotName?: string;
     fullWidth?: boolean;
     isHidden?: boolean;
@@ -47,14 +62,14 @@ export interface BricksComponent {
 }
 
 // Component library item
-export interface ComponentLibraryItem {
+export interface IComponentLibraryItem {
     name: string;
     category: string;
     storyPath: string;
     description?: string;
     thumbnail?: string;
     defaultProps?: Record<string, any>;
-    slots?: ComponentSlotDefinition[];
+    slots?: IComponentSlotDefinition[];
     isInteractive?: boolean;
 }
 
@@ -73,22 +88,22 @@ export interface IBricksSchemaMeta {
     [key: string]: unknown;
 }
 
-export interface BricksSchema {
-    components: BricksComponent[];
+export interface IBricksSchema {
+    components: IBricksComponent[];
     meta?: IBricksSchemaMeta;
 }
 
 // Canvas state
-export interface CanvasState {
+export interface ICanvasState {
     width: number;
     height: number;
     scale: number;
-    viewport: 'mobile' | 'tablet' | 'desktop';
+    viewport: TBricksDeviceKey;
     isFigmaMode: boolean;
     showGrid: boolean;
     isViewportSwitching: boolean;
     /** В Figma mode — viewport, на котором последний раз кликнули компонент */
-    activeViewport: 'mobile' | 'tablet' | 'desktop' | null;
+    activeViewport: TBricksDeviceKey | null;
     /** Ограничивать новый компонент только тем viewport, куда его бросили (Figma mode) */
     figmaDropPerViewport: boolean;
     /** Ширина и высота канваса до входа в Figma mode (для восстановления при выходе) */
@@ -97,7 +112,7 @@ export interface CanvasState {
 }
 
 // Property editor types
-export type PropertyType =
+export type TPropertyType =
     | 'string'
     | 'number'
     | 'boolean'
@@ -116,12 +131,12 @@ export type PropertyType =
     | 'image-gallery'
     | 'accordion-items';
 
-export interface PropertyDefinition {
+export interface IPropertyDefinition {
     name: string;
-    type: PropertyType;
+    type: TPropertyType;
     label: string;
-    default: any;
-    options?: Array<{ label: string; value: any }>;
+    default: TBrickDemoValues;
+    options?: Array<{ label: string; value: TBrickDemoValues }>;
     description?: string;
     listDelimiter?: string;
     /** Минимальное значение для number-свойств */
@@ -149,11 +164,11 @@ export interface PropertyDefinition {
     responsive?: boolean;
 }
 
-export type SidebarView = 'components' | 'properties' | 'publish' | 'schema';
+export type TSidebarView = 'components' | 'properties' | 'publish' | 'schema';
 
 // Selected component
-export interface SelectedComponent {
+export interface ISelectedComponent {
     id: string;
-    properties: PropertyDefinition[];
+    properties: IPropertyDefinition[];
     description?: string;
 }

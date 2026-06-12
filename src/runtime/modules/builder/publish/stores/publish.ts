@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import type { BricksSchema } from '../../../common/types/brick';
+import type { IBricksSchema } from '../../../common/types/brick';
 import type {
     IUpdatePagePayload,
     IPublishedPageSummary,
@@ -9,10 +9,7 @@ import type {
 } from '../../../common/types/bricks-api';
 import { useApiClient } from '../../../common/composables/useApiClient';
 import { toSnakeCaseShallow } from '../../../common/utils/case-transform';
-import {
-    DEFAULT_LAYOUT,
-    normalizePublishedPage,
-} from '../../../common/utils/bricks/publishedPage';
+import { DEFAULT_LAYOUT, normalizePublishedPage } from '../../../common/utils/bricks/publishedPage';
 import {
     buildDefaultFormState,
     normalizeFormState,
@@ -76,7 +73,7 @@ export const usePublishStore = defineStore('bricksPublish', {
          * @param schema - Схема лендинга.
          * @param formState - Данные формы публикации.
          */
-        async publishPage(schema: BricksSchema, formState: TPublishFormState): Promise<number> {
+        async publishPage(schema: IBricksSchema, formState: TPublishFormState): Promise<number> {
             const { apiFetcher } = useApiClient();
 
             try {
@@ -110,7 +107,7 @@ export const usePublishStore = defineStore('bricksPublish', {
          */
         async updatePage(
             id: string | number,
-            schema: BricksSchema,
+            schema: IBricksSchema,
             formState: TPublishFormState
         ): Promise<void> {
             const { apiFetcher } = useApiClient();
@@ -415,7 +412,7 @@ export const usePublishStore = defineStore('bricksPublish', {
          * @param schema - Схема лендинга из канваса.
          * @returns ID страницы или null при ошибке.
          */
-        async publishCurrentPage(schema: BricksSchema): Promise<string | number | null> {
+        async publishCurrentPage(schema: IBricksSchema): Promise<string | number | null> {
             if (!this.validateCurrentFormState()) {
                 return null;
             }
@@ -470,7 +467,7 @@ export const usePublishStore = defineStore('bricksPublish', {
          * @param schema - Схема лендинга из канваса.
          * @returns ID копии или null при ошибке.
          */
-        async saveCurrentPageAsCopy(schema: BricksSchema): Promise<string | number | null> {
+        async saveCurrentPageAsCopy(schema: IBricksSchema): Promise<string | number | null> {
             const originalFormState = { ...this.currentFormState };
             const originalEditingPageId = this.editingPageId;
             const originalValidationErrors = { ...this.validationErrors };
@@ -525,7 +522,7 @@ export const usePublishStore = defineStore('bricksPublish', {
          * @param schema - Схема лендинга.
          * @returns Открыта ли вкладка превью.
          */
-        previewCurrentPage(schema: BricksSchema): boolean {
+        previewCurrentPage(schema: IBricksSchema): boolean {
             try {
                 // For preview, we only need a pagename (or generate a temp one)
                 const pagename = this.currentFormState.pagename.trim() || `preview-${Date.now()}`;

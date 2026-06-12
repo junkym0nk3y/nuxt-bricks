@@ -2,8 +2,9 @@
 // Types
 import type {
     IDeviceVisibilityConfig,
-    PropertyDefinition,
+    IPropertyDefinition,
     TBricksDeviceKey,
+    TBrickPropValue,
 } from '../../../../common/types/brick';
 import type { IUseSidebarPropertiesPanelOptions } from '../types/sidebarProperties';
 
@@ -150,10 +151,7 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
      * @param property - Описание свойства.
      * @param value - Новое значение из UI.
      */
-    function handleChangeValues(
-        property: PropertyDefinition,
-        value: string | boolean | number | Record<string, unknown> | Array<unknown>
-    ): void {
+    function handleChangeValues(property: IPropertyDefinition, value: TBrickPropValue): void {
         const selected = store.selectedComponentData;
         if (!selected) {
             return;
@@ -191,16 +189,12 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
                 selected.id,
                 scope,
                 property.name,
-                finalValue as string | number | boolean | Record<string, unknown> | Array<unknown>
+                finalValue as TBrickPropValue
             );
             return;
         }
 
-        store.updateComponentProp(
-            selected.id,
-            property.name,
-            finalValue as string | number | boolean | Record<string, unknown> | Array<unknown>
-        );
+        store.updateComponentProp(selected.id, property.name, finalValue as TBrickPropValue);
     }
 
     /**

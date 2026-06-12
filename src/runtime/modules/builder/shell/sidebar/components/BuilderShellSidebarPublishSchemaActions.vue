@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { BricksSchema } from '../../../../common/types/brick';
+import type { IBricksSchema } from '../../../../common/types/brick';
 import type {
     ISidebarPublishSchemaActionsProps,
     ISidebarPublishSchemaActionsEmits,
@@ -33,7 +33,7 @@ const { fileInputRef, importError, handleExportSchema, handleImportClick, handle
 /**
  * Пробрасывает провалидированную схему родителю.
  */
-function handleImportSchema(schema: BricksSchema): void {
+function handleImportSchema(schema: IBricksSchema): void {
     emit('importSchema', schema);
 }
 // #endregion

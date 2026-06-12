@@ -2,6 +2,7 @@
 // #region Imports
 // Types
 import type { IInlineContentSegment, IGalleryItem } from '../../../../common/types/content';
+import type { TBrickPropValue } from '../../../../common/types/brick';
 import type { IAccordionItem } from '../../../../layouts-blocks/types/blockProps';
 import type {
     ISidebarPropertyEditorRowProps,
@@ -64,7 +65,7 @@ const resolvedInputType = computed<string | undefined>(() => {
  * @param value - Массив сегментов inline контента.
  */
 function handleInlineChange(value: IInlineContentSegment[]): void {
-    props.handleChangeValues(props.variant.property, value as unknown as Array<unknown>);
+    props.handleChangeValues(props.variant.property, value);
 }
 
 /**
@@ -72,9 +73,7 @@ function handleInlineChange(value: IInlineContentSegment[]): void {
  *
  * @param value - Новое значение свойства.
  */
-function handleValueChange(
-    value: string | number | boolean | Record<string, unknown> | Array<unknown>
-): void {
+function handleValueChange(value: TBrickPropValue): void {
     props.handleChangeValues(props.variant.property, value);
 }
 
@@ -102,7 +101,7 @@ function handleInlineGallery(payload?: TInlineGalleryPayload): void {
  * @param value - Массив элементов галереи.
  */
 function handleImageGalleryChange(value: IGalleryItem[]): void {
-    props.handleChangeValues(props.variant.property, value as unknown as Array<unknown>);
+    props.handleChangeValues(props.variant.property, value);
 }
 
 /**
@@ -131,13 +130,15 @@ function handleMediaOpen(): void {
  * @param value - Массив элементов аккордеона.
  */
 function handleAccordionItemsChange(value: IAccordionItem[]): void {
-    props.handleChangeValues(props.variant.property, value as unknown as Array<unknown>);
+    props.handleChangeValues(props.variant.property, value);
 }
 // #endregion
 </script>
 
 <template>
-    <div :class="[$style.BuilderShellSidebarPropertyEditorRow, { [$style._bool]: isBooleanEditor }]">
+    <div
+        :class="[$style.BuilderShellSidebarPropertyEditorRow, { [$style._bool]: isBooleanEditor }]"
+    >
         <span v-if="shouldShowLabel" :class="$style.fieldLabel"> {{ props.variant.label }}: </span>
         <span v-if="props.variant.property.description" :class="$style.fieldDescription">
             {{ props.variant.property.description }}

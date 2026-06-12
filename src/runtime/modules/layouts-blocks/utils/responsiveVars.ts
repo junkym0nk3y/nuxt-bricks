@@ -5,7 +5,7 @@
  */
 
 // Types
-import type { BricksComponent, TBricksDeviceKey } from '../../common/types/brick';
+import type { IBricksComponent, TBricksDeviceKey } from '../../common/types/brick';
 
 /**
  * Округляет значение в rem до 1 десятичного знака.
@@ -25,11 +25,7 @@ export function toRem(v: unknown): string {
  * @param key - Имя свойства.
  * @returns Override, если он задан, иначе базовое значение.
  */
-export function resolveResponsiveValue<T>(
-    base: T,
-    overrides: Record<string, any>,
-    key: string
-): T {
+export function resolveResponsiveValue<T>(base: T, overrides: Record<string, any>, key: string): T {
     return key in overrides ? (overrides[key] as T) : base;
 }
 
@@ -87,7 +83,7 @@ export function getResponsiveOverrides(
  * @param component - Компонент схемы.
  * @returns Объект с gridColumn/gridRow (только заданные).
  */
-export function gridPlacementStyle(component: BricksComponent): Record<string, string> {
+export function gridPlacementStyle(component: IBricksComponent): Record<string, string> {
     const style: Record<string, string> = {};
 
     if (component.gridColumn) {
