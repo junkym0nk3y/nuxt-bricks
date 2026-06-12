@@ -10,7 +10,7 @@ import { computed, provide, watch, type ComputedRef } from 'vue';
 import { useEventListener } from '@vueuse/core';
 
 // Pinia
-import { useInlineEditingStore } from '../../../editor/stores/inlineEditing';
+import { useInlineEditingStore } from '../../../text-editor/stores/inlineEditing';
 import { useCanvasStore } from '../../core/stores/canvas';
 
 // Composables

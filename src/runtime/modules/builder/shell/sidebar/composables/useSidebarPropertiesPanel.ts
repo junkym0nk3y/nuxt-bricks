@@ -63,7 +63,7 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
         switch: defineAsyncComponent(() => import('../../../../ui/inputs/BricksSwitch.vue')),
         select: defineAsyncComponent(() => import('../../../../ui/inputs/BricksSelect.vue')),
         input: defineAsyncComponent(() => import('../../../../ui/inputs/BricksInput.vue')),
-        textarea: defineAsyncComponent(() => import('../../../../editor/components/TextEditorArea.vue')),
+        textarea: defineAsyncComponent(() => import('../../../../text-editor/components/TextEditorArea.vue')),
         json: defineAsyncComponent(
             () => import('../components/property-editors/PropertyJsonEditor.vue')
         ),

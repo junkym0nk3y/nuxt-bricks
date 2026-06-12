@@ -23,7 +23,7 @@ import { useElementBounding, useResizeObserver } from '@vueuse/core';
 import { useNuxtApp } from 'nuxt/app';
 
 // Pinia
-import { useInlineEditingStore } from '../../../editor/stores/inlineEditing';
+import { useInlineEditingStore } from '../../../text-editor/stores/inlineEditing';
 import { useCanvasStore } from '../../core/stores/canvas';
 import { useComponentsStore } from '../../core/stores/components';
 
@@ -32,7 +32,7 @@ import { useBricksConfig } from '../../../common/composables/useBricksConfig';
 
 // Components
 import BricksTextEditorToolbar from '../../../ui/inputs/BricksTextEditorToolbar.vue';
-import TiptapImageFloatPopover from '../../../editor/components/TiptapImageFloatPopover.vue';
+import TiptapImageFloatPopover from '../../../text-editor/components/TiptapImageFloatPopover.vue';
 // #endregion
 
 // #region Data
@@ -404,14 +404,14 @@ async function initFallbackTiptapEditor(): Promise<void> {
             import('@tiptap/extension-color'),
             import('@tiptap/extension-font-family'),
             import('@tiptap/extension-text-align'),
-            import('../../../editor/tiptap/fontSize'),
-            import('../../../editor/tiptap/fontWeight'),
-            import('../../../editor/tiptap/lineHeight'),
-            import('../../../editor/tiptap/letterSpacing'),
+            import('../../../text-editor/tiptap/fontSize'),
+            import('../../../text-editor/tiptap/fontWeight'),
+            import('../../../text-editor/tiptap/lineHeight'),
+            import('../../../text-editor/tiptap/letterSpacing'),
             import('@tiptap/extension-table'),
-            import('../../../editor/tiptap/resizableImage'),
-            import('../../../editor/tiptap/resizableVideo'),
-            import('../../../editor/tiptap/boldOverride'),
+            import('../../../text-editor/tiptap/resizableImage'),
+            import('../../../text-editor/tiptap/resizableVideo'),
+            import('../../../text-editor/tiptap/boldOverride'),
         ]);
 
         fallbackEditorContent.value = EditorContent;

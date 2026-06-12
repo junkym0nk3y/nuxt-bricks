@@ -18,7 +18,7 @@ import { useCanvasStore } from '../../core/stores/canvas';
 import { useSidebarStore } from '../../core/stores/sidebar';
 import { useHistoryStore } from '../../core/stores/history';
 import { usePublishStore } from '../../publish/stores/publish';
-import { useInlineEditingStore } from '../../../editor/stores/inlineEditing';
+import { useInlineEditingStore } from '../../../text-editor/stores/inlineEditing';
 
 // Composables
 import { useBuilderPage } from '../composables/useBuilderPage';

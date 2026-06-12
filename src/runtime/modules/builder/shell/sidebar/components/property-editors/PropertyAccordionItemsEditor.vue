@@ -8,7 +8,7 @@ import { computed } from 'vue';
 
 // Components
 import BricksButton from '../../../../../ui/base/button/BricksButton.vue';
-import TextEditorArea from '../../../../../editor/components/TextEditorArea.vue';
+import TextEditorArea from '../../../../../text-editor/components/TextEditorArea.vue';
 // #endregion
 
 // #region Interfaces
