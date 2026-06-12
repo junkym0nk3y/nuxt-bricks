@@ -128,7 +128,7 @@ const gridStyle = computed<Record<string, string>>(() => {
     return style;
 });
 
-const overlayStyle = computed<Record<string, string>>(() => {
+const overlayStyle = computed<Record<string, string>>((): Record<string, string> => {
     const px = normalizedPaddingX.value;
     const py = normalizedPaddingY.value;
 

@@ -79,7 +79,7 @@ const isVerticalDivider = computed<boolean>(
     () => props.layoutProps.direction === 'vertical' || props.layoutProps.direction === 'both'
 );
 
-const dividerStyle = computed<TSpaceStyle>(() => {
+const dividerStyle = computed<TSpaceStyle>((): TSpaceStyle => {
     const lp = props.layoutProps;
     const color = lp.dividerColor || 'var(--bricks-base-200)';
     const borderWidth = `${Math.max(1, Number(lp.dividerWidth) || 1)}px`;

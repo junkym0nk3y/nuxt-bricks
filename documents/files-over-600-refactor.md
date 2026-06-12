@@ -401,11 +401,19 @@ DI `handleChangeValues` из фасада, разрывает цикл scope↔m
 
 ### Заметки / всплывшее по ходу
 
-- **Pre-existing ошибки vue-tsc на main** (не из рефакторинга, починить отдельно):
-    - `BlockGrid.vue` → `overlayStyle`: computed возвращает union с `{}`,
-      несовместимо с `Record<string, string>` (TS2769);
-    - `BlockSpace.vue:82` → `spaceStyle`: тот же паттерн union с optional-полями (TS2769);
-    - `render/pages/[pagename].vue:94,154,328` — TS2554/TS2339 вокруг `useAsyncData`-обёртки.
+- **Pre-existing ошибки vue-tsc на main** — ✅ починены 2026-06-12:
+    - `BlockGrid.vue` → `overlayStyle`, `BlockSpace.vue` → `dividerStyle` (TS2769):
+      TS выводил union object-литералов с добавленными `?: undefined` полями,
+      несовместимый с index signature; фикс — явная аннотация возвращаемого типа
+      геттера `computed<T>((): T => …)`, тогда каждый `return` проверяется отдельно;
+    - `render/pages/[pagename].vue` (TS2554/TS2339): `useAsyncData` без импорта
+      резолвился в рукописный глобальный stub из `common/types/global.d.ts`
+      (2 аргумента, возвращает только `{ data }`); фикс — явный импорт
+      `useAsyncData`/`useRoute` из `#imports` (как в `useComponentLibrary.ts`).
+- **Остальные pre-existing ошибки vue-tsc** (не трогали): `playground/pages/index.vue`
+  → `definePageMeta` not found; `middleware/bricks-page-layout.global.ts` → `LayoutKey`
+  отсутствует в `#build/types/layouts`; `useDocumentationArticles.ts` → `query`
+  нет в типе опций `import.meta.glob` (stub `ImportMeta.glob` в `global.d.ts` неполный).
 - Шаг 9 (BlockSlider) сможет переиспользовать `useLayoutDropZone`: останется вынести
   `updateDropIndicator` + `getDraggableSlides` в `useSliderDropIndicator` и captions
   в `BlockSliderCaptions.vue`.

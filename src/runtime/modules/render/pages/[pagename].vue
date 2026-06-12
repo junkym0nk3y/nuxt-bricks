@@ -7,7 +7,7 @@ import type { IBrickDataSource } from '../../common/types/dataSource';
 
 // Vue
 import { computed, onMounted, onUnmounted, ref, watch, type Ref } from 'vue';
-import { createError, useNuxtData } from '#imports';
+import { createError, useAsyncData, useNuxtData, useRoute } from '#imports';
 
 // Composables
 import { useStoryImports } from '../../common/composables/useStoryImports';
