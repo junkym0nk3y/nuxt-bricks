@@ -325,7 +325,7 @@ body.bricks-page {
     // Визуальная обратная связь при выделении изображения/видео
     .ProseMirror-selectednode [data-resize-wrapper] img,
     .ProseMirror-selectednode [data-resize-wrapper] video {
-        outline: 2px solid var(--bricks-primary, #6366f1);
+        outline: 2px solid var(--bricks-primary, #2563eb);
         outline-offset: 2px;
     }
 
@@ -336,7 +336,7 @@ body.bricks-page {
         width: 1rem;
         height: 1rem;
         border-radius: 50%;
-        border: 2px solid var(--bricks-primary, #6366f1);
+        border: 2px solid var(--bricks-primary, #2563eb);
         background: var(--bricks-base-0, #fff);
         transition: transform 0.15s ease;
         cursor: pointer;

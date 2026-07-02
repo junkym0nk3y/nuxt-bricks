@@ -94,8 +94,8 @@ export function useCanvasItemDrag(
             overlay.style.cssText = `
                 position: absolute;
                 inset: 0;
-                background: linear-gradient(135deg, rgb(99 102 241 / 10%) 0%, rgb(99 102 241 / 20%) 100%);
-                border: 2px dashed rgb(99 102 241 / 50%);
+                background: linear-gradient(135deg, rgb(37 99 235 / 10%) 0%, rgb(37 99 235 / 20%) 100%);
+                border: 2px dashed rgb(37 99 235 / 50%);
                 border-radius: 0.4rem;
                 pointer-events: none;
                 z-index: 9999;
@@ -110,7 +110,7 @@ export function useCanvasItemDrag(
                 left: 50%;
                 transform: translate(-50%, -50%);
                 padding: 0.8rem 1.6rem;
-                background: rgb(99 102 241 / 90%);
+                background: rgb(37 99 235 / 90%);
                 border-radius: 0.4rem;
                 font-size: 1.4rem;
                 font-weight: 500;

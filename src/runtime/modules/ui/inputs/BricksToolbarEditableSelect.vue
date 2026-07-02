@@ -341,7 +341,7 @@ async function focusCustomInput(): Promise<void> {
     }
 
     &._selected {
-        background: var(--bricks-primary-100, rgb(99 102 241 / 15%));
+        background: var(--bricks-primary-100, rgb(37 99 235 / 15%));
         font-weight: 600;
         color: var(--bricks-primary);
     }

@@ -335,11 +335,11 @@ function handleRequestImage(): void {
     }
 
     &._darkPreview {
-        border-color: #212226;
-        background: #212226;
+        border-color: var(--bricks-dark-surface);
+        background: var(--bricks-dark-surface);
 
         :global(.ProseMirror) {
-            background: #212226;
+            background: var(--bricks-dark-surface);
         }
     }
 }

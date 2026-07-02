@@ -341,6 +341,6 @@ function handleDrop(event: DragEvent): void {
 .dropIndicator {
     height: 0.2rem;
     border-radius: 0.2rem;
-    background: rgb(var(--rgb-indigo) / 70%);
+    background: rgb(var(--rgb-primary) / 70%);
 }
 </style>

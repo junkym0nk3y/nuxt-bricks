@@ -401,17 +401,17 @@ onBeforeUnmount(() => {
 
     &._darkPreview {
         :global(.ProseMirror) {
-            background-color: #212226;
+            background-color: var(--bricks-dark-surface);
         }
 
         .editor {
-            border-color: #212226;
-            background-color: #212226;
+            border-color: var(--bricks-dark-surface);
+            background-color: var(--bricks-dark-surface);
         }
 
         .fallbackArea {
-            border-color: #212226;
-            background-color: #212226;
+            border-color: var(--bricks-dark-surface);
+            background-color: var(--bricks-dark-surface);
         }
     }
 }

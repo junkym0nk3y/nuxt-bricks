@@ -7,11 +7,12 @@
     --bricks-font-family-base: 'Onest', 'Roboto', sans-serif;
     --font-size-sm: 1.2rem;
     --font-size-base: 1.4rem;
+    --bricks-font-size-base: var(--font-size-base);
     --default-transition: 300ms ease;
 
-    --border-radius-xs: 0.4rem;
-    --border-radius-sm: 0.8rem;
-    --border-radius-md: 1.2rem;
+    --border-radius-xs: 0.6rem;
+    --border-radius-sm: 1rem;
+    --border-radius-md: 1.4rem;
 
     /* === Base gray colors (light to dark) === */
     --bricks-base-0: #fff;
@@ -19,9 +20,10 @@
     --bricks-base-100: #f3f4f6;
     --bricks-base-200: #e5e7eb;
     --bricks-base-300: #d1d5db;
-    --bricks-base-400: #b9c6cc;
+    --bricks-base-400: #9ca3af;
     --bricks-base-500: #6b7280;
     --bricks-base-600: #4b5563;
+    --bricks-base-700: #374151;
     --bricks-base-800: #1f2937;
     --bricks-base-900: #111827;
 
@@ -30,10 +32,14 @@
     --bricks-primary-100: #dbeafe;
     --bricks-primary-200: #bfdbfe;
     --bricks-primary-300: #93c5fd;
+    --bricks-primary-400: #60a5fa;
     --bricks-primary-500: #3b82f6;
-    --bricks-primary: #4d79e9;
+    --bricks-primary-600: #1d4ed8;
+    --bricks-primary-700: #1e40af;
+    --bricks-primary: #2563eb;
 
     /* === Danger/Error red colors (light to dark) === */
+    --bricks-danger-50: #fef2f2;
     --bricks-danger-500: #ef4444;
     --bricks-danger-600: #dc2626;
 
@@ -44,7 +50,7 @@
     /* === RGB Channels === */
     --rgb-base-900: 17 24 39; /* from #111827 */
     --rgb-base-0: 255 255 255; /* from #fff */
-    --rgb-indigo: 99 102 241; /* indigo accent */
+    --rgb-primary: 37 99 235; /* from --bricks-primary #2563eb */
     --rgb-gray: 150 150 150; /* neutral gray */
 
     /* Layout indicator colors */
@@ -54,50 +60,71 @@
     --rgb-layout-section: 16 185 129; /* green/teal */
     --rgb-layout-svg: 236 72 153; /* pink */
 
-    /* === Shadows === */
-    --shadow-sm: 0 0.2rem 0.4rem rgb(var(--rgb-base-900) / 10%);
-    --shadow-md: 0 0.8rem 1.6rem rgb(var(--rgb-base-900) / 10%);
-    --shadow-focus: 0 0 0 0.4rem rgb(var(--rgb-indigo) / 25%);
+    /* === Shadows (layered, soft UI) === */
+    --shadow-sm:
+        0 0.1rem 0.2rem rgb(var(--rgb-base-900) / 5%), 0 0.2rem 0.8rem rgb(var(--rgb-base-900) / 6%);
+    --shadow-md:
+        0 0.4rem 1.2rem rgb(var(--rgb-base-900) / 8%),
+        0 1.2rem 3.2rem rgb(var(--rgb-base-900) / 10%);
+    --shadow-lg:
+        0 0.6rem 1.6rem rgb(var(--rgb-base-900) / 9%),
+        0 1.6rem 4.8rem rgb(var(--rgb-base-900) / 12%);
+    --shadow-xl:
+        0 0.8rem 2.4rem rgb(var(--rgb-base-900) / 10%),
+        0 2.4rem 6.4rem rgb(var(--rgb-base-900) / 14%);
+    --shadow-focus: 0 0 0 0.4rem rgb(var(--rgb-primary) / 18%);
 
     /* === Overlays === */
     --overlay-dark: rgb(var(--rgb-base-900) / 60%);
     --overlay-light: rgb(var(--rgb-base-0) / 20%);
     --overlay-modal-start: rgb(var(--rgb-base-900) / 45%);
     --overlay-modal-end: rgb(var(--rgb-base-900) / 70%);
+
+    /* === Invariant surfaces (не зависят от темы) === */
+    --bricks-dark-surface: #1a1d24; /* dark-preview в текстовых редакторах */
+    --bricks-workspace-bg: #f3f4f6; /* фон рабочей области вокруг канваса — статичен в обеих темах */
 }
 
 /* === Dark theme overrides === */
 .bricks-dark {
-    --bricks-base-0: #1a1b1e;
-    --bricks-base-50: #212226;
-    --bricks-base-100: #2b2c31;
-    --bricks-base-200: #353639;
-    --bricks-base-300: #3e3f44;
-    --bricks-base-400: #32343b;
-    --bricks-base-500: #8b8d94;
-    --bricks-base-600: #a8aab0;
-    --bricks-base-800: #d0d1d4;
-    --bricks-base-900: #e4e5e8;
+    --bricks-base-0: #16181d;
+    --bricks-base-50: #1b1e24;
+    --bricks-base-100: #22252c;
+    --bricks-base-200: #2a2e36;
+    --bricks-base-300: #333842;
+    --bricks-base-400: #3d424e;
+    --bricks-base-500: #8b93a1;
+    --bricks-base-600: #aab1bd;
+    --bricks-base-700: #bec4cd;
+    --bricks-base-800: #d3d7de;
+    --bricks-base-900: #e8eaef;
 
-    --bricks-primary-50: #1e2233;
+    --bricks-primary-50: #1c2333;
     --bricks-primary-100: #1e2d4d;
     --bricks-primary-200: #2a3d66;
     --bricks-primary-300: #4a6eb3;
-    --bricks-primary-500: #5b9bf5;
-    --bricks-primary: #6b8ef0;
+    --bricks-primary-400: #5589d6;
+    --bricks-primary-500: #60a5fa;
+    --bricks-primary-600: #2563eb;
+    --bricks-primary-700: #1d4ed8;
+    --bricks-primary: #3b82f6;
 
+    --bricks-danger-50: #2b1d20;
     --bricks-danger-500: #f87171;
     --bricks-danger-600: #ef4444;
 
     --bricks-green: #34d399;
     --bricks-yellow: #fbbf24;
 
-    --rgb-base-900: 228 229 232;
-    --rgb-base-0: 26 27 30;
+    --rgb-base-900: 232 234 239;
+    --rgb-base-0: 22 24 29;
+    --rgb-primary: 59 130 246;
 
-    --shadow-sm: 0 0.2rem 0.4rem rgb(0 0 0 / 20%);
-    --shadow-md: 0 0.8rem 1.6rem rgb(0 0 0 / 30%);
-    --shadow-focus: 0 0 0 0.4rem rgb(var(--rgb-indigo) / 30%);
+    --shadow-sm: 0 0.1rem 0.2rem rgb(0 0 0 / 20%), 0 0.2rem 0.8rem rgb(0 0 0 / 25%);
+    --shadow-md: 0 0.4rem 1.2rem rgb(0 0 0 / 30%), 0 1.2rem 3.2rem rgb(0 0 0 / 35%);
+    --shadow-lg: 0 0.6rem 1.6rem rgb(0 0 0 / 35%), 0 1.6rem 4.8rem rgb(0 0 0 / 40%);
+    --shadow-xl: 0 0.8rem 2.4rem rgb(0 0 0 / 40%), 0 2.4rem 6.4rem rgb(0 0 0 / 45%);
+    --shadow-focus: 0 0 0 0.4rem rgb(var(--rgb-primary) / 25%);
 
     --overlay-dark: rgb(0 0 0 / 60%);
     --overlay-light: rgb(var(--rgb-base-0) / 30%);
@@ -111,8 +138,10 @@
         --bricks-base-100: #f3f4f6;
         --bricks-base-200: #e5e7eb;
         --bricks-base-300: #d1d5db;
+        --bricks-base-400: #9ca3af;
         --bricks-base-500: #6b7280;
         --bricks-base-600: #4b5563;
+        --bricks-base-700: #374151;
         --bricks-base-800: #1f2937;
         --bricks-base-900: #111827;
 
@@ -120,9 +149,13 @@
         --bricks-primary-100: #dbeafe;
         --bricks-primary-200: #bfdbfe;
         --bricks-primary-300: #93c5fd;
+        --bricks-primary-400: #60a5fa;
         --bricks-primary-500: #3b82f6;
-        --bricks-primary: #4d79e9;
+        --bricks-primary-600: #1d4ed8;
+        --bricks-primary-700: #1e40af;
+        --bricks-primary: #2563eb;
 
+        --bricks-danger-50: #fef2f2;
         --bricks-danger-500: #ef4444;
         --bricks-danger-600: #dc2626;
 
@@ -131,10 +164,21 @@
 
         --rgb-base-900: 17 24 39;
         --rgb-base-0: 255 255 255;
+        --rgb-primary: 37 99 235;
 
-        --shadow-sm: 0 0.2rem 0.4rem rgb(var(--rgb-base-900) / 10%);
-        --shadow-md: 0 0.8rem 1.6rem rgb(var(--rgb-base-900) / 10%);
-        --shadow-focus: 0 0 0 0.4rem rgb(var(--rgb-indigo) / 25%);
+        --shadow-sm:
+            0 0.1rem 0.2rem rgb(var(--rgb-base-900) / 5%),
+            0 0.2rem 0.8rem rgb(var(--rgb-base-900) / 6%);
+        --shadow-md:
+            0 0.4rem 1.2rem rgb(var(--rgb-base-900) / 8%),
+            0 1.2rem 3.2rem rgb(var(--rgb-base-900) / 10%);
+        --shadow-lg:
+            0 0.6rem 1.6rem rgb(var(--rgb-base-900) / 9%),
+            0 1.6rem 4.8rem rgb(var(--rgb-base-900) / 12%);
+        --shadow-xl:
+            0 0.8rem 2.4rem rgb(var(--rgb-base-900) / 10%),
+            0 2.4rem 6.4rem rgb(var(--rgb-base-900) / 14%);
+        --shadow-focus: 0 0 0 0.4rem rgb(var(--rgb-primary) / 18%);
 
         /* Reset playground variables for canvas components (VTitle, etc.) */
         --body-color: #1b1d24;

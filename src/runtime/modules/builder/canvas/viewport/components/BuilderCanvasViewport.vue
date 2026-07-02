@@ -330,7 +330,7 @@ onBeforeUnmount(() => {
     width: 100%;
     height: 0.4rem;
     border-radius: 50%;
-    background: rgb(var(--rgb-indigo) / 70%);
+    background: rgb(var(--rgb-primary) / 70%);
     pointer-events: none;
 }
 </style>

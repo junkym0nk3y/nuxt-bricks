@@ -22,12 +22,7 @@ const props = withDefaults(defineProps<IBricksTooltipHintProps>(), {
 
 <style module lang="scss">
 .tooltipHint {
-    /* Фиксируем светлую тему для тултипов */
-    --bricks-base-0: #fff;
-    --bricks-base-300: #d1d5db;
-    --bricks-base-900: #111827;
-    --rgb-base-900: 17 24 39;
-
+    /* Тултип телепортируется в body — темозависимые токены резолвятся от .bricks-dark на body */
     max-width: 24rem;
     padding: 0.8rem 1.2rem;
     border-radius: var(--border-radius-sm);

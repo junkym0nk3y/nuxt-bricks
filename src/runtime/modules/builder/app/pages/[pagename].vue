@@ -331,7 +331,7 @@ onBeforeUnmount(() => {
     display: flex;
     width: 100vw;
     height: 100vh;
-    background-color: var(--bricks-base-100);
+    background-color: var(--bricks-workspace-bg);
     flex-direction: column;
 }
 

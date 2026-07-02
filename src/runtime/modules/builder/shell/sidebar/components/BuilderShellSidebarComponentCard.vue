@@ -377,7 +377,7 @@ function handleDragStart(event: DragEvent): void {
     user-select: none;
 
     &:hover {
-        border-color: var(--bricks-base-300);
+        border-color: var(--bricks-base-400);
         box-shadow: var(--shadow-md);
         transform: translateY(-0.2rem);
     }
@@ -394,9 +394,30 @@ function handleDragStart(event: DragEvent): void {
 }
 
 .thumbnail {
-    /* Фиксируем светлую тему для превью компонентов */
+    /* Фиксируем светлую тему для превью компонентов (полный reset — по образцу .bricks-canvas) */
     --bricks-base-0: #fff;
+    --bricks-base-50: #f9fafb;
+    --bricks-base-100: #f3f4f6;
+    --bricks-base-200: #e5e7eb;
     --bricks-base-300: #d1d5db;
+    --bricks-base-400: #9ca3af;
+    --bricks-base-500: #6b7280;
+    --bricks-base-600: #4b5563;
+    --bricks-base-700: #374151;
+    --bricks-base-800: #1f2937;
+    --bricks-base-900: #111827;
+    --bricks-primary-50: #eff6ff;
+    --bricks-primary-100: #dbeafe;
+    --bricks-primary-200: #bfdbfe;
+    --bricks-primary-300: #93c5fd;
+    --bricks-primary-400: #60a5fa;
+    --bricks-primary-500: #3b82f6;
+    --bricks-primary-600: #1d4ed8;
+    --bricks-primary-700: #1e40af;
+    --bricks-primary: #2563eb;
+    --rgb-base-900: 17 24 39;
+    --rgb-base-0: 255 255 255;
+    --rgb-primary: 37 99 235;
 
     /* Reset playground variables (VTitle и другие playground-компоненты) */
     --body-color: #1b1d24;
@@ -487,6 +508,6 @@ function handleDragStart(event: DragEvent): void {
     flex-shrink: 0;
     width: 1.4rem;
     height: 1.4rem;
-    color: rgb(var(--rgb-indigo));
+    color: rgb(var(--rgb-primary));
 }
 </style>

@@ -322,11 +322,11 @@ onBeforeUnmount(() => {
 
     &._darkPreview {
         :global(.ProseMirror) {
-            background-color: #212226;
+            background-color: var(--bricks-dark-surface);
         }
 
         .editor {
-            background-color: #212226;
+            background-color: var(--bricks-dark-surface);
         }
     }
 }

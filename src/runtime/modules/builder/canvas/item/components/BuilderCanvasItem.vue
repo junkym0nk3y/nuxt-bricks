@@ -254,16 +254,16 @@ watch(
     }
 
     &:hover {
-        outline: 2px solid rgb(var(--rgb-indigo) / 30%);
+        outline: 2px solid rgb(var(--rgb-primary) / 30%);
     }
 
     &.selected {
         z-index: 10;
-        outline: 2px solid rgb(var(--rgb-indigo) / 80%);
+        outline: 2px solid rgb(var(--rgb-primary) / 80%);
     }
 
     &.editing {
-        outline: 2px solid rgb(var(--rgb-indigo) / 80%);
+        outline: 2px solid rgb(var(--rgb-primary) / 80%);
         cursor: text;
         user-select: text;
 

@@ -277,6 +277,10 @@ function handleClose(): void {
     background-color: var(--bricks-base-50);
     transition: border-color var(--default-transition);
 
+    &:hover {
+        border-color: var(--bricks-base-400);
+    }
+
     &:focus-within {
         border-color: var(--bricks-primary);
     }
@@ -322,7 +326,7 @@ function handleClose(): void {
     cursor: pointer;
 
     &:hover {
-        color: var(--bricks-base-700);
+        color: var(--bricks-base-800);
     }
 
     svg {
@@ -374,7 +378,7 @@ function handleClose(): void {
     justify-content: center;
     height: 100%;
     text-align: center;
-    color: var(--bricks-base-300);
+    color: var(--bricks-base-500);
 
     p {
         margin: 0.8rem 0;
@@ -383,7 +387,7 @@ function handleClose(): void {
 
 .emptyIcon {
     margin-bottom: 1.6rem;
-    color: var(--bricks-base-300);
+    color: var(--bricks-base-400);
 
     svg {
         width: 4.8rem;
@@ -393,12 +397,12 @@ function handleClose(): void {
 
 .emptyHint {
     font-size: 1.2rem;
-    color: var(--bricks-base-300);
+    color: var(--bricks-base-500);
 
     code {
         padding: 0.2rem 0.6rem;
         border-radius: var(--border-radius-xs);
-        background-color: var(--bricks-base-300);
+        background-color: var(--bricks-base-100);
         font-family: monospace;
     }
 }

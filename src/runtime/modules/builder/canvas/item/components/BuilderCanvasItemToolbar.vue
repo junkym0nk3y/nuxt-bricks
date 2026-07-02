@@ -332,7 +332,7 @@ function handleToggleInteractivePreview(event: MouseEvent): void {
     --toolbar-color: var(--bricks-base-500, #4b5563);
     --toolbar-color-hover: var(--bricks-base-900, #111827);
     --toolbar-bg-hover: var(--bricks-base-50, #f9fafb);
-    --toolbar-primary: var(--bricks-primary, #4d79e9);
+    --toolbar-primary: var(--bricks-primary, #2563eb);
     --toolbar-shadow: 0 0.2rem 0.4rem rgb(0 0 0 / 8%);
     --toolbar-shadow-hover: 0 0.2rem 0.8rem rgb(0 0 0 / 12%);
 
