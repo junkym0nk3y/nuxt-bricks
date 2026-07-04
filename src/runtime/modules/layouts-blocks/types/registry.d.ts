@@ -33,8 +33,8 @@ export interface IBlockDefinition {
     thumbnail: string; // '/images/layouts/grid.svg'
     isInteractive?: boolean;
     hasChildren?: boolean; // контейнер: children в default slot
-    /** Свойства панели; функция — для Title (availableFonts) */
-    properties: ILayoutProperty[] | ((ctx: { availableFonts: string[] }) => ILayoutProperty[]);
+    /** Свойства панели */
+    properties: ILayoutProperty[];
     /** Дефолты вне properties (Media: muted/controls…, Svg: svgContent) */
     extraDefaults?: Record<string, unknown>;
     /** 'all' — все пропсы device-scoped (Grid/Flex/Section/Space/Media/Svg) */

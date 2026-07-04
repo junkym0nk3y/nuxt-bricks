@@ -38,7 +38,6 @@ const props = defineProps<ICanvasItemProps>();
 const componentsStore = useComponentsStore();
 const canvasStore = useCanvasStore();
 const dragComposable = inject<IDragComposableCanvas | undefined>('dragComposable');
-const availableFonts = inject<string[]>('availableFonts', []);
 
 /** Активный viewport (в Figma mode — per-viewport от BuilderCanvasViewport); используется только при isFigmaMode */
 const figmaViewport = inject(CANVAS_VIEWPORT_KEY, null);
@@ -95,8 +94,7 @@ const { ComponentInstance, forceRenderKey } = useCanvasItemLoader(props, isLayou
 const { isInlineEditing, handleDoubleClick } = useCanvasItemInlineEditing(
     props,
     isLayout,
-    layoutName,
-    availableFonts
+    layoutName
 );
 
 // Drag & drop
@@ -127,7 +125,6 @@ const {
     props,
     isLayout,
     layoutName,
-    availableFonts,
     figmaViewport,
     itemTop,
     itemRight,

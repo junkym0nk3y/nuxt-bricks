@@ -2,7 +2,7 @@
 
 | Файл                     | Назначение                                                                                       |
 | ------------------------ | ------------------------------------------------------------------------------------------------ |
-| `canvasBindings.ts`      | Канвас-биндинг leaf-блоков с inline editing (Title/Text/Svg): boundProps + componentId           |
+| `canvasBindings.ts`      | Канвас-биндинг leaf-блоков с inline editing (Text/Svg): boundProps + componentId                 |
 | `gridDropPlacement.ts`   | Вычисление targetIndex (ячейки грида) по курсору с учётом canvas scale, padding и gap            |
 | `gridOverlayGeometry.ts` | Чистая геометрия SVG-визуализации сетки BlockGrid (границы колонок/строк, прямоугольники gap'ов) |
 | `inlineContent.ts`       | Создание/нормализация inline-content сегментов                                                   |

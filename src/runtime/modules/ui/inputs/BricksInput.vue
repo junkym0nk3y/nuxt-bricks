@@ -414,7 +414,6 @@ watch(
     z-index: 2;
     display: flex;
     align-items: center;
-    padding: 0.8rem 1.2rem;
     border-radius: var(--border-radius-xs);
     border: 1px solid var(--bricks-base-300);
     background-color: var(--bricks-base-0);
@@ -437,7 +436,7 @@ watch(
     flex: 1;
     width: 100%;
     min-width: 0;
-    padding: 0;
+    padding: 0.8rem 1.2rem;
     border: none;
     background: transparent;
     outline: none;

@@ -10,7 +10,6 @@ import { blockFlexDefinition } from './components/blockFlex.definition';
 import { blockSectionDefinition } from './components/blockSection.definition';
 import { blockSpaceDefinition } from './components/blockSpace.definition';
 import { blockSliderDefinition } from './components/blockSlider.definition';
-import { blockTitleDefinition } from './components/blockTitle.definition';
 import { blockTextDefinition } from './components/blockText.definition';
 import { blockMediaDefinition } from './components/blockMedia.definition';
 import { blockAccordionDefinition } from './components/blockAccordion.definition';
@@ -30,7 +29,6 @@ export const BLOCK_REGISTRY: Record<string, IBlockDefinition> = {
     Section: blockSectionDefinition,
     Space: blockSpaceDefinition,
     Slider: blockSliderDefinition,
-    Title: blockTitleDefinition,
     Text: blockTextDefinition,
     Media: blockMediaDefinition,
     Accordion: blockAccordionDefinition,
@@ -57,23 +55,11 @@ export function getBlockDefinition(name: string): IBlockDefinition | undefined {
  * Возвращает свойства панели редактора для блока.
  *
  * @param name - Имя блока.
- * @param ctx - Runtime-контекст (availableFonts для Title).
  * @returns Массив определений свойств (пустой для неизвестного блока).
  */
-export function getBlockProperties(
-    name: string,
-    ctx: { availableFonts?: string[] } = {}
-): ILayoutProperty[] {
+export function getBlockProperties(name: string): ILayoutProperty[] {
     const definition = getBlockDefinition(name);
-    if (!definition) {
-        return [];
-    }
-
-    if (typeof definition.properties === 'function') {
-        return definition.properties({ availableFonts: ctx.availableFonts ?? [] });
-    }
-
-    return definition.properties;
+    return definition ? definition.properties : [];
 }
 
 /**
@@ -177,13 +163,6 @@ export function resolveBlockProps(
                 Object.assign(resolved, overrides as Record<string, unknown>);
             }
         }
-    }
-
-    // Title: properties — функция от runtime availableFonts; options select'ов
-    // без контекста неполные, коэрция сбросила бы валидный шрифт. Пропускаем
-    // (паритет со старым useCanvasItemLayout: leaf-блоки коэрции не имели).
-    if (typeof definition.properties === 'function') {
-        return resolved;
     }
 
     for (const property of definition.properties) {

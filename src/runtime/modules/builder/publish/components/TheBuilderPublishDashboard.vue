@@ -140,9 +140,11 @@ function handleToggleLocale(): void {
                     <div :class="$style.listArea">
                         <slot name="list" />
                     </div>
-                    <aside v-if="$slots.details" :class="$style.detailsArea">
-                        <slot name="details" />
-                    </aside>
+                    <Transition name="library-details-slide">
+                        <aside v-if="$slots.details" :class="$style.detailsArea">
+                            <slot name="details" />
+                        </aside>
+                    </Transition>
                 </template>
 
                 <div v-else :class="$style.templatesEmpty">

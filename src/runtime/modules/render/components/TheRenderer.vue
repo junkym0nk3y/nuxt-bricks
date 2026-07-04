@@ -198,10 +198,6 @@ function wrapWithContainer(
     display: block;
 }
 
-.bricksTitle {
-    display: block;
-}
-
 .bricksImage {
     min-width: 0;
 }

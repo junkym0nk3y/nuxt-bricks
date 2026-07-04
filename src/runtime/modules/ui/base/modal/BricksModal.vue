@@ -36,9 +36,9 @@ const $style = useCssModule();
 
 // #region Computed
 /**
- * Классы overlay: базовое центрирование + вариант фона + опциональный padding.
+ * Классы корневой обёртки: центрирование + вариант фона + опциональный padding.
  */
-const overlayClasses = computed(() => [
+const rootClasses = computed(() => [
     $style.BricksModal,
     {
         [$style._gradient]: props.variant === 'gradient',
@@ -66,12 +66,14 @@ function onUpdateOpen(open: boolean): void {
     <DialogRoot :open="props.isOpen" @update:open="onUpdateOpen">
         <DialogPortal>
             <Transition name="library-modal-fade" :duration="props.duration">
-                <DialogOverlay
-                    v-if="props.isOpen"
-                    force-mount
-                    :class="overlayClasses"
-                    :style="{ zIndex: props.zIndex }"
-                >
+                <!--
+                    DialogContent не должен быть вложен в DialogOverlay: overlay Reka
+                    делает preventDefault на левый pointerdown, и вложенный контент
+                    теряет фокус/выделение мышью. Центрирует обычный div, overlay —
+                    прозрачная клик-ловушка под контентом.
+                -->
+                <div v-if="props.isOpen" :class="rootClasses" :style="{ zIndex: props.zIndex }">
+                    <DialogOverlay force-mount :class="$style.overlay" />
                     <DialogContent
                         force-mount
                         :class="$style.content"
@@ -83,7 +85,7 @@ function onUpdateOpen(open: boolean): void {
 
                         <slot />
                     </DialogContent>
-                </DialogOverlay>
+                </div>
             </Transition>
         </DialogPortal>
     </DialogRoot>
@@ -105,6 +107,14 @@ function onUpdateOpen(open: boolean): void {
     &._padded {
         padding: 2rem;
     }
+}
+
+.overlay {
+    position: fixed;
+
+    // Под контентом (в стеке корня), но над фоном корня — клик по фону закрывает модалку
+    z-index: -1;
+    inset: 0;
 }
 
 .content {

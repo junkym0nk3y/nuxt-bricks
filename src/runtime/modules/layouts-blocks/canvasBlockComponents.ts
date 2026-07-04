@@ -8,7 +8,6 @@ import BlockFlex from './components/BlockFlex.vue';
 import BlockSection from './components/BlockSection.vue';
 import BlockSpace from './components/BlockSpace.vue';
 import BlockSlider from './components/BlockSlider.vue';
-import BlockTitle from './components/BlockTitle.vue';
 import BlockText from './components/BlockText.vue';
 import BlockMedia from './components/BlockMedia.vue';
 import BlockAccordion from './components/BlockAccordion.vue';
@@ -26,7 +25,6 @@ export const CANVAS_BLOCK_COMPONENTS: Record<string, Component> = {
     Section: BlockSection,
     Space: BlockSpace,
     Slider: BlockSlider,
-    Title: BlockTitle,
     Text: BlockText,
     Media: BlockMedia,
     Accordion: BlockAccordion,

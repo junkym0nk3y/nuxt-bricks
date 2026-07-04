@@ -11,7 +11,7 @@ import { ref, computed, shallowRef } from 'vue';
 import { defineStore } from 'pinia';
 // #endregion
 
-// Реэкспорт для обратной совместимости импортёров (BlockText, BlockTitle, useInlineEditor)
+// Реэкспорт для обратной совместимости импортёров (BlockText, useInlineEditor)
 export type { TInlineEditingPropType } from '../../common/types/inlineEditing';
 
 /**

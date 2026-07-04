@@ -33,7 +33,6 @@ export function useCanvasItemActions(
     props: ICanvasItemProps,
     isLayout: ComputedRef<boolean>,
     layoutName: ComputedRef<string>,
-    availableFonts: string[],
     figmaViewport: Ref<TBricksDeviceKey> | null,
     itemTop: Ref<number>,
     itemRight: Ref<number>,
@@ -142,7 +141,7 @@ export function useCanvasItemActions(
         let description: string | undefined;
 
         if (isLayout.value) {
-            properties = getLayoutProperties(layoutName.value, availableFonts);
+            properties = getLayoutProperties(layoutName.value);
             description = LAYOUT_COMPONENTS.find(
                 (item) => item.brickPath === props.component.brickPath
             )?.description;

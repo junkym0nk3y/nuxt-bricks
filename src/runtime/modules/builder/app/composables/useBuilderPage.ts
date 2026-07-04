@@ -53,7 +53,6 @@ export async function useBuilderPage(
     setPublishStoreBackgroundColor(bricksConfig.backgroundColor || '#FFFFFF');
 
     provide('dragComposable', dragComposable);
-    provide('availableFonts', bricksConfig.fonts ?? [bricksConfig.defaultFont]);
 
     // Загружаем модалки при старте билдера (не блокируя setup)
     loadModals();

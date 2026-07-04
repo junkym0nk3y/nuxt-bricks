@@ -33,8 +33,7 @@ import {
 export function useCanvasItemInlineEditing(
     props: ICanvasItemProps,
     isLayout: ComputedRef<boolean>,
-    layoutName: ComputedRef<string>,
-    availableFonts: string[]
+    layoutName: ComputedRef<string>
 ) {
     const inlineEditingStore = useInlineEditingStore();
     const canvasStore = useCanvasStore();
@@ -46,7 +45,7 @@ export function useCanvasItemInlineEditing(
     );
     // #endregion
 
-    // Provide inline-editing контекст для дочерних layout-компонентов (BlockTitle, BlockText)
+    // Provide inline-editing контекст для дочерних layout-компонентов (BlockText)
     provide('inlineEditingContext', {
         componentId: computed(() => (isInlineEditing.value ? props.component.id : null)),
         propName: computed(() => (isInlineEditing.value ? inlineEditingStore.propName : null)),
@@ -61,9 +60,7 @@ export function useCanvasItemInlineEditing(
      */
     async function findAllInlineEditableProps(): Promise<IInlineEditableProp[]> {
         if (isLayout.value) {
-            return findAllInlineEditableLayoutProps(
-                getLayoutProperties(layoutName.value, availableFonts)
-            );
+            return findAllInlineEditableLayoutProps(getLayoutProperties(layoutName.value));
         }
 
         const moduleLoader = findImportModule(props.component.brickPath);
