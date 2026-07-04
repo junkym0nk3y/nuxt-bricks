@@ -64,27 +64,25 @@ function onOptionClick(): void {
 
 <style lang="scss" module>
 .BricksSelectOption {
-    padding: 1rem 2.4rem;
-    border-radius: var(--border-radius-sm);
+    padding: 0.8rem 1.2rem;
+    border-radius: var(--border-radius-xs);
     background-color: transparent;
     font-size: 1.2rem;
     font-weight: 500;
-    line-height: 1.2rem;
+    line-height: 1.4rem;
     transition:
         background-color var(--default-transition),
         color var(--default-transition);
     cursor: pointer;
     user-select: none;
 
-    &._selected {
-        border-radius: var(--border-radius-sm);
-        background-color: var(--bricks-base-300);
+    &._highlighted {
+        background-color: var(--bricks-base-100);
     }
 
-    &._highlighted,
     &._selected {
-        border-radius: var(--border-radius-sm);
-        background-color: var(--bricks-base-300);
+        background-color: var(--bricks-primary-50);
+        color: var(--bricks-primary);
     }
 
     &._disabled {

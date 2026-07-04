@@ -5,6 +5,7 @@ import type { IExtractedImageUrl, TImageResolveAction } from '../types/schemaIma
 
 // Vue
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 // #endregion
 
 // #region Interfaces
@@ -30,6 +31,7 @@ const emit = defineEmits<IImageResolverItemEmits>();
 // #endregion
 
 // #region Data
+const { t } = useI18n();
 const imgError = ref(false);
 // #endregion
 
@@ -96,8 +98,8 @@ function handleImgError(): void {
                 :disabled="props.disabled"
                 @change="handleActionChange"
             >
-                <option value="keep">Оставить</option>
-                <option value="placeholder">Заглушка</option>
+                <option value="keep">{{ t('bricks.media.resolver.keep') }}</option>
+                <option value="placeholder">{{ t('bricks.media.resolver.placeholder') }}</option>
             </select>
         </div>
     </div>

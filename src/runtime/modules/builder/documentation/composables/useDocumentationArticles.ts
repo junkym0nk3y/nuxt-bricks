@@ -4,6 +4,7 @@ import type { IDocArticle } from '../types/documentation';
 
 // Vue
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Composables
 import { useMarkdownRenderer } from './useMarkdownRenderer';
@@ -20,13 +21,30 @@ const mdFilesEager = import.meta.glob<string>('../docs/guide/**/*.md', {
     import: 'default',
     eager: true,
 });
+
+// Локаль, статьи которой показываются, когда для активной локали статей нет
+const FALLBACK_DOC_LOCALE = 'ru';
+// #endregion
+
+// #region Methods
+/**
+ * Возвращает glob-префикс папки статей для локали.
+ *
+ * @param locale - Код локали (`ru` / `en`).
+ */
+function getLocalePrefix(locale: string): string {
+    return `../docs/guide/${locale}/`;
+}
 // #endregion
 
 /**
  * Composable для автоматической загрузки и навигации по статьям документации.
+ * Статьи разложены по папкам локалей (`docs/guide/ru/`, `docs/guide/en/`);
+ * если для активной локали статей нет — используется fallback-локаль.
  */
 export function useDocumentationArticles() {
     // #region Data
+    const { locale, t } = useI18n();
     const activeArticlePath = ref('');
     const articleContent = ref('');
     const isContentLoading = ref(false);
@@ -35,13 +53,28 @@ export function useDocumentationArticles() {
 
     // #region Computed
     /**
-     * Список статей, извлечённый из glob-результатов.
+     * Локаль, папка которой реально содержит статьи:
+     * активная локаль либо fallback, если её папка пуста.
+     */
+    const effectiveLocale = computed<string>(() => {
+        const prefix = getLocalePrefix(locale.value);
+        const hasArticles = Object.keys(mdFiles).some((path) => path.startsWith(prefix));
+        return hasArticles ? locale.value : FALLBACK_DOC_LOCALE;
+    });
+
+    /**
+     * Список статей активной локали, извлечённый из glob-результатов.
      * Сортируется по числовому префиксу в имени файла.
      */
     const articles = computed<IDocArticle[]>(() => {
         const result: IDocArticle[] = [];
+        const prefix = getLocalePrefix(effectiveLocale.value);
 
         for (const path of Object.keys(mdFiles)) {
+            if (!path.startsWith(prefix)) {
+                continue;
+            }
+
             const filename = path.split('/').pop() || '';
             const match = filename.match(/^(\d+)-(.+)\.md$/);
 
@@ -91,7 +124,7 @@ export function useDocumentationArticles() {
     async function loadArticleContent(path: string): Promise<void> {
         const loader = mdFiles[path];
         if (!loader) {
-            articleContent.value = '<p>Статья не найдена.</p>';
+            articleContent.value = `<p>${t('bricks.docs.articleNotFound')}</p>`;
             return;
         }
 
@@ -110,20 +143,25 @@ export function useDocumentationArticles() {
     }
 
     /**
-     * Переключает текущую статью.
+     * Переключает текущую статью. Поиск скоупится папкой активной локали,
+     * чтобы кросс-ссылка вида `./02-interface.md` не матчила чужую локаль.
      *
      * @param pathOrSlug - Glob-путь или slug/имя файла для навигации.
      */
     function navigateTo(pathOrSlug: string): void {
-        // Попытка найти по точному пути
-        if (mdFiles[pathOrSlug]) {
+        const prefix = getLocalePrefix(effectiveLocale.value);
+
+        // Попытка найти по точному пути (в пределах активной локали)
+        if (pathOrSlug.startsWith(prefix) && mdFiles[pathOrSlug]) {
             activeArticlePath.value = pathOrSlug;
             return;
         }
 
-        // Поиск по имени файла или slug (для кросс-ссылок вида ./02-components.md)
+        // Поиск по имени файла (для кросс-ссылок вида ./02-components.md)
         const normalized = pathOrSlug.replace(/^\.\//, '');
-        const found = Object.keys(mdFiles).find((path) => path.endsWith(`/${normalized}`));
+        const found = Object.keys(mdFiles).find(
+            (path) => path.startsWith(prefix) && path.endsWith(`/${normalized}`)
+        );
         if (found) {
             activeArticlePath.value = found;
             return;
@@ -158,6 +196,17 @@ export function useDocumentationArticles() {
         },
         { immediate: true }
     );
+
+    // Смена локали: открываем ту же статью в новой локали (по slug), иначе первую
+    watch(effectiveLocale, () => {
+        if (!activeArticlePath.value) {
+            return;
+        }
+
+        const currentSlug = activeArticlePath.value.split('/').pop() ?? '';
+        const sameArticle = articles.value.find((a) => a.path.endsWith(`/${currentSlug}`));
+        activeArticlePath.value = sameArticle?.path ?? articles.value[0]?.path ?? '';
+    });
     // #endregion
 
     return {

@@ -5,6 +5,7 @@ import type { IBricksInputProps, IBricksInputEmits } from './types.d.ts';
 
 // Vue
 import { computed, ref, useCssModule, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // VeeValidate
 import { validate } from 'vee-validate';
@@ -28,6 +29,7 @@ const emit = defineEmits<IBricksInputEmits>();
 // #endregion
 
 // #region Data
+const { t } = useI18n();
 const $style = useCssModule();
 const innerValue = ref<string>(normalizeIncomingValue(props.value));
 const errorMessage = ref<string | null>(null);
@@ -176,7 +178,7 @@ async function runValidation(value: string): Promise<void> {
     }
 
     const result = await validate(value, validationRules.value, {
-        name: props.label || placeholderText.value || 'Поле',
+        name: props.label || placeholderText.value || t('bricks.validation.fieldFallback'),
     });
 
     errorMessage.value = result.errors[0] || null;
@@ -317,7 +319,7 @@ watch(
         <div :class="$style.inner">
             <input
                 v-bind="inputAttributes"
-                :class="[$style.native, props.unit && $style.nativeWithUnit]"
+                :class="$style.native"
                 :tabindex="0"
                 :value="innerValue"
                 @input="handleInput"
@@ -331,7 +333,7 @@ watch(
                     type="button"
                     :class="$style.stepButton"
                     tabindex="-1"
-                    aria-label="Увеличить"
+                    :aria-label="t('bricks.common.increase')"
                     @click="handleStep(1)"
                 >
                     <BricksIcon icon="ph:plus" />
@@ -340,7 +342,7 @@ watch(
                     type="button"
                     :class="$style.stepButton"
                     tabindex="-1"
-                    aria-label="Уменьшить"
+                    :aria-label="t('bricks.common.decrease')"
                     @click="handleStep(-1)"
                 >
                     <BricksIcon icon="ph:minus" />
@@ -360,15 +362,14 @@ watch(
     width: 100%;
 
     &._active {
-        .inner:after {
-            transform: scaleX(1);
+        .inner {
+            border-color: var(--bricks-base-400);
         }
     }
 
     &._invalid {
-        .inner:after {
-            background-color: var(--bricks-danger-600);
-            transform: scaleX(1);
+        .inner {
+            border-color: var(--bricks-danger-600);
         }
 
         .native {
@@ -384,18 +385,13 @@ watch(
         opacity: 0.5;
         pointer-events: none;
 
+        .inner {
+            background-color: var(--bricks-base-50);
+        }
+
         .stepper {
             pointer-events: none;
         }
-    }
-
-    .native {
-        width: 100%;
-        padding-bottom: 1rem;
-        font-size: 1.4rem;
-        font-weight: normal;
-        line-height: 1.6rem;
-        opacity: 1;
     }
 
     .label {
@@ -418,65 +414,60 @@ watch(
     z-index: 2;
     display: flex;
     align-items: center;
+    padding: 0.8rem 1.2rem;
+    border-radius: var(--border-radius-xs);
+    border: 1px solid var(--bricks-base-300);
+    background-color: var(--bricks-base-0);
+    transition:
+        border-color var(--default-transition),
+        box-shadow var(--default-transition);
+    gap: 0.8rem;
 
-    &:before,
-    &:after {
-        content: '';
-        position: absolute;
-        bottom: -0.2rem;
-        left: 0;
-        width: 100%;
-        height: 1px;
-        background-color: var(--bricks-base-300);
+    &:hover {
+        border-color: var(--bricks-base-400);
     }
 
-    &:after {
-        z-index: 2;
-        background-color: var(--bricks-primary);
-        transform: scaleX(0);
-        transform-origin: left center;
-        transition: all var(--default-transition);
+    &:focus-within {
+        border-color: var(--bricks-primary);
+        box-shadow: var(--shadow-focus);
     }
 }
 
 .native {
+    flex: 1;
     width: 100%;
-    padding: 0 3.2rem 1rem 0;
+    min-width: 0;
+    padding: 0;
     border: none;
     background: transparent;
     outline: none;
     font-size: 1.4rem;
-    line-height: 1.6rem;
+    line-height: 1.8rem;
     color: var(--bricks-base-900);
 
     &:focus {
         outline: none;
     }
-}
 
-.nativeWithUnit {
-    padding-right: 5.6rem;
+    &::placeholder {
+        color: var(--bricks-base-400);
+    }
 }
 
 .unitSuffix {
-    position: absolute;
-    right: 3.2rem;
-    bottom: 1rem;
+    flex-shrink: 0;
     font-size: 1.2rem;
-    line-height: 1.6rem;
+    line-height: 1.8rem;
     color: var(--bricks-base-400);
     pointer-events: none;
     user-select: none;
 }
 
 .stepper {
-    position: absolute;
-    top: 50%;
-    right: 0;
     display: flex;
+    flex-shrink: 0;
     flex-direction: row;
     gap: 0.2rem;
-    transform: translateY(-50%);
     pointer-events: auto;
 }
 
@@ -484,8 +475,9 @@ watch(
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 1.2rem;
-    height: 1.2rem;
+    width: 1.8rem;
+    height: 1.8rem;
+    border-radius: 0.4rem;
     border: none;
     background-color: transparent;
     color: var(--bricks-base-500);
@@ -495,8 +487,8 @@ watch(
     cursor: pointer;
 
     &:hover {
-        background-color: var(--primary-indigo-12);
-        color: var(--bricks-base-600);
+        background-color: var(--bricks-primary-50);
+        color: var(--bricks-primary);
     }
 
     svg {

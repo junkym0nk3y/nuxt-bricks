@@ -5,6 +5,7 @@ import type { IBricksConfirmModalEmits, IBricksConfirmModalProps } from './types
 
 // Vue
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Components
 import BricksButton from '../base/button/BricksButton.vue';
@@ -15,8 +16,8 @@ import BricksModal from '../base/modal/BricksModal.vue';
 // #region Props
 const props = withDefaults(defineProps<IBricksConfirmModalProps>(), {
     description: '',
-    confirmText: 'Подтвердить',
-    cancelText: 'Отмена',
+    confirmText: '',
+    cancelText: '',
     confirmVariant: 'primary',
     isLoading: false,
 });
@@ -26,8 +27,14 @@ const props = withDefaults(defineProps<IBricksConfirmModalProps>(), {
 const emit = defineEmits<IBricksConfirmModalEmits>();
 // #endregion
 
+// #region Data
+const { t } = useI18n();
+// #endregion
+
 // #region Computed
 const normalizedDescription = computed(() => props.description?.trim());
+const confirmLabel = computed(() => props.confirmText || t('bricks.common.confirm'));
+const cancelLabel = computed(() => props.cancelText || t('bricks.common.cancel'));
 // #endregion
 
 // #region Methods
@@ -80,7 +87,7 @@ function handleConfirm(): void {
                     :disabled="props.isLoading"
                     @click="handleClose"
                 >
-                    {{ props.cancelText }}
+                    {{ cancelLabel }}
                 </BricksButton>
 
                 <BricksButton
@@ -89,7 +96,7 @@ function handleConfirm(): void {
                     :disabled="props.isLoading"
                     @click="handleConfirm"
                 >
-                    {{ props.confirmText }}
+                    {{ confirmLabel }}
                 </BricksButton>
             </div>
         </div>

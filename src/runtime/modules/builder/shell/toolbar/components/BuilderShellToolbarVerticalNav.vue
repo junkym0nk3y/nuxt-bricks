@@ -2,6 +2,7 @@
 // #region Imports
 // Vue
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Components
 import BricksTooltip from '../../../../ui/tooltip/BricksTooltip.vue';
@@ -26,6 +27,7 @@ interface IToolbarVerticalNavEmits {
     openPublishSettings: [];
     openDocs: [];
     toggleDarkMode: [];
+    toggleLocale: [];
 }
 // #endregion
 
@@ -46,32 +48,34 @@ const emit = defineEmits<IToolbarVerticalNavEmits>();
 // #endregion
 
 // #region Data
+const { t, locale } = useI18n();
+
 const NAV_ITEMS = [
     {
         key: 'library',
         icon: 'an:outlined-appstore-add',
-        label: 'Компоненты',
+        label: 'bricks.nav.library',
         event: 'toggleLibrary' as const,
         activeProp: 'isLibraryActive' as const,
     },
     {
         key: 'properties',
         icon: 'ak:settings-horizontal',
-        label: 'Свойства',
+        label: 'bricks.nav.properties',
         event: 'toggleProperties' as const,
         activeProp: 'isPropertiesActive' as const,
     },
     {
         key: 'schema',
         icon: 're:drag-drop-line',
-        label: 'Схема',
+        label: 'bricks.nav.schema',
         event: 'toggleSchema' as const,
         activeProp: 'isSchemaActive' as const,
     },
     {
         key: 'settings',
         icon: 'ph:gear-six',
-        label: 'Настройки',
+        label: 'bricks.nav.settings',
         event: 'openPublishSettings' as const,
         activeProp: 'isPublishSettingsActive' as const,
     },
@@ -97,7 +101,14 @@ const darkModeIcon = computed<string>(() => (props.isDarkMode ? 'bs:sun-fill' : 
 /**
  * Возвращает текст тултипа для переключателя темы.
  */
-const darkModeTooltip = computed<string>(() => (props.isDarkMode ? 'Светлая тема' : 'Тёмная тема'));
+const darkModeTooltip = computed<string>(() =>
+    props.isDarkMode ? t('bricks.nav.themeLight') : t('bricks.nav.themeDark')
+);
+
+/**
+ * Возвращает метку текущей локали для кнопки переключателя языка.
+ */
+const localeLabel = computed<string>(() => locale.value.toUpperCase());
 // #endregion
 
 // #region Data
@@ -137,6 +148,13 @@ function handleOpenDocs(): void {
 function handleToggleDarkMode(): void {
     emit('toggleDarkMode');
 }
+
+/**
+ * Переключает локаль интерфейса (ru ⇄ en).
+ */
+function handleToggleLocale(): void {
+    emit('toggleLocale');
+}
 // #endregion
 </script>
 
@@ -162,7 +180,7 @@ function handleToggleDarkMode(): void {
                     :class="$style.dangerDot"
                 />
             </span>
-            <span :class="$style.label">{{ item.label }}</span>
+            <span :class="$style.label">{{ t(item.label) }}</span>
         </button>
 
         <div :class="$style.spacer" />
@@ -175,7 +193,19 @@ function handleToggleDarkMode(): void {
             </template>
 
             <template #default>
-                <BricksTooltipHint text="Документация" />
+                <BricksTooltipHint :text="t('bricks.nav.docs')" />
+            </template>
+        </BricksTooltip>
+
+        <BricksTooltip right>
+            <template #activator>
+                <button :class="$style.localeToggle" @click="handleToggleLocale">
+                    {{ localeLabel }}
+                </button>
+            </template>
+
+            <template #default>
+                <BricksTooltipHint :text="t('bricks.nav.language')" />
             </template>
         </BricksTooltip>
 
@@ -205,6 +235,7 @@ function handleToggleDarkMode(): void {
     width: 7.2rem;
     min-width: 7.2rem;
     padding-top: 1.6rem;
+    padding-bottom: 1.6rem;
     border-right: 1px solid var(--bricks-base-300);
     background-color: var(--bricks-base-0);
     flex-direction: column;
@@ -276,13 +307,36 @@ function handleToggleDarkMode(): void {
     flex: 1;
 }
 
+.localeToggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.6rem;
+    height: 3.6rem;
+    border-radius: 0.8rem;
+    border: none;
+    background: transparent;
+    font-size: 1.2rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--bricks-base-500);
+    transition:
+        color var(--default-transition),
+        background-color var(--default-transition);
+    cursor: pointer;
+
+    &:hover {
+        background-color: var(--bricks-base-100);
+        color: var(--bricks-base-900);
+    }
+}
+
 .themeToggle {
     display: flex;
     align-items: center;
     justify-content: center;
     width: 3.6rem;
     height: 3.6rem;
-    margin-bottom: 1.6rem;
     border-radius: 0.8rem;
     border: none;
     background: transparent;

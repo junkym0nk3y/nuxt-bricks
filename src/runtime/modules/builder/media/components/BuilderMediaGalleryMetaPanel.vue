@@ -9,6 +9,7 @@ import { MEDIA_CATEGORY_OPTIONS, DEFAULT_MEDIA_CATEGORY } from '../constants/med
 
 // Vue
 import { ref, computed, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
@@ -23,6 +24,7 @@ const emit = defineEmits<IMediaGalleryMetaPanelEmits>();
 // #endregion
 
 // #region Data
+const { t } = useI18n();
 const editableFilename = ref('');
 const editableAlt = ref('');
 // #endregion
@@ -88,13 +90,15 @@ watch(
     <div :class="$style.BuilderMediaGalleryMetaPanel">
         <template v-if="props.selectedItem">
             <div :class="$style.metaField">
-                <label :class="$style.selectorLabel" for="media-filename"> Название: </label>
+                <label :class="$style.selectorLabel" for="media-filename">
+                    {{ t('bricks.media.nameLabel') }}
+                </label>
                 <input
                     id="media-filename"
                     v-model="editableFilename"
                     :class="$style.metaInput"
                     type="text"
-                    placeholder="Имя файла"
+                    :placeholder="t('bricks.media.filenamePlaceholder')"
                     @blur="handleMetaBlur"
                 />
             </div>
@@ -105,12 +109,14 @@ watch(
                     v-model="editableAlt"
                     :class="$style.metaInput"
                     type="text"
-                    placeholder="Описание изображения"
+                    :placeholder="t('bricks.media.altPlaceholder')"
                     @blur="handleMetaBlur"
                 />
             </div>
             <div :class="$style.categorySelector">
-                <label :class="$style.selectorLabel" for="media-category"> Категория: </label>
+                <label :class="$style.selectorLabel" for="media-category">
+                    {{ t('bricks.media.categoryLabel') }}
+                </label>
                 <select
                     id="media-category"
                     :value="selectedCategory"
@@ -122,7 +128,7 @@ watch(
                         :key="option.value"
                         :value="option.value"
                     >
-                        {{ option.label }}
+                        {{ t(option.label) }}
                     </option>
                 </select>
             </div>

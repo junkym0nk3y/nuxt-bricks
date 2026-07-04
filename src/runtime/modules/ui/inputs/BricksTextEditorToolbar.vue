@@ -5,6 +5,7 @@ import type { IToolbarGroup } from './textEditorToolbar.d.ts';
 
 // Vue
 import { useCssModule } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Components
 import BricksTooltip from '../tooltip/BricksTooltip.vue';
@@ -45,26 +46,28 @@ const emit = defineEmits<{
 
 // #region Data
 const $style = useCssModule();
+const { t } = useI18n();
 
-const TOOLBAR_TOOLTIP_TEXT: Record<string, string> = {
-    Bold: 'Жирный',
-    Italic: 'Курсив',
-    Underline: 'Подчёркивание',
-    'Font Family': 'Семейство шрифта',
-    'Font Size': 'Размер шрифта',
-    'Font Weight': 'Толщина шрифта',
-    'Line Height': 'Межстрочный интервал',
-    'Letter Spacing': 'Межбуквенный интервал',
-    'Text Color': 'Цвет текста',
-    'Align Left': 'По левому краю',
-    'Align Center': 'По центру',
-    'Align Right': 'По правому краю',
-    'Align Justify': 'По ширине',
-    'Bullet List': 'Маркированный список',
-    'Numbered List': 'Нумерованный список',
-    Table: 'Таблица',
-    'Insert Image': 'Вставить изображение',
-    'Dark Background': 'Тёмный фон',
+const TOOLBAR_TOOLTIP_KEYS: Record<string, string> = {
+    Bold: 'bricks.textEditor.toolbar.bold',
+    Italic: 'bricks.textEditor.toolbar.italic',
+    Underline: 'bricks.textEditor.toolbar.underline',
+    'Font Family': 'bricks.textEditor.toolbar.fontFamily',
+    'Font Size': 'bricks.textEditor.toolbar.fontSize',
+    'Font Weight': 'bricks.textEditor.toolbar.fontWeight',
+    'Line Height': 'bricks.textEditor.toolbar.lineHeight',
+    'Letter Spacing': 'bricks.textEditor.toolbar.letterSpacing',
+    'Text Color': 'bricks.textEditor.toolbar.textColor',
+    'Align Left': 'bricks.textEditor.toolbar.alignLeft',
+    'Align Center': 'bricks.textEditor.toolbar.alignCenter',
+    'Align Right': 'bricks.textEditor.toolbar.alignRight',
+    'Align Justify': 'bricks.textEditor.toolbar.alignJustify',
+    'Bullet List': 'bricks.textEditor.toolbar.bulletList',
+    'Numbered List': 'bricks.textEditor.toolbar.numberedList',
+    Table: 'bricks.textEditor.toolbar.table',
+    'Insert Image': 'bricks.textEditor.toolbar.insertImage',
+    'Dark Background': 'bricks.textEditor.toolbar.darkBackground',
+    Divider: 'bricks.textEditor.toolbar.divider',
 };
 // #endregion
 
@@ -73,7 +76,8 @@ const TOOLBAR_TOOLTIP_TEXT: Record<string, string> = {
  * Возвращает локализованный текст тултипа по английскому title элемента.
  */
 function getTooltipText(title: string): string {
-    return TOOLBAR_TOOLTIP_TEXT[title] ?? title;
+    const key = TOOLBAR_TOOLTIP_KEYS[title];
+    return key ? t(key) : title;
 }
 // #endregion
 </script>
@@ -354,7 +358,7 @@ function getTooltipText(title: string): string {
     border-radius: var(--border-radius-xs);
     border: 1px solid var(--bricks-base-200);
     background: transparent;
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     font-weight: 600;
     color: var(--bricks-base-600);
     transition: all var(--default-transition);
@@ -380,7 +384,7 @@ function getTooltipText(title: string): string {
 .toolbarSelectWrapper {
     display: flex;
     align-items: center;
-    gap: 0.3rem;
+    gap: 0.4rem;
     flex: var(--toolbar-select-flex);
     min-width: var(--toolbar-select-min-width);
 }

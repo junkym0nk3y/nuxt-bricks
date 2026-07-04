@@ -5,6 +5,7 @@ import type { IMediaGalleryUploadAreaProps, IMediaGalleryUploadAreaEmits } from 
 
 // Vue
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
@@ -19,6 +20,7 @@ const emit = defineEmits<IMediaGalleryUploadAreaEmits>();
 // #endregion
 
 // #region Data
+const { t } = useI18n();
 const fileInputRef = ref<HTMLInputElement | null>(null);
 const dragOver = ref(false);
 // #endregion
@@ -84,12 +86,17 @@ function handleDrop(event: DragEvent): void {
             @change="handleFileChange"
         />
         <BricksIcon :class="$style.uploadIcon" icon="md:cloud-upload" />
-        <p :class="$style.uploadText">Перетащите файлы сюда или нажмите, чтобы выбрать</p>
+        <p :class="$style.uploadText">{{ t('bricks.media.dropHint') }}</p>
         <BricksButton size="md" variant="primary" @click="handleOpenFilePicker">
-            Выбрать файлы
+            {{ t('bricks.media.chooseFiles') }}
         </BricksButton>
         <p :class="$style.uploadHint">
-            Изображения — до {{ props.maxImageSizeMb }} МБ, видео — до {{ props.maxVideoSizeMb }} МБ
+            {{
+                t('bricks.media.sizeHint', {
+                    image: props.maxImageSizeMb,
+                    video: props.maxVideoSizeMb,
+                })
+            }}
         </p>
     </div>
 </template>

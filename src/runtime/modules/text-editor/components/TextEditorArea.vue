@@ -16,6 +16,7 @@ import {
     watch,
     type Component,
 } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Utils
 import { createTiptapEditor } from '../utils/createTiptapEditor';
@@ -55,6 +56,7 @@ const emit = defineEmits<ITextEditorAreaEmits>();
 // #endregion
 
 // #region Data
+const { t } = useI18n();
 const inlineEditingStore = useInlineEditingStore();
 const $style = useCssModule();
 const innerValue = ref<string>(props.value ?? '');
@@ -135,7 +137,7 @@ watch(
                 ...editor.value.options.editorProps,
                 attributes: {
                     ...(editor.value.options.editorProps?.attributes || {}),
-                    'data-placeholder': placeholder || 'Введите текст…',
+                    'data-placeholder': placeholder || t('bricks.textEditor.textPlaceholder'),
                 },
             },
         });
@@ -270,7 +272,9 @@ onBeforeUnmount(() => {
                     @click="toggleCodeView"
                 >
                     <BricksIcon :icon="isCodeView ? 'ph:eye' : 'ph:code'" />
-                    <span>{{ isCodeView ? 'Рендер' : 'Код' }}</span>
+                    <span>{{
+                        isCodeView ? t('bricks.textEditor.render') : t('bricks.textEditor.code')
+                    }}</span>
                 </BricksButton>
             </div>
 
@@ -317,7 +321,7 @@ onBeforeUnmount(() => {
                                 <BricksIcon icon="ph:arrows-out" />
                             </button>
                         </template>
-                        <BricksTooltipHint text="Развернуть" />
+                        <BricksTooltipHint :text="t('bricks.textEditor.expand')" />
                     </BricksTooltip>
                 </div>
                 <div v-else :class="editorWrapperClasses">
@@ -343,7 +347,7 @@ onBeforeUnmount(() => {
                                 <BricksIcon icon="ph:arrows-out" />
                             </button>
                         </template>
-                        <BricksTooltipHint text="Развернуть" />
+                        <BricksTooltipHint :text="t('bricks.textEditor.expand')" />
                     </BricksTooltip>
                 </div>
             </transition>

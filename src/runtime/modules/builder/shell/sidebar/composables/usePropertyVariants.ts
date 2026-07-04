@@ -5,6 +5,7 @@ import type { TBrickPropValue } from '../../../../common/types/brick';
 
 // Vue
 import { computed, type ComputedRef } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Utils
 import {
@@ -12,6 +13,7 @@ import {
     formatPrimitiveArrayValue,
     isPrimitiveArrayValue,
 } from '../utils/propertyFormatters';
+import { resolveBricksLabel } from '../../../../common/utils/i18nLabels';
 
 // Constants
 import {
@@ -33,6 +35,15 @@ import {
 export function usePropertyVariants(
     selectedComponentData: ComputedRef<ISelectedComponentData | null>
 ): IUsePropertyVariantsReturn {
+    const { t, te } = useI18n();
+
+    /**
+     * Резолвит label свойства: ключи `bricks.*` переводятся, кастомные строки — как есть.
+     */
+    function resolvePropertyLabel(property: IPropertyVariantContext['property']): string {
+        return resolveBricksLabel(t, te, property.label) || property.name;
+    }
+
     // #region Computed
     /**
      * Вычисляемые варианты свойств для всех типов редакторов
@@ -162,10 +173,10 @@ export function usePropertyVariants(
         const options = property.options;
 
         variants.select.push({
-            label: property.label || property.name,
+            label: resolvePropertyLabel(property),
             value: String(componentProps[property.name] ?? options[0]?.value ?? ''),
             specs: options.map((option) => ({
-                label: String(option.label),
+                label: resolveBricksLabel(t, te, String(option.label)) ?? String(option.label),
                 value: String(option.value),
             })),
             facets: options.map((option) => String(option.value)),
@@ -192,12 +203,12 @@ export function usePropertyVariants(
         }
 
         variants.switch.push({
-            label: property.label || property.name,
+            label: resolvePropertyLabel(property),
             value: Boolean(componentProps[property.name]),
             disabled: false,
             trueValue: true,
             falseValue: false,
-            trueLabel: 'Вкл',
+            trueLabel: t('bricks.properties.switchOn'),
             falseLabel: '',
             size: 'small',
             property,
@@ -222,7 +233,7 @@ export function usePropertyVariants(
         }
 
         variants.boolean.push({
-            label: property.label || property.name,
+            label: resolvePropertyLabel(property),
             value: Boolean(componentProps[property.name]),
             disabled: false,
             property,
@@ -247,7 +258,7 @@ export function usePropertyVariants(
         }
 
         variants.textarea.push({
-            label: property.label || property.name,
+            label: resolvePropertyLabel(property),
             value: formatDisplayValue(componentProps[property.name]),
             disabled: false,
             placeholder: `Enter ${property.label || property.name}`,
@@ -278,7 +289,7 @@ export function usePropertyVariants(
         const value = Array.isArray(currentValue) ? currentValue : fallback;
 
         variants['inline-content'].push({
-            label: property.label || property.name,
+            label: resolvePropertyLabel(property),
             value,
             disabled: false,
             property,
@@ -308,7 +319,7 @@ export function usePropertyVariants(
         const value = Array.isArray(currentValue) ? currentValue : fallback;
 
         variants['image-gallery'].push({
-            label: property.label || property.name,
+            label: resolvePropertyLabel(property),
             value,
             disabled: false,
             property,
@@ -338,7 +349,7 @@ export function usePropertyVariants(
         const value = Array.isArray(currentValue) ? currentValue : fallback;
 
         variants['accordion-items'].push({
-            label: property.label || property.name,
+            label: resolvePropertyLabel(property),
             value,
             disabled: false,
             property,
@@ -363,7 +374,7 @@ export function usePropertyVariants(
         }
 
         variants.color.push({
-            label: property.label || property.name,
+            label: resolvePropertyLabel(property),
             value: formatDisplayValue(componentProps[property.name]),
             disabled: false,
             property,
@@ -390,7 +401,7 @@ export function usePropertyVariants(
         const value = source.map((item) => String(item).trim()).filter((item) => Boolean(item));
 
         variants.tags.push({
-            label: property.label || property.name,
+            label: resolvePropertyLabel(property),
             value,
             disabled: false,
             property,
@@ -415,7 +426,7 @@ export function usePropertyVariants(
         }
 
         variants.image.push({
-            label: property.label || property.name,
+            label: resolvePropertyLabel(property),
             value: formatDisplayValue(componentProps[property.name]),
             disabled: false,
             property,
@@ -440,7 +451,7 @@ export function usePropertyVariants(
         }
 
         variants.video.push({
-            label: property.label || property.name,
+            label: resolvePropertyLabel(property),
             value: formatDisplayValue(componentProps[property.name]),
             disabled: false,
             property,
@@ -475,7 +486,7 @@ export function usePropertyVariants(
 
         if (primitiveSource) {
             variants.input.push({
-                label: property.label || property.name,
+                label: resolvePropertyLabel(property),
                 value: formatPrimitiveArrayValue(
                     Array.isArray(currentValue) ? currentValue : primitiveSource
                 ),
@@ -487,7 +498,7 @@ export function usePropertyVariants(
         }
 
         variants.json.push({
-            label: property.label || property.name,
+            label: resolvePropertyLabel(property),
             value: (currentValue ?? property.default ?? []) as TBrickPropValue,
             disabled: false,
             property,
@@ -512,7 +523,7 @@ export function usePropertyVariants(
         }
 
         variants.json.push({
-            label: property.label || property.name,
+            label: resolvePropertyLabel(property),
             value: (componentProps[property.name] ?? property.default ?? {}) as TBrickPropValue,
             disabled: false,
             property,
@@ -532,7 +543,7 @@ export function usePropertyVariants(
         variants,
     }: IPropertyVariantContext): void {
         variants.input.push({
-            label: property.label || property.name,
+            label: resolvePropertyLabel(property),
             value: formatDisplayValue(componentProps[property.name]),
             disabled: false,
             property,

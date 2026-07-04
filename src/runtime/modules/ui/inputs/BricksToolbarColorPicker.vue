@@ -294,7 +294,7 @@ watch(
 }
 
 .errorText {
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     color: var(--bricks-danger-600, #dc2626);
 }
 </style>

@@ -5,6 +5,7 @@ import type { IToolbarEditableSelect } from './textEditorToolbar.d.ts';
 
 // Vue
 import { ref, computed, nextTick } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Reka UI
 import {
@@ -29,6 +30,7 @@ const props = withDefaults(
 // #endregion
 
 // #region Data
+const { t } = useI18n();
 const customInputRef = ref<HTMLInputElement | null>(null);
 const isOpen = ref(false);
 const customValue = ref('');
@@ -227,7 +229,9 @@ async function focusCustomInput(): Promise<void> {
                         type="text"
                         :class="[$style.customInput, { [$style._error]: hasError }]"
                         :value="customValue"
-                        :placeholder="props.item.customInputPlaceholder || 'Значение'"
+                        :placeholder="
+                            props.item.customInputPlaceholder || t('bricks.textEditor.value')
+                        "
                         @input="handleCustomInput"
                         @keydown="handleCustomKeydown"
                         @mousedown.stop
@@ -412,7 +416,7 @@ async function focusCustomInput(): Promise<void> {
 
 .errorText {
     margin-top: 0.2rem;
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     color: var(--bricks-danger-600, #dc2626);
 }
 </style>

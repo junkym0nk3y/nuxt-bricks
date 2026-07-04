@@ -5,6 +5,7 @@ import type { TMediaGalleryContext } from '../../../common/types/media';
 
 // Vue
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Nuxt
 import { definePageMeta, useHead, useRoute, useRouter, useCookie } from '#imports';
@@ -47,6 +48,7 @@ definePageMeta({
 // #endregion
 
 // #region Data
+const { t, locale, setLocale } = useI18n();
 const route = useRoute();
 const router = useRouter();
 
@@ -167,7 +169,7 @@ async function handleEditFromModal(pageId: string): Promise<void> {
 
     const page = publishStore.getPageById(pageId);
     if (!page) {
-        showToast('Страница не найдена', 'error');
+        showToast(t('bricks.publish.toasts.pageNotFound'), 'error');
         return;
     }
 
@@ -190,6 +192,13 @@ function handleOpenMediaGalleryWithContext(context?: TMediaGalleryContext): void
 function handleToggleDarkMode(): void {
     isDarkMode.value = !isDarkMode.value;
     darkModeCookie.value = isDarkMode.value;
+}
+
+/**
+ * Переключает локаль интерфейса (ru ⇄ en); cookie `bricks-locale` пишет сам i18n.
+ */
+async function handleToggleLocale(): Promise<void> {
+    await setLocale(locale.value === 'ru' ? 'en' : 'ru');
 }
 // #endregion
 
@@ -260,6 +269,7 @@ onBeforeUnmount(() => {
                 @open-publish-settings="handleOpenPublishSettings"
                 @open-docs="handleOpenDocs"
                 @toggle-dark-mode="handleToggleDarkMode"
+                @toggle-locale="handleToggleLocale"
             />
 
             <TheBuilderShellSidebar
@@ -297,10 +307,10 @@ onBeforeUnmount(() => {
 
         <BricksConfirmModal
             :is-open="isRestoreDraftModalOpen"
-            title="Восстановить несохранённые изменения?"
-            description="Мы нашли изменения, которые не были сохранены. Восстановить их?"
-            confirm-text="Восстановить изменения"
-            cancel-text="Открыть сохранённую"
+            :title="t('bricks.publish.draft.restoreTitle')"
+            :description="t('bricks.publish.draft.restoreDescription')"
+            :confirm-text="t('bricks.publish.draft.restoreConfirm')"
+            :cancel-text="t('bricks.publish.draft.restoreCancel')"
             confirm-variant="primary"
             @close="handleDiscardDraft"
             @confirm="handleRestoreDraft"

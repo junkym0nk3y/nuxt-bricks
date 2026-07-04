@@ -137,17 +137,25 @@ function onUpdate(value: AcceptableValue): void {
         position: relative;
         display: block;
         width: 100%;
-        padding: 0;
-        border: none;
-        background: transparent;
+        padding: 0.8rem 3.2rem 0.8rem 1.2rem;
+        border-radius: var(--border-radius-xs);
+        border: 1px solid var(--bricks-base-300);
+        background: var(--bricks-base-0);
         text-align: left;
+        transition:
+            border-color var(--default-transition),
+            box-shadow var(--default-transition);
         cursor: pointer;
+
+        &:hover {
+            border-color: var(--bricks-base-400);
+        }
 
         &:after {
             content: '';
             position: absolute;
             top: calc(50% - 0.4rem);
-            right: 0.4rem;
+            right: 1.2rem;
             width: 0;
             height: 0;
             border: 0.4rem solid transparent;
@@ -164,12 +172,11 @@ function onUpdate(value: AcceptableValue): void {
         overflow: hidden;
         display: inline-block;
         width: 100%;
-        padding-bottom: 1rem;
         text-overflow: ellipsis;
         white-space: nowrap;
         font-size: 1.4rem;
         font-weight: 500;
-        line-height: 1;
+        line-height: 1.8rem;
         color: var(--bricks-base-900);
         transition:
             color var(--default-transition),
@@ -193,39 +200,32 @@ function onUpdate(value: AcceptableValue): void {
         }
 
         .field {
+            background-color: var(--bricks-base-50);
             pointer-events: none;
         }
     }
 
     &._opened .field {
-        border-color: var(--bricks-base-900);
+        border-color: var(--bricks-primary);
+        box-shadow: var(--shadow-focus);
 
         &:after {
-            color: var(--bricks-base-300);
+            color: var(--bricks-base-400);
             transform: translateY(-80%) rotate(180deg);
         }
     }
 
     &._empty .nativeInput {
-        color: var(--bricks-base-300);
-    }
-
-    &:after {
-        content: '';
-        position: absolute;
-        bottom: -0.2rem;
-        left: 0;
-        width: 100%;
-        height: 1px;
-        background-color: var(--bricks-base-300);
+        color: var(--bricks-base-400);
     }
 }
 
 .dropdown {
     z-index: 100;
     width: var(--reka-select-trigger-width);
-    padding: 0.8rem 0;
-    border-radius: 1.2rem;
+    padding: 0.6rem;
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
     color: var(--bricks-base-900);
     box-shadow: var(--shadow-md);
@@ -236,28 +236,31 @@ function onUpdate(value: AcceptableValue): void {
 }
 
 .listItem {
-    margin: 0 0.6rem 0.6rem 0.6rem;
-    padding: 1rem 2.4rem;
-    border-radius: var(--border-radius-sm);
+    margin: 0 0 0.2rem;
+    padding: 0.8rem 1.2rem;
+    border-radius: var(--border-radius-xs);
     background-color: transparent;
     outline: none;
     font-size: 1.2rem;
     font-weight: 500;
-    line-height: 1.2rem;
+    line-height: 1.4rem;
     transition:
         background-color var(--default-transition),
         color var(--default-transition);
     cursor: pointer;
     user-select: none;
 
-    @media (width <= 1024px) {
-        margin: 0;
+    &:last-child {
+        margin-bottom: 0;
     }
 
-    &[data-highlighted],
+    &[data-highlighted] {
+        background-color: var(--bricks-base-100);
+    }
+
     &[data-state='checked'] {
-        border-radius: var(--border-radius-sm);
-        background-color: var(--bricks-base-300);
+        background-color: var(--bricks-primary-50);
+        color: var(--bricks-primary);
     }
 
     &[data-disabled] {

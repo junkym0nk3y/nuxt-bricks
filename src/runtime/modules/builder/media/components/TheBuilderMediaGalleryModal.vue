@@ -10,6 +10,7 @@ import { DEFAULT_MEDIA_CATEGORY } from '../constants/mediaCategories';
 
 // Vue
 import { ref, computed, watch, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Pinia
 import { useMediaStore } from '../stores/media';
@@ -41,6 +42,7 @@ const emit = defineEmits<IMediaGalleryEmits>();
 // #endregion
 
 // #region Data
+const { t } = useI18n();
 const mediaStore = useMediaStore();
 const selectedItemId = ref<number | null>(null);
 const categoryFilter = ref<string>('all');
@@ -91,8 +93,7 @@ async function loadMediaItems(): Promise<void> {
         await mediaStore.loadItems();
     } catch (error: unknown) {
         const message =
-            (error as { message?: string })?.message ||
-            'Не удалось загрузить медиа. Проверьте подключение к базе.';
+            (error as { message?: string })?.message || t('bricks.media.loadFailedCheckDb');
         emit('error', message);
     }
 }
@@ -235,7 +236,7 @@ watch(
 <template>
     <BricksModal
         :is-open="props.visible"
-        title="Управление медия-контентом"
+        :title="t('bricks.media.galleryTitle')"
         variant="gradient"
         padded
         :z-index="99999"
@@ -245,7 +246,7 @@ watch(
         <div :class="$style.modal">
             <!-- Header -->
             <div :class="$style.header">
-                <h2 :class="$style.title">Управление медия-контентом</h2>
+                <h2 :class="$style.title">{{ t('bricks.media.galleryTitle') }}</h2>
                 <BricksCloseButton @click="handleClose" />
             </div>
 
@@ -273,19 +274,19 @@ watch(
 
                 <div v-else-if="hasItems && !isUploading" :class="$style.emptyState">
                     <BricksIcon :class="$style.emptyIcon" icon="md:filter-list" />
-                    <p :class="$style.emptyText">Нет файлов, подходящих под фильтр</p>
+                    <p :class="$style.emptyText">{{ t('bricks.media.emptyFiltered') }}</p>
                 </div>
 
                 <!-- Empty State -->
                 <div v-else-if="!isUploading" :class="$style.emptyState">
                     <BricksIcon :class="$style.emptyIcon" icon="md:outlined-image" />
-                    <p :class="$style.emptyText">Нет загруженных изображений</p>
+                    <p :class="$style.emptyText">{{ t('bricks.media.emptyNoUploads') }}</p>
                 </div>
 
                 <!-- Loading State -->
                 <div v-if="isUploading" :class="$style.loading">
                     <BricksIcon :class="$style.loadingIcon" icon="ui:loading" />
-                    <p>Загружаю файл...</p>
+                    <p>{{ t('bricks.media.uploading') }}</p>
                 </div>
             </div>
 
@@ -299,7 +300,7 @@ watch(
                 />
                 <div v-if="shouldShowPickerActions" :class="$style.footerRight">
                     <BricksButton size="md" variant="secondary" @click="handleClose">
-                        Отменить
+                        {{ t('bricks.media.cancel') }}
                     </BricksButton>
                     <BricksButton
                         size="md"
@@ -307,7 +308,7 @@ watch(
                         :disabled="!selectedItemId"
                         @click="handleInsert"
                     >
-                        Выбрать
+                        {{ t('bricks.media.select') }}
                     </BricksButton>
                 </div>
             </div>
@@ -323,9 +324,9 @@ watch(
     <!-- Delete Confirmation Modal -->
     <BricksConfirmModal
         :is-open="isDeleteConfirmOpen"
-        title="Удалить изображение?"
-        description="Это действие нельзя отменить. Изображение будет удалено безвозвратно."
-        confirm-text="Удалить"
+        :title="t('bricks.media.deleteImageTitle')"
+        :description="t('bricks.media.deleteImageDescription')"
+        :confirm-text="t('bricks.common.delete')"
         confirm-variant="danger"
         :is-loading="isDeleting"
         @confirm="handleConfirmDelete"

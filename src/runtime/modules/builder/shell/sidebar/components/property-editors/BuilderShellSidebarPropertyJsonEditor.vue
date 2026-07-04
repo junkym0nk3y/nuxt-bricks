@@ -2,6 +2,7 @@
 // #region Imports
 // Vue
 import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 // #endregion
 
 // #region Interfaces
@@ -27,6 +28,7 @@ const emit = defineEmits<IPropertyJsonEditorEmits>();
 // #endregion
 
 // #region Data
+const { t } = useI18n();
 const internalValue = ref<unknown>(props.modelValue);
 // #endregion
 
@@ -73,7 +75,7 @@ watch(
             <div :class="$style.BuilderShellSidebarPropertyJsonEditor">
                 <span v-if="props.label" :class="$style.label">{{ props.label }}</span>
                 <div :class="$style.editorWrapper">
-                    <div :class="$style.loading">Загрузка редактора...</div>
+                    <div :class="$style.loading">{{ t('bricks.properties.editorLoading') }}</div>
                 </div>
             </div>
         </template>
@@ -106,7 +108,7 @@ watch(
 
 .editorWrapper {
     overflow: hidden;
-    border-radius: 0.8rem;
+    border-radius: var(--border-radius-xs);
     border: 1px solid var(--bricks-base-300);
 }
 

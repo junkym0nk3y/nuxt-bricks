@@ -83,7 +83,7 @@ function onClick(event: MouseEvent): void {
     align-items: center;
     justify-content: center;
     border-radius: var(--border-radius-sm);
-    border: 0.2rem solid transparent;
+    border: 1px solid transparent;
     background-color: transparent;
     font-weight: 500;
     line-height: 1.2;
@@ -126,18 +126,22 @@ function onClick(event: MouseEvent): void {
     }
 
     &._primary {
-        border-color: var(--bricks-primary);
+        border-color: transparent;
         background-color: var(--bricks-primary);
+        box-shadow: var(--shadow-sm);
         color: var(--bricks-base-0);
 
         &:not(._disabled):hover {
-            border-color: var(--bricks-primary);
-            background-color: var(--bricks-primary);
+            background-color: var(--bricks-primary-600);
+        }
+
+        &:focus-visible {
+            box-shadow: var(--shadow-focus);
         }
     }
 
     &._secondary {
-        border-color: var(--bricks-base-400);
+        border-color: var(--bricks-base-300);
         background-color: var(--bricks-base-0);
         color: var(--bricks-base-900);
 
@@ -157,19 +161,23 @@ function onClick(event: MouseEvent): void {
         color: var(--bricks-base-600);
 
         &:not(._disabled):hover {
-            border-color: var(--bricks-base-300);
-            background-color: var(--bricks-base-300);
+            background-color: var(--bricks-base-100);
+            color: var(--bricks-base-900);
         }
     }
 
     &._danger {
-        border-color: var(--bricks-danger-600);
+        border-color: transparent;
         background-color: var(--bricks-danger-500);
+        box-shadow: var(--shadow-sm);
         color: var(--bricks-base-0);
 
         &:not(._disabled):hover {
-            border-color: var(--bricks-danger-600);
             background-color: var(--bricks-danger-600);
+        }
+
+        &:focus-visible {
+            box-shadow: var(--shadow-focus);
         }
     }
 
@@ -179,8 +187,9 @@ function onClick(event: MouseEvent): void {
         color: var(--bricks-base-600);
 
         &:not(._disabled):hover {
-            border-color: var(--bricks-base-300);
-            background-color: var(--bricks-base-300);
+            border-color: var(--bricks-base-400);
+            background-color: var(--bricks-base-50);
+            color: var(--bricks-base-900);
         }
     }
 
@@ -190,47 +199,31 @@ function onClick(event: MouseEvent): void {
     }
 
     &._red {
-        border-color: var(--bricks-danger-600);
+        border-color: transparent;
         background-color: var(--bricks-danger-600);
+        box-shadow: var(--shadow-sm);
         color: var(--bricks-base-0);
-
-        &:not(._disabled):hover {
-            border-color: var(--bricks-danger-600);
-            background-color: var(--bricks-danger-600);
-        }
     }
 
     &._green {
-        border-color: var(--bricks-green);
+        border-color: transparent;
         background-color: var(--bricks-green);
+        box-shadow: var(--shadow-sm);
         color: var(--bricks-base-0);
-
-        &:not(._disabled):hover {
-            border-color: var(--bricks-green);
-            background-color: var(--bricks-green);
-        }
     }
 
     &._yellow {
-        border-color: var(--bricks-yellow);
+        border-color: transparent;
         background-color: var(--bricks-yellow);
+        box-shadow: var(--shadow-sm);
         color: var(--bricks-base-0);
-
-        &:not(._disabled):hover {
-            border-color: var(--bricks-yellow);
-            background-color: var(--bricks-yellow);
-        }
     }
 
     &._grey {
-        border-color: var(--bricks-base-900);
+        border-color: transparent;
         background-color: var(--bricks-base-900);
+        box-shadow: var(--shadow-sm);
         color: var(--bricks-base-0);
-
-        &:not(._disabled):hover {
-            border-color: var(--bricks-base-900);
-            background-color: var(--bricks-base-900);
-        }
     }
 
     // Modifiers from new_ui

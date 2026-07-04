@@ -5,6 +5,7 @@ import type { IAccordionItem } from '../../../../../layouts-blocks/types/blockPr
 
 // Vue
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Components
 import BricksButton from '../../../../../ui/base/button/BricksButton.vue';
@@ -25,7 +26,7 @@ interface IPropertyAccordionItemsEditorEmits {
 // #region Props
 const props = withDefaults(defineProps<IPropertyAccordionItemsEditorProps>(), {
     modelValue: () => [],
-    label: 'Элементы аккордеона',
+    label: '',
 });
 // #endregion
 
@@ -33,9 +34,14 @@ const props = withDefaults(defineProps<IPropertyAccordionItemsEditorProps>(), {
 const emit = defineEmits<IPropertyAccordionItemsEditorEmits>();
 // #endregion
 
+// #region Data
+const { t } = useI18n();
+// #endregion
+
 // #region Computed
 const items = computed<IAccordionItem[]>(() => props.modelValue || []);
 const hasItems = computed<boolean>(() => items.value.length > 0);
+const displayLabel = computed<string>(() => props.label || t('bricks.properties.accordion.label'));
 // #endregion
 
 // #region Methods
@@ -60,8 +66,12 @@ function updateItems(value: IAccordionItem[]): void {
 function handleAddItem(): void {
     const lastItem = items.value[items.value.length - 1];
     const newItem: IAccordionItem = lastItem
-        ? { ...lastItem, title: `${lastItem.title} (копия)` }
-        : { title: `Вопрос ${items.value.length + 1}`, content: '<p>Ответ</p>' };
+        ? { ...lastItem, title: `${lastItem.title} ${t('bricks.properties.accordion.copySuffix')}` }
+        : {
+              title: t('bricks.properties.accordion.defaultTitle', { n: items.value.length + 1 }),
+              // HTML в словарях запрещён (unplugin-vue-i18n) — обёртка добавляется здесь
+              content: `<p>${t('bricks.properties.accordion.defaultContent')}</p>`,
+          };
 
     updateItems([...items.value, newItem]);
 }
@@ -142,10 +152,10 @@ function handleMoveDown(index: number): void {
 <template>
     <div :class="$style.BuilderShellSidebarPropertyAccordionItemsEditor">
         <div :class="$style.header">
-            <span :class="$style.label">{{ props.label }}</span>
+            <span :class="$style.label">{{ displayLabel }}</span>
             <BricksButton size="sm" variant="primary" @click="handleAddItem">
                 <BricksIcon icon="ph:plus" />
-                Добавить
+                {{ t('bricks.properties.add') }}
             </BricksButton>
         </div>
 
@@ -154,20 +164,26 @@ function handleMoveDown(index: number): void {
                 <div :class="$style.card">
                     <div :class="$style.cardBody">
                         <div :class="$style.fieldGroup">
-                            <span :class="$style.fieldLabel">Заголовок: {{ index + 1 }}</span>
+                            <span :class="$style.fieldLabel"
+                                >{{ t('bricks.properties.accordion.itemTitle') }}:
+                                {{ index + 1 }}</span
+                            >
                             <TextEditorArea
                                 :value="item.title"
-                                placeholder="Введите заголовок..."
+                                :placeholder="t('bricks.properties.accordion.titlePlaceholder')"
                                 :min-height="60"
                                 @update:value="handleTitleChange(index, $event)"
                             />
                         </div>
 
                         <div :class="$style.fieldGroup">
-                            <span :class="$style.fieldLabel">Содержимое: {{ index + 1 }} </span>
+                            <span :class="$style.fieldLabel"
+                                >{{ t('bricks.properties.accordion.itemContent') }}:
+                                {{ index + 1 }}</span
+                            >
                             <TextEditorArea
                                 :value="item.content"
-                                placeholder="Введите текст..."
+                                :placeholder="t('bricks.properties.accordion.contentPlaceholder')"
                                 :min-height="100"
                                 @update:value="handleContentChange(index, $event)"
                             />
@@ -206,7 +222,7 @@ function handleMoveDown(index: number): void {
 
         <button v-else type="button" :class="$style.empty" @click="handleAddItem">
             <BricksIcon :class="$style.emptyIcon" icon="ph:list-plus" />
-            <span>Нажмите, чтобы добавить элемент</span>
+            <span>{{ t('bricks.properties.accordion.empty') }}</span>
         </button>
     </div>
 </template>
@@ -240,7 +256,7 @@ function handleMoveDown(index: number): void {
 .card {
     display: flex;
     padding: 1.2rem;
-    border-radius: 0.8rem;
+    border-radius: var(--border-radius-xs);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
     gap: 1rem;
@@ -285,7 +301,7 @@ function handleMoveDown(index: number): void {
     align-items: center;
     justify-content: center;
     padding: 2.4rem;
-    border-radius: 0.8rem;
+    border-radius: var(--border-radius-xs);
     border: 2px dashed var(--bricks-base-300);
     background: var(--bricks-base-50);
     font-size: 1.4rem;

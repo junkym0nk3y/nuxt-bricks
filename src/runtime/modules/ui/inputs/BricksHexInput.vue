@@ -6,6 +6,7 @@ import BricksTooltipHint from '../tooltip/BricksTooltipHint.vue';
 
 // Vue
 import { computed, ref, watch, useCssModule } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Types
 import type { IBricksHexInputProps, IBricksHexInputEmits } from './types.d.ts';
@@ -25,6 +26,7 @@ const emit = defineEmits<IBricksHexInputEmits>();
 // #endregion
 
 // #region Data
+const { t } = useI18n();
 const $style = useCssModule();
 // локальное значение, чтобы валидировать/нормализовать ввод
 const internal = ref(normalizeHex(props.value));
@@ -36,7 +38,7 @@ watch(
     () => props.value,
     (v) => {
         internal.value = normalizeHex(v);
-        error.value = validateHex(internal.value) ? null : 'Неверный HEX';
+        error.value = validateHex(internal.value) ? null : t('bricks.validation.invalidHex');
     }
 );
 // #endregion
@@ -61,7 +63,7 @@ function onHexInput(value: string) {
     const raw = value.trim();
     internal.value = raw;
     const ok = validateHex(raw);
-    error.value = ok ? null : 'Неверный HEX';
+    error.value = ok ? null : t('bricks.validation.invalidHex');
     if (ok) {
         update(normalizeHex(raw), false);
     }
@@ -122,12 +124,18 @@ function update(value: string, fireChange = true) {
     position: relative;
     overflow: hidden;
     align-items: center;
-    width: 3.2rem;
-    height: 2.4rem;
-    margin-right: 1rem;
+    flex-shrink: 0;
+    width: 3.6rem;
+    height: 3.6rem;
+    margin-right: 0.8rem;
     border-radius: var(--border-radius-xs);
-    border: 1px solid;
+    border: 1px solid var(--bricks-base-300);
     background: var(--bricks-base-0);
+    transition: border-color var(--default-transition);
+
+    &:hover {
+        border-color: var(--bricks-base-400);
+    }
 }
 
 .colorInput {

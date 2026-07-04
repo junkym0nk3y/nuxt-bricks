@@ -5,6 +5,9 @@ import type { IMediaUploadOptions } from '../types/media';
 // Nuxt
 import { useAppConfig } from 'nuxt/app';
 
+// Vue
+import { useI18n } from 'vue-i18n';
+
 // Pinia
 import { useMediaStore } from '../stores/media';
 
@@ -23,6 +26,7 @@ export function useMediaUpload(options: IMediaUploadOptions) {
         appConfig.bricks?.media?.maxVideoUploadSizeMb ?? DEFAULT_MAX_VIDEO_SIZE_MB;
 
     const mediaStore = useMediaStore();
+    const { t } = useI18n();
 
     /**
      * Проверяет, что файл является поддерживаемым медиа-типом (изображение или видео).
@@ -40,8 +44,14 @@ export function useMediaUpload(options: IMediaUploadOptions) {
         const maxSizeBytes = maxSizeMb * BYTES_IN_MB;
 
         if (file.size > maxSizeBytes) {
-            const fileType = isVideo ? 'Видео' : 'Изображение';
-            return `${fileType} «${file.name}» превышает лимит ${maxSizeMb} МБ`;
+            const fileType = isVideo
+                ? t('bricks.media.fileTypeVideo')
+                : t('bricks.media.fileTypeImage');
+            return t('bricks.media.fileTooLarge', {
+                type: fileType,
+                name: file.name,
+                max: maxSizeMb,
+            });
         }
 
         return null;

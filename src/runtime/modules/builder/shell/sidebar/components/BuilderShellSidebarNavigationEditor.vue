@@ -2,6 +2,7 @@
 // #region Imports
 // Vue
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Pinia
 import { useNavigationStore } from '../../../core/stores/navigation';
@@ -13,6 +14,7 @@ import BricksButton from '../../../../ui/base/button/BricksButton.vue';
 // #endregion
 
 // #region Data
+const { t } = useI18n();
 const navigationStore = useNavigationStore();
 const componentsStore = useComponentsStore();
 // #endregion
@@ -85,7 +87,7 @@ function handleMoveDown(index: number): void {
 <template>
     <div :class="$style.BuilderShellSidebarNavigationEditor">
         <label :class="$style.label">
-            Навигация
+            {{ t('bricks.publish.navigation.title') }}
             <span v-if="items.length" :class="$style.count">{{ items.length }}</span>
         </label>
 
@@ -93,14 +95,14 @@ function handleMoveDown(index: number): void {
             <div v-for="(item, index) in items" :key="item.id" :class="$style.item">
                 <div :class="$style.itemInputs">
                     <BricksInput
-                        label="Текст"
+                        :label="t('bricks.publish.navigation.text')"
                         :value="item.label"
                         type="text"
-                        placeholder="О нас"
+                        :placeholder="t('bricks.publish.navigation.textPlaceholder')"
                         @update:value="(val: string) => handleUpdateLabel(item.id, val)"
                     />
                     <BricksInput
-                        label="Ссылка"
+                        :label="t('bricks.publish.navigation.link')"
                         :value="item.target"
                         type="text"
                         placeholder="#section-id"
@@ -113,7 +115,7 @@ function handleMoveDown(index: number): void {
                         type="button"
                         :class="$style.actionBtn"
                         :disabled="index === 0"
-                        title="Переместить вверх"
+                        :title="t('bricks.publish.navigation.moveUp')"
                         @click="handleMoveUp(index)"
                     >
                         <BricksIcon icon="ph:caret-up" />
@@ -122,7 +124,7 @@ function handleMoveDown(index: number): void {
                         type="button"
                         :class="$style.actionBtn"
                         :disabled="index === items.length - 1"
-                        title="Переместить вниз"
+                        :title="t('bricks.publish.navigation.moveDown')"
                         @click="handleMoveDown(index)"
                     >
                         <BricksIcon icon="ph:caret-down" />
@@ -130,7 +132,7 @@ function handleMoveDown(index: number): void {
                     <button
                         type="button"
                         :class="[$style.actionBtn, $style.actionBtnDanger]"
-                        title="Удалить"
+                        :title="t('bricks.common.delete')"
                         @click="handleRemoveItem(item.id)"
                     >
                         <BricksIcon icon="ph:trash" />
@@ -141,7 +143,7 @@ function handleMoveDown(index: number): void {
 
         <BricksButton size="md" variant="secondary" @click="handleAddItem">
             <BricksIcon icon="ph:plus" />
-            Добавить пункт
+            {{ t('bricks.publish.navigation.addItem') }}
         </BricksButton>
     </div>
 </template>

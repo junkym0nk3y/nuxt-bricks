@@ -5,6 +5,7 @@ import type { IToolbarTablePicker } from './textEditorToolbar.d.ts';
 
 // Vue
 import { ref, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // VueUse
 import { onClickOutside, useElementBounding } from '@vueuse/core';
@@ -21,6 +22,7 @@ const props = withDefaults(defineProps<IBricksTableGridPickerProps>(), {});
 // #endregion
 
 // #region Data
+const { t } = useI18n();
 const GRID_COLS = 8;
 const GRID_ROWS = 6;
 
@@ -39,7 +41,7 @@ const { bottom: triggerBottom, left: triggerLeft } = useElementBounding(triggerR
  */
 const sizeLabel = computed<string>(() => {
     if (hoverCol.value === 0 || hoverRow.value === 0) {
-        return 'Выберите размер';
+        return t('bricks.textEditor.pickSize');
     }
     return `${hoverCol.value} × ${hoverRow.value}`;
 });
@@ -250,7 +252,7 @@ onClickOutside(
     border-radius: var(--border-radius-xs);
     border: 1px solid var(--bricks-base-200);
     background: transparent;
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     font-weight: 600;
     color: var(--bricks-base-600);
     transition: all var(--default-transition);

@@ -4,6 +4,9 @@
 import type { IMediaItem } from '../../../common/types/media';
 import type { IMediaGalleryGridProps, IMediaGalleryGridEmits } from '../types/media';
 
+// Vue
+import { useI18n } from 'vue-i18n';
+
 // Utils
 import { formatFileSize } from '../utils/formatFileSize';
 // #endregion
@@ -14,6 +17,10 @@ const props = withDefaults(defineProps<IMediaGalleryGridProps>(), {});
 
 // #region Emits
 const emit = defineEmits<IMediaGalleryGridEmits>();
+// #endregion
+
+// #region Data
+const { t } = useI18n();
 // #endregion
 
 // #region Methods
@@ -52,7 +59,7 @@ function handleOpenPreview(item: IMediaItem): void {
                 <button
                     type="button"
                     :class="$style.previewBtn"
-                    title="Полноэкранный просмотр"
+                    :title="t('bricks.media.fullscreen')"
                     @click.stop="handleOpenPreview(item)"
                 >
                     <BricksIcon icon="ph:magnifying-glass" />

@@ -5,6 +5,7 @@ import type { Editor } from '@tiptap/vue-3';
 
 // Vue
 import { ref, shallowRef, computed, watch, onBeforeUnmount, type Component } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Utils
 import { createTiptapEditor } from '../utils/createTiptapEditor';
@@ -48,6 +49,7 @@ const emit = defineEmits<ITheTextEditorModalEmits>();
 // #endregion
 
 // #region Data
+const { t } = useI18n();
 const inlineEditingStore = useInlineEditingStore();
 
 const editor = shallowRef<Editor | null>(null);
@@ -177,14 +179,14 @@ onBeforeUnmount(() => {
 <template>
     <BricksModal
         :is-open="props.isOpen"
-        title="Редактор текста"
+        :title="t('bricks.textEditor.editorTitle')"
         :z-index="10000"
         @close="handleDone"
     >
         <div :class="$style.TheTextEditorModal">
             <!-- Header -->
             <div :class="$style.header">
-                <h2 :class="$style.title">Редактор текста</h2>
+                <h2 :class="$style.title">{{ t('bricks.textEditor.editorTitle') }}</h2>
 
                 <div :class="$style.headerActions">
                     <BricksButton
@@ -195,7 +197,9 @@ onBeforeUnmount(() => {
                         @click="toggleCodeView"
                     >
                         <BricksIcon :icon="isCodeView ? 'ph:eye' : 'ph:code'" />
-                        <span>{{ isCodeView ? 'Рендер' : 'Код' }}</span>
+                        <span>{{
+                            isCodeView ? t('bricks.textEditor.render') : t('bricks.textEditor.code')
+                        }}</span>
                     </BricksButton>
 
                     <BricksCloseButton @click="handleDone" />
@@ -242,7 +246,7 @@ onBeforeUnmount(() => {
                             :disabled="props.disabled"
                             :value="codeValue"
                             spellcheck="false"
-                            placeholder="Введите HTML-код…"
+                            :placeholder="t('bricks.textEditor.htmlPlaceholder')"
                             @input="handleCodeInput"
                         />
                     </div>

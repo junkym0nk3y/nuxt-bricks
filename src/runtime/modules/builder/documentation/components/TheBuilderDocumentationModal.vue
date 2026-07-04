@@ -5,6 +5,7 @@ import type { IDocumentationModalProps, IDocumentationModalEmits } from '../type
 
 // Vue
 import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Composables
 import { useDocumentationArticles } from '../composables/useDocumentationArticles';
@@ -23,6 +24,8 @@ const emit = defineEmits<IDocumentationModalEmits>();
 // #endregion
 
 // #region Data
+const { t } = useI18n();
+
 const {
     articles,
     activeArticlePath,
@@ -87,11 +90,11 @@ watch(
 </script>
 
 <template>
-    <BricksModal :is-open="props.isOpen" title="Документация" @close="handleClose">
+    <BricksModal :is-open="props.isOpen" :title="t('bricks.docs.title')" @close="handleClose">
         <div :class="$style.TheBuilderDocumentationModal">
             <!-- Header -->
             <div :class="$style.header">
-                <h2 :class="$style.title">Документация</h2>
+                <h2 :class="$style.title">{{ t('bricks.docs.title') }}</h2>
                 <BricksCloseButton @click="handleClose" />
             </div>
 
@@ -124,7 +127,7 @@ watch(
                 >
                     <div v-if="isContentLoading" :class="$style.loading">
                         <div :class="$style.spinner" />
-                        <p>Загрузка...</p>
+                        <p>{{ t('bricks.common.loading') }}</p>
                     </div>
 
                     <div v-else :class="[$style.markdown, 'bricks-docs']" v-html="articleContent" />

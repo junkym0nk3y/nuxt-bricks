@@ -1,11 +1,15 @@
 // Vue
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Pinia
 import { useComponentsStore } from '../../../core/stores/components';
 
 // Composables
 import { useBrickImports } from '../../../../common/composables/useBrickImports';
+
+// Utils
+import { resolveBricksLabel } from '../../../../common/utils/i18nLabels';
 
 // Constants
 import { LAYOUT_COMPONENTS } from '../../../core/constants/layoutComponents';
@@ -17,8 +21,17 @@ import { LAYOUT_COMPONENTS } from '../../../core/constants/layoutComponents';
 export function useSidebarBrickDescription() {
     const store = useComponentsStore();
     const { findImportModule } = useBrickImports();
+    const { t, te } = useI18n();
 
-    const brickDescription = ref<string>('');
+    const rawDescription = ref<string>('');
+
+    /**
+     * Описание с i18n-резолвом: ключи `bricks.*` (layout-блоки) переводятся,
+     * кастомные строки brick-файлов потребителя — как есть.
+     */
+    const brickDescription = computed<string>(
+        () => resolveBricksLabel(t, te, rawDescription.value) || ''
+    );
 
     /**
      * Загружает описание компонента из brick-файла (или из layout-конфига) для панели свойств.
@@ -27,23 +40,23 @@ export function useSidebarBrickDescription() {
      */
     async function loadBrickDescription(brickPath: string): Promise<void> {
         if (brickPath.startsWith('layout/')) {
-            brickDescription.value =
+            rawDescription.value =
                 LAYOUT_COMPONENTS.find((item) => item.brickPath === brickPath)?.description || '';
             return;
         }
 
         const moduleLoader = findImportModule(brickPath);
         if (!moduleLoader) {
-            brickDescription.value = '';
+            rawDescription.value = '';
             return;
         }
 
         try {
             const module = await moduleLoader();
-            brickDescription.value = (module?.brick?.description as string | undefined) || '';
+            rawDescription.value = (module?.brick?.description as string | undefined) || '';
         } catch (error) {
             console.error('[SidebarProperties] Failed to load brick description:', error);
-            brickDescription.value = '';
+            rawDescription.value = '';
         }
     }
 
@@ -51,7 +64,7 @@ export function useSidebarBrickDescription() {
         () => store.selectedComponentData?.component?.brickPath,
         async (brickPath) => {
             if (!brickPath) {
-                brickDescription.value = '';
+                rawDescription.value = '';
                 return;
             }
 

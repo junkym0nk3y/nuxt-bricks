@@ -6,6 +6,7 @@ import type { IBrickGalleryFieldsConfig } from '../../../../../common/types/inde
 
 // Vue
 import { computed, useCssModule } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Components
 import BricksButton from '../../../../../ui/base/button/BricksButton.vue';
@@ -36,7 +37,7 @@ interface IPropertyImageGalleryEditorEmits {
 // #region Props
 const props = withDefaults(defineProps<IPropertyImageGalleryEditorProps>(), {
     modelValue: () => [],
-    label: 'Галерея изображений',
+    label: '',
     fields: () => ({}),
 });
 // #endregion
@@ -47,11 +48,13 @@ const emit = defineEmits<IPropertyImageGalleryEditorEmits>();
 
 // #region Data
 const $style = useCssModule();
+const { t } = useI18n();
 // #endregion
 
 // #region Computed
 const items = computed<IGalleryItem[]>(() => props.modelValue || []);
 const hasItems = computed<boolean>(() => items.value.length > 0);
+const displayLabel = computed<string>(() => props.label || t('bricks.properties.gallery.label'));
 
 /** Показывать поле title (по умолчанию true) */
 const showTitle = computed<boolean>(() => props.fields?.title !== false);
@@ -184,10 +187,10 @@ function handleReplaceImage(index: number): void {
 <template>
     <div :class="$style.BuilderShellSidebarPropertyImageGalleryEditor">
         <div :class="$style.header">
-            <span :class="$style.title">{{ props.label }}</span>
+            <span :class="$style.title">{{ displayLabel }}</span>
             <BricksButton size="sm" variant="primary" @click="handleAddImage">
                 <BricksIcon icon="ph:plus" />
-                Добавить
+                {{ t('bricks.properties.add') }}
             </BricksButton>
         </div>
 
@@ -235,7 +238,7 @@ function handleReplaceImage(index: number): void {
                     <BricksTagsEditor
                         v-if="showTags"
                         :model-value="item.tags || []"
-                        placeholder="Добавить тег..."
+                        :placeholder="t('bricks.properties.gallery.tagPlaceholder')"
                         @update:model-value="handleTagsChange(index, $event)"
                     />
 
@@ -266,7 +269,7 @@ function handleReplaceImage(index: number): void {
 
         <div v-else :class="$style.empty" @click="handleAddImage">
             <BricksIcon :class="$style.emptyIcon" icon="md:image-multiple" />
-            <span>Нажмите, чтобы добавить изображение</span>
+            <span>{{ t('bricks.properties.gallery.empty') }}</span>
         </div>
     </div>
 </template>
@@ -301,7 +304,7 @@ function handleReplaceImage(index: number): void {
     display: flex;
     gap: 1.2rem;
     padding: 1rem;
-    border-radius: 0.8rem;
+    border-radius: var(--border-radius-xs);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
 }
@@ -314,7 +317,7 @@ function handleReplaceImage(index: number): void {
     flex-shrink: 0;
     width: 8rem;
     height: 8rem;
-    border-radius: 0.6rem;
+    border-radius: var(--border-radius-xs);
     background: var(--bricks-base-100);
     cursor: pointer;
 
@@ -382,7 +385,7 @@ function handleReplaceImage(index: number): void {
     align-items: center;
     justify-content: center;
     padding: 2.4rem;
-    border-radius: 0.8rem;
+    border-radius: var(--border-radius-xs);
     border: 2px dashed var(--bricks-base-300);
     background: var(--bricks-base-50);
     font-size: 1.4rem;

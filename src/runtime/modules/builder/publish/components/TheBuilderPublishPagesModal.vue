@@ -6,6 +6,7 @@ import type { IPublishedPage } from '../../../common/types/bricks-api';
 
 // Vue
 import { ref, computed, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Components
 import BuilderPublishPageCard from './BuilderPublishPageCard.vue';
@@ -26,6 +27,7 @@ const emit = defineEmits<IPublishPagesModalEmits>();
 // #endregion
 
 // #region Data
+const { t } = useI18n();
 const publishStore = usePublishStore();
 const pages = ref<IPublishedPage[]>([]);
 const loading = ref(false);
@@ -50,10 +52,13 @@ const pendingDeletePage = computed(() => {
 const deleteConfirmationDescription = computed(() => {
     const page = pendingDeletePage.value;
     if (!page) {
-        return 'Вы уверены, что хотите удалить эту страницу?';
+        return t('bricks.publish.pagesModal.deleteConfirmGeneric');
     }
 
-    return `Вы уверены, что хотите удалить страницу «${page.title}» (/bricks/${page.pagename})?`;
+    return t('bricks.publish.pagesModal.deleteConfirmNamed', {
+        title: page.title,
+        path: `/bricks/${page.pagename}`,
+    });
 });
 // #endregion
 
@@ -69,9 +74,7 @@ async function fetchPages(): Promise<void> {
     } catch (error: unknown) {
         const errorMessage =
             (error as { data?: { message?: string } }).data?.message ||
-            (error instanceof Error
-                ? error.message
-                : 'Не удалось загрузить опубликованные страницы');
+            (error instanceof Error ? error.message : t('bricks.publish.pagesModal.loadFailed'));
         const message = `GET /api/bricks: ${errorMessage}`;
         console.error('[PublishedPagesModal] Failed to load pages:', error);
         pages.value = [];
@@ -151,7 +154,9 @@ async function handleTogglePublished(pageId: string, published: boolean): Promis
         });
 
         const errorMessage =
-            error instanceof Error ? error.message : 'Не удалось изменить статус публикации';
+            error instanceof Error
+                ? error.message
+                : t('bricks.publish.pagesModal.toggleStatusFailed');
         emit('error', errorMessage);
     } finally {
         publishingStateById.value = {
@@ -201,7 +206,7 @@ async function handleConfirmDelete(): Promise<void> {
     } catch (error: unknown) {
         const errorMessage =
             (error as { data?: { message?: string } }).data?.message ||
-            (error instanceof Error ? error.message : 'Не удалось удалить страницу');
+            (error instanceof Error ? error.message : t('bricks.publish.pagesModal.deleteFailed'));
         console.error('[PublishedPagesModal] Failed to delete page:', error);
         emit('error', errorMessage);
     } finally {
@@ -232,11 +237,15 @@ watch(
 </script>
 
 <template>
-    <BricksModal :is-open="props.isOpen" title="Сохранённые страницы" @close="handleClose">
+    <BricksModal
+        :is-open="props.isOpen"
+        :title="t('bricks.publish.pagesModal.title')"
+        @close="handleClose"
+    >
         <div :class="$style.TheBuilderPublishPagesModal">
             <!-- Header -->
             <div :class="$style.header">
-                <h2 :class="$style.title">Сохранённые страницы</h2>
+                <h2 :class="$style.title">{{ t('bricks.publish.pagesModal.title') }}</h2>
                 <BricksCloseButton @click="handleClose" />
             </div>
 
@@ -244,12 +253,14 @@ watch(
             <div :class="[$style.content, 'scrollbox']">
                 <div v-if="loading" :class="$style.loading">
                     <div :class="$style.spinner"></div>
-                    <p>Загрузка...</p>
+                    <p>{{ t('bricks.common.loading') }}</p>
                 </div>
 
                 <div v-else-if="publishedPages.length === 0" :class="$style.empty">
-                    <h3 :class="$style.emptyTitle">Записей не найдено</h3>
-                    <p :class="$style.emptyText">Вы пока не сохранили ни одной страницы.</p>
+                    <h3 :class="$style.emptyTitle">
+                        {{ t('bricks.publish.pagesModal.emptyTitle') }}
+                    </h3>
+                    <p :class="$style.emptyText">{{ t('bricks.publish.pagesModal.emptyText') }}</p>
                 </div>
 
                 <div v-else :class="$style.list">
@@ -270,9 +281,9 @@ watch(
 
     <BricksConfirmModal
         :is-open="isDeleteConfirmationOpen"
-        title="Удалить страницу?"
+        :title="t('bricks.publish.pagesModal.deleteConfirmTitle')"
         :description="deleteConfirmationDescription"
-        confirm-text="Удалить"
+        :confirm-text="t('bricks.common.delete')"
         confirm-variant="danger"
         :is-loading="isDeleting"
         @close="handleCloseDeleteConfirmation"

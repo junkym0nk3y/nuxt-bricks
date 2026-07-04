@@ -8,6 +8,7 @@ import { findSelectedMediaNode } from '../utils/selectedMediaNode';
 
 // Vue
 import { ref, watchEffect, onBeforeUnmount } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Components
 import BricksTooltip from '../../ui/tooltip/BricksTooltip.vue';
@@ -20,10 +21,12 @@ const props = defineProps<ITextEditorImageFloatPopoverProps>();
 // #endregion
 
 // #region Data
+const { t } = useI18n();
+
 const VALIGN_OPTIONS = [
     { value: 'baseline', icon: 'md:vertical-align-bottom', label: 'Baseline' },
-    { value: 'middle', icon: 'md:vertical-align-center', label: 'По центру' },
-    { value: 'top', icon: 'md:vertical-align-top', label: 'По верху' },
+    { value: 'middle', icon: 'md:vertical-align-center', label: 'bricks.textEditor.alignMiddle' },
+    { value: 'top', icon: 'md:vertical-align-top', label: 'bricks.textEditor.alignTop' },
 ] as const;
 const POPOVER_WIDTH = 270;
 
@@ -176,7 +179,7 @@ onBeforeUnmount(() => {
                             <BricksIcon icon="bs:text-indent-left" />
                         </button>
                     </template>
-                    <BricksTooltipHint text="Обтекание слева" />
+                    <BricksTooltipHint :text="t('bricks.textEditor.floatLeft')" />
                 </BricksTooltip>
 
                 <BricksTooltip top>
@@ -189,7 +192,7 @@ onBeforeUnmount(() => {
                             <BricksIcon icon="bs:text-indent-right" />
                         </button>
                     </template>
-                    <BricksTooltipHint text="Обтекание справа" />
+                    <BricksTooltipHint :text="t('bricks.textEditor.floatRight')" />
                 </BricksTooltip>
 
                 <BricksTooltip top>
@@ -202,7 +205,7 @@ onBeforeUnmount(() => {
                             <BricksIcon icon="ph:x" />
                         </button>
                     </template>
-                    <BricksTooltipHint text="Без обтекания" />
+                    <BricksTooltipHint :text="t('bricks.textEditor.floatNone')" />
                 </BricksTooltip>
 
                 <!-- Vertical align controls -->
@@ -222,7 +225,9 @@ onBeforeUnmount(() => {
                             <BricksIcon :icon="option.icon" />
                         </button>
                     </template>
-                    <BricksTooltipHint :text="option.label" />
+                    <BricksTooltipHint
+                        :text="option.value === 'baseline' ? option.label : t(option.label)"
+                    />
                 </BricksTooltip>
 
                 <!-- Size toggle -->
@@ -237,7 +242,7 @@ onBeforeUnmount(() => {
                             <BricksIcon icon="ph:arrows-out" />
                         </button>
                     </template>
-                    <BricksTooltipHint text="Размер" />
+                    <BricksTooltipHint :text="t('bricks.textEditor.size')" />
                 </BricksTooltip>
 
                 <!-- Size panel dropdown -->

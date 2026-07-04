@@ -1,4 +1,5 @@
 import { defineNuxtPlugin } from '#imports';
+import type { Composer } from 'vue-i18n';
 import { configure, defineRule } from 'vee-validate';
 import { required, numeric, max, min } from '@vee-validate/rules';
 import { setLocale } from 'yup';
@@ -11,15 +12,15 @@ defineRule('min', min);
 /**
  * Правило для проверки десятичных чисел (поддерживает дробные значения).
  * Пример валидных значений: "29.2", "100", "-5.5", "0.123"
+ * Текст ошибки формирует локализованный generateMessage.
  */
 defineRule('decimal', (value: string | number) => {
     if (value === null || value === undefined || value === '') {
         return true;
     }
 
-    const stringValue = String(value);
     // Разрешаем целые и дробные числа, включая отрицательные
-    return /^-?\d+(\.\d+)?$/.test(stringValue) ? true : 'Введите корректное число';
+    return /^-?\d+(\.\d+)?$/.test(String(value));
 });
 
 defineRule('slug', (value: string) => {
@@ -27,50 +28,66 @@ defineRule('slug', (value: string) => {
         return true;
     }
 
-    return /^[a-z0-9-]+$/.test(value)
-        ? true
-        : 'Может содержать только строчные буквы, цифры и дефисы';
+    return /^[a-z0-9-]+$/.test(value);
 });
 
-export default defineNuxtPlugin(() => {
-    // Настройка yup локали для русских сообщений
+export default defineNuxtPlugin((nuxtApp) => {
+    /**
+     * Переводит ключ через глобальный i18n. Вызывается в момент валидации,
+     * поэтому смена локали подхватывается без ре-регистрации сообщений.
+     * `$i18n` резолвится лениво: плагин i18n может регистрироваться позже
+     * (если потребитель подключает @nuxtjs/i18n после nuxt-bricks).
+     *
+     * @param key - Ключ перевода (`bricks.validation.*`).
+     * @param params - Именованные параметры интерполяции.
+     */
+    function t(key: string, params?: Record<string, unknown>): string {
+        const i18n = nuxtApp.$i18n as Composer | undefined;
+        if (!i18n) {
+            return key;
+        }
+
+        return params ? i18n.t(key, params) : i18n.t(key);
+    }
+
+    // Сообщения yup — функции: резолвятся при валидации → всегда актуальная локаль
     setLocale({
         mixed: {
-            required: 'Обязательное поле',
-            notType: 'Некорректное значение',
+            required: () => t('bricks.validation.required'),
+            notType: () => t('bricks.validation.invalidValue'),
         },
         string: {
-            min: 'Минимум ${min} символов',
-            max: 'Максимум ${max} символов',
-            matches: 'Некорректный формат',
+            min: ({ min: minLength }) => t('bricks.validation.stringMin', { min: minLength }),
+            max: ({ max: maxLength }) => t('bricks.validation.stringMax', { max: maxLength }),
+            matches: () => t('bricks.validation.invalidFormat'),
         },
     });
+
+    /** Локализованные сообщения vee-validate по имени правила. */
+    const RULE_MESSAGES: Record<string, (field: string, params: Array<string | number>) => string> =
+        {
+            required: (field) => t('bricks.validation.fieldRequired', { field }),
+            numeric: (field) => t('bricks.validation.fieldNumeric', { field }),
+            decimal: (field) => t('bricks.validation.fieldDecimal', { field }),
+            max: (field, params) => t('bricks.validation.fieldMax', { field, max: params[0] }),
+            min: (field, params) => t('bricks.validation.fieldMin', { field, min: params[0] }),
+            slug: (field) => t('bricks.validation.fieldSlug', { field }),
+        };
 
     configure({
         validateOnBlur: true,
         validateOnChange: true,
         validateOnInput: false,
         generateMessage: (ctx) => {
-            const fieldLabel = ctx.field || 'Поле';
+            const fieldLabel = ctx.field || t('bricks.validation.fieldFallback');
             const params = Array.isArray(ctx.rule?.params)
                 ? (ctx.rule?.params as Array<string | number>)
                 : [];
-            switch (ctx.rule?.name) {
-                case 'required':
-                    return `${fieldLabel} обязательно для заполнения`;
-                case 'numeric':
-                    return `${fieldLabel} должно содержать только цифры`;
-                case 'decimal':
-                    return `${fieldLabel} должно быть числом`;
-                case 'max':
-                    return `${fieldLabel} не может превышать ${params[0]} символов`;
-                case 'min':
-                    return `${fieldLabel} не может быть меньше ${params[0]}`;
-                case 'slug':
-                    return `${fieldLabel} должно содержать только строчные буквы, цифры и дефисы`;
-                default:
-                    return `${fieldLabel} заполнено некорректно`;
-            }
+            const buildMessage = ctx.rule?.name ? RULE_MESSAGES[ctx.rule.name] : undefined;
+
+            return buildMessage
+                ? buildMessage(fieldLabel, params)
+                : t('bricks.validation.fieldInvalid', { field: fieldLabel });
         },
     });
 });

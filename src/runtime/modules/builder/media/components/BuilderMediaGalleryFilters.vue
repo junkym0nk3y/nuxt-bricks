@@ -3,6 +3,9 @@
 // Types
 import type { IMediaGalleryFiltersProps, IMediaGalleryFiltersEmits } from '../types/media';
 
+// Vue
+import { useI18n } from 'vue-i18n';
+
 // Utils
 import { MEDIA_CATEGORY_OPTIONS } from '../constants/mediaCategories';
 // #endregion
@@ -13,6 +16,10 @@ const props = withDefaults(defineProps<IMediaGalleryFiltersProps>(), {});
 
 // #region Emits
 const emit = defineEmits<IMediaGalleryFiltersEmits>();
+// #endregion
+
+// #region Data
+const { t } = useI18n();
 // #endregion
 
 // #region Methods
@@ -31,7 +38,7 @@ function onSearchInput(event: Event): void {
 <template>
     <div :class="$style.BuilderMediaGalleryFilters">
         <div :class="$style.filterGroup">
-            <span :class="$style.filterLabel">Категория:</span>
+            <span :class="$style.filterLabel">{{ t('bricks.media.categoryLabel') }}</span>
             <div :class="$style.chipGroup">
                 <button
                     v-for="option in MEDIA_CATEGORY_OPTIONS"
@@ -43,19 +50,21 @@ function onSearchInput(event: Event): void {
                     ]"
                     @click="handleFilterChange(option.value)"
                 >
-                    {{ option.label }}
+                    {{ t(option.label) }}
                 </button>
             </div>
         </div>
 
         <div :class="$style.filterGroup">
-            <label :class="$style.filterLabel" for="media-search">Поиск:</label>
+            <label :class="$style.filterLabel" for="media-search">{{
+                t('bricks.media.searchLabel')
+            }}</label>
             <input
                 id="media-search"
                 :value="props.searchQuery"
                 :class="$style.searchInput"
                 type="text"
-                placeholder="Введите название или alt"
+                :placeholder="t('bricks.media.searchPlaceholder')"
                 @input="onSearchInput"
             />
         </div>

@@ -10,13 +10,13 @@ $ARGUMENTS
 
 ## Контекст
 
-Встроенная документация — markdown-статьи в `builder/documentation/docs/guide/`, рендерящиеся в модальном окне билдера.
+Встроенная документация — markdown-статьи в `builder/documentation/docs/guide/<locale>/`, рендерящиеся в модальном окне билдера. Статьи разложены по папкам локалей: `ru/` (полный набор), `en/` (частичный). Список статей фильтруется по активной локали интерфейса; если папка локали пуста — fallback на `ru`.
 
 Ключевые файлы (пути — от `src/runtime/modules/`):
 
-- `builder/documentation/docs/guide/` — markdown-статьи
-- `src/runtime/public/docs/guide/images/` — публичные изображения
-- `builder/documentation/composables/useDocumentationArticles.ts` — import.meta.glob, навигация
+- `builder/documentation/docs/guide/ru/`, `.../en/` — markdown-статьи по локалям
+- `src/runtime/public/docs/guide/images/` — публичные изображения (общие для локалей)
+- `builder/documentation/composables/useDocumentationArticles.ts` — import.meta.glob, фильтр по локали, навигация
 - `builder/documentation/composables/useMarkdownRenderer.ts` — markdown-it рендеринг
 - `builder/documentation/components/TheBuilderDocumentationModal.vue` — UI модалки
 
@@ -24,10 +24,10 @@ $ARGUMENTS
 
 ### Шаг 1: Создать markdown-файл
 
-Файл: `builder/documentation/docs/guide/NN-slug.md`
+Файл: `builder/documentation/docs/guide/<locale>/NN-slug.md` (обычно `ru/`; для английской версии — `en/` с тем же `NN-slug`).
 
 - Числовой префикс `NN-` определяет порядок в навигации
-- Посмотри существующие файлы для выбора следующего номера
+- Посмотри существующие файлы в папке локали для выбора следующего номера
 
 ### Шаг 2: Формат статьи
 
@@ -47,11 +47,11 @@ $ARGUMENTS
 
 ### Шаг 3: Изображения
 
-Помести в `src/runtime/public/docs/guide/images/`. Ссылайся как `./images/file.png`.
+Помести в `src/runtime/public/docs/guide/images/`. Ссылайся как `./images/file.png` (пути одинаковы для всех локалей).
 
 ### Шаг 4: Кросс-ссылки
 
-Ссылки вида `[текст](./02-components.md)` перехватываются и открывают статью внутри модалки (без перезагрузки).
+Ссылки вида `[текст](./02-components.md)` перехватываются и открывают статью внутри модалки (без перезагрузки). Резолвятся **только внутри папки активной локали** — не ссылайся на статью, которой нет в той же папке (клик будет no-op).
 
 ### Шаг 5: Hard refresh
 

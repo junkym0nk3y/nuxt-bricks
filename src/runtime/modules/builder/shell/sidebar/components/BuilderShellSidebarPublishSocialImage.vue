@@ -6,6 +6,9 @@ import type {
     ISidebarPublishSocialImageEmits,
 } from '../types/components';
 
+// Vue
+import { useI18n } from 'vue-i18n';
+
 // Components
 import BricksButton from '../../../../ui/base/button/BricksButton.vue';
 // #endregion
@@ -16,6 +19,10 @@ const props = withDefaults(defineProps<ISidebarPublishSocialImageProps>(), {});
 
 // #region Emits
 const emit = defineEmits<ISidebarPublishSocialImageEmits>();
+// #endregion
+
+// #region Data
+const { t } = useI18n();
 // #endregion
 
 // #region Methods
@@ -50,7 +57,7 @@ function handleClear(): void {
                 @click="handleOpenMediaGallery"
             >
                 <BricksIcon icon="md:outlined-image" />
-                Выбрать из медиабиблиотеки
+                {{ t('bricks.publish.socialImageSelect') }}
             </BricksButton>
 
             <Transition mode="out-in" name="library-fade-fast">
@@ -62,7 +69,7 @@ function handleClear(): void {
                         :disabled="props.isSubmitting"
                         @click="handleClear"
                     >
-                        Очистить
+                        {{ t('bricks.publish.socialImageClear') }}
                     </BricksButton>
                 </div>
             </Transition>

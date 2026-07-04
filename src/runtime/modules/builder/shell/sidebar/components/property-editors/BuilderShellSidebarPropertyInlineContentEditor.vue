@@ -5,6 +5,7 @@ import type { IInlineContentSegment } from '../../../../../common/types/content'
 
 // Vue
 import { computed, useCssModule } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Components
 import BricksButton from '../../../../../ui/base/button/BricksButton.vue';
@@ -48,6 +49,7 @@ const emit = defineEmits<IPropertyInlineContentEditorEmits>();
 
 // #region Data
 const $style = useCssModule();
+const { t } = useI18n();
 // #endregion
 
 // #region Computed
@@ -69,7 +71,10 @@ function updateSegments(value: IInlineContentSegment[]): void {
  * Добавляет текстовый сегмент.
  */
 function handleAddTextSegment(): void {
-    const next = [...segments.value, createInlineTextSegment('Новый текст')];
+    const next = [
+        ...segments.value,
+        createInlineTextSegment(t('bricks.properties.inline.newText')),
+    ];
     updateSegments(next);
 }
 
@@ -192,13 +197,13 @@ function formatDimensionValue(value?: string | number): string {
         <div :class="$style.header">
             <div :class="$style.headerActions">
                 <BricksButton size="sm" variant="secondary" @click="handleAddTextSegment">
-                    Текст
+                    {{ t('bricks.properties.inline.text') }}
                 </BricksButton>
                 <BricksButton size="sm" variant="secondary" @click="handleAddLineBreakSegment">
-                    Перенос
+                    {{ t('bricks.properties.inline.lineBreak') }}
                 </BricksButton>
                 <BricksButton size="sm" variant="primary" @click="handleAddMediaSegment">
-                    Медиа
+                    {{ t('bricks.properties.inline.media') }}
                 </BricksButton>
             </div>
         </div>
@@ -236,7 +241,7 @@ function formatDimensionValue(value?: string | number): string {
                 <div v-if="segment.kind === 'text'" :class="$style.segmentBody">
                     <BricksInput
                         :value="segment.text || ''"
-                        placeholder="Введите текст"
+                        :placeholder="t('bricks.properties.inline.textPlaceholder')"
                         @update:value="handleTextChange(index, $event as string)"
                     />
                 </div>
@@ -245,7 +250,7 @@ function formatDimensionValue(value?: string | number): string {
                     :class="[$style.segmentBody, $style.lineBreakBody]"
                 >
                     <p :class="$style.lineBreakHint">
-                        Текст после этого сегмента будет начинаться с новой строки.
+                        {{ t('bricks.properties.inline.lineBreakHint') }}
                     </p>
                 </div>
 
@@ -262,19 +267,19 @@ function formatDimensionValue(value?: string | number): string {
                     <div :class="$style.mediaActions">
                         <BricksButton size="sm" variant="ghost" @click="handleReplaceMedia(index)">
                             <BricksIcon icon="md:folder-edit" />
-                            Заменить медиа
+                            {{ t('bricks.properties.inline.replaceMedia') }}
                         </BricksButton>
                     </div>
 
                     <div :class="$style.inputsRow">
                         <BricksInput
                             :value="formatDimensionValue(segment.width)"
-                            label="Ширина"
+                            :label="t('bricks.properties.inline.width')"
                             @update:value="patchSegment(index, { width: $event as string })"
                         />
                         <BricksInput
                             :value="formatDimensionValue(segment.height)"
-                            label="Высота"
+                            :label="t('bricks.properties.inline.height')"
                             @update:value="patchSegment(index, { height: $event as string })"
                         />
                     </div>
@@ -282,7 +287,7 @@ function formatDimensionValue(value?: string | number): string {
                     <div v-if="segment.kind === 'svg'" :class="$style.inputsRow">
                         <BricksHexInput
                             :value="segment.color || ''"
-                            label="Цвет SVG"
+                            :label="t('bricks.properties.inline.svgColor')"
                             @update:value="patchSegment(index, { color: $event as string })"
                         />
                     </div>
@@ -292,7 +297,7 @@ function formatDimensionValue(value?: string | number): string {
 
         <div v-else :class="$style.emptyState">
             <BricksIcon :class="$style.emptyIcon" icon="md:text-box-outline" />
-            <p>Добавьте текст или медиа, чтобы собрать сложный заголовок</p>
+            <p>{{ t('bricks.properties.inline.empty') }}</p>
         </div>
     </div>
 </template>
@@ -301,7 +306,7 @@ function formatDimensionValue(value?: string | number): string {
 .BuilderShellSidebarPropertyInlineContentEditor {
     display: flex;
     padding: 1.2rem;
-    border-radius: 0.8rem;
+    border-radius: var(--border-radius-xs);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-50);
     flex-direction: column;
@@ -334,7 +339,7 @@ function formatDimensionValue(value?: string | number): string {
 
 .segmentItem {
     padding: 1.2rem;
-    border-radius: 0.6rem;
+    border-radius: var(--border-radius-xs);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
 }
@@ -369,7 +374,7 @@ function formatDimensionValue(value?: string | number): string {
     padding: 0.4rem 0.8rem;
     border-radius: 0.4rem;
     background: var(--bricks-base-100);
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     font-weight: 600;
     color: var(--bricks-base-700);
 }
@@ -386,7 +391,7 @@ function formatDimensionValue(value?: string | number): string {
     justify-content: center;
     min-height: 10rem;
     padding: 1rem;
-    border-radius: 0.6rem;
+    border-radius: var(--border-radius-xs);
     border: 1px dashed var(--bricks-base-300);
     background: var(--bricks-base-50);
 }
@@ -426,7 +431,7 @@ function formatDimensionValue(value?: string | number): string {
     align-items: center;
     justify-content: center;
     padding: 2rem;
-    border-radius: 0.6rem;
+    border-radius: var(--border-radius-xs);
     border: 1px dashed var(--bricks-base-300);
     text-align: center;
     color: var(--bricks-base-600);

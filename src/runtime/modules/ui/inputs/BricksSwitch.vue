@@ -152,7 +152,7 @@ function onUpdate(checked: boolean): void {
     }
 
     &._active .core {
-        background-color: var(--bricks-primary-500);
+        background-color: var(--bricks-primary);
 
         &:after {
             transform: translate(1.8rem, 0.2rem);
@@ -166,6 +166,10 @@ function onUpdate(checked: boolean): void {
 
     &:hover:not(._disabled) {
         opacity: 0.7;
+    }
+
+    &:focus-visible .core {
+        box-shadow: var(--shadow-focus);
     }
 
     &._small {

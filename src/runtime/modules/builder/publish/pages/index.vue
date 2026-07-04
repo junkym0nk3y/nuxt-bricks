@@ -2,6 +2,7 @@
 // #region Imports
 // Vue
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Nuxt
 import { useRouter } from '#imports';
@@ -15,6 +16,7 @@ import BricksButton from '../../../ui/base/button/BricksButton.vue';
 // #endregion
 
 // #region Data
+const { t, locale, setLocale } = useI18n();
 const router = useRouter();
 const publishStore = usePublishStore();
 const isPublishedPagesModalOpen = ref(false);
@@ -44,6 +46,13 @@ async function handleCreateNew(): Promise<void> {
 }
 
 /**
+ * Переключает локаль интерфейса (ru ⇄ en); cookie `bricks-locale` пишет сам i18n.
+ */
+async function handleToggleLocale(): Promise<void> {
+    await setLocale(locale.value === 'ru' ? 'en' : 'ru');
+}
+
+/**
  * Открывает сохранённую страницу в билдере по `pagename`.
  *
  * @param pageId - Идентификатор страницы.
@@ -62,16 +71,24 @@ async function handleEdit(pageId: string): Promise<void> {
 
 <template>
     <div :class="[$style.BuilderIndex, 'bricks-text']">
+        <button
+            :class="$style.localeToggle"
+            :title="t('bricks.nav.language')"
+            @click="handleToggleLocale"
+        >
+            {{ locale.toUpperCase() }}
+        </button>
+
         <div :class="$style.content">
-            <h1 :class="$style.title">Билдер</h1>
-            <p :class="$style.subtitle">Выберите страницу для редактирования или создайте новую.</p>
+            <h1 :class="$style.title">{{ t('bricks.publish.dashboard.title') }}</h1>
+            <p :class="$style.subtitle">{{ t('bricks.publish.dashboard.subtitle') }}</p>
 
             <div :class="$style.actions">
                 <BricksButton size="md" variant="primary" @click="handleCreateNew">
-                    Создать новую страницу
+                    {{ t('bricks.publish.dashboard.createPage') }}
                 </BricksButton>
                 <BricksButton size="md" variant="secondary" @click="handleOpenPages">
-                    Открыть список страниц
+                    {{ t('bricks.publish.dashboard.openPagesList') }}
                 </BricksButton>
             </div>
         </div>
@@ -86,12 +103,40 @@ async function handleEdit(pageId: string): Promise<void> {
 
 <style module lang="scss">
 .BuilderIndex {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
     min-height: 100vh;
     padding: 2rem;
     background-color: var(--bricks-base-100);
+}
+
+.localeToggle {
+    position: absolute;
+    top: 1.6rem;
+    right: 1.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.6rem;
+    height: 3.6rem;
+    border-radius: 0.8rem;
+    border: 1px solid var(--bricks-base-300);
+    background: var(--bricks-base-0);
+    font-size: 1.2rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--bricks-base-500);
+    transition:
+        color var(--default-transition),
+        background-color var(--default-transition);
+    cursor: pointer;
+
+    &:hover {
+        background-color: var(--bricks-base-50);
+        color: var(--bricks-base-900);
+    }
 }
 
 .content {

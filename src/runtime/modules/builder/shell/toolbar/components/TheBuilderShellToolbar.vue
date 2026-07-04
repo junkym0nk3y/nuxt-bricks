@@ -6,6 +6,7 @@ import type { IBrickUiCommonProp } from '../../../../ui/types/common';
 
 // Vue
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Components
 import BricksButton from '../../../../ui/base/button/BricksButton.vue';
@@ -21,6 +22,10 @@ const props = defineProps<IToolbarProps>();
 
 // #region Emits
 const emit = defineEmits<IToolbarEmits>();
+// #endregion
+
+// #region Data
+const { t } = useI18n();
 // #endregion
 
 // #region Computed
@@ -89,17 +94,17 @@ const publishButtonConfig = computed<{
 }>(() => {
     const baseOptions: IBrickUiCommonProp[] = [
         {
-            label: 'Сохранить изменения',
+            label: t('bricks.toolbar.saveDraft'),
             value: 'draft',
         },
         {
-            label: 'Сохранить как копию',
+            label: t('bricks.toolbar.saveCopy'),
             value: 'copy',
         },
     ];
 
     return {
-        label: 'Сохранить',
+        label: t('bricks.toolbar.save'),
         options: baseOptions,
     };
 });
@@ -206,7 +211,7 @@ function handleToggleGrid(): void {
                 </template>
 
                 <template #default>
-                    <BricksTooltipHint text="Сетка" />
+                    <BricksTooltipHint :text="t('bricks.toolbar.grid')" />
                 </template>
             </BricksTooltip>
 
@@ -224,7 +229,7 @@ function handleToggleGrid(): void {
                 </template>
 
                 <template #default>
-                    <BricksTooltipHint text="Шаг назад (Ctrl+Z)" />
+                    <BricksTooltipHint :text="t('bricks.toolbar.undo')" />
                 </template>
             </BricksTooltip>
 
@@ -242,7 +247,7 @@ function handleToggleGrid(): void {
                 </template>
 
                 <template #default>
-                    <BricksTooltipHint text="Шаг вперёд (Ctrl+Shift+Z)" />
+                    <BricksTooltipHint :text="t('bricks.toolbar.redo')" />
                 </template>
             </BricksTooltip>
 
@@ -259,7 +264,7 @@ function handleToggleGrid(): void {
                 </template>
 
                 <template #default>
-                    <BricksTooltipHint text="Редактор страниц" />
+                    <BricksTooltipHint :text="t('bricks.toolbar.pagesEditor')" />
                 </template>
             </BricksTooltip>
 
@@ -271,7 +276,7 @@ function handleToggleGrid(): void {
                 </template>
 
                 <template #default>
-                    <BricksTooltipHint text="Загружаемый контент" />
+                    <BricksTooltipHint :text="t('bricks.toolbar.media')" />
                 </template>
             </BricksTooltip>
 
@@ -283,7 +288,7 @@ function handleToggleGrid(): void {
                 </template>
 
                 <template #default>
-                    <BricksTooltipHint text="Посмотреть превью" />
+                    <BricksTooltipHint :text="t('bricks.toolbar.preview')" />
                 </template>
             </BricksTooltip>
 

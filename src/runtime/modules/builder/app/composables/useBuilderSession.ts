@@ -11,6 +11,7 @@ import { getBuilderDraft, removeBuilderDraft } from '../../publish/utils/draftSt
 
 // Vue
 import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Pinia
 import { useComponentsStore } from '../../core/stores/components';
@@ -30,6 +31,7 @@ const EMPTY_SCHEMA: IBricksSchema = {
 export function useBuilderSession(options: IBuilderSessionOptions) {
     const { routePagename, showToast } = options;
 
+    const { t } = useI18n();
     const componentsStore = useComponentsStore();
     const publishStore = usePublishStore();
 
@@ -111,11 +113,11 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
 
             if (draft?.draftSnapshot) {
                 applySnapshot(draft.draftSnapshot);
-                showToast('Есть несохранённые изменения', 'error', 30000);
+                showToast(t('bricks.publish.toasts.unsavedChanges'), 'error', 30000);
             }
         } catch (error: unknown) {
             const message =
-                error instanceof Error ? error.message : 'Не удалось загрузить страницу';
+                error instanceof Error ? error.message : t('bricks.publish.toasts.loadPageFailed');
             showToast(message, 'error');
         } finally {
             isSessionLoading.value = false;

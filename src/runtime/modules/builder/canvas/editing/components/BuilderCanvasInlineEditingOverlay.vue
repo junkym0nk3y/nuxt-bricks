@@ -2,6 +2,7 @@
 // #region Imports
 // Vue
 import { computed, ref, watch, useCssModule } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Pinia
 import { useInlineEditingStore } from '../../../../text-editor/stores/inlineEditing';
@@ -10,6 +11,7 @@ import { useComponentsStore } from '../../../core/stores/components';
 
 // Utils
 import { insertMediaIntoEditor } from '../../../../text-editor/utils/insertMediaIntoEditor';
+import { resolveBricksLabel } from '../../../../common/utils/i18nLabels';
 
 // Composables
 import { useToolbarStateSync } from '../../../../text-editor/composables/useToolbarStateSync';
@@ -23,6 +25,7 @@ import BuilderCanvasInlineEditingHeader from './BuilderCanvasInlineEditingHeader
 // #endregion
 
 // #region Data
+const { t, te } = useI18n();
 const $style = useCssModule();
 const inlineEditingStore = useInlineEditingStore();
 const canvasStore = useCanvasStore();
@@ -71,6 +74,16 @@ const { isDragging, overlayStyle, onDragHandleMousedown } = useDraggableOverlay(
  * Показывать ли overlay.
  */
 const isVisible = computed<boolean>(() => inlineEditingStore.isEditing);
+
+/**
+ * Label текущего свойства: ключи `bricks.*` из definitions резолвятся в перевод,
+ * кастомные строки потребителя проходят как есть.
+ */
+const currentPropLabel = computed<string>(
+    () =>
+        resolveBricksLabel(t, te, inlineEditingStore.currentPropLabel) ||
+        t('bricks.textEditor.inlineEditor')
+);
 
 /**
  * Показывать ли TipTap-тулбар (только для textarea типа).
@@ -194,7 +207,7 @@ function handleRequestImage(): void {
                 </div>
 
                 <BuilderCanvasInlineEditingHeader
-                    :prop-label="inlineEditingStore.currentPropLabel || 'Инлайн редактор'"
+                    :prop-label="currentPropLabel"
                     :editable-props-count="inlineEditingStore.editablePropsCount"
                     :current-prop-index="inlineEditingStore.currentPropIndex"
                     :can-switch-prev="inlineEditingStore.canSwitchPrev"
@@ -226,9 +239,9 @@ function handleRequestImage(): void {
                 <!-- Footer: Done button + hint -->
                 <div :class="$style.footer">
                     <button type="button" :class="$style.doneButton" @click="handleDone">
-                        Готово
+                        {{ t('bricks.textEditor.done') }}
                     </button>
-                    <span :class="$style.hint">Esc — выйти</span>
+                    <span :class="$style.hint">{{ t('bricks.textEditor.escToExit') }}</span>
                 </div>
             </div>
         </Transition>

@@ -1,26 +1,22 @@
 <script setup lang="ts">
 // #region Imports
-import type { ICanvasEmptyStateData } from '../../types/canvas';
+// Vue
+import { useI18n } from 'vue-i18n';
 // #endregion
 
 // #region Data
-const emptyState: ICanvasEmptyStateData = {
-    icon: 're:drag-drop-line',
-    title: 'Добавьте новые компоненты',
-    description:
-        'Откройте библиотеку компонентов и с помощью drag & drop - добавляйте структуру будущей страницы',
-};
+const { t } = useI18n();
 // #endregion
 </script>
 
 <template>
     <div :class="$style.BuilderCanvasEmptyState">
-        <BricksIcon :class="$style.emptyIcon" :icon="emptyState.icon" />
+        <BricksIcon :class="$style.emptyIcon" icon="re:drag-drop-line" />
         <h3 :class="$style.emptyTitle">
-            {{ emptyState.title }}
+            {{ t('bricks.canvas.emptyTitle') }}
         </h3>
         <p :class="$style.emptyText">
-            {{ emptyState.description }}
+            {{ t('bricks.canvas.emptyDescription') }}
         </p>
     </div>
 </template>

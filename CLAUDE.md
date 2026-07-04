@@ -279,6 +279,18 @@ bricks: {
 
 CSS: `.bricks-text [data-tiptap-content]` — **с пробелом** (descendant selector)! Без пробела не матчится.
 
+### i18n (ru/en)
+
+Переводы билдера — через `@nuxtjs/i18n` v10, паттерн «модуль-поставщик переводов»:
+
+- `src/module.ts` подписывается на хук `i18n:registerModule` (ДО `installModule`) и регистрирует `src/runtime/locales/ru.json` / `en.json`; дефолты i18n (`strategy: 'no_prefix'`, cookie `bricks-locale`, детект браузера, `defaultLocale` из `bricks.i18n.defaultLocale`) применяются через `defu` **всегда** — и когда bricks ставит `@nuxtjs/i18n` сам, и когда его подключил потребитель (голая стратегия `prefix_except_default` переписала бы маршруты → 404 на `/builder`); опции потребителя побеждают.
+- **Порядок модулей критичен**: `nuxt-bricks` должен стоять **до** `@nuxtjs/i18n` в `modules` потребителя, иначе хук не сработает и переводы не зарегистрируются (warn выводится в `app:resolve` — `@nuxtjs/i18n` вызывает `i18n:registerModule` из собственного `modules:done`-хука, проверка в `modules:done` давала бы ложное срабатывание).
+- Все ключи — под префиксом `bricks.*` (проектные сообщения потребителя всегда побеждают). Неймспейсы: `common`, `toolbar`, `nav`, `library`, `properties`, `publish`, `media`, `schema`, `canvas`, `textEditor`, `docs`, `validation`, `blocks`.
+- Labels из definitions резолвятся через `resolveBricksLabel` (`common/utils/i18nLabels.ts`): ключи `bricks.*` переводятся, кастомные строки потребителя проходят как есть.
+- **Ограничения значений словарей** (message compiler unplugin-vue-i18n валит загрузку **всей** локали): никакого HTML (`<p>…</p>` запрещён — обёртку добавлять в коде) и никаких literal-`{...}` вне именованных плейсхолдеров (`{текст, с пробелами}` → ошибка компиляции).
+- В компонентах — `useI18n()`; в stores/composables без setup-контекста — `useNuxtApp().$i18n.t(...)`.
+- vee-validate/yup (`plugins/vee-validate.ts`): сообщения — функции с `t()`, резолвятся в момент валидации → реактивны к смене локали без watch; `$i18n` в плагине резолвится лениво.
+
 ### Modal System
 
 Компонент с `category: 'Modal'` в `.brick.ts` автоматически обнаруживается, исключается из сайдбара, появляется в `modal-select`.
@@ -293,7 +305,7 @@ CSS: `.bricks-text [data-tiptap-content]` — **с пробелом** (descendan
 
 ### Documentation (docs/guide/)
 
-Markdown-статьи во встроенной документации билдера.
+Markdown-статьи во встроенной документации билдера, разложены по локалям: `docs/guide/ru/` (полный набор), `docs/guide/en/` (частичный). `useDocumentationArticles.ts` фильтрует glob по папке активной локали; если папка локали пуста — fallback на `ru`. Кросс-ссылки (`./02-interface.md`) резолвятся только внутри активной локали — не ссылаться на статьи, которых нет в той же папке.
 
 > Добавление статьи: `/add-doc-article`
 

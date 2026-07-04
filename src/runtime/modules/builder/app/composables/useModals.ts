@@ -1,7 +1,11 @@
 // #region Imports
 // Types
 import type { Component } from 'vue';
+import type { Composer } from 'vue-i18n';
 import type { TModalKey, IModalOption } from '../types/modals';
+
+// Nuxt
+import { useNuxtApp } from '#imports';
 
 // Composables
 import { useApiClient } from '../../../common/composables/useApiClient';
@@ -54,8 +58,11 @@ async function loadModals(): Promise<void> {
  * @returns Массив опций с label и value
  */
 export function getModalOptions(): IModalOption[] {
+    // Вне setup-контекста: $i18n резолвится лениво через useNuxtApp
+    const i18n = useNuxtApp().$i18n as Composer | undefined;
+
     return [
-        { label: 'Отключено', value: null },
+        { label: i18n?.t('bricks.properties.modalDisabled') ?? 'Отключено', value: null },
         ...modalsCache.map((modal) => ({
             label: modal.name,
             value: modal.name as TModalKey,

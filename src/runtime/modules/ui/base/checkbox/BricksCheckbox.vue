@@ -217,6 +217,7 @@ function onKeydown(event: KeyboardEvent): void {
         .input {
             border-color: var(--bricks-primary);
             outline: none;
+            box-shadow: var(--shadow-focus);
         }
     }
 

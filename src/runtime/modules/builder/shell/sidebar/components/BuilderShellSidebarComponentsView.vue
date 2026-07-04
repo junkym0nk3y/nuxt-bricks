@@ -5,6 +5,7 @@ import type { IComponentLibraryItem } from '../../../../common/types/brick';
 
 // Vue
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Utils
 import { loadFavoritesFromStorage } from '../../../core/stores/actions/favorites';
@@ -27,6 +28,7 @@ const emit = defineEmits<{
 // #endregion
 
 // #region Data
+const { t, te } = useI18n();
 const searchQuery = ref('');
 const showFavoritesOnly = ref(false);
 // #endregion
@@ -106,13 +108,22 @@ const hasFilteredResults = computed<boolean>(
 function handleClose(): void {
     emit('close');
 }
+
+/**
+ * Переводит название категории: известные категории — через мапу
+ * `bricks.library.categories.*`, кастомные строки потребителя — как есть.
+ */
+function resolveCategoryLabel(category: string): string {
+    const key = `bricks.library.categories.${category.toLowerCase()}`;
+    return te(key) ? t(key) : category;
+}
 // #endregion
 </script>
 
 <template>
     <div :class="$style.BuilderShellSidebarComponentsView">
         <div :class="$style.header">
-            <h2 :class="$style.title">Добавить компонент</h2>
+            <h2 :class="$style.title">{{ t('bricks.library.title') }}</h2>
             <BricksCloseButton @click="handleClose" />
         </div>
 
@@ -124,7 +135,7 @@ function handleClose(): void {
                         v-model="searchQuery"
                         :class="$style.searchInput"
                         type="text"
-                        placeholder="Поиск компонентов..."
+                        :placeholder="t('bricks.library.searchPlaceholder')"
                         autocomplete="off"
                     />
                     <button
@@ -156,7 +167,7 @@ function handleClose(): void {
                 :class="$style.category"
             >
                 <h3 :class="$style.categoryTitle">
-                    {{ category }}
+                    {{ resolveCategoryLabel(String(category)) }}
                 </h3>
 
                 <div
@@ -180,8 +191,8 @@ function handleClose(): void {
                 <span :class="$style.emptyIcon">
                     <BricksIcon icon="ph:magnifying-glass" />
                 </span>
-                <p>Ничего не найдено</p>
-                <p :class="$style.emptyHint">Попробуйте изменить поисковый запрос</p>
+                <p>{{ t('bricks.common.notFound') }}</p>
+                <p :class="$style.emptyHint">{{ t('bricks.library.emptyHint') }}</p>
             </div>
 
             <div v-if="!hasAvailableComponents" :class="$style.empty">

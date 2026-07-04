@@ -11,6 +11,7 @@ import { removeBuilderDraft } from '../../publish/utils/draftStorage';
 
 // Vue
 import { computed, provide, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Composables
 import { useComponentLibraryDrag } from './useDraggableComponent';
@@ -39,6 +40,7 @@ export async function useBuilderPage(
     inlineMediaBridge: IInlineMediaBridge
 ): Promise<IUseBuilderPageReturn> {
     // #region Stores & Composables
+    const { t } = useI18n();
     const componentsStore = useComponentsStore();
     const sidebarStore = useSidebarStore();
     const historyStore = useHistoryStore();
@@ -206,7 +208,7 @@ export async function useBuilderPage(
         }
 
         publishStore.setCurrentFormField('published', previousPublished);
-        const errorMessage = publishStore.generalError || 'Не удалось сохранить страницу';
+        const errorMessage = publishStore.generalError || t('bricks.publish.toasts.savePageFailed');
         ensurePublishSettingsVisible(errorMessage);
         showToast(errorMessage, 'error');
         return false;
@@ -220,11 +222,11 @@ export async function useBuilderPage(
         const published = publishStore.currentFormState.published;
         const message = isEditingExistingPage.value
             ? published
-                ? 'Страница обновлена'
-                : 'Изменения сохранены как черновик'
+                ? t('bricks.publish.toasts.pageUpdated')
+                : t('bricks.publish.toasts.draftUpdated')
             : published
-              ? 'Страница опубликована'
-              : 'Черновик сохранён';
+              ? t('bricks.publish.toasts.pagePublished')
+              : t('bricks.publish.toasts.draftSaved');
         await submitPageWithPublishState(published, message);
     }
 
@@ -242,16 +244,16 @@ export async function useBuilderPage(
                 const message =
                     error instanceof Error
                         ? error.message
-                        : 'Не удалось обновить список опубликованных страниц';
+                        : t('bricks.publish.toasts.refreshListFailed');
                 showToast(message, 'error');
                 return;
             }
 
             publishStore.startEditingPage(result);
-            showToast('Копия страницы сохранена', 'success');
+            showToast(t('bricks.publish.toasts.copySaved'), 'success');
             return;
         }
-        const errorMessage = publishStore.generalError || 'Не удалось сохранить копию страницы';
+        const errorMessage = publishStore.generalError || t('bricks.publish.toasts.copyFailed');
         ensurePublishSettingsVisible(errorMessage);
         showToast(errorMessage, 'error');
     }
@@ -275,7 +277,10 @@ export async function useBuilderPage(
                 // ignore
             }
         } else if (!success) {
-            showToast(publishStore.generalError || 'Не удалось открыть превью', 'error');
+            showToast(
+                publishStore.generalError || t('bricks.publish.toasts.previewFailed'),
+                'error'
+            );
         }
     }
 
@@ -389,7 +394,7 @@ export async function useBuilderPage(
         const resolved = await imageResolver.startResolving(schema);
         if (resolved) {
             componentsStore.loadSchema(resolved, { resetHistory: true });
-            showToast('Схема импортирована', 'success');
+            showToast(t('bricks.publish.toasts.schemaImported'), 'success');
         }
     }
     // #endregion

@@ -8,6 +8,7 @@ import type { IBricksSchema } from '../../../../common/types/brick';
 
 // Vue
 import { computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Vee-validate
 import { Form, Field } from 'vee-validate';
@@ -38,6 +39,7 @@ const emit = defineEmits<{
 // #endregion
 
 // #region Data
+const { t } = useI18n();
 const publishStore = usePublishStore();
 const bricksConfig = useBricksConfig();
 const isEditing = computed<boolean>(() => publishStore.editingPageId !== null);
@@ -77,7 +79,7 @@ const layoutOptions = computed(() => {
 const layoutFacets = computed(() => layoutOptions.value.map((option) => option.value));
 
 const panelTitle = computed<string>(() =>
-    isEditing.value ? 'Изменить настройки страницы' : 'Настройки страницы'
+    isEditing.value ? t('bricks.publish.settingsTitleEdit') : t('bricks.publish.settingsTitle')
 );
 const fullUrlPreview = computed<string>(() => {
     const pagename = settings.value.pagename?.trim();
@@ -87,7 +89,7 @@ const fullUrlPreview = computed<string>(() => {
     const prefix = settings.value.urlPrefix?.trim();
     const subdomain = settings.value.subdomain?.trim();
     const path = prefix ? `/${prefix}/${pagename}` : `/${pagename}`;
-    return subdomain ? `${subdomain}.[домен]${path}` : path;
+    return subdomain ? `${subdomain}.[${t('bricks.publish.domainStub')}]${path}` : path;
 });
 // #endregion
 
@@ -236,14 +238,12 @@ onMounted(() => {
                     :disabled="isSubmitting"
                     @update:value="(val: string) => handleUpdateField('urlPrefix', val || null)"
                 />
-                <span :class="$style.hint"
-                    >Опционально. Страница будет доступна по /prefix/pagename</span
-                >
+                <span :class="$style.hint">{{ t('bricks.publish.urlPrefixHint') }}</span>
             </div>
 
             <div :class="$style.formGroup">
                 <BricksInput
-                    label="Субдомен"
+                    :label="t('bricks.publish.subdomain')"
                     :value="settings.subdomain"
                     type="text"
                     placeholder="spb"
@@ -251,9 +251,7 @@ onMounted(() => {
                     :disabled="isSubmitting"
                     @update:value="(val: string) => handleUpdateField('subdomain', val || null)"
                 />
-                <span :class="$style.hint"
-                    >Опционально. Страница будет доступна только на этом поддомене</span
-                >
+                <span :class="$style.hint">{{ t('bricks.publish.subdomainHint') }}</span>
             </div>
 
             <Transition mode="out-in" name="library-fade-fast">
@@ -265,12 +263,12 @@ onMounted(() => {
             <Field v-slot="{ field, errorMessage }" name="title">
                 <div :class="$style.formGroup">
                     <BricksInput
-                        label="Название *"
+                        :label="t('bricks.publish.titleLabel')"
                         :value="field.value"
                         type="text"
                         :required="true"
                         :max-length="120"
-                        placeholder="Заголовок страницы"
+                        :placeholder="t('bricks.publish.titlePlaceholder')"
                         :disabled="isSubmitting"
                         :error-message="errorMessage || publishStore.validationErrors.title"
                         @update:value="
@@ -349,7 +347,7 @@ onMounted(() => {
             </div>
 
             <div :class="$style.formGroup">
-                <label :class="$style.label">Цвет фона</label>
+                <label :class="$style.label">{{ t('bricks.publish.backgroundColor') }}</label>
                 <BricksHexInput
                     :value="settings.backgroundColor || defaultBackgroundColor"
                     :disabled="isSubmitting"
@@ -364,7 +362,7 @@ onMounted(() => {
             <div :class="$style.divider" />
 
             <div :class="$style.formGroup">
-                <label :class="$style.label">Схема страницы</label>
+                <label :class="$style.label">{{ t('bricks.schema.title') }}</label>
                 <BuilderShellSidebarPublishSchemaActions
                     :is-submitting="isSubmitting"
                     @import-schema="handleImportSchema"
@@ -433,28 +431,35 @@ onMounted(() => {
 }
 
 .textarea {
-    /* Фиксируем светлую тему для области ввода контента */
-    --bricks-base-0: #fff;
-    --bricks-base-300: #d1d5db;
-    --bricks-base-900: #111827;
-
     width: 100%;
     min-height: 8rem;
-    padding: 1.2rem;
-    border-radius: var(--border-radius-sm);
+    padding: 0.8rem 1.2rem;
+    border-radius: var(--border-radius-xs);
     border: 1px solid var(--bricks-base-300);
     background-color: var(--bricks-base-0);
+    outline: none;
     font-size: 1.4rem;
     color: var(--bricks-base-900);
-    transition: border-color 150ms ease;
+    transition:
+        border-color var(--default-transition),
+        box-shadow var(--default-transition);
     resize: vertical;
 
+    &::placeholder {
+        color: var(--bricks-base-400);
+    }
+
+    &:hover {
+        border-color: var(--bricks-base-400);
+    }
+
     &:focus {
-        border-color: var(--bricks-base-300);
+        border-color: var(--bricks-primary);
+        box-shadow: var(--shadow-focus);
     }
 
     &:disabled {
-        background-color: var(--bricks-base-300);
+        background-color: var(--bricks-base-50);
         color: var(--bricks-base-400);
     }
 }

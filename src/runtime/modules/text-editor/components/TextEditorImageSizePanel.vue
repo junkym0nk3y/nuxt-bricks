@@ -17,6 +17,7 @@ import { findSelectedMediaNode } from '../utils/selectedMediaNode';
 
 // Vue
 import { ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Components
 import BricksTooltip from '../../ui/tooltip/BricksTooltip.vue';
@@ -28,6 +29,7 @@ const props = withDefaults(defineProps<ITextEditorImageSizePanelProps>(), {});
 // #endregion
 
 // #region Data
+const { t } = useI18n();
 const sizeWidth = ref('');
 const sizeHeight = ref('');
 const sizeUnit = ref<TSizeUnit>('rem');
@@ -272,7 +274,11 @@ onMounted(() => {
                     </button>
                 </template>
                 <BricksTooltipHint
-                    :text="lockAspectRatio ? 'Пропорции сохраняются' : 'Свободное изменение'"
+                    :text="
+                        lockAspectRatio
+                            ? t('bricks.textEditor.aspectLocked')
+                            : t('bricks.textEditor.aspectFree')
+                    "
                 />
             </BricksTooltip>
 

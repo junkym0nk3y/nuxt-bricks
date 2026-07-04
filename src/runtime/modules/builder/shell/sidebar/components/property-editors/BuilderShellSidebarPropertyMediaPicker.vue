@@ -2,6 +2,7 @@
 // #region Imports
 // Vue
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Components
 import BricksButton from '../../../../../ui/base/button/BricksButton.vue';
@@ -28,6 +29,10 @@ interface IPropertyMediaPickerEmits {
 }
 
 const emit = defineEmits<IPropertyMediaPickerEmits>();
+// #endregion
+
+// #region Data
+const { t } = useI18n();
 // #endregion
 
 // #region Computed
@@ -93,7 +98,7 @@ function handleRemove(): void {
                 @click="handleOpenGallery"
             >
                 <BricksIcon icon="md:folder-open" />
-                Выбрать
+                {{ t('bricks.properties.select') }}
             </BricksButton>
 
             <BricksButton
@@ -104,7 +109,7 @@ function handleRemove(): void {
                 @click="handleRemove"
             >
                 <BricksIcon icon="md:delete" />
-                Удалить
+                {{ t('bricks.common.delete') }}
             </BricksButton>
         </div>
 
@@ -136,8 +141,8 @@ function handleRemove(): void {
     overflow: hidden;
     width: 100%;
     height: 16rem;
-    border-radius: 0.8rem;
-    border: 0.2rem solid var(--bricks-base-300);
+    border-radius: var(--border-radius-xs);
+    border: 1px solid var(--bricks-base-300);
     background: var(--bricks-base-50);
 }
 

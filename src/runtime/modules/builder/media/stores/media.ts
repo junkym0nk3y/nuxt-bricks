@@ -1,5 +1,7 @@
 // #region Imports
 import { defineStore } from 'pinia';
+import type { Composer } from 'vue-i18n';
+import { useNuxtApp } from '#imports';
 import type {
     IMediaItem,
     IMediaListResponse,
@@ -16,6 +18,15 @@ const DEFAULT_MEDIA_MIME_TYPE = 'image/png';
 // #endregion
 
 // #region Helpers
+/**
+ * Переводит ключ через глобальный i18n (стор не имеет setup-контекста).
+ * `$i18n` резолвится лениво на каждый вызов — безопасно при любом порядке плагинов.
+ */
+function t(key: string): string {
+    const i18n = useNuxtApp().$i18n as Composer | undefined;
+    return i18n ? i18n.t(key) : key;
+}
+
 /**
  * Нормализует медиа-элемент из ответа API.
  * Конвертирует snake_case ключи из Django backend в camelCase.
@@ -72,7 +83,7 @@ export const useMediaStore = defineStore('bricksMedia', {
             } catch (error) {
                 const message =
                     (error as { data?: { message?: string } })?.data?.message ||
-                    (error instanceof Error ? error.message : 'Не удалось загрузить медиа');
+                    (error instanceof Error ? error.message : t('bricks.media.loadFailed'));
                 const formatted = `GET /api/bricks/media: ${message}`;
                 console.error('[Media Store] Failed to load items from backend:', error);
                 this.items = [];

@@ -4,6 +4,7 @@ import type { ISchemaFileTransferOptions } from '../types/composables';
 
 // Vue
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Pinia
 import { useComponentsStore } from '../../../core/stores/components';
@@ -14,6 +15,7 @@ import { useComponentsStore } from '../../../core/stores/components';
  */
 export function useSchemaFileTransfer(options: ISchemaFileTransferOptions) {
     const componentsStore = useComponentsStore();
+    const { t } = useI18n();
 
     const fileInputRef = ref<HTMLInputElement | null>(null);
     const importError = ref<string | null>(null);
@@ -56,7 +58,7 @@ export function useSchemaFileTransfer(options: ISchemaFileTransferOptions) {
         }
 
         if (!file.name.endsWith('.json')) {
-            importError.value = 'Выберите файл формата .json';
+            importError.value = t('bricks.schema.importErrorFileType');
             input.value = '';
             return;
         }
@@ -68,21 +70,21 @@ export function useSchemaFileTransfer(options: ISchemaFileTransferOptions) {
                 const parsed = JSON.parse(reader.result as string) as IBricksSchema;
 
                 if (!parsed.components || !Array.isArray(parsed.components)) {
-                    importError.value = 'Невалидная схема: отсутствует массив components';
+                    importError.value = t('bricks.schema.importErrorInvalid');
                     return;
                 }
 
                 options.onImport(parsed);
                 importError.value = null;
             } catch {
-                importError.value = 'Ошибка парсинга JSON-файла';
+                importError.value = t('bricks.schema.importErrorParse');
             }
 
             input.value = '';
         };
 
         reader.onerror = () => {
-            importError.value = 'Ошибка чтения файла';
+            importError.value = t('bricks.schema.importErrorRead');
             input.value = '';
         };
 

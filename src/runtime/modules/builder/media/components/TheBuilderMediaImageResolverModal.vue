@@ -5,6 +5,7 @@ import type { IImageResolverState, TImageResolveAction } from '../types/schemaIm
 
 // Vue
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
@@ -34,6 +35,10 @@ const props = defineProps<ITheImageResolverModalProps>();
 
 // #region Emits
 const emit = defineEmits<ITheImageResolverModalEmits>();
+// #endregion
+
+// #region Data
+const { t } = useI18n();
 // #endregion
 
 // #region Computed
@@ -87,7 +92,7 @@ function handleGlobalActionChange(event: Event): void {
 <template>
     <BricksModal
         :is-open="props.isOpen"
-        title="Найдены новые изображения"
+        :title="t('bricks.media.resolver.title')"
         variant="gradient"
         padded
         :z-index="100001"
@@ -97,21 +102,25 @@ function handleGlobalActionChange(event: Event): void {
         <div :class="$style.modal">
             <div :class="$style.header">
                 <h3 :class="$style.title">
-                    Найдены новые изображения
+                    {{ t('bricks.media.resolver.title') }}
                     <span :class="$style.count">{{ imageCount }}</span>
                 </h3>
                 <BricksCloseButton @click="handleClose" />
             </div>
 
             <div :class="$style.globalAction">
-                <label :class="$style.globalLabel">Действие для всех:</label>
+                <label :class="$style.globalLabel">{{
+                    t('bricks.media.resolver.globalAction')
+                }}</label>
                 <select
                     :value="props.state.globalAction"
                     :class="$style.globalSelect"
                     @change="handleGlobalActionChange"
                 >
-                    <option value="keep">Оставить</option>
-                    <option value="placeholder">Заглушка</option>
+                    <option value="keep">{{ t('bricks.media.resolver.keep') }}</option>
+                    <option value="placeholder">
+                        {{ t('bricks.media.resolver.placeholder') }}
+                    </option>
                 </select>
             </div>
 
@@ -127,16 +136,16 @@ function handleGlobalActionChange(event: Event): void {
 
             <div :class="$style.footer">
                 <BricksButton size="sm" variant="ghost" @click="handleSkip">
-                    Пропустить
+                    {{ t('bricks.media.resolver.skip') }}
                 </BricksButton>
 
                 <div :class="$style.actionsRight">
                     <BricksButton size="sm" variant="secondary" @click="handleClose">
-                        Отмена
+                        {{ t('bricks.common.cancel') }}
                     </BricksButton>
 
                     <BricksButton size="sm" variant="primary" @click="handleConfirm">
-                        Применить
+                        {{ t('bricks.media.resolver.apply') }}
                     </BricksButton>
                 </div>
             </div>

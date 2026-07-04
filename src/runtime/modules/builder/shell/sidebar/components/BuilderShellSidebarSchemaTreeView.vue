@@ -6,6 +6,7 @@ import type { IBrickValues } from '../../../../common/types/index';
 
 // Vue
 import { computed, nextTick } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Pinia
 import { useComponentsStore } from '../../../core/stores/components';
@@ -34,6 +35,7 @@ const emit = defineEmits<{
 // #endregion
 
 // #region Data
+const { t } = useI18n();
 const componentsStore = useComponentsStore();
 const canvasStore = useCanvasStore();
 const { findImportModule } = useBrickImports();
@@ -185,7 +187,7 @@ async function handleSelectComponent(id: string): Promise<void> {
 <template>
     <div :class="$style.BuilderShellSidebarSchemaTreeView">
         <div :class="$style.header">
-            <h2 :class="$style.title">Схема страницы</h2>
+            <h2 :class="$style.title">{{ t('bricks.schema.title') }}</h2>
             <BricksCloseButton @click="handleClose" />
         </div>
 
@@ -204,8 +206,8 @@ async function handleSelectComponent(id: string): Promise<void> {
 
             <div v-else :class="$style.empty">
                 <BricksIcon icon="re:drag-drop-line" :class="$style.emptyIcon" />
-                <p>Нет компонентов</p>
-                <p :class="$style.emptyHint">Добавьте компоненты на канвас из библиотеки</p>
+                <p>{{ t('bricks.schema.empty') }}</p>
+                <p :class="$style.emptyHint">{{ t('bricks.schema.emptyHint') }}</p>
             </div>
         </div>
     </div>

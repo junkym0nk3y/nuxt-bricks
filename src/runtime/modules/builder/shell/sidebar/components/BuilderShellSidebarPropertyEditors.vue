@@ -13,6 +13,10 @@ import type {
 
 // Vue
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+// Utils
+import { resolveBricksLabel } from '../../../../common/utils/i18nLabels';
 
 // Constants/Components
 import { PROPERTY_EDITOR_ORDER, type TPropertyEditorType } from './property-editors/types';
@@ -112,6 +116,7 @@ const hasGroups = computed(() => groupedEditorItems.value.groups.size > 0);
 // #endregion
 
 // #region Data
+const { t, te } = useI18n();
 const openGroups = ref<Set<string>>(new Set());
 // #endregion
 
@@ -134,6 +139,14 @@ function toggleGroup(groupName: string): void {
  */
 function isGroupOpen(groupName: string): boolean {
     return openGroups.value.has(groupName);
+}
+
+/**
+ * Резолвит отображаемое имя группы: ключи `bricks.*` переводятся,
+ * кастомные строки потребителя — как есть.
+ */
+function resolveGroupLabel(groupName: string): string {
+    return resolveBricksLabel(t, te, groupName) || groupName;
 }
 
 /**
@@ -210,14 +223,14 @@ watch(
     <div :class="$style.BuilderShellSidebarPropertyEditors">
         <div :class="$style.section">
             <div :class="$style.sectionHeader">
-                <div :class="$style.sectionTitle">Отображение</div>
+                <div :class="$style.sectionTitle">{{ t('bricks.properties.display') }}</div>
                 <div :class="$style.sectionDivider" />
             </div>
 
             <div :class="$style.optWrapper">
                 <component
                     :is="props.componentEditors.boolean"
-                    label="Отображать компонент"
+                    :label="t('bricks.properties.showComponent')"
                     :value="!props.isHiddenValue"
                     :disabled="false"
                     @update:value="handleVisibilityToggle($event as boolean)"
@@ -225,7 +238,7 @@ watch(
             </div>
 
             <div :class="$style.optWrapper">
-                <div :class="$style.optTitle">Показывать на:</div>
+                <div :class="$style.optTitle">{{ t('bricks.properties.showOn') }}</div>
 
                 <component
                     :is="props.componentEditors.boolean"
@@ -255,7 +268,7 @@ watch(
             <div v-if="props.showFullWidthControl" :class="$style.optWrapper">
                 <component
                     :is="props.componentEditors.boolean"
-                    label="Отображать на всю страницу"
+                    :label="t('bricks.properties.fullWidth')"
                     :value="props.fullWidthValue"
                     :disabled="false"
                     @update:value="handleFullWidthToggle($event as boolean)"
@@ -276,7 +289,7 @@ watch(
 
         <div :class="$style.section">
             <div :class="$style.sectionHeader">
-                <div :class="$style.sectionTitle">Свойства</div>
+                <div :class="$style.sectionTitle">{{ t('bricks.properties.title') }}</div>
                 <div :class="$style.sectionDivider" />
             </div>
 
@@ -326,7 +339,7 @@ watch(
                                 stroke-linejoin="round"
                             />
                         </svg>
-                        <span>{{ groupName }}</span>
+                        <span>{{ resolveGroupLabel(groupName) }}</span>
                     </button>
 
                     <div v-show="isGroupOpen(groupName)" :class="$style.groupBody">

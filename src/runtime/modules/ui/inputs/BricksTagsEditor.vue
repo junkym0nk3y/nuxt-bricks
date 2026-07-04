@@ -1,7 +1,8 @@
 <script setup lang="ts">
 // #region Imports
 // Vue
-import { ref, useCssModule } from 'vue';
+import { computed, ref, useCssModule } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Components
 import BricksButton from '../base/button/BricksButton.vue';
@@ -22,7 +23,7 @@ interface ITagsEditorEmits {
 // #region Props
 const props = withDefaults(defineProps<ITagsEditorProps>(), {
     modelValue: () => [],
-    placeholder: 'Добавить тег...',
+    placeholder: '',
     disabled: false,
 });
 // #endregion
@@ -32,9 +33,16 @@ const emit = defineEmits<ITagsEditorEmits>();
 // #endregion
 
 // #region Data
+const { t } = useI18n();
 const $style = useCssModule();
 const inputValue = ref('');
 const inputRef = ref<HTMLInputElement | null>(null);
+// #endregion
+
+// #region Computed
+const displayPlaceholder = computed<string>(
+    () => props.placeholder || t('bricks.properties.gallery.tagPlaceholder')
+);
 // #endregion
 
 // #region Methods
@@ -121,7 +129,7 @@ function focusInput(): void {
                 v-model="inputValue"
                 type="text"
                 :class="$style.input"
-                :placeholder="props.modelValue.length === 0 ? props.placeholder : ''"
+                :placeholder="props.modelValue.length === 0 ? displayPlaceholder : ''"
                 :disabled="props.disabled"
                 @keydown="handleKeydown"
                 @blur="addTag"
@@ -145,17 +153,24 @@ function focusInput(): void {
 .BricksTagsEditor {
     display: flex;
     align-items: center;
-    min-height: 3.2rem;
+    min-height: 3.6rem;
     padding: 0.4rem 0.8rem;
-    border-radius: 0.6rem;
-    border: 1px solid var(--bricks-base-200);
+    border-radius: var(--border-radius-xs);
+    border: 1px solid var(--bricks-base-300);
     background: var(--bricks-base-0);
-    transition: border-color 0.2s;
+    transition:
+        border-color var(--default-transition),
+        box-shadow var(--default-transition);
     cursor: text;
     gap: 0.4rem;
 
+    &:hover {
+        border-color: var(--bricks-base-400);
+    }
+
     &:focus-within {
-        border-color: var(--bricks-primary-400);
+        border-color: var(--bricks-primary);
+        box-shadow: var(--shadow-focus);
     }
 
     &._disabled {

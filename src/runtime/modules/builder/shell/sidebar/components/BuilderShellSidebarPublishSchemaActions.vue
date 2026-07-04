@@ -7,6 +7,9 @@ import type {
     ISidebarPublishSchemaActionsEmits,
 } from '../types/components';
 
+// Vue
+import { useI18n } from 'vue-i18n';
+
 // Composables
 import { useSchemaFileTransfer } from '../composables/useSchemaFileTransfer';
 
@@ -23,6 +26,7 @@ const emit = defineEmits<ISidebarPublishSchemaActionsEmits>();
 // #endregion
 
 // #region Data
+const { t } = useI18n();
 const { fileInputRef, importError, handleExportSchema, handleImportClick, handleFileSelect } =
     useSchemaFileTransfer({
         onImport: handleImportSchema,
@@ -49,7 +53,7 @@ function handleImportSchema(schema: IBricksSchema): void {
                 @click="handleExportSchema"
             >
                 <BricksIcon icon="ph:download" />
-                Экспорт JSON
+                {{ t('bricks.publish.exportJson') }}
             </BricksButton>
             <BricksButton
                 size="md"
@@ -58,7 +62,7 @@ function handleImportSchema(schema: IBricksSchema): void {
                 @click="handleImportClick"
             >
                 <BricksIcon icon="ph:upload" />
-                Импорт JSON
+                {{ t('bricks.publish.importJson') }}
             </BricksButton>
         </div>
 

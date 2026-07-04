@@ -7,13 +7,23 @@ import type {
     IToolbarStateRefs,
 } from '../modules/ui/inputs/textEditorToolbar.d.ts';
 import type { Editor } from '@tiptap/core';
+import type { Composer } from 'vue-i18n';
 
 // Side-effect import: augments @tiptap/core Commands with table methods
 import '@tiptap/extension-table';
 
 // Nuxt
-import { defineNuxtPlugin } from '#imports';
+import { defineNuxtPlugin, useNuxtApp } from '#imports';
 // #endregion
+
+/**
+ * Переводит ключ через глобальный i18n. Конфиг тулбара пересобирается на каждый
+ * рендер, поэтому строки резолвятся лениво и следуют текущей локали.
+ */
+function t(key: string): string {
+    const i18n = useNuxtApp().$i18n as Composer | undefined;
+    return i18n ? i18n.t(key) : key;
+}
 
 const FONT_WEIGHT_PRESETS = Object.freeze([
     { label: 'Thin', value: '100' },
@@ -217,7 +227,7 @@ export function createToolbarConfig({
                         };
                     }),
                     onChange: setFontSize,
-                    customInputPlaceholder: 'напр. 2.2 (rem)',
+                    customInputPlaceholder: t('bricks.textEditor.fontSizePlaceholder'),
                     transformInput: (raw: string) => {
                         return `${Number.parseFloat(raw)}rem`;
                     },
@@ -239,14 +249,14 @@ export function createToolbarConfig({
                     icon: 'bs:type-bold',
                     value: currentFontWeight.value,
                     options: [
-                        { label: 'Авто', value: '' },
+                        { label: t('bricks.textEditor.auto'), value: '' },
                         ...FONT_WEIGHT_PRESETS.map((preset) => ({
                             label: `${preset.value} ${preset.label}`,
                             value: preset.value,
                         })),
                     ],
                     onChange: setFontWeight,
-                    customInputPlaceholder: 'напр. 450',
+                    customInputPlaceholder: t('bricks.textEditor.fontWeightPlaceholder'),
                     transformInput: (raw: string) => {
                         return String(Math.round(Number.parseFloat(raw)));
                     },
@@ -268,7 +278,7 @@ export function createToolbarConfig({
                     icon: 'mc:line-height-line',
                     value: currentLineHeight.value,
                     options: [
-                        { label: 'Авто', value: '' },
+                        { label: t('bricks.textEditor.auto'), value: '' },
                         ...LINE_HEIGHT_PRESETS.map((lh) => ({
                             label: String(lh),
                             value: String(lh),
@@ -278,7 +288,7 @@ export function createToolbarConfig({
                         { label: '150%', value: '150%' },
                     ],
                     onChange: setLineHeight,
-                    customInputPlaceholder: 'напр. 1.35, 120% или 2rem',
+                    customInputPlaceholder: t('bricks.textEditor.lineHeightPlaceholder'),
                     transformInput: (raw: string) => {
                         if (raw.endsWith('%')) {
                             return `${Number.parseFloat(raw)}%`;
@@ -306,7 +316,7 @@ export function createToolbarConfig({
                     icon: 'mc:letter-spacing-line',
                     value: currentLetterSpacing.value,
                     options: [
-                        { label: 'Обычный', value: '' },
+                        { label: t('bricks.textEditor.normal'), value: '' },
                         ...LETTER_SPACING_PRESETS_PX.map((spacing) => {
                             const remValue = pxToRem(spacing);
                             return {
@@ -316,7 +326,7 @@ export function createToolbarConfig({
                         }),
                     ],
                     onChange: setLetterSpacing,
-                    customInputPlaceholder: 'напр. 0.15rem или 5%',
+                    customInputPlaceholder: t('bricks.textEditor.letterSpacingPlaceholder'),
                     transformInput: (raw: string) => {
                         if (raw.endsWith('%')) {
                             return `${Number.parseFloat(raw)}%`;
@@ -401,7 +411,7 @@ export function createToolbarConfig({
             items: [
                 {
                     icon: 'md:horizontal-rule',
-                    title: 'Разделитель',
+                    title: 'Divider',
                     run: () => editor.chain().focus().setHorizontalRule().run(),
                     isActive: () => false,
                 },

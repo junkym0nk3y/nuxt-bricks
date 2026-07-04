@@ -11,6 +11,10 @@ import type {
 
 // Vue
 import { computed, type Component } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+// Utils
+import { resolveBricksLabel } from '../../../../common/utils/i18nLabels';
 // #endregion
 
 // #region Props
@@ -19,7 +23,14 @@ const props = withDefaults(defineProps<ISidebarPropertyEditorRowProps>(), {
 });
 // #endregion
 
+// #region Data
+const { t, te } = useI18n();
+// #endregion
+
 // #region Computed
+const resolvedDescription = computed<string>(
+    () => resolveBricksLabel(t, te, props.variant?.property?.description) || ''
+);
 const isBooleanEditor = computed<boolean>(() => props.type === 'boolean');
 const isMediaEditor = computed<boolean>(() => props.type === 'image' || props.type === 'video');
 const isInlineEditor = computed<boolean>(() => props.type === 'inline-content');
@@ -140,8 +151,8 @@ function handleAccordionItemsChange(value: IAccordionItem[]): void {
         :class="[$style.BuilderShellSidebarPropertyEditorRow, { [$style._bool]: isBooleanEditor }]"
     >
         <span v-if="shouldShowLabel" :class="$style.fieldLabel"> {{ props.variant.label }}: </span>
-        <span v-if="props.variant.property.description" :class="$style.fieldDescription">
-            {{ props.variant.property.description }}
+        <span v-if="resolvedDescription" :class="$style.fieldDescription">
+            {{ resolvedDescription }}
         </span>
 
         <template v-if="isInlineEditor">
@@ -196,7 +207,7 @@ function handleAccordionItemsChange(value: IAccordionItem[]): void {
 .BuilderShellSidebarPropertyEditorRow {
     display: flex;
     flex-direction: column;
-    margin-bottom: 1.4rem;
+    margin-bottom: 1.6rem;
 
     &:last-child {
         margin-bottom: 0;

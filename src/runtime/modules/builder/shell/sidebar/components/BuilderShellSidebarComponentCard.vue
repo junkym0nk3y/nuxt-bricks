@@ -17,6 +17,7 @@ import {
     onBeforeUnmount,
     type Component,
 } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Pinia
 import { useComponentsStore } from '../../../core/stores/components';
@@ -30,6 +31,7 @@ import { useBrickImports } from '../../../../common/composables/useBrickImports'
 
 // Utils
 import { convertRemToPx } from '../../../../common/utils/main';
+import { resolveBricksLabel } from '../../../../common/utils/i18nLabels';
 
 // #endregion
 
@@ -40,6 +42,7 @@ const props = withDefaults(defineProps<ISidebarComponentCardProps>(), {
 // #endregion
 
 // #region Data
+const { t, te } = useI18n();
 const componentsStore = useComponentsStore();
 const { findImportModule } = useBrickImports();
 const ComponentPreview = shallowRef<Component | null>(null);
@@ -70,6 +73,13 @@ if (importModule) {
 // #endregion
 
 // #region Computed
+/**
+ * Описание компонента: ключи `bricks.*` переводятся, кастомные строки — как есть.
+ */
+const resolvedDescription = computed<string>(
+    () => resolveBricksLabel(t, te, props.component.description) || ''
+);
+
 /**
  * Фильтрует slot-пропсы из defaultProps чтобы не передавать их как обычные пропсы
  * @returns Объект пропсов без slot-пропсов
@@ -257,7 +267,7 @@ function handleDragStart(event: DragEvent): void {
 </script>
 
 <template>
-    <BricksTooltip v-if="props.component.description" bottom>
+    <BricksTooltip v-if="resolvedDescription" bottom>
         <template #activator>
             <div
                 :class="$style.BuilderShellSidebarComponentCard"
@@ -312,7 +322,7 @@ function handleDragStart(event: DragEvent): void {
         </template>
 
         <template #default>
-            <BricksTooltipHint :text="props.component.description" />
+            <BricksTooltipHint :text="resolvedDescription" />
         </template>
     </BricksTooltip>
 

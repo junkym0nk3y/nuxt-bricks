@@ -5,6 +5,7 @@ import type { IPublishPageCardEmits, IPublishPageCardProps } from '../types/moda
 
 // Vue
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
@@ -19,6 +20,10 @@ const props = defineProps<IPublishPageCardProps>();
 
 // #region Emits
 const emit = defineEmits<IPublishPageCardEmits>();
+// #endregion
+
+// #region Data
+const { t } = useI18n();
 // #endregion
 
 // #region Computed
@@ -41,7 +46,7 @@ const formattedDate = computed(() => {
     const hours = String(parsedDate.getHours()).padStart(2, '0');
     const minutes = String(parsedDate.getMinutes()).padStart(2, '0');
 
-    return `${day}.${month}.${year} в ${hours}:${minutes}`;
+    return `${day}.${month}.${year} ${t('bricks.publish.card.dateAt')} ${hours}:${minutes}`;
 });
 // #endregion
 
@@ -87,7 +92,9 @@ function handleTogglePublished(value: boolean | string): void {
                 {{ props.page.description }}
             </p>
             <div :class="$style.meta">
-                <span :class="$style.date">Обновлено: {{ formattedDate }}</span>
+                <span :class="$style.date"
+                    >{{ t('bricks.publish.card.updated') }} {{ formattedDate }}</span
+                >
 
                 <BricksTooltip bottom>
                     <template #activator>
@@ -110,7 +117,7 @@ function handleTogglePublished(value: boolean | string): void {
                     </template>
 
                     <template #default>
-                        <BricksTooltipHint text="Публикация страницы" />
+                        <BricksTooltipHint :text="t('bricks.publish.card.publishTooltip')" />
                     </template>
                 </BricksTooltip>
             </div>
@@ -118,14 +125,16 @@ function handleTogglePublished(value: boolean | string): void {
 
         <div :class="$style.actions">
             <BricksButton size="md" variant="secondary" @click="handlePreview">
-                Превью
+                {{ t('bricks.publish.card.preview') }}
             </BricksButton>
 
             <BricksButton size="md" variant="secondary" @click="handleEdit">
-                Редактировать
+                {{ t('bricks.publish.card.edit') }}
             </BricksButton>
 
-            <BricksButton size="md" variant="danger" @click="handleDelete"> Удалить </BricksButton>
+            <BricksButton size="md" variant="danger" @click="handleDelete">
+                {{ t('bricks.common.delete') }}
+            </BricksButton>
         </div>
     </div>
 </template>

@@ -1,4 +1,15 @@
+import type { Composer } from 'vue-i18n';
+import { useNuxtApp } from '#imports';
 import type { TRequestErrorLike } from '../../../common/types/bricks-api';
+
+/**
+ * Возвращает локализованное сообщение «Неизвестная ошибка».
+ * `$i18n` резолвится лениво: утилита вызывается вне setup-контекста.
+ */
+function unknownErrorMessage(): string {
+    const i18n = useNuxtApp().$i18n as Composer | undefined;
+    return i18n ? i18n.t('bricks.common.unknownError') : 'Неизвестная ошибка';
+}
 
 /**
  * Форматирует ошибку запроса в человекочитаемое сообщение.
@@ -12,7 +23,7 @@ function formatRequestError(method: string, url: string, error: unknown): string
     const message =
         payload.data?.message ||
         payload.message ||
-        (error instanceof Error ? error.message : 'Неизвестная ошибка');
+        (error instanceof Error ? error.message : unknownErrorMessage());
     const code = payload.data?.code || payload.code || payload.statusCode;
     const codePart = code ? ` (code: ${String(code)})` : '';
 

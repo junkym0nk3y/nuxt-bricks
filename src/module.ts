@@ -7,8 +7,11 @@ import {
     addServerHandler,
     extendPages,
     installModule,
+    hasNuxtModule,
 } from '@nuxt/kit';
 import { defu } from 'defu';
+// Side-effect type import: подтягивает augmentation NuxtOptions.i18n и хука i18n:registerModule
+import type {} from '@nuxtjs/i18n';
 import { brickWatchPlugin } from './runtime/modules/common/utils/routing/vite-brick-watch';
 
 // #region Types
@@ -47,6 +50,14 @@ export interface IBricksModuleOptions {
      */
     proxy?: {
         url?: string;
+    };
+    /**
+     * Локализация интерфейса билдера (ru/en).
+     * defaultLocale применяется, только если @nuxtjs/i18n ставит сам bricks
+     * (у потребителя модуль не подключён).
+     */
+    i18n?: {
+        defaultLocale?: 'ru' | 'en';
     };
 }
 // #endregion
@@ -192,6 +203,50 @@ export default defineNuxtModule<IBricksModuleOptions>({
 
         // #region Зависимые модули
         await installModule('@pinia/nuxt');
+        // #endregion
+
+        // #region i18n (переводы билдера ru/en)
+        // Подписка ДО installModule: @nuxtjs/i18n вызывает хук в своём setup.
+        let isI18nRegistered = false;
+        nuxt.hook('i18n:registerModule', (register) => {
+            isI18nRegistered = true;
+            register({
+                langDir: resolve(runtimeDir, 'locales'),
+                locales: [
+                    { code: 'ru', language: 'ru-RU', file: 'ru.json' },
+                    { code: 'en', language: 'en-US', file: 'en.json' },
+                ],
+            });
+        });
+
+        // Дефолты применяются всегда (defu: опции потребителя побеждают) — если
+        // потребитель подключил @nuxtjs/i18n сам без конфига, голая стратегия
+        // prefix_except_default переписала бы маршруты и /builder отдавал бы 404.
+        const defaultLocale = options.i18n?.defaultLocale ?? 'ru';
+        nuxt.options.i18n = defu(nuxt.options.i18n, {
+            strategy: 'no_prefix' as const,
+            defaultLocale,
+            detectBrowserLanguage: {
+                useCookie: true,
+                cookieKey: 'bricks-locale',
+                fallbackLocale: defaultLocale,
+            },
+        });
+
+        if (!hasNuxtModule('@nuxtjs/i18n')) {
+            await installModule('@nuxtjs/i18n');
+        }
+
+        // app:resolve — после modules:done: @nuxtjs/i18n вызывает i18n:registerModule
+        // из собственного modules:done-хука, который при явном подключении i18n
+        // потребителем регистрируется позже bricks-хуков.
+        nuxt.hook('app:resolve', () => {
+            if (!isI18nRegistered) {
+                console.warn(
+                    '[nuxt-bricks] i18n:registerModule hook was not called — builder translations are missing. Place nuxt-bricks BEFORE @nuxtjs/i18n in nuxt.config modules.'
+                );
+            }
+        });
         // #endregion
 
         // #region Стили

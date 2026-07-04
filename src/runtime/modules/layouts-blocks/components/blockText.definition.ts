@@ -38,7 +38,7 @@ function renderTextPublished(ctx: IBlockRenderContext): VNode {
  */
 export const blockTextDefinition: IBlockDefinition = {
     name: 'Text',
-    description: 'Текстовый блок с HTML-контентом.',
+    description: 'bricks.blocks.text.description',
     thumbnail: '/images/layouts/text.svg',
     responsiveMode: 'none',
     canvasBind: bindBoundPropsWithComponentId,
@@ -47,19 +47,19 @@ export const blockTextDefinition: IBlockDefinition = {
         {
             name: 'content',
             type: 'textarea',
-            label: 'Content',
+            label: 'bricks.blocks.text.props.content.label',
             default: '<p>Введите текст</p>',
         },
         {
             name: 'marginTop',
             type: 'number',
-            label: 'Margin Top (rem)',
+            label: 'bricks.blocks.text.props.marginTop.label',
             default: 0,
         },
         {
             name: 'marginBottom',
             type: 'number',
-            label: 'Margin Bottom (rem)',
+            label: 'bricks.blocks.text.props.marginBottom.label',
             default: 0,
         },
     ],

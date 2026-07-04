@@ -1,0 +1,744 @@
+{
+    "bricks": {
+        "common": {
+            "save": "Сохранить",
+            "cancel": "Отмена",
+            "delete": "Удалить",
+            "close": "Закрыть",
+            "loading": "Загрузка…",
+            "notFound": "Ничего не найдено",
+            "unknownError": "Неизвестная ошибка",
+            "confirm": "Подтвердить",
+            "increase": "Увеличить",
+            "decrease": "Уменьшить"
+        },
+        "toolbar": {
+            "grid": "Сетка",
+            "undo": "Шаг назад (Ctrl+Z)",
+            "redo": "Шаг вперёд (Ctrl+Shift+Z)",
+            "pagesEditor": "Редактор страниц",
+            "media": "Загружаемый контент",
+            "preview": "Посмотреть превью",
+            "save": "Сохранить",
+            "saveDraft": "Сохранить изменения",
+            "saveCopy": "Сохранить как копию"
+        },
+        "nav": {
+            "library": "Компоненты",
+            "properties": "Свойства",
+            "schema": "Схема",
+            "settings": "Настройки",
+            "docs": "Документация",
+            "themeLight": "Светлая тема",
+            "themeDark": "Тёмная тема",
+            "language": "Язык интерфейса"
+        },
+        "library": {
+            "title": "Добавить компонент",
+            "searchPlaceholder": "Поиск компонентов...",
+            "emptyHint": "Попробуйте изменить поисковый запрос",
+            "categories": {
+                "layout": "Layout",
+                "other": "Другое",
+                "content": "Контент"
+            }
+        },
+        "properties": {
+            "title": "Свойства",
+            "device": "Устройство",
+            "reset": "Сбросить",
+            "display": "Отображение",
+            "showComponent": "Отображать компонент",
+            "showOn": "Показывать на:",
+            "fullWidth": "Отображать на всю страницу",
+            "switchOn": "Вкл",
+            "modalDisabled": "Отключено",
+            "editorLoading": "Загрузка редактора...",
+            "select": "Выбрать",
+            "add": "Добавить",
+            "inline": {
+                "text": "Текст",
+                "lineBreak": "Перенос",
+                "media": "Медиа",
+                "textPlaceholder": "Введите текст",
+                "newText": "Новый текст",
+                "lineBreakHint": "Текст после этого сегмента будет начинаться с новой строки.",
+                "replaceMedia": "Заменить медиа",
+                "width": "Ширина",
+                "height": "Высота",
+                "svgColor": "Цвет SVG",
+                "empty": "Добавьте текст или медиа, чтобы собрать сложный заголовок"
+            },
+            "gallery": {
+                "label": "Галерея изображений",
+                "tagPlaceholder": "Добавить тег...",
+                "empty": "Нажмите, чтобы добавить изображение"
+            },
+            "accordion": {
+                "label": "Элементы аккордеона",
+                "itemTitle": "Заголовок",
+                "itemContent": "Содержимое",
+                "titlePlaceholder": "Введите заголовок...",
+                "contentPlaceholder": "Введите текст...",
+                "empty": "Нажмите, чтобы добавить элемент",
+                "copySuffix": "(копия)",
+                "defaultTitle": "Вопрос {n}",
+                "defaultContent": "Ответ"
+            }
+        },
+        "publish": {
+            "settingsTitle": "Настройки страницы",
+            "settingsTitleEdit": "Изменить настройки страницы",
+            "urlPrefixHint": "Опционально. Страница будет доступна по /prefix/pagename",
+            "subdomain": "Субдомен",
+            "subdomainHint": "Опционально. Страница будет доступна только на этом поддомене",
+            "domainStub": "домен",
+            "titleLabel": "Название *",
+            "titlePlaceholder": "Заголовок страницы",
+            "backgroundColor": "Цвет фона",
+            "exportJson": "Экспорт JSON",
+            "importJson": "Импорт JSON",
+            "socialImageSelect": "Выбрать из медиабиблиотеки",
+            "socialImageClear": "Очистить",
+            "fillRequired": "Заполните обязательные поля *",
+            "publishFailed": "Не удалось опубликовать страницу. Попробуйте ещё раз.",
+            "copyFailedRetry": "Не удалось сохранить копию. Попробуйте ещё раз.",
+            "previewCreateFailed": "Не удалось создать превью. Попробуйте ещё раз.",
+            "previewFallback": "Превью",
+            "pagesModal": {
+                "title": "Сохранённые страницы",
+                "loadFailed": "Не удалось загрузить опубликованные страницы",
+                "toggleStatusFailed": "Не удалось изменить статус публикации",
+                "deleteFailed": "Не удалось удалить страницу",
+                "deleteConfirmTitle": "Удалить страницу?",
+                "deleteConfirmGeneric": "Вы уверены, что хотите удалить эту страницу?",
+                "deleteConfirmNamed": "Вы уверены, что хотите удалить страницу «{title}» ({path})?",
+                "emptyTitle": "Записей не найдено",
+                "emptyText": "Вы пока не сохранили ни одной страницы."
+            },
+            "card": {
+                "updated": "Обновлено:",
+                "dateAt": "в",
+                "publishTooltip": "Публикация страницы",
+                "preview": "Превью",
+                "edit": "Редактировать"
+            },
+            "dashboard": {
+                "title": "Билдер",
+                "subtitle": "Выберите страницу для редактирования или создайте новую.",
+                "createPage": "Создать новую страницу",
+                "openPagesList": "Открыть список страниц"
+            },
+            "toasts": {
+                "unsavedChanges": "Есть несохранённые изменения",
+                "loadPageFailed": "Не удалось загрузить страницу",
+                "pageNotFound": "Страница не найдена",
+                "savePageFailed": "Не удалось сохранить страницу",
+                "pageUpdated": "Страница обновлена",
+                "draftUpdated": "Изменения сохранены как черновик",
+                "pagePublished": "Страница опубликована",
+                "draftSaved": "Черновик сохранён",
+                "refreshListFailed": "Не удалось обновить список опубликованных страниц",
+                "copySaved": "Копия страницы сохранена",
+                "copyFailed": "Не удалось сохранить копию страницы",
+                "previewFailed": "Не удалось открыть превью",
+                "schemaImported": "Схема импортирована"
+            },
+            "draft": {
+                "restoreTitle": "Восстановить несохранённые изменения?",
+                "restoreDescription": "Мы нашли изменения, которые не были сохранены. Восстановить их?",
+                "restoreConfirm": "Восстановить изменения",
+                "restoreCancel": "Открыть сохранённую"
+            },
+            "navigation": {
+                "title": "Навигация",
+                "text": "Текст",
+                "textPlaceholder": "О нас",
+                "link": "Ссылка",
+                "moveUp": "Переместить вверх",
+                "moveDown": "Переместить вниз",
+                "addItem": "Добавить пункт"
+            },
+            "validation": {
+                "pagenameRequired": "Необходимо указать pagename",
+                "pagenameMin": "Минимум 3 символа",
+                "pagenameMax": "Максимум 80 символов",
+                "pagenameFormat": "Допустимы только строчные буквы, цифры и дефис",
+                "pagenameTaken": "Такой pagename уже занят",
+                "titleRequired": "Заголовок обязателен",
+                "titleMin": "Минимум 3 символа",
+                "titleMax": "Максимум 120 символов",
+                "descriptionRequired": "Описание обязательно",
+                "descriptionMin": "Минимум 10 символов",
+                "descriptionMax": "Максимум 500 символов",
+                "keywordsMax": "Максимум 255 символов",
+                "socialImageUrl": "Некорректный URL",
+                "layoutRequired": "Layout обязателен",
+                "urlPrefixFormat": "Допустимы строчные буквы, цифры, дефис и /",
+                "urlPrefixMax": "Максимум 100 символов",
+                "subdomainFormat": "Допустимы только строчные буквы, цифры и дефис",
+                "subdomainMax": "Максимум 63 символа"
+            }
+        },
+        "media": {
+            "galleryTitle": "Управление медия-контентом",
+            "select": "Выбрать",
+            "cancel": "Отменить",
+            "uploading": "Загружаю файл...",
+            "emptyFiltered": "Нет файлов, подходящих под фильтр",
+            "emptyNoUploads": "Нет загруженных изображений",
+            "loadFailed": "Не удалось загрузить медиа",
+            "loadFailedCheckDb": "Не удалось загрузить медиа. Проверьте подключение к базе.",
+            "deleteImageTitle": "Удалить изображение?",
+            "deleteImageDescription": "Это действие нельзя отменить. Изображение будет удалено безвозвратно.",
+            "fullscreen": "Полноэкранный просмотр",
+            "categoryLabel": "Категория:",
+            "searchLabel": "Поиск:",
+            "searchPlaceholder": "Введите название или alt",
+            "nameLabel": "Название:",
+            "filenamePlaceholder": "Имя файла",
+            "altPlaceholder": "Описание изображения",
+            "dropHint": "Перетащите файлы сюда или нажмите, чтобы выбрать",
+            "chooseFiles": "Выбрать файлы",
+            "sizeHint": "Изображения — до {image} МБ, видео — до {video} МБ",
+            "fileTypeImage": "Изображение",
+            "fileTypeVideo": "Видео",
+            "fileTooLarge": "{type} «{name}» превышает лимит {max} МБ",
+            "categories": {
+                "all": "Все",
+                "icons": "Иконки",
+                "illustrations": "Иллюстрации",
+                "photos": "Фотографии",
+                "videos": "Видео",
+                "other": "Другое"
+            },
+            "resolver": {
+                "title": "Найдены новые изображения",
+                "globalAction": "Действие для всех:",
+                "keep": "Оставить",
+                "placeholder": "Заглушка",
+                "skip": "Пропустить",
+                "apply": "Применить"
+            }
+        },
+        "schema": {
+            "title": "Схема страницы",
+            "empty": "Нет компонентов",
+            "emptyHint": "Добавьте компоненты на канвас из библиотеки",
+            "importErrorFileType": "Выберите файл формата .json",
+            "importErrorInvalid": "Невалидная схема: отсутствует массив components",
+            "importErrorParse": "Ошибка парсинга JSON-файла",
+            "importErrorRead": "Ошибка чтения файла"
+        },
+        "canvas": {
+            "emptyTitle": "Добавьте новые компоненты",
+            "emptyDescription": "Откройте библиотеку компонентов и с помощью drag & drop - добавляйте структуру будущей страницы",
+            "itemToolbar": "Панель инструментов",
+            "favorite": "В избранное",
+            "previewExit": "Выйти из предпросмотра",
+            "previewEnter": "Интерактивный предпросмотр",
+            "duplicate": "Дублировать",
+            "enable": "Включить",
+            "disable": "Отключить",
+            "moveUp": "Вверх",
+            "moveDown": "Вниз"
+        },
+        "textEditor": {
+            "editorTitle": "Редактор текста",
+            "render": "Рендер",
+            "code": "Код",
+            "expand": "Развернуть",
+            "textPlaceholder": "Введите текст…",
+            "htmlPlaceholder": "Введите HTML-код…",
+            "aspectLocked": "Пропорции сохраняются",
+            "aspectFree": "Свободное изменение",
+            "alignMiddle": "По центру",
+            "alignTop": "По верху",
+            "floatLeft": "Обтекание слева",
+            "floatRight": "Обтекание справа",
+            "floatNone": "Без обтекания",
+            "size": "Размер",
+            "inlineEditor": "Инлайн редактор",
+            "done": "Готово",
+            "escToExit": "Esc — выйти",
+            "value": "Значение",
+            "auto": "Авто",
+            "normal": "Обычный",
+            "pickSize": "Выберите размер",
+            "fontSizePlaceholder": "напр. 2.2 (rem)",
+            "fontWeightPlaceholder": "напр. 450",
+            "lineHeightPlaceholder": "напр. 1.35, 120% или 2rem",
+            "letterSpacingPlaceholder": "напр. 0.15rem или 5%",
+            "toolbar": {
+                "bold": "Жирный",
+                "italic": "Курсив",
+                "underline": "Подчёркивание",
+                "fontFamily": "Семейство шрифта",
+                "fontSize": "Размер шрифта",
+                "fontWeight": "Толщина шрифта",
+                "lineHeight": "Межстрочный интервал",
+                "letterSpacing": "Межбуквенный интервал",
+                "textColor": "Цвет текста",
+                "alignLeft": "По левому краю",
+                "alignCenter": "По центру",
+                "alignRight": "По правому краю",
+                "alignJustify": "По ширине",
+                "bulletList": "Маркированный список",
+                "numberedList": "Нумерованный список",
+                "table": "Таблица",
+                "insertImage": "Вставить изображение",
+                "darkBackground": "Тёмный фон",
+                "divider": "Разделитель"
+            }
+        },
+        "docs": {
+            "title": "Документация",
+            "articleNotFound": "Статья не найдена."
+        },
+        "validation": {
+            "required": "Обязательное поле",
+            "invalidValue": "Некорректное значение",
+            "invalidFormat": "Некорректный формат",
+            "stringMin": "Минимум {min} символов",
+            "stringMax": "Максимум {max} символов",
+            "fieldFallback": "Поле",
+            "fieldRequired": "{field} обязательно для заполнения",
+            "fieldNumeric": "{field} должно содержать только цифры",
+            "fieldDecimal": "{field} должно быть числом",
+            "fieldMax": "{field} не может превышать {max} символов",
+            "fieldMin": "{field} не может быть меньше {min}",
+            "fieldSlug": "{field} должно содержать только строчные буквы, цифры и дефисы",
+            "fieldInvalid": "{field} заполнено некорректно",
+            "invalidHex": "Неверный HEX"
+        },
+        "blocks": {
+            "grid": {
+                "description": "Сетка для размещения компонентов по колонкам и строкам.",
+                "props": {
+                    "columns": {
+                        "label": "Колонки",
+                        "description": "Количество колонок в сетке (1-12)"
+                    },
+                    "rows": {
+                        "label": "Строки",
+                        "description": "Количество строк в сетке"
+                    },
+                    "gap": {
+                        "label": "Отступ",
+                        "description": "Расстояние между элементами в пикселях"
+                    },
+                    "variant": {
+                        "label": "Вариант Bento",
+                        "description": "Предустановленные варианты расположения элементов",
+                        "options": {
+                            "default": "По умолчанию",
+                            "leadLeft": "Ведущий слева",
+                            "leadRight": "Ведущий справа"
+                        }
+                    },
+                    "rowHeight": {
+                        "label": "Высота строки",
+                        "description": "Режим высоты строк грида",
+                        "options": {
+                            "auto": "Авто (по контенту)",
+                            "fr1": "Равные строки (1fr)",
+                            "minContent": "Минимум контента",
+                            "maxContent": "Максимум контента"
+                        }
+                    },
+                    "minRowHeight": {
+                        "label": "Мин. высота строки (rem)",
+                        "description": "Минимальная высота строки в rem (0 = без ограничения)"
+                    },
+                    "paddingX": {
+                        "label": "Padding горизонтальный (rem)",
+                        "description": "Горизонтальный внутренний отступ контейнера в rem"
+                    },
+                    "paddingY": {
+                        "label": "Padding вертикальный (rem)",
+                        "description": "Вертикальный внутренний отступ контейнера в rem"
+                    }
+                }
+            },
+            "flex": {
+                "description": "Flex-контейнер для горизонтальной или вертикальной раскладки элементов.",
+                "props": {
+                    "direction": {
+                        "label": "Направление",
+                        "description": "Направление расположения элементов",
+                        "options": {
+                            "row": "Горизонтально",
+                            "column": "Вертикально"
+                        }
+                    },
+                    "justify": {
+                        "label": "По главной оси",
+                        "description": "Для row: по горизонтали; для column: по вертикали",
+                        "options": {
+                            "start": "В начале",
+                            "center": "По центру",
+                            "end": "В конце",
+                            "spaceBetween": "Равномерно",
+                            "spaceAround": "С отступами"
+                        }
+                    },
+                    "align": {
+                        "label": "По поперечной оси",
+                        "description": "Для row: по вертикали; для column: по горизонтали",
+                        "options": {
+                            "stretch": "Растянуть",
+                            "start": "В начале",
+                            "center": "По центру",
+                            "end": "В конце",
+                            "baseline": "По базовой линии"
+                        }
+                    },
+                    "gap": {
+                        "label": "Отступ",
+                        "description": "Расстояние между элементами в пикселях"
+                    },
+                    "wrap": {
+                        "label": "Перенос строк",
+                        "description": "Переносить элементы на новую строку при нехватке места"
+                    },
+                    "paddingX": {
+                        "label": "Padding горизонтальный (rem)",
+                        "description": "Горизонтальный внутренний отступ контейнера в rem"
+                    },
+                    "paddingY": {
+                        "label": "Padding вертикальный (rem)",
+                        "description": "Вертикальный внутренний отступ контейнера в rem"
+                    }
+                }
+            },
+            "section": {
+                "description": "Секция-обёртка с настраиваемым фоном (цвет, изображение) и padding.",
+                "props": {
+                    "backgroundColor": {
+                        "label": "Цвет фона",
+                        "description": "CSS color или CSS variable (например, var(--bricks-base-900))"
+                    },
+                    "backgroundImage": {
+                        "label": "Фоновое изображение",
+                        "description": "URL фонового изображения"
+                    },
+                    "paddingTop": {
+                        "label": "Padding сверху (rem)"
+                    },
+                    "paddingBottom": {
+                        "label": "Padding снизу (rem)"
+                    },
+                    "paddingX": {
+                        "label": "Padding горизонтальный (rem)"
+                    },
+                    "borderRadius": {
+                        "label": "Скругление углов (rem)"
+                    },
+                    "minHeight": {
+                        "label": "Мин. высота (rem)",
+                        "description": "Минимальная высота секции (0 = по контенту)"
+                    }
+                },
+                "groups": {
+                    "background": "Фон",
+                    "spacing": "Отступы"
+                }
+            },
+            "space": {
+                "description": "Отступ (spacer) между блоками по вертикали или горизонтали.",
+                "props": {
+                    "size": {
+                        "label": "Размер (rem)",
+                        "description": "Величина отступа в rem"
+                    },
+                    "direction": {
+                        "label": "Направление",
+                        "description": "В каком направлении применяется отступ",
+                        "options": {
+                            "vertical": "Вертикально",
+                            "horizontal": "Горизонтально",
+                            "both": "Оба направления"
+                        }
+                    },
+                    "showDivider": {
+                        "label": "Показать разделитель",
+                        "description": "Отображать линию-разделитель"
+                    },
+                    "dividerColor": {
+                        "label": "Цвет разделителя",
+                        "description": "Пустое значение = var(--bricks-base-200)"
+                    },
+                    "dividerWidth": {
+                        "label": "Толщина разделителя (px)"
+                    },
+                    "dividerStyle": {
+                        "label": "Стиль разделителя",
+                        "options": {
+                            "solid": "Сплошная",
+                            "dashed": "Пунктирная",
+                            "dotted": "Точечная"
+                        }
+                    },
+                    "dividerMarginX": {
+                        "label": "Отступы разделителя по бокам (rem)",
+                        "description": "Горизонтальные отступы разделителя от краёв в rem"
+                    }
+                },
+                "groups": {
+                    "divider": "Разделитель"
+                }
+            },
+            "media": {
+                "description": "Медиа-блок (изображение или видео) с настройками отображения.",
+                "props": {
+                    "type": {
+                        "label": "Тип медиа",
+                        "options": {
+                            "image": "Изображение",
+                            "video": "Видео"
+                        }
+                    },
+                    "src": {
+                        "label": "Источник"
+                    },
+                    "alt": {
+                        "label": "Alt текст"
+                    },
+                    "objectFit": {
+                        "label": "Заполнение",
+                        "options": {
+                            "contain": "Вписать",
+                            "cover": "Заполнить",
+                            "fill": "Растянуть",
+                            "none": "Без масштаба",
+                            "scaleDown": "Уменьшить"
+                        }
+                    },
+                    "width": {
+                        "label": "Ширина",
+                        "description": "Ширина (rem, %, auto)"
+                    },
+                    "height": {
+                        "label": "Высота",
+                        "description": "Высота (rem, %, auto)"
+                    },
+                    "borderRadius": {
+                        "label": "Скругление углов",
+                        "description": "Скругление углов (rem)"
+                    }
+                },
+                "groups": {
+                    "sizes": "Размеры"
+                }
+            },
+            "slider": {
+                "description": "Слайдер-контейнер (swiper) для прокрутки дочерних элементов.",
+                "props": {
+                    "spaceBetween": {
+                        "label": "Отступ между слайдами (px)"
+                    },
+                    "slidesPerViewDesktop": {
+                        "label": "Слайдов на экране (desktop)"
+                    },
+                    "slidesPerViewTablet": {
+                        "label": "Слайдов на экране (tablet)"
+                    },
+                    "slidesPerViewMobile": {
+                        "label": "Слайдов на экране (mobile)"
+                    },
+                    "loop": {
+                        "label": "Зациклить слайды"
+                    },
+                    "autoplay": {
+                        "label": "Автопрокрутка"
+                    },
+                    "autoplayDelay": {
+                        "label": "Задержка автопрокрутки (мс)"
+                    },
+                    "showNavigation": {
+                        "label": "Показывать навигацию"
+                    },
+                    "showPagination": {
+                        "label": "Показывать пагинацию"
+                    },
+                    "captions": {
+                        "label": "Caption-табы (JSON)",
+                        "description": "Массив объектов [text, subtitle?] для текстовых табов навигации"
+                    },
+                    "captionPosition": {
+                        "label": "Позиция caption-табов",
+                        "options": {
+                            "top": "Сверху",
+                            "bottom": "Снизу"
+                        }
+                    },
+                    "showCaptionNavigation": {
+                        "label": "Кликабельные caption-табы",
+                        "description": "Клик по табу переключает слайд"
+                    }
+                }
+            },
+            "svg": {
+                "description": "SVG-блок с настройкой цвета и размера.",
+                "props": {
+                    "src": {
+                        "label": "SVG изображение",
+                        "description": "Выберите SVG из медиа-галереи"
+                    },
+                    "color": {
+                        "label": "Цвет",
+                        "description": "Применяется к fill/stroke SVG (пустое = оригинальные цвета)"
+                    },
+                    "width": {
+                        "label": "Ширина",
+                        "description": "rem или CSS value (например, 4.8rem, 100%, auto)"
+                    },
+                    "height": {
+                        "label": "Высота",
+                        "description": "rem или CSS value"
+                    },
+                    "alignment": {
+                        "label": "Выравнивание",
+                        "options": {
+                            "left": "Слева",
+                            "center": "По центру",
+                            "right": "Справа"
+                        }
+                    },
+                    "marginTop": {
+                        "label": "Margin Top (rem)"
+                    },
+                    "marginBottom": {
+                        "label": "Margin Bottom (rem)"
+                    }
+                }
+            },
+            "text": {
+                "description": "Текстовый блок с HTML-контентом.",
+                "props": {
+                    "content": {
+                        "label": "Контент"
+                    },
+                    "marginTop": {
+                        "label": "Отступ сверху (rem)"
+                    },
+                    "marginBottom": {
+                        "label": "Отступ снизу (rem)"
+                    }
+                }
+            },
+            "title": {
+                "description": "Заголовок с поддержкой inline-контента (текст/медиа).",
+                "props": {
+                    "inlineContent": {
+                        "label": "Инлайн-контент",
+                        "description": "Добавьте текстовые и медиа элементы внутри заголовка"
+                    },
+                    "headingType": {
+                        "label": "Тип заголовка",
+                        "options": {
+                            "h1": "H1",
+                            "h2": "H2",
+                            "h3": "H3",
+                            "h4": "H4",
+                            "h5": "H5",
+                            "h6": "H6"
+                        }
+                    },
+                    "fontFamily": {
+                        "label": "Шрифт",
+                        "options": {
+                            "default": "По-умолчанию"
+                        }
+                    },
+                    "fontWeight": {
+                        "label": "Толщина шрифта",
+                        "options": {
+                            "thin": "100 (Thin)",
+                            "extraLight": "200 (Extra Light)",
+                            "light": "300 (Light)",
+                            "regular": "400 (Regular)",
+                            "medium": "500 (Medium)",
+                            "semiBold": "600 (Semi Bold)",
+                            "bold": "700 (Bold)",
+                            "extraBold": "800 (Extra Bold)",
+                            "black": "900 (Black)"
+                        }
+                    },
+                    "textAlign": {
+                        "label": "Выравнивание текста",
+                        "options": {
+                            "left": "По левому краю",
+                            "center": "По центру",
+                            "right": "По правому краю"
+                        }
+                    },
+                    "fontSize": {
+                        "label": "Размер шрифта (rem)"
+                    },
+                    "lineHeight": {
+                        "label": "Межстрочный интервал",
+                        "description": "Межстрочный интервал (0 = по-умолчанию 1.2)"
+                    },
+                    "letterSpacing": {
+                        "label": "Межбуквенный интервал",
+                        "description": "Межбуквенный интервал",
+                        "options": {
+                            "normal": "Обычный",
+                            "remNeg02": "-0.2rem",
+                            "remNeg01": "-0.1rem",
+                            "rem0": "0rem",
+                            "rem005": "0.05rem",
+                            "rem01": "0.1rem",
+                            "rem015": "0.15rem",
+                            "rem02": "0.2rem",
+                            "rem025": "0.25rem",
+                            "rem03": "0.3rem",
+                            "rem04": "0.4rem",
+                            "rem05": "0.5rem"
+                        }
+                    },
+                    "marginTop": {
+                        "label": "Отступ сверху (rem)"
+                    },
+                    "marginBottom": {
+                        "label": "Отступ снизу (rem)"
+                    }
+                }
+            },
+            "accordion": {
+                "description": "Аккордеон — список раскрывающихся элементов с заголовком и контентом.",
+                "props": {
+                    "items": {
+                        "label": "Элементы",
+                        "description": "Список элементов аккордеона (массив объектов title/content)"
+                    },
+                    "allowMultiple": {
+                        "label": "Открывать несколько",
+                        "description": "Разрешить одновременное открытие нескольких элементов"
+                    },
+                    "initialOpenIndex": {
+                        "label": "Открыт по умолчанию (индекс)",
+                        "description": "Индекс элемента, открытого при загрузке (-1 = все закрыты)"
+                    },
+                    "gap": {
+                        "label": "Отступ между элементами (rem)",
+                        "description": "Отступ между элементами (0 = единый блок, >0 = карточный режим)"
+                    },
+                    "borderRadius": {
+                        "label": "Скругление углов (rem)",
+                        "description": "Радиус скругления углов аккордеона или карточек"
+                    },
+                    "accentColor": {
+                        "label": "Акцентный цвет",
+                        "description": "Акцентный цвет для hover, бордеров и фона"
+                    },
+                    "animationDuration": {
+                        "label": "Скорость анимации (ms)",
+                        "description": "Длительность анимации раскрытия/закрытия в миллисекундах"
+                    }
+                }
+            }
+        }
+    }
+}

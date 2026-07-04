@@ -139,7 +139,15 @@ Input для title/description, Tags Editor для ключевых слов, к
 
 ---
 
-## 7. Шпаргалка промптов
+## 7. Журнал синков
+
+| Дата | Направление | Что синхронизировано |
+|---|---|---|
+| 2026-07-02 | code → design | Фаза 3 редизайна (soft UI): **Input** — подчёркивание → бокс (1px `base/300`, r6, pad 8/12), +2 варианта `State=Focus` (primary + `shadow/focus`); **Select** — бокс-триггер, дропдаун r10 + `base/200`, selected-опция `primary/50`+primary; **Button** — 30 вариантов на 1px, Primary/Danger без рамки + `shadow/sm`; **Tags Editor** — minHeight 36, `base/300`, focus-ring; **Hex Input** — свотч 36×36, `base/300`. Детали — `componentSync` в реестре |
+
+---
+
+## 8. Шпаргалка промптов
 
 | Задача | Промпт |
 |---|---|

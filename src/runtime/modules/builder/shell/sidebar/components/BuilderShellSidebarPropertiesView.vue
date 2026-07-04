@@ -1,5 +1,8 @@
 <script setup lang="ts">
 // #region Imports
+// Vue
+import { useI18n } from 'vue-i18n';
+
 // Components
 import BricksButton from '../../../../ui/base/button/BricksButton.vue';
 import BricksCloseButton from '../../../../ui/base/modal/BricksCloseButton.vue';
@@ -16,6 +19,8 @@ const emit = defineEmits<{ close: []; openMediaGallery: [] }>();
 // #endregion
 
 // #region Data
+const { t } = useI18n();
+
 const {
     store,
     componentEditors,
@@ -101,7 +106,7 @@ defineExpose({
 
         <div v-if="isResponsiveComponent" :class="$style.deviceScope">
             <div :class="$style.deviceScopeHeader">
-                <span :class="$style.deviceScopeTitle">Устройство</span>
+                <span :class="$style.deviceScopeTitle">{{ t('bricks.properties.device') }}</span>
 
                 <BricksButton
                     v-if="layoutDeviceScope !== 'desktop' && hasResponsiveOverridesForScope"
@@ -109,7 +114,7 @@ defineExpose({
                     variant="ghost"
                     @click="handleResetLayoutDeviceScopeOverrides"
                 >
-                    Сбросить
+                    {{ t('bricks.properties.reset') }}
                 </BricksButton>
             </div>
 
@@ -174,7 +179,7 @@ defineExpose({
             <div :class="$style.actions">
                 <BricksButton variant="danger" size="md" block @click="handleDelete">
                     <BricksIcon :class="$style.buttonIcon" icon="ti:outline-delete" />
-                    <span>Удалить</span>
+                    <span>{{ t('bricks.common.delete') }}</span>
                 </BricksButton>
             </div>
         </div>
@@ -194,7 +199,7 @@ defineExpose({
     align-items: baseline;
     justify-content: space-between;
     padding: 1.6rem 2rem;
-    border-bottom: 1px solid var(--bricks-base-300);
+    border-bottom: 1px solid var(--bricks-base-200);
 }
 
 .headerInfo {
@@ -233,7 +238,7 @@ defineExpose({
     flex-direction: column;
     gap: 0.8rem;
     padding: 1.2rem 2rem;
-    border-bottom: 1px solid var(--bricks-base-300);
+    border-bottom: 1px solid var(--bricks-base-200);
 }
 
 .deviceScopeHeader {

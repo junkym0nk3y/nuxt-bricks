@@ -1,51 +1,68 @@
+// Vue
+import { useI18n } from 'vue-i18n';
+
+// Yup
 import { object, string } from 'yup';
+
+// Pinia
 import { usePublishStore } from '../../../publish/stores/publish';
 
 /**
  * Composable для получения validation schema формы публикации.
+ * Сообщения — функции с `t()`: резолвятся в момент валидации,
+ * поэтому реактивны к смене локали без пересоздания схемы.
  *
  * @param isEditing - режим редактирования (для проверки уникальности pagename).
  */
 export function usePublishValidationSchema(isEditing: boolean) {
     const publishStore = usePublishStore();
+    const { t } = useI18n();
 
     const validationSchema = object({
         pagename: string()
-            .required('Необходимо указать pagename')
-            .min(3, 'Минимум 3 символа')
-            .max(80, 'Максимум 80 символов')
-            .matches(/^[a-z0-9-]+$/, 'Допустимы только строчные буквы, цифры и дефис')
-            .test('unique', 'Такой pagename уже занят', function (value) {
-                if (!value) {
-                    return true;
+            .required(() => t('bricks.publish.validation.pagenameRequired'))
+            .min(3, () => t('bricks.publish.validation.pagenameMin'))
+            .max(80, () => t('bricks.publish.validation.pagenameMax'))
+            .matches(/^[a-z0-9-]+$/, () => t('bricks.publish.validation.pagenameFormat'))
+            .test(
+                'unique',
+                () => t('bricks.publish.validation.pagenameTaken'),
+                function (value) {
+                    if (!value) {
+                        return true;
+                    }
+                    const editingPageId = isEditing
+                        ? (publishStore.editingPageId ?? undefined)
+                        : undefined;
+                    return publishStore.isPagenameAvailable(value, editingPageId);
                 }
-                const editingPageId = isEditing
-                    ? (publishStore.editingPageId ?? undefined)
-                    : undefined;
-                return publishStore.isPagenameAvailable(value, editingPageId);
-            }),
+            ),
         title: string()
-            .required('Заголовок обязателен')
-            .min(3, 'Минимум 3 символа')
-            .max(120, 'Максимум 120 символов'),
+            .required(() => t('bricks.publish.validation.titleRequired'))
+            .min(3, () => t('bricks.publish.validation.titleMin'))
+            .max(120, () => t('bricks.publish.validation.titleMax')),
         description: string()
-            .required('Описание обязательно')
-            .min(10, 'Минимум 10 символов')
-            .max(500, 'Максимум 500 символов'),
-        keywords: string().max(255, 'Максимум 255 символов'),
-        socialImage: string().url('Некорректный URL').nullable(),
+            .required(() => t('bricks.publish.validation.descriptionRequired'))
+            .min(10, () => t('bricks.publish.validation.descriptionMin'))
+            .max(500, () => t('bricks.publish.validation.descriptionMax')),
+        keywords: string().max(255, () => t('bricks.publish.validation.keywordsMax')),
+        socialImage: string()
+            .url(() => t('bricks.publish.validation.socialImageUrl'))
+            .nullable(),
         backgroundColor: string().nullable(),
-        layout: string().required('Layout обязателен'),
+        layout: string().required(() => t('bricks.publish.validation.layoutRequired')),
         urlPrefix: string()
             .nullable()
             .transform((value) => value?.trim() || null)
-            .matches(/^[a-z0-9-]+(\/[a-z0-9-]+)*$/, 'Допустимы строчные буквы, цифры, дефис и /')
-            .max(100, 'Максимум 100 символов'),
+            .matches(/^[a-z0-9-]+(\/[a-z0-9-]+)*$/, () =>
+                t('bricks.publish.validation.urlPrefixFormat')
+            )
+            .max(100, () => t('bricks.publish.validation.urlPrefixMax')),
         subdomain: string()
             .nullable()
             .transform((value) => value?.trim() || null)
-            .matches(/^[a-z0-9-]*$/, 'Допустимы только строчные буквы, цифры и дефис')
-            .max(63, 'Максимум 63 символа'),
+            .matches(/^[a-z0-9-]*$/, () => t('bricks.publish.validation.subdomainFormat'))
+            .max(63, () => t('bricks.publish.validation.subdomainMax')),
     });
 
     return {

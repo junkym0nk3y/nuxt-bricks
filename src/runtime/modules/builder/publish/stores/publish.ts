@@ -1,4 +1,6 @@
 import { defineStore } from 'pinia';
+import type { Composer } from 'vue-i18n';
+import { useNuxtApp } from '#imports';
 import type { IBricksSchema } from '../../../common/types/brick';
 import type {
     IUpdatePagePayload,
@@ -17,6 +19,15 @@ import {
 } from '../utils/formState';
 import { toRequestError } from '../utils/requestErrors';
 import { buildPagePayload } from '../utils/pagePayload';
+
+/**
+ * Переводит ключ через глобальный i18n (стор не имеет setup-контекста).
+ * `$i18n` резолвится лениво на каждый вызов — безопасно при любом порядке плагинов.
+ */
+function t(key: string): string {
+    const i18n = useNuxtApp().$i18n as Composer | undefined;
+    return i18n ? i18n.t(key) : key;
+}
 
 /**
  * Pinia-стор для публикации, черновиков и загрузки страниц лендинга.
@@ -355,30 +366,32 @@ export const usePublishStore = defineStore('bricksPublish', {
             }
 
             if (!trimmedPagename) {
-                this.validationErrors.pagename = 'Необходимо указать pagename';
+                this.validationErrors.pagename = t('bricks.publish.validation.pagenameRequired');
             } else if (!/^[a-z0-9-]+$/.test(trimmedPagename)) {
-                this.validationErrors.pagename = 'Допустимы только строчные буквы, цифры и дефис';
+                this.validationErrors.pagename = t('bricks.publish.validation.pagenameFormat');
             } else if (
                 !this.isPagenameAvailable(
                     trimmedPagename,
                     this.editingPageId !== null ? this.editingPageId : undefined
                 )
             ) {
-                this.validationErrors.pagename = 'Такой pagename уже занят';
+                this.validationErrors.pagename = t('bricks.publish.validation.pagenameTaken');
             }
 
             if (!this.currentFormState.title?.trim()) {
-                this.validationErrors.title = 'Заголовок обязателен';
+                this.validationErrors.title = t('bricks.publish.validation.titleRequired');
             }
 
             if (!this.currentFormState.description?.trim()) {
-                this.validationErrors.description = 'Описание обязательно';
+                this.validationErrors.description = t(
+                    'bricks.publish.validation.descriptionRequired'
+                );
             }
 
             this.validateOptionalRoutingFields();
 
             if (Object.keys(this.validationErrors).length > 0) {
-                this.generalError = 'Заполните обязательные поля *';
+                this.generalError = t('bricks.publish.fillRequired');
                 return false;
             }
 
@@ -394,7 +407,7 @@ export const usePublishStore = defineStore('bricksPublish', {
                 this.currentFormState = { ...this.currentFormState, urlPrefix: trimmedUrlPrefix };
             }
             if (trimmedUrlPrefix && !/^[a-z0-9-]+(\/[a-z0-9-]+)*$/.test(trimmedUrlPrefix)) {
-                this.validationErrors.urlPrefix = 'Допустимы строчные буквы, цифры, дефис и /';
+                this.validationErrors.urlPrefix = t('bricks.publish.validation.urlPrefixFormat');
             }
 
             const trimmedSubdomain = this.currentFormState.subdomain?.trim() || null;
@@ -402,7 +415,7 @@ export const usePublishStore = defineStore('bricksPublish', {
                 this.currentFormState = { ...this.currentFormState, subdomain: trimmedSubdomain };
             }
             if (trimmedSubdomain && !/^[a-z0-9-]+$/.test(trimmedSubdomain)) {
-                this.validationErrors.subdomain = 'Допустимы только строчные буквы, цифры и дефис';
+                this.validationErrors.subdomain = t('bricks.publish.validation.subdomainFormat');
             }
         },
 
@@ -432,9 +445,7 @@ export const usePublishStore = defineStore('bricksPublish', {
                 return createdId;
             } catch (error: unknown) {
                 console.error('[Publish Store] publishCurrentPage failed:', error);
-                this.generalError =
-                    (error as Error)?.message ||
-                    'Не удалось опубликовать страницу. Попробуйте ещё раз.';
+                this.generalError = (error as Error)?.message || t('bricks.publish.publishFailed');
                 return null;
             } finally {
                 this.isSubmitting = false;
@@ -505,7 +516,7 @@ export const usePublishStore = defineStore('bricksPublish', {
             } catch (error: unknown) {
                 console.error('[Publish Store] saveCurrentPageAsCopy failed:', error);
                 this.generalError =
-                    (error as Error)?.message || 'Не удалось сохранить копию. Попробуйте ещё раз.';
+                    (error as Error)?.message || t('bricks.publish.copyFailedRetry');
                 return null;
             } finally {
                 this.isSubmitting = false;
@@ -530,8 +541,9 @@ export const usePublishStore = defineStore('bricksPublish', {
                 const previewData: IPreviewStoredPage = {
                     id: Number(tempPageId.replace('preview-', '')),
                     pagename,
-                    title: this.currentFormState.title || 'Превью',
-                    description: this.currentFormState.description || 'Превью',
+                    title: this.currentFormState.title || t('bricks.publish.previewFallback'),
+                    description:
+                        this.currentFormState.description || t('bricks.publish.previewFallback'),
                     keywords: this.currentFormState.keywords,
                     published: this.currentFormState.published,
                     layout: this.currentFormState.layout,
@@ -557,7 +569,7 @@ export const usePublishStore = defineStore('bricksPublish', {
                 return true;
             } catch (error) {
                 console.error('[Publish Store] Failed to create preview:', error);
-                this.generalError = 'Не удалось создать превью. Попробуйте ещё раз.';
+                this.generalError = t('bricks.publish.previewCreateFailed');
                 return false;
             }
         },
