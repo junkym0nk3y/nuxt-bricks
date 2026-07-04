@@ -7,7 +7,7 @@ import { definePageMeta } from '#imports';
 // #region Data
 // Главная playground-приложения — сразу уводим в билдер
 definePageMeta({
-    redirect: '/builder',
+    redirect: '/bricks',
 });
 // #endregion
 </script>

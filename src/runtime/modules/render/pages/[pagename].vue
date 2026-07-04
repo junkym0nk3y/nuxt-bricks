@@ -25,7 +25,9 @@ import RendererCloseButton from '../components/RendererCloseButton.vue';
 const brickDataSourcesCache = new Map<string, IBrickDataSource[] | null>();
 const route = useRoute();
 const pagename = route.params.pagename as string;
-const isPreview = route.query.preview === 'true';
+// Превью-режим — чисто по роуту /preview/[pagename] (query не используется);
+// на динамических ЧПУ маршрутах компонент работает в live-режиме
+const isPreview = route.name === 'bricks-preview';
 const isClientDataSourceDebug = import.meta.dev && import.meta.client;
 
 // Текущее разрешение и адаптив для превью-баннера

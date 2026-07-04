@@ -221,7 +221,7 @@ export default defineNuxtModule<IBricksModuleOptions>({
 
         // Дефолты применяются всегда (defu: опции потребителя побеждают) — если
         // потребитель подключил @nuxtjs/i18n сам без конфига, голая стратегия
-        // prefix_except_default переписала бы маршруты и /builder отдавал бы 404.
+        // prefix_except_default переписала бы маршруты и /bricks отдавал бы 404.
         const defaultLocale = options.i18n?.defaultLocale ?? 'ru';
         nuxt.options.i18n = defu(nuxt.options.i18n, {
             strategy: 'no_prefix' as const,
@@ -286,7 +286,7 @@ export default defineNuxtModule<IBricksModuleOptions>({
             pages.unshift(
                 {
                     name: 'bricks-builder',
-                    path: '/builder',
+                    path: '/bricks',
                     file: resolve(runtimeDir, 'modules/builder/app/pages/builder.vue'),
                     children: [
                         {
@@ -302,8 +302,11 @@ export default defineNuxtModule<IBricksModuleOptions>({
                     ],
                 },
                 {
-                    name: 'bricks-pagename',
-                    path: '/bricks/:pagename',
+                    // Превью-режим определяется именем этого роута (bricks-preview),
+                    // query ?preview=true больше не используется. Live-рендер published —
+                    // только динамические ЧПУ маршруты (plugins/bricks-dynamic-routes.ts).
+                    name: 'bricks-preview',
+                    path: '/preview/:pagename',
                     file: resolve(runtimeDir, 'modules/render/pages/[pagename].vue'),
                 }
             );

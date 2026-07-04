@@ -473,6 +473,50 @@ export const usePublishStore = defineStore('bricksPublish', {
         },
 
         /**
+         * Создаёт новую страницу-черновик с пустой схемой (модалка создания дашборда).
+         * `currentFormState` не трогает — работает вне сессии редактора.
+         *
+         * @param formState - Meta-поля новой страницы.
+         * @returns ID созданной страницы.
+         */
+        async createPage(formState: TPublishFormState): Promise<number> {
+            return await this.publishPage({ components: [] }, { ...formState, published: false });
+        },
+
+        /**
+         * Дублирует произвольную страницу по идентификатору: клонирует meta и схему,
+         * создаёт черновик с уникальным `pagename` (суффикс «-copy»).
+         * Не трогает `currentFormState` — работает вне сессии редактора.
+         *
+         * @param id - Идентификатор исходной страницы.
+         * @returns ID созданной копии.
+         */
+        async duplicatePage(id: string | number): Promise<number> {
+            const page = this.getPageById(id);
+            if (!page) {
+                console.error('[Publish Store] duplicatePage: page not found', id);
+                throw new Error(t('bricks.publish.dashboard.toasts.duplicateFailed'));
+            }
+
+            const copyFormState: TPublishFormState = {
+                pagename: this.generateCopyPagename(page.pagename),
+                title: page.title ? `${page.title} (copy)` : page.title,
+                description: page.description,
+                keywords: page.keywords,
+                published: false,
+                layout: page.layout || DEFAULT_LAYOUT,
+                backgroundColor: page.backgroundColor || resolveDefaultBackgroundColor(),
+                socialImage: page.socialImage,
+                urlPrefix: page.urlPrefix,
+                subdomain: page.subdomain,
+                createdAt: '',
+                updatedAt: '',
+            };
+
+            return await this.publishPage(page.schema, copyFormState);
+        },
+
+        /**
          * Сохраняет текущую конфигурацию как копию страницы.
          *
          * @param schema - Схема лендинга из канваса.
@@ -575,12 +619,12 @@ export const usePublishStore = defineStore('bricksPublish', {
         },
 
         /**
-         * Генерирует URL для превью.
+         * Генерирует URL для превью — встроенный превью-маршрут /preview/[pagename].
          *
          * @param pagename - ЧПУ страницы.
          */
         generatePreviewUrl(pagename: string): string {
-            return `/bricks/${pagename}?preview=true`;
+            return `/preview/${pagename}`;
         },
     },
 });

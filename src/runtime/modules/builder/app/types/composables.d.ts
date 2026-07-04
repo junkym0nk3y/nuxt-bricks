@@ -14,6 +14,7 @@ import type {
     TImageResolveAction,
 } from '../../media/types/schemaImageResolver';
 import type { IBuilderDraftSnapshot } from '../../publish/types/builderDrafts';
+import type { IBuilderToastState } from '../../core/types/toast';
 
 /**
  * Функция показа toast-уведомления билдера.
@@ -74,16 +75,6 @@ export interface IInlineMediaBridge {
 }
 
 /**
- * Состояние toast-уведомления.
- */
-export interface IBuilderToastState {
-    visible: boolean;
-    message: string;
-    variant: 'success' | 'error';
-    duration?: number;
-}
-
-/**
  * Возвращаемое значение composable useBuilderPage.
  */
 export interface IUseBuilderPageReturn {
@@ -91,7 +82,6 @@ export interface IUseBuilderPageReturn {
     historyStore: ReturnType<typeof useHistoryStore>;
     publishStore: ReturnType<typeof usePublishStore>;
     componentLibraryList: ComputedRef<IComponentLibraryItem[]>;
-    isPublishedPagesModalOpen: Ref<boolean>;
     isDocumentationModalOpen: Ref<boolean>;
     isMediaGalleryModalOpen: Ref<boolean>;
     mediaGalleryContext: Ref<TMediaGalleryContext>;
@@ -107,12 +97,8 @@ export interface IUseBuilderPageReturn {
     handleToggleProperties: () => void;
     handleToggleSchema: () => void;
     handleOpenPublishSettings: () => void;
-    handleOpenPublishedPages: () => void;
-    handleClosePublishedPagesModal: () => void;
     handleOpenDocs: () => void;
     handleCloseDocs: () => void;
-    handleEditPage: (pageId: string) => void;
-    handlePublishedPagesError: (message: string) => void;
     handleMediaError: (message: string) => void;
     handleOpenMediaGallery: (context?: TMediaGalleryContext) => void;
     handleCloseMediaGallery: () => void;

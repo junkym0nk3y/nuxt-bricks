@@ -1,6 +1,6 @@
 // #region Imports
 // Types
-import type { IBuilderToastState } from '../types/composables';
+import type { IBuilderToastState } from '../types/toast';
 
 // Vue
 import { reactive } from 'vue';

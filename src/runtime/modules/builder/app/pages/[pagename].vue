@@ -33,7 +33,6 @@ import BuilderShellToolbarVerticalNav from '../../shell/toolbar/components/Build
 import TheBuilderShellSidebar from '../../shell/sidebar/components/TheBuilderShellSidebar.vue';
 import TheBuilderCanvas from '../../canvas/viewport/components/TheBuilderCanvas.vue';
 import TheBuilderLoader from '../components/TheBuilderLoader.vue';
-import TheBuilderPublishPagesModal from '../../publish/components/TheBuilderPublishPagesModal.vue';
 import TheBuilderDocumentationModal from '../../documentation/components/TheBuilderDocumentationModal.vue';
 import TheBuilderMediaGalleryModal from '../../media/components/TheBuilderMediaGalleryModal.vue';
 import BricksConfirmModal from '../../../ui/feedback/BricksConfirmModal.vue';
@@ -68,7 +67,6 @@ const builder = await useBuilderPage({
 
 const {
     componentLibraryList,
-    isPublishedPagesModalOpen,
     isDocumentationModalOpen,
     isMediaGalleryModalOpen,
     mediaGalleryContext,
@@ -83,11 +81,8 @@ const {
     handleToggleProperties,
     handleToggleSchema,
     handleOpenPublishSettings,
-    handleOpenPublishedPages,
-    handleClosePublishedPagesModal,
     handleOpenDocs,
     handleCloseDocs,
-    handlePublishedPagesError,
     handleMediaError,
     handleOpenMediaGallery,
     handleCloseMediaGallery,
@@ -160,21 +155,11 @@ const isSchemaActive = computed<boolean>(
 
 // #region Methods
 /**
- * Обрабатывает выбор страницы в модалке "Сохранённые страницы" и синхронизирует URL.
- *
- * @param pageId - Идентификатор страницы.
+ * Открывает менеджер страниц — полноэкранный дашборд `/bricks`.
+ * Несохранённые изменения переживают переход через черновик (draft persistence).
  */
-async function handleEditFromModal(pageId: string): Promise<void> {
-    handleClosePublishedPagesModal();
-
-    const page = publishStore.getPageById(pageId);
-    if (!page) {
-        showToast(t('bricks.publish.toasts.pageNotFound'), 'error');
-        return;
-    }
-
-    await router.push(`/builder/${page.pagename}`);
-    sidebarStore.showSidebarView('publish');
+async function handleOpenPagesManager(): Promise<void> {
+    await router.push('/bricks');
 }
 
 /**
@@ -245,7 +230,7 @@ onBeforeUnmount(() => {
             :sidebar-offset="leftSidebarOffset"
             :page-title="currentPublishPageTitle"
             @toggle-grid="canvasStore.toggleGrid"
-            @open-published-pages="handleOpenPublishedPages"
+            @open-pages-manager="handleOpenPagesManager"
             @open-media-gallery="handleOpenMediaGalleryWithContext"
             @save-draft="handleSaveDraft"
             @save-as-copy="handleSaveAsCopy"
@@ -284,13 +269,6 @@ onBeforeUnmount(() => {
                 <TheBuilderCanvas />
             </div>
         </div>
-
-        <TheBuilderPublishPagesModal
-            :is-open="isPublishedPagesModalOpen"
-            @close="handleClosePublishedPagesModal"
-            @edit="handleEditFromModal"
-            @error="handlePublishedPagesError"
-        />
 
         <TheBuilderDocumentationModal
             :is-open="isDocumentationModalOpen"

@@ -103,10 +103,15 @@ module.exports = {
             to: { path: `^${M}/builder/canvas` },
         },
         {
+            // дашборд /bricks (publish/pages/index.vue) — поверхность-хост:
+            // рендерит модалки документации и медиа-галереи (решение фазы 1
+            // pages-manager-плана), поэтому media/documentation разрешены
             name: 'builder-publish-deps',
             severity: 'error',
             from: { path: `^${M}/builder/publish` },
-            to: { path: `^${M}/(?!builder/publish|builder/core|ui|common)` },
+            to: {
+                path: `^${M}/(?!builder/publish|builder/core|builder/media|builder/documentation|ui|common)`,
+            },
         },
         {
             name: 'builder-media-deps',

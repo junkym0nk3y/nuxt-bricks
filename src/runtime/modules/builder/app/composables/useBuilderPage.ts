@@ -18,7 +18,7 @@ import { useComponentLibraryDrag } from './useDraggableComponent';
 import { useModals } from './useModals';
 import { useComponentLibrary } from './useComponentLibrary';
 import { useBuilderShortcuts } from './useBuilderShortcuts';
-import { useBuilderToast } from './useBuilderToast';
+import { useBuilderToast } from '../../core/composables/useBuilderToast';
 import { usePreviewSync } from './usePreviewSync';
 import { useBricksConfig } from '../../../common/composables/useBricksConfig';
 import { useSchemaImageResolver } from '../../media/composables/useSchemaImageResolver';
@@ -66,7 +66,6 @@ export async function useBuilderPage(
     // #endregion
 
     // #region State
-    const isPublishedPagesModalOpen = ref(false);
     const isDocumentationModalOpen = ref(false);
     const isMediaGalleryModalOpen = ref(false);
     const mediaGalleryContext = ref<TMediaGalleryContext>('manager');
@@ -143,20 +142,6 @@ export async function useBuilderPage(
     }
 
     /**
-     * Открывает модальное окно со списком опубликованных страниц.
-     */
-    function handleOpenPublishedPages(): void {
-        isPublishedPagesModalOpen.value = true;
-    }
-
-    /**
-     * Закрывает модальное окно со списком опубликованных страниц.
-     */
-    function handleClosePublishedPagesModal(): void {
-        isPublishedPagesModalOpen.value = false;
-    }
-
-    /**
      * Открывает модальное окно документации.
      */
     function handleOpenDocs(): void {
@@ -199,7 +184,7 @@ export async function useBuilderPage(
 
                 // Синхронизируем URL с актуальным pagename после сохранения
                 const currentUrl = window.location.pathname;
-                const expectedUrl = `/builder/${currentPagename}`;
+                const expectedUrl = `/bricks/${currentPagename}`;
                 if (currentUrl !== expectedUrl) {
                     window.history.replaceState(window.history.state, '', expectedUrl);
                 }
@@ -285,15 +270,6 @@ export async function useBuilderPage(
     }
 
     /**
-     * Обрабатывает ошибки из модального окна опубликованных страниц.
-     *
-     * @param message - Текст ошибки для отображения.
-     */
-    function handlePublishedPagesError(message: string): void {
-        showToast(message, 'error');
-    }
-
-    /**
      * Показывает ошибку медиа-галереи (например, недоступна БД).
      *
      * @param message - Текст ошибки.
@@ -348,25 +324,6 @@ export async function useBuilderPage(
     });
     // #endregion
 
-    // #region Published pages actions
-    /**
-     * Открывает страницу для редактирования.
-     * Загружает схему страницы в store компонентов и переключает сайдбар на панель публикации.
-     *
-     * @param pageId - Идентификатор страницы для редактирования.
-     */
-    function handleEditPage(pageId: string): void {
-        const page = publishStore.getPageById(pageId);
-        if (page) {
-            componentsStore.loadSchema(page.schema, { resetHistory: true });
-        } else {
-            console.error('[BricksBuilder] handleEditPage: page not found', pageId);
-        }
-        publishStore.startEditingPage(pageId);
-        sidebarStore.showSidebarView('publish');
-    }
-    // #endregion
-
     // #region History
     /**
      * Отменяет последнее действие (Undo).
@@ -404,7 +361,6 @@ export async function useBuilderPage(
         historyStore,
         publishStore,
         componentLibraryList,
-        isPublishedPagesModalOpen,
         isDocumentationModalOpen,
         isMediaGalleryModalOpen,
         mediaGalleryContext,
@@ -420,12 +376,8 @@ export async function useBuilderPage(
         handleToggleProperties,
         handleToggleSchema,
         handleOpenPublishSettings,
-        handleOpenPublishedPages,
-        handleClosePublishedPagesModal,
         handleOpenDocs,
         handleCloseDocs,
-        handleEditPage,
-        handlePublishedPagesError,
         handleMediaError,
         handleOpenMediaGallery,
         handleCloseMediaGallery,

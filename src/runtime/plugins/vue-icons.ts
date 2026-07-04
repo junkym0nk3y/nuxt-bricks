@@ -39,8 +39,6 @@ import {
 } from '@kalimahapps/vue-icons/ph';
 import {
     MdClose,
-    MdPreview,
-    MdOutlinedDeleteSweep,
     MdCloudUpload,
     MdFilterList,
     MdOutlinedImage,
@@ -101,10 +99,8 @@ const SYSTEM_ICONS: Record<string, Component> = {
     'ph:x-circle': PhXCircle,
     'gl:close': MdClose,
 
-    // BuilderPublishPageCard / Modal
-    'md:preview': MdPreview,
+    // TheBuilderPublishCreatePageModal
     'cl:note-edit': ClNoteEdit,
-    'md:outlined-delete-sweep': MdOutlinedDeleteSweep,
 
     // MediaGallery
     'md:cloud-upload': MdCloudUpload,

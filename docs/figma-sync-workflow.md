@@ -136,6 +136,7 @@ Input для title/description, Tags Editor для ключевых слов, к
 - fileKey: `FsPQKxtsHrbJiyiyal9ZlR`
 - Button `16:62` · Input `20:64` · Icon `13:16` · Select `20:96` · Modal `24:67` · Toast `21:22`
 - Экран Builder `31:5` · Publish-модалка `41:27` · Icons-грид `51:5`
+- Pages Manager (redesign): страница `69:2`, главный фрейм `69:5`, модалка создания `77:25`, Templates empty `79:63`, Pages empty `79:556`
 
 ---
 
@@ -143,6 +144,9 @@ Input для title/description, Tags Editor для ключевых слов, к
 
 | Дата | Направление | Что синхронизировано |
 |---|---|---|
+| 2026-07-04 | design → code | Макет **«📄 Pages Manager (redesign)»** (`69:2`) реализован — фазы 1–6 `docs/pages-manager-plan.md`: дашборд `/bricks` (шапка/рейл/список/панель деталей), модалка создания, Templates/Pages empty states. Отклонения от макета (осознанные, в Figma не синканы): тумблер светлой/тёмной темы в футере рейла (в макете отсутствует); hover-действия строк резервируют место (дата не прижата к краю); счётчик description x/500; empty state поиска; пилюля «Черновик» 1.2rem. Роутинг после реализации: дашборд+редактор `/bricks`, превью `/preview/<pagename>` |
+| 2026-07-04 | code → design | **Inter вместо Onest** (фаза 4 `docs/redesign-i18n-plan.md`): 7 text styles, переменная `typography/font-family/base`, все текстовые ноды всех страниц (~780 сегментов; маппинг Onest Light/Regular/Medium/SemiBold → Inter Light/Regular/Medium/Semi Bold), упоминания «Onest» в текстах документации макета → «Inter». Сверка: в файле остались только Inter + 1 намеренный Roboto Mono |
+| 2026-07-04 | design-new-feature | Страница **«📄 Pages Manager (redesign)»** (`69:2`) — макет замены Publish-модалки на полноэкранный дашборд (`builder/publish/**`): фрейм 1 `69:5` список страниц + панель meta-деталей; фрейм 2 `77:25` модалка создания страницы («Начать с»: пустая/из шаблона); фрейм 3 `79:63` Templates empty state; фрейм 4 `79:556` пустой список. Собран из инстансов библиотеки (Button/Input/Switch/Close Button) + иконки с 🔣 Icons, цвета — только переменными |
 | 2026-07-02 | code → design | Фаза 3 редизайна (soft UI): **Input** — подчёркивание → бокс (1px `base/300`, r6, pad 8/12), +2 варианта `State=Focus` (primary + `shadow/focus`); **Select** — бокс-триггер, дропдаун r10 + `base/200`, selected-опция `primary/50`+primary; **Button** — 30 вариантов на 1px, Primary/Danger без рамки + `shadow/sm`; **Tags Editor** — minHeight 36, `base/300`, focus-ring; **Hex Input** — свотч 36×36, `base/300`. Детали — `componentSync` в реестре |
 
 ---

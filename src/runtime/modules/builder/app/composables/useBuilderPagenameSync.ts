@@ -65,7 +65,7 @@ export function useBuilderPagenameSync(routePagename: ComputedRef<string>): void
                 }
 
                 // Меняем URL без навигации (не триггерит Vue Router)
-                const newUrl = `/builder/${currentNormalized}`;
+                const newUrl = `/bricks/${currentNormalized}`;
                 window.history.replaceState(window.history.state, '', newUrl);
             }, 600);
         }

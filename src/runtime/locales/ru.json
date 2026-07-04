@@ -105,34 +105,95 @@
             "copyFailedRetry": "Не удалось сохранить копию. Попробуйте ещё раз.",
             "previewCreateFailed": "Не удалось создать превью. Попробуйте ещё раз.",
             "previewFallback": "Превью",
-            "pagesModal": {
-                "title": "Сохранённые страницы",
-                "loadFailed": "Не удалось загрузить опубликованные страницы",
-                "toggleStatusFailed": "Не удалось изменить статус публикации",
-                "deleteFailed": "Не удалось удалить страницу",
-                "deleteConfirmTitle": "Удалить страницу?",
-                "deleteConfirmGeneric": "Вы уверены, что хотите удалить эту страницу?",
-                "deleteConfirmNamed": "Вы уверены, что хотите удалить страницу «{title}» ({path})?",
-                "emptyTitle": "Записей не найдено",
-                "emptyText": "Вы пока не сохранили ни одной страницы."
-            },
-            "card": {
-                "updated": "Обновлено:",
-                "dateAt": "в",
-                "publishTooltip": "Публикация страницы",
-                "preview": "Превью",
-                "edit": "Редактировать"
-            },
             "dashboard": {
                 "title": "Билдер",
-                "subtitle": "Выберите страницу для редактирования или создайте новую.",
-                "createPage": "Создать новую страницу",
-                "openPagesList": "Открыть список страниц"
+                "createPage": "Создать страницу",
+                "nav": {
+                    "pages": "Страницы",
+                    "templates": "Шаблоны",
+                    "media": "Media"
+                },
+                "search": {
+                    "pages": "Поиск страниц...",
+                    "templates": "Поиск шаблонов..."
+                },
+                "templates": {
+                    "emptyTitle": "Шаблонов пока нет",
+                    "emptyDescription": "Сохраняйте готовые страницы как шаблоны, чтобы быстро собирать новые",
+                    "saveCurrent": "Сохранить текущую страницу как шаблон"
+                },
+                "filters": {
+                    "all": "Все",
+                    "published": "Опубликованные",
+                    "drafts": "Черновики"
+                },
+                "row": {
+                    "updated": "Обновлена {date}",
+                    "draft": "Черновик",
+                    "edit": "Редактировать",
+                    "preview": "Превью",
+                    "duplicate": "Дублировать",
+                    "delete": "Удалить"
+                },
+                "empty": {
+                    "title": "Пока нет ни одной страницы",
+                    "description": "Создайте первую страницу — она появится в этом списке",
+                    "cta": "Создать первую страницу",
+                    "noResultsTitle": "Ничего не найдено",
+                    "noResultsDescription": "Попробуйте изменить поисковый запрос или фильтр"
+                },
+                "toasts": {
+                    "duplicated": "Копия страницы создана",
+                    "duplicateFailed": "Не удалось создать копию страницы",
+                    "loadFailed": "Не удалось загрузить опубликованные страницы",
+                    "deleteFailed": "Не удалось удалить страницу"
+                },
+                "details": {
+                    "created": "создана {date}",
+                    "published": "Опубликована",
+                    "copyUrl": "Скопировать URL",
+                    "seoMeta": "SEO и Meta",
+                    "titleLabel": "Заголовок (title)",
+                    "pagenameLabel": "Адрес (pagename)",
+                    "descriptionLabel": "Описание (description)",
+                    "keywordsLabel": "Ключевые слова (keywords)",
+                    "ogImage": "OG-изображение",
+                    "selectFromMedia": "Выбрать из Media",
+                    "routing": "Маршрутизация: urlPrefix, subdomain",
+                    "save": "Сохранить изменения",
+                    "cancel": "Отменить",
+                    "openInEditor": "Открыть в редакторе",
+                    "toasts": {
+                        "saved": "Изменения сохранены",
+                        "saveFailed": "Не удалось сохранить изменения",
+                        "urlCopied": "URL скопирован",
+                        "copyFailed": "Не удалось скопировать URL",
+                        "statusFailed": "Не удалось изменить статус публикации"
+                    }
+                },
+                "createModal": {
+                    "title": "Новая страница",
+                    "titleLabel": "Название страницы",
+                    "descriptionPlaceholder": "Кратко о странице — попадёт в meta description",
+                    "urlHint": "Будет доступна по адресу {url}",
+                    "startWith": "Начать с",
+                    "blankTitle": "Пустая страница",
+                    "blankDescription": "Чистый холст без блоков",
+                    "templateTitle": "Из шаблона",
+                    "templateDescription": "Скоро — сохраняйте страницы как шаблоны",
+                    "advanced": "Дополнительно: urlPrefix, subdomain, keywords",
+                    "submit": "Создать и открыть в редакторе",
+                    "createFailed": "Не удалось создать страницу"
+                },
+                "deleteConfirm": {
+                    "title": "Удалить страницу?",
+                    "generic": "Вы уверены, что хотите удалить эту страницу?",
+                    "named": "Вы уверены, что хотите удалить страницу «{title}» ({path})?"
+                }
             },
             "toasts": {
                 "unsavedChanges": "Есть несохранённые изменения",
                 "loadPageFailed": "Не удалось загрузить страницу",
-                "pageNotFound": "Страница не найдена",
                 "savePageFailed": "Не удалось сохранить страницу",
                 "pageUpdated": "Страница обновлена",
                 "draftUpdated": "Изменения сохранены как черновик",

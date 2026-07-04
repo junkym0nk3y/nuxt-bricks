@@ -132,11 +132,11 @@ function handleRedo(): void {
 }
 
 /**
- * Открывает модальное окно с редактором опубликованных страниц
- * Позволяет просматривать, редактировать и удалять сохраненные страницы
+ * Открывает менеджер страниц (дашборд `/bricks`)
+ * Позволяет просматривать, редактировать и удалять сохранённые страницы
  */
-function handleOpenPublishedPages(): void {
-    emit('openPublishedPages');
+function handleOpenPagesManager(): void {
+    emit('openPagesManager');
 }
 
 /**
@@ -253,12 +253,7 @@ function handleToggleGrid(): void {
 
             <BricksTooltip bottom>
                 <template #activator>
-                    <BricksButton
-                        size="md"
-                        variant="outline"
-                        equal
-                        @click="handleOpenPublishedPages"
-                    >
+                    <BricksButton size="md" variant="outline" equal @click="handleOpenPagesManager">
                         <BricksIcon :class="$style.icon" icon="ca:document-multiple-02" />
                     </BricksButton>
                 </template>

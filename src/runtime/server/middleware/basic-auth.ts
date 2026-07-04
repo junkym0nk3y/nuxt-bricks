@@ -2,13 +2,13 @@
  * HTTP Basic Auth middleware для защиты builder, preview и модифицирующих API.
  *
  * Защищает:
- * - /builder/** — редактор лендингов
- * - /bricks/*?preview=true — preview режим
+ * - /bricks/** — менеджер страниц и редактор лендингов
+ * - /preview/** — preview режим рендера
  * - /mock-api/s3-* — S3 операции (загрузка/удаление)
  * - /api/bricks/** POST/PUT/DELETE — модификация лендингов и медиа
  *
  * НЕ защищает:
- * - /bricks/* без ?preview=true — опубликованные страницы
+ * - динамические ЧПУ маршруты опубликованных страниц
  * - /api/bricks/** GET — чтение данных (публичные лендинги)
  *
  * Настройка через ENV:
@@ -28,13 +28,13 @@ function requiresAuth(event: H3Event, parsedUrl: URL): boolean {
     const pathname = parsedUrl.pathname;
     const method = event.node.req.method || 'GET';
 
-    // Builder — всегда защищён
-    if (pathname.startsWith('/builder')) {
+    // Менеджер страниц (/bricks) и редактор (/bricks/*) — всегда защищены
+    if (pathname === '/bricks' || pathname.startsWith('/bricks/')) {
         return true;
     }
 
-    // Preview режим — защищён
-    if (pathname.startsWith('/bricks/') && parsedUrl.searchParams.get('preview') === 'true') {
+    // Preview режим (/preview/*) — защищён
+    if (pathname.startsWith('/preview/')) {
         return true;
     }
 

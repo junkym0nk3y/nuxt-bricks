@@ -16,7 +16,7 @@ export interface IToolbarProps {
 }
 
 export interface IToolbarEmits {
-    openPublishedPages: [];
+    openPagesManager: [];
     openMediaGallery: [];
     saveAsCopy: [];
     saveDraft: [];

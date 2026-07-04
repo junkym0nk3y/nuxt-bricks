@@ -36,11 +36,11 @@ npx oxlint <changed-file>
     - `core/` — ядро состояния: `stores/` (components + actions/, canvas, sidebar, history, navigation, componentActions), `utils/`, `constants/`, `composables/` (useComponentProperties), `components/` (BuilderLogo)
     - `shell/` — рамка редактора: `sidebar/` (components + property-editors/, composables, utils, types), `toolbar/` (чисто презентационный)
     - `canvas/` — слайсы `viewport/`, `item/`, `editing/` (каждый — `components/` + `composables/`) + общий `types/`
-    - `publish/` — управление страницами: `pages/` (index.vue — дашборд), `components/` (TheBuilderPublishPagesModal, BuilderPublishPageCard), `stores/publish.ts`, `utils/` (черновики, payload, ошибки запросов), `types/`
+    - `publish/` — управление страницами: `pages/` (index.vue — полноэкранный дашборд, единственная поверхность управления страницами), `components/` (TheBuilderPublishDashboard + Nav/PagesList/PagesListRow/DetailsPanel, TheBuilderPublishCreatePageModal), `composables/` (usePublishDashboard, usePublishPageForm, usePublishCreatePageForm), `stores/publish.ts`, `utils/` (черновики, payload, ошибки запросов, validationSchema — общая yup-фабрика meta-полей, dates, slugify), `types/`; дашборд живёт на `/bricks`, редактор — `/bricks/<pagename>`, кнопка pages тулбара билдера ведёт на `/bricks` (emit `openPagesManager`), Publish-модалка удалена (2026-07-04)
     - `documentation/` — TheBuilderDocumentationModal, `composables/`, `docs/guide/` (markdown-статьи), `types/`
     - `media/` — медиа-галерея и image resolver: `stores/media.ts`, `composables/` (useMediaUpload, useSchemaImageResolver), `utils/`
 - `text-editor/` — TipTap (бывший `editor/`): компоненты, расширения (`tiptap/`), inline editing, `stores/inlineEditing.ts`
-- `render/` — рендер опубликованной страницы (самодостаточен, store не использует)
+- `render/` — рендер опубликованной страницы (самодостаточен, store не использует); встроенный превью-роут `/preview/<pagename>` (имя роута `bricks-preview`, всегда preview-режим), live — только динамические ЧПУ маршруты (`plugins/bricks-dynamic-routes.ts`)
 - `layouts-blocks/` — блоки лендинга (Grid/Flex/Section/Slider/...)
 - `persistence/` — серверные адаптеры хранения (`server/postgres/`, `server/s3/`, `server/registry.ts`, `server/utils/` — общая логика Nitro-ручек); используется только из `src/runtime/server/api/bricks/**`
 - `common/` — только общее (2+ доменов): `composables/` (useBricksConfig, useBrickImports, useApiClient, useBricksStyles), `utils/` (main, case-transform; `bricks/` — paths, components, deviceVisibility, publishedPage; `routing/` — build-time), `constants/` (injectionKeys), `types/`
@@ -283,7 +283,7 @@ CSS: `.bricks-text [data-tiptap-content]` — **с пробелом** (descendan
 
 Переводы билдера — через `@nuxtjs/i18n` v10, паттерн «модуль-поставщик переводов»:
 
-- `src/module.ts` подписывается на хук `i18n:registerModule` (ДО `installModule`) и регистрирует `src/runtime/locales/ru.json` / `en.json`; дефолты i18n (`strategy: 'no_prefix'`, cookie `bricks-locale`, детект браузера, `defaultLocale` из `bricks.i18n.defaultLocale`) применяются через `defu` **всегда** — и когда bricks ставит `@nuxtjs/i18n` сам, и когда его подключил потребитель (голая стратегия `prefix_except_default` переписала бы маршруты → 404 на `/builder`); опции потребителя побеждают.
+- `src/module.ts` подписывается на хук `i18n:registerModule` (ДО `installModule`) и регистрирует `src/runtime/locales/ru.json` / `en.json`; дефолты i18n (`strategy: 'no_prefix'`, cookie `bricks-locale`, детект браузера, `defaultLocale` из `bricks.i18n.defaultLocale`) применяются через `defu` **всегда** — и когда bricks ставит `@nuxtjs/i18n` сам, и когда его подключил потребитель (голая стратегия `prefix_except_default` переписала бы маршруты → 404 на `/bricks`); опции потребителя побеждают.
 - **Порядок модулей критичен**: `nuxt-bricks` должен стоять **до** `@nuxtjs/i18n` в `modules` потребителя, иначе хук не сработает и переводы не зарегистрируются (warn выводится в `app:resolve` — `@nuxtjs/i18n` вызывает `i18n:registerModule` из собственного `modules:done`-хука, проверка в `modules:done` давала бы ложное срабатывание).
 - Все ключи — под префиксом `bricks.*` (проектные сообщения потребителя всегда побеждают). Неймспейсы: `common`, `toolbar`, `nav`, `library`, `properties`, `publish`, `media`, `schema`, `canvas`, `textEditor`, `docs`, `validation`, `blocks`.
 - Labels из definitions резолвятся через `resolveBricksLabel` (`common/utils/i18nLabels.ts`): ключи `bricks.*` переводятся, кастомные строки потребителя проходят как есть.
@@ -319,7 +319,7 @@ Markdown-статьи во встроенной документации бил�
 
 **S3:** `YANDEX_STORAGE_ACCESS_KEY_ID`, `YANDEX_STORAGE_SECRET_ACCESS_KEY`, `YANDEX_STORAGE_BUCKET_NAME`
 
-**Basic Auth:** `BASIC_AUTH_USERNAME` (дефолт: `admin`), `BASIC_AUTH_PASSWORD` (дефолт: `change-me`). Защищает `/builder/**`, preview, S3 и модифицирующие API.
+**Basic Auth:** `BASIC_AUTH_USERNAME` (дефолт: `admin`), `BASIC_AUTH_PASSWORD` (дефолт: `change-me`). Защищает `/bricks/**` (менеджер страниц + редактор), `/preview/**` (превью рендера), S3 и модифицирующие API.
 
 ## Известная проблема: glob-кэш Vite
 
@@ -333,4 +333,4 @@ Markdown-статьи во встроенной документации бил�
 
 - **`normalizePublishedPage`** (с `isBricksSchema`, `preserveSchema`) — единая копия в `common/utils/bricks/publishedPage.ts`, используется store'ом и middleware; новые поля добавлять только там
 - **`validateOptionalRoutingFields`** — отдельный action в store, чтобы не превышать complexity (max 20)
-- Preview (`?preview=true`) не проверяет subdomain
+- Preview (`/preview/<pagename>` — режим определяется роутом, query `?preview=true` удалён 2026-07-04) не проверяет subdomain

@@ -129,17 +129,24 @@ function onUpdate(checked: boolean): void {
         background-color: var(--bricks-base-300);
         transition: background-color var(--default-transition);
 
+        // top/left заданы явно: без них позиция кружка зависит от статической
+        // позиции ::after (UA text-align: center у button сдвигает её на страницах
+        // без глобального reset — например, на дашборде).
+        // top 50% + translateY(-50%) центрируют кружок по вертикали при любой
+        // высоте трека (зазор трек−кружок не кратен 0.2rem).
         &:after {
             content: '';
             position: absolute;
+            top: 50%;
+            left: 0;
             width: 1.4rem;
             height: 1.4rem;
             border-radius: 50%;
             background-color: var(--bricks-base-0);
-            transform: translate(0.2rem, 0.2rem);
+            transform: translate(0.2rem, -50%);
             transition: transform var(--default-transition);
             box-shadow: var(--shadow-sm);
-            will-change: left;
+            will-change: transform;
         }
     }
 
@@ -155,7 +162,7 @@ function onUpdate(checked: boolean): void {
         background-color: var(--bricks-primary);
 
         &:after {
-            transform: translate(1.8rem, 0.2rem);
+            transform: translate(2rem, -50%);
         }
     }
 
@@ -180,14 +187,14 @@ function onUpdate(checked: boolean): void {
             &:after {
                 width: 1rem;
                 height: 1rem;
-                transform: translate(0.2rem, 0.2rem);
+                transform: translate(0.2rem, -50%);
             }
         }
 
         &._active {
             .core {
                 &:after {
-                    transform: translate(1.6rem, 0.2rem);
+                    transform: translate(1.6rem, -50%);
                 }
             }
         }

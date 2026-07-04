@@ -15,7 +15,7 @@
    `BuilderCanvasItem` → `BuilderCanvasItemToolbar`.
 2. **`The` — только для синглтонов.** Компонент, который монтируется в приложении
    ровно один раз (корень фичи, глобальные модалки): `TheBuilderCanvas.vue`,
-   `TheBuilderShellSidebar.vue`, `TheBuilderPublishPagesModal.vue`.
+   `TheBuilderShellSidebar.vue`, `TheBuilderPublishCreatePageModal.vue`.
    «Импортируется в одном месте» ≠ синглтон.
 3. **Модульные префиксы вместо `Bricks`.** `Bricks*` — только в `ui/` (неймспейс
    переиспользуемого кита); `Block*` (layouts-blocks), `Renderer*` (render),
@@ -25,7 +25,8 @@
    сущность — «блок»: `BlockGrid.vue`, `BlockText.vue`.
 5. **Модалки — без исключений.** Именуются по той же цепочке:
    `TheBuilderDocumentationModal`, `TheBuilderMediaGalleryModal`,
-   `TheBuilderPublishPagesModal`; дети — по цепочке родителя (`BuilderPublishPageCard`).
+   `TheBuilderPublishCreatePageModal`; дети — по цепочке родителя
+   (`BuilderPublishPagesListRow`).
    (Прежнее «modal-исключение» — именование по содержимому — отменено.)
 6. Компонент, используемый 2+ фичами одного поддомена, поднимается в
    `builder/core/components/`: `BuilderLogo.vue`.

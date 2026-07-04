@@ -9,5 +9,5 @@
 | `useSidebarMediaSelection.ts`   | Выбор медиа из галереи: контекст запроса (свойство / inline-content / image-gallery)       |
 | `usePropertyVariants.ts`        | Преобразование определений свойств в варианты для разных типов редакторов                  |
 | `useSidebarBrickDescription.ts` | Описание выбранного компонента из brick-файла (или layout-конфига)                         |
-| `usePublishValidationSchema.ts` | Validation schema формы публикации (уникальность pagename в режиме редактирования)         |
+| `usePublishValidationSchema.ts` | Обёртка над `publish/utils/validationSchema` (store + i18n, исключение `editingPageId`)    |
 | `useSchemaFileTransfer.ts`      | Экспорт схемы в JSON-файл и импорт из файла с валидацией структуры                         |

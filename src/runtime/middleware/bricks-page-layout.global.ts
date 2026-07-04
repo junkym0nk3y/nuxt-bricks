@@ -10,22 +10,23 @@ import { normalizePublishedPage } from '../modules/common/utils/bricks/published
 /**
  * Middleware для динамической установки layout на основе данных из БД.
  * Применяется к страницам лендингов:
- * - /bricks/[pagename] (встроенный маршрут)
- * - /[pagename] (динамически зарегистрированные ЧПУ маршруты)
+ * - /preview/[pagename] (встроенный превью-маршрут, всегда preview-режим)
+ * - /[pagename] (динамически зарегистрированные ЧПУ маршруты, live-режим)
+ *
+ * Режим определяется чисто по роуту: query ?preview=true не используется.
  */
 // eslint-disable-next-line complexity
 export default defineNuxtRouteMiddleware(async (to) => {
-    // Применяем middleware к встроенному маршруту или динамическим ЧПУ маршрутам
-    const isBricksRoute = to.name === 'bricks-pagename';
+    // Применяем middleware к превью-маршруту или динамическим ЧПУ маршрутам
+    const isPreview = to.name === 'bricks-preview';
     const isDirectBricksRoute = to.meta?.isPublishedBricksPage === true;
 
-    if (!isBricksRoute && !isDirectBricksRoute) {
+    if (!isPreview && !isDirectBricksRoute) {
         return;
     }
 
     const nuxtApp = useNuxtApp();
     const pagename = to.params.pagename as string;
-    const isPreview = to.query.preview === 'true';
     const { apiFetcher } = useApiClient();
 
     const pageDataKey = `bricks-page-${pagename}-${isPreview ? 'preview' : 'live'}`;

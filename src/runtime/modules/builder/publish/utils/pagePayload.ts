@@ -1,5 +1,10 @@
 import type { IBricksSchema } from '../../../common/types/brick';
-import type { ICreatePagePayload, TPublishFormState } from '../../../common/types/bricks-api';
+import type {
+    ICreatePagePayload,
+    IUpdatePagePayload,
+    TPublishFormState,
+} from '../../../common/types/bricks-api';
+import type { IPublishPageFormValues } from '../types/dashboard';
 import {
     DEFAULT_BACKGROUND_COLOR,
     DEFAULT_LAYOUT,
@@ -30,5 +35,24 @@ export function buildPagePayload(
         subdomain: formState.subdomain || null,
         schema: preserveSchema(schema),
         published: formState.published,
+    };
+}
+
+/**
+ * Собирает частичный PATCH-payload meta-полей из значений формы панели деталей.
+ * Схема, layout, backgroundColor и статус публикации не затрагиваются.
+ *
+ * @param values - Значения формы meta.
+ * @returns Payload для `patchPage`.
+ */
+export function buildMetaPatchPayload(values: IPublishPageFormValues): IUpdatePagePayload {
+    return {
+        pagename: values.pagename.trim(),
+        title: values.title.trim(),
+        description: values.description,
+        keywords: values.keywords,
+        socialImage: values.socialImage || null,
+        urlPrefix: values.urlPrefix.trim() || null,
+        subdomain: values.subdomain.trim() || null,
     };
 }
