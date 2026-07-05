@@ -336,7 +336,7 @@ watch(
                     :aria-label="t('bricks.common.increase')"
                     @click="handleStep(1)"
                 >
-                    <BricksIcon icon="ph:plus-bold" />
+                    <BricksIcon icon="ta:outline-plus" />
                 </button>
                 <button
                     type="button"
@@ -345,7 +345,7 @@ watch(
                     :aria-label="t('bricks.common.decrease')"
                     @click="handleStep(-1)"
                 >
-                    <BricksIcon icon="ph:minus-bold" />
+                    <BricksIcon icon="ta:outline-minus" />
                 </button>
             </div>
         </div>

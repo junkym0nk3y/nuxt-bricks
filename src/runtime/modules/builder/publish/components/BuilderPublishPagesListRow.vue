@@ -108,7 +108,7 @@ function handleDelete(): void {
                 :aria-label="t('bricks.publish.dashboard.row.edit')"
                 @click="handleEdit"
             >
-                <BricksIcon icon="ph:pencil" />
+                <BricksIcon icon="ta:outline-pencil" />
             </button>
 
             <button
@@ -129,7 +129,7 @@ function handleDelete(): void {
                 :aria-label="t('bricks.publish.dashboard.row.duplicate')"
                 @click="handleDuplicate"
             >
-                <BricksIcon icon="ph:copy" />
+                <BricksIcon icon="ta:outline-copy" />
             </button>
 
             <button
@@ -139,7 +139,7 @@ function handleDelete(): void {
                 :aria-label="t('bricks.publish.dashboard.row.delete')"
                 @click="handleDelete"
             >
-                <BricksIcon icon="ph:trash" />
+                <BricksIcon icon="ta:outline-trash" />
             </button>
         </div>
     </article>

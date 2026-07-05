@@ -38,7 +38,7 @@ function handleClick(event: MouseEvent): void {
         :disabled="props.disabled"
         @click="handleClick"
     >
-        <BricksIcon icon="gl:close" />
+        <BricksIcon icon="ta:outline-x" />
     </BricksButton>
 </template>
 

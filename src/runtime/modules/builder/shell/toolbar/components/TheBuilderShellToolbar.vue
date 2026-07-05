@@ -206,7 +206,7 @@ function handleToggleGrid(): void {
                         :active="props.showGrid"
                         @click="handleToggleGrid"
                     >
-                        <BricksIcon :class="$style.icon" icon="md:outlined-grid-3x3" />
+                        <BricksIcon :class="$style.icon" icon="ta:outline-grid-4x4" />
                     </BricksButton>
                 </template>
 
@@ -224,7 +224,7 @@ function handleToggleGrid(): void {
                         :disabled="!canUndo"
                         @click="handleUndo"
                     >
-                        <BricksIcon :class="$style.icon" icon="cl:arrow-undo-down-left" />
+                        <BricksIcon :class="$style.icon" icon="ta:outline-arrow-back-up" />
                     </BricksButton>
                 </template>
 
@@ -242,7 +242,7 @@ function handleToggleGrid(): void {
                         :disabled="!canRedo"
                         @click="handleRedo"
                     >
-                        <BricksIcon :class="$style.icon" icon="cl:arrow-undo-down-right" />
+                        <BricksIcon :class="$style.icon" icon="ta:outline-arrow-forward-up" />
                     </BricksButton>
                 </template>
 
@@ -254,7 +254,7 @@ function handleToggleGrid(): void {
             <BricksTooltip bottom>
                 <template #activator>
                     <BricksButton size="md" variant="outline" equal @click="handleOpenPagesManager">
-                        <BricksIcon :class="$style.icon" icon="ca:document-multiple-02" />
+                        <BricksIcon :class="$style.icon" icon="ta:outline-files" />
                     </BricksButton>
                 </template>
 
@@ -266,7 +266,7 @@ function handleToggleGrid(): void {
             <BricksTooltip bottom>
                 <template #activator>
                     <BricksButton size="md" variant="outline" equal @click="handleOpenMediaGallery">
-                        <BricksIcon :class="$style.icon" icon="cd:file-media" />
+                        <BricksIcon :class="$style.icon" icon="ta:outline-photo-video" />
                     </BricksButton>
                 </template>
 
@@ -278,7 +278,7 @@ function handleToggleGrid(): void {
             <BricksTooltip bottom>
                 <template #activator>
                     <BricksButton size="md" variant="outline" equal @click="handlePreview">
-                        <BricksIcon :class="$style.icon" icon="md:outlined-preview" />
+                        <BricksIcon :class="$style.icon" icon="ta:outline-browser-share" />
                     </BricksButton>
                 </template>
 
@@ -294,7 +294,7 @@ function handleToggleGrid(): void {
                 @save-as-copy="handleSaveAsCopy"
                 @save-draft="handleSaveDraft"
             >
-                <BricksIcon icon="th:save" />
+                <BricksIcon icon="ta:outline-device-floppy" />
             </BricksActionButton>
         </div>
     </div>

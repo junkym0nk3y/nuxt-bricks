@@ -39,7 +39,7 @@ const { t } = useI18n();
 const hasMedia = computed(() => Boolean(props.modelValue));
 const mediaType = computed(() => props.type);
 const previewIcon = computed(() =>
-    props.type === 'video' ? 'md:sharp-video-library' : 'md:outlined-image'
+    props.type === 'video' ? 'ta:outline-video' : 'ta:outline-photo'
 );
 // #endregion
 
@@ -97,7 +97,7 @@ function handleRemove(): void {
                 :class="$style.button"
                 @click="handleOpenGallery"
             >
-                <BricksIcon icon="md:folder-open" />
+                <BricksIcon icon="ta:outline-folder-open" />
                 {{ t('bricks.properties.select') }}
             </BricksButton>
 
@@ -108,7 +108,7 @@ function handleRemove(): void {
                 :class="$style.button"
                 @click="handleRemove"
             >
-                <BricksIcon icon="md:delete" />
+                <BricksIcon icon="ta:outline-trash" />
                 {{ t('bricks.common.delete') }}
             </BricksButton>
         </div>

@@ -11,7 +11,7 @@ const { t } = useI18n();
 
 <template>
     <div :class="$style.BuilderCanvasEmptyState">
-        <BricksIcon :class="$style.emptyIcon" icon="re:drag-drop-line" />
+        <BricksIcon :class="$style.emptyIcon" icon="ta:outline-drag-drop" />
         <h3 :class="$style.emptyTitle">
             {{ t('bricks.canvas.emptyTitle') }}
         </h3>

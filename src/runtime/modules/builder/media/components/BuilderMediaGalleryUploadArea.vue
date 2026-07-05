@@ -85,7 +85,7 @@ function handleDrop(event: DragEvent): void {
             :class="$style.fileInput"
             @change="handleFileChange"
         />
-        <BricksIcon :class="$style.uploadIcon" icon="md:cloud-upload" />
+        <BricksIcon :class="$style.uploadIcon" icon="ta:outline-cloud-upload" />
         <p :class="$style.uploadText">{{ t('bricks.media.dropHint') }}</p>
         <BricksButton size="md" variant="primary" @click="handleOpenFilePicker">
             {{ t('bricks.media.chooseFiles') }}

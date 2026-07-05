@@ -46,7 +46,7 @@ function handleOpenPreview(item: IMediaItem): void {
         >
             <div :class="$style.imageWrapper">
                 <div v-if="item.mimeType.startsWith('video/')" :class="$style.videoPlaceholder">
-                    <BricksIcon :class="$style.videoPlayIcon" icon="md:sharp-video-library" />
+                    <BricksIcon :class="$style.videoPlayIcon" icon="ta:outline-video" />
                 </div>
                 <img
                     v-else
@@ -62,7 +62,7 @@ function handleOpenPreview(item: IMediaItem): void {
                     :title="t('bricks.media.fullscreen')"
                     @click.stop="handleOpenPreview(item)"
                 >
-                    <BricksIcon icon="ph:magnifying-glass" />
+                    <BricksIcon icon="ta:outline-search" />
                 </button>
             </div>
             <div :class="$style.itemInfo">

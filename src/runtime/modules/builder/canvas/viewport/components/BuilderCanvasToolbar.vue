@@ -33,19 +33,19 @@ const VIEWPORTS: readonly IViewportOption[] = [
     {
         value: 'mobile',
         label: 'Mobile',
-        icon: 'ak:mobile-device',
+        icon: 'ta:outline-device-mobile',
         width: config.canvasBreakpoints.mobile.width,
     },
     {
         value: 'tablet',
         label: 'Tablet',
-        icon: 'ak:credit-card-alt-1',
+        icon: 'ta:outline-device-tablet',
         width: config.canvasBreakpoints.tablet.width,
     },
     {
         value: 'desktop',
         label: 'Desktop',
-        icon: 'ak:desktop-device',
+        icon: 'ta:outline-device-desktop',
         width: config.canvasBreakpoints.desktop.width,
     },
 ] as const;
@@ -132,7 +132,7 @@ function handleToggleFigmaMode(): void {
                 :class="$style.viewportButton"
                 @click="handleToggleFigmaMode"
             >
-                <BricksIcon icon="ak:figma-fill" />
+                <BricksIcon icon="ta:outline-brand-figma" />
                 <span :class="$style.viewportLabel">Figma Like</span>
             </BricksButton>
         </div>
@@ -146,7 +146,7 @@ function handleToggleFigmaMode(): void {
                 title="Zoom out"
                 @click="handleZoomOut"
             >
-                <BricksIcon :class="$style.zoomIcon" icon="an:outlined-zoom-out" />
+                <BricksIcon :class="$style.zoomIcon" icon="ta:outline-zoom-out" />
             </BricksButton>
 
             <client-only>
@@ -168,7 +168,7 @@ function handleToggleFigmaMode(): void {
                 title="Zoom in"
                 @click="handleZoomIn"
             >
-                <BricksIcon :class="$style.zoomIcon" icon="an:outlined-zoom-in" />
+                <BricksIcon :class="$style.zoomIcon" icon="ta:outline-zoom-in" />
             </BricksButton>
         </div>
     </div>

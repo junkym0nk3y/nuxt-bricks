@@ -189,7 +189,7 @@ function handleReplaceImage(index: number): void {
         <div :class="$style.header">
             <span :class="$style.title">{{ displayLabel }}</span>
             <BricksButton size="sm" variant="primary" @click="handleAddImage">
-                <BricksIcon icon="ph:plus" />
+                <BricksIcon icon="ta:outline-plus" />
                 {{ t('bricks.properties.add') }}
             </BricksButton>
         </div>
@@ -202,7 +202,7 @@ function handleReplaceImage(index: number): void {
             >
                 <div :class="$style.imageWrapper" @click="handleReplaceImage(index)">
                     <div v-if="isVideoItem(item)" :class="$style.videoPlaceholder">
-                        <BricksIcon icon="md:sharp-video-library" />
+                        <BricksIcon icon="ta:outline-video" />
                     </div>
                     <img
                         v-else-if="item.url"
@@ -211,10 +211,10 @@ function handleReplaceImage(index: number): void {
                         :class="$style.image"
                     />
                     <div v-else :class="$style.placeholder">
-                        <BricksIcon icon="md:image-plus" />
+                        <BricksIcon icon="ta:outline-photo-plus" />
                     </div>
                     <div :class="$style.imageOverlay">
-                        <BricksIcon icon="ph:pencil" />
+                        <BricksIcon icon="ta:outline-pencil" />
                     </div>
                 </div>
 
@@ -249,7 +249,7 @@ function handleReplaceImage(index: number): void {
                             :disabled="index === 0"
                             @click="handleMoveUp(index)"
                         >
-                            <BricksIcon icon="md:arrow-up" />
+                            <BricksIcon icon="ta:outline-arrow-up" />
                         </BricksButton>
                         <BricksButton
                             size="sm"
@@ -257,10 +257,10 @@ function handleReplaceImage(index: number): void {
                             :disabled="index === items.length - 1"
                             @click="handleMoveDown(index)"
                         >
-                            <BricksIcon icon="md:arrow-down" />
+                            <BricksIcon icon="ta:outline-arrow-down" />
                         </BricksButton>
                         <BricksButton size="sm" variant="ghost" @click="handleRemoveItem(index)">
-                            <BricksIcon icon="md:delete-outline" />
+                            <BricksIcon icon="ta:outline-trash" />
                         </BricksButton>
                     </div>
                 </div>
@@ -268,7 +268,7 @@ function handleReplaceImage(index: number): void {
         </div>
 
         <div v-else :class="$style.empty" @click="handleAddImage">
-            <BricksIcon :class="$style.emptyIcon" icon="md:image-multiple" />
+            <BricksIcon :class="$style.emptyIcon" icon="ta:outline-library-photo" />
             <span>{{ t('bricks.properties.gallery.empty') }}</span>
         </div>
     </div>

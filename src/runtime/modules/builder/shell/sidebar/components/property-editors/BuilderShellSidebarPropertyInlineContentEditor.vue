@@ -222,7 +222,7 @@ function formatDimensionValue(value?: string | number): string {
                             :disabled="index === 0"
                             @click="handleMoveSegment(index, 'up')"
                         >
-                            <BricksIcon icon="md:arrow-up" />
+                            <BricksIcon icon="ta:outline-arrow-up" />
                         </BricksButton>
                         <BricksButton
                             size="sm"
@@ -230,10 +230,10 @@ function formatDimensionValue(value?: string | number): string {
                             :disabled="index === segments.length - 1"
                             @click="handleMoveSegment(index, 'down')"
                         >
-                            <BricksIcon icon="md:arrow-down" />
+                            <BricksIcon icon="ta:outline-arrow-down" />
                         </BricksButton>
                         <BricksButton size="sm" variant="ghost" @click="handleRemoveSegment(index)">
-                            <BricksIcon icon="md:delete-outline" />
+                            <BricksIcon icon="ta:outline-trash" />
                         </BricksButton>
                     </div>
                 </div>
@@ -266,7 +266,7 @@ function formatDimensionValue(value?: string | number): string {
                     </div>
                     <div :class="$style.mediaActions">
                         <BricksButton size="sm" variant="ghost" @click="handleReplaceMedia(index)">
-                            <BricksIcon icon="md:folder-edit" />
+                            <BricksIcon icon="ta:outline-folder-open" />
                             {{ t('bricks.properties.inline.replaceMedia') }}
                         </BricksButton>
                     </div>
@@ -296,7 +296,7 @@ function formatDimensionValue(value?: string | number): string {
         </div>
 
         <div v-else :class="$style.emptyState">
-            <BricksIcon :class="$style.emptyIcon" icon="md:text-box-outline" />
+            <BricksIcon :class="$style.emptyIcon" icon="ta:outline-letter-case" />
             <p>{{ t('bricks.properties.inline.empty') }}</p>
         </div>
     </div>

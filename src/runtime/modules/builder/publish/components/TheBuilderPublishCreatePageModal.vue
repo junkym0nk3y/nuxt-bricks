@@ -179,7 +179,10 @@ onMounted(() => {
                     </span>
                     <div :class="$style.startCards">
                         <div :class="[$style.startCard, $style.startCardActive]">
-                            <BricksIcon icon="cl:note-edit" :class="$style.startCardIcon" />
+                            <BricksIcon
+                                icon="ta:outline-file-pencil"
+                                :class="$style.startCardIcon"
+                            />
                             <span :class="$style.startCardTitle">
                                 {{ t('bricks.publish.dashboard.createModal.blankTitle') }}
                             </span>
@@ -188,7 +191,7 @@ onMounted(() => {
                             </span>
                         </div>
                         <div :class="[$style.startCard, $style.startCardDisabled]">
-                            <BricksIcon icon="ph:package" :class="$style.startCardIcon" />
+                            <BricksIcon icon="ta:outline-package" :class="$style.startCardIcon" />
                             <span :class="$style.startCardTitle">
                                 {{ t('bricks.publish.dashboard.createModal.templateTitle') }}
                             </span>
@@ -206,7 +209,7 @@ onMounted(() => {
                         @click="handleToggleAdvanced"
                     >
                         <BricksIcon
-                            icon="ph:caret-right"
+                            icon="ta:outline-chevron-right"
                             :class="[
                                 $style.advancedCaret,
                                 isAdvancedOpen && $style.advancedCaretOpen,

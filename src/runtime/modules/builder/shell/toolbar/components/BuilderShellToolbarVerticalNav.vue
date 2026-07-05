@@ -53,28 +53,28 @@ const { t, locale } = useI18n();
 const NAV_ITEMS = [
     {
         key: 'library',
-        icon: 'an:outlined-appstore-add',
+        icon: 'ta:outline-layout-grid-add',
         label: 'bricks.nav.library',
         event: 'toggleLibrary' as const,
         activeProp: 'isLibraryActive' as const,
     },
     {
         key: 'properties',
-        icon: 'ak:settings-horizontal',
+        icon: 'ta:outline-adjustments-horizontal',
         label: 'bricks.nav.properties',
         event: 'toggleProperties' as const,
         activeProp: 'isPropertiesActive' as const,
     },
     {
         key: 'schema',
-        icon: 're:drag-drop-line',
+        icon: 'ta:outline-drag-drop',
         label: 'bricks.nav.schema',
         event: 'toggleSchema' as const,
         activeProp: 'isSchemaActive' as const,
     },
     {
         key: 'settings',
-        icon: 'ph:gear-six',
+        icon: 'ta:outline-settings',
         label: 'bricks.nav.settings',
         event: 'openPublishSettings' as const,
         activeProp: 'isPublishSettingsActive' as const,
@@ -96,7 +96,9 @@ const showSettingsDanger = computed<boolean>(() => !props.isPublishSettingsCompl
 /**
  * Возвращает иконку в зависимости от текущей темы.
  */
-const darkModeIcon = computed<string>(() => (props.isDarkMode ? 'bs:sun-fill' : 'bs:moon-fill'));
+const darkModeIcon = computed<string>(() =>
+    props.isDarkMode ? 'ta:filled-sun' : 'ta:filled-moon'
+);
 
 /**
  * Возвращает текст тултипа для переключателя темы.
@@ -188,7 +190,7 @@ function handleToggleLocale(): void {
         <BricksTooltip right>
             <template #activator>
                 <button :class="$style.themeToggle" @click="handleOpenDocs">
-                    <BricksIcon :class="$style.icon" icon="ph:book-open-text" />
+                    <BricksIcon :class="$style.icon" icon="ta:outline-book" />
                 </button>
             </template>
 

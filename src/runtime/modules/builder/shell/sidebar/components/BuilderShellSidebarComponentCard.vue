@@ -306,7 +306,7 @@ function handleDragStart(event: DragEvent): void {
                                 </div>
                             </div>
                         </div>
-                        <BricksIcon v-else :class="$style.icon" icon="ui:component" />
+                        <BricksIcon v-else :class="$style.icon" icon="ta:outline-puzzle" />
                     </div>
 
                     <div :class="$style.info">
@@ -314,7 +314,7 @@ function handleDragStart(event: DragEvent): void {
                         <BricksIcon
                             v-if="isFavorite"
                             :class="$style.favoriteIndicator"
-                            icon="ph:star-fill"
+                            icon="ta:filled-star"
                         />
                     </div>
                 </div>
@@ -364,7 +364,7 @@ function handleDragStart(event: DragEvent): void {
                         </div>
                     </div>
                 </div>
-                <BricksIcon v-else :class="$style.icon" icon="ui:component" />
+                <BricksIcon v-else :class="$style.icon" icon="ta:outline-puzzle" />
             </div>
 
             <div :class="$style.info">

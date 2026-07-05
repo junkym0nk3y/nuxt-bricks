@@ -158,7 +158,9 @@ function handleToggleInteractivePreview(event: MouseEvent): void {
                     @click="handleToggleCollapsed"
                 >
                     <span :class="$style.componentNameText">{{ props.componentName }}</span>
-                    <BricksIcon :icon="isCollapsed ? 'ph:caret-left' : 'ph:caret-right'" />
+                    <BricksIcon
+                        :icon="isCollapsed ? 'ta:outline-chevron-left' : 'ta:outline-chevron-right'"
+                    />
                 </button>
             </template>
             <BricksTooltipHint :text="t('bricks.canvas.itemToolbar')" />
@@ -176,7 +178,7 @@ function handleToggleInteractivePreview(event: MouseEvent): void {
                                 @click="handleToggleFavorite"
                             >
                                 <BricksIcon
-                                    :icon="props.isFavorite ? 'ph:star-fill' : 'ph:star'"
+                                    :icon="props.isFavorite ? 'ta:filled-star' : 'ta:outline-star'"
                                     :class="{ [$style.starActive]: props.isFavorite }"
                                 />
                             </button>
@@ -197,7 +199,7 @@ function handleToggleInteractivePreview(event: MouseEvent): void {
                                 type="button"
                                 @click="handleToggleInteractivePreview"
                             >
-                                <BricksIcon icon="ph:cursor-click" />
+                                <BricksIcon icon="ta:outline-click" />
                             </button>
                         </template>
                         <BricksTooltipHint
@@ -215,7 +217,7 @@ function handleToggleInteractivePreview(event: MouseEvent): void {
                     <BricksTooltip top>
                         <template #activator>
                             <button :class="$style.btn" type="button" @click="handleCopy">
-                                <BricksIcon icon="ph:copy" />
+                                <BricksIcon icon="ta:outline-copy" />
                             </button>
                         </template>
                         <BricksTooltipHint :text="t('bricks.canvas.duplicate')" />
@@ -224,7 +226,7 @@ function handleToggleInteractivePreview(event: MouseEvent): void {
                     <BricksTooltip top>
                         <template #activator>
                             <button :class="$style.btn" type="button" @click="handleDelete">
-                                <BricksIcon icon="ph:trash" />
+                                <BricksIcon icon="ta:outline-trash" />
                             </button>
                         </template>
                         <BricksTooltipHint :text="t('bricks.common.delete')" />
@@ -240,7 +242,7 @@ function handleToggleInteractivePreview(event: MouseEvent): void {
                                 type="button"
                                 @click="handleToggleHidden"
                             >
-                                <BricksIcon icon="ph:power" />
+                                <BricksIcon icon="ta:outline-power" />
                             </button>
                         </template>
                         <BricksTooltipHint
@@ -258,7 +260,7 @@ function handleToggleInteractivePreview(event: MouseEvent): void {
                             type="button"
                             @click="handleToggleDropdown"
                         >
-                            <BricksIcon icon="ph:caret-down" />
+                            <BricksIcon icon="ta:outline-chevron-down" />
                         </button>
 
                         <div v-if="isDeviceDropdownOpen" :class="$style.dropdown" @click.stop>
@@ -300,7 +302,7 @@ function handleToggleInteractivePreview(event: MouseEvent): void {
                                 type="button"
                                 @click="handleMoveUp"
                             >
-                                <BricksIcon icon="ph:arrow-up-bold" />
+                                <BricksIcon icon="ta:outline-arrow-up" />
                             </button>
                         </template>
                         <BricksTooltipHint :text="t('bricks.canvas.moveUp')" />
@@ -314,7 +316,7 @@ function handleToggleInteractivePreview(event: MouseEvent): void {
                                 type="button"
                                 @click="handleMoveDown"
                             >
-                                <BricksIcon icon="ph:arrow-down-bold" />
+                                <BricksIcon icon="ta:outline-arrow-down" />
                             </button>
                         </template>
                         <BricksTooltipHint :text="t('bricks.canvas.moveDown')" />

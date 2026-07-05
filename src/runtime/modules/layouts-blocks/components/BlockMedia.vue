@@ -97,7 +97,7 @@ const hasSource = computed(() => Boolean(props.src));
         <div v-else :class="$style.placeholder">
             <BricksIcon
                 :class="$style.placeholderIcon"
-                :icon="isVideo ? 'md:sharp-video-library' : 'md:outlined-image'"
+                :icon="isVideo ? 'ta:outline-video' : 'ta:outline-photo'"
             />
             <span :class="$style.placeholderText">
                 {{ isVideo ? 'No video selected' : 'No image selected' }}

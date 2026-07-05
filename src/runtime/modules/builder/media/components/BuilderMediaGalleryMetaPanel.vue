@@ -133,7 +133,7 @@ watch(
                 </select>
             </div>
             <BricksButton size="sm" variant="danger" @click="handleRemove">
-                <BricksIcon icon="md:delete" />
+                <BricksIcon icon="ta:outline-trash" />
             </BricksButton>
         </template>
     </div>

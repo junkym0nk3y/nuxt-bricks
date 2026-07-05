@@ -231,7 +231,7 @@ onMounted(() => {
                         :aria-label="t('bricks.publish.dashboard.details.copyUrl')"
                         @click="handleCopyUrl"
                     >
-                        <BricksIcon icon="ph:copy" />
+                        <BricksIcon icon="ta:outline-copy" />
                     </button>
                 </div>
             </div>
@@ -314,7 +314,7 @@ onMounted(() => {
                             alt=""
                             :class="$style.ogImage"
                         />
-                        <BricksIcon v-else icon="ph:image" :class="$style.ogPlaceholder" />
+                        <BricksIcon v-else icon="ta:outline-photo" :class="$style.ogPlaceholder" />
                     </span>
                     <BricksButton
                         size="sm"
@@ -342,7 +342,7 @@ onMounted(() => {
             <div :class="$style.routing">
                 <button :class="$style.routingToggle" type="button" @click="handleToggleRouting">
                     <BricksIcon
-                        icon="ph:caret-right"
+                        icon="ta:outline-chevron-right"
                         :class="[$style.routingCaret, isRoutingOpen && $style.routingCaretOpen]"
                     />
                     {{ t('bricks.publish.dashboard.details.routing') }}
@@ -429,7 +429,7 @@ onMounted(() => {
                     :aria-label="t('bricks.publish.dashboard.row.delete')"
                     @click="handleDelete"
                 >
-                    <BricksIcon icon="ph:trash" />
+                    <BricksIcon icon="ta:outline-trash" />
                 </button>
             </div>
         </div>

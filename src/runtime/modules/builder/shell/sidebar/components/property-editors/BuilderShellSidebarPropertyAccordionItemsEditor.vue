@@ -154,7 +154,7 @@ function handleMoveDown(index: number): void {
         <div :class="$style.header">
             <span :class="$style.label">{{ displayLabel }}</span>
             <BricksButton size="sm" variant="primary" @click="handleAddItem">
-                <BricksIcon icon="ph:plus" />
+                <BricksIcon icon="ta:outline-plus" />
                 {{ t('bricks.properties.add') }}
             </BricksButton>
         </div>
@@ -196,7 +196,7 @@ function handleMoveDown(index: number): void {
                                 :disabled="index === 0"
                                 @click="handleMoveUp(index)"
                             >
-                                <BricksIcon icon="md:arrow-up" />
+                                <BricksIcon icon="ta:outline-arrow-up" />
                             </BricksButton>
                             <BricksButton
                                 size="sm"
@@ -204,14 +204,14 @@ function handleMoveDown(index: number): void {
                                 :disabled="index === items.length - 1"
                                 @click="handleMoveDown(index)"
                             >
-                                <BricksIcon icon="md:arrow-down" />
+                                <BricksIcon icon="ta:outline-arrow-down" />
                             </BricksButton>
                             <BricksButton
                                 size="sm"
                                 variant="ghost"
                                 @click="handleRemoveItem(index)"
                             >
-                                <BricksIcon icon="md:delete-outline" />
+                                <BricksIcon icon="ta:outline-trash" />
                             </BricksButton>
                         </div>
                     </div>
@@ -221,7 +221,7 @@ function handleMoveDown(index: number): void {
         </div>
 
         <button v-else type="button" :class="$style.empty" @click="handleAddItem">
-            <BricksIcon :class="$style.emptyIcon" icon="ph:list-plus" />
+            <BricksIcon :class="$style.emptyIcon" icon="ta:outline-playlist-add" />
             <span>{{ t('bricks.properties.accordion.empty') }}</span>
         </button>
     </div>

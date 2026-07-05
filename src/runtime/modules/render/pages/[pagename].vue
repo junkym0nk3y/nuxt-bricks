@@ -216,11 +216,11 @@ const pageSocialImage = computed(() => page.value?.socialImage || '');
 const pageBackgroundColor = computed(() => page.value?.backgroundColor || 'var(--bricks-base-0)');
 
 const DEVICE_ICONS: Record<string, string> = {
-    desktop: 'ak:desktop-device',
-    ultra: 'ak:desktop-device',
-    laptop: 'ak:desktop-device',
-    tablet: 'ak:credit-card-alt-1',
-    mobile: 'ak:mobile-device',
+    desktop: 'ta:outline-device-desktop',
+    ultra: 'ta:outline-device-desktop',
+    laptop: 'ta:outline-device-desktop',
+    tablet: 'ta:outline-device-tablet',
+    mobile: 'ta:outline-device-mobile',
 };
 
 const { breakpoints: deviceBreakpoints } = useBricksConfig();
@@ -230,7 +230,7 @@ const sortedDeviceBreakpoints = computed(() =>
         .map(([name, minWidth]) => ({
             name,
             minWidth,
-            icon: DEVICE_ICONS[name] ?? 'ak:desktop-device',
+            icon: DEVICE_ICONS[name] ?? 'ta:outline-device-desktop',
         }))
         .sort((a, b) => b.minWidth - a.minWidth)
 );

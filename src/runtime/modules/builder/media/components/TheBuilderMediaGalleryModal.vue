@@ -273,19 +273,19 @@ watch(
                 />
 
                 <div v-else-if="hasItems && !isUploading" :class="$style.emptyState">
-                    <BricksIcon :class="$style.emptyIcon" icon="md:filter-list" />
+                    <BricksIcon :class="$style.emptyIcon" icon="ta:outline-filter" />
                     <p :class="$style.emptyText">{{ t('bricks.media.emptyFiltered') }}</p>
                 </div>
 
                 <!-- Empty State -->
                 <div v-else-if="!isUploading" :class="$style.emptyState">
-                    <BricksIcon :class="$style.emptyIcon" icon="md:outlined-image" />
+                    <BricksIcon :class="$style.emptyIcon" icon="ta:outline-photo" />
                     <p :class="$style.emptyText">{{ t('bricks.media.emptyNoUploads') }}</p>
                 </div>
 
                 <!-- Loading State -->
                 <div v-if="isUploading" :class="$style.loading">
-                    <BricksIcon :class="$style.loadingIcon" icon="ui:loading" />
+                    <BricksIcon :class="$style.loadingIcon" icon="ta:outline-loader-2" />
                     <p>{{ t('bricks.media.uploading') }}</p>
                 </div>
             </div>

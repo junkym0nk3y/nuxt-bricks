@@ -4,220 +4,170 @@ import { defineNuxtPlugin } from '#imports';
 
 // Прямые импорты каждой иконки (избегаем barrel file)
 import {
-    PhCheckCircle,
-    PhXCircle,
-    PhDownload,
-    PhUpload,
-    PhGearSix,
-    PhEye,
-    PhCode,
-    PhPlus,
-    PhMinus,
-    PhInfo,
-    PhDuotonePencil,
-    PhMagnifyingGlass,
-    PhX,
-    PhPackage,
-    PhCopy,
-    PhTrash,
-    PhPower,
-    PhBoldArrowUp,
-    PhBoldArrowDown,
-    PhBoldPlus,
-    PhBoldMinus,
-    PhCaretDown,
-    PhStar,
-    PhFillStar,
-    PhCursorClick,
-    PhCaretRight,
-    PhCaretLeft,
-    PhCircleHalfTilt,
-    PhBookOpenText,
+    // Иконки билдера (Tabler, единый стиль)
+    TaFilledMoon,
+    TaFilledStar,
+    TaFilledSun,
+    TaOutlineAdjustmentsHorizontal,
+    TaOutlineArrowBackUp,
+    TaOutlineArrowDown,
+    TaOutlineArrowForwardUp,
+    TaOutlineArrowUp,
+    TaOutlineBook,
+    TaOutlineBrandFigma,
+    TaOutlineBrowserShare,
+    TaOutlineChevronDown,
+    TaOutlineChevronLeft,
+    TaOutlineChevronRight,
+    TaOutlineChevronUp,
+    TaOutlineCircleCheck,
+    TaOutlineCircleX,
+    TaOutlineClick,
+    TaOutlineCloudUpload,
+    TaOutlineCopy,
+    TaOutlineDeviceDesktop,
+    TaOutlineDeviceFloppy,
+    TaOutlineDeviceMobile,
+    TaOutlineDeviceTablet,
+    TaOutlineDownload,
+    TaOutlineDragDrop,
+    TaOutlineEye,
+    TaOutlineFilePencil,
+    TaOutlineFiles,
+    TaOutlineFilter,
+    TaOutlineFolderOpen,
+    TaOutlineGrid4X4,
+    TaOutlineInfoCircle,
+    TaOutlineLayoutGridAdd,
+    TaOutlineLetterCase,
+    TaOutlineLibraryPhoto,
+    TaOutlineLoader2,
+    TaOutlineMinus,
+    TaOutlinePackage,
+    TaOutlinePencil,
+    TaOutlinePhotoPlus,
+    TaOutlinePhotoVideo,
+    TaOutlinePlaylistAdd,
+    TaOutlinePlus,
+    TaOutlinePower,
+    TaOutlinePuzzle,
+    TaOutlineSearch,
+    TaOutlineSettings,
+    TaOutlineStar,
+    TaOutlineTrash,
+    TaOutlineUpload,
+    TaOutlineVideo,
+    TaOutlineX,
+    TaOutlineZoomIn,
+    TaOutlineZoomOut,
+    // Иконки текстового редактора (уже Tabler)
+    TaOutlineAlignCenter,
+    TaOutlineAlignJustified,
+    TaOutlineAlignLeft,
+    TaOutlineAlignRight,
+    TaOutlineLetterSpacing,
+    TaOutlineLineHeight,
+    TaOutlineList,
+    TaOutlineListNumbers,
+    TaOutlinePhoto,
+    TaOutlineSeparator,
+    TaOutlineTextSize,
+    TaOutlineTypography,
+} from '@kalimahapps/vue-icons/ta';
+// Иконки текстового редактора вне Tabler (кандидаты на второй этап миграции)
+import {
     PhArrowsOut,
-    PhImage,
+    PhCircleHalfTilt,
+    PhCode,
+    PhEye,
     PhLink,
     PhLinkBreak,
+    PhX,
 } from '@kalimahapps/vue-icons/ph';
+import { BsTextIndentLeft, BsTextIndentRight } from '@kalimahapps/vue-icons/bs';
 import {
-    MdClose,
-    MdCloudUpload,
-    MdFilterList,
-    MdOutlinedImage,
-    MdDelete,
-    MdSharpVideoLibrary,
-    MdOutlinedPreview,
-    MdFolderOpen,
-    MdArrowUpward,
-    MdArrowDownward,
-    MdDeleteOutline,
-    MdTextFields,
-    MdOutlinedGrid3X3,
-    MdOutlinedAddPhotoAlternate,
-    MdOutlinedCollections,
     MdVerticalAlignBottom,
     MdVerticalAlignCenter,
     MdVerticalAlignTop,
 } from '@kalimahapps/vue-icons/md';
-import { ClNoteEdit, ClArrowUndoDownLeft, ClArrowUndoDownRight } from '@kalimahapps/vue-icons/cl';
-import { UiLoading, UiComponent } from '@kalimahapps/vue-icons/ui';
-import {
-    AnOutlinedZoomOut,
-    AnOutlinedZoomIn,
-    AnOutlinedAppstoreAdd,
-} from '@kalimahapps/vue-icons/an';
-import {
-    AkMobileDevice,
-    AkCreditCardAlt1,
-    AkDesktopDevice,
-    AkSettingsHorizontal,
-    AkFigmaFill,
-} from '@kalimahapps/vue-icons/ak';
-import { FaEye, FaRegEye } from '@kalimahapps/vue-icons/fa';
-import { CaDocumentMultiple02 } from '@kalimahapps/vue-icons/ca';
-import { CdFileMedia } from '@kalimahapps/vue-icons/cd';
-import { ThSave } from '@kalimahapps/vue-icons/th';
-import { TiOutlineDelete } from '@kalimahapps/vue-icons/ti';
-import {
-    BsTextIndentLeft,
-    BsTextIndentRight,
-    BsMoonFill,
-    BsSunFill,
-} from '@kalimahapps/vue-icons/bs';
-import { ReDragDropLine } from '@kalimahapps/vue-icons/re';
-import {
-    TaOutlineTextSize,
-    TaOutlineTypography,
-    TaOutlineLineHeight,
-    TaOutlineLetterSpacing,
-    TaOutlineAlignLeft,
-    TaOutlineAlignCenter,
-    TaOutlineAlignRight,
-    TaOutlineAlignJustified,
-    TaOutlineList,
-    TaOutlineListNumbers,
-    TaOutlineSeparator,
-    TaOutlinePhoto,
-} from '@kalimahapps/vue-icons/ta';
 import { LaTextWidthSolid } from '@kalimahapps/vue-icons/la';
 
 // Map string names to component objects
 const SYSTEM_ICONS: Record<string, Component> = {
-    // Toast
-    'ph:check-circle': PhCheckCircle,
-    'ph:x-circle': PhXCircle,
-    'gl:close': MdClose,
-
-    // TheBuilderPublishCreatePageModal
-    'cl:note-edit': ClNoteEdit,
-
-    // MediaGallery
-    'md:cloud-upload': MdCloudUpload,
-    'md:filter-list': MdFilterList,
-    'md:outlined-image': MdOutlinedImage,
-    'ui:loading': UiLoading,
-    'md:delete': MdDelete,
+    // Viewport'ы канваса
+    'ta:outline-device-desktop': TaOutlineDeviceDesktop,
+    'ta:outline-device-tablet': TaOutlineDeviceTablet,
+    'ta:outline-device-mobile': TaOutlineDeviceMobile,
+    'ta:outline-brand-figma': TaOutlineBrandFigma,
 
     // Canvas Toolbar
-    'an:outlined-zoom-out': AnOutlinedZoomOut,
-    'an:outlined-zoom-in': AnOutlinedZoomIn,
-    'ak:mobile-device': AkMobileDevice,
-    'ak:credit-card-alt-1': AkCreditCardAlt1,
-    'ak:desktop-device': AkDesktopDevice,
-    'ak:figma-fill': AkFigmaFill,
-
-    // Media / Placeholder
-    'md:sharp-video-library': MdSharpVideoLibrary,
+    'ta:outline-zoom-in': TaOutlineZoomIn,
+    'ta:outline-zoom-out': TaOutlineZoomOut,
+    'ta:outline-grid-4x4': TaOutlineGrid4X4,
 
     // Builder Toolbar
-    'md:outlined-grid-3x3': MdOutlinedGrid3X3,
-    'an:outlined-appstore-add': AnOutlinedAppstoreAdd,
-    'ak:settings-horizontal': AkSettingsHorizontal,
-    'ph:gear-six': PhGearSix,
-    'fa:eye': FaEye,
-    'fa:reg-eye': FaRegEye,
-    'cl:arrow-undo-down-left': ClArrowUndoDownLeft,
-    'cl:arrow-undo-down-right': ClArrowUndoDownRight,
-    'ca:document-multiple-02': CaDocumentMultiple02,
-    'cd:file-media': CdFileMedia,
-    'md:outlined-preview': MdOutlinedPreview,
-    'th:save': ThSave,
+    'ta:outline-layout-grid-add': TaOutlineLayoutGridAdd,
+    'ta:outline-adjustments-horizontal': TaOutlineAdjustmentsHorizontal,
+    'ta:outline-settings': TaOutlineSettings,
+    'ta:outline-eye': TaOutlineEye,
+    'ta:outline-arrow-back-up': TaOutlineArrowBackUp,
+    'ta:outline-arrow-forward-up': TaOutlineArrowForwardUp,
+    'ta:outline-files': TaOutlineFiles,
+    'ta:outline-photo-video': TaOutlinePhotoVideo,
+    'ta:outline-browser-share': TaOutlineBrowserShare,
+    'ta:outline-device-floppy': TaOutlineDeviceFloppy,
+    'ta:outline-book': TaOutlineBook,
 
-    // Sidebar
-    'ti:outline-delete': TiOutlineDelete,
-    'ui:component': UiComponent,
+    // Toast
+    'ta:outline-circle-check': TaOutlineCircleCheck,
+    'ta:outline-circle-x': TaOutlineCircleX,
 
-    // MediaPicker
-    'md:folder-open': MdFolderOpen,
+    // Общие действия
+    'ta:outline-x': TaOutlineX,
+    'ta:outline-plus': TaOutlinePlus,
+    'ta:outline-minus': TaOutlineMinus,
+    'ta:outline-trash': TaOutlineTrash,
+    'ta:outline-copy': TaOutlineCopy,
+    'ta:outline-pencil': TaOutlinePencil,
+    'ta:outline-power': TaOutlinePower,
+    'ta:outline-search': TaOutlineSearch,
+    'ta:outline-arrow-up': TaOutlineArrowUp,
+    'ta:outline-arrow-down': TaOutlineArrowDown,
+    'ta:outline-chevron-up': TaOutlineChevronUp,
+    'ta:outline-chevron-down': TaOutlineChevronDown,
+    'ta:outline-chevron-left': TaOutlineChevronLeft,
+    'ta:outline-chevron-right': TaOutlineChevronRight,
+    'ta:outline-star': TaOutlineStar,
+    'ta:filled-star': TaFilledStar,
+    'ta:outline-click': TaOutlineClick,
+    'ta:outline-info-circle': TaOutlineInfoCircle,
+    'ta:outline-loader-2': TaOutlineLoader2,
 
-    // InlineContentEditor
-    'md:arrow-up': MdArrowUpward,
-    'md:arrow-down': MdArrowDownward,
-    'md:delete-outline': MdDeleteOutline,
-    'md:folder-edit': MdFolderOpen,
-    'md:text-box-outline': MdTextFields,
-    'ph:pencil': PhDuotonePencil,
+    // Sidebar / Library
+    'ta:outline-package': TaOutlinePackage,
+    'ta:outline-puzzle': TaOutlinePuzzle,
+    'ta:outline-drag-drop': TaOutlineDragDrop,
+    'ta:outline-letter-case': TaOutlineLetterCase,
+    'ta:outline-playlist-add': TaOutlinePlaylistAdd,
 
-    // TextArea / Input
-    'ph:info': PhInfo,
-    'ph:eye': PhEye,
-    'ph:code': PhCode,
-    'ph:plus': PhPlus,
-    'ph:minus': PhMinus,
+    // MediaGallery / MediaPicker
+    'ta:outline-cloud-upload': TaOutlineCloudUpload,
+    'ta:outline-filter': TaOutlineFilter,
+    'ta:outline-folder-open': TaOutlineFolderOpen,
+    'ta:outline-video': TaOutlineVideo,
+    'ta:outline-photo-plus': TaOutlinePhotoPlus,
+    'ta:outline-library-photo': TaOutlineLibraryPhoto,
 
-    // Sidebar / Search
-    'ph:magnifying-glass': PhMagnifyingGlass,
-    'ph:x': PhX,
-    'ph:package': PhPackage,
-    'md:close': MdClose,
-
-    // ImageGalleryEditor
-    'md:image-plus': MdOutlinedAddPhotoAlternate,
-    'md:image-multiple': MdOutlinedCollections,
-
-    // Empty State
-    're:drag-drop-line': ReDragDropLine,
-
-    // Dark Mode Toggle
-    'bs:moon-fill': BsMoonFill,
-    'bs:sun-fill': BsSunFill,
-    'ph:circle-half-tilt': PhCircleHalfTilt,
+    // Publish
+    'ta:outline-file-pencil': TaOutlineFilePencil,
 
     // Export / Import
-    'ph:download': PhDownload,
-    'ph:upload': PhUpload,
+    'ta:outline-download': TaOutlineDownload,
+    'ta:outline-upload': TaOutlineUpload,
 
-    // Canvas Item Toolbar
-    'ph:copy': PhCopy,
-    'ph:trash': PhTrash,
-    'ph:power': PhPower,
-    'ph:arrow-up-bold': PhBoldArrowUp,
-    'ph:arrow-down-bold': PhBoldArrowDown,
-    'ph:plus-bold': PhBoldPlus,
-    'ph:minus-bold': PhBoldMinus,
-    'ph:caret-down': PhCaretDown,
-    'ph:star': PhStar,
-    'ph:star-fill': PhFillStar,
-    'ph:cursor-click': PhCursorClick,
-    'ph:caret-right': PhCaretRight,
-    'ph:caret-left': PhCaretLeft,
-
-    // Documentation
-    'ph:book-open-text': PhBookOpenText,
-
-    // Image (inline editing)
-    'ph:image': PhImage,
-    'bs:text-indent-left': BsTextIndentLeft,
-    'bs:text-indent-right': BsTextIndentRight,
-    'md:vertical-align-bottom': MdVerticalAlignBottom,
-    'md:vertical-align-center': MdVerticalAlignCenter,
-    'md:vertical-align-top': MdVerticalAlignTop,
-
-    // Image size panel (inline editing)
-    'ph:link': PhLink,
-    'ph:link-break': PhLinkBreak,
-
-    // Expand
-    'ph:arrows-out': PhArrowsOut,
+    // Тема
+    'ta:filled-moon': TaFilledMoon,
+    'ta:filled-sun': TaFilledSun,
 
     // Text Editor Toolbar
     'ta:outline-text-size': TaOutlineTextSize,
@@ -233,6 +183,20 @@ const SYSTEM_ICONS: Record<string, Component> = {
     'ta:outline-separator': TaOutlineSeparator,
     'ta:outline-photo': TaOutlinePhoto,
     'la:text-width-solid': LaTextWidthSolid,
+    'ph:circle-half-tilt': PhCircleHalfTilt,
+    'ph:code': PhCode,
+    'ph:eye': PhEye,
+    'ph:arrows-out': PhArrowsOut,
+    'ph:x': PhX,
+    'bs:text-indent-left': BsTextIndentLeft,
+    'bs:text-indent-right': BsTextIndentRight,
+    'md:vertical-align-top': MdVerticalAlignTop,
+    'md:vertical-align-center': MdVerticalAlignCenter,
+    'md:vertical-align-bottom': MdVerticalAlignBottom,
+
+    // Image size panel (inline editing)
+    'ph:link': PhLink,
+    'ph:link-break': PhLinkBreak,
 };
 
 export default defineNuxtPlugin((nuxtApp) => {

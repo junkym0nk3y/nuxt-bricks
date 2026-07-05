@@ -58,6 +58,7 @@ export interface IBuilderSessionOptions {
 export interface IBuilderDraftPersistenceOptions {
     routePagename: ComputedRef<string>;
     isSessionLoading: Ref<boolean>;
+    isRestoreDraftModalOpen: Ref<boolean>;
     savedSnapshot: Ref<IBuilderDraftSnapshot | null>;
     buildCurrentSnapshot: () => IBuilderDraftSnapshot;
 }

@@ -92,7 +92,7 @@ defineExpose({
                 <BricksTooltip v-if="selectedComponentDescription" bottom>
                     <template #activator>
                         <div :class="$style.descriptionIcon">
-                            <BricksIcon icon="ph:info" />
+                            <BricksIcon icon="ta:outline-info-circle" />
                         </div>
                     </template>
 
@@ -178,7 +178,7 @@ defineExpose({
 
             <div :class="$style.actions">
                 <BricksButton variant="danger" size="md" block @click="handleDelete">
-                    <BricksIcon :class="$style.buttonIcon" icon="ti:outline-delete" />
+                    <BricksIcon :class="$style.buttonIcon" icon="ta:outline-circle-x" />
                     <span>{{ t('bricks.common.delete') }}</span>
                 </BricksButton>
             </div>

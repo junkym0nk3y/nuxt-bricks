@@ -205,7 +205,7 @@ async function handleSelectComponent(id: string): Promise<void> {
             </div>
 
             <div v-else :class="$style.empty">
-                <BricksIcon icon="re:drag-drop-line" :class="$style.emptyIcon" />
+                <BricksIcon icon="ta:outline-drag-drop" :class="$style.emptyIcon" />
                 <p>{{ t('bricks.schema.empty') }}</p>
                 <p :class="$style.emptyHint">{{ t('bricks.schema.emptyHint') }}</p>
             </div>

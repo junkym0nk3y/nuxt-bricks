@@ -20,7 +20,13 @@ import { usePublishStore } from '../../publish/stores/publish';
  * версии нет — черновик удаляется. Таймер чистится при unmount.
  */
 export function useBuilderDraftPersistence(options: IBuilderDraftPersistenceOptions): void {
-    const { routePagename, isSessionLoading, savedSnapshot, buildCurrentSnapshot } = options;
+    const {
+        routePagename,
+        isSessionLoading,
+        isRestoreDraftModalOpen,
+        savedSnapshot,
+        buildCurrentSnapshot,
+    } = options;
 
     const historyStore = useHistoryStore();
     const publishStore = usePublishStore();
@@ -44,6 +50,12 @@ export function useBuilderDraftPersistence(options: IBuilderDraftPersistenceOpti
      */
     function persistDraftNow(): void {
         if (typeof window === 'undefined') {
+            return;
+        }
+
+        // Пока пользователь не ответил на модалку восстановления, на канвасе лежит
+        // сохранённая версия страницы — сравнение с savedSnapshot удалило бы черновик.
+        if (isSessionLoading.value || isRestoreDraftModalOpen.value) {
             return;
         }
 
@@ -77,7 +89,11 @@ export function useBuilderDraftPersistence(options: IBuilderDraftPersistenceOpti
      * Планирует сохранение черновика (debounce).
      */
     function scheduleDraftPersist(): void {
-        if (typeof window === 'undefined' || isSessionLoading.value) {
+        if (
+            typeof window === 'undefined' ||
+            isSessionLoading.value ||
+            isRestoreDraftModalOpen.value
+        ) {
             return;
         }
 

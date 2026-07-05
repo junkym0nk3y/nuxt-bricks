@@ -105,7 +105,7 @@ function handleToggleLocale(): void {
 
             <div :class="$style.headerRight">
                 <div :class="$style.search">
-                    <BricksIcon icon="ph:magnifying-glass" :class="$style.searchIcon" />
+                    <BricksIcon icon="ta:outline-search" :class="$style.searchIcon" />
                     <input
                         :value="props.searchQuery"
                         :class="$style.searchInput"
@@ -149,7 +149,7 @@ function handleToggleLocale(): void {
 
                 <div v-else :class="$style.templatesEmpty">
                     <div :class="$style.emptyIconCircle">
-                        <BricksIcon icon="ph:package" :class="$style.emptyIcon" />
+                        <BricksIcon icon="ta:outline-package" :class="$style.emptyIcon" />
                     </div>
                     <h2 :class="$style.emptyTitle">
                         {{ t('bricks.publish.dashboard.templates.emptyTitle') }}

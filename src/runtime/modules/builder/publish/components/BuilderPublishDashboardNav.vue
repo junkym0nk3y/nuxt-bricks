@@ -32,10 +32,14 @@ interface INavSection {
 const NAV_SECTIONS: INavSection[] = [
     {
         key: 'pages',
-        icon: 'ca:document-multiple-02',
+        icon: 'ta:outline-files',
         labelKey: 'bricks.publish.dashboard.nav.pages',
     },
-    { key: 'templates', icon: 'ph:package', labelKey: 'bricks.publish.dashboard.nav.templates' },
+    {
+        key: 'templates',
+        icon: 'ta:outline-package',
+        labelKey: 'bricks.publish.dashboard.nav.templates',
+    },
 ];
 // #endregion
 
@@ -45,7 +49,9 @@ const sectionCounters = computed<Record<TPublishDashboardSection, number>>(() =>
     templates: 0,
 }));
 
-const darkModeIcon = computed<string>(() => (props.isDarkMode ? 'bs:sun-fill' : 'bs:moon-fill'));
+const darkModeIcon = computed<string>(() =>
+    props.isDarkMode ? 'ta:filled-sun' : 'ta:filled-moon'
+);
 
 const darkModeLabel = computed<string>(() =>
     props.isDarkMode ? t('bricks.nav.themeLight') : t('bricks.nav.themeDark')
@@ -108,14 +114,14 @@ function handleToggleLocale(): void {
             </button>
 
             <button type="button" :class="$style.item" @click="handleOpenMedia">
-                <BricksIcon icon="cd:file-media" :class="$style.itemIcon" />
+                <BricksIcon icon="ta:outline-photo-video" :class="$style.itemIcon" />
                 <span :class="$style.itemLabel">{{ t('bricks.publish.dashboard.nav.media') }}</span>
             </button>
         </div>
 
         <div :class="$style.footer">
             <button type="button" :class="$style.item" @click="handleOpenDocs">
-                <BricksIcon icon="ph:book-open-text" :class="$style.itemIcon" />
+                <BricksIcon icon="ta:outline-book" :class="$style.itemIcon" />
                 <span :class="$style.itemLabel">{{ t('bricks.nav.docs') }}</span>
             </button>
 

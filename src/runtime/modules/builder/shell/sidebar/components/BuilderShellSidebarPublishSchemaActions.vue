@@ -52,7 +52,7 @@ function handleImportSchema(schema: IBricksSchema): void {
                 :disabled="props.isSubmitting"
                 @click="handleExportSchema"
             >
-                <BricksIcon icon="ph:download" />
+                <BricksIcon icon="ta:outline-download" />
                 {{ t('bricks.publish.exportJson') }}
             </BricksButton>
             <BricksButton
@@ -61,7 +61,7 @@ function handleImportSchema(schema: IBricksSchema): void {
                 :disabled="props.isSubmitting"
                 @click="handleImportClick"
             >
-                <BricksIcon icon="ph:upload" />
+                <BricksIcon icon="ta:outline-upload" />
                 {{ t('bricks.publish.importJson') }}
             </BricksButton>
         </div>

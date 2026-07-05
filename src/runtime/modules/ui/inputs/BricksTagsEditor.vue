@@ -120,7 +120,7 @@ function focusInput(): void {
                     :disabled="props.disabled"
                     @click.stop="removeTag(index)"
                 >
-                    <BricksIcon icon="md:close" />
+                    <BricksIcon icon="ta:outline-x" />
                 </button>
             </span>
 
@@ -144,7 +144,7 @@ function focusInput(): void {
             :disabled="props.disabled"
             @click.stop="addTag"
         >
-            <BricksIcon icon="ph:plus" />
+            <BricksIcon icon="ta:outline-plus" />
         </BricksButton>
     </div>
 </template>

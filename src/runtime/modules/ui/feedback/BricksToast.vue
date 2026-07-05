@@ -83,10 +83,10 @@ function onOpenChange(open: boolean): void {
                 <BricksIcon
                     v-if="props.variant === 'success'"
                     :class="$style.icon"
-                    icon="ph:check-circle"
+                    icon="ta:outline-circle-check"
                 />
 
-                <BricksIcon v-else :class="$style.icon" icon="ph:x-circle" />
+                <BricksIcon v-else :class="$style.icon" icon="ta:outline-circle-x" />
             </div>
 
             <ToastTitle :class="$style.message">
@@ -94,7 +94,7 @@ function onOpenChange(open: boolean): void {
             </ToastTitle>
 
             <ToastClose :class="$style.closeButton" aria-label="Close">
-                <BricksIcon icon="gl:close" />
+                <BricksIcon icon="ta:outline-x" />
             </ToastClose>
         </ToastRoot>
 

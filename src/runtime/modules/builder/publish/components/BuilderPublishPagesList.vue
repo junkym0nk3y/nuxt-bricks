@@ -115,7 +115,7 @@ function handleDelete(page: IPublishedPage): void {
 
         <div v-else-if="props.pages.length === 0 && !props.hasAnyPages" :class="$style.empty">
             <div :class="$style.emptyIconCircle">
-                <BricksIcon icon="ca:document-multiple-02" :class="$style.emptyIcon" />
+                <BricksIcon icon="ta:outline-files" :class="$style.emptyIcon" />
             </div>
             <h2 :class="$style.emptyTitle">{{ t('bricks.publish.dashboard.empty.title') }}</h2>
             <p :class="$style.emptyDescription">
@@ -128,7 +128,7 @@ function handleDelete(page: IPublishedPage): void {
 
         <div v-else-if="props.pages.length === 0" :class="$style.empty">
             <div :class="$style.emptyIconCircle">
-                <BricksIcon icon="ph:magnifying-glass" :class="$style.emptyIcon" />
+                <BricksIcon icon="ta:outline-search" :class="$style.emptyIcon" />
             </div>
             <h2 :class="$style.emptyTitle">
                 {{ t('bricks.publish.dashboard.empty.noResultsTitle') }}

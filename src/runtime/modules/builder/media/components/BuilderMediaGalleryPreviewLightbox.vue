@@ -31,7 +31,7 @@ function handleClose(): void {
             @click.self="handleClose"
         >
             <button type="button" :class="$style.previewClose" @click="handleClose">
-                <BricksIcon icon="gl:close" />
+                <BricksIcon icon="ta:outline-x" />
             </button>
             <video
                 v-if="props.item.mimeType.startsWith('video/')"

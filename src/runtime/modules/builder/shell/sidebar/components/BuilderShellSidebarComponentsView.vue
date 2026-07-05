@@ -130,7 +130,7 @@ function resolveCategoryLabel(category: string): string {
         <div :class="$style.search">
             <div :class="$style.searchRow">
                 <div :class="$style.searchInner">
-                    <BricksIcon :class="$style.searchIcon" icon="ph:magnifying-glass" />
+                    <BricksIcon :class="$style.searchIcon" icon="ta:outline-search" />
                     <input
                         v-model="searchQuery"
                         :class="$style.searchInput"
@@ -155,7 +155,7 @@ function resolveCategoryLabel(category: string): string {
                     type="button"
                     @click="showFavoritesOnly = !showFavoritesOnly"
                 >
-                    <BricksIcon :icon="showFavoritesOnly ? 'ph:star-fill' : 'ph:star'" />
+                    <BricksIcon :icon="showFavoritesOnly ? 'ta:filled-star' : 'ta:outline-star'" />
                 </button>
             </div>
         </div>
@@ -189,7 +189,7 @@ function resolveCategoryLabel(category: string): string {
 
             <div v-if="hasAvailableComponents && !hasFilteredResults" :class="$style.empty">
                 <span :class="$style.emptyIcon">
-                    <BricksIcon icon="ph:magnifying-glass" />
+                    <BricksIcon icon="ta:outline-search" />
                 </span>
                 <p>{{ t('bricks.common.notFound') }}</p>
                 <p :class="$style.emptyHint">{{ t('bricks.library.emptyHint') }}</p>
@@ -197,7 +197,7 @@ function resolveCategoryLabel(category: string): string {
 
             <div v-if="!hasAvailableComponents" :class="$style.empty">
                 <span :class="$style.emptyIcon">
-                    <BricksIcon icon="ph:package" />
+                    <BricksIcon icon="ta:outline-package" />
                 </span>
                 <p>No components available</p>
                 <p :class="$style.emptyHint">

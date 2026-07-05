@@ -126,6 +126,7 @@ const {
 useBuilderDraftPersistence({
     routePagename,
     isSessionLoading,
+    isRestoreDraftModalOpen,
     savedSnapshot,
     buildCurrentSnapshot,
 });

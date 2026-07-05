@@ -125,7 +125,7 @@ function resolveDimension(value: string | number | undefined): string {
 
         <!-- Placeholder -->
         <div v-else :class="$style.placeholder">
-            <BricksIcon :class="$style.placeholderIcon" icon="md:outlined-image" />
+            <BricksIcon :class="$style.placeholderIcon" icon="ta:outline-photo" />
             <span :class="$style.placeholderText">Выберите SVG из медиа</span>
         </div>
     </div>

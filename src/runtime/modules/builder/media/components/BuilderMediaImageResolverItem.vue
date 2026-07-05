@@ -82,7 +82,7 @@ function handleImgError(): void {
                 @error="handleImgError"
             />
             <div v-else :class="$style.previewFallback">
-                <BricksIcon icon="md:outlined-image" />
+                <BricksIcon icon="ta:outline-photo" />
             </div>
         </div>
 

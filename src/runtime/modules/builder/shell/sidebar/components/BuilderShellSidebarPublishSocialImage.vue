@@ -56,7 +56,7 @@ function handleClear(): void {
                 :disabled="props.isSubmitting"
                 @click="handleOpenMediaGallery"
             >
-                <BricksIcon icon="md:outlined-image" />
+                <BricksIcon icon="ta:outline-photo" />
                 {{ t('bricks.publish.socialImageSelect') }}
             </BricksButton>
 

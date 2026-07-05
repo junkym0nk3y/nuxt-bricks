@@ -118,7 +118,7 @@ function handleMoveDown(index: number): void {
                         :title="t('bricks.publish.navigation.moveUp')"
                         @click="handleMoveUp(index)"
                     >
-                        <BricksIcon icon="ph:caret-up" />
+                        <BricksIcon icon="ta:outline-chevron-up" />
                     </button>
                     <button
                         type="button"
@@ -127,7 +127,7 @@ function handleMoveDown(index: number): void {
                         :title="t('bricks.publish.navigation.moveDown')"
                         @click="handleMoveDown(index)"
                     >
-                        <BricksIcon icon="ph:caret-down" />
+                        <BricksIcon icon="ta:outline-chevron-down" />
                     </button>
                     <button
                         type="button"
@@ -135,14 +135,14 @@ function handleMoveDown(index: number): void {
                         :title="t('bricks.common.delete')"
                         @click="handleRemoveItem(item.id)"
                     >
-                        <BricksIcon icon="ph:trash" />
+                        <BricksIcon icon="ta:outline-trash" />
                     </button>
                 </div>
             </div>
         </div>
 
         <BricksButton size="md" variant="secondary" @click="handleAddItem">
-            <BricksIcon icon="ph:plus" />
+            <BricksIcon icon="ta:outline-plus" />
             {{ t('bricks.publish.navigation.addItem') }}
         </BricksButton>
     </div>

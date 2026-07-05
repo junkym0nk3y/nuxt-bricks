@@ -173,26 +173,26 @@ function handleDrop(event: DragEvent): void {
                 <span :class="$style.name">
                     <BricksIcon
                         v-if="isLayout"
-                        icon="an:outlined-appstore-add"
+                        icon="ta:outline-layout-grid-add"
                         :class="$style.typeIcon"
                     />
-                    <BricksIcon v-else icon="ui:component" :class="$style.typeIcon" />
+                    <BricksIcon v-else icon="ta:outline-puzzle" :class="$style.typeIcon" />
                     {{ displayName }}
                 </span>
 
                 <span :class="$style.icons">
-                    <BricksIcon v-if="isHidden" icon="fa:reg-eye" :class="$style.hiddenIcon" />
+                    <BricksIcon v-if="isHidden" icon="ta:outline-eye" :class="$style.hiddenIcon" />
 
                     <BricksIcon
-                        icon="ak:mobile-device"
+                        icon="ta:outline-device-mobile"
                         :class="[$style.deviceIcon, { [$style._inactive]: !isMobileVisible }]"
                     />
                     <BricksIcon
-                        icon="ak:credit-card-alt-1"
+                        icon="ta:outline-device-tablet"
                         :class="[$style.deviceIcon, { [$style._inactive]: !isTabletVisible }]"
                     />
                     <BricksIcon
-                        icon="ak:desktop-device"
+                        icon="ta:outline-device-desktop"
                         :class="[$style.deviceIcon, { [$style._inactive]: !isDesktopVisible }]"
                     />
                 </span>
