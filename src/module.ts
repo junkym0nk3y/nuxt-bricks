@@ -78,7 +78,6 @@ const VITE_OPTIMIZE_INCLUDE = [
     '@tiptap/vue-3',
     '@tiptap/starter-kit',
     '@tiptap/extension-image',
-    '@tiptap/extension-table',
     '@tiptap/extension-underline',
     '@tiptap/extension-text-style',
     '@tiptap/extension-color',

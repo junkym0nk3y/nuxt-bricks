@@ -325,7 +325,6 @@
             "value": "Value",
             "auto": "Auto",
             "normal": "Normal",
-            "pickSize": "Pick a size",
             "fontSizePlaceholder": "e.g. 2.2 (rem)",
             "fontWeightPlaceholder": "e.g. 450",
             "lineHeightPlaceholder": "e.g. 1.35, 120% or 2rem",
@@ -346,7 +345,6 @@
                 "alignJustify": "Justify",
                 "bulletList": "Bullet list",
                 "numberedList": "Numbered list",
-                "table": "Table",
                 "insertImage": "Insert image",
                 "darkBackground": "Dark background",
                 "divider": "Divider"

@@ -284,11 +284,7 @@ onBeforeUnmount(() => {
                         :groups="toolbarGroups"
                         use-tooltips
                         show-image-insert
-                        show-background-toggle
-                        :is-dark-background="isDarkEditorBackground"
-                        :disabled-background-toggle="props.disabled || isCodeView"
                         @request-image="handleRequestImage"
-                        @toggle-background="toggleEditorBackground"
                     />
                 </div>
             </transition>
@@ -322,6 +318,23 @@ onBeforeUnmount(() => {
                             </button>
                         </template>
                         <BricksTooltipHint :text="t('bricks.textEditor.expand')" />
+                    </BricksTooltip>
+
+                    <BricksTooltip top :class="$style.backgroundToggleWrapper">
+                        <template #activator>
+                            <button
+                                type="button"
+                                :class="[
+                                    $style.backgroundToggleButton,
+                                    { [$style._active]: isDarkEditorBackground },
+                                ]"
+                                :disabled="props.disabled"
+                                @click="toggleEditorBackground"
+                            >
+                                <BricksIcon icon="ph:circle-half-tilt" />
+                            </button>
+                        </template>
+                        <BricksTooltipHint :text="t('bricks.textEditor.toolbar.darkBackground')" />
                     </BricksTooltip>
                 </div>
                 <div v-else :class="editorWrapperClasses">
@@ -394,7 +407,7 @@ onBeforeUnmount(() => {
 }
 
 .label {
-    font-size: 1.3rem;
+    font-size: 1.4rem;
     font-weight: 600;
     color: var(--bricks-base-600);
     user-select: none;
@@ -452,6 +465,7 @@ onBeforeUnmount(() => {
     --bricks-base-300: #d1d5db;
     --bricks-base-900: #111827;
 
+    box-sizing: border-box;
     width: 100%;
     min-height: inherit;
     padding: 1.2rem;
@@ -490,9 +504,11 @@ onBeforeUnmount(() => {
 }
 
 .toolbar {
+    box-sizing: border-box;
     display: flex;
     flex-wrap: wrap;
     width: 100%;
+    min-width: 0;
     padding: 0.6rem;
     border-radius: var(--border-radius-sm);
     border: 1px solid var(--bricks-base-300);
@@ -551,6 +567,51 @@ onBeforeUnmount(() => {
     &:hover {
         border-color: var(--bricks-primary);
         color: var(--bricks-primary);
+    }
+}
+
+.backgroundToggleWrapper {
+    position: absolute;
+    right: 0.4rem;
+    bottom: 0.4rem;
+    opacity: 0;
+    transition: opacity var(--default-transition);
+
+    .editorWrapper:hover & {
+        opacity: 1;
+    }
+}
+
+.backgroundToggleButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.8rem;
+    height: 2.8rem;
+    border-radius: var(--border-radius-xs);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-base-0);
+    color: var(--bricks-base-500);
+    transition:
+        border-color var(--default-transition),
+        background var(--default-transition),
+        color var(--default-transition);
+    cursor: pointer;
+
+    svg {
+        width: 1.4rem;
+        height: 1.4rem;
+    }
+
+    &:hover {
+        border-color: var(--bricks-primary);
+        color: var(--bricks-primary);
+    }
+
+    &._active {
+        border-color: var(--bricks-primary);
+        background: var(--bricks-primary);
+        color: #fff;
     }
 }
 </style>

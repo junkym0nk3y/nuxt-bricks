@@ -336,7 +336,7 @@ watch(
                     :aria-label="t('bricks.common.increase')"
                     @click="handleStep(1)"
                 >
-                    <BricksIcon icon="ph:plus" />
+                    <BricksIcon icon="ph:plus-bold" />
                 </button>
                 <button
                     type="button"
@@ -345,7 +345,7 @@ watch(
                     :aria-label="t('bricks.common.decrease')"
                     @click="handleStep(-1)"
                 >
-                    <BricksIcon icon="ph:minus" />
+                    <BricksIcon icon="ph:minus-bold" />
                 </button>
             </div>
         </div>
@@ -414,6 +414,7 @@ watch(
     z-index: 2;
     display: flex;
     align-items: center;
+    padding: 0.8rem 1.2rem;
     border-radius: var(--border-radius-xs);
     border: 1px solid var(--bricks-base-300);
     background-color: var(--bricks-base-0);
@@ -436,13 +437,14 @@ watch(
     flex: 1;
     width: 100%;
     min-width: 0;
-    padding: 0.8rem 1.2rem;
+    padding: 0;
     border: none;
     background: transparent;
     outline: none;
     font-size: 1.4rem;
     line-height: 1.8rem;
     color: var(--bricks-base-900);
+    appearance: textfield;
 
     &:focus {
         outline: none;
@@ -450,6 +452,13 @@ watch(
 
     &::placeholder {
         color: var(--bricks-base-400);
+    }
+
+    // Нативный спиннер number-инпута заменён кастомным степпером
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button {
+        margin: 0;
+        appearance: none;
     }
 }
 
@@ -470,34 +479,33 @@ watch(
     pointer-events: auto;
 }
 
+// Видимый глиф 1.2rem (как в макете), высота 1.8rem — увеличенная зона клика
 .stepButton {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 1.8rem;
+    width: 1.2rem;
     height: 1.8rem;
-    border-radius: 0.4rem;
+    padding: 0;
     border: none;
     background-color: transparent;
     color: var(--bricks-base-500);
-    transition:
-        background-color var(--default-transition),
-        color var(--default-transition);
+    transition: color var(--default-transition);
     cursor: pointer;
 
     &:hover {
-        background-color: var(--bricks-primary-50);
         color: var(--bricks-primary);
     }
 
     svg {
-        width: 1.4rem;
-        height: 1.4rem;
+        flex-shrink: 0;
+        width: 1.2rem;
+        height: 1.2rem;
     }
 }
 
 .errorMessage {
-    margin: 0.4rem 0 0;
+    margin: 0.8rem 0 0;
     font-size: 1.2rem;
     line-height: 1.4;
     color: var(--bricks-danger-600);

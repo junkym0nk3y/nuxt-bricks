@@ -213,11 +213,7 @@ onBeforeUnmount(() => {
                         :groups="toolbarGroups"
                         use-tooltips
                         show-image-insert
-                        show-background-toggle
-                        :is-dark-background="isDarkEditorBackground"
-                        :disabled-background-toggle="props.disabled || isCodeView"
                         @request-image="handleRequestImage"
-                        @toggle-background="toggleEditorBackground"
                     />
                 </div>
             </transition>
@@ -251,6 +247,20 @@ onBeforeUnmount(() => {
                         />
                     </div>
                 </transition>
+
+                <button
+                    v-if="!isCodeView"
+                    type="button"
+                    :title="t('bricks.textEditor.toolbar.darkBackground')"
+                    :class="[
+                        $style.backgroundToggleButton,
+                        { [$style._active]: isDarkEditorBackground },
+                    ]"
+                    :disabled="props.disabled"
+                    @click="toggleEditorBackground"
+                >
+                    <BricksIcon icon="ph:circle-half-tilt" />
+                </button>
             </div>
 
             <!-- Footer -->
@@ -311,10 +321,47 @@ onBeforeUnmount(() => {
 }
 
 .body {
+    position: relative;
     overflow: hidden;
     display: flex;
     flex: 1;
     min-height: 0;
+}
+
+.backgroundToggleButton {
+    position: absolute;
+    right: 1.2rem;
+    bottom: 1.2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.8rem;
+    height: 2.8rem;
+    border-radius: var(--border-radius-xs);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-base-0);
+    color: var(--bricks-base-500);
+    transition:
+        border-color var(--default-transition),
+        background var(--default-transition),
+        color var(--default-transition);
+    cursor: pointer;
+
+    svg {
+        width: 1.4rem;
+        height: 1.4rem;
+    }
+
+    &:hover {
+        border-color: var(--bricks-primary);
+        color: var(--bricks-primary);
+    }
+
+    &._active {
+        border-color: var(--bricks-primary);
+        background: var(--bricks-primary);
+        color: #fff;
+    }
 }
 
 .editorWrapper {

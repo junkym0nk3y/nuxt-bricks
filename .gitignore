@@ -24,3 +24,5 @@ Thumbs.db
 public/bricks.json
 playground/public/bricks.json
 /.playwright-mcp
+/.claude
+/.mcp.json

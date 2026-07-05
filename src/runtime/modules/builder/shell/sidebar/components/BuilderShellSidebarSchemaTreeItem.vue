@@ -264,7 +264,7 @@ function handleDrop(event: DragEvent): void {
     align-items: center;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 1.3rem;
+    font-size: 1.4rem;
     font-weight: 500;
     color: var(--bricks-base-800);
     gap: 0.4rem;

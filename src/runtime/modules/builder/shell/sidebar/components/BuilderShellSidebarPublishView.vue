@@ -497,7 +497,7 @@ onMounted(() => {
     border-radius: var(--border-radius-sm);
     border: 1px solid var(--bricks-danger-500);
     background-color: rgb(239 68 68 / 10%);
-    font-size: 1.3rem;
+    font-size: 1.4rem;
     color: var(--bricks-danger-500);
 }
 

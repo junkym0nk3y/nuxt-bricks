@@ -117,7 +117,7 @@ body.bricks-page {
         width: 100%;
         margin: 0 0 1.6rem;
         border-collapse: collapse;
-        font-size: 1.3rem;
+        font-size: 1.4rem;
         line-height: 1.6;
     }
 
@@ -164,7 +164,7 @@ body.bricks-page {
         }
     }
 
-    // Block-контент (ul, ol, p, blockquote, table) — только внутри rich-text контейнеров.
+    // Block-контент (ul, ol, p, blockquote) — только внутри rich-text контейнеров.
     // [data-tiptap-content] — v-html в BlockText, .ProseMirror — TipTap-редактор.
     // Без этого ограничения ul/ol в вёрстке компонентов (навигация, фичи и т.д.) получают лишний padding.
     .bricks-text [data-tiptap-content],
@@ -217,25 +217,6 @@ body.bricks-page {
                 padding: 0;
                 border: none;
             }
-        }
-
-        table {
-            width: 100%;
-            margin: 1.6rem 0;
-            border-collapse: collapse;
-            border: 1px solid currentcolor;
-        }
-
-        th,
-        td {
-            padding: 0.8rem 1.2rem;
-            border: 1px solid currentcolor;
-            vertical-align: top;
-            text-align: left;
-        }
-
-        th {
-            font-weight: 600;
         }
 
         // Изображения из TipTap textarea-редактора

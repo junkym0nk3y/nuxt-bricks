@@ -10,7 +10,6 @@ import { useI18n } from 'vue-i18n';
 // Components
 import BricksTooltip from '../tooltip/BricksTooltip.vue';
 import BricksTooltipHint from '../tooltip/BricksTooltipHint.vue';
-import BricksTableGridPicker from './BricksTableGridPicker.vue';
 import BricksToolbarEditableSelect from './BricksToolbarEditableSelect.vue';
 import BricksToolbarColorPicker from './BricksToolbarColorPicker.vue';
 // #endregion
@@ -21,17 +20,11 @@ const props = withDefaults(
         groups: IToolbarGroup[];
         useTooltips?: boolean;
         compact?: boolean;
-        showBackgroundToggle?: boolean;
-        isDarkBackground?: boolean;
-        disabledBackgroundToggle?: boolean;
         showImageInsert?: boolean;
     }>(),
     {
         useTooltips: false,
         compact: false,
-        showBackgroundToggle: false,
-        isDarkBackground: false,
-        disabledBackgroundToggle: false,
         showImageInsert: false,
     }
 );
@@ -39,7 +32,6 @@ const props = withDefaults(
 
 // #region Emits
 const emit = defineEmits<{
-    toggleBackground: [];
     requestImage: [];
 }>();
 // #endregion
@@ -64,9 +56,7 @@ const TOOLBAR_TOOLTIP_KEYS: Record<string, string> = {
     'Align Justify': 'bricks.textEditor.toolbar.alignJustify',
     'Bullet List': 'bricks.textEditor.toolbar.bulletList',
     'Numbered List': 'bricks.textEditor.toolbar.numberedList',
-    Table: 'bricks.textEditor.toolbar.table',
     'Insert Image': 'bricks.textEditor.toolbar.insertImage',
-    'Dark Background': 'bricks.textEditor.toolbar.darkBackground',
     Divider: 'bricks.textEditor.toolbar.divider',
 };
 // #endregion
@@ -202,28 +192,13 @@ function getTooltipText(title: string): string {
 
                 <!-- Editable Select (with custom input) -->
                 <template v-else-if="'type' in item && item.type === 'editable-select'">
-                    <BricksTooltip
-                        v-if="props.useTooltips"
-                        bottom
-                        :class="$style.toolbarSelectWrapper"
-                    >
+                    <BricksTooltip v-if="props.useTooltips" bottom>
                         <template #activator>
                             <BricksToolbarEditableSelect :item="item" />
                         </template>
                         <BricksTooltipHint :text="getTooltipText(item.title)" />
                     </BricksTooltip>
                     <BricksToolbarEditableSelect v-else :item="item" />
-                </template>
-
-                <!-- Table Picker -->
-                <template v-else-if="'type' in item && item.type === 'table-picker'">
-                    <BricksTooltip v-if="props.useTooltips" bottom>
-                        <template #activator>
-                            <BricksTableGridPicker :item="item" />
-                        </template>
-                        <BricksTooltipHint :text="getTooltipText(item.title)" />
-                    </BricksTooltip>
-                    <BricksTableGridPicker v-else :item="item" />
                 </template>
 
                 <!-- Color Picker -->
@@ -249,7 +224,7 @@ function getTooltipText(title: string): string {
                         @mousedown.prevent
                         @click="emit('requestImage')"
                     >
-                        <BricksIcon icon="ph:image" />
+                        <BricksIcon icon="ta:outline-photo" />
                     </button>
                 </template>
                 <BricksTooltipHint :text="getTooltipText('Insert Image')" />
@@ -262,39 +237,7 @@ function getTooltipText(title: string): string {
                 @mousedown.prevent
                 @click="emit('requestImage')"
             >
-                <BricksIcon icon="ph:image" />
-            </button>
-        </div>
-
-        <!-- Background Toggle -->
-        <div v-if="props.showBackgroundToggle" :class="$style.bgToggleGroup">
-            <BricksTooltip v-if="props.useTooltips" bottom>
-                <template #activator>
-                    <button
-                        type="button"
-                        :class="[
-                            $style.toolbarButton,
-                            { [$style._active]: props.isDarkBackground },
-                        ]"
-                        :disabled="props.disabledBackgroundToggle"
-                        @mousedown.prevent
-                        @click="emit('toggleBackground')"
-                    >
-                        <BricksIcon icon="ph:circle-half-tilt" />
-                    </button>
-                </template>
-                <BricksTooltipHint :text="getTooltipText('Dark Background')" />
-            </BricksTooltip>
-            <button
-                v-else
-                type="button"
-                :title="getTooltipText('Dark Background')"
-                :class="[$style.toolbarButton, { [$style._active]: props.isDarkBackground }]"
-                :disabled="props.disabledBackgroundToggle"
-                @mousedown.prevent
-                @click="emit('toggleBackground')"
-            >
-                <BricksIcon icon="ph:circle-half-tilt" />
+                <BricksIcon icon="ta:outline-photo" />
             </button>
         </div>
     </div>
@@ -304,19 +247,19 @@ function getTooltipText(title: string): string {
 .BricksTextEditorToolbar {
     --toolbar-btn-size: 2.6rem;
     --toolbar-gap: 0.8rem;
-    --toolbar-font-size: 1.4rem;
+    --toolbar-font-size: 1.2rem;
     --toolbar-select-flex: 1 1 auto;
     --toolbar-select-min-width: 0;
     --toolbar-select-max-width: none;
 
     display: flex;
+    align-items: center;
     flex-wrap: wrap;
     gap: var(--toolbar-gap);
 
     &._compact {
         --toolbar-btn-size: 2.4rem;
         --toolbar-gap: 0.6rem;
-        --toolbar-font-size: 1.2rem;
         --toolbar-select-flex: 0 0 auto;
         --toolbar-select-min-width: auto;
         --toolbar-select-max-width: 12rem;
@@ -326,6 +269,7 @@ function getTooltipText(title: string): string {
 
         .toolbarGroup._expandable {
             flex: initial;
+            min-width: 0;
         }
     }
 }
@@ -334,7 +278,7 @@ function getTooltipText(title: string): string {
     display: flex;
     align-items: center;
     gap: 0.2rem;
-    padding-right: 0.6rem;
+    padding-right: var(--toolbar-gap);
     border-right: 1px solid var(--bricks-base-200);
 
     &:last-child {
@@ -343,8 +287,10 @@ function getTooltipText(title: string): string {
     }
 
     &._expandable {
+        /* min-width = ширина группы font-family в макете: в узком сайдбаре
+           выталкивает font-size на следующий ряд, в широкой модалке ряд один */
         flex: 1 1 auto;
-        min-width: 0;
+        min-width: 17rem;
     }
 }
 
@@ -358,7 +304,7 @@ function getTooltipText(title: string): string {
     border-radius: var(--border-radius-xs);
     border: 1px solid var(--bricks-base-200);
     background: transparent;
-    font-size: 1.2rem;
+    font-size: 1.4rem;
     font-weight: 600;
     color: var(--bricks-base-600);
     transition: all var(--default-transition);
@@ -408,7 +354,7 @@ function getTooltipText(title: string): string {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    color: var(--bricks-base-500);
+    color: var(--bricks-base-600);
 
     svg {
         width: 1.6rem;
@@ -429,6 +375,7 @@ function getTooltipText(title: string): string {
     color: var(--bricks-base-800);
     transition: border-color var(--default-transition);
     cursor: pointer;
+    appearance: none;
 
     option {
         background: var(--bricks-base-0);
@@ -443,13 +390,6 @@ function getTooltipText(title: string): string {
 }
 
 .imageInsertGroup {
-    display: flex;
-    align-items: center;
-    padding-right: 0.6rem;
-    border-right: 1px solid var(--bricks-base-200);
-}
-
-.bgToggleGroup {
     display: flex;
     align-items: center;
 }

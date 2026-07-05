@@ -204,7 +204,7 @@ function handleToggleLocale(): void {
 }
 
 .itemCounter {
-    font-size: 1.3rem;
+    font-size: 1.4rem;
     color: var(--bricks-base-400);
 }
 

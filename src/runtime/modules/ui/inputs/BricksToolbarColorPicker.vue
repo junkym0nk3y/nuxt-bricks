@@ -126,6 +126,7 @@ watch(
             <span v-if="props.item.icon" :class="$style.triggerIcon">
                 <BricksIcon :icon="props.item.icon" />
             </span>
+            <span v-else :class="$style.triggerLetter">A</span>
             <span
                 :class="$style.colorSwatch"
                 :style="{ backgroundColor: props.item.value || '#000000' }"
@@ -207,6 +208,14 @@ watch(
         width: 1.6rem;
         height: 1.6rem;
     }
+}
+
+.triggerLetter {
+    flex-shrink: 0;
+    padding-left: 0.2rem;
+    font-size: 1.4rem;
+    font-weight: 600;
+    line-height: 1;
 }
 
 .colorSwatch {

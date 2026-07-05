@@ -23,6 +23,8 @@ import {
     PhPower,
     PhBoldArrowUp,
     PhBoldArrowDown,
+    PhBoldPlus,
+    PhBoldMinus,
     PhCaretDown,
     PhStar,
     PhFillStar,
@@ -31,7 +33,6 @@ import {
     PhCaretLeft,
     PhCircleHalfTilt,
     PhBookOpenText,
-    PhTable,
     PhArrowsOut,
     PhImage,
     PhLink,
@@ -53,7 +54,6 @@ import {
     MdOutlinedGrid3X3,
     MdOutlinedAddPhotoAlternate,
     MdOutlinedCollections,
-    MdHorizontalRule,
     MdVerticalAlignBottom,
     MdVerticalAlignCenter,
     MdVerticalAlignTop,
@@ -72,25 +72,33 @@ import {
     AkSettingsHorizontal,
     AkFigmaFill,
 } from '@kalimahapps/vue-icons/ak';
-import { FaEye, FaRegEye, FaListUl, FaListOl } from '@kalimahapps/vue-icons/fa';
+import { FaEye, FaRegEye } from '@kalimahapps/vue-icons/fa';
 import { CaDocumentMultiple02 } from '@kalimahapps/vue-icons/ca';
 import { CdFileMedia } from '@kalimahapps/vue-icons/cd';
 import { ThSave } from '@kalimahapps/vue-icons/th';
 import { TiOutlineDelete } from '@kalimahapps/vue-icons/ti';
 import {
-    BsTextLeft,
-    BsTextCenter,
-    BsTextRight,
-    BsJustify,
     BsTextIndentLeft,
     BsTextIndentRight,
     BsMoonFill,
     BsSunFill,
-    BsTypeBold,
 } from '@kalimahapps/vue-icons/bs';
 import { ReDragDropLine } from '@kalimahapps/vue-icons/re';
-import { McLineHeightLine, McLetterSpacingLine, McTextColorLine } from '@kalimahapps/vue-icons/mc';
-import { TaOutlineTextSize, TaOutlineTypography } from '@kalimahapps/vue-icons/ta';
+import {
+    TaOutlineTextSize,
+    TaOutlineTypography,
+    TaOutlineLineHeight,
+    TaOutlineLetterSpacing,
+    TaOutlineAlignLeft,
+    TaOutlineAlignCenter,
+    TaOutlineAlignRight,
+    TaOutlineAlignJustified,
+    TaOutlineList,
+    TaOutlineListNumbers,
+    TaOutlineSeparator,
+    TaOutlinePhoto,
+} from '@kalimahapps/vue-icons/ta';
+import { LaTextWidthSolid } from '@kalimahapps/vue-icons/la';
 
 // Map string names to component objects
 const SYSTEM_ICONS: Record<string, Component> = {
@@ -155,12 +163,6 @@ const SYSTEM_ICONS: Record<string, Component> = {
     'ph:code': PhCode,
     'ph:plus': PhPlus,
     'ph:minus': PhMinus,
-    'bs:text-left': BsTextLeft,
-    'bs:text-center': BsTextCenter,
-    'bs:text-right': BsTextRight,
-    'bs:justify': BsJustify,
-    'fa:list-ul': FaListUl,
-    'fa:list-ol': FaListOl,
 
     // Sidebar / Search
     'ph:magnifying-glass': PhMagnifyingGlass,
@@ -190,6 +192,8 @@ const SYSTEM_ICONS: Record<string, Component> = {
     'ph:power': PhPower,
     'ph:arrow-up-bold': PhBoldArrowUp,
     'ph:arrow-down-bold': PhBoldArrowDown,
+    'ph:plus-bold': PhBoldPlus,
+    'ph:minus-bold': PhBoldMinus,
     'ph:caret-down': PhCaretDown,
     'ph:star': PhStar,
     'ph:star-fill': PhFillStar,
@@ -199,9 +203,6 @@ const SYSTEM_ICONS: Record<string, Component> = {
 
     // Documentation
     'ph:book-open-text': PhBookOpenText,
-
-    // Table
-    'ph:table': PhTable,
 
     // Image (inline editing)
     'ph:image': PhImage,
@@ -219,13 +220,19 @@ const SYSTEM_ICONS: Record<string, Component> = {
     'ph:arrows-out': PhArrowsOut,
 
     // Text Editor Toolbar
-    'mc:line-height-line': McLineHeightLine,
-    'mc:letter-spacing-line': McLetterSpacingLine,
     'ta:outline-text-size': TaOutlineTextSize,
     'ta:outline-typography': TaOutlineTypography,
-    'mc:text-color-line': McTextColorLine,
-    'bs:type-bold': BsTypeBold,
-    'md:horizontal-rule': MdHorizontalRule,
+    'ta:outline-line-height': TaOutlineLineHeight,
+    'ta:outline-letter-spacing': TaOutlineLetterSpacing,
+    'ta:outline-align-left': TaOutlineAlignLeft,
+    'ta:outline-align-center': TaOutlineAlignCenter,
+    'ta:outline-align-right': TaOutlineAlignRight,
+    'ta:outline-align-justified': TaOutlineAlignJustified,
+    'ta:outline-list': TaOutlineList,
+    'ta:outline-list-numbers': TaOutlineListNumbers,
+    'ta:outline-separator': TaOutlineSeparator,
+    'ta:outline-photo': TaOutlinePhoto,
+    'la:text-width-solid': LaTextWidthSolid,
 };
 
 export default defineNuxtPlugin((nuxtApp) => {

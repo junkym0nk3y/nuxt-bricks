@@ -35,20 +35,32 @@ const customInputRef = ref<HTMLInputElement | null>(null);
 const isOpen = ref(false);
 const customValue = ref('');
 const hasError = ref(false);
+
+/**
+ * Reka UI запрещает ComboboxItem с value="" (пустая строка = сброс выбора),
+ * поэтому пустые значения опций («Авто»/«Обычный») подменяются sentinel'ом.
+ */
+const EMPTY_OPTION_SENTINEL = '__bricks-empty__';
 // #endregion
 
 // #region Computed
 /**
  * Краткое отображение текущего значения для триггер-кнопки.
+ * Пустое значение показывает label соответствующей опции (например, «Авто»).
  */
 const displayValue = computed<string>(() => {
-    if (!props.item.value) {
+    if (props.item.hideValue) {
         return '';
     }
 
     const match = props.item.options.find((opt) => opt.value === props.item.value);
     return match ? match.label : props.item.value;
 });
+
+/**
+ * model-value для ComboboxRoot с учётом sentinel-подмены пустого значения.
+ */
+const comboboxValue = computed<string>(() => props.item.value || EMPTY_OPTION_SENTINEL);
 // #endregion
 
 // #region Methods
@@ -64,7 +76,7 @@ function onUpdateOpen(open: boolean): void {
 }
 
 /**
- * Выбирает значение из списка пресетов.
+ * Выбирает значение из списка пресетов (sentinel → пустая строка).
  *
  * @param value - Значение выбранной опции.
  */
@@ -73,7 +85,7 @@ function handleOptionSelect(value: AcceptableValue): void {
         return;
     }
 
-    props.item.onChange(value);
+    props.item.onChange(value === EMPTY_OPTION_SENTINEL ? '' : value);
     isOpen.value = false;
 }
 
@@ -177,7 +189,7 @@ async function focusCustomInput(): Promise<void> {
 <template>
     <ComboboxRoot
         :open="isOpen"
-        :model-value="props.item.value"
+        :model-value="comboboxValue"
         ignore-filter
         :class="$style.BricksToolbarEditableSelect"
         @mousedown.prevent
@@ -186,7 +198,13 @@ async function focusCustomInput(): Promise<void> {
     >
         <ComboboxAnchor as-child>
             <ComboboxTrigger
-                :class="[$style.triggerButton, { [$style._hasValue]: !!props.item.value }]"
+                :class="[
+                    $style.triggerButton,
+                    {
+                        [$style._hasValue]: !!props.item.value,
+                        [$style._iconOnly]: props.item.hideValue,
+                    },
+                ]"
                 :title="props.item.title"
                 @mousedown.prevent
             >
@@ -209,8 +227,8 @@ async function focusCustomInput(): Promise<void> {
                 <ComboboxViewport :class="$style.optionsList">
                     <ComboboxItem
                         v-for="option in props.item.options"
-                        :key="option.value"
-                        :value="option.value"
+                        :key="option.value || EMPTY_OPTION_SENTINEL"
+                        :value="option.value || EMPTY_OPTION_SENTINEL"
                         :class="[
                             $style.optionItem,
                             { [$style._selected]: option.value === props.item.value },
@@ -281,6 +299,12 @@ async function focusCustomInput(): Promise<void> {
     &._hasValue {
         color: var(--bricks-base-800);
     }
+
+    &._iconOnly {
+        justify-content: center;
+        width: 3rem;
+        padding: 0;
+    }
 }
 
 .triggerIcon {
@@ -290,8 +314,8 @@ async function focusCustomInput(): Promise<void> {
     flex-shrink: 0;
 
     svg {
-        width: 1.6rem;
-        height: 1.6rem;
+        width: 1.8rem;
+        height: 1.8rem;
     }
 }
 

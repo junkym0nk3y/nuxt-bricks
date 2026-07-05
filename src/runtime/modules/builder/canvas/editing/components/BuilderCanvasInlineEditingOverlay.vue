@@ -223,17 +223,27 @@ function handleRequestImage(): void {
                     compact
                     use-tooltips
                     :show-image-insert="showToolbar && toolbarGroups.length > 0"
-                    :show-background-toggle="
-                        showToolbar && toolbarGroups.length > 0 && hasFallbackWrapper
-                    "
-                    :is-dark-background="isDarkEditorBackground"
                     @request-image="handleRequestImage"
-                    @toggle-background="toggleEditorBackground"
                 />
 
                 <!-- Fallback TipTap editor (для brick-компонентов с textarea/inline-content) -->
-                <div v-if="showFallbackEditor" :class="fallbackWrapperClasses">
-                    <component :is="fallbackEditorContent!" :editor="fallbackEditor!" />
+                <div v-if="showFallbackEditor" :class="$style.fallbackEditorContainer">
+                    <div :class="fallbackWrapperClasses">
+                        <component :is="fallbackEditorContent!" :editor="fallbackEditor!" />
+                    </div>
+
+                    <button
+                        v-if="showToolbar && toolbarGroups.length > 0"
+                        type="button"
+                        :title="t('bricks.textEditor.toolbar.darkBackground')"
+                        :class="[
+                            $style.backgroundToggleButton,
+                            { [$style._active]: isDarkEditorBackground },
+                        ]"
+                        @click="toggleEditorBackground"
+                    >
+                        <BricksIcon icon="ph:circle-half-tilt" />
+                    </button>
                 </div>
 
                 <!-- Footer: Done button + hint -->
@@ -326,6 +336,52 @@ function handleRequestImage(): void {
     white-space: nowrap;
     font-size: 1.1rem;
     color: var(--bricks-base-500);
+}
+
+.fallbackEditorContainer {
+    position: relative;
+}
+
+.backgroundToggleButton {
+    position: absolute;
+    right: 0.4rem;
+    bottom: 0.4rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: var(--border-radius-xs);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-base-0);
+    color: var(--bricks-base-500);
+    opacity: 0;
+    transition:
+        border-color var(--default-transition),
+        background var(--default-transition),
+        color var(--default-transition),
+        opacity var(--default-transition);
+    cursor: pointer;
+
+    svg {
+        width: 1.4rem;
+        height: 1.4rem;
+    }
+
+    .fallbackEditorContainer:hover & {
+        opacity: 1;
+    }
+
+    &:hover {
+        border-color: var(--bricks-primary);
+        color: var(--bricks-primary);
+    }
+
+    &._active {
+        border-color: var(--bricks-primary);
+        background: var(--bricks-primary);
+        color: #fff;
+    }
 }
 
 .fallbackEditorWrapper {

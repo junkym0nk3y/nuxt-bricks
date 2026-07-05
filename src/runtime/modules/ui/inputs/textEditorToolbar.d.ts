@@ -34,6 +34,8 @@ export interface IToolbarEditableSelect {
     transformInput?: (raw: string) => string;
     /** Функция валидации введённого значения (true = валидно) */
     validateInput?: (raw: string) => boolean;
+    /** Компактный триггер: только иконка, текущее значение не отображается */
+    hideValue?: boolean;
 }
 
 export interface IToolbarColorPicker {
@@ -44,29 +46,11 @@ export interface IToolbarColorPicker {
     onChange: (value: string) => void;
 }
 
-export interface IToolbarTablePicker {
-    type: 'table-picker';
-    icon: string;
-    title: string;
-    isActive: () => boolean;
-    onInsert: (rows: number, cols: number) => void;
-    onDelete: () => void;
-    onAddRow: () => void;
-    onAddColumn: () => void;
-    onDeleteRow: () => void;
-    onDeleteColumn: () => void;
-    onMergeCells: () => void;
-    onSplitCell: () => void;
-    canMerge: () => boolean;
-    canSplit: () => boolean;
-}
-
 export type TToolbarItem =
     | IToolbarButton
     | IToolbarSelect
     | IToolbarEditableSelect
-    | IToolbarColorPicker
-    | IToolbarTablePicker;
+    | IToolbarColorPicker;
 
 export interface IToolbarGroup {
     name: string;

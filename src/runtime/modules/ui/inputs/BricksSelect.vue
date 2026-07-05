@@ -151,6 +151,8 @@ function onUpdate(value: AcceptableValue): void {
             border-color: var(--bricks-base-400);
         }
 
+        // Видимая часть треугольника — верхняя половина бокса 0.8rem,
+        // поэтому центровка через translateY(25%) вниз, а не по центру бокса
         &:after {
             content: '';
             position: absolute;
@@ -160,7 +162,8 @@ function onUpdate(value: AcceptableValue): void {
             height: 0;
             border: 0.4rem solid transparent;
             border-top-color: currentcolor;
-            transform: translateY(-25%);
+            color: var(--bricks-base-900);
+            transform: translateY(25%);
             transition:
                 color 0.2s ease,
                 transform 0.2s ease;
@@ -211,7 +214,7 @@ function onUpdate(value: AcceptableValue): void {
 
         &:after {
             color: var(--bricks-base-400);
-            transform: translateY(-80%) rotate(180deg);
+            transform: translateY(-25%) rotate(180deg);
         }
     }
 

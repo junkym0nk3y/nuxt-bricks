@@ -325,7 +325,6 @@
             "value": "Значение",
             "auto": "Авто",
             "normal": "Обычный",
-            "pickSize": "Выберите размер",
             "fontSizePlaceholder": "напр. 2.2 (rem)",
             "fontWeightPlaceholder": "напр. 450",
             "lineHeightPlaceholder": "напр. 1.35, 120% или 2rem",
@@ -346,7 +345,6 @@
                 "alignJustify": "По ширине",
                 "bulletList": "Маркированный список",
                 "numberedList": "Нумерованный список",
-                "table": "Таблица",
                 "insertImage": "Вставить изображение",
                 "darkBackground": "Тёмный фон",
                 "divider": "Разделитель"

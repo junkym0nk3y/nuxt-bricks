@@ -9,9 +9,6 @@ import type {
 import type { Editor } from '@tiptap/core';
 import type { Composer } from 'vue-i18n';
 
-// Side-effect import: augments @tiptap/core Commands with table methods
-import '@tiptap/extension-table';
-
 // Nuxt
 import { defineNuxtPlugin, useNuxtApp } from '#imports';
 // #endregion
@@ -169,7 +166,7 @@ export function createToolbarConfig({
     return [
         // Форматирование текста (B, I, U)
         {
-            name: 'text-format',
+            name: 'marks',
             items: [
                 {
                     label: 'B',
@@ -239,14 +236,14 @@ export function createToolbarConfig({
             ],
         },
 
-        // Толщина шрифта
+        // Метрики шрифта: толщина, межстрочный и межбуквенный интервалы
         {
-            name: 'font-weight',
+            name: 'typography-adjust',
             items: [
                 {
                     type: 'editable-select',
                     title: 'Font Weight',
-                    icon: 'bs:type-bold',
+                    icon: 'la:text-width-solid',
                     value: currentFontWeight.value,
                     options: [
                         { label: t('bricks.textEditor.auto'), value: '' },
@@ -265,17 +262,11 @@ export function createToolbarConfig({
                         return Number.isFinite(num) && num >= 1 && num <= 1000;
                     },
                 },
-            ],
-        },
-
-        // Межстрочный интервал
-        {
-            name: 'line-height',
-            items: [
                 {
                     type: 'editable-select',
                     title: 'Line Height',
-                    icon: 'mc:line-height-line',
+                    icon: 'ta:outline-line-height',
+                    hideValue: true,
                     value: currentLineHeight.value,
                     options: [
                         { label: t('bricks.textEditor.auto'), value: '' },
@@ -303,17 +294,11 @@ export function createToolbarConfig({
                         return Number.isFinite(num) && num > 0;
                     },
                 },
-            ],
-        },
-
-        // Межбуквенный интервал
-        {
-            name: 'letter-spacing',
-            items: [
                 {
                     type: 'editable-select',
                     title: 'Letter Spacing',
-                    icon: 'mc:letter-spacing-line',
+                    icon: 'ta:outline-letter-spacing',
+                    hideValue: true,
                     value: currentLetterSpacing.value,
                     options: [
                         { label: t('bricks.textEditor.normal'), value: '' },
@@ -348,7 +333,6 @@ export function createToolbarConfig({
                 {
                     type: 'color',
                     title: 'Text Color',
-                    icon: 'mc:text-color-line',
                     value: currentColor.value,
                     onChange: setTextColor,
                 },
@@ -360,25 +344,25 @@ export function createToolbarConfig({
             name: 'text-align',
             items: [
                 {
-                    icon: 'bs:text-left',
+                    icon: 'ta:outline-align-left',
                     title: 'Align Left',
                     run: () => editor.chain().focus().setTextAlign('left').run(),
                     isActive: () => editor.isActive({ textAlign: 'left' }),
                 },
                 {
-                    icon: 'bs:text-center',
+                    icon: 'ta:outline-align-center',
                     title: 'Align Center',
                     run: () => editor.chain().focus().setTextAlign('center').run(),
                     isActive: () => editor.isActive({ textAlign: 'center' }),
                 },
                 {
-                    icon: 'bs:text-right',
+                    icon: 'ta:outline-align-right',
                     title: 'Align Right',
                     run: () => editor.chain().focus().setTextAlign('right').run(),
                     isActive: () => editor.isActive({ textAlign: 'right' }),
                 },
                 {
-                    icon: 'bs:justify',
+                    icon: 'ta:outline-align-justified',
                     title: 'Align Justify',
                     run: () => editor.chain().focus().setTextAlign('justify').run(),
                     isActive: () => editor.isActive({ textAlign: 'justify' }),
@@ -391,13 +375,13 @@ export function createToolbarConfig({
             name: 'lists',
             items: [
                 {
-                    icon: 'fa:list-ul',
+                    icon: 'ta:outline-list',
                     title: 'Bullet List',
                     run: () => editor.chain().focus().toggleBulletList().run(),
                     isActive: () => editor.isActive('bulletList'),
                 },
                 {
-                    icon: 'fa:list-ol',
+                    icon: 'ta:outline-list-numbers',
                     title: 'Numbered List',
                     run: () => editor.chain().focus().toggleOrderedList().run(),
                     isActive: () => editor.isActive('orderedList'),
@@ -410,38 +394,10 @@ export function createToolbarConfig({
             name: 'divider',
             items: [
                 {
-                    icon: 'md:horizontal-rule',
+                    icon: 'ta:outline-separator',
                     title: 'Divider',
                     run: () => editor.chain().focus().setHorizontalRule().run(),
                     isActive: () => false,
-                },
-            ],
-        },
-
-        // Таблица
-        {
-            name: 'table',
-            items: [
-                {
-                    type: 'table-picker' as const,
-                    icon: 'ph:table',
-                    title: 'Table',
-                    isActive: () => editor.isActive('table'),
-                    onInsert: (rows: number, cols: number) =>
-                        editor
-                            .chain()
-                            .focus()
-                            .insertTable({ rows, cols, withHeaderRow: true })
-                            .run(),
-                    onDelete: () => editor.chain().focus().deleteTable().run(),
-                    onAddRow: () => editor.chain().focus().addRowAfter().run(),
-                    onAddColumn: () => editor.chain().focus().addColumnAfter().run(),
-                    onDeleteRow: () => editor.chain().focus().deleteRow().run(),
-                    onDeleteColumn: () => editor.chain().focus().deleteColumn().run(),
-                    onMergeCells: () => editor.chain().focus().mergeCells().run(),
-                    onSplitCell: () => editor.chain().focus().splitCell().run(),
-                    canMerge: () => editor.can().mergeCells(),
-                    canSplit: () => editor.can().splitCell(),
                 },
             ],
         },

@@ -156,7 +156,7 @@ function handleImgError(): void {
 }
 
 .componentName {
-    font-size: 1.3rem;
+    font-size: 1.4rem;
     font-weight: 500;
     color: var(--bricks-base-800);
 }
