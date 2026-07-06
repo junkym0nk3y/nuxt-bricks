@@ -30,18 +30,6 @@ const { t } = useI18n();
 
 // #region Computed
 /**
- * Проверяет, доступна ли операция отмены (Undo)
- * @returns true если есть история для отката (historyIndex > 0)
- */
-const canUndo = computed(() => props.historyIndex > 0);
-
-/**
- * Проверяет, доступна ли операция повтора (Redo)
- * @returns true если есть история для повтора (historyIndex < historyLength - 1)
- */
-const canRedo = computed(() => props.historyIndex < props.historyLength - 1);
-
-/**
  * Нормализует значение отступа сайдбара для toolbar
  * Если offset пустой или '0', возвращает '0px'
  * @returns Нормализованное значение отступа в формате CSS
@@ -112,26 +100,6 @@ const publishButtonConfig = computed<{
 
 // #region Methods
 /**
- * Выполняет операцию отмены последнего действия (Undo)
- * Проверяет доступность истории через canUndo перед выполнением
- */
-function handleUndo(): void {
-    if (canUndo.value) {
-        emit('undo');
-    }
-}
-
-/**
- * Выполняет операцию повтора отмененного действия (Redo)
- * Проверяет доступность истории через canRedo перед выполнением
- */
-function handleRedo(): void {
-    if (canRedo.value) {
-        emit('redo');
-    }
-}
-
-/**
  * Открывает менеджер страниц (дашборд `/bricks`)
  * Позволяет просматривать, редактировать и удалять сохранённые страницы
  */
@@ -171,14 +139,6 @@ function handleSaveDraft(): void {
 function handlePreview(): void {
     emit('preview');
 }
-
-/**
- * Переключает видимость визуальной сетки layout-компонентов.
- */
-function handleToggleGrid(): void {
-    emit('toggleGrid');
-}
-
 // #endregion
 </script>
 
@@ -187,7 +147,7 @@ function handleToggleGrid(): void {
         <div :class="$style.center">
             <h1 :class="$style.title">
                 <span :class="$style.titlePrimary">
-                    <BuilderLogo :class="$style.logo" text="" :to="null" />
+                    <BuilderLogo :class="$style.logo" text="Dashboard" to="/bricks" />
                 </span>
                 <span v-if="currentPageTitle" :class="$style.titleDivider">/</span>
                 <span v-if="currentPageTitle" :class="$style.titleSecondary">
@@ -197,60 +157,6 @@ function handleToggleGrid(): void {
         </div>
 
         <div :class="$style.right">
-            <BricksTooltip bottom>
-                <template #activator>
-                    <BricksButton
-                        size="md"
-                        variant="outline"
-                        equal
-                        :active="props.showGrid"
-                        @click="handleToggleGrid"
-                    >
-                        <BricksIcon :class="$style.icon" icon="ta:outline-grid-4x4" />
-                    </BricksButton>
-                </template>
-
-                <template #default>
-                    <BricksTooltipHint :text="t('bricks.toolbar.grid')" />
-                </template>
-            </BricksTooltip>
-
-            <BricksTooltip bottom>
-                <template #activator>
-                    <BricksButton
-                        size="md"
-                        variant="outline"
-                        equal
-                        :disabled="!canUndo"
-                        @click="handleUndo"
-                    >
-                        <BricksIcon :class="$style.icon" icon="ta:outline-arrow-back-up" />
-                    </BricksButton>
-                </template>
-
-                <template #default>
-                    <BricksTooltipHint :text="t('bricks.toolbar.undo')" />
-                </template>
-            </BricksTooltip>
-
-            <BricksTooltip bottom>
-                <template #activator>
-                    <BricksButton
-                        size="md"
-                        variant="outline"
-                        equal
-                        :disabled="!canRedo"
-                        @click="handleRedo"
-                    >
-                        <BricksIcon :class="$style.icon" icon="ta:outline-arrow-forward-up" />
-                    </BricksButton>
-                </template>
-
-                <template #default>
-                    <BricksTooltipHint :text="t('bricks.toolbar.redo')" />
-                </template>
-            </BricksTooltip>
-
             <BricksTooltip bottom>
                 <template #activator>
                     <BricksButton size="md" variant="outline" equal @click="handleOpenPagesManager">
@@ -318,7 +224,6 @@ function handleToggleGrid(): void {
     display: flex;
     align-items: center;
     gap: 0.8rem;
-    min-width: 30rem;
 }
 
 .center {

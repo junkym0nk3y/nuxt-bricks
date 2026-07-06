@@ -206,9 +206,7 @@ export const schemaActions: IComponentsSchemaActions = {
         ) {
             this.selectedComponent = null;
             const sidebarStore = useSidebarStore();
-            if (sidebarStore.activeView === 'properties') {
-                sidebarStore.setActiveView('components');
-            }
+            sidebarStore.hidePropertiesPanel();
         }
 
         if (options?.resetHistory) {

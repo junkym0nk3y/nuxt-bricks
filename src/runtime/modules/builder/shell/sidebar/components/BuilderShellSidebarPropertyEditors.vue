@@ -19,8 +19,13 @@ import { useI18n } from 'vue-i18n';
 import { resolveBricksLabel } from '../../../../common/utils/i18nLabels';
 
 // Constants/Components
-import { PROPERTY_EDITOR_ORDER, type TPropertyEditorType } from './property-editors/types';
+import {
+    PROPERTY_EDITOR_ORDER,
+    SPACING_PROPERTY_NAMES,
+    type TPropertyEditorType,
+} from './property-editors/types';
 import BuilderShellSidebarPropertyEditorRow from './BuilderShellSidebarPropertyEditorRow.vue';
+import BuilderShellSidebarPropertySpacingEditor from './property-editors/BuilderShellSidebarPropertySpacingEditor.vue';
 import BricksInput from '../../../../ui/inputs/BricksInput.vue';
 // #endregion
 
@@ -147,6 +152,21 @@ function isGroupOpen(groupName: string): boolean {
  */
 function resolveGroupLabel(groupName: string): string {
     return resolveBricksLabel(t, te, groupName) || groupName;
+}
+
+/**
+ * Проверяет, состоит ли группа целиком из числовых spacing-свойств —
+ * такая группа рендерится композитным box-model редактором.
+ */
+function isSpacingGroup(items: TEditorItem[]): boolean {
+    return (
+        items.length > 0 &&
+        items.every(
+            (item) =>
+                item.componentData.property.type === 'number' &&
+                SPACING_PROPERTY_NAMES.has(item.componentData.property.name)
+        )
+    );
 }
 
 /**
@@ -343,19 +363,26 @@ watch(
                     </button>
 
                     <div v-show="isGroupOpen(groupName)" :class="$style.groupBody">
-                        <template
-                            v-for="(item, index) in groupItems"
-                            :key="`${groupName}_${item.type}_${item.componentData.property.name}_${index}`"
-                        >
-                            <BuilderShellSidebarPropertyEditorRow
-                                :type="item.type"
-                                :variant="item.componentData"
-                                :component-editors="props.componentEditors"
-                                :show-group-label="false"
-                                :handle-normalize-props="props.handleNormalizeProps"
-                                :handle-change-values="emitChange"
-                                :handle-open-media-gallery="openMedia"
-                            />
+                        <BuilderShellSidebarPropertySpacingEditor
+                            v-if="isSpacingGroup(groupItems)"
+                            :items="groupItems.map((item) => item.componentData)"
+                            :handle-change-values="emitChange"
+                        />
+                        <template v-else>
+                            <template
+                                v-for="(item, index) in groupItems"
+                                :key="`${groupName}_${item.type}_${item.componentData.property.name}_${index}`"
+                            >
+                                <BuilderShellSidebarPropertyEditorRow
+                                    :type="item.type"
+                                    :variant="item.componentData"
+                                    :component-editors="props.componentEditors"
+                                    :show-group-label="false"
+                                    :handle-normalize-props="props.handleNormalizeProps"
+                                    :handle-change-values="emitChange"
+                                    :handle-open-media-gallery="openMedia"
+                                />
+                            </template>
                         </template>
                     </div>
                 </div>

@@ -25,7 +25,6 @@
         },
         "nav": {
             "library": "Компоненты",
-            "properties": "Свойства",
             "schema": "Схема",
             "settings": "Настройки",
             "docs": "Документация",
@@ -56,6 +55,19 @@
             "editorLoading": "Загрузка редактора...",
             "select": "Выбрать",
             "add": "Добавить",
+            "spacing": {
+                "content": "Контент",
+                "block": "Блок",
+                "increase": "Увеличить {side}",
+                "decrease": "Уменьшить {side}",
+                "mirrored": "{side} (зеркально)",
+                "sides": {
+                    "top": "отступ сверху",
+                    "bottom": "отступ снизу",
+                    "left": "отступ слева",
+                    "right": "отступ справа"
+                }
+            },
             "inline": {
                 "text": "Текст",
                 "lineBreak": "Перенос",
@@ -302,7 +314,10 @@
             "enable": "Включить",
             "disable": "Отключить",
             "moveUp": "Вверх",
-            "moveDown": "Вниз"
+            "moveDown": "Вниз",
+            "zoomIn": "Приблизить",
+            "zoomOut": "Отдалить",
+            "zoomReset": "Сбросить масштаб"
         },
         "textEditor": {
             "editorTitle": "Редактор текста",
@@ -410,13 +425,16 @@
                         "description": "Минимальная высота строки в rem (0 = без ограничения)"
                     },
                     "paddingX": {
-                        "label": "Padding горизонтальный (rem)",
+                        "label": "Padding горизонтальный",
                         "description": "Горизонтальный внутренний отступ контейнера в rem"
                     },
                     "paddingY": {
-                        "label": "Padding вертикальный (rem)",
+                        "label": "Padding вертикальный",
                         "description": "Вертикальный внутренний отступ контейнера в rem"
                     }
+                },
+                "groups": {
+                    "spacing": "Отступы"
                 }
             },
             "flex": {
@@ -461,13 +479,16 @@
                         "description": "Переносить элементы на новую строку при нехватке места"
                     },
                     "paddingX": {
-                        "label": "Padding горизонтальный (rem)",
+                        "label": "Padding горизонтальный",
                         "description": "Горизонтальный внутренний отступ контейнера в rem"
                     },
                     "paddingY": {
-                        "label": "Padding вертикальный (rem)",
+                        "label": "Padding вертикальный",
                         "description": "Вертикальный внутренний отступ контейнера в rem"
                     }
+                },
+                "groups": {
+                    "spacing": "Отступы"
                 }
             },
             "section": {
@@ -482,13 +503,13 @@
                         "description": "URL фонового изображения"
                     },
                     "paddingTop": {
-                        "label": "Padding сверху (rem)"
+                        "label": "Padding сверху"
                     },
                     "paddingBottom": {
-                        "label": "Padding снизу (rem)"
+                        "label": "Padding снизу"
                     },
                     "paddingX": {
-                        "label": "Padding горизонтальный (rem)"
+                        "label": "Padding горизонтальный"
                     },
                     "borderRadius": {
                         "label": "Скругление углов (rem)"
@@ -665,11 +686,14 @@
                         }
                     },
                     "marginTop": {
-                        "label": "Margin Top (rem)"
+                        "label": "Отступ сверху"
                     },
                     "marginBottom": {
-                        "label": "Margin Bottom (rem)"
+                        "label": "Отступ снизу"
                     }
+                },
+                "groups": {
+                    "spacing": "Отступы"
                 }
             },
             "text": {
@@ -679,11 +703,14 @@
                         "label": "Контент"
                     },
                     "marginTop": {
-                        "label": "Отступ сверху (rem)"
+                        "label": "Отступ сверху"
                     },
                     "marginBottom": {
-                        "label": "Отступ снизу (rem)"
+                        "label": "Отступ снизу"
                     }
+                },
+                "groups": {
+                    "spacing": "Отступы"
                 }
             },
             "accordion": {

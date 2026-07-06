@@ -43,15 +43,15 @@ export interface IDragComposableCanvas {
     draggedComponent: Ref<IComponentLibraryItem | null>;
 }
 
-export interface ICanvasToolbarProps {
+export interface ICanvasBottomBarProps {
     scale: number;
     viewport: TBricksDeviceKey;
     sidebarOffset?: string;
+    rightSidebarOffset?: string;
     isFigmaMode?: boolean;
 }
 
-export interface ICanvasToolbarEmits {
-    'update:scale': [scale: number];
+export interface ICanvasBottomBarEmits {
     'update:viewport': [viewport: TBricksDeviceKey];
     zoomIn: [];
     zoomOut: [];

@@ -102,6 +102,8 @@ export interface ICanvasState {
     isFigmaMode: boolean;
     showGrid: boolean;
     isViewportSwitching: boolean;
+    /** Пользователь зумил вручную (wheel/кнопки) — авто-фит не перетирает масштаб */
+    hasManualZoom: boolean;
     /** В Figma mode — viewport, на котором последний раз кликнули компонент */
     activeViewport: TBricksDeviceKey | null;
     /** Ограничивать новый компонент только тем viewport, куда его бросили (Figma mode) */
@@ -164,7 +166,7 @@ export interface IPropertyDefinition {
     responsive?: boolean;
 }
 
-export type TSidebarView = 'components' | 'properties' | 'publish' | 'schema';
+export type TSidebarView = 'components' | 'publish' | 'schema';
 
 // Selected component
 export interface ISelectedComponent {

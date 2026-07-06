@@ -8,13 +8,11 @@ import type { IMediaItem, TMediaGalleryContext } from '../../../../common/types/
 import { computed, ref } from 'vue';
 
 // Pinia
-import { useComponentsStore } from '../../../core/stores/components';
 import { useSidebarStore } from '../../../core/stores/sidebar';
 import { usePublishStore } from '../../../publish/stores/publish';
 
 // Components
 import BuilderShellSidebarComponentsView from './BuilderShellSidebarComponentsView.vue';
-import BuilderShellSidebarPropertiesView from './BuilderShellSidebarPropertiesView.vue';
 import BuilderShellSidebarPublishView from './BuilderShellSidebarPublishView.vue';
 import BuilderShellSidebarSchemaTreeView from './BuilderShellSidebarSchemaTreeView.vue';
 // #endregion
@@ -33,10 +31,8 @@ const emit = defineEmits<{
 // #endregion
 
 // #region Data
-const componentsStore = useComponentsStore();
 const sidebarStore = useSidebarStore();
 const publishStore = usePublishStore();
-const propertiesViewRef = ref<InstanceType<typeof BuilderShellSidebarPropertiesView> | null>(null);
 const publishViewRef = ref<InstanceType<typeof BuilderShellSidebarPublishView> | null>(null);
 // #endregion
 
@@ -52,15 +48,6 @@ const sidebarWidth = computed<string>(() => sidebarStore.left.width);
  * Closes the sidebar entirely.
  */
 function handleCloseComponents(): void {
-    sidebarStore.hideSidebar();
-}
-
-/**
- * Closes the properties view and resets the selection.
- */
-function handleCloseProperties(): void {
-    // Reset selection without changing activeView to avoid transition conflicts
-    componentsStore.selectedComponent = null;
     sidebarStore.hideSidebar();
 }
 
@@ -83,12 +70,7 @@ function handleCloseSchema(): void {
  * Opens media gallery modal.
  */
 function handleOpenMediaGallery(): void {
-    const context: TMediaGalleryContext =
-        activeView.value === 'properties'
-            ? 'properties'
-            : activeView.value === 'publish'
-              ? 'publish'
-              : 'manager';
+    const context: TMediaGalleryContext = activeView.value === 'publish' ? 'publish' : 'manager';
     emit('openMediaGallery', context);
 }
 
@@ -100,10 +82,7 @@ function handleOpenMediaGallery(): void {
 function handleMediaSelect(item: IMediaItem): void {
     if (activeView.value === 'publish') {
         publishViewRef.value?.handleMediaSelect(item);
-        return;
     }
-
-    propertiesViewRef.value?.handleMediaSelect(item);
 }
 
 /**
@@ -123,7 +102,7 @@ defineExpose({
 </script>
 
 <template>
-    <Transition name="sidebar-slide">
+    <Transition name="library-sidebar">
         <aside
             v-show="isVisible"
             :class="$style.TheBuilderShellSidebar"
@@ -135,14 +114,6 @@ defineExpose({
                     key="components"
                     :components="props.components"
                     @close="handleCloseComponents"
-                />
-
-                <BuilderShellSidebarPropertiesView
-                    v-else-if="activeView === 'properties'"
-                    key="properties"
-                    ref="propertiesViewRef"
-                    @close="handleCloseProperties"
-                    @open-media-gallery="handleOpenMediaGallery"
                 />
 
                 <BuilderShellSidebarPublishView
@@ -176,25 +147,5 @@ defineExpose({
     background-color: var(--bricks-base-0);
     flex-direction: column;
     box-shadow: var(--shadow-md);
-}
-</style>
-
-<style lang="scss">
-// Transition для появления/исчезновения всего sidebar
-.sidebar-slide-enter-active,
-.sidebar-slide-leave-active {
-    transition:
-        transform 300ms cubic-bezier(0.4, 0, 0.2, 1),
-        opacity 250ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.sidebar-slide-enter-from {
-    opacity: 0;
-    transform: translateX(-100%);
-}
-
-.sidebar-slide-leave-to {
-    opacity: 0;
-    transform: translateX(-100%);
 }
 </style>

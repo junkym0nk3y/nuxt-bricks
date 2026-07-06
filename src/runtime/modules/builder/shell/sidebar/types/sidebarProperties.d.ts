@@ -78,3 +78,9 @@ export interface ISidebarPropertyEditorRowProps extends ISidebarPropertyHandlers
     componentEditors: Record<TPropertyEditorType, Component>;
     showGroupLabel?: boolean;
 }
+
+export interface ISidebarPropertySpacingEditorProps {
+    /** Варианты spacing-свойств группы (paddingTop/paddingBottom/paddingX/paddingY/marginTop/marginBottom). */
+    items: IComponentVariant[];
+    handleChangeValues: (property: IPropertyDefinition, value: TBrickPropValue) => void;
+}

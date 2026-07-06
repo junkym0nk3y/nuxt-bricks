@@ -352,6 +352,8 @@ export const blockGridDefinition: IBlockDefinition = {
             default: 0,
             min: 0,
             step: 0.2,
+            unit: 'rem',
+            group: 'bricks.blocks.grid.groups.spacing',
             description: 'bricks.blocks.grid.props.paddingX.description',
         },
         {
@@ -361,6 +363,8 @@ export const blockGridDefinition: IBlockDefinition = {
             default: 0,
             min: 0,
             step: 0.2,
+            unit: 'rem',
+            group: 'bricks.blocks.grid.groups.spacing',
             description: 'bricks.blocks.grid.props.paddingY.description',
         },
     ],

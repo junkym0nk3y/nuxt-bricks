@@ -249,6 +249,8 @@ export const blockFlexDefinition: IBlockDefinition = {
             default: 0,
             min: 0,
             step: 0.2,
+            unit: 'rem',
+            group: 'bricks.blocks.flex.groups.spacing',
             description: 'bricks.blocks.flex.props.paddingX.description',
         },
         {
@@ -258,6 +260,8 @@ export const blockFlexDefinition: IBlockDefinition = {
             default: 0,
             min: 0,
             step: 0.2,
+            unit: 'rem',
+            group: 'bricks.blocks.flex.groups.spacing',
             description: 'bricks.blocks.flex.props.paddingY.description',
         },
     ],

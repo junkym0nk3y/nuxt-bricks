@@ -2,8 +2,7 @@ import { defineStore } from 'pinia';
 import { useAppConfig } from 'nuxt/app';
 import type { ICanvasState, TBricksDeviceKey } from '../../../common/types/brick';
 import type { IAppConfig } from '../../../common/types/config';
-import { convertRemToPx } from '../../../common/utils/main';
-import { useSidebarStore } from './sidebar';
+import { MIN_CANVAS_SCALE, MAX_CANVAS_SCALE } from '../constants/canvasScale';
 
 const VIEWPORT_BASE_HEIGHT: Record<TBricksDeviceKey, number> = {
     mobile: 812,
@@ -41,32 +40,12 @@ export const useCanvasStore = defineStore('bricksCanvas', {
         isFigmaMode: false,
         showGrid: true,
         isViewportSwitching: false,
+        hasManualZoom: false,
         activeViewport: null,
         figmaDropPerViewport: false,
         _preFigmaWidth: null,
         _preFigmaHeight: null,
     }),
-
-    getters: {
-        /**
-         * Вычисляет оптимальный масштаб холста с учётом видимости сайдбара.
-         */
-        optimalScale(state): number {
-            if (typeof window === 'undefined') {
-                return 1;
-            }
-
-            const sidebarStore = useSidebarStore();
-            const leftWidth = sidebarStore.left.visible ? sidebarStore.left.width : '0';
-            const availableWidth = window.innerWidth - convertRemToPx(leftWidth || '0') - 40;
-            const availableHeight = window.innerHeight - 40;
-
-            const scaleX = availableWidth / state.width;
-            const scaleY = availableHeight / state.height;
-
-            return Math.min(scaleX, scaleY, 1);
-        },
-    },
 
     actions: {
         /**
@@ -80,33 +59,22 @@ export const useCanvasStore = defineStore('bricksCanvas', {
         },
 
         /**
-         * Устанавливает масштаб холста в допустимых пределах.
+         * Устанавливает масштаб холста в допустимых пределах [0.1, 4].
          *
          * @param scale - Новое значение масштаба.
          */
         setCanvasScale(scale: number) {
-            this.scale = Math.max(0.1, Math.min(1, scale));
+            this.scale = Math.max(MIN_CANVAS_SCALE, Math.min(MAX_CANVAS_SCALE, scale));
         },
 
         /**
-         * Увеличивает масштаб холста.
+         * Устанавливает масштаб как ручной (wheel/кнопки) — авто-фит его не перетирает.
+         *
+         * @param scale - Новое значение масштаба.
          */
-        zoomIn() {
-            this.setCanvasScale(this.scale + 0.1);
-        },
-
-        /**
-         * Уменьшает масштаб холста.
-         */
-        zoomOut() {
-            this.setCanvasScale(this.scale - 0.1);
-        },
-
-        /**
-         * Сбрасывает масштаб к оптимальному значению.
-         */
-        zoomReset() {
-            this.setCanvasScale(this.optimalScale);
+        setManualCanvasScale(scale: number) {
+            this.hasManualZoom = true;
+            this.setCanvasScale(scale);
         },
 
         /**
@@ -120,6 +88,7 @@ export const useCanvasStore = defineStore('bricksCanvas', {
             this.isViewportSwitching = true;
             this.isFigmaMode = false;
             this.activeViewport = null;
+            this.hasManualZoom = false;
 
             // Если выходим из Figma mode с тем же viewport — восстанавливаем размеры
             if (wasInFigma && viewport === this.viewport && this._preFigmaWidth !== null) {

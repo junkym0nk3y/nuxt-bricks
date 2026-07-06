@@ -119,6 +119,8 @@ export const blockSvgDefinition: IBlockDefinition = {
             default: 0,
             min: 0,
             step: 0.2,
+            unit: 'rem',
+            group: 'bricks.blocks.svg.groups.spacing',
         },
         {
             name: 'marginBottom',
@@ -127,6 +129,8 @@ export const blockSvgDefinition: IBlockDefinition = {
             default: 0,
             min: 0,
             step: 0.2,
+            unit: 'rem',
+            group: 'bricks.blocks.svg.groups.spacing',
         },
     ],
 };

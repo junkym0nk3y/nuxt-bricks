@@ -5,7 +5,6 @@
 import type { IComponentLibraryItem, IBricksSchema } from '../../../common/types/brick';
 import type { ComputedRef, Ref } from 'vue';
 import type { useSidebarStore } from '../../core/stores/sidebar';
-import type { useHistoryStore } from '../../core/stores/history';
 import type { usePublishStore } from '../../publish/stores/publish';
 import type { IMediaItem, TMediaGalleryContext } from '../../../common/types/media';
 import type { ISidebarExpose } from './builder';
@@ -80,13 +79,13 @@ export interface IInlineMediaBridge {
  */
 export interface IUseBuilderPageReturn {
     sidebarStore: ReturnType<typeof useSidebarStore>;
-    historyStore: ReturnType<typeof useHistoryStore>;
     publishStore: ReturnType<typeof usePublishStore>;
     componentLibraryList: ComputedRef<IComponentLibraryItem[]>;
     isDocumentationModalOpen: Ref<boolean>;
     isMediaGalleryModalOpen: Ref<boolean>;
     mediaGalleryContext: Ref<TMediaGalleryContext>;
     sidebarRef: Ref<ISidebarExpose | null>;
+    propertiesPanelRef: Ref<ISidebarExpose | null>;
     toast: IBuilderToastState;
     isEditingExistingPage: ComputedRef<boolean>;
     hasSelectedComponent: ComputedRef<boolean>;
@@ -95,7 +94,6 @@ export interface IUseBuilderPageReturn {
     handleKeyDown: (event: KeyboardEvent) => void;
     showToast: TShowToast;
     handleToggleLibrary: () => void;
-    handleToggleProperties: () => void;
     handleToggleSchema: () => void;
     handleOpenPublishSettings: () => void;
     handleOpenDocs: () => void;
@@ -107,8 +105,6 @@ export interface IUseBuilderPageReturn {
     handleSaveDraft: () => Promise<void>;
     handleSaveAsCopy: () => Promise<void>;
     handlePreview: () => Promise<void>;
-    handleUndo: () => void;
-    handleRedo: () => void;
     isImageResolverModalOpen: Ref<boolean>;
     imageResolverState: IImageResolverState;
     handleImportSchema: (schema: IBricksSchema) => Promise<void>;

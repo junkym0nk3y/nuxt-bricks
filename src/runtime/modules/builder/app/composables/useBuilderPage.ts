@@ -26,7 +26,6 @@ import { useSchemaImageResolver } from '../../media/composables/useSchemaImageRe
 // Pinia
 import { useComponentsStore } from '../../core/stores/components';
 import { useSidebarStore } from '../../core/stores/sidebar';
-import { useHistoryStore } from '../../core/stores/history';
 import { usePublishStore } from '../../publish/stores/publish';
 // #endregion
 
@@ -43,7 +42,6 @@ export async function useBuilderPage(
     const { t } = useI18n();
     const componentsStore = useComponentsStore();
     const sidebarStore = useSidebarStore();
-    const historyStore = useHistoryStore();
     const publishStore = usePublishStore();
     const dragComposable = useComponentLibraryDrag();
     const { loadModals } = useModals();
@@ -69,6 +67,7 @@ export async function useBuilderPage(
     const isMediaGalleryModalOpen = ref(false);
     const mediaGalleryContext = ref<TMediaGalleryContext>('manager');
     const sidebarRef = ref<ISidebarExpose | null>(null);
+    const propertiesPanelRef = ref<ISidebarExpose | null>(null);
     // #endregion
 
     // #region Computed
@@ -89,13 +88,6 @@ export async function useBuilderPage(
      */
     function handleToggleLibrary(): void {
         sidebarStore.toggleSidebarView('components');
-    }
-
-    /**
-     * Переключает видимость панели свойств в сайдбаре.
-     */
-    function handleToggleProperties(): void {
-        sidebarStore.toggleSidebarView('properties');
     }
 
     /**
@@ -298,7 +290,7 @@ export async function useBuilderPage(
 
     /**
      * Обрабатывает выбор медиа-элемента из галереи.
-     * Передаёт выбранный элемент в сайдбар (или в inline editor) и закрывает галерею.
+     * Передаёт выбранный элемент в панель свойств, сайдбар или inline editor и закрывает галерею.
      *
      * @param item - Выбранный медиа-элемент.
      */
@@ -310,7 +302,11 @@ export async function useBuilderPage(
             return;
         }
 
-        sidebarRef.value?.handleMediaSelect(item);
+        if (mediaGalleryContext.value === 'properties') {
+            propertiesPanelRef.value?.handleMediaSelect(item);
+        } else {
+            sidebarRef.value?.handleMediaSelect(item);
+        }
         isMediaGalleryModalOpen.value = false;
         mediaGalleryContext.value = 'manager';
     }
@@ -321,22 +317,6 @@ export async function useBuilderPage(
             handleOpenMediaGallery('properties');
         }
     });
-    // #endregion
-
-    // #region History
-    /**
-     * Отменяет последнее действие (Undo).
-     */
-    function handleUndo(): void {
-        componentsStore.undo();
-    }
-
-    /**
-     * Повторяет отменённое действие (Redo).
-     */
-    function handleRedo(): void {
-        componentsStore.redo();
-    }
     // #endregion
 
     // #region Schema import with image resolving
@@ -357,13 +337,13 @@ export async function useBuilderPage(
 
     return {
         sidebarStore,
-        historyStore,
         publishStore,
         componentLibraryList,
         isDocumentationModalOpen,
         isMediaGalleryModalOpen,
         mediaGalleryContext,
         sidebarRef,
+        propertiesPanelRef,
         toast,
         isEditingExistingPage,
         hasSelectedComponent,
@@ -372,7 +352,6 @@ export async function useBuilderPage(
         handleKeyDown,
         showToast,
         handleToggleLibrary,
-        handleToggleProperties,
         handleToggleSchema,
         handleOpenPublishSettings,
         handleOpenDocs,
@@ -384,8 +363,6 @@ export async function useBuilderPage(
         handleSaveDraft,
         handleSaveAsCopy,
         handlePreview,
-        handleUndo,
-        handleRedo,
         isImageResolverModalOpen: imageResolver.isModalOpen,
         imageResolverState: imageResolver.state,
         handleImportSchema,

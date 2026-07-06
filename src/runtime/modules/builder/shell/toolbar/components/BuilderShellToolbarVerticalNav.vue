@@ -12,17 +12,14 @@ import BricksTooltipHint from '../../../../ui/tooltip/BricksTooltipHint.vue';
 // #region Interfaces
 interface IToolbarVerticalNavProps {
     isLibraryActive?: boolean;
-    isPropertiesActive?: boolean;
     isSchemaActive?: boolean;
     isPublishSettingsActive?: boolean;
-    hasSelectedComponent?: boolean;
     isPublishSettingsComplete?: boolean;
     isDarkMode?: boolean;
 }
 
 interface IToolbarVerticalNavEmits {
     toggleLibrary: [];
-    toggleProperties: [];
     toggleSchema: [];
     openPublishSettings: [];
     openDocs: [];
@@ -34,10 +31,8 @@ interface IToolbarVerticalNavEmits {
 // #region Props
 const props = withDefaults(defineProps<IToolbarVerticalNavProps>(), {
     isLibraryActive: false,
-    isPropertiesActive: false,
     isSchemaActive: false,
     isPublishSettingsActive: false,
-    hasSelectedComponent: false,
     isPublishSettingsComplete: true,
     isDarkMode: false,
 });
@@ -59,13 +54,6 @@ const NAV_ITEMS = [
         activeProp: 'isLibraryActive' as const,
     },
     {
-        key: 'properties',
-        icon: 'ta:outline-adjustments-horizontal',
-        label: 'bricks.nav.properties',
-        event: 'toggleProperties' as const,
-        activeProp: 'isPropertiesActive' as const,
-    },
-    {
         key: 'schema',
         icon: 'ta:outline-drag-drop',
         label: 'bricks.nav.schema',
@@ -83,11 +71,6 @@ const NAV_ITEMS = [
 // #endregion
 
 // #region Computed
-/**
- * Проверяет, отключена ли кнопка свойств (нет выбранного компонента).
- */
-const isPropertiesDisabled = computed<boolean>(() => !props.hasSelectedComponent);
-
 /**
  * Проверяет, нужно ли показывать danger-индикатор на настройках.
  */
@@ -116,7 +99,6 @@ const localeLabel = computed<string>(() => locale.value.toUpperCase());
 // #region Data
 const EMIT_MAP: Record<string, () => void> = {
     toggleLibrary: () => emit('toggleLibrary'),
-    toggleProperties: () => emit('toggleProperties'),
     toggleSchema: () => emit('toggleSchema'),
     openPublishSettings: () => emit('openPublishSettings'),
 };
@@ -127,13 +109,8 @@ const EMIT_MAP: Record<string, () => void> = {
  * Обрабатывает клик по элементу навигации.
  *
  * @param event - Имя события для emit.
- * @param key - Ключ элемента навигации.
  */
-function handleClick(event: string, key: string): void {
-    if (key === 'properties' && isPropertiesDisabled.value) {
-        return;
-    }
-
+function handleClick(event: string): void {
     EMIT_MAP[event]?.();
 }
 
@@ -165,15 +142,8 @@ function handleToggleLocale(): void {
         <button
             v-for="item in NAV_ITEMS"
             :key="item.key"
-            :class="[
-                $style.navItem,
-                {
-                    [$style._active]: props[item.activeProp],
-                    [$style._disabled]: item.key === 'properties' && isPropertiesDisabled,
-                },
-            ]"
-            :disabled="item.key === 'properties' && isPropertiesDisabled"
-            @click="handleClick(item.event, item.key)"
+            :class="[$style.navItem, { [$style._active]: props[item.activeProp] }]"
+            @click="handleClick(item.event)"
         >
             <span :class="$style.iconWrapper">
                 <BricksIcon :class="$style.icon" :icon="item.icon" />
@@ -261,7 +231,7 @@ function handleToggleLocale(): void {
     flex-direction: column;
     gap: 0.4rem;
 
-    &:hover:not(.\_disabled) {
+    &:hover {
         background-color: var(--bricks-base-100);
         color: var(--bricks-base-900);
     }
@@ -269,11 +239,6 @@ function handleToggleLocale(): void {
     &._active {
         background-color: var(--bricks-primary-50, rgb(37 99 235 / 8%));
         color: var(--bricks-primary);
-    }
-
-    &._disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
     }
 }
 

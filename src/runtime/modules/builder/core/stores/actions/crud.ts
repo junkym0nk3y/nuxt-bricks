@@ -144,9 +144,7 @@ export const crudActions: IComponentsCrudActions = {
         if (this.selectedComponent && idsToRemove.has(this.selectedComponent.id)) {
             this.selectedComponent = null;
             const sidebarStore = useSidebarStore();
-            if (sidebarStore.activeView === 'properties') {
-                sidebarStore.setActiveView('components');
-            }
+            sidebarStore.hidePropertiesPanel();
         }
 
         this.saveToHistory();

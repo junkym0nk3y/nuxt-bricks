@@ -20,6 +20,7 @@ import { useCanvas } from '../composables/useCanvas';
 import { useBricksConfig } from '../../../../common/composables/useBricksConfig';
 import { useCanvasDrops } from '../composables/useCanvasDrops';
 import { useCanvasPan } from '../composables/useCanvasPan';
+import { useCanvasWheel } from '../composables/useCanvasWheel';
 import { useCanvasCentering } from '../composables/useCanvasCentering';
 import { useCanvasContainerMetrics } from '../composables/useCanvasContainerMetrics';
 import { useInteractivePreviewDismiss } from '../composables/useInteractivePreviewDismiss';
@@ -33,7 +34,7 @@ import { scrollToComponentOnCanvas } from '../../../core/utils/scrollToComponent
 
 // Components
 import BuilderCanvasItem from '../../item/components/BuilderCanvasItem.vue';
-import BuilderCanvasToolbar from './BuilderCanvasToolbar.vue';
+import BuilderCanvasBottomBar from './BuilderCanvasBottomBar.vue';
 import BuilderCanvasEmptyState from './BuilderCanvasEmptyState.vue';
 import BuilderCanvasViewport from './BuilderCanvasViewport.vue';
 import BuilderCanvasInlineEditingOverlay from '../../editing/components/BuilderCanvasInlineEditingOverlay.vue';
@@ -50,9 +51,12 @@ const {
     canvasTransform,
     figmaBaseTransform,
     canvasContainerStyle,
+    canvasWrapperStyle,
+    figmaWrapperMinWidth,
     figmaGap,
     getRemCompensation,
     handleResize,
+    resetZoom,
 } = useCanvas();
 
 const dragComposable = inject<IDragComposableCanvas | undefined>('dragComposable');
@@ -96,6 +100,8 @@ const {
 
 const { isPanning, handleCanvasAreaPointerDown } = useCanvasPan(canvasContainer);
 
+const { zoomInAtCenter, zoomOutAtCenter } = useCanvasWheel(canvasContainer);
+
 const { scheduleCanvasCenter } = useCanvasCentering(canvasContainer);
 
 const { updateContainerMetrics, initMetricsObserver } = useCanvasContainerMetrics({
@@ -114,6 +120,14 @@ useInteractivePreviewDismiss();
  */
 const leftSidebarOffset = computed(() => {
     return sidebarStore.left.visible ? sidebarStore.left.width : '0px';
+});
+
+/**
+ * Вычисляет отступ правой панели свойств для позиционирования toolbar
+ * @returns Ширина правой панели если она видима, иначе '0px'
+ */
+const rightSidebarOffset = computed(() => {
+    return sidebarStore.right.visible ? sidebarStore.right.width : '0px';
 });
 
 /**
@@ -271,19 +285,6 @@ onBeforeUnmount(() => {
 
 <template>
     <div :class="$style.TheBuilderCanvas">
-        <!-- Canvas Toolbar -->
-        <BuilderCanvasToolbar
-            :scale="canvasStore.scale"
-            :viewport="canvasStore.viewport"
-            :sidebar-offset="leftSidebarOffset"
-            :is-figma-mode="canvasStore.isFigmaMode"
-            @zoom-in="canvasStore.zoomIn"
-            @zoom-out="canvasStore.zoomOut"
-            @zoom-reset="canvasStore.zoomReset"
-            @update:viewport="canvasStore.setViewport"
-            @toggle-figma-mode="canvasStore.toggleFigmaMode"
-        />
-
         <!-- Canvas Area -->
         <div
             ref="canvasContainer"
@@ -294,22 +295,34 @@ onBeforeUnmount(() => {
             <!-- Figma Mode: три viewport-а рядом -->
             <div
                 v-if="canvasStore.isFigmaMode"
-                :class="$style.figmaWrapper"
-                :style="figmaWrapperStyle"
+                :class="$style.figmaOuter"
+                :style="isMounted ? { minWidth: figmaWrapperMinWidth } : undefined"
             >
-                <BuilderCanvasViewport viewport="mobile" />
-                <BuilderCanvasViewport viewport="tablet" />
-                <BuilderCanvasViewport viewport="desktop" />
+                <div
+                    :class="$style.figmaWrapper"
+                    :style="figmaWrapperStyle"
+                    data-canvas-zoom-target="true"
+                >
+                    <BuilderCanvasViewport viewport="mobile" />
+                    <BuilderCanvasViewport viewport="tablet" />
+                    <BuilderCanvasViewport viewport="desktop" />
+                </div>
             </div>
 
             <!-- Normal Mode: один канвас -->
-            <div v-else ref="canvasWrapperRef" :class="$style.canvasWrapper">
+            <div
+                v-else
+                ref="canvasWrapperRef"
+                :class="$style.canvasWrapper"
+                :style="isMounted ? canvasWrapperStyle : undefined"
+            >
                 <div
                     ref="canvasRef"
                     :class="[$style.canvas, 'bricks-canvas']"
                     :style="canvasStyle"
                     :data-bricks-viewport="canvasStore.viewport"
                     data-canvas-area="true"
+                    data-canvas-zoom-target="true"
                     @drop="handleCanvasDrop"
                     @dragover="handleCanvasDragOver"
                     @click="handleCanvasClick"
@@ -351,6 +364,20 @@ onBeforeUnmount(() => {
             </div>
         </div>
 
+        <!-- Bottom floating bar: viewport + zoom + undo/redo + grid -->
+        <BuilderCanvasBottomBar
+            :scale="canvasStore.scale"
+            :viewport="canvasStore.viewport"
+            :sidebar-offset="leftSidebarOffset"
+            :right-sidebar-offset="rightSidebarOffset"
+            :is-figma-mode="canvasStore.isFigmaMode"
+            @zoom-in="zoomInAtCenter"
+            @zoom-out="zoomOutAtCenter"
+            @zoom-reset="resetZoom"
+            @update:viewport="canvasStore.setViewport"
+            @toggle-figma-mode="canvasStore.toggleFigmaMode"
+        />
+
         <!-- Inline Editing Overlay -->
         <BuilderCanvasInlineEditingOverlay />
     </div>
@@ -382,16 +409,26 @@ onBeforeUnmount(() => {
     position: relative;
     display: flex;
     align-items: flex-start;
+    justify-content: center;
     width: max-content;
     margin: 0 auto;
     padding: 6rem 0;
+}
+
+// Layout-обёртка Figma Mode: несёт min-width по визуальной ширине,
+// transform живёт на .figmaWrapper внутри (иначе масштаб применился бы дважды)
+.figmaOuter {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    width: max-content;
+    margin: 2rem auto 0;
 }
 
 .figmaWrapper {
     display: flex;
     align-items: flex-start;
     width: max-content;
-    margin: 2rem auto 0;
     padding: 10rem 0;
     transform-origin: top center;
 }

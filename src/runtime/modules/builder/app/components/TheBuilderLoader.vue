@@ -219,12 +219,7 @@ onUnmounted(() => {
 
             <div :class="$style.content">
                 <div :class="$style.logoWrapper">
-                    <BuilderLogo
-                        text=""
-                        target="_self"
-                        :is-touch="true"
-                        :is-infinite-animation="true"
-                    />
+                    <BuilderLogo :is-touch="true" :is-infinite-animation="true" />
                 </div>
                 <div :class="$style.barContainer">
                     <div :class="$style.barFill" :style="progressStyle"></div>

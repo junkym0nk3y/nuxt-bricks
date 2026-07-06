@@ -25,7 +25,6 @@
         },
         "nav": {
             "library": "Components",
-            "properties": "Properties",
             "schema": "Schema",
             "settings": "Settings",
             "docs": "Documentation",
@@ -56,6 +55,19 @@
             "editorLoading": "Loading editor...",
             "select": "Select",
             "add": "Add",
+            "spacing": {
+                "content": "Content",
+                "block": "Block",
+                "increase": "Increase {side}",
+                "decrease": "Decrease {side}",
+                "mirrored": "{side} (mirrored)",
+                "sides": {
+                    "top": "top spacing",
+                    "bottom": "bottom spacing",
+                    "left": "left spacing",
+                    "right": "right spacing"
+                }
+            },
             "inline": {
                 "text": "Text",
                 "lineBreak": "Line break",
@@ -302,7 +314,10 @@
             "enable": "Enable",
             "disable": "Disable",
             "moveUp": "Move up",
-            "moveDown": "Move down"
+            "moveDown": "Move down",
+            "zoomIn": "Zoom in",
+            "zoomOut": "Zoom out",
+            "zoomReset": "Reset zoom"
         },
         "textEditor": {
             "editorTitle": "Text editor",
@@ -410,13 +425,16 @@
                         "description": "Minimum row height in rem (0 = no limit)"
                     },
                     "paddingX": {
-                        "label": "Horizontal Padding (rem)",
+                        "label": "Horizontal Padding",
                         "description": "Horizontal inner padding of the container in rem"
                     },
                     "paddingY": {
-                        "label": "Vertical Padding (rem)",
+                        "label": "Vertical Padding",
                         "description": "Vertical inner padding of the container in rem"
                     }
+                },
+                "groups": {
+                    "spacing": "Spacing"
                 }
             },
             "flex": {
@@ -461,13 +479,16 @@
                         "description": "Wrap elements to a new line when space runs out"
                     },
                     "paddingX": {
-                        "label": "Horizontal padding (rem)",
+                        "label": "Horizontal padding",
                         "description": "Horizontal inner padding of the container in rem"
                     },
                     "paddingY": {
-                        "label": "Vertical padding (rem)",
+                        "label": "Vertical padding",
                         "description": "Vertical inner padding of the container in rem"
                     }
+                },
+                "groups": {
+                    "spacing": "Spacing"
                 }
             },
             "section": {
@@ -482,13 +503,13 @@
                         "description": "Background image URL"
                     },
                     "paddingTop": {
-                        "label": "Padding top (rem)"
+                        "label": "Padding top"
                     },
                     "paddingBottom": {
-                        "label": "Padding bottom (rem)"
+                        "label": "Padding bottom"
                     },
                     "paddingX": {
-                        "label": "Horizontal padding (rem)"
+                        "label": "Horizontal padding"
                     },
                     "borderRadius": {
                         "label": "Border radius (rem)"
@@ -665,11 +686,14 @@
                         }
                     },
                     "marginTop": {
-                        "label": "Margin Top (rem)"
+                        "label": "Margin Top"
                     },
                     "marginBottom": {
-                        "label": "Margin Bottom (rem)"
+                        "label": "Margin Bottom"
                     }
+                },
+                "groups": {
+                    "spacing": "Spacing"
                 }
             },
             "text": {
@@ -679,11 +703,14 @@
                         "label": "Content"
                     },
                     "marginTop": {
-                        "label": "Margin Top (rem)"
+                        "label": "Margin Top"
                     },
                     "marginBottom": {
-                        "label": "Margin Bottom (rem)"
+                        "label": "Margin Bottom"
                     }
+                },
+                "groups": {
+                    "spacing": "Spacing"
                 }
             },
             "accordion": {

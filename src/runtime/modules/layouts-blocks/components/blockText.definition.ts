@@ -55,12 +55,18 @@ export const blockTextDefinition: IBlockDefinition = {
             type: 'number',
             label: 'bricks.blocks.text.props.marginTop.label',
             default: 0,
+            step: 0.2,
+            unit: 'rem',
+            group: 'bricks.blocks.text.groups.spacing',
         },
         {
             name: 'marginBottom',
             type: 'number',
             label: 'bricks.blocks.text.props.marginBottom.label',
             default: 0,
+            step: 0.2,
+            unit: 'rem',
+            group: 'bricks.blocks.text.groups.spacing',
         },
     ],
 };

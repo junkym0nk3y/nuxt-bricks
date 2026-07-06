@@ -5,8 +5,9 @@ import { useComponentsStore } from '../../core/stores/components';
 
 /**
  * Горячие клавиши билдера: Delete/Backspace (удаление), Ctrl/Cmd+C/V (копирование/вставка),
- * Ctrl/Cmd+Z и Ctrl/Cmd+Shift+Z (undo/redo). Возвращает обработчик для `keydown` на window —
- * подписку/отписку выполняет вызывающий (composition root).
+ * Ctrl/Cmd+Z и Ctrl/Cmd+Shift+Z (undo/redo), Escape (сброс выбора → скрытие панели свойств).
+ * Возвращает обработчик для `keydown` на window — подписку/отписку выполняет вызывающий
+ * (composition root).
  */
 export function useBuilderShortcuts() {
     const componentsStore = useComponentsStore();
@@ -76,6 +77,27 @@ export function useBuilderShortcuts() {
     }
 
     /**
+     * Обрабатывает Escape: сбрасывает выбор компонента (панель свойств уезжает).
+     *
+     * @param event - Событие клавиатуры.
+     * @returns true, если событие было обработано.
+     */
+    function handleEscapeShortcut(event: KeyboardEvent): boolean {
+        if (event.key !== 'Escape') {
+            return false;
+        }
+        // Событие уже обработано (например, закрытием модалки) — выбор не сбрасываем
+        if (event.defaultPrevented) {
+            return true;
+        }
+        if (!componentsStore.selectedComponent) {
+            return false;
+        }
+        componentsStore.deselectComponent();
+        return true;
+    }
+
+    /**
      * Обрабатывает горячие клавиши отмены/повтора действий (Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z).
      *
      * @param event - Событие клавиатуры.
@@ -110,6 +132,9 @@ export function useBuilderShortcuts() {
             return;
         }
         if (handlePasteShortcut(event)) {
+            return;
+        }
+        if (handleEscapeShortcut(event)) {
             return;
         }
         handleUndoRedoShortcut(event);

@@ -19,11 +19,13 @@ export function useCanvasCentering(canvasContainer: Ref<HTMLElement | null>) {
 
     /**
      * Центрирует канвас по горизонтали относительно доступной ширины.
+     * При ручном зуме (wheel/кнопки) не вмешивается — позицией скролла
+     * управляет пользователь (zoom-to-cursor в useCanvasWheel).
      *
      * @param options - Настройки прокрутки контейнера.
      */
     function centerCanvasHorizontally(options: { behavior?: ScrollBehavior } = {}): void {
-        if (typeof window === 'undefined') {
+        if (typeof window === 'undefined' || canvasStore.hasManualZoom) {
             return;
         }
 
@@ -102,11 +104,16 @@ export function useCanvasCentering(canvasContainer: Ref<HTMLElement | null>) {
     );
 
     /**
-     * Отслеживает видимость и ширину левого сайдбара
-     * При открытии/закрытии сайдбара плавно центрирует канвас (с анимацией)
+     * Отслеживает видимость и ширину левого сайдбара и правой панели свойств.
+     * При открытии/закрытии плавно центрирует канвас (с анимацией)
      */
     watch(
-        () => [sidebarStore.left.visible, sidebarStore.left.width],
+        () => [
+            sidebarStore.left.visible,
+            sidebarStore.left.width,
+            sidebarStore.right.visible,
+            sidebarStore.right.width,
+        ],
         () => {
             scheduleCanvasCenter('smooth');
         }

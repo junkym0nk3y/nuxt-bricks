@@ -12,9 +12,7 @@ import { definePageMeta, useHead, useRoute, useRouter, useCookie } from '#import
 
 // Pinia
 import { useComponentsStore } from '../../core/stores/components';
-import { useCanvasStore } from '../../core/stores/canvas';
 import { useSidebarStore } from '../../core/stores/sidebar';
-import { useHistoryStore } from '../../core/stores/history';
 import { usePublishStore } from '../../publish/stores/publish';
 import { useInlineEditingStore } from '../../../text-editor/stores/inlineEditing';
 
@@ -31,6 +29,7 @@ import { loadFavoritesFromStorage } from '../../core/stores/actions/favorites';
 import TheBuilderShellToolbar from '../../shell/toolbar/components/TheBuilderShellToolbar.vue';
 import BuilderShellToolbarVerticalNav from '../../shell/toolbar/components/BuilderShellToolbarVerticalNav.vue';
 import TheBuilderShellSidebar from '../../shell/sidebar/components/TheBuilderShellSidebar.vue';
+import TheBuilderShellSidebarPropertiesPanel from '../../shell/sidebar/components/TheBuilderShellSidebarPropertiesPanel.vue';
 import TheBuilderCanvas from '../../canvas/viewport/components/TheBuilderCanvas.vue';
 import TheBuilderLoader from '../components/TheBuilderLoader.vue';
 import TheBuilderDocumentationModal from '../../documentation/components/TheBuilderDocumentationModal.vue';
@@ -52,9 +51,7 @@ const route = useRoute();
 const router = useRouter();
 
 const componentsStore = useComponentsStore();
-const canvasStore = useCanvasStore();
 const sidebarStore = useSidebarStore();
-const historyStore = useHistoryStore();
 const publishStore = usePublishStore();
 
 // Мост media-запросов inline-редактора: editor подключается только здесь (composition root)
@@ -71,6 +68,7 @@ const {
     isMediaGalleryModalOpen,
     mediaGalleryContext,
     sidebarRef,
+    propertiesPanelRef,
     toast,
     isEditingExistingPage,
     hasSelectedComponent,
@@ -78,7 +76,6 @@ const {
     currentPublishPageTitle,
     handleKeyDown,
     handleToggleLibrary,
-    handleToggleProperties,
     handleToggleSchema,
     handleOpenPublishSettings,
     handleOpenDocs,
@@ -90,8 +87,6 @@ const {
     handleSaveDraft,
     handleSaveAsCopy,
     handlePreview,
-    handleUndo,
-    handleRedo,
     showToast,
     isImageResolverModalOpen,
     imageResolverState,
@@ -142,9 +137,6 @@ const isPublishSettingsComplete = computed<boolean>(() => {
 
 const isLibraryActive = computed<boolean>(
     () => sidebarStore.left.visible && sidebarStore.activeView === 'components'
-);
-const isPropertiesActive = computed<boolean>(
-    () => sidebarStore.left.visible && sidebarStore.activeView === 'properties'
 );
 const isPublishSettingsActive = computed<boolean>(
     () => sidebarStore.left.visible && sidebarStore.activeView === 'publish'
@@ -221,36 +213,27 @@ onBeforeUnmount(() => {
 <template>
     <div :class="[$style.BricksBuilder, 'bricks-text']">
         <TheBuilderShellToolbar
-            :history-index="historyStore.historyIndex"
-            :history-length="historyStore.history.length"
             :is-editing-existing-page="isEditingExistingPage"
             :is-submitting-publish="publishStore.isSubmitting"
             :has-selected-component="hasSelectedComponent"
             :is-publish-settings-complete="isPublishSettingsComplete"
-            :show-grid="canvasStore.showGrid"
             :sidebar-offset="leftSidebarOffset"
             :page-title="currentPublishPageTitle"
-            @toggle-grid="canvasStore.toggleGrid"
             @open-pages-manager="handleOpenPagesManager"
             @open-media-gallery="handleOpenMediaGalleryWithContext"
             @save-draft="handleSaveDraft"
             @save-as-copy="handleSaveAsCopy"
             @preview="handlePreview"
-            @undo="handleUndo"
-            @redo="handleRedo"
         />
 
         <div :class="$style.content">
             <BuilderShellToolbarVerticalNav
                 :is-library-active="isLibraryActive"
-                :is-properties-active="isPropertiesActive"
                 :is-schema-active="isSchemaActive"
                 :is-publish-settings-active="isPublishSettingsActive"
-                :has-selected-component="hasSelectedComponent"
                 :is-publish-settings-complete="isPublishSettingsComplete"
                 :is-dark-mode="isDarkMode"
                 @toggle-library="handleToggleLibrary"
-                @toggle-properties="handleToggleProperties"
                 @toggle-schema="handleToggleSchema"
                 @open-publish-settings="handleOpenPublishSettings"
                 @open-docs="handleOpenDocs"
@@ -263,6 +246,11 @@ onBeforeUnmount(() => {
                 :components="componentLibraryList"
                 @open-media-gallery="handleOpenMediaGalleryWithContext"
                 @import-schema="handleImportSchema"
+            />
+
+            <TheBuilderShellSidebarPropertiesPanel
+                ref="propertiesPanelRef"
+                @open-media-gallery="handleOpenMediaGalleryWithContext('properties')"
             />
 
             <div :class="$style.canvasWrapper">

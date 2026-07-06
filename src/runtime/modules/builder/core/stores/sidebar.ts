@@ -6,15 +6,24 @@ interface ISidebarState {
         visible: boolean;
         width: string;
     };
+    right: {
+        visible: boolean;
+        width: string;
+    };
     activeView: TSidebarView;
 }
 
 /**
- * Контролирует состояние левого сайдбара конструктора: его видимость, ширину и активный раздел.
+ * Контролирует состояние сайдбаров конструктора: левого (библиотека/схема/публикация)
+ * и правой панели свойств выбранного компонента.
  */
 export const useSidebarStore = defineStore('bricksSidebar', {
     state: (): ISidebarState => ({
         left: {
+            visible: false,
+            width: '37.2rem',
+        },
+        right: {
             visible: false,
             width: '37.2rem',
         },
@@ -73,6 +82,20 @@ export const useSidebarStore = defineStore('bricksSidebar', {
          */
         setActiveView(view: TSidebarView) {
             this.activeView = view;
+        },
+
+        /**
+         * Показывает правую панель свойств выбранного компонента.
+         */
+        showPropertiesPanel() {
+            this.right.visible = true;
+        },
+
+        /**
+         * Скрывает правую панель свойств.
+         */
+        hidePropertiesPanel() {
+            this.right.visible = false;
         },
     },
 });

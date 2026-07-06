@@ -35,19 +35,17 @@ export const selectionActions: IComponentsSelectionActions = {
         };
 
         const sidebarStore = useSidebarStore();
-        sidebarStore.showSidebarView('properties');
+        sidebarStore.showPropertiesPanel();
     },
 
     /**
-     * Сбрасывает выбор и возвращает сайдбар в список компонентов.
+     * Сбрасывает выбор и скрывает правую панель свойств.
      */
     deselectComponent(this: IComponentsStore) {
         this.selectedComponent = null;
         this.interactivePreviewId = null;
         const sidebarStore = useSidebarStore();
-        if (sidebarStore.activeView === 'properties') {
-            sidebarStore.setActiveView('components');
-        }
+        sidebarStore.hidePropertiesPanel();
     },
 
     /**

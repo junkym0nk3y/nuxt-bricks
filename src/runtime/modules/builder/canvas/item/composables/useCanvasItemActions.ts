@@ -170,9 +170,8 @@ export function useCanvasItemActions(
             }
         }
 
-        // Определяем, нужна ли анимация сайдбара (повлияет на размер канваса)
-        const sidebarAlreadyOpen =
-            sidebarStore.left.visible && sidebarStore.activeView === 'properties';
+        // Определяем, нужна ли анимация панели свойств (повлияет на размер канваса)
+        const sidebarAlreadyOpen = sidebarStore.right.visible;
 
         componentsStore.selectComponent(props.component.id, properties, description);
 
