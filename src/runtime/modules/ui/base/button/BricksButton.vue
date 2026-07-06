@@ -182,13 +182,12 @@ function onClick(event: MouseEvent): void {
     }
 
     &._outline {
-        border-color: var(--bricks-base-300);
-        background-color: var(--bricks-base-0);
+        border-color: var(--bricks-base-400);
+        background-color: transparent;
         color: var(--bricks-base-600);
 
         &:not(._disabled):hover {
-            border-color: var(--bricks-base-400);
-            background-color: var(--bricks-base-50);
+            background-color: var(--bricks-base-100);
             color: var(--bricks-base-900);
         }
     }
