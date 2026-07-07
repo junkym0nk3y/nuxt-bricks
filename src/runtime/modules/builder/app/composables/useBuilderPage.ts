@@ -20,6 +20,7 @@ import { useComponentLibrary } from './useComponentLibrary';
 import { useBuilderShortcuts } from './useBuilderShortcuts';
 import { useBuilderToast } from '../../core/composables/useBuilderToast';
 import { usePreviewSync } from './usePreviewSync';
+import { usePublishPreview } from '../../publish/composables/usePublishPreview';
 import { useBricksConfig } from '../../../common/composables/useBricksConfig';
 import { useSchemaImageResolver } from '../../media/composables/useSchemaImageResolver';
 
@@ -57,6 +58,7 @@ export async function useBuilderPage(
 
     const imageResolver = useSchemaImageResolver();
     const { startPreviewSync } = usePreviewSync();
+    const { previewCurrentPage } = usePublishPreview();
     const { handleKeyDown } = useBuilderShortcuts();
     const { toast, showToast } = useBuilderToast();
     const { componentLibraryList } = await useComponentLibrary();
@@ -240,19 +242,11 @@ export async function useBuilderPage(
      */
     async function handlePreview(): Promise<void> {
         const schema = componentsStore.exportSchema();
-        const success = publishStore.previewCurrentPage(schema);
+        const previewPagename = previewCurrentPage(schema);
 
-        if (success && import.meta.client) {
-            try {
-                const stored = window.localStorage.getItem('bricks-preview-page');
-                if (stored) {
-                    const parsed = JSON.parse(stored) as Record<string, unknown>;
-                    startPreviewSync(String(parsed.pagename ?? ''));
-                }
-            } catch {
-                // ignore
-            }
-        } else if (!success) {
+        if (previewPagename && import.meta.client) {
+            startPreviewSync(previewPagename);
+        } else if (!previewPagename) {
             showToast(
                 publishStore.generalError || t('bricks.publish.toasts.previewFailed'),
                 'error'

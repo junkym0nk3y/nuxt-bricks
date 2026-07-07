@@ -1,19 +1,22 @@
 // #region Imports
 // Types
 import type { ISelectedComponentData, IUsePropertyVariantsReturn } from '../types/composables';
-import type { TBrickPropValue } from '../../../../common/types/brick';
+import type { IPropertyDefinition } from '../../../../common/types/brick';
 
 // Vue
 import { computed, type ComputedRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Utils
-import {
-    formatDisplayValue,
-    formatPrimitiveArrayValue,
-    isPrimitiveArrayValue,
-} from '../utils/propertyFormatters';
 import { resolveBricksLabel } from '../../../../common/utils/i18nLabels';
+import { normalizeVariantProps } from '../utils/normalizeVariantProps';
+import {
+    VARIANT_BUILDERS,
+    buildInputVariant,
+    buildSelectVariant,
+    createEmptyVariants,
+    type IVariantBuilderTools,
+} from '../utils/variantBuilders';
 
 // Constants
 import {
@@ -27,7 +30,8 @@ import {
 
 /**
  * Composable для управления вариантами свойств компонентов.
- * Преобразует определения свойств в варианты для различных типов редакторов.
+ * Преобразует определения свойств в варианты для различных типов редакторов
+ * через реестр билдеров `VARIANT_BUILDERS` (utils/variantBuilders.ts).
  *
  * @param selectedComponentData - Computed значение с данными выбранного компонента
  * @returns Объект с вариантами свойств и функцией нормализации пропсов
@@ -37,12 +41,10 @@ export function usePropertyVariants(
 ): IUsePropertyVariantsReturn {
     const { t, te } = useI18n();
 
-    /**
-     * Резолвит label свойства: ключи `bricks.*` переводятся, кастомные строки — как есть.
-     */
-    function resolvePropertyLabel(property: IPropertyVariantContext['property']): string {
-        return resolveBricksLabel(t, te, property.label) || property.name;
-    }
+    const builderTools: IVariantBuilderTools = {
+        resolveLabel: (property) => resolveBricksLabel(t, te, property.label) || property.name,
+        t,
+    };
 
     // #region Computed
     /**
@@ -51,10 +53,10 @@ export function usePropertyVariants(
     const componentVariants = computed<TComponentVariantsMap>(() => {
         const selected = selectedComponentData.value;
         if (!selected) {
-            return createEmptyVariants();
+            return createEmptyVariants(PROPERTY_EDITOR_ORDER);
         }
 
-        const variants = createEmptyVariants();
+        const variants = createEmptyVariants(PROPERTY_EDITOR_ORDER);
 
         selected.properties.forEach((property) => {
             if (property.type === 'readonly') {
@@ -77,19 +79,9 @@ export function usePropertyVariants(
 
     // #region Methods
     /**
-     * Создает пустую структуру вариантов для всех типов редакторов
-     *
-     * @returns Объект с пустыми массивами для каждого типа редактора
-     */
-    function createEmptyVariants(): TComponentVariantsMap {
-        return PROPERTY_EDITOR_ORDER.reduce((acc, key) => {
-            acc[key] = [];
-            return acc;
-        }, {} as TComponentVariantsMap);
-    }
-
-    /**
-     * Добавляет вариант свойства в соответствующую коллекцию
+     * Добавляет вариант свойства в соответствующую коллекцию.
+     * Порядок диспатча: boolean → select-эвристика (options 2+) →
+     * реестр по типу → input-fallback.
      *
      * @param context - Контекст с информацией о свойстве и вариантах
      */
@@ -98,53 +90,32 @@ export function usePropertyVariants(
             return;
         }
 
-        if (handleBooleanVariant(context)) {
+        const builder = VARIANT_BUILDERS[context.property.type];
+
+        if (context.property.type === 'boolean' && builder) {
+            builder(context, builderTools);
             return;
         }
-        if (handleSelectVariant(context)) {
+
+        const resolveOptionLabel = (label: string): string =>
+            resolveBricksLabel(t, te, label) ?? label;
+        if (buildSelectVariant(context, builderTools, resolveOptionLabel)) {
             return;
         }
-        if (handleSwitchVariant(context)) {
+
+        if (builder) {
+            builder(context, builderTools);
             return;
         }
-        if (handleTextareaVariant(context)) {
-            return;
-        }
-        if (handleInlineContentVariant(context)) {
-            return;
-        }
-        if (handleTagsVariant(context)) {
-            return;
-        }
-        if (handleImageGalleryVariant(context)) {
-            return;
-        }
-        if (handleAccordionItemsVariant(context)) {
-            return;
-        }
-        if (handleColorVariant(context)) {
-            return;
-        }
-        if (handleImageVariant(context)) {
-            return;
-        }
-        if (handleVideoVariant(context)) {
-            return;
-        }
-        if (handleArrayVariant(context)) {
-            return;
-        }
-        if (handleObjectVariant(context)) {
-            return;
-        }
-        addInputVariant(context);
+
+        buildInputVariant(context, builderTools);
     }
 
     /**
      * Проверяет условие показа свойства в панели.
      */
     function shouldRenderProperty(
-        property: IPropertyVariantContext['property'],
+        property: IPropertyDefinition,
         componentProps: Record<string, unknown>
     ): boolean {
         const showWhen = property.showWhen;
@@ -153,401 +124,6 @@ export function usePropertyVariants(
         }
 
         return componentProps[showWhen.field] === showWhen.equals;
-    }
-
-    /**
-     * Обрабатывает select вариант свойства с опциями выбора
-     *
-     * @param context - Контекст с информацией о свойстве
-     * @returns true, если вариант был обработан
-     */
-    function handleSelectVariant({
-        property,
-        componentProps,
-        variants,
-    }: IPropertyVariantContext): boolean {
-        if (!Array.isArray(property.options) || property.options.length < 2) {
-            return false;
-        }
-
-        const options = property.options;
-
-        variants.select.push({
-            label: resolvePropertyLabel(property),
-            value: String(componentProps[property.name] ?? options[0]?.value ?? ''),
-            specs: options.map((option) => ({
-                label: resolveBricksLabel(t, te, String(option.label)) ?? String(option.label),
-                value: String(option.value),
-            })),
-            facets: options.map((option) => String(option.value)),
-            disabled: false,
-            property,
-        });
-
-        return true;
-    }
-
-    /**
-     * Обрабатывает switch вариант свойства (переключатель)
-     *
-     * @param context - Контекст с информацией о свойстве
-     * @returns true, если вариант был обработан
-     */
-    function handleSwitchVariant({
-        property,
-        componentProps,
-        variants,
-    }: IPropertyVariantContext): boolean {
-        if (property.type !== 'switch') {
-            return false;
-        }
-
-        variants.switch.push({
-            label: resolvePropertyLabel(property),
-            value: Boolean(componentProps[property.name]),
-            disabled: false,
-            trueValue: true,
-            falseValue: false,
-            trueLabel: t('bricks.properties.switchOn'),
-            falseLabel: '',
-            size: 'small',
-            property,
-        });
-
-        return true;
-    }
-
-    /**
-     * Обрабатывает boolean вариант свойства (чекбокс)
-     *
-     * @param context - Контекст с информацией о свойстве
-     * @returns true, если вариант был обработан
-     */
-    function handleBooleanVariant({
-        property,
-        componentProps,
-        variants,
-    }: IPropertyVariantContext): boolean {
-        if (property.type !== 'boolean') {
-            return false;
-        }
-
-        variants.boolean.push({
-            label: resolvePropertyLabel(property),
-            value: Boolean(componentProps[property.name]),
-            disabled: false,
-            property,
-        });
-
-        return true;
-    }
-
-    /**
-     * Обрабатывает textarea вариант свойства (многострочный текст)
-     *
-     * @param context - Контекст с информацией о свойстве
-     * @returns true, если вариант был обработан
-     */
-    function handleTextareaVariant({
-        property,
-        componentProps,
-        variants,
-    }: IPropertyVariantContext): boolean {
-        if (property.type !== 'textarea') {
-            return false;
-        }
-
-        variants.textarea.push({
-            label: resolvePropertyLabel(property),
-            value: formatDisplayValue(componentProps[property.name]),
-            disabled: false,
-            placeholder: `Enter ${property.label || property.name}`,
-            property,
-        });
-
-        return true;
-    }
-
-    /**
-     * Обрабатывает вариант сложного редактора для inline-контента.
-     *
-     * @param context - Контекст с информацией о свойстве
-     * @returns true, если вариант был обработан
-     */
-    function handleInlineContentVariant({
-        property,
-        componentProps,
-        variants,
-    }: IPropertyVariantContext): boolean {
-        if (property.type !== 'inline-content') {
-            return false;
-        }
-
-        const currentValue = componentProps[property.name];
-        const fallback =
-            Array.isArray(property.default) && property.default.length > 0 ? property.default : [];
-        const value = Array.isArray(currentValue) ? currentValue : fallback;
-
-        variants['inline-content'].push({
-            label: resolvePropertyLabel(property),
-            value,
-            disabled: false,
-            property,
-        });
-
-        return true;
-    }
-
-    /**
-     * Обрабатывает вариант редактора галереи изображений.
-     *
-     * @param context - Контекст с информацией о свойстве
-     * @returns true, если вариант был обработан
-     */
-    function handleImageGalleryVariant({
-        property,
-        componentProps,
-        variants,
-    }: IPropertyVariantContext): boolean {
-        if (property.type !== 'image-gallery') {
-            return false;
-        }
-
-        const currentValue = componentProps[property.name];
-        const fallback =
-            Array.isArray(property.default) && property.default.length > 0 ? property.default : [];
-        const value = Array.isArray(currentValue) ? currentValue : fallback;
-
-        variants['image-gallery'].push({
-            label: resolvePropertyLabel(property),
-            value,
-            disabled: false,
-            property,
-        });
-
-        return true;
-    }
-
-    /**
-     * Обрабатывает вариант редактора элементов аккордеона.
-     *
-     * @param context - Контекст с информацией о свойстве
-     * @returns true, если вариант был обработан
-     */
-    function handleAccordionItemsVariant({
-        property,
-        componentProps,
-        variants,
-    }: IPropertyVariantContext): boolean {
-        if (property.type !== 'accordion-items') {
-            return false;
-        }
-
-        const currentValue = componentProps[property.name];
-        const fallback =
-            Array.isArray(property.default) && property.default.length > 0 ? property.default : [];
-        const value = Array.isArray(currentValue) ? currentValue : fallback;
-
-        variants['accordion-items'].push({
-            label: resolvePropertyLabel(property),
-            value,
-            disabled: false,
-            property,
-        });
-
-        return true;
-    }
-
-    /**
-     * Обрабатывает color вариант свойства (hex color picker)
-     *
-     * @param context - Контекст с информацией о свойстве
-     * @returns true, если вариант был обработан
-     */
-    function handleColorVariant({
-        property,
-        componentProps,
-        variants,
-    }: IPropertyVariantContext): boolean {
-        if (property.type !== 'color') {
-            return false;
-        }
-
-        variants.color.push({
-            label: resolvePropertyLabel(property),
-            value: formatDisplayValue(componentProps[property.name]),
-            disabled: false,
-            property,
-        });
-
-        return true;
-    }
-
-    /**
-     * Обрабатывает tags вариант свойства (массив строк с chips-редактором).
-     */
-    function handleTagsVariant({
-        property,
-        componentProps,
-        variants,
-    }: IPropertyVariantContext): boolean {
-        if (property.type !== 'tags') {
-            return false;
-        }
-
-        const currentValue = componentProps[property.name];
-        const fallback = Array.isArray(property.default) ? property.default : [];
-        const source = Array.isArray(currentValue) ? currentValue : fallback;
-        const value = source.map((item) => String(item).trim()).filter((item) => Boolean(item));
-
-        variants.tags.push({
-            label: resolvePropertyLabel(property),
-            value,
-            disabled: false,
-            property,
-        });
-
-        return true;
-    }
-
-    /**
-     * Обрабатывает image вариант свойства (выбор изображения)
-     *
-     * @param context - Контекст с информацией о свойстве
-     * @returns true, если вариант был обработан
-     */
-    function handleImageVariant({
-        property,
-        componentProps,
-        variants,
-    }: IPropertyVariantContext): boolean {
-        if (property.type !== 'image') {
-            return false;
-        }
-
-        variants.image.push({
-            label: resolvePropertyLabel(property),
-            value: formatDisplayValue(componentProps[property.name]),
-            disabled: false,
-            property,
-        });
-
-        return true;
-    }
-
-    /**
-     * Обрабатывает video вариант свойства (выбор видео)
-     *
-     * @param context - Контекст с информацией о свойстве
-     * @returns true, если вариант был обработан
-     */
-    function handleVideoVariant({
-        property,
-        componentProps,
-        variants,
-    }: IPropertyVariantContext): boolean {
-        if (property.type !== 'video') {
-            return false;
-        }
-
-        variants.video.push({
-            label: resolvePropertyLabel(property),
-            value: formatDisplayValue(componentProps[property.name]),
-            disabled: false,
-            property,
-        });
-
-        return true;
-    }
-
-    /**
-     * Обрабатывает array вариант свойства (массив значений)
-     *
-     * @param context - Контекст с информацией о свойстве
-     * @returns true, если вариант был обработан
-     */
-    function handleArrayVariant({
-        property,
-        componentProps,
-        variants,
-    }: IPropertyVariantContext): boolean {
-        if (property.type !== 'array') {
-            return false;
-        }
-
-        const currentValue = componentProps[property.name];
-        const primitiveSource =
-            (Array.isArray(currentValue) && isPrimitiveArrayValue(currentValue)
-                ? currentValue
-                : null) ||
-            (Array.isArray(property.default) && isPrimitiveArrayValue(property.default)
-                ? property.default
-                : null);
-
-        if (primitiveSource) {
-            variants.input.push({
-                label: resolvePropertyLabel(property),
-                value: formatPrimitiveArrayValue(
-                    Array.isArray(currentValue) ? currentValue : primitiveSource
-                ),
-                disabled: false,
-                placeholder: 'item1, item2, item3',
-                property,
-            });
-            return true;
-        }
-
-        variants.json.push({
-            label: resolvePropertyLabel(property),
-            value: (currentValue ?? property.default ?? []) as TBrickPropValue,
-            disabled: false,
-            property,
-        });
-
-        return true;
-    }
-
-    /**
-     * Обрабатывает object вариант свойства (объект)
-     *
-     * @param context - Контекст с информацией о свойстве
-     * @returns true, если вариант был обработан
-     */
-    function handleObjectVariant({
-        property,
-        componentProps,
-        variants,
-    }: IPropertyVariantContext): boolean {
-        if (property.type !== 'object') {
-            return false;
-        }
-
-        variants.json.push({
-            label: resolvePropertyLabel(property),
-            value: (componentProps[property.name] ?? property.default ?? {}) as TBrickPropValue,
-            disabled: false,
-            property,
-        });
-
-        return true;
-    }
-
-    /**
-     * Добавляет input вариант свойства (текстовое поле по умолчанию)
-     *
-     * @param context - Контекст с информацией о свойстве
-     */
-    function addInputVariant({
-        property,
-        componentProps,
-        variants,
-    }: IPropertyVariantContext): void {
-        variants.input.push({
-            label: resolvePropertyLabel(property),
-            value: formatDisplayValue(componentProps[property.name]),
-            disabled: false,
-            property,
-        });
     }
 
     /**
@@ -561,51 +137,7 @@ export function usePropertyVariants(
         data: IComponentVariant,
         _editorType: TPropertyEditorType
     ): Record<string, unknown> {
-        if (data.specs) {
-            return {
-                label: data.label,
-                value: String(data.value),
-                specs: data.specs,
-                facets: data.facets,
-            };
-        }
-
-        if (data.trueValue !== undefined || data.falseValue !== undefined) {
-            return {
-                label: data.label,
-                value: data.value,
-                trueValue: data.trueValue,
-                trueLabel: data.trueLabel,
-                falseValue: data.falseValue,
-                falseLabel: data.falseLabel,
-                size: data.size ?? 'small',
-            };
-        }
-
-        const base: Record<string, unknown> = {
-            label: data.label,
-            value: data.value,
-            disabled: data.disabled,
-            placeholder: data.placeholder,
-        };
-
-        if (data.property?.min !== undefined) {
-            base.min = data.property.min;
-        }
-
-        if (data.property?.max !== undefined) {
-            base.max = data.property.max;
-        }
-
-        if (data.property?.step !== undefined) {
-            base.step = data.property.step;
-        }
-
-        if (data.property?.unit) {
-            base.unit = data.property.unit;
-        }
-
-        return base;
+        return normalizeVariantProps(data);
     }
     // #endregion
 

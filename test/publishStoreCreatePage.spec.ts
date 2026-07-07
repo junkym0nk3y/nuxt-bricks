@@ -16,6 +16,7 @@ vi.mock('../src/runtime/modules/common/composables/useApiClient', () => ({
 }));
 
 import { usePublishStore } from '../src/runtime/modules/builder/publish/stores/publish';
+import { usePublishPreview } from '../src/runtime/modules/builder/publish/composables/usePublishPreview';
 
 /**
  * Собирает состояние формы создания страницы с переопределениями.
@@ -75,9 +76,9 @@ describe('usePublishStore: создание страницы и URL превью
     });
 
     it('generatePreviewUrl ведёт на превью-роут /preview/[pagename] без query', () => {
-        const store = usePublishStore();
+        const { generatePreviewUrl } = usePublishPreview();
 
-        expect(store.generatePreviewUrl('landing')).toBe('/preview/landing');
-        expect(store.generatePreviewUrl('landing')).not.toContain('?preview');
+        expect(generatePreviewUrl('landing')).toBe('/preview/landing');
+        expect(generatePreviewUrl('landing')).not.toContain('?preview');
     });
 });

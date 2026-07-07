@@ -4,21 +4,24 @@ import { useNuxtApp } from '#imports';
 import type { IBricksSchema } from '../../../common/types/brick';
 import type {
     IUpdatePagePayload,
-    IPublishedPageSummary,
     IPublishedPage,
-    IPreviewStoredPage,
     TPublishFormState,
 } from '../../../common/types/bricks-api';
-import { useApiClient } from '../../../common/composables/useApiClient';
-import { toSnakeCaseShallow } from '../../../common/utils/case-transform';
-import { DEFAULT_LAYOUT, normalizePublishedPage } from '../../../common/utils/bricks/publishedPage';
+import { DEFAULT_LAYOUT } from '../../../common/utils/bricks/publishedPage';
 import {
     buildDefaultFormState,
     normalizeFormState,
     resolveDefaultBackgroundColor,
 } from '../utils/formState';
-import { toRequestError } from '../utils/requestErrors';
-import { buildPagePayload } from '../utils/pagePayload';
+import { validatePublishFormState } from '../utils/formValidation';
+import {
+    publishPageRequest,
+    updatePageRequest,
+    patchPageRequest,
+    deletePageRequest,
+    fetchAllPagesRequest,
+    fetchPageByPagenameRequest,
+} from '../utils/publishApi';
 
 /**
  * Переводит ключ через глобальный i18n (стор не имеет setup-контекста).
@@ -31,6 +34,8 @@ function t(key: string): string {
 
 /**
  * Pinia-стор для публикации, черновиков и загрузки страниц лендинга.
+ * API-слой — в `utils/publishApi.ts`, валидация — в `utils/formValidation.ts`,
+ * превью — в `composables/usePublishPreview.ts`.
  */
 export const usePublishStore = defineStore('bricksPublish', {
     state: () => ({
@@ -79,38 +84,27 @@ export const usePublishStore = defineStore('bricksPublish', {
         },
 
         /**
-         * Публикует новую страницу через API.
+         * Публикует новую страницу через API и перезагружает список страниц.
          *
          * @param schema - Схема лендинга.
          * @param formState - Данные формы публикации.
          */
         async publishPage(schema: IBricksSchema, formState: TPublishFormState): Promise<number> {
-            const { apiFetcher } = useApiClient();
-
             try {
-                const response = await apiFetcher<{ id: number; pagename: string }>(
-                    '/api/bricks/',
-                    {
-                        method: 'POST',
-                        body: toSnakeCaseShallow(buildPagePayload(schema, formState)),
-                    }
-                );
-
+                const response = await publishPageRequest(schema, formState);
                 console.log('[Publish Store] Page published successfully:', response);
 
-                // Перезагружаем список страниц
                 await this.loadAllPages();
 
                 return response.id;
             } catch (error: unknown) {
-                const requestError = toRequestError('POST', '/api/bricks', error);
                 console.error('[Publish Store] Failed to publish page:', error);
-                throw requestError;
+                throw error;
             }
         },
 
         /**
-         * Обновляет существующую страницу.
+         * Обновляет существующую страницу и перезагружает список страниц.
          *
          * @param id - Идентификатор страницы.
          * @param schema - Схема лендинга.
@@ -121,44 +115,26 @@ export const usePublishStore = defineStore('bricksPublish', {
             schema: IBricksSchema,
             formState: TPublishFormState
         ): Promise<void> {
-            const { apiFetcher } = useApiClient();
-
             try {
-                await apiFetcher(`/api/bricks/${id}/`, {
-                    method: 'PUT',
-                    body: toSnakeCaseShallow(buildPagePayload(schema, formState)),
-                });
-
+                await updatePageRequest(id, schema, formState);
                 console.log('[Publish Store] Page updated successfully');
 
-                // Перезагружаем список страниц
                 await this.loadAllPages();
             } catch (error: unknown) {
-                const requestError = toRequestError('PUT', `/api/bricks/${id}`, error);
                 console.error('[Publish Store] Failed to update page:', error);
-                throw requestError;
+                throw error;
             }
         },
 
         /**
-         * Частично обновляет страницу через PATCH /api/bricks/:id.
+         * Частично обновляет страницу и синхронизирует её в локальном списке.
          *
          * @param id - Идентификатор страницы.
          * @param payload - Частичный payload обновления.
          */
         async patchPage(id: string | number, payload: IUpdatePagePayload): Promise<IPublishedPage> {
-            const { apiFetcher } = useApiClient();
-
             try {
-                const response = await apiFetcher<IPublishedPage>(`/api/bricks/${id}/`, {
-                    method: 'PATCH',
-                    body: toSnakeCaseShallow(payload),
-                });
-
-                const normalized = normalizePublishedPage(
-                    response,
-                    resolveDefaultBackgroundColor()
-                );
+                const normalized = await patchPageRequest(id, payload);
 
                 const index = this.publishedPages.findIndex(
                     (page) => String(page.id) === String(id)
@@ -171,28 +147,21 @@ export const usePublishStore = defineStore('bricksPublish', {
 
                 return normalized;
             } catch (error: unknown) {
-                const requestError = toRequestError('PATCH', `/api/bricks/${id}`, error);
                 console.error('[Publish Store] Failed to patch page:', error);
-                throw requestError;
+                throw error;
             }
         },
 
         /**
-         * Удаляет страницу из БД.
+         * Удаляет страницу из БД и локального списка.
          *
          * @param id - Идентификатор страницы.
          */
         async deletePage(id: string | number): Promise<void> {
-            const { apiFetcher } = useApiClient();
-
             try {
-                await apiFetcher(`/api/bricks/${id}/`, {
-                    method: 'DELETE',
-                });
-
+                await deletePageRequest(id);
                 console.log('[Publish Store] Page deleted successfully');
 
-                // Удаляем из локального состояния
                 const index = this.publishedPages.findIndex(
                     (page) => String(page.id) === String(id)
                 );
@@ -200,9 +169,8 @@ export const usePublishStore = defineStore('bricksPublish', {
                     this.publishedPages.splice(index, 1);
                 }
             } catch (error: unknown) {
-                const requestError = toRequestError('DELETE', `/api/bricks/${id}`, error);
                 console.error('[Publish Store] Failed to delete page:', error);
-                throw requestError;
+                throw error;
             }
         },
 
@@ -210,18 +178,12 @@ export const usePublishStore = defineStore('bricksPublish', {
          * Загружает список всех страниц.
          */
         async loadAllPages(): Promise<void> {
-            const { apiFetcher } = useApiClient();
-
             try {
-                const response = await apiFetcher<IPublishedPage[]>('/api/bricks/');
-                this.publishedPages = response.map((page) =>
-                    normalizePublishedPage(page, resolveDefaultBackgroundColor())
-                );
+                this.publishedPages = await fetchAllPagesRequest();
             } catch (error: unknown) {
-                const requestError = toRequestError('GET', '/api/bricks', error);
-                this.generalError = requestError.message;
+                this.generalError = (error as Error).message;
                 console.error('[Publish Store] Failed to load pages:', error);
-                throw requestError;
+                throw error;
             }
         },
 
@@ -231,28 +193,16 @@ export const usePublishStore = defineStore('bricksPublish', {
          * @param pagename - ЧПУ страницы.
          */
         async loadPageByPagename(pagename: string): Promise<IPublishedPage | null> {
-            const { apiFetcher } = useApiClient();
-            let errorUrl = `/api/bricks/published (lookup ${pagename})`;
-
             try {
-                const publishedPages =
-                    await apiFetcher<IPublishedPageSummary[]>('/api/bricks/published/');
+                const page = await fetchPageByPagenameRequest(pagename);
 
-                const publishedPage = publishedPages.find(
-                    (candidate) => candidate.pagename === pagename && candidate.published
-                );
-
-                if (!publishedPage) {
+                if (!page) {
                     this.generalError = `GET /api/bricks/published: page "${pagename}" is not published`;
-                    return null;
                 }
 
-                errorUrl = `/api/bricks/${publishedPage.id}`;
-                const page = await apiFetcher<IPublishedPage>(`/api/bricks/${publishedPage.id}/`);
-                return normalizePublishedPage(page, resolveDefaultBackgroundColor());
+                return page;
             } catch (error: unknown) {
-                const requestError = toRequestError('GET', errorUrl, error);
-                this.generalError = requestError.message;
+                this.generalError = (error as Error).message;
                 console.error('[Publish Store] Failed to load page:', error);
                 return null;
             }
@@ -354,69 +304,24 @@ export const usePublishStore = defineStore('bricksPublish', {
          * @returns Пройдена ли валидация.
          */
         validateCurrentFormState(): boolean {
-            this.validationErrors = {};
-            this.generalError = '';
+            const { formState, errors } = validatePublishFormState(
+                this.currentFormState,
+                (pagename) =>
+                    this.isPagenameAvailable(
+                        pagename,
+                        this.editingPageId !== null ? this.editingPageId : undefined
+                    )
+            );
 
-            const trimmedPagename = this.currentFormState.pagename.trim();
-            if (trimmedPagename !== this.currentFormState.pagename) {
-                this.currentFormState = {
-                    ...this.currentFormState,
-                    pagename: trimmedPagename,
-                };
+            if (formState !== this.currentFormState) {
+                this.currentFormState = formState;
             }
 
-            if (!trimmedPagename) {
-                this.validationErrors.pagename = t('bricks.publish.validation.pagenameRequired');
-            } else if (!/^[a-z0-9-]+$/.test(trimmedPagename)) {
-                this.validationErrors.pagename = t('bricks.publish.validation.pagenameFormat');
-            } else if (
-                !this.isPagenameAvailable(
-                    trimmedPagename,
-                    this.editingPageId !== null ? this.editingPageId : undefined
-                )
-            ) {
-                this.validationErrors.pagename = t('bricks.publish.validation.pagenameTaken');
-            }
+            this.validationErrors = errors;
+            this.generalError =
+                Object.keys(errors).length > 0 ? t('bricks.publish.fillRequired') : '';
 
-            if (!this.currentFormState.title?.trim()) {
-                this.validationErrors.title = t('bricks.publish.validation.titleRequired');
-            }
-
-            if (!this.currentFormState.description?.trim()) {
-                this.validationErrors.description = t(
-                    'bricks.publish.validation.descriptionRequired'
-                );
-            }
-
-            this.validateOptionalRoutingFields();
-
-            if (Object.keys(this.validationErrors).length > 0) {
-                this.generalError = t('bricks.publish.fillRequired');
-                return false;
-            }
-
-            return true;
-        },
-
-        /**
-         * Валидирует опциональные поля маршрутизации (urlPrefix, subdomain).
-         */
-        validateOptionalRoutingFields(): void {
-            const trimmedUrlPrefix = this.currentFormState.urlPrefix?.trim() || null;
-            if (trimmedUrlPrefix !== this.currentFormState.urlPrefix) {
-                this.currentFormState = { ...this.currentFormState, urlPrefix: trimmedUrlPrefix };
-            }
-            if (trimmedUrlPrefix && !/^[a-z0-9-]+(\/[a-z0-9-]+)*$/.test(trimmedUrlPrefix)) {
-                this.validationErrors.urlPrefix = t('bricks.publish.validation.urlPrefixFormat');
-            }
-
-            const trimmedSubdomain = this.currentFormState.subdomain?.trim() || null;
-            if (trimmedSubdomain !== this.currentFormState.subdomain) {
-                this.currentFormState = { ...this.currentFormState, subdomain: trimmedSubdomain };
-            }
-            if (trimmedSubdomain && !/^[a-z0-9-]+$/.test(trimmedSubdomain)) {
-                this.validationErrors.subdomain = t('bricks.publish.validation.subdomainFormat');
-            }
+            return Object.keys(errors).length === 0;
         },
 
         /**
@@ -569,62 +474,6 @@ export const usePublishStore = defineStore('bricksPublish', {
                 this.validationErrors = { ...originalValidationErrors };
                 this.generalError = originalGeneralError;
             }
-        },
-
-        /**
-         * Создаёт превью текущего лендинга.
-         *
-         * @param schema - Схема лендинга.
-         * @returns Открыта ли вкладка превью.
-         */
-        previewCurrentPage(schema: IBricksSchema): boolean {
-            try {
-                // For preview, we only need a pagename (or generate a temp one)
-                const pagename = this.currentFormState.pagename.trim() || `preview-${Date.now()}`;
-                const tempPageId = `preview-${Date.now()}`;
-                const previewData: IPreviewStoredPage = {
-                    id: Number(tempPageId.replace('preview-', '')),
-                    pagename,
-                    title: this.currentFormState.title || t('bricks.publish.previewFallback'),
-                    description:
-                        this.currentFormState.description || t('bricks.publish.previewFallback'),
-                    keywords: this.currentFormState.keywords,
-                    published: this.currentFormState.published,
-                    layout: this.currentFormState.layout,
-                    backgroundColor: this.currentFormState.backgroundColor,
-                    socialImage: this.currentFormState.socialImage,
-                    urlPrefix: this.currentFormState.urlPrefix,
-                    subdomain: this.currentFormState.subdomain,
-                    createdAt: this.currentFormState.createdAt,
-                    updatedAt: this.currentFormState.updatedAt,
-                    schema,
-                    isPreview: true,
-                    storedAt: new Date().toISOString(),
-                };
-
-                if (typeof window === 'undefined') {
-                    console.warn('[Publish Store] previewCurrentPage: window is not available');
-                    return false;
-                }
-
-                window.localStorage.setItem('bricks-preview-page', JSON.stringify(previewData));
-                const previewUrl = `${this.generatePreviewUrl(pagename)}`;
-                window.open(previewUrl, '_blank');
-                return true;
-            } catch (error) {
-                console.error('[Publish Store] Failed to create preview:', error);
-                this.generalError = t('bricks.publish.previewCreateFailed');
-                return false;
-            }
-        },
-
-        /**
-         * Генерирует URL для превью — встроенный превью-маршрут /preview/[pagename].
-         *
-         * @param pagename - ЧПУ страницы.
-         */
-        generatePreviewUrl(pagename: string): string {
-            return `/preview/${pagename}`;
         },
     },
 });

@@ -18,6 +18,7 @@ import { usePublishStore } from '../stores/publish';
 // Composables
 import { useBuilderToast } from '../../core/composables/useBuilderToast';
 import { usePublishDashboard } from '../composables/usePublishDashboard';
+import { usePublishPreview } from '../composables/usePublishPreview';
 
 // Components
 import TheBuilderPublishDashboard from '../components/TheBuilderPublishDashboard.vue';
@@ -35,6 +36,7 @@ const { t, locale, setLocale } = useI18n();
 const router = useRouter();
 const publishStore = usePublishStore();
 const { toast, showToast } = useBuilderToast();
+const { generatePreviewUrl } = usePublishPreview();
 const { searchQuery, activeFilter, filterCounts, filteredPages, hasAnyPages } = usePublishDashboard(
     computed(() => publishStore.publishedPages)
 );
@@ -214,7 +216,7 @@ function handleDetailsNotify(message: string, variant: 'success' | 'error'): voi
  * @param page - Страница.
  */
 function handlePreviewPage(page: IPublishedPage): void {
-    window.open(publishStore.generatePreviewUrl(page.pagename), '_blank');
+    window.open(generatePreviewUrl(page.pagename), '_blank');
 }
 
 /**

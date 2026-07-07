@@ -9,6 +9,7 @@ import type {
     TComponentVariantsMap,
     IComponentVariant,
     TPropertyEditorType,
+    TSpacingSlot,
 } from '../components/property-editors/types';
 
 export type TInlineGalleryPayload = {
@@ -83,4 +84,15 @@ export interface ISidebarPropertySpacingEditorProps {
     /** Варианты spacing-свойств группы (paddingTop/paddingBottom/paddingX/paddingY/marginTop/marginBottom). */
     items: IComponentVariant[];
     handleChangeValues: (property: IPropertyDefinition, value: TBrickPropValue) => void;
+}
+
+export interface ISidebarPropertySpacingEditorSideProps {
+    /** Слот стороны box-model: степпер или read-only зеркало парной стороны. */
+    item: TSpacingSlot;
+    /** Активен ли инлайн-ввод значения этой стороны. */
+    isEditing?: boolean;
+    /** Текущий текст инлайн-ввода (v-model:editing-value). */
+    editingValue?: string;
+    /** Вертикальная раскладка степпера (левая сторона box-model). */
+    vertical?: boolean;
 }

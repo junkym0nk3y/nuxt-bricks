@@ -1,32 +1,15 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { Editor } from '@tiptap/vue-3';
 import type { ITextEditorAreaProps, ITextEditorAreaEmits } from './types.d.ts';
 
 // Vue
-import {
-    computed,
-    defineAsyncComponent,
-    onBeforeUnmount,
-    onMounted,
-    ref,
-    shallowRef,
-    useCssModule,
-    watch,
-    type Component,
-} from 'vue';
+import { computed, defineAsyncComponent, ref, useCssModule } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-// Utils
-import { createTiptapEditor } from '../utils/createTiptapEditor';
-import { insertMediaIntoEditor } from '../utils/insertMediaIntoEditor';
-
 // Composables
-import { useToolbarStateSync } from '../composables/useToolbarStateSync';
+import { useTextEditorArea } from '../composables/useTextEditorArea';
 
-// Pinia
-import { useInlineEditingStore } from '../stores/inlineEditing';
 // Components
 import BricksButton from '../../ui/base/button/BricksButton.vue';
 import BricksTextEditorToolbar from '../../ui/inputs/BricksTextEditorToolbar.vue';
@@ -57,21 +40,24 @@ const emit = defineEmits<ITextEditorAreaEmits>();
 
 // #region Data
 const { t } = useI18n();
-const inlineEditingStore = useInlineEditingStore();
 const $style = useCssModule();
-const innerValue = ref<string>(props.value ?? '');
-const isClient = ref(false);
-const loadingError = ref<unknown | null>(null);
-
-const isCodeView = ref(false);
-const isDarkEditorBackground = ref(false);
 const isExpandedModalOpen = ref(false);
-const editor = shallowRef<Editor | null>(null);
-const EditorContentComponent = shallowRef<Component | null>(null);
 
-const { toolbarGroups } = useToolbarStateSync(editor, {
-    isEnabled: () => props.useRichEditor !== false && isClient.value,
-});
+const {
+    innerValue,
+    isClient,
+    loadingError,
+    isCodeView,
+    isDarkEditorBackground,
+    editor,
+    EditorContentComponent,
+    toolbarGroups,
+    toggleCodeView,
+    toggleEditorBackground,
+    handleTextareaInput,
+    handleModalUpdate,
+    handleRequestImage,
+} = useTextEditorArea(props, emit);
 // #endregion
 
 // #region Computed
@@ -106,156 +92,14 @@ const isToolbarVisible = computed(
 );
 // #endregion
 
-watch(
-    () => props.value,
-    (next) => {
-        if (typeof next === 'string' && next !== innerValue.value) {
-            innerValue.value = next;
-            if (editor.value && editor.value.getHTML() !== next) {
-                editor.value.commands.setContent(next, { emitUpdate: false });
-            }
-        }
-    }
-);
-
-watch([() => props.disabled, isCodeView], ([disabled, codeView]) => {
-    if (props.useRichEditor === false) {
-        return;
-    }
-    editor.value?.setEditable(!disabled && !codeView);
-});
-
-// #region Lifecycle
-watch(
-    () => props.placeholder,
-    (placeholder) => {
-        if (props.useRichEditor === false || !editor.value) {
-            return;
-        }
-        editor.value.setOptions({
-            editorProps: {
-                ...editor.value.options.editorProps,
-                attributes: {
-                    ...(editor.value.options.editorProps?.attributes || {}),
-                    'data-placeholder': placeholder || t('bricks.textEditor.textPlaceholder'),
-                },
-            },
-        });
-    }
-);
-// #endregion
-
 // #region Methods
-/**
- * Переключает отображение между визуальным режимом и кодом
- */
-function toggleCodeView(): void {
-    if (props.useRichEditor === false) {
-        return;
-    }
-
-    isCodeView.value = !isCodeView.value;
-
-    if (!isCodeView.value && editor.value && editor.value.getHTML() !== innerValue.value) {
-        editor.value.commands.setContent(innerValue.value, { emitUpdate: false });
-    }
-}
-
-/**
- * Переключает фон визуального редактора между светлым и тёмным.
- */
-function toggleEditorBackground(): void {
-    isDarkEditorBackground.value = !isDarkEditorBackground.value;
-}
-
-/**
- * Обновляет внутреннее значение и эмитит событие update:value
- */
-function handleContentUpdate(content: string): void {
-    innerValue.value = content;
-    emit('update:value', content);
-}
-
-/**
- * Обрабатывает ввод в fallback textarea (без rich editor)
- */
-function handleTextareaInput(event: Event): void {
-    const target = event.target as HTMLTextAreaElement;
-    const value = target.value;
-    if (editor.value && editor.value.getHTML() !== value) {
-        editor.value.commands.setContent(value, { emitUpdate: false });
-    }
-    handleContentUpdate(value);
-}
-
-/**
- * Обрабатывает обновление значения из модального редактора.
- */
-function handleModalUpdate(value: string): void {
-    handleContentUpdate(value);
-    if (editor.value && editor.value.getHTML() !== value) {
-        editor.value.commands.setContent(value, { emitUpdate: false });
-    }
-}
-
 /**
  * Закрывает модальный редактор.
  */
 function handleModalClose(): void {
     isExpandedModalOpen.value = false;
 }
-
-/**
- * Запрашивает медиа из MediaGallery через inlineEditingStore.
- * При выборе вставляет изображение или видео в TipTap-редактор.
- */
-function handleRequestImage(): void {
-    if (!editor.value) {
-        return;
-    }
-
-    const ed = editor.value;
-    inlineEditingStore.requestMedia((item) => insertMediaIntoEditor(ed, item));
-}
-
-/**
- * Инициализирует rich text редактор только на клиенте
- */
-async function initEditor(): Promise<void> {
-    if (import.meta.server || props.useRichEditor === false || editor.value) {
-        return;
-    }
-
-    try {
-        const { editor: createdEditor, EditorContent } = await createTiptapEditor({
-            content: innerValue.value,
-            editable: !props.disabled,
-            onUpdate: ({ editor: instance }) => {
-                const html = instance.getHTML();
-                if (html !== innerValue.value) {
-                    handleContentUpdate(html);
-                }
-            },
-        });
-
-        EditorContentComponent.value = EditorContent;
-        editor.value = createdEditor;
-        loadingError.value = null;
-    } catch (error) {
-        loadingError.value =
-            error instanceof Error ? error : new Error('Failed to load rich text editor');
-    }
-}
 // #endregion
-
-onMounted(() => {
-    isClient.value = true;
-    initEditor();
-});
-
-onBeforeUnmount(() => {
-    editor.value?.destroy();
-});
 </script>
 
 <template>

@@ -33,6 +33,37 @@ export interface IBricksInputEmits {
     'validation-state': [payload: { valid: boolean; message: string | null }];
 }
 
+/** Функция emit компонента BricksInput (для передачи в композабл). */
+export interface IBricksInputEmitFn {
+    (event: 'update:value', value: string): void;
+    (event: 'validation-state', payload: { valid: boolean; message: string | null }): void;
+}
+
+/** Атрибуты нативного input, собранные композаблом useBricksInput. */
+export interface IBricksInputNativeAttributes {
+    type: 'text' | 'number';
+    autocomplete: string;
+    placeholder: string;
+    disabled: boolean;
+    maxlength: number | undefined;
+    inputmode: 'decimal' | 'text';
+    min: number | undefined;
+    max: number | undefined;
+    step: number | undefined;
+    'aria-label': string | undefined;
+    'aria-invalid': boolean;
+}
+
+export interface IUseBricksInputReturn {
+    innerValue: import('vue').Ref<string>;
+    errorMessage: import('vue').Ref<string | null>;
+    inputAttributes: import('vue').ComputedRef<IBricksInputNativeAttributes>;
+    showStepper: import('vue').ComputedRef<boolean>;
+    handleInput: (event: Event) => void;
+    handleBlur: (event: FocusEvent) => void;
+    handleStep: (direction: 1 | -1) => void;
+}
+
 export interface IBricksSwitchProps {
     value: string | boolean;
     trueValue?: string | boolean;
