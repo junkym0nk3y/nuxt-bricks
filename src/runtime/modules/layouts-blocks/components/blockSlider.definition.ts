@@ -4,13 +4,16 @@ import type { ISliderLayoutProps } from '../types/blockProps';
 import type { IBlockDefinition, IBlockRenderContext } from '../types/registry';
 
 // Vue
-import { h, type VNode } from 'vue';
+import { h, defineAsyncComponent, type VNode } from 'vue';
 
 // Utils
 import { gridPlacementStyle } from '../utils/responsiveVars';
 
 // Components
-import BlockSlider from './BlockSlider.vue';
+// Async-импорт: Swiper (~100KB) не должен попадать в бандл каждой published-страницы —
+// грузится только там, где слайдер реально есть в схеме. Канвас использует
+// eager-версию из canvasBlockComponents.ts, definitions она не касается.
+const BlockSlider = defineAsyncComponent(() => import('./BlockSlider.vue'));
 
 /**
  * Published-рендер Slider: children идут пропами slides/renderSlide, isEditor: false.

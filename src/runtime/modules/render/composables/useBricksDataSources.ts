@@ -32,7 +32,7 @@ export function useBricksDataSources() {
      * @returns Значение по указанному пути или undefined, если путь не найден.
      *
      */
-    function getValueByPath(source: Record<string, unknown>, path: string): unknown {
+    function getValueByPath(source: object | null, path: string): unknown {
         if (!path) {
             return undefined;
         }
@@ -74,7 +74,7 @@ export function useBricksDataSources() {
 
         const sourceValue = param.from.startsWith('component.')
             ? getValueByPath(component.props ?? {}, param.from.replace('component.', ''))
-            : getValueByPath(pageSettings as unknown as Record<string, unknown>, param.from);
+            : getValueByPath(pageSettings, param.from);
 
         return param.map ? param.map(sourceValue, context) : sourceValue;
     }

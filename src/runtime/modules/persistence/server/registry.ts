@@ -6,7 +6,7 @@
  * Nitro-плагина (server/plugins/*.ts) через сеттеры до первого запроса:
  *
  * ```ts
- * import { setBricksStorageAdapter } from 'nuxt-bricks/persistence'; // subpath-export — Шаг 8
+ * import { setBricksStorageAdapter } from 'nuxt-bricks/persistence';
  *
  * export default defineNitroPlugin(() => {
  *     setBricksStorageAdapter(createMyStorageAdapter());

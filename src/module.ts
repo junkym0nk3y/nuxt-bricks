@@ -326,10 +326,6 @@ export default defineNuxtModule<IBricksModuleOptions>({
         addPlugin(resolve(runtimeDir, 'plugins/text-editor-toolbar'));
         addPlugin(resolve(runtimeDir, 'plugins/bricks-styles'));
         addPlugin(resolve(runtimeDir, 'plugins/bricks-dynamic-routes'));
-        addPlugin({
-            src: resolve(runtimeDir, 'plugins/json-editor-vue.client'),
-            mode: 'client',
-        });
         // #endregion
 
         // #region Server (middleware + mock-api)

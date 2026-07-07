@@ -25,8 +25,8 @@ import BlockSvg from './BlockSvg.vue';
 function renderSvgPublished(ctx: IBlockRenderContext): VNode {
     const { component, extraClasses, extraAttrs, styles } = ctx;
     const cp = component.props as IBlockSvgProps;
-    const mOv = getResponsiveOverrides(cp as Record<string, any>, 'mobile');
-    const tOv = getResponsiveOverrides(cp as Record<string, any>, 'tablet');
+    const mOv = getResponsiveOverrides(cp as Record<string, unknown>, 'mobile');
+    const tOv = getResponsiveOverrides(cp as Record<string, unknown>, 'tablet');
 
     const style: Record<string, string> = {
         ...makeResponsiveVars('--bricks-media-width', cp.width || '4.8rem', tOv, mOv, 'width'),

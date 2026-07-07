@@ -11,7 +11,12 @@ $ARGUMENTS
 ## Контекст
 
 Иконки используются через `<BricksIcon icon="prefix:name" />`.
-Все зарегистрированы в `plugins/vue-icons.ts` в объекте `SYSTEM_ICONS`.
+Реестр разделён на два файла (published-страницы не грузят builder-набор):
+
+- `plugins/icons/systemIconsRegistry.ts` — ядро `SYSTEM_ICONS` (только иконки, нужные на published/preview: photo/video/x/device-*)
+- `plugins/icons/builderIcons.ts` — `BUILDER_ICONS`, весь UI билдера (lazy-чанк, доливается на `/bricks`)
+
+Новые иконки почти всегда добавляются в `BUILDER_ICONS`; в ядро — только если иконка рендерится на published/preview.
 Пакет: `@kalimahapps/vue-icons`. Паки: `ph` (Phosphor), `md` (Material Design), `bs` (Bootstrap), `cl`, `an`, `ak`, `fa`, `ca`, `cd`, `th`, `ti`, `re`, `ui`.
 
 ## Алгоритм
@@ -26,7 +31,7 @@ node -e "import('@kalimahapps/vue-icons/bs').then(m => console.log(Object.keys(m
 
 Заменить `bs` на нужный пак и `KEYWORD` на поисковое слово.
 
-### Шаг 2: Импортировать в `plugins/vue-icons.ts`
+### Шаг 2: Импортировать в `plugins/icons/builderIcons.ts`
 
 ```typescript
 import { BsNewIcon } from '@kalimahapps/vue-icons/bs';
@@ -34,7 +39,7 @@ import { BsNewIcon } from '@kalimahapps/vue-icons/bs';
 
 **НЕ используй `import *`** — это ломает Rollup из-за конфликта с `@codemirror`.
 
-### Шаг 3: Зарегистрировать в `SYSTEM_ICONS`
+### Шаг 3: Зарегистрировать в `BUILDER_ICONS`
 
 ```typescript
 'bs:new-icon': BsNewIcon,

@@ -1,74 +1,17 @@
 // #region Imports
 // Types
 import type { Component } from 'vue';
-import type { Composer } from 'vue-i18n';
-import type { TModalKey, IModalOption } from '../types/modals';
-
-// Nuxt
-import { useNuxtApp } from '#imports';
+import type { TModalKey } from '../../core/types/modals';
 
 // Composables
-import { useApiClient } from '../../../common/composables/useApiClient';
+import {
+    loadModals,
+    getModalOptions,
+    getCachedModal,
+    isModalsCacheLoaded,
+} from '../../core/composables/useModalOptions';
 import { useBrickImports } from '../../../common/composables/useBrickImports';
 // #endregion
-
-// #region Data
-/**
- * Глобальный кеш модальных окон
- */
-let modalsCache: Array<{ name: string; brickPath: string }> = [];
-let isCacheLoaded = false;
-// #endregion
-
-/**
- * Загрузить список модальных окон из bricks.json
- * Результат кешируется для последующих вызовов
- */
-async function loadModals(): Promise<void> {
-    if (isCacheLoaded) {
-        return;
-    }
-
-    try {
-        const { apiFetcher } = useApiClient();
-        const response = await apiFetcher<{
-            bricks: Array<{ name: string; category: string; brickPath: string }>;
-        }>('/mock-api/bricks-components');
-        const bricks = response?.bricks || [];
-
-        // Фильтруем только модалки
-        modalsCache = bricks
-            .filter((brick) => brick.category === 'Modal')
-            .map((brick) => ({
-                name: brick.name,
-                brickPath: brick.brickPath,
-            }));
-
-        isCacheLoaded = true;
-    } catch (error) {
-        console.error('[loadModals] Failed to load modals:', error);
-        modalsCache = [];
-        isCacheLoaded = true;
-    }
-}
-
-/**
- * Получить список опций модалок для селектора
- * Синхронная функция, использует предзагруженный кеш
- * @returns Массив опций с label и value
- */
-export function getModalOptions(): IModalOption[] {
-    // Вне setup-контекста: $i18n резолвится лениво через useNuxtApp
-    const i18n = useNuxtApp().$i18n as Composer | undefined;
-
-    return [
-        { label: i18n?.t('bricks.properties.modalDisabled') ?? 'Отключено', value: null },
-        ...modalsCache.map((modal) => ({
-            label: modal.name,
-            value: modal.name as TModalKey,
-        })),
-    ];
-}
 
 /**
  * Получить компонент модалки по имени (синхронная версия)
@@ -82,7 +25,7 @@ function getModalComponent(modalName: TModalKey | null): (() => Promise<Componen
     }
 
     // Ищем модалку по имени в кеше
-    const modalBrick = modalsCache.find((modal) => modal.name === modalName);
+    const modalBrick = getCachedModal(modalName);
 
     if (!modalBrick) {
         console.error(`[getModalComponent] Modal not found: ${modalName}`);
@@ -115,7 +58,7 @@ async function getModalComponentLazy(
     }
 
     // Ленивая загрузка кэша, если ещё не загружен
-    if (!isCacheLoaded) {
+    if (!isModalsCacheLoaded()) {
         await loadModals();
     }
 
@@ -132,6 +75,6 @@ export function useModals() {
         getModalOptions,
         getModalComponent,
         getModalComponentLazy,
-        isCacheLoaded: () => isCacheLoaded,
+        isCacheLoaded: isModalsCacheLoaded,
     };
 }

@@ -1,6 +1,18 @@
 import type { IBricksSchema } from './brick';
 
 /**
+ * Общая форма ошибки API/fetch/БД: покрывает createError (h3), FetchError (ofetch, `data`)
+ * и драйверные ошибки с `code` (pg). Все поля опциональны — реальная ошибка может быть любой.
+ */
+export interface IApiError {
+    statusCode?: number;
+    statusMessage?: string;
+    message?: string;
+    code?: string;
+    data?: { message?: string };
+}
+
+/**
  * Формат данных для фронтенда.
  * БД возвращает snake_case, но Vue автоматически конвертирует в camelCase.
  */

@@ -4,6 +4,27 @@ import Image from '@tiptap/extension-image';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 // #endregion
 
+/**
+ * Внутренние поля ResizableNodeView — @tiptap/extension-image не экспортирует
+ * тип, поэтому доступ идёт через нормализацию `getNodeViewInternals`.
+ */
+interface IResizableNodeViewInternals {
+    dom?: HTMLElement;
+    node?: { attrs?: { width?: unknown; height?: unknown } };
+    element?: HTMLElement;
+    applyInitialSize?: () => void;
+}
+
+/**
+ * Нормализует результат родительской NodeView-фабрики к внутренним полям.
+ *
+ * @param view - NodeView, возвращённый parent-фабрикой.
+ * @returns Объект с опциональными внутренними полями NodeView.
+ */
+function getNodeViewInternals(view: unknown): IResizableNodeViewInternals {
+    return (view ?? {}) as IResizableNodeViewInternals;
+}
+
 const FLOAT_CLASSES = ['float-left', 'float-right', 'float-none'] as const;
 const VALIGN_CLASSES = ['valign-baseline', 'valign-middle', 'valign-top', 'valign-bottom'] as const;
 const floatSyncPluginKey = new PluginKey('resizableImageFloatSync');
@@ -159,7 +180,8 @@ const ResizableImageBase = Image.extend({
 
         return (props: NodeViewRendererProps) => {
             const nodeView = parentFactory(props);
-            const dom = (nodeView as unknown as { dom?: HTMLElement }).dom;
+            const internals = getNodeViewInternals(nodeView);
+            const dom = internals.dom;
 
             // Fix: TipTap ставит display:flex на контейнер, что растягивает его на всю ширину.
             // Для inline-изображений нужен inline-flex, чтобы контейнер облегал содержимое
@@ -174,14 +196,8 @@ const ResizableImageBase = Image.extend({
                 return nodeView;
             }
 
-            const nv = nodeView as unknown as {
-                node: { attrs: { width: unknown; height: unknown } };
-                element: HTMLElement;
-                applyInitialSize?: () => void;
-            };
-
             // Для новых изображений без явных размеров — задаём дефолтную ширину
-            if (!nv.node.attrs.width && !nv.node.attrs.height) {
+            if (!internals.node?.attrs?.width && !internals.node?.attrs?.height) {
                 img.addEventListener(
                     'load',
                     () => {
@@ -191,12 +207,12 @@ const ResizableImageBase = Image.extend({
                         const width = Math.min(naturalW, DEFAULT_IMAGE_WIDTH);
                         const height = Math.round(width / aspectRatio);
 
-                        nv.element.style.width = `${width}px`;
-                        nv.element.style.height = `${height}px`;
-
-                        if (typeof nv.applyInitialSize === 'function') {
-                            nv.applyInitialSize();
+                        if (internals.element) {
+                            internals.element.style.width = `${width}px`;
+                            internals.element.style.height = `${height}px`;
                         }
+
+                        internals.applyInitialSize?.();
 
                         // Персистим размеры в ProseMirror node attrs,
                         // иначе при сохранении (getHTML) width/height останутся null

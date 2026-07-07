@@ -40,13 +40,43 @@ export const MEDIA_SELECT_FIELDS = `
 `;
 
 /**
+ * Разрешённые к обновлению поля bricks_pages (camelCase-ключи тела запроса).
+ * Имена колонок интерполируются в SET — ключи вне whitelist отбрасываются
+ * (защита от SQL-инъекции через имена колонок).
+ */
+export const PAGE_UPDATE_FIELDS: ReadonlySet<string> = new Set([
+    'pagename',
+    'title',
+    'description',
+    'keywords',
+    'socialImage',
+    'layout',
+    'backgroundColor',
+    'urlPrefix',
+    'subdomain',
+    'schema',
+    'published',
+]);
+
+/**
+ * Разрешённые к обновлению поля bricks_media (camelCase-ключи тела запроса).
+ */
+export const MEDIA_UPDATE_FIELDS: ReadonlySet<string> = new Set(['filename', 'alt', 'category']);
+
+/**
  * Собирает динамический UPDATE на основе переданных полей (camelCase → snake_case).
  * Поле `schema` сериализуется в JSON для записи в JSONB-колонку.
+ * Ключи вне `allowedFields` молча отбрасываются — тело запроса приходит от клиента,
+ * и без whitelist произвольный ключ попал бы в SET как имя колонки.
  *
  * @param body - Объект с изменяемыми полями (camelCase, undefined-поля пропускаются).
+ * @param allowedFields - Whitelist camelCase-ключей, разрешённых для таблицы.
  * @returns Массив SET-выражений и массив значений для параметризованного запроса.
  */
-export function buildUpdateQuery(body: object): {
+export function buildUpdateQuery(
+    body: object,
+    allowedFields: ReadonlySet<string>
+): {
     updates: string[];
     values: unknown[];
 } {
@@ -54,7 +84,7 @@ export function buildUpdateQuery(body: object): {
     const values: unknown[] = [];
 
     Object.entries(body).forEach(([key, rawValue]) => {
-        if (rawValue === undefined) {
+        if (rawValue === undefined || !allowedFields.has(key)) {
             return;
         }
 

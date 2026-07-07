@@ -3,7 +3,13 @@
  * Схема таблиц — database/init.sql в корне репозитория.
  */
 import { query, queryOne } from './client';
-import { PAGE_SELECT_FIELDS, MEDIA_SELECT_FIELDS, buildUpdateQuery } from './queryBuilders';
+import {
+    PAGE_SELECT_FIELDS,
+    MEDIA_SELECT_FIELDS,
+    PAGE_UPDATE_FIELDS,
+    MEDIA_UPDATE_FIELDS,
+    buildUpdateQuery,
+} from './queryBuilders';
 import type {
     IStorageAdapter,
     ICreateMediaPayload,
@@ -110,7 +116,7 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
                 return null;
             }
 
-            const { updates, values } = buildUpdateQuery(payload);
+            const { updates, values } = buildUpdateQuery(payload, PAGE_UPDATE_FIELDS);
 
             if (updates.length === 0) {
                 throw new Error('No fields to update');
@@ -204,7 +210,7 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
                 return null;
             }
 
-            const { updates, values } = buildUpdateQuery(payload);
+            const { updates, values } = buildUpdateQuery(payload, MEDIA_UPDATE_FIELDS);
 
             if (updates.length === 0) {
                 throw new Error('No fields to update');

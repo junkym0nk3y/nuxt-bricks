@@ -29,7 +29,10 @@ import { useInteractivePreviewDismiss } from '../composables/useInteractivePrevi
 import { convertPxToRem } from '../../../../common/utils/main';
 
 // Constants
-import { CANVAS_VIEWPORT_KEY } from '../../../../common/constants/injectionKeys';
+import {
+    CANVAS_VIEWPORT_KEY,
+    INLINE_EDITOR_HOST_KEY,
+} from '../../../../common/constants/injectionKeys';
 import { scrollToComponentOnCanvas } from '../../../core/utils/scrollToComponent';
 
 // Components
@@ -74,6 +77,20 @@ provide(
 
 /** Rem-компенсация для per-viewport scaling в Figma Mode */
 provide('getRemCompensation', getRemCompensation);
+
+/** Порт inline editing к стору компонентов (text-editor не импортирует builder/core) */
+provide(INLINE_EDITOR_HOST_KEY, {
+    getPropValue: (componentId, propName) => {
+        const component = componentsStore.getComponentById(componentId);
+        return (component?.props as Record<string, unknown> | undefined)?.[propName];
+    },
+    updateProp: (componentId, propName, value) => {
+        componentsStore.updateComponentProp(componentId, propName, value);
+    },
+    commitHistory: () => {
+        componentsStore.saveToHistory();
+    },
+});
 
 const canvasRef = ref<HTMLElement | null>(null);
 const containerRef = ref<HTMLElement | null>(null);

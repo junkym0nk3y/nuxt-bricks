@@ -101,7 +101,7 @@ function buildGridTemplateRows(
 // eslint-disable-next-line complexity
 function renderGridPublished(ctx: IBlockRenderContext): VNode {
     const { component, extraClasses, extraAttrs, styles, renderChild, getChildComponents } = ctx;
-    const currentProps = component.props as Record<string, any>;
+    const currentProps = component.props as Record<string, unknown>;
     const baseColumns = Math.max(1, Number(currentProps.columns) || 1);
     const baseRows = Math.max(1, Number(currentProps.rows) || 1);
     const baseGapValue = Math.max(0, Number(currentProps.gap) || 0);

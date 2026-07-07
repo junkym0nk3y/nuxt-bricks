@@ -7,6 +7,7 @@
  */
 import { useRuntimeConfig } from 'nitropack/runtime';
 import type { Pool } from 'pg';
+import type { IApiError } from '../../../common/types/bricks-api';
 
 let pool: Pool | null = null;
 
@@ -71,12 +72,12 @@ export async function query<T>(text: string, params?: unknown[]): Promise<T[]> {
         const result = await client.query(text, params);
         return result.rows as T[];
     } catch (error: unknown) {
-        const err = error as { message?: string; code?: string };
+        const err = error as IApiError;
+        // query/params содержат контент страниц — в production логируем только code/message
         console.error('[PostgreSQL] Query error:', {
-            query: text,
-            params,
             error: err.message,
             code: err.code,
+            ...(process.env.NODE_ENV === 'production' ? {} : { query: text, params }),
         });
         throw error;
     }

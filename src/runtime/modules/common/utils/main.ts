@@ -1,3 +1,5 @@
+import type { IApiError } from '../types/bricks-api';
+
 /**
  * Конвертирует значения в пикселях в rem-единицы, используя базовое значение.
  *
@@ -127,14 +129,30 @@ export function normalizeBricksError(
     fallbackMessage: string,
     fallbackStatus = 500
 ): { statusCode: number; statusMessage: string } {
-    const normalized = (error ?? {}) as Partial<Error> & {
-        statusCode?: number;
-        statusMessage?: string;
-    };
+    const normalized = (error ?? {}) as IApiError;
 
     return {
         statusCode:
             typeof normalized.statusCode === 'number' ? normalized.statusCode : fallbackStatus,
         statusMessage: normalized.statusMessage || normalized.message || fallbackMessage,
     };
+}
+
+/**
+ * Извлекает человекочитаемое сообщение из любой ошибки (FetchError, createError, Error).
+ * Порядок: `data.message` (тело ответа ofetch) → `statusMessage` → `message` → fallback.
+ *
+ * @param error - Объект ошибки.
+ * @param fallbackMessage - Сообщение по умолчанию, если в ошибке ничего не найдено.
+ * @returns Текст сообщения об ошибке.
+ */
+export function getBricksErrorMessage(error: unknown, fallbackMessage: string): string {
+    const normalized = (error ?? {}) as IApiError;
+
+    return (
+        normalized.data?.message ||
+        normalized.statusMessage ||
+        normalized.message ||
+        fallbackMessage
+    );
 }

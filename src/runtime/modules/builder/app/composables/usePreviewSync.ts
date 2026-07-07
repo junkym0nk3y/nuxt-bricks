@@ -3,11 +3,29 @@
 import type { IPreviewStoredPage } from '../../../common/types/bricks-api';
 
 // Vue
-import { onUnmounted, watch } from 'vue';
+import { onUnmounted } from 'vue';
 
 // Pinia
 import { useComponentsStore } from '../../core/stores/components';
 import { usePublishStore } from '../../publish/stores/publish';
+// #endregion
+
+// #region Data
+/**
+ * Actions стора компонентов, не меняющие схему: выбор, избранное, копирование
+ * в буфер, чтение. Всё остальное (включая новые actions) по умолчанию триггерит
+ * синк превью — false positive безопасен, false negative сломал бы синк.
+ */
+const NON_SCHEMA_ACTIONS = new Set([
+    'selectComponent',
+    'deselectComponent',
+    'toggleInteractivePreview',
+    'copyComponentToClipboard',
+    'copySelectedComponent',
+    'toggleFavorite',
+    'exportSchema',
+    'getRootComponents',
+]);
 // #endregion
 
 /**
@@ -107,25 +125,36 @@ export function usePreviewSync() {
     // через request-schema после перезагрузки билдера
     ensurePreviewChannel();
 
-    // Отправляем обновления схемы в preview при изменении компонентов на канвасе (debounce 300ms)
-    watch(
-        () => componentsStore.components,
-        () => {
-            if (!previewBroadcastChannel || !previewPagename) {
-                return;
-            }
+    /**
+     * Планирует отправку схемы в превью с debounce 300ms.
+     */
+    function schedulePreviewSchemaUpdate(): void {
+        if (!previewBroadcastChannel || !previewPagename) {
+            return;
+        }
 
-            if (previewSyncTimer) {
-                clearTimeout(previewSyncTimer);
-            }
+        if (previewSyncTimer) {
+            clearTimeout(previewSyncTimer);
+        }
 
-            previewSyncTimer = setTimeout(() => {
-                sendPreviewSchemaUpdate();
-                previewSyncTimer = null;
-            }, 300);
-        },
-        { deep: true }
-    );
+        previewSyncTimer = setTimeout(() => {
+            sendPreviewSchemaUpdate();
+            previewSyncTimer = null;
+        }, 300);
+    }
+
+    // Синк по завершении мутирующих actions стора вместо deep-watch всей схемы
+    // (deep-обход всех компонентов на каждую мутацию был дорог при drag/вводе текста).
+    // Прямые мутации вне actions (useDraggableComponent) завершаются saveToHistory — покрыты.
+    componentsStore.$onAction(({ name, after }) => {
+        if (NON_SCHEMA_ACTIONS.has(name)) {
+            return;
+        }
+
+        after(() => {
+            schedulePreviewSchemaUpdate();
+        });
+    });
 
     onUnmounted(() => {
         if (previewSyncTimer) {

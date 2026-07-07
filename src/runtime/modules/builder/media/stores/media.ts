@@ -10,6 +10,7 @@ import type {
 } from '../../../common/types/media';
 import { useApiClient } from '../../../common/composables/useApiClient';
 import { toCamelCase, toSnakeCase } from '../../../common/utils/case-transform';
+import { getBricksErrorMessage } from '../../../common/utils/main';
 // #endregion
 
 // #region Data
@@ -81,9 +82,7 @@ export const useMediaStore = defineStore('bricksMedia', {
 
                 this.items = [];
             } catch (error) {
-                const message =
-                    (error as { data?: { message?: string } })?.data?.message ||
-                    (error instanceof Error ? error.message : t('bricks.media.loadFailed'));
+                const message = getBricksErrorMessage(error, t('bricks.media.loadFailed'));
                 const formatted = `GET /api/bricks/media: ${message}`;
                 console.error('[Media Store] Failed to load items from backend:', error);
                 this.items = [];

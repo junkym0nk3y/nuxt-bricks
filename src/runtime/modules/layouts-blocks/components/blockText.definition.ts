@@ -19,7 +19,7 @@ import BlockText from './BlockText.vue';
  */
 function renderTextPublished(ctx: IBlockRenderContext): VNode {
     const { component, extraClasses, extraAttrs, styles } = ctx;
-    const componentProps = component.props as Record<string, any>;
+    const componentProps = component.props as Record<string, unknown>;
     const style = gridPlacementStyle(component);
 
     return h(BlockText, {

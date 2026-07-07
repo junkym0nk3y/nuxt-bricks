@@ -23,8 +23,8 @@ import {
 function renderSectionPublished(ctx: IBlockRenderContext): VNode {
     const { component, extraClasses, extraAttrs, styles, renderChild, getChildComponents } = ctx;
     const cp = component.props as ISectionLayoutProps;
-    const mOv = getResponsiveOverrides(cp as Record<string, any>, 'mobile');
-    const tOv = getResponsiveOverrides(cp as Record<string, any>, 'tablet');
+    const mOv = getResponsiveOverrides(cp as Record<string, unknown>, 'mobile');
+    const tOv = getResponsiveOverrides(cp as Record<string, unknown>, 'tablet');
 
     const style: Record<string, string> = {
         display: 'flex',

@@ -12,48 +12,42 @@ import {
     resolveResponsiveValue,
 } from '../utils/responsiveVars';
 
+const FLEX_JUSTIFY_CSS: Record<string, string> = {
+    start: 'flex-start',
+    center: 'center',
+    end: 'flex-end',
+    'space-between': 'space-between',
+    'space-around': 'space-around',
+};
+
+const FLEX_ALIGN_CSS: Record<string, string> = {
+    stretch: 'stretch',
+    start: 'flex-start',
+    center: 'center',
+    end: 'flex-end',
+    baseline: 'baseline',
+};
+
 /**
- * Маппит значение justify в CSS flex justify-content.
+ * Маппит значение justify ('start', 'center', 'end', 'space-between', 'space-around')
+ * в CSS flex justify-content.
  *
- * @param justify - Значение выравнивания ('start', 'center', 'end', 'space-between', 'space-around').
+ * @param justify - Значение выравнивания из пропсов (тип не гарантирован схемой).
  * @returns CSS-значение для justify-content.
  */
-function mapFlexJustify(justify?: string): string {
-    switch (justify) {
-        case 'center':
-            return 'center';
-        case 'end':
-            return 'flex-end';
-        case 'space-between':
-            return 'space-between';
-        case 'space-around':
-            return 'space-around';
-        case 'start':
-        default:
-            return 'flex-start';
-    }
+function mapFlexJustify(justify?: unknown): string {
+    return FLEX_JUSTIFY_CSS[String(justify)] ?? 'flex-start';
 }
 
 /**
- * Маппит значение align в CSS flex align-items.
+ * Маппит значение align ('stretch', 'start', 'center', 'end', 'baseline')
+ * в CSS flex align-items.
  *
- * @param align - Значение ('stretch', 'start', 'center', 'end', 'baseline').
+ * @param align - Значение выравнивания из пропсов (тип не гарантирован схемой).
  * @returns CSS-значение для align-items.
  */
-function mapFlexAlign(align?: string): string {
-    switch (align) {
-        case 'start':
-            return 'flex-start';
-        case 'center':
-            return 'center';
-        case 'end':
-            return 'flex-end';
-        case 'baseline':
-            return 'baseline';
-        case 'stretch':
-        default:
-            return 'stretch';
-    }
+function mapFlexAlign(align?: unknown): string {
+    return FLEX_ALIGN_CSS[String(align)] ?? 'stretch';
 }
 
 /**
@@ -65,7 +59,7 @@ function mapFlexAlign(align?: string): string {
  */
 function renderFlexPublished(ctx: IBlockRenderContext): VNode {
     const { component, extraClasses, extraAttrs, styles, renderChild, getChildComponents } = ctx;
-    const currentProps = component.props as Record<string, any>;
+    const currentProps = component.props as Record<string, unknown>;
 
     const baseDirection = String(currentProps.direction || 'row');
     const baseJustify = mapFlexJustify(currentProps.justify);

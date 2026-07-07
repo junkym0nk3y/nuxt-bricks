@@ -76,7 +76,7 @@ function renderUiComponent(
     visibilityClasses: string[],
     extraAttrs: Record<string, string | undefined> = {}
 ) {
-    const componentProps = component.props as Record<string, any>;
+    const componentProps = component.props as Record<string, unknown>;
     const mergedProps = {
         ...componentProps,
         ...(props.resolvedProps?.[component.id] ?? {}),

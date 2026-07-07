@@ -7,6 +7,7 @@ import type { IMediaGalleryProps, IMediaGalleryEmits } from '../types/media';
 
 // Utils
 import { DEFAULT_MEDIA_CATEGORY } from '../constants/mediaCategories';
+import { getBricksErrorMessage } from '../../../common/utils/main';
 
 // Vue
 import { ref, computed, watch, onMounted } from 'vue';
@@ -92,9 +93,7 @@ async function loadMediaItems(): Promise<void> {
     try {
         await mediaStore.loadItems();
     } catch (error: unknown) {
-        const message =
-            (error as { message?: string })?.message || t('bricks.media.loadFailedCheckDb');
-        emit('error', message);
+        emit('error', getBricksErrorMessage(error, t('bricks.media.loadFailedCheckDb')));
     }
 }
 

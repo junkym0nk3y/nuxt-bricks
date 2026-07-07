@@ -2,11 +2,13 @@
 // Types
 import type { Editor } from '@tiptap/vue-3';
 import type { IInlineContentSegment } from '../../common/types/content';
+import type { IInlineEditorHost } from '../../common/types/inlineEditing';
 
 // Vue
 import {
     shallowRef,
     computed,
+    inject,
     watch,
     onBeforeUnmount,
     type ComputedRef,
@@ -15,12 +17,14 @@ import {
 } from 'vue';
 
 // Pinia
-import { useComponentsStore } from '../../builder/core/stores/components';
 import { useInlineEditingStore, type TInlineEditingPropType } from '../stores/inlineEditing';
 
 // Utils
 import { createTiptapEditor } from '../utils/createTiptapEditor';
 import { segmentsToTiptapDoc, tiptapDocToSegments } from '../utils/inlineContentTiptap';
+
+// Constants
+import { INLINE_EDITOR_HOST_KEY } from '../../common/constants/injectionKeys';
 // #endregion
 
 // #region Interfaces
@@ -45,10 +49,14 @@ interface IUseInlineEditorReturn {
  * Lazy-загружает TipTap, управляет lifecycle, конвертирует segments/HTML ↔ TipTap.
  * Публикует editor-инстанс в inlineEditingStore для доступа из overlay-тулбара.
  *
+ * Доступ к состоянию билдера — через инжектируемый IInlineEditorHost
+ * (провайдит TheBuilderCanvas): text-editor не импортирует builder/core,
+ * на published-странице хоста нет и редактор не инициализируется.
+ *
  * @param options - ID компонента, имя свойства, тип свойства.
  */
 export function useInlineEditor(options: IUseInlineEditorOptions): IUseInlineEditorReturn {
-    const componentsStore = useComponentsStore();
+    const host = inject<IInlineEditorHost | null>(INLINE_EDITOR_HOST_KEY, null);
     const inlineEditingStore = useInlineEditingStore();
 
     const editor = shallowRef<Editor | null>(null);
@@ -70,18 +78,33 @@ export function useInlineEditor(options: IUseInlineEditorOptions): IUseInlineEdi
     );
 
     /**
-     * Получает текущее значение свойства из store.
+     * Получает текущее значение свойства из состояния билдера.
      */
     function getCurrentPropValue(): unknown {
-        const component = componentsStore.getComponentById(options.componentId);
-        if (!component?.props) {
-            return undefined;
-        }
-        return (component.props as Record<string, unknown>)[options.propName];
+        return host?.getPropValue(options.componentId, options.propName);
     }
 
     /**
-     * Сохраняет текущее содержимое editor в store (без записи истории).
+     * Записывает текущее содержимое editor в состояние билдера
+     * (segments для inline-content, HTML для textarea).
+     */
+    function persistEditorContent(): void {
+        if (!editor.value || !host) {
+            return;
+        }
+
+        if (options.propType === 'inline-content') {
+            const doc = editor.value.getJSON();
+            const segments = tiptapDocToSegments(doc, originalSegments);
+            host.updateProp(options.componentId, options.propName, segments);
+        } else {
+            const html = editor.value.getHTML();
+            host.updateProp(options.componentId, options.propName, html);
+        }
+    }
+
+    /**
+     * Сохраняет текущее содержимое editor в состояние билдера (без записи истории).
      * Вызывается из onUpdate для real-time sync со store и sidebar.
      */
     function saveToStore(): void {
@@ -90,15 +113,7 @@ export function useInlineEditor(options: IUseInlineEditorOptions): IUseInlineEdi
         }
 
         isInternalUpdate = true;
-
-        if (options.propType === 'inline-content') {
-            const doc = editor.value.getJSON();
-            const segments = tiptapDocToSegments(doc, originalSegments);
-            componentsStore.updateComponentProp(options.componentId, options.propName, segments);
-        } else {
-            const html = editor.value.getHTML();
-            componentsStore.updateComponentProp(options.componentId, options.propName, html);
-        }
+        persistEditorContent();
 
         // Сбрасываем флаг в следующем микротаске, после того как watch сработает
         Promise.resolve().then(() => {
@@ -107,10 +122,20 @@ export function useInlineEditor(options: IUseInlineEditorOptions): IUseInlineEdi
     }
 
     /**
-     * Инициализирует TipTap editor (lazy).
+     * Сохраняет содержимое с записью в историю и уничтожает editor.
+     * Используется при остановке editing извне (Escape, переключение свойства).
+     */
+    function flushAndDestroy(): void {
+        persistEditorContent();
+        host?.commitHistory();
+        destroy();
+    }
+
+    /**
+     * Инициализирует TipTap editor (lazy). Без хоста (published) — no-op.
      */
     async function initEditor(): Promise<void> {
-        if (editor.value) {
+        if (editor.value || !host) {
             return;
         }
 
@@ -172,24 +197,12 @@ export function useInlineEditor(options: IUseInlineEditorOptions): IUseInlineEdi
     }
 
     /**
-     * Сохраняет содержимое TipTap в store и останавливает editing.
+     * Сохраняет содержимое TipTap в состояние билдера и останавливает editing.
      */
     function saveAndStop(): void {
         if (editor.value) {
-            if (options.propType === 'inline-content') {
-                const doc = editor.value.getJSON();
-                const segments = tiptapDocToSegments(doc, originalSegments);
-                componentsStore.updateComponentProp(
-                    options.componentId,
-                    options.propName,
-                    segments
-                );
-            } else {
-                const html = editor.value.getHTML();
-                componentsStore.updateComponentProp(options.componentId, options.propName, html);
-            }
-
-            componentsStore.saveToHistory();
+            persistEditorContent();
+            host?.commitHistory();
         }
 
         inlineEditingStore.stopEditing();
@@ -214,25 +227,7 @@ export function useInlineEditor(options: IUseInlineEditorOptions): IUseInlineEdi
         () => inlineEditingStore.componentId,
         (newId) => {
             if (newId !== options.componentId && editor.value) {
-                if (options.propType === 'inline-content') {
-                    const doc = editor.value.getJSON();
-                    const segments = tiptapDocToSegments(doc, originalSegments);
-                    componentsStore.updateComponentProp(
-                        options.componentId,
-                        options.propName,
-                        segments
-                    );
-                } else {
-                    const html = editor.value.getHTML();
-                    componentsStore.updateComponentProp(
-                        options.componentId,
-                        options.propName,
-                        html
-                    );
-                }
-
-                componentsStore.saveToHistory();
-                destroy();
+                flushAndDestroy();
             }
         }
     );
@@ -247,25 +242,7 @@ export function useInlineEditor(options: IUseInlineEditorOptions): IUseInlineEdi
                 newPropName !== options.propName &&
                 editor.value
             ) {
-                if (options.propType === 'inline-content') {
-                    const doc = editor.value.getJSON();
-                    const segments = tiptapDocToSegments(doc, originalSegments);
-                    componentsStore.updateComponentProp(
-                        options.componentId,
-                        options.propName,
-                        segments
-                    );
-                } else {
-                    const html = editor.value.getHTML();
-                    componentsStore.updateComponentProp(
-                        options.componentId,
-                        options.propName,
-                        html
-                    );
-                }
-
-                componentsStore.saveToHistory();
-                destroy();
+                flushAndDestroy();
             }
         }
     );

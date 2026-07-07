@@ -25,7 +25,11 @@ export function toRem(v: unknown): string {
  * @param key - Имя свойства.
  * @returns Override, если он задан, иначе базовое значение.
  */
-export function resolveResponsiveValue<T>(base: T, overrides: Record<string, any>, key: string): T {
+export function resolveResponsiveValue<T>(
+    base: T,
+    overrides: Record<string, unknown>,
+    key: string
+): T {
     return key in overrides ? (overrides[key] as T) : base;
 }
 
@@ -43,8 +47,8 @@ export function resolveResponsiveValue<T>(base: T, overrides: Record<string, any
 export function makeResponsiveVars(
     prefix: string,
     base: unknown,
-    tabletOv: Record<string, any>,
-    mobileOv: Record<string, any>,
+    tabletOv: Record<string, unknown>,
+    mobileOv: Record<string, unknown>,
     key: string,
     transform: (v: unknown) => string = String
 ): Record<string, string> {
@@ -63,9 +67,9 @@ export function makeResponsiveVars(
  * @returns Overrides устройства или пустой объект.
  */
 export function getResponsiveOverrides(
-    props: Record<string, any>,
+    props: Record<string, unknown>,
     device: TBricksDeviceKey
-): Record<string, any> {
+): Record<string, unknown> {
     const rawResponsive = props?.responsive;
     if (!rawResponsive || typeof rawResponsive !== 'object') {
         return {};
@@ -74,7 +78,7 @@ export function getResponsiveOverrides(
     const responsive = rawResponsive as Record<string, unknown>;
     const overrides = responsive[device];
 
-    return overrides && typeof overrides === 'object' ? (overrides as Record<string, any>) : {};
+    return overrides && typeof overrides === 'object' ? (overrides as Record<string, unknown>) : {};
 }
 
 /**

@@ -129,7 +129,7 @@ function handleUpdateValues(values: string | string[] | undefined): void {
             <AccordionContent :class="$style.body">
                 <div :class="$style.content">
                     <!-- eslint-disable-next-line vue/no-v-html -->
-                    <div v-html="item.content" />
+                    <div data-tiptap-content v-html="item.content" />
                 </div>
             </AccordionContent>
         </AccordionItem>

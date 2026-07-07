@@ -3,6 +3,12 @@
 // Vue
 import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+// Components
+// Локальный импорт (а не глобальный плагин): vanilla-jsoneditor (~200KB)
+// грузится только вместе с этим lazy-редактором, не на каждой странице
+import { Mode } from 'vanilla-jsoneditor';
+import JsonEditorVue from 'json-editor-vue';
 // #endregion
 
 // #region Interfaces
@@ -61,7 +67,7 @@ watch(
             <div :class="$style.editorWrapper">
                 <JsonEditorVue
                     :model-value="internalValue"
-                    mode="text"
+                    :mode="Mode.text"
                     :main-menu-bar="false"
                     :navigation-bar="false"
                     :status-bar="false"

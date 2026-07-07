@@ -1,5 +1,7 @@
 // #region Imports
+import type { IApiError } from '../../../modules/common/types/bricks-api';
 import { createError, defineEventHandler, readBody } from 'h3';
+import { normalizeBricksError } from '../../../modules/common/utils/main';
 import { useBricksPublishAdapter } from '../../../modules/persistence/server/registry';
 // #endregion
 
@@ -33,17 +35,17 @@ export default defineEventHandler(async (event): Promise<IS3DeleteResponse> => {
             success: true,
         };
     } catch (error: unknown) {
-        const err = error as { statusCode?: number; message?: string };
-
-        if (err.statusCode) {
+        // createError выше по стеку (например, валидация body) пробрасываем как есть
+        if ((error as IApiError)?.statusCode) {
             throw error;
         }
 
         console.error('[S3 Delete] Error:', error);
 
-        throw createError({
-            statusCode: 500,
-            message: err.message || 'Failed to delete file from S3',
-        });
+        const { statusCode, statusMessage } = normalizeBricksError(
+            error,
+            'Failed to delete file from S3'
+        );
+        throw createError({ statusCode, message: statusMessage });
     }
 });

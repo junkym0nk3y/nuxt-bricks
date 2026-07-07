@@ -22,7 +22,7 @@ import BlockMedia from './BlockMedia.vue';
  */
 function renderMediaPublished(ctx: IBlockRenderContext): VNode {
     const { component, extraClasses, extraAttrs, styles } = ctx;
-    const cp = component.props as Record<string, any>;
+    const cp = component.props as Record<string, unknown>;
     const mOv = getResponsiveOverrides(cp, 'mobile');
     const tOv = getResponsiveOverrides(cp, 'tablet');
 

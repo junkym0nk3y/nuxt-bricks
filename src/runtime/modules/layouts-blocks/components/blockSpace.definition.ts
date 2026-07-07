@@ -44,7 +44,7 @@ function normalizeSpacingSize(size: string | number): string {
  * @param isVertical - Вертикальное ли направление отступа.
  * @returns VNode разделителя.
  */
-function renderSpaceDivider(spaceProps: Record<string, any>, isVertical: boolean): VNode {
+function renderSpaceDivider(spaceProps: Record<string, unknown>, isVertical: boolean): VNode {
     const color = spaceProps.dividerColor || 'var(--bricks-base-200)';
     const borderWidth = `${Math.max(1, Number(spaceProps.dividerWidth) || 1)}px`;
     const lineStyle = spaceProps.dividerStyle || 'solid';
@@ -76,7 +76,7 @@ function renderSpaceDivider(spaceProps: Record<string, any>, isVertical: boolean
  */
 function renderSpacePublished(ctx: IBlockRenderContext): VNode {
     const { component, extraClasses, extraAttrs, styles } = ctx;
-    const currentProps = component.props as Record<string, any>;
+    const currentProps = component.props as Record<string, unknown>;
     const mOv = getResponsiveOverrides(currentProps, 'mobile');
     const tOv = getResponsiveOverrides(currentProps, 'tablet');
 

@@ -1,6 +1,7 @@
 // #region Imports
 import { randomUUID } from 'crypto';
 import { createError, defineEventHandler, readMultipartFormData, type MultiPartData } from 'h3';
+import { normalizeBricksError } from '../../../modules/common/utils/main';
 import { useBricksPublishAdapter } from '../../../modules/persistence/server/registry';
 import {
     getFileExtension,
@@ -108,12 +109,12 @@ export default defineEventHandler(async (event): Promise<IS3UploadResponse> => {
             mimeType,
         };
     } catch (error: unknown) {
-        const err = error as { statusCode?: number; message?: string };
         console.error('[S3 Upload] Error:', error);
 
-        throw createError({
-            statusCode: err.statusCode || 500,
-            message: err.message || 'Failed to upload file to S3',
-        });
+        const { statusCode, statusMessage } = normalizeBricksError(
+            error,
+            'Failed to upload file to S3'
+        );
+        throw createError({ statusCode, message: statusMessage });
     }
 });

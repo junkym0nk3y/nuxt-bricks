@@ -4,7 +4,21 @@ import type {
     TPropertyType,
 } from '../../../common/types/brick';
 import type { IBrickValues } from '../../../common/types/index';
-import { getModalOptions } from '../../app/composables/useModals';
+import { getModalOptions } from './useModalOptions';
+
+/**
+ * Соответствие типа свойства типу селектора панели; отсутствующие типы → 'input'.
+ */
+const SELECTOR_TYPE_BY_PROPERTY: Partial<Record<TPropertyType, string>> = {
+    boolean: 'checkbox',
+    switch: 'switch',
+    select: 'select',
+    image: 'image',
+    video: 'video',
+    tags: 'input',
+    number: 'input',
+    string: 'input',
+};
 
 /**
  * Composable для работы со свойствами компонентов.
@@ -148,31 +162,14 @@ export function useComponentProperties() {
      * Возвращает тип селектора компонента для свойства.
      */
     const getSelectorType = (property: IPropertyDefinition): string => {
-        switch (property.type) {
-            case 'boolean':
-                return 'checkbox';
-            case 'switch':
-                return 'switch';
-            case 'select':
-                return 'select';
-            case 'image':
-                return 'image';
-            case 'video':
-                return 'video';
-            case 'tags':
-                return 'input';
-            case 'number':
-            case 'string':
-            default:
-                return 'input';
-        }
+        return SELECTOR_TYPE_BY_PROPERTY[property.type] ?? 'input';
     };
 
     /**
      * Валидирует значение свойства.
      */
     // eslint-disable-next-line complexity
-    const validatePropertyValue = (property: IPropertyDefinition, value: any): boolean => {
+    const validatePropertyValue = (property: IPropertyDefinition, value: unknown): boolean => {
         switch (property.type) {
             case 'boolean':
                 return typeof value === 'boolean';

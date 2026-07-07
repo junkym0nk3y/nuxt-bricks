@@ -47,7 +47,7 @@ npx oxlint <changed-file>
 
 Вне `modules/` в `src/runtime/` остаётся инфраструктура Nuxt: `plugins/`, `server/`, `middleware/`, `layouts/`, `assets/`, `types.d.ts` (шим, реэкспортирует `modules/common/types`).
 
-Направления зависимостей: `builder/app` (composition root) → все поддомены builder + text-editor + ui; `builder/canvas`/`builder/shell` → `builder/core`, `builder/publish`, text-editor, layouts-blocks, ui, common; `builder/core` НЕ импортирует canvas/shell — stores остаются в `core/`, перенос в фичевые поддомены дал бы цикл canvas↔shell. `render` — только common + layouts-blocks; `layouts-blocks` → `text-editor` (viewport канваса блоки получают через inject `CANVAS_VIEWPORT_KEY` из `common/constants/injectionKeys`, прямых импортов builder нет). Tech-debt: `text-editor/composables/useInlineEditor.ts` → builder/core/stores/components и `core/composables/useComponentProperties.ts` → app/composables/useModals (`getModalOptions`) — кандидаты на DI из composition root. Импорты — явные относительные (auto-import локального кода отключён).
+Направления зависимостей: `builder/app` (composition root) → все поддомены builder + text-editor + ui; `builder/canvas`/`builder/shell` → `builder/core`, `builder/publish`, text-editor, layouts-blocks, ui, common; `builder/core` НЕ импортирует canvas/shell — stores остаются в `core/`, перенос в фичевые поддомены дал бы цикл canvas↔shell. `render` — только common + layouts-blocks; `layouts-blocks` → `text-editor` (viewport канваса блоки получают через inject `CANVAS_VIEWPORT_KEY` из `common/constants/injectionKeys`, прямых импортов builder нет). Бывший tech-debt закрыт (2026-07-07): `useInlineEditor` декаплен через порт `IInlineEditorHost` (inject `INLINE_EDITOR_HOST_KEY`, провайдит `TheBuilderCanvas.vue`), `getModalOptions` живёт в `builder/core/composables/useModalOptions.ts` (`app/useModals` — фасад загрузки компонентов модалок). Импорты — явные относительные (auto-import локального кода отключён).
 
 В каждой папке `composables/` и `utils/` лежит `README.md` с таблицей «файл → назначение» для навигации — поддерживать при добавлении/удалении файлов.
 
@@ -299,7 +299,7 @@ CSS: `.bricks-text [data-tiptap-content]` — **с пробелом** (descendan
 
 ### Icons
 
-`<BricksIcon icon="prefix:name" />`. Регистрация в `plugins/vue-icons.ts` → `SYSTEM_ICONS`.
+`<BricksIcon icon="prefix:name" />`. Реестр: `plugins/icons/systemIconsRegistry.ts` — ядро для published/preview (photo/video/x/device-\*), `plugins/icons/builderIcons.ts` — `BUILDER_ICONS`, весь UI билдера (lazy-чанк, доливается только на `/bricks` через `runOnBuilderRoute`). Новые иконки — в `BUILDER_ICONS`, если не нужны на published.
 
 > Добавление иконки: `/add-icon`
 
