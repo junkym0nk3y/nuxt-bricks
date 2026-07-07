@@ -10,7 +10,7 @@ export const DEFAULT_LAYOUT = 'default';
  *
  * @param value - Проверяемое значение.
  */
-export function isBricksSchema(value: unknown): value is IBricksSchema {
+function isBricksSchema(value: unknown): value is IBricksSchema {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
         return false;
     }

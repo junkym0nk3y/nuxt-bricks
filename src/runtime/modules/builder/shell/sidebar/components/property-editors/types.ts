@@ -70,7 +70,7 @@ export interface ISpacingStepperSlot {
 }
 
 /** Read-only зеркало парной стороны (paddingX/paddingY показываются с двух сторон). */
-export interface ISpacingMirrorSlot {
+interface ISpacingMirrorSlot {
     kind: 'mirror';
     side: TSpacingSideKey;
     value: number;

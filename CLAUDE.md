@@ -331,6 +331,6 @@ Markdown-статьи во встроенной документации бил�
 
 **Критические нюансы:**
 
-- **`normalizePublishedPage`** (с `isBricksSchema`, `preserveSchema`) — единая копия в `common/utils/bricks/publishedPage.ts`, используется store'ом и middleware; новые поля добавлять только там
-- **`validateOptionalRoutingFields`** — отдельный action в store, чтобы не превышать complexity (max 20)
+- **`normalizePublishedPage`** (с `preserveSchema`; внутренний guard `isBricksSchema`) — единая копия в `common/utils/bricks/publishedPage.ts`, используется store'ом и middleware; новые поля добавлять только там
+- Валидация формы (включая опциональные routing-поля) — чистая `validatePublishFormState` в `publish/utils/formValidation.ts` (бывший action `validateOptionalRoutingFields` удалён 2026-07-07)
 - Preview (`/preview/<pagename>` — режим определяется роутом, query `?preview=true` удалён 2026-07-04) не проверяет subdomain

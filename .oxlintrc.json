@@ -34,7 +34,9 @@
         "no-useless-rename": "error",
         "no-var": "error",
         "prefer-const": "error",
-        "max-lines": ["error", 1000],
+        "eqeqeq": "error",
+        "no-console": ["warn", { "allow": ["warn", "error"] }],
+        "max-lines": ["error", 500],
         "curly": "error",
         "new-cap": ["error", { "newIsCap": true, "capIsNew": true, "properties": false }],
         "no-implicit-coercion": "error",
@@ -43,12 +45,25 @@
         "operator-assignment": ["error", "always"],
         "typescript/return-await": "error",
         "typescript/no-unused-vars": "error",
+        "typescript/no-explicit-any": "warn",
         "vue/no-required-prop-with-default": "error",
         "vue/no-import-compiler-macros": "error",
         "vue/require-typed-ref": "error",
         "vue/define-emits-declaration": "error",
         "vue/define-props-declaration": "error"
     },
+    "overrides": [
+        {
+            "files": [
+                "src/module.ts",
+                "src/cli/**",
+                "src/runtime/modules/common/utils/routing/**"
+            ],
+            "rules": {
+                "no-console": "off"
+            }
+        }
+    ],
     "ignorePatterns": [
         "node_modules",
         ".nuxt",

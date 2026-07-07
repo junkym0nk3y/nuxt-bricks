@@ -23,7 +23,7 @@ export interface IRendererPreviewSyncOptions {
     refreshDataSources: () => void;
 }
 
-export interface IPreviewDeviceBreakpoint {
+interface IPreviewDeviceBreakpoint {
     name: string;
     minWidth: number;
     icon: string;
