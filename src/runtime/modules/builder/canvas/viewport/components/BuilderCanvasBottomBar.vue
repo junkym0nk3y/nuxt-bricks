@@ -27,7 +27,11 @@ import BricksTooltipHint from '../../../../ui/tooltip/BricksTooltipHint.vue';
 // #endregion
 
 // #region Props
-const props = defineProps<ICanvasBottomBarProps>();
+const props = withDefaults(defineProps<ICanvasBottomBarProps>(), {
+    sidebarOffset: '',
+    rightSidebarOffset: '',
+    isFigmaMode: false,
+});
 // #endregion
 
 // #region Emits

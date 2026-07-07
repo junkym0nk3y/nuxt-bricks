@@ -4,7 +4,7 @@
 import type { TMediaGalleryContext } from '../../../common/types/media';
 
 // Vue
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Nuxt
@@ -32,11 +32,17 @@ import TheBuilderShellSidebar from '../../shell/sidebar/components/TheBuilderShe
 import TheBuilderShellSidebarPropertiesPanel from '../../shell/sidebar/components/TheBuilderShellSidebarPropertiesPanel.vue';
 import TheBuilderCanvas from '../../canvas/viewport/components/TheBuilderCanvas.vue';
 import TheBuilderLoader from '../components/TheBuilderLoader.vue';
-import TheBuilderDocumentationModal from '../../documentation/components/TheBuilderDocumentationModal.vue';
-import TheBuilderMediaGalleryModal from '../../media/components/TheBuilderMediaGalleryModal.vue';
 import BricksConfirmModal from '../../../ui/feedback/BricksConfirmModal.vue';
 import TheBuilderMediaImageResolverModal from '../../media/components/TheBuilderMediaImageResolverModal.vue';
 import BricksToast from '../../../ui/feedback/BricksToast.vue';
+
+// Модалки — lazy-чанки: не нужны до открытия
+const TheBuilderDocumentationModal = defineAsyncComponent(
+    () => import('../../documentation/components/TheBuilderDocumentationModal.vue')
+);
+const TheBuilderMediaGalleryModal = defineAsyncComponent(
+    () => import('../../media/components/TheBuilderMediaGalleryModal.vue')
+);
 // #endregion
 
 // #region Meta

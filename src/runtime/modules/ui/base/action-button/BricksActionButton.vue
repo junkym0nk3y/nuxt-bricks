@@ -45,6 +45,13 @@ const emit = defineEmits<{
 // #region Data
 const $style = useCssModule();
 const isOpened = ref(false);
+
+/** Соответствие значения опции меню событию компонента. */
+const ACTION_EMITTERS: Record<string, () => void> = {
+    copy: () => emit('saveAsCopy'),
+    publish: () => emit('publish'),
+    draft: () => emit('saveDraft'),
+};
 // #endregion
 
 // #region Computed
@@ -65,19 +72,7 @@ const resolvedOptions = computed(() => props.options ?? []);
  * @param option - Selected option metadata.
  */
 function handleOptionSelect(option: IBrickUiCommonProp): void {
-    switch (option.value) {
-        case 'copy':
-            emit('saveAsCopy');
-            break;
-        case 'publish':
-            emit('publish');
-            break;
-        case 'draft':
-            emit('saveDraft');
-            break;
-        default:
-            break;
-    }
+    ACTION_EMITTERS[String(option.value)]?.();
 }
 // #endregion
 </script>

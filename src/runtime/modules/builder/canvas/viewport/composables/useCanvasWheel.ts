@@ -78,7 +78,11 @@ export function useCanvasWheel(containerRef: Ref<HTMLElement | null>) {
      * @param clientX - Экранная X-координата якоря зума.
      * @param clientY - Экранная Y-координата якоря зума.
      */
-    function zoomAtPoint(targetScale: number, clientX: number, clientY: number): void {
+    async function zoomAtPoint(
+        targetScale: number,
+        clientX: number,
+        clientY: number
+    ): Promise<void> {
         const container = containerRef.value;
         const zoomTarget = getZoomTarget();
 
@@ -104,12 +108,12 @@ export function useCanvasWheel(containerRef: Ref<HTMLElement | null>) {
         const pointY = clientY - rectBefore.top;
         const ratio = newScale / oldScale;
 
-        nextTick().then(() => {
-            // Новый transform применён — возвращаем якорь под курсор
-            const rectAfter = zoomTarget.getBoundingClientRect();
-            container.scrollLeft += rectAfter.left + pointX * ratio - clientX;
-            container.scrollTop += rectAfter.top + pointY * ratio - clientY;
-        });
+        await nextTick();
+
+        // Новый transform применён — возвращаем якорь под курсор
+        const rectAfter = zoomTarget.getBoundingClientRect();
+        container.scrollLeft += rectAfter.left + pointX * ratio - clientX;
+        container.scrollTop += rectAfter.top + pointY * ratio - clientY;
     }
 
     /**

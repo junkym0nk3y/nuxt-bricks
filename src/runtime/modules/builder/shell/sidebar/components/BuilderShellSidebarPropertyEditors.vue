@@ -35,6 +35,11 @@ const props = withDefaults(defineProps<ISidebarPropertyEditorsProps>(), {
 });
 // #endregion
 
+// #region Data
+const { t, te } = useI18n();
+const openGroups = ref<Set<string>>(new Set());
+// #endregion
+
 // #region Computed
 const editorGroups = computed(() =>
     props.propertyOrder.map((type) => ({
@@ -118,11 +123,6 @@ const groupedEditorItems = computed(() => {
 });
 
 const hasGroups = computed(() => groupedEditorItems.value.groups.size > 0);
-// #endregion
-
-// #region Data
-const { t, te } = useI18n();
-const openGroups = ref<Set<string>>(new Set());
 // #endregion
 
 // #region Methods
