@@ -226,7 +226,7 @@ function handleDelete(): void {
 .draftBadge {
     flex-shrink: 0;
     padding: 0.2rem 0.8rem;
-    border-radius: 99.9rem;
+    border-radius: var(--border-radius-pill);
     background: var(--bricks-base-100);
     font-size: 1.2rem;
     font-weight: 500;

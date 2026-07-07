@@ -13,6 +13,10 @@
     --border-radius-xs: 0.6rem;
     --border-radius-sm: 1rem;
     --border-radius-md: 1.4rem;
+    --border-radius-pill: 99.9rem;
+
+    /* Статический белый: текст на фиксированных фонах (primary, тёмные оверлеи) — не зависит от темы */
+    --bricks-static-white: #fff;
 
     /* === Base gray colors (light to dark) === */
     --bricks-base-0: #fff;

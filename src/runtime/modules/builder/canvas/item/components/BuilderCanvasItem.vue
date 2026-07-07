@@ -251,16 +251,16 @@ watch(
     }
 
     &:hover {
-        outline: 2px solid rgb(var(--rgb-primary) / 30%);
+        outline: 0.2rem solid rgb(var(--rgb-primary) / 30%);
     }
 
     &.selected {
         z-index: 10;
-        outline: 2px solid rgb(var(--rgb-primary) / 80%);
+        outline: 0.2rem solid rgb(var(--rgb-primary) / 80%);
     }
 
     &.editing {
-        outline: 2px solid rgb(var(--rgb-primary) / 80%);
+        outline: 0.2rem solid rgb(var(--rgb-primary) / 80%);
         cursor: text;
         user-select: text;
 
@@ -328,7 +328,7 @@ watch(
 
 .placeholder {
     padding: 2rem;
-    border: 2px dashed rgb(var(--rgb-gray) / 50%);
+    border: 0.2rem dashed rgb(var(--rgb-gray) / 50%);
     background: rgb(var(--rgb-gray) / 10%);
     text-align: center;
     font-size: 1.4rem;

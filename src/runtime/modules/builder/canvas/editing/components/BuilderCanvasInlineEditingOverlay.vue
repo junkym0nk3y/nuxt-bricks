@@ -316,14 +316,14 @@ function handleRequestImage(): void {
 }
 
 .doneButton {
-    padding: 0.3rem 1rem;
+    padding: 0.4rem 1rem;
     border-radius: var(--border-radius-xs);
     border: none;
     background: var(--bricks-primary);
     white-space: nowrap;
     font-size: 1.2rem;
     font-weight: 600;
-    color: #fff;
+    color: var(--bricks-static-white);
     transition: opacity var(--default-transition);
     cursor: pointer;
 
@@ -334,7 +334,7 @@ function handleRequestImage(): void {
 
 .hint {
     white-space: nowrap;
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     color: var(--bricks-base-500);
 }
 
@@ -380,7 +380,7 @@ function handleRequestImage(): void {
     &._active {
         border-color: var(--bricks-primary);
         background: var(--bricks-primary);
-        color: #fff;
+        color: var(--bricks-static-white);
     }
 }
 

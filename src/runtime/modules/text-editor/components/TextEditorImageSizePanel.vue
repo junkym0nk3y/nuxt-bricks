@@ -327,7 +327,7 @@ onMounted(() => {
 .sizeLabel {
     width: 1.6rem;
     text-align: center;
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     font-weight: 600;
     color: var(--bricks-base-500);
     user-select: none;
@@ -392,7 +392,7 @@ onMounted(() => {
     border-radius: var(--border-radius-xs);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-50);
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     font-weight: 500;
     color: var(--bricks-base-600);
     transition: background-color var(--default-transition);

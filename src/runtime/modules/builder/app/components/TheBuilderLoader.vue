@@ -251,7 +251,7 @@ onUnmounted(() => {
     background-image:
         linear-gradient(var(--bricks-base-900) 1px, transparent 1px),
         linear-gradient(90deg, var(--bricks-base-900) 1px, transparent 1px);
-    background-size: 40px 40px;
+    background-size: 4rem 4rem;
     opacity: 0.1;
     inset: 0;
     mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
@@ -301,7 +301,7 @@ onUnmounted(() => {
     top: 0;
     left: 0;
     height: 100%;
-    border-radius: 2px;
+    border-radius: 0.2rem;
     background: inherit;
     opacity: 0.4;
 }

@@ -348,9 +348,9 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
 .dropIndicator {
     position: absolute;
     top: 1.2rem;
-    width: 0.3rem;
+    width: 0.4rem;
     height: calc(100% - 2.4rem);
-    border-radius: 0.3rem;
+    border-radius: 0.4rem;
     background-color: var(--bricks-primary-400);
     opacity: 0;
     transition: opacity 120ms ease;

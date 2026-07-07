@@ -89,7 +89,7 @@ function handleCaptionClick(index: number): void {
 }
 
 .captionSubtitle {
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     font-weight: 400;
     color: var(--bricks-base-500);
 }

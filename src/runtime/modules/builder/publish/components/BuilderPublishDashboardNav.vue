@@ -217,9 +217,9 @@ function handleToggleLocale(): void {
 .localeBadge {
     flex-shrink: 0;
     width: 1.8rem;
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     font-weight: 600;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.05rem;
     color: var(--bricks-base-500);
 }
 </style>

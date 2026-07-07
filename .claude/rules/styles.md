@@ -83,6 +83,17 @@ $primary-color: #6366f1; // FORBIDDEN
 - ❌ Sizes not divisible by 0.2rem (`1.5rem`, `0.9rem`)
 - ❌ `!important` — use higher specificity via nesting or CSS Modules instead
 
+## Legalized Exceptions (осознанные, 2026-07-07)
+
+- ✅ `px` в media-query брейкпоинтах (`@media (max-width: 768px)`) — брейкпоинты не зависят от rem-базы
+- ✅ `%` для позиционирования/геометрии (`left: 50%`, `width: 100%`, `translate(-50%)`) — не «размер»
+- ✅ `letter-spacing` микрозначения (`0.05rem`, `0.1rem`) — правило кратности 0.2 не применяется (0.2rem — уже гигантский трекинг); только `rem`, не `em`
+- ✅ Значения, производные от `1px`-бордера (`calc(var(--border-radius-xs) - 0.1rem)`) и центровка хэндлов (`-0.5rem` = половина 1rem-хэндла)
+- ✅ Hover/focus `transition:` внутри компонентов — правило «transitions в `transitions.scss`» касается Vue-`<transition>`-анимаций, а не интерактивных состояний; длительность брать из `--default-transition`
+- ✅ Форс светлой темы области ввода текста (`TextEditorArea`, `TheTextEditorModal`) — hex-блоки намеренные
+- Текст на фиксированных фонах (primary, тёмные оверлеи) — `var(--bricks-static-white)`, НЕ `--bricks-base-0` (перевернётся в тёмной теме) и не `#fff`
+- Pill-радиус — `var(--border-radius-pill)`, не `999px`/`99.9rem`
+
 ## Dark Theme / Color Scheme
 
 - `.bricks-dark` на `<body>` через `useHead({ bodyAttrs })` — переменные `--bricks-*` наследуются каскадом

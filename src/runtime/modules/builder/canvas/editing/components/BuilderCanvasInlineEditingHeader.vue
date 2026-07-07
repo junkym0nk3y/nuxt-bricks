@@ -123,7 +123,7 @@ function handleSwitchNext(): void {
 
 .propCounter {
     white-space: nowrap;
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     color: var(--bricks-base-500);
     user-select: none;
 }

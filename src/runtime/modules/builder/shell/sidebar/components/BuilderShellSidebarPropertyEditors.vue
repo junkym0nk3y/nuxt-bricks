@@ -412,9 +412,9 @@ watch(
 
 .sectionTitle {
     text-transform: uppercase;
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     font-weight: 600;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1rem;
     color: var(--bricks-base-500);
 }
 
@@ -462,7 +462,7 @@ watch(
     text-transform: uppercase;
     font-size: 1.2rem;
     font-weight: 600;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.05rem;
     color: var(--bricks-base-500);
     transition: color var(--default-transition);
     cursor: pointer;

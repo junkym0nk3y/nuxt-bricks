@@ -151,7 +151,7 @@ function handleOpenPreview(item: IMediaItem): void {
     border: none;
     background: rgb(0 0 0 / 50%);
     font-size: 1.6rem;
-    color: #fff;
+    color: var(--bricks-static-white);
     opacity: 0;
     transition: opacity 150ms ease;
     cursor: pointer;
@@ -171,7 +171,7 @@ function handleOpenPreview(item: IMediaItem): void {
 .categoryBadge {
     align-self: flex-start;
     padding: 0.2rem 0.8rem;
-    border-radius: 999px;
+    border-radius: var(--border-radius-pill);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
     text-transform: capitalize;

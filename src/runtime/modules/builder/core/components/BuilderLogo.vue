@@ -186,11 +186,11 @@ function onMouseenter(): void {
 @keyframes cube-lift-pass {
     0%,
     100% {
-        --cube-lift: 0px;
+        --cube-lift: 0rem;
     }
 
     50% {
-        --cube-lift: -26px;
+        --cube-lift: -2.6rem;
     }
 }
 
@@ -198,11 +198,11 @@ function onMouseenter(): void {
     0%,
     25%,
     100% {
-        --cube-lift: 0px;
+        --cube-lift: 0rem;
     }
 
     12.5% {
-        --cube-lift: -26px;
+        --cube-lift: -2.6rem;
     }
 }
 

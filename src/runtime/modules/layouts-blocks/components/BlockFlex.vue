@@ -319,7 +319,7 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
 .dropIndicator {
     position: absolute;
     z-index: 5;
-    border-radius: 999px;
+    border-radius: var(--border-radius-pill);
     background-color: rgb(var(--rgb-layout-flex) / 70%);
     pointer-events: none;
 }

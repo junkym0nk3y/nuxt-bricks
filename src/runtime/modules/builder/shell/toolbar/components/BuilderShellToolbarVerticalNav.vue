@@ -285,7 +285,7 @@ function handleToggleLocale(): void {
     background: transparent;
     font-size: 1.2rem;
     font-weight: 600;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.05rem;
     color: var(--bricks-base-500);
     transition:
         color var(--default-transition),

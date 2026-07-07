@@ -77,7 +77,7 @@ function handleClose(): void {
     border: none;
     background: rgb(255 255 255 / 15%);
     font-size: 2rem;
-    color: #fff;
+    color: var(--bricks-static-white);
     transition: background 150ms ease;
     cursor: pointer;
 

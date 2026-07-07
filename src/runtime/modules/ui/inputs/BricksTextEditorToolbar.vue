@@ -323,7 +323,7 @@ function getTooltipText(title: string): string {
     &._active {
         border-color: var(--bricks-primary);
         background: var(--bricks-primary);
-        color: #fff;
+        color: var(--bricks-static-white);
     }
 }
 

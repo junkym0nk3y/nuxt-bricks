@@ -302,7 +302,7 @@ function handleMoveDown(index: number): void {
     justify-content: center;
     padding: 2.4rem;
     border-radius: var(--border-radius-xs);
-    border: 2px dashed var(--bricks-base-300);
+    border: 0.2rem dashed var(--bricks-base-300);
     background: var(--bricks-base-50);
     font-size: 1.4rem;
     color: var(--bricks-base-500);

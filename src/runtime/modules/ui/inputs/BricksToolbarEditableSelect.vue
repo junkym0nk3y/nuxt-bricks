@@ -424,7 +424,7 @@ async function focusCustomInput(): Promise<void> {
     background: var(--bricks-primary);
     font-size: 1.2rem;
     font-weight: 600;
-    color: #fff;
+    color: var(--bricks-static-white);
     transition: opacity var(--default-transition);
     cursor: pointer;
 
