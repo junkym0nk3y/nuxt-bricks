@@ -140,15 +140,17 @@ function onUpdate(value: AcceptableValue): void {
         padding: 0.8rem 3.2rem 0.8rem 1.2rem;
         border-radius: var(--border-radius-xs);
         border: 1px solid var(--bricks-base-300);
-        background: var(--bricks-base-0);
+        background: transparent;
         text-align: left;
         transition:
             border-color var(--default-transition),
+            background-color var(--default-transition),
             box-shadow var(--default-transition);
         cursor: pointer;
 
         &:hover {
             border-color: var(--bricks-base-400);
+            background-color: var(--bricks-surface-raised);
         }
 
         // Видимая часть треугольника — верхняя половина бокса 0.8rem,
@@ -210,6 +212,7 @@ function onUpdate(value: AcceptableValue): void {
 
     &._opened .field {
         border-color: var(--bricks-primary);
+        background-color: var(--bricks-surface-raised);
         box-shadow: var(--shadow-focus);
 
         &:after {

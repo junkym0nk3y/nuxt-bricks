@@ -2,13 +2,13 @@ import type { IComponentsPropertyActions, IComponentsStore } from '../types';
 import type { TBricksDeviceKey, TBrickPropValue } from '../../../../common/types/brick';
 
 // Utils
-import { debounce } from '../../../../common/utils/main';
+import { useDebounceFn } from '@vueuse/core';
 
 /**
  * Debounced saveToHistory для property-обновлений.
  * Предотвращает десятки сериализаций при быстром изменении значений (напр. кнопки +/-).
  */
-const debouncedSaveToHistory = debounce((store: IComponentsStore) => {
+const debouncedSaveToHistory = useDebounceFn((store: IComponentsStore) => {
     store.saveToHistory();
 }, 300);
 

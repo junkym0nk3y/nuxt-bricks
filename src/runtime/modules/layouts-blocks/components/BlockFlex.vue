@@ -4,7 +4,7 @@
 import type { IFlexLayoutProps } from '../types/blockProps';
 
 // Vue
-import { computed, ref, inject, type CSSProperties, type Ref } from 'vue';
+import { computed, ref, inject, type CSSProperties, type Ref, type Slot } from 'vue';
 
 // Utils
 import { convertPxToRem } from '../../common/utils/main';
@@ -20,7 +20,7 @@ const props = defineProps<{
 }>();
 
 const slots = defineSlots<{
-    default?: any;
+    default?: Slot;
 }>();
 // #endregion
 

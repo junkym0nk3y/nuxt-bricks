@@ -35,7 +35,7 @@
         "no-var": "error",
         "prefer-const": "error",
         "eqeqeq": "error",
-        "no-console": ["warn", { "allow": ["warn", "error"] }],
+        "no-console": "off",
         "max-lines": ["error", 500],
         "curly": "error",
         "new-cap": ["error", { "newIsCap": true, "capIsNew": true, "properties": false }],
@@ -52,18 +52,6 @@
         "vue/define-emits-declaration": "error",
         "vue/define-props-declaration": "error"
     },
-    "overrides": [
-        {
-            "files": [
-                "src/module.ts",
-                "src/cli/**",
-                "src/runtime/modules/common/utils/routing/**"
-            ],
-            "rules": {
-                "no-console": "off"
-            }
-        }
-    ],
     "ignorePatterns": [
         "node_modules",
         ".nuxt",

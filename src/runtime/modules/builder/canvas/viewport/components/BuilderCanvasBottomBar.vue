@@ -161,7 +161,7 @@ function handleRedo(): void {
                     <template #activator>
                         <BricksButton
                             size="sm"
-                            variant="secondary"
+                            variant="ghost"
                             equal
                             :active="!props.isFigmaMode && props.viewport === vp.value"
                             :aria-label="vp.label"
@@ -180,7 +180,7 @@ function handleRedo(): void {
                     <template #activator>
                         <BricksButton
                             size="sm"
-                            variant="secondary"
+                            variant="ghost"
                             equal
                             :active="props.isFigmaMode"
                             aria-label="Figma Like"
@@ -204,7 +204,7 @@ function handleRedo(): void {
                     <template #activator>
                         <BricksButton
                             size="sm"
-                            variant="secondary"
+                            variant="ghost"
                             equal
                             :aria-label="t('bricks.canvas.zoomOut')"
                             @click="handleZoomOut"
@@ -223,7 +223,7 @@ function handleRedo(): void {
                         <template #activator>
                             <BricksButton
                                 size="sm"
-                                variant="secondary"
+                                variant="ghost"
                                 :class="$style.scaleButton"
                                 @click="handleZoomReset"
                             >
@@ -241,7 +241,7 @@ function handleRedo(): void {
                     <template #activator>
                         <BricksButton
                             size="sm"
-                            variant="secondary"
+                            variant="ghost"
                             equal
                             :aria-label="t('bricks.canvas.zoomIn')"
                             @click="handleZoomIn"
@@ -264,7 +264,7 @@ function handleRedo(): void {
                     <template #activator>
                         <BricksButton
                             size="sm"
-                            variant="secondary"
+                            variant="ghost"
                             equal
                             :disabled="!historyStore.canUndo"
                             :aria-label="t('bricks.toolbar.undo')"
@@ -283,7 +283,7 @@ function handleRedo(): void {
                     <template #activator>
                         <BricksButton
                             size="sm"
-                            variant="secondary"
+                            variant="ghost"
                             equal
                             :disabled="!historyStore.canRedo"
                             :aria-label="t('bricks.toolbar.redo')"
@@ -307,7 +307,7 @@ function handleRedo(): void {
                     <template #activator>
                         <BricksButton
                             size="sm"
-                            variant="secondary"
+                            variant="ghost"
                             equal
                             :active="canvasStore.showGrid"
                             :aria-label="t('bricks.toolbar.grid')"

@@ -11,6 +11,8 @@
     --default-transition: 300ms ease;
 
     --border-radius-xs: 0.6rem;
+    /* Компактные квадратные контролы (close button, nav items) — 0.8rem из Figma */
+    --border-radius-control: 0.8rem;
     --border-radius-sm: 1rem;
     --border-radius-md: 1.4rem;
     --border-radius-pill: 99.9rem;
@@ -30,6 +32,9 @@
     --bricks-base-700: #374151;
     --bricks-base-800: #1f2937;
     --bricks-base-900: #111827;
+
+    /* Приподнятая поверхность: фон кнопок/инпутов/hover — контраст без бордеров */
+    --bricks-surface-raised: #f3f4f6;
 
     /* === Primary blue colors (light to dark) === */
     --bricks-primary-50: #eff6ff;
@@ -92,14 +97,16 @@
     --bricks-base-0: #28262a;
     --bricks-base-50: #1f1d21;
     --bricks-base-100: #22252c;
-    --bricks-base-200: #2a2e36;
-    --bricks-base-300: #333842;
+    --bricks-base-200: #363b45;
+    --bricks-base-300: #454c5b;
     --bricks-base-400: #616a80;
     --bricks-base-500: #8b93a1;
     --bricks-base-600: #aab1bd;
     --bricks-base-700: #bec4cd;
     --bricks-base-800: #d3d7de;
     --bricks-base-900: #e8eaef;
+
+    --bricks-surface-raised: #38363c;
 
     --bricks-primary-50: #1c2333;
     --bricks-primary-100: #1e2d4d;
@@ -145,6 +152,8 @@
         --bricks-base-700: #374151;
         --bricks-base-800: #1f2937;
         --bricks-base-900: #111827;
+
+        --bricks-surface-raised: #f3f4f6;
 
         --bricks-primary-50: #eff6ff;
         --bricks-primary-100: #dbeafe;

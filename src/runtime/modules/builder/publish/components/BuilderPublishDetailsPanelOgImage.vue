@@ -11,6 +11,7 @@ import { useI18n } from 'vue-i18n';
 
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
+import BricksFieldError from '../../../ui/inputs/BricksFieldError.vue';
 // #endregion
 
 // #region Props
@@ -77,9 +78,7 @@ function handleClear(): void {
                 {{ t('bricks.publish.socialImageClear') }}
             </BricksButton>
         </div>
-        <span v-if="props.error" :class="$style.fieldError">
-            {{ props.error }}
-        </span>
+        <BricksFieldError :message="props.error" />
     </div>
 </template>
 
@@ -127,10 +126,5 @@ function handleClear(): void {
     width: 1.8rem;
     height: 1.8rem;
     color: var(--bricks-base-400);
-}
-
-.fieldError {
-    font-size: 1.2rem;
-    color: var(--bricks-danger-500);
 }
 </style>

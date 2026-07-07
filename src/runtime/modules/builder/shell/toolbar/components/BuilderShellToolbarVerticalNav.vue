@@ -139,27 +139,37 @@ function handleToggleLocale(): void {
 
 <template>
     <nav :class="$style.BuilderShellToolbarVerticalNav">
-        <button
-            v-for="item in NAV_ITEMS"
-            :key="item.key"
-            :class="[$style.navItem, { [$style._active]: props[item.activeProp] }]"
-            @click="handleClick(item.event)"
-        >
-            <span :class="$style.iconWrapper">
-                <BricksIcon :class="$style.icon" :icon="item.icon" />
-                <span
-                    v-if="item.key === 'settings' && showSettingsDanger"
-                    :class="$style.dangerDot"
-                />
-            </span>
-            <span :class="$style.label">{{ t(item.label) }}</span>
-        </button>
+        <BricksTooltip v-for="item in NAV_ITEMS" :key="item.key" right>
+            <template #activator>
+                <button
+                    :class="[$style.navItem, { [$style._active]: props[item.activeProp] }]"
+                    :aria-label="t(item.label)"
+                    @click="handleClick(item.event)"
+                >
+                    <span :class="$style.iconWrapper">
+                        <BricksIcon :class="$style.icon" :icon="item.icon" />
+                        <span
+                            v-if="item.key === 'settings' && showSettingsDanger"
+                            :class="$style.dangerDot"
+                        />
+                    </span>
+                </button>
+            </template>
+
+            <template #default>
+                <BricksTooltipHint :text="t(item.label)" />
+            </template>
+        </BricksTooltip>
 
         <div :class="$style.spacer" />
 
         <BricksTooltip right>
             <template #activator>
-                <button :class="$style.themeToggle" @click="handleOpenDocs">
+                <button
+                    :class="$style.themeToggle"
+                    :aria-label="t('bricks.nav.docs')"
+                    @click="handleOpenDocs"
+                >
                     <BricksIcon :class="$style.icon" icon="ta:outline-book" />
                 </button>
             </template>
@@ -171,7 +181,11 @@ function handleToggleLocale(): void {
 
         <BricksTooltip right>
             <template #activator>
-                <button :class="$style.localeToggle" @click="handleToggleLocale">
+                <button
+                    :class="$style.localeToggle"
+                    :aria-label="t('bricks.nav.language')"
+                    @click="handleToggleLocale"
+                >
                     {{ localeLabel }}
                 </button>
             </template>
@@ -185,6 +199,7 @@ function handleToggleLocale(): void {
             <template #activator>
                 <button
                     :class="[$style.themeToggle, { [$style._active]: props.isDarkMode }]"
+                    :aria-label="darkModeTooltip"
                     @click="handleToggleDarkMode"
                 >
                     <BricksIcon :class="$style.icon" :icon="darkModeIcon" />
@@ -204,12 +219,11 @@ function handleToggleLocale(): void {
     z-index: 60;
     display: flex;
     align-items: center;
-    width: 7.2rem;
-    min-width: 7.2rem;
+    width: 4.8rem;
+    min-width: 4.8rem;
     padding-top: 1.6rem;
     padding-bottom: 1.6rem;
-    border-right: 1px solid var(--bricks-base-300);
-    background-color: var(--bricks-base-0);
+    background-color: var(--bricks-base-50);
     flex-direction: column;
     gap: 0.4rem;
 }
@@ -217,28 +231,32 @@ function handleToggleLocale(): void {
 .navItem {
     display: flex;
     align-items: center;
-    width: 6rem;
-    padding: 0.8rem 0;
-    border-radius: 0.8rem;
+    justify-content: center;
+    width: 3.6rem;
+    height: 3.6rem;
+    padding: 0;
+    border-radius: var(--border-radius-control);
     border: none;
     background: transparent;
-    font-size: 1rem;
-    color: var(--bricks-base-600);
+    color: var(--bricks-base-500);
     transition:
         color var(--default-transition),
         background-color var(--default-transition);
     cursor: pointer;
-    flex-direction: column;
-    gap: 0.4rem;
 
     &:hover {
-        background-color: var(--bricks-base-100);
+        background-color: var(--bricks-surface-raised);
         color: var(--bricks-base-900);
     }
 
     &._active {
-        background-color: var(--bricks-primary-50, rgb(37 99 235 / 8%));
-        color: var(--bricks-primary);
+        background-color: var(--bricks-primary);
+        color: var(--bricks-static-white);
+
+        &:hover {
+            background-color: var(--bricks-primary);
+            color: var(--bricks-static-white);
+        }
     }
 }
 
@@ -261,13 +279,6 @@ function handleToggleLocale(): void {
     height: 0.6rem;
     border-radius: 50%;
     background-color: var(--bricks-danger-500);
-}
-
-.label {
-    white-space: nowrap;
-    font-size: 1rem;
-    font-weight: 500;
-    line-height: 1.2;
 }
 
 .spacer {
@@ -293,7 +304,7 @@ function handleToggleLocale(): void {
     cursor: pointer;
 
     &:hover {
-        background-color: var(--bricks-base-100);
+        background-color: var(--bricks-surface-raised);
         color: var(--bricks-base-900);
     }
 }

@@ -183,6 +183,13 @@ export function useBricksInput(
     }
 
     /**
+     * Очищает значение (кнопка-крестик при clearable).
+     */
+    function handleClear(): void {
+        updateValue('');
+    }
+
+    /**
      * Adjusts numeric value by configured step.
      *
      * @param direction - Increment direction (1 for up, -1 for down).
@@ -224,6 +231,7 @@ export function useBricksInput(
         showStepper,
         handleInput,
         handleBlur,
+        handleClear,
         handleStep,
     };
 }

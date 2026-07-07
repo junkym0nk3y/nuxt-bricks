@@ -87,7 +87,6 @@ defineExpose({
     bottom: 0;
     z-index: 50;
     display: flex;
-    border-left: 1px solid var(--bricks-base-300);
     background-color: var(--bricks-base-0);
     flex-direction: column;
     box-shadow: var(--shadow-md);

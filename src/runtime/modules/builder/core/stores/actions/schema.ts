@@ -10,9 +10,9 @@ import { useHistoryStore } from '../history';
 import { useNavigationStore } from '../navigation';
 import type { IComponentsSchemaActions, IComponentsStore } from '../types';
 import { normalizeDeviceVisibility } from '../../../../common/utils/bricks/deviceVisibility';
-import { debounce } from '../../../../common/utils/main';
+import { useDebounceFn } from '@vueuse/core';
 
-const debouncedSaveToHistory = debounce((store: IComponentsStore) => {
+const debouncedSaveToHistory = useDebounceFn((store: IComponentsStore) => {
     store.saveToHistory();
 }, 300);
 

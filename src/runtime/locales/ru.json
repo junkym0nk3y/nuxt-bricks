@@ -8,7 +8,8 @@
             "unknownError": "Неизвестная ошибка",
             "confirm": "Подтвердить",
             "increase": "Увеличить",
-            "decrease": "Уменьшить"
+            "decrease": "Уменьшить",
+            "clear": "Очистить"
         },
         "toolbar": {
             "grid": "Сетка",

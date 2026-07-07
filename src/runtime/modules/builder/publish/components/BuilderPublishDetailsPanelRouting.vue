@@ -67,11 +67,9 @@ watch(
                     :max-length="100"
                     placeholder="blog"
                     :disabled="props.isSaving"
+                    :error-message="props.errors.urlPrefix"
                     @update:value="(val: string) => emit('update:urlPrefix', val)"
                 />
-                <span v-if="props.errors.urlPrefix" :class="$style.fieldError">
-                    {{ props.errors.urlPrefix }}
-                </span>
                 <span :class="$style.fieldHint">{{ t('bricks.publish.urlPrefixHint') }}</span>
             </div>
             <div :class="$style.field">
@@ -82,11 +80,9 @@ watch(
                     :max-length="63"
                     placeholder="spb"
                     :disabled="props.isSaving"
+                    :error-message="props.errors.subdomain"
                     @update:value="(val: string) => emit('update:subdomain', val)"
                 />
-                <span v-if="props.errors.subdomain" :class="$style.fieldError">
-                    {{ props.errors.subdomain }}
-                </span>
                 <span :class="$style.fieldHint">{{ t('bricks.publish.subdomainHint') }}</span>
             </div>
         </div>
@@ -139,11 +135,6 @@ watch(
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
-}
-
-.fieldError {
-    font-size: 1.2rem;
-    color: var(--bricks-danger-500);
 }
 
 .fieldHint {

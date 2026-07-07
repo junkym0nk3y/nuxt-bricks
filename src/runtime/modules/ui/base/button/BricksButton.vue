@@ -129,7 +129,7 @@ function onClick(event: MouseEvent): void {
         border-color: transparent;
         background-color: var(--bricks-primary);
         box-shadow: var(--shadow-sm);
-        color: var(--bricks-base-0);
+        color: var(--bricks-static-white);
 
         &:not(._disabled):hover {
             background-color: var(--bricks-primary-600);
@@ -141,16 +141,15 @@ function onClick(event: MouseEvent): void {
     }
 
     &._secondary {
-        border-color: var(--bricks-base-300);
-        background-color: var(--bricks-base-0);
+        border-color: transparent;
+        background-color: var(--bricks-surface-raised);
         color: var(--bricks-base-900);
 
         &:not(._disabled):hover {
-            border-color: var(--bricks-primary);
+            background-color: var(--bricks-base-200);
         }
 
         &._active {
-            border-color: var(--bricks-primary);
             color: var(--bricks-primary);
         }
     }
@@ -161,8 +160,19 @@ function onClick(event: MouseEvent): void {
         color: var(--bricks-base-600);
 
         &:not(._disabled):hover {
-            background-color: var(--bricks-base-100);
+            background-color: var(--bricks-surface-raised);
             color: var(--bricks-base-900);
+        }
+
+        &._active {
+            border-color: transparent;
+            background-color: var(--bricks-primary);
+            color: var(--bricks-static-white);
+
+            &:not(._disabled):hover {
+                background-color: var(--bricks-primary);
+                color: var(--bricks-static-white);
+            }
         }
     }
 
@@ -170,7 +180,7 @@ function onClick(event: MouseEvent): void {
         border-color: transparent;
         background-color: var(--bricks-danger-500);
         box-shadow: var(--shadow-sm);
-        color: var(--bricks-base-0);
+        color: var(--bricks-static-white);
 
         &:not(._disabled):hover {
             background-color: var(--bricks-danger-600);
@@ -182,12 +192,11 @@ function onClick(event: MouseEvent): void {
     }
 
     &._outline {
-        border-color: var(--bricks-base-400);
-        background-color: transparent;
-        color: var(--bricks-base-600);
+        border-color: transparent;
+        background-color: var(--bricks-surface-raised);
+        color: var(--bricks-base-500);
 
         &:not(._disabled):hover {
-            background-color: var(--bricks-base-100);
             color: var(--bricks-base-900);
         }
     }
@@ -201,28 +210,28 @@ function onClick(event: MouseEvent): void {
         border-color: transparent;
         background-color: var(--bricks-danger-600);
         box-shadow: var(--shadow-sm);
-        color: var(--bricks-base-0);
+        color: var(--bricks-static-white);
     }
 
     &._green {
         border-color: transparent;
         background-color: var(--bricks-green);
         box-shadow: var(--shadow-sm);
-        color: var(--bricks-base-0);
+        color: var(--bricks-static-white);
     }
 
     &._yellow {
         border-color: transparent;
         background-color: var(--bricks-yellow);
         box-shadow: var(--shadow-sm);
-        color: var(--bricks-base-0);
+        color: var(--bricks-static-white);
     }
 
     &._grey {
         border-color: transparent;
         background-color: var(--bricks-base-900);
         box-shadow: var(--shadow-sm);
-        color: var(--bricks-base-0);
+        color: var(--bricks-static-white);
     }
 
     // Modifiers from new_ui

@@ -45,7 +45,7 @@ export interface IBricksComponent {
     componentName: string; // 'grid', 'flex', 'space' для layout, или название UI компонента
     brickPath: string;
     zIndex: number;
-    props: Record<string, any>;
+    props: Record<string, unknown>;
     // Вложенность
     parent?: string; // ID родительского компонента
     children?: string[]; // Массив ID дочерних компонентов (только для layout)
@@ -68,7 +68,7 @@ export interface IComponentLibraryItem {
     brickPath: string;
     description?: string;
     thumbnail?: string;
-    defaultProps?: Record<string, any>;
+    defaultProps?: Record<string, unknown>;
     slots?: IComponentSlotDefinition[];
     isInteractive?: boolean;
 }

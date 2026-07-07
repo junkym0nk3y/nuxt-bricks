@@ -23,11 +23,13 @@ import BricksSelectOption from '../../inputs/BricksSelectOption.vue';
 // #region Props
 const props = withDefaults(
     defineProps<{
+        label?: string;
         disabled?: boolean;
         isSubmitting?: boolean;
         options: IBrickUiCommonProp[];
     }>(),
     {
+        label: '',
         disabled: false,
         isSubmitting: false,
     }
@@ -88,6 +90,7 @@ function handleOptionSelect(option: IBrickUiCommonProp): void {
                     :disabled="isDisabled"
                 >
                     <slot />
+                    <span v-if="props.label" :class="$style.label">{{ props.label }}</span>
                 </BricksButton>
             </DropdownMenuTrigger>
 
@@ -121,22 +124,45 @@ function handleOptionSelect(option: IBrickUiCommonProp): void {
     align-items: stretch;
 
     .actionButton {
-        padding-right: 3.2rem;
+        padding-right: 4rem;
+        box-shadow: 0 0.2rem 0.8rem rgb(var(--rgb-primary) / 35%);
+        transition:
+            background-color var(--default-transition),
+            box-shadow var(--default-transition);
+
+        &:not(:disabled):hover {
+            box-shadow: 0 0.4rem 1.4rem rgb(var(--rgb-primary) / 45%);
+        }
+    }
+
+    .label {
+        white-space: nowrap;
+    }
+
+    // Вертикальный разделитель между лейблом и chevron — сегментированный вид
+    &:before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        right: 3.2rem;
+        width: 1px;
+        height: 1.8rem;
+        background-color: rgb(from var(--bricks-static-white) r g b / 24%);
+        transform: translateY(-50%);
+        pointer-events: none;
     }
 
     &:after {
         content: '';
         position: absolute;
         top: 50%;
-        right: 1.6rem;
+        right: 1.4rem;
         width: 0;
         height: 0;
         border: 0.4rem solid transparent;
-        border-top-color: var(--bricks-base-0);
+        border-top-color: var(--bricks-static-white);
         transform: translateY(-25%);
-        transition:
-            transform 150ms ease,
-            color 150ms ease;
+        transition: transform 150ms ease;
         pointer-events: none;
     }
 

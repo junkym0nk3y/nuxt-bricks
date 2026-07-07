@@ -4,7 +4,7 @@
 
 | Файл / папка                 | Назначение                                                                                                                                                |
 | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `main.ts`                    | px ↔ rem конверсии, `debounce`, hex-валидация/нормализация, `normalizeBricksError`                                                                        |
+| `main.ts`                    | px ↔ rem конверсии, hex-валидация/нормализация, `normalizeBricksError` (debounce — `useDebounceFn` из `@vueuse/core`)                                     |
 | `case-transform.ts`          | Конвертация snake_case ↔ camelCase (нормализация ответов Django backend)                                                                                  |
 | `i18nLabels.ts`              | `resolveBricksLabel` — перевод ключей `bricks.*` из definitions, кастомные строки потребителя проходят как есть                                           |
 | `bricks/paths.ts`            | Нормализация путей brick-файлов (POSIX-слэши)                                                                                                             |

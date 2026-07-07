@@ -13,6 +13,7 @@ import { loadFavoritesFromStorage } from '../../../core/stores/actions/favorites
 // Components
 import BuilderShellSidebarComponentCard from './BuilderShellSidebarComponentCard.vue';
 import BricksCloseButton from '../../../../ui/base/modal/BricksCloseButton.vue';
+import BricksInput from '../../../../ui/inputs/BricksInput.vue';
 // #endregion
 
 // #region Props
@@ -129,24 +130,17 @@ function resolveCategoryLabel(category: string): string {
 
         <div :class="$style.search">
             <div :class="$style.searchRow">
-                <div :class="$style.searchInner">
-                    <BricksIcon :class="$style.searchIcon" icon="ta:outline-search" />
-                    <input
-                        v-model="searchQuery"
-                        :class="$style.searchInput"
-                        type="text"
-                        :placeholder="t('bricks.library.searchPlaceholder')"
-                        autocomplete="off"
-                    />
-                    <button
-                        v-if="searchQuery"
-                        :class="$style.searchClear"
-                        type="button"
-                        @click="searchQuery = ''"
-                    >
-                        <BricksIcon icon="ph:x" />
-                    </button>
-                </div>
+                <BricksInput
+                    :value="searchQuery"
+                    type="text"
+                    :placeholder="t('bricks.library.searchPlaceholder')"
+                    clearable
+                    @update:value="(val: string) => (searchQuery = val)"
+                >
+                    <template #prefix>
+                        <BricksIcon icon="ta:outline-search" />
+                    </template>
+                </BricksInput>
                 <button
                     :class="[
                         $style.favoritesToggle,
@@ -250,7 +244,7 @@ function resolveCategoryLabel(category: string): string {
     width: 3.6rem;
     height: 3.6rem;
     padding: 0;
-    border-radius: 0.8rem;
+    border-radius: var(--border-radius-control);
     border: 1px solid var(--bricks-base-300);
     background-color: var(--bricks-base-50);
     color: var(--bricks-base-400);
@@ -271,78 +265,11 @@ function resolveCategoryLabel(category: string): string {
 .favoritesToggleActive {
     border-color: var(--bricks-primary);
     background-color: var(--bricks-primary);
-    color: var(--bricks-base-0);
+    color: var(--bricks-static-white);
 
     &:hover {
         background-color: var(--bricks-primary);
-        color: var(--bricks-base-0);
-    }
-}
-
-.searchInner {
-    position: relative;
-    display: flex;
-    align-items: center;
-    border-radius: 0.8rem;
-    border: 1px solid var(--bricks-base-300);
-    background-color: var(--bricks-base-50);
-    transition: border-color var(--default-transition);
-
-    &:hover {
-        border-color: var(--bricks-base-400);
-    }
-
-    &:focus-within {
-        border-color: var(--bricks-primary);
-    }
-}
-
-.searchIcon {
-    position: absolute;
-    left: 1rem;
-    width: 1.6rem;
-    height: 1.6rem;
-    color: var(--bricks-base-400);
-    pointer-events: none;
-}
-
-.searchInput {
-    width: 100%;
-    padding: 0.8rem 3.2rem 0.8rem 3.2rem;
-    border: none;
-    background: transparent;
-    outline: none;
-    font-size: 1.4rem;
-    line-height: 1.6rem;
-    color: var(--bricks-base-900);
-
-    &::placeholder {
-        color: var(--bricks-base-400);
-    }
-}
-
-.searchClear {
-    position: absolute;
-    right: 0.4rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.4rem;
-    height: 2.4rem;
-    border-radius: 0.4rem;
-    border: none;
-    background: transparent;
-    color: var(--bricks-base-400);
-    transition: color var(--default-transition);
-    cursor: pointer;
-
-    &:hover {
-        color: var(--bricks-base-800);
-    }
-
-    svg {
-        width: 1.4rem;
-        height: 1.4rem;
+        color: var(--bricks-static-white);
     }
 }
 

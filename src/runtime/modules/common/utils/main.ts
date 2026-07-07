@@ -32,39 +32,6 @@ export function convertRemToPx(valueInRem: string | number, remBasePx: number = 
 }
 
 /**
- * Создает debounced версию функции с методом отмены.
- *
- * @param func - Функция для debounce.
- * @param delay - Задержка в миллисекундах.
- * @returns Debounced функция с методом cancel.
- */
-export function debounce<T extends (...args: any[]) => any>(
-    func: T,
-    delay: number
-): T & { cancel: () => void } {
-    let timeoutId: NodeJS.Timeout | null = null;
-
-    const debounced = function (this: any, ...args: Parameters<T>) {
-        if (timeoutId) {
-            clearTimeout(timeoutId);
-        }
-        timeoutId = setTimeout(() => {
-            func.apply(this, args);
-            timeoutId = null;
-        }, delay);
-    } as T & { cancel: () => void };
-
-    debounced.cancel = () => {
-        if (timeoutId) {
-            clearTimeout(timeoutId);
-            timeoutId = null;
-        }
-    };
-
-    return debounced;
-}
-
-/**
  * Валидирует шестнадцатеричное значение цвета.
  *
  * @param hex - Значение цвета для проверки (с # или без).

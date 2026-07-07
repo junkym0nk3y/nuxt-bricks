@@ -4,7 +4,7 @@
 import type { ISectionLayoutProps } from '../types/blockProps';
 
 // Vue
-import { computed, ref, inject, type CSSProperties, type Ref } from 'vue';
+import { computed, ref, inject, type CSSProperties, type Ref, type Slot } from 'vue';
 
 // Composables
 import { useLayoutDropZone } from '../composables/useLayoutDropZone';
@@ -17,7 +17,7 @@ const props = defineProps<{
 }>();
 
 const slots = defineSlots<{
-    default?: any;
+    default?: Slot;
 }>();
 // #endregion
 

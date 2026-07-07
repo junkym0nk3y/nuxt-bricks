@@ -15,6 +15,7 @@ import { usePublishCreatePageForm } from '../composables/usePublishCreatePageFor
 
 // Components
 import BricksInput from '../../../ui/inputs/BricksInput.vue';
+import BricksFieldError from '../../../ui/inputs/BricksFieldError.vue';
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
 import BricksCloseButton from '../../../ui/base/modal/BricksCloseButton.vue';
 import BricksModal from '../../../ui/base/modal/BricksModal.vue';
@@ -135,9 +136,9 @@ onMounted(() => {
                         :max-length="120"
                         :placeholder="t('bricks.publish.titlePlaceholder')"
                         :disabled="isSubmitting"
+                        :error-message="errors.title"
                         @update:value="(val: string) => (title = val)"
                     />
-                    <span v-if="errors.title" :class="$style.fieldError">{{ errors.title }}</span>
                 </div>
 
                 <div :class="$style.field">
@@ -148,11 +149,9 @@ onMounted(() => {
                         :max-length="80"
                         placeholder="my-page"
                         :disabled="isSubmitting"
+                        :error-message="errors.pagename"
                         @update:value="setPagename"
                     />
-                    <span v-if="errors.pagename" :class="$style.fieldError">
-                        {{ errors.pagename }}
-                    </span>
                     <span v-if="urlHint" :class="$style.fieldHint">{{ urlHint }}</span>
                 </div>
 
@@ -166,11 +165,9 @@ onMounted(() => {
                             t('bricks.publish.dashboard.createModal.descriptionPlaceholder')
                         "
                         :disabled="isSubmitting"
+                        :error-message="errors.description"
                         @update:value="(val: string) => (description = val)"
                     />
-                    <span v-if="errors.description" :class="$style.fieldError">
-                        {{ errors.description }}
-                    </span>
                 </div>
 
                 <div :class="$style.field">
@@ -227,11 +224,9 @@ onMounted(() => {
                                 :max-length="100"
                                 placeholder="blog"
                                 :disabled="isSubmitting"
+                                :error-message="errors.urlPrefix"
                                 @update:value="(val: string) => (urlPrefix = val)"
                             />
-                            <span v-if="errors.urlPrefix" :class="$style.fieldError">
-                                {{ errors.urlPrefix }}
-                            </span>
                             <span :class="$style.fieldHint">
                                 {{ t('bricks.publish.urlPrefixHint') }}
                             </span>
@@ -244,11 +239,9 @@ onMounted(() => {
                                 :max-length="63"
                                 placeholder="spb"
                                 :disabled="isSubmitting"
+                                :error-message="errors.subdomain"
                                 @update:value="(val: string) => (subdomain = val)"
                             />
-                            <span v-if="errors.subdomain" :class="$style.fieldError">
-                                {{ errors.subdomain }}
-                            </span>
                             <span :class="$style.fieldHint">
                                 {{ t('bricks.publish.subdomainHint') }}
                             </span>
@@ -261,16 +254,14 @@ onMounted(() => {
                                 :max-length="255"
                                 placeholder="promo, page, marketing"
                                 :disabled="isSubmitting"
+                                :error-message="errors.keywords"
                                 @update:value="(val: string) => (keywords = val)"
                             />
-                            <span v-if="errors.keywords" :class="$style.fieldError">
-                                {{ errors.keywords }}
-                            </span>
                         </div>
                     </div>
                 </div>
 
-                <span v-if="generalError" :class="$style.fieldError">{{ generalError }}</span>
+                <BricksFieldError :message="generalError" />
             </div>
 
             <div :class="$style.footer">
@@ -340,11 +331,6 @@ onMounted(() => {
     font-size: 1.2rem;
     font-weight: 500;
     color: var(--bricks-base-600);
-}
-
-.fieldError {
-    font-size: 1.2rem;
-    color: var(--bricks-danger-500);
 }
 
 .fieldHint {

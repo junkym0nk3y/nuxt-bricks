@@ -104,7 +104,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
             }
         }
         // Сохраняем данные в payload, чтобы избежать повторной загрузки в компоненте страницы
-        (nuxtApp.payload.data as Record<string, any>)[pageDataKey] = page;
+        (nuxtApp.payload.data as Record<string, unknown>)[pageDataKey] = page;
     }
 
     if (page) {

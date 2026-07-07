@@ -4,7 +4,7 @@
 import type { IGridLayoutProps, TGridLayoutVariant, TGridRowHeight } from '../types/blockProps';
 
 // Vue
-import { computed, ref, inject, onMounted, onBeforeUnmount, type Ref } from 'vue';
+import { computed, ref, inject, onMounted, onBeforeUnmount, type Ref, type Slot } from 'vue';
 
 // Utils
 import { convertPxToRem } from '../../common/utils/main';
@@ -24,7 +24,7 @@ const props = defineProps<{
 }>();
 
 const slots = defineSlots<{
-    default?: any;
+    default?: Slot;
 }>();
 // #endregion
 

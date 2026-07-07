@@ -10,7 +10,7 @@ import type {
  * @param props - Исходный объект пропсов.
  * @returns Глубокая копия без сохранения ссылок.
  */
-export function cloneComponentProps<T extends Record<string, any>>(props: T | undefined): T {
+export function cloneComponentProps<T extends object>(props: T | undefined): T {
     if (!props) {
         return {} as T;
     }

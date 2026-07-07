@@ -1,17 +1,27 @@
 import 'vue';
+import type { RouteLocationNormalizedLoaded } from 'vue-router';
+
+/**
+ * Минимальный шим NuxtApp для module-окружения: payload типизирован,
+ * инжекты плагинов (`$i18n` и т.п.) доступны через открытый словарь.
+ */
+interface INuxtAppShim {
+    payload: { data: Record<string, unknown> };
+    [key: string]: unknown;
+}
 
 declare global {
-    function useAsyncData<T = any>(
+    function useAsyncData<T = unknown>(
         key: string,
         handler: () => Promise<T> | T
     ): Promise<{ data: { value: T | null } }>;
-    function useRoute(): any;
-    function useHead(input: any): void;
-    function defineNuxtConfig(config: any): any;
-    function appendHeader(...args: any[]): void;
-    function createError(input: any): Error;
-    function $fetch<T = any>(input: any, init?: any): Promise<T>;
-    const useNuxtApp: () => any;
+    function useRoute(): RouteLocationNormalizedLoaded;
+    function useHead(input: Record<string, unknown>): void;
+    function defineNuxtConfig(config: Record<string, unknown>): Record<string, unknown>;
+    function appendHeader(...args: unknown[]): void;
+    function createError(input: string | Record<string, unknown>): Error;
+    function $fetch<T = unknown>(input: string | URL, init?: Record<string, unknown>): Promise<T>;
+    const useNuxtApp: () => INuxtAppShim;
 
     interface IImportGlobOptions {
         import?: string;
@@ -32,12 +42,12 @@ declare global {
 
 declare module 'vue' {
     interface ComponentCustomProperties {
-        $device?: Record<string, any>;
+        $device?: Record<string, unknown>;
     }
 }
 
 declare module '#imports' {
-    export const useNuxtApp: () => any;
+    export const useNuxtApp: () => INuxtAppShim;
     /**
      * Compiler macro страниц Nuxt. В module-окружении (`nuxt-module-build prepare`)
      * pages-модуль не активен и тип не генерируется — шим повторяет сигнатуру

@@ -2,9 +2,6 @@
 // #region Imports
 // Types
 import type { IBricksCloseButtonEmits, IBricksCloseButtonProps } from './types.d.ts';
-
-// Components
-import BricksButton from '../button/BricksButton.vue';
 // #endregion
 
 // #region Props
@@ -31,22 +28,48 @@ function handleClick(event: MouseEvent): void {
 </script>
 
 <template>
-    <BricksButton
-        :size="props.size"
-        variant="outline"
+    <button
+        type="button"
         :class="$style.BricksCloseButton"
         :disabled="props.disabled"
         @click="handleClick"
     >
         <BricksIcon icon="ta:outline-x" />
-    </BricksButton>
+    </button>
 </template>
 
 <style module lang="scss">
+// Точная реализация узла Figma Close Button (174:190): фон surface-raised,
+// радиус 0.8rem, иконка base-600, без бордера.
 .BricksCloseButton {
-    min-width: 3.2rem;
-    min-height: 3.2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.2rem;
+    height: 3.2rem;
     padding: 0;
+    border-radius: var(--border-radius-control);
+    border: none;
+    background-color: var(--bricks-surface-raised);
+    color: var(--bricks-base-600);
+    transition:
+        color var(--default-transition),
+        background-color var(--default-transition);
+    cursor: pointer;
+
+    &:not(:disabled):hover {
+        color: var(--bricks-base-900);
+    }
+
+    &:focus-visible {
+        outline: none;
+        box-shadow: var(--shadow-focus);
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
 
     svg {
         width: 2rem;

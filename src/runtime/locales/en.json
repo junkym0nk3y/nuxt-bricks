@@ -8,7 +8,8 @@
             "unknownError": "Unknown error",
             "confirm": "Confirm",
             "increase": "Increase",
-            "decrease": "Decrease"
+            "decrease": "Decrease",
+            "clear": "Clear"
         },
         "toolbar": {
             "grid": "Grid",

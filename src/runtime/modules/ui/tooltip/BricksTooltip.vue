@@ -115,8 +115,84 @@ function onOpenChange(open: boolean): void {
     pointer-events: none;
     user-select: none;
 
+    // Стартовый сдвиг зависит от стороны появления (tooltip «выезжает» к активатору)
+    &[data-side='top'] {
+        --bricks-tooltip-offset-y: 0.4rem;
+    }
+
+    &[data-side='bottom'] {
+        --bricks-tooltip-offset-y: -0.4rem;
+    }
+
+    &[data-side='left'] {
+        --bricks-tooltip-offset-x: 0.4rem;
+    }
+
+    &[data-side='right'] {
+        --bricks-tooltip-offset-x: -0.4rem;
+    }
+
+    &[data-state='delayed-open'] {
+        animation: bricks-tooltip-in 150ms ease-out;
+    }
+
+    // instant-open = перескок с соседнего тултипа: полный slide-in дёргается,
+    // оставляем только fade
+    &[data-state='instant-open'] {
+        animation: bricks-tooltip-fade-in 100ms ease-out;
+    }
+
+    &[data-state='closed'] {
+        animation: bricks-tooltip-out 100ms ease-in;
+    }
+
+    // animation: none безопасен и для closed — без анимации Presence
+    // размонтирует контент сразу, ожидания animationend нет
+    @media (prefers-reduced-motion: reduce) {
+        &[data-state='delayed-open'],
+        &[data-state='instant-open'],
+        &[data-state='closed'] {
+            animation: none;
+        }
+    }
+
     &._hoverable {
         pointer-events: all;
+    }
+}
+
+// Keyframes держим в module-блоке: CSS Modules скоупит имя анимации в ссылке
+// `animation:` выше, поэтому и определение должно быть локальным (глобальное
+// имя не совпало бы → анимация не проигрывалась, а Reka зависал бы на closed).
+@keyframes bricks-tooltip-in {
+    from {
+        opacity: 0;
+        transform: translate(var(--bricks-tooltip-offset-x, 0), var(--bricks-tooltip-offset-y, 0));
+    }
+
+    to {
+        opacity: 1;
+        transform: translate(0, 0);
+    }
+}
+
+@keyframes bricks-tooltip-fade-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes bricks-tooltip-out {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
     }
 }
 </style>

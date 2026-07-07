@@ -26,6 +26,10 @@ export interface IBricksInputProps {
     step?: number;
     /** Суффикс единицы измерения (например, 'rem', 'px') */
     unit?: string;
+    /** Кнопка-крестик очистки при непустом значении */
+    clearable?: boolean;
+    /** Внешняя ошибка (vee-validate, сервер); приоритетнее внутренней валидации */
+    errorMessage?: string | null;
 }
 
 export interface IBricksInputEmits {
@@ -61,7 +65,29 @@ export interface IUseBricksInputReturn {
     showStepper: import('vue').ComputedRef<boolean>;
     handleInput: (event: Event) => void;
     handleBlur: (event: FocusEvent) => void;
+    handleClear: () => void;
     handleStep: (direction: 1 | -1) => void;
+}
+
+export interface IBricksFieldErrorProps {
+    /** Текст ошибки; null/пустая строка — ошибка скрыта (с fade-транзишеном) */
+    message?: string | null;
+}
+
+export interface IBricksTextareaProps {
+    value: string | null | undefined;
+    label?: string;
+    disabled?: boolean;
+    placeholder?: string;
+    maxLength?: number;
+    rows?: number;
+    /** Внешняя ошибка (vee-validate и т.п.) — компонент сам не валидирует */
+    errorMessage?: string | null;
+}
+
+export interface IBricksTextareaEmits {
+    'update:value': [value: string];
+    blur: [event: FocusEvent];
 }
 
 export interface IBricksSwitchProps {

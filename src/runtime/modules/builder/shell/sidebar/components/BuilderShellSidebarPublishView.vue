@@ -19,6 +19,7 @@ import { usePublishStore } from '../../../publish/stores/publish';
 import BricksInput from '../../../../ui/inputs/BricksInput.vue';
 import BricksHexInput from '../../../../ui/inputs/BricksHexInput.vue';
 import BricksSelect from '../../../../ui/inputs/BricksSelect.vue';
+import BricksTextarea from '../../../../ui/inputs/BricksTextarea.vue';
 import BricksCloseButton from '../../../../ui/base/modal/BricksCloseButton.vue';
 import BuilderShellSidebarNavigationEditor from './BuilderShellSidebarNavigationEditor.vue';
 import BuilderShellSidebarPublishSchemaActions from './BuilderShellSidebarPublishSchemaActions.vue';
@@ -193,44 +194,22 @@ defineExpose({
 
             <Field v-slot="{ field, errorMessage }" name="description">
                 <div :class="$style.formGroup">
-                    <label :class="$style.label">
-                        Meta Description *
-                        <span :class="$style.charCount"
-                            >{{ settings?.description?.length ?? 0 }}/500</span
-                        >
-                    </label>
-
-                    <textarea
+                    <BricksTextarea
+                        label="Meta Description *"
                         :value="field.value"
-                        :class="[
-                            $style.textarea,
-                            {
-                                [$style.inputError]:
-                                    errorMessage || publishStore.validationErrors.description,
-                            },
-                        ]"
-                        :disabled="isSubmitting"
-                        :maxlength="500"
+                        :max-length="500"
+                        :rows="3"
                         placeholder="SEO Description"
-                        rows="3"
-                        @input="
-                            (e) => {
-                                const target = e.target as HTMLTextAreaElement;
-                                field.onChange(target.value);
-                                handleUpdateField('description', target.value);
+                        :disabled="isSubmitting"
+                        :error-message="errorMessage || publishStore.validationErrors.description"
+                        @update:value="
+                            (val: string) => {
+                                field.onChange(val);
+                                handleUpdateField('description', val);
                             }
                         "
                         @blur="field.onBlur"
-                    ></textarea>
-
-                    <Transition mode="out-in" name="library-fade-fast">
-                        <div
-                            v-if="errorMessage || publishStore.validationErrors.description"
-                            :class="$style.error"
-                        >
-                            {{ errorMessage || publishStore.validationErrors.description }}
-                        </div>
-                    </Transition>
+                    />
                 </div>
             </Field>
 
@@ -332,51 +311,6 @@ defineExpose({
     color: var(--bricks-base-600);
 }
 
-.charCount {
-    margin-left: auto;
-    font-size: 1.2rem;
-    font-weight: 400;
-    color: var(--bricks-base-400);
-}
-
-.textarea {
-    width: 100%;
-    min-height: 8rem;
-    padding: 0.8rem 1.2rem;
-    border-radius: var(--border-radius-xs);
-    border: 1px solid var(--bricks-base-300);
-    background-color: var(--bricks-base-0);
-    outline: none;
-    font-size: 1.4rem;
-    color: var(--bricks-base-900);
-    transition:
-        border-color var(--default-transition),
-        box-shadow var(--default-transition);
-    resize: vertical;
-
-    &::placeholder {
-        color: var(--bricks-base-400);
-    }
-
-    &:hover {
-        border-color: var(--bricks-base-400);
-    }
-
-    &:focus {
-        border-color: var(--bricks-primary);
-        box-shadow: var(--shadow-focus);
-    }
-
-    &:disabled {
-        background-color: var(--bricks-base-50);
-        color: var(--bricks-base-400);
-    }
-}
-
-.inputError {
-    border-color: var(--bricks-danger-500);
-}
-
 .hint {
     margin-top: 0.4rem;
     font-size: 1.2rem;
@@ -392,12 +326,6 @@ defineExpose({
     font-size: 1.2rem;
     color: var(--bricks-base-600);
     word-break: break-all;
-}
-
-.error {
-    margin-top: 0.4rem;
-    font-size: 1.2rem;
-    color: var(--bricks-danger-500);
 }
 
 .generalError {

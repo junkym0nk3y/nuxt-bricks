@@ -13,6 +13,7 @@ import {
     DialogOverlay,
     DialogContent,
     DialogTitle,
+    DialogDescription,
     VisuallyHidden,
 } from 'reka-ui';
 // #endregion
@@ -23,6 +24,7 @@ const props = withDefaults(defineProps<IBricksModalProps>(), {
     padded: false,
     zIndex: 1000,
     duration: 300,
+    description: '',
 });
 // #endregion
 
@@ -45,6 +47,15 @@ const rootClasses = computed(() => [
         [$style._padded]: props.padded,
     },
 ]);
+
+/**
+ * Без description явно сбрасываем aria-describedby (undefined снимает атрибут
+ * и внутреннюю привязку Reka) — иначе Reka предупреждает про DialogContent
+ * без DialogDescription. С description — не вмешиваемся, Reka свяжет id сама.
+ */
+const contentAria = computed<Record<string, undefined>>(() =>
+    props.description ? {} : { 'aria-describedby': undefined }
+);
 // #endregion
 
 // #region Methods
@@ -77,10 +88,14 @@ function onUpdateOpen(open: boolean): void {
                     <DialogContent
                         force-mount
                         :class="$style.content"
+                        v-bind="contentAria"
                         @escape-key-down="emit('escapeKeyDown', $event)"
                     >
                         <VisuallyHidden>
                             <DialogTitle>{{ props.title }}</DialogTitle>
+                            <DialogDescription v-if="props.description">
+                                {{ props.description }}
+                            </DialogDescription>
                         </VisuallyHidden>
 
                         <slot />

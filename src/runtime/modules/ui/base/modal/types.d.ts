@@ -16,6 +16,8 @@ export interface IBricksModalProps {
     isOpen: boolean;
     /** Заголовок для скринридеров (DialogTitle, визуально скрыт) */
     title: string;
+    /** Описание для скринридеров (DialogDescription, визуально скрыто); без него aria-describedby отключается явно */
+    description?: string;
     /** Фон overlay: тёмный или градиентный */
     variant?: TBricksModalVariant;
     /** Добавляет padding 2rem на overlay */

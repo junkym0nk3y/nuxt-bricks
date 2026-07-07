@@ -34,8 +34,8 @@ export function getBricksCategoriesFromJson(
         });
 
         return categories;
-    } catch (error: any) {
-        if (error?.code === 'ENOENT') {
+    } catch (error) {
+        if ((error as NodeJS.ErrnoException | null)?.code === 'ENOENT') {
             console.warn('[bricks.json] not found. Skipping...');
         } else {
             console.error('Failed to read bricks.json:', error);
