@@ -128,3 +128,46 @@ export interface IPublishDetailsPanelEmits {
     'open-media': [];
     notify: [message: string, variant: 'success' | 'error'];
 }
+
+/** Ошибки валидации формы meta по полям (vee-validate `errors`). */
+export type TPublishFormErrors = Partial<Record<keyof IPublishPageFormValues, string>>;
+
+export interface IPublishDetailsPanelSeoFieldsProps {
+    title: string;
+    pagename: string;
+    description: string;
+    keywords: string;
+    errors: TPublishFormErrors;
+    isSaving: boolean;
+}
+
+export interface IPublishDetailsPanelSeoFieldsEmits {
+    'update:title': [value: string];
+    'update:pagename': [value: string];
+    'update:description': [value: string];
+    'update:keywords': [value: string];
+}
+
+export interface IPublishDetailsPanelOgImageProps {
+    socialImage: string;
+    error?: string;
+    isSaving: boolean;
+}
+
+export interface IPublishDetailsPanelOgImageEmits {
+    'open-media': [];
+    clear: [];
+}
+
+export interface IPublishDetailsPanelRoutingProps {
+    page: IPublishedPage;
+    urlPrefix: string;
+    subdomain: string;
+    errors: TPublishFormErrors;
+    isSaving: boolean;
+}
+
+export interface IPublishDetailsPanelRoutingEmits {
+    'update:urlPrefix': [value: string];
+    'update:subdomain': [value: string];
+}

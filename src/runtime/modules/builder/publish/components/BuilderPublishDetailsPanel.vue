@@ -8,17 +8,20 @@ import type { IPublishDetailsPanelProps, IPublishDetailsPanelEmits } from '../ty
 import { formatPageDate } from '../utils/dates';
 
 // Vue
-import { ref, computed, watch, onMounted } from 'vue';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Composables
 import { usePublishPageForm } from '../composables/usePublishPageForm';
+import { usePublishDetailsUrl } from '../composables/usePublishDetailsUrl';
 
 // Components
-import BricksInput from '../../../ui/inputs/BricksInput.vue';
 import BricksSwitch from '../../../ui/inputs/BricksSwitch.vue';
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
 import BricksCloseButton from '../../../ui/base/modal/BricksCloseButton.vue';
+import BuilderPublishDetailsPanelSeoFields from './BuilderPublishDetailsPanelSeoFields.vue';
+import BuilderPublishDetailsPanelOgImage from './BuilderPublishDetailsPanelOgImage.vue';
+import BuilderPublishDetailsPanelRouting from './BuilderPublishDetailsPanelRouting.vue';
 // #endregion
 
 // #region Props
@@ -62,8 +65,7 @@ const {
     }
 );
 
-const isRoutingOpen = ref(false);
-const host = ref('');
+const { liveUrl, copyLiveUrl } = usePublishDetailsUrl({ pagename, urlPrefix, subdomain });
 // #endregion
 
 // #region Computed
@@ -73,23 +75,6 @@ const panelSubtitle = computed<string>(() => {
     });
     return `/${props.page.pagename} · ${created}`;
 });
-
-/**
- * Live-URL страницы от текущих значений формы (pagename/urlPrefix/subdomain).
- */
-const liveUrl = computed<string>(() => {
-    const slug = String(pagename.value ?? '').trim();
-    if (!slug) {
-        return '';
-    }
-    const prefix = String(urlPrefix.value ?? '').trim();
-    const sub = String(subdomain.value ?? '').trim();
-    const path = prefix ? `/${prefix}/${slug}` : `/${slug}`;
-    const domain = host.value || t('bricks.publish.domainStub');
-    return sub ? `${sub}.${domain}${path}` : `${domain}${path}`;
-});
-
-const descriptionLength = computed<number>(() => String(description.value ?? '').length);
 // #endregion
 
 // #region Methods
@@ -110,24 +95,15 @@ function handleTogglePublished(value: boolean | string): void {
 }
 
 /**
- * Копирует live-URL страницы в буфер обмена.
+ * Копирует live-URL страницы в буфер обмена и показывает тост с результатом.
  */
 async function handleCopyUrl(): Promise<void> {
-    try {
-        await navigator.clipboard.writeText(`https://${liveUrl.value}`);
+    const copied = await copyLiveUrl();
+    if (copied) {
         emit('notify', t('bricks.publish.dashboard.details.toasts.urlCopied'), 'success');
-    } catch {
+    } else {
         emit('notify', t('bricks.publish.dashboard.details.toasts.copyFailed'), 'error');
     }
-}
-
-/**
- * Обновляет описание из textarea.
- *
- * @param event - Событие ввода.
- */
-function onDescriptionInput(event: Event): void {
-    description.value = (event.target as HTMLTextAreaElement).value;
 }
 
 /**
@@ -154,13 +130,6 @@ function handleClearSocialImage(): void {
 }
 
 /**
- * Разворачивает/сворачивает секцию маршрутизации.
- */
-function handleToggleRouting(): void {
-    isRoutingOpen.value = !isRoutingOpen.value;
-}
-
-/**
  * Открывает страницу в редакторе билдера.
  */
 function handleEdit(): void {
@@ -183,20 +152,6 @@ function handleDelete(): void {
 
 defineExpose({
     handleMediaSelect,
-});
-// #endregion
-
-// #region Lifecycle
-watch(
-    () => props.page.id,
-    () => {
-        isRoutingOpen.value = Boolean(props.page.urlPrefix || props.page.subdomain);
-    },
-    { immediate: true }
-);
-
-onMounted(() => {
-    host.value = window.location.host;
 });
 // #endregion
 </script>
@@ -236,155 +191,30 @@ onMounted(() => {
                 </div>
             </div>
 
-            <span :class="$style.sectionLabel">
-                {{ t('bricks.publish.dashboard.details.seoMeta') }}
-            </span>
+            <BuilderPublishDetailsPanelSeoFields
+                v-model:title="title"
+                v-model:pagename="pagename"
+                v-model:description="description"
+                v-model:keywords="keywords"
+                :errors="errors"
+                :is-saving="isSaving"
+            />
 
-            <div :class="$style.field">
-                <BricksInput
-                    :label="t('bricks.publish.dashboard.details.titleLabel')"
-                    :value="title"
-                    type="text"
-                    :max-length="120"
-                    :placeholder="t('bricks.publish.titlePlaceholder')"
-                    :disabled="isSaving"
-                    @update:value="(val: string) => (title = val)"
-                />
-                <span v-if="errors.title" :class="$style.fieldError">{{ errors.title }}</span>
-            </div>
+            <BuilderPublishDetailsPanelOgImage
+                :social-image="String(socialImage ?? '')"
+                :error="errors.socialImage"
+                :is-saving="isSaving"
+                @open-media="handleOpenMediaGallery"
+                @clear="handleClearSocialImage"
+            />
 
-            <div :class="$style.field">
-                <BricksInput
-                    :label="t('bricks.publish.dashboard.details.pagenameLabel')"
-                    :value="pagename"
-                    type="slug"
-                    :max-length="80"
-                    placeholder="my-page"
-                    :disabled="isSaving"
-                    @update:value="(val: string) => (pagename = val)"
-                />
-                <span v-if="errors.pagename" :class="$style.fieldError">
-                    {{ errors.pagename }}
-                </span>
-            </div>
-
-            <div :class="$style.field">
-                <label :class="$style.fieldLabel">
-                    {{ t('bricks.publish.dashboard.details.descriptionLabel') }}
-                    <span :class="$style.charCount">{{ descriptionLength }}/500</span>
-                </label>
-                <textarea
-                    :value="String(description ?? '')"
-                    :class="[$style.textarea, errors.description && $style.textareaError]"
-                    :disabled="isSaving"
-                    :maxlength="500"
-                    rows="3"
-                    placeholder="SEO Description"
-                    @input="onDescriptionInput"
-                ></textarea>
-                <span v-if="errors.description" :class="$style.fieldError">
-                    {{ errors.description }}
-                </span>
-            </div>
-
-            <div :class="$style.field">
-                <BricksInput
-                    :label="t('bricks.publish.dashboard.details.keywordsLabel')"
-                    :value="keywords"
-                    type="text"
-                    :max-length="255"
-                    placeholder="promo, page, marketing"
-                    :disabled="isSaving"
-                    @update:value="(val: string) => (keywords = val)"
-                />
-                <span v-if="errors.keywords" :class="$style.fieldError">
-                    {{ errors.keywords }}
-                </span>
-            </div>
-
-            <div :class="$style.field">
-                <label :class="$style.fieldLabel">
-                    {{ t('bricks.publish.dashboard.details.ogImage') }}
-                </label>
-                <div :class="$style.ogRow">
-                    <span :class="$style.ogThumb">
-                        <img
-                            v-if="socialImage"
-                            :src="String(socialImage)"
-                            alt=""
-                            :class="$style.ogImage"
-                        />
-                        <BricksIcon v-else icon="ta:outline-photo" :class="$style.ogPlaceholder" />
-                    </span>
-                    <BricksButton
-                        size="sm"
-                        variant="secondary"
-                        :disabled="isSaving"
-                        @click="handleOpenMediaGallery"
-                    >
-                        {{ t('bricks.publish.dashboard.details.selectFromMedia') }}
-                    </BricksButton>
-                    <BricksButton
-                        v-if="socialImage"
-                        size="sm"
-                        variant="ghost"
-                        :disabled="isSaving"
-                        @click="handleClearSocialImage"
-                    >
-                        {{ t('bricks.publish.socialImageClear') }}
-                    </BricksButton>
-                </div>
-                <span v-if="errors.socialImage" :class="$style.fieldError">
-                    {{ errors.socialImage }}
-                </span>
-            </div>
-
-            <div :class="$style.routing">
-                <button :class="$style.routingToggle" type="button" @click="handleToggleRouting">
-                    <BricksIcon
-                        icon="ta:outline-chevron-right"
-                        :class="[$style.routingCaret, isRoutingOpen && $style.routingCaretOpen]"
-                    />
-                    {{ t('bricks.publish.dashboard.details.routing') }}
-                </button>
-
-                <div v-if="isRoutingOpen" :class="$style.routingFields">
-                    <div :class="$style.field">
-                        <BricksInput
-                            label="URL Prefix"
-                            :value="urlPrefix"
-                            type="text"
-                            :max-length="100"
-                            placeholder="blog"
-                            :disabled="isSaving"
-                            @update:value="(val: string) => (urlPrefix = val)"
-                        />
-                        <span v-if="errors.urlPrefix" :class="$style.fieldError">
-                            {{ errors.urlPrefix }}
-                        </span>
-                        <span :class="$style.fieldHint">{{
-                            t('bricks.publish.urlPrefixHint')
-                        }}</span>
-                    </div>
-                    <div :class="$style.field">
-                        <BricksInput
-                            :label="t('bricks.publish.subdomain')"
-                            :value="subdomain"
-                            type="text"
-                            :max-length="63"
-                            placeholder="spb"
-                            :disabled="isSaving"
-                            @update:value="(val: string) => (subdomain = val)"
-                        />
-                        <span v-if="errors.subdomain" :class="$style.fieldError">
-                            {{ errors.subdomain }}
-                        </span>
-                        <span :class="$style.fieldHint">{{
-                            t('bricks.publish.subdomainHint')
-                        }}</span>
-                    </div>
-                </div>
-            </div>
+            <BuilderPublishDetailsPanelRouting
+                v-model:url-prefix="urlPrefix"
+                v-model:subdomain="subdomain"
+                :page="props.page"
+                :errors="errors"
+                :is-saving="isSaving"
+            />
 
             <div v-if="isDirty || isSaving" :class="$style.saveBar">
                 <BricksButton
@@ -538,155 +368,6 @@ onMounted(() => {
     &:hover {
         color: var(--bricks-base-900);
     }
-}
-
-.sectionLabel {
-    text-transform: uppercase;
-    font-size: 1.2rem;
-    font-weight: 600;
-    letter-spacing: 0.06rem;
-    color: var(--bricks-base-400);
-}
-
-.field {
-    display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
-}
-
-.fieldLabel {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 1.4rem;
-    font-weight: 500;
-    color: var(--bricks-base-600);
-}
-
-.charCount {
-    font-size: 1.2rem;
-    font-weight: 400;
-    color: var(--bricks-base-400);
-}
-
-.textarea {
-    box-sizing: border-box;
-    width: 100%;
-    min-height: 8.4rem;
-    padding: 0.8rem 1.2rem;
-    border-radius: var(--border-radius-xs);
-    border: 1px solid var(--bricks-base-300);
-    background-color: var(--bricks-base-0);
-    outline: none;
-    font-size: 1.4rem;
-    color: var(--bricks-base-900);
-    transition:
-        border-color var(--default-transition),
-        box-shadow var(--default-transition);
-    resize: vertical;
-
-    &::placeholder {
-        color: var(--bricks-base-400);
-    }
-
-    &:hover {
-        border-color: var(--bricks-base-400);
-    }
-
-    &:focus {
-        border-color: var(--bricks-primary);
-        box-shadow: var(--shadow-focus);
-    }
-
-    &:disabled {
-        background-color: var(--bricks-base-50);
-        color: var(--bricks-base-400);
-    }
-}
-
-.textareaError {
-    border-color: var(--bricks-danger-500);
-}
-
-.fieldError {
-    font-size: 1.2rem;
-    color: var(--bricks-danger-500);
-}
-
-.fieldHint {
-    font-size: 1.2rem;
-    color: var(--bricks-base-400);
-}
-
-.ogRow {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.ogThumb {
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    width: 4.4rem;
-    height: 4.4rem;
-    border-radius: var(--border-radius-xs);
-    background: var(--bricks-base-100);
-}
-
-.ogImage {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.ogPlaceholder {
-    width: 1.8rem;
-    height: 1.8rem;
-    color: var(--bricks-base-400);
-}
-
-.routing {
-    display: flex;
-    flex-direction: column;
-    gap: 1.2rem;
-}
-
-.routingToggle {
-    display: flex;
-    align-items: center;
-    align-self: flex-start;
-    padding: 0;
-    border: none;
-    background: transparent;
-    font-size: 1.2rem;
-    font-weight: 500;
-    color: var(--bricks-base-600);
-    transition: color var(--default-transition);
-    cursor: pointer;
-    gap: 0.6rem;
-
-    &:hover {
-        color: var(--bricks-base-900);
-    }
-}
-
-.routingCaret {
-    width: 1.2rem;
-    height: 1.2rem;
-    transition: transform var(--default-transition);
-}
-
-.routingCaretOpen {
-    transform: rotate(90deg);
-}
-
-.routingFields {
-    display: flex;
-    flex-direction: column;
-    gap: 1.2rem;
 }
 
 .saveBar {

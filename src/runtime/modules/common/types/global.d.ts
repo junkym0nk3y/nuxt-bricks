@@ -38,6 +38,35 @@ declare module 'vue' {
 
 declare module '#imports' {
     export const useNuxtApp: () => any;
+    /**
+     * Compiler macro страниц Nuxt. В module-окружении (`nuxt-module-build prepare`)
+     * pages-модуль не активен и тип не генерируется — шим повторяет сигнатуру
+     * `nuxt/dist/pages/runtime/composables`.
+     */
+    export const definePageMeta: (meta: Record<string, unknown>) => void;
+}
+
+/**
+ * В приложении-потребителе `NuxtLayouts`/`LayoutKey` генерируются в
+ * `.nuxt/types/layouts.d.ts` из реальных layout'ов. Runtime модуля
+ * компилируется без этой генерации, поэтому шим объявляет открытый словарь —
+ * имена layout'ов потребителя заранее неизвестны.
+ */
+declare module 'nuxt/app' {
+    interface NuxtLayouts {
+        [name: string]: Record<string, unknown>;
+    }
+    export type LayoutKey = keyof NuxtLayouts;
+}
+
+/**
+ * `@nuxtjs/i18n` добавляет `setLocale` в Composer через генерируемую
+ * аугментацию `ComposerCustom` — в module-окружении её нет, шимим вручную.
+ */
+declare module 'vue-i18n' {
+    interface ComposerCustom {
+        setLocale: (locale: string) => Promise<void>;
+    }
 }
 
 export {};
