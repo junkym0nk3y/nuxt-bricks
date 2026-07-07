@@ -217,7 +217,6 @@ const isFavorite = computed<boolean>(() =>
     --bricks-base-900: #111827;
     --bricks-primary-50: #eff6ff;
     --bricks-primary-100: #dbeafe;
-    --bricks-primary-200: #bfdbfe;
     --bricks-primary-300: #93c5fd;
     --bricks-primary-400: #60a5fa;
     --bricks-primary-500: #3b82f6;

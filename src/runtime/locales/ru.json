@@ -1,10 +1,8 @@
 {
     "bricks": {
         "common": {
-            "save": "Сохранить",
             "cancel": "Отмена",
             "delete": "Удалить",
-            "close": "Закрыть",
             "loading": "Загрузка…",
             "notFound": "Ничего не найдено",
             "unknownError": "Неизвестная ошибка",

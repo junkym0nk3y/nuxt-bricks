@@ -293,7 +293,7 @@ export default {
 
 ### P3 — косметика
 
-17. Мёртвое: `--rgb-layout-svg`, `--bricks-primary-200`, ключи `bricks.common.save/close`, peer deps `@vee-validate/yup`/`upath`. (Иконка `ta:outline-adjustments-horizontal` удалена в п.10; экспорты `isBricksSchema`/`ISpacingMirrorSlot` убраны в п.13.)
+17. ✅ (2026-07-07) Мёртвое: удалены `--rgb-layout-svg` и все объявления `--bricks-primary-200` (включая light-reset в `…SidebarComponentCard.vue`), ключи `bricks.common.save`/`close` из обеих локалей, peer deps `@vee-validate/yup` (и из `VITE_OPTIMIZE_INCLUDE` в `module.ts`) и `upath`, lockfile пересобран. (Иконка `ta:outline-adjustments-horizontal` удалена в п.10; экспорты `isBricksSchema`/`ISpacingMirrorSlot` убраны в п.13.) Верификация: lint:check exit 0, vue-tsc 0, vitest 84/84.
 18. Стили: px→rem (2px-бордеры, 999px→`--border-radius-pill`), rem кратные 0.2, `#fff`→`var(--bricks-base-0)`, em→rem в letter-spacing, transitions → `transitions.scss`; узаконить px-брейкпоинты media-query в правилах.
 19. `structuredClone` вместо `JSON.parse(JSON.stringify())` (×5).
 20. `withDefaults` (BottomBar + 11 компонентов), порядок `#region` в PropertyEditors, `await nextTick()` в useCanvasWheel, switch→map (осталась `BricksActionButton.vue:68`; flex-маперы и getSelectorType сделаны в п.9), lazy-модалки в `[pagename].vue`, типы возврата композаблов (постепенно, при касании файлов).

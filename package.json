@@ -89,7 +89,6 @@
         "@tiptap/starter-kit": "^3.0.0",
         "@tiptap/vue-3": "^3.0.0",
         "@vee-validate/rules": "^4.13.1",
-        "@vee-validate/yup": "^4.15.1",
         "@vueuse/core": "^13.0.0",
         "json-editor-vue": "^0.18.1",
         "pg": "^8.16.0",
@@ -97,7 +96,6 @@
         "reka-ui": "^2.0.0",
         "sharp": "^0.34.5",
         "swiper": "^11.1.5",
-        "upath": "^2.0.1",
         "vanilla-jsoneditor": "^3.11.0",
         "vee-validate": "^4.13.1",
         "yup": "^1.7.1"

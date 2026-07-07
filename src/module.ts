@@ -65,7 +65,6 @@ export interface IBricksModuleOptions {
 // #region Constants
 const VITE_OPTIMIZE_INCLUDE = [
     'yup',
-    '@vee-validate/yup',
     'tiny-case',
     'ajv',
     'natural-compare-lite',
