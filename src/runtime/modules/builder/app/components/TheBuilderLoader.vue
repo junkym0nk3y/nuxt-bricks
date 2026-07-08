@@ -17,20 +17,12 @@ const props = defineProps<{
 /** Минимальное значение прогресса (%), чтобы полоска была видна сразу при старте. */
 const MIN_VISIBLE_PROGRESS = 1;
 
-/** Максимум (%), до которого доходит фейковый прогресс, пока загрузка не завершена. */
-const MAX_FAKE_PROGRESS = 50;
-
 /**
- * Временная константа (ms) экспоненциальной кривой.
- * Чем больше значение — тем медленнее прогресс приближается к MAX_FAKE_PROGRESS.
+ * Длительность (ms) одного полного цикла волны лого: 4 куба × 0.6s (--lift-step
+ * в BuilderLogo). Оверлей живёт ровно один цикл — на его границе все кубы в покое,
+ * и прогресс синхронно доезжает до 100%.
  */
-const PROGRESS_TAU = 4000;
-
-/** Длительность (ms) финальной анимации от текущего значения до 100%. */
-const FINISH_PROGRESS_TRANSITION_MS = 1000;
-
-/** Задержка (ms) перед скрытием оверлея после достижения 100%. */
-const HIDE_DELAY_MS = 200;
+const LOGO_CYCLE_DURATION_MS = 2400;
 
 /** Текущее значение прогресса (0–100). Используется для ширины полоски и текста процента. */
 const progress = ref(props.isLoading ? MIN_VISIBLE_PROGRESS : 0);
@@ -38,14 +30,8 @@ const progress = ref(props.isLoading ? MIN_VISIBLE_PROGRESS : 0);
 /** Флаг видимости оверлея. Управляет v-if на корневом элементе. */
 const isVisible = ref(props.isLoading);
 
-/** ID текущего requestAnimationFrame. Нужен для отмены при stopProgress / unmount. */
+/** ID текущего requestAnimationFrame. Нужен для отмены при повторном запуске / unmount. */
 let animationRafId: number | null = null;
-
-/** Timestamp начала текущей rAF-анимации. Сбрасывается при каждом новом цикле. */
-let animationStartTime: number | null = null;
-
-/** ID setTimeout для отложенного скрытия оверлея после завершения анимации. */
-let hideTimeout: number | null = null;
 // #endregion
 
 // #region Computed
@@ -57,23 +43,7 @@ const progressStyle = computed(() => ({
 
 // #region Methods
 /**
- * Отменяет отложенное скрытие оверлея (clearTimeout).
- * SSR-safe: на сервере window не существует, выходим сразу.
- */
-function stopHideTimeout(): void {
-    if (typeof window === 'undefined') {
-        return;
-    }
-
-    if (hideTimeout !== null) {
-        window.clearTimeout(hideTimeout);
-        hideTimeout = null;
-    }
-}
-
-/**
- * Останавливает текущую rAF-анимацию прогресса (как фейковую, так и финальную).
- * Отменяет requestAnimationFrame и сбрасывает timestamp начала.
+ * Останавливает текущую rAF-анимацию прогресса.
  * SSR-safe: на сервере window не существует, выходим сразу.
  */
 function stopProgress(): void {
@@ -85,108 +55,50 @@ function stopProgress(): void {
         window.cancelAnimationFrame(animationRafId);
         animationRafId = null;
     }
-
-    animationStartTime = null;
 }
 
 /**
- * Запускает фейковую анимацию прогресса через requestAnimationFrame.
+ * Показывает оверлей ровно на один цикл волны лого (LOGO_CYCLE_DURATION_MS)
+ * и скрывает его по окончании — независимо от фактического состояния загрузки.
  *
- * Использует экспоненциальную кривую ease-out:
- *   progress = MIN + (MAX - MIN) * (1 - e^(-elapsed / TAU))
- *
- * Прогресс быстро стартует и плавно замедляется, асимптотически
- * приближаясь к MAX_FAKE_PROGRESS (50%). Обновляется каждый кадр (~60fps).
+ * Прогресс за цикл анимируется от MIN_VISIBLE_PROGRESS до 100% с квадратичным
+ * ease-out (быстро в начале, замедляется к концу) через requestAnimationFrame.
  *
  * SSR-safe: на сервере window не существует, выходим сразу.
  */
-function startProgress(): void {
+function runLoaderCycle(): void {
     if (typeof window === 'undefined') {
         return;
     }
 
     stopProgress();
-    stopHideTimeout();
     isVisible.value = true;
     progress.value = MIN_VISIBLE_PROGRESS;
-    animationStartTime = null;
 
-    /** Кадр rAF: вычисляет прогресс по экспоненциальной кривой на основе elapsed time. */
+    let cycleStartTime: number | null = null;
+
+    /** Кадр rAF: интерполирует прогресс до 100% и скрывает оверлей на границе цикла. */
     function tick(timestamp: number): void {
-        if (animationStartTime === null) {
-            animationStartTime = timestamp;
+        if (cycleStartTime === null) {
+            cycleStartTime = timestamp;
         }
 
-        const elapsed = timestamp - animationStartTime;
-        // Экспоненциальный ease-out: быстро в начале, замедляется к концу
-        const t = 1 - Math.exp(-elapsed / PROGRESS_TAU);
-        progress.value = MIN_VISIBLE_PROGRESS + (MAX_FAKE_PROGRESS - MIN_VISIBLE_PROGRESS) * t;
+        // Нормализованное время цикла [0..1]
+        const ratio = Math.min((timestamp - cycleStartTime) / LOGO_CYCLE_DURATION_MS, 1);
+        // Квадратичный ease-out: замедляется к концу
+        const eased = 1 - (1 - ratio) * (1 - ratio);
+        progress.value = MIN_VISIBLE_PROGRESS + (100 - MIN_VISIBLE_PROGRESS) * eased;
 
-        // Продолжаем анимацию, пока не подошли вплотную к максимуму
-        if (progress.value < MAX_FAKE_PROGRESS - 0.1) {
+        if (ratio < 1) {
             animationRafId = window.requestAnimationFrame(tick);
+            return;
         }
+
+        animationRafId = null;
+        isVisible.value = false;
     }
 
     animationRafId = window.requestAnimationFrame(tick);
-}
-
-/**
- * Завершает прогресс: плавно анимирует от текущего значения до 100%.
- *
- * Использует квадратичную ease-out кривую через requestAnimationFrame:
- *   eased = 1 - (1 - ratio)^2
- *
- * После достижения 100% ждёт HIDE_DELAY_MS и скрывает оверлей.
- * Если оверлей уже скрыт — просто сбрасывает прогресс в 0.
- *
- * SSR-safe: на сервере window не существует, выходим сразу.
- */
-function finishProgress(): void {
-    if (typeof window === 'undefined') {
-        return;
-    }
-
-    stopProgress();
-    stopHideTimeout();
-
-    if (!isVisible.value) {
-        progress.value = 0;
-        return;
-    }
-
-    // Запоминаем стартовое значение для интерполяции
-    const startValue = progress.value;
-    const distance = 100 - startValue;
-    let finishStartTime: number | null = null;
-
-    /** Кадр rAF: интерполирует прогресс от startValue до 100% с ease-out quad. */
-    function finishTick(timestamp: number): void {
-        if (finishStartTime === null) {
-            finishStartTime = timestamp;
-        }
-
-        const elapsed = timestamp - finishStartTime;
-        // Нормализованное время [0..1]
-        const ratio = Math.min(elapsed / FINISH_PROGRESS_TRANSITION_MS, 1);
-        // Квадратичный ease-out: замедляется к концу
-        const eased = 1 - (1 - ratio) * (1 - ratio);
-        progress.value = startValue + distance * eased;
-
-        if (ratio < 1) {
-            animationRafId = window.requestAnimationFrame(finishTick);
-        } else {
-            progress.value = 100;
-            animationRafId = null;
-
-            // Даём пользователю увидеть заполненную полоску перед скрытием
-            hideTimeout = window.setTimeout(() => {
-                isVisible.value = false;
-            }, HIDE_DELAY_MS);
-        }
-    }
-
-    animationRafId = window.requestAnimationFrame(finishTick);
 }
 // #endregion
 
@@ -195,9 +107,7 @@ watch(
     () => props.isLoading,
     (newValue) => {
         if (newValue) {
-            startProgress();
-        } else {
-            finishProgress();
+            runLoaderCycle();
         }
     },
     { immediate: true }
@@ -207,7 +117,6 @@ watch(
 // #region Lifecycle
 onUnmounted(() => {
     stopProgress();
-    stopHideTimeout();
 });
 // #endregion
 </script>

@@ -91,6 +91,18 @@ function getCubeClassList(liftOrder: number): (string | Record<string, boolean>)
 }
 
 /**
+ * Возвращает следующее состояние эстафеты: старт с куба 0, сдвиг на следующий по волне,
+ * а после последнего куба — проход-сброс в полностью серое лого (null), замыкающий круг.
+ */
+function getNextPaintedOrder(current: number | null): number | null {
+    if (current === null) {
+        return 0;
+    }
+
+    return current === LOGO_CUBES.length - 1 ? null : current + 1;
+}
+
+/**
  * Запускает один проход волны подъёма кубов и сдвигает эстафету цвета:
  * прежний цветной куб гасится, следующий по волне остаётся перекрашенным.
  */
@@ -100,8 +112,7 @@ function onMouseenter(): void {
     }
 
     unpaintingOrder.value = paintedOrder.value;
-    paintedOrder.value =
-        paintedOrder.value === null ? 0 : (paintedOrder.value + 1) % LOGO_CUBES.length;
+    paintedOrder.value = getNextPaintedOrder(paintedOrder.value);
     isAnimating.value = true;
 
     setTimeout(() => {
