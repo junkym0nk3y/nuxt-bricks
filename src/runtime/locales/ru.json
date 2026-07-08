@@ -99,7 +99,7 @@
         },
         "publish": {
             "settingsTitle": "Настройки страницы",
-            "settingsTitleEdit": "Изменить настройки страницы",
+            "settingsTitleEdit": "Настройки публикации",
             "urlPrefixHint": "Опционально. Страница будет доступна по /prefix/pagename",
             "subdomain": "Субдомен",
             "subdomainHint": "Опционально. Страница будет доступна только на этом поддомене",

@@ -147,9 +147,9 @@ function handlePreview(): void {
         <div :class="$style.center">
             <h1 :class="$style.title">
                 <span :class="$style.titlePrimary">
-                    <BuilderLogo :class="$style.logo" text="Dashboard" to="/bricks" />
+                    <BuilderLogo :class="$style.logo" to="/bricks" />
                 </span>
-                <span v-if="currentPageTitle" :class="$style.titleDivider">/</span>
+                <span v-if="currentPageTitle" :class="$style.titleDivider">|</span>
                 <span v-if="currentPageTitle" :class="$style.titleSecondary">
                     {{ currentPageTitle }}
                 </span>
@@ -200,7 +200,7 @@ function handlePreview(): void {
                 @save-as-copy="handleSaveAsCopy"
                 @save-draft="handleSaveDraft"
             >
-                <BricksIcon icon="ta:outline-device-floppy" />
+                <BricksIcon :class="$style.icon" icon="ta:outline-device-floppy" />
             </BricksActionButton>
         </div>
     </div>
@@ -214,7 +214,7 @@ function handlePreview(): void {
     align-items: center;
     justify-content: space-between;
     height: 6rem;
-    padding: 0 2rem;
+    padding: 0 2rem 0 1.2rem;
     border-bottom: 1px solid var(--bricks-base-300);
     background-color: var(--bricks-base-0);
     box-shadow: var(--shadow-sm);

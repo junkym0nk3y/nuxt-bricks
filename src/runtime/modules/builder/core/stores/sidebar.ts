@@ -21,7 +21,7 @@ export const useSidebarStore = defineStore('bricksSidebar', {
     state: (): ISidebarState => ({
         left: {
             visible: false,
-            width: '37.2rem',
+            width: '32rem',
         },
         right: {
             visible: false,

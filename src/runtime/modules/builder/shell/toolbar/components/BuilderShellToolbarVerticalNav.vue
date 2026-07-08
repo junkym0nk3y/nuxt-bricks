@@ -219,9 +219,8 @@ function handleToggleLocale(): void {
     z-index: 60;
     display: flex;
     align-items: center;
-    width: 4.8rem;
-    min-width: 4.8rem;
-    padding-top: 1.6rem;
+    width: 5.4rem;
+    padding-top: 1.4rem;
     padding-bottom: 1.6rem;
     background-color: var(--bricks-base-50);
     flex-direction: column;

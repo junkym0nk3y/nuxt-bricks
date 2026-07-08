@@ -140,7 +140,7 @@ defineExpose({
     position: fixed;
     top: 6rem;
     bottom: 0;
-    left: 4.8rem;
+    left: 5.4rem;
     z-index: 50;
     display: flex;
     border-right: 1px solid var(--bricks-base-300);
