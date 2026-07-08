@@ -30,6 +30,11 @@ const props = withDefaults(
 const $style = useCssModule();
 const isAnimating = ref(false);
 
+// Эстафета цвета: liftOrder куба, который остаётся перекрашенным после проходки
+// (null — все серые), и куба, который в текущей проходке гасится обратно в базовый.
+const paintedOrder = ref<number | null>(null);
+const unpaintingOrder = ref<number | null>(null);
+
 // Изо-куб: полуширина 79.67, полувысота верхней грани 46, вертикальное ребро 92.
 // Три отдельные грани (верх/лево/право) относительно верхней вершины (0,0) —
 // каждая грань получает свой оттенок --cube-color; заливка + stroke того же цвета
@@ -73,17 +78,35 @@ const isLink = computed<boolean>(() => Boolean(props.to));
 
 // #region Methods
 /**
- * Запускает один проход волны подъёма кубов и сбрасывает флаг по её окончании.
+ * Собирает список классов куба: роль в эстафете цвета (остаётся цветным / гасится).
+ */
+function getCubeClassList(liftOrder: number): (string | Record<string, boolean>)[] {
+    return [
+        $style.cube,
+        {
+            [$style.painted]: liftOrder === paintedOrder.value,
+            [$style.unpainting]: liftOrder === unpaintingOrder.value,
+        },
+    ];
+}
+
+/**
+ * Запускает один проход волны подъёма кубов и сдвигает эстафету цвета:
+ * прежний цветной куб гасится, следующий по волне остаётся перекрашенным.
  */
 function onMouseenter(): void {
-    if (isAnimating.value || props.isTouch) {
+    if (isAnimating.value || props.isTouch || props.isInfiniteAnimation) {
         return;
     }
 
+    unpaintingOrder.value = paintedOrder.value;
+    paintedOrder.value =
+        paintedOrder.value === null ? 0 : (paintedOrder.value + 1) % LOGO_CUBES.length;
     isAnimating.value = true;
 
     setTimeout(() => {
         isAnimating.value = false;
+        unpaintingOrder.value = null;
     }, HOVER_ANIMATION_DURATION_MS);
 }
 // #endregion
@@ -111,7 +134,7 @@ function onMouseenter(): void {
                         :transform="`translate(${cube.x}, ${cube.y})`"
                     >
                         <g
-                            :class="$style.cube"
+                            :class="getCubeClassList(cube.liftOrder)"
                             :style="{
                                 '--lift-order': cube.liftOrder,
                                 '--cube-active-color': cube.activeColor,
@@ -147,8 +170,8 @@ function onMouseenter(): void {
 
 .inner {
     flex-shrink: 0;
-    width: var(--builder-logo-width, 3rem);
-    height: var(--builder-logo-height, 3rem);
+    width: var(--builder-logo-width, 3.4rem);
+    height: var(--builder-logo-height, 3.4rem);
 }
 
 .logoIcon {
@@ -159,7 +182,7 @@ function onMouseenter(): void {
 
     path {
         // Контур: тёмный оттенок цвета куба; round join даёт лёгкое скругление углов
-        stroke: color-mix(in srgb, var(--cube-color), black 25%);
+        stroke: color-mix(in srgb, var(--cube-color), black 2%);
         stroke-width: 4;
         stroke-linejoin: round;
         stroke-linecap: round;
@@ -196,21 +219,38 @@ function onMouseenter(): void {
 
 // Оттенки граней из одного --cube-color: верх светлее, лево темнее, право — почти базовый
 .faceTop {
-    fill: color-mix(in srgb, var(--cube-color), white 18%);
+    fill: color-mix(in srgb, var(--cube-color), white 20%);
 }
 
 .faceLeft {
-    fill: color-mix(in srgb, var(--cube-color), black 26%);
+    fill: color-mix(in srgb, var(--cube-color), black 22%);
 }
 
 .faceRight {
-    fill: color-mix(in srgb, var(--cube-color), black 8%);
+    fill: color-mix(in srgb, var(--cube-color), black 4%);
+}
+
+// Эстафета цвета: куб, оставшийся перекрашенным после проходки, держит active-цвет
+// стационарно; во время анимации keyframes с fill: both побеждают каскад,
+// поэтому свежепомеченный куб до своего сегмента волны остаётся серым (0%-кадр).
+.painted {
+    --cube-color: var(--cube-active-color);
 }
 
 // Hover: один проход, каждый куб занимает ровно свой сегмент волны
 .animating:not(.infinite) .cube {
     animation: cube-lift-pass var(--lift-step) ease-in-out both;
     animation-delay: calc(var(--lift-order) * var(--lift-step));
+}
+
+// Куб, принимающий эстафету: поднимается и остаётся в active-цвете
+.animating:not(.infinite) .painted {
+    animation-name: cube-lift-paint;
+}
+
+// Куб, отдающий эстафету: поднимается цветным и гаснет в базовый
+.animating:not(.infinite) .unpainting {
+    animation-name: cube-lift-unpaint;
 }
 
 // Loop: lift в первых 25% цикла, положительный delay фазово сдвигает итерации — волна сохраняется
@@ -229,6 +269,40 @@ function onMouseenter(): void {
     50% {
         --cube-lift: -3.4rem;
         --cube-color: var(--cube-active-color);
+    }
+}
+
+@keyframes cube-lift-paint {
+    0% {
+        --cube-lift: 0rem;
+        --cube-color: var(--cube-base-color);
+    }
+
+    50% {
+        --cube-lift: -3.4rem;
+        --cube-color: var(--cube-active-color);
+    }
+
+    100% {
+        --cube-lift: 0rem;
+        --cube-color: var(--cube-active-color);
+    }
+}
+
+@keyframes cube-lift-unpaint {
+    0% {
+        --cube-lift: 0rem;
+        --cube-color: var(--cube-active-color);
+    }
+
+    50% {
+        --cube-lift: -3.4rem;
+        --cube-color: var(--cube-base-color);
+    }
+
+    100% {
+        --cube-lift: 0rem;
+        --cube-color: var(--cube-base-color);
     }
 }
 

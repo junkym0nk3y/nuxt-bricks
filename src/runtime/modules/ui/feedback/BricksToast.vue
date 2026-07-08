@@ -121,20 +121,54 @@ function onOpenChange(open: boolean): void {
     display: flex;
     align-items: center;
     max-width: min(38rem, calc(100vw - 4.8rem));
-    padding: 1.2rem 1.6rem;
+    padding: 1.2rem;
     border-radius: var(--border-radius-sm);
-    background-color: var(--bricks-primary);
-    color: var(--bricks-base-0);
+    border: 1px solid var(--bricks-base-200);
+    background-color: var(--bricks-base-0);
+    color: var(--bricks-base-900);
     gap: 1.2rem;
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-lg);
     user-select: none;
 
-    &._success {
-        background-color: var(--bricks-primary);
+    &._success .iconWrapper {
+        background-color: var(--bricks-primary-50);
+        color: var(--bricks-primary);
     }
 
-    &._error {
-        background-color: var(--bricks-danger-500);
+    &._error .iconWrapper {
+        background-color: var(--bricks-danger-50);
+        color: var(--bricks-danger-500);
+    }
+
+    &[data-state='open'] {
+        animation: bricks-toast-in 200ms ease-out;
+    }
+
+    &[data-state='closed'] {
+        animation: bricks-toast-out 150ms ease-in;
+    }
+
+    &[data-swipe='move'] {
+        transform: translateX(var(--reka-toast-swipe-move-x));
+    }
+
+    &[data-swipe='cancel'] {
+        transform: translateX(0);
+        transition: transform 200ms ease-out;
+    }
+
+    &[data-swipe='end'] {
+        animation: bricks-toast-swipe-out 150ms ease-in;
+    }
+
+    // animation: none безопасен и для closed — без анимации Presence
+    // размонтирует контент сразу, ожидания animationend нет
+    @media (prefers-reduced-motion: reduce) {
+        &[data-state='open'],
+        &[data-state='closed'],
+        &[data-swipe='end'] {
+            animation: none;
+        }
     }
 }
 
@@ -143,18 +177,20 @@ function onOpenChange(open: boolean): void {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    width: 2.4rem;
-    height: 2.4rem;
+    width: 2.8rem;
+    height: 2.8rem;
+    border-radius: var(--border-radius-control);
 }
 
 .icon {
-    width: 2.4rem;
-    height: 2.4rem;
+    width: 1.8rem;
+    height: 1.8rem;
 }
 
 .message {
     flex: 1;
     font-size: 1.4rem;
+    font-weight: 500;
     line-height: 1.4;
 }
 
@@ -162,17 +198,69 @@ function onOpenChange(open: boolean): void {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
     width: 2.4rem;
     height: 2.4rem;
-    border-radius: 50%;
+    border-radius: var(--border-radius-control);
     border: none;
     background: transparent;
-    color: inherit;
-    transition: background-color 0.2s ease;
+    color: var(--bricks-base-400);
+    transition:
+        background-color var(--default-transition),
+        color var(--default-transition);
     cursor: pointer;
 
+    svg {
+        width: 1.4rem;
+        height: 1.4rem;
+    }
+
     &:hover {
-        background-color: var(--overlay-light);
+        background-color: var(--bricks-surface-raised);
+        color: var(--bricks-base-900);
+    }
+
+    &:focus-visible {
+        outline: none;
+        box-shadow: var(--shadow-focus);
+    }
+}
+
+// Keyframes держим в module-блоке: CSS Modules скоупит имя анимации в ссылке
+// `animation:` выше, поэтому и определение должно быть локальным (глобальное
+// имя не совпало бы → анимация не проигрывалась, а Reka зависал бы на closed).
+@keyframes bricks-toast-in {
+    from {
+        opacity: 0;
+        transform: translateY(0.8rem) scale(0.97);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes bricks-toast-out {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(0.4rem);
+    }
+}
+
+@keyframes bricks-toast-swipe-out {
+    from {
+        opacity: 1;
+        transform: translateX(var(--reka-toast-swipe-end-x));
+    }
+
+    to {
+        opacity: 0;
+        transform: translateX(calc(var(--reka-toast-swipe-end-x) + 2.4rem));
     }
 }
 </style>
