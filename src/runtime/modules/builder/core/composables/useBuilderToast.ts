@@ -6,17 +6,19 @@ import type { IBuilderToastState } from '../types/toast';
 import { reactive } from 'vue';
 // #endregion
 
+// Модульный синглтон: одно состояние на всё приложение, чтобы toast
+// могли показывать и страница билдера, и глубокие потомки (контекстное меню канваса)
+const toast = reactive<IBuilderToastState>({
+    visible: false,
+    message: '',
+    variant: 'success',
+    duration: 4000,
+});
+
 /**
  * Состояние toast-уведомления билдера и единая функция показа.
  */
 export function useBuilderToast() {
-    const toast = reactive<IBuilderToastState>({
-        visible: false,
-        message: '',
-        variant: 'success',
-        duration: 4000,
-    });
-
     /**
      * Показывает toast с сообщением, вариантом и длительностью.
      *

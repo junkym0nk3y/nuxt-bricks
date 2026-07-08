@@ -158,25 +158,18 @@
     transform: translateY(0.4rem);
 }
 
-/* Canvas toolbar accordion */
-.library-canvas-toolbar-accordion-enter-active,
-.library-canvas-toolbar-accordion-leave-active {
-    overflow: hidden;
+/* Canvas item context menu */
+.canvas-context-menu-enter-active,
+.canvas-context-menu-leave-active {
     transition:
-        max-width 0.3s ease,
-        opacity 0.2s ease;
+        opacity 0.15s ease,
+        transform 0.15s ease;
 }
 
-.library-canvas-toolbar-accordion-enter-from,
-.library-canvas-toolbar-accordion-leave-to {
-    max-width: 0;
+.canvas-context-menu-enter-from,
+.canvas-context-menu-leave-to {
     opacity: 0;
-}
-
-.library-canvas-toolbar-accordion-enter-to,
-.library-canvas-toolbar-accordion-leave-from {
-    max-width: 80rem;
-    opacity: 1;
+    transform: scale(0.98);
 }
 
 /* Tooltip transitions */

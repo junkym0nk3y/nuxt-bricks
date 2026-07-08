@@ -1,11 +1,12 @@
 // #region Imports
 // Types
-import type { ICanvasItemProps } from '../../types/components';
+import type { ICanvasItemProps, ICanvasContextMenuPosition } from '../../types/components';
 import type { IPropertyDefinition, TBricksDeviceKey } from '../../../../common/types/brick';
 import type { IBrickValues } from '../../../../common/types/index';
 
 // Vue
-import { computed, nextTick, type ComputedRef, type Ref } from 'vue';
+import { computed, nextTick, ref, type ComputedRef, type Ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Pinia
 import { useComponentsStore } from '../../../core/stores/components';
@@ -15,6 +16,7 @@ import { useSidebarStore } from '../../../core/stores/sidebar';
 // Composables
 import { useBrickImports } from '../../../../common/composables/useBrickImports';
 import { useComponentProperties } from '../../../core/composables/useComponentProperties';
+import { useBuilderToast } from '../../../core/composables/useBuilderToast';
 
 // Utils
 import { getLayoutProperties } from '../../../core/utils/layoutProperties';
@@ -25,24 +27,28 @@ import { LAYOUT_COMPONENTS } from '../../../core/constants/layoutComponents';
 // #endregion
 
 /**
- * Инкапсулирует обработчики тулбара и логику выбора компонента:
- * действия (удаление, дублирование, скрытие, перемещение, избранное),
- * обработчик клика с загрузкой properties, вычисляемые состояния тулбара.
+ * Инкапсулирует обработчики контекстного меню и логику выбора компонента:
+ * действия (удаление, буфер обмена, скрытие, перемещение, избранное),
+ * обработчик клика с загрузкой properties, состояние контекстного меню.
  */
 export function useCanvasItemActions(
     props: ICanvasItemProps,
     isLayout: ComputedRef<boolean>,
     layoutName: ComputedRef<string>,
-    figmaViewport: Ref<TBricksDeviceKey> | null,
-    itemTop: Ref<number>,
-    itemRight: Ref<number>,
-    isSelected: ComputedRef<boolean>
+    figmaViewport: Ref<TBricksDeviceKey> | null
 ) {
     const componentsStore = useComponentsStore();
     const canvasStore = useCanvasStore();
     const sidebarStore = useSidebarStore();
     const { findImportModule } = useBrickImports();
     const { brickValuesToProperties } = useComponentProperties();
+    const { showToast } = useBuilderToast();
+    const { t } = useI18n();
+
+    // #region Data
+    /** Позиция открытого контекстного меню (null — меню закрыто) */
+    const contextMenuPosition = ref<ICanvasContextMenuPosition | null>(null);
+    // #endregion
 
     // #region Computed
     /**
@@ -94,49 +100,17 @@ export function useCanvasItemActions(
     });
 
     /**
-     * Показывать ли тулбар. Виден только при выделении компонента.
-     * В Figma mode — только на активном viewport.
+     * Доступна ли вставка из буфера обмена компонентов.
      */
-    const showToolbar = computed<boolean>(() => {
-        if (!isSelected.value) {
-            return false;
-        }
-
-        if (
-            figmaViewport &&
-            canvasStore.isFigmaMode &&
-            figmaViewport.value !== canvasStore.activeViewport
-        ) {
-            return false;
-        }
-
-        return true;
-    });
-
-    /**
-     * Стиль позиционирования тулбара в fixed-координатах viewport.
-     * Тулбар телепортируется в body, чтобы избежать размытия от canvas transform: scale().
-     */
-    const toolbarFixedStyle = computed(() => ({
-        position: 'fixed' as const,
-        top: `${itemTop.value + 8}px`,
-        right: `${window.innerWidth - itemRight.value + 8}px`,
-    }));
+    const canPaste = computed<boolean>(() => componentsStore.clipboard !== null);
     // #endregion
 
     // #region Methods
     /**
-     * Обрабатывает клик по компоненту: загружает properties и выделяет компонент.
-     * Если компонент в режиме интерактивного предпросмотра — пропускает клик к children.
+     * Выделяет компонент: загружает properties из brick/layout definitions
+     * и синхронизирует активный viewport в Figma mode.
      */
-    async function handleClick(event: MouseEvent): Promise<void> {
-        if (isInteractivePreview.value) {
-            event.stopPropagation();
-            return;
-        }
-
-        event.stopPropagation();
-
+    async function selectSelf(): Promise<void> {
         let properties: IPropertyDefinition[] = [];
         let description: string | undefined;
 
@@ -170,14 +144,21 @@ export function useCanvasItemActions(
             }
         }
 
-        // Определяем, нужна ли анимация панели свойств (повлияет на размер канваса)
-        const sidebarAlreadyOpen = sidebarStore.right.visible;
-
         componentsStore.selectComponent(props.component.id, properties, description);
 
         if (canvasStore.isFigmaMode && figmaViewport) {
             canvasStore.activeViewport = figmaViewport.value;
         }
+    }
+
+    /**
+     * Выделяет компонент и скроллит канвас до него (открытие редактирования).
+     */
+    async function openEditor(): Promise<void> {
+        // Определяем, нужна ли анимация панели свойств (повлияет на размер канваса)
+        const sidebarAlreadyOpen = sidebarStore.right.visible;
+
+        await selectSelf();
 
         // Скроллим до компонента после открытия сайдбара
         // Если сайдбар уже был открыт — достаточно nextTick
@@ -198,19 +179,77 @@ export function useCanvasItemActions(
         }
     }
 
+    /**
+     * Обрабатывает клик по компоненту: выделяет его и скроллит канвас до компонента.
+     * Если компонент в режиме интерактивного предпросмотра — пропускает клик к children.
+     */
+    async function handleClick(event: MouseEvent): Promise<void> {
+        event.stopPropagation();
+
+        if (isInteractivePreview.value) {
+            return;
+        }
+
+        await openEditor();
+    }
+
+    /**
+     * Открывает контекстное меню в точке курсора. Компонент НЕ выделяется —
+     * панель свойств открывает только пункт «Редактировать».
+     */
+    function handleContextMenu(event: MouseEvent): void {
+        if (isInteractivePreview.value) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        contextMenuPosition.value = { x: event.clientX, y: event.clientY };
+    }
+
+    /** Пункт «Редактировать»: выделяет компонент и открывает панель свойств. */
+    async function handleEdit(): Promise<void> {
+        await openEditor();
+    }
+
+    /** Закрывает контекстное меню. */
+    function closeContextMenu(): void {
+        contextMenuPosition.value = null;
+    }
+
     /** Удаляет компонент с канваса. */
     function handleDelete(): void {
         componentsStore.removeComponent(props.component.id);
+        showToast(t('bricks.canvas.toastDeleted'));
+    }
+
+    /** Копирует компонент в буфер обмена компонентов. */
+    function handleCopy(): void {
+        componentsStore.copyComponentToClipboard(props.component.id);
+        showToast(t('bricks.canvas.toastCopied'));
+    }
+
+    /** Вставляет дерево компонентов из буфера обмена. */
+    function handlePaste(): void {
+        componentsStore.pasteFromClipboard();
+        showToast(t('bricks.canvas.toastPasted'));
     }
 
     /** Дублирует компонент. */
-    function handleCopy(): void {
+    function handleDuplicate(): void {
         componentsStore.duplicateComponent(props.component.id);
+        showToast(t('bricks.canvas.toastPasted'));
     }
 
-    /** Переключает скрытие компонента. */
+    /** Переключает скрытие компонента (toast — только при отключении). */
     function handleToggleHidden(): void {
-        componentsStore.setComponentHidden(props.component.id, !props.component.isHidden);
+        const willHide = !props.component.isHidden;
+        componentsStore.setComponentHidden(props.component.id, willHide);
+
+        if (willHide) {
+            showToast(t('bricks.canvas.toastDisabled'));
+        }
     }
 
     /** Переключает видимость на конкретном устройстве. */
@@ -229,9 +268,14 @@ export function useCanvasItemActions(
         componentsStore.moveComponentDown(props.component.id);
     }
 
-    /** Переключает избранное. */
+    /** Переключает избранное (toast — только при добавлении). */
     function handleToggleFavorite(): void {
+        const willAdd = !isFavorite.value;
         componentsStore.toggleFavorite(props.component.componentName);
+
+        if (willAdd) {
+            showToast(t('bricks.canvas.toastFavoriteAdded'));
+        }
     }
 
     /**
@@ -246,12 +290,17 @@ export function useCanvasItemActions(
         isFavorite,
         canMoveUp,
         canMoveDown,
-        showToolbar,
-        toolbarFixedStyle,
+        canPaste,
+        contextMenuPosition,
         isInteractivePreview,
         handleClick,
+        handleContextMenu,
+        closeContextMenu,
+        handleEdit,
         handleDelete,
         handleCopy,
+        handlePaste,
+        handleDuplicate,
         handleToggleHidden,
         handleToggleDevice,
         handleMoveUp,

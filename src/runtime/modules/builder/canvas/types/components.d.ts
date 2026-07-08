@@ -6,6 +6,7 @@ import type { CSSProperties, Ref } from 'vue';
 import type {
     IComponentLibraryItem,
     IBricksComponent,
+    IDeviceVisibilityConfig,
     TBricksDeviceKey,
 } from '../../../common/types/brick';
 import type { TBricksComponentsStore } from '../../core/stores/components';
@@ -15,6 +16,61 @@ export interface ICanvasItemProps {
 }
 
 export type TItemStyle = CSSProperties;
+
+export interface ICanvasContextMenuPosition {
+    x: number;
+    y: number;
+}
+
+export type TCanvasContextMenuAction =
+    | 'edit'
+    | 'copy'
+    | 'paste'
+    | 'duplicate'
+    | 'delete'
+    | 'move-up'
+    | 'move-down'
+    | 'toggle-favorite'
+    | 'toggle-interactive-preview'
+    | 'toggle-hidden';
+
+export interface ICanvasContextMenuItem {
+    id: TCanvasContextMenuAction;
+    label: string;
+    shortcut?: string;
+    disabled?: boolean;
+    /** Активное состояние toggle-пункта (точка-индикатор справа) */
+    active?: boolean;
+    /** Закрывать ли меню после клика по пункту */
+    closesMenu?: boolean;
+}
+
+export interface ICanvasItemContextMenuProps {
+    position: ICanvasContextMenuPosition;
+    componentName: string;
+    isHidden: boolean;
+    isFavorite: boolean;
+    deviceVisibility?: Partial<IDeviceVisibilityConfig>;
+    canMoveUp: boolean;
+    canMoveDown: boolean;
+    isInteractivePreview?: boolean;
+    canPaste?: boolean;
+}
+
+export interface ICanvasItemContextMenuEmits {
+    edit: [];
+    copy: [];
+    paste: [];
+    duplicate: [];
+    delete: [];
+    'toggle-hidden': [];
+    'toggle-device': [device: TBricksDeviceKey];
+    'move-up': [];
+    'move-down': [];
+    'toggle-favorite': [];
+    'toggle-interactive-preview': [];
+    close: [];
+}
 
 export interface ILayoutDropDetail {
     layoutId: string;

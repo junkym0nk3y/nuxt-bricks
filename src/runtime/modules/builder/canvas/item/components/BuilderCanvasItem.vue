@@ -4,10 +4,7 @@
 import type { ICanvasItemProps, IDragComposableCanvas } from '../../types/components';
 
 // Vue
-import { computed, ref, inject, provide, watch } from 'vue';
-
-// VueUse
-import { useElementBounding } from '@vueuse/core';
+import { computed, inject, provide } from 'vue';
 
 // Pinia
 import { useComponentsStore } from '../../../core/stores/components';
@@ -27,7 +24,7 @@ import { CANVAS_VIEWPORT_KEY } from '../../../../common/constants/injectionKeys'
 // Components
 import BuilderCanvasItemLayout from './BuilderCanvasItemLayout.vue';
 import BuilderCanvasItemComponent from './BuilderCanvasItemComponent.vue';
-import BuilderCanvasItemToolbar from './BuilderCanvasItemToolbar.vue';
+import BuilderCanvasItemContextMenu from './BuilderCanvasItemContextMenu.vue';
 // #endregion
 
 // #region Props
@@ -41,14 +38,6 @@ const dragComposable = inject<IDragComposableCanvas | undefined>('dragComposable
 
 /** Активный viewport (в Figma mode — per-viewport от BuilderCanvasViewport); используется только при isFigmaMode */
 const figmaViewport = inject(CANVAS_VIEWPORT_KEY, null);
-
-/** Ref корневого элемента для позиционирования телепортированного тулбара */
-const canvasItemRef = ref<HTMLElement | null>(null);
-const {
-    top: itemTop,
-    right: itemRight,
-    update: updateBounding,
-} = useElementBounding(canvasItemRef);
 // #endregion
 
 // #region Computed
@@ -104,50 +93,33 @@ const { handleDragStart, handleDragEnd } = useCanvasItemDrag(
     dragComposable
 );
 
-// Toolbar actions + states
+// Context menu actions + states
 const {
     isFavorite,
     canMoveUp,
     canMoveDown,
-    showToolbar,
-    toolbarFixedStyle,
+    canPaste,
+    contextMenuPosition,
     isInteractivePreview,
     handleClick,
+    handleContextMenu,
+    closeContextMenu,
+    handleEdit,
     handleDelete,
     handleCopy,
+    handlePaste,
+    handleDuplicate,
     handleToggleHidden,
     handleToggleDevice,
     handleMoveUp,
     handleMoveDown,
     handleToggleFavorite,
     handleToggleInteractivePreview,
-} = useCanvasItemActions(
-    props,
-    isLayout,
-    layoutName,
-    figmaViewport,
-    itemTop,
-    itemRight,
-    isSelected
-);
-
-// #region Lifecycle
-/**
- * Пересчитывает bounding rect тулбара при изменении масштаба канваса.
- * useElementBounding не реагирует на transform: scale() родителя.
- */
-watch(
-    () => canvasStore.scale,
-    () => {
-        setTimeout(updateBounding, 300);
-    }
-);
-// #endregion
+} = useCanvasItemActions(props, isLayout, layoutName, figmaViewport);
 </script>
 
 <template>
     <div
-        ref="canvasItemRef"
         :class="[
             $style.BuilderCanvasItem,
             ...deviceVisibilityClasses,
@@ -168,6 +140,7 @@ watch(
         :data-slot-name="props.component.slotName || null"
         @click="handleClick"
         @dblclick="handleDoubleClick"
+        @contextmenu="handleContextMenu"
         @dragstart="handleDragStart"
         @dragend="handleDragEnd"
     >
@@ -201,12 +174,12 @@ watch(
         </div>
     </div>
 
-    <!-- Floating Toolbar — телепортируется в body для чёткого рендеринга без canvas blur -->
+    <!-- Контекстное меню — телепортируется в body для чёткого рендеринга без canvas blur -->
     <Teleport to="body">
-        <Transition name="library-canvas-toolbar">
-            <BuilderCanvasItemToolbar
-                v-if="showToolbar && !canvasStore.isViewportSwitching"
-                :style="toolbarFixedStyle"
+        <Transition name="canvas-context-menu">
+            <BuilderCanvasItemContextMenu
+                v-if="contextMenuPosition"
+                :position="contextMenuPosition"
                 :component-name="props.component.componentName"
                 :is-hidden="isHidden"
                 :is-favorite="isFavorite"
@@ -214,7 +187,11 @@ watch(
                 :can-move-up="canMoveUp"
                 :can-move-down="canMoveDown"
                 :is-interactive-preview="isInteractivePreview"
+                :can-paste="canPaste"
+                @edit="handleEdit"
                 @copy="handleCopy"
+                @paste="handlePaste"
+                @duplicate="handleDuplicate"
                 @delete="handleDelete"
                 @toggle-hidden="handleToggleHidden"
                 @toggle-device="handleToggleDevice"
@@ -222,6 +199,7 @@ watch(
                 @move-down="handleMoveDown"
                 @toggle-favorite="handleToggleFavorite"
                 @toggle-interactive-preview="handleToggleInteractivePreview"
+                @close="closeContextMenu"
             />
         </Transition>
     </Teleport>

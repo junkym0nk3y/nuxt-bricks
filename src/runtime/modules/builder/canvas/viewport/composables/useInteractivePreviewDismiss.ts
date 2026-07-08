@@ -30,8 +30,8 @@ export function useInteractivePreviewDismiss(): void {
             return;
         }
 
-        // Клик по тулбару (телепортирован в body) — не сбрасываем
-        if (target.closest('[data-canvas-toolbar]')) {
+        // Клик по контекстному меню (телепортировано в body) — не сбрасываем
+        if (target.closest('[data-canvas-context-menu]')) {
             return;
         }
 

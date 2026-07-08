@@ -261,7 +261,7 @@ function handlePreview(): void {
 
 .titleSecondary {
     font-weight: 500;
-    color: var(--bricks-base-600);
+    color: var(--bricks-base-900);
 }
 
 .icon {
