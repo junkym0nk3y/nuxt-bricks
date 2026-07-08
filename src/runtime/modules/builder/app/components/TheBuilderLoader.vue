@@ -1,7 +1,11 @@
 <script setup lang="ts">
 // #region Imports
+// Constants
+import { LOADER_PHRASES, type TLoaderPhraseLocale } from '../constants/loaderPhrases';
+
 // Vue
 import { computed, onUnmounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Components
 import BuilderLogo from '../../core/components/BuilderLogo.vue';
@@ -24,14 +28,28 @@ const MIN_VISIBLE_PROGRESS = 1;
  */
 const LOGO_CYCLE_DURATION_MS = 2400;
 
+/**
+ * Интервал (ms) смены фразы под баром — два сегмента волны лого
+ * (2 × --lift-step в BuilderLogo): за фразу успевают подняться два куба.
+ */
+const PHRASE_INTERVAL_MS = 1200;
+
+const { locale } = useI18n();
+
 /** Текущее значение прогресса (0–100). Используется для ширины полоски и текста процента. */
 const progress = ref(props.isLoading ? MIN_VISIBLE_PROGRESS : 0);
 
 /** Флаг видимости оверлея. Управляет v-if на корневом элементе. */
 const isVisible = ref(props.isLoading);
 
+/** Текущая фраза под прогресс-баром. */
+const currentPhrase = ref('');
+
 /** ID текущего requestAnimationFrame. Нужен для отмены при повторном запуске / unmount. */
 let animationRafId: number | null = null;
+
+/** ID setInterval ротации фраз. */
+let phraseIntervalId: number | null = null;
 // #endregion
 
 // #region Computed
@@ -39,6 +57,11 @@ let animationRafId: number | null = null;
 const progressStyle = computed(() => ({
     width: `${progress.value}%`,
 }));
+
+/** Фразы лоадера для активной локали (fallback — ru). */
+const phrases = computed<string[]>(
+    () => LOADER_PHRASES[locale.value as TLoaderPhraseLocale] ?? LOADER_PHRASES.ru
+);
 // #endregion
 
 // #region Methods
@@ -58,6 +81,43 @@ function stopProgress(): void {
 }
 
 /**
+ * Возвращает случайную фразу, по возможности отличную от текущей.
+ */
+function pickRandomPhrase(): string {
+    const pool = phrases.value.filter((phrase) => phrase !== currentPhrase.value);
+    const source = pool.length ? pool : phrases.value;
+
+    return source[Math.floor(Math.random() * source.length)] ?? '';
+}
+
+/**
+ * Останавливает ротацию фраз (clearInterval).
+ * SSR-safe: на сервере window не существует, выходим сразу.
+ */
+function stopPhrases(): void {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    if (phraseIntervalId !== null) {
+        window.clearInterval(phraseIntervalId);
+        phraseIntervalId = null;
+    }
+}
+
+/**
+ * Запускает ротацию случайных фраз с интервалом PHRASE_INTERVAL_MS.
+ */
+function startPhrases(): void {
+    stopPhrases();
+    currentPhrase.value = pickRandomPhrase();
+
+    phraseIntervalId = window.setInterval(() => {
+        currentPhrase.value = pickRandomPhrase();
+    }, PHRASE_INTERVAL_MS);
+}
+
+/**
  * Показывает оверлей ровно на один цикл волны лого (LOGO_CYCLE_DURATION_MS)
  * и скрывает его по окончании — независимо от фактического состояния загрузки.
  *
@@ -74,6 +134,7 @@ function runLoaderCycle(): void {
     stopProgress();
     isVisible.value = true;
     progress.value = MIN_VISIBLE_PROGRESS;
+    startPhrases();
 
     let cycleStartTime: number | null = null;
 
@@ -96,6 +157,7 @@ function runLoaderCycle(): void {
 
         animationRafId = null;
         isVisible.value = false;
+        stopPhrases();
     }
 
     animationRafId = window.requestAnimationFrame(tick);
@@ -117,13 +179,15 @@ watch(
 // #region Lifecycle
 onUnmounted(() => {
     stopProgress();
+    stopPhrases();
 });
 // #endregion
 </script>
 
 <template>
-    <Transition name="fade">
+    <Transition name="loader-fade">
         <div v-if="isVisible" :class="$style.TheBuilderLoader">
+            <div :class="$style.aurora"></div>
             <div :class="$style.grid"></div>
 
             <div :class="$style.content">
@@ -135,7 +199,15 @@ onUnmounted(() => {
                     <div :class="$style.barGlow" :style="progressStyle"></div>
                 </div>
 
-                <div :class="$style.percentage">{{ Math.round(progress) }}%</div>
+                <div :class="$style.meta">
+                    <div :class="$style.phrase">
+                        <Transition name="loader-phrase-fade" mode="out-in">
+                            <span :key="currentPhrase">{{ currentPhrase }}</span>
+                        </Transition>
+                    </div>
+
+                    <div :class="$style.percentage">{{ Math.round(progress) }}%</div>
+                </div>
             </div>
         </div>
     </Transition>
@@ -155,13 +227,25 @@ onUnmounted(() => {
     background: var(--bricks-base-0); /* Light semi-transparent background */
 }
 
+/* Мягкое «aurora»-свечение под лого в primary-цвете (см. Figma-концепт Loader) */
+.aurora {
+    position: absolute;
+    background-image: radial-gradient(
+        50rem 32rem at 50% 43%,
+        color-mix(in srgb, var(--bricks-primary) 14%, transparent),
+        transparent 70%
+    );
+    inset: 0;
+    pointer-events: none;
+}
+
+/* Изометрическая сетка ±30° — угол граней кубов лого (tan 30° = 46/79.67) */
 .grid {
     position: absolute;
     background-image:
-        linear-gradient(var(--bricks-base-900) 1px, transparent 1px),
-        linear-gradient(90deg, var(--bricks-base-900) 1px, transparent 1px);
-    background-size: 4rem 4rem;
-    opacity: 0.1;
+        repeating-linear-gradient(30deg, var(--bricks-base-900) 0 1px, transparent 1px 5.6rem),
+        repeating-linear-gradient(150deg, var(--bricks-base-900) 0 1px, transparent 1px 5.6rem);
+    opacity: 0.06;
     inset: 0;
     mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
     pointer-events: none;
@@ -215,10 +299,28 @@ onUnmounted(() => {
     opacity: 0.4;
 }
 
+/* Строка под баром (как в Figma-концепте): фраза слева, процент справа */
+.meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.6rem;
+    width: 100%;
+    margin-top: 1.2rem;
+}
+
+.phrase {
+    min-height: 1.6rem;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    line-height: 1.6rem;
+    color: var(--bricks-base-500);
+}
+
 .percentage {
-    margin-top: 0.8rem;
+    flex-shrink: 0;
     font-family: monospace;
     font-size: 1.2rem;
-    color: var(--bricks-base-500);
+    color: var(--bricks-base-900);
 }
 </style>
