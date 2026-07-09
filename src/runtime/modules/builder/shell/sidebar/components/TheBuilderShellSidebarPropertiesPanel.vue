@@ -92,23 +92,3 @@ defineExpose({
     box-shadow: var(--shadow-md);
 }
 </style>
-
-<style lang="scss">
-// Transition появления/скрытия правой панели свойств (зеркало sidebar-slide)
-.sidebar-slide-right-enter-active,
-.sidebar-slide-right-leave-active {
-    transition:
-        transform 300ms cubic-bezier(0.4, 0, 0.2, 1),
-        opacity 250ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.sidebar-slide-right-enter-from {
-    opacity: 0;
-    transform: translateX(100%);
-}
-
-.sidebar-slide-right-leave-to {
-    opacity: 0;
-    transform: translateX(100%);
-}
-</style>

@@ -4,6 +4,12 @@
 
 export type TLoaderPhraseLocale = 'ru' | 'en';
 
+/** Дефолтная подпись: видна с первого кадра (SSR-safe), пока не начнётся ротация рандомных фраз. */
+export const LOADER_DEFAULT_PHRASE: Record<TLoaderPhraseLocale, string> = {
+    ru: 'Загрузка…',
+    en: 'Loading…',
+};
+
 export const LOADER_PHRASES: Record<TLoaderPhraseLocale, string[]> = {
     ru: [
         'Раскладываем кубики по слотам…',

@@ -25,7 +25,7 @@ export const useSidebarStore = defineStore('bricksSidebar', {
         },
         right: {
             visible: false,
-            width: '37.2rem',
+            width: '35rem',
         },
         activeView: 'components',
     }),

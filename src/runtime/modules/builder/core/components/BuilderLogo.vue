@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Vue
-import { computed, ref, useCssModule } from 'vue';
+import { computed, onMounted, ref, useCssModule } from 'vue';
 // #endregion
 
 // #region Props
@@ -29,6 +29,11 @@ const props = withDefaults(
 // #region Data
 const $style = useCssModule();
 const isAnimating = ref(false);
+
+// Зацикленная волна включается только после mounted: SSR-разметка с классом .animating
+// запустила бы CSS-анимацию при загрузке стилей — раньше, чем потребитель (лоадер)
+// стартует свои таймеры после гидрации, и фазы разъезжались бы.
+const isMounted = ref(false);
 
 // Эстафета цвета: liftOrder куба, который остаётся перекрашенным после проходки
 // (null — все серые), и куба, который в текущей проходке гасится обратно в базовый.
@@ -60,10 +65,12 @@ const HOVER_ANIMATION_DURATION_MS = 2400;
 // #endregion
 
 // #region Computed
+const isInfiniteActive = computed<boolean>(() => props.isInfiniteAnimation && isMounted.value);
+
 const classList = computed(() => [
     {
-        [$style.animating]: isAnimating.value || props.isInfiniteAnimation,
-        [$style.infinite]: props.isInfiniteAnimation,
+        [$style.animating]: isAnimating.value || isInfiniteActive.value,
+        [$style.infinite]: isInfiniteActive.value,
         [$style.clickable]: Boolean(props.to),
     },
 ]);
@@ -120,6 +127,12 @@ function onMouseenter(): void {
         unpaintingOrder.value = null;
     }, HOVER_ANIMATION_DURATION_MS);
 }
+// #endregion
+
+// #region Lifecycle
+onMounted(() => {
+    isMounted.value = true;
+});
 // #endregion
 </script>
 

@@ -1,10 +1,14 @@
 <script setup lang="ts">
 // #region Imports
 // Constants
-import { LOADER_PHRASES, type TLoaderPhraseLocale } from '../constants/loaderPhrases';
+import {
+    LOADER_DEFAULT_PHRASE,
+    LOADER_PHRASES,
+    type TLoaderPhraseLocale,
+} from '../constants/loaderPhrases';
 
 // Vue
-import { computed, onUnmounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Components
@@ -42,8 +46,13 @@ const progress = ref(props.isLoading ? MIN_VISIBLE_PROGRESS : 0);
 /** Флаг видимости оверлея. Управляет v-if на корневом элементе. */
 const isVisible = ref(props.isLoading);
 
-/** Текущая фраза под прогресс-баром. */
-const currentPhrase = ref('');
+/** Дефолтная подпись активной локали — одинакова на SSR и клиенте (без рандома). */
+const defaultPhrase = computed<string>(
+    () => LOADER_DEFAULT_PHRASE[locale.value as TLoaderPhraseLocale] ?? LOADER_DEFAULT_PHRASE.ru
+);
+
+/** Текущая фраза под прогресс-баром: дефолт с первого кадра, дальше — ротация рандома. */
+const currentPhrase = ref(defaultPhrase.value);
 
 /** ID текущего requestAnimationFrame. Нужен для отмены при повторном запуске / unmount. */
 let animationRafId: number | null = null;
@@ -107,6 +116,8 @@ function stopPhrases(): void {
 
 /**
  * Запускает ротацию случайных фраз с интервалом PHRASE_INTERVAL_MS.
+ * Вызывается после mounted — дефолтная подпись из initial value к этому моменту
+ * уже отработала свой кадр гидрации, сразу переходим на рандом.
  */
 function startPhrases(): void {
     stopPhrases();
@@ -171,12 +182,19 @@ watch(
         if (newValue) {
             runLoaderCycle();
         }
-    },
-    { immediate: true }
+    }
 );
 // #endregion
 
 // #region Lifecycle
+// Первый запуск — в onMounted, не в immediate-watch: случайная фраза, выставленная
+// синхронно в setup на клиенте, не совпала бы с SSR-разметкой (hydration mismatch)
+onMounted(() => {
+    if (props.isLoading) {
+        runLoaderCycle();
+    }
+});
+
 onUnmounted(() => {
     stopProgress();
     stopPhrases();
