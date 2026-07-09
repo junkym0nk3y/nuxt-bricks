@@ -71,6 +71,7 @@
         "@nuxtjs/i18n": "^10.4.0",
         "defu": "^6.1.4",
         "markdown-it": "^14.2.0",
+        "modern-screenshot": "^4.7.0",
         "tiny-sha256": "^1.0.2"
     },
     "peerDependencies": {

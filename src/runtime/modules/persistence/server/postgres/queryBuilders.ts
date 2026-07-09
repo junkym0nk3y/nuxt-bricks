@@ -18,6 +18,7 @@ export const PAGE_SELECT_FIELDS = `
     background_color as "backgroundColor",
     url_prefix as "urlPrefix",
     subdomain,
+    thumbnail_url as "thumbnailUrl",
     schema,
     published,
     created_at as "createdAt",
@@ -54,6 +55,7 @@ export const PAGE_UPDATE_FIELDS: ReadonlySet<string> = new Set([
     'backgroundColor',
     'urlPrefix',
     'subdomain',
+    'thumbnailUrl',
     'schema',
     'published',
 ]);

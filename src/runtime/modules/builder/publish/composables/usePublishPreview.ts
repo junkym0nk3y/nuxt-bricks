@@ -62,6 +62,7 @@ export function usePublishPreview(): IUsePublishPreviewReturn {
                 socialImage: formState.socialImage,
                 urlPrefix: formState.urlPrefix,
                 subdomain: formState.subdomain,
+                thumbnailUrl: null,
                 createdAt: formState.createdAt,
                 updatedAt: formState.updatedAt,
                 schema,

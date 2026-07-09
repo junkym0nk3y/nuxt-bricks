@@ -27,6 +27,7 @@ export interface IBricksPageRow {
     socialImage: string | null;
     urlPrefix: string | null;
     subdomain: string | null;
+    thumbnailUrl: string | null;
     schema: IBricksSchema;
     published: boolean;
     createdAt: string;
@@ -47,6 +48,7 @@ export interface IPublishedPage {
     socialImage: string | null;
     urlPrefix: string | null;
     subdomain: string | null;
+    thumbnailUrl: string | null;
     schema: IBricksSchema;
     published: boolean;
     createdAt: string;
@@ -95,14 +97,20 @@ export interface IUpdatePagePayload {
     backgroundColor?: string | null;
     urlPrefix?: string | null;
     subdomain?: string | null;
+    thumbnailUrl?: string | null;
     schema?: IBricksSchema;
     published?: boolean;
 }
 
 /**
  * Данные формы публикации (без schema).
+ * `thumbnailUrl` исключён: поле машинное (пишется только PATCH'ем после снапшота канваса),
+ * форма/duplicate его не трогают — так PUT полной страницы не затирает превью.
  */
-export type TPublishFormState = Omit<IPublishedPage, 'id' | 'schema' | 'isPreview'>;
+export type TPublishFormState = Omit<
+    IPublishedPage,
+    'id' | 'schema' | 'isPreview' | 'thumbnailUrl'
+>;
 
 export type TRequestErrorLike = {
     data?: {

@@ -166,7 +166,8 @@
                     "edit": "Edit",
                     "preview": "Preview",
                     "duplicate": "Duplicate",
-                    "delete": "Delete"
+                    "delete": "Delete",
+                    "thumbnailPreview": "Open page preview"
                 },
                 "empty": {
                     "title": "No pages yet",

@@ -65,6 +65,7 @@ export interface IPublishPagesListProps {
 export interface IPublishPagesListEmits {
     'update:activeFilter': [filter: TPublishPagesFilter];
     'create-page': [];
+    'preview-thumbnail': [page: IPublishedPage];
     select: [page: IPublishedPage];
     edit: [page: IPublishedPage];
     preview: [page: IPublishedPage];
@@ -79,6 +80,7 @@ export interface IPublishPagesListRowProps {
 }
 
 export interface IPublishPagesListRowEmits {
+    'preview-thumbnail': [page: IPublishedPage];
     select: [page: IPublishedPage];
     edit: [page: IPublishedPage];
     preview: [page: IPublishedPage];

@@ -67,8 +67,15 @@ export interface IMediaGalleryMetaPanelEmits {
     remove: [];
 }
 
+/**
+ * Минимальные данные для полноэкранного лайтбокса — позволяет переиспользовать
+ * его вне галереи (например, превью страницы в publish-дашборде).
+ */
+export type TMediaLightboxItem = Pick<IMediaItem, 'url' | 'mimeType'> &
+    Partial<Pick<IMediaItem, 'alt' | 'filename'>>;
+
 export interface IMediaGalleryPreviewLightboxProps {
-    item: IMediaItem | null;
+    item: TMediaLightboxItem | null;
 }
 
 export interface IMediaGalleryPreviewLightboxEmits {

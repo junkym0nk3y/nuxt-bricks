@@ -1,5 +1,5 @@
 import type { Plugin, ViteDevServer, HotUpdateOptions } from 'vite';
-import generateBricksJson from './generate-bricks-json.mjs';
+import generateBricksJson from './generate-bricks-json';
 
 const BRICK_PATTERN = /\.brick\.ts$/;
 

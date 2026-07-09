@@ -35,6 +35,7 @@ function buildPage(overrides: Partial<IPublishedPage>): IPublishedPage {
         socialImage: null,
         urlPrefix: null,
         subdomain: null,
+        thumbnailUrl: null,
         schema: { components: [] },
         published: true,
         createdAt: '2026-06-01T10:00:00Z',

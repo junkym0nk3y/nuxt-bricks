@@ -19,6 +19,7 @@ import { useModals } from './useModals';
 import { useComponentLibrary } from './useComponentLibrary';
 import { useBuilderShortcuts } from './useBuilderShortcuts';
 import { useBuilderToast } from '../../core/composables/useBuilderToast';
+import { usePageThumbnail } from './usePageThumbnail';
 import { usePreviewSync } from './usePreviewSync';
 import { usePublishPreview } from '../../publish/composables/usePublishPreview';
 import { useBricksConfig } from '../../../common/composables/useBricksConfig';
@@ -59,6 +60,7 @@ export async function useBuilderPage(
     const imageResolver = useSchemaImageResolver();
     const { startPreviewSync } = usePreviewSync();
     const { previewCurrentPage } = usePublishPreview();
+    const { captureAndUploadThumbnail } = usePageThumbnail();
     const { handleKeyDown } = useBuilderShortcuts();
     const { toast, showToast } = useBuilderToast();
     const { componentLibraryList } = await useComponentLibrary();
@@ -171,6 +173,9 @@ export async function useBuilderPage(
                 publishStore.startEditingPage(result);
             }
 
+            // Fire-and-forget: превью страницы для дашборда, сохранение не блокируем
+            captureAndUploadThumbnail(result);
+
             const currentPagename = publishStore.currentFormState.pagename;
             if (currentPagename) {
                 removeBuilderDraft(currentPagename);
@@ -229,6 +234,9 @@ export async function useBuilderPage(
 
             publishStore.startEditingPage(result);
             showToast(t('bricks.publish.toasts.copySaved'), 'success');
+
+            // Fire-and-forget: у копии свой S3-ключ превью — снимаем сразу после сохранения
+            captureAndUploadThumbnail(result);
             return;
         }
         const errorMessage = publishStore.generalError || t('bricks.publish.toasts.copyFailed');

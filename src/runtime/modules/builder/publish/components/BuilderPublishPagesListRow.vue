@@ -44,6 +44,13 @@ function handleSelect(): void {
 }
 
 /**
+ * Эмитит открытие превью-миниатюры страницы в лайтбоксе.
+ */
+function handlePreviewThumbnail(): void {
+    emit('preview-thumbnail', props.page);
+}
+
+/**
  * Эмитит переход к редактированию страницы.
  */
 function handleEdit(): void {
@@ -82,6 +89,25 @@ function handleDelete(): void {
         @click="handleSelect"
     >
         <span :class="[$style.statusDot, props.page.published && $style['statusDot--published']]" />
+
+        <button
+            v-if="props.page.thumbnailUrl"
+            :class="[$style.thumbnail, $style.thumbnailClickable]"
+            type="button"
+            :title="t('bricks.publish.dashboard.row.thumbnailPreview')"
+            :aria-label="t('bricks.publish.dashboard.row.thumbnailPreview')"
+            @click.stop="handlePreviewThumbnail"
+        >
+            <img
+                :class="$style.thumbnailImage"
+                :src="props.page.thumbnailUrl"
+                :alt="props.page.title || props.page.pagename"
+                loading="lazy"
+            />
+        </button>
+        <div v-else :class="$style.thumbnail">
+            <BricksIcon icon="ta:outline-photo" :class="$style.thumbnailPlaceholder" />
+        </div>
 
         <div :class="$style.main">
             <div :class="$style.titleRow">
@@ -186,6 +212,41 @@ function handleDelete(): void {
     &--published {
         background: var(--bricks-green);
     }
+}
+
+.thumbnail {
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 9.6rem;
+    height: 6rem;
+    border-radius: var(--border-radius-xs);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-base-100);
+}
+
+.thumbnailClickable {
+    padding: 0;
+    transition: border-color var(--default-transition);
+    cursor: zoom-in;
+
+    &:hover {
+        border-color: var(--bricks-primary-300);
+    }
+}
+
+.thumbnailImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+}
+
+.thumbnailPlaceholder {
+    font-size: 2rem;
+    color: var(--bricks-base-400);
 }
 
 .main {

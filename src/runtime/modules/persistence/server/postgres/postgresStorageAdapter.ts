@@ -24,16 +24,47 @@ import type {
 import type { IMediaItem } from '../../../common/types/media';
 
 /**
+ * DDL-дельта bricks_pages для существующих БД — идемпотентная, зеркалит database/init.sql
+ * (миграций в проекте нет, init.sql применяется только при первом старте контейнера).
+ */
+const PAGES_SCHEMA_DDL = `
+ALTER TABLE bricks_pages ADD COLUMN IF NOT EXISTS thumbnail_url TEXT;
+`;
+
+/**
  * Создаёт Postgres-реализацию IStorageAdapter.
  *
  * @returns Адаптер хранилища страниц и медиа-метаданных.
  */
 export function createPostgresStorageAdapter(): IStorageAdapter {
+    // Мемоизация с reset-on-failure: сбой БД не должен «отравить» синглтон —
+    // следующий запрос попробует применить DDL заново (паттерн postgresAuthAdapter).
+    let schemaPromise: Promise<void> | null = null;
+
+    /**
+     * Идемпотентно гарантирует актуальность схемы bricks_pages при первом обращении.
+     */
+    function ensureSchema(): Promise<void> {
+        if (!schemaPromise) {
+            schemaPromise = query(PAGES_SCHEMA_DDL).then(
+                () => undefined,
+                (error: unknown) => {
+                    schemaPromise = null;
+                    throw error;
+                }
+            );
+        }
+
+        return schemaPromise;
+    }
+
     return {
         /**
          * Возвращает все страницы, отсортированные по дате обновления.
          */
         async listPages(): Promise<IBricksPageRow[]> {
+            await ensureSchema();
+
             return query<IBricksPageRow>(
                 `SELECT ${PAGE_SELECT_FIELDS} FROM bricks_pages ORDER BY updated_at DESC`
             );
@@ -55,6 +86,8 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
          * Возвращает страницу по id или null.
          */
         async getPage(id: number): Promise<IBricksPageRow | null> {
+            await ensureSchema();
+
             return queryOne<IBricksPageRow>(
                 `SELECT ${PAGE_SELECT_FIELDS} FROM bricks_pages WHERE id = $1`,
                 [id]
@@ -65,6 +98,8 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
          * Возвращает страницу по pagename или null.
          */
         async getPageByPagename(pagename: string): Promise<IBricksPageRow | null> {
+            await ensureSchema();
+
             return queryOne<IBricksPageRow>(
                 `SELECT ${PAGE_SELECT_FIELDS} FROM bricks_pages WHERE pagename = $1`,
                 [pagename]
@@ -75,6 +110,8 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
          * Создаёт страницу и возвращает её полностью.
          */
         async createPage(payload: ICreatePagePayload): Promise<IBricksPageRow> {
+            await ensureSchema();
+
             const result = await queryOne<IBricksPageRow>(
                 `INSERT INTO bricks_pages
                 (pagename, title, description, keywords, social_image, layout,
@@ -107,6 +144,8 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
          * Обновляет переданные поля страницы; null — если страница не найдена.
          */
         async updatePage(id: number, payload: IUpdatePagePayload): Promise<IBricksPageRow | null> {
+            await ensureSchema();
+
             const existing = await queryOne<{ id: number }>(
                 'SELECT id FROM bricks_pages WHERE id = $1',
                 [id]

@@ -1,26 +1,33 @@
-#!/usr/bin/env node
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { globby } from 'globby';
 import { join } from 'pathe';
-import { fileURLToPath } from 'url';
+import type { IBrickObject, IBricksManifest } from './types.d.ts';
 
-// Function to extract category from file content using regular expressions
-function extractCategory(content) {
+/**
+ * Извлекает категорию компонента из содержимого brick-файла.
+ */
+function extractCategory(content: string): string | null {
     const categoryMatch = content.match(/category\s*:\s*(['"])(.*?)\1/);
     return categoryMatch ? categoryMatch[2] : null;
 }
 
-function computeHash(data) {
+/**
+ * Считает SHA-256 хеш строки.
+ */
+function computeHash(data: string): string {
     return crypto.createHash('sha256').update(data, 'utf8').digest('hex');
 }
 
-export default async function generateBricksJson(isPlayground = false) {
+/**
+ * Сканирует проект на `*.brick.ts` brick-файлы и собирает манифест `public/bricks.json`.
+ * Копия для CLI — `src/cli/generate-bricks-json.mjs` (запускается node'ом напрямую).
+ */
+export default async function generateBricksJson(isPlayground = false): Promise<void> {
     console.warn('Generating bricks.json...');
-    const bricksJson = { bricks: [] };
+    const bricks: IBrickObject[] = [];
 
-    // Find files based on the glob pattern
     // Nuxt 4 (app/) паттерны включены всегда — если директории нет, globby просто вернёт пустой результат
     const files = await globby(
         [
@@ -55,37 +62,28 @@ export default async function generateBricksJson(isPlayground = false) {
         relativePath = relativePath.replace(/^app\//, '');
 
         const componentName = path.basename(fullPath, '.brick.ts');
-
-        // Read the file content to extract category
         const content = fs.readFileSync(fullPath, 'utf-8');
 
-        // Generate path that matches glob pattern
         let brickPath = `/${relativePath}`;
         if (fullPath.includes('playground')) {
             brickPath = `../${relativePath}`;
         }
 
-        bricksJson.bricks.push({
+        bricks.push({
             name: componentName,
             category: extractCategory(content) || 'Common',
             brickPath: brickPath,
         });
     }
 
-    // Generate the hash of bricksJson
-    const hash = computeHash(JSON.stringify(bricksJson.bricks));
-
-    // Add hash to the JSON data
-    bricksJson.hash = hash;
+    const bricksJson: IBricksManifest = {
+        bricks,
+        hash: computeHash(JSON.stringify(bricks)),
+    };
 
     const outputDir = join(process.cwd(), '/public');
     fs.mkdirSync(outputDir, { recursive: true });
     fs.writeFileSync(`${outputDir}/bricks.json`, JSON.stringify(bricksJson, null, 2));
 
-    console.log('Routes generated successfully with hash:', hash);
-}
-
-// Run the function when executed directly
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-    generateBricksJson();
+    console.log('Routes generated successfully with hash:', bricksJson.hash);
 }

@@ -63,6 +63,23 @@ export interface IBuilderDraftPersistenceOptions {
 }
 // #endregion
 
+// #region usePageThumbnail
+/**
+ * Ответ POST /mock-api/s3-page-thumbnail.
+ */
+export interface IThumbnailUploadResponse {
+    success: boolean;
+    url: string;
+}
+
+/**
+ * Возвращаемое значение composable usePageThumbnail.
+ */
+export interface IUsePageThumbnailReturn {
+    captureAndUploadThumbnail: (pageId: string | number) => Promise<void>;
+}
+// #endregion
+
 // #region useBuilderPage
 /**
  * Мост media-запросов inline-редактора (editor → media-галерея).

@@ -57,6 +57,15 @@ function handleSelect(page: IPublishedPage): void {
 }
 
 /**
+ * Пробрасывает открытие превью-миниатюры страницы в лайтбоксе.
+ *
+ * @param page - Страница.
+ */
+function handlePreviewThumbnail(page: IPublishedPage): void {
+    emit('preview-thumbnail', page);
+}
+
+/**
  * Пробрасывает переход к редактированию страницы.
  *
  * @param page - Страница.
@@ -146,6 +155,7 @@ function handleDelete(page: IPublishedPage): void {
                 :is-duplicating="props.duplicatingPageId === String(page.id)"
                 :is-selected="props.selectedPageId === String(page.id)"
                 @select="handleSelect"
+                @preview-thumbnail="handlePreviewThumbnail"
                 @edit="handleEdit"
                 @preview="handlePreview"
                 @duplicate="handleDuplicate"

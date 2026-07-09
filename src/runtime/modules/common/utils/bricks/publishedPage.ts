@@ -80,6 +80,7 @@ export function normalizePublishedPage(
         socialImage: page.socialImage ?? '',
         urlPrefix: page.urlPrefix ?? null,
         subdomain: page.subdomain ?? null,
+        thumbnailUrl: page.thumbnailUrl ?? null,
         schema: preserveSchema(schema),
         published: Boolean(page.published),
         createdAt,

@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS bricks_pages (
     background_color VARCHAR(50),
     url_prefix VARCHAR(255),
     subdomain VARCHAR(255),
+    thumbnail_url TEXT,
     schema JSONB NOT NULL,
     published BOOLEAN DEFAULT false,
     created_at TIMESTAMP DEFAULT NOW(),

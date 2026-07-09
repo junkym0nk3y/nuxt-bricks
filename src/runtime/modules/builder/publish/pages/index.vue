@@ -3,6 +3,7 @@
 // Types
 import type { IPublishedPage } from '../../../common/types/bricks-api';
 import type { IMediaItem } from '../../../common/types/media';
+import type { TMediaLightboxItem } from '../../media/types/media';
 import type { TPublishDashboardSection } from '../types/dashboard';
 
 // Vue
@@ -16,6 +17,7 @@ import { useRouter, useCookie, useHead } from '#imports';
 import { usePublishStore } from '../stores/publish';
 
 // Composables
+import { useApiClient } from '../../../common/composables/useApiClient';
 import { useAuthSession } from '../../auth/composables/useAuthSession';
 import { useBuilderToast } from '../../core/composables/useBuilderToast';
 import { usePublishDashboard } from '../composables/usePublishDashboard';
@@ -28,6 +30,7 @@ import BuilderPublishDetailsPanel from '../components/BuilderPublishDetailsPanel
 import TheBuilderPublishCreatePageModal from '../components/TheBuilderPublishCreatePageModal.vue';
 import TheBuilderDocumentationModal from '../../documentation/components/TheBuilderDocumentationModal.vue';
 import TheBuilderMediaGalleryModal from '../../media/components/TheBuilderMediaGalleryModal.vue';
+import BuilderMediaGalleryPreviewLightbox from '../../media/components/BuilderMediaGalleryPreviewLightbox.vue';
 import BricksConfirmModal from '../../../ui/feedback/BricksConfirmModal.vue';
 import BricksToast from '../../../ui/feedback/BricksToast.vue';
 // #endregion
@@ -54,6 +57,7 @@ const pendingDeletePage = ref<IPublishedPage | null>(null);
 const isDeleteConfirmationOpen = ref(false);
 const isDeleting = ref(false);
 const selectedPageId = ref<string | null>(null);
+const thumbnailPreviewItem = ref<TMediaLightboxItem | null>(null);
 const detailsPanelRef = ref<InstanceType<typeof BuilderPublishDetailsPanel> | null>(null);
 
 const darkModeCookie = useCookie<boolean>('bricks-dark-mode', {
@@ -222,6 +226,31 @@ function handlePreviewPage(page: IPublishedPage): void {
 }
 
 /**
+ * Открывает миниатюру страницы в лайтбоксе медиа-галереи.
+ *
+ * @param page - Страница с thumbnailUrl.
+ */
+function handlePreviewThumbnail(page: IPublishedPage): void {
+    if (!page.thumbnailUrl) {
+        return;
+    }
+
+    thumbnailPreviewItem.value = {
+        url: page.thumbnailUrl,
+        mimeType: 'image/webp',
+        alt: page.title || page.pagename,
+        filename: `${page.pagename}.webp`,
+    };
+}
+
+/**
+ * Закрывает лайтбокс миниатюры.
+ */
+function handleCloseThumbnailPreview(): void {
+    thumbnailPreviewItem.value = null;
+}
+
+/**
  * Дублирует страницу: копия создаётся черновиком с уникальным pagename.
  *
  * @param page - Исходная страница.
@@ -271,6 +300,24 @@ function handleCloseDeleteConfirmation(force = false): void {
 }
 
 /**
+ * Best-effort удаление превью страницы из S3 (без cache-buster query).
+ * Ошибки игнорируются — файл перезапишется при следующем сохранении с тем же id.
+ *
+ * @param thumbnailUrl - Сохранённый URL превью (может содержать `?v=`).
+ */
+async function cleanupThumbnail(thumbnailUrl: string): Promise<void> {
+    try {
+        const { apiFetcher } = useApiClient();
+        await apiFetcher('/mock-api/s3-delete', {
+            method: 'POST',
+            body: { url: thumbnailUrl.split('?')[0] },
+        });
+    } catch (error: unknown) {
+        console.warn('[Publish Dashboard] Thumbnail cleanup failed:', error);
+    }
+}
+
+/**
  * Подтверждает и выполняет удаление страницы.
  */
 async function handleConfirmDelete(): Promise<void> {
@@ -282,6 +329,9 @@ async function handleConfirmDelete(): Promise<void> {
     isDeleting.value = true;
     try {
         await publishStore.deletePage(page.id);
+        if (page.thumbnailUrl) {
+            cleanupThumbnail(page.thumbnailUrl);
+        }
         if (selectedPageId.value === String(page.id)) {
             selectedPageId.value = null;
         }
@@ -426,6 +476,7 @@ onMounted(() => {
                     @update:active-filter="activeFilter = $event"
                     @create-page="handleCreatePage"
                     @select="handleSelectPage"
+                    @preview-thumbnail="handlePreviewThumbnail"
                     @edit="handleEditPage"
                     @preview="handlePreviewPage"
                     @duplicate="handleDuplicatePage"
@@ -477,6 +528,11 @@ onMounted(() => {
             :is-loading="isDeleting"
             @close="handleCloseDeleteConfirmation"
             @confirm="handleConfirmDelete"
+        />
+
+        <BuilderMediaGalleryPreviewLightbox
+            :item="thumbnailPreviewItem"
+            @close="handleCloseThumbnailPreview"
         />
 
         <BricksToast

@@ -12,4 +12,5 @@
 | `useComponentLibrary.ts`        | Загрузка библиотеки компонентов: bricks с бэкенда + метаданные `.brick.ts` + layout-блоки                                 |
 | `useDraggableComponent.ts`      | Drag-and-drop компонентов из библиотеки на канвас                                                                         |
 | `useModals.ts`                  | Фасад модалок: загрузка компонента по имени (`getModalComponentLazy`); кеш и опции — в `core/composables/useModalOptions` |
+| `usePageThumbnail.ts`           | Превью страницы для дашборда: снапшот канваса (modern-screenshot, lazy) → S3 → PATCH `thumbnailUrl`; fire-and-forget      |
 | `usePreviewSync.ts`             | Синхронизация схемы с preview-вкладкой через BroadcastChannel (debounce 300ms)                                            |

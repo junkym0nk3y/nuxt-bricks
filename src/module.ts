@@ -415,16 +415,13 @@ export default defineNuxtModule<IBricksModuleOptions>({
             handler: resolve(runtimeDir, 'server/middleware/proxy.client'),
             middleware: true,
         });
-        addServerHandler({
-            route: '/mock-api/s3-image',
-            method: 'post',
-            handler: resolve(runtimeDir, 'server/routes/mock-api/s3-image.post'),
-        });
-        addServerHandler({
-            route: '/mock-api/s3-delete',
-            method: 'post',
-            handler: resolve(runtimeDir, 'server/routes/mock-api/s3-delete.post'),
-        });
+        for (const s3Route of ['s3-image', 's3-delete', 's3-page-thumbnail', 's3-media-proxy']) {
+            addServerHandler({
+                route: `/mock-api/${s3Route}`,
+                method: 'post',
+                handler: resolve(runtimeDir, `server/routes/mock-api/${s3Route}.post`),
+            });
+        }
         addServerHandler({
             route: '/mock-api/bricks-components',
             handler: resolve(runtimeDir, 'server/routes/mock-api/bricks-components'),
