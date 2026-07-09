@@ -236,7 +236,9 @@ onUnmounted(() => {
     position: absolute;
     top: 0;
     left: 0;
-    z-index: 50; /* Lower z-index to sit nicely within content */
+
+    /* Выше всех модалок (BricksConfirmModal — 999999): пока идёт загрузка, лоадер ничем не перекрывается */
+    z-index: 1000000;
     display: flex;
     align-items: center;
     justify-content: center;

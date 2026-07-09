@@ -177,7 +177,8 @@ function handleOptionSelect(option: IBrickUiCommonProp): void {
 }
 
 .dropdown {
-    z-index: 20;
+    /* Слой поповеров (как context menu): выше тулбара (100), vertical nav (60) и сайдбара (50) */
+    z-index: 10000;
     min-width: 22rem;
     padding: 0.8rem;
     border-radius: var(--border-radius-sm);

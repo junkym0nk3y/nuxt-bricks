@@ -422,7 +422,10 @@ body.bricks-page {
 }
 
 .scrollbox {
-    overflow: auto;
+    overflow: hidden;
+
+    // Резерв места под скроллбар: его появление не должно менять ширину контента
+    scrollbar-gutter: stable;
 
     // Modern CSS Scrollbars Styling (Firefox, Chrome 121+)
     scrollbar-width: thin;
