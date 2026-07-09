@@ -37,18 +37,22 @@ export function useBricksInput(
     // #endregion
 
     // #region Computed
-    const nativeType = computed<'text' | 'number'>(() =>
-        props.type === 'number' ? 'number' : 'text'
-    );
+    const nativeType = computed<'text' | 'number' | 'password'>(() => {
+        if (props.type === 'number' || props.type === 'password') {
+            return props.type;
+        }
+
+        return 'text';
+    });
 
     const placeholderText = computed(() => props.placeholder ?? '');
 
     const inputAttributes = computed(() => ({
         type: nativeType.value,
-        autocomplete: 'off',
+        autocomplete: props.autocomplete ?? 'off',
         placeholder: placeholderText.value,
         disabled: Boolean(props.disabled),
-        maxlength: nativeType.value === 'text' ? props.maxLength : undefined,
+        maxlength: nativeType.value !== 'number' ? props.maxLength : undefined,
         inputmode: props.type === 'number' ? ('decimal' as const) : ('text' as const),
         min: props.type === 'number' ? props.min : undefined,
         max: props.type === 'number' ? props.max : undefined,

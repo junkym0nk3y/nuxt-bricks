@@ -40,6 +40,35 @@ CREATE TRIGGER update_bricks_pages_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+-- Пользователи database-auth (bricks.auth.mode = 'database').
+-- Провижининг вручную: npm run bricks:hash -- <password> --username <name> → INSERT.
+CREATE TABLE IF NOT EXISTS bricks_users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(255) UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,          -- scrypt:N:r:p:saltB64:hashB64
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TRIGGER update_bricks_users_updated_at
+    BEFORE UPDATE ON bricks_users
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Cookie-сессии database-auth (в БД — только SHA-256 hex токена)
+CREATE TABLE IF NOT EXISTS bricks_sessions (
+    id SERIAL PRIMARY KEY,
+    token_hash CHAR(64) UNIQUE NOT NULL,  -- sha256 hex
+    user_id INTEGER NOT NULL REFERENCES bricks_users(id) ON DELETE CASCADE,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    last_used_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_bricks_sessions_user_id ON bricks_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_bricks_sessions_expires_at ON bricks_sessions(expires_at);
+
 -- Метаданные медиа-галереи
 CREATE TABLE IF NOT EXISTS bricks_media (
     id SERIAL PRIMARY KEY,

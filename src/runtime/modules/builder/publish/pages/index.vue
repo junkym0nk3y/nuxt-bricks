@@ -16,6 +16,7 @@ import { useRouter, useCookie, useHead } from '#imports';
 import { usePublishStore } from '../stores/publish';
 
 // Composables
+import { useAuthSession } from '../../auth/composables/useAuthSession';
 import { useBuilderToast } from '../../core/composables/useBuilderToast';
 import { usePublishDashboard } from '../composables/usePublishDashboard';
 import { usePublishPreview } from '../composables/usePublishPreview';
@@ -37,6 +38,7 @@ const router = useRouter();
 const publishStore = usePublishStore();
 const { toast, showToast } = useBuilderToast();
 const { generatePreviewUrl } = usePublishPreview();
+const { isDatabaseMode, logout } = useAuthSession();
 const { searchQuery, activeFilter, filterCounts, filteredPages, hasAnyPages } = usePublishDashboard(
     computed(() => publishStore.publishedPages)
 );
@@ -311,6 +313,17 @@ async function handleToggleLocale(): Promise<void> {
 }
 
 /**
+ * Выходит из database-auth сессии; при ошибке показывает тост.
+ */
+async function handleLogout(): Promise<void> {
+    try {
+        await logout();
+    } catch {
+        showToast(t('bricks.auth.logoutFailed'), 'error');
+    }
+}
+
+/**
  * Открывает модалку документации.
  */
 function handleOpenDocs(): void {
@@ -391,6 +404,7 @@ onMounted(() => {
             :search-query="searchQuery"
             :pages-count="pagesCount"
             :is-dark-mode="isDarkMode"
+            :is-logout-visible="isDatabaseMode"
             @update:search-query="searchQuery = $event"
             @select-section="handleSelectSection"
             @create-page="handleCreatePage"
@@ -398,6 +412,7 @@ onMounted(() => {
             @open-docs="handleOpenDocs"
             @toggle-dark-mode="handleToggleDarkMode"
             @toggle-locale="handleToggleLocale"
+            @logout="handleLogout"
         >
             <template #list>
                 <BuilderPublishPagesList

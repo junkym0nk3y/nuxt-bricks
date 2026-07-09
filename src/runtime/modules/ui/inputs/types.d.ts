@@ -17,10 +17,12 @@ export interface IBricksInputProps {
     label?: string;
     disabled?: boolean;
     placeholder?: string;
-    type?: 'text' | 'number' | 'slug';
+    type?: 'text' | 'number' | 'slug' | 'password';
     required?: boolean;
     rules?: string;
     maxLength?: number;
+    /** Значение атрибута autocomplete нативного input (дефолт: 'off') */
+    autocomplete?: string;
     min?: number;
     max?: number;
     step?: number;
@@ -45,7 +47,7 @@ export interface IBricksInputEmitFn {
 
 /** Атрибуты нативного input, собранные композаблом useBricksInput. */
 export interface IBricksInputNativeAttributes {
-    type: 'text' | 'number';
+    type: 'text' | 'number' | 'password';
     autocomplete: string;
     placeholder: string;
     disabled: boolean;

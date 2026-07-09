@@ -25,9 +25,23 @@ export interface IBricksModuleOptions {
         password?: string;
     };
     /**
+     * Режим авторизации защищённых путей (builder/preview/мутации API).
+     * - 'basic' (дефолт) — HTTP Basic Auth с парой креденшелов из basicAuth/env.
+     * - 'database' — пользователи в Postgres (scrypt-хеш), страница логина
+     *   /bricks/login, cookie-сессии в БД (таблицы bricks_users/bricks_sessions).
+     * ENV-переопределение: BRICKS_AUTH_MODE, BRICKS_AUTH_SESSION_MAX_AGE.
+     * Провижининг пользователей — вручную (см. CLI bricks-hash-password).
+     */
+    auth?: {
+        mode?: 'basic' | 'database';
+        /** Срок жизни cookie-сессии в секундах (дефолт: 604800 — 7 дней). */
+        sessionMaxAgeSeconds?: number;
+    };
+    /**
      * PostgreSQL для дефолтного storage-адаптера (persistence).
      * Если url задан — /api/bricks/** обслуживаются локальными Nitro-ручками.
-     * ENV-переопределение: NUXT_BRICKS_DATABASE_URL (legacy: DATABASE_URL).
+     * Строку подключения задавать через ENV NUXT_BRICKS_DATABASE_URL —
+     * секретам не место в nuxt.config.
      */
     database?: {
         url?: string;
@@ -116,6 +130,28 @@ function logPersistenceMode(hasDatabase: boolean, hasProxy: boolean): void {
 }
 
 /**
+ * Логирует выбранный auth-режим при старте модуля.
+ *
+ * @param mode - Режим авторизации ('basic' | 'database').
+ * @param hasDatabase - Сконфигурирована ли локальная БД.
+ */
+function logAuthMode(mode: string, hasDatabase: boolean): void {
+    if (mode === 'database') {
+        console.info('[nuxt-bricks] Auth: database mode (users/sessions in PostgreSQL)');
+
+        if (!hasDatabase) {
+            console.warn(
+                '[nuxt-bricks] bricks.auth.mode = "database", но bricks.database.url не задан — защищённые пути будут отвечать 503'
+            );
+        }
+
+        return;
+    }
+
+    console.info('[nuxt-bricks] Auth: basic mode (HTTP Basic Auth)');
+}
+
+/**
  * Заполняет runtimeConfig модуля: basic-auth, persistence (Postgres/S3), proxy.
  * Дефолты переопределяемы в production через ENV (NUXT_BRICKS_*, legacy-имена — fallback).
  *
@@ -137,7 +173,10 @@ function applyBricksRuntimeConfig(
 
     // Persistence: PostgreSQL (server-only, секреты не в public)
     runtimeConfig.bricksDatabaseUrl =
-        runtimeConfig.bricksDatabaseUrl ?? options.database?.url ?? process.env.DATABASE_URL ?? '';
+        runtimeConfig.bricksDatabaseUrl ??
+        process.env.NUXT_BRICKS_DATABASE_URL ??
+        options.database?.url ??
+        '';
 
     // Persistence: S3-хранилище (server-only)
     runtimeConfig.bricksS3 = defu(runtimeConfig.bricksS3 as object | undefined, options.s3, {
@@ -155,7 +194,36 @@ function applyBricksRuntimeConfig(
     publicConfig.PROXY_URL =
         publicConfig.PROXY_URL ?? options.proxy?.url ?? process.env.PROXY_URL ?? '';
 
+    applyBricksAuthRuntimeConfig(runtimeConfig, publicConfig, options);
+
     logPersistenceMode(Boolean(runtimeConfig.bricksDatabaseUrl), Boolean(publicConfig.PROXY_URL));
+    logAuthMode(runtimeConfig.bricksAuthMode as string, Boolean(runtimeConfig.bricksDatabaseUrl));
+}
+
+/**
+ * Заполняет runtimeConfig auth-режима: server-ключи + публичный флаг для
+ * 401-интерцептора и login-страницы.
+ * Runtime-нюанс: NUXT_BRICKS_AUTH_MODE переопределяет только server-ключ,
+ * для клиента нужен и NUXT_PUBLIC_BRICKS_AUTH_MODE.
+ *
+ * @param runtimeConfig - nuxt.options.runtimeConfig.
+ * @param publicConfig - runtimeConfig.public.
+ * @param options - Опции модуля из nuxt.config.
+ */
+function applyBricksAuthRuntimeConfig(
+    runtimeConfig: Record<string, unknown>,
+    publicConfig: Record<string, unknown>,
+    options: IBricksModuleOptions
+): void {
+    runtimeConfig.bricksAuthMode =
+        runtimeConfig.bricksAuthMode ?? process.env.BRICKS_AUTH_MODE ?? options.auth?.mode;
+    runtimeConfig.bricksAuthSessionMaxAge =
+        runtimeConfig.bricksAuthSessionMaxAge ??
+        process.env.BRICKS_AUTH_SESSION_MAX_AGE ??
+        options.auth?.sessionMaxAgeSeconds;
+
+    // Публичный флаг auth-режима (не секрет) — клиенту нужен для редиректа на login
+    publicConfig.bricksAuthMode = publicConfig.bricksAuthMode ?? runtimeConfig.bricksAuthMode;
 }
 // #endregion
 
@@ -171,6 +239,10 @@ export default defineNuxtModule<IBricksModuleOptions>({
         basicAuth: {
             username: 'admin',
             password: 'change-me',
+        },
+        auth: {
+            mode: 'basic',
+            sessionMaxAgeSeconds: 604800,
         },
     },
     async setup(options, nuxt) {
@@ -293,6 +365,13 @@ export default defineNuxtModule<IBricksModuleOptions>({
                             file: resolve(runtimeDir, 'modules/builder/publish/pages/index.vue'),
                         },
                         {
+                            // Статический сегмент бьёт :pagename по ранжированию vue-router
+                            // независимо от порядка. В basic-режиме страница редиректит на /bricks.
+                            name: 'bricks-builder-login',
+                            path: 'login',
+                            file: resolve(runtimeDir, 'modules/builder/auth/pages/login.vue'),
+                        },
+                        {
                             name: 'bricks-builder-pagename',
                             path: ':pagename',
                             file: resolve(runtimeDir, 'modules/builder/app/pages/[pagename].vue'),
@@ -329,7 +408,7 @@ export default defineNuxtModule<IBricksModuleOptions>({
 
         // #region Server (middleware + mock-api)
         addServerHandler({
-            handler: resolve(runtimeDir, 'server/middleware/basic-auth'),
+            handler: resolve(runtimeDir, 'server/middleware/auth'),
             middleware: true,
         });
         addServerHandler({
@@ -362,6 +441,21 @@ export default defineNuxtModule<IBricksModuleOptions>({
         }> = [
             { route: '/api/bricks', method: 'get', file: 'server/api/bricks/index.get' },
             { route: '/api/bricks', method: 'post', file: 'server/api/bricks/index.post' },
+            {
+                route: '/api/bricks/auth/login',
+                method: 'post',
+                file: 'server/api/bricks/auth/login.post',
+            },
+            {
+                route: '/api/bricks/auth/logout',
+                method: 'post',
+                file: 'server/api/bricks/auth/logout.post',
+            },
+            {
+                route: '/api/bricks/auth/me',
+                method: 'get',
+                file: 'server/api/bricks/auth/me.get',
+            },
             {
                 route: '/api/bricks/published',
                 method: 'get',

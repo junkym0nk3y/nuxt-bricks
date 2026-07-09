@@ -92,6 +92,13 @@ function handleToggleDarkMode(): void {
 function handleToggleLocale(): void {
     emit('toggle-locale');
 }
+
+/**
+ * Пробрасывает выход из database-auth сессии наверх.
+ */
+function handleLogout(): void {
+    emit('logout');
+}
 // #endregion
 </script>
 
@@ -128,11 +135,13 @@ function handleToggleLocale(): void {
                 :pages-count="props.pagesCount"
                 :locale="locale"
                 :is-dark-mode="props.isDarkMode"
+                :is-logout-visible="props.isLogoutVisible"
                 @select-section="handleSelectSection"
                 @open-media="handleOpenMedia"
                 @open-docs="handleOpenDocs"
                 @toggle-dark-mode="handleToggleDarkMode"
                 @toggle-locale="handleToggleLocale"
+                @logout="handleLogout"
             />
 
             <main :class="$style.main">

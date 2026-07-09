@@ -37,6 +37,7 @@ npx oxlint <changed-file>
     - `shell/` — рамка редактора: `sidebar/` (components + property-editors/, composables, utils, types), `toolbar/` (чисто презентационный)
     - `canvas/` — слайсы `viewport/`, `item/`, `editing/` (каждый — `components/` + `composables/`) + общий `types/`
     - `publish/` — управление страницами: `pages/` (index.vue — полноэкранный дашборд, единственная поверхность управления страницами), `components/` (TheBuilderPublishDashboard + Nav/PagesList/PagesListRow/DetailsPanel, TheBuilderPublishCreatePageModal), `composables/` (usePublishDashboard, usePublishPageForm, usePublishCreatePageForm), `stores/publish.ts`, `utils/` (черновики, payload, ошибки запросов, validationSchema — общая yup-фабрика meta-полей, dates, slugify), `types/`; дашборд живёт на `/bricks`, редактор — `/bricks/<pagename>`, кнопка pages тулбара билдера ведёт на `/bricks` (emit `openPagesManager`), Publish-модалка удалена (2026-07-04)
+    - `auth/` — database-auth UI: `pages/` (login.vue — страница `/bricks/login`), `composables/` (useAuthSession, useAuthLoginForm), `utils/` (redirects — анти-open-redirect, validationSchema), `types/`; зависимости только ui+common
     - `documentation/` — TheBuilderDocumentationModal, `composables/`, `docs/guide/` (markdown-статьи), `types/`
     - `media/` — медиа-галерея и image resolver: `stores/media.ts`, `composables/` (useMediaUpload, useSchemaImageResolver), `utils/`
 - `text-editor/` — TipTap (бывший `editor/`): компоненты, расширения (`tiptap/`), inline editing, `stores/inlineEditing.ts`
@@ -285,7 +286,7 @@ CSS: `.bricks-text [data-tiptap-content]` — **с пробелом** (descendan
 
 - `src/module.ts` подписывается на хук `i18n:registerModule` (ДО `installModule`) и регистрирует `src/runtime/locales/ru.json` / `en.json`; дефолты i18n (`strategy: 'no_prefix'`, cookie `bricks-locale`, детект браузера, `defaultLocale` из `bricks.i18n.defaultLocale`) применяются через `defu` **всегда** — и когда bricks ставит `@nuxtjs/i18n` сам, и когда его подключил потребитель (голая стратегия `prefix_except_default` переписала бы маршруты → 404 на `/bricks`); опции потребителя побеждают.
 - **Порядок модулей критичен**: `nuxt-bricks` должен стоять **до** `@nuxtjs/i18n` в `modules` потребителя, иначе хук не сработает и переводы не зарегистрируются (warn выводится в `app:resolve` — `@nuxtjs/i18n` вызывает `i18n:registerModule` из собственного `modules:done`-хука, проверка в `modules:done` давала бы ложное срабатывание).
-- Все ключи — под префиксом `bricks.*` (проектные сообщения потребителя всегда побеждают). Неймспейсы: `common`, `toolbar`, `nav`, `library`, `properties`, `publish`, `media`, `schema`, `canvas`, `textEditor`, `docs`, `validation`, `blocks`.
+- Все ключи — под префиксом `bricks.*` (проектные сообщения потребителя всегда побеждают). Неймспейсы: `common`, `toolbar`, `nav`, `auth`, `library`, `properties`, `publish`, `media`, `schema`, `canvas`, `textEditor`, `docs`, `validation`, `blocks`.
 - Labels из definitions резолвятся через `resolveBricksLabel` (`common/utils/i18nLabels.ts`): ключи `bricks.*` переводятся, кастомные строки потребителя проходят как есть.
 - **Ограничения значений словарей** (message compiler unplugin-vue-i18n валит загрузку **всей** локали): никакого HTML (`<p>…</p>` запрещён — обёртку добавлять в коде) и никаких literal-`{...}` вне именованных плейсхолдеров (`{текст, с пробелами}` → ошибка компиляции).
 - В компонентах — `useI18n()`; в stores/composables без setup-контекста — `useNuxtApp().$i18n.t(...)`.
@@ -319,7 +320,13 @@ Markdown-статьи во встроенной документации бил�
 
 **S3:** `YANDEX_STORAGE_ACCESS_KEY_ID`, `YANDEX_STORAGE_SECRET_ACCESS_KEY`, `YANDEX_STORAGE_BUCKET_NAME`
 
-**Basic Auth:** `BASIC_AUTH_USERNAME` (дефолт: `admin`), `BASIC_AUTH_PASSWORD` (дефолт: `change-me`). Защищает `/bricks/**` (менеджер страниц + редактор), `/preview/**` (превью рендера), S3 и модифицирующие API.
+**Auth** (`bricks.auth.mode`, env `BRICKS_AUTH_MODE`: `basic` | `database`, дефолт `basic`). Оба режима защищают одну матрицу путей: `/bricks/**` (менеджер страниц + редактор), `/preview/**` (превью рендера), S3 и модифицирующие API (`server/utils/auth/routeProtection.ts`; middleware — `server/middleware/auth.ts`).
+
+- **basic** — HTTP Basic Auth: `BASIC_AUTH_USERNAME` (дефолт: `admin`), `BASIC_AUTH_PASSWORD` (дефолт: `change-me`).
+- **database** — пользователи в Postgres (scrypt-хеш), страница логина `/bricks/login`, cookie-сессии в БД (`bricks_users`/`bricks_sessions`, ensureSchema в `postgresAuthAdapter`). Срок сессии — `BRICKS_AUTH_SESSION_MAX_AGE` (сек, дефолт 604800). Требует `bricks.database.url`. Дефолтных пользователей нет — провижининг вручную: `npm run bricks:hash -- <password> --username <name>` → INSERT через psql. Смена пароля — тот же CLI, затем `UPDATE bricks_users SET password_hash = '<hash>' WHERE username = '<name>';` (+ опционально `DELETE FROM bricks_sessions WHERE user_id = ...` для отзыва активных сессий). Деактивация без удаления: `is_active = false`. Хранилище подменяемо: `setBricksAuthAdapter` из `nuxt-bricks/persistence`.
+- **Runtime-нюанс NUXT\_-override**: `NUXT_BRICKS_AUTH_MODE` меняет только server-ключ — для клиента (401-интерцептор, login-страница) нужен и `NUXT_PUBLIC_BRICKS_AUTH_MODE`.
+- **Нюансы database-режима**: rate limiter логина per-process (multi-replica ослабляет лимит); SPA-навигация с мёртвой сессией показывает публичные GET-данные до первой мутации (401 → авторедирект). `login` — зарезервированный pagename.
+- Направления зависимостей: `builder/auth` → только ui+common; `persistence` используется из `src/runtime/server/api/bricks/**` **и** `server/middleware/auth.ts`.
 
 ## Известная проблема: glob-кэш Vite
 

@@ -1,8 +1,8 @@
 /**
  * Ленивый singleton-пул соединений с PostgreSQL для дефолтного storage-адаптера.
  *
- * БД активна ТОЛЬКО когда задана строка подключения (`bricks.database.url` /
- * `NUXT_BRICKS_DATABASE_URL` / legacy `DATABASE_URL`). Без неё /api/bricks/**
+ * БД активна ТОЛЬКО когда задана строка подключения
+ * (`NUXT_BRICKS_DATABASE_URL` / `bricks.database.url`). Без неё /api/bricks/**
  * должны проксироваться на внешний backend через PROXY_URL (см. proxy.client.ts).
  */
 import { useRuntimeConfig } from 'nitropack/runtime';
@@ -18,13 +18,12 @@ let pool: Pool | null = null;
  */
 function resolveConnectionString(): string {
     const config = useRuntimeConfig();
-    const connectionString =
-        (config.bricksDatabaseUrl as string | undefined) || process.env.DATABASE_URL;
+    const connectionString = config.bricksDatabaseUrl as string | undefined;
 
     if (!connectionString) {
         throw new Error(
             '[PostgreSQL] Database connection is not configured. ' +
-                'Set bricks.database.url in nuxt.config (or NUXT_BRICKS_DATABASE_URL / DATABASE_URL env), ' +
+                'Set NUXT_BRICKS_DATABASE_URL env (or bricks.database.url in nuxt.config), ' +
                 'or set PROXY_URL to proxy /api requests to an external backend.'
         );
     }

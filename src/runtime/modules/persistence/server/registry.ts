@@ -14,11 +14,13 @@
  * ```
  */
 import { createPostgresStorageAdapter } from './postgres/postgresStorageAdapter';
+import { createPostgresAuthAdapter } from './postgres/postgresAuthAdapter';
 import { createS3PublishAdapter } from './s3/s3PublishAdapter';
-import type { IStorageAdapter, IPublishAdapter } from '../types/adapters';
+import type { IStorageAdapter, IPublishAdapter, IAuthAdapter } from '../types/adapters';
 
 let storageAdapter: IStorageAdapter | null = null;
 let publishAdapter: IPublishAdapter | null = null;
+let authAdapter: IAuthAdapter | null = null;
 
 /**
  * Регистрирует кастомный storage-адаптер вместо дефолтного Postgres.
@@ -62,4 +64,26 @@ export function useBricksPublishAdapter(): IPublishAdapter {
     }
 
     return publishAdapter;
+}
+
+/**
+ * Регистрирует кастомный auth-адаптер вместо дефолтного Postgres.
+ *
+ * @param adapter - Реализация IAuthAdapter.
+ */
+export function setBricksAuthAdapter(adapter: IAuthAdapter): void {
+    authAdapter = adapter;
+}
+
+/**
+ * Возвращает активный auth-адаптер, лениво создавая дефолтный Postgres.
+ *
+ * @returns Активный IAuthAdapter.
+ */
+export function useBricksAuthAdapter(): IAuthAdapter {
+    if (!authAdapter) {
+        authAdapter = createPostgresAuthAdapter();
+    }
+
+    return authAdapter;
 }

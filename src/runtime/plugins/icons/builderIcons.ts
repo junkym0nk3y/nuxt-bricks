@@ -42,6 +42,7 @@ import {
     TaOutlineLetterCase,
     TaOutlineLibraryPhoto,
     TaOutlineLoader2,
+    TaOutlineLogout,
     TaOutlineMinus,
     TaOutlinePackage,
     TaOutlinePencil,
@@ -135,6 +136,7 @@ export const BUILDER_ICONS: Record<string, Component> = {
     'ta:outline-click': TaOutlineClick,
     'ta:outline-info-circle': TaOutlineInfoCircle,
     'ta:outline-loader-2': TaOutlineLoader2,
+    'ta:outline-logout': TaOutlineLogout,
 
     // Sidebar / Library
     'ta:outline-package': TaOutlinePackage,

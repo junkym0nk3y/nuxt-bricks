@@ -19,6 +19,8 @@ export interface IPublishDashboardProps {
     searchQuery: string;
     pagesCount: number;
     isDarkMode: boolean;
+    /** Показывать кнопку «Выйти» (database-auth режим). */
+    isLogoutVisible?: boolean;
 }
 
 export interface IPublishDashboardEmits {
@@ -29,6 +31,7 @@ export interface IPublishDashboardEmits {
     'open-docs': [];
     'toggle-dark-mode': [];
     'toggle-locale': [];
+    logout: [];
 }
 
 export interface IPublishDashboardNavProps {
@@ -36,6 +39,8 @@ export interface IPublishDashboardNavProps {
     pagesCount: number;
     locale: string;
     isDarkMode: boolean;
+    /** Показывать кнопку «Выйти» (database-auth режим). */
+    isLogoutVisible?: boolean;
 }
 
 export interface IPublishDashboardNavEmits {
@@ -44,6 +49,7 @@ export interface IPublishDashboardNavEmits {
     'open-docs': [];
     'toggle-dark-mode': [];
     'toggle-locale': [];
+    logout: [];
 }
 
 export interface IPublishPagesListProps {

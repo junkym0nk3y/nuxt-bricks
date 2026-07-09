@@ -64,6 +64,12 @@ describe('createPublishValidationSchema: yup-схема meta-полей', () => 
         );
     });
 
+    it('отклоняет зарезервированный pagename (login)', async () => {
+        await expect(buildSchema().validateAt('pagename', { pagename: 'login' })).rejects.toThrow(
+            'bricks.publish.validation.pagenameReserved'
+        );
+    });
+
     it('отклоняет занятый pagename', async () => {
         const schema = buildSchema({ home: 1 });
 

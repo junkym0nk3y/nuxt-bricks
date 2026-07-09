@@ -31,6 +31,28 @@
             "themeDark": "Dark theme",
             "language": "Interface language"
         },
+        "auth": {
+            "login": {
+                "title": "Sign in to builder",
+                "username": "Username",
+                "usernamePlaceholder": "Enter username",
+                "password": "Password",
+                "passwordPlaceholder": "Enter password",
+                "submit": "Sign in"
+            },
+            "validation": {
+                "usernameRequired": "Enter username",
+                "passwordRequired": "Enter password"
+            },
+            "errors": {
+                "invalidCredentials": "Invalid username or password",
+                "tooManyAttempts": "Too many login attempts. Try again later",
+                "loginFailed": "Failed to sign in. Try again",
+                "notConfigured": "Authentication is not configured. Contact your administrator"
+            },
+            "logout": "Sign out",
+            "logoutFailed": "Failed to sign out. Try again"
+        },
         "library": {
             "title": "Add component",
             "searchPlaceholder": "Search components...",
@@ -237,6 +259,7 @@
                 "pagenameMax": "Maximum 80 characters",
                 "pagenameFormat": "Only lowercase letters, digits and hyphens are allowed",
                 "pagenameTaken": "This pagename is already taken",
+                "pagenameReserved": "This name is reserved by the system",
                 "titleRequired": "Title is required",
                 "titleMin": "Minimum 3 characters",
                 "titleMax": "Maximum 120 characters",

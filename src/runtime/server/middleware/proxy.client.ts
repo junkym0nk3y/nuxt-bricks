@@ -4,7 +4,7 @@
  * Логика проксирования:
  * - /mock-api/* → НИКОГДА не проксируется (локальные Nitro-роуты)
  * - /api/bricks/** → НЕ проксируется, если сконфигурирована БД
- *   (bricks.database.url / NUXT_BRICKS_DATABASE_URL / DATABASE_URL) —
+ *   (NUXT_BRICKS_DATABASE_URL / bricks.database.url) —
  *   запросы обслуживают локальные persistence-ручки (см. server/api/bricks/)
  * - остальные /api/* → проксируются на PROXY_URL (если задан)
  *
@@ -41,7 +41,7 @@ const proxyHandler = proxyTarget ? createHandler(proxyTarget, API_PREFIX) : null
  * Проверяет, сконфигурирована ли локальная БД (persistence-режим).
  */
 function hasLocalDatabase(): boolean {
-    return Boolean((config.bricksDatabaseUrl as string | undefined) || process.env.DATABASE_URL);
+    return Boolean(config.bricksDatabaseUrl as string | undefined);
 }
 
 /**

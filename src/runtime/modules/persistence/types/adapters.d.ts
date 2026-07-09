@@ -88,3 +88,57 @@ export interface IPublishAdapter {
     deleteFile(url: string): Promise<void>;
     listFiles(prefix?: string): Promise<IStoredFileInfo[]>;
 }
+
+/**
+ * Запись пользователя database-auth (включая хеш пароля — только для verify).
+ */
+export interface IAuthUserRecord {
+    id: number;
+    username: string;
+    /** Самоописывающий формат scrypt:N:r:p:saltB64:hashB64. */
+    passwordHash: string;
+    isActive: boolean;
+}
+
+/**
+ * Пользователь авторизованной сессии (без секретов — уходит в event.context и клиенту).
+ */
+export interface IAuthSessionUser {
+    id: number;
+    username: string;
+    isActive: boolean;
+}
+
+/**
+ * Сессия вместе с пользователем (JOIN bricks_sessions × bricks_users).
+ */
+export interface IAuthSessionWithUser {
+    tokenHash: string;
+    expiresAt: string;
+    lastUsedAt: string;
+    user: IAuthSessionUser;
+}
+
+/**
+ * Данные для создания cookie-сессии (в БД хранится только SHA-256 токена).
+ */
+export interface ICreateAuthSessionPayload {
+    tokenHash: string;
+    userId: number;
+    expiresAt: Date;
+}
+
+/**
+ * Хранилище пользователей и cookie-сессий database-auth (дефолт — Postgres).
+ */
+export interface IAuthAdapter {
+    getUserByUsername(username: string): Promise<IAuthUserRecord | null>;
+    /** Возвращает только непросроченную сессию (просроченная неотличима от отсутствующей). */
+    getSessionWithUser(tokenHash: string): Promise<IAuthSessionWithUser | null>;
+    createSession(payload: ICreateAuthSessionPayload): Promise<void>;
+    deleteSession(tokenHash: string): Promise<void>;
+    /** Удаляет просроченные сессии; возвращает количество удалённых. */
+    deleteExpiredSessions(): Promise<number>;
+    /** Sliding-продление: обновляет expires_at и last_used_at. */
+    touchSession(tokenHash: string, expiresAt: Date): Promise<void>;
+}

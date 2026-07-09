@@ -131,6 +131,26 @@ export function useApiClient() {
                 options.baseURL = resolveLocalBaseUrl(event as H3Event | null);
             }
         },
+        onResponseError({ response }) {
+            // Database-auth: мёртвая сессия → полная перезагрузка на login
+            // (чисто сбрасывает сторы; вне гарантированного Nuxt-контекста).
+            // /bricks/login пропускаем — иначе 401 от auth/me зациклит редирект.
+            if (import.meta.server) {
+                return;
+            }
+
+            const isDatabaseAuth =
+                (config.public?.bricksAuthMode as string | undefined) === 'database';
+            const { pathname, search } = window.location;
+
+            if (!isDatabaseAuth || response.status !== 401 || pathname === '/bricks/login') {
+                return;
+            }
+
+            window.location.assign(
+                '/bricks/login?redirect=' + encodeURIComponent(pathname + search)
+            );
+        },
     });
 
     return {

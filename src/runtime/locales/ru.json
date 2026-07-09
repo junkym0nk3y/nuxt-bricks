@@ -31,6 +31,28 @@
             "themeDark": "Тёмная тема",
             "language": "Язык интерфейса"
         },
+        "auth": {
+            "login": {
+                "title": "Вход в билдер",
+                "username": "Логин",
+                "usernamePlaceholder": "Введите логин",
+                "password": "Пароль",
+                "passwordPlaceholder": "Введите пароль",
+                "submit": "Войти"
+            },
+            "validation": {
+                "usernameRequired": "Введите логин",
+                "passwordRequired": "Введите пароль"
+            },
+            "errors": {
+                "invalidCredentials": "Неверный логин или пароль",
+                "tooManyAttempts": "Слишком много попыток входа. Попробуйте позже",
+                "loginFailed": "Не удалось войти. Попробуйте ещё раз",
+                "notConfigured": "Авторизация не настроена. Обратитесь к администратору"
+            },
+            "logout": "Выйти",
+            "logoutFailed": "Не удалось выйти. Попробуйте ещё раз"
+        },
         "library": {
             "title": "Добавить компонент",
             "searchPlaceholder": "Поиск компонентов...",
@@ -237,6 +259,7 @@
                 "pagenameMax": "Максимум 80 символов",
                 "pagenameFormat": "Допустимы только строчные буквы, цифры и дефис",
                 "pagenameTaken": "Такой pagename уже занят",
+                "pagenameReserved": "Это имя зарезервировано системой",
                 "titleRequired": "Заголовок обязателен",
                 "titleMin": "Минимум 3 символа",
                 "titleMax": "Максимум 120 символов",

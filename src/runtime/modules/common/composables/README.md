@@ -6,7 +6,7 @@
 | Файл                 | Назначение                                                                                    |
 | -------------------- | --------------------------------------------------------------------------------------------- |
 | `useBricksConfig.ts` | Конфигурация билдера с дефолтными значениями. Читает из `app.config.ts`                       |
-| `useApiClient.ts`    | Работа с API через прокси или напрямую (SSR-заголовки, CSRF)                                  |
+| `useApiClient.ts`    | Работа с API через прокси или напрямую (SSR-заголовки, CSRF, 401 → login в database-auth)     |
 | `useBrickImports.ts` | Динамический импорт brick-файлов компонентов (нормализация eager/lazy glob-результатов)       |
 | `useBricksStyles.ts` | Генерация и инъекция стилей `.bricks-container` в `<head>` (канвас + published media queries) |
 

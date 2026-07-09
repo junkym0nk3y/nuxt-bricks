@@ -1,6 +1,12 @@
 // Yup
 import { object, string } from 'yup';
 
+/**
+ * Зарезервированные pagename: 'login' занят страницей логина database-auth —
+ * редактор страницы с таким именем (/bricks/login) был бы недостижим.
+ */
+const RESERVED_PAGENAMES = ['login'];
+
 interface IPublishValidationSchemaOptions {
     /** Переводчик i18n-ключей (сообщения резолвятся в момент валидации). */
     t: (key: string) => string;
@@ -28,6 +34,11 @@ export function createPublishValidationSchema(options: IPublishValidationSchemaO
             .min(3, () => t('bricks.publish.validation.pagenameMin'))
             .max(80, () => t('bricks.publish.validation.pagenameMax'))
             .matches(/^[a-z0-9-]+$/, () => t('bricks.publish.validation.pagenameFormat'))
+            .test(
+                'reserved',
+                () => t('bricks.publish.validation.pagenameReserved'),
+                (value) => !value || !RESERVED_PAGENAMES.includes(value)
+            )
             .test(
                 'unique',
                 () => t('bricks.publish.validation.pagenameTaken'),

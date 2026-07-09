@@ -95,6 +95,13 @@ function handleToggleDarkMode(): void {
 function handleToggleLocale(): void {
     emit('toggle-locale');
 }
+
+/**
+ * Выход из database-auth сессии.
+ */
+function handleLogout(): void {
+    emit('logout');
+}
 // #endregion
 </script>
 
@@ -133,6 +140,16 @@ function handleToggleLocale(): void {
             <button type="button" :class="$style.item" @click="handleToggleLocale">
                 <span :class="$style.localeBadge">{{ props.locale.toUpperCase() }}</span>
                 <span :class="$style.itemLabel">{{ t('bricks.nav.language') }}</span>
+            </button>
+
+            <button
+                v-if="props.isLogoutVisible"
+                type="button"
+                :class="$style.item"
+                @click="handleLogout"
+            >
+                <BricksIcon icon="ta:outline-logout" :class="$style.itemIcon" />
+                <span :class="$style.itemLabel">{{ t('bricks.auth.logout') }}</span>
             </button>
         </div>
     </nav>

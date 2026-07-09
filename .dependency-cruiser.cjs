@@ -110,8 +110,15 @@ module.exports = {
             severity: 'error',
             from: { path: `^${M}/builder/publish` },
             to: {
-                path: `^${M}/(?!builder/publish|builder/core|builder/media|builder/documentation|ui|common)`,
+                path: `^${M}/(?!builder/publish|builder/core|builder/media|builder/documentation|builder/auth|ui|common)`,
             },
+        },
+        {
+            // auth — малый самодостаточный поддомен (страница логина, сессия)
+            name: 'builder-auth-deps',
+            severity: 'error',
+            from: { path: `^${M}/builder/auth` },
+            to: { path: `^${M}/(?!builder/auth|ui|common)` },
         },
         {
             name: 'builder-media-deps',
