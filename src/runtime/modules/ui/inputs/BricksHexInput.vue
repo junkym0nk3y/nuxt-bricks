@@ -128,10 +128,10 @@ function update(value: string, fireChange = true) {
     width: 3.6rem;
     height: 3.6rem;
     margin-right: 0.8rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-base-300);
     background: var(--bricks-base-0);
-    transition: border-color var(--default-transition);
+    transition: border-color var(--bricks-default-transition);
 
     &:hover {
         border-color: var(--bricks-base-400);

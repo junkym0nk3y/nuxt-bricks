@@ -64,7 +64,7 @@ defineExpose({
 </script>
 
 <template>
-    <Transition name="library-details-slide">
+    <Transition name="bricks-details-slide">
         <aside
             v-show="isVisible"
             :class="$style.TheBuilderShellSidebarPropertiesPanel"
@@ -89,6 +89,6 @@ defineExpose({
     display: flex;
     background-color: var(--bricks-base-0);
     flex-direction: column;
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--bricks-shadow-md);
 }
 </style>

@@ -87,7 +87,9 @@ export function usePublishPageForm(
     // #region Methods
     /**
      * Валидирует и сохраняет meta-поля через PATCH; при успехе сбрасывает
-     * dirty-состояние на сохранённые значения.
+     * dirty-состояние на сохранённые значения. PATCH идёт с precondition
+     * (revision выбранной страницы): конфликт вернёт понятную ошибку, стор
+     * обновит список — повторное сохранение перезапишет чужие изменения.
      */
     const submitForm = handleSubmit(async (values) => {
         const target = page.value;
@@ -97,7 +99,10 @@ export function usePublishPageForm(
 
         isSaving.value = true;
         try {
-            const updated = await publishStore.patchPage(target.id, buildMetaPatchPayload(values));
+            const updated = await publishStore.patchPage(target.id, {
+                ...buildMetaPatchPayload(values),
+                expectedRevision: target.revision,
+            });
             resetForm({ values: buildFormValues(updated) });
             options.onSaveSuccess();
         } catch (error: unknown) {

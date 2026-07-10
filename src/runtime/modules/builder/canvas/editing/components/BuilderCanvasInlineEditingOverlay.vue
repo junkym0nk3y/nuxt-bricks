@@ -184,7 +184,7 @@ function handleRequestImage(): void {
 
 <template>
     <Teleport to="body">
-        <Transition name="library-canvas-toolbar">
+        <Transition name="bricks-canvas-toolbar">
             <div
                 v-if="isVisible && !canvasStore.isViewportSwitching"
                 ref="overlayRef"
@@ -269,20 +269,20 @@ function handleRequestImage(): void {
     min-width: 22rem;
     max-width: 80rem;
     padding: 0.6rem;
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--bricks-border-radius-sm);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
     resize: horizontal;
     flex-direction: column;
     gap: 0.4rem;
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--bricks-shadow-md);
     pointer-events: auto;
     transition:
-        opacity var(--default-transition),
-        box-shadow var(--default-transition);
+        opacity var(--bricks-default-transition),
+        box-shadow var(--bricks-default-transition);
 
     &._dragging {
-        box-shadow: var(--shadow-lg);
+        box-shadow: var(--bricks-shadow-lg);
         opacity: 0.6;
     }
 }
@@ -293,11 +293,11 @@ function handleRequestImage(): void {
     justify-content: center;
     flex-shrink: 0;
     height: 1.8rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     color: var(--bricks-base-300);
     transition:
-        background var(--default-transition),
-        color var(--default-transition);
+        background var(--bricks-default-transition),
+        color var(--bricks-default-transition);
     cursor: grab;
     user-select: none;
 
@@ -317,14 +317,14 @@ function handleRequestImage(): void {
 
 .doneButton {
     padding: 0.4rem 1rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: none;
     background: var(--bricks-primary);
     white-space: nowrap;
     font-size: 1.2rem;
     font-weight: 600;
     color: var(--bricks-static-white);
-    transition: opacity var(--default-transition);
+    transition: opacity var(--bricks-default-transition);
     cursor: pointer;
 
     &:hover {
@@ -351,16 +351,16 @@ function handleRequestImage(): void {
     justify-content: center;
     width: 2.4rem;
     height: 2.4rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
     color: var(--bricks-base-500);
     opacity: 0;
     transition:
-        border-color var(--default-transition),
-        background var(--default-transition),
-        color var(--default-transition),
-        opacity var(--default-transition);
+        border-color var(--bricks-default-transition),
+        background var(--bricks-default-transition),
+        color var(--bricks-default-transition),
+        opacity var(--bricks-default-transition);
     cursor: pointer;
 
     svg {
@@ -390,7 +390,7 @@ function handleRequestImage(): void {
     overflow-y: auto;
     max-height: 20rem;
     padding: 0.4rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
     background-color: var(--bricks-base-0);

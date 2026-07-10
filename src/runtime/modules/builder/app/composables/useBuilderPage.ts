@@ -3,7 +3,11 @@
 import type { IBricksSchema } from '../../../common/types/brick';
 import type { IMediaItem, TMediaGalleryContext } from '../../../common/types/media';
 import type { ISidebarExpose } from '../types/builder';
-import type { IInlineMediaBridge, IUseBuilderPageReturn } from '../types/composables';
+import type {
+    IInlineMediaBridge,
+    IUseBuilderPageReturn,
+    TRenameBuilderSession,
+} from '../types/composables';
 
 // Utils
 import { setPublishStoreBackgroundColor } from '../../publish/utils/formState';
@@ -36,9 +40,12 @@ import { usePublishStore } from '../../publish/stores/publish';
  *
  * @param inlineMediaBridge - Мост media-запросов inline-редактора; собирается
  * composition root'ом (`pages/[pagename].vue`), чтобы builder-ядро не зависело от editor.
+ * @param renameSession - Перенос сессии на новый pagename (URL + ключ черновиков,
+ * см. useBuilderPagename); применяется после успешного сохранения страницы.
  */
 export async function useBuilderPage(
-    inlineMediaBridge: IInlineMediaBridge
+    inlineMediaBridge: IInlineMediaBridge,
+    renameSession: TRenameBuilderSession
 ): Promise<IUseBuilderPageReturn> {
     // #region Stores & Composables
     const { t } = useI18n();
@@ -178,14 +185,10 @@ export async function useBuilderPage(
 
             const currentPagename = publishStore.currentFormState.pagename;
             if (currentPagename) {
+                // Переносим сессию на сохранённый pagename (URL + ключ черновиков)
+                // и подчищаем черновик — изменения только что сохранены
+                await renameSession(currentPagename);
                 removeBuilderDraft(currentPagename);
-
-                // Синхронизируем URL с актуальным pagename после сохранения
-                const currentUrl = window.location.pathname;
-                const expectedUrl = `/bricks/${currentPagename}`;
-                if (currentUrl !== expectedUrl) {
-                    window.history.replaceState(window.history.state, '', expectedUrl);
-                }
             }
             return true;
         }

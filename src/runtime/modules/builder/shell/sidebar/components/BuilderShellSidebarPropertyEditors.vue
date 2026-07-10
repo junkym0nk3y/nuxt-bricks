@@ -464,7 +464,7 @@ watch(
     font-weight: 600;
     letter-spacing: 0.05rem;
     color: var(--bricks-base-500);
-    transition: color var(--default-transition);
+    transition: color var(--bricks-default-transition);
     cursor: pointer;
     gap: 0.6rem;
 
@@ -477,7 +477,7 @@ watch(
     width: 1.2rem;
     height: 1.2rem;
     transform: rotate(-90deg);
-    transition: transform var(--default-transition);
+    transition: transform var(--bricks-default-transition);
 }
 
 .groupChevronOpen {

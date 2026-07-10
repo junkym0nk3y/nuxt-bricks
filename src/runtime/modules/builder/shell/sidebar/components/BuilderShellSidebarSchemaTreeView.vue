@@ -191,7 +191,7 @@ async function handleSelectComponent(id: string): Promise<void> {
             <BricksCloseButton @click="handleClose" />
         </div>
 
-        <div :class="[$style.content, 'scrollbox']">
+        <div :class="[$style.content, 'bricks-scrollbox']">
             <div v-if="hasComponents" :class="$style.tree">
                 <BuilderShellSidebarSchemaTreeItem
                     v-for="(component, index) in rootComponents"

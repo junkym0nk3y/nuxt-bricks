@@ -125,13 +125,13 @@ function handleOptionSelect(option: IBrickUiCommonProp): void {
 
     .actionButton {
         padding-right: 4rem;
-        box-shadow: 0 0.2rem 0.8rem rgb(var(--rgb-primary) / 35%);
+        box-shadow: 0 0.2rem 0.8rem rgb(var(--bricks-rgb-primary) / 35%);
         transition:
-            background-color var(--default-transition),
-            box-shadow var(--default-transition);
+            background-color var(--bricks-default-transition),
+            box-shadow var(--bricks-default-transition);
 
         &:not(:disabled):hover {
-            box-shadow: 0 0.4rem 1.4rem rgb(var(--rgb-primary) / 45%);
+            box-shadow: 0 0.4rem 1.4rem rgb(var(--bricks-rgb-primary) / 45%);
         }
     }
 
@@ -181,10 +181,10 @@ function handleOptionSelect(option: IBrickUiCommonProp): void {
     z-index: 10000;
     min-width: 22rem;
     padding: 0.8rem;
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--bricks-border-radius-sm);
     border: 1px solid var(--bricks-base-200);
     background-color: var(--bricks-base-0);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--bricks-shadow-md);
 
     &[data-state='open'] {
         animation: dropdown-in 0.2s ease;
@@ -202,7 +202,7 @@ function handleOptionSelect(option: IBrickUiCommonProp): void {
     outline: none;
 
     &[data-highlighted] {
-        border-radius: var(--border-radius-sm);
+        border-radius: var(--bricks-border-radius-sm);
         background-color: var(--bricks-base-300);
     }
 }

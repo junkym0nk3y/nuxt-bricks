@@ -122,7 +122,7 @@ watch(
                 <!-- Content -->
                 <div
                     ref="contentRef"
-                    :class="[$style.content, 'scrollbox']"
+                    :class="[$style.content, 'bricks-scrollbox']"
                     @click="handleContentClick"
                 >
                     <div v-if="isContentLoading" :class="$style.loading">
@@ -146,7 +146,7 @@ watch(
     height: 80vh;
     border-radius: 1.2rem;
     background-color: var(--bricks-base-0);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--bricks-shadow-md);
     flex-direction: column;
 }
 
@@ -201,8 +201,8 @@ watch(
     font-weight: 500;
     color: var(--bricks-base-600);
     transition:
-        color var(--default-transition),
-        background-color var(--default-transition);
+        color var(--bricks-default-transition),
+        background-color var(--bricks-default-transition);
     cursor: pointer;
 
     &:hover {

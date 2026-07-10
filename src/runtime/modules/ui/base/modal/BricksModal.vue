@@ -76,7 +76,7 @@ function onUpdateOpen(open: boolean): void {
 <template>
     <DialogRoot :open="props.isOpen" @update:open="onUpdateOpen">
         <DialogPortal>
-            <Transition name="library-modal-fade" :duration="props.duration">
+            <Transition name="bricks-modal-fade" :duration="props.duration">
                 <!--
                     DialogContent не должен быть вложен в DialogOverlay: overlay Reka
                     делает preventDefault на левый pointerdown, и вложенный контент
@@ -113,10 +113,14 @@ function onUpdateOpen(open: boolean): void {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: var(--overlay-dark);
+    background-color: var(--bricks-overlay-dark);
 
     &._gradient {
-        background: linear-gradient(180deg, var(--overlay-modal-start), var(--overlay-modal-end));
+        background: linear-gradient(
+            180deg,
+            var(--bricks-overlay-modal-start),
+            var(--bricks-overlay-modal-end)
+        );
     }
 
     &._padded {

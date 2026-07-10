@@ -5,10 +5,27 @@ import { describe, expect, it } from 'vitest';
 // Utils
 import {
     buildUpdateQuery,
+    isUniqueViolation,
     PAGE_UPDATE_FIELDS,
     MEDIA_UPDATE_FIELDS,
 } from '../src/runtime/modules/persistence/server/postgres/queryBuilders';
 // #endregion
+
+describe('isUniqueViolation: распознавание unique_violation PostgreSQL', () => {
+    it('принимает ошибку pg с кодом 23505', () => {
+        expect(
+            isUniqueViolation(Object.assign(new Error('duplicate key'), { code: '23505' }))
+        ).toBe(true);
+    });
+
+    it('отклоняет прочие ошибки и не-объекты', () => {
+        expect(isUniqueViolation(Object.assign(new Error('fk'), { code: '23503' }))).toBe(false);
+        expect(isUniqueViolation(new Error('plain'))).toBe(false);
+        expect(isUniqueViolation(null)).toBe(false);
+        expect(isUniqueViolation('23505')).toBe(false);
+        expect(isUniqueViolation({ code: 23505 })).toBe(false);
+    });
+});
 
 describe('buildUpdateQuery: динамический UPDATE с whitelist колонок', () => {
     it('собирает SET-выражения для разрешённых полей (camelCase → snake_case)', () => {

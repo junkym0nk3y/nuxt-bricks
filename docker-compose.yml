@@ -11,7 +11,9 @@ services:
             POSTGRES_DB: bricks
         volumes:
             - postgres_data:/var/lib/postgresql/data
-            - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+            # Инициализация пустого volume файлами миграций (лексикографический порядок).
+            # Канонический путь для внешней БД — `npm run bricks:migrate` (bricks-migrate CLI).
+            - ./migrations:/docker-entrypoint-initdb.d:ro
         healthcheck:
             test: ['CMD-SHELL', 'pg_isready -U postgres']
             interval: 10s

@@ -58,6 +58,24 @@ async function getPool(): Promise<Pool> {
     return pool;
 }
 
+/** SQLSTATE-коды «схема не соответствует коду»: undefined_table / undefined_column. */
+const MISSING_SCHEMA_CODES = new Set(['42P01', '42703']);
+
+/**
+ * Дописывает в лог подсказку про миграции, если ошибка похожа на
+ * непримененную схему bricks_* (runtime-DDL адаптеры не выполняют).
+ *
+ * @param err - Ошибка запроса с кодом SQLSTATE.
+ */
+function logMissingSchemaHint(err: IApiError): void {
+    if (err.code && MISSING_SCHEMA_CODES.has(err.code) && err.message?.includes('bricks_')) {
+        console.error(
+            '[PostgreSQL] Schema for nuxt-bricks tables is missing or outdated. ' +
+                'Run `npx bricks-migrate migrate` against this database.'
+        );
+    }
+}
+
 /**
  * Выполняет параметризованный SELECT/INSERT/UPDATE/DELETE и возвращает rows.
  *
@@ -78,6 +96,7 @@ export async function query<T>(text: string, params?: unknown[]): Promise<T[]> {
             code: err.code,
             ...(process.env.NODE_ENV === 'production' ? {} : { query: text, params }),
         });
+        logMissingSchemaHint(err);
         throw error;
     }
 }
@@ -92,4 +111,57 @@ export async function query<T>(text: string, params?: unknown[]): Promise<T[]> {
 export async function queryOne<T>(text: string, params?: unknown[]): Promise<T | null> {
     const rows = await query<T>(text, params);
     return rows.length > 0 ? rows[0] : null;
+}
+
+/**
+ * Запрос внутри открытой транзакции (тот же контракт, что у `query`).
+ */
+export type TTransactionQuery = <T>(text: string, params?: unknown[]) => Promise<T[]>;
+
+/**
+ * Выполняет колбэк в транзакции на выделенном клиенте пула
+ * (BEGIN → fn → COMMIT, при ошибке — ROLLBACK). Обычный `query()` идёт через
+ * `pool.query` и для транзакций не подходит — каждый вызов может попасть
+ * на другое соединение.
+ *
+ * @param fn - Колбэк с транзакционной версией query.
+ * @returns Результат колбэка.
+ */
+export async function withTransaction<T>(
+    fn: (txQuery: TTransactionQuery) => Promise<T>
+): Promise<T> {
+    const clientPool = await getPool();
+    const client = await clientPool.connect();
+
+    const txQuery: TTransactionQuery = async <R>(
+        text: string,
+        params?: unknown[]
+    ): Promise<R[]> => {
+        const result = await client.query(text, params);
+        return result.rows as R[];
+    };
+
+    try {
+        await client.query('BEGIN');
+        const result = await fn(txQuery);
+        await client.query('COMMIT');
+        return result;
+    } catch (error: unknown) {
+        // ROLLBACK на мёртвом соединении не должен затенить исходную ошибку
+        try {
+            await client.query('ROLLBACK');
+        } catch (rollbackError: unknown) {
+            console.error('[PostgreSQL] Rollback failed', rollbackError);
+        }
+
+        const err = error as IApiError;
+        console.error('[PostgreSQL] Transaction error:', {
+            error: err.message,
+            code: err.code,
+        });
+        logMissingSchemaHint(err);
+        throw error;
+    } finally {
+        client.release();
+    }
 }

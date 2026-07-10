@@ -1,6 +1,8 @@
--- Схема БД для дефолтного Postgres-адаптера nuxt-bricks (см. modules/persistence/).
--- Применяется автоматически при первом старте контейнера из docker-compose.yml.
--- Описание схемы переедет в README на Шаге 8 (documents/refactor.md).
+-- 0001_init: базовая схема дефолтного Postgres-адаптера nuxt-bricks.
+--
+-- Применение: `npm run bricks:migrate` / `npx bricks-migrate migrate` (см.
+-- src/cli/bricks-migrate.mjs). Каждый стейтмент идемпотентен — миграция
+-- безопасно применяется и к существующей БД, созданной прежним database/init.sql.
 
 -- Страницы билдера
 CREATE TABLE IF NOT EXISTS bricks_pages (
@@ -36,10 +38,35 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+DROP TRIGGER IF EXISTS update_bricks_pages_updated_at ON bricks_pages;
 CREATE TRIGGER update_bricks_pages_updated_at
     BEFORE UPDATE ON bricks_pages
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
+
+-- История версий страниц: снапшот прежней строки bricks_pages при каждом
+-- сохранении, меняющем schema (см. postgresStorageAdapter.updatePage).
+-- Глубина истории — bricks.versionsLimit / NUXT_BRICKS_VERSIONS_LIMIT (0 — выкл).
+CREATE TABLE IF NOT EXISTS bricks_page_versions (
+    id SERIAL PRIMARY KEY,
+    page_id INTEGER NOT NULL REFERENCES bricks_pages(id) ON DELETE CASCADE,
+    pagename VARCHAR(255) NOT NULL,
+    title VARCHAR(500),
+    description TEXT,
+    keywords TEXT,
+    social_image TEXT,
+    layout VARCHAR(100),
+    background_color VARCHAR(50),
+    url_prefix VARCHAR(255),
+    subdomain VARCHAR(255),
+    schema JSONB NOT NULL,
+    published BOOLEAN NOT NULL DEFAULT false,
+    page_updated_at TIMESTAMP,          -- updated_at исходной строки на момент снапшота
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_bricks_page_versions_page_created
+    ON bricks_page_versions(page_id, created_at DESC);
 
 -- Пользователи database-auth (bricks.auth.mode = 'database').
 -- Провижининг вручную: npm run bricks:hash -- <password> --username <name> → INSERT.
@@ -52,6 +79,7 @@ CREATE TABLE IF NOT EXISTS bricks_users (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
+DROP TRIGGER IF EXISTS update_bricks_users_updated_at ON bricks_users;
 CREATE TRIGGER update_bricks_users_updated_at
     BEFORE UPDATE ON bricks_users
     FOR EACH ROW

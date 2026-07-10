@@ -234,13 +234,13 @@ function handleToggleLocale(): void {
     width: 3.6rem;
     height: 3.6rem;
     padding: 0;
-    border-radius: var(--border-radius-control);
+    border-radius: var(--bricks-border-radius-control);
     border: none;
     background: transparent;
     color: var(--bricks-base-500);
     transition:
-        color var(--default-transition),
-        background-color var(--default-transition);
+        color var(--bricks-default-transition),
+        background-color var(--bricks-default-transition);
     cursor: pointer;
 
     &:hover {
@@ -298,8 +298,8 @@ function handleToggleLocale(): void {
     letter-spacing: 0.05rem;
     color: var(--bricks-base-500);
     transition:
-        color var(--default-transition),
-        background-color var(--default-transition);
+        color var(--bricks-default-transition),
+        background-color var(--bricks-default-transition);
     cursor: pointer;
 
     &:hover {
@@ -319,8 +319,8 @@ function handleToggleLocale(): void {
     background: transparent;
     color: var(--bricks-base-500);
     transition:
-        color var(--default-transition),
-        background-color var(--default-transition);
+        color var(--bricks-default-transition),
+        background-color var(--bricks-default-transition);
     cursor: pointer;
 
     &:hover {

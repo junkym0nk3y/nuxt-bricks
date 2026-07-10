@@ -211,8 +211,8 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
 .BlockSection {
     position: relative;
     min-width: 0;
-    border: 1px dashed rgb(var(--rgb-layout-section) / 30%);
-    background-color: rgb(var(--rgb-layout-section) / 5%);
+    border: 1px dashed rgb(var(--bricks-rgb-layout-section) / 30%);
+    background-color: rgb(var(--bricks-rgb-layout-section) / 5%);
     transition: all 200ms ease;
 
     > :global([data-layout-drop-item='true']) {
@@ -220,14 +220,14 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
     }
 
     &:hover {
-        border-color: rgb(var(--rgb-layout-section) / 50%);
+        border-color: rgb(var(--bricks-rgb-layout-section) / 50%);
     }
 
     &.dragOver {
-        border-color: rgb(var(--rgb-layout-section) / 80%);
+        border-color: rgb(var(--bricks-rgb-layout-section) / 80%);
         border-width: 0.2rem;
-        background-color: rgb(var(--rgb-layout-section) / 15%);
-        box-shadow: 0 0 0 0.4rem rgb(var(--rgb-layout-section) / 20%);
+        background-color: rgb(var(--bricks-rgb-layout-section) / 15%);
+        box-shadow: 0 0 0 0.4rem rgb(var(--bricks-rgb-layout-section) / 20%);
     }
 }
 
@@ -245,15 +245,15 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
     text-align: center;
     font-size: 1.4rem;
     font-weight: 500;
-    color: rgb(var(--rgb-layout-section) / 50%);
+    color: rgb(var(--bricks-rgb-layout-section) / 50%);
     pointer-events: none;
 }
 
 .dropIndicator {
     position: absolute;
     z-index: 5;
-    border-radius: var(--border-radius-pill);
-    background-color: rgb(var(--rgb-layout-section) / 70%);
+    border-radius: var(--bricks-border-radius-pill);
+    background-color: rgb(var(--bricks-rgb-layout-section) / 70%);
     pointer-events: none;
 }
 </style>

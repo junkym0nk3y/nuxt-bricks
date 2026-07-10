@@ -169,7 +169,7 @@ function handleRemoveItem(): void {
     isDeleteConfirmOpen.value = true;
 }
 
-/** Подтверждает удаление выбранного элемента. */
+/** Подтверждает удаление выбранного элемента; ошибка сервера — toast, элемент остаётся. */
 async function handleConfirmDelete(): Promise<void> {
     if (!selectedItemId.value) {
         return;
@@ -178,6 +178,8 @@ async function handleConfirmDelete(): Promise<void> {
     try {
         await mediaStore.removeItem(selectedItemId.value);
         selectedItemId.value = null;
+    } catch (error: unknown) {
+        showErrorToast(getBricksErrorMessage(error, t('bricks.media.deleteFailed')));
     } finally {
         isDeleting.value = false;
         isDeleteConfirmOpen.value = false;
@@ -250,7 +252,7 @@ watch(
             </div>
 
             <!-- Content -->
-            <div :class="[$style.content, 'scrollbox']">
+            <div :class="[$style.content, 'bricks-scrollbox']">
                 <BuilderMediaGalleryFilters
                     v-model:category-filter="categoryFilter"
                     v-model:search-query="searchQuery"
@@ -340,9 +342,9 @@ watch(
     width: 100%;
     max-width: 140rem;
     max-height: 80vh;
-    border-radius: var(--border-radius-md);
+    border-radius: var(--bricks-border-radius-md);
     background: var(--bricks-base-0);
-    box-shadow: var(--shadow-xl);
+    box-shadow: var(--bricks-shadow-xl);
     flex-direction: column;
 }
 

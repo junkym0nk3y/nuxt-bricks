@@ -6,7 +6,6 @@ import { describe, expect, it } from 'vitest';
 import {
     toCamelCase,
     toCamelCaseShallow,
-    toSnakeCase,
     toSnakeCaseShallow,
     toSnakeCaseString,
 } from '../src/runtime/modules/common/utils/case-transform';
@@ -74,27 +73,5 @@ describe('toSnakeCaseShallow', () => {
 
         expect(result).toEqual({ social_image: null, page_schema: schema });
         expect(result.page_schema).toBe(schema);
-    });
-});
-
-describe('toSnakeCase', () => {
-    it('конвертирует ключи рекурсивно', () => {
-        const result = toSnakeCase<Record<string, unknown>>({
-            urlPrefix: 'blog',
-            nestedObj: { socialImage: null },
-            itemsList: [{ createdAt: 'x' }],
-        });
-
-        expect(result).toEqual({
-            url_prefix: 'blog',
-            nested_obj: { social_image: null },
-            items_list: [{ created_at: 'x' }],
-        });
-    });
-
-    it('возвращает null/undefined/примитивы как есть', () => {
-        expect(toSnakeCase(null)).toBeNull();
-        expect(toSnakeCase(undefined)).toBeUndefined();
-        expect(toSnakeCase('camelCase')).toBe('camelCase');
     });
 });

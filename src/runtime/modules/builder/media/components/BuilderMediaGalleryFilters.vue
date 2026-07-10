@@ -99,7 +99,7 @@ function onSearchInput(event: Event): void {
 
 .filterChip {
     padding: 0.6rem 1.2rem;
-    border-radius: var(--border-radius-pill);
+    border-radius: var(--bricks-border-radius-pill);
     border: 1px solid var(--bricks-base-300);
     background: transparent;
     font-size: 1.2rem;

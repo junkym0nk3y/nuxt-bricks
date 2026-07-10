@@ -1,192 +1,192 @@
 /* Sidebar slide */
-.library-sidebar-enter-active,
-.library-sidebar-leave-active {
+.bricks-sidebar-enter-active,
+.bricks-sidebar-leave-active {
     transition:
         opacity 0.3s ease,
         transform 0.3s ease;
 }
 
-.library-sidebar-enter-from {
+.bricks-sidebar-enter-from {
     opacity: 0;
     transform: translate3d(-100%, 0, 0);
 }
 
-.library-sidebar-leave-to {
+.bricks-sidebar-leave-to {
     opacity: 0;
     transform: translate3d(-100%, 0, 0);
 }
 
-.library-sidebar-enter-to,
-.library-sidebar-leave-from {
+.bricks-sidebar-enter-to,
+.bricks-sidebar-leave-from {
     opacity: 1;
     transform: translate3d(0, 0, 0);
 }
 
 /* Sidebar view switch */
-.library-sidebar-view-enter-active,
-.library-sidebar-view-leave-active {
+.bricks-sidebar-view-enter-active,
+.bricks-sidebar-view-leave-active {
     transition:
         opacity 0.2s ease,
         transform 0.2s ease;
 }
 
-.library-sidebar-view-enter-from {
+.bricks-sidebar-view-enter-from {
     opacity: 0;
     transform: translate3d(0.8rem, 0, 0);
 }
 
-.library-sidebar-view-leave-to {
+.bricks-sidebar-view-leave-to {
     opacity: 0;
     transform: translate3d(-0.8rem, 0, 0);
 }
 
-.library-sidebar-view-enter-to,
-.library-sidebar-view-leave-from {
+.bricks-sidebar-view-enter-to,
+.bricks-sidebar-view-leave-from {
     opacity: 1;
     transform: translate3d(0, 0, 0);
 }
 
 /* Details panel slide (панель деталей дашборда, выезжает справа — зеркало sidebar-slide) */
-.library-details-slide-enter-active,
-.library-details-slide-leave-active {
+.bricks-details-slide-enter-active,
+.bricks-details-slide-leave-active {
     transition:
         transform 300ms cubic-bezier(0.4, 0, 0.2, 1),
         opacity 250ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.library-details-slide-enter-from,
-.library-details-slide-leave-to {
+.bricks-details-slide-enter-from,
+.bricks-details-slide-leave-to {
     opacity: 0;
     transform: translateX(100%);
 }
 
 /* Modal transitions */
-.library-modal-fade-enter-active,
-.library-modal-fade-leave-active {
+.bricks-modal-fade-enter-active,
+.bricks-modal-fade-leave-active {
     transition: opacity 0.3s ease;
 }
 
-.library-modal-fade-enter-from,
-.library-modal-fade-leave-to {
+.bricks-modal-fade-enter-from,
+.bricks-modal-fade-leave-to {
     opacity: 0;
 }
 
-.library-modal-fade-enter-active .modal,
-.library-modal-fade-leave-active .modal {
+.bricks-modal-fade-enter-active .modal,
+.bricks-modal-fade-leave-active .modal {
     transition: transform 0.3s ease;
 }
 
-.library-modal-fade-enter-from .modal {
+.bricks-modal-fade-enter-from .modal {
     transform: scale(0.95) translateY(-2rem);
 }
 
-.library-modal-fade-leave-to .modal {
+.bricks-modal-fade-leave-to .modal {
     transform: scale(0.95) translateY(-2rem);
 }
 
 /* Dropdown transitions */
-.library-dropdown-enter-active,
-.library-dropdown-leave-active {
+.bricks-dropdown-enter-active,
+.bricks-dropdown-leave-active {
     transition:
         opacity 0.2s ease,
         transform 0.2s ease;
 }
 
-.library-dropdown-enter-from {
+.bricks-dropdown-enter-from {
     opacity: 0;
     transform: translateY(1rem);
 }
 
-.library-dropdown-leave-to {
+.bricks-dropdown-leave-to {
     opacity: 0;
     transform: translateY(1rem);
 }
 
-.library-dropdown-enter-to,
-.library-dropdown-leave-from {
+.bricks-dropdown-enter-to,
+.bricks-dropdown-leave-from {
     opacity: 1;
     transform: translateY(0);
 }
 
 /* Toast notification */
-.library-toast-enter-active,
-.library-toast-leave-active {
+.bricks-toast-enter-active,
+.bricks-toast-leave-active {
     transition:
         opacity 300ms ease,
         transform 300ms ease;
 }
 
-.library-toast-enter-from,
-.library-toast-leave-to {
+.bricks-toast-enter-from,
+.bricks-toast-leave-to {
     opacity: 0;
     transform: translateY(1.2rem);
 }
 
 /* Fade fast */
-.library-fade-fast-enter-active,
-.library-fade-fast-leave-active {
-    transition: opacity var(--default-transition);
+.bricks-fade-fast-enter-active,
+.bricks-fade-fast-leave-active {
+    transition: opacity var(--bricks-default-transition);
 }
 
-.library-fade-fast-enter-from,
-.library-fade-fast-leave-to {
+.bricks-fade-fast-enter-from,
+.bricks-fade-fast-leave-to {
     opacity: 0;
 }
 
 /* Fade (standard) */
-.library-fade-enter-active,
-.library-fade-leave-active {
-    transition: opacity var(--default-transition);
+.bricks-fade-enter-active,
+.bricks-fade-leave-active {
+    transition: opacity var(--bricks-default-transition);
 }
 
-.library-fade-enter-from,
-.library-fade-leave-to {
+.bricks-fade-enter-from,
+.bricks-fade-leave-to {
     opacity: 0;
 }
 
 /* Canvas toolbar fade */
-.library-canvas-toolbar-enter-active,
-.library-canvas-toolbar-leave-active {
+.bricks-canvas-toolbar-enter-active,
+.bricks-canvas-toolbar-leave-active {
     transition:
         opacity 0.2s ease,
         transform 0.2s ease;
 }
 
-.library-canvas-toolbar-enter-from,
-.library-canvas-toolbar-leave-to {
+.bricks-canvas-toolbar-enter-from,
+.bricks-canvas-toolbar-leave-to {
     opacity: 0;
     transform: translateY(0.4rem);
 }
 
 /* Canvas item context menu */
-.canvas-context-menu-enter-active,
-.canvas-context-menu-leave-active {
+.bricks-canvas-context-menu-enter-active,
+.bricks-canvas-context-menu-leave-active {
     transition:
         opacity 0.15s ease,
         transform 0.15s ease;
 }
 
-.canvas-context-menu-enter-from,
-.canvas-context-menu-leave-to {
+.bricks-canvas-context-menu-enter-from,
+.bricks-canvas-context-menu-leave-to {
     opacity: 0;
     transform: scale(0.98);
 }
 
 /* Tooltip transitions */
-.library-tooltip-enter-active {
+.bricks-tooltip-enter-active {
     transition:
         opacity 0.3s,
         transform 0.3s;
 }
 
-.library-tooltip-leave-active {
+.bricks-tooltip-leave-active {
     transition:
         opacity 0.15s,
         transform 0.15s;
 }
 
-.library-tooltip-enter-from,
-.library-tooltip-leave-active {
+.bricks-tooltip-enter-from,
+.bricks-tooltip-leave-active {
     opacity: 0;
     transform: translateY(-1.6rem);
 }
@@ -194,7 +194,7 @@
 /* Builder loader overlay fade */
 .loader-fade-enter-active,
 .loader-fade-leave-active {
-    transition: opacity var(--default-transition);
+    transition: opacity var(--bricks-default-transition);
 }
 
 .loader-fade-enter-from,

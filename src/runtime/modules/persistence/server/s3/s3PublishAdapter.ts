@@ -10,11 +10,13 @@ import {
     ListObjectsV2Command,
 } from '@aws-sdk/client-s3';
 import { useRuntimeConfig } from 'nitropack/runtime';
+import { extractStorageKey, isManagedStorageKey } from './s3KeyPolicy';
 import type {
     IPublishAdapter,
     IUploadFileParams,
     IUploadedFile,
     IStoredFileInfo,
+    TPublishFileKind,
 } from '../../types/adapters';
 
 /**
@@ -27,6 +29,7 @@ interface IResolvedS3Config {
     accessKeyId: string;
     secretAccessKey: string;
     prefix: string;
+    thumbnailsPrefix: string;
 }
 
 /**
@@ -59,24 +62,37 @@ function resolveS3Config(): IResolvedS3Config {
         accessKeyId: raw?.accessKeyId || process.env.YANDEX_STORAGE_ACCESS_KEY_ID || '',
         secretAccessKey: raw?.secretAccessKey || process.env.YANDEX_STORAGE_SECRET_ACCESS_KEY || '',
         prefix: raw?.prefix || 'bricks-media/',
+        thumbnailsPrefix: raw?.thumbnailsPrefix || 'bricks-thumbnails/',
     };
 }
 
 /**
- * Извлекает S3 key из публичного URL файла.
+ * Managed-префиксы ключей модуля в бакете: только внутри них адаптер
+ * создаёт и удаляет объекты (см. контракт IPublishAdapter).
+ *
+ * @param config - Конфигурация хранилища.
+ * @returns Список префиксов.
+ */
+function resolveManagedPrefixes(config: IResolvedS3Config): string[] {
+    return [config.prefix, config.thumbnailsPrefix];
+}
+
+/**
+ * Извлекает S3 key из публичного URL, только если ключ лежит внутри
+ * managed namespace модуля.
  *
  * @param url - Полный URL файла.
  * @param config - Конфигурация хранилища.
- * @returns Key или null, если URL не принадлежит бакету.
+ * @returns Key или null (чужой бакет / посторонний префикс).
  */
-function extractKeyFromUrl(url: string, config: IResolvedS3Config): string | null {
-    const prefix = `${config.endpoint}/${config.bucket}/`;
+function extractManagedKey(url: string, config: IResolvedS3Config): string | null {
+    const key = extractStorageKey(url, config);
 
-    if (url.startsWith(prefix)) {
-        return url.slice(prefix.length);
+    if (!key || !isManagedStorageKey(key, resolveManagedPrefixes(config))) {
+        return null;
     }
 
-    return null;
+    return key;
 }
 
 /**
@@ -109,10 +125,32 @@ export function createS3PublishAdapter(): IPublishAdapter {
 
     return {
         /**
+         * Строит полный object key нового файла: managed-префикс по типу файла
+         * (`prefix` для медиа, `thumbnailsPrefix` для превью страниц) + имя.
+         */
+        buildFileKey(kind: TPublishFileKind, filename: string): string {
+            const { config } = useClient();
+            const prefixByKind: Record<TPublishFileKind, string> = {
+                media: config.prefix,
+                thumbnail: config.thumbnailsPrefix,
+            };
+
+            return `${prefixByKind[kind]}${filename}`;
+        },
+
+        /**
          * Загружает файл в бакет и возвращает публичный URL.
+         * Ключи вне managed namespace отклоняются — ключ обязан быть построен
+         * через buildFileKey.
          */
         async uploadFile(params: IUploadFileParams): Promise<IUploadedFile> {
             const { client: s3, config } = useClient();
+
+            if (!isManagedStorageKey(params.key, resolveManagedPrefixes(config))) {
+                throw new Error(
+                    'Invalid storage key: object key is outside of the managed prefixes'
+                );
+            }
 
             await s3.send(
                 new PutObjectCommand({
@@ -132,15 +170,17 @@ export function createS3PublishAdapter(): IPublishAdapter {
         },
 
         /**
-         * Удаляет файл из бакета по публичному URL.
+         * Удаляет файл из бакета по публичному URL. URL вне собственного бакета
+         * или managed-префиксов — ошибка (в shared-бакете посторонние объекты
+         * не трогаем).
          */
         async deleteFile(url: string): Promise<void> {
             const { client: s3, config } = useClient();
-            const key = extractKeyFromUrl(url, config);
+            const key = extractManagedKey(url, config);
 
             if (!key) {
                 throw new Error(
-                    'Invalid storage URL: file does not belong to the configured bucket'
+                    'Invalid storage URL: file does not belong to the managed storage prefixes'
                 );
             }
 
@@ -150,6 +190,17 @@ export function createS3PublishAdapter(): IPublishAdapter {
                     Key: key,
                 })
             );
+        },
+
+        /**
+         * Проверяет принадлежность URL собственному хранилищу (anti-SSRF контракт):
+         * хост фиксирован конфигом (`endpoint/bucket/`), ключ обязан лежать
+         * внутри managed-префиксов — произвольные origin и посторонние объекты
+         * shared-бакета не проходят.
+         */
+        isOwnedUrl(url: string): boolean {
+            const { config } = useClient();
+            return extractManagedKey(url, config) !== null;
         },
 
         /**

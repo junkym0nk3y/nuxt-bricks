@@ -19,7 +19,7 @@ import {
  * `shallowReactive` — чтобы уже отрендеренные BricksIcon перерисовались
  * после доливки набора.
  */
-const SYSTEM_ICONS: Record<string, Component> = shallowReactive({
+const SYSTEM_ICONS = shallowReactive<Record<string, Component>>({
     'ta:outline-photo': TaOutlinePhoto,
     'ta:outline-video': TaOutlineVideo,
     'ta:outline-x': TaOutlineX,

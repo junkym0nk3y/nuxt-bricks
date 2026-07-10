@@ -188,7 +188,7 @@ function handleMoveDown(index: number): void {
     display: flex;
     gap: 0.8rem;
     padding: 1.2rem;
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--bricks-border-radius-sm);
     border: 1px solid var(--bricks-base-200);
     background-color: var(--bricks-base-50);
 }
@@ -215,14 +215,14 @@ function handleMoveDown(index: number): void {
     width: 2.8rem;
     height: 2.8rem;
     padding: 0;
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--bricks-border-radius-sm);
     border: none;
     background: transparent;
     font-size: 1.4rem;
     color: var(--bricks-base-500);
     transition:
-        background-color var(--default-transition),
-        color var(--default-transition);
+        background-color var(--bricks-default-transition),
+        color var(--bricks-default-transition);
     cursor: pointer;
 
     &:hover:not(:disabled) {

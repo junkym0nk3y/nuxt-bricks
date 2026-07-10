@@ -13,6 +13,7 @@ import BricksInput from '../../../../../ui/inputs/BricksInput.vue';
 import BricksHexInput from '../../../../../ui/inputs/BricksHexInput.vue';
 
 // Utils
+import { sanitizeSvgMarkup } from '../../../../../common/utils/sanitize/sanitizeSvg';
 import {
     cloneInlineSegments,
     createInlineTextSegment,
@@ -262,7 +263,12 @@ function formatDimensionValue(value?: string | number): string {
                             alt=""
                             :class="$style.previewImage"
                         />
-                        <div v-else :class="$style.previewSvg" v-html="segment.svgContent || ''" />
+                        <!-- svgContent — недоверенный ввод медиа-библиотеки: только через sanitizer -->
+                        <div
+                            v-else
+                            :class="$style.previewSvg"
+                            v-html="sanitizeSvgMarkup(segment.svgContent)"
+                        />
                     </div>
                     <div :class="$style.mediaActions">
                         <BricksButton size="sm" variant="ghost" @click="handleReplaceMedia(index)">
@@ -306,7 +312,7 @@ function formatDimensionValue(value?: string | number): string {
 .BuilderShellSidebarPropertyInlineContentEditor {
     display: flex;
     padding: 1.2rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-50);
     flex-direction: column;
@@ -339,7 +345,7 @@ function formatDimensionValue(value?: string | number): string {
 
 .segmentItem {
     padding: 1.2rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
 }
@@ -391,7 +397,7 @@ function formatDimensionValue(value?: string | number): string {
     justify-content: center;
     min-height: 10rem;
     padding: 1rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 1px dashed var(--bricks-base-300);
     background: var(--bricks-base-50);
 }
@@ -431,7 +437,7 @@ function formatDimensionValue(value?: string | number): string {
     align-items: center;
     justify-content: center;
     padding: 2rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 1px dashed var(--bricks-base-300);
     text-align: center;
     color: var(--bricks-base-600);

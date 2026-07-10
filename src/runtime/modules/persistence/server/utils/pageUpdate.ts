@@ -4,11 +4,14 @@
  */
 import { createError, type H3Event } from 'h3';
 import { useBricksStorageAdapter } from '../registry';
-import { requireNumericId, readNormalizedBody, toHttpError } from './handlerHelpers';
-import type { IBricksPageRow, IUpdatePagePayload } from '../../../common/types/bricks-api';
+import { requireNumericId, readNormalizedBody, toPageHttpError } from './handlerHelpers';
+import { validateUpdatePagePayload } from './payloadValidation';
+import type { IBricksPageRow } from '../../../common/types/bricks-api';
 
 /**
- * Обновляет страницу по id из события запроса.
+ * Обновляет страницу по id из события запроса. Конфликты разруливает адаптер
+ * атомарно (constraint pagename, precondition expectedRevision) — оба доменных
+ * конфликта маппятся на 409 с `data.code` в toPageHttpError.
  *
  * @param event - Событие запроса (PUT или PATCH).
  * @returns Обновлённая страница.
@@ -17,28 +20,11 @@ export async function updatePageFromEvent(event: H3Event): Promise<IBricksPageRo
     const id = requireNumericId(event);
 
     try {
-        const body = await readNormalizedBody<IUpdatePagePayload>(event);
-        const storage = useBricksStorageAdapter();
+        const body = validateUpdatePagePayload(
+            await readNormalizedBody<Record<string, unknown>>(event)
+        );
 
-        if (body.pagename) {
-            const duplicate = await storage.getPageByPagename(body.pagename);
-
-            if (duplicate && duplicate.id !== id) {
-                throw createError({
-                    statusCode: 409,
-                    statusMessage: 'Page with this pagename already exists',
-                });
-            }
-        }
-
-        if (Object.values(body).every((value) => value === undefined)) {
-            throw createError({
-                statusCode: 400,
-                statusMessage: 'No fields to update',
-            });
-        }
-
-        const result = await storage.updatePage(id, body);
+        const result = await useBricksStorageAdapter().updatePage(id, body);
 
         if (!result) {
             throw createError({
@@ -49,6 +35,6 @@ export async function updatePageFromEvent(event: H3Event): Promise<IBricksPageRo
 
         return result;
     } catch (error: unknown) {
-        toHttpError(error, 'Failed to update page');
+        toPageHttpError(error, 'Failed to update page');
     }
 }

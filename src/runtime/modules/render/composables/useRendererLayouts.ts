@@ -74,6 +74,7 @@ export function useRendererLayouts({
 
         return definition.renderPublished({
             component,
+            definition,
             extraClasses,
             extraAttrs,
             styles,

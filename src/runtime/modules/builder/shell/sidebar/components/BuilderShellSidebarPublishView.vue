@@ -95,11 +95,11 @@ defineExpose({
 
         <Form
             :key="formKey"
-            :class="[$style.content, 'scrollbox']"
+            :class="[$style.content, 'bricks-scrollbox']"
             :validation-schema="validationSchema"
             :initial-values="initialValues"
         >
-            <Transition mode="out-in" name="library-fade-fast">
+            <Transition mode="out-in" name="bricks-fade-fast">
                 <div v-if="publishStore.generalError" :class="$style.generalError">
                     {{ publishStore.generalError }}
                 </div>
@@ -164,7 +164,7 @@ defineExpose({
                 <span :class="$style.hint">{{ t('bricks.publish.subdomainHint') }}</span>
             </div>
 
-            <Transition mode="out-in" name="library-fade-fast">
+            <Transition mode="out-in" name="bricks-fade-fast">
                 <div v-if="fullUrlPreview" :class="$style.urlPreview">
                     {{ fullUrlPreview }}
                 </div>
@@ -320,7 +320,7 @@ defineExpose({
 .urlPreview {
     margin-bottom: 1.6rem;
     padding: 0.8rem 1.2rem;
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--bricks-border-radius-sm);
     background-color: var(--bricks-base-50);
     font-family: monospace;
     font-size: 1.2rem;
@@ -331,7 +331,7 @@ defineExpose({
 .generalError {
     margin-bottom: 1.6rem;
     padding: 1rem 1.2rem;
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--bricks-border-radius-sm);
     border: 1px solid var(--bricks-danger-500);
     background-color: rgb(239 68 68 / 10%);
     font-size: 1.4rem;

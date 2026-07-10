@@ -8,6 +8,9 @@ import type { IBrickUiCommonProp } from '../../../../ui/types/common';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+// Composables
+import { useBricksRoutePaths } from '../../../../common/composables/useBricksRoutePaths';
+
 // Components
 import BricksButton from '../../../../ui/base/button/BricksButton.vue';
 import BricksActionButton from '../../../../ui/base/action-button/BricksActionButton.vue';
@@ -26,6 +29,10 @@ const emit = defineEmits<IToolbarEmits>();
 
 // #region Data
 const { t } = useI18n();
+
+// href дашборда: BuilderLogo рендерит обычный <a>, base роутер не подставит
+const { builderRootPath, withBase } = useBricksRoutePaths();
+const dashboardHref = withBase(builderRootPath);
 // #endregion
 
 // #region Computed
@@ -147,7 +154,7 @@ function handlePreview(): void {
         <div :class="$style.center">
             <h1 :class="$style.title">
                 <span :class="$style.titlePrimary">
-                    <BuilderLogo :class="$style.logo" to="/bricks" />
+                    <BuilderLogo :class="$style.logo" :to="dashboardHref" />
                 </span>
                 <span v-if="currentPageTitle" :class="$style.titleDivider">|</span>
                 <span v-if="currentPageTitle" :class="$style.titleSecondary">
@@ -217,7 +224,7 @@ function handlePreview(): void {
     padding: 0 2rem 0 1.2rem;
     border-bottom: 1px solid var(--bricks-base-300);
     background-color: var(--bricks-base-0);
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--bricks-shadow-sm);
 }
 
 .right {
@@ -230,7 +237,7 @@ function handlePreview(): void {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: margin var(--default-transition);
+    transition: margin var(--bricks-default-transition);
     gap: 1.6rem;
 }
 

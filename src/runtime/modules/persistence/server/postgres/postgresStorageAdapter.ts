@@ -1,15 +1,22 @@
 /**
  * Дефолтный IStorageAdapter поверх PostgreSQL (таблицы bricks_pages / bricks_media).
- * Схема таблиц — database/init.sql в корне репозитория.
+ * Схема таблиц — versioned-миграции migrations/*.sql (CLI bricks-migrate);
+ * runtime-DDL адаптер не выполняет — непримененные миграции проявляются
+ * ошибкой 42P01/42703 с подсказкой в логе (см. client.ts).
  */
-import { query, queryOne } from './client';
+import { useRuntimeConfig } from 'nitropack/runtime';
+import { query, queryOne, withTransaction } from './client';
 import {
     PAGE_SELECT_FIELDS,
     MEDIA_SELECT_FIELDS,
     PAGE_UPDATE_FIELDS,
     MEDIA_UPDATE_FIELDS,
+    VERSION_SUMMARY_FIELDS,
+    VERSION_SELECT_FIELDS,
     buildUpdateQuery,
+    isUniqueViolation,
 } from './queryBuilders';
+import { BricksPagenameConflictError, BricksRevisionConflictError } from '../utils/storageErrors';
 import type {
     IStorageAdapter,
     ICreateMediaPayload,
@@ -19,17 +26,107 @@ import type {
     IBricksPageRow,
     ICreatePagePayload,
     IUpdatePagePayload,
-    IPublishedPageSummary,
+    IPageVersionSummary,
+    IPageVersion,
 } from '../../../common/types/bricks-api';
 import type { IMediaItem } from '../../../common/types/media';
 
 /**
- * DDL-дельта bricks_pages для существующих БД — идемпотентная, зеркалит database/init.sql
- * (миграций в проекте нет, init.sql применяется только при первом старте контейнера).
+ * Снапшот текущей строки bricks_pages в историю версий (page_updated_at = updated_at).
+ * 0 строк в результате = страница не найдена.
  */
-const PAGES_SCHEMA_DDL = `
-ALTER TABLE bricks_pages ADD COLUMN IF NOT EXISTS thumbnail_url TEXT;
+const SNAPSHOT_VERSION_SQL = `
+INSERT INTO bricks_page_versions
+    (page_id, pagename, title, description, keywords, social_image, layout,
+     background_color, url_prefix, subdomain, schema, published, page_updated_at)
+SELECT id, pagename, title, description, keywords, social_image, layout,
+       background_color, url_prefix, subdomain, schema, published, updated_at
+FROM bricks_pages
+WHERE id = $1
+RETURNING id
 `;
+
+/**
+ * Обрезает историю версий страницы до N последних снапшотов.
+ */
+const PRUNE_VERSIONS_SQL = `
+DELETE FROM bricks_page_versions
+WHERE page_id = $1 AND id NOT IN (
+    SELECT id FROM bricks_page_versions
+    WHERE page_id = $1 ORDER BY created_at DESC, id DESC LIMIT $2
+)
+`;
+
+const DEFAULT_VERSIONS_LIMIT = 5;
+
+/**
+ * Резолвит лимит версий из runtimeConfig (env-значения приходят строками).
+ * Невалидное или отрицательное значение → дефолт 5; `0` — версионирование выключено.
+ *
+ * @returns Целое число хранимых версий.
+ */
+function resolveVersionsLimit(): number {
+    const raw = useRuntimeConfig().bricksVersionsLimit as unknown;
+    const parsed = Number(raw);
+
+    if (!Number.isFinite(parsed) || parsed < 0) {
+        return DEFAULT_VERSIONS_LIMIT;
+    }
+
+    return Math.floor(parsed);
+}
+
+/**
+ * Машинные поля, изменение которых не считается контентным: апдейт только их
+ * не инкрементит revision. thumbnailUrl пишется fire-and-forget PATCH'ем после
+ * снапшота канваса — если бы он двигал revision, параллельный PATCH превью
+ * ронял бы следующее сохранение пользователя ложным 409.
+ */
+const REVISION_NEUTRAL_FIELDS: ReadonlySet<string> = new Set(['thumbnailUrl']);
+
+/**
+ * Собирает UPDATE bricks_pages из payload: контентный апдейт инкрементит
+ * revision, а переданный expectedRevision становится precondition в WHERE —
+ * при несовпадении UPDATE не матчит строку (optimistic locking).
+ *
+ * @param id - Идентификатор страницы.
+ * @param payload - Изменяемые поля + опциональный expectedRevision.
+ * @returns SQL и параметры; null — если изменяемых полей нет.
+ */
+function buildPageUpdateSql(
+    id: number,
+    payload: IUpdatePagePayload
+): { sql: string; values: unknown[] } | null {
+    const { updates, values } = buildUpdateQuery(payload, PAGE_UPDATE_FIELDS);
+
+    if (updates.length === 0) {
+        return null;
+    }
+
+    const hasContentChange = Object.entries(payload).some(
+        ([key, value]) =>
+            value !== undefined && PAGE_UPDATE_FIELDS.has(key) && !REVISION_NEUTRAL_FIELDS.has(key)
+    );
+
+    if (hasContentChange) {
+        updates.push('revision = revision + 1');
+    }
+
+    values.push(id);
+    let where = `id = $${values.length}`;
+
+    if (payload.expectedRevision !== undefined) {
+        values.push(payload.expectedRevision);
+        where += ` AND revision = $${values.length}`;
+    }
+
+    const sql = `UPDATE bricks_pages
+        SET ${updates.join(', ')}
+        WHERE ${where}
+        RETURNING ${PAGE_SELECT_FIELDS}`;
+
+    return { sql, values };
+}
 
 /**
  * Создаёт Postgres-реализацию IStorageAdapter.
@@ -37,25 +134,14 @@ ALTER TABLE bricks_pages ADD COLUMN IF NOT EXISTS thumbnail_url TEXT;
  * @returns Адаптер хранилища страниц и медиа-метаданных.
  */
 export function createPostgresStorageAdapter(): IStorageAdapter {
-    // Мемоизация с reset-on-failure: сбой БД не должен «отравить» синглтон —
-    // следующий запрос попробует применить DDL заново (паттерн postgresAuthAdapter).
-    let schemaPromise: Promise<void> | null = null;
-
     /**
-     * Идемпотентно гарантирует актуальность схемы bricks_pages при первом обращении.
+     * Возвращает медиа-запись по URL файла или null.
      */
-    function ensureSchema(): Promise<void> {
-        if (!schemaPromise) {
-            schemaPromise = query(PAGES_SCHEMA_DDL).then(
-                () => undefined,
-                (error: unknown) => {
-                    schemaPromise = null;
-                    throw error;
-                }
-            );
-        }
-
-        return schemaPromise;
+    function findMediaByUrl(url: string): Promise<IMediaItem | null> {
+        return queryOne<IMediaItem>(
+            `SELECT ${MEDIA_SELECT_FIELDS} FROM bricks_media WHERE url = $1`,
+            [url]
+        );
     }
 
     return {
@@ -63,22 +149,8 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
          * Возвращает все страницы, отсортированные по дате обновления.
          */
         async listPages(): Promise<IBricksPageRow[]> {
-            await ensureSchema();
-
             return query<IBricksPageRow>(
                 `SELECT ${PAGE_SELECT_FIELDS} FROM bricks_pages ORDER BY updated_at DESC`
-            );
-        },
-
-        /**
-         * Возвращает сводку опубликованных страниц (для роутинга published-страниц).
-         */
-        async listPublishedPages(): Promise<IPublishedPageSummary[]> {
-            return query<IPublishedPageSummary>(
-                `SELECT id, pagename, published, url_prefix as "urlPrefix", subdomain
-                FROM bricks_pages
-                WHERE published = true
-                ORDER BY updated_at DESC`
             );
         },
 
@@ -86,8 +158,6 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
          * Возвращает страницу по id или null.
          */
         async getPage(id: number): Promise<IBricksPageRow | null> {
-            await ensureSchema();
-
             return queryOne<IBricksPageRow>(
                 `SELECT ${PAGE_SELECT_FIELDS} FROM bricks_pages WHERE id = $1`,
                 [id]
@@ -98,8 +168,6 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
          * Возвращает страницу по pagename или null.
          */
         async getPageByPagename(pagename: string): Promise<IBricksPageRow | null> {
-            await ensureSchema();
-
             return queryOne<IBricksPageRow>(
                 `SELECT ${PAGE_SELECT_FIELDS} FROM bricks_pages WHERE pagename = $1`,
                 [pagename]
@@ -108,30 +176,40 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
 
         /**
          * Создаёт страницу и возвращает её полностью.
+         * Дубликат pagename (включая гонку одновременных create) →
+         * BricksPagenameConflictError, а не драйверная ошибка.
          */
         async createPage(payload: ICreatePagePayload): Promise<IBricksPageRow> {
-            await ensureSchema();
+            let result: IBricksPageRow | null;
 
-            const result = await queryOne<IBricksPageRow>(
-                `INSERT INTO bricks_pages
-                (pagename, title, description, keywords, social_image, layout,
-                 background_color, url_prefix, subdomain, schema, published)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-                RETURNING ${PAGE_SELECT_FIELDS}`,
-                [
-                    payload.pagename,
-                    payload.title ?? null,
-                    payload.description ?? null,
-                    payload.keywords ?? null,
-                    payload.socialImage ?? null,
-                    payload.layout ?? null,
-                    payload.backgroundColor ?? null,
-                    payload.urlPrefix ?? null,
-                    payload.subdomain ?? null,
-                    JSON.stringify(payload.schema),
-                    payload.published ?? true,
-                ]
-            );
+            try {
+                result = await queryOne<IBricksPageRow>(
+                    `INSERT INTO bricks_pages
+                    (pagename, title, description, keywords, social_image, layout,
+                     background_color, url_prefix, subdomain, schema, published)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                    RETURNING ${PAGE_SELECT_FIELDS}`,
+                    [
+                        payload.pagename,
+                        payload.title ?? null,
+                        payload.description ?? null,
+                        payload.keywords ?? null,
+                        payload.socialImage ?? null,
+                        payload.layout ?? null,
+                        payload.backgroundColor ?? null,
+                        payload.urlPrefix ?? null,
+                        payload.subdomain ?? null,
+                        JSON.stringify(payload.schema),
+                        payload.published ?? true,
+                    ]
+                );
+            } catch (error: unknown) {
+                if (isUniqueViolation(error)) {
+                    throw new BricksPagenameConflictError(payload.pagename);
+                }
+
+                throw error;
+            }
 
             if (!result) {
                 throw new Error('Failed to create page');
@@ -142,51 +220,119 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
 
         /**
          * Обновляет переданные поля страницы; null — если страница не найдена.
+         * Каждый успешный апдейт инкрементит revision; несовпавший
+         * expectedRevision → BricksRevisionConflictError (ничего не записано),
+         * занятый pagename → BricksPagenameConflictError.
+         * Если payload меняет `schema` и лимит версий > 0 — атомарно (в транзакции)
+         * снапшотит прежнюю строку в bricks_page_versions и обрезает историю до N
+         * (контракт IStorageAdapter.updatePage).
          */
         async updatePage(id: number, payload: IUpdatePagePayload): Promise<IBricksPageRow | null> {
-            await ensureSchema();
+            const update = buildPageUpdateSql(id, payload);
 
-            const existing = await queryOne<{ id: number }>(
-                'SELECT id FROM bricks_pages WHERE id = $1',
-                [id]
-            );
+            if (!update) {
+                const existing = await queryOne<{ id: number }>(
+                    'SELECT id FROM bricks_pages WHERE id = $1',
+                    [id]
+                );
 
-            if (!existing) {
-                return null;
-            }
+                if (!existing) {
+                    return null;
+                }
 
-            const { updates, values } = buildUpdateQuery(payload, PAGE_UPDATE_FIELDS);
-
-            if (updates.length === 0) {
                 throw new Error('No fields to update');
             }
 
-            values.push(id);
+            const versionsLimit = resolveVersionsLimit();
 
-            return queryOne<IBricksPageRow>(
-                `UPDATE bricks_pages
-                SET ${updates.join(', ')}
-                WHERE id = $${values.length}
-                RETURNING ${PAGE_SELECT_FIELDS}`,
-                values
-            );
+            try {
+                if (payload.schema === undefined || versionsLimit === 0) {
+                    const rows = await query<IBricksPageRow>(update.sql, update.values);
+
+                    if (rows.length > 0) {
+                        return rows[0];
+                    }
+
+                    // 0 строк: страницы нет (404) либо не совпал precondition (409)
+                    if (payload.expectedRevision === undefined) {
+                        return null;
+                    }
+
+                    const existing = await queryOne<{ id: number }>(
+                        'SELECT id FROM bricks_pages WHERE id = $1',
+                        [id]
+                    );
+
+                    if (!existing) {
+                        return null;
+                    }
+
+                    throw new BricksRevisionConflictError(id);
+                }
+
+                return await withTransaction(async (txQuery) => {
+                    // INSERT..SELECT прежней строки заодно служит existence-чеком
+                    const snapshot = await txQuery<{ id: number }>(SNAPSHOT_VERSION_SQL, [id]);
+
+                    if (snapshot.length === 0) {
+                        return null;
+                    }
+
+                    const rows = await txQuery<IBricksPageRow>(update.sql, update.values);
+
+                    if (rows.length === 0) {
+                        // страница есть (снапшот прошёл) → revision mismatch;
+                        // throw откатывает транзакцию вместе со снапшотом
+                        throw new BricksRevisionConflictError(id);
+                    }
+
+                    await txQuery(PRUNE_VERSIONS_SQL, [id, versionsLimit]);
+
+                    return rows[0];
+                });
+            } catch (error: unknown) {
+                if (isUniqueViolation(error) && payload.pagename !== undefined) {
+                    throw new BricksPagenameConflictError(payload.pagename);
+                }
+
+                throw error;
+            }
         },
 
         /**
          * Удаляет страницу; false — если страница не найдена.
          */
         async deletePage(id: number): Promise<boolean> {
-            const existing = await queryOne<{ id: number }>(
-                'SELECT id FROM bricks_pages WHERE id = $1',
+            const rows = await query<{ id: number }>(
+                'DELETE FROM bricks_pages WHERE id = $1 RETURNING id',
                 [id]
             );
 
-            if (!existing) {
-                return false;
-            }
+            return rows.length > 0;
+        },
 
-            await query('DELETE FROM bricks_pages WHERE id = $1', [id]);
-            return true;
+        /**
+         * Возвращает сводки сохранённых версий страницы (без schema), новые сверху.
+         */
+        async listPageVersions(pageId: number): Promise<IPageVersionSummary[]> {
+            return query<IPageVersionSummary>(
+                `SELECT ${VERSION_SUMMARY_FIELDS} FROM bricks_page_versions
+                WHERE page_id = $1
+                ORDER BY created_at DESC, id DESC`,
+                [pageId]
+            );
+        },
+
+        /**
+         * Возвращает полный снапшот версии страницы или null.
+         * Фильтр по page_id не даёт читать versionId поперёк страниц.
+         */
+        async getPageVersion(pageId: number, versionId: number): Promise<IPageVersion | null> {
+            return queryOne<IPageVersion>(
+                `SELECT ${VERSION_SELECT_FIELDS} FROM bricks_page_versions
+                WHERE id = $1 AND page_id = $2`,
+                [versionId, pageId]
+            );
         },
 
         /**
@@ -199,35 +345,55 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
         },
 
         /**
-         * Возвращает медиа-запись по URL файла или null (дедупликация импорта).
+         * Возвращает медиа-запись по id или null.
          */
-        async getMediaByUrl(url: string): Promise<IMediaItem | null> {
+        async getMedia(id: number): Promise<IMediaItem | null> {
             return queryOne<IMediaItem>(
-                `SELECT ${MEDIA_SELECT_FIELDS} FROM bricks_media WHERE url = $1`,
-                [url]
+                `SELECT ${MEDIA_SELECT_FIELDS} FROM bricks_media WHERE id = $1`,
+                [id]
             );
         },
 
         /**
+         * Возвращает медиа-запись по URL файла или null (дедупликация импорта).
+         */
+        async getMediaByUrl(url: string): Promise<IMediaItem | null> {
+            return findMediaByUrl(url);
+        },
+
+        /**
          * Создаёт медиа-запись и возвращает её с id.
+         * Идемпотентна по url (контракт IStorageAdapter.createMedia): при
+         * unique_violation (гонка импорта/ретрай, индекс — миграция 0002)
+         * возвращает уже существующую запись.
          */
         async createMedia(payload: ICreateMediaPayload): Promise<IMediaItem> {
-            const result = await queryOne<IMediaItem>(
-                `INSERT INTO bricks_media
-                (url, filename, alt, size, mime_type, category, svg_content, uploaded_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8, NOW()))
-                RETURNING ${MEDIA_SELECT_FIELDS}`,
-                [
-                    payload.url,
-                    payload.filename,
-                    payload.alt ?? '',
-                    payload.size,
-                    payload.mimeType,
-                    payload.category,
-                    payload.svgContent ?? null,
-                    payload.uploadedAt ? new Date(payload.uploadedAt) : null,
-                ]
-            );
+            let result: IMediaItem | null;
+
+            try {
+                result = await queryOne<IMediaItem>(
+                    `INSERT INTO bricks_media
+                    (url, filename, alt, size, mime_type, category, svg_content, uploaded_at)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8, NOW()))
+                    RETURNING ${MEDIA_SELECT_FIELDS}`,
+                    [
+                        payload.url,
+                        payload.filename,
+                        payload.alt ?? '',
+                        payload.size,
+                        payload.mimeType,
+                        payload.category,
+                        payload.svgContent ?? null,
+                        payload.uploadedAt ? new Date(payload.uploadedAt) : null,
+                    ]
+                );
+            } catch (error: unknown) {
+                if (!isUniqueViolation(error)) {
+                    throw error;
+                }
+
+                result = await findMediaByUrl(payload.url);
+            }
 
             if (!result) {
                 throw new Error('Failed to create media item');
@@ -240,15 +406,6 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
          * Обновляет метаданные медиа; null — если запись не найдена.
          */
         async updateMedia(id: number, payload: TUpdateMediaPayload): Promise<IMediaItem | null> {
-            const existing = await queryOne<{ id: number }>(
-                'SELECT id FROM bricks_media WHERE id = $1',
-                [id]
-            );
-
-            if (!existing) {
-                return null;
-            }
-
             const { updates, values } = buildUpdateQuery(payload, MEDIA_UPDATE_FIELDS);
 
             if (updates.length === 0) {
@@ -270,17 +427,12 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
          * Удаляет медиа-запись; false — если запись не найдена.
          */
         async deleteMedia(id: number): Promise<boolean> {
-            const existing = await queryOne<{ id: number }>(
-                'SELECT id FROM bricks_media WHERE id = $1',
+            const rows = await query<{ id: number }>(
+                'DELETE FROM bricks_media WHERE id = $1 RETURNING id',
                 [id]
             );
 
-            if (!existing) {
-                return false;
-            }
-
-            await query('DELETE FROM bricks_media WHERE id = $1', [id]);
-            return true;
+            return rows.length > 0;
         },
     };
 }

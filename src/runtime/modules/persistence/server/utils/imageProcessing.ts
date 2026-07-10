@@ -1,11 +1,26 @@
 // #region Imports
 import { useAppConfig } from 'nitropack/runtime';
+import { createError } from 'h3';
 import sharp from 'sharp';
 import type { IMediaOptimization, IResolvedMediaConfig } from '../../types/media';
+import { createConcurrencyGate, GateOverflowError } from './concurrencyGate';
 // #endregion
 
 // #region Data
 const BYTES_IN_MB = 1024 * 1024;
+/**
+ * Потолок пикселей входного изображения (защита от декомпрессионных бомб):
+ * 100 МП покрывает любые реальные фото и в ~2.7 раза ниже дефолта sharp.
+ */
+const MAX_INPUT_PIXELS = 100_000_000;
+/** Максимум одновременных sharp-конвертаций (декодирование держит память/CPU). */
+const SHARP_MAX_CONCURRENT = 4;
+/** Максимум конвертаций, ожидающих слот; сверх — 503. */
+const SHARP_MAX_QUEUE = 32;
+const sharpGate = createConcurrencyGate({
+    maxConcurrent: SHARP_MAX_CONCURRENT,
+    maxQueue: SHARP_MAX_QUEUE,
+});
 const DEFAULT_MAX_UPLOAD_SIZE_MB = 10;
 const DEFAULT_MAX_VIDEO_UPLOAD_SIZE_MB = 100;
 const DEFAULT_OPTIMIZATION_CONFIG: IMediaOptimization = {
@@ -161,6 +176,10 @@ export function resolveMediaConfig(): IResolvedMediaConfig {
 
 /**
  * Ресайзит источник (без увеличения) и конвертирует в WebP.
+ *
+ * Декодирование ограничено MAX_INPUT_PIXELS (декомпрессионные бомбы) и общим
+ * семафором конкурентности; переполнение очереди семафора — 503.
+ *
  * @param buffer Исходные байты изображения.
  * @param optimization Опции ресайза и качества.
  */
@@ -168,15 +187,28 @@ export async function optimizeToWebp(
     buffer: Buffer,
     optimization: IMediaOptimization
 ): Promise<Buffer> {
-    return sharp(buffer)
-        .resize({
-            width: optimization.maxWidth,
-            fit: 'inside',
-            withoutEnlargement: true,
-        })
-        .webp({
-            quality: optimization.quality,
-        })
-        .toBuffer();
+    try {
+        return await sharpGate.run(() =>
+            sharp(buffer, { limitInputPixels: MAX_INPUT_PIXELS })
+                .resize({
+                    width: optimization.maxWidth,
+                    fit: 'inside',
+                    withoutEnlargement: true,
+                })
+                .webp({
+                    quality: optimization.quality,
+                })
+                .toBuffer()
+        );
+    } catch (error) {
+        if (error instanceof GateOverflowError) {
+            throw createError({
+                statusCode: 503,
+                statusMessage: 'Server is busy processing images, try again later',
+            });
+        }
+
+        throw error;
+    }
 }
 // #endregion

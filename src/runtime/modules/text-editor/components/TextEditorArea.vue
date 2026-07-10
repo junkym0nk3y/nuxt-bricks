@@ -122,7 +122,7 @@ function handleModalClose(): void {
                 </BricksButton>
             </div>
 
-            <transition name="library-fade" mode="out-in">
+            <transition name="bricks-fade" mode="out-in">
                 <div v-if="isToolbarVisible" :class="$style.toolbar">
                     <BricksTextEditorToolbar
                         :groups="toolbarGroups"
@@ -136,7 +136,7 @@ function handleModalClose(): void {
 
         <!-- Editor Content / Code View -->
         <template v-if="props.useRichEditor !== false">
-            <transition name="library-fade" mode="out-in">
+            <transition name="bricks-fade" mode="out-in">
                 <div
                     v-if="!isCodeView && editor && isClient && EditorContentComponent"
                     :class="editorWrapperClasses"
@@ -286,7 +286,7 @@ function handleModalClose(): void {
     overflow: hidden;
     min-height: inherit;
     padding: 1.2rem;
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--bricks-border-radius-sm);
     border: 1px solid var(--bricks-base-300);
     background-color: var(--bricks-base-0);
     font-size: 1.4rem;
@@ -313,7 +313,7 @@ function handleModalClose(): void {
     width: 100%;
     min-height: inherit;
     padding: 1.2rem;
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--bricks-border-radius-sm);
     border: 1px solid var(--bricks-base-300);
     background-color: var(--bricks-base-0);
     font-size: 1.4rem;
@@ -354,7 +354,7 @@ function handleModalClose(): void {
     width: 100%;
     min-width: 0;
     padding: 0.6rem;
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--bricks-border-radius-sm);
     border: 1px solid var(--bricks-base-300);
     background-color: var(--bricks-base-50);
 }
@@ -381,7 +381,7 @@ function handleModalClose(): void {
     top: 0.4rem;
     right: 0.4rem;
     opacity: 0;
-    transition: opacity var(--default-transition);
+    transition: opacity var(--bricks-default-transition);
 
     .editorWrapper:hover & {
         opacity: 1;
@@ -394,13 +394,13 @@ function handleModalClose(): void {
     justify-content: center;
     width: 2.8rem;
     height: 2.8rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
     color: var(--bricks-base-500);
     transition:
-        border-color var(--default-transition),
-        color var(--default-transition);
+        border-color var(--bricks-default-transition),
+        color var(--bricks-default-transition);
     cursor: pointer;
 
     svg {
@@ -419,7 +419,7 @@ function handleModalClose(): void {
     right: 0.4rem;
     bottom: 0.4rem;
     opacity: 0;
-    transition: opacity var(--default-transition);
+    transition: opacity var(--bricks-default-transition);
 
     .editorWrapper:hover & {
         opacity: 1;
@@ -432,14 +432,14 @@ function handleModalClose(): void {
     justify-content: center;
     width: 2.8rem;
     height: 2.8rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
     color: var(--bricks-base-500);
     transition:
-        border-color var(--default-transition),
-        background var(--default-transition),
-        color var(--default-transition);
+        border-color var(--bricks-default-transition),
+        background var(--bricks-default-transition),
+        color var(--bricks-default-transition);
     cursor: pointer;
 
     svg {

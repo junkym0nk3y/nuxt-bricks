@@ -176,7 +176,7 @@ const {
 
     <!-- Контекстное меню — телепортируется в body для чёткого рендеринга без canvas blur -->
     <Teleport to="body">
-        <Transition name="canvas-context-menu">
+        <Transition name="bricks-canvas-context-menu">
             <BuilderCanvasItemContextMenu
                 v-if="contextMenuPosition"
                 :position="contextMenuPosition"
@@ -229,16 +229,16 @@ const {
     }
 
     &:hover {
-        outline: 0.2rem solid rgb(var(--rgb-primary) / 30%);
+        outline: 0.2rem solid rgb(var(--bricks-rgb-primary) / 30%);
     }
 
     &.selected {
         z-index: 10;
-        outline: 0.2rem solid rgb(var(--rgb-primary) / 80%);
+        outline: 0.2rem solid rgb(var(--bricks-rgb-primary) / 80%);
     }
 
     &.editing {
-        outline: 0.2rem solid rgb(var(--rgb-primary) / 80%);
+        outline: 0.2rem solid rgb(var(--bricks-rgb-primary) / 80%);
         cursor: text;
         user-select: text;
 
@@ -290,7 +290,7 @@ const {
         z-index: 20;
         height: auto;
         padding: 0.4rem 0.8rem;
-        border-radius: var(--border-radius-xs);
+        border-radius: var(--bricks-border-radius-xs);
         background: var(--bricks-base-900);
         font-size: 1.6rem;
         line-height: 1;
@@ -306,8 +306,8 @@ const {
 
 .placeholder {
     padding: 2rem;
-    border: 0.2rem dashed rgb(var(--rgb-gray) / 50%);
-    background: rgb(var(--rgb-gray) / 10%);
+    border: 0.2rem dashed rgb(var(--bricks-rgb-gray) / 50%);
+    background: rgb(var(--bricks-rgb-gray) / 10%);
     text-align: center;
     font-size: 1.4rem;
     color: var(--bricks-base-600);

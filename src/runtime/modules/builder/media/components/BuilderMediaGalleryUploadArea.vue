@@ -108,7 +108,7 @@ function handleDrop(event: DragEvent): void {
     align-items: center;
     justify-content: center;
     padding: 3.2rem 2rem;
-    border-radius: var(--border-radius-md);
+    border-radius: var(--bricks-border-radius-md);
     border: 0.2rem dashed var(--bricks-base-300);
     background: var(--bricks-base-50);
     transition: all 200ms ease;

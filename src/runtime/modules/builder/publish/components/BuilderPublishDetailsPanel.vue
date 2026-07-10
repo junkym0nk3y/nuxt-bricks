@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
+import type { IPageVersionSummary } from '../../../common/types/bricks-api';
 import type { IMediaItem } from '../../../common/types/media';
 import type { IPublishDetailsPanelProps, IPublishDetailsPanelEmits } from '../types/dashboard';
 
@@ -22,6 +23,7 @@ import BricksCloseButton from '../../../ui/base/modal/BricksCloseButton.vue';
 import BuilderPublishDetailsPanelSeoFields from './BuilderPublishDetailsPanelSeoFields.vue';
 import BuilderPublishDetailsPanelOgImage from './BuilderPublishDetailsPanelOgImage.vue';
 import BuilderPublishDetailsPanelRouting from './BuilderPublishDetailsPanelRouting.vue';
+import BuilderPublishDetailsPanelVersions from './BuilderPublishDetailsPanelVersions.vue';
 // #endregion
 
 // #region Props
@@ -144,6 +146,25 @@ function handleDuplicate(): void {
 }
 
 /**
+ * Пробрасывает запрос отката к версии контроллеру (подтверждение и тосты — там).
+ *
+ * @param version - Сводка версии.
+ */
+function handleRestoreVersion(version: IPageVersionSummary): void {
+    emit('restore-version', props.page, version);
+}
+
+/**
+ * Пробрасывает уведомление секции версий контроллеру.
+ *
+ * @param message - Текст уведомления.
+ * @param variant - Тип уведомления.
+ */
+function handleVersionsNotify(message: string, variant: 'success' | 'error'): void {
+    emit('notify', message, variant);
+}
+
+/**
  * Запрашивает удаление страницы.
  */
 function handleDelete(): void {
@@ -166,7 +187,7 @@ defineExpose({
             <p :class="$style.subtitle">{{ panelSubtitle }}</p>
         </div>
 
-        <div :class="[$style.content, 'scrollbox']">
+        <div :class="[$style.content, 'bricks-scrollbox']">
             <div :class="$style.publication">
                 <BricksSwitch
                     :value="props.page.published"
@@ -214,6 +235,12 @@ defineExpose({
                 :page="props.page"
                 :errors="errors"
                 :is-saving="isSaving"
+            />
+
+            <BuilderPublishDetailsPanelVersions
+                :page="props.page"
+                @restore="handleRestoreVersion"
+                @notify="handleVersionsNotify"
             />
 
             <div v-if="isDirty || isSaving" :class="$style.saveBar">
@@ -322,7 +349,7 @@ defineExpose({
     flex-direction: column;
     gap: 1rem;
     padding: 1.2rem;
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--bricks-border-radius-sm);
     background: var(--bricks-base-50);
 }
 
@@ -362,7 +389,7 @@ defineExpose({
     background: transparent;
     font-size: 1.4rem;
     color: var(--bricks-base-400);
-    transition: color var(--default-transition);
+    transition: color var(--bricks-default-transition);
     cursor: pointer;
 
     &:hover {
@@ -402,14 +429,14 @@ defineExpose({
     width: 3.6rem;
     height: 3.6rem;
     padding: 0;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-danger-500);
     background: var(--bricks-base-0);
     font-size: 1.6rem;
     color: var(--bricks-danger-500);
     transition:
-        background-color var(--default-transition),
-        color var(--default-transition);
+        background-color var(--bricks-default-transition),
+        color var(--bricks-default-transition);
     cursor: pointer;
 
     &:hover {

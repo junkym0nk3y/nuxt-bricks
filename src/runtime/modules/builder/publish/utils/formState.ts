@@ -1,4 +1,4 @@
-import type { TPublishFormState } from '../../../common/types/bricks-api';
+import type { IPublishedPage, TPublishFormState } from '../../../common/types/bricks-api';
 import {
     DEFAULT_BACKGROUND_COLOR,
     DEFAULT_LAYOUT,
@@ -47,6 +47,31 @@ export function buildDefaultFormState(): TPublishFormState {
         socialImage: '',
         urlPrefix: null,
         subdomain: null,
+        createdAt: '',
+        updatedAt: '',
+    };
+}
+
+/**
+ * Собирает состояние формы для копии страницы: клонирует meta, копия — черновик
+ * с переданным `pagename` и суффиксом «(copy)» в названии.
+ *
+ * @param page - Исходная страница.
+ * @param pagename - Уникальный `pagename` копии.
+ * @returns Состояние формы публикации копии.
+ */
+export function buildCopyFormState(page: IPublishedPage, pagename: string): TPublishFormState {
+    return {
+        pagename,
+        title: page.title ? `${page.title} (copy)` : page.title,
+        description: page.description,
+        keywords: page.keywords,
+        published: false,
+        layout: page.layout || DEFAULT_LAYOUT,
+        backgroundColor: page.backgroundColor || resolveDefaultBackgroundColor(),
+        socialImage: page.socialImage,
+        urlPrefix: page.urlPrefix,
+        subdomain: page.subdomain,
         createdAt: '',
         updatedAt: '',
     };

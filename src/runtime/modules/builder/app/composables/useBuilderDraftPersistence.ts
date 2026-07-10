@@ -7,7 +7,7 @@ import { isSnapshotEqual } from '../../publish/utils/draftSnapshots';
 import { removeBuilderDraft, setBuilderDraft } from '../../publish/utils/draftStorage';
 
 // Vue
-import { onBeforeUnmount, watch } from 'vue';
+import { onScopeDispose, watch } from 'vue';
 
 // Pinia
 import { useHistoryStore } from '../../core/stores/history';
@@ -16,12 +16,13 @@ import { usePublishStore } from '../../publish/stores/publish';
 
 /**
  * Автосохранение черновика билдера в localStorage (debounce 800ms) при изменении
- * истории канваса или настроек публикации. Если изменений относительно сохранённой
- * версии нет — черновик удаляется. Таймер чистится при unmount.
+ * истории канваса или настроек публикации. Ключ черновика — sessionPagename
+ * (переживает rename сессии). Если изменений относительно сохранённой версии
+ * нет — черновик удаляется. Таймер чистится при unmount.
  */
 export function useBuilderDraftPersistence(options: IBuilderDraftPersistenceOptions): void {
     const {
-        routePagename,
+        sessionPagename,
         isSessionLoading,
         isRestoreDraftModalOpen,
         savedSnapshot,
@@ -59,7 +60,7 @@ export function useBuilderDraftPersistence(options: IBuilderDraftPersistenceOpti
             return;
         }
 
-        const pagename = routePagename.value;
+        const pagename = sessionPagename.value;
         if (!pagename) {
             return;
         }
@@ -112,7 +113,5 @@ export function useBuilderDraftPersistence(options: IBuilderDraftPersistenceOpti
         { deep: false }
     );
 
-    onBeforeUnmount(() => {
-        clearPersistTimer();
-    });
+    onScopeDispose(clearPersistTimer);
 }

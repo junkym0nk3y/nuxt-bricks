@@ -337,10 +337,10 @@ onBeforeUnmount(() => {
     min-width: 24rem;
     max-width: 30rem;
     padding: 0.6rem;
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--bricks-border-radius-sm);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--bricks-shadow-lg);
     pointer-events: auto;
     user-select: none;
     backdrop-filter: blur(1rem);
@@ -375,13 +375,13 @@ onBeforeUnmount(() => {
     width: 2.2rem;
     height: 2.2rem;
     padding: 0;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: none;
     background: transparent;
     color: var(--bricks-base-400);
     transition:
-        background var(--default-transition),
-        color var(--default-transition);
+        background var(--bricks-default-transition),
+        color var(--bricks-default-transition);
     cursor: pointer;
 
     svg {
@@ -406,15 +406,15 @@ onBeforeUnmount(() => {
     width: 100%;
     height: 3rem;
     padding: 0 1rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: none;
     background: transparent;
     text-align: left;
     font-size: 1.4rem;
     color: var(--bricks-base-900);
     transition:
-        background var(--default-transition),
-        color var(--default-transition);
+        background var(--bricks-default-transition),
+        color var(--bricks-default-transition);
     cursor: pointer;
     gap: 0.8rem;
 
@@ -443,9 +443,9 @@ onBeforeUnmount(() => {
     flex-shrink: 0;
     width: 0.6rem;
     height: 0.6rem;
-    border-radius: var(--border-radius-pill);
+    border-radius: var(--bricks-border-radius-pill);
     background: var(--bricks-primary);
-    transition: background var(--default-transition);
+    transition: background var(--bricks-default-transition);
 }
 
 .label {
@@ -480,10 +480,10 @@ onBeforeUnmount(() => {
     left: 100%;
     min-width: 16rem;
     padding: 0.6rem;
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--bricks-border-radius-sm);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--bricks-shadow-lg);
 }
 
 .flyoutLeft {
@@ -496,8 +496,8 @@ onBeforeUnmount(() => {
     align-items: center;
     height: 3rem;
     padding: 0 1rem 0 0.8rem;
-    border-radius: var(--border-radius-xs);
-    transition: background var(--default-transition);
+    border-radius: var(--bricks-border-radius-xs);
+    transition: background var(--bricks-default-transition);
 
     &:hover {
         background: var(--bricks-base-50);

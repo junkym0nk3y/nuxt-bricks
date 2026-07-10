@@ -8,9 +8,10 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { getCookie, setCookie, deleteCookie, type H3Event } from 'h3';
 import { useRuntimeConfig } from 'nitropack/runtime';
+import { BRICKS_SESSION_COOKIE_NAME } from '../../../modules/common/constants/auth';
 
-/** Имя cookie сессии. */
-export const SESSION_COOKIE_NAME = 'bricks-session';
+/** Имя cookie сессии (единый источник — common, см. фильтрацию proxy-заголовков). */
+export const SESSION_COOKIE_NAME = BRICKS_SESSION_COOKIE_NAME;
 
 /** Дефолтный срок жизни сессии — 7 дней (зеркалит дефолт опции модуля). */
 const DEFAULT_SESSION_MAX_AGE_SECONDS = 604800;

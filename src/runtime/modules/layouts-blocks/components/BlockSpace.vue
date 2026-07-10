@@ -117,21 +117,21 @@ const dividerStyle = computed<TSpaceStyle>((): TSpaceStyle => {
 <style module lang="scss">
 .BlockSpace {
     position: relative;
-    border: 1px dashed rgb(var(--rgb-gray) / 30%);
+    border: 1px dashed rgb(var(--bricks-rgb-gray) / 30%);
     background: repeating-linear-gradient(
         45deg,
-        rgb(var(--rgb-gray) / 10%),
-        rgb(var(--rgb-gray) / 10%) 1rem,
+        rgb(var(--bricks-rgb-gray) / 10%),
+        rgb(var(--bricks-rgb-gray) / 10%) 1rem,
         transparent 1rem,
         transparent 2rem
     );
 
     &:hover {
-        border-color: rgb(var(--rgb-gray) / 50%);
+        border-color: rgb(var(--bricks-rgb-gray) / 50%);
         background: repeating-linear-gradient(
             45deg,
-            rgb(var(--rgb-gray) / 15%),
-            rgb(var(--rgb-gray) / 15%) 1rem,
+            rgb(var(--bricks-rgb-gray) / 15%),
+            rgb(var(--bricks-rgb-gray) / 15%) 1rem,
             transparent 1rem,
             transparent 2rem
         );

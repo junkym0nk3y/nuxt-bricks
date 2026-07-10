@@ -6,13 +6,22 @@ import {
     addRouteMiddleware,
     addServerHandler,
     extendPages,
-    installModule,
-    hasNuxtModule,
 } from '@nuxt/kit';
 import { defu } from 'defu';
 // Side-effect type import: подтягивает augmentation NuxtOptions.i18n и хука i18n:registerModule
 import type {} from '@nuxtjs/i18n';
 import { brickWatchPlugin } from './runtime/modules/common/utils/routing/vite-brick-watch';
+import {
+    DEFAULT_BRICKS_ROUTE_PREFIXES,
+    type IBricksRoutePrefixes,
+} from './runtime/modules/common/utils/bricks/routePaths';
+import {
+    registerBricksPages,
+    registerBricksServerHandlers,
+    resolveBricksSurfaces,
+    setupBricksBuilderModules,
+    type IBricksRegistrationContext,
+} from './module-setup';
 
 // #region Types
 export interface IBricksModuleOptions {
@@ -47,6 +56,13 @@ export interface IBricksModuleOptions {
         url?: string;
     };
     /**
+     * Количество хранимых версий страницы: снапшот прежнего состояния создаётся
+     * при каждом сохранении, меняющем `schema` (реализуется storage-адаптером).
+     * Дефолт 5, `0` — версионирование выключено.
+     * ENV-переопределение: NUXT_BRICKS_VERSIONS_LIMIT.
+     */
+    versionsLimit?: number;
+    /**
      * S3-совместимое хранилище для дефолтного publish-адаптера.
      * ENV-переопределение: NUXT_BRICKS_S3_* (legacy: YANDEX_STORAGE_*).
      */
@@ -56,15 +72,32 @@ export interface IBricksModuleOptions {
         bucket?: string;
         accessKeyId?: string;
         secretAccessKey?: string;
+        /** Managed-префикс ключей медиа-файлов (дефолт 'bricks-media/'). */
         prefix?: string;
+        /** Managed-префикс ключей превью страниц (дефолт 'bricks-thumbnails/'). */
+        thumbnailsPrefix?: string;
     };
     /**
      * Проксирование /api/* на внешний backend (dev-режим / свой REST API).
      * Если database.url не задан, /api/bricks/** тоже уходят на прокси.
+     * Адреса — server-only runtimeConfig (в client payload не попадают).
+     * ENV: PROXY_URL / NUXT_SERVER_CACHE_URL (build-time fallback),
+     * NUXT_BRICKS_PROXY_URL / NUXT_BRICKS_SSR_PROXY_URL (runtime-override).
      */
     proxy?: {
         url?: string;
+        /** Отдельный адрес backend для SSR-запросов (внутренняя сеть). */
+        ssrUrl?: string;
     };
+    /**
+     * Доверять заголовку x-forwarded-for при определении клиентского IP
+     * (ключи rate limiter'ов: upload/thumbnail/login). Дефолт false —
+     * используется только socket-адрес. Включать только за собственным
+     * reverse proxy (ровно один доверенный хоп; берётся последний элемент
+     * заголовка — дописанный прокси, первый клиент может подделать).
+     * ENV-переопределение: NUXT_BRICKS_TRUST_PROXY.
+     */
+    trustProxy?: boolean;
     /**
      * Локализация интерфейса билдера (ru/en).
      * defaultLocale применяется, только если @nuxtjs/i18n ставит сам bricks
@@ -72,6 +105,32 @@ export interface IBricksModuleOptions {
      */
     i18n?: {
         defaultLocale?: 'ru' | 'en';
+    };
+    /**
+     * Префиксы страниц модуля (build-time, env-override не поддерживается).
+     * Формат: ведущий `/`, lowercase-сегменты [a-z0-9-], без trailing slash;
+     * префиксы не должны пересекаться. Невалидная конфигурация валит сборку.
+     * - builderPrefix — дашборд `<prefix>`, редактор `<prefix>/:pagename`,
+     *   логин `<prefix>/login` (дефолт: '/bricks')
+     * - previewPrefix — превью рендера `<prefix>/:pagename` (дефолт: '/preview')
+     */
+    routes?: {
+        builderPrefix?: string;
+        previewPrefix?: string;
+    };
+    /**
+     * Поверхности модуля (build-time).
+     * - builder (дефолт true) — UI билдера целиком: страницы
+     *   builder/login/preview, плагины редактора, mock-api ручки, editorial
+     *   API, i18n и Pinia. false — render-only деплой: остаются published
+     *   catch-all маршруты, public read-model и auth-защита путей.
+     * - publishedPages (дефолт true) — статические catch-all маршруты
+     *   live-рендера. false — модуль не перехватывает URL приложения,
+     *   published-страницы доступны только через превью.
+     */
+    features?: {
+        builder?: boolean;
+        publishedPages?: boolean;
     };
 }
 // #endregion
@@ -152,15 +211,20 @@ function logAuthMode(mode: string, hasDatabase: boolean): void {
 }
 
 /**
- * Заполняет runtimeConfig модуля: basic-auth, persistence (Postgres/S3), proxy.
- * Дефолты переопределяемы в production через ENV (NUXT_BRICKS_*, legacy-имена — fallback).
+ * Заполняет runtimeConfig модуля: basic-auth, persistence (Postgres/S3), proxy,
+ * префиксы маршрутов. Дефолты переопределяемы в production через ENV
+ * (NUXT_BRICKS_*, legacy-имена — fallback), кроме bricksRoutes — пути страниц
+ * фиксируются на сборке, env-override дал бы рассинхрон с зарегистрированными
+ * маршрутами.
  *
  * @param runtimeConfig - nuxt.options.runtimeConfig.
  * @param options - Опции модуля из nuxt.config.
+ * @param routePrefixes - Валидированные префиксы маршрутов.
  */
 function applyBricksRuntimeConfig(
     runtimeConfig: Record<string, unknown>,
-    options: IBricksModuleOptions
+    options: IBricksModuleOptions,
+    routePrefixes: IBricksRoutePrefixes
 ): void {
     runtimeConfig.basicAuthUsername =
         runtimeConfig.basicAuthUsername ??
@@ -171,14 +235,66 @@ function applyBricksRuntimeConfig(
         process.env.BASIC_AUTH_PASSWORD ??
         options.basicAuth?.password;
 
-    // Persistence: PostgreSQL (server-only, секреты не в public)
+    applyBricksPersistenceRuntimeConfig(runtimeConfig, options);
+
+    // Proxy-режим: /api/* → внешний backend. Ключи server-only: адрес backend
+    // не светится в client payload, клиент ходит через proxy middleware.
+    // Runtime-override: NUXT_BRICKS_PROXY_URL / NUXT_BRICKS_SSR_PROXY_URL.
+    runtimeConfig.bricksProxyUrl =
+        runtimeConfig.bricksProxyUrl ?? options.proxy?.url ?? process.env.PROXY_URL ?? '';
+    runtimeConfig.bricksSsrProxyUrl =
+        runtimeConfig.bricksSsrProxyUrl ??
+        options.proxy?.ssrUrl ??
+        process.env.NUXT_SERVER_CACHE_URL ??
+        '';
+
+    // Доверие x-forwarded-for для клиентского IP rate limiter'ов (server-only;
+    // имя ключа NUXT_BRICKS_TRUST_PROXY даёт runtime-override без ребилда)
+    runtimeConfig.bricksTrustProxy =
+        runtimeConfig.bricksTrustProxy ??
+        process.env.NUXT_BRICKS_TRUST_PROXY ??
+        options.trustProxy ??
+        false;
+
+    const publicConfig = (runtimeConfig.public ?? {}) as Record<string, unknown>;
+    runtimeConfig.public = publicConfig;
+
+    // Единый источник префиксов для клиента и auth-матрицы (build-time)
+    publicConfig.bricksRoutes = routePrefixes;
+
+    applyBricksAuthRuntimeConfig(runtimeConfig, publicConfig, options);
+
+    logPersistenceMode(
+        Boolean(runtimeConfig.bricksDatabaseUrl),
+        Boolean(runtimeConfig.bricksProxyUrl)
+    );
+    logAuthMode(runtimeConfig.bricksAuthMode as string, Boolean(runtimeConfig.bricksDatabaseUrl));
+}
+
+/**
+ * Заполняет runtimeConfig persistence-слоя: PostgreSQL, версионирование страниц, S3
+ * (server-only, секреты не в public).
+ *
+ * @param runtimeConfig - nuxt.options.runtimeConfig.
+ * @param options - Опции модуля из nuxt.config.
+ */
+function applyBricksPersistenceRuntimeConfig(
+    runtimeConfig: Record<string, unknown>,
+    options: IBricksModuleOptions
+): void {
     runtimeConfig.bricksDatabaseUrl =
         runtimeConfig.bricksDatabaseUrl ??
         process.env.NUXT_BRICKS_DATABASE_URL ??
         options.database?.url ??
         '';
 
-    // Persistence: S3-хранилище (server-only)
+    // Версионирование страниц: глубина истории снапшотов (0 — выкл).
+    // Имя ключа NUXT_BRICKS_VERSIONS_LIMIT даёт runtime-override в проде без ребилда.
+    runtimeConfig.bricksVersionsLimit =
+        runtimeConfig.bricksVersionsLimit ??
+        process.env.NUXT_BRICKS_VERSIONS_LIMIT ??
+        options.versionsLimit;
+
     runtimeConfig.bricksS3 = defu(runtimeConfig.bricksS3 as object | undefined, options.s3, {
         endpoint: 'https://storage.yandexcloud.net',
         region: 'ru-central1',
@@ -186,18 +302,8 @@ function applyBricksRuntimeConfig(
         accessKeyId: process.env.YANDEX_STORAGE_ACCESS_KEY_ID ?? '',
         secretAccessKey: process.env.YANDEX_STORAGE_SECRET_ACCESS_KEY ?? '',
         prefix: 'bricks-media/',
+        thumbnailsPrefix: 'bricks-thumbnails/',
     });
-
-    // Proxy-режим: /api/* → внешний backend
-    const publicConfig = (runtimeConfig.public ?? {}) as Record<string, unknown>;
-    runtimeConfig.public = publicConfig;
-    publicConfig.PROXY_URL =
-        publicConfig.PROXY_URL ?? options.proxy?.url ?? process.env.PROXY_URL ?? '';
-
-    applyBricksAuthRuntimeConfig(runtimeConfig, publicConfig, options);
-
-    logPersistenceMode(Boolean(runtimeConfig.bricksDatabaseUrl), Boolean(publicConfig.PROXY_URL));
-    logAuthMode(runtimeConfig.bricksAuthMode as string, Boolean(runtimeConfig.bricksDatabaseUrl));
 }
 
 /**
@@ -244,15 +350,31 @@ export default defineNuxtModule<IBricksModuleOptions>({
             mode: 'basic',
             sessionMaxAgeSeconds: 604800,
         },
+        versionsLimit: 5,
+        routes: DEFAULT_BRICKS_ROUTE_PREFIXES,
+        features: {
+            builder: true,
+            publishedPages: true,
+        },
     },
     async setup(options, nuxt) {
         const { resolve } = createResolver(import.meta.url);
         const runtimeDir = resolve('./runtime');
         const isDev = nuxt.options.dev;
 
+        // #region Routes и feature flags (fail-fast валидация префиксов)
+        const surfaces = resolveBricksSurfaces(options);
+        const { isBuilderEnabled } = surfaces;
+        const registrationContext: IBricksRegistrationContext = {
+            resolve,
+            runtimeDir,
+            surfaces,
+        };
+        // #endregion
+
         // #region runtimeConfig
         const runtimeConfig = nuxt.options.runtimeConfig as Record<string, unknown>;
-        applyBricksRuntimeConfig(runtimeConfig, options);
+        applyBricksRuntimeConfig(runtimeConfig, options, surfaces.routePrefixes);
         // #endregion
 
         // #region Public assets (превью layout-блоков, плейсхолдеры, картинки документации)
@@ -271,70 +393,33 @@ export default defineNuxtModule<IBricksModuleOptions>({
             nuxt.options.experimental.inlineRouteRules ?? true;
         // #endregion
 
-        // #region Зависимые модули
-        await installModule('@pinia/nuxt');
-        // #endregion
-
-        // #region i18n (переводы билдера ru/en)
-        // Подписка ДО installModule: @nuxtjs/i18n вызывает хук в своём setup.
-        let isI18nRegistered = false;
-        nuxt.hook('i18n:registerModule', (register) => {
-            isI18nRegistered = true;
-            register({
-                langDir: resolve(runtimeDir, 'locales'),
-                locales: [
-                    { code: 'ru', language: 'ru-RU', file: 'ru.json' },
-                    { code: 'en', language: 'en-US', file: 'en.json' },
-                ],
-            });
-        });
-
-        // Дефолты применяются всегда (defu: опции потребителя побеждают) — если
-        // потребитель подключил @nuxtjs/i18n сам без конфига, голая стратегия
-        // prefix_except_default переписала бы маршруты и /bricks отдавал бы 404.
-        const defaultLocale = options.i18n?.defaultLocale ?? 'ru';
-        nuxt.options.i18n = defu(nuxt.options.i18n, {
-            strategy: 'no_prefix' as const,
-            defaultLocale,
-            detectBrowserLanguage: {
-                useCookie: true,
-                cookieKey: 'bricks-locale',
-                fallbackLocale: defaultLocale,
-            },
-        });
-
-        if (!hasNuxtModule('@nuxtjs/i18n')) {
-            await installModule('@nuxtjs/i18n');
+        // #region Зависимые модули + i18n (только поверхность билдера)
+        // render и published-страницы не используют ни Pinia, ни vue-i18n —
+        // в render-only режиме host-приложение не получает лишних модулей.
+        // Внутри — fail-fast при неверном порядке модулей (@nuxtjs/i18n до bricks).
+        if (isBuilderEnabled) {
+            await setupBricksBuilderModules(nuxt, options, resolve(runtimeDir, 'locales'));
         }
-
-        // app:resolve — после modules:done: @nuxtjs/i18n вызывает i18n:registerModule
-        // из собственного modules:done-хука, который при явном подключении i18n
-        // потребителем регистрируется позже bricks-хуков.
-        nuxt.hook('app:resolve', () => {
-            if (!isI18nRegistered) {
-                console.warn(
-                    '[nuxt-bricks] i18n:registerModule hook was not called — builder translations are missing. Place nuxt-bricks BEFORE @nuxtjs/i18n in nuxt.config modules.'
-                );
-            }
-        });
         // #endregion
 
         // #region Стили
+        // Только собственные scoped-стили модуля (variables/transitions/fonts + reset
+        // под body.bricks-page). Swiper CSS импортирует BlockSlider.vue в свой чанк.
         nuxt.options.css.push(
             resolve(runtimeDir, 'assets/scss/bundle.scss'),
-            resolve(runtimeDir, 'assets/scss/default.scss'),
-            'swiper/css',
-            'swiper/css/navigation',
-            'swiper/css/pagination'
+            resolve(runtimeDir, 'assets/scss/default.scss')
         );
         // #endregion
 
         // #region Vite (optimizeDeps + watch brick-файлов)
-        nuxt.options.vite = defu(nuxt.options.vite, {
-            optimizeDeps: {
-                include: VITE_OPTIMIZE_INCLUDE,
-            },
-        });
+        // Prebundle-список — зависимости UI билдера; render-only он не нужен
+        if (isBuilderEnabled) {
+            nuxt.options.vite = defu(nuxt.options.vite, {
+                optimizeDeps: {
+                    include: VITE_OPTIMIZE_INCLUDE,
+                },
+            });
+        }
         if (isDev) {
             nuxt.options.vite.plugins = nuxt.options.vite.plugins || [];
             nuxt.options.vite.plugins.push(brickWatchPlugin(false));
@@ -351,42 +436,10 @@ export default defineNuxtModule<IBricksModuleOptions>({
         );
         // #endregion
 
-        // #region Pages (builder + published page)
+        // #region Pages (builder + preview по features.builder, published catch-all
+        // по features.publishedPages; пути — из bricks.routes)
         extendPages((pages) => {
-            pages.unshift(
-                {
-                    name: 'bricks-builder',
-                    path: '/bricks',
-                    file: resolve(runtimeDir, 'modules/builder/app/pages/builder.vue'),
-                    children: [
-                        {
-                            name: 'bricks-builder-index',
-                            path: '',
-                            file: resolve(runtimeDir, 'modules/builder/publish/pages/index.vue'),
-                        },
-                        {
-                            // Статический сегмент бьёт :pagename по ранжированию vue-router
-                            // независимо от порядка. В basic-режиме страница редиректит на /bricks.
-                            name: 'bricks-builder-login',
-                            path: 'login',
-                            file: resolve(runtimeDir, 'modules/builder/auth/pages/login.vue'),
-                        },
-                        {
-                            name: 'bricks-builder-pagename',
-                            path: ':pagename',
-                            file: resolve(runtimeDir, 'modules/builder/app/pages/[pagename].vue'),
-                        },
-                    ],
-                },
-                {
-                    // Превью-режим определяется именем этого роута (bricks-preview),
-                    // query ?preview=true больше не используется. Live-рендер published —
-                    // только динамические ЧПУ маршруты (plugins/bricks-dynamic-routes.ts).
-                    name: 'bricks-preview',
-                    path: '/preview/:pagename',
-                    file: resolve(runtimeDir, 'modules/render/pages/[pagename].vue'),
-                }
-            );
+            registerBricksPages(pages, registrationContext);
         });
         // #endregion
 
@@ -399,14 +452,18 @@ export default defineNuxtModule<IBricksModuleOptions>({
         // #endregion
 
         // #region Plugins
+        // vue-icons (BricksIcon + ядро иконок) и bricks-styles нужны и published-
+        // страницам; vee-validate и text-editor-toolbar — только UI билдера
+        // (и без того лениво гейтятся runOnBuilderRoute).
         addPlugin(resolve(runtimeDir, 'plugins/vue-icons'));
-        addPlugin(resolve(runtimeDir, 'plugins/vee-validate'));
-        addPlugin(resolve(runtimeDir, 'plugins/text-editor-toolbar'));
         addPlugin(resolve(runtimeDir, 'plugins/bricks-styles'));
-        addPlugin(resolve(runtimeDir, 'plugins/bricks-dynamic-routes'));
+        if (isBuilderEnabled) {
+            addPlugin(resolve(runtimeDir, 'plugins/vee-validate'));
+            addPlugin(resolve(runtimeDir, 'plugins/text-editor-toolbar'));
+        }
         // #endregion
 
-        // #region Server (middleware + mock-api)
+        // #region Server (middleware + mock-api + api/bricks)
         addServerHandler({
             handler: resolve(runtimeDir, 'server/middleware/auth'),
             middleware: true,
@@ -415,82 +472,9 @@ export default defineNuxtModule<IBricksModuleOptions>({
             handler: resolve(runtimeDir, 'server/middleware/proxy.client'),
             middleware: true,
         });
-        for (const s3Route of ['s3-image', 's3-delete', 's3-page-thumbnail', 's3-media-proxy']) {
-            addServerHandler({
-                route: `/mock-api/${s3Route}`,
-                method: 'post',
-                handler: resolve(runtimeDir, `server/routes/mock-api/${s3Route}.post`),
-            });
-        }
-        addServerHandler({
-            route: '/mock-api/bricks-components',
-            handler: resolve(runtimeDir, 'server/routes/mock-api/bricks-components'),
-        });
-        // #endregion
-
-        // #region Server (api/bricks — persistence-ручки)
-        // Регистрируются всегда; выбор режима (локальная БД vs прокси) — runtime,
-        // в proxy.client.ts: при заданном bricksDatabaseUrl /api/bricks/** не проксируются.
-        const apiHandlers: Array<{
-            route: string;
-            method?: 'get' | 'post' | 'put' | 'patch' | 'delete';
-            file: string;
-        }> = [
-            { route: '/api/bricks', method: 'get', file: 'server/api/bricks/index.get' },
-            { route: '/api/bricks', method: 'post', file: 'server/api/bricks/index.post' },
-            {
-                route: '/api/bricks/auth/login',
-                method: 'post',
-                file: 'server/api/bricks/auth/login.post',
-            },
-            {
-                route: '/api/bricks/auth/logout',
-                method: 'post',
-                file: 'server/api/bricks/auth/logout.post',
-            },
-            {
-                route: '/api/bricks/auth/me',
-                method: 'get',
-                file: 'server/api/bricks/auth/me.get',
-            },
-            {
-                route: '/api/bricks/published',
-                method: 'get',
-                file: 'server/api/bricks/published.get',
-            },
-            {
-                route: '/api/bricks/media',
-                method: 'get',
-                file: 'server/api/bricks/media/index.get',
-            },
-            {
-                route: '/api/bricks/media',
-                method: 'post',
-                file: 'server/api/bricks/media/index.post',
-            },
-            {
-                route: '/api/bricks/media/:id',
-                method: 'patch',
-                file: 'server/api/bricks/media/[id].patch',
-            },
-            {
-                route: '/api/bricks/media/:id',
-                method: 'delete',
-                file: 'server/api/bricks/media/[id].delete',
-            },
-            { route: '/api/bricks/:id', method: 'get', file: 'server/api/bricks/[id].get' },
-            { route: '/api/bricks/:id', method: 'put', file: 'server/api/bricks/[id].put' },
-            { route: '/api/bricks/:id', method: 'patch', file: 'server/api/bricks/[id].patch' },
-            { route: '/api/bricks/:id', method: 'delete', file: 'server/api/bricks/[id].delete' },
-        ];
-
-        for (const { route, method, file } of apiHandlers) {
-            addServerHandler({
-                route,
-                method,
-                handler: resolve(runtimeDir, file),
-            });
-        }
+        // mock-api (медиа/библиотека компонентов) — только билдер; /api/bricks —
+        // по манифесту BRICKS_API_HANDLERS (render-only оставляет public read-model)
+        registerBricksServerHandlers(registrationContext);
         // #endregion
     },
 });

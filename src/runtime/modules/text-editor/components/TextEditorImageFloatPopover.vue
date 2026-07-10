@@ -263,10 +263,10 @@ onBeforeUnmount(() => {
     display: flex;
     gap: 0.2rem;
     padding: 0.4rem;
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--bricks-border-radius-sm);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--bricks-shadow-sm);
 }
 
 .button {
@@ -275,13 +275,13 @@ onBeforeUnmount(() => {
     justify-content: center;
     width: 2.8rem;
     height: 2.8rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: none;
     background: transparent;
     color: var(--bricks-base-600);
     transition:
-        background-color var(--default-transition),
-        color var(--default-transition);
+        background-color var(--bricks-default-transition),
+        color var(--bricks-default-transition);
     cursor: pointer;
 
     svg {

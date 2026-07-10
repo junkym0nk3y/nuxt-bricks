@@ -141,7 +141,7 @@ function handleRemove(): void {
     overflow: hidden;
     width: 100%;
     height: 16rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-base-300);
     background: var(--bricks-base-50);
 }

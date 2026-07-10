@@ -109,9 +109,9 @@ function handleConfirm(): void {
     display: flex;
     width: 100%;
     max-width: 52rem;
-    border-radius: var(--border-radius-md);
+    border-radius: var(--bricks-border-radius-md);
     background: var(--bricks-base-0);
-    box-shadow: var(--shadow-xl);
+    box-shadow: var(--bricks-shadow-xl);
     flex-direction: column;
 }
 

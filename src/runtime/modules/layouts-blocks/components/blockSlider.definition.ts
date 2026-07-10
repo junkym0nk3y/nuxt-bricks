@@ -7,6 +7,7 @@ import type { IBlockDefinition, IBlockRenderContext } from '../types/registry';
 import { h, defineAsyncComponent, type VNode } from 'vue';
 
 // Utils
+import { resolvePublishedProps } from '../utils/publishedProps';
 import { gridPlacementStyle } from '../utils/responsiveVars';
 
 // Components
@@ -22,8 +23,9 @@ const BlockSlider = defineAsyncComponent(() => import('./BlockSlider.vue'));
  * @returns VNode слайдера.
  */
 function renderSliderPublished(ctx: IBlockRenderContext): VNode {
-    const { component, extraClasses, extraAttrs, renderChild, getChildComponents } = ctx;
-    const componentProps = component.props as ISliderLayoutProps;
+    const { component, definition, extraClasses, extraAttrs, renderChild, getChildComponents } =
+        ctx;
+    const componentProps = resolvePublishedProps<ISliderLayoutProps>(definition, component.props);
     const childComponents = getChildComponents(component);
     const style = gridPlacementStyle(component);
 

@@ -8,7 +8,7 @@ import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref } from 
 import { useI18n } from 'vue-i18n';
 
 // Nuxt
-import { definePageMeta, useHead, useRoute, useRouter, useCookie } from '#imports';
+import { definePageMeta, useHead, useRouter, useCookie } from '#imports';
 
 // Pinia
 import { useComponentsStore } from '../../core/stores/components';
@@ -18,12 +18,14 @@ import { useInlineEditingStore } from '../../../text-editor/stores/inlineEditing
 
 // Composables
 import { useBuilderPage } from '../composables/useBuilderPage';
+import { useBuilderPagename } from '../composables/useBuilderPagename';
 import { useBuilderSession } from '../composables/useBuilderSession';
 import { useBuilderDraftPersistence } from '../composables/useBuilderDraftPersistence';
 import { useBuilderPagenameSync } from '../composables/useBuilderPagenameSync';
 
 // Utils
 import { loadFavoritesFromStorage } from '../../core/stores/actions/favorites';
+import { BRICKS_ROUTE_NAMES } from '../../../common/constants/routes';
 
 // Components
 import TheBuilderShellToolbar from '../../shell/toolbar/components/TheBuilderShellToolbar.vue';
@@ -48,25 +50,35 @@ const TheBuilderMediaGalleryModal = defineAsyncComponent(
 // #region Meta
 definePageMeta({
     layout: 'bricks',
+    // Статический page key: дефолтный key Nuxt — интерполированный path, из-за чего
+    // смена :pagename перемонтировала бы страницу. Rename сессии (router.replace из
+    // useBuilderPagename.renameSession) остаётся на живом канвасе; навигация на другую
+    // страницу обрабатывается watcher'ом useBuilderSession.
+    key: 'bricks-builder-pagename',
 });
 // #endregion
 
 // #region Data
 const { t, locale, setLocale } = useI18n();
-const route = useRoute();
 const router = useRouter();
 
 const componentsStore = useComponentsStore();
 const sidebarStore = useSidebarStore();
 const publishStore = usePublishStore();
 
+// Владелец pagename: route.params — источник истины URL, sessionPagename — ключ черновиков
+const { routePagename, sessionPagename, renameSession } = useBuilderPagename();
+
 // Мост media-запросов inline-редактора: editor подключается только здесь (composition root)
 const inlineEditingStore = useInlineEditingStore();
-const builder = await useBuilderPage({
-    isRequestingMedia: computed(() => inlineEditingStore.isRequestingMedia),
-    resolveMediaRequest: (item) => inlineEditingStore.resolveMediaRequest(item),
-    cancelMediaRequest: () => inlineEditingStore.cancelMediaRequest(),
-});
+const builder = await useBuilderPage(
+    {
+        isRequestingMedia: computed(() => inlineEditingStore.isRequestingMedia),
+        resolveMediaRequest: (item) => inlineEditingStore.resolveMediaRequest(item),
+        cancelMediaRequest: () => inlineEditingStore.cancelMediaRequest(),
+    },
+    renameSession
+);
 
 const {
     componentLibraryList,
@@ -110,8 +122,6 @@ const darkModeCookie = useCookie<boolean>('bricks-dark-mode', {
 });
 const isDarkMode = ref(darkModeCookie.value ?? false);
 
-const routePagename = computed<string>(() => String(route.params.pagename || '').trim());
-
 // Сессия билдера: открытие страницы, черновики, модалка восстановления
 const {
     isSessionLoading,
@@ -121,17 +131,17 @@ const {
     openBuilderSession,
     handleRestoreDraft,
     handleDiscardDraft,
-} = useBuilderSession({ routePagename, showToast });
+} = useBuilderSession({ routePagename, sessionPagename, showToast });
 
 // Автосохранение черновика (debounce) + синхронизация URL с pagename формы
 useBuilderDraftPersistence({
-    routePagename,
+    sessionPagename,
     isSessionLoading,
     isRestoreDraftModalOpen,
     savedSnapshot,
     buildCurrentSnapshot,
 });
-useBuilderPagenameSync(routePagename);
+useBuilderPagenameSync({ renameSession });
 // #endregion
 
 // #region Computed
@@ -158,7 +168,7 @@ const isSchemaActive = computed<boolean>(
  * Несохранённые изменения переживают переход через черновик (draft persistence).
  */
 async function handleOpenPagesManager(): Promise<void> {
-    await router.push('/bricks');
+    await router.push({ name: BRICKS_ROUTE_NAMES.builderIndex });
 }
 
 /**

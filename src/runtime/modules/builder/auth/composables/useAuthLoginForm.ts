@@ -9,6 +9,7 @@ import { createAuthLoginValidationSchema } from '../utils/validationSchema';
 
 // Composables
 import { useAuthSession } from './useAuthSession';
+import { useBricksRoutePaths } from '../../../common/composables/useBricksRoutePaths';
 
 // Vue
 import { ref } from 'vue';
@@ -31,13 +32,14 @@ const LOGIN_ERROR_KEYS: Record<number, string> = {
 /**
  * Форма страницы логина: vee-validate, сабмит через `useAuthSession().login`,
  * маппинг ошибок по statusCode, успех — переход на санитизированный
- * `?redirect` (защита от open redirect) или /bricks.
+ * `?redirect` (защита от open redirect) или дашборд билдера.
  */
 export function useAuthLoginForm() {
     // #region Data
     const { t } = useI18n();
     const route = useRoute();
     const { login } = useAuthSession();
+    const { builderRootPath } = useBricksRoutePaths();
 
     const validationSchema = createAuthLoginValidationSchema({ t: (key) => t(key) });
 
@@ -77,7 +79,7 @@ export function useAuthLoginForm() {
 
         try {
             await login(values.username, values.password);
-            await navigateTo(sanitizeRedirectPath(route.query.redirect));
+            await navigateTo(sanitizeRedirectPath(route.query.redirect, builderRootPath));
         } catch (error: unknown) {
             generalError.value = resolveLoginErrorMessage(error);
         } finally {

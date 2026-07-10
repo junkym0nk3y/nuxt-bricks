@@ -106,7 +106,7 @@ watch(
     font-size: 1.2rem;
     font-weight: 500;
     color: var(--bricks-base-600);
-    transition: color var(--default-transition);
+    transition: color var(--bricks-default-transition);
     cursor: pointer;
     gap: 0.6rem;
 
@@ -118,7 +118,7 @@ watch(
 .routingCaret {
     width: 1.2rem;
     height: 1.2rem;
-    transition: transform var(--default-transition);
+    transition: transform var(--bricks-default-transition);
 }
 
 .routingCaretOpen {

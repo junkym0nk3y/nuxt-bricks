@@ -4,6 +4,7 @@ import type { IAuthSessionResponse, IAuthSessionUserPayload } from '../types/aut
 
 // Composables
 import { useApiClient } from '../../../common/composables/useApiClient';
+import { useBricksRoutePaths } from '../../../common/composables/useBricksRoutePaths';
 
 // Nuxt
 import { useRuntimeConfig } from '#imports';
@@ -18,6 +19,7 @@ export function useAuthSession() {
     // #region Data
     const config = useRuntimeConfig();
     const { apiFetcher } = useApiClient();
+    const { builderLoginPath, withBase } = useBricksRoutePaths();
 
     const isDatabaseMode = (config.public?.bricksAuthMode as string | undefined) === 'database';
     // #endregion
@@ -46,7 +48,7 @@ export function useAuthSession() {
      */
     async function logout(): Promise<void> {
         await apiFetcher('/api/bricks/auth/logout', { method: 'POST' });
-        window.location.assign('/bricks/login');
+        window.location.assign(withBase(builderLoginPath));
     }
 
     /**

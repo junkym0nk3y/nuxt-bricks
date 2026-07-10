@@ -16,10 +16,27 @@ export interface IBrickDataSourceContext {
     componentProps: Record<string, unknown>;
 }
 
+/** HTTP-метод data source (контракт Nitro-fetch: оба регистра). */
+export type TBrickDataSourceMethod =
+    | 'GET'
+    | 'POST'
+    | 'PUT'
+    | 'PATCH'
+    | 'DELETE'
+    | 'HEAD'
+    | 'OPTIONS'
+    | 'get'
+    | 'post'
+    | 'put'
+    | 'patch'
+    | 'delete'
+    | 'head'
+    | 'options';
+
 export interface IBrickDataSource {
     key: string;
     url: string;
-    method?: string;
+    method?: TBrickDataSourceMethod;
     params?: Record<string, IBrickDataSourceParam>;
     props: string[];
     map?: (response: unknown, context: IBrickDataSourceContext) => Record<string, unknown>;

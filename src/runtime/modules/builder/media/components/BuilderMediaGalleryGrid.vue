@@ -91,7 +91,7 @@ function handleOpenPreview(item: IMediaItem): void {
 
     position: relative;
     overflow: hidden;
-    border-radius: var(--border-radius-md);
+    border-radius: var(--bricks-border-radius-md);
     border: 0.2rem solid transparent;
     background: var(--bricks-base-0);
     transition: all 200ms ease;
@@ -99,12 +99,12 @@ function handleOpenPreview(item: IMediaItem): void {
 
     &:hover {
         border-color: var(--bricks-primary-300);
-        box-shadow: var(--shadow-md);
+        box-shadow: var(--bricks-shadow-md);
     }
 
     &.selected {
         border-color: var(--bricks-primary-500);
-        box-shadow: 0 0 0 0.4rem rgb(var(--rgb-primary-500) / 20%);
+        box-shadow: 0 0 0 0.4rem rgb(var(--bricks-rgb-primary-500) / 20%);
     }
 }
 
@@ -171,7 +171,7 @@ function handleOpenPreview(item: IMediaItem): void {
 .categoryBadge {
     align-self: flex-start;
     padding: 0.2rem 0.8rem;
-    border-radius: var(--border-radius-pill);
+    border-radius: var(--bricks-border-radius-pill);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
     text-transform: capitalize;

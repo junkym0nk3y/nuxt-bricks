@@ -6,7 +6,7 @@ import type { IBricksComponent } from '../../common/types/brick';
 
 // Vue
 import { computed, ref } from 'vue';
-import { createError, useNuxtData, useRoute } from '#imports';
+import { createError, useHead, useNuxtData, useRoute } from '#imports';
 
 // Composables
 import { useBrickImports } from '../../common/composables/useBrickImports';
@@ -14,6 +14,7 @@ import { useRendererBricks } from '../composables/useRendererBricks';
 import { useRendererDataSources } from '../composables/useRendererDataSources';
 import { useRendererPreviewSync } from '../composables/useRendererPreviewSync';
 import { normalizeBrickPath } from '../../common/utils/bricks/paths';
+import { BRICKS_ROUTE_NAMES } from '../../common/constants/routes';
 
 // Components
 import TheRenderer from '../components/TheRenderer.vue';
@@ -23,9 +24,9 @@ import RendererCloseButton from '../components/RendererCloseButton.vue';
 // #region Data
 const route = useRoute();
 const pagename = route.params.pagename as string;
-// Превью-режим — чисто по роуту /preview/[pagename] (query не используется);
+// Превью-режим — чисто по роуту <previewPrefix>/[pagename] (query не используется);
 // на динамических ЧПУ маршрутах компонент работает в live-режиме
-const isPreview = route.name === 'bricks-preview';
+const isPreview = route.name === BRICKS_ROUTE_NAMES.preview;
 
 const pageDataKey = `bricks-page-${pagename}-${isPreview ? 'preview' : 'live'}`;
 const { data: middlewarePageData } = useNuxtData<IPublishedPage>(pageDataKey);
@@ -114,6 +115,14 @@ await prefetchPageBricks();
 // #endregion
 
 // #region Meta
+// Rem-база и body-margin bricks-контента (бывшие глобальные html { font-size: 10px }
+// из default.scss и body { margin: 0 } из normalize.css): fallback'и нулевой
+// специфичности — одноимённые правила проекта-потребителя всегда побеждают (см.
+// remBase в конфиге breakpoints), а UA-дефолты (база 16px, margin 8px) перебиваются.
+useHead({
+    style: [{ innerHTML: ':where(html){font-size:10px}:where(body){margin:0}' }],
+});
+
 useHead(() => {
     const meta = [
         { name: 'description', content: pageDescription?.value || '' },
@@ -193,7 +202,7 @@ useHead(() => {
     border-radius: 2rem;
     background: var(--bricks-primary-500);
     color: white;
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--bricks-shadow-md);
     opacity: 0.9;
     user-select: none;
 }
@@ -222,13 +231,13 @@ useHead(() => {
 
 .previewClose {
     margin-left: auto;
-    border-color: rgb(var(--rgb-white) / 25%);
-    background: rgb(var(--rgb-white) / 16%);
+    border-color: rgb(var(--bricks-rgb-white) / 25%);
+    background: rgb(var(--bricks-rgb-white) / 16%);
     color: white;
-    transition: background-color var(--default-transition);
+    transition: background-color var(--bricks-default-transition);
 
     &:hover {
-        background: rgb(var(--rgb-white) / 30%);
+        background: rgb(var(--bricks-rgb-white) / 30%);
     }
 }
 </style>

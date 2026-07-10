@@ -149,7 +149,7 @@ function handleLogout(): void {
                     <div :class="$style.listArea">
                         <slot name="list" />
                     </div>
-                    <Transition name="library-details-slide">
+                    <Transition name="bricks-details-slide">
                         <aside v-if="$slots.details" :class="$style.detailsArea">
                             <slot name="details" />
                         </aside>
@@ -240,12 +240,12 @@ function handleLogout(): void {
     width: 100%;
     height: 3.6rem;
     padding: 0 1.2rem 0 3.4rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-base-300);
     background: var(--bricks-base-0);
     font-size: 1.4rem;
     color: var(--bricks-base-900);
-    transition: border-color var(--default-transition);
+    transition: border-color var(--bricks-default-transition);
 
     &::placeholder {
         color: var(--bricks-base-400);

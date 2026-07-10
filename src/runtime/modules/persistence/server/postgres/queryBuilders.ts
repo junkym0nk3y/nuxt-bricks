@@ -21,8 +21,39 @@ export const PAGE_SELECT_FIELDS = `
     thumbnail_url as "thumbnailUrl",
     schema,
     published,
+    revision,
     created_at as "createdAt",
     updated_at as "updatedAt"
+`;
+
+/**
+ * Поля сводки версии страницы (bricks_page_versions) — лёгкий список без schema.
+ */
+export const VERSION_SUMMARY_FIELDS = `
+    id,
+    page_id as "pageId",
+    created_at as "createdAt"
+`;
+
+/**
+ * Поля полного снапшота версии страницы (bricks_page_versions) с camelCase-алиасами.
+ */
+export const VERSION_SELECT_FIELDS = `
+    id,
+    page_id as "pageId",
+    pagename,
+    title,
+    description,
+    keywords,
+    social_image as "socialImage",
+    layout,
+    background_color as "backgroundColor",
+    url_prefix as "urlPrefix",
+    subdomain,
+    schema,
+    published,
+    page_updated_at as "pageUpdatedAt",
+    created_at as "createdAt"
 `;
 
 /**
@@ -103,4 +134,24 @@ export function buildUpdateQuery(
     });
 
     return { updates, values };
+}
+
+/** Код unique_violation PostgreSQL. */
+const UNIQUE_VIOLATION_CODE = '23505';
+
+/**
+ * Проверяет, что ошибка — нарушение уникальности PostgreSQL (SQLSTATE 23505).
+ * Используется для идемпотентных вставок: гонка «двое вставляют один url»
+ * разруливается повторным чтением, а не 500.
+ *
+ * @param error - Пойманная ошибка запроса.
+ * @returns true для unique_violation.
+ */
+export function isUniqueViolation(error: unknown): boolean {
+    return (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        (error as { code?: unknown }).code === UNIQUE_VIOLATION_CODE
+    );
 }

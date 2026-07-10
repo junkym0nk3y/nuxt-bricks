@@ -5,7 +5,7 @@ import {
     requireNumericId,
     toHttpError,
 } from '../../../../modules/persistence/server/utils/handlerHelpers';
-import type { TUpdateMediaPayload } from '../../../../modules/persistence/types/adapters';
+import { validateUpdateMediaPayload } from '../../../../modules/persistence/server/utils/mediaPayloadValidation';
 
 /**
  * PATCH /api/bricks/media/:id — частично обновляет метаданные медиа
@@ -15,12 +15,10 @@ export default defineEventHandler(async (event) => {
     const id = requireNumericId(event);
 
     try {
-        const body = await readNormalizedBody<TUpdateMediaPayload>(event);
-        const updated = await useBricksStorageAdapter().updateMedia(id, {
-            filename: body.filename,
-            alt: body.alt,
-            category: body.category,
-        });
+        const body = validateUpdateMediaPayload(
+            await readNormalizedBody<Record<string, unknown>>(event)
+        );
+        const updated = await useBricksStorageAdapter().updateMedia(id, body);
 
         if (!updated) {
             throw createError({

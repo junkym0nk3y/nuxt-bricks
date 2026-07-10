@@ -1,5 +1,6 @@
 // #region Imports
 import { Node, mergeAttributes } from '@tiptap/core';
+import { sanitizeSvgMarkup } from '../../common/utils/sanitize/sanitizeSvg';
 // #endregion
 
 const DEFAULT_MEDIA_SIZE = '2.4rem';
@@ -100,13 +101,14 @@ export const InlineSegmentImage = Node.create({
             }
 
             // SVG: создаём span и вставляем SVG-контент как innerHTML
+            // (svgContent — недоверенный ввод медиа-библиотеки: только через sanitizer)
             const dom = document.createElement('span');
             dom.setAttribute('data-segment-id', node.attrs.segmentId || '');
             dom.setAttribute('data-kind', 'svg');
             dom.setAttribute('style', buildSvgStyle(w, h));
             dom.className = 'inline-segment-media';
             dom.contentEditable = 'false';
-            dom.innerHTML = node.attrs.svgContent;
+            dom.innerHTML = sanitizeSvgMarkup(node.attrs.svgContent);
 
             return { dom };
         };

@@ -24,7 +24,7 @@ function handleClose(): void {
 </script>
 
 <template>
-    <Transition name="library-modal-fade">
+    <Transition name="bricks-modal-fade">
         <div
             v-if="props.item"
             :class="$style.BuilderMediaGalleryPreviewLightbox"

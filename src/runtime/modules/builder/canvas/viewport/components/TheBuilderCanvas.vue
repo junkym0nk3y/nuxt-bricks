@@ -305,7 +305,11 @@ onBeforeUnmount(() => {
         <!-- Canvas Area -->
         <div
             ref="canvasContainer"
-            :class="[$style.canvasArea, { [$style.canvasAreaPanning]: isPanning }, 'scrollbox']"
+            :class="[
+                $style.canvasArea,
+                { [$style.canvasAreaPanning]: isPanning },
+                'bricks-scrollbox',
+            ]"
             :style="canvasContainerStyle"
             @pointerdown="handleCanvasAreaPointerDown"
         >
@@ -454,11 +458,11 @@ onBeforeUnmount(() => {
     position: relative;
     overflow: visible;
     margin-top: 2rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     background-color: var(--bricks-base-0);
     transform-origin: top center;
     transition: transform 250ms ease;
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--bricks-shadow-md);
     container-type: inline-size;
     container-name: bricks;
 }
@@ -475,7 +479,7 @@ onBeforeUnmount(() => {
     width: 100%;
     height: 0.4rem;
     border-radius: 50%;
-    background: rgb(var(--rgb-primary) / 70%);
+    background: rgb(var(--bricks-rgb-primary) / 70%);
     pointer-events: none;
 }
 </style>

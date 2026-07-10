@@ -154,7 +154,7 @@ function resolveCategoryLabel(category: string): string {
             </div>
         </div>
 
-        <div :class="[$style.content, 'scrollbox']">
+        <div :class="[$style.content, 'bricks-scrollbox']">
             <div
                 v-for="(groupedComponents, category) in categorizedComponents"
                 :key="category"
@@ -244,11 +244,11 @@ function resolveCategoryLabel(category: string): string {
     width: 3.6rem;
     height: 3.6rem;
     padding: 0;
-    border-radius: var(--border-radius-control);
+    border-radius: var(--bricks-border-radius-control);
     border: 1px solid var(--bricks-base-300);
     background-color: var(--bricks-base-50);
     color: var(--bricks-base-400);
-    transition: all var(--default-transition);
+    transition: all var(--bricks-default-transition);
     cursor: pointer;
 
     svg {
@@ -339,7 +339,7 @@ function resolveCategoryLabel(category: string): string {
 
     code {
         padding: 0.2rem 0.6rem;
-        border-radius: var(--border-radius-xs);
+        border-radius: var(--bricks-border-radius-xs);
         background-color: var(--bricks-base-100);
         font-family: monospace;
     }

@@ -3,11 +3,11 @@
  * (fallback для GET /api/bricks/media при пустой таблице bricks_media).
  */
 import { useBricksPublishAdapter, useBricksStorageAdapter } from '../registry';
+import { DEFAULT_MEDIA_CATEGORY } from './mediaOrchestration';
 import { detectMimeTypeByFilename, fetchSvgContent } from './mediaProcessing';
+import { sanitizeSvgMarkup } from '../../../common/utils/sanitize/sanitizeSvg';
 import type { IMediaItem } from '../../../common/types/media';
 import type { ICreateMediaPayload, IStoredFileInfo } from '../../types/adapters';
-
-const DEFAULT_MEDIA_CATEGORY = 'other';
 
 /**
  * Строит payload медиа-записи по описанию файла из хранилища.
@@ -27,7 +27,8 @@ async function buildImportPayload(file: IStoredFileInfo): Promise<ICreateMediaPa
         size: file.size,
         mimeType,
         category: DEFAULT_MEDIA_CATEGORY,
-        svgContent: svgContent ?? null,
+        // Файл бакета — недоверенный ввод: в БД сохраняется санитизированный SVG
+        svgContent: svgContent ? sanitizeSvgMarkup(svgContent) : null,
         uploadedAt: file.lastModified,
     };
 }

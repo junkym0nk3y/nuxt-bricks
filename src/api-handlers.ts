@@ -1,0 +1,89 @@
+/**
+ * Манифест Nitro-ручек /api/bricks/** (persistence).
+ *
+ * Роуты модуля не автосканируются — module.ts регистрирует каждую запись
+ * через addServerHandler (file — путь от runtimeDir без расширения).
+ * Порядок важен для одинаковой специфичности: статические пути и /versions
+ * идут до generic /api/bricks/:id.
+ */
+export interface IBricksApiHandler {
+    route: string;
+    method?: 'get' | 'post' | 'put' | 'patch' | 'delete';
+    file: string;
+    /**
+     * Public read-model (открыт без auth, нужен live-рендеру) — регистрируется
+     * и в render-only режиме (features.builder: false); editorial/auth-ручки
+     * без него пропускаются.
+     */
+    isPublic?: boolean;
+}
+
+export const BRICKS_API_HANDLERS: IBricksApiHandler[] = [
+    { route: '/api/bricks', method: 'get', file: 'server/api/bricks/index.get' },
+    { route: '/api/bricks', method: 'post', file: 'server/api/bricks/index.post' },
+    {
+        route: '/api/bricks/auth/login',
+        method: 'post',
+        file: 'server/api/bricks/auth/login.post',
+    },
+    {
+        route: '/api/bricks/auth/logout',
+        method: 'post',
+        file: 'server/api/bricks/auth/logout.post',
+    },
+    {
+        route: '/api/bricks/auth/me',
+        method: 'get',
+        file: 'server/api/bricks/auth/me.get',
+    },
+    {
+        route: '/api/bricks/public/pages/:pagename',
+        method: 'get',
+        file: 'server/api/bricks/public/pages/[pagename].get',
+        isPublic: true,
+    },
+    {
+        route: '/api/bricks/media',
+        method: 'get',
+        file: 'server/api/bricks/media/index.get',
+    },
+    {
+        route: '/api/bricks/media',
+        method: 'post',
+        file: 'server/api/bricks/media/index.post',
+    },
+    {
+        route: '/api/bricks/media/upload',
+        method: 'post',
+        file: 'server/api/bricks/media/upload.post',
+    },
+    {
+        route: '/api/bricks/media/:id',
+        method: 'patch',
+        file: 'server/api/bricks/media/[id].patch',
+    },
+    {
+        route: '/api/bricks/media/:id',
+        method: 'delete',
+        file: 'server/api/bricks/media/[id].delete',
+    },
+    {
+        route: '/api/bricks/:id/versions',
+        method: 'get',
+        file: 'server/api/bricks/[id]/versions/index.get',
+    },
+    {
+        route: '/api/bricks/:id/versions/:versionId',
+        method: 'get',
+        file: 'server/api/bricks/[id]/versions/[versionId].get',
+    },
+    {
+        route: '/api/bricks/:id/versions/:versionId/restore',
+        method: 'post',
+        file: 'server/api/bricks/[id]/versions/[versionId]/restore.post',
+    },
+    { route: '/api/bricks/:id', method: 'get', file: 'server/api/bricks/[id].get' },
+    { route: '/api/bricks/:id', method: 'put', file: 'server/api/bricks/[id].put' },
+    { route: '/api/bricks/:id', method: 'patch', file: 'server/api/bricks/[id].patch' },
+    { route: '/api/bricks/:id', method: 'delete', file: 'server/api/bricks/[id].delete' },
+];

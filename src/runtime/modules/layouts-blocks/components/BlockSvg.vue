@@ -7,6 +7,7 @@ import type { IBlockSvgProps } from '../types/blockProps';
 import { computed } from 'vue';
 
 // Utils
+import { sanitizeSvgMarkup } from '../../common/utils/sanitize/sanitizeSvg';
 import { applyColorToSvgContent } from '../utils/inlineContent';
 // #endregion
 
@@ -34,7 +35,8 @@ const colorizedSvg = computed<string>(() => {
         return '';
     }
 
-    return applyColorToSvgContent(props.svgContent!, props.color || undefined);
+    // Санитизация ПОСЛЕ colorize: в v-html уходит только результат sanitizer'а
+    return sanitizeSvgMarkup(applyColorToSvgContent(props.svgContent!, props.color || undefined));
 });
 
 /**

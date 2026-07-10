@@ -283,12 +283,12 @@ async function focusCustomInput(): Promise<void> {
     flex-shrink: 0;
     height: var(--toolbar-btn-size, 2.6rem);
     padding: 0 0.6rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-base-200);
     background: transparent;
     font-size: var(--toolbar-font-size, 1.2rem);
     color: var(--bricks-base-600);
-    transition: all var(--default-transition);
+    transition: all var(--bricks-default-transition);
     cursor: pointer;
 
     &:hover {
@@ -332,10 +332,10 @@ async function focusCustomInput(): Promise<void> {
     flex-direction: column;
     width: 16rem;
     padding: 0.6rem;
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--bricks-border-radius-sm);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--bricks-shadow-md);
 }
 
 .optionsList {
@@ -351,7 +351,7 @@ async function focusCustomInput(): Promise<void> {
     align-items: center;
     width: 100%;
     padding: 0.4rem 0.8rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: none;
     background: transparent;
     text-align: left;
@@ -359,8 +359,8 @@ async function focusCustomInput(): Promise<void> {
     font-size: 1.2rem;
     color: var(--bricks-base-700);
     transition:
-        background var(--default-transition),
-        color var(--default-transition);
+        background var(--bricks-default-transition),
+        color var(--bricks-default-transition);
     cursor: pointer;
 
     &:hover,
@@ -391,12 +391,12 @@ async function focusCustomInput(): Promise<void> {
     min-width: 0;
     height: 2.4rem;
     padding: 0 0.6rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-50);
     font-size: 1.2rem;
     color: var(--bricks-base-800);
-    transition: border-color var(--default-transition);
+    transition: border-color var(--bricks-default-transition);
 
     &::placeholder {
         color: var(--bricks-base-400);
@@ -419,13 +419,13 @@ async function focusCustomInput(): Promise<void> {
     flex-shrink: 0;
     width: 2.4rem;
     height: 2.4rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-primary);
     font-size: 1.2rem;
     font-weight: 600;
     color: var(--bricks-static-white);
-    transition: opacity var(--default-transition);
+    transition: opacity var(--bricks-default-transition);
     cursor: pointer;
 
     &:hover {

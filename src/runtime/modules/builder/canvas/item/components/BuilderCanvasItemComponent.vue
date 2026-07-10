@@ -1,12 +1,17 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { Component } from 'vue';
 import type { IBricksComponent } from '../../../../common/types/brick';
+
+// Vue
+import { computed, type Component } from 'vue';
 
 // Composables
 import { useComponentSlots } from '../composables/useComponentSlots';
 import { useSlotDragDrop } from '../composables/useSlotDragDrop';
+
+// Utils
+import { sanitizeRichTextHtml } from '../../../../common/utils/sanitize/sanitizeRichText';
 
 // Components
 import BuilderCanvasItem from './BuilderCanvasItem.vue';
@@ -50,6 +55,11 @@ const {
     handleSlotDrop,
 } = useSlotDragDrop(props.component.id);
 // #endregion
+
+// #region Computed
+/** Слот-контент схемы — недоверенный ввод: санитизация обязательна перед v-html. */
+const sanitizedSlotContent = computed<string>(() => sanitizeRichTextHtml(slotStringContent.value));
+// #endregion
 </script>
 
 <template>
@@ -87,8 +97,8 @@ const {
                 </div>
             </template>
 
-            <template v-if="slotRenderData.length === 0 && slotStringContent" #default>
-                <span v-html="slotStringContent"></span>
+            <template v-if="slotRenderData.length === 0 && sanitizedSlotContent" #default>
+                <span v-html="sanitizedSlotContent"></span>
             </template>
         </component>
     </BuilderCanvasConditionalContainer>
@@ -111,7 +121,7 @@ const {
     background-color: var(--bricks-primary);
     opacity: 0;
     transform: translateY(0);
-    transition: opacity var(--default-transition);
+    transition: opacity var(--bricks-default-transition);
     pointer-events: none;
 }
 

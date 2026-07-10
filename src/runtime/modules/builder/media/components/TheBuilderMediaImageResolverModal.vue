@@ -124,7 +124,7 @@ function handleGlobalActionChange(event: Event): void {
                 </select>
             </div>
 
-            <div :class="[$style.content, 'scrollbox']">
+            <div :class="[$style.content, 'bricks-scrollbox']">
                 <BuilderMediaImageResolverItem
                     v-for="image in props.state.newImages"
                     :key="image.url"
@@ -160,9 +160,9 @@ function handleGlobalActionChange(event: Event): void {
     width: 100%;
     max-width: 64rem;
     max-height: 80vh;
-    border-radius: var(--border-radius-md);
+    border-radius: var(--bricks-border-radius-md);
     background: var(--bricks-base-0);
-    box-shadow: var(--shadow-xl);
+    box-shadow: var(--bricks-shadow-xl);
     flex-direction: column;
 }
 
@@ -223,7 +223,7 @@ function handleGlobalActionChange(event: Event): void {
     --bricks-base-900: #111827;
 
     padding: 0.6rem 1rem;
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--bricks-border-radius-sm);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
     font-size: 1.4rem;

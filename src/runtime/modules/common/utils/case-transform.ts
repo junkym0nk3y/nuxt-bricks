@@ -88,32 +88,3 @@ export function toSnakeCaseShallow(obj: object): Record<string, unknown> {
 
     return result;
 }
-
-/**
- * Конвертирует ключи объекта из camelCase в snake_case (рекурсивно).
- *
- * @param obj - Объект с ключами в camelCase.
- * @returns Новый объект с ключами в snake_case.
- */
-export function toSnakeCase<T>(obj: unknown): T {
-    if (obj === null || obj === undefined) {
-        return obj as T;
-    }
-
-    if (Array.isArray(obj)) {
-        return obj.map((item) => toSnakeCase(item)) as T;
-    }
-
-    if (typeof obj === 'object') {
-        const result: Record<string, unknown> = {};
-
-        for (const [key, value] of Object.entries(obj)) {
-            const snakeKey = toSnakeCaseString(key);
-            result[snakeKey] = toSnakeCase(value);
-        }
-
-        return result as T;
-    }
-
-    return obj as T;
-}

@@ -347,7 +347,7 @@ onMounted(() => {
 .text {
     flex-shrink: 0;
     margin-left: 2.4rem;
-    font-size: var(--font-size-sm);
+    font-size: var(--bricks-font-size-sm);
     font-weight: 500;
     line-height: 1.6rem;
 }

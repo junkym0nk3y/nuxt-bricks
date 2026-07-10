@@ -9,11 +9,14 @@ import type {
 } from '../../../common/types/bricks-api';
 import { DEFAULT_LAYOUT } from '../../../common/utils/bricks/publishedPage';
 import {
+    buildCopyFormState,
     buildDefaultFormState,
     normalizeFormState,
     resolveDefaultBackgroundColor,
 } from '../utils/formState';
+import { generateCopyPagename } from '../utils/slugify';
 import { validatePublishFormState } from '../utils/formValidation';
+import { toPageWriteError } from '../utils/requestErrors';
 import {
     publishPageRequest,
     updatePageRequest,
@@ -21,6 +24,7 @@ import {
     deletePageRequest,
     fetchAllPagesRequest,
     fetchPageByPagenameRequest,
+    restorePageVersionRequest,
 } from '../utils/publishApi';
 
 /**
@@ -104,7 +108,29 @@ export const usePublishStore = defineStore('bricksPublish', {
         },
 
         /**
-         * Обновляет существующую страницу и перезагружает список страниц.
+         * Синхронизирует страницу в локальном списке: заменяет существующую
+         * запись ответом сервера (свежие updatedAt/revision) либо добавляет новую.
+         *
+         * @param page - Нормализованная страница из ответа API.
+         */
+        syncPageInList(page: IPublishedPage): void {
+            const index = this.publishedPages.findIndex(
+                (existing) => String(existing.id) === String(page.id)
+            );
+
+            if (index === -1) {
+                this.publishedPages = [page, ...this.publishedPages];
+            } else {
+                this.publishedPages.splice(index, 1, page);
+            }
+        },
+
+        /**
+         * Обновляет существующую страницу и синхронизирует её в локальном списке.
+         * PUT идёт с precondition (revision страницы из списка): если страницу
+         * изменили в другом месте — 409, список обновляется (toPageWriteError),
+         * пользователь получает понятный тост и осознанно перезаписывает
+         * повторным сохранением.
          *
          * @param id - Идентификатор страницы.
          * @param schema - Схема лендинга.
@@ -116,18 +142,21 @@ export const usePublishStore = defineStore('bricksPublish', {
             formState: TPublishFormState
         ): Promise<void> {
             try {
-                await updatePageRequest(id, schema, formState);
+                const expectedRevision = this.getPageById(id)?.revision;
+                const normalized = await updatePageRequest(id, schema, formState, expectedRevision);
                 console.log('[Publish Store] Page updated successfully');
 
-                await this.loadAllPages();
+                this.syncPageInList(normalized);
             } catch (error: unknown) {
                 console.error('[Publish Store] Failed to update page:', error);
-                throw error;
+                throw await toPageWriteError(error, () => this.loadAllPages());
             }
         },
 
         /**
          * Частично обновляет страницу и синхронизирует её в локальном списке.
+         * Конфликт precondition (payload с expectedRevision) обрабатывается
+         * как в updatePage.
          *
          * @param id - Идентификатор страницы.
          * @param payload - Частичный payload обновления.
@@ -135,19 +164,30 @@ export const usePublishStore = defineStore('bricksPublish', {
         async patchPage(id: string | number, payload: IUpdatePagePayload): Promise<IPublishedPage> {
             try {
                 const normalized = await patchPageRequest(id, payload);
-
-                const index = this.publishedPages.findIndex(
-                    (page) => String(page.id) === String(id)
-                );
-                if (index === -1) {
-                    this.publishedPages = [normalized, ...this.publishedPages];
-                } else {
-                    this.publishedPages.splice(index, 1, normalized);
-                }
+                this.syncPageInList(normalized);
 
                 return normalized;
             } catch (error: unknown) {
                 console.error('[Publish Store] Failed to patch page:', error);
+                throw await toPageWriteError(error, () => this.loadAllPages());
+            }
+        },
+
+        /**
+         * Откатывает страницу к сохранённой версии и синхронизирует её в локальном списке
+         * (панель деталей обновится реактивно по `updatedAt`).
+         *
+         * @param id - Идентификатор страницы.
+         * @param versionId - Идентификатор версии.
+         */
+        async restorePageVersion(id: string | number, versionId: number): Promise<IPublishedPage> {
+            try {
+                const normalized = await restorePageVersionRequest(id, versionId);
+                this.syncPageInList(normalized);
+
+                return normalized;
+            } catch (error: unknown) {
+                console.error('[Publish Store] Failed to restore page version:', error);
                 throw error;
             }
         },
@@ -197,7 +237,7 @@ export const usePublishStore = defineStore('bricksPublish', {
                 const page = await fetchPageByPagenameRequest(pagename);
 
                 if (!page) {
-                    this.generalError = `GET /api/bricks/published: page "${pagename}" is not published`;
+                    this.generalError = `GET /api/bricks/public/pages/${pagename}: page is not published`;
                 }
 
                 return page;
@@ -358,26 +398,6 @@ export const usePublishStore = defineStore('bricksPublish', {
         },
 
         /**
-         * Генерирует свободный `pagename` для копии страницы.
-         *
-         * @param base - Исходный `pagename`.
-         * @returns Уникальный `pagename` для копии.
-         */
-        generateCopyPagename(base: string): string {
-            const safeBase = base?.trim() ? base.trim() : 'page';
-            const normalizedBase = safeBase.replace(/-copy(?:-\d+)?$/, '');
-            let candidate = `${normalizedBase}-copy`;
-            let suffix = 1;
-
-            while (!this.isPagenameAvailable(candidate)) {
-                candidate = `${normalizedBase}-copy-${suffix}`;
-                suffix += 1;
-            }
-
-            return candidate;
-        },
-
-        /**
          * Создаёт новую страницу-черновик с пустой схемой (модалка создания дашборда).
          * `currentFormState` не трогает — работает вне сессии редактора.
          *
@@ -403,22 +423,11 @@ export const usePublishStore = defineStore('bricksPublish', {
                 throw new Error(t('bricks.publish.dashboard.toasts.duplicateFailed'));
             }
 
-            const copyFormState: TPublishFormState = {
-                pagename: this.generateCopyPagename(page.pagename),
-                title: page.title ? `${page.title} (copy)` : page.title,
-                description: page.description,
-                keywords: page.keywords,
-                published: false,
-                layout: page.layout || DEFAULT_LAYOUT,
-                backgroundColor: page.backgroundColor || resolveDefaultBackgroundColor(),
-                socialImage: page.socialImage,
-                urlPrefix: page.urlPrefix,
-                subdomain: page.subdomain,
-                createdAt: '',
-                updatedAt: '',
-            };
+            const copyPagename = generateCopyPagename(page.pagename, (candidate) =>
+                this.isPagenameAvailable(candidate)
+            );
 
-            return await this.publishPage(page.schema, copyFormState);
+            return await this.publishPage(page.schema, buildCopyFormState(page, copyPagename));
         },
 
         /**
@@ -433,7 +442,9 @@ export const usePublishStore = defineStore('bricksPublish', {
             const originalValidationErrors = { ...this.validationErrors };
             const originalGeneralError = this.generalError;
 
-            const copyPagename = this.generateCopyPagename(originalFormState.pagename);
+            const copyPagename = generateCopyPagename(originalFormState.pagename, (candidate) =>
+                this.isPagenameAvailable(candidate)
+            );
             const copyTitle = originalFormState.title
                 ? `${originalFormState.title} (copy)`
                 : originalFormState.title;

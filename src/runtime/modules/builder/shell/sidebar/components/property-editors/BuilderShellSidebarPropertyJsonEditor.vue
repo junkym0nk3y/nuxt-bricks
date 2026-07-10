@@ -114,7 +114,7 @@ watch(
 
 .editorWrapper {
     overflow: hidden;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-base-300);
 }
 

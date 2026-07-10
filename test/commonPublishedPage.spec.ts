@@ -6,8 +6,10 @@ import { describe, expect, it } from 'vitest';
 import {
     DEFAULT_BACKGROUND_COLOR,
     DEFAULT_LAYOUT,
+    matchesPageUrlPrefix,
     normalizePublishedPage,
     preserveSchema,
+    resolveRequestedUrlPrefix,
 } from '../src/runtime/modules/common/utils/bricks/publishedPage';
 // #endregion
 
@@ -90,5 +92,44 @@ describe('normalizePublishedPage', () => {
         expect(normalizePublishedPage({ id: 1, pagename: 'p', published: 0 }).published).toBe(
             false
         );
+    });
+});
+
+describe('resolveRequestedUrlPrefix', () => {
+    it('склеивает repeatable-параметр маршрута в префикс', () => {
+        expect(resolveRequestedUrlPrefix(['blog'])).toBe('blog');
+        expect(resolveRequestedUrlPrefix(['blog', '2026'])).toBe('blog/2026');
+    });
+
+    it('отсутствующий параметр — пустой префикс', () => {
+        expect(resolveRequestedUrlPrefix(undefined)).toBe('');
+        expect(resolveRequestedUrlPrefix([])).toBe('');
+    });
+
+    it('строковый параметр проходит как есть', () => {
+        expect(resolveRequestedUrlPrefix('blog')).toBe('blog');
+    });
+});
+
+describe('matchesPageUrlPrefix', () => {
+    it('страница без префикса доступна только по голому URL', () => {
+        expect(matchesPageUrlPrefix({ urlPrefix: null }, '')).toBe(true);
+        expect(matchesPageUrlPrefix({ urlPrefix: null }, 'blog')).toBe(false);
+    });
+
+    it('страница с префиксом доступна только по своему префиксу', () => {
+        expect(matchesPageUrlPrefix({ urlPrefix: 'blog' }, 'blog')).toBe(true);
+        expect(matchesPageUrlPrefix({ urlPrefix: 'blog' }, '')).toBe(false);
+        expect(matchesPageUrlPrefix({ urlPrefix: 'blog' }, 'docs')).toBe(false);
+    });
+
+    it('многосегментный префикс сравнивается целиком', () => {
+        expect(matchesPageUrlPrefix({ urlPrefix: 'blog/2026' }, 'blog/2026')).toBe(true);
+        expect(matchesPageUrlPrefix({ urlPrefix: 'blog/2026' }, 'blog')).toBe(false);
+    });
+
+    it('пробельный urlPrefix приравнивается к отсутствию (legacy-записи)', () => {
+        expect(matchesPageUrlPrefix({ urlPrefix: '  ' }, '')).toBe(true);
+        expect(matchesPageUrlPrefix({ urlPrefix: ' blog ' }, 'blog')).toBe(true);
     });
 });

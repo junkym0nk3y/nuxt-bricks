@@ -185,11 +185,11 @@ watch(
     flex-shrink: 0;
     height: var(--toolbar-btn-size, 2.6rem);
     padding: 0 0.4rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-base-200);
     background: transparent;
     color: var(--bricks-base-600);
-    transition: all var(--default-transition);
+    transition: all var(--bricks-default-transition);
     cursor: pointer;
 
     &:hover {
@@ -232,10 +232,10 @@ watch(
     gap: 0.6rem;
     width: 18rem;
     padding: 0.8rem;
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--bricks-border-radius-sm);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--bricks-shadow-md);
 }
 
 .colorPickerRow {
@@ -247,7 +247,7 @@ watch(
     width: 100%;
     height: 3.2rem;
     padding: 0.2rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-base-200);
     background: transparent;
     cursor: pointer;
@@ -257,7 +257,7 @@ watch(
     }
 
     &::-webkit-color-swatch {
-        border-radius: calc(var(--border-radius-xs) - 0.1rem);
+        border-radius: calc(var(--bricks-border-radius-xs) - 0.1rem);
         border: none;
     }
 }
@@ -280,13 +280,13 @@ watch(
     min-width: 0;
     height: 2.4rem;
     padding: 0 0.6rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-50);
     font-family: monospace;
     font-size: 1.2rem;
     color: var(--bricks-base-800);
-    transition: border-color var(--default-transition);
+    transition: border-color var(--bricks-default-transition);
 
     &::placeholder {
         color: var(--bricks-base-400);

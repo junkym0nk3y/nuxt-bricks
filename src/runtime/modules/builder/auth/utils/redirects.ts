@@ -2,24 +2,22 @@
  * Санитизация возвратного redirect-пути после логина.
  */
 
-/** Дефолтный путь после логина. */
-const DEFAULT_REDIRECT = '/bricks';
-
 /**
  * Возвращает безопасный внутренний путь из query-параметра redirect.
  * Допускаются только внутренние пути с одним ведущим `/`: `//host`, `/\`,
  * абсолютные URL и не-строки отбрасываются — защита от open redirect.
  *
  * @param raw - Значение query-параметра redirect.
- * @returns Внутренний путь или /bricks.
+ * @param fallbackPath - Путь по умолчанию (дашборд билдера из `bricks.routes`).
+ * @returns Внутренний путь или fallbackPath.
  */
-export function sanitizeRedirectPath(raw: unknown): string {
+export function sanitizeRedirectPath(raw: unknown, fallbackPath: string): string {
     if (typeof raw !== 'string' || raw.length === 0) {
-        return DEFAULT_REDIRECT;
+        return fallbackPath;
     }
 
     if (!raw.startsWith('/') || raw.startsWith('//') || raw.startsWith('/\\')) {
-        return DEFAULT_REDIRECT;
+        return fallbackPath;
     }
 
     return raw;

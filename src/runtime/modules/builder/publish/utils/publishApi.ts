@@ -1,9 +1,12 @@
 import type { IBricksSchema } from '../../../common/types/brick';
 import type {
+    ICreatePagePayload,
     IUpdatePagePayload,
+    IPageVersion,
+    IPageVersionSummary,
     IPublishedPage,
-    IPublishedPageSummary,
     TPublishFormState,
+    TRequestErrorLike,
 } from '../../../common/types/bricks-api';
 import { useApiClient } from '../../../common/composables/useApiClient';
 import { toSnakeCaseShallow } from '../../../common/utils/case-transform';
@@ -42,20 +45,34 @@ export async function publishPageRequest(
  * @param id - Идентификатор страницы.
  * @param schema - Схема лендинга.
  * @param formState - Данные формы публикации.
+ * @param expectedRevision - Precondition optimistic locking (revision страницы
+ * на момент чтения); undefined — запись без precondition (last-write-wins).
+ * @returns Нормализованная страница из ответа (со свежей revision).
  * @throws Ошибка запроса, приведённая через `toRequestError`.
  */
 export async function updatePageRequest(
     id: string | number,
     schema: IBricksSchema,
-    formState: TPublishFormState
-): Promise<void> {
+    formState: TPublishFormState,
+    expectedRevision?: number
+): Promise<IPublishedPage> {
     const { apiFetcher } = useApiClient();
+    const payload: ICreatePagePayload & { expectedRevision?: number } = buildPagePayload(
+        schema,
+        formState
+    );
+
+    if (expectedRevision !== undefined) {
+        payload.expectedRevision = expectedRevision;
+    }
 
     try {
-        await apiFetcher(`/api/bricks/${id}/`, {
+        const response = await apiFetcher<IPublishedPage>(`/api/bricks/${id}/`, {
             method: 'PUT',
-            body: toSnakeCaseShallow(buildPagePayload(schema, formState)),
+            body: toSnakeCaseShallow(payload),
         });
+
+        return normalizePublishedPage(response, resolveDefaultBackgroundColor());
     } catch (error: unknown) {
         throw toRequestError('PUT', `/api/bricks/${id}`, error);
     }
@@ -104,6 +121,73 @@ export async function deletePageRequest(id: string | number): Promise<void> {
 }
 
 /**
+ * Загружает сводки сохранённых версий страницы через GET /api/bricks/:id/versions.
+ *
+ * @param id - Идентификатор страницы.
+ * @returns Сводки версий (без schema), новые сверху.
+ * @throws Ошибка запроса, приведённая через `toRequestError`.
+ */
+export async function fetchPageVersionsRequest(
+    id: string | number
+): Promise<IPageVersionSummary[]> {
+    const { apiFetcher } = useApiClient();
+
+    try {
+        return await apiFetcher<IPageVersionSummary[]>(`/api/bricks/${id}/versions/`);
+    } catch (error: unknown) {
+        throw toRequestError('GET', `/api/bricks/${id}/versions`, error);
+    }
+}
+
+/**
+ * Загружает полный снапшот версии через GET /api/bricks/:id/versions/:versionId.
+ *
+ * @param id - Идентификатор страницы.
+ * @param versionId - Идентификатор версии.
+ * @returns Полный снапшот версии (meta + schema).
+ * @throws Ошибка запроса, приведённая через `toRequestError`.
+ */
+export async function fetchPageVersionRequest(
+    id: string | number,
+    versionId: number
+): Promise<IPageVersion> {
+    const { apiFetcher } = useApiClient();
+
+    try {
+        return await apiFetcher<IPageVersion>(`/api/bricks/${id}/versions/${versionId}/`);
+    } catch (error: unknown) {
+        throw toRequestError('GET', `/api/bricks/${id}/versions/${versionId}`, error);
+    }
+}
+
+/**
+ * Откатывает страницу к версии через POST /api/bricks/:id/versions/:versionId/restore.
+ * Сервер применяет только schema + layout + backgroundColor.
+ *
+ * @param id - Идентификатор страницы.
+ * @param versionId - Идентификатор версии.
+ * @returns Нормализованная страница после отката.
+ * @throws Ошибка запроса, приведённая через `toRequestError`.
+ */
+export async function restorePageVersionRequest(
+    id: string | number,
+    versionId: number
+): Promise<IPublishedPage> {
+    const { apiFetcher } = useApiClient();
+
+    try {
+        const response = await apiFetcher<IPublishedPage>(
+            `/api/bricks/${id}/versions/${versionId}/restore/`,
+            { method: 'POST' }
+        );
+
+        return normalizePublishedPage(response, resolveDefaultBackgroundColor());
+    } catch (error: unknown) {
+        throw toRequestError('POST', `/api/bricks/${id}/versions/${versionId}/restore`, error);
+    }
+}
+
+/**
  * Загружает список всех страниц (нормализованных).
  *
  * @returns Нормализованные страницы.
@@ -123,8 +207,8 @@ export async function fetchAllPagesRequest(): Promise<IPublishedPage[]> {
 }
 
 /**
- * Загружает опубликованную страницу по `pagename` (двухшаговый lookup:
- * список published → страница по id).
+ * Загружает опубликованную страницу по `pagename` через public read-model
+ * (прямой lookup без list+find).
  *
  * @param pagename - ЧПУ страницы.
  * @returns Нормализованная страница либо `null`, если страница не опубликована.
@@ -132,23 +216,19 @@ export async function fetchAllPagesRequest(): Promise<IPublishedPage[]> {
  */
 export async function fetchPageByPagenameRequest(pagename: string): Promise<IPublishedPage | null> {
     const { apiFetcher } = useApiClient();
-    let errorUrl = `/api/bricks/published (lookup ${pagename})`;
+    const url = `/api/bricks/public/pages/${pagename}`;
 
     try {
-        const publishedPages = await apiFetcher<IPublishedPageSummary[]>('/api/bricks/published/');
+        const page = await apiFetcher<IPublishedPage>(`${url}/`);
+        return normalizePublishedPage(page, resolveDefaultBackgroundColor());
+    } catch (error: unknown) {
+        const status = (error as TRequestErrorLike).statusCode;
 
-        const publishedPage = publishedPages.find(
-            (candidate) => candidate.pagename === pagename && candidate.published
-        );
-
-        if (!publishedPage) {
+        // Public read-model неопубликованную страницу не отдаёт — это не ошибка запроса
+        if (status === 404) {
             return null;
         }
 
-        errorUrl = `/api/bricks/${publishedPage.id}`;
-        const page = await apiFetcher<IPublishedPage>(`/api/bricks/${publishedPage.id}/`);
-        return normalizePublishedPage(page, resolveDefaultBackgroundColor());
-    } catch (error: unknown) {
-        throw toRequestError('GET', errorUrl, error);
+        throw toRequestError('GET', url, error);
     }
 }

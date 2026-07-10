@@ -16,6 +16,10 @@
         "./persistence": {
             "types": "./dist/runtime/modules/persistence/server/registry.d.ts",
             "import": "./dist/runtime/modules/persistence/server/registry.js"
+        },
+        "./sanitize": {
+            "types": "./dist/runtime/modules/common/utils/sanitize/index.d.ts",
+            "import": "./dist/runtime/modules/common/utils/sanitize/index.js"
         }
     },
     "main": "./dist/module.mjs",
@@ -26,15 +30,20 @@
             ],
             "persistence": [
                 "./dist/runtime/modules/persistence/server/registry.d.ts"
+            ],
+            "sanitize": [
+                "./dist/runtime/modules/common/utils/sanitize/index.d.ts"
             ]
         }
     },
     "files": [
-        "dist"
+        "dist",
+        "migrations"
     ],
     "bin": {
         "bricks-gen": "dist/cli/bricks-generate.mjs",
-        "bricks-hash-password": "dist/cli/bricks-hash-password.mjs"
+        "bricks-hash-password": "dist/cli/bricks-hash-password.mjs",
+        "bricks-migrate": "dist/cli/bricks-migrate.mjs"
     },
     "engines": {
         "node": ">=22.17"
@@ -48,6 +57,7 @@
         "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxi prepare playground",
         "bricks:gen": "node ./src/cli/bricks-generate.mjs",
         "bricks:hash": "node ./src/cli/bricks-hash-password.mjs",
+        "bricks:migrate": "node ./src/cli/bricks-migrate.mjs",
         "el:check": "oxlint .",
         "el:fix": "oxlint --fix .",
         "sl:check": "stylelint \"**/*.{scss,vue}\"",
@@ -72,7 +82,8 @@
         "defu": "^6.1.4",
         "markdown-it": "^14.2.0",
         "modern-screenshot": "^4.7.0",
-        "tiny-sha256": "^1.0.2"
+        "tiny-sha256": "^1.0.2",
+        "xss": "^1.0.15"
     },
     "peerDependencies": {
         "@aws-sdk/client-s3": "^3.914.0",
@@ -98,7 +109,7 @@
         "pinia": "^3.0.0",
         "reka-ui": "^2.0.0",
         "sharp": "^0.34.5",
-        "swiper": "^11.1.5",
+        "swiper": "^14.0.5",
         "vanilla-jsoneditor": "^3.11.0",
         "vee-validate": "^4.13.1",
         "yup": "^1.7.1"
@@ -123,7 +134,6 @@
         "h3-proxy": "^1.13.0",
         "knip": "^6.25.0",
         "lint-staged": "^15.5.2",
-        "normalize.css": "^8.0.1",
         "nuxt": "^3.21.1",
         "oxlint": "^1.56.0",
         "pathe": "^1.1.0",
@@ -142,7 +152,7 @@
         "stylelint-scss": "^6.9.0",
         "typescript": "^5.9.3",
         "vitest": "^3.2.0",
-        "vue": "3.5.29",
+        "vue": "3.5.39",
         "vue-tsc": "^3.2.4"
     }
 }

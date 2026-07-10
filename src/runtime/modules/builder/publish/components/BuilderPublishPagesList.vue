@@ -177,7 +177,7 @@ function handleDelete(page: IPublishedPage): void {
     align-self: flex-start;
     gap: 0.2rem;
     padding: 0.2rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     background: var(--bricks-base-100);
 }
 
@@ -191,8 +191,8 @@ function handleDelete(page: IPublishedPage): void {
     font-weight: 500;
     color: var(--bricks-base-500);
     transition:
-        color var(--default-transition),
-        background-color var(--default-transition);
+        color var(--bricks-default-transition),
+        background-color var(--bricks-default-transition);
     cursor: pointer;
 
     &:hover {
@@ -202,7 +202,7 @@ function handleDelete(page: IPublishedPage): void {
 
 .filterTabActive {
     background: var(--bricks-base-0);
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--bricks-shadow-sm);
     font-weight: 600;
     color: var(--bricks-base-900);
 }

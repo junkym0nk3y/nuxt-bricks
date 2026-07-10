@@ -9,7 +9,7 @@ import type {
     IMediaUpdateMetaRequest,
 } from '../../../common/types/media';
 import { useApiClient } from '../../../common/composables/useApiClient';
-import { toCamelCase, toSnakeCase } from '../../../common/utils/case-transform';
+import { toCamelCase } from '../../../common/utils/case-transform';
 import { getBricksErrorMessage } from '../../../common/utils/main';
 // #endregion
 
@@ -91,10 +91,10 @@ export const useMediaStore = defineStore('bricksMedia', {
         },
 
         /**
-         * Загружает файл в S3 и сохраняет метаданные в Django backend.
-         * Двухэтапная загрузка:
-         * 1. POST /mock-api/s3-image — загрузка файла в S3, получение URL
-         * 2. POST /api/bricks/media/ — сохранение метаданных в Django
+         * Загружает файл в медиа-библиотеку одним запросом: сервер атомарно
+         * кладёт файл в хранилище публикации и регистрирует метаданные в БД
+         * (POST /api/bricks/media/upload, компенсация файла при ошибке БД —
+         * на сервере). Ошибка пробрасывается вызывающему.
          *
          * @param file - Файл, который нужно загрузить.
          * @param category - Категория, которая будет назначена (если задана).
@@ -108,47 +108,13 @@ export const useMediaStore = defineStore('bricksMedia', {
                 const resolvedCategory =
                     category && category !== 'all' ? category : DEFAULT_MEDIA_CATEGORY;
 
-                // Читаем svgContent из файла на клиенте (если SVG)
-                let svgContent: string | null = null;
-
-                if (file.type === 'image/svg+xml') {
-                    try {
-                        svgContent = await file.text();
-                    } catch (error) {
-                        console.warn('[Media Store] Failed to read SVG content:', error);
-                    }
-                }
-
-                // Этап 1: Загрузка файла в S3
                 const formData = new FormData();
                 formData.append('file', file);
+                formData.append('category', resolvedCategory);
 
-                const s3Response = await apiFetcher<{
-                    success: boolean;
-                    url: string;
-                    filename: string;
-                    size: number;
-                    mimeType: string;
-                }>('/mock-api/s3-image', {
+                const response = await apiFetcher<IMediaItem>('/api/bricks/media/upload', {
                     method: 'POST',
                     body: formData,
-                });
-
-                if (!s3Response.success || !s3Response.url) {
-                    throw new Error('Failed to upload file to S3');
-                }
-
-                // Этап 2: Сохранение метаданных в Django (snake_case для backend)
-                const response = await apiFetcher<IMediaItem>('/api/bricks/media/', {
-                    method: 'POST',
-                    body: toSnakeCase({
-                        url: s3Response.url,
-                        filename: s3Response.filename,
-                        size: s3Response.size,
-                        mimeType: s3Response.mimeType,
-                        category: resolvedCategory,
-                        svgContent,
-                    }),
                 });
 
                 const mediaItem = normalizeMediaItem(response);
@@ -165,40 +131,19 @@ export const useMediaStore = defineStore('bricksMedia', {
         },
 
         /**
-         * Удаляет медиафайл из S3 и метаданные из Django.
-         * Двухэтапное удаление:
-         * 1. POST /mock-api/s3-delete — удаление файла из S3
-         * 2. DELETE /api/bricks/media/:id — удаление метаданных из Django
+         * Удаляет медиафайл одним запросом: сервер удаляет файл хранилища и
+         * метаданные БД (DELETE /api/bricks/media/:id, file-first). Ошибка
+         * пробрасывается вызывающему — элемент остаётся в списке, операция
+         * безопасно повторяется.
          *
          * @param id - Идентификатор удаляемого медиафайла.
          */
         async removeItem(id: number): Promise<void> {
             const { apiFetcher } = useApiClient();
-            const target = this.items.find((item) => item.id === id);
 
-            if (!target) {
-                return;
-            }
-
-            try {
-                // Этап 1: Удаление файла из S3
-                await apiFetcher<{ success: boolean }>('/mock-api/s3-delete', {
-                    method: 'POST',
-                    body: { url: target.url },
-                });
-            } catch (error) {
-                console.error('[Media Store] Failed to delete from S3:', error);
-                // Продолжаем удаление из Django даже если S3 не удалось
-            }
-
-            try {
-                // Этап 2: Удаление метаданных из Django
-                await apiFetcher(`/api/bricks/media/${encodeURIComponent(id)}/`, {
-                    method: 'DELETE',
-                });
-            } catch (error) {
-                console.error('[Media Store] Failed to delete from backend:', error);
-            }
+            await apiFetcher(`/api/bricks/media/${encodeURIComponent(id)}/`, {
+                method: 'DELETE',
+            });
 
             this.items = this.items.filter((item) => item.id !== id);
         },

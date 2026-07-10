@@ -6,6 +6,7 @@ import type { IBlockDefinition, IBlockRenderContext } from '../types/registry';
 import { h, type VNode } from 'vue';
 
 // Utils
+import { resolvePublishedProps } from '../utils/publishedProps';
 import { gridPlacementStyle } from '../utils/responsiveVars';
 
 // Components
@@ -18,8 +19,11 @@ import BlockAccordion from './BlockAccordion.vue';
  * @returns VNode аккордеона.
  */
 function renderAccordionPublished(ctx: IBlockRenderContext): VNode {
-    const { component, extraClasses, extraAttrs } = ctx;
-    const componentProps = component.props as IAccordionLayoutProps;
+    const { component, definition, extraClasses, extraAttrs } = ctx;
+    const componentProps = resolvePublishedProps<IAccordionLayoutProps>(
+        definition,
+        component.props
+    );
     const style = gridPlacementStyle(component);
 
     return h(BlockAccordion, {

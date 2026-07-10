@@ -2,7 +2,7 @@
  * Pages Manager dashboard types.
  */
 
-import type { IPublishedPage } from '../../../common/types/bricks-api';
+import type { IPageVersionSummary, IPublishedPage } from '../../../common/types/bricks-api';
 
 export type TPublishDashboardSection = 'pages' | 'templates';
 
@@ -134,6 +134,7 @@ export interface IPublishDetailsPanelEmits {
     delete: [page: IPublishedPage];
     'toggle-published': [page: IPublishedPage, published: boolean];
     'open-media': [];
+    'restore-version': [page: IPublishedPage, version: IPageVersionSummary];
     notify: [message: string, variant: 'success' | 'error'];
 }
 
@@ -178,4 +179,13 @@ export interface IPublishDetailsPanelRoutingProps {
 export interface IPublishDetailsPanelRoutingEmits {
     'update:urlPrefix': [value: string];
     'update:subdomain': [value: string];
+}
+
+export interface IPublishDetailsPanelVersionsProps {
+    page: IPublishedPage;
+}
+
+export interface IPublishDetailsPanelVersionsEmits {
+    restore: [version: IPageVersionSummary];
+    notify: [message: string, variant: 'success' | 'error'];
 }

@@ -11,6 +11,8 @@ import type { ILayoutProperty } from '../../common/types/layoutProperty';
 /** Контекст рендера published-страницы (из TheRenderer) */
 export interface IBlockRenderContext {
     component: IBricksComponent;
+    /** Definition рендерящегося блока — источник дефолтов для resolvePublishedProps */
+    definition: IBlockDefinition;
     extraClasses: string[];
     extraAttrs: Record<string, string | undefined>;
     styles: Record<string, string>; // CSS module

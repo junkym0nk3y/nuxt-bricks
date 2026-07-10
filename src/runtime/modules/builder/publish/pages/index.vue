@@ -6,6 +6,9 @@ import type { IMediaItem } from '../../../common/types/media';
 import type { TMediaLightboxItem } from '../../media/types/media';
 import type { TPublishDashboardSection } from '../types/dashboard';
 
+// Utils
+import { BRICKS_ROUTE_NAMES } from '../../../common/constants/routes';
+
 // Vue
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -17,11 +20,11 @@ import { useRouter, useCookie, useHead } from '#imports';
 import { usePublishStore } from '../stores/publish';
 
 // Composables
-import { useApiClient } from '../../../common/composables/useApiClient';
 import { useAuthSession } from '../../auth/composables/useAuthSession';
 import { useBuilderToast } from '../../core/composables/useBuilderToast';
 import { usePublishDashboard } from '../composables/usePublishDashboard';
 import { usePublishPreview } from '../composables/usePublishPreview';
+import { usePublishVersionRestore } from '../composables/usePublishVersionRestore';
 
 // Components
 import TheBuilderPublishDashboard from '../components/TheBuilderPublishDashboard.vue';
@@ -56,6 +59,15 @@ const duplicatingPageId = ref<string | null>(null);
 const pendingDeletePage = ref<IPublishedPage | null>(null);
 const isDeleteConfirmationOpen = ref(false);
 const isDeleting = ref(false);
+
+const {
+    isRestoreConfirmationOpen,
+    isRestoring,
+    restoreConfirmationDescription,
+    requestRestoreVersion,
+    closeRestoreConfirmation,
+    confirmRestoreVersion,
+} = usePublishVersionRestore({ onNotify: showToast });
 const selectedPageId = ref<string | null>(null);
 const thumbnailPreviewItem = ref<TMediaLightboxItem | null>(null);
 const detailsPanelRef = ref<InstanceType<typeof BuilderPublishDetailsPanel> | null>(null);
@@ -139,7 +151,7 @@ function handleCloseCreatePageModal(): void {
  */
 async function handlePageCreated(pagename: string): Promise<void> {
     isCreatePageModalOpen.value = false;
-    await router.push(`/bricks/${pagename}`);
+    await router.push({ name: BRICKS_ROUTE_NAMES.builderPage, params: { pagename } });
 }
 
 /**
@@ -173,7 +185,10 @@ function handleCloseDetails(): void {
  * @param page - Страница.
  */
 async function handleEditPage(page: IPublishedPage): Promise<void> {
-    await router.push(`/bricks/${page.pagename}`);
+    await router.push({
+        name: BRICKS_ROUTE_NAMES.builderPage,
+        params: { pagename: page.pagename },
+    });
 }
 
 /**
@@ -300,25 +315,8 @@ function handleCloseDeleteConfirmation(force = false): void {
 }
 
 /**
- * Best-effort удаление превью страницы из S3 (без cache-buster query).
- * Ошибки игнорируются — файл перезапишется при следующем сохранении с тем же id.
- *
- * @param thumbnailUrl - Сохранённый URL превью (может содержать `?v=`).
- */
-async function cleanupThumbnail(thumbnailUrl: string): Promise<void> {
-    try {
-        const { apiFetcher } = useApiClient();
-        await apiFetcher('/mock-api/s3-delete', {
-            method: 'POST',
-            body: { url: thumbnailUrl.split('?')[0] },
-        });
-    } catch (error: unknown) {
-        console.warn('[Publish Dashboard] Thumbnail cleanup failed:', error);
-    }
-}
-
-/**
- * Подтверждает и выполняет удаление страницы.
+ * Подтверждает и выполняет удаление страницы (файл превью в хранилище
+ * best-effort чистит сервер в DELETE /api/bricks/:id).
  */
 async function handleConfirmDelete(): Promise<void> {
     const page = pendingDeletePage.value;
@@ -329,9 +327,6 @@ async function handleConfirmDelete(): Promise<void> {
     isDeleting.value = true;
     try {
         await publishStore.deletePage(page.id);
-        if (page.thumbnailUrl) {
-            cleanupThumbnail(page.thumbnailUrl);
-        }
         if (selectedPageId.value === String(page.id)) {
             selectedPageId.value = null;
         }
@@ -495,6 +490,7 @@ onMounted(() => {
                     @delete="handleDeletePage"
                     @toggle-published="handleTogglePublished"
                     @open-media="handleOpenMediaFromDetails"
+                    @restore-version="requestRestoreVersion"
                     @notify="handleDetailsNotify"
                 />
             </template>
@@ -528,6 +524,17 @@ onMounted(() => {
             :is-loading="isDeleting"
             @close="handleCloseDeleteConfirmation"
             @confirm="handleConfirmDelete"
+        />
+
+        <BricksConfirmModal
+            :is-open="isRestoreConfirmationOpen"
+            :title="t('bricks.publish.dashboard.details.versions.restoreConfirm.title')"
+            :description="restoreConfirmationDescription"
+            :confirm-text="t('bricks.publish.dashboard.details.versions.restore')"
+            confirm-variant="primary"
+            :is-loading="isRestoring"
+            @close="closeRestoreConfirmation()"
+            @confirm="confirmRestoreVersion"
         />
 
         <BuilderMediaGalleryPreviewLightbox

@@ -1,11 +1,8 @@
 // Yup
 import { object, string } from 'yup';
 
-/**
- * Зарезервированные pagename: 'login' занят страницей логина database-auth —
- * редактор страницы с таким именем (/bricks/login) был бы недостижим.
- */
-const RESERVED_PAGENAMES = ['login'];
+// Constants
+import { RESERVED_PAGENAMES } from '../../../common/constants/publish';
 
 interface IPublishValidationSchemaOptions {
     /** Переводчик i18n-ключей (сообщения резолвятся в момент валидации). */

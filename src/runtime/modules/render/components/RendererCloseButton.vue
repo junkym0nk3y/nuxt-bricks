@@ -53,7 +53,7 @@ function handleClick(event: MouseEvent): void {
     min-width: 3.2rem;
     min-height: 3.2rem;
     padding: 0;
-    border-radius: var(--border-radius-md);
+    border-radius: var(--bricks-border-radius-md);
     border: 1px solid var(--bricks-base-300);
     background-color: var(--bricks-base-0);
     color: var(--bricks-base-600);

@@ -177,18 +177,18 @@ function handleDelete(): void {
     align-items: center;
     flex-wrap: wrap;
     padding: 1.4rem 1.6rem;
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--bricks-border-radius-sm);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
     transition:
-        border-color var(--default-transition),
-        box-shadow var(--default-transition);
+        border-color var(--bricks-default-transition),
+        box-shadow var(--bricks-default-transition);
     cursor: pointer;
     gap: 0.8rem 1.2rem;
 
     &:hover {
         border-color: var(--bricks-primary-300);
-        box-shadow: var(--shadow-sm);
+        box-shadow: var(--bricks-shadow-sm);
 
         .actions {
             opacity: 1;
@@ -199,7 +199,7 @@ function handleDelete(): void {
 
 .BuilderPublishPagesListRowSelected {
     border-color: var(--bricks-primary-300);
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--bricks-shadow-sm);
 }
 
 .statusDot {
@@ -222,14 +222,14 @@ function handleDelete(): void {
     flex-shrink: 0;
     width: 9.6rem;
     height: 6rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-100);
 }
 
 .thumbnailClickable {
     padding: 0;
-    transition: border-color var(--default-transition);
+    transition: border-color var(--bricks-default-transition);
     cursor: zoom-in;
 
     &:hover {
@@ -287,7 +287,7 @@ function handleDelete(): void {
 .draftBadge {
     flex-shrink: 0;
     padding: 0.2rem 0.8rem;
-    border-radius: var(--border-radius-pill);
+    border-radius: var(--bricks-border-radius-pill);
     background: var(--bricks-base-100);
     font-size: 1.2rem;
     font-weight: 500;
@@ -317,7 +317,7 @@ function handleDelete(): void {
     gap: 0.6rem;
     opacity: 0;
     pointer-events: none;
-    transition: opacity var(--default-transition);
+    transition: opacity var(--bricks-default-transition);
 
     &:focus-within {
         opacity: 1;
@@ -332,15 +332,15 @@ function handleDelete(): void {
     width: 2.8rem;
     height: 2.8rem;
     padding: 0;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
     font-size: 1.4rem;
     color: var(--bricks-base-500);
     transition:
-        color var(--default-transition),
-        border-color var(--default-transition),
-        background-color var(--default-transition);
+        color var(--bricks-default-transition),
+        border-color var(--bricks-default-transition),
+        background-color var(--bricks-default-transition);
     cursor: pointer;
 
     &:hover {

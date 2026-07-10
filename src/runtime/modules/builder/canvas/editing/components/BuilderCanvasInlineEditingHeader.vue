@@ -104,7 +104,7 @@ function handleSwitchNext(): void {
     justify-content: center;
     width: 2rem;
     height: 2rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: none;
     background: transparent;
     color: var(--bricks-base-600);

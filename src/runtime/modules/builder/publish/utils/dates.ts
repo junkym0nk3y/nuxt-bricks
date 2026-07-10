@@ -21,3 +21,23 @@ export function formatPageDate(rawDate: string | null | undefined): string {
 
     return `${day}.${month}.${year}`;
 }
+
+/**
+ * Форматирует дату в `DD.MM.YYYY HH:mm` (список версий — несколько снапшотов в день).
+ *
+ * @param rawDate - ISO-строка даты.
+ * @returns Отформатированные дата и время или «—» для пустых/битых значений.
+ */
+export function formatPageDateTime(rawDate: string | null | undefined): string {
+    const formattedDate = formatPageDate(rawDate);
+
+    if (formattedDate === '—') {
+        return formattedDate;
+    }
+
+    const parsedDate = new Date(rawDate as string);
+    const hours = String(parsedDate.getHours()).padStart(2, '0');
+    const minutes = String(parsedDate.getMinutes()).padStart(2, '0');
+
+    return `${formattedDate} ${hours}:${minutes}`;
+}

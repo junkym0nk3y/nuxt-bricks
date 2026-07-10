@@ -42,12 +42,28 @@ export interface IBricksResponse {
 }
 // #endregion
 
-// #region useBuilderSession / useBuilderDraftPersistence
+// #region useBuilderPagename / useBuilderSession / useBuilderDraftPersistence
+/**
+ * Переносит открытую сессию билдера на новый pagename:
+ * миграция черновика localStorage + синхронизация URL через Vue Router.
+ */
+export type TRenameBuilderSession = (next: string) => Promise<void>;
+
+/**
+ * Возвращаемое значение composable useBuilderPagename.
+ */
+export interface IUseBuilderPagenameReturn {
+    routePagename: ComputedRef<string>;
+    sessionPagename: Ref<string>;
+    renameSession: TRenameBuilderSession;
+}
+
 /**
  * Опции composable useBuilderSession.
  */
 export interface IBuilderSessionOptions {
     routePagename: ComputedRef<string>;
+    sessionPagename: Ref<string>;
     showToast: TShowToast;
 }
 
@@ -55,11 +71,18 @@ export interface IBuilderSessionOptions {
  * Опции composable useBuilderDraftPersistence.
  */
 export interface IBuilderDraftPersistenceOptions {
-    routePagename: ComputedRef<string>;
+    sessionPagename: Ref<string>;
     isSessionLoading: Ref<boolean>;
     isRestoreDraftModalOpen: Ref<boolean>;
     savedSnapshot: Ref<IBuilderDraftSnapshot | null>;
     buildCurrentSnapshot: () => IBuilderDraftSnapshot;
+}
+
+/**
+ * Опции composable useBuilderPagenameSync.
+ */
+export interface IBuilderPagenameSyncOptions {
+    renameSession: TRenameBuilderSession;
 }
 // #endregion
 

@@ -179,13 +179,13 @@ const classList = computed(() => [
     display: flex;
     align-items: center;
     padding: 0.8rem 1.2rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-base-300);
     background-color: transparent;
     transition:
-        border-color var(--default-transition),
-        background-color var(--default-transition),
-        box-shadow var(--default-transition);
+        border-color var(--bricks-default-transition),
+        background-color var(--bricks-default-transition),
+        box-shadow var(--bricks-default-transition);
     gap: 0.8rem;
 
     &:hover {
@@ -196,7 +196,7 @@ const classList = computed(() => [
     &:focus-within {
         border-color: var(--bricks-primary);
         background-color: var(--bricks-surface-raised);
-        box-shadow: var(--shadow-focus);
+        box-shadow: var(--bricks-shadow-focus);
     }
 }
 
@@ -253,7 +253,7 @@ const classList = computed(() => [
     border: none;
     background: transparent;
     color: var(--bricks-base-400);
-    transition: color var(--default-transition);
+    transition: color var(--bricks-default-transition);
     cursor: pointer;
 
     &:hover {
@@ -294,7 +294,7 @@ const classList = computed(() => [
     border: none;
     background-color: transparent;
     color: var(--bricks-base-500);
-    transition: color var(--default-transition);
+    transition: color var(--bricks-default-transition);
     cursor: pointer;
 
     &:hover {

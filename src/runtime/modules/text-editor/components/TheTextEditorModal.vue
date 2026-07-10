@@ -207,7 +207,7 @@ onBeforeUnmount(() => {
             </div>
 
             <!-- Toolbar -->
-            <transition name="library-fade" mode="out-in">
+            <transition name="bricks-fade" mode="out-in">
                 <div v-if="isToolbarVisible" :class="$style.toolbar">
                     <BricksTextEditorToolbar
                         :groups="toolbarGroups"
@@ -220,7 +220,7 @@ onBeforeUnmount(() => {
 
             <!-- Editor Content -->
             <div :class="$style.body">
-                <transition name="library-fade" mode="out-in">
+                <transition name="bricks-fade" mode="out-in">
                     <div
                         v-if="!isCodeView && editor && EditorContentComponent"
                         :class="[
@@ -282,7 +282,7 @@ onBeforeUnmount(() => {
     height: 80vh;
     border-radius: 1.2rem;
     background-color: var(--bricks-base-0);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--bricks-shadow-md);
     flex-direction: column;
 }
 
@@ -337,14 +337,14 @@ onBeforeUnmount(() => {
     justify-content: center;
     width: 2.8rem;
     height: 2.8rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
     color: var(--bricks-base-500);
     transition:
-        border-color var(--default-transition),
-        background var(--default-transition),
-        color var(--default-transition);
+        border-color var(--bricks-default-transition),
+        background var(--bricks-default-transition),
+        color var(--bricks-default-transition);
     cursor: pointer;
 
     svg {

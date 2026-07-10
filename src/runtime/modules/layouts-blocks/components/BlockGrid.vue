@@ -349,8 +349,8 @@ onMounted(() => {
 
     position: relative;
     min-width: 0;
-    border: 1px dashed rgb(var(--rgb-layout-grid) / 30%);
-    background: rgb(var(--rgb-layout-grid) / 5%);
+    border: 1px dashed rgb(var(--bricks-rgb-layout-grid) / 30%);
+    background: rgb(var(--bricks-rgb-layout-grid) / 5%);
     transition: all 200ms ease;
 
     > :global([data-layout-drop-item='true']) {
@@ -361,22 +361,22 @@ onMounted(() => {
     }
 
     &:hover {
-        border-color: rgb(var(--rgb-layout-grid) / 50%);
-        background: rgb(var(--rgb-layout-grid) / 8%);
+        border-color: rgb(var(--bricks-rgb-layout-grid) / 50%);
+        background: rgb(var(--bricks-rgb-layout-grid) / 8%);
     }
 
     &.dragOver {
-        border-color: rgb(var(--rgb-layout-grid) / 80%);
+        border-color: rgb(var(--bricks-rgb-layout-grid) / 80%);
         border-width: 0.2rem;
-        background: rgb(var(--rgb-layout-grid) / 15%);
-        box-shadow: 0 0 0 0.4rem rgb(var(--rgb-layout-grid) / 20%);
+        background: rgb(var(--bricks-rgb-layout-grid) / 15%);
+        box-shadow: 0 0 0 0.4rem rgb(var(--bricks-rgb-layout-grid) / 20%);
     }
 
     &.gridFull {
-        border-color: rgb(var(--rgb-danger, 239 68 68) / 60%);
+        border-color: rgb(var(--bricks-rgb-danger, 239 68 68) / 60%);
         border-style: dashed;
         border-width: 0.2rem;
-        background: rgb(var(--rgb-danger, 239 68 68) / 8%);
+        background: rgb(var(--bricks-rgb-danger, 239 68 68) / 8%);
         cursor: not-allowed;
     }
 
@@ -413,7 +413,7 @@ onMounted(() => {
     text-align: center;
     font-size: 1.4rem;
     font-weight: 500;
-    color: rgb(var(--rgb-layout-grid) / 50%);
+    color: rgb(var(--bricks-rgb-layout-grid) / 50%);
     grid-column: 1 / -1;
     pointer-events: none;
 }

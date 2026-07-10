@@ -1,5 +1,5 @@
 <template>
-    <div id="app" :class="$style.BricksLayout">
+    <div id="bricks-app" :class="$style.BricksLayout">
         <slot />
     </div>
 </template>

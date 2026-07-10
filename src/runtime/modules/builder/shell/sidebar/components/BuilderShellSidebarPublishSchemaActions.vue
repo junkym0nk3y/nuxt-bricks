@@ -74,7 +74,7 @@ function handleImportSchema(schema: IBricksSchema): void {
             @change="handleFileSelect"
         />
 
-        <Transition mode="out-in" name="library-fade-fast">
+        <Transition mode="out-in" name="bricks-fade-fast">
             <div v-if="importError" :class="$style.error">
                 {{ importError }}
             </div>

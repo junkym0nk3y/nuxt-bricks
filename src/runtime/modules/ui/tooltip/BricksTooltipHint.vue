@@ -25,14 +25,14 @@ const props = withDefaults(defineProps<IBricksTooltipHintProps>(), {
     /* Тултип телепортируется в body — темозависимые токены резолвятся от .bricks-dark на body */
     max-width: 24rem;
     padding: 0.8rem 1.2rem;
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--bricks-border-radius-sm);
     border: 1px solid var(--bricks-base-300);
     background: var(--bricks-base-0);
     text-align: center;
     white-space: normal;
-    font-size: var(--font-size-sm);
+    font-size: var(--bricks-font-size-sm);
     color: var(--bricks-base-900);
     overflow-wrap: break-word;
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--bricks-shadow-md);
 }
 </style>

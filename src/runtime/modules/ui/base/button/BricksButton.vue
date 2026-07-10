@@ -82,19 +82,19 @@ function onClick(event: MouseEvent): void {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--bricks-border-radius-sm);
     border: 1px solid transparent;
     background-color: transparent;
     font-weight: 500;
     line-height: 1.2;
     color: var(--bricks-base-900);
-    transition: var(--default-transition);
+    transition: var(--bricks-default-transition);
     cursor: pointer;
     user-select: none;
 
     &:focus-visible {
         outline: none;
-        box-shadow: var(--shadow-focus);
+        box-shadow: var(--bricks-shadow-focus);
     }
 
     &._disabled {
@@ -128,7 +128,7 @@ function onClick(event: MouseEvent): void {
     &._primary {
         border-color: transparent;
         background-color: var(--bricks-primary);
-        box-shadow: var(--shadow-sm);
+        box-shadow: var(--bricks-shadow-sm);
         color: var(--bricks-static-white);
 
         &:not(._disabled):hover {
@@ -136,7 +136,7 @@ function onClick(event: MouseEvent): void {
         }
 
         &:focus-visible {
-            box-shadow: var(--shadow-focus);
+            box-shadow: var(--bricks-shadow-focus);
         }
     }
 
@@ -179,7 +179,7 @@ function onClick(event: MouseEvent): void {
     &._danger {
         border-color: transparent;
         background-color: var(--bricks-danger-500);
-        box-shadow: var(--shadow-sm);
+        box-shadow: var(--bricks-shadow-sm);
         color: var(--bricks-static-white);
 
         &:not(._disabled):hover {
@@ -187,7 +187,7 @@ function onClick(event: MouseEvent): void {
         }
 
         &:focus-visible {
-            box-shadow: var(--shadow-focus);
+            box-shadow: var(--bricks-shadow-focus);
         }
     }
 
@@ -209,28 +209,28 @@ function onClick(event: MouseEvent): void {
     &._red {
         border-color: transparent;
         background-color: var(--bricks-danger-600);
-        box-shadow: var(--shadow-sm);
+        box-shadow: var(--bricks-shadow-sm);
         color: var(--bricks-static-white);
     }
 
     &._green {
         border-color: transparent;
         background-color: var(--bricks-green);
-        box-shadow: var(--shadow-sm);
+        box-shadow: var(--bricks-shadow-sm);
         color: var(--bricks-static-white);
     }
 
     &._yellow {
         border-color: transparent;
         background-color: var(--bricks-yellow);
-        box-shadow: var(--shadow-sm);
+        box-shadow: var(--bricks-shadow-sm);
         color: var(--bricks-static-white);
     }
 
     &._grey {
         border-color: transparent;
         background-color: var(--bricks-base-900);
-        box-shadow: var(--shadow-sm);
+        box-shadow: var(--bricks-shadow-sm);
         color: var(--bricks-static-white);
     }
 

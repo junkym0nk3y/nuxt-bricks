@@ -3,6 +3,7 @@
 .env
 .nuxt
 playground/.nuxt
+playground/.output
 
 # Build
 dist

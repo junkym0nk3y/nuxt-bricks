@@ -1,19 +1,27 @@
 import { createError, defineEventHandler } from 'h3';
-import { useBricksStorageAdapter } from '../../../../modules/persistence/server/registry';
+import {
+    useBricksPublishAdapter,
+    useBricksStorageAdapter,
+} from '../../../../modules/persistence/server/registry';
+import { deleteMediaWithFile } from '../../../../modules/persistence/server/utils/mediaOrchestration';
 import {
     requireNumericId,
     toHttpError,
 } from '../../../../modules/persistence/server/utils/handlerHelpers';
 
 /**
- * DELETE /api/bricks/media/:id — удаляет метаданные медиа из БД
- * (сам файл удаляется отдельно через /mock-api/s3-delete).
+ * DELETE /api/bricks/media/:id — удаляет файл из хранилища публикации и
+ * метаданные из БД одним запросом (file-first: при ошибке хранилища — 502,
+ * запись остаётся и операция безопасно ретраится).
  */
 export default defineEventHandler(async (event) => {
     const id = requireNumericId(event);
 
     try {
-        const deleted = await useBricksStorageAdapter().deleteMedia(id);
+        const deleted = await deleteMediaWithFile(
+            { storage: useBricksStorageAdapter(), publish: useBricksPublishAdapter() },
+            id
+        );
 
         if (!deleted) {
             throw createError({

@@ -139,13 +139,13 @@ function handleBlur(event: FocusEvent): void {
 .inner {
     display: flex;
     padding: 0.8rem 1.2rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-base-300);
     background-color: transparent;
     transition:
-        border-color var(--default-transition),
-        background-color var(--default-transition),
-        box-shadow var(--default-transition);
+        border-color var(--bricks-default-transition),
+        background-color var(--bricks-default-transition),
+        box-shadow var(--bricks-default-transition);
 
     &:hover {
         border-color: var(--bricks-base-400);
@@ -155,7 +155,7 @@ function handleBlur(event: FocusEvent): void {
     &:focus-within {
         border-color: var(--bricks-primary);
         background-color: var(--bricks-surface-raised);
-        box-shadow: var(--shadow-focus);
+        box-shadow: var(--bricks-shadow-focus);
     }
 }
 

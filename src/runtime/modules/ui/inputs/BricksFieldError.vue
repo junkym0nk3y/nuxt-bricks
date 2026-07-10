@@ -12,7 +12,7 @@ const props = withDefaults(defineProps<IBricksFieldErrorProps>(), {
 </script>
 
 <template>
-    <Transition mode="out-in" name="library-fade-fast">
+    <Transition mode="out-in" name="bricks-fade-fast">
         <p v-if="props.message" :class="$style.BricksFieldError">{{ props.message }}</p>
     </Transition>
 </template>

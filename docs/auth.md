@@ -12,11 +12,11 @@
 2. **Сессии — в БД** (`bricks_sessions`): opaque-токен 32 байта base64url в HttpOnly cookie `bricks-session` (SameSite=Lax, Secure в production, path=/); в БД — только SHA-256 hex токена. Session-secret не нужен, сессии отзываемы. Sliding-продление при < половины срока.
 3. **Пароли — scrypt из node:crypto** (ноль зависимостей): самоописывающий формат `scrypt:N:r:p:saltB64:hashB64` (N=16384, r=8, p=1, keylen=64), verify парсит параметры из строки, сравнение `timingSafeEqual`. Экспорт `DUMMY_PASSWORD_HASH` — выравнивание тайминга при неизвестном username (анти-enumeration).
 4. **Хранение — расширение persistence**: `IAuthAdapter` + `useBricksAuthAdapter`/`setBricksAuthAdapter` в registry (потребитель может подменить; уходит в существующий экспорт `nuxt-bricks/persistence`). Postgres-реализация поверх готовых `query`/`queryOne`.
-5. **Миграций нет** → мемоизированный idempotent `ensureSchema()` в адаптере при первом обращении (с reset-on-failure, чтобы сбой БД не «отравил» синглтон). `database/init.sql` дополняется для свежих установок (в npm-пакет init.sql не попадает — `files: ["dist"]`, реальный механизм — ensureSchema).
+5. ~~**Миграций нет** → мемоизированный idempotent `ensureSchema()` в адаптере при первом обращении~~ **Актуализация 2026-07-10 (P0-аудит + P1 «гонки записи»):** канонический bootstrap — версионированные миграции `migrations/*.sql` + CLI `bricks-migrate` (поставляются в npm-пакете, `files: ["dist", "migrations"]`); `database/init.sql` удалён. Runtime-DDL (`ensureSchema`) из адаптеров удалён полностью: схема — только из миграций, непримененная проявляется ошибкой запроса с подсказкой `npx bricks-migrate migrate` в логе.
 6. **HTTP-логика** (не подменяемая) — `src/runtime/server/utils/auth/`: passwords, sessionCookie, session (resolveSessionUser), loginRateLimiter, routeProtection. `server/` — инфраструктура Nitro; depcruise это разрешает (persistence-is-server-only ограничивает только `modules/**`).
 7. **UI — новый поддомен `builder/auth/`** (pages/composables/utils/types) — прецедент малых самодостаточных поддоменов (documentation/media), зависимости только ui+common.
 
-## Схема БД (init.sql + ensureSchema в адаптере)
+## Схема БД (migrations/0001_init.sql)
 
 ```sql
 CREATE TABLE IF NOT EXISTS bricks_users (
@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS bricks_users (
 );
 DROP TRIGGER IF EXISTS update_bricks_users_updated_at ON bricks_users;
 CREATE TRIGGER update_bricks_users_updated_at BEFORE UPDATE ON bricks_users
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();  -- ensureSchema делает CREATE OR REPLACE функции
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();  -- миграция делает CREATE OR REPLACE функции
 
 CREATE TABLE IF NOT EXISTS bricks_sessions (
     id SERIAL PRIMARY KEY,
@@ -61,9 +61,9 @@ CREATE INDEX IF NOT EXISTS idx_bricks_sessions_expires_at ON bricks_sessions(exp
 
 ### 3. `modules/persistence/server/postgres/postgresAuthAdapter.ts`
 
-- Мемоизированный `ensureSchema()` с reset-on-failure; каждый метод сначала await'ит его.
+- ~~Мемоизированный `ensureSchema()` с reset-on-failure~~ (удалён 2026-07-10 — схема только из миграций, см. актуализацию в пункте 5 выше).
 - SELECT-ы с алиасами `snake_case AS "camelCase"` (конвенция queryBuilders); `getSessionWithUser` — один JOIN c SQL-фильтром `expires_at > NOW()` (просроченная неотличима от отсутствующей); `deleteExpiredSessions` возвращает count.
-- `database/init.sql` — дополнить тем же DDL.
+- ~~`database/init.sql` — дополнить тем же DDL~~ (теперь `migrations/0001_init.sql`).
 
 ### 4. `src/runtime/server/utils/auth/` (+ README.md таблица)
 
@@ -135,7 +135,7 @@ Plain-node ESM (mkdist копирует `src/cli` → `dist/cli` как есть
 1. Статика после каждого файла: `npx vue-tsc --noEmit | grep <file>`, `npx oxlint <file>`; в конце `npm run type-check`, `npm run lint:check` (deps-cruiser проверит новые границы), `npm run test`.
 2. **Basic-режим регрессия** (`npm run dev` без env): всё как раньше, `/bricks/login` тоже под Basic (by design).
 3. **Database-режим** (`docker compose up -d`; `BRICKS_AUTH_MODE=database DATABASE_URL=... npm run dev`):
-    - `npm run bricks:hash -- secret123 --username admin` → INSERT через psql; таблицы должны появиться от ensureSchema при первом защищённом запросе (volume не пересоздавать — это и есть проверка ensureSchema).
+    - `npm run bricks:hash -- secret123 --username admin` → INSERT через psql; таблицы создаёт `npm run bricks:migrate -- migrate` (runtime-DDL удалён 2026-07-10).
     - curl: `/bricks` → 302 на login; `POST /api/bricks` → 401 JSON без WWW-Authenticate; `GET /api/bricks` → 200; `/preview/x` → 302.
     - Браузер: `/bricks/login` рендерит форму (не редактор с pagename='login'); пустой submit → yup-сообщения в обеих локалях; неверный пароль → generic ошибка; 6-я попытка → 429; вход → `/bricks`, cookie HttpOnly/Lax; в БД — только hash, expiry ~7 дней.
     - Удалить строку сессии в БД → мутация → 401 → авторедирект (интерцептор); перезагрузка → 302.

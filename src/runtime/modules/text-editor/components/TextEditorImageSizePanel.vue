@@ -310,12 +310,12 @@ onMounted(() => {
     z-index: 1;
     display: flex;
     padding: 0.8rem;
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--bricks-border-radius-sm);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
     flex-direction: column;
     gap: 0.4rem;
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--bricks-shadow-sm);
 }
 
 .sizeRow {
@@ -336,7 +336,7 @@ onMounted(() => {
 .sizeInput {
     width: 7rem;
     padding: 0.4rem 0.6rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
     outline: none;
@@ -363,13 +363,13 @@ onMounted(() => {
     justify-content: center;
     width: 2.2rem;
     height: 2.2rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: none;
     background: transparent;
     color: var(--bricks-base-400);
     transition:
-        background-color var(--default-transition),
-        color var(--default-transition);
+        background-color var(--bricks-default-transition),
+        color var(--bricks-default-transition);
     cursor: pointer;
 
     svg {
@@ -389,13 +389,13 @@ onMounted(() => {
 
 .unitButton {
     padding: 0.2rem 0.6rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-50);
     font-size: 1.2rem;
     font-weight: 500;
     color: var(--bricks-base-600);
-    transition: background-color var(--default-transition);
+    transition: background-color var(--bricks-default-transition);
     cursor: pointer;
 
     &:hover {

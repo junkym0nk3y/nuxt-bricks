@@ -238,7 +238,7 @@ function handleDrop(event: DragEvent): void {
     border-radius: 0.4rem;
     border: none;
     background: transparent;
-    transition: background-color var(--default-transition);
+    transition: background-color var(--bricks-default-transition);
     cursor: grab;
 
     &:hover {
@@ -289,7 +289,7 @@ function handleDrop(event: DragEvent): void {
     width: 1.2rem;
     height: 1.2rem;
     color: var(--bricks-base-600);
-    transition: opacity var(--default-transition);
+    transition: opacity var(--bricks-default-transition);
 
     &._inactive {
         opacity: 0.2;
@@ -341,6 +341,6 @@ function handleDrop(event: DragEvent): void {
 .dropIndicator {
     height: 0.2rem;
     border-radius: 0.2rem;
-    background: rgb(var(--rgb-primary) / 70%);
+    background: rgb(var(--bricks-rgb-primary) / 70%);
 }
 </style>

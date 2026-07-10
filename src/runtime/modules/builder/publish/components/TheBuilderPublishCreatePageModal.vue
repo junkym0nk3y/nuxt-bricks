@@ -292,9 +292,9 @@ onMounted(() => {
     display: flex;
     width: 100%;
     max-width: 56rem;
-    border-radius: var(--border-radius-md);
+    border-radius: var(--bricks-border-radius-md);
     background: var(--bricks-base-0);
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--bricks-shadow-lg);
     flex-direction: column;
 }
 
@@ -348,7 +348,7 @@ onMounted(() => {
     flex: 1;
     min-width: 0;
     padding: 1.4rem 1.4rem 1.2rem;
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--bricks-border-radius-sm);
     border: 1px solid var(--bricks-base-300);
     background: var(--bricks-base-0);
     flex-direction: column;
@@ -405,7 +405,7 @@ onMounted(() => {
     font-size: 1.2rem;
     font-weight: 500;
     color: var(--bricks-base-600);
-    transition: color var(--default-transition);
+    transition: color var(--bricks-default-transition);
     cursor: pointer;
     gap: 0.6rem;
 
@@ -417,7 +417,7 @@ onMounted(() => {
 .advancedCaret {
     width: 1.2rem;
     height: 1.2rem;
-    transition: transform var(--default-transition);
+    transition: transform var(--bricks-default-transition);
 }
 
 .advancedCaretOpen {

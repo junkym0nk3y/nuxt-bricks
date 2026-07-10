@@ -1,26 +1,56 @@
 // #region Imports
+// Types
+import type { IBuilderPagenameSyncOptions } from '../types/composables';
+
 // Utils
 import { isValidPagename } from '../../publish/utils/draftSnapshots';
-import { migrateBuilderDraft } from '../../publish/utils/draftStorage';
+import { RESERVED_PAGENAMES } from '../../../common/constants/publish';
 
 // Vue
-import { onBeforeUnmount, watch, type ComputedRef } from 'vue';
+import { onScopeDispose, watch } from 'vue';
 
 // Pinia
 import { usePublishStore } from '../../publish/stores/publish';
 // #endregion
 
+const PAGENAME_SYNC_DEBOUNCE_MS = 600;
+
 /**
- * Синхронизация адресной строки с pagename из настроек публикации (debounce 600ms):
- * для новой (несохранённой) страницы меняет URL через history.replaceState без навигации
- * и мигрирует черновик localStorage на новый pagename.
- *
- * @param routePagename - Текущий pagename из параметров маршрута.
+ * Синхронизация URL с pagename из настроек публикации (debounce 600ms):
+ * для новой (несохранённой) страницы переносит сессию на новый pagename через
+ * `renameSession` — черновик localStorage мигрирует, URL меняется через Vue Router.
+ * Для существующей страницы rename применяется при сохранении (см. useBuilderPage).
  */
-export function useBuilderPagenameSync(routePagename: ComputedRef<string>): void {
+export function useBuilderPagenameSync(options: IBuilderPagenameSyncOptions): void {
+    const { renameSession } = options;
     const publishStore = usePublishStore();
 
     let pagenameRouteTimer: number | null = null;
+
+    /**
+     * Останавливает отложенную синхронизацию.
+     */
+    function clearPagenameTimer(): void {
+        if (pagenameRouteTimer !== null) {
+            window.clearTimeout(pagenameRouteTimer);
+            pagenameRouteTimer = null;
+        }
+    }
+
+    /**
+     * Проверяет, что pagename пригоден для переноса сессии:
+     * валидный формат, не зарезервирован и не занят другой страницей.
+     *
+     * @param value - Кандидат pagename.
+     */
+    function isRenameTarget(value: string): boolean {
+        return (
+            Boolean(value) &&
+            isValidPagename(value) &&
+            !RESERVED_PAGENAMES.includes(value) &&
+            publishStore.isPagenameAvailable(value)
+        );
+    }
 
     watch(
         () => publishStore.currentFormState.pagename,
@@ -39,42 +69,22 @@ export function useBuilderPagenameSync(routePagename: ComputedRef<string>): void
                 return;
             }
 
-            // Debounce URL sync — просто меняем адресную строку без навигации
-            if (pagenameRouteTimer !== null) {
-                window.clearTimeout(pagenameRouteTimer);
-            }
-
+            // Debounce: URL и ключ черновика догоняют форму после паузы в наборе
+            clearPagenameTimer();
             pagenameRouteTimer = window.setTimeout(() => {
                 pagenameRouteTimer = null;
 
-                const currentNormalized = String(
-                    publishStore.currentFormState.pagename ?? ''
-                ).trim();
-                if (
-                    !currentNormalized ||
-                    !isValidPagename(currentNormalized) ||
-                    !publishStore.isPagenameAvailable(currentNormalized)
-                ) {
+                const current = String(publishStore.currentFormState.pagename ?? '').trim();
+                if (!isRenameTarget(current)) {
                     return;
                 }
 
-                // Мигрируем черновик на новый pagename
-                const from = routePagename.value;
-                if (from && from !== currentNormalized) {
-                    migrateBuilderDraft(from, currentNormalized);
-                }
-
-                // Меняем URL без навигации (не триггерит Vue Router)
-                const newUrl = `/bricks/${currentNormalized}`;
-                window.history.replaceState(window.history.state, '', newUrl);
-            }, 600);
+                renameSession(current).catch((error: unknown) => {
+                    console.warn('[Builder] Failed to sync pagename to URL:', error);
+                });
+            }, PAGENAME_SYNC_DEBOUNCE_MS);
         }
     );
 
-    onBeforeUnmount(() => {
-        if (pagenameRouteTimer !== null) {
-            window.clearTimeout(pagenameRouteTimer);
-            pagenameRouteTimer = null;
-        }
-    });
+    onScopeDispose(clearPagenameTimer);
 }

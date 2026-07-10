@@ -10,6 +10,7 @@ import { useI18n } from 'vue-i18n';
 // Composables
 import { useAuthLoginForm } from '../composables/useAuthLoginForm';
 import { useAuthSession } from '../composables/useAuthSession';
+import { useBricksRoutePaths } from '../../../common/composables/useBricksRoutePaths';
 
 // Components
 import BricksInput from '../../../ui/inputs/BricksInput.vue';
@@ -24,6 +25,7 @@ import { navigateTo, useRoute } from '#imports';
 const { t } = useI18n();
 const route = useRoute();
 const { isDatabaseMode, fetchMe } = useAuthSession();
+const { builderRootPath } = useBricksRoutePaths();
 const { username, password, errors, isSubmitting, generalError, submitForm } = useAuthLoginForm();
 // #endregion
 
@@ -31,7 +33,7 @@ const { username, password, errors, isSubmitting, generalError, submitForm } = u
 onMounted(async () => {
     // В basic-режиме страница логина не нужна — на дашборд
     if (!isDatabaseMode) {
-        await navigateTo('/bricks');
+        await navigateTo(builderRootPath);
         return;
     }
 
@@ -39,7 +41,7 @@ onMounted(async () => {
     const user = await fetchMe();
 
     if (user) {
-        await navigateTo(sanitizeRedirectPath(route.query.redirect));
+        await navigateTo(sanitizeRedirectPath(route.query.redirect, builderRootPath));
     }
 });
 // #endregion
@@ -106,10 +108,10 @@ onMounted(async () => {
     width: 100%;
     max-width: 36rem;
     padding: 3.2rem;
-    border-radius: var(--border-radius-md);
+    border-radius: var(--bricks-border-radius-md);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--bricks-shadow-lg);
     flex-direction: column;
 }
 

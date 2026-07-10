@@ -1,14 +1,107 @@
 import type { Composer } from 'vue-i18n';
 import { useNuxtApp } from '#imports';
+import { PAGE_CONFLICT_CODES } from '../../../common/constants/publish';
 import type { TRequestErrorLike } from '../../../common/types/bricks-api';
 
 /**
+ * Ошибка API-запроса с сохранённым HTTP-статусом и машиночитаемым кодом
+ * конфликта (`data.code` ответа) — по ним вызывающие различают 409-конфликты
+ * (occupied pagename, revision mismatch) без разбора текста сообщения.
+ */
+export class RequestError extends Error {
+    readonly statusCode?: number;
+    readonly conflictCode?: string;
+
+    constructor(message: string, statusCode?: number, conflictCode?: string) {
+        super(message);
+        this.name = 'RequestError';
+        this.statusCode = statusCode;
+        this.conflictCode = conflictCode;
+    }
+}
+
+/**
+ * Проверяет, что ошибка — конфликт optimistic locking (страница изменена
+ * после чтения переданного клиентом expectedRevision). Понимает обе формы:
+ * RequestError (обёртка toRequestError) и сырую ошибку ofetch — ту
+ * toRequestError возвращает как есть (message уже содержит «/api/»).
+ */
+export function isRevisionConflictError(error: unknown): boolean {
+    if (error instanceof RequestError) {
+        return error.conflictCode === PAGE_CONFLICT_CODES.revision;
+    }
+
+    return extractConflictCode((error ?? {}) as TRequestErrorLike) === PAGE_CONFLICT_CODES.revision;
+}
+
+/**
+ * Переводит ключ через глобальный i18n; вне Nuxt-контекста (юнит-тесты)
+ * падает обратно на ключ. `$i18n` резолвится лениво: утилиты вызываются
+ * вне setup-контекста.
+ */
+function translate(key: string, fallback?: string): string {
+    const i18n = useNuxtApp().$i18n as Composer | undefined;
+    return i18n ? i18n.t(key) : (fallback ?? key);
+}
+
+/**
  * Возвращает локализованное сообщение «Неизвестная ошибка».
- * `$i18n` резолвится лениво: утилита вызывается вне setup-контекста.
  */
 function unknownErrorMessage(): string {
-    const i18n = useNuxtApp().$i18n as Composer | undefined;
-    return i18n ? i18n.t('bricks.common.unknownError') : 'Неизвестная ошибка';
+    return translate('bricks.common.unknownError', 'Неизвестная ошибка');
+}
+
+/**
+ * Приводит ошибку записи страницы к пользовательскому виду: конфликт
+ * optimistic locking превращается в локализованное сообщение, а перед этим
+ * best-effort обновляется список страниц (свежие revision) — повторное
+ * сохранение уйдёт с актуальным precondition и осознанно перезапишет
+ * чужие изменения. Прочие ошибки возвращаются как есть.
+ *
+ * @param error - Исходная ошибка запроса.
+ * @param refreshPages - Колбэк обновления списка страниц.
+ * @returns Ошибка для показа пользователю.
+ */
+export async function toPageWriteError(
+    error: unknown,
+    refreshPages: () => Promise<void>
+): Promise<Error> {
+    if (!isRevisionConflictError(error)) {
+        return error instanceof Error ? error : new Error(String(error));
+    }
+
+    await refreshPages().catch(() => {
+        // best-effort: не смогли обновить список — конфликт всё равно показываем
+    });
+
+    return new Error(translate('bricks.publish.toasts.revisionConflict'));
+}
+
+/**
+ * Достаёт машиночитаемый код конфликта из ошибки ofetch: h3 сериализует
+ * `createError({ data })` в тело ответа, ofetch кладёт тело в `error.data` —
+ * наш код оказывается в `error.data.data.code`.
+ *
+ * @param payload - Ошибка запроса.
+ * @returns Код конфликта или undefined.
+ */
+function extractConflictCode(payload: TRequestErrorLike): string | undefined {
+    const nested = (payload.data as { data?: { code?: unknown } } | undefined)?.data?.code;
+    const value = nested ?? payload.data?.code;
+
+    return typeof value === 'string' ? value : undefined;
+}
+
+/**
+ * Достаёт HTTP-статус из ошибки ofetch (statusCode самой ошибки либо тела ответа).
+ *
+ * @param payload - Ошибка запроса.
+ * @returns Числовой статус или undefined.
+ */
+function extractStatusCode(payload: TRequestErrorLike): number | undefined {
+    const value = payload.statusCode ?? payload.data?.statusCode;
+
+    return typeof value === 'number' ? value : undefined;
 }
 
 /**
@@ -31,16 +124,27 @@ function formatRequestError(method: string, url: string, error: unknown): string
 }
 
 /**
- * Приводит произвольную ошибку к Error с понятным текстом.
+ * Приводит произвольную ошибку к RequestError с понятным текстом,
+ * сохраняя HTTP-статус и код конфликта.
  *
  * @param method - HTTP-метод.
  * @param url - URL запроса.
  * @param error - Исходная ошибка.
  */
 export function toRequestError(method: string, url: string, error: unknown): Error {
+    if (error instanceof RequestError) {
+        return error;
+    }
+
     if (error instanceof Error && error.message.includes('/api/')) {
         return error;
     }
 
-    return new Error(formatRequestError(method, url, error));
+    const payload = (error ?? {}) as TRequestErrorLike;
+
+    return new RequestError(
+        formatRequestError(method, url, error),
+        extractStatusCode(payload),
+        extractConflictCode(payload)
+    );
 }

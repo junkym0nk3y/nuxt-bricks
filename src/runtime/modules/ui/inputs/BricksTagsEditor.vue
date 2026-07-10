@@ -155,12 +155,12 @@ function focusInput(): void {
     align-items: center;
     min-height: 3.6rem;
     padding: 0.4rem 0.8rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-base-300);
     background: var(--bricks-base-0);
     transition:
-        border-color var(--default-transition),
-        box-shadow var(--default-transition);
+        border-color var(--bricks-default-transition),
+        box-shadow var(--bricks-default-transition);
     cursor: text;
     gap: 0.4rem;
 
@@ -170,7 +170,7 @@ function focusInput(): void {
 
     &:focus-within {
         border-color: var(--bricks-primary);
-        box-shadow: var(--shadow-focus);
+        box-shadow: var(--bricks-shadow-focus);
     }
 
     &._disabled {

@@ -304,7 +304,7 @@ function handleReplaceImage(index: number): void {
     display: flex;
     gap: 1.2rem;
     padding: 1rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
 }
@@ -317,7 +317,7 @@ function handleReplaceImage(index: number): void {
     flex-shrink: 0;
     width: 8rem;
     height: 8rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     background: var(--bricks-base-100);
     cursor: pointer;
 
@@ -385,7 +385,7 @@ function handleReplaceImage(index: number): void {
     align-items: center;
     justify-content: center;
     padding: 2.4rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 0.2rem dashed var(--bricks-base-300);
     background: var(--bricks-base-50);
     font-size: 1.4rem;

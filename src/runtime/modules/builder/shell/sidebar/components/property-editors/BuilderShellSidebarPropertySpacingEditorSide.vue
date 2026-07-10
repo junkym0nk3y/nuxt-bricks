@@ -149,8 +149,8 @@ function focusInput(el: unknown): void {
     line-height: 1;
     color: var(--bricks-base-600);
     transition:
-        border-color var(--default-transition),
-        color var(--default-transition);
+        border-color var(--bricks-default-transition),
+        color var(--bricks-default-transition);
     cursor: pointer;
     user-select: none;
 
@@ -174,7 +174,7 @@ function focusInput(el: unknown): void {
     background: none;
     font-size: 1.2rem;
     color: var(--bricks-base-900);
-    transition: border-color var(--default-transition);
+    transition: border-color var(--bricks-default-transition);
     cursor: text;
     font-variant-numeric: tabular-nums;
 

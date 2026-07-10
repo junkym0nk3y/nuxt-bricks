@@ -311,9 +311,9 @@ onBeforeUnmount(() => {
 .canvas {
     position: relative;
     overflow: visible;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     background-color: var(--bricks-base-0);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--bricks-shadow-md);
     container-type: inline-size;
     container-name: bricks;
 }
@@ -330,7 +330,7 @@ onBeforeUnmount(() => {
     width: 100%;
     height: 0.4rem;
     border-radius: 50%;
-    background: rgb(var(--rgb-primary) / 70%);
+    background: rgb(var(--bricks-rgb-primary) / 70%);
     pointer-events: none;
 }
 </style>

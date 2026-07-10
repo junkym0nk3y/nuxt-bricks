@@ -5,20 +5,28 @@ import type { IPublishedPageSummary, IPublishedPage } from '../modules/common/ty
 import { normalizeBricksError } from '../modules/common/utils/main';
 import { useApiClient } from '../modules/common/composables/useApiClient';
 import { toCamelCase } from '../modules/common/utils/case-transform';
-import { normalizePublishedPage } from '../modules/common/utils/bricks/publishedPage';
+import { BRICKS_ROUTE_NAMES } from '../modules/common/constants/routes';
+import {
+    matchesPageUrlPrefix,
+    normalizePublishedPage,
+    resolveRequestedUrlPrefix,
+} from '../modules/common/utils/bricks/publishedPage';
 
 /**
  * Middleware для динамической установки layout на основе данных из БД.
  * Применяется к страницам лендингов:
  * - /preview/[pagename] (встроенный превью-маршрут, всегда preview-режим)
- * - /[pagename] (динамически зарегистрированные ЧПУ маршруты, live-режим)
+ * - /[pagename] и /[...urlPrefix]/[pagename] (статические catch-all маршруты
+ *   bricks-page/bricks-page-prefixed из module.ts, live-режим)
  *
  * Режим определяется чисто по роуту: query ?preview=true не используется.
+ * Live-страница резолвится прямым lookup public read-model по pagename;
+ * соответствие urlPrefix/subdomain фактическому URL проверяется здесь же.
  */
 // eslint-disable-next-line complexity
 export default defineNuxtRouteMiddleware(async (to) => {
     // Применяем middleware к превью-маршруту или динамическим ЧПУ маршрутам
-    const isPreview = to.name === 'bricks-preview';
+    const isPreview = to.name === BRICKS_ROUTE_NAMES.preview;
     const isDirectBricksRoute = to.meta?.isPublishedBricksPage === true;
 
     if (!isPreview && !isDirectBricksRoute) {
@@ -49,16 +57,14 @@ export default defineNuxtRouteMiddleware(async (to) => {
         }
 
         // Если данные не были получены из localStorage (или это не превью), загружаем из API
-        if (!page) {
-            // Для preview ищем среди всех страниц, для обычного режима — только среди опубликованных
-            const apiEndpoint = isPreview ? '/api/bricks/' : '/api/bricks/published/';
-            const stateKey = isPreview ? 'bricks-all-pages' : 'bricks-published-pages';
-
-            const pagesList = useState<IPublishedPageSummary[]>(stateKey, () => []);
+        if (!page && isPreview) {
+            // Preview — авторизованный сценарий (матрица auth защищает /preview/**):
+            // ищем среди всех страниц, включая drafts, через editorial API
+            const pagesList = useState<IPublishedPageSummary[]>('bricks-all-pages', () => []);
 
             if (!pagesList.value.length) {
                 try {
-                    const response = await apiFetcher<IPublishedPageSummary[]>(apiEndpoint);
+                    const response = await apiFetcher<IPublishedPageSummary[]>('/api/bricks/');
                     pagesList.value = toCamelCase<IPublishedPageSummary[]>(response);
                 } catch (error) {
                     return createError(normalizeBricksError(error, 'Failed to load pages list'));
@@ -67,33 +73,10 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
             const targetPage = pagesList.value.find((candidate) => candidate.pagename === pagename);
 
-            if (!isPreview && targetPage?.subdomain) {
-                const currentHost = import.meta.server
-                    ? useRequestHeaders(['host']).host || ''
-                    : window.location.hostname;
-                if (!currentHost.includes(targetPage.subdomain)) {
-                    return createError({
-                        statusCode: 404,
-                        statusMessage: 'Page not found',
-                    });
-                }
-            }
-
+            // Драфт может жить только в localStorage (недоступен на сервере).
+            // Не кидаем 404 — страница сама подхватит данные из localStorage на клиенте.
             if (!targetPage) {
-                // При preview драфт может жить только в localStorage (недоступен на сервере).
-                // Не кидаем 404 — страница сама подхватит данные из localStorage на клиенте.
-                if (isPreview) {
-                    return;
-                }
-
-                console.warn('[Bricks Middleware] Page not found:', {
-                    pagename,
-                    availablePages: pagesList.value.map((p) => p.pagename),
-                });
-                return createError({
-                    statusCode: 404,
-                    statusMessage: 'Page not found',
-                });
+                return;
             }
 
             try {
@@ -103,8 +86,46 @@ export default defineNuxtRouteMiddleware(async (to) => {
                 return createError(normalizeBricksError(error, 'Failed to load page'));
             }
         }
+
+        if (!page && !isPreview) {
+            // Live — публичный read-model: прямой lookup по pagename, без list+find
+            try {
+                const response = await apiFetcher<IPublishedPage>(
+                    `/api/bricks/public/pages/${pagename}/`
+                );
+                page = normalizePublishedPage(response);
+            } catch (error) {
+                return createError(normalizeBricksError(error, 'Page not found', 404));
+            }
+        }
         // Сохраняем данные в payload, чтобы избежать повторной загрузки в компоненте страницы
         (nuxtApp.payload.data as Record<string, unknown>)[pageDataKey] = page;
+    }
+
+    // Live: catch-all маршрут матчит любой URL подходящей формы — соответствие
+    // фактического префикса и субдомена проверяем на каждую навигацию, в том
+    // числе при payload-хите (прошлый заход мог быть по другому URL той же страницы)
+    if (page && !isPreview) {
+        const requestedPrefix = resolveRequestedUrlPrefix(to.params.urlPrefix);
+
+        if (!matchesPageUrlPrefix(page, requestedPrefix)) {
+            return createError({
+                statusCode: 404,
+                statusMessage: 'Page not found',
+            });
+        }
+
+        if (page.subdomain) {
+            const currentHost = import.meta.server
+                ? useRequestHeaders(['host']).host || ''
+                : window.location.hostname;
+            if (!currentHost.includes(page.subdomain)) {
+                return createError({
+                    statusCode: 404,
+                    statusMessage: 'Page not found',
+                });
+            }
+        }
     }
 
     if (page) {

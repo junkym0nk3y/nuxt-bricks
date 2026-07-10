@@ -87,7 +87,7 @@ function onUpdate(checked: boolean): void {
     border: none;
     background: transparent;
     outline: none;
-    transition: opacity var(--default-transition);
+    transition: opacity var(--bricks-default-transition);
     cursor: pointer;
     user-select: none;
 
@@ -108,7 +108,7 @@ function onUpdate(checked: boolean): void {
         font-weight: 500;
         line-height: 1.2;
         color: var(--bricks-base-300);
-        transition: color var(--default-transition);
+        transition: color var(--bricks-default-transition);
 
         &._left {
             margin-right: 1.6rem;
@@ -127,7 +127,7 @@ function onUpdate(checked: boolean): void {
         height: 2rem;
         border-radius: 10rem;
         background-color: var(--bricks-base-300);
-        transition: background-color var(--default-transition);
+        transition: background-color var(--bricks-default-transition);
 
         // top/left заданы явно: без них позиция кружка зависит от статической
         // позиции ::after (UA text-align: center у button сдвигает её на страницах
@@ -144,8 +144,8 @@ function onUpdate(checked: boolean): void {
             border-radius: 50%;
             background-color: var(--bricks-base-0);
             transform: translate(0.2rem, -50%);
-            transition: transform var(--default-transition);
-            box-shadow: var(--shadow-sm);
+            transition: transform var(--bricks-default-transition);
+            box-shadow: var(--bricks-shadow-sm);
             will-change: transform;
         }
     }
@@ -176,7 +176,7 @@ function onUpdate(checked: boolean): void {
     }
 
     &:focus-visible .core {
-        box-shadow: var(--shadow-focus);
+        box-shadow: var(--bricks-shadow-focus);
     }
 
     &._small {

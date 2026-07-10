@@ -186,15 +186,15 @@ function handleLogout(): void {
     width: 100%;
     height: 3.6rem;
     padding: 0 1rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: none;
     background: transparent;
     text-align: left;
     font-size: 1.4rem;
     color: var(--bricks-base-700);
     transition:
-        background-color var(--default-transition),
-        color var(--default-transition);
+        background-color var(--bricks-default-transition),
+        color var(--bricks-default-transition);
     cursor: pointer;
     gap: 1rem;
 

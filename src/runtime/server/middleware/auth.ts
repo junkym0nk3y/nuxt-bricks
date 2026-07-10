@@ -2,16 +2,18 @@
  * Auth middleware для защиты builder, preview и модифицирующих API.
  * Режим — `bricks.auth.mode` ('basic' | 'database', env BRICKS_AUTH_MODE).
  *
- * Защищает:
- * - /bricks/** — менеджер страниц и редактор лендингов
- * - /preview/** — preview режим рендера
+ * Защищает (префиксы страниц — из `bricks.routes`, дефолты /bricks и /preview;
+ * матрица работает с логическим путём — `app.baseURL` стрипается до проверки):
+ * - <builderPrefix>/** — менеджер страниц и редактор лендингов
+ * - <previewPrefix>/** — preview режим рендера
  * - /mock-api/s3-* — S3 операции (загрузка/удаление)
- * - /api/bricks/** POST/PUT/PATCH/DELETE — модификация лендингов и медиа
+ * - /api/bricks/** — весь editorial API, включая GET (drafts, полная schema,
+ *   медиатека, версии)
  *
  * НЕ защищает:
  * - динамические ЧПУ маршруты опубликованных страниц
- * - /api/bricks/** GET — чтение данных (публичные лендинги)
- * - в database-режиме: /bricks/login и /api/bricks/auth/** (иначе не войти)
+ * - GET/HEAD /api/bricks/public/** — public read-model для рендера
+ * - в database-режиме: <builderPrefix>/login и /api/bricks/auth/** (иначе не войти)
  *
  * Basic-режим — HTTP Basic Auth, настройка через ENV:
  * - BASIC_AUTH_USERNAME (дефолт: admin)
@@ -32,6 +34,13 @@ import {
 } from 'h3';
 import { useRuntimeConfig } from 'nitropack/runtime';
 import { requiresAuth, isProtectedHtmlPath } from '../utils/auth/routeProtection';
+import {
+    DEFAULT_BRICKS_ROUTE_PREFIXES,
+    getBuilderLoginPath,
+    joinPathBase,
+    stripPathBase,
+    type IBricksRoutePrefixes,
+} from '../../modules/common/utils/bricks/routePaths';
 import { resolveSessionUser } from '../utils/auth/session';
 import {
     clearSessionCookie,
@@ -41,7 +50,7 @@ import {
     setSessionCookie,
 } from '../utils/auth/sessionCookie';
 import { useBricksAuthAdapter } from '../../modules/persistence/server/registry';
-import type { TBricksAuthMode } from '../utils/auth/types';
+import type { IAuthRequestTarget, TBricksAuthMode } from '../utils/auth/types';
 
 /** Дефолтный пароль из module.ts — в production с ним защищённые пути недоступны */
 const DEFAULT_PASSWORD = 'change-me';
@@ -109,15 +118,18 @@ function handleBasicAuth(event: H3Event): void {
 
 /**
  * Отказывает неавторизованному запросу в database-режиме:
- * HTML-путь → 302 на /bricks/login с возвратным redirect, API → 401 без
+ * HTML-путь → 302 на страницу логина с возвратным redirect, API → 401 без
  * WWW-Authenticate (чтобы браузер не показывал нативный Basic-диалог).
+ * Redirect-параметр — логический путь (без baseURL): после логина он идёт
+ * в `navigateTo`, где base подставит роутер; сам Location строится с base.
  */
-function rejectDatabaseAuth(event: H3Event, parsedUrl: URL): Promise<void> | never {
+function rejectDatabaseAuth(event: H3Event, target: IAuthRequestTarget): Promise<void> | never {
     clearSessionCookie(event);
 
-    if (isProtectedHtmlPath(parsedUrl.pathname)) {
-        const redirect = encodeURIComponent(parsedUrl.pathname + parsedUrl.search);
-        return sendRedirect(event, `/bricks/login?redirect=${redirect}`, 302);
+    if (isProtectedHtmlPath(target.logicalPathname, target.prefixes)) {
+        const redirect = encodeURIComponent(target.logicalPathname + target.search);
+        const loginUrl = `${getBuilderLoginPath(target.prefixes)}?redirect=${redirect}`;
+        return sendRedirect(event, joinPathBase(target.baseURL, loginUrl), 302);
     }
 
     throw createError({
@@ -158,7 +170,7 @@ async function extendSessionIfNeeded(event: H3Event, expiresAt: string): Promise
 /**
  * Database-auth: cookie-сессия в Postgres + sliding-продление.
  */
-async function handleDatabaseAuth(event: H3Event, parsedUrl: URL): Promise<void> {
+async function handleDatabaseAuth(event: H3Event, target: IAuthRequestTarget): Promise<void> {
     const config = useRuntimeConfig();
 
     if (!config.bricksDatabaseUrl) {
@@ -182,7 +194,7 @@ async function handleDatabaseAuth(event: H3Event, parsedUrl: URL): Promise<void>
     }
 
     if (!session) {
-        return rejectDatabaseAuth(event, parsedUrl);
+        return rejectDatabaseAuth(event, target);
     }
 
     event.context.bricksUser = session.user;
@@ -196,13 +208,25 @@ export default defineEventHandler(async (event: H3Event) => {
 
     const config = useRuntimeConfig();
     const mode = (config.bricksAuthMode as TBricksAuthMode | undefined) ?? 'basic';
+    const prefixes =
+        (config.public?.bricksRoutes as IBricksRoutePrefixes | undefined) ??
+        DEFAULT_BRICKS_ROUTE_PREFIXES;
+    const baseURL = (config.app?.baseURL as string | undefined) || '/';
 
-    if (!requiresAuth(parsedUrl.pathname, method, mode)) {
+    // Матрица работает с логическим путём — фактический pathname содержит baseURL
+    const target: IAuthRequestTarget = {
+        logicalPathname: stripPathBase(parsedUrl.pathname, baseURL),
+        search: parsedUrl.search,
+        prefixes,
+        baseURL,
+    };
+
+    if (!requiresAuth(target.logicalPathname, method, mode, prefixes)) {
         return; // Пропускаем незащищённые пути
     }
 
     if (mode === 'database') {
-        return handleDatabaseAuth(event, parsedUrl);
+        return handleDatabaseAuth(event, target);
     }
 
     return handleBasicAuth(event);

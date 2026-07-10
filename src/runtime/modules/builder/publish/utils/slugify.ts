@@ -1,5 +1,5 @@
-/** Максимальная длина pagename — синхронизирована со схемой валидации. */
-const MAX_PAGENAME_LENGTH = 80;
+// Constants
+import { PAGENAME_MAX_LENGTH } from '../../../common/constants/publish';
 
 /** Транслитерация кириллицы для авто-генерации slug из названия страницы. */
 const CYRILLIC_TO_LATIN: Record<string, string> = {
@@ -56,6 +56,31 @@ export function slugifyPageTitle(title: string): string {
     return transliterated
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '')
-        .slice(0, MAX_PAGENAME_LENGTH)
+        .slice(0, PAGENAME_MAX_LENGTH)
         .replace(/-+$/, '');
+}
+
+/**
+ * Генерирует свободный `pagename` для копии страницы: суффикс «-copy»,
+ * при коллизиях — «-copy-1», «-copy-2» и т.д.
+ *
+ * @param base - Исходный `pagename`.
+ * @param isPagenameAvailable - Проверка доступности кандидата.
+ * @returns Уникальный `pagename` для копии.
+ */
+export function generateCopyPagename(
+    base: string,
+    isPagenameAvailable: (pagename: string) => boolean
+): string {
+    const safeBase = base?.trim() ? base.trim() : 'page';
+    const normalizedBase = safeBase.replace(/-copy(?:-\d+)?$/, '');
+    let candidate = `${normalizedBase}-copy`;
+    let suffix = 1;
+
+    while (!isPagenameAvailable(candidate)) {
+        candidate = `${normalizedBase}-copy-${suffix}`;
+        suffix += 1;
+    }
+
+    return candidate;
 }

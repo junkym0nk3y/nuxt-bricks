@@ -335,8 +335,8 @@ function handleRedo(): void {
     display: flex;
     justify-content: center;
     transition:
-        margin var(--default-transition),
-        width var(--default-transition);
+        margin var(--bricks-default-transition),
+        width var(--bricks-default-transition);
     pointer-events: none;
 }
 
@@ -347,7 +347,7 @@ function handleRedo(): void {
     border-radius: 1.2rem;
     border: 1px solid var(--bricks-base-300);
     background-color: var(--bricks-base-0);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--bricks-shadow-md);
     pointer-events: auto;
     gap: 0.4rem;
 }

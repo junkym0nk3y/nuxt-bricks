@@ -11,7 +11,8 @@ import type {
     IBricksPageRow,
     ICreatePagePayload,
     IUpdatePagePayload,
-    IPublishedPageSummary,
+    IPageVersionSummary,
+    IPageVersion,
 } from '../../common/types/bricks-api';
 import type { IMediaItem } from '../../common/types/media';
 
@@ -39,14 +40,35 @@ export type TUpdateMediaPayload = Partial<Pick<IMediaItem, 'filename' | 'alt' | 
  */
 export interface IStorageAdapter {
     listPages(): Promise<IBricksPageRow[]>;
-    listPublishedPages(): Promise<IPublishedPageSummary[]>;
     getPage(id: number): Promise<IBricksPageRow | null>;
     getPageByPagename(pagename: string): Promise<IBricksPageRow | null>;
     createPage(payload: ICreatePagePayload): Promise<IBricksPageRow>;
+    /**
+     * Обновляет переданные поля страницы; null — если страница не найдена.
+     *
+     * Контракт версионирования: если в payload присутствует `schema` и лимит
+     * версий (`bricks.versionsLimit` / env NUXT_BRICKS_VERSIONS_LIMIT) больше 0,
+     * реализация обязана атомарно снапшотить ПРЕЖНЮЮ строку в историю версий
+     * и обрезать историю страницы до лимита. Кастомный адаптер сам отвечает
+     * за свою стратегию снапшотов.
+     */
     updatePage(id: number, payload: IUpdatePagePayload): Promise<IBricksPageRow | null>;
     deletePage(id: number): Promise<boolean>;
+    /** Сводки сохранённых версий страницы (без schema), новые сверху. */
+    listPageVersions(pageId: number): Promise<IPageVersionSummary[]>;
+    /** Полный снапшот версии; null — если версия не принадлежит странице или не найдена. */
+    getPageVersion(pageId: number, versionId: number): Promise<IPageVersion | null>;
     listMedia(): Promise<IMediaItem[]>;
+    /** Возвращает медиа-запись по id или null. */
+    getMedia(id: number): Promise<IMediaItem | null>;
     getMediaByUrl(url: string): Promise<IMediaItem | null>;
+    /**
+     * Создаёт медиа-запись и возвращает её с id.
+     *
+     * Контракт идемпотентности: `url` уникален; повторная регистрация того же
+     * URL (гонка импорта из бакета, ретрай клиента) обязана вернуть уже
+     * существующую запись, а не падать и не создавать дубликат.
+     */
     createMedia(payload: ICreateMediaPayload): Promise<IMediaItem>;
     updateMedia(id: number, payload: TUpdateMediaPayload): Promise<IMediaItem | null>;
     deleteMedia(id: number): Promise<boolean>;
@@ -81,12 +103,44 @@ export interface IStoredFileInfo {
 }
 
 /**
+ * Тип файла хранилища публикации — определяет namespace-префикс ключа.
+ */
+export type TPublishFileKind = 'media' | 'thumbnail';
+
+/**
  * Файловое хранилище публикации (медиа-файлы).
+ *
+ * Managed namespace: адаптер владеет ограниченным набором префиксов ключей
+ * (для S3-дефолта — `prefix` и `thumbnailsPrefix` конфигурации). Все ключи
+ * строятся через `buildFileKey`, а `deleteFile`/`isOwnedUrl` обязаны отказывать
+ * ключам вне namespace — в shared-бакете модуль не должен уметь трогать
+ * посторонние объекты даже по синтаксически валидному URL бакета.
  */
 export interface IPublishAdapter {
+    /**
+     * Строит полный object key для нового файла модуля (server-generated:
+     * клиентские имена в ключ не попадают). Единственный источник префиксов —
+     * сами ручки ключи не собирают.
+     */
+    buildFileKey(kind: TPublishFileKind, filename: string): string;
     uploadFile(params: IUploadFileParams): Promise<IUploadedFile>;
+    /**
+     * Удаляет файл по публичному URL. Обязан бросить ошибку, если URL не
+     * принадлежит собственному хранилищу или ключ лежит вне managed namespace.
+     */
     deleteFile(url: string): Promise<void>;
     listFiles(prefix?: string): Promise<IStoredFileInfo[]>;
+    /**
+     * Проверяет, что URL указывает на файл собственного хранилища
+     * внутри managed namespace.
+     *
+     * Anti-SSRF-контракт: сервер регистрирует (POST /api/bricks/media) и
+     * проксирует (/mock-api/s3-media-proxy) только URL, прошедшие эту проверку —
+     * произвольные хосты (localhost, cloud metadata, private network) не должны
+     * её проходить. Кастомная реализация обязана сверять URL со СВОИМ
+     * хранилищем (включая префикс ключа), а не с форматом URL вообще.
+     */
+    isOwnedUrl(url: string): boolean;
 }
 
 /**

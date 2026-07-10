@@ -112,7 +112,7 @@ function onUpdate(value: AcceptableValue): void {
 
         <SelectPortal>
             <SelectContent :class="$style.dropdown" position="popper" :side-offset="4">
-                <SelectViewport class="scrollbox" :class="$style.optionsWrapper">
+                <SelectViewport class="bricks-scrollbox" :class="$style.optionsWrapper">
                     <SelectItem
                         v-for="(spec, index) in props.specs"
                         :key="`${index}_${spec.value}`"
@@ -138,14 +138,14 @@ function onUpdate(value: AcceptableValue): void {
         display: block;
         width: 100%;
         padding: 0.8rem 3.2rem 0.8rem 1.2rem;
-        border-radius: var(--border-radius-xs);
+        border-radius: var(--bricks-border-radius-xs);
         border: 1px solid var(--bricks-base-300);
         background: transparent;
         text-align: left;
         transition:
-            border-color var(--default-transition),
-            background-color var(--default-transition),
-            box-shadow var(--default-transition);
+            border-color var(--bricks-default-transition),
+            background-color var(--bricks-default-transition),
+            box-shadow var(--bricks-default-transition);
         cursor: pointer;
 
         &:hover {
@@ -184,9 +184,9 @@ function onUpdate(value: AcceptableValue): void {
         line-height: 1.8rem;
         color: var(--bricks-base-900);
         transition:
-            color var(--default-transition),
-            opacity var(--default-transition),
-            background var(--default-transition);
+            color var(--bricks-default-transition),
+            opacity var(--bricks-default-transition),
+            background var(--bricks-default-transition);
         cursor: pointer;
         user-select: none;
 
@@ -213,7 +213,7 @@ function onUpdate(value: AcceptableValue): void {
     &._opened .field {
         border-color: var(--bricks-primary);
         background-color: var(--bricks-surface-raised);
-        box-shadow: var(--shadow-focus);
+        box-shadow: var(--bricks-shadow-focus);
 
         &:after {
             color: var(--bricks-base-400);
@@ -230,11 +230,11 @@ function onUpdate(value: AcceptableValue): void {
     z-index: 100;
     width: var(--reka-select-trigger-width);
     padding: 0.6rem;
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--bricks-border-radius-sm);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
     color: var(--bricks-base-900);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--bricks-shadow-md);
 }
 
 .optionsWrapper {
@@ -244,15 +244,15 @@ function onUpdate(value: AcceptableValue): void {
 .listItem {
     margin: 0 0 0.2rem;
     padding: 0.8rem 1.2rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     background-color: transparent;
     outline: none;
     font-size: 1.2rem;
     font-weight: 500;
     line-height: 1.4rem;
     transition:
-        background-color var(--default-transition),
-        color var(--default-transition);
+        background-color var(--bricks-default-transition),
+        color var(--bricks-default-transition);
     cursor: pointer;
     user-select: none;
 

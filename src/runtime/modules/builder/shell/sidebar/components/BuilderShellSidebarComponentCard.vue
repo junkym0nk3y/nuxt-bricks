@@ -178,7 +178,7 @@ const isFavorite = computed<boolean>(() =>
     box-sizing: border-box;
     overflow: hidden;
     width: 100%;
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--bricks-border-radius-sm);
     border: 1px solid var(--bricks-base-300);
     background-color: transparent;
     transition: all 150ms ease;
@@ -187,7 +187,7 @@ const isFavorite = computed<boolean>(() =>
 
     &:hover {
         border-color: var(--bricks-base-400);
-        box-shadow: var(--shadow-md);
+        box-shadow: var(--bricks-shadow-md);
         transform: translateY(-0.2rem);
     }
 
@@ -223,9 +223,9 @@ const isFavorite = computed<boolean>(() =>
     --bricks-primary-600: #1d4ed8;
     --bricks-primary-700: #1e40af;
     --bricks-primary: #2563eb;
-    --rgb-base-900: 17 24 39;
-    --rgb-base-0: 255 255 255;
-    --rgb-primary: 37 99 235;
+    --bricks-rgb-base-900: 17 24 39;
+    --bricks-rgb-base-0: 255 255 255;
+    --bricks-rgb-primary: 37 99 235;
 
     /* Reset playground variables (VTitle и другие playground-компоненты) */
     --body-color: #1b1d24;
@@ -316,6 +316,6 @@ const isFavorite = computed<boolean>(() =>
     flex-shrink: 0;
     width: 1.4rem;
     height: 1.4rem;
-    color: rgb(var(--rgb-primary));
+    color: rgb(var(--bricks-rgb-primary));
 }
 </style>

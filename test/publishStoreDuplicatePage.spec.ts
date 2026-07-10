@@ -16,6 +16,7 @@ vi.mock('../src/runtime/modules/common/composables/useApiClient', () => ({
 }));
 
 import { usePublishStore } from '../src/runtime/modules/builder/publish/stores/publish';
+import { generateCopyPagename } from '../src/runtime/modules/builder/publish/utils/slugify';
 
 /**
  * Собирает страницу для стейта стора с переопределениями.
@@ -67,7 +68,9 @@ describe('usePublishStore: дублирование страницы', () => {
             buildPage({ id: 3, pagename: 'home-copy-1' }),
         ];
 
-        expect(store.generateCopyPagename('home')).toBe('home-copy-2');
+        expect(
+            generateCopyPagename('home', (candidate) => store.isPagenameAvailable(candidate))
+        ).toBe('home-copy-2');
     });
 
     it('duplicatePage по id создаёт черновик с уникальным pagename и суффиксом (copy)', async () => {

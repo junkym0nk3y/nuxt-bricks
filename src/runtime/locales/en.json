@@ -194,6 +194,22 @@
                     "ogImage": "OG image",
                     "selectFromMedia": "Select from Media",
                     "routing": "Routing: urlPrefix, subdomain",
+                    "versions": {
+                        "title": "Versions",
+                        "empty": "No saved versions yet",
+                        "restore": "Restore",
+                        "preview": "Preview",
+                        "restoreConfirm": {
+                            "title": "Restore version?",
+                            "description": "The page will revert to the version from {date}. The current state will be kept in the version history."
+                        },
+                        "toasts": {
+                            "restored": "Version restored",
+                            "restoreFailed": "Failed to restore the version",
+                            "loadFailed": "Failed to load page versions",
+                            "previewFailed": "Failed to open the version preview"
+                        }
+                    },
                     "save": "Save changes",
                     "cancel": "Cancel",
                     "openInEditor": "Open in editor",
@@ -229,6 +245,7 @@
                 "unsavedChanges": "There are unsaved changes",
                 "loadPageFailed": "Failed to load the page",
                 "savePageFailed": "Failed to save the page",
+                "revisionConflict": "The page was modified elsewhere. Data refreshed — saving again will overwrite those changes",
                 "pageUpdated": "Page updated",
                 "draftUpdated": "Changes saved as draft",
                 "pagePublished": "Page published",
@@ -285,6 +302,7 @@
             "emptyNoUploads": "No uploaded images",
             "loadFailed": "Failed to load media",
             "loadFailedCheckDb": "Failed to load media. Check the database connection.",
+            "deleteFailed": "Failed to delete media",
             "deleteImageTitle": "Delete image?",
             "deleteImageDescription": "This action cannot be undone. The image will be deleted permanently.",
             "fullscreen": "Fullscreen preview",

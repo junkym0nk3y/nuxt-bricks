@@ -1,8 +1,7 @@
 /**
  * Дефолтный IAuthAdapter поверх PostgreSQL (таблицы bricks_users / bricks_sessions).
- * Схема таблиц — database/init.sql в корне репозитория; в рантайме её гарантирует
- * мемоизированный ensureSchema() (миграций в проекте нет, init.sql в npm-пакет
- * не попадает — files: ["dist"]).
+ * Схема таблиц — versioned-миграции migrations/*.sql (CLI bricks-migrate);
+ * runtime-DDL адаптер не выполняет.
  */
 import { query, queryOne } from './client';
 import type {
@@ -22,78 +21,17 @@ interface ISessionJoinRow {
     isActive: boolean;
 }
 
-/** DDL auth-таблиц — идемпотентный, зеркалит database/init.sql. */
-const AUTH_SCHEMA_DDL = `
-CREATE TABLE IF NOT EXISTS bricks_users (
-    id SERIAL PRIMARY KEY,
-    username VARCHAR(255) UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
-    is_active BOOLEAN NOT NULL DEFAULT true,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
-
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
-DROP TRIGGER IF EXISTS update_bricks_users_updated_at ON bricks_users;
-CREATE TRIGGER update_bricks_users_updated_at
-    BEFORE UPDATE ON bricks_users
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TABLE IF NOT EXISTS bricks_sessions (
-    id SERIAL PRIMARY KEY,
-    token_hash CHAR(64) UNIQUE NOT NULL,
-    user_id INTEGER NOT NULL REFERENCES bricks_users(id) ON DELETE CASCADE,
-    expires_at TIMESTAMP NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW(),
-    last_used_at TIMESTAMP DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_bricks_sessions_user_id ON bricks_sessions(user_id);
-CREATE INDEX IF NOT EXISTS idx_bricks_sessions_expires_at ON bricks_sessions(expires_at);
-`;
-
 /**
  * Создаёт Postgres-реализацию IAuthAdapter.
  *
  * @returns Адаптер пользователей и cookie-сессий.
  */
 export function createPostgresAuthAdapter(): IAuthAdapter {
-    // Мемоизация с reset-on-failure: сбой БД не должен «отравить» синглтон —
-    // следующий запрос попробует создать схему заново.
-    let schemaPromise: Promise<void> | null = null;
-
-    /**
-     * Идемпотентно гарантирует наличие auth-таблиц при первом обращении.
-     */
-    function ensureSchema(): Promise<void> {
-        if (!schemaPromise) {
-            schemaPromise = query(AUTH_SCHEMA_DDL).then(
-                () => undefined,
-                (error: unknown) => {
-                    schemaPromise = null;
-                    throw error;
-                }
-            );
-        }
-
-        return schemaPromise;
-    }
-
     return {
         /**
          * Возвращает пользователя по username (включая хеш пароля) или null.
          */
         async getUserByUsername(username: string): Promise<IAuthUserRecord | null> {
-            await ensureSchema();
-
             return queryOne<IAuthUserRecord>(
                 `SELECT id, username, password_hash AS "passwordHash", is_active AS "isActive"
                 FROM bricks_users
@@ -107,8 +45,6 @@ export function createPostgresAuthAdapter(): IAuthAdapter {
          * Просроченная сессия неотличима от отсутствующей (SQL-фильтр по expires_at).
          */
         async getSessionWithUser(tokenHash: string): Promise<IAuthSessionWithUser | null> {
-            await ensureSchema();
-
             const row = await queryOne<ISessionJoinRow>(
                 `SELECT s.token_hash AS "tokenHash",
                     s.expires_at AS "expiresAt",
@@ -142,8 +78,6 @@ export function createPostgresAuthAdapter(): IAuthAdapter {
          * Создаёт сессию (в БД — только SHA-256 hex токена).
          */
         async createSession(payload: ICreateAuthSessionPayload): Promise<void> {
-            await ensureSchema();
-
             await query(
                 `INSERT INTO bricks_sessions (token_hash, user_id, expires_at)
                 VALUES ($1, $2, $3)`,
@@ -155,8 +89,6 @@ export function createPostgresAuthAdapter(): IAuthAdapter {
          * Удаляет сессию по хешу токена (logout / отзыв).
          */
         async deleteSession(tokenHash: string): Promise<void> {
-            await ensureSchema();
-
             await query('DELETE FROM bricks_sessions WHERE token_hash = $1', [tokenHash]);
         },
 
@@ -164,8 +96,6 @@ export function createPostgresAuthAdapter(): IAuthAdapter {
          * Удаляет просроченные сессии; возвращает количество удалённых.
          */
         async deleteExpiredSessions(): Promise<number> {
-            await ensureSchema();
-
             const rows = await query<{ id: number }>(
                 'DELETE FROM bricks_sessions WHERE expires_at <= NOW() RETURNING id'
             );
@@ -177,8 +107,6 @@ export function createPostgresAuthAdapter(): IAuthAdapter {
          * Sliding-продление: обновляет expires_at и last_used_at сессии.
          */
         async touchSession(tokenHash: string, expiresAt: Date): Promise<void> {
-            await ensureSchema();
-
             await query(
                 `UPDATE bricks_sessions
                 SET expires_at = $2, last_used_at = NOW()

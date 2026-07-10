@@ -102,13 +102,13 @@ defineExpose({
 </script>
 
 <template>
-    <Transition name="library-sidebar">
+    <Transition name="bricks-sidebar">
         <aside
             v-show="isVisible"
             :class="$style.TheBuilderShellSidebar"
             :style="{ width: sidebarWidth }"
         >
-            <Transition name="library-sidebar-view" mode="out-in">
+            <Transition name="bricks-sidebar-view" mode="out-in">
                 <BuilderShellSidebarComponentsView
                     v-if="activeView === 'components'"
                     key="components"
@@ -146,6 +146,6 @@ defineExpose({
     border-right: 1px solid var(--bricks-base-300);
     background-color: var(--bricks-base-0);
     flex-direction: column;
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--bricks-shadow-md);
 }
 </style>

@@ -44,7 +44,7 @@ function handleClear(): void {
 
 <template>
     <div :class="$style.BuilderShellSidebarPublishSocialImage">
-        <Transition mode="out-in" name="library-fade-fast">
+        <Transition mode="out-in" name="bricks-fade-fast">
             <div v-if="props.socialImage" :class="$style.mediaPreview">
                 <img :src="props.socialImage" alt="" :class="$style.mediaImage" />
             </div>
@@ -60,7 +60,7 @@ function handleClear(): void {
                 {{ t('bricks.publish.socialImageSelect') }}
             </BricksButton>
 
-            <Transition mode="out-in" name="library-fade-fast">
+            <Transition mode="out-in" name="bricks-fade-fast">
                 <div v-if="props.socialImage" :class="$style.mediaFooter">
                     <span :class="$style.mediaUrl">{{ props.socialImage }}</span>
                     <BricksButton
@@ -90,7 +90,7 @@ function handleClear(): void {
     flex-shrink: 0;
     width: 8rem;
     height: 8rem;
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--bricks-border-radius-sm);
     border: 1px solid var(--bricks-base-300);
     background-color: var(--bricks-base-50);
 }

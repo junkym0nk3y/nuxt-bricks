@@ -122,12 +122,12 @@ function onOpenChange(open: boolean): void {
     align-items: center;
     max-width: min(38rem, calc(100vw - 4.8rem));
     padding: 1.2rem;
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--bricks-border-radius-sm);
     border: 1px solid var(--bricks-base-200);
     background-color: var(--bricks-base-0);
     color: var(--bricks-base-900);
     gap: 1.2rem;
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--bricks-shadow-lg);
     user-select: none;
 
     &._success .iconWrapper {
@@ -179,7 +179,7 @@ function onOpenChange(open: boolean): void {
     flex-shrink: 0;
     width: 2.8rem;
     height: 2.8rem;
-    border-radius: var(--border-radius-control);
+    border-radius: var(--bricks-border-radius-control);
 }
 
 .icon {
@@ -201,13 +201,13 @@ function onOpenChange(open: boolean): void {
     flex-shrink: 0;
     width: 2.4rem;
     height: 2.4rem;
-    border-radius: var(--border-radius-control);
+    border-radius: var(--bricks-border-radius-control);
     border: none;
     background: transparent;
     color: var(--bricks-base-400);
     transition:
-        background-color var(--default-transition),
-        color var(--default-transition);
+        background-color var(--bricks-default-transition),
+        color var(--bricks-default-transition);
     cursor: pointer;
 
     svg {
@@ -222,7 +222,7 @@ function onOpenChange(open: boolean): void {
 
     &:focus-visible {
         outline: none;
-        box-shadow: var(--shadow-focus);
+        box-shadow: var(--bricks-shadow-focus);
     }
 }
 

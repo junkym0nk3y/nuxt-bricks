@@ -3,7 +3,13 @@
  * Контрактные data-типы (IMediaItem, ответы API) живут в common/types/media.d.ts.
  */
 
-export type TFormData = import('h3').MultiPartData[] | undefined;
+/** Часть multipart-формы, прочитанной с лимитом (структурно совместима с h3 MultiPartData). */
+export interface IUploadedFilePart {
+    name?: string;
+    filename?: string;
+    type?: string;
+    data: Buffer;
+}
 
 export interface IMediaOptimization {
     maxWidth: number;
@@ -29,16 +35,4 @@ export interface IValidatedImage {
     mimeType: string;
     targetExtension: string;
     isSvg: boolean;
-}
-
-export interface IBuildUploadedItemParams {
-    file: import('h3').MultiPartData;
-    key: string;
-    url: string;
-    optimizedBuffer: Buffer;
-    mimeType: string;
-    isSvg: boolean;
-    uniqueFilename: string;
-    formData: TFormData;
-    defaultCategory: string;
 }

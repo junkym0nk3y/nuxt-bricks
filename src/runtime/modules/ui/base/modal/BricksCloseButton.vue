@@ -48,13 +48,13 @@ function handleClick(event: MouseEvent): void {
     width: 3.2rem;
     height: 3.2rem;
     padding: 0;
-    border-radius: var(--border-radius-control);
+    border-radius: var(--bricks-border-radius-control);
     border: none;
     background-color: var(--bricks-surface-raised);
     color: var(--bricks-base-600);
     transition:
-        color var(--default-transition),
-        background-color var(--default-transition);
+        color var(--bricks-default-transition),
+        background-color var(--bricks-default-transition);
     cursor: pointer;
 
     &:not(:disabled):hover {
@@ -63,7 +63,7 @@ function handleClick(event: MouseEvent): void {
 
     &:focus-visible {
         outline: none;
-        box-shadow: var(--shadow-focus);
+        box-shadow: var(--bricks-shadow-focus);
     }
 
     &:disabled {

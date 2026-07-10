@@ -119,17 +119,17 @@ function onKeydown(event: KeyboardEvent): void {
     .label {
         font-weight: 500;
         color: var(--bricks-base-900);
-        transition: color var(--default-transition);
+        transition: color var(--bricks-default-transition);
     }
 
     .input {
         position: relative;
         flex-shrink: 0;
-        border-radius: var(--border-radius-xs);
+        border-radius: var(--bricks-border-radius-xs);
         border: 1px solid var(--bricks-base-300);
         background: transparent;
         color: var(--bricks-base-50);
-        transition: all var(--default-transition);
+        transition: all var(--bricks-default-transition);
 
         &:after {
             content: '';
@@ -141,8 +141,8 @@ function onKeydown(event: KeyboardEvent): void {
             opacity: 0;
             transform: translate(-50%, -50%) scale(0);
             transition:
-                opacity var(--default-transition),
-                transform var(--default-transition);
+                opacity var(--bricks-default-transition),
+                transform var(--bricks-default-transition);
             -webkit-mask-repeat: no-repeat;
             mask-repeat: no-repeat;
             -webkit-mask-position: center;
@@ -217,7 +217,7 @@ function onKeydown(event: KeyboardEvent): void {
         .input {
             border-color: var(--bricks-primary);
             outline: none;
-            box-shadow: var(--shadow-focus);
+            box-shadow: var(--bricks-shadow-focus);
         }
     }
 

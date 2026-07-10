@@ -8,6 +8,9 @@ import { computed, inject, watch, useCssModule, type ComputedRef } from 'vue';
 
 // Composables
 import { useInlineEditor } from '../../text-editor/composables/useInlineEditor';
+
+// Utils
+import { sanitizeRichTextHtml } from '../../common/utils/sanitize/sanitizeRichText';
 // #endregion
 
 // #region Interfaces
@@ -65,6 +68,9 @@ const isEditing = computed<boolean>(() => {
     }
     return inlineEditingContext.isEditing.value;
 });
+
+/** Контент схемы — недоверенный ввод: санитизация обязательна перед v-html. */
+const sanitizedContent = computed<string>(() => sanitizeRichTextHtml(props.content));
 // #endregion
 
 // #region Lifecycle
@@ -105,7 +111,7 @@ function handleEditorClick(event: MouseEvent): void {
         </template>
 
         <!-- Normal mode: static HTML -->
-        <div v-else data-tiptap-content v-html="props.content"></div>
+        <div v-else data-tiptap-content v-html="sanitizedContent"></div>
     </div>
 </template>
 

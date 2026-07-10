@@ -148,7 +148,7 @@ defineExpose({
             </div>
         </div>
 
-        <div :class="[$style.content, 'scrollbox']">
+        <div :class="[$style.content, 'bricks-scrollbox']">
             <div v-if="!store.selectedComponentData" :class="$style.debug">
                 <p>No component selected</p>
                 <p>selectedComponent: {{ store.selectedComponent }}</p>

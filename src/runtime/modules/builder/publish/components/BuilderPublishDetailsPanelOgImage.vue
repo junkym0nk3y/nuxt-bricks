@@ -112,7 +112,7 @@ function handleClear(): void {
     flex-shrink: 0;
     width: 4.4rem;
     height: 4.4rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     background: var(--bricks-base-100);
 }
 

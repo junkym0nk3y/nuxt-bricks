@@ -101,7 +101,7 @@ function getTooltipText(title: string): string {
                                 @click.prevent="item.run()"
                             >
                                 <template v-if="item.icon">
-                                    <transition name="library-fade-fast">
+                                    <transition name="bricks-fade-fast">
                                         <span :key="`icon_${item.icon}`">
                                             <BricksIcon :icon="item.icon" />
                                         </span>
@@ -301,13 +301,13 @@ function getTooltipText(title: string): string {
     flex-shrink: 0;
     width: var(--toolbar-btn-size);
     height: var(--toolbar-btn-size);
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-base-200);
     background: transparent;
     font-size: 1.4rem;
     font-weight: 600;
     color: var(--bricks-base-600);
-    transition: all var(--default-transition);
+    transition: all var(--bricks-default-transition);
     cursor: pointer;
 
     svg {
@@ -368,12 +368,12 @@ function getTooltipText(title: string): string {
     max-width: var(--toolbar-select-max-width);
     height: var(--toolbar-btn-size);
     padding: 0 0.6rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-50);
     font-size: var(--toolbar-font-size);
     color: var(--bricks-base-800);
-    transition: border-color var(--default-transition);
+    transition: border-color var(--bricks-default-transition);
     cursor: pointer;
     appearance: none;
 

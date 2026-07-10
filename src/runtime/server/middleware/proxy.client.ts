@@ -13,8 +13,10 @@
  */
 
 import { createProxyEventHandler } from 'h3-proxy';
-import { defineEventHandler, type EventHandler } from 'h3';
+import { defineEventHandler, type EventHandler, type H3Event } from 'h3';
 import { useRuntimeConfig } from 'nitropack/runtime';
+import { BRICKS_SESSION_COOKIE_NAME } from '../../modules/common/constants/auth';
+import { stripCookieByName } from '../../modules/common/utils/cookieHeader';
 
 const config = useRuntimeConfig();
 const API_PREFIX = '/api';
@@ -34,7 +36,7 @@ function createHandler(targetUrl: string, pathPrefix: string): EventHandler | nu
     });
 }
 
-const proxyTarget = (config.public.PROXY_URL as string | undefined) || '';
+const proxyTarget = (config.bricksProxyUrl as string | undefined) || '';
 const proxyHandler = proxyTarget ? createHandler(proxyTarget, API_PREFIX) : null;
 
 /**
@@ -70,10 +72,37 @@ function shouldProxy(url: string | undefined): boolean {
     return false;
 }
 
+/**
+ * Вырезает identity билдера из заголовков запроса перед проброской на внешний
+ * backend: cookie сессии database-auth и Authorization в basic-режиме
+ * (браузер шлёт креды bricks на все пути origin после первого challenge) —
+ * секреты билдера внешнему сервису не предназначены. Остальные cookie
+ * и заголовки проекта пробрасываются как есть.
+ *
+ * @param event - Событие проксируемого запроса (заголовки мутируются in place).
+ */
+function stripBricksIdentityHeaders(event: H3Event): void {
+    const headers = event.node.req.headers;
+
+    if (headers.cookie) {
+        const cookie = stripCookieByName(headers.cookie, BRICKS_SESSION_COOKIE_NAME);
+        if (cookie) {
+            headers.cookie = cookie;
+        } else {
+            delete headers.cookie;
+        }
+    }
+
+    if (config.bricksAuthMode === 'basic' && headers.authorization) {
+        delete headers.authorization;
+    }
+}
+
 export default defineEventHandler(async (event) => {
     const url = event.node.req.url;
 
     if (shouldProxy(url) && proxyHandler) {
+        stripBricksIdentityHeaders(event);
         return proxyHandler(event);
     }
 });

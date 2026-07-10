@@ -1,4 +1,4 @@
-import { createError, defineEventHandler, getRequestIP, setResponseHeader } from 'h3';
+import { createError, defineEventHandler, setResponseHeader } from 'h3';
 import { useRuntimeConfig } from 'nitropack/runtime';
 import { useBricksAuthAdapter } from '../../../../modules/persistence/server/registry';
 import {
@@ -18,6 +18,7 @@ import {
     resolveSessionMaxAgeSeconds,
     setSessionCookie,
 } from '../../../utils/auth/sessionCookie';
+import { resolveRequestClientIp } from '../../../utils/requestClientIp';
 import type { IAuthAdapter } from '../../../../modules/persistence/types/adapters';
 
 /** Максимальная длина username (равна VARCHAR(255) в БД). */
@@ -93,7 +94,7 @@ export default defineEventHandler(async (event) => {
         const body = await readNormalizedBody<ILoginBody>(event);
         const { username, password } = validateLoginBody(body);
 
-        const rateLimitKey = buildRateLimitKey(getRequestIP(event) ?? 'unknown', username);
+        const rateLimitKey = buildRateLimitKey(resolveRequestClientIp(event), username);
         const lockoutSeconds = isLockedOut(rateLimitKey);
 
         if (lockoutSeconds > 0) {

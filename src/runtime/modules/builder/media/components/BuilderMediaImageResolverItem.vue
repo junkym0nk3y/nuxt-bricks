@@ -111,7 +111,7 @@ function handleImgError(): void {
     align-items: center;
     gap: 1.2rem;
     padding: 1rem 1.2rem;
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--bricks-border-radius-sm);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
     transition: border-color 150ms ease;
@@ -126,7 +126,7 @@ function handleImgError(): void {
     flex-shrink: 0;
     width: 4.8rem;
     height: 4.8rem;
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--bricks-border-radius-sm);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-50);
 }
@@ -181,7 +181,7 @@ function handleImgError(): void {
     --bricks-base-900: #111827;
 
     padding: 0.4rem 0.8rem;
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--bricks-border-radius-sm);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
     font-size: 1.2rem;

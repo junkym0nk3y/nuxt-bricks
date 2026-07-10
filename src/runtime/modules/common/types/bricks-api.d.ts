@@ -30,6 +30,8 @@ export interface IBricksPageRow {
     thumbnailUrl: string | null;
     schema: IBricksSchema;
     published: boolean;
+    /** Монотонный счётчик изменений строки — precondition optimistic locking. */
+    revision: number;
     createdAt: string;
     updatedAt: string;
 }
@@ -51,6 +53,12 @@ export interface IPublishedPage {
     thumbnailUrl: string | null;
     schema: IBricksSchema;
     published: boolean;
+    /**
+     * Revision editorial-строки для optimistic locking. Опциональна: публичная
+     * проекция (`/api/bricks/public/**`) и старые localStorage-снапшоты поля
+     * не содержат — тогда запись идёт без precondition (last-write-wins).
+     */
+    revision?: number;
     createdAt: string;
     updatedAt: string;
     isPreview?: boolean;
@@ -71,6 +79,34 @@ export interface IPublishedPageSummary {
  */
 export interface IPreviewStoredPage extends IPublishedPage {
     storedAt?: string;
+}
+
+/**
+ * Сводка сохранённой версии страницы (лёгкий список без schema).
+ */
+export interface IPageVersionSummary {
+    id: number;
+    pageId: number;
+    createdAt: string;
+}
+
+/**
+ * Полный снапшот версии страницы: meta + schema на момент сохранения.
+ * `pageUpdatedAt` — updated_at исходной строки на момент снапшота.
+ */
+export interface IPageVersion extends IPageVersionSummary {
+    pagename: string;
+    title: string | null;
+    description: string | null;
+    keywords: string | null;
+    socialImage: string | null;
+    layout: string | null;
+    backgroundColor: string | null;
+    urlPrefix: string | null;
+    subdomain: string | null;
+    schema: IBricksSchema;
+    published: boolean;
+    pageUpdatedAt: string | null;
 }
 
 export interface ICreatePagePayload {
@@ -100,6 +136,13 @@ export interface IUpdatePagePayload {
     thumbnailUrl?: string | null;
     schema?: IBricksSchema;
     published?: boolean;
+    /**
+     * Precondition optimistic locking (НЕ записываемое поле): ожидаемая клиентом
+     * revision строки. При несовпадении с текущей адаптер обязан кинуть
+     * BricksRevisionConflictError (409), ничего не меняя. Без поля — запись
+     * без precondition (last-write-wins).
+     */
+    expectedRevision?: number;
 }
 
 /**

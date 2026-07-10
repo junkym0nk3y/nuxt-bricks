@@ -6,6 +6,9 @@ import type { IAccordionLayoutProps, IAccordionItem } from '../types/blockProps'
 // Vue
 import { computed, ref } from 'vue';
 
+// Utils
+import { sanitizeRichTextHtml } from '../../common/utils/sanitize/sanitizeRichText';
+
 // Reka UI
 import {
     AccordionRoot,
@@ -34,7 +37,13 @@ const normalizedItems = computed<IAccordionItem[]>(() => {
     if (!Array.isArray(props.layoutProps.items)) {
         return [];
     }
-    return props.layoutProps.items;
+
+    // title/content — недоверенный ввод схемы: санитизация обязательна перед v-html
+    return props.layoutProps.items.map((item) => ({
+        ...item,
+        title: sanitizeRichTextHtml(item.title),
+        content: sanitizeRichTextHtml(item.content),
+    }));
 });
 
 /** Карточный режим (gap > 0) */

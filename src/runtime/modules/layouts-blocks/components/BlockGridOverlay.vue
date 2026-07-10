@@ -54,7 +54,7 @@ const horizontalGapRects = computed(() =>
             :y="0"
             :width="gapRect.width"
             :height="contentHeight"
-            fill="rgb(var(--rgb-primary) / 12%)"
+            fill="rgb(var(--bricks-rgb-primary) / 12%)"
         />
 
         <!-- Horizontal gap highlight (rows) -->
@@ -65,7 +65,7 @@ const horizontalGapRects = computed(() =>
             :y="gapRect.y"
             :width="props.containerSize.width"
             :height="gapRect.height"
-            fill="rgb(var(--rgb-primary) / 12%)"
+            fill="rgb(var(--bricks-rgb-primary) / 12%)"
         />
 
         <!-- Vertical lines (columns) -->

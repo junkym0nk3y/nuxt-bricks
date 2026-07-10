@@ -18,6 +18,10 @@ import { createPostgresAuthAdapter } from './postgres/postgresAuthAdapter';
 import { createS3PublishAdapter } from './s3/s3PublishAdapter';
 import type { IStorageAdapter, IPublishAdapter, IAuthAdapter } from '../types/adapters';
 
+// Доменные ошибки конфликтов — часть контракта IStorageAdapter (кастомные
+// адаптеры кидают их из createPage/updatePage, ручки маппят на HTTP 409).
+export { BricksPagenameConflictError, BricksRevisionConflictError } from './utils/storageErrors';
+
 let storageAdapter: IStorageAdapter | null = null;
 let publishAdapter: IPublishAdapter | null = null;
 let authAdapter: IAuthAdapter | null = null;

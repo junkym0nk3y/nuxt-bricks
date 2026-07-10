@@ -256,7 +256,7 @@ function handleMoveDown(index: number): void {
 .card {
     display: flex;
     padding: 1.2rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
     gap: 1rem;
@@ -301,7 +301,7 @@ function handleMoveDown(index: number): void {
     align-items: center;
     justify-content: center;
     padding: 2.4rem;
-    border-radius: var(--border-radius-xs);
+    border-radius: var(--bricks-border-radius-xs);
     border: 0.2rem dashed var(--bricks-base-300);
     background: var(--bricks-base-50);
     font-size: 1.4rem;

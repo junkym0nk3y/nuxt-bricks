@@ -22,6 +22,11 @@ import { Swiper, SwiperSlide } from 'swiper/vue';
 import { Navigation, Pagination, Autoplay, A11y } from 'swiper/modules';
 import BlockSliderCaptions from './BlockSliderCaptions.vue';
 
+// Styles: css слайдера едет в чанк компонента, а не в глобальный css всех
+// страниц потребителя (изоляция модуля — см. architecture-audit)
+import 'swiper/css';
+import 'swiper/css/navigation';
+import 'swiper/css/pagination';
 // #endregion
 
 // #region Components
@@ -292,12 +297,12 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
 
     &._editor {
         border-radius: 0.4rem;
-        border: 1px dashed rgb(var(--rgb-layout-slider) / 30%);
-        background: rgb(var(--rgb-layout-slider) / 5%);
+        border: 1px dashed rgb(var(--bricks-rgb-layout-slider) / 30%);
+        background: rgb(var(--bricks-rgb-layout-slider) / 5%);
 
         &:hover {
-            border-color: rgb(var(--rgb-layout-slider) / 50%);
-            background: rgb(var(--rgb-layout-slider) / 8%);
+            border-color: rgb(var(--bricks-rgb-layout-slider) / 50%);
+            background: rgb(var(--bricks-rgb-layout-slider) / 8%);
         }
 
         // pointer-events: auto для дочерних элементов внутри Swiper,
@@ -316,10 +321,10 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
     }
 
     &._dragOver {
-        border-color: rgb(var(--rgb-layout-slider) / 80%);
+        border-color: rgb(var(--bricks-rgb-layout-slider) / 80%);
         border-width: 0.2rem;
-        background: rgb(var(--rgb-layout-slider) / 15%);
-        box-shadow: 0 0 0 0.4rem rgb(var(--rgb-layout-slider) / 20%);
+        background: rgb(var(--bricks-rgb-layout-slider) / 15%);
+        box-shadow: 0 0 0 0.4rem rgb(var(--bricks-rgb-layout-slider) / 20%);
     }
 }
 

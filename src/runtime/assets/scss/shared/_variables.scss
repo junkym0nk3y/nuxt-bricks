@@ -5,20 +5,20 @@
 /* CSS Variables */
 :root {
     --bricks-font-family-base: 'Inter', system-ui, -apple-system, 'Segoe UI', 'Roboto', sans-serif;
-    --font-size-sm: 1.2rem;
-    --font-size-base: 1.4rem;
-    --bricks-font-size-base: var(--font-size-base);
-    --default-transition: 300ms ease;
+    --bricks-font-size-sm: 1.2rem;
+    --bricks-font-size-base: 1.4rem;
+    --bricks-default-transition: 300ms ease;
 
-    --border-radius-xs: 0.6rem;
+    --bricks-border-radius-xs: 0.6rem;
     /* Компактные квадратные контролы (close button, nav items) — 0.8rem из Figma */
-    --border-radius-control: 0.8rem;
-    --border-radius-sm: 1rem;
-    --border-radius-md: 1.4rem;
-    --border-radius-pill: 99.9rem;
+    --bricks-border-radius-control: 0.8rem;
+    --bricks-border-radius-sm: 1rem;
+    --bricks-border-radius-md: 1.4rem;
+    --bricks-border-radius-pill: 99.9rem;
 
     /* Статический белый: текст на фиксированных фонах (primary, тёмные оверлеи) — не зависит от темы */
     --bricks-static-white: #fff;
+    --bricks-rgb-white: 255 255 255;
 
     /* === Base gray colors (light to dark) === */
     --bricks-base-0: #fff;
@@ -57,36 +57,37 @@
     --bricks-purple: #8b5cf6;
 
     /* === RGB Channels === */
-    --rgb-base-900: 17 24 39; /* from #111827 */
-    --rgb-base-0: 255 255 255; /* from #fff */
-    --rgb-primary: 37 99 235; /* from --bricks-primary #2563eb */
-    --rgb-gray: 150 150 150; /* neutral gray */
+    --bricks-rgb-base-900: 17 24 39; /* from #111827 */
+    --bricks-rgb-base-0: 255 255 255; /* from #fff */
+    --bricks-rgb-primary: 37 99 235; /* from --bricks-primary #2563eb */
+    --bricks-rgb-gray: 150 150 150; /* neutral gray */
 
     /* Layout indicator colors */
-    --rgb-layout-flex: 255 120 0; /* orange */
-    --rgb-layout-grid: 0 120 255; /* blue */
-    --rgb-layout-slider: 125 87 255; /* purple */
-    --rgb-layout-section: 16 185 129; /* green/teal */
+    --bricks-rgb-layout-flex: 255 120 0; /* orange */
+    --bricks-rgb-layout-grid: 0 120 255; /* blue */
+    --bricks-rgb-layout-slider: 125 87 255; /* purple */
+    --bricks-rgb-layout-section: 16 185 129; /* green/teal */
 
     /* === Shadows (layered, soft UI) === */
-    --shadow-sm:
-        0 0.1rem 0.2rem rgb(var(--rgb-base-900) / 5%), 0 0.2rem 0.8rem rgb(var(--rgb-base-900) / 6%);
-    --shadow-md:
-        0 0.4rem 1.2rem rgb(var(--rgb-base-900) / 8%),
-        0 1.2rem 3.2rem rgb(var(--rgb-base-900) / 10%);
-    --shadow-lg:
-        0 0.6rem 1.6rem rgb(var(--rgb-base-900) / 9%),
-        0 1.6rem 4.8rem rgb(var(--rgb-base-900) / 12%);
-    --shadow-xl:
-        0 0.8rem 2.4rem rgb(var(--rgb-base-900) / 10%),
-        0 2.4rem 6.4rem rgb(var(--rgb-base-900) / 14%);
-    --shadow-focus: 0 0 0 0.4rem rgb(var(--rgb-primary) / 18%);
+    --bricks-shadow-sm:
+        0 0.1rem 0.2rem rgb(var(--bricks-rgb-base-900) / 5%),
+        0 0.2rem 0.8rem rgb(var(--bricks-rgb-base-900) / 6%);
+    --bricks-shadow-md:
+        0 0.4rem 1.2rem rgb(var(--bricks-rgb-base-900) / 8%),
+        0 1.2rem 3.2rem rgb(var(--bricks-rgb-base-900) / 10%);
+    --bricks-shadow-lg:
+        0 0.6rem 1.6rem rgb(var(--bricks-rgb-base-900) / 9%),
+        0 1.6rem 4.8rem rgb(var(--bricks-rgb-base-900) / 12%);
+    --bricks-shadow-xl:
+        0 0.8rem 2.4rem rgb(var(--bricks-rgb-base-900) / 10%),
+        0 2.4rem 6.4rem rgb(var(--bricks-rgb-base-900) / 14%);
+    --bricks-shadow-focus: 0 0 0 0.4rem rgb(var(--bricks-rgb-primary) / 18%);
 
     /* === Overlays === */
-    --overlay-dark: rgb(var(--rgb-base-900) / 60%);
-    --overlay-light: rgb(var(--rgb-base-0) / 20%);
-    --overlay-modal-start: rgb(var(--rgb-base-900) / 45%);
-    --overlay-modal-end: rgb(var(--rgb-base-900) / 70%);
+    --bricks-overlay-dark: rgb(var(--bricks-rgb-base-900) / 60%);
+    --bricks-overlay-light: rgb(var(--bricks-rgb-base-0) / 20%);
+    --bricks-overlay-modal-start: rgb(var(--bricks-rgb-base-900) / 45%);
+    --bricks-overlay-modal-end: rgb(var(--bricks-rgb-base-900) / 70%);
 
     /* === Invariant surfaces (не зависят от темы) === */
     --bricks-dark-surface: #1a1d24; /* dark-preview в текстовых редакторах */
@@ -126,20 +127,20 @@
     --bricks-yellow: #fbbf24;
     --bricks-purple: #a78bfa;
 
-    --rgb-base-900: 232 234 239;
-    --rgb-base-0: 22 24 29;
-    --rgb-primary: 59 130 246;
+    --bricks-rgb-base-900: 232 234 239;
+    --bricks-rgb-base-0: 22 24 29;
+    --bricks-rgb-primary: 59 130 246;
 
-    --shadow-sm: 0 0.1rem 0.2rem rgb(0 0 0 / 20%), 0 0.2rem 0.8rem rgb(0 0 0 / 25%);
-    --shadow-md: 0 0.4rem 1.2rem rgb(0 0 0 / 30%), 0 1.2rem 3.2rem rgb(0 0 0 / 35%);
-    --shadow-lg: 0 0.6rem 1.6rem rgb(0 0 0 / 35%), 0 1.6rem 4.8rem rgb(0 0 0 / 40%);
-    --shadow-xl: 0 0.8rem 2.4rem rgb(0 0 0 / 40%), 0 2.4rem 6.4rem rgb(0 0 0 / 45%);
-    --shadow-focus: 0 0 0 0.4rem rgb(var(--rgb-primary) / 25%);
+    --bricks-shadow-sm: 0 0.1rem 0.2rem rgb(0 0 0 / 20%), 0 0.2rem 0.8rem rgb(0 0 0 / 25%);
+    --bricks-shadow-md: 0 0.4rem 1.2rem rgb(0 0 0 / 30%), 0 1.2rem 3.2rem rgb(0 0 0 / 35%);
+    --bricks-shadow-lg: 0 0.6rem 1.6rem rgb(0 0 0 / 35%), 0 1.6rem 4.8rem rgb(0 0 0 / 40%);
+    --bricks-shadow-xl: 0 0.8rem 2.4rem rgb(0 0 0 / 40%), 0 2.4rem 6.4rem rgb(0 0 0 / 45%);
+    --bricks-shadow-focus: 0 0 0 0.4rem rgb(var(--bricks-rgb-primary) / 25%);
 
-    --overlay-dark: rgb(0 0 0 / 60%);
-    --overlay-light: rgb(var(--rgb-base-0) / 30%);
-    --overlay-modal-start: rgb(0 0 0 / 55%);
-    --overlay-modal-end: rgb(0 0 0 / 75%);
+    --bricks-overlay-dark: rgb(0 0 0 / 60%);
+    --bricks-overlay-light: rgb(var(--bricks-rgb-base-0) / 30%);
+    --bricks-overlay-modal-start: rgb(0 0 0 / 55%);
+    --bricks-overlay-modal-end: rgb(0 0 0 / 75%);
 
     /* === Canvas reset: компоненты на канвасе остаются в светлой теме === */
     .bricks-canvas {
@@ -174,23 +175,23 @@
         --bricks-yellow: #f59e0b;
         --bricks-purple: #8b5cf6;
 
-        --rgb-base-900: 17 24 39;
-        --rgb-base-0: 255 255 255;
-        --rgb-primary: 37 99 235;
+        --bricks-rgb-base-900: 17 24 39;
+        --bricks-rgb-base-0: 255 255 255;
+        --bricks-rgb-primary: 37 99 235;
 
-        --shadow-sm:
-            0 0.1rem 0.2rem rgb(var(--rgb-base-900) / 5%),
-            0 0.2rem 0.8rem rgb(var(--rgb-base-900) / 6%);
-        --shadow-md:
-            0 0.4rem 1.2rem rgb(var(--rgb-base-900) / 8%),
-            0 1.2rem 3.2rem rgb(var(--rgb-base-900) / 10%);
-        --shadow-lg:
-            0 0.6rem 1.6rem rgb(var(--rgb-base-900) / 9%),
-            0 1.6rem 4.8rem rgb(var(--rgb-base-900) / 12%);
-        --shadow-xl:
-            0 0.8rem 2.4rem rgb(var(--rgb-base-900) / 10%),
-            0 2.4rem 6.4rem rgb(var(--rgb-base-900) / 14%);
-        --shadow-focus: 0 0 0 0.4rem rgb(var(--rgb-primary) / 18%);
+        --bricks-shadow-sm:
+            0 0.1rem 0.2rem rgb(var(--bricks-rgb-base-900) / 5%),
+            0 0.2rem 0.8rem rgb(var(--bricks-rgb-base-900) / 6%);
+        --bricks-shadow-md:
+            0 0.4rem 1.2rem rgb(var(--bricks-rgb-base-900) / 8%),
+            0 1.2rem 3.2rem rgb(var(--bricks-rgb-base-900) / 10%);
+        --bricks-shadow-lg:
+            0 0.6rem 1.6rem rgb(var(--bricks-rgb-base-900) / 9%),
+            0 1.6rem 4.8rem rgb(var(--bricks-rgb-base-900) / 12%);
+        --bricks-shadow-xl:
+            0 0.8rem 2.4rem rgb(var(--bricks-rgb-base-900) / 10%),
+            0 2.4rem 6.4rem rgb(var(--bricks-rgb-base-900) / 14%);
+        --bricks-shadow-focus: 0 0 0 0.4rem rgb(var(--bricks-rgb-primary) / 18%);
 
         /* Reset playground variables for canvas components (VTitle, etc.) */
         --body-color: #1b1d24;

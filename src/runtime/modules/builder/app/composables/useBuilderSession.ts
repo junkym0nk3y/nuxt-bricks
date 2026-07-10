@@ -25,11 +25,13 @@ const EMPTY_SCHEMA: IBricksSchema = {
 /**
  * Сессия билдера: открытие страницы по pagename (существующая / новая),
  * обнаружение черновика в localStorage и модалка восстановления.
- * Watcher на routePagename переоткрывает сессию при смене маршрута;
- * первичное открытие — на стороне вызывающего (onMounted, см. [pagename].vue).
+ * Watcher на routePagename переоткрывает сессию при навигации на другую страницу;
+ * rename собственной сессии (routePagename догнал sessionPagename после
+ * `renameSession`) повторного bootstrap не вызывает.
+ * Первичное открытие — на стороне вызывающего (onMounted, см. [pagename].vue).
  */
 export function useBuilderSession(options: IBuilderSessionOptions) {
-    const { routePagename, showToast } = options;
+    const { routePagename, sessionPagename, showToast } = options;
 
     const { t } = useI18n();
     const componentsStore = useComponentsStore();
@@ -69,6 +71,10 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
         if (!pagename) {
             return;
         }
+
+        // Фиксируем ключ сессии: черновики пишутся/удаляются по нему до следующего
+        // открытия или rename (см. useBuilderPagename.renameSession)
+        sessionPagename.value = pagename;
 
         isSessionLoading.value = true;
         isRestoreDraftModalOpen.value = false;
@@ -144,7 +150,7 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
      * Отказывается от восстановления и удаляет черновик, открывая сохранённую версию.
      */
     function handleDiscardDraft(): void {
-        const pagename = routePagename.value;
+        const pagename = sessionPagename.value;
         if (pagename) {
             removeBuilderDraft(pagename);
         }
@@ -160,7 +166,9 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
     watch(
         () => routePagename.value,
         (next) => {
-            if (!next) {
+            // routePagename догнал sessionPagename после renameSession — это rename
+            // собственной сессии, а не навигация: повторный bootstrap не нужен
+            if (!next || next === sessionPagename.value) {
                 return;
             }
 
@@ -180,7 +188,7 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
             }
 
             savedSnapshot.value = buildCurrentSnapshot();
-            removeBuilderDraft(routePagename.value);
+            removeBuilderDraft(sessionPagename.value);
         }
     );
 
