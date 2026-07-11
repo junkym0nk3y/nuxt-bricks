@@ -20,7 +20,7 @@ export const MAX_SCHEMA_DEPTH = 64;
 /** Максимальное число JSON-узлов (объектов/массивов/примитивов) в schema. */
 export const MAX_SCHEMA_NODES = 100_000;
 /** Лимит сериализованного размера schema в байтах UTF-8 (не в UTF-16-символах). */
-export const MAX_SCHEMA_JSON_BYTES = 2 * 1024 * 1024;
+const MAX_SCHEMA_JSON_BYTES = 2 * 1024 * 1024;
 // #endregion
 
 // #region Types
