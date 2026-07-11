@@ -119,6 +119,7 @@ function mountBuilderContext(): IBuilderContext {
             routePagename: pagename.routePagename,
             sessionPagename: pagename.sessionPagename,
             showToast: showToastMock,
+            renameSession: pagename.renameSession,
         });
         useBuilderDraftPersistence({
             sessionPagename: pagename.sessionPagename,

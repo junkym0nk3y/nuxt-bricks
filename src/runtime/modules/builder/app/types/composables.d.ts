@@ -7,6 +7,7 @@ import type { ComputedRef, Ref } from 'vue';
 import type { useSidebarStore } from '../../core/stores/sidebar';
 import type { usePublishStore } from '../../publish/stores/publish';
 import type { IMediaItem, TMediaGalleryContext } from '../../../common/types/media';
+import type { IPublishedPage } from '../../../common/types/bricks-api';
 import type { ISidebarExpose } from './builder';
 import type {
     IImageResolverState,
@@ -50,6 +51,14 @@ export interface IBricksResponse {
 export type TRenameBuilderSession = (next: string) => Promise<void>;
 
 /**
+ * Единый переход сессии на сохранённую страницу (Save as Copy): store в edit mode
+ * → renameSession (route + sessionPagename + миграция черновика) → фиксация
+ * savedSnapshot. Реализация — `useBuilderSession.switchToSavedPage`; toast/thumbnail
+ * после resolve — ответственность вызывающего (`useBuilderPage.handleSaveAsCopy`).
+ */
+export type TSwitchToSavedPage = (page: IPublishedPage) => Promise<void>;
+
+/**
  * Возвращаемое значение composable useBuilderPagename.
  */
 export interface IUseBuilderPagenameReturn {
@@ -65,6 +74,7 @@ export interface IBuilderSessionOptions {
     routePagename: ComputedRef<string>;
     sessionPagename: Ref<string>;
     showToast: TShowToast;
+    renameSession: TRenameBuilderSession;
 }
 
 /**

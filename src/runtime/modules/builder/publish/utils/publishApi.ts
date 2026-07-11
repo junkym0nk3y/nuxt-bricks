@@ -24,20 +24,23 @@ import { buildPagePayload } from './pagePayload';
  *
  * @param schema - Схема лендинга.
  * @param formState - Данные формы публикации.
- * @returns Идентификатор и `pagename` созданной страницы.
+ * @returns Нормализованная страница из ответа (сервер отдаёт полную строку,
+ * включая `revision`) — вызывающие, которым нужен только id, читают `response.id`.
  * @throws Ошибка запроса, приведённая через `toRequestError`.
  */
 export async function publishPageRequest(
     schema: IBricksSchema,
     formState: TPublishFormState
-): Promise<{ id: number; pagename: string }> {
+): Promise<IPublishedPage> {
     const { apiFetcher } = useApiClient();
 
     try {
-        return await apiFetcher<{ id: number; pagename: string }>('/api/bricks/', {
+        const response = await apiFetcher<IPublishedPage>('/api/bricks/', {
             method: 'POST',
             body: toSnakeCaseShallow(buildPagePayload(schema, formState)),
         });
+
+        return normalizePublishedPage(response, resolveDefaultBackgroundColor());
     } catch (error: unknown) {
         throw toRequestError('POST', '/api/bricks', error);
     }

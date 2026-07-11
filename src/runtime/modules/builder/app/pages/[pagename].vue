@@ -22,6 +22,7 @@ import { useBuilderPagename } from '../composables/useBuilderPagename';
 import { useBuilderSession } from '../composables/useBuilderSession';
 import { useBuilderDraftPersistence } from '../composables/useBuilderDraftPersistence';
 import { useBuilderPagenameSync } from '../composables/useBuilderPagenameSync';
+import { useBuilderToast } from '../../core/composables/useBuilderToast';
 
 // Utils
 import { loadFavoritesFromStorage } from '../../core/stores/actions/favorites';
@@ -69,6 +70,23 @@ const publishStore = usePublishStore();
 // Владелец pagename: route.params — источник истины URL, sessionPagename — ключ черновиков
 const { routePagename, sessionPagename, renameSession } = useBuilderPagename();
 
+// Toast — модульный синглтон (useBuilderToast): нужен useBuilderSession раньше
+// useBuilderPage (switchToSavedPage требуется useBuilderPage для Save as Copy)
+const { showToast } = useBuilderToast();
+
+// Сессия билдера: открытие страницы, черновики, модалка восстановления,
+// единый переход на сохранённую копию (switchToSavedPage)
+const {
+    isSessionLoading,
+    isRestoreDraftModalOpen,
+    savedSnapshot,
+    buildCurrentSnapshot,
+    switchToSavedPage,
+    openBuilderSession,
+    handleRestoreDraft,
+    handleDiscardDraft,
+} = useBuilderSession({ routePagename, sessionPagename, showToast, renameSession });
+
 // Мост media-запросов inline-редактора: editor подключается только здесь (composition root)
 const inlineEditingStore = useInlineEditingStore();
 const builder = await useBuilderPage(
@@ -77,7 +95,8 @@ const builder = await useBuilderPage(
         resolveMediaRequest: (item) => inlineEditingStore.resolveMediaRequest(item),
         cancelMediaRequest: () => inlineEditingStore.cancelMediaRequest(),
     },
-    renameSession
+    renameSession,
+    switchToSavedPage
 );
 
 const {
@@ -105,7 +124,6 @@ const {
     handleSaveDraft,
     handleSaveAsCopy,
     handlePreview,
-    showToast,
     isImageResolverModalOpen,
     imageResolverState,
     handleImportSchema,
@@ -121,17 +139,6 @@ const darkModeCookie = useCookie<boolean>('bricks-dark-mode', {
     maxAge: 60 * 60 * 24 * 365,
 });
 const isDarkMode = ref(darkModeCookie.value ?? false);
-
-// Сессия билдера: открытие страницы, черновики, модалка восстановления
-const {
-    isSessionLoading,
-    isRestoreDraftModalOpen,
-    savedSnapshot,
-    buildCurrentSnapshot,
-    openBuilderSession,
-    handleRestoreDraft,
-    handleDiscardDraft,
-} = useBuilderSession({ routePagename, sessionPagename, showToast });
 
 // Автосохранение черновика (debounce) + синхронизация URL с pagename формы
 useBuilderDraftPersistence({

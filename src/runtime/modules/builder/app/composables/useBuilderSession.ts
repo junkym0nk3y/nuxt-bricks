@@ -1,6 +1,7 @@
 // #region Imports
 // Types
 import type { IBricksSchema } from '../../../common/types/brick';
+import type { IPublishedPage } from '../../../common/types/bricks-api';
 import type { IBuilderDraftEntry, IBuilderDraftSnapshot } from '../../publish/types/builderDrafts';
 import type { IBuilderSessionOptions } from '../types/composables';
 
@@ -32,7 +33,7 @@ const EMPTY_SCHEMA: IBricksSchema = {
  * Первичное открытие — на стороне вызывающего (onMounted, см. [pagename].vue).
  */
 export function useBuilderSession(options: IBuilderSessionOptions) {
-    const { routePagename, sessionPagename, showToast } = options;
+    const { routePagename, sessionPagename, showToast, renameSession } = options;
 
     const { t } = useI18n();
     const componentsStore = useComponentsStore();
@@ -99,10 +100,18 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
 
                 savedSnapshot.value = buildCurrentSnapshot();
 
+                // Черновик предлагается на восстановление только если он точно
+                // принадлежит этой странице (draft.pageId === existingPage.id).
+                // Черновик без pageId (legacy) или с чужим pageId (например, ключ
+                // сессии переиспользован после Save as Copy на старом коде без
+                // switchToSavedPage) — stale, не предлагается и подчищается ниже.
+                const isDraftOwnedByPage = draft?.pageId === existingPage.id;
+
                 if (
                     draft &&
                     draft.mode === 'edit' &&
                     draft.draftSnapshot &&
+                    isDraftOwnedByPage &&
                     !isSnapshotEqual(draft.draftSnapshot, savedSnapshot.value)
                 ) {
                     pendingDraft.value = draft;
@@ -132,6 +141,26 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
         } finally {
             isSessionLoading.value = false;
         }
+    }
+
+    /**
+     * Единый переход сессии на сохранённую страницу (Save as Copy): переводит store
+     * в edit mode, переносит route/sessionPagename через `renameSession` (миграция
+     * черновика + `router.replace`) и только затем фиксирует новый `savedSnapshot`
+     * (удаляя черновик по актуальному ключу). Порядок фиксирован — иначе URL и
+     * ключ черновика остаются от оригинала: автосейв копии писал бы под slug
+     * оригинала, а reload оригинала предлагал бы восстановить чужие данные (P1).
+     * `lastSuccessfulSaveAt` стора для этого перехода не меняется (в отличие от
+     * обычного save-цикла) — поэтому savedSnapshot фиксируется здесь явно, а не
+     * через implicit watch ниже.
+     *
+     * @param page - Нормализованная страница копии (обязательны `id` и `pagename`).
+     */
+    async function switchToSavedPage(page: IPublishedPage): Promise<void> {
+        publishStore.startEditingPage(page.id);
+        await renameSession(page.pagename);
+        savedSnapshot.value = buildCurrentSnapshot();
+        removeBuilderDraft(sessionPagename.value);
     }
 
     /**
@@ -202,6 +231,7 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
         pendingDraft,
         savedSnapshot,
         buildCurrentSnapshot,
+        switchToSavedPage,
         openBuilderSession,
         handleRestoreDraft,
         handleDiscardDraft,

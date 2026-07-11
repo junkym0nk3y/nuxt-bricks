@@ -440,12 +440,12 @@ export const usePublishStore = defineStore('bricksPublish', {
         },
 
         /**
-         * Сохраняет текущую конфигурацию как копию страницы.
+         * Сохраняет текущую конфигурацию как копию страницы; сама синхронизирует список (без loadAllPages()).
          *
          * @param schema - Схема лендинга из канваса.
-         * @returns ID копии или null при ошибке.
+         * @returns Нормализованная страница копии или null при ошибке.
          */
-        async saveCurrentPageAsCopy(schema: IBricksSchema): Promise<string | number | null> {
+        async saveCurrentPageAsCopy(schema: IBricksSchema): Promise<IPublishedPage | null> {
             const originalFormState = { ...this.currentFormState };
             const originalEditingPageId = this.editingPageId;
             const originalValidationErrors = { ...this.validationErrors };
@@ -479,9 +479,10 @@ export const usePublishStore = defineStore('bricksPublish', {
             }
 
             this.isSubmitting = true;
-
             try {
-                return await this.publishPage(schema, this.currentFormState);
+                const created = await publishPageRequest(schema, this.currentFormState);
+                this.syncPageInList(created);
+                return created;
             } catch (error: unknown) {
                 console.error('[Publish Store] saveCurrentPageAsCopy failed:', error);
                 this.generalError =

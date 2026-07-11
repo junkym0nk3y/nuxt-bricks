@@ -7,6 +7,7 @@ import type {
     IInlineMediaBridge,
     IUseBuilderPageReturn,
     TRenameBuilderSession,
+    TSwitchToSavedPage,
 } from '../types/composables';
 
 // Utils
@@ -42,10 +43,14 @@ import { usePublishStore } from '../../publish/stores/publish';
  * composition root'ом (`pages/[pagename].vue`), чтобы builder-ядро не зависело от editor.
  * @param renameSession - Перенос сессии на новый pagename (URL + ключ черновиков,
  * см. useBuilderPagename); применяется после успешного сохранения страницы.
+ * @param switchToSavedPage - Единый переход сессии на сохранённую копию (store →
+ * route/sessionPagename → savedSnapshot), см. useBuilderSession; используется
+ * `handleSaveAsCopy`.
  */
 export async function useBuilderPage(
     inlineMediaBridge: IInlineMediaBridge,
-    renameSession: TRenameBuilderSession
+    renameSession: TRenameBuilderSession,
+    switchToSavedPage: TSwitchToSavedPage
 ): Promise<IUseBuilderPageReturn> {
     // #region Stores & Composables
     const { t } = useI18n();
@@ -218,33 +223,28 @@ export async function useBuilderPage(
 
     /**
      * Сохраняет текущий лендинг как копию с новым ID.
-     * После успешного сохранения обновляет список страниц и переключается на редактирование копии.
+     * Единый переход сессии (`switchToSavedPage`, фиксированный порядок: store в
+     * edit mode → renameSession → savedSnapshot) выполняется до toast/thumbnail —
+     * иначе URL и ключ черновика localStorage остаются от оригинала (P1: автосейв
+     * копии писал бы контент под slug оригинала, reload оригинала предлагал бы
+     * восстановить чужие данные).
      */
     async function handleSaveAsCopy(): Promise<void> {
         const schema = componentsStore.exportSchema();
-        const result = await publishStore.saveCurrentPageAsCopy(schema);
-        if (result !== null) {
-            try {
-                await publishStore.loadAllPages();
-            } catch (error: unknown) {
-                const message =
-                    error instanceof Error
-                        ? error.message
-                        : t('bricks.publish.toasts.refreshListFailed');
-                showToast(message, 'error');
-                return;
-            }
+        const copy = await publishStore.saveCurrentPageAsCopy(schema);
 
-            publishStore.startEditingPage(result);
-            showToast(t('bricks.publish.toasts.copySaved'), 'success');
-
-            // Fire-and-forget: у копии свой S3-ключ превью — снимаем сразу после сохранения
-            captureAndUploadThumbnail(result);
+        if (copy === null) {
+            const errorMessage = publishStore.generalError || t('bricks.publish.toasts.copyFailed');
+            ensurePublishSettingsVisible(errorMessage);
+            showToast(errorMessage, 'error');
             return;
         }
-        const errorMessage = publishStore.generalError || t('bricks.publish.toasts.copyFailed');
-        ensurePublishSettingsVisible(errorMessage);
-        showToast(errorMessage, 'error');
+
+        await switchToSavedPage(copy);
+        showToast(t('bricks.publish.toasts.copySaved'), 'success');
+
+        // Fire-and-forget: у копии свой S3-ключ превью — снимаем сразу после сохранения
+        captureAndUploadThumbnail(copy.id);
     }
 
     /**
