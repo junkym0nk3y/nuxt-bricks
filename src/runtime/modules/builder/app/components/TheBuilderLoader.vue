@@ -203,7 +203,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <Transition name="loader-fade">
+    <Transition name="bricks-loader-fade">
         <div v-if="isVisible" :class="$style.TheBuilderLoader">
             <div :class="$style.aurora"></div>
             <div :class="$style.grid"></div>
@@ -219,7 +219,7 @@ onUnmounted(() => {
 
                 <div :class="$style.meta">
                     <div :class="$style.phrase">
-                        <Transition name="loader-phrase-fade" mode="out-in">
+                        <Transition name="bricks-loader-phrase-fade" mode="out-in">
                             <span :key="currentPhrase">{{ currentPhrase }}</span>
                         </Transition>
                     </div>

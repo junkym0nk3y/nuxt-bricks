@@ -192,23 +192,23 @@
 }
 
 /* Builder loader overlay fade */
-.loader-fade-enter-active,
-.loader-fade-leave-active {
+.bricks-loader-fade-enter-active,
+.bricks-loader-fade-leave-active {
     transition: opacity var(--bricks-default-transition);
 }
 
-.loader-fade-enter-from,
-.loader-fade-leave-to {
+.bricks-loader-fade-enter-from,
+.bricks-loader-fade-leave-to {
     opacity: 0;
 }
 
 /* Builder loader rotating phrase (быстрее фраза меняется каждые 600ms) */
-.loader-phrase-fade-enter-active,
-.loader-phrase-fade-leave-active {
+.bricks-loader-phrase-fade-enter-active,
+.bricks-loader-phrase-fade-leave-active {
     transition: opacity 150ms ease;
 }
 
-.loader-phrase-fade-enter-from,
-.loader-phrase-fade-leave-to {
+.bricks-loader-phrase-fade-enter-from,
+.bricks-loader-phrase-fade-leave-to {
     opacity: 0;
 }
