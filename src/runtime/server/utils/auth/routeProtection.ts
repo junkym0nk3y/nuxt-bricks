@@ -10,8 +10,9 @@
  * - /api/bricks/** — весь editorial API, включая read (списки страниц
  *   с drafts/schema и медиатека не публичны)
  *
- * Открыт только public read-model: GET/HEAD /api/bricks/public/** —
- * published-проекции для рендера. Database-only исключения:
+ * Открыты только public read-model (GET/HEAD /api/bricks/public/** —
+ * published-проекции для рендера) и health-пробы (GET/HEAD /api/bricks/health
+ * и /health/ready — LB не умеет авторизоваться). Database-only исключения:
  * `<builderPrefix>/login` (страница логина) и /api/bricks/auth/**
  * (login/logout/me) — иначе на форму не попасть.
  *
@@ -74,6 +75,15 @@ export function requiresAuth(
 
     // Public read-model — единственная открытая часть /api/bricks (только чтение)
     if (pathname.startsWith('/api/bricks/public/') && PUBLIC_READ_METHODS.includes(method)) {
+        return false;
+    }
+
+    // Health-пробы LB/оркестратора не умеют авторизоваться — открыты
+    // (только чтение; ручки не раскрывают деталей окружения)
+    if (
+        (pathname === '/api/bricks/health' || pathname === '/api/bricks/health/ready') &&
+        PUBLIC_READ_METHODS.includes(method)
+    ) {
         return false;
     }
 

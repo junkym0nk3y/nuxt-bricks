@@ -5,12 +5,16 @@ import type {
     IPageVersion,
     IPageVersionSummary,
     IPublishedPage,
+    TPublishedPageSummary,
     TPublishFormState,
     TRequestErrorLike,
 } from '../../../common/types/bricks-api';
 import { useApiClient } from '../../../common/composables/useApiClient';
 import { toSnakeCaseShallow } from '../../../common/utils/case-transform';
-import { normalizePublishedPage } from '../../../common/utils/bricks/publishedPage';
+import {
+    normalizePublishedPage,
+    normalizePublishedPageSummary,
+} from '../../../common/utils/bricks/publishedPage';
 import { resolveDefaultBackgroundColor } from './formState';
 import { toRequestError } from './requestErrors';
 import { buildPagePayload } from './pagePayload';
@@ -188,21 +192,40 @@ export async function restorePageVersionRequest(
 }
 
 /**
- * Загружает список всех страниц (нормализованных).
+ * Загружает сводки всех страниц (editorial-список без `schema`).
+ * Полную страницу со схемой отдаёт `fetchPageRequest`.
  *
- * @returns Нормализованные страницы.
+ * @returns Нормализованные сводки страниц.
  * @throws Ошибка запроса, приведённая через `toRequestError`.
  */
-export async function fetchAllPagesRequest(): Promise<IPublishedPage[]> {
+export async function fetchAllPagesRequest(): Promise<TPublishedPageSummary[]> {
     const { apiFetcher } = useApiClient();
 
     try {
-        const response = await apiFetcher<IPublishedPage[]>('/api/bricks/');
+        const response = await apiFetcher<TPublishedPageSummary[]>('/api/bricks/');
         return response.map((page) =>
-            normalizePublishedPage(page, resolveDefaultBackgroundColor())
+            normalizePublishedPageSummary(page, resolveDefaultBackgroundColor())
         );
     } catch (error: unknown) {
         throw toRequestError('GET', '/api/bricks', error);
+    }
+}
+
+/**
+ * Загружает полную страницу (со `schema`) point-lookup'ом по id.
+ *
+ * @param id - Идентификатор страницы.
+ * @returns Нормализованная страница.
+ * @throws Ошибка запроса, приведённая через `toRequestError`.
+ */
+export async function fetchPageRequest(id: string | number): Promise<IPublishedPage> {
+    const { apiFetcher } = useApiClient();
+
+    try {
+        const response = await apiFetcher<IPublishedPage>(`/api/bricks/${id}/`);
+        return normalizePublishedPage(response, resolveDefaultBackgroundColor());
+    } catch (error: unknown) {
+        throw toRequestError('GET', `/api/bricks/${id}`, error);
     }
 }
 

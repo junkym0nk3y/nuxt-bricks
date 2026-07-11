@@ -1,5 +1,5 @@
 import type { IBricksSchema } from '../../types/brick';
-import type { IPublishedPage } from '../../types/bricks-api';
+import type { IPublishedPage, TPublishedPageSummary } from '../../types/bricks-api';
 import { toCamelCase } from '../case-transform';
 
 export const DEFAULT_BACKGROUND_COLOR = '#FFFFFF';
@@ -122,4 +122,26 @@ export function normalizePublishedPage(
         updatedAt,
         isPreview: page.isPreview,
     };
+}
+
+/**
+ * Нормализует сводку страницы editorial-списка (без `schema`): те же правила,
+ * что normalizePublishedPage, но без фабрикации пустой схемы — сводка схему
+ * не несёт, и в стор списка она попадать не должна.
+ *
+ * @param rawPage - Данные сводки из API (может быть в snake_case).
+ * @param defaultBackgroundColor - Цвет фона, если страница его не хранит.
+ * @returns Нормализованная сводка страницы.
+ */
+export function normalizePublishedPageSummary(
+    rawPage: unknown,
+    defaultBackgroundColor: string = DEFAULT_BACKGROUND_COLOR
+): TPublishedPageSummary {
+    const {
+        schema: _schema,
+        isPreview: _isPreview,
+        ...summary
+    } = normalizePublishedPage(rawPage, defaultBackgroundColor);
+
+    return summary;
 }

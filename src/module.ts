@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import {
     defineNuxtModule,
     createResolver,
@@ -11,17 +12,16 @@ import { defu } from 'defu';
 // Side-effect type import: подтягивает augmentation NuxtOptions.i18n и хука i18n:registerModule
 import type {} from '@nuxtjs/i18n';
 import { brickWatchPlugin } from './runtime/modules/common/utils/routing/vite-brick-watch';
+import { DEFAULT_BRICKS_ROUTE_PREFIXES } from './runtime/modules/common/utils/bricks/routePaths';
 import {
-    DEFAULT_BRICKS_ROUTE_PREFIXES,
-    type IBricksRoutePrefixes,
-} from './runtime/modules/common/utils/bricks/routePaths';
-import {
+    disableBuilderChunkPrefetch,
     registerBricksPages,
     registerBricksServerHandlers,
     resolveBricksSurfaces,
     setupBricksBuilderModules,
     type IBricksRegistrationContext,
 } from './module-setup';
+import { applyBricksRuntimeConfig } from './module-runtime-config';
 
 // #region Types
 export interface IBricksModuleOptions {
@@ -88,6 +88,23 @@ export interface IBricksModuleOptions {
         url?: string;
         /** Отдельный адрес backend для SSR-запросов (внутренняя сеть). */
         ssrUrl?: string;
+    };
+    /**
+     * Политика data sources published-страницы (выполняются рендерером
+     * на каждый SSR/refresh через выделенный публичный клиент: без cookie,
+     * с таймаутом; методы — только GET/HEAD).
+     */
+    dataSources?: {
+        /**
+         * Хосты, для которых разрешены абсолютные http(s)-URL data sources
+         * (точное совпадение hostname, без протокола и порта).
+         * Дефолт: пусто — разрешены только относительные URL (`/api/...`).
+         */
+        allowedHosts?: string[];
+        /** Таймаут одного запроса, мс (дефолт 10000). */
+        timeoutMs?: number;
+        /** Максимум одновременных запросов на страницу (дефолт 6). */
+        concurrency?: number;
     };
     /**
      * Доверять заголовку x-forwarded-for при определении клиентского IP
@@ -165,174 +182,6 @@ const VITE_OPTIMIZE_INCLUDE = [
 ];
 // #endregion
 
-// #region Helpers
-/**
- * Логирует выбранный persistence-режим при старте модуля.
- *
- * @param hasDatabase - Сконфигурирована ли локальная БД.
- * @param hasProxy - Задан ли PROXY_URL.
- */
-function logPersistenceMode(hasDatabase: boolean, hasProxy: boolean): void {
-    if (hasDatabase) {
-        console.info('[nuxt-bricks] Persistence: local PostgreSQL adapter (/api/bricks/**)');
-        return;
-    }
-
-    if (hasProxy) {
-        console.info('[nuxt-bricks] Persistence: proxy mode (/api/* → PROXY_URL)');
-        return;
-    }
-
-    console.warn(
-        '[nuxt-bricks] Neither bricks.database.url nor PROXY_URL is configured — /api/bricks/** will fail at runtime'
-    );
-}
-
-/**
- * Логирует выбранный auth-режим при старте модуля.
- *
- * @param mode - Режим авторизации ('basic' | 'database').
- * @param hasDatabase - Сконфигурирована ли локальная БД.
- */
-function logAuthMode(mode: string, hasDatabase: boolean): void {
-    if (mode === 'database') {
-        console.info('[nuxt-bricks] Auth: database mode (users/sessions in PostgreSQL)');
-
-        if (!hasDatabase) {
-            console.warn(
-                '[nuxt-bricks] bricks.auth.mode = "database", но bricks.database.url не задан — защищённые пути будут отвечать 503'
-            );
-        }
-
-        return;
-    }
-
-    console.info('[nuxt-bricks] Auth: basic mode (HTTP Basic Auth)');
-}
-
-/**
- * Заполняет runtimeConfig модуля: basic-auth, persistence (Postgres/S3), proxy,
- * префиксы маршрутов. Дефолты переопределяемы в production через ENV
- * (NUXT_BRICKS_*, legacy-имена — fallback), кроме bricksRoutes — пути страниц
- * фиксируются на сборке, env-override дал бы рассинхрон с зарегистрированными
- * маршрутами.
- *
- * @param runtimeConfig - nuxt.options.runtimeConfig.
- * @param options - Опции модуля из nuxt.config.
- * @param routePrefixes - Валидированные префиксы маршрутов.
- */
-function applyBricksRuntimeConfig(
-    runtimeConfig: Record<string, unknown>,
-    options: IBricksModuleOptions,
-    routePrefixes: IBricksRoutePrefixes
-): void {
-    runtimeConfig.basicAuthUsername =
-        runtimeConfig.basicAuthUsername ??
-        process.env.BASIC_AUTH_USERNAME ??
-        options.basicAuth?.username;
-    runtimeConfig.basicAuthPassword =
-        runtimeConfig.basicAuthPassword ??
-        process.env.BASIC_AUTH_PASSWORD ??
-        options.basicAuth?.password;
-
-    applyBricksPersistenceRuntimeConfig(runtimeConfig, options);
-
-    // Proxy-режим: /api/* → внешний backend. Ключи server-only: адрес backend
-    // не светится в client payload, клиент ходит через proxy middleware.
-    // Runtime-override: NUXT_BRICKS_PROXY_URL / NUXT_BRICKS_SSR_PROXY_URL.
-    runtimeConfig.bricksProxyUrl =
-        runtimeConfig.bricksProxyUrl ?? options.proxy?.url ?? process.env.PROXY_URL ?? '';
-    runtimeConfig.bricksSsrProxyUrl =
-        runtimeConfig.bricksSsrProxyUrl ??
-        options.proxy?.ssrUrl ??
-        process.env.NUXT_SERVER_CACHE_URL ??
-        '';
-
-    // Доверие x-forwarded-for для клиентского IP rate limiter'ов (server-only;
-    // имя ключа NUXT_BRICKS_TRUST_PROXY даёт runtime-override без ребилда)
-    runtimeConfig.bricksTrustProxy =
-        runtimeConfig.bricksTrustProxy ??
-        process.env.NUXT_BRICKS_TRUST_PROXY ??
-        options.trustProxy ??
-        false;
-
-    const publicConfig = (runtimeConfig.public ?? {}) as Record<string, unknown>;
-    runtimeConfig.public = publicConfig;
-
-    // Единый источник префиксов для клиента и auth-матрицы (build-time)
-    publicConfig.bricksRoutes = routePrefixes;
-
-    applyBricksAuthRuntimeConfig(runtimeConfig, publicConfig, options);
-
-    logPersistenceMode(
-        Boolean(runtimeConfig.bricksDatabaseUrl),
-        Boolean(runtimeConfig.bricksProxyUrl)
-    );
-    logAuthMode(runtimeConfig.bricksAuthMode as string, Boolean(runtimeConfig.bricksDatabaseUrl));
-}
-
-/**
- * Заполняет runtimeConfig persistence-слоя: PostgreSQL, версионирование страниц, S3
- * (server-only, секреты не в public).
- *
- * @param runtimeConfig - nuxt.options.runtimeConfig.
- * @param options - Опции модуля из nuxt.config.
- */
-function applyBricksPersistenceRuntimeConfig(
-    runtimeConfig: Record<string, unknown>,
-    options: IBricksModuleOptions
-): void {
-    runtimeConfig.bricksDatabaseUrl =
-        runtimeConfig.bricksDatabaseUrl ??
-        process.env.NUXT_BRICKS_DATABASE_URL ??
-        options.database?.url ??
-        '';
-
-    // Версионирование страниц: глубина истории снапшотов (0 — выкл).
-    // Имя ключа NUXT_BRICKS_VERSIONS_LIMIT даёт runtime-override в проде без ребилда.
-    runtimeConfig.bricksVersionsLimit =
-        runtimeConfig.bricksVersionsLimit ??
-        process.env.NUXT_BRICKS_VERSIONS_LIMIT ??
-        options.versionsLimit;
-
-    runtimeConfig.bricksS3 = defu(runtimeConfig.bricksS3 as object | undefined, options.s3, {
-        endpoint: 'https://storage.yandexcloud.net',
-        region: 'ru-central1',
-        bucket: process.env.YANDEX_STORAGE_BUCKET_NAME ?? '',
-        accessKeyId: process.env.YANDEX_STORAGE_ACCESS_KEY_ID ?? '',
-        secretAccessKey: process.env.YANDEX_STORAGE_SECRET_ACCESS_KEY ?? '',
-        prefix: 'bricks-media/',
-        thumbnailsPrefix: 'bricks-thumbnails/',
-    });
-}
-
-/**
- * Заполняет runtimeConfig auth-режима: server-ключи + публичный флаг для
- * 401-интерцептора и login-страницы.
- * Runtime-нюанс: NUXT_BRICKS_AUTH_MODE переопределяет только server-ключ,
- * для клиента нужен и NUXT_PUBLIC_BRICKS_AUTH_MODE.
- *
- * @param runtimeConfig - nuxt.options.runtimeConfig.
- * @param publicConfig - runtimeConfig.public.
- * @param options - Опции модуля из nuxt.config.
- */
-function applyBricksAuthRuntimeConfig(
-    runtimeConfig: Record<string, unknown>,
-    publicConfig: Record<string, unknown>,
-    options: IBricksModuleOptions
-): void {
-    runtimeConfig.bricksAuthMode =
-        runtimeConfig.bricksAuthMode ?? process.env.BRICKS_AUTH_MODE ?? options.auth?.mode;
-    runtimeConfig.bricksAuthSessionMaxAge =
-        runtimeConfig.bricksAuthSessionMaxAge ??
-        process.env.BRICKS_AUTH_SESSION_MAX_AGE ??
-        options.auth?.sessionMaxAgeSeconds;
-
-    // Публичный флаг auth-режима (не секрет) — клиенту нужен для редиректа на login
-    publicConfig.bricksAuthMode = publicConfig.bricksAuthMode ?? runtimeConfig.bricksAuthMode;
-}
-// #endregion
-
 export default defineNuxtModule<IBricksModuleOptions>({
     meta: {
         name: 'nuxt-bricks',
@@ -400,15 +249,27 @@ export default defineNuxtModule<IBricksModuleOptions>({
         if (isBuilderEnabled) {
             await setupBricksBuilderModules(nuxt, options, resolve(runtimeDir, 'locales'));
         }
+
+        // Prefetch-хинты builder-only чанков не должны скачивать редакторский
+        // стек посетителям published-страниц (см. disableBuilderChunkPrefetch).
+        disableBuilderChunkPrefetch(nuxt);
         // #endregion
 
         // #region Стили
         // Только собственные scoped-стили модуля (variables/transitions/fonts + reset
         // под body.bricks-page). Swiper CSS импортирует BlockSlider.vue в свой чанк.
-        nuxt.options.css.push(
-            resolve(runtimeDir, 'assets/scss/bundle.scss'),
-            resolve(runtimeDir, 'assets/scss/default.scss')
-        );
+        // Из src подключаются .scss; в собранном пакете mkdist компилирует их в .css
+        // (sass у потребителя не нужен) — берём то расширение, которое существует.
+        // fonts — отдельной entry: url() на woff2 корректен только относительно
+        // самого файла (sass не ребейзит url при @use, см. bundle.scss).
+        for (const stylesheet of ['bundle', 'default', 'common/fonts']) {
+            const scssPath = resolve(runtimeDir, `assets/scss/${stylesheet}.scss`);
+            nuxt.options.css.push(
+                existsSync(scssPath)
+                    ? scssPath
+                    : resolve(runtimeDir, `assets/scss/${stylesheet}.css`)
+            );
+        }
         // #endregion
 
         // #region Vite (optimizeDeps + watch brick-файлов)

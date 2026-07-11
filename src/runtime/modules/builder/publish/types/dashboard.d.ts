@@ -2,7 +2,7 @@
  * Pages Manager dashboard types.
  */
 
-import type { IPageVersionSummary, IPublishedPage } from '../../../common/types/bricks-api';
+import type { IPageVersionSummary, TPublishedPageSummary } from '../../../common/types/bricks-api';
 
 export type TPublishDashboardSection = 'pages' | 'templates';
 
@@ -53,7 +53,7 @@ export interface IPublishDashboardNavEmits {
 }
 
 export interface IPublishPagesListProps {
-    pages: IPublishedPage[];
+    pages: TPublishedPageSummary[];
     activeFilter: TPublishPagesFilter;
     counts: IPublishPagesFilterCounts;
     isLoading: boolean;
@@ -65,27 +65,27 @@ export interface IPublishPagesListProps {
 export interface IPublishPagesListEmits {
     'update:activeFilter': [filter: TPublishPagesFilter];
     'create-page': [];
-    'preview-thumbnail': [page: IPublishedPage];
-    select: [page: IPublishedPage];
-    edit: [page: IPublishedPage];
-    preview: [page: IPublishedPage];
-    duplicate: [page: IPublishedPage];
-    delete: [page: IPublishedPage];
+    'preview-thumbnail': [page: TPublishedPageSummary];
+    select: [page: TPublishedPageSummary];
+    edit: [page: TPublishedPageSummary];
+    preview: [page: TPublishedPageSummary];
+    duplicate: [page: TPublishedPageSummary];
+    delete: [page: TPublishedPageSummary];
 }
 
 export interface IPublishPagesListRowProps {
-    page: IPublishedPage;
+    page: TPublishedPageSummary;
     isDuplicating?: boolean;
     isSelected?: boolean;
 }
 
 export interface IPublishPagesListRowEmits {
-    'preview-thumbnail': [page: IPublishedPage];
-    select: [page: IPublishedPage];
-    edit: [page: IPublishedPage];
-    preview: [page: IPublishedPage];
-    duplicate: [page: IPublishedPage];
-    delete: [page: IPublishedPage];
+    'preview-thumbnail': [page: TPublishedPageSummary];
+    select: [page: TPublishedPageSummary];
+    edit: [page: TPublishedPageSummary];
+    preview: [page: TPublishedPageSummary];
+    duplicate: [page: TPublishedPageSummary];
+    delete: [page: TPublishedPageSummary];
 }
 
 /**
@@ -123,18 +123,18 @@ export interface IPublishCreatePageModalEmits {
 }
 
 export interface IPublishDetailsPanelProps {
-    page: IPublishedPage;
+    page: TPublishedPageSummary;
     isDuplicating?: boolean;
 }
 
 export interface IPublishDetailsPanelEmits {
     close: [];
-    edit: [page: IPublishedPage];
-    duplicate: [page: IPublishedPage];
-    delete: [page: IPublishedPage];
-    'toggle-published': [page: IPublishedPage, published: boolean];
+    edit: [page: TPublishedPageSummary];
+    duplicate: [page: TPublishedPageSummary];
+    delete: [page: TPublishedPageSummary];
+    'toggle-published': [page: TPublishedPageSummary, published: boolean];
     'open-media': [];
-    'restore-version': [page: IPublishedPage, version: IPageVersionSummary];
+    'restore-version': [page: TPublishedPageSummary, version: IPageVersionSummary];
     notify: [message: string, variant: 'success' | 'error'];
 }
 
@@ -169,7 +169,7 @@ export interface IPublishDetailsPanelOgImageEmits {
 }
 
 export interface IPublishDetailsPanelRoutingProps {
-    page: IPublishedPage;
+    page: TPublishedPageSummary;
     urlPrefix: string;
     subdomain: string;
     errors: TPublishFormErrors;
@@ -182,7 +182,7 @@ export interface IPublishDetailsPanelRoutingEmits {
 }
 
 export interface IPublishDetailsPanelVersionsProps {
-    page: IPublishedPage;
+    page: TPublishedPageSummary;
 }
 
 export interface IPublishDetailsPanelVersionsEmits {

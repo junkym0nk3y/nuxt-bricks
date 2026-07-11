@@ -16,22 +16,29 @@ export interface IBrickDataSourceContext {
     componentProps: Record<string, unknown>;
 }
 
-/** HTTP-метод data source (контракт Nitro-fetch: оба регистра). */
-export type TBrickDataSourceMethod =
-    | 'GET'
-    | 'POST'
-    | 'PUT'
-    | 'PATCH'
-    | 'DELETE'
-    | 'HEAD'
-    | 'OPTIONS'
-    | 'get'
-    | 'post'
-    | 'put'
-    | 'patch'
-    | 'delete'
-    | 'head'
-    | 'options';
+/**
+ * HTTP-метод data source (оба регистра — контракт Nitro-fetch).
+ * Только безопасные идемпотентные методы: data source выполняется на каждый
+ * SSR/refresh published-страницы — мутирующий запрос здесь был бы побочным
+ * эффектом рендера (политика — render/utils/dataSourcePolicy.ts).
+ */
+export type TBrickDataSourceMethod = 'GET' | 'HEAD' | 'get' | 'head';
+
+/**
+ * Публичная runtime-конфигурация data sources
+ * (`runtimeConfig.public.bricksDataSources`, источник — `bricks.dataSources`).
+ */
+export interface IBricksDataSourcesConfig {
+    /**
+     * Хосты, для которых разрешены абсолютные http(s)-URL data sources.
+     * Пусто (дефолт) — разрешены только относительные URL (`/api/...`).
+     */
+    allowedHosts: string[];
+    /** Таймаут одного запроса, мс. */
+    timeoutMs: number;
+    /** Максимум одновременных запросов data sources на страницу. */
+    concurrency: number;
+}
 
 export interface IBrickDataSource {
     key: string;

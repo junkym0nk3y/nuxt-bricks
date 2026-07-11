@@ -37,6 +37,12 @@ export interface IBricksPageRow {
 }
 
 /**
+ * Сводка строки страницы для editorial-списка (`GET /api/bricks`) — без JSONB
+ * `schema`. Полная строка отдаётся только point-lookup'ом `GET /api/bricks/:id`.
+ */
+export type TBricksPageSummaryRow = Omit<IBricksPageRow, 'schema'>;
+
+/**
  * Формат данных для фронтенда (плоская структура без settings).
  */
 export interface IPublishedPage {
@@ -64,13 +70,12 @@ export interface IPublishedPage {
     isPreview?: boolean;
 }
 
-export interface IPublishedPageSummary {
-    id: number;
-    pagename: string;
-    published: boolean;
-    urlPrefix: string | null;
-    subdomain: string | null;
-}
+/**
+ * Клиентская сводка страницы (editorial-список без `schema`): meta, routing,
+ * `thumbnailUrl` и `revision` — всё, что нужно дашборду и precondition'ам.
+ * Схему редактор и дублирование получают point-lookup'ом `GET /api/bricks/:id`.
+ */
+export type TPublishedPageSummary = Omit<IPublishedPage, 'schema' | 'isPreview'>;
 
 /**
  * Снапшот страницы для превью в localStorage (`bricks-preview-page`).

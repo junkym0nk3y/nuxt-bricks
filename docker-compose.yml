@@ -1,21 +1,25 @@
+# ЛОКАЛЬНАЯ DEV-СРЕДА — не для production.
+# Production: managed PostgreSQL / собственный деплой + `npm run bricks:migrate`
+# (см. README «Production deployment»). Порт привязан к localhost, пароль
+# переопределяется env POSTGRES_PASSWORD (дефолт годится только локально).
 services:
     postgres:
         image: postgres:16-alpine
         container_name: nuxt-bricks-db
         restart: unless-stopped
         ports:
-            - '5432:5432'
+            - '127.0.0.1:5432:5432'
         environment:
-            POSTGRES_USER: postgres
-            POSTGRES_PASSWORD: postgres
-            POSTGRES_DB: bricks
+            POSTGRES_USER: ${POSTGRES_USER:-postgres}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+            POSTGRES_DB: ${POSTGRES_DB:-bricks}
         volumes:
             - postgres_data:/var/lib/postgresql/data
             # Инициализация пустого volume файлами миграций (лексикографический порядок).
             # Канонический путь для внешней БД — `npm run bricks:migrate` (bricks-migrate CLI).
             - ./migrations:/docker-entrypoint-initdb.d:ro
         healthcheck:
-            test: ['CMD-SHELL', 'pg_isready -U postgres']
+            test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER:-postgres}']
             interval: 10s
             timeout: 5s
             retries: 5

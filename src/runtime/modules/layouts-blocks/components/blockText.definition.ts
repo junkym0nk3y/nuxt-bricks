@@ -2,14 +2,18 @@
 import type { IBlockDefinition, IBlockRenderContext } from '../types/registry';
 
 // Vue
-import { h, type VNode } from 'vue';
+import { h, defineAsyncComponent, type VNode } from 'vue';
 
 // Utils
 import { bindBoundPropsWithComponentId } from '../utils/canvasBindings';
 import { gridPlacementStyle } from '../utils/responsiveVars';
 
 // Components
-import BlockText from './BlockText.vue';
+// Async-импорт (паттерн blockSlider): registry импортируется плагином bricks-styles
+// на каждой странице, статический импорт .vue утащил бы компонент (и санитайзер xss)
+// в entry-бандл всех страниц потребителя. Канвас использует eager-версию из
+// canvasBlockComponents.ts.
+const BlockText = defineAsyncComponent(() => import('./BlockText.vue'));
 
 /**
  * Published-рендер Text: канвасный компонент без editor chrome — рендерим напрямую.

@@ -125,12 +125,12 @@ const currentSlidesPerView = computed<number>(() => {
     const viewport = injectedViewport?.value ?? 'desktop';
 
     if (viewport === 'mobile') {
-        return Math.max(1, Number(props.layoutProps.slidesPerViewMobile) || 1);
+        return normalizeSlidesPerView(props.layoutProps.slidesPerViewMobile);
     }
     if (viewport === 'tablet') {
-        return Math.max(1, Number(props.layoutProps.slidesPerViewTablet) || 1);
+        return normalizeSlidesPerView(props.layoutProps.slidesPerViewTablet);
     }
-    return Math.max(1, Number(props.layoutProps.slidesPerViewDesktop) || 1);
+    return normalizeSlidesPerView(props.layoutProps.slidesPerViewDesktop);
 });
 
 /**
@@ -138,14 +138,33 @@ const currentSlidesPerView = computed<number>(() => {
  */
 const sliderBreakpoints = computed(() => ({
     0: {
-        slidesPerView: Math.max(1, Number(props.layoutProps.slidesPerViewMobile) || 1),
+        slidesPerView: normalizeSlidesPerView(props.layoutProps.slidesPerViewMobile),
     },
     768: {
-        slidesPerView: Math.max(1, Number(props.layoutProps.slidesPerViewTablet) || 1),
+        slidesPerView: normalizeSlidesPerView(props.layoutProps.slidesPerViewTablet),
     },
     1024: {
-        slidesPerView: Math.max(1, Number(props.layoutProps.slidesPerViewDesktop) || 1),
+        slidesPerView: normalizeSlidesPerView(props.layoutProps.slidesPerViewDesktop),
     },
+}));
+
+/**
+ * CSS-переменные статического SSR-fallback'а: те же slidesPerView per-breakpoint,
+ * что и у Swiper (медиа-границы 768/1024 продублированы в стилях .ssrSlides).
+ * Fallback рендерится на сервере — контент слайдов попадает в HTML (SEO),
+ * после mount его заменяет интерактивный Swiper.
+ */
+const ssrFallbackStyle = computed<Record<string, string>>(() => ({
+    '--bricks-slider-gap': `${spaceBetween.value}px`,
+    '--bricks-slider-spv-mobile': String(
+        normalizeSlidesPerView(props.layoutProps.slidesPerViewMobile)
+    ),
+    '--bricks-slider-spv-tablet': String(
+        normalizeSlidesPerView(props.layoutProps.slidesPerViewTablet)
+    ),
+    '--bricks-slider-spv-desktop': String(
+        normalizeSlidesPerView(props.layoutProps.slidesPerViewDesktop)
+    ),
 }));
 
 const sliderRootStyle = computed<Record<string, string>>(() => ({
@@ -168,6 +187,13 @@ const isCaptionClickable = computed<boolean>(
 // #endregion
 
 // #region Methods
+/**
+ * Normalizes a slidesPerView prop value to a positive number (min 1).
+ */
+function normalizeSlidesPerView(value: number | string | undefined): number {
+    return Math.max(1, Number(value) || 1);
+}
+
 /**
  * Handles Swiper slideChange event to sync active caption.
  */
@@ -265,6 +291,24 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
                     </div>
                 </SwiperSlide>
             </Swiper>
+
+            <!-- Статический SSR-fallback: контент слайдов в server-HTML (SEO),
+                 после mount заменяется интерактивным Swiper -->
+            <template #fallback>
+                <div
+                    v-if="!isEditor && hasSlides"
+                    :class="$style.ssrSlides"
+                    :style="ssrFallbackStyle"
+                >
+                    <div
+                        v-for="slide in props.slides"
+                        :key="slide.id"
+                        :class="[$style.ssrSlide, $style.slideInner]"
+                    >
+                        <SlideRenderer :component="slide" :render-fn="renderSlide" />
+                    </div>
+                </div>
+            </template>
         </ClientOnly>
 
         <!-- Caption navigation (bottom) -->
@@ -348,6 +392,32 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
     > * {
         flex: 1;
     }
+}
+
+// Статическая SSR-раскладка слайдов до гидратации Swiper: ширины повторяют
+// slidesPerView per-breakpoint (границы 768/1024 — как в sliderBreakpoints)
+.ssrSlides {
+    --bricks-slider-spv: var(--bricks-slider-spv-mobile);
+
+    overflow: hidden;
+    display: flex;
+    width: 100%;
+    gap: var(--bricks-slider-gap);
+
+    @media (width >= 768px) {
+        --bricks-slider-spv: var(--bricks-slider-spv-tablet);
+    }
+
+    @media (width >= 1024px) {
+        --bricks-slider-spv: var(--bricks-slider-spv-desktop);
+    }
+}
+
+.ssrSlide {
+    --bricks-slider-gap-total: calc((var(--bricks-slider-spv) - 1) * var(--bricks-slider-gap));
+
+    flex: 0 0 calc((100% - var(--bricks-slider-gap-total)) / var(--bricks-slider-spv));
+    min-width: 0;
 }
 
 .dropIndicator {

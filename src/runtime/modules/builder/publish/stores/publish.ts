@@ -5,6 +5,7 @@ import type { IBricksSchema } from '../../../common/types/brick';
 import type {
     IUpdatePagePayload,
     IPublishedPage,
+    TPublishedPageSummary,
     TPublishFormState,
 } from '../../../common/types/bricks-api';
 import { DEFAULT_LAYOUT } from '../../../common/utils/bricks/publishedPage';
@@ -23,6 +24,7 @@ import {
     patchPageRequest,
     deletePageRequest,
     fetchAllPagesRequest,
+    fetchPageRequest,
     fetchPageByPagenameRequest,
     restorePageVersionRequest,
 } from '../utils/publishApi';
@@ -43,7 +45,9 @@ function t(key: string): string {
  */
 export const usePublishStore = defineStore('bricksPublish', {
     state: () => ({
-        publishedPages: [] as IPublishedPage[],
+        // Список — сводки без schema (editorial-список лёгкий); полная страница
+        // со схемой запрашивается point-lookup'ом fetchPageById по необходимости
+        publishedPages: [] as TPublishedPageSummary[],
         currentFormState: buildDefaultFormState(),
         validationErrors: {} as Record<string, string>,
         generalError: '',
@@ -114,14 +118,16 @@ export const usePublishStore = defineStore('bricksPublish', {
          * @param page - Нормализованная страница из ответа API.
          */
         syncPageInList(page: IPublishedPage): void {
+            // Список хранит сводки — schema из ответа PUT/PATCH в стор не кладём
+            const { schema: _schema, isPreview: _isPreview, ...summary } = page;
             const index = this.publishedPages.findIndex(
                 (existing) => String(existing.id) === String(page.id)
             );
 
             if (index === -1) {
-                this.publishedPages = [page, ...this.publishedPages];
+                this.publishedPages = [summary, ...this.publishedPages];
             } else {
-                this.publishedPages.splice(index, 1, page);
+                this.publishedPages.splice(index, 1, summary);
             }
         },
 
@@ -427,7 +433,10 @@ export const usePublishStore = defineStore('bricksPublish', {
                 this.isPagenameAvailable(candidate)
             );
 
-            return await this.publishPage(page.schema, buildCopyFormState(page, copyPagename));
+            // Сводка списка схему не несёт — исходная схема запрашивается point-lookup'ом
+            const fullPage = await fetchPageRequest(page.id);
+
+            return await this.publishPage(fullPage.schema, buildCopyFormState(page, copyPagename));
         },
 
         /**

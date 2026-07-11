@@ -8,6 +8,7 @@ import {
     DEFAULT_LAYOUT,
     matchesPageUrlPrefix,
     normalizePublishedPage,
+    normalizePublishedPageSummary,
     preserveSchema,
     resolveRequestedUrlPrefix,
 } from '../src/runtime/modules/common/utils/bricks/publishedPage';
@@ -92,6 +93,27 @@ describe('normalizePublishedPage', () => {
         expect(normalizePublishedPage({ id: 1, pagename: 'p', published: 0 }).published).toBe(
             false
         );
+    });
+});
+
+describe('normalizePublishedPageSummary', () => {
+    it('нормализует сводку без фабрикации schema/isPreview', () => {
+        const summary = normalizePublishedPageSummary({
+            id: 7,
+            pagename: 'landing',
+            url_prefix: 'blog',
+            revision: 3,
+            published: 1,
+        });
+
+        expect(summary.id).toBe(7);
+        expect(summary.urlPrefix).toBe('blog');
+        expect(summary.revision).toBe(3);
+        expect(summary.published).toBe(true);
+        expect(summary.backgroundColor).toBe(DEFAULT_BACKGROUND_COLOR);
+        expect(summary.layout).toBe(DEFAULT_LAYOUT);
+        expect('schema' in summary).toBe(false);
+        expect('isPreview' in summary).toBe(false);
     });
 });
 

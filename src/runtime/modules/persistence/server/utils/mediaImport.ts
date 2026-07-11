@@ -34,7 +34,9 @@ async function buildImportPayload(file: IStoredFileInfo): Promise<ICreateMediaPa
 }
 
 /**
- * Импортирует файлы из хранилища публикации в БД (с дедупликацией по URL).
+ * Импортирует файлы из хранилища публикации в БД. Дедупликация — контрактом
+ * идемпотентного `createMedia` (unique url): повторная регистрация возвращает
+ * существующую запись, отдельный SELECT на каждый файл не нужен.
  * Если хранилище не сконфигурировано или недоступно — возвращает пустой список.
  *
  * @returns Импортированные медиа-записи.
@@ -53,13 +55,6 @@ export async function importMediaFromStorage(): Promise<IMediaItem[]> {
     const importedItems: IMediaItem[] = [];
 
     for (const file of files) {
-        const existing = await storage.getMediaByUrl(file.url);
-
-        if (existing) {
-            importedItems.push(existing);
-            continue;
-        }
-
         const payload = await buildImportPayload(file);
         importedItems.push(await storage.createMedia(payload));
     }

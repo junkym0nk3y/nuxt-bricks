@@ -1,3 +1,6 @@
+// fonts НЕ инлайнится сюда сознательно: sass не ребейзит url() при @use,
+// и в собранном пакете (dist/*.css из mkdist) путь к woff2 ломался бы.
+// fonts.scss подключается отдельной css-entry в module.ts — его url()
+// корректен относительно самого файла и в src, и в dist.
 @use 'shared/variables' as *;
 @use 'common/transitions' as *;
-@use 'common/fonts' as *;

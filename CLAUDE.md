@@ -23,6 +23,12 @@ npx oxlint <changed-file>
 - `npm run type-check` — TypeScript проверка
 - `npm run lint:fix` — все линтеры + форматтеры
 - `npm run bricks:gen` — генерация `bricks.json` из `.brick.ts`
+- `npm run smoke:pack` — fresh-consumer smoke опубликованного tarball (`scripts/pack-smoke.mjs`: npm pack → чистый consumer во временной папке → nuxi build → boot + auth-матрица); тот же скрипт гоняет CI (`.github/workflows/ci.yml` — jobs checks/build/pack-smoke/audit на каждый PR и push в main; обновления зависимостей — Dependabot)
+- `npm run budget:bundle` — bundle budget: gzip-размер initial JS поверхностей entry/published против бюджетов в `scripts/bundle-budget.mjs` (нужен свежий `npm run dev:build`; в CI — шаг job `build`); атрибуция состава чанков — `npx nuxi analyze playground`
+
+## Initial bundle (2026-07-11)
+
+Посетитель published-страницы не должен получать код билдера: (1) definitions leaf-блоков импортируют `.vue` через `defineAsyncComponent` (см. Registry layout-блоков); (2) prefetch-хинты builder-only чанков отключает хук `build:manifest` (`disableBuilderChunkPrefetch`, `src/module-setup.ts`): паттерн `BUILDER_ONLY_CHUNK_PATTERN` + замыкание статических imports (dynamicImports не обходить — через entry-чанк зафлагуются все lazy-чанки приложения, включая потребительские); `preload` не трогать — нужен гидратации. Новая builder-only зависимость/поддомен → дополнить паттерн. Бюджеты (gzip: entry 122 КБ, published 132 КБ) — константы `scripts/bundle-budget.mjs`, осознанный рост фиксируется diff'ом бюджета. Заголовки статей документации резолвятся лениво (`useDocumentationArticles`) — второй eager-glob `.md` не добавлять (инлайнит весь markdown в бандл).
 
 ## Architecture
 
@@ -41,7 +47,7 @@ npx oxlint <changed-file>
     - `documentation/` — TheBuilderDocumentationModal, `composables/`, `docs/guide/` (markdown-статьи), `types/`
     - `media/` — медиа-галерея и image resolver: `stores/media.ts`, `composables/` (useMediaUpload, useSchemaImageResolver), `utils/`
 - `text-editor/` — TipTap (бывший `editor/`): компоненты, расширения (`tiptap/`), inline editing, `stores/inlineEditing.ts`
-- `render/` — рендер опубликованной страницы (самодостаточен, store не использует); встроенный превью-роут `/preview/<pagename>` (имя роута `bricks-preview`, всегда preview-режим), live — два статических catch-all маршрута из `module.ts` (`bricks-page` `/:pagename(...)` и `bricks-page-prefixed` `/:urlPrefix(...)+/:pagename(...)`, regex-сегмент — `PAGE_ROUTE_SEGMENT` из `common/constants/publish.ts`); страница резолвится прямым lookup в `bricks-page-layout.global.ts`, там же — проверка соответствия urlPrefix/subdomain фактическому URL (route-per-page плагин `bricks-dynamic-routes.ts` удалён 2026-07-10: грузил весь список published на каждый SSR, не имел SPA-invalidation)
+- `render/` — рендер опубликованной страницы (самодостаточен, store не использует); встроенный превью-роут `/preview/<pagename>` (имя роута `bricks-preview`, всегда preview-режим), live — два статических catch-all маршрута из `module.ts` (`bricks-page` `/:pagename(...)` и `bricks-page-prefixed` `/:urlPrefix(...)+/:pagename(...)`, regex-сегмент — `PAGE_ROUTE_SEGMENT` из `common/constants/publish.ts`); страница резолвится прямым lookup в `bricks-page-layout.global.ts`, там же — проверка соответствия urlPrefix/subdomain фактическому URL (route-per-page плагин `bricks-dynamic-routes.ts` удалён 2026-07-10: грузил весь список published на каждый SSR, не имел SPA-invalidation); live-lookup идёт через публичный клиент `usePublicPageClient` (без cookie/CSRF/401-редиректа на login, таймаут 10 с — паттерн `useDataSourceClient`), preview-ветка — через админский `useApiClient` (2026-07-11)
 - `layouts-blocks/` — блоки лендинга (Grid/Flex/Section/Slider/...)
 - `persistence/` — серверные адаптеры хранения (`server/postgres/`, `server/s3/`, `server/registry.ts`, `server/utils/` — общая логика Nitro-ручек); используется только из `src/runtime/server/api/bricks/**`; версионирование страниц (`bricks_page_versions`) — внутри `postgresStorageAdapter.updatePage` (см. «Версионирование страниц»)
 - `common/` — только общее (2+ доменов): `composables/` (useBricksConfig, useBrickImports, useApiClient, useBricksStyles), `utils/` (main, case-transform; `bricks/` — paths, components, deviceVisibility, publishedPage; `routing/` — build-time), `constants/` (injectionKeys), `types/`
@@ -187,7 +193,7 @@ function resolveResponsive(base: number, key: string): number {
 
 - `layouts-blocks/registry.ts` — `BLOCK_REGISTRY`, `getBlockDefinition`, `getBlockProperties`, `resolveBlockProps`, `getLayoutLibraryItems` (defaultProps = `properties[].default` + `extraDefaults`)
 - `builder/core/constants/layoutComponents.ts`, `builder/core/utils/layoutProperties.ts` — тонкие обёртки над registry (API сохранён)
-- `layouts-blocks/canvasBlockComponents.ts` — eager-мапа `.vue` для канваса (**bundle firewall**: импортируется только канвасом; definitions контейнеров Grid/Flex/Section/Space НЕ импортируют свои `.vue` — published рендерит их `h('div')` через `renderPublished`)
+- `layouts-blocks/canvasBlockComponents.ts` — eager-мапа `.vue` для канваса (**bundle firewall**: импортируется только канвасом; definitions контейнеров Grid/Flex/Section/Space НЕ импортируют свои `.vue` — published рендерит их `h('div')` через `renderPublished`; definitions leaf-блоков (Text/Media/Accordion/Svg/Slider) импортируют свои `.vue` **только** через `defineAsyncComponent` — registry импортируется плагином bricks-styles на каждой странице, статический импорт утащил бы компонент и его зависимости (reka-ui, js-xss, swiper) в entry-бандл всех страниц потребителя, см. «Initial bundle»)
 
 **Добавление блока:** `BlockX.vue` + `blockX.definition.ts` + 2 однострочные регистрации (`registry.ts`, `canvasBlockComponents.ts`).
 
@@ -383,6 +389,20 @@ Markdown-статьи во встроенной документации бил�
 - **Клиентский IP лимитеров** — `server/utils/requestClientIp.ts` (единственная точка: upload/thumbnail/login): дефолт — только socket-адрес (x-forwarded-\* не доверяем); за reverse proxy per-IP-ключи схлопываются в один bucket → опт-ин `bricks.trustProxy` / env `NUXT_BRICKS_TRUST_PROXY` (runtime-override) — берётся **последний** элемент `x-forwarded-for` (дописан ближайшим прокси; первый — spoof'ится клиентом при аппендящем прокси). Ровно один доверенный хоп; `getRequestIP(event, { xForwardedFor: true })` h3 в новом коде не использовать (берёт первый элемент).
 - `fetchSvgContent` (импорт из бакета) — fetch с `redirect: 'error'`, таймаутом 10 с и стрим-лимитом 2 МБ.
 - Reverse proxy с собственным body-лимитом — рекомендация для production (README «Лимиты запросов и ресурсов»).
+
+## Read-models списков (2026-07-11)
+
+`GET /api/bricks` отдаёт **сводки без `schema`** (`PAGE_SUMMARY_FIELDS` — паттерн `VERSION_SUMMARY_FIELDS`); полная строка — только point-lookup `GET /api/bricks/:id`. Клиент: `publishStore.publishedPages` типизирован `TPublishedPageSummary[]` (нормализация — `normalizePublishedPageSummary`), `syncPageInList` срезает `schema` из ответов PUT/PATCH; схему канваса `useBuilderSession` и `duplicatePage` берут через `fetchPageRequest(id)` (`publishApi.ts`). Контракт `IStorageAdapter.listPages(): TBricksPageSummaryRow[]` — кастомные адаптеры обязаны вернуть сводку без schema. Новые поля страницы, нужные дашборду/precondition'ам, добавлять в обе проекции (`PAGE_SELECT_FIELDS` + `PAGE_SUMMARY_FIELDS`). S3 `listFiles` дочитывает листинг по `NextContinuationToken` (>1000 объектов); импорт бакета (`mediaImport.ts`) дедупится идемпотентным `createMedia` — per-file SELECT не добавлять. Читать `schema` из записей списка стора нельзя — поля там больше нет (компилятор поймает).
+
+## Data sources published-страниц (2026-07-11)
+
+Запросы `dataSources` brick-компонентов идут через выделенный публичный клиент `useDataSourceClient` (render/composables) — НЕ через `useApiClient` (тот пробрасывает cookie/x-forwarded-\* и редиректит посетителя на login при 401): без cookies/identity/CSRF, таймаут (дефолт 10 с, `retry: 0`). Политика — чистые функции `render/utils/dataSourcePolicy.ts`: методы только GET/HEAD (тип `TBrickDataSourceMethod` сужен), относительные URL всегда разрешены, абсолютные — http(s) + хост из `bricks.dataSources.allowedHosts` (`runtimeConfig.public.bricksDataSources`; дефолты timeoutMs/concurrency — константы policy-файла). Выполнение (`useRendererDataSources`): пул `runWithConcurrencyLimit` (`render/utils/requestPool.ts`, дефолт 6 одновременных) + dedup одинаковых (method+url) запросов одного прогона (`TDataSourceRequestCache` — Map на каждый прогон, refresh получает свежие данные). Логи: детали (params/componentProps/превью ответов) — только `import.meta.dev`; в prod — key/url/method/componentId и причина отказа политики. Build-time заполнение runtimeConfig вынесено из module.ts в `src/module-runtime-config.ts` (max-lines).
+
+## Health-пробы и error envelope (2026-07-11)
+
+- `GET /api/bricks/health` (liveness) и `GET /api/bricks/health/ready` (readiness: опциональный `IStorageAdapter.checkHealth`; дефолтный Postgres-адаптер — `SELECT 1`, без сконфигурированной БД проверка пропускается; недоступное хранилище → 503 без деталей, таймаут 5 с) — открыты в auth-матрице (только GET/HEAD), `isPublic` в `BRICKS_API_HANDLERS` (живут и в render-only режиме).
+- `toHttpError` (handlerHelpers) — generic 500-envelope: внутренние сообщения ошибок наружу не отдаются; в ответе `data.errorId`, тот же id — в server-логе (корреляция). Новые 5xx не должны интерполировать `error.message` в `statusMessage`.
+- `docker-compose.yml` — только локальная dev-среда (порт на localhost, пароль через env `POSTGRES_PASSWORD`); production runbook — README «Production deployment и operability».
 
 ## Маршруты и поверхности модуля (2026-07-10)
 

@@ -58,6 +58,20 @@ describe('routeProtection: матрица защищённых путей', () =
         }
     });
 
+    it('health-пробы открыты на чтение, мутации и похожие пути — защищены', () => {
+        for (const mode of ['basic', 'database'] as const) {
+            expect(requiresAuth('/api/bricks/health', 'GET', mode, PREFIXES)).toBe(false);
+            expect(requiresAuth('/api/bricks/health', 'HEAD', mode, PREFIXES)).toBe(false);
+            expect(requiresAuth('/api/bricks/health/ready', 'GET', mode, PREFIXES)).toBe(false);
+            expect(requiresAuth('/api/bricks/health/ready', 'HEAD', mode, PREFIXES)).toBe(false);
+
+            expect(requiresAuth('/api/bricks/health', 'POST', mode, PREFIXES)).toBe(true);
+            expect(requiresAuth('/api/bricks/health/ready', 'POST', mode, PREFIXES)).toBe(true);
+            expect(requiresAuth('/api/bricks/healthcheck', 'GET', mode, PREFIXES)).toBe(true);
+            expect(requiresAuth('/api/bricks/health/other', 'GET', mode, PREFIXES)).toBe(true);
+        }
+    });
+
     it('database-режим открывает /bricks/login и /api/bricks/auth/**', () => {
         expect(requiresAuth('/bricks/login', 'GET', 'database', PREFIXES)).toBe(false);
         expect(requiresAuth('/api/bricks/auth/login', 'POST', 'database', PREFIXES)).toBe(false);

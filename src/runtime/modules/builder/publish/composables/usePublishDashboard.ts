@@ -1,6 +1,6 @@
 // #region Imports
 // Types
-import type { IPublishedPage } from '../../../common/types/bricks-api';
+import type { TPublishedPageSummary } from '../../../common/types/bricks-api';
 import type { TPublishPagesFilter, IPublishPagesFilterCounts } from '../types/dashboard';
 
 // Vue
@@ -13,7 +13,7 @@ import { useDebounceFn } from '@vueuse/core';
 // #region Data
 const SEARCH_DEBOUNCE_MS = 300;
 
-const FILTER_PREDICATES: Record<TPublishPagesFilter, (page: IPublishedPage) => boolean> = {
+const FILTER_PREDICATES: Record<TPublishPagesFilter, (page: TPublishedPageSummary) => boolean> = {
     all: () => true,
     published: (page) => page.published,
     drafts: (page) => !page.published,
@@ -26,7 +26,9 @@ const FILTER_PREDICATES: Record<TPublishPagesFilter, (page: IPublishedPage) => b
  *
  * @param pages - Реактивный список страниц (из publish-store).
  */
-export function usePublishDashboard(pages: Ref<IPublishedPage[]> | ComputedRef<IPublishedPage[]>) {
+export function usePublishDashboard(
+    pages: Ref<TPublishedPageSummary[]> | ComputedRef<TPublishedPageSummary[]>
+) {
     // #region Data
     const searchQuery = ref('');
     const debouncedSearchQuery = ref('');
@@ -42,7 +44,7 @@ export function usePublishDashboard(pages: Ref<IPublishedPage[]> | ComputedRef<I
      * Страницы, прошедшие поиск (до сегмент-фильтра) —
      * от них же считаются счётчики фильтров.
      */
-    const searchedPages = computed<IPublishedPage[]>(() => {
+    const searchedPages = computed<TPublishedPageSummary[]>(() => {
         const query = debouncedSearchQuery.value.trim().toLowerCase();
         if (!query) {
             return pages.value;
@@ -63,7 +65,7 @@ export function usePublishDashboard(pages: Ref<IPublishedPage[]> | ComputedRef<I
         drafts: searchedPages.value.filter(FILTER_PREDICATES.drafts).length,
     }));
 
-    const filteredPages = computed<IPublishedPage[]>(() =>
+    const filteredPages = computed<TPublishedPageSummary[]>(() =>
         searchedPages.value.filter(FILTER_PREDICATES[activeFilter.value])
     );
 

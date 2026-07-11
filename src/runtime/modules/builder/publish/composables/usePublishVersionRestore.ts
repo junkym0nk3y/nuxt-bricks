@@ -1,6 +1,6 @@
 import { computed, ref, type ComputedRef, type Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import type { IPageVersionSummary, IPublishedPage } from '../../../common/types/bricks-api';
+import type { IPageVersionSummary, TPublishedPageSummary } from '../../../common/types/bricks-api';
 import { usePublishStore } from '../stores/publish';
 import { formatPageDateTime } from '../utils/dates';
 
@@ -18,7 +18,7 @@ export interface IUsePublishVersionRestoreReturn {
     isRestoreConfirmationOpen: Ref<boolean>;
     isRestoring: Ref<boolean>;
     restoreConfirmationDescription: ComputedRef<string>;
-    requestRestoreVersion: (page: IPublishedPage, version: IPageVersionSummary) => void;
+    requestRestoreVersion: (page: TPublishedPageSummary, version: IPageVersionSummary) => void;
     closeRestoreConfirmation: (force?: boolean) => void;
     confirmRestoreVersion: () => Promise<void>;
 }
@@ -34,7 +34,10 @@ export function usePublishVersionRestore(
     const { t } = useI18n();
     const publishStore = usePublishStore();
 
-    const pendingRestore = ref<{ page: IPublishedPage; version: IPageVersionSummary } | null>(null);
+    const pendingRestore = ref<{
+        page: TPublishedPageSummary;
+        version: IPageVersionSummary;
+    } | null>(null);
     const isRestoreConfirmationOpen = ref(false);
     const isRestoring = ref(false);
 
@@ -55,7 +58,10 @@ export function usePublishVersionRestore(
      * @param page - Страница.
      * @param version - Сводка версии.
      */
-    function requestRestoreVersion(page: IPublishedPage, version: IPageVersionSummary): void {
+    function requestRestoreVersion(
+        page: TPublishedPageSummary,
+        version: IPageVersionSummary
+    ): void {
         pendingRestore.value = { page, version };
         isRestoreConfirmationOpen.value = true;
     }

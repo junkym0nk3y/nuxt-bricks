@@ -1,9 +1,10 @@
 import type { LayoutKey } from 'nuxt/app';
 import { defineNuxtRouteMiddleware, useNuxtApp, setPageLayout } from '#app';
 import { createError, useState, useRequestHeaders } from '#imports';
-import type { IPublishedPageSummary, IPublishedPage } from '../modules/common/types/bricks-api';
+import type { TPublishedPageSummary, IPublishedPage } from '../modules/common/types/bricks-api';
 import { normalizeBricksError } from '../modules/common/utils/main';
 import { useApiClient } from '../modules/common/composables/useApiClient';
+import { usePublicPageClient } from '../modules/render/composables/usePublicPageClient';
 import { toCamelCase } from '../modules/common/utils/case-transform';
 import { BRICKS_ROUTE_NAMES } from '../modules/common/constants/routes';
 import {
@@ -35,7 +36,6 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
     const nuxtApp = useNuxtApp();
     const pagename = to.params.pagename as string;
-    const { apiFetcher } = useApiClient();
 
     const pageDataKey = `bricks-page-${pagename}-${isPreview ? 'preview' : 'live'}`;
 
@@ -60,12 +60,14 @@ export default defineNuxtRouteMiddleware(async (to) => {
         if (!page && isPreview) {
             // Preview — авторизованный сценарий (матрица auth защищает /preview/**):
             // ищем среди всех страниц, включая drafts, через editorial API
-            const pagesList = useState<IPublishedPageSummary[]>('bricks-all-pages', () => []);
+            // (админский клиент: cookie сессии билдера, 401-редирект на login)
+            const { apiFetcher } = useApiClient();
+            const pagesList = useState<TPublishedPageSummary[]>('bricks-all-pages', () => []);
 
             if (!pagesList.value.length) {
                 try {
-                    const response = await apiFetcher<IPublishedPageSummary[]>('/api/bricks/');
-                    pagesList.value = toCamelCase<IPublishedPageSummary[]>(response);
+                    const response = await apiFetcher<TPublishedPageSummary[]>('/api/bricks/');
+                    pagesList.value = toCamelCase<TPublishedPageSummary[]>(response);
                 } catch (error) {
                     return createError(normalizeBricksError(error, 'Failed to load pages list'));
                 }
@@ -88,9 +90,13 @@ export default defineNuxtRouteMiddleware(async (to) => {
         }
 
         if (!page && !isPreview) {
-            // Live — публичный read-model: прямой lookup по pagename, без list+find
+            // Live — публичный read-model: прямой lookup по pagename, без list+find.
+            // Публичный клиент: без cookie/CSRF/401-редиректа, с таймаутом —
+            // ошибка lookup'а не отправит посетителя на login билдера
+            const { publicPageFetcher } = usePublicPageClient();
+
             try {
-                const response = await apiFetcher<IPublishedPage>(
+                const response = await publicPageFetcher<IPublishedPage>(
                     `/api/bricks/public/pages/${pagename}/`
                 );
                 page = normalizePublishedPage(response);

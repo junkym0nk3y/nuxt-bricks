@@ -27,6 +27,29 @@ export const PAGE_SELECT_FIELDS = `
 `;
 
 /**
+ * Поля сводки страницы (bricks_pages) — editorial-список без JSONB schema
+ * (тот же паттерн, что VERSION_SUMMARY_FIELDS: список лёгкий, полная строка —
+ * point-lookup'ом по id).
+ */
+export const PAGE_SUMMARY_FIELDS = `
+    id,
+    pagename,
+    title,
+    description,
+    keywords,
+    social_image as "socialImage",
+    layout,
+    background_color as "backgroundColor",
+    url_prefix as "urlPrefix",
+    subdomain,
+    thumbnail_url as "thumbnailUrl",
+    published,
+    revision,
+    created_at as "createdAt",
+    updated_at as "updatedAt"
+`;
+
+/**
  * Поля сводки версии страницы (bricks_page_versions) — лёгкий список без schema.
  */
 export const VERSION_SUMMARY_FIELDS = `

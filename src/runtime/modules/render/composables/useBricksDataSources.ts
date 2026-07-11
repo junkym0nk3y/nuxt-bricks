@@ -8,19 +8,36 @@ import type {
 import type { IBricksComponent } from '../../common/types/brick';
 import type { TPublishFormState } from '../../common/types/bricks-api';
 
+// Utils
+import {
+    checkDataSourceUrl,
+    resolveDataSourceMethod,
+    type TResolvedDataSourceMethod,
+} from '../utils/dataSourcePolicy';
+
 // Composables
-import { useApiClient } from '../../common/composables/useApiClient';
+import { useDataSourceClient } from './useDataSourceClient';
+// #endregion
+
+// #region Types
+/** Кеш ответов одного прогона: одинаковые (method + url) запросы выполняются один раз. */
+export type TDataSourceRequestCache = Map<string, Promise<unknown>>;
 // #endregion
 
 /**
  * Composable для работы с data sources опубликованной страницы.
- * Использует useApiClient для проксирования запросов с SSR-заголовками и CSRF.
+ * Запросы идут через выделенный публичный клиент (useDataSourceClient):
+ * без cookie/identity, с таймаутом; URL и метод проверяются политикой
+ * (dataSourcePolicy) — относительные URL или allow-list хостов, только GET/HEAD.
  *
- * @returns Объект с методом executeDataSource для выполнения запросов к data sources.
+ * Логи: подробности (props, параметры, превью ответа) — только в dev;
+ * в production логируются key/url/method/componentId без пользовательских данных.
+ *
+ * @returns Метод executeDataSource и лимит одновременности из конфигурации.
  */
 export function useBricksDataSources() {
     // #region Data
-    const { apiFetcher } = useApiClient();
+    const { dataSourceFetcher, allowedHosts, concurrency } = useDataSourceClient();
     // #endregion
 
     // #region Methods
@@ -101,7 +118,7 @@ export function useBricksDataSources() {
     }
 
     /**
-     * Возвращает усечённый превью результата для логов.
+     * Возвращает усечённый превью результата для dev-логов.
      * Ограничивает массивы до 3 элементов, объекты до 5 ключей.
      *
      * @param value - Значение для создания превью.
@@ -121,22 +138,86 @@ export function useBricksDataSources() {
     }
 
     /**
+     * Проверяет, остались ли в URL неразрешённые плейсхолдеры :paramName.
+     * Для абсолютного URL проверяется только path + query (двоеточия схемы
+     * и порта — не плейсхолдеры).
+     *
+     * @param url - URL после подстановки параметров.
+     * @returns true, если в URL остался незаполненный плейсхолдер.
+     */
+    function hasUnresolvedParams(url: string): boolean {
+        let checkedPart = url;
+
+        if (!url.startsWith('/')) {
+            try {
+                const parsed = new URL(url);
+                checkedPart = `${parsed.pathname}${parsed.search}`;
+            } catch {
+                // Не абсолютный URL — проверяем строку целиком (политика отфильтрует)
+            }
+        }
+
+        return checkedPart.includes(':');
+    }
+
+    /**
+     * Выполняет HTTP-запрос data source с дедупликацией по (method + url):
+     * одинаковые запросы одного прогона делят один промис.
+     *
+     * @param url - Резолвленный URL запроса.
+     * @param method - Нормализованный HTTP-метод.
+     * @param requestCache - Кеш ответов текущего прогона (опционален).
+     * @returns Сырой ответ запроса.
+     */
+    function fetchDataSource(
+        url: string,
+        method: TResolvedDataSourceMethod,
+        requestCache?: TDataSourceRequestCache
+    ): Promise<unknown> {
+        const cacheKey = `${method} ${url}`;
+        const cached = requestCache?.get(cacheKey);
+
+        if (cached) {
+            return cached;
+        }
+
+        const responsePromise = dataSourceFetcher<unknown>(url, { method });
+        requestCache?.set(cacheKey, responsePromise);
+
+        return responsePromise;
+    }
+
+    /**
      * Выполняет запрос к data source и возвращает mapped результат.
-     * Собирает параметры, строит URL, выполняет запрос и применяет map функцию.
+     * Собирает параметры, строит URL, проверяет политику (метод/URL),
+     * выполняет запрос и применяет map функцию.
      *
      * @param source - Определение data source с URL, параметрами и map функцией.
      * @param component - Компонент, для которого выполняется запрос.
      * @param pageSettings - Настройки страницы для разрешения параметров.
+     * @param requestCache - Кеш ответов текущего прогона (dedup одинаковых запросов).
      * @returns Результат запроса после применения map функции или null при ошибке.
      */
     async function executeDataSource(
         source: IBrickDataSource,
         component: IBricksComponent,
-        pageSettings: TPublishFormState | null
+        pageSettings: TPublishFormState | null,
+        requestCache?: TDataSourceRequestCache
     ): Promise<Record<string, unknown> | null> {
         const params: Record<string, string | number> = {};
         let url = source.url;
-        let method = source.method || 'GET';
+
+        const method = resolveDataSourceMethod(source.method);
+
+        if (!method) {
+            console.warn('[Bricks DataSource] Skip - method is not allowed (GET/HEAD only):', {
+                key: source.key,
+                method: source.method,
+                componentId: component.id,
+                brickPath: component.brickPath,
+            });
+            return null;
+        }
 
         try {
             if (source.params) {
@@ -149,42 +230,58 @@ export function useBricksDataSources() {
             }
 
             url = buildDataSourceUrl(source.url, params);
-            method = source.method || 'GET';
 
-            if (url.includes(':')) {
+            if (hasUnresolvedParams(url)) {
                 console.warn('[Bricks DataSource] Skip - unresolved params:', {
                     key: source.key,
                     url,
-                    component: component.id,
-                    params,
+                    componentId: component.id,
+                    brickPath: component.brickPath,
+                    ...(import.meta.dev ? { params } : {}),
+                });
+                return null;
+            }
+
+            const urlCheck = checkDataSourceUrl(url, allowedHosts);
+
+            if (!urlCheck.allowed) {
+                console.warn('[Bricks DataSource] Skip - url is not allowed by policy:', {
+                    key: source.key,
+                    url,
+                    reason: urlCheck.reason,
+                    componentId: component.id,
                     brickPath: component.brickPath,
                 });
                 return null;
             }
 
-            console.info('[Bricks DataSource] Fetching:', {
-                key: source.key,
-                url,
-                method,
-                params,
-                componentId: component.id,
-                brickPath: component.brickPath,
-                componentProps: component.props,
-                page: pageSettings?.pagename,
-            });
+            if (import.meta.dev) {
+                console.info('[Bricks DataSource] Fetching:', {
+                    key: source.key,
+                    url,
+                    method,
+                    params,
+                    componentId: component.id,
+                    brickPath: component.brickPath,
+                    componentProps: component.props,
+                    page: pageSettings?.pagename,
+                });
+            }
 
-            const response = await apiFetcher<unknown>(url, { method });
+            const response = await fetchDataSource(url, method, requestCache);
 
-            console.info('[Bricks DataSource] Response received:', {
-                key: source.key,
-                url,
-                method,
-                componentId: component.id,
-                brickPath: component.brickPath,
-                responseType: Array.isArray(response) ? 'array' : typeof response,
-                responsePreview: getResponsePreview(response),
-                hasData: Boolean(response),
-            });
+            if (import.meta.dev) {
+                console.info('[Bricks DataSource] Response received:', {
+                    key: source.key,
+                    url,
+                    method,
+                    componentId: component.id,
+                    brickPath: component.brickPath,
+                    responseType: Array.isArray(response) ? 'array' : typeof response,
+                    responsePreview: getResponsePreview(response),
+                    hasData: Boolean(response),
+                });
+            }
 
             const context: IBrickDataSourceContext = {
                 pageSettings,
@@ -193,13 +290,17 @@ export function useBricksDataSources() {
 
             if (typeof source.map === 'function') {
                 const mapped = source.map(response, context);
-                console.info('[Bricks DataSource] Mapped result:', {
-                    key: source.key,
-                    componentId: component.id,
-                    brickPath: component.brickPath,
-                    mappedKeys: mapped ? Object.keys(mapped) : [],
-                    mappedPreview: mapped ? getResponsePreview(mapped) : null,
-                });
+
+                if (import.meta.dev) {
+                    console.info('[Bricks DataSource] Mapped result:', {
+                        key: source.key,
+                        componentId: component.id,
+                        brickPath: component.brickPath,
+                        mappedKeys: mapped ? Object.keys(mapped) : [],
+                        mappedPreview: mapped ? getResponsePreview(mapped) : null,
+                    });
+                }
+
                 return mapped;
             }
 
@@ -213,14 +314,15 @@ export function useBricksDataSources() {
 
             return null;
         } catch (error) {
+            // В production не логируем params (значения приходят из props/страницы)
             console.error('[Bricks DataSource] Fetch failed:', {
                 key: source.key,
                 url,
                 method,
-                params,
                 componentId: component.id,
                 brickPath: component.brickPath,
                 error,
+                ...(import.meta.dev ? { params } : {}),
             });
             return null;
         }
@@ -229,5 +331,6 @@ export function useBricksDataSources() {
 
     return {
         executeDataSource,
+        concurrency,
     };
 }

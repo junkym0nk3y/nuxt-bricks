@@ -204,28 +204,44 @@ export function createS3PublishAdapter(): IPublishAdapter {
         },
 
         /**
-         * Возвращает список файлов бакета по префиксу (дефолт — bricks-media/).
+         * Возвращает полный список файлов бакета по префиксу (дефолт —
+         * bricks-media/). ListObjectsV2 отдаёт максимум 1000 объектов за
+         * запрос — страницы дочитываются по NextContinuationToken.
          */
         async listFiles(prefix?: string): Promise<IStoredFileInfo[]> {
             const { client: s3, config } = useClient();
+            const files: IStoredFileInfo[] = [];
+            let continuationToken: string | undefined;
 
-            const response = await s3.send(
-                new ListObjectsV2Command({
-                    Bucket: config.bucket,
-                    Prefix: prefix ?? config.prefix,
-                })
-            );
+            do {
+                const response = await s3.send(
+                    new ListObjectsV2Command({
+                        Bucket: config.bucket,
+                        Prefix: prefix ?? config.prefix,
+                        ContinuationToken: continuationToken,
+                    })
+                );
 
-            const contents = response.Contents ?? [];
+                const contents = response.Contents ?? [];
 
-            return contents
-                .filter((item) => Boolean(item.Key) && !item.Key?.endsWith('/'))
-                .map((item) => ({
-                    key: item.Key || '',
-                    url: `${config.endpoint}/${config.bucket}/${item.Key}`,
-                    size: item.Size || 0,
-                    lastModified: item.LastModified?.toISOString() || new Date().toISOString(),
-                }));
+                files.push(
+                    ...contents
+                        .filter((item) => Boolean(item.Key) && !item.Key?.endsWith('/'))
+                        .map((item) => ({
+                            key: item.Key || '',
+                            url: `${config.endpoint}/${config.bucket}/${item.Key}`,
+                            size: item.Size || 0,
+                            lastModified:
+                                item.LastModified?.toISOString() || new Date().toISOString(),
+                        }))
+                );
+
+                continuationToken = response.IsTruncated
+                    ? response.NextContinuationToken
+                    : undefined;
+            } while (continuationToken);
+
+            return files;
         },
     };
 }

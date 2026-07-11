@@ -50,10 +50,22 @@ describe('usePublishStore: дублирование страницы', () => {
         setActivePinia(createPinia());
         apiFetcherMock.mockReset();
         apiFetcherMock.mockImplementation(
-            (_url: string, options?: { method?: string; body?: Record<string, unknown> }) => {
+            (url: string, options?: { method?: string; body?: Record<string, unknown> }) => {
                 if (options?.method === 'POST') {
                     return Promise.resolve({ id: 99, pagename: options.body?.pagename });
                 }
+
+                // GET /api/bricks/:id/ — point-lookup полной страницы (список — сводки без schema)
+                if (/^\/api\/bricks\/\d+\/$/.test(url)) {
+                    return Promise.resolve(
+                        buildPage({
+                            id: 1,
+                            pagename: 'home',
+                            schema: { components: [{ id: 'source-brick' }] } as never,
+                        })
+                    );
+                }
+
                 // GET /api/bricks/ после publishPage (loadAllPages)
                 return Promise.resolve([]);
             }
@@ -93,6 +105,13 @@ describe('usePublishStore: дублирование страницы', () => {
         expect(body.body.pagename).toBe('home-copy-1');
         expect(body.body.title).toBe('Home (copy)');
         expect(body.body.published).toBe(false);
+        // Схема клона — из point-lookup'а исходной страницы, не из сводки списка
+        expect(body.body.schema).toEqual({ components: [{ id: 'source-brick' }] });
+
+        const pointLookupCall = apiFetcherMock.mock.calls.find(([url]) => {
+            return url === '/api/bricks/1/';
+        });
+        expect(pointLookupCall).toBeTruthy();
     });
 
     it('duplicatePage бросает ошибку, если страница не найдена', async () => {

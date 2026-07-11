@@ -87,7 +87,7 @@ DELETE FROM bricks_sessions WHERE user_id = (SELECT id FROM bricks_users WHERE u
 
 Модуль оперирует только собственным namespace бакета — managed-префиксами `bricks.s3.prefix` (медиа, дефолт `bricks-media/`) и `bricks.s3.thumbnailsPrefix` (превью страниц, дефолт `bricks-thumbnails/`). Ключи объектов генерирует сервер (`IPublishAdapter.buildFileKey`); удаление, регистрация URL и media-proxy отказывают любым объектам вне этих префиксов — в shared-бакете модуль не может затронуть посторонние файлы даже по валидному URL бакета.
 
-Контракт кастомных адаптеров: `IPublishAdapter` требует `buildFileKey(kind, filename)` и managed-семантику `deleteFile`/`isOwnedUrl`; `IStorageAdapter` — `getMedia(id)` и идемпотентный по `url` `createMedia` (повторная регистрация возвращает существующую запись). Компилятор укажет на недостающие методы при обновлении.
+Контракт кастомных адаптеров: `IPublishAdapter` требует `buildFileKey(kind, filename)`, managed-семантику `deleteFile`/`isOwnedUrl` и полный листинг `listFiles` (пагинация хранилища — забота адаптера); `IStorageAdapter` — `getMedia(id)`, идемпотентный по `url` `createMedia` (повторная регистрация возвращает существующую запись; на этом же контракте держится дедупликация импорта из бакета) и `listPages`, возвращающий сводки страниц **без** поля `schema` (полную строку отдаёт только `getPage`/`getPageByPagename`). Компилятор укажет на несовпадения при обновлении.
 
 ### Лимиты запросов и ресурсов (ingress)
 
@@ -110,6 +110,27 @@ DELETE FROM bricks_sessions WHERE user_id = (SELECT id FROM bricks_users WHERE u
 - Статические страницы приложения (`pages/about.vue` и т.п.) всегда побеждают маршруты bricks — vue-router ранжирует их выше.
 - URL с символами вне `[a-z0-9-]` (точки, подчёркивания, файлы статики) маршрутами bricks не перехватываются.
 - Ограничение: корневой динамический маршрут приложения без custom regex (`pages/[slug].vue`, `pages/[...slug].vue`) проиграет ранжирование маршрутам bricks — одно- и двухсегментные URL, не занятые published-страницей, получат 404 от bricks вместо вашей страницы. Обходной путь — задать своему маршруту custom regex через `definePageMeta({ path })` либо развести пространства URL через `urlPrefix`.
+
+## Data sources published-страниц
+
+Brick-компоненты могут объявлять `dataSources` — запросы, которые рендерер выполняет на каждый SSR/refresh опубликованной страницы и мержит в props компонента. Это **публичный** контекст, поэтому запросы идут через выделенный клиент с жёсткой политикой (не через API-клиент билдера):
+
+- **Методы — только `GET`/`HEAD`.** Мутирующий метод — это побочный эффект рендера; такой data source пропускается с предупреждением в логе.
+- **URL: относительные — всегда разрешены** (`/api/...` уходит на ваш backend через proxy-режим либо в локальные Nitro-ручки). **Абсолютные — только http(s) на хост из allow-list** `bricks.dataSources.allowedHosts`; по умолчанию список пуст и абсолютные URL запрещены.
+- **Без cookies и identity**: cookie посетителя, cookie/креды билдера и `x-forwarded-*` в запросы data sources не пробрасываются; ошибка источника не редиректит посетителя на страницу логина.
+- **Таймаут и лимит одновременности**: каждый запрос ограничен таймаутом (дефолт 10 с, без ретраев); страница выполняет не более N запросов одновременно (дефолт 6). Ошибка/таймаут источника не валит страницу — компонент рендерится с дефолтными props.
+- **Дедупликация**: одинаковые (метод + URL) запросы одного рендера выполняются один раз и делят результат.
+- **Логи**: параметры, props компонента и превью ответов логируются только в dev; в production — только key/url/метод/id компонента и причина отказа политики.
+
+```typescript
+bricks: {
+    dataSources: {
+        allowedHosts: ['api.example.com'], // дефолт []: только относительные URL
+        timeoutMs: 10000,                  // таймаут одного запроса, мс
+        concurrency: 6,                    // одновременных запросов на страницу
+    },
+}
+```
 
 ## Маршруты и поверхности
 
@@ -144,6 +165,38 @@ Published/preview-страницы получают минимальный fallb
 - `:where(html) { font-size: 10px }` — rem-база bricks-контента (совпадает с базой канваса билдера). Если проект задаёт собственную базу (`html { font-size: ... }`, см. `remBase` в конфиге breakpoints) — она побеждает.
 - `:where(body) { margin: 0 }` — полноэкранный лендинг без браузерной рамки.
 - `:where(.bricks-container, .bricks-container *) { box-sizing: border-box }` и `:where(.bricks-container a) { color: inherit }` — прежнее поведение bricks-блоков внутри контейнера.
+
+## CI и релизный гейт
+
+GitHub Actions (`.github/workflows/ci.yml`) гоняет на каждый PR и push в `main` четыре независимых job:
+
+1. **checks** — `format:check` + `lint:check` (oxlint, stylelint, dependency-cruiser, knip) + `type-check` + `test`;
+2. **build** — сборка модуля и прод-сборка playground + bundle budget (`npm run budget:bundle`): gzip-размер initial JS двух поверхностей (entry и published-страница) сверяется с бюджетами в `scripts/bundle-budget.mjs` — незаметный рост бандла валит job, осознанный рост фиксируется diff'ом бюджета (локальный запуск требует свежего `npm run dev:build`; атрибуция состава чанков — `npx nuxi analyze playground`);
+3. **pack-smoke** — `npm run smoke:pack`: fresh-consumer smoke опубликованного tarball (`npm pack` → чистое consumer-приложение во временной папке ставит tarball → в пакете есть `dist`, `migrations/*.sql` и CLI-бины → `nuxi build` без Postgres/PROXY_URL → прод-сервер поднимается, отдаёт страницу consumer'а 200, editorial API и `/bricks` анониму — 401, basic-креды принимаются). Скрипт можно гонять и локально; при провале временная папка сохраняется для разбора (путь — в логе);
+4. **audit** — `npm audit --omit=dev` блокирующе (prod-зависимости держим на 0 уязвимостей), полный audit — информационно.
+
+Рекомендации по репозиторию (настраиваются в GitHub, не в коде): включить branch protection на `main` с обязательными checks всех четырёх jobs и публиковать пакет только из CI. Обновления зависимостей — Dependabot (`.github/dependabot.yml`): npm еженедельно (minor/patch — одним групповым PR), GitHub Actions еженедельно.
+
+## Production deployment и operability
+
+### Health-пробы
+
+Модуль отдаёт две открытые (LB не умеет авторизоваться) ручки без деталей окружения:
+
+- `GET /api/bricks/health` — liveness: процесс жив и отвечает на HTTP;
+- `GET /api/bricks/health/ready` — readiness: приложение готово принимать трафик. Дёргает опциональный `IStorageAdapter.checkHealth` (дефолтный Postgres-адаптер — `SELECT 1`; без сконфигурированной БД проверка пропускается), недоступное хранилище → 503, таймаут проверки 5 с. Кастомный storage-адаптер может реализовать `checkHealth` — без него адаптер считается всегда готовым.
+
+### Ошибки наружу
+
+Непредвиденные ошибки editorial API уходят клиенту generic-конвертом: `500` с фиксированным `statusMessage` и `data.errorId`; полная ошибка с тем же `errorId` — только в server-логе. По `errorId` инцидент из ответа клиента находится в логах.
+
+### Runbook
+
+- **TLS и reverse proxy** — терминируйте TLS на reverse proxy перед Nitro; там же — внешний body-limit и (для корректных per-IP rate limit'ов) `NUXT_BRICKS_TRUST_PROXY=true` при ровно одном доверенном хопе (см. «Лимиты запросов и ресурсов»).
+- **Миграции до рол-аута** — `npx bricks-migrate migrate` выполняет deploy/bootstrap job ролью с DDL-правами до запуска новой версии приложения; runtime-роли достаточно DML. Миграции forward-only: откат приложения на предыдущую версию безопасен без отката схемы (новые колонки/таблицы старым кодом игнорируются).
+- **Backup/restore** — состояние живёт в PostgreSQL (страницы, версии, медиа-метаданные, пользователи/сессии) и S3-бакете (файлы под префиксами `bricks-media/`/`bricks-thumbnails/`). Бэкап: штатный `pg_dump`/managed-снапшоты + версионирование бакета; восстанавливать парой на близкие моменты времени (медиа-записи ссылаются на файлы по URL).
+- **Secrets** — все секреты (`NUXT_BRICKS_DATABASE_URL`, S3-ключи, `NUXT_BASIC_AUTH_*`) доставляются env-переменными среды выполнения, в репозитории и образе их быть не должно. `docker-compose.yml` в корне — только локальная dev-среда (порт на localhost, дефолтный пароль переопределяется `POSTGRES_PASSWORD`).
+- **Логи** — сервер пишет префиксованные `console`-логи (`[Bricks API]`, `[PostgreSQL]`, …); SQL и параметры запросов в production не логируются (контент страниц). Сбор/JSON-форматирование, метрики и tracing — зона платформы деплоя: Nitro-логи забираются со stdout любым коллектором.
 
 ## Остальные env
 

@@ -50,6 +50,23 @@ describe('postgresStorageAdapter: конфликты и RETURNING-мутации
         runtimeConfigMock.mockReturnValue({ bricksVersionsLimit: 5 });
     });
 
+    it('listPages: summary-проекция без schema, полная строка — только point-lookup', async () => {
+        queryMock.mockResolvedValueOnce([makeRow()]);
+        queryOneMock.mockResolvedValueOnce(makeRow());
+
+        const adapter = createPostgresStorageAdapter();
+        await adapter.listPages();
+        await adapter.getPage(1);
+
+        const [listSql] = queryMock.mock.calls[0] as [string];
+        expect(listSql).not.toContain('schema');
+        expect(listSql).toContain('revision');
+        expect(listSql).toContain('thumbnail_url');
+
+        const [getSql] = queryOneMock.mock.calls[0] as [string];
+        expect(getSql).toContain('schema');
+    });
+
     it('createPage: unique_violation → BricksPagenameConflictError (гонка create)', async () => {
         queryOneMock.mockRejectedValueOnce(makeUniqueViolation());
 
@@ -159,5 +176,37 @@ describe('postgresStorageAdapter: конфликты и RETURNING-мутации
 
         await expect(adapter.updateMedia(5, { alt: 'x' })).resolves.toBeNull();
         expect(queryOneMock.mock.calls[0][0]).toContain('RETURNING');
+    });
+});
+
+describe('postgresStorageAdapter: checkHealth (readiness)', () => {
+    beforeEach(() => {
+        queryMock.mockReset();
+        runtimeConfigMock.mockReset();
+    });
+
+    it('без сконфигурированной БД (proxy-режим) проверка пропускается', async () => {
+        runtimeConfigMock.mockReturnValue({ bricksVersionsLimit: 5 });
+
+        const adapter = createPostgresStorageAdapter();
+
+        await expect(adapter.checkHealth?.()).resolves.toBeUndefined();
+        expect(queryMock).not.toHaveBeenCalled();
+    });
+
+    it('со сконфигурированной БД выполняет SELECT 1 и пробрасывает ошибку', async () => {
+        runtimeConfigMock.mockReturnValue({
+            bricksVersionsLimit: 5,
+            bricksDatabaseUrl: 'postgres://localhost/bricks',
+        });
+        queryMock.mockResolvedValueOnce([]);
+
+        const adapter = createPostgresStorageAdapter();
+
+        await expect(adapter.checkHealth?.()).resolves.toBeUndefined();
+        expect(queryMock).toHaveBeenCalledWith('SELECT 1');
+
+        queryMock.mockRejectedValueOnce(new Error('connection refused'));
+        await expect(adapter.checkHealth?.()).rejects.toThrow('connection refused');
     });
 });

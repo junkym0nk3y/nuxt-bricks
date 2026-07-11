@@ -1,6 +1,6 @@
 // #region Imports
 // Types
-import type { IPublishedPage } from '../../../common/types/bricks-api';
+import type { TPublishedPageSummary } from '../../../common/types/bricks-api';
 import type { IPublishPageFormValues, IPublishPageFormOptions } from '../types/dashboard';
 
 // Utils
@@ -26,7 +26,7 @@ import { usePublishStore } from '../stores/publish';
  * @param page - Страница или null.
  * @returns Значения формы meta.
  */
-function buildFormValues(page: IPublishedPage | null): IPublishPageFormValues {
+function buildFormValues(page: TPublishedPageSummary | null): IPublishPageFormValues {
     return {
         pagename: page?.pagename ?? '',
         title: page?.title ?? '',
@@ -50,7 +50,7 @@ function buildFormValues(page: IPublishedPage | null): IPublishPageFormValues {
  * @param options - Колбэки результата сохранения (тосты — на стороне вызывающего).
  */
 export function usePublishPageForm(
-    page: Ref<IPublishedPage | null> | ComputedRef<IPublishedPage | null>,
+    page: Ref<TPublishedPageSummary | null> | ComputedRef<TPublishedPageSummary | null>,
     options: IPublishPageFormOptions
 ) {
     // #region Data

@@ -1,0 +1,76 @@
+# CI-гейт (P1 «Сделать CI и package contract воспроизводимыми»):
+# format/lint/type/test → build (модуль + прод-сборка playground) → fresh-consumer
+# smoke из npm pack → npm audit. Все jobs обязаны быть зелёными для merge в main
+# (required checks настраиваются в branch protection репозитория).
+name: CI
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+
+concurrency:
+    group: ci-${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+env:
+    NUXT_TELEMETRY_DISABLED: '1'
+
+jobs:
+    checks:
+        name: Format, lint, types, tests
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: npm
+            - run: npm ci
+            - run: npm run dev:prepare
+            - run: npm run format:check
+            - run: npm run lint:check
+            - run: npm run type-check
+            - run: npm test
+
+    build:
+        name: Module build + playground prod build
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: npm
+            - run: npm ci
+            - run: npm run dev:prepare
+            - run: npm run build
+            - run: npm run dev:build
+            # Bundle budget: gzip-размер initial JS (entry и published-страница)
+            # не должен незаметно расти — бюджеты в scripts/bundle-budget.mjs.
+            - run: npm run budget:bundle
+
+    pack-smoke:
+        name: Fresh consumer smoke (npm pack)
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: npm
+            - run: npm ci
+            - run: npm run smoke:pack
+
+    audit:
+        name: npm audit (prod deps)
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+            # Prod-зависимости — блокирующе (сейчас 0 уязвимостей, держим планку);
+            # полный audit (включая dev) — информационно, не валит сборку.
+            - run: npm audit --omit=dev
+            - run: npm audit || true

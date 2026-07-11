@@ -282,3 +282,68 @@ export function registerBricksServerHandlers(context: IBricksRegistrationContext
         });
     }
 }
+
+// Модули, чьи чанки не должны prefetch'иться на published-страницах: редакторский
+// стек (TipTap/ProseMirror, JSON-редактор), документация билдера и весь код
+// builder/text-editor. Swiper сюда не входит: его чанк нужен странице со слайдером
+// сразу (SSR-fallback → hydration), а страница без слайдера его и так не рендерит.
+const BUILDER_ONLY_CHUNK_PATTERN =
+    /@tiptap|prosemirror|vanilla-jsoneditor|json-editor-vue|markdown-it|\/modules\/(builder|text-editor)\/|\/docs\/guide\/|\/plugins\/builder\/|\/plugins\/icons\/builderIcons/;
+
+/**
+ * Отключает `<link rel="prefetch">` для builder-only чанков. Vite ставит
+ * prefetch-хинты на dynamic imports отрендеренных модулей, поэтому посетитель
+ * published-страницы в idle скачивал бы весь редакторский стек (например,
+ * TipTap-цепочку inline-editing через BlockText). Флагуются entries по паттерну
+ * плюс транзитивное замыкание их imports/dynamicImports (vendor-чанки с
+ * hash-именами иначе не атрибутировать); чанк, достижимый статическими
+ * импортами из не-флагованного entry, остаётся prefetch'имым (общий vendor).
+ * `preload` не трогаем — он нужен гидратации реально используемых чанков.
+ *
+ * @param nuxt - Инстанс Nuxt.
+ */
+export function disableBuilderChunkPrefetch(nuxt: Nuxt): void {
+    nuxt.hook('build:manifest', (manifest) => {
+        const flagged = new Set(
+            Object.keys(manifest).filter((key) => BUILDER_ONLY_CHUNK_PATTERN.test(key))
+        );
+
+        // Замыкание СТАТИЧЕСКИХ импортов флагованных входов. dynamicImports не
+        // обходим: через entry-чанк они дотянулись бы до всех lazy-чанков
+        // приложения (включая чанки потребителя и error-страницы Nuxt).
+        const stack = [...flagged];
+        while (stack.length > 0) {
+            const key = stack.pop() as string;
+            for (const dep of manifest[key]?.imports ?? []) {
+                if (!flagged.has(dep)) {
+                    flagged.add(dep);
+                    stack.push(dep);
+                }
+            }
+        }
+
+        // Чанки, достижимые статическими импортами из не-флагованных entries,
+        // остаются prefetch'имыми — они нужны и вне билдера
+        const shared = new Set<string>();
+        for (const key of Object.keys(manifest)) {
+            if (flagged.has(key)) {
+                continue;
+            }
+            const walk = [key];
+            while (walk.length > 0) {
+                const current = walk.pop() as string;
+                if (shared.has(current)) {
+                    continue;
+                }
+                shared.add(current);
+                walk.push(...(manifest[current]?.imports ?? []));
+            }
+        }
+
+        for (const key of flagged) {
+            if (!shared.has(key) && manifest[key]) {
+                manifest[key].prefetch = false;
+            }
+        }
+    });
+}

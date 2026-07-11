@@ -10,10 +10,11 @@ import { useAsyncData } from '#imports';
 
 // Composables
 import { useBrickImports } from '../../common/composables/useBrickImports';
-import { useBricksDataSources } from './useBricksDataSources';
+import { useBricksDataSources, type TDataSourceRequestCache } from './useBricksDataSources';
 
 // Utils
 import { normalizeBrickPath } from '../../common/utils/bricks/paths';
+import { runWithConcurrencyLimit } from '../utils/requestPool';
 // #endregion
 
 // #region Interfaces
@@ -52,7 +53,7 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
     const isClientDataSourceDebug = import.meta.dev && import.meta.client;
 
     const { findImportModule } = useBrickImports();
-    const { executeDataSource: executeDataSourceRequest } = useBricksDataSources();
+    const { executeDataSource: executeDataSourceRequest, concurrency } = useBricksDataSources();
     const dataSourceKey = `bricks-datasources-${pagename}-${isPreview ? 'preview' : 'live'}`;
 
     /**
@@ -138,9 +139,21 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
                 return {};
             }
 
-            await Promise.all(
-                requests.map(async ({ component, source }) => {
-                    const mapped = await executeDataSourceRequest(source, component, page.value);
+            // Кеш ответов одного прогона: одинаковые (method + url) запросы
+            // выполняются один раз; новый прогон (refresh) — свежие данные
+            const requestCache: TDataSourceRequestCache = new Map();
+
+            // Выполняем с лимитом одновременности (bricks.dataSources.concurrency):
+            // страница с десятками компонентов не открывает неограниченное
+            // число одновременных запросов на SSR
+            await runWithConcurrencyLimit(
+                requests.map(({ component, source }) => async () => {
+                    const mapped = await executeDataSourceRequest(
+                        source,
+                        component,
+                        page.value,
+                        requestCache
+                    );
 
                     if (!mapped) {
                         return;
@@ -154,7 +167,8 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
                             target[propName] = (mapped as Record<string, unknown>)[propName];
                         }
                     });
-                })
+                }),
+                concurrency
             );
 
             return result;

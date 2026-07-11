@@ -8,6 +8,7 @@ import type { IBuilderSessionOptions } from '../types/composables';
 import { serializeSchema } from '../../core/utils/history';
 import { isSnapshotEqual } from '../../publish/utils/draftSnapshots';
 import { getBuilderDraft, removeBuilderDraft } from '../../publish/utils/draftStorage';
+import { fetchPageRequest } from '../../publish/utils/publishApi';
 
 // Vue
 import { ref, watch } from 'vue';
@@ -91,7 +92,10 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
 
             if (existingPage) {
                 publishStore.startEditingPage(existingPage.id);
-                componentsStore.loadSchema(existingPage.schema, { resetHistory: true });
+
+                // Список стора — сводки без schema: схему канваса грузим point-lookup'ом
+                const fullPage = await fetchPageRequest(existingPage.id);
+                componentsStore.loadSchema(fullPage.schema, { resetHistory: true });
 
                 savedSnapshot.value = buildCurrentSnapshot();
 

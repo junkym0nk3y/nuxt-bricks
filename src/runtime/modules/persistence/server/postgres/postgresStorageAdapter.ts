@@ -8,6 +8,7 @@ import { useRuntimeConfig } from 'nitropack/runtime';
 import { query, queryOne, withTransaction } from './client';
 import {
     PAGE_SELECT_FIELDS,
+    PAGE_SUMMARY_FIELDS,
     MEDIA_SELECT_FIELDS,
     PAGE_UPDATE_FIELDS,
     MEDIA_UPDATE_FIELDS,
@@ -24,6 +25,7 @@ import type {
 } from '../../types/adapters';
 import type {
     IBricksPageRow,
+    TBricksPageSummaryRow,
     ICreatePagePayload,
     IUpdatePagePayload,
     IPageVersionSummary,
@@ -146,11 +148,25 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
 
     return {
         /**
-         * Возвращает все страницы, отсортированные по дате обновления.
+         * Readiness-проверка: `SELECT 1` через пул. Без сконфигурированной
+         * строки подключения (proxy-режим) проверка пропускается — локальной
+         * БД нет, отвечать 503 из-за этого нельзя.
          */
-        async listPages(): Promise<IBricksPageRow[]> {
-            return query<IBricksPageRow>(
-                `SELECT ${PAGE_SELECT_FIELDS} FROM bricks_pages ORDER BY updated_at DESC`
+        async checkHealth(): Promise<void> {
+            if (!useRuntimeConfig().bricksDatabaseUrl) {
+                return;
+            }
+
+            await query('SELECT 1');
+        },
+
+        /**
+         * Возвращает сводки всех страниц (без schema), отсортированные
+         * по дате обновления. Полная строка — getPage/getPageByPagename.
+         */
+        async listPages(): Promise<TBricksPageSummaryRow[]> {
+            return query<TBricksPageSummaryRow>(
+                `SELECT ${PAGE_SUMMARY_FIELDS} FROM bricks_pages ORDER BY updated_at DESC`
             );
         },
 

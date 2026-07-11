@@ -43,6 +43,18 @@ export const BRICKS_API_HANDLERS: IBricksApiHandler[] = [
         isPublic: true,
     },
     {
+        route: '/api/bricks/health',
+        method: 'get',
+        file: 'server/api/bricks/health/index.get',
+        isPublic: true,
+    },
+    {
+        route: '/api/bricks/health/ready',
+        method: 'get',
+        file: 'server/api/bricks/health/ready.get',
+        isPublic: true,
+    },
+    {
         route: '/api/bricks/media',
         method: 'get',
         file: 'server/api/bricks/media/index.get',

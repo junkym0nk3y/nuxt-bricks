@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IPublishedPage } from '../../../common/types/bricks-api';
+import type { TPublishedPageSummary } from '../../../common/types/bricks-api';
 import type { IMediaItem } from '../../../common/types/media';
 import type { TMediaLightboxItem } from '../../media/types/media';
 import type { TPublishDashboardSection } from '../types/dashboard';
@@ -10,7 +10,7 @@ import type { TPublishDashboardSection } from '../types/dashboard';
 import { BRICKS_ROUTE_NAMES } from '../../../common/constants/routes';
 
 // Vue
-import { computed, onMounted, ref } from 'vue';
+import { computed, defineAsyncComponent, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Nuxt
@@ -31,11 +31,17 @@ import TheBuilderPublishDashboard from '../components/TheBuilderPublishDashboard
 import BuilderPublishPagesList from '../components/BuilderPublishPagesList.vue';
 import BuilderPublishDetailsPanel from '../components/BuilderPublishDetailsPanel.vue';
 import TheBuilderPublishCreatePageModal from '../components/TheBuilderPublishCreatePageModal.vue';
-import TheBuilderDocumentationModal from '../../documentation/components/TheBuilderDocumentationModal.vue';
-import TheBuilderMediaGalleryModal from '../../media/components/TheBuilderMediaGalleryModal.vue';
 import BuilderMediaGalleryPreviewLightbox from '../../media/components/BuilderMediaGalleryPreviewLightbox.vue';
 import BricksConfirmModal from '../../../ui/feedback/BricksConfirmModal.vue';
 import BricksToast from '../../../ui/feedback/BricksToast.vue';
+
+// Модалки — lazy-чанки: не нужны до открытия (документация тянет markdown-it и статьи)
+const TheBuilderDocumentationModal = defineAsyncComponent(
+    () => import('../../documentation/components/TheBuilderDocumentationModal.vue')
+);
+const TheBuilderMediaGalleryModal = defineAsyncComponent(
+    () => import('../../media/components/TheBuilderMediaGalleryModal.vue')
+);
 // #endregion
 
 // #region Data
@@ -56,7 +62,7 @@ const isMediaGalleryModalOpen = ref(false);
 const mediaGalleryContext = ref<'manager' | 'properties'>('manager');
 const isLoadingPages = ref(false);
 const duplicatingPageId = ref<string | null>(null);
-const pendingDeletePage = ref<IPublishedPage | null>(null);
+const pendingDeletePage = ref<TPublishedPageSummary | null>(null);
 const isDeleteConfirmationOpen = ref(false);
 const isDeleting = ref(false);
 
@@ -85,7 +91,7 @@ const toastDuration = computed<number>(() => toast.duration ?? 4000);
 /**
  * Выбранная страница — из store, чтобы панель видела результат patch/удаления.
  */
-const selectedPage = computed<IPublishedPage | null>(() => {
+const selectedPage = computed<TPublishedPageSummary | null>(() => {
     if (selectedPageId.value === null) {
         return null;
     }
@@ -168,7 +174,7 @@ function handleSelectSection(section: TPublishDashboardSection): void {
  *
  * @param page - Страница.
  */
-function handleSelectPage(page: IPublishedPage): void {
+function handleSelectPage(page: TPublishedPageSummary): void {
     selectedPageId.value = String(page.id);
 }
 
@@ -184,7 +190,7 @@ function handleCloseDetails(): void {
  *
  * @param page - Страница.
  */
-async function handleEditPage(page: IPublishedPage): Promise<void> {
+async function handleEditPage(page: TPublishedPageSummary): Promise<void> {
     await router.push({
         name: BRICKS_ROUTE_NAMES.builderPage,
         params: { pagename: page.pagename },
@@ -197,7 +203,10 @@ async function handleEditPage(page: IPublishedPage): Promise<void> {
  * @param page - Страница.
  * @param published - Новый флаг публикации.
  */
-async function handleTogglePublished(page: IPublishedPage, published: boolean): Promise<void> {
+async function handleTogglePublished(
+    page: TPublishedPageSummary,
+    published: boolean
+): Promise<void> {
     const target = publishStore.getPageById(page.id);
     if (!target || target.published === published) {
         return;
@@ -236,7 +245,7 @@ function handleDetailsNotify(message: string, variant: 'success' | 'error'): voi
  *
  * @param page - Страница.
  */
-function handlePreviewPage(page: IPublishedPage): void {
+function handlePreviewPage(page: TPublishedPageSummary): void {
     window.open(generatePreviewUrl(page.pagename), '_blank');
 }
 
@@ -245,7 +254,7 @@ function handlePreviewPage(page: IPublishedPage): void {
  *
  * @param page - Страница с thumbnailUrl.
  */
-function handlePreviewThumbnail(page: IPublishedPage): void {
+function handlePreviewThumbnail(page: TPublishedPageSummary): void {
     if (!page.thumbnailUrl) {
         return;
     }
@@ -270,7 +279,7 @@ function handleCloseThumbnailPreview(): void {
  *
  * @param page - Исходная страница.
  */
-async function handleDuplicatePage(page: IPublishedPage): Promise<void> {
+async function handleDuplicatePage(page: TPublishedPageSummary): Promise<void> {
     if (duplicatingPageId.value !== null) {
         return;
     }
@@ -295,7 +304,7 @@ async function handleDuplicatePage(page: IPublishedPage): Promise<void> {
  *
  * @param page - Страница.
  */
-function handleDeletePage(page: IPublishedPage): void {
+function handleDeletePage(page: TPublishedPageSummary): void {
     pendingDeletePage.value = page;
     isDeleteConfirmationOpen.value = true;
 }

@@ -1,4 +1,4 @@
-import type { IPublishedPage, TPublishFormState } from '../../../common/types/bricks-api';
+import type { TPublishedPageSummary, TPublishFormState } from '../../../common/types/bricks-api';
 import {
     DEFAULT_BACKGROUND_COLOR,
     DEFAULT_LAYOUT,
@@ -60,7 +60,10 @@ export function buildDefaultFormState(): TPublishFormState {
  * @param pagename - Уникальный `pagename` копии.
  * @returns Состояние формы публикации копии.
  */
-export function buildCopyFormState(page: IPublishedPage, pagename: string): TPublishFormState {
+export function buildCopyFormState(
+    page: TPublishedPageSummary,
+    pagename: string
+): TPublishFormState {
     return {
         pagename,
         title: page.title ? `${page.title} (copy)` : page.title,

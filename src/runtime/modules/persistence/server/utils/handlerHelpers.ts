@@ -1,6 +1,7 @@
 /**
  * Общие помощники для Nitro-ручек /api/bricks/** (parse → adapter → return).
  */
+import { randomUUID } from 'node:crypto';
 import { createError, getRouterParam, type H3Event } from 'h3';
 import { toCamelCaseShallow } from '../../../common/utils/case-transform';
 import { PAGE_CONFLICT_CODES } from '../../../common/constants/publish';
@@ -65,6 +66,11 @@ export async function readNormalizedBody<T>(event: H3Event): Promise<T> {
 /**
  * Перебрасывает h3-ошибки как есть, остальное логирует и заворачивает в 500.
  *
+ * Внутреннее сообщение ошибки (pg/адаптеры могут содержать детали SQL и
+ * инфраструктуры) наружу не отдаётся: клиент получает generic envelope с
+ * `data.errorId`, полная ошибка с тем же errorId уходит в server-лог —
+ * корреляция ответа и лога по идентификатору.
+ *
  * @param error - Пойманная ошибка.
  * @param fallbackMessage - Сообщение для 500-ответа.
  */
@@ -73,12 +79,13 @@ export function toHttpError(error: unknown, fallbackMessage: string): never {
         throw error;
     }
 
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error(`[Bricks API] ${fallbackMessage}:`, error);
+    const errorId = randomUUID();
+    console.error(`[Bricks API] ${fallbackMessage} (errorId=${errorId}):`, error);
 
     throw createError({
         statusCode: 500,
-        statusMessage: `${fallbackMessage}: ${message}`,
+        statusMessage: fallbackMessage,
+        data: { errorId },
     });
 }
 

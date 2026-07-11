@@ -4,7 +4,7 @@ import type { IBricksSchema } from '../../../common/types/brick';
 import type {
     IPageVersion,
     IPreviewStoredPage,
-    IPublishedPage,
+    TPublishedPageSummary,
 } from '../../../common/types/bricks-api';
 import { useBricksRoutePaths } from '../../../common/composables/useBricksRoutePaths';
 import { usePublishStore } from '../stores/publish';
@@ -14,7 +14,7 @@ import { usePublishStore } from '../stores/publish';
  */
 export interface IUsePublishPreviewReturn {
     previewCurrentPage: (schema: IBricksSchema) => string | null;
-    previewPageVersion: (page: IPublishedPage, version: IPageVersion) => string | null;
+    previewPageVersion: (page: TPublishedPageSummary, version: IPageVersion) => string | null;
     generatePreviewUrl: (pagename: string) => string;
 }
 
@@ -108,7 +108,7 @@ export function usePublishPreview(): IUsePublishPreviewReturn {
      * @param version - Полный снапшот версии.
      * @returns `pagename` открытого превью или null при ошибке.
      */
-    function previewPageVersion(page: IPublishedPage, version: IPageVersion): string | null {
+    function previewPageVersion(page: TPublishedPageSummary, version: IPageVersion): string | null {
         try {
             const previewData: IPreviewStoredPage = {
                 id: page.id,

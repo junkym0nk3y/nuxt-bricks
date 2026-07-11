@@ -2,7 +2,7 @@
 import type { IBlockDefinition, IBlockRenderContext } from '../types/registry';
 
 // Vue
-import { h, type VNode } from 'vue';
+import { h, defineAsyncComponent, type VNode } from 'vue';
 
 // Utils
 import {
@@ -12,7 +12,10 @@ import {
 } from '../utils/responsiveVars';
 
 // Components
-import BlockMedia from './BlockMedia.vue';
+// Async-импорт (паттерн blockSlider): registry импортируется плагином bricks-styles
+// на каждой странице — компонент не должен попадать в entry-бандл. Канвас
+// использует eager-версию из canvasBlockComponents.ts.
+const BlockMedia = defineAsyncComponent(() => import('./BlockMedia.vue'));
 
 /**
  * Published-рендер Media: компонент в CSS-var-обёртке (per-device размеры).

@@ -1,5 +1,5 @@
 import { ref, type Ref } from 'vue';
-import type { IPageVersionSummary, IPublishedPage } from '../../../common/types/bricks-api';
+import type { IPageVersionSummary, TPublishedPageSummary } from '../../../common/types/bricks-api';
 import { fetchPageVersionsRequest, fetchPageVersionRequest } from '../utils/publishApi';
 import { usePublishPreview } from './usePublishPreview';
 
@@ -11,7 +11,7 @@ export interface IUsePublishPageVersionsReturn {
     isLoading: Ref<boolean>;
     previewingVersionId: Ref<number | null>;
     loadVersions: (pageId: string | number) => Promise<void>;
-    previewVersion: (page: IPublishedPage, versionId: number) => Promise<void>;
+    previewVersion: (page: TPublishedPageSummary, versionId: number) => Promise<void>;
 }
 
 /**
@@ -49,7 +49,7 @@ export function usePublishPageVersions(): IUsePublishPageVersionsReturn {
      * @param page - Текущая страница (источник pagename превью-роута).
      * @param versionId - Идентификатор версии.
      */
-    async function previewVersion(page: IPublishedPage, versionId: number): Promise<void> {
+    async function previewVersion(page: TPublishedPageSummary, versionId: number): Promise<void> {
         if (previewingVersionId.value !== null) {
             return;
         }

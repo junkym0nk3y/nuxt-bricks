@@ -160,7 +160,16 @@ describe('pagename билдера: rename, autosave, reload', () => {
             routerBridge.route.params.pagename = to.params.pagename;
         });
         apiFetcherMock.mockReset();
-        apiFetcherMock.mockResolvedValue([]);
+        // Список — сводки; полная страница со schema приходит point-lookup'ом GET /api/bricks/:id/
+        apiFetcherMock.mockImplementation((url: unknown) => {
+            const idMatch = /^\/api\/bricks\/(\d+)\/$/.exec(String(url));
+
+            if (idMatch) {
+                return Promise.resolve(buildPage({ id: Number(idMatch[1]) }));
+            }
+
+            return Promise.resolve([]);
+        });
         activeScopes = [];
     });
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IPublishedPage } from '../../../common/types/bricks-api';
+import type { TPublishedPageSummary } from '../../../common/types/bricks-api';
 import type {
     IPublishPagesListProps,
     IPublishPagesListEmits,
@@ -52,7 +52,7 @@ function handleCreatePage(): void {
  *
  * @param page - Страница.
  */
-function handleSelect(page: IPublishedPage): void {
+function handleSelect(page: TPublishedPageSummary): void {
     emit('select', page);
 }
 
@@ -61,7 +61,7 @@ function handleSelect(page: IPublishedPage): void {
  *
  * @param page - Страница.
  */
-function handlePreviewThumbnail(page: IPublishedPage): void {
+function handlePreviewThumbnail(page: TPublishedPageSummary): void {
     emit('preview-thumbnail', page);
 }
 
@@ -70,7 +70,7 @@ function handlePreviewThumbnail(page: IPublishedPage): void {
  *
  * @param page - Страница.
  */
-function handleEdit(page: IPublishedPage): void {
+function handleEdit(page: TPublishedPageSummary): void {
     emit('edit', page);
 }
 
@@ -79,7 +79,7 @@ function handleEdit(page: IPublishedPage): void {
  *
  * @param page - Страница.
  */
-function handlePreview(page: IPublishedPage): void {
+function handlePreview(page: TPublishedPageSummary): void {
     emit('preview', page);
 }
 
@@ -88,7 +88,7 @@ function handlePreview(page: IPublishedPage): void {
  *
  * @param page - Страница.
  */
-function handleDuplicate(page: IPublishedPage): void {
+function handleDuplicate(page: TPublishedPageSummary): void {
     emit('duplicate', page);
 }
 
@@ -97,7 +97,7 @@ function handleDuplicate(page: IPublishedPage): void {
  *
  * @param page - Страница.
  */
-function handleDelete(page: IPublishedPage): void {
+function handleDelete(page: TPublishedPageSummary): void {
     emit('delete', page);
 }
 // #endregion

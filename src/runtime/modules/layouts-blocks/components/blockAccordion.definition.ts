@@ -3,14 +3,17 @@ import type { IAccordionLayoutProps } from '../types/blockProps';
 import type { IBlockDefinition, IBlockRenderContext } from '../types/registry';
 
 // Vue
-import { h, type VNode } from 'vue';
+import { h, defineAsyncComponent, type VNode } from 'vue';
 
 // Utils
 import { resolvePublishedProps } from '../utils/publishedProps';
 import { gridPlacementStyle } from '../utils/responsiveVars';
 
 // Components
-import BlockAccordion from './BlockAccordion.vue';
+// Async-импорт (паттерн blockSlider): статический импорт утащил бы reka-ui
+// и санитайзер в entry-бандл всех страниц потребителя (registry импортируется
+// плагином bricks-styles). Канвас использует eager-версию из canvasBlockComponents.ts.
+const BlockAccordion = defineAsyncComponent(() => import('./BlockAccordion.vue'));
 
 /**
  * Published-рендер Accordion: канвасный компонент без editor chrome — рендерим напрямую.

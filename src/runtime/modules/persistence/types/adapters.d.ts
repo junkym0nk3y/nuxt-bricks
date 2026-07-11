@@ -9,6 +9,7 @@
  */
 import type {
     IBricksPageRow,
+    TBricksPageSummaryRow,
     ICreatePagePayload,
     IUpdatePagePayload,
     IPageVersionSummary,
@@ -39,7 +40,20 @@ export type TUpdateMediaPayload = Partial<Pick<IMediaItem, 'filename' | 'alt' | 
  * CRUD страниц билдера и медиа-метаданных.
  */
 export interface IStorageAdapter {
-    listPages(): Promise<IBricksPageRow[]>;
+    /**
+     * Readiness-проверка хранилища для `GET /api/bricks/health/ready`:
+     * resolve — хранилище доступно, reject — ручка ответит 503. Метод
+     * опциональный: адаптер без него считается всегда готовым. Дефолтный
+     * Postgres-адаптер выполняет `SELECT 1` (и пропускает проверку, если
+     * строка подключения не сконфигурирована — proxy-режим без локальной БД).
+     */
+    checkHealth?(): Promise<void>;
+    /**
+     * Сводки всех страниц БЕЗ поля `schema` (editorial-список: дашборд,
+     * preview-резолвер). Полную строку со schema обязан отдавать только
+     * point-lookup getPage/getPageByPagename.
+     */
+    listPages(): Promise<TBricksPageSummaryRow[]>;
     getPage(id: number): Promise<IBricksPageRow | null>;
     getPageByPagename(pagename: string): Promise<IBricksPageRow | null>;
     createPage(payload: ICreatePagePayload): Promise<IBricksPageRow>;

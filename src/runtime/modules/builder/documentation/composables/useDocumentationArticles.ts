@@ -16,14 +16,14 @@ const mdFiles = import.meta.glob<string>('../docs/guide/**/*.md', {
     import: 'default',
 });
 
-const mdFilesEager = import.meta.glob<string>('../docs/guide/**/*.md', {
-    query: '?raw',
-    import: 'default',
-    eager: true,
-});
-
 // Локаль, статьи которой показываются, когда для активной локали статей нет
 const FALLBACK_DOC_LOCALE = 'ru';
+
+// Кэш заголовков статей (H1 из markdown), заполняется лениво по локали.
+// Второй eager-glob для заголовков не используем: он инлайнил весь markdown
+// в чанк модалки и дублировал lazy-чанки статей.
+const articleTitles = ref<Record<string, string>>({});
+const loadedTitlePrefixes = new Set<string>();
 // #endregion
 
 // #region Methods
@@ -34,6 +34,49 @@ const FALLBACK_DOC_LOCALE = 'ru';
  */
 function getLocalePrefix(locale: string): string {
     return `../docs/guide/${locale}/`;
+}
+
+/**
+ * Заголовок-fallback из slug'а файла, пока H1 статьи ещё не загружен.
+ *
+ * @param slug - Slug из имени файла (`02-interface` → `interface`).
+ */
+function titleFromSlug(slug: string): string {
+    return slug
+        .split('-')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+}
+
+/**
+ * Лениво подгружает H1-заголовки всех статей локали в кэш `articleTitles`.
+ * Каждая статья — собственный lazy-чанк; повторный вызов для локали — no-op.
+ *
+ * @param prefix - Glob-префикс папки локали.
+ */
+async function loadTitlesForPrefix(prefix: string): Promise<void> {
+    if (loadedTitlePrefixes.has(prefix)) {
+        return;
+    }
+    loadedTitlePrefixes.add(prefix);
+
+    const paths = Object.keys(mdFiles).filter((path) => path.startsWith(prefix));
+    await Promise.all(
+        paths.map(async (path) => {
+            try {
+                const raw = await mdFiles[path]();
+                const titleMatch = raw.match(/^#\s+(.+)/m);
+                if (titleMatch) {
+                    articleTitles.value = {
+                        ...articleTitles.value,
+                        [path]: titleMatch[1].trim(),
+                    };
+                }
+            } catch {
+                // Заголовок останется fallback'ом из slug'а
+            }
+        })
+    );
 }
 // #endregion
 
@@ -84,15 +127,7 @@ export function useDocumentationArticles() {
 
             const order = parseInt(match[1], 10);
             const slug = match[2];
-
-            const raw = mdFilesEager[path];
-            const titleMatch = raw?.match(/^#\s+(.+)/m);
-            const title = titleMatch
-                ? titleMatch[1].trim()
-                : slug
-                      .split('-')
-                      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                      .join(' ');
+            const title = articleTitles.value[path] ?? titleFromSlug(slug);
 
             result.push({
                 path,
@@ -187,6 +222,15 @@ export function useDocumentationArticles() {
     // #endregion
 
     // #region Lifecycle
+    // Заголовки статей активной локали подтягиваются лениво при первом обращении
+    watch(
+        effectiveLocale,
+        (newLocale) => {
+            loadTitlesForPrefix(getLocalePrefix(newLocale));
+        },
+        { immediate: true }
+    );
+
     watch(
         activeArticlePath,
         (newPath) => {

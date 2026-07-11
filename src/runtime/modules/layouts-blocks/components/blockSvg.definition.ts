@@ -3,7 +3,7 @@ import type { IBlockSvgProps } from '../types/blockProps';
 import type { IBlockDefinition, IBlockRenderContext } from '../types/registry';
 
 // Vue
-import { h, type VNode } from 'vue';
+import { h, defineAsyncComponent, type VNode } from 'vue';
 
 // Utils
 import { bindBoundPropsWithComponentId } from '../utils/canvasBindings';
@@ -14,7 +14,10 @@ import {
 } from '../utils/responsiveVars';
 
 // Components
-import BlockSvg from './BlockSvg.vue';
+// Async-импорт (паттерн blockSlider): статический импорт утащил бы санитайзер (xss)
+// в entry-бандл всех страниц потребителя. Канвас использует eager-версию
+// из canvasBlockComponents.ts.
+const BlockSvg = defineAsyncComponent(() => import('./BlockSvg.vue'));
 
 /**
  * Published-рендер Svg: компонент в CSS-var-обёртке (per-device размеры).
