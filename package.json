@@ -48,6 +48,7 @@
     "engines": {
         "node": ">=22.17"
     },
+    "packageManager": "npm@10.9.2",
     "scripts": {
         "prepare": "simple-git-hooks",
         "prepack": "nuxt-module-build build",

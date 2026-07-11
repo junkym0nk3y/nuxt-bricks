@@ -4,6 +4,9 @@
 # (required checks настраиваются в branch protection репозитория).
 name: CI
 
+permissions:
+    contents: read
+
 on:
     push:
         branches: [main]

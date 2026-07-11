@@ -18,7 +18,7 @@
  * Временная папка удаляется при успехе и сохраняется при ошибке (путь в логе).
  */
 import { spawn } from 'node:child_process';
-import { mkdtemp, mkdir, rm, writeFile, access } from 'node:fs/promises';
+import { mkdtemp, mkdir, readdir, rm, writeFile, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import process from 'node:process';
@@ -260,10 +260,18 @@ async function main() {
 
         const installedRoot = join(consumerDir, 'node_modules', 'nuxt-bricks');
         await assertFileExists(join(installedRoot, 'dist', 'module.mjs'), 'dist/module.mjs');
-        await assertFileExists(
-            join(installedRoot, 'migrations', '0001_init.sql'),
-            'migrations/0001_init.sql'
-        );
+        // Реестр миграций = скан migrations/*.sql (так же их находит bricks-migrate):
+        // каждая миграция из репозитория обязана доехать в пакет.
+        const repoMigrations = (await readdir(join(REPO_ROOT, 'migrations')))
+            .filter((name) => name.endsWith('.sql'))
+            .sort();
+        assertOk(repoMigrations.length > 0, 'в репозитории нет ни одной migrations/*.sql');
+        for (const migration of repoMigrations) {
+            await assertFileExists(
+                join(installedRoot, 'migrations', migration),
+                `migrations/${migration}`
+            );
+        }
         for (const bin of ['bricks-generate', 'bricks-hash-password', 'bricks-migrate']) {
             await assertFileExists(join(installedRoot, 'dist', 'cli', `${bin}.mjs`), `CLI ${bin}`);
         }
