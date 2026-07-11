@@ -7,5 +7,9 @@ export default defineNuxtConfig({
         },
     },
     devtools: { enabled: true },
+    // Workaround гоночной баги Nuxt 3.x (nuxt/nuxt#33606): Vite сканирует manifest.js
+    // раньше, чем Nitro регистрирует виртуальный #app-manifest → Pre-transform error.
+    // Playground не использует routeRules/детект устаревшего деплоя — отключение безопасно.
+    experimental: { appManifest: false },
     compatibilityDate: '2025-01-01',
 });

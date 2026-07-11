@@ -1,18 +1,116 @@
 /**
  * nuxt-bricks - Default Styles
  *
- * Изоляция от host-приложения: глобальных селекторов нет.
- * - body.bricks-page — поверхность билдера (класс ставит builder.vue через useHead;
- *   teleport-контент модалок — дочерние элементы body, поэтому тоже покрыт).
- *   Rem-базу билдера (html { font-size: 10px }) builder.vue ставит инлайном.
- * - published/preview-контент — мини-reset нулевой специфичности через :where()
- *   (стили проекта-потребителя всегда побеждают независимо от порядка загрузки CSS);
- *   rem-fallback published задаёт render/pages/[pagename].vue через useHead.
+ * Изоляция от host-приложения: глобальных селекторов нет. Двухзонная схема reset'а:
+ *
+ * 1. Зона контента — @layer bricks-reset на :where(.bricks-canvas, body.bricks-render):
+ *    vendored normalize (common/_normalize.scss) + strip-reset. Layered-стили проигрывают
+ *    ЛЮБОМУ нелейерному правилу проекта-потребителя (даже голому `button {}`) → канвас
+ *    и published/preview ведут себя одинаково и выглядят «как в проекте».
+ *    Класс bricks-render ставит render/pages/[pagename].vue через useHead.
+ *
+ * 2. Зона хрома билдера — нелейерный reset специфичности (0,0,1) под
+ *    :where(body.bricks-page) с исключением :not(:where(.bricks-canvas *)):
+ *    проигрывает CSS-модулям билдера (0,1,0), но выигрывает у element-стилей проекта
+ *    по порядку загрузки (bricks-CSS пушится в nuxt.options.css после CSS потребителя).
+ *    Класс ставит builder.vue через useHead; teleport-контент модалок — дочерние
+ *    элементы body, поэтому тоже покрыт. Rem-базу билдера (html { font-size: 10px })
+ *    builder.vue ставит инлайном.
+ *
+ * Новые reset-правила добавлять только в эти две зоны; strip-reset-списки обеих зон
+ * держать синхронными. Rem-fallback published (:where(html)) задаёт
+ * render/pages/[pagename].vue через useHead.
  */
-* {
-    box-sizing: border-box;
+@use 'common/normalize' as *;
+
+// Типографика TipTap (@layer ниже в файле) должна побеждать reset — обе layered,
+// порядок объявления фиксирует приоритет.
+@layer bricks-reset, bricks-typography;
+
+/* ============================================================================
+   Зона контента: канвас билдера + published/preview.
+   Проектные стили любой специфичности побеждают (нелейерные > @layer).
+   ========================================================================== */
+@layer bricks-reset {
+    :where(.bricks-canvas, body.bricks-render) {
+        box-sizing: border-box;
+
+        // normalize (включает body { margin: 0 } декларацией на wrapper'е)
+        @include bricks-normalize;
+
+        // bricks strip-reset — держать в sync с зоной хрома ниже
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            letter-spacing: normal;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        button,
+        input,
+        optgroup,
+        select,
+        textarea {
+            margin: 0;
+            padding: 0;
+            border: none;
+            background-color: transparent;
+            outline: none;
+            font-family: inherit;
+            font-size: 100%;
+            line-height: inherit;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+
+        input {
+            outline: none;
+
+            &[type='number']::-webkit-inner-spin-button,
+            &[type='number']::-webkit-outer-spin-button {
+                -webkit-appearance: none;
+                margin: 0;
+            }
+
+            &[disabled] {
+                -webkit-text-fill-color: var(--bricks-base-100);
+                opacity: 1;
+            }
+
+            &::-ms-clear {
+                display: none;
+            }
+        }
+
+        input:-webkit-autofill,
+        input:-webkit-autofill:focus {
+            transition:
+                background-color 600000s 0s,
+                color 600000s 0s;
+        }
+
+        address {
+            font-style: normal;
+        }
+    }
 }
 
+/* ============================================================================
+   Поверхность билдера: стили самого body — (0,1,1) сознательно, защищают хром
+   от проектного body { font-family } и т.п. CSS-модули на body не претендуют.
+   ========================================================================== */
 body.bricks-page {
     overflow: hidden;
     margin: 0;
@@ -29,30 +127,27 @@ body.bricks-page {
     -moz-osx-font-smoothing: grayscale;
     -webkit-font-smoothing: antialiased;
     -webkit-tap-highlight-color: transparent;
+}
 
-    h1,
-    h2,
-    h3,
-    h4,
-    h5,
-    h6 {
+/* ============================================================================
+   Зона хрома билдера: reset (0,0,1) на всё под body.bricks-page, КРОМЕ канваса
+   (там правит зона контента). Списки правил — sync с strip-reset зоны контента.
+   ========================================================================== */
+:where(body.bricks-page) {
+    :is(h1, h2, h3, h4, h5, h6):not(:where(.bricks-canvas *)) {
         letter-spacing: normal;
     }
 
-    * {
+    *:not(:where(.bricks-canvas, .bricks-canvas *)) {
         box-sizing: border-box;
     }
 
-    a {
+    a:not(:where(.bricks-canvas *)) {
         text-decoration: none;
         color: inherit;
     }
 
-    button,
-    input,
-    optgroup,
-    select,
-    textarea {
+    :is(button, input, optgroup, select, textarea):not(:where(.bricks-canvas *)) {
         margin: 0;
         padding: 0;
         border: none;
@@ -66,7 +161,7 @@ body.bricks-page {
         appearance: none;
     }
 
-    input {
+    input:not(:where(.bricks-canvas *)) {
         outline: none;
 
         &[type='number']::-webkit-inner-spin-button,
@@ -75,8 +170,7 @@ body.bricks-page {
             margin: 0;
         }
 
-        &[disabled],
-        fieldset[disabled] {
+        &[disabled] {
             -webkit-text-fill-color: var(--bricks-base-100);
             opacity: 1;
         }
@@ -84,16 +178,16 @@ body.bricks-page {
         &::-ms-clear {
             display: none;
         }
+
+        &:-webkit-autofill,
+        &:-webkit-autofill:focus {
+            transition:
+                background-color 600000s 0s,
+                color 600000s 0s;
+        }
     }
 
-    input:-webkit-autofill,
-    input:-webkit-autofill:focus {
-        transition:
-            background-color 600000s 0s,
-            color 600000s 0s;
-    }
-
-    address {
+    address:not(:where(.bricks-canvas *)) {
         font-style: normal;
     }
 }

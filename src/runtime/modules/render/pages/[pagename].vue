@@ -115,12 +115,22 @@ await prefetchPageBricks();
 // #endregion
 
 // #region Meta
-// Rem-база и body-margin bricks-контента (бывшие глобальные html { font-size: 10px }
-// из default.scss и body { margin: 0 } из normalize.css): fallback'и нулевой
-// специфичности — одноимённые правила проекта-потребителя всегда побеждают (см.
-// remBase в конфиге breakpoints), а UA-дефолты (база 16px, margin 8px) перебиваются.
+// bricks-render на body включает зону контента reset'а (@layer bricks-reset в
+// default.scss: normalize + strip-reset, проектные стили всегда побеждают) —
+// preview-роут использует этот же компонент и покрывается автоматически.
+// Rem-база и html-часть normalize (бывшие глобальные html { font-size: 10px } из
+// default.scss и html { line-height; text-size-adjust } из normalize.css) +
+// body { margin: 0 }: fallback'и нулевой специфичности — одноимённые правила
+// проекта-потребителя всегда побеждают (см. remBase в конфиге breakpoints),
+// а UA-дефолты (база 16px, margin 8px) перебиваются.
 useHead({
-    style: [{ innerHTML: ':where(html){font-size:10px}:where(body){margin:0}' }],
+    bodyAttrs: { class: 'bricks-render' },
+    style: [
+        {
+            innerHTML:
+                ':where(html){font-size:10px;line-height:1.15;-webkit-text-size-adjust:100%}:where(body){margin:0}',
+        },
+    ],
 });
 
 useHead(() => {
