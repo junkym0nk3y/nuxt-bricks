@@ -7,7 +7,7 @@
  * foreignObject, SMIL-анимации, event-атрибуты, `<style>` (инлайн-SVG в DOM —
  * его CSS протёк бы на всю страницу) и любые внешние href (только #fragment).
  */
-import { FilterXSS, safeAttrValue } from './xssInterop';
+import { FilterXSS, friendlyAttrValue, safeAttrValue } from './xssInterop';
 import { stripSanitizerMarkers } from './sanitizeRichText';
 import { containsUnsafeSvgReference, isLocalSvgReferenceValue } from './urlPolicy';
 
@@ -217,25 +217,32 @@ const svgFilter = new FilterXSS({
         'embed',
     ],
     safeAttrValue(tag, name, value, cssFilter) {
+        // Политику применяем к ДЕКОДИРОВАННОМУ значению — той же строке, что
+        // js-xss выдаст после friendlyAttrValue (numeric/hex HTML-энтити,
+        // `&colon;`, control-chars). Иначе encoded `url&#40;…&#41;` обходит
+        // deny-list в paint/style, а декодируется в живую внешнюю ссылку.
+        const decoded = friendlyAttrValue(value);
+
         // Внешние ссылки (use/gradient/pattern href) — только локальный fragment
         if (
             (name === 'href' || name === 'xlink:href') &&
-            !SVG_LOCAL_HREF_PATTERN.test(value.trim())
+            !SVG_LOCAL_HREF_PATTERN.test(decoded.trim())
         ) {
             return '';
         }
 
         // filter/clip-path/mask — только `none` либо одна локальная ссылка
-        if (STRICT_LOCAL_REFERENCE_ATTRS.has(name) && !isLocalSvgReferenceValue(value)) {
+        if (STRICT_LOCAL_REFERENCE_ATTRS.has(name) && !isLocalSvgReferenceValue(decoded)) {
             return '';
         }
 
-        // fill/stroke/style — обычные paint-значения проходят, url() допустим
-        // только с локальным fragment (js-xss сам блокирует лишь javascript:
-        // внутри style, внешний/data: url в url() не проверяет никто из них)
+        // fill/stroke/style — обычные paint-значения (`#fff`, `currentColor`)
+        // проходят, url() допустим только с локальным fragment. style —
+        // whole-attribute-drop при любом небезопасном url() (SVG CSS-whitelist
+        // делает url-способными лишь fill/stroke, per-declaration не нужен).
         if (
             (PAINT_REFERENCE_ATTRS.has(name) || name === 'style') &&
-            containsUnsafeSvgReference(value)
+            containsUnsafeSvgReference(decoded)
         ) {
             return '';
         }

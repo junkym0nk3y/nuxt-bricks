@@ -8,6 +8,7 @@
  * с разворачиванием interop-обёрток до module.exports.
  */
 import xssModule, {
+    type EscapeHandler,
     type FilterXSS as FilterXSSInstance,
     type IFilterXSSOptions,
     type SafeAttrValueHandler,
@@ -20,6 +21,7 @@ type TFilterXSSConstructor = new (options?: IFilterXSSOptions) => FilterXSSInsta
 interface IXssRuntimeExports {
     FilterXSS: TFilterXSSConstructor;
     safeAttrValue: SafeAttrValueHandler;
+    friendlyAttrValue: EscapeHandler;
 }
 
 /**
@@ -43,16 +45,28 @@ function unwrapModuleExports(value: unknown): unknown {
  * @param value - Кандидат module.exports.
  */
 function isXssRuntimeExports(value: unknown): value is IXssRuntimeExports {
-    return typeof value === 'function' && 'FilterXSS' in value && 'safeAttrValue' in value;
+    return (
+        typeof value === 'function' &&
+        'FilterXSS' in value &&
+        'safeAttrValue' in value &&
+        'friendlyAttrValue' in value
+    );
 }
 
 const xssExports = unwrapModuleExports(xssModule);
 
 if (!isXssRuntimeExports(xssExports)) {
     throw new Error(
-        '[nuxt-bricks] Unexpected "xss" module shape: FilterXSS/safeAttrValue is missing'
+        '[nuxt-bricks] Unexpected "xss" module shape: FilterXSS/safeAttrValue/friendlyAttrValue is missing'
     );
 }
 
 export const FilterXSS = xssExports.FilterXSS;
 export const safeAttrValue = xssExports.safeAttrValue;
+/**
+ * Декодирует значение атрибута ровно как это делает js-xss перед выдачей
+ * (numeric/hex HTML-энтити, `&colon;`, коллапс control-chars). URL-политику
+ * нужно применять к ЭТОЙ строке, иначе encoded `url&#40;…&#41;` проходит
+ * raw-проверку, а js-xss декодирует его в живую внешнюю ссылку.
+ */
+export const friendlyAttrValue = xssExports.friendlyAttrValue;

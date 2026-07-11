@@ -284,6 +284,48 @@ describe('sanitizeSvgMarkup: URL-политика fill/stroke/filter/clip-path/m
         );
     });
 
+    it('вырезает HTML-entity-энкодинг url() в fill/stroke/style (&#40;/&#41;)', () => {
+        // js-xss декодирует numeric-энтити (friendlyAttrValue) ПОСЛЕ проверки —
+        // политику надо гонять по декодированному значению, иначе обход
+        expect(
+            sanitizeSvgMarkup('<svg><rect fill="url&#40;https://evil.example&#41;"/></svg>')
+        ).not.toContain('evil.example');
+        expect(
+            sanitizeSvgMarkup('<svg><rect stroke="url&#40;https://evil.example&#41;"/></svg>')
+        ).not.toContain('evil.example');
+        expect(
+            sanitizeSvgMarkup('<svg><rect style="fill:url&#40;https://evil.example&#41;"/></svg>')
+        ).not.toContain('evil.example');
+        expect(
+            sanitizeSvgMarkup('<svg><rect fill="url&#40;javascript:alert(1)&#41;"/></svg>')
+        ).not.toContain('javascript');
+    });
+
+    it('вырезает hex-entity-энкодинг url() (&#x28;/&#x29;) и энкодинг самого токена url', () => {
+        expect(
+            sanitizeSvgMarkup('<svg><rect fill="url&#x28;https://evil.example&#x29;"/></svg>')
+        ).not.toContain('evil.example');
+        // &#117; = 'u' — энкодинг первой буквы токена url тоже не должен пройти
+        expect(
+            sanitizeSvgMarkup('<svg><rect fill="&#117;rl(https://evil.example)"/></svg>')
+        ).not.toContain('evil.example');
+    });
+
+    it('вырезает энкодинг одного из нескольких url() (первый локальный, второй encoded external)', () => {
+        expect(
+            sanitizeSvgMarkup('<svg><rect fill="url(#a) url&#40;https://evil.example&#41;"/></svg>')
+        ).not.toContain('evil.example');
+    });
+
+    it('полностью очищает encoded hostile ввод за ОДИН прогон (fail-closed, не только на 2-м)', () => {
+        // Регресс на bypass: раньше pass 1 пропускал decoded url(), pass 2 срезал.
+        // Теперь pass 1 обязан вырезать — сравниваем с двойной санитизацией.
+        const encoded = '<svg><rect fill="url&#40;https://evil.example&#41;"/></svg>';
+        const once = sanitizeSvgMarkup(encoded);
+        expect(once).not.toContain('evil.example');
+        expect(once).toBe(sanitizeSvgMarkup(once));
+    });
+
     it('идемпотентна на второй прогон (легальный и hostile ввод)', () => {
         const legal =
             '<svg><rect fill="#fff" stroke="currentColor" filter="url(#blur)" clip-path="url(#c)"/></svg>';
