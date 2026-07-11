@@ -12,6 +12,11 @@ import {
     validateCreateMediaPayload,
     validateUpdateMediaPayload,
 } from '../src/runtime/modules/persistence/server/utils/mediaPayloadValidation';
+import {
+    MAX_SCHEMA_DEPTH,
+    MAX_SCHEMA_NODES,
+    assertSchemaComplexity,
+} from '../src/runtime/modules/persistence/server/utils/schemaPayloadValidation';
 // #endregion
 
 /** Минимальный валидный payload создания страницы. */
@@ -21,6 +26,23 @@ function makeCreatePageBody(overrides: Record<string, unknown> = {}): Record<str
         schema: { components: [] },
         ...overrides,
     };
+}
+
+/**
+ * Строит цепочку вложенных plain-объектов заданной глубины итеративно (циклом,
+ * без рекурсии) — иначе сам конструктор теста упёрся бы в тот же стек-лимит,
+ * который проверяется. `buildNestedObject(0)` — пустой объект без вложенности;
+ * `buildNestedObject(depth)` — объект, у которого максимальная глубина
+ * JSON-графа (при обходе от самого объекта как корня) равна `depth`.
+ */
+function buildNestedObject(depth: number): Record<string, unknown> {
+    let node: Record<string, unknown> = {};
+
+    for (let index = 0; index < depth; index++) {
+        node = { child: node };
+    }
+
+    return node;
 }
 
 /** Минимальный валидный payload создания медиа. */
@@ -76,6 +98,24 @@ describe('validateCreatePagePayload: server-first DTO', () => {
         ).toThrow(/components limit/);
     });
 
+    it('REGRESSION: 20_000-глубокая schema отклоняется детерминированной 400, а не RangeError', () => {
+        // Итеративное (не рекурсивное) построение цепочки — быстро даже на 20k уровней.
+        const deeplyNested = buildNestedObject(20_000);
+
+        let caught: unknown;
+        try {
+            validateCreatePagePayload(
+                makeCreatePageBody({ schema: { components: [], deeplyNested } })
+            );
+        } catch (error) {
+            caught = error;
+        }
+
+        expect(caught).toBeDefined();
+        expect((caught as Error).name).not.toBe('RangeError');
+        expect((caught as { statusCode?: number }).statusCode).toBe(400);
+    });
+
     it('нормализует пустые routing-поля в null и валидирует формат', () => {
         const result = validateCreatePagePayload(
             makeCreatePageBody({ urlPrefix: '  ', subdomain: '' })
@@ -107,6 +147,85 @@ describe('validateCreatePagePayload: server-first DTO', () => {
     it('отклоняет неверные типы полей', () => {
         expect(() => validateCreatePagePayload(makeCreatePageBody({ title: 42 }))).toThrow();
         expect(() => validateCreatePagePayload(makeCreatePageBody({ published: 'yes' }))).toThrow();
+    });
+
+    it('отклоняет schema с широким, но маленьким по байтам объектом (node limit)', () => {
+        // MAX_SCHEMA_NODES + запас с головой — каждое поле хранит примитив 1,
+        // сериализованный размер остаётся далеко ниже байтового лимита.
+        const wide: Record<string, number> = {};
+        for (let index = 0; index < MAX_SCHEMA_NODES + 10; index++) {
+            wide[`k${index}`] = 1;
+        }
+
+        expect(() =>
+            validateCreatePagePayload(makeCreatePageBody({ schema: { components: [], wide } }))
+        ).toThrow(/nodes limit/);
+    });
+});
+
+describe('assertSchemaComplexity: итеративный depth/node/type guard (R0.2)', () => {
+    it(`пропускает вложенность ровно ${MAX_SCHEMA_DEPTH} уровней`, () => {
+        expect(() => assertSchemaComplexity(buildNestedObject(MAX_SCHEMA_DEPTH))).not.toThrow();
+    });
+
+    it(`отклоняет вложенность ${MAX_SCHEMA_DEPTH + 1} уровень (depth limit)`, () => {
+        expect(() => assertSchemaComplexity(buildNestedObject(MAX_SCHEMA_DEPTH + 1))).toThrow(
+            /depth limit/
+        );
+    });
+
+    it('отклоняет non-JSON типы значений: Date, Map, class instance, undefined, функция, символ', () => {
+        class CustomInstance {
+            public value = 1;
+        }
+
+        expect(() => assertSchemaComplexity({ value: new Date() })).toThrow(
+            /JSON-compatible values/
+        );
+        expect(() => assertSchemaComplexity({ value: new Map() })).toThrow(
+            /JSON-compatible values/
+        );
+        expect(() => assertSchemaComplexity({ value: new CustomInstance() })).toThrow(
+            /JSON-compatible values/
+        );
+        expect(() => assertSchemaComplexity({ value: undefined })).toThrow(
+            /JSON-compatible values/
+        );
+        const noop = (): void => undefined;
+        expect(() => assertSchemaComplexity({ value: noop })).toThrow(/JSON-compatible values/);
+        expect(() => assertSchemaComplexity({ value: Symbol('x') })).toThrow(
+            /JSON-compatible values/
+        );
+    });
+
+    it('отклоняет нефинитные числа (NaN, Infinity)', () => {
+        expect(() => assertSchemaComplexity({ value: Number.NaN })).toThrow(/non-finite numbers/);
+        expect(() => assertSchemaComplexity({ value: Number.POSITIVE_INFINITY })).toThrow(
+            /non-finite numbers/
+        );
+    });
+
+    it('пропускает валидные JSON-примитивы: null, string, finite number, boolean, вложенные массив/объект', () => {
+        expect(() =>
+            assertSchemaComplexity({
+                a: null,
+                b: 'text',
+                c: 42,
+                d: true,
+                e: [1, 'two', false, null],
+                f: { nested: { value: 1 } },
+            })
+        ).not.toThrow();
+    });
+
+    it('отклоняет payload, укладывающийся в число UTF-16-символов старого лимита, но превышающий байтовый', () => {
+        // Кириллица — 2 байта UTF-8 на символ при 1 UTF-16 code unit: старая
+        // char-based проверка занижала реальный объём вдвое.
+        const charLength = 1_500_000;
+        const cyrillicPayload = { text: 'ы'.repeat(charLength) };
+
+        expect(charLength).toBeLessThan(2 * 1024 * 1024);
+        expect(() => assertSchemaComplexity(cyrillicPayload)).toThrow(/too large/);
     });
 });
 

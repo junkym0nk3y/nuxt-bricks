@@ -7,6 +7,7 @@
 | `handlerHelpers.ts`         | Общие помощники ручек (parse → adapter → return); `requireNumericId`, маппер доменных конфликтов `toPageHttpError` (409 + `data.code`)  |
 | `payloadPrimitives.ts`      | Базовые примитивы валидации DTO: `invalid`, `assertKnownKeys`, строковые/boolean-проверки                                               |
 | `payloadValidation.ts`      | Server-first валидация DTO страниц: reject unknown keys, типы/границы, `expectedRevision`                                               |
+| `schemaPayloadValidation.ts` | Итеративный (без рекурсии) depth/node/type guard для `schema` до `JSON.stringify` (R0.2): `assertSchemaComplexity` + лимиты глубины/узлов/байт |
 | `mediaPayloadValidation.ts` | Server-first валидация DTO медиа (create/update, категория, размер)                                                                     |
 | `storageErrors.ts`          | Доменные ошибки конфликтов storage-слоя (pagename occupied, revision mismatch) — контракт для кастомных адаптеров                       |
 | `pageUpdate.ts`             | Общая реализация PUT/PATCH `/api/bricks/:id` (обновление только переданных полей)                                                       |

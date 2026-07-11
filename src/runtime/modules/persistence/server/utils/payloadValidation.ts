@@ -29,10 +29,9 @@ import {
     requirePositiveInteger,
     requireString,
 } from './payloadPrimitives';
+import { assertSchemaComplexity } from './schemaPayloadValidation';
 
 // #region Constants
-/** Лимит сериализованной schema — защита от JSONB-бомбы. */
-const MAX_SCHEMA_JSON_CHARS = 2 * 1024 * 1024;
 /** Лимит числа компонентов схемы. */
 const MAX_SCHEMA_COMPONENTS = 5000;
 
@@ -87,7 +86,11 @@ function validatePagename(value: unknown): string {
 }
 
 /**
- * Валидирует schema страницы: объект с массивом components в допустимых границах.
+ * Валидирует schema страницы: объект с массивом components в допустимых
+ * границах. Глубина/число узлов/типы значений/сериализованный размер —
+ * `assertSchemaComplexity` (итеративный обход до `JSON.stringify`, см.
+ * schemaPayloadValidation.ts); строгий component-shape контракт — вне
+ * скоупа (отдельная задача после прогона legacy-схем).
  *
  * @param value - Сырое значение поля schema.
  * @returns Схема (форма проверена, содержимое компонентов — как есть).
@@ -107,9 +110,7 @@ function validateSchema(value: unknown): IBricksSchema {
         invalid(`Schema exceeds ${MAX_SCHEMA_COMPONENTS} components limit`);
     }
 
-    if (JSON.stringify(value).length > MAX_SCHEMA_JSON_CHARS) {
-        invalid('Schema payload is too large');
-    }
+    assertSchemaComplexity(value);
 
     return value as IBricksSchema;
 }
