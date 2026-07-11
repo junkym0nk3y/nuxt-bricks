@@ -45,7 +45,7 @@ function renderAccordionPublished(ctx: IBlockRenderContext): VNode {
 export const blockAccordionDefinition: IBlockDefinition = {
     name: 'Accordion',
     description: 'bricks.blocks.accordion.description',
-    thumbnail: '/images/layouts/accordion.svg',
+    thumbnail: 'images/layouts/accordion.svg',
     isInteractive: true,
     responsiveMode: 'none',
     renderPublished: renderAccordionPublished,

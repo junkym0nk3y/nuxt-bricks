@@ -87,7 +87,7 @@ function renderSectionPublished(ctx: IBlockRenderContext): VNode {
 export const blockSectionDefinition: IBlockDefinition = {
     name: 'Section',
     description: 'bricks.blocks.section.description',
-    thumbnail: '/images/layouts/section.svg',
+    thumbnail: 'images/layouts/section.svg',
     hasChildren: true,
     responsiveMode: 'all',
     responsiveCssVars: {

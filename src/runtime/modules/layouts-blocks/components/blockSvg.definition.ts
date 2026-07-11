@@ -60,7 +60,7 @@ function renderSvgPublished(ctx: IBlockRenderContext): VNode {
 export const blockSvgDefinition: IBlockDefinition = {
     name: 'Svg',
     description: 'bricks.blocks.svg.description',
-    thumbnail: '/images/layouts/svg.svg',
+    thumbnail: 'images/layouts/svg.svg',
     responsiveMode: 'all',
     // Svg шарит media-переменные (--bricks-media-*) с Media — обёртка у обоих одинаковая
     responsiveCssVars: {

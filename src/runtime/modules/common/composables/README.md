@@ -10,6 +10,7 @@
 | `useBrickImports.ts`     | Динамический импорт brick-файлов компонентов (нормализация eager/lazy glob-результатов)                                                          |
 | `useBricksStyles.ts`     | Генерация и инъекция стилей `.bricks-container` в `<head>` (канвас + published media queries)                                                    |
 | `useBricksRoutePaths.ts` | Пути поверхностей bricks (`bricks.routes` + `app.baseURL`) для `window.location`/`window.open`/`<a href>`; внутри Vue Router — именованные роуты |
+| `useBricksAssetUrl.ts`   | URL публичных ассетов модуля (`/_bricks/` + `app.baseURL`) — обёртка над `resolveBricksAssetUrl` для setup-контекста                             |
 
 ## Правила
 

@@ -43,7 +43,7 @@ function renderTextPublished(ctx: IBlockRenderContext): VNode {
 export const blockTextDefinition: IBlockDefinition = {
     name: 'Text',
     description: 'bricks.blocks.text.description',
-    thumbnail: '/images/layouts/text.svg',
+    thumbnail: 'images/layouts/text.svg',
     responsiveMode: 'none',
     canvasBind: bindBoundPropsWithComponentId,
     renderPublished: renderTextPublished,

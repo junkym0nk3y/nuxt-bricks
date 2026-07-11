@@ -52,7 +52,7 @@ function renderSliderPublished(ctx: IBlockRenderContext): VNode {
 export const blockSliderDefinition: IBlockDefinition = {
     name: 'Slider',
     description: 'bricks.blocks.slider.description',
-    thumbnail: '/images/layouts/slider.svg',
+    thumbnail: 'images/layouts/slider.svg',
     responsiveMode: 'none',
     canvasBind: (ctx) => ({
         layoutProps: ctx.layoutProps,

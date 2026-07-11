@@ -15,6 +15,7 @@ import BricksTooltip from '../../../../ui/tooltip/BricksTooltip.vue';
 import BricksTooltipHint from '../../../../ui/tooltip/BricksTooltipHint.vue';
 
 // Composables
+import { useBricksAssetUrl } from '../../../../common/composables/useBricksAssetUrl';
 import { useComponentCardPreview } from '../composables/useComponentCardPreview';
 import { useComponentCardDrag } from '../composables/useComponentCardDrag';
 
@@ -41,6 +42,7 @@ const {
     componentProps,
 } = useComponentCardPreview(props);
 const { handleDragStart } = useComponentCardDrag(props);
+const { resolveAssetUrl } = useBricksAssetUrl();
 // #endregion
 
 // #region Computed
@@ -55,6 +57,14 @@ const resolvedDescription = computed<string>(
  * Есть ли у компонента статичная превью-картинка
  */
 const hasThumbnail = computed(() => props.isLayout && Boolean(props.component.thumbnail));
+
+/**
+ * URL превью layout-блока: definitions хранят asset-путь модуля
+ * ('images/layouts/...'), URL строится с учётом /_bricks/ и app.baseURL.
+ */
+const thumbnailUrl = computed<string>(() =>
+    props.component.thumbnail ? resolveAssetUrl(props.component.thumbnail) : ''
+);
 
 /**
  * Является ли компонент избранным
@@ -79,7 +89,7 @@ const isFavorite = computed<boolean>(() =>
                         <!-- Статичная превью-картинка для layout-компонентов -->
                         <img
                             v-if="hasThumbnail"
-                            :src="props.component.thumbnail"
+                            :src="thumbnailUrl"
                             :alt="props.component.name"
                             :class="$style.thumbnailImage"
                         />
@@ -137,7 +147,7 @@ const isFavorite = computed<boolean>(() =>
                 <!-- Статичная превью-картинка для layout-компонентов -->
                 <img
                     v-if="hasThumbnail"
-                    :src="props.component.thumbnail"
+                    :src="thumbnailUrl"
                     :alt="props.component.name"
                     :class="$style.thumbnailImage"
                 />

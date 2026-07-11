@@ -4,6 +4,9 @@ import type MarkdownIt from 'markdown-it';
 
 // Vue
 import { ref } from 'vue';
+
+// Composables
+import { useBricksAssetUrl } from '../../../common/composables/useBricksAssetUrl';
 // #endregion
 
 // #region Data
@@ -16,6 +19,10 @@ const isLoading = ref(false);
  * Lazy-загрузка библиотеки при первом вызове.
  */
 export function useMarkdownRenderer() {
+    // #region Data
+    const { resolveAssetUrl } = useBricksAssetUrl();
+    // #endregion
+
     // #region Methods
     /**
      * Инициализирует markdown-it при первом вызове (lazy).
@@ -40,13 +47,15 @@ export function useMarkdownRenderer() {
     }
 
     /**
-     * Перезаписывает относительные пути к изображениям на публичный URL.
+     * Перезаписывает относительные пути к изображениям на публичный URL
+     * ассетов модуля (/_bricks/ с учётом app.baseURL).
      *
      * @param html - HTML-строка после рендеринга markdown.
      * @returns HTML с исправленными путями к изображениям.
      */
     function rewriteImagePaths(html: string): string {
-        return html.replace(/src="(?:\.\/)?images\//g, 'src="/docs/guide/images/');
+        const docsImagesBase = resolveAssetUrl('docs/guide/images/');
+        return html.replace(/src="(?:\.\/)?images\//g, `src="${docsImagesBase}`);
     }
 
     /**

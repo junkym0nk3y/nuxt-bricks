@@ -63,7 +63,7 @@ function renderMediaPublished(ctx: IBlockRenderContext): VNode {
 export const blockMediaDefinition: IBlockDefinition = {
     name: 'Media',
     description: 'bricks.blocks.media.description',
-    thumbnail: '/images/layouts/media.svg',
+    thumbnail: 'images/layouts/media.svg',
     responsiveMode: 'all',
     responsiveCssVars: {
         prefix: 'media',

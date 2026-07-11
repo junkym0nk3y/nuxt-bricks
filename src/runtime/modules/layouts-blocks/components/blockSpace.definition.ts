@@ -137,7 +137,7 @@ function renderSpacePublished(ctx: IBlockRenderContext): VNode {
 export const blockSpaceDefinition: IBlockDefinition = {
     name: 'Space',
     description: 'bricks.blocks.space.description',
-    thumbnail: '/images/layouts/space.svg',
+    thumbnail: 'images/layouts/space.svg',
     responsiveMode: 'all',
     responsiveCssVars: {
         prefix: 'space',

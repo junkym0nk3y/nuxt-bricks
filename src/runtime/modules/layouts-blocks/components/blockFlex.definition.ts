@@ -167,7 +167,7 @@ function renderFlexPublished(ctx: IBlockRenderContext): VNode {
 export const blockFlexDefinition: IBlockDefinition = {
     name: 'Flex',
     description: 'bricks.blocks.flex.description',
-    thumbnail: '/images/layouts/flex.svg',
+    thumbnail: 'images/layouts/flex.svg',
     hasChildren: true,
     responsiveMode: 'all',
     responsiveCssVars: {

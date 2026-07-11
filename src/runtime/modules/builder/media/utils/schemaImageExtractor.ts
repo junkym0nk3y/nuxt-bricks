@@ -11,10 +11,20 @@ import type {
     TImageSourceType,
 } from '../types/schemaImageResolver';
 import type { IGalleryItem, IInlineContentSegment } from '../../../common/types/content';
+
+// Utils
+import { resolveBricksAssetUrl } from '../../../common/utils/bricks/assetPaths';
 // #endregion
 
 // #region Constants
-const PLACEHOLDER_IMAGE_URL = '/images/brick-empty.webp';
+/** Asset-путь плейсхолдера внутри public/ модуля (URL строит resolveBricksAssetUrl). */
+const PLACEHOLDER_IMAGE_ASSET_PATH = 'images/brick-empty.webp';
+
+/**
+ * Суффикс для распознавания плейсхолдера в схеме: покрывает и legacy-схемы
+ * со старым '/images/brick-empty.webp', и новые '<base>/_bricks/images/...'.
+ */
+const PLACEHOLDER_IMAGE_SUFFIX = '/images/brick-empty.webp';
 
 const IMAGE_EXTENSIONS_RE = /\.(webp|png|jpg|jpeg|gif|svg|avif)(\?|$)/i;
 const CDN_PATTERNS_RE = /storage\.yandexcloud\.net|amazonaws\.com|cdn\./i;
@@ -29,10 +39,21 @@ const MAX_BARE_URL_LENGTH = 2048;
 
 // #region Helpers
 /**
- * Возвращает URL placeholder-изображения.
+ * Возвращает URL placeholder-изображения с учётом `app.baseURL`.
+ *
+ * @param baseURL - `app.baseURL` приложения (`/` — no-op).
  */
-export function getPlaceholderImageUrl(): string {
-    return PLACEHOLDER_IMAGE_URL;
+export function getPlaceholderImageUrl(baseURL: string): string {
+    return resolveBricksAssetUrl(baseURL, PLACEHOLDER_IMAGE_ASSET_PATH);
+}
+
+/**
+ * URL — плейсхолдер модуля (в любой исторической форме записи в схеме).
+ *
+ * @param url - Проверяемый URL.
+ */
+function isPlaceholderImageUrl(url: string): boolean {
+    return url.endsWith(PLACEHOLDER_IMAGE_SUFFIX);
 }
 
 /**
@@ -57,7 +78,7 @@ function isBareImageUrl(value: string): boolean {
     }
 
     // Исключаем placeholder
-    if (trimmed === PLACEHOLDER_IMAGE_URL) {
+    if (isPlaceholderImageUrl(trimmed)) {
         return false;
     }
 
@@ -179,7 +200,7 @@ function extractFromHtml(
 
     while ((match = HTML_IMG_SRC_RE.exec(html)) !== null) {
         const src = match[1];
-        if (src && !DATA_URI_RE.test(src) && src !== PLACEHOLDER_IMAGE_URL) {
+        if (src && !DATA_URI_RE.test(src) && !isPlaceholderImageUrl(src)) {
             addUrlToMap(
                 urlMap,
                 src,
@@ -249,7 +270,7 @@ export function extractSchemaImageUrls(schema: IBricksSchema): IExtractedImageUr
                         (segment.kind === 'image' || segment.kind === 'svg') &&
                         segment.url &&
                         !DATA_URI_RE.test(segment.url) &&
-                        segment.url !== PLACEHOLDER_IMAGE_URL
+                        !isPlaceholderImageUrl(segment.url)
                     ) {
                         addUrlToMap(
                             urlMap,

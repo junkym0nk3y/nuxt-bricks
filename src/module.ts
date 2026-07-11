@@ -12,6 +12,7 @@ import { defu } from 'defu';
 // Side-effect type import: подтягивает augmentation NuxtOptions.i18n и хука i18n:registerModule
 import type {} from '@nuxtjs/i18n';
 import { brickWatchPlugin } from './runtime/modules/common/utils/routing/vite-brick-watch';
+import { BRICKS_PUBLIC_ASSETS_BASE } from './runtime/modules/common/utils/bricks/assetPaths';
 import { DEFAULT_BRICKS_ROUTE_PREFIXES } from './runtime/modules/common/utils/bricks/routePaths';
 import {
     disableBuilderChunkPrefetch,
@@ -227,13 +228,19 @@ export default defineNuxtModule<IBricksModuleOptions>({
         // #endregion
 
         // #region Public assets (превью layout-блоков, плейсхолдеры, картинки документации)
-        nuxt.hook('nitro:config', (nitroConfig) => {
-            nitroConfig.publicAssets = nitroConfig.publicAssets || [];
-            nitroConfig.publicAssets.push({
-                dir: resolve(runtimeDir, 'public'),
-                maxAge: 60 * 60 * 24 * 7,
+        // Выделенный префикс /_bricks/ вместо корня: ассеты билдера не смешиваются
+        // с public/ потребителя, а клиентские URL строит resolveBricksAssetUrl
+        // (учитывает app.baseURL). Ассеты нужны только поверхности билдера.
+        if (isBuilderEnabled) {
+            nuxt.hook('nitro:config', (nitroConfig) => {
+                nitroConfig.publicAssets = nitroConfig.publicAssets || [];
+                nitroConfig.publicAssets.push({
+                    baseURL: BRICKS_PUBLIC_ASSETS_BASE,
+                    dir: resolve(runtimeDir, 'public'),
+                    maxAge: 60 * 60 * 24 * 7,
+                });
             });
-        });
+        }
         // #endregion
 
         // #region Experimental flags (нужны для defineRouteRules / appManifest)

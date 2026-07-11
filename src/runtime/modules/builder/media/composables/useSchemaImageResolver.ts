@@ -19,6 +19,9 @@ import { reactive, ref } from 'vue';
 // Pinia
 import { useMediaStore } from '../stores/media';
 
+// Composables
+import { useBricksAssetUrl } from '../../../common/composables/useBricksAssetUrl';
+
 // Utils
 import {
     extractSchemaImageUrls,
@@ -39,6 +42,7 @@ interface IResolverPromise {
 export function useSchemaImageResolver() {
     // #region Data
     const mediaStore = useMediaStore();
+    const { baseURL } = useBricksAssetUrl();
 
     const isModalOpen = ref(false);
     const pendingSchema = ref<IBricksSchema | null>(null);
@@ -148,7 +152,7 @@ export function useSchemaImageResolver() {
             return;
         }
 
-        const placeholder = getPlaceholderImageUrl();
+        const placeholder = getPlaceholderImageUrl(baseURL);
         const urlMap = new Map<string, string>();
 
         state.newImages.forEach((image) => {

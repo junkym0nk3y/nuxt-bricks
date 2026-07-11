@@ -270,7 +270,7 @@ function renderGridPublished(ctx: IBlockRenderContext): VNode {
 export const blockGridDefinition: IBlockDefinition = {
     name: 'Grid',
     description: 'bricks.blocks.grid.description',
-    thumbnail: '/images/layouts/grid.svg',
+    thumbnail: 'images/layouts/grid.svg',
     hasChildren: true,
     responsiveMode: 'all',
     responsiveCssVars: {

@@ -32,7 +32,7 @@ export interface IBlockCanvasContext {
 export interface IBlockDefinition {
     name: string; // 'Grid' — componentName в схеме
     description: string;
-    thumbnail: string; // '/images/layouts/grid.svg'
+    thumbnail: string; // asset-путь модуля 'images/layouts/grid.svg' (резолв — resolveBricksAssetUrl)
     isInteractive?: boolean;
     hasChildren?: boolean; // контейнер: children в default slot
     /** Свойства панели */
