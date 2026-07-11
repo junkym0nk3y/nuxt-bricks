@@ -340,6 +340,7 @@
             "emptyHint": "Добавьте компоненты на канвас из библиотеки",
             "importErrorFileType": "Выберите файл формата .json",
             "importErrorInvalid": "Невалидная схема: отсутствует массив components",
+            "importErrorStructure": "Файл схемы не прошёл проверку структуры: {detail}",
             "importErrorParse": "Ошибка парсинга JSON-файла",
             "importErrorRead": "Ошибка чтения файла"
         },

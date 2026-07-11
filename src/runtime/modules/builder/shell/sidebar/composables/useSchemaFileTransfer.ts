@@ -2,6 +2,9 @@
 import type { IBricksSchema } from '../../../../common/types/brick';
 import type { ISchemaFileTransferOptions } from '../types/composables';
 
+// Utils
+import { validateSchemaComponentGraph } from '../../../../common/utils/bricks/schemaContract';
+
 // Vue
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -69,8 +72,17 @@ export function useSchemaFileTransfer(options: ISchemaFileTransferOptions) {
             try {
                 const parsed = JSON.parse(reader.result as string) as IBricksSchema;
 
-                if (!parsed.components || !Array.isArray(parsed.components)) {
+                if (!parsed || !Array.isArray(parsed.components)) {
                     importError.value = t('bricks.schema.importErrorInvalid');
+                    return;
+                }
+
+                const contractErrors = validateSchemaComponentGraph(parsed.components);
+
+                if (contractErrors.length > 0) {
+                    importError.value = t('bricks.schema.importErrorStructure', {
+                        detail: contractErrors[0],
+                    });
                     return;
                 }
 

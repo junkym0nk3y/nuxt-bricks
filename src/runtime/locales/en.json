@@ -340,6 +340,7 @@
             "emptyHint": "Add components to the canvas from the library",
             "importErrorFileType": "Choose a .json file",
             "importErrorInvalid": "Invalid schema: missing components array",
+            "importErrorStructure": "Schema file failed structure validation: {detail}",
             "importErrorParse": "Failed to parse the JSON file",
             "importErrorRead": "Failed to read the file"
         },
