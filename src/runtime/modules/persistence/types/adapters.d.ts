@@ -148,8 +148,8 @@ export interface IPublishAdapter {
      * Проверяет, что URL указывает на файл собственного хранилища
      * внутри managed namespace.
      *
-     * Anti-SSRF-контракт: сервер регистрирует (POST /api/bricks/media) и
-     * проксирует (/mock-api/s3-media-proxy) только URL, прошедшие эту проверку —
+     * Anti-SSRF-контракт: сервер проксирует (/mock-api/s3-media-proxy) и
+     * удаляет (media orchestration) только URL, прошедшие эту проверку —
      * произвольные хосты (localhost, cloud metadata, private network) не должны
      * её проходить. Кастомная реализация обязана сверять URL со СВОИМ
      * хранилищем (включая префикс ключа), а не с форматом URL вообще.

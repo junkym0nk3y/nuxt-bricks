@@ -60,11 +60,6 @@ export const BRICKS_API_HANDLERS: IBricksApiHandler[] = [
         file: 'server/api/bricks/media/index.get',
     },
     {
-        route: '/api/bricks/media',
-        method: 'post',
-        file: 'server/api/bricks/media/index.post',
-    },
-    {
         route: '/api/bricks/media/upload',
         method: 'post',
         file: 'server/api/bricks/media/upload.post',

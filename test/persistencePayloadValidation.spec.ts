@@ -8,10 +8,7 @@ import {
     validateUpdatePagePayload,
     validateRestoreVersionPayload,
 } from '../src/runtime/modules/persistence/server/utils/payloadValidation';
-import {
-    validateCreateMediaPayload,
-    validateUpdateMediaPayload,
-} from '../src/runtime/modules/persistence/server/utils/mediaPayloadValidation';
+import { validateUpdateMediaPayload } from '../src/runtime/modules/persistence/server/utils/mediaPayloadValidation';
 import {
     MAX_SCHEMA_DEPTH,
     MAX_SCHEMA_NODES,
@@ -43,18 +40,6 @@ function buildNestedObject(depth: number): Record<string, unknown> {
     }
 
     return node;
-}
-
-/** Минимальный валидный payload создания медиа. */
-function makeCreateMediaBody(overrides: Record<string, unknown> = {}): Record<string, unknown> {
-    return {
-        url: 'https://storage.example.com/bricks-media/file.webp',
-        filename: 'file.webp',
-        size: 1024,
-        mimeType: 'image/webp',
-        category: 'image',
-        ...overrides,
-    };
 }
 
 describe('validateCreatePagePayload: server-first DTO', () => {
@@ -307,38 +292,6 @@ describe('validateRestoreVersionPayload: precondition отката версии'
     });
 });
 
-describe('validateCreateMediaPayload: метаданные медиа', () => {
-    it('принимает валидный payload', () => {
-        const result = validateCreateMediaPayload(makeCreateMediaBody());
-        expect(result.url).toContain('https://');
-        expect(result.size).toBe(1024);
-    });
-
-    it('отклоняет не-http(s) url', () => {
-        expect(() => validateCreateMediaBodyThrow({ url: 'file:///etc/passwd' })).toThrow();
-        expect(() => validateCreateMediaBodyThrow({ url: 'gopher://internal' })).toThrow();
-    });
-
-    it('отклоняет невалидный size (дробный, отрицательный, строка)', () => {
-        expect(() => validateCreateMediaBodyThrow({ size: -1 })).toThrow();
-        expect(() => validateCreateMediaBodyThrow({ size: 1.5 })).toThrow();
-        expect(() => validateCreateMediaBodyThrow({ size: '1024' })).toThrow();
-    });
-
-    it('отклоняет невалидный mimeType и неизвестные ключи', () => {
-        expect(() => validateCreateMediaBodyThrow({ mimeType: 'not-a-mime' })).toThrow();
-        expect(() => validateCreateMediaBodyThrow({ extra: 1 })).toThrow(/Unknown fields/);
-    });
-
-    it('валидирует uploadedAt как дату', () => {
-        expect(
-            validateCreateMediaPayload(makeCreateMediaBody({ uploadedAt: '2026-07-10T10:00:00Z' }))
-                .uploadedAt
-        ).toBe('2026-07-10T10:00:00Z');
-        expect(() => validateCreateMediaBodyThrow({ uploadedAt: 'not-a-date' })).toThrow();
-    });
-});
-
 describe('validateUpdateMediaPayload: PATCH медиа', () => {
     it('принимает частичный payload', () => {
         expect(validateUpdateMediaPayload({ alt: 'Alt text' })).toEqual({ alt: 'Alt text' });
@@ -349,8 +302,3 @@ describe('validateUpdateMediaPayload: PATCH медиа', () => {
         expect(() => validateUpdateMediaPayload({ url: 'https://x' })).toThrow(/Unknown fields/);
     });
 });
-
-/** Обёртка для негативных кейсов create media. */
-function validateCreateMediaBodyThrow(overrides: Record<string, unknown>): unknown {
-    return validateCreateMediaPayload(makeCreateMediaBody(overrides));
-}
