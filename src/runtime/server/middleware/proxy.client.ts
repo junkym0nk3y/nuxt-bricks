@@ -1,8 +1,11 @@
 /**
  * Server middleware для проксирования /api запросов на внешний backend.
  *
- * Логика проксирования:
+ * Логика проксирования (чистые правила — server/utils/proxyRouting.ts):
  * - /mock-api/* → НИКОГДА не проксируется (локальные Nitro-роуты)
+ * - GET/HEAD /api/bricks/health(/ready) → всегда локально: пробы описывают
+ *   этот процесс, а не backend (без локальной БД readiness покрывает только
+ *   сам процесс — readiness backend'а в proxy-режиме мониторить напрямую)
  * - /api/bricks/** → НЕ проксируется, если сконфигурирована БД
  *   (NUXT_BRICKS_DATABASE_URL / bricks.database.url) —
  *   запросы обслуживают локальные persistence-ручки (см. server/api/bricks/)
@@ -17,10 +20,10 @@ import { defineEventHandler, type EventHandler, type H3Event } from 'h3';
 import { useRuntimeConfig } from 'nitropack/runtime';
 import { BRICKS_SESSION_COOKIE_NAME } from '../../modules/common/constants/auth';
 import { stripCookieByName } from '../../modules/common/utils/cookieHeader';
+import { resolveRequestPathname, shouldProxyRequest } from '../utils/proxyRouting';
 
 const config = useRuntimeConfig();
 const API_PREFIX = '/api';
-const LOCAL_API_PREFIX = '/api/bricks';
 
 /**
  * Создает proxy handler для проксирования запросов на backend
@@ -44,32 +47,6 @@ const proxyHandler = proxyTarget ? createHandler(proxyTarget, API_PREFIX) : null
  */
 function hasLocalDatabase(): boolean {
     return Boolean(config.bricksDatabaseUrl as string | undefined);
-}
-
-/**
- * Проверяет, должен ли URL проксироваться на backend
- */
-function shouldProxy(url: string | undefined): boolean {
-    if (!url) {
-        return false;
-    }
-
-    // Mock API - НИКОГДА не проксируем
-    if (url.startsWith('/mock-api')) {
-        return false;
-    }
-
-    // При сконфигурированной БД /api/bricks/** обслуживают локальные ручки
-    if (url.startsWith(LOCAL_API_PREFIX) && hasLocalDatabase()) {
-        return false;
-    }
-
-    // Все /api/** - проксируем если есть PROXY_URL
-    if (url.startsWith(API_PREFIX)) {
-        return true;
-    }
-
-    return false;
 }
 
 /**
@@ -99,9 +76,13 @@ function stripBricksIdentityHeaders(event: H3Event): void {
 }
 
 export default defineEventHandler(async (event) => {
-    const url = event.node.req.url;
+    const pathname = resolveRequestPathname(event.node.req.url);
+    const shouldProxy = shouldProxyRequest(pathname, {
+        method: event.node.req.method || 'GET',
+        hasLocalDatabase: hasLocalDatabase(),
+    });
 
-    if (shouldProxy(url) && proxyHandler) {
+    if (shouldProxy && proxyHandler) {
         stripBricksIdentityHeaders(event);
         return proxyHandler(event);
     }
