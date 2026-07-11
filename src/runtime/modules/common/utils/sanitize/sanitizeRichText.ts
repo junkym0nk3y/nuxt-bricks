@@ -8,8 +8,8 @@
  * TextAlign, ResizableImage/Video, ссылки). Всё вне списка — вырезается,
  * включая on*-атрибуты, script/iframe и не-http(s) протоколы ссылок.
  */
-import { FilterXSS, safeAttrValue } from './xssInterop';
-import { SAFE_LINK_PATTERN, SAFE_MEDIA_SRC_PATTERN } from './urlPolicy';
+import { FilterXSS, friendlyAttrValue, safeAttrValue } from './xssInterop';
+import { isSafeLinkUrl, isSafeMediaSrcUrl } from './urlPolicy';
 
 // #region Constants
 /** Разрешённые CSS-свойства inline-style (расширения TipTap пишут только их). */
@@ -100,13 +100,16 @@ const richTextFilter = new FilterXSS({
     stripIgnoreTag: true,
     stripIgnoreTagBody: ['script', 'style', 'iframe', 'object', 'embed', 'noscript'],
     safeAttrValue(tag, name, value, cssFilter) {
-        if (name === 'href' && !SAFE_LINK_PATTERN.test(value.trim())) {
+        // Политика — по ДЕКОДИРОВАННОМУ значению (numeric/hex HTML-энтити):
+        // encoded `/&#92;…`/`/&#47;…` проходят raw-проверку как локальный путь,
+        // а декодируются в protocol-relative `//host`
+        if (name === 'href' && !isSafeLinkUrl(friendlyAttrValue(value))) {
             return '';
         }
 
         // src (img/video/source) и poster (video) — одна и та же media-политика:
-        // http(s)/root-relative, protocol-relative `//host` запрещён
-        if ((name === 'src' || name === 'poster') && !SAFE_MEDIA_SRC_PATTERN.test(value.trim())) {
+        // http(s)/root-relative, protocol-relative `//host` и backslash запрещены
+        if ((name === 'src' || name === 'poster') && !isSafeMediaSrcUrl(friendlyAttrValue(value))) {
             return '';
         }
 

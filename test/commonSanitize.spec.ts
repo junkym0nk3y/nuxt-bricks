@@ -125,6 +125,40 @@ describe('sanitizeRichTextHtml: URL-политика src/poster/href (R0.1)', ()
         const twice = sanitizeRichTextHtml(once);
         expect(twice).toBe(once);
     });
+
+    it('вырезает backslash-пути, нормализуемые браузером в protocol-relative (/\\host)', () => {
+        expect(sanitizeRichTextHtml('<img src="/\\evil.example/x.webp">')).not.toContain(
+            'evil.example'
+        );
+        expect(sanitizeRichTextHtml('<a href="/\\evil.example/x">x</a>')).not.toContain(
+            'evil.example'
+        );
+        expect(
+            sanitizeRichTextHtml('<video poster="/\\evil.example/x.jpg"></video>')
+        ).not.toContain('evil.example');
+        expect(
+            sanitizeRichTextHtml('<source src="/\\evil.example/x.mp4" type="video/mp4">')
+        ).not.toContain('evil.example');
+    });
+
+    it('вырезает entity-энкодинг backslash и слэша в src/href/poster (/&#92;…, /&#47;…)', () => {
+        expect(sanitizeRichTextHtml('<img src="/&#92;evil.example/x.webp">')).not.toContain(
+            'evil.example'
+        );
+        expect(sanitizeRichTextHtml('<a href="/&#92;evil.example/x">x</a>')).not.toContain(
+            'evil.example'
+        );
+        expect(
+            sanitizeRichTextHtml('<video poster="/&#92;evil.example/x.jpg"></video>')
+        ).not.toContain('evil.example');
+        // /&#47; декодируется в // — protocol-relative
+        expect(sanitizeRichTextHtml('<img src="/&#47;evil.example/x.webp">')).not.toContain(
+            'evil.example'
+        );
+        expect(sanitizeRichTextHtml('<a href="/&#47;evil.example/x">x</a>')).not.toContain(
+            'evil.example'
+        );
+    });
 });
 
 describe('sanitizeSvgMarkup: SVG allow-list', () => {
@@ -246,6 +280,42 @@ describe('sanitizeSvgMarkup: URL-политика fill/stroke/filter/clip-path/m
             '<svg><rect fill="url(#a), url(https://evil.example)"/></svg>'
         );
         expect(result).not.toContain('evil.example');
+    });
+
+    it('вырезает незакрытый url( в fill/stroke/style (fail-closed)', () => {
+        expect(
+            sanitizeSvgMarkup('<svg><rect fill="url(https://evil.example/x"/></svg>')
+        ).not.toContain('evil.example');
+        expect(
+            sanitizeSvgMarkup('<svg><rect stroke="url(https://evil.example/x"/></svg>')
+        ).not.toContain('evil.example');
+        expect(
+            sanitizeSvgMarkup('<svg><rect style="fill:url(https://evil.example/x"/></svg>')
+        ).not.toContain('evil.example');
+        // Незакрытый url( без аргумента — тоже отклоняется целиком
+        expect(sanitizeSvgMarkup('<svg><rect fill="url("/></svg>')).not.toContain('url(');
+    });
+
+    it('вырезает смешанное значение: валидный локальный url() + незакрытый url(', () => {
+        const paint = sanitizeSvgMarkup(
+            '<svg><rect fill="url(#a) url(https://evil.example/x"/></svg>'
+        );
+        expect(paint).not.toContain('evil.example');
+        expect(paint).not.toContain('url(');
+
+        const style = sanitizeSvgMarkup(
+            '<svg><rect style="fill:url(#a);stroke:url(https://evil.example/x"/></svg>'
+        );
+        expect(style).not.toContain('evil.example');
+    });
+
+    it('вырезает незакрытый url( в строгих filter/clip-path/mask', () => {
+        expect(sanitizeSvgMarkup('<svg><g filter="url(#blur"></g></svg>')).not.toContain(
+            'filter="'
+        );
+        expect(
+            sanitizeSvgMarkup('<svg><path mask="url(https://evil.example/m"/></svg>')
+        ).not.toContain('evil.example');
     });
 
     it('вырезает значение с backslash (потенциальный CSS-escape)', () => {

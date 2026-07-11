@@ -479,9 +479,12 @@ export const usePublishStore = defineStore('bricksPublish', {
             try {
                 const created = await publishPageRequest(schema, this.currentFormState);
                 this.syncPageInList(created);
+                this.generalError = originalGeneralError;
                 return created;
             } catch (error: unknown) {
                 console.error('[Publish Store] saveCurrentPageAsCopy failed:', error);
+                // generalError НЕ восстанавливается в finally — ошибка копии
+                // должна пережить откат формы и дойти до пользователя
                 this.generalError =
                     (error as Error)?.message || t('bricks.publish.copyFailedRetry');
                 return null;
@@ -490,7 +493,6 @@ export const usePublishStore = defineStore('bricksPublish', {
                 this.currentFormState = originalFormState;
                 this.editingPageId = originalEditingPageId;
                 this.validationErrors = { ...originalValidationErrors };
-                this.generalError = originalGeneralError;
             }
         },
     },
