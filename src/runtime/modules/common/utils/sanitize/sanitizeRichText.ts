@@ -9,6 +9,7 @@
  * включая on*-атрибуты, script/iframe и не-http(s) протоколы ссылок.
  */
 import { FilterXSS, safeAttrValue } from './xssInterop';
+import { SAFE_LINK_PATTERN, SAFE_MEDIA_SRC_PATTERN } from './urlPolicy';
 
 // #region Constants
 /** Разрешённые CSS-свойства inline-style (расширения TipTap пишут только их). */
@@ -31,12 +32,6 @@ const RICH_TEXT_CSS_WHITELIST: Record<string, boolean> = {
 
 /** Атрибуты, разрешённые на любом rich-text теге. */
 const GLOBAL_ATTRS = ['style', 'class'];
-
-/** Разрешённые протоколы ссылок (плюс относительные пути и #-якоря). */
-const SAFE_LINK_PATTERN = /^(https?:\/\/|mailto:|tel:|\/|#)/i;
-
-/** Разрешённые источники медиа (относительные пути и http(s)). */
-const SAFE_MEDIA_SRC_PATTERN = /^(https?:\/\/|\/)/i;
 
 /**
  * Теги rich-text: блочные и inline узлы TipTap-набора.
@@ -109,7 +104,9 @@ const richTextFilter = new FilterXSS({
             return '';
         }
 
-        if (name === 'src' && !SAFE_MEDIA_SRC_PATTERN.test(value.trim())) {
+        // src (img/video/source) и poster (video) — одна и та же media-политика:
+        // http(s)/root-relative, protocol-relative `//host` запрещён
+        if ((name === 'src' || name === 'poster') && !SAFE_MEDIA_SRC_PATTERN.test(value.trim())) {
             return '';
         }
 

@@ -9,6 +9,7 @@
  */
 import { FilterXSS, safeAttrValue } from './xssInterop';
 import { stripSanitizerMarkers } from './sanitizeRichText';
+import { containsUnsafeSvgReference, isLocalSvgReferenceValue } from './urlPolicy';
 
 // #region Constants
 /** Разрешённые CSS-свойства style-атрибута SVG. */
@@ -163,6 +164,19 @@ const SVG_TAGS: Record<string, string[]> = {
 
 /** Безопасное значение href внутри SVG — только ссылка на локальный fragment. */
 const SVG_LOCAL_HREF_PATTERN = /^#[\w:.-]+$/;
+
+/**
+ * Атрибуты, где допустима только одна локальная ссылка `url(#fragment)`
+ * либо `none` — внешний ресурс здесь означает загрузку filter/mask с
+ * произвольного origin (tracking/exfil), не исполнение кода.
+ */
+const STRICT_LOCAL_REFERENCE_ATTRS = new Set(['filter', 'clip-path', 'mask']);
+
+/**
+ * Paint-атрибуты: обычные значения (`#fff`, `currentColor`, `none`)
+ * сохраняются как есть, `url(...)` разрешён только с `#`-fragment.
+ */
+const PAINT_REFERENCE_ATTRS = new Set(['fill', 'stroke']);
 // #endregion
 
 // #region Filter
@@ -207,6 +221,21 @@ const svgFilter = new FilterXSS({
         if (
             (name === 'href' || name === 'xlink:href') &&
             !SVG_LOCAL_HREF_PATTERN.test(value.trim())
+        ) {
+            return '';
+        }
+
+        // filter/clip-path/mask — только `none` либо одна локальная ссылка
+        if (STRICT_LOCAL_REFERENCE_ATTRS.has(name) && !isLocalSvgReferenceValue(value)) {
+            return '';
+        }
+
+        // fill/stroke/style — обычные paint-значения проходят, url() допустим
+        // только с локальным fragment (js-xss сам блокирует лишь javascript:
+        // внутри style, внешний/data: url в url() не проверяет никто из них)
+        if (
+            (PAINT_REFERENCE_ATTRS.has(name) || name === 'style') &&
+            containsUnsafeSvgReference(value)
         ) {
             return '';
         }

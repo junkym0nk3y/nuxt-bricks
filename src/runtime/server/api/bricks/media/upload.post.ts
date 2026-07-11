@@ -41,7 +41,7 @@ const uploadRateLimiter = createFixedWindowRateLimiter({
 });
 
 /** Подготовленный к загрузке файл. */
-interface IPreparedUpload {
+export interface IPreparedUpload {
     buffer: Buffer;
     mimeType: string;
     targetExtension: string;
@@ -75,7 +75,7 @@ function assertUploadedFile(formData: IUploadedFilePart[]): IUploadedFilePart {
  * @param config - Разрешённые медиа-настройки (лимиты, оптимизация).
  * @returns Буфер, MIME, расширение и svgContent.
  */
-async function prepareUpload(
+export async function prepareUpload(
     file: IUploadedFilePart,
     config: IResolvedMediaConfig
 ): Promise<IPreparedUpload> {
@@ -103,14 +103,24 @@ async function prepareUpload(
         config.optimization
     );
 
+    if (!validated.isSvg) {
+        return {
+            buffer: validated.optimizedBuffer,
+            mimeType: validated.mimeType,
+            targetExtension: validated.targetExtension,
+            svgContent: null,
+        };
+    }
+
+    // Inline SVG — недоверенный ввод: в БД и в бакет уходит один и тот же
+    // санитизированный буфер (прежде в S3 летел исходный, непроверенный)
+    const sanitizedSvg = sanitizeSvgMarkup(validated.optimizedBuffer.toString('utf8'));
+
     return {
-        buffer: validated.optimizedBuffer,
+        buffer: Buffer.from(sanitizedSvg, 'utf8'),
         mimeType: validated.mimeType,
         targetExtension: validated.targetExtension,
-        // Inline SVG — недоверенный ввод: в БД сохраняется санитизированная разметка
-        svgContent: validated.isSvg
-            ? sanitizeSvgMarkup(validated.optimizedBuffer.toString())
-            : null,
+        svgContent: sanitizedSvg,
     };
 }
 

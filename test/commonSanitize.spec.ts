@@ -77,6 +77,56 @@ describe('sanitizeRichTextHtml: rich-text allow-list', () => {
     });
 });
 
+describe('sanitizeRichTextHtml: URL-политика src/poster/href (R0.1)', () => {
+    it('вырезает poster с javascript:/data:/protocol-relative URL', () => {
+        expect(sanitizeRichTextHtml('<video poster="javascript:alert(1)"></video>')).not.toContain(
+            'javascript'
+        );
+        expect(
+            sanitizeRichTextHtml('<video poster="data:text/html;base64,x"></video>')
+        ).not.toContain('data:');
+        expect(sanitizeRichTextHtml('<video poster="//evil.example/x.jpg"></video>')).not.toContain(
+            'evil.example'
+        );
+    });
+
+    it('вырезает protocol-relative URL в src (img/video/source) и href', () => {
+        expect(sanitizeRichTextHtml('<img src="//evil.example/x.webp">')).not.toContain(
+            'evil.example'
+        );
+        expect(sanitizeRichTextHtml('<video src="//evil.example/x.mp4"></video>')).not.toContain(
+            'evil.example'
+        );
+        expect(
+            sanitizeRichTextHtml('<source src="//evil.example/x.mp4" type="video/mp4">')
+        ).not.toContain('evil.example');
+        expect(sanitizeRichTextHtml('<a href="//evil.example/x">x</a>')).not.toContain(
+            'evil.example'
+        );
+    });
+
+    it('сохраняет легальные poster/src: https и root-relative', () => {
+        const httpsPoster = '<video poster="https://good.example/x.jpg"></video>';
+        expect(sanitizeRichTextHtml(httpsPoster)).toBe(httpsPoster);
+
+        const rootRelativePoster = '<video poster="/local/x.jpg"></video>';
+        expect(sanitizeRichTextHtml(rootRelativePoster)).toBe(rootRelativePoster);
+
+        const httpsSrc = '<img src="https://cdn.example.com/x.webp">';
+        expect(sanitizeRichTextHtml(httpsSrc)).toContain('src="https://cdn.example.com/x.webp"');
+
+        const rootRelativeSrc = '<img src="/media/x.webp">';
+        expect(sanitizeRichTextHtml(rootRelativeSrc)).toContain('src="/media/x.webp"');
+    });
+
+    it('идемпотентна на второй прогон', () => {
+        const html = '<p>x</p><video poster="https://good.example/x.jpg" src="/a.mp4"></video>';
+        const once = sanitizeRichTextHtml(html);
+        const twice = sanitizeRichTextHtml(once);
+        expect(twice).toBe(once);
+    });
+});
+
 describe('sanitizeSvgMarkup: SVG allow-list', () => {
     it('пропускает статичную векторную графику', () => {
         const svg =
@@ -150,5 +200,99 @@ describe('sanitizeSvgMarkup: SVG allow-list', () => {
         expect(sanitizeSvgMarkup(null)).toBe('');
         expect(sanitizeSvgMarkup(undefined)).toBe('');
         expect(sanitizeSvgMarkup('')).toBe('');
+    });
+});
+
+describe('sanitizeSvgMarkup: URL-политика fill/stroke/filter/clip-path/mask/style (R0.1)', () => {
+    it('вырезает url(javascript:)/url(data:)/url(https:) в fill/stroke', () => {
+        expect(
+            sanitizeSvgMarkup('<svg><rect fill="url(javascript:alert(1))"/></svg>')
+        ).not.toContain('javascript');
+        expect(
+            sanitizeSvgMarkup('<svg><rect fill="url(data:image/svg+xml,x)"/></svg>')
+        ).not.toContain('data:');
+        expect(
+            sanitizeSvgMarkup('<svg><rect stroke="url(https://evil.example/x)"/></svg>')
+        ).not.toContain('evil.example');
+    });
+
+    it('вырезает внешний/data: url() в filter/clip-path/mask', () => {
+        expect(
+            sanitizeSvgMarkup('<svg><g filter="url(https://evil.example/filter.svg#x)"></g></svg>')
+        ).not.toContain('evil.example');
+        expect(
+            sanitizeSvgMarkup('<svg><path clip-path="url(data:image/svg+xml,xxx)"/></svg>')
+        ).not.toContain('data:');
+        expect(
+            sanitizeSvgMarkup('<svg><path mask="url(https://evil.example/m.svg#m)"/></svg>')
+        ).not.toContain('evil.example');
+    });
+
+    it('вырезает url() с CSS-декларацией внутри style (fill/stroke) — external/data:', () => {
+        const external = sanitizeSvgMarkup(
+            '<svg><rect style="fill:url(https://evil.example/x)"/></svg>'
+        );
+        expect(external).not.toContain('evil.example');
+        expect(external).not.toContain('url(');
+
+        const dataUrl = sanitizeSvgMarkup(
+            '<svg><rect style="fill:url(data:image/svg+xml,x)"/></svg>'
+        );
+        expect(dataUrl).not.toContain('data:');
+    });
+
+    it('вырезает несколько url() в одном значении, если хоть один небезопасен', () => {
+        const result = sanitizeSvgMarkup(
+            '<svg><rect fill="url(#a), url(https://evil.example)"/></svg>'
+        );
+        expect(result).not.toContain('evil.example');
+    });
+
+    it('вырезает значение с backslash (потенциальный CSS-escape)', () => {
+        const result = sanitizeSvgMarkup('<svg><rect fill="url(\\#grad)"/></svg>');
+        expect(result).not.toContain('url(');
+    });
+
+    it('вырезает несколько локальных url() в filter/clip-path/mask (разрешена ровно одна)', () => {
+        const result = sanitizeSvgMarkup('<svg><rect filter="url(#a) url(#b)"/></svg>');
+        expect(result).not.toContain('filter="');
+    });
+
+    it('поддерживает регистр/пробелы/кавычки в локальных ссылках без ложных срабатываний', () => {
+        expect(sanitizeSvgMarkup('<svg><rect fill="URL(#grad)"/></svg>')).toContain(
+            'fill="URL(#grad)"'
+        );
+        expect(sanitizeSvgMarkup('<svg><rect fill="url( #grad )"/></svg>')).toContain(
+            'fill="url( #grad )"'
+        );
+        expect(sanitizeSvgMarkup(`<svg><rect fill="url('#grad')"/></svg>`)).toContain(
+            `fill="url('#grad')"`
+        );
+    });
+
+    it('сохраняет легальные paint-значения: fill="#fff", stroke="currentColor", filter="url(#blur)"', () => {
+        expect(sanitizeSvgMarkup('<svg><rect fill="#fff"/></svg>')).toContain('fill="#fff"');
+        expect(sanitizeSvgMarkup('<svg><rect stroke="currentColor"/></svg>')).toContain(
+            'stroke="currentColor"'
+        );
+        expect(sanitizeSvgMarkup('<svg><rect filter="url(#blur)"/></svg>')).toContain(
+            'filter="url(#blur)"'
+        );
+        expect(sanitizeSvgMarkup('<svg><rect mask="none"/></svg>')).toContain('mask="none"');
+        expect(sanitizeSvgMarkup('<svg><rect clip-path="url(#c)"/></svg>')).toContain(
+            'clip-path="url(#c)"'
+        );
+    });
+
+    it('идемпотентна на второй прогон (легальный и hostile ввод)', () => {
+        const legal =
+            '<svg><rect fill="#fff" stroke="currentColor" filter="url(#blur)" clip-path="url(#c)"/></svg>';
+        const legalOnce = sanitizeSvgMarkup(legal);
+        expect(sanitizeSvgMarkup(legalOnce)).toBe(legalOnce);
+
+        const hostile =
+            '<svg><rect fill="url(javascript:alert(1))" filter="url(https://evil.example/x)"/></svg>';
+        const hostileOnce = sanitizeSvgMarkup(hostile);
+        expect(sanitizeSvgMarkup(hostileOnce)).toBe(hostileOnce);
     });
 });
