@@ -16,9 +16,9 @@
 | 4. URL-политика санитайзера + SVG в S3         | ✅ закрыта | `58dac17`, `a8be1fa`                                   |
 | 5. Redaction prod-логов data sources           | ✅ закрыта | `64f9422`                                              |
 | 6. Health-ручки всегда локально в proxy-режиме | ✅ закрыта | `f6f13aa` (+README-семантика readiness вместо части 2) |
-| 7. Мелочи CI/пакета                            | ⬜ открыта |                                                        |
-| 8. CSS: закоммитить двухзонный reset           | ⬜ открыта |                                                        |
-| 9. Assets под `/_bricks/` + baseURL helper     | ⬜ открыта |                                                        |
+| 7. Мелочи CI/пакета                            | ✅ закрыта | `bb2f2ff` (+`6b35c86` — format/knip-хвосты задач 2-3)  |
+| 8. CSS: закоммитить двухзонный reset           | ⬜ открыта | пока не делаем                                         |
+| 9. Assets под `/_bricks/` + baseURL helper     | ✅ закрыта | `ad1dc0a`                                              |
 
 Финальная матрица проверок спринта (`format:check`/`lint:check`/`type-check`/`test` + build/budget/smoke + live-smoke) — после закрытия всех задач.
 
