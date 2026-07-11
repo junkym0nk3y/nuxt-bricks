@@ -169,7 +169,7 @@ describe('useBricksDataSources.executeDataSource', () => {
         expect(mapped).toEqual({ total: 3 });
     });
 
-    it('ошибка запроса возвращает null и логирует без params (prod-redaction)', async () => {
+    it('ошибка запроса возвращает null и логирует без params/url (prod-redaction)', async () => {
         dataSourceFetcherMock.mockRejectedValue(new Error('network down'));
         const { executeDataSource } = useBricksDataSources();
 
@@ -185,6 +185,7 @@ describe('useBricksDataSources.executeDataSource', () => {
         expect(result).toBeNull();
         const errorPayload = vi.mocked(console.error).mock.calls[0]?.[1] as Record<string, unknown>;
         expect(errorPayload).not.toHaveProperty('params');
-        expect(errorPayload).toHaveProperty('url');
+        expect(errorPayload).not.toHaveProperty('url');
+        expect(errorPayload).toMatchObject({ target: 'local', error: { name: 'Error' } });
     });
 });

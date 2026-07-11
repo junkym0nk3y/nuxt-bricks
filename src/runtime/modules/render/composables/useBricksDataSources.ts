@@ -14,6 +14,7 @@ import {
     resolveDataSourceMethod,
     type TResolvedDataSourceMethod,
 } from '../utils/dataSourcePolicy';
+import { resolveDataSourceLogTarget, toDataSourceLogError } from '../utils/dataSourceLogging';
 
 // Composables
 import { useDataSourceClient } from './useDataSourceClient';
@@ -30,8 +31,10 @@ export type TDataSourceRequestCache = Map<string, Promise<unknown>>;
  * без cookie/identity, с таймаутом; URL и метод проверяются политикой
  * (dataSourcePolicy) — относительные URL или allow-list хостов, только GET/HEAD.
  *
- * Логи: подробности (props, параметры, превью ответа) — только в dev;
- * в production логируются key/url/method/componentId без пользовательских данных.
+ * Логи: подробности (props, параметры, полный URL, превью ответа, сырая ошибка) —
+ * только в dev; в production URL сворачивается до цели (`local`/origin), ошибка —
+ * до `{ name, statusCode }` (см. utils/dataSourceLogging) — резолвленный URL
+ * содержит подставленные значения props/страницы и в prod-логи не попадает.
  *
  * @returns Метод executeDataSource и лимит одновременности из конфигурации.
  */
@@ -161,6 +164,21 @@ export function useBricksDataSources() {
     }
 
     /**
+     * Дополняет redacted prod-payload лога подробными полями в dev-режиме.
+     * В production возвращает payload как есть (детали не логируются).
+     *
+     * @param payload - Безопасный payload для production-лога.
+     * @param devDetails - Подробные поля (url/params/сырая ошибка) для dev.
+     * @returns Итоговый payload лога.
+     */
+    function withDevLogDetails(
+        payload: Record<string, unknown>,
+        devDetails: Record<string, unknown>
+    ): Record<string, unknown> {
+        return import.meta.dev ? { ...payload, ...devDetails } : payload;
+    }
+
+    /**
      * Выполняет HTTP-запрос data source с дедупликацией по (method + url):
      * одинаковые запросы одного прогона делят один промис.
      *
@@ -232,26 +250,37 @@ export function useBricksDataSources() {
             url = buildDataSourceUrl(source.url, params);
 
             if (hasUnresolvedParams(url)) {
-                console.warn('[Bricks DataSource] Skip - unresolved params:', {
-                    key: source.key,
-                    url,
-                    componentId: component.id,
-                    brickPath: component.brickPath,
-                    ...(import.meta.dev ? { params } : {}),
-                });
+                console.warn(
+                    '[Bricks DataSource] Skip - unresolved params:',
+                    withDevLogDetails(
+                        {
+                            key: source.key,
+                            target: resolveDataSourceLogTarget(url),
+                            componentId: component.id,
+                            brickPath: component.brickPath,
+                        },
+                        { url, params }
+                    )
+                );
                 return null;
             }
 
             const urlCheck = checkDataSourceUrl(url, allowedHosts);
 
             if (!urlCheck.allowed) {
-                console.warn('[Bricks DataSource] Skip - url is not allowed by policy:', {
-                    key: source.key,
-                    url,
-                    reason: urlCheck.reason,
-                    componentId: component.id,
-                    brickPath: component.brickPath,
-                });
+                console.warn(
+                    '[Bricks DataSource] Skip - url is not allowed by policy:',
+                    withDevLogDetails(
+                        {
+                            key: source.key,
+                            target: resolveDataSourceLogTarget(url),
+                            reason: urlCheck.reason,
+                            componentId: component.id,
+                            brickPath: component.brickPath,
+                        },
+                        { url }
+                    )
+                );
                 return null;
             }
 
@@ -314,16 +343,23 @@ export function useBricksDataSources() {
 
             return null;
         } catch (error) {
-            // В production не логируем params (значения приходят из props/страницы)
-            console.error('[Bricks DataSource] Fetch failed:', {
-                key: source.key,
-                url,
-                method,
-                componentId: component.id,
-                brickPath: component.brickPath,
-                error,
-                ...(import.meta.dev ? { params } : {}),
-            });
+            // В production ни url, ни params, ни сырую ошибку не логируем:
+            // резолвленный url содержит значения props/страницы, ofetch-error —
+            // request/response/options целиком
+            console.error(
+                '[Bricks DataSource] Fetch failed:',
+                withDevLogDetails(
+                    {
+                        key: source.key,
+                        target: resolveDataSourceLogTarget(url),
+                        method,
+                        componentId: component.id,
+                        brickPath: component.brickPath,
+                        error: toDataSourceLogError(error),
+                    },
+                    { url, params, rawError: error }
+                )
+            );
             return null;
         }
     }

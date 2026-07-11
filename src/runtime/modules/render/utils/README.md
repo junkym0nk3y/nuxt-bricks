@@ -2,7 +2,8 @@
 
 Чистые утилиты рендера опубликованной страницы (изоморфные, без Nuxt-контекста).
 
-| Файл                  | Назначение                                                                                     |
-| --------------------- | ---------------------------------------------------------------------------------------------- |
-| `dataSourcePolicy.ts` | Политика data sources: allow-list методов (GET/HEAD) и URL (относительные / разрешённые хосты) |
-| `requestPool.ts`      | `runWithConcurrencyLimit` — пул промисов с лимитом одновременности (SSR-запросы data sources)  |
+| Файл                   | Назначение                                                                                               |
+| ---------------------- | -------------------------------------------------------------------------------------------------------- |
+| `dataSourceLogging.ts` | Redaction prod-логов data sources: URL → цель (`local`/origin), ошибка → allow-list `{name, statusCode}` |
+| `dataSourcePolicy.ts`  | Политика data sources: allow-list методов (GET/HEAD) и URL (относительные / разрешённые хосты)           |
+| `requestPool.ts`       | `runWithConcurrencyLimit` — пул промисов с лимитом одновременности (SSR-запросы data sources)            |
