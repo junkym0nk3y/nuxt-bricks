@@ -14,6 +14,7 @@
 import { createError } from 'h3';
 import type { IBricksPageRow } from '../../../common/types/bricks-api';
 import type { IStorageAdapter } from '../../types/adapters';
+import { validateSchemaComponentGraph } from '../../../common/utils/bricks/schemaContract';
 
 /**
  * Зависимости оркестрации отката версии страницы.
@@ -31,6 +32,9 @@ export interface IPageVersionRestoreDeps {
  * @param expectedRevision - Precondition optimistic locking.
  * @returns Обновлённая страница.
  * @throws h3-ошибка 404 — версия или страница не найдены;
+ * h3-ошибка 400 — сохранённая версия содержит legacy-схему, не проходящую
+ * структурный контракт графа компонентов (аудит A-02, см. schemaContract.ts) —
+ * такую версию нельзя откатывать, не восстанавливая при этом сломанный рендер;
  * BricksRevisionConflictError — precondition не совпал с текущей revision.
  */
 export async function restorePageVersion(
@@ -45,6 +49,19 @@ export async function restorePageVersion(
         throw createError({
             statusCode: 404,
             statusMessage: 'Page version not found',
+        });
+    }
+
+    const contractErrors = Array.isArray(version.schema?.components)
+        ? validateSchemaComponentGraph(version.schema.components)
+        : ['Field "schema.components" must be an array'];
+
+    if (contractErrors.length > 0) {
+        throw createError({
+            statusCode: 400,
+            statusMessage: `Stored version schema is invalid: ${contractErrors
+                .slice(0, 3)
+                .join('; ')}`,
         });
     }
 

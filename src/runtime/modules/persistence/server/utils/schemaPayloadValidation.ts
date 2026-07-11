@@ -9,8 +9,10 @@
  * Скетч обхода — remediation-план Codex §R0.2, принят спринтом as-is (явный
  * стек вместо рекурсии, cycle-guard через `Set` по идентичности объекта).
  *
- * Строгий component-shape контракт (id/componentName/type/…) — вне скоупа
- * этого модуля (отдельная задача после прогона legacy-схем).
+ * Строгий component-shape контракт (id/componentName/type/…, ссылки,
+ * ацикличность) — отдельный изоморфный модуль `validateSchemaComponentGraph`
+ * (common/utils/bricks/schemaContract.ts, аудит A-02), подключается
+ * `payloadValidation.ts` после лимитов сложности этого модуля.
  */
 import { invalid } from './payloadPrimitives';
 

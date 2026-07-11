@@ -30,6 +30,7 @@ import {
     requireString,
 } from './payloadPrimitives';
 import { assertSchemaComplexity } from './schemaPayloadValidation';
+import { validateSchemaComponentGraph } from '../../../common/utils/bricks/schemaContract';
 
 // #region Constants
 /** Лимит числа компонентов схемы. */
@@ -89,11 +90,15 @@ function validatePagename(value: unknown): string {
  * Валидирует schema страницы: объект с массивом components в допустимых
  * границах. Глубина/число узлов/типы значений/сериализованный размер —
  * `assertSchemaComplexity` (итеративный обход до `JSON.stringify`, см.
- * schemaPayloadValidation.ts); строгий component-shape контракт — вне
- * скоупа (отдельная задача после прогона legacy-схем).
+ * schemaPayloadValidation.ts); структурный контракт графа компонентов
+ * (форма узла, уникальность/согласованность id, ацикличность, глубина
+ * дерева) — `validateSchemaComponentGraph` (аудит A-02, см.
+ * common/utils/bricks/schemaContract.ts).
  *
  * @param value - Сырое значение поля schema.
- * @returns Схема (форма проверена, содержимое компонентов — как есть).
+ * @returns Схема (форма и граф компонентов проверены).
+ * @throws 400 — форма schema/components невалидна, либо превышены лимиты
+ * сложности, либо граф компонентов нарушает контракт (см. schemaContract.ts).
  */
 function validateSchema(value: unknown): IBricksSchema {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
@@ -111,6 +116,12 @@ function validateSchema(value: unknown): IBricksSchema {
     }
 
     assertSchemaComplexity(value);
+
+    const contractErrors = validateSchemaComponentGraph(components);
+
+    if (contractErrors.length > 0) {
+        invalid(`Invalid schema: ${contractErrors.slice(0, 3).join('; ')}`);
+    }
 
     return value as IBricksSchema;
 }

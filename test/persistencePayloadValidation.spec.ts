@@ -292,6 +292,64 @@ describe('validateRestoreVersionPayload: precondition отката версии'
     });
 });
 
+describe('validateSchema: контракт графа компонентов (аудит A-02)', () => {
+    it.each([
+        ['null-компонент', [null]],
+        ['число', [42]],
+        ['пустой объект', [{}]],
+    ])('отклоняет 400: %s', (_label, components) => {
+        expect(() =>
+            validateCreatePagePayload(makeCreatePageBody({ schema: { components } }))
+        ).toThrow(/Invalid schema/);
+    });
+
+    it('отклоняет циклический граф', () => {
+        const components = [
+            {
+                id: 'a',
+                componentName: 'Grid',
+                brickPath: 'layout/grid',
+                type: 'layout',
+                children: ['b'],
+                parent: 'b',
+            },
+            {
+                id: 'b',
+                componentName: 'Grid',
+                brickPath: 'layout/grid',
+                type: 'layout',
+                children: ['a'],
+                parent: 'a',
+            },
+        ];
+        expect(() =>
+            validateCreatePagePayload(makeCreatePageBody({ schema: { components } }))
+        ).toThrow(/cycle/);
+    });
+
+    it('принимает валидное дерево', () => {
+        const components = [
+            {
+                id: 'g',
+                componentName: 'Grid',
+                brickPath: 'layout/grid',
+                type: 'layout',
+                children: ['t'],
+            },
+            {
+                id: 't',
+                componentName: 'Text',
+                brickPath: 'components/text',
+                type: 'component',
+                parent: 'g',
+            },
+        ];
+        expect(() =>
+            validateCreatePagePayload(makeCreatePageBody({ schema: { components } }))
+        ).not.toThrow();
+    });
+});
+
 describe('validateUpdateMediaPayload: PATCH медиа', () => {
     it('принимает частичный payload', () => {
         expect(validateUpdateMediaPayload({ alt: 'Alt text' })).toEqual({ alt: 'Alt text' });

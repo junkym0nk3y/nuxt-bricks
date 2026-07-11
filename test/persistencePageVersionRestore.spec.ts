@@ -158,4 +158,16 @@ describe('restorePageVersion: version lookup + updatePage с revision-preconditi
         expect(calls).toEqual(['getPageVersion:2:5']);
         expect(calls.some((call) => call.startsWith('updatePage'))).toBe(false);
     });
+
+    it('legacy-версия с невалидной схемой (аудит A-02) — 400, updatePage не вызывается', async () => {
+        const { deps, calls } = makeDeps({
+            version: makeVersion({ schema: { components: [null] } }),
+        });
+
+        await expect(restorePageVersion(deps, 1, 5, 8)).rejects.toMatchObject({
+            statusCode: 400,
+        });
+        expect(calls).toEqual(['getPageVersion:1:5']);
+        expect(calls.some((call) => call.startsWith('updatePage'))).toBe(false);
+    });
 });
