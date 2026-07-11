@@ -18,6 +18,7 @@ import {
 import { generateCopyPagename } from '../utils/slugify';
 import { validatePublishFormState } from '../utils/formValidation';
 import { toPageWriteError } from '../utils/requestErrors';
+import { restorePageVersionWithPrecondition } from '../utils/pageVersionRestore';
 import {
     publishPageRequest,
     updatePageRequest,
@@ -26,7 +27,6 @@ import {
     fetchAllPagesRequest,
     fetchPageRequest,
     fetchPageByPagenameRequest,
-    restorePageVersionRequest,
 } from '../utils/publishApi';
 
 /**
@@ -180,22 +180,19 @@ export const usePublishStore = defineStore('bricksPublish', {
         },
 
         /**
-         * Откатывает страницу к сохранённой версии и синхронизирует её в локальном списке
-         * (панель деталей обновится реактивно по `updatedAt`).
+         * Откатывает страницу к версии (обязательный revision-precondition) —
+         * см. `restorePageVersionWithPrecondition`.
          *
          * @param id - Идентификатор страницы.
          * @param versionId - Идентификатор версии.
          */
         async restorePageVersion(id: string | number, versionId: number): Promise<IPublishedPage> {
-            try {
-                const normalized = await restorePageVersionRequest(id, versionId);
-                this.syncPageInList(normalized);
-
-                return normalized;
-            } catch (error: unknown) {
-                console.error('[Publish Store] Failed to restore page version:', error);
-                throw error;
-            }
+            return restorePageVersionWithPrecondition(
+                this,
+                id,
+                versionId,
+                t('bricks.publish.dashboard.details.versions.toasts.restoreFailed')
+            );
         },
 
         /**

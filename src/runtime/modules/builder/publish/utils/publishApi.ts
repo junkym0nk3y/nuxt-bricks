@@ -173,19 +173,22 @@ export async function fetchPageVersionRequest(
  *
  * @param id - Идентификатор страницы.
  * @param versionId - Идентификатор версии.
+ * @param expectedRevision - Precondition optimistic locking (revision страницы
+ * на момент чтения) — сервер требует поле, несовпадение → 409.
  * @returns Нормализованная страница после отката.
  * @throws Ошибка запроса, приведённая через `toRequestError`.
  */
 export async function restorePageVersionRequest(
     id: string | number,
-    versionId: number
+    versionId: number,
+    expectedRevision: number
 ): Promise<IPublishedPage> {
     const { apiFetcher } = useApiClient();
 
     try {
         const response = await apiFetcher<IPublishedPage>(
             `/api/bricks/${id}/versions/${versionId}/restore/`,
-            { method: 'POST' }
+            { method: 'POST', body: toSnakeCaseShallow({ expectedRevision }) }
         );
 
         return normalizePublishedPage(response, resolveDefaultBackgroundColor());

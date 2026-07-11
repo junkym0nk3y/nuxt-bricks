@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import {
     validateCreatePagePayload,
     validateUpdatePagePayload,
+    validateRestoreVersionPayload,
 } from '../src/runtime/modules/persistence/server/utils/payloadValidation';
 import {
     validateCreateMediaPayload,
@@ -156,6 +157,34 @@ describe('validateUpdatePagePayload: частичное обновление', (
 
     it('не считает expectedRevision записываемым полем (без данных — 400)', () => {
         expect(() => validateUpdatePagePayload({ expectedRevision: 3 })).toThrow(/No fields/);
+    });
+});
+
+describe('validateRestoreVersionPayload: precondition отката версии', () => {
+    it('принимает expectedRevision как positive safe integer', () => {
+        expect(validateRestoreVersionPayload({ expectedRevision: 7 })).toEqual({
+            expectedRevision: 7,
+        });
+    });
+
+    it('отклоняет отсутствующий expectedRevision (в отличие от page update — здесь обязателен)', () => {
+        expect(() => validateRestoreVersionPayload({})).toThrow(/expectedRevision/);
+    });
+
+    it('отклоняет невалидный expectedRevision (строка, ноль, отрицательный, дробь)', () => {
+        expect(() => validateRestoreVersionPayload({ expectedRevision: '7' })).toThrow(
+            /expectedRevision/
+        );
+        expect(() => validateRestoreVersionPayload({ expectedRevision: 0 })).toThrow();
+        expect(() => validateRestoreVersionPayload({ expectedRevision: -1 })).toThrow();
+        expect(() => validateRestoreVersionPayload({ expectedRevision: 1.5 })).toThrow();
+        expect(() => validateRestoreVersionPayload({ expectedRevision: null })).toThrow();
+    });
+
+    it('отклоняет неизвестные ключи', () => {
+        expect(() => validateRestoreVersionPayload({ expectedRevision: 1, pagename: 'x' })).toThrow(
+            /Unknown fields/
+        );
     });
 });
 

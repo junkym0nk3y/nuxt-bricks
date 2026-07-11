@@ -26,6 +26,7 @@ import {
     invalid,
     optionalBoolean,
     optionalNullableString,
+    requirePositiveInteger,
     requireString,
 } from './payloadPrimitives';
 
@@ -58,6 +59,9 @@ const CREATE_PAGE_KEYS = new Set([
 ]);
 
 const UPDATE_PAGE_KEYS = new Set([...CREATE_PAGE_KEYS, 'thumbnailUrl', 'expectedRevision']);
+
+/** Payload POST /api/bricks/:id/versions/:versionId/restore — precondition only. */
+const RESTORE_VERSION_KEYS = new Set(['expectedRevision']);
 // #endregion
 
 // #region Field validators
@@ -117,11 +121,7 @@ function validateSchema(value: unknown): IBricksSchema {
  * @returns Ожидаемая revision.
  */
 function validateExpectedRevision(value: unknown): number {
-    if (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0) {
-        invalid('Field "expectedRevision" must be a positive integer');
-    }
-
-    return value;
+    return requirePositiveInteger(value, 'expectedRevision');
 }
 
 /**
@@ -256,5 +256,22 @@ export function validateUpdatePagePayload(body: Record<string, unknown>): IUpdat
     }
 
     return result;
+}
+
+/**
+ * Валидирует payload POST /api/bricks/:id/versions/:versionId/restore.
+ * В отличие от PUT/PATCH, `expectedRevision` здесь обязателен — restore не
+ * поддерживает last-write-wins (несовпадение revision → 409 REVISION_CONFLICT
+ * в toPageHttpError, см. JSDoc ручки restore.post.ts).
+ *
+ * @param body - Нормализованное тело запроса.
+ * @returns Precondition отката.
+ */
+export function validateRestoreVersionPayload(body: Record<string, unknown>): {
+    expectedRevision: number;
+} {
+    assertKnownKeys(body, RESTORE_VERSION_KEYS);
+
+    return { expectedRevision: validateExpectedRevision(body.expectedRevision) };
 }
 // #endregion

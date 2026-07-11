@@ -8,7 +8,8 @@
 | `formState.ts`        | Дефолтное/нормализованное состояние формы публикации, кэш цвета фона из app config                                                                             |
 | `formValidation.ts`   | Валидация формы публикации (`validatePublishFormState`) — обязательные поля, форматы, роутинг                                                                  |
 | `pagePayload.ts`      | Сборка payload создания/обновления/PATCH meta страницы (camelCase, snake_case — на вызове)                                                                     |
+| `pageVersionRestore.ts` | Оркестрация `restorePageVersion` стора: обязательный revision-precondition, синхронизация списка, `toPageWriteError` на конфликт (DI, тестируется без Pinia) |
 | `publishApi.ts`       | API-слой publish-стора: CRUD-запросы `/api/bricks` (+ версии страниц) + нормализация ответов                                                                   |
-| `requestErrors.ts`    | Ошибки запросов: `RequestError` (статус + код конфликта), детект 409-конфликта revision, `toPageWriteError` (конфликт → refetch списка + локализованный текст) |
+| `requestErrors.ts`    | Ошибки запросов: `RequestError` (статус + код конфликта), детект 409-конфликта revision, `requirePageRevision` (precondition отката), `toPageWriteError` (конфликт → refetch списка + локализованный текст) |
 | `slugify.ts`          | Генерация pagename из названия страницы (`slugifyPageTitle`) — транслитерация, `[a-z0-9-]`                                                                     |
 | `validationSchema.ts` | Чистая фабрика yup-схемы meta-полей (`createPublishValidationSchema`) — сайдбар + панель деталей                                                               |

@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import {
     RequestError,
     isRevisionConflictError,
+    requirePageRevision,
     toRequestError,
 } from '../src/runtime/modules/builder/publish/utils/requestErrors';
 // #endregion
@@ -86,6 +87,22 @@ describe('toRequestError: сохранение статуса и кода кон
         expect(toRequestError('PUT', '/api/bricks/9', original)).toBe(original);
         expect(isRevisionConflictError(toRequestError('PUT', '/api/bricks/9', original))).toBe(
             true
+        );
+    });
+});
+
+describe('requirePageRevision: precondition отката версии', () => {
+    it('возвращает revision, если страница найдена и revision задан', () => {
+        expect(requirePageRevision({ revision: 4 }, 'fallback')).toBe(4);
+    });
+
+    it('бросает fallback-сообщение, если страница не найдена', () => {
+        expect(() => requirePageRevision(undefined, 'restore failed')).toThrow('restore failed');
+    });
+
+    it('бросает fallback-сообщение, если у найденной страницы нет revision', () => {
+        expect(() => requirePageRevision({ revision: undefined }, 'restore failed')).toThrow(
+            'restore failed'
         );
     });
 });

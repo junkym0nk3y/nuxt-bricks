@@ -52,6 +52,28 @@ function unknownErrorMessage(): string {
 }
 
 /**
+ * Достаёт revision страницы из сводки локального списка для precondition
+ * отката версии; бросает понятную ошибку, если страница/revision не найдены.
+ * В отличие от update/patch (которые допускают запись без precondition —
+ * см. `IPublishedPage.revision`), restore обязан идти с revision всегда,
+ * поэтому здесь нет молчаливой деградации.
+ *
+ * @param page - Сводка страницы из локального списка (или undefined).
+ * @param fallbackMessage - Локализованное сообщение об ошибке.
+ * @returns Revision страницы.
+ */
+export function requirePageRevision(
+    page: { revision?: number } | undefined,
+    fallbackMessage: string
+): number {
+    if (page?.revision === undefined) {
+        throw new Error(fallbackMessage);
+    }
+
+    return page.revision;
+}
+
+/**
  * Приводит ошибку записи страницы к пользовательскому виду: конфликт
  * optimistic locking превращается в локализованное сообщение, а перед этим
  * best-effort обновляется список страниц (свежие revision) — повторное

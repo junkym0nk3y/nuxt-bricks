@@ -127,3 +127,20 @@ export function optionalBoolean(value: unknown, field: string): boolean | undefi
 
     return value;
 }
+
+/**
+ * Валидирует обязательное значение как positive safe integer. Общий helper
+ * для precondition-полей optimistic locking (`expectedRevision` — и page
+ * update, и version restore) и других строго положительных числовых DTO-полей.
+ *
+ * @param value - Сырое значение поля.
+ * @param field - Имя поля для сообщения об ошибке.
+ * @returns Число.
+ */
+export function requirePositiveInteger(value: unknown, field: string): number {
+    if (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0) {
+        invalid(`Field "${field}" must be a positive integer`);
+    }
+
+    return value;
+}
