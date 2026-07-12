@@ -5,6 +5,7 @@ import type {
     IPageVersion,
     IUpdatePagePayload,
 } from '../src/runtime/modules/common/types/bricks-api';
+import type { IBricksComponent } from '../src/runtime/modules/common/types/brick';
 
 // Vitest
 import { describe, expect, it } from 'vitest';
@@ -160,8 +161,14 @@ describe('restorePageVersion: version lookup + updatePage с revision-preconditi
     });
 
     it('legacy-версия с невалидной схемой (аудит A-02) — 400, updatePage не вызывается', async () => {
+        // Намеренно невалидная фикстура (legacy-строка БД) — приводится из unknown[],
+        // как в test/renderDataSourcesLegacySchema.spec.ts (makePage).
+        const invalidComponents: unknown[] = [null];
+
         const { deps, calls } = makeDeps({
-            version: makeVersion({ schema: { components: [null] } }),
+            version: makeVersion({
+                schema: { components: invalidComponents as IBricksComponent[] },
+            }),
         });
 
         await expect(restorePageVersion(deps, 1, 5, 8)).rejects.toMatchObject({
