@@ -1,0 +1,41 @@
+// #region Imports
+// Vitest
+import { describe, expect, it } from 'vitest';
+
+// Utils
+import {
+    computeMigrationChecksum,
+    findMigrationDrift,
+} from '../src/cli/bricks-migrate-checksum.mjs';
+// #endregion
+
+describe('bricks-migrate checksum: обнаружение drift применённых миграций', () => {
+    it('checksum детерминирован и чувствителен к содержимому', () => {
+        expect(computeMigrationChecksum('SELECT 1;')).toBe(computeMigrationChecksum('SELECT 1;'));
+        expect(computeMigrationChecksum('SELECT 1;')).not.toBe(
+            computeMigrationChecksum('SELECT 2;')
+        );
+        expect(computeMigrationChecksum('SELECT 1;')).toMatch(/^[0-9a-f]{64}$/);
+    });
+
+    it('drift — только применённые с checksum, не совпавшим с файлом', () => {
+        const files = new Map([
+            ['0001.sql', 'aaa'],
+            ['0002.sql', 'bbb'],
+        ]);
+        const applied = [
+            { name: '0001.sql', checksum: 'aaa' }, // совпал
+            { name: '0002.sql', checksum: 'CHANGED' }, // drift
+            { name: '0000_legacy.sql', checksum: null }, // до checksum-эры — backfill, не drift
+        ];
+
+        expect(findMigrationDrift(files, applied)).toEqual(['0002.sql']);
+    });
+
+    it('применённая миграция без файла на диске — тоже drift', () => {
+        const files = new Map([['0001.sql', 'aaa']]);
+        const applied = [{ name: '0009_removed.sql', checksum: 'xyz' }];
+
+        expect(findMigrationDrift(files, applied)).toEqual(['0009_removed.sql']);
+    });
+});
