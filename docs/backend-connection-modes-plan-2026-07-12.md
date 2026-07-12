@@ -188,9 +188,9 @@ stacked (fail-fast PR1 предлагает `backend.mode = 'external'`, кот�
 
 ### PR3 — useApiClient + документация
 
-- [ ] Modify: `common/composables/useApiClient.ts` по Р3; общий util локальных путей в `modules/common/utils/`; unit-тест чистой функции решения local-vs-external
-- [ ] Create: `docs/external-backend-contract.md` — контракт Р2 целиком (относительные пути от `backend.url`, Bearer, 409 `data.code`, идемпотентность media, инвариант версионирования, ISO-даты, обязательные поля `IBricksPageRow`/`IMediaItem`)
-- [ ] Update: README, CLAUDE.md (env-таблица, режимы; убрать стейл `SERVER_API_URL`), примеры трёх конфигураций, transition-гайд PROXY_URL → backend.mode/devProxy, deprecation `bricksSsrProxyUrl`
+- [x] Modify: `common/composables/useApiClient.ts` по Р3; общий util локальных путей в `modules/common/utils/`; unit-тест чистой функции решения local-vs-external
+- [x] Create: `docs/external-backend-contract.md` — контракт Р2 целиком (относительные пути от `backend.url`, Bearer, 409 `data.code`, идемпотентность media, инвариант версионирования, ISO-даты, обязательные поля `IBricksPageRow`/`IMediaItem`)
+- [x] Update: README, CLAUDE.md (env-таблица, режимы; убрать стейл `SERVER_API_URL`), примеры трёх конфигураций, transition-гайд PROXY_URL → backend.mode/devProxy, deprecation `bricksSsrProxyUrl`
 
 ## Тестовая матрица
 
@@ -297,3 +297,13 @@ Follow-up (вне этих PR): `bricks-migrate verify` (readiness с прове
     - [P2 → fix] Проверка mode-immutability в `external-smoke.mjs` была подвержена гонке за порт: после `kill('SIGKILL')` следующий boot стартовал, не дождавшись exit предыдущего процесса — запрос мог попасть в старый сервер, а новый умереть с EADDRINUSE (ложноположительный результат). Добавлен `waitForExit` в `smoke-shared.mjs`; все kill→boot-переходы смока ждут фактического завершения child-процесса.
     - [P3 → fix] Чеклисты PR1/PR2 приведены к фактической архитектуре: `bricksBackendMode` в runtimeConfig не пишется (носитель — регистрация Nitro-плагина), вход readiness — флаги `hasExternalBackend`/`isLegacyBackendMode`, пункт auth.ts дополнен external-defense. Журнальные записи прошлых итераций не переписывались (история).
     - Верификация: vue-tsc/oxlint/depcruise чисто, vitest 552/552 (64 файла), format:check зелёный, `smoke:external` зелёный (в логе виден отказ external-defense).
+- 2026-07-13 — **PR3 code-complete** (все чекбоксы; коммит — по запросу):
+    - `common/utils/localApiPaths.ts` — единственная копия правила «`/api/bricks/**` и `/mock-api/**` всегда локальны» (segment-boundary): `matchesPathPrefix`, `isLocalApiPathname`, `isLocalApiRequest` (терпит query/hash, абсолютные URL и пути без ведущего слэша — не локальные). Серверный `proxyRouting.ts` переиспользует предикат (вторая копия удалена); `useApiClient.ts` — третья копия удалена вместе с `hasLocalDatabase`: bricks/mock-api пути локальны независимо от БД и PROXY_URL, не-bricks `/api/*` на SSR по-прежнему уходят на `bricksSsrProxyUrl || bricksProxyUrl`. Тест: `test/commonLocalApiPaths.spec.ts` (8 юнитов чистой функции решения local-vs-external).
+    - Deprecation `bricksSsrProxyUrl`: build-time warning в `module-runtime-config.ts` при заданном `proxy.ssrUrl` / `NUXT_SERVER_CACHE_URL` (удаление — отдельный мажорный шаг).
+    - `docs/external-backend-contract.md` — контракт Р2 целиком: конфигурация/env, транспорт (camelCase-запросы, top-level snake→camel нормализация ответов, ISO-даты, Bearer, таймаут 10 с, redirect: 'error'), таблица ручек, формат ошибок (404, 409 `data.code` — только точные коды), таблицы обязательных полей `IBricksPageRow`/`IMediaItem`, public lookup (горячий путь, синтез проекции), идемпотентность `POST media` по url, инвариант версионирования, readiness; референс — `scripts/external-smoke-backend.mjs`.
+    - README: ссылка на контракт-док из раздела external; новый раздел «Dev-прокси host-API (PROXY_URL)» — dev-only семантика, transition-гайд с legacy PROXY_URL (fail-fast → external/builtin), deprecation `proxy.ssrUrl`/`NUXT_SERVER_CACHE_URL`. CLAUDE.md правок не потребовал: после консолидации 547396d эксплуатационные таблицы живут в README, стейл `SERVER_API_URL` уже убран.
+    - Обновлены README `common/utils` (строка `localApiPaths.ts`) и `common/composables` (описание useApiClient).
+    - Верификация: vue-tsc чисто, oxlint чисто, vitest 560/560 (65 файлов), depcruise (468 модулей) и knip чисто, format:check зелёный.
+- 2026-07-13 — **ре-ревью PR3** (1 P1 + 1 P2 внешнего ревью, оба закрыты):
+    - [P1 → fix] Контракт external backend не попадал в npm-пакет: README и build-time ошибка legacy PROXY_URL ссылаются на `docs/external-backend-contract.md`, но `files` публиковал только dist и migrations — установившие пакет документа не получали. Файл добавлен в `package.json#files` (npm pack: 16.2kB docs/external-backend-contract.md); pack-smoke проверяет его наличие в установленном пакете.
+    - [P2 → fix] Runtime-override deprecated-ключа активировался молча: build-time warning видит только nuxt.config/NUXT_SERVER_CACHE_URL сборки, а `NUXT_BRICKS_SSR_PROXY_URL` Nitro применяет после module setup. Добавлен всегда регистрируемый Nitro-плагин `server/plugins/deprecationWarnings.ts` — предупреждение на старте сервера по финальному значению runtimeConfig (ловит оба пути); README-абзац deprecation дополнен env-именем и двухуровневой схемой предупреждений.

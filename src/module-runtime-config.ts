@@ -126,6 +126,12 @@ function applyBricksBackendRuntimeConfig(
  * proxy middleware. Runtime-override: NUXT_BRICKS_PROXY_URL /
  * NUXT_BRICKS_SSR_PROXY_URL / NUXT_BRICKS_PROXY_HEALTH_URL.
  *
+ * `bricksSsrProxyUrl` — deprecated: SSR-специфичный адрес API host-проекта
+ * дублирует PROXY_URL; удаление — отдельный мажорный шаг
+ * (docs/backend-connection-modes-plan-2026-07-12.md, Р3). Warning здесь видит
+ * только nuxt.config/env сборки; runtime-override NUXT_BRICKS_SSR_PROXY_URL
+ * ловит Nitro-плагин server/plugins/deprecationWarnings.ts на старте сервера.
+ *
  * @param runtimeConfig - nuxt.options.runtimeConfig.
  * @param options - Опции модуля из nuxt.config.
  */
@@ -140,6 +146,14 @@ function applyBricksProxyRuntimeConfig(
         options.proxy?.ssrUrl ??
         process.env.NUXT_SERVER_CACHE_URL ??
         '';
+
+    if (runtimeConfig.bricksSsrProxyUrl) {
+        console.warn(
+            '[nuxt-bricks] proxy.ssrUrl / NUXT_SERVER_CACHE_URL — deprecated: ' +
+                'используйте единый PROXY_URL для SSR и клиентского dev-прокси; ' +
+                'ключ будет удалён в следующем мажорном релизе.'
+        );
+    }
     // Health-эндпоинт backend'а для readiness (готовность — только 2xx);
     // без него проверяется лишь достижимость PROXY_URL (ре-ревью A-05).
     runtimeConfig.bricksProxyHealthUrl =

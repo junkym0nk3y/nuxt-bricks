@@ -98,8 +98,9 @@ NUXT_BRICKS_BACKEND_HEALTH_URL=https://api.example.com/health
 ```
 
 `backend.url` — полный base URL API; сегмент `bricks` автоматически не
-добавляется. Адаптер отправляет Bearer token, если он задан. Внешний backend
-должен реализовать следующие JSON-ручки:
+добавляется. Адаптер отправляет Bearer token, если он задан. Полный контракт
+ручек — [`docs/external-backend-contract.md`](docs/external-backend-contract.md);
+кратко внешний backend должен реализовать следующие JSON-ручки:
 
 | Метод                                | Назначение                  |
 | ------------------------------------ | --------------------------- |
@@ -123,8 +124,30 @@ lookup. Даты передаются в ISO 8601, `PATCH` страницы пр
 Database-auth несовместим с external-режимом, потому что пользователи и сессии
 этого режима хранятся в локальном PostgreSQL.
 
+### Dev-прокси host-API (`PROXY_URL`)
+
 `PROXY_URL` не выбирает backend данных. Он используется только в dev для
-проксирования `/api/*`, кроме `/api/bricks/**` и `/mock-api/**`.
+проксирования `/api/*` host-проекта, кроме `/api/bricks/**` и `/mock-api/**` —
+эти пути всегда обслуживаются локально. Значение принимается с завершающим
+слэшем и без; в production-сборке proxy middleware не регистрируется.
+
+Переход с legacy-схемы, где `PROXY_URL` направлял `/api/bricks/**` на внешний
+сервер:
+
+- production-сборка только с `PROXY_URL` (без `backend.mode` и
+  `NUXT_BRICKS_DATABASE_URL`) намеренно падает с инструкцией — тихо сломанного
+  прода не будет;
+- если данные страниц живут на вашем HTTP-backend — включите
+  `backend.mode: 'external'` и реализуйте контракт из
+  `docs/external-backend-contract.md`;
+- если использовался встроенный PostgreSQL — задайте
+  `backend.mode: 'builtin'` явно.
+
+SSR-специфичный адрес `proxy.ssrUrl` / `NUXT_SERVER_CACHE_URL` (build-time) и
+его runtime-override `NUXT_BRICKS_SSR_PROXY_URL` — deprecated: используйте
+единый `PROXY_URL`; ключ будет удалён в следующем мажорном релизе. Модуль
+предупреждает и при сборке, и на старте сервера (runtime-override виден только
+второму).
 
 ## Авторизация
 

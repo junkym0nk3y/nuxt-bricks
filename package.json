@@ -38,7 +38,8 @@
     },
     "files": [
         "dist",
-        "migrations"
+        "migrations",
+        "docs/external-backend-contract.md"
     ],
     "bin": {
         "bricks-gen": "dist/cli/bricks-generate.mjs",

@@ -4,6 +4,7 @@ import type { IncomingHttpHeaders } from 'http';
 
 // Utils
 import { stripCookieByName } from '../utils/cookieHeader';
+import { isLocalApiRequest } from '../utils/localApiPaths';
 
 // Constants
 import { BRICKS_CSRF_HEADER_NAME, BRICKS_SESSION_COOKIE_NAME } from '../constants/auth';
@@ -95,11 +96,12 @@ function resolveLocalBaseUrl(appBaseURL: string): string {
 /**
  * Composable для работы с API билдера.
  *
- * Маршрутизация запросов:
- * - /mock-api/* — всегда локальные Nitro-роуты
- * - /api/bricks/** — локальные persistence-ручки, если сконфигурирована БД
- * - остальные /api/* — внешний backend (server-only bricksProxyUrl),
- *   на клиенте через proxy middleware
+ * Маршрутизация запросов (см. common/utils/localApiPaths.ts — общий предикат
+ * с серверным devProxy-роутингом):
+ * - /mock-api/** и /api/bricks/** — всегда локальные Nitro-роуты
+ *   (persistence выбирается bricks.backend.mode, а не адресом запроса)
+ * - остальные /api/* — API host-проекта (server-only bricksProxyUrl),
+ *   на клиенте через dev proxy middleware
  *
  * Поддерживает:
  * - CSRF токен из cookie (для REST backend)
@@ -117,21 +119,15 @@ export function useApiClient() {
     // Проброс headers из SSR-запроса (x-forwarded-*, cookie, IP)
     const event = useRequestEvent();
 
-    // Локальный persistence-режим: server-only ключ, на клиенте не читаем
-    // (доступ к приватным ключам runtimeConfig на клиенте даёт warning;
-    // клиентский роутинг /api/bricks решает proxy middleware)
-    const hasLocalDatabase = import.meta.server
-        ? Boolean(config.bricksDatabaseUrl as string | undefined)
-        : false;
-
     const appBaseURL = (config.app?.baseURL as string | undefined) || '/';
     const localBaseUrl = resolveLocalBaseUrl(appBaseURL);
 
     let endpoint = localBaseUrl;
 
     if (import.meta.server) {
-        // SSR: внешний backend, если задан (server-only ключи — адрес не попадает
-        // в client payload); ssrUrl побеждает как SSR-специфичный адрес.
+        // SSR: API host-проекта, если задан (server-only ключи — адрес не попадает
+        // в client payload); ssrUrl (deprecated, см. module-runtime-config.ts)
+        // побеждает как SSR-специфичный адрес.
         // Локальные ручки уходят внутренним вызовом Nitro (см. onRequest).
         const proxyEndpoint =
             (config.bricksSsrProxyUrl as string | undefined) ||
@@ -169,13 +165,9 @@ export function useApiClient() {
                 return;
             }
 
-            // Локальные ручки: /mock-api/* всегда; /api/bricks/** — при заданной БД
-            // (упрощённое зеркало серверного devProxy, актуально для SSR с PROXY_URL)
-            const isLocalRoute =
-                request.startsWith('/mock-api/') ||
-                (hasLocalDatabase && request.startsWith('/api/bricks'));
-
-            if (!isLocalRoute) {
+            // Локальные ручки: /mock-api/** и /api/bricks/** — всегда,
+            // независимо от режима persistence (актуально для SSR с PROXY_URL)
+            if (!isLocalApiRequest(request)) {
                 return;
             }
 

@@ -163,6 +163,12 @@ async function main() {
         for (const bin of ['bricks-generate', 'bricks-hash-password', 'bricks-migrate']) {
             await assertFileExists(join(installedRoot, 'dist', 'cli', `${bin}.mjs`), `CLI ${bin}`);
         }
+        // Контракт external backend обязан доезжать до установивших пакет:
+        // на него ссылаются README и build-time ошибка legacy PROXY_URL (ре-ревью PR3)
+        await assertFileExists(
+            join(installedRoot, 'docs', 'external-backend-contract.md'),
+            'docs/external-backend-contract.md'
+        );
 
         // Контракт зависимостей (план backend-connection-modes): h3-proxy удалён,
         // sharp и AWS SDK — обязательные dependencies (runtime-контракт media flow)

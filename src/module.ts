@@ -286,6 +286,10 @@ export default defineNuxtModule<IBricksModuleOptions>({
         if (!options.backend?.mode) {
             addServerPlugin(resolve(runtimeDir, 'server/plugins/legacyBackendMode'));
         }
+        // Runtime-deprecation: NUXT_BRICKS_SSR_PROXY_URL Nitro применяет уже
+        // после сборки — build-time warning его не видит, поэтому проверка
+        // повторяется на старте сервера (плагин регистрируется всегда)
+        addServerPlugin(resolve(runtimeDir, 'server/plugins/deprecationWarnings'));
         // #endregion
 
         // #region Public assets (превью layout-блоков, плейсхолдеры, картинки документации)

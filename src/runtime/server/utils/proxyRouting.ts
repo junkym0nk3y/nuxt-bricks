@@ -13,23 +13,11 @@
 
 import { joinURL } from 'ufo';
 
+import { isLocalApiPathname, matchesPathPrefix } from '../../modules/common/utils/localApiPaths';
+
 // #region Constants
 const API_PREFIX = '/api';
-const LOCAL_API_PREFIX = '/api/bricks';
-const MOCK_API_PREFIX = '/mock-api';
 // #endregion
-
-/**
- * Проверяет, что pathname лежит внутри префикса по границе сегмента:
- * `/api/bricks/x` и `/api/bricks` — да, `/api/bricksmith` — нет.
- *
- * @param pathname - Разобранный pathname запроса.
- * @param prefix - Префикс без trailing slash.
- * @returns true, если pathname — сам префикс или путь под ним.
- */
-function matchesPrefix(pathname: string, prefix: string): boolean {
-    return pathname === prefix || pathname.startsWith(`${prefix}/`);
-}
 
 /**
  * Извлекает pathname из URL входящего запроса (origin-form или absolute-form),
@@ -83,12 +71,13 @@ export function shouldProxyRequest(pathname: string): boolean {
         return false;
     }
 
-    // Mock API и bricks API — НИКОГДА не проксируем (локальные Nitro-роуты)
-    if (matchesPrefix(pathname, MOCK_API_PREFIX) || matchesPrefix(pathname, LOCAL_API_PREFIX)) {
+    // Mock API и bricks API — НИКОГДА не проксируем (локальные Nitro-роуты);
+    // общий предикат с useApiClient — common/utils/localApiPaths.ts
+    if (isLocalApiPathname(pathname)) {
         return false;
     }
 
-    return matchesPrefix(pathname, API_PREFIX);
+    return matchesPathPrefix(pathname, API_PREFIX);
 }
 
 /**
