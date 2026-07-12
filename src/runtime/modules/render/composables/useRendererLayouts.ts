@@ -24,12 +24,13 @@ export function useRendererLayouts({
 }: IRendererLayoutsOptions) {
     // #region Data
     /**
-     * Id layout-компонентов текущей синхронной ветки рендера. Контейнеры
-     * рендерят детей eager'ом внутри renderPublished, поэтому Set корректно
-     * отражает цепочку предков: повторный вход по id (цикл в повреждённой
-     * legacy-схеме) или превышение глубины -> null вместо бесконечной рекурсии.
+     * Id layout-предков активного вызова renderChild. Блоки с отложенным
+     * рендером детей (Slider вызывает renderSlide из своего `.vue` уже после
+     * выхода из renderPublished) получают снимок цепочки в замыкании и
+     * подставляют его на время вызова — иначе цикл в повреждённой legacy-схеме
+     * (A -> B -> A) не детектируется и рекурсия не ограничена.
      */
-    const renderChain = new Set<string>();
+    let activeAncestry: ReadonlySet<string> = new Set<string>();
     // #endregion
 
     // #region Methods
@@ -83,25 +84,38 @@ export function useRendererLayouts({
             return null;
         }
 
-        if (renderChain.has(component.id) || renderChain.size >= MAX_COMPONENT_TREE_DEPTH) {
+        if (activeAncestry.has(component.id) || activeAncestry.size >= MAX_COMPONENT_TREE_DEPTH) {
             return null;
         }
 
-        renderChain.add(component.id);
+        const ancestry: ReadonlySet<string> = new Set(activeAncestry).add(component.id);
 
-        try {
-            return definition.renderPublished({
-                component,
-                definition,
-                extraClasses,
-                extraAttrs,
-                styles,
-                renderChild,
-                getChildComponents,
-            });
-        } finally {
-            renderChain.delete(component.id);
-        }
+        /**
+         * renderChild с восстановлением цепочки предков: снимок живёт в
+         * замыкании, поэтому и eager-вызовы (Grid/Flex внутри renderPublished),
+         * и deferred-вызовы (renderSlide слайдера после выхода отсюда) видят
+         * своих предков.
+         */
+        const scopedRenderChild: typeof renderChild = (child) => {
+            const previousAncestry = activeAncestry;
+            activeAncestry = ancestry;
+
+            try {
+                return renderChild(child);
+            } finally {
+                activeAncestry = previousAncestry;
+            }
+        };
+
+        return definition.renderPublished({
+            component,
+            definition,
+            extraClasses,
+            extraAttrs,
+            styles,
+            renderChild: scopedRenderChild,
+            getChildComponents,
+        });
     }
     // #endregion
 
