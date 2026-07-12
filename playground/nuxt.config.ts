@@ -1,6 +1,9 @@
 export default defineNuxtConfig({
     modules: ['../src/module'],
     bricks: {
+        backend: {
+            mode: 'builtin', // 'builtin' (PostgreSQL) | 'external' (свой HTTP-backend)
+        },
         auth: {
             mode: 'database', // 'basic' (дефолт) | 'database'
             sessionMaxAgeSeconds: 604800, // срок cookie-сессии, 7 дней (только database)

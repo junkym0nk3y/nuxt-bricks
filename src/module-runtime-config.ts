@@ -6,28 +6,32 @@
 import { defu } from 'defu';
 import type { IBricksRoutePrefixes } from './runtime/modules/common/utils/bricks/routePaths';
 import type { IBricksModuleOptions } from './module';
+import { resolveBricksBackendConfig, type IBricksBackendResolution } from './module-backend-config';
 
 // #region Helpers
 /**
- * Логирует выбранный persistence-режим при старте модуля.
+ * Логирует разрешённый режим data backend при старте модуля — только сам mode,
+ * без URL и секретов. При наличии ошибок mode не логируется: module.ts валит
+ * сборку сразу после (fail-fast), диагностика уходит в текст ошибки.
  *
- * @param hasDatabase - Сконфигурирована ли локальная БД.
- * @param hasProxy - Задан ли PROXY_URL.
+ * @param resolution - Результат резолвера backend.mode.
  */
-function logPersistenceMode(hasDatabase: boolean, hasProxy: boolean): void {
-    if (hasDatabase) {
-        console.info('[nuxt-bricks] Persistence: local PostgreSQL adapter (/api/bricks/**)');
-        return;
+function logBackendResolution(resolution: IBricksBackendResolution): void {
+    if (resolution.errors.length === 0) {
+        const modeLabel =
+            resolution.mode === 'external'
+                ? 'external (HTTP storage adapter)'
+                : 'builtin (local PostgreSQL adapter)';
+        console.info(`[nuxt-bricks] Backend mode: ${modeLabel}`);
     }
 
-    if (hasProxy) {
-        console.info('[nuxt-bricks] Persistence: proxy mode (/api/* → PROXY_URL)');
-        return;
+    for (const info of resolution.infos) {
+        console.info(`[nuxt-bricks] ${info}`);
     }
 
-    console.warn(
-        '[nuxt-bricks] Neither bricks.database.url nor PROXY_URL is configured — /api/bricks/** will fail at runtime'
-    );
+    for (const warning of resolution.warnings) {
+        console.warn(`[nuxt-bricks] ${warning}`);
+    }
 }
 
 /**
@@ -88,7 +92,36 @@ function applyBricksPersistenceRuntimeConfig(
 }
 
 /**
- * Заполняет runtimeConfig proxy-режима: /api/* → внешний backend. Ключи
+ * Заполняет runtimeConfig external data backend: base URL, Bearer-токен и
+ * health URL (все — server-only, в client payload не попадают; browser ходит
+ * через локальный /api/bricks). Сам `mode` — build-time (резолвится отдельно,
+ * см. applyBricksRuntimeConfig), а URL/токен runtime-переопределяемы через
+ * Nuxt-конвенцию NUXT_BRICKS_BACKEND_URL / _TOKEN / _HEALTH_URL.
+ *
+ * @param runtimeConfig - nuxt.options.runtimeConfig.
+ * @param options - Опции модуля из nuxt.config.
+ */
+function applyBricksBackendRuntimeConfig(
+    runtimeConfig: Record<string, unknown>,
+    options: IBricksModuleOptions
+): void {
+    runtimeConfig.bricksBackendUrl =
+        runtimeConfig.bricksBackendUrl ??
+        process.env.NUXT_BRICKS_BACKEND_URL ??
+        options.backend?.url ??
+        '';
+    // Токен — только env: секретам не место в nuxt.config
+    runtimeConfig.bricksBackendToken =
+        runtimeConfig.bricksBackendToken ?? process.env.NUXT_BRICKS_BACKEND_TOKEN ?? '';
+    runtimeConfig.bricksBackendHealthUrl =
+        runtimeConfig.bricksBackendHealthUrl ??
+        process.env.NUXT_BRICKS_BACKEND_HEALTH_URL ??
+        options.backend?.healthUrl ??
+        '';
+}
+
+/**
+ * Заполняет runtimeConfig dev-проксирования не-bricks /api/* (PROXY_URL). Ключи
  * server-only: адрес backend не светится в client payload, клиент ходит через
  * proxy middleware. Runtime-override: NUXT_BRICKS_PROXY_URL /
  * NUXT_BRICKS_SSR_PROXY_URL / NUXT_BRICKS_PROXY_HEALTH_URL.
@@ -141,21 +174,25 @@ function applyBricksAuthRuntimeConfig(
 // #endregion
 
 /**
- * Заполняет runtimeConfig модуля: basic-auth, persistence (Postgres/S3), proxy,
- * префиксы маршрутов, политика data sources. Дефолты переопределяемы
- * в production через ENV (NUXT_BRICKS_*, legacy-имена — fallback), кроме
- * bricksRoutes — пути страниц фиксируются на сборке, env-override дал бы
- * рассинхрон с зарегистрированными маршрутами.
+ * Заполняет runtimeConfig модуля: basic-auth, persistence (Postgres/S3),
+ * external backend, dev proxy, префиксы маршрутов, политика data sources.
+ * Дефолты переопределяемы в production через ENV (NUXT_BRICKS_*, legacy-имена —
+ * fallback), кроме bricksRoutes и bricksBackendMode — пути страниц и режим
+ * backend фиксируются на сборке (env-override дал бы рассинхрон с маршрутами
+ * и build-time проверками).
  *
  * @param runtimeConfig - nuxt.options.runtimeConfig.
  * @param options - Опции модуля из nuxt.config.
  * @param routePrefixes - Валидированные префиксы маршрутов.
+ * @param isDev - Dev-сборка (nuxt.options.dev) — влияет на legacy-резолвер PROXY_URL.
+ * @returns Результат резолвера backend.mode — module.ts валит сборку при errors.
  */
 export function applyBricksRuntimeConfig(
     runtimeConfig: Record<string, unknown>,
     options: IBricksModuleOptions,
-    routePrefixes: IBricksRoutePrefixes
-): void {
+    routePrefixes: IBricksRoutePrefixes,
+    isDev: boolean
+): IBricksBackendResolution {
     runtimeConfig.basicAuthUsername =
         runtimeConfig.basicAuthUsername ??
         process.env.BASIC_AUTH_USERNAME ??
@@ -166,6 +203,7 @@ export function applyBricksRuntimeConfig(
         options.basicAuth?.password;
 
     applyBricksPersistenceRuntimeConfig(runtimeConfig, options);
+    applyBricksBackendRuntimeConfig(runtimeConfig, options);
     applyBricksProxyRuntimeConfig(runtimeConfig, options);
 
     // Доверие x-forwarded-for для клиентского IP rate limiter'ов (server-only;
@@ -193,9 +231,20 @@ export function applyBricksRuntimeConfig(
 
     applyBricksAuthRuntimeConfig(runtimeConfig, publicConfig, options);
 
-    logPersistenceMode(
-        Boolean(runtimeConfig.bricksDatabaseUrl),
-        Boolean(runtimeConfig.bricksProxyUrl)
-    );
+    // Режим data backend — build-time: резолвится по сведённым options+env
+    // и фиксируется в runtimeConfig (см. module-backend-config.ts)
+    const backendResolution = resolveBricksBackendConfig({
+        configuredMode: options.backend?.mode,
+        backendUrl: runtimeConfig.bricksBackendUrl as string,
+        databaseUrl: runtimeConfig.bricksDatabaseUrl as string,
+        proxyUrl: runtimeConfig.bricksProxyUrl as string,
+        authMode: runtimeConfig.bricksAuthMode as string,
+        isDev,
+    });
+    runtimeConfig.bricksBackendMode = backendResolution.mode;
+
+    logBackendResolution(backendResolution);
     logAuthMode(runtimeConfig.bricksAuthMode as string, Boolean(runtimeConfig.bricksDatabaseUrl));
+
+    return backendResolution;
 }

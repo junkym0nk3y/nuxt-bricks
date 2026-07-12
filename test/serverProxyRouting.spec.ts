@@ -4,24 +4,12 @@ import { describe, expect, it } from 'vitest';
 
 // Utils
 import {
+    buildProxyTargetUrl,
     resolveRequestPathname,
+    resolveRequestPathWithQuery,
     shouldProxyRequest,
 } from '../src/runtime/server/utils/proxyRouting';
 // #endregion
-
-/**
- * Сокращение для shouldProxyRequest с дефолтами (GET, без локальной БД).
- */
-function proxied(
-    pathname: string,
-    overrides: Partial<{ method: string; hasLocalDatabase: boolean }> = {}
-): boolean {
-    return shouldProxyRequest(pathname, {
-        method: 'GET',
-        hasLocalDatabase: false,
-        ...overrides,
-    });
-}
 
 describe('resolveRequestPathname', () => {
     it('отбрасывает query и hash', () => {
@@ -39,54 +27,84 @@ describe('resolveRequestPathname', () => {
     });
 });
 
-describe('shouldProxyRequest', () => {
-    it('health-пробы всегда локальные — даже без локальной БД в proxy-режиме', () => {
-        expect(proxied('/api/bricks/health')).toBe(false);
-        expect(proxied('/api/bricks/health/ready')).toBe(false);
-        expect(proxied('/api/bricks/health', { method: 'HEAD' })).toBe(false);
-        expect(proxied('/api/bricks/health', { hasLocalDatabase: true })).toBe(false);
+describe('resolveRequestPathWithQuery', () => {
+    it('сохраняет query, отбрасывает hash', () => {
+        expect(resolveRequestPathWithQuery('/api/items?x=1&y=2#frag')).toBe('/api/items?x=1&y=2');
+        expect(resolveRequestPathWithQuery('/api/items')).toBe('/api/items');
     });
 
-    it('health с query остаётся локальным (pathname разбирается до матчинга)', () => {
-        const pathname = resolveRequestPathname('/api/bricks/health/ready?verbose=1');
-        expect(proxied(pathname)).toBe(false);
+    it('пустой/отсутствующий URL → пустая строка', () => {
+        expect(resolveRequestPathWithQuery(undefined)).toBe('');
+        expect(resolveRequestPathWithQuery('')).toBe('');
     });
 
-    it('похожие на health пути — обычные проксируемые', () => {
-        expect(proxied('/api/bricks/healthcheck')).toBe(true);
-        expect(proxied('/api/bricks/health/ready/extra')).toBe(true);
-        expect(proxied('/api/health')).toBe(true);
-    });
-
-    it('не-GET/HEAD методы health-путей идут по общим правилам', () => {
-        expect(proxied('/api/bricks/health', { method: 'POST' })).toBe(true);
-        expect(proxied('/api/bricks/health', { method: 'POST', hasLocalDatabase: true })).toBe(
-            false
+    it('absolute-form URL → путь с query', () => {
+        expect(resolveRequestPathWithQuery('http://example.com/api/items?x=1')).toBe(
+            '/api/items?x=1'
         );
     });
+});
 
-    it('/api/bricks/**: локально при БД, на прокси без БД', () => {
-        expect(proxied('/api/bricks/page-1', { hasLocalDatabase: true })).toBe(false);
-        expect(proxied('/api/bricks', { hasLocalDatabase: true })).toBe(false);
-        expect(proxied('/api/bricks/page-1')).toBe(true);
+describe('shouldProxyRequest', () => {
+    it('/api/bricks/** никогда не проксируется (persistence выбирает backend.mode)', () => {
+        expect(shouldProxyRequest('/api/bricks')).toBe(false);
+        expect(shouldProxyRequest('/api/bricks/page-1')).toBe(false);
+        expect(shouldProxyRequest('/api/bricks/health')).toBe(false);
+        expect(shouldProxyRequest('/api/bricks/health/ready')).toBe(false);
+        expect(shouldProxyRequest('/api/bricks/media/upload')).toBe(false);
+    });
+
+    it('bricks-путь с query остаётся локальным (pathname разбирается до матчинга)', () => {
+        const pathname = resolveRequestPathname('/api/bricks/health/ready?verbose=1');
+        expect(shouldProxyRequest(pathname)).toBe(false);
     });
 
     it('mock-api никогда не проксируется', () => {
-        expect(proxied('/mock-api/s3-page-thumbnail')).toBe(false);
-        expect(proxied('/mock-api/s3-page-thumbnail', { hasLocalDatabase: true })).toBe(false);
+        expect(shouldProxyRequest('/mock-api/s3-page-thumbnail')).toBe(false);
+        expect(shouldProxyRequest('/mock-api')).toBe(false);
     });
 
     it('остальные /api/** проксируются, не-API пути — нет', () => {
-        expect(proxied('/api/items')).toBe(true);
-        expect(proxied('/api/items', { hasLocalDatabase: true })).toBe(true);
-        expect(proxied('/bricks')).toBe(false);
-        expect(proxied('')).toBe(false);
+        expect(shouldProxyRequest('/api/items')).toBe(true);
+        expect(shouldProxyRequest('/api/health')).toBe(true);
+        expect(shouldProxyRequest('/api')).toBe(true);
+        expect(shouldProxyRequest('/bricks')).toBe(false);
+        expect(shouldProxyRequest('')).toBe(false);
     });
 
     it('границы сегментов: похожие префиксы не матчатся', () => {
-        expect(proxied('/apifoo')).toBe(false);
-        expect(proxied('/mock-apifoo')).toBe(false);
-        // /api/bricksmith — не bricks-путь: проксируется даже при локальной БД
-        expect(proxied('/api/bricksmith', { hasLocalDatabase: true })).toBe(true);
+        expect(shouldProxyRequest('/apifoo')).toBe(false);
+        expect(shouldProxyRequest('/mock-apifoo')).toBe(false);
+        // /api/bricksmith — не bricks-путь: проксируется
+        expect(shouldProxyRequest('/api/bricksmith')).toBe(true);
+    });
+});
+
+describe('buildProxyTargetUrl', () => {
+    it('PROXY_URL без завершающего слэша — валидный target (источник прежнего 502)', () => {
+        expect(buildProxyTargetUrl('http://localhost:8000', '/api/items')).toBe(
+            'http://localhost:8000/api/items'
+        );
+    });
+
+    it('PROXY_URL с завершающим слэшем — тот же target', () => {
+        expect(buildProxyTargetUrl('http://localhost:8000/', '/api/items')).toBe(
+            'http://localhost:8000/api/items'
+        );
+    });
+
+    it('base path в PROXY_URL сохраняется', () => {
+        expect(buildProxyTargetUrl('http://localhost:8000/backend', '/api/items')).toBe(
+            'http://localhost:8000/backend/api/items'
+        );
+        expect(buildProxyTargetUrl('http://localhost:8000/backend/', '/api/items')).toBe(
+            'http://localhost:8000/backend/api/items'
+        );
+    });
+
+    it('query доезжает до upstream как есть', () => {
+        expect(buildProxyTargetUrl('http://localhost:8000', '/api/items?x=1&url=/api/z')).toBe(
+            'http://localhost:8000/api/items?x=1&url=/api/z'
+        );
     });
 });

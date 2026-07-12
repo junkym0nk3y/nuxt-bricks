@@ -2,8 +2,8 @@
  * Ленивый singleton-пул соединений с PostgreSQL для дефолтного storage-адаптера.
  *
  * БД активна ТОЛЬКО когда задана строка подключения
- * (`NUXT_BRICKS_DATABASE_URL` / `bricks.database.url`). Без неё /api/bricks/**
- * должны проксироваться на внешний backend через PROXY_URL (см. proxy.client.ts).
+ * (`NUXT_BRICKS_DATABASE_URL` / `bricks.database.url`) — builtin-режим
+ * bricks.backend.mode (см. module-backend-config.ts).
  */
 import { useRuntimeConfig } from 'nitropack/runtime';
 import type { Pool } from 'pg';

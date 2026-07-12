@@ -170,7 +170,7 @@ export function useApiClient() {
             }
 
             // Локальные ручки: /mock-api/* всегда; /api/bricks/** — при заданной БД
-            // (зеркало логики proxy.client.ts, актуально для SSR с заданным PROXY_URL)
+            // (упрощённое зеркало серверного devProxy, актуально для SSR с PROXY_URL)
             const isLocalRoute =
                 request.startsWith('/mock-api/') ||
                 (hasLocalDatabase && request.startsWith('/api/bricks'));

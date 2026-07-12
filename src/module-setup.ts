@@ -247,8 +247,9 @@ export function registerBricksPages(pages: NuxtPage[], context: IBricksRegistrat
  * Render-only режим оставляет только public read-model — editorial CRUD
  * и auth-ручки без UI билдера не нужны (сужение поверхности).
  *
- * Выбор режима /api/bricks (локальная БД vs прокси) — runtime, в
- * proxy.client.ts: при заданном bricksDatabaseUrl запросы не проксируются.
+ * /api/bricks/** всегда обслуживаются локальными ручками; data backend под
+ * ними выбирает bricks.backend.mode (builtin PostgreSQL vs external HTTP,
+ * см. module-backend-config.ts). devProxy (dev-only) bricks-пути не трогает.
  *
  * @param context - Контекст регистрации.
  */

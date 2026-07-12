@@ -17,7 +17,8 @@
  * Использование: npm run smoke:pack
  * Временная папка удаляется при успехе и сохраняется при ошибке (путь в логе).
  */
-import { mkdtemp, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { mkdtemp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import process from 'node:process';
@@ -161,6 +162,30 @@ async function main() {
         }
         for (const bin of ['bricks-generate', 'bricks-hash-password', 'bricks-migrate']) {
             await assertFileExists(join(installedRoot, 'dist', 'cli', `${bin}.mjs`), `CLI ${bin}`);
+        }
+
+        // Контракт зависимостей (план backend-connection-modes): h3-proxy удалён,
+        // sharp и AWS SDK — обязательные dependencies (runtime-контракт media flow)
+        const installedPkg = JSON.parse(
+            await readFile(join(installedRoot, 'package.json'), 'utf8')
+        );
+        assertOk(
+            !installedPkg.dependencies?.['h3-proxy'],
+            'h3-proxy не должен быть в dependencies пакета'
+        );
+        assertOk(
+            !existsSync(join(consumerDir, 'node_modules', 'h3-proxy')),
+            'h3-proxy не должен приезжать в node_modules consumer'
+        );
+        for (const dep of ['sharp', '@aws-sdk/client-s3']) {
+            assertOk(
+                Boolean(installedPkg.dependencies?.[dep]),
+                `${dep} должен быть в dependencies пакета`
+            );
+            assertOk(
+                existsSync(join(consumerDir, 'node_modules', dep)),
+                `${dep} не доехал в node_modules consumer`
+            );
         }
 
         console.info('[pack-smoke] CLI bricks-hash-password из пакета...');

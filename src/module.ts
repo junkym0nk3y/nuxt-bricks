@@ -23,6 +23,7 @@ import {
     type IBricksRegistrationContext,
 } from './module-setup';
 import { applyBricksRuntimeConfig } from './module-runtime-config';
+import type { TBricksBackendMode } from './module-backend-config';
 
 // #region Types
 export interface IBricksModuleOptions {
@@ -48,7 +49,29 @@ export interface IBricksModuleOptions {
         sessionMaxAgeSeconds?: number;
     };
     /**
-     * PostgreSQL для дефолтного storage-адаптера (persistence).
+     * Режим data backend: где живут данные страниц, версий и media metadata.
+     * Файлы (S3), sharp и browser-facing /api/bricks/** всегда локальные.
+     * - 'builtin' — встроенный PostgreSQL-адаптер (см. database.url);
+     * - 'external' — пользовательский HTTP-backend по контракту
+     *   docs/external-backend-contract.md (HTTP-реализация IStorageAdapter).
+     * mode — build-time (менять после сборки unsupported); url/token/healthUrl
+     * runtime-переопределяемы: NUXT_BRICKS_BACKEND_URL / _TOKEN / _HEALTH_URL.
+     * Без mode действует legacy-резолвер: database.url → builtin (deprecated);
+     * только PROXY_URL в production — ошибка сборки (см. module-backend-config.ts).
+     */
+    backend?: {
+        mode?: TBricksBackendMode;
+        /**
+         * Полный base-префикс bricks-API external-сервера (например
+         * https://api.example.com/my-cms) — адаптер добавляет только
+         * относительные пути, сегмент «bricks» не зашит.
+         */
+        url?: string;
+        /** Readiness-URL external backend (готовность — только 2xx). */
+        healthUrl?: string;
+    };
+    /**
+     * PostgreSQL для дефолтного storage-адаптера (persistence, builtin-режим).
      * Если url задан — /api/bricks/** обслуживаются локальными Nitro-ручками.
      * Строку подключения задавать через ENV NUXT_BRICKS_DATABASE_URL —
      * секретам не место в nuxt.config.
@@ -79,8 +102,9 @@ export interface IBricksModuleOptions {
         thumbnailsPrefix?: string;
     };
     /**
-     * Проксирование /api/* на внешний backend (dev-режим / свой REST API).
-     * Если database.url не задан, /api/bricks/** тоже уходят на прокси.
+     * Dev-only проксирование не-bricks /api/* на backend host-проекта
+     * (middleware регистрируется только при nuxt.options.dev; /api/bricks/**
+     * и /mock-api/** никогда не проксируются — см. bricks.backend).
      * Адреса — server-only runtimeConfig (в client payload не попадают).
      * ENV: PROXY_URL / NUXT_SERVER_CACHE_URL (build-time fallback),
      * NUXT_BRICKS_PROXY_URL / NUXT_BRICKS_SSR_PROXY_URL (runtime-override).
@@ -237,9 +261,19 @@ export default defineNuxtModule<IBricksModuleOptions>({
         };
         // #endregion
 
-        // #region runtimeConfig
+        // #region runtimeConfig + fail-fast backend.mode
         const runtimeConfig = nuxt.options.runtimeConfig as Record<string, unknown>;
-        applyBricksRuntimeConfig(runtimeConfig, options, surfaces.routePrefixes);
+        const backendResolution = applyBricksRuntimeConfig(
+            runtimeConfig,
+            options,
+            surfaces.routePrefixes,
+            isDev
+        );
+        // Невалидная конфигурация backend (database-auth + external, production
+        // PROXY_URL без mode) валит сборку сразу — тихо сломанного прода не будет
+        if (backendResolution.errors.length > 0) {
+            throw new Error(`[nuxt-bricks] ${backendResolution.errors.join('\n\n')}`);
+        }
         // #endregion
 
         // #region Public assets (превью layout-блоков, плейсхолдеры, картинки документации)
@@ -351,10 +385,14 @@ export default defineNuxtModule<IBricksModuleOptions>({
             handler: resolve(runtimeDir, 'server/middleware/auth'),
             middleware: true,
         });
-        addServerHandler({
-            handler: resolve(runtimeDir, 'server/middleware/proxy.client'),
-            middleware: true,
-        });
+        // devProxy — только dev-сборка: проксирование не-bricks /api/* на
+        // PROXY_URL (host-API проекта); в production middleware не существует
+        if (isDev) {
+            addServerHandler({
+                handler: resolve(runtimeDir, 'server/middleware/devProxy'),
+                middleware: true,
+            });
+        }
         // mock-api (медиа/библиотека компонентов) — только билдер; /api/bricks —
         // по манифесту BRICKS_API_HANDLERS (render-only оставляет public read-model)
         registerBricksServerHandlers(registrationContext);
