@@ -57,6 +57,8 @@ npm run bricks:migrate -- migrate   # применить pending миграци�
 
 Подключение — `--url`, иначе env `NUXT_BRICKS_DATABASE_URL` / `DATABASE_URL`. Миграции применяет deploy/bootstrap job ролью с DDL-правами; runtime-роли приложения DDL не нужен. Реестр применённых — таблица `bricks_schema_migrations`; серия идёт под advisory lock. Runtime-DDL адаптеры не выполняют: миграции — единственный источник схемы (непримененные проявятся ошибкой запроса с подсказкой `npx bricks-migrate migrate` в логе сервера; локальный docker-compose монтирует `migrations/` в initdb).
 
+**`0004_timestamptz`** (аудит A-07) переводит все колонки абсолютных дат (`bricks_pages`, `bricks_page_versions`, `bricks_users`, `bricks_sessions`, `bricks_media`, `bricks_schema_migrations`) с `TIMESTAMP` на `TIMESTAMPTZ`: без зоны node-postgres читает значение в локальном TZ процесса — один и тот же момент в БД означал разные instants при разных TZ приложения (сроки сессий, сортировка, расхождение реплик). Миграция предполагает, что существующие значения — UTC (дефолт docker-compose и рекомендованный TZ production). Если БД/приложение исторически работали в другом timezone — до применения 0004 вручную выполнить `ALTER ... USING <col> AT TIME ZONE '<ваш tz>'` для соответствующих колонок.
+
 **Дефолтных пользователей нет** — пока не заведёте пользователя, войти невозможно.
 
 Создание пользователя:

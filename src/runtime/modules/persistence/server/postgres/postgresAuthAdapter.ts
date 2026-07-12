@@ -14,7 +14,8 @@ import type {
 /** Строка JOIN-результата сессии с полями пользователя (алиасы camelCase). */
 interface ISessionJoinRow {
     tokenHash: string;
-    expiresAt: string;
+    // TIMESTAMPTZ-колонка (аудит A-07): node-postgres возвращает Date.
+    expiresAt: string | Date;
     lastUsedAt: string;
     userId: number;
     username: string;
@@ -64,7 +65,11 @@ export function createPostgresAuthAdapter(): IAuthAdapter {
 
             return {
                 tokenHash: row.tokenHash,
-                expiresAt: row.expiresAt,
+                // TIMESTAMPTZ-колонка (аудит A-07): node-postgres возвращает Date —
+                // нормализуем до ISO-строки, контракт IAuthSessionWithUser.expiresAt
+                // остаётся string (ISO 8601 UTC).
+                expiresAt:
+                    row.expiresAt instanceof Date ? row.expiresAt.toISOString() : row.expiresAt,
                 lastUsedAt: row.lastUsedAt,
                 user: {
                     id: row.userId,
