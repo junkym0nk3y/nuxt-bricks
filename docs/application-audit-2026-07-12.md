@@ -375,26 +375,28 @@ regression-тест гонял только синхронный Grid). **Зак
 видят своих предков; регрессия — `renderSliderDeferredCycleGuard.spec.ts`
 (deferred-цикл обрывается, валидный слайдер рендерится без обрезания).
 
-Release gate обновлён: блокеров A-01/A-02 больше нет; из бэклога P1 закрыты
-A-03, A-04, A-05, A-07, A-08, A-09, A-10 (ветка `audit-p1-remediation`, статусы
-ниже) — открытым остаётся A-06 (production-like integration + browser-E2E gate)
-и P2-спринт.
+Release gate обновлён: блокеров A-01/A-02 больше нет; бэклог P1 закрыт целиком
+(A-03, A-04, A-05, A-07, A-08, A-09, A-10 и integration-часть A-06 — ветка
+`audit-p1-remediation`, статусы ниже). Открытыми остаются P2-спринт и
+перенесённый из A-06 browser-E2E-трек (объединён с A-13). Для публичного
+npm-релиза по-прежнему блокирует A-14 (LICENSE/metadata).
 
 ## Бэклог (2026-07-12)
 
 ### Выполнено
 
-| ID   | Статус     | Коммиты                                                                                              |
-| ---- | ---------- | ---------------------------------------------------------------------------------------------------- |
-| A-01 | ✅ закрыто | `d9a5aa9`, `0113271`                                                                                 |
-| A-02 | ✅ закрыто | `dcf1be7`, `fc14d56`, `8458f8e`, `6e77101`, `10912dc` + фикс deferred-цикла Slider (см. выше)        |
-| A-03 | ✅ закрыто | `ac3c2d9` (origin-гейт unsafe API), `4a7089f` (review: нормализация порта, последний XFH-хоп)        |
-| A-04 | ✅ закрыто | `a80571a` (второй per-IP bucket до scrypt, лимит Basic Auth, семафор scrypt 4/32)                    |
-| A-05 | ✅ закрыто | `433a0cd` (readiness проверяет фактический persistence path; без него — 503, pack-smoke)             |
-| A-07 | ✅ закрыто | `b4f6b57` (forward-миграция на `TIMESTAMPTZ`)                                                        |
-| A-08 | ✅ закрыто | `e783446` (точное сопоставление hostname), `b9b7692` (review: trustProxy README, XFH-гигиена)        |
-| A-09 | ✅ закрыто | `cba4b1a` (byte/request/deadline-бюджеты), `90bedea` (review: per-request таймаут при shared signal) |
-| A-10 | ✅ закрыто | `ed00936` (`bricks_update_updated_at_column` + SHA-256 checksum), `fb9b457` (review: CRLF→LF)        |
+| ID   | Статус               | Коммиты                                                                                                                                                  |
+| ---- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A-01 | ✅ закрыто           | `d9a5aa9`, `0113271`                                                                                                                                     |
+| A-02 | ✅ закрыто           | `dcf1be7`, `fc14d56`, `8458f8e`, `6e77101`, `10912dc` + фикс deferred-цикла Slider (см. выше)                                                            |
+| A-03 | ✅ закрыто           | `ac3c2d9` (origin-гейт unsafe API), `4a7089f` (review: нормализация порта, последний XFH-хоп)                                                            |
+| A-04 | ✅ закрыто           | `a80571a` (второй per-IP bucket до scrypt, лимит Basic Auth, семафор scrypt 4/32)                                                                        |
+| A-05 | ✅ закрыто           | `433a0cd` (readiness проверяет фактический persistence path; без него — 503, pack-smoke)                                                                 |
+| A-07 | ✅ закрыто           | `b4f6b57` (forward-миграция на `TIMESTAMPTZ`)                                                                                                            |
+| A-08 | ✅ закрыто           | `e783446` (точное сопоставление hostname), `b9b7692` (review: trustProxy README, XFH-гигиена)                                                            |
+| A-09 | ✅ закрыто           | `cba4b1a` (byte/request/deadline-бюджеты), `90bedea` (review: per-request таймаут при shared signal)                                                     |
+| A-10 | ✅ закрыто           | `ed00936` (`bricks_update_updated_at_column` + SHA-256 checksum), `fb9b457` (review: CRLF→LF)                                                            |
+| A-06 | ✅ integration-часть | `c21247e` (CI job `integration`: Postgres + MinIO, black-box lifecycle из tarball); browser-E2E/coverage thresholds — перенесены в P2-трек вместе с A-13 |
 
 Ветка исправлений — `audit-p1-remediation`; после финального фикса — 59 файлов,
 467 тестов зелёные, `vue-tsc`/`oxlint` чистые.
@@ -428,16 +430,41 @@ A-03, A-04, A-05, A-07, A-08, A-09, A-10 (ветка `audit-p1-remediation`, с�
   хранит SHA-256 checksum — правка уже применённого SQL блокирует `migrate` как
   drift; review-фикс — нормализация CRLF/CR→LF перед хешированием (Windows
   checkout не даёт ложного drift), `*.sql` закреплены LF в `.gitattributes`.
+- **A-06 (integration-часть)**: новый CI job `integration` — `npm run
+smoke:integration` (`scripts/integration-smoke.mjs` + lifecycle-проверки в
+  `scripts/integration-lifecycle.mjs`, общие хелперы smoke-скриптов —
+  `scripts/smoke-shared.mjs`) против живых Postgres 16 и MinIO с не-UTC `TZ`
+  (регрессия A-07): tarball → чистый consumer (database-auth) → `bricks-migrate`
+  из tarball (`status`: без pending и checksum-drift) → провижининг пользователя
+  CLI → `nuxi build` → boot → black-box HTTP lifecycle, закрывающий критерии
+  приёмки закрытых P0/P1: CSRF-гейт (403 без признаков происхождения), login,
+  editorial CRUD, контракт схемы (400 на невалидные/циклические компоненты),
+  optimistic locking (409 `REVISION_CONFLICT`), publish → public read-model
+  (draft — 404, editor-поля не отдаются), версии + restore с precondition,
+  media upload/delete через S3, logout. Гейт проверен локально (полный прогон
+  с MinIO зелёный; `smoke:pack` после выноса хелперов — зелёный).
+
+### Осознанные отступления от текста аудита (зафиксировано при реализации)
+
+- **A-03**: `__Host-`-cookie не вводился (переименование инвалидирует живые
+  сессии и константу фильтрации proxy-заголовков; cookie уже `Secure` +
+  `path=/` без `Domain`); вместо серверного synchronizer token — кастомный
+  заголовок `x-bricks-csrf` + origin/Sec-Fetch-Site-проверка (OWASP-допустимый
+  custom-header pattern для same-origin SPA).
+- **A-04**: внешний shared limiter для multi-replica не реализован — остаётся
+  документированной рекомендацией ingress-уровня (README).
+- **A-06**: browser-E2E и coverage thresholds — отдельный трек следующего
+  спринта (вместе с axe/A-13); в этом плане реализован Postgres+MinIO
+  integration gate.
+- **A-09**: метрики — структурированные логи (timeout/bytes/drop), без
+  отдельной metrics-подсистемы.
 
 ### P1 — остаток
 
-Пункты 1–7 прежней приоритизации (A-03, A-04, A-05, A-08, A-07, A-10, A-09)
-закрыты — коммиты и детали в таблице «Выполнено» выше. Остаётся один:
-
-- **A-06 — production-like integration и browser-E2E gate.** Самый трудоёмкий
-  пункт (CI-инфраструктура: Postgres + MinIO из tarball, black-box lifecycle,
-  browser-E2E); не является уязвимостью сам по себе, но служит регрессионным
-  гейтом для уже закрытых P1 — закрыть до production-rollout.
+Все восемь P1 закрыты (A-06 — в объёме integration-гейта). Из A-06 открытым
+остаётся только перенесённый в P2-трек browser-E2E (login → create/import →
+edit → save → publish → public reload → conflict/restore) с axe-проверками
+и coverage thresholds — объединён с A-13.
 
 ### P2 (следующий технический спринт, без изменения порядка аудита)
 
