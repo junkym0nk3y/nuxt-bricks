@@ -25,6 +25,7 @@ export { BricksPagenameConflictError, BricksRevisionConflictError } from './util
 let storageAdapter: IStorageAdapter | null = null;
 let publishAdapter: IPublishAdapter | null = null;
 let authAdapter: IAuthAdapter | null = null;
+let customStorageAdapterRegistered = false;
 
 /**
  * Регистрирует кастомный storage-адаптер вместо дефолтного Postgres.
@@ -33,6 +34,15 @@ let authAdapter: IAuthAdapter | null = null;
  */
 export function setBricksStorageAdapter(adapter: IStorageAdapter): void {
     storageAdapter = adapter;
+    customStorageAdapterRegistered = true;
+}
+
+/**
+ * Зарегистрирован ли кастомный storage-адаптер (для readiness probe:
+ * кастомный адаптер сам отвечает за checkHealth-семантику).
+ */
+export function hasCustomBricksStorageAdapter(): boolean {
+    return customStorageAdapterRegistered;
 }
 
 /**

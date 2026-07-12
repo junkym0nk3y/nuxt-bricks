@@ -226,6 +226,14 @@ async function runHttpChecks() {
         ![401, 403, 503].includes(authorized.status),
         `GET /api/bricks с basic-кредами не должен отвечать 401/403/503, получен ${authorized.status}`
     );
+
+    const health = await fetch(`${SERVER_ORIGIN}/api/bricks/health`);
+    assertOk(health.status === 200, `liveness должен быть 200, получено ${health.status}`);
+
+    // Consumer без БД и без PROXY_URL: readiness обязан быть 503 (аудит A-05)
+    const ready = await fetch(`${SERVER_ORIGIN}/api/bricks/health/ready`);
+    assertOk(ready.status === 503, `readiness без persistence должен быть 503, получено ${ready.status}`);
+
     console.info('[pack-smoke] HTTP-матрица зелёная');
 }
 

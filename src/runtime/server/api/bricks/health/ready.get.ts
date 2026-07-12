@@ -1,7 +1,12 @@
 import { createError, defineEventHandler, setResponseHeader } from 'h3';
-import { useBricksStorageAdapter } from '../../../../modules/persistence/server/registry';
+import { useRuntimeConfig } from 'nitropack/runtime';
+import {
+    hasCustomBricksStorageAdapter,
+    useBricksStorageAdapter,
+} from '../../../../modules/persistence/server/registry';
+import { resolveReadinessTarget } from '../../../utils/readinessTarget';
 
-/** Зависший коннект к БД не должен вешать probe дольше этого таймаута. */
+/** Зависший коннект/дальний proxy не должны вешать probe дольше таймаута. */
 const READINESS_TIMEOUT_MS = 5000;
 
 /**
@@ -28,20 +33,47 @@ async function withTimeout(promise: Promise<void>, timeoutMs: number): Promise<v
 }
 
 /**
- * GET /api/bricks/health/ready — readiness probe: приложение готово принимать
- * трафик. Дёргает опциональный `IStorageAdapter.checkHealth` (дефолтный
- * Postgres-адаптер — `SELECT 1`; без сконфигурированной БД проверка
- * пропускается); адаптер без метода считается всегда готовым. Наружу деталей
- * не отдаёт — полная ошибка уходит в server-лог.
+ * Достижимость downstream-proxy: любой HTTP-ответ (включая 404/405)
+ * подтверждает, что backend жив; сетевые ошибки/таймаут — не готов.
+ *
+ * @param proxyUrl - PROXY_URL из runtimeConfig.
+ */
+async function probeProxyEndpoint(proxyUrl: string): Promise<void> {
+    await fetch(proxyUrl, { method: 'HEAD', redirect: 'manual' });
+}
+
+/**
+ * GET /api/bricks/health/ready — readiness probe. Выбирает persistence-путь
+ * (адаптер / proxy / ничего) и подтверждает готовность именно его:
+ * ни БД, ни proxy, ни кастомного адаптера → 503 (аудит A-05).
+ * Наружу деталей не отдаёт — полная ошибка уходит в server-лог.
  */
 export default defineEventHandler(async (event) => {
     setResponseHeader(event, 'Cache-Control', 'no-store');
 
-    try {
-        const adapter = useBricksStorageAdapter();
+    const config = useRuntimeConfig();
+    const proxyUrl =
+        (config.bricksSsrProxyUrl as string | undefined) ||
+        (config.bricksProxyUrl as string | undefined);
+    const target = resolveReadinessTarget({
+        hasDatabaseUrl: Boolean(config.bricksDatabaseUrl),
+        hasProxyUrl: Boolean(proxyUrl),
+        hasCustomAdapter: hasCustomBricksStorageAdapter(),
+    });
 
-        if (adapter.checkHealth) {
-            await withTimeout(adapter.checkHealth(), READINESS_TIMEOUT_MS);
+    try {
+        if (target === 'none') {
+            throw new Error('No persistence configured (neither database, proxy nor adapter)');
+        }
+
+        if (target === 'adapter') {
+            const adapter = useBricksStorageAdapter();
+
+            if (adapter.checkHealth) {
+                await withTimeout(adapter.checkHealth(), READINESS_TIMEOUT_MS);
+            }
+        } else {
+            await withTimeout(probeProxyEndpoint(proxyUrl as string), READINESS_TIMEOUT_MS);
         }
 
         return { status: 'ok' };
