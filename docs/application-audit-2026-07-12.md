@@ -335,13 +335,24 @@ Fresh consumer install также сообщает deprecation для `vue-i18n@
 
 ## Статус исправлений (2026-07-12)
 
-- **A-01 — закрыто.** `s3KeyPolicy.ts` канонизирует URL до namespace-проверки
+Закрытие обоих P0 **проверено по коммитам и тестам** (2026-07-12): профильные
+suites — `persistenceS3KeyPolicy` (37), `commonSchemaContract` (27),
+`persistencePayloadValidation` (35), `persistencePageVersionRestore` (6),
+`renderLayoutsCycleGuard` (3), `renderDataSourcesLegacySchema` (1) — 109/109
+зелёные.
+
+- **A-01 — закрыто** (коммиты `d9a5aa9` — канонизация URL + adversarial-тесты,
+  `0113271` — удаление legacy-ручки `POST /api/bricks/media`).
+  `s3KeyPolicy.ts` канонизирует URL до namespace-проверки
   (WHATWG-парсинг, одинарный decode, запрет dot-сегментов/`%`/backslash/control
   chars); adversarial-тесты `persistenceS3KeyPolicy.spec.ts` покрывают `../`,
   `%2e%2e`, `%252e%252e`, backslash, userinfo, порт, похожие origin/bucket.
   Legacy-ручка `POST /api/bricks/media` удалена — записи `bricks_media` создаёт
   только сервер (upload flow, импорт из бакета).
-- **A-02 — закрыто.** Введён структурный контракт графа компонентов
+- **A-02 — закрыто** (коммиты `dcf1be7` — контракт-валидатор графа,
+  `fc14d56` — enforcement на create/update/restore, `8458f8e` — валидация
+  импорта JSON в билдере, `6e77101` — defensive-фильтр и cycle guard рендера,
+  `10912dc` — review cleanups). Введён структурный контракт графа компонентов
   (`common/utils/bricks/schemaContract.ts`): 400 для примитивов, duplicate/
   dangling id, self-loop и multi-node cycle на create/update/restore; импорт
   JSON в билдере валидируется тем же модулем; public render дополнительно
@@ -351,3 +362,71 @@ Fresh consumer install также сообщает deprecation для `vue-i18n@
   до `isRenderableSchemaComponent`-фильтра был остаточным SSR-crash путём
   (legacy-строка без `brickPath` роняла TypeError до рендера); закрыт тем же
   guard'ом, регрессия — `renderDataSourcesLegacySchema.spec.ts`.
+
+**Ревью 2026-07-12 нашло остаточный пробел A-02 в deferred-рендере:** cycle/depth
+guard хранил цепочку предков только на время синхронного `renderPublished()` и
+очищал её в `finally`, а Slider откладывает рендер детей через callback
+`renderSlide`, который его `.vue`-компонент вызывает позднее (SSR fallback) —
+к этому моменту цепочка уже пуста, и цикл `Slider A -> Grid B -> Slider A` не
+останавливался (изолированная проверка: 100 переходов без обрыва; прежний
+regression-тест гонял только синхронный Grid). **Закрыто** тем же днём:
+`useRendererLayouts.ts` держит персистентный снимок цепочки предков в замыкании
+`scopedRenderChild` — и eager- (Grid/Flex), и deferred-вызовы (renderSlide)
+видят своих предков; регрессия — `renderSliderDeferredCycleGuard.spec.ts`
+(deferred-цикл обрывается, валидный слайдер рендерится без обрезания).
+
+Release gate обновлён: блокеров A-01/A-02 больше нет; условие релиза — бэклог P1 ниже.
+
+## Бэклог (2026-07-12)
+
+### Выполнено
+
+| ID   | Статус     | Коммиты                                                                                       |
+| ---- | ---------- | --------------------------------------------------------------------------------------------- |
+| A-01 | ✅ закрыто | `d9a5aa9`, `0113271`                                                                          |
+| A-02 | ✅ закрыто | `dcf1be7`, `fc14d56`, `8458f8e`, `6e77101`, `10912dc` + фикс deferred-цикла Slider (см. выше) |
+
+### P1 по уровню приоритетности
+
+Порядок — по внешней эксплуатируемости (кто атакующий), затем по операционному
+влиянию и цене откладывания; трудоёмкость учтена как tie-breaker.
+
+1. **A-03 — CSRF-защита unsafe API.** Единственный P1 с _внешним_ атакующим:
+   эксплуатируется через браузер залогиненного editor'а без доступа к системе,
+   single-tenant-модель угроз его не смягчает. `SameSite=Lax` не покрывает
+   same-site sibling и Basic Auth (браузер автоповторяет credentials).
+2. **A-04 — обход auth throttling.** Тоже внешний unauthenticated-вектор:
+   перебор username обходит per-`IP|username` лимит и даёт CPU/DB exhaustion
+   через дорогой dummy scrypt; Basic Auth не лимитирован вовсе. Логично
+   закрывать вместе с A-03 (одна зона — auth middleware/ingress).
+3. **A-05 — ложный readiness.** Ломает оркестрацию уже на внутреннем стенде
+   (отмечен «срочным» в поправке на модель угроз): `200` без работающего
+   persistence маскирует фактический `500` CRUD. Дешёвый фикс с большим
+   операционным эффектом.
+4. **A-08 — subdomain по подстроке.** Публичная поверхность: `notpromo.example`
+   матчится под subdomain `promo` — показ страницы на чужом hostname без участия
+   атакующего. Маленький, локализованный фикс (`bricks-page-layout.global.ts`).
+5. **A-07 — `TIMESTAMP` без timezone.** Data-correctness (сроки сессий, сортировка,
+   расхождение реплик с разным `TZ`); цена forward-миграции на `TIMESTAMPTZ`
+   растёт с каждым днём накопления данных — откладывать дорого.
+6. **A-10 — namespace/checksum миграций.** `CREATE OR REPLACE FUNCTION
+update_updated_at_column()` может перезаписать функцию host-приложения в
+   shared schema — обязательный пункт до публичного npm-релиза; checksum-drift —
+   защита release-процесса. Выполнять после A-07 (обе — новые forward-миграции,
+   можно одной серией).
+7. **A-09 — resource budgets для data sources.** Гейтирован доверенным editor'ом
+   (в single-tenant — низкая вероятность злоупотребления); базовые меры
+   (allowlist, timeout, concurrency, dedup) уже есть, не хватает byte/request/
+   deadline-лимитов.
+8. **A-06 — production-like integration и browser-E2E gate.** Самый трудоёмкий
+   пункт (CI-инфраструктура: Postgres + MinIO из tarball, black-box lifecycle,
+   browser-E2E); не является уязвимостью сам по себе, но служит регрессионным
+   гейтом для пунктов 1–7 — стоит вести параллельным треком и закрыть до
+   production-rollout.
+
+### P2 (следующий технический спринт, без изменения порядка аудита)
+
+A-11 (scrypt baseline + rehash-on-login), A-12 (CLI password input),
+A-13 (a11y media UI — объединить с browser-E2E из A-06), A-14 (LICENSE/metadata —
+блокер только публичного npm-релиза), A-15 (builder bundle budget + deprecated
+transitives).
