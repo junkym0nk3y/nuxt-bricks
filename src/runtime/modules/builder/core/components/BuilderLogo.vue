@@ -152,10 +152,12 @@ onMounted(() => {
                     shape-rendering="geometricPrecision"
                     xmlns="http://www.w3.org/2000/svg"
                 >
+                    <!-- .attr: при гидрации Fragment (v-for) внутри svg теряет SVG-неймспейс,
+                         и Vue пытается выставить transform как DOM-свойство (read-only у SVG) -->
                     <g
                         v-for="cube in LOGO_CUBES"
                         :key="cube.liftOrder"
-                        :transform="`translate(${cube.x}, ${cube.y})`"
+                        :transform.attr="`translate(${cube.x}, ${cube.y})`"
                     >
                         <g
                             :class="getCubeClassList(cube.liftOrder)"
