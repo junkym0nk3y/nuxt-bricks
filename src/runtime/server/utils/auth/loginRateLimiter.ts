@@ -1,17 +1,26 @@
 /**
- * In-memory rate limiter логина database-auth.
+ * In-memory rate limiter логина database-auth и невалидных Basic-креденшелов.
  *
- * Ключ — `${ip}|${username.toLowerCase()}`: 5 неудач за 15 минут → lockout
- * на 15 минут. Без таймеров (дружелюбно к HMR/serverless) — просроченные
- * записи убираются opportunistic-sweep'ом при обращениях; жёсткая граница
- * 10k записей защищает память от распылённых атак.
+ * Двухуровневая схема (аудит A-04):
+ * - Уровень 1 — ключ `${ip}|${username.toLowerCase()}`: 5 неудач за 15 минут →
+ *   lockout на 15 минут (перебор пароля для одного username).
+ * - Уровень 2 — ключ `ip:${ip}` (buildIpRateLimitKey): 30 неудач за то же окно →
+ *   lockout на 15 минут (перебор со сменой username с одного IP). Проверяется
+ *   ДО дорогой scrypt-верификации пароля.
+ *
+ * Оба уровня используют общее хранилище и общий алгоритм sweep/lockout — без
+ * таймеров (дружелюбно к HMR/serverless), просроченные записи убираются
+ * opportunistic-sweep'ом при обращениях; жёсткая граница 10k записей защищает
+ * память от распылённых атак.
  *
  * Нюанс (документирован): состояние per-process — multi-replica деплой
  * ослабляет лимит пропорционально числу реплик.
  */
 
-/** Максимум неудачных попыток в окне до блокировки. */
+/** Максимум неудачных попыток по одному ключу ip|username в окне до блокировки. */
 const MAX_FAILURES = 5;
+/** Максимум неудач по одному IP (сменяемые username) в окне до блокировки. */
+const MAX_IP_FAILURES = 30;
 /** Окно подсчёта неудач, мс (15 минут). */
 const FAILURE_WINDOW_MS = 15 * 60 * 1000;
 /** Длительность блокировки, мс (15 минут). */
@@ -33,6 +42,13 @@ const entries = new Map<string, IRateLimitEntry>();
  */
 export function buildRateLimitKey(ip: string, username: string): string {
     return `${ip}|${username.toLowerCase()}`;
+}
+
+/**
+ * Строит ключ IP-bucket'а (второй уровень: неудачи с любыми username).
+ */
+export function buildIpRateLimitKey(ip: string): string {
+    return `ip:${ip}`;
 }
 
 /**
@@ -95,11 +111,12 @@ export function isLockedOut(key: string): number {
 }
 
 /**
- * Регистрирует неудачную попытку логина; на MAX_FAILURES-й — включает lockout.
+ * Регистрирует неудачную попытку логина; на maxFailures-й — включает lockout.
  *
- * @param key - Ключ из buildRateLimitKey.
+ * @param key - Ключ из buildRateLimitKey (или buildIpRateLimitKey).
+ * @param maxFailures - Порог неудач до блокировки (дефолт — MAX_FAILURES).
  */
-export function registerFailure(key: string): void {
+export function registerFailure(key: string, maxFailures: number = MAX_FAILURES): void {
     const now = Date.now();
     sweep(now);
 
@@ -114,11 +131,26 @@ export function registerFailure(key: string): void {
     entries.delete(key);
     entry.failures += 1;
 
-    if (entry.failures >= MAX_FAILURES) {
+    if (entry.failures >= maxFailures) {
         entry.lockedUntil = now + LOCKOUT_MS;
     }
 
     entries.set(key, entry);
+}
+
+/**
+ * Регистрирует неудачную попытку на IP-bucket (порог MAX_IP_FAILURES) —
+ * второй уровень против перебора username (аудит A-04).
+ */
+export function registerIpFailure(ip: string): void {
+    registerFailure(buildIpRateLimitKey(ip), MAX_IP_FAILURES);
+}
+
+/**
+ * Остаток IP-lockout'а в секундах (0 — не заблокирован).
+ */
+export function isIpLockedOut(ip: string): number {
+    return isLockedOut(buildIpRateLimitKey(ip));
 }
 
 /**

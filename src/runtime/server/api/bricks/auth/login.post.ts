@@ -8,10 +8,13 @@ import {
 import { verifyPassword, DUMMY_PASSWORD_HASH } from '../../../utils/auth/passwords';
 import {
     buildRateLimitKey,
+    isIpLockedOut,
     isLockedOut,
     registerFailure,
+    registerIpFailure,
     resetFailures,
 } from '../../../utils/auth/loginRateLimiter';
+import { GateOverflowError, runScryptTask } from '../../../utils/auth/scryptGate';
 import {
     generateSessionToken,
     hashSessionToken,
@@ -65,9 +68,8 @@ async function verifyCredentials(
     password: string
 ): Promise<{ id: number; username: string } | null> {
     const user = await auth.getUserByUsername(username);
-    const isPasswordValid = await verifyPassword(
-        password,
-        user?.passwordHash ?? DUMMY_PASSWORD_HASH
+    const isPasswordValid = await runScryptTask(() =>
+        verifyPassword(password, user?.passwordHash ?? DUMMY_PASSWORD_HASH)
     );
 
     if (!user || !isPasswordValid || !user.isActive) {
@@ -81,7 +83,10 @@ async function verifyCredentials(
  * POST /api/bricks/auth/login — вход по username/password (database-режим).
  * Успех: создаёт cookie-сессию и возвращает { user: { id, username } }.
  * Неуспех — единый 401 'Invalid credentials' (нет юзера / неверный пароль /
- * деактивирован); 5 неудач за 15 минут → 429 c Retry-After.
+ * деактивирован). Двухуровневый rate limit (аудит A-04): 5 неудач за 15 минут
+ * по ip|username, 30 неудач за то же окно по IP (сменяемые username) → 429 c
+ * Retry-After; IP-lockout проверяется до scrypt. scrypt-верификация — под
+ * bounded-семафором (`scryptGate`), переполнение очереди → 503.
  */
 export default defineEventHandler(async (event) => {
     try {
@@ -94,7 +99,18 @@ export default defineEventHandler(async (event) => {
         const body = await readNormalizedBody<ILoginBody>(event);
         const { username, password } = validateLoginBody(body);
 
-        const rateLimitKey = buildRateLimitKey(resolveRequestClientIp(event), username);
+        const clientIp = resolveRequestClientIp(event);
+        const ipLockoutSeconds = isIpLockedOut(clientIp);
+
+        if (ipLockoutSeconds > 0) {
+            setResponseHeader(event, 'Retry-After', ipLockoutSeconds);
+            throw createError({
+                statusCode: 429,
+                statusMessage: 'Too many login attempts',
+            });
+        }
+
+        const rateLimitKey = buildRateLimitKey(clientIp, username);
         const lockoutSeconds = isLockedOut(rateLimitKey);
 
         if (lockoutSeconds > 0) {
@@ -106,10 +122,24 @@ export default defineEventHandler(async (event) => {
         }
 
         const auth = useBricksAuthAdapter();
-        const user = await verifyCredentials(auth, username, password);
+        let user;
+
+        try {
+            user = await verifyCredentials(auth, username, password);
+        } catch (error: unknown) {
+            if (error instanceof GateOverflowError) {
+                throw createError({
+                    statusCode: 503,
+                    statusMessage: 'Server is busy, try again later',
+                });
+            }
+
+            throw error;
+        }
 
         if (!user) {
             registerFailure(rateLimitKey);
+            registerIpFailure(clientIp);
             throw createError({ statusCode: 401, statusMessage: 'Invalid credentials' });
         }
 

@@ -4,9 +4,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Utils
 import {
+    buildIpRateLimitKey,
     buildRateLimitKey,
+    isIpLockedOut,
     isLockedOut,
     registerFailure,
+    registerIpFailure,
     resetFailures,
     resetRateLimiterState,
 } from '../src/runtime/server/utils/auth/loginRateLimiter';
@@ -94,5 +97,28 @@ describe('loginRateLimiter: in-memory лимитер логина', () => {
 
         registerFailure(staleKey);
         expect(isLockedOut(staleKey)).toBe(0);
+    });
+
+    it('per-IP bucket: 30 неудач с разными username включают lockout по IP', () => {
+        for (let attempt = 0; attempt < 29; attempt += 1) {
+            registerIpFailure('9.9.9.9');
+            expect(isIpLockedOut('9.9.9.9')).toBe(0);
+        }
+
+        registerIpFailure('9.9.9.9');
+        expect(isIpLockedOut('9.9.9.9')).toBeGreaterThan(0);
+    });
+
+    it('per-IP и per-IP|username buckets независимы', () => {
+        for (let attempt = 0; attempt < 5; attempt += 1) {
+            registerFailure(buildRateLimitKey('9.9.9.9', 'admin'));
+        }
+
+        expect(isLockedOut(buildRateLimitKey('9.9.9.9', 'admin'))).toBeGreaterThan(0);
+        expect(isIpLockedOut('9.9.9.9')).toBe(0);
+    });
+
+    it('ключ IP-bucket не пересекается с ключами username', () => {
+        expect(buildIpRateLimitKey('1.2.3.4')).not.toBe(buildRateLimitKey('1.2.3.4', ''));
     });
 });

@@ -19,6 +19,8 @@
  * - BASIC_AUTH_USERNAME (дефолт: admin)
  * - BASIC_AUTH_PASSWORD (дефолт: change-me — только для dev; в production
  *   с дефолтным паролем защищённые пути отвечают 503)
+ * - невалидные креденшелы (заголовок присутствует) делят per-IP rate limit
+ *   с database-логином (аудит A-04): 30 неудач за 15 минут → 429
  *
  * Database-режим — cookie-сессии в Postgres: невалидная сессия на HTML-пути
  * редиректит на /bricks/login, на API — 401 без WWW-Authenticate.
@@ -50,6 +52,8 @@ import {
     resolveSessionMaxAgeSeconds,
     setSessionCookie,
 } from '../utils/auth/sessionCookie';
+import { isIpLockedOut, registerIpFailure } from '../utils/auth/loginRateLimiter';
+import { resolveRequestClientIp } from '../utils/requestClientIp';
 import { useBricksAuthAdapter } from '../../modules/persistence/server/registry';
 import type { IAuthRequestTarget, TBricksAuthMode } from '../utils/auth/types';
 
@@ -102,6 +106,16 @@ function handleBasicAuth(event: H3Event): void {
         return sendUnauthorized(event);
     }
 
+    // Rate limit невалидных креденшелов (аудит A-04): Basic Auth перебирается
+    // тем же IP-bucket'ом, что и database-login
+    const clientIp = resolveRequestClientIp(event);
+    const lockoutSeconds = isIpLockedOut(clientIp);
+
+    if (lockoutSeconds > 0) {
+        setResponseHeader(event, 'Retry-After', lockoutSeconds);
+        throw createError({ statusCode: 429, statusMessage: 'Too many authentication attempts' });
+    }
+
     const base64Credentials = authHeader.slice(6);
     const credentials = Buffer.from(base64Credentials, 'base64').toString('utf-8');
     const separatorIndex = credentials.indexOf(':');
@@ -113,6 +127,7 @@ function handleBasicAuth(event: H3Event): void {
     const passValid = safeCompare(pass, password);
 
     if (!userValid || !passValid) {
+        registerIpFailure(clientIp);
         return sendUnauthorized(event);
     }
 }
