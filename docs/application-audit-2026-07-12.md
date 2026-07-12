@@ -472,3 +472,97 @@ A-11 (scrypt baseline + rehash-on-login), A-12 (CLI password input),
 A-13 (a11y media UI — объединить с browser-E2E из A-06), A-14 (LICENSE/metadata —
 блокер только публичного npm-релиза), A-15 (builder bundle budget + deprecated
 transitives).
+
+## Ре-ревью бэклога P1 (2026-07-12, вторая итерация)
+
+Независимое ре-ревью (против HEAD `22ecc94`; A-06-коммиты `c21247e`/`937eb8b`
+на тот момент в ветке уже были, но в срез не попали) переоткрыло часть
+статусов: A-03 — частично (схема не сравнивалась), A-05 — переоткрыть (proxy
+5xx = «готов», кастомный адаптер без checkHealth = «готов»), A-07 — bootstrap
+compose падал на 0004, A-09 — лимит после буферизации, A-10 — namespace-часть
+не покрывала чистую установку. Все пять находок подтверждены по коду и
+закрыты этим же днём:
+
+1. **A-10 (чистая установка перезаписывала функцию host-приложения)** —
+   `0001_init.sql` теперь сразу создаёт `bricks_update_updated_at_column()`
+   и не трогает общее имя вовсе; `0005` осталась forward-миграцией для БД,
+   созданных прежней редакцией 0001 (идемпотентна на свежей БД). Условный
+   `DROP FUNCTION IF EXISTS update_updated_at_column()` из 0005 удалён:
+   он снёс бы standalone-функцию host-приложения, ещё не привязанную к
+   триггерам (bricks-копия неотличима от чужой); осиротевшую копию оператор
+   убирает вручную. Правка применённой 0001 совместима: реестры без checksum
+   backfill'ятся содержимым нового файла; средам, успевшим записать старый
+   checksum новым CLI (только внутренние стенды ветки — релиза не было),
+   нужен ручной сброс drift'а (путь описан в README). Проверено живым
+   Postgres 16: чистая установка не создаёт `update_updated_at_column()`;
+   legacy-сценарий (старая 0001 + standalone-функция host) — триггеры
+   переведены, функция host уцелела.
+2. **A-07/bootstrap (compose-initdb падал на 0004)** — `0004_timestamptz.sql`
+   переписана идемпотентно: конверсия каждой колонки — под guard'ом по
+   фактическому типу (`information_schema.columns`). Это чинит оба пути:
+   docker-compose initdb без CLI (таблицы реестра ещё нет — шаг
+   пропускается) и повторное применение CLI поверх initdb-БД (уже-TIMESTAMPTZ
+   колонки не конвертируются заново — двойная `AT TIME ZONE`-конверсия
+   сдвинула бы значения при не-UTC session TZ). Проверено живым Postgres 16:
+   initdb на пустом volume проходит все 5 файлов; последующий
+   `bricks-migrate migrate` применяет серию заново без ошибок,
+   `status` — без pending/drift.
+3. **A-05 (ложноположительный readiness)** — proxy-проба проверяет статус:
+   5xx — не готовность (`isProxyStatusReady`, юнит-тесты); кастомный адаптер
+   без `checkHealth` больше не считается готовым автоматически — fallback-проба
+   `listPages()` (минимальный реальный editorial-запрос); JSDoc
+   `IStorageAdapter.checkHealth` и README обновлены.
+4. **A-09 (memory spike до замера)** — байтовый бюджет перенесён на транспорт:
+   фетчер data source читает тело потоково (`ofetch.raw` +
+   `readResponseWithinByteBudget`, `render/utils/dataSourceResponseReading.ts`)
+   с pre-check'ом Content-Length и обрывом потока при превышении — ДО
+   JSON.parse; post-parse замер `measureResponseSizeBytes` (плюс копия через
+   `JSON.stringify`) удалён. Регрессия — `renderDataSourceResponseReading.spec.ts`
+   (Content-Length, обрыв mid-stream с cancel, multibyte-граница чанков).
+5. **A-03 (origin без схемы)** — сравнивается полный origin: схема + hostname +
+   порт (дефолтный порт нормализуется в рамках СВОЕЙ схемы); эффективный
+   протокол запроса — TLS-состояние сокета либо последний хоп
+   `x-forwarded-proto` при `bricks.trustProxy` (гигиена как у XFF/XFH).
+   `http://…` origin больше не проходит к `https://…`-поверхности
+   (тесты `serverAuthCsrfProtection.spec.ts`).
+
+A-06 в срезе ре-ревью значился открытым — integration-гейт был закрыт
+коммитами `c21247e`/`937eb8b` до начала этой итерации (см. выше). После
+фиксов: 60 файлов / 475 тестов зелёные, `vue-tsc`/`oxlint` чистые; SQL-пути
+(compose-initdb, CLI поверх initdb, legacy 0001→0005) проверены живым
+Postgres 16.
+
+## Ре-ревью, третья итерация (2026-07-12)
+
+Проверка фиксов второй итерации подтвердила без замечаний: A-10 fresh
+install, идемпотентную 0004, полный origin в A-03 и integration-часть A-06 —
+и нашла три остаточных пробела (2×P1, 1×P2). Все закрыты:
+
+1. **[P1] Prototype-pollution ключи в новом JSON-парсере** — прямой
+   `JSON.parse` в `dataSourceResponseReading.ts` сохранял `__proto__` и
+   `constructor.prototype` (прежний ofetch отбрасывал их через destr);
+   опасные ключи доезжали до `source.map`/props, где обычный merge создаёт
+   pollution. Закрыто reviver'ом с логикой destr (`jsonPollutionSafeReviver`):
+   `__proto__` и `constructor`-с-`prototype` отбрасываются; JSON.parse
+   декодирует Unicode-escape ключей до reviver'а, поэтому
+   Unicode-escaped варианты написания ключа покрыты тем же путём. Тесты — обычные и
+   Unicode-escaped ключи, безобидный `constructor`-не-объект сохраняется.
+2. **[P1] A-05: reachability-проба принимала 404/405 за готовность** —
+   добавлен конфигурируемый health-эндпоинт backend'а
+   (`bricks.proxy.healthUrl`, runtime-override
+   `NUXT_BRICKS_PROXY_HEALTH_URL`): GET по нему, готовность — только 2xx
+   (`isProxyHealthStatusReady`, юнит-тесты). Без healthUrl остаётся
+   reachability-fallback (< 500) — теперь оформлен как **явное
+   документированное ограничение** (README, JSDoc пробы): неверный путь
+   `PROXY_URL` или отсутствующий editorial API на живом хосте fallback не
+   детектирует.
+3. **[P2] Error-response обходил потоковый reader** — дефолтный throw ofetch
+   на 4xx/5xx оставлял тело непрочитанным и неотменённым. Фетчер переведён
+   на `ignoreResponseError: true`: статус обрабатывается после освобождения
+   потока (`body.cancel()`), наружу — `DataSourceHttpError` со `statusCode`
+   (redacted prod-лог `toDataSourceLogError` сохраняет прежнюю форму
+   `{ name, statusCode }`).
+
+Механические правки документации (счётчик тестов, разорванный inline-code)
+внесены. Итог после третьей итерации: 60 файлов / 479 тестов зелёные,
+`vue-tsc`/`oxlint`/полный `lint:check`/`format:check` чистые.
