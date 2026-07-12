@@ -88,6 +88,32 @@ function applyBricksPersistenceRuntimeConfig(
 }
 
 /**
+ * Заполняет runtimeConfig proxy-режима: /api/* → внешний backend. Ключи
+ * server-only: адрес backend не светится в client payload, клиент ходит через
+ * proxy middleware. Runtime-override: NUXT_BRICKS_PROXY_URL /
+ * NUXT_BRICKS_SSR_PROXY_URL / NUXT_BRICKS_PROXY_HEALTH_URL.
+ *
+ * @param runtimeConfig - nuxt.options.runtimeConfig.
+ * @param options - Опции модуля из nuxt.config.
+ */
+function applyBricksProxyRuntimeConfig(
+    runtimeConfig: Record<string, unknown>,
+    options: IBricksModuleOptions
+): void {
+    runtimeConfig.bricksProxyUrl =
+        runtimeConfig.bricksProxyUrl ?? options.proxy?.url ?? process.env.PROXY_URL ?? '';
+    runtimeConfig.bricksSsrProxyUrl =
+        runtimeConfig.bricksSsrProxyUrl ??
+        options.proxy?.ssrUrl ??
+        process.env.NUXT_SERVER_CACHE_URL ??
+        '';
+    // Health-эндпоинт backend'а для readiness (готовность — только 2xx);
+    // без него проверяется лишь достижимость PROXY_URL (ре-ревью A-05).
+    runtimeConfig.bricksProxyHealthUrl =
+        runtimeConfig.bricksProxyHealthUrl ?? options.proxy?.healthUrl ?? '';
+}
+
+/**
  * Заполняет runtimeConfig auth-режима: server-ключи + публичный флаг для
  * 401-интерцептора и login-страницы.
  * Runtime-нюанс: NUXT_BRICKS_AUTH_MODE переопределяет только server-ключ,
@@ -140,17 +166,7 @@ export function applyBricksRuntimeConfig(
         options.basicAuth?.password;
 
     applyBricksPersistenceRuntimeConfig(runtimeConfig, options);
-
-    // Proxy-режим: /api/* → внешний backend. Ключи server-only: адрес backend
-    // не светится в client payload, клиент ходит через proxy middleware.
-    // Runtime-override: NUXT_BRICKS_PROXY_URL / NUXT_BRICKS_SSR_PROXY_URL.
-    runtimeConfig.bricksProxyUrl =
-        runtimeConfig.bricksProxyUrl ?? options.proxy?.url ?? process.env.PROXY_URL ?? '';
-    runtimeConfig.bricksSsrProxyUrl =
-        runtimeConfig.bricksSsrProxyUrl ??
-        options.proxy?.ssrUrl ??
-        process.env.NUXT_SERVER_CACHE_URL ??
-        '';
+    applyBricksProxyRuntimeConfig(runtimeConfig, options);
 
     // Доверие x-forwarded-for для клиентского IP rate limiter'ов (server-only;
     // имя ключа NUXT_BRICKS_TRUST_PROXY даёт runtime-override без ребилда)

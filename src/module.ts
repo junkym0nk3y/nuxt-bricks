@@ -89,6 +89,15 @@ export interface IBricksModuleOptions {
         url?: string;
         /** Отдельный адрес backend для SSR-запросов (внутренняя сеть). */
         ssrUrl?: string;
+        /**
+         * Health-эндпоинт backend'а для readiness-пробы (`/api/bricks/health/
+         * ready`): GET по этому URL, готовность — только 2xx. Без него проба
+         * проверяет лишь сетевую достижимость PROXY_URL (любой ответ < 500) —
+         * осознанное ограничение: неверный путь или отсутствующий editorial
+         * API на живом хосте не детектируется. Runtime-override:
+         * NUXT_BRICKS_PROXY_HEALTH_URL.
+         */
+        healthUrl?: string;
     };
     /**
      * Политика data sources published-страницы (выполняются рендерером
