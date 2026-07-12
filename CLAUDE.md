@@ -374,7 +374,7 @@ Markdown-статьи во встроенной документации бил�
 
 - **Upload** — `POST /api/bricks/media/upload` (multipart `file` + `category`): валидация/оптимизация → S3 → `createMedia`; ошибка БД компенсируется удалением файла. `svgContent` читает и санитизирует сервер (клиент файл не читает). Прежние `mock-api/s3-image`/`s3-delete` удалены; `s3-page-thumbnail` и `s3-media-proxy` остались (снапшот превью, CORS-проксирование для dom-to-image).
 - **Delete** — `DELETE /api/bricks/media/:id`: file-first (S3-delete идемпотентен → безопасный ретрай); ошибка хранилища — 502, запись остаётся; URL вне managed-хранилища (legacy) — удаляется только запись. `DELETE /api/bricks/:id` страницы best-effort чистит её превью (`cleanupPageThumbnail`, `?v=`-cache-buster срезает политика ключей).
-- **Managed namespace** — модуль оперирует только своими префиксами бакета: `bricks.s3.prefix` (дефолт `bricks-media/`) и `bricks.s3.thumbnailsPrefix` (дефолт `bricks-thumbnails/`). Ключи строит только `IPublishAdapter.buildFileKey(kind, filename)` — **хардкод префиксов в ручках запрещён**; `deleteFile`/`isOwnedUrl`/`uploadFile` отказывают ключам вне namespace (чистые функции — `s3/s3KeyPolicy.ts`). Legacy-ручка регистрации `POST /api/bricks/media` удалена (2026-07-12, аудит A-01): записи `bricks_media` создаёт только сервер (upload flow, импорт из бакета).
+- **Managed namespace** — модуль оперирует только своими префиксами бакета: `bricks.s3.prefix` (дефолт `bricks-media/`) и `bricks.s3.thumbnailsPrefix` (дефолт `bricks-thumbnails/`). Ключи строит только `IPublishAdapter.buildFileKey(kind, filename)` — **хардкод префиксов в ручках запрещён**; `deleteFile`/`isOwnedUrl`/`uploadFile` отказывают ключам вне namespace (чистые функции — `s3/s3KeyPolicy.ts`). `s3KeyPolicy.ts` канонизирует URL (WHATWG-парсер, одинарный decode, запрет dot-сегментов/`%`/backslash/control chars) до namespace-проверки — строковых `startsWith`-проверок URL в новом коде не добавлять (аудит A-01). Legacy-ручка регистрации `POST /api/bricks/media` удалена (2026-07-12, аудит A-01): записи `bricks_media` создаёт только сервер (upload flow, импорт из бакета).
 - **Уникальность url** — миграция `0002_media_unique_url.sql` (дедуп + unique index); `createMedia` идемпотентен по `url` (unique_violation → возвращает существующую запись; `isUniqueViolation` в `queryBuilders.ts`). Контракт расширен: кастомные `IStorageAdapter` обязаны реализовать `getMedia(id)`, `IPublishAdapter` — `buildFileKey` (компилятор заставит).
 - Ошибка удаления в галерее теперь показывается пользователю (toast), элемент из списка не исчезает.
 
@@ -433,3 +433,15 @@ Published/preview: fallback'и **нулевой специфичности** —
 - **Превью версии** (`usePublishPreview.previewPageVersion`) кладёт полный снапшот в `localStorage('bricks-preview-page')` с **текущим** `pagename` (не из версии — должен совпасть с роутом `/preview/<pagename>`). Ограничение v1: открытая вкладка билдера той же страницы перекроет превью живой схемой канваса через `BroadcastChannel('bricks-preview-sync')`; `window.open` происходит после fetch снапшота — при аномально медленном ответе браузер может убить transient activation и заблокировать попап.
 - Секция «Версии» **ленивая**: список грузится при открытии аккордеона, перезагрузка по `watch(page.updatedAt)` только у открытой секции; смена страницы сворачивает секцию. Даты — `formatPageDateTime` (DD.MM.YYYY HH:mm, `publish/utils/dates.ts`).
 - Понижение лимита ужимает историю при следующем сохранении (prune на каждом снапшоте, `ORDER BY created_at DESC, id DESC`). Удаление страницы удаляет версии каскадом.
+
+## Контракт схемы страницы (2026-07-12)
+
+`schema.components` проходит структурный контракт `common/utils/bricks/schemaContract.ts`
+(форма компонента, уникальность id, двусторонние parent/children/slot-связи,
+ацикличность, глубина ≤ 32) в четырёх точках: server create/update
+(`payloadValidation.validateSchema`), restore версии (`pageVersionRestore`, 400 для
+legacy-версий с диагностикой), импорт JSON билдера (`useSchemaFileTransfer`) и
+защитно в рендере (`isRenderableSchemaComponent`-фильтр `[pagename].vue` +
+cycle/depth guard `useRendererLayouts`). Новые обязательные поля компонентов
+добавлять в контракт и в тест `commonSchemaContract.spec.ts`. Лимиты сложности
+JSON-графа (глубина/узлы/байты) — отдельный слой `schemaPayloadValidation.ts`.
