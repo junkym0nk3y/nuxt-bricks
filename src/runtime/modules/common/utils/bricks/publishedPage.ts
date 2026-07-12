@@ -75,6 +75,50 @@ export function matchesPageUrlPrefix(
 }
 
 /**
+ * Проверяет соответствие subdomain страницы фактическому хосту запроса
+ * (аудит A-08: прежний `includes` матчил notpromo.example под "promo").
+ * Хост нормализуется URL-парсером (порт, регистр, trailing dot); значение
+ * без точек сравнивается с первым label hostname, с точками — с полным
+ * hostname (явный mapping). Ожидаются ASCII-slug значения — punycode-хосты
+ * с non-ASCII конфигом сознательно не матчатся.
+ *
+ * @param hostHeader - Host-заголовок SSR (может содержать порт) или hostname браузера.
+ * @param subdomain - Поле subdomain страницы.
+ * @returns true — страница показывается на этом хосте.
+ */
+export function matchesPageSubdomain(
+    hostHeader: string | undefined,
+    subdomain: string | null | undefined
+): boolean {
+    const requested = (subdomain ?? '').trim().toLowerCase();
+
+    if (!requested) {
+        return true;
+    }
+
+    if (!hostHeader) {
+        return false;
+    }
+
+    let hostname: string;
+
+    try {
+        hostname = new URL(`http://${hostHeader}`).hostname.toLowerCase();
+    } catch {
+        return false;
+    }
+
+    hostname = hostname.replace(/\.$/, '');
+
+    if (requested.includes('.')) {
+        return hostname === requested;
+    }
+
+    const [firstLabel] = hostname.split('.');
+    return firstLabel === requested;
+}
+
+/**
  * Нормализует ответ API в форму IPublishedPage.
  * Конвертирует snake_case ключи из Django backend в camelCase, но не трогает `schema`
  * (это пользовательский JSON).

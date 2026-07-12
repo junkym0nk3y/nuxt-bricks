@@ -1,13 +1,14 @@
 import type { LayoutKey } from 'nuxt/app';
 import { defineNuxtRouteMiddleware, useNuxtApp, setPageLayout } from '#app';
-import { createError, useState, useRequestHeaders } from '#imports';
+import { createError, useState, useRequestHeaders, useRuntimeConfig } from '#imports';
 import type { TPublishedPageSummary, IPublishedPage } from '../modules/common/types/bricks-api';
-import { normalizeBricksError } from '../modules/common/utils/main';
+import { normalizeBricksError, parseBricksBooleanFlag } from '../modules/common/utils/main';
 import { useApiClient } from '../modules/common/composables/useApiClient';
 import { usePublicPageClient } from '../modules/render/composables/usePublicPageClient';
 import { toCamelCase } from '../modules/common/utils/case-transform';
 import { BRICKS_ROUTE_NAMES } from '../modules/common/constants/routes';
 import {
+    matchesPageSubdomain,
     matchesPageUrlPrefix,
     normalizePublishedPage,
     resolveRequestedUrlPrefix,
@@ -122,10 +123,23 @@ export default defineNuxtRouteMiddleware(async (to) => {
         }
 
         if (page.subdomain) {
-            const currentHost = import.meta.server
-                ? useRequestHeaders(['host']).host || ''
-                : window.location.hostname;
-            if (!currentHost.includes(page.subdomain)) {
+            let currentHost = '';
+
+            if (import.meta.server) {
+                // За доверенным прокси Host — адрес прокси; оригинальный хост —
+                // последний токен x-forwarded-host (дописан ближайшим прокси-хопом,
+                // см. requestClientIp.ts; опт-ин bricks.trustProxy)
+                const headers = useRequestHeaders(['host', 'x-forwarded-host']);
+                const trustProxy = parseBricksBooleanFlag(useRuntimeConfig().bricksTrustProxy);
+                const forwardedHost = trustProxy
+                    ? headers['x-forwarded-host']?.split(',').at(-1)?.trim()
+                    : undefined;
+                currentHost = forwardedHost || headers.host || '';
+            } else {
+                currentHost = window.location.hostname;
+            }
+
+            if (!matchesPageSubdomain(currentHost, page.subdomain)) {
                 return createError({
                     statusCode: 404,
                     statusMessage: 'Page not found',

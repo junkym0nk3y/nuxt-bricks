@@ -16,9 +16,7 @@
  */
 import { getRequestHeader, type H3Event } from 'h3';
 import { useRuntimeConfig } from 'nitropack/runtime';
-
-/** Строковые значения флага, считающиеся включением (env-переменные — строки). */
-const TRUTHY_FLAG_VALUES = new Set(['true', '1', 'yes', 'on']);
+import { parseBricksBooleanFlag } from '../../modules/common/utils/main';
 
 /** Ключ-заглушка, когда IP определить не удалось. */
 const UNKNOWN_CLIENT_IP = 'unknown';
@@ -29,15 +27,7 @@ const UNKNOWN_CLIENT_IP = 'unknown';
  * @param value - Значение `bricksTrustProxy` (boolean из опций или строка из env).
  */
 export function parseTrustProxyFlag(value: unknown): boolean {
-    if (typeof value === 'boolean') {
-        return value;
-    }
-
-    if (typeof value === 'string') {
-        return TRUTHY_FLAG_VALUES.has(value.trim().toLowerCase());
-    }
-
-    return false;
+    return parseBricksBooleanFlag(value);
 }
 
 /**

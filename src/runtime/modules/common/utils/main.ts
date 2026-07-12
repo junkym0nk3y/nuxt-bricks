@@ -1,5 +1,26 @@
 import type { IApiError } from '../types/bricks-api';
 
+/** Строковые значения флага, считающиеся включением (env-переменные — строки). */
+const TRUTHY_FLAG_VALUES = new Set(['true', '1', 'yes', 'on']);
+
+/**
+ * Приводит значение runtimeConfig/env к булеву флагу (boolean из опций
+ * модуля или строка из env-override).
+ *
+ * @param value - Сырое значение флага.
+ */
+export function parseBricksBooleanFlag(value: unknown): boolean {
+    if (typeof value === 'boolean') {
+        return value;
+    }
+
+    if (typeof value === 'string') {
+        return TRUTHY_FLAG_VALUES.has(value.trim().toLowerCase());
+    }
+
+    return false;
+}
+
 /**
  * Конвертирует значения в пикселях в rem-единицы, используя базовое значение.
  *

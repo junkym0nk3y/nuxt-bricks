@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import {
     DEFAULT_BACKGROUND_COLOR,
     DEFAULT_LAYOUT,
+    matchesPageSubdomain,
     matchesPageUrlPrefix,
     normalizePublishedPage,
     normalizePublishedPageSummary,
@@ -153,5 +154,31 @@ describe('matchesPageUrlPrefix', () => {
     it('пробельный urlPrefix приравнивается к отсутствию (legacy-записи)', () => {
         expect(matchesPageUrlPrefix({ urlPrefix: '  ' }, '')).toBe(true);
         expect(matchesPageUrlPrefix({ urlPrefix: ' blog ' }, 'blog')).toBe(true);
+    });
+});
+
+describe('matchesPageSubdomain: точное сопоставление subdomain (аудит A-08)', () => {
+    it('первый label должен совпасть точно — подстрока не матчится', () => {
+        expect(matchesPageSubdomain('promo.example.com', 'promo')).toBe(true);
+        expect(matchesPageSubdomain('notpromo.example.com', 'promo')).toBe(false);
+        expect(matchesPageSubdomain('promo-x.example.com', 'promo')).toBe(false);
+        expect(matchesPageSubdomain('example.com', 'promo')).toBe(false);
+    });
+
+    it('порт, регистр и trailing dot нормализуются', () => {
+        expect(matchesPageSubdomain('PROMO.example.com:3000', 'promo')).toBe(true);
+        expect(matchesPageSubdomain('promo.example.com.', 'Promo')).toBe(true);
+    });
+
+    it('subdomain с точками — полное совпадение hostname', () => {
+        expect(matchesPageSubdomain('promo.example.com', 'promo.example.com')).toBe(true);
+        expect(matchesPageSubdomain('sub.promo.example.com', 'promo.example.com')).toBe(false);
+    });
+
+    it('пустой/отсутствующий subdomain — всегда матч, пустой host — нет', () => {
+        expect(matchesPageSubdomain('anything.example', null)).toBe(true);
+        expect(matchesPageSubdomain('anything.example', '  ')).toBe(true);
+        expect(matchesPageSubdomain(undefined, 'promo')).toBe(false);
+        expect(matchesPageSubdomain('', 'promo')).toBe(false);
     });
 });
