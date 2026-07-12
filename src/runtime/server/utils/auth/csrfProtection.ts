@@ -4,11 +4,14 @@
  * Session-cookie SameSite=Lax не покрывает same-site sibling-домены, а Basic
  * Auth браузер автоповторяет — поэтому unsafe-методы на поверхностях модуля
  * требуют доказательства same-origin: кастомный заголовок `x-bricks-csrf`,
- * либо Sec-Fetch-Site: same-origin/none, либо совпадение host (hostname +
- * порт; дефолтные 80/443 опускаются) Origin с эффективным Host запроса
- * (x-forwarded-host при bricks.trustProxy) — сервис на другом порту того же
- * хоста same-origin не считается. Запрос без признаков происхождения
- * отклоняется 403.
+ * либо Sec-Fetch-Site: same-origin/none, либо совпадение ПОЛНОГО origin
+ * (схема + hostname + порт; дефолтный порт схемы опускается) заголовка Origin
+ * с эффективным origin запроса — эффективный протокол берётся из TLS-состояния
+ * сокета либо из последнего хопа x-forwarded-proto при bricks.trustProxy,
+ * эффективный host — из Host / последнего хопа x-forwarded-host (ре-ревью
+ * A-03: http-origin не same-origin для https-поверхности). Сервис на другом
+ * порту/схеме того же хоста same-origin не считается. Запрос без признаков
+ * происхождения отклоняется 403.
  */
 import { createError, getRequestHeader, type H3Event } from 'h3';
 import { useRuntimeConfig } from 'nitropack/runtime';
@@ -21,6 +24,9 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 /** Значения Sec-Fetch-Site, подтверждающие не-кросс-сайтовый запрос. */
 const TRUSTED_FETCH_SITES = new Set(['same-origin', 'none']);
 
+/** Эффективный протокол запроса (socket TLS либо доверенный x-forwarded-proto). */
+export type TEffectiveProtocol = 'http' | 'https';
+
 /** Контекст запроса для чистой CSRF-проверки. */
 export interface ICsrfRequestContext {
     method: string;
@@ -28,37 +34,41 @@ export interface ICsrfRequestContext {
     secFetchSite: string | undefined;
     hasCsrfHeader: boolean;
     effectiveHost: string | undefined;
+    effectiveProtocol: TEffectiveProtocol;
 }
 
 export type TCsrfCheckResult = { allowed: true } | { allowed: false; reason: string };
 
 /**
- * Строит нормализованную форму host для сравнения: hostname — в нижнем
- * регистре, без trailing dot; порт опускается, если пуст или дефолтный
- * (80/443 — URL-парсер срезает только дефолт своей схемы).
+ * Строит нормализованную форму origin для сравнения: схема + hostname в нижнем
+ * регистре без trailing dot + порт. Дефолтный порт СВОЕЙ схемы URL-парсер уже
+ * срезал (`http://…:80` → пустой порт), недефолтный (`http://…:443`) —
+ * сохранён и участвует в сравнении.
  *
- * @param hostname - Hostname из URL-парсера.
- * @param port - Порт из URL-парсера (может быть пустым).
- * @returns Форма `hostname` либо `hostname:port`.
+ * @param parsed - Разобранный URL origin'а (заголовок Origin либо
+ * `протокол://Host` запроса).
+ * @returns Форма `scheme://hostname` либо `scheme://hostname:port`.
  */
-function buildComparableHost(hostname: string, port: string): string {
-    const normalizedHostname = hostname.toLowerCase().replace(/\.$/, '');
+function buildComparableOrigin(parsed: URL): string {
+    const normalizedHostname = parsed.hostname.toLowerCase().replace(/\.$/, '');
 
-    return !port || port === '80' || port === '443'
-        ? normalizedHostname
-        : `${normalizedHostname}:${port}`;
+    return parsed.port
+        ? `${parsed.protocol}//${normalizedHostname}:${parsed.port}`
+        : `${parsed.protocol}//${normalizedHostname}`;
 }
 
 /**
- * Нормализованная форма значения Host-заголовка (может содержать порт).
+ * Нормализованный origin запроса из эффективного протокола и Host-заголовка
+ * (может содержать порт). Парсинг под ТОЙ ЖЕ схемой, что и origin-сторона,
+ * даёт симметричную нормализацию дефолтного порта.
  *
+ * @param protocol - Эффективный протокол запроса.
  * @param host - Значение Host / x-forwarded-host.
- * @returns Нормализованный host или null для мусорного значения.
+ * @returns Нормализованный origin или null для мусорного значения.
  */
-function parseComparableHostHeader(host: string): string | null {
+function parseComparableRequestOrigin(protocol: TEffectiveProtocol, host: string): string | null {
     try {
-        const parsed = new URL(`http://${host}`);
-        return buildComparableHost(parsed.hostname, parsed.port);
+        return buildComparableOrigin(new URL(`${protocol}://${host}`));
     } catch {
         return null;
     }
@@ -101,32 +111,54 @@ export function checkCsrf(context: ICsrfRequestContext): TCsrfCheckResult {
             return { allowed: false, reason: 'opaque origin' };
         }
 
-        let originHost: string;
+        let originComparable: string;
 
         try {
-            const parsedOrigin = new URL(context.origin);
-            originHost = buildComparableHost(parsedOrigin.hostname, parsedOrigin.port);
+            originComparable = buildComparableOrigin(new URL(context.origin));
         } catch {
             return { allowed: false, reason: 'malformed origin' };
         }
 
-        const requestHost = context.effectiveHost
-            ? parseComparableHostHeader(context.effectiveHost)
+        const requestOrigin = context.effectiveHost
+            ? parseComparableRequestOrigin(context.effectiveProtocol, context.effectiveHost)
             : null;
 
-        if (!requestHost) {
+        if (!requestOrigin) {
             return { allowed: false, reason: 'missing effective host' };
         }
 
-        return originHost === requestHost
+        return originComparable === requestOrigin
             ? { allowed: true }
             : {
                   allowed: false,
-                  reason: `origin "${originHost}" does not match host "${requestHost}"`,
+                  reason: `origin "${originComparable}" does not match request origin "${requestOrigin}"`,
               };
     }
 
     return { allowed: false, reason: 'no origin evidence (send x-bricks-csrf header)' };
+}
+
+/**
+ * Эффективный протокол запроса: TLS-состояние сокета; за доверенным прокси —
+ * последний хоп x-forwarded-proto (дописан ближайшим прокси, первый спуфится
+ * клиентом — паттерн resolveClientIp). Невалидное значение заголовка
+ * игнорируется в пользу сокета.
+ *
+ * @param event - Событие запроса.
+ * @param trustProxy - Включён ли bricks.trustProxy.
+ */
+function resolveEffectiveProtocol(event: H3Event, trustProxy: boolean): TEffectiveProtocol {
+    const forwardedProto = trustProxy
+        ? getRequestHeader(event, 'x-forwarded-proto')?.split(',').at(-1)?.trim().toLowerCase()
+        : undefined;
+
+    if (forwardedProto === 'http' || forwardedProto === 'https') {
+        return forwardedProto;
+    }
+
+    const socket = event.node.req.socket as { encrypted?: boolean } | undefined;
+
+    return socket?.encrypted ? 'https' : 'http';
 }
 
 /**
@@ -155,6 +187,7 @@ export function assertCsrfSafe(event: H3Event): void {
         secFetchSite: getRequestHeader(event, 'sec-fetch-site'),
         hasCsrfHeader: Boolean(getRequestHeader(event, BRICKS_CSRF_HEADER_NAME)),
         effectiveHost: forwardedHost || getRequestHeader(event, 'host'),
+        effectiveProtocol: resolveEffectiveProtocol(event, trustProxy),
     });
 
     if (result.allowed) {

@@ -26,6 +26,7 @@ const BARE_POST: ICsrfRequestContext = {
     secFetchSite: undefined,
     hasCsrfHeader: false,
     effectiveHost: 'app.example.com',
+    effectiveProtocol: 'https',
 };
 
 describe('csrfProtection: чистая проверка контекста запроса', () => {
@@ -57,6 +58,7 @@ describe('csrfProtection: чистая проверка контекста за�
                 ...BARE_POST,
                 origin: 'http://app.example.com:3000',
                 effectiveHost: 'app.example.com:3000',
+                effectiveProtocol: 'http',
             }).allowed
         ).toBe(true);
     });
@@ -67,6 +69,7 @@ describe('csrfProtection: чистая проверка контекста за�
                 ...BARE_POST,
                 origin: 'http://app.example.com:8080',
                 effectiveHost: 'app.example.com',
+                effectiveProtocol: 'http',
             }).allowed
         ).toBe(false);
     });
@@ -79,6 +82,21 @@ describe('csrfProtection: чистая проверка контекста за�
                 effectiveHost: 'app.example.com:443',
             }).allowed
         ).toBe(true);
+    });
+
+    it('схема участвует в сравнении: http-origin к https-поверхности — отказ (ре-ревью A-03)', () => {
+        expect(checkCsrf({ ...BARE_POST, origin: 'http://app.example.com' }).allowed).toBe(false);
+        expect(
+            checkCsrf({
+                ...BARE_POST,
+                origin: 'https://app.example.com',
+                effectiveProtocol: 'http',
+            }).allowed
+        ).toBe(false);
+        // Недефолтный для чужой схемы порт не «нормализуется» в совпадение
+        expect(checkCsrf({ ...BARE_POST, origin: 'http://app.example.com:443' }).allowed).toBe(
+            false
+        );
     });
 
     it('cross-origin, sibling same-site и opaque origin — отклоняются', () => {
