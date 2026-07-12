@@ -1,6 +1,9 @@
 -- 0005: namespaced-функция триггера updated_at (аудит A-10).
--- Прежний CREATE OR REPLACE FUNCTION update_updated_at_column() в shared
--- schema мог перезаписать одноимённую функцию host-приложения.
+-- Forward-миграция для БД, созданных прежней редакцией 0001: та выполняла
+-- CREATE OR REPLACE FUNCTION update_updated_at_column() в shared schema и
+-- могла перезаписать одноимённую функцию host-приложения. Текущая 0001 сразу
+-- создаёт namespaced-функцию — на свежей БД миграция идемпотентно пересоздаёт
+-- то же самое.
 
 CREATE OR REPLACE FUNCTION bricks_update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -22,12 +25,8 @@ CREATE TRIGGER update_bricks_users_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION bricks_update_updated_at_column();
 
--- Старую общую функцию удаляем, только если от неё ничего не зависит:
--- host-приложение могло привязать к ней собственные триггеры
-DO $$
-BEGIN
-    DROP FUNCTION IF EXISTS update_updated_at_column();
-EXCEPTION
-    WHEN dependent_objects_still_exist THEN
-        RAISE NOTICE 'update_updated_at_column() оставлена: на неё ссылаются объекты вне nuxt-bricks';
-END $$;
+-- Старая update_updated_at_column() сознательно НЕ удаляется (ре-ревью A-10):
+-- невозможно отличить копию, созданную прежней 0001, от собственной функции
+-- host-приложения — в т.ч. ещё не привязанной к триггерам, которую условный
+-- DROP удалил бы молча. Осиротевшую bricks-копию оператор при желании убирает
+-- вручную: DROP FUNCTION update_updated_at_column();

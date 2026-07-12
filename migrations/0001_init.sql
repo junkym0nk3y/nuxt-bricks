@@ -29,8 +29,11 @@ CREATE INDEX IF NOT EXISTS idx_bricks_pages_layout ON bricks_pages(layout);
 CREATE INDEX IF NOT EXISTS idx_bricks_pages_subdomain ON bricks_pages(subdomain);
 CREATE INDEX IF NOT EXISTS idx_bricks_pages_created_at ON bricks_pages(created_at DESC);
 
--- Функция автообновления updated_at
-CREATE OR REPLACE FUNCTION update_updated_at_column()
+-- Функция автообновления updated_at (namespaced: shared schema может содержать
+-- одноимённые объекты host-приложения, CREATE OR REPLACE не должен их трогать —
+-- аудит A-10; БД, созданные прежней редакцией с update_updated_at_column(),
+-- переводит forward-миграция 0005)
+CREATE OR REPLACE FUNCTION bricks_update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
     NEW.updated_at = NOW();
@@ -42,7 +45,7 @@ DROP TRIGGER IF EXISTS update_bricks_pages_updated_at ON bricks_pages;
 CREATE TRIGGER update_bricks_pages_updated_at
     BEFORE UPDATE ON bricks_pages
     FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+    EXECUTE FUNCTION bricks_update_updated_at_column();
 
 -- История версий страниц: снапшот прежней строки bricks_pages при каждом
 -- сохранении, меняющем schema (см. postgresStorageAdapter.updatePage).
@@ -83,7 +86,7 @@ DROP TRIGGER IF EXISTS update_bricks_users_updated_at ON bricks_users;
 CREATE TRIGGER update_bricks_users_updated_at
     BEFORE UPDATE ON bricks_users
     FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+    EXECUTE FUNCTION bricks_update_updated_at_column();
 
 -- Cookie-сессии database-auth (в БД — только SHA-256 hex токена)
 CREATE TABLE IF NOT EXISTS bricks_sessions (
