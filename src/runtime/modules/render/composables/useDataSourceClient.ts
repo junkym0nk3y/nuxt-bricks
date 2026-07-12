@@ -10,6 +10,10 @@ import {
     DEFAULT_DATA_SOURCE_TIMEOUT_MS,
     DEFAULT_DATA_SOURCE_TOTAL_DEADLINE_MS,
 } from '../utils/dataSourcePolicy';
+import {
+    DataSourceHttpError,
+    readResponseWithinByteBudget,
+} from '../utils/dataSourceResponseReading';
 
 // Nuxt
 import { useRuntimeConfig } from '#imports';
@@ -53,13 +57,46 @@ export function useDataSourceClient() {
     // из Host; клиент: origin + base (см. useApiClient.resolveLocalBaseUrl)
     const baseURL = import.meta.server ? basePath : `${window.location.origin}${basePath}`;
 
-    const dataSourceFetcher = globalThis.$fetch.create({
+    const rawDataSourceFetcher = globalThis.$fetch.create({
         baseURL,
         timeout: timeoutMs,
         retry: 0,
         // Публичный контекст: cookies посетителя запросам data sources не нужны
         credentials: 'omit',
     });
+
+    /**
+     * Фетчер data source: HTTP — через ofetch (baseURL/таймаут/без ретраев),
+     * тело — потоковое чтение с байтовым бюджетом ДО JSON.parse (ре-ревью
+     * A-09: крупный ответ обрывается на чтении, а не замеряется после полной
+     * буферизации и разбора).
+     *
+     * @param url - Резолвленный URL запроса.
+     * @param options - Метод и опциональный сигнал отмены.
+     * @returns Распарсенное тело ответа.
+     * @throws DataSourceResponseTooLargeError при превышении maxResponseBytes.
+     */
+    async function dataSourceFetcher<T>(
+        url: string,
+        options: { method: 'GET' | 'HEAD'; signal?: AbortSignal }
+    ): Promise<T> {
+        // ignoreResponseError: дефолтный throw ofetch на 4xx/5xx оставил бы
+        // поток тела непрочитанным и неотменённым — статус обрабатывается
+        // ниже сами, после освобождения потока (ре-ревью A-09)
+        const response = await rawDataSourceFetcher.raw(url, {
+            ...options,
+            responseType: 'stream',
+            ignoreResponseError: true,
+        });
+
+        if (response.status >= 400) {
+            // Тело ошибки не используется — отменяем поток вместо чтения
+            await response.body?.cancel().catch(() => undefined);
+            throw new DataSourceHttpError(response.status);
+        }
+
+        return (await readResponseWithinByteBudget(response, maxResponseBytes)) as T;
+    }
 
     return {
         dataSourceFetcher,

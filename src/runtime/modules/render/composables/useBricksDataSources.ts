@@ -11,10 +11,10 @@ import type { TPublishFormState } from '../../common/types/bricks-api';
 // Utils
 import {
     checkDataSourceUrl,
-    measureResponseSizeBytes,
     resolveDataSourceMethod,
     type TResolvedDataSourceMethod,
 } from '../utils/dataSourcePolicy';
+import { DataSourceResponseTooLargeError } from '../utils/dataSourceResponseReading';
 import { resolveDataSourceLogTarget, toDataSourceLogError } from '../utils/dataSourceLogging';
 import { combineAbortSignals } from '../utils/abortSignals';
 
@@ -48,7 +48,6 @@ export function useBricksDataSources() {
         allowedHosts,
         concurrency,
         timeoutMs,
-        maxResponseBytes,
         maxRequestsPerPage,
         totalDeadlineMs,
     } = useDataSourceClient();
@@ -322,26 +321,10 @@ export function useBricksDataSources() {
                 });
             }
 
+            // Байтовый бюджет ответа применяется на уровне фетчера — потоковое
+            // чтение обрывается до JSON.parse (ре-ревью A-09); превышение
+            // прилетает сюда ошибкой DataSourceResponseTooLargeError
             const response = await fetchDataSource(url, method, requestCache, signal);
-            const responseSizeBytes = measureResponseSizeBytes(response);
-
-            if (responseSizeBytes > maxResponseBytes) {
-                console.warn(
-                    '[Bricks DataSource] Skip - response exceeds byte budget:',
-                    withDevLogDetails(
-                        {
-                            key: source.key,
-                            target: resolveDataSourceLogTarget(url),
-                            responseSizeBytes,
-                            maxResponseBytes,
-                            componentId: component.id,
-                            brickPath: component.brickPath,
-                        },
-                        { url }
-                    )
-                );
-                return null;
-            }
 
             if (import.meta.dev) {
                 console.info('[Bricks DataSource] Response received:', {
@@ -387,6 +370,24 @@ export function useBricksDataSources() {
 
             return null;
         } catch (error) {
+            if (error instanceof DataSourceResponseTooLargeError) {
+                console.warn(
+                    '[Bricks DataSource] Skip - response exceeds byte budget:',
+                    withDevLogDetails(
+                        {
+                            key: source.key,
+                            target: resolveDataSourceLogTarget(url),
+                            responseSizeBytes: error.receivedBytes,
+                            maxResponseBytes: error.maxResponseBytes,
+                            componentId: component.id,
+                            brickPath: component.brickPath,
+                        },
+                        { url }
+                    )
+                );
+                return null;
+            }
+
             // В production ни url, ни params, ни сырую ошибку не логируем:
             // резолвленный url содержит значения props/страницы, ofetch-error —
             // request/response/options целиком

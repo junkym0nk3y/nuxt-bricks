@@ -71,6 +71,7 @@ import {
     type TDataSourceRequestCache,
 } from '../src/runtime/modules/render/composables/useBricksDataSources';
 import { useRendererDataSources } from '../src/runtime/modules/render/composables/useRendererDataSources';
+import { DataSourceResponseTooLargeError } from '../src/runtime/modules/render/utils/dataSourceResponseReading';
 
 /**
  * Собирает минимальный компонент схемы для теста.
@@ -293,10 +294,9 @@ describe('useBricksDataSources.executeDataSource', () => {
     });
 
     it('ответ больше maxResponseBytes — результат null, prop не мержится (аудит A-09)', async () => {
-        dataSourceClientConfig.maxResponseBytes = 10;
-        dataSourceFetcherMock.mockResolvedValue({
-            items: Array.from({ length: 50 }, (_, index) => ({ id: index, name: `item-${index}` })),
-        });
+        // Бюджет применяется внутри фетчера потоковым чтением (ре-ревью A-09);
+        // для executeDataSource превышение — ошибка DataSourceResponseTooLargeError
+        dataSourceFetcherMock.mockRejectedValue(new DataSourceResponseTooLargeError(5000, 10));
         const { executeDataSource } = useBricksDataSources();
 
         const result = await executeDataSource(createSource(), createComponent(), null);
@@ -304,8 +304,9 @@ describe('useBricksDataSources.executeDataSource', () => {
         expect(result).toBeNull();
         expect(console.warn).toHaveBeenCalledWith(
             expect.stringContaining('byte budget'),
-            expect.objectContaining({ maxResponseBytes: 10 })
+            expect.objectContaining({ responseSizeBytes: 5000, maxResponseBytes: 10 })
         );
+        expect(console.error).not.toHaveBeenCalled();
     });
 });
 
