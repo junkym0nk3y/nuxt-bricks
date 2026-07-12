@@ -9,6 +9,10 @@ export type TReadinessTarget = 'adapter' | 'proxy' | 'none';
 
 /** Признаки сконфигурированных persistence-путей. */
 export interface IReadinessTargetInput {
+    /** Build-time фабрика external-режима установлена (плагин externalBackendStorage). */
+    hasExternalBackend: boolean;
+    /** Legacy-резолюция backend: bricks.backend.mode не задан (плагин legacyBackendMode). */
+    isLegacyBackendMode: boolean;
     hasDatabaseUrl: boolean;
     hasProxyUrl: boolean;
     hasCustomAdapter: boolean;
@@ -42,14 +46,21 @@ export function isProxyHealthStatusReady(status: number): boolean {
 /**
  * Определяет, какой persistence-путь должен подтвердить готовность.
  *
+ * `external` всегда идёт adapter-путём (checkHealth HTTP-адаптера — GET по
+ * backend health URL либо `GET {base}`); для `builtin` adapter-путь требует
+ * БД или кастомного адаптера. Ветка `proxy` доступна ТОЛЬКО при
+ * legacy-резолюции (mode не задан): с явным `backend.mode` PROXY_URL
+ * persistence не выбирает — иначе builtin без БД, но с PROXY_URL host-API
+ * получал бы зелёный readiness при неработающем `/api/bricks/**`.
+ *
  * @param input - Признаки конфигурации.
  */
 export function resolveReadinessTarget(input: IReadinessTargetInput): TReadinessTarget {
-    if (input.hasCustomAdapter || input.hasDatabaseUrl) {
+    if (input.hasCustomAdapter || input.hasExternalBackend || input.hasDatabaseUrl) {
         return 'adapter';
     }
 
-    if (input.hasProxyUrl) {
+    if (input.isLegacyBackendMode && input.hasProxyUrl) {
         return 'proxy';
     }
 

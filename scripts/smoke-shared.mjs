@@ -91,6 +91,24 @@ export async function assertFileExists(path, label) {
 }
 
 /**
+ * Ждёт фактического завершения child-процесса после kill: без этого следующий
+ * bootServer на том же порту гоняется со старым процессом — запрос может
+ * попасть в него, а новый сервер умереть с EADDRINUSE (ре-ревью P2).
+ *
+ * @param {import('node:child_process').ChildProcess} child Завершаемый процесс.
+ * @returns {Promise<void>} Резолвится после события exit (или сразу, если процесс уже мёртв).
+ */
+export function waitForExit(child) {
+    return new Promise((resolve) => {
+        if (child.exitCode !== null || child.signalCode !== null) {
+            resolve();
+            return;
+        }
+        child.once('exit', () => resolve());
+    });
+}
+
+/**
  * Поднимает прод-сервер consumer'а из .output и ждёт готовности.
  *
  * @param {string} consumerDir Папка consumer.

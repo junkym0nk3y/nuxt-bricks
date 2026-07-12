@@ -10,45 +10,52 @@ import {
 } from '../src/runtime/server/utils/readinessTarget';
 // #endregion
 
+/** Вход резолвера с дефолтами explicit-builtin без конфигурации. */
+function makeInput(overrides: Partial<Parameters<typeof resolveReadinessTarget>[0]> = {}) {
+    return {
+        hasExternalBackend: false,
+        isLegacyBackendMode: false,
+        hasDatabaseUrl: false,
+        hasProxyUrl: false,
+        hasCustomAdapter: false,
+        ...overrides,
+    };
+}
+
 describe('readinessTarget: выбор persistence-пути для readiness probe', () => {
     it('кастомный адаптер — adapter-путь независимо от конфигурации', () => {
         expect(
-            resolveReadinessTarget({
-                hasDatabaseUrl: false,
-                hasProxyUrl: true,
-                hasCustomAdapter: true,
-            })
+            resolveReadinessTarget(makeInput({ hasCustomAdapter: true, hasProxyUrl: true }))
         ).toBe('adapter');
     });
 
     it('сконфигурированная БД — adapter-путь', () => {
-        expect(
-            resolveReadinessTarget({
-                hasDatabaseUrl: true,
-                hasProxyUrl: false,
-                hasCustomAdapter: false,
-            })
-        ).toBe('adapter');
+        expect(resolveReadinessTarget(makeInput({ hasDatabaseUrl: true }))).toBe('adapter');
     });
 
-    it('только proxy — proxy-путь', () => {
+    it('legacy-резолюция + только proxy — proxy-путь (переходный dev-сценарий)', () => {
         expect(
-            resolveReadinessTarget({
-                hasDatabaseUrl: false,
-                hasProxyUrl: true,
-                hasCustomAdapter: false,
-            })
+            resolveReadinessTarget(makeInput({ isLegacyBackendMode: true, hasProxyUrl: true }))
         ).toBe('proxy');
     });
 
+    it('явный builtin без БД + PROXY_URL — none, а не proxy (зелёный readiness при мёртвом /api/bricks недопустим)', () => {
+        expect(resolveReadinessTarget(makeInput({ hasProxyUrl: true }))).toBe('none');
+    });
+
     it('ни БД, ни proxy, ни адаптера — none (readiness обязан отвечать 503)', () => {
+        expect(resolveReadinessTarget(makeInput())).toBe('none');
+        expect(resolveReadinessTarget(makeInput({ isLegacyBackendMode: true }))).toBe('none');
+    });
+
+    it('external — adapter-путь без БД (checkHealth HTTP-адаптера)', () => {
+        expect(resolveReadinessTarget(makeInput({ hasExternalBackend: true }))).toBe('adapter');
+    });
+
+    it('external + PROXY_URL — adapter-путь (proxy persistence не выбирает)', () => {
         expect(
-            resolveReadinessTarget({
-                hasDatabaseUrl: false,
-                hasProxyUrl: false,
-                hasCustomAdapter: false,
-            })
-        ).toBe('none');
+            resolveReadinessTarget(makeInput({ hasExternalBackend: true, hasProxyUrl: true }))
+        ).toBe('adapter');
     });
 });
 

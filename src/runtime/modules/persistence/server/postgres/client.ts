@@ -23,8 +23,9 @@ function resolveConnectionString(): string {
     if (!connectionString) {
         throw new Error(
             '[PostgreSQL] Database connection is not configured. ' +
-                'Set NUXT_BRICKS_DATABASE_URL env (or bricks.database.url in nuxt.config), ' +
-                'or set PROXY_URL to proxy /api requests to an external backend.'
+                'Set NUXT_BRICKS_DATABASE_URL env (or bricks.database.url in nuxt.config) ' +
+                'for bricks.backend.mode = "builtin", or switch to backend.mode = "external" ' +
+                'with backend.url pointing at your HTTP backend.'
         );
     }
 
@@ -32,16 +33,32 @@ function resolveConnectionString(): string {
 }
 
 /**
+ * Динамически импортирует драйвер `pg` (optional peer-зависимость: external-режим
+ * не должен требовать его установки и резолва Vite) с понятной ошибкой установки.
+ *
+ * @returns Модуль драйвера pg.
+ */
+async function importPgDriver(): Promise<typeof import('pg')> {
+    try {
+        return await import('pg');
+    } catch (error: unknown) {
+        throw new Error(
+            '[PostgreSQL] Failed to load the "pg" driver. Install it with `npm install pg` — ' +
+                'it is required only for bricks.backend.mode = "builtin".',
+            { cause: error }
+        );
+    }
+}
+
+/**
  * Возвращает singleton-пул соединений с PostgreSQL, лениво создавая его.
- * `pg` импортируется динамически: это optional peer-зависимость, и она
- * не должна резолвиться Vite в proxy-режиме без установленного драйвера.
  *
  * @returns Пул соединений.
  */
 async function getPool(): Promise<Pool> {
     if (!pool) {
         const connectionString = resolveConnectionString();
-        const { Pool: PgPool } = await import('pg');
+        const { Pool: PgPool } = await importPgDriver();
 
         pool = new PgPool({
             connectionString,

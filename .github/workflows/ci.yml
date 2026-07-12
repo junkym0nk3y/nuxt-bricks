@@ -105,6 +105,18 @@ jobs:
                   BRICKS_IT_S3_SECRET_KEY: bricks-secret
                   BRICKS_IT_S3_BUCKET: bricks-it
 
+    external:
+        name: External backend smoke (Nitro-level)
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: npm
+            - run: npm ci
+            - run: npm run smoke:external
+
     audit:
         name: npm audit (prod deps)
         runs-on: ubuntu-latest

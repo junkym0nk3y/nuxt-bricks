@@ -1,9 +1,15 @@
 /**
  * Реестр persistence-адаптеров (module-scoped синглтоны).
  *
- * Дефолты — Postgres (storage) и S3 (publish), создаются лениво при первом
- * обращении. Кастомный адаптер потребитель модуля регистрирует из своего
- * Nitro-плагина (server/plugins/*.ts) через сеттеры до первого запроса:
+ * Дефолтный storage-адаптер выбирается по build-time режиму
+ * `bricks.backend.mode`: `builtin` → PostgreSQL, `external` → HTTP-адаптер
+ * поверх пользовательского backend. Носитель режима — регистрация Nitro-плагина
+ * externalBackendStorage (module.ts), который ставит build-time фабрику в
+ * defaultStorage.ts: в runtimeConfig режима нет, NUXT_-env его не меняет.
+ * Publish — S3. Все адаптеры создаются лениво при первом обращении.
+ * Кастомный адаптер потребитель модуля регистрирует из своего Nitro-плагина
+ * (server/plugins/*.ts) через сеттеры до первого запроса —
+ * он побеждает любой режим:
  *
  * ```ts
  * import { setBricksStorageAdapter } from 'nuxt-bricks/persistence';
@@ -16,6 +22,7 @@
 import { createPostgresStorageAdapter } from './postgres/postgresStorageAdapter';
 import { createPostgresAuthAdapter } from './postgres/postgresAuthAdapter';
 import { createS3PublishAdapter } from './s3/s3PublishAdapter';
+import { getBricksDefaultStorageFactory } from './defaultStorage';
 import type { IStorageAdapter, IPublishAdapter, IAuthAdapter } from '../types/adapters';
 
 // Доменные ошибки конфликтов — часть контракта IStorageAdapter (кастомные
@@ -46,13 +53,27 @@ export function hasCustomBricksStorageAdapter(): boolean {
 }
 
 /**
- * Возвращает активный storage-адаптер, лениво создавая дефолтный Postgres.
+ * Создаёт дефолтный storage-адаптер: build-time фабрика external-режима
+ * (её ставит Nitro-плагин externalBackendStorage при старте — сама регистрация
+ * плагина и есть носитель `bricks.backend.mode`), без неё — PostgreSQL (builtin).
+ *
+ * @returns Дефолтная реализация IStorageAdapter.
+ */
+function createDefaultStorageAdapter(): IStorageAdapter {
+    const factory = getBricksDefaultStorageFactory();
+
+    return factory ? factory() : createPostgresStorageAdapter();
+}
+
+/**
+ * Возвращает активный storage-адаптер, лениво создавая дефолтный по режиму
+ * backend (custom-сеттер > external → HTTP > builtin → Postgres).
  *
  * @returns Активный IStorageAdapter.
  */
 export function useBricksStorageAdapter(): IStorageAdapter {
     if (!storageAdapter) {
-        storageAdapter = createPostgresStorageAdapter();
+        storageAdapter = createDefaultStorageAdapter();
     }
 
     return storageAdapter;

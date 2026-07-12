@@ -80,7 +80,7 @@ export default defineNuxtConfig({
 ```
 
 - `backend.url` — полный base-префикс; адаптер добавляет только относительные пути (см. контракт). Пользователь монтирует свой API где угодно.
-- runtimeConfig: `bricksBackendMode` / `bricksBackendUrl` / `bricksBackendToken` / `bricksBackendHealthUrl`; runtime-override через Nuxt-конвенцию `NUXT_BRICKS_BACKEND_URL/TOKEN/HEALTH_URL`. Сам `mode` — build-time, менять после сборки unsupported (документировать).
+- runtimeConfig: `bricksBackendUrl` / `bricksBackendToken` / `bricksBackendHealthUrl`; runtime-override через Nuxt-конвенцию `NUXT_BRICKS_BACKEND_URL/TOKEN/HEALTH_URL`. Сам `mode` в runtimeConfig НЕ хранится (ключ был бы переопределяем `NUXT_BRICKS_BACKEND_MODE` в обход build-валидации — ре-ревью PR2): носитель режима — build-time регистрация Nitro-плагина `externalBackendStorage`, который ставит дефолтную фабрику storage-адаптера (persistence/server/defaultStorage.ts).
 - **Legacy-резолвер** (mode не задан):
     - есть `databaseUrl` → `builtin` + deprecation-info;
     - только PROXY_URL, **production → fail-fast ошибка сборки** с примером конфига `backend.mode=external`;
@@ -159,7 +159,7 @@ stacked (fail-fast PR1 предлагает `backend.mode = 'external'`, кот�
 
 - [x] Create: `src/module-backend-config.ts` — чистый резолвер options+env → `{ mode, warnings, errors }` (тестируем без Nuxt)
 - [x] Modify: `src/module.ts` — опция `backend` в `IBricksModuleOptions`, вызов валидации, fail-fast production PROXY_URL-only, build-ошибка database-auth+external
-- [x] Modify: `src/module-runtime-config.ts` — заполнение `bricksBackendMode/Url/Token/HealthUrl`; `logPersistenceMode` → лог одного разрешённого mode без URL/секретов
+- [x] Modify: `src/module-runtime-config.ts` — заполнение `bricksBackendUrl/Token/HealthUrl`; сам `mode` в runtimeConfig НЕ пишется (носитель — регистрация Nitro-плагина, см. «Решения» и журнал ре-ревью PR2); лог одного разрешённого mode без URL/секретов
 - [x] Create: `test/moduleBackendConfig.spec.ts` — все комбинации mode×db×proxy×url×dev/prod
 
 Этап 2. devProxy:
@@ -176,15 +176,15 @@ stacked (fail-fast PR1 предлагает `backend.mode = 'external'`, кот�
 
 ### PR2 — HttpStorageAdapter + readiness/auth
 
-- [ ] Create: `src/runtime/modules/persistence/server/http/httpStorageAdapter.ts` (+ `http/httpClient.ts` — fetch с timeout/AbortSignal, Bearer, парсер ошибок)
-- [ ] Реализовать все методы `IStorageAdapter` по контракту Р2; `getPageByPagename` — через public route; `getMedia`/`getMediaByUrl` — list+find; `checkHealth` — GET `bricksBackendHealthUrl` (2xx) либо дешёвый `GET {base}`
-- [ ] Modify: `persistence/server/registry.ts` — `useBricksStorageAdapter()` выбирает: custom (сеттер) > `external` → HTTP-адаптер > `builtin` → Postgres
-- [ ] Modify: `persistence/server/postgres/client.ts` — сообщение `resolveConnectionString` без совета PROXY_URL; понятная ошибка при недоступном `import('pg')` («npm install pg — только для builtin»)
-- [ ] Modify: `server/utils/readinessTarget.ts` + `api/bricks/health/ready.get.ts` — вход `backendMode`; `external` → target `'adapter'` (существующая ветка покрывает `checkHealth` HTTP-адаптера); ветка `'proxy'` остаётся legacy-only
-- [ ] `server/middleware/auth.ts` — проверка `bricksDatabaseUrl` остаётся runtime-defense (основная защита — build-ошибка PR1)
-- [ ] Create: `test/persistenceHttpStorageAdapter.spec.ts` (маппинг методов, case-нормализация, 409 → доменные ошибки по `data.code`, 404 → null/false, Bearer, таймаут, идемпотентный createMedia, идемпотентность public-проекции)
-- [ ] Modify: `test/serverReadinessTarget.spec.ts`
-- [ ] Add: external media integration smoke (fake backend — простой node http-сервер): upload → sharp → S3 → JSON metadata; compensation delete S3 при отказе external; file-first delete; thumbnail PATCH. Media/publish handlers НЕ меняются.
+- [x] Create: `src/runtime/modules/persistence/server/http/httpStorageAdapter.ts` (+ `http/httpClient.ts` — fetch с timeout/AbortSignal, Bearer, парсер ошибок)
+- [x] Реализовать все методы `IStorageAdapter` по контракту Р2; `getPageByPagename` — через public route; `getMedia`/`getMediaByUrl` — list+find; `checkHealth` — GET `bricksBackendHealthUrl` (2xx) либо дешёвый `GET {base}`
+- [x] Modify: `persistence/server/registry.ts` — `useBricksStorageAdapter()` выбирает: custom (сеттер) > `external` → HTTP-адаптер > `builtin` → Postgres
+- [x] Modify: `persistence/server/postgres/client.ts` — сообщение `resolveConnectionString` без совета PROXY_URL; понятная ошибка при недоступном `import('pg')` («npm install pg — только для builtin»)
+- [x] Modify: `server/utils/readinessTarget.ts` + `api/bricks/health/ready.get.ts` — входы `hasExternalBackend`/`isLegacyBackendMode` (флаги build-time регистрации Nitro-плагинов, не runtimeConfig-ключ); `external` → target `'adapter'` (существующая ветка покрывает `checkHealth` HTTP-адаптера); ветка `'proxy'` остаётся legacy-only
+- [x] `server/middleware/auth.ts` — runtime-defense: проверка `bricksDatabaseUrl` + отказ database-auth при активном external-флаге (build-time фабрика defaultStorage; закрывает env-обход build-ошибки PR1, ре-ревью итерация 3)
+- [x] Create: `test/persistenceHttpStorageAdapter.spec.ts` (маппинг методов, case-нормализация, 409 → доменные ошибки по `data.code`, 404 → null/false, Bearer, таймаут, идемпотентный createMedia, идемпотентность public-проекции)
+- [x] Modify: `test/serverReadinessTarget.spec.ts`
+- [x] Add: external media integration smoke (fake backend — простой node http-сервер): upload → sharp → S3 → JSON metadata; compensation delete S3 при отказе external; file-first delete; thumbnail PATCH. Media/publish handlers НЕ меняются.
 
 ### PR3 — useApiClient + документация
 
@@ -277,3 +277,23 @@ Follow-up (вне этих PR): `bricks-migrate verify` (readiness с прове
     - [P2 → fix] `npm run format:check` падал на этом файле — прогнан prettier, весь format:check зелёный.
     - [P3 → fix] Журнал: фактически 14 тестов резолвера (не 16), «все комбинации» заменено на честную формулировку.
     - Ре-верификация: vue-tsc/oxlint/depcruise/knip чисто, vitest 508/508 (62 файла), format:check зелёный.
+- 2026-07-12 — **PR2 code-complete** (все чекбоксы; коммит — по запросу):
+    - `persistence/server/http/httpClient.ts` — server-to-server транспорт: заголовки строятся с нуля (browser identity не пробрасывается), Bearer при заданном токене, `AbortSignal.timeout` (дефолт 10 с), `redirect: 'error'`, ошибки → `BricksBackendRequestError` (статус + лояльно распарсенный `data.code ?? code`); `probeHealth` — health URL либо `GET {base}`, готовность только 2xx.
+    - `persistence/server/http/httpStorageAdapter.ts` — все методы `IStorageAdapter` по контракту Р2: `getPageByPagename` через `public/pages/:pagename` (синтез `thumbnailUrl: null / revision: 0 / published: true` + JSDoc-предупреждение editorial-вызывающим), `getMedia`/`getMediaByUrl` — list+find, 404 → null/false, 409 → доменные ошибки (`createPage` → pagename; `updatePage` — `PAGENAME_CONFLICT` при rename, иначе revision), идемпотентный `createMedia` (409 → повторное чтение по url), top-level snake_case → camelCase (`toCamelCaseShallow`, schema не трогается), listMedia принимает и массив, и envelope `{ items }`.
+    - `registry.ts` — дефолт по `runtimeConfig.bricksBackendMode`: custom (сеттер) > external → HTTP > builtin → Postgres; `postgres/client.ts` — сообщение без совета PROXY_URL + понятная ошибка недоступного `import('pg')`.
+    - Readiness: `resolveReadinessTarget` получил вход `backendMode` — `external` всегда `'adapter'` (checkHealth HTTP-адаптера), ветка `'proxy'` — legacy-only; `auth.ts` — комментарий о runtime-defense (основная защита — build-ошибка PR1).
+    - Тесты: `persistenceHttpStorageAdapter.spec.ts` — 34 юнита (маппинг/нормализация/конфликты/404/Bearer/таймаут/идемпотентность createMedia и public-проекции); `persistenceExternalMediaSmoke.spec.ts` — 5 integration-смоков на реальном node http fake-backend + реальном sharp (PNG → WebP по magic bytes) + in-memory S3: external получает только JSON metadata с Bearer (binary — в S3), отказ metadata → компенсационное удаление S3-объекта, file-first delete (порядок ops журналируется, ошибка S3 → 502 и запись остаётся), thumbnail PATCH; `serverReadinessTarget.spec.ts` дополнен external-кейсами.
+    - Верификация: vue-tsc чисто, oxlint чисто, vitest 549/549 (64 файла), format:check зелёный, depcruise (463 модуля) и knip чисто.
+    - Вне PR2 (критерий плана целиком): tarball-level external lifecycle в `smoke:integration` (сейчас скрипт — builtin/Postgres) — добить вместе с PR3-доками либо отдельным шагом.
+- 2026-07-13 — **ре-ревью PR2, итерация 2** (2 P1 + 3 P2 внешнего ревью, все закрыты):
+    - [P1 → fix] Upstream-статусы становились browser-facing: `BricksBackendRequestError.statusCode` подпадал под контракт `toHttpError` («объект со `statusCode` — готовая H3-ошибка») — 401 неверного Bearer или 5xx backend'а ушли бы браузеру, минуя generic 500-envelope с errorId (401 к тому же читался бы UI как истёкшая Bricks-сессия). Поле переименовано в `upstreamStatus`; наружу маппятся только контрактные значения (404 → null/false, 409 → доменные ошибки). Тест: у ошибки нет свойства `statusCode`.
+    - [P1 → fix] Readiness мог быть зелёным при неработающем builtin: explicit `builtin` без БД + любой PROXY_URL давал target `'proxy'` (проба постороннего host API → 200, а `/api/bricks` падает). `resolveReadinessTarget` получил `isLegacyBackendMode`: proxy-ветка доступна ТОЛЬКО при legacy-резолюции (mode не задан); носитель legacy-признака — build-time регистрация Nitro-плагина `legacyBackendMode` (`server/utils/legacyBackendFlag.ts`).
+    - [P2 → fix] `backend.mode` был runtime-переключаем через `NUXT_BRICKS_BACKEND_MODE` (Nitro auto-env поверх runtimeConfig-ключа) в обход build-валидации database-auth+external. Ключ `bricksBackendMode` удалён из runtimeConfig целиком; носитель режима — build-time регистрация Nitro-плагина `externalBackendStorage`, ставящего дефолтную фабрику storage-адаптера во внутренний слот `persistence/server/defaultStorage.ts` (registry: custom-сеттер > фабрика плагина > Postgres; `nuxt-bricks/persistence` новых экспортов не получил). Runtime-переопределяемыми остались только URL/token/healthUrl.
+    - [P2 → fix] Ложные доменные конфликты: 409 без машиночитаемого кода маппился в pagename-конфликт (createPage) / revision-конфликт (updatePage) — посторонний 409 backend'а (квота, состояние) заставил бы UI предлагать rename или refetch-and-retry. Теперь на доменные ошибки маппятся только точные `PAGENAME_CONFLICT`/`REVISION_CONFLICT`; прочие 409 — generic error. Идемпотентность createMedia сохранена (409 → повторное чтение по url).
+    - [P2 → fix] Nitro-level external smoke: `scripts/external-smoke.mjs` (+ `external-smoke-backend.mjs` — fake backend по паттерну integration-lifecycle), `npm run smoke:external`, отдельный CI-job `external`. Tarball → чистый consumer (`backend.mode: 'external'`, in-memory publish adapter через публичный `setBricksPublishAdapter`) → nuxi build → boot с `NUXT_BRICKS_BACKEND_URL/TOKEN` → lifecycle через РЕАЛЬНЫЕ локальные ручки: readiness 200 (adapter-путь), POST/GET/PATCH страницы, public lookup (проекция без editor-полей), multipart upload (sharp → webp в consumer; на backend — только JSON metadata с Bearer, multipart не долетает), media delete; отдельный boot подтверждает, что `NUXT_BRICKS_BACKEND_MODE=builtin` игнорируется (режим build-time). Прогнан локально — зелёный.
+    - Верификация: vue-tsc/oxlint/depcruise/knip чисто, vitest 552/552 (64 файла), format:check зелёный, `smoke:external` зелёный.
+- 2026-07-13 — **ре-ревью PR2, итерация 3** (2 P2 + 1 P3 внешнего ревью, все закрыты):
+    - [P2 → fix] Build-time запрет auth.mode=database + backend.mode=external оставался runtime-обходимым: `auth.ts` проверял только наличие `bricksDatabaseUrl`, а `NUXT_BRICKS_AUTH_MODE=database` + `NUXT_BRICKS_DATABASE_URL` переопределяемы env'ом. `handleDatabaseAuth` теперь сверяется с неизменяемым носителем external-режима (build-time фабрика `defaultStorage`, ставится только плагином `externalBackendStorage`) и отвечает 503 `Database auth is not available in external backend mode`. Smoke-покрытие: третий boot в `external-smoke.mjs` (`runDatabaseAuthDefenseCheck`) утверждает 503 и текст external-defense в теле (отличает от 503 по недоступной БД).
+    - [P2 → fix] Проверка mode-immutability в `external-smoke.mjs` была подвержена гонке за порт: после `kill('SIGKILL')` следующий boot стартовал, не дождавшись exit предыдущего процесса — запрос мог попасть в старый сервер, а новый умереть с EADDRINUSE (ложноположительный результат). Добавлен `waitForExit` в `smoke-shared.mjs`; все kill→boot-переходы смока ждут фактического завершения child-процесса.
+    - [P3 → fix] Чеклисты PR1/PR2 приведены к фактической архитектуре: `bricksBackendMode` в runtimeConfig не пишется (носитель — регистрация Nitro-плагина), вход readiness — флаги `hasExternalBackend`/`isLegacyBackendMode`, пункт auth.ts дополнен external-defense. Журнальные записи прошлых итераций не переписывались (история).
+    - Верификация: vue-tsc/oxlint/depcruise чисто, vitest 552/552 (64 файла), format:check зелёный, `smoke:external` зелёный (в логе виден отказ external-defense).

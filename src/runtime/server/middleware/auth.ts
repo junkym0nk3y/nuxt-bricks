@@ -55,6 +55,7 @@ import {
 import { isIpLockedOut, registerIpFailure } from '../utils/auth/loginRateLimiter';
 import { resolveRequestClientIp } from '../utils/requestClientIp';
 import { useBricksAuthAdapter } from '../../modules/persistence/server/registry';
+import { getBricksDefaultStorageFactory } from '../../modules/persistence/server/defaultStorage';
 import type { IAuthRequestTarget, TBricksAuthMode } from '../utils/auth/types';
 
 /** Дефолтный пароль из module.ts — в production с ним защищённые пути недоступны */
@@ -189,6 +190,22 @@ async function extendSessionIfNeeded(event: H3Event, expiresAt: string): Promise
 async function handleDatabaseAuth(event: H3Event, target: IAuthRequestTarget): Promise<void> {
     const config = useRuntimeConfig();
 
+    // Runtime-defense: build-time запрет auth.mode=database + backend.mode=external
+    // обходим runtime-env (NUXT_BRICKS_AUTH_MODE + NUXT_BRICKS_DATABASE_URL) —
+    // сверяемся с неизменяемым носителем external-режима: build-time фабрика
+    // storage-адаптера ставится только Nitro-плагином externalBackendStorage
+    if (getBricksDefaultStorageFactory()) {
+        console.error(
+            '[nuxt-bricks] auth.mode = "database" несовместим с backend.mode = "external" — защищённые пути отвечают 503'
+        );
+        throw createError({
+            statusCode: 503,
+            statusMessage: 'Database auth is not available in external backend mode',
+        });
+    }
+
+    // Runtime-defense: database-auth без БД невозможен. Основная защита —
+    // build-ошибка module-backend-config (auth.mode=database + backend.mode=external)
     if (!config.bricksDatabaseUrl) {
         throw createError({
             statusCode: 503,

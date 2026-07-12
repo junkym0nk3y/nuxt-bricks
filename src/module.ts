@@ -6,6 +6,7 @@ import {
     addLayout,
     addRouteMiddleware,
     addServerHandler,
+    addServerPlugin,
     extendPages,
 } from '@nuxt/kit';
 import { defu } from 'defu';
@@ -273,6 +274,17 @@ export default defineNuxtModule<IBricksModuleOptions>({
         // PROXY_URL без mode) валит сборку сразу — тихо сломанного прода не будет
         if (backendResolution.errors.length > 0) {
             throw new Error(`[nuxt-bricks] ${backendResolution.errors.join('\n\n')}`);
+        }
+        // Носитель разрешённого режима — регистрация Nitro-плагинов, а не
+        // runtimeConfig: NUXT_-env не может переключить mode в обход
+        // build-time валидации (registry берёт дефолтную фабрику из плагина)
+        if (backendResolution.mode === 'external') {
+            addServerPlugin(resolve(runtimeDir, 'server/plugins/externalBackendStorage'));
+        }
+        // Legacy-резолюция (mode не задан) — readiness получает право на
+        // proxy-ветку пробы (переходный dev-сценарий PROXY_URL без mode)
+        if (!options.backend?.mode) {
+            addServerPlugin(resolve(runtimeDir, 'server/plugins/legacyBackendMode'));
         }
         // #endregion
 

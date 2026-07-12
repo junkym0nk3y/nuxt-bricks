@@ -4,11 +4,13 @@ import {
     hasCustomBricksStorageAdapter,
     useBricksStorageAdapter,
 } from '../../../../modules/persistence/server/registry';
+import { getBricksDefaultStorageFactory } from '../../../../modules/persistence/server/defaultStorage';
 import {
     isProxyHealthStatusReady,
     isProxyStatusReady,
     resolveReadinessTarget,
 } from '../../../utils/readinessTarget';
+import { isBricksLegacyBackendMode } from '../../../utils/legacyBackendFlag';
 
 /** Зависший коннект/дальний proxy не должны вешать probe дольше таймаута. */
 const READINESS_TIMEOUT_MS = 5000;
@@ -82,6 +84,8 @@ export default defineEventHandler(async (event) => {
         (config.bricksSsrProxyUrl as string | undefined) ||
         (config.bricksProxyUrl as string | undefined);
     const target = resolveReadinessTarget({
+        hasExternalBackend: Boolean(getBricksDefaultStorageFactory()),
+        isLegacyBackendMode: isBricksLegacyBackendMode(),
         hasDatabaseUrl: Boolean(config.bricksDatabaseUrl),
         hasProxyUrl: Boolean(proxyUrl),
         hasCustomAdapter: hasCustomBricksStorageAdapter(),

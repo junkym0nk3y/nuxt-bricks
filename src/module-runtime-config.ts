@@ -177,9 +177,11 @@ function applyBricksAuthRuntimeConfig(
  * Заполняет runtimeConfig модуля: basic-auth, persistence (Postgres/S3),
  * external backend, dev proxy, префиксы маршрутов, политика data sources.
  * Дефолты переопределяемы в production через ENV (NUXT_BRICKS_*, legacy-имена —
- * fallback), кроме bricksRoutes и bricksBackendMode — пути страниц и режим
- * backend фиксируются на сборке (env-override дал бы рассинхрон с маршрутами
- * и build-time проверками).
+ * fallback), кроме bricksRoutes — пути страниц фиксируются на сборке
+ * (env-override дал бы рассинхрон с маршрутами). Режим backend в runtimeConfig
+ * НЕ хранится вовсе: ключ был бы переопределяем NUXT_BRICKS_BACKEND_MODE в
+ * обход build-time валидации — носитель режима — регистрация Nitro-плагина
+ * externalBackendStorage в module.ts.
  *
  * @param runtimeConfig - nuxt.options.runtimeConfig.
  * @param options - Опции модуля из nuxt.config.
@@ -231,8 +233,9 @@ export function applyBricksRuntimeConfig(
 
     applyBricksAuthRuntimeConfig(runtimeConfig, publicConfig, options);
 
-    // Режим data backend — build-time: резолвится по сведённым options+env
-    // и фиксируется в runtimeConfig (см. module-backend-config.ts)
+    // Режим data backend — build-time: резолвится по сведённым options+env;
+    // в runtimeConfig НЕ пишется (см. JSDoc выше) — module.ts превращает
+    // резолюцию в регистрацию Nitro-плагинов
     const backendResolution = resolveBricksBackendConfig({
         configuredMode: options.backend?.mode,
         backendUrl: runtimeConfig.bricksBackendUrl as string,
@@ -241,7 +244,6 @@ export function applyBricksRuntimeConfig(
         authMode: runtimeConfig.bricksAuthMode as string,
         isDev,
     });
-    runtimeConfig.bricksBackendMode = backendResolution.mode;
 
     logBackendResolution(backendResolution);
     logAuthMode(runtimeConfig.bricksAuthMode as string, Boolean(runtimeConfig.bricksDatabaseUrl));
