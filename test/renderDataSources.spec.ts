@@ -15,8 +15,9 @@ import type { IPublishedPage } from '../src/runtime/modules/common/types/bricks-
 const { dataSourceFetcherMock, dataSourceClientConfig, findImportModuleMock } = vi.hoisted(() => ({
     dataSourceFetcherMock: vi.fn(),
     // Мутируемый конфиг клиента: тесты бюджета (аудит A-09) переопределяют
-    // maxResponseBytes/maxRequestsPerPage перед вызовом композаблов.
+    // maxResponseBytes/maxRequestsPerPage/timeoutMs перед вызовом композаблов.
     dataSourceClientConfig: {
+        timeoutMs: 10000,
         maxResponseBytes: 1024 * 1024,
         maxRequestsPerPage: 24,
         totalDeadlineMs: 15000,
@@ -29,6 +30,7 @@ vi.mock('../src/runtime/modules/render/composables/useDataSourceClient', () => (
         dataSourceFetcher: dataSourceFetcherMock,
         allowedHosts: ['api.example.com'],
         concurrency: 6,
+        timeoutMs: dataSourceClientConfig.timeoutMs,
         maxResponseBytes: dataSourceClientConfig.maxResponseBytes,
         maxRequestsPerPage: dataSourceClientConfig.maxRequestsPerPage,
         totalDeadlineMs: dataSourceClientConfig.totalDeadlineMs,
@@ -125,6 +127,7 @@ describe('useBricksDataSources.executeDataSource', () => {
     afterEach(() => {
         vi.restoreAllMocks();
         dataSourceFetcherMock.mockReset();
+        dataSourceClientConfig.timeoutMs = 10000;
         dataSourceClientConfig.maxResponseBytes = 1024 * 1024;
         dataSourceClientConfig.maxRequestsPerPage = 24;
     });
@@ -256,6 +259,37 @@ describe('useBricksDataSources.executeDataSource', () => {
         expect(errorPayload).not.toHaveProperty('params');
         expect(errorPayload).not.toHaveProperty('url');
         expect(errorPayload).toMatchObject({ target: 'local', error: { name: 'Error' } });
+    });
+
+    it('per-request таймаут действует и при переданном общем shared signal (аудит A-09 review)', async () => {
+        dataSourceClientConfig.timeoutMs = 25;
+        // Фетчер имитирует поведение ofetch: висит вечно, но реагирует на abort
+        // переданного сигнала (per-request таймаут должен его абортить сам,
+        // shared signal дедлайна прогона не абортируется в этом тесте)
+        dataSourceFetcherMock.mockImplementation(
+            (_url: string, options: { signal?: AbortSignal }) =>
+                new Promise((_resolve, reject) => {
+                    options.signal?.addEventListener('abort', () =>
+                        reject(new Error('The operation was aborted'))
+                    );
+                })
+        );
+        const { executeDataSource } = useBricksDataSources();
+        const sharedDeadlineController = new AbortController();
+
+        const result = await executeDataSource(
+            createSource(),
+            createComponent(),
+            null,
+            undefined,
+            sharedDeadlineController.signal
+        );
+
+        expect(result).toBeNull();
+        expect(console.error).toHaveBeenCalledWith(
+            expect.stringContaining('Fetch failed'),
+            expect.any(Object)
+        );
     });
 
     it('ответ больше maxResponseBytes — результат null, prop не мержится (аудит A-09)', async () => {

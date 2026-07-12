@@ -65,6 +65,7 @@ export function useDataSourceClient() {
         dataSourceFetcher,
         allowedHosts,
         concurrency,
+        timeoutMs,
         maxResponseBytes,
         maxRequestsPerPage,
         totalDeadlineMs,

@@ -16,6 +16,7 @@ import {
     type TResolvedDataSourceMethod,
 } from '../utils/dataSourcePolicy';
 import { resolveDataSourceLogTarget, toDataSourceLogError } from '../utils/dataSourceLogging';
+import { combineAbortSignals } from '../utils/abortSignals';
 
 // Composables
 import { useDataSourceClient } from './useDataSourceClient';
@@ -46,6 +47,7 @@ export function useBricksDataSources() {
         dataSourceFetcher,
         allowedHosts,
         concurrency,
+        timeoutMs,
         maxResponseBytes,
         maxRequestsPerPage,
         totalDeadlineMs,
@@ -211,7 +213,15 @@ export function useBricksDataSources() {
             return cached;
         }
 
-        const responsePromise = dataSourceFetcher<unknown>(url, { method, signal });
+        // ofetch строит внутренний timeout-abort только когда caller-signal
+        // НЕ передан — при общем дедлайне прогона per-request таймаут
+        // обеспечивается явной комбинацией с AbortSignal.timeout (оба потолка
+        // действуют независимо, аудит A-09 review)
+        const requestSignal = signal
+            ? combineAbortSignals([signal, AbortSignal.timeout(timeoutMs)])
+            : undefined;
+
+        const responsePromise = dataSourceFetcher<unknown>(url, { method, signal: requestSignal });
         requestCache?.set(cacheKey, responsePromise);
 
         return responsePromise;
