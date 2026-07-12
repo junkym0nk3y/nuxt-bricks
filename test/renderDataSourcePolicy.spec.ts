@@ -6,6 +6,10 @@ import { describe, expect, it } from 'vitest';
 import {
     checkDataSourceUrl,
     resolveDataSourceMethod,
+    DEFAULT_DATA_SOURCE_MAX_REQUESTS_PER_PAGE,
+    DEFAULT_DATA_SOURCE_MAX_RESPONSE_BYTES,
+    DEFAULT_DATA_SOURCE_TOTAL_DEADLINE_MS,
+    measureResponseSizeBytes,
 } from '../src/runtime/modules/render/utils/dataSourcePolicy';
 // #endregion
 
@@ -73,5 +77,27 @@ describe('checkDataSourceUrl', () => {
         expect(checkDataSourceUrl('ftp://api.example.com/file', allowedHosts).allowed).toBe(false);
         expect(checkDataSourceUrl('javascript:alert(1)', allowedHosts).allowed).toBe(false);
         expect(checkDataSourceUrl('file:///etc/passwd', allowedHosts).allowed).toBe(false);
+    });
+});
+
+describe('dataSourcePolicy: resource budget (аудит A-09)', () => {
+    it('дефолты бюджета заданы', () => {
+        expect(DEFAULT_DATA_SOURCE_MAX_RESPONSE_BYTES).toBe(1024 * 1024);
+        expect(DEFAULT_DATA_SOURCE_MAX_REQUESTS_PER_PAGE).toBe(24);
+        expect(DEFAULT_DATA_SOURCE_TOTAL_DEADLINE_MS).toBe(15000);
+    });
+
+    it('measureResponseSizeBytes: null/undefined — 0, объект — длина JSON', () => {
+        expect(measureResponseSizeBytes(null)).toBe(0);
+        expect(measureResponseSizeBytes(undefined)).toBe(0);
+        expect(measureResponseSizeBytes({ a: 1 })).toBe(JSON.stringify({ a: 1 }).length);
+        expect(measureResponseSizeBytes('xx')).toBe(4); // '"xx"'
+    });
+
+    it('несериализуемое значение (цикл) — Infinity (жёсткий отказ, не пропуск)', () => {
+        const cyclic: Record<string, unknown> = {};
+        cyclic.self = cyclic;
+
+        expect(measureResponseSizeBytes(cyclic)).toBe(Number.POSITIVE_INFINITY);
     });
 });

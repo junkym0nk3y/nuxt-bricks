@@ -11,6 +11,7 @@ import type { TPublishFormState } from '../../common/types/bricks-api';
 // Utils
 import {
     checkDataSourceUrl,
+    measureResponseSizeBytes,
     resolveDataSourceMethod,
     type TResolvedDataSourceMethod,
 } from '../utils/dataSourcePolicy';
@@ -36,11 +37,19 @@ export type TDataSourceRequestCache = Map<string, Promise<unknown>>;
  * до `{ name, statusCode }` (см. utils/dataSourceLogging) — резолвленный URL
  * содержит подставленные значения props/страницы и в prod-логи не попадает.
  *
- * @returns Метод executeDataSource и лимит одновременности из конфигурации.
+ * @returns Метод executeDataSource и бюджеты выполнения (лимит одновременности,
+ * максимум запросов на прогон, суммарный дедлайн) из конфигурации.
  */
 export function useBricksDataSources() {
     // #region Data
-    const { dataSourceFetcher, allowedHosts, concurrency } = useDataSourceClient();
+    const {
+        dataSourceFetcher,
+        allowedHosts,
+        concurrency,
+        maxResponseBytes,
+        maxRequestsPerPage,
+        totalDeadlineMs,
+    } = useDataSourceClient();
     // #endregion
 
     // #region Methods
@@ -185,12 +194,15 @@ export function useBricksDataSources() {
      * @param url - Резолвленный URL запроса.
      * @param method - Нормализованный HTTP-метод.
      * @param requestCache - Кеш ответов текущего прогона (опционален).
+     * @param signal - Сигнал отмены (общий дедлайн прогона — аудит A-09); в ключ
+     * кеша не входит, чтобы дедуп по (method + url) не зависел от прогона.
      * @returns Сырой ответ запроса.
      */
     function fetchDataSource(
         url: string,
         method: TResolvedDataSourceMethod,
-        requestCache?: TDataSourceRequestCache
+        requestCache?: TDataSourceRequestCache,
+        signal?: AbortSignal
     ): Promise<unknown> {
         const cacheKey = `${method} ${url}`;
         const cached = requestCache?.get(cacheKey);
@@ -199,7 +211,7 @@ export function useBricksDataSources() {
             return cached;
         }
 
-        const responsePromise = dataSourceFetcher<unknown>(url, { method });
+        const responsePromise = dataSourceFetcher<unknown>(url, { method, signal });
         requestCache?.set(cacheKey, responsePromise);
 
         return responsePromise;
@@ -214,13 +226,16 @@ export function useBricksDataSources() {
      * @param component - Компонент, для которого выполняется запрос.
      * @param pageSettings - Настройки страницы для разрешения параметров.
      * @param requestCache - Кеш ответов текущего прогона (dedup одинаковых запросов).
+     * @param signal - Сигнал отмены общего дедлайна прогона (аудит A-09);
+     * отменённый запрос попадает в общий catch → null → fallback props компонента.
      * @returns Результат запроса после применения map функции или null при ошибке.
      */
     async function executeDataSource(
         source: IBrickDataSource,
         component: IBricksComponent,
         pageSettings: TPublishFormState | null,
-        requestCache?: TDataSourceRequestCache
+        requestCache?: TDataSourceRequestCache,
+        signal?: AbortSignal
     ): Promise<Record<string, unknown> | null> {
         const params: Record<string, string | number> = {};
         let url = source.url;
@@ -297,7 +312,26 @@ export function useBricksDataSources() {
                 });
             }
 
-            const response = await fetchDataSource(url, method, requestCache);
+            const response = await fetchDataSource(url, method, requestCache, signal);
+            const responseSizeBytes = measureResponseSizeBytes(response);
+
+            if (responseSizeBytes > maxResponseBytes) {
+                console.warn(
+                    '[Bricks DataSource] Skip - response exceeds byte budget:',
+                    withDevLogDetails(
+                        {
+                            key: source.key,
+                            target: resolveDataSourceLogTarget(url),
+                            responseSizeBytes,
+                            maxResponseBytes,
+                            componentId: component.id,
+                            brickPath: component.brickPath,
+                        },
+                        { url }
+                    )
+                );
+                return null;
+            }
 
             if (import.meta.dev) {
                 console.info('[Bricks DataSource] Response received:', {
@@ -368,5 +402,7 @@ export function useBricksDataSources() {
     return {
         executeDataSource,
         concurrency,
+        maxRequestsPerPage,
+        totalDeadlineMs,
     };
 }

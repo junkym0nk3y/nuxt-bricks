@@ -5,7 +5,10 @@ import type { IBricksDataSourcesConfig } from '../../common/types/dataSource';
 // Utils
 import {
     DEFAULT_DATA_SOURCE_CONCURRENCY,
+    DEFAULT_DATA_SOURCE_MAX_REQUESTS_PER_PAGE,
+    DEFAULT_DATA_SOURCE_MAX_RESPONSE_BYTES,
     DEFAULT_DATA_SOURCE_TIMEOUT_MS,
+    DEFAULT_DATA_SOURCE_TOTAL_DEADLINE_MS,
 } from '../utils/dataSourcePolicy';
 
 // Nuxt
@@ -25,7 +28,8 @@ import { useRuntimeConfig } from '#imports';
  * на клиенте — под `app.baseURL`. Абсолютные URL допускаются политикой
  * dataSourcePolicy (allow-list хостов) и уходят напрямую.
  *
- * @returns Фетчер и параметры выполнения (allow-list, лимит одновременности).
+ * @returns Фетчер и параметры выполнения (allow-list, лимит одновременности,
+ * бюджеты размера ответа/числа запросов/суммарного дедлайна — аудит A-09).
  */
 export function useDataSourceClient() {
     const config = useRuntimeConfig();
@@ -36,6 +40,12 @@ export function useDataSourceClient() {
     const allowedHosts = dataSourcesConfig?.allowedHosts ?? [];
     const timeoutMs = dataSourcesConfig?.timeoutMs ?? DEFAULT_DATA_SOURCE_TIMEOUT_MS;
     const concurrency = dataSourcesConfig?.concurrency ?? DEFAULT_DATA_SOURCE_CONCURRENCY;
+    const maxResponseBytes =
+        dataSourcesConfig?.maxResponseBytes ?? DEFAULT_DATA_SOURCE_MAX_RESPONSE_BYTES;
+    const maxRequestsPerPage =
+        dataSourcesConfig?.maxRequestsPerPage ?? DEFAULT_DATA_SOURCE_MAX_REQUESTS_PER_PAGE;
+    const totalDeadlineMs =
+        dataSourcesConfig?.totalDeadlineMs ?? DEFAULT_DATA_SOURCE_TOTAL_DEADLINE_MS;
 
     const appBaseURL = (config.app?.baseURL as string | undefined) || '/';
     const basePath = appBaseURL.endsWith('/') ? appBaseURL : `${appBaseURL}/`;
@@ -55,5 +65,8 @@ export function useDataSourceClient() {
         dataSourceFetcher,
         allowedHosts,
         concurrency,
+        maxResponseBytes,
+        maxRequestsPerPage,
+        totalDeadlineMs,
     };
 }

@@ -14,6 +14,15 @@ export const DEFAULT_DATA_SOURCE_TIMEOUT_MS = 10000;
 /** Дефолтный лимит одновременных запросов data sources на страницу. */
 export const DEFAULT_DATA_SOURCE_CONCURRENCY = 6;
 
+/** Дефолтный лимит размера одного ответа data source, байт (~UTF-16 code units JSON). */
+export const DEFAULT_DATA_SOURCE_MAX_RESPONSE_BYTES = 1024 * 1024;
+
+/** Дефолтный максимум запросов data sources на один прогон страницы. */
+export const DEFAULT_DATA_SOURCE_MAX_REQUESTS_PER_PAGE = 24;
+
+/** Дефолтный суммарный wall-clock budget всех data sources одного прогона, мс. */
+export const DEFAULT_DATA_SOURCE_TOTAL_DEADLINE_MS = 15000;
+
 /** Разрешённые HTTP-методы data source (safe/idempotent — выполняются на рендер). */
 const ALLOWED_DATA_SOURCE_METHODS = new Set(['GET', 'HEAD']);
 // #endregion
@@ -78,4 +87,23 @@ export function checkDataSourceUrl(url: string, allowedHosts: string[]): TDataSo
     }
 
     return { allowed: true };
+}
+
+/**
+ * Приблизительный размер ответа в байтах — длина JSON-сериализации
+ * (UTF-16 code units; точность достаточна для бюджета). Несериализуемое
+ * значение (циклы, BigInt) — Infinity: такой ответ бюджет не проходит.
+ *
+ * @param value - Ответ data source.
+ */
+export function measureResponseSizeBytes(value: unknown): number {
+    if (value === undefined || value === null) {
+        return 0;
+    }
+
+    try {
+        return JSON.stringify(value)?.length ?? 0;
+    } catch {
+        return Number.POSITIVE_INFINITY;
+    }
 }

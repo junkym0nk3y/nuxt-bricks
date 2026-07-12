@@ -38,6 +38,12 @@ export interface IBricksDataSourcesConfig {
     timeoutMs: number;
     /** Максимум одновременных запросов data sources на страницу. */
     concurrency: number;
+    /** Лимит размера одного ответа, байт (JSON-length approximation). */
+    maxResponseBytes: number;
+    /** Максимум запросов data sources на один прогон страницы. */
+    maxRequestsPerPage: number;
+    /** Суммарный wall-clock budget одного прогона, мс (по истечении — abort). */
+    totalDeadlineMs: number;
 }
 
 export interface IBrickDataSource {

@@ -57,6 +57,8 @@ vi.mock('../src/runtime/modules/render/composables/useBricksDataSources', () => 
     useBricksDataSources: () => ({
         executeDataSource: executeDataSourceMock,
         concurrency: 6,
+        maxRequestsPerPage: 24,
+        totalDeadlineMs: 15000,
     }),
 }));
 // #endregion
@@ -130,7 +132,8 @@ describe('useRendererDataSources: legacy-схема не роняет SSR (ау�
             dataSource,
             validComponent,
             page.value,
-            expect.any(Map)
+            expect.any(Map),
+            expect.any(AbortSignal)
         );
         expect(resolvedProps.value).toEqual({ 'comp-1': { items: [1, 2] } });
     });

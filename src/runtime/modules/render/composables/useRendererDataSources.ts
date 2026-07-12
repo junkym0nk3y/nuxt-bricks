@@ -54,7 +54,12 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
     const isClientDataSourceDebug = import.meta.dev && import.meta.client;
 
     const { findImportModule } = useBrickImports();
-    const { executeDataSource: executeDataSourceRequest, concurrency } = useBricksDataSources();
+    const {
+        executeDataSource: executeDataSourceRequest,
+        concurrency,
+        maxRequestsPerPage,
+        totalDeadlineMs,
+    } = useBricksDataSources();
     const dataSourceKey = `bricks-datasources-${pagename}-${isPreview ? 'preview' : 'live'}`;
 
     /**
@@ -137,43 +142,81 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
             }
 
             const requests = await collectDataSourceRequests();
-            const result: Record<string, Record<string, unknown>> = {};
 
             if (!requests?.length) {
                 return {};
             }
 
+            // Бюджет запросов на прогон: излишек отбрасывается с логом,
+            // а не выполняется молча (аудит A-09)
+            const limitedRequests = requests.slice(0, maxRequestsPerPage);
+
+            if (limitedRequests.length < requests.length) {
+                console.warn(
+                    '[Bricks DataSources] Request budget exceeded — extra sources skipped:',
+                    {
+                        pagename,
+                        total: requests.length,
+                        executed: limitedRequests.length,
+                    }
+                );
+            }
+
             // Кеш ответов одного прогона: одинаковые (method + url) запросы
             // выполняются один раз; новый прогон (refresh) — свежие данные
             const requestCache: TDataSourceRequestCache = new Map();
-
-            // Выполняем с лимитом одновременности (bricks.dataSources.concurrency):
-            // страница с десятками компонентов не открывает неограниченное
-            // число одновременных запросов на SSR
-            await runWithConcurrencyLimit(
-                requests.map(({ component, source }) => async () => {
-                    const mapped = await executeDataSourceRequest(
-                        source,
-                        component,
-                        page.value,
-                        requestCache
-                    );
-
-                    if (!mapped) {
-                        return;
+            // Общий wall-clock budget прогона: по истечении оставшиеся запросы
+            // прерываются AbortController'ом, компоненты остаются на fallback props
+            const abortController = new AbortController();
+            const deadlineTimer = setTimeout(() => {
+                console.warn(
+                    '[Bricks DataSources] Total deadline exceeded — aborting remaining requests:',
+                    {
+                        pagename,
+                        totalDeadlineMs,
                     }
+                );
+                abortController.abort();
+            }, totalDeadlineMs);
 
-                    const target = (result[component.id] ||= {});
+            const result: Record<string, Record<string, unknown>> = {};
 
-                    // Применяем только запрошенные props, чтобы избежать лишнего шумового мерджа
-                    source.props.forEach((propName) => {
-                        if (propName in mapped) {
-                            target[propName] = (mapped as Record<string, unknown>)[propName];
+            try {
+                // Выполняем с лимитом одновременности (bricks.dataSources.concurrency):
+                // страница с десятками компонентов не открывает неограниченное
+                // число одновременных запросов на SSR
+                await runWithConcurrencyLimit(
+                    limitedRequests.map(({ component, source }) => async () => {
+                        if (abortController.signal.aborted) {
+                            return;
                         }
-                    });
-                }),
-                concurrency
-            );
+
+                        const mapped = await executeDataSourceRequest(
+                            source,
+                            component,
+                            page.value,
+                            requestCache,
+                            abortController.signal
+                        );
+
+                        if (!mapped) {
+                            return;
+                        }
+
+                        const target = (result[component.id] ||= {});
+
+                        // Применяем только запрошенные props, чтобы избежать лишнего шумового мерджа
+                        source.props.forEach((propName) => {
+                            if (propName in mapped) {
+                                target[propName] = (mapped as Record<string, unknown>)[propName];
+                            }
+                        });
+                    }),
+                    concurrency
+                );
+            } finally {
+                clearTimeout(deadlineTimer);
+            }
 
             return result;
         },

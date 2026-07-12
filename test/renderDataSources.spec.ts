@@ -2,14 +2,26 @@
 // Vitest
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+// Vue
+import { computed } from 'vue';
+
 // Types
 import type { IBrickDataSource } from '../src/runtime/modules/common/types/dataSource';
 import type { IBricksComponent } from '../src/runtime/modules/common/types/brick';
+import type { IPublishedPage } from '../src/runtime/modules/common/types/bricks-api';
 // #endregion
 
 // #region Mocks
-const { dataSourceFetcherMock } = vi.hoisted(() => ({
+const { dataSourceFetcherMock, dataSourceClientConfig, findImportModuleMock } = vi.hoisted(() => ({
     dataSourceFetcherMock: vi.fn(),
+    // Мутируемый конфиг клиента: тесты бюджета (аудит A-09) переопределяют
+    // maxResponseBytes/maxRequestsPerPage перед вызовом композаблов.
+    dataSourceClientConfig: {
+        maxResponseBytes: 1024 * 1024,
+        maxRequestsPerPage: 24,
+        totalDeadlineMs: 15000,
+    },
+    findImportModuleMock: vi.fn(),
 }));
 
 vi.mock('../src/runtime/modules/render/composables/useDataSourceClient', () => ({
@@ -17,7 +29,38 @@ vi.mock('../src/runtime/modules/render/composables/useDataSourceClient', () => (
         dataSourceFetcher: dataSourceFetcherMock,
         allowedHosts: ['api.example.com'],
         concurrency: 6,
+        maxResponseBytes: dataSourceClientConfig.maxResponseBytes,
+        maxRequestsPerPage: dataSourceClientConfig.maxRequestsPerPage,
+        totalDeadlineMs: dataSourceClientConfig.totalDeadlineMs,
     }),
+}));
+
+// Стаб useAsyncData: синхронно выполняет handler (см. renderDataSourcesLegacySchema.spec.ts)
+vi.mock('#imports', async (importOriginal) => {
+    const actual = await importOriginal<Record<string, unknown>>();
+
+    return {
+        ...actual,
+        useAsyncData: (_key: string, handler: () => Promise<unknown>) => {
+            const promise = handler();
+            const state = { value: undefined as unknown };
+            const settled = promise.then((result) => {
+                state.value = result;
+                return result;
+            });
+
+            return Object.assign(settled, {
+                data: state,
+                status: { value: 'success' },
+                error: { value: null },
+                refresh: () => promise,
+            });
+        },
+    };
+});
+
+vi.mock('../src/runtime/modules/common/composables/useBrickImports', () => ({
+    useBrickImports: () => ({ findImportModule: findImportModuleMock }),
 }));
 // #endregion
 
@@ -25,6 +68,7 @@ import {
     useBricksDataSources,
     type TDataSourceRequestCache,
 } from '../src/runtime/modules/render/composables/useBricksDataSources';
+import { useRendererDataSources } from '../src/runtime/modules/render/composables/useRendererDataSources';
 
 /**
  * Собирает минимальный компонент схемы для теста.
@@ -49,6 +93,29 @@ function createSource(overrides: Partial<IBrickDataSource> = {}): IBrickDataSour
     };
 }
 
+/**
+ * Собирает минимальную published-страницу со схемой из переданных компонентов.
+ */
+function makePage(components: IBricksComponent[]): IPublishedPage {
+    return {
+        id: 1,
+        pagename: 'budget-page',
+        title: null,
+        description: null,
+        keywords: null,
+        backgroundColor: null,
+        layout: null,
+        socialImage: null,
+        urlPrefix: null,
+        subdomain: null,
+        thumbnailUrl: null,
+        schema: { components },
+        published: true,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+}
+
 describe('useBricksDataSources.executeDataSource', () => {
     beforeEach(() => {
         vi.spyOn(console, 'warn').mockImplementation(() => undefined);
@@ -58,6 +125,8 @@ describe('useBricksDataSources.executeDataSource', () => {
     afterEach(() => {
         vi.restoreAllMocks();
         dataSourceFetcherMock.mockReset();
+        dataSourceClientConfig.maxResponseBytes = 1024 * 1024;
+        dataSourceClientConfig.maxRequestsPerPage = 24;
     });
 
     it('выполняет GET с подстановкой параметров из props (encodeURIComponent)', async () => {
@@ -187,5 +256,72 @@ describe('useBricksDataSources.executeDataSource', () => {
         expect(errorPayload).not.toHaveProperty('params');
         expect(errorPayload).not.toHaveProperty('url');
         expect(errorPayload).toMatchObject({ target: 'local', error: { name: 'Error' } });
+    });
+
+    it('ответ больше maxResponseBytes — результат null, prop не мержится (аудит A-09)', async () => {
+        dataSourceClientConfig.maxResponseBytes = 10;
+        dataSourceFetcherMock.mockResolvedValue({
+            items: Array.from({ length: 50 }, (_, index) => ({ id: index, name: `item-${index}` })),
+        });
+        const { executeDataSource } = useBricksDataSources();
+
+        const result = await executeDataSource(createSource(), createComponent(), null);
+
+        expect(result).toBeNull();
+        expect(console.warn).toHaveBeenCalledWith(
+            expect.stringContaining('byte budget'),
+            expect.objectContaining({ maxResponseBytes: 10 })
+        );
+    });
+});
+
+describe('useRendererDataSources: бюджет запросов на прогон (аудит A-09)', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+        dataSourceFetcherMock.mockReset();
+        findImportModuleMock.mockReset();
+        dataSourceClientConfig.maxRequestsPerPage = 24;
+    });
+
+    it('при числе источников больше maxRequestsPerPage выполняется ровно maxRequestsPerPage запросов', async () => {
+        vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        dataSourceClientConfig.maxRequestsPerPage = 2;
+
+        const component: IBricksComponent = {
+            id: 'comp-1',
+            type: 'component',
+            componentName: 'TestBrick',
+            brickPath: 'bricks/TestBrick',
+            zIndex: 0,
+            props: {},
+        };
+        const sources: IBrickDataSource[] = Array.from({ length: 5 }, (_, index) =>
+            createSource({
+                key: `source-${index}`,
+                url: `/api/items/${index}`,
+                props: [`item${index}`],
+            })
+        );
+
+        findImportModuleMock.mockReturnValue(() =>
+            Promise.resolve({ brick: { dataSources: sources } })
+        );
+        dataSourceFetcherMock.mockResolvedValue({ ok: true });
+
+        const page = computed(() => makePage([component]));
+
+        const { ready } = useRendererDataSources({
+            page,
+            pagename: 'budget-page',
+            isPreview: false,
+        });
+
+        await ready;
+
+        expect(dataSourceFetcherMock).toHaveBeenCalledTimes(2);
+        expect(console.warn).toHaveBeenCalledWith(
+            expect.stringContaining('Request budget exceeded'),
+            expect.objectContaining({ total: 5, executed: 2 })
+        );
     });
 });

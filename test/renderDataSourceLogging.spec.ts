@@ -23,6 +23,9 @@ vi.mock('../src/runtime/modules/render/composables/useDataSourceClient', () => (
         dataSourceFetcher: dataSourceFetcherMock,
         allowedHosts: ['api.example.com'],
         concurrency: 6,
+        maxResponseBytes: 1024 * 1024,
+        maxRequestsPerPage: 24,
+        totalDeadlineMs: 15000,
     }),
 }));
 // #endregion

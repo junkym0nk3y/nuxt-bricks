@@ -106,6 +106,12 @@ export interface IBricksModuleOptions {
         timeoutMs?: number;
         /** Максимум одновременных запросов на страницу (дефолт 6). */
         concurrency?: number;
+        /** Лимит размера одного ответа, байт (дефолт 1 МБ, JSON-length approximation). */
+        maxResponseBytes?: number;
+        /** Максимум запросов data sources на один прогон страницы (дефолт 24). */
+        maxRequestsPerPage?: number;
+        /** Суммарный wall-clock budget одного прогона, мс (дефолт 15000). */
+        totalDeadlineMs?: number;
     };
     /**
      * Доверять заголовку x-forwarded-for при определении клиентского IP
