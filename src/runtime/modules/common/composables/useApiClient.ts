@@ -6,7 +6,7 @@ import type { IncomingHttpHeaders } from 'http';
 import { stripCookieByName } from '../utils/cookieHeader';
 
 // Constants
-import { BRICKS_SESSION_COOKIE_NAME } from '../constants/auth';
+import { BRICKS_CSRF_HEADER_NAME, BRICKS_SESSION_COOKIE_NAME } from '../constants/auth';
 
 // Composables
 import { useBricksRoutePaths } from './useBricksRoutePaths';
@@ -153,6 +153,10 @@ export function useApiClient() {
     if (csrf.value) {
         defaultHeaders['X-CSRFToken'] = csrf.value as string;
     }
+
+    // CSRF-маркер unsafe-запросов bricks-API: кросс-доменный документ не может
+    // поставить кастомный заголовок без CORS-preflight (см. csrfProtection.ts)
+    defaultHeaders[BRICKS_CSRF_HEADER_NAME] = '1';
 
     // Тип выводится: Nitro-типизированный $Fetch (globalThis) — на SSR выполняет
     // относительные URL внутренним вызовом обработчиков

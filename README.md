@@ -6,6 +6,14 @@
 
 Защищённые пути (в обоих режимах одна матрица; префиксы страниц — из `bricks.routes`): `<builderPrefix>/**` (менеджер страниц + редактор), `<previewPrefix>/**` (превью рендера), `/mock-api/s3-*` (снапшот превью страницы, media-proxy) и весь editorial API `/api/bricks/**`, включая GET (списки страниц с черновиками и полной schema, медиатека, версии). Публична только public read-model `GET/HEAD /api/bricks/public/**` — published-проекции для рендера.
 
+**CSRF**: unsafe-запросы (`POST`/`PUT`/`PATCH`/`DELETE`) на `/api/bricks/**` (включая `auth/login`/`auth/logout`) и `/mock-api/s3-*` требуют доказательства same-origin — заголовка `Origin`/`Sec-Fetch-Site`, совпадающего с хостом запроса, либо кастомного заголовка `x-bricks-csrf: 1` (кросс-доменный документ не может поставить кастомный заголовок без CORS-preflight). Проверка идёт до auth — отсутствие любого признака отдаёт `403` ещё до логина. Тело JSON-ручек принимается только с `Content-Type: application/json` (`415` иначе). Клиент билдера (`useApiClient`) шлёт заголовок автоматически; для curl-автоматизации и прочих не-браузерных клиентов:
+
+```bash
+curl -X POST '.../api/bricks/auth/login' \
+  -H 'x-bricks-csrf: 1' -H 'content-type: application/json' \
+  -d '{"username":"admin","password":"..."}'
+```
+
 Конфигурация — через env (`.env`):
 
 ```bash

@@ -34,6 +34,7 @@ import {
 } from 'h3';
 import { useRuntimeConfig } from 'nitropack/runtime';
 import { requiresAuth, isProtectedHtmlPath } from '../utils/auth/routeProtection';
+import { assertCsrfSafe, isCsrfProtectedPath } from '../utils/auth/csrfProtection';
 import {
     DEFAULT_BRICKS_ROUTE_PREFIXES,
     getBuilderLoginPath,
@@ -220,6 +221,12 @@ export default defineEventHandler(async (event: H3Event) => {
         prefixes,
         baseURL,
     };
+
+    // CSRF-гейт unsafe-методов (аудит A-03): ДО auth — login/logout не под
+    // requiresAuth, но под CSRF; неавторизованный кросс-сайтовый POST — 403
+    if (isCsrfProtectedPath(target.logicalPathname)) {
+        assertCsrfSafe(event);
+    }
 
     if (!requiresAuth(target.logicalPathname, method, mode, prefixes)) {
         return; // Пропускаем незащищённые пути

@@ -2,8 +2,12 @@
 // Vitest
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+// Types
+import type { H3Event } from 'h3';
+
 // Utils
 import {
+    readNormalizedBody,
     toHttpError,
     toPageHttpError,
 } from '../src/runtime/modules/persistence/server/utils/handlerHelpers';
@@ -13,6 +17,16 @@ import {
 } from '../src/runtime/modules/persistence/server/utils/storageErrors';
 import { PAGE_CONFLICT_CODES } from '../src/runtime/modules/common/constants/publish';
 // #endregion
+
+/**
+ * Минимальный фейковый H3Event с заголовками (паттерн
+ * persistenceRequestBodyLimits.spec.ts / serverRequestClientIp.spec.ts).
+ */
+function makeEvent(headers: Record<string, string>): H3Event {
+    return {
+        node: { req: { headers } },
+    } as unknown as H3Event;
+}
 
 /** Формат UUID v4 для errorId. */
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -76,5 +90,16 @@ describe('handlerHelpers: generic 500-envelope', () => {
 
         expect(revisionConflict.statusCode).toBe(409);
         expect(revisionConflict.data.code).toBe(PAGE_CONFLICT_CODES.revision);
+    });
+});
+
+describe('handlerHelpers: readNormalizedBody требует application/json (аудит A-03)', () => {
+    it('не-JSON content-type (например form/text) — 415, до чтения тела', async () => {
+        const event = makeEvent({ 'content-type': 'text/plain' });
+
+        await expect(readNormalizedBody(event)).rejects.toMatchObject({
+            statusCode: 415,
+            statusMessage: 'Expected application/json body',
+        });
     });
 });

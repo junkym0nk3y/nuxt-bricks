@@ -2,7 +2,7 @@
  * Общие помощники для Nitro-ручек /api/bricks/** (parse → adapter → return).
  */
 import { randomUUID } from 'node:crypto';
-import { createError, getRouterParam, type H3Event } from 'h3';
+import { createError, getHeader, getRouterParam, type H3Event } from 'h3';
 import { toCamelCaseShallow } from '../../../common/utils/case-transform';
 import { PAGE_CONFLICT_CODES } from '../../../common/constants/publish';
 import { readJsonBodyWithLimit } from './requestBodyLimits';
@@ -51,6 +51,17 @@ export function requireNumericId(event: H3Event, paramName = 'id'): number {
  * @returns Нормализованное тело запроса.
  */
 export async function readNormalizedBody<T>(event: H3Event): Promise<T> {
+    // Unsafe-запрос с не-JSON контентом (form/text) — типичный CSRF-вектор
+    // мимо preflight; требуем явный application/json (аудит A-03)
+    const contentType = getHeader(event, 'content-type') ?? '';
+
+    if (!contentType.toLowerCase().includes('application/json')) {
+        throw createError({
+            statusCode: 415,
+            statusMessage: 'Expected application/json body',
+        });
+    }
+
     const body = await readJsonBodyWithLimit<object>(event, MAX_JSON_BODY_BYTES);
 
     if (!body || typeof body !== 'object' || Array.isArray(body)) {
