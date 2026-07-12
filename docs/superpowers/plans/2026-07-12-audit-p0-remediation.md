@@ -23,10 +23,12 @@
 ### Task 1: Канонизация S3 key policy (A-01, ядро)
 
 **Files:**
+
 - Modify: `src/runtime/modules/persistence/server/s3/s3KeyPolicy.ts`
 - Test: `test/persistenceS3KeyPolicy.spec.ts` (расширить существующий)
 
 **Interfaces:**
+
 - Produces: `extractStorageKey(url: string, base: IStorageUrlBase): string | null` (сигнатура прежняя, семантика — канонический декодированный ключ); `isManagedStorageKey(key: string, managedPrefixes: readonly string[]): boolean` (прежняя сигнатура, теперь включает segment-safety); новый экспорт `isSafeStorageKey(key: string): boolean`.
 - Consumers не меняются: `s3PublishAdapter.ts` (`extractManagedKey`, `uploadFile`, `isOwnedUrl`, `deleteFile`) продолжает работать без правок — хардening прозрачный.
 
@@ -54,25 +56,16 @@ describe('extractStorageKey: канонизация URL (аудит A-01)', () =
             )
         ).toBe('private.txt');
         expect(
-            extractStorageKey(
-                'https://storage.example.com/my-bucket/bricks-media/./a.webp',
-                BASE
-            )
+            extractStorageKey('https://storage.example.com/my-bucket/bricks-media/./a.webp', BASE)
         ).toBe('bricks-media/a.webp');
     });
 
     it('декодирует ключ ровно один раз (percent-encoded slash)', () => {
         expect(
-            extractStorageKey(
-                'https://storage.example.com/my-bucket/bricks-media%2Fa.webp',
-                BASE
-            )
+            extractStorageKey('https://storage.example.com/my-bucket/bricks-media%2Fa.webp', BASE)
         ).toBe('bricks-media/a.webp');
         expect(
-            extractStorageKey(
-                'https://storage.example.com/my-bucket/bricks-media/a%20b.webp',
-                BASE
-            )
+            extractStorageKey('https://storage.example.com/my-bucket/bricks-media/a%20b.webp', BASE)
         ).toBe('bricks-media/a b.webp');
     });
 
@@ -126,18 +119,9 @@ describe('managed-композиция: adversarial URL не выходит из
             'одиночный percent-encoded dot-сегмент',
             'https://storage.example.com/my-bucket/bricks-media/%2e/a.webp',
         ],
-        [
-            'пустой сегмент //',
-            'https://storage.example.com/my-bucket/bricks-media//a.webp',
-        ],
-        [
-            'похожий бакет',
-            'https://storage.example.com/my-bucket-backup/bricks-media/a.webp',
-        ],
-        [
-            'похожий префикс ключа',
-            'https://storage.example.com/my-bucket/bricks-media-x/a.webp',
-        ],
+        ['пустой сегмент //', 'https://storage.example.com/my-bucket/bricks-media//a.webp'],
+        ['похожий бакет', 'https://storage.example.com/my-bucket-backup/bricks-media/a.webp'],
+        ['похожий префикс ключа', 'https://storage.example.com/my-bucket/bricks-media-x/a.webp'],
     ])('отклоняет: %s', (_label, url) => {
         expect(extractManagedKey(url)).toBe(null);
     });
@@ -227,9 +211,7 @@ export function isSafeStorageKey(key: string): boolean {
         return false;
     }
 
-    return key
-        .split('/')
-        .every((segment) => segment !== '' && segment !== '.' && segment !== '..');
+    return key.split('/').every((segment) => segment !== '' && segment !== '.' && segment !== '..');
 }
 
 /**
@@ -313,6 +295,7 @@ git commit -m "fix(s3): canonicalize storage URLs before managed-namespace check
 Ручка принимает от клиента URL/metadata «уже загруженного» объекта и делает его доверенным для media-proxy. Внутренних потребителей нет (клиент использует только `upload`/`delete`/`patch`/`get`; импорт из бакета идёт сервер-сайд через `createMedia`). Аудит рекомендует удаление.
 
 **Files:**
+
 - Delete: `src/runtime/server/api/bricks/media/index.post.ts`
 - Modify: `src/api-handlers.ts` (убрать запись `{ route: '/api/bricks/media', method: 'post', ... }`)
 - Modify: `src/runtime/modules/persistence/server/utils/mediaPayloadValidation.ts` (убрать `validateCreateMediaPayload` и ставшие неиспользуемыми константы/импорты)
@@ -320,6 +303,7 @@ git commit -m "fix(s3): canonicalize storage URLs before managed-namespace check
 - Modify: `CLAUDE.md` (строка «Регистрация URL бакета вне префиксов через `POST /api/bricks/media` — 400» в разделе «Медиа-хранилище»)
 
 **Interfaces:**
+
 - Produces: `mediaPayloadValidation.ts` экспортирует после правки только `validateUpdateMediaPayload` и `validateMediaCategory` (обе используются: PATCH-ручка и upload).
 - `ICreateMediaPayload` (тип) остаётся — им пользуются `createMedia` адаптера, upload-оркестрация и `mediaImport.ts`.
 
@@ -373,15 +357,17 @@ git commit -m "feat(media): drop legacy POST /api/bricks/media registration endp
 ### Task 3: Чистый валидатор графа компонентов схемы (A-02, ядро)
 
 **Files:**
+
 - Create: `src/runtime/modules/common/utils/bricks/schemaContract.ts`
 - Modify: `src/runtime/modules/common/utils/README.md` (строка в таблицу)
 - Test: `test/commonSchemaContract.spec.ts`
 
 **Interfaces:**
+
 - Produces:
-  - `validateSchemaComponentGraph(components: readonly unknown[]): string[]` — список человекочитаемых ошибок (пустой = валидно), максимум 20;
-  - `isRenderableSchemaComponent(value: unknown): value is IBricksComponent` — минимальный shape-guard для рендера;
-  - `MAX_COMPONENT_TREE_DEPTH = 32` — общий лимит глубины дерева (используется и рендером).
+    - `validateSchemaComponentGraph(components: readonly unknown[]): string[]` — список человекочитаемых ошибок (пустой = валидно), максимум 20;
+    - `isRenderableSchemaComponent(value: unknown): value is IBricksComponent` — минимальный shape-guard для рендера;
+    - `MAX_COMPONENT_TREE_DEPTH = 32` — общий лимит глубины дерева (используется и рендером).
 - Контракт (по аудиту): элемент — plain object; `id` — непустая строка ≤100, уникальная; `componentName` ≤200 и `brickPath` ≤500 — непустые строки (layout-блоки билдера всегда имеют `brickPath: 'layout/<name>'`); `type` — если присутствует, `'layout' | 'component'`; `props` — если присутствует, plain object; `parent` — если присутствует и не null, существующий id ≠ своего; `children` — массив существующих id; `slots` — массив `{ name: string, children: string[] }`; каждый id упоминается как child не более одного раза (children + slots суммарно); двусторонняя согласованность (`child.parent` === контейнер, который его перечисляет, и наоборот — слотовые дети живут в `slots[].children`, но их `parent` указывает на компонент со слотами); ацикличность по parent-цепочкам; глубина ≤ `MAX_COMPONENT_TREE_DEPTH`.
 
 - [ ] **Step 1: Написать failing-тесты `test/commonSchemaContract.spec.ts`**
@@ -478,7 +464,9 @@ describe('validateSchemaComponentGraph: форма компонента (ауд�
     });
 
     it('отклоняет неизвестный type', () => {
-        const errors = validateSchemaComponentGraph([makeComponent('a', { type: 'weird' as never })]);
+        const errors = validateSchemaComponentGraph([
+            makeComponent('a', { type: 'weird' as never }),
+        ]);
         expect(errors.join(' ')).toContain('type');
     });
 
@@ -899,12 +887,14 @@ git commit -m "feat(schema): component graph contract validator (audit A-02)"
 ### Task 4: Серверное применение контракта — create/update/restore (A-02)
 
 **Files:**
+
 - Modify: `src/runtime/modules/persistence/server/utils/payloadValidation.ts` (функция `validateSchema`)
 - Modify: `src/runtime/modules/persistence/server/utils/schemaPayloadValidation.ts` (только шапка-комментарий: контракт больше не «вне скоупа»)
 - Modify: `src/runtime/modules/persistence/server/utils/pageVersionRestore.ts`
 - Test: `test/persistencePayloadValidation.spec.ts`, `test/persistencePageVersionRestore.spec.ts` (расширить)
 
 **Interfaces:**
+
 - Consumes: `validateSchemaComponentGraph` из Task 3.
 - Produces: `validateSchema` (private) дополнительно бросает 400 `Invalid schema: <до 3 ошибок через '; '>`; `restorePageVersion` бросает 400 `Stored version schema is invalid: ...` для legacy-версий с невалидной схемой (отклонение с диагностикой — по критерию приёмки аудита).
 
@@ -926,8 +916,22 @@ describe('validateSchema: контракт графа компонентов (а
 
     it('отклоняет циклический граф', () => {
         const components = [
-            { id: 'a', componentName: 'Grid', brickPath: 'layout/grid', type: 'layout', children: ['b'], parent: 'b' },
-            { id: 'b', componentName: 'Grid', brickPath: 'layout/grid', type: 'layout', children: ['a'], parent: 'a' },
+            {
+                id: 'a',
+                componentName: 'Grid',
+                brickPath: 'layout/grid',
+                type: 'layout',
+                children: ['b'],
+                parent: 'b',
+            },
+            {
+                id: 'b',
+                componentName: 'Grid',
+                brickPath: 'layout/grid',
+                type: 'layout',
+                children: ['a'],
+                parent: 'a',
+            },
         ];
         expect(() =>
             validateCreatePagePayload({ pagename: 'test-page', schema: { components } })
@@ -936,8 +940,20 @@ describe('validateSchema: контракт графа компонентов (а
 
     it('принимает валидное дерево', () => {
         const components = [
-            { id: 'g', componentName: 'Grid', brickPath: 'layout/grid', type: 'layout', children: ['t'] },
-            { id: 't', componentName: 'Text', brickPath: 'components/text', type: 'component', parent: 'g' },
+            {
+                id: 'g',
+                componentName: 'Grid',
+                brickPath: 'layout/grid',
+                type: 'layout',
+                children: ['t'],
+            },
+            {
+                id: 't',
+                componentName: 'Text',
+                brickPath: 'components/text',
+                type: 'component',
+                parent: 'g',
+            },
         ];
         expect(() =>
             validateCreatePagePayload({ pagename: 'test-page', schema: { components } })
@@ -964,15 +980,15 @@ import { validateSchemaComponentGraph } from '../../../common/utils/bricks/schem
 ```
 
 ```ts
-    assertSchemaComplexity(value);
+assertSchemaComplexity(value);
 
-    const contractErrors = validateSchemaComponentGraph(components);
+const contractErrors = validateSchemaComponentGraph(components);
 
-    if (contractErrors.length > 0) {
-        invalid(`Invalid schema: ${contractErrors.slice(0, 3).join('; ')}`);
-    }
+if (contractErrors.length > 0) {
+    invalid(`Invalid schema: ${contractErrors.slice(0, 3).join('; ')}`);
+}
 
-    return value as IBricksSchema;
+return value as IBricksSchema;
 ```
 
 Обновить JSDoc `validateSchema` (контракт формы/графа больше не «вне скоупа») и последний абзац шапки `schemaPayloadValidation.ts` (сослаться на `common/utils/bricks/schemaContract.ts`).
@@ -984,18 +1000,16 @@ import { validateSchemaComponentGraph } from '../../../common/utils/bricks/schem
 ```
 
 ```ts
-    const contractErrors = Array.isArray(version.schema?.components)
-        ? validateSchemaComponentGraph(version.schema.components)
-        : ['Field "schema.components" must be an array'];
+const contractErrors = Array.isArray(version.schema?.components)
+    ? validateSchemaComponentGraph(version.schema.components)
+    : ['Field "schema.components" must be an array'];
 
-    if (contractErrors.length > 0) {
-        throw createError({
-            statusCode: 400,
-            statusMessage: `Stored version schema is invalid: ${contractErrors
-                .slice(0, 3)
-                .join('; ')}`,
-        });
-    }
+if (contractErrors.length > 0) {
+    throw createError({
+        statusCode: 400,
+        statusMessage: `Stored version schema is invalid: ${contractErrors.slice(0, 3).join('; ')}`,
+    });
+}
 ```
 
 Дополнить JSDoc `restorePageVersion` (`@throws` 400 для legacy-версии с невалидной схемой).
@@ -1017,10 +1031,12 @@ git commit -m "feat(schema): enforce component contract on create/update/restore
 ### Task 5: Валидация импорта JSON в билдере (A-02)
 
 **Files:**
+
 - Modify: `src/runtime/modules/builder/shell/sidebar/composables/useSchemaFileTransfer.ts`
 - Modify: `src/runtime/locales/ru.json`, `src/runtime/locales/en.json` (ключ `bricks.schema.importErrorStructure`)
 
 **Interfaces:**
+
 - Consumes: `validateSchemaComponentGraph` из Task 3 (импорт из `../../../../common/utils/bricks/schemaContract` — сверить глубину относительного пути).
 - Produces: при невалидной структуре импорт блокируется, `importError` = локализованное сообщение с первой ошибкой контракта.
 
@@ -1051,28 +1067,28 @@ import { validateSchemaComponentGraph } from '../../../../common/utils/bricks/sc
 Заменить блок разбора в `reader.onload`:
 
 ```ts
-            try {
-                const parsed = JSON.parse(reader.result as string) as IBricksSchema;
+try {
+    const parsed = JSON.parse(reader.result as string) as IBricksSchema;
 
-                if (!parsed || !Array.isArray(parsed.components)) {
-                    importError.value = t('bricks.schema.importErrorInvalid');
-                    return;
-                }
+    if (!parsed || !Array.isArray(parsed.components)) {
+        importError.value = t('bricks.schema.importErrorInvalid');
+        return;
+    }
 
-                const contractErrors = validateSchemaComponentGraph(parsed.components);
+    const contractErrors = validateSchemaComponentGraph(parsed.components);
 
-                if (contractErrors.length > 0) {
-                    importError.value = t('bricks.schema.importErrorStructure', {
-                        detail: contractErrors[0],
-                    });
-                    return;
-                }
+    if (contractErrors.length > 0) {
+        importError.value = t('bricks.schema.importErrorStructure', {
+            detail: contractErrors[0],
+        });
+        return;
+    }
 
-                options.onImport(parsed);
-                importError.value = null;
-            } catch {
-                importError.value = t('bricks.schema.importErrorParse');
-            }
+    options.onImport(parsed);
+    importError.value = null;
+} catch {
+    importError.value = t('bricks.schema.importErrorParse');
+}
 ```
 
 **Внимание:** ранние `return` внутри `try` не должны пропустить `input.value = ''` — он стоит после `try/catch` в том же callback; убедиться, что структура сохранена (сейчас `input.value = ''` выполняется всегда — не сломать).
@@ -1097,11 +1113,13 @@ git commit -m "feat(builder): validate imported schema JSON against component co
 Серверная валидация закрывает новые записи; в БД могут остаться старые повреждённые схемы. Рендер не должен падать/зависать на них (критерий приёмки: «adversarial render-тест не падает и не зависает»).
 
 **Files:**
+
 - Modify: `src/runtime/modules/render/pages/[pagename].vue` (фильтр `allComponents`, prefetch поверх него)
 - Modify: `src/runtime/modules/render/composables/useRendererLayouts.ts` (cycle/depth guard)
 - Test: `test/renderLayoutsCycleGuard.spec.ts` (новый)
 
 **Interfaces:**
+
 - Consumes: `isRenderableSchemaComponent`, `MAX_COMPONENT_TREE_DEPTH` из Task 3.
 - Produces: `renderLayoutComponent` возвращает `null` при повторном входе по id в текущей синхронной ветке рендера или превышении глубины (рендер детей у контейнеров eager — `childComponents.map(renderChild)` внутри `renderPublished`, поэтому Set по синхронной цепочке корректно отслеживает предков).
 
@@ -1178,7 +1196,11 @@ describe('useRendererLayouts: защита от циклов и глубины (
         const chain: IBricksComponent[] = [];
         for (let i = 0; i < depth; i += 1) {
             chain.push(
-                makeGrid(`n${i}`, i < depth - 1 ? [`n${i + 1}`] : [], i > 0 ? `n${i - 1}` : undefined)
+                makeGrid(
+                    `n${i}`,
+                    i < depth - 1 ? [`n${i + 1}`] : [],
+                    i > 0 ? `n${i - 1}` : undefined
+                )
             );
         }
         const { api, calls } = createHarness(chain);
@@ -1212,45 +1234,45 @@ Expected: первый кейс падает stack overflow / таймаутом
 Внутри `useRendererLayouts` добавить перед `getChildComponents`:
 
 ```ts
-    // #region Data
-    /**
-     * Id layout-компонентов текущей синхронной ветки рендера. Контейнеры
-     * рендерят детей eager'ом внутри renderPublished, поэтому Set корректно
-     * отражает цепочку предков: повторный вход по id (цикл в повреждённой
-     * legacy-схеме) или превышение глубины -> null вместо бесконечной рекурсии.
-     */
-    const renderChain = new Set<string>();
-    // #endregion
+// #region Data
+/**
+ * Id layout-компонентов текущей синхронной ветки рендера. Контейнеры
+ * рендерят детей eager'ом внутри renderPublished, поэтому Set корректно
+ * отражает цепочку предков: повторный вход по id (цикл в повреждённой
+ * legacy-схеме) или превышение глубины -> null вместо бесконечной рекурсии.
+ */
+const renderChain = new Set<string>();
+// #endregion
 ```
 
 `renderLayoutComponent` — обернуть вызов `renderPublished`:
 
 ```ts
-        const definition = getBlockDefinition(component.componentName);
+const definition = getBlockDefinition(component.componentName);
 
-        if (!definition?.renderPublished) {
-            return null;
-        }
+if (!definition?.renderPublished) {
+    return null;
+}
 
-        if (renderChain.has(component.id) || renderChain.size >= MAX_COMPONENT_TREE_DEPTH) {
-            return null;
-        }
+if (renderChain.has(component.id) || renderChain.size >= MAX_COMPONENT_TREE_DEPTH) {
+    return null;
+}
 
-        renderChain.add(component.id);
+renderChain.add(component.id);
 
-        try {
-            return definition.renderPublished({
-                component,
-                definition,
-                extraClasses,
-                extraAttrs,
-                styles,
-                renderChild,
-                getChildComponents,
-            });
-        } finally {
-            renderChain.delete(component.id);
-        }
+try {
+    return definition.renderPublished({
+        component,
+        definition,
+        extraClasses,
+        extraAttrs,
+        styles,
+        renderChild,
+        getChildComponents,
+    });
+} finally {
+    renderChain.delete(component.id);
+}
 ```
 
 - [ ] **Step 4: Фильтр в `[pagename].vue`**
@@ -1290,6 +1312,7 @@ git commit -m "fix(render): defensive filtering and cycle guard for legacy schem
 ### Task 7: Документация, статус аудита и полные гейты
 
 **Files:**
+
 - Modify: `CLAUDE.md` (короткие апдейты разделов «Медиа-хранилище» — канонизация ключей; новый абзац про контракт схемы)
 - Modify: `docs/application-audit-2026-07-12.md` (раздел «Статус исправлений»)
 

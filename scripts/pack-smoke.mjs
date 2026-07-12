@@ -232,7 +232,10 @@ async function runHttpChecks() {
 
     // Consumer без БД и без PROXY_URL: readiness обязан быть 503 (аудит A-05)
     const ready = await fetch(`${SERVER_ORIGIN}/api/bricks/health/ready`);
-    assertOk(ready.status === 503, `readiness без persistence должен быть 503, получено ${ready.status}`);
+    assertOk(
+        ready.status === 503,
+        `readiness без persistence должен быть 503, получено ${ready.status}`
+    );
 
     console.info('[pack-smoke] HTTP-матрица зелёная');
 }

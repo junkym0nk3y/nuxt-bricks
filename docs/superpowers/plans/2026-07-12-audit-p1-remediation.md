@@ -31,6 +31,7 @@
 ### Task 1: A-03 — CSRF-защита unsafe bricks-API
 
 **Files:**
+
 - Create: `src/runtime/server/utils/auth/csrfProtection.ts`
 - Modify: `src/runtime/server/middleware/auth.ts`
 - Modify: `src/runtime/modules/common/constants/auth.ts`
@@ -40,6 +41,7 @@
 - Test: `test/serverAuthCsrfProtection.spec.ts`, дополнение `test/persistenceHandlerHelpers.spec.ts`
 
 **Interfaces:**
+
 - Consumes: `parseTrustProxyFlag` из `server/utils/requestClientIp.ts`; `BRICKS_SESSION_COOKIE_NAME`-паттерн констант.
 - Produces: `checkCsrf(context: ICsrfRequestContext): TCsrfCheckResult`, `assertCsrfSafe(event: H3Event): void`, `isCsrfProtectedPath(pathname: string): boolean`, константа `BRICKS_CSRF_HEADER_NAME = 'x-bricks-csrf'`. Task 8 шлёт этот заголовок в integration-smoke.
 
@@ -92,9 +94,7 @@ describe('csrfProtection: чистая проверка контекста за�
     });
 
     it('Origin same-origin (с портом и без) — разрешён', () => {
-        expect(
-            checkCsrf({ ...BARE_POST, origin: 'https://app.example.com' }).allowed
-        ).toBe(true);
+        expect(checkCsrf({ ...BARE_POST, origin: 'https://app.example.com' }).allowed).toBe(true);
         expect(
             checkCsrf({
                 ...BARE_POST,
@@ -106,9 +106,7 @@ describe('csrfProtection: чистая проверка контекста за�
 
     it('cross-origin, sibling same-site и opaque origin — отклоняются', () => {
         expect(checkCsrf({ ...BARE_POST, origin: 'https://evil.example' }).allowed).toBe(false);
-        expect(
-            checkCsrf({ ...BARE_POST, origin: 'https://evil.example.com' }).allowed
-        ).toBe(false);
+        expect(checkCsrf({ ...BARE_POST, origin: 'https://evil.example.com' }).allowed).toBe(false);
         expect(checkCsrf({ ...BARE_POST, origin: 'null' }).allowed).toBe(false);
         expect(checkCsrf({ ...BARE_POST, origin: '::not-a-url::' }).allowed).toBe(false);
     });
@@ -318,23 +316,23 @@ import { assertCsrfSafe, isCsrfProtectedPath } from '../utils/auth/csrfProtectio
 ```
 
 ```ts
-    // CSRF-гейт unsafe-методов (аудит A-03): ДО auth — login/logout не под
-    // requiresAuth, но под CSRF; неавторизованный кросс-сайтовый POST — 403
-    if (isCsrfProtectedPath(target.logicalPathname)) {
-        assertCsrfSafe(event);
-    }
+// CSRF-гейт unsafe-методов (аудит A-03): ДО auth — login/logout не под
+// requiresAuth, но под CSRF; неавторизованный кросс-сайтовый POST — 403
+if (isCsrfProtectedPath(target.logicalPathname)) {
+    assertCsrfSafe(event);
+}
 
-    if (!requiresAuth(target.logicalPathname, method, mode, prefixes)) {
-        return; // Пропускаем незащищённые пути
-    }
+if (!requiresAuth(target.logicalPathname, method, mode, prefixes)) {
+    return; // Пропускаем незащищённые пути
+}
 ```
 
 - [ ] **Step 7:** Клиент: в `useApiClient.ts` после блока CSRF-токена Django добавить (импортировав `BRICKS_CSRF_HEADER_NAME` из `../constants/auth`):
 
 ```ts
-    // CSRF-маркер unsafe-запросов bricks-API: кросс-доменный документ не может
-    // поставить кастомный заголовок без CORS-preflight (см. csrfProtection.ts)
-    defaultHeaders[BRICKS_CSRF_HEADER_NAME] = '1';
+// CSRF-маркер unsafe-запросов bricks-API: кросс-доменный документ не может
+// поставить кастомный заголовок без CORS-preflight (см. csrfProtection.ts)
+defaultHeaders[BRICKS_CSRF_HEADER_NAME] = '1';
 ```
 
 - [ ] **Step 8:** `readNormalizedBody` (handlerHelpers.ts): требовать JSON content-type (импорт `getHeader` из h3 там уже есть/добавить):
@@ -373,6 +371,7 @@ git add -A && git commit -m "fix(server): CSRF origin gate for unsafe bricks API
 ### Task 2: A-04 — двухуровневый auth throttling + scrypt semaphore
 
 **Files:**
+
 - Modify: `src/runtime/server/utils/auth/loginRateLimiter.ts`
 - Create: `src/runtime/server/utils/auth/scryptGate.ts`
 - Modify: `src/runtime/server/api/bricks/auth/login.post.ts`
@@ -381,6 +380,7 @@ git add -A && git commit -m "fix(server): CSRF origin gate for unsafe bricks API
 - Test: `test/serverAuthRateLimiter.spec.ts` (дополнить), `test/serverAuthScryptGate.spec.ts`
 
 **Interfaces:**
+
 - Consumes: `createConcurrencyGate`, `GateOverflowError` из `modules/persistence/server/utils/concurrencyGate.ts` (persistence из middleware — разрешённое направление); `resolveRequestClientIp` из `server/utils/requestClientIp.ts`.
 - Produces: `registerIpFailure(ip: string): void`, `isIpLockedOut(ip: string): number` (секунды для Retry-After), `buildIpRateLimitKey(ip: string): string`; `runScryptTask<T>(task: () => Promise<T>): Promise<T>` и реэкспорт `GateOverflowError`.
 
@@ -389,28 +389,28 @@ git add -A && git commit -m "fix(server): CSRF origin gate for unsafe bricks API
 - [ ] **Step 1:** Дополнить `test/serverAuthRateLimiter.spec.ts` (внутри существующего describe, импорты расширить на `buildIpRateLimitKey`, `isIpLockedOut`, `registerIpFailure`):
 
 ```ts
-    it('per-IP bucket: 30 неудач с разными username включают lockout по IP', () => {
-        for (let attempt = 0; attempt < 29; attempt += 1) {
-            registerIpFailure('9.9.9.9');
-            expect(isIpLockedOut('9.9.9.9')).toBe(0);
-        }
-
+it('per-IP bucket: 30 неудач с разными username включают lockout по IP', () => {
+    for (let attempt = 0; attempt < 29; attempt += 1) {
         registerIpFailure('9.9.9.9');
-        expect(isIpLockedOut('9.9.9.9')).toBeGreaterThan(0);
-    });
-
-    it('per-IP и per-IP|username buckets независимы', () => {
-        for (let attempt = 0; attempt < 5; attempt += 1) {
-            registerFailure(buildRateLimitKey('9.9.9.9', 'admin'));
-        }
-
-        expect(isLockedOut(buildRateLimitKey('9.9.9.9', 'admin'))).toBeGreaterThan(0);
         expect(isIpLockedOut('9.9.9.9')).toBe(0);
-    });
+    }
 
-    it('ключ IP-bucket не пересекается с ключами username', () => {
-        expect(buildIpRateLimitKey('1.2.3.4')).not.toBe(buildRateLimitKey('1.2.3.4', ''));
-    });
+    registerIpFailure('9.9.9.9');
+    expect(isIpLockedOut('9.9.9.9')).toBeGreaterThan(0);
+});
+
+it('per-IP и per-IP|username buckets независимы', () => {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+        registerFailure(buildRateLimitKey('9.9.9.9', 'admin'));
+    }
+
+    expect(isLockedOut(buildRateLimitKey('9.9.9.9', 'admin'))).toBeGreaterThan(0);
+    expect(isIpLockedOut('9.9.9.9')).toBe(0);
+});
+
+it('ключ IP-bucket не пересекается с ключами username', () => {
+    expect(buildIpRateLimitKey('1.2.3.4')).not.toBe(buildRateLimitKey('1.2.3.4', ''));
+});
 ```
 
 - [ ] **Step 2:** `npx vitest run test/serverAuthRateLimiter.spec.ts` — FAIL (нет экспортов).
@@ -518,52 +518,52 @@ import { GateOverflowError, runScryptTask } from '../../../utils/auth/scryptGate
 В `verifyCredentials` scrypt под гейтом:
 
 ```ts
-    const isPasswordValid = await runScryptTask(() =>
-        verifyPassword(password, user?.passwordHash ?? DUMMY_PASSWORD_HASH)
-    );
+const isPasswordValid = await runScryptTask(() =>
+    verifyPassword(password, user?.passwordHash ?? DUMMY_PASSWORD_HASH)
+);
 ```
 
 В обработчике — после `validateLoginBody`:
 
 ```ts
-        const clientIp = resolveRequestClientIp(event);
-        const ipLockoutSeconds = isIpLockedOut(clientIp);
+const clientIp = resolveRequestClientIp(event);
+const ipLockoutSeconds = isIpLockedOut(clientIp);
 
-        if (ipLockoutSeconds > 0) {
-            setResponseHeader(event, 'Retry-After', ipLockoutSeconds);
-            throw createError({
-                statusCode: 429,
-                statusMessage: 'Too many login attempts',
-            });
-        }
+if (ipLockoutSeconds > 0) {
+    setResponseHeader(event, 'Retry-After', ipLockoutSeconds);
+    throw createError({
+        statusCode: 429,
+        statusMessage: 'Too many login attempts',
+    });
+}
 
-        const rateLimitKey = buildRateLimitKey(clientIp, username);
-        // ... существующая per-key проверка без изменений
+const rateLimitKey = buildRateLimitKey(clientIp, username);
+// ... существующая per-key проверка без изменений
 ```
 
 Вызов `verifyCredentials` — с маппингом переполнения гейта:
 
 ```ts
-        let user;
+let user;
 
-        try {
-            user = await verifyCredentials(auth, username, password);
-        } catch (error: unknown) {
-            if (error instanceof GateOverflowError) {
-                throw createError({
-                    statusCode: 503,
-                    statusMessage: 'Server is busy, try again later',
-                });
-            }
+try {
+    user = await verifyCredentials(auth, username, password);
+} catch (error: unknown) {
+    if (error instanceof GateOverflowError) {
+        throw createError({
+            statusCode: 503,
+            statusMessage: 'Server is busy, try again later',
+        });
+    }
 
-            throw error;
-        }
+    throw error;
+}
 
-        if (!user) {
-            registerFailure(rateLimitKey);
-            registerIpFailure(clientIp);
-            throw createError({ statusCode: 401, statusMessage: 'Invalid credentials' });
-        }
+if (!user) {
+    registerFailure(rateLimitKey);
+    registerIpFailure(clientIp);
+    throw createError({ statusCode: 401, statusMessage: 'Invalid credentials' });
+}
 ```
 
 - [ ] **Step 7:** `handleBasicAuth` в middleware: лимит невалидных креденшелов per IP (заголовок отсутствует — браузерный prompt, НЕ считаем):
@@ -574,26 +574,26 @@ import { resolveRequestClientIp } from '../utils/requestClientIp';
 ```
 
 ```ts
-    if (!authHeader || !authHeader.startsWith('Basic ')) {
-        return sendUnauthorized(event);
-    }
+if (!authHeader || !authHeader.startsWith('Basic ')) {
+    return sendUnauthorized(event);
+}
 
-    // Rate limit невалидных креденшелов (аудит A-04): Basic Auth перебирается
-    // тем же IP-bucket'ом, что и database-login
-    const clientIp = resolveRequestClientIp(event);
-    const lockoutSeconds = isIpLockedOut(clientIp);
+// Rate limit невалидных креденшелов (аудит A-04): Basic Auth перебирается
+// тем же IP-bucket'ом, что и database-login
+const clientIp = resolveRequestClientIp(event);
+const lockoutSeconds = isIpLockedOut(clientIp);
 
-    if (lockoutSeconds > 0) {
-        setResponseHeader(event, 'Retry-After', lockoutSeconds);
-        throw createError({ statusCode: 429, statusMessage: 'Too many authentication attempts' });
-    }
+if (lockoutSeconds > 0) {
+    setResponseHeader(event, 'Retry-After', lockoutSeconds);
+    throw createError({ statusCode: 429, statusMessage: 'Too many authentication attempts' });
+}
 
-    // ... разбор креденшелов как был ...
+// ... разбор креденшелов как был ...
 
-    if (!userValid || !passValid) {
-        registerIpFailure(clientIp);
-        return sendUnauthorized(event);
-    }
+if (!userValid || !passValid) {
+    registerIpFailure(clientIp);
+    return sendUnauthorized(event);
+}
 ```
 
 - [ ] **Step 8:** README: дополнить auth-раздел — двухуровневый лимитер (5/username, 30/IP за 15 мин), scrypt-семафор, per-process ограничение (multi-replica → рекомендация ingress-лимитера).
@@ -611,6 +611,7 @@ git add -A && git commit -m "fix(server): two-level auth throttling and scrypt s
 ### Task 3: A-05 — честный readiness
 
 **Files:**
+
 - Create: `src/runtime/server/utils/readinessTarget.ts`
 - Modify: `src/runtime/modules/persistence/server/registry.ts`
 - Modify: `src/runtime/server/api/bricks/health/ready.get.ts`
@@ -620,6 +621,7 @@ git add -A && git commit -m "fix(server): two-level auth throttling and scrypt s
 - Test: `test/serverReadinessTarget.spec.ts`
 
 **Interfaces:**
+
 - Consumes: `useRuntimeConfig` ключи `bricksDatabaseUrl`, `bricksProxyUrl`, `bricksSsrProxyUrl` (см. `useApiClient.ts`).
 - Produces: `resolveReadinessTarget(input: IReadinessTargetInput): TReadinessTarget` (`'adapter' | 'proxy' | 'none'`); `hasCustomBricksStorageAdapter(): boolean` в registry. Task 8 asserts ready=200 c БД.
 
@@ -637,25 +639,41 @@ import { resolveReadinessTarget } from '../src/runtime/server/utils/readinessTar
 describe('readinessTarget: выбор persistence-пути для readiness probe', () => {
     it('кастомный адаптер — adapter-путь независимо от конфигурации', () => {
         expect(
-            resolveReadinessTarget({ hasDatabaseUrl: false, hasProxyUrl: true, hasCustomAdapter: true })
+            resolveReadinessTarget({
+                hasDatabaseUrl: false,
+                hasProxyUrl: true,
+                hasCustomAdapter: true,
+            })
         ).toBe('adapter');
     });
 
     it('сконфигурированная БД — adapter-путь', () => {
         expect(
-            resolveReadinessTarget({ hasDatabaseUrl: true, hasProxyUrl: false, hasCustomAdapter: false })
+            resolveReadinessTarget({
+                hasDatabaseUrl: true,
+                hasProxyUrl: false,
+                hasCustomAdapter: false,
+            })
         ).toBe('adapter');
     });
 
     it('только proxy — proxy-путь', () => {
         expect(
-            resolveReadinessTarget({ hasDatabaseUrl: false, hasProxyUrl: true, hasCustomAdapter: false })
+            resolveReadinessTarget({
+                hasDatabaseUrl: false,
+                hasProxyUrl: true,
+                hasCustomAdapter: false,
+            })
         ).toBe('proxy');
     });
 
     it('ни БД, ни proxy, ни адаптера — none (readiness обязан отвечать 503)', () => {
         expect(
-            resolveReadinessTarget({ hasDatabaseUrl: false, hasProxyUrl: false, hasCustomAdapter: false })
+            resolveReadinessTarget({
+                hasDatabaseUrl: false,
+                hasProxyUrl: false,
+                hasCustomAdapter: false,
+            })
         ).toBe('none');
     });
 });
@@ -790,12 +808,15 @@ export default defineEventHandler(async (event) => {
 - [ ] **Step 6:** `scripts/pack-smoke.mjs` → `runHttpChecks()` дополнить:
 
 ```js
-    const health = await fetch(`${SERVER_ORIGIN}/api/bricks/health`);
-    assertOk(health.status === 200, `liveness должен быть 200, получено ${health.status}`);
+const health = await fetch(`${SERVER_ORIGIN}/api/bricks/health`);
+assertOk(health.status === 200, `liveness должен быть 200, получено ${health.status}`);
 
-    // Consumer без БД и без PROXY_URL: readiness обязан быть 503 (аудит A-05)
-    const ready = await fetch(`${SERVER_ORIGIN}/api/bricks/health/ready`);
-    assertOk(ready.status === 503, `readiness без persistence должен быть 503, получено ${ready.status}`);
+// Consumer без БД и без PROXY_URL: readiness обязан быть 503 (аудит A-05)
+const ready = await fetch(`${SERVER_ORIGIN}/api/bricks/health/ready`);
+assertOk(
+    ready.status === 503,
+    `readiness без persistence должен быть 503, получено ${ready.status}`
+);
 ```
 
 - [ ] **Step 7:** README health-раздел: readiness 503 при отсутствии persistence-пути; proxy-режим — HEAD-проверка достижимости PROXY_URL.
@@ -813,6 +834,7 @@ git add -A && git commit -m "fix(server): readiness reflects actual persistence 
 ### Task 4: A-08 — точное сопоставление subdomain
 
 **Files:**
+
 - Modify: `src/runtime/modules/common/utils/main.ts` (общий `parseBricksBooleanFlag`)
 - Modify: `src/runtime/server/utils/requestClientIp.ts` (делегировать парсинг флага)
 - Modify: `src/runtime/modules/common/utils/bricks/publishedPage.ts` (`matchesPageSubdomain`)
@@ -820,6 +842,7 @@ git add -A && git commit -m "fix(server): readiness reflects actual persistence 
 - Test: `test/commonPublishedPage.spec.ts` (дополнить)
 
 **Interfaces:**
+
 - Produces: `matchesPageSubdomain(hostHeader: string | undefined, subdomain: string | null | undefined): boolean`; `parseBricksBooleanFlag(value: unknown): boolean` в `common/utils/main.ts`.
 - Consumes: `parseTrustProxyFlag` остаётся экспортом `requestClientIp.ts` (его тестирует `serverRequestClientIp.spec.ts`), но внутри делегирует общему флаг-парсеру.
 
@@ -939,29 +962,29 @@ import { parseBricksBooleanFlag } from '../modules/common/utils/main';
 ```
 
 ```ts
-        if (page.subdomain) {
-            let currentHost = '';
+if (page.subdomain) {
+    let currentHost = '';
 
-            if (import.meta.server) {
-                // За доверенным прокси Host — адрес прокси; оригинальный хост —
-                // первый токен x-forwarded-host (опт-ин bricks.trustProxy)
-                const headers = useRequestHeaders(['host', 'x-forwarded-host']);
-                const trustProxy = parseBricksBooleanFlag(useRuntimeConfig().bricksTrustProxy);
-                const forwardedHost = trustProxy
-                    ? headers['x-forwarded-host']?.split(',').at(-1)?.trim()
-                    : undefined;
-                currentHost = forwardedHost || headers.host || '';
-            } else {
-                currentHost = window.location.hostname;
-            }
+    if (import.meta.server) {
+        // За доверенным прокси Host — адрес прокси; оригинальный хост —
+        // первый токен x-forwarded-host (опт-ин bricks.trustProxy)
+        const headers = useRequestHeaders(['host', 'x-forwarded-host']);
+        const trustProxy = parseBricksBooleanFlag(useRuntimeConfig().bricksTrustProxy);
+        const forwardedHost = trustProxy
+            ? headers['x-forwarded-host']?.split(',').at(-1)?.trim()
+            : undefined;
+        currentHost = forwardedHost || headers.host || '';
+    } else {
+        currentHost = window.location.hostname;
+    }
 
-            if (!matchesPageSubdomain(currentHost, page.subdomain)) {
-                return createError({
-                    statusCode: 404,
-                    statusMessage: 'Page not found',
-                });
-            }
-        }
+    if (!matchesPageSubdomain(currentHost, page.subdomain)) {
+        return createError({
+            statusCode: 404,
+            statusMessage: 'Page not found',
+        });
+    }
+}
 ```
 
 - [ ] **Step 5:** `npx vitest run test/commonPublishedPage.spec.ts test/serverRequestClientIp.spec.ts` — PASS; type-check/oxlint по изменённым; `npm test`.
@@ -977,11 +1000,13 @@ git add -A && git commit -m "fix(render): exact subdomain matching for published
 ### Task 5: A-07 — миграция на TIMESTAMPTZ
 
 **Files:**
+
 - Create: `migrations/0004_timestamptz.sql`
 - Modify: `src/runtime/modules/persistence/server/postgres/postgresAuthAdapter.ts` (нормализация `expiresAt` в ISO)
 - Modify: `README.md` (заметка о TZ-предположении миграции)
 
 **Interfaces:**
+
 - Produces: колонки всех абсолютных дат — `TIMESTAMPTZ`. Task 8 применяет миграцию в CI под `TZ=Europe/Moscow` (регрессия timezone-зависимости).
 
 - [ ] **Step 1:** Создать `migrations/0004_timestamptz.sql`:
@@ -1049,6 +1074,7 @@ git add -A && git commit -m "fix(persistence): migrate absolute timestamps to TI
 ### Task 6: A-10 — namespaced trigger-функция + checksum миграций
 
 **Files:**
+
 - Create: `migrations/0005_namespaced_trigger_function.sql`
 - Create: `src/cli/bricks-migrate-checksum.mjs`
 - Modify: `src/cli/bricks-migrate.mjs`
@@ -1056,6 +1082,7 @@ git add -A && git commit -m "fix(persistence): migrate absolute timestamps to TI
 - Test: `test/cliMigrationChecksum.spec.ts`
 
 **Interfaces:**
+
 - Produces: `computeMigrationChecksum(sql: string): string` (sha256 hex), `findMigrationDrift(fileChecksums: Map<string,string>, appliedRows: Array<{name: string, checksum: string | null}>): string[]`; таблица `bricks_schema_migrations` получает колонку `checksum TEXT`.
 - Consumes: реестр создаётся в `readAppliedMigrations` CLI.
 
@@ -1114,7 +1141,9 @@ import {
 describe('bricks-migrate checksum: обнаружение drift применённых миграций', () => {
     it('checksum детерминирован и чувствителен к содержимому', () => {
         expect(computeMigrationChecksum('SELECT 1;')).toBe(computeMigrationChecksum('SELECT 1;'));
-        expect(computeMigrationChecksum('SELECT 1;')).not.toBe(computeMigrationChecksum('SELECT 2;'));
+        expect(computeMigrationChecksum('SELECT 1;')).not.toBe(
+            computeMigrationChecksum('SELECT 2;')
+        );
         expect(computeMigrationChecksum('SELECT 1;')).toMatch(/^[0-9a-f]{64}$/);
     });
 
@@ -1234,15 +1263,15 @@ async function readMigrationContents(files) {
 5. Drift-гейт перед migrate (и `[drift]`-маркер в status):
 
 ```js
-    const drifted = findMigrationDrift(fileChecksums, appliedRows);
+const drifted = findMigrationDrift(fileChecksums, appliedRows);
 
-    if (command === 'migrate' && drifted.length > 0) {
-        console.error(
-            `[bricks-migrate] Drift применённых миграций (SQL изменён после применения): ${drifted.join(', ')}.\n` +
-                'Выпущенные миграции не редактируются — изменения оформляются новой forward-миграцией.'
-        );
-        process.exit(1);
-    }
+if (command === 'migrate' && drifted.length > 0) {
+    console.error(
+        `[bricks-migrate] Drift применённых миграций (SQL изменён после применения): ${drifted.join(', ')}.\n` +
+            'Выпущенные миграции не редактируются — изменения оформляются новой forward-миграцией.'
+    );
+    process.exit(1);
+}
 ```
 
 6. Backfill в migrate-ветке (до применения pending): для `appliedRows` с `checksum == null` и существующим файлом — `UPDATE bricks_schema_migrations SET checksum = $2 WHERE name = $1` + лог `[checksum backfilled]`.
@@ -1268,6 +1297,7 @@ git add -A && git commit -m "fix(cli): namespaced trigger function and migration
 ### Task 7: A-09 — resource budgets для data sources
 
 **Files:**
+
 - Modify: `src/runtime/modules/render/utils/dataSourcePolicy.ts`
 - Modify: `src/runtime/modules/common/types/dataSource.ts` (`IBricksDataSourcesConfig`)
 - Modify: `src/runtime/modules/render/composables/useDataSourceClient.ts`
@@ -1277,6 +1307,7 @@ git add -A && git commit -m "fix(cli): namespaced trigger function and migration
 - Test: `test/renderDataSourcePolicy.spec.ts` (дополнить), `test/renderDataSources.spec.ts` (дополнить)
 
 **Interfaces:**
+
 - Produces: константы `DEFAULT_DATA_SOURCE_MAX_RESPONSE_BYTES = 1024 * 1024`, `DEFAULT_DATA_SOURCE_MAX_REQUESTS_PER_PAGE = 24`, `DEFAULT_DATA_SOURCE_TOTAL_DEADLINE_MS = 15000`; `measureResponseSizeBytes(value: unknown): number`; `executeDataSource(source, component, pageSettings, requestCache?, signal?: AbortSignal)`; `useDataSourceClient()` дополнительно возвращает `{ maxResponseBytes, maxRequestsPerPage, totalDeadlineMs }`; `useBricksDataSources()` — `{ executeDataSource, concurrency, maxRequestsPerPage, totalDeadlineMs }`.
 - Consumes: `runWithConcurrencyLimit` (`render/utils/requestPool.ts`), `withDevLogDetails`-паттерн логов.
 
@@ -1352,53 +1383,53 @@ export function measureResponseSizeBytes(value: unknown): number {
 - [ ] **Step 3:** `IBricksDataSourcesConfig` (types/dataSource.ts) — добавить поля:
 
 ```ts
-    /** Лимит размера одного ответа, байт (JSON-length approximation). */
-    maxResponseBytes: number;
-    /** Максимум запросов data sources на один прогон страницы. */
-    maxRequestsPerPage: number;
-    /** Суммарный wall-clock budget одного прогона, мс (по истечении — abort). */
-    totalDeadlineMs: number;
+/** Лимит размера одного ответа, байт (JSON-length approximation). */
+maxResponseBytes: number;
+/** Максимум запросов data sources на один прогон страницы. */
+maxRequestsPerPage: number;
+/** Суммарный wall-clock budget одного прогона, мс (по истечении — abort). */
+totalDeadlineMs: number;
 ```
 
 - [ ] **Step 4:** `useDataSourceClient.ts` — рядом с timeoutMs/concurrency:
 
 ```ts
-    const maxResponseBytes =
-        dataSourcesConfig?.maxResponseBytes ?? DEFAULT_DATA_SOURCE_MAX_RESPONSE_BYTES;
-    const maxRequestsPerPage =
-        dataSourcesConfig?.maxRequestsPerPage ?? DEFAULT_DATA_SOURCE_MAX_REQUESTS_PER_PAGE;
-    const totalDeadlineMs =
-        dataSourcesConfig?.totalDeadlineMs ?? DEFAULT_DATA_SOURCE_TOTAL_DEADLINE_MS;
+const maxResponseBytes =
+    dataSourcesConfig?.maxResponseBytes ?? DEFAULT_DATA_SOURCE_MAX_RESPONSE_BYTES;
+const maxRequestsPerPage =
+    dataSourcesConfig?.maxRequestsPerPage ?? DEFAULT_DATA_SOURCE_MAX_REQUESTS_PER_PAGE;
+const totalDeadlineMs = dataSourcesConfig?.totalDeadlineMs ?? DEFAULT_DATA_SOURCE_TOTAL_DEADLINE_MS;
 ```
 
 и вернуть их из композабла (импорты констант — из dataSourcePolicy).
 
 - [ ] **Step 5:** `useBricksDataSources.ts`:
+
 1. Деструктурировать новые значения из `useDataSourceClient()`.
 2. `fetchDataSource(url, method, requestCache?, signal?)` — прокинуть `signal` в `dataSourceFetcher<unknown>(url, { method, signal })` (ключ кеша БЕЗ signal).
 3. `executeDataSource(source, component, pageSettings, requestCache?, signal?)` — прокинуть signal в fetchDataSource; после получения ответа — бюджет:
 
 ```ts
-            const response = await fetchDataSource(url, method, requestCache, signal);
-            const responseSizeBytes = measureResponseSizeBytes(response);
+const response = await fetchDataSource(url, method, requestCache, signal);
+const responseSizeBytes = measureResponseSizeBytes(response);
 
-            if (responseSizeBytes > maxResponseBytes) {
-                console.warn(
-                    '[Bricks DataSource] Skip - response exceeds byte budget:',
-                    withDevLogDetails(
-                        {
-                            key: source.key,
-                            target: resolveDataSourceLogTarget(url),
-                            responseSizeBytes,
-                            maxResponseBytes,
-                            componentId: component.id,
-                            brickPath: component.brickPath,
-                        },
-                        { url }
-                    )
-                );
-                return null;
-            }
+if (responseSizeBytes > maxResponseBytes) {
+    console.warn(
+        '[Bricks DataSource] Skip - response exceeds byte budget:',
+        withDevLogDetails(
+            {
+                key: source.key,
+                target: resolveDataSourceLogTarget(url),
+                responseSizeBytes,
+                maxResponseBytes,
+                componentId: component.id,
+                brickPath: component.brickPath,
+            },
+            { url }
+        )
+    );
+    return null;
+}
 ```
 
 4. Вернуть из композабла `maxRequestsPerPage` и `totalDeadlineMs`.
@@ -1406,77 +1437,81 @@ export function measureResponseSizeBytes(value: unknown): number {
 - [ ] **Step 6:** `useRendererDataSources.ts` — в теле `useAsyncData`-хендлера:
 
 ```ts
-    const { executeDataSource: executeDataSourceRequest, concurrency, maxRequestsPerPage, totalDeadlineMs } =
-        useBricksDataSources();
+const {
+    executeDataSource: executeDataSourceRequest,
+    concurrency,
+    maxRequestsPerPage,
+    totalDeadlineMs,
+} = useBricksDataSources();
 ```
 
 ```ts
-            const requests = await collectDataSourceRequests();
+const requests = await collectDataSourceRequests();
 
-            if (!requests?.length) {
-                return {};
+if (!requests?.length) {
+    return {};
+}
+
+// Бюджет запросов на прогон: излишек отбрасывается с логом,
+// а не выполняется молча (аудит A-09)
+const limitedRequests = requests.slice(0, maxRequestsPerPage);
+
+if (limitedRequests.length < requests.length) {
+    console.warn('[Bricks DataSources] Request budget exceeded — extra sources skipped:', {
+        pagename,
+        total: requests.length,
+        executed: limitedRequests.length,
+    });
+}
+
+const requestCache: TDataSourceRequestCache = new Map();
+// Общий wall-clock budget прогона: по истечении оставшиеся запросы
+// прерываются AbortController'ом, компоненты остаются на fallback props
+const abortController = new AbortController();
+const deadlineTimer = setTimeout(() => {
+    console.warn('[Bricks DataSources] Total deadline exceeded — aborting remaining requests:', {
+        pagename,
+        totalDeadlineMs,
+    });
+    abortController.abort();
+}, totalDeadlineMs);
+
+const result: Record<string, Record<string, unknown>> = {};
+
+try {
+    await runWithConcurrencyLimit(
+        limitedRequests.map(({ component, source }) => async () => {
+            if (abortController.signal.aborted) {
+                return;
             }
 
-            // Бюджет запросов на прогон: излишек отбрасывается с логом,
-            // а не выполняется молча (аудит A-09)
-            const limitedRequests = requests.slice(0, maxRequestsPerPage);
+            const mapped = await executeDataSourceRequest(
+                source,
+                component,
+                page.value,
+                requestCache,
+                abortController.signal
+            );
 
-            if (limitedRequests.length < requests.length) {
-                console.warn('[Bricks DataSources] Request budget exceeded — extra sources skipped:', {
-                    pagename,
-                    total: requests.length,
-                    executed: limitedRequests.length,
-                });
+            if (!mapped) {
+                return;
             }
 
-            const requestCache: TDataSourceRequestCache = new Map();
-            // Общий wall-clock budget прогона: по истечении оставшиеся запросы
-            // прерываются AbortController'ом, компоненты остаются на fallback props
-            const abortController = new AbortController();
-            const deadlineTimer = setTimeout(() => {
-                console.warn('[Bricks DataSources] Total deadline exceeded — aborting remaining requests:', {
-                    pagename,
-                    totalDeadlineMs,
-                });
-                abortController.abort();
-            }, totalDeadlineMs);
+            const target = (result[component.id] ||= {});
 
-            const result: Record<string, Record<string, unknown>> = {};
+            source.props.forEach((propName) => {
+                if (propName in mapped) {
+                    target[propName] = (mapped as Record<string, unknown>)[propName];
+                }
+            });
+        }),
+        concurrency
+    );
+} finally {
+    clearTimeout(deadlineTimer);
+}
 
-            try {
-                await runWithConcurrencyLimit(
-                    limitedRequests.map(({ component, source }) => async () => {
-                        if (abortController.signal.aborted) {
-                            return;
-                        }
-
-                        const mapped = await executeDataSourceRequest(
-                            source,
-                            component,
-                            page.value,
-                            requestCache,
-                            abortController.signal
-                        );
-
-                        if (!mapped) {
-                            return;
-                        }
-
-                        const target = (result[component.id] ||= {});
-
-                        source.props.forEach((propName) => {
-                            if (propName in mapped) {
-                                target[propName] = (mapped as Record<string, unknown>)[propName];
-                            }
-                        });
-                    }),
-                    concurrency
-                );
-            } finally {
-                clearTimeout(deadlineTimer);
-            }
-
-            return result;
+return result;
 ```
 
 (abort-ошибка fetch ловится существующим catch в `executeDataSource` → `null` → fallback props.)
@@ -1496,6 +1531,7 @@ git add -A && git commit -m "fix(render): byte/request/deadline budgets for data
 ### Task 8: A-06 — integration gate (Postgres + MinIO, black-box lifecycle из tarball)
 
 **Files:**
+
 - Create: `scripts/integration-smoke.mjs`
 - Modify: `scripts/pack-smoke.mjs` (экспортировать/вынести переиспользуемые хелперы — см. Step 1)
 - Create: `scripts/smoke-shared.mjs`
@@ -1504,6 +1540,7 @@ git add -A && git commit -m "fix(render): byte/request/deadline budgets for data
 - Modify: `README.md` (локальный запуск integration smoke)
 
 **Interfaces:**
+
 - Consumes: CSRF-заголовок `x-bricks-csrf: 1` (Task 1), readiness-контракт (Task 3), миграции 0004/0005 (Tasks 5–6), CLI `bricks-migrate`/`bricks-hash-password` из tarball.
 - Produces: обязательный CI job `integration`; env-контракт `BRICKS_IT_DATABASE_URL`, опционально `BRICKS_IT_S3_*`.
 
@@ -1636,7 +1673,14 @@ async function scaffoldConsumer(consumerDir, tarballPath) {
  * Создаёт S3-бакет (идемпотентно) через SDK consumer'а.
  */
 async function ensureBucket(consumerDir) {
-    const sdkPath = join(consumerDir, 'node_modules', '@aws-sdk', 'client-s3', 'dist-cjs', 'index.js');
+    const sdkPath = join(
+        consumerDir,
+        'node_modules',
+        '@aws-sdk',
+        'client-s3',
+        'dist-cjs',
+        'index.js'
+    );
     const { S3Client, CreateBucketCommand } = await import(sdkPath);
     const client = new S3Client({
         endpoint: S3.endpoint,
@@ -1664,7 +1708,10 @@ async function provisionUser(consumerDir) {
         [join(installedRoot, 'dist', 'cli', 'bricks-hash-password.mjs'), IT_PASSWORD],
         consumerDir
     );
-    const hash = hashOutput.split('\n').map((line) => line.trim()).find((line) => line.startsWith('scrypt:'));
+    const hash = hashOutput
+        .split('\n')
+        .map((line) => line.trim())
+        .find((line) => line.startsWith('scrypt:'));
     assertOk(Boolean(hash), 'bricks-hash-password не вернул scrypt-хеш');
 
     const pgPath = join(consumerDir, 'node_modules', 'pg', 'lib', 'index.js');
@@ -1697,7 +1744,10 @@ async function runLifecycle() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ username: IT_USERNAME, password: IT_PASSWORD }),
     });
-    assertOk(bareLogin.status === 403, `login без CSRF-признаков: ожидали 403, получили ${bareLogin.status}`);
+    assertOk(
+        bareLogin.status === 403,
+        `login без CSRF-признаков: ожидали 403, получили ${bareLogin.status}`
+    );
 
     // Login → cookie сессии
     const login = await api('/api/bricks/auth/login', {
@@ -1775,7 +1825,10 @@ async function runLifecycle() {
     });
     const publicPage = await api('/api/bricks/public/pages/it-page', { expectStatus: 200 });
     assertOk(publicPage.data?.pagename === 'it-page', 'public projection не вернула страницу');
-    assertOk(publicPage.data?.revision === undefined, 'public projection не должна отдавать revision');
+    assertOk(
+        publicPage.data?.revision === undefined,
+        'public projection не должна отдавать revision'
+    );
 
     // Версии: снапшот появился после update со schema; restore проходит
     const versions = await api(`/api/bricks/${pageId}/versions`, { cookie, expectStatus: 200 });
@@ -1822,7 +1875,11 @@ async function main() {
     let server;
 
     try {
-        const packOutput = await runCapture('npm', ['pack', '--pack-destination', workDir], REPO_ROOT);
+        const packOutput = await runCapture(
+            'npm',
+            ['pack', '--pack-destination', workDir],
+            REPO_ROOT
+        );
         const tarballName = packOutput.trim().split('\n').at(-1);
         const tarballPath = join(workDir, tarballName);
 
@@ -1831,12 +1888,26 @@ async function main() {
 
         const installedRoot = join(consumerDir, 'node_modules', 'nuxt-bricks');
         // Миграции из tarball (включая 0004 timestamptz и 0005 namespaced fn)
-        await run('node', [join(installedRoot, 'dist', 'cli', 'bricks-migrate.mjs'), 'migrate', '--url', DATABASE_URL], {
-            cwd: consumerDir,
-        });
+        await run(
+            'node',
+            [
+                join(installedRoot, 'dist', 'cli', 'bricks-migrate.mjs'),
+                'migrate',
+                '--url',
+                DATABASE_URL,
+            ],
+            {
+                cwd: consumerDir,
+            }
+        );
         const status = await runCapture(
             'node',
-            [join(installedRoot, 'dist', 'cli', 'bricks-migrate.mjs'), 'status', '--url', DATABASE_URL],
+            [
+                join(installedRoot, 'dist', 'cli', 'bricks-migrate.mjs'),
+                'status',
+                '--url',
+                DATABASE_URL,
+            ],
             consumerDir
         );
         assertOk(status.includes('0 pending'), `после migrate остались pending: ${status}`);
@@ -1885,44 +1956,44 @@ main().catch((error) => {
 - [ ] **Step 4:** CI job в `.github/workflows/ci.yml` (TZ намеренно не-UTC — регрессия A-07):
 
 ```yaml
-    integration:
-        name: Integration smoke (Postgres + MinIO)
-        runs-on: ubuntu-latest
-        env:
-            TZ: Europe/Moscow
-        services:
-            postgres:
-                image: postgres:16
-                env:
-                    POSTGRES_USER: bricks
-                    POSTGRES_PASSWORD: bricks
-                    POSTGRES_DB: bricks
-                ports:
-                    - 5432:5432
-                options: >-
-                    --health-cmd "pg_isready -U bricks"
-                    --health-interval 5s
-                    --health-timeout 5s
-                    --health-retries 10
-        steps:
-            - uses: actions/checkout@v4
-            - uses: actions/setup-node@v4
-              with:
-                  node-version: 22
-                  cache: npm
-            - name: Start MinIO
-              run: |
-                  docker run -d --name minio -p 9000:9000 \
-                      -e MINIO_ROOT_USER=bricks -e MINIO_ROOT_PASSWORD=bricks-secret \
-                      minio/minio server /data
-            - run: npm ci
-            - run: npm run smoke:integration
-              env:
-                  BRICKS_IT_DATABASE_URL: postgres://bricks:bricks@127.0.0.1:5432/bricks
-                  BRICKS_IT_S3_ENDPOINT: http://127.0.0.1:9000
-                  BRICKS_IT_S3_ACCESS_KEY: bricks
-                  BRICKS_IT_S3_SECRET_KEY: bricks-secret
-                  BRICKS_IT_S3_BUCKET: bricks-it
+integration:
+    name: Integration smoke (Postgres + MinIO)
+    runs-on: ubuntu-latest
+    env:
+        TZ: Europe/Moscow
+    services:
+        postgres:
+            image: postgres:16
+            env:
+                POSTGRES_USER: bricks
+                POSTGRES_PASSWORD: bricks
+                POSTGRES_DB: bricks
+            ports:
+                - 5432:5432
+            options: >-
+                --health-cmd "pg_isready -U bricks"
+                --health-interval 5s
+                --health-timeout 5s
+                --health-retries 10
+    steps:
+        - uses: actions/checkout@v4
+        - uses: actions/setup-node@v4
+          with:
+              node-version: 22
+              cache: npm
+        - name: Start MinIO
+          run: |
+              docker run -d --name minio -p 9000:9000 \
+                  -e MINIO_ROOT_USER=bricks -e MINIO_ROOT_PASSWORD=bricks-secret \
+                  minio/minio server /data
+        - run: npm ci
+        - run: npm run smoke:integration
+          env:
+              BRICKS_IT_DATABASE_URL: postgres://bricks:bricks@127.0.0.1:5432/bricks
+              BRICKS_IT_S3_ENDPOINT: http://127.0.0.1:9000
+              BRICKS_IT_S3_ACCESS_KEY: bricks
+              BRICKS_IT_S3_SECRET_KEY: bricks-secret
+              BRICKS_IT_S3_BUCKET: bricks-it
 ```
 
 - [ ] **Step 5:** Локальный прогон: `docker compose up -d` (Postgres из репо) + `BRICKS_IT_DATABASE_URL=postgres://... npm run smoke:integration` (S3-этап можно пропустить без env). Итерировать до зелёного. Затем `npm run smoke:pack` (рефакторинг shared-хелперов не сломал).
@@ -1940,6 +2011,7 @@ git add -A && git commit -m "ci: postgres+minio integration smoke gate from pack
 ### Task 9: Документация и статус аудита
 
 **Files:**
+
 - Modify: `docs/application-audit-2026-07-12.md`
 - Modify: `CLAUDE.md`
 
