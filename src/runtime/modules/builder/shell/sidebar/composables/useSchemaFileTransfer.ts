@@ -90,9 +90,12 @@ export function useSchemaFileTransfer(options: ISchemaFileTransferOptions) {
                 importError.value = null;
             } catch {
                 importError.value = t('bricks.schema.importErrorParse');
+            } finally {
+                // Сбрасываем input на любом исходе (успех/ранний return/catch) —
+                // иначе повторный выбор того же файла после отклонённого импорта
+                // не вызовет change-событие.
+                input.value = '';
             }
-
-            input.value = '';
         };
 
         reader.onerror = () => {

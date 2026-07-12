@@ -39,9 +39,10 @@ const MAX_REQUEST_BODY_BYTES = 16 * 1024;
  *
  * Anti-SSRF (два независимых барьера): URL обязан быть зарегистрирован
  * в медиа-библиотеке (bricks_media) И принадлежать собственному хранилищу
- * (isOwnedUrl) — записи БД не доверяем как authority (легаси-записи могли
- * сохраниться до валидации URL на POST /api/bricks/media). Fetch — без
- * редиректов, с таймаутом и лимитом размера до/во время чтения тела.
+ * (isOwnedUrl) — записи БД не доверяем как authority (легаси-строки
+ * bricks_media могли попасть в таблицу до того, как текущий upload-флоу
+ * стал валидировать URL при записи). Fetch — без редиректов, с таймаутом
+ * и лимитом размера до/во время чтения тела.
  */
 export default defineEventHandler(async (event): Promise<IMediaProxyResponse> => {
     try {

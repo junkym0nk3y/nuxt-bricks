@@ -93,13 +93,11 @@ function collectChildIds(component: Record<string, unknown>): string[] {
  * Фаза 1: валидация формы компонентов и уникальность id.
  *
  * @param components - Массив компонентов.
- * @param errors - Массив для накопления ошибок.
  * @param push - Функция добавления ошибки.
  * @returns Map компонентов по id (пусто если есть ошибки).
  */
 function validateComponentShapes(
     components: readonly unknown[],
-    errors: string[],
     push: (message: string) => void
 ): Map<string, Record<string, unknown>> {
     const byId = new Map<string, Record<string, unknown>>();
@@ -170,13 +168,11 @@ function validateComponentShapes(
  * Фаза 2: валидация ссылок и двусторонняя согласованность.
  *
  * @param byId - Map компонентов по id.
- * @param errors - Массив для накопления ошибок.
  * @param push - Функция добавления ошибки.
  * @returns Map контейнеров по id дочерних компонентов.
  */
 function validateComponentReferences(
     byId: Map<string, Record<string, unknown>>,
-    errors: string[],
     push: (message: string) => void
 ): Map<string, string> {
     const containerByChildId = new Map<string, string>();
@@ -224,12 +220,10 @@ function validateComponentReferences(
  * Фаза 3: валидация ацикличности и глубины дерева.
  *
  * @param byId - Map компонентов по id.
- * @param errors - Массив для накопления ошибок.
  * @param push - Функция добавления ошибки.
  */
 function validateComponentCyclesAndDepth(
     byId: Map<string, Record<string, unknown>>,
-    errors: string[],
     push: (message: string) => void
 ): void {
     const depthById = new Map<string, number>();
@@ -310,21 +304,21 @@ export function validateSchemaComponentGraph(components: readonly unknown[]): st
     }
 
     // Фаза 1: форма компонентов + уникальность id
-    const byId = validateComponentShapes(components, errors, push);
+    const byId = validateComponentShapes(components, push);
 
     if (errors.length > 0) {
         return errors;
     }
 
     // Фаза 2: ссылки и двусторонняя согласованность
-    validateComponentReferences(byId, errors, push);
+    validateComponentReferences(byId, push);
 
     if (errors.length > 0) {
         return errors;
     }
 
     // Фаза 3: ацикличность parent-цепочек и глубина дерева.
-    validateComponentCyclesAndDepth(byId, errors, push);
+    validateComponentCyclesAndDepth(byId, push);
 
     return errors;
 }
