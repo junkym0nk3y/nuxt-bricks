@@ -6,6 +6,7 @@ import type { IRendererLayoutsOptions } from '../types/render';
 
 // Utils
 import { getBlockDefinition } from '../../layouts-blocks/registry';
+import { MAX_COMPONENT_TREE_DEPTH } from '../../common/utils/bricks/schemaContract';
 // #endregion
 
 /**
@@ -21,6 +22,16 @@ export function useRendererLayouts({
     styles,
     renderChild,
 }: IRendererLayoutsOptions) {
+    // #region Data
+    /**
+     * Id layout-компонентов текущей синхронной ветки рендера. Контейнеры
+     * рендерят детей eager'ом внутри renderPublished, поэтому Set корректно
+     * отражает цепочку предков: повторный вход по id (цикл в повреждённой
+     * legacy-схеме) или превышение глубины -> null вместо бесконечной рекурсии.
+     */
+    const renderChain = new Set<string>();
+    // #endregion
+
     // #region Methods
     /**
      * Возвращает список дочерних компонентов.
@@ -72,15 +83,25 @@ export function useRendererLayouts({
             return null;
         }
 
-        return definition.renderPublished({
-            component,
-            definition,
-            extraClasses,
-            extraAttrs,
-            styles,
-            renderChild,
-            getChildComponents,
-        });
+        if (renderChain.has(component.id) || renderChain.size >= MAX_COMPONENT_TREE_DEPTH) {
+            return null;
+        }
+
+        renderChain.add(component.id);
+
+        try {
+            return definition.renderPublished({
+                component,
+                definition,
+                extraClasses,
+                extraAttrs,
+                styles,
+                renderChild,
+                getChildComponents,
+            });
+        } finally {
+            renderChain.delete(component.id);
+        }
     }
     // #endregion
 

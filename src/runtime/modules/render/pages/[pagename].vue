@@ -14,6 +14,7 @@ import { useRendererBricks } from '../composables/useRendererBricks';
 import { useRendererDataSources } from '../composables/useRendererDataSources';
 import { useRendererPreviewSync } from '../composables/useRendererPreviewSync';
 import { normalizeBrickPath } from '../../common/utils/bricks/paths';
+import { isRenderableSchemaComponent } from '../../common/utils/bricks/schemaContract';
 import { BRICKS_ROUTE_NAMES } from '../../common/constants/routes';
 
 // Components
@@ -79,7 +80,12 @@ const pageBackgroundColor = computed(() => page.value?.backgroundColor || 'var(-
 
 const allComponents = computed<IBricksComponent[]>(() => {
     const components = page.value?.schema?.components ?? [];
-    return components.filter((c) => !c.isHidden);
+    // Legacy-строки БД могли сохраниться до контракта схемы (аудит A-02):
+    // мусорные элементы отфильтровываются, а не роняют SSR
+    return components.filter(
+        (component): component is IBricksComponent =>
+            isRenderableSchemaComponent(component) && !component.isHidden
+    );
 });
 
 const rootComponents = computed<IBricksComponent[]>(() =>
@@ -93,7 +99,7 @@ const rootComponents = computed<IBricksComponent[]>(() =>
  * Загружает только UI-компоненты (layout исключены), чтобы не тормозить и не тянуть лишнее.
  */
 async function prefetchPageBricks(): Promise<void> {
-    const components = page.value?.schema?.components ?? [];
+    const components = allComponents.value;
     const brickPaths = Array.from(
         new Set<string>(
             components
