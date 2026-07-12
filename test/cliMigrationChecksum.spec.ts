@@ -18,6 +18,20 @@ describe('bricks-migrate checksum: обнаружение drift применён
         expect(computeMigrationChecksum('SELECT 1;')).toMatch(/^[0-9a-f]{64}$/);
     });
 
+    it('checksum не зависит от line endings: CRLF-checkout не даёт ложный drift', () => {
+        const lf = 'SELECT 1;\nSELECT 2;\n';
+        const crlf = 'SELECT 1;\r\nSELECT 2;\r\n';
+        const loneCr = 'SELECT 1;\rSELECT 2;\r';
+
+        expect(computeMigrationChecksum(crlf)).toBe(computeMigrationChecksum(lf));
+        expect(computeMigrationChecksum(loneCr)).toBe(computeMigrationChecksum(lf));
+
+        const files = new Map([['0001.sql', computeMigrationChecksum(crlf)]]);
+        const applied = [{ name: '0001.sql', checksum: computeMigrationChecksum(lf) }];
+
+        expect(findMigrationDrift(files, applied)).toEqual([]);
+    });
+
     it('drift — только применённые с checksum, не совпавшим с файлом', () => {
         const files = new Map([
             ['0001.sql', 'aaa'],
