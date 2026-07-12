@@ -4,9 +4,11 @@
  * Session-cookie SameSite=Lax не покрывает same-site sibling-домены, а Basic
  * Auth браузер автоповторяет — поэтому unsafe-методы на поверхностях модуля
  * требуют доказательства same-origin: кастомный заголовок `x-bricks-csrf`,
- * либо Sec-Fetch-Site: same-origin/none, либо совпадение hostname Origin
- * с эффективным Host запроса (x-forwarded-host при bricks.trustProxy).
- * Запрос без признаков происхождения отклоняется 403.
+ * либо Sec-Fetch-Site: same-origin/none, либо совпадение host (hostname +
+ * порт; дефолтные 80/443 опускаются) Origin с эффективным Host запроса
+ * (x-forwarded-host при bricks.trustProxy) — сервис на другом порту того же
+ * хоста same-origin не считается. Запрос без признаков происхождения
+ * отклоняется 403.
  */
 import { createError, getRequestHeader, type H3Event } from 'h3';
 import { useRuntimeConfig } from 'nitropack/runtime';
@@ -31,14 +33,32 @@ export interface ICsrfRequestContext {
 export type TCsrfCheckResult = { allowed: true } | { allowed: false; reason: string };
 
 /**
- * Извлекает hostname из значения Host-заголовка (может содержать порт).
+ * Строит нормализованную форму host для сравнения: hostname — в нижнем
+ * регистре, без trailing dot; порт опускается, если пуст или дефолтный
+ * (80/443 — URL-парсер срезает только дефолт своей схемы).
+ *
+ * @param hostname - Hostname из URL-парсера.
+ * @param port - Порт из URL-парсера (может быть пустым).
+ * @returns Форма `hostname` либо `hostname:port`.
+ */
+function buildComparableHost(hostname: string, port: string): string {
+    const normalizedHostname = hostname.toLowerCase().replace(/\.$/, '');
+
+    return !port || port === '80' || port === '443'
+        ? normalizedHostname
+        : `${normalizedHostname}:${port}`;
+}
+
+/**
+ * Нормализованная форма значения Host-заголовка (может содержать порт).
  *
  * @param host - Значение Host / x-forwarded-host.
- * @returns hostname в нижнем регистре или null для мусорного значения.
+ * @returns Нормализованный host или null для мусорного значения.
  */
-function parseHostHeaderHostname(host: string): string | null {
+function parseComparableHostHeader(host: string): string | null {
     try {
-        return new URL(`http://${host}`).hostname.toLowerCase();
+        const parsed = new URL(`http://${host}`);
+        return buildComparableHost(parsed.hostname, parsed.port);
     } catch {
         return null;
     }
@@ -81,27 +101,28 @@ export function checkCsrf(context: ICsrfRequestContext): TCsrfCheckResult {
             return { allowed: false, reason: 'opaque origin' };
         }
 
-        let originHostname: string;
+        let originHost: string;
 
         try {
-            originHostname = new URL(context.origin).hostname.toLowerCase();
+            const parsedOrigin = new URL(context.origin);
+            originHost = buildComparableHost(parsedOrigin.hostname, parsedOrigin.port);
         } catch {
             return { allowed: false, reason: 'malformed origin' };
         }
 
-        const hostHostname = context.effectiveHost
-            ? parseHostHeaderHostname(context.effectiveHost)
+        const requestHost = context.effectiveHost
+            ? parseComparableHostHeader(context.effectiveHost)
             : null;
 
-        if (!hostHostname) {
+        if (!requestHost) {
             return { allowed: false, reason: 'missing effective host' };
         }
 
-        return originHostname === hostHostname
+        return originHost === requestHost
             ? { allowed: true }
             : {
                   allowed: false,
-                  reason: `origin "${originHostname}" does not match host "${hostHostname}"`,
+                  reason: `origin "${originHost}" does not match host "${requestHost}"`,
               };
     }
 
@@ -122,8 +143,10 @@ export function assertCsrfSafe(event: H3Event): void {
     }
 
     const trustProxy = parseTrustProxyFlag(useRuntimeConfig(event).bricksTrustProxy);
+    // Последний токен x-forwarded-host дописан ближайшим доверенным прокси;
+    // первый спуфится клиентом при аппендящем прокси (паттерн resolveClientIp)
     const forwardedHost = trustProxy
-        ? getRequestHeader(event, 'x-forwarded-host')?.split(',')[0]?.trim()
+        ? getRequestHeader(event, 'x-forwarded-host')?.split(',').at(-1)?.trim()
         : undefined;
 
     const result = checkCsrf({

@@ -61,6 +61,26 @@ describe('csrfProtection: чистая проверка контекста за�
         ).toBe(true);
     });
 
+    it('порт участвует в сравнении: другой порт того же хоста — отказ', () => {
+        expect(
+            checkCsrf({
+                ...BARE_POST,
+                origin: 'http://app.example.com:8080',
+                effectiveHost: 'app.example.com',
+            }).allowed
+        ).toBe(false);
+    });
+
+    it('дефолтные порты нормализуются: https-origin матчит Host с явным :443', () => {
+        expect(
+            checkCsrf({
+                ...BARE_POST,
+                origin: 'https://app.example.com',
+                effectiveHost: 'app.example.com:443',
+            }).allowed
+        ).toBe(true);
+    });
+
     it('cross-origin, sibling same-site и opaque origin — отклоняются', () => {
         expect(checkCsrf({ ...BARE_POST, origin: 'https://evil.example' }).allowed).toBe(false);
         expect(checkCsrf({ ...BARE_POST, origin: 'https://evil.example.com' }).allowed).toBe(false);

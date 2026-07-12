@@ -948,7 +948,7 @@ import { parseBricksBooleanFlag } from '../modules/common/utils/main';
                 const headers = useRequestHeaders(['host', 'x-forwarded-host']);
                 const trustProxy = parseBricksBooleanFlag(useRuntimeConfig().bricksTrustProxy);
                 const forwardedHost = trustProxy
-                    ? headers['x-forwarded-host']?.split(',')[0]?.trim()
+                    ? headers['x-forwarded-host']?.split(',').at(-1)?.trim()
                     : undefined;
                 currentHost = forwardedHost || headers.host || '';
             } else {
