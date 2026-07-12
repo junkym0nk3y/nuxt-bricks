@@ -127,12 +127,16 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
             if (import.meta.server) {
                 // За доверенным прокси Host — адрес прокси; оригинальный хост —
-                // последний токен x-forwarded-host (дописан ближайшим прокси-хопом,
-                // см. requestClientIp.ts; опт-ин bricks.trustProxy)
+                // последний непустой токен x-forwarded-host (дописан ближайшим
+                // прокси-хопом, паттерн requestClientIp.ts; опт-ин bricks.trustProxy)
                 const headers = useRequestHeaders(['host', 'x-forwarded-host']);
                 const trustProxy = parseBricksBooleanFlag(useRuntimeConfig().bricksTrustProxy);
                 const forwardedHost = trustProxy
-                    ? headers['x-forwarded-host']?.split(',').at(-1)?.trim()
+                    ? headers['x-forwarded-host']
+                          ?.split(',')
+                          .map((entry) => entry.trim())
+                          .filter(Boolean)
+                          .at(-1)
                     : undefined;
                 currentHost = forwardedHost || headers.host || '';
             } else {
