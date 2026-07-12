@@ -203,14 +203,41 @@ UI самого билдера защищён от стилей проекта: 
 
 ## CI и релизный гейт
 
-GitHub Actions (`.github/workflows/ci.yml`) гоняет на каждый PR и push в `main` четыре независимых job:
+GitHub Actions (`.github/workflows/ci.yml`) гоняет на каждый PR и push в `main` пять независимых job:
 
 1. **checks** — `format:check` + `lint:check` (oxlint, stylelint, dependency-cruiser, knip) + `type-check` + `test`;
 2. **build** — сборка модуля и прод-сборка playground + bundle budget (`npm run budget:bundle`): gzip-размер initial JS двух поверхностей (entry и published-страница) сверяется с бюджетами в `scripts/bundle-budget.mjs` — незаметный рост бандла валит job, осознанный рост фиксируется diff'ом бюджета (локальный запуск требует свежего `npm run dev:build`; атрибуция состава чанков — `npx nuxi analyze playground`);
 3. **pack-smoke** — `npm run smoke:pack`: fresh-consumer smoke опубликованного tarball (`npm pack` → чистое consumer-приложение во временной папке ставит tarball → в пакете есть `dist`, `migrations/*.sql` и CLI-бины → `nuxi build` без Postgres/PROXY_URL → прод-сервер поднимается, отдаёт страницу consumer'а 200, editorial API и `/bricks` анониму — 401, basic-креды принимаются). Скрипт можно гонять и локально; при провале временная папка сохраняется для разбора (путь — в логе);
-4. **audit** — `npm audit --omit=dev` блокирующе (prod-зависимости держим на 0 уязвимостей), полный audit — информационно.
+4. **integration** — `npm run smoke:integration`: production-like гейт из собранного tarball против живых Postgres и MinIO (аудит A-06), см. ниже;
+5. **audit** — `npm audit --omit=dev` блокирующе (prod-зависимости держим на 0 уязвимостей), полный audit — информационно.
 
-Рекомендации по репозиторию (настраиваются в GitHub, не в коде): включить branch protection на `main` с обязательными checks всех четырёх jobs и публиковать пакет только из CI. Обновления зависимостей — Dependabot (`.github/dependabot.yml`): npm еженедельно (minor/patch — одним групповым PR), GitHub Actions еженедельно.
+Рекомендации по репозиторию (настраиваются в GitHub, не в коде): включить branch protection на `main` с обязательными checks всех пяти jobs и публиковать пакет только из CI. Обновления зависимостей — Dependabot (`.github/dependabot.yml`): npm еженедельно (minor/patch — одним групповым PR), GitHub Actions еженедельно.
+
+### Integration smoke (Postgres + MinIO)
+
+`npm run smoke:integration` (`scripts/integration-smoke.mjs` + lifecycle-проверки в `scripts/integration-lifecycle.mjs`) собирает tarball, разворачивает чистый consumer с database-auth, применяет миграции CLI `bricks-migrate` **из tarball** (и проверяет `status`: ни pending, ни checksum-drift), провижинит пользователя CLI `bricks-hash-password`, собирает и поднимает прод-сервер, затем гоняет black-box HTTP lifecycle: CSRF-гейт (unsafe-запрос без признаков происхождения — 403) → login → editorial CRUD → контракт схемы (невалидные/циклические компоненты — 400) → optimistic locking (устаревший `expectedRevision` — 409 `REVISION_CONFLICT`) → publish → public read-model (черновик — 404, editor-поля не отдаются) → версии + restore с precondition → media upload/delete через S3 → logout. Гейт падает при несовместимой миграции, сломанном SQL-маппинге, недоступном хранилище и нарушении auth/session flow.
+
+Env-контракт:
+
+- `BRICKS_IT_DATABASE_URL` — обязателен; **пустая** база (миграции применяет сам скрипт).
+- `BRICKS_IT_S3_ENDPOINT` / `BRICKS_IT_S3_ACCESS_KEY` / `BRICKS_IT_S3_SECRET_KEY` / `BRICKS_IT_S3_BUCKET` — опционально; без них media-этап пропускается (остальной lifecycle гоняется полностью).
+
+Локальный запуск (Postgres из `docker-compose.yml` инициализирует базу `bricks` файлами миграций — для smoke нужна отдельная пустая база):
+
+```bash
+docker compose up -d
+docker exec nuxt-bricks-db psql -U postgres -c 'CREATE DATABASE bricks_it;'
+docker run -d --name bricks-it-minio -p 127.0.0.1:9000:9000 \
+    -e MINIO_ROOT_USER=bricks -e MINIO_ROOT_PASSWORD=bricks-secret \
+    minio/minio server /data
+
+BRICKS_IT_DATABASE_URL='postgres://postgres:postgres@127.0.0.1:5432/bricks_it' \
+BRICKS_IT_S3_ENDPOINT='http://127.0.0.1:9000' \
+BRICKS_IT_S3_ACCESS_KEY=bricks BRICKS_IT_S3_SECRET_KEY=bricks-secret \
+BRICKS_IT_S3_BUCKET=bricks-it npm run smoke:integration
+```
+
+Прогон идемпотентен (страница прошлого запуска зачищается, провижининг пользователя — upsert), CI-job гоняется с не-UTC `TZ` (регрессия таймзонных инвариантов A-07). Browser-E2E и axe-проверки (a11y) — следующий шаг этого трека, вместе с пунктом A-13 аудита.
 
 ## Production deployment и operability
 

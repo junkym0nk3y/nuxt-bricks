@@ -73,6 +73,7 @@
         "test": "vitest run",
         "test:watch": "vitest watch",
         "smoke:pack": "node ./scripts/pack-smoke.mjs",
+        "smoke:integration": "node ./scripts/integration-smoke.mjs",
         "budget:bundle": "node ./scripts/bundle-budget.mjs"
     },
     "simple-git-hooks": {

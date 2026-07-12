@@ -65,6 +65,46 @@ jobs:
             - run: npm ci
             - run: npm run smoke:pack
 
+    integration:
+        name: Integration smoke (Postgres + MinIO)
+        runs-on: ubuntu-latest
+        env:
+            # Не-UTC зона процесса — регрессия A-07 (timestamptz-инварианты)
+            TZ: Europe/Moscow
+        services:
+            postgres:
+                image: postgres:16
+                env:
+                    POSTGRES_USER: bricks
+                    POSTGRES_PASSWORD: bricks
+                    POSTGRES_DB: bricks
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd "pg_isready -U bricks"
+                    --health-interval 5s
+                    --health-timeout 5s
+                    --health-retries 10
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: npm
+            - name: Start MinIO
+              run: |
+                  docker run -d --name minio -p 9000:9000 \
+                      -e MINIO_ROOT_USER=bricks -e MINIO_ROOT_PASSWORD=bricks-secret \
+                      minio/minio server /data
+            - run: npm ci
+            - run: npm run smoke:integration
+              env:
+                  BRICKS_IT_DATABASE_URL: postgres://bricks:bricks@127.0.0.1:5432/bricks
+                  BRICKS_IT_S3_ENDPOINT: http://127.0.0.1:9000
+                  BRICKS_IT_S3_ACCESS_KEY: bricks
+                  BRICKS_IT_S3_SECRET_KEY: bricks-secret
+                  BRICKS_IT_S3_BUCKET: bricks-it
+
     audit:
         name: npm audit (prod deps)
         runs-on: ubuntu-latest
