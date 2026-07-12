@@ -375,54 +375,69 @@ regression-тест гонял только синхронный Grid). **Зак
 видят своих предков; регрессия — `renderSliderDeferredCycleGuard.spec.ts`
 (deferred-цикл обрывается, валидный слайдер рендерится без обрезания).
 
-Release gate обновлён: блокеров A-01/A-02 больше нет; условие релиза — бэклог P1 ниже.
+Release gate обновлён: блокеров A-01/A-02 больше нет; из бэклога P1 закрыты
+A-03, A-04, A-05, A-07, A-08, A-09, A-10 (ветка `audit-p1-remediation`, статусы
+ниже) — открытым остаётся A-06 (production-like integration + browser-E2E gate)
+и P2-спринт.
 
 ## Бэклог (2026-07-12)
 
 ### Выполнено
 
-| ID   | Статус     | Коммиты                                                                                       |
-| ---- | ---------- | --------------------------------------------------------------------------------------------- |
-| A-01 | ✅ закрыто | `d9a5aa9`, `0113271`                                                                          |
-| A-02 | ✅ закрыто | `dcf1be7`, `fc14d56`, `8458f8e`, `6e77101`, `10912dc` + фикс deferred-цикла Slider (см. выше) |
+| ID   | Статус     | Коммиты                                                                                              |
+| ---- | ---------- | ---------------------------------------------------------------------------------------------------- |
+| A-01 | ✅ закрыто | `d9a5aa9`, `0113271`                                                                                 |
+| A-02 | ✅ закрыто | `dcf1be7`, `fc14d56`, `8458f8e`, `6e77101`, `10912dc` + фикс deferred-цикла Slider (см. выше)        |
+| A-03 | ✅ закрыто | `ac3c2d9` (origin-гейт unsafe API), `4a7089f` (review: нормализация порта, последний XFH-хоп)        |
+| A-04 | ✅ закрыто | `a80571a` (второй per-IP bucket до scrypt, лимит Basic Auth, семафор scrypt 4/32)                    |
+| A-05 | ✅ закрыто | `433a0cd` (readiness проверяет фактический persistence path; без него — 503, pack-smoke)             |
+| A-07 | ✅ закрыто | `b4f6b57` (forward-миграция на `TIMESTAMPTZ`)                                                        |
+| A-08 | ✅ закрыто | `e783446` (точное сопоставление hostname), `b9b7692` (review: trustProxy README, XFH-гигиена)        |
+| A-09 | ✅ закрыто | `cba4b1a` (byte/request/deadline-бюджеты), `90bedea` (review: per-request таймаут при shared signal) |
+| A-10 | ✅ закрыто | `ed00936` (`bricks_update_updated_at_column` + SHA-256 checksum), `fb9b457` (review: CRLF→LF)        |
 
-### P1 по уровню приоритетности
+Ветка исправлений — `audit-p1-remediation`; после финального фикса — 59 файлов,
+467 тестов зелёные, `vue-tsc`/`oxlint` чистые.
 
-Порядок — по внешней эксплуатируемости (кто атакующий), затем по операционному
-влиянию и цене откладывания; трудоёмкость учтена как tie-breaker.
+Детали закрытий P1:
 
-1. **A-03 — CSRF-защита unsafe API.** Единственный P1 с _внешним_ атакующим:
-   эксплуатируется через браузер залогиненного editor'а без доступа к системе,
-   single-tenant-модель угроз его не смягчает. `SameSite=Lax` не покрывает
-   same-site sibling и Basic Auth (браузер автоповторяет credentials).
-2. **A-04 — обход auth throttling.** Тоже внешний unauthenticated-вектор:
-   перебор username обходит per-`IP|username` лимит и даёт CPU/DB exhaustion
-   через дорогой dummy scrypt; Basic Auth не лимитирован вовсе. Логично
-   закрывать вместе с A-03 (одна зона — auth middleware/ingress).
-3. **A-05 — ложный readiness.** Ломает оркестрацию уже на внутреннем стенде
-   (отмечен «срочным» в поправке на модель угроз): `200` без работающего
-   persistence маскирует фактический `500` CRUD. Дешёвый фикс с большим
-   операционным эффектом.
-4. **A-08 — subdomain по подстроке.** Публичная поверхность: `notpromo.example`
-   матчится под subdomain `promo` — показ страницы на чужом hostname без участия
-   атакующего. Маленький, локализованный фикс (`bricks-page-layout.global.ts`).
-5. **A-07 — `TIMESTAMP` без timezone.** Data-correctness (сроки сессий, сортировка,
-   расхождение реплик с разным `TZ`); цена forward-миграции на `TIMESTAMPTZ`
-   растёт с каждым днём накопления данных — откладывать дорого.
-6. **A-10 — namespace/checksum миграций.** `CREATE OR REPLACE FUNCTION
-update_updated_at_column()` может перезаписать функцию host-приложения в
-   shared schema — обязательный пункт до публичного npm-релиза; checksum-drift —
-   защита release-процесса. Выполнять после A-07 (обе — новые forward-миграции,
-   можно одной серией).
-7. **A-09 — resource budgets для data sources.** Гейтирован доверенным editor'ом
-   (в single-tenant — низкая вероятность злоупотребления); базовые меры
-   (allowlist, timeout, concurrency, dedup) уже есть, не хватает byte/request/
-   deadline-лимитов.
-8. **A-06 — production-like integration и browser-E2E gate.** Самый трудоёмкий
-   пункт (CI-инфраструктура: Postgres + MinIO из tarball, black-box lifecycle,
-   browser-E2E); не является уязвимостью сам по себе, но служит регрессионным
-   гейтом для пунктов 1–7 — стоит вести параллельным треком и закрыть до
-   production-rollout.
+- **A-03**: auth-middleware отклоняет unsafe-методы editorial API без доверенного
+  same-origin `Origin`/`Referer` (нормализация порта, учёт reverse proxy —
+  последний XFH-хоп при `trustProxy`).
+- **A-04**: второй per-IP bucket (30 ошибок / 15 мин) срабатывает **до** дорогого
+  scrypt — перебор username с одного IP получает 429 без деривации; Basic Auth
+  делит тот же bucket; scrypt-верификация — под bounded-семафором (4 одновременных,
+  очередь 32).
+- **A-05**: readiness проверяет тот persistence path, который реально обслуживает
+  editorial API (custom adapter / локальная БД / proxy); конфигурация без обоих —
+  503; `checkHealth` задокументирован обязательным для production-адаптеров;
+  pack-smoke закрепляет 503 вместо прежнего допуска `500`.
+- **A-07**: forward-миграция всех абсолютных дат на `TIMESTAMPTZ` (с `AT TIME ZONE`
+  для legacy-значений).
+- **A-08**: точное сравнение первого label/полного hostname через URL-парсер
+  (порт, регистр, trailing dot); подстрочный `includes` удалён.
+- **A-09**: `maxResponseBytes` (1 МиБ) отбрасывает крупный ответ до merge,
+  `maxRequestsPerPage` (24) ограничивает число запросов прогона, `totalDeadlineMs`
+  (15 с) абортит остаток через `AbortController`; деградация — fallback props +
+  structured warn. Review-фикс: ofetch строит внутренний timeout-abort только без
+  caller-signal, поэтому при общем дедлайне per-request таймаут обеспечивается
+  комбинацией `shared signal + AbortSignal.timeout` (`combineAbortSignals`,
+  `render/utils/abortSignals.ts`).
+- **A-10**: функция триггера переименована в `bricks_update_updated_at_column()`
+  (нет коллизии с host-приложением в shared schema); `bricks_schema_migrations`
+  хранит SHA-256 checksum — правка уже применённого SQL блокирует `migrate` как
+  drift; review-фикс — нормализация CRLF/CR→LF перед хешированием (Windows
+  checkout не даёт ложного drift), `*.sql` закреплены LF в `.gitattributes`.
+
+### P1 — остаток
+
+Пункты 1–7 прежней приоритизации (A-03, A-04, A-05, A-08, A-07, A-10, A-09)
+закрыты — коммиты и детали в таблице «Выполнено» выше. Остаётся один:
+
+- **A-06 — production-like integration и browser-E2E gate.** Самый трудоёмкий
+  пункт (CI-инфраструктура: Postgres + MinIO из tarball, black-box lifecycle,
+  browser-E2E); не является уязвимостью сам по себе, но служит регрессионным
+  гейтом для уже закрытых P1 — закрыть до production-rollout.
 
 ### P2 (следующий технический спринт, без изменения порядка аудита)
 
