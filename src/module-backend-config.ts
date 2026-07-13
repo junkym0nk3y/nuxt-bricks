@@ -1,7 +1,7 @@
 /**
  * Чистый резолвер режима data backend (`bricks.backend.mode`): options + env →
  * разрешённый mode + диагностика. Без зависимостей от Nuxt — тестируется юнитами
- * (test/moduleBackendConfig.spec.ts).
+ * (test/module/backendConfig.spec.ts).
  *
  * Модель (docs/backend-connection-modes-plan-2026-07-12.md):
  * - выбор backend относится только к данным (страницы/версии/media metadata);

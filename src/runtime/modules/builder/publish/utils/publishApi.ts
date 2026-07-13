@@ -53,7 +53,7 @@ export async function publishPageRequest(
  * @param schema - Схема лендинга.
  * @param formState - Данные формы публикации.
  * @param expectedRevision - Precondition optimistic locking (revision страницы
- * на момент чтения); undefined — запись без precondition (last-write-wins).
+ * на момент чтения) — обязателен, несовпадение на сервере → 409.
  * @returns Нормализованная страница из ответа (со свежей revision).
  * @throws Ошибка запроса, приведённая через `toRequestError`.
  */
@@ -61,17 +61,13 @@ export async function updatePageRequest(
     id: string | number,
     schema: IBricksSchema,
     formState: TPublishFormState,
-    expectedRevision?: number
+    expectedRevision: number
 ): Promise<IPublishedPage> {
     const { apiFetcher } = useApiClient();
-    const payload: ICreatePagePayload & { expectedRevision?: number } = buildPagePayload(
-        schema,
-        formState
-    );
-
-    if (expectedRevision !== undefined) {
-        payload.expectedRevision = expectedRevision;
-    }
+    const payload: ICreatePagePayload & { expectedRevision: number } = {
+        ...buildPagePayload(schema, formState),
+        expectedRevision,
+    };
 
     try {
         const response = await apiFetcher<IPublishedPage>(`/api/bricks/${id}/`, {

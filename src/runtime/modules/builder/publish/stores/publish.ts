@@ -17,7 +17,7 @@ import {
 } from '../utils/formState';
 import { generateCopyPagename } from '../utils/slugify';
 import { validatePublishFormState } from '../utils/formValidation';
-import { toPageWriteError } from '../utils/requestErrors';
+import { requirePageRevision, toPageWriteError } from '../utils/requestErrors';
 import { restorePageVersionWithPrecondition } from '../utils/pageVersionRestore';
 import {
     publishPageRequest,
@@ -132,11 +132,9 @@ export const usePublishStore = defineStore('bricksPublish', {
         },
 
         /**
-         * Обновляет существующую страницу и синхронизирует её в локальном списке.
-         * PUT идёт с precondition (revision страницы из списка): если страницу
-         * изменили в другом месте — 409, список обновляется (toPageWriteError),
-         * пользователь получает понятный тост и осознанно перезаписывает
-         * повторным сохранением.
+         * Обновляет страницу и синхронизирует её в локальном списке. PUT всегда
+         * идёт с precondition (`requirePageRevision`): при конфликте — 409,
+         * список обновляется (toPageWriteError), повтор перезапишет осознанно.
          *
          * @param id - Идентификатор страницы.
          * @param schema - Схема лендинга.
@@ -147,11 +145,13 @@ export const usePublishStore = defineStore('bricksPublish', {
             schema: IBricksSchema,
             formState: TPublishFormState
         ): Promise<void> {
-            try {
-                const expectedRevision = this.getPageById(id)?.revision;
-                const normalized = await updatePageRequest(id, schema, formState, expectedRevision);
-                console.log('[Publish Store] Page updated successfully');
+            const expectedRevision = requirePageRevision(
+                this.getPageById(id),
+                t('bricks.publish.toasts.savePageFailed')
+            );
 
+            try {
+                const normalized = await updatePageRequest(id, schema, formState, expectedRevision);
                 this.syncPageInList(normalized);
             } catch (error: unknown) {
                 console.error('[Publish Store] Failed to update page:', error);

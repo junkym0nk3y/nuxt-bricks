@@ -60,9 +60,9 @@ export interface IPublishedPage {
     schema: IBricksSchema;
     published: boolean;
     /**
-     * Revision editorial-строки для optimistic locking. Опциональна: публичная
-     * проекция (`/api/bricks/public/**`) и старые localStorage-снапшоты поля
-     * не содержат — тогда запись идёт без precondition (last-write-wins).
+     * Revision editorial-строки для optimistic locking. Опциональна только
+     * потому, что публичная проекция (`/api/bricks/public/**`) поле не отдаёт;
+     * editorial-записи без revision не пишутся (`requirePageRevision`).
      */
     revision?: number;
     createdAt: string;

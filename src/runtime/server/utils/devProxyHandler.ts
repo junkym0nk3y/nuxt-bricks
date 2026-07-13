@@ -1,6 +1,6 @@
 /**
  * Фабрика event handler'а dev-проксирования (вынесена из middleware для
- * интеграционных тестов на реальных сокетах — test/serverDevProxy.spec.ts:
+ * интеграционных тестов на реальных сокетах — test/server/devProxy.spec.ts:
  * middleware завязан на useRuntimeConfig nitropack и вне Nitro не импортируется).
  *
  * Контракт передачи (план backend-connection-modes, PR1): метод, query, body,
