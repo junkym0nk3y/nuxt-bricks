@@ -31,7 +31,7 @@ export async function loadModals(): Promise<void> {
         const { apiFetcher } = useApiClient();
         const response = await apiFetcher<{
             bricks: Array<{ name: string; category: string; brickPath: string }>;
-        }>('/mock-api/bricks-components');
+        }>('/api/bricks/components');
         const bricks = response?.bricks || [];
 
         // Фильтруем только модалки

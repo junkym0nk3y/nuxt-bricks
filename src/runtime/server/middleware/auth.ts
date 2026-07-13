@@ -6,13 +6,14 @@
  * матрица работает с логическим путём — `app.baseURL` стрипается до проверки):
  * - <builderPrefix>/** — менеджер страниц и редактор лендингов
  * - <previewPrefix>/** — preview режим рендера
- * - /mock-api/s3-* — S3 операции (загрузка/удаление)
  * - /api/bricks/** — весь editorial API, включая GET (drafts, полная schema,
- *   медиатека, версии)
+ *   медиатека, версии), media proxy и page thumbnail
  *
  * НЕ защищает:
  * - динамические ЧПУ маршруты опубликованных страниц
  * - GET/HEAD /api/bricks/public/** — public read-model для рендера
+ * - GET/HEAD /api/bricks/components — библиотека компонентов (публичный
+ *   манифест; SSR билдера в basic-режиме не пробрасывает Authorization)
  * - в database-режиме: <builderPrefix>/login и /api/bricks/auth/** (иначе не войти)
  *
  * Basic-режим — HTTP Basic Auth, настройка через ENV:

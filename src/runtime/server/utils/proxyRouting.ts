@@ -6,9 +6,9 @@
  * `startsWith` по полному URL пропускал bricks-пути с query на прокси)
  * и по границам сегментов (`/api/bricksmith` — не bricks-путь).
  *
- * `/api/bricks/**` (включая health-пробы) и `/mock-api/**` НИКОГДА не
- * проксируются: с введением bricks.backend.mode persistence не выбирается
- * PROXY_URL — все bricks-ручки локальные (docs/backend-connection-modes-plan).
+ * `/api/bricks/**` (включая health-пробы) НИКОГДА не проксируется:
+ * с введением bricks.backend.mode persistence не выбирается PROXY_URL —
+ * все bricks-ручки локальные (docs/backend-connection-modes-plan).
  */
 
 import { joinURL } from 'ufo';
@@ -60,8 +60,7 @@ export function resolveRequestPathWithQuery(url: string | undefined): string {
 
 /**
  * Решает, должен ли запрос проксироваться на внешний backend (PROXY_URL):
- * `/api/bricks/**` и `/mock-api/**` — никогда (локальные Nitro-ручки),
- * остальные `/api/**` — да.
+ * `/api/bricks/**` — никогда (локальные Nitro-ручки), остальные `/api/**` — да.
  *
  * @param pathname - Разобранный pathname запроса (см. resolveRequestPathname).
  * @returns true, если запрос уходит на прокси.
@@ -71,7 +70,7 @@ export function shouldProxyRequest(pathname: string): boolean {
         return false;
     }
 
-    // Mock API и bricks API — НИКОГДА не проксируем (локальные Nitro-роуты);
+    // Bricks API — НИКОГДА не проксируем (локальные Nitro-роуты);
     // общий предикат с useApiClient — common/utils/localApiPaths.ts
     if (isLocalApiPathname(pathname)) {
         return false;

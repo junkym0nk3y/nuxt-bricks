@@ -1,5 +1,6 @@
 /**
- * Манифест Nitro-ручек /api/bricks/** (persistence).
+ * Манифест Nitro-ручек /api/bricks/** (persistence, auth, health, builder-поверхность:
+ * библиотека компонентов, media proxy, page thumbnail).
  *
  * Роуты модуля не автосканируются — module.ts регистрирует каждую запись
  * через addServerHandler (file — путь от runtimeDir без расширения).
@@ -55,9 +56,27 @@ export const BRICKS_API_HANDLERS: IBricksApiHandler[] = [
         isPublic: true,
     },
     {
+        // Открыта для GET/HEAD auth-матрицей (routeProtection.ts): манифест и так
+        // публичен в public/bricks.json, а SSR билдера в basic-режиме не умеет
+        // пробрасывать Authorization
+        route: '/api/bricks/components',
+        method: 'get',
+        file: 'server/api/bricks/components.get',
+    },
+    {
         route: '/api/bricks/media',
         method: 'get',
         file: 'server/api/bricks/media/index.get',
+    },
+    {
+        route: '/api/bricks/media/s3-proxy',
+        method: 'post',
+        file: 'server/api/bricks/media/s3-proxy.post',
+    },
+    {
+        route: '/api/bricks/media/s3-page-thumbnail',
+        method: 'post',
+        file: 'server/api/bricks/media/s3-page-thumbnail.post',
     },
     {
         route: '/api/bricks/media/upload',

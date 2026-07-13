@@ -97,8 +97,14 @@ describe('routePaths: валидация префиксов (fail-fast module.ts
             validateBricksRoutePrefixes({ builderPrefix: '/api/builder', previewPrefix: '/look' })
         ).toThrow('reserved');
         expect(() =>
-            validateBricksRoutePrefixes({ builderPrefix: '/admin', previewPrefix: '/mock-api/x' })
+            validateBricksRoutePrefixes({ builderPrefix: '/admin', previewPrefix: '/api/x' })
         ).toThrow('reserved');
+    });
+
+    it('бывший mock-api больше не зарезервирован', () => {
+        expect(() =>
+            validateBricksRoutePrefixes({ builderPrefix: '/admin', previewPrefix: '/mock-api/x' })
+        ).not.toThrow();
     });
 
     it('отклоняет равные и вложенные префиксы', () => {

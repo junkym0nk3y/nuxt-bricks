@@ -35,7 +35,7 @@ describe('resolveDataSourceMethod', () => {
 describe('checkDataSourceUrl', () => {
     it('разрешает относительные URL без allow-list', () => {
         expect(checkDataSourceUrl('/api/products', []).allowed).toBe(true);
-        expect(checkDataSourceUrl('/mock-api/data?limit=5', []).allowed).toBe(true);
+        expect(checkDataSourceUrl('/internal-api/data?limit=5', []).allowed).toBe(true);
     });
 
     it('отклоняет protocol-relative и не начинающиеся с / URL', () => {

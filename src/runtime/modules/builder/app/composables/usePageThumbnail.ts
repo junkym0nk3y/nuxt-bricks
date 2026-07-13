@@ -61,7 +61,7 @@ export function usePageThumbnail(): IUsePageThumbnailReturn {
                 return cached;
             }
 
-            const request = apiFetcher<{ dataUrl: string }>('/mock-api/s3-media-proxy', {
+            const request = apiFetcher<{ dataUrl: string }>('/api/bricks/media/s3-proxy', {
                 method: 'POST',
                 body: { url },
             }).then(
@@ -119,7 +119,7 @@ export function usePageThumbnail(): IUsePageThumbnailReturn {
 
             const { apiFetcher } = useApiClient();
             const response = await apiFetcher<IThumbnailUploadResponse>(
-                '/mock-api/s3-page-thumbnail',
+                '/api/bricks/media/s3-page-thumbnail',
                 { method: 'POST', body: formData }
             );
 

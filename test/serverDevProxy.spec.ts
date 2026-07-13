@@ -204,17 +204,25 @@ describe('devProxy: identity билдера', () => {
 });
 
 describe('devProxy: локальные пути и отказы upstream', () => {
-    it('/api/bricks/** и /mock-api/** не проксируются', async () => {
-        for (const path of ['/api/bricks', '/api/bricks/health', '/mock-api/s3-media-proxy']) {
+    it('/api/bricks/** (включая media-ручки) не проксируется', async () => {
+        for (const path of [
+            '/api/bricks',
+            '/api/bricks/health',
+            '/api/bricks/components',
+            '/api/bricks/media/s3-proxy',
+        ]) {
             const response = await fetch(`${proxyBasicOrigin}${path}`);
             expect(response.headers.get('x-upstream')).toBeNull();
             expect(await response.text()).toBe('local');
         }
     });
 
-    it('не-API пути не проксируются', async () => {
-        const response = await fetch(`${proxyBasicOrigin}/bricks`);
-        expect(await response.text()).toBe('local');
+    it('не-API пути (включая бывший /mock-api/**) не проксируются', async () => {
+        for (const path of ['/bricks', '/mock-api/s3-media-proxy']) {
+            const response = await fetch(`${proxyBasicOrigin}${path}`);
+            expect(response.headers.get('x-upstream')).toBeNull();
+            expect(await response.text()).toBe('local');
+        }
     });
 
     it('мёртвый upstream → стабильный 502', async () => {

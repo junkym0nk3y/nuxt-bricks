@@ -98,7 +98,7 @@ function resolveLocalBaseUrl(appBaseURL: string): string {
  *
  * Маршрутизация запросов (см. common/utils/localApiPaths.ts — общий предикат
  * с серверным devProxy-роутингом):
- * - /mock-api/** и /api/bricks/** — всегда локальные Nitro-роуты
+ * - /api/bricks/** — всегда локальные Nitro-роуты
  *   (persistence выбирается bricks.backend.mode, а не адресом запроса)
  * - остальные /api/* — API host-проекта (server-only bricksProxyUrl),
  *   на клиенте через dev proxy middleware
@@ -162,8 +162,8 @@ export function useApiClient() {
                 return;
             }
 
-            // Локальные ручки: /mock-api/** и /api/bricks/** — всегда,
-            // независимо от режима persistence (актуально для SSR с PROXY_URL)
+            // Локальные ручки: /api/bricks/** — всегда, независимо от
+            // режима persistence (актуально для SSR с PROXY_URL)
             if (!isLocalApiRequest(request)) {
                 return;
             }

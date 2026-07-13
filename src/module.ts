@@ -104,7 +104,7 @@ export interface IBricksModuleOptions {
     /**
      * Dev-only проксирование не-bricks /api/* на backend host-проекта
      * (middleware регистрируется только при nuxt.options.dev; /api/bricks/**
-     * и /mock-api/** никогда не проксируются — см. bricks.backend).
+     * никогда не проксируется — см. bricks.backend).
      * Адрес — server-only runtimeConfig (в client payload не попадает).
      * ENV: PROXY_URL (build-time fallback), NUXT_BRICKS_PROXY_URL
      * (runtime-override).
@@ -167,7 +167,8 @@ export interface IBricksModuleOptions {
     /**
      * Поверхности модуля (build-time).
      * - builder (дефолт true) — UI билдера целиком: страницы
-     *   builder/login/preview, плагины редактора, mock-api ручки, editorial
+     *   builder/login/preview, плагины редактора, builder-ручки (библиотека
+     *   компонентов, media proxy, page thumbnail), editorial
      *   API, i18n и Pinia. false — render-only деплой: остаются published
      *   catch-all маршруты, public read-model и auth-защита путей.
      * - publishedPages (дефолт true) — статические catch-all маршруты
@@ -374,7 +375,7 @@ export default defineNuxtModule<IBricksModuleOptions>({
         }
         // #endregion
 
-        // #region Server (middleware + mock-api + api/bricks)
+        // #region Server (middleware + api/bricks)
         addServerHandler({
             handler: resolve(runtimeDir, 'server/middleware/auth'),
             middleware: true,
@@ -387,8 +388,8 @@ export default defineNuxtModule<IBricksModuleOptions>({
                 middleware: true,
             });
         }
-        // mock-api (медиа/библиотека компонентов) — только билдер; /api/bricks —
-        // по манифесту BRICKS_API_HANDLERS (render-only оставляет public read-model)
+        // /api/bricks — по манифесту BRICKS_API_HANDLERS (render-only
+        // оставляет public read-model)
         registerBricksServerHandlers(registrationContext);
         // #endregion
     },

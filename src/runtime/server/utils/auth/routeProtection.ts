@@ -6,13 +6,15 @@
  * `/bricks` и `/preview`):
  * - `<builderPrefix>/**` — менеджер страниц и редактор
  * - `<previewPrefix>/**` — превью рендера
- * - /mock-api/s3-* — S3 операции
  * - /api/bricks/** — весь editorial API, включая read (списки страниц
- *   с drafts/schema и медиатека не публичны)
+ *   с drafts/schema и медиатека не публичны), media proxy и page thumbnail
  *
  * Открыты только public read-model (GET/HEAD /api/bricks/public/** —
- * published-проекции для рендера) и health-пробы (GET/HEAD /api/bricks/health
- * и /health/ready — LB не умеет авторизоваться). Database-only исключения:
+ * published-проекции для рендера), health-пробы (GET/HEAD /api/bricks/health
+ * и /health/ready — LB не умеет авторизоваться) и библиотека компонентов
+ * (GET/HEAD /api/bricks/components — манифест и так публичен в
+ * public/bricks.json, а SSR билдера в basic-режиме не пробрасывает
+ * Authorization). Database-only исключения:
  * `<builderPrefix>/login` (страница логина) и /api/bricks/auth/**
  * (login/logout/me) — иначе на форму не попасть.
  *
@@ -68,11 +70,6 @@ export function requiresAuth(
         return true;
     }
 
-    // S3 операции — всегда защищены
-    if (pathname.startsWith('/mock-api/s3-')) {
-        return true;
-    }
-
     // Public read-model — единственная открытая часть /api/bricks (только чтение)
     if (pathname.startsWith('/api/bricks/public/') && PUBLIC_READ_METHODS.includes(method)) {
         return false;
@@ -84,6 +81,14 @@ export function requiresAuth(
         (pathname === '/api/bricks/health' || pathname === '/api/bricks/health/ready') &&
         PUBLIC_READ_METHODS.includes(method)
     ) {
+        return false;
+    }
+
+    // Библиотека компонентов открыта на чтение: манифест и так публичен
+    // в public/bricks.json, а SSR билдера в basic-режиме не пробрасывает
+    // Authorization (useApiClient) — защита сломала бы top-level await
+    // загрузки библиотеки при SSR
+    if (pathname === '/api/bricks/components' && PUBLIC_READ_METHODS.includes(method)) {
         return false;
     }
 

@@ -27,7 +27,7 @@ export const DEFAULT_BRICKS_ROUTE_PREFIXES: IBricksRoutePrefixes = {
 const ROUTE_PREFIX_PATTERN = /^\/[a-z0-9-]+(?:\/[a-z0-9-]+)*$/;
 
 /** Корневые сегменты, зарезервированные другими поверхностями модуля/Nuxt. */
-const RESERVED_ROOT_SEGMENTS = ['api', 'mock-api', '_nuxt', '__nuxt_error'];
+const RESERVED_ROOT_SEGMENTS = ['api', '_nuxt', '__nuxt_error'];
 
 /**
  * Путь принадлежит поддереву префикса (сам префикс или `<prefix>/**`).

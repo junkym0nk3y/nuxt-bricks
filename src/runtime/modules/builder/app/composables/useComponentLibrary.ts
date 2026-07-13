@@ -32,7 +32,7 @@ export async function useComponentLibrary() {
         'bricks-components',
         async () => {
             const { apiFetcher } = useApiClient();
-            const response = await apiFetcher<IBricksResponse>('/mock-api/bricks-components/');
+            const response = await apiFetcher<IBricksResponse>('/api/bricks/components');
             const bricks = response?.bricks || [];
 
             const componentsWithMeta = await Promise.all(

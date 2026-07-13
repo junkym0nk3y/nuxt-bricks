@@ -45,7 +45,7 @@ describe('routeProtection: матрица защищённых путей', () =
         }
     });
 
-    it('защищает мутации /api/bricks/** (включая public-пути) и /mock-api/s3-*', () => {
+    it('защищает мутации /api/bricks/** (включая public-пути и media-ручки)', () => {
         for (const mode of ['basic', 'database'] as const) {
             expect(requiresAuth('/api/bricks', 'POST', mode, PREFIXES)).toBe(true);
             expect(requiresAuth('/api/bricks/1', 'PUT', mode, PREFIXES)).toBe(true);
@@ -54,7 +54,28 @@ describe('routeProtection: матрица защищённых путей', () =
             expect(requiresAuth('/api/bricks/public/pages/my-page', 'POST', mode, PREFIXES)).toBe(
                 true
             );
-            expect(requiresAuth('/mock-api/s3-image', 'POST', mode, PREFIXES)).toBe(true);
+            expect(requiresAuth('/api/bricks/media/s3-proxy', 'POST', mode, PREFIXES)).toBe(true);
+            expect(
+                requiresAuth('/api/bricks/media/s3-page-thumbnail', 'POST', mode, PREFIXES)
+            ).toBe(true);
+        }
+    });
+
+    it('бывшие /mock-api/** пути освобождены — обычные пути host-приложения', () => {
+        for (const mode of ['basic', 'database'] as const) {
+            expect(requiresAuth('/mock-api/s3-media-proxy', 'POST', mode, PREFIXES)).toBe(false);
+            expect(requiresAuth('/mock-api/s3-page-thumbnail', 'POST', mode, PREFIXES)).toBe(false);
+            expect(requiresAuth('/mock-api/bricks-components', 'GET', mode, PREFIXES)).toBe(false);
+        }
+    });
+
+    it('библиотека компонентов открыта на чтение, мутации — защищены', () => {
+        for (const mode of ['basic', 'database'] as const) {
+            expect(requiresAuth('/api/bricks/components', 'GET', mode, PREFIXES)).toBe(false);
+            expect(requiresAuth('/api/bricks/components', 'HEAD', mode, PREFIXES)).toBe(false);
+
+            expect(requiresAuth('/api/bricks/components', 'POST', mode, PREFIXES)).toBe(true);
+            expect(requiresAuth('/api/bricks/components/extra', 'GET', mode, PREFIXES)).toBe(true);
         }
     });
 
@@ -89,7 +110,7 @@ describe('routeProtection: матрица защищённых путей', () =
         expect(isProtectedHtmlPath('/bricks/my-page', PREFIXES)).toBe(true);
         expect(isProtectedHtmlPath('/preview/my-page', PREFIXES)).toBe(true);
         expect(isProtectedHtmlPath('/api/bricks', PREFIXES)).toBe(false);
-        expect(isProtectedHtmlPath('/mock-api/s3-image', PREFIXES)).toBe(false);
+        expect(isProtectedHtmlPath('/api/bricks/media/s3-proxy', PREFIXES)).toBe(false);
         expect(isProtectedHtmlPath('/bricks-like-page', PREFIXES)).toBe(false);
     });
 });
@@ -105,9 +126,11 @@ describe('routeProtection: кастомные префиксы (bricks.routes)',
             expect(requiresAuth('/bricks', 'GET', mode, CUSTOM_PREFIXES)).toBe(false);
             expect(requiresAuth('/preview/my-page', 'GET', mode, CUSTOM_PREFIXES)).toBe(false);
 
-            // API-неймспейсы от префиксов не зависят
+            // API-неймспейс от префиксов не зависит
             expect(requiresAuth('/api/bricks', 'GET', mode, CUSTOM_PREFIXES)).toBe(true);
-            expect(requiresAuth('/mock-api/s3-image', 'POST', mode, CUSTOM_PREFIXES)).toBe(true);
+            expect(requiresAuth('/api/bricks/media/s3-proxy', 'POST', mode, CUSTOM_PREFIXES)).toBe(
+                true
+            );
         }
     });
 

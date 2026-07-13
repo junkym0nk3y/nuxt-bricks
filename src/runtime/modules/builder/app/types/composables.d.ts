@@ -27,7 +27,7 @@ export type TShowToast = (
 
 // #region useComponentLibrary
 /**
- * Элемент списка bricks из mock-api `/mock-api/bricks-components/`.
+ * Элемент списка bricks из `GET /api/bricks/components`.
  */
 export interface IBrickListItem {
     name: string;
@@ -36,7 +36,7 @@ export interface IBrickListItem {
 }
 
 /**
- * Ответ mock-api со списком bricks.
+ * Ответ библиотеки компонентов со списком bricks.
  */
 export interface IBricksResponse {
     bricks: IBrickListItem[];
@@ -98,7 +98,7 @@ export interface IBuilderPagenameSyncOptions {
 
 // #region usePageThumbnail
 /**
- * Ответ POST /mock-api/s3-page-thumbnail.
+ * Ответ POST /api/bricks/media/s3-page-thumbnail.
  */
 export interface IThumbnailUploadResponse {
     success: boolean;

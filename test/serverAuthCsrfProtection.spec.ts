@@ -123,11 +123,14 @@ describe('csrfProtection: чистая проверка контекста за�
         ).toBe(false);
     });
 
-    it('isCsrfProtectedPath: покрывает /api/bricks и /mock-api/s3-*, не трогает прочее', () => {
+    it('isCsrfProtectedPath: покрывает /api/bricks (включая media-ручки), не трогает прочее', () => {
         expect(isCsrfProtectedPath('/api/bricks/auth/login')).toBe(true);
         expect(isCsrfProtectedPath('/api/bricks/123')).toBe(true);
-        expect(isCsrfProtectedPath('/mock-api/s3-page-thumbnail')).toBe(true);
+        expect(isCsrfProtectedPath('/api/bricks/media/s3-proxy')).toBe(true);
+        expect(isCsrfProtectedPath('/api/bricks/media/s3-page-thumbnail')).toBe(true);
         expect(isCsrfProtectedPath('/api/other')).toBe(false);
         expect(isCsrfProtectedPath('/landing')).toBe(false);
+        // Бывший /mock-api/** больше не в скоупе модуля
+        expect(isCsrfProtectedPath('/mock-api/s3-page-thumbnail')).toBe(false);
     });
 });

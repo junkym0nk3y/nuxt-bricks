@@ -240,12 +240,11 @@ export function registerBricksPages(pages: NuxtPage[], context: IBricksRegistrat
 }
 
 /**
- * Регистрирует серверные ручки: mock-api (снапшот превью страницы, media-proxy
- * и библиотека компонентов — поверхность билдера) и /api/bricks/** из манифеста.
- * Загрузка/удаление медиа — атомарные ручки /api/bricks/media/upload и
- * DELETE /api/bricks/media/:id (бывшие mock-api/s3-image и s3-delete удалены).
- * Render-only режим оставляет только public read-model — editorial CRUD
- * и auth-ручки без UI билдера не нужны (сужение поверхности).
+ * Регистрирует серверные ручки /api/bricks/** из манифеста BRICKS_API_HANDLERS
+ * (persistence, auth, health плюс builder-поверхность: библиотека компонентов,
+ * media proxy, page thumbnail — бывшие /mock-api/** ручки).
+ * Render-only режим оставляет только public read-model (isPublic) — editorial
+ * CRUD, auth- и builder-ручки без UI билдера не нужны (сужение поверхности).
  *
  * /api/bricks/** всегда обслуживаются локальными ручками; data backend под
  * ними выбирает bricks.backend.mode (builtin PostgreSQL vs external HTTP,
@@ -256,20 +255,6 @@ export function registerBricksPages(pages: NuxtPage[], context: IBricksRegistrat
 export function registerBricksServerHandlers(context: IBricksRegistrationContext): void {
     const { resolve, runtimeDir, surfaces } = context;
     const { isBuilderEnabled } = surfaces;
-
-    if (isBuilderEnabled) {
-        for (const s3Route of ['s3-page-thumbnail', 's3-media-proxy']) {
-            addServerHandler({
-                route: `/mock-api/${s3Route}`,
-                method: 'post',
-                handler: resolve(runtimeDir, `server/routes/mock-api/${s3Route}.post`),
-            });
-        }
-        addServerHandler({
-            route: '/mock-api/bricks-components',
-            handler: resolve(runtimeDir, 'server/routes/mock-api/bricks-components'),
-        });
-    }
 
     for (const { route, method, file, isPublic } of BRICKS_API_HANDLERS) {
         if (!isBuilderEnabled && !isPublic) {

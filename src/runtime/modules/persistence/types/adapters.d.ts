@@ -154,7 +154,7 @@ export interface IPublishAdapter {
      * Проверяет, что URL указывает на файл собственного хранилища
      * внутри managed namespace.
      *
-     * Anti-SSRF-контракт: сервер проксирует (/mock-api/s3-media-proxy) и
+     * Anti-SSRF-контракт: сервер проксирует (/api/bricks/media/s3-proxy) и
      * удаляет (media orchestration) только URL, прошедшие эту проверку —
      * произвольные хосты (localhost, cloud metadata, private network) не должны
      * её проходить. Кастомная реализация обязана сверять URL со СВОИМ

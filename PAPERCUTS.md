@@ -11,3 +11,11 @@
 ## 2026-07-13 00:07 — Claude Fable 5
 
 Vitest-спек, импортирующий persistence/server/utils/mediaProcessing → падение «Package import specifier "#nitro-internal-virtual/error-handler" is not defined»: imageProcessing тянет `useAppConfig` из nitropack/runtime. Фикс — известный паттерн репозитория: `vi.mock('nitropack/runtime', () => ({ useAppConfig: () => ({}), useRuntimeConfig: () => ({}) }))` до импортов (см. persistenceMediaUploadSvg.spec.ts).
+
+## 2026-07-13 14:51 — Codex GPT-5
+
+Поиск локального skill `verify` составной zsh-командой → незакрытая двойная кавычка из-за вложенных кавычек и backtick-паттерна; дополнительный `find` шумел на отсутствующих необязательных `.agents`/`.codex`. Фикс: искать простым `rg -S "verify" .` с glob-исключениями и проверять существование необязательных каталогов перед `find`.
+
+## 2026-07-13 14:53 — Codex GPT-5
+
+Чтение Vue-файла с динамическим именем `[pagename].vue` через zsh → `no matches found`, потому что квадратные скобки интерпретировались как glob. Фикс: заключать такие пути целиком в одинарные кавычки.

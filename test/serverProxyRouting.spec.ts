@@ -52,6 +52,9 @@ describe('shouldProxyRequest', () => {
         expect(shouldProxyRequest('/api/bricks/health')).toBe(false);
         expect(shouldProxyRequest('/api/bricks/health/ready')).toBe(false);
         expect(shouldProxyRequest('/api/bricks/media/upload')).toBe(false);
+        expect(shouldProxyRequest('/api/bricks/components')).toBe(false);
+        expect(shouldProxyRequest('/api/bricks/media/s3-proxy')).toBe(false);
+        expect(shouldProxyRequest('/api/bricks/media/s3-page-thumbnail')).toBe(false);
     });
 
     it('bricks-путь с query остаётся локальным (pathname разбирается до матчинга)', () => {
@@ -59,7 +62,7 @@ describe('shouldProxyRequest', () => {
         expect(shouldProxyRequest(pathname)).toBe(false);
     });
 
-    it('mock-api никогда не проксируется', () => {
+    it('бывший /mock-api/** — обычный не-/api путь, не проксируется', () => {
         expect(shouldProxyRequest('/mock-api/s3-page-thumbnail')).toBe(false);
         expect(shouldProxyRequest('/mock-api')).toBe(false);
     });

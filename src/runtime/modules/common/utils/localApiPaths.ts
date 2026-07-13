@@ -1,16 +1,16 @@
 /**
  * Чистые предикаты локальных API-путей — единственная копия правила
- * «`/api/bricks/**` и `/mock-api/**` всегда обслуживаются локальными
- * Nitro-ручками» для клиента (useApiClient) и сервера (devProxy routing).
+ * «`/api/bricks/**` всегда обслуживается локальными Nitro-ручками» для
+ * клиента (useApiClient) и сервера (devProxy routing).
  * С введением bricks.backend.mode persistence не выбирается PROXY_URL,
  * поэтому решение не зависит от наличия БД
  * (docs/backend-connection-modes-plan-2026-07-12.md).
  */
 
 // #region Constants
-/** Префиксы локальных ручек: bricks (persistence, health, auth) и mock-api
- * (thumbnail, media proxy). */
-const LOCAL_API_PREFIXES = ['/api/bricks', '/mock-api'];
+/** Префиксы локальных ручек: persistence, health, auth, библиотека
+ * компонентов, media proxy, page thumbnail. */
+const LOCAL_API_PREFIXES = ['/api/bricks'];
 // #endregion
 
 /**
@@ -26,11 +26,10 @@ export function matchesPathPrefix(pathname: string, prefix: string): boolean {
 }
 
 /**
- * Решает, является ли pathname локальным API-путём модуля
- * (`/api/bricks/**` или `/mock-api/**`).
+ * Решает, является ли pathname локальным API-путём модуля (`/api/bricks/**`).
  *
  * @param pathname - Разобранный pathname запроса (без query/hash).
- * @returns true для локальных bricks/mock-api путей.
+ * @returns true для локальных bricks-путей.
  */
 export function isLocalApiPathname(pathname: string): boolean {
     return LOCAL_API_PREFIXES.some((prefix) => matchesPathPrefix(pathname, prefix));

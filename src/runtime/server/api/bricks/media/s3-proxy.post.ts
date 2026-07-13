@@ -1,15 +1,15 @@
 // #region Imports
 import { createError, defineEventHandler } from 'h3';
-import type { IApiError } from '../../../modules/common/types/bricks-api';
-import { normalizeBricksError } from '../../../modules/common/utils/main';
+import type { IApiError } from '../../../../modules/common/types/bricks-api';
+import { normalizeBricksError } from '../../../../modules/common/utils/main';
 import {
     useBricksPublishAdapter,
     useBricksStorageAdapter,
-} from '../../../modules/persistence/server/registry';
+} from '../../../../modules/persistence/server/registry';
 import {
     collectWebStreamWithLimit,
     readJsonBodyWithLimit,
-} from '../../../modules/persistence/server/utils/requestBodyLimits';
+} from '../../../../modules/persistence/server/utils/requestBodyLimits';
 // #endregion
 
 // #region Interfaces
@@ -33,7 +33,7 @@ const MAX_REQUEST_BODY_BYTES = 16 * 1024;
 // #endregion
 
 /**
- * POST /mock-api/s3-media-proxy — отдаёт медиа-файл бакета как data URL.
+ * POST /api/bricks/media/s3-proxy — отдаёт медиа-файл бакета как data URL.
  * Нужен для клиентского снапшота канваса (usePageThumbnail): S3-бакет без CORS-заголовков
  * не даёт dom-to-image встроить изображения, а same-origin ручка — даёт.
  *

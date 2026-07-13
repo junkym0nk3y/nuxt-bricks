@@ -127,16 +127,18 @@ Database-auth несовместим с external-режимом, потому ч
 ### Dev-прокси host-API (`PROXY_URL`)
 
 `PROXY_URL` не выбирает backend данных. Он используется только в dev для
-проксирования `/api/*` host-проекта, кроме `/api/bricks/**` и `/mock-api/**` —
-эти пути всегда обслуживаются локально. Значение принимается с завершающим
+проксирования `/api/*` host-проекта, кроме `/api/bricks/**` — этот namespace
+всегда обслуживается локально. Значение принимается с завершающим
 слэшем и без; в production-сборке proxy middleware не регистрируется. Один и
 тот же адрес используется и SSR-запросами, и клиентским dev-прокси.
 
 ## Авторизация
 
-Защищены builder, preview, `/mock-api/**` и editorial API `/api/bricks/**`.
-Публичны health-пробы и `GET/HEAD /api/bricks/public/**`, используемый live-
-рендерером.
+Защищены builder, preview и editorial API `/api/bricks/**` (включая media
+proxy и page thumbnail). Публичны health-пробы,
+`GET/HEAD /api/bricks/public/**`, используемый live-рендерером, и
+`GET/HEAD /api/bricks/components` (манифест библиотеки компонентов и так
+публичен в `public/bricks.json`).
 
 ### Basic Auth
 

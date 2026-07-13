@@ -76,12 +76,12 @@ function parseComparableRequestOrigin(protocol: TEffectiveProtocol, host: string
 
 /**
  * Путь входит в CSRF-скоуп модуля: весь /api/bricks (включая auth-ручки,
- * которые не под auth-матрицей) и S3-операции mock-api.
+ * которые не под auth-матрицей, media proxy и page thumbnail).
  *
  * @param pathname - Логический путь запроса (без baseURL).
  */
 export function isCsrfProtectedPath(pathname: string): boolean {
-    return pathname.startsWith('/api/bricks') || pathname.startsWith('/mock-api/s3-');
+    return pathname.startsWith('/api/bricks');
 }
 
 /**

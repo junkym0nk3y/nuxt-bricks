@@ -4,8 +4,8 @@
  * `nuxt.options.dev` — в production-сборке middleware не существует.
  *
  * Логика проксирования (чистые правила — server/utils/proxyRouting.ts):
- * - /mock-api/* и /api/bricks/** → НИКОГДА не проксируются (локальные
- *   Nitro-роуты; persistence выбирает bricks.backend.mode, а не PROXY_URL)
+ * - /api/bricks/** → НИКОГДА не проксируется (локальные Nitro-роуты;
+ *   persistence выбирает bricks.backend.mode, а не PROXY_URL)
  * - остальные /api/* → проксируются на PROXY_URL (если задан)
  *
  * Это позволяет компонентам билдера (.brick.ts) делать API запросы,

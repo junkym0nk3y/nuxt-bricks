@@ -1,21 +1,21 @@
 // #region Imports
 import { createError, defineEventHandler } from 'h3';
-import { normalizeBricksError } from '../../../modules/common/utils/main';
-import { useBricksPublishAdapter } from '../../../modules/persistence/server/registry';
-import { sniffImageFormat } from '../../../modules/persistence/server/utils/fileSignatures';
+import { normalizeBricksError } from '../../../../modules/common/utils/main';
+import { useBricksPublishAdapter } from '../../../../modules/persistence/server/registry';
+import { sniffImageFormat } from '../../../../modules/persistence/server/utils/fileSignatures';
 import {
     optimizeToWebp,
     toBuffer,
-} from '../../../modules/persistence/server/utils/imageProcessing';
+} from '../../../../modules/persistence/server/utils/imageProcessing';
 import {
     MULTIPART_ENVELOPE_ALLOWANCE_BYTES,
     readMultipartFormDataWithLimit,
-} from '../../../modules/persistence/server/utils/requestBodyLimits';
+} from '../../../../modules/persistence/server/utils/requestBodyLimits';
 import {
     assertWithinRateLimit,
     createFixedWindowRateLimiter,
-} from '../../utils/requestRateLimiter';
-import type { IUploadedFilePart } from '../../../modules/persistence/types/media';
+} from '../../../utils/requestRateLimiter';
+import type { IUploadedFilePart } from '../../../../modules/persistence/types/media';
 // #endregion
 
 // #region Interfaces
@@ -103,7 +103,7 @@ function assertPageId(formData: IUploadedFilePart[]): number {
 // #endregion
 
 /**
- * POST /mock-api/s3-page-thumbnail — принимает снапшот канваса страницы,
+ * POST /api/bricks/media/s3-page-thumbnail — принимает снапшот канваса страницы,
  * пережимает в webp ≤480px и кладёт в хранилище публикации под детерминированным
  * ключом `page-{pageId}.webp` в thumbnail-namespace адаптера (перезапись при
  * каждом сохранении — без сирот; файл удаляется вместе со страницей).
