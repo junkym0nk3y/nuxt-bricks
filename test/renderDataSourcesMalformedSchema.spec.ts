@@ -14,7 +14,7 @@ import type { IBrickDataSource } from '../src/runtime/modules/common/types/dataS
 /**
  * Регрессия аудита A-02 (round 2): `useRendererDataSources` итерировал
  * СЫРЫЕ `page.schema.components` и обращался к `component.brickPath` без
- * shape-guard'а — legacy-строка БД вида `[null, 42, {...}]` роняла SSR
+ * shape-guard'а — повреждённая строка БД вида `[null, 42, {...}]` роняла SSR
  * TypeError'ом до самого рендера (см. `dataSourcesReady` await в
  * `render/pages/[pagename].vue`). Тест воспроизводит это условиями,
  * приближёнными к рантайму, минуя реальный useAsyncData/$fetch Nuxt.
@@ -85,7 +85,7 @@ function makeValidComponent(): IBricksComponent {
 function makePage(components: unknown[]): IPublishedPage {
     return {
         id: 1,
-        pagename: 'legacy-page',
+        pagename: 'broken-page',
         title: null,
         description: null,
         keywords: null,
@@ -102,7 +102,7 @@ function makePage(components: unknown[]): IPublishedPage {
     };
 }
 
-describe('useRendererDataSources: legacy-схема не роняет SSR (аудит A-02)', () => {
+describe('useRendererDataSources: повреждённая схема не роняет SSR (аудит A-02)', () => {
     it('пропускает null/примитивы, собирает data sources только для валидного компонента', async () => {
         const validComponent = makeValidComponent();
         const dataSource: IBrickDataSource = {
@@ -120,7 +120,7 @@ describe('useRendererDataSources: legacy-схема не роняет SSR (ау�
 
         const { ready, resolvedProps } = useRendererDataSources({
             page,
-            pagename: 'legacy-page',
+            pagename: 'broken-page',
             isPreview: false,
         });
 

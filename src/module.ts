@@ -55,10 +55,9 @@ export interface IBricksModuleOptions {
      * - 'builtin' — встроенный PostgreSQL-адаптер (см. database.url);
      * - 'external' — пользовательский HTTP-backend по контракту
      *   docs/external-backend-contract.md (HTTP-реализация IStorageAdapter).
-     * mode — build-time (менять после сборки unsupported); url/token/healthUrl
-     * runtime-переопределяемы: NUXT_BRICKS_BACKEND_URL / _TOKEN / _HEALTH_URL.
-     * Без mode действует legacy-резолвер: database.url → builtin (deprecated);
-     * только PROXY_URL в production — ошибка сборки (см. module-backend-config.ts).
+     * mode — build-time (менять после сборки unsupported), дефолт 'builtin';
+     * url/token/healthUrl runtime-переопределяемы: NUXT_BRICKS_BACKEND_URL /
+     * _TOKEN / _HEALTH_URL.
      */
     backend?: {
         mode?: TBricksBackendMode;
@@ -89,7 +88,7 @@ export interface IBricksModuleOptions {
     versionsLimit?: number;
     /**
      * S3-совместимое хранилище для дефолтного publish-адаптера.
-     * ENV-переопределение: NUXT_BRICKS_S3_* (legacy: YANDEX_STORAGE_*).
+     * ENV-переопределение: NUXT_BRICKS_S3_*.
      */
     s3?: {
         endpoint?: string;
@@ -106,23 +105,12 @@ export interface IBricksModuleOptions {
      * Dev-only проксирование не-bricks /api/* на backend host-проекта
      * (middleware регистрируется только при nuxt.options.dev; /api/bricks/**
      * и /mock-api/** никогда не проксируются — см. bricks.backend).
-     * Адреса — server-only runtimeConfig (в client payload не попадают).
-     * ENV: PROXY_URL / NUXT_SERVER_CACHE_URL (build-time fallback),
-     * NUXT_BRICKS_PROXY_URL / NUXT_BRICKS_SSR_PROXY_URL (runtime-override).
+     * Адрес — server-only runtimeConfig (в client payload не попадает).
+     * ENV: PROXY_URL (build-time fallback), NUXT_BRICKS_PROXY_URL
+     * (runtime-override).
      */
     proxy?: {
         url?: string;
-        /** Отдельный адрес backend для SSR-запросов (внутренняя сеть). */
-        ssrUrl?: string;
-        /**
-         * Health-эндпоинт backend'а для readiness-пробы (`/api/bricks/health/
-         * ready`): GET по этому URL, готовность — только 2xx. Без него проба
-         * проверяет лишь сетевую достижимость PROXY_URL (любой ответ < 500) —
-         * осознанное ограничение: неверный путь или отсутствующий editorial
-         * API на живом хосте не детектируется. Runtime-override:
-         * NUXT_BRICKS_PROXY_HEALTH_URL.
-         */
-        healthUrl?: string;
     };
     /**
      * Политика data sources published-страницы (выполняются рендерером
@@ -267,11 +255,10 @@ export default defineNuxtModule<IBricksModuleOptions>({
         const backendResolution = applyBricksRuntimeConfig(
             runtimeConfig,
             options,
-            surfaces.routePrefixes,
-            isDev
+            surfaces.routePrefixes
         );
-        // Невалидная конфигурация backend (database-auth + external, production
-        // PROXY_URL без mode) валит сборку сразу — тихо сломанного прода не будет
+        // Невалидная конфигурация backend (database-auth + external) валит
+        // сборку сразу — тихо сломанного прода не будет
         if (backendResolution.errors.length > 0) {
             throw new Error(`[nuxt-bricks] ${backendResolution.errors.join('\n\n')}`);
         }
@@ -281,15 +268,6 @@ export default defineNuxtModule<IBricksModuleOptions>({
         if (backendResolution.mode === 'external') {
             addServerPlugin(resolve(runtimeDir, 'server/plugins/externalBackendStorage'));
         }
-        // Legacy-резолюция (mode не задан) — readiness получает право на
-        // proxy-ветку пробы (переходный dev-сценарий PROXY_URL без mode)
-        if (!options.backend?.mode) {
-            addServerPlugin(resolve(runtimeDir, 'server/plugins/legacyBackendMode'));
-        }
-        // Runtime-deprecation: NUXT_BRICKS_SSR_PROXY_URL Nitro применяет уже
-        // после сборки — build-time warning его не видит, поэтому проверка
-        // повторяется на старте сервера (плагин регистрируется всегда)
-        addServerPlugin(resolve(runtimeDir, 'server/plugins/deprecationWarnings'));
         // #endregion
 
         // #region Public assets (превью layout-блоков, плейсхолдеры, картинки документации)

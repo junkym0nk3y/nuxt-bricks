@@ -1,7 +1,7 @@
 /**
  * Дефолтный IPublishAdapter поверх S3-совместимого хранилища (Yandex Object Storage).
- * Конфигурация — runtimeConfig.bricksS3 (см. module.ts) с fallback на legacy ENV
- * YANDEX_STORAGE_* для обратной совместимости.
+ * Конфигурация — runtimeConfig.bricksS3 (см. module.ts; runtime-override —
+ * NUXT_BRICKS_S3_*).
  */
 import {
     S3Client,
@@ -38,7 +38,7 @@ interface IResolvedS3Config {
 type TRawS3Config = Partial<IResolvedS3Config> | undefined;
 
 /**
- * Резолвит конфигурацию S3 из runtimeConfig с fallback на legacy ENV.
+ * Резолвит конфигурацию S3 из runtimeConfig.
  *
  * @returns Полная конфигурация хранилища.
  */
@@ -46,12 +46,12 @@ function resolveS3Config(): IResolvedS3Config {
     const config = useRuntimeConfig();
     const raw = config.bricksS3 as TRawS3Config;
 
-    const bucket = raw?.bucket || process.env.YANDEX_STORAGE_BUCKET_NAME || '';
+    const bucket = raw?.bucket || '';
 
     if (!bucket) {
         throw new Error(
             '[S3] Bucket is not configured. ' +
-                'Set bricks.s3.bucket in nuxt.config (or NUXT_BRICKS_S3_BUCKET / YANDEX_STORAGE_BUCKET_NAME env).'
+                'Set bricks.s3.bucket in nuxt.config (or NUXT_BRICKS_S3_BUCKET env).'
         );
     }
 
@@ -59,8 +59,8 @@ function resolveS3Config(): IResolvedS3Config {
         endpoint: raw?.endpoint || 'https://storage.yandexcloud.net',
         region: raw?.region || 'ru-central1',
         bucket,
-        accessKeyId: raw?.accessKeyId || process.env.YANDEX_STORAGE_ACCESS_KEY_ID || '',
-        secretAccessKey: raw?.secretAccessKey || process.env.YANDEX_STORAGE_SECRET_ACCESS_KEY || '',
+        accessKeyId: raw?.accessKeyId || '',
+        secretAccessKey: raw?.secretAccessKey || '',
         prefix: raw?.prefix || 'bricks-media/',
         thumbnailsPrefix: raw?.thumbnailsPrefix || 'bricks-thumbnails/',
     };

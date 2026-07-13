@@ -10,28 +10,25 @@ import {
 // #endregion
 
 /**
- * Сокращение для резолвера с дефолтами (production, basic-auth, всё пусто).
+ * Сокращение для резолвера с дефолтами (basic-auth, всё пусто).
  */
 function resolved(overrides: Partial<IBricksBackendResolutionInput> = {}) {
     return resolveBricksBackendConfig({
         configuredMode: undefined,
         backendUrl: '',
         databaseUrl: '',
-        proxyUrl: '',
         authMode: 'basic',
-        isDev: false,
         ...overrides,
     });
 }
 
-describe('resolveBricksBackendConfig: явный external', () => {
+describe('resolveBricksBackendConfig: external', () => {
     it('external + url → чистый external без диагностики', () => {
         const resolution = resolved({
             configuredMode: 'external',
             backendUrl: 'https://api.example.com/my-cms',
         });
         expect(resolution.mode).toBe('external');
-        expect(resolution.infos).toEqual([]);
         expect(resolution.warnings).toEqual([]);
         expect(resolution.errors).toEqual([]);
     });
@@ -66,26 +63,22 @@ describe('resolveBricksBackendConfig: явный external', () => {
         expect(resolution.errors).toHaveLength(1);
         expect(resolution.errors[0]).toContain('auth.mode');
     });
-
-    it('external + PROXY_URL — не конфликт (devProxy ортогонален data backend)', () => {
-        const resolution = resolved({
-            configuredMode: 'external',
-            backendUrl: 'https://api.example.com',
-            proxyUrl: 'http://localhost:8000/',
-        });
-        expect(resolution.warnings).toEqual([]);
-        expect(resolution.errors).toEqual([]);
-    });
 });
 
-describe('resolveBricksBackendConfig: явный builtin', () => {
+describe('resolveBricksBackendConfig: builtin (явный и дефолтный)', () => {
     it('builtin + databaseUrl → чистый builtin без диагностики', () => {
         const resolution = resolved({
             configuredMode: 'builtin',
             databaseUrl: 'postgres://localhost/bricks',
         });
         expect(resolution.mode).toBe('builtin');
-        expect(resolution.infos).toEqual([]);
+        expect(resolution.warnings).toEqual([]);
+        expect(resolution.errors).toEqual([]);
+    });
+
+    it('mode не задан → builtin по умолчанию', () => {
+        const resolution = resolved({ databaseUrl: 'postgres://localhost/bricks' });
+        expect(resolution.mode).toBe('builtin');
         expect(resolution.warnings).toEqual([]);
         expect(resolution.errors).toEqual([]);
     });
@@ -110,54 +103,20 @@ describe('resolveBricksBackendConfig: явный builtin', () => {
         expect(resolution.errors).toEqual([]);
         expect(resolution.warnings).toEqual([]);
     });
-});
 
-describe('resolveBricksBackendConfig: legacy (mode не задан)', () => {
-    it('databaseUrl → builtin + deprecation-info', () => {
-        const resolution = resolved({ databaseUrl: 'postgres://localhost/bricks' });
-        expect(resolution.mode).toBe('builtin');
-        expect(resolution.errors).toEqual([]);
-        expect(resolution.warnings).toEqual([]);
-        expect(resolution.infos).toHaveLength(1);
-        expect(resolution.infos[0]).toContain('deprecated');
-    });
-
-    it('databaseUrl + PROXY_URL → builtin (БД побеждает, prod-ошибки нет)', () => {
-        const resolution = resolved({
-            databaseUrl: 'postgres://localhost/bricks',
-            proxyUrl: 'http://localhost:8000/',
-        });
-        expect(resolution.mode).toBe('builtin');
-        expect(resolution.errors).toEqual([]);
-    });
-
-    it('только PROXY_URL в production → fail-fast ошибка с миграционной инструкцией', () => {
-        const resolution = resolved({ proxyUrl: 'http://localhost:8000/' });
-        expect(resolution.errors).toHaveLength(1);
-        expect(resolution.errors[0]).toContain("mode: 'external'");
-        expect(resolution.errors[0]).toContain('external-backend-contract');
-    });
-
-    it('только PROXY_URL в dev → builtin + warning, devProxy работает для не-bricks /api', () => {
-        const resolution = resolved({ proxyUrl: 'http://localhost:8000/', isDev: true });
+    it('builtin без databaseUrl → warning (env может прийти на деплое), не ошибка', () => {
+        const resolution = resolved({ configuredMode: 'builtin' });
         expect(resolution.mode).toBe('builtin');
         expect(resolution.errors).toEqual([]);
         expect(resolution.warnings).toHaveLength(1);
-        expect(resolution.warnings[0]).toContain('devProxy');
+        expect(resolution.warnings[0]).toContain('NUXT_BRICKS_DATABASE_URL');
     });
 
-    it('ничего не задано → builtin + warning (совместимо с pack-smoke: 500/503)', () => {
+    it('ничего не задано → builtin + warning про /api/bricks/**', () => {
         const resolution = resolved({});
         expect(resolution.mode).toBe('builtin');
         expect(resolution.errors).toEqual([]);
         expect(resolution.warnings).toHaveLength(1);
         expect(resolution.warnings[0]).toContain('/api/bricks/**');
-    });
-
-    it('ничего не задано в dev → тот же warning, не ошибка', () => {
-        const resolution = resolved({ isDev: true });
-        expect(resolution.mode).toBe('builtin');
-        expect(resolution.errors).toEqual([]);
-        expect(resolution.warnings).toHaveLength(1);
     });
 });

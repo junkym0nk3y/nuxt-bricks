@@ -60,7 +60,7 @@ describe('validateSchemaComponentGraph: валидные схемы', () => {
         expect(validateSchemaComponentGraph([host, text])).toEqual([]);
     });
 
-    it('parent: null трактуется как корень (legacy-толерантность)', () => {
+    it('parent: null трактуется как корень', () => {
         const component = makeComponent('a', { parent: null as unknown as string });
         expect(validateSchemaComponentGraph([component])).toEqual([]);
     });

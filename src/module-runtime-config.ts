@@ -25,10 +25,6 @@ function logBackendResolution(resolution: IBricksBackendResolution): void {
         console.info(`[nuxt-bricks] Backend mode: ${modeLabel}`);
     }
 
-    for (const info of resolution.infos) {
-        console.info(`[nuxt-bricks] ${info}`);
-    }
-
     for (const warning of resolution.warnings) {
         console.warn(`[nuxt-bricks] ${warning}`);
     }
@@ -80,12 +76,14 @@ function applyBricksPersistenceRuntimeConfig(
         process.env.NUXT_BRICKS_VERSIONS_LIMIT ??
         options.versionsLimit;
 
+    // Секреты и bucket приходят через NUXT_BRICKS_S3_* (runtime-override Nitro)
+    // или options.s3 — build-time env-fallback'ов нет
     runtimeConfig.bricksS3 = defu(runtimeConfig.bricksS3 as object | undefined, options.s3, {
         endpoint: 'https://storage.yandexcloud.net',
         region: 'ru-central1',
-        bucket: process.env.YANDEX_STORAGE_BUCKET_NAME ?? '',
-        accessKeyId: process.env.YANDEX_STORAGE_ACCESS_KEY_ID ?? '',
-        secretAccessKey: process.env.YANDEX_STORAGE_SECRET_ACCESS_KEY ?? '',
+        bucket: '',
+        accessKeyId: '',
+        secretAccessKey: '',
         prefix: 'bricks-media/',
         thumbnailsPrefix: 'bricks-thumbnails/',
     });
@@ -121,16 +119,9 @@ function applyBricksBackendRuntimeConfig(
 }
 
 /**
- * Заполняет runtimeConfig dev-проксирования не-bricks /api/* (PROXY_URL). Ключи
+ * Заполняет runtimeConfig dev-проксирования не-bricks /api/* (PROXY_URL). Ключ
  * server-only: адрес backend не светится в client payload, клиент ходит через
- * proxy middleware. Runtime-override: NUXT_BRICKS_PROXY_URL /
- * NUXT_BRICKS_SSR_PROXY_URL / NUXT_BRICKS_PROXY_HEALTH_URL.
- *
- * `bricksSsrProxyUrl` — deprecated: SSR-специфичный адрес API host-проекта
- * дублирует PROXY_URL; удаление — отдельный мажорный шаг
- * (docs/backend-connection-modes-plan-2026-07-12.md, Р3). Warning здесь видит
- * только nuxt.config/env сборки; runtime-override NUXT_BRICKS_SSR_PROXY_URL
- * ловит Nitro-плагин server/plugins/deprecationWarnings.ts на старте сервера.
+ * proxy middleware. Runtime-override: NUXT_BRICKS_PROXY_URL.
  *
  * @param runtimeConfig - nuxt.options.runtimeConfig.
  * @param options - Опции модуля из nuxt.config.
@@ -141,23 +132,6 @@ function applyBricksProxyRuntimeConfig(
 ): void {
     runtimeConfig.bricksProxyUrl =
         runtimeConfig.bricksProxyUrl ?? options.proxy?.url ?? process.env.PROXY_URL ?? '';
-    runtimeConfig.bricksSsrProxyUrl =
-        runtimeConfig.bricksSsrProxyUrl ??
-        options.proxy?.ssrUrl ??
-        process.env.NUXT_SERVER_CACHE_URL ??
-        '';
-
-    if (runtimeConfig.bricksSsrProxyUrl) {
-        console.warn(
-            '[nuxt-bricks] proxy.ssrUrl / NUXT_SERVER_CACHE_URL — deprecated: ' +
-                'используйте единый PROXY_URL для SSR и клиентского dev-прокси; ' +
-                'ключ будет удалён в следующем мажорном релизе.'
-        );
-    }
-    // Health-эндпоинт backend'а для readiness (готовность — только 2xx);
-    // без него проверяется лишь достижимость PROXY_URL (ре-ревью A-05).
-    runtimeConfig.bricksProxyHealthUrl =
-        runtimeConfig.bricksProxyHealthUrl ?? options.proxy?.healthUrl ?? '';
 }
 
 /**
@@ -190,8 +164,8 @@ function applyBricksAuthRuntimeConfig(
 /**
  * Заполняет runtimeConfig модуля: basic-auth, persistence (Postgres/S3),
  * external backend, dev proxy, префиксы маршрутов, политика data sources.
- * Дефолты переопределяемы в production через ENV (NUXT_BRICKS_*, legacy-имена —
- * fallback), кроме bricksRoutes — пути страниц фиксируются на сборке
+ * Дефолты переопределяемы в production через ENV (NUXT_BRICKS_*),
+ * кроме bricksRoutes — пути страниц фиксируются на сборке
  * (env-override дал бы рассинхрон с маршрутами). Режим backend в runtimeConfig
  * НЕ хранится вовсе: ключ был бы переопределяем NUXT_BRICKS_BACKEND_MODE в
  * обход build-time валидации — носитель режима — регистрация Nitro-плагина
@@ -200,14 +174,12 @@ function applyBricksAuthRuntimeConfig(
  * @param runtimeConfig - nuxt.options.runtimeConfig.
  * @param options - Опции модуля из nuxt.config.
  * @param routePrefixes - Валидированные префиксы маршрутов.
- * @param isDev - Dev-сборка (nuxt.options.dev) — влияет на legacy-резолвер PROXY_URL.
  * @returns Результат резолвера backend.mode — module.ts валит сборку при errors.
  */
 export function applyBricksRuntimeConfig(
     runtimeConfig: Record<string, unknown>,
     options: IBricksModuleOptions,
-    routePrefixes: IBricksRoutePrefixes,
-    isDev: boolean
+    routePrefixes: IBricksRoutePrefixes
 ): IBricksBackendResolution {
     runtimeConfig.basicAuthUsername =
         runtimeConfig.basicAuthUsername ??
@@ -254,9 +226,7 @@ export function applyBricksRuntimeConfig(
         configuredMode: options.backend?.mode,
         backendUrl: runtimeConfig.bricksBackendUrl as string,
         databaseUrl: runtimeConfig.bricksDatabaseUrl as string,
-        proxyUrl: runtimeConfig.bricksProxyUrl as string,
         authMode: runtimeConfig.bricksAuthMode as string,
-        isDev,
     });
 
     logBackendResolution(backendResolution);

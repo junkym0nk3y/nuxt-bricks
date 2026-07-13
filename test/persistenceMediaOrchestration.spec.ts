@@ -187,7 +187,7 @@ describe('deleteMediaWithFile: file-first удаление', () => {
     });
 
     it('URL вне managed-хранилища: удаляет только запись, файл не трогает', async () => {
-        const media = makeMediaItem({ url: 'https://cdn.example.com/legacy.png' });
+        const media = makeMediaItem({ url: 'https://cdn.example.com/external.png' });
         const { deps, calls } = makeDeps({ getMedia: media, isOwned: false });
 
         expect(await deleteMediaWithFile(deps, 7)).toBe(true);

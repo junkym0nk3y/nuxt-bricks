@@ -1,6 +1,6 @@
-/* Имя оставлено 'Inter' сознательно: legacy-схемы страниц и дефолт контента
-   (useBricksConfig.defaultFont) ссылаются на него literal'ом; @font-face — только
-   регистрация имени, стилями в host-приложение не протекает */
+/* Схемы страниц и дефолт контента (useBricksConfig.defaultFont) ссылаются на
+   имя 'Inter' literal'ом; @font-face — только регистрация имени, стилями в
+   host-приложение не протекает */
 @font-face {
     font-family: Inter;
     src: url('../../fonts/InterVariable.woff2') format('woff2-variations');

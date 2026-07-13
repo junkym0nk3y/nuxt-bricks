@@ -61,7 +61,7 @@ export function resolveRequestedUrlPrefix(param: unknown): string {
  * Проверяет, что страница доступна по запрошенному urlPrefix: страница без
  * префикса — только по голому `/pagename`, страница с префиксом — только по
  * `/prefix/pagename`. Пробельный urlPrefix приравнивается к отсутствию
- * (legacy-записи до server-нормализации ''→null).
+ * (записи, созданные в обход server-нормализации ''→null).
  *
  * @param page - Страница (достаточно поля urlPrefix).
  * @param requestedPrefix - Префикс из URL (`resolveRequestedUrlPrefix`).

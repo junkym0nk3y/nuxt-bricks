@@ -1,67 +1,33 @@
 /**
  * Выбор persistence-пути для readiness probe (аудит A-05): конфигурация без
- * БД, без proxy и без кастомного адаптера означает, что editorial CRUD
- * фактически отвечает 500 — readiness обязан быть 503, а не зелёным.
+ * БД и без адаптера означает, что editorial CRUD фактически отвечает 500 —
+ * readiness обязан быть 503, а не зелёным.
  */
 
 /** Проверяемый readiness'ом persistence-путь. */
-export type TReadinessTarget = 'adapter' | 'proxy' | 'none';
+export type TReadinessTarget = 'adapter' | 'none';
 
 /** Признаки сконфигурированных persistence-путей. */
 export interface IReadinessTargetInput {
     /** Build-time фабрика external-режима установлена (плагин externalBackendStorage). */
     hasExternalBackend: boolean;
-    /** Legacy-резолюция backend: bricks.backend.mode не задан (плагин legacyBackendMode). */
-    isLegacyBackendMode: boolean;
     hasDatabaseUrl: boolean;
-    hasProxyUrl: boolean;
     hasCustomAdapter: boolean;
-}
-
-/**
- * Проверяет HTTP-статус reachability-пробы downstream-proxy (health-эндпоинт
- * не сконфигурирован): коды < 500 (включая 404/405 — endpoint жив, путь/метод
- * не поддержан) подтверждают работающий backend; 5xx — деградация, не
- * готовность (ре-ревью A-05). Осознанное ограничение: неверный PROXY_URL-путь
- * или отсутствующий editorial API на живом хосте так не детектируются —
- * для строгой проверки задаётся `bricks.proxy.healthUrl`.
- *
- * @param status - HTTP-статус ответа proxy.
- */
-export function isProxyStatusReady(status: number): boolean {
-    return status < 500;
-}
-
-/**
- * Проверяет HTTP-статус сконфигурированного health-эндпоинта backend'а
- * (`bricks.proxy.healthUrl` / NUXT_BRICKS_PROXY_HEALTH_URL): готовность —
- * только 2xx; 404 по health-URL означает неверную конфигурацию, не готовность.
- *
- * @param status - HTTP-статус ответа health-эндпоинта.
- */
-export function isProxyHealthStatusReady(status: number): boolean {
-    return status >= 200 && status < 300;
 }
 
 /**
  * Определяет, какой persistence-путь должен подтвердить готовность.
  *
- * `external` всегда идёт adapter-путём (checkHealth HTTP-адаптера — GET по
- * backend health URL либо `GET {base}`); для `builtin` adapter-путь требует
- * БД или кастомного адаптера. Ветка `proxy` доступна ТОЛЬКО при
- * legacy-резолюции (mode не задан): с явным `backend.mode` PROXY_URL
- * persistence не выбирает — иначе builtin без БД, но с PROXY_URL host-API
- * получал бы зелёный readiness при неработающем `/api/bricks/**`.
+ * `external` идёт adapter-путём (checkHealth HTTP-адаптера — GET по backend
+ * health URL либо `GET {base}`); для `builtin` adapter-путь требует БД или
+ * кастомного адаптера. PROXY_URL persistence не выбирает — dev-проксирование
+ * не-bricks /api/* на готовность editorial API не влияет.
  *
  * @param input - Признаки конфигурации.
  */
 export function resolveReadinessTarget(input: IReadinessTargetInput): TReadinessTarget {
     if (input.hasCustomAdapter || input.hasExternalBackend || input.hasDatabaseUrl) {
         return 'adapter';
-    }
-
-    if (input.isLegacyBackendMode && input.hasProxyUrl) {
-        return 'proxy';
     }
 
     return 'none';

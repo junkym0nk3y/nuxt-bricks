@@ -113,9 +113,10 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
         const requests: Array<{ component: IBricksComponent; source: IBrickDataSource }> = [];
 
         // Собираем все data sources, объявленные в brick-файлах компонентов.
-        // Legacy-строки БД могли сохраниться до контракта схемы (аудит A-02):
-        // мусорные элементы (null/примитивы/объекты без id+componentName)
-        // пропускаются, а не роняют SSR обращением к component.brickPath.
+        // Строка БД могла быть повреждена или записана в обход контракта
+        // схемы (аудит A-02): мусорные элементы (null/примитивы/объекты без
+        // id+componentName) пропускаются, а не роняют SSR обращением к
+        // component.brickPath.
         for (const component of page.value.schema.components) {
             if (!isRenderableSchemaComponent(component) || !component.brickPath) {
                 continue;

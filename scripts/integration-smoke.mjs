@@ -43,7 +43,7 @@ const IT_PAGENAME = 'it-page';
  * Пишет consumer-проект с database-auth и (опционально) S3-конфигом.
  * Endpoint/bucket S3 запекаются в runtimeConfig на build (process.env
  * читается в момент nuxi build); креды доставляются на boot через
- * YANDEX_STORAGE_*-fallback адаптера.
+ * runtime-override NUXT_BRICKS_S3_*.
  *
  * @param {string} consumerDir Папка consumer.
  * @param {string} tarballPath Абсолютный путь к tarball.
@@ -241,10 +241,10 @@ async function main() {
                 NUXT_BRICKS_DATABASE_URL: DATABASE_URL,
                 ...(HAS_S3
                     ? {
-                          // Креды не запекаются в build — YANDEX_*-fallback адаптера
-                          YANDEX_STORAGE_ACCESS_KEY_ID: S3.accessKeyId,
-                          YANDEX_STORAGE_SECRET_ACCESS_KEY: S3.secretAccessKey,
-                          YANDEX_STORAGE_BUCKET_NAME: S3.bucket,
+                          // Креды не запекаются в build — runtime-override Nitro
+                          NUXT_BRICKS_S3_ACCESS_KEY_ID: S3.accessKeyId,
+                          NUXT_BRICKS_S3_SECRET_ACCESS_KEY: S3.secretAccessKey,
+                          NUXT_BRICKS_S3_BUCKET: S3.bucket,
                       }
                     : {}),
             },

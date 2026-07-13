@@ -36,13 +36,6 @@ const props = withDefaults(defineProps<IBricksTooltipProps>(), {
 });
 // #endregion
 
-// #region Emits
-const emit = defineEmits<{
-    enter: [];
-    blur: [];
-}>();
-// #endregion
-
 // #region Data
 const $style = useCssModule();
 // #endregion
@@ -65,27 +58,11 @@ const side = computed<'top' | 'bottom' | 'left' | 'right'>(() => {
     return 'bottom';
 });
 // #endregion
-
-// #region Methods
-/**
- * Пробрасывает смену состояния открытия в legacy-эмиты enter/blur.
- *
- * @param open - Открыт ли тултип.
- */
-function onOpenChange(open: boolean): void {
-    if (open) {
-        emit('enter');
-        return;
-    }
-
-    emit('blur');
-}
-// #endregion
 </script>
 
 <template>
     <TooltipProvider :delay-duration="150" :disable-hoverable-content="!props.hoverable">
-        <TooltipRoot @update:open="onOpenChange">
+        <TooltipRoot>
             <TooltipTrigger as-child>
                 <div :class="$style.BricksTooltip" v-bind="$attrs">
                     <slot name="activator"></slot>

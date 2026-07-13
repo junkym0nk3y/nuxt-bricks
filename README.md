@@ -129,25 +129,8 @@ Database-auth несовместим с external-режимом, потому ч
 `PROXY_URL` не выбирает backend данных. Он используется только в dev для
 проксирования `/api/*` host-проекта, кроме `/api/bricks/**` и `/mock-api/**` —
 эти пути всегда обслуживаются локально. Значение принимается с завершающим
-слэшем и без; в production-сборке proxy middleware не регистрируется.
-
-Переход с legacy-схемы, где `PROXY_URL` направлял `/api/bricks/**` на внешний
-сервер:
-
-- production-сборка только с `PROXY_URL` (без `backend.mode` и
-  `NUXT_BRICKS_DATABASE_URL`) намеренно падает с инструкцией — тихо сломанного
-  прода не будет;
-- если данные страниц живут на вашем HTTP-backend — включите
-  `backend.mode: 'external'` и реализуйте контракт из
-  `docs/external-backend-contract.md`;
-- если использовался встроенный PostgreSQL — задайте
-  `backend.mode: 'builtin'` явно.
-
-SSR-специфичный адрес `proxy.ssrUrl` / `NUXT_SERVER_CACHE_URL` (build-time) и
-его runtime-override `NUXT_BRICKS_SSR_PROXY_URL` — deprecated: используйте
-единый `PROXY_URL`; ключ будет удалён в следующем мажорном релизе. Модуль
-предупреждает и при сборке, и на старте сервера (runtime-override виден только
-второму).
+слэшем и без; в production-сборке proxy middleware не регистрируется. Один и
+тот же адрес используется и SSR-запросами, и клиентским dev-прокси.
 
 ## Авторизация
 
@@ -222,9 +205,7 @@ NUXT_BRICKS_S3_SECRET_ACCESS_KEY=...
 ```
 
 По умолчанию используются endpoint Yandex Object Storage и managed-префиксы
-`bricks-media/` и `bricks-thumbnails/`. Legacy-переменные
-`YANDEX_STORAGE_ACCESS_KEY_ID`, `YANDEX_STORAGE_SECRET_ACCESS_KEY` и
-`YANDEX_STORAGE_BUCKET_NAME` также поддерживаются.
+`bricks-media/` и `bricks-thumbnails/`.
 
 Сервер проверяет тип содержимого, санитизирует SVG и ограничивает входные
 данные. Дефолтные лимиты: 10 МБ для изображений, 100 МБ для видео, 100 МП для

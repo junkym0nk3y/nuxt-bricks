@@ -37,7 +37,7 @@ vi.mock('../src/runtime/modules/render/composables/useDataSourceClient', () => (
     }),
 }));
 
-// Стаб useAsyncData: синхронно выполняет handler (см. renderDataSourcesLegacySchema.spec.ts)
+// Стаб useAsyncData: синхронно выполняет handler (см. renderDataSourcesMalformedSchema.spec.ts)
 vi.mock('#imports', async (importOriginal) => {
     const actual = await importOriginal<Record<string, unknown>>();
 

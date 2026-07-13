@@ -111,18 +111,16 @@ async function listMigrationFiles() {
  * (имя + checksum — контроль drift'а, аудит A-10).
  *
  * @param {import('pg').Client} client Подключённый клиент.
- * @returns {Promise<Array<{name: string, checksum: string | null}>>} Строки реестра.
+ * @returns {Promise<Array<{name: string, checksum: string}>>} Строки реестра.
  */
 async function readAppliedMigrations(client) {
     await client.query(`
         CREATE TABLE IF NOT EXISTS bricks_schema_migrations (
             name TEXT PRIMARY KEY,
+            checksum TEXT NOT NULL,
             applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
     `);
-    await client.query(
-        'ALTER TABLE bricks_schema_migrations ADD COLUMN IF NOT EXISTS checksum TEXT'
-    );
 
     const result = await client.query(
         'SELECT name, checksum FROM bricks_schema_migrations ORDER BY name'
@@ -145,34 +143,6 @@ async function readMigrationContents(files) {
     }
 
     return contents;
-}
-
-/**
- * Backfill'ит checksum для строк реестра, применённых до введения контроля
- * (checksum == null), если файл миграции ещё существует на диске.
- *
- * @param {import('pg').Client} client Подключённый клиент.
- * @param {Array<{name: string, checksum: string | null}>} appliedRows Строки реестра.
- * @param {Map<string, {sql: string, checksum: string}>} contents Содержимое файлов.
- */
-async function backfillMigrationChecksums(client, appliedRows, contents) {
-    for (const row of appliedRows) {
-        if (row.checksum) {
-            continue;
-        }
-
-        const file = contents.get(row.name);
-
-        if (!file) {
-            continue;
-        }
-
-        await client.query('UPDATE bricks_schema_migrations SET checksum = $2 WHERE name = $1', [
-            row.name,
-            file.checksum,
-        ]);
-        console.log(`  [checksum backfilled] ${row.name}`);
-    }
 }
 
 /**
@@ -276,7 +246,6 @@ async function main() {
             process.exit(1);
         }
 
-        await backfillMigrationChecksums(client, appliedRows, contents);
         await applyPendingMigrations(client, files, applied, contents);
     } finally {
         // Неснятый advisory lock Postgres снимет сам при разрыве соединения

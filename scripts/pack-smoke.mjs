@@ -164,7 +164,7 @@ async function main() {
             await assertFileExists(join(installedRoot, 'dist', 'cli', `${bin}.mjs`), `CLI ${bin}`);
         }
         // Контракт external backend обязан доезжать до установивших пакет:
-        // на него ссылаются README и build-time ошибка legacy PROXY_URL (ре-ревью PR3)
+        // на него ссылается README (ре-ревью PR3)
         await assertFileExists(
             join(installedRoot, 'docs', 'external-backend-contract.md'),
             'docs/external-backend-contract.md'

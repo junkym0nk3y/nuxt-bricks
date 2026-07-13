@@ -32,7 +32,7 @@ export interface IPageVersionRestoreDeps {
  * @param expectedRevision - Precondition optimistic locking.
  * @returns Обновлённая страница.
  * @throws h3-ошибка 404 — версия или страница не найдены;
- * h3-ошибка 400 — сохранённая версия содержит legacy-схему, не проходящую
+ * h3-ошибка 400 — сохранённая версия содержит схему, не проходящую
  * структурный контракт графа компонентов (аудит A-02, см. schemaContract.ts) —
  * такую версию нельзя откатывать, не восстанавливая при этом сломанный рендер;
  * BricksRevisionConflictError — precondition не совпал с текущей revision.

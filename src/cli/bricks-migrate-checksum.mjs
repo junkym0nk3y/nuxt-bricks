@@ -24,20 +24,15 @@ export function computeMigrationChecksum(sql) {
 
 /**
  * Возвращает имена применённых миграций, чей сохранённый checksum не
- * совпадает с текущим файлом (или файла больше нет). Записи без checksum
- * (до введения контроля) drift'ом не считаются — их backfill'ит migrate.
+ * совпадает с текущим файлом (или файла больше нет).
  *
  * @param {Map<string, string>} fileChecksums Имя файла → checksum текущего содержимого.
- * @param {Array<{name: string, checksum: string | null}>} appliedRows Строки реестра.
+ * @param {Array<{name: string, checksum: string}>} appliedRows Строки реестра.
  * @returns {string[]} Имена drift-миграций.
  */
 export function findMigrationDrift(fileChecksums, appliedRows) {
     return appliedRows
         .filter((row) => {
-            if (!row.checksum) {
-                return false;
-            }
-
             const current = fileChecksums.get(row.name);
             return !current || current !== row.checksum;
         })

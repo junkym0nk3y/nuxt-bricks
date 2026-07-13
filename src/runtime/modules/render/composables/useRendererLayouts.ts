@@ -27,7 +27,7 @@ export function useRendererLayouts({
      * Id layout-предков активного вызова renderChild. Блоки с отложенным
      * рендером детей (Slider вызывает renderSlide из своего `.vue` уже после
      * выхода из renderPublished) получают снимок цепочки в замыкании и
-     * подставляют его на время вызова — иначе цикл в повреждённой legacy-схеме
+     * подставляют его на время вызова — иначе цикл в повреждённой схеме
      * (A -> B -> A) не детектируется и рекурсия не ограничена.
      */
     let activeAncestry: ReadonlySet<string> = new Set<string>();

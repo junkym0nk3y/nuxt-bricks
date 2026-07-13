@@ -160,9 +160,9 @@ describe('restorePageVersion: version lookup + updatePage с revision-preconditi
         expect(calls.some((call) => call.startsWith('updatePage'))).toBe(false);
     });
 
-    it('legacy-версия с невалидной схемой (аудит A-02) — 400, updatePage не вызывается', async () => {
-        // Намеренно невалидная фикстура (legacy-строка БД) — приводится из unknown[],
-        // как в test/renderDataSourcesLegacySchema.spec.ts (makePage).
+    it('версия с невалидной схемой (аудит A-02) — 400, updatePage не вызывается', async () => {
+        // Намеренно невалидная фикстура (повреждённая строка БД) — приводится из
+        // unknown[], как в test/renderDataSourcesMalformedSchema.spec.ts (makePage).
         const invalidComponents: unknown[] = [null];
 
         const { deps, calls } = makeDeps({

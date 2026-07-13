@@ -28,9 +28,9 @@ describe('schemaImageExtractor: placeholder', () => {
         expect(getPlaceholderImageUrl('/app/')).toBe('/app/_bricks/images/brick-empty.webp');
     });
 
-    it('не извлекает плейсхолдер ни в legacy-, ни в новой форме записи', () => {
+    it('не извлекает плейсхолдер независимо от base-префикса URL', () => {
         const schema = makeSchema({
-            legacy: '/images/brick-empty.webp',
+            bare: '/images/brick-empty.webp',
             current: '/_bricks/images/brick-empty.webp',
             withBase: '/app/_bricks/images/brick-empty.webp',
             real: '/uploads/photo.webp',

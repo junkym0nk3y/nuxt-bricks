@@ -40,7 +40,6 @@ describe('bricks-migrate checksum: обнаружение drift применён
         const applied = [
             { name: '0001.sql', checksum: 'aaa' }, // совпал
             { name: '0002.sql', checksum: 'CHANGED' }, // drift
-            { name: '0000_legacy.sql', checksum: null }, // до checksum-эры — backfill, не drift
         ];
 
         expect(findMigrationDrift(files, applied)).toEqual(['0002.sql']);

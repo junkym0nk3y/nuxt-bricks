@@ -318,7 +318,7 @@ describe('Save as Copy: единый переход сессии', () => {
         publishStore.publishedPages = [
             buildPage({ id: 5, pagename: 'page-match', title: 'Match' }),
             buildPage({ id: 6, pagename: 'page-foreign', title: 'Foreign' }),
-            buildPage({ id: 7, pagename: 'page-legacy', title: 'Legacy' }),
+            buildPage({ id: 7, pagename: 'page-stale', title: 'Stale' }),
         ];
         serverPages = publishStore.publishedPages as IPublishedPage[];
 
@@ -354,19 +354,19 @@ describe('Save as Copy: единый переход сессии', () => {
         expect(context.session.isRestoreDraftModalOpen.value).toBe(false);
         expect(getBuilderDraft('page-foreign')).toBeNull();
 
-        // Черновик без pageId (legacy, до появления этого поля) — тоже stale
+        // Черновик без pageId (повреждённый/чужой формат) — тоже stale
         setBuilderDraft({
-            pagename: 'page-legacy',
+            pagename: 'page-stale',
             updatedAt: new Date().toISOString(),
             mode: 'edit',
             draftSnapshot: {
                 schema: { components: [{ id: 'draft-brick' }] as never },
-                formState: buildFormState({ pagename: 'page-legacy', title: 'Черновик' }),
+                formState: buildFormState({ pagename: 'page-stale', title: 'Черновик' }),
             },
         });
-        await context.session.openBuilderSession('page-legacy');
+        await context.session.openBuilderSession('page-stale');
         expect(context.session.isRestoreDraftModalOpen.value).toBe(false);
-        expect(getBuilderDraft('page-legacy')).toBeNull();
+        expect(getBuilderDraft('page-stale')).toBeNull();
     });
 
     it('ошибка saveCurrentPageAsCopy (валидация) не переключает сессию', async () => {

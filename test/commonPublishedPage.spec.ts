@@ -151,7 +151,7 @@ describe('matchesPageUrlPrefix', () => {
         expect(matchesPageUrlPrefix({ urlPrefix: 'blog/2026' }, 'blog')).toBe(false);
     });
 
-    it('пробельный urlPrefix приравнивается к отсутствию (legacy-записи)', () => {
+    it('пробельный urlPrefix приравнивается к отсутствию (запись в обход нормализации)', () => {
         expect(matchesPageUrlPrefix({ urlPrefix: '  ' }, '')).toBe(true);
         expect(matchesPageUrlPrefix({ urlPrefix: ' blog ' }, 'blog')).toBe(true);
     });

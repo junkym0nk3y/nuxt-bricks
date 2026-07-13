@@ -21,8 +21,9 @@ import { resolveBricksAssetUrl } from '../../../common/utils/bricks/assetPaths';
 const PLACEHOLDER_IMAGE_ASSET_PATH = 'images/brick-empty.webp';
 
 /**
- * Суффикс для распознавания плейсхолдера в схеме: покрывает и legacy-схемы
- * со старым '/images/brick-empty.webp', и новые '<base>/_bricks/images/...'.
+ * Суффикс для распознавания плейсхолдера в схеме: сравнение по суффиксу,
+ * а не по полному URL, не зависит от app.baseURL окружения, в котором
+ * схема была сохранена.
  */
 const PLACEHOLDER_IMAGE_SUFFIX = '/images/brick-empty.webp';
 

@@ -125,13 +125,10 @@ export function useApiClient() {
     let endpoint = localBaseUrl;
 
     if (import.meta.server) {
-        // SSR: API host-проекта, если задан (server-only ключи — адрес не попадает
-        // в client payload); ssrUrl (deprecated, см. module-runtime-config.ts)
-        // побеждает как SSR-специфичный адрес.
-        // Локальные ручки уходят внутренним вызовом Nitro (см. onRequest).
-        const proxyEndpoint =
-            (config.bricksSsrProxyUrl as string | undefined) ||
-            (config.bricksProxyUrl as string | undefined);
+        // SSR: API host-проекта, если задан (server-only ключ — адрес не попадает
+        // в client payload). Локальные ручки уходят внутренним вызовом Nitro
+        // (см. onRequest).
+        const proxyEndpoint = config.bricksProxyUrl as string | undefined;
 
         if (proxyEndpoint) {
             endpoint = proxyEndpoint;

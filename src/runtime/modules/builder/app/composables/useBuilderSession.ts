@@ -102,9 +102,9 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
 
                 // Черновик предлагается на восстановление только если он точно
                 // принадлежит этой странице (draft.pageId === existingPage.id).
-                // Черновик без pageId (legacy) или с чужим pageId (например, ключ
-                // сессии переиспользован после Save as Copy на старом коде без
-                // switchToSavedPage) — stale, не предлагается и подчищается ниже.
+                // Черновик без pageId или с чужим pageId (например, ключ сессии
+                // переиспользован после Save as Copy) — stale, не предлагается
+                // и подчищается ниже.
                 const isDraftOwnedByPage = draft?.pageId === existingPage.id;
 
                 if (
