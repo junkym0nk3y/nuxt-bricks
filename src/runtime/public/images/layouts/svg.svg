@@ -1,8 +1,7 @@
-<svg width="200" height="120" viewBox="0 0 200 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect x="12" y="8" width="176" height="104" rx="4" fill="#F9FAFB" stroke="#D1D5DB" stroke-width="1" stroke-dasharray="4 3"/>
-  <!-- Star/shape icon representing vector graphic -->
-  <path d="M100 28 L108 48 L130 48 L112 60 L118 80 L100 68 L82 80 L88 60 L70 48 L92 48 Z" fill="#D1D5DB" stroke="#9CA3AF" stroke-width="1"/>
-  <!-- Color circle -->
-  <circle cx="148" cy="92" r="8" fill="#E5E7EB" stroke="#9CA3AF" stroke-width="1"/>
-  <circle cx="148" cy="92" r="4" fill="#9CA3AF"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+  <polygon points="12,3 21,12 12,21 3,12"/>
+  <rect x="10.4" y="1.4" width="3.2" height="3.2" rx="0.5" fill="#6366f1" stroke="none"/>
+  <rect x="19.4" y="10.4" width="3.2" height="3.2" rx="0.5" fill="#6366f1" stroke="none"/>
+  <rect x="10.4" y="19.4" width="3.2" height="3.2" rx="0.5" fill="#6366f1" stroke="none"/>
+  <rect x="1.4" y="10.4" width="3.2" height="3.2" rx="0.5" fill="#6366f1" stroke="none"/>
 </svg>

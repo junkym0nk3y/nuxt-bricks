@@ -1,18 +1,6 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 200 120">
-  <!-- Generator: Adobe Illustrator 29.1.0, SVG Export Plug-In . SVG Version: 2.1.0 Build 142)  -->
-  <defs>
-    <style>
-      .st0 {
-        fill: #e5e7eb;
-        stroke: #d1d5db;
-      }
-    </style>
-  </defs>
-  <rect class="st0" x="32" y="16" width="40" height="40" rx="4" ry="4"/>
-  <rect class="st0" x="80" y="16" width="40" height="40" rx="4" ry="4"/>
-  <rect class="st0" x="128" y="16" width="40" height="40" rx="4" ry="4"/>
-  <rect class="st0" x="32" y="64" width="40" height="40" rx="4" ry="4"/>
-  <rect class="st0" x="80" y="64" width="40" height="40" rx="4" ry="4"/>
-  <rect class="st0" x="128" y="64" width="40" height="40" rx="4" ry="4"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+  <rect x="3" y="3" width="8" height="8" rx="2"/>
+  <rect x="13" y="3" width="8" height="8" rx="2"/>
+  <rect x="3" y="13" width="8" height="8" rx="2"/>
+  <rect x="13" y="13" width="8" height="8" rx="2"/>
 </svg>
