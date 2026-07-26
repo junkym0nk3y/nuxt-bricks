@@ -163,7 +163,6 @@ function resolveDimension(value: string | number | undefined): string {
     justify-content: center;
     width: 100%;
     min-height: 10rem;
-    border-radius: 0.8rem;
     border: 0.2rem dashed var(--bricks-base-300);
     background: var(--bricks-base-50);
     text-align: center;

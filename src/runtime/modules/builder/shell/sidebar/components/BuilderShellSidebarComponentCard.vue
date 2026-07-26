@@ -38,10 +38,14 @@ const {
     previewWrapperRef,
     previewContentRef,
     componentWrapperRef,
+    measureWrapperRef,
     previewScale,
     componentProps,
+    measureComponent,
+    measureBindProps,
+    getDragPreviewSize,
 } = useComponentCardPreview(props);
-const { handleDragStart } = useComponentCardDrag(props);
+const { handleDragStart, handleDragEnd } = useComponentCardDrag(props, getDragPreviewSize);
 const { resolveAssetUrl } = useBricksAssetUrl();
 // #endregion
 
@@ -80,6 +84,7 @@ const isFavorite = computed<boolean>(() =>
         :class="$style.BuilderShellSidebarComponentCard"
         draggable="true"
         @dragstart="handleDragStart"
+        @dragend="handleDragEnd"
     >
         <!-- Значок (i): описание блока показывается по наведению именно на него -->
         <BricksTooltip v-if="resolvedDescription" bottom :class="$style.infoTooltip">
@@ -107,11 +112,26 @@ const isFavorite = computed<boolean>(() =>
             />
             <BricksIcon v-else :class="$style.layoutIconFallback" icon="ta:outline-puzzle" />
             <span :class="$style.layoutName">{{ props.component.name }}</span>
+
+            <!-- Скрытый инстанс на desktop-ширине для точного замера реального размера блока -->
+            <div
+                v-if="measureComponent"
+                ref="measureWrapperRef"
+                :class="[$style.measureProbe, 'bricks-canvas']"
+                data-bricks-viewport="desktop"
+                aria-hidden="true"
+            >
+                <component :is="measureComponent" v-bind="measureBindProps">
+                    <!-- Пустой default-слот воспроизводит рендер пустого контейнера на канвасе
+                         (isEmpty=false), иначе Flex показывает «Drop components here» и завышает высоту. -->
+                    <template #default><span v-if="false" /></template>
+                </component>
+            </div>
         </div>
 
         <!-- Прочие компоненты: живое превью + название -->
         <div v-else :class="$style.cardInner">
-            <div :class="$style.thumbnail">
+            <div :class="[$style.thumbnail, 'bricks-canvas']">
                 <!-- Viewport с overflow: hidden -->
                 <div
                     v-if="ComponentPreview"
@@ -208,6 +228,17 @@ const isFavorite = computed<boolean>(() =>
     color: var(--bricks-primary);
 }
 
+/* Скрытый measure-инстанс: desktop-ширина, вне потока, без визуального следа */
+.measureProbe {
+    position: absolute;
+    top: 0;
+    left: -99999px;
+    visibility: hidden;
+    width: 144rem;
+    min-width: 144rem;
+    pointer-events: none;
+}
+
 /* ---- Компактный layout-блок ---- */
 .layoutBody {
     display: flex;
@@ -248,41 +279,17 @@ const isFavorite = computed<boolean>(() =>
 }
 
 .thumbnail {
-    /* Фиксируем светлую тему для превью компонентов (полный reset — по образцу .bricks-canvas) */
-    --bricks-base-0: #fff;
-    --bricks-base-50: #f9fafb;
-    --bricks-base-100: #f3f4f6;
-    --bricks-base-200: #e5e7eb;
-    --bricks-base-300: #d1d5db;
-    --bricks-base-400: #9ca3af;
-    --bricks-base-500: #6b7280;
-    --bricks-base-600: #4b5563;
-    --bricks-base-700: #374151;
-    --bricks-base-800: #1f2937;
-    --bricks-base-900: #111827;
-    --bricks-primary-50: #eff6ff;
-    --bricks-primary-100: #dbeafe;
-    --bricks-primary-300: #93c5fd;
-    --bricks-primary-400: #60a5fa;
-    --bricks-primary-500: #3b82f6;
-    --bricks-primary-600: #1d4ed8;
-    --bricks-primary-700: #1e40af;
-    --bricks-primary: #2563eb;
-    --bricks-rgb-base-900: 17 24 39;
-    --bricks-rgb-base-0: 255 255 255;
-    --bricks-rgb-primary: 37 99 235;
-
-    /* Reset playground variables (VTitle и другие playground-компоненты) */
-    --body-color: #1b1d24;
-    --base-0: #fff;
-    --base-50: #f4f4f6;
-    --base-100: #e1e2e5;
-    --base-200: #c7c8ce;
-    --base-300: #a1a4ad;
-    --base-400: #7b808c;
-    --base-500: #696d7b;
-    --base-600: #43495a;
-    --base-900: #1b1d24;
+    /* Legacy playground variables следуют светлым bricks-токенам preview-canvas. */
+    --body-color: var(--bricks-base-900);
+    --base-0: var(--bricks-base-0);
+    --base-50: var(--bricks-base-50);
+    --base-100: var(--bricks-base-100);
+    --base-200: var(--bricks-base-200);
+    --base-300: var(--bricks-base-300);
+    --base-400: var(--bricks-base-400);
+    --base-500: var(--bricks-base-500);
+    --base-600: var(--bricks-base-600);
+    --base-900: var(--bricks-base-900);
     --background-color: transparent;
 
     position: relative;

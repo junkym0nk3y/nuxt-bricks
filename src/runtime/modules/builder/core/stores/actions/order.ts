@@ -1,6 +1,17 @@
 import type { IComponentsOrderActions, IComponentsStore } from '../types';
 
 /**
+ * Корректирует индекс назначения после извлечения исходного sibling-а.
+ *
+ * @param currentIndex - Индекс элемента до detach.
+ * @param targetIndex - Индекс destination placeholder-а до detach.
+ * @returns Индекс вставки в массив после detach.
+ */
+export function adjustReorderTargetIndex(currentIndex: number, targetIndex: number): number {
+    return currentIndex >= 0 && currentIndex < targetIndex ? targetIndex - 1 : targetIndex;
+}
+
+/**
  * Находит индекс компонента среди siblings (root или children layout-а).
  *
  * @param store - Стор компонентов.

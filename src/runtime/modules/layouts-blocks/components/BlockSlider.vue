@@ -2,10 +2,19 @@
 // #region Imports
 // Types
 import type { IBricksComponent } from '../../common/types/brick';
-import type { ISliderLayoutProps, ISliderCaption } from '../types/blockProps';
+import type { IBlockSliderProps, ISliderCaption } from '../types/blockProps';
 
 // Vue
-import { computed, defineComponent, h, inject, ref, type PropType, type VNodeChild } from 'vue';
+import {
+    computed,
+    defineComponent,
+    h,
+    inject,
+    ref,
+    useCssModule,
+    type PropType,
+    type VNodeChild,
+} from 'vue';
 
 // Constants
 import { CANVAS_VIEWPORT_KEY } from '../../common/constants/injectionKeys';
@@ -15,7 +24,7 @@ import { parseSliderCaptions } from '../utils/sliderCaptions';
 
 // Composables
 import { useLayoutDropZone } from '../composables/useLayoutDropZone';
-import { useSliderDropIndicator } from '../composables/useSliderDropIndicator';
+import { useSliderDropTarget } from '../composables/useSliderDropTarget';
 
 // Components
 import { Swiper, SwiperSlide } from 'swiper/vue';
@@ -51,36 +60,22 @@ const SlideRenderer = defineComponent({
 // #endregion
 
 // #region Props
-const props = withDefaults(
-    defineProps<{
-        layoutProps: ISliderLayoutProps;
-        layoutId?: string;
-        slides?: IBricksComponent[];
-        renderSlide?: (component: IBricksComponent) => VNodeChild;
-        isEditor?: boolean;
-    }>(),
-    {
-        layoutId: undefined,
-        slides: () => [],
-        renderSlide: () => () => h('div'),
-        isEditor: false,
-    }
-);
+const props = withDefaults(defineProps<IBlockSliderProps>(), {
+    layoutId: undefined,
+    slides: () => [],
+    renderSlide: () => () => h('div'),
+    isEditor: false,
+});
 // #endregion
 
 // #region Data
 const sliderRef = ref<HTMLElement | null>(null);
-const dropIndicatorRef = ref<HTMLElement | null>(null);
 const injectedViewport = inject(CANVAS_VIEWPORT_KEY, null);
 const activeSlideIndex = ref(0);
+const styles = useCssModule();
 
-const {
-    dropIndicator,
-    dropInsertIndex,
-    dropIndicatorStyle,
-    updateDropIndicator,
-    clearDropIndicator,
-} = useSliderDropIndicator(sliderRef);
+const { dropInsertIndex, getDraggableSlides, updateDropTarget, clearDropTarget } =
+    useSliderDropTarget(sliderRef);
 // #endregion
 
 // #region Computed
@@ -228,12 +223,13 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
         layoutId: () => props.layoutId,
         isEnabled: isEditor,
         useDragDepth: true,
-        onDragMove: updateDropIndicator,
-        onReset: clearDropIndicator,
-        resolveDropIndex: () =>
-            typeof dropInsertIndex.value === 'number'
-                ? dropInsertIndex.value
-                : (dropIndicator.value?.index ?? null),
+        onDragMove: updateDropTarget,
+        onReset: clearDropTarget,
+        resolveDropIndex: () => dropInsertIndex.value,
+        placeholderClass: `${styles.dropPlaceholder} swiper-slide`,
+        resolvePlaceholderContainer: () =>
+            sliderRef.value?.querySelector<HTMLElement>('.swiper-wrapper') ?? null,
+        resolvePlaceholderChildren: getDraggableSlides,
     });
 // #endregion
 </script>
@@ -277,9 +273,9 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
                 "
                 :breakpoints="isEditor ? undefined : sliderBreakpoints"
                 :loop="sliderLoop"
-                :autoplay="autoplayOptions as any"
-                :navigation="navigationEnabled as any"
-                :pagination="(paginationEnabled ? { clickable: true } : false) as any"
+                :autoplay="autoplayOptions"
+                :navigation="navigationEnabled"
+                :pagination="paginationEnabled ? { clickable: true } : false"
                 :simulate-touch="!isEditor"
                 :allow-touch-move="!isEditor"
                 :class="$style.swiper"
@@ -318,14 +314,6 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
             :active-index="activeSlideIndex"
             @select="handleCaptionClick"
         />
-
-        <div
-            v-if="isEditor"
-            ref="dropIndicatorRef"
-            :class="$style.dropIndicator"
-            :style="dropIndicatorStyle"
-            data-layout-drop-indicator="true"
-        />
     </div>
 </template>
 
@@ -335,18 +323,17 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
     overflow: hidden;
     width: 100%;
     padding: 1.6rem;
-    border-radius: 1.2rem;
+    border-radius: var(--bricks-border-radius-sm);
     border: 1px solid var(--bricks-base-200);
     background-color: var(--bricks-base-0);
 
     &._editor {
-        border-radius: 0.4rem;
-        border: 1px dashed rgb(var(--bricks-rgb-layout-slider) / 30%);
-        background: rgb(var(--bricks-rgb-layout-slider) / 5%);
+        border: 1px dashed var(--bricks-base-300);
+        background: var(--bricks-base-50);
 
         &:hover {
-            border-color: rgb(var(--bricks-rgb-layout-slider) / 50%);
-            background: rgb(var(--bricks-rgb-layout-slider) / 8%);
+            border-color: var(--bricks-primary);
+            background: color-mix(in srgb, var(--bricks-primary) 6%, transparent);
         }
 
         // pointer-events: auto для дочерних элементов внутри Swiper,
@@ -365,10 +352,10 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
     }
 
     &._dragOver {
-        border-color: rgb(var(--bricks-rgb-layout-slider) / 80%);
+        border-color: var(--bricks-primary);
         border-width: 0.2rem;
-        background: rgb(var(--bricks-rgb-layout-slider) / 15%);
-        box-shadow: 0 0 0 0.4rem rgb(var(--bricks-rgb-layout-slider) / 20%);
+        background: color-mix(in srgb, var(--bricks-primary) 6%, transparent);
+        box-shadow: 0 0 0 0.2rem var(--bricks-primary);
     }
 }
 
@@ -420,15 +407,13 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
     min-width: 0;
 }
 
-.dropIndicator {
-    position: absolute;
-    top: 1.2rem;
-    width: 0.4rem;
-    height: calc(100% - 2.4rem);
-    border-radius: 0.4rem;
-    background-color: var(--bricks-primary-400);
-    opacity: 0;
-    transition: opacity 120ms ease;
+.dropPlaceholder {
+    flex: 0 0 var(--bricks-drag-placeholder-flow-width);
+    width: var(--bricks-drag-placeholder-flow-width);
+    min-width: var(--bricks-drag-placeholder-flow-width);
+    height: var(--bricks-drag-placeholder-height);
+    border: 0.2rem dashed var(--bricks-primary);
+    background: color-mix(in srgb, var(--bricks-primary) 7%, transparent);
     pointer-events: none;
 }
 
@@ -436,8 +421,8 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
 :global(.swiper-button-prev) {
     width: 3.2rem;
     height: 3.2rem;
-    border-radius: 999rem;
-    background-color: rgb(0 0 0 / 35%);
+    border-radius: var(--bricks-border-radius-pill);
+    background-color: color-mix(in srgb, var(--bricks-base-900) 35%, transparent);
     color: var(--bricks-base-0);
 
     &:after {

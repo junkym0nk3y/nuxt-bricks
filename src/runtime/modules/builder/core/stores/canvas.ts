@@ -1,6 +1,11 @@
 import { defineStore } from 'pinia';
 import { useAppConfig } from 'nuxt/app';
-import type { ICanvasState, TBricksDeviceKey } from '../../../common/types/brick';
+import type {
+    ICanvasDragState,
+    ICanvasDragStartPayload,
+    ICanvasState,
+    TBricksDeviceKey,
+} from '../../../common/types/brick';
 import type { IAppConfig } from '../../../common/types/config';
 import { MIN_CANVAS_SCALE, MAX_CANVAS_SCALE } from '../constants/canvasScale';
 
@@ -10,6 +15,16 @@ const VIEWPORT_BASE_HEIGHT: Record<TBricksDeviceKey, number> = {
     desktop: 1080,
 };
 const CANVAS_HEIGHT_BUFFER = 400;
+
+/** Состояние покоя transient drag-сессии: единственный источник дефолтов. */
+const IDLE_DRAG_STATE: ICanvasDragState = {
+    source: null,
+    componentId: null,
+    width: 0,
+    height: 0,
+    isFullWidth: false,
+    sourceVacated: false,
+};
 
 /**
  * Возвращает ширину холста для viewport из конфига (с дефолтами).
@@ -43,6 +58,7 @@ export const useCanvasStore = defineStore('bricksCanvas', {
         hasManualZoom: false,
         activeViewport: null,
         figmaDropPerViewport: false,
+        dragState: { ...IDLE_DRAG_STATE },
         _preFigmaWidth: null,
         _preFigmaHeight: null,
     }),
@@ -147,6 +163,43 @@ export const useCanvasStore = defineStore('bricksCanvas', {
          */
         toggleGrid() {
             this.showGrid = !this.showGrid;
+        },
+
+        /**
+         * Начинает transient drag-сессию без изменения дерева компонентов.
+         *
+         * @param payload - Источник и фактический размер будущего плейсхолдера.
+         */
+        startCanvasDrag(payload: ICanvasDragStartPayload) {
+            this.dragState = {
+                ...IDLE_DRAG_STATE,
+                source: payload.source,
+                componentId: payload.componentId ?? null,
+                width: Math.max(0, payload.width),
+                height: Math.max(0, payload.height),
+                isFullWidth: payload.isFullWidth === true,
+            };
+        },
+
+        /**
+         * Убирает оригинал из потока после того, как нативный drag уже стартовал.
+         * Вызывается отложенно (rAF/timeout) — синхронный display:none отменил бы drag.
+         */
+        vacateDragSource() {
+            if (this.dragState.source === null) {
+                return;
+            }
+            this.dragState = {
+                ...this.dragState,
+                sourceVacated: true,
+            };
+        },
+
+        /**
+         * Завершает или отменяет drag-сессию, восстанавливая исходный рендер.
+         */
+        finishCanvasDrag() {
+            this.dragState = { ...IDLE_DRAG_STATE };
         },
 
         /**

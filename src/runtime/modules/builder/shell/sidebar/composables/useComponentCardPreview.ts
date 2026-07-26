@@ -5,8 +5,10 @@
  */
 
 // Types
-import type { ISidebarComponentCardProps } from '../components/types';
+import type { IComponentCardPreview, ISidebarComponentCardProps } from '../components/types';
 import type { IBrickExportModule } from '../../../../common/types/index';
+import type { IDragVisualSize, IBricksComponent } from '../../../../common/types/brick';
+import type { IBlockCanvasContext } from '../../../../layouts-blocks/types/registry';
 
 // Vue
 import {
@@ -19,9 +21,6 @@ import {
     shallowRef,
     watch,
     type Component,
-    type ComputedRef,
-    type Ref,
-    type ShallowRef,
 } from 'vue';
 
 // Composables
@@ -29,15 +28,13 @@ import { useBrickImports } from '../../../../common/composables/useBrickImports'
 
 // Utils
 import { convertRemToPx } from '../../../../common/utils/main';
-
-interface IComponentCardPreview {
-    ComponentPreview: ShallowRef<Component | null>;
-    previewWrapperRef: Ref<HTMLElement | null>;
-    previewContentRef: Ref<HTMLElement | null>;
-    componentWrapperRef: Ref<HTMLElement | null>;
-    previewScale: Ref<number>;
-    componentProps: ComputedRef<Record<string, unknown>>;
-}
+import { measureDragSize } from '../../../../common/utils/dragAndDrop';
+import {
+    getBlockDefinition,
+    resolveBlockProps,
+    resolveCanvasBind,
+} from '../../../../layouts-blocks/registry';
+import { CANVAS_BLOCK_COMPONENTS } from '../../../../layouts-blocks/canvasBlockComponents';
 
 /**
  * Максимальное увеличение для маленьких компонентов
@@ -50,6 +47,9 @@ const MAX_SCALE_UP = 3;
 const PREVIEW_HEIGHT_REM = 18;
 const LAYOUT_PREVIEW_HEIGHT_REM = 12;
 
+/** id скрытого measure-инстанса: в схему не попадает, нужен только контексту рендера. */
+const MEASURE_PROBE_ID = 'measure-probe';
+
 /**
  * Логика превью карточки: async-компонент, refs областей и масштаб.
  */
@@ -59,8 +59,11 @@ export function useComponentCardPreview(props: ISidebarComponentCardProps): ICom
     const previewWrapperRef = ref<HTMLElement | null>(null);
     const previewContentRef = ref<HTMLElement | null>(null);
     const componentWrapperRef = ref<HTMLElement | null>(null);
+    /** Скрытый инстанс layout-блока для точного замера его реального размера. */
+    const measureWrapperRef = ref<HTMLElement | null>(null);
     const previewScale = ref(1);
     let resizeObserver: ResizeObserver | null = null;
+    let previewUpdateTimer: ReturnType<typeof setTimeout> | null = null;
 
     const importModule = findImportModule(props.component.brickPath);
     if (importModule) {
@@ -92,6 +95,52 @@ export function useComponentCardPreview(props: ISidebarComponentCardProps): ICom
         return propsObj;
     });
 
+    /** Definition встроенного layout-блока (для user-bricks — null). */
+    const blockDefinition = computed(() => getBlockDefinition(props.component.name) ?? null);
+
+    /**
+     * Реальный canvas-компонент встроенного блока для скрытого замера (Grid/Flex/
+     * Media/…): у layout-карточки живого превью нет, только иконка. Берётся из
+     * canvas-реестра — sidebar builder-only, published-бандла не касается.
+     * User-bricks меряются по своему превью, скрытый инстанс им не нужен.
+     */
+    const measureComponent = computed<Component | null>(() => {
+        if (!blockDefinition.value) {
+            return null;
+        }
+
+        return CANVAS_BLOCK_COMPONENTS[blockDefinition.value.name] ?? null;
+    });
+
+    /**
+     * Биндинги measure-инстанса — точно как на канвасе (resolveCanvasBind),
+     * чтобы замеренный размер совпал с реальным блоком после вставки.
+     */
+    const measureBindProps = computed<Record<string, unknown>>(() => {
+        const definition = blockDefinition.value;
+        if (!definition) {
+            return componentProps.value;
+        }
+
+        const probeComponent: IBricksComponent = {
+            id: MEASURE_PROBE_ID,
+            type: 'layout',
+            componentName: props.component.name,
+            brickPath: props.component.brickPath,
+            zIndex: 0,
+            props: componentProps.value,
+        };
+        const context: IBlockCanvasContext = {
+            component: probeComponent,
+            layoutProps: resolveBlockProps(props.component.name, componentProps.value, 'desktop'),
+            boundProps: componentProps.value,
+            childComponents: [],
+            renderChild: () => null,
+        };
+
+        return resolveCanvasBind(definition, context);
+    });
+
     /**
      * Обновляет масштаб предпросмотра компонента
      *
@@ -103,7 +152,12 @@ export function useComponentCardPreview(props: ISidebarComponentCardProps): ICom
         await nextTick();
 
         // Даем время компоненту отрендериться
-        setTimeout(() => {
+        if (previewUpdateTimer) {
+            clearTimeout(previewUpdateTimer);
+        }
+
+        previewUpdateTimer = setTimeout(() => {
+            previewUpdateTimer = null;
             const wrapper = previewWrapperRef.value;
             const componentWrapper = componentWrapperRef.value;
 
@@ -178,12 +232,39 @@ export function useComponentCardPreview(props: ISidebarComponentCardProps): ICom
         }
     }
 
+    /**
+     * Отдаёт фактический размер блока для canvas-плейсхолдера.
+     *
+     * Источник истины — отрендеренный компонент на desktop-ширине (144rem):
+     * user-bricks и leaf-блоки берутся из живого превью, layout — из скрытого
+     * measure-инстанса. Хардкод-оценок по типу блока нет.
+     *
+     * Если превью ещё не отрендерилось (async-brick в загрузке, компонент без
+     * DOM-корня), меряется сам host — плейсхолдер остаётся видимым.
+     *
+     * @returns Размер будущего canvas-плейсхолдера.
+     */
+    function getDragPreviewSize(): IDragVisualSize {
+        const host = props.isLayout ? measureWrapperRef.value : componentWrapperRef.value;
+        const measured = measureDragSize(host?.firstElementChild as HTMLElement | null);
+
+        if (measured.width > 0 && measured.height > 0) {
+            return measured;
+        }
+
+        return measureDragSize(host);
+    }
+
     onMounted(() => {
         setupResizeObserver();
         nextTick(() => updatePreviewScale());
     });
 
     onBeforeUnmount(() => {
+        if (previewUpdateTimer) {
+            clearTimeout(previewUpdateTimer);
+            previewUpdateTimer = null;
+        }
         resizeObserver?.disconnect();
         resizeObserver = null;
     });
@@ -233,7 +314,11 @@ export function useComponentCardPreview(props: ISidebarComponentCardProps): ICom
         previewWrapperRef,
         previewContentRef,
         componentWrapperRef,
+        measureWrapperRef,
         previewScale,
         componentProps,
+        measureComponent,
+        measureBindProps,
+        getDragPreviewSize,
     };
 }

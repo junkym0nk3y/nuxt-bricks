@@ -3,65 +3,39 @@
 import type { ISlotState, IUseSlotDragDropReturn } from '../../types/composables';
 
 // Vue
-import {
-    computed,
-    reactive,
-    type ComponentPublicInstance,
-    type CSSProperties,
-    type VNodeRef,
-} from 'vue';
-// #endregion
+import { inject, reactive, watch, type ComponentPublicInstance, type VNodeRef } from 'vue';
 
-// #region Constants
-/**
- * Стили по умолчанию для индикатора drop в слоте
- */
-const DEFAULT_SLOT_STYLE: CSSProperties = {
-    transform: 'translateY(0px)',
-    opacity: 0,
-};
+// Utils
+import { applyDropEffect } from '../../../../common/utils/dragAndDrop';
+
+// Constants
+import { CANVAS_DRAG_ACTIVE_KEY } from '../../../../common/constants/injectionKeys';
 // #endregion
 
 /**
  * Composable для управления поведением drag-and-drop в слотах.
- * Обрабатывает индикаторы drop, состояние перетаскивания и события drop для слотов компонентов.
+ * Считает индекс вставки, держит состояние drag-over и диспатчит `slot-drop`.
+ * Сам плейсхолдер рендерит шаблон по индексу из `getSlotDropIndex`.
  *
  * @param componentId - ID родительского компонента
- * @returns Объект с обработчиками drag-and-drop и состоянием
+ * @returns Объект с обработчиками drag-and-drop и состоянием.
  */
 export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
     // #region Data
     const slotStates = reactive<Record<string, ISlotState>>({});
     const slotContainerRefs = new Map<string, HTMLElement>();
-    // #endregion
-
-    // #region Computed
-    /**
-     * Вычисляемые стили для индикаторов drop на основе текущего состояния перетаскивания
-     */
-    const slotIndicatorStyles = computed<Record<string, CSSProperties>>(() => {
-        const styles: Record<string, CSSProperties> = {};
-
-        Object.entries(slotStates).forEach(([name, state]) => {
-            styles[name] = {
-                transform: `translateY(${state?.dropIndicator?.offset ?? 0}px)`,
-                opacity: state?.dropIndicator ? 1 : 0,
-            };
-        });
-
-        return styles;
-    });
+    const isCanvasDragActive = inject(CANVAS_DRAG_ACTIVE_KEY, null);
     // #endregion
 
     // #region Methods
     /**
-     * Получает вычисленный стиль индикатора для конкретного слота
+     * Позиция flow-плейсхолдера среди детей слота (читается шаблоном).
      *
      * @param slotName - Имя слота
-     * @returns CSS свойства для индикатора drop
+     * @returns Индекс будущей вставки либо null, если слот не под курсором.
      */
-    function getSlotIndicatorStyle(slotName: string): CSSProperties {
-        return slotIndicatorStyles.value[slotName] || DEFAULT_SLOT_STYLE;
+    function getSlotDropIndex(slotName: string): number | null {
+        return slotStates[slotName]?.dropInsertIndex ?? null;
     }
 
     /**
@@ -100,7 +74,6 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
             slotStates[slotName] = {
                 dragDepth: 0,
                 isDragOver: false,
-                dropIndicator: null,
                 dropInsertIndex: null,
             };
         }
@@ -117,7 +90,6 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
         const state = ensureSlotState(slotName);
         state.dragDepth = 0;
         state.isDragOver = false;
-        state.dropIndicator = null;
         state.dropInsertIndex = null;
     }
 
@@ -155,88 +127,30 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
             return [];
         }
 
-        return Array.from(
-            container.querySelectorAll<HTMLElement>('[data-slot-child="true"]')
-        ).filter((element) => element.dataset.slotIndicator !== 'true');
+        return Array.from(container.querySelectorAll<HTMLElement>('[data-slot-child="true"]'));
     }
 
     /**
-     * Обновляет эффект drag на основе типа перетаскиваемых данных
-     *
-     * @param event - Событие drag
-     */
-    function updateSlotDropEffect(event: DragEvent): void {
-        if (!event.dataTransfer) {
-            return;
-        }
-
-        const types = Array.from(event.dataTransfer.types || []);
-        const isExisting = types.includes('component-id') || types.includes('text/plain');
-        const isLibrary = types.includes('application/json');
-
-        if (!isExisting && !isLibrary) {
-            event.dataTransfer.dropEffect = 'none';
-            return;
-        }
-
-        event.dataTransfer.dropEffect = isExisting ? 'move' : 'copy';
-    }
-
-    /**
-     * Обновляет позицию индикатора drop на основе позиции курсора
+     * Обновляет индекс flow-плейсхолдера на основе позиции курсора.
      *
      * @param slotName - Имя слота
      * @param event - Событие drag с позицией курсора
      */
-    function updateSlotDropIndicator(slotName: string, event: DragEvent): void {
+    function updateSlotDropTarget(slotName: string, event: DragEvent): void {
         const container = slotContainerRefs.get(slotName);
         if (!container) {
             return;
         }
 
         const state = ensureSlotState(slotName);
-        const rect = container.getBoundingClientRect();
         const pointerY = event.clientY;
-        const containerHeight = container.clientHeight;
         const children = getSlotChildElements(slotName);
-
-        if (children.length === 0) {
-            const offset = Math.max(0, Math.min(pointerY - rect.top, containerHeight));
-            state.dropIndicator = {
-                index: 0,
-                offset,
-            };
-            state.dropInsertIndex = 0;
-            return;
-        }
-
-        let targetIndex = children.length;
-        let offset = containerHeight;
-
-        for (let index = 0; index < children.length; index += 1) {
-            const child = children[index];
+        const hoveredIndex = children.findIndex((child) => {
             const childRect = child.getBoundingClientRect();
-            const midpoint = childRect.top + childRect.height / 2;
+            return pointerY < childRect.top + childRect.height / 2;
+        });
 
-            if (pointerY < midpoint) {
-                targetIndex = index;
-                offset = child.offsetTop;
-                break;
-            }
-        }
-
-        if (targetIndex === children.length) {
-            const lastChild = children[children.length - 1];
-            offset = lastChild.offsetTop + lastChild.offsetHeight;
-        }
-
-        offset = Math.max(0, Math.min(offset, containerHeight));
-
-        state.dropIndicator = {
-            index: targetIndex,
-            offset,
-        };
-        state.dropInsertIndex = targetIndex;
+        state.dropInsertIndex = hoveredIndex === -1 ? children.length : hoveredIndex;
     }
 
     /**
@@ -277,10 +191,14 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
 
         const state = ensureSlotState(slotName);
         state.dragDepth += 1;
-        state.isDragOver = true;
 
-        updateSlotDropEffect(event);
-        updateSlotDropIndicator(slotName, event);
+        if (!applyDropEffect(event)) {
+            resetSlotState(slotName);
+            return;
+        }
+
+        state.isDragOver = true;
+        updateSlotDropTarget(slotName, event);
     }
 
     /**
@@ -293,11 +211,13 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
         event.preventDefault();
         event.stopPropagation();
 
-        const state = ensureSlotState(slotName);
-        state.isDragOver = true;
+        if (!applyDropEffect(event)) {
+            resetSlotState(slotName);
+            return;
+        }
 
-        updateSlotDropEffect(event);
-        updateSlotDropIndicator(slotName, event);
+        ensureSlotState(slotName).isDragOver = true;
+        updateSlotDropTarget(slotName, event);
     }
 
     /**
@@ -308,6 +228,12 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
      */
     function handleSlotDragLeave(slotName: string, event: DragEvent): void {
         event.stopPropagation();
+
+        const container = slotContainerRefs.get(slotName);
+        const nextTarget = event.relatedTarget;
+        if (nextTarget instanceof Node && container?.contains(nextTarget)) {
+            return;
+        }
 
         const state = ensureSlotState(slotName);
         state.dragDepth = Math.max(0, state.dragDepth - 1);
@@ -328,15 +254,40 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
         event.preventDefault();
         event.stopPropagation();
 
-        updateSlotDropIndicator(slotName, event);
+        updateSlotDropTarget(slotName, event);
         emitSlotDrop(slotName, event);
         resetSlotState(slotName);
+    }
+
+    /**
+     * Сбрасывает transient-состояние всех посещённых слотов.
+     */
+    function resetAllSlotStates(): void {
+        for (const slotName of Object.keys(slotStates)) {
+            resetSlotState(slotName);
+        }
+    }
+
+    /**
+     * Убирает плейсхолдеры слотов при окончании или отмене drag.
+     *
+     * @param isActive - Активна ли глобальная drag-сессия canvas.
+     */
+    function handleCanvasDragActiveChange(isActive: boolean): void {
+        if (!isActive) {
+            resetAllSlotStates();
+        }
+    }
+    // #endregion
+
+    // #region Lifecycle
+    if (isCanvasDragActive) {
+        watch(isCanvasDragActive, handleCanvasDragActiveChange, { flush: 'sync' });
     }
     // #endregion
 
     return {
-        slotIndicatorStyles,
-        getSlotIndicatorStyle,
+        getSlotDropIndex,
         setSlotContainerRef,
         handleSlotDragEnter,
         handleSlotDragOver,

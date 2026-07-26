@@ -54,7 +54,7 @@ const horizontalGapRects = computed(() =>
             :y="0"
             :width="gapRect.width"
             :height="contentHeight"
-            fill="rgb(var(--bricks-rgb-primary) / 12%)"
+            fill="color-mix(in srgb, var(--bricks-primary) 12%, transparent)"
         />
 
         <!-- Horizontal gap highlight (rows) -->
@@ -65,7 +65,7 @@ const horizontalGapRects = computed(() =>
             :y="gapRect.y"
             :width="props.containerSize.width"
             :height="gapRect.height"
-            fill="rgb(var(--bricks-rgb-primary) / 12%)"
+            fill="color-mix(in srgb, var(--bricks-primary) 12%, transparent)"
         />
 
         <!-- Vertical lines (columns) -->
@@ -76,7 +76,7 @@ const horizontalGapRects = computed(() =>
             :y1="0"
             :x2="position"
             :y2="props.containerSize.height"
-            stroke="rgba(99, 102, 241, 0.4)"
+            stroke="color-mix(in srgb, var(--bricks-primary) 20%, transparent)"
             stroke-width="1"
         />
 
@@ -88,7 +88,7 @@ const horizontalGapRects = computed(() =>
             :y1="position"
             :x2="props.containerSize.width"
             :y2="position"
-            stroke="rgba(99, 102, 241, 0.4)"
+            stroke="color-mix(in srgb, var(--bricks-primary) 20%, transparent)"
             stroke-width="1"
         />
     </svg>

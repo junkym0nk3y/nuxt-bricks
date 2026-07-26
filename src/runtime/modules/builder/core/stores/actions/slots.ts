@@ -1,6 +1,7 @@
 import type { IComponentSlotDefinition } from '../../../../common/types/brick';
 import { applySlotDefinitions, findSlot } from '../../utils/slots';
 import type { IComponentsSlotActions, IComponentsStore, THistoryOptions } from '../types';
+import { adjustReorderTargetIndex } from './order';
 
 /**
  * Оперирует слотами layout-компонентов: инициализация, добавление/удаление и перемещение детей.
@@ -121,6 +122,13 @@ export const slotActions: IComponentsSlotActions = {
             return;
         }
 
+        const currentIndex =
+            child.parent === parentId && child.slotName === slotName
+                ? targetSlot.children.indexOf(childId)
+                : -1;
+        const adjustedIndex =
+            typeof index === 'number' ? adjustReorderTargetIndex(currentIndex, index) : undefined;
+
         this.detachComponentFromParent(childId, { skipHistory: true });
 
         child.parent = parentId;
@@ -131,8 +139,8 @@ export const slotActions: IComponentsSlotActions = {
 
         const children = targetSlot.children;
 
-        if (typeof index === 'number') {
-            const insertIndex = Math.max(0, Math.min(index, children.length));
+        if (typeof adjustedIndex === 'number') {
+            const insertIndex = Math.max(0, Math.min(adjustedIndex, children.length));
             children.splice(insertIndex, 0, childId);
         } else {
             children.push(childId);

@@ -5,12 +5,19 @@ import type {
     IBricksComponent,
     IComponentLibraryItem,
     IComponentSlotDefinition,
+    IDragVisualSize,
 } from '../../../common/types/brick';
 import type { TBricksComponentsStore } from '../../core/stores/components';
 import type { TComponentInsertPayload } from '../../core/stores/types';
 
 // Vue
-import { ref } from 'vue';
+import { onBeforeUnmount, ref } from 'vue';
+
+// Pinia
+import { useCanvasStore } from '../../core/stores/canvas';
+
+// Utils
+import { setSkeletonDragImage } from '../../core/utils/dragVisuals';
 // #endregion
 
 /**
@@ -21,6 +28,7 @@ import { ref } from 'vue';
 export function useComponentLibraryDrag() {
     // #region Data
     const draggedComponent = ref<IComponentLibraryItem | null>(null);
+    const canvasStore = useCanvasStore();
     // #endregion
 
     // #region Methods
@@ -28,14 +36,44 @@ export function useComponentLibraryDrag() {
      * Начинает перетаскивание компонента из библиотеки
      *
      * @param component - Компонент для перетаскивания
-     * @param event - Событие drag start
+     * @param event - Событие drag start.
+     * @param previewSize - Размер будущего canvas-плейсхолдера.
      */
-    function startDrag(component: IComponentLibraryItem, event: DragEvent): void {
+    function startDrag(
+        component: IComponentLibraryItem,
+        event: DragEvent,
+        previewSize: IDragVisualSize
+    ): void {
         draggedComponent.value = component;
-        if (event.dataTransfer) {
-            event.dataTransfer.effectAllowed = 'copy';
-            event.dataTransfer.setData('application/json', JSON.stringify(component));
+        const sourceElement = event.currentTarget as HTMLElement | null;
+
+        if (!event.dataTransfer || !sourceElement) {
+            return;
         }
+
+        canvasStore.startCanvasDrag({
+            source: 'library',
+            width: previewSize.width,
+            height: previewSize.height,
+            isFullWidth: previewSize.isFullWidth,
+        });
+
+        event.dataTransfer.effectAllowed = 'copy';
+        event.dataTransfer.setData('application/json', JSON.stringify(component));
+        setSkeletonDragImage({
+            event,
+            sourceElement,
+            variant: 'library',
+            placeholderSize: previewSize,
+        });
+    }
+
+    /**
+     * Завершает library drag и очищает только transient-состояние.
+     */
+    function endDrag(): void {
+        draggedComponent.value = null;
+        canvasStore.finishCanvasDrag();
     }
 
     /**
@@ -251,13 +289,13 @@ export function useComponentLibraryDrag() {
         // Обрабатываем перемещение существующего компонента
         if (movedComponentId) {
             moveExistingComponentToRoot(movedComponentId, store, rootTargetIndex);
-            draggedComponent.value = null;
+            endDrag();
             return;
         }
 
         // Обрабатываем добавление нового компонента
         addNewComponentToCanvas(store, rootTargetIndex);
-        draggedComponent.value = null;
+        endDrag();
     }
 
     /**
@@ -277,9 +315,14 @@ export function useComponentLibraryDrag() {
     }
     // #endregion
 
+    // #region Lifecycle
+    onBeforeUnmount(endDrag);
+    // #endregion
+
     return {
         draggedComponent,
         startDrag,
+        endDrag,
         handleDrop,
         handleDragOver,
     };

@@ -1,16 +1,14 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { ISpaceProps } from '../types/blockProps';
+import type { IBlockSpaceProps } from '../types/blockProps';
 
 // Vue
 import { computed, ref, inject, type Ref } from 'vue';
 // #endregion
 
 // #region Props
-const props = defineProps<{
-    layoutProps: ISpaceProps;
-}>();
+const props = withDefaults(defineProps<IBlockSpaceProps>(), {});
 // #endregion
 
 // #region Data
@@ -55,9 +53,9 @@ function normalizeSize(rawSize: string | number | undefined): string {
 const normalizedSize = computed<string>(() => normalizeSize(props.layoutProps.size));
 
 const spaceStyle = computed<TSpaceStyle>(() => {
-    const style: TSpaceStyle = {
-        backgroundColor: 'transparent',
-    };
+    // Фон отбивки — целиком на CSS: inline `background-color` перебивал
+    // редакторскую подложку и hover-подсветку зоны.
+    const style: TSpaceStyle = {};
 
     if (props.layoutProps.direction === 'vertical' || props.layoutProps.direction === 'both') {
         style.height = normalizedSize.value;
@@ -115,35 +113,43 @@ const dividerStyle = computed<TSpaceStyle>((): TSpaceStyle => {
 </template>
 
 <style module lang="scss">
+// Отбивка читается как «пустое место»: деликатная диагональная штриховка вместо
+// тетрадной клетки — она не спорит с сеткой канваса и не рябит на мелких высотах.
 .BlockSpace {
     position: relative;
-    border: 1px dashed rgb(var(--bricks-rgb-gray) / 30%);
-    background: repeating-linear-gradient(
-        45deg,
-        rgb(var(--bricks-rgb-gray) / 10%),
-        rgb(var(--bricks-rgb-gray) / 10%) 1rem,
-        transparent 1rem,
-        transparent 2rem
+    overflow: hidden;
+    border: 1px dashed var(--bricks-base-300);
+    background-color: color-mix(in srgb, var(--bricks-base-200) 22%, transparent);
+    background-image: repeating-linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--bricks-base-400) 14%, transparent) 0 0.1rem,
+        transparent 0.1rem 0.6rem
     );
+    transition:
+        border-color var(--bricks-default-transition),
+        background-color var(--bricks-default-transition),
+        box-shadow var(--bricks-default-transition);
 
     &:hover {
-        border-color: rgb(var(--bricks-rgb-gray) / 50%);
-        background: repeating-linear-gradient(
-            45deg,
-            rgb(var(--bricks-rgb-gray) / 15%),
-            rgb(var(--bricks-rgb-gray) / 15%) 1rem,
-            transparent 1rem,
-            transparent 2rem
+        border-color: var(--bricks-primary);
+        background-color: color-mix(in srgb, var(--bricks-primary) 6%, transparent);
+        background-image: repeating-linear-gradient(
+            135deg,
+            color-mix(in srgb, var(--bricks-primary) 18%, transparent) 0 0.1rem,
+            transparent 0.1rem 0.6rem
         );
     }
 
     &.gridHidden {
         border-color: transparent;
-        background: transparent;
+        background-color: transparent;
+        background-image: none;
 
         &:hover {
             border-color: transparent;
-            background: transparent;
+            background-color: transparent;
+            background-image: none;
+            box-shadow: none;
         }
     }
 }

@@ -83,6 +83,12 @@
         0 2.4rem 6.4rem rgb(var(--bricks-rgb-base-900) / 14%);
     --bricks-shadow-focus: 0 0 0 0.4rem rgb(var(--bricks-rgb-primary) / 18%);
 
+    /* === Canvas interaction rings (hover / выделение блока в билдере) ===
+       Толщина одинаковая: при дробном zoom канваса кольцо в 0.1rem местами
+       не доживало до пикселя и грань «пропадала». Различие — только в цвете. */
+    --bricks-canvas-ring-hover: 0 0 0 0.2rem rgb(var(--bricks-rgb-primary) / 45%);
+    --bricks-canvas-ring-active: 0 0 0 0.2rem var(--bricks-primary);
+
     /* === Overlays === */
     --bricks-overlay-dark: rgb(var(--bricks-rgb-base-900) / 60%);
     --bricks-overlay-light: rgb(var(--bricks-rgb-base-0) / 20%);

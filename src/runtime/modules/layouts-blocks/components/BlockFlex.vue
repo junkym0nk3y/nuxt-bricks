@@ -1,10 +1,10 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IFlexLayoutProps } from '../types/blockProps';
+import type { IBlockFlexProps, IFlexLayoutProps } from '../types/blockProps';
 
 // Vue
-import { computed, ref, inject, type CSSProperties, type Ref, type Slot } from 'vue';
+import { computed, ref, inject, useCssModule, type CSSProperties, type Ref, type Slot } from 'vue';
 
 // Utils
 import { convertPxToRem } from '../../common/utils/main';
@@ -14,10 +14,7 @@ import { useLayoutDropZone } from '../composables/useLayoutDropZone';
 // #endregion
 
 // #region Props
-const props = defineProps<{
-    layoutProps: IFlexLayoutProps;
-    layoutId?: string;
-}>();
+const props = withDefaults(defineProps<IBlockFlexProps>(), {});
 
 const slots = defineSlots<{
     default?: Slot;
@@ -26,10 +23,9 @@ const slots = defineSlots<{
 
 // #region Data
 const showGrid = inject<Ref<boolean>>('showGrid', ref(true));
+const styles = useCssModule();
 const flexRef = ref<HTMLElement | null>(null);
-const dropIndicator = ref<{ index: number; offset: number } | null>(null);
 const dropInsertIndex = ref<number | null>(null);
-const dropIndicatorRef = ref<HTMLElement | null>(null);
 
 const justifyMap: Record<IFlexLayoutProps['justify'], CSSProperties['justifyContent']> = {
     start: 'flex-start',
@@ -85,87 +81,39 @@ const flexStyle = computed<CSSProperties>(() => {
 });
 
 const isHorizontal = computed(() => props.layoutProps.direction === 'row');
-
-const dropIndicatorVisible = computed(() => dropIndicator.value !== null);
-
-const dropIndicatorStyle = computed<CSSProperties>(() => {
-    if (!dropIndicator.value) {
-        return {
-            opacity: 0,
-        };
-    }
-
-    if (isHorizontal.value) {
-        return {
-            opacity: 1,
-            left: `${dropIndicator.value.offset}px`,
-            top: '0',
-            height: '100%',
-            width: '0.2rem',
-            transform: 'translateX(-50%)',
-        };
-    }
-
-    return {
-        opacity: 1,
-        top: `${dropIndicator.value.offset}px`,
-        left: '0',
-        width: '100%',
-        height: '0.2rem',
-        transform: 'translateY(-50%)',
-    };
-});
 // #endregion
 
 // #region Methods
 /**
- * Сбрасывает состояние drop-индикатора.
+ * Сбрасывает вычисленный индекс flow-плейсхолдера.
  */
-function clearDropIndicator(): void {
-    dropIndicator.value = null;
+function clearDropTarget(): void {
     dropInsertIndex.value = null;
 }
 
 /**
- * Пересчитывает позицию индикатора вставки по текущей позиции курсора.
+ * Пересчитывает индекс flow-плейсхолдера по текущей позиции курсора.
  *
  * @param event - Dragover-событие браузера.
  */
-function updateDropIndicator(event: DragEvent): void {
+function updateDropTarget(event: DragEvent): void {
     const container = flexRef.value;
     if (!container) {
         return;
     }
 
-    const rect = container.getBoundingClientRect();
-    const indicatorEl = dropIndicatorRef.value;
-    const children = Array.from(container.children).filter((child) => {
-        const el = child as HTMLElement;
-        if (!el) {
-            return false;
-        }
-        if (indicatorEl && el === indicatorEl) {
-            return false;
-        }
-        if (el.dataset.layoutDropPlaceholder === 'true') {
-            return false;
-        }
-        return el.hasAttribute('data-layout-drop-item');
-    }) as HTMLElement[];
+    const children = Array.from(
+        container.querySelectorAll<HTMLElement>(':scope > [data-layout-drop-item="true"]')
+    );
 
     const pointerPosition = isHorizontal.value ? event.clientX : event.clientY;
-    const containerExtent = isHorizontal.value ? rect.width : rect.height;
-    const halfGap = (props.layoutProps.gap || 0) / 2;
 
     if (children.length === 0) {
-        console.debug('[BlockFlex] updateDropIndicator: empty, set index 0');
-        dropIndicator.value = { index: 0, offset: 0 };
         dropInsertIndex.value = 0;
         return;
     }
 
     let targetIndex = children.length;
-    let offset = containerExtent;
 
     children.some((child, index) => {
         const childRect = child.getBoundingClientRect();
@@ -175,63 +123,33 @@ function updateDropIndicator(event: DragEvent): void {
 
         if (pointerPosition < mid) {
             targetIndex = index;
-            const baseOffset = isHorizontal.value
-                ? childRect.left - rect.left
-                : childRect.top - rect.top;
-            const childStyle = window.getComputedStyle(child as HTMLElement);
-            const marginBefore = parseFloat(
-                (isHorizontal.value ? childStyle.marginLeft : childStyle.marginTop) || '0'
-            );
-            const spacingBefore = Math.max(halfGap, marginBefore / 2);
-            offset = baseOffset - spacingBefore;
             return true;
         }
         return false;
     });
 
-    if (targetIndex === children.length) {
-        const lastChildRect = children[children.length - 1].getBoundingClientRect();
-        const lastChildStyle = window.getComputedStyle(
-            children[children.length - 1] as HTMLElement
-        );
-        const marginAfter = parseFloat(
-            (isHorizontal.value ? lastChildStyle.marginRight : lastChildStyle.marginBottom) || '0'
-        );
-        const spacingAfter = Math.max(halfGap, marginAfter / 2);
-        const baseOffset = isHorizontal.value
-            ? lastChildRect.right - rect.left
-            : lastChildRect.bottom - rect.top;
-        offset = baseOffset + spacingAfter;
-    }
-
-    offset = Math.max(0, Math.min(offset, containerExtent));
-
-    console.debug('[BlockFlex] updateDropIndicator', {
-        pointerPosition,
-        targetIndex,
-        offset,
-        childIds: children.map((child) => child.dataset.componentId || child.id),
-    });
-
-    dropIndicator.value = {
-        index: targetIndex,
-        offset,
-    };
-
     dropInsertIndex.value = targetIndex;
 }
+
 // #endregion
 
 // #region Drop zone
-const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop } =
-    useLayoutDropZone({
-        containerRef: flexRef,
-        layoutId: () => props.layoutId,
-        useDragDepth: true,
-        onDragMove: updateDropIndicator,
-        onReset: clearDropIndicator,
-        resolveDropIndex: () => dropInsertIndex.value,
-    });
+const {
+    isDragOver,
+    isCanvasDragActive,
+    handleDragEnter,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+} = useLayoutDropZone({
+    containerRef: flexRef,
+    layoutId: () => props.layoutId,
+    useDragDepth: true,
+    onDragMove: updateDropTarget,
+    onReset: clearDropTarget,
+    resolveDropIndex: () => dropInsertIndex.value,
+    placeholderClass: styles.dropPlaceholder,
+});
 // #endregion
 </script>
 
@@ -254,21 +172,13 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
         <slot />
 
         <!-- Drop placeholder when empty -->
-        <div v-if="isEmpty" :class="$style.emptyPlaceholder" data-layout-drop-placeholder="true">
+        <div
+            v-if="isEmpty && !isCanvasDragActive"
+            :class="$style.emptyPlaceholder"
+            data-layout-drop-placeholder="true"
+        >
             Drop components here
         </div>
-
-        <!-- Drop indicator -->
-        <div
-            v-if="dropIndicatorVisible"
-            ref="dropIndicatorRef"
-            :class="[
-                $style.dropIndicator,
-                isHorizontal ? $style.dropIndicatorVertical : $style.dropIndicatorHorizontal,
-            ]"
-            data-layout-drop-indicator="true"
-            :style="dropIndicatorStyle"
-        />
     </div>
 </template>
 
@@ -276,24 +186,28 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
 .BlockFlex {
     position: relative;
     min-width: 0;
-    border: 1px dashed rgb(var(--bricks-rgb-layout-flex) / 30%);
-    background: rgb(var(--bricks-rgb-layout-flex) / 5%);
-    transition: all 200ms ease;
+    border: 1px dashed var(--bricks-base-300);
+    background: var(--bricks-base-50);
+    transition:
+        border-color var(--bricks-default-transition),
+        background-color var(--bricks-default-transition),
+        box-shadow var(--bricks-default-transition);
 
     > :global([data-layout-drop-item='true']) {
         min-width: 0;
     }
 
+    // Кольцо hover/выделения рисует BuilderCanvasItem — здесь только подсветка
+    // самой зоны, иначе на канвасе получались два кольца разной толщины.
     &:hover {
-        border-color: rgb(var(--bricks-rgb-layout-flex) / 50%);
-        background: rgb(var(--bricks-rgb-layout-flex) / 8%);
+        border-color: var(--bricks-primary);
+        background: color-mix(in srgb, var(--bricks-primary) 6%, var(--bricks-base-50));
     }
 
-    &.dragOver {
-        border-color: rgb(var(--bricks-rgb-layout-flex) / 80%);
-        border-width: 0.2rem;
-        background: rgb(var(--bricks-rgb-layout-flex) / 15%);
-        box-shadow: 0 0 0 0.4rem rgb(var(--bricks-rgb-layout-flex) / 20%);
+    &.dragOver[data-layout-drop-active='true'] {
+        border-color: var(--bricks-primary);
+        background: color-mix(in srgb, var(--bricks-primary) 6%, var(--bricks-base-50));
+        box-shadow: var(--bricks-canvas-ring-active);
     }
 }
 
@@ -304,6 +218,7 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
     &:hover {
         border-color: transparent;
         background: transparent;
+        box-shadow: none;
     }
 }
 
@@ -312,25 +227,18 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
     text-align: center;
     font-size: 1.4rem;
     font-weight: 500;
-    color: rgb(var(--bricks-rgb-layout-flex) / 50%);
+    color: var(--bricks-base-500);
     pointer-events: none;
 }
 
-.dropIndicator {
-    position: absolute;
-    z-index: 5;
-    border-radius: var(--bricks-border-radius-pill);
-    background-color: rgb(var(--bricks-rgb-layout-flex) / 70%);
+.dropPlaceholder {
+    box-sizing: border-box;
+    align-self: stretch;
+    flex: none;
+    width: var(--bricks-drag-placeholder-flow-width);
+    height: var(--bricks-drag-placeholder-height);
+    border: 0.2rem dashed var(--bricks-primary);
+    background: color-mix(in srgb, var(--bricks-primary) 7%, transparent);
     pointer-events: none;
-}
-
-.dropIndicatorVertical {
-    width: 0.4rem;
-    height: 100%;
-}
-
-.dropIndicatorHorizontal {
-    width: 100%;
-    height: 0.4rem;
 }
 </style>

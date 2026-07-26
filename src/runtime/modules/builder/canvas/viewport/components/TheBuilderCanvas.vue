@@ -2,6 +2,7 @@
 // #region Imports
 // Types
 import type { IDragComposableCanvas } from '../../types/components';
+import type { TDropFlowEntry } from '../../../core/types/drag';
 
 // Vue
 import { ref, computed, inject, provide, onMounted, onBeforeUnmount, nextTick } from 'vue';
@@ -23,13 +24,16 @@ import { useCanvasPan } from '../composables/useCanvasPan';
 import { useCanvasWheel } from '../composables/useCanvasWheel';
 import { useCanvasCentering } from '../composables/useCanvasCentering';
 import { useCanvasContainerMetrics } from '../composables/useCanvasContainerMetrics';
+import { useCanvasFlowGuard } from '../composables/useCanvasFlowGuard';
 import { useInteractivePreviewDismiss } from '../composables/useInteractivePreviewDismiss';
 
 // Utils
 import { convertPxToRem } from '../../../../common/utils/main';
+import { buildDropFlowEntries, getDragPlaceholderVars } from '../../../core/utils/dragVisuals';
 
 // Constants
 import {
+    CANVAS_DRAG_ACTIVE_KEY,
     CANVAS_VIEWPORT_KEY,
     INLINE_EDITOR_HOST_KEY,
 } from '../../../../common/constants/injectionKeys';
@@ -38,6 +42,7 @@ import { scrollToComponentOnCanvas } from '../../../core/utils/scrollToComponent
 // Components
 import BuilderCanvasItem from '../../item/components/BuilderCanvasItem.vue';
 import BuilderCanvasBottomBar from './BuilderCanvasBottomBar.vue';
+import BuilderCanvasDropPlaceholder from './BuilderCanvasDropPlaceholder.vue';
 import BuilderCanvasEmptyState from './BuilderCanvasEmptyState.vue';
 import BuilderCanvasViewport from './BuilderCanvasViewport.vue';
 import BuilderCanvasInlineEditingOverlay from '../../editing/components/BuilderCanvasInlineEditingOverlay.vue';
@@ -63,11 +68,14 @@ const {
 } = useCanvas();
 
 const dragComposable = inject<IDragComposableCanvas | undefined>('dragComposable');
+const isCanvasDragActive = computed<boolean>(() => canvasStore.dragState.source !== null);
 
 provide(
     'showGrid',
     computed(() => canvasStore.showGrid)
 );
+
+provide(CANVAS_DRAG_ACTIVE_KEY, isCanvasDragActive);
 
 /** Активный viewport для обычного режима (в Figma mode перекрывается BuilderCanvasViewport) */
 provide(
@@ -98,9 +106,8 @@ const canvasWrapperRef = ref<HTMLElement | null>(null);
 const isMounted = ref(false);
 
 const {
-    rootDropIndicatorVisible,
-    rootDropIndicatorStyle,
-    rootDropIndicatorRef,
+    rootDropIndex,
+    isRootPlaceholderContained,
     handleRootDragEnter,
     handleRootDragOver,
     handleRootDragLeave,
@@ -114,6 +121,10 @@ const {
     canvasRef,
     containerRef,
 });
+
+// Зум и смена viewport двигают блоки на экране, не меняя порядок, — на это время
+// move-переходы потока выключаются, иначе канвас дрожит.
+useCanvasFlowGuard(canvasRef);
 
 const { isPanning, handleCanvasAreaPointerDown } = useCanvasPan(canvasContainer);
 
@@ -166,6 +177,7 @@ const canvasStyle = computed<Record<string, string>>(() => {
         height: convertPxToRem(canvasStore.height),
         backgroundColor: publishStore.currentFormState.backgroundColor || 'var(--bricks-base-0)',
         fontFamily: config.defaultFont,
+        ...getDragPlaceholderVars(canvasStore.dragState),
     };
 
     if (!isMounted.value) {
@@ -178,6 +190,11 @@ const canvasStyle = computed<Record<string, string>>(() => {
         transform: canvasTransform.value,
     };
 });
+
+/** Root-поток: блоки страницы и место вставки одним keyed-списком для TransitionGroup. */
+const rootFlowEntries = computed<TDropFlowEntry[]>(() =>
+    buildDropFlowEntries(componentsStore.getRootComponents(), rootDropIndex.value, 'root-drop')
+);
 
 /**
  * Стили для обёртки Figma Mode — базовый scale без rem-компенсации.
@@ -243,6 +260,14 @@ function scrollToSelectedAfterViewportSwitch(): void {
         scrollToComponentOnCanvas(selected.id);
     }, 350);
 }
+
+/**
+ * Страхует откат transient drag-состояния: `dragend` приходит и после успешного
+ * drop, и после отмены (Esc, уход за окно), даже если источник свои хендлеры не отработал.
+ */
+function handleDocumentDragEnd(): void {
+    canvasStore.finishCanvasDrag();
+}
 // #endregion
 
 // #region Lifecycle
@@ -272,6 +297,7 @@ onMounted(async () => {
     await nextTick();
 
     window.addEventListener('resize', debouncedResize);
+    document.addEventListener('dragend', handleDocumentDragEnd);
     handleResize();
     updateContainerMetrics();
     scheduleCanvasCenter('auto');
@@ -292,6 +318,8 @@ onMounted(async () => {
  */
 onBeforeUnmount(() => {
     window.removeEventListener('resize', debouncedResize);
+    document.removeEventListener('dragend', handleDocumentDragEnd);
+    canvasStore.finishCanvasDrag();
     if (canvasRef.value) {
         canvasRef.value.removeEventListener('layout-drop', handleLayoutDrop as EventListener);
         canvasRef.value.removeEventListener('slot-drop', handleSlotDrop as EventListener);
@@ -362,25 +390,24 @@ onBeforeUnmount(() => {
                             @dragover="handleRootDragOver"
                             @dragleave="handleRootDragLeave"
                         >
-                            <!-- Components (only root-level, children will be rendered inside layouts) -->
-                            <BuilderCanvasItem
-                                v-for="component in componentsStore.getRootComponents()"
-                                :key="component.id"
-                                :component="component"
-                            />
+                            <!-- Components (only root-level, children will be rendered inside layouts).
+                                 Плейсхолдер вставки идёт тем же потоком; TransitionGroup сглаживает сдвиг соседей -->
+                            <TransitionGroup name="bricks-canvas-flow">
+                                <template v-for="entry in rootFlowEntries" :key="entry.key">
+                                    <BuilderCanvasDropPlaceholder
+                                        v-if="entry.kind === 'placeholder'"
+                                        :contained="isRootPlaceholderContained"
+                                    />
 
-                            <!-- Root drop indicator -->
-                            <div
-                                v-if="rootDropIndicatorVisible"
-                                ref="rootDropIndicatorRef"
-                                :class="$style.rootDropIndicator"
-                                :style="rootDropIndicatorStyle"
-                                data-root-drop-indicator="true"
-                            />
+                                    <BuilderCanvasItem v-else :component="entry.component" />
+                                </template>
+                            </TransitionGroup>
                         </div>
                     </div>
 
-                    <BuilderCanvasEmptyState v-if="componentsStore.sortedComponents.length === 0" />
+                    <BuilderCanvasEmptyState
+                        v-if="componentsStore.sortedComponents.length === 0 && !isCanvasDragActive"
+                    />
                 </div>
             </div>
         </div>
@@ -470,16 +497,5 @@ onBeforeUnmount(() => {
 .screenContent {
     position: relative;
     width: 100%;
-}
-
-.rootDropIndicator {
-    position: absolute;
-    left: 0;
-    z-index: 5;
-    width: 100%;
-    height: 0.4rem;
-    border-radius: 50%;
-    background: rgb(var(--bricks-rgb-primary) / 70%);
-    pointer-events: none;
 }
 </style>

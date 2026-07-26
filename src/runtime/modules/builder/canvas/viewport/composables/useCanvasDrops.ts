@@ -1,11 +1,18 @@
-import { computed, ref } from 'vue';
-import type { IComponentSlotDefinition } from '../../../../common/types/brick';
-import type {
-    ICanvasDropIndicator,
-    ICanvasDropsOptions,
-    ILayoutDropDetail,
-    ISlotDropDetail,
-} from '../../types/canvas';
+// #region Imports
+// Types
+import type { IComponentSlotDefinition, TCanvasDragSource } from '../../../../common/types/brick';
+import type { ICanvasDropsOptions, ILayoutDropDetail, ISlotDropDetail } from '../../types/canvas';
+
+// Vue
+import { computed, ref, watch } from 'vue';
+
+// Pinia
+import { useCanvasStore } from '../../../core/stores/canvas';
+
+// Utils
+import { applyDropEffect } from '../../../../common/utils/dragAndDrop';
+import { suspendCanvasFlowTransitions } from '../../../core/utils/canvasFlow';
+// #endregion
 
 /**
  * Собирает всю drag & drop-логику корневой области канваса в одном месте.
@@ -18,31 +25,38 @@ export function useCanvasDrops({
     canvasRef,
     containerRef,
 }: ICanvasDropsOptions) {
-    const rootDropIndicator = ref<ICanvasDropIndicator | null>(null);
-    const rootDropIndicatorRef = ref<HTMLElement | null>(null);
-    const rootDropInsertIndex = ref<number | null>(null);
+    const canvasStore = useCanvasStore();
+    /** Индекс будущей вставки в root: он же позиция flow-плейсхолдера в шаблоне. */
+    const rootDropIndex = ref<number | null>(null);
     const rootDragDepth = ref(0);
 
-    const rootDropIndicatorVisible = computed(() => rootDropIndicator.value !== null);
-    const rootDropIndicatorStyle = computed<Record<string, string>>(() => {
-        return rootDropIndicator.value
-            ? {
-                  opacity: '1',
-                  top: `${rootDropIndicator.value.offset}px`,
-                  left: '0',
-                  width: '100%',
-                  height: '0.2rem',
-                  transform: 'translateY(-50%)',
-              }
-            : {
-                  opacity: '0',
-                  top: '0',
-                  left: '0',
-                  width: '100%',
-                  height: '0.2rem',
-                  transform: 'translateY(-50%)',
-              };
+    /**
+     * Попадёт ли будущий root-блок внутрь `.bricks-container`: контейнер отключает
+     * только `fullWidth`, поэтому место вставки должно повторять его геометрию
+     * (max-width + aside-отступы), а не всю ширину канваса.
+     *
+     * Новый блок из библиотеки всегда создаётся без `fullWidth`; существующий
+     * сохраняет своё значение при переносе в корень.
+     */
+    const isRootPlaceholderContained = computed<boolean>(() => {
+        const { source, componentId } = canvasStore.dragState;
+
+        if (source === 'canvas' && componentId) {
+            return componentsStore.getComponentById(componentId)?.fullWidth !== true;
+        }
+
+        return true;
     });
+
+    /**
+     * Отключает анимацию сдвига потока на время применения drop.
+     *
+     * Место под блок уже раздвинуто плейсхолдером, поэтому FLIP на этом патче
+     * рисовал бы «доезд» блока к позиции после отпускания курсора.
+     */
+    function commitFlowInstantly(): void {
+        suspendCanvasFlowTransitions(canvasRef.value);
+    }
 
     /**
      * Обрабатывает drop по корневой области канваса и передает данные drag-композиблу.
@@ -51,19 +65,18 @@ export function useCanvasDrops({
      */
     function handleCanvasDrop(event: DragEvent): void {
         if (canvasRef.value && dragComposable?.handleDrop) {
-            updateRootDropIndicator(event);
-
-            const rootTargetIndex =
-                typeof rootDropInsertIndex.value === 'number'
-                    ? rootDropInsertIndex.value
-                    : (rootDropIndicator.value?.index ?? null);
+            updateRootDropPlaceholder(event);
+            commitFlowInstantly();
 
             dragComposable.handleDrop(event, canvasRef.value, componentsStore, {
-                rootTargetIndex,
+                rootTargetIndex: rootDropIndex.value,
             });
 
-            resetRootDropIndicator();
-            rootDragDepth.value = 0;
+            resetRootDropPlaceholder();
+            // Drop-сессия закончена независимо от того, приняла ли зона payload:
+            // без этого исходное место оставалось схлопнутым до `dragend`, который
+            // браузер присылает на кадр-два позже — блок «возвращался» с задержкой.
+            finishDrag();
         }
     }
 
@@ -106,13 +119,25 @@ export function useCanvasDrops({
     }
 
     /**
-     * Сбрасывает состояние индикатора и глубины drag-событий на корне.
+     * Сбрасывает позицию плейсхолдера и глубину drag-событий на корне.
      */
-    function resetRootDropIndicator(): void {
-        rootDropIndicator.value = null;
-        rootDropInsertIndex.value = null;
+    function resetRootDropPlaceholder(): void {
+        rootDropIndex.value = null;
         rootDragDepth.value = 0;
     }
+
+    /**
+     * Убирает корневой transient-плейсхолдер при окончании или отмене drag.
+     *
+     * @param source - Текущий источник drag-сессии.
+     */
+    function handleDragSourceChange(source: TCanvasDragSource | null): void {
+        if (source === null) {
+            resetRootDropPlaceholder();
+        }
+    }
+
+    watch(() => canvasStore.dragState.source, handleDragSourceChange, { flush: 'sync' });
 
     /**
      * Обрабатывает вход курсора в корневую drop-зону.
@@ -126,7 +151,7 @@ export function useCanvasDrops({
 
         event.preventDefault();
         rootDragDepth.value += 1;
-        updateRootDropIndicator(event);
+        updateRootDropPlaceholder(event);
     }
 
     /**
@@ -136,12 +161,12 @@ export function useCanvasDrops({
      */
     function handleRootDragOver(event: DragEvent): void {
         if (!shouldHandleRootDrag(event)) {
-            resetRootDropIndicator();
+            resetRootDropPlaceholder();
             return;
         }
 
         event.preventDefault();
-        updateRootDropIndicator(event);
+        updateRootDropPlaceholder(event);
     }
 
     /**
@@ -157,101 +182,44 @@ export function useCanvasDrops({
         event.preventDefault();
         rootDragDepth.value = Math.max(0, rootDragDepth.value - 1);
         if (rootDragDepth.value === 0) {
-            resetRootDropIndicator();
+            resetRootDropPlaceholder();
         }
     }
 
     /**
-     * Пересчитывает позицию и индекс корневого индикатора drop-зоны.
+     * Пересчитывает индекс вставки корневой drop-зоны по позиции курсора.
      *
      * @param event - Текущее dragover-событие.
      */
-    function updateRootDropIndicator(event: DragEvent): void {
+    function updateRootDropPlaceholder(event: DragEvent): void {
         const container = containerRef.value;
-        if (!container || !event.dataTransfer) {
+        if (!container) {
             return;
         }
 
-        if (!shouldHandleRootDrag(event)) {
-            resetRootDropIndicator();
+        if (!shouldHandleRootDrag(event) || !applyDropEffect(event)) {
+            resetRootDropPlaceholder();
             return;
         }
 
-        const types = Array.from(event.dataTransfer.types || []);
-        const isExisting = types.includes('component-id') || types.includes('text/plain');
-        const isLibrary = types.includes('application/json');
-
-        if (!isExisting && !isLibrary) {
-            event.dataTransfer.dropEffect = 'none';
-            resetRootDropIndicator();
-            return;
-        }
-
-        event.dataTransfer.dropEffect = isExisting ? 'move' : 'copy';
-
-        const rect = container.getBoundingClientRect();
-        const indicatorEl = rootDropIndicatorRef.value;
-        const children = Array.from(container.children).filter((child) => {
-            const el = child as HTMLElement;
-            if (!el) {
-                return false;
-            }
-            if (indicatorEl && el === indicatorEl) {
-                return false;
-            }
-            return el.hasAttribute('data-layout-drop-item');
-        }) as HTMLElement[];
-
+        const children = Array.from(
+            container.querySelectorAll<HTMLElement>(':scope > [data-layout-drop-item="true"]')
+        );
         const pointerY = event.clientY;
-        const containerExtent = container.clientHeight;
-        const computedStyle = window.getComputedStyle(container);
-        const gapValue = parseFloat(computedStyle.rowGap || computedStyle.gap || '0') || 0;
-        const halfGap = gapValue / 2;
-
-        if (children.length === 0) {
-            const offset = Math.max(0, Math.min(pointerY - rect.top, containerExtent));
-            rootDropIndicator.value = {
-                index: 0,
-                offset,
-            };
-            rootDropInsertIndex.value = 0;
-            return;
-        }
-
-        let targetIndex = children.length;
-        let offset = containerExtent;
-
-        children.some((child, index) => {
+        const hoveredIndex = children.findIndex((child) => {
             const childRect = child.getBoundingClientRect();
-            const mid = childRect.top + childRect.height / 2;
-
-            if (pointerY < mid) {
-                targetIndex = index;
-                const childStyle = window.getComputedStyle(child as HTMLElement);
-                const marginTop = parseFloat(childStyle.marginTop || '0');
-                const spacingBefore = Math.max(halfGap, marginTop / 2);
-                offset = (child as HTMLElement).offsetTop - spacingBefore;
-                return true;
-            }
-
-            return false;
+            return pointerY < childRect.top + childRect.height / 2;
         });
 
-        if (targetIndex === children.length) {
-            const lastChild = children[children.length - 1] as HTMLElement;
-            const lastStyle = window.getComputedStyle(lastChild);
-            const marginBottom = parseFloat(lastStyle.marginBottom || '0');
-            const spacingAfter = Math.max(halfGap, marginBottom / 2);
-            offset = lastChild.offsetTop + lastChild.offsetHeight + spacingAfter;
-        }
+        rootDropIndex.value = hoveredIndex === -1 ? children.length : hoveredIndex;
+    }
 
-        offset = Math.max(0, Math.min(offset, containerExtent));
-
-        rootDropIndicator.value = {
-            index: targetIndex,
-            offset,
-        };
-        rootDropInsertIndex.value = targetIndex;
+    /**
+     * Завершает успешную drag-сессию после мутации store.
+     */
+    function finishDrag(): void {
+        dragComposable?.endDrag();
+        canvasStore.finishCanvasDrag();
     }
 
     /**
@@ -260,7 +228,8 @@ export function useCanvasDrops({
      * @param event - Событие layout-компонента.
      */
     function handleLayoutDrop(event: CustomEvent): void {
-        resetRootDropIndicator();
+        resetRootDropPlaceholder();
+        commitFlowInstantly();
         const detail = event.detail as ILayoutDropDetail;
         const { movedComponentId } = detail;
 
@@ -271,10 +240,12 @@ export function useCanvasDrops({
 
         if (movedComponentId) {
             moveExistingComponent(detail);
+            finishDrag();
             return;
         }
 
         addComponentFromLibrary(detail);
+        finishDrag();
     }
 
     /**
@@ -358,6 +329,7 @@ export function useCanvasDrops({
      * @param event - Событие slot-компонента.
      */
     function handleSlotDrop(event: CustomEvent): void {
+        commitFlowInstantly();
         const detail = event.detail as ISlotDropDetail;
         const { parentId, slotName, movedComponentId, targetIndex } = detail || {};
 
@@ -373,6 +345,7 @@ export function useCanvasDrops({
                 movedComponentId,
                 typeof targetIndex === 'number' ? targetIndex : undefined
             );
+            finishDrag();
             return;
         }
 
@@ -413,12 +386,12 @@ export function useCanvasDrops({
         if (dragComposable?.draggedComponent) {
             dragComposable.draggedComponent.value = null;
         }
+        finishDrag();
     }
 
     return {
-        rootDropIndicatorVisible,
-        rootDropIndicatorStyle,
-        rootDropIndicatorRef,
+        rootDropIndex,
+        isRootPlaceholderContained,
         handleRootDragEnter,
         handleRootDragOver,
         handleRootDragLeave,

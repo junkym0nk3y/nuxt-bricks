@@ -2,11 +2,6 @@ import type { Ref } from 'vue';
 import type { IDragComposableCanvas } from './components';
 import type { TBricksComponentsStore } from '../../core/stores/components';
 
-export interface ICanvasDropIndicator {
-    index: number;
-    offset: number;
-}
-
 export interface ICanvasDropsOptions {
     dragComposable?: IDragComposableCanvas;
     componentsStore: TBricksComponentsStore;

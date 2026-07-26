@@ -6,6 +6,32 @@
 
 export type TBricksDeviceKey = 'mobile' | 'tablet' | 'desktop';
 
+export type TCanvasDragSource = 'canvas' | 'library';
+
+export interface IDragVisualSize {
+    width: number;
+    height: number;
+    isFullWidth?: boolean;
+}
+
+export interface ICanvasDragStartPayload extends IDragVisualSize {
+    source: TCanvasDragSource;
+    componentId?: string | null;
+}
+
+export interface ICanvasDragState {
+    source: TCanvasDragSource | null;
+    componentId: string | null;
+    width: number;
+    height: number;
+    isFullWidth: boolean;
+    /**
+     * Оригинал перетаскиваемого блока убран из потока. Ставится с задержкой после
+     * dragstart, иначе мгновенный display:none на источнике отменяет нативный drag.
+     */
+    sourceVacated: boolean;
+}
+
 /** Значение редактируемого свойства брика (единый источник правды для props-значений) */
 export type TBrickPropValue = string | number | boolean | Record<string, unknown> | Array<unknown>;
 
@@ -108,6 +134,8 @@ export interface ICanvasState {
     activeViewport: TBricksDeviceKey | null;
     /** Ограничивать новый компонент только тем viewport, куда его бросили (Figma mode) */
     figmaDropPerViewport: boolean;
+    /** Transient drag-state: не сериализуется в schema/history. */
+    dragState: ICanvasDragState;
     /** Ширина и высота канваса до входа в Figma mode (для восстановления при выходе) */
     _preFigmaWidth: number | null;
     _preFigmaHeight: number | null;

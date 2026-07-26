@@ -13,6 +13,15 @@ import type { IInlineEditorHost } from '../types/inlineEditing';
 export const CANVAS_VIEWPORT_KEY: InjectionKey<Ref<TBricksDeviceKey>> = Symbol('canvasViewport');
 
 /**
+ * Активна ли drag-сессия на canvas. Layout-блоки используют сигнал, чтобы скрыть
+ * пустые drop-маркеры («Drop components here») и сбросить локальное drag-состояние
+ * зоны по завершении сессии. Вспомогательная сетка (тумблер) при драге остаётся.
+ */
+export const CANVAS_DRAG_ACTIVE_KEY = Symbol.for('nuxt-bricks.canvasDragActive') as InjectionKey<
+    Ref<boolean>
+>;
+
+/**
  * Порт inline editing к состоянию билдера (пропы + история).
  * Провайдится `TheBuilderCanvas`; на published-странице провайдера нет —
  * `useInlineEditor` без хоста не инициализирует редактор.

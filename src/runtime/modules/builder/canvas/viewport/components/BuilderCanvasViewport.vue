@@ -1,8 +1,9 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IDragComposableCanvas } from '../../types/components';
+import type { ICanvasViewportProps, IDragComposableCanvas } from '../../types/components';
 import type { IDeviceVisibilityConfig, TBricksDeviceKey } from '../../../../common/types/brick';
+import type { TDropFlowEntry } from '../../../core/types/drag';
 
 // Vue
 import { computed, ref, inject, provide, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
@@ -15,25 +16,22 @@ import { usePublishStore } from '../../../publish/stores/publish';
 // Composables
 import { useBricksConfig } from '../../../../common/composables/useBricksConfig';
 import { useCanvasDrops } from '../composables/useCanvasDrops';
+import { useCanvasFlowGuard } from '../composables/useCanvasFlowGuard';
 
 // Utils
 import { convertPxToRem } from '../../../../common/utils/main';
+import { buildDropFlowEntries, getDragPlaceholderVars } from '../../../core/utils/dragVisuals';
 
 // Constants
 import { CANVAS_VIEWPORT_KEY } from '../../../../common/constants/injectionKeys';
 
 // Components
 import BuilderCanvasItem from '../../item/components/BuilderCanvasItem.vue';
-// #endregion
-
-// #region Interfaces
-interface ICanvasViewportProps {
-    viewport: TBricksDeviceKey;
-}
+import BuilderCanvasDropPlaceholder from './BuilderCanvasDropPlaceholder.vue';
 // #endregion
 
 // #region Props
-const props = defineProps<ICanvasViewportProps>();
+const props = withDefaults(defineProps<ICanvasViewportProps>(), {});
 // #endregion
 
 // #region Data
@@ -71,9 +69,8 @@ const DEVICE_VISIBILITY_MAP: Record<TBricksDeviceKey, IDeviceVisibilityConfig> =
 };
 
 const {
-    rootDropIndicatorVisible,
-    rootDropIndicatorStyle,
-    rootDropIndicatorRef,
+    rootDropIndex,
+    isRootPlaceholderContained,
     handleRootDragEnter,
     handleRootDragOver,
     handleRootDragLeave,
@@ -89,6 +86,10 @@ const {
 });
 
 let containerResizeObserver: ResizeObserver | null = null;
+
+// Figma mode: масштаб общий для всех viewport-ов — глушим переходы потока так же,
+// как в обычном канвасе.
+useCanvasFlowGuard(canvasRef);
 // #endregion
 
 // #region Computed
@@ -111,6 +112,7 @@ const canvasStyle = computed<Record<string, string>>(() => {
         height: convertPxToRem(viewportHeight.value),
         backgroundColor: publishStore.currentFormState.backgroundColor || 'var(--bricks-base-0)',
         fontFamily: config.defaultFont,
+        ...getDragPlaceholderVars(canvasStore.dragState),
     };
 
     if (compensation !== 1) {
@@ -120,6 +122,11 @@ const canvasStyle = computed<Record<string, string>>(() => {
 
     return style;
 });
+
+/** Root-поток: блоки страницы и место вставки одним keyed-списком для TransitionGroup. */
+const rootFlowEntries = computed<TDropFlowEntry[]>(() =>
+    buildDropFlowEntries(componentsStore.getRootComponents(), rootDropIndex.value, 'root-drop')
+);
 
 const viewportLabel = computed<string>(() => {
     const labels: Record<TBricksDeviceKey, string> = {
@@ -255,6 +262,7 @@ onBeforeUnmount(() => {
             :class="[$style.canvas, 'bricks-canvas']"
             :style="canvasStyle"
             :data-bricks-viewport="props.viewport"
+            data-canvas-area="true"
             @drop="handleViewportDrop"
             @dragover="handleCanvasDragOver"
             @click="handleCanvasClick"
@@ -271,20 +279,17 @@ onBeforeUnmount(() => {
                     @dragover="handleRootDragOver"
                     @dragleave="handleRootDragLeave"
                 >
-                    <BuilderCanvasItem
-                        v-for="component in componentsStore.getRootComponents()"
-                        :key="component.id"
-                        :component="component"
-                    />
+                    <!-- Плейсхолдер раздвигает соседей в потоке; TransitionGroup сглаживает сдвиг -->
+                    <TransitionGroup name="bricks-canvas-flow">
+                        <template v-for="entry in rootFlowEntries" :key="entry.key">
+                            <BuilderCanvasDropPlaceholder
+                                v-if="entry.kind === 'placeholder'"
+                                :contained="isRootPlaceholderContained"
+                            />
 
-                    <!-- Root drop indicator -->
-                    <div
-                        v-if="rootDropIndicatorVisible"
-                        ref="rootDropIndicatorRef"
-                        :class="$style.rootDropIndicator"
-                        :style="rootDropIndicatorStyle"
-                        data-root-drop-indicator="true"
-                    />
+                            <BuilderCanvasItem v-else :component="entry.component" />
+                        </template>
+                    </TransitionGroup>
                 </div>
             </div>
         </div>
@@ -321,16 +326,5 @@ onBeforeUnmount(() => {
 .screenContent {
     position: relative;
     width: 100%;
-}
-
-.rootDropIndicator {
-    position: absolute;
-    left: 0;
-    z-index: 5;
-    width: 100%;
-    height: 0.4rem;
-    border-radius: 50%;
-    background: rgb(var(--bricks-rgb-primary) / 70%);
-    pointer-events: none;
 }
 </style>

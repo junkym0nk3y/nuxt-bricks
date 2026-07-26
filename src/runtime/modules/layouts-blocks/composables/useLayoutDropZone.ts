@@ -7,7 +7,13 @@ import type {
 } from '../types/dropZone';
 
 // Vue
-import { ref, toValue } from 'vue';
+import { inject, onBeforeUnmount, ref, toValue, watch } from 'vue';
+
+// Utils
+import { animateFlowPlaceholder, applyDropEffect } from '../../common/utils/dragAndDrop';
+
+// Constants
+import { CANVAS_DRAG_ACTIVE_KEY } from '../../common/constants/injectionKeys';
 // #endregion
 
 /**
@@ -26,6 +32,28 @@ function dispatchLayoutDrop(el: HTMLElement | null, detail: ILayoutDropZoneDetai
 }
 
 /**
+ * Гарантирует единственный flow-плейсхолдер на канвасе: удаляет все чужие
+ * layout-плейсхолдеры, осиротевшие из-за ненадёжного dragleave между зонами.
+ *
+ * @param current - Плейсхолдер активной зоны, который нужно сохранить.
+ */
+function removeForeignDropPlaceholders(current: HTMLElement | null): void {
+    if (typeof document === 'undefined') {
+        return;
+    }
+
+    const placeholders = document.querySelectorAll<HTMLElement>(
+        '[data-layout-drop-destination="true"]'
+    );
+
+    placeholders.forEach((node) => {
+        if (node !== current) {
+            node.remove();
+        }
+    });
+}
+
+/**
  * Общая drag&drop-логика layout-блоков (Grid/Flex/Section/Slider):
  * dropEffect по типу payload, drag-over состояние с опциональным счётчиком
  * вложенности, guard от self-drop и dispatch события `layout-drop`.
@@ -39,6 +67,12 @@ export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZ
 
     /** Глубина вложенных dragenter/dragleave (курсор над детьми зоны) */
     const dragDepth = ref(0);
+    let dropPlaceholder: HTMLElement | null = null;
+    let activeDropContainer: HTMLElement | null = null;
+
+    /** Последний применённый индекс вставки: у зон вне потока DOM-позиция не меняется. */
+    let placeholderTargetIndex: number | null = null;
+    const isCanvasDragActive = inject(CANVAS_DRAG_ACTIVE_KEY, ref(false));
     // #endregion
 
     // #region Methods
@@ -50,27 +84,127 @@ export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZ
     }
 
     /**
-     * Устанавливает dropEffect на основе типа перетаскиваемого элемента.
-     * Без явного dropEffect браузер может отклонить drop.
+     * Удаляет flow-плейсхолдер из текущей drop-зоны.
+     */
+    function removeDropPlaceholder(): void {
+        dropPlaceholder?.remove();
+        dropPlaceholder = null;
+        placeholderTargetIndex = null;
+    }
+
+    /**
+     * Помечает единственную активную layout drop-зону для лёгкой подсветки.
+     *
+     * @param container - Текущий контейнер или null при сбросе.
+     */
+    function setActiveDropContainer(container: HTMLElement | null): void {
+        // Повторная отметка того же контейнера снимала бы и возвращала атрибут на
+        // каждом dragover — подсветка зоны мигала бы на всю длину своего перехода.
+        if (container && activeDropContainer === container) {
+            return;
+        }
+
+        activeDropContainer?.removeAttribute('data-layout-drop-active');
+        activeDropContainer = container;
+
+        if (!container) {
+            return;
+        }
+
+        const activeContainers = document.querySelectorAll<HTMLElement>(
+            '[data-layout-drop-active="true"]'
+        );
+        activeContainers.forEach((node) => {
+            if (node !== container) {
+                node.removeAttribute('data-layout-drop-active');
+            }
+        });
+        container.dataset.layoutDropActive = 'true';
+    }
+
+    /**
+     * Создаёт flow-плейсхолдер с CSS Modules class текущего layout-блока.
+     *
+     * @returns DOM-элемент плейсхолдера или null, если визуализация не настроена.
+     */
+    function getDropPlaceholder(): HTMLElement | null {
+        if (dropPlaceholder?.isConnected) {
+            return dropPlaceholder;
+        }
+
+        if (!options.placeholderClass) {
+            return null;
+        }
+
+        dropPlaceholder = document.createElement('div');
+        dropPlaceholder.className = options.placeholderClass;
+        dropPlaceholder.dataset.layoutDropDestination = 'true';
+        dropPlaceholder.setAttribute('aria-hidden', 'true');
+        return dropPlaceholder;
+    }
+
+    /**
+     * Применяет к плейсхолдеру inline-геометрию зоны для целевого индекса.
+     * Зоны без своей раскладки (Flex/Section/Slider) остаются на flow-размерах класса.
+     *
+     * @param placeholder - Элемент плейсхолдера.
+     * @param targetIndex - Индекс места вставки.
+     */
+    function applyPlaceholderStyle(placeholder: HTMLElement, targetIndex: number): void {
+        const style = options.resolvePlaceholderStyle?.(targetIndex);
+        if (!style) {
+            return;
+        }
+
+        Object.entries(style).forEach(([property, value]) => {
+            placeholder.style.setProperty(property, value);
+        });
+    }
+
+    /**
+     * Вставляет плейсхолдер между layout children по вычисленному targetIndex.
      *
      * @param event - Текущее drag-событие.
      */
-    function updateDropEffect(event: DragEvent): void {
-        if (!event.dataTransfer) {
+    function syncDropPlaceholder(event: DragEvent): void {
+        const container = options.resolvePlaceholderContainer?.() ?? options.containerRef.value;
+        const placeholder = getDropPlaceholder();
+        const targetIndex = options.resolveDropIndex(event);
+
+        // Активная зона забирает единственный плейсхолдер, вычищая осиротевшие в других зонах.
+        removeForeignDropPlaceholders(placeholder);
+
+        if (!container || !placeholder || targetIndex === null) {
+            setActiveDropContainer(null);
+            removeDropPlaceholder();
             return;
         }
 
-        const types = Array.from(event.dataTransfer.types || []);
-        const isExisting = types.includes('component-id') || types.includes('text/plain');
-        const isLibrary = types.includes('application/json');
+        setActiveDropContainer(container);
 
-        if (!isExisting && !isLibrary) {
-            event.dataTransfer.dropEffect = 'none';
-            options.onReset?.();
+        const children =
+            options.resolvePlaceholderChildren?.() ??
+            Array.from(
+                container.querySelectorAll<HTMLElement>(':scope > [data-layout-drop-item="true"]')
+            );
+        const referenceNode = children[targetIndex] ?? null;
+
+        // Позиция не изменилась — узел не трогаем: insertBefore даже в ту же точку
+        // переподключает элемент, а это сбрасывает его анимации на каждом dragover.
+        if (
+            placeholder.parentNode === container &&
+            placeholder.nextElementSibling === referenceNode &&
+            placeholderTargetIndex === targetIndex
+        ) {
             return;
         }
 
-        event.dataTransfer.dropEffect = isExisting ? 'move' : 'copy';
+        const previousRect = placeholder.isConnected ? placeholder.getBoundingClientRect() : null;
+
+        container.insertBefore(placeholder, referenceNode);
+        applyPlaceholderStyle(placeholder, targetIndex);
+        placeholderTargetIndex = targetIndex;
+        animateFlowPlaceholder(placeholder, previousRect);
     }
 
     /**
@@ -79,6 +213,8 @@ export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZ
     function resetDropState(): void {
         isDragOver.value = false;
         dragDepth.value = 0;
+        setActiveDropContainer(null);
+        removeDropPlaceholder();
         options.onReset?.();
     }
 
@@ -99,9 +235,14 @@ export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZ
             dragDepth.value += 1;
         }
 
+        if (!applyDropEffect(event)) {
+            resetDropState();
+            return;
+        }
+
         isDragOver.value = true;
-        updateDropEffect(event);
         options.onDragMove?.(event);
+        syncDropPlaceholder(event);
     }
 
     /**
@@ -116,18 +257,19 @@ export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZ
         event.preventDefault();
         event.stopPropagation();
 
-        updateDropEffect(event);
+        const isAccepted = applyDropEffect(event) && (options.canAcceptDragOver?.(event) ?? true);
 
-        if (options.canAcceptDragOver && !options.canAcceptDragOver(event)) {
+        if (!isAccepted) {
             if (event.dataTransfer) {
                 event.dataTransfer.dropEffect = 'none';
             }
-            isDragOver.value = false;
+            resetDropState();
             return;
         }
 
         isDragOver.value = true;
         options.onDragMove?.(event);
+        syncDropPlaceholder(event);
     }
 
     /**
@@ -141,6 +283,11 @@ export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZ
         }
         event.stopPropagation();
 
+        const nextTarget = event.relatedTarget;
+        if (nextTarget instanceof Node && options.containerRef.value?.contains(nextTarget)) {
+            return;
+        }
+
         if (options.useDragDepth) {
             dragDepth.value = Math.max(0, dragDepth.value - 1);
             if (dragDepth.value > 0) {
@@ -148,8 +295,7 @@ export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZ
             }
         }
 
-        isDragOver.value = false;
-        options.onReset?.();
+        resetDropState();
     }
 
     /**
@@ -164,7 +310,6 @@ export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZ
         event.preventDefault();
         event.stopPropagation();
 
-        updateDropEffect(event);
         options.onDragMove?.(event);
 
         const movedComponentId = event.dataTransfer?.getData('component-id') || null;
@@ -196,12 +341,27 @@ export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZ
         });
         resetDropState();
     }
+
+    /**
+     * Сбрасывает локальные состояния всех посещённых drop-зон после завершения drag.
+     *
+     * @param isActive - Глобальное состояние нативной drag-сессии.
+     */
+    function handleCanvasDragActiveChange(isActive: boolean): void {
+        if (!isActive) {
+            resetDropState();
+        }
+    }
+    // #endregion
+
+    // #region Lifecycle
+    watch(isCanvasDragActive, handleCanvasDragActiveChange);
+    onBeforeUnmount(resetDropState);
     // #endregion
 
     return {
         isDragOver,
-        updateDropEffect,
-        resetDropState,
+        isCanvasDragActive,
         handleDragEnter,
         handleDragOver,
         handleDragLeave,

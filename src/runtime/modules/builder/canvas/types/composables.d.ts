@@ -3,7 +3,7 @@
  */
 
 import type { IComponentSlotDefinition, IBricksComponent } from '../../../common/types/brick';
-import type { ComputedRef, CSSProperties, MaybeRefOrGetter, Ref, VNodeRef } from 'vue';
+import type { ComputedRef, MaybeRefOrGetter, Ref, VNodeRef } from 'vue';
 
 // #region useComponentSlots
 /**
@@ -31,7 +31,6 @@ export interface IUseComponentSlotsReturn {
 export interface ISlotState {
     dragDepth: number;
     isDragOver: boolean;
-    dropIndicator: { index: number; offset: number } | null;
     dropInsertIndex: number | null;
 }
 
@@ -39,8 +38,7 @@ export interface ISlotState {
  * Возвращаемое значение composable useSlotDragDrop.
  */
 export interface IUseSlotDragDropReturn {
-    slotIndicatorStyles: ComputedRef<Record<string, CSSProperties>>;
-    getSlotIndicatorStyle: (slotName: string) => CSSProperties;
+    getSlotDropIndex: (slotName: string) => number | null;
     setSlotContainerRef: (slotName: string) => VNodeRef;
     handleSlotDragEnter: (slotName: string, event: DragEvent) => void;
     handleSlotDragOver: (slotName: string, event: DragEvent) => void;

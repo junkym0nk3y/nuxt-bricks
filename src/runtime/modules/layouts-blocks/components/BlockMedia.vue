@@ -125,7 +125,6 @@ const hasSource = computed(() => Boolean(props.src));
     justify-content: center;
     width: 100%;
     min-height: 20rem;
-    border-radius: 0.8rem;
     border: 0.2rem dashed var(--bricks-base-300);
     background: var(--bricks-base-50);
     text-align: center;

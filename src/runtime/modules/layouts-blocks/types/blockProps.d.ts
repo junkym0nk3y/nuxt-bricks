@@ -3,6 +3,9 @@
  * Домен layouts-blocks — владелец этих контрактов; canvas/render/sidebar импортируют отсюда.
  */
 
+import type { IBricksComponent } from '../../common/types/brick';
+import type { VNodeChild } from 'vue';
+
 export type TGridLayoutVariant = 'default' | 'lead-left' | 'lead-right';
 
 export type TGridRowHeight = 'auto' | '1fr' | 'min-content' | 'max-content';
@@ -100,6 +103,33 @@ export interface IBlockGridOverlayProps {
     columns: number;
     gap: number;
     rowSizes: number[];
+}
+
+export interface IBlockGridProps {
+    layoutProps: IGridLayoutProps;
+    layoutId?: string;
+}
+
+export interface IBlockFlexProps {
+    layoutProps: IFlexLayoutProps;
+    layoutId?: string;
+}
+
+export interface IBlockSectionProps {
+    layoutProps: ISectionLayoutProps;
+    layoutId?: string;
+}
+
+export interface IBlockSpaceProps {
+    layoutProps: ISpaceProps;
+}
+
+export interface IBlockSliderProps {
+    layoutProps: ISliderLayoutProps;
+    layoutId?: string;
+    slides?: IBricksComponent[];
+    renderSlide?: (component: IBricksComponent) => VNodeChild;
+    isEditor?: boolean;
 }
 
 export interface IBlockSliderCaptionsProps {

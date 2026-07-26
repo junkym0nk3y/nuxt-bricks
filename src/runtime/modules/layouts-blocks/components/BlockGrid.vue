@@ -1,10 +1,19 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IGridLayoutProps, TGridLayoutVariant, TGridRowHeight } from '../types/blockProps';
+import type { IBlockGridProps, TGridLayoutVariant, TGridRowHeight } from '../types/blockProps';
 
 // Vue
-import { computed, ref, inject, onMounted, onBeforeUnmount, type Ref, type Slot } from 'vue';
+import {
+    computed,
+    ref,
+    inject,
+    onMounted,
+    onBeforeUnmount,
+    useCssModule,
+    type Ref,
+    type Slot,
+} from 'vue';
 
 // Utils
 import { convertPxToRem } from '../../common/utils/main';
@@ -18,10 +27,7 @@ import BlockGridOverlay from './BlockGridOverlay.vue';
 // #endregion
 
 // #region Props
-const props = defineProps<{
-    layoutProps: IGridLayoutProps;
-    layoutId?: string;
-}>();
+const props = withDefaults(defineProps<IBlockGridProps>(), {});
 
 const slots = defineSlots<{
     default?: Slot;
@@ -30,6 +36,7 @@ const slots = defineSlots<{
 
 // #region Data
 const showGrid = inject<Ref<boolean>>('showGrid', ref(true));
+const styles = useCssModule();
 const gridRef = ref<HTMLElement | null>(null);
 const containerSize = ref({ width: 0, height: 0 });
 
@@ -271,20 +278,54 @@ function calculateDropTargetIndex(event: DragEvent): number | null {
         normalizedRows.value
     );
 }
+
+/**
+ * Прижимает место вставки к целевой ячейке вне потока грида.
+ *
+ * Обычный flow-плейсхолдер здесь становится лишним grid-item: при заполненном
+ * гриде auto-placement добавлял неявный ряд, грид «подрастал», а вместе с ним
+ * ехала геометрия — расчёт ячейки под курсором начинал врать. Абсолютный элемент
+ * позиционируется по своей grid-area и на раскладку не влияет.
+ *
+ * @param targetIndex - Индекс ячейки под курсором.
+ * @returns Inline-стили плейсхолдера (kebab-case).
+ */
+function resolvePlaceholderCell(targetIndex: number): Record<string, string> {
+    const columns = normalizedColumns.value;
+
+    // span обязателен: у абсолютного grid-child конец области по умолчанию
+    // привязывается к краю контейнера, и плейсхолдер растягивался до низа грида.
+    return {
+        position: 'absolute',
+        'grid-column': `${(targetIndex % columns) + 1} / span 1`,
+        'grid-row': `${Math.floor(targetIndex / columns) + 1} / span 1`,
+        inset: '0',
+        width: 'auto',
+        height: 'auto',
+    };
+}
 // #endregion
 
 // #region Drop zone
-const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop } =
-    useLayoutDropZone({
-        containerRef: gridRef,
-        layoutId: () => props.layoutId,
-        canAcceptDragOver: canAcceptGridDragOver,
-        canAcceptDrop: canAcceptGridDrop,
-        resolveDropIndex: calculateDropTargetIndex,
-        requireDropIndex: true,
-        onReset: clearGridFull,
-        extraDropDetail: { swap: true },
-    });
+const {
+    isDragOver,
+    isCanvasDragActive,
+    handleDragEnter,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+} = useLayoutDropZone({
+    containerRef: gridRef,
+    layoutId: () => props.layoutId,
+    canAcceptDragOver: canAcceptGridDragOver,
+    canAcceptDrop: canAcceptGridDrop,
+    resolveDropIndex: calculateDropTargetIndex,
+    requireDropIndex: true,
+    onReset: clearGridFull,
+    extraDropDetail: { swap: true },
+    placeholderClass: styles.dropPlaceholder,
+    resolvePlaceholderStyle: resolvePlaceholderCell,
+});
 // #endregion
 
 // #region Lifecycle
@@ -339,7 +380,14 @@ onMounted(() => {
         <slot />
 
         <!-- Drop placeholder when empty -->
-        <div v-if="isEmpty" :class="$style.emptyPlaceholder">Drop components here</div>
+        <div
+            v-if="isEmpty && !isCanvasDragActive"
+            :class="$style.emptyPlaceholder"
+            data-layout-drop-placeholder="true"
+            aria-label="Drop components here"
+        >
+            <span aria-hidden="true">+</span>
+        </div>
     </div>
 </template>
 
@@ -349,9 +397,12 @@ onMounted(() => {
 
     position: relative;
     min-width: 0;
-    border: 1px dashed rgb(var(--bricks-rgb-layout-grid) / 30%);
-    background: rgb(var(--bricks-rgb-layout-grid) / 5%);
-    transition: all 200ms ease;
+    border: 1px dashed var(--bricks-base-300);
+    background: var(--bricks-base-50);
+    transition:
+        border-color var(--bricks-default-transition),
+        background-color var(--bricks-default-transition),
+        box-shadow var(--bricks-default-transition);
 
     > :global([data-layout-drop-item='true']) {
         overflow: hidden;
@@ -360,23 +411,23 @@ onMounted(() => {
         grid-row: span 1; // Ограничиваем элемент одной строкой
     }
 
+    // Кольцо hover/выделения рисует BuilderCanvasItem — здесь только подсветка зоны.
     &:hover {
-        border-color: rgb(var(--bricks-rgb-layout-grid) / 50%);
-        background: rgb(var(--bricks-rgb-layout-grid) / 8%);
+        border-color: var(--bricks-primary);
+        background: color-mix(in srgb, var(--bricks-primary) 6%, var(--bricks-base-50));
     }
 
-    &.dragOver {
-        border-color: rgb(var(--bricks-rgb-layout-grid) / 80%);
-        border-width: 0.2rem;
-        background: rgb(var(--bricks-rgb-layout-grid) / 15%);
-        box-shadow: 0 0 0 0.4rem rgb(var(--bricks-rgb-layout-grid) / 20%);
+    &.dragOver[data-layout-drop-active='true'] {
+        border-color: var(--bricks-primary);
+        background: color-mix(in srgb, var(--bricks-primary) 6%, var(--bricks-base-50));
+        box-shadow: var(--bricks-canvas-ring-active);
     }
 
     &.gridFull {
-        border-color: rgb(var(--bricks-rgb-danger, 239 68 68) / 60%);
+        border-color: color-mix(in srgb, var(--bricks-danger-500) 60%, transparent);
         border-style: dashed;
-        border-width: 0.2rem;
-        background: rgb(var(--bricks-rgb-danger, 239 68 68) / 8%);
+        background: color-mix(in srgb, var(--bricks-danger-500) 8%, var(--bricks-base-50));
+        box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--bricks-danger-500) 60%, transparent);
         cursor: not-allowed;
     }
 
@@ -405,16 +456,33 @@ onMounted(() => {
     &:hover {
         border-color: transparent;
         background: transparent;
+        box-shadow: none;
     }
 }
 
 .emptyPlaceholder {
-    padding: 4rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 7.6rem;
+    padding: 2rem;
+    border: 1px dashed color-mix(in srgb, var(--bricks-primary) 55%, transparent);
+    background: color-mix(in srgb, var(--bricks-primary) 6%, transparent);
     text-align: center;
-    font-size: 1.4rem;
-    font-weight: 500;
-    color: rgb(var(--bricks-rgb-layout-grid) / 50%);
+    font-size: 2.6rem;
+    font-weight: 400;
+    color: var(--bricks-primary);
     grid-column: 1 / -1;
+    pointer-events: none;
+}
+
+.dropPlaceholder {
+    box-sizing: border-box;
+    align-self: stretch;
+    width: 100%;
+    height: var(--bricks-drag-placeholder-height);
+    border: 0.2rem dashed var(--bricks-primary);
+    background: color-mix(in srgb, var(--bricks-primary) 7%, transparent);
     pointer-events: none;
 }
 </style>

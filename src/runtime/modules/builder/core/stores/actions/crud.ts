@@ -7,6 +7,7 @@ import {
 } from '../../../../common/utils/bricks/components';
 import { generateComponentId, normalizeBrickPath } from '../../../../common/utils/bricks/paths';
 import { useSidebarStore } from '../sidebar';
+import { adjustReorderTargetIndex } from './order';
 import type {
     IComponentsStore,
     IComponentsCrudActions,
@@ -373,6 +374,12 @@ export const crudActions: IComponentsCrudActions = {
         }
 
         const component = this.components[componentIndex];
+        const rootComponentsBeforeMove = this.getRootComponents();
+        const currentRootIndex = rootComponentsBeforeMove.findIndex(
+            (rootComponent) => rootComponent.id === childId
+        );
+
+        const wasNested = Boolean(component.parent);
 
         if (component.parent) {
             this.detachComponentFromParent(childId, { skipHistory: true });
@@ -381,7 +388,9 @@ export const crudActions: IComponentsCrudActions = {
         component.parent = undefined;
         component.gridColumn = undefined;
         component.gridRow = undefined;
-        component.fullWidth = false;
+        // Блок из layout приходит в корень контейнерным (дефолт root-уровня), а
+        // reorder уже корневого блока не должен снимать выставленный fullWidth.
+        component.fullWidth = wasNested ? false : (component.fullWidth ?? false);
 
         const [removedComponent] = this.components.splice(componentIndex, 1);
         if (!removedComponent) {
@@ -392,7 +401,8 @@ export const crudActions: IComponentsCrudActions = {
         let insertIndex = this.components.length;
 
         if (typeof targetIndex === 'number') {
-            const clamped = Math.max(0, Math.min(targetIndex, rootComponents.length));
+            const adjustedTargetIndex = adjustReorderTargetIndex(currentRootIndex, targetIndex);
+            const clamped = Math.max(0, Math.min(adjustedTargetIndex, rootComponents.length));
             if (clamped === rootComponents.length) {
                 insertIndex = this.components.length;
             } else {

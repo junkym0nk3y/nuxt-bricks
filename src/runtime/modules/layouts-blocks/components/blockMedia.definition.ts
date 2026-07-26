@@ -9,6 +9,7 @@ import {
     getResponsiveOverrides,
     gridPlacementStyle,
     makeResponsiveVars,
+    toRem,
 } from '../utils/responsiveVars';
 
 // Components
@@ -37,7 +38,8 @@ function renderMediaPublished(ctx: IBlockRenderContext): VNode {
             cp.borderRadius || '0',
             tOv,
             mOv,
-            'borderRadius'
+            'borderRadius',
+            toRem
         ),
     };
     Object.assign(style, gridPlacementStyle(component));

@@ -2,7 +2,7 @@
  * Canvas component types
  */
 
-import type { CSSProperties, Ref } from 'vue';
+import type { Component, CSSProperties, Ref } from 'vue';
 import type {
     IComponentLibraryItem,
     IBricksComponent,
@@ -13,6 +13,13 @@ import type { TBricksComponentsStore } from '../../core/stores/components';
 
 export interface ICanvasItemProps {
     component: IBricksComponent;
+}
+
+export interface ICanvasItemComponentProps {
+    component: IBricksComponent;
+    componentInstance: Component | null;
+    componentBoundProps: Record<string, unknown>;
+    needsContainerWrapper: boolean;
 }
 
 export type TItemStyle = CSSProperties;
@@ -97,6 +104,7 @@ export interface IDragComposableCanvas {
     ) => void;
     handleDragOver: (event: DragEvent) => void;
     draggedComponent: Ref<IComponentLibraryItem | null>;
+    endDrag: () => void;
 }
 
 export interface ICanvasBottomBarProps {
@@ -105,6 +113,15 @@ export interface ICanvasBottomBarProps {
     sidebarOffset?: string;
     rightSidebarOffset?: string;
     isFigmaMode?: boolean;
+}
+
+export interface ICanvasViewportProps {
+    viewport: TBricksDeviceKey;
+}
+
+export interface ICanvasDropPlaceholderProps {
+    /** Место вставки лежит в корне канваса и попадёт внутрь `.bricks-container` */
+    contained?: boolean;
 }
 
 export interface ICanvasBottomBarEmits {

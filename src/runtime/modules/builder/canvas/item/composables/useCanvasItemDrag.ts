@@ -8,12 +8,13 @@ import type { ComputedRef } from 'vue';
 import { useCanvasStore } from '../../../core/stores/canvas';
 
 // Utils
-import { convertPxToRem } from '../../../../common/utils/main';
+import { setSkeletonDragImage } from '../../../core/utils/dragVisuals';
+import { measureDragSize } from '../../../../common/utils/dragAndDrop';
 // #endregion
 
 /**
  * Инкапсулирует логику drag-and-drop для элемента канваса:
- * создание drag-image с клоном компонента, установка dataTransfer, очистка состояния.
+ * создание лёгкого skeleton drag-image, установка dataTransfer и rollback transient-состояния.
  */
 export function useCanvasItemDrag(
     props: ICanvasItemProps,
@@ -61,72 +62,35 @@ export function useCanvasItemDrag(
         event.dataTransfer.setData('component-id', props.component.id);
         event.dataTransfer.setData('text/plain', props.component.id);
 
-        const target = event.target as HTMLElement;
+        const target = event.currentTarget as HTMLElement | null;
         if (!target) {
             return;
         }
 
-        const scale = canvasStore.scale;
-        const rect = target.getBoundingClientRect();
-        const offsetX = event.clientX - rect.left;
-        const offsetY = event.clientY - rect.top;
+        const placeholderSize = measureDragSize(target);
 
-        const clone = target.cloneNode(true) as HTMLElement;
-        clone.style.position = 'absolute';
-        clone.style.top = '-9999px';
-        clone.style.left = '-9999px';
-        clone.style.pointerEvents = 'none';
-        clone.style.opacity = '0.8';
-        clone.style.boxSizing = 'border-box';
-        clone.style.overflow = 'hidden';
-        clone.style.width = convertPxToRem(canvasStore.width);
-        clone.setAttribute('data-bricks-viewport', canvasStore.viewport);
+        canvasStore.startCanvasDrag({
+            source: 'canvas',
+            componentId: props.component.id,
+            ...placeholderSize,
+        });
 
-        const allChildren = clone.querySelectorAll('*');
-        const wrapper = allChildren[0] as HTMLElement;
+        setSkeletonDragImage({
+            event,
+            sourceElement: target,
+            variant: 'canvas',
+            placeholderSize,
+        });
 
-        if (wrapper) {
-            wrapper.style.transform = `scale(${scale})`;
-            wrapper.style.transformOrigin = 'top left';
-            wrapper.style.position = 'relative';
-
-            const overlay = document.createElement('div');
-            overlay.style.cssText = `
-                position: absolute;
-                inset: 0;
-                background: linear-gradient(135deg, rgb(37 99 235 / 10%) 0%, rgb(37 99 235 / 20%) 100%);
-                border: 2px dashed rgb(37 99 235 / 50%);
-                border-radius: 0.4rem;
-                pointer-events: none;
-                z-index: 9999;
-            `;
-            wrapper.appendChild(overlay);
-
-            const label = document.createElement('div');
-            label.textContent = props.component.componentName;
-            label.style.cssText = `
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                padding: 0.8rem 1.6rem;
-                background: rgb(37 99 235 / 90%);
-                border-radius: 0.4rem;
-                font-size: 1.4rem;
-                font-weight: 500;
-                color: white;
-                white-space: nowrap;
-                z-index: 10000;
-            `;
-            wrapper.appendChild(label);
-        }
-
-        document.body.appendChild(clone);
-        event.dataTransfer.setDragImage(clone, offsetX, offsetY);
-
-        setTimeout(() => {
-            document.body.removeChild(clone);
-        }, 0);
+        // Освобождаем место только после старта нативного drag, иначе синхронное
+        // схлопывание источника отменит перетаскивание. Кадров два: в первом браузер
+        // фиксирует стартовую max-height блока, во втором она уезжает в ноль —
+        // без этого переход схлопывания не запускается (нет исходного значения).
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                canvasStore.vacateDragSource();
+            });
+        });
     }
 
     /**
@@ -138,6 +102,7 @@ export function useCanvasItemDrag(
         if (dragComposable?.draggedComponent) {
             dragComposable.draggedComponent.value = null;
         }
+        canvasStore.finishCanvasDrag();
     }
     // #endregion
 

@@ -48,12 +48,34 @@ export interface ILayoutDropZoneOptions {
 
     /** Доп. поля в detail события `layout-drop` (grid: `{ swap: true }`) */
     extraDropDetail?: Record<string, unknown>;
+
+    /**
+     * CSS Modules class flow-плейсхолдера места вставки. Геометрию задаёт сам класс
+     * через переменные канваса (`--bricks-drag-placeholder-*`); без класса
+     * плейсхолдер не рисуется.
+     */
+    placeholderClass?: string;
+
+    /** Внутренний flow-контейнер, если плейсхолдер вставляется не в корень drop-зоны. */
+    resolvePlaceholderContainer?: () => HTMLElement | null;
+
+    /** Элементы, между которыми резервируется место вставки. */
+    resolvePlaceholderChildren?: () => HTMLElement[];
+
+    /**
+     * Inline-стили плейсхолдера для целевого индекса (grid: абсолютная привязка к
+     * ячейке). Нужен зонам с фиксированной сеткой: обычный flow-плейсхолдер там
+     * стал бы лишним grid-item и породил неявный ряд.
+     * Ключи — CSS-свойства в kebab-case (`grid-column`, а не `gridColumn`).
+     */
+    resolvePlaceholderStyle?: (targetIndex: number) => Record<string, string> | null;
 }
 
 export interface ILayoutDropZone {
     isDragOver: Ref<boolean>;
-    updateDropEffect: (event: DragEvent) => void;
-    resetDropState: () => void;
+
+    /** Активна ли drag-сессия канваса: блоки прячут пустые drop-маркеры. */
+    isCanvasDragActive: Ref<boolean>;
     handleDragEnter: (event: DragEvent) => void;
     handleDragOver: (event: DragEvent) => void;
     handleDragLeave: (event: DragEvent) => void;

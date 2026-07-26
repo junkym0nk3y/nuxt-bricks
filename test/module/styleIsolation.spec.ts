@@ -86,8 +86,11 @@ function extractRules(css: string): ICssRule[] {
             bodyBuffer = '';
         } else if (char === '}') {
             const prelude = preludeStack.pop() ?? '';
+            // Keyframe-селекторы (`from`/`to`/`50%`) не матчат элементы страницы —
+            // изоляцию для них проверяет отдельный тест по имени @keyframes.
+            const insideKeyframes = preludeStack.some((entry) => entry.startsWith('@keyframes'));
 
-            if (!prelude.startsWith('@') && prelude !== '') {
+            if (!insideKeyframes && !prelude.startsWith('@') && prelude !== '') {
                 for (const selector of splitSelectorList(prelude)) {
                     rules.push({ selector, body: bodyBuffer.trim() });
                 }
@@ -174,6 +177,14 @@ describe('изоляция стилей от host-приложения', () => {
                 expect(isScopedToBricksSurface(rule.selector)).toBe(true);
             }
         }
+    });
+
+    it('bundle.scss: имена @keyframes префиксованы, чтобы не перебить анимации host-проекта', () => {
+        const names = Array.from(bundleCss.matchAll(/@keyframes\s+([\w-]+)/g)).map(
+            (match) => match[1]
+        );
+
+        expect(names.filter((name) => !name.startsWith('bricks-'))).toEqual([]);
     });
 
     it('fonts.scss: только @font-face, без селекторов', () => {

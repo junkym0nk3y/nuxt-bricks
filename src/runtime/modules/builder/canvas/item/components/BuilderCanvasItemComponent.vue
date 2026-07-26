@@ -1,10 +1,12 @@
 <script setup lang="ts">
 // #region Imports
 // Types
+import type { ICanvasItemComponentProps } from '../../types/components';
 import type { IBricksComponent } from '../../../../common/types/brick';
+import type { TDropFlowEntry } from '../../../core/types/drag';
 
 // Vue
-import { computed, type Component } from 'vue';
+import { computed } from 'vue';
 
 // Composables
 import { useComponentSlots } from '../composables/useComponentSlots';
@@ -12,30 +14,16 @@ import { useSlotDragDrop } from '../composables/useSlotDragDrop';
 
 // Utils
 import { sanitizeRichTextHtml } from '../../../../common/utils/sanitize/sanitizeRichText';
+import { buildDropFlowEntries } from '../../../core/utils/dragVisuals';
 
 // Components
 import BuilderCanvasItem from './BuilderCanvasItem.vue';
 import BuilderCanvasConditionalContainer from '../../viewport/components/BuilderCanvasConditionalContainer.vue';
-// #endregion
-
-// #region Interfaces
-/**
- * Пропсы для компонента BuilderCanvasItemComponent
- */
-interface ICanvasItemComponentProps {
-    /** Экземпляр компонента для рендеринга */
-    component: IBricksComponent;
-    /** Динамически загруженный экземпляр Vue-компонента */
-    componentInstance: Component | null;
-    /** Вычисленные пропсы для передачи в компонент (исключая внутренние) */
-    componentBoundProps: Record<string, unknown>;
-    /** Нужно ли оборачивать компонент в контейнер */
-    needsContainerWrapper: boolean;
-}
+import BuilderCanvasDropPlaceholder from '../../viewport/components/BuilderCanvasDropPlaceholder.vue';
 // #endregion
 
 // #region Props
-const props = defineProps<ICanvasItemComponentProps>();
+const props = withDefaults(defineProps<ICanvasItemComponentProps>(), {});
 // #endregion
 
 // #region Data
@@ -47,7 +35,7 @@ const { slotRenderData, slotStringContent } = useComponentSlots(
 );
 
 const {
-    getSlotIndicatorStyle,
+    getSlotDropIndex,
     setSlotContainerRef,
     handleSlotDragEnter,
     handleSlotDragOver,
@@ -59,6 +47,19 @@ const {
 // #region Computed
 /** Слот-контент схемы — недоверенный ввод: санитизация обязательна перед v-html. */
 const sanitizedSlotContent = computed<string>(() => sanitizeRichTextHtml(slotStringContent.value));
+// #endregion
+
+// #region Methods
+/**
+ * Собирает поток слота: дети и место вставки одним keyed-списком для TransitionGroup.
+ *
+ * @param slotName - Имя слота компонента.
+ * @param children - Дети слота в порядке отображения.
+ * @returns Записи потока для рендера.
+ */
+function getSlotFlowEntries(slotName: string, children: IBricksComponent[]): TDropFlowEntry[] {
+    return buildDropFlowEntries(children, getSlotDropIndex(slotName), `slot-drop-${slotName}`);
+}
 // #endregion
 </script>
 
@@ -81,18 +82,27 @@ const sanitizedSlotContent = computed<string>(() => sanitizeRichTextHtml(slotStr
                     @dragleave="handleSlotDragLeave(slotData.slot.name, $event)"
                     @drop="handleSlotDrop(slotData.slot.name, $event)"
                 >
-                    <BuilderCanvasItem
-                        v-for="child in slotData.children"
-                        :key="child.id"
-                        :component="child"
-                    />
+                    <!-- Место вставки раздвигает детей слота; TransitionGroup сглаживает сдвиг -->
+                    <TransitionGroup name="bricks-canvas-flow">
+                        <template
+                            v-for="entry in getSlotFlowEntries(
+                                slotData.slot.name,
+                                slotData.children
+                            )"
+                            :key="entry.key"
+                        >
+                            <BuilderCanvasDropPlaceholder v-if="entry.kind === 'placeholder'" />
 
-                    <div v-if="slotData.children.length === 0" :class="$style.slotSpacer"></div>
+                            <BuilderCanvasItem v-else :component="entry.component" />
+                        </template>
+                    </TransitionGroup>
 
                     <div
-                        :class="$style.slotIndicator"
-                        data-slot-indicator="true"
-                        :style="getSlotIndicatorStyle(slotData.slot.name)"
+                        v-if="
+                            slotData.children.length === 0 &&
+                            getSlotDropIndex(slotData.slot.name) === null
+                        "
+                        :class="$style.slotSpacer"
                     />
                 </div>
             </template>
@@ -111,18 +121,6 @@ const sanitizedSlotContent = computed<string>(() => sanitizeRichTextHtml(slotStr
     width: 100%;
     min-height: 0;
     flex-direction: column;
-}
-
-.slotIndicator {
-    position: absolute;
-    right: 0;
-    left: 0;
-    height: 0.2rem;
-    background-color: var(--bricks-primary);
-    opacity: 0;
-    transform: translateY(0);
-    transition: opacity var(--bricks-default-transition);
-    pointer-events: none;
 }
 
 .slotSpacer {
