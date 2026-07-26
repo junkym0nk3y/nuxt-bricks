@@ -20,6 +20,7 @@ import { usePublishStore } from '../../../publish/stores/publish';
 import { useCanvas } from '../composables/useCanvas';
 import { useBricksConfig } from '../../../../common/composables/useBricksConfig';
 import { useCanvasDrops } from '../composables/useCanvasDrops';
+import { useCanvasDragAutoScroll } from '../composables/useCanvasDragAutoScroll';
 import { useCanvasPan } from '../composables/useCanvasPan';
 import { useCanvasWheel } from '../composables/useCanvasWheel';
 import { useCanvasCentering } from '../composables/useCanvasCentering';
@@ -125,6 +126,9 @@ const {
 // Зум и смена viewport двигают блоки на экране, не меняя порядок, — на это время
 // move-переходы потока выключаются, иначе канвас дрожит.
 useCanvasFlowGuard(canvasRef);
+
+// Нативный драг забирает колесо себе — канвас подкручиваем сами, пока курсор у края
+useCanvasDragAutoScroll(canvasContainer);
 
 const { isPanning, handleCanvasAreaPointerDown } = useCanvasPan(canvasContainer);
 

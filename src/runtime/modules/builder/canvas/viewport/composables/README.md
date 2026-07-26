@@ -8,6 +8,7 @@
 | `useCanvasCentering.ts`           | Горизонтальное центрирование канваса (rAF-планировщик, watcher'ы на scale/width/sidebar)    |
 | `useCanvasContainerMetrics.ts`    | Синхронизация высоты канваса с контентом (ResizeObserver, пересчёт при смене viewport)      |
 | `useCanvasDrops.ts`               | Drag&drop-логика корневой области канваса                                                   |
+| `useCanvasDragAutoScroll.ts`      | Автоскролл `.canvasArea`, пока курсор с драгом держат у края (нативный DnD глушит колесо)   |
 | `useCanvasFlowGuard.ts`           | Глушит move-переходы потока, пока меняется геометрия канваса (зум, viewport, размеры)       |
 | `useCanvasPan.ts`                 | Панорамирование средней кнопкой мыши                                                        |
 | `useCanvasWheel.ts`               | Ctrl(⌘)+scroll — зум к курсору, Shift+scroll — горизонтальный скролл; зум кнопок ± к центру |
