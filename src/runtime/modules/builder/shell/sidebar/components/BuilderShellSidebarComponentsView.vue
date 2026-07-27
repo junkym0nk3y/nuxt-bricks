@@ -9,6 +9,7 @@ import { useI18n } from 'vue-i18n';
 
 // Utils
 import { loadFavoritesFromStorage } from '../../../core/stores/actions/favorites';
+import { groupComponentsByCategory } from '../utils/componentCategories';
 
 // Components
 import BuilderShellSidebarComponentCard from './BuilderShellSidebarComponentCard.vue';
@@ -60,32 +61,18 @@ const filteredComponents = computed<IComponentLibraryItem[]>(() => {
 });
 
 /**
- * Группирует доступные компоненты по категориям для отображения в сайдбаре
+ * Группирует отфильтрованные компоненты по категориям для отображения.
  *
  * Категории:
  * - 'Layout' - отображаются в grid 2 колонки с высотой миниатюры 12rem
  * - Остальные (Slider, Cards и т.д.) - отображаются в 1 колонку с высотой 18rem
  * - 'Modal' - исключается из отображения (модальные окна не добавляются на канвас)
  *
- * @returns Объект где ключ - название категории, значение - массив компонентов
+ * @returns Map, где ключ - название категории, значение - массив компонентов
  */
-const categorizedComponents = computed<Record<string, IComponentLibraryItem[]>>(() => {
-    const grouped: Record<string, IComponentLibraryItem[]> = {};
-
-    filteredComponents.value.forEach((component) => {
-        if (component.category === 'Modal') {
-            return;
-        }
-
-        if (!grouped[component.category]) {
-            grouped[component.category] = [];
-        }
-
-        grouped[component.category].push(component);
-    });
-
-    return grouped;
-});
+const categorizedComponents = computed<Map<string, IComponentLibraryItem[]>>(() =>
+    groupComponentsByCategory(filteredComponents.value)
+);
 
 /**
  * Проверяет наличие компонентов для отображения в библиотеке
@@ -97,9 +84,7 @@ const hasAvailableComponents = computed<boolean>(() => props.components.length >
  * Проверяет, есть ли результаты после фильтрации
  * @returns true если есть хотя бы одна категория с компонентами
  */
-const hasFilteredResults = computed<boolean>(
-    () => Object.keys(categorizedComponents.value).length > 0
-);
+const hasFilteredResults = computed<boolean>(() => categorizedComponents.value.size > 0);
 // #endregion
 
 // #region Methods
@@ -156,12 +141,12 @@ function resolveCategoryLabel(category: string): string {
 
         <div :class="[$style.content, 'bricks-scrollbox']">
             <div
-                v-for="(groupedComponents, category) in categorizedComponents"
+                v-for="[category, groupedComponents] in categorizedComponents"
                 :key="category"
                 :class="$style.category"
             >
                 <h3 :class="$style.categoryTitle">
-                    {{ resolveCategoryLabel(String(category)) }}
+                    {{ resolveCategoryLabel(category) }}
                 </h3>
 
                 <div

@@ -67,7 +67,7 @@ export const useNavigationStore = defineStore('bricksNavigation', () => {
         items.value = [
             ...items.value,
             {
-                id: generateId(),
+                id: generateId(), // по идеи можно поменять на useId
                 target,
                 label,
             },

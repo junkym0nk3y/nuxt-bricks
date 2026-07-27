@@ -29,23 +29,18 @@ async function readBricksManifest(): Promise<IBricksManifest> {
 }
 
 /**
- * Группирует записи манифеста по категориям.
- *
- * @param manifest - Прочитанный манифест.
- * @returns Словарь «категория → компоненты».
- */
-function groupByCategory(manifest: IBricksManifest): Record<string, IBrickCategory> {
-    return manifest.bricks.reduce<Record<string, IBrickCategory>>((categories, brick) => {
-        const category = (categories[brick.category] ||= { components: [] });
-        category.components.push({ name: brick.name, brickPath: brick.brickPath });
-
-        return categories;
-    }, {});
-}
-
-/**
  * Возвращает манифест целиком или компоненты одной категории.
  * Бросает 404, если запрошенной категории в манифесте нет.
+ *
+ * Отбор — прямая фильтрация, а не группировка всего манифеста: наружу уходит
+ * ровно одна категория, корзины остальных строить незачем. Заодно категория,
+ * пришедшая из brick-файла, не становится ключом объекта — строки `__proto__`
+ * и `constructor` валидны как категории, но у объекта читаются как члены
+ * `Object.prototype` и роняли обработчик.
+ *
+ * Сравнение регистронезависимое в обе стороны, поэтому `Marketing` и
+ * `marketing` считаются одной категорией: иначе поиск отдавал бы компоненты
+ * только той из них, что встретилась первой.
  *
  * @param category - Название категории из запроса (регистр не важен).
  * @returns Манифест либо список компонентов категории.
@@ -59,12 +54,12 @@ export async function resolveBricksComponents(
         return manifest;
     }
 
-    const categories = groupByCategory(manifest);
-    const match = Object.keys(categories).find(
-        (key) => key.toLowerCase() === category.toLowerCase()
-    );
+    const wanted = category.toLowerCase();
+    const components = manifest.bricks
+        .filter((brick) => brick.category.toLowerCase() === wanted)
+        .map(({ name, brickPath }) => ({ name, brickPath }));
 
-    if (!match) {
+    if (components.length === 0) {
         throw createError({
             statusMessage: 'Components category not found!',
             statusCode: 404,
@@ -74,5 +69,5 @@ export async function resolveBricksComponents(
         });
     }
 
-    return categories[match].components;
+    return components;
 }

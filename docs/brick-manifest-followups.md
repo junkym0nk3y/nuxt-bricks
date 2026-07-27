@@ -139,6 +139,96 @@ assets, тесты переписаны с таймингов на детерм�
 отсутствующий `@returns` у `publishManifest`: в `src/` у void-функций `@returns`
 опускают в 250 случаях против 47 — правка была бы против фактической конвенции.
 
+### BM-02. Категории с именами из `Object.prototype` больше не роняют ручку и сайдбар
+
+**Выполнено 27 июля 2026 года.**
+
+Категория из brick-файла больше нигде не становится ключом обычного объекта.
+
+**Серверная сторона** (`src/runtime/server/utils/bricksComponents.ts`).
+`groupByCategory` удалена целиком. Наружу уходит ровно одна категория, поэтому
+корзины остальных строить незачем: `resolveBricksComponents` фильтрует
+`manifest.bricks` напрямую и мапит найденное в `{ name, brickPath }`. Пропала
+и группировка, и аккумулятор, и перебор `Object.keys(...).find(...)`; 404
+теперь по пустому результату фильтра.
+
+**Клиентская сторона.** В исходном пункте её не было, нашлась при проверке:
+`builder/shell/sidebar/components/BuilderShellSidebarComponentsView.vue`
+группировал библиотеку тем же способом (`if (!grouped[category]) grouped[category] = []`
+
+- `push`). Симптом там тяжелее, чем на ручке: компонент рендерится на SSR, так
+  что brick с категорией `__proto__` роняет **всю страницу редактора** в 500, а не
+  одну ручку (проверено вживую: `grouped[component.category].push is not a function`).
+  Группировка вынесена в чистую утилиту
+  `builder/shell/sidebar/utils/componentCategories.ts` — она копит группы в `Map`
+  в один проход; `categorizedComponents` теперь её вызов, `v-for` идёт по entries,
+  `hasFilteredResults` — по `.size`. Слияния регистров в сайдбаре нет и не должно
+  быть: там категория — заголовок группы и показывается как написана.
+
+**Побочно исправлена потеря категорий, различающихся регистром.** Прежний
+`Object.keys(...).find(...)` возвращал первый подходящий ключ, поэтому при
+существующем `Marketing` компоненты из `marketing` в ответ ручки не попадали.
+Теперь сравнение регистронезависимое в обе стороны и в ответ идут обе записи —
+иначе регистронезависимый lookup молча отдаёт половину. Внутренних потребителей
+у ветки `?category=` нет: и `useComponentLibrary`, и `useModalOptions` дёргают
+ручку без параметра и получают нетронутый манифест, так что изменение касается
+только внешнего HTTP-контракта.
+
+**BM-08 частично закрыт:** мутация аккумулятора и массива `components` в
+`groupByCategory` ушла вместе с самой функцией.
+
+**Тесты:**
+
+- `test/server/bricksComponentsCategories.spec.ts` (8 кейсов): `__proto__`,
+  `constructor`, `toString`, `hasOwnProperty`, слияние регистров, манифест
+  целиком, 404 на неизвестной категории, несгенерированный манифест;
+- `test/builder/sidebarComponentCategories.spec.ts` (8 кейсов): те же четыре
+  прототипных имени, исключение категории `Modal`, порядок групп и элементов,
+  раздельные группы для разного регистра, пустой вход.
+
+**Мутационная проверка тестов.** Серверный набор: возврат прежней реализации
+(`Record` + `||=` + `push` + `Object.keys().find()`) роняет 5 кейсов из 8,
+остальные три проверяют не затронутые правкой ветки. Клиентский набор: возврат
+объектной группировки в утилиту роняет 4 кейса из 8. Тест «манифест не
+мутируется» был написан и удалён: он проходил и на сломанной реализации —
+прежний код тоже не трогал манифест (корзины и элементы создавались заново), то
+есть кейс ничего не различал.
+
+**Проверено вживую** (playground, dev, пять пробных brick-файлов с категориями
+`__proto__`, `constructor`, `Marketing`, `marketing`, `Modal`):
+
+- `GET /api/bricks/components?category=__proto__` и `?category=constructor` →
+  200 с нужным компонентом;
+- `?category=MARKETING` → обе записи, и `Marketing`, и `marketing`;
+- `?category=nope` → 404, запрос без параметра отдаёт манифест целиком;
+- сайдбар билдера рендерит все пять категорий (`Layout`, `marketing`,
+  `Marketing`, `constructor`, `__proto__`), `Modal` из библиотеки исключён,
+  ошибок в консоли нет;
+- поиск без совпадений → «Ничего не найдено», то есть `hasFilteredResults` на
+  `Map.size` работает;
+- на откате файла к прежнему коду та же страница отдаёт 500 — проверка
+  различающая, а не «и так работало».
+
+`type-check`, `lint:check` (oxlint + stylelint + `deps:check` + `knip`),
+602/602 тестов, `npm run dev:build`, бюджеты бандла (entry 111 KB,
+published 122 KB gzip) — зелёные.
+
+**Ревью:** Codex (`gpt-5.6-sol`, high) 27 июля 2026. Blocker'ов нет, обе правки
+признаны функционально корректными; шаблон проверен на компиляцию
+`renderList(categorizedComponents, ([category, groupedComponents]) => …)` —
+реактивность, ключи и порядок групп сохраняются. По его находкам сделано:
+серверная группировка убрана целиком (была квадратичной из-за копирования
+корзины на каждый элемент и всё равно мутировала аккумулятор через `Map.set`),
+клиентская вынесена в утилиту и покрыта тестами (раньше сайдбарная половина
+BM-02 не имела автоматической защиты — откат только этого файла оставлял набор
+зелёным), формулировка про мутацию в тексте выше приведена в соответствие коду.
+Предложение перейти на `Map.groupBy` принято только для серверной стороны в виде
+отказа от группировки: по `.browserslistrc` проекта (`> 0.2% and not dead`) в
+целевых браузерах есть `chrome 103` и `ios_saf 11`, а `Map.groupBy` требует
+Chrome 117+/Safari 17.4+, так что в клиентском бандле он недопустим — там
+одиночный проход с `push` в локальную корзину и комментарием, почему не spread.
+Восемь находок того же класса в других модулях вынесены отдельным пунктом BM-14.
+
 ### BM-12. Vite-вотчер заменён на `builder:watch` + `nuxt.callHook('restart')`
 
 **Выполнено 27 июля 2026 года.**
@@ -241,19 +331,76 @@ parcel зафиксировано, координаты строк в пункт
 
 ## P1
 
-### BM-02. Категории с именами из `Object.prototype` роняют ручку
+### BM-14. Тот же дефект прототипных ключей ещё в восьми местах
 
-**Файлы:** `src/runtime/server/utils/bricksComponents.ts:38-39`.
+**Источник:** ревью Codex (`gpt-5.6-sol`, high) правки BM-02, 27 июля 2026.
+BM-02 закрыл только категории; строки из схемы страницы и brick-файлов
+становятся ключами обычных объектов ещё в восьми местах — в `render`,
+`layouts-blocks`, `common` и трёх поддоменах `builder`. Пункт заведён как
+очередь, а не как одна правка: места независимые, чинить их можно по одному.
 
-Аккумулятор `reduce` — обычный `{}`, поэтому `categories['__proto__']` возвращает
-`Object.prototype`, а `categories['constructor']` — `Object`. Оба truthy, значит
-`||=` не присваивает, и `category.components.push(...)` падает. Brick-файлы
-доверенные, но это валидные строки категории.
+Общая механика та же — `obj[key]` для `__proto__`, `constructor`, `toString`,
+`hasOwnProperty` читает член `Object.prototype` вместо `undefined`, поэтому
+проверка «уже есть» ложно срабатывает. Последствия делятся на три вида: падение
+(`.push` у не-массива), **загрязнение `Object.prototype`** (запись в мнимую
+корзину) и тихая потеря значения (присваивание `__proto__` вызывает сеттер
+прототипа и own-ключа не создаёт).
 
-**Статус проверки:** подтверждено в изоляции — обе строки дают
-`TypeError: Cannot read properties of undefined (reading 'push')`.
+**Проверено мной по коду** (четыре из восьми):
 
-**Исправление:** `Object.create(null)` или `Map<string, IBrickCategory>`.
+1. `src/runtime/modules/render/composables/useRendererDataSources.ts:207` —
+   **самое тяжёлое.** `const target = (result[component.id] ||= {})` с
+   последующей записью пропов: при `component.id === '__proto__'` `target`
+   становится `Object.prototype`, и пропы датасорса уезжают в глобальный
+   прототип. Это SSR-путь published-страниц. Воспроизведено в изоляции:
+   после такой записи `({}).polluted` действительно определён. При
+   `id === 'constructor'` пишет в `Object`.
+2. `src/runtime/modules/layouts-blocks/registry.ts:46` — `getBlockDefinition`
+   делает truthy-lookup в `BLOCK_REGISTRY` по `componentName` из схемы и
+   возвращает `Object.prototype`; дальше `getBlockProperties` отдаёт `undefined`
+   вместо `ILayoutProperty[]`, а `for (const property of definition.properties)`
+   (`:168`) падает. `componentName` проходит валидацию контракта схемы
+   (`common/utils/bricks/schemaContract.ts:125` — требуется лишь непустая строка).
+3. `src/runtime/modules/builder/canvas/item/composables/useSlotDragDrop.ts:25`,
+   `:71` — `slotStates` это `reactive<Record<string, ISlotState>>({})`, а имена
+   слотов приходят из brick-файла (`builder/app/utils/brickSlots.ts:21`
+   пропускает `__proto__`). `ensureSlotState` считает прототип существующей
+   корзиной, и drag-обработчики пишут `dragDepth`/`isDragOver`/`dropInsertIndex`
+   в `Object.prototype`.
+4. `src/runtime/modules/common/composables/useBrickImports.ts:35` —
+   `brickModules[normalizeBrickPath(brickPath)]`; `normalizeBrickPath`
+   (`common/utils/bricks/paths.ts:7`) только меняет `\` на `/` и ведущий слеш не
+   добавляет, поэтому `brickPath: "__proto__"` из схемы даёт `Object.prototype`,
+   а `"constructor"` — функцию `Object`. Оба truthy: промах не логируется,
+   наружу уходит «лоадер», вызов которого либо падает, либо (для `Object`)
+   возвращает пустой модуль без `default`.
+
+**По репорту Codex, мной отдельно не проверялось** (все — тихая потеря значения,
+не падение):
+
+5. `builder/app/composables/useComponentLibrary.ts:51` — `acc[key] = val.default`
+   для `values` из brick-файла: свойство с именем `__proto__` не попадает в
+   `defaultProps` вставляемого компонента.
+6. `render/composables/useBricksDataSources.ts:126`, `:249`, `:269` — подстановка
+   параметров датасорса через `in` и запись в объект-аккумулятор; нерезолвнутый
+   `:constructor` считается найденным и подставляется как `Object`.
+   `getValueByPath` (`:71`) тоже ходит по унаследованным членам.
+7. `builder/media/utils/schemaImageExtractor.ts:320-328` — пересборка пропсов при
+   замене картинок: own-ключ `__proto__` из импортированной схемы теряется.
+8. `builder/canvas/item/composables/useCanvasItemLoader.ts:89` — снимок
+   `forceRender`-пропсов; проп с именем `__proto__` не меняет
+   `JSON.stringify(values)`, и принудительный перерендер не срабатывает.
+
+**Насколько это достижимо.** Brick-файлы и схемы — доверенный вход: схемы пишет
+билдер, id генерирует `generateComponentId()`. Но контракт схемы такие строки
+пропускает, а схемы бывают импортированными и отредактированными руками, так что
+это не «теоретическая» ветка. Пункт в P1 из-за №1: загрязнение прототипа на SSR
+published-страниц — это отказ всего процесса, а не одной страницы.
+
+**Исправление:** там, где ключ приходит извне, — `Map` (реактивные случаи —
+`reactive(new Map())`) либо `Object.hasOwn()` перед чтением; там, где объект
+собирается — `Object.fromEntries()` вместо присваивания в аккумулятор. Чинить
+по одному месту с тестом на четыре прототипных имени, как в BM-02.
 
 ### BM-03. Слишком общий namespace Nitro server asset
 
@@ -443,14 +590,13 @@ context (HTTPS/localhost); на HTTP его нет, и на этом уже ло
 ### BM-08. Мелочи стиля
 
 **Файлы:** `src/runtime/modules/common/composables/useBrickImports.ts:23`,
-`src/bricks-manifest.ts:214-216`,
-`src/runtime/server/utils/bricksComponents.ts:38-42`.
+`src/bricks-manifest.ts:214-216`.
 
 - `useBrickImports()` без явного типа возврата — правило требует типизации
   возвращаемых значений.
 - `.filter(...).sort(...)` → `.toSorted(...)` (Node ≥22.17 позволяет).
-- `groupByCategory` мутирует аккумулятор и массив `components`; правится заодно
-  с BM-02.
+- ~~`groupByCategory` мутирует аккумулятор и массив `components`~~ — закрыто
+  в BM-02.
 
 ---
 
