@@ -19,7 +19,7 @@ let isCacheLoaded = false;
 // #endregion
 
 /**
- * Загрузить список модальных окон из bricks.json
+ * Загрузить список модальных окон из манифеста brick-компонентов
  * Результат кешируется для последующих вызовов
  */
 export async function loadModals(): Promise<void> {

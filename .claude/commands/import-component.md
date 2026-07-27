@@ -9,8 +9,7 @@
 1. Находишь исходный компонент
 2. Анализируешь его props, emits, slots
 3. Создаёшь wrapper `.vue` и `.brick.ts` файлы в `playground/components/`
-4. Регенерируешь `bricks.json`
-5. Проверяешь типы
+4. Проверяешь типы (манифест библиотеки собирается модулем автоматически)
 
 ## Инструкция пользователя
 
@@ -261,13 +260,7 @@ export interface IMyItem {
 }
 ```
 
-### Шаг 6: Регенерировать bricks.json
-
-```bash
-npm run bricks:gen
-```
-
-### Шаг 7: Проверить типы
+### Шаг 6: Проверить типы
 
 ```bash
 npx vue-tsc --noEmit 2>&1 | grep <changed-files>

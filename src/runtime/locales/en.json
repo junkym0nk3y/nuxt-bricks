@@ -57,6 +57,8 @@
             "title": "Add component",
             "searchPlaceholder": "Search components...",
             "emptyHint": "Try changing your search query",
+            "noComponents": "No components available",
+            "noComponentsHint": "Add a *.brick.ts file next to a component in components/",
             "categories": {
                 "layout": "Layout",
                 "other": "Other",

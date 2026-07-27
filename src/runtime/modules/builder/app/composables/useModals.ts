@@ -67,7 +67,7 @@ async function getModalComponentLazy(
 
 /**
  * Composable для работы с модальными окнами
- * Загружает список модалок из bricks.json и кеширует
+ * Загружает список модалок из манифеста brick-компонентов и кеширует
  */
 export function useModals() {
     return {

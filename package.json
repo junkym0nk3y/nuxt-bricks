@@ -42,7 +42,6 @@
         "docs/external-backend-contract.md"
     ],
     "bin": {
-        "bricks-gen": "dist/cli/bricks-generate.mjs",
         "bricks-hash-password": "dist/cli/bricks-hash-password.mjs",
         "bricks-migrate": "dist/cli/bricks-migrate.mjs"
     },
@@ -57,7 +56,6 @@
         "dev": "nuxi dev playground",
         "dev:build": "nuxi build playground",
         "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxi prepare playground",
-        "bricks:gen": "node ./src/cli/bricks-generate.mjs",
         "bricks:hash": "node ./src/cli/bricks-hash-password.mjs",
         "bricks:migrate": "node ./src/cli/bricks-migrate.mjs",
         "el:check": "oxlint .",

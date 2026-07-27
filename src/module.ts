@@ -10,9 +10,15 @@ import {
     extendPages,
 } from '@nuxt/kit';
 import { defu } from 'defu';
+import type { ViteDevServer } from 'vite';
 // Side-effect type import: подтягивает augmentation NuxtOptions.i18n и хука i18n:registerModule
 import type {} from '@nuxtjs/i18n';
-import { brickWatchPlugin } from './runtime/modules/common/utils/routing/vite-brick-watch';
+import {
+    generateBricksManifest,
+    isBrickFilePath,
+    resolveBricksManifestDir,
+} from './bricks-manifest';
+import { BRICKS_MANIFEST_ASSET_BASE } from './runtime/modules/common/constants/brickManifest';
 import { BRICKS_PUBLIC_ASSETS_BASE } from './runtime/modules/common/utils/bricks/assetPaths';
 import { DEFAULT_BRICKS_ROUTE_PREFIXES } from './runtime/modules/common/utils/bricks/routePaths';
 import {
@@ -243,7 +249,7 @@ export default defineNuxtModule<IBricksModuleOptions>({
 
         // #region Routes и feature flags (fail-fast валидация префиксов)
         const surfaces = resolveBricksSurfaces(options);
-        const { isBuilderEnabled } = surfaces;
+        const { isBuilderEnabled, arePublishedPagesEnabled } = surfaces;
         const registrationContext: IBricksRegistrationContext = {
             resolve,
             runtimeDir,
@@ -323,7 +329,7 @@ export default defineNuxtModule<IBricksModuleOptions>({
         }
         // #endregion
 
-        // #region Vite (optimizeDeps + watch brick-файлов)
+        // #region Vite (optimizeDeps)
         // Prebundle-список — зависимости UI билдера; render-only он не нужен
         if (isBuilderEnabled) {
             nuxt.options.vite = defu(nuxt.options.vite, {
@@ -332,9 +338,75 @@ export default defineNuxtModule<IBricksModuleOptions>({
                 },
             });
         }
-        if (isDev) {
-            nuxt.options.vite.plugins = nuxt.options.vite.plugins || [];
-            nuxt.options.vite.plugins.push(brickWatchPlugin(false));
+        // #endregion
+
+        // #region Манифест brick-компонентов и dev-вотчер
+        const manifestDir = resolveBricksManifestDir(nuxt.options.buildDir);
+
+        // Сам манифест нужен только билдеру: библиотеку компонентов читает лишь
+        // он, рендерер берёт brickPath прямо из схемы страницы.
+        if (isBuilderEnabled) {
+            // build:before, а не setup: nuxi build/prepare чистят buildDir
+            // между setup модуля и сборкой, запись из setup была бы стёрта
+            nuxt.hook('build:before', async () => {
+                await generateBricksManifest({ srcDir: nuxt.options.srcDir, manifestDir });
+            });
+
+            // Манифест доезжает до Nitro как server asset: в dev каталог
+            // монтируется fs-драйвером (свежесть при add/unlink), в prod
+            // содержимое запекается в серверный бандл — ручка компонентов
+            // не зависит от process.cwd() и работает из одного .output
+            nuxt.hook('nitro:config', (nitroConfig) => {
+                nitroConfig.serverAssets = nitroConfig.serverAssets || [];
+                nitroConfig.serverAssets.push({
+                    baseName: BRICKS_MANIFEST_ASSET_BASE,
+                    dir: manifestDir,
+                });
+            });
+        }
+
+        // Dev-вотчер brick-файлов на штатном хуке Nuxt. Состав
+        // `import.meta.glob` в useBrickImports разворачивает Vite на этапе
+        // трансформации — на add/unlink пересобрать карту загрузчиков может
+        // только рестарт, и у Nuxt для этого есть хук `restart` (сам Nuxt
+        // вызывает его так же — для структурно значимых файлов и создания
+        // каталога компонентов). Рестарт прогоняет и `build:before`, то есть
+        // манифест перегенерируется без нашего участия.
+        // Карту загрузчиков читает не только билдер: published-рендерер тянет
+        // brick-модули тем же glob'ом, поэтому рестарт нужен обеим поверхностям.
+        if (isDev && (isBuilderEnabled || arePublishedPagesEnabled)) {
+            let viteClientServer: ViteDevServer | undefined;
+
+            nuxt.hook('vite:serverCreated', (server, env) => {
+                // Клиентский сервер — тот, чей hot-канал слушает браузер
+                if (env.isClient) {
+                    viteClientServer = server;
+                }
+            });
+
+            nuxt.hook('builder:watch', async (event, path) => {
+                if (!isBrickFilePath(nuxt.options.srcDir, path)) {
+                    return;
+                }
+
+                // Состав glob'а изменился — только рестарт
+                if (event === 'add' || event === 'unlink') {
+                    return nuxt.callHook('restart');
+                }
+
+                // change: состав тот же, но category могла поменяться —
+                // это уже про манифест, то есть только про билдер
+                if (event !== 'change' || !isBuilderEnabled) {
+                    return;
+                }
+
+                await generateBricksManifest({ srcDir: nuxt.options.srcDir, manifestDir });
+
+                // Метаданные бриков закешированы в useAsyncData('bricks-components') —
+                // точечного HMR тут недостаточно (см. BM-06 в
+                // docs/brick-manifest-followups.md)
+                viteClientServer?.hot.send({ type: 'full-reload' });
+            });
         }
         // #endregion
 

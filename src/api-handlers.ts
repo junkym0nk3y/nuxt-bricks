@@ -56,9 +56,9 @@ export const BRICKS_API_HANDLERS: IBricksApiHandler[] = [
         isPublic: true,
     },
     {
-        // Открыта для GET/HEAD auth-матрицей (routeProtection.ts): манифест и так
-        // публичен в public/bricks.json, а SSR билдера в basic-режиме не умеет
-        // пробрасывать Authorization
+        // Открыта для GET/HEAD auth-матрицей (routeProtection.ts): манифест —
+        // только имена, категории и пути brick-файлов, а SSR билдера в
+        // basic-режиме не умеет пробрасывать Authorization
         route: '/api/bricks/components',
         method: 'get',
         file: 'server/api/bricks/components.get',

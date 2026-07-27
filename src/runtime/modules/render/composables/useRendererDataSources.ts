@@ -79,7 +79,7 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
             return brickDataSourcesCache.get(cacheKey) ?? [];
         }
 
-        const importModule = findImportModule(cacheKey) ?? findImportModule(brickPath);
+        const importModule = findImportModule(brickPath);
 
         if (!importModule) {
             brickDataSourcesCache.set(cacheKey, null);

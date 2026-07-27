@@ -57,6 +57,8 @@
             "title": "Добавить компонент",
             "searchPlaceholder": "Поиск компонентов...",
             "emptyHint": "Попробуйте изменить поисковый запрос",
+            "noComponents": "Нет доступных компонентов",
+            "noComponentsHint": "Добавьте файл *.brick.ts рядом с компонентом в components/",
             "categories": {
                 "layout": "Layout",
                 "other": "Другое",

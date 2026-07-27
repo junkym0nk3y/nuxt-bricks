@@ -21,9 +21,6 @@ Thumbs.db
 !.vscode/settings.json
 .idea
 
-# Generated
-public/bricks.json
-playground/public/bricks.json
 /.playwright-mcp
 /.claude
 /.mcp.json

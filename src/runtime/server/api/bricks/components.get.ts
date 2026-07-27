@@ -2,10 +2,10 @@ import { createError, defineEventHandler, getQuery } from 'h3';
 import { resolveBricksComponents } from '../../utils/bricksComponents';
 
 /**
- * GET /api/bricks/components — возвращает весь список категорий или компоненты
+ * GET /api/bricks/components — возвращает весь манифест или компоненты
  * выбранной категории. Открыта для чтения без auth (см. routeProtection.ts):
- * отдаёт тот же манифест, что лежит статикой в public/bricks.json, и нужна
- * SSR билдера в basic-режиме (useApiClient не пробрасывает Authorization).
+ * отдаёт только имена, категории и пути brick-файлов, и нужна SSR билдера
+ * в basic-режиме (useApiClient не пробрасывает Authorization).
  */
 export default defineEventHandler(async (event) => {
     const { category } = getQuery(event);
@@ -19,5 +19,5 @@ export default defineEventHandler(async (event) => {
         });
     }
 
-    return resolveBricksComponents(category || undefined);
+    return await resolveBricksComponents(category || undefined);
 });

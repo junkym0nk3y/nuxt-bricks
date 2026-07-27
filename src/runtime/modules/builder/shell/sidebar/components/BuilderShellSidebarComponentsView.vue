@@ -193,10 +193,8 @@ function resolveCategoryLabel(category: string): string {
                 <span :class="$style.emptyIcon">
                     <BricksIcon icon="ta:outline-package" />
                 </span>
-                <p>No components available</p>
-                <p :class="$style.emptyHint">
-                    Run <code>npm run bricks:gen</code> to generate component list
-                </p>
+                <p>{{ t('bricks.library.noComponents') }}</p>
+                <p :class="$style.emptyHint">{{ t('bricks.library.noComponentsHint') }}</p>
             </div>
         </div>
     </div>

@@ -1,7 +1,7 @@
 import { defineBuildConfig } from 'unbuild';
 
 export default defineBuildConfig({
-    // CLI-генератор brick-манифеста копируется в dist/cli как есть (без бандлинга).
+    // CLI-скрипты (миграции, хеш пароля) копируются в dist/cli как есть (без бандлинга).
     entries: [
         {
             builder: 'mkdist',

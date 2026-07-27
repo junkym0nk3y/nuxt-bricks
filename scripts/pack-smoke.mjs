@@ -160,7 +160,7 @@ async function main() {
                 `migrations/${migration}`
             );
         }
-        for (const bin of ['bricks-generate', 'bricks-hash-password', 'bricks-migrate']) {
+        for (const bin of ['bricks-hash-password', 'bricks-migrate']) {
             await assertFileExists(join(installedRoot, 'dist', 'cli', `${bin}.mjs`), `CLI ${bin}`);
         }
         // Контракт external backend обязан доезжать до установивших пакет:
