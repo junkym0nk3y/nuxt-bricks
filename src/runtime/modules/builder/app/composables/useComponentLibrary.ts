@@ -6,6 +6,7 @@ import type { IBricksResponse, IBrickListItem } from '../types/composables';
 
 // Utils
 import { extractBrickSlots } from '../utils/brickSlots';
+import { toSafeRecord } from '../../../common/utils/safeRecord';
 
 // Vue
 import { computed } from 'vue';
@@ -48,12 +49,14 @@ export async function useComponentLibrary() {
                         const brickData = module?.brick;
                         const values = brickData?.values || {};
                         const slots = extractBrickSlots(brickData);
-                        const defaultProps = Object.entries(values).reduce(
-                            (acc: Record<string, unknown>, [key, val]: [string, IBrickValues]) => {
-                                acc[key] = val.default;
-                                return acc;
-                            },
-                            {}
+                        // Имена пропов приходят из brick-файла: `acc['__proto__'] = …`
+                        // подменял бы прототип аккумулятора вместо записи ключа,
+                        // а own-ключ `__proto__` не пережил бы Nuxt payload (BM-14)
+                        const defaultProps = toSafeRecord(
+                            Object.entries(values).map(
+                                ([key, val]: [string, IBrickValues]) =>
+                                    [key, val.default] as [string, unknown]
+                            )
                         );
 
                         return {

@@ -17,6 +17,9 @@ import {
 
 // Composables
 import { useBrickImports } from '../../../../common/composables/useBrickImports';
+
+// Utils
+import { buildForceRenderSnapshot } from '../utils/forceRenderSnapshot';
 // #endregion
 
 const FORCE_RENDER_DEBOUNCE_MS = 500;
@@ -80,20 +83,9 @@ export function useCanvasItemLoader(props: ICanvasItemProps, isLayout: ComputedR
     /**
      * Сериализованные значения пропов с forceRender для отслеживания изменений.
      */
-    const forceRenderPropsSnapshot = computed<string>(() => {
-        if (forceRenderProps.value.length === 0) {
-            return '';
-        }
-
-        const componentProps = props.component.props || {};
-        const values: Record<string, unknown> = {};
-
-        for (const propName of forceRenderProps.value) {
-            values[propName] = componentProps[propName];
-        }
-
-        return JSON.stringify(values);
-    });
+    const forceRenderPropsSnapshot = computed<string>(() =>
+        buildForceRenderSnapshot(forceRenderProps.value, props.component.props || {})
+    );
     // #endregion
 
     watch(forceRenderPropsSnapshot, (newSnapshot, oldSnapshot) => {

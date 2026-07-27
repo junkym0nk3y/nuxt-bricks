@@ -9,7 +9,8 @@ export interface IRendererBrickResolverOptions {
 export interface IRendererProps {
     component: IBricksComponent;
     allComponents?: IBricksComponent[];
-    resolvedProps?: Record<string, Record<string, unknown>>;
+    /** Ключ — `component.id` из схемы, поэтому контейнер — `Map` (BM-14). */
+    resolvedProps?: Map<string, Record<string, unknown>>;
 }
 
 export type TRendererChildRenderer = (component: IBricksComponent) => VNodeChild;

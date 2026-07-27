@@ -14,6 +14,9 @@ import { blockTextDefinition } from './components/blockText.definition';
 import { blockMediaDefinition } from './components/blockMedia.definition';
 import { blockAccordionDefinition } from './components/blockAccordion.definition';
 import { blockSvgDefinition } from './components/blockSvg.definition';
+
+// Utils
+import { readOwnKey } from '../common/utils/safeRecord';
 // #endregion
 
 /**
@@ -38,13 +41,17 @@ export const BLOCK_REGISTRY: Record<string, IBlockDefinition> = {
 /**
  * Возвращает definition блока по componentName схемы.
  * Регистронезависимо: канвас оперирует lowercase-именами ('grid'), схема — 'Grid'.
+ * `componentName` приходит из схемы и проверяется контрактом лишь как непустая
+ * строка, поэтому lookup — только по own-ключу (BM-14).
  *
  * @param name - Имя блока ('Grid' или 'grid').
  * @returns Definition или undefined для неизвестного блока.
  */
 export function getBlockDefinition(name: string): IBlockDefinition | undefined {
-    if (BLOCK_REGISTRY[name]) {
-        return BLOCK_REGISTRY[name];
+    const direct = readOwnKey(BLOCK_REGISTRY, name);
+
+    if (direct) {
+        return direct;
     }
 
     const lowered = name.toLowerCase();

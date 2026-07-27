@@ -25,7 +25,7 @@ import {
 // #region Props
 const props = withDefaults(defineProps<IRendererProps>(), {
     allComponents: () => [],
-    resolvedProps: () => ({}) as Record<string, Record<string, unknown>>,
+    resolvedProps: () => new Map<string, Record<string, unknown>>(),
 });
 // #endregion
 
@@ -79,7 +79,7 @@ function renderUiComponent(
     const componentProps = component.props as Record<string, unknown>;
     const mergedProps = {
         ...componentProps,
-        ...(props.resolvedProps?.[component.id] ?? {}),
+        ...(props.resolvedProps?.get(component.id) ?? {}),
     };
     const brickComponent = resolveBrickComponent(component.brickPath);
     const gridItemStyle: Record<string, string> = {};

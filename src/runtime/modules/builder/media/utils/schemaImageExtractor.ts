@@ -14,6 +14,7 @@ import type { IGalleryItem, IInlineContentSegment } from '../../../common/types/
 
 // Utils
 import { resolveBricksAssetUrl } from '../../../common/utils/bricks/assetPaths';
+import { toSafeRecord } from '../../../common/utils/safeRecord';
 // #endregion
 
 // #region Constants
@@ -317,7 +318,10 @@ export function replaceSchemaImageUrls(
         }
 
         let hasChanges = false;
-        const newProps: Record<string, unknown> = {};
+        // Имена пропов приходят из схемы (в том числе импортированной руками):
+        // `newProps['__proto__'] = value` подменял бы прототип собираемого
+        // объекта вместо записи ключа, и пропсы уезжали бы в него (BM-14)
+        const newPropEntries: Array<[string, unknown]> = [];
 
         Object.entries(component.props).forEach(([propName, value]) => {
             // String prop
@@ -325,7 +329,7 @@ export function replaceSchemaImageUrls(
                 // Голый URL — заменяем целиком
                 if (urlMap.has(value)) {
                     hasChanges = true;
-                    newProps[propName] = urlMap.get(value) as string;
+                    newPropEntries.push([propName, urlMap.get(value) as string]);
                     return;
                 }
 
@@ -337,12 +341,12 @@ export function replaceSchemaImageUrls(
                     });
                     if (replaced !== value) {
                         hasChanges = true;
-                        newProps[propName] = replaced;
+                        newPropEntries.push([propName, replaced]);
                         return;
                     }
                 }
 
-                newProps[propName] = value;
+                newPropEntries.push([propName, value]);
                 return;
             }
 
@@ -356,7 +360,7 @@ export function replaceSchemaImageUrls(
                     }
                     return item;
                 });
-                newProps[propName] = newItems;
+                newPropEntries.push([propName, newItems]);
                 return;
             }
 
@@ -373,15 +377,15 @@ export function replaceSchemaImageUrls(
                     }
                     return segment;
                 });
-                newProps[propName] = newSegments;
+                newPropEntries.push([propName, newSegments]);
                 return;
             }
 
-            newProps[propName] = value;
+            newPropEntries.push([propName, value]);
         });
 
         if (hasChanges) {
-            return { ...component, props: newProps };
+            return { ...component, props: toSafeRecord(newPropEntries) };
         }
 
         return component;

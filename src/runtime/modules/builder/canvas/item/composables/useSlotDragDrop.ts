@@ -22,7 +22,10 @@ import { CANVAS_DRAG_ACTIVE_KEY } from '../../../../common/constants/injectionKe
  */
 export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
     // #region Data
-    const slotStates = reactive<Record<string, ISlotState>>({});
+    // Имена слотов приходят из brick-файла: в обычном объекте `slotStates['__proto__']`
+    // читался бы как существующая корзина, и drag-обработчики писали бы
+    // dragDepth/isDragOver/dropInsertIndex в `Object.prototype` (BM-14)
+    const slotStates = reactive(new Map<string, ISlotState>());
     const slotContainerRefs = new Map<string, HTMLElement>();
     const isCanvasDragActive = inject(CANVAS_DRAG_ACTIVE_KEY, null);
     // #endregion
@@ -35,7 +38,7 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
      * @returns Индекс будущей вставки либо null, если слот не под курсором.
      */
     function getSlotDropIndex(slotName: string): number | null {
-        return slotStates[slotName]?.dropInsertIndex ?? null;
+        return slotStates.get(slotName)?.dropInsertIndex ?? null;
     }
 
     /**
@@ -70,15 +73,21 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
      * @returns Объект состояния слота
      */
     function ensureSlotState(slotName: string): ISlotState {
-        if (!slotStates[slotName]) {
-            slotStates[slotName] = {
-                dragDepth: 0,
-                isDragOver: false,
-                dropInsertIndex: null,
-            };
+        const existing = slotStates.get(slotName);
+
+        if (existing) {
+            return existing;
         }
 
-        return slotStates[slotName];
+        slotStates.set(slotName, {
+            dragDepth: 0,
+            isDragOver: false,
+            dropInsertIndex: null,
+        });
+
+        // Через get, а не через записанный литерал: реактивный прокси нужен,
+        // чтобы мутации dragDepth/isDragOver перерисовывали плейсхолдер
+        return slotStates.get(slotName) as ISlotState;
     }
 
     /**
@@ -263,7 +272,7 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
      * Сбрасывает transient-состояние всех посещённых слотов.
      */
     function resetAllSlotStates(): void {
-        for (const slotName of Object.keys(slotStates)) {
+        for (const slotName of Array.from(slotStates.keys())) {
             resetSlotState(slotName);
         }
     }

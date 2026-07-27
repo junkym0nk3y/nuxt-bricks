@@ -15,6 +15,7 @@ import { useBricksDataSources, type TDataSourceRequestCache } from './useBricksD
 // Utils
 import { normalizeBrickPath } from '../../common/utils/bricks/paths';
 import { isRenderableSchemaComponent } from '../../common/utils/bricks/schemaContract';
+import { hasOwnKey, toSafeRecord } from '../../common/utils/safeRecord';
 import { runWithConcurrencyLimit } from '../utils/requestPool';
 // #endregion
 
@@ -27,8 +28,12 @@ export interface IRendererDataSourcesOptions {
 }
 
 export interface IRendererDataSources {
-    /** Слепок смёрдженных пропсов для всех компонентов с учётом data sources. */
-    resolvedProps: ComputedRef<Record<string, Record<string, unknown>>>;
+    /**
+     * Слепок смёрдженных пропсов для всех компонентов с учётом data sources.
+     * Ключ — `component.id` из схемы, поэтому контейнер — `Map`: обычный объект
+     * при `id === '__proto__'` принял бы пропсы в глобальный прототип (BM-14).
+     */
+    resolvedProps: ComputedRef<Map<string, Record<string, unknown>>>;
     /** Перезапускает выполнение data sources (например, при live-обновлении схемы). */
     refreshDataSources: () => Promise<void>;
     /** Промис первичного выполнения — await'ить на top-level setup (SSR-блокировка). */
@@ -135,17 +140,17 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
     }
 
     // Считаем и мержим все data sources из bricks для текущей страницы
-    const dataSourceAsyncData = useAsyncData<Record<string, Record<string, unknown>>>(
+    const dataSourceAsyncData = useAsyncData<Map<string, Record<string, unknown>>>(
         dataSourceKey,
         async () => {
             if (!page.value) {
-                return {};
+                return new Map();
             }
 
             const requests = await collectDataSourceRequests();
 
             if (!requests?.length) {
-                return {};
+                return new Map();
             }
 
             // Бюджет запросов на прогон: излишек отбрасывается с логом,
@@ -180,7 +185,10 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
                 abortController.abort();
             }, totalDeadlineMs);
 
-            const result: Record<string, Record<string, unknown>> = {};
+            // Аккумулятор на Map'ах: и id компонента, и имена пропсов приходят
+            // из схемы и brick-файла, а `result[id] ||= {}` для `'__proto__'`
+            // отдал бы `Object.prototype` вместо новой корзины (BM-14)
+            const result = new Map<string, Map<string, unknown>>();
 
             try {
                 // Выполняем с лимитом одновременности (bricks.dataSources.concurrency):
@@ -204,12 +212,15 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
                             return;
                         }
 
-                        const target = (result[component.id] ||= {});
+                        const target = result.get(component.id) ?? new Map<string, unknown>();
+                        result.set(component.id, target);
 
-                        // Применяем только запрошенные props, чтобы избежать лишнего шумового мерджа
+                        // Применяем только запрошенные props, чтобы избежать лишнего
+                        // шумового мерджа. Проверка — по own-ключу: `propName in mapped`
+                        // для `'toString'` был бы истинным и подставил бы метод прототипа
                         source.props.forEach((propName) => {
-                            if (propName in mapped) {
-                                target[propName] = (mapped as Record<string, unknown>)[propName];
+                            if (hasOwnKey(mapped, propName)) {
+                                target.set(propName, (mapped as Record<string, unknown>)[propName]);
                             }
                         });
                     }),
@@ -219,7 +230,12 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
                 clearTimeout(deadlineTimer);
             }
 
-            return result;
+            return new Map(
+                Array.from(result, ([componentId, propValues]) => [
+                    componentId,
+                    toSafeRecord(propValues),
+                ])
+            );
         },
         {
             server: !isPreview,
@@ -228,8 +244,8 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
     );
 
     // Слепок смёрдженных пропсов для всех компонентов с учётом data sources
-    const resolvedProps = computed<Record<string, Record<string, unknown>>>(() => {
-        return dataSourceAsyncData.data?.value ?? {};
+    const resolvedProps = computed<Map<string, Record<string, unknown>>>(() => {
+        return dataSourceAsyncData.data?.value ?? new Map();
     });
 
     if (isClientDataSourceDebug) {

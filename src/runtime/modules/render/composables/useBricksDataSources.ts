@@ -17,6 +17,7 @@ import {
 import { DataSourceResponseTooLargeError } from '../utils/dataSourceResponseReading';
 import { resolveDataSourceLogTarget, toDataSourceLogError } from '../utils/dataSourceLogging';
 import { combineAbortSignals } from '../utils/abortSignals';
+import { hasOwnKey, toSafeRecord } from '../../common/utils/safeRecord';
 
 // Composables
 import { useDataSourceClient } from './useDataSourceClient';
@@ -56,6 +57,8 @@ export function useBricksDataSources() {
     // #region Methods
     /**
      * Извлекает значение по строковому пути из объекта.
+     * Путь описан в brick-файле, поэтому сегменты сверяются по own-ключу:
+     * `'constructor' in acc` был бы истинным и вернул бы `Object` (BM-14).
      *
      * @param source - Исходный объект для извлечения значения.
      * @param path - Путь к значению в формате 'key.nested.value'.
@@ -68,7 +71,7 @@ export function useBricksDataSources() {
         }
 
         return path.split('.').reduce<unknown>((acc, segment) => {
-            if (acc && typeof acc === 'object' && segment in acc) {
+            if (acc && typeof acc === 'object' && hasOwnKey(acc, segment)) {
                 return (acc as Record<string, unknown>)[segment];
             }
             return undefined;
@@ -123,7 +126,9 @@ export function useBricksDataSources() {
      */
     function buildDataSourceUrl(url: string, params: Record<string, string | number>): string {
         return url.replace(/:([a-zA-Z0-9_]+)/g, (match, key) => {
-            if (key in params) {
+            // Плейсхолдер `:constructor` не «найден» только потому, что имя
+            // совпало с членом прототипа: сверяем own-ключ (BM-14)
+            if (hasOwnKey(params, key)) {
                 return encodeURIComponent(String(params[key]));
             }
             return match;
@@ -246,7 +251,7 @@ export function useBricksDataSources() {
         requestCache?: TDataSourceRequestCache,
         signal?: AbortSignal
     ): Promise<Record<string, unknown> | null> {
-        const params: Record<string, string | number> = {};
+        let params: Record<string, string | number> = {};
         let url = source.url;
 
         const method = resolveDataSourceMethod(source.method);
@@ -263,12 +268,19 @@ export function useBricksDataSources() {
 
         try {
             if (source.params) {
-                Object.entries(source.params).forEach(([key, param]) => {
-                    const value = resolveParamValue(param, component, pageSettings);
-                    if (value !== undefined && value !== null) {
-                        params[key] = value as string | number;
-                    }
-                });
+                // Имена параметров объявлены в brick-файле: собираем объект из
+                // пар, а не присваиванием в аккумулятор (BM-14)
+                params = toSafeRecord(
+                    Object.entries(source.params)
+                        .map(
+                            ([key, param]) =>
+                                [key, resolveParamValue(param, component, pageSettings)] as [
+                                    string,
+                                    unknown,
+                                ]
+                        )
+                        .filter(([, value]) => value !== undefined && value !== null)
+                ) as Record<string, string | number>;
             }
 
             url = buildDataSourceUrl(source.url, params);

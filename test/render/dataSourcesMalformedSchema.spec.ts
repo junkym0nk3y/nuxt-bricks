@@ -135,6 +135,6 @@ describe('useRendererDataSources: повреждённая схема не ро�
             expect.any(Map),
             expect.any(AbortSignal)
         );
-        expect(resolvedProps.value).toEqual({ 'comp-1': { items: [1, 2] } });
+        expect(resolvedProps.value).toEqual(new Map([['comp-1', { items: [1, 2] }]]));
     });
 });

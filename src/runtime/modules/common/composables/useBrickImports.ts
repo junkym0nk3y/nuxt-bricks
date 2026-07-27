@@ -1,5 +1,6 @@
 import type { IBrickExportModule } from '../types/index';
 import { normalizeBrickPath } from '../utils/bricks/paths';
+import { readOwnKey } from '../utils/safeRecord';
 
 /**
  * Лоадеры brick-файлов проекта-потребителя.
@@ -24,6 +25,11 @@ export function useBrickImports() {
     /**
      * Возвращает loader brick-модуля по пути из схемы компонента.
      *
+     * `brickPath` приходит из схемы страницы, поэтому lookup — только по
+     * own-ключу: иначе `"__proto__"` вернул бы `Object.prototype`,
+     * а `"constructor"` — функцию `Object`, и оба ушли бы наружу как «лоадер»
+     * без записи о промахе (BM-14).
+     *
      * @param brickPath - Значение `brickPath`, сохранённое в схеме.
      * @returns Функция-лоадер Vite или `undefined`, если файла нет.
      */
@@ -32,7 +38,7 @@ export function useBrickImports() {
             return undefined;
         }
 
-        const importModule = brickModules[normalizeBrickPath(brickPath)];
+        const importModule = readOwnKey(brickModules, normalizeBrickPath(brickPath));
 
         if (!importModule) {
             console.error(
