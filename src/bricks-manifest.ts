@@ -4,7 +4,7 @@
  * `builder:watch`.
  */
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { globby } from 'globby';
 import { basename, isAbsolute, join, relative } from 'pathe';
 import {
@@ -23,6 +23,20 @@ export interface IBricksManifestOptions {
     srcDir: string;
     /** Каталог манифеста (см. resolveBricksManifestDir). */
     manifestDir: string;
+}
+
+/** Сериализованная очередь генерации манифеста (см. createBricksManifestQueue). */
+export interface IBricksManifestQueue {
+    /**
+     * Ставит генерацию в очередь. Возвращённый промис всегда относится к скану,
+     * начавшемуся после вызова; после `dispose()` — к `undefined`.
+     */
+    enqueue: () => Promise<IBricksManifest | undefined>;
+    /**
+     * Закрывает очередь и дожидается незавершённого скана.
+     * Новые заявки после вызова не выполняются.
+     */
+    dispose: () => Promise<void>;
 }
 // #endregion
 
@@ -43,6 +57,21 @@ const BRICK_FILES_GLOB = `${BRICK_COMPONENTS_DIR}/**/*${BRICK_FILE_SUFFIX}`;
 
 const CATEGORY_RE = /category\s*:\s*(['"])(.*?)\1/;
 const DEFAULT_CATEGORY = 'Common';
+
+/**
+ * Суффикс временного файла атомарной публикации. Каталог манифеста смонтирован
+ * как Nitro server asset, поэтому тем же суффиксом собирается `ignore`
+ * монтирования (см. `src/module.ts`) — иначе временный файл стал бы ключом
+ * namespace.
+ */
+export const BRICKS_MANIFEST_TEMP_SUFFIX = '.tmp';
+
+/**
+ * Счётчик временных файлов публикации: имя должно быть уникальным на процесс,
+ * иначе два прогона (dev-вотчер и build:before нового инстанса Nuxt) писали бы
+ * в один и тот же временный файл.
+ */
+let publishCounter = 0;
 // #endregion
 
 // #region Methods
@@ -99,20 +128,73 @@ export function resolveBricksManifestDir(buildDir: string): string {
 }
 
 /**
+ * Исчез ли файл между перечислением и чтением.
+ *
+ * @param error - Ошибка файловой операции.
+ * @returns Признак ENOENT.
+ */
+function isMissingFileError(error: unknown): error is Error {
+    return error instanceof Error && 'code' in error && error.code === 'ENOENT';
+}
+
+/**
  * Читает один brick-файл и превращает его в запись манифеста.
+ *
+ * Файл, исчезнувший между `globby` и `readFile`, пропускается: атомарное
+ * сохранение редактора, `git checkout` или удаление каталога дают именно такую
+ * гонку, и ронять из-за неё весь скан (а в dev — процесс) нельзя. Удаление всё
+ * равно придёт отдельным событием вотчера и перегенерирует манифест.
  *
  * @param srcDir - `nuxt.options.srcDir` (база ключа загрузчика).
  * @param filePath - Абсолютный путь brick-файла.
- * @returns Запись манифеста.
+ * @returns Запись манифеста или `null`, если файла уже нет.
  */
-async function readManifestEntry(srcDir: string, filePath: string): Promise<IBrickManifestEntry> {
-    const content = await readFile(filePath, 'utf8');
+async function readManifestEntry(
+    srcDir: string,
+    filePath: string
+): Promise<IBrickManifestEntry | null> {
+    try {
+        const content = await readFile(filePath, 'utf8');
 
-    return {
-        name: basename(filePath, BRICK_FILE_SUFFIX),
-        category: extractCategory(content),
-        brickPath: `/${relative(srcDir, filePath)}`,
-    };
+        return {
+            name: basename(filePath, BRICK_FILE_SUFFIX),
+            category: extractCategory(content),
+            brickPath: `/${relative(srcDir, filePath)}`,
+        };
+    } catch (error) {
+        if (isMissingFileError(error)) {
+            return null;
+        }
+
+        throw error;
+    }
+}
+
+/**
+ * Атомарно публикует манифест: запись во временный файл рядом с целевым и
+ * `rename`. Ручка `/api/bricks/components` читает файл целиком, поэтому
+ * недописанный JSON она увидеть не должна; временный файл лежит в том же
+ * каталоге, иначе `rename` перестал бы быть атомарным.
+ *
+ * @param manifestDir - Каталог манифеста.
+ * @param manifest - Публикуемый манифест.
+ */
+async function publishManifest(manifestDir: string, manifest: IBricksManifest): Promise<void> {
+    const targetPath = join(manifestDir, BRICKS_MANIFEST_FILENAME);
+    publishCounter += 1;
+    const tempPath = `${targetPath}.${process.pid}.${publishCounter}${BRICKS_MANIFEST_TEMP_SUFFIX}`;
+
+    await mkdir(manifestDir, { recursive: true });
+
+    try {
+        await writeFile(tempPath, JSON.stringify(manifest, null, 2), 'utf8');
+        await rename(tempPath, targetPath);
+    } catch (error) {
+        // Оборванная публикация не должна оставлять мусор в buildDir
+        await rm(tempPath, { force: true });
+
+        throw error;
+    }
 }
 
 /**
@@ -137,20 +219,114 @@ export async function generateBricksManifest(
 
     const entries = await Promise.all(files.map((file) => readManifestEntry(srcDir, file)));
     // Порядок globby зависит от файловой системы — сортировка держит хеш стабильным
-    const bricks = entries.sort((left, right) => left.brickPath.localeCompare(right.brickPath));
+    const bricks = entries
+        .filter((entry): entry is IBrickManifestEntry => entry !== null)
+        .sort((left, right) => left.brickPath.localeCompare(right.brickPath));
 
     const manifest: IBricksManifest = {
         bricks,
         hash: computeHash(JSON.stringify(bricks)),
     };
 
-    await mkdir(manifestDir, { recursive: true });
-    await writeFile(
-        join(manifestDir, BRICKS_MANIFEST_FILENAME),
-        JSON.stringify(manifest, null, 2),
-        'utf8'
-    );
+    await publishManifest(manifestDir, manifest);
 
     return manifest;
+}
+
+/**
+ * Создаёт сериализованную очередь генерации манифеста.
+ *
+ * Nuxt дёргает `builder:watch` отдельным `callHook` на каждое событие вотчера и
+ * результата не ждёт, поэтому без очереди два быстрых сохранения (атомарная
+ * запись редактора, format-on-save, `git checkout`) дают два конкурентных
+ * скана — и манифест мог бы дописать более старый из них.
+ *
+ * Одновременно работает не больше одного скана; все заявки, пришедшие во время
+ * работы, склеиваются в один догоняющий прогон — он всё равно читает ФС заново,
+ * так что промежуточные проходы ничего не добавляют.
+ *
+ * @param options - srcDir и каталог манифеста.
+ * @returns Очередь генерации.
+ */
+export function createBricksManifestQueue(options: IBricksManifestOptions): IBricksManifestQueue {
+    let running: Promise<IBricksManifest | undefined> | null = null;
+    let queued: Promise<IBricksManifest | undefined> | null = null;
+    let isDisposed = false;
+
+    /**
+     * Промис, завершающийся вместе с исходным, но никогда не реджектящий:
+     * упавший прогон не должен обрывать цепочку и оставлять реджект без
+     * обработчика.
+     *
+     * @param promise - Исходный промис.
+     * @returns Промис без реджекта.
+     */
+    function settle(promise: Promise<unknown>): Promise<void> {
+        return promise.then(
+            () => undefined,
+            () => undefined
+        );
+    }
+
+    /**
+     * Запускает прогон и снимает признак «работает» после завершения.
+     *
+     * @returns Промис прогона.
+     */
+    function start(): Promise<IBricksManifest | undefined> {
+        const run = isDisposed ? Promise.resolve(undefined) : generateBricksManifest(options);
+        running = run;
+
+        settle(run).then(() => {
+            if (running === run) {
+                running = null;
+            }
+        });
+
+        return run;
+    }
+
+    /**
+     * Ставит генерацию в очередь.
+     *
+     * @returns Манифест прогона или `undefined`, если очередь закрыта.
+     */
+    function enqueue(): Promise<IBricksManifest | undefined> {
+        if (isDisposed) {
+            return Promise.resolve(undefined);
+        }
+
+        // Догоняющий прогон ещё не начался — он увидит те же файлы
+        if (queued) {
+            return queued;
+        }
+
+        if (!running) {
+            return start();
+        }
+
+        queued = settle(running).then(() => {
+            queued = null;
+
+            return start();
+        });
+
+        return queued;
+    }
+
+    /**
+     * Закрывает очередь.
+     *
+     * @returns Промис завершения незавершённого скана.
+     */
+    async function dispose(): Promise<void> {
+        isDisposed = true;
+
+        // Скан старого инстанса Nuxt не должен переименовать свой временный
+        // файл поверх манифеста нового: хук close вызывается до его build:before
+        await settle(queued ?? running ?? Promise.resolve());
+    }
+
+    return { enqueue, dispose };
 }
 // #endregion

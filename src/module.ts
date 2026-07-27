@@ -14,7 +14,8 @@ import type { ViteDevServer } from 'vite';
 // Side-effect type import: подтягивает augmentation NuxtOptions.i18n и хука i18n:registerModule
 import type {} from '@nuxtjs/i18n';
 import {
-    generateBricksManifest,
+    BRICKS_MANIFEST_TEMP_SUFFIX,
+    createBricksManifestQueue,
     isBrickFilePath,
     resolveBricksManifestDir,
 } from './bricks-manifest';
@@ -342,25 +343,40 @@ export default defineNuxtModule<IBricksModuleOptions>({
 
         // #region Манифест brick-компонентов и dev-вотчер
         const manifestDir = resolveBricksManifestDir(nuxt.options.buildDir);
+        // Одна очередь на инстанс Nuxt: build:before и dev-вотчер не должны
+        // сканировать параллельно (см. BM-01 в docs/brick-manifest-followups.md)
+        const manifestQueue = createBricksManifestQueue({
+            srcDir: nuxt.options.srcDir,
+            manifestDir,
+        });
+        // Незавершённый скан старого инстанса дожидается здесь: close
+        // вызывается до build:before нового (@nuxt/cli, DevServer#load)
+        nuxt.hook('close', () => manifestQueue.dispose());
 
         // Сам манифест нужен только билдеру: библиотеку компонентов читает лишь
         // он, рендерер берёт brickPath прямо из схемы страницы.
         if (isBuilderEnabled) {
             // build:before, а не setup: nuxi build/prepare чистят buildDir
-            // между setup модуля и сборкой, запись из setup была бы стёрта
+            // между setup модуля и сборкой, запись из setup была бы стёрта.
+            // Ошибку здесь не глотаем: сборка не должна тихо уехать в прод
+            // без манифеста.
             nuxt.hook('build:before', async () => {
-                await generateBricksManifest({ srcDir: nuxt.options.srcDir, manifestDir });
+                await manifestQueue.enqueue();
             });
 
             // Манифест доезжает до Nitro как server asset: в dev каталог
             // монтируется fs-драйвером (свежесть при add/unlink), в prod
             // содержимое запекается в серверный бандл — ручка компонентов
-            // не зависит от process.cwd() и работает из одного .output
+            // не зависит от process.cwd() и работает из одного .output.
+            // ignore — про временные файлы атомарной публикации: nitro отдаёт
+            // его и в globby prod-запекания, и в dev-fsDriver, так что
+            // недописанный manifest.json.<pid>.<n>.tmp в namespace не попадёт
             nuxt.hook('nitro:config', (nitroConfig) => {
                 nitroConfig.serverAssets = nitroConfig.serverAssets || [];
                 nitroConfig.serverAssets.push({
                     baseName: BRICKS_MANIFEST_ASSET_BASE,
                     dir: manifestDir,
+                    ignore: [`**/*${BRICKS_MANIFEST_TEMP_SUFFIX}`],
                 });
             });
         }
@@ -389,23 +405,35 @@ export default defineNuxtModule<IBricksModuleOptions>({
                     return;
                 }
 
-                // Состав glob'а изменился — только рестарт
-                if (event === 'add' || event === 'unlink') {
-                    return nuxt.callHook('restart');
+                // Nuxt зовёт хук без await, поэтому любой реджект отсюда уходит
+                // в необслуженный промис, а Node с дефолтным
+                // --unhandled-rejections=throw убивает на этом dev-сервер
+                try {
+                    // Состав glob'а изменился — только рестарт
+                    if (event === 'add' || event === 'unlink') {
+                        await nuxt.callHook('restart');
+
+                        return;
+                    }
+
+                    // change: состав тот же, но category могла поменяться —
+                    // это уже про манифест, то есть только про билдер
+                    if (event !== 'change' || !isBuilderEnabled) {
+                        return;
+                    }
+
+                    await manifestQueue.enqueue();
+
+                    // Метаданные бриков закешированы в useAsyncData('bricks-components') —
+                    // точечного HMR тут недостаточно (см. BM-06 в
+                    // docs/brick-manifest-followups.md)
+                    viteClientServer?.hot.send({ type: 'full-reload' });
+                } catch (error) {
+                    console.warn(
+                        `[nuxt-bricks] событие ${event} brick-файла ${path} не обработано`,
+                        error
+                    );
                 }
-
-                // change: состав тот же, но category могла поменяться —
-                // это уже про манифест, то есть только про билдер
-                if (event !== 'change' || !isBuilderEnabled) {
-                    return;
-                }
-
-                await generateBricksManifest({ srcDir: nuxt.options.srcDir, manifestDir });
-
-                // Метаданные бриков закешированы в useAsyncData('bricks-components') —
-                // точечного HMR тут недостаточно (см. BM-06 в
-                // docs/brick-manifest-followups.md)
-                viteClientServer?.hot.send({ type: 'full-reload' });
             });
         }
         // #endregion
