@@ -5,17 +5,33 @@ import type {
 } from '../../types/brick';
 
 /**
+ * Реплейсер `JSON.stringify`, вырезающий own-ключ `__proto__` на любой глубине.
+ * Схема приходит из API и из импортированного руками JSON, а `JSON.parse` такой
+ * own-ключ создаёт штатно. В Nuxt payload он непредставим: devalue бросает
+ * «Cannot stringify objects with `__proto__` keys», то есть один такой ключ в
+ * пропсах роняет SSR и билдера, и опубликованной страницы. Отбрасываем его в
+ * единственной точке — на входе схемы в стор (BM-15).
+ *
+ * @param key - Имя текущего ключа.
+ * @param value - Значение по ключу.
+ * @returns Значение либо undefined — тогда ключ в результат не попадает.
+ */
+function omitProtoKey(key: string, value: unknown): unknown {
+    return key === '__proto__' ? undefined : value;
+}
+
+/**
  * Создаёт копию объекта пропсов для безопасного использования в истории/драг&дропе.
  *
  * @param props - Исходный объект пропсов.
- * @returns Глубокая копия без сохранения ссылок.
+ * @returns Глубокая копия без сохранения ссылок и без own-ключей `__proto__`.
  */
 export function cloneComponentProps<T extends object>(props: T | undefined): T {
     if (!props) {
         return {} as T;
     }
 
-    return JSON.parse(JSON.stringify(props)) as T;
+    return JSON.parse(JSON.stringify(props, omitProtoKey)) as T;
 }
 
 /**

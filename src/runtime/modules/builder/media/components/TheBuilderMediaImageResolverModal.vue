@@ -129,7 +129,7 @@ function handleGlobalActionChange(event: Event): void {
                     v-for="image in props.state.newImages"
                     :key="image.url"
                     :image="image"
-                    :action="props.state.actions[image.url] || 'keep'"
+                    :action="props.state.actions.get(image.url) ?? 'keep'"
                     @update:action="handleImageAction"
                 />
             </div>

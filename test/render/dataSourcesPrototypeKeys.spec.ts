@@ -69,14 +69,10 @@ const PROTOTYPE_KEYS = ['__proto__', 'constructor', 'toString', 'hasOwnProperty'
 
 /**
  * Носители, в которые уехали бы пропсы при lookup'е по прототипу.
+ * Тип — `object`: значения читаются через `Reflect.get`, приведение не нужно.
  */
-function getPollutionCarriers(): Array<Record<string, unknown>> {
-    return [
-        {} as Record<string, unknown>,
-        Object as unknown as Record<string, unknown>,
-        Object.prototype.toString as unknown as Record<string, unknown>,
-        Object.prototype.hasOwnProperty as unknown as Record<string, unknown>,
-    ];
+function getPollutionCarriers(): object[] {
+    return [{}, Object, Object.prototype.toString, Object.prototype.hasOwnProperty];
 }
 
 /**
@@ -146,7 +142,7 @@ describe('useRendererDataSources: id компонента с именем из O
         expect(resolvedProps.value.get(id)).toEqual({ items: [1, 2] });
 
         getPollutionCarriers().forEach((carrier) => {
-            expect(carrier.items).toBeUndefined();
+            expect(Reflect.get(carrier, 'items')).toBeUndefined();
         });
     });
 

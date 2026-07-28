@@ -37,9 +37,15 @@ export interface IExtractedImageUrl {
 
 /**
  * Состояние резолвера изображений.
+ *
+ * `actions` — именно Map: ключ приходит из схемы (URL картинки), а
+ * `<img src="__proto__">` в импортированном компоненте превратил бы
+ * присваивание в вызов сеттера прототипа, и выбор «заменить на плейсхолдер»
+ * для этой картинки молча игнорировался бы (BM-15). Состояние локальное и в
+ * payload не уезжает, поэтому ограничений на Map тут нет.
  */
 export interface IImageResolverState {
     newImages: IExtractedImageUrl[];
-    actions: Record<string, TImageResolveAction>;
+    actions: Map<string, TImageResolveAction>;
     globalAction: TImageResolveAction;
 }

@@ -362,6 +362,161 @@ brick-файлов становились ключами обычных объе
 класса, дрейф контракта `toSafeRecord` и один неразличающий тест вынесены в
 BM-15 — BM-14 закрыт не полностью.
 
+### BM-15. Прототипные ключи: оставшиеся места, дрейф `toSafeRecord`, цель сборки
+
+**Выполнено 28 июля 2026 года.** Источник — ревью Codex (`gpt-5.6-sol`, high)
+правки BM-14. Все семь пунктов закрыты; по двум выводы ревью пришлось поправить
+по фактам (см. ниже), скан сверх списка нашёл ещё четыре места.
+
+**1. `replaceSchemaImageUrls` больше ничего не теряет.** Политика вынесена из
+утилиты в единственную точку входа схемы. `Object.fromEntries` собирает
+own-свойство даже для `__proto__` (CreateDataProperty, а не присваивание), так
+что защита от подмены прототипа сохраняется без отбрасывания ключа, и контракт
+функции («остальной контент не трогает») выполняется. Отбрасывание переехало в
+`common/utils/bricks/components.ts` → `cloneComponentProps`: реплейсер
+`JSON.stringify` вырезает own-ключ `__proto__` на любой глубине, включая
+элементы массивов. Это единственная воронка копирования пропсов в билдере
+(`deserializeSchema`, история, буфер обмена, дублирование), и дополнительного
+прохода она не стоит — round-trip через JSON там уже был.
+
+**Достижимость уточнена.** Ревью считало, что ключ приходит и из API
+(«схема через `JSON.parse`»). Фактически нет: ofetch парсит ответ через `destr`,
+который такой ключ выбрасывает сам — в dev-логе видно
+`WARN [destr] Dropping "__proto__" key to prevent prototype pollution`, а в сыром
+HTTP-ответе `/api/bricks/pages/<name>` ключа уже нет. Остаётся единственный путь —
+ручной импорт JSON-файла (`useSchemaFileTransfer` зовёт голый `JSON.parse`).
+Побочно это значит, что published-страница с таким ключом в БД **не** падает:
+до payload он не доезжает (проверено — 200 и компонент в сыром HTML).
+
+**2. Действия резолвера изображений — `Map`.** `IImageResolverState.actions`
+стал `Map<string, TImageResolveAction>`; обновлены `useSchemaImageResolver`
+(инициализация, сброс, `setImageAction`, `setGlobalAction`, `handleConfirm`) и
+`TheBuilderMediaImageResolverModal.vue`. Ключ — URL картинки из схемы, состояние
+локальное и в payload не уезжает, ограничений на `Map` нет.
+
+**3. `readOwnKey` на brick-объявленные имена.** `variantBuilders.ts` — десять
+чтений свёрнуты в одну функцию `readPropValue(context)`; `inlineEditableProp.ts`
+и `usePropertyVariants.ts` — сверка `showWhen.field`; `useSidebarPropertiesPanel.ts`
+— «текущее значение» для приведения типов.
+
+**4+5. Параметры data source — `Map`, тест переписан.** `params` в
+`useBricksDataSources` собирается в `Map`, `buildDataSourceUrl` читает через
+`has`/`get`. Кейс `test/render/dataSourceParamsPrototypeKeys.spec.ts` про
+`__proto__` разделён на два: новый берёт `url: '/api/items/:__proto__'` и
+действительно различает реализации, старый оставлен как проверка «ключ никуда не
+утёк».
+
+**Оговорка по достижимости.** В обычном объектном литерале `__proto__: value`
+подменяет прототип и own-свойства не создаёт (проверено), поэтому brick-файл,
+написанный руками, такой параметр в `Object.entries(source.params)` не отдаст.
+Нужен вычисляемый ключ `['__proto__']` или объект, собранный динамически. То
+есть №4 — устранение асимметрии, а не наблюдаемый в обычном коде отказ; живая
+проверка ниже делалась именно на вычисляемом ключе.
+
+**6. Цель сборки: `.browserslistrc` оставлен, обоснования переписаны.** Ревью
+утверждало, что файл «не читает ни один конфиг сборки». Буквально ссылки в
+конфигах нет, но autoprefixer Nuxt включает по умолчанию и подхватывает
+`.browserslistrc` сам — проверено, из текущего списка приезжают `-webkit-sticky`,
+`-webkit-user-select`, `-webkit-backdrop-filter`. Решение (28 июля 2026):
+
+- `> 0.2% and not dead` остаётся как **цель CSS-префиксов**; в файл добавлен
+  комментарий, что JS им не управляется;
+- **фактический JS-пол — `safari 16` / `chrome 107`**: у Vite 7 дефолтный
+  `build.target` — `baseline-widely-available`
+  (`chrome107 / edge107 / firefox104 / safari16`). Встроенные методы Vite не
+  полифилит, синтаксис задаёт таргет, так что бандл на iOS 11 не распарсится
+  независимо от нашего кода;
+- правило для кода — не брать встроенные методы новее `safari 16`. Скан всего
+  клиентского рантайма нарушений не нашёл: `.at` и `Object.hasOwn` — 15.4,
+  `AbortSignal.timeout` — 16.0, `AbortSignal.any` — 17.4, но там feature-detect с
+  fallback, `Object.fromEntries` — 12.1, `.flatMap` — 12, `globalThis` — 12.1,
+  `ResizeObserver` — 13.1, `matchAll` — 13;
+- вывод BM-02 про `Map.groupBy` в силе, но по исправленной причине: Safari 17.4
+  выше цели сборки, а не «в списке есть `ios_saf 11`». Обоснование в
+  `safeRecord.ts` тоже переписано: `hasOwnProperty.call` оставлен как привычка к
+  широкой совместимости, а не по необходимости — менять форму записи не на что.
+
+**7. `as unknown as` из тестов убран.** Носители загрязнения типизированы как
+`object` и читаются через `Reflect.get`; фикстуры компонента и схемы заполнены
+целиком (заодно исправлен невалидный `type: 'brick'`); drag-событие строится от
+настоящего `Event` (в Node он есть) — приведение стало сужением до подтипа.
+
+**Повторный скан по обоим шаблонам нашёл четыре места сверх списка ревью:**
+
+- `builder/canvas/viewport/components/TheBuilderCanvas.vue` — `getPropValue`
+  порта inline-редактирования читал `props[propName]` (имя из brick-файла) →
+  `readOwnKey`;
+- `builder/shell/sidebar/composables/useSidebarMediaSelection.ts` — четыре
+  чтения `props[property.name]`; наблюдаемого дефекта нет (спасал
+  `Array.isArray`), переведены ради однородности;
+- `layouts-blocks/utils/responsiveVars.ts` — `key in overrides` по объекту из
+  `props.responsive` схемы → `hasOwnKey`.
+
+Проверено и **оставлено как есть**: запись `component.props = { ...props, [propName]: v }`
+в `builder/core/stores/actions/properties.ts` — вычисляемый ключ в литерале
+создаёт own-свойство и прототип не трогает (проверено); `resolveSystemIcon`
+(`plugins/icons/systemIconsRegistry.ts`) — все `:icon` в шаблонах приходят из
+внутренних списков, схема туда не попадает; четыре места из BM-14 с внутренними
+ключами.
+
+**Тесты** (+55 кейсов, 720 всего):
+
+- `test/builder/variantBuildersPrototypeKeys.spec.ts` (29) — все билдеры
+  вариантов на прототипных именах;
+- `test/builder/showWhenPrototypeKeys.spec.ts` (13) — `showWhen` в
+  `inlineEditableProp` и `usePropertyVariants`;
+- `test/builder/schemaImageResolverActions.spec.ts` (4) — действие по URL
+  `__proto__`, глобальное действие, дефолт, сброс между импортами;
+- `test/builder/sidebarPropertiesPanelPrototypeKeys.spec.ts` (3) — «текущее
+  значение» при приведении;
+- `test/builder/coreHistory.spec.ts` — +3 кейса на отбрасывание `__proto__` в
+  `deserializeSchema` (верхний уровень, глубина, массивы; `constructor`/`toString`
+  остаются);
+- `test/builder/schemaImageExtractor.spec.ts` — +2 кейса на сохранность состава
+  пропсов.
+
+**Мутационная проверка тестов.** Клон без реплейсера — 2 падения; возврат
+`toSafeRecord` в `replaceSchemaImageUrls` — 2; `actions` обратно в `Record` — 2
+поведенческих (на варианте спека без Map-API-ассертов, чтобы падало поведение, а
+не отсутствующий метод); возврат прямого `obj[имя]` во всех четырёх местах
+пункта 3 — 20 падений из 45; возврат `params` к `toSafeRecord` — 1.
+
+**Слабое место набора, зафиксировано честно:** из 13 кейсов `showWhen` на откате
+краснеет один. Остальные проходят в обеих версиях — метод прототипа не равен
+строковому `equals` ни там, ни там, так что различает только `equals: undefined`.
+Правка пункта 3 в этой части защитная; наблюдаемый эффект даёт ветка
+`variantBuilders` (`Boolean(...)` от метода прототипа — всегда `true`).
+
+**Проверено вживую** (playground, dev, Chrome DevTools MCP):
+
+- импорт JSON-файла с пропсами `{"__proto__": {...}, "content": "<img src=\"__proto__\"><img src=\"/uploads/photo.webp\">"}`:
+  модалка резолвера показывает обе картинки, включая URL `__proto__`; выбор
+  «Placeholder» **для неё одной** срабатывает — в канвасе `src` меняется на
+  `/_bricks/images/brick-empty.webp`, соседняя с «Keep» не тронута (пункт 2);
+- после сохранения в БД у компонента остаются `content`, `marginTop`,
+  `marginBottom` — own-ключ `__proto__` отброшен (пункт 1);
+- **различающая проверка безусловности:** тот же импорт с «Skip» (ни одна
+  картинка не менялась) — ключ **всё равно** отброшен, а `content` не тронут
+  (`src="__proto__"` на месте). Раньше ветки вели себя по-разному;
+- панель свойств выбранного компонента рендерится, консоль чистая (кроме
+  ожидаемых 404 на выдуманный `/uploads/photo.webp` и того самого
+  предупреждения `destr`);
+- data source: временный `playground/components/ProbeDs.brick.ts` с
+  `url: '/api/bricks/health?probe=:__proto__'` и параметром с вычисляемым ключом
+  `['__proto__']` — published-страница отдаёт `DS:OK {"status":"ok"}` в сыром SSR-HTML;
+  на откате `params` к `toSafeRecord` та же страница отдаёт `DS:MISSING`, а в лог
+  уходит `Skip - unresolved params` (пункты 4/5).
+
+**Ловушка при живой проверке (сохраняем на будущее).** Правки в
+`src/runtime/**` dev-сервер в SSR-бандл по HMR не подхватывает: три подряд
+мутации `useBricksDataSources` дали одинаковый ответ, пока сервер не был
+перезапущен. Мутационные проверки на published-странице делать только с
+рестартом `npm run dev`.
+
+`type-check`, `lint:check` (oxlint + stylelint + `deps:check` + `knip`),
+`prettier --check`, 720/720 тестов, `npm run dev:build`, бюджеты бандла
+(entry 111 KB, published 122 KB gzip) — зелёные.
+
 ### BM-12. Vite-вотчер заменён на `builder:watch` + `nuxt.callHook('restart')`
 
 **Выполнено 27 июля 2026 года.**
@@ -463,100 +618,6 @@ parcel зафиксировано, координаты строк в пункт
 ---
 
 ## P1
-
-### BM-15. Прототипные ключи: пять оставшихся мест и дрейф контракта `toSafeRecord`
-
-**Источник:** ревью Codex (`gpt-5.6-sol`, high) 28 июля 2026 правки BM-14. Все
-семь пунктов перепроверены на своей стороне — координаты и механика сходятся,
-поправка одна (пункт 6). Blocker'ов нет, но пункт 1 — тихая потеря данных схемы,
-а пункт 5 обесценивает часть мутационной проверки BM-14.
-
-**Почему скан BM-14 их не нашёл.** Искали шаблоны, где недоверенным был **ключ**.
-Пропущены два других класса: brick-объявленное имя, читаемое с объекта пропсов из
-схемы (`obj[property.name]` — объект недоверенной формы, ключ из brick-файла), и
-накопитель, ключом которого становится URL изображения.
-
-**1. Тихая потеря данных схемы при замене изображений.**
-`builder/media/utils/schemaImageExtractor.ts:388`. `replaceSchemaImageUrls`
-пересобирает пропсы через `toSafeRecord`, а тот отбрасывает own-ключ `__proto__`.
-Схема приходит из API через `JSON.parse`, а он own-ключ `__proto__` создаёт
-штатно, так что в билдере он вполне достижим. Сценарий: пропсы
-`{"__proto__": {"mode":"custom"}, "image": "/old.webp"}`, пользователь меняет
-картинку → запись `__proto__` исчезает. Причём **условно** — только когда
-`hasChanges`, то есть при совпадении URL с маппингом. Это прямо противоречит
-контракту самой функции на `:301` («Заменяет только сами URL, остальной контент
-не трогает»). Точка не сериализационная, поэтому отбрасывание здесь не оправдано
-ничем: нужно либо не терять ключ, либо отбрасывать его нормализацией на входе
-схемы — одинаково, а не в зависимости от того, поменялась ли картинка.
-
-**2. Накопитель действий по URL изображения.**
-`builder/media/composables/useSchemaImageResolver.ts:113`, `:132`, `:143` —
-запись `state.actions[img.url] = …`, чтение `:159` и
-`components/TheBuilderMediaImageResolverModal.vue:132`. URL берётся из
-`extractSchemaImageUrls`, то есть из схемы; при `<img src="__proto__">` в
-импортируемом компоненте присваивание уходит в сеттер прототипа, а чтение
-отдаёт `Object.prototype` — объект истинный, но не равный `'placeholder'`, так
-что выбор «заменить на плейсхолдер» для этой картинки молча игнорируется.
-Контейнер локальный и не payload-bound → `Map`.
-
-**3. Brick-объявленные имена пропсов читаются с объекта из схемы.**
-`builder/shell/sidebar/utils/variantBuilders.ts` — `componentProps[property.name]`
-на строках 41, 69, 82, 94, 112, 124, 142, 179, 222, 244;
-`builder/core/utils/inlineEditableProp.ts:65` — `componentProps[showWhen.field]`;
-`builder/shell/sidebar/composables/usePropertyVariants.ts:126` — то же по
-`showWhen.field`; `builder/shell/sidebar/composables/useSidebarPropertiesPanel.ts:162`
-— `previewProps[property.name]`. Brick с value по имени `__proto__` даёт
-`Boolean(componentProps['__proto__']) === true` (`:82`, `:94`) — чекбокс и свитч
-всегда включены независимо от схемы; в `showWhen` сравнение `=== equals` наоборот
-всегда ложно, и проп молча скрывается. Имя из brick-файла — тот же уровень
-доверия, что и категория, которую BM-02 и BM-14 считают недоверенной; здесь
-уровень доверия перепутан со стороной выражения. `readOwnKey` на все места.
-
-**4. `toSafeRecord` отбрасывает годный параметр data source.**
-`render/composables/useBricksDataSources.ts:273`. `params` — локальное состояние
-сборки запроса, в payload не уезжает, но `__proto__` из него всё равно
-выбрасывается: при `url: '/api/items/:__proto__'` и параметре с таким именем
-плейсхолдер остаётся неразрешённым, `hasUnresolvedParams` срабатывает и
-`executeDataSource` возвращает `null`. Заявленная в BM-14 политика («отбрасываем
-только там, где объект payload-bound») здесь нарушена — контейнеру просится
-`Map`, как в `resolvedProps` и `slotStates`.
-
-**5. Тест не различает сломанную реализацию — это дефект набора, не мелочь.**
-`test/render/dataSourceParamsPrototypeKeys.spec.ts:138` («параметр с именем
-`__proto__` не подменяет прототип набора параметров») использует
-`url: '/api/items/:id'`, а параметр называет `__proto__`. Проверено: на прежней
-реализации проходят **все три** ассерта — присваивание `params['__proto__']`
-меняет прототип самого `params`, а не `Object.prototype`, так что
-`{}.polluted` остаётся `undefined`; `:id` не разрешается в любом случае, поэтому
-`result === null` и фетчер не вызван и там, и там. Кейс не измеряет ничего, и
-заявленный в BM-14 счётчик мутационной проверки по этому файлу настолько же
-завышен. Чтобы тест начал различать, URL должен быть `:__proto__` — то есть
-исправляется он вместе с пунктом 4, иначе останется красным по чужой причине.
-
-**6. `Object.fromEntries` против заявленного `ios_saf 11` — поправка к
-формулировке ревью.** `common/utils/safeRecord.ts:56` использует
-`Object.fromEntries` (Safari 12.1+) в том же файле, где `Object.hasOwn`
-сознательно не взят из-за `ios_saf 11` — обоснование внутренне противоречиво,
-и это надо закрыть. Но «на iOS 11 упадёт с `TypeError`» — не тот вывод:
-проверено, что `.browserslistrc` в проекте не читает ни один конфиг сборки (в
-`package-lock` он только транзитивная зависимость CSS-тулинга), а
-published-рендерер уже сыплет `??` (ES2020, iOS 14+) — на iOS 11 модуль
-неработоспособен и без нашей правки. То есть дефект не в рантайме, а в
-обоснованиях BM-02 и BM-14: сослались на цель, которую проект фактически не
-держит. Решение принимать одно на оба места — либо зафиксировать реальную
-цель сборки и разрешить `Object.hasOwn`, либо честно держать `.browserslistrc`.
-
-**7. `as unknown as` в новых тестах** — нарушение `.claude/rules/typescript.md`,
-не баг: `test/render/dataSourceParamsPrototypeKeys.spec.ts:49`,
-`test/render/dataSourcesPrototypeKeys.spec.ts:76-78`,
-`test/builder/slotDragDropPrototypeKeys.spec.ts:69`, `:92-94`,
-`test/builder/schemaImageExtractor.spec.ts:23`. Заменить на фабрики-хелперы с
-честными типами либо на `Partial<…>` + type guard.
-
-**Порядок работ.** 1 и 3 — самостоятельные; 4 и 5 делаются одной правкой; 2 —
-механический перевод на `Map`; 6 — решение, а не код; 7 — уборка. После 1 и 3
-перепроверить полноту заново уже по обоим шаблонам (`obj[внешний ключ]` и
-`obj[brick-объявленное имя]`), а не только по первому.
 
 ### BM-03. Слишком общий namespace Nitro server asset
 

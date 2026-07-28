@@ -5,6 +5,9 @@ import type {
     TInlineEditingPropType,
 } from '../../../common/types/inlineEditing';
 import type { ILayoutProperty } from '../../../common/types/layoutProperty';
+
+// Utils
+import { readOwnKey } from '../../../common/utils/safeRecord';
 // #endregion
 
 // Реэкспорт для обратной совместимости импортёров (useCanvasItemInlineEditing)
@@ -50,6 +53,11 @@ function capitalize(str: string): string {
 /**
  * Проверяет, выполнено ли условие showWhen для свойства.
  *
+ * Имя поля объявляет brick-файл, а пропсы приходят из схемы: `showWhen.field`
+ * вида `toString` без own-ключа вернул бы метод прототипа, и сравнение с
+ * `equals` было бы ложным при любой схеме — свойство молча пропадало бы из
+ * inline-редактирования (BM-15).
+ *
  * @param propConfig - Конфиг свойства из brick.
  * @param componentProps - Текущие props компонента.
  * @returns true если условие выполнено или отсутствует.
@@ -62,7 +70,7 @@ function isShowWhenSatisfied(
         return true;
     }
 
-    return componentProps[propConfig.showWhen.field] === propConfig.showWhen.equals;
+    return readOwnKey(componentProps, propConfig.showWhen.field) === propConfig.showWhen.equals;
 }
 
 /**

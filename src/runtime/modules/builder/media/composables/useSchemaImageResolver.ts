@@ -50,7 +50,7 @@ export function useSchemaImageResolver() {
 
     const state = reactive<IImageResolverState>({
         newImages: [],
-        actions: {},
+        actions: new Map(),
         globalAction: 'keep',
     });
     // #endregion
@@ -61,7 +61,7 @@ export function useSchemaImageResolver() {
      */
     function resetState(): void {
         state.newImages = [];
-        state.actions = {};
+        state.actions = new Map();
         state.globalAction = 'keep';
         pendingSchema.value = null;
     }
@@ -110,7 +110,7 @@ export function useSchemaImageResolver() {
         // Инициализируем действия для каждого URL
         state.newImages = newImages;
         newImages.forEach((img) => {
-            state.actions[img.url] = 'keep';
+            state.actions.set(img.url, 'keep');
         });
 
         pendingSchema.value = schema;
@@ -129,7 +129,7 @@ export function useSchemaImageResolver() {
      * @param action - Выбранное действие.
      */
     function setImageAction(url: string, action: TImageResolveAction): void {
-        state.actions[url] = action;
+        state.actions.set(url, action);
     }
 
     /**
@@ -140,7 +140,7 @@ export function useSchemaImageResolver() {
     function setGlobalAction(action: TImageResolveAction): void {
         state.globalAction = action;
         state.newImages.forEach((img) => {
-            state.actions[img.url] = action;
+            state.actions.set(img.url, action);
         });
     }
 
@@ -156,7 +156,7 @@ export function useSchemaImageResolver() {
         const urlMap = new Map<string, string>();
 
         state.newImages.forEach((image) => {
-            const action = state.actions[image.url] || 'keep';
+            const action = state.actions.get(image.url) ?? 'keep';
             if (action === 'placeholder') {
                 urlMap.set(image.url, placeholder);
             }

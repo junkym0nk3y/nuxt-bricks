@@ -8,6 +8,7 @@ import { computed, type ComputedRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Utils
+import { readOwnKey } from '../../../../common/utils/safeRecord';
 import { resolveBricksLabel } from '../../../../common/utils/i18nLabels';
 import { normalizeVariantProps } from '../utils/normalizeVariantProps';
 import {
@@ -113,6 +114,10 @@ export function usePropertyVariants(
 
     /**
      * Проверяет условие показа свойства в панели.
+     *
+     * Имя поля объявляет brick-файл: без сверки own-ключа `showWhen.field` вида
+     * `constructor` вернул бы член прототипа, сравнение с `equals` было бы
+     * ложным при любой схеме, и свойство молча исчезало бы из панели (BM-15).
      */
     function shouldRenderProperty(
         property: IPropertyDefinition,
@@ -123,7 +128,7 @@ export function usePropertyVariants(
             return true;
         }
 
-        return componentProps[showWhen.field] === showWhen.equals;
+        return readOwnKey(componentProps, showWhen.field) === showWhen.equals;
     }
 
     /**

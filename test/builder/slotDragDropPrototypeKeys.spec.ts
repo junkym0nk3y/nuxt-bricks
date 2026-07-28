@@ -54,11 +54,15 @@ class FakeElement {
 
 /**
  * Минимальное drag-событие: типы payload распознаёт applyDropEffect.
+ *
+ * Базой служит настоящий `Event` (в Node он есть, `DragEvent` — нет), поэтому
+ * `preventDefault`/`stopPropagation` не заглушки, а приведение — сужение до
+ * подтипа вместо сквозного `as unknown as`.
  */
 function createDragEvent(): DragEvent {
-    return {
-        preventDefault: () => undefined,
-        stopPropagation: () => undefined,
+    const event = new Event('dragenter') as DragEvent;
+
+    return Object.assign(event, {
         clientY: 0,
         relatedTarget: null,
         dataTransfer: {
@@ -66,7 +70,7 @@ function createDragEvent(): DragEvent {
             dropEffect: '',
             getData: () => '',
         },
-    } as unknown as DragEvent;
+    });
 }
 
 /**
@@ -85,14 +89,12 @@ function attachSlotContainer(refFactory: (slotName: string) => VNodeRef, slotNam
     handler(new FakeElement(), {});
 }
 
-/** Носители, в которые уехало бы состояние слота при lookup'е по прототипу. */
-function getPollutionCarriers(): Array<Record<string, unknown>> {
-    return [
-        {} as Record<string, unknown>,
-        Object as unknown as Record<string, unknown>,
-        Object.prototype.toString as unknown as Record<string, unknown>,
-        Object.prototype.hasOwnProperty as unknown as Record<string, unknown>,
-    ];
+/**
+ * Носители, в которые уехало бы состояние слота при lookup'е по прототипу.
+ * Тип — `object`: значения читаются через `Reflect.get`, приведение не нужно.
+ */
+function getPollutionCarriers(): object[] {
+    return [{}, Object, Object.prototype.toString, Object.prototype.hasOwnProperty];
 }
 // #endregion
 
@@ -122,9 +124,9 @@ describe('useSlotDragDrop: имена слотов из Object.prototype', () =>
         expect(getSlotDropIndex(slotName)).toBe(0);
 
         getPollutionCarriers().forEach((carrier) => {
-            expect(carrier.dragDepth).toBeUndefined();
-            expect(carrier.isDragOver).toBeUndefined();
-            expect(carrier.dropInsertIndex).toBeUndefined();
+            expect(Reflect.get(carrier, 'dragDepth')).toBeUndefined();
+            expect(Reflect.get(carrier, 'isDragOver')).toBeUndefined();
+            expect(Reflect.get(carrier, 'dropInsertIndex')).toBeUndefined();
         });
 
         handleSlotDragLeave(slotName, createDragEvent());

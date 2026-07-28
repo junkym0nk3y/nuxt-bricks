@@ -28,6 +28,7 @@ import {
 } from '../utils/propertyValueCoercion';
 import { componentEditors } from '../utils/propertyEditorComponents';
 import { normalizeDeviceVisibility } from '../../../../common/utils/bricks/deviceVisibility';
+import { readOwnKey } from '../../../../common/utils/safeRecord';
 // #endregion
 
 /**
@@ -159,7 +160,10 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
 
         const previewProps =
             selectedComponentDataForVariants.value?.component.props ?? selected.component.props;
-        const currentValue = (previewProps as Record<string, unknown>)[property.name];
+        // Имя свойства объявляет brick-файл: `previewProps['toString']` вернул бы
+        // метод прототипа, и приведение (number/array/object) считало бы, что у
+        // пропа уже есть значение (BM-15)
+        const currentValue = readOwnKey(previewProps as Record<string, unknown>, property.name);
         let finalValue: unknown = value;
 
         switch (property.type) {

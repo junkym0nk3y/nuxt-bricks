@@ -5,8 +5,13 @@
  * читаются как существующие значения, поэтому проверка «уже есть» ложно
  * срабатывает, а запись в мнимую корзину уходит в глобальный прототип.
  *
- * `Object.prototype.hasOwnProperty.call` вместо `Object.hasOwn`: второй требует
- * Safari 15.4+, а в целевых браузерах `.browserslistrc` есть `ios_saf 11`.
+ * `Object.prototype.hasOwnProperty.call` вместо `Object.hasOwn` — по привычке к
+ * широкой совместимости, а не по необходимости: фактический JS-пол проекта —
+ * `safari 16` (дефолтный `build.target` Vite 7, см. `.browserslistrc`), так что
+ * `Object.hasOwn` (Safari 15.4) прошёл бы. Прежнее обоснование «в
+ * `.browserslistrc` есть `ios_saf 11`» неверно: этот файл читает только
+ * autoprefixer и на JS не влияет (BM-15 №6). Менять форму записи не на что —
+ * поведение идентично.
  */
 
 // #region Constants

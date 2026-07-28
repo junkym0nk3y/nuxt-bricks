@@ -14,7 +14,6 @@ import type { IGalleryItem, IInlineContentSegment } from '../../../common/types/
 
 // Utils
 import { resolveBricksAssetUrl } from '../../../common/utils/bricks/assetPaths';
-import { toSafeRecord } from '../../../common/utils/safeRecord';
 // #endregion
 
 // #region Constants
@@ -320,7 +319,13 @@ export function replaceSchemaImageUrls(
         let hasChanges = false;
         // Имена пропов приходят из схемы (в том числе импортированной руками):
         // `newProps['__proto__'] = value` подменял бы прототип собираемого
-        // объекта вместо записи ключа, и пропсы уезжали бы в него (BM-14)
+        // объекта вместо записи ключа, и пропсы уезжали бы в него (BM-14).
+        // Собираем парами: `Object.fromEntries` делает own-свойство даже для
+        // `__proto__` (CreateDataProperty, а не присваивание), поэтому прототип
+        // не подменяется и контракт «остальной контент не трогаем» соблюдён.
+        // `toSafeRecord` здесь не подходит — он отбрасывал бы такой ключ, причём
+        // только когда картинка поменялась; отбрасывание живёт на входе схемы
+        // в стор (`cloneComponentProps`), безусловно (BM-15)
         const newPropEntries: Array<[string, unknown]> = [];
 
         Object.entries(component.props).forEach(([propName, value]) => {
@@ -385,7 +390,7 @@ export function replaceSchemaImageUrls(
         });
 
         if (hasChanges) {
-            return { ...component, props: toSafeRecord(newPropEntries) };
+            return { ...component, props: Object.fromEntries(newPropEntries) };
         }
 
         return component;

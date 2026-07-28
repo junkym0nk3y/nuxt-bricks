@@ -30,6 +30,7 @@ import { useInteractivePreviewDismiss } from '../composables/useInteractivePrevi
 
 // Utils
 import { convertPxToRem } from '../../../../common/utils/main';
+import { readOwnKey } from '../../../../common/utils/safeRecord';
 import { buildDropFlowEntries, getDragPlaceholderVars } from '../../../core/utils/dragVisuals';
 
 // Constants
@@ -91,7 +92,13 @@ provide('getRemCompensation', getRemCompensation);
 provide(INLINE_EDITOR_HOST_KEY, {
     getPropValue: (componentId, propName) => {
         const component = componentsStore.getComponentById(componentId);
-        return (component?.props as Record<string, unknown> | undefined)?.[propName];
+        if (!component?.props) {
+            return undefined;
+        }
+
+        // Имя пропа объявляет brick-файл, объект пропсов приходит из схемы:
+        // `props['toString']` отдал бы редактору метод прототипа (BM-15)
+        return readOwnKey(component.props as Record<string, unknown>, propName);
     },
     updateProp: (componentId, propName, value) => {
         componentsStore.updateComponentProp(componentId, propName, value);

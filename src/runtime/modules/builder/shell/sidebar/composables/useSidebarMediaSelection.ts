@@ -19,6 +19,7 @@ import {
     cloneInlineSegments,
     createInlineMediaSegmentFromItem,
 } from '../../../../layouts-blocks/utils/inlineContent';
+import { readOwnKey } from '../../../../common/utils/safeRecord';
 
 /**
  * Выбор медиа из галереи для панели свойств: контекст запроса
@@ -95,8 +96,10 @@ export function useSidebarMediaSelection(options: IUseSidebarMediaSelectionOptio
         }
 
         const property = context.property;
-        const currentSegments = Array.isArray(selected.component.props[property.name])
-            ? (selected.component.props[property.name] as IInlineContentSegment[])
+        // Имя пропа объявляет brick-файл, пропсы приходят из схемы (BM-15)
+        const currentValue = readOwnKey(selected.component.props, property.name);
+        const currentSegments = Array.isArray(currentValue)
+            ? (currentValue as IInlineContentSegment[])
             : [];
         const segments = cloneInlineSegments(currentSegments);
 
@@ -136,9 +139,9 @@ export function useSidebarMediaSelection(options: IUseSidebarMediaSelectionOptio
         item: IMediaItem
     ): void {
         const property = context.property;
-        const currentItems = Array.isArray(selected.component.props[property.name])
-            ? (selected.component.props[property.name] as IGalleryItem[])
-            : [];
+        // Имя пропа объявляет brick-файл, пропсы приходят из схемы (BM-15)
+        const currentValue = readOwnKey(selected.component.props, property.name);
+        const currentItems = Array.isArray(currentValue) ? (currentValue as IGalleryItem[]) : [];
 
         const items = currentItems.map((galleryItem) => ({ ...galleryItem }));
 

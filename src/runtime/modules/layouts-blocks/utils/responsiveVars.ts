@@ -7,6 +7,9 @@
 // Types
 import type { IBricksComponent, TBricksDeviceKey } from '../../common/types/brick';
 
+// Utils
+import { hasOwnKey } from '../../common/utils/safeRecord';
+
 /**
  * Округляет значение в rem до 1 десятичного знака.
  *
@@ -20,6 +23,10 @@ export function toRem(v: unknown): string {
 /**
  * Resolve значения с учётом device-override.
  *
+ * `overrides` приходит из `props.responsive` схемы, поэтому проверка идёт по
+ * own-ключу: `in` заглядывает в прототип, и имя свойства, совпавшее с членом
+ * `Object.prototype`, считалось бы переопределённым (BM-15).
+ *
  * @param base - Базовое (desktop) значение.
  * @param overrides - Объект overrides конкретного device.
  * @param key - Имя свойства.
@@ -30,7 +37,7 @@ export function resolveResponsiveValue<T>(
     overrides: Record<string, unknown>,
     key: string
 ): T {
-    return key in overrides ? (overrides[key] as T) : base;
+    return hasOwnKey(overrides, key) ? (overrides[key] as T) : base;
 }
 
 /**

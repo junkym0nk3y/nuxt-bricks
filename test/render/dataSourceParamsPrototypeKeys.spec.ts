@@ -44,9 +44,12 @@ const PROTOTYPE_KEYS = ['constructor', 'toString', 'hasOwnProperty'] as const;
 function createComponent(props: Record<string, unknown> = {}): IBricksComponent {
     return {
         id: 'component-1',
+        type: 'component',
+        componentName: 'TestBrick',
         brickPath: 'bricks/TestBrick',
+        zIndex: 0,
         props,
-    } as unknown as IBricksComponent;
+    };
 }
 
 /**
@@ -135,7 +138,31 @@ describe('executeDataSource: имена параметров из Object.prototy
         expect(result).toEqual({ items: [1] });
     });
 
-    it('параметр с именем __proto__ не подменяет прототип набора параметров', async () => {
+    /**
+     * BM-15 №4/№5: набор параметров собирался `toSafeRecord`, а тот отбрасывает
+     * own-ключ `__proto__` — плейсхолдер `:__proto__` оставался неразрешённым и
+     * запрос молча пропускался. Прежняя версия кейса брала `url: '/api/items/:id'`
+     * и не различала реализации: `:id` не резолвился в любой из них.
+     */
+    it('плейсхолдер :__proto__ подставляется из одноимённого параметра', async () => {
+        dataSourceFetcherMock.mockResolvedValue({ items: [1] });
+        const { executeDataSource } = useBricksDataSources();
+
+        const result = await executeDataSource(
+            createSource({
+                url: '/api/items/:__proto__',
+                params: JSON.parse('{"__proto__": {"value": "own"}}'),
+            }),
+            createComponent(),
+            null
+        );
+
+        expect(dataSourceFetcherMock).toHaveBeenCalledWith('/api/items/own', { method: 'GET' });
+        expect(result).toEqual({ items: [1] });
+        expect(({} as { polluted?: boolean }).polluted).toBeUndefined();
+    });
+
+    it('параметр __proto__ не подменяет прототип и не течёт в другие имена', async () => {
         const { executeDataSource } = useBricksDataSources();
 
         const result = await executeDataSource(
@@ -147,6 +174,7 @@ describe('executeDataSource: имена параметров из Object.prototy
             null
         );
 
+        // `:id` не объявлен — запрос пропускается, а `__proto__` никуда не утёк
         expect(result).toBeNull();
         expect(dataSourceFetcherMock).not.toHaveBeenCalled();
         expect(({} as { polluted?: boolean }).polluted).toBeUndefined();

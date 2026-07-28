@@ -120,6 +120,64 @@ describe('serializeSchema / deserializeSchema', () => {
     });
 });
 
+/**
+ * BM-15 №1: own-ключ `__proto__` в пропсах непредставим в Nuxt payload — devalue
+ * бросает «Cannot stringify objects with `__proto__` keys», то есть роняет SSR и
+ * билдера, и опубликованной страницы. `JSON.parse` такой ключ создаёт штатно,
+ * так что схема из API или импортированного файла его приносит. Отбрасываем на
+ * входе в стор, безусловно, а не в отдельных утилитах по случаю.
+ */
+describe('deserializeSchema: own-ключ __proto__ в пропсах', () => {
+    it('отбрасывает ключ на верхнем уровне пропсов', () => {
+        const restored = deserializeSchema({
+            components: [
+                buildComponent({
+                    props: JSON.parse('{"__proto__": {"mode": "custom"}, "title": "Hello"}'),
+                }),
+            ],
+        });
+
+        expect(Object.getOwnPropertyNames(restored[0].props)).toEqual(['title']);
+        expect(Object.getPrototypeOf(restored[0].props)).toBe(Object.prototype);
+    });
+
+    it('отбрасывает ключ на любой глубине, включая элементы массивов', () => {
+        const restored = deserializeSchema({
+            components: [
+                buildComponent({
+                    props: JSON.parse(
+                        '{"nested": {"__proto__": {"x": 1}, "keep": 1}, "items": [{"__proto__": 2, "id": "a"}]}'
+                    ),
+                }),
+            ],
+        });
+
+        const props = restored[0].props as {
+            nested: Record<string, unknown>;
+            items: Array<Record<string, unknown>>;
+        };
+
+        expect(Object.getOwnPropertyNames(props.nested)).toEqual(['keep']);
+        expect(Object.getOwnPropertyNames(props.items[0])).toEqual(['id']);
+    });
+
+    it('обычные имена членов прототипа остаются собственными пропами', () => {
+        const restored = deserializeSchema({
+            components: [
+                buildComponent({
+                    props: JSON.parse('{"constructor": "a", "toString": "b", "title": "c"}'),
+                }),
+            ],
+        });
+
+        expect(Object.getOwnPropertyNames(restored[0].props)).toEqual([
+            'constructor',
+            'toString',
+            'title',
+        ]);
+    });
+});
+
 describe('useHistoryStore', () => {
     beforeEach(() => {
         setActivePinia(createPinia());

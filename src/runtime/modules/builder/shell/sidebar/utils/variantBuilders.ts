@@ -17,6 +17,7 @@ import {
     formatPrimitiveArrayValue,
     isPrimitiveArrayValue,
 } from './propertyFormatters';
+import { readOwnKey } from '../../../../common/utils/safeRecord';
 // #endregion
 
 // #region Interfaces
@@ -34,11 +35,25 @@ export type TVariantBuilder = (
 // #endregion
 
 /**
+ * Возвращает текущее значение свойства из пропсов компонента.
+ *
+ * Имя свойства объявляет brick-файл, а пропсы приходят из схемы, поэтому читаем
+ * только own-ключ: `componentProps['toString']` иначе вернул бы метод прототипа,
+ * и `Boolean(...)` от него был бы истинным при любой схеме (BM-15).
+ *
+ * @param context - Контекст свойства (определение + пропсы компонента).
+ * @returns Значение пропа либо undefined, если own-ключа нет.
+ */
+function readPropValue(context: IPropertyVariantContext): unknown {
+    return readOwnKey(context.componentProps, context.property.name);
+}
+
+/**
  * Возвращает значение-массив свойства с fallback на непустой default.
  */
 function resolveArrayValue(context: IPropertyVariantContext): Array<unknown> {
-    const { property, componentProps } = context;
-    const currentValue = componentProps[property.name];
+    const { property } = context;
+    const currentValue = readPropValue(context);
     const fallback =
         Array.isArray(property.default) && property.default.length > 0 ? property.default : [];
     return Array.isArray(currentValue) ? currentValue : fallback;
@@ -66,7 +81,7 @@ function createDisplayValueBuilder(editorType: TPropertyEditorType): TVariantBui
     return (context, tools) => {
         context.variants[editorType].push({
             label: tools.resolveLabel(context.property),
-            value: formatDisplayValue(context.componentProps[context.property.name]),
+            value: formatDisplayValue(readPropValue(context)),
             disabled: false,
             property: context.property,
         });
@@ -79,7 +94,7 @@ function createDisplayValueBuilder(editorType: TPropertyEditorType): TVariantBui
 function buildBooleanVariant(context: IPropertyVariantContext, tools: IVariantBuilderTools): void {
     context.variants.boolean.push({
         label: tools.resolveLabel(context.property),
-        value: Boolean(context.componentProps[context.property.name]),
+        value: Boolean(readPropValue(context)),
         disabled: false,
         property: context.property,
     });
@@ -91,7 +106,7 @@ function buildBooleanVariant(context: IPropertyVariantContext, tools: IVariantBu
 function buildSwitchVariant(context: IPropertyVariantContext, tools: IVariantBuilderTools): void {
     context.variants.switch.push({
         label: tools.resolveLabel(context.property),
-        value: Boolean(context.componentProps[context.property.name]),
+        value: Boolean(readPropValue(context)),
         disabled: false,
         trueValue: true,
         falseValue: false,
@@ -106,10 +121,10 @@ function buildSwitchVariant(context: IPropertyVariantContext, tools: IVariantBui
  * Билдер textarea-варианта (многострочный текст).
  */
 function buildTextareaVariant(context: IPropertyVariantContext, tools: IVariantBuilderTools): void {
-    const { property, componentProps } = context;
+    const { property } = context;
     context.variants.textarea.push({
         label: tools.resolveLabel(property),
-        value: formatDisplayValue(componentProps[property.name]),
+        value: formatDisplayValue(readPropValue(context)),
         disabled: false,
         placeholder: `Enter ${property.label || property.name}`,
         property,
@@ -120,8 +135,8 @@ function buildTextareaVariant(context: IPropertyVariantContext, tools: IVariantB
  * Билдер tags-варианта (массив строк с chips-редактором).
  */
 function buildTagsVariant(context: IPropertyVariantContext, tools: IVariantBuilderTools): void {
-    const { property, componentProps } = context;
-    const currentValue = componentProps[property.name];
+    const { property } = context;
+    const currentValue = readPropValue(context);
     const fallback = Array.isArray(property.default) ? property.default : [];
     const source = Array.isArray(currentValue) ? currentValue : fallback;
     const value = source.map((item) => String(item).trim()).filter((item) => Boolean(item));
@@ -138,8 +153,8 @@ function buildTagsVariant(context: IPropertyVariantContext, tools: IVariantBuild
  * Билдер array-варианта: примитивные массивы — в input (CSV), остальные — в json.
  */
 function buildArrayVariant(context: IPropertyVariantContext, tools: IVariantBuilderTools): void {
-    const { property, componentProps } = context;
-    const currentValue = componentProps[property.name];
+    const { property } = context;
+    const currentValue = readPropValue(context);
     const primitiveSource =
         (Array.isArray(currentValue) && isPrimitiveArrayValue(currentValue)
             ? currentValue
@@ -173,10 +188,10 @@ function buildArrayVariant(context: IPropertyVariantContext, tools: IVariantBuil
  * Билдер object-варианта (json-редактор).
  */
 function buildObjectVariant(context: IPropertyVariantContext, tools: IVariantBuilderTools): void {
-    const { property, componentProps } = context;
+    const { property } = context;
     context.variants.json.push({
         label: tools.resolveLabel(property),
-        value: (componentProps[property.name] ?? property.default ?? {}) as TBrickPropValue,
+        value: (readPropValue(context) ?? property.default ?? {}) as TBrickPropValue,
         disabled: false,
         property,
     });
@@ -210,7 +225,7 @@ export function buildSelectVariant(
     tools: IVariantBuilderTools,
     resolveOptionLabel: (label: string) => string
 ): boolean {
-    const { property, componentProps } = context;
+    const { property } = context;
     if (!Array.isArray(property.options) || property.options.length < 2) {
         return false;
     }
@@ -219,7 +234,7 @@ export function buildSelectVariant(
 
     context.variants.select.push({
         label: tools.resolveLabel(property),
-        value: String(componentProps[property.name] ?? options[0]?.value ?? ''),
+        value: String(readPropValue(context) ?? options[0]?.value ?? ''),
         specs: options.map((option) => ({
             label: resolveOptionLabel(String(option.label)),
             value: String(option.value),
@@ -241,7 +256,7 @@ export function buildInputVariant(
 ): void {
     context.variants.input.push({
         label: tools.resolveLabel(context.property),
-        value: formatDisplayValue(context.componentProps[context.property.name]),
+        value: formatDisplayValue(readPropValue(context)),
         disabled: false,
         property: context.property,
     });

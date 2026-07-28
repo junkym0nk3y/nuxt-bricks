@@ -17,7 +17,7 @@ import {
 import { DataSourceResponseTooLargeError } from '../utils/dataSourceResponseReading';
 import { resolveDataSourceLogTarget, toDataSourceLogError } from '../utils/dataSourceLogging';
 import { combineAbortSignals } from '../utils/abortSignals';
-import { hasOwnKey, toSafeRecord } from '../../common/utils/safeRecord';
+import { hasOwnKey } from '../../common/utils/safeRecord';
 
 // Composables
 import { useDataSourceClient } from './useDataSourceClient';
@@ -115,21 +115,24 @@ export function useBricksDataSources() {
     /**
      * Подставляет параметры в URL, заменяя :paramName на значения.
      *
+     * Имена параметров объявляет brick-файл, поэтому набор — `Map`: у обычного
+     * объекта `:constructor` считался бы найденным по прототипу, а `:__proto__`
+     * не был бы представим own-ключом вовсе и плейсхолдер остался бы
+     * неразрешённым (BM-15).
+     *
      * @param url - URL с плейсхолдерами вида :paramName.
-     * @param params - Объект с параметрами для подстановки.
+     * @param params - Набор параметров для подстановки.
      * @returns URL с подставленными значениями параметров.
      *
      * @example
      * ```ts
-     * buildDataSourceUrl('/api/users/:id', { id: 123 }); // '/api/users/123'
+     * buildDataSourceUrl('/api/users/:id', new Map([['id', 123]])); // '/api/users/123'
      * ```
      */
-    function buildDataSourceUrl(url: string, params: Record<string, string | number>): string {
+    function buildDataSourceUrl(url: string, params: Map<string, string | number>): string {
         return url.replace(/:([a-zA-Z0-9_]+)/g, (match, key) => {
-            // Плейсхолдер `:constructor` не «найден» только потому, что имя
-            // совпало с членом прототипа: сверяем own-ключ (BM-14)
-            if (hasOwnKey(params, key)) {
-                return encodeURIComponent(String(params[key]));
+            if (params.has(key)) {
+                return encodeURIComponent(String(params.get(key)));
             }
             return match;
         });
@@ -251,7 +254,7 @@ export function useBricksDataSources() {
         requestCache?: TDataSourceRequestCache,
         signal?: AbortSignal
     ): Promise<Record<string, unknown> | null> {
-        let params: Record<string, string | number> = {};
+        let params = new Map<string, string | number>();
         let url = source.url;
 
         const method = resolveDataSourceMethod(source.method);
@@ -268,19 +271,19 @@ export function useBricksDataSources() {
 
         try {
             if (source.params) {
-                // Имена параметров объявлены в brick-файле: собираем объект из
-                // пар, а не присваиванием в аккумулятор (BM-14)
-                params = toSafeRecord(
+                // Имена параметров объявлены в brick-файле: набор — Map, чтобы
+                // ни одно имя не терялось и не читалось с прототипа (BM-15)
+                params = new Map(
                     Object.entries(source.params)
                         .map(
                             ([key, param]) =>
                                 [key, resolveParamValue(param, component, pageSettings)] as [
                                     string,
-                                    unknown,
+                                    string | number,
                                 ]
                         )
                         .filter(([, value]) => value !== undefined && value !== null)
-                ) as Record<string, string | number>;
+                );
             }
 
             url = buildDataSourceUrl(source.url, params);
