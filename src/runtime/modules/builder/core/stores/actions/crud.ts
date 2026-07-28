@@ -5,7 +5,8 @@ import {
     isLayoutComponent,
     removeChildFromLayout as removeChildFromLayoutHelper,
 } from '../../../../common/utils/bricks/components';
-import { generateComponentId, normalizeBrickPath } from '../../../../common/utils/bricks/paths';
+import { normalizeBrickPath } from '../../../../common/utils/bricks/paths';
+import { generateComponentId } from '../../utils/ids';
 import { useSidebarStore } from '../sidebar';
 import { adjustReorderTargetIndex } from './order';
 import type {

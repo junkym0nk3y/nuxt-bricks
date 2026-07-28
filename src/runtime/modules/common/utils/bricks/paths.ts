@@ -11,12 +11,3 @@ export function normalizeBrickPath(path: string | null | undefined): string {
 
     return path.replace(/\\/g, '/');
 }
-
-/**
- * Генерирует уникальный идентификатор компонента Canvas.
- *
- * @returns Строка ID в формате `component-<timestamp>-<random>`.
- */
-export function generateComponentId(): string {
-    return `component-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
-}

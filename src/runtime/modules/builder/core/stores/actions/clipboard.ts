@@ -1,6 +1,6 @@
 import type { IBricksComponent } from '../../../../common/types/brick';
 import { cloneBricksComponent } from '../../../../common/utils/bricks/components';
-import { generateComponentId } from '../../../../common/utils/bricks/paths';
+import { generateComponentId } from '../../utils/ids';
 import type {
     IComponentsClipboardActions,
     IComponentsStore,

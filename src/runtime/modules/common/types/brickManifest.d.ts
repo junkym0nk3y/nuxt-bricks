@@ -23,7 +23,9 @@ export interface IBricksManifest {
     hash: string;
 }
 
-/** Группировка манифеста по категориям — форма ответа `?category=<name>`. */
-export interface IBrickCategory {
-    components: Array<Pick<IBrickManifestEntry, 'name' | 'brickPath'>>;
-}
+/**
+ * Узкая форма записи: имя компонента и ключ загрузчика, без категории.
+ * В этом виде записи уходят в ответ `?category=<name>` (категория там известна
+ * из запроса) и в кеш модалок билдера.
+ */
+export type TBrickManifestRef = Pick<IBrickManifestEntry, 'name' | 'brickPath'>;

@@ -2,7 +2,7 @@
 // Types
 import type { IComponentLibraryItem } from '../../../common/types/brick';
 import type { IBrickValues } from '../../../common/types/index';
-import type { IBricksResponse, IBrickListItem } from '../types/composables';
+import type { IBrickManifestEntry, IBricksManifest } from '../../../common/types/brickManifest';
 
 // Utils
 import { extractBrickSlots } from '../utils/brickSlots';
@@ -33,11 +33,11 @@ export async function useComponentLibrary() {
         'bricks-components',
         async () => {
             const { apiFetcher } = useApiClient();
-            const response = await apiFetcher<IBricksResponse>('/api/bricks/components');
+            const response = await apiFetcher<IBricksManifest>('/api/bricks/components');
             const bricks = response?.bricks || [];
 
             const componentsWithMeta = await Promise.all(
-                bricks.map(async (brick: IBrickListItem) => {
+                bricks.map(async (brick: IBrickManifestEntry) => {
                     try {
                         const moduleLoader = findImportModule(brick.brickPath);
                         if (!moduleLoader) {
@@ -61,7 +61,13 @@ export async function useComponentLibrary() {
 
                         return {
                             name: brick.name,
-                            category: brick.category || brickData?.category || 'Other',
+                            // Категория — из манифеста: сгенерированная запись
+                            // всегда несёт непустое значение (дефолт `Common`),
+                            // поэтому подстановка из brick-модуля была
+                            // недостижима. Записи из чужого или правленого
+                            // руками манифеста не поддерживаются: их формы не
+                            // проверяет и читатель (`readBricksManifest`)
+                            category: brick.category,
                             brickPath: brick.brickPath,
                             description: brickData?.description,
                             thumbnail: '',

@@ -7,7 +7,7 @@ import type {
 } from '../../../common/types/brick';
 
 // Utils
-import sha256 from 'tiny-sha256';
+import { generateNavigationItemId } from '../utils/ids';
 
 // Vue
 import { ref, computed } from 'vue';
@@ -15,13 +15,6 @@ import { ref, computed } from 'vue';
 // Pinia
 import { defineStore } from 'pinia';
 // #endregion
-
-/**
- * Генерирует уникальный идентификатор на основе sha256(timestamp + random).
- */
-function generateId(): string {
-    return sha256(`${Date.now()}-${Math.random()}`).slice(0, 12);
-}
 
 /**
  * Управляет навигационными пунктами лендинга.
@@ -67,7 +60,7 @@ export const useNavigationStore = defineStore('bricksNavigation', () => {
         items.value = [
             ...items.value,
             {
-                id: generateId(), // по идеи можно поменять на useId
+                id: generateNavigationItemId(),
                 target,
                 label,
             },

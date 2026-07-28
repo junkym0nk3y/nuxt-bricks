@@ -1,7 +1,8 @@
 // #region Imports
 // Types
 import type { Composer } from 'vue-i18n';
-import type { TModalKey, IModalOption, ICachedModal } from '../types/modals';
+import type { TModalKey, IModalOption, TCachedModal } from '../types/modals';
+import type { IBricksManifest } from '../../../common/types/brickManifest';
 
 // Nuxt
 import { useNuxtApp } from '#imports';
@@ -14,7 +15,7 @@ import { useApiClient } from '../../../common/composables/useApiClient';
 /**
  * Глобальный кеш модальных окон
  */
-let modalsCache: ICachedModal[] = [];
+let modalsCache: TCachedModal[] = [];
 let isCacheLoaded = false;
 // #endregion
 
@@ -29,9 +30,7 @@ export async function loadModals(): Promise<void> {
 
     try {
         const { apiFetcher } = useApiClient();
-        const response = await apiFetcher<{
-            bricks: Array<{ name: string; category: string; brickPath: string }>;
-        }>('/api/bricks/components');
+        const response = await apiFetcher<IBricksManifest>('/api/bricks/components');
         const bricks = response?.bricks || [];
 
         // Фильтруем только модалки
@@ -73,7 +72,7 @@ export function getModalOptions(): IModalOption[] {
  * @param modalName - Имя модального компонента
  * @returns Запись кеша или undefined
  */
-export function getCachedModal(modalName: TModalKey): ICachedModal | undefined {
+export function getCachedModal(modalName: TModalKey): TCachedModal | undefined {
     return modalsCache.find((modal) => modal.name === modalName);
 }
 

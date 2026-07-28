@@ -25,24 +25,6 @@ export type TShowToast = (
     duration?: number
 ) => void;
 
-// #region useComponentLibrary
-/**
- * Элемент списка bricks из `GET /api/bricks/components`.
- */
-export interface IBrickListItem {
-    name: string;
-    category?: string;
-    brickPath: string;
-}
-
-/**
- * Ответ библиотеки компонентов со списком bricks.
- */
-export interface IBricksResponse {
-    bricks: IBrickListItem[];
-}
-// #endregion
-
 // #region useBuilderPagename / useBuilderSession / useBuilderDraftPersistence
 /**
  * Переносит открытую сессию билдера на новый pagename:

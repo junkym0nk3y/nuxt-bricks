@@ -4,7 +4,7 @@ import {
     BRICKS_MANIFEST_ASSET_BASE,
     BRICKS_MANIFEST_FILENAME,
 } from '../../modules/common/constants/brickManifest';
-import type { IBrickCategory, IBricksManifest } from '../../modules/common/types/brickManifest';
+import type { IBricksManifest, TBrickManifestRef } from '../../modules/common/types/brickManifest';
 
 const EMPTY_MANIFEST: IBricksManifest = { bricks: [], hash: '' };
 
@@ -47,7 +47,7 @@ async function readBricksManifest(): Promise<IBricksManifest> {
  */
 export async function resolveBricksComponents(
     category?: string
-): Promise<IBricksManifest | IBrickCategory['components']> {
+): Promise<IBricksManifest | TBrickManifestRef[]> {
     const manifest = await readBricksManifest();
 
     if (!category) {

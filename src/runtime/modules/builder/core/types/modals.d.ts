@@ -1,3 +1,5 @@
+import type { TBrickManifestRef } from '../../../common/types/brickManifest';
+
 /**
  * Тип ключа модального окна (имя компонента)
  */
@@ -12,9 +14,7 @@ export interface IModalOption {
 }
 
 /**
- * Запись модалки в кеше (имя + путь к brick-файлу)
+ * Запись модалки в кеше: имя и путь к brick-файлу из манифеста
+ * brick-компонентов, категория в кеше не нужна (там всегда `Modal`)
  */
-export interface ICachedModal {
-    name: string;
-    brickPath: string;
-}
+export type TCachedModal = TBrickManifestRef;
