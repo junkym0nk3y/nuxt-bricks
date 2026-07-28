@@ -25,6 +25,18 @@ import type { IAppConfig } from '../types/config';
 const appConfig = useAppConfig() as IAppConfig;
 ```
 
+Интерфейсы и type-алиасы объявляются **только** в файлах типов — независимо от
+того, экспортируются они или «нужны лишь здесь». Причина не в стиле: тип,
+объявленный внутри модуля, невозможно переиспользовать, не переписав его рядом, а
+две копии расходятся молча. Один тип — одно объявление в `types/`.
+
+Правило действует и для build-time слоя: типы модулей `src/*.ts` живут в
+`src/types/`, один файл на модуль (`module.ts` → `src/types/module.d.ts`,
+`bricks-manifest.ts` → `src/types/bricksManifest.d.ts`). Модуль тип только
+импортирует, а если тип входит в публичный API пакета — ещё и ре-экспортирует
+(`export type { IBricksModuleOptions }` в `module.ts`). Проверяется тестом
+`test/module/buildTimeTypeLocations.spec.ts`.
+
 ## Forbidden Patterns
 
 ```ts

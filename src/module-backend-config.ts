@@ -11,29 +11,10 @@
  * - PROXY_URL не участвует в выборе persistence: это dev-only проксирование
  *   не-bricks `/api/*` (см. server/middleware/devProxy.ts).
  */
-
-// #region Types
-export type TBricksBackendMode = 'builtin' | 'external';
-
-export interface IBricksBackendResolutionInput {
-    /** Явный bricks.backend.mode из nuxt.config (build-time, дефолт 'builtin'). */
-    configuredMode?: TBricksBackendMode;
-    /** Разрешённый base URL external backend (options/env). */
-    backendUrl: string;
-    /** Разрешённый URL PostgreSQL (options/env). */
-    databaseUrl: string;
-    /** Режим авторизации ('basic' | 'database'). */
-    authMode: string;
-}
-
-export interface IBricksBackendResolution {
-    mode: TBricksBackendMode;
-    /** Предупреждения (конфигурация подозрительная, но сборка продолжается). */
-    warnings: string[];
-    /** Фатальные ошибки конфигурации — валят сборку (fail-fast). */
-    errors: string[];
-}
-// #endregion
+import type {
+    IBricksBackendResolution,
+    IBricksBackendResolutionInput,
+} from './types/moduleBackendConfig';
 
 // #region Helpers
 /**

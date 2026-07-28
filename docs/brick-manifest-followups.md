@@ -32,7 +32,8 @@ path contract + dev watcher fix» + собственная перепровер�
 `src/module.ts` (регион «Манифест brick-компонентов и dev-вотчер»),
 `src/runtime/modules/common/composables/useBrickImports.ts`,
 `src/runtime/server/utils/bricksComponents.ts`,
-`src/runtime/modules/common/{constants,types}/brickManifest.*`.
+`src/runtime/modules/common/{constants,types}/brickManifest.*`,
+`src/types/bricksManifest.d.ts` (типы генератора, см. BM-04).
 
 Проверено вживую: dev (add/unlink/change без ручного перезапуска), `nuxi prepare`,
 prod-сборка, запуск `.output` из чужого cwd, библиотека в билдере через Playwright.
@@ -718,27 +719,179 @@ README и `.gitignore` не осталось), решение не добавл�
 общем слове», старый namespace в тексте BM-01. Отставание `test/README.md` от
 состава спеков вынесено отдельным пунктом BM-16.
 
----
+### BM-04. Типы build-time слоя переехали в `src/types/`
 
-## P1
+**Выполнено 28 июля 2026 года.**
 
-### BM-04. Типы build-time файлов вынести в `*.d.ts`
+Заведён каталог `src/types/` — типы build-time слоя больше не объявляются в
+модулях. Решение по отложенному вопросу пункта: **перенесены все**, а не только
+двое фигурантов, иначе конвенция осталась бы половинчатой ровно в том виде, из-за
+которого пункт и написан.
 
-**Файлы:** `src/bricks-manifest.ts:21` (`IBricksManifestOptions`), `:29`
-(`IBricksManifestQueue`).
+**Раскладка — один файл на один build-time модуль**, имя camelCase (kebab-case
+по `.claude/rules/naming.md` — только для самих build-time-скриптов):
 
-Правило хранения типов (`.claude/rules/typescript.md`) действует и для build-time
-кода в `src/`, не только для рантайм-доменов. Существующий инлайн-прецедент
-(`IBricksModuleOptions` в `module.ts`, `IBricksSurfaces` и
-`IBricksRegistrationContext` в `module-setup.ts`) оправданием не является.
-Второй фигурант пункта, `IBrickWatchOptions`, исчез вместе с
-`src/vite-brick-watch.ts` в BM-12; `IBricksManifestQueue` добавлен в BM-01 в тот
-же инлайн-регион — осознанно, чтобы перенести всё одним движением здесь.
+| Файл                       | Модуль                     | Типы                                                                              |
+| -------------------------- | -------------------------- | --------------------------------------------------------------------------------- |
+| `module.d.ts`              | `module.ts`                | `IBricksModuleOptions`                                                            |
+| `moduleSetup.d.ts`         | `module-setup.ts`          | `IBricksSurfaces`, `IBricksRegistrationContext`                                   |
+| `moduleBackendConfig.d.ts` | `module-backend-config.ts` | `TBricksBackendMode`, `IBricksBackendResolutionInput`, `IBricksBackendResolution` |
+| `bricksManifest.d.ts`      | `bricks-manifest.ts`       | `IBricksManifestOptions`, `IBricksManifestQueue`                                  |
+| `apiHandlers.d.ts`         | `api-handlers.ts`          | `IBricksApiHandler`                                                               |
 
-**Исправление:** завести файл типов build-time слоя и перенести туда
-`IBricksManifestOptions` и `IBricksManifestQueue`. Заодно решить, переносить ли
-туда же существующие инлайновые интерфейсы `module.ts`/`module-setup.ts` — иначе
-конвенция останется половинчатой.
+`src/types/bricksManifest.d.ts` — **производящая** сторона (опции скана,
+контракт очереди); общий с рантаймом контракт самого манифеста остаётся в
+`runtime/modules/common/types/brickManifest.d.ts`. Имена похожи на одну букву,
+поэтому в шапке файла разница зафиксирована явно.
+
+**Публичный тип пакета сохранён** ре-экспортом в `module.ts`
+(`export type { IBricksModuleOptions }`). Механика — не `export *`, как
+показалось сначала по застабленному `dist`: `@nuxt/module-builder` **перечисляет
+типы модуля поимённо**, в собранном `dist/types.d.mts:9` стоит
+`export { type IBricksModuleOptions } from './module.mjs'` (плюс отдельный алиас
+`ModuleOptions`, выведенный через `NuxtModule<infer O>`). То есть без ре-экспорта
+тип из публичной поверхности выпал бы — генератор берёт именно экспорты
+`module.ts`. Проверено на реальной сборке: в `dist/module.d.mts` интерфейс
+инлайнится целиком (rollup-dts подтягивает `.d.ts`), висячих ссылок на
+`./types/…` нет. Типизация ключа `bricks` в `nuxt.config` от имени интерфейса
+не зависела и не зависит — Nuxt выводит её из `NuxtModule<infer O>`
+(`playground/.nuxt/types/schema.d.ts:183`).
+
+**Побочно ушёл цикл на уровне типов.** `module-setup.ts` и
+`module-runtime-config.ts` импортировали `IBricksModuleOptions` из `./module`,
+который сам импортирует их обоих. Теперь оба берут тип из `./types/module`.
+
+**Правило — на все типы, а не только на экспортируемые** (решение владельца,
+28 июля 2026). Тип, объявленный внутри модуля, невозможно переиспользовать, не
+переписав его рядом, а две копии расходятся молча — поэтому «нужен только здесь»
+основанием оставить объявление в модуле не является. Ровно это и записано в
+`.claude/rules/typescript.md`; на момент правки локальных объявлений в `src/*.ts`
+не осталось, так что ужесточение не потребовало дополнительных переносов.
+
+**Тест — не поведенческий, а конвенционный:**
+`test/module/buildTimeTypeLocations.spec.ts` (1 кейс) обходит `src/*.ts` и падает
+на любом объявлении типа. Разбор — **через AST компилятора**
+(`typescript` и так в devDependencies), а не шаблоном по строкам: первая версия
+кейса искала `^export (interface|type) X` и пропускала три легальные формы —
+`export declare interface`, `export default interface` и перенос строки между
+`export` и `interface` (все три компилируются, проверено), а объявление внутри
+блочного комментария или шаблонной строки, наоборот, ловила ложно. Ре-экспорт
+(`export type { X }`) — `ExportDeclaration`, а не объявление, поэтому единственная
+разрешённая форма проходит. Без такого кейса конвенция снова осталась бы
+непроверяемой — тем самым дрейфом, что описан в BM-16. Кейс страхуется проверкой `toContain('module.ts')`: переезд файлов не
+должен превратить его в тавтологию на пустом списке.
+
+**Мутационная проверка:** инлайновое объявление в `src/api-handlers.ts` во всех
+трёх формах (`export declare interface`, `export default interface`,
+`export` + перенос строки) — по 1 падению, в сообщении и файл, и имя типа;
+то же объявление внутри блочного комментария — набор зелёный (ложного
+срабатывания нет).
+
+**Что специально не делалось.** `src/cli/**` не сканируется и под правило не
+попадает — это самостоятельные скрипты, а не слой модуля. `test/README.md` новым
+спеком не пополнен: пофайловый индекс отложен до сокращения набора (BM-16).
+
+`type-check`, `lint:check` (oxlint + stylelint + `deps:check` + `knip`),
+`prettier --check`, 726/726 тестов, `npm run build`, `npm run dev:build`,
+бюджеты бандла (entry 111 KB, published 122 KB gzip) — зелёные.
+
+**Ревью:** Codex (`gpt-5.6-sol`, high) 28 июля 2026. Поведение и полнота переноса
+подтверждены (все девять прежних объявлений на месте, собранный `dist` содержит
+интерфейс целиком). По находкам сделано: guard переписан с шаблона на AST
+(три легальные обходные формы и ложное срабатывание в комментарии
+перепроверены на своей стороне — воспроизводятся), формулировка про
+`export *` исправлена по факту собранного `dist/types.d.mts`, экспортируемым
+членам новых типов дописан JSDoc. Имя `bricksManifest.d.ts` ревью признало
+приемлемым: `bricksManifestGenerator.d.ts` было бы однозначнее в отрыве от
+контекста, но ломало бы правило «файл назван по своему build-time модулю».
+Замечание про JSDoc **принято частично**: члены `IBricksApiHandler`,
+`IBricksBackendResolution.mode` и `IUseBricksConfigReturn` дописаны, а листья
+вложенных групп `IBricksModuleOptions` (`basicAuth.username`, `routes.*`,
+`features.*`, `s3.*`) оставлены как есть — групповой JSDoc над каждой из них
+описывает свои поля прозой, включая дефолты и ENV-переопределения, и дубль на
+каждом листе был бы шумом, который разъедется с групповым текстом.
+
+### BM-08. Мелочи стиля: явные типы возврата и `toSorted`
+
+**Выполнено 28 июля 2026 года.** Оба пункта закрыты; попутно закрыт весь класс
+в `common/composables/`, потому что README этой папки уже требовал ровно того же.
+
+**1. `toSorted`.** `src/bricks-manifest.ts:199-201` —
+`.filter(...).sort(...)` → `.filter(...).toSorted(...)`. Путь build-time-only
+(генератор живёт в Node, в клиентский бандл не попадает), так что ограничение
+цели сборки из BM-15 (`safari 16`) здесь не действует: хватает
+`engines.node >= 22.17`.
+
+**2. Типы возврата composables `common/`.** `useBrickImports()` из пункта — и
+ещё три функции того же класса, найденные рядом. Возвращаемые интерфейсы уехали
+в новый `src/runtime/modules/common/types/composables.d.ts`, где им и место по
+правилу №1 из `common/composables/README.md` («интерфейсы хранятся в `types/`
+домена, не инлайн в файлах»):
+
+- `useBrickImports` → `IUseBrickImportsReturn` (типа не было вообще);
+- `useApiClient` → `IUseApiClientReturn` (типа не было). Тип `apiFetcher`
+  выражен как `ReturnType<typeof globalThis.$fetch.create>` — руками расписывать
+  `$Fetch` нельзя, `ofetch` в наши `dependencies` не объявлен;
+- `useBricksStyles` → `: void` (композабл только инъектит стили через `useHead`);
+- `useBricksConfig` → `IUseBricksConfigReturn` (был анонимный инлайн-тип — ровно
+  запрещённая форма из `.claude/rules/typescript.md`);
+- `IUseBricksAssetUrlReturn` и `IUseBricksRoutePathsReturn` были объявлены
+  инлайн в своих файлах — перенесены туда же, иначе в папке остались бы две
+  конвенции сразу.
+
+Границу правки держали по домену `common/`: те же инлайн-объявления есть ещё в
+десяти композаблах других доменов, они вынесены в BM-17, а не втянуты сюда.
+
+**Проверка, что аннотация `useApiClient` не съела дженерики.** Явный тип легко
+выродить в `any` и не заметить: временный проб
+`const bad: number = await apiFetcher<{ a: string }>('/api/probe')` даёт
+`TS2322 Type '{ a: string; }' is not assignable to type 'number'` — дженерик
+ответа по-прежнему протекает до вызывающего. Проб удалён.
+
+**Тесты.** Типы `type-check` проверяет сам, отдельные кейсы им не нужны.
+Сортировка манифеста автоматической защиты не имела вовсе, хотя коммент над ней
+обещает стабильный хеш, — добавлен кейс в
+`test/module/bricksManifestQueue.spec.ts` (10 кейсов в файле): у мока `globby`
+появился флаг `reverseListing`, проверяются и порядок записей, и совпадение хеша
+с прямым сканом. Вход **канонизируется перед переворотом** (`[...files].sort().reverse()`):
+первая версия просто переворачивала то, что отдал реальный `globby`, а его
+порядок зависит от ФС — на машине, где список уже приходит отсортированным,
+переворот дал бы обратный порядок, но на любой другой мог бы случайно совпасть
+с сортировкой и кейс перестал бы различать реализации.
+
+**Мутационная проверка тестов:** сортировка снята (`.map((entry) => entry)`) —
+1 падение; результат `toSorted` отброшен (`bricks.toSorted(...)` отдельным
+выражением, классическая ловушка неизменяющего метода) — 1 падение.
+
+**Третий пункт** — мутация аккумулятора в `groupByCategory` — был закрыт ещё в
+BM-02 вместе с самой функцией.
+
+**Проверено вживую** (playground, dev; два пробных brick-файла созданы в порядке
+`ZProbeCard` → `AProbeCard`, то есть обратном сортировке):
+
+- `playground/.nuxt/nuxt-bricks-manifest/manifest.json` и
+  `GET /api/bricks/components` отдают `AProbeCard` перед `ZProbeCard`;
+- `change` одного из файлов → хеш инвентаря не изменился (правка `values` в него
+  не входит по определению — см. BM-06);
+- published-страница `/test` — 200 и `bricks-container` в сыром SSR-HTML
+  (`useApiClient` + `useBrickImports` на SSR-пути), `/bricks/login` — 200,
+  ошибок и предупреждений в логе dev нет;
+- `unlink` обоих пробников → манифест пуст, рабочее дерево чистое.
+
+`type-check`, `lint:check` (oxlint + stylelint + `deps:check` + `knip`),
+`prettier --check`, 726/726 тестов, `npm run build`, `npm run dev:build`,
+бюджеты бандла (entry 111 KB, published 122 KB gzip) — зелёные.
+
+**Ревью:** Codex (`gpt-5.6-sol`, high) 28 июля 2026. Blocker'ов по поведению нет.
+`ReturnType<typeof globalThis.$fetch.create>` проверен через compiler API и
+признан эквивалентным прежнему выводимому типу: совпадают и вызов известного
+Nitro-роута, и явный дженерик ответа, и `.raw`, и повторный `.create`; `.native`
+в Nitro-версии `$Fetch` нет вовсе, так что аннотация ничего не потеряла.
+Перенос двух инлайновых интерфейсов признан правильным по локальному README и
+`.claude/rules/naming.md`. По находке про мок сделано: порядок канонизируется
+перед переворотом (см. выше), мутационная проверка на канонизированном входе
+повторена. Десять оставшихся инлайн-объявлений в композаблах других доменов
+вынесены в BM-17 — ревью отдельно просило не втягивать их в BM-08 молча.
 
 ---
 
@@ -761,7 +914,7 @@ README и `.gitignore` не осталось), решение не добавл�
 ### BM-06. Поле `hash` в манифесте: потребитель потерян при переносе
 
 **Файлы:** `src/runtime/modules/common/types/brickManifest.d.ts:23`,
-`src/bricks-manifest.ts:102-110`, `:220`,
+`src/bricks-manifest.ts:88-95`, `:205`,
 `src/runtime/server/utils/bricksComponents.ts:9`.
 
 **Происхождение.** Поле не случайное: в прародителе проекта, `front-lib/ui-demo`,
@@ -832,7 +985,7 @@ README и `.gitignore` не осталось), решение не добавл�
 
 ### BM-07. Логирование промаха: дорогое и неинформативное
 
-**Файлы:** `src/runtime/modules/common/composables/useBrickImports.ts:38-41`,
+**Файлы:** `src/runtime/modules/common/composables/useBrickImports.ts:44-49`,
 `src/runtime/modules/builder/app/composables/useComponentLibrary.ts:41-44`.
 
 Две стороны одной проблемы.
@@ -892,16 +1045,35 @@ return sha256(`${Date.now()}-${Math.random()}`).slice(0, 12);
 context (HTTPS/localhost); на HTTP его нет, и на этом уже ломались раньше.
 Брать `Math.random`-подход, как в существующем `generateComponentId`.
 
-### BM-08. Мелочи стиля
+### BM-17. Инлайновые типы композаблов вне домена `common`
 
-**Файлы:** `src/runtime/modules/common/composables/useBrickImports.ts:23`,
-`src/bricks-manifest.ts:214-216`.
+**Источник:** ревью Codex (`gpt-5.6-sol`, high) правки BM-08, список
+перепроверен грепом. BM-08 закрыл `common/composables/` — там правило №1
+локального README требовало этого прямо. В остальных доменах то же правило
+(`.claude/rules/naming.md`, раздел «Файлы типов и утилит») нарушается в десяти
+композаблах: тип объявлен в самом файле, а не в `types/` домена. У части файлов
+инлайн не только Return-, но и Options-интерфейс, часть объявлений даже не
+экспортируется.
 
-- `useBrickImports()` без явного типа возврата — правило требует типизации
-  возвращаемых значений.
-- `.filter(...).sort(...)` → `.toSorted(...)` (Node ≥22.17 позволяет).
-- ~~`groupByCategory` мутирует аккумулятор и массив `components`~~ — закрыто
-  в BM-02.
+**Файлы:** `builder/publish/composables/usePublishDetailsUrl.ts:8`, `:14`,
+`usePublishPageVersions.ts:9`, `usePublishPreview.ts:15`,
+`usePublishVersionRestore.ts:10`, `:17`,
+`builder/shell/sidebar/composables/useComponentCardDrag.ts:13`,
+`render/composables/useRendererDataSources.ts:23`, `:30`,
+`useRendererPreviewSync.ts:13`, `:26`,
+`text-editor/composables/useInlineEditor.ts:31`, `:37`,
+`useTextEditorArea.ts:33`, `useToolbarStateSync.ts:25`, `:30`.
+
+**Исправление:** перенести все, включая неэкспортируемые — правило действует
+независимо от экспорта (решение владельца, 28 июля 2026: локальный тип нельзя
+переиспользовать, не переписав его рядом, а копии расходятся молча; зафиксировано
+в `.claude/rules/typescript.md`). Механическая часть — по образцу BM-08:
+`<домен>/types/composables.d.ts`, импорт типа в композабл.
+
+**Проверяемость.** Guard из BM-04 (`buildTimeTypeLocations.spec.ts`) устроен
+именно так, чтобы его можно было расширить на рантайм-домены: разбор идёт по AST,
+достаточно добавить обход `src/runtime/modules/**/composables/*.ts`. Без такого
+кейса правило снова окажется недоказуемым — ровно дрейф из BM-16.
 
 ---
 
@@ -909,7 +1081,7 @@ context (HTTPS/localhost); на HTTP его нет, и на этом уже ло
 
 ### BM-09. Границы контракта путей не задокументированы
 
-**Файлы:** `src/bricks-manifest.ts:49-56`, `README.md` (раздел «Brick-компоненты»).
+**Файлы:** `src/bricks-manifest.ts:26-33`, `README.md` (раздел «Brick-компоненты»).
 
 Контракт «`brickPath` = путь относительно `srcDir`» верен для playground,
 обычного Nuxt 3, обычного Nuxt 4 и рядового кастомного `srcDir`. Не покрыты:
@@ -929,7 +1101,7 @@ context (HTTPS/localhost); на HTTP его нет, и на этом уже ло
 
 ### BM-11. Категория извлекается регуляркой по исходнику
 
-**Файлы:** `src/bricks-manifest.ts:58`, `:98-99`.
+**Файлы:** `src/bricks-manifest.ts:35`, `:83-84`.
 
 `CATEGORY_RE` может совпасть с комментарием или посторонним вложенным объектом,
 а `category: SOME_CONSTANT` молча превращается в `Common`. Поведение унаследовано

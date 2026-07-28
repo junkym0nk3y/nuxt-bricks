@@ -7,17 +7,7 @@
  * Порядок важен для одинаковой специфичности: статические пути и /versions
  * идут до generic /api/bricks/:id.
  */
-export interface IBricksApiHandler {
-    route: string;
-    method?: 'get' | 'post' | 'put' | 'patch' | 'delete';
-    file: string;
-    /**
-     * Public read-model (открыт без auth, нужен live-рендеру) — регистрируется
-     * и в render-only режиме (features.builder: false); editorial/auth-ручки
-     * без него пропускаются.
-     */
-    isPublic?: boolean;
-}
+import type { IBricksApiHandler } from './types/apiHandlers';
 
 export const BRICKS_API_HANDLERS: IBricksApiHandler[] = [
     { route: '/api/bricks', method: 'get', file: 'server/api/bricks/index.get' },

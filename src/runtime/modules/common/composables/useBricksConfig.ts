@@ -1,6 +1,7 @@
 // #region Imports
 // Types
-import type { IAppConfig, IBricksBreakpoints, IBricksBreakpointConfig } from '../types/config';
+import type { IAppConfig } from '../types/config';
+import type { IUseBricksConfigReturn } from '../types/composables';
 
 // Nuxt
 import { useAppConfig } from 'nuxt/app';
@@ -10,18 +11,7 @@ import { useAppConfig } from 'nuxt/app';
  * Composable для конфигурации лендинга с дефолтными значениями.
  * Читает конфигурацию из app.config.ts и возвращает значения по умолчанию, если не указаны.
  */
-export function useBricksConfig(): {
-    defaultFont: string;
-    fonts?: string[];
-    backgroundColor: string;
-    layouts: string[];
-    breakpoints: IBricksBreakpoints;
-    canvasBreakpoints: {
-        mobile: IBricksBreakpointConfig;
-        tablet: IBricksBreakpointConfig;
-        desktop: IBricksBreakpointConfig;
-    };
-} {
+export function useBricksConfig(): IUseBricksConfigReturn {
     const appConfig = useAppConfig() as IAppConfig;
 
     return {

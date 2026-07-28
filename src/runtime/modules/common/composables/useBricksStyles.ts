@@ -56,7 +56,7 @@ function buildContainerProps(
  *   </div>
  * </div>
  */
-export function useBricksStyles() {
+export function useBricksStyles(): void {
     const config = useBricksConfig();
     const cbp = config.canvasBreakpoints;
     const dbp = config.breakpoints;

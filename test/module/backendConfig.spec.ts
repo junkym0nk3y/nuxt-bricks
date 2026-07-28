@@ -3,10 +3,10 @@
 import { describe, expect, it } from 'vitest';
 
 // Utils
-import {
-    resolveBricksBackendConfig,
-    type IBricksBackendResolutionInput,
-} from '../../src/module-backend-config';
+import { resolveBricksBackendConfig } from '../../src/module-backend-config';
+
+// Types
+import type { IBricksBackendResolutionInput } from '../../src/types/moduleBackendConfig';
 // #endregion
 
 /**

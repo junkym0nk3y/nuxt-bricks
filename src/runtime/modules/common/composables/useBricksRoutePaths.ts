@@ -1,4 +1,7 @@
 // #region Imports
+// Types
+import type { IUseBricksRoutePathsReturn } from '../types/composables';
+
 // Utils
 import {
     DEFAULT_BRICKS_ROUTE_PREFIXES,
@@ -13,26 +16,6 @@ import {
 // Nuxt
 import { useRuntimeConfig } from '#imports';
 // #endregion
-
-/**
- * Возвращаемое значение `useBricksRoutePaths`.
- */
-export interface IUseBricksRoutePathsReturn {
-    /** Активные префиксы маршрутов. */
-    prefixes: IBricksRoutePrefixes;
-    /** Логический путь дашборда билдера (без baseURL). */
-    builderRootPath: string;
-    /** Логический путь страницы логина (без baseURL). */
-    builderLoginPath: string;
-    /** Логический путь превью страницы (без baseURL). */
-    previewPagePath: (pagename: string) => string;
-    /** Добавляет `app.baseURL` — для `window.location`/`window.open`/`<a href>`. */
-    withBase: (path: string) => string;
-    /** Убирает `app.baseURL` из фактического pathname. */
-    stripBase: (pathname: string) => string;
-    /** Путь принадлежит поверхности билдера. */
-    isBuilderPath: (pathname: string) => boolean;
-}
 
 /**
  * Пути поверхностей bricks с учётом `bricks.routes` и `app.baseURL`.

@@ -3,10 +3,9 @@
  * (префиксы + feature flags), Pinia/i18n билдера, регистрация страниц и
  * серверных ручек. Вынесены из module.ts, вызываются только из его setup.
  */
-import { addServerHandler, hasNuxtModule, installModule, type Resolver } from '@nuxt/kit';
+import { addServerHandler, hasNuxtModule, installModule } from '@nuxt/kit';
 import { defu } from 'defu';
 import type { Nuxt, NuxtPage } from '@nuxt/schema';
-import type { IBricksModuleOptions } from './module';
 import { PAGE_ROUTE_SEGMENT } from './runtime/modules/common/constants/publish';
 import { BRICKS_ROUTE_NAMES } from './runtime/modules/common/constants/routes';
 import {
@@ -15,28 +14,8 @@ import {
     type IBricksRoutePrefixes,
 } from './runtime/modules/common/utils/bricks/routePaths';
 import { BRICKS_API_HANDLERS } from './api-handlers';
-
-// #region Types
-/** Активные поверхности модуля: префиксы маршрутов + feature flags. */
-export interface IBricksSurfaces {
-    /** Валидированные префиксы билдера/превью. */
-    routePrefixes: IBricksRoutePrefixes;
-    /** UI билдера включён (страницы, плагины редактора, editorial API, i18n, Pinia). */
-    isBuilderEnabled: boolean;
-    /** Catch-all маршруты live-рендера включены. */
-    arePublishedPagesEnabled: boolean;
-}
-
-/** Контекст регистрации файловых сущностей (страницы, ручки). */
-export interface IBricksRegistrationContext {
-    /** resolver модуля (createResolver(import.meta.url).resolve). */
-    resolve: Resolver['resolve'];
-    /** Абсолютный путь src/runtime. */
-    runtimeDir: string;
-    /** Активные поверхности. */
-    surfaces: IBricksSurfaces;
-}
-// #endregion
+import type { IBricksModuleOptions } from './types/module';
+import type { IBricksRegistrationContext, IBricksSurfaces } from './types/moduleSetup';
 
 /**
  * Резолвит поверхности модуля из опций: префиксы (fail-fast валидация)

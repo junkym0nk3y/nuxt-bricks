@@ -1,4 +1,5 @@
 import type { IBrickExportModule } from '../types/index';
+import type { IUseBrickImportsReturn } from '../types/composables';
 import { normalizeBrickPath } from '../utils/bricks/paths';
 import { readOwnKey } from '../utils/safeRecord';
 
@@ -21,7 +22,7 @@ const LAYOUT_BRICK_PREFIX = 'layout';
  *
  * @returns Функция поиска loader-а по `brickPath` из схемы.
  */
-export function useBrickImports() {
+export function useBrickImports(): IUseBrickImportsReturn {
     /**
      * Возвращает loader brick-модуля по пути из схемы компонента.
      *

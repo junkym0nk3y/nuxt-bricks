@@ -5,8 +5,9 @@
 
 import { defu } from 'defu';
 import type { IBricksRoutePrefixes } from './runtime/modules/common/utils/bricks/routePaths';
-import type { IBricksModuleOptions } from './module';
-import { resolveBricksBackendConfig, type IBricksBackendResolution } from './module-backend-config';
+import { resolveBricksBackendConfig } from './module-backend-config';
+import type { IBricksModuleOptions } from './types/module';
+import type { IBricksBackendResolution } from './types/moduleBackendConfig';
 
 // #region Helpers
 /**

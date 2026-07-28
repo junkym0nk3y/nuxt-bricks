@@ -31,7 +31,8 @@ from completed-work logs and real bugs or tracked issues.
 ## Карта репозитория
 
 - `src/module.ts`, `src/module-setup.ts`, `src/module-runtime-config.ts` —
-  build-time настройка Nuxt-модуля.
+  build-time настройка Nuxt-модуля; их типы — в `src/types/` (один файл на
+  модуль).
 - `src/runtime/modules/` — runtime-код по доменам: `builder`, `common`,
   `layouts-blocks`, `persistence`, `render`, `text-editor`, `ui`.
 - `src/runtime/server/` — Nitro API, middleware и серверная инфраструктура.

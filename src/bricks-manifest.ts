@@ -15,30 +15,7 @@ import type {
     IBrickManifestEntry,
     IBricksManifest,
 } from './runtime/modules/common/types/brickManifest';
-
-// #region Types
-/** Параметры генерации манифеста. */
-export interface IBricksManifestOptions {
-    /** `nuxt.options.srcDir` — база и для поиска файлов, и для ключей загрузчика. */
-    srcDir: string;
-    /** Каталог манифеста (см. resolveBricksManifestDir). */
-    manifestDir: string;
-}
-
-/** Сериализованная очередь генерации манифеста (см. createBricksManifestQueue). */
-export interface IBricksManifestQueue {
-    /**
-     * Ставит генерацию в очередь. Возвращённый промис всегда относится к скану,
-     * начавшемуся после вызова; после `dispose()` — к `undefined`.
-     */
-    enqueue: () => Promise<IBricksManifest | undefined>;
-    /**
-     * Закрывает очередь и дожидается незавершённого скана.
-     * Новые заявки после вызова не выполняются.
-     */
-    dispose: () => Promise<void>;
-}
-// #endregion
+import type { IBricksManifestOptions, IBricksManifestQueue } from './types/bricksManifest';
 
 // #region Constants
 const BRICK_FILE_SUFFIX = '.brick.ts';
@@ -221,7 +198,7 @@ export async function generateBricksManifest(
     // Порядок globby зависит от файловой системы — сортировка держит хеш стабильным
     const bricks = entries
         .filter((entry): entry is IBrickManifestEntry => entry !== null)
-        .sort((left, right) => left.brickPath.localeCompare(right.brickPath));
+        .toSorted((left, right) => left.brickPath.localeCompare(right.brickPath));
 
     const manifest: IBricksManifest = {
         bricks,

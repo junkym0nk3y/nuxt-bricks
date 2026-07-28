@@ -1,6 +1,7 @@
 // #region Imports
 // Types
 import type { IncomingHttpHeaders } from 'http';
+import type { IUseApiClientReturn } from '../types/composables';
 
 // Utils
 import { stripCookieByName } from '../utils/cookieHeader';
@@ -112,7 +113,7 @@ function resolveLocalBaseUrl(appBaseURL: string): string {
  * Базой служит Nuxt/Nitro `$fetch` (globalThis): на SSR относительные URL
  * выполняются внутренним вызовом Nitro-обработчиков (без сети).
  */
-export function useApiClient() {
+export function useApiClient(): IUseApiClientReturn {
     const config = useRuntimeConfig();
     const { builderLoginPath, withBase, stripBase } = useBricksRoutePaths();
 

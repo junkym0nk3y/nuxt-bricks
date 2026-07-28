@@ -35,6 +35,14 @@ const { probe } = vi.hoisted(() => ({
         writeGate: null as Promise<void> | null,
         /** Файлы, дописываемые к результату скана (исчезнувшие с диска). */
         extraFiles: [] as string[],
+        /**
+         * Отдать список скана обратно отсортированным. Порядок globby зависит от
+         * ФС, поэтому список сначала приводится к каноническому (сортировкой), и
+         * только потом переворачивается: просто `reverse()` от неизвестного
+         * порядка мог бы случайно совпасть с отсортированным и не различить
+         * реализации.
+         */
+        reverseListing: false,
         /** Ошибка для следующего вызова globby. */
         failOnce: null as Error | null,
         renames: [] as { from: string; to: string }[],
@@ -74,8 +82,9 @@ vi.mock('globby', async (importOriginal) => {
             }
 
             probe.events.push('globby:end');
+            const listed = probe.reverseListing ? [...files].sort().reverse() : files;
 
-            return [...files, ...probe.extraFiles];
+            return [...listed, ...probe.extraFiles];
         },
     };
 });
@@ -191,6 +200,7 @@ describe('манифест бриков: атомарная публикация
         probe.globbyGate = null;
         probe.writeGate = null;
         probe.extraFiles = [];
+        probe.reverseListing = false;
         probe.failOnce = null;
         probe.renames = [];
         probe.renameSource = null;
@@ -213,6 +223,25 @@ describe('манифест бриков: атомарная публикация
         expect(probe.renames[0].to).toBe(manifestPath);
         expect(probe.renames[0].from).toMatch(/manifest\.json\.\d+\.\d+\.tmp$/);
         expect(await readdir(manifestDir)).toEqual([BRICKS_MANIFEST_FILENAME]);
+    });
+
+    it('записи отсортированы по brickPath, хеш не зависит от порядка скана', async () => {
+        await writeBrickFile('CardTeaser', 'Cards');
+        await writeBrickFile('CardHero', 'Cards');
+        probe.reverseListing = true;
+
+        const reversedScan = await generateBricksManifest({ srcDir, manifestDir });
+
+        expect(reversedScan.bricks.map((brick) => brick.brickPath)).toEqual([
+            '/components/CardHero.brick.ts',
+            '/components/CardTeaser.brick.ts',
+        ]);
+
+        // Тот же диск, порядок скана прямой — хеш инвентаря обязан совпасть
+        probe.reverseListing = false;
+        const directScan = await generateBricksManifest({ srcDir, manifestDir });
+
+        expect(directScan.hash).toBe(reversedScan.hash);
     });
 
     it('rename выполняется только после полной записи temp, цель до него не тронута', async () => {
