@@ -1,9 +1,12 @@
 // #region Imports
+// Types
+import type { IBuilderContext, IWindowStub } from './types';
+
 // Vitest
 import { vi } from 'vitest';
 
 // Vue
-import { effectScope, type EffectScope } from 'vue';
+import { effectScope } from 'vue';
 
 // Composables билдера (в spec-файлах их зависимости замоканы через vi.mock —
 // моки применяются и к импортам этого helper'а: module id общий)
@@ -16,19 +19,12 @@ import { useBuilderDraftPersistence } from '../../src/runtime/modules/builder/ap
 export const AUTOSAVE_DEBOUNCE_MS = 800;
 export const PAGENAME_SYNC_DEBOUNCE_MS = 600;
 
-export interface IBuilderContext {
-    scope: EffectScope;
-    pagename: ReturnType<typeof useBuilderPagename>;
-    session: ReturnType<typeof useBuilderSession>;
-    showToastMock: ReturnType<typeof vi.fn>;
-}
-
 /**
  * Минимальный localStorage поверх Map — черновики билдера в node-окружении.
  *
- * @returns Стаб для vi.stubGlobal('window', { localStorage }).
+ * @returns Реализация localStorage для `createWindowStub`.
  */
-export function createLocalStorageStub(): Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> {
+function createLocalStorageStub(): Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> {
     const data = new Map<string, string>();
     return {
         getItem: (key: string) => data.get(key) ?? null,
@@ -37,6 +33,38 @@ export function createLocalStorageStub(): Pick<Storage, 'getItem' | 'setItem' | 
         },
         removeItem: (key: string) => {
             data.delete(key);
+        },
+    };
+}
+
+/**
+ * Стаб `window` для session-тестов: localStorage поверх Map, таймеры через
+ * globalThis (их подменяет vi.useFakeTimers) и минимальная шина событий — jsdom-
+ * окружения в наборе нет, а `useBuilderDraftPersistence` слушает `pagehide`.
+ * Ключи слушателей держит Map: прототипные имена событий её не задевают.
+ *
+ * @returns Объект для vi.stubGlobal('window', ...) с рабочим dispatchEvent.
+ */
+export function createWindowStub(): IWindowStub {
+    const listeners = new Map<string, Set<() => void>>();
+
+    return {
+        localStorage: createLocalStorageStub(),
+        // Number() вместо каста: и node-таймер, и подмена vi.useFakeTimers приводятся
+        // к числовому id через Symbol.toPrimitive, а clearTimeout принимает число
+        setTimeout: (handler: () => void, timeout?: number) =>
+            Number(globalThis.setTimeout(handler, timeout)),
+        clearTimeout: (id: number | null) => globalThis.clearTimeout(id ?? undefined),
+        addEventListener: (type: string, listener: () => void) => {
+            const bucket = listeners.get(type) ?? new Set<() => void>();
+            bucket.add(listener);
+            listeners.set(type, bucket);
+        },
+        removeEventListener: (type: string, listener: () => void) => {
+            listeners.get(type)?.delete(listener);
+        },
+        dispatchEvent: (event: { type: string }) => {
+            listeners.get(event.type)?.forEach((listener) => listener());
         },
     };
 }
@@ -61,8 +89,10 @@ export function mountBuilderContext(): IBuilderContext {
             renameSession: pagename.renameSession,
         });
         useBuilderDraftPersistence({
+            routePagename: pagename.routePagename,
             sessionPagename: pagename.sessionPagename,
             isSessionLoading: session.isSessionLoading,
+            isSessionReady: session.isSessionReady,
             isRestoreDraftModalOpen: session.isRestoreDraftModalOpen,
             savedSnapshot: session.savedSnapshot,
             buildCurrentSnapshot: session.buildCurrentSnapshot,

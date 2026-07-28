@@ -8,13 +8,15 @@ import { createPinia, setActivePinia } from 'pinia';
 // Vue
 import { nextTick, reactive, type EffectScope } from 'vue';
 
+// Types
+import type { IBuilderContext } from '../helpers/types';
+
 // Utils
 import {
     AUTOSAVE_DEBOUNCE_MS,
     PAGENAME_SYNC_DEBOUNCE_MS,
-    createLocalStorageStub,
+    createWindowStub,
     mountBuilderContext,
-    type IBuilderContext,
 } from '../helpers/builderSessionHarness';
 import { createPageBuilder } from '../helpers/publishFixtures';
 // #endregion
@@ -69,13 +71,7 @@ describe('pagename билдера: rename, autosave, reload', () => {
 
     beforeEach(() => {
         setActivePinia(createPinia());
-        vi.stubGlobal('window', {
-            localStorage: createLocalStorageStub(),
-            setTimeout: (handler: () => void, timeout?: number) =>
-                globalThis.setTimeout(handler, timeout) as unknown as number,
-            clearTimeout: (id: number | null) =>
-                globalThis.clearTimeout(id as unknown as NodeJS.Timeout),
-        });
+        vi.stubGlobal('window', createWindowStub());
         vi.useFakeTimers();
 
         routerBridge.route = reactive({

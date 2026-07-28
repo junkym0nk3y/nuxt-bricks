@@ -63,8 +63,10 @@ export interface IBuilderSessionOptions {
  * Опции composable useBuilderDraftPersistence.
  */
 export interface IBuilderDraftPersistenceOptions {
+    routePagename: ComputedRef<string>;
     sessionPagename: Ref<string>;
     isSessionLoading: Ref<boolean>;
+    isSessionReady: Ref<boolean>;
     isRestoreDraftModalOpen: Ref<boolean>;
     savedSnapshot: Ref<IBuilderDraftSnapshot | null>;
     buildCurrentSnapshot: () => IBuilderDraftSnapshot;

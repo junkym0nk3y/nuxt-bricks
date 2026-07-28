@@ -10,13 +10,13 @@ import { nextTick, reactive, type EffectScope } from 'vue';
 
 // Types
 import type { IPublishedPage } from '../../src/runtime/modules/common/types/bricks-api';
+import type { IBuilderContext } from '../helpers/types';
 
 // Utils
 import {
     AUTOSAVE_DEBOUNCE_MS,
-    createLocalStorageStub,
+    createWindowStub,
     mountBuilderContext,
-    type IBuilderContext,
 } from '../helpers/builderSessionHarness';
 import { createFormStateBuilder, createPageBuilder } from '../helpers/publishFixtures';
 // #endregion
@@ -86,13 +86,7 @@ describe('Save as Copy: единый переход сессии', () => {
 
     beforeEach(() => {
         setActivePinia(createPinia());
-        vi.stubGlobal('window', {
-            localStorage: createLocalStorageStub(),
-            setTimeout: (handler: () => void, timeout?: number) =>
-                globalThis.setTimeout(handler, timeout) as unknown as number,
-            clearTimeout: (id: number | null) =>
-                globalThis.clearTimeout(id as unknown as NodeJS.Timeout),
-        });
+        vi.stubGlobal('window', createWindowStub());
         vi.useFakeTimers();
 
         routerBridge.route = reactive({

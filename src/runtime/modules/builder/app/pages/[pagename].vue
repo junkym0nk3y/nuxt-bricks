@@ -78,6 +78,7 @@ const { showToast } = useBuilderToast();
 // единый переход на сохранённую копию (switchToSavedPage)
 const {
     isSessionLoading,
+    isSessionReady,
     isRestoreDraftModalOpen,
     savedSnapshot,
     buildCurrentSnapshot,
@@ -142,8 +143,10 @@ const isDarkMode = ref(darkModeCookie.value ?? false);
 
 // Автосохранение черновика (debounce) + синхронизация URL с pagename формы
 useBuilderDraftPersistence({
+    routePagename,
     sessionPagename,
     isSessionLoading,
+    isSessionReady,
     isRestoreDraftModalOpen,
     savedSnapshot,
     buildCurrentSnapshot,

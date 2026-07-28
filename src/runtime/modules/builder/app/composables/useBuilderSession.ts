@@ -40,6 +40,11 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
     const publishStore = usePublishStore();
 
     const isSessionLoading = ref(true);
+    // Сессия догрузилась до согласованного состояния. Отдельный признак от
+    // isSessionLoading: тот снимается и по ошибке bootstrap'а, после которой на
+    // канвасе и в форме лежит мусор (дефолты или остатки прошлой страницы), и его
+    // нельзя писать в черновик — затрёт валидную запись, см. BM-20.
+    const isSessionReady = ref(false);
     const isRestoreDraftModalOpen = ref(false);
     const pendingDraft = ref<IBuilderDraftEntry | null>(null);
     const savedSnapshot = ref<IBuilderDraftSnapshot | null>(null);
@@ -65,6 +70,66 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
     }
 
     /**
+     * Приводит сторы билдера к состоянию открываемой страницы: сохранённая версия
+     * или чистый холст, плюс разбор найденного черновика. Бросает наружу — тогда
+     * сессия остаётся неготовой и автосейв её состояние не пишет.
+     *
+     * @param pagename - ЧПУ страницы из URL.
+     */
+    async function bootstrapSession(pagename: string): Promise<void> {
+        if (!publishStore.publishedPages.length) {
+            await publishStore.loadAllPages();
+        }
+
+        const existingPage = publishStore.getPageByPagename(pagename);
+        const draft = getBuilderDraft(pagename);
+
+        if (existingPage) {
+            publishStore.startEditingPage(existingPage.id);
+
+            // Список стора — сводки без schema: схему канваса грузим point-lookup'ом
+            const fullPage = await fetchPageRequest(existingPage.id);
+            componentsStore.loadSchema(fullPage.schema, { resetHistory: true });
+
+            savedSnapshot.value = buildCurrentSnapshot();
+
+            // Черновик предлагается на восстановление только если он точно
+            // принадлежит этой странице (draft.pageId === existingPage.id).
+            // Черновик без pageId или с чужим pageId (например, ключ сессии
+            // переиспользован после Save as Copy) — stale, не предлагается
+            // и подчищается ниже.
+            const isDraftOwnedByPage = draft?.pageId === existingPage.id;
+
+            if (
+                draft &&
+                draft.mode === 'edit' &&
+                draft.draftSnapshot &&
+                isDraftOwnedByPage &&
+                !isSnapshotEqual(draft.draftSnapshot, savedSnapshot.value)
+            ) {
+                pendingDraft.value = draft;
+                isRestoreDraftModalOpen.value = true;
+                return;
+            }
+
+            if (draft && draft.mode === 'edit' && draft.draftSnapshot) {
+                removeBuilderDraft(pagename);
+            }
+
+            return;
+        }
+
+        publishStore.startNewPublish();
+        publishStore.setCurrentFormField('pagename', pagename);
+        componentsStore.loadSchema(EMPTY_SCHEMA, { resetHistory: true });
+
+        if (draft?.draftSnapshot) {
+            applySnapshot(draft.draftSnapshot);
+            showToast(t('bricks.publish.toasts.unsavedChanges'), 'error', 30000);
+        }
+    }
+
+    /**
      * Загружает страницу в билдер по pagename, учитывая черновики.
      *
      * @param pagename - ЧПУ страницы из URL.
@@ -79,61 +144,18 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
         sessionPagename.value = pagename;
 
         isSessionLoading.value = true;
+        isSessionReady.value = false;
         isRestoreDraftModalOpen.value = false;
         pendingDraft.value = null;
         savedSnapshot.value = null;
 
         try {
-            if (!publishStore.publishedPages.length) {
-                await publishStore.loadAllPages();
-            }
+            await bootstrapSession(pagename);
 
-            const existingPage = publishStore.getPageByPagename(pagename);
-            const draft = getBuilderDraft(pagename);
-
-            if (existingPage) {
-                publishStore.startEditingPage(existingPage.id);
-
-                // Список стора — сводки без schema: схему канваса грузим point-lookup'ом
-                const fullPage = await fetchPageRequest(existingPage.id);
-                componentsStore.loadSchema(fullPage.schema, { resetHistory: true });
-
-                savedSnapshot.value = buildCurrentSnapshot();
-
-                // Черновик предлагается на восстановление только если он точно
-                // принадлежит этой странице (draft.pageId === existingPage.id).
-                // Черновик без pageId или с чужим pageId (например, ключ сессии
-                // переиспользован после Save as Copy) — stale, не предлагается
-                // и подчищается ниже.
-                const isDraftOwnedByPage = draft?.pageId === existingPage.id;
-
-                if (
-                    draft &&
-                    draft.mode === 'edit' &&
-                    draft.draftSnapshot &&
-                    isDraftOwnedByPage &&
-                    !isSnapshotEqual(draft.draftSnapshot, savedSnapshot.value)
-                ) {
-                    pendingDraft.value = draft;
-                    isRestoreDraftModalOpen.value = true;
-                    return;
-                }
-
-                if (draft && draft.mode === 'edit' && draft.draftSnapshot) {
-                    removeBuilderDraft(pagename);
-                }
-
-                return;
-            }
-
-            publishStore.startNewPublish();
-            publishStore.setCurrentFormField('pagename', pagename);
-            componentsStore.loadSchema(EMPTY_SCHEMA, { resetHistory: true });
-
-            if (draft?.draftSnapshot) {
-                applySnapshot(draft.draftSnapshot);
-                showToast(t('bricks.publish.toasts.unsavedChanges'), 'error', 30000);
-            }
+            // Готовность — единственной точкой и только после всех ветвей bootstrap'а,
+            // включая применение черновика: падение на нём с поднятым флагом означало бы,
+            // что сброс на выгрузке затрёт черновик недособранным состоянием
+            isSessionReady.value = true;
         } catch (error: unknown) {
             const message =
                 error instanceof Error ? error.message : t('bricks.publish.toasts.loadPageFailed');
@@ -227,6 +249,7 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
 
     return {
         isSessionLoading,
+        isSessionReady,
         isRestoreDraftModalOpen,
         pendingDraft,
         savedSnapshot,

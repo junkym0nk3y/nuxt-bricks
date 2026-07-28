@@ -18,12 +18,16 @@ import { usePublishStore } from '../../publish/stores/publish';
  * Автосохранение черновика билдера в localStorage (debounce 800ms) при изменении
  * истории канваса или настроек публикации. Ключ черновика — sessionPagename
  * (переживает rename сессии). Если изменений относительно сохранённой версии
- * нет — черновик удаляется. Таймер чистится при unmount.
+ * нет — черновик удаляется. Отложенное сохранение сбрасывается синхронно на обоих
+ * терминальных событиях: выгрузка страницы (`pagehide`) и остановка scope
+ * (уход из редактора SPA-навигацией).
  */
 export function useBuilderDraftPersistence(options: IBuilderDraftPersistenceOptions): void {
     const {
+        routePagename,
         sessionPagename,
         isSessionLoading,
+        isSessionReady,
         isRestoreDraftModalOpen,
         savedSnapshot,
         buildCurrentSnapshot,
@@ -56,7 +60,10 @@ export function useBuilderDraftPersistence(options: IBuilderDraftPersistenceOpti
 
         // Пока пользователь не ответил на модалку восстановления, на канвасе лежит
         // сохранённая версия страницы — сравнение с savedSnapshot удалило бы черновик.
-        if (isSessionLoading.value || isRestoreDraftModalOpen.value) {
+        // Без isSessionReady сюда проходило бы и состояние после ошибки bootstrap'а
+        // (isSessionLoading снимается в finally): сохранение мусора затёрло бы
+        // валидный черновик — тем заметнее, что сброс на выгрузке безусловный.
+        if (isSessionLoading.value || !isSessionReady.value || isRestoreDraftModalOpen.value) {
             return;
         }
 
@@ -93,6 +100,7 @@ export function useBuilderDraftPersistence(options: IBuilderDraftPersistenceOpti
         if (
             typeof window === 'undefined' ||
             isSessionLoading.value ||
+            !isSessionReady.value ||
             isRestoreDraftModalOpen.value
         ) {
             return;
@@ -105,13 +113,71 @@ export function useBuilderDraftPersistence(options: IBuilderDraftPersistenceOpti
         }, 800);
     }
 
+    /**
+     * Синхронно сохраняет черновик при выгрузке страницы: таймер debounce её не
+     * переживает, поэтому без сброса терялись изменения последних 800 мс — F5,
+     * закрытие вкладки, мягкий рестарт dev-сервера на правку brick-файла.
+     *
+     * Сохраняет безусловно, а не только при запланированном таймере: «таймера
+     * нет» не значит «нечего сохранять». Правка пропса меняет компонент в сторе
+     * синхронно, а `saveToHistory` вызывает через собственный debounce 300 мс
+     * (`core/stores/actions/properties.ts`), так что в это окно `historyIndex`
+     * ещё прежний, watch ниже не срабатывал и таймера нет — а `buildCurrentSnapshot`
+     * уже отдаёт новое значение. Цена — возможная лишняя запись в localStorage,
+     * если таймер успел отработать перед выгрузкой; нового состояния восстановления
+     * она не создаёт (в edit-режиме `persistDraftNow` сверяется с `savedSnapshot`,
+     * `updatedAt` черновика никто не читает).
+     */
+    function flushDraft(): void {
+        clearPersistTimer();
+        persistDraftNow();
+    }
+
     watch(
-        [() => historyStore.historyIndex, () => publishStore.currentFormState],
+        // Ссылка на текущий снапшот истории, а не `historyIndex`: при заполненной
+        // истории `capture()` поднимает индекс и тут же возвращает его обратно
+        // `clampHistory`, поэтому наблюдаемое значение индекса не меняется и правки
+        // канваса переставали автосохраняться совсем. Объект снапшота новый на
+        // каждый `capture`, а undo/redo двигают индекс — оба случая видны.
+        [
+            () => historyStore.history[historyStore.historyIndex],
+            () => publishStore.currentFormState,
+        ],
         () => {
             scheduleDraftPersist();
         },
         { deep: false }
     );
 
-    onScopeDispose(clearPersistTimer);
+    // Переход на другую страницу билдера не размонтирует страницу (статический page
+    // key в `[pagename].vue`), поэтому `onScopeDispose` не сработает, а
+    // `openBuilderSession` успеет переписать `sessionPagename` и снять
+    // `isSessionReady` — отложенное сохранение прежней страницы иначе теряется.
+    // `flush: 'sync'` обязателен: обычный watcher выполнился бы после watcher'а
+    // сессии (тот зарегистрирован раньше), то есть уже с ключом новой страницы.
+    watch(
+        () => routePagename.value,
+        () => {
+            flushDraft();
+        },
+        { flush: 'sync' }
+    );
+
+    // pagehide, а не beforeunload: приходит и при переходе страницы в page cache,
+    // и на мобильных, где beforeunload не гарантирован
+    if (typeof window !== 'undefined') {
+        window.addEventListener('pagehide', flushDraft);
+    }
+
+    onScopeDispose(() => {
+        // Уход из редактора на дашборд — не выгрузка документа: `pagehide` не
+        // придёт, а запланированное сохранение иначе просто отбрасывалось бы
+        // вместе с таймером. Состояние на этот момент честное: сторы живут на
+        // уровне приложения, unmount страницы их не сбрасывает.
+        flushDraft();
+
+        if (typeof window !== 'undefined') {
+            window.removeEventListener('pagehide', flushDraft);
+        }
+    });
 }

@@ -15,7 +15,8 @@ Vitest-тесты модуля (node-окружение, без браузера
   `makeConflictFetchError` для 409 REVISION_CONFLICT).
 - `helpers/builderSessionHarness.ts` — harness session-тестов билдера:
   `mountBuilderContext` (проводка composables как в `pages/[pagename].vue`),
-  `createLocalStorageStub`, debounce-константы.
+  `createWindowStub` (localStorage + таймеры + шина событий вместо jsdom),
+  debounce-константы; типы — `helpers/types.d.ts`.
 - `stubs/nuxt-imports.ts` — стаб `#imports` для node-тестов.
 
 ## builder/ — сессия билдера и его утилиты
@@ -25,6 +26,12 @@ Vitest-тесты модуля (node-окружение, без браузера
   перезагрузки.
 - `saveAsCopySession.spec.ts` — Save as Copy как единый переход сессии:
   editingPageId/форма/route/черновики, restore-гейт по `draft.pageId`.
+- `draftPersistence.spec.ts` — автосейв черновика и сброс при уходе со страницы:
+  правка формы внутри окна debounce уходит по `pagehide`, правка пропса (там
+  таймера нет вовсе), защита черновика при ошибке открытия сессии
+  (`isSessionReady`), проход через guard'ы после сохранения, сброс на остановке
+  scope (SPA-навигация), автосейв канваса после заполнения истории, снятие
+  слушателя со scope.
 - `coreHistory.spec.ts` — undo/redo стор билдера: clamp, сериализация схемы.
 - `documentationArticles.spec.ts` — реестр статей встроенной документации.
 - `schemaImageExtractor.spec.ts` — извлечение первого изображения схемы

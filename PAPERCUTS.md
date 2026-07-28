@@ -235,3 +235,11 @@ stdin: `docker exec -i nuxt-bricks-db sh -c 'psql -U "$POSTGRES_USER" -d
 («Another Nuxt dev is already running (PID …)»), причём бюджеты после неё прошли
 на **старом** `.output` и выглядели зелёными. Гасить по `pkill -f "nuxi dev"` или
 по PID из сообщения; вывод `dev:build` не глотать в `tail` без проверки exit code.
+
+## 2026-07-28 20:47 — Opus 5
+
+Правка `useBuilderDraftPersistence.ts` вызвала diagnostics-уведомление про
+`ProbeCard.brick.ts: Cannot find module './ProbeCard.vue'` — файла нет ни в
+рабочем дереве, ни в git (пробный brick прошлой сессии удалён). LSP держит
+стухшую запись открытого-и-удалённого файла и подмешивает её в отчёт по чужой
+правке; сверять такие сообщения с `git status` / `find`, прежде чем идти чинить.
