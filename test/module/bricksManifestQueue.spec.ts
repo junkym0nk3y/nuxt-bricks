@@ -169,11 +169,13 @@ async function waitForEvent(event: string): Promise<void> {
  *
  * @param name - Имя файла без суффикса `.brick.ts`.
  * @param category - Значение поля category.
+ * @param values - Литерал `values`: в манифест он не попадает, но входит в хеш
+ * содержимого, поэтому им проверяется реакция хеша на правку внутри файла.
  */
-async function writeBrickFile(name: string, category: string): Promise<void> {
+async function writeBrickFile(name: string, category: string, values = '{}'): Promise<void> {
     await writeFile(
         join(srcDir, 'components', `${name}.brick.ts`),
-        `export default { category: '${category}', values: {} };\n`,
+        `export default { category: '${category}', values: ${values} };\n`,
         'utf8'
     );
 }
@@ -237,11 +239,36 @@ describe('манифест бриков: атомарная публикация
             '/components/CardTeaser.brick.ts',
         ]);
 
-        // Тот же диск, порядок скана прямой — хеш инвентаря обязан совпасть
+        // Тот же диск, порядок скана прямой — хеш обязан совпасть
         probe.reverseListing = false;
         const directScan = await generateBricksManifest({ srcDir, manifestDir });
 
         expect(directScan.hash).toBe(reversedScan.hash);
+    });
+
+    it('хеш меняется от правки внутри brick-файла, хотя записи манифеста те же', async () => {
+        await writeBrickFile('CardHero', 'Cards', '{ title: { default: "old" } }');
+        const before = await generateBricksManifest({ srcDir, manifestDir });
+
+        // Инвентарь неизменен: имя, категория и путь те же, правка только в values
+        await writeBrickFile('CardHero', 'Cards', '{ title: { default: "new" } }');
+        const after = await generateBricksManifest({ srcDir, manifestDir });
+
+        expect(after.bricks).toEqual(before.bricks);
+        // Хеш по инвентарю (до BM-06) на этой правке не менялся, то есть по нему
+        // нельзя было отличить правку values от повторного скана — ради этого
+        // хеш и считается от исходников (потребитель приедет в BM-19)
+        expect(after.hash).not.toBe(before.hash);
+    });
+
+    it('повторный скан без правок даёт тот же хеш', async () => {
+        await writeBrickFile('CardHero', 'Cards', '{ title: { default: "same" } }');
+
+        const first = await generateBricksManifest({ srcDir, manifestDir });
+        const second = await generateBricksManifest({ srcDir, manifestDir });
+
+        // Иначе сверка хешей (BM-19) считала бы изменением каждое событие вотчера
+        expect(second.hash).toBe(first.hash);
     });
 
     it('rename выполняется только после полной записи temp, цель до него не тронута', async () => {

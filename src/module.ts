@@ -272,7 +272,7 @@ export default defineNuxtModule<IBricksModuleOptions>({
                     await manifestQueue.enqueue();
 
                     // Метаданные бриков закешированы в useAsyncData('bricks-components') —
-                    // точечного HMR тут недостаточно (см. BM-06 в
+                    // точечного HMR тут недостаточно (см. BM-19 в
                     // docs/brick-manifest-followups.md)
                     viteClientServer?.hot.send({ type: 'full-reload' });
                 } catch (error) {

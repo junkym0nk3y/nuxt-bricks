@@ -3,6 +3,7 @@
 import type { IComponentLibraryItem } from '../../../common/types/brick';
 import type { IBrickValues } from '../../../common/types/index';
 import type { IBrickManifestEntry, IBricksManifest } from '../../../common/types/brickManifest';
+import type { IComponentLibraryData, IUseComponentLibraryReturn } from '../types/composables';
 
 // Utils
 import { extractBrickSlots } from '../utils/brickSlots';
@@ -25,11 +26,19 @@ import { LAYOUT_COMPONENTS } from '../../core/constants/layoutComponents';
 /**
  * Загружает библиотеку компонентов: список bricks с бэкенда + метаданные
  * из `.brick.ts`-модулей (defaultProps, slots) + layout-компоненты.
+ *
+ * Рядом со списком хранится хеш манифеста из ответа ручки. Потребителя у него
+ * пока нет — это заготовка под BM-19: когда метаданные бриков переедут в
+ * манифест, обновление библиотеки в dev сведётся к сверке хешей. Про то, почему
+ * `hash` и метаданные в `items` до BM-19 могут расходиться, — в
+ * `IComponentLibraryData`.
+ *
+ * @returns Список компонентов библиотеки.
  */
-export async function useComponentLibrary() {
+export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn> {
     const { findImportModule } = useBrickImports();
 
-    const componentLibrary = await useAsyncData<(IComponentLibraryItem | null)[] | null>(
+    const componentLibrary = await useAsyncData<IComponentLibraryData>(
         'bricks-components',
         async () => {
             const { apiFetcher } = useApiClient();
@@ -81,14 +90,21 @@ export async function useComponentLibrary() {
                 })
             );
 
-            return [...LAYOUT_COMPONENTS, ...componentsWithMeta.filter(Boolean)];
+            return {
+                hash: response?.hash || '',
+                items: [
+                    ...LAYOUT_COMPONENTS,
+                    ...componentsWithMeta.filter(
+                        (item): item is IComponentLibraryItem => item !== null
+                    ),
+                ],
+            };
         }
     );
 
-    const componentLibraryList = computed<IComponentLibraryItem[]>(() => {
-        const list = componentLibrary.data.value;
-        return (Array.isArray(list) ? list : []).filter(Boolean) as IComponentLibraryItem[];
-    });
+    const componentLibraryList = computed<IComponentLibraryItem[]>(
+        () => componentLibrary.data.value?.items ?? []
+    );
 
     return { componentLibraryList };
 }

@@ -3,7 +3,10 @@
  * параметры скана и контракт сериализованной очереди. Сам манифест — общий с
  * рантаймом контракт из `runtime/modules/common/types/brickManifest.d.ts`.
  */
-import type { IBricksManifest } from '../runtime/modules/common/types/brickManifest';
+import type {
+    IBrickManifestEntry,
+    IBricksManifest,
+} from '../runtime/modules/common/types/brickManifest';
 
 /** Параметры генерации манифеста. */
 export interface IBricksManifestOptions {
@@ -11,6 +14,17 @@ export interface IBricksManifestOptions {
     srcDir: string;
     /** Каталог манифеста (см. resolveBricksManifestDir). */
     manifestDir: string;
+}
+
+/**
+ * Прочитанный brick-файл: запись манифеста и исходник, от которого считается
+ * хеш содержимого. Исходник в манифест не попадает — только в хеш.
+ */
+export interface IBrickManifestSource {
+    /** Запись, уходящая в манифест. */
+    entry: IBrickManifestEntry;
+    /** Содержимое `*.brick.ts` целиком. */
+    content: string;
 }
 
 /** Сериализованная очередь генерации манифеста (см. createBricksManifestQueue). */

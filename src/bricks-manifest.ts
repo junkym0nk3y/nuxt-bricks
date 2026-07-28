@@ -11,11 +11,12 @@ import {
     BRICKS_MANIFEST_DIR,
     BRICKS_MANIFEST_FILENAME,
 } from './runtime/modules/common/constants/brickManifest';
+import type { IBricksManifest } from './runtime/modules/common/types/brickManifest';
 import type {
-    IBrickManifestEntry,
-    IBricksManifest,
-} from './runtime/modules/common/types/brickManifest';
-import type { IBricksManifestOptions, IBricksManifestQueue } from './types/bricksManifest';
+    IBrickManifestSource,
+    IBricksManifestOptions,
+    IBricksManifestQueue,
+} from './types/bricksManifest';
 
 // #region Constants
 const BRICK_FILE_SUFFIX = '.brick.ts';
@@ -85,13 +86,32 @@ function extractCategory(content: string): string {
 }
 
 /**
- * Считает SHA-256 хеш строки.
+ * Считает хеш манифеста по содержимому brick-файлов.
  *
- * @param data - Данные для хеширования.
- * @returns Hex-представление хеша.
+ * Хеш — сигнал «brick-файлы изменились». Потребителя у него пока нет: тот, ради
+ * которого он приехал, снят вместе с HMR-надстройкой (BM-18), а вернётся он в
+ * BM-19 — «сравнил хеш → перефетчил библиотеку». Считается от исходников, а не от
+ * инвентаря записей: `values`, `slots` и `description` лежат внутри файла и в
+ * манифест не попадают, так что инвентарный хеш к их правке слеп — а именно она и
+ * есть самая частая при разработке компонента.
+ *
+ * Путь и содержимое разделены NUL: без разделителя пара «путь + исходник» могла
+ * бы склеиться с другой парой в ту же последовательность байт.
+ *
+ * @param sources - Прочитанные brick-файлы в порядке манифеста.
+ * @returns Hex-представление SHA-256.
  */
-function computeHash(data: string): string {
-    return createHash('sha256').update(data, 'utf8').digest('hex');
+function computeManifestHash(sources: IBrickManifestSource[]): string {
+    const hash = createHash('sha256');
+
+    for (const source of sources) {
+        hash.update(source.entry.brickPath, 'utf8');
+        hash.update('\0');
+        hash.update(source.content, 'utf8');
+        hash.update('\0');
+    }
+
+    return hash.digest('hex');
 }
 
 /**
@@ -124,19 +144,22 @@ function isMissingFileError(error: unknown): error is Error {
  *
  * @param srcDir - `nuxt.options.srcDir` (база ключа загрузчика).
  * @param filePath - Абсолютный путь brick-файла.
- * @returns Запись манифеста или `null`, если файла уже нет.
+ * @returns Запись манифеста с исходником или `null`, если файла уже нет.
  */
 async function readManifestEntry(
     srcDir: string,
     filePath: string
-): Promise<IBrickManifestEntry | null> {
+): Promise<IBrickManifestSource | null> {
     try {
         const content = await readFile(filePath, 'utf8');
 
         return {
-            name: basename(filePath, BRICK_FILE_SUFFIX),
-            category: extractCategory(content),
-            brickPath: `/${relative(srcDir, filePath)}`,
+            entry: {
+                name: basename(filePath, BRICK_FILE_SUFFIX),
+                category: extractCategory(content),
+                brickPath: `/${relative(srcDir, filePath)}`,
+            },
+            content,
         };
     } catch (error) {
         if (isMissingFileError(error)) {
@@ -194,15 +217,16 @@ export async function generateBricksManifest(
         onlyFiles: true,
     });
 
-    const entries = await Promise.all(files.map((file) => readManifestEntry(srcDir, file)));
-    // Порядок globby зависит от файловой системы — сортировка держит хеш стабильным
-    const bricks = entries
-        .filter((entry): entry is IBrickManifestEntry => entry !== null)
-        .toSorted((left, right) => left.brickPath.localeCompare(right.brickPath));
+    const sources = await Promise.all(files.map((file) => readManifestEntry(srcDir, file)));
+    // Порядок globby зависит от файловой системы — сортировка держит стабильными
+    // и порядок записей, и хеш (он считается по этой же последовательности)
+    const ordered = sources
+        .filter((source): source is IBrickManifestSource => source !== null)
+        .toSorted((left, right) => left.entry.brickPath.localeCompare(right.entry.brickPath));
 
     const manifest: IBricksManifest = {
-        bricks,
-        hash: computeHash(JSON.stringify(bricks)),
+        bricks: ordered.map((source) => source.entry),
+        hash: computeManifestHash(ordered),
     };
 
     await publishManifest(manifestDir, manifest);

@@ -78,6 +78,34 @@ export interface IBuilderPagenameSyncOptions {
 }
 // #endregion
 
+// #region useComponentLibrary
+/**
+ * Данные библиотеки компонентов в кеше `useAsyncData('bricks-components')`:
+ * готовый список и хеш манифеста, с которым пришёл ответ ручки. Хеш лежит рядом
+ * со списком, чтобы сверять было с чем — заготовка под BM-19, потребителя у поля
+ * пока нет.
+ *
+ * Строгого соответствия между `hash` и метаданными внутри `items` до BM-19 нет:
+ * `name`, `category` и `brickPath` приходят из того же ответа, а `description`,
+ * `defaultProps` и `slots` — из импорта brick-модуля, который в dev может
+ * отставать на одну загрузку страницы (Vite инвалидирует brick-файл позже, чем
+ * уходит сигнал перезагрузки).
+ */
+export interface IComponentLibraryData {
+    /** Хеш манифеста brick-компонентов из ответа ручки компонентов. */
+    hash: string;
+    /** Layout-блоки + brick-компоненты с метаданными. */
+    items: IComponentLibraryItem[];
+}
+
+/**
+ * Возвращаемое значение composable useComponentLibrary.
+ */
+export interface IUseComponentLibraryReturn {
+    componentLibraryList: ComputedRef<IComponentLibraryItem[]>;
+}
+// #endregion
+
 // #region usePageThumbnail
 /**
  * Ответ POST /api/bricks/media/s3-page-thumbnail.
