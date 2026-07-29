@@ -77,6 +77,7 @@ export interface IBuilderDraftPersistenceOptions {
  */
 export interface IBuilderPagenameSyncOptions {
     renameSession: TRenameBuilderSession;
+    isSessionReady: Ref<boolean>;
 }
 // #endregion
 

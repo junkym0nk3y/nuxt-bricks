@@ -263,6 +263,14 @@
                 "restoreConfirm": "Restore changes",
                 "restoreCancel": "Open saved version"
             },
+            "session": {
+                "errorTitle": "The page did not load",
+                "errorDescription": "The editor could not open the session, so changes cannot be saved. Try again or go back to the page list.",
+                "errorRetry": "Try again",
+                "errorOpenPages": "My pages",
+                "saveBlocked": "The page has not loaded yet — saving is disabled",
+                "errorTimeout": "The page is not responding — loading was cancelled"
+            },
             "navigation": {
                 "title": "Navigation",
                 "text": "Text",

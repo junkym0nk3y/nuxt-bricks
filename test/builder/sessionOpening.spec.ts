@@ -1,0 +1,364 @@
+// #region Imports
+// Vitest
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+// Pinia
+import { createPinia, setActivePinia } from 'pinia';
+
+// Vue
+import { nextTick, reactive, type EffectScope } from 'vue';
+
+// Types
+import type { IBricksComponent } from '../../src/runtime/modules/common/types/brick';
+import type { IPublishedPage } from '../../src/runtime/modules/common/types/bricks-api';
+import type { IBuilderContext, IDeferredApi } from '../helpers/types';
+
+// Utils
+import {
+    PAGENAME_SYNC_DEBOUNCE_MS,
+    createDeferredApi,
+    createWindowStub,
+    mountBuilderContext,
+} from '../helpers/builderSessionHarness';
+import { createPageBuilder } from '../helpers/publishFixtures';
+// #endregion
+
+// #region Mocks
+/**
+ * Мост route/router для стаба `#imports` (см. test/builder/pagenameSession.spec.ts) —
+ * тот же паттерн: hoisted-объект читается фабрикой мока лениво.
+ */
+const { routerBridge, apiFetcherMock } = vi.hoisted(() => ({
+    routerBridge: {
+        route: { name: '' as string | undefined, params: {} as Record<string, string> },
+        replace: vi.fn(),
+    },
+    apiFetcherMock: vi.fn(),
+}));
+
+vi.mock('#imports', async (importOriginal) => {
+    const original = await importOriginal<Record<string, unknown>>();
+    return {
+        ...original,
+        useRoute: () => routerBridge.route,
+        useRouter: () => ({ replace: routerBridge.replace }),
+    };
+});
+
+vi.mock('vue-i18n', () => ({
+    useI18n: () => ({ t: (key: string) => key }),
+}));
+
+vi.mock('../../src/runtime/modules/common/composables/useApiClient', () => ({
+    useApiClient: () => ({ apiFetcher: apiFetcherMock }),
+}));
+// #endregion
+
+import { useComponentsStore } from '../../src/runtime/modules/builder/core/stores/components';
+import { usePublishStore } from '../../src/runtime/modules/builder/publish/stores/publish';
+
+const buildPage = createPageBuilder({
+    description: 'Landing page',
+    keywords: 'landing',
+    createdAt: '2026-06-01T10:00:00Z',
+    updatedAt: '2026-06-30T10:00:00Z',
+});
+
+/**
+ * Компонент канваса с узнаваемым id — по нему тест отличает, чья схема осталась
+ * на канвасе после гонки открытий.
+ *
+ * @param id - Идентификатор компонента.
+ * @returns Компонент схемы страницы.
+ */
+function buildComponent(id: string): IBricksComponent {
+    return {
+        id,
+        type: 'component',
+        componentName: 'Text',
+        brickPath: '/components/Text.brick.ts',
+        zIndex: 1,
+        props: { text: id },
+    };
+}
+
+/**
+ * Страница со схемой из одного узнаваемого компонента.
+ *
+ * @param id - Идентификатор страницы.
+ * @param pagename - ЧПУ страницы.
+ * @param componentId - Идентификатор единственного компонента схемы.
+ * @returns Страница для списка стора и point-lookup'а.
+ */
+function buildPageWithComponent(id: number, pagename: string, componentId: string): IPublishedPage {
+    return buildPage({
+        id,
+        pagename,
+        title: `Page ${componentId}`,
+        schema: { components: [buildComponent(componentId)] },
+    });
+}
+
+// app/composables/useBuilderSession.ts, SESSION_BOOTSTRAP_TIMEOUT_MS
+const SESSION_BOOTSTRAP_TIMEOUT_MS = 30000;
+
+describe('открытие сессии билдера: гонка переключений и отказ bootstrap’а', () => {
+    let activeScopes: EffectScope[] = [];
+    let deferred: IDeferredApi;
+    // url'ы, ответ на которые держит сам тест; остальные отвечают сразу из serverPages
+    let deferredUrls: string[] = [];
+    let serverPages: IPublishedPage[] = [];
+
+    beforeEach(() => {
+        setActivePinia(createPinia());
+        vi.stubGlobal('window', createWindowStub());
+        vi.useFakeTimers();
+
+        routerBridge.route = reactive({
+            name: 'bricks-builder-pagename',
+            params: { pagename: 'page-a' },
+        });
+        routerBridge.replace = vi.fn();
+
+        deferred = createDeferredApi();
+        deferredUrls = [];
+        serverPages = [];
+        apiFetcherMock.mockReset();
+        apiFetcherMock.mockImplementation((url: unknown) => {
+            const requested = String(url);
+
+            if (deferredUrls.includes(requested)) {
+                return deferred.handle(requested);
+            }
+
+            const idMatch = /^\/api\/bricks\/(\d+)\/$/.exec(requested);
+            if (idMatch) {
+                return Promise.resolve(
+                    serverPages.find((page) => String(page.id) === idMatch[1]) ?? null
+                );
+            }
+
+            return Promise.resolve(serverPages);
+        });
+        activeScopes = [];
+    });
+
+    afterEach(() => {
+        activeScopes.forEach((scope) => scope.stop());
+        vi.useRealTimers();
+        vi.unstubAllGlobals();
+    });
+
+    /**
+     * Поднимает контекст и регистрирует scope для очистки в afterEach.
+     */
+    function mountTracked(): IBuilderContext {
+        const context = mountBuilderContext();
+        activeScopes.push(context.scope);
+        return context;
+    }
+
+    it('поздняя схема вытесненного открытия не попадает на канвас', async () => {
+        const context = mountTracked();
+        const publishStore = usePublishStore();
+        const componentsStore = useComponentsStore();
+
+        const pageA = buildPageWithComponent(1, 'page-a', 'a1');
+        const pageB = buildPageWithComponent(2, 'page-b', 'b1');
+        // Список прогрет: гонка остаётся только на point-lookup'е схемы
+        publishStore.publishedPages = [pageA, pageB];
+        serverPages = [pageA, pageB];
+        deferredUrls = ['/api/bricks/1/', '/api/bricks/2/'];
+
+        const openingA = context.session.openBuilderSession('page-a');
+        const openingB = context.session.openBuilderSession('page-b');
+
+        // Ответы в обратном порядке: актуальное открытие доезжает первым, вытесненное — после
+        (await deferred.waitFor('/api/bricks/2/')).resolve(pageB);
+        await openingB;
+        (await deferred.waitFor('/api/bricks/1/')).resolve(pageA);
+        await openingA;
+
+        expect(context.pagename.sessionPagename.value).toBe('page-b');
+        expect(publishStore.editingPageId).toBe(2);
+        expect(publishStore.currentFormState.pagename).toBe('page-b');
+        expect(componentsStore.components.map((component) => component.id)).toEqual(['b1']);
+        expect(context.session.isSessionReady.value).toBe(true);
+    });
+
+    it('поздний список вытесненного открытия не переводит стор на прежнюю страницу', async () => {
+        const context = mountTracked();
+        const publishStore = usePublishStore();
+        const componentsStore = useComponentsStore();
+
+        const pageA = buildPageWithComponent(1, 'page-a', 'a1');
+        const pageB = buildPageWithComponent(2, 'page-b', 'b1');
+        serverPages = [pageA, pageB];
+        // Список страниц пуст — bootstrap каждого открытия начинается с loadAllPages
+        deferredUrls = ['/api/bricks/'];
+
+        const openingA = context.session.openBuilderSession('page-a');
+        const openingB = context.session.openBuilderSession('page-b');
+
+        expect(deferred.pending).toHaveLength(2);
+        const [listForA, listForB] = deferred.pending;
+
+        listForB?.resolve([pageA, pageB]);
+        await openingB;
+
+        listForA?.resolve([pageA, pageB]);
+        await openingA;
+
+        expect(publishStore.editingPageId).toBe(2);
+        expect(publishStore.currentFormState.pagename).toBe('page-b');
+        expect(componentsStore.components.map((component) => component.id)).toEqual(['b1']);
+    });
+
+    it('ошибка вытесненного открытия не гасит лоадер и не доходит до пользователя', async () => {
+        const context = mountTracked();
+        const publishStore = usePublishStore();
+
+        const pageA = buildPageWithComponent(1, 'page-a', 'a1');
+        const pageB = buildPageWithComponent(2, 'page-b', 'b1');
+        publishStore.publishedPages = [pageA, pageB];
+        serverPages = [pageA, pageB];
+        deferredUrls = ['/api/bricks/1/', '/api/bricks/2/'];
+
+        const openingA = context.session.openBuilderSession('page-a');
+        const openingB = context.session.openBuilderSession('page-b');
+
+        (await deferred.waitFor('/api/bricks/1/')).reject(new Error('Network down'));
+        await openingA;
+
+        expect(context.showToastMock).not.toHaveBeenCalled();
+        // Блокирующий экран не поднимается: страница на экране грузится своим поколением
+        expect(context.session.sessionError.value).toBeNull();
+        expect(context.session.isSessionLoading.value).toBe(true);
+        expect(context.session.isSessionReady.value).toBe(false);
+
+        (await deferred.waitFor('/api/bricks/2/')).resolve(pageB);
+        await openingB;
+
+        expect(context.session.isSessionReady.value).toBe(true);
+        expect(context.session.isSessionLoading.value).toBe(false);
+    });
+
+    it('отказ bootstrap’а поднимает блокирующее состояние с причиной', async () => {
+        const context = mountTracked();
+        apiFetcherMock.mockRejectedValue(new Error('Network down'));
+
+        await context.session.openBuilderSession('page-a');
+
+        // Редактор без этого состояния выглядит рабочим, хотя автосейв отклоняет
+        // всё по !isSessionReady — правки терялись молча
+        expect(context.session.sessionError.value).toContain('Network down');
+        expect(context.session.isSessionReady.value).toBe(false);
+        expect(context.session.isSessionLoading.value).toBe(false);
+    });
+
+    it('поздний ответ покинутой страницы не пишет в сторы новой сессии', async () => {
+        const context = mountTracked();
+        const publishStore = usePublishStore();
+        const componentsStore = useComponentsStore();
+
+        const pageA = buildPageWithComponent(1, 'page-a', 'a1');
+        const pageB = buildPageWithComponent(2, 'page-b', 'b1');
+        publishStore.publishedPages = [pageA, pageB];
+        serverPages = [pageA, pageB];
+        deferredUrls = ['/api/bricks/1/'];
+
+        const openingA = context.session.openBuilderSession('page-a');
+
+        // Уход на дашборд: страница билдера размонтирована, но запрос схемы летит,
+        // а сторы живут на уровне приложения
+        context.scope.stop();
+
+        // Возврат в редактор другой страницы — новый экземпляр composables, те же сторы
+        const reopened = mountTracked();
+        await reopened.session.openBuilderSession('page-b');
+
+        (await deferred.waitFor('/api/bricks/1/')).resolve(pageA);
+        await openingA;
+
+        expect(componentsStore.components.map((component) => component.id)).toEqual(['b1']);
+        expect(publishStore.editingPageId).toBe(2);
+    });
+
+    it('переименование не переносит сессию, пока открытие не завершено', async () => {
+        const context = mountTracked();
+        const publishStore = usePublishStore();
+
+        const pageA = buildPageWithComponent(1, 'page-a', 'a1');
+        serverPages = [pageA];
+        deferredUrls = ['/api/bricks/'];
+
+        const opening = context.session.openBuilderSession('page-a');
+
+        // Правка pagename в сайдбаре, пока список ещё грузится: лоадер закрывает
+        // только канвас и прячется через один цикл анимации, панели интерактивны.
+        // Перенос сессии здесь менял бы ключ и URL, не трогая поколение, — и
+        // незавершённый bootstrap применил бы прежнюю страницу под новым ключом
+        publishStore.setCurrentFormField('pagename', 'typed-name');
+        await nextTick();
+        await vi.advanceTimersByTimeAsync(PAGENAME_SYNC_DEBOUNCE_MS);
+
+        expect(routerBridge.replace).not.toHaveBeenCalled();
+        expect(context.pagename.sessionPagename.value).toBe('page-a');
+
+        (await deferred.waitFor('/api/bricks/')).resolve([pageA]);
+        await opening;
+        expect(publishStore.editingPageId).toBe(1);
+    });
+
+    it('зависшее открытие не оставляет рабочую область закрытой навсегда', async () => {
+        const context = mountTracked();
+        const publishStore = usePublishStore();
+
+        const pageA = buildPageWithComponent(1, 'page-a', 'a1');
+        serverPages = [pageA];
+        // Запрос списка не отвечает и не падает: catch/finally недостижимы, лоадер
+        // прячется сам через один цикл анимации — без таймаута щит остался бы навсегда
+        deferredUrls = ['/api/bricks/'];
+
+        const opening = context.session.openBuilderSession('page-a');
+        await vi.advanceTimersByTimeAsync(SESSION_BOOTSTRAP_TIMEOUT_MS);
+        await opening;
+
+        expect(context.session.sessionError.value).not.toBeNull();
+        expect(context.session.isSessionLoading.value).toBe(false);
+        expect(context.session.isSessionReady.value).toBe(false);
+
+        // Ответ, доехавший после отказа, ничего не применяет: брошенное открытие
+        // погашено поколением, иначе схема легла бы поверх экрана ошибки
+        (await deferred.waitFor('/api/bricks/')).resolve([pageA]);
+
+        // Догоняем цепочку брошенного открытия: она продолжается с того же await,
+        // и без гашения поколения дошла бы до startEditingPage и загрузки схемы
+        await vi.advanceTimersByTimeAsync(0);
+        await nextTick();
+
+        expect(publishStore.editingPageId).toBeNull();
+        expect(context.session.isSessionReady.value).toBe(false);
+    });
+
+    it('повторная попытка снимает состояние ошибки и открывает страницу', async () => {
+        const context = mountTracked();
+        const publishStore = usePublishStore();
+        const componentsStore = useComponentsStore();
+
+        const pageA = buildPageWithComponent(1, 'page-a', 'a1');
+        serverPages = [pageA];
+        // Падает только первый запрос списка, дальше сервер отвечает штатно
+        apiFetcherMock.mockRejectedValueOnce(new Error('Network down'));
+
+        await context.session.openBuilderSession('page-a');
+        expect(context.session.sessionError.value).not.toBeNull();
+
+        await context.session.retryBuilderSession();
+
+        expect(context.session.sessionError.value).toBeNull();
+        expect(context.session.isSessionReady.value).toBe(true);
+        expect(publishStore.editingPageId).toBe(1);
+        expect(componentsStore.components.map((component) => component.id)).toEqual(['a1']);
+    });
+});

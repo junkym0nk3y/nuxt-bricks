@@ -16,6 +16,28 @@ export interface IBuilderContext {
 }
 
 /**
+ * Отложенный запрос apiFetcher: тест сам решает, когда и чем он ответит.
+ */
+export interface IDeferredRequest {
+    url: string;
+    resolve: (value: unknown) => void;
+    reject: (error: Error) => void;
+}
+
+/**
+ * Реестр отложенных ответов apiFetcher — воспроизводит гонки запросов без
+ * тайминговых ожиданий: порядок ответов задаёт сам тест.
+ */
+export interface IDeferredApi {
+    /** Ожидающие ответа запросы в порядке вызова. */
+    pending: IDeferredRequest[];
+    /** Реализация для apiFetcherMock: ставит запрос в очередь и ждёт ответа теста. */
+    handle: (url: string) => Promise<unknown>;
+    /** Ждёт появления запроса по url и снимает его с очереди. */
+    waitFor: (url: string) => Promise<IDeferredRequest>;
+}
+
+/**
  * Стаб `window` для session-тестов: только то, чем пользуется код билдера, —
  * localStorage, таймеры и шина событий выгрузки страницы.
  */

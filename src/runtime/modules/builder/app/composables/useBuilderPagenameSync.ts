@@ -22,7 +22,7 @@ const PAGENAME_SYNC_DEBOUNCE_MS = 600;
  * Для существующей страницы rename применяется при сохранении (см. useBuilderPage).
  */
 export function useBuilderPagenameSync(options: IBuilderPagenameSyncOptions): void {
-    const { renameSession } = options;
+    const { renameSession, isSessionReady } = options;
     const publishStore = usePublishStore();
 
     let pagenameRouteTimer: number | null = null;
@@ -35,6 +35,34 @@ export function useBuilderPagenameSync(options: IBuilderPagenameSyncOptions): vo
             window.clearTimeout(pagenameRouteTimer);
             pagenameRouteTimer = null;
         }
+    }
+
+    /**
+     * Разрешает ли состояние стора переносить сессию по форме: сессия открыта до
+     * согласованного состояния, страница ещё не сохранена (rename существующей
+     * применяется при сохранении, см. useBuilderPage) и запись не идёт.
+     *
+     * Проверка `isSubmitting` — не перестраховка: `saveCurrentPageAsCopy` на время
+     * POST ставит `editingPageId = null` и pagename копии в форму, то есть для этого
+     * watcher'а форма выглядит как новая страница. Слаг копии на сервере ещё не
+     * занят, поэтому перенос проходил бы все остальные проверки, а при ошибке
+     * запроса store откатывал бы форму — URL и ключ черновика оставались бы на
+     * слаге несуществующей копии (BM-25).
+     *
+     * Проверка готовности закрывает вторую дыру того же класса: переименование в
+     * незавершённом открытии меняет `sessionPagename` и URL, но не поколение сессии,
+     * а watcher маршрута новое открытие после этого сознательно пропускает
+     * (route догнал sessionPagename). Незавершённый bootstrap считался бы актуальным
+     * и применил бы прежнюю страницу под новым ключом (BM-24, находка ревью).
+     *
+     * @returns Можно ли переносить сессию сейчас.
+     */
+    function isSessionRenamable(): boolean {
+        return (
+            isSessionReady.value &&
+            publishStore.editingPageId === null &&
+            !publishStore.isSubmitting
+        );
     }
 
     /**
@@ -59,13 +87,16 @@ export function useBuilderPagenameSync(options: IBuilderPagenameSyncOptions): vo
                 return;
             }
 
-            // Не синхронизируем URL при редактировании существующей страницы
-            if (publishStore.editingPageId !== null) {
+            // Ранние выходы снимают уже поставленный таймер: он планировался под
+            // прежнее состояние формы, а к моменту срабатывания оно другое
+            if (!isSessionRenamable()) {
+                clearPagenameTimer();
                 return;
             }
 
             const normalized = String(next ?? '').trim();
             if (!normalized || !isValidPagename(normalized)) {
+                clearPagenameTimer();
                 return;
             }
 
@@ -73,6 +104,12 @@ export function useBuilderPagenameSync(options: IBuilderPagenameSyncOptions): vo
             clearPagenameTimer();
             pagenameRouteTimer = window.setTimeout(() => {
                 pagenameRouteTimer = null;
+
+                // Режим и запись перепроверяем на момент срабатывания: за окно
+                // debounce страницу могли сохранить или начать сохранять
+                if (!isSessionRenamable()) {
+                    return;
+                }
 
                 const current = String(publishStore.currentFormState.pagename ?? '').trim();
                 if (!isRenameTarget(current)) {

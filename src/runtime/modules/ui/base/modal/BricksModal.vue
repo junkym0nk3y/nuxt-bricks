@@ -70,13 +70,27 @@ function onUpdateOpen(open: boolean): void {
         emit('close');
     }
 }
+
+/**
+ * Гасит интерактивность модалки на время leave-анимации. `force-mount` держит
+ * `DialogContent` в DOM до её конца, поэтому кнопки уезжающей модалки остаются
+ * активируемыми — с клавиатуры и из assistive tech в том числе, а `pointer-events`
+ * (transitions.scss) закрывает только указатель. Клик по уже отвеченной модалке
+ * отвечал бы за следующую (BM-23). Атрибут ставится императивно: у уезжающего
+ * элемента биндинги шаблона больше не патчатся.
+ *
+ * @param element - Корневой элемент уезжающей модалки.
+ */
+function onLeave(element: Element): void {
+    element.setAttribute('inert', '');
+}
 // #endregion
 </script>
 
 <template>
     <DialogRoot :open="props.isOpen" @update:open="onUpdateOpen">
         <DialogPortal>
-            <Transition name="bricks-modal-fade" :duration="props.duration">
+            <Transition name="bricks-modal-fade" :duration="props.duration" @leave="onLeave">
                 <!--
                     DialogContent не должен быть вложен в DialogOverlay: overlay Reka
                     делает preventDefault на левый pointerdown, и вложенный контент

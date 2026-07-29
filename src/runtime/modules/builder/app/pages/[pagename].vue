@@ -26,6 +26,7 @@ import { useBuilderToast } from '../../core/composables/useBuilderToast';
 
 // Utils
 import { loadFavoritesFromStorage } from '../../core/stores/actions/favorites';
+import { runSaveWhenSessionReady, withSessionReadyGuard } from '../utils/sessionGuards';
 import { BRICKS_ROUTE_NAMES } from '../../../common/constants/routes';
 
 // Components
@@ -35,6 +36,7 @@ import TheBuilderShellSidebar from '../../shell/sidebar/components/TheBuilderShe
 import TheBuilderShellSidebarPropertiesPanel from '../../shell/sidebar/components/TheBuilderShellSidebarPropertiesPanel.vue';
 import TheBuilderCanvas from '../../canvas/viewport/components/TheBuilderCanvas.vue';
 import TheBuilderLoader from '../components/TheBuilderLoader.vue';
+import TheBuilderSessionError from '../components/TheBuilderSessionError.vue';
 import BricksConfirmModal from '../../../ui/feedback/BricksConfirmModal.vue';
 import TheBuilderMediaImageResolverModal from '../../media/components/TheBuilderMediaImageResolverModal.vue';
 import BricksToast from '../../../ui/feedback/BricksToast.vue';
@@ -79,11 +81,13 @@ const { showToast } = useBuilderToast();
 const {
     isSessionLoading,
     isSessionReady,
+    sessionError,
     isRestoreDraftModalOpen,
     savedSnapshot,
     buildCurrentSnapshot,
     switchToSavedPage,
     openBuilderSession,
+    retryBuilderSession,
     handleRestoreDraft,
     handleDiscardDraft,
 } = useBuilderSession({ routePagename, sessionPagename, showToast, renameSession });
@@ -141,6 +145,13 @@ const darkModeCookie = useCookie<boolean>('bricks-dark-mode', {
 });
 const isDarkMode = ref(darkModeCookie.value ?? false);
 
+// Горячие клавиши — только в согласованную сессию: обработчик висит на window,
+// поэтому ни щит, ни inert его не останавливают (правило — в sessionGuards)
+const handleGuardedKeyDown = withSessionReadyGuard<KeyboardEvent>(
+    () => isSessionReady.value,
+    handleKeyDown
+);
+
 // Автосохранение черновика (debounce) + синхронизация URL с pagename формы
 useBuilderDraftPersistence({
     routePagename,
@@ -151,7 +162,7 @@ useBuilderDraftPersistence({
     savedSnapshot,
     buildCurrentSnapshot,
 });
-useBuilderPagenameSync({ renameSession });
+useBuilderPagenameSync({ renameSession, isSessionReady });
 // #endregion
 
 // #region Computed
@@ -179,6 +190,35 @@ const isSchemaActive = computed<boolean>(
  */
 async function handleOpenPagesManager(): Promise<void> {
     await router.push({ name: BRICKS_ROUTE_NAMES.builderIndex });
+}
+
+/**
+ * Повторяет открытие сессии с блокирующего экрана ошибки.
+ */
+async function handleRetrySession(): Promise<void> {
+    await retryBuilderSession();
+}
+
+/**
+ * Сохраняет страницу, если сессия согласована (правило — в `runSaveWhenSessionReady`).
+ */
+async function handleSaveDraftGuarded(): Promise<void> {
+    await runSaveWhenSessionReady({
+        isSessionReady: () => isSessionReady.value,
+        save: handleSaveDraft,
+        onBlocked: () => showToast(t('bricks.publish.session.saveBlocked'), 'error'),
+    });
+}
+
+/**
+ * Сохраняет страницу копией, если сессия согласована.
+ */
+async function handleSaveAsCopyGuarded(): Promise<void> {
+    await runSaveWhenSessionReady({
+        isSessionReady: () => isSessionReady.value,
+        save: handleSaveAsCopy,
+        onBlocked: () => showToast(t('bricks.publish.session.saveBlocked'), 'error'),
+    });
 }
 
 /**
@@ -220,7 +260,7 @@ useHead({
 });
 
 onMounted(() => {
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleGuardedKeyDown);
     componentsStore.favorites = loadFavoritesFromStorage();
 
     if (routePagename.value) {
@@ -231,7 +271,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-    window.removeEventListener('keydown', handleKeyDown);
+    window.removeEventListener('keydown', handleGuardedKeyDown);
 });
 // #endregion
 </script>
@@ -243,46 +283,74 @@ onBeforeUnmount(() => {
             :is-submitting-publish="publishStore.isSubmitting"
             :has-selected-component="hasSelectedComponent"
             :is-publish-settings-complete="isPublishSettingsComplete"
+            :is-session-ready="isSessionReady"
             :sidebar-offset="leftSidebarOffset"
             :page-title="currentPublishPageTitle"
             @open-pages-manager="handleOpenPagesManager"
             @open-media-gallery="handleOpenMediaGalleryWithContext"
-            @save-draft="handleSaveDraft"
-            @save-as-copy="handleSaveAsCopy"
+            @save-draft="handleSaveDraftGuarded"
+            @save-as-copy="handleSaveAsCopyGuarded"
             @preview="handlePreview"
         />
 
         <div :class="$style.content">
-            <BuilderShellToolbarVerticalNav
-                :is-library-active="isLibraryActive"
-                :is-schema-active="isSchemaActive"
-                :is-publish-settings-active="isPublishSettingsActive"
-                :is-publish-settings-complete="isPublishSettingsComplete"
-                :is-dark-mode="isDarkMode"
-                @toggle-library="handleToggleLibrary"
-                @toggle-schema="handleToggleSchema"
-                @open-publish-settings="handleOpenPublishSettings"
-                @open-docs="handleOpenDocs"
-                @toggle-dark-mode="handleToggleDarkMode"
-                @toggle-locale="handleToggleLocale"
-            />
+            <!--
+                inert на всё время незавершённой сессии: щит ниже держит только мышь,
+                а Tab, уже сфокусированное поле и accessibility tree он не закрывает —
+                правка через клавиатуру всё равно потерялась бы молча (BM-23)
+            -->
+            <div :class="$style.workspace" :inert="!isSessionReady">
+                <BuilderShellToolbarVerticalNav
+                    :is-library-active="isLibraryActive"
+                    :is-schema-active="isSchemaActive"
+                    :is-publish-settings-active="isPublishSettingsActive"
+                    :is-publish-settings-complete="isPublishSettingsComplete"
+                    :is-dark-mode="isDarkMode"
+                    @toggle-library="handleToggleLibrary"
+                    @toggle-schema="handleToggleSchema"
+                    @open-publish-settings="handleOpenPublishSettings"
+                    @open-docs="handleOpenDocs"
+                    @toggle-dark-mode="handleToggleDarkMode"
+                    @toggle-locale="handleToggleLocale"
+                />
 
-            <TheBuilderShellSidebar
-                ref="sidebarRef"
-                :components="componentLibraryList"
-                @open-media-gallery="handleOpenMediaGalleryWithContext"
-                @import-schema="handleImportSchema"
-            />
+                <TheBuilderShellSidebar
+                    ref="sidebarRef"
+                    :components="componentLibraryList"
+                    @open-media-gallery="handleOpenMediaGalleryWithContext"
+                    @import-schema="handleImportSchema"
+                />
 
-            <TheBuilderShellSidebarPropertiesPanel
-                ref="propertiesPanelRef"
-                @open-media-gallery="handleOpenMediaGalleryWithContext('properties')"
-            />
+                <TheBuilderShellSidebarPropertiesPanel
+                    ref="propertiesPanelRef"
+                    @open-media-gallery="handleOpenMediaGalleryWithContext('properties')"
+                />
 
-            <div :class="$style.canvasWrapper">
-                <TheBuilderLoader :is-loading="isSessionLoading" />
-                <TheBuilderCanvas />
+                <div :class="$style.canvasWrapper">
+                    <TheBuilderLoader :is-loading="isSessionLoading" />
+                    <TheBuilderCanvas />
+                </div>
             </div>
+
+            <!--
+                Сессия не открылась: экран перекрывает всю рабочую область, включая
+                сайдбары, — правки канваса и настроек публикации отклоняются
+                автосейвом по !isSessionReady, то есть терялись бы молча (BM-23)
+            -->
+            <TheBuilderSessionError
+                v-if="sessionError"
+                :message="sessionError"
+                :is-retrying="isSessionLoading"
+                @retry="handleRetrySession"
+                @open-pages-manager="handleOpenPagesManager"
+            />
+
+            <!--
+                То же окно, но пока сессия ещё открывается (в том числе на повторной
+                попытке): правка до готовности либо затирается пришедшей схемой, либо
+                уезжает в savedSnapshot как «уже сохранённая» — и теряется на reload
+            -->
+            <div v-else-if="!isSessionReady" :class="$style.sessionShield" aria-hidden="true"></div>
         </div>
 
         <TheBuilderDocumentationModal
@@ -345,10 +413,33 @@ onBeforeUnmount(() => {
     flex: 1;
 }
 
+/* Обёртка рабочей области — носитель inert; раскладку .content повторяет один в один */
+.workspace {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+}
+
 .canvasWrapper {
     position: relative;
     overflow: hidden;
     display: flex;
     flex: 1;
+}
+
+/*
+ * Щит на время открытия сессии. До готовности правки терять нельзя, а именно это
+ * и происходило: автосейв их отклоняет по !isSessionReady, канвас потом затирается
+ * пришедшей схемой, а правка формы уезжает в savedSnapshot как «уже сохранённая»
+ * — черновик не создаётся, и reload её теряет. Лоадер не защита: он закрывает
+ * только канвас и прячется через один цикл анимации независимо от загрузки.
+ * z-index — как у экрана ошибки: выше сайдбаров и навигации, ниже лоадера.
+ */
+.sessionShield {
+    position: absolute;
+    z-index: 90;
+    background: color-mix(in srgb, var(--bricks-base-0) 55%, transparent);
+    cursor: progress;
+    inset: 0;
 }
 </style>

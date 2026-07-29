@@ -1,6 +1,6 @@
 // #region Imports
 // Types
-import type { IBuilderContext, IWindowStub } from './types';
+import type { IBuilderContext, IDeferredApi, IDeferredRequest, IWindowStub } from './types';
 
 // Vitest
 import { vi } from 'vitest';
@@ -70,6 +70,35 @@ export function createWindowStub(): IWindowStub {
 }
 
 /**
+ * Реестр отложенных ответов apiFetcher: порядок ответов задаёт тест, поэтому
+ * гонка запросов воспроизводится без тайминговых ожиданий. Один и тот же url
+ * может ждать в очереди несколько раз (например, два открытия сессии подряд
+ * запрашивают список страниц) — обращаться к таким по индексу в `pending`.
+ *
+ * @returns Очередь запросов и реализация для `apiFetcherMock`.
+ */
+export function createDeferredApi(): IDeferredApi {
+    const pending: IDeferredRequest[] = [];
+
+    return {
+        pending,
+        handle: (url: string) =>
+            new Promise<unknown>((resolve, reject) => {
+                pending.push({ url, resolve, reject });
+            }),
+        waitFor: (url: string) =>
+            vi.waitFor(() => {
+                const index = pending.findIndex((request) => request.url === url);
+                if (index === -1) {
+                    throw new Error(`No pending request for ${url}`);
+                }
+
+                return pending.splice(index, 1)[0] as IDeferredRequest;
+            }),
+    };
+}
+
+/**
  * Поднимает связку composables страницы билдера в effectScope — та же проводка,
  * что в pages/[pagename].vue (без useBuilderPage: тяжёлые зависимости composable'а
  * — библиотека компонентов, модалки, превью — не нужны для session-тестов).
@@ -97,7 +126,10 @@ export function mountBuilderContext(): IBuilderContext {
             savedSnapshot: session.savedSnapshot,
             buildCurrentSnapshot: session.buildCurrentSnapshot,
         });
-        useBuilderPagenameSync({ renameSession: pagename.renameSession });
+        useBuilderPagenameSync({
+            renameSession: pagename.renameSession,
+            isSessionReady: session.isSessionReady,
+        });
         return { pagename, session };
     });
 

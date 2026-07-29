@@ -10,11 +10,13 @@ import { nextTick, reactive, type EffectScope } from 'vue';
 
 // Types
 import type { IPublishedPage } from '../../src/runtime/modules/common/types/bricks-api';
-import type { IBuilderContext } from '../helpers/types';
+import type { IBuilderContext, IDeferredApi } from '../helpers/types';
 
 // Utils
 import {
     AUTOSAVE_DEBOUNCE_MS,
+    PAGENAME_SYNC_DEBOUNCE_MS,
+    createDeferredApi,
     createWindowStub,
     mountBuilderContext,
 } from '../helpers/builderSessionHarness';
@@ -83,6 +85,9 @@ describe('Save as Copy: единый переход сессии', () => {
     // ниже (список + point-lookup), чтобы switchToSavedPage/openBuilderSession
     // находили копию так же, как в реальном flow.
     let serverPages: IPublishedPage[] = [];
+    // Медленный POST: ответ держит сам тест (проверка гонки с pagename-sync)
+    let deferred: IDeferredApi;
+    let isPostDeferred = false;
 
     beforeEach(() => {
         setActivePinia(createPinia());
@@ -98,10 +103,16 @@ describe('Save as Copy: единый переход сессии', () => {
         });
 
         serverPages = [buildPage({ id: 1, pagename: 'original', title: 'Original' })];
+        deferred = createDeferredApi();
+        isPostDeferred = false;
         apiFetcherMock.mockReset();
         apiFetcherMock.mockImplementation(
             (url: string, options?: { method?: string; body?: Record<string, unknown> }) => {
                 if (options?.method === 'POST') {
+                    if (isPostDeferred) {
+                        return deferred.handle(url);
+                    }
+
                     const created = buildPage({
                         id: serverPages.length + 1,
                         pagename: String(options.body?.pagename ?? ''),
@@ -270,6 +281,65 @@ describe('Save as Copy: единый переход сессии', () => {
         await context.session.openBuilderSession('page-stale');
         expect(context.session.isRestoreDraftModalOpen.value).toBe(false);
         expect(getBuilderDraft('page-stale')).toBeNull();
+    });
+
+    it('медленный Save as Copy не уводит сессию на слаг копии', async () => {
+        const context = mountTracked();
+        const publishStore = usePublishStore();
+
+        publishStore.publishedPages = [
+            buildPage({ id: 1, pagename: 'original', title: 'Original' }),
+        ];
+        await context.session.openBuilderSession('original');
+
+        // Черновик по ключу оригинала: преждевременный rename увёл бы его под slug копии
+        publishStore.setCurrentFormField('title', 'Правка оригинала');
+        await nextTick();
+        await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
+        expect(getBuilderDraft('original')).not.toBeNull();
+
+        // Save as Copy на время запроса ставит editingPageId = null и pagename копии
+        // в форму — для pagename-sync это выглядит как новая страница
+        isPostDeferred = true;
+        const saving = publishStore.saveCurrentPageAsCopy({ components: [] });
+        await nextTick();
+
+        // POST длится дольше окна debounce синхронизации URL
+        await vi.advanceTimersByTimeAsync(PAGENAME_SYNC_DEBOUNCE_MS);
+        (await deferred.waitFor('/api/bricks/')).reject(new Error('Network down'));
+
+        expect(await saving).toBeNull();
+        expect(routerBridge.replace).not.toHaveBeenCalled();
+        expect(context.pagename.sessionPagename.value).toBe('original');
+        expect(getBuilderDraft('original')?.draftSnapshot.formState.title).toBe('Правка оригинала');
+        expect(getBuilderDraft('original-copy')).toBeNull();
+    });
+
+    it('уже запланированная синхронизация URL не срабатывает во время Save as Copy', async () => {
+        const context = mountTracked();
+        const publishStore = usePublishStore();
+
+        // Новая (несохранённая) страница: только для неё pagename-sync планирует перенос
+        await context.session.openBuilderSession('fresh-page');
+        expect(publishStore.editingPageId).toBeNull();
+
+        // Пользователь правит pagename и, не дожидаясь окна debounce, жмёт Save as Copy
+        publishStore.setCurrentFormField('title', 'Свежая');
+        publishStore.setCurrentFormField('description', 'Описание');
+        publishStore.setCurrentFormField('pagename', 'typed-name');
+        await nextTick();
+        await vi.advanceTimersByTimeAsync(PAGENAME_SYNC_DEBOUNCE_MS / 2);
+
+        isPostDeferred = true;
+        const saving = publishStore.saveCurrentPageAsCopy({ components: [] });
+        await nextTick();
+        await vi.advanceTimersByTimeAsync(PAGENAME_SYNC_DEBOUNCE_MS);
+
+        (await deferred.waitFor('/api/bricks/')).reject(new Error('Network down'));
+        expect(await saving).toBeNull();
+
+        expect(routerBridge.replace).not.toHaveBeenCalled();
+        expect(context.pagename.sessionPagename.value).toBe('fresh-page');
     });
 
     it('ошибка saveCurrentPageAsCopy (валидация) не переключает сессию', async () => {

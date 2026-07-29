@@ -178,7 +178,13 @@ function handlePreview(): void {
 
             <BricksTooltip bottom>
                 <template #activator>
-                    <BricksButton size="md" variant="outline" equal @click="handleOpenMediaGallery">
+                    <BricksButton
+                        size="md"
+                        variant="outline"
+                        equal
+                        :disabled="!props.isSessionReady"
+                        @click="handleOpenMediaGallery"
+                    >
                         <BricksIcon :class="$style.icon" icon="ta:outline-photo-video" />
                     </BricksButton>
                 </template>
@@ -190,7 +196,13 @@ function handlePreview(): void {
 
             <BricksTooltip bottom>
                 <template #activator>
-                    <BricksButton size="md" variant="outline" equal @click="handlePreview">
+                    <BricksButton
+                        size="md"
+                        variant="outline"
+                        equal
+                        :disabled="!props.isSessionReady"
+                        @click="handlePreview"
+                    >
                         <BricksIcon :class="$style.icon" icon="ta:outline-browser-share" />
                     </BricksButton>
                 </template>
@@ -204,6 +216,7 @@ function handlePreview(): void {
                 :label="publishButtonConfig.label"
                 :options="publishButtonConfig.options"
                 :is-submitting="props.isSubmittingPublish"
+                :disabled="!props.isSessionReady"
                 @save-as-copy="handleSaveAsCopy"
                 @save-draft="handleSaveDraft"
             >

@@ -12,7 +12,7 @@ import { getBuilderDraft, removeBuilderDraft } from '../../publish/utils/draftSt
 import { fetchPageRequest } from '../../publish/utils/publishApi';
 
 // Vue
-import { ref, watch } from 'vue';
+import { onScopeDispose, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Pinia
@@ -23,6 +23,15 @@ import { usePublishStore } from '../../publish/stores/publish';
 const EMPTY_SCHEMA: IBricksSchema = {
     components: [],
 };
+
+/**
+ * Предел ожидания bootstrap'а. Зависший (не отвечающий и не падающий) запрос иначе
+ * оставляет рабочую область под щитом навсегда: `catch`/`finally` недостижимы,
+ * лоадер прячется сам, и пользователь видит только полупрозрачную заглушку без
+ * объяснения и без выхода. По таймауту сессия уходит в состояние ошибки с кнопкой
+ * «Повторить» (BM-23).
+ */
+const SESSION_BOOTSTRAP_TIMEOUT_MS = 30000;
 
 /**
  * Сессия билдера: открытие страницы по pagename (существующая / новая),
@@ -45,9 +54,58 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
     // канвасе и в форме лежит мусор (дефолты или остатки прошлой страницы), и его
     // нельзя писать в черновик — затрёт валидную запись, см. BM-20.
     const isSessionReady = ref(false);
+    // Причина отказа bootstrap'а — для блокирующего экрана. Пока значение стоит,
+    // сессия несогласована: править нечего, потому что автосейв и сохранение
+    // отклоняют всё по !isSessionReady (BM-23). Снимается на входе в следующее
+    // открытие, в том числе на «Повторить».
+    const sessionError = ref<string | null>(null);
     const isRestoreDraftModalOpen = ref(false);
     const pendingDraft = ref<IBuilderDraftEntry | null>(null);
     const savedSnapshot = ref<IBuilderDraftSnapshot | null>(null);
+
+    // Поколение открытия сессии: инкремент на каждый вход в openBuilderSession.
+    // Watcher маршрута зовёт открытие без сериализации, поэтому на быстрых
+    // переходах A → B → C ответ B может прийти после C. Применять его нельзя:
+    // схема B легла бы на канвас под ключом C, а сессия объявилась бы готовой —
+    // дальше автосейв и сохранение уехали бы под C с чужим содержимым (BM-24).
+    let sessionGeneration = 0;
+
+    // Поколение открытия, показавшего модалку восстановления, — вместе с
+    // `pointer-events: none` на уезжающей модалке (transitions.scss) закрывает
+    // запоздалый ответ: клик по уже сброшенной модалке поднимал бы готовность
+    // другой — грузящейся или упавшей — сессии. Обнуляется после ответа, поэтому
+    // ответ ещё и одноразовый: повторный клик по той же модалке — no-op (BM-23).
+    let restoreDraftGeneration: number | null = null;
+
+    /**
+     * Проверяет, что открытие сессии всё ещё актуально — его не вытеснило более
+     * позднее. Вызывается после каждого await, до записи в сторы.
+     *
+     * @param generation - Поколение проверяемого открытия.
+     * @returns Актуально ли поколение.
+     */
+    function isCurrentSession(generation: number): boolean {
+        return generation === sessionGeneration;
+    }
+
+    /**
+     * Принадлежит ли ответ на модалку восстановления актуальному открытию. Отсекает
+     * и запоздалый клик по уезжающей модалке прежней сессии, и повторный ответ.
+     *
+     * @returns Можно ли применять ответ.
+     */
+    function isRestoreAnswerCurrent(): boolean {
+        return restoreDraftGeneration !== null && isCurrentSession(restoreDraftGeneration);
+    }
+
+    // Счётчик локален экземпляру, а незавершённое открытие переживает свой экземпляр:
+    // сторы живут на уровне приложения, поэтому поздний ответ покойной страницы
+    // (уход на дашборд → открытие другой страницы) писал бы схему в чужую сессию,
+    // пройдя проверку собственного, уже неактуального поколения. Инкремент на
+    // dispose гасит все открытия этого экземпляра разом.
+    onScopeDispose(() => {
+        sessionGeneration += 1;
+    });
 
     /**
      * Строит актуальный снапшот из стора канваса и publish настроек.
@@ -74,11 +132,23 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
      * или чистый холст, плюс разбор найденного черновика. Бросает наружу — тогда
      * сессия остаётся неготовой и автосейв её состояние не пишет.
      *
+     * Каждый await сверяется с поколением: вытесненное открытие выходит молча, до
+     * записи в сторы. Список страниц (`loadAllPages`) — исключение: он общий кеш, и
+     * ради него не стоит второго запроса. Полностью безобидной эта запись не
+     * является — поздний ответ может заменить более свежий список, а на ошибке стор
+     * пишет `generalError` до возврата сюда, — но оба следствия принадлежат общему
+     * кешу, а не сессии (см. BM-26).
+     *
      * @param pagename - ЧПУ страницы из URL.
+     * @param generation - Поколение этого открытия сессии.
      */
-    async function bootstrapSession(pagename: string): Promise<void> {
+    async function bootstrapSession(pagename: string, generation: number): Promise<void> {
         if (!publishStore.publishedPages.length) {
             await publishStore.loadAllPages();
+
+            if (!isCurrentSession(generation)) {
+                return;
+            }
         }
 
         const existingPage = publishStore.getPageByPagename(pagename);
@@ -89,6 +159,11 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
 
             // Список стора — сводки без schema: схему канваса грузим point-lookup'ом
             const fullPage = await fetchPageRequest(existingPage.id);
+
+            if (!isCurrentSession(generation)) {
+                return;
+            }
+
             componentsStore.loadSchema(fullPage.schema, { resetHistory: true });
 
             savedSnapshot.value = buildCurrentSnapshot();
@@ -109,6 +184,7 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
             ) {
                 pendingDraft.value = draft;
                 isRestoreDraftModalOpen.value = true;
+                restoreDraftGeneration = generation;
                 return;
             }
 
@@ -130,6 +206,35 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
     }
 
     /**
+     * Ограничивает ожидание bootstrap'а по времени. Отдельный таймер, а не
+     * `AbortSignal` у запроса: гасить надо всё открытие целиком, включая ветку,
+     * которая уже прошла список и ждёт схему.
+     *
+     * @param bootstrap - Промис открытия сессии.
+     * @returns Промис, отклоняющийся по истечении лимита.
+     */
+    async function withBootstrapTimeout(bootstrap: Promise<void>): Promise<void> {
+        if (typeof window === 'undefined') {
+            return bootstrap;
+        }
+
+        let timer: number | null = null;
+        const deadline = new Promise<never>((_resolve, reject) => {
+            timer = window.setTimeout(() => {
+                reject(new Error(t('bricks.publish.session.errorTimeout')));
+            }, SESSION_BOOTSTRAP_TIMEOUT_MS);
+        });
+
+        try {
+            await Promise.race([bootstrap, deadline]);
+        } finally {
+            if (timer !== null) {
+                window.clearTimeout(timer);
+            }
+        }
+    }
+
+    /**
      * Загружает страницу в билдер по pagename, учитывая черновики.
      *
      * @param pagename - ЧПУ страницы из URL.
@@ -139,30 +244,78 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
             return;
         }
 
+        const generation = ++sessionGeneration;
+
         // Фиксируем ключ сессии: черновики пишутся/удаляются по нему до следующего
         // открытия или rename (см. useBuilderPagename.renameSession)
         sessionPagename.value = pagename;
 
         isSessionLoading.value = true;
         isSessionReady.value = false;
+        sessionError.value = null;
         isRestoreDraftModalOpen.value = false;
         pendingDraft.value = null;
+        restoreDraftGeneration = null;
         savedSnapshot.value = null;
 
         try {
-            await bootstrapSession(pagename);
+            await withBootstrapTimeout(bootstrapSession(pagename, generation));
 
-            // Готовность — единственной точкой и только после всех ветвей bootstrap'а,
-            // включая применение черновика: падение на нём с поднятым флагом означало бы,
-            // что сброс на выгрузке затрёт черновик недособранным состоянием
+            if (!isCurrentSession(generation)) {
+                return;
+            }
+
+            // Модалка восстановления — тоже несогласованное состояние: на канвасе
+            // сохранённая версия, ответа пользователя ещё нет, а автосейв в этом окне
+            // всё отклоняет по `isRestoreDraftModalOpen`. С поднятой готовностью
+            // глобальный Ctrl+V проходил бы guard и тихо терялся (BM-23). Готовность
+            // поднимут `handleRestoreDraft` / `handleDiscardDraft` — других выходов у
+            // модалки нет
+            if (isRestoreDraftModalOpen.value) {
+                return;
+            }
+
+            // Готовность — только после всех ветвей bootstrap'а, включая применение
+            // черновика: падение на нём с поднятым флагом означало бы, что сброс на
+            // выгрузке затрёт черновик недособранным состоянием
             isSessionReady.value = true;
         } catch (error: unknown) {
+            // Ошибка вытесненного открытия пользователя уже не касается: на экране
+            // другая страница, и её загрузка идёт своим поколением
+            if (!isCurrentSession(generation)) {
+                return;
+            }
+
             const message =
                 error instanceof Error ? error.message : t('bricks.publish.toasts.loadPageFailed');
+
+            // Открытие, брошенное по таймауту, может всё ещё лететь: гасим его
+            // поколением, иначе поздний ответ лёг бы на канвас поверх экрана ошибки.
+            // Лоадер снимаем здесь же — finally увидит поколение уже неактуальным
+            sessionGeneration += 1;
+            isSessionLoading.value = false;
+
+            // Экран и тост вместе не дублируют друг друга: экран объясняет состояние
+            // и держит рабочую область закрытой, тост отмечает сам факт неудачи —
+            // иначе повторный отказ по «Повторить» выглядел бы как «ничего не произошло»
+            sessionError.value = message;
             showToast(message, 'error');
         } finally {
-            isSessionLoading.value = false;
+            // Снимать лоадер имеет право только актуальное открытие: иначе поздний
+            // ответ вытесненного открывал бы канвас, пока текущее ещё грузится
+            if (isCurrentSession(generation)) {
+                isSessionLoading.value = false;
+            }
         }
+    }
+
+    /**
+     * Повторяет открытие сессии после отказа bootstrap'а — кнопка «Повторить» на
+     * блокирующем экране. Pagename берётся из маршрута: он источник истины URL, а
+     * `sessionPagename` после неудачного открытия равен ему.
+     */
+    async function retryBuilderSession(): Promise<void> {
+        await openBuilderSession(routePagename.value);
     }
 
     /**
@@ -187,32 +340,68 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
 
     /**
      * Восстанавливает изменения из черновика (для существующей страницы).
+     * Ответ на модалку — вторая (и последняя) точка подъёма готовности: до него
+     * сессия несогласована, см. `openBuilderSession`.
      */
     function handleRestoreDraft(): void {
-        const draft = pendingDraft.value;
-        if (!draft?.draftSnapshot) {
-            isRestoreDraftModalOpen.value = false;
-            pendingDraft.value = null;
+        if (!isRestoreAnswerCurrent()) {
             return;
         }
 
-        applySnapshot(draft.draftSnapshot);
+        const draft = pendingDraft.value;
+        if (draft?.draftSnapshot) {
+            applySnapshot(draft.draftSnapshot);
+        }
+
         isRestoreDraftModalOpen.value = false;
         pendingDraft.value = null;
+        restoreDraftGeneration = null;
+        isSessionReady.value = true;
     }
 
     /**
      * Отказывается от восстановления и удаляет черновик, открывая сохранённую версию.
+     * Как и `handleRestoreDraft`, поднимает готовность сессии.
      */
     function handleDiscardDraft(): void {
-        const pagename = sessionPagename.value;
+        if (!isRestoreAnswerCurrent()) {
+            return;
+        }
+
+        // Ключ берём у самого черновика: он и есть предмет ответа. Расходиться с
+        // `sessionPagename` он не успевает — перенос сессии снимает предложение
+        // целиком (watcher ниже)
+        const pagename = pendingDraft.value?.pagename ?? sessionPagename.value;
         if (pagename) {
             removeBuilderDraft(pagename);
         }
 
         isRestoreDraftModalOpen.value = false;
         pendingDraft.value = null;
+        restoreDraftGeneration = null;
+        isSessionReady.value = true;
     }
+
+    // Перенос сессии отменяет предложение восстановить черновик. `renameSession`
+    // зовут напрямую уже начатые save / Save as Copy, поэтому `sessionPagename`
+    // меняется без смены поколения, а `migrateBuilderDraft` к этому моменту уже
+    // перенёс запись под новый ключ: «Восстановить» применил бы снапшот прежней
+    // страницы, «Открыть сохранённую» удалила бы пустой старый ключ. Ничего не
+    // трогаем: черновик остаётся на диске, сессия объявляется согласованной, а
+    // пользователь при желании перезагрузит страницу и получит предложение заново.
+    watch(
+        () => sessionPagename.value,
+        () => {
+            if (restoreDraftGeneration === null) {
+                return;
+            }
+
+            isRestoreDraftModalOpen.value = false;
+            pendingDraft.value = null;
+            restoreDraftGeneration = null;
+            isSessionReady.value = true;
+        }
+    );
 
     // Без immediate: при immediate колбэк выполняется синхронно в setup ещё до гидрации
     // и успевает заполнить publishStore.currentFormState (pagename из URL), из-за чего
@@ -250,12 +439,14 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
     return {
         isSessionLoading,
         isSessionReady,
+        sessionError,
         isRestoreDraftModalOpen,
         pendingDraft,
         savedSnapshot,
         buildCurrentSnapshot,
         switchToSavedPage,
         openBuilderSession,
+        retryBuilderSession,
         handleRestoreDraft,
         handleDiscardDraft,
     };

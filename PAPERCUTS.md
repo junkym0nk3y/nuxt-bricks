@@ -243,3 +243,17 @@ stdin: `docker exec -i nuxt-bricks-db sh -c 'psql -U "$POSTGRES_USER" -d
 рабочем дереве, ни в git (пробный brick прошлой сессии удалён). LSP держит
 стухшую запись открытого-и-удалённого файла и подмешивает её в отчёт по чужой
 правке; сверять такие сообщения с `git status` / `find`, прежде чем идти чинить.
+
+## 2026-07-28 23:32 — Opus 5
+
+Живая проверка гонок через `browser_run_code_unsafe` (Playwright MCP): код
+исполняется в процессе Playwright-сервера, где нет `setTimeout` — задержка внутри
+`page.route` упала с `ReferenceError: setTimeout is not defined`. Работает
+`await page.waitForTimeout(ms)`.
+
+## 2026-07-28 23:34 — Opus 5
+
+`browser_take_screenshot` с относительным `filename` положил PNG в корень
+репозитория, а не в gitignored `.playwright-mcp/` — файл сразу всплыл в
+`git status`. Указывать путь внутрь `.playwright-mcp/` или сразу удалять после
+чтения.

@@ -66,6 +66,18 @@
     transition: opacity 0.3s ease;
 }
 
+/*
+ * Уезжающая модалка кликов больше не принимает: без этого её кнопки живут ещё всю
+ * длительность leave-анимации, а состояние за ними уже сменилось — клик по
+ * закрытой модалке восстановления черновика отвечал бы за следующую сессию
+ * (BM-23, находка ревью). Потомки перечислены явно: кнопки ставят себе
+ * `pointer-events: auto`, и наследование от обёртки их не гасит (проверено живьём).
+ */
+.bricks-modal-fade-leave-active,
+.bricks-modal-fade-leave-active * {
+    pointer-events: none;
+}
+
 .bricks-modal-fade-enter-from,
 .bricks-modal-fade-leave-to {
     opacity: 0;
