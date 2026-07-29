@@ -24,7 +24,7 @@ jobs:
         name: Format, lint, types, tests
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v7
             - uses: actions/setup-node@v4
               with:
                   node-version: 22
@@ -40,7 +40,7 @@ jobs:
         name: Module build + playground prod build
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v7
             - uses: actions/setup-node@v4
               with:
                   node-version: 22
@@ -57,7 +57,7 @@ jobs:
         name: Fresh consumer smoke (npm pack)
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v7
             - uses: actions/setup-node@v4
               with:
                   node-version: 22
@@ -86,7 +86,7 @@ jobs:
                     --health-timeout 5s
                     --health-retries 10
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v7
             - uses: actions/setup-node@v4
               with:
                   node-version: 22
@@ -109,7 +109,7 @@ jobs:
         name: External backend smoke (Nitro-level)
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v7
             - uses: actions/setup-node@v4
               with:
                   node-version: 22
@@ -121,7 +121,7 @@ jobs:
         name: Critical browser flows
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v7
             - uses: actions/setup-node@v4
               with:
                   node-version: 22
@@ -140,7 +140,7 @@ jobs:
         name: npm audit (prod deps)
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v7
             - uses: actions/setup-node@v4
               with:
                   node-version: 22
