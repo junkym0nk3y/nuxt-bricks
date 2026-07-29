@@ -10,6 +10,7 @@ import {
     toPageWriteError,
     toRequestError,
 } from '../../src/runtime/modules/builder/publish/utils/requestErrors';
+import { isRequestTimeoutError } from '../../src/runtime/modules/common/utils/apiRequestPolicy';
 // #endregion
 
 /**
@@ -146,5 +147,67 @@ describe('toPageWriteError: обновление списка перед пок�
 
         expect(settled).toBeInstanceOf(Error);
         expect((settled as Error).message).toBe('bricks.publish.toasts.revisionConflict');
+    });
+});
+
+describe('toRequestError: обрыв по таймауту (BM-27)', () => {
+    /**
+     * Ошибка в форме ofetch при срабатывании потолка: исходный TimeoutError
+     * лежит в `cause`, ответа нет, а message содержит URL — то есть подстроку
+     * «/api/», на которой стоит ранний возврат «отдать как есть».
+     */
+    function makeTimeoutError(method: string): Error {
+        const timeout = Object.assign(
+            new Error('[TimeoutError]: The operation was aborted due to timeout'),
+            { name: 'TimeoutError' }
+        );
+
+        return new Error(`[${method}] "/api/bricks/": <no response>`, { cause: timeout });
+    }
+
+    it('запись и чтение получают разный текст, а не транспортное сообщение', () => {
+        // Ключи возвращаются как есть: вне Nuxt-контекста `translate` падает на них
+        expect(toRequestError('PUT', '/api/bricks/9', makeTimeoutError('PUT')).message).toBe(
+            'bricks.common.writeTimeout'
+        );
+        expect(toRequestError('GET', '/api/bricks/', makeTimeoutError('GET')).message).toBe(
+            'bricks.common.readTimeout'
+        );
+    });
+
+    it('обёртка сохраняет причину, поэтому таймаут остаётся распознаваемым', () => {
+        const converted = toRequestError('POST', '/api/bricks', makeTimeoutError('POST'));
+
+        // Без проброса cause вызывающие (стор, сессия) больше не отличили бы
+        // неопределённый исход записи от отказа сервера
+        expect(isRequestTimeoutError(converted)).toBe(true);
+        expect(converted).toBeInstanceOf(RequestError);
+        expect((converted as RequestError).statusCode).toBeUndefined();
+    });
+
+    it('toPageWriteError освежает список, но результата освежения не ждёт', async () => {
+        // Освежение не отвечает и не падает; резолверы отпускаем в конце кейса,
+        // чтобы не оставлять вечно ожидающий промис
+        const refreshResolvers: Array<() => void> = [];
+        const hangingRefresh = vi.fn(
+            () =>
+                new Promise<void>((resolve) => {
+                    refreshResolvers.push(resolve);
+                })
+        );
+
+        const settled = await Promise.race([
+            toPageWriteError(makeTimeoutError('PUT'), hangingRefresh),
+            Promise.resolve('не улажено'),
+        ]);
+
+        // Освежение запущено: по списку видно, применилась ли запись
+        expect(hangingRefresh).toHaveBeenCalledTimes(1);
+        // Но ожидание его результата отложило бы сообщение об исходе ещё на один
+        // потолок чтения — при том что ответа по существу здесь и не требуется
+        expect(settled).toBeInstanceOf(Error);
+        expect(isRequestTimeoutError(settled)).toBe(true);
+
+        refreshResolvers.splice(0).forEach((resolve) => resolve());
     });
 });

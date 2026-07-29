@@ -16,7 +16,15 @@ import { useBricksDataSources, type TDataSourceRequestCache } from './useBricksD
 import { normalizeBrickPath } from '../../common/utils/bricks/paths';
 import { isRenderableSchemaComponent } from '../../common/utils/bricks/schemaContract';
 import { hasOwnKey, toSafeRecord } from '../../common/utils/safeRecord';
+import { withPromiseDeadline } from '../../common/utils/promiseDeadline';
 import { runWithConcurrencyLimit } from '../utils/requestPool';
+import {
+    createDataSourceDeadlineError,
+    isDataSourceDeadlineError,
+} from '../utils/dataSourcePolicy';
+
+// Constants
+import { BRICKS_SSR_DEADLINE_MARGIN_MS } from '../../common/constants/apiTimeouts';
 // #endregion
 
 // #region Interfaces
@@ -193,38 +201,68 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
             try {
                 // Выполняем с лимитом одновременности (bricks.dataSources.concurrency):
                 // страница с десятками компонентов не открывает неограниченное
-                // число одновременных запросов на SSR
-                await runWithConcurrencyLimit(
-                    limitedRequests.map(({ component, source }) => async () => {
-                        if (abortController.signal.aborted) {
-                            return;
-                        }
-
-                        const mapped = await executeDataSourceRequest(
-                            source,
-                            component,
-                            page.value,
-                            requestCache,
-                            abortController.signal
-                        );
-
-                        if (!mapped) {
-                            return;
-                        }
-
-                        const target = result.get(component.id) ?? new Map<string, unknown>();
-                        result.set(component.id, target);
-
-                        // Применяем только запрошенные props, чтобы избежать лишнего
-                        // шумового мерджа. Проверка — по own-ключу: `propName in mapped`
-                        // для `'toString'` был бы истинным и подставил бы метод прототипа
-                        source.props.forEach((propName) => {
-                            if (hasOwnKey(mapped, propName)) {
-                                target.set(propName, (mapped as Record<string, unknown>)[propName]);
+                // число одновременных запросов на SSR.
+                //
+                // Аварийный дедлайн поверх `abortController`: на SSR относительный
+                // URL уходит внутренним вызовом Nitro, который сигнал не слушает,
+                // поэтому зависший источник не завершается по аборту и держал бы
+                // весь SSR-ответ посетителя. Ждать перестаём здесь же, внутри
+                // прогона, — тогда ниже возвращается то, что успело дойти. Внешний
+                // дедлайн (`useAsyncData({ timeout })`) для этого не годится: он
+                // отклоняет handler целиком, и успевшие props пропадают вместе с
+                // зависшими (BM-27, находка ревью)
+                await withPromiseDeadline(
+                    runWithConcurrencyLimit(
+                        limitedRequests.map(({ component, source }) => async () => {
+                            if (abortController.signal.aborted) {
+                                return;
                             }
-                        });
-                    }),
-                    concurrency
+
+                            const mapped = await executeDataSourceRequest(
+                                source,
+                                component,
+                                page.value,
+                                requestCache,
+                                abortController.signal
+                            );
+
+                            if (!mapped) {
+                                return;
+                            }
+
+                            const target = result.get(component.id) ?? new Map<string, unknown>();
+                            result.set(component.id, target);
+
+                            // Применяем только запрошенные props, чтобы избежать лишнего
+                            // шумового мерджа. Проверка — по own-ключу: `propName in mapped`
+                            // для `'toString'` был бы истинным и подставил бы метод прототипа
+                            source.props.forEach((propName) => {
+                                if (hasOwnKey(mapped, propName)) {
+                                    target.set(
+                                        propName,
+                                        (mapped as Record<string, unknown>)[propName]
+                                    );
+                                }
+                            });
+                        }),
+                        concurrency
+                    ),
+                    totalDeadlineMs + BRICKS_SSR_DEADLINE_MARGIN_MS,
+                    () => createDataSourceDeadlineError(totalDeadlineMs)
+                );
+            } catch (error: unknown) {
+                // Гасим только свой дедлайн: любая другая ошибка прогона — наружу
+                if (!isDataSourceDeadlineError(error)) {
+                    throw error;
+                }
+
+                console.warn(
+                    '[Bricks DataSources] Run abandoned after deadline — returning partial props:',
+                    {
+                        pagename,
+                        totalDeadlineMs,
+                        resolvedComponents: result.size,
+                    }
                 );
             } finally {
                 clearTimeout(deadlineTimer);

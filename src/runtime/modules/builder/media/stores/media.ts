@@ -11,6 +11,7 @@ import type {
 import { useApiClient } from '../../../common/composables/useApiClient';
 import { toCamelCase } from '../../../common/utils/case-transform';
 import { getBricksErrorMessage } from '../../../common/utils/main';
+import { BRICKS_MEDIA_UPLOAD_TIMEOUT_MS } from '../../../common/constants/apiTimeouts';
 // #endregion
 
 // #region Data
@@ -115,6 +116,9 @@ export const useMediaStore = defineStore('bricksMedia', {
                 const response = await apiFetcher<IMediaItem>('/api/bricks/media/upload', {
                     method: 'POST',
                     body: formData,
+                    // Отдача файла: сервер принимает видео до 100 МБ, общий потолок
+                    // записи оборвал бы медленный канал на исправной загрузке (BM-27)
+                    timeout: BRICKS_MEDIA_UPLOAD_TIMEOUT_MS,
                 });
 
                 const mediaItem = normalizeMediaItem(response);

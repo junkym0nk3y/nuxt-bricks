@@ -16,7 +16,7 @@ import {
 } from '../utils/dataSourcePolicy';
 import { DataSourceResponseTooLargeError } from '../utils/dataSourceResponseReading';
 import { resolveDataSourceLogTarget, toDataSourceLogError } from '../utils/dataSourceLogging';
-import { combineAbortSignals } from '../utils/abortSignals';
+import { combineAbortSignals } from '../../common/utils/abortSignals';
 import { hasOwnKey } from '../../common/utils/safeRecord';
 
 // Composables

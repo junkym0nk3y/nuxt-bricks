@@ -25,6 +25,13 @@ export const DEFAULT_DATA_SOURCE_TOTAL_DEADLINE_MS = 15000;
 
 /** Разрешённые HTTP-методы data source (safe/idempotent — выполняются на рендер). */
 const ALLOWED_DATA_SOURCE_METHODS = new Set(['GET', 'HEAD']);
+
+/**
+ * Имя ошибки аварийного дедлайна прогона. Отдельное имя, а не `TimeoutError`:
+ * прогон гасит только свой дедлайн и возвращает частичный результат, а чужой
+ * таймаут (например, программный отказ внутри запроса) должен уйти наружу.
+ */
+const DATA_SOURCE_DEADLINE_ERROR_NAME = 'BricksDataSourceDeadlineError';
 // #endregion
 
 // #region Types
@@ -32,6 +39,31 @@ export type TDataSourceUrlCheck = { allowed: true } | { allowed: false; reason: 
 
 export type TResolvedDataSourceMethod = 'GET' | 'HEAD';
 // #endregion
+
+/**
+ * Создаёт ошибку аварийного дедлайна прогона data sources.
+ *
+ * @param totalDeadlineMs - Внутренний wall-clock budget прогона, мс.
+ * @returns Ошибка с опознаваемым именем.
+ */
+export function createDataSourceDeadlineError(totalDeadlineMs: number): Error {
+    const error = new Error(
+        `Bricks data sources run exceeded its deadline (${totalDeadlineMs}ms budget)`
+    );
+    error.name = DATA_SOURCE_DEADLINE_ERROR_NAME;
+
+    return error;
+}
+
+/**
+ * Ошибка — аварийный дедлайн прогона data sources.
+ *
+ * @param error - Произвольная ошибка.
+ * @returns Это дедлайн прогона.
+ */
+export function isDataSourceDeadlineError(error: unknown): boolean {
+    return error instanceof Error && error.name === DATA_SOURCE_DEADLINE_ERROR_NAME;
+}
 
 /**
  * Нормализует HTTP-метод data source и проверяет его по allow-list.

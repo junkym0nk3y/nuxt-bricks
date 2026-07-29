@@ -4,6 +4,7 @@ import type { IncomingHttpHeaders } from 'http';
 import type { IUseApiClientReturn } from '../types/composables';
 
 // Utils
+import { applyApiRequestTimeout } from '../utils/apiRequestPolicy';
 import { stripCookieByName } from '../utils/cookieHeader';
 import { isLocalApiRequest } from '../utils/localApiPaths';
 
@@ -158,7 +159,16 @@ export function useApiClient(): IUseApiClientReturn {
         baseURL: endpoint,
         credentials: 'include', // Для автоматической отправки cookies на клиенте
         headers: defaultHeaders, // Для проброса headers на SSR
+        // Без повторов: дефолт ofetch мгновенно повторяет 408/409/425/429/5xx без
+        // backoff и без учёта Retry-After — это не политика, а случайность. Если
+        // повторы понадобятся, их вводить отдельно: только идемпотентные чтения,
+        // задержка и общий бюджет на все попытки (BM-27)
+        retry: 0,
         onRequest({ request, options }) {
+            // Потолок ожидания — до любых ранних выходов ниже: он нужен и
+            // запросу, поданному `Request`-объектом вместо строки (BM-27)
+            applyApiRequestTimeout(request, options);
+
             if (typeof request !== 'string') {
                 return;
             }

@@ -227,7 +227,11 @@ export const usePublishStore = defineStore('bricksPublish', {
                 this.invalidatePendingPagesLoad();
             } catch (error: unknown) {
                 console.error('[Publish Store] Failed to delete page:', error);
-                throw error;
+                // Через ту же политику, что update/patch/restore: обрыв по таймауту
+                // не означает, что страница не удалена — по освежённому списку это
+                // видно, а иначе удалённая страница осталась бы в дашборде и повтор
+                // получил бы 404 (BM-27, находка ревью)
+                throw await toPageWriteError(error, () => this.loadAllPages());
             }
         },
 

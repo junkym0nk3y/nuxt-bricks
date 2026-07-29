@@ -11,6 +11,7 @@
 import type { IBricksSchema } from '../../../common/types/brick';
 import type { IPublishedPage, TPublishFormState } from '../../../common/types/bricks-api';
 import type { ICurrentPageWriteStoreDeps, IPublishOperationOptions } from '../types/publishStore';
+import { isRequestTimeoutError } from '../../../common/utils/apiRequestPolicy';
 import { generateCopyPagename } from './slugify';
 import { publishPageRequest } from './publishApi';
 
@@ -80,6 +81,16 @@ export async function runPublishPage(
         created = await publishPageRequest(schema, formState);
     } catch (error: unknown) {
         console.error('[Publish Store] Failed to publish page:', error);
+
+        // Обрыв по таймауту не означает, что страница не создана: сервер мог
+        // применить POST и не успеть ответить. Освежаем список, чтобы созданная
+        // страница появилась в дашборде и участвовала в проверке занятости слага
+        // — иначе повторная попытка упёрлась бы в собственный слаг как в чужой.
+        // Запуск без ожидания: сообщение об исходе доходит сразу (BM-27)
+        if (isRequestTimeoutError(error)) {
+            refreshPagesAfterPublish(store);
+        }
+
         throw error;
     }
 
@@ -201,6 +212,11 @@ export async function runSaveCurrentPageAsCopy(
         return created;
     } catch (error: unknown) {
         console.error('[Publish Store] saveCurrentPageAsCopy failed:', error);
+
+        // Копия могла быть создана — см. `runPublishPage`
+        if (isRequestTimeoutError(error)) {
+            refreshPagesAfterPublish(store);
+        }
 
         // generalError НЕ восстанавливается в finally — ошибка копии должна
         // пережить откат формы и дойти до пользователя

@@ -6,6 +6,8 @@
             "loading": "Loading…",
             "notFound": "Nothing found",
             "unknownError": "Unknown error",
+            "readTimeout": "The server did not respond in time — please try again",
+            "writeTimeout": "The server did not confirm the operation in time: it may have completed. Refresh the data before retrying",
             "confirm": "Confirm",
             "increase": "Increase",
             "decrease": "Decrease",

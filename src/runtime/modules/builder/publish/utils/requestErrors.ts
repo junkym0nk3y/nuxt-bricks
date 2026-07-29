@@ -2,18 +2,23 @@ import type { Composer } from 'vue-i18n';
 import { useNuxtApp } from '#imports';
 import { PAGE_CONFLICT_CODES } from '../../../common/constants/publish';
 import type { TRequestErrorLike } from '../../../common/types/bricks-api';
+import { isApiWriteMethod, isRequestTimeoutError } from '../../../common/utils/apiRequestPolicy';
 
 /**
  * Ошибка API-запроса с сохранённым HTTP-статусом и машиночитаемым кодом
  * конфликта (`data.code` ответа) — по ним вызывающие различают 409-конфликты
  * (occupied pagename, revision mismatch) без разбора текста сообщения.
+ *
+ * Исходная ошибка сохраняется в `cause`: по ней вызывающие отличают обрыв по
+ * таймауту от отказа сервера (`isRequestTimeoutError` обходит цепочку), а без
+ * проброса обёртка уничтожала бы классификацию (BM-27).
  */
 export class RequestError extends Error {
     readonly statusCode?: number;
     readonly conflictCode?: string;
 
-    constructor(message: string, statusCode?: number, conflictCode?: string) {
-        super(message);
+    constructor(message: string, statusCode?: number, conflictCode?: string, cause?: unknown) {
+        super(message, { cause });
         this.name = 'RequestError';
         this.statusCode = statusCode;
         this.conflictCode = conflictCode;
@@ -49,6 +54,23 @@ function translate(key: string, fallback?: string): string {
  */
 function unknownErrorMessage(): string {
     return translate('bricks.common.unknownError', 'Неизвестная ошибка');
+}
+
+/**
+ * Возвращает локализованный текст обрыва по таймауту. Чтение и запись
+ * различаются по существу, а не по формулировке: оборванное чтение можно просто
+ * повторить, а оборванная запись могла быть применена сервером — «не удалось
+ * сохранить» тут было бы прямой ложью (BM-27).
+ *
+ * @param method - HTTP-метод оборванного запроса.
+ * @returns Сообщение для пользователя.
+ */
+function timeoutMessage(method: string): string {
+    // Без fallback-строки: дублировать текст локали в коде незачем, а вне
+    // Nuxt-контекста (юниты) `translate` отдаёт сам ключ — как у конфликта ревизии
+    return isApiWriteMethod(method)
+        ? translate('bricks.common.writeTimeout')
+        : translate('bricks.common.readTimeout');
 }
 
 /**
@@ -117,6 +139,20 @@ async function refreshPagesWithinDeadline(refreshPages: () => Promise<void>): Pr
 }
 
 /**
+ * Запускает обновление списка и отпускает его: вызывающему нужен сам факт
+ * запуска, а не результат. Отказ гасится здесь же — иначе реджект ушёл бы в
+ * необслуженный промис.
+ *
+ * @param refreshPages - Колбэк обновления списка страниц.
+ */
+function refreshPagesDetached(refreshPages: () => Promise<void>): void {
+    // `void` не пишем — правило `no-void` в oxlint
+    refreshPages().catch((error: unknown) => {
+        console.warn('[Publish Store] Pages refresh after write timeout failed:', error);
+    });
+}
+
+/**
  * Приводит ошибку записи страницы к пользовательскому виду: конфликт
  * optimistic locking превращается в локализованное сообщение, а перед этим
  * обновляется список страниц (свежие revision) — повторное сохранение уйдёт с
@@ -132,6 +168,16 @@ export async function toPageWriteError(
     error: unknown,
     refreshPages: () => Promise<void>
 ): Promise<Error> {
+    // Обрыв записи по таймауту оставляет исход неизвестным, поэтому список
+    // обновляется — по нему видно, применилась ли операция. Но результат этого
+    // обновления в отказ не входит и ждать его нельзя: сообщение об исходе
+    // должно дойти сразу, а не через ещё один потолок чтения (BM-27)
+    if (isRequestTimeoutError(error)) {
+        refreshPagesDetached(refreshPages);
+
+        return error instanceof Error ? error : new Error(String(error));
+    }
+
     if (!isRevisionConflictError(error)) {
         return error instanceof Error ? error : new Error(String(error));
     }
@@ -196,6 +242,13 @@ function formatRequestError(method: string, url: string, error: unknown): string
  * @param error - Исходная ошибка.
  */
 export function toRequestError(method: string, url: string, error: unknown): Error {
+    // Проверка стоит первой намеренно: сообщение `FetchError` содержит URL, то
+    // есть подстроку «/api/», и ранний возврат ниже пропустил бы таймаут наружу
+    // с англоязычным текстом транспорта вместо честного объяснения (BM-27)
+    if (isRequestTimeoutError(error)) {
+        return new RequestError(timeoutMessage(method), undefined, undefined, error);
+    }
+
     if (error instanceof RequestError) {
         return error;
     }
@@ -209,6 +262,7 @@ export function toRequestError(method: string, url: string, error: unknown): Err
     return new RequestError(
         formatRequestError(method, url, error),
         extractStatusCode(payload),
-        extractConflictCode(payload)
+        extractConflictCode(payload),
+        error
     );
 }

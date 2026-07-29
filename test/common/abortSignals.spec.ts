@@ -3,7 +3,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 // Utils
-import { combineAbortSignals } from '../../src/runtime/modules/render/utils/abortSignals';
+import { combineAbortSignals } from '../../src/runtime/modules/common/utils/abortSignals';
 // #endregion
 
 describe('combineAbortSignals (аудит A-09 review)', () => {

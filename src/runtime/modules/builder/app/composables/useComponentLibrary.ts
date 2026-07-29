@@ -8,6 +8,7 @@ import type { IComponentLibraryData, IUseComponentLibraryReturn } from '../types
 // Utils
 import { extractBrickSlots } from '../utils/brickSlots';
 import { toSafeRecord } from '../../../common/utils/safeRecord';
+import { withPromiseDeadline } from '../../../common/utils/promiseDeadline';
 
 // Vue
 import { computed } from 'vue';
@@ -21,7 +22,47 @@ import { useBrickImports } from '../../../common/composables/useBrickImports';
 
 // Constants
 import { LAYOUT_COMPONENTS } from '../../core/constants/layoutComponents';
+import {
+    BRICKS_API_READ_TIMEOUT_MS,
+    BRICKS_SSR_DEADLINE_MARGIN_MS,
+} from '../../../common/constants/apiTimeouts';
 // #endregion
+
+/**
+ * Ограничивает ожидание манифеста на SSR.
+ *
+ * Дедлайн накрывает **только сам запрос**: страницу редактора ждёт `setup`
+ * (`useBuilderPage`), а на сервере потолок транспорта инертен — относительный URL
+ * уходит внутренним вызовом Nitro, который `AbortSignal` не слушает (BM-27).
+ * Оборачивать весь handler нельзя: в нём ещё импорт brick-модулей, и общий
+ * дедлайн отдавал бы им остаток бюджета запроса — быстрый ответ ручки и медленные
+ * импорты обнуляли бы библиотеку целиком, вместе с layout-компонентами (находка
+ * ревью). Зависший импорт этим не ограничивается — на такое нужен свой честно
+ * названный бюджет, и в объём BM-27 он не входит.
+ *
+ * На клиенте потолок транспорта работает сам, дедлайн там не нужен.
+ *
+ * @param request - Промис запроса манифеста.
+ * @returns Ответ ручки компонентов.
+ */
+function fetchManifestWithinDeadline(request: Promise<IBricksManifest>): Promise<IBricksManifest> {
+    if (!import.meta.server) {
+        return request;
+    }
+
+    return withPromiseDeadline(
+        request,
+        BRICKS_API_READ_TIMEOUT_MS + BRICKS_SSR_DEADLINE_MARGIN_MS,
+        () => {
+            // Имя `TimeoutError` — чтобы дедлайн классифицировался тем же
+            // `isRequestTimeoutError`, что и обрыв запроса на клиенте
+            const error = new Error('Bricks components manifest request timed out');
+            error.name = 'TimeoutError';
+
+            return error;
+        }
+    );
+}
 
 /**
  * Загружает библиотеку компонентов: список bricks с бэкенда + метаданные
@@ -42,7 +83,9 @@ export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn>
         'bricks-components',
         async () => {
             const { apiFetcher } = useApiClient();
-            const response = await apiFetcher<IBricksManifest>('/api/bricks/components');
+            const response = await fetchManifestWithinDeadline(
+                apiFetcher<IBricksManifest>('/api/bricks/components')
+            );
             const bricks = response?.bricks || [];
 
             const componentsWithMeta = await Promise.all(

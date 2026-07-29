@@ -6,7 +6,13 @@ import { useRuntimeConfig } from '#imports';
 // #region Data
 /**
  * Таймаут запроса published-страницы: повисший backend не должен держать
- * SSR посетителя дольше этого лимита (паттерн data sources).
+ * посетителя дольше этого лимита (паттерн data sources).
+ *
+ * Оговорка про SSR: относительный URL на сервере выполняется внутренним вызовом
+ * Nitro (`fetchNodeRequestHandler`), а он `AbortSignal` не слушает — этот
+ * потолок там инертен. SSR-путь ограничивает внешний дедлайн вокруг lookup'а в
+ * `bricks-page-layout.global.ts`; здесь потолок работает на клиенте и при
+ * внешнем backend'е (BM-27).
  */
 export const PUBLIC_PAGE_REQUEST_TIMEOUT_MS = 10_000;
 // #endregion

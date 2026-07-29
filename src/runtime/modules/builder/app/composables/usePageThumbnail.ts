@@ -11,6 +11,12 @@ import { nextTick } from 'vue';
 // Composables
 import { useApiClient } from '../../../common/composables/useApiClient';
 
+// Constants
+import {
+    BRICKS_S3_PROXY_TIMEOUT_MS,
+    BRICKS_THUMBNAIL_UPLOAD_TIMEOUT_MS,
+} from '../../../common/constants/apiTimeouts';
+
 // Pinia
 import { useComponentsStore } from '../../core/stores/components';
 import { usePublishStore } from '../../publish/stores/publish';
@@ -71,6 +77,11 @@ export function usePageThumbnail(sessionToken: IBuilderSessionToken): IUsePageTh
             const request = apiFetcher<{ dataUrl: string }>('/api/bricks/media/s3-proxy', {
                 method: 'POST',
                 body: { url },
+                // Семантически чтение, выполненное POST'ом: потолок чуть выше
+                // собственного лимита ручки, чтобы наверх доехала её ошибка. Без
+                // него зависший ресурс не давал бы `domToBlob` уладиться вовсе —
+                // библиотека ждёт fetchFn по каждому ресурсу (BM-27)
+                timeout: BRICKS_S3_PROXY_TIMEOUT_MS,
             }).then(
                 (response) => response.dataUrl || false,
                 () => false as const
@@ -169,7 +180,12 @@ export function usePageThumbnail(sessionToken: IBuilderSessionToken): IUsePageTh
             const { apiFetcher } = useApiClient();
             const response = await apiFetcher<IThumbnailUploadResponse>(
                 '/api/bricks/media/s3-page-thumbnail',
-                { method: 'POST', body: formData }
+                {
+                    method: 'POST',
+                    body: formData,
+                    // Кадр канваса плюс серверная дожимка в webp и выгрузка в S3
+                    timeout: BRICKS_THUMBNAIL_UPLOAD_TIMEOUT_MS,
+                }
             );
 
             if (!response.success || !response.url) {

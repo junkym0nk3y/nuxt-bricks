@@ -72,6 +72,7 @@ import {
 } from '../../src/runtime/modules/render/composables/useBricksDataSources';
 import { useRendererDataSources } from '../../src/runtime/modules/render/composables/useRendererDataSources';
 import { DataSourceResponseTooLargeError } from '../../src/runtime/modules/render/utils/dataSourceResponseReading';
+import { BRICKS_SSR_DEADLINE_MARGIN_MS } from '../../src/runtime/modules/common/constants/apiTimeouts';
 
 /**
  * Собирает минимальный компонент схемы для теста.
@@ -296,9 +297,68 @@ describe('useBricksDataSources.executeDataSource', () => {
 describe('useRendererDataSources: бюджет запросов на прогон (аудит A-09)', () => {
     afterEach(() => {
         vi.restoreAllMocks();
+        vi.useRealTimers();
         dataSourceFetcherMock.mockReset();
         findImportModuleMock.mockReset();
         dataSourceClientConfig.maxRequestsPerPage = 24;
+        dataSourceClientConfig.totalDeadlineMs = 15000;
+    });
+
+    it('зависший источник не отбирает у страницы уже полученные props (BM-27)', async () => {
+        vi.useFakeTimers();
+        vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        dataSourceClientConfig.totalDeadlineMs = 50;
+
+        const component: IBricksComponent = {
+            id: 'comp-1',
+            type: 'component',
+            componentName: 'TestBrick',
+            brickPath: 'bricks/TestBrick',
+            zIndex: 0,
+            props: {},
+        };
+        const sources: IBrickDataSource[] = [
+            createSource({ key: 'fast', url: '/api/fast', props: ['price'] }),
+            createSource({ key: 'stuck', url: '/api/stuck', props: ['title'] }),
+        ];
+
+        findImportModuleMock.mockReturnValue(() =>
+            Promise.resolve({ brick: { dataSources: sources } })
+        );
+
+        // Второй источник игнорирует abort — так ведёт себя относительный URL на
+        // SSR: внутренний вызов Nitro сигнал не слушает
+        const stuckResolvers: Array<(value: unknown) => void> = [];
+        dataSourceFetcherMock.mockImplementation((url: string) =>
+            url.includes('/api/fast')
+                ? Promise.resolve({ price: 10 })
+                : new Promise((resolve) => {
+                      stuckResolvers.push(resolve);
+                  })
+        );
+
+        const page = computed(() => makePage([component]));
+
+        try {
+            const { ready, resolvedProps } = useRendererDataSources({
+                page,
+                pagename: 'stuck-source-page',
+                isPreview: false,
+            });
+
+            await vi.advanceTimersByTimeAsync(50 + BRICKS_SSR_DEADLINE_MARGIN_MS);
+            await ready;
+
+            // Прогон брошен по дедлайну, но успевший props отдан: внешний дедлайн
+            // на весь handler отбросил бы его вместе с зависшим источником
+            expect(resolvedProps.value.get('comp-1')).toEqual({ price: 10 });
+            expect(console.warn).toHaveBeenCalledWith(
+                expect.stringContaining('Run abandoned after deadline'),
+                expect.objectContaining({ resolvedComponents: 1 })
+            );
+        } finally {
+            stuckResolvers.forEach((resolve) => resolve({ title: 'поздний ответ' }));
+        }
     });
 
     it('при числе источников больше maxRequestsPerPage выполняется ровно maxRequestsPerPage запросов', async () => {

@@ -6,6 +6,7 @@ import type { IBuilderDraftEntry, IBuilderDraftSnapshot } from '../../publish/ty
 import type { IBuilderSessionOptions } from '../types/composables';
 
 // Utils
+import { isRequestTimeoutError } from '../../../common/utils/apiRequestPolicy';
 import { serializeSchema } from '../../core/utils/history';
 import { isSnapshotEqual } from '../../publish/utils/draftSnapshots';
 import { getBuilderDraft, removeBuilderDraft } from '../../publish/utils/draftStorage';
@@ -278,8 +279,16 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
                 return;
             }
 
-            const message =
-                error instanceof Error ? error.message : t('bricks.publish.toasts.loadPageFailed');
+            // Запрос, оборванный собственным потолком (BM-27), для пользователя —
+            // то же событие, что и просроченный bootstrap целиком: показываем один
+            // и тот же продуктовый текст, а не транспортное сообщение о таймауте
+            // чтения. Иначе один и тот же экран объяснял бы неотвечающий сервер
+            // двумя разными фразами в зависимости от того, чей таймер сработал
+            const message = isRequestTimeoutError(error)
+                ? t('bricks.publish.session.errorTimeout')
+                : error instanceof Error
+                  ? error.message
+                  : t('bricks.publish.toasts.loadPageFailed');
 
             // Открытие, брошенное по таймауту, может всё ещё лететь: гасим его
             // поколением, иначе поздний ответ лёг бы на канвас поверх экрана ошибки.

@@ -148,8 +148,8 @@ describe('usePublishStore.loadAllPages: общий кеш списка (BM-26)',
         );
 
         try {
-            // GET списка не отвечает и не падает. Прикладного таймаута у него нет,
-            // поэтому `await` держал бы `isSubmitting` поднятым — а он общий и
+            // GET списка не отвечает и не падает. `await` держал бы `isSubmitting`
+            // поднятым до его собственного потолка (BM-27) — а флаг общий и
             // блокирует сохранение в той сессии, куда пользователь успел уйти
             const createdId = await store.publishPage(
                 { components: [] },
@@ -162,6 +162,28 @@ describe('usePublishStore.loadAllPages: общий кеш списка (BM-26)',
         } finally {
             resolveHungList?.([]);
         }
+    });
+
+    it('обрыв удаления по таймауту освежает список (BM-27)', async () => {
+        const store = usePublishStore();
+        store.publishedPages = [buildPage({ id: 21, pagename: 'doomed' })];
+
+        // DELETE оборван потолком: сервер мог успеть удалить страницу, поэтому
+        // список нужно перечитать — иначе удалённая осталась бы в дашборде, а
+        // повторное удаление получило бы 404
+        const timeout = Object.assign(new Error('aborted due to timeout'), {
+            name: 'TimeoutError',
+        });
+        apiFetcherMock.mockRejectedValueOnce(
+            new Error('[DELETE] "/api/bricks/21/": <no response>', { cause: timeout })
+        );
+        apiFetcherMock.mockResolvedValueOnce([]);
+
+        await expect(store.deletePage(21)).rejects.toThrow();
+
+        // Освежение отпущено, а не ожидается: ошибка доходит сразу, список
+        // догоняет ответом
+        await vi.waitFor(() => expect(store.publishedPages).toHaveLength(0));
     });
 
     it('ошибка загрузки не пишет в generalError — только бросает', async () => {

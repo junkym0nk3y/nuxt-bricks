@@ -6,6 +6,9 @@ import type { IAuthSessionResponse, IAuthSessionUserPayload } from '../types/aut
 import { useApiClient } from '../../../common/composables/useApiClient';
 import { useBricksRoutePaths } from '../../../common/composables/useBricksRoutePaths';
 
+// Constants
+import { BRICKS_AUTH_REQUEST_TIMEOUT_MS } from '../../../common/constants/apiTimeouts';
+
 // Nuxt
 import { useRuntimeConfig } from '#imports';
 // #endregion
@@ -37,6 +40,9 @@ export function useAuthSession() {
         const response = await apiFetcher<IAuthSessionResponse>('/api/bricks/auth/login', {
             method: 'POST',
             body: { username, password },
+            // Короткая запись: общий потолок записи (30 с) держал бы кнопку формы
+            // втрое дольше нужного (BM-27)
+            timeout: BRICKS_AUTH_REQUEST_TIMEOUT_MS,
         });
 
         return response.user;
@@ -47,7 +53,10 @@ export function useAuthSession() {
      * (чисто сбрасывает сторы билдера).
      */
     async function logout(): Promise<void> {
-        await apiFetcher('/api/bricks/auth/logout', { method: 'POST' });
+        await apiFetcher('/api/bricks/auth/logout', {
+            method: 'POST',
+            timeout: BRICKS_AUTH_REQUEST_TIMEOUT_MS,
+        });
         window.location.assign(withBase(builderLoginPath));
     }
 

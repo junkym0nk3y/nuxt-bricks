@@ -3,16 +3,60 @@ import { defineNuxtRouteMiddleware, useNuxtApp, setPageLayout } from '#app';
 import { createError, useState, useRequestHeaders, useRuntimeConfig } from '#imports';
 import type { TPublishedPageSummary, IPublishedPage } from '../modules/common/types/bricks-api';
 import { normalizeBricksError, parseBricksBooleanFlag } from '../modules/common/utils/main';
+import { isRequestTimeoutError } from '../modules/common/utils/apiRequestPolicy';
+import { withPromiseDeadline } from '../modules/common/utils/promiseDeadline';
 import { useApiClient } from '../modules/common/composables/useApiClient';
 import { usePublicPageClient } from '../modules/render/composables/usePublicPageClient';
 import { toCamelCase } from '../modules/common/utils/case-transform';
 import { BRICKS_ROUTE_NAMES } from '../modules/common/constants/routes';
+import { BRICKS_API_READ_TIMEOUT_MS } from '../modules/common/constants/apiTimeouts';
 import {
     matchesPageSubdomain,
     matchesPageUrlPrefix,
     normalizePublishedPage,
     resolveRequestedUrlPrefix,
 } from '../modules/common/utils/bricks/publishedPage';
+
+/**
+ * Статус неотвечающего backend'а. Таймаут lookup'а — не «страницы нет»: 404 на
+ * него закешировался бы у CDN и был бы понят краулером как отсутствие страницы.
+ */
+const HTTP_GATEWAY_TIMEOUT = 504;
+
+/**
+ * Ограничивает SSR-lookup страницы по времени.
+ *
+ * Потолок транспорта здесь не срабатывает: на SSR относительные URL уходят
+ * внутренним вызовом Nitro, а он `AbortSignal` не слушает — ни `timeout` ofetch
+ * у `useApiClient`, ни у `usePublicPageClient` (BM-27). Зависший обработчик
+ * держал бы весь SSR-ответ, то есть посетитель ждал бы вечно. Гонка обработчик
+ * не останавливает, но перестаёт его ждать и отдаёт 504.
+ *
+ * Ошибка помечена именем `TimeoutError`, поэтому её классифицирует тот же
+ * `isRequestTimeoutError`, что и обрыв на клиенте.
+ *
+ * @param operation - Промис lookup'а.
+ * @returns Промис lookup'а с дедлайном.
+ */
+function withLookupDeadline<T>(operation: Promise<T>): Promise<T> {
+    return withPromiseDeadline(operation, BRICKS_API_READ_TIMEOUT_MS, () => {
+        const error = new Error('Bricks page lookup timed out');
+        error.name = 'TimeoutError';
+
+        return error;
+    });
+}
+
+/**
+ * Возвращает статус, под которым отказ lookup'а уходит пользователю.
+ *
+ * @param error - Ошибка lookup'а.
+ * @param fallbackStatus - Статус для обычного отказа.
+ * @returns HTTP-статус.
+ */
+function resolveLookupErrorStatus(error: unknown, fallbackStatus: number): number {
+    return isRequestTimeoutError(error) ? HTTP_GATEWAY_TIMEOUT : fallbackStatus;
+}
 
 /**
  * Middleware для динамической установки layout на основе данных из БД.
@@ -67,10 +111,18 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
             if (!pagesList.value.length) {
                 try {
-                    const response = await apiFetcher<TPublishedPageSummary[]>('/api/bricks/');
+                    const response = await withLookupDeadline(
+                        apiFetcher<TPublishedPageSummary[]>('/api/bricks/')
+                    );
                     pagesList.value = toCamelCase<TPublishedPageSummary[]>(response);
                 } catch (error) {
-                    return createError(normalizeBricksError(error, 'Failed to load pages list'));
+                    return createError(
+                        normalizeBricksError(
+                            error,
+                            'Failed to load pages list',
+                            resolveLookupErrorStatus(error, 500)
+                        )
+                    );
                 }
             }
 
@@ -83,26 +135,41 @@ export default defineNuxtRouteMiddleware(async (to) => {
             }
 
             try {
-                const response = await apiFetcher<IPublishedPage>(`/api/bricks/${targetPage.id}/`);
+                const response = await withLookupDeadline(
+                    apiFetcher<IPublishedPage>(`/api/bricks/${targetPage.id}/`)
+                );
                 page = normalizePublishedPage(response);
             } catch (error) {
-                return createError(normalizeBricksError(error, 'Failed to load page'));
+                return createError(
+                    normalizeBricksError(
+                        error,
+                        'Failed to load page',
+                        resolveLookupErrorStatus(error, 500)
+                    )
+                );
             }
         }
 
         if (!page && !isPreview) {
             // Live — публичный read-model: прямой lookup по pagename, без list+find.
-            // Публичный клиент: без cookie/CSRF/401-редиректа, с таймаутом —
-            // ошибка lookup'а не отправит посетителя на login билдера
+            // Публичный клиент: без cookie/CSRF/401-редиректа — ошибка lookup'а не
+            // отправит посетителя на login билдера. Его собственный таймаут на SSR
+            // инертен, потолок держит внешний дедлайн (`withLookupDeadline`)
             const { publicPageFetcher } = usePublicPageClient();
 
             try {
-                const response = await publicPageFetcher<IPublishedPage>(
-                    `/api/bricks/public/pages/${pagename}/`
+                const response = await withLookupDeadline(
+                    publicPageFetcher<IPublishedPage>(`/api/bricks/public/pages/${pagename}/`)
                 );
                 page = normalizePublishedPage(response);
             } catch (error) {
-                return createError(normalizeBricksError(error, 'Page not found', 404));
+                return createError(
+                    normalizeBricksError(
+                        error,
+                        'Page not found',
+                        resolveLookupErrorStatus(error, 404)
+                    )
+                );
             }
         }
         // Сохраняем данные в payload, чтобы избежать повторной загрузки в компоненте страницы
