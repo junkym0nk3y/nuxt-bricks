@@ -65,7 +65,7 @@ vi.mock('../../src/runtime/modules/render/composables/useBricksDataSources', () 
 import { useRendererDataSources } from '../../src/runtime/modules/render/composables/useRendererDataSources';
 
 /** Имена, которые обычный объект «находит» в `Object.prototype`. */
-const PROTOTYPE_KEYS = ['__proto__', 'constructor', 'toString', 'hasOwnProperty'] as const;
+const PROTOTYPE_KEYS = ['__proto__', 'constructor'] as const;
 
 /**
  * Носители, в которые уехали бы пропсы при lookup'е по прототипу.

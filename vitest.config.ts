@@ -9,6 +9,9 @@ import { defineConfig } from 'vitest/config';
  */
 export default defineConfig({
     plugins: [vue()],
+    test: {
+        include: ['test/**/*.spec.ts'],
+    },
     resolve: {
         alias: {
             '#imports': fileURLToPath(new URL('./test/stubs/nuxt-imports.ts', import.meta.url)),

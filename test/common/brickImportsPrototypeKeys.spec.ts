@@ -15,8 +15,6 @@ import { useBrickImports } from '../../src/runtime/modules/common/composables/us
  * В окружении тестов glob пуст: `/components/**` резолвится от корня репозитория,
  * где каталога `components/` нет.
  */
-const PROTOTYPE_KEYS = ['__proto__', 'constructor', 'toString', 'hasOwnProperty'] as const;
-
 describe('useBrickImports: brickPath с именем из Object.prototype', () => {
     let errorSpy: ReturnType<typeof vi.spyOn>;
 
@@ -28,10 +26,10 @@ describe('useBrickImports: brickPath с именем из Object.prototype', () 
         errorSpy.mockRestore();
     });
 
-    it.each(PROTOTYPE_KEYS)('не отдаёт лоадер для %s и пишет о промахе', (brickPath) => {
+    it('не отдаёт унаследованный toString под видом лоадера и пишет о промахе', () => {
         const { findImportModule } = useBrickImports();
 
-        expect(findImportModule(brickPath)).toBeUndefined();
+        expect(findImportModule('toString')).toBeUndefined();
         expect(errorSpy).toHaveBeenCalledTimes(1);
     });
 

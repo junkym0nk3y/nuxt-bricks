@@ -346,17 +346,20 @@ npm run dev
 
 Основные команды:
 
-| Команда                     | Назначение                            |
-| --------------------------- | ------------------------------------- |
-| `npm run type-check`        | проверить TypeScript                  |
-| `npm run lint:check`        | линтеры и архитектурные границы       |
-| `npm test`                  | unit-тесты Vitest                     |
-| `npm run dev:build`         | production build playground           |
-| `npm run smoke:pack`        | проверить tarball в чистом consumer   |
-| `npm run smoke:integration` | lifecycle против PostgreSQL и MinIO   |
-| `npm run smoke:external`    | lifecycle внешнего HTTP backend       |
-| `npm run budget:bundle`     | проверить gzip-бюджеты initial bundle |
+| Команда                     | Назначение                              |
+| --------------------------- | --------------------------------------- |
+| `npm run type-check`        | проверить TypeScript                    |
+| `npm run lint:check`        | линтеры и архитектурные границы         |
+| `npm test`                  | unit-тесты Vitest                       |
+| `npm run test:e2e`          | критические browser-сценарии Playwright |
+| `npm run dev:build`         | production build playground             |
+| `npm run smoke:pack`        | проверить tarball в чистом consumer     |
+| `npm run smoke:integration` | lifecycle против PostgreSQL и MinIO     |
+| `npm run smoke:external`    | lifecycle внешнего HTTP backend         |
+| `npm run budget:bundle`     | проверить gzip-бюджеты initial bundle   |
 
 Runtime-код разделён на домены в `src/runtime/modules/`, тесты лежат в `test/`,
-миграции — в `migrations/`. Границы зависимостей описаны в
+browser-сценарии — в `e2e/`, миграции — в `migrations/`. Перед первым локальным
+E2E-запуском выполните `npx playwright install chromium`; backend и test
+consumer поднимутся автоматически. Границы зависимостей описаны в
 `.dependency-cruiser.cjs`; краткие инструкции для AI — в `CLAUDE.md`.

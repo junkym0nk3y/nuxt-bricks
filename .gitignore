@@ -22,6 +22,8 @@ Thumbs.db
 .idea
 
 /.playwright-mcp
+/playwright-report
+/test-results
 /.claude
 /.mcp.json
 /.superpowers

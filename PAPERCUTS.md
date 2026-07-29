@@ -302,3 +302,40 @@ dev-сервер — процесс называется `nuxi dev playground`, 
 отдельный файл, а порт продолжает держать **старый** сервер со старым кодом. Проверка
 при этом выглядит успешной: 200 отдаётся, только не тем, что проверяешь. Гасить
 `pkill -f "nuxi dev"` и после этого убеждаться, что `pgrep -fl "nuxi dev"` пуст.
+
+## 2026-07-29 23:34 — Codex
+
+Подключал Playwright через `npm install --save-dev @playwright/test` в sandbox →
+процесс больше минуты висел без единой строки вывода. Похоже на недоступный npm
+registry при ограниченной сети; после такого не ждать дальше, а остановить процесс
+и повторить установку с разрешённым сетевым доступом.
+
+## 2026-07-29 23:42 — Codex
+
+Запустил Prettier одним вызовом на TypeScript/Vue/Markdown и `.gitignore` →
+форматтер обработал все поддерживаемые файлы, но завершился с кодом 2, потому что
+для `.gitignore` не нашёл parser. Служебные ignore-файлы не включать в адресный
+список Prettier.
+
+## 2026-07-29 23:43 — Codex
+
+Первый `npm run test:e2e` в sandbox не смог поднять локальный fake backend:
+`listen EPERM 127.0.0.1:4322`. Playwright webServer требует запуск с разрешением
+на локальные listen-сокеты; при таком EPERM сразу повторять команду вне sandbox.
+
+## 2026-07-29 23:47 — Claude Opus 5
+
+Поиск констант по `src`/`test` командой `grep -rn "..." src test --include=*.ts` →
+`(eval):1: no matches found: --include=*.ts`: zsh раскрывает `*` в значении флага
+как glob ещё до запуска grep. Фикс: кавычить значение (`--include='*.ts'`) или
+опустить фильтр и отсеять расширения самим паттерном.
+
+## 2026-07-30 01:10 — Codex
+
+`npm run smoke:external` дважды упал во fresh consumer внутри npm 10.9.2:
+Arborist бросил `Cannot read properties of null (reading 'edgesOut')` при
+автоматическом разрешении peer dependencies Nuxt. Изолированный npm cache не
+помог. С `NPM_CONFIG_LEGACY_PEER_DEPS=true` установка завершилась, но ожидаемо
+не установился peer `@pinia/nuxt`, и consumer build остановился уже на нём.
+Это не ошибка fake backend; для надёжного smoke нужен npm без этого Arborist
+сбоя либо явная стратегия установки peer dependencies в smoke consumer.

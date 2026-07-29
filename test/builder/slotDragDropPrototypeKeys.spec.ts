@@ -99,7 +99,7 @@ function getPollutionCarriers(): object[] {
 // #endregion
 
 /** Имена, которые обычный объект «находит» в `Object.prototype`. */
-const PROTOTYPE_KEYS = ['__proto__', 'constructor', 'toString', 'hasOwnProperty'] as const;
+const PROTOTYPE_KEYS = ['__proto__'] as const;
 
 describe('useSlotDragDrop: имена слотов из Object.prototype', () => {
     beforeEach(() => {

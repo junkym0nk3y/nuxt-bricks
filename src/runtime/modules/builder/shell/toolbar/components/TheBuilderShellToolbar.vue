@@ -166,7 +166,13 @@ function handlePreview(): void {
         <div :class="$style.right">
             <BricksTooltip bottom>
                 <template #activator>
-                    <BricksButton size="md" variant="outline" equal @click="handleOpenPagesManager">
+                    <BricksButton
+                        size="md"
+                        variant="outline"
+                        equal
+                        :aria-label="t('bricks.toolbar.pagesEditor')"
+                        @click="handleOpenPagesManager"
+                    >
                         <BricksIcon :class="$style.icon" icon="ta:outline-files" />
                     </BricksButton>
                 </template>
@@ -183,6 +189,7 @@ function handlePreview(): void {
                         variant="outline"
                         equal
                         :disabled="!props.isSessionReady"
+                        :aria-label="t('bricks.toolbar.media')"
                         @click="handleOpenMediaGallery"
                     >
                         <BricksIcon :class="$style.icon" icon="ta:outline-photo-video" />
@@ -201,6 +208,7 @@ function handlePreview(): void {
                         variant="outline"
                         equal
                         :disabled="!props.isSessionReady"
+                        :aria-label="t('bricks.toolbar.preview')"
                         @click="handlePreview"
                     >
                         <BricksIcon :class="$style.icon" icon="ta:outline-browser-share" />

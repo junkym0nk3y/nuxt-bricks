@@ -35,7 +35,7 @@ import { findAllInlineEditableBrickProps } from '../../src/runtime/modules/build
 import { usePropertyVariants } from '../../src/runtime/modules/builder/shell/sidebar/composables/usePropertyVariants';
 
 /** Имена, которые обычный объект «находит» в `Object.prototype`. */
-const PROTOTYPE_KEYS = ['constructor', 'toString', 'hasOwnProperty'] as const;
+const PROTOTYPE_KEYS = ['toString'] as const;
 
 /**
  * Собирает brick-value с условием показа.

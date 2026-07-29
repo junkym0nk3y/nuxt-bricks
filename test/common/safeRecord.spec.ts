@@ -19,12 +19,16 @@ describe('safeRecord: доступ по ключу из недоверенног
         expect(Object.getOwnPropertyNames(Object.prototype)).not.toContain('polluted');
     });
 
-    it.each(PROTOTYPE_KEYS)('hasOwnKey не считает %s объявленным ключом', (key) => {
-        expect(hasOwnKey({}, key)).toBe(false);
+    it('hasOwnKey не считает унаследованные prototype-ключи собственными', () => {
+        PROTOTYPE_KEYS.forEach((key) => {
+            expect(hasOwnKey({}, key)).toBe(false);
+        });
     });
 
-    it.each(PROTOTYPE_KEYS)('readOwnKey возвращает undefined для %s', (key) => {
-        expect(readOwnKey({} as Record<string, unknown>, key)).toBeUndefined();
+    it('readOwnKey возвращает undefined для всех prototype-ключей', () => {
+        PROTOTYPE_KEYS.forEach((key) => {
+            expect(readOwnKey({} as Record<string, unknown>, key)).toBeUndefined();
+        });
     });
 
     it('hasOwnKey/readOwnKey видят собственные ключи с теми же именами', () => {

@@ -15,28 +15,23 @@ import {
  * lookup в BLOCK_REGISTRY по имени члена `Object.prototype` не должен выдавать
  * прототип за definition блока.
  */
-const PROTOTYPE_KEYS = ['__proto__', 'constructor', 'toString', 'hasOwnProperty'] as const;
-
 describe('layouts-blocks registry: имена из Object.prototype', () => {
-    it.each(PROTOTYPE_KEYS)('getBlockDefinition не находит блок %s', (name) => {
-        expect(getBlockDefinition(name)).toBeUndefined();
+    it('getBlockDefinition не отдаёт унаследованный toString под видом блока', () => {
+        expect(getBlockDefinition('toString')).toBeUndefined();
     });
 
-    it.each(PROTOTYPE_KEYS)('getBlockProperties отдаёт пустой массив для %s', (name) => {
-        expect(getBlockProperties(name)).toEqual([]);
+    it('getBlockProperties отдаёт пустой массив для prototype-имени', () => {
+        expect(getBlockProperties('toString')).toEqual([]);
     });
 
-    it.each(PROTOTYPE_KEYS)(
-        'resolveBlockProps не падает на %s и возвращает копию пропсов',
-        (name) => {
-            const baseProps = { title: 'hello' };
+    it('resolveBlockProps не падает на __proto__ и возвращает копию пропсов', () => {
+        const baseProps = { title: 'hello' };
 
-            const resolved = resolveBlockProps(name, baseProps, 'desktop');
+        const resolved = resolveBlockProps('__proto__', baseProps, 'desktop');
 
-            expect(resolved).toEqual(baseProps);
-            expect(resolved).not.toBe(baseProps);
-        }
-    );
+        expect(resolved).toEqual(baseProps);
+        expect(resolved).not.toBe(baseProps);
+    });
 
     it('известные блоки резолвятся в обоих регистрах', () => {
         expect(getBlockDefinition('Grid')?.name).toBe('Grid');

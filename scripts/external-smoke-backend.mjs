@@ -63,6 +63,37 @@ function routeBackendRequest(recorded, state) {
 }
 
 /**
+ * Собирает полную строку страницы из create payload.
+ *
+ * @param {unknown} body Распарсенное JSON-тело.
+ * @param {ReturnType<typeof createFakeExternalBackend>['state']} state Хранилище.
+ * @param {string} now Время создания строки.
+ * @returns {Record<string, unknown> & {id: number}} Строка страницы.
+ */
+function createPageRow(body, state, now) {
+    const payload = /** @type {Record<string, unknown>} */ (body);
+
+    return {
+        id: state.nextPageId++,
+        pagename: payload.pagename,
+        title: payload.title ?? null,
+        description: payload.description ?? null,
+        keywords: payload.keywords ?? null,
+        backgroundColor: payload.backgroundColor ?? null,
+        layout: payload.layout ?? null,
+        socialImage: payload.socialImage ?? null,
+        urlPrefix: payload.urlPrefix ?? null,
+        subdomain: payload.subdomain ?? null,
+        thumbnailUrl: null,
+        schema: payload.schema,
+        published: payload.published ?? false,
+        revision: 0,
+        createdAt: now,
+        updatedAt: now,
+    };
+}
+
+/**
  * Контрактные ручки страниц: GET/POST {base}, GET/PATCH/DELETE {base}/:id,
  * public lookup. GET {base} — одновременно readiness-проба probeHealth.
  *
@@ -82,25 +113,7 @@ function routePagesRequest(method, path, body, state) {
         return { status: 200, body: summaries };
     }
     if (method === 'POST' && path === '/') {
-        const payload = /** @type {Record<string, unknown>} */ (body);
-        const row = {
-            id: state.nextPageId++,
-            pagename: payload.pagename,
-            title: payload.title ?? null,
-            description: null,
-            keywords: null,
-            backgroundColor: null,
-            layout: null,
-            socialImage: null,
-            urlPrefix: null,
-            subdomain: null,
-            thumbnailUrl: null,
-            schema: payload.schema,
-            published: false,
-            revision: 0,
-            createdAt: now,
-            updatedAt: now,
-        };
+        const row = createPageRow(body, state, now);
         state.pages.set(row.id, row);
         return { status: 201, body: row };
     }

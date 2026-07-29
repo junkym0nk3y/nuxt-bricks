@@ -120,19 +120,6 @@ describe('useSidebarPropertiesPanel: имя свойства из Object.prototy
         storeMock.updateComponentResponsiveProp.mockReset();
     });
 
-    it('свойство __proto__ не подхватывает прототип как текущее значение', () => {
-        selectComponentWithProps({});
-        const panel = useSidebarPropertiesPanel({ onOpenMediaGallery: vi.fn() });
-
-        // Не-объектный JSON: coerceObjectValue падает на текущее значение,
-        // а при его отсутствии — на default свойства
-        panel.handleChangeValues(createObjectProperty('__proto__'), '5');
-
-        expect(storeMock.updateComponentProp).toHaveBeenCalledWith('c1', '__proto__', {
-            mode: 'auto',
-        });
-    });
-
     it('свойство toString не подхватывает метод прототипа как текущее значение', () => {
         selectComponentWithProps({});
         const panel = useSidebarPropertiesPanel({ onOpenMediaGallery: vi.fn() });

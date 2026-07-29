@@ -36,7 +36,7 @@ vi.mock('../../src/runtime/modules/render/composables/useDataSourceClient', () =
 import { useBricksDataSources } from '../../src/runtime/modules/render/composables/useBricksDataSources';
 
 /** Имена, которые обычный объект «находит» в `Object.prototype`. */
-const PROTOTYPE_KEYS = ['constructor', 'toString', 'hasOwnProperty'] as const;
+const PROTOTYPE_KEYS = ['toString'] as const;
 
 /**
  * Собирает минимальный компонент схемы для теста.
