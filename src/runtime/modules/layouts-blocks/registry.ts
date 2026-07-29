@@ -42,7 +42,7 @@ export const BLOCK_REGISTRY: Record<string, IBlockDefinition> = {
  * Возвращает definition блока по componentName схемы.
  * Регистронезависимо: канвас оперирует lowercase-именами ('grid'), схема — 'Grid'.
  * `componentName` приходит из схемы и проверяется контрактом лишь как непустая
- * строка, поэтому lookup — только по own-ключу (BM-14).
+ * строка, поэтому lookup — только по own-ключу.
  *
  * @param name - Имя блока ('Grid' или 'grid').
  * @returns Definition или undefined для неизвестного блока.

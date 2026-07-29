@@ -117,7 +117,7 @@ export const useMediaStore = defineStore('bricksMedia', {
                     method: 'POST',
                     body: formData,
                     // Отдача файла: сервер принимает видео до 100 МБ, общий потолок
-                    // записи оборвал бы медленный канал на исправной загрузке (BM-27)
+                    // записи оборвал бы медленный канал на исправной загрузке
                     timeout: BRICKS_MEDIA_UPLOAD_TIMEOUT_MS,
                 });
 

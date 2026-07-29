@@ -109,7 +109,7 @@ describe('requirePageRevision: precondition отката версии', () => {
     });
 });
 
-describe('toPageWriteError: обновление списка перед показом конфликта (BM-26)', () => {
+describe('toPageWriteError: обновление списка перед показом конфликта', () => {
     // Резолверы «зависших» запросов: отпускаем их в afterEach, чтобы кейс не
     // оставлял после себя вечно ожидающий промис
     const hungResolvers: Array<() => void> = [];
@@ -150,7 +150,7 @@ describe('toPageWriteError: обновление списка перед пок�
     });
 });
 
-describe('toRequestError: обрыв по таймауту (BM-27)', () => {
+describe('toRequestError: обрыв по таймауту', () => {
     /**
      * Ошибка в форме ofetch при срабатывании потолка: исходный TimeoutError
      * лежит в `cause`, ответа нет, а message содержит URL — то есть подстроку

@@ -10,7 +10,7 @@ import type { IBricksSchema } from '../../src/runtime/modules/common/types/brick
 // #endregion
 
 /**
- * BM-15 №2: выбранное действие копилось присваиванием `state.actions[url] = …`,
+ * Выбранное действие копилось присваиванием `state.actions[url] = …`,
  * а ключ — URL картинки из схемы. У `<img src="__proto__">` присваивание уходило
  * в сеттер прототипа (для строкового значения — молчаливый no-op), чтение
  * возвращало `Object.prototype`: значение истинное, но не равное `'placeholder'`,

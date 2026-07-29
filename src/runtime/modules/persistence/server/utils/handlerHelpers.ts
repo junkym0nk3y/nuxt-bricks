@@ -52,7 +52,7 @@ export function requireNumericId(event: H3Event, paramName = 'id'): number {
  */
 export async function readNormalizedBody<T>(event: H3Event): Promise<T> {
     // Unsafe-запрос с не-JSON контентом (form/text) — типичный CSRF-вектор
-    // мимо preflight; требуем явный application/json (аудит A-03)
+    // мимо preflight; требуем явный application/json
     const contentType = getHeader(event, 'content-type') ?? '';
 
     if (!contentType.toLowerCase().includes('application/json')) {

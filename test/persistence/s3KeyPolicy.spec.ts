@@ -80,7 +80,7 @@ function extractManagedKey(url: string): string | null {
     return key !== null && isManagedStorageKey(key, MANAGED_PREFIXES) ? key : null;
 }
 
-describe('extractStorageKey: канонизация URL (аудит A-01)', () => {
+describe('extractStorageKey: канонизация URL', () => {
     it('нормализует литеральные dot-сегменты до канонического ключа', () => {
         // WHATWG-парсер резолвит ../ ещё до namespace-проверки
         expect(
@@ -132,7 +132,7 @@ describe('extractStorageKey: канонизация URL (аудит A-01)', () =
     });
 });
 
-describe('managed-композиция: adversarial URL не выходит из namespace (аудит A-01)', () => {
+describe('managed-композиция: adversarial URL не выходит из namespace', () => {
     it.each([
         [
             'литеральный ../ (нормализуется в объект вне префикса)',

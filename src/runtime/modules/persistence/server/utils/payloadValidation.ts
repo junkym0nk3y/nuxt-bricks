@@ -92,7 +92,7 @@ function validatePagename(value: unknown): string {
  * `assertSchemaComplexity` (итеративный обход до `JSON.stringify`, см.
  * schemaPayloadValidation.ts); структурный контракт графа компонентов
  * (форма узла, уникальность/согласованность id, ацикличность, глубина
- * дерева) — `validateSchemaComponentGraph` (аудит A-02, см.
+ * дерева) — `validateSchemaComponentGraph` (см.
  * common/utils/bricks/schemaContract.ts).
  *
  * @param value - Сырое значение поля schema.

@@ -32,7 +32,7 @@ import { Navigation, Pagination, Autoplay, A11y } from 'swiper/modules';
 import BlockSliderCaptions from './BlockSliderCaptions.vue';
 
 // Styles: css слайдера едет в чанк компонента, а не в глобальный css всех
-// страниц потребителя (изоляция модуля — см. architecture-audit)
+// страниц потребителя (изоляция модуля)
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';

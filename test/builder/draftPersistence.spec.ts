@@ -154,8 +154,8 @@ describe('черновик билдера: автосейв и сброс при
         publishStore.setCurrentFormField('title', 'Правка перед reload');
         await nextTick();
 
-        // Половина окна debounce: таймер ещё тикает, до реализации BM-20 такая
-        // правка гибла вместе со страницей
+        // Половина окна debounce: таймер ещё тикает, и раньше такая правка гибла
+        // вместе со страницей
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS / 2);
         expect(getBuilderDraft('draft-page')?.draftSnapshot.formState.title).not.toBe(
             'Правка перед reload'

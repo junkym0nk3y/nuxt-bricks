@@ -152,7 +152,7 @@ describe('restorePageVersion: version lookup + updatePage с revision-preconditi
         ]);
     });
 
-    it('версия с невалидной схемой (аудит A-02) — 400, updatePage не вызывается', async () => {
+    it('версия с невалидной схемой — 400, updatePage не вызывается', async () => {
         // Намеренно невалидная фикстура (повреждённая строка БД) — приводится из
         // unknown[], как в test/render/dataSourcesMalformedSchema.spec.ts (makePage).
         const invalidComponents: unknown[] = [null];

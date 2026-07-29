@@ -157,7 +157,7 @@ describe('matchesPageUrlPrefix', () => {
     });
 });
 
-describe('matchesPageSubdomain: точное сопоставление subdomain (аудит A-08)', () => {
+describe('matchesPageSubdomain: точное сопоставление subdomain', () => {
     it('первый label должен совпасть точно — подстрока не матчится', () => {
         expect(matchesPageSubdomain('promo.example.com', 'promo')).toBe(true);
         expect(matchesPageSubdomain('notpromo.example.com', 'promo')).toBe(false);

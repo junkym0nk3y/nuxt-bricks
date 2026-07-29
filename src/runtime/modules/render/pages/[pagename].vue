@@ -81,7 +81,7 @@ const pageBackgroundColor = computed(() => page.value?.backgroundColor || 'var(-
 const allComponents = computed<IBricksComponent[]>(() => {
     const components = page.value?.schema?.components ?? [];
     // Строка БД могла быть повреждена или записана в обход контракта схемы
-    // (аудит A-02): мусорные элементы отфильтровываются, а не роняют SSR
+    //: мусорные элементы отфильтровываются, а не роняют SSR
     return components.filter(
         (component): component is IBricksComponent =>
             isRenderableSchemaComponent(component) && !component.isHidden

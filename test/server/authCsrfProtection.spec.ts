@@ -84,7 +84,7 @@ describe('csrfProtection: чистая проверка контекста за�
         ).toBe(true);
     });
 
-    it('схема участвует в сравнении: http-origin к https-поверхности — отказ (ре-ревью A-03)', () => {
+    it('схема участвует в сравнении: http-origin к https-поверхности — отказ', () => {
         expect(checkCsrf({ ...BARE_POST, origin: 'http://app.example.com' }).allowed).toBe(false);
         expect(
             checkCsrf({

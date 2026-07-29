@@ -79,7 +79,7 @@ describe('checkDataSourceUrl', () => {
     });
 });
 
-describe('dataSourcePolicy: resource budget (аудит A-09)', () => {
+describe('dataSourcePolicy: resource budget', () => {
     it('дефолты бюджета заданы', () => {
         expect(DEFAULT_DATA_SOURCE_MAX_RESPONSE_BYTES).toBe(1024 * 1024);
         expect(DEFAULT_DATA_SOURCE_MAX_REQUESTS_PER_PAGE).toBe(24);

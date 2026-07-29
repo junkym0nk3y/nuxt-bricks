@@ -21,7 +21,7 @@
  * - BASIC_AUTH_PASSWORD (дефолт: change-me — только для dev; в production
  *   с дефолтным паролем защищённые пути отвечают 503)
  * - невалидные креденшелы (заголовок присутствует) делят per-IP rate limit
- *   с database-логином (аудит A-04): 30 неудач за 15 минут → 429
+ *   с database-логином: 30 неудач за 15 минут → 429
  *
  * Database-режим — cookie-сессии в Postgres: невалидная сессия на HTML-пути
  * редиректит на /bricks/login, на API — 401 без WWW-Authenticate.
@@ -108,7 +108,7 @@ function handleBasicAuth(event: H3Event): void {
         return sendUnauthorized(event);
     }
 
-    // Rate limit невалидных креденшелов (аудит A-04): Basic Auth перебирается
+    // Rate limit невалидных креденшелов: Basic Auth перебирается
     // тем же IP-bucket'ом, что и database-login
     const clientIp = resolveRequestClientIp(event);
     const lockoutSeconds = isIpLockedOut(clientIp);
@@ -255,7 +255,7 @@ export default defineEventHandler(async (event: H3Event) => {
         baseURL,
     };
 
-    // CSRF-гейт unsafe-методов (аудит A-03): ДО auth — login/logout не под
+    // CSRF-гейт unsafe-методов: ДО auth — login/logout не под
     // requiresAuth, но под CSRF; неавторизованный кросс-сайтовый POST — 403
     if (isCsrfProtectedPath(target.logicalPathname)) {
         assertCsrfSafe(event);

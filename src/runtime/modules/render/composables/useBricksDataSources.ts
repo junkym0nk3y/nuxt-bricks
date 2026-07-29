@@ -58,7 +58,7 @@ export function useBricksDataSources() {
     /**
      * Извлекает значение по строковому пути из объекта.
      * Путь описан в brick-файле, поэтому сегменты сверяются по own-ключу:
-     * `'constructor' in acc` был бы истинным и вернул бы `Object` (BM-14).
+     * `'constructor' in acc` был бы истинным и вернул бы `Object`.
      *
      * @param source - Исходный объект для извлечения значения.
      * @param path - Путь к значению в формате 'key.nested.value'.
@@ -118,7 +118,7 @@ export function useBricksDataSources() {
      * Имена параметров объявляет brick-файл, поэтому набор — `Map`: у обычного
      * объекта `:constructor` считался бы найденным по прототипу, а `:__proto__`
      * не был бы представим own-ключом вовсе и плейсхолдер остался бы
-     * неразрешённым (BM-15).
+     * неразрешённым.
      *
      * @param url - URL с плейсхолдерами вида :paramName.
      * @param params - Набор параметров для подстановки.
@@ -203,7 +203,7 @@ export function useBricksDataSources() {
      * @param url - Резолвленный URL запроса.
      * @param method - Нормализованный HTTP-метод.
      * @param requestCache - Кеш ответов текущего прогона (опционален).
-     * @param signal - Сигнал отмены (общий дедлайн прогона — аудит A-09); в ключ
+     * @param signal - Сигнал отмены (общий дедлайн прогона); в ключ
      * кеша не входит, чтобы дедуп по (method + url) не зависел от прогона.
      * @returns Сырой ответ запроса.
      */
@@ -223,7 +223,7 @@ export function useBricksDataSources() {
         // ofetch строит внутренний timeout-abort только когда caller-signal
         // НЕ передан — при общем дедлайне прогона per-request таймаут
         // обеспечивается явной комбинацией с AbortSignal.timeout (оба потолка
-        // действуют независимо, аудит A-09 review)
+        // действуют независимо)
         const requestSignal = signal
             ? combineAbortSignals([signal, AbortSignal.timeout(timeoutMs)])
             : undefined;
@@ -243,7 +243,7 @@ export function useBricksDataSources() {
      * @param component - Компонент, для которого выполняется запрос.
      * @param pageSettings - Настройки страницы для разрешения параметров.
      * @param requestCache - Кеш ответов текущего прогона (dedup одинаковых запросов).
-     * @param signal - Сигнал отмены общего дедлайна прогона (аудит A-09);
+     * @param signal - Сигнал отмены общего дедлайна прогона;
      * отменённый запрос попадает в общий catch → null → fallback props компонента.
      * @returns Результат запроса после применения map функции или null при ошибке.
      */
@@ -272,7 +272,7 @@ export function useBricksDataSources() {
         try {
             if (source.params) {
                 // Имена параметров объявлены в brick-файле: набор — Map, чтобы
-                // ни одно имя не терялось и не читалось с прототипа (BM-15)
+                // ни одно имя не терялось и не читалось с прототипа
                 params = new Map(
                     Object.entries(source.params)
                         .map(
@@ -337,7 +337,7 @@ export function useBricksDataSources() {
             }
 
             // Байтовый бюджет ответа применяется на уровне фетчера — потоковое
-            // чтение обрывается до JSON.parse (ре-ревью A-09); превышение
+            // чтение обрывается до JSON.parse; превышение
             // прилетает сюда ошибкой DataSourceResponseTooLargeError
             const response = await fetchDataSource(url, method, requestCache, signal);
 

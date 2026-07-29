@@ -162,7 +162,7 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
             selectedComponentDataForVariants.value?.component.props ?? selected.component.props;
         // Имя свойства объявляет brick-файл: `previewProps['toString']` вернул бы
         // метод прототипа, и приведение (number/array/object) считало бы, что у
-        // пропа уже есть значение (BM-15)
+        // пропа уже есть значение
         const currentValue = readOwnKey(previewProps as Record<string, unknown>, property.name);
         let finalValue: unknown = value;
 

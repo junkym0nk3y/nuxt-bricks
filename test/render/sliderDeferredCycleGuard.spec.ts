@@ -105,7 +105,7 @@ function collectDeferredSlides(
     return found;
 }
 
-describe('useRendererLayouts: цикл через отложенный renderSlide слайдера (аудит A-02)', () => {
+describe('useRendererLayouts: цикл через отложенный renderSlide слайдера', () => {
     it('цикл Slider A -> Grid B -> Slider A обрывается при deferred-вызове renderSlide', () => {
         const sliderA = makeSlider('a', ['b'], 'b');
         const gridB = makeGrid('b', ['a'], 'a');

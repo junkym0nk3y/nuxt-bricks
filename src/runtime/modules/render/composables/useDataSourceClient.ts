@@ -30,7 +30,7 @@ import { useRuntimeConfig } from '#imports';
  * Оговорка про SSR: относительный URL на сервере выполняется внутренним вызовом
  * Nitro, который `AbortSignal` не слушает, поэтому там инертны и `timeout`, и
  * общий дедлайн прогона на `AbortController`. Такой запрос ограничивает внешний
- * дедлайн `useAsyncData` в `useRendererDataSources` (BM-27). Абсолютные URL из
+ * дедлайн `useAsyncData` в `useRendererDataSources`. Абсолютные URL из
  * allow-list'а и клиентские запросы сигнал слушают штатно.
  *
  * Маршрутизация запросов та же, что у остального API: относительные URL на SSR
@@ -39,7 +39,7 @@ import { useRuntimeConfig } from '#imports';
  * dataSourcePolicy (allow-list хостов) и уходят напрямую.
  *
  * @returns Фетчер и параметры выполнения (allow-list, лимит одновременности,
- * бюджеты размера ответа/числа запросов/суммарного дедлайна — аудит A-09).
+ * бюджеты размера ответа/числа запросов/суммарного дедлайна).
  */
 export function useDataSourceClient() {
     const config = useRuntimeConfig();
@@ -74,7 +74,7 @@ export function useDataSourceClient() {
     /**
      * Фетчер data source: HTTP — через ofetch (baseURL/таймаут/без ретраев),
      * тело — потоковое чтение с байтовым бюджетом ДО JSON.parse (ре-ревью
-     * A-09: крупный ответ обрывается на чтении, а не замеряется после полной
+     * Крупный ответ обрывается на чтении, а не замеряется после полной
      * буферизации и разбора).
      *
      * @param url - Резолвленный URL запроса.
@@ -88,7 +88,7 @@ export function useDataSourceClient() {
     ): Promise<T> {
         // ignoreResponseError: дефолтный throw ofetch на 4xx/5xx оставил бы
         // поток тела непрочитанным и неотменённым — статус обрабатывается
-        // ниже сами, после освобождения потока (ре-ревью A-09)
+        // ниже сами, после освобождения потока
         const response = await rawDataSourceFetcher.raw(url, {
             ...options,
             responseType: 'stream',

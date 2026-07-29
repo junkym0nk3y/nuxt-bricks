@@ -10,7 +10,7 @@
  * `safari 16` (дефолтный `build.target` Vite 7, см. `.browserslistrc`), так что
  * `Object.hasOwn` (Safari 15.4) прошёл бы. Прежнее обоснование «в
  * `.browserslistrc` есть `ios_saf 11`» неверно: этот файл читает только
- * autoprefixer и на JS не влияет (BM-15 №6). Менять форму записи не на что —
+ * autoprefixer и на JS не влияет. Менять форму записи не на что —
  * поведение идентично.
  */
 

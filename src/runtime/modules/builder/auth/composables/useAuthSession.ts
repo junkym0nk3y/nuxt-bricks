@@ -41,7 +41,7 @@ export function useAuthSession() {
             method: 'POST',
             body: { username, password },
             // Короткая запись: общий потолок записи (30 с) держал бы кнопку формы
-            // втрое дольше нужного (BM-27)
+            // втрое дольше нужного
             timeout: BRICKS_AUTH_REQUEST_TIMEOUT_MS,
         });
 

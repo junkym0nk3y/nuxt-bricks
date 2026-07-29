@@ -250,7 +250,7 @@ describe('pagename билдера: rename, autosave, reload', () => {
 
         // Успешное сохранение: страница появилась на сервере, сохраняющий фиксирует
         // снапшот явно (сверив токен сессии) — раньше это делал watch на
-        // lastSuccessfulSaveAt, не знавший инициатора (BM-26)
+        // lastSuccessfulSaveAt, не знавший инициатора
         publishStore.publishedPages = [buildPage({ id: 5, pagename: 'draft-page' })];
         publishStore.startEditingPage(5);
         context.session.commitSavedSnapshot(context.sessionToken.capture());
@@ -292,7 +292,7 @@ describe('pagename билдера: rename, autosave, reload', () => {
         // Ответ на сохранение первой страницы: стор поднимает свою метку успеха.
         // Фиксацию снапшота она больше не запускает — её зовёт сам сохраняющий,
         // сверив токен сессии. Прежний watch на lastSuccessfulSaveAt объявил бы
-        // сохранённым снапшот второй страницы и удалил её черновик (BM-26)
+        // сохранённым снапшот второй страницы и удалил её черновик
         publishStore.lastSuccessfulSaveAt = Date.now();
         await nextTick();
 
@@ -325,7 +325,7 @@ describe('pagename билдера: rename, autosave, reload', () => {
         // Между проверкой токена у вызывающего и этим вызовом стоит
         // `await renameSession` (внутри — router.replace): перехваченная за это
         // время навигация иначе фиксировала бы снапшот чужой страницы и удаляла
-        // её черновик. Поэтому токен сверяет сама фиксация (BM-26, находка ревью)
+        // её черновик. Поэтому токен сверяет сама фиксация (находка ревью)
         context.session.commitSavedSnapshot(startedIn);
 
         expect(getBuilderDraft('second-page')?.draftSnapshot.formState.title).toBe('Правка второй');

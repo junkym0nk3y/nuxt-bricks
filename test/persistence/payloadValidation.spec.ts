@@ -292,7 +292,7 @@ describe('validateRestoreVersionPayload: precondition отката версии'
     });
 });
 
-describe('validateSchema: контракт графа компонентов (аудит A-02)', () => {
+describe('validateSchema: контракт графа компонентов', () => {
     // Полная матрица невалидных форм компонентов — в test/common/schemaContract.spec.ts;
     // здесь только smoke-проверка проводки контракта в create-валидацию.
     it('отклоняет циклический граф', () => {

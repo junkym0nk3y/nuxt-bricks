@@ -33,7 +33,7 @@ function seedDraft(pagename: string, title: string): void {
     });
 }
 
-describe('migrateBuilderDraft: перенос на новый pagename (BM-26)', () => {
+describe('migrateBuilderDraft: перенос на новый pagename', () => {
     beforeEach(() => {
         vi.stubGlobal('window', createWindowStub());
     });

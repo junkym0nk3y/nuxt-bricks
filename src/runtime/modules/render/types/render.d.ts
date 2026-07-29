@@ -9,7 +9,7 @@ export interface IRendererBrickResolverOptions {
 export interface IRendererProps {
     component: IBricksComponent;
     allComponents?: IBricksComponent[];
-    /** Ключ — `component.id` из схемы, поэтому контейнер — `Map` (BM-14). */
+    /** Ключ — `component.id` из схемы, поэтому контейнер — `Map`. */
     resolvedProps?: Map<string, Record<string, unknown>>;
 }
 

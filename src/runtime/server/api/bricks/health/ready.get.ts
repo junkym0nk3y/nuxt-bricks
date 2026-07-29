@@ -36,7 +36,7 @@ async function withTimeout(promise: Promise<void>, timeoutMs: number): Promise<v
 /**
  * GET /api/bricks/health/ready — readiness probe. Подтверждает готовность
  * persistence-адаптера; ни БД, ни external backend, ни кастомного адаптера →
- * 503 (аудит A-05). Наружу деталей не отдаёт — полная ошибка уходит в
+ * 503. Наружу деталей не отдаёт — полная ошибка уходит в
  * server-лог.
  */
 export default defineEventHandler(async (event) => {
@@ -57,7 +57,7 @@ export default defineEventHandler(async (event) => {
         const adapter = useBricksStorageAdapter();
 
         // Адаптер без checkHealth не считается готовым автоматически:
-        // fallback — минимальный реальный editorial-запрос (ре-ревью A-05)
+        // fallback — минимальный реальный editorial-запрос
         const probe = adapter.checkHealth
             ? adapter.checkHealth()
             : adapter.listPages().then(() => undefined);

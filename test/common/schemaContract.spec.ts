@@ -66,7 +66,7 @@ describe('validateSchemaComponentGraph: валидные схемы', () => {
     });
 });
 
-describe('validateSchemaComponentGraph: форма компонента (аудит A-02)', () => {
+describe('validateSchemaComponentGraph: форма компонента', () => {
     it.each([
         ['null-элемент', [null]],
         ['число', [42]],
@@ -108,7 +108,7 @@ describe('validateSchemaComponentGraph: форма компонента (ауд�
     });
 });
 
-describe('validateSchemaComponentGraph: связи и граф (аудит A-02)', () => {
+describe('validateSchemaComponentGraph: связи и граф', () => {
     it('отклоняет dangling parent', () => {
         const errors = validateSchemaComponentGraph([makeComponent('a', { parent: 'ghost' })]);
         expect(errors.join(' ')).toContain('ghost');

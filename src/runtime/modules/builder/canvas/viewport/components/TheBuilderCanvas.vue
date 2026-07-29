@@ -97,7 +97,7 @@ provide(INLINE_EDITOR_HOST_KEY, {
         }
 
         // Имя пропа объявляет brick-файл, объект пропсов приходит из схемы:
-        // `props['toString']` отдал бы редактору метод прототипа (BM-15)
+        // `props['toString']` отдал бы редактору метод прототипа
         return readOwnKey(component.props as Record<string, unknown>, propName);
     },
     updateProp: (componentId, propName, value) => {

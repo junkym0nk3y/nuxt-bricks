@@ -42,7 +42,7 @@ function encode(text: string): Uint8Array {
     return new TextEncoder().encode(text);
 }
 
-describe('readResponseWithinByteBudget (ре-ревью A-09: лимит до JSON.parse)', () => {
+describe('readResponseWithinByteBudget (лимит до JSON.parse)', () => {
     it('JSON в пределах бюджета разбирается в значение', async () => {
         const { response } = makeStreamedResponse([encode('{"items":'), encode('[1,2,3]}')]);
 
@@ -104,7 +104,7 @@ describe('readResponseWithinByteBudget (ре-ревью A-09: лимит до JS
         expect(wasCancelled()).toBe(true);
     });
 
-    it('prototype-pollution ключи отбрасываются (паттерн destr, ре-ревью A-09)', async () => {
+    it('prototype-pollution ключи отбрасываются (паттерн destr)', async () => {
         const { response } = makeStreamedResponse([
             encode(
                 '{"__proto__":{"polluted":1},"constructor":{"prototype":{"polluted":1}},"ok":1}'

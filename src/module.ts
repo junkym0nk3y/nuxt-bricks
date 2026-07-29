@@ -191,7 +191,7 @@ export default defineNuxtModule<IBricksModuleOptions>({
         // #region Манифест brick-компонентов и dev-вотчер
         const manifestDir = resolveBricksManifestDir(nuxt.options.buildDir);
         // Одна очередь на инстанс Nuxt: build:before и dev-вотчер не должны
-        // сканировать параллельно (см. BM-01 в docs/brick-manifest-followups.md)
+        // сканировать параллельно
         const manifestQueue = createBricksManifestQueue({
             srcDir: nuxt.options.srcDir,
             manifestDir,
@@ -272,8 +272,7 @@ export default defineNuxtModule<IBricksModuleOptions>({
                     await manifestQueue.enqueue();
 
                     // Метаданные бриков закешированы в useAsyncData('bricks-components') —
-                    // точечного HMR тут недостаточно (см. BM-19 в
-                    // docs/brick-manifest-followups.md)
+                    // точечного HMR тут недостаточно
                     viteClientServer?.hot.send({ type: 'full-reload' });
                 } catch (error) {
                     console.warn(

@@ -11,7 +11,7 @@
  *
  * Строгий component-shape контракт (id/componentName/type/…, ссылки,
  * ацикличность) — отдельный изоморфный модуль `validateSchemaComponentGraph`
- * (common/utils/bricks/schemaContract.ts, аудит A-02), подключается
+ * (common/utils/bricks/schemaContract.ts), подключается
  * `payloadValidation.ts` после лимитов сложности этого модуля.
  */
 import { invalid } from './payloadPrimitives';

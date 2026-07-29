@@ -12,7 +12,7 @@ import type { IBrickDataSource } from '../../src/runtime/modules/common/types/da
 // #endregion
 
 /**
- * BM-14 №1: аккумулятор resolved props строился как `result[component.id] ||= {}`.
+ * Аккумулятор resolved props строился как `result[component.id] ||= {}`.
  * Для `id === '__proto__'` это отдавало `Object.prototype` вместо новой корзины,
  * и пропсы датасорса записывались в глобальный прототип — на SSR-пути
  * published-страниц, то есть на весь процесс, а не на одну страницу.

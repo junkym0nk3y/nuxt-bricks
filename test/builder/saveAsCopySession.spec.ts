@@ -378,7 +378,7 @@ describe('Save as Copy: единый переход сессии', () => {
         expect(publishStore.getPageById(3)?.pagename).toBe('original-copy');
 
         // А форма и editingPageId принадлежат уже открытой странице: безусловный
-        // откат в finally вернул бы их к оригиналу (BM-26)
+        // откат в finally вернул бы их к оригиналу
         expect(publishStore.editingPageId).toBe(2);
         expect(publishStore.currentFormState.pagename).toBe('second');
         expect(routerBridge.route.params.pagename).toBe('second');

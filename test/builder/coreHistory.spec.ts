@@ -121,7 +121,7 @@ describe('serializeSchema / deserializeSchema', () => {
 });
 
 /**
- * BM-15 №1: own-ключ `__proto__` в пропсах непредставим в Nuxt payload — devalue
+ * Own-ключ `__proto__` в пропсах непредставим в Nuxt payload — devalue
  * бросает «Cannot stringify objects with `__proto__` keys», то есть роняет SSR и
  * билдера, и опубликованной страницы. `JSON.parse` такой ключ создаёт штатно,
  * так что схема из API или импортированного файла его приносит. Отбрасываем на

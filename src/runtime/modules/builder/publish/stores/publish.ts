@@ -136,8 +136,8 @@ export const usePublishStore = defineStore('bricksPublish', {
          * Обесценивает уже летящие запросы списка. Локальная запись свежее любого
          * GET'а, стартовавшего до неё: без этого ответ такого GET'а возвращал список
          * без только что созданной копии и с прежней revision — страница пропадала
-         * из дашборда, а следующее сохранение падало ложным 409 (BM-26, находка
-         * ревью: счётчик сам по себе упорядочивал только GET относительно GET).
+         * из дашборда, а следующее сохранение падало ложным 409 (находка ревью:
+         * счётчик сам по себе упорядочивал только GET относительно GET).
          */
         invalidatePendingPagesLoad(): void {
             this.pagesRequestId += 1;
@@ -230,7 +230,7 @@ export const usePublishStore = defineStore('bricksPublish', {
                 // Через ту же политику, что update/patch/restore: обрыв по таймауту
                 // не означает, что страница не удалена — по освежённому списку это
                 // видно, а иначе удалённая страница осталась бы в дашборде и повтор
-                // получил бы 404 (BM-27, находка ревью)
+                // получил бы 404 (находка ревью)
                 throw await toPageWriteError(error, () => this.loadAllPages());
             }
         },
@@ -244,7 +244,7 @@ export const usePublishStore = defineStore('bricksPublish', {
          * подсвечивало ошибку в сайдбаре той, что уже открыта. Каждый вызывающий
          * обрабатывает отказ сам: дашборд — своим тостом, bootstrap сессии —
          * блокирующим экраном, `toPageWriteError` — конфликтом ревизии, освежение
-         * после создания (`runPublishPage`) — предупреждением в консоль (BM-26).
+         * после создания (`runPublishPage`) — предупреждением в консоль.
          */
         async loadAllPages(): Promise<void> {
             const requestId = ++this.pagesRequestId;
@@ -409,7 +409,7 @@ export const usePublishStore = defineStore('bricksPublish', {
          * Публикует или обновляет текущий лендинг.
          *
          * @param schema - Схема лендинга из канваса.
-         * @param options - Проверка актуальности сессии-инициатора (BM-26).
+         * @param options - Проверка актуальности сессии-инициатора.
          * @returns ID страницы или null при ошибке.
          */
         async publishCurrentPage(
@@ -464,7 +464,7 @@ export const usePublishStore = defineStore('bricksPublish', {
          * Сохраняет текущую конфигурацию как копию страницы; сама синхронизирует список (без loadAllPages()).
          *
          * @param schema - Схема лендинга из канваса.
-         * @param options - Проверка актуальности сессии-инициатора (BM-26).
+         * @param options - Проверка актуальности сессии-инициатора.
          * @returns Нормализованная страница копии или null при ошибке.
          */
         async saveCurrentPageAsCopy(

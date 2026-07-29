@@ -24,7 +24,7 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
     // #region Data
     // Имена слотов приходят из brick-файла: в обычном объекте `slotStates['__proto__']`
     // читался бы как существующая корзина, и drag-обработчики писали бы
-    // dragDepth/isDragOver/dropInsertIndex в `Object.prototype` (BM-14)
+    // dragDepth/isDragOver/dropInsertIndex в `Object.prototype`
     const slotStates = reactive(new Map<string, ISlotState>());
     const slotContainerRefs = new Map<string, HTMLElement>();
     const isCanvasDragActive = inject(CANVAS_DRAG_ACTIVE_KEY, null);

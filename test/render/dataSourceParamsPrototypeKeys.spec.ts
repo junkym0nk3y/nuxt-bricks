@@ -8,7 +8,7 @@ import type { IBrickDataSource } from '../../src/runtime/modules/common/types/da
 // #endregion
 
 /**
- * BM-14 №6: подстановка параметров data source сверяла имена через `in`
+ * Подстановка параметров data source сверяла имена через `in`
  * и через `segment in acc` в `getValueByPath`. Плейсхолдер `:toString` и путь
  * `component.constructor` считались разрешёнными и подставлялись членами
  * `Object.prototype`, то есть запрос уходил по URL с исходником функции
@@ -139,7 +139,7 @@ describe('executeDataSource: имена параметров из Object.prototy
     });
 
     /**
-     * BM-15 №4/№5: набор параметров собирался `toSafeRecord`, а тот отбрасывает
+     * Набор параметров собирался `toSafeRecord`, а тот отбрасывает
      * own-ключ `__proto__` — плейсхолдер `:__proto__` оставался неразрешённым и
      * запрос молча пропускался. Прежняя версия кейса брала `url: '/api/items/:id'`
      * и не различала реализации: `:id` не резолвился в любой из них.

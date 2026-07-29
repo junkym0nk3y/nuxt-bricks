@@ -83,7 +83,7 @@ async function verifyCredentials(
  * POST /api/bricks/auth/login — вход по username/password (database-режим).
  * Успех: создаёт cookie-сессию и возвращает { user: { id, username } }.
  * Неуспех — единый 401 'Invalid credentials' (нет юзера / неверный пароль /
- * деактивирован). Двухуровневый rate limit (аудит A-04): 5 неудач за 15 минут
+ * деактивирован). Двухуровневый rate limit: 5 неудач за 15 минут
  * по ip|username, 30 неудач за то же окно по IP (сменяемые username) → 429 c
  * Retry-After; IP-lockout проверяется до scrypt. scrypt-верификация — под
  * bounded-семафором (`scryptGate`), переполнение очереди → 503.

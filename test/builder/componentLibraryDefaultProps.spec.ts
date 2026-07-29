@@ -7,7 +7,7 @@ import type { IComponentLibraryItem } from '../../src/runtime/modules/common/typ
 // #endregion
 
 /**
- * BM-14 №5: `defaultProps` собирались присваиванием в аккумулятор
+ * `defaultProps` собирались присваиванием в аккумулятор
  * (`acc[key] = val.default`). Имена пропов объявляет brick-файл, поэтому
  * `values.__proto__` подменял прототип собираемого объекта вместо записи ключа.
  */

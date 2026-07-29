@@ -20,7 +20,7 @@ import { usePublishStore } from '../../src/runtime/modules/builder/publish/store
 const buildPage = createPageBuilder({ socialImage: '' });
 const buildFormState = createFormStateBuilder();
 
-describe('usePublishStore.loadAllPages: общий кеш списка (BM-26)', () => {
+describe('usePublishStore.loadAllPages: общий кеш списка', () => {
     beforeEach(() => {
         setActivePinia(createPinia());
         apiFetcherMock.mockReset();
@@ -149,7 +149,7 @@ describe('usePublishStore.loadAllPages: общий кеш списка (BM-26)',
 
         try {
             // GET списка не отвечает и не падает. `await` держал бы `isSubmitting`
-            // поднятым до его собственного потолка (BM-27) — а флаг общий и
+            // поднятым до его собственного потолка — а флаг общий и
             // блокирует сохранение в той сессии, куда пользователь успел уйти
             const createdId = await store.publishPage(
                 { components: [] },
@@ -164,7 +164,7 @@ describe('usePublishStore.loadAllPages: общий кеш списка (BM-26)',
         }
     });
 
-    it('обрыв удаления по таймауту освежает список (BM-27)', async () => {
+    it('обрыв удаления по таймауту освежает список', async () => {
         const store = usePublishStore();
         store.publishedPages = [buildPage({ id: 21, pagename: 'doomed' })];
 

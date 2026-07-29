@@ -80,7 +80,7 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
 
     // Токен сессии, в которой открыли галерею: выбор применяется к панели свойств
     // и сайдбару текущей страницы, а сама галерея телепортирована в body — то есть
-    // лежит вне `inert`-барьера рабочей области (BM-23) и переживает смену сессии
+    // лежит вне `inert`-барьера рабочей области и переживает смену сессии
     let mediaGalleryToken: number | null = null;
     // #endregion
 
@@ -184,7 +184,7 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
         // не касается: `startEditingPage` переписал бы форму, `commitSavedSnapshot`
         // объявил бы её черновик лишним и удалил его, снимок превью снял бы чужой
         // канвас, а `renameSession` увёл бы URL. Факт записи при этом сообщаем —
-        // страница пользователя действительно сохранена (BM-26)
+        // страница пользователя действительно сохранена
         const isCurrent = sessionToken.isCurrent(startedIn);
 
         if (result !== null) {
@@ -272,7 +272,7 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
 
         // Пользователь ушёл на другую страницу, пока летел POST: копия создана и
         // уже в списке — факт сообщаем, но переводить на неё чужую сессию нельзя,
-        // а снимок превью снял бы чужой канвас (BM-26)
+        // а снимок превью снял бы чужой канвас
         if (!isCurrent) {
             showToast(copySavedMessage, 'success');
             return;
@@ -284,7 +284,7 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
         // Fire-and-forget: у копии свой S3-ключ превью — снимаем сразу после сохранения.
         // Токен — от старта Save as Copy: `switchToSavedPage` выше ждёт
         // `router.replace`, и перехваченная за это время навигация иначе дала бы
-        // съёмку чужого канваса под id копии (BM-26, раунд 2 ревью)
+        // съёмку чужого канваса под id копии (находка ревью)
         captureAndUploadThumbnail(copy.id, startedIn);
     }
 
@@ -345,7 +345,7 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
     function handleMediaSelect(item: IMediaItem): void {
         // Второй барьер к сбросу ниже: уезжающая модалка ещё может отдать клик, а
         // цели выбора (панель свойств, сайдбар, inline-редактор) принадлежат уже
-        // другой странице — как у модалки восстановления в BM-23
+        // другой странице — как и у модалки восстановления черновика
         if (mediaGalleryToken !== null && !sessionToken.isCurrent(mediaGalleryToken)) {
             handleCloseMediaGallery();
             return;
@@ -379,14 +379,14 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
 
     // #region Session reset
     // Поверхности, телепортированные в body, лежат вне `.workspace`, поэтому
-    // барьер `inert` из BM-23 их не закрывает и они переживают смену сессии:
+    // барьер `inert` рабочей области их не закрывает и они переживают смену сессии:
     // резолвер импорта, открытый на странице A, подтверждается уже на B и кладёт
     // её схему на чужой канвас; галерея тем же путём пишет `socialImage` или проп
     // компонента через контекст выбора прежней страницы; inline-редактирование
     // остаётся привязанным к компоненту, которого на новом канвасе нет
     // (`loadSchema` сбрасывает только `selectedComponent`). Проверки готовности
     // здесь мало — к моменту подтверждения новая сессия уже готова, — поэтому
-    // открытие сессии гасит их явно (BM-26).
+    // открытие сессии гасит их явно.
     //
     // flush: 'sync' — сброс обязан произойти в момент инвалидации токена, а не на
     // следующем тике: `openBuilderSession` сразу уходит в await, и отложенный
@@ -416,7 +416,7 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
         // Сброса выше недостаточно: до показа модалки резолвер ждёт загрузку
         // медиа-галереи, и если новых изображений в схеме нет, он возвращает её без
         // модалки вовсе — гасить в этом окне нечего, а схема прежней страницы легла
-        // бы на канвас новой (BM-26)
+        // бы на канвас новой
         if (!resolved || !sessionToken.isCurrent(startedIn)) {
             return;
         }

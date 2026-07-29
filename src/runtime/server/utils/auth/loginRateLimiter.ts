@@ -1,7 +1,7 @@
 /**
  * In-memory rate limiter логина database-auth и невалидных Basic-креденшелов.
  *
- * Двухуровневая схема (аудит A-04):
+ * Двухуровневая схема:
  * - Уровень 1 — ключ `${ip}|${username.toLowerCase()}`: 5 неудач за 15 минут →
  *   lockout на 15 минут (перебор пароля для одного username).
  * - Уровень 2 — ключ `ip:${ip}` (buildIpRateLimitKey): 30 неудач за то же окно →
@@ -140,7 +140,7 @@ export function registerFailure(key: string, maxFailures: number = MAX_FAILURES)
 
 /**
  * Регистрирует неудачную попытку на IP-bucket (порог MAX_IP_FAILURES) —
- * второй уровень против перебора username (аудит A-04).
+ * второй уровень против перебора username.
  */
 export function registerIpFailure(ip: string): void {
     registerFailure(buildIpRateLimitKey(ip), MAX_IP_FAILURES);

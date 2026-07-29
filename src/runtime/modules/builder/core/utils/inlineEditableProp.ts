@@ -56,7 +56,7 @@ function capitalize(str: string): string {
  * Имя поля объявляет brick-файл, а пропсы приходят из схемы: `showWhen.field`
  * вида `toString` без own-ключа вернул бы метод прототипа, и сравнение с
  * `equals` было бы ложным при любой схеме — свойство молча пропадало бы из
- * inline-редактирования (BM-15).
+ * inline-редактирования.
  *
  * @param propConfig - Конфиг свойства из brick.
  * @param componentProps - Текущие props компонента.

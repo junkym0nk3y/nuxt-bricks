@@ -14,7 +14,7 @@ import type { IPublishedPage } from '../../src/runtime/modules/common/types/bric
 // #region Mocks
 const { dataSourceFetcherMock, dataSourceClientConfig, findImportModuleMock } = vi.hoisted(() => ({
     dataSourceFetcherMock: vi.fn(),
-    // Мутируемый конфиг клиента: тесты бюджета (аудит A-09) переопределяют
+    // Мутируемый конфиг клиента: тесты бюджета переопределяют
     // maxResponseBytes/maxRequestsPerPage/timeoutMs перед вызовом композаблов.
     dataSourceClientConfig: {
         timeoutMs: 10000,
@@ -246,7 +246,7 @@ describe('useBricksDataSources.executeDataSource', () => {
     // Redaction prod-логов при ошибке запроса проверяется в
     // test/render/dataSourceLogging.spec.ts (более сильная версия с SECRET-маркером).
 
-    it('per-request таймаут действует и при переданном общем shared signal (аудит A-09 review)', async () => {
+    it('per-request таймаут действует и при переданном общем shared signal', async () => {
         dataSourceClientConfig.timeoutMs = 25;
         // Фетчер имитирует поведение ofetch: висит вечно, но реагирует на abort
         // переданного сигнала (per-request таймаут должен его абортить сам,
@@ -277,8 +277,8 @@ describe('useBricksDataSources.executeDataSource', () => {
         );
     });
 
-    it('ответ больше maxResponseBytes — результат null, prop не мержится (аудит A-09)', async () => {
-        // Бюджет применяется внутри фетчера потоковым чтением (ре-ревью A-09);
+    it('ответ больше maxResponseBytes — результат null, prop не мержится', async () => {
+        // Бюджет применяется внутри фетчера потоковым чтением;
         // для executeDataSource превышение — ошибка DataSourceResponseTooLargeError
         dataSourceFetcherMock.mockRejectedValue(new DataSourceResponseTooLargeError(5000, 10));
         const { executeDataSource } = useBricksDataSources();
@@ -294,7 +294,7 @@ describe('useBricksDataSources.executeDataSource', () => {
     });
 });
 
-describe('useRendererDataSources: бюджет запросов на прогон (аудит A-09)', () => {
+describe('useRendererDataSources: бюджет запросов на прогон', () => {
     afterEach(() => {
         vi.restoreAllMocks();
         vi.useRealTimers();
@@ -304,7 +304,7 @@ describe('useRendererDataSources: бюджет запросов на прого�
         dataSourceClientConfig.totalDeadlineMs = 15000;
     });
 
-    it('зависший источник не отбирает у страницы уже полученные props (BM-27)', async () => {
+    it('зависший источник не отбирает у страницы уже полученные props', async () => {
         vi.useFakeTimers();
         vi.spyOn(console, 'warn').mockImplementation(() => undefined);
         dataSourceClientConfig.totalDeadlineMs = 50;

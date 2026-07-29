@@ -12,7 +12,7 @@ import type { IBrickDataSource } from '../../src/runtime/modules/common/types/da
 // #endregion
 
 /**
- * Регрессия аудита A-02 (round 2): `useRendererDataSources` итерировал
+ * Регрессия структурного контракта схемы: `useRendererDataSources` итерировал
  * СЫРЫЕ `page.schema.components` и обращался к `component.brickPath` без
  * shape-guard'а — повреждённая строка БД вида `[null, 42, {...}]` роняла SSR
  * TypeError'ом до самого рендера (см. `dataSourcesReady` await в
@@ -102,7 +102,7 @@ function makePage(components: unknown[]): IPublishedPage {
     };
 }
 
-describe('useRendererDataSources: повреждённая схема не роняет SSR (аудит A-02)', () => {
+describe('useRendererDataSources: повреждённая схема не роняет SSR', () => {
     it('пропускает null/примитивы, собирает data sources только для валидного компонента', async () => {
         const validComponent = makeValidComponent();
         const dataSource: IBrickDataSource = {

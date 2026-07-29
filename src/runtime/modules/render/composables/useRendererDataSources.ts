@@ -39,7 +39,7 @@ export interface IRendererDataSources {
     /**
      * Слепок смёрдженных пропсов для всех компонентов с учётом data sources.
      * Ключ — `component.id` из схемы, поэтому контейнер — `Map`: обычный объект
-     * при `id === '__proto__'` принял бы пропсы в глобальный прототип (BM-14).
+     * при `id === '__proto__'` принял бы пропсы в глобальный прототип.
      */
     resolvedProps: ComputedRef<Map<string, Record<string, unknown>>>;
     /** Перезапускает выполнение data sources (например, при live-обновлении схемы). */
@@ -127,7 +127,7 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
 
         // Собираем все data sources, объявленные в brick-файлах компонентов.
         // Строка БД могла быть повреждена или записана в обход контракта
-        // схемы (аудит A-02): мусорные элементы (null/примитивы/объекты без
+        // схемы: мусорные элементы (null/примитивы/объекты без
         // id+componentName) пропускаются, а не роняют SSR обращением к
         // component.brickPath.
         for (const component of page.value.schema.components) {
@@ -162,7 +162,7 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
             }
 
             // Бюджет запросов на прогон: излишек отбрасывается с логом,
-            // а не выполняется молча (аудит A-09)
+            // а не выполняется молча
             const limitedRequests = requests.slice(0, maxRequestsPerPage);
 
             if (limitedRequests.length < requests.length) {
@@ -195,7 +195,7 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
 
             // Аккумулятор на Map'ах: и id компонента, и имена пропсов приходят
             // из схемы и brick-файла, а `result[id] ||= {}` для `'__proto__'`
-            // отдал бы `Object.prototype` вместо новой корзины (BM-14)
+            // отдал бы `Object.prototype` вместо новой корзины
             const result = new Map<string, Map<string, unknown>>();
 
             try {
@@ -210,7 +210,7 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
                 // прогона, — тогда ниже возвращается то, что успело дойти. Внешний
                 // дедлайн (`useAsyncData({ timeout })`) для этого не годится: он
                 // отклоняет handler целиком, и успевшие props пропадают вместе с
-                // зависшими (BM-27, находка ревью)
+                // зависшими (находка ревью)
                 await withPromiseDeadline(
                     runWithConcurrencyLimit(
                         limitedRequests.map(({ component, source }) => async () => {

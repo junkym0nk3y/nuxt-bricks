@@ -10,7 +10,7 @@ import { useSlotDragDrop } from '../../src/runtime/modules/builder/canvas/item/c
 // #endregion
 
 /**
- * BM-14 №3: состояния слотов лежали в `reactive<Record<string, ISlotState>>({})`,
+ * Состояния слотов лежали в `reactive<Record<string, ISlotState>>({})`,
  * а имена слотов приходят из brick-файла. Для `'__proto__'` `ensureSlotState`
  * принимал `Object.prototype` за уже созданную корзину, и drag-обработчики
  * писали `dragDepth`/`isDragOver`/`dropInsertIndex` в глобальный прототип:

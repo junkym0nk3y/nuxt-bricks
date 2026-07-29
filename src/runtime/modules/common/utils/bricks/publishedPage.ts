@@ -76,7 +76,7 @@ export function matchesPageUrlPrefix(
 
 /**
  * Проверяет соответствие subdomain страницы фактическому хосту запроса
- * (аудит A-08: прежний `includes` матчил notpromo.example под "promo").
+ * (прежний `includes` матчил notpromo.example под "promo").
  * Хост нормализуется URL-парсером (порт, регистр, trailing dot); значение
  * без точек сравнивается с первым label hostname, с точками — с полным
  * hostname (явный mapping). Ожидаются ASCII-slug значения — punycode-хосты

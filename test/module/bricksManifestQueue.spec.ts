@@ -255,9 +255,9 @@ describe('манифест бриков: атомарная публикация
         const after = await generateBricksManifest({ srcDir, manifestDir });
 
         expect(after.bricks).toEqual(before.bricks);
-        // Хеш по инвентарю (до BM-06) на этой правке не менялся, то есть по нему
+        // Хеш по инвентарю записей на этой правке не менялся, то есть по нему
         // нельзя было отличить правку values от повторного скана — ради этого
-        // хеш и считается от исходников (потребитель приедет в BM-19)
+        // хеш и считается от исходников
         expect(after.hash).not.toBe(before.hash);
     });
 
@@ -267,7 +267,7 @@ describe('манифест бриков: атомарная публикация
         const first = await generateBricksManifest({ srcDir, manifestDir });
         const second = await generateBricksManifest({ srcDir, manifestDir });
 
-        // Иначе сверка хешей (BM-19) считала бы изменением каждое событие вотчера
+        // Иначе сверка хешей считала бы изменением каждое событие вотчера
         expect(second.hash).toBe(first.hash);
     });
 

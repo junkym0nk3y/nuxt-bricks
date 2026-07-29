@@ -93,7 +93,7 @@ describe('handlerHelpers: generic 500-envelope', () => {
     });
 });
 
-describe('handlerHelpers: readNormalizedBody требует application/json (аудит A-03)', () => {
+describe('handlerHelpers: readNormalizedBody требует application/json', () => {
     it('не-JSON content-type (например form/text) — 415, до чтения тела', async () => {
         const event = makeEvent({ 'content-type': 'text/plain' });
 

@@ -36,7 +36,7 @@ const THUMBNAIL_MAX_FRAMES = 2;
  * Fire-and-forget: любые ошибки гасятся `console.warn`, сохранение страницы не блокируется.
  *
  * @param sessionToken - Токен сессии: снимок канваса принадлежит той странице, из
- * которой запрос ушёл (BM-26).
+ * которой запрос ушёл.
  */
 export function usePageThumbnail(sessionToken: IBuilderSessionToken): IUsePageThumbnailReturn {
     const componentsStore = useComponentsStore();
@@ -80,7 +80,7 @@ export function usePageThumbnail(sessionToken: IBuilderSessionToken): IUsePageTh
                 // Семантически чтение, выполненное POST'ом: потолок чуть выше
                 // собственного лимита ручки, чтобы наверх доехала её ошибка. Без
                 // него зависший ресурс не давал бы `domToBlob` уладиться вовсе —
-                // библиотека ждёт fetchFn по каждому ресурсу (BM-27)
+                // библиотека ждёт fetchFn по каждому ресурсу
                 timeout: BRICKS_S3_PROXY_TIMEOUT_MS,
             }).then(
                 (response) => response.dataUrl || false,
@@ -100,7 +100,7 @@ export function usePageThumbnail(sessionToken: IBuilderSessionToken): IUsePageTh
      * сохранения, и «старт операции» — это момент, когда сохранение началось.
      * Со снятым на месте токеном все проверки ниже становятся пустыми, если сама
      * съёмка запущена уже после смены сессии, — так и было у `handleSaveAsCopy`,
-     * который зовёт её после `await switchToSavedPage` (BM-26, раунд 2 ревью).
+     * который зовёт её после `await switchToSavedPage` (находка ревью).
      *
      * Границ три, и каждая отвечает за своё: на входе — до первой мутации общего
      * стора; после подготовительных await — до чтения живого DOM; после
@@ -118,7 +118,7 @@ export function usePageThumbnail(sessionToken: IBuilderSessionToken): IUsePageTh
             // `deselectComponent`, а это запись в общий стор — сброс выделения,
             // выключение interactive preview и скрытие панели свойств. Вызванная из
             // вытесненного сохранения, она снимала бы выделение на канвасе уже
-            // другой страницы (BM-26, раунд 3 ревью)
+            // другой страницы (находка ревью)
             if (!sessionToken.isCurrent(startedIn)) {
                 return;
             }
@@ -137,7 +137,7 @@ export function usePageThumbnail(sessionToken: IBuilderSessionToken): IUsePageTh
             // `pageId` зафиксирован на старте, а снимается живой DOM канваса: после
             // перехода кадр принадлежал бы уже другой странице, и превью сохранённой
             // патчилось бы чужим содержимым. Эта проверка экономит работу — саму
-            // подмену ловит проверка после съёмки (BM-26)
+            // подмену ловит проверка после съёмки
             if (!sessionToken.isCurrent(startedIn)) {
                 return;
             }
@@ -168,7 +168,7 @@ export function usePageThumbnail(sessionToken: IBuilderSessionToken): IUsePageTh
             // (`waitUntilLoad`), и только потом идёт `cloneNode`
             // (modern-screenshot 4.7, index.mjs:452 и :1497). Переход внутри этого
             // окна означает, что снят уже канвас другой страницы, — такой кадр
-            // нельзя грузить под зафиксированный `pageId` (BM-26, находка ревью)
+            // нельзя грузить под зафиксированный `pageId` (находка ревью)
             if (!sessionToken.isCurrent(startedIn)) {
                 return;
             }

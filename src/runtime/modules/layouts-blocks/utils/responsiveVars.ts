@@ -25,7 +25,7 @@ export function toRem(v: unknown): string {
  *
  * `overrides` приходит из `props.responsive` схемы, поэтому проверка идёт по
  * own-ключу: `in` заглядывает в прототип, и имя свойства, совпавшее с членом
- * `Object.prototype`, считалось бы переопределённым (BM-15).
+ * `Object.prototype`, считалось бы переопределённым.
  *
  * @param base - Базовое (desktop) значение.
  * @param overrides - Объект overrides конкретного device.

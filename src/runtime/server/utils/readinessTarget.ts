@@ -1,5 +1,5 @@
 /**
- * Выбор persistence-пути для readiness probe (аудит A-05): конфигурация без
+ * Выбор persistence-пути для readiness probe: конфигурация без
  * БД и без адаптера означает, что editorial CRUD фактически отвечает 500 —
  * readiness обязан быть 503, а не зелёным.
  */

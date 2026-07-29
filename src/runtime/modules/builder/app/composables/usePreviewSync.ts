@@ -38,7 +38,7 @@ const NON_SCHEMA_ACTIONS = new Set([
  * с debounce 300ms; канал закрывается при unmount.
  *
  * @param sessionToken - Токен сессии: открытие другой страницы обрывает синк,
- * иначе её схема уезжала бы под именем прежней (BM-26).
+ * иначе её схема уезжала бы под именем прежней.
  */
 export function usePreviewSync(sessionToken: IBuilderSessionToken) {
     const componentsStore = useComponentsStore();
@@ -163,7 +163,7 @@ export function usePreviewSync(sessionToken: IBuilderSessionToken) {
     // Открытие другой страницы обрывает синк. Канал и `previewPagename` живут
     // дольше сессии, поэтому схема новой страницы уезжала в localStorage и
     // BroadcastChannel под именем прежней — превью-вкладка показывала чужой
-    // контент под своим слагом (BM-26). Вкладка просто перестаёт обновляться:
+    // контент под своим слагом. Вкладка просто перестаёт обновляться:
     // её `request-schema` дальше отсекается сравнением с pagename формы.
     // flush: 'sync' — сброс обязан произойти в момент инвалидации токена, до
     // того как `openBuilderSession` уйдёт в await и схема сменится на канвасе

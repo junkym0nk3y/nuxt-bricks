@@ -29,7 +29,7 @@ export function useBrickImports(): IUseBrickImportsReturn {
      * `brickPath` приходит из схемы страницы, поэтому lookup — только по
      * own-ключу: иначе `"__proto__"` вернул бы `Object.prototype`,
      * а `"constructor"` — функцию `Object`, и оба ушли бы наружу как «лоадер»
-     * без записи о промахе (BM-14).
+     * без записи о промахе.
      *
      * @param brickPath - Значение `brickPath`, сохранённое в схеме.
      * @returns Функция-лоадер Vite или `undefined`, если файла нет.

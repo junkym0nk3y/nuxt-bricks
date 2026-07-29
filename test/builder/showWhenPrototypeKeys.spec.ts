@@ -15,7 +15,7 @@ import type { ISelectedComponentData } from '../../src/runtime/modules/builder/s
 // #endregion
 
 /**
- * BM-15 №3: условие `showWhen` сверялось как `componentProps[showWhen.field]`.
+ * Условие `showWhen` сверялось как `componentProps[showWhen.field]`.
  * Имя поля объявляет brick-файл, объект пропсов приходит из схемы, поэтому поле
  * с именем члена `Object.prototype` возвращало метод прототипа: сравнение с
  * `equals` было ложным при любой схеме, и зависимый проп молча пропадал —

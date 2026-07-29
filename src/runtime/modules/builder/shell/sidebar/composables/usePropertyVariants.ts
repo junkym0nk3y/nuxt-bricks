@@ -117,7 +117,7 @@ export function usePropertyVariants(
      *
      * Имя поля объявляет brick-файл: без сверки own-ключа `showWhen.field` вида
      * `constructor` вернул бы член прототипа, сравнение с `equals` было бы
-     * ложным при любой схеме, и свойство молча исчезало бы из панели (BM-15).
+     * ложным при любой схеме, и свойство молча исчезало бы из панели.
      */
     function shouldRenderProperty(
         property: IPropertyDefinition,

@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { combineAbortSignals } from '../../src/runtime/modules/common/utils/abortSignals';
 // #endregion
 
-describe('combineAbortSignals (аудит A-09 review)', () => {
+describe('combineAbortSignals', () => {
     it('единственный сигнал возвращается как есть', () => {
         const controller = new AbortController();
 

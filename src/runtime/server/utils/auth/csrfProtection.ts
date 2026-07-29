@@ -1,5 +1,5 @@
 /**
- * CSRF-защита unsafe-запросов bricks-API (аудит A-03).
+ * CSRF-защита unsafe-запросов bricks-API.
  *
  * Session-cookie SameSite=Lax не покрывает same-site sibling-домены, а Basic
  * Auth браузер автоповторяет — поэтому unsafe-методы на поверхностях модуля
@@ -8,8 +8,8 @@
  * (схема + hostname + порт; дефолтный порт схемы опускается) заголовка Origin
  * с эффективным origin запроса — эффективный протокол берётся из TLS-состояния
  * сокета либо из последнего хопа x-forwarded-proto при bricks.trustProxy,
- * эффективный host — из Host / последнего хопа x-forwarded-host (ре-ревью
- * A-03: http-origin не same-origin для https-поверхности). Сервис на другом
+ * эффективный host — из Host / последнего хопа x-forwarded-host (находка ревью:
+ * http-origin не same-origin для https-поверхности). Сервис на другом
  * порту/схеме того же хоста same-origin не считается. Запрос без признаков
  * происхождения отклоняется 403.
  */

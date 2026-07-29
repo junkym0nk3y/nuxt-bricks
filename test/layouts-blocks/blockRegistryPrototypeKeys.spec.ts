@@ -13,7 +13,7 @@ import {
 /**
  * `componentName` схемы проходит контракт как любая непустая строка, поэтому
  * lookup в BLOCK_REGISTRY по имени члена `Object.prototype` не должен выдавать
- * прототип за definition блока (BM-14).
+ * прототип за definition блока.
  */
 const PROTOTYPE_KEYS = ['__proto__', 'constructor', 'toString', 'hasOwnProperty'] as const;
 

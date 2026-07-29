@@ -96,7 +96,7 @@ export function useSidebarMediaSelection(options: IUseSidebarMediaSelectionOptio
         }
 
         const property = context.property;
-        // Имя пропа объявляет brick-файл, пропсы приходят из схемы (BM-15)
+        // Имя пропа объявляет brick-файл, пропсы приходят из схемы
         const currentValue = readOwnKey(selected.component.props, property.name);
         const currentSegments = Array.isArray(currentValue)
             ? (currentValue as IInlineContentSegment[])
@@ -139,7 +139,7 @@ export function useSidebarMediaSelection(options: IUseSidebarMediaSelectionOptio
         item: IMediaItem
     ): void {
         const property = context.property;
-        // Имя пропа объявляет brick-файл, пропсы приходят из схемы (BM-15)
+        // Имя пропа объявляет brick-файл, пропсы приходят из схемы
         const currentValue = readOwnKey(selected.component.props, property.name);
         const currentItems = Array.isArray(currentValue) ? (currentValue as IGalleryItem[]) : [];
 

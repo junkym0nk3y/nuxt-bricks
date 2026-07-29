@@ -50,7 +50,7 @@ function createHarness(components: IBricksComponent[]) {
     return { api, calls };
 }
 
-describe('useRendererLayouts: защита от циклов и глубины (аудит A-02)', () => {
+describe('useRendererLayouts: защита от циклов и глубины', () => {
     it('двухузловой цикл завершается, а не рекурсирует бесконечно', () => {
         const a = makeGrid('a', ['b'], 'b');
         const b = makeGrid('b', ['a'], 'a');

@@ -7,8 +7,9 @@ import type { IComponentLibraryData } from '../../src/runtime/modules/builder/ap
 // #endregion
 
 /**
- * BM-18 оставил форму данных `useAsyncData('bricks-components')` как `{ hash, items }`
- * — заготовку под BM-19. Наружу композабл отдаёт только список, поэтому перенос
+ * Форма данных `useAsyncData('bricks-components')` — `{ hash, items }`: хеш лежит
+ * рядом со списком заготовкой под будущую сверку хешей в dev. Наружу композабл
+ * отдаёт только список, поэтому перенос
  * хеша из ответа ручки в данные проверяется через мок `useAsyncData`: без этого
  * кейса подмена `response?.hash` на константу оставалась бы незамеченной.
  */
