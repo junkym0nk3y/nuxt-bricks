@@ -228,7 +228,16 @@ watch(
             categoryFilter.value = 'all';
             searchQuery.value = '';
             loadMediaItems();
+            return;
         }
+
+        // Подтверждение удаления рендерится вне `BricksModal` галереи, то есть
+        // её закрытие его не снимает: диалог оставался висеть поверх приложения —
+        // в том числе поверх уже другой сессии билдера, когда галерею гасит сброс
+        // из BM-26. Лайтбокс живёт внутри модалки и размонтируется сам, но его
+        // `previewItem` иначе всплывал бы при следующем открытии галереи
+        isDeleteConfirmOpen.value = false;
+        previewItem.value = null;
     }
 );
 // #endregion

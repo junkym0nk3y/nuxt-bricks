@@ -342,6 +342,48 @@ describe('Save as Copy: единый переход сессии', () => {
         expect(context.pagename.sessionPagename.value).toBe('fresh-page');
     });
 
+    it('копия, доехавшая после открытия другой страницы, не откатывает её форму', async () => {
+        const context = mountTracked();
+        const publishStore = usePublishStore();
+
+        serverPages = [
+            buildPage({ id: 1, pagename: 'original', title: 'Original' }),
+            buildPage({ id: 2, pagename: 'second', title: 'Second' }),
+        ];
+        publishStore.publishedPages = [...serverPages];
+        await context.session.openBuilderSession('original');
+        expect(publishStore.editingPageId).toBe(1);
+
+        // Save as Copy уходит из сессии оригинала — так же, как handleSaveAsCopy:
+        // токен снимается на старте и отдаётся стору проверкой
+        isPostDeferred = true;
+        const startedIn = context.sessionToken.capture();
+        const saving = publishStore.saveCurrentPageAsCopy(
+            { components: [] },
+            { isInitiatorCurrent: () => context.sessionToken.isCurrent(startedIn) }
+        );
+        await nextTick();
+
+        // Пока летит POST, пользователь открывает другую страницу
+        routerBridge.route.params.pagename = 'second';
+        await context.session.openBuilderSession('second');
+        expect(publishStore.editingPageId).toBe(2);
+
+        const created = buildPage({ id: 3, pagename: 'original-copy', title: 'Original (copy)' });
+        (await deferred.waitFor('/api/bricks/')).resolve(created);
+        const copy = await saving;
+
+        // Копия создана и попала в общий список — это не сессионное состояние
+        expect(copy?.pagename).toBe('original-copy');
+        expect(publishStore.getPageById(3)?.pagename).toBe('original-copy');
+
+        // А форма и editingPageId принадлежат уже открытой странице: безусловный
+        // откат в finally вернул бы их к оригиналу (BM-26)
+        expect(publishStore.editingPageId).toBe(2);
+        expect(publishStore.currentFormState.pagename).toBe('second');
+        expect(routerBridge.route.params.pagename).toBe('second');
+    });
+
     it('ошибка saveCurrentPageAsCopy (валидация) не переключает сессию', async () => {
         const context = mountTracked();
         const publishStore = usePublishStore();

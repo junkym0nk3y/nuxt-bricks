@@ -13,6 +13,7 @@ import { effectScope } from 'vue';
 import { useBuilderPagename } from '../../src/runtime/modules/builder/app/composables/useBuilderPagename';
 import { useBuilderPagenameSync } from '../../src/runtime/modules/builder/app/composables/useBuilderPagenameSync';
 import { useBuilderSession } from '../../src/runtime/modules/builder/app/composables/useBuilderSession';
+import { useBuilderSessionToken } from '../../src/runtime/modules/builder/app/composables/useBuilderSessionToken';
 import { useBuilderDraftPersistence } from '../../src/runtime/modules/builder/app/composables/useBuilderDraftPersistence';
 // #endregion
 
@@ -111,11 +112,13 @@ export function mountBuilderContext(): IBuilderContext {
 
     const context = scope.run(() => {
         const pagename = useBuilderPagename();
+        const sessionToken = useBuilderSessionToken();
         const session = useBuilderSession({
             routePagename: pagename.routePagename,
             sessionPagename: pagename.sessionPagename,
             showToast: showToastMock,
             renameSession: pagename.renameSession,
+            sessionToken,
         });
         useBuilderDraftPersistence({
             routePagename: pagename.routePagename,
@@ -130,7 +133,7 @@ export function mountBuilderContext(): IBuilderContext {
             renameSession: pagename.renameSession,
             isSessionReady: session.isSessionReady,
         });
-        return { pagename, session };
+        return { pagename, session, sessionToken };
     });
 
     if (!context) {

@@ -248,12 +248,87 @@ describe('pagename билдера: rename, autosave, reload', () => {
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
         expect(getBuilderDraft('draft-page')).not.toBeNull();
 
-        // Успешное сохранение: страница появилась на сервере, стор фиксирует сохранение
+        // Успешное сохранение: страница появилась на сервере, сохраняющий фиксирует
+        // снапшот явно (сверив токен сессии) — раньше это делал watch на
+        // lastSuccessfulSaveAt, не знавший инициатора (BM-26)
         publishStore.publishedPages = [buildPage({ id: 5, pagename: 'draft-page' })];
         publishStore.startEditingPage(5);
-        publishStore.lastSuccessfulSaveAt = Date.now();
+        context.session.commitSavedSnapshot(context.sessionToken.capture());
         await nextTick();
 
         expect(getBuilderDraft('draft-page')).toBeNull();
+    });
+
+    it('сохранение, доехавшее после открытия другой страницы, её черновик не трогает', async () => {
+        const context = mountTracked();
+        const publishStore = usePublishStore();
+
+        // Обе страницы существующие: только в edit-режиме черновик сверяется с
+        // savedSnapshot, то есть только там поздняя фиксация его и удаляла
+        publishStore.publishedPages = [
+            buildPage({ id: 5, pagename: 'first-page' }),
+            buildPage({ id: 7, pagename: 'second-page' }),
+        ];
+
+        routerBridge.route.params.pagename = 'first-page';
+        await context.session.openBuilderSession('first-page');
+        expect(publishStore.editingPageId).toBe(5);
+
+        publishStore.setCurrentFormField('title', 'Правка первой');
+        await nextTick();
+        await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
+        expect(getBuilderDraft('first-page')).not.toBeNull();
+
+        // Пользователь ушёл на другую страницу, не дождавшись ответа сервера
+        routerBridge.route.params.pagename = 'second-page';
+        await context.session.openBuilderSession('second-page');
+        expect(publishStore.editingPageId).toBe(7);
+
+        publishStore.setCurrentFormField('title', 'Правка второй');
+        await nextTick();
+        await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
+        expect(getBuilderDraft('second-page')).not.toBeNull();
+
+        // Ответ на сохранение первой страницы: стор поднимает свою метку успеха.
+        // Фиксацию снапшота она больше не запускает — её зовёт сам сохраняющий,
+        // сверив токен сессии. Прежний watch на lastSuccessfulSaveAt объявил бы
+        // сохранённым снапшот второй страницы и удалил её черновик (BM-26)
+        publishStore.lastSuccessfulSaveAt = Date.now();
+        await nextTick();
+
+        expect(getBuilderDraft('second-page')?.draftSnapshot.formState.title).toBe('Правка второй');
+        expect(getBuilderDraft('first-page')?.draftSnapshot.formState.title).toBe('Правка первой');
+    });
+
+    it('фиксация снапшота с токеном прежней сессии — no-op', async () => {
+        const context = mountTracked();
+        const publishStore = usePublishStore();
+
+        publishStore.publishedPages = [
+            buildPage({ id: 5, pagename: 'first-page' }),
+            buildPage({ id: 7, pagename: 'second-page' }),
+        ];
+
+        routerBridge.route.params.pagename = 'first-page';
+        await context.session.openBuilderSession('first-page');
+
+        // Токен снят на старте сохранения первой страницы
+        const startedIn = context.sessionToken.capture();
+
+        routerBridge.route.params.pagename = 'second-page';
+        await context.session.openBuilderSession('second-page');
+        publishStore.setCurrentFormField('title', 'Правка второй');
+        await nextTick();
+        await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
+        expect(getBuilderDraft('second-page')).not.toBeNull();
+
+        // Между проверкой токена у вызывающего и этим вызовом стоит
+        // `await renameSession` (внутри — router.replace): перехваченная за это
+        // время навигация иначе фиксировала бы снапшот чужой страницы и удаляла
+        // её черновик. Поэтому токен сверяет сама фиксация (BM-26, находка ревью)
+        context.session.commitSavedSnapshot(startedIn);
+
+        expect(getBuilderDraft('second-page')?.draftSnapshot.formState.title).toBe('Правка второй');
+        expect(context.session.savedSnapshot.value?.formState.title).not.toBe('Правка второй');
     });
 });

@@ -84,6 +84,12 @@ export function removeBuilderDraft(pagename: string): void {
 /**
  * Переносит черновик билдера на новый pagename.
  *
+ * Занятый ключ назначения не перезаписывается: под ним лежит черновик другой
+ * страницы, и перенос уничтожал бы его молча (BM-26). Исходная запись при отказе
+ * остаётся на месте — потерь на самом переносе нет. Остаток осознан: автосейв
+ * сессии через ~800 мс всё равно займёт новый ключ, но это уже обычное «сессия
+ * владеет своим ключом», а не тихая подмена во время rename.
+ *
  * @param fromPagename - Старый pagename.
  * @param toPagename - Новый pagename.
  */
@@ -101,6 +107,14 @@ export function migrateBuilderDraft(fromPagename: string, toPagename: string): v
 
     const raw = window.localStorage.getItem(fromKey);
     if (!raw) {
+        return;
+    }
+
+    if (window.localStorage.getItem(toKey) !== null) {
+        console.warn('[Publish Store] Builder draft migration skipped: target key is taken', {
+            fromKey,
+            toKey,
+        });
         return;
     }
 

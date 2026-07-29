@@ -7,6 +7,7 @@
 | `useBuilderPage.ts`             | Фасад страницы билдера: собирает бизнес-логику, отдаёт компоненту только нужные состояния                                                                     |
 | `useBuilderPagename.ts`         | Владелец pagename: `routePagename` (URL) + `sessionPagename` (ключ черновиков), `renameSession` (миграция + router.replace)                                   |
 | `useBuilderSession.ts`          | Сессия: открытие страницы по pagename, обнаружение черновика, модалка восстановления, `isSessionReady` для автосейва; rename не переоткрывает сессию          |
+| `useBuilderSessionToken.ts`     | Токен сессии: операция снимает его на старте и сверяет перед записью результата; инкрементами владеет `useBuilderSession` (открытие + dispose)                |
 | `useBuilderDraftPersistence.ts` | Автосохранение черновика в localStorage (debounce 800ms) по ключу `sessionPagename`, сброс на `pagehide` и остановке scope, удаление при отсутствии изменений |
 | `useBuilderPagenameSync.ts`     | Синхронизация URL с pagename формы публикации (debounce 600ms → `renameSession`; guards: reserved/занятые pagename)                                           |
 | `useBuilderShortcuts.ts`        | Горячие клавиши: Delete/Backspace, Ctrl/Cmd+C/V, undo/redo, Escape (сброс выбора)                                                                             |

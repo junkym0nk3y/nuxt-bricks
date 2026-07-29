@@ -74,11 +74,55 @@ export function requirePageRevision(
 }
 
 /**
+ * Предел ожидания обновления списка перед показом конфликта ревизии. Пять секунд:
+ * нормальный refresh успевает, а зависший запрос не превращает конфликт в
+ * бессрочный spinner. Прецедент дедлайна на неотвечающий запрос — BM-23.
+ */
+const PAGE_CONFLICT_REFRESH_TIMEOUT_MS = 5000;
+
+/**
+ * Ждёт обновления списка перед показом конфликта, но не дольше дедлайна.
+ *
+ * Ответ здесь нужен по существу — с ним повторная попытка уйдёт со свежей
+ * revision, — поэтому в отличие от освежения после создания (`currentPageWrite`)
+ * запрос не просто отпускается. Но и ждать его бесконечно нельзя: прикладного
+ * таймаута у запросов нет (`useApiClient` не задаёт ни `timeout`, ни
+ * `AbortSignal`), а до возврата отсюда не отработает `finally`, снимающий общий
+ * `isSubmitting` — зависший GET блокировал бы сохранение и в той сессии, куда
+ * пользователь успел уйти (BM-26). Отказ гасится по той же причине, что и раньше:
+ * конфликт показываем в любом случае.
+ *
+ * Размен по истечении дедлайна: конфликт показан со старой revision, и немедленный
+ * повтор может получить второй 409. Сам запрос при этом продолжает лететь и
+ * обновит список позже — а поздний ответ уже не затрёт локальные записи, их
+ * отсекает счётчик `pagesRequestId`.
+ *
+ * @param refreshPages - Колбэк обновления списка страниц.
+ */
+async function refreshPagesWithinDeadline(refreshPages: () => Promise<void>): Promise<void> {
+    let deadlineTimer: ReturnType<typeof setTimeout> | null = null;
+    const deadline = new Promise<void>((resolve) => {
+        deadlineTimer = setTimeout(resolve, PAGE_CONFLICT_REFRESH_TIMEOUT_MS);
+    });
+
+    try {
+        await Promise.race([refreshPages(), deadline]);
+    } catch {
+        // best-effort: не смогли обновить список — конфликт всё равно показываем
+    } finally {
+        if (deadlineTimer !== null) {
+            clearTimeout(deadlineTimer);
+        }
+    }
+}
+
+/**
  * Приводит ошибку записи страницы к пользовательскому виду: конфликт
  * optimistic locking превращается в локализованное сообщение, а перед этим
- * best-effort обновляется список страниц (свежие revision) — повторное
- * сохранение уйдёт с актуальным precondition и осознанно перезапишет
- * чужие изменения. Прочие ошибки возвращаются как есть.
+ * обновляется список страниц (свежие revision) — повторное сохранение уйдёт с
+ * актуальным precondition и осознанно перезапишет чужие изменения. Обновление
+ * ограничено дедлайном, см. `refreshPagesWithinDeadline`. Прочие ошибки
+ * возвращаются как есть.
  *
  * @param error - Исходная ошибка запроса.
  * @param refreshPages - Колбэк обновления списка страниц.
@@ -92,9 +136,7 @@ export async function toPageWriteError(
         return error instanceof Error ? error : new Error(String(error));
     }
 
-    await refreshPages().catch(() => {
-        // best-effort: не смогли обновить список — конфликт всё равно показываем
-    });
+    await refreshPagesWithinDeadline(refreshPages);
 
     return new Error(translate('bricks.publish.toasts.revisionConflict'));
 }

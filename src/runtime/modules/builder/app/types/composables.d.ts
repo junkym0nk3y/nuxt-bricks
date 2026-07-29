@@ -50,6 +50,32 @@ export interface IUseBuilderPagenameReturn {
 }
 
 /**
+ * Токен сессии билдера: снимается операцией на старте и сверяется перед
+ * применением результата и побочных эффектов. Реализация —
+ * `useBuilderSessionToken`; инкременты принадлежат только `useBuilderSession`.
+ */
+export interface IBuilderSessionToken {
+    /** Текущее значение — для watch'ей сброса поверхностей, переживающих сессию. */
+    token: ComputedRef<number>;
+    /** Снимает токен на старте операции. */
+    capture: () => number;
+    /** Актуальна ли сессия, в которой операция началась. */
+    isCurrent: (captured: number) => boolean;
+    /** Гасит все начатые операции: новое открытие сессии, dispose экземпляра. */
+    invalidate: () => void;
+}
+
+/**
+ * Фиксирует текущее состояние сессии как сохранённое: новый `savedSnapshot` и
+ * удаление черновика по актуальному ключу. Реализация —
+ * `useBuilderSession.commitSavedSnapshot`; зовётся явно из обоих путей записи
+ * (обычное сохранение и переход на копию), см. BM-26. Принимает токен сессии,
+ * снятый на старте сохранения, и сверяет его сам — между проверкой у вызывающего
+ * и фиксацией стоит `await renameSession`.
+ */
+export type TCommitSavedSnapshot = (capturedToken: number) => void;
+
+/**
  * Опции composable useBuilderSession.
  */
 export interface IBuilderSessionOptions {
@@ -57,6 +83,7 @@ export interface IBuilderSessionOptions {
     sessionPagename: Ref<string>;
     showToast: TShowToast;
     renameSession: TRenameBuilderSession;
+    sessionToken: IBuilderSessionToken;
 }
 
 /**
@@ -122,19 +149,37 @@ export interface IThumbnailUploadResponse {
  * Возвращаемое значение composable usePageThumbnail.
  */
 export interface IUsePageThumbnailReturn {
-    captureAndUploadThumbnail: (pageId: string | number) => Promise<void>;
+    captureAndUploadThumbnail: (pageId: string | number, startedIn: number) => Promise<void>;
 }
 // #endregion
 
 // #region useBuilderPage
 /**
- * Мост media-запросов inline-редактора (editor → media-галерея).
+ * Мост inline-редактора (editor → media-галерея и сброс сессии).
  * Собирается composition root'ом из editor-store, чтобы builder-ядро не импортировало editor.
  */
 export interface IInlineMediaBridge {
     isRequestingMedia: ComputedRef<boolean>;
     resolveMediaRequest: (item: IMediaItem) => void;
     cancelMediaRequest: () => void;
+    /**
+     * Гасит inline-редактирование. Его состояние переживает смену схемы канваса:
+     * `loadSchema` сбрасывает только `selectedComponent`, а `componentId` и
+     * экземпляр редактора остаются от компонента, которого на новом канвасе
+     * уже нет (BM-26).
+     */
+    cancelInlineEditing: () => void;
+}
+
+/**
+ * Опции composable useBuilderPage.
+ */
+export interface IBuilderPageOptions {
+    inlineMediaBridge: IInlineMediaBridge;
+    renameSession: TRenameBuilderSession;
+    switchToSavedPage: TSwitchToSavedPage;
+    commitSavedSnapshot: TCommitSavedSnapshot;
+    sessionToken: IBuilderSessionToken;
 }
 
 /**

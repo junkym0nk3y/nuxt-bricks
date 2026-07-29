@@ -20,6 +20,7 @@ import { useInlineEditingStore } from '../../../text-editor/stores/inlineEditing
 import { useBuilderPage } from '../composables/useBuilderPage';
 import { useBuilderPagename } from '../composables/useBuilderPagename';
 import { useBuilderSession } from '../composables/useBuilderSession';
+import { useBuilderSessionToken } from '../composables/useBuilderSessionToken';
 import { useBuilderDraftPersistence } from '../composables/useBuilderDraftPersistence';
 import { useBuilderPagenameSync } from '../composables/useBuilderPagenameSync';
 import { useBuilderToast } from '../../core/composables/useBuilderToast';
@@ -76,6 +77,11 @@ const { routePagename, sessionPagename, renameSession } = useBuilderPagename();
 // useBuilderPage (switchToSavedPage требуется useBuilderPage для Save as Copy)
 const { showToast } = useBuilderToast();
 
+// Токен сессии — общая точка отсечения операций, которые начинаются в одной
+// сессии и завершаются в другой (сохранение, снимок превью, синк превью-вкладки,
+// портальные модалки). Инкрементами владеет useBuilderSession, остальные читают
+const sessionToken = useBuilderSessionToken();
+
 // Сессия билдера: открытие страницы, черновики, модалка восстановления,
 // единый переход на сохранённую копию (switchToSavedPage)
 const {
@@ -85,24 +91,28 @@ const {
     isRestoreDraftModalOpen,
     savedSnapshot,
     buildCurrentSnapshot,
+    commitSavedSnapshot,
     switchToSavedPage,
     openBuilderSession,
     retryBuilderSession,
     handleRestoreDraft,
     handleDiscardDraft,
-} = useBuilderSession({ routePagename, sessionPagename, showToast, renameSession });
+} = useBuilderSession({ routePagename, sessionPagename, showToast, renameSession, sessionToken });
 
-// Мост media-запросов inline-редактора: editor подключается только здесь (composition root)
+// Мост inline-редактора: editor подключается только здесь (composition root)
 const inlineEditingStore = useInlineEditingStore();
-const builder = await useBuilderPage(
-    {
+const builder = await useBuilderPage({
+    inlineMediaBridge: {
         isRequestingMedia: computed(() => inlineEditingStore.isRequestingMedia),
         resolveMediaRequest: (item) => inlineEditingStore.resolveMediaRequest(item),
         cancelMediaRequest: () => inlineEditingStore.cancelMediaRequest(),
+        cancelInlineEditing: () => inlineEditingStore.stopEditing(),
     },
     renameSession,
-    switchToSavedPage
-);
+    switchToSavedPage,
+    commitSavedSnapshot,
+    sessionToken,
+});
 
 const {
     componentLibraryList,

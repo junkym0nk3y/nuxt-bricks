@@ -1,5 +1,9 @@
 // Types
-import type { IThumbnailUploadResponse, IUsePageThumbnailReturn } from '../types/composables';
+import type {
+    IBuilderSessionToken,
+    IThumbnailUploadResponse,
+    IUsePageThumbnailReturn,
+} from '../types/composables';
 
 // Vue
 import { nextTick } from 'vue';
@@ -24,8 +28,11 @@ const THUMBNAIL_MAX_FRAMES = 2;
  * Снапшот канваса для превью страницы в дашборде /bricks: снимает DOM канваса
  * (modern-screenshot, lazy-чанк билдера), загружает в S3 и патчит `thumbnailUrl` страницы.
  * Fire-and-forget: любые ошибки гасятся `console.warn`, сохранение страницы не блокируется.
+ *
+ * @param sessionToken - Токен сессии: снимок канваса принадлежит той странице, из
+ * которой запрос ушёл (BM-26).
  */
-export function usePageThumbnail(): IUsePageThumbnailReturn {
+export function usePageThumbnail(sessionToken: IBuilderSessionToken): IUsePageThumbnailReturn {
     const componentsStore = useComponentsStore();
     const publishStore = usePublishStore();
 
@@ -78,10 +85,33 @@ export function usePageThumbnail(): IUsePageThumbnailReturn {
      * Снимает канвас, загружает снапшот в S3 и сохраняет `thumbnailUrl` страницы PATCH'ем.
      * Пустая схема пропускается (в канвасе — только watermark пустого состояния).
      *
+     * Токен приходит от вызывающего, а не снимается здесь: съёмка — хвост
+     * сохранения, и «старт операции» — это момент, когда сохранение началось.
+     * Со снятым на месте токеном все проверки ниже становятся пустыми, если сама
+     * съёмка запущена уже после смены сессии, — так и было у `handleSaveAsCopy`,
+     * который зовёт её после `await switchToSavedPage` (BM-26, раунд 2 ревью).
+     *
+     * Границ три, и каждая отвечает за своё: на входе — до первой мутации общего
+     * стора; после подготовительных await — до чтения живого DOM; после
+     * `domToBlob` — до отправки результата. Ни одна не дублирует другую.
+     *
      * @param pageId - Идентификатор сохранённой страницы.
+     * @param startedIn - Токен сессии, снятый на старте сохранения.
      */
-    async function captureAndUploadThumbnail(pageId: string | number): Promise<void> {
+    async function captureAndUploadThumbnail(
+        pageId: string | number,
+        startedIn: number
+    ): Promise<void> {
         try {
+            // Проверка стоит до любого действия, а не только до съёмки: первым идёт
+            // `deselectComponent`, а это запись в общий стор — сброс выделения,
+            // выключение interactive preview и скрытие панели свойств. Вызванная из
+            // вытесненного сохранения, она снимала бы выделение на канвасе уже
+            // другой страницы (BM-26, раунд 3 ревью)
+            if (!sessionToken.isCurrent(startedIn)) {
+                return;
+            }
+
             if (!import.meta.client || componentsStore.sortedComponents.length === 0) {
                 return;
             }
@@ -90,13 +120,22 @@ export function usePageThumbnail(): IUsePageThumbnailReturn {
             componentsStore.deselectComponent();
             await nextTick();
 
+            // Lazy import: библиотека попадает только в чанк билдера (bundle firewall)
+            const { domToBlob } = await import('modern-screenshot');
+
+            // `pageId` зафиксирован на старте, а снимается живой DOM канваса: после
+            // перехода кадр принадлежал бы уже другой странице, и превью сохранённой
+            // патчилось бы чужим содержимым. Эта проверка экономит работу — саму
+            // подмену ловит проверка после съёмки (BM-26)
+            if (!sessionToken.isCurrent(startedIn)) {
+                return;
+            }
+
             const node = findCanvasNode();
             if (!node) {
                 return;
             }
 
-            // Lazy import: библиотека попадает только в чанк билдера (bundle firewall)
-            const { domToBlob } = await import('modern-screenshot');
             const blob = await domToBlob(node, {
                 scale: Math.min(1, THUMBNAIL_TARGET_WIDTH / node.offsetWidth),
                 type: 'image/jpeg',
@@ -112,6 +151,16 @@ export function usePageThumbnail(): IUsePageThumbnailReturn {
                 style: { transform: 'none', margin: '0', boxShadow: 'none', borderRadius: '0' },
                 fetchFn: createProxyFetchFn(),
             });
+
+            // Решающая проверка: `domToBlob` клонирует DOM не сразу. Сначала
+            // `createContext` ждёт загрузку всех `img`/`video` канваса
+            // (`waitUntilLoad`), и только потом идёт `cloneNode`
+            // (modern-screenshot 4.7, index.mjs:452 и :1497). Переход внутри этого
+            // окна означает, что снят уже канвас другой страницы, — такой кадр
+            // нельзя грузить под зафиксированный `pageId` (BM-26, находка ревью)
+            if (!sessionToken.isCurrent(startedIn)) {
+                return;
+            }
 
             const formData = new FormData();
             formData.append('file', blob, `page-${pageId}.jpg`);

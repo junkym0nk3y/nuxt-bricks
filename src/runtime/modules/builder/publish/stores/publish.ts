@@ -8,6 +8,7 @@ import type {
     TPublishedPageSummary,
     TPublishFormState,
 } from '../../../common/types/bricks-api';
+import type { IPublishOperationOptions } from '../types/publishStore';
 import { DEFAULT_LAYOUT } from '../../../common/utils/bricks/publishedPage';
 import {
     buildCopyFormState,
@@ -20,7 +21,11 @@ import { validatePublishFormState } from '../utils/formValidation';
 import { requirePageRevision, toPageWriteError } from '../utils/requestErrors';
 import { restorePageVersionWithPrecondition } from '../utils/pageVersionRestore';
 import {
-    publishPageRequest,
+    runPublishCurrentPage,
+    runPublishPage,
+    runSaveCurrentPageAsCopy,
+} from '../utils/currentPageWrite';
+import {
     updatePageRequest,
     patchPageRequest,
     deletePageRequest,
@@ -54,6 +59,9 @@ export const usePublishStore = defineStore('bricksPublish', {
         isSubmitting: false,
         editingPageId: null as string | number | null,
         lastSuccessfulSaveAt: 0,
+        // Номер последнего стартовавшего запроса списка — им отсекаются ответы,
+        // пришедшие не в том порядке, в каком уходили (см. loadAllPages)
+        pagesRequestId: 0,
     }),
 
     getters: {
@@ -92,23 +100,14 @@ export const usePublishStore = defineStore('bricksPublish', {
         },
 
         /**
-         * Публикует новую страницу через API и перезагружает список страниц.
+         * Публикует новую страницу — см. `utils/currentPageWrite.runPublishPage`.
          *
          * @param schema - Схема лендинга.
          * @param formState - Данные формы публикации.
+         * @returns ID созданной страницы.
          */
         async publishPage(schema: IBricksSchema, formState: TPublishFormState): Promise<number> {
-            try {
-                const response = await publishPageRequest(schema, formState);
-                console.log('[Publish Store] Page published successfully:', response);
-
-                await this.loadAllPages();
-
-                return response.id;
-            } catch (error: unknown) {
-                console.error('[Publish Store] Failed to publish page:', error);
-                throw error;
-            }
+            return await runPublishPage(this, schema, formState);
         },
 
         /**
@@ -129,6 +128,19 @@ export const usePublishStore = defineStore('bricksPublish', {
             } else {
                 this.publishedPages.splice(index, 1, summary);
             }
+
+            this.invalidatePendingPagesLoad();
+        },
+
+        /**
+         * Обесценивает уже летящие запросы списка. Локальная запись свежее любого
+         * GET'а, стартовавшего до неё: без этого ответ такого GET'а возвращал список
+         * без только что созданной копии и с прежней revision — страница пропадала
+         * из дашборда, а следующее сохранение падало ложным 409 (BM-26, находка
+         * ревью: счётчик сам по себе упорядочивал только GET относительно GET).
+         */
+        invalidatePendingPagesLoad(): void {
+            this.pagesRequestId += 1;
         },
 
         /**
@@ -211,6 +223,8 @@ export const usePublishStore = defineStore('bricksPublish', {
                 if (index !== -1) {
                     this.publishedPages.splice(index, 1);
                 }
+
+                this.invalidatePendingPagesLoad();
             } catch (error: unknown) {
                 console.error('[Publish Store] Failed to delete page:', error);
                 throw error;
@@ -219,12 +233,32 @@ export const usePublishStore = defineStore('bricksPublish', {
 
         /**
          * Загружает список всех страниц.
+         *
+         * Ошибку только бросает: `generalError` — поле формы публикации, и запись
+         * туда доносила текст чужой страницы до открытой. Запрос списка уходит из
+         * bootstrap'а сессии, поэтому падение загрузки на покинутой странице
+         * подсвечивало ошибку в сайдбаре той, что уже открыта. Каждый вызывающий
+         * обрабатывает отказ сам: дашборд — своим тостом, bootstrap сессии —
+         * блокирующим экраном, `toPageWriteError` — конфликтом ревизии, освежение
+         * после создания (`runPublishPage`) — предупреждением в консоль (BM-26).
          */
         async loadAllPages(): Promise<void> {
+            const requestId = ++this.pagesRequestId;
+
             try {
-                this.publishedPages = await fetchAllPagesRequest();
+                const pages = await fetchAllPagesRequest();
+
+                // Устаревший ответ не заменяет более свежий список: два запроса
+                // в полёте — обычное дело (уход с одной страницы на другую,
+                // сохранение параллельно с открытием), а порядок ответов не
+                // гарантирован. С устаревшим списком расходятся и point-lookup
+                // по pagename, и проверка занятости слага, и дашборд
+                if (requestId !== this.pagesRequestId) {
+                    return;
+                }
+
+                this.publishedPages = pages;
             } catch (error: unknown) {
-                this.generalError = (error as Error).message;
                 console.error('[Publish Store] Failed to load pages:', error);
                 throw error;
             }
@@ -371,33 +405,19 @@ export const usePublishStore = defineStore('bricksPublish', {
          * Публикует или обновляет текущий лендинг.
          *
          * @param schema - Схема лендинга из канваса.
+         * @param options - Проверка актуальности сессии-инициатора (BM-26).
          * @returns ID страницы или null при ошибке.
          */
-        async publishCurrentPage(schema: IBricksSchema): Promise<string | number | null> {
-            if (!this.validateCurrentFormState()) {
-                return null;
-            }
-
-            this.isSubmitting = true;
-            this.generalError = '';
-
-            try {
-                if (this.editingPageId !== null) {
-                    await this.updatePage(this.editingPageId, schema, this.currentFormState);
-                    this.lastSuccessfulSaveAt = Date.now();
-                    return this.editingPageId;
-                }
-
-                const createdId = await this.publishPage(schema, this.currentFormState);
-                this.lastSuccessfulSaveAt = Date.now();
-                return createdId;
-            } catch (error: unknown) {
-                console.error('[Publish Store] publishCurrentPage failed:', error);
-                this.generalError = (error as Error)?.message || t('bricks.publish.publishFailed');
-                return null;
-            } finally {
-                this.isSubmitting = false;
-            }
+        async publishCurrentPage(
+            schema: IBricksSchema,
+            options?: IPublishOperationOptions
+        ): Promise<string | number | null> {
+            return await runPublishCurrentPage(
+                this,
+                schema,
+                t('bricks.publish.publishFailed'),
+                options
+            );
         },
 
         /**
@@ -440,60 +460,19 @@ export const usePublishStore = defineStore('bricksPublish', {
          * Сохраняет текущую конфигурацию как копию страницы; сама синхронизирует список (без loadAllPages()).
          *
          * @param schema - Схема лендинга из канваса.
+         * @param options - Проверка актуальности сессии-инициатора (BM-26).
          * @returns Нормализованная страница копии или null при ошибке.
          */
-        async saveCurrentPageAsCopy(schema: IBricksSchema): Promise<IPublishedPage | null> {
-            const originalFormState = { ...this.currentFormState };
-            const originalEditingPageId = this.editingPageId;
-            const originalValidationErrors = { ...this.validationErrors };
-            const originalGeneralError = this.generalError;
-
-            const copyPagename = generateCopyPagename(originalFormState.pagename, (candidate) =>
-                this.isPagenameAvailable(candidate)
+        async saveCurrentPageAsCopy(
+            schema: IBricksSchema,
+            options?: IPublishOperationOptions
+        ): Promise<IPublishedPage | null> {
+            return await runSaveCurrentPageAsCopy(
+                this,
+                schema,
+                t('bricks.publish.copyFailedRetry'),
+                options
             );
-            const copyTitle = originalFormState.title
-                ? `${originalFormState.title} (copy)`
-                : originalFormState.title;
-
-            this.editingPageId = null;
-            this.currentFormState = {
-                ...originalFormState,
-                pagename: copyPagename,
-                title: copyTitle,
-                published: false,
-                createdAt: '',
-                updatedAt: '',
-            };
-            this.validationErrors = {};
-            this.generalError = '';
-
-            if (!this.validateCurrentFormState()) {
-                this.currentFormState = originalFormState;
-                this.editingPageId = originalEditingPageId;
-                this.validationErrors = { ...originalValidationErrors };
-                this.generalError = originalGeneralError;
-                return null;
-            }
-
-            this.isSubmitting = true;
-            try {
-                const created = await publishPageRequest(schema, this.currentFormState);
-                this.syncPageInList(created);
-                this.generalError = originalGeneralError;
-                return created;
-            } catch (error: unknown) {
-                console.error('[Publish Store] saveCurrentPageAsCopy failed:', error);
-                // generalError НЕ восстанавливается в finally — ошибка копии
-                // должна пережить откат формы и дойти до пользователя
-                this.generalError =
-                    (error as Error)?.message || t('bricks.publish.copyFailedRetry');
-                return null;
-            } finally {
-                this.isSubmitting = false;
-                this.currentFormState = originalFormState;
-                this.editingPageId = originalEditingPageId;
-                this.validationErrors = { ...originalValidationErrors };
-            }
         },
     },
 });

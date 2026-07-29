@@ -3,6 +3,7 @@ import type { vi } from 'vitest';
 
 import type { useBuilderPagename } from '../../src/runtime/modules/builder/app/composables/useBuilderPagename';
 import type { useBuilderSession } from '../../src/runtime/modules/builder/app/composables/useBuilderSession';
+import type { IBuilderSessionToken } from '../../src/runtime/modules/builder/app/types/composables';
 
 /**
  * Контекст, который отдаёт `mountBuilderContext`: scope для очистки и заведённые
@@ -12,6 +13,8 @@ export interface IBuilderContext {
     scope: EffectScope;
     pagename: ReturnType<typeof useBuilderPagename>;
     session: ReturnType<typeof useBuilderSession>;
+    /** Токен сессии этого экземпляра — им тесты сверяют операции вне useBuilderSession. */
+    sessionToken: IBuilderSessionToken;
     showToastMock: ReturnType<typeof vi.fn>;
 }
 

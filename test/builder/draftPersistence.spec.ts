@@ -205,10 +205,12 @@ describe('черновик билдера: автосейв и сброс при
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
         expect(getBuilderDraft('draft-page')).not.toBeNull();
 
-        // Успешное сохранение: страница появилась на сервере, черновик снят
+        // Успешное сохранение: страница появилась на сервере, черновик снят.
+        // Фиксацию зовёт сам сохраняющий (useBuilderPage), сверив токен сессии, —
+        // здесь воспроизводится этот вызов
         publishStore.publishedPages = [buildPage({ id: 5, pagename: 'draft-page' })];
         publishStore.startEditingPage(5);
-        publishStore.lastSuccessfulSaveAt = Date.now();
+        context.session.commitSavedSnapshot(context.sessionToken.capture());
         await nextTick();
         expect(getBuilderDraft('draft-page')).toBeNull();
 

@@ -1,12 +1,13 @@
 // #region Imports
 // Vitest
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 // Utils
 import {
     RequestError,
     isRevisionConflictError,
     requirePageRevision,
+    toPageWriteError,
     toRequestError,
 } from '../../src/runtime/modules/builder/publish/utils/requestErrors';
 // #endregion
@@ -104,5 +105,46 @@ describe('requirePageRevision: precondition отката версии', () => {
         expect(() => requirePageRevision({ revision: undefined }, 'restore failed')).toThrow(
             'restore failed'
         );
+    });
+});
+
+describe('toPageWriteError: обновление списка перед показом конфликта (BM-26)', () => {
+    // Резолверы «зависших» запросов: отпускаем их в afterEach, чтобы кейс не
+    // оставлял после себя вечно ожидающий промис
+    const hungResolvers: Array<() => void> = [];
+
+    /**
+     * Имитирует неотвечающий запрос: промис не завершается до конца кейса.
+     */
+    function hangingRequest(): Promise<void> {
+        return new Promise<void>((resolve) => {
+            hungResolvers.push(resolve);
+        });
+    }
+
+    afterEach(() => {
+        vi.useRealTimers();
+        hungResolvers.splice(0).forEach((resolve) => resolve());
+    });
+
+    it('зависшее обновление не удерживает конфликт дольше дедлайна', async () => {
+        vi.useFakeTimers();
+
+        // Обновление списка не отвечает и не падает. Без дедлайна `toPageWriteError`
+        // не вернулся бы вовсе, а вместе с ним не отработал бы `finally`, снимающий
+        // общий `isSubmitting` — тулбар остался бы заблокирован и в той сессии, куда
+        // пользователь успел уйти
+        const conversion = toPageWriteError(
+            new RequestError('conflict', 409, 'REVISION_CONFLICT'),
+            hangingRequest
+        );
+
+        await vi.runAllTimersAsync();
+
+        // Промис уже улажен — race с готовым значением отдаёт именно его
+        const settled = await Promise.race([conversion, Promise.resolve(null)]);
+
+        expect(settled).toBeInstanceOf(Error);
+        expect((settled as Error).message).toBe('bricks.publish.toasts.revisionConflict');
     });
 });

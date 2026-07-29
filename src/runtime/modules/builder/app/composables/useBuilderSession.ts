@@ -42,7 +42,7 @@ const SESSION_BOOTSTRAP_TIMEOUT_MS = 30000;
  * Первичное открытие — на стороне вызывающего (onMounted, см. [pagename].vue).
  */
 export function useBuilderSession(options: IBuilderSessionOptions) {
-    const { routePagename, sessionPagename, showToast, renameSession } = options;
+    const { routePagename, sessionPagename, showToast, renameSession, sessionToken } = options;
 
     const { t } = useI18n();
     const componentsStore = useComponentsStore();
@@ -63,12 +63,15 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
     const pendingDraft = ref<IBuilderDraftEntry | null>(null);
     const savedSnapshot = ref<IBuilderDraftSnapshot | null>(null);
 
-    // Поколение открытия сессии: инкремент на каждый вход в openBuilderSession.
-    // Watcher маршрута зовёт открытие без сериализации, поэтому на быстрых
-    // переходах A → B → C ответ B может прийти после C. Применять его нельзя:
-    // схема B легла бы на канвас под ключом C, а сессия объявилась бы готовой —
-    // дальше автосейв и сохранение уехали бы под C с чужим содержимым (BM-24).
-    let sessionGeneration = 0;
+    // Поколение открытия сессии — общий токен билдера (useBuilderSessionToken):
+    // инкремент на каждый вход в openBuilderSession. Watcher маршрута зовёт
+    // открытие без сериализации, поэтому на быстрых переходах A → B → C ответ B
+    // может прийти после C. Применять его нельзя: схема B легла бы на канвас под
+    // ключом C, а сессия объявилась бы готовой — дальше автосейв и сохранение
+    // уехали бы под C с чужим содержимым (BM-24). Тем же токеном сверяются
+    // операции за пределами этого файла — сохранение, снимок превью, синк
+    // превью-вкладки, портальные модалки (BM-26).
+    const isCurrentSession = sessionToken.isCurrent;
 
     // Поколение открытия, показавшего модалку восстановления, — вместе с
     // `pointer-events: none` на уезжающей модалке (transitions.scss) закрывает
@@ -76,17 +79,6 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
     // другой — грузящейся или упавшей — сессии. Обнуляется после ответа, поэтому
     // ответ ещё и одноразовый: повторный клик по той же модалке — no-op (BM-23).
     let restoreDraftGeneration: number | null = null;
-
-    /**
-     * Проверяет, что открытие сессии всё ещё актуально — его не вытеснило более
-     * позднее. Вызывается после каждого await, до записи в сторы.
-     *
-     * @param generation - Поколение проверяемого открытия.
-     * @returns Актуально ли поколение.
-     */
-    function isCurrentSession(generation: number): boolean {
-        return generation === sessionGeneration;
-    }
 
     /**
      * Принадлежит ли ответ на модалку восстановления актуальному открытию. Отсекает
@@ -104,7 +96,7 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
     // пройдя проверку собственного, уже неактуального поколения. Инкремент на
     // dispose гасит все открытия этого экземпляра разом.
     onScopeDispose(() => {
-        sessionGeneration += 1;
+        sessionToken.invalidate();
     });
 
     /**
@@ -134,10 +126,9 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
      *
      * Каждый await сверяется с поколением: вытесненное открытие выходит молча, до
      * записи в сторы. Список страниц (`loadAllPages`) — исключение: он общий кеш, и
-     * ради него не стоит второго запроса. Полностью безобидной эта запись не
-     * является — поздний ответ может заменить более свежий список, а на ошибке стор
-     * пишет `generalError` до возврата сюда, — но оба следствия принадлежат общему
-     * кешу, а не сессии (см. BM-26).
+     * ради него не стоит второго запроса. Его собственные гонки закрыты на стороне
+     * стора, а не поколением: устаревший ответ не заменяет более свежий список, и
+     * ошибка загрузки больше не пишется в `generalError` (BM-26).
      *
      * @param pagename - ЧПУ страницы из URL.
      * @param generation - Поколение этого открытия сессии.
@@ -244,7 +235,8 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
             return;
         }
 
-        const generation = ++sessionGeneration;
+        sessionToken.invalidate();
+        const generation = sessionToken.capture();
 
         // Фиксируем ключ сессии: черновики пишутся/удаляются по нему до следующего
         // открытия или rename (см. useBuilderPagename.renameSession)
@@ -292,7 +284,7 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
             // Открытие, брошенное по таймауту, может всё ещё лететь: гасим его
             // поколением, иначе поздний ответ лёг бы на канвас поверх экрана ошибки.
             // Лоадер снимаем здесь же — finally увидит поколение уже неактуальным
-            sessionGeneration += 1;
+            sessionToken.invalidate();
             isSessionLoading.value = false;
 
             // Экран и тост вместе не дублируют друг друга: экран объясняет состояние
@@ -319,23 +311,48 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
     }
 
     /**
+     * Фиксирует текущее состояние как сохранённое: новый `savedSnapshot` и удаление
+     * черновика по актуальному ключу сессии. Единственная точка фиксации — её зовут
+     * и обычное сохранение (`useBuilderPage.submitPageWithPublishState`), и переход
+     * на копию (`switchToSavedPage`).
+     *
+     * Явный вызов вместо прежнего watch'а на `publishStore.lastSuccessfulSaveAt`:
+     * watcher не знал инициатора, поэтому сохранение прежней страницы, доехавшее
+     * после открытия новой, объявляло снапшот новой сохранённым и удаляло её
+     * черновик — правки, сделанные до сохранения, терялись на reload (BM-26).
+     *
+     * Токен обязателен и сверяется здесь, а не у вызывающего: между его проверкой и
+     * фиксацией у обоих путей стоит `await renameSession` (внутри — `router.replace`),
+     * и перехваченная за это время навигация возвращала бы ровно тот же дефект —
+     * снапшот чужой страницы и удаление её черновика (находка ревью).
+     *
+     * @param capturedToken - Токен сессии, снятый на старте сохранения.
+     */
+    function commitSavedSnapshot(capturedToken: number): void {
+        if (!isCurrentSession(capturedToken)) {
+            return;
+        }
+
+        savedSnapshot.value = buildCurrentSnapshot();
+        removeBuilderDraft(sessionPagename.value);
+    }
+
+    /**
      * Единый переход сессии на сохранённую страницу (Save as Copy): переводит store
      * в edit mode, переносит route/sessionPagename через `renameSession` (миграция
      * черновика + `router.replace`) и только затем фиксирует новый `savedSnapshot`
      * (удаляя черновик по актуальному ключу). Порядок фиксирован — иначе URL и
      * ключ черновика остаются от оригинала: автосейв копии писал бы под slug
      * оригинала, а reload оригинала предлагал бы восстановить чужие данные (P1).
-     * `lastSuccessfulSaveAt` стора для этого перехода не меняется (в отличие от
-     * обычного save-цикла) — поэтому savedSnapshot фиксируется здесь явно, а не
-     * через implicit watch ниже.
      *
      * @param page - Нормализованная страница копии (обязательны `id` и `pagename`).
      */
     async function switchToSavedPage(page: IPublishedPage): Promise<void> {
+        const startedIn = sessionToken.capture();
+
         publishStore.startEditingPage(page.id);
         await renameSession(page.pagename);
-        savedSnapshot.value = buildCurrentSnapshot();
-        removeBuilderDraft(sessionPagename.value);
+        commitSavedSnapshot(startedIn);
     }
 
     /**
@@ -422,20 +439,6 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
         }
     );
 
-    // После успешного сохранения фиксируем новый «сохранённый» снапшот и убираем черновик
-    watch(
-        () => publishStore.lastSuccessfulSaveAt,
-        () => {
-            if (publishStore.editingPageId === null) {
-                savedSnapshot.value = null;
-                return;
-            }
-
-            savedSnapshot.value = buildCurrentSnapshot();
-            removeBuilderDraft(sessionPagename.value);
-        }
-    );
-
     return {
         isSessionLoading,
         isSessionReady,
@@ -444,6 +447,7 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
         pendingDraft,
         savedSnapshot,
         buildCurrentSnapshot,
+        commitSavedSnapshot,
         switchToSavedPage,
         openBuilderSession,
         retryBuilderSession,

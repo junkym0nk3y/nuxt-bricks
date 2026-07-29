@@ -1,9 +1,10 @@
 // #region Imports
 // Types
 import type { IPreviewStoredPage } from '../../../common/types/bricks-api';
+import type { IBuilderSessionToken } from '../types/composables';
 
 // Vue
-import { onUnmounted } from 'vue';
+import { onUnmounted, watch } from 'vue';
 
 // Pinia
 import { useComponentsStore } from '../../core/stores/components';
@@ -35,8 +36,11 @@ const NON_SCHEMA_ACTIONS = new Set([
  * `request-schema`, и билдер отвечает свежей схемой — синк самовосстанавливается
  * после перезагрузки любой из вкладок. Изменения компонентов отправляются
  * с debounce 300ms; канал закрывается при unmount.
+ *
+ * @param sessionToken - Токен сессии: открытие другой страницы обрывает синк,
+ * иначе её схема уезжала бы под именем прежней (BM-26).
  */
-export function usePreviewSync() {
+export function usePreviewSync(sessionToken: IBuilderSessionToken) {
     const componentsStore = useComponentsStore();
     const publishStore = usePublishStore();
 
@@ -155,6 +159,26 @@ export function usePreviewSync() {
             schedulePreviewSchemaUpdate();
         });
     });
+
+    // Открытие другой страницы обрывает синк. Канал и `previewPagename` живут
+    // дольше сессии, поэтому схема новой страницы уезжала в localStorage и
+    // BroadcastChannel под именем прежней — превью-вкладка показывала чужой
+    // контент под своим слагом (BM-26). Вкладка просто перестаёт обновляться:
+    // её `request-schema` дальше отсекается сравнением с pagename формы.
+    // flush: 'sync' — сброс обязан произойти в момент инвалидации токена, до
+    // того как `openBuilderSession` уйдёт в await и схема сменится на канвасе
+    watch(
+        sessionToken.token,
+        () => {
+            previewPagename = '';
+
+            if (previewSyncTimer) {
+                clearTimeout(previewSyncTimer);
+                previewSyncTimer = null;
+            }
+        },
+        { flush: 'sync' }
+    );
 
     onUnmounted(() => {
         if (previewSyncTimer) {
