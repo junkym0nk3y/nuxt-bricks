@@ -171,6 +171,85 @@ describe('библиотека компонентов: отказ ручки м�
         );
     });
 
+    it('пропущенные брики возвращаются наружу с причиной, а не исчезают молча', async () => {
+        apiFetcherMock.mockResolvedValueOnce({
+            hash: 'abc',
+            bricks: [
+                { name: 'GoodBrick', category: 'Other', brickPath: '/components/Good.brick.ts' },
+                { name: 'NoLoader', category: 'Other', brickPath: '/components/NoLoader.brick.ts' },
+                { name: 'Broken', category: 'Other', brickPath: '/components/Broken.brick.ts' },
+                { name: 'ModalNoLoader', category: 'Modal', brickPath: '/components/M.brick.ts' },
+            ],
+        });
+
+        findImportModuleMock.mockImplementation((brickPath: string) => {
+            if (brickPath === '/components/Good.brick.ts') {
+                return () => Promise.resolve({ brick: { values: {} } });
+            }
+
+            if (brickPath === '/components/Broken.brick.ts') {
+                return () => Promise.reject(new Error('SyntaxError in brick module'));
+            }
+
+            return undefined;
+        });
+
+        const { componentLibraryList, skippedBricks, isComponentLibraryLoadFailed } =
+            await useComponentLibrary();
+
+        expect(componentLibraryList.value.some((item) => item.name === 'GoodBrick')).toBe(true);
+        expect(skippedBricks.value).toEqual([
+            {
+                name: 'NoLoader',
+                brickPath: '/components/NoLoader.brick.ts',
+                reason: 'loader-missing',
+            },
+            { name: 'Broken', brickPath: '/components/Broken.brick.ts', reason: 'import-failed' },
+            {
+                name: 'ModalNoLoader',
+                brickPath: '/components/M.brick.ts',
+                reason: 'loader-missing',
+            },
+        ]);
+
+        // Ответ ручки дошёл и разобран: повтор пропущенных бриков не вернёт, и
+        // предлагать его блоком отказа было бы обманом
+        expect(isComponentLibraryLoadFailed.value).toBe(false);
+
+        // Модалка остаётся в селекторе намеренно: для него нужны только имя и
+        // путь, а они пришли из манифеста
+        expect(getModalOptions().map((option) => option.value)).toContain('ModalNoLoader');
+    });
+
+    it('ответ с пропусками фиксируется как успешный и переживает следующий отказ', async () => {
+        apiFetcherMock.mockResolvedValueOnce({
+            hash: 'abc',
+            bricks: [
+                { name: 'GoodBrick', category: 'Other', brickPath: '/components/Good.brick.ts' },
+                { name: 'NoLoader', category: 'Other', brickPath: '/components/NoLoader.brick.ts' },
+            ],
+        });
+        findImportModuleMock.mockImplementation((brickPath: string) =>
+            brickPath === '/components/Good.brick.ts'
+                ? () => Promise.resolve({ brick: { values: {} } })
+                : undefined
+        );
+
+        await useComponentLibrary();
+
+        // Повторный заход с отказом ручки: список и сведения о пропусках берутся
+        // из снимка — иначе собранные компоненты исчезли бы вместе с
+        // объяснением, почему их меньше, чем в манифесте
+        apiFetcherMock.mockRejectedValueOnce(new Error('503'));
+
+        const { componentLibraryList, skippedBricks, isComponentLibraryLoadFailed } =
+            await useComponentLibrary();
+
+        expect(isComponentLibraryLoadFailed.value).toBe(true);
+        expect(componentLibraryList.value.some((item) => item.name === 'GoodBrick')).toBe(true);
+        expect(skippedBricks.value.map((brick) => brick.name)).toEqual(['NoLoader']);
+    });
+
     it('неудачный повтор не забирает уже загруженные компоненты и кеш модалок', async () => {
         apiFetcherMock.mockResolvedValueOnce(MANIFEST_RESPONSE);
 

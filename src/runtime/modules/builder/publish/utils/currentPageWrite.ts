@@ -57,9 +57,9 @@ async function refreshPagesAfterPublish(store: ICurrentPageWriteStoreDeps): Prom
  * отпускается. Сначала его отказ летел наружу как отказ создания — билдер
  * показывал «сохранить не удалось», а повторная попытка упиралась в собственный
  * slug как в занятый; модалка создания не закрывалась; дублирование плодило лишнюю
- * копию. Но и `await` с перехватом ошибки мало: `isSubmitting` — флаг общий, и до
- * возврата отсюда он остаётся поднятым, то есть медленный GET блокировал бы
- * сохранение и в той сессии, куда пользователь успел уйти. Потолок ожидания у
+ * копию. Но и `await` с перехватом ошибки мало: операция записи считается
+ * незавершённой до возврата отсюда, то есть медленный GET держал бы кнопку
+ * сохранения заблокированной и запрещал бы следующую запись. Потолок ожидания у
  * запроса есть (политика транспорта), но он на порядок больше самой записи —
  * ждать его здесь значит расплачиваться заблокированной кнопкой за данные,
  * которые результату создания не нужны.
@@ -124,14 +124,27 @@ export async function runPublishCurrentPage(
     failedMessage: string,
     options?: IPublishOperationOptions
 ): Promise<string | number | null> {
-    if (!store.validateCurrentFormState()) {
+    // Заявка на запись — до валидации: она пишет `validationErrors` и
+    // `generalError`, то есть второй submit успел бы переписать сообщения формы,
+    // относящиеся к уже идущей операции
+    const writeId = store.beginWrite();
+    if (writeId === null) {
         return null;
     }
 
-    store.isSubmitting = true;
-    store.generalError = '';
-
+    // `try` открывается сразу после заявки, а не перед запросом: между ними стоит
+    // валидация, и её исключение и оставляло бы запись активной навсегда (кнопки
+    // заблокированы до перезагрузки), и уходило бы наружу мимо контракта «ID или
+    // null при ошибке» — то есть в необслуженный промис вместо тоста. Форма
+    // приходит в том числе из черновика localStorage (`JSON.parse` без проверки
+    // типов), так что нестроковое поле в валидаторе — не гипотеза (находка ревью)
     try {
+        if (!store.validateCurrentFormState()) {
+            return null;
+        }
+
+        store.generalError = '';
+
         if (store.editingPageId !== null) {
             await store.updatePage(store.editingPageId, schema, store.currentFormState);
             store.lastSuccessfulSaveAt = Date.now();
@@ -144,16 +157,16 @@ export async function runPublishCurrentPage(
     } catch (error: unknown) {
         console.error('[Publish Store] publishCurrentPage failed:', error);
 
-        // Сообщение уходит в общее поле формы, то есть в сайдбар той страницы, что
-        // открыта сейчас: сохранение прежней, доехавшее после перехода, писало бы
-        // свою ошибку в чужую форму
+        // Сообщение уходит в общее поле формы, то есть в сайдбар той страницы,
+        // что открыта сейчас: сохранение прежней, доехавшее после перехода,
+        // писало бы свою ошибку в чужую форму
         if (isInitiatorCurrent(options)) {
             store.generalError = (error as Error)?.message || failedMessage;
         }
 
         return null;
     } finally {
-        store.isSubmitting = false;
+        store.endWrite(writeId);
     }
 }
 
@@ -173,41 +186,50 @@ export async function runSaveCurrentPageAsCopy(
     failedMessage: string,
     options?: IPublishOperationOptions
 ): Promise<IPublishedPage | null> {
+    // Заявка на запись — до подмены формы: копия временно ставит `editingPageId
+    // = null` и свой pagename, и второй вызов, пройдя сюда, снял бы «оригинал»
+    // уже с подменённого состояния — откат вернул бы форму в состояние копии
+    const writeId = store.beginWrite();
+    if (writeId === null) {
+        return null;
+    }
+
     const originalFormState = { ...store.currentFormState };
     const originalEditingPageId = store.editingPageId;
     const originalValidationErrors = { ...store.validationErrors };
     const originalGeneralError = store.generalError;
 
-    const copyPagename = generateCopyPagename(originalFormState.pagename, (candidate) =>
-        store.isPagenameAvailable(candidate)
-    );
-    const copyTitle = originalFormState.title
-        ? `${originalFormState.title} (copy)`
-        : originalFormState.title;
-
-    store.editingPageId = null;
-    store.currentFormState = {
-        ...originalFormState,
-        pagename: copyPagename,
-        title: copyTitle,
-        published: false,
-        createdAt: '',
-        updatedAt: '',
-    };
-    store.validationErrors = {};
-    store.generalError = '';
-
-    if (!store.validateCurrentFormState()) {
-        store.currentFormState = originalFormState;
-        store.editingPageId = originalEditingPageId;
-        store.validationErrors = { ...originalValidationErrors };
-        store.generalError = originalGeneralError;
-        return null;
-    }
-
-    store.isSubmitting = true;
-
+    // Всё, что после заявки, — под общим `try`: генерация имени копии и валидация
+    // работают с формой, пришедшей в том числе из черновика localStorage. Их
+    // исключение иначе оставляло бы запись активной навсегда и уходило наружу
+    // мимо контракта «страница или null при ошибке» — то есть в необслуженный
+    // промис вместо сообщения пользователю (находка ревью). Форма при этом
+    // осталась бы подменённой состоянием копии — откат в `finally`
     try {
+        const copyPagename = generateCopyPagename(originalFormState.pagename, (candidate) =>
+            store.isPagenameAvailable(candidate)
+        );
+        const copyTitle = originalFormState.title
+            ? `${originalFormState.title} (copy)`
+            : originalFormState.title;
+
+        store.editingPageId = null;
+        store.currentFormState = {
+            ...originalFormState,
+            pagename: copyPagename,
+            title: copyTitle,
+            published: false,
+            createdAt: '',
+            updatedAt: '',
+        };
+        store.validationErrors = {};
+        store.generalError = '';
+
+        if (!store.validateCurrentFormState()) {
+            store.generalError = originalGeneralError;
+            return null;
+        }
+
         const created = await publishPageRequest(schema, store.currentFormState);
         store.syncPageInList(created);
 
@@ -224,17 +246,17 @@ export async function runSaveCurrentPageAsCopy(
             refreshPagesAfterPublish(store);
         }
 
-        // generalError НЕ восстанавливается в finally — ошибка копии должна
-        // пережить откат формы и дойти до пользователя
+        // generalError НЕ восстанавливается вместе с формой — ошибка копии
+        // должна пережить откат и дойти до пользователя
         if (isInitiatorCurrent(options)) {
             store.generalError = (error as Error)?.message || failedMessage;
         }
 
         return null;
     } finally {
-        // Список и флаг записи — общие: копия действительно создана, а
-        // isSubmitting снимать обязан любой исход
-        store.isSubmitting = false;
+        // Закрывать операцию обязан любой исход: копия действительно создана,
+        // и список уже синхронизирован
+        store.endWrite(writeId);
 
         // Форма откатывается только в ту сессию, из которой копия ушла: за время
         // POST пользователь мог открыть другую страницу, и её форму (уже

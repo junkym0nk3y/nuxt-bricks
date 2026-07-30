@@ -281,7 +281,8 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
      */
     async function handleImportSchema(schema: IBricksSchema): Promise<void> {
         const startedIn = sessionToken.capture();
-        const resolved = await imageResolver.startResolving(schema);
+        const { schema: resolved, isComparisonSkipped } =
+            await imageResolver.startResolving(schema);
 
         // Сброса выше недостаточно: до показа модалки резолвер ждёт загрузку
         // медиа-галереи, и если новых изображений в схеме нет, он возвращает её без
@@ -292,6 +293,16 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
         }
 
         componentsStore.loadSchema(resolved, { resetHistory: true });
+
+        // Один тост на исход, а не два подряд: toast — синглтон, и сообщение об
+        // успешном импорте немедленно затёрло бы предупреждение о пропущенном
+        // сравнении. Вариант `error` — единственный заметный: импорт состоялся,
+        // но пользователю нужно знать, что URL изображений никто не проверял
+        if (isComparisonSkipped) {
+            showToast(t('bricks.media.resolver.importedWithoutComparison'), 'error');
+            return;
+        }
+
         showToast(t('bricks.publish.toasts.schemaImported'), 'success');
     }
     // #endregion
@@ -305,6 +316,7 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
     // библиотека компонентов дожидается здесь — её значение нужно только в return.
     const {
         componentLibraryList,
+        skippedBricks,
         isComponentLibraryLoadFailed,
         isComponentLibraryLoading,
         refreshComponentLibrary,
@@ -331,10 +343,23 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
      * Тост нужен вместе с блоком повтора в сайдбаре, а не вместо него: блок
      * виден только при открытой библиотеке, то есть об отказе иначе можно узнать
      * лишь случайно.
+     *
+     * Отказ и пропуски могут быть истинны одновременно (список приехал из
+     * снимка прошлой загрузки, свежий запрос не дошёл), но тост — один: toast
+     * синглтонный, и второй просто затёр бы первый. Приоритет у отказа ручки —
+     * он и свежее, и чинится повтором.
      */
     function notifyComponentLibraryFailure(): void {
         if (isComponentLibraryLoadFailed.value) {
             showToast(t('bricks.library.loadFailed'), 'error');
+            return;
+        }
+
+        if (skippedBricks.value.length > 0) {
+            showToast(
+                t('bricks.library.skippedBricks', { count: skippedBricks.value.length }),
+                'error'
+            );
         }
     }
 
@@ -342,6 +367,7 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
         sidebarStore,
         publishStore,
         componentLibraryList,
+        skippedBricks,
         isComponentLibraryLoadFailed,
         isComponentLibraryLoading,
         handleRetryComponentLibrary,

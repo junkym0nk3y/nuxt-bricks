@@ -4,6 +4,7 @@ import type { IComponentLibraryItem } from '../../../common/types/brick';
 import type { IBrickValues } from '../../../common/types/index';
 import type { IBrickManifestEntry, IBricksManifest } from '../../../common/types/brickManifest';
 import type { TCachedModal } from '../../core/types/modals';
+import type { ISkippedBrick } from '../../core/types/componentLibrary';
 import type { IComponentLibraryData, IUseComponentLibraryReturn } from '../types/composables';
 
 // Utils
@@ -61,6 +62,17 @@ function fetchManifestWithinDeadline(request: Promise<IBricksManifest>): Promise
     return withPromiseDeadline(request, deadlineMs, () =>
         createComponentManifestDeadlineError(deadlineMs)
     );
+}
+
+/**
+ * Отличает пропущенный brick от собранного элемента библиотеки: разбор одной
+ * записи манифеста заканчивается либо тем, либо другим.
+ *
+ * @param entry - Результат разбора записи манифеста.
+ * @returns Является ли результат пропуском.
+ */
+function isSkippedBrick(entry: IComponentLibraryItem | ISkippedBrick): entry is ISkippedBrick {
+    return 'reason' in entry;
 }
 
 /**
@@ -151,6 +163,7 @@ export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn>
                 isPartial: true,
                 modals: [],
                 items: [...LAYOUT_COMPONENTS],
+                skippedBricks: [],
             };
         }
 
@@ -162,7 +175,12 @@ export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn>
                     const moduleLoader = findImportModule(brick.brickPath);
                     if (!moduleLoader) {
                         console.error(`[BricksBuilder] No loader for ${brick.brickPath}`);
-                        return null;
+
+                        return {
+                            name: brick.name,
+                            brickPath: brick.brickPath,
+                            reason: 'loader-missing',
+                        } as ISkippedBrick;
                     }
 
                     const module = await moduleLoader();
@@ -196,7 +214,12 @@ export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn>
                     } as IComponentLibraryItem;
                 } catch (error) {
                     console.error(`[BricksBuilder] Failed loading ${brick.name}`, error);
-                    return null;
+
+                    return {
+                        name: brick.name,
+                        brickPath: brick.brickPath,
+                        reason: 'import-failed',
+                    } as ISkippedBrick;
                 }
             })
         );
@@ -208,9 +231,10 @@ export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn>
             items: [
                 ...LAYOUT_COMPONENTS,
                 ...componentsWithMeta.filter(
-                    (item): item is IComponentLibraryItem => item !== null
+                    (entry): entry is IComponentLibraryItem => !isSkippedBrick(entry)
                 ),
             ],
+            skippedBricks: componentsWithMeta.filter(isSkippedBrick),
         };
     });
 
@@ -237,21 +261,39 @@ export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn>
         replaceModalsCache(data.modals);
     }
 
-    // Layout-блоки манифеста не требуют: отказ ручки не должен забирать у
-    // пользователя ещё и их — иначе на канвас нельзя положить вообще ничего
-    const componentLibraryList = computed<IComponentLibraryItem[]>(() => {
+    // Ответ, по которому живёт интерфейс: свежий полный, иначе снимок последней
+    // удачной загрузки, иначе деградированный.
+    //
+    // Деградированный ответ уступает снимку: в нём только layout-блоки, и он
+    // иначе перекрыл бы полный список, загруженный до ухода из билдера. Обратный
+    // порядок («снимок всегда важнее») неверен — тогда снимок перекрывал бы
+    // свежий полный ответ.
+    //
+    // Один источник и для списка, и для пропусков: иначе на экране оказались бы
+    // компоненты одной загрузки и предупреждение от другой
+    const effectiveLibraryData = computed<IComponentLibraryData | null>(() => {
         const data = componentLibrary.data.value;
 
-        // Деградированный ответ уступает снимку: в нём только layout-блоки, и он
-        // иначе перекрыл бы полный список, загруженный до ухода из билдера.
-        // Обратный порядок («снимок всегда важнее») неверен — тогда снимок
-        // перекрывал бы свежий полный ответ
         if (data && !data.isPartial) {
-            return data.items;
+            return data;
         }
 
-        return lastLoadedData.value?.items ?? data?.items ?? LAYOUT_COMPONENTS;
+        return lastLoadedData.value ?? data ?? null;
     });
+
+    // Layout-блоки манифеста не требуют: отказ ручки не должен забирать у
+    // пользователя ещё и их — иначе на канвас нельзя положить вообще ничего
+    const componentLibraryList = computed<IComponentLibraryItem[]>(
+        () => effectiveLibraryData.value?.items ?? LAYOUT_COMPONENTS
+    );
+
+    // Пропуск brick-модуля отказом загрузки не считается: ответ ручки дошёл и
+    // разобран, повтор такой пропуск не исправит (лоадеров в готовой сборке не
+    // прибавится). Поэтому — отдельный признак, живущий рядом с отказом, а не
+    // вместо него: в сайдбаре они могут быть видны одновременно
+    const skippedBricks = computed<ISkippedBrick[]>(
+        () => effectiveLibraryData.value?.skippedBricks ?? []
+    );
 
     // Отказ отличается от «библиотека пуста»: список непуст и при отказе
     // (layout-блоки), поэтому признак нужен отдельным полем. Деградация — тоже
@@ -348,6 +390,7 @@ export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn>
 
     return {
         componentLibraryList,
+        skippedBricks,
         isComponentLibraryLoadFailed,
         isComponentLibraryLoading: computed<boolean>(
             () => componentLibrary.status.value === 'pending'

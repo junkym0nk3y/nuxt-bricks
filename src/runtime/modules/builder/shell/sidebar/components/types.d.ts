@@ -8,6 +8,7 @@ import type {
     IComponentLibraryItem,
 } from '../../../../common/types/brick';
 import type { TMediaGalleryContext } from '../../../../common/types/media';
+import type { ISkippedBrick } from '../../../core/types/componentLibrary';
 import type { Component, ComputedRef, Ref, ShallowRef } from 'vue';
 
 export interface ISidebarComponentCardProps {
@@ -22,6 +23,7 @@ export interface ISidebarComponentCardProps {
  */
 export interface ISidebarProps {
     components: IComponentLibraryItem[];
+    skippedBricks: ISkippedBrick[];
     isLibraryLoadFailed: boolean;
     isLibraryLoading: boolean;
 }
@@ -34,6 +36,11 @@ export interface ISidebarEmits {
 
 export interface ISidebarComponentsViewProps {
     components: IComponentLibraryItem[];
+    /**
+     * Записи манифеста, не доехавшие до библиотеки. Показываются рядом с блоком
+     * отказа, а не вместо него: причины разные, и видны они могут быть вместе.
+     */
+    skippedBricks: ISkippedBrick[];
     isLibraryLoadFailed: boolean;
     isLibraryLoading: boolean;
 }

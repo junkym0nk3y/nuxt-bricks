@@ -4,7 +4,11 @@ import type { IBuilderDraftPersistenceOptions } from '../types/composables';
 
 // Utils
 import { isSnapshotEqual } from '../../publish/utils/draftSnapshots';
-import { removeBuilderDraft, setBuilderDraft } from '../../publish/utils/draftStorage';
+import {
+    isBuilderDraftStorageAvailable,
+    removeBuilderDraft,
+    setBuilderDraft,
+} from '../../publish/utils/draftStorage';
 
 // Vue
 import { onScopeDispose, watch } from 'vue';
@@ -31,6 +35,7 @@ export function useBuilderDraftPersistence(options: IBuilderDraftPersistenceOpti
         isRestoreDraftModalOpen,
         savedSnapshot,
         buildCurrentSnapshot,
+        draftStorageNotice,
     } = options;
 
     const historyStore = useHistoryStore();
@@ -76,11 +81,17 @@ export function useBuilderDraftPersistence(options: IBuilderDraftPersistenceOpti
         const isEditing = publishStore.editingPageId !== null;
 
         if (isEditing && savedSnapshot.value && isSnapshotEqual(snapshot, savedSnapshot.value)) {
-            removeBuilderDraft(pagename);
+            // Исход важен и здесь: неудалённый черновик равен сохранённому
+            // состоянию лишь сейчас, а после следующей правки снова разойдётся
+            // с ним и при новом заходе предложит восстановление
+            if (!removeBuilderDraft(pagename)) {
+                draftStorageNotice.report();
+            }
+
             return;
         }
 
-        setBuilderDraft({
+        const isPersisted = setBuilderDraft({
             pagename,
             updatedAt: new Date().toISOString(),
             mode: isEditing ? 'edit' : 'new',
@@ -91,6 +102,13 @@ export function useBuilderDraftPersistence(options: IBuilderDraftPersistenceOpti
             savedSnapshot: savedSnapshot.value ?? undefined,
             draftSnapshot: snapshot,
         });
+
+        // Второй путь к тому же сообщению: проба на входе в сессию ловит
+        // запрещённое хранилище, а сюда приходит отказ, возникший уже по ходу
+        // работы (например, исчерпанная квота на большой схеме)
+        if (!isPersisted) {
+            draftStorageNotice.report();
+        }
     }
 
     /**
@@ -132,6 +150,18 @@ export function useBuilderDraftPersistence(options: IBuilderDraftPersistenceOpti
         clearPersistTimer();
         persistDraftNow();
     }
+
+    // Проба на готовности сессии, а не на первой правке: запрещённое хранилище
+    // иначе обнаружилось бы только через ~800 мс после первого изменения на
+    // канвасе — то есть предупреждение приходило бы уже после того, как
+    // пользователь начал работать, считая правки защищёнными
+    watch(isSessionReady, (isReady) => {
+        if (!isReady || isBuilderDraftStorageAvailable()) {
+            return;
+        }
+
+        draftStorageNotice.report();
+    });
 
     watch(
         // Ссылка на текущий снапшот истории, а не `historyIndex`: при заполненной

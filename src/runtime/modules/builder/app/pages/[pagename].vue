@@ -4,7 +4,14 @@
 import type { TMediaGalleryContext } from '../../../common/types/media';
 
 // Vue
-import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref } from 'vue';
+import {
+    computed,
+    defineAsyncComponent,
+    onBeforeUnmount,
+    onMounted,
+    onScopeDispose,
+    ref,
+} from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Nuxt
@@ -26,6 +33,7 @@ import { useBuilderPagenameSync } from '../composables/useBuilderPagenameSync';
 import { useBuilderToast } from '../../core/composables/useBuilderToast';
 
 // Utils
+import { createDraftStorageNotice } from '../utils/draftStorageNotice';
 import { loadFavoritesFromStorage } from '../../core/stores/actions/favorites';
 import { runSaveWhenSessionReady, withSessionReadyGuard } from '../utils/sessionGuards';
 import { BRICKS_ROUTE_NAMES } from '../../../common/constants/routes';
@@ -70,9 +78,6 @@ const componentsStore = useComponentsStore();
 const sidebarStore = useSidebarStore();
 const publishStore = usePublishStore();
 
-// Владелец pagename: route.params — источник истины URL, sessionPagename — ключ черновиков
-const { routePagename, sessionPagename, renameSession } = useBuilderPagename();
-
 // Toast — модульный синглтон (useBuilderToast): нужен useBuilderSession раньше
 // useBuilderPage (switchToSavedPage требуется useBuilderPage для Save as Copy)
 const { showToast } = useBuilderToast();
@@ -81,6 +86,26 @@ const { showToast } = useBuilderToast();
 // сессии и завершаются в другой (сохранение, снимок превью, синк превью-вкладки,
 // портальные модалки). Инкрементами владеет useBuilderSession, остальные читают
 const sessionToken = useBuilderSessionToken();
+
+// Общее на сессию сообщение о недоступном хранилище черновиков: о нём сообщают
+// автосейв, открытие сессии и перенос черновика при rename. `stop()`
+// регистрируется здесь, до всех остальных хуков очистки: cleanup идёт в порядке
+// регистрации, а последним делом уходящей страницы будет синхронный сброс
+// черновика — его отказ иначе показал бы тост уже поверх дашборда
+const draftStorageNotice = createDraftStorageNotice({
+    captureSessionToken: sessionToken.capture,
+    // Дольше обычного: сообщение говорит о постоянном условии работы в этой
+    // сессии, а не о разовой неудаче, и повторено оно не будет
+    notify: () => showToast(t('bricks.publish.draft.storageUnavailable'), 'error', 10000),
+});
+onScopeDispose(() => {
+    draftStorageNotice.stop();
+});
+
+// Владелец pagename: route.params — источник истины URL, sessionPagename — ключ черновиков
+const { routePagename, sessionPagename, renameSession } = useBuilderPagename({
+    draftStorageNotice,
+});
 
 // Сессия билдера: открытие страницы, черновики, модалка восстановления,
 // единый переход на сохранённую копию (switchToSavedPage)
@@ -97,7 +122,14 @@ const {
     retryBuilderSession,
     handleRestoreDraft,
     handleDiscardDraft,
-} = useBuilderSession({ routePagename, sessionPagename, showToast, renameSession, sessionToken });
+} = useBuilderSession({
+    routePagename,
+    sessionPagename,
+    showToast,
+    renameSession,
+    sessionToken,
+    draftStorageNotice,
+});
 
 // Мост inline-редактора: editor подключается только здесь (composition root)
 const inlineEditingStore = useInlineEditingStore();
@@ -116,6 +148,7 @@ const builder = await useBuilderPage({
 
 const {
     componentLibraryList,
+    skippedBricks,
     isComponentLibraryLoadFailed,
     isComponentLibraryLoading,
     handleRetryComponentLibrary,
@@ -175,6 +208,7 @@ useBuilderDraftPersistence({
     isRestoreDraftModalOpen,
     savedSnapshot,
     buildCurrentSnapshot,
+    draftStorageNotice,
 });
 useBuilderPagenameSync({ renameSession, isSessionReady });
 // #endregion
@@ -332,6 +366,7 @@ onBeforeUnmount(() => {
                 <TheBuilderShellSidebar
                     ref="sidebarRef"
                     :components="componentLibraryList"
+                    :skipped-bricks="skippedBricks"
                     :is-library-load-failed="isComponentLibraryLoadFailed"
                     :is-library-loading="isComponentLibraryLoading"
                     @open-media-gallery="handleOpenMediaGalleryWithContext"

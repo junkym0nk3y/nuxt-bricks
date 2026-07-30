@@ -1,4 +1,4 @@
-import type { IBuilderDraftEntry } from '../types/builderDrafts';
+import type { IBuilderDraftEntry, TBuilderDraftMigration } from '../types/builderDrafts';
 import { normalizeFormState } from './formState';
 
 /**
@@ -12,6 +12,41 @@ function buildBuilderDraftKey(pagename: string): string {
 }
 
 /**
+ * Ключ пробной записи. Свой неймспейс, а не `…:draft:<pagename>` — иначе проба
+ * заняла бы ключ страницы с таким именем.
+ */
+const BUILDER_DRAFT_PROBE_KEY = 'bricks-builder:storage-probe';
+
+/**
+ * Проверяет, доступно ли хранилище черновиков, пробной записью.
+ *
+ * Именно записью: `localStorage` существует и в приватном режиме, и при
+ * запрещённых данных сайта — отказ приходит только на `setItem`. Без пробы
+ * пользователь узнавал бы о неработающем восстановлении через ~800 мс после
+ * первой правки, а то и вовсе не узнавал.
+ *
+ * @returns Доступна ли запись черновиков.
+ */
+export function isBuilderDraftStorageAvailable(): boolean {
+    // Вызывается только с клиента (по готовности сессии): на сервере черновиков
+    // нет вовсе, и сообщать там некому
+    if (typeof window === 'undefined') {
+        return false;
+    }
+
+    try {
+        window.localStorage.setItem(BUILDER_DRAFT_PROBE_KEY, '1');
+        window.localStorage.removeItem(BUILDER_DRAFT_PROBE_KEY);
+
+        return true;
+    } catch (error) {
+        console.warn('[Publish Store] Builder draft storage is unavailable:', error);
+
+        return false;
+    }
+}
+
+/**
  * Возвращает черновик билдера из localStorage.
  *
  * @param pagename - ЧПУ страницы.
@@ -22,15 +57,20 @@ export function getBuilderDraft(pagename: string): IBuilderDraftEntry | null {
     }
 
     const key = buildBuilderDraftKey(pagename);
-    const raw = window.localStorage.getItem(key);
-    if (!raw) {
-        return null;
-    }
 
+    // Само обращение к хранилищу — тоже внутри try: при запрещённых данных сайта
+    // бросает и `getItem`, а чтение черновика идёт из bootstrap'а сессии — оттуда
+    // исключение уронило бы открытие страницы целиком, хотя терялось бы всего
+    // лишь восстановление несохранённых правок
     try {
+        const raw = window.localStorage.getItem(key);
+        if (!raw) {
+            return null;
+        }
+
         return JSON.parse(raw) as IBuilderDraftEntry;
     } catch (error) {
-        console.warn('[Publish Store] Failed to parse builder draft:', { key, error });
+        console.warn('[Publish Store] Failed to read builder draft:', { key, error });
         return null;
     }
 }
@@ -38,11 +78,18 @@ export function getBuilderDraft(pagename: string): IBuilderDraftEntry | null {
 /**
  * Сохраняет черновик билдера в localStorage.
  *
+ * Возвращает исход, а не молчит: отказ записи означает, что восстановление после
+ * перезагрузки не работает, — и пользователь, считающий правки защищёнными,
+ * должен об этом узнать. Сам механизм автосейва при этом не отключается: запрет
+ * может быть снят (освободилась квота, изменилась настройка), и следующая
+ * попытка пройдёт.
+ *
  * @param draft - Данные черновика.
+ * @returns Записан ли черновик.
  */
-export function setBuilderDraft(draft: IBuilderDraftEntry): void {
+export function setBuilderDraft(draft: IBuilderDraftEntry): boolean {
     if (typeof window === 'undefined') {
-        return;
+        return false;
     }
 
     const normalized: IBuilderDraftEntry = {
@@ -62,23 +109,44 @@ export function setBuilderDraft(draft: IBuilderDraftEntry): void {
     const key = buildBuilderDraftKey(draft.pagename);
     try {
         window.localStorage.setItem(key, JSON.stringify(normalized));
+
+        return true;
     } catch (error) {
         console.warn('[Publish Store] Failed to save builder draft:', { key, error });
+
+        return false;
     }
 }
 
 /**
  * Удаляет черновик билдера.
  *
+ * Возвращает исход: неудаленный черновик переживёт и сохранение страницы, и
+ * явное «открыть сохранённую» — и при следующем заходе снова предложит
+ * восстановить состояние, от которого пользователь уже отказался.
+ *
  * @param pagename - ЧПУ страницы.
+ * @returns Удалён ли черновик.
  */
-export function removeBuilderDraft(pagename: string): void {
+export function removeBuilderDraft(pagename: string): boolean {
     if (typeof window === 'undefined') {
-        return;
+        return false;
     }
 
     const key = buildBuilderDraftKey(pagename);
-    window.localStorage.removeItem(key);
+
+    // Удаление зовут и после успешного сохранения страницы: исключение
+    // запрещённого хранилища провалило бы фиксацию сохранённого состояния,
+    // хотя сама страница уже записана на сервер
+    try {
+        window.localStorage.removeItem(key);
+
+        return true;
+    } catch (error) {
+        console.warn('[Publish Store] Failed to remove builder draft:', { key, error });
+
+        return false;
+    }
 }
 
 /**
@@ -93,37 +161,84 @@ export function removeBuilderDraft(pagename: string): void {
  * @param fromPagename - Старый pagename.
  * @param toPagename - Новый pagename.
  */
-export function migrateBuilderDraft(fromPagename: string, toPagename: string): void {
+export function migrateBuilderDraft(
+    fromPagename: string,
+    toPagename: string
+): TBuilderDraftMigration {
     if (typeof window === 'undefined') {
-        return;
+        return 'nothing-to-migrate';
     }
 
     const fromKey = buildBuilderDraftKey(fromPagename);
     const toKey = buildBuilderDraftKey(toPagename);
 
     if (fromKey === toKey) {
-        return;
+        return 'nothing-to-migrate';
     }
 
-    const raw = window.localStorage.getItem(fromKey);
-    if (!raw) {
-        return;
-    }
-
-    if (window.localStorage.getItem(toKey) !== null) {
-        console.warn('[Publish Store] Builder draft migration skipped: target key is taken', {
-            fromKey,
-            toKey,
-        });
-        return;
-    }
-
+    // Чтение — тоже в try: перенос идёт из `renameSession`, а тот ждёт
+    // `router.replace`, и исключение отсюда сорвало бы саму навигацию
     try {
-        const parsed = JSON.parse(raw) as IBuilderDraftEntry;
-        parsed.pagename = toPagename;
-        window.localStorage.setItem(toKey, JSON.stringify(parsed));
+        const raw = window.localStorage.getItem(fromKey);
+        if (!raw) {
+            return 'nothing-to-migrate';
+        }
+
+        if (window.localStorage.getItem(toKey) !== null) {
+            console.warn('[Publish Store] Builder draft migration skipped: target key is taken', {
+                fromKey,
+                toKey,
+            });
+
+            return 'target-taken';
+        }
+
+        let parsed: unknown;
+
+        // Разбор — в своём `try`: повреждённая запись не имеет отношения к
+        // доступности хранилища, а общий `catch` ниже выдавал бы её за отказ
+        // storage — и пользователь получил бы сообщение о запрете localStorage,
+        // которого не было. Переносить при этом всё равно нечего: нечитаемый
+        // черновик не восстановит ни один ключ
+        try {
+            parsed = JSON.parse(raw);
+        } catch (error) {
+            console.warn('[Publish Store] Builder draft migration skipped: unreadable draft', {
+                fromKey,
+                error,
+            });
+
+            return 'nothing-to-migrate';
+        }
+
+        // Форму проверяем отдельно: синтаксически валидным JSON бывает и `null`,
+        // и строка, и число — присваивание поля такому значению бросает уже
+        // после разбора, и внешний `catch` снова выдал бы порчу данных за отказ
+        // хранилища
+        if (parsed === null || typeof parsed !== 'object') {
+            console.warn(
+                '[Publish Store] Builder draft migration skipped: unexpected draft shape',
+                {
+                    fromKey,
+                }
+            );
+
+            return 'nothing-to-migrate';
+        }
+
+        const draft = parsed as IBuilderDraftEntry;
+        draft.pagename = toPagename;
+        window.localStorage.setItem(toKey, JSON.stringify(draft));
+        // Отдельный `try` не нужен, а вот исход — да: если запись под новым
+        // ключом прошла, а удаление старого нет, автосейв дальше будет успешно
+        // писать по новому ключу и о поломке никто не узнает, — а черновик под
+        // прежним слагом останется и позже предложит восстановление
         window.localStorage.removeItem(fromKey);
+
+        return 'migrated';
     } catch (error) {
         console.warn('[Publish Store] Failed to migrate builder draft:', { error });
+
+        return 'storage-unavailable';
     }
 }

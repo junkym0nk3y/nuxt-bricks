@@ -9,14 +9,9 @@ import type {
     TPublishFormState,
 } from '../../../common/types/bricks-api';
 import type { IPublishOperationOptions } from '../types/publishStore';
-import { DEFAULT_LAYOUT } from '../../../common/utils/bricks/publishedPage';
-import {
-    buildCopyFormState,
-    buildDefaultFormState,
-    normalizeFormState,
-    resolveDefaultBackgroundColor,
-} from '../utils/formState';
-import { generateCopyPagename } from '../utils/slugify';
+import { buildDefaultFormState, buildEditFormState, normalizeFormState } from '../utils/formState';
+import { beginActiveWrite, endActiveWrite } from '../utils/activeWrites';
+import { runCreatePage, runDuplicatePage } from '../utils/pageLibraryWrite';
 import { validatePublishFormState } from '../utils/formValidation';
 import { requirePageRevision, toPageWriteError } from '../utils/requestErrors';
 import { restorePageVersionWithPrecondition } from '../utils/pageVersionRestore';
@@ -30,7 +25,6 @@ import {
     patchPageRequest,
     deletePageRequest,
     fetchAllPagesRequest,
-    fetchPageRequest,
     fetchPageByPagenameRequest,
 } from '../utils/publishApi';
 
@@ -56,7 +50,9 @@ export const usePublishStore = defineStore('bricksPublish', {
         currentFormState: buildDefaultFormState(),
         validationErrors: {} as Record<string, string>,
         generalError: '',
-        isSubmitting: false,
+        // Реестр незавершённых операций записи — см. `utils/activeWrites`
+        activeWriteIds: [] as number[],
+        nextWriteId: 0,
         editingPageId: null as string | number | null,
         lastSuccessfulSaveAt: 0,
         // Номер последнего стартовавшего запроса списка — им отсекаются ответы,
@@ -65,6 +61,11 @@ export const usePublishStore = defineStore('bricksPublish', {
     }),
 
     getters: {
+        /**
+         * Идёт ли запись текущего лендинга.
+         */
+        isSubmitting: (state): boolean => state.activeWriteIds.length > 0,
+
         /**
          * Находит страницу по идентификатору.
          */
@@ -90,6 +91,34 @@ export const usePublishStore = defineStore('bricksPublish', {
     },
 
     actions: {
+        /**
+         * Открывает операцию записи текущего лендинга — см. `utils/activeWrites`.
+         *
+         * @returns Идентификатор операции либо `null`, если запись уже идёт.
+         */
+        beginWrite(): number | null {
+            return beginActiveWrite(this);
+        },
+
+        /**
+         * Закрывает операцию записи по её идентификатору.
+         *
+         * @param writeId - Идентификатор, выданный `beginWrite`.
+         */
+        endWrite(writeId: number): void {
+            endActiveWrite(this, writeId);
+        },
+
+        /**
+         * Забывает незавершённые операции при смене сессии билдера. Запрос при этом
+         * продолжает лететь, и его исход дойдёт до пользователя тостом с меткой
+         * страницы — но новая страница не должна ни показывать индикатор чужой
+         * записи, ни ждать её конца, чтобы сохраниться.
+         */
+        resetActiveWrites(): void {
+            this.activeWriteIds = [];
+        },
+
         /**
          * Полностью заменяет состояние формы публикации (например, при восстановлении черновика).
          *
@@ -369,20 +398,7 @@ export const usePublishStore = defineStore('bricksPublish', {
                 return;
             }
 
-            this.currentFormState = {
-                pagename: page.pagename,
-                title: page.title,
-                description: page.description,
-                keywords: page.keywords,
-                published: page.published,
-                layout: page.layout || DEFAULT_LAYOUT,
-                backgroundColor: page.backgroundColor || resolveDefaultBackgroundColor(),
-                socialImage: page.socialImage,
-                urlPrefix: page.urlPrefix,
-                subdomain: page.subdomain,
-                createdAt: page.createdAt,
-                updatedAt: page.updatedAt,
-            };
+            this.currentFormState = buildEditFormState(page);
             this.editingPageId = pageId;
             this.clearErrors();
         },
@@ -433,39 +449,29 @@ export const usePublishStore = defineStore('bricksPublish', {
         },
 
         /**
-         * Создаёт новую страницу-черновик с пустой схемой (модалка создания дашборда).
-         * `currentFormState` не трогает — работает вне сессии редактора.
+         * Создаёт новую страницу-черновик с пустой схемой (модалка создания
+         * дашборда) — см. `utils/pageLibraryWrite.runCreatePage`.
          *
          * @param formState - Meta-поля новой страницы.
          * @returns ID созданной страницы.
          */
         async createPage(formState: TPublishFormState): Promise<number> {
-            return await this.publishPage({ components: [] }, { ...formState, published: false });
+            return await runCreatePage(this, formState);
         },
 
         /**
-         * Дублирует произвольную страницу по идентификатору: клонирует meta и схему,
-         * создаёт черновик с уникальным `pagename` (суффикс «-copy»).
-         * Не трогает `currentFormState` — работает вне сессии редактора.
+         * Дублирует произвольную страницу — см.
+         * `utils/pageLibraryWrite.runDuplicatePage`.
          *
          * @param id - Идентификатор исходной страницы.
          * @returns ID созданной копии.
          */
         async duplicatePage(id: string | number): Promise<number> {
-            const page = this.getPageById(id);
-            if (!page) {
-                console.error('[Publish Store] duplicatePage: page not found', id);
-                throw new Error(t('bricks.publish.dashboard.toasts.duplicateFailed'));
-            }
-
-            const copyPagename = generateCopyPagename(page.pagename, (candidate) =>
-                this.isPagenameAvailable(candidate)
+            return await runDuplicatePage(
+                this,
+                id,
+                t('bricks.publish.dashboard.toasts.duplicateFailed')
             );
-
-            // Сводка списка схему не несёт — исходная схема запрашивается point-lookup'ом
-            const fullPage = await fetchPageRequest(page.id);
-
-            return await this.publishPage(fullPage.schema, buildCopyFormState(page, copyPagename));
         },
 
         /**

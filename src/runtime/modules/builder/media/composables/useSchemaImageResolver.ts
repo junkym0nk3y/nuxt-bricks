@@ -9,7 +9,9 @@
 import type { IBricksSchema } from '../../../common/types/brick';
 import type {
     IExtractedImageUrl,
+    IImageResolverResult,
     IImageResolverState,
+    IResolverPromise,
     TImageResolveAction,
 } from '../types/schemaImageResolver';
 
@@ -30,12 +32,6 @@ import {
 } from '../utils/schemaImageExtractor';
 // #endregion
 
-// #region Interfaces
-interface IResolverPromise {
-    resolve: (schema: IBricksSchema | null) => void;
-}
-// #endregion
-
 /**
  * Оркестрирует процесс резолвинга изображений при импорте схемы.
  */
@@ -53,6 +49,13 @@ export function useSchemaImageResolver() {
         actions: new Map(),
         globalAction: 'keep',
     });
+
+    // Поколение резолвинга. Операция начинается до модалки — с ожидания списка
+    // медиатеки, и в этом окне гасить ещё нечего: `pendingPromise` не создан.
+    // Смена сессии (её watcher зовёт `handleCancel`) поднимает поколение, и
+    // доехавший позже ответ уже не открывает модалку прежней схемы поверх
+    // страницы, которую пользователь успел открыть.
+    let resolveGeneration = 0;
     // #endregion
 
     // #region Helpers
@@ -84,27 +87,62 @@ export function useSchemaImageResolver() {
      * Запускает процесс резолвинга изображений.
      * Если новых изображений нет — возвращает схему без модалки.
      *
+     * Модалка выбора показывается только после достоверного сравнения с
+     * медиатекой. Когда её состав неизвестен, «новыми» выглядят все URL схемы —
+     * включая те, что в медиатеке есть, — и предложение «оставить или заменить
+     * заглушкой» разбирало бы придуманный список. Такой импорт проходит без
+     * модалки и без изменений схемы, а вызывающий получает признак того, что
+     * сравнение не выполнено.
+     *
      * @param schema - Импортируемая схема.
-     * @returns Promise с обработанной схемой или null (отмена).
+     * @returns Схема (или `null` при отмене) и признак пропущенного сравнения.
      */
-    async function startResolving(schema: IBricksSchema): Promise<IBricksSchema | null> {
-        resetState();
+    async function startResolving(schema: IBricksSchema): Promise<IImageResolverResult> {
+        // Начатый резолвинг вытесняется новым импортом: иначе его промис остался
+        // бы неразрешённым навсегда — `pendingPromise` переписывается, а ждущий
+        // вызывающий не получает ни схемы, ни отказа
+        handleCancel();
 
-        // Загружаем медиа-галерею если ещё не загружена
-        if (mediaStore.items.length === 0) {
+        const startedIn = resolveGeneration;
+        const allImages = extractSchemaImageUrls(schema);
+
+        // Схеме без изображений медиатека не нужна вовсе — запрашивать её здесь
+        // значило бы ждать сеть ради сравнения пустого списка
+        if (allImages.length === 0) {
+            return { schema, isComparisonSkipped: false };
+        }
+
+        if (!mediaStore.hasLoadedItemsSnapshot) {
+            let isMediaUnavailable = false;
+
             try {
                 await mediaStore.loadItems();
             } catch {
-                // Если галерея недоступна — продолжаем без сравнения
+                isMediaUnavailable = true;
+            }
+
+            // Проверка поколения — общая для обоих исходов запроса, и стоит она
+            // до разбора отказа. Иначе упавший запрос вытесненного импорта
+            // возвращал бы свою схему как «импортировать без сравнения», и она
+            // легла бы на канвас поверх схемы более нового импорта: токен сессии
+            // это не отсекает — сессия та же, вытеснение произошло внутри неё
+            if (resolveGeneration !== startedIn) {
+                return { schema: null, isComparisonSkipped: false };
+            }
+
+            // Проверка снимка, а не только `catch`: вытесненный более свежим
+            // запросом `loadItems` завершается без ошибки и без применения
+            // ответа, и его «успех» означал бы сравнение с прежним списком
+            if (isMediaUnavailable || !mediaStore.hasLoadedItemsSnapshot) {
+                return { schema, isComparisonSkipped: true };
             }
         }
 
-        const allImages = extractSchemaImageUrls(schema);
         const newImages = filterNewImages(allImages);
 
         // Нет новых изображений — возвращаем как есть
         if (newImages.length === 0) {
-            return schema;
+            return { schema, isComparisonSkipped: false };
         }
 
         // Инициализируем действия для каждого URL
@@ -116,10 +154,12 @@ export function useSchemaImageResolver() {
         pendingSchema.value = schema;
         isModalOpen.value = true;
 
-        // Возвращаем Promise, который резолвится при confirm/cancel/skip
-        return new Promise<IBricksSchema | null>((resolve) => {
+        // Промис резолвится при confirm/cancel/skip
+        const resolvedSchema = await new Promise<IBricksSchema | null>((resolve) => {
             pendingPromise.value = { resolve };
         });
+
+        return { schema: resolvedSchema, isComparisonSkipped: false };
     }
 
     /**
@@ -175,6 +215,8 @@ export function useSchemaImageResolver() {
      * Отменяет импорт — ничего не загружается.
      */
     function handleCancel(): void {
+        // Гасит и начатое ожидание списка медиатеки, и открытую модалку
+        resolveGeneration += 1;
         isModalOpen.value = false;
         const resolver = pendingPromise.value;
         pendingPromise.value = null;

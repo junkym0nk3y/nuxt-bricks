@@ -16,6 +16,8 @@ export interface IBuilderContext {
     /** Токен сессии этого экземпляра — им тесты сверяют операции вне useBuilderSession. */
     sessionToken: IBuilderSessionToken;
     showToastMock: ReturnType<typeof vi.fn>;
+    /** Сообщение о недоступном хранилище черновиков — им проверяется однократность. */
+    draftStorageUnavailableMock: ReturnType<typeof vi.fn>;
 }
 
 /**

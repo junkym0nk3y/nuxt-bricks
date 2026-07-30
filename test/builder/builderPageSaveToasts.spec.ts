@@ -14,8 +14,20 @@ import { computed, effectScope, reactive, ref, type EffectScope } from 'vue';
  */
 
 // #region Mocks
-const { toasts, publishStoreMock, componentsStoreMock, sidebarStoreMock } = vi.hoisted(() => ({
+const {
+    toasts,
+    publishStoreMock,
+    componentsStoreMock,
+    sidebarStoreMock,
+    imageResolverMock,
+    componentLibraryMock,
+} = vi.hoisted(() => ({
     toasts: [] as Array<{ message: string; variant: string }>,
+    imageResolverMock: { startResolving: vi.fn() },
+    componentLibraryMock: {
+        skippedBricks: [] as Array<{ name: string; brickPath: string; reason: string }>,
+        isLoadFailed: false,
+    },
     publishStoreMock: {
         currentFormState: {
             pagename: 'page-a',
@@ -78,7 +90,8 @@ vi.mock('../../src/runtime/modules/builder/core/stores/sidebar', () => ({
 vi.mock('../../src/runtime/modules/builder/app/composables/useComponentLibrary', () => ({
     useComponentLibrary: () => ({
         componentLibraryList: computed(() => []),
-        isComponentLibraryLoadFailed: computed(() => false),
+        skippedBricks: computed(() => componentLibraryMock.skippedBricks),
+        isComponentLibraryLoadFailed: computed(() => componentLibraryMock.isLoadFailed),
         isComponentLibraryLoading: computed(() => false),
         refreshComponentLibrary: vi.fn(),
     }),
@@ -112,7 +125,7 @@ vi.mock('../../src/runtime/modules/builder/media/composables/useSchemaImageResol
     useSchemaImageResolver: () => ({
         isModalOpen: ref(false),
         state: reactive({ newImages: [], actions: new Map(), globalAction: 'keep' }),
-        startResolving: vi.fn(),
+        startResolving: imageResolverMock.startResolving,
         handleConfirm: vi.fn(),
         handleCancel: vi.fn(),
         handleSkip: vi.fn(),
@@ -180,6 +193,9 @@ describe('страница билдера: тосты операции, доех
         };
         publishStoreMock.publishCurrentPage.mockReset();
         publishStoreMock.saveCurrentPageAsCopy.mockReset();
+        imageResolverMock.startResolving.mockReset();
+        componentLibraryMock.skippedBricks = [];
+        componentLibraryMock.isLoadFailed = false;
         // provide() вне setup-компонента предупреждает в консоль — здесь это шум
         vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     });
@@ -329,6 +345,84 @@ describe('страница билдера: тосты операции, доех
         // Искать в списке пользователь будет копию, а не исходную страницу
         expect(toasts).toHaveLength(1);
         expect(toasts[0]?.message).toContain('Page A copy');
+
+        scope.stop();
+    });
+
+    it('импорт без сравнения с медиатекой сообщает об этом вместо обычного успеха', async () => {
+        const { scope, page } = await mountBuilderPage();
+
+        const schema = { components: [] };
+        imageResolverMock.startResolving.mockResolvedValueOnce({
+            schema,
+            isComparisonSkipped: true,
+        });
+
+        await page.handleImportSchema(schema);
+
+        expect(componentsStoreMock.loadSchema).toHaveBeenCalledWith(schema, { resetHistory: true });
+        // Ровно один тост: toast — синглтон, и сообщение об успехе, показанное
+        // следом, стёрло бы предупреждение, ради которого всё и затевалось
+        expect(toasts).toHaveLength(1);
+        expect(toasts[0]?.message).toBe('bricks.media.resolver.importedWithoutComparison');
+
+        scope.stop();
+    });
+
+    it('о пропущенных бриках сообщается, даже когда сама ручка ответила', async () => {
+        componentLibraryMock.skippedBricks = [
+            {
+                name: 'NoLoader',
+                brickPath: '/components/NoLoader.brick.ts',
+                reason: 'loader-missing',
+            },
+        ];
+
+        const { scope, page } = await mountBuilderPage();
+
+        page.notifyComponentLibraryFailure();
+
+        expect(toasts).toHaveLength(1);
+        expect(toasts[0]?.message).toBe('bricks.library.skippedBricks');
+
+        scope.stop();
+    });
+
+    it('отказ ручки важнее пропусков: тост один и про отказ', async () => {
+        componentLibraryMock.isLoadFailed = true;
+        componentLibraryMock.skippedBricks = [
+            {
+                name: 'NoLoader',
+                brickPath: '/components/NoLoader.brick.ts',
+                reason: 'loader-missing',
+            },
+        ];
+
+        const { scope, page } = await mountBuilderPage();
+
+        page.notifyComponentLibraryFailure();
+
+        // Второй тост затёр бы первый — синглтон; отказ и свежее, и чинится повтором
+        expect(toasts).toHaveLength(1);
+        expect(toasts[0]?.message).toBe('bricks.library.loadFailed');
+
+        scope.stop();
+    });
+
+    it('импорт после выполненного сравнения сообщает об успехе', async () => {
+        const { scope, page } = await mountBuilderPage();
+
+        const schema = { components: [] };
+        imageResolverMock.startResolving.mockResolvedValueOnce({
+            schema,
+            isComparisonSkipped: false,
+        });
+
+        await page.handleImportSchema(schema);
+
+        expect(toasts).toHaveLength(1);
+        expect(toasts[0]?.message).toBe('bricks.publish.toasts.schemaImported');
+        expect(toasts[0]?.variant).toBe('success');
 
         scope.stop();
     });

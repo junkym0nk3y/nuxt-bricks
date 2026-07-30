@@ -69,7 +69,9 @@
                 "layout": "Layout",
                 "other": "Other",
                 "content": "Content"
-            }
+            },
+            "skippedBricks": "Components failed to load: {count}",
+            "skippedBricksDevHint": "Present in the manifest but missing from the bundle — restart the dev server"
         },
         "properties": {
             "title": "Properties",
@@ -268,7 +270,8 @@
                 "restoreTitle": "Restore unsaved changes?",
                 "restoreDescription": "We found changes that were not saved. Restore them?",
                 "restoreConfirm": "Restore changes",
-                "restoreCancel": "Open saved version"
+                "restoreCancel": "Open saved version",
+                "storageUnavailable": "Drafts are unavailable: the browser blocked local storage. Save your changes manually"
             },
             "session": {
                 "errorTitle": "The page did not load",
@@ -354,7 +357,8 @@
                 "keep": "Keep",
                 "placeholder": "Placeholder",
                 "skip": "Skip",
-                "apply": "Apply"
+                "apply": "Apply",
+                "importedWithoutComparison": "Schema imported without checking the media library: it is unavailable, images left as is"
             }
         },
         "schema": {

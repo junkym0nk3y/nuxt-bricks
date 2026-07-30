@@ -81,6 +81,32 @@ export function buildCopyFormState(
 }
 
 /**
+ * Собирает состояние формы из сохранённой страницы — режим редактирования.
+ *
+ * Отличие от `buildCopyFormState`: страница открывается «как есть», со своими
+ * датами и статусом публикации, а не превращается в новый черновик.
+ *
+ * @param page - Сводка страницы из списка стора.
+ * @returns Состояние формы публикации.
+ */
+export function buildEditFormState(page: TPublishedPageSummary): TPublishFormState {
+    return {
+        pagename: page.pagename,
+        title: page.title,
+        description: page.description,
+        keywords: page.keywords,
+        published: page.published,
+        layout: page.layout || DEFAULT_LAYOUT,
+        backgroundColor: page.backgroundColor || resolveDefaultBackgroundColor(),
+        socialImage: page.socialImage,
+        urlPrefix: page.urlPrefix,
+        subdomain: page.subdomain,
+        createdAt: page.createdAt,
+        updatedAt: page.updatedAt,
+    };
+}
+
+/**
  * Стабилизирует состояние формы публикации: заполняет отсутствующие поля дефолтами.
  *
  * @param formState - Произвольное состояние формы (например из localStorage).

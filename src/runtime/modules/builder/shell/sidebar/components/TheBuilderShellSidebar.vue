@@ -116,6 +116,7 @@ defineExpose({
                     v-if="activeView === 'components'"
                     key="components"
                     :components="props.components"
+                    :skipped-bricks="props.skippedBricks"
                     :is-library-load-failed="props.isLibraryLoadFailed"
                     :is-library-loading="props.isLibraryLoading"
                     @close="handleCloseComponents"

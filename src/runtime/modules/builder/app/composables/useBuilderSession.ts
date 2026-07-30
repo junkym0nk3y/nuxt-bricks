@@ -43,7 +43,27 @@ const SESSION_BOOTSTRAP_TIMEOUT_MS = 30000;
  * Первичное открытие — на стороне вызывающего (onMounted, см. [pagename].vue).
  */
 export function useBuilderSession(options: IBuilderSessionOptions) {
-    const { routePagename, sessionPagename, showToast, renameSession, sessionToken } = options;
+    const {
+        routePagename,
+        sessionPagename,
+        showToast,
+        renameSession,
+        sessionToken,
+        draftStorageNotice,
+    } = options;
+
+    /**
+     * Удаляет черновик и сообщает, если хранилище отказало. Тихий отказ здесь
+     * означал бы, что отклонённый или уже сохранённый черновик снова предложат
+     * восстановить при следующем заходе.
+     *
+     * @param pagename - Ключ сессии, по которому лежит черновик.
+     */
+    function discardDraft(pagename: string): void {
+        if (!removeBuilderDraft(pagename)) {
+            draftStorageNotice.report();
+        }
+    }
 
     const { t } = useI18n();
     const componentsStore = useComponentsStore();
@@ -91,14 +111,27 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
         return restoreDraftGeneration !== null && isCurrentSession(restoreDraftGeneration);
     }
 
+    /**
+     * Гасит всё, начатое прежней сессией: и операции, сверяющие токен (открытие,
+     * сохранение, снимок превью, портальные модалки), и незавершённые записи в
+     * сторе. Одной точкой, потому что расходиться им нельзя: запись, оставшаяся
+     * в списке активных, держала бы индикатор и запрет второго submit на
+     * странице, к которой не относится.
+     *
+     * Сами запросы при этом продолжают лететь — их исход доходит до пользователя
+     * тостом с меткой своей страницы.
+     */
+    function abandonSessionOperations(): void {
+        sessionToken.invalidate();
+        publishStore.resetActiveWrites();
+    }
+
     // Счётчик локален экземпляру, а незавершённое открытие переживает свой экземпляр:
     // сторы живут на уровне приложения, поэтому поздний ответ покойной страницы
     // (уход на дашборд → открытие другой страницы) писал бы схему в чужую сессию,
     // пройдя проверку собственного, уже неактуального поколения. Инкремент на
     // dispose гасит все открытия этого экземпляра разом.
-    onScopeDispose(() => {
-        sessionToken.invalidate();
-    });
+    onScopeDispose(abandonSessionOperations);
 
     /**
      * Строит актуальный снапшот из стора канваса и publish настроек.
@@ -181,7 +214,7 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
             }
 
             if (draft && draft.mode === 'edit' && draft.draftSnapshot) {
-                removeBuilderDraft(pagename);
+                discardDraft(pagename);
             }
 
             return;
@@ -236,7 +269,7 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
             return;
         }
 
-        sessionToken.invalidate();
+        abandonSessionOperations();
         const generation = sessionToken.capture();
 
         // Фиксируем ключ сессии: черновики пишутся/удаляются по нему до следующего
@@ -343,7 +376,7 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
         }
 
         savedSnapshot.value = buildCurrentSnapshot();
-        removeBuilderDraft(sessionPagename.value);
+        discardDraft(sessionPagename.value);
     }
 
     /**
@@ -399,7 +432,7 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
         // целиком (watcher ниже)
         const pagename = pendingDraft.value?.pagename ?? sessionPagename.value;
         if (pagename) {
-            removeBuilderDraft(pagename);
+            discardDraft(pagename);
         }
 
         isRestoreDraftModalOpen.value = false;

@@ -6,7 +6,7 @@ import type { IBuilderContext, IDeferredApi, IDeferredRequest, IWindowStub } fro
 import { vi } from 'vitest';
 
 // Vue
-import { effectScope } from 'vue';
+import { effectScope, onScopeDispose } from 'vue';
 
 // Composables билдера (в spec-файлах их зависимости замоканы через vi.mock —
 // моки применяются и к импортам этого helper'а: module id общий)
@@ -15,6 +15,7 @@ import { useBuilderPagenameSync } from '../../src/runtime/modules/builder/app/co
 import { useBuilderSession } from '../../src/runtime/modules/builder/app/composables/useBuilderSession';
 import { useBuilderSessionToken } from '../../src/runtime/modules/builder/app/composables/useBuilderSessionToken';
 import { useBuilderDraftPersistence } from '../../src/runtime/modules/builder/app/composables/useBuilderDraftPersistence';
+import { createDraftStorageNotice } from '../../src/runtime/modules/builder/app/utils/draftStorageNotice';
 // #endregion
 
 export const AUTOSAVE_DEBOUNCE_MS = 800;
@@ -109,16 +110,27 @@ export function createDeferredApi(): IDeferredApi {
 export function mountBuilderContext(): IBuilderContext {
     const scope = effectScope();
     const showToastMock = vi.fn();
+    const draftStorageUnavailableMock = vi.fn();
 
     const context = scope.run(() => {
-        const pagename = useBuilderPagename();
         const sessionToken = useBuilderSessionToken();
+        // Тот же порядок, что в pages/[pagename].vue: остановка уведомления
+        // регистрируется раньше всех прочих хуков очистки
+        const draftStorageNotice = createDraftStorageNotice({
+            captureSessionToken: sessionToken.capture,
+            notify: draftStorageUnavailableMock,
+        });
+        onScopeDispose(() => {
+            draftStorageNotice.stop();
+        });
+        const pagename = useBuilderPagename({ draftStorageNotice });
         const session = useBuilderSession({
             routePagename: pagename.routePagename,
             sessionPagename: pagename.sessionPagename,
             showToast: showToastMock,
             renameSession: pagename.renameSession,
             sessionToken,
+            draftStorageNotice,
         });
         useBuilderDraftPersistence({
             routePagename: pagename.routePagename,
@@ -128,6 +140,7 @@ export function mountBuilderContext(): IBuilderContext {
             isRestoreDraftModalOpen: session.isRestoreDraftModalOpen,
             savedSnapshot: session.savedSnapshot,
             buildCurrentSnapshot: session.buildCurrentSnapshot,
+            draftStorageNotice,
         });
         useBuilderPagenameSync({
             renameSession: pagename.renameSession,
@@ -140,5 +153,5 @@ export function mountBuilderContext(): IBuilderContext {
         throw new Error('effectScope.run returned no context');
     }
 
-    return { scope, ...context, showToastMock };
+    return { scope, ...context, showToastMock, draftStorageUnavailableMock };
 }

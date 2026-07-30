@@ -2,6 +2,8 @@
  * Типы для резолвинга изображений при импорте JSON-схемы.
  */
 
+import type { IBricksSchema } from '../../../common/types/brick';
+
 /**
  * Действие для обработки найденного изображения.
  * - keep: оставить URL как есть
@@ -48,4 +50,25 @@ export interface IImageResolverState {
     newImages: IExtractedImageUrl[];
     actions: Map<string, TImageResolveAction>;
     globalAction: TImageResolveAction;
+}
+
+/**
+ * Отложенный ответ модалки резолвера: схема с применённым выбором пользователя
+ * либо `null` (импорт отменён).
+ */
+export interface IResolverPromise {
+    resolve: (schema: IBricksSchema | null) => void;
+}
+
+/**
+ * Результат резолвинга.
+ *
+ * `isComparisonSkipped` — сравнение с медиатекой не выполнено (её состав
+ * неизвестен). Схема в этом случае возвращается нетронутой: разделить URL на
+ * «новые» и «уже известные» не по чему, а предлагать выбор по ложной
+ * классификации хуже, чем не предлагать вовсе.
+ */
+export interface IImageResolverResult {
+    schema: IBricksSchema | null;
+    isComparisonSkipped: boolean;
 }

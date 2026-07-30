@@ -83,6 +83,28 @@ const hasAvailableComponents = computed<boolean>(() => props.components.length >
  * @returns true если есть хотя бы одна категория с компонентами
  */
 const hasFilteredResults = computed<boolean>(() => categorizedComponents.value.size > 0);
+
+/**
+ * Имена пропущенных бриков одной строкой — по ним разработчик находит проблему,
+ * а пользователь понимает, чего именно недостаёт в списке.
+ */
+const skippedBrickNames = computed<string>(() =>
+    props.skippedBricks.map((brick) => brick.name).join(', ')
+);
+
+/**
+ * Есть ли среди пропусков рассинхрон манифеста и сборки. Такой пропуск
+ * подсказывает конкретное действие (перезапуск dev-сервера), а отказ импорта —
+ * нет: там нужно смотреть саму ошибку в консоли.
+ */
+const hasMissingLoaders = computed<boolean>(() =>
+    props.skippedBricks.some((brick) => brick.reason === 'loader-missing')
+);
+
+/** Подсказка про перезапуск нужна только там, где перезапуск и возможен. */
+const isDevHintVisible = computed<boolean>(
+    () => import.meta.dev === true && hasMissingLoaders.value
+);
 // #endregion
 
 // #region Methods
@@ -163,6 +185,25 @@ function handleRetry(): void {
                 >
                     {{ t('bricks.library.retry') }}
                 </BricksButton>
+            </div>
+
+            <!--
+                Отдельно от блока отказа и без кнопки повтора: ответ ручки дошёл,
+                а вот отдельные брики не собрались — повтор их не вернёт. Список
+                имён обязателен: без него неясно, чего именно не хватает среди
+                оставшихся карточек
+            -->
+            <div v-if="props.skippedBricks.length > 0" :class="$style.skipped">
+                <span :class="$style.skippedIcon">
+                    <BricksIcon icon="ta:outline-info-circle" />
+                </span>
+                <p :class="$style.skippedText">
+                    {{ t('bricks.library.skippedBricks', { count: props.skippedBricks.length }) }}
+                </p>
+                <p :class="$style.skippedNames">{{ skippedBrickNames }}</p>
+                <p v-if="isDevHintVisible" :class="$style.skippedHint">
+                    {{ t('bricks.library.skippedBricksDevHint') }}
+                </p>
             </div>
 
             <div
@@ -379,5 +420,49 @@ function handleRetry(): void {
     margin: 0;
     font-size: 1.2rem;
     color: var(--bricks-base-600);
+}
+
+.skipped {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.6rem;
+    padding: 1.6rem;
+    border-radius: var(--bricks-border-radius-sm);
+    border: 1px solid var(--bricks-base-300);
+    background-color: var(--bricks-base-50);
+    text-align: center;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.skippedIcon {
+    color: var(--bricks-base-400);
+
+    svg {
+        width: 2.4rem;
+        height: 2.4rem;
+    }
+}
+
+.skippedText {
+    margin: 0;
+    font-size: 1.2rem;
+    color: var(--bricks-base-600);
+}
+
+.skippedNames {
+    margin: 0;
+
+    /* Длинные имена бриков не должны распирать сайдбар */
+    overflow-wrap: anywhere;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--bricks-base-700);
+}
+
+.skippedHint {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--bricks-base-500);
 }
 </style>

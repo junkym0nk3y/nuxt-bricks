@@ -76,6 +76,15 @@ export function useBuilderPageWrite(options: IBuilderPageWriteOptions): IUseBuil
         published: boolean,
         successMessage: string
     ): Promise<boolean> {
+        // Повторное действие при идущей записи — не отказ: сообщать о нём нечего,
+        // а без этого выхода `publishCurrentPage` вернул бы `null` (запись уже
+        // идёт) и путь отказа показал бы тост «не удалось сохранить» поверх
+        // нормально идущего сохранения. Сама подмена `published` ниже тоже
+        // недопустима до выхода — она пережила бы откат чужой операции
+        if (publishStore.isSubmitting) {
+            return false;
+        }
+
         const previousPublished = publishStore.currentFormState.published;
         publishStore.setCurrentFormField('published', published);
         const schema = componentsStore.exportSchema();
@@ -165,6 +174,12 @@ export function useBuilderPageWrite(options: IBuilderPageWriteOptions): IUseBuil
      * восстановить чужие данные).
      */
     async function handleSaveAsCopy(): Promise<void> {
+        // По той же причине, что и в обычном сохранении: отказ guard'а стора
+        // неотличим здесь от неудачи создания копии и дал бы ложный тост
+        if (publishStore.isSubmitting) {
+            return;
+        }
+
         const schema = componentsStore.exportSchema();
         const startedIn = sessionToken.capture();
         // Метка исходной страницы — до await, по той же причине, что и в обычном

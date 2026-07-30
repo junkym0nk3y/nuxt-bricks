@@ -16,6 +16,8 @@ import type {
 import type { IBuilderDraftSnapshot } from '../../publish/types/builderDrafts';
 import type { IBuilderToastState } from '../../core/types/toast';
 import type { TCachedModal } from '../../core/types/modals';
+import type { ISkippedBrick } from '../../core/types/componentLibrary';
+import type { IDraftStorageNotice } from './draftStorage';
 
 /**
  * Функция показа toast-уведомления билдера.
@@ -40,6 +42,13 @@ export type TRenameBuilderSession = (next: string) => Promise<void>;
  * после resolve — ответственность вызывающего (`useBuilderPage.handleSaveAsCopy`).
  */
 export type TSwitchToSavedPage = (page: IPublishedPage) => Promise<void>;
+
+/**
+ * Опции composable useBuilderPagename.
+ */
+export interface IBuilderPagenameOptions {
+    draftStorageNotice: IDraftStorageNotice;
+}
 
 /**
  * Возвращаемое значение composable useBuilderPagename.
@@ -85,6 +94,12 @@ export interface IBuilderSessionOptions {
     showToast: TShowToast;
     renameSession: TRenameBuilderSession;
     sessionToken: IBuilderSessionToken;
+    /**
+     * Сообщение о недоступном хранилище черновиков. Сессия удаляет черновик в
+     * трёх местах (stale-запись, фиксация сохранённого, отказ от восстановления),
+     * и тихий отказ удаления вернул бы предложение восстановить уже отклонённое.
+     */
+    draftStorageNotice: IDraftStorageNotice;
 }
 
 /**
@@ -98,6 +113,12 @@ export interface IBuilderDraftPersistenceOptions {
     isRestoreDraftModalOpen: Ref<boolean>;
     savedSnapshot: Ref<IBuilderDraftSnapshot | null>;
     buildCurrentSnapshot: () => IBuilderDraftSnapshot;
+    /**
+     * Сообщение о недоступном хранилище: проба на входе в сессию и отказ записи
+     * по ходу работы ведут в него же. Латч — внутри самого уведомления, автосейв
+     * повторяет попытку каждые ~800 мс, и сообщение на каждую было бы шумом.
+     */
+    draftStorageNotice: IDraftStorageNotice;
 }
 
 /**
@@ -141,6 +162,13 @@ export interface IComponentLibraryData {
     /** Layout-блоки + brick-компоненты с метаданными. */
     items: IComponentLibraryItem[];
     /**
+     * Записи манифеста, не доехавшие до библиотеки. Отдельно от `isPartial`:
+     * тот означает «ответ ручки не дошёл», а здесь ответ дошёл и разобран —
+     * не собрались отдельные брики. Разница видна пользователю: отказ ручки
+     * чинится повтором, пропуск brick-модуля — нет.
+     */
+    skippedBricks: ISkippedBrick[];
+    /**
      * Модалки того же манифеста — для кеша селектора свойств. Лежат в кеше
      * `useAsyncData` рядом со списком, потому что на гидрации handler не
      * исполняется: только из его результата их и можно взять на клиенте.
@@ -153,6 +181,12 @@ export interface IComponentLibraryData {
  */
 export interface IUseComponentLibraryReturn {
     componentLibraryList: ComputedRef<IComponentLibraryItem[]>;
+    /**
+     * Записи манифеста, не доехавшие до библиотеки. Показанного списка по ним не
+     * восстановить: пользователь иначе видит библиотеку, молча лишённую части
+     * компонентов, при полном отсутствии признаков отказа.
+     */
+    skippedBricks: ComputedRef<ISkippedBrick[]>;
     /**
      * Отказ загрузки манифеста. Отдельно от пустого списка: layout-блоки
      * остаются доступны и при отказе, то есть по составу списка отказ неотличим.
@@ -242,6 +276,8 @@ export interface IUseBuilderPageReturn {
     sidebarStore: ReturnType<typeof useSidebarStore>;
     publishStore: ReturnType<typeof usePublishStore>;
     componentLibraryList: ComputedRef<IComponentLibraryItem[]>;
+    /** Записи манифеста, не доехавшие до библиотеки, — для предупреждения в сайдбаре. */
+    skippedBricks: ComputedRef<ISkippedBrick[]>;
     isComponentLibraryLoadFailed: ComputedRef<boolean>;
     isComponentLibraryLoading: ComputedRef<boolean>;
     handleRetryComponentLibrary: () => Promise<void>;

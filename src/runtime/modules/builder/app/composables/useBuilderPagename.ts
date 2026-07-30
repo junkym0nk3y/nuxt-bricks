@@ -1,6 +1,6 @@
 // #region Imports
 // Types
-import type { IUseBuilderPagenameReturn } from '../types/composables';
+import type { IBuilderPagenameOptions, IUseBuilderPagenameReturn } from '../types/composables';
 
 // Utils
 import { migrateBuilderDraft } from '../../publish/utils/draftStorage';
@@ -23,8 +23,11 @@ const BUILDER_PAGE_ROUTE_NAME = BRICKS_ROUTE_NAMES.builderPage;
  * `sessionPagename` — pagename, на который открыта текущая сессия (ключ черновиков
  * localStorage). Расхождение значений означает навигацию на другую страницу —
  * её отслеживает watcher в `useBuilderSession`.
+ *
+ * @param options - Сообщение о недоступном хранилище: перенос черновика — ещё
+ * один путь, на котором отказ storage иначе остался бы в консоли.
  */
-export function useBuilderPagename(): IUseBuilderPagenameReturn {
+export function useBuilderPagename(options: IBuilderPagenameOptions): IUseBuilderPagenameReturn {
     const route = useRoute();
     const router = useRouter();
 
@@ -53,7 +56,13 @@ export function useBuilderPagename(): IUseBuilderPagenameReturn {
         }
 
         if (sessionPagename.value) {
-            migrateBuilderDraft(sessionPagename.value, normalized);
+            // Занятый целевой ключ — обычная ситуация (сессия владеет своим
+            // ключом), а отказ хранилища означает, что черновик мог остаться под
+            // прежним слагом: автосейв дальше пишет по новому ключу и сам о
+            // поломке не сообщит
+            if (migrateBuilderDraft(sessionPagename.value, normalized) === 'storage-unavailable') {
+                options.draftStorageNotice.report();
+            }
         }
         sessionPagename.value = normalized;
 

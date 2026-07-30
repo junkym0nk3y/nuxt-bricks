@@ -89,6 +89,54 @@ describe('media store: доставка отказа и порядок отве�
         }
     });
 
+    it('снимок медиатеки объявлен только после принятого ответа списка', async () => {
+        const store = useMediaStore();
+
+        expect(store.hasLoadedItemsSnapshot).toBe(false);
+
+        // Загрузка файла кладёт его в список локально: состав медиатеки от
+        // этого известен не становится, а `items` уже непуст
+        apiFetcherMock.mockResolvedValueOnce(buildItem({ id: 3, filename: 'uploaded.webp' }));
+        await store.uploadFile(new File(['x'], 'uploaded.webp', { type: 'image/webp' }));
+
+        expect(store.items).toHaveLength(1);
+        expect(store.hasLoadedItemsSnapshot).toBe(false);
+
+        apiFetcherMock.mockResolvedValueOnce({ success: true, items: [buildItem()] });
+        await store.loadItems();
+
+        expect(store.hasLoadedItemsSnapshot).toBe(true);
+
+        // Отказ следующего запроса снимок не отменяет: последний удачный ответ
+        // остаётся достоверным составом медиатеки
+        apiFetcherMock.mockRejectedValueOnce(new Error('503'));
+        await expect(store.loadItems()).rejects.toThrow();
+
+        expect(store.hasLoadedItemsSnapshot).toBe(true);
+    });
+
+    it('вытесненный ответ списка не объявляет снимок медиатеки', async () => {
+        const store = useMediaStore();
+
+        let resolveStale: ((response: unknown) => void) | undefined;
+        apiFetcherMock.mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    resolveStale = resolve;
+                })
+        );
+
+        const stale = store.loadItems();
+        // Локальная запись обесценивает летящий запрос: его список уже неактуален
+        store.invalidatePendingItemsLoad();
+
+        resolveStale?.({ success: true, items: [buildItem()] });
+        await stale;
+
+        expect(store.items).toHaveLength(0);
+        expect(store.hasLoadedItemsSnapshot).toBe(false);
+    });
+
     it('ответ более раннего запроса не заменяет более свежий список', async () => {
         const store = useMediaStore();
 

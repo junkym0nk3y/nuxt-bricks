@@ -3,7 +3,11 @@
  */
 
 import type { IBricksSchema } from '../../../common/types/brick';
-import type { IPublishedPage, TPublishFormState } from '../../../common/types/bricks-api';
+import type {
+    IPublishedPage,
+    TPublishedPageSummary,
+    TPublishFormState,
+} from '../../../common/types/bricks-api';
 
 /**
  * Опции записывающей операции стора, которая переживает свою сессию.
@@ -20,6 +24,25 @@ export interface IPublishOperationOptions {
 }
 
 /**
+ * Состояние реестра незавершённых операций записи — то, чем оперирует
+ * `utils/activeWrites.ts`.
+ */
+export interface IActiveWriteRegistry {
+    activeWriteIds: number[];
+    nextWriteId: number;
+}
+
+/**
+ * Узкий контракт стора для записи страниц вне сессии редактора
+ * (`utils/pageLibraryWrite.ts`).
+ */
+export interface IPageLibraryWriteStoreDeps {
+    getPageById: (id: string | number) => TPublishedPageSummary | undefined;
+    isPagenameAvailable: (pagename: string, excludeId?: string | number) => boolean;
+    publishPage: (schema: IBricksSchema, formState: TPublishFormState) => Promise<number>;
+}
+
+/**
  * Узкий контракт стора для операций записи текущего лендинга
  * (`utils/currentPageWrite.ts`) — DI вместо прямого импорта стора, чтобы логика
  * тестировалась без Pinia.
@@ -28,9 +51,10 @@ export interface ICurrentPageWriteStoreDeps {
     currentFormState: TPublishFormState;
     validationErrors: Record<string, string>;
     generalError: string;
-    isSubmitting: boolean;
     editingPageId: string | number | null;
     lastSuccessfulSaveAt: number;
+    beginWrite: () => number | null;
+    endWrite: (writeId: number) => void;
     isPagenameAvailable: (pagename: string, excludeId?: string | number) => boolean;
     validateCurrentFormState: () => boolean;
     syncPageInList: (page: IPublishedPage) => void;

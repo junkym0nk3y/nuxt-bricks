@@ -284,6 +284,38 @@ describe('открытие сессии билдера: гонка перекл�
         expect(publishStore.editingPageId).toBe(2);
     });
 
+    it('открытие другой страницы забывает незавершённую запись прежней', async () => {
+        const context = mountTracked();
+        const publishStore = usePublishStore();
+
+        const pageA = buildPageWithComponent(1, 'page-a', 'a1');
+        const pageB = buildPageWithComponent(2, 'page-b', 'b1');
+        publishStore.publishedPages = [pageA, pageB];
+        serverPages = [pageA, pageB];
+        await context.session.openBuilderSession('page-a');
+
+        // Сохранение страницы A: PUT ушёл и ответа ещё нет
+        deferredUrls = ['/api/bricks/1/'];
+        const savingA = publishStore.publishCurrentPage({ components: [] });
+        const savingRequest = await deferred.waitFor('/api/bricks/1/');
+        expect(publishStore.isSubmitting).toBe(true);
+
+        // Переход на другую страницу: незавершённая запись A перестаёт быть
+        // «записью текущей страницы» — иначе B открылась бы с заблокированным
+        // сохранением и индикатором чужой операции
+        deferredUrls = [];
+        await context.session.openBuilderSession('page-b');
+
+        expect(publishStore.isSubmitting).toBe(false);
+
+        // Запрос A всё ещё летит; его завершение к состоянию B отношения не имеет
+        savingRequest.resolve(pageA);
+        await savingA;
+
+        expect(publishStore.isSubmitting).toBe(false);
+        expect(publishStore.editingPageId).toBe(2);
+    });
+
     it('переименование не переносит сессию, пока открытие не завершено', async () => {
         const context = mountTracked();
         const publishStore = usePublishStore();
