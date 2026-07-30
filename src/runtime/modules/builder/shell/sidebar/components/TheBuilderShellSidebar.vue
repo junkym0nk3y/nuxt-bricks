@@ -1,8 +1,9 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IComponentLibraryItem, IBricksSchema } from '../../../../common/types/brick';
+import type { IBricksSchema } from '../../../../common/types/brick';
 import type { IMediaItem, TMediaGalleryContext } from '../../../../common/types/media';
+import type { ISidebarProps, ISidebarEmits } from './types';
 
 // Vue
 import { computed, ref } from 'vue';
@@ -18,16 +19,11 @@ import BuilderShellSidebarSchemaTreeView from './BuilderShellSidebarSchemaTreeVi
 // #endregion
 
 // #region Props
-const props = defineProps<{
-    components: IComponentLibraryItem[];
-}>();
+const props = defineProps<ISidebarProps>();
 // #endregion
 
 // #region Emits
-const emit = defineEmits<{
-    openMediaGallery: [context: TMediaGalleryContext];
-    importSchema: [schema: IBricksSchema];
-}>();
+const emit = defineEmits<ISidebarEmits>();
 // #endregion
 
 // #region Data
@@ -94,6 +90,13 @@ function handleImportSchema(schema: IBricksSchema): void {
     emit('importSchema', schema);
 }
 
+/**
+ * Пробрасывает запрос повторной загрузки библиотеки наверх.
+ */
+function handleRetryLibrary(): void {
+    emit('retryLibrary');
+}
+
 // Expose method for parent to call when media is selected from gallery
 defineExpose({
     handleMediaSelect,
@@ -113,7 +116,10 @@ defineExpose({
                     v-if="activeView === 'components'"
                     key="components"
                     :components="props.components"
+                    :is-library-load-failed="props.isLibraryLoadFailed"
+                    :is-library-loading="props.isLibraryLoading"
                     @close="handleCloseComponents"
+                    @retry="handleRetryLibrary"
                 />
 
                 <BuilderShellSidebarPublishView

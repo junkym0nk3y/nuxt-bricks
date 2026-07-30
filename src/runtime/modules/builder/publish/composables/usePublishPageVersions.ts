@@ -1,18 +1,8 @@
-import { ref, type Ref } from 'vue';
+import { computed, ref } from 'vue';
 import type { IPageVersionSummary, TPublishedPageSummary } from '../../../common/types/bricks-api';
+import type { IUsePublishPageVersionsReturn } from '../types/composables';
 import { fetchPageVersionsRequest, fetchPageVersionRequest } from '../utils/publishApi';
 import { usePublishPreview } from './usePublishPreview';
-
-/**
- * Возвращаемое значение `usePublishPageVersions`.
- */
-export interface IUsePublishPageVersionsReturn {
-    versions: Ref<IPageVersionSummary[]>;
-    isLoading: Ref<boolean>;
-    previewingVersionId: Ref<number | null>;
-    loadVersions: (pageId: string | number) => Promise<void>;
-    previewVersion: (page: TPublishedPageSummary, versionId: number) => Promise<void>;
-}
 
 /**
  * Версии страницы для панели деталей дашборда: список сводок и превью полного
@@ -23,23 +13,59 @@ export function usePublishPageVersions(): IUsePublishPageVersionsReturn {
     const { previewPageVersion } = usePublishPreview();
 
     const versions = ref<IPageVersionSummary[]>([]);
-    const isLoading = ref(false);
     const previewingVersionId = ref<number | null>(null);
 
+    // Номер последнего стартовавшего запроса: им отсекается ответ, пришедший
+    // после переключения панели на другую страницу или после более свежей
+    // загрузки той же (список версий меняется откатом и сохранением)
+    let versionsRequestId = 0;
+
+    // Счётчик, а не флаг: у двух параллельных загрузок (раскрытие секции плюс
+    // перезагрузка по изменившемуся updatedAt) `finally` первой снимал бы
+    // индикатор, пока вторая ещё идёт
+    const pendingLoads = ref(0);
+    const isLoading = computed<boolean>(() => pendingLoads.value > 0);
+
     /**
-     * Загружает сводки версий страницы (при ошибке список сбрасывается).
+     * Очищает список и обесценивает уже летящий запрос. Зовётся при
+     * переключении панели на другую страницу: без обесценивания ответ прежней
+     * страницы приземлился бы после очистки и показал бы её версии как версии
+     * новой — с ними и уходил бы откат.
+     */
+    function resetVersions(): void {
+        versionsRequestId += 1;
+        versions.value = [];
+    }
+
+    /**
+     * Загружает сводки версий страницы.
+     *
+     * Отказ список не стирает: уже показанные версии переживают transient-отказ,
+     * а сообщение получает вызывающий. Отказ вытесненного запроса не
+     * докладывается — уведомление о нём накрыло бы результат более свежего.
      *
      * @param pageId - Идентификатор страницы.
      */
     async function loadVersions(pageId: string | number): Promise<void> {
-        isLoading.value = true;
+        const requestId = ++versionsRequestId;
+        pendingLoads.value += 1;
+
         try {
-            versions.value = await fetchPageVersionsRequest(pageId);
+            const loaded = await fetchPageVersionsRequest(pageId);
+
+            if (requestId !== versionsRequestId) {
+                return;
+            }
+
+            versions.value = loaded;
         } catch (error: unknown) {
-            versions.value = [];
+            if (requestId !== versionsRequestId) {
+                return;
+            }
+
             throw error;
         } finally {
-            isLoading.value = false;
+            pendingLoads.value -= 1;
         }
     }
 
@@ -63,5 +89,12 @@ export function usePublishPageVersions(): IUsePublishPageVersionsReturn {
         }
     }
 
-    return { versions, isLoading, previewingVersionId, loadVersions, previewVersion };
+    return {
+        versions,
+        isLoading,
+        previewingVersionId,
+        loadVersions,
+        previewVersion,
+        resetVersions,
+    };
 }

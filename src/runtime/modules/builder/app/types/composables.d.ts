@@ -15,6 +15,7 @@ import type {
 } from '../../media/types/schemaImageResolver';
 import type { IBuilderDraftSnapshot } from '../../publish/types/builderDrafts';
 import type { IBuilderToastState } from '../../core/types/toast';
+import type { TCachedModal } from '../../core/types/modals';
 
 /**
  * Функция показа toast-уведомления билдера.
@@ -126,6 +127,12 @@ export interface IComponentLibraryData {
     hash: string;
     /** Layout-блоки + brick-компоненты с метаданными. */
     items: IComponentLibraryItem[];
+    /**
+     * Модалки того же манифеста — для кеша селектора свойств. Лежат в кеше
+     * `useAsyncData` рядом со списком, потому что на гидрации handler не
+     * исполняется: только из его результата их и можно взять на клиенте.
+     */
+    modals: TCachedModal[];
 }
 
 /**
@@ -133,6 +140,14 @@ export interface IComponentLibraryData {
  */
 export interface IUseComponentLibraryReturn {
     componentLibraryList: ComputedRef<IComponentLibraryItem[]>;
+    /**
+     * Отказ загрузки манифеста. Отдельно от пустого списка: layout-блоки
+     * остаются доступны и при отказе, то есть по составу списка отказ неотличим.
+     */
+    isComponentLibraryLoadFailed: ComputedRef<boolean>;
+    isComponentLibraryLoading: ComputedRef<boolean>;
+    /** Повторяет загрузку; возвращает признак успеха. */
+    refreshComponentLibrary: () => Promise<boolean>;
 }
 // #endregion
 
@@ -150,6 +165,31 @@ export interface IThumbnailUploadResponse {
  */
 export interface IUsePageThumbnailReturn {
     captureAndUploadThumbnail: (pageId: string | number, startedIn: number) => Promise<void>;
+}
+// #endregion
+
+// #region useBuilderPageWrite
+/**
+ * Опции composable useBuilderPageWrite: всё, что принадлежит composition root'у,
+ * а не самой записи — токен сессии, её перенос и фиксация, открытие панели
+ * публикации для подсветки полей.
+ */
+export interface IBuilderPageWriteOptions {
+    sessionToken: IBuilderSessionToken;
+    renameSession: TRenameBuilderSession;
+    switchToSavedPage: TSwitchToSavedPage;
+    commitSavedSnapshot: TCommitSavedSnapshot;
+    ensurePublishSettingsVisible: (message: string) => void;
+}
+
+/**
+ * Возвращаемое значение composable useBuilderPageWrite.
+ */
+export interface IUseBuilderPageWriteReturn {
+    isEditingExistingPage: ComputedRef<boolean>;
+    currentPublishPageTitle: ComputedRef<string>;
+    handleSaveDraft: () => Promise<void>;
+    handleSaveAsCopy: () => Promise<void>;
 }
 // #endregion
 
@@ -189,6 +229,14 @@ export interface IUseBuilderPageReturn {
     sidebarStore: ReturnType<typeof useSidebarStore>;
     publishStore: ReturnType<typeof usePublishStore>;
     componentLibraryList: ComputedRef<IComponentLibraryItem[]>;
+    isComponentLibraryLoadFailed: ComputedRef<boolean>;
+    isComponentLibraryLoading: ComputedRef<boolean>;
+    handleRetryComponentLibrary: () => Promise<void>;
+    /**
+     * Сообщает об отказе загрузки библиотеки тостом. Зовётся страницей из
+     * `onMounted`: composable await'ится и на SSR, где показывать его некому.
+     */
+    notifyComponentLibraryFailure: () => void;
     isDocumentationModalOpen: Ref<boolean>;
     isMediaGalleryModalOpen: Ref<boolean>;
     mediaGalleryContext: Ref<TMediaGalleryContext>;

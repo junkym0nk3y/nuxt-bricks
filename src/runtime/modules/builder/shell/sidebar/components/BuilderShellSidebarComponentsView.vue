@@ -2,6 +2,7 @@
 // #region Imports
 // Types
 import type { IComponentLibraryItem } from '../../../../common/types/brick';
+import type { ISidebarComponentsViewProps, ISidebarComponentsViewEmits } from './types';
 
 // Vue
 import { computed, ref } from 'vue';
@@ -13,20 +14,17 @@ import { groupComponentsByCategory } from '../utils/componentCategories';
 
 // Components
 import BuilderShellSidebarComponentCard from './BuilderShellSidebarComponentCard.vue';
+import BricksButton from '../../../../ui/base/button/BricksButton.vue';
 import BricksCloseButton from '../../../../ui/base/modal/BricksCloseButton.vue';
 import BricksInput from '../../../../ui/inputs/BricksInput.vue';
 // #endregion
 
 // #region Props
-const props = defineProps<{
-    components: IComponentLibraryItem[];
-}>();
+const props = defineProps<ISidebarComponentsViewProps>();
 // #endregion
 
 // #region Emits
-const emit = defineEmits<{
-    close: [];
-}>();
+const emit = defineEmits<ISidebarComponentsViewEmits>();
 // #endregion
 
 // #region Data
@@ -103,6 +101,13 @@ function resolveCategoryLabel(category: string): string {
     const key = `bricks.library.categories.${category.toLowerCase()}`;
     return te(key) ? t(key) : category;
 }
+
+/**
+ * Запрашивает повторную загрузку библиотеки у composition root'а.
+ */
+function handleRetry(): void {
+    emit('retry');
+}
 // #endregion
 </script>
 
@@ -140,6 +145,26 @@ function resolveCategoryLabel(category: string): string {
         </div>
 
         <div :class="[$style.content, 'bricks-scrollbox']">
+            <!--
+                Блок отказа показывается независимо от состава списка: layout-блоки
+                в нём остаются и при отказе ручки, поэтому «список непуст» больше
+                не означает «библиотека загружена»
+            -->
+            <div v-if="props.isLibraryLoadFailed" :class="$style.loadError">
+                <span :class="$style.loadErrorIcon">
+                    <BricksIcon icon="ta:outline-circle-x" />
+                </span>
+                <p :class="$style.loadErrorText">{{ t('bricks.library.loadFailed') }}</p>
+                <BricksButton
+                    size="sm"
+                    variant="secondary"
+                    :disabled="props.isLibraryLoading"
+                    @click="handleRetry"
+                >
+                    {{ t('bricks.library.retry') }}
+                </BricksButton>
+            </div>
+
             <div
                 v-for="[category, groupedComponents] in categorizedComponents"
                 :key="category"
@@ -326,5 +351,33 @@ function resolveCategoryLabel(category: string): string {
         background-color: var(--bricks-base-100);
         font-family: monospace;
     }
+}
+
+.loadError {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.6rem;
+    padding: 1.6rem;
+    border-radius: var(--bricks-border-radius-sm);
+    border: 1px solid var(--bricks-base-300);
+    background-color: var(--bricks-base-50);
+    text-align: center;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.loadErrorIcon {
+    color: var(--bricks-base-400);
+
+    svg {
+        width: 2.4rem;
+        height: 2.4rem;
+    }
+}
+
+.loadErrorText {
+    margin: 0;
+    font-size: 1.2rem;
+    color: var(--bricks-base-600);
 }
 </style>

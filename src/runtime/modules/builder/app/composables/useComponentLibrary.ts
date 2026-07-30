@@ -3,6 +3,7 @@
 import type { IComponentLibraryItem } from '../../../common/types/brick';
 import type { IBrickValues } from '../../../common/types/index';
 import type { IBrickManifestEntry, IBricksManifest } from '../../../common/types/brickManifest';
+import type { TCachedModal } from '../../core/types/modals';
 import type { IComponentLibraryData, IUseComponentLibraryReturn } from '../types/composables';
 
 // Utils
@@ -14,11 +15,12 @@ import { withPromiseDeadline } from '../../../common/utils/promiseDeadline';
 import { computed } from 'vue';
 
 // Nuxt
-import { useAsyncData } from '#imports';
+import { useAsyncData, useState } from '#imports';
 
 // Composables
 import { useApiClient } from '../../../common/composables/useApiClient';
 import { useBrickImports } from '../../../common/composables/useBrickImports';
+import { replaceModalsCache } from '../../core/composables/useModalOptions';
 
 // Constants
 import { LAYOUT_COMPONENTS } from '../../core/constants/layoutComponents';
@@ -65,8 +67,26 @@ function fetchManifestWithinDeadline(request: Promise<IBricksManifest>): Promise
 }
 
 /**
+ * Собирает записи модалок для селектора свойств из того же ответа манифеста.
+ * Берутся до импорта brick-модулей: отказ импорта отдельного компонента не
+ * должен убирать его из селектора — там нужны только имя и путь.
+ *
+ * @param bricks - Записи манифеста brick-компонентов.
+ * @returns Записи модалок для кеша.
+ */
+function collectModalEntries(bricks: IBrickManifestEntry[]): TCachedModal[] {
+    return bricks
+        .filter((brick) => brick.category === 'Modal')
+        .map((brick) => ({ name: brick.name, brickPath: brick.brickPath }));
+}
+
+/**
  * Загружает библиотеку компонентов: список bricks с бэкенда + метаданные
  * из `.brick.ts`-модулей (defaultProps, slots) + layout-компоненты.
+ *
+ * Этим же ответом наполняется кеш модалок панели свойств: манифест один, и
+ * второй запрос за ним означал бы два независимых кеша одного ответа, каждый со
+ * своей судьбой при отказе.
  *
  * Рядом со списком хранится хеш манифеста из ответа ручки. Потребителя у него
  * пока нет — это заготовка на будущее: когда метаданные бриков переедут в
@@ -74,10 +94,27 @@ function fetchManifestWithinDeadline(request: Promise<IBricksManifest>): Promise
  * `hash` и метаданные в `items` пока могут расходиться, — в
  * `IComponentLibraryData`.
  *
- * @returns Список компонентов библиотеки.
+ * @returns Список компонентов, признак отказа загрузки и повтор.
  */
 export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn> {
     const { findImportModule } = useBrickImports();
+
+    // Снимок последней успешной загрузки. Нужен из-за поведения `useAsyncData`:
+    // при отказе он сбрасывает `data` в дефолт (`asyncData.js`: `data.value =
+    // unref(options.default())`), то есть неудачный повтор забирал бы у
+    // пользователя уже загруженные брики — вместе с возможностью работать дальше
+    // тем, что и так работало.
+    //
+    // Состояние уровня приложения, а не локальный `ref`: кеш keyed-запроса
+    // очищается при размонтировании последнего потребителя
+    // (`purgeCachedData`), поэтому снимок в экземпляре страницы жил бы короче
+    // кеша модалок из того же ответа — при повторном заходе с отказом ручки
+    // селектор модалок показывал бы записи, которых уже нет в библиотеке.
+    // Заводится до `await`: после него композабл вне Nuxt-контекста.
+    const lastLoadedData = useState<IComponentLibraryData | null>(
+        'bricks-components-last-loaded',
+        () => null
+    );
 
     const componentLibrary = await useAsyncData<IComponentLibraryData>(
         'bricks-components',
@@ -135,6 +172,7 @@ export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn>
 
             return {
                 hash: response?.hash || '',
+                modals: collectModalEntries(bricks),
                 items: [
                     ...LAYOUT_COMPONENTS,
                     ...componentsWithMeta.filter(
@@ -145,9 +183,64 @@ export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn>
         }
     );
 
+    /**
+     * Фиксирует результат успешной загрузки: снимок ответа и кеш модалок панели
+     * свойств. Кеш модалок обновляется здесь, а не только внутри handler'а: на
+     * гидрации handler не исполняется вовсе (ответ приезжает готовым в payload),
+     * и кеш остался бы пустым на клиенте — именно там, где селектор и открывают.
+     * Снимок и кеш пишутся из одного значения, чтобы список и опции модалок не
+     * могли разъехаться.
+     */
+    function commitLoadedData(): void {
+        const data = componentLibrary.data.value;
+
+        if (!data) {
+            return;
+        }
+
+        lastLoadedData.value = data;
+        replaceModalsCache(data.modals);
+    }
+
+    commitLoadedData();
+
+    // Layout-блоки манифеста не требуют: отказ ручки не должен забирать у
+    // пользователя ещё и их — иначе на канвас нельзя положить вообще ничего
     const componentLibraryList = computed<IComponentLibraryItem[]>(
-        () => componentLibrary.data.value?.items ?? []
+        () => componentLibrary.data.value?.items ?? lastLoadedData.value?.items ?? LAYOUT_COMPONENTS
     );
 
-    return { componentLibraryList };
+    // Отказ отличается от «библиотека пуста»: список непуст и при отказе
+    // (layout-блоки), поэтому признак нужен отдельным полем
+    const isComponentLibraryLoadFailed = computed<boolean>(
+        () => componentLibrary.error.value !== null
+    );
+
+    /**
+     * Повторяет загрузку манифеста. Ни во время повтора, ни после неудачного
+     * прежний список не исчезает: исчезновение карточек читалось бы как потеря
+     * библиотеки, хотя работать с уже загруженной ничто не мешает.
+     *
+     * @returns Загрузка удалась.
+     */
+    async function refreshComponentLibrary(): Promise<boolean> {
+        await componentLibrary.refresh();
+
+        if (componentLibrary.error.value !== null) {
+            return false;
+        }
+
+        commitLoadedData();
+
+        return true;
+    }
+
+    return {
+        componentLibraryList,
+        isComponentLibraryLoadFailed,
+        isComponentLibraryLoading: computed<boolean>(
+            () => componentLibrary.status.value === 'pending'
+        ),
+        refreshComponentLibrary,
+    };
 }

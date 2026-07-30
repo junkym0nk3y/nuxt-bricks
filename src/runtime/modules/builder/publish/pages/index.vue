@@ -8,6 +8,7 @@ import type { TPublishDashboardSection } from '../types/dashboard';
 
 // Utils
 import { BRICKS_ROUTE_NAMES } from '../../../common/constants/routes';
+import { isRequestTimeoutError } from '../../../common/utils/apiRequestPolicy';
 
 // Vue
 import { computed, defineAsyncComponent, onMounted, ref } from 'vue';
@@ -326,6 +327,11 @@ function handleCloseDeleteConfirmation(force = false): void {
 /**
  * Подтверждает и выполняет удаление страницы (файл превью в хранилище
  * best-effort чистит сервер в DELETE /api/bricks/:id).
+ *
+ * Определённый отказ сервера оставляет подтверждение открытым — страница на
+ * месте, и повтор под рукой. Обрыв по потолку ожидания его закрывает: исход
+ * неизвестен, страница могла быть удалена, и сообщение об этом прямо просит
+ * сначала обновить данные (список стор перечитывает сам), а не повторять.
  */
 async function handleConfirmDelete(): Promise<void> {
     const page = pendingDeletePage.value;
@@ -346,6 +352,10 @@ async function handleConfirmDelete(): Promise<void> {
                 ? error.message
                 : t('bricks.publish.dashboard.toasts.deleteFailed');
         showToast(message, 'error');
+
+        if (isRequestTimeoutError(error)) {
+            handleCloseDeleteConfirmation(true);
+        }
     } finally {
         isDeleting.value = false;
     }

@@ -8,6 +8,7 @@ import type { IMediaGalleryProps, IMediaGalleryEmits } from '../types/media';
 // Utils
 import { DEFAULT_MEDIA_CATEGORY } from '../constants/mediaCategories';
 import { getBricksErrorMessage } from '../../../common/utils/main';
+import { isRequestTimeoutError } from '../../../common/utils/apiRequestPolicy';
 
 // Vue
 import { ref, computed, watch, onMounted } from 'vue';
@@ -145,20 +146,38 @@ function handleInsert(): void {
     handleClose();
 }
 
-/** Сохраняет изменённые метаданные выбранного элемента. */
+/** Сохраняет изменённые метаданные выбранного элемента; отказ — toast. */
 async function handleUpdateMeta(meta: IMediaUpdateMetaRequest): Promise<void> {
-    if (!selectedItem.value) {
+    const item = selectedItem.value;
+
+    if (!item) {
         return;
     }
-    await mediaStore.updateItemMeta(selectedItem.value.id, meta);
+
+    try {
+        await mediaStore.updateItemMeta(item.id, meta);
+    } catch (error: unknown) {
+        showErrorToast(getBricksErrorMessage(error, t('bricks.media.updateMetaFailed')));
+    }
 }
 
-/** Обновляет категорию выбранного элемента. */
-function handleUpdateCategory(category: string): void {
-    if (!selectedItem.value) {
+/**
+ * Обновляет категорию выбранного элемента; отказ — toast.
+ * Отказ обязателен к обработке здесь: без ожидания реджект стора ушёл бы в
+ * необслуженный промис.
+ */
+async function handleUpdateCategory(category: string): Promise<void> {
+    const item = selectedItem.value;
+
+    if (!item) {
         return;
     }
-    mediaStore.updateItemCategory(selectedItem.value.id, category);
+
+    try {
+        await mediaStore.updateItemCategory(item.id, category);
+    } catch (error: unknown) {
+        showErrorToast(getBricksErrorMessage(error, t('bricks.media.updateCategoryFailed')));
+    }
 }
 
 /** Открывает модалку подтверждения удаления. */
@@ -169,7 +188,15 @@ function handleRemoveItem(): void {
     isDeleteConfirmOpen.value = true;
 }
 
-/** Подтверждает удаление выбранного элемента; ошибка сервера — toast, элемент остаётся. */
+/**
+ * Подтверждает удаление выбранного элемента.
+ *
+ * Определённый отказ сервера оставляет подтверждение открытым — элемент на
+ * месте, повтор безопасен и находится под рукой. Обрыв по потолку ожидания
+ * закрывает его: исход неизвестен, файл мог быть удалён, и повтор получил бы
+ * 404 — сообщение об этом прямо просит сначала обновить данные, а список стор
+ * уже перечитывает сам.
+ */
 async function handleConfirmDelete(): Promise<void> {
     if (!selectedItemId.value) {
         return;
@@ -178,11 +205,15 @@ async function handleConfirmDelete(): Promise<void> {
     try {
         await mediaStore.removeItem(selectedItemId.value);
         selectedItemId.value = null;
+        isDeleteConfirmOpen.value = false;
     } catch (error: unknown) {
         showErrorToast(getBricksErrorMessage(error, t('bricks.media.deleteFailed')));
+
+        if (isRequestTimeoutError(error)) {
+            isDeleteConfirmOpen.value = false;
+        }
     } finally {
         isDeleting.value = false;
-        isDeleteConfirmOpen.value = false;
     }
 }
 

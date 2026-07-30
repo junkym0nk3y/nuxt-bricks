@@ -50,7 +50,8 @@
                 "invalidCredentials": "Invalid username or password",
                 "tooManyAttempts": "Too many login attempts. Try again later",
                 "loginFailed": "Failed to sign in. Try again",
-                "notConfigured": "Authentication is not configured. Contact your administrator"
+                "notConfigured": "Authentication is not configured. Contact your administrator",
+                "sessionCheckFailed": "Failed to verify the session. Check the connection and try signing in"
             },
             "logout": "Sign out",
             "logoutFailed": "Failed to sign out. Try again"
@@ -61,6 +62,8 @@
             "emptyHint": "Try changing your search query",
             "noComponents": "No components available",
             "noComponentsHint": "Add a *.brick.ts file next to a component in components/",
+            "loadFailed": "Failed to load the component library",
+            "retry": "Retry",
             "categories": {
                 "layout": "Layout",
                 "other": "Other",
@@ -257,7 +260,8 @@
                 "copySaved": "Page copy saved",
                 "copyFailed": "Failed to save the page copy",
                 "previewFailed": "Failed to open the preview",
-                "schemaImported": "Schema imported"
+                "schemaImported": "Schema imported",
+                "forPage": "Page “{page}”: {message}"
             },
             "draft": {
                 "restoreTitle": "Restore unsaved changes?",
@@ -313,7 +317,12 @@
             "emptyNoUploads": "No uploaded images",
             "loadFailed": "Failed to load media",
             "loadFailedCheckDb": "Failed to load media. Check the database connection.",
+            "listResponseInvalid": "The server returned the media list in an unknown format",
             "deleteFailed": "Failed to delete media",
+            "uploadFailed": "Failed to upload the file",
+            "uploadFailedForFile": "“{name}”: {message}",
+            "updateMetaFailed": "Failed to save the name and description",
+            "updateCategoryFailed": "Failed to change the category",
             "deleteImageTitle": "Delete image?",
             "deleteImageDescription": "This action cannot be undone. The image will be deleted permanently.",
             "fullscreen": "Fullscreen preview",
@@ -329,6 +338,7 @@
             "fileTypeImage": "Image",
             "fileTypeVideo": "Video",
             "fileTooLarge": "{type} “{name}” exceeds the {max} MB limit",
+            "fileTypeUnsupported": "“{name}”: only images and videos are supported",
             "categories": {
                 "all": "All",
                 "icons": "Icons",

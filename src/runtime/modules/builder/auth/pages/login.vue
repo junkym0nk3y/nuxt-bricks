@@ -4,7 +4,7 @@
 import { sanitizeRedirectPath } from '../utils/redirects';
 
 // Vue
-import { onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Composables
@@ -27,6 +27,16 @@ const route = useRoute();
 const { isDatabaseMode, fetchMe } = useAuthSession();
 const { builderRootPath } = useBricksRoutePaths();
 const { username, password, errors, isSubmitting, generalError, submitForm } = useAuthLoginForm();
+
+// Отказ стартовой проверки сессии: она фоновая, поэтому текст свой, а не сырое
+// сообщение транспорта
+const sessionCheckError = ref('');
+// #endregion
+
+// #region Computed
+// Ошибка самого входа приоритетнее: она относится к действию пользователя,
+// а стартовая проверка к этому моменту уже неактуальна
+const visibleError = computed<string>(() => generalError.value || sessionCheckError.value);
 // #endregion
 
 // #region Lifecycle
@@ -37,11 +47,18 @@ onMounted(async () => {
         return;
     }
 
-    // Уже авторизован — сразу на возвратный путь
-    const user = await fetchMe();
+    try {
+        // Уже авторизован — сразу на возвратный путь
+        const user = await fetchMe();
 
-    if (user) {
-        await navigateTo(sanitizeRedirectPath(route.query.redirect, builderRootPath));
+        if (user) {
+            await navigateTo(sanitizeRedirectPath(route.query.redirect, builderRootPath));
+        }
+    } catch {
+        // Проверку выполнить не удалось (5xx, обрыв по потолку). Это не «не
+        // авторизован»: редиректить некуда, но и молчать нельзя — иначе форма
+        // выглядит рабочей, а вход упрётся в тот же недоступный сервер
+        sessionCheckError.value = t('bricks.auth.errors.sessionCheckFailed');
     }
 });
 // #endregion
@@ -78,7 +95,7 @@ onMounted(async () => {
                 />
             </div>
 
-            <BricksFieldError :class="$style.generalError" :message="generalError" />
+            <BricksFieldError :class="$style.generalError" :message="visibleError" />
 
             <BricksButton
                 :class="$style.submit"

@@ -2,6 +2,9 @@
 import type { IAppConfig } from '../../../common/types/config';
 import type { IMediaUploadOptions } from '../types/media';
 
+// Utils
+import { getBricksErrorMessage } from '../../../common/utils/main';
+
 // Nuxt
 import { useAppConfig } from 'nuxt/app';
 
@@ -58,15 +61,17 @@ export function useMediaUpload(options: IMediaUploadOptions) {
     }
 
     /**
-     * Загружает набор файлов: пропускает неподдерживаемые, репортит превышение
-     * лимита через onError, применяет категорию из resolveCategory.
+     * Загружает набор файлов, применяя категорию из resolveCategory. Любой
+     * отказ по файлу — неподдерживаемый тип, превышение лимита, отказ сервера —
+     * доходит до пользователя через onError: молча пропущенный файл выглядел бы
+     * загруженным. Остальные файлы набора при этом продолжают грузиться.
      */
     async function uploadFiles(files: File[]): Promise<void> {
         const category = options.resolveCategory();
 
         for (const file of files) {
             if (!isSupportedMediaFile(file)) {
-                console.warn('[MediaGallery] Skipping unsupported file:', file.name);
+                options.onError(t('bricks.media.fileTypeUnsupported', { name: file.name }));
                 continue;
             }
 
@@ -78,8 +83,14 @@ export function useMediaUpload(options: IMediaUploadOptions) {
 
             try {
                 await mediaStore.uploadFile(file, category);
-            } catch (error) {
+            } catch (error: unknown) {
                 console.error('[MediaGallery] Upload failed for:', file.name, error);
+                options.onError(
+                    t('bricks.media.uploadFailedForFile', {
+                        name: file.name,
+                        message: getBricksErrorMessage(error, t('bricks.media.uploadFailed')),
+                    })
+                );
             }
         }
     }

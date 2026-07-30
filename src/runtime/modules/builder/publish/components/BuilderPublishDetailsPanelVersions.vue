@@ -29,7 +29,7 @@ const emit = defineEmits<IPublishDetailsPanelVersionsEmits>();
 // #region Data
 const { t } = useI18n();
 
-const { versions, isLoading, previewingVersionId, loadVersions, previewVersion } =
+const { versions, isLoading, previewingVersionId, loadVersions, previewVersion, resetVersions } =
     usePublishPageVersions();
 
 const isOpen = ref(false);
@@ -90,7 +90,9 @@ watch(
     () => props.page.id,
     () => {
         isOpen.value = false;
-        versions.value = [];
+        // Через композабл, а не присваиванием в `versions`: сброс обязан
+        // обесценить и уже летящий запрос прежней страницы
+        resetVersions();
     }
 );
 

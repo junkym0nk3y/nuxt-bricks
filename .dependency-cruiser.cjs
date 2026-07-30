@@ -62,23 +62,14 @@ module.exports = {
             to: { path: `^${M}/(?!text-editor|common|ui|builder/core/stores)` },
         },
         {
-            // ядро состояния не знает про фичевые поддомены — иначе цикл canvas↔shell
+            // ядро состояния не знает про фичевые поддомены — иначе цикл canvas↔shell.
+            // Исключения нет: прежний выход в composition root (панель свойств →
+            // фасад модалок) ушёл вместе с самим фасадом — кеш модалок наполняет
+            // библиотека компонентов, а панель читает его из core
             name: 'builder-core-deps',
             severity: 'error',
-            from: {
-                path: `^${M}/builder/core`,
-                // tech-debt: useComponentProperties → app/composables/useModals (кандидат на DI)
-                pathNot: `^${M}/builder/core/composables/useComponentProperties\\.ts$`,
-            },
+            from: { path: `^${M}/builder/core` },
             to: { path: `^${M}/(?!builder/core|common|ui|layouts-blocks)` },
-        },
-        {
-            name: 'builder-core-tech-debt-scope',
-            severity: 'error',
-            from: { path: `^${M}/builder/core/composables/useComponentProperties\\.ts$` },
-            to: {
-                path: `^${M}/(?!builder/core|common|ui|layouts-blocks|builder/app/composables/useModals)`,
-            },
         },
         {
             // canvas/shell → core/publish/media + text-editor/layouts-blocks/ui/common;

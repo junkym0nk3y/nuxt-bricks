@@ -186,6 +186,30 @@ describe('usePublishStore.loadAllPages: общий кеш списка', () => {
         await vi.waitFor(() => expect(store.publishedPages).toHaveLength(0));
     });
 
+    it('отказ вытесненного запроса не доходит до вызывающего', async () => {
+        const store = usePublishStore();
+
+        let rejectStale: ((error: unknown) => void) | undefined;
+        apiFetcherMock.mockImplementationOnce(
+            () =>
+                new Promise((_resolve, reject) => {
+                    rejectStale = reject;
+                })
+        );
+        apiFetcherMock.mockResolvedValueOnce([buildPage({ id: 31, pagename: 'fresh' })]);
+
+        const stale = store.loadAllPages();
+        await store.loadAllPages();
+
+        // Список уже обновлён более свежим запросом. Ошибка устаревшего перевела бы
+        // в отказ актуальный bootstrap сессии — блокирующим экраном поверх рабочей
+        // страницы, хотя загружать больше нечего
+        rejectStale?.(new Error('GET /api/bricks/: 503'));
+
+        await expect(stale).resolves.toBeUndefined();
+        expect(store.publishedPages.map((page) => page.pagename)).toEqual(['fresh']);
+    });
+
     it('ошибка загрузки не пишет в generalError — только бросает', async () => {
         const store = usePublishStore();
         apiFetcherMock.mockRejectedValueOnce(new Error('GET /api/bricks/: 500'));

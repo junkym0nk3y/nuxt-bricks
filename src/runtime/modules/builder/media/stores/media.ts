@@ -4,13 +4,13 @@ import type { Composer } from 'vue-i18n';
 import { useNuxtApp } from '#imports';
 import type {
     IMediaItem,
-    IMediaListResponse,
     IMediaUpdateCategoryRequest,
     IMediaUpdateMetaRequest,
 } from '../../../common/types/media';
 import { useApiClient } from '../../../common/composables/useApiClient';
 import { toCamelCase } from '../../../common/utils/case-transform';
-import { getBricksErrorMessage } from '../../../common/utils/main';
+import { isRequestTimeoutError } from '../../../common/utils/apiRequestPolicy';
+import { isMediaListResponse, toMediaRequestError } from '../utils/requestErrors';
 import { BRICKS_MEDIA_UPLOAD_TIMEOUT_MS } from '../../../common/constants/apiTimeouts';
 // #endregion
 
@@ -52,43 +52,122 @@ function normalizeMediaItem(rawItem: IMediaItem): IMediaItem {
 export const useMediaStore = defineStore('bricksMedia', {
     state: () => ({
         items: [] as IMediaItem[],
-        isUploading: false,
+        // Счётчик, а не флаг: у двух параллельных загрузок `finally` первой снимал
+        // бы индикатор, пока вторая ещё идёт
+        uploadingCount: 0,
+        // Номер последнего стартовавшего запроса списка — им отсекаются и ответы,
+        // пришедшие не в том порядке, в каком уходили, и ответ, который обогнала
+        // локальная запись (см. loadItems)
+        itemsRequestId: 0,
     }),
+
+    getters: {
+        /**
+         * Идёт ли хотя бы одна загрузка файла.
+         */
+        isUploading: (state): boolean => state.uploadingCount > 0,
+    },
 
     actions: {
         /**
+         * Обесценивает уже летящий запрос списка: его ответ ничего не знает о
+         * локальной записи, поэтому вернул бы удалённый файл в галерею, потерял
+         * только что загруженный и откатил бы правку метаданных.
+         */
+        invalidatePendingItemsLoad(): void {
+            this.itemsRequestId += 1;
+        },
+
+        /**
          * Загружает список медиа из бэкенда (S3 + БД).
-         * Поддерживает два формата ответа:
-         * - Django backend: массив напрямую [...]
-         * - Локальный API: { success: true, items: [...] }
+         *
+         * Отказ не опустошает список: уже показанная галерея переживает
+         * transient-отказ повторного открытия, а сообщение об отказе получает
+         * вызывающий. Нераспознанная форма ответа — тоже отказ, а не пустая
+         * галерея: молчаливое опустошение выглядело бы как «файлов нет».
          */
         async loadItems(): Promise<void> {
             const { apiFetcher } = useApiClient();
+            const requestId = ++this.itemsRequestId;
 
             try {
-                const response = await apiFetcher<IMediaListResponse | IMediaItem[]>(
-                    '/api/bricks/media/'
-                );
+                const response = await apiFetcher<unknown>('/api/bricks/media/');
 
-                // Django возвращает массив напрямую, локальный API - объект с items
-                if (Array.isArray(response)) {
-                    this.items = response.map(normalizeMediaItem);
+                if (!isMediaListResponse(response)) {
+                    throw new Error(t('bricks.media.listResponseInvalid'));
+                }
+
+                if (requestId !== this.itemsRequestId) {
                     return;
                 }
 
-                if (response.success && Array.isArray(response.items)) {
-                    this.items = response.items.map(normalizeMediaItem);
+                this.items = response.items.map(normalizeMediaItem);
+            } catch (error: unknown) {
+                // Отказ вытесненного запроса вызывающему не докладывается: тост
+                // об устаревшей попытке накрыл бы результат более свежей, которая
+                // уже успела показать список
+                if (requestId !== this.itemsRequestId) {
                     return;
                 }
 
-                this.items = [];
-            } catch (error) {
-                const message = getBricksErrorMessage(error, t('bricks.media.loadFailed'));
-                const formatted = `GET /api/bricks/media: ${message}`;
                 console.error('[Media Store] Failed to load items from backend:', error);
-                this.items = [];
-                throw new Error(formatted);
+
+                throw toMediaRequestError(error, 'GET', t, t('bricks.media.loadFailed'));
             }
+        },
+
+        /**
+         * Отпускает перечитывание списка: вызывающему нужен сам факт запуска, а
+         * результат тут ничего не гарантирует — запрос способен обогнать
+         * незавершённую серверную запись. Отказ гасится здесь же, иначе реджект
+         * ушёл бы в необслуженный промис.
+         */
+        reloadItemsDetached(): void {
+            // `void` не пишем — правило `no-void` в oxlint
+            this.loadItems().catch((error: unknown) => {
+                console.warn('[Media Store] Items reload after write timeout failed:', error);
+            });
+        },
+
+        /**
+         * Приводит отказ записи к пользовательскому виду; при обрыве по потолку
+         * ожидания дополнительно отпускает перечитывание списка — исход записи
+         * неизвестен, и это единственная возможность его увидеть.
+         *
+         * @param error - Исходная ошибка запроса.
+         * @param method - HTTP-метод запроса.
+         * @param fallbackMessage - Локализованное сообщение на случай молчащей ошибки.
+         * @returns Ошибка для показа пользователю.
+         */
+        toWriteError(error: unknown, method: string, fallbackMessage: string): Error {
+            if (isRequestTimeoutError(error)) {
+                this.reloadItemsDetached();
+            }
+
+            return toMediaRequestError(error, method, t, fallbackMessage);
+        },
+
+        /**
+         * Применяет к элементу списка поля, которыми владеет завершившаяся
+         * операция. Элемент ищется заново по `id`: индекс, снятый до запроса,
+         * мог сдвинуться (удаление соседа, перезагрузка списка), и splice по нему
+         * заменил бы чужой элемент. Полная замена ответом тоже не годится —
+         * ответы двух параллельных PATCH'ей несут по одному свежему полю, и
+         * поздний откатывал бы правку раннего.
+         *
+         * @param id - Идентификатор медиа.
+         * @param patch - Поля операции из ответа сервера.
+         */
+        applyItemPatch(id: number, patch: Partial<IMediaItem>): void {
+            this.invalidatePendingItemsLoad();
+
+            const targetIndex = this.items.findIndex((item) => item.id === id);
+
+            if (targetIndex === -1) {
+                return;
+            }
+
+            this.items.splice(targetIndex, 1, { ...this.items[targetIndex], ...patch });
         },
 
         /**
@@ -103,7 +182,7 @@ export const useMediaStore = defineStore('bricksMedia', {
          */
         async uploadFile(file: File, category?: string): Promise<IMediaItem> {
             const { apiFetcher } = useApiClient();
-            this.isUploading = true;
+            this.uploadingCount += 1;
 
             try {
                 const resolvedCategory =
@@ -123,14 +202,16 @@ export const useMediaStore = defineStore('bricksMedia', {
 
                 const mediaItem = normalizeMediaItem(response);
 
+                this.invalidatePendingItemsLoad();
                 this.items.unshift(mediaItem);
 
                 return mediaItem;
-            } catch (error) {
+            } catch (error: unknown) {
                 console.error('[Media Store] Upload failed:', error);
-                throw error;
+
+                throw this.toWriteError(error, 'POST', t('bricks.media.uploadFailed'));
             } finally {
-                this.isUploading = false;
+                this.uploadingCount -= 1;
             }
         },
 
@@ -145,28 +226,39 @@ export const useMediaStore = defineStore('bricksMedia', {
         async removeItem(id: number): Promise<void> {
             const { apiFetcher } = useApiClient();
 
-            await apiFetcher(`/api/bricks/media/${encodeURIComponent(id)}/`, {
-                method: 'DELETE',
-            });
+            try {
+                await apiFetcher(`/api/bricks/media/${encodeURIComponent(id)}/`, {
+                    method: 'DELETE',
+                });
+            } catch (error: unknown) {
+                console.error('[Media Store] Failed to delete item:', error);
 
+                throw this.toWriteError(error, 'DELETE', t('bricks.media.deleteFailed'));
+            }
+
+            this.invalidatePendingItemsLoad();
             this.items = this.items.filter((item) => item.id !== id);
         },
 
         /**
-         * Обновляет категорию конкретного медиафайла.
+         * Обновляет категорию конкретного медиафайла. Ошибка пробрасывается
+         * вызывающему: без этого смена категории выглядела бы применённой, хотя
+         * сервер её отклонил.
          *
          * @param id - Идентификатор медиа.
          * @param category - Новая категория.
          */
         async updateItemCategory(id: number, category: string): Promise<void> {
             const { apiFetcher } = useApiClient();
-            const targetIndex = this.items.findIndex((item) => item.id === id);
-            if (targetIndex === -1) {
+
+            if (!this.items.some((item) => item.id === id)) {
                 return;
             }
 
+            let response: IMediaItem;
+
             try {
-                const response = await apiFetcher<IMediaItem>(
+                response = await apiFetcher<IMediaItem>(
                     `/api/bricks/media/${encodeURIComponent(id)}/`,
                     {
                         method: 'PATCH',
@@ -175,51 +267,58 @@ export const useMediaStore = defineStore('bricksMedia', {
                         } satisfies IMediaUpdateCategoryRequest,
                     }
                 );
-
-                const updatedItem = normalizeMediaItem(response);
-
-                this.items.splice(targetIndex, 1, updatedItem);
-            } catch (error) {
+            } catch (error: unknown) {
                 console.error('[Media Store] Failed to update category:', error);
+
+                throw this.toWriteError(error, 'PATCH', t('bricks.media.updateCategoryFailed'));
             }
+
+            this.applyItemPatch(id, { category: normalizeMediaItem(response).category });
         },
 
         /**
-         * Обновляет filename и/или alt конкретного медиафайла.
+         * Обновляет filename и/или alt конкретного медиафайла. Ошибка
+         * пробрасывается вызывающему: без этого переименование выглядело бы
+         * применённым, хотя сервер его отклонил.
          *
          * @param id - Идентификатор медиа.
          * @param meta - Обновляемые поля (filename, alt).
          */
         async updateItemMeta(id: number, meta: IMediaUpdateMetaRequest): Promise<void> {
             const { apiFetcher } = useApiClient();
-            const targetIndex = this.items.findIndex((item) => item.id === id);
 
-            if (targetIndex === -1) {
+            if (!this.items.some((item) => item.id === id)) {
                 return;
             }
 
+            let response: IMediaItem;
+
             try {
-                const response = await apiFetcher<IMediaItem>(
+                response = await apiFetcher<IMediaItem>(
                     `/api/bricks/media/${encodeURIComponent(id)}/`,
                     {
                         method: 'PATCH',
                         body: meta,
                     }
                 );
-
-                const updatedItem = normalizeMediaItem(response);
-
-                this.items.splice(targetIndex, 1, updatedItem);
-            } catch (error) {
+            } catch (error: unknown) {
                 console.error('[Media Store] Failed to update meta:', error);
-            }
-        },
 
-        /**
-         * Очищает список медиа в сторе.
-         */
-        clearAll(): void {
-            this.items = [];
+                throw this.toWriteError(error, 'PATCH', t('bricks.media.updateMetaFailed'));
+            }
+
+            const updatedItem = normalizeMediaItem(response);
+            const patch: Partial<IMediaItem> = {};
+
+            if (meta.filename !== undefined) {
+                patch.filename = updatedItem.filename;
+            }
+
+            if (meta.alt !== undefined) {
+                patch.alt = updatedItem.alt;
+            }
+
+            this.applyItemPatch(id, patch);
         },
     },
 });

@@ -263,6 +263,14 @@ export const usePublishStore = defineStore('bricksPublish', {
 
                 this.publishedPages = pages;
             } catch (error: unknown) {
+                // Отказ вытесненного запроса вызывающему не докладывается: список
+                // уже обновлён более свежим запросом, а ошибка устаревшего перевела
+                // бы в состояние отказа актуальный bootstrap сессии — блокирующим
+                // экраном поверх рабочей страницы
+                if (requestId !== this.pagesRequestId) {
+                    return;
+                }
+
                 console.error('[Publish Store] Failed to load pages:', error);
                 throw error;
             }

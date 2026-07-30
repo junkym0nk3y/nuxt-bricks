@@ -1,27 +1,14 @@
-import { computed, ref, type ComputedRef, type Ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { IPageVersionSummary, TPublishedPageSummary } from '../../../common/types/bricks-api';
+import type {
+    IPendingVersionRestore,
+    IUsePublishVersionRestoreOptions,
+    IUsePublishVersionRestoreReturn,
+} from '../types/composables';
+import { isRequestTimeoutError } from '../../../common/utils/apiRequestPolicy';
 import { usePublishStore } from '../stores/publish';
 import { formatPageDateTime } from '../utils/dates';
-
-/**
- * Опции `usePublishVersionRestore`.
- */
-export interface IUsePublishVersionRestoreOptions {
-    onNotify: (message: string, variant: 'success' | 'error') => void;
-}
-
-/**
- * Возвращаемое значение `usePublishVersionRestore`.
- */
-export interface IUsePublishVersionRestoreReturn {
-    isRestoreConfirmationOpen: Ref<boolean>;
-    isRestoring: Ref<boolean>;
-    restoreConfirmationDescription: ComputedRef<string>;
-    requestRestoreVersion: (page: TPublishedPageSummary, version: IPageVersionSummary) => void;
-    closeRestoreConfirmation: (force?: boolean) => void;
-    confirmRestoreVersion: () => Promise<void>;
-}
 
 /**
  * Confirm-флоу отката страницы к версии для дашборда: состояние модалки
@@ -34,10 +21,7 @@ export function usePublishVersionRestore(
     const { t } = useI18n();
     const publishStore = usePublishStore();
 
-    const pendingRestore = ref<{
-        page: TPublishedPageSummary;
-        version: IPageVersionSummary;
-    } | null>(null);
+    const pendingRestore = ref<IPendingVersionRestore | null>(null);
     const isRestoreConfirmationOpen = ref(false);
     const isRestoring = ref(false);
 
@@ -82,6 +66,11 @@ export function usePublishVersionRestore(
 
     /**
      * Подтверждает и выполняет откат к версии (schema + layout + backgroundColor).
+     *
+     * Определённый отказ оставляет подтверждение открытым — повтор безопасен и
+     * под рукой. Обрыв по потолку ожидания его закрывает: исход неизвестен, откат
+     * мог примениться, и сообщение об этом просит сначала обновить данные (список
+     * стор перечитывает сам), а повторный откат ушёл бы с устаревшей revision.
      */
     async function confirmRestoreVersion(): Promise<void> {
         const restore = pendingRestore.value;
@@ -103,6 +92,10 @@ export function usePublishVersionRestore(
                     ? error.message
                     : t('bricks.publish.dashboard.details.versions.toasts.restoreFailed');
             options.onNotify(message, 'error');
+
+            if (isRequestTimeoutError(error)) {
+                closeRestoreConfirmation(true);
+            }
         } finally {
             isRestoring.value = false;
         }

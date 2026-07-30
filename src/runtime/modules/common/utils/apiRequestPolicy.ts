@@ -32,6 +32,19 @@ import { BRICKS_API_READ_TIMEOUT_MS, BRICKS_API_WRITE_TIMEOUT_MS } from '../cons
 const READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 /**
+ * Ключи локали для обрыва по потолку ожидания. Чтение и запись различаются по
+ * существу, а не по формулировке: оборванное чтение можно просто повторить, а
+ * оборванная запись могла быть применена сервером.
+ *
+ * Ключи живут здесь же, где список методов: иначе два домена выбирали бы текст
+ * по своей копии правила, и копии разъехались бы молча.
+ */
+const TIMEOUT_MESSAGE_KEYS = {
+    read: 'bricks.common.readTimeout',
+    write: 'bricks.common.writeTimeout',
+} as const;
+
+/**
  * Предел обхода цепочки `cause`: ofetch кладёт исходную ошибку в `cause`
  * (`FetchError` → `TimeoutError`), но цепочка теоретически может быть
  * циклической.
@@ -65,6 +78,17 @@ function readRecord(value: unknown): Record<string, unknown> | null {
  */
 export function isApiWriteMethod(method?: string): boolean {
     return Boolean(method) && !READ_METHODS.has(String(method).toUpperCase());
+}
+
+/**
+ * Возвращает ключ локали для обрыва запроса по потолку ожидания. Перевод
+ * остаётся за вызывающим: у стора, утилиты и компонента свой доступ к i18n.
+ *
+ * @param method - HTTP-метод оборванного запроса (регистр любой).
+ * @returns Ключ локали сообщения.
+ */
+export function resolveRequestTimeoutMessageKey(method?: string): string {
+    return isApiWriteMethod(method) ? TIMEOUT_MESSAGE_KEYS.write : TIMEOUT_MESSAGE_KEYS.read;
 }
 
 /**

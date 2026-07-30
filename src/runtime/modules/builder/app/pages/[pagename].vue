@@ -116,6 +116,10 @@ const builder = await useBuilderPage({
 
 const {
     componentLibraryList,
+    isComponentLibraryLoadFailed,
+    isComponentLibraryLoading,
+    handleRetryComponentLibrary,
+    notifyComponentLibraryFailure,
     isDocumentationModalOpen,
     isMediaGalleryModalOpen,
     mediaGalleryContext,
@@ -272,6 +276,7 @@ useHead({
 onMounted(() => {
     window.addEventListener('keydown', handleGuardedKeyDown);
     componentsStore.favorites = loadFavoritesFromStorage();
+    notifyComponentLibraryFailure();
 
     if (routePagename.value) {
         openBuilderSession(routePagename.value).catch((error: unknown) => {
@@ -327,8 +332,11 @@ onBeforeUnmount(() => {
                 <TheBuilderShellSidebar
                     ref="sidebarRef"
                     :components="componentLibraryList"
+                    :is-library-load-failed="isComponentLibraryLoadFailed"
+                    :is-library-loading="isComponentLibraryLoading"
                     @open-media-gallery="handleOpenMediaGalleryWithContext"
                     @import-schema="handleImportSchema"
+                    @retry-library="handleRetryComponentLibrary"
                 />
 
                 <TheBuilderShellSidebarPropertiesPanel

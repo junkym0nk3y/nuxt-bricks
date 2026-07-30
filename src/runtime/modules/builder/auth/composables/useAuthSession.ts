@@ -1,6 +1,7 @@
 // #region Imports
 // Types
 import type { IAuthSessionResponse, IAuthSessionUserPayload } from '../types/auth';
+import type { TRequestErrorLike } from '../../../common/types/bricks-api';
 
 // Composables
 import { useApiClient } from '../../../common/composables/useApiClient';
@@ -11,6 +12,11 @@ import { BRICKS_AUTH_REQUEST_TIMEOUT_MS } from '../../../common/constants/apiTim
 
 // Nuxt
 import { useRuntimeConfig } from '#imports';
+// #endregion
+
+// #region Data
+/** Единственный статус, который означает «сессии нет», а не «проверить не удалось». */
+const UNAUTHORIZED_STATUS = 401;
 // #endregion
 
 /**
@@ -62,13 +68,22 @@ export function useAuthSession() {
 
     /**
      * Текущий пользователь сессии; null — если не авторизован (401).
+     *
+     * Прочие отказы (5xx, обрыв по потолку ожидания) пробрасываются: они не
+     * означают «не авторизован», и вызывающий, приняв их за 401, показал бы форму
+     * логина человеку с рабочей сессией — или, наоборот, увёл бы его в цикл
+     * входа. Различить их можно только здесь: наружу уходит один и тот же `null`.
      */
     async function fetchMe(): Promise<IAuthSessionUserPayload | null> {
         try {
             const response = await apiFetcher<IAuthSessionResponse>('/api/bricks/auth/me');
             return response.user;
-        } catch {
-            return null;
+        } catch (error: unknown) {
+            if ((error as TRequestErrorLike).statusCode === UNAUTHORIZED_STATUS) {
+                return null;
+            }
+
+            throw error;
         }
     }
     // #endregion

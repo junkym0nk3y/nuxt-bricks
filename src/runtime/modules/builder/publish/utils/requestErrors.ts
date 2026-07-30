@@ -2,7 +2,10 @@ import type { Composer } from 'vue-i18n';
 import { useNuxtApp } from '#imports';
 import { PAGE_CONFLICT_CODES } from '../../../common/constants/publish';
 import type { TRequestErrorLike } from '../../../common/types/bricks-api';
-import { isApiWriteMethod, isRequestTimeoutError } from '../../../common/utils/apiRequestPolicy';
+import {
+    isRequestTimeoutError,
+    resolveRequestTimeoutMessageKey,
+} from '../../../common/utils/apiRequestPolicy';
 
 /**
  * Ошибка API-запроса с сохранённым HTTP-статусом и машиночитаемым кодом
@@ -57,10 +60,9 @@ function unknownErrorMessage(): string {
 }
 
 /**
- * Возвращает локализованный текст обрыва по таймауту. Чтение и запись
- * различаются по существу, а не по формулировке: оборванное чтение можно просто
- * повторить, а оборванная запись могла быть применена сервером — «не удалось
- * сохранить» тут было бы прямой ложью.
+ * Возвращает локализованный текст обрыва по таймауту; выбор ключа —
+ * за политикой запросов, чтобы правило «чтение повторяемо, запись могла
+ * примениться» жило в одном месте на все домены.
  *
  * @param method - HTTP-метод оборванного запроса.
  * @returns Сообщение для пользователя.
@@ -68,9 +70,7 @@ function unknownErrorMessage(): string {
 function timeoutMessage(method: string): string {
     // Без fallback-строки: дублировать текст локали в коде незачем, а вне
     // Nuxt-контекста (юниты) `translate` отдаёт сам ключ — как у конфликта ревизии
-    return isApiWriteMethod(method)
-        ? translate('bricks.common.writeTimeout')
-        : translate('bricks.common.readTimeout');
+    return translate(resolveRequestTimeoutMessageKey(method));
 }
 
 /**

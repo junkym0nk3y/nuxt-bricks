@@ -2,51 +2,30 @@
 // Types
 import type { Composer } from 'vue-i18n';
 import type { TModalKey, IModalOption, TCachedModal } from '../types/modals';
-import type { IBricksManifest } from '../../../common/types/brickManifest';
 
 // Nuxt
 import { useNuxtApp } from '#imports';
-
-// Composables
-import { useApiClient } from '../../../common/composables/useApiClient';
 // #endregion
 
 // #region Data
 /**
- * Глобальный кеш модальных окон
+ * Кеш модалок из манифеста brick-компонентов. Заполняется тем же ответом ручки
+ * компонентов, из которого собирается библиотека (`useComponentLibrary`):
+ * второй запрос того же манифеста означал бы два независимых кеша одного ответа,
+ * а его отказ — селектор модалок, пустой до перезагрузки страницы.
  */
 let modalsCache: TCachedModal[] = [];
-let isCacheLoaded = false;
 // #endregion
 
 /**
- * Загрузить список модальных окон из манифеста brick-компонентов
- * Результат кешируется для последующих вызовов
+ * Заменяет кеш модалок. Зовётся только после успешной загрузки манифеста:
+ * неудачное обновление оставляет прежний список, иначе отказ сети опустошал бы
+ * уже работающий селектор.
+ *
+ * @param entries - Записи модалок из манифеста.
  */
-export async function loadModals(): Promise<void> {
-    if (isCacheLoaded) {
-        return;
-    }
-
-    try {
-        const { apiFetcher } = useApiClient();
-        const response = await apiFetcher<IBricksManifest>('/api/bricks/components');
-        const bricks = response?.bricks || [];
-
-        // Фильтруем только модалки
-        modalsCache = bricks
-            .filter((brick) => brick.category === 'Modal')
-            .map((brick) => ({
-                name: brick.name,
-                brickPath: brick.brickPath,
-            }));
-
-        isCacheLoaded = true;
-    } catch (error) {
-        console.error('[loadModals] Failed to load modals:', error);
-        modalsCache = [];
-        isCacheLoaded = true;
-    }
+export function replaceModalsCache(entries: TCachedModal[]): void {
+    modalsCache = entries;
 }
 
 /**
@@ -65,20 +44,4 @@ export function getModalOptions(): IModalOption[] {
             value: modal.name as TModalKey,
         })),
     ];
-}
-
-/**
- * Найти модалку в кеше по имени
- * @param modalName - Имя модального компонента
- * @returns Запись кеша или undefined
- */
-export function getCachedModal(modalName: TModalKey): TCachedModal | undefined {
-    return modalsCache.find((modal) => modal.name === modalName);
-}
-
-/**
- * Проверить, загружен ли кеш модалок
- */
-export function isModalsCacheLoaded(): boolean {
-    return isCacheLoaded;
 }

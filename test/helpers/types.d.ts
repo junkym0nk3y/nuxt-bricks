@@ -1,4 +1,4 @@
-import type { EffectScope } from 'vue';
+import type { EffectScope, Ref } from 'vue';
 import type { vi } from 'vitest';
 
 import type { useBuilderPagename } from '../../src/runtime/modules/builder/app/composables/useBuilderPagename';
@@ -51,4 +51,15 @@ export interface IWindowStub {
     addEventListener: (type: string, listener: () => void) => void;
     removeEventListener: (type: string, listener: () => void) => void;
     dispatchEvent: (event: { type: string }) => void;
+}
+
+/**
+ * Состояние стаба `useAsyncData` — та же форма, что у Nuxt: refs, чтобы
+ * `computed` тестируемого кода пересчитывался после повтора.
+ */
+export interface IAsyncDataStub<TData> {
+    data: Ref<TData | null>;
+    error: Ref<unknown>;
+    status: Ref<string>;
+    refresh: () => Promise<void>;
 }

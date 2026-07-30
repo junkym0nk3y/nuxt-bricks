@@ -20,14 +20,11 @@ const { apiFetcherMock, findImportModuleMock } = vi.hoisted(() => ({
 
 vi.mock('#imports', async (importOriginal) => {
     const actual = await importOriginal<Record<string, unknown>>();
+    const { createUseAsyncDataStub } = await import('../helpers/asyncData');
 
     return {
         ...actual,
-        // useComponentLibrary await'ит useAsyncData, поэтому стаб отдаёт промис
-        // объекта с `data`, а не thenable-обёртку над результатом handler'а
-        useAsyncData: async (_key: string, handler: () => Promise<unknown>) => ({
-            data: { value: await handler() },
-        }),
+        useAsyncData: createUseAsyncDataStub(),
     };
 });
 

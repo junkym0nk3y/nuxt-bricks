@@ -356,3 +356,24 @@ Arborist бросил `Cannot read properties of null (reading 'edgesOut')` пр
 через `\x27` внутри двойной sh-обёртки доезжает до psql буквально. Проще звать
 `docker exec nuxt-bricks-db psql -U postgres -d bricks -c "<SQL>"` без `sh -c` —
 обёртка там нужна только ради `$POSTGRES_USER`/`$POSTGRES_DB`.
+
+## 2026-07-30 12:35 — Claude Opus 5
+
+На странице билдера **два** toast-viewport: свой у страницы и свой у
+`TheBuilderMediaGalleryModal` (компонент `BricksToast` инстанцируется в обоих).
+`document.querySelector('ol[class*="viewport"]')` отдаёт первый — галерейный, у
+которого `visible` почти всегда false, — и на этом основании я успел ошибочно
+заключить, что тосты билдера не работают вовсе. Проверять принадлежность
+элемента: `el.__vueParentComponent` вверх до `BricksToast` и смотреть на
+`parent.type.__name`. Отдельно: тост живёт 4 с, а один round trip Playwright MCP
+занимает секунды — для наблюдения стартового тоста нужно либо временно поднять
+`duration`, либо опрашивать DOM внутри одного `browser_evaluate`.
+
+## 2026-07-30 12:36 — Claude Opus 5
+
+`experimental.defaults.useAsyncData.deep` в схеме Nuxt — `false`, но
+**сгенерированная** конфигурация проекта (`.nuxt/nuxt.config.mjs`,
+`asyncDataDefaults`) содержит `deep: true`: дефолт схемы применяется только при
+`compatibilityVersion: 4`. Вывод «`data` — shallowRef» по чтению
+`node_modules/@nuxt/schema` оказался неверным; смотреть надо сгенерированный
+`nuxt.config.mjs`, там же лежат `purgeCachedData` и `resetAsyncDataToUndefined`.

@@ -64,9 +64,23 @@ function handleMetaBlur(): void {
     emit('update-meta', meta);
 }
 
-/** Эмитит смену категории выбранного элемента. */
+/**
+ * Эмитит смену категории выбранного элемента и возвращает select к сохранённому
+ * значению.
+ *
+ * Возврат обязателен: `<select>` меняет своё DOM-значение до обработчика, а
+ * источник (`selectedCategory`) — только после успешного ответа сервера. Без
+ * возврата отклонённая смена оставалась бы на экране применённой, вопреки тосту
+ * об отказе, и повторить её тем же выбором было бы нельзя — `change` не
+ * возникает, пока пользователь не выберет другое значение. При успехе новое
+ * значение приезжает из стора реактивно.
+ */
 function handleSelectedCategoryChange(event: Event): void {
-    emit('update-category', (event.target as HTMLSelectElement).value);
+    const select = event.target as HTMLSelectElement;
+    const category = select.value;
+
+    select.value = selectedCategory.value;
+    emit('update-category', category);
 }
 
 /** Эмитит запрос на удаление выбранного элемента. */

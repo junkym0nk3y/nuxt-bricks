@@ -14,11 +14,10 @@ import { useI18n } from 'vue-i18n';
 
 // Composables
 import { useComponentLibraryDrag } from './useDraggableComponent';
-import { useModals } from './useModals';
 import { useComponentLibrary } from './useComponentLibrary';
+import { useBuilderPageWrite } from './useBuilderPageWrite';
 import { useBuilderShortcuts } from './useBuilderShortcuts';
 import { useBuilderToast } from '../../core/composables/useBuilderToast';
-import { usePageThumbnail } from './usePageThumbnail';
 import { usePreviewSync } from './usePreviewSync';
 import { usePublishPreview } from '../../publish/composables/usePublishPreview';
 import { useBricksConfig } from '../../../common/composables/useBricksConfig';
@@ -52,7 +51,6 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
     const sidebarStore = useSidebarStore();
     const publishStore = usePublishStore();
     const dragComposable = useComponentLibraryDrag();
-    const { loadModals } = useModals();
     const bricksConfig = useBricksConfig();
 
     // Кэшируем backgroundColor для использования в store (вне Vue контекста)
@@ -60,13 +58,9 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
 
     provide('dragComposable', dragComposable);
 
-    // Загружаем модалки при старте билдера (не блокируя setup)
-    loadModals();
-
     const imageResolver = useSchemaImageResolver();
     const { startPreviewSync } = usePreviewSync(sessionToken);
     const { previewCurrentPage } = usePublishPreview();
-    const { captureAndUploadThumbnail } = usePageThumbnail(sessionToken);
     const { handleKeyDown } = useBuilderShortcuts();
     const { toast, showToast } = useBuilderToast();
     // #endregion
@@ -85,15 +79,10 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
     // #endregion
 
     // #region Computed
-    const isEditingExistingPage = computed(() => publishStore.editingPageId !== null);
     const hasSelectedComponent = computed(() => Boolean(componentsStore.selectedComponent));
     const leftSidebarOffset = computed(() =>
         sidebarStore.left.visible ? sidebarStore.left.width : '0px'
     );
-    const currentPublishPageTitle = computed(() => {
-        const { title, pagename } = publishStore.currentFormState;
-        return (title ?? '').trim() || (pagename ?? '').trim() || '';
-    });
     // #endregion
 
     // #region Sidebar toggles
@@ -160,133 +149,14 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
         isDocumentationModalOpen.value = false;
     }
 
-    /**
-     * Сохраняет лендинг с указанным статусом публикации.
-     * При успехе показывает toast с сообщением, при ошибке откатывает статус.
-     *
-     * @param published - Флаг публикации (true = опубликовано, false = черновик).
-     * @param successMessage - Сообщение для отображения при успехе.
-     * @returns true при успешном сохранении, false при ошибке.
-     */
-    async function submitPageWithPublishState(
-        published: boolean,
-        successMessage: string
-    ): Promise<boolean> {
-        const previousPublished = publishStore.currentFormState.published;
-        publishStore.setCurrentFormField('published', published);
-        const schema = componentsStore.exportSchema();
-        const startedIn = sessionToken.capture();
-        const result = await publishStore.publishCurrentPage(schema, {
-            isInitiatorCurrent: () => sessionToken.isCurrent(startedIn),
+    const { isEditingExistingPage, currentPublishPageTitle, handleSaveDraft, handleSaveAsCopy } =
+        useBuilderPageWrite({
+            sessionToken,
+            renameSession,
+            switchToSavedPage,
+            commitSavedSnapshot,
+            ensurePublishSettingsVisible,
         });
-
-        // Сохранение прежней страницы, доехавшее после открытия новой, её состояния
-        // не касается: `startEditingPage` переписал бы форму, `commitSavedSnapshot`
-        // объявил бы её черновик лишним и удалил его, снимок превью снял бы чужой
-        // канвас, а `renameSession` увёл бы URL. Факт записи при этом сообщаем —
-        // страница пользователя действительно сохранена
-        const isCurrent = sessionToken.isCurrent(startedIn);
-
-        if (result !== null) {
-            showToast(successMessage, 'success');
-
-            if (!isCurrent) {
-                return true;
-            }
-
-            if (publishStore.editingPageId === null) {
-                publishStore.startEditingPage(result);
-            }
-
-            // Fire-and-forget: превью страницы для дашборда, сохранение не блокируем
-            captureAndUploadThumbnail(result, startedIn);
-
-            const currentPagename = publishStore.currentFormState.pagename;
-            if (currentPagename) {
-                // Переносим сессию на сохранённый pagename (URL + ключ черновиков),
-                // затем фиксируем снапшот и подчищаем черновик по актуальному ключу.
-                // Токен передаётся внутрь: `renameSession` ждёт `router.replace`, и
-                // перехваченная за это время навигация сделала бы фиксацию чужой
-                await renameSession(currentPagename);
-                commitSavedSnapshot(startedIn);
-            }
-            return true;
-        }
-
-        const errorMessage = publishStore.generalError || t('bricks.publish.toasts.savePageFailed');
-        showToast(errorMessage, 'error');
-
-        if (!isCurrent) {
-            return false;
-        }
-
-        publishStore.setCurrentFormField('published', previousPublished);
-        ensurePublishSettingsVisible(errorMessage);
-        return false;
-    }
-
-    /**
-     * Сохраняет лендинг как черновик или обновляет существующую страницу.
-     * Сообщение зависит от того, редактируется ли существующая страница и её статуса публикации.
-     */
-    async function handleSaveDraft(): Promise<void> {
-        const published = publishStore.currentFormState.published;
-        const message = isEditingExistingPage.value
-            ? published
-                ? t('bricks.publish.toasts.pageUpdated')
-                : t('bricks.publish.toasts.draftUpdated')
-            : published
-              ? t('bricks.publish.toasts.pagePublished')
-              : t('bricks.publish.toasts.draftSaved');
-        await submitPageWithPublishState(published, message);
-    }
-
-    /**
-     * Сохраняет текущий лендинг как копию с новым ID.
-     * Единый переход сессии (`switchToSavedPage`, фиксированный порядок: store в
-     * edit mode → renameSession → savedSnapshot) выполняется до toast/thumbnail —
-     * иначе URL и ключ черновика localStorage остаются от оригинала (P1: автосейв
-     * копии писал бы контент под slug оригинала, reload оригинала предлагал бы
-     * восстановить чужие данные).
-     */
-    async function handleSaveAsCopy(): Promise<void> {
-        const schema = componentsStore.exportSchema();
-        const startedIn = sessionToken.capture();
-        const copy = await publishStore.saveCurrentPageAsCopy(schema, {
-            isInitiatorCurrent: () => sessionToken.isCurrent(startedIn),
-        });
-
-        const isCurrent = sessionToken.isCurrent(startedIn);
-
-        if (copy === null) {
-            const errorMessage = publishStore.generalError || t('bricks.publish.toasts.copyFailed');
-            showToast(errorMessage, 'error');
-
-            if (isCurrent) {
-                ensurePublishSettingsVisible(errorMessage);
-            }
-            return;
-        }
-
-        const copySavedMessage = t('bricks.publish.toasts.copySaved');
-
-        // Пользователь ушёл на другую страницу, пока летел POST: копия создана и
-        // уже в списке — факт сообщаем, но переводить на неё чужую сессию нельзя,
-        // а снимок превью снял бы чужой канвас
-        if (!isCurrent) {
-            showToast(copySavedMessage, 'success');
-            return;
-        }
-
-        await switchToSavedPage(copy);
-        showToast(copySavedMessage, 'success');
-
-        // Fire-and-forget: у копии свой S3-ключ превью — снимаем сразу после сохранения.
-        // Токен — от старта Save as Copy: `switchToSavedPage` выше ждёт
-        // `router.replace`, и перехваченная за это время навигация иначе дала бы
-        // съёмку чужого канваса под id копии (находка ревью)
-        captureAndUploadThumbnail(copy.id, startedIn);
-    }
 
     /**
      * Открывает превью текущего лендинга в новой вкладке.
@@ -433,12 +303,49 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
     // и мутация глобального стора дёргала бы обработчики всех прошлых экземпляров.
     // Поэтому вся синхронная проводка (включая оба watcher'а) идёт выше, а
     // библиотека компонентов дожидается здесь — её значение нужно только в return.
-    const { componentLibraryList } = await useComponentLibrary();
+    const {
+        componentLibraryList,
+        isComponentLibraryLoadFailed,
+        isComponentLibraryLoading,
+        refreshComponentLibrary,
+    } = await useComponentLibrary();
+
+    /**
+     * Повторяет загрузку библиотеки по кнопке сайдбара; повторный отказ снова
+     * сообщается тостом — сама кнопка остаётся на месте.
+     */
+    async function handleRetryComponentLibrary(): Promise<void> {
+        const isLoaded = await refreshComponentLibrary();
+
+        if (!isLoaded) {
+            showToast(t('bricks.library.loadFailed'), 'error');
+        }
+    }
+
+    /**
+     * Сообщает об отказе загрузки библиотеки. Показ не делается здесь же, а отдан
+     * странице (её `onMounted`): composable await'ится в setup, в том числе на
+     * SSR, где показывать тост некому, а сам toast принадлежит странице — она же
+     * владеет его монтированием.
+     *
+     * Тост нужен вместе с блоком повтора в сайдбаре, а не вместо него: блок
+     * виден только при открытой библиотеке, то есть об отказе иначе можно узнать
+     * лишь случайно.
+     */
+    function notifyComponentLibraryFailure(): void {
+        if (isComponentLibraryLoadFailed.value) {
+            showToast(t('bricks.library.loadFailed'), 'error');
+        }
+    }
 
     return {
         sidebarStore,
         publishStore,
         componentLibraryList,
+        isComponentLibraryLoadFailed,
+        isComponentLibraryLoading,
+        handleRetryComponentLibrary,
+        notifyComponentLibraryFailure,
         isDocumentationModalOpen,
         isMediaGalleryModalOpen,
         mediaGalleryContext,
