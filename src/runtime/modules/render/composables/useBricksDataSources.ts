@@ -16,7 +16,6 @@ import {
 } from '../utils/dataSourcePolicy';
 import { DataSourceResponseTooLargeError } from '../utils/dataSourceResponseReading';
 import { resolveDataSourceLogTarget, toDataSourceLogError } from '../utils/dataSourceLogging';
-import { combineAbortSignals } from '../../common/utils/abortSignals';
 import { hasOwnKey } from '../../common/utils/safeRecord';
 
 // Composables
@@ -44,14 +43,8 @@ export type TDataSourceRequestCache = Map<string, Promise<unknown>>;
  */
 export function useBricksDataSources() {
     // #region Data
-    const {
-        dataSourceFetcher,
-        allowedHosts,
-        concurrency,
-        timeoutMs,
-        maxRequestsPerPage,
-        totalDeadlineMs,
-    } = useDataSourceClient();
+    const { dataSourceFetcher, allowedHosts, concurrency, maxRequestsPerPage, totalDeadlineMs } =
+        useDataSourceClient();
     // #endregion
 
     // #region Methods
@@ -220,15 +213,11 @@ export function useBricksDataSources() {
             return cached;
         }
 
-        // ofetch строит внутренний timeout-abort только когда caller-signal
-        // НЕ передан — при общем дедлайне прогона per-request таймаут
-        // обеспечивается явной комбинацией с AbortSignal.timeout (оба потолка
-        // действуют независимо)
-        const requestSignal = signal
-            ? combineAbortSignals([signal, AbortSignal.timeout(timeoutMs)])
-            : undefined;
-
-        const responsePromise = dataSourceFetcher<unknown>(url, { method, signal: requestSignal });
+        // Сигнал прогона уходит как есть: per-request потолок ставит сам клиент
+        // и сам комбинирует его с этим сигналом. Держать здесь вторую сборку
+        // потолка значило бы хранить знание о нём в двух местах, а покрытие
+        // зависело бы от того, передал ли прогон сигнал
+        const responsePromise = dataSourceFetcher<unknown>(url, { method, signal });
         requestCache?.set(cacheKey, responsePromise);
 
         return responsePromise;

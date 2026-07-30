@@ -1,10 +1,10 @@
 // #region Imports
 // Types
 import type { IncomingHttpHeaders } from 'http';
-import type { IUseApiClientReturn } from '../types/composables';
+import type { IUseApiClientReturn, TApiRequestOptions } from '../types/composables';
 
 // Utils
-import { applyApiRequestTimeout } from '../utils/apiRequestPolicy';
+import { applyApiRequestTimeout, normalizeRequestAbortError } from '../utils/apiRequestPolicy';
 import { stripCookieByName } from '../utils/cookieHeader';
 import { isLocalApiRequest } from '../utils/localApiPaths';
 
@@ -153,9 +153,9 @@ export function useApiClient(): IUseApiClientReturn {
     // поставить кастомный заголовок без CORS-preflight (см. csrfProtection.ts)
     defaultHeaders[BRICKS_CSRF_HEADER_NAME] = '1';
 
-    // Тип выводится: Nitro-типизированный $Fetch (globalThis) — на SSR выполняет
+    // База — Nitro-типизированный $Fetch (globalThis): на SSR выполняет
     // относительные URL внутренним вызовом обработчиков
-    const apiFetcher = globalThis.$fetch.create({
+    const rawApiFetcher = globalThis.$fetch.create({
         baseURL: endpoint,
         credentials: 'include', // Для автоматической отправки cookies на клиенте
         headers: defaultHeaders, // Для проброса headers на SSR
@@ -165,10 +165,6 @@ export function useApiClient(): IUseApiClientReturn {
         // задержка и общий бюджет на все попытки
         retry: 0,
         onRequest({ request, options }) {
-            // Потолок ожидания — до любых ранних выходов ниже: он нужен и
-            // запросу, поданному `Request`-объектом вместо строки
-            applyApiRequestTimeout(request, options);
-
             if (typeof request !== 'string') {
                 return;
             }
@@ -211,6 +207,43 @@ export function useApiClient(): IUseApiClientReturn {
             );
         },
     });
+
+    /**
+     * Выполняет запрос с потолком ожидания и опознаваемым обрывом.
+     *
+     * Потолок ставится здесь, а не в `onRequest`, потому что опознать его
+     * срабатывание можно только зная сигнал: в браузере при аборте во время
+     * чтения тела платформа подменяет ошибку на `AbortError` и причина теряется
+     * (`normalizeRequestAbortError` возвращает её по `reason` сигнала).
+     *
+     * Опции копируются: вызывающий вправе переиспользовать один объект опций для
+     * нескольких запросов, а сигнал у каждого свой — общий объект получил бы от
+     * первого запроса уже сработавший.
+     *
+     * @param request - Путь или URL запроса.
+     * @param options - Опции запроса.
+     * @returns Тело ответа.
+     */
+    async function apiFetcher<T = unknown>(
+        request: string,
+        options: TApiRequestOptions = {}
+    ): Promise<T> {
+        const requestOptions: TApiRequestOptions = { ...options };
+        const effectiveSignal = applyApiRequestTimeout(request, requestOptions);
+
+        try {
+            // Через `.raw`, а не прямым вызовом: обёртка передаёт URL переменной, и
+            // на ней вывод типа ответа по Nitro-роутам разворачивается в условные
+            // типы за пределом рекурсии компилятора. Тело ответа то же самое —
+            // прямой вызов ofetch возвращает ровно `_data` этого ответа. Тип
+            // задаёт вызывающий дженериком, как и до обёртки
+            const response = await rawApiFetcher.raw(request, requestOptions);
+
+            return response._data as T;
+        } catch (error: unknown) {
+            throw normalizeRequestAbortError(error, effectiveSignal);
+        }
+    }
 
     return {
         apiFetcher,

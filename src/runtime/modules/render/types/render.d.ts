@@ -1,6 +1,7 @@
 import type { Ref, VNodeChild } from 'vue';
 import type { IBricksComponent } from '../../common/types/brick';
 import type { IBrickExportModule } from '../../common/types/index';
+import type { TApiRequestOptions } from '../../common/types/composables';
 
 export interface IRendererBrickResolverOptions {
     findImportModule: (brickPath: string) => (() => Promise<IBrickExportModule>) | undefined;
@@ -25,3 +26,9 @@ export interface IRendererPlaceholderProps {
     title?: string;
     description?: string;
 }
+
+/**
+ * Опции одного запроса публичных клиентов рендера (lookup published-страницы,
+ * data sources). Форма — та же, что у клиента билдера: под обоими один ofetch.
+ */
+export type TPublicRequestOptions = TApiRequestOptions;

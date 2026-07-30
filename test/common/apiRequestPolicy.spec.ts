@@ -49,7 +49,7 @@ describe('политика таймаутов: потолок по методу'
         expect(resolveApiRequestMethod({ method: 'post' }, 'put')).toBe('PUT');
     });
 
-    it('явный потолок вызова сохраняется, нулевой — нет', () => {
+    it('явный потолок вызова сохраняется, нулевой и неинтерпретируемый — нет', () => {
         const explicit: IApiRequestTimeoutTarget = { method: 'POST', timeout: 120_000 };
         applyApiRequestTimeout('/api/bricks/media/upload', explicit);
         expect(explicit.timeout).toBe(120_000);
@@ -59,12 +59,41 @@ describe('политика таймаутов: потолок по методу'
         const disabled: IApiRequestTimeoutTarget = { method: 'POST', timeout: 0 };
         applyApiRequestTimeout('/api/bricks/', disabled);
         expect(disabled.timeout).toBe(BRICKS_API_WRITE_TIMEOUT_MS);
+
+        // `Infinity`/`NaN` — не «ждать дольше», а потерянный потолок: сигнал на
+        // таком значении либо не сработает никогда, либо упадёт до отправки
+        const infinite: IApiRequestTimeoutTarget = {
+            method: 'GET',
+            timeout: Number.POSITIVE_INFINITY,
+        };
+        applyApiRequestTimeout('/api/bricks/', infinite);
+        expect(infinite.timeout).toBe(BRICKS_API_READ_TIMEOUT_MS);
+
+        const notANumber: IApiRequestTimeoutTarget = { method: 'GET', timeout: Number.NaN };
+        applyApiRequestTimeout('/api/bricks/', notANumber);
+        expect(notANumber.timeout).toBe(BRICKS_API_READ_TIMEOUT_MS);
     });
 });
 
 describe('политика таймаутов: сигнал вызывающего', () => {
     afterEach(() => {
         vi.useRealTimers();
+    });
+
+    it('потолок ставится сигналом и без сигнала вызывающего', async () => {
+        // Опция `timeout` покрывает только ожидание заголовков: её таймер ofetch
+        // снимает сразу после `fetch`, а тело читается позже. Границу обеих фаз
+        // держит сигнал, поэтому он обязателен, а не появляется лишь поверх чужого
+        const options: IApiRequestTimeoutTarget = { method: 'GET', timeout: 5 };
+
+        applyApiRequestTimeout('/api/bricks/', options);
+
+        expect(options.signal).toBeDefined();
+        expect(options.signal?.aborted).toBe(false);
+
+        await vi.waitFor(() => expect(options.signal?.aborted).toBe(true));
+
+        expect(isRequestTimeoutError(options.signal?.reason)).toBe(true);
     });
 
     it('переданный сигнал не отменяет потолок — комбинированный абортится по таймауту', async () => {
@@ -114,11 +143,29 @@ describe('политика таймаутов: сигнал вызывающег
         caller.abort(new Error('вызывающий отменил'));
         expect(options.signal?.aborted).toBe(true);
         expect(isRequestTimeoutError(options.signal?.reason)).toBe(false);
+    });
 
-        // Явный `null` — осознанный отказ от сигнала, а не повод взять чужой
-        const overridden: IApiRequestTimeoutTarget = { signal: null };
-        applyApiRequestTimeout(request, overridden);
-        expect(overridden.signal).toBeNull();
+    it('явный signal: null отказывается от сигнала запроса, но не от потолка', async () => {
+        const caller = new AbortController();
+        const request = new Request('http://localhost/api/bricks/', {
+            method: 'POST',
+            signal: caller.signal,
+        });
+        const options: IApiRequestTimeoutTarget = { signal: null, timeout: 5 };
+
+        applyApiRequestTimeout(request, options);
+
+        // Сохранённый `null` означал бы запрос без всякой границы — тихий возврат
+        // исходного дефекта, ровно как `timeout: 0`
+        expect(options.signal).not.toBeNull();
+
+        // Отказ касается наследования сигнала с запроса: отмена его контроллера
+        // до итогового сигнала не доезжает
+        caller.abort(new Error('вызывающий отменил'));
+        expect(options.signal?.aborted).toBe(false);
+
+        await vi.waitFor(() => expect(options.signal?.aborted).toBe(true));
+        expect(isRequestTimeoutError(options.signal?.reason)).toBe(true);
     });
 });
 
@@ -158,7 +205,7 @@ describe('клиент билдера применяет политику', () =
     function createParkedFetch(): { fetch: typeof globalThis.fetch; getAttempts: () => number } {
         let attempts = 0;
 
-        const parked = (_input: unknown, init?: { signal?: AbortSignal }) => {
+        const parked: typeof globalThis.fetch = (_input, init) => {
             attempts += 1;
 
             return new Promise<Response>((_resolve, reject) => {
@@ -169,9 +216,71 @@ describe('клиент билдера применяет политику', () =
         };
 
         return {
-            fetch: parked as unknown as typeof globalThis.fetch,
+            fetch: parked,
             getAttempts: () => attempts,
         };
+    }
+
+    /**
+     * Отвечающий заголовками, но не досылающий тело сервер: поток тела остаётся
+     * открытым и ошибается только по аборту переданного сигнала — так ведёт себя
+     * реальный fetch, чей `Response` привязан к сигналу запроса.
+     *
+     * @param loseAbortReason - Гасить ли причину аборта, подменяя её на
+     * `AbortError`. Так делает Chrome при аборте во время чтения тела (проверено
+     * живым замером) — независимо от того, чем абортировали; Node в той же фазе
+     * причину сохраняет. Обе платформы нужно моделировать: только на первой
+     * видно, работает ли восстановление причины по сигналу.
+     */
+    function createHangingBodyFetch(loseAbortReason = false): typeof globalThis.fetch {
+        const hanging: typeof globalThis.fetch = (_input, init) => {
+            const signal = init?.signal;
+            const body = new ReadableStream<Uint8Array>({
+                start(controller) {
+                    controller.enqueue(new TextEncoder().encode('{"items":['));
+
+                    const fail = () =>
+                        controller.error(
+                            loseAbortReason
+                                ? new DOMException('The user aborted a request.', 'AbortError')
+                                : signal?.reason
+                        );
+
+                    if (signal?.aborted) {
+                        fail();
+                        return;
+                    }
+
+                    signal?.addEventListener('abort', fail, { once: true });
+                },
+            });
+
+            return Promise.resolve(
+                new Response(body, {
+                    status: 200,
+                    headers: { 'content-type': 'application/json' },
+                })
+            );
+        };
+
+        return hanging;
+    }
+
+    /**
+     * Готовит клиент билдера на подменённом транспорте: `useApiClient` строит base
+     * от origin (клиентская ветка) и создаёт инстанс от `globalThis.$fetch`.
+     */
+    function createClientOn(fetchStub: typeof globalThis.fetch): ReturnType<typeof useApiClient> {
+        Object.defineProperty(globalThis, 'window', {
+            configurable: true,
+            value: { location: { origin: 'http://localhost:3000' } },
+        });
+        Object.defineProperty(globalThis, '$fetch', {
+            configurable: true,
+            value: createFetch({ fetch: fetchStub }),
+        });
+
+        return useApiClient();
     }
 
     afterEach(() => {
@@ -180,35 +289,56 @@ describe('клиент билдера применяет политику', () =
         Reflect.deleteProperty(globalThis, '$fetch');
     });
 
-    it('зависшее чтение обрывается по дефолтному потолку и повтора не получает', async () => {
-        vi.useFakeTimers();
-
+    it('зависшее чтение обрывается по потолку и повтора не получает', async () => {
         const { fetch: parkedFetch, getAttempts } = createParkedFetch();
-        // useApiClient строит base от origin (клиентская ветка) и создаёт инстанс
-        // от globalThis.$fetch — подменяем оба входа, остальное берётся из
-        // стаба `#imports`
-        Object.defineProperty(globalThis, 'window', {
-            configurable: true,
-            value: { location: { origin: 'http://localhost:3000' } },
-        });
-        Object.defineProperty(globalThis, '$fetch', {
-            configurable: true,
-            value: createFetch({ fetch: parkedFetch }),
-        });
+        const { apiFetcher } = createClientOn(parkedFetch);
 
-        const { apiFetcher } = useApiClient();
-        const request = apiFetcher('/api/bricks/');
-        const rejection = expect(request).rejects.toThrowError(/TimeoutError/);
-
-        // Ровно на потолке чтения: до него запрос ещё летит
-        await vi.advanceTimersByTimeAsync(BRICKS_API_READ_TIMEOUT_MS - 1);
-        expect(getAttempts()).toBe(1);
-
-        await vi.advanceTimersByTimeAsync(1);
-        await rejection;
+        // Малый потолок вместо проматывания времени: границу держит
+        // `AbortSignal.timeout`, чей таймер живёт в Node и подмену таймеров
+        // vitest не замечает. Проверяем классификатором, а не текстом: текст
+        // обрыва — транспортный (`<no response> …`), имя лежит в цепочке `cause`
+        await expect(apiFetcher('/api/bricks/', { timeout: 20 })).rejects.toSatisfy(
+            isRequestTimeoutError
+        );
 
         // Повтора нет: без `retry: 0` дефолт ofetch отправил бы GET заново —
         // при аборте responseCode падает в 500, а 500 входит в retryStatusCodes
         expect(getAttempts()).toBe(1);
+    });
+
+    it('зависшее тело ответа тоже обрывается по потолку', async () => {
+        const { apiFetcher } = createClientOn(createHangingBodyFetch());
+
+        // Дефект, ради которого потолок переехал в сигнал: заголовки пришли,
+        // таймер ofetch снялся, а чтение тела осталось бы без границы — вместе с
+        // поднятым `isSubmitting` и недостижимым `finally` у вызывающего
+        const request = apiFetcher('/api/bricks/', { timeout: 20 });
+
+        await expect(request).rejects.toSatisfy(isRequestTimeoutError);
+    });
+
+    it('обрыв тела остаётся таймаутом там, где платформа потеряла причину', async () => {
+        const { apiFetcher } = createClientOn(createHangingBodyFetch(true));
+
+        // Браузер в этой фазе подменяет причину на `AbortError`, поэтому без
+        // восстановления по сигналу запись получила бы текст отмены вместо честного
+        // «исход неизвестен», а список страниц — не получил бы сверки
+        await expect(
+            apiFetcher('/api/bricks/', { method: 'POST', body: {}, timeout: 20 })
+        ).rejects.toSatisfy(isRequestTimeoutError);
+    });
+
+    it('отмена вызывающего таймаутом не становится, даже когда причину потеряли', async () => {
+        const { apiFetcher } = createClientOn(createHangingBodyFetch(true));
+        const caller = new AbortController();
+        const request = apiFetcher('/api/bricks/', { signal: caller.signal, timeout: 10_000 });
+
+        caller.abort(new Error('пользователь ушёл со страницы'));
+
+        // Судим по `reason` сигнала, а не по имени ошибки: иначе уход пользователя
+        // и общий дедлайн прогона data sources стали бы «таймаутами сервера»
+        const error = await request.catch((reason: unknown) => reason);
+
+        expect(isRequestTimeoutError(error)).toBe(false);
     });
 });

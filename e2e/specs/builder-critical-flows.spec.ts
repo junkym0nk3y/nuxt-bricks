@@ -119,7 +119,9 @@ test('ignores a late save response after the user opens another page', async ({
     await pageBRow.click();
     await page.getByRole('button', { name: 'Open in editor' }).click();
     await expect(page).toHaveURL(/\/bricks\/slow-save-b$/);
-    await expect(page.getByRole('heading', { name: 'Page B', level: 2 })).toBeVisible();
+    // Заголовок шапки, а не промежуточное состояние: он держится, пока открыта
+    // страница, поэтому проверка не зависит от того, что успело отрендериться
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Page B');
 
     const lateResponse = page.waitForResponse(
         (response) =>

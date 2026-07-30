@@ -1,7 +1,14 @@
 /**
- * Политика запросов билдера: потолок ожидания по методу и распознавание его
- * срабатывания. Чистые функции без Nuxt-контекста — транспорт
- * (`composables/useApiClient.ts`) только применяет их в `onRequest`.
+ * Политика запросов: потолок ожидания по методу и распознавание его
+ * срабатывания. Чистые функции без Nuxt-контекста — применяют их в `onRequest`
+ * все три транспорта проекта: клиент билдера (`composables/useApiClient.ts`) и
+ * публичные клиенты рендера (lookup страницы, data sources).
+ *
+ * Политика рассчитана на клиентов без повторов (`retry: 0` у всех трёх). При
+ * включённых повторах ofetch зовёт запрос заново с теми же опциями, где уже
+ * стоит наш сработавший сигнал, — вторая попытка упала бы мгновенно, не дойдя до
+ * сети. Повторы вводить придётся вместе с решением, чей это бюджет: попытки или
+ * всего логического запроса.
  */
 
 // #region Imports
@@ -9,7 +16,7 @@
 import type { IApiRequestTimeoutTarget } from '../types/apiRequest';
 
 // Utils
-import { combineAbortSignals } from './abortSignals';
+import { combineAbortSignals, createTimeoutSignal } from './abortSignals';
 
 // Constants
 import { BRICKS_API_READ_TIMEOUT_MS, BRICKS_API_WRITE_TIMEOUT_MS } from '../constants/apiTimeouts';
@@ -112,8 +119,9 @@ function isAbortSignalLike(value: unknown): value is AbortSignal {
  * по правилам fetch перекрывает сигнал самого запроса — без этого fallback'а
  * отмена вызывающего переставала бы работать до истечения потолка.
  *
- * Явный `options.signal` приоритетнее (в том числе `null` — это осознанный
- * отказ от сигнала).
+ * Явный `options.signal` приоритетнее; `null` означает отказ наследовать сигнал
+ * с `Request`-объекта, а не отказ от потолка — потолок политика ставит отдельно
+ * и в любом случае.
  *
  * @param request - Запрос (строка, URL или Request).
  * @param signal - Сигнал из опций запроса.
@@ -133,37 +141,62 @@ function resolveApiRequestSignal(
 }
 
 /**
- * Применяет политику к опциям запроса: подставляет потолок, если вызывающий его
- * не задал, и не даёт потолку исчезнуть при переданном сигнале отмены.
+ * Применяет политику к опциям запроса: выбирает потолок и ставит его сигналом.
  *
- * ofetch строит внутренний abort по `timeout` только когда `signal` не передан
- * (1.5.1, `shared/ofetch.*.mjs:261`), поэтому при чужом сигнале потолок
- * обеспечивается явной комбинацией. `timeout: 0` политика опт-аутом не считает:
- * это тихий возврат исходного дефекта, потолок всё равно будет поставлен.
+ * Сигнал ставится ВСЕГДА, а не только поверх чужого. Опция `timeout` ofetch
+ * покрывает лишь ожидание заголовков: её таймер снимается в `finally` вокруг
+ * одного `await fetch(...)`, а тело читается позже (1.5.1,
+ * `shared/ofetch.*.mjs:287-300`) — сервер, отдавший статус и зависший посреди
+ * JSON, держал бы промис вечно вместе с `isSubmitting` и недостижимым `finally`.
+ * Живой сигнал обрывает обе фазы. Внутренний механизм ofetch при этом не
+ * включается вовсе: он строится только при отсутствии `signal` (`:261`).
+ *
+ * `options.timeout` остаётся заполненным как эффективное значение политики —
+ * читаемая декларация бюджета в опциях; фактическую границу держит сигнал.
+ *
+ * Опт-аутом политика не считает ни `timeout: 0`, ни нечисловое значение, ни
+ * `signal: null` — каждое из них было бы тихим возвратом исходного дефекта.
  *
  * @param request - Запрос (строка, URL или Request).
- * @param options - Опции запроса; мутируются на месте, как принято в `onRequest`.
+ * @param options - Опции запроса; мутируются на месте.
+ * @returns Сигнал, легший в опции: по его `reason` вызывающий отличает
+ * сработавший потолок от отмены (см. `normalizeRequestAbortError`).
  */
-export function applyApiRequestTimeout(request: unknown, options: IApiRequestTimeoutTarget): void {
+export function applyApiRequestTimeout(
+    request: unknown,
+    options: IApiRequestTimeoutTarget
+): AbortSignal {
+    // Значение с вызова уважается, но только интерпретируемое: `Infinity` или
+    // `NaN` в override'е — не «ждать дольше», а потерянный потолок
     const timeoutMs =
-        typeof options.timeout === 'number' && options.timeout > 0
+        typeof options.timeout === 'number' &&
+        Number.isFinite(options.timeout) &&
+        options.timeout > 0
             ? options.timeout
             : resolveApiRequestTimeout(resolveApiRequestMethod(request, options.method));
 
     options.timeout = timeoutMs;
 
     const callerSignal = resolveApiRequestSignal(request, options.signal);
+    const timeoutSignal = createTimeoutSignal(timeoutMs);
+    const effectiveSignal = callerSignal
+        ? combineAbortSignals([callerSignal, timeoutSignal])
+        : timeoutSignal;
 
-    if (callerSignal) {
-        options.signal = combineAbortSignals([callerSignal, AbortSignal.timeout(timeoutMs)]);
-    }
+    options.signal = effectiveSignal;
+
+    return effectiveSignal;
 }
 
 /**
- * Распознаёт срабатывание потолка ожидания. Оба пути дают одно имя ошибки:
- * внутренний abort ofetch ставит `name = 'TimeoutError'`, а `AbortSignal.timeout`
- * абортится DOMException с тем же именем — но лежит она в `cause` обёртки
- * `FetchError`, поэтому цепочка обходится целиком.
+ * Распознаёт срабатывание потолка ожидания по имени `TimeoutError` в цепочке
+ * `cause`: обрыв на фазе заголовков ofetch оборачивает в `FetchError`, а обрыв на
+ * фазе чтения тела летит наружу как есть — чтение тела в ofetch не обёрнуто
+ * try/catch. Поэтому цепочка обходится целиком, а не проверяется одним уровнем.
+ *
+ * Ошибку с фазы тела в браузере предикат сам по себе не распознает — там имя
+ * подменено платформой; её приводит к распознаваемому виду
+ * `normalizeRequestAbortError` на выходе транспорта.
  *
  * @param error - Ошибка запроса.
  * @returns Запрос оборван по таймауту.
@@ -186,5 +219,71 @@ export function isRequestTimeoutError(error: unknown): boolean {
     }
 
     return false;
+}
+
+/**
+ * Ошибка — обрыв запроса (`AbortError` где-либо в цепочке `cause`).
+ *
+ * @param error - Ошибка запроса.
+ * @returns Запрос оборван.
+ */
+function isRequestAbortError(error: unknown): boolean {
+    let current: unknown = error;
+
+    for (let depth = 0; depth < MAX_ERROR_CAUSE_DEPTH; depth += 1) {
+        const errorLike = readRecord(current);
+
+        if (!errorLike) {
+            return false;
+        }
+
+        if (errorLike.name === 'AbortError') {
+            return true;
+        }
+
+        current = errorLike.cause;
+    }
+
+    return false;
+}
+
+/**
+ * Приводит обрыв по потолку к распознаваемому виду, когда платформа потеряла
+ * причину аборта.
+ *
+ * Установлено замером: причину сохраняет не всякая платформа и не на всякой фазе.
+ * Node (undici) отдаёт `reason` сигнала и на заголовках, и на чтении тела, а
+ * Chrome — только на заголовках: при аборте во время чтения тела он подменяет
+ * ошибку на `AbortError` («The user aborted a request») независимо от того, чем
+ * абортировали, так что собственный `TimeoutError` в `reason` теряется так же,
+ * как нативный. Без этой нормализации зависшее тело выглядело бы как отмена
+ * пользователя: запись не получила бы честного текста неизвестного исхода, а
+ * список страниц — сверки, хотя именно зависание на теле чаще всего и означает,
+ * что сервер запись уже применил.
+ *
+ * Судим не по ошибке, а по сигналу: `reason` комбинированного сигнала хранит
+ * причину ПЕРВОГО аборта, поэтому отмена вызывающего остаётся отменой. Считать
+ * таймаутом любой `AbortError` было бы нельзя — уход пользователя со страницы и
+ * общий дедлайн прогона data sources стали бы таймаутами.
+ *
+ * @param error - Ошибка запроса.
+ * @param effectiveSignal - Сигнал, поставленный `applyApiRequestTimeout`.
+ * @returns Исходная ошибка либо `TimeoutError` с ней в `cause`.
+ */
+export function normalizeRequestAbortError(error: unknown, effectiveSignal: AbortSignal): unknown {
+    if (isRequestTimeoutError(error) || !isRequestAbortError(error)) {
+        return error;
+    }
+
+    if (!effectiveSignal.aborted || !isRequestTimeoutError(effectiveSignal.reason)) {
+        return error;
+    }
+
+    const timeoutError = new Error('The request was aborted after reaching the timeout', {
+        cause: error,
+    });
+    timeoutError.name = 'TimeoutError';
+
+    return timeoutError;
 }
 // #endregion

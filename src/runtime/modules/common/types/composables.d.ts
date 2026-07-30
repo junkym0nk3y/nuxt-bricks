@@ -8,15 +8,33 @@ import type { IBricksRoutePrefixes } from '../utils/bricks/routePaths';
 
 // #region useApiClient
 /**
+ * Инстанс ofetch, на котором построен клиент билдера. Тип берётся из
+ * `globalThis.$fetch.create`, чтобы форма опций не разъезжалась с транспортом.
+ */
+type TRawApiFetcher = ReturnType<typeof globalThis.$fetch.create>;
+
+/** Опции одного запроса клиента билдера. */
+export type TApiRequestOptions = NonNullable<Parameters<TRawApiFetcher>[1]>;
+
+/**
+ * Фетчер API билдера.
+ *
+ * Это обёртка над инстансом ofetch, а не сам инстанс: потолок ожидания ставится
+ * до вызова, чтобы обрыв по нему можно было опознать на выходе (в браузере
+ * платформа теряет причину аборта на фазе чтения тела —
+ * см. `normalizeRequestAbortError`). Цена обёртки — Nitro-типизация роутов по
+ * URL здесь не выводится; дженерик ответа задаётся на вызове.
+ */
+export interface IApiFetcher {
+    <T = unknown>(request: string, options?: TApiRequestOptions): Promise<T>;
+}
+
+/**
  * Возвращаемое значение `useApiClient`.
  */
 export interface IUseApiClientReturn {
-    /**
-     * Инстанс Nitro-типизированного `$fetch`: тип выводится из
-     * `globalThis.$fetch.create`, чтобы дженерики ответа (`apiFetcher<T>(…)`)
-     * и типизация Nitro-роутов не терялись при явной аннотации.
-     */
-    apiFetcher: ReturnType<typeof globalThis.$fetch.create>;
+    /** Фетчер API билдера с потолком ожидания и опознаваемым обрывом. */
+    apiFetcher: IApiFetcher;
 }
 // #endregion
 

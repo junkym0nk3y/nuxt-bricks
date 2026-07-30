@@ -1,6 +1,7 @@
 // #region Imports
 // Types
 import type { IBricksDataSourcesConfig } from '../../common/types/dataSource';
+import type { TPublicRequestOptions } from '../types/render';
 
 // Utils
 import {
@@ -14,6 +15,10 @@ import {
     DataSourceHttpError,
     readResponseWithinByteBudget,
 } from '../utils/dataSourceResponseReading';
+import {
+    applyApiRequestTimeout,
+    normalizeRequestAbortError,
+} from '../../common/utils/apiRequestPolicy';
 
 // Nuxt
 import { useRuntimeConfig } from '#imports';
@@ -27,11 +32,16 @@ import { useRuntimeConfig } from '#imports';
  * (ошибка публичного источника данных не должна отправлять посетителя
  * на страницу логина), с таймаутом и без ретраев (детерминированный SSR).
  *
+ * Per-request потолок ставит сам клиент (`onRequest` → политика запросов): он
+ * должен действовать независимо от того, передал ли вызывающий сигнал общего
+ * дедлайна прогона, и должен покрывать чтение тела, а не только заголовки — тело
+ * здесь читается вручную, потоком, уже после ответа ofetch.
+ *
  * Оговорка про SSR: относительный URL на сервере выполняется внутренним вызовом
- * Nitro, который `AbortSignal` не слушает, поэтому там инертны и `timeout`, и
- * общий дедлайн прогона на `AbortController`. Такой запрос ограничивает внешний
- * дедлайн `useAsyncData` в `useRendererDataSources`. Абсолютные URL из
- * allow-list'а и клиентские запросы сигнал слушают штатно.
+ * Nitro, который `AbortSignal` не слушает, поэтому там инертны и потолок
+ * запроса, и общий дедлайн прогона на `AbortController`. Такой запрос
+ * ограничивает `withPromiseDeadline` вокруг прогона в `useRendererDataSources`.
+ * Абсолютные URL из allow-list'а и клиентские запросы сигнал слушают штатно.
  *
  * Маршрутизация запросов та же, что у остального API: относительные URL на SSR
  * выполняются внутренним вызовом Nitro (в т.ч. через proxy middleware /api/*),
@@ -63,19 +73,25 @@ export function useDataSourceClient() {
     // из Host; клиент: origin + base (см. useApiClient.resolveLocalBaseUrl)
     const baseURL = import.meta.server ? basePath : `${window.location.origin}${basePath}`;
 
+    // Потолка в опциях инстанса нет намеренно: его ставит фетчер ниже, и держать
+    // второе объявление того же бюджета значило бы дать ему шанс разъехаться
     const rawDataSourceFetcher = globalThis.$fetch.create({
         baseURL,
-        timeout: timeoutMs,
         retry: 0,
         // Публичный контекст: cookies посетителя запросам data sources не нужны
         credentials: 'omit',
     });
 
     /**
-     * Фетчер data source: HTTP — через ofetch (baseURL/таймаут/без ретраев),
-     * тело — потоковое чтение с байтовым бюджетом ДО JSON.parse (ре-ревью
-     * Крупный ответ обрывается на чтении, а не замеряется после полной
-     * буферизации и разбора).
+     * Фетчер data source: HTTP — через ofetch (baseURL/без ретраев), тело —
+     * потоковое чтение с байтовым бюджетом ДО JSON.parse (крупный ответ
+     * обрывается на чтении, а не замеряется после полной буферизации и разбора).
+     *
+     * Потолок ожидания ставится здесь: тело читается вручную, уже после ответа
+     * ofetch, поэтому опция `timeout` его не покрыла бы — её таймер снимается на
+     * заголовках. Сигнал вызывающего (общий дедлайн прогона) политика
+     * комбинирует с потолком, а `normalizeRequestAbortError` возвращает обрыву
+     * опознаваемое имя там, где платформа его потеряла.
      *
      * @param url - Резолвленный URL запроса.
      * @param options - Метод и опциональный сигнал отмены.
@@ -89,26 +105,35 @@ export function useDataSourceClient() {
         // ignoreResponseError: дефолтный throw ofetch на 4xx/5xx оставил бы
         // поток тела непрочитанным и неотменённым — статус обрабатывается
         // ниже сами, после освобождения потока
-        const response = await rawDataSourceFetcher.raw(url, {
+        const requestOptions: TPublicRequestOptions = {
             ...options,
+            timeout: timeoutMs,
             responseType: 'stream',
             ignoreResponseError: true,
-        });
+        };
+        const effectiveSignal = applyApiRequestTimeout(url, requestOptions);
 
-        if (response.status >= 400) {
-            // Тело ошибки не используется — отменяем поток вместо чтения
-            await response.body?.cancel().catch(() => undefined);
-            throw new DataSourceHttpError(response.status);
+        try {
+            const response = await rawDataSourceFetcher.raw(url, requestOptions);
+
+            if (response.status >= 400) {
+                // Тело ошибки не используется — отменяем поток вместо чтения
+                await response.body?.cancel().catch(() => undefined);
+                throw new DataSourceHttpError(response.status);
+            }
+
+            return (await readResponseWithinByteBudget(response, maxResponseBytes)) as T;
+        } catch (error: unknown) {
+            throw normalizeRequestAbortError(error, effectiveSignal);
         }
-
-        return (await readResponseWithinByteBudget(response, maxResponseBytes)) as T;
     }
 
+    // `timeoutMs` наружу не отдаётся: потолок одного запроса — дело клиента,
+    // вызывающему остаются бюджеты прогона
     return {
         dataSourceFetcher,
         allowedHosts,
         concurrency,
-        timeoutMs,
         maxResponseBytes,
         maxRequestsPerPage,
         totalDeadlineMs,

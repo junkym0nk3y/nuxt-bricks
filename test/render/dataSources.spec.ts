@@ -15,9 +15,8 @@ import type { IPublishedPage } from '../../src/runtime/modules/common/types/bric
 const { dataSourceFetcherMock, dataSourceClientConfig, findImportModuleMock } = vi.hoisted(() => ({
     dataSourceFetcherMock: vi.fn(),
     // Мутируемый конфиг клиента: тесты бюджета переопределяют
-    // maxResponseBytes/maxRequestsPerPage/timeoutMs перед вызовом композаблов.
+    // maxResponseBytes/maxRequestsPerPage/totalDeadlineMs перед вызовом композаблов.
     dataSourceClientConfig: {
-        timeoutMs: 10000,
         maxResponseBytes: 1024 * 1024,
         maxRequestsPerPage: 24,
         totalDeadlineMs: 15000,
@@ -30,7 +29,6 @@ vi.mock('../../src/runtime/modules/render/composables/useDataSourceClient', () =
         dataSourceFetcher: dataSourceFetcherMock,
         allowedHosts: ['api.example.com'],
         concurrency: 6,
-        timeoutMs: dataSourceClientConfig.timeoutMs,
         maxResponseBytes: dataSourceClientConfig.maxResponseBytes,
         maxRequestsPerPage: dataSourceClientConfig.maxRequestsPerPage,
         totalDeadlineMs: dataSourceClientConfig.totalDeadlineMs,
@@ -129,7 +127,6 @@ describe('useBricksDataSources.executeDataSource', () => {
     afterEach(() => {
         vi.restoreAllMocks();
         dataSourceFetcherMock.mockReset();
-        dataSourceClientConfig.timeoutMs = 10000;
         dataSourceClientConfig.maxResponseBytes = 1024 * 1024;
         dataSourceClientConfig.maxRequestsPerPage = 24;
     });
@@ -246,11 +243,11 @@ describe('useBricksDataSources.executeDataSource', () => {
     // Redaction prod-логов при ошибке запроса проверяется в
     // test/render/dataSourceLogging.spec.ts (более сильная версия с SECRET-маркером).
 
-    it('per-request таймаут действует и при переданном общем shared signal', async () => {
-        dataSourceClientConfig.timeoutMs = 25;
-        // Фетчер имитирует поведение ofetch: висит вечно, но реагирует на abort
-        // переданного сигнала (per-request таймаут должен его абортить сам,
-        // shared signal дедлайна прогона не абортируется в этом тесте)
+    it('сигнал общего дедлайна прогона уходит в клиент как есть', async () => {
+        // Потолок одного запроса ставит сам клиент (см. test/render/dataSourceClient.spec.ts):
+        // здесь проверяется только то, что прогон не подменяет свой сигнал —
+        // иначе его отмена не доехала бы до запроса и зависший источник держал бы
+        // прогон до аварийного дедлайна
         dataSourceFetcherMock.mockImplementation(
             (_url: string, options: { signal?: AbortSignal }) =>
                 new Promise((_resolve, reject) => {
@@ -262,7 +259,7 @@ describe('useBricksDataSources.executeDataSource', () => {
         const { executeDataSource } = useBricksDataSources();
         const sharedDeadlineController = new AbortController();
 
-        const result = await executeDataSource(
+        const pending = executeDataSource(
             createSource(),
             createComponent(),
             null,
@@ -270,7 +267,13 @@ describe('useBricksDataSources.executeDataSource', () => {
             sharedDeadlineController.signal
         );
 
-        expect(result).toBeNull();
+        expect(dataSourceFetcherMock.mock.calls[0]?.[1]?.signal).toBe(
+            sharedDeadlineController.signal
+        );
+
+        sharedDeadlineController.abort(new Error('дедлайн прогона'));
+
+        expect(await pending).toBeNull();
         expect(console.error).toHaveBeenCalledWith(
             expect.stringContaining('Fetch failed'),
             expect.any(Object)

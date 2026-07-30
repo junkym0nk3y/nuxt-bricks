@@ -1,4 +1,13 @@
 // #region Imports
+// Types
+import type { TPublicRequestOptions } from '../types/render';
+
+// Utils
+import {
+    applyApiRequestTimeout,
+    normalizeRequestAbortError,
+} from '../../common/utils/apiRequestPolicy';
+
 // Nuxt
 import { useRuntimeConfig } from '#imports';
 // #endregion
@@ -70,13 +79,47 @@ export function usePublicPageClient() {
         import.meta.client ? window.location.origin : undefined
     );
 
-    const publicPageFetcher = globalThis.$fetch.create({
+    // Потолка в опциях инстанса нет намеренно: его ставит обёртка ниже, и держать
+    // второе объявление того же бюджета значило бы дать ему шанс разъехаться
+    const rawPublicPageFetcher = globalThis.$fetch.create({
         baseURL,
-        timeout: PUBLIC_PAGE_REQUEST_TIMEOUT_MS,
         retry: 0,
         // Публичный контекст: cookies посетителя lookup'у страницы не нужны
         credentials: 'omit',
     });
+
+    /**
+     * Выполняет lookup с потолком ожидания на обе фазы ответа.
+     *
+     * Опция `timeout` выше — только декларация бюджета: её таймер ofetch снимает
+     * на заголовках, и зависшее тело держало бы посетителя без границы. Политика
+     * переводит бюджет в живой сигнал, а `normalizeRequestAbortError` возвращает
+     * обрыву опознаваемое имя там, где платформа его потеряла (браузер на фазе
+     * чтения тела). Через `.raw`, потому что на переменном URL вывод типа ответа
+     * по Nitro-роутам упирается в предел рекурсии компилятора.
+     *
+     * @param request - Путь запроса.
+     * @param options - Опции запроса.
+     * @returns Тело ответа.
+     */
+    async function publicPageFetcher<T = unknown>(
+        request: string,
+        options: TPublicRequestOptions = {}
+    ): Promise<T> {
+        const requestOptions: TPublicRequestOptions = {
+            timeout: PUBLIC_PAGE_REQUEST_TIMEOUT_MS,
+            ...options,
+        };
+        const effectiveSignal = applyApiRequestTimeout(request, requestOptions);
+
+        try {
+            const response = await rawPublicPageFetcher.raw(request, requestOptions);
+
+            return response._data as T;
+        } catch (error: unknown) {
+            throw normalizeRequestAbortError(error, effectiveSignal);
+        }
+    }
 
     return {
         publicPageFetcher,

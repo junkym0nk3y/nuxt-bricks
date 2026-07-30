@@ -185,6 +185,29 @@ describe('toRequestError: обрыв по таймауту', () => {
         expect((converted as RequestError).statusCode).toBeUndefined();
     });
 
+    it('обрыв тела с потерянной причиной доходит до текста и до сверки списка', async () => {
+        // Нормализация транспорта возвращает такому обрыву имя `TimeoutError`,
+        // причём без обёртки ofetch: чтение тела идёт вне её try/catch. Кейс
+        // фиксирует, что продуктовые ветки — текст неизвестного исхода и сверка
+        // списка — включаются именно на этой форме ошибки
+        const normalized = Object.assign(
+            new Error('The request was aborted after reaching the timeout', {
+                cause: new DOMException('The user aborted a request.', 'AbortError'),
+            }),
+            { name: 'TimeoutError' }
+        );
+        const refresh = vi.fn(() => Promise.resolve());
+
+        expect(toRequestError('PUT', '/api/bricks/9', normalized).message).toBe(
+            'bricks.common.writeTimeout'
+        );
+
+        const settled = await toPageWriteError(normalized, refresh);
+
+        expect(refresh).toHaveBeenCalledTimes(1);
+        expect(isRequestTimeoutError(settled)).toBe(true);
+    });
+
     it('toPageWriteError освежает список, но результата освежения не ждёт', async () => {
         // Освежение не отвечает и не падает; резолверы отпускаем в конце кейса,
         // чтобы не оставлять вечно ожидающий промис

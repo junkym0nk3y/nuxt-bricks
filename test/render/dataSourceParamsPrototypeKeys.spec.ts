@@ -25,7 +25,6 @@ vi.mock('../../src/runtime/modules/render/composables/useDataSourceClient', () =
         dataSourceFetcher: dataSourceFetcherMock,
         allowedHosts: [],
         concurrency: 6,
-        timeoutMs: 10000,
         maxResponseBytes: 1024 * 1024,
         maxRequestsPerPage: 24,
         totalDeadlineMs: 15000,

@@ -339,3 +339,20 @@ Arborist бросил `Cannot read properties of null (reading 'edgesOut')` пр
 не установился peer `@pinia/nuxt`, и consumer build остановился уже на нём.
 Это не ошибка fake backend; для надёжного smoke нужен npm без этого Arborist
 сбоя либо явная стратегия установки peer dependencies в smoke consumer.
+
+## 2026-07-30 02:20 — Claude Opus 5
+
+Замер поведения `AbortSignal` делал в Node (undici) и на нём строил вывод про
+классификацию обрыва — в браузере вывод оказался другим: Chrome на фазе чтения
+тела подменяет причину аборта на `AbortError`, а Node отдаёт `reason` как есть.
+Ловушка в том, что оба выглядят «проверено фактом». Для транспортных правок
+замер обязан идти на той платформе, где живёт сценарий: клиентский путь — только
+в браузере (Playwright + `browser_evaluate`), Node-замер его не заменяет.
+
+## 2026-07-30 02:21 — Claude Opus 5
+
+`docker exec nuxt-bricks-db sh -c 'psql ... "<INSERT с кавычками>"'` из процедуры
+верификации упал `syntax error at or near "\"`: экранирование одинарных кавычек
+через `\x27` внутри двойной sh-обёртки доезжает до psql буквально. Проще звать
+`docker exec nuxt-bricks-db psql -U postgres -d bricks -c "<SQL>"` без `sh -c` —
+обёртка там нужна только ради `$POSTGRES_USER`/`$POSTGRES_DB`.
