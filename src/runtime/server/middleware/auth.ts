@@ -57,6 +57,7 @@ import { isIpLockedOut, registerIpFailure } from '../utils/auth/loginRateLimiter
 import { resolveRequestClientIp } from '../utils/requestClientIp';
 import { useBricksAuthAdapter } from '../../modules/persistence/server/registry';
 import { getBricksDefaultStorageFactory } from '../../modules/persistence/server/defaultStorage';
+import { rethrowStatementTimeoutError } from '../../modules/persistence/server/utils/handlerHelpers';
 import type { IAuthRequestTarget, TBricksAuthMode } from '../utils/auth/types';
 
 /** Дефолтный пароль из module.ts — в production с ним защищённые пути недоступны */
@@ -219,6 +220,12 @@ async function handleDatabaseAuth(event: H3Event, target: IAuthRequestTarget): P
     try {
         session = await resolveSessionUser(event);
     } catch (error: unknown) {
+        // Остановка серверным лимитом времени — не «хранилище недоступно»:
+        // у неё свой статус и машиночитаемый код, по которому билдер выбирает
+        // текст. Проверка сессии идёт перед каждым защищённым запросом, поэтому
+        // подмена статуса здесь накрыла бы весь editorial API
+        rethrowStatementTimeoutError(error);
+
         // Недоступная БД — инфраструктурная проблема, не 401 и не 500
         console.error('[nuxt-bricks] Auth storage error:', error);
         throw createError({

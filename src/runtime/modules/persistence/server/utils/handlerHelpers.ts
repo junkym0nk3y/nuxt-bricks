@@ -5,8 +5,13 @@ import { randomUUID } from 'node:crypto';
 import { createError, getHeader, getRouterParam, type H3Event } from 'h3';
 import { toCamelCaseShallow } from '../../../common/utils/case-transform';
 import { PAGE_CONFLICT_CODES } from '../../../common/constants/publish';
+import { BRICKS_API_ERROR_CODES } from '../../../common/constants/apiErrors';
 import { readJsonBodyWithLimit } from './requestBodyLimits';
-import { BricksPagenameConflictError, BricksRevisionConflictError } from './storageErrors';
+import {
+    BricksPagenameConflictError,
+    BricksRevisionConflictError,
+    BricksStatementTimeoutError,
+} from './storageErrors';
 
 /** Строгий формат числового id: только цифры, без знака/дробей/хвостов ('1abc' ❌). */
 const NUMERIC_ID_PATTERN = /^\d+$/;
@@ -82,12 +87,28 @@ export async function readNormalizedBody<T>(event: H3Event): Promise<T> {
  * `data.errorId`, полная ошибка с тем же errorId уходит в server-лог —
  * корреляция ответа и лога по идентификатору.
  *
+ * Исключение — остановка запроса серверным лимитом времени: generic 500 выдавал
+ * бы её за внутреннюю поломку, хотя причина известна и повтор осмыслен, поэтому
+ * она отдаётся отдельным статусом с машиночитаемым кодом (текст выбирает
+ * клиент). 504, а не 503: недоступен не сервис целиком, а upstream не успел
+ * ответить в отведённое время.
+ *
  * @param error - Пойманная ошибка.
  * @param fallbackMessage - Сообщение для 500-ответа.
  */
 export function toHttpError(error: unknown, fallbackMessage: string): never {
     if (error && typeof error === 'object' && 'statusCode' in error) {
         throw error;
+    }
+
+    if (error instanceof BricksStatementTimeoutError) {
+        console.error('[Bricks API] Query cancelled by the server statement timeout:', error);
+
+        throw createError({
+            statusCode: 504,
+            statusMessage: 'Database statement timeout',
+            data: { code: BRICKS_API_ERROR_CODES.statementTimeout },
+        });
     }
 
     const errorId = randomUUID();
@@ -98,6 +119,24 @@ export function toHttpError(error: unknown, fallbackMessage: string): never {
         statusMessage: fallbackMessage,
         data: { errorId },
     });
+}
+
+/**
+ * Пробрасывает остановку запроса серверным лимитом времени как готовую
+ * HTTP-ошибку; прочие ошибки оставляет вызывающему.
+ *
+ * Нужен там, где общий `catch` иначе подменил бы её своим статусом и потерял бы
+ * машиночитаемый код: middleware авторизации отвечает 503 на любую ошибку
+ * хранилища сессий, media-прокси — 500. В database-режиме сессия читается перед
+ * КАЖДЫМ защищённым запросом, то есть без этого проброса самый вероятный путь
+ * отказа доходил бы до пользователя чужим статусом и англоязычным текстом.
+ *
+ * @param error - Пойманная ошибка.
+ */
+export function rethrowStatementTimeoutError(error: unknown): void {
+    if (error instanceof BricksStatementTimeoutError) {
+        toHttpError(error, 'Database statement timeout');
+    }
 }
 
 /**

@@ -265,4 +265,27 @@ describe('media store: доставка отказа и порядок отве�
         // Перечитывание отпущено, а не ожидается: сообщение об исходе доходит сразу
         await vi.waitFor(() => expect(store.items).toHaveLength(0));
     });
+
+    it('остановка запроса лимитом БД доходит своим текстом, а не статусом транспорта', async () => {
+        const store = useMediaStore();
+        store.items = [buildItem({ id: 1 })];
+
+        // Ответ ручки: 504 с машиночитаемым кодом. Без разбора кода пользователь
+        // увидел бы англоязычный текст статуса, а список — обнулился бы вместе с
+        // уже показанной галереей
+        apiFetcherMock.mockRejectedValueOnce(
+            Object.assign(new Error('[DELETE] "/api/bricks/media/1/": 504 Gateway Timeout'), {
+                statusCode: 504,
+                data: {
+                    statusCode: 504,
+                    statusMessage: 'Database statement timeout',
+                    message: 'Database statement timeout',
+                    data: { code: 'STATEMENT_TIMEOUT' },
+                },
+            })
+        );
+
+        await expect(store.removeItem(1)).rejects.toThrow('bricks.common.statementTimeout');
+        expect(store.items).toHaveLength(1);
+    });
 });

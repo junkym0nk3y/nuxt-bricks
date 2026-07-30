@@ -1,11 +1,13 @@
 import type { Composer } from 'vue-i18n';
 import { useNuxtApp } from '#imports';
 import { PAGE_CONFLICT_CODES } from '../../../common/constants/publish';
+import { BRICKS_STATEMENT_TIMEOUT_MESSAGE_KEY } from '../../../common/constants/apiErrors';
 import type { TRequestErrorLike } from '../../../common/types/bricks-api';
 import {
     isRequestTimeoutError,
     resolveRequestTimeoutMessageKey,
 } from '../../../common/utils/apiRequestPolicy';
+import { isStatementTimeoutError } from '../../../common/utils/main';
 
 /**
  * Ошибка API-запроса с сохранённым HTTP-статусом и машиночитаемым кодом
@@ -254,6 +256,18 @@ export function toRequestError(method: string, url: string, error: unknown): Err
     // с англоязычным текстом транспорта вместо честного объяснения
     if (isRequestTimeoutError(error)) {
         return new RequestError(timeoutMessage(method), undefined, undefined, error);
+    }
+
+    // Остановка запроса серверным лимитом времени — по той же причине выше
+    // транспортного passthrough. Текст свой: в отличие от обрыва по потолку
+    // ожидания исход здесь определён, незавершённая запись откатана
+    if (isStatementTimeoutError(error)) {
+        return new RequestError(
+            translate(BRICKS_STATEMENT_TIMEOUT_MESSAGE_KEY),
+            extractStatusCode((error ?? {}) as TRequestErrorLike),
+            undefined,
+            error
+        );
     }
 
     if (error instanceof RequestError) {

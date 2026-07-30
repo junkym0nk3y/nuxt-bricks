@@ -8,14 +8,17 @@ import type { H3Event } from 'h3';
 // Utils
 import {
     readNormalizedBody,
+    rethrowStatementTimeoutError,
     toHttpError,
     toPageHttpError,
 } from '../../src/runtime/modules/persistence/server/utils/handlerHelpers';
 import {
     BricksPagenameConflictError,
     BricksRevisionConflictError,
+    BricksStatementTimeoutError,
 } from '../../src/runtime/modules/persistence/server/utils/storageErrors';
 import { PAGE_CONFLICT_CODES } from '../../src/runtime/modules/common/constants/publish';
+import { BRICKS_API_ERROR_CODES } from '../../src/runtime/modules/common/constants/apiErrors';
 // #endregion
 
 /**
@@ -74,6 +77,46 @@ describe('handlerHelpers: generic 500-envelope', () => {
             `[Bricks API] Failed to save page (errorId=${thrown.data.errorId}):`,
             internalError
         );
+    });
+
+    it('toHttpError: остановка запроса лимитом БД — 504 с кодом, а не generic 500', () => {
+        const consoleErrorMock = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        const driverError = Object.assign(
+            new Error('canceling statement due to statement timeout'),
+            { code: '57014' }
+        );
+        const cancelled = new BricksStatementTimeoutError(driverError);
+
+        const thrown = catchThrown(() => toHttpError(cancelled, 'Failed to save page')) as {
+            statusCode: number;
+            message: string;
+            data: { code?: string; errorId?: string };
+        };
+
+        expect(thrown.statusCode).toBe(504);
+        expect(thrown.data.code).toBe(BRICKS_API_ERROR_CODES.statementTimeout);
+        // Причина известна, поэтому errorId для корреляции с логом не нужен,
+        // а текст PostgreSQL наружу по-прежнему не отдаётся
+        expect(thrown.data.errorId).toBeUndefined();
+        expect(thrown.message).not.toContain('statement timeout due');
+        expect(consoleErrorMock).toHaveBeenCalled();
+    });
+
+    it('rethrowStatementTimeoutError: свой статус только у остановки лимитом', () => {
+        vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+        const thrown = catchThrown(() => {
+            rethrowStatementTimeoutError(new BricksStatementTimeoutError());
+
+            throw new Error('Expected function to throw');
+        }) as { statusCode: number; data: { code: string } };
+
+        expect(thrown.statusCode).toBe(504);
+        expect(thrown.data.code).toBe(BRICKS_API_ERROR_CODES.statementTimeout);
+
+        // Остальное остаётся вызывающему: у middleware авторизации и media-прокси
+        // на прочие ошибки свои статусы (503 и 500), и подменять их нельзя
+        expect(() => rethrowStatementTimeoutError(new Error('connection refused'))).not.toThrow();
     });
 
     it('toPageHttpError: доменные конфликты маппятся на 409 с машиночитаемым кодом', () => {

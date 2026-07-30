@@ -11,6 +11,9 @@ import {
     toRequestError,
 } from '../../src/runtime/modules/builder/publish/utils/requestErrors';
 import { isRequestTimeoutError } from '../../src/runtime/modules/common/utils/apiRequestPolicy';
+
+// Constants
+import { BRICKS_API_ERROR_CODES } from '../../src/runtime/modules/common/constants/apiErrors';
 // #endregion
 
 /**
@@ -232,5 +235,47 @@ describe('toRequestError: обрыв по таймауту', () => {
         expect(isRequestTimeoutError(settled)).toBe(true);
 
         refreshResolvers.splice(0).forEach((resolve) => resolve());
+    });
+});
+
+describe('toRequestError: остановка запроса серверным лимитом времени', () => {
+    /**
+     * Ответ ручки при отмене запроса базой: 504 с машиночитаемым кодом в
+     * `data.data.code`, а message ofetch содержит URL — то есть подстроку
+     * «/api/», на которой стоит ранний возврат «отдать как есть».
+     */
+    function makeStatementTimeoutError(method: string): Error {
+        return Object.assign(new Error(`[${method}] "/api/bricks/9/": 504 Gateway Timeout`), {
+            statusCode: 504,
+            data: {
+                statusCode: 504,
+                statusMessage: 'Database statement timeout',
+                message: 'Database statement timeout',
+                data: { code: BRICKS_API_ERROR_CODES.statementTimeout },
+            },
+        });
+    }
+
+    it('текст свой, а не англоязычный статус транспорта', () => {
+        const converted = toRequestError('PUT', '/api/bricks/9', makeStatementTimeoutError('PUT'));
+
+        expect(converted).toBeInstanceOf(RequestError);
+        expect(converted.message).toBe('bricks.common.statementTimeout');
+        expect((converted as RequestError).statusCode).toBe(504);
+    });
+
+    it('исход определён: не считается обрывом по потолку и список не сверяется', async () => {
+        const converted = toRequestError('PUT', '/api/bricks/9', makeStatementTimeoutError('PUT'));
+        const refresh = vi.fn(() => Promise.resolve());
+
+        // Отличие от обрыва по потолку принципиальное: там запись могла
+        // примениться, здесь база откатила её сама — сверять список незачем, а
+        // диалог подтверждения остаётся открытым (правило определённого отказа)
+        expect(isRequestTimeoutError(converted)).toBe(false);
+
+        const settled = await toPageWriteError(converted, refresh);
+
+        expect(refresh).not.toHaveBeenCalled();
+        expect(settled).toBe(converted);
     });
 });

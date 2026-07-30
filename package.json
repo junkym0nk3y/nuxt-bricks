@@ -115,7 +115,7 @@
         "@vee-validate/rules": "^4.13.1",
         "@vueuse/core": "^13.0.0",
         "json-editor-vue": "^0.18.1",
-        "pg": "^8.16.0",
+        "pg": "^8.20.0",
         "pinia": "^3.0.0",
         "reka-ui": "^2.0.0",
         "swiper": "^14.0.5",

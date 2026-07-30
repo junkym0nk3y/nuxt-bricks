@@ -18,7 +18,10 @@ import {
     isRequestTimeoutError,
     resolveRequestTimeoutMessageKey,
 } from '../../../common/utils/apiRequestPolicy';
-import { getBricksErrorMessage } from '../../../common/utils/main';
+import { getBricksErrorMessage, isStatementTimeoutError } from '../../../common/utils/main';
+
+// Constants
+import { BRICKS_STATEMENT_TIMEOUT_MESSAGE_KEY } from '../../../common/constants/apiErrors';
 // #endregion
 
 /**
@@ -41,9 +44,42 @@ export function isMediaListResponse(value: unknown): value is IMediaListResponse
 }
 
 /**
+ * Выбирает текст отказа: обрыв по потолку ожидания и остановка запроса
+ * серверным лимитом времени различаются по существу (в первом случае исход
+ * записи неизвестен, во втором она определённо откатана), остальное — сообщение
+ * сервера либо fallback.
+ *
+ * Серверный отказ разбирается по машиночитаемому коду до `getBricksErrorMessage`:
+ * иначе пользователь увидел бы англоязычный текст статуса.
+ *
+ * @param error - Исходная ошибка запроса.
+ * @param method - HTTP-метод запроса.
+ * @param translate - Функция перевода вызывающего.
+ * @param fallbackMessage - Локализованное сообщение на случай молчащей ошибки.
+ * @returns Текст для показа пользователю.
+ */
+function resolveMediaErrorMessage(
+    error: unknown,
+    method: string,
+    translate: TTranslateFn,
+    fallbackMessage: string
+): string {
+    if (isRequestTimeoutError(error)) {
+        return translate(resolveRequestTimeoutMessageKey(method));
+    }
+
+    if (isStatementTimeoutError(error)) {
+        return translate(BRICKS_STATEMENT_TIMEOUT_MESSAGE_KEY);
+    }
+
+    return getBricksErrorMessage(error, fallbackMessage);
+}
+
+/**
  * Приводит отказ media-запроса к пользовательскому виду: обрыв по потолку
- * ожидания получает честный текст (у записи исход неизвестен), остальное —
- * сообщение сервера либо переданный fallback.
+ * ожидания получает честный текст (у записи исход неизвестен), остановка
+ * серверным лимитом времени — свой, остальное — сообщение сервера либо
+ * переданный fallback.
  *
  * Исходная ошибка сохраняется в `cause`: по ней вызывающий отличает обрыв по
  * потолку от отказа сервера (`isRequestTimeoutError` обходит цепочку), а без
@@ -61,9 +97,7 @@ export function toMediaRequestError(
     translate: TTranslateFn,
     fallbackMessage: string
 ): Error {
-    const message = isRequestTimeoutError(error)
-        ? translate(resolveRequestTimeoutMessageKey(method))
-        : getBricksErrorMessage(error, fallbackMessage);
-
-    return new Error(message, { cause: error });
+    return new Error(resolveMediaErrorMessage(error, method, translate, fallbackMessage), {
+        cause: error,
+    });
 }

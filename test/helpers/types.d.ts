@@ -54,6 +54,16 @@ export interface IWindowStub {
 }
 
 /**
+ * HTTP-ошибка h3 в том виде, в каком её видит вызывающий обработчик: статус и
+ * машиночитаемый код из `data`.
+ */
+export interface IThrownHttpError {
+    statusCode: number;
+    statusMessage?: string;
+    data?: { code?: string };
+}
+
+/**
  * Состояние стаба `useAsyncData` — та же форма, что у Nuxt: refs, чтобы
  * `computed` тестируемого кода пересчитывался после повтора.
  */

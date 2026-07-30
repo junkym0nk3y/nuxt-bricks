@@ -27,7 +27,11 @@ import type { IStorageAdapter, IPublishAdapter, IAuthAdapter } from '../types/ad
 
 // Доменные ошибки конфликтов — часть контракта IStorageAdapter (кастомные
 // адаптеры кидают их из createPage/updatePage, ручки маппят на HTTP 409).
-export { BricksPagenameConflictError, BricksRevisionConflictError } from './utils/storageErrors';
+export {
+    BricksPagenameConflictError,
+    BricksRevisionConflictError,
+    BricksStatementTimeoutError,
+} from './utils/storageErrors';
 
 let storageAdapter: IStorageAdapter | null = null;
 let publishAdapter: IPublishAdapter | null = null;

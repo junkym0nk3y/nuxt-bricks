@@ -1,11 +1,12 @@
 /**
- * Доменные ошибки конфликтов storage-слоя.
+ * Доменные ошибки storage-слоя.
  *
  * Адаптеры (дефолтный Postgres и кастомные реализации IStorageAdapter) кидают
- * эти классы вместо драйверных ошибок — ручки маппят их на HTTP 409 с
- * машиночитаемым `data.code` (см. handlerHelpers.toPageHttpError, коды —
- * PAGE_CONFLICT_CODES в common/constants/publish.ts). Классы реэкспортируются
- * из `nuxt-bricks/persistence` для кастомных адаптеров.
+ * эти классы вместо драйверных ошибок — ручки маппят их на HTTP-статусы с
+ * машиночитаемым `data.code` (см. handlerHelpers, коды — PAGE_CONFLICT_CODES в
+ * common/constants/publish.ts и BRICKS_API_ERROR_CODES в
+ * common/constants/apiErrors.ts). Классы реэкспортируются из
+ * `nuxt-bricks/persistence` для кастомных адаптеров.
  */
 
 /**
@@ -35,5 +36,21 @@ export class BricksRevisionConflictError extends Error {
         super('Page was modified by another request (revision mismatch)');
         this.name = 'BricksRevisionConflictError';
         this.pageId = pageId;
+    }
+}
+
+/**
+ * Запрос остановлен серверным лимитом времени: база отменила его сама и
+ * освободила соединение. Исход при этом ОПРЕДЕЛЁН — незавершённая запись
+ * откатана, поэтому ручка отдаёт отказ, а не «исход неизвестен» клиентского
+ * обрыва.
+ *
+ * Драйверная ошибка сохраняется в `cause`: наружу она не отдаётся (текст
+ * PostgreSQL содержал бы детали SQL), но нужна в server-логе.
+ */
+export class BricksStatementTimeoutError extends Error {
+    constructor(cause?: unknown) {
+        super('Query was cancelled by the server statement timeout', { cause });
+        this.name = 'BricksStatementTimeoutError';
     }
 }

@@ -10,6 +10,7 @@ import {
     collectWebStreamWithLimit,
     readJsonBodyWithLimit,
 } from '../../../../modules/persistence/server/utils/requestBodyLimits';
+import { rethrowStatementTimeoutError } from '../../../../modules/persistence/server/utils/handlerHelpers';
 // #endregion
 
 // #region Interfaces
@@ -103,6 +104,10 @@ export default defineEventHandler(async (event): Promise<IMediaProxyResponse> =>
         if ((error as IApiError)?.statusCode) {
             throw error;
         }
+
+        // Поиск медиа по URL идёт в БД до обращения к S3, и её лимит времени
+        // здесь превратился бы в generic 500 без машиночитаемого кода
+        rethrowStatementTimeoutError(error);
 
         console.error('[S3 Media Proxy] Error:', error);
 

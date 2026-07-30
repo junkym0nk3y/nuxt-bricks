@@ -6,18 +6,22 @@
  * bricks.backend.mode (см. module-backend-config.ts).
  */
 import { useRuntimeConfig } from 'nitropack/runtime';
-import type { Pool } from 'pg';
+import type { ClientBase, Pool, PoolClient } from 'pg';
 import type { IApiError } from '../../../common/types/bricks-api';
+import { buildPostgresPoolConfig, STATEMENT_TIMEOUT_APPLY_TIMEOUT_MS } from './poolConfig';
+import { withPromiseDeadline } from '../../../common/utils/promiseDeadline';
+import type { IPostgresPoolConfig } from '../../types/postgres';
+import { BricksStatementTimeoutError } from '../utils/storageErrors';
 
 let pool: Pool | null = null;
 
 /**
  * Резолвит строку подключения из runtimeConfig или ENV.
  *
+ * @param config - runtimeConfig Nitro.
  * @returns Строка подключения PostgreSQL.
  */
-function resolveConnectionString(): string {
-    const config = useRuntimeConfig();
+function resolveConnectionString(config: Record<string, unknown>): string {
     const connectionString = config.bricksDatabaseUrl as string | undefined;
 
     if (!connectionString) {
@@ -51,20 +55,90 @@ async function importPgDriver(): Promise<typeof import('pg')> {
 }
 
 /**
+ * Ставит серверный лимит в самой сессии сразу после подключения.
+ *
+ * Startup-параметра недостаточно: драйвер накладывает разобранную строку
+ * подключения поверх объекта конфигурации, поэтому `statement_timeout` в URL
+ * перебивал бы наше значение и мог бы снять лимит совсем. Отследить это
+ * разбором строки нельзя надёжно — у драйвера своя грамматика (декодирование
+ * `%5F` в имени параметра, восстановление URL без хоста), — а `SET` выполняется
+ * позже старта сессии и перекрывает любой её вариант.
+ *
+ * Момент выбран не случайно: `pg-pool` ДОЖИДАЕТСЯ этого хука и только потом
+ * выдаёт соединение, поэтому первый запрос не может его обогнать. Значение
+ * уходит параметром (`set_config`, а не интерполяция в текст `SET`).
+ *
+ * Свой дедлайн нужен потому, что `connectionTimeoutMillis` сюда не достаёт:
+ * `pg-pool` снимает таймер подключения сразу после `client.connect()` и только
+ * затем ждёт хук. Зависший `set_config` иначе держал бы ожидающего без всякого
+ * потолка, а соединение — учтённым в пуле, то есть возвращал бы ровно тот
+ * дефект, ради которого лимит и заводится. Отказ хука пул обрабатывает сам:
+ * соединение уничтожается, слот освобождается, ошибка уходит вызывающему.
+ *
+ * @param client - Только что подключённое соединение пула.
+ * @param poolConfig - Конфигурация пула: отсюда берётся значение лимита.
+ */
+async function applyStatementTimeout(
+    client: ClientBase,
+    poolConfig: IPostgresPoolConfig
+): Promise<void> {
+    await withPromiseDeadline(
+        client.query('SELECT set_config($1, $2, false)', [
+            'statement_timeout',
+            String(poolConfig.statement_timeout),
+        ]),
+        STATEMENT_TIMEOUT_APPLY_TIMEOUT_MS,
+        () =>
+            new Error(
+                '[PostgreSQL] Timed out while applying the statement timeout to a new connection'
+            )
+    );
+}
+
+/**
+ * Берёт соединение из пула, приводя отказ к тому же виду, что и у обычного
+ * запроса.
+ *
+ * Отдельная обёртка нужна из-за хука установки лимита: его отказ приходит
+ * именно из `connect()`, то есть до первого `BEGIN`, и без этого места
+ * транзакционный путь отдавал бы generic 500 там, где обычный запрос отдаёт
+ * честный код отказа.
+ *
+ * @param clientPool - Пул соединений.
+ * @returns Выделенный клиент пула.
+ */
+async function acquireClient(clientPool: Pool): Promise<PoolClient> {
+    try {
+        return await clientPool.connect();
+    } catch (error: unknown) {
+        const err = error as IApiError;
+        console.error('[PostgreSQL] Failed to acquire a connection:', {
+            error: err.message,
+            code: err.code,
+        });
+
+        throw toDomainQueryError(error);
+    }
+}
+
+/**
  * Возвращает singleton-пул соединений с PostgreSQL, лениво создавая его.
  *
  * @returns Пул соединений.
  */
 async function getPool(): Promise<Pool> {
     if (!pool) {
-        const connectionString = resolveConnectionString();
+        const config = useRuntimeConfig();
+        const connectionString = resolveConnectionString(config);
         const { Pool: PgPool } = await importPgDriver();
+        const poolConfig = buildPostgresPoolConfig(
+            connectionString,
+            config.bricksDatabaseStatementTimeoutMs
+        );
 
         pool = new PgPool({
-            connectionString,
-            max: 20,
-            idleTimeoutMillis: 30000,
-            connectionTimeoutMillis: 2000,
+            ...poolConfig,
+            onConnect: (client: ClientBase) => applyStatementTimeout(client, poolConfig),
         });
 
         pool.on('error', (err: Error) => {
@@ -77,6 +151,28 @@ async function getPool(): Promise<Pool> {
 
 /** SQLSTATE-коды «схема не соответствует коду»: undefined_table / undefined_column. */
 const MISSING_SCHEMA_CODES = new Set(['42P01', '42703']);
+
+/** SQLSTATE query_canceled: запрос отменён — у нас это срабатывание statement_timeout. */
+const QUERY_CANCELED_CODE = '57014';
+
+/**
+ * Переводит отмену запроса серверным лимитом в доменную ошибку, чтобы знание о
+ * SQLSTATE не расходилось за пределы этого модуля: HTTP-слой различает такой
+ * отказ по классу ошибки, как и конфликты записи.
+ *
+ * Прочие ошибки возвращаются как есть — их разбирают вызывающие
+ * (`isUniqueViolation` в адаптере).
+ *
+ * @param error - Пойманная ошибка драйвера.
+ * @returns Доменная ошибка либо исходная.
+ */
+function toDomainQueryError(error: unknown): unknown {
+    if ((error as IApiError)?.code === QUERY_CANCELED_CODE) {
+        return new BricksStatementTimeoutError(error);
+    }
+
+    return error;
+}
 
 /**
  * Дописывает в лог подсказку про миграции, если ошибка похожа на
@@ -114,7 +210,7 @@ export async function query<T>(text: string, params?: unknown[]): Promise<T[]> {
             ...(process.env.NODE_ENV === 'production' ? {} : { query: text, params }),
         });
         logMissingSchemaHint(err);
-        throw error;
+        throw toDomainQueryError(error);
     }
 }
 
@@ -148,7 +244,7 @@ export async function withTransaction<T>(
     fn: (txQuery: TTransactionQuery) => Promise<T>
 ): Promise<T> {
     const clientPool = await getPool();
-    const client = await clientPool.connect();
+    const client = await acquireClient(clientPool);
 
     const txQuery: TTransactionQuery = async <R>(
         text: string,
@@ -177,7 +273,7 @@ export async function withTransaction<T>(
             code: err.code,
         });
         logMissingSchemaHint(err);
-        throw error;
+        throw toDomainQueryError(error);
     } finally {
         client.release();
     }

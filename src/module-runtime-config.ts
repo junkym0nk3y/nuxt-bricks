@@ -70,6 +70,14 @@ function applyBricksPersistenceRuntimeConfig(
         options.database?.url ??
         '';
 
+    // Серверный лимит исполнения одного statement: освобождает соединение пула,
+    // чего клиентский потолок ожидания сделать не может. Имя ключа
+    // NUXT_BRICKS_DATABASE_STATEMENT_TIMEOUT_MS даёт runtime-override без ребилда
+    runtimeConfig.bricksDatabaseStatementTimeoutMs =
+        runtimeConfig.bricksDatabaseStatementTimeoutMs ??
+        process.env.NUXT_BRICKS_DATABASE_STATEMENT_TIMEOUT_MS ??
+        options.database?.statementTimeoutMs;
+
     // Версионирование страниц: глубина истории снапшотов (0 — выкл).
     // Имя ключа NUXT_BRICKS_VERSIONS_LIMIT даёт runtime-override в проде без ребилда.
     runtimeConfig.bricksVersionsLimit =
