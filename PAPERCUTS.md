@@ -377,3 +377,21 @@ Arborist бросил `Cannot read properties of null (reading 'edgesOut')` пр
 `compatibilityVersion: 4`. Вывод «`data` — shallowRef» по чтению
 `node_modules/@nuxt/schema` оказался неверным; смотреть надо сгенерированный
 `nuxt.config.mjs`, там же лежат `purgeCachedData` и `resetAsyncDataToUndefined`.
+
+## 2026-07-30 15:20 — opus-5
+
+Мутационная проверка незакоммиченной правки: восстанавливал файл после мутации
+через `git checkout -- <file>` → откатило не мутацию, а всю правку целиком (она
+ещё не была в индексе). Обнаружилось не сразу: часть кейсов зелёная и без правки,
+поэтому «мутация не различается» выглядело правдоподобно. Восстанавливать надо из
+бэкапа (`cp` до цикла мутаций), а `git checkout` в таком скрипте не использовать.
+
+## 2026-07-30 15:35 — opus-5
+
+Временный brick для живой проверки: положил в `playground/components/` только
+`*.brick.ts` с `dataSources` → SSR упал 500 «Module … has no usable component
+export», а в схеме страницы `brickPath` не нашёлся. Оказалось: brick-файл обязан
+реэкспортировать Vue-компонент (`export { component }`, см.
+`render/composables/useRendererBricks.ts:21-28`), а `brickPath` в схеме — полный
+путь от srcDir (`/components/X.brick.ts`), а не имя. Ни того, ни другого в README
+нет — только в коде загрузчика.

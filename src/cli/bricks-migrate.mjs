@@ -108,7 +108,7 @@ async function listMigrationFiles() {
 
 /**
  * Создаёт (идемпотентно) реестр применённых миграций и возвращает его строки
- * (имя + checksum — контроль drift'а, аудит A-10).
+ * (имя + checksum — контроль drift'а).
  *
  * @param {import('pg').Client} client Подключённый клиент.
  * @returns {Promise<Array<{name: string, checksum: string}>>} Строки реестра.

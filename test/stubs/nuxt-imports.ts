@@ -17,6 +17,9 @@ import { shallowRef, type Ref } from 'vue';
  * кейсами через `resetNuxtStateStub`.
  */
 const stateByKey = new Map<string, Ref<unknown>>();
+
+/** Отложенные колбэки `onNuxtReady` — исполняются тестом вручную. */
+const nuxtReadyCallbacks: Array<() => unknown> = [];
 // #endregion
 
 /**
@@ -73,4 +76,32 @@ export function useRequestEvent(): undefined {
  */
 export function useRuntimeConfig(): { public: Record<string, unknown> } {
     return { public: {} };
+}
+
+/**
+ * Стаб onNuxtReady: колбэки не исполняются сразу, а складываются — тест дёргает
+ * их сам через `runNuxtReadyCallbacks`. В приложении Nuxt откладывает их до конца
+ * гидрации, и «отложенность» здесь существенна: код, вызвавший запрос раньше
+ * времени, обязан отличаться от кода, дождавшегося готовности.
+ *
+ * @param callback - Колбэк готовности приложения.
+ */
+export function onNuxtReady(callback: () => unknown): void {
+    nuxtReadyCallbacks.push(callback);
+}
+
+/**
+ * Исполняет отложенные колбэки `onNuxtReady`. Очередь сохраняется: повторный
+ * вызов проверяет, что восстановление уходит ровно однажды и не зависит от того,
+ * сколько раз его позвали.
+ */
+export function runNuxtReadyCallbacks(): void {
+    [...nuxtReadyCallbacks].forEach((callback) => callback());
+}
+
+/**
+ * Сбрасывает очередь колбэков `onNuxtReady` между кейсами.
+ */
+export function resetNuxtReadyStub(): void {
+    nuxtReadyCallbacks.length = 0;
 }

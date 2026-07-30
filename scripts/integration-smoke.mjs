@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Integration smoke (аудит A-06): production-like гейт из собранного tarball.
+ * Integration smoke: production-like гейт из собранного tarball.
  *
  * Требует живой Postgres (BRICKS_IT_DATABASE_URL); S3-часть включается при
  * заданных BRICKS_IT_S3_ENDPOINT/ACCESS_KEY/SECRET_KEY/BUCKET (MinIO в CI).

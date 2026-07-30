@@ -8,14 +8,18 @@ import type { IComponentLibraryData, IUseComponentLibraryReturn } from '../types
 
 // Utils
 import { extractBrickSlots } from '../utils/brickSlots';
+import {
+    createComponentManifestDeadlineError,
+    isComponentManifestDeadlineError,
+} from '../utils/componentLibraryPolicy';
 import { toSafeRecord } from '../../../common/utils/safeRecord';
 import { withPromiseDeadline } from '../../../common/utils/promiseDeadline';
 
 // Vue
-import { computed } from 'vue';
+import { computed, onScopeDispose } from 'vue';
 
 // Nuxt
-import { useAsyncData, useState } from '#imports';
+import { onNuxtReady, useAsyncData, useState } from '#imports';
 
 // Composables
 import { useApiClient } from '../../../common/composables/useApiClient';
@@ -52,17 +56,10 @@ function fetchManifestWithinDeadline(request: Promise<IBricksManifest>): Promise
         return request;
     }
 
-    return withPromiseDeadline(
-        request,
-        BRICKS_API_READ_TIMEOUT_MS + BRICKS_SSR_DEADLINE_MARGIN_MS,
-        () => {
-            // Имя `TimeoutError` — чтобы дедлайн классифицировался тем же
-            // `isRequestTimeoutError`, что и обрыв запроса на клиенте
-            const error = new Error('Bricks components manifest request timed out');
-            error.name = 'TimeoutError';
+    const deadlineMs = BRICKS_API_READ_TIMEOUT_MS + BRICKS_SSR_DEADLINE_MARGIN_MS;
 
-            return error;
-        }
+    return withPromiseDeadline(request, deadlineMs, () =>
+        createComponentManifestDeadlineError(deadlineMs)
     );
 }
 
@@ -94,6 +91,10 @@ function collectModalEntries(bricks: IBrickManifestEntry[]): TCachedModal[] {
  * `hash` и метаданные в `items` пока могут расходиться, — в
  * `IComponentLibraryData`.
  *
+ * Неудачный SSR-прогон восстанавливается одним запросом с клиента: без него
+ * отказ на сервере оставлял бы сайдбар пустым до полной перезагрузки страницы, а
+ * перезагрузка снова уходила бы в тот же SSR.
+ *
  * @returns Список компонентов, признак отказа загрузки и повтор.
  */
 export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn> {
@@ -116,72 +117,102 @@ export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn>
         () => null
     );
 
-    const componentLibrary = await useAsyncData<IComponentLibraryData>(
-        'bricks-components',
-        async () => {
-            const { apiFetcher } = useApiClient();
-            const response = await fetchManifestWithinDeadline(
+    // Промис `useAsyncData` намеренно не await'ится здесь: до await нужно
+    // синхронно зарегистрировать восстановление после SSR-отказа, а после него
+    // активный scope потерян (то же ограничение, из-за которого вся проводка
+    // `useBuilderPage` идёт до его единственного await)
+    const componentLibrary = useAsyncData<IComponentLibraryData>('bricks-components', async () => {
+        const { apiFetcher } = useApiClient();
+        let response: IBricksManifest;
+
+        try {
+            response = await fetchManifestWithinDeadline(
                 apiFetcher<IBricksManifest>('/api/bricks/components')
             );
-            const bricks = response?.bricks || [];
+        } catch (error: unknown) {
+            // Прочие отказы уходят наружу: `error` нужен интерфейсу как
+            // признак отказа, а повтор их чинит не всегда
+            if (!isComponentManifestDeadlineError(error)) {
+                throw error;
+            }
 
-            const componentsWithMeta = await Promise.all(
-                bricks.map(async (brick: IBrickManifestEntry) => {
-                    try {
-                        const moduleLoader = findImportModule(brick.brickPath);
-                        if (!moduleLoader) {
-                            console.error(`[BricksBuilder] No loader for ${brick.brickPath}`);
-                            return null;
-                        }
-
-                        const module = await moduleLoader();
-                        const brickData = module?.brick;
-                        const values = brickData?.values || {};
-                        const slots = extractBrickSlots(brickData);
-                        // Имена пропов приходят из brick-файла: `acc['__proto__'] = …`
-                        // подменял бы прототип аккумулятора вместо записи ключа,
-                        // а own-ключ `__proto__` не пережил бы Nuxt payload
-                        const defaultProps = toSafeRecord(
-                            Object.entries(values).map(
-                                ([key, val]: [string, IBrickValues]) =>
-                                    [key, val.default] as [string, unknown]
-                            )
-                        );
-
-                        return {
-                            name: brick.name,
-                            // Категория — из манифеста: сгенерированная запись
-                            // всегда несёт непустое значение (дефолт `Common`),
-                            // поэтому подстановка из brick-модуля была
-                            // недостижима. Записи из чужого или правленого
-                            // руками манифеста не поддерживаются: их формы не
-                            // проверяет и читатель (`readBricksManifest`)
-                            category: brick.category,
-                            brickPath: brick.brickPath,
-                            description: brickData?.description,
-                            thumbnail: '',
-                            defaultProps,
-                            slots,
-                        } as IComponentLibraryItem;
-                    } catch (error) {
-                        console.error(`[BricksBuilder] Failed loading ${brick.name}`, error);
-                        return null;
-                    }
-                })
+            console.warn(
+                '[BricksBuilder] Components manifest deadline exceeded — layout blocks only',
+                error
             );
 
+            // Отклонять загрузку нельзя: ошибка легла бы в `payload._errors`,
+            // а при гидрации с ошибкой Nuxt пропускает первый запрос — сайдбар
+            // остался бы пустым до полной перезагрузки, и та снова ушла бы в
+            // SSR и снова прождала бы дедлайн. Маркер неполноты — чтобы
+            // деградированный ответ не осел в payload как полный
             return {
-                hash: response?.hash || '',
-                modals: collectModalEntries(bricks),
-                items: [
-                    ...LAYOUT_COMPONENTS,
-                    ...componentsWithMeta.filter(
-                        (item): item is IComponentLibraryItem => item !== null
-                    ),
-                ],
+                hash: '',
+                isPartial: true,
+                modals: [],
+                items: [...LAYOUT_COMPONENTS],
             };
         }
-    );
+
+        const bricks = response?.bricks || [];
+
+        const componentsWithMeta = await Promise.all(
+            bricks.map(async (brick: IBrickManifestEntry) => {
+                try {
+                    const moduleLoader = findImportModule(brick.brickPath);
+                    if (!moduleLoader) {
+                        console.error(`[BricksBuilder] No loader for ${brick.brickPath}`);
+                        return null;
+                    }
+
+                    const module = await moduleLoader();
+                    const brickData = module?.brick;
+                    const values = brickData?.values || {};
+                    const slots = extractBrickSlots(brickData);
+                    // Имена пропов приходят из brick-файла: `acc['__proto__'] = …`
+                    // подменял бы прототип аккумулятора вместо записи ключа,
+                    // а own-ключ `__proto__` не пережил бы Nuxt payload
+                    const defaultProps = toSafeRecord(
+                        Object.entries(values).map(
+                            ([key, val]: [string, IBrickValues]) =>
+                                [key, val.default] as [string, unknown]
+                        )
+                    );
+
+                    return {
+                        name: brick.name,
+                        // Категория — из манифеста: сгенерированная запись
+                        // всегда несёт непустое значение (дефолт `Common`),
+                        // поэтому подстановка из brick-модуля была
+                        // недостижима. Записи из чужого или правленого
+                        // руками манифеста не поддерживаются: их формы не
+                        // проверяет и читатель (`readBricksManifest`)
+                        category: brick.category,
+                        brickPath: brick.brickPath,
+                        description: brickData?.description,
+                        thumbnail: '',
+                        defaultProps,
+                        slots,
+                    } as IComponentLibraryItem;
+                } catch (error) {
+                    console.error(`[BricksBuilder] Failed loading ${brick.name}`, error);
+                    return null;
+                }
+            })
+        );
+
+        return {
+            hash: response?.hash || '',
+            isPartial: false,
+            modals: collectModalEntries(bricks),
+            items: [
+                ...LAYOUT_COMPONENTS,
+                ...componentsWithMeta.filter(
+                    (item): item is IComponentLibraryItem => item !== null
+                ),
+            ],
+        };
+    });
 
     /**
      * Фиксирует результат успешной загрузки: снимок ответа и кеш модалок панели
@@ -190,11 +221,15 @@ export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn>
      * и кеш остался бы пустым на клиенте — именно там, где селектор и открывают.
      * Снимок и кеш пишутся из одного значения, чтобы список и опции модалок не
      * могли разъехаться.
+     *
+     * Деградированный ответ не фиксируется: снимок «последней успешной загрузки»
+     * стал бы списком из одних layout-блоков, а `replaceModalsCache([])` обнулил
+     * бы опции модалок, пришедшие с прошлой удачной загрузки.
      */
     function commitLoadedData(): void {
         const data = componentLibrary.data.value;
 
-        if (!data) {
+        if (!data || data.isPartial) {
             return;
         }
 
@@ -202,18 +237,30 @@ export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn>
         replaceModalsCache(data.modals);
     }
 
-    commitLoadedData();
-
     // Layout-блоки манифеста не требуют: отказ ручки не должен забирать у
     // пользователя ещё и их — иначе на канвас нельзя положить вообще ничего
-    const componentLibraryList = computed<IComponentLibraryItem[]>(
-        () => componentLibrary.data.value?.items ?? lastLoadedData.value?.items ?? LAYOUT_COMPONENTS
-    );
+    const componentLibraryList = computed<IComponentLibraryItem[]>(() => {
+        const data = componentLibrary.data.value;
+
+        // Деградированный ответ уступает снимку: в нём только layout-блоки, и он
+        // иначе перекрыл бы полный список, загруженный до ухода из билдера.
+        // Обратный порядок («снимок всегда важнее») неверен — тогда снимок
+        // перекрывал бы свежий полный ответ
+        if (data && !data.isPartial) {
+            return data.items;
+        }
+
+        return lastLoadedData.value?.items ?? data?.items ?? LAYOUT_COMPONENTS;
+    });
 
     // Отказ отличается от «библиотека пуста»: список непуст и при отказе
-    // (layout-блоки), поэтому признак нужен отдельным полем
+    // (layout-блоки), поэтому признак нужен отдельным полем. Деградация — тоже
+    // отказ для интерфейса: тост и блок повтора в сайдбаре нужны и тогда, когда
+    // манифест не дошёл за дедлайн. Признак снимется сам, если восстановление
+    // ниже успеет донести библиотеку
     const isComponentLibraryLoadFailed = computed<boolean>(
-        () => componentLibrary.error.value !== null
+        () =>
+            componentLibrary.error.value !== null || componentLibrary.data.value?.isPartial === true
     );
 
     /**
@@ -234,6 +281,70 @@ export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn>
 
         return true;
     }
+
+    // Страница ещё смонтирована на момент запуска восстановления. Проверка не
+    // отменяет уже улетевший запрос — только не начинает новый: пользователь
+    // успевает уйти, пока восстановление ждёт конца гидрации. Начатый же запрос
+    // после ухода вернётся в очищенный кеш (`purgeCachedData` при размонтировании
+    // не удаляет промис из `_asyncDataPromises`, поэтому Nuxt его результат
+    // применит и заведёт запись заново) — вреда нет, но и смысла тоже
+    let isPageAlive = true;
+    let isRecoveryStarted = false;
+
+    /**
+     * Восстанавливает библиотеку после неудачного SSR-прогона: один запрос с
+     * клиента, где ни SSR-дедлайна, ни инертного потолка транспорта уже нет.
+     *
+     * Повторяются два исхода: деградация по дедлайну и обычный отказ ручки. Для
+     * второго повтор — единственный шанс: ошибка SSR лежит в `payload._errors`, а
+     * при гидрации с ошибкой Nuxt первый запрос пропускает, то есть сайдбар
+     * остался бы пустым до полной перезагрузки страницы.
+     *
+     * Ровно одна попытка. Сегодня к этому обязывает только договорённость:
+     * `onNuxtReady` зовёт колбэк единожды, поэтому цикла нет и без флага. Флаг
+     * защищает от второго вызывающего — а он появится, как только повтор
+     * захочется повесить ещё и на возврат сети или на смену видимости вкладки.
+     * Дальше повтор только руками, кнопкой сайдбара.
+     */
+    function recoverFailedLibrary(): void {
+        const isRecoverable =
+            componentLibrary.data.value?.isPartial === true ||
+            componentLibrary.error.value !== null;
+
+        if (!isPageAlive || isRecoveryStarted || !isRecoverable) {
+            return;
+        }
+
+        isRecoveryStarted = true;
+
+        // Отпускаем: результат ждать некому, а исход виден по состоянию
+        // библиотеки. `void` не пишем — правило `no-void` в oxlint
+        refreshComponentLibrary().catch((error: unknown) => {
+            console.warn('[BricksBuilder] Components library recovery failed:', error);
+        });
+    }
+
+    // `onScopeDispose` вместо `onUnmounted`: со вторым аргументом он молчит вне
+    // компонента, поэтому композабл остаётся вызываемым в unit-тестах без
+    // предупреждения Vue о потерянном хуке
+    onScopeDispose(() => {
+        isPageAlive = false;
+    }, true);
+
+    // Не `onMounted`: mounted-хуки успевают отработать до того, как Nuxt снимет
+    // `isHydrating`, а пока гидрация идёт, `refresh()` возвращает тот же ответ из
+    // payload, не обращаясь к ручке (`getDefaultCachedData`). `onNuxtReady`
+    // привязан к `app:suspense:resolve`, то есть к моменту, когда повтор реально
+    // уйдёт в сеть. На сервере он не делает ничего.
+    //
+    // Цена: колбэк идёт через `requestIdleCallback` без потолка ожидания, поэтому
+    // под непрерывной нагрузкой восстановление отложится. Это принято: библиотека уже
+    // показывает layout-блоки, и её догрузка — работа фоновая, а не срочная
+    onNuxtReady(recoverFailedLibrary);
+
+    await componentLibrary;
+
+    commitLoadedData();
 
     return {
         componentLibraryList,

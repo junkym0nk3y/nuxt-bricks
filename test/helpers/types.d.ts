@@ -63,3 +63,11 @@ export interface IAsyncDataStub<TData> {
     status: Ref<string>;
     refresh: () => Promise<void>;
 }
+
+/**
+ * Возврат стаба `useAsyncData`: у Nuxt это одновременно объект состояния и
+ * промис (`AsyncData = _AsyncData & Promise<_AsyncData>`). Форма важна не для
+ * красоты — код читает `data`/`error` до `await`, чтобы успеть зарегистрировать
+ * хуки в живом scope, и на просто-промисе такой код бы не работал.
+ */
+export type TAsyncDataStubResult<TData> = IAsyncDataStub<TData> & Promise<IAsyncDataStub<TData>>;

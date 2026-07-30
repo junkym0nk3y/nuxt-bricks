@@ -1,5 +1,5 @@
 /**
- * Black-box HTTP lifecycle integration smoke (аудит A-06): проверки против
+ * Black-box HTTP lifecycle integration smoke: проверки против
  * запущенного production-сервера consumer'а. Оркестрация (pack, migrate,
  * build, boot) — scripts/integration-smoke.mjs.
  */
@@ -11,7 +11,7 @@ const PNG_1X1_BASE64 =
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 
 /**
- * Заголовки авторизованных запросов: CSRF-заголовок (гейт A-03) + cookie.
+ * Заголовки авторизованных запросов: CSRF-заголовок + cookie.
  *
  * @param {string} [cookie] Cookie сессии.
  * @returns {Record<string, string>} Заголовки.
@@ -111,7 +111,7 @@ async function runMediaStage(origin, api, cookie) {
 }
 
 /**
- * Этап контракта схемы (A-02): невалидные компоненты и циклический граф — 400.
+ * Этап контракта схемы: невалидные компоненты и циклический граф — 400.
  *
  * @param {ReturnType<typeof createApiClient>} api API-клиент.
  * @param {number} pageId Id страницы.
@@ -164,11 +164,11 @@ async function runSchemaContractStage(api, pageId, cookie) {
 export async function runLifecycle({ origin, username, password, pagename, hasS3 }) {
     const api = createApiClient(origin);
 
-    // Health / readiness с живой БД (контракт A-05)
+    // Health / readiness с живой БД
     await api('/api/bricks/health', { expectStatus: 200 });
     await api('/api/bricks/health/ready', { expectStatus: 200 });
 
-    // CSRF-гейт (A-03): unsafe без заголовка/Origin/Sec-Fetch-Site — 403
+    // CSRF-гейт: unsafe без заголовка/Origin/Sec-Fetch-Site — 403
     const bareLogin = await fetch(`${origin}/api/bricks/auth/login`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -208,7 +208,7 @@ export async function runLifecycle({ origin, username, password, pagename, hasS3
     // Черновик не отдаётся публичной read-model
     await api(`/api/bricks/public/pages/${pagename}`, { expectStatus: 404 });
 
-    // Контракт схемы (A-02)
+    // Контракт схемы
     await runSchemaContractStage(api, pageId, cookie);
 
     // Update со schema → снапшот версии + инкремент revision

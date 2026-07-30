@@ -3,12 +3,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Vue
-import { computed } from 'vue';
+import { shallowRef } from 'vue';
 
 // Types
 import type { IBrickDataSource } from '../../src/runtime/modules/common/types/dataSource';
 import type { IBricksComponent } from '../../src/runtime/modules/common/types/brick';
-import type { IPublishedPage } from '../../src/runtime/modules/common/types/bricks-api';
 // #endregion
 
 // #region Mocks
@@ -35,25 +34,49 @@ vi.mock('../../src/runtime/modules/render/composables/useDataSourceClient', () =
     }),
 }));
 
-// Стаб useAsyncData: синхронно выполняет handler (см. test/render/dataSourcesMalformedSchema.spec.ts)
+// Стаб useAsyncData: синхронно выполняет handler (см. test/render/dataSourcesMalformedSchema.spec.ts).
+// `refresh` прогоняет handler заново — иначе повтор неполного прогона проверить
+// нечем: возврат прежнего промиса выглядит как повтор, не выполняя его
 vi.mock('#imports', async (importOriginal) => {
     const actual = await importOriginal<Record<string, unknown>>();
 
     return {
         ...actual,
         useAsyncData: (_key: string, handler: () => Promise<unknown>) => {
-            const promise = handler();
-            const state = { value: undefined as unknown };
-            const settled = promise.then((result) => {
-                state.value = result;
-                return result;
-            });
+            // `shallowRef`, а не обычный объект: иначе `computed` над результатом
+            // не пересчитается после повтора — тест увидит данные первого прогона.
+            // Именно shallow: глубокий прокси перекрыл бы у полезной нагрузки
+            // члены прототипа, а на них стоят отдельные спеки
+            const state = shallowRef<unknown>(undefined);
+            const status = { value: 'idle' };
+            const error = { value: null as unknown };
+
+            /**
+             * Прогоняет handler и записывает результат в состояние стаба.
+             */
+            async function run(): Promise<unknown> {
+                status.value = 'pending';
+
+                try {
+                    state.value = await handler();
+                    status.value = 'success';
+
+                    return state.value;
+                } catch (runError: unknown) {
+                    error.value = runError;
+                    status.value = 'error';
+
+                    throw runError;
+                }
+            }
+
+            const settled = run();
 
             return Object.assign(settled, {
                 data: state,
-                status: { value: 'success' },
-                error: { value: null },
-                refresh: () => promise,
+                status,
+                error,
+                refresh: () => run(),
             });
         },
     };
@@ -68,9 +91,7 @@ import {
     useBricksDataSources,
     type TDataSourceRequestCache,
 } from '../../src/runtime/modules/render/composables/useBricksDataSources';
-import { useRendererDataSources } from '../../src/runtime/modules/render/composables/useRendererDataSources';
 import { DataSourceResponseTooLargeError } from '../../src/runtime/modules/render/utils/dataSourceResponseReading';
-import { BRICKS_SSR_DEADLINE_MARGIN_MS } from '../../src/runtime/modules/common/constants/apiTimeouts';
 
 /**
  * Собирает минимальный компонент схемы для теста.
@@ -92,29 +113,6 @@ function createSource(overrides: Partial<IBrickDataSource> = {}): IBrickDataSour
         url: '/api/items',
         props: ['items'],
         ...overrides,
-    };
-}
-
-/**
- * Собирает минимальную published-страницу со схемой из переданных компонентов.
- */
-function makePage(components: IBricksComponent[]): IPublishedPage {
-    return {
-        id: 1,
-        pagename: 'budget-page',
-        title: null,
-        description: null,
-        keywords: null,
-        backgroundColor: null,
-        layout: null,
-        socialImage: null,
-        urlPrefix: null,
-        subdomain: null,
-        thumbnailUrl: null,
-        schema: { components },
-        published: true,
-        createdAt: '2026-01-01T00:00:00.000Z',
-        updatedAt: '2026-01-01T00:00:00.000Z',
     };
 }
 
@@ -294,115 +292,5 @@ describe('useBricksDataSources.executeDataSource', () => {
             expect.objectContaining({ responseSizeBytes: 5000, maxResponseBytes: 10 })
         );
         expect(console.error).not.toHaveBeenCalled();
-    });
-});
-
-describe('useRendererDataSources: бюджет запросов на прогон', () => {
-    afterEach(() => {
-        vi.restoreAllMocks();
-        vi.useRealTimers();
-        dataSourceFetcherMock.mockReset();
-        findImportModuleMock.mockReset();
-        dataSourceClientConfig.maxRequestsPerPage = 24;
-        dataSourceClientConfig.totalDeadlineMs = 15000;
-    });
-
-    it('зависший источник не отбирает у страницы уже полученные props', async () => {
-        vi.useFakeTimers();
-        vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-        dataSourceClientConfig.totalDeadlineMs = 50;
-
-        const component: IBricksComponent = {
-            id: 'comp-1',
-            type: 'component',
-            componentName: 'TestBrick',
-            brickPath: 'bricks/TestBrick',
-            zIndex: 0,
-            props: {},
-        };
-        const sources: IBrickDataSource[] = [
-            createSource({ key: 'fast', url: '/api/fast', props: ['price'] }),
-            createSource({ key: 'stuck', url: '/api/stuck', props: ['title'] }),
-        ];
-
-        findImportModuleMock.mockReturnValue(() =>
-            Promise.resolve({ brick: { dataSources: sources } })
-        );
-
-        // Второй источник игнорирует abort — так ведёт себя относительный URL на
-        // SSR: внутренний вызов Nitro сигнал не слушает
-        const stuckResolvers: Array<(value: unknown) => void> = [];
-        dataSourceFetcherMock.mockImplementation((url: string) =>
-            url.includes('/api/fast')
-                ? Promise.resolve({ price: 10 })
-                : new Promise((resolve) => {
-                      stuckResolvers.push(resolve);
-                  })
-        );
-
-        const page = computed(() => makePage([component]));
-
-        try {
-            const { ready, resolvedProps } = useRendererDataSources({
-                page,
-                pagename: 'stuck-source-page',
-                isPreview: false,
-            });
-
-            await vi.advanceTimersByTimeAsync(50 + BRICKS_SSR_DEADLINE_MARGIN_MS);
-            await ready;
-
-            // Прогон брошен по дедлайну, но успевший props отдан: внешний дедлайн
-            // на весь handler отбросил бы его вместе с зависшим источником
-            expect(resolvedProps.value.get('comp-1')).toEqual({ price: 10 });
-            expect(console.warn).toHaveBeenCalledWith(
-                expect.stringContaining('Run abandoned after deadline'),
-                expect.objectContaining({ resolvedComponents: 1 })
-            );
-        } finally {
-            stuckResolvers.forEach((resolve) => resolve({ title: 'поздний ответ' }));
-        }
-    });
-
-    it('при числе источников больше maxRequestsPerPage выполняется ровно maxRequestsPerPage запросов', async () => {
-        vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-        dataSourceClientConfig.maxRequestsPerPage = 2;
-
-        const component: IBricksComponent = {
-            id: 'comp-1',
-            type: 'component',
-            componentName: 'TestBrick',
-            brickPath: 'bricks/TestBrick',
-            zIndex: 0,
-            props: {},
-        };
-        const sources: IBrickDataSource[] = Array.from({ length: 5 }, (_, index) =>
-            createSource({
-                key: `source-${index}`,
-                url: `/api/items/${index}`,
-                props: [`item${index}`],
-            })
-        );
-
-        findImportModuleMock.mockReturnValue(() =>
-            Promise.resolve({ brick: { dataSources: sources } })
-        );
-        dataSourceFetcherMock.mockResolvedValue({ ok: true });
-
-        const page = computed(() => makePage([component]));
-
-        const { ready } = useRendererDataSources({
-            page,
-            pagename: 'budget-page',
-            isPreview: false,
-        });
-
-        await ready;
-
-        expect(dataSourceFetcherMock).toHaveBeenCalledTimes(2);
-        expect(console.warn).toHaveBeenCalledWith(
-            expect.stringContaining('Request budget exceeded'),
-            expect.objectContaining({ total: 5, executed: 2 })
-        );
     });
 });

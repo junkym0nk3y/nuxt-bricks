@@ -1,12 +1,16 @@
 // #region Imports
 // Types
-import type { IPublishedPage } from '../../common/types/bricks-api';
 import type { IBricksComponent } from '../../common/types/brick';
 import type { IBrickDataSource } from '../../common/types/dataSource';
+import type {
+    IRendererDataSources,
+    IRendererDataSourcesData,
+    IRendererDataSourcesOptions,
+} from '../types/composables';
 
 // Vue
-import { computed, onMounted, watch, type ComputedRef } from 'vue';
-import { useAsyncData } from '#imports';
+import { computed, onScopeDispose, watch } from 'vue';
+import { onNuxtReady, useAsyncData } from '#imports';
 
 // Composables
 import { useBrickImports } from '../../common/composables/useBrickImports';
@@ -25,28 +29,6 @@ import {
 
 // Constants
 import { BRICKS_SSR_DEADLINE_MARGIN_MS } from '../../common/constants/apiTimeouts';
-// #endregion
-
-// #region Interfaces
-export interface IRendererDataSourcesOptions {
-    /** Данные текущей страницы (live-превью либо payload middleware). */
-    page: ComputedRef<IPublishedPage | null>;
-    pagename: string;
-    isPreview: boolean;
-}
-
-export interface IRendererDataSources {
-    /**
-     * Слепок смёрдженных пропсов для всех компонентов с учётом data sources.
-     * Ключ — `component.id` из схемы, поэтому контейнер — `Map`: обычный объект
-     * при `id === '__proto__'` принял бы пропсы в глобальный прототип.
-     */
-    resolvedProps: ComputedRef<Map<string, Record<string, unknown>>>;
-    /** Перезапускает выполнение data sources (например, при live-обновлении схемы). */
-    refreshDataSources: () => Promise<void>;
-    /** Промис первичного выполнения — await'ить на top-level setup (SSR-блокировка). */
-    ready: Promise<unknown>;
-}
 // #endregion
 
 /**
@@ -148,17 +130,17 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
     }
 
     // Считаем и мержим все data sources из bricks для текущей страницы
-    const dataSourceAsyncData = useAsyncData<Map<string, Record<string, unknown>>>(
+    const dataSourceAsyncData = useAsyncData<IRendererDataSourcesData>(
         dataSourceKey,
         async () => {
             if (!page.value) {
-                return new Map();
+                return { props: new Map(), isPartial: false };
             }
 
             const requests = await collectDataSourceRequests();
 
             if (!requests?.length) {
-                return new Map();
+                return { props: new Map(), isPartial: false };
             }
 
             // Бюджет запросов на прогон: излишек отбрасывается с логом,
@@ -179,6 +161,12 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
             // Кеш ответов одного прогона: одинаковые (method + url) запросы
             // выполняются один раз; новый прогон (refresh) — свежие данные
             const requestCache: TDataSourceRequestCache = new Map();
+            // Прогон оборван по времени. Помечается здесь, в момент истечения
+            // бюджета, а не только в `catch` аварийного дедлайна ниже: там, где
+            // abort работает (клиент, абсолютные URL), запросы честно падают по
+            // сигналу и прогон завершается штатно — `catch` не срабатывает вовсе,
+            // а результат при этом всё равно неполон
+            let isRunAborted = false;
             // Общий wall-clock budget прогона: по истечении оставшиеся запросы
             // прерываются AbortController'ом, компоненты остаются на fallback props
             const abortController = new AbortController();
@@ -190,6 +178,7 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
                         totalDeadlineMs,
                     }
                 );
+                isRunAborted = true;
                 abortController.abort();
             }, totalDeadlineMs);
 
@@ -256,6 +245,11 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
                     throw error;
                 }
 
+                // Помечать неполноту здесь не нужно: аварийный дедлайн наступает
+                // строго позже бюджета прогона (`totalDeadlineMs` + запас), то
+                // есть таймер выше к этому моменту уже сработал. Второе
+                // присваивание было бы кодом, который нечем отличить от его
+                // отсутствия
                 console.warn(
                     '[Bricks DataSources] Run abandoned after deadline — returning partial props:',
                     {
@@ -268,12 +262,15 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
                 clearTimeout(deadlineTimer);
             }
 
-            return new Map(
-                Array.from(result, ([componentId, propValues]) => [
-                    componentId,
-                    toSafeRecord(propValues),
-                ])
-            );
+            return {
+                props: new Map(
+                    Array.from(result, ([componentId, propValues]) => [
+                        componentId,
+                        toSafeRecord(propValues),
+                    ])
+                ),
+                isPartial: isRunAborted,
+            };
         },
         {
             server: !isPreview,
@@ -283,7 +280,7 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
 
     // Слепок смёрдженных пропсов для всех компонентов с учётом data sources
     const resolvedProps = computed<Map<string, Record<string, unknown>>>(() => {
-        return dataSourceAsyncData.data?.value ?? new Map();
+        return dataSourceAsyncData.data?.value?.props ?? new Map();
     });
 
     if (isClientDataSourceDebug) {
@@ -317,11 +314,6 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
             },
             { deep: true, immediate: true }
         );
-
-        onMounted(() => {
-            console.info(debugLabel, 'refreshing data sources on client for logging');
-            dataSourceAsyncData.refresh();
-        });
     }
 
     /**
@@ -330,6 +322,71 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
     async function refreshDataSources(): Promise<void> {
         await dataSourceAsyncData.refresh();
     }
+
+    // Страница ещё смонтирована на момент запуска: восстановление ждёт конца
+    // гидрации, а посетитель за это время успевает уйти. Уже улетевший прогон
+    // проверка не отменяет — для этого сигнал пришлось бы протаскивать через
+    // handler `useAsyncData` в клиент источников; здесь достаточно не начинать
+    // новый прогон для страницы, которую уже закрыли
+    let isPageAlive = true;
+    let isRecoveryStarted = false;
+
+    /**
+     * Догоняет неполный SSR-прогон одним прогоном с клиента и логирует прогон в
+     * dev — один хук на оба дела, потому что оба сводятся к одному и тому же
+     * `refresh()`: два независимых запустили бы два прогона, из которых
+     * дедупликация `useAsyncData` (`dedupe: 'cancel'`) отменила бы первый.
+     *
+     * Повтор нужен там, где дедлайн оборвал часть источников: на сервере
+     * относительный URL уходит внутренним вызовом Nitro и сигнал не слушает,
+     * поэтому зависший источник забирает весь бюджет прогона. В браузере обрыв
+     * работает честно, и у не ответивших источников появляется второй шанс.
+     *
+     * Ровно одна попытка на экземпляр страницы. Клиентский прогон ограничен тем же
+     * дедлайном и способен снова выйти неполным, поэтому второй попытки быть не
+     * должно; сегодня её и так нет — `onNuxtReady` зовёт колбэк единожды, — но
+     * флаг делает это свойством кода, а не совпадением. Живое превью
+     * (`refreshDataSources`) флаг не сбрасывает: иначе один постоянно зависающий
+     * источник добавлял бы лишний прогон к каждой синхронизации схемы.
+     */
+    function recoverPartialRun(): void {
+        const isDebugRefreshNeeded = isClientDataSourceDebug;
+        const isRecoveryNeeded =
+            !isPreview && !isRecoveryStarted && dataSourceAsyncData.data.value?.isPartial === true;
+
+        if (!isPageAlive || (!isRecoveryNeeded && !isDebugRefreshNeeded)) {
+            return;
+        }
+
+        isRecoveryStarted = true;
+
+        if (isDebugRefreshNeeded) {
+            console.info(
+                `[Bricks DataSources][client:${pagename}]`,
+                'refreshing data sources on client',
+                { isPartialRun: isRecoveryNeeded }
+            );
+        }
+
+        // Отпускаем: ждать результат некому, а исход виден по `resolvedProps`.
+        // `void` не пишем — правило `no-void` в oxlint
+        refreshDataSources().catch((error: unknown) => {
+            console.warn('[Bricks DataSources] Partial run recovery failed:', error);
+        });
+    }
+
+    // `onScopeDispose` со вторым аргументом молчит вне компонента: композабл
+    // остаётся вызываемым в unit-тестах без предупреждения Vue
+    onScopeDispose(() => {
+        isPageAlive = false;
+    }, true);
+
+    // Не `onMounted`: mounted-хуки успевают отработать до того, как Nuxt снимет
+    // `isHydrating`, а пока гидрация идёт, `refresh()` отдаёт тот же ответ из
+    // payload, не выполняя прогон (`getDefaultCachedData`). `onNuxtReady` привязан
+    // к `app:suspense:resolve` — моменту, когда прогон действительно уйдёт в сеть.
+    // На сервере хук не делает ничего
+    onNuxtReady(recoverPartialRun);
 
     return {
         resolvedProps,

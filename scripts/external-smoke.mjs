@@ -48,7 +48,7 @@ const PNG_BASE64 =
 
 /**
  * Заголовки авторизованного запроса; unsafe-методы проходят CSRF-гейт
- * кастомным заголовком x-bricks-csrf (аудит A-03).
+ * кастомным заголовком x-bricks-csrf.
  *
  * @returns {Record<string, string>} Заголовки.
  */

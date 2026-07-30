@@ -1,4 +1,4 @@
--- 0005: namespaced-функция триггера updated_at (аудит A-10).
+-- 0005: namespaced-функция триггера updated_at.
 -- Forward-миграция для БД, созданных прежней редакцией 0001: та выполняла
 -- CREATE OR REPLACE FUNCTION update_updated_at_column() в shared schema и
 -- могла перезаписать одноимённую функцию host-приложения. Текущая 0001 сразу
@@ -25,7 +25,7 @@ CREATE TRIGGER update_bricks_users_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION bricks_update_updated_at_column();
 
--- Старая update_updated_at_column() сознательно НЕ удаляется (ре-ревью A-10):
+-- Старая update_updated_at_column() сознательно НЕ удаляется:
 -- невозможно отличить копию, созданную прежней 0001, от собственной функции
 -- host-приложения — в т.ч. ещё не привязанной к триггерам, которую условный
 -- DROP удалил бы молча. Осиротевшую bricks-копию оператор при желании убирает

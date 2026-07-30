@@ -31,7 +31,7 @@ CREATE INDEX IF NOT EXISTS idx_bricks_pages_created_at ON bricks_pages(created_a
 
 -- Функция автообновления updated_at (namespaced: shared schema может содержать
 -- одноимённые объекты host-приложения, CREATE OR REPLACE не должен их трогать —
--- аудит A-10; БД, созданные прежней редакцией с update_updated_at_column(),
+-- БД, созданные прежней редакцией с update_updated_at_column(),
 -- переводит forward-миграция 0005)
 CREATE OR REPLACE FUNCTION bricks_update_updated_at_column()
 RETURNS TRIGGER AS $$

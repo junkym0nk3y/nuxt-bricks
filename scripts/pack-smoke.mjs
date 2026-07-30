@@ -107,7 +107,7 @@ async function runHttpChecks() {
     const health = await fetch(`${SERVER_ORIGIN}/api/bricks/health`);
     assertOk(health.status === 200, `liveness должен быть 200, получено ${health.status}`);
 
-    // Consumer без БД и без PROXY_URL: readiness обязан быть 503 (аудит A-05)
+    // Consumer без БД и без PROXY_URL: readiness обязан быть 503
     const ready = await fetch(`${SERVER_ORIGIN}/api/bricks/health/ready`);
     assertOk(
         ready.status === 503,
