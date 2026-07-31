@@ -107,3 +107,13 @@ export interface ISchemaFileTransferOptions {
     onImport: (schema: IBricksSchema) => void;
 }
 // #endregion
+
+// #region useComponentCardDrag
+/**
+ * Возвращаемое значение composable useComponentCardDrag.
+ */
+export interface IComponentCardDrag {
+    handleDragStart: (event: DragEvent) => void;
+    handleDragEnd: () => void;
+}
+// #endregion

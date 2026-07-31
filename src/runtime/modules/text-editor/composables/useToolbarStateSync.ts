@@ -2,41 +2,16 @@
 // Types
 import type { Editor } from '@tiptap/vue-3';
 import type { IToolbarGroup, IToolbarStateRefs } from '../../ui/inputs/textEditorToolbar.d.ts';
+import type { IToolbarStateSync, IToolbarStateSyncOptions } from '../types/composables';
 
 // Vue
-import {
-    computed,
-    ref,
-    toValue,
-    watchEffect,
-    type ComputedRef,
-    type MaybeRefOrGetter,
-    type Ref,
-} from 'vue';
+import { computed, ref, toValue, watchEffect, type MaybeRefOrGetter } from 'vue';
 
 // Nuxt
 import { useNuxtApp } from 'nuxt/app';
 
 // Composables
 import { useBricksConfig } from '../../common/composables/useBricksConfig';
-// #endregion
-
-// #region Interfaces
-export interface IToolbarStateSyncOptions {
-    /** Дополнительное условие показа toolbar (false → пустой список групп). */
-    isEnabled?: MaybeRefOrGetter<boolean>;
-}
-
-export interface IToolbarStateSync {
-    /** Refs текущих значений шрифта/цвета/межстрочных для selects тулбара. */
-    toolbarState: IToolbarStateRefs;
-    /** Счётчик транзакций — реактивная зависимость для пересчёта toolbarGroups. */
-    editorTransactionCount: Ref<number>;
-    /** Конфигурация групп тулбара (пустая, если editor нет или isEnabled = false). */
-    toolbarGroups: ComputedRef<IToolbarGroup[]>;
-    /** Сбрасывает toolbar state к дефолтам (например, при смене редактируемого свойства). */
-    resetToolbarState: () => void;
-}
 // #endregion
 
 const DEFAULT_TOOLBAR_STATE = Object.freeze({

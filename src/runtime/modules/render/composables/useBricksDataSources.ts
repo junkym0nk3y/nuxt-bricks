@@ -7,6 +7,7 @@ import type {
 } from '../../common/types/dataSource';
 import type { IBricksComponent } from '../../common/types/brick';
 import type { TPublishFormState } from '../../common/types/bricks-api';
+import type { TDataSourceRequestCache } from '../types/composables';
 
 // Utils
 import {
@@ -20,11 +21,6 @@ import { hasOwnKey } from '../../common/utils/safeRecord';
 
 // Composables
 import { useDataSourceClient } from './useDataSourceClient';
-// #endregion
-
-// #region Types
-/** Кеш ответов одного прогона: одинаковые (method + url) запросы выполняются один раз. */
-export type TDataSourceRequestCache = Map<string, Promise<unknown>>;
 // #endregion
 
 /**

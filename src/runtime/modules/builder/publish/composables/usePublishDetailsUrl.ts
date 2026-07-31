@@ -1,20 +1,10 @@
 // #region Imports
+// Types
+import type { IPublishDetailsUrlFields, IPublishDetailsUrlReturn } from '../types/composables';
+
 // Vue
-import { ref, computed, onMounted, type Ref, type ComputedRef } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
-// #endregion
-
-// #region Interfaces
-interface IPublishDetailsUrlFields {
-    pagename: Ref<string>;
-    urlPrefix: Ref<string>;
-    subdomain: Ref<string>;
-}
-
-interface IPublishDetailsUrlReturn {
-    liveUrl: ComputedRef<string>;
-    copyLiveUrl: () => Promise<boolean>;
-}
 // #endregion
 
 /**

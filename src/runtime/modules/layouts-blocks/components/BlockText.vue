@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { TInlineEditingPropType } from '../../text-editor/stores/inlineEditing';
+import type { TInlineEditingPropType } from '../../common/types/inlineEditing';
 
 // Vue
 import { computed, inject, watch, useCssModule, type ComputedRef } from 'vue';

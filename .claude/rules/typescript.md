@@ -35,7 +35,9 @@ const appConfig = useAppConfig() as IAppConfig;
 `bricks-manifest.ts` → `src/types/bricksManifest.d.ts`). Модуль тип только
 импортирует, а если тип входит в публичный API пакета — ещё и ре-экспортирует
 (`export type { IBricksModuleOptions }` в `module.ts`). Проверяется тестом
-`test/module/buildTimeTypeLocations.spec.ts`.
+`test/module/typeLocations.spec.ts` — он же сторожит композаблы рантайм-доменов
+(`src/runtime/modules/**/composables/`). `stores/`, `utils/` и серверный слой под
+проверку пока не попадают: там объявления ещё не разнесены по `types/`.
 
 ## Forbidden Patterns
 

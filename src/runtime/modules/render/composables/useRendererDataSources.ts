@@ -6,6 +6,7 @@ import type {
     IRendererDataSources,
     IRendererDataSourcesData,
     IRendererDataSourcesOptions,
+    TDataSourceRequestCache,
 } from '../types/composables';
 
 // Vue
@@ -14,7 +15,7 @@ import { onNuxtReady, useAsyncData } from '#imports';
 
 // Composables
 import { useBrickImports } from '../../common/composables/useBrickImports';
-import { useBricksDataSources, type TDataSourceRequestCache } from './useBricksDataSources';
+import { useBricksDataSources } from './useBricksDataSources';
 
 // Utils
 import { normalizeBrickPath } from '../../common/utils/bricks/paths';

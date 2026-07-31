@@ -46,7 +46,8 @@ async function loadBrickComponent(
     const importModule = findImportModule(brickPath);
 
     if (!importModule) {
-        console.warn('[TheRenderer] No brick module found for:', brickPath);
+        // О промахе сообщает сама точка поиска лоадера — второй лог на то же
+        // событие только удваивал вывод на published-странице
         // НЕ кэшируем null — компонент может появиться после HMR
         return null;
     }

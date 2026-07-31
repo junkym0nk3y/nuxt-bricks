@@ -6,14 +6,10 @@
 // Types
 import type { IDragComposable, ISidebarComponentCardProps } from '../components/types';
 import type { IDragVisualSize } from '../../../../common/types/brick';
+import type { IComponentCardDrag } from '../types/composables';
 
 // Vue
 import { inject } from 'vue';
-
-interface IComponentCardDrag {
-    handleDragStart: (event: DragEvent) => void;
-    handleDragEnd: () => void;
-}
 
 /**
  * Обработчик dragstart карточки через инжектированный drag-композабл.

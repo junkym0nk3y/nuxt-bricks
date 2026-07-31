@@ -1,42 +1,13 @@
 // #region Imports
 // Types
-import type { IPublishedPage, IPreviewStoredPage } from '../../common/types/bricks-api';
+import type { IPreviewStoredPage } from '../../common/types/bricks-api';
+import type { IRendererPreviewSync, IRendererPreviewSyncOptions } from '../types/composables';
 
 // Vue
-import { computed, onMounted, onUnmounted, ref, watch, type ComputedRef, type Ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 // Composables
 import { useBricksConfig } from '../../common/composables/useBricksConfig';
-// #endregion
-
-// #region Interfaces
-export interface IRendererPreviewSyncOptions {
-    pagename: string;
-    isPreview: boolean;
-    /** Данные страницы из payload middleware (БД). */
-    middlewarePageData: Ref<IPublishedPage | null>;
-    /** Live-данные превью: заполняются из localStorage и BroadcastChannel. */
-    livePreviewData: Ref<IPublishedPage | null>;
-    /** Итоговые данные страницы (live-превью либо payload middleware). */
-    page: ComputedRef<IPublishedPage | null>;
-    /** Перезапуск data sources при смене данных страницы. */
-    refreshDataSources: () => void;
-}
-
-interface IPreviewDeviceBreakpoint {
-    name: string;
-    minWidth: number;
-    icon: string;
-}
-
-export interface IRendererPreviewSync {
-    /** Активный device-брейкпоинт по текущей ширине окна (для баннера превью). */
-    currentDevice: ComputedRef<IPreviewDeviceBreakpoint>;
-    /** Текст текущего разрешения окна (для баннера превью). */
-    resolutionText: ComputedRef<string>;
-    /** Закрывает окно превью и очищает сохранённые данные превью. */
-    closePreview: () => void;
-}
 // #endregion
 
 const DEVICE_ICONS: Record<string, string> = {

@@ -6,17 +6,9 @@ import type {
     IPreviewStoredPage,
     TPublishedPageSummary,
 } from '../../../common/types/bricks-api';
+import type { IUsePublishPreviewReturn } from '../types/composables';
 import { useBricksRoutePaths } from '../../../common/composables/useBricksRoutePaths';
 import { usePublishStore } from '../stores/publish';
-
-/**
- * Возвращаемое значение `usePublishPreview`.
- */
-export interface IUsePublishPreviewReturn {
-    previewCurrentPage: (schema: IBricksSchema) => string | null;
-    previewPageVersion: (page: TPublishedPageSummary, version: IPageVersion) => string | null;
-    generatePreviewUrl: (pagename: string) => string;
-}
 
 /**
  * Переводит ключ через глобальный i18n (композабл вызывается и вне setup-контекста).

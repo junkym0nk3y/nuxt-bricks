@@ -1,4 +1,4 @@
-import type { ComputedRef } from 'vue';
+import type { ComputedRef, Ref } from 'vue';
 
 import type { IPublishedPage } from '../../common/types/bricks-api';
 
@@ -50,5 +50,49 @@ export interface IRendererDataSources {
     refreshDataSources: () => Promise<void>;
     /** Промис первичного выполнения — await'ить на top-level setup (SSR-блокировка). */
     ready: Promise<unknown>;
+}
+// #endregion
+
+// #region useBricksDataSources
+/** Кеш ответов одного прогона: одинаковые (method + url) запросы выполняются один раз. */
+export type TDataSourceRequestCache = Map<string, Promise<unknown>>;
+// #endregion
+
+// #region useRendererPreviewSync
+/**
+ * Опции composable useRendererPreviewSync.
+ */
+export interface IRendererPreviewSyncOptions {
+    pagename: string;
+    isPreview: boolean;
+    /** Данные страницы из payload middleware (БД). */
+    middlewarePageData: Ref<IPublishedPage | null>;
+    /** Live-данные превью: заполняются из localStorage и BroadcastChannel. */
+    livePreviewData: Ref<IPublishedPage | null>;
+    /** Итоговые данные страницы (live-превью либо payload middleware). */
+    page: ComputedRef<IPublishedPage | null>;
+    /** Перезапуск data sources при смене данных страницы. */
+    refreshDataSources: () => void;
+}
+
+/**
+ * Device-брейкпоинт превью: порог ширины и иконка для баннера.
+ */
+export interface IPreviewDeviceBreakpoint {
+    name: string;
+    minWidth: number;
+    icon: string;
+}
+
+/**
+ * Возвращаемое значение composable useRendererPreviewSync.
+ */
+export interface IRendererPreviewSync {
+    /** Активный device-брейкпоинт по текущей ширине окна (для баннера превью). */
+    currentDevice: ComputedRef<IPreviewDeviceBreakpoint>;
+    /** Текст текущего разрешения окна (для баннера превью). */
+    resolutionText: ComputedRef<string>;
+    /** Закрывает окно превью и очищает сохранённые данные превью. */
+    closePreview: () => void;
 }
 // #endregion

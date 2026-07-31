@@ -87,10 +87,8 @@ vi.mock('../../src/runtime/modules/common/composables/useBrickImports', () => ({
 }));
 // #endregion
 
-import {
-    useBricksDataSources,
-    type TDataSourceRequestCache,
-} from '../../src/runtime/modules/render/composables/useBricksDataSources';
+import { useBricksDataSources } from '../../src/runtime/modules/render/composables/useBricksDataSources';
+import type { TDataSourceRequestCache } from '../../src/runtime/modules/render/types/composables';
 import { DataSourceResponseTooLargeError } from '../../src/runtime/modules/render/utils/dataSourceResponseReading';
 
 /**

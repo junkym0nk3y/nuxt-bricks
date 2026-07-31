@@ -3,21 +3,13 @@
 import type { Editor } from '@tiptap/vue-3';
 import type { IInlineContentSegment } from '../../common/types/content';
 import type { IInlineEditorHost } from '../../common/types/inlineEditing';
+import type { IUseInlineEditorOptions, IUseInlineEditorReturn } from '../types/composables';
 
 // Vue
-import {
-    shallowRef,
-    computed,
-    inject,
-    watch,
-    onBeforeUnmount,
-    type ComputedRef,
-    type Component,
-    type ShallowRef,
-} from 'vue';
+import { shallowRef, computed, inject, watch, onBeforeUnmount, type Component } from 'vue';
 
 // Pinia
-import { useInlineEditingStore, type TInlineEditingPropType } from '../stores/inlineEditing';
+import { useInlineEditingStore } from '../stores/inlineEditing';
 
 // Utils
 import { createTiptapEditor } from '../utils/createTiptapEditor';
@@ -25,23 +17,6 @@ import { segmentsToTiptapDoc, tiptapDocToSegments } from '../utils/inlineContent
 
 // Constants
 import { INLINE_EDITOR_HOST_KEY } from '../../common/constants/injectionKeys';
-// #endregion
-
-// #region Interfaces
-interface IUseInlineEditorOptions {
-    componentId: string;
-    propName: string;
-    propType: TInlineEditingPropType;
-}
-
-interface IUseInlineEditorReturn {
-    editor: ShallowRef<Editor | null>;
-    editorContent: ShallowRef<Component | null>;
-    isActive: ComputedRef<boolean>;
-    initEditor: () => Promise<void>;
-    saveAndStop: () => void;
-    destroy: () => void;
-}
 // #endregion
 
 /**

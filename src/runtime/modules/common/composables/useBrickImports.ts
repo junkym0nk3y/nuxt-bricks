@@ -18,6 +18,56 @@ const brickModules = import.meta.glob<IBrickExportModule>('/components/**/*.bric
 const LAYOUT_BRICK_PREFIX = 'layout';
 
 /**
+ * Пути, о промахе которых уже сообщено, в нормализованном виде.
+ *
+ * Один раз на путь за жизнь этого модуля: добавить лоадер в готовую карту
+ * нельзя — `import.meta.glob` разворачивается на этапе трансформации, — поэтому
+ * повторное сообщение о том же пути не несёт нового повода. Загрузка при этом
+ * повторяется как раньше: дедуплицируется только лог.
+ *
+ * Плата: на SSR состояние живёт между запросами, и второй запрос по тому же
+ * битому пути промолчит. Размен сознательный — иначе бот, обходящий страницу с
+ * устаревшим компонентом, забивал бы серверный лог одним и тем же дефектом.
+ * В dev состав карты пересобирает рестарт, который перезагружает и этот модуль.
+ */
+const reportedMissingBrickPaths = new Set<string>();
+
+/** Состав карты лоадеров: не меняется без пересборки, поэтому считается один раз. */
+let availableBrickPaths: string[] | null = null;
+
+/**
+ * Сообщает о первом промахе по пути.
+ *
+ * Сериализовать весь состав карты на каждый промах было дорого: published-
+ * страница с несколькими устаревшими компонентами печатала всю библиотеку
+ * компонентов по разу на каждую попытку загрузки, и на SSR, и на клиенте.
+ * Наружу идёт запрошенный путь и размер карты, полный список — только в dev.
+ *
+ * Уровень `warn`, а не `error`: страница остаётся рабочей, компонент просто не
+ * рендерится. `error` оставлен сбоям самого импорта и повреждённому экспорту.
+ *
+ * @param brickPath - Значение `brickPath` из схемы или манифеста.
+ */
+function reportMissingBrick(brickPath: string): void {
+    const normalizedPath = normalizeBrickPath(brickPath);
+
+    if (reportedMissingBrickPaths.has(normalizedPath)) {
+        return;
+    }
+
+    reportedMissingBrickPaths.add(normalizedPath);
+
+    const modulePaths = (availableBrickPaths ??= Object.keys(brickModules));
+
+    console.warn('[useBrickImports] Brick module is absent from the transformed import map', {
+        // Исходный путь, а не нормализованный: диагносту нужно то, что записано в схеме
+        brickPath,
+        availableBrickModuleCount: modulePaths.length,
+        ...(import.meta.dev ? { availableBrickPaths: modulePaths } : {}),
+    });
+}
+
+/**
  * Ищет лоадер brick-модуля без побочных эффектов.
  *
  * `brickPath` приходит из схемы страницы или манифеста, поэтому lookup — только
@@ -51,11 +101,7 @@ export function useBrickImports(): IUseBrickImportsReturn {
         const importModule = resolveBrickLoader(brickPath);
 
         if (!importModule && !brickPath.startsWith(LAYOUT_BRICK_PREFIX)) {
-            console.error(
-                `[useBrickImports] Brick не найден: ${brickPath}. Доступные: ${
-                    Object.keys(brickModules).join(', ') || '—'
-                }`
-            );
+            reportMissingBrick(brickPath);
         }
 
         return importModule;

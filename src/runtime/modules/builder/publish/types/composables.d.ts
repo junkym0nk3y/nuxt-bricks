@@ -3,7 +3,12 @@
  */
 
 import type { ComputedRef, Ref } from 'vue';
-import type { IPageVersionSummary, TPublishedPageSummary } from '../../../common/types/bricks-api';
+import type {
+    IPageVersion,
+    IPageVersionSummary,
+    TPublishedPageSummary,
+} from '../../../common/types/bricks-api';
+import type { IBricksSchema } from '../../../common/types/brick';
 
 // #region usePublishVersionRestore
 /**
@@ -46,5 +51,35 @@ export interface IUsePublishPageVersionsReturn {
     previewVersion: (page: TPublishedPageSummary, versionId: number) => Promise<void>;
     /** Очищает список и обесценивает летящий запрос (переключение страницы). */
     resetVersions: () => void;
+}
+// #endregion
+
+// #region usePublishDetailsUrl
+/**
+ * Реактивные поля формы панели деталей, участвующие в live-URL.
+ */
+export interface IPublishDetailsUrlFields {
+    pagename: Ref<string>;
+    urlPrefix: Ref<string>;
+    subdomain: Ref<string>;
+}
+
+/**
+ * Возвращаемое значение `usePublishDetailsUrl`.
+ */
+export interface IPublishDetailsUrlReturn {
+    liveUrl: ComputedRef<string>;
+    copyLiveUrl: () => Promise<boolean>;
+}
+// #endregion
+
+// #region usePublishPreview
+/**
+ * Возвращаемое значение `usePublishPreview`.
+ */
+export interface IUsePublishPreviewReturn {
+    previewCurrentPage: (schema: IBricksSchema) => string | null;
+    previewPageVersion: (page: TPublishedPageSummary, version: IPageVersion) => string | null;
+    generatePreviewUrl: (pagename: string) => string;
 }
 // #endregion

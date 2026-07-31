@@ -1,21 +1,11 @@
 // #region Imports
 // Types
 import type { Editor } from '@tiptap/vue-3';
-import type { IToolbarGroup } from '../../ui/inputs/textEditorToolbar.d.ts';
 import type { ITextEditorAreaProps } from '../components/types.d.ts';
+import type { ITextEditorArea } from '../types/composables';
 
 // Vue
-import {
-    onBeforeUnmount,
-    onMounted,
-    ref,
-    shallowRef,
-    watch,
-    type Component,
-    type ComputedRef,
-    type Ref,
-    type ShallowRef,
-} from 'vue';
+import { onBeforeUnmount, onMounted, ref, shallowRef, watch, type Component } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Utils
@@ -27,39 +17,6 @@ import { useToolbarStateSync } from './useToolbarStateSync';
 
 // Pinia
 import { useInlineEditingStore } from '../stores/inlineEditing';
-// #endregion
-
-// #region Interfaces
-export interface ITextEditorArea {
-    /** Текущее значение контента (HTML). */
-    innerValue: Ref<string>;
-    /** true после mount — редактор существует только на клиенте. */
-    isClient: Ref<boolean>;
-    /** Ошибка загрузки rich-редактора (fallback на textarea). */
-    loadingError: Ref<unknown | null>;
-    /** Режим просмотра HTML-кода вместо визуального редактора. */
-    isCodeView: Ref<boolean>;
-    /** Тёмный фон области ввода. */
-    isDarkEditorBackground: Ref<boolean>;
-    /** Экземпляр TipTap-редактора (null до инициализации). */
-    editor: ShallowRef<Editor | null>;
-    /** Компонент EditorContent из @tiptap/vue-3 (lazy). */
-    EditorContentComponent: ShallowRef<Component | null>;
-    /** Конфигурация групп тулбара. */
-    toolbarGroups: ComputedRef<IToolbarGroup[]>;
-    /** Переключает визуальный режим ↔ код. */
-    toggleCodeView: () => void;
-    /** Переключает фон редактора светлый ↔ тёмный. */
-    toggleEditorBackground: () => void;
-    /** Обновляет значение и эмитит update:value. */
-    handleContentUpdate: (content: string) => void;
-    /** Обрабатывает ввод в fallback textarea. */
-    handleTextareaInput: (event: Event) => void;
-    /** Обрабатывает обновление значения из модального редактора. */
-    handleModalUpdate: (value: string) => void;
-    /** Запрашивает медиа из MediaGallery и вставляет в редактор. */
-    handleRequestImage: () => void;
-}
 // #endregion
 
 /**

@@ -11,9 +11,6 @@ import { ref, computed, shallowRef } from 'vue';
 import { defineStore } from 'pinia';
 // #endregion
 
-// Реэкспорт для обратной совместимости импортёров (BlockText, useInlineEditor)
-export type { TInlineEditingPropType } from '../../common/types/inlineEditing';
-
 /**
  * Управляет состоянием inline-editing на канвасе.
  * Хранит ID активного компонента, имя/тип свойства и экземпляр TipTap-редактора.
