@@ -12,9 +12,10 @@
  * Открыты только public read-model (GET/HEAD /api/bricks/public/** —
  * published-проекции для рендера), health-пробы (GET/HEAD /api/bricks/health
  * и /health/ready — LB не умеет авторизоваться) и библиотека компонентов
- * (GET/HEAD /api/bricks/components — манифест содержит только имена,
- * категории и пути brick-файлов, а SSR билдера в basic-режиме не пробрасывает
- * Authorization). Database-only исключения:
+ * (GET/HEAD /api/bricks/components — манифест описывает состав библиотеки:
+ * имена, категории, пути brick-файлов и их редакторские метаданные, то есть
+ * ровно то, что и так уходит в клиентский бандл; SSR билдера в basic-режиме не
+ * пробрасывает Authorization). Database-only исключения:
  * `<builderPrefix>/login` (страница логина) и /api/bricks/auth/**
  * (login/logout/me) — иначе на форму не попасть.
  *

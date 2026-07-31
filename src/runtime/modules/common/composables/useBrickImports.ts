@@ -18,30 +18,39 @@ const brickModules = import.meta.glob<IBrickExportModule>('/components/**/*.bric
 const LAYOUT_BRICK_PREFIX = 'layout';
 
 /**
+ * Ищет лоадер brick-модуля без побочных эффектов.
+ *
+ * `brickPath` приходит из схемы страницы или манифеста, поэтому lookup — только
+ * по own-ключу: иначе `"__proto__"` вернул бы `Object.prototype`,
+ * а `"constructor"` — функцию `Object`, и оба ушли бы наружу как «лоадер».
+ *
+ * @param brickPath - Значение `brickPath` из схемы или манифеста.
+ * @returns Функция-лоадер Vite или `undefined`, если файла нет.
+ */
+function resolveBrickLoader(brickPath: string): (() => Promise<IBrickExportModule>) | undefined {
+    if (brickPath.startsWith(LAYOUT_BRICK_PREFIX)) {
+        return undefined;
+    }
+
+    return readOwnKey(brickModules, normalizeBrickPath(brickPath));
+}
+
+/**
  * Предоставляет доступ к динамическим импортам `.brick.ts` файлов потребителя.
  *
- * @returns Функция поиска loader-а по `brickPath` из схемы.
+ * @returns Функции поиска лоадера и проверки его наличия.
  */
 export function useBrickImports(): IUseBrickImportsReturn {
     /**
      * Возвращает loader brick-модуля по пути из схемы компонента.
      *
-     * `brickPath` приходит из схемы страницы, поэтому lookup — только по
-     * own-ключу: иначе `"__proto__"` вернул бы `Object.prototype`,
-     * а `"constructor"` — функцию `Object`, и оба ушли бы наружу как «лоадер»
-     * без записи о промахе.
-     *
      * @param brickPath - Значение `brickPath`, сохранённое в схеме.
      * @returns Функция-лоадер Vite или `undefined`, если файла нет.
      */
     function findImportModule(brickPath: string): (() => Promise<IBrickExportModule>) | undefined {
-        if (brickPath.startsWith(LAYOUT_BRICK_PREFIX)) {
-            return undefined;
-        }
+        const importModule = resolveBrickLoader(brickPath);
 
-        const importModule = readOwnKey(brickModules, normalizeBrickPath(brickPath));
-
-        if (!importModule) {
+        if (!importModule && !brickPath.startsWith(LAYOUT_BRICK_PREFIX)) {
             console.error(
                 `[useBrickImports] Brick не найден: ${brickPath}. Доступные: ${
                     Object.keys(brickModules).join(', ') || '—'
@@ -52,7 +61,22 @@ export function useBrickImports(): IUseBrickImportsReturn {
         return importModule;
     }
 
+    /**
+     * Есть ли в сборке лоадер под этот `brickPath`.
+     *
+     * Отдельно от `findImportModule`, потому что зовётся из вычисляемых свойств
+     * на каждой перерисовке библиотеки: сообщение о промахе там повторялось бы
+     * без нового повода, а само отсутствие лоадера показывает сайдбар.
+     *
+     * @param brickPath - Значение `brickPath` из манифеста.
+     * @returns Признак наличия лоадера.
+     */
+    function hasBrickModule(brickPath: string): boolean {
+        return resolveBrickLoader(brickPath) !== undefined;
+    }
+
     return {
         findImportModule,
+        hasBrickModule,
     };
 }

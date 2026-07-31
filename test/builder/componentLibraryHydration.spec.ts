@@ -19,43 +19,33 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // #region Mocks
 // Фабрика мока поднимается наверх файла, поэтому payload объявляется в hoisted:
 // обычная константа к моменту её вызова ещё не инициализирована
-const { apiFetcherMock, findImportModuleMock, payloadData, partialPayloadData } = vi.hoisted(() => {
-    const layoutItem = {
-        name: 'BlockGrid',
-        category: 'Layout',
-        brickPath: 'layout/grid',
-        thumbnail: '',
-        defaultProps: {},
-        slots: [],
-    };
-
-    return {
-        apiFetcherMock: vi.fn(),
-        findImportModuleMock: vi.fn(),
-        payloadData: {
-            hash: 'abc',
-            isPartial: false,
-            items: [
-                {
-                    name: 'TestBrick',
-                    category: 'Other',
-                    brickPath: '/components/Test.brick.ts',
-                    thumbnail: '',
-                    defaultProps: {},
-                    slots: [],
-                },
-            ],
-            modals: [{ name: 'CallbackFormModal', brickPath: '/components/Modal.brick.ts' }],
-        },
-        // Ответ ручки не дошёл за SSR-дедлайн: в payload только layout-блоки
-        partialPayloadData: {
-            hash: '',
-            isPartial: true,
-            items: [layoutItem],
-            modals: [],
-        },
-    };
-});
+const { apiFetcherMock, payloadData, partialPayloadData } = vi.hoisted(() => ({
+    apiFetcherMock: vi.fn(),
+    payloadData: {
+        hash: 'abc',
+        isPartial: false,
+        bricks: [
+            {
+                name: 'TestBrick',
+                category: 'Other',
+                brickPath: '/components/Test.brick.ts',
+                values: {},
+            },
+            {
+                name: 'CallbackFormModal',
+                category: 'Modal',
+                brickPath: '/components/Modal.brick.ts',
+                values: {},
+            },
+        ],
+    },
+    // Ответ ручки не дошёл за SSR-дедлайн: записей нет, остаются layout-блоки
+    partialPayloadData: {
+        hash: '',
+        isPartial: true,
+        bricks: [],
+    },
+}));
 
 const asyncDataMode: { cachedData?: unknown; cachedError?: unknown } = {};
 
@@ -78,7 +68,14 @@ vi.mock('../../src/runtime/modules/common/composables/useApiClient', () => ({
 }));
 
 vi.mock('../../src/runtime/modules/common/composables/useBrickImports', () => ({
-    useBrickImports: () => ({ findImportModule: findImportModuleMock }),
+    useBrickImports: () => ({ findImportModule: vi.fn(), hasBrickModule: () => true }),
+}));
+
+vi.mock('../../src/runtime/modules/builder/core/stores/components', () => ({
+    useComponentsStore: () => ({
+        selectedComponentData: null,
+        setSelectedComponentMetadata: vi.fn(),
+    }),
 }));
 // #endregion
 
@@ -96,14 +93,23 @@ import {
 const MANIFEST_RESPONSE = {
     hash: 'def',
     bricks: [
-        { name: 'TestBrick', category: 'Other', brickPath: '/components/Test.brick.ts' },
-        { name: 'CallbackFormModal', category: 'Modal', brickPath: '/components/Modal.brick.ts' },
+        {
+            name: 'TestBrick',
+            category: 'Other',
+            brickPath: '/components/Test.brick.ts',
+            values: {},
+        },
+        {
+            name: 'CallbackFormModal',
+            category: 'Modal',
+            brickPath: '/components/Modal.brick.ts',
+            values: {},
+        },
     ],
 };
 
 describe('библиотека компонентов: ответ из payload вместо повторной загрузки', () => {
     beforeEach(() => {
-        findImportModuleMock.mockReturnValue(() => Promise.resolve({ brick: { values: {} } }));
         resetNuxtStateStub();
         resetNuxtReadyStub();
         // Кеш модалок — состояние уровня модуля: без сброса опции, записанные
@@ -117,7 +123,6 @@ describe('библиотека компонентов: ответ из payload �
     afterEach(() => {
         vi.restoreAllMocks();
         apiFetcherMock.mockReset();
-        findImportModuleMock.mockReset();
     });
 
     it('кеш модалок наполняется готовым ответом, без обращения к ручке', async () => {
@@ -127,7 +132,11 @@ describe('библиотека компонентов: ответ из payload �
 
         expect(apiFetcherMock).not.toHaveBeenCalled();
         expect(isComponentLibraryLoadFailed.value).toBe(false);
-        expect(componentLibraryList.value.map((item) => item.name)).toEqual(['TestBrick']);
+        expect(
+            componentLibraryList.value
+                .filter((item) => !item.brickPath.startsWith('layout'))
+                .map((item) => item.name)
+        ).toEqual(['TestBrick', 'CallbackFormModal']);
         expect(getModalOptions().map((option) => option.value)).toContain('CallbackFormModal');
     });
 

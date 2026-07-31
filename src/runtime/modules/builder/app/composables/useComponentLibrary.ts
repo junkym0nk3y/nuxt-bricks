@@ -1,19 +1,17 @@
 // #region Imports
 // Types
 import type { IComponentLibraryItem } from '../../../common/types/brick';
-import type { IBrickValues } from '../../../common/types/index';
 import type { IBrickManifestEntry, IBricksManifest } from '../../../common/types/brickManifest';
-import type { TCachedModal } from '../../core/types/modals';
 import type { ISkippedBrick } from '../../core/types/componentLibrary';
+import type { TCachedModal } from '../../core/types/modals';
 import type { IComponentLibraryData, IUseComponentLibraryReturn } from '../types/composables';
 
 // Utils
-import { extractBrickSlots } from '../utils/brickSlots';
+import { toComponentLibraryItem } from '../utils/componentLibraryItems';
 import {
     createComponentManifestDeadlineError,
     isComponentManifestDeadlineError,
 } from '../utils/componentLibraryPolicy';
-import { toSafeRecord } from '../../../common/utils/safeRecord';
 import { withPromiseDeadline } from '../../../common/utils/promiseDeadline';
 
 // Vue
@@ -22,9 +20,14 @@ import { computed, onScopeDispose } from 'vue';
 // Nuxt
 import { onNuxtReady, useAsyncData, useState } from '#imports';
 
+// Pinia
+import { useComponentsStore } from '../../core/stores/components';
+
 // Composables
 import { useApiClient } from '../../../common/composables/useApiClient';
 import { useBrickImports } from '../../../common/composables/useBrickImports';
+import { useBrickMetadata } from '../../core/composables/useBrickMetadata';
+import { useComponentEditorMetadata } from '../../core/composables/useComponentEditorMetadata';
 import { replaceModalsCache } from '../../core/composables/useModalOptions';
 
 // Constants
@@ -34,6 +37,9 @@ import {
     BRICKS_SSR_DEADLINE_MARGIN_MS,
 } from '../../../common/constants/apiTimeouts';
 // #endregion
+
+/** Категория бриков, попадающих в селектор модалок панели свойств. */
+const MODAL_CATEGORY = 'Modal';
 
 /**
  * Ограничивает ожидание манифеста на SSR.
@@ -65,43 +71,31 @@ function fetchManifestWithinDeadline(request: Promise<IBricksManifest>): Promise
 }
 
 /**
- * Отличает пропущенный brick от собранного элемента библиотеки: разбор одной
- * записи манифеста заканчивается либо тем, либо другим.
- *
- * @param entry - Результат разбора записи манифеста.
- * @returns Является ли результат пропуском.
- */
-function isSkippedBrick(entry: IComponentLibraryItem | ISkippedBrick): entry is ISkippedBrick {
-    return 'reason' in entry;
-}
-
-/**
  * Собирает записи модалок для селектора свойств из того же ответа манифеста.
- * Берутся до импорта brick-модулей: отказ импорта отдельного компонента не
- * должен убирать его из селектора — там нужны только имя и путь.
+ * Отсутствие лоадера здесь не отсеивается: селектору нужны только имя и путь, а
+ * рассинхрон сборки и манифеста показывает библиотека.
  *
  * @param bricks - Записи манифеста brick-компонентов.
  * @returns Записи модалок для кеша.
  */
 function collectModalEntries(bricks: IBrickManifestEntry[]): TCachedModal[] {
     return bricks
-        .filter((brick) => brick.category === 'Modal')
+        .filter((brick) => brick.category === MODAL_CATEGORY)
         .map((brick) => ({ name: brick.name, brickPath: brick.brickPath }));
 }
 
 /**
- * Загружает библиотеку компонентов: список bricks с бэкенда + метаданные
- * из `.brick.ts`-модулей (defaultProps, slots) + layout-компоненты.
+ * Загружает библиотеку компонентов: записи манифеста с бэкенда (метаданные в
+ * них уже разобраны на build-time) + layout-компоненты.
  *
- * Этим же ответом наполняется кеш модалок панели свойств: манифест один, и
- * второй запрос за ним означал бы два независимых кеша одного ответа, каждый со
- * своей судьбой при отказе.
+ * Этим же ответом наполняются кеш модалок панели свойств и индекс метаданных,
+ * из которого живут панель свойств, слоты и inline-редактирование: манифест
+ * один, и второй запрос за ним означал бы два независимых кеша одного ответа,
+ * каждый со своей судьбой при отказе.
  *
- * Рядом со списком хранится хеш манифеста из ответа ручки. Потребителя у него
- * пока нет — это заготовка на будущее: когда метаданные бриков переедут в
- * манифест, обновление библиотеки в dev сведётся к сверке хешей. Про то, почему
- * `hash` и метаданные в `items` пока могут расходиться, — в
- * `IComponentLibraryData`.
+ * Рядом с записями хранится хеш манифеста из ответа ручки. Потребителя у него
+ * пока нет: правка brick-файла в dev перезагружает страницу целиком, потому что
+ * тот же файл лежит в графе Vite и после первого превью компонента.
  *
  * Неудачный SSR-прогон восстанавливается одним запросом с клиента: без него
  * отказ на сервере оставлял бы сайдбар пустым до полной перезагрузки страницы, а
@@ -110,7 +104,10 @@ function collectModalEntries(bricks: IBrickManifestEntry[]): TCachedModal[] {
  * @returns Список компонентов, признак отказа загрузки и повтор.
  */
 export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn> {
-    const { findImportModule } = useBrickImports();
+    const { hasBrickModule } = useBrickImports();
+    const { replaceBrickMetadata } = useBrickMetadata();
+    const { resolveComponentEditorMetadata } = useComponentEditorMetadata();
+    const componentsStore = useComponentsStore();
 
     // Снимок последней успешной загрузки. Нужен из-за поведения `useAsyncData`:
     // при отказе он сбрасывает `data` в дефолт (`asyncData.js`: `data.value =
@@ -161,94 +158,28 @@ export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn>
             return {
                 hash: '',
                 isPartial: true,
-                modals: [],
-                items: [...LAYOUT_COMPONENTS],
-                skippedBricks: [],
+                bricks: [],
             };
         }
-
-        const bricks = response?.bricks || [];
-
-        const componentsWithMeta = await Promise.all(
-            bricks.map(async (brick: IBrickManifestEntry) => {
-                try {
-                    const moduleLoader = findImportModule(brick.brickPath);
-                    if (!moduleLoader) {
-                        console.error(`[BricksBuilder] No loader for ${brick.brickPath}`);
-
-                        return {
-                            name: brick.name,
-                            brickPath: brick.brickPath,
-                            reason: 'loader-missing',
-                        } as ISkippedBrick;
-                    }
-
-                    const module = await moduleLoader();
-                    const brickData = module?.brick;
-                    const values = brickData?.values || {};
-                    const slots = extractBrickSlots(brickData);
-                    // Имена пропов приходят из brick-файла: `acc['__proto__'] = …`
-                    // подменял бы прототип аккумулятора вместо записи ключа,
-                    // а own-ключ `__proto__` не пережил бы Nuxt payload
-                    const defaultProps = toSafeRecord(
-                        Object.entries(values).map(
-                            ([key, val]: [string, IBrickValues]) =>
-                                [key, val.default] as [string, unknown]
-                        )
-                    );
-
-                    return {
-                        name: brick.name,
-                        // Категория — из манифеста: сгенерированная запись
-                        // всегда несёт непустое значение (дефолт `Common`),
-                        // поэтому подстановка из brick-модуля была
-                        // недостижима. Записи из чужого или правленого
-                        // руками манифеста не поддерживаются: их формы не
-                        // проверяет и читатель (`readBricksManifest`)
-                        category: brick.category,
-                        brickPath: brick.brickPath,
-                        description: brickData?.description,
-                        thumbnail: '',
-                        defaultProps,
-                        slots,
-                    } as IComponentLibraryItem;
-                } catch (error) {
-                    console.error(`[BricksBuilder] Failed loading ${brick.name}`, error);
-
-                    return {
-                        name: brick.name,
-                        brickPath: brick.brickPath,
-                        reason: 'import-failed',
-                    } as ISkippedBrick;
-                }
-            })
-        );
 
         return {
             hash: response?.hash || '',
             isPartial: false,
-            modals: collectModalEntries(bricks),
-            items: [
-                ...LAYOUT_COMPONENTS,
-                ...componentsWithMeta.filter(
-                    (entry): entry is IComponentLibraryItem => !isSkippedBrick(entry)
-                ),
-            ],
-            skippedBricks: componentsWithMeta.filter(isSkippedBrick),
+            bricks: response?.bricks || [],
         };
     });
 
     /**
-     * Фиксирует результат успешной загрузки: снимок ответа и кеш модалок панели
-     * свойств. Кеш модалок обновляется здесь, а не только внутри handler'а: на
-     * гидрации handler не исполняется вовсе (ответ приезжает готовым в payload),
-     * и кеш остался бы пустым на клиенте — именно там, где селектор и открывают.
-     * Снимок и кеш пишутся из одного значения, чтобы список и опции модалок не
-     * могли разъехаться.
+     * Фиксирует результат успешной загрузки: снимок ответа, кеш модалок панели
+     * свойств и индекс метаданных. Оба кеша обновляются здесь, а не внутри
+     * handler'а: на гидрации handler не исполняется вовсе (ответ приезжает
+     * готовым в payload), и они остались бы пустыми на клиенте — именно там, где
+     * ими и пользуются. Пишутся из одного значения, чтобы список, опции модалок
+     * и свойства выбранного компонента не могли разъехаться.
      *
      * Деградированный ответ не фиксируется: снимок «последней успешной загрузки»
-     * стал бы списком из одних layout-блоков, а `replaceModalsCache([])` обнулил
-     * бы опции модалок, пришедшие с прошлой удачной загрузки.
+     * стал бы списком из одних layout-блоков, а обнулённые кеши забрали бы опции
+     * модалок и свойства, пришедшие с прошлой удачной загрузки.
      */
     function commitLoadedData(): void {
         const data = componentLibrary.data.value;
@@ -258,7 +189,32 @@ export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn>
         }
 
         lastLoadedData.value = data;
-        replaceModalsCache(data.modals);
+        // Раньше метаданных: опции модалок читает `brickValuesToProperties`,
+        // которым панель свойств наполняется из того же индекса
+        replaceModalsCache(collectModalEntries(data.bricks));
+        replaceBrickMetadata(data.bricks);
+        refreshSelectedComponentMetadata();
+    }
+
+    /**
+     * Пересобирает свойства уже выбранного компонента.
+     *
+     * Панель свойств наполняется в момент выбора, а метаданные приезжают
+     * манифестом: если он не дошёл, панель осталась пустой, и без этого шага
+     * удачный повтор ничего бы в ней не изменил — пользователю пришлось бы
+     * выбрать компонент заново. Обратная сторона того же шага: брик, исчезнувший
+     * из манифеста, очищает панель, а не оставляет свойства от прошлой загрузки.
+     */
+    function refreshSelectedComponentMetadata(): void {
+        const selected = componentsStore.selectedComponentData;
+
+        if (!selected) {
+            return;
+        }
+
+        const { properties, description } = resolveComponentEditorMetadata(selected.component);
+
+        componentsStore.setSelectedComponentMetadata(selected.id, properties, description);
     }
 
     // Ответ, по которому живёт интерфейс: свежий полный, иначе снимок последней
@@ -281,18 +237,30 @@ export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn>
         return lastLoadedData.value ?? data ?? null;
     });
 
-    // Layout-блоки манифеста не требуют: отказ ручки не должен забирать у
-    // пользователя ещё и их — иначе на канвас нельзя положить вообще ничего
-    const componentLibraryList = computed<IComponentLibraryItem[]>(
-        () => effectiveLibraryData.value?.items ?? LAYOUT_COMPONENTS
+    // Записи, под которые в сборке есть лоадер. Проверяется на клиенте, а не в
+    // handler'е: карта загрузчиков разворачивается в бандл, и авторитетна
+    // именно та, что попала в текущую сборку
+    const loadableBricks = computed<IBrickManifestEntry[]>(() =>
+        (effectiveLibraryData.value?.bricks ?? []).filter((brick) =>
+            hasBrickModule(brick.brickPath)
+        )
     );
 
-    // Пропуск brick-модуля отказом загрузки не считается: ответ ручки дошёл и
-    // разобран, повтор такой пропуск не исправит (лоадеров в готовой сборке не
+    // Layout-блоки манифеста не требуют: отказ ручки не должен забирать у
+    // пользователя ещё и их — иначе на канвас нельзя положить вообще ничего
+    const componentLibraryList = computed<IComponentLibraryItem[]>(() => [
+        ...LAYOUT_COMPONENTS,
+        ...loadableBricks.value.map(toComponentLibraryItem),
+    ]);
+
+    // Пропуск брика отказом загрузки не считается: ответ ручки дошёл и разобран,
+    // повтор такой пропуск не исправит (лоадеров в готовой сборке не
     // прибавится). Поэтому — отдельный признак, живущий рядом с отказом, а не
     // вместо него: в сайдбаре они могут быть видны одновременно
-    const skippedBricks = computed<ISkippedBrick[]>(
-        () => effectiveLibraryData.value?.skippedBricks ?? []
+    const skippedBricks = computed<ISkippedBrick[]>(() =>
+        (effectiveLibraryData.value?.bricks ?? [])
+            .filter((brick) => !hasBrickModule(brick.brickPath))
+            .map((brick) => ({ name: brick.name, brickPath: brick.brickPath }))
     );
 
     // Отказ отличается от «библиотека пуста»: список непуст и при отказе

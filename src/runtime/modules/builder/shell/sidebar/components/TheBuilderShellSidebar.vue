@@ -1,12 +1,12 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IBricksSchema } from '../../../../common/types/brick';
+import type { IBricksSchema, TSidebarView } from '../../../../common/types/brick';
 import type { IMediaItem, TMediaGalleryContext } from '../../../../common/types/media';
 import type { ISidebarProps, ISidebarEmits } from './types';
 
 // Vue
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 // Pinia
 import { useSidebarStore } from '../../../core/stores/sidebar';
@@ -30,6 +30,8 @@ const emit = defineEmits<ISidebarEmits>();
 const sidebarStore = useSidebarStore();
 const publishStore = usePublishStore();
 const publishViewRef = ref<InstanceType<typeof BuilderShellSidebarPublishView> | null>(null);
+/** Панель открывали хотя бы раз — с этого момента её содержимое смонтировано. */
+const hasBeenVisible = ref(sidebarStore.left.visible);
 // #endregion
 
 // #region Computed
@@ -37,6 +39,19 @@ const isVisible = computed<boolean>(() => sidebarStore.left.visible);
 const activeView = computed(() => sidebarStore.activeView);
 
 const sidebarWidth = computed<string>(() => sidebarStore.left.width);
+
+/**
+ * Вид, который смонтирован. До первого открытия панели — ни один: панель
+ * скрывается через `v-show`, то есть её содержимое иначе монтируется вместе с
+ * редактором, а карточки библиотеки рендерят превью и тянут brick-модули со
+ * всеми их Vue-компонентами и стилями — при том что панель закрыта.
+ *
+ * Обратно латч не снимается: закрытие панели размонтировало бы список вместе с
+ * поиском и прокруткой, а второе открытие всё равно ничего не грузит заново.
+ */
+const mountedView = computed<TSidebarView | null>(() =>
+    hasBeenVisible.value ? activeView.value : null
+);
 // #endregion
 
 // #region Methods
@@ -102,6 +117,14 @@ defineExpose({
     handleMediaSelect,
 });
 // #endregion
+
+// #region Lifecycle
+watch(isVisible, (visible) => {
+    if (visible) {
+        hasBeenVisible.value = true;
+    }
+});
+// #endregion
 </script>
 
 <template>
@@ -113,7 +136,7 @@ defineExpose({
         >
             <Transition name="bricks-sidebar-view" mode="out-in">
                 <BuilderShellSidebarComponentsView
-                    v-if="activeView === 'components'"
+                    v-if="mountedView === 'components'"
                     key="components"
                     :components="props.components"
                     :skipped-bricks="props.skippedBricks"
@@ -124,7 +147,7 @@ defineExpose({
                 />
 
                 <BuilderShellSidebarPublishView
-                    v-else-if="activeView === 'publish'"
+                    v-else-if="mountedView === 'publish'"
                     key="publish"
                     ref="publishViewRef"
                     @close="handleClosePublish"
@@ -133,7 +156,7 @@ defineExpose({
                 />
 
                 <BuilderShellSidebarSchemaTreeView
-                    v-else-if="activeView === 'schema'"
+                    v-else-if="mountedView === 'schema'"
                     key="schema"
                     @close="handleCloseSchema"
                 />

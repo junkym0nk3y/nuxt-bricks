@@ -15,10 +15,6 @@ export interface IComponentClipboardSnapshot {
     insertIndex: number | null;
     fullWidth?: boolean;
     tree: IBricksComponent[];
-    /** Свойства компонента для отображения в редакторе после вставки */
-    properties?: ISelectedComponent['properties'];
-    /** Описание компонента */
-    description?: ISelectedComponent['description'];
 }
 
 export interface IComponentsState {
@@ -152,6 +148,12 @@ export interface IComponentsSelectionActions {
         this: IComponentsStore,
         id: string,
         properties?: ISelectedComponent['properties'],
+        description?: ISelectedComponent['description']
+    ): void;
+    setSelectedComponentMetadata(
+        this: IComponentsStore,
+        id: string,
+        properties: ISelectedComponent['properties'],
         description?: ISelectedComponent['description']
     ): void;
     deselectComponent(this: IComponentsStore): void;

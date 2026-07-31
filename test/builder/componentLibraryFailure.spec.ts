@@ -11,9 +11,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
  */
 
 // #region Mocks
-const { apiFetcherMock, findImportModuleMock } = vi.hoisted(() => ({
+const { apiFetcherMock, hasBrickModuleMock } = vi.hoisted(() => ({
     apiFetcherMock: vi.fn(),
-    findImportModuleMock: vi.fn(),
+    hasBrickModuleMock: vi.fn(),
 }));
 
 vi.mock('#imports', async (importOriginal) => {
@@ -31,7 +31,14 @@ vi.mock('../../src/runtime/modules/common/composables/useApiClient', () => ({
 }));
 
 vi.mock('../../src/runtime/modules/common/composables/useBrickImports', () => ({
-    useBrickImports: () => ({ findImportModule: findImportModuleMock }),
+    useBrickImports: () => ({ findImportModule: vi.fn(), hasBrickModule: hasBrickModuleMock }),
+}));
+
+vi.mock('../../src/runtime/modules/builder/core/stores/components', () => ({
+    useComponentsStore: () => ({
+        selectedComponentData: null,
+        setSelectedComponentMetadata: vi.fn(),
+    }),
 }));
 // #endregion
 
@@ -46,15 +53,25 @@ import { resetNuxtReadyStub, resetNuxtStateStub } from '../stubs/nuxt-imports';
 const MANIFEST_RESPONSE = {
     hash: 'abc',
     bricks: [
-        { name: 'TestBrick', category: 'Other', brickPath: '/components/Test.brick.ts' },
-        { name: 'CallbackFormModal', category: 'Modal', brickPath: '/components/Modal.brick.ts' },
+        {
+            name: 'TestBrick',
+            category: 'Other',
+            brickPath: '/components/Test.brick.ts',
+            values: {},
+        },
+        {
+            name: 'CallbackFormModal',
+            category: 'Modal',
+            brickPath: '/components/Modal.brick.ts',
+            values: {},
+        },
     ],
 };
 
 describe('библиотека компонентов: отказ ручки манифеста', () => {
     beforeEach(() => {
         vi.spyOn(console, 'error').mockImplementation(() => undefined);
-        findImportModuleMock.mockReturnValue(() => Promise.resolve({ brick: { values: {} } }));
+        hasBrickModuleMock.mockReturnValue(true);
         // Снимок последней успешной загрузки живёт на уровне приложения — между
         // кейсами его нужно гасить, иначе они перестанут быть независимыми
         resetNuxtStateStub();
@@ -64,7 +81,7 @@ describe('библиотека компонентов: отказ ручки м�
     afterEach(() => {
         vi.restoreAllMocks();
         apiFetcherMock.mockReset();
-        findImportModuleMock.mockReset();
+        hasBrickModuleMock.mockReset();
     });
 
     it('один ответ наполняет и список компонентов, и опции модалок', async () => {
@@ -171,45 +188,42 @@ describe('библиотека компонентов: отказ ручки м�
         );
     });
 
-    it('пропущенные брики возвращаются наружу с причиной, а не исчезают молча', async () => {
+    it('записи манифеста без лоадера возвращаются наружу, а не исчезают молча', async () => {
         apiFetcherMock.mockResolvedValueOnce({
             hash: 'abc',
             bricks: [
-                { name: 'GoodBrick', category: 'Other', brickPath: '/components/Good.brick.ts' },
-                { name: 'NoLoader', category: 'Other', brickPath: '/components/NoLoader.brick.ts' },
-                { name: 'Broken', category: 'Other', brickPath: '/components/Broken.brick.ts' },
-                { name: 'ModalNoLoader', category: 'Modal', brickPath: '/components/M.brick.ts' },
+                {
+                    name: 'GoodBrick',
+                    category: 'Other',
+                    brickPath: '/components/Good.brick.ts',
+                    values: {},
+                },
+                {
+                    name: 'NoLoader',
+                    category: 'Other',
+                    brickPath: '/components/NoLoader.brick.ts',
+                    values: {},
+                },
+                {
+                    name: 'ModalNoLoader',
+                    category: 'Modal',
+                    brickPath: '/components/M.brick.ts',
+                    values: {},
+                },
             ],
         });
 
-        findImportModuleMock.mockImplementation((brickPath: string) => {
-            if (brickPath === '/components/Good.brick.ts') {
-                return () => Promise.resolve({ brick: { values: {} } });
-            }
-
-            if (brickPath === '/components/Broken.brick.ts') {
-                return () => Promise.reject(new Error('SyntaxError in brick module'));
-            }
-
-            return undefined;
-        });
+        hasBrickModuleMock.mockImplementation(
+            (brickPath: string) => brickPath === '/components/Good.brick.ts'
+        );
 
         const { componentLibraryList, skippedBricks, isComponentLibraryLoadFailed } =
             await useComponentLibrary();
 
         expect(componentLibraryList.value.some((item) => item.name === 'GoodBrick')).toBe(true);
         expect(skippedBricks.value).toEqual([
-            {
-                name: 'NoLoader',
-                brickPath: '/components/NoLoader.brick.ts',
-                reason: 'loader-missing',
-            },
-            { name: 'Broken', brickPath: '/components/Broken.brick.ts', reason: 'import-failed' },
-            {
-                name: 'ModalNoLoader',
-                brickPath: '/components/M.brick.ts',
-                reason: 'loader-missing',
-            },
+            { name: 'NoLoader', brickPath: '/components/NoLoader.brick.ts' },
+            { name: 'ModalNoLoader', brickPath: '/components/M.brick.ts' },
         ]);
 
         // Ответ ручки дошёл и разобран: повтор пропущенных бриков не вернёт, и
@@ -225,14 +239,22 @@ describe('библиотека компонентов: отказ ручки м�
         apiFetcherMock.mockResolvedValueOnce({
             hash: 'abc',
             bricks: [
-                { name: 'GoodBrick', category: 'Other', brickPath: '/components/Good.brick.ts' },
-                { name: 'NoLoader', category: 'Other', brickPath: '/components/NoLoader.brick.ts' },
+                {
+                    name: 'GoodBrick',
+                    category: 'Other',
+                    brickPath: '/components/Good.brick.ts',
+                    values: {},
+                },
+                {
+                    name: 'NoLoader',
+                    category: 'Other',
+                    brickPath: '/components/NoLoader.brick.ts',
+                    values: {},
+                },
             ],
         });
-        findImportModuleMock.mockImplementation((brickPath: string) =>
-            brickPath === '/components/Good.brick.ts'
-                ? () => Promise.resolve({ brick: { values: {} } })
-                : undefined
+        hasBrickModuleMock.mockImplementation(
+            (brickPath: string) => brickPath === '/components/Good.brick.ts'
         );
 
         await useComponentLibrary();

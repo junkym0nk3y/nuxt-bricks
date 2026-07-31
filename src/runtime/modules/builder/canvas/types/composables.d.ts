@@ -20,7 +20,6 @@ export interface ISlotRenderData {
 export interface IUseComponentSlotsReturn {
     slotRenderData: ComputedRef<ISlotRenderData[]>;
     slotStringContent: ComputedRef<string>;
-    hasLoadedSlots: Ref<boolean>;
 }
 // #endregion
 

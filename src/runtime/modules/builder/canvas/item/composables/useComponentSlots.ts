@@ -1,98 +1,28 @@
 // #region Imports
 // Types
-import type { IComponentSlotDefinition, IBricksComponent } from '../../../../common/types/brick';
+import type { IBricksComponent } from '../../../../common/types/brick';
 import type { ISlotRenderData, IUseComponentSlotsReturn } from '../../types/composables';
 
 // Vue
-import { computed, ref, watch } from 'vue';
+import { computed, watch } from 'vue';
 
 // Pinia
 import { useComponentsStore } from '../../../core/stores/components';
 
 // Composables
-import { useBrickImports } from '../../../../common/composables/useBrickImports';
+import { useBrickMetadata } from '../../../core/composables/useBrickMetadata';
 // #endregion
 
 /**
- * Нормализует сырые определения слотов из brick-файлов в формат IComponentSlotDefinition.
- * Обрабатывает массивы, объекты и строковые определения слотов.
- *
- * @param rawSlots - Сырое определение слота из brick-файла (массив, объект или null)
- * @returns Нормализованный массив определений слотов
- */
-function normalizeBrickSlots(rawSlots: unknown): IComponentSlotDefinition[] {
-    if (!rawSlots) {
-        return [];
-    }
-
-    if (Array.isArray(rawSlots)) {
-        return rawSlots
-            .map((slot: unknown) => {
-                if (typeof slot === 'string') {
-                    return {
-                        name: slot,
-                        label: slot,
-                        allowMultiple: true,
-                    } as IComponentSlotDefinition;
-                }
-
-                if (
-                    slot &&
-                    typeof slot === 'object' &&
-                    typeof (slot as Record<string, unknown>).name === 'string'
-                ) {
-                    const slotObj = slot as Record<string, unknown>;
-                    return {
-                        name: slotObj.name as string,
-                        label: (slotObj.label as string) ?? (slotObj.name as string),
-                        description: slotObj.description as string | undefined,
-                        allowMultiple:
-                            typeof slotObj.allowMultiple === 'boolean'
-                                ? slotObj.allowMultiple
-                                : true,
-                    } as IComponentSlotDefinition;
-                }
-
-                return null;
-            })
-            .filter(Boolean) as IComponentSlotDefinition[];
-    }
-
-    if (typeof rawSlots === 'object') {
-        return Object.entries(rawSlots).map(([name, config]) => {
-            if (config && typeof config === 'object') {
-                const configObj = config as Record<string, unknown>;
-                return {
-                    name,
-                    label: (configObj.label as string) ?? name,
-                    description: configObj.description as string | undefined,
-                    allowMultiple:
-                        typeof configObj.allowMultiple === 'boolean'
-                            ? configObj.allowMultiple
-                            : true,
-                } as IComponentSlotDefinition;
-            }
-
-            return {
-                name,
-                label: name,
-                allowMultiple: true,
-            } as IComponentSlotDefinition;
-        });
-    }
-
-    return [];
-}
-
-/**
  * Composable для управления слотами компонента.
- * Обрабатывает загрузку, нормализацию и подготовку данных для рендеринга слотов.
+ * Связывает слоты компонента с их дочерними элементами и добирает определения
+ * слотов из метаданных манифеста, если в схеме их ещё нет.
  *
  * @param componentId - ID компонента для управления слотами
  * @param brickPath - Путь к brick-файлу компонента
  * @param isLayout - Является ли компонент layout-компонентом
  * @param componentProps - Пропсы компонента для извлечения строкового контента слота
- * @returns Объект с данными для рендеринга слотов, строковым контентом и состоянием загрузки
+ * @returns Объект с данными для рендеринга слотов и строковым контентом
  */
 export function useComponentSlots(
     componentId: string,
@@ -102,8 +32,7 @@ export function useComponentSlots(
 ): IUseComponentSlotsReturn {
     // #region Data
     const componentsStore = useComponentsStore();
-    const { findImportModule } = useBrickImports();
-    const hasLoadedSlots = ref(false);
+    const { readBrickMetadata } = useBrickMetadata();
     // #endregion
 
     // #region Computed
@@ -138,63 +67,25 @@ export function useComponentSlots(
     });
     // #endregion
 
-    // #region Methods
-    /**
-     * Обеспечивает наличие загруженных определений слотов компонента.
-     * Загружает метаданные слотов из brick-файла, если они еще не загружены.
-     */
-    async function ensureComponentSlotsPresence(): Promise<void> {
-        if (isLayout || hasLoadedSlots.value) {
-            return;
-        }
-
-        const componentRef = componentsStore.getComponentById(componentId);
-        if (!componentRef) {
-            return;
-        }
-
-        if (Array.isArray(componentRef.slots) && componentRef.slots.length > 0) {
-            hasLoadedSlots.value = true;
-            return;
-        }
-
-        const moduleLoader = findImportModule(brickPath);
-        if (!moduleLoader) {
-            hasLoadedSlots.value = true;
-            return;
-        }
-
-        try {
-            const module = await moduleLoader();
-            const brickSlots = (module as Record<string, unknown>)?.brick
-                ? ((module as Record<string, unknown>).brick as Record<string, unknown>).slots
-                : undefined;
-            const definitions = normalizeBrickSlots(brickSlots);
-            if (definitions.length > 0) {
-                componentsStore.initializeComponentSlots(componentId, definitions);
-            }
-        } catch (error) {
-            console.error('[useComponentSlots] Failed to load slot metadata:', error);
-        } finally {
-            hasLoadedSlots.value = true;
-        }
-    }
-    // #endregion
-
     // #region Lifecycle
-    /**
-     * Отслеживает слоты компонента и запускает загрузку при необходимости
-     */
+    // Слоты компонента и метаданные его брика — два независимых источника: в
+    // схеме слоты могут быть уже сохранены, а могут ждать манифеста. Признака
+    // «загрузка закончена» здесь нет намеренно: пока записи в индексе нет,
+    // вопрос «есть ли у брика слоты» остаётся без ответа, и зафиксировать
+    // «слотов нет» значило бы не добрать их после удачного повтора загрузки
     watch(
-        () => componentsStore.getComponentById(componentId)?.slots,
-        (slots) => {
-            if (Array.isArray(slots) && slots.length > 0) {
-                hasLoadedSlots.value = true;
+        () => ({
+            slots: componentsStore.getComponentById(componentId)?.slots,
+            definitions: isLayout ? undefined : readBrickMetadata(brickPath)?.slots,
+        }),
+        ({ slots, definitions }) => {
+            const hasSchemaSlots = Array.isArray(slots) && slots.length > 0;
+
+            if (hasSchemaSlots || !definitions?.length) {
                 return;
             }
 
-            hasLoadedSlots.value = false;
-            ensureComponentSlotsPresence();
+            componentsStore.initializeComponentSlots(componentId, definitions);
         },
         { immediate: true }
     );
@@ -203,6 +94,5 @@ export function useComponentSlots(
     return {
         slotRenderData,
         slotStringContent,
-        hasLoadedSlots,
     };
 }

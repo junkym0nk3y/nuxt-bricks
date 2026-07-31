@@ -13,7 +13,8 @@
  * - динамические ЧПУ маршруты опубликованных страниц
  * - GET/HEAD /api/bricks/public/** — public read-model для рендера
  * - GET/HEAD /api/bricks/components — библиотека компонентов (публичный
- *   манифест; SSR билдера в basic-режиме не пробрасывает Authorization)
+ *   манифест: состав библиотеки и её редакторские метаданные; SSR билдера в
+ *   basic-режиме не пробрасывает Authorization)
  * - в database-режиме: <builderPrefix>/login и /api/bricks/auth/** (иначе не войти)
  *
  * Basic-режим — HTTP Basic Auth, настройка через ENV:

@@ -1,7 +1,6 @@
 // #region Imports
 // Types
 import type { ICanvasItemProps } from '../../types/components';
-import type { IBrickValues } from '../../../../common/types/index';
 
 // Vue
 import { computed, provide, watch, type ComputedRef } from 'vue';
@@ -14,7 +13,7 @@ import { useInlineEditingStore } from '../../../../text-editor/stores/inlineEdit
 import { useCanvasStore } from '../../../core/stores/canvas';
 
 // Composables
-import { useBrickImports } from '../../../../common/composables/useBrickImports';
+import { useBrickMetadata } from '../../../core/composables/useBrickMetadata';
 
 // Utils
 import { getLayoutProperties } from '../../../core/utils/layoutProperties';
@@ -37,7 +36,7 @@ export function useCanvasItemInlineEditing(
 ) {
     const inlineEditingStore = useInlineEditingStore();
     const canvasStore = useCanvasStore();
-    const { findImportModule } = useBrickImports();
+    const { readBrickMetadata } = useBrickMetadata();
 
     // #region Computed
     const isInlineEditing = computed<boolean>(() =>
@@ -56,51 +55,38 @@ export function useCanvasItemInlineEditing(
     // #region Methods
     /**
      * Находит все inline-editable свойства у компонента.
-     * Для layout — из getLayoutProperties(), для brick — из загруженного модуля.
+     * Для layout — из getLayoutProperties(), для brick — из метаданных манифеста.
      */
-    async function findAllInlineEditableProps(): Promise<IInlineEditableProp[]> {
+    function findAllInlineEditableProps(): IInlineEditableProp[] {
         if (isLayout.value) {
             return findAllInlineEditableLayoutProps(getLayoutProperties(layoutName.value));
         }
 
-        const moduleLoader = findImportModule(props.component.brickPath);
-        if (!moduleLoader) {
+        const metadata = readBrickMetadata(props.component.brickPath);
+        if (!metadata) {
             return [];
         }
 
-        try {
-            const module = await moduleLoader();
-            if (!module?.brick?.values) {
-                return [];
-            }
+        const componentProps = (props.component.props as Record<string, unknown>) || {};
 
-            const componentProps = (props.component.props as Record<string, unknown>) || {};
-
-            return findAllInlineEditableBrickProps(
-                module.brick.values as Record<string, IBrickValues>,
-                componentProps
-            );
-        } catch {
-            return [];
-        }
+        return findAllInlineEditableBrickProps(metadata.values, componentProps);
     }
 
     /**
      * Обрабатывает двойной клик для активации inline-editing.
      */
-    async function handleDoubleClick(event: MouseEvent): Promise<void> {
+    function handleDoubleClick(event: MouseEvent): void {
         event.stopPropagation();
 
         if (isInlineEditing.value) {
             return;
         }
 
-        // event.currentTarget обнуляется после await — захватываем синхронно до него
         const el = event.currentTarget as HTMLElement;
         const rect = el.getBoundingClientRect();
         const cursorOffset = { x: event.clientX - rect.left, y: event.clientY - rect.top };
 
-        const allProps = await findAllInlineEditableProps();
+        const allProps = findAllInlineEditableProps();
         if (allProps.length > 0) {
             const first = allProps[0];
             inlineEditingStore.startEditing(

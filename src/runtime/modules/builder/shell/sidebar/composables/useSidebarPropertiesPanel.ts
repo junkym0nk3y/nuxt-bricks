@@ -10,6 +10,7 @@ import type { IUseSidebarPropertiesPanelOptions } from '../types/sidebarProperti
 
 // Vue
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Pinia
 import { useComponentsStore } from '../../../core/stores/components';
@@ -18,7 +19,6 @@ import { useComponentsStore } from '../../../core/stores/components';
 import { usePropertyVariants } from './usePropertyVariants';
 import { useSidebarResponsiveScope } from './useSidebarResponsiveScope';
 import { useSidebarMediaSelection } from './useSidebarMediaSelection';
-import { useSidebarBrickDescription } from './useSidebarBrickDescription';
 
 // Utils
 import {
@@ -28,6 +28,7 @@ import {
 } from '../utils/propertyValueCoercion';
 import { componentEditors } from '../utils/propertyEditorComponents';
 import { normalizeDeviceVisibility } from '../../../../common/utils/bricks/deviceVisibility';
+import { resolveBricksLabel } from '../../../../common/utils/i18nLabels';
 import { readOwnKey } from '../../../../common/utils/safeRecord';
 // #endregion
 
@@ -41,6 +42,7 @@ import { readOwnKey } from '../../../../common/utils/safeRecord';
 export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOptions) {
     // #region Data
     const store = useComponentsStore();
+    const { t, te } = useI18n();
 
     const {
         isResponsiveLayout,
@@ -61,7 +63,6 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
         applyPropertyValue: handleChangeValues,
     });
 
-    const { brickDescription } = useSidebarBrickDescription();
     // #endregion
 
     // #region Computed
@@ -69,7 +70,13 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
         () => store.selectedComponentData?.component?.componentName || ''
     );
 
-    const selectedComponentDescription = computed(() => brickDescription.value);
+    // Описание приезжает вместе с выбором компонента и лежит в сторе — второго
+    // источника (загрузки его же из brick-модуля) панели не нужно. Ключи
+    // `bricks.*` у layout-блоков переводятся, строки brick-файлов потребителя
+    // показываются как есть
+    const selectedComponentDescription = computed<string>(
+        () => resolveBricksLabel(t, te, store.selectedComponentData?.description ?? '') || ''
+    );
 
     const orderedPropertyNames = computed<string[]>(() => {
         const selected = selectedComponentDataForVariants.value;

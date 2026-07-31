@@ -1,7 +1,7 @@
 // #region Imports
 // Types
 import type { ICanvasItemProps } from '../../types/components';
-import type { IBrickExportModule, IBrickValues } from '../../../../common/types/index';
+import type { IBrickExportModule } from '../../../../common/types/index';
 
 // Vue
 import {
@@ -17,6 +17,7 @@ import {
 
 // Composables
 import { useBrickImports } from '../../../../common/composables/useBrickImports';
+import { useBrickMetadata } from '../../../core/composables/useBrickMetadata';
 
 // Utils
 import { buildForceRenderSnapshot } from '../utils/forceRenderSnapshot';
@@ -30,10 +31,10 @@ const FORCE_RENDER_DEBOUNCE_MS = 500;
  */
 export function useCanvasItemLoader(props: ICanvasItemProps, isLayout: ComputedRef<boolean>) {
     const { findImportModule } = useBrickImports();
+    const { readBrickMetadata } = useBrickMetadata();
 
     // #region Data
     const ComponentInstance = shallowRef<Component | null>(null);
-    const forceRenderProps = shallowRef<string[]>([]);
     const forceRenderKey = ref<number>(0);
     let forceRenderTimer: ReturnType<typeof setTimeout> | null = null;
     // #endregion
@@ -54,19 +55,6 @@ export function useCanvasItemLoader(props: ICanvasItemProps, isLayout: ComputedR
                         );
                     }
 
-                    if (mod?.brick?.values) {
-                        const brickValues = mod.brick.values as Record<string, IBrickValues>;
-                        const forceProps: string[] = [];
-
-                        for (const [propName, propConfig] of Object.entries(brickValues)) {
-                            if (propConfig.forceRender === true) {
-                                forceProps.push(propName);
-                            }
-                        }
-
-                        forceRenderProps.value = forceProps;
-                    }
-
                     return exported as Component;
                 },
                 onError: (error) => {
@@ -81,6 +69,17 @@ export function useCanvasItemLoader(props: ICanvasItemProps, isLayout: ComputedR
 
     // #region Computed
     /**
+     * Пропы, правка которых требует полного пересоздания компонента.
+     * Берутся из метаданных манифеста, а не из загруженного модуля: до
+     * появления записи список пуст, и пересоздавать нечего.
+     */
+    const forceRenderProps = computed<string[]>(() =>
+        Object.entries(readBrickMetadata(props.component.brickPath)?.values ?? {})
+            .filter(([, definition]) => definition.forceRender === true)
+            .map(([propName]) => propName)
+    );
+
+    /**
      * Сериализованные значения пропов с forceRender для отслеживания изменений.
      */
     const forceRenderPropsSnapshot = computed<string>(() =>
@@ -89,7 +88,10 @@ export function useCanvasItemLoader(props: ICanvasItemProps, isLayout: ComputedR
     // #endregion
 
     watch(forceRenderPropsSnapshot, (newSnapshot, oldSnapshot) => {
-        if (!newSnapshot || newSnapshot === oldSnapshot) {
+        // Пустой прежний снимок — это «список forceRender-пропов ещё не был
+        // известен», а не правка пользователя: метаданные приезжают отдельным
+        // запросом, и их появление само по себе пересоздавать компонент не должно
+        if (!newSnapshot || !oldSnapshot || newSnapshot === oldSnapshot) {
             return;
         }
 

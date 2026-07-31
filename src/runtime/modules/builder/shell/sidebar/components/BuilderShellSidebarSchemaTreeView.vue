@@ -1,8 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IBricksComponent, IPropertyDefinition } from '../../../../common/types/brick';
-import type { IBrickValues } from '../../../../common/types/index';
+import type { IBricksComponent } from '../../../../common/types/brick';
 
 // Vue
 import { computed, nextTick } from 'vue';
@@ -13,15 +12,10 @@ import { useComponentsStore } from '../../../core/stores/components';
 import { useCanvasStore } from '../../../core/stores/canvas';
 
 // Composables
-import { useBrickImports } from '../../../../common/composables/useBrickImports';
-import { useComponentProperties } from '../../../core/composables/useComponentProperties';
+import { useComponentEditorMetadata } from '../../../core/composables/useComponentEditorMetadata';
 
 // Utils
-import { getLayoutProperties } from '../../../core/utils/layoutProperties';
 import { scrollToComponentOnCanvas } from '../../../core/utils/scrollToComponent';
-
-// Constants
-import { LAYOUT_COMPONENTS } from '../../../core/constants/layoutComponents';
 
 // Components
 import BuilderShellSidebarSchemaTreeItem from './BuilderShellSidebarSchemaTreeItem.vue';
@@ -38,8 +32,7 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const componentsStore = useComponentsStore();
 const canvasStore = useCanvasStore();
-const { findImportModule } = useBrickImports();
-const { brickValuesToProperties } = useComponentProperties();
+const { resolveComponentEditorMetadata } = useComponentEditorMetadata();
 // #endregion
 
 // #region Computed
@@ -116,7 +109,7 @@ function ensureViewportForComponent(component: IBricksComponent): boolean {
 }
 
 /**
- * Выбирает компонент, загружает его properties из brick и открывает панель свойств.
+ * Выбирает компонент, берёт его properties из метаданных и открывает панель свойств.
  * Переключает viewport, если компонент не виден на текущем устройстве, и скроллит до него.
  *
  * @param id - ID выбранного компонента.
@@ -130,35 +123,8 @@ async function handleSelectComponent(id: string): Promise<void> {
     // 1. Переключаем viewport, если компонент не виден на текущем
     const viewportSwitched = ensureViewportForComponent(component);
 
-    // 2. Загружаем properties
-    let properties: IPropertyDefinition[] = [];
-    let description: string | undefined;
-
-    if (component.type === 'layout') {
-        properties = getLayoutProperties(component.componentName.toLowerCase());
-        description = LAYOUT_COMPONENTS.find(
-            (item) => item.brickPath === component.brickPath
-        )?.description;
-    } else {
-        const moduleLoader = findImportModule(component.brickPath);
-        if (moduleLoader) {
-            try {
-                const module = await moduleLoader();
-                if (module?.brick) {
-                    const brick = module.brick as Record<string, unknown>;
-                    description = brick.description as string | undefined;
-
-                    if (brick.values !== undefined) {
-                        properties = brickValuesToProperties(
-                            brick.values as Record<string, IBrickValues>
-                        );
-                    }
-                }
-            } catch (error) {
-                console.error('[BuilderShellSidebarSchemaTreeView] Failed to load brick:', error);
-            }
-        }
-    }
+    // 2. Берём properties — тем же резолвером, что и выбор кликом по канвасу
+    const { properties, description } = resolveComponentEditorMetadata(component);
 
     // 3. Выбираем компонент и открываем панель свойств
     componentsStore.selectComponent(id, properties, description);

@@ -169,13 +169,14 @@ async function waitForEvent(event: string): Promise<void> {
  *
  * @param name - Имя файла без суффикса `.brick.ts`.
  * @param category - Значение поля category.
- * @param values - Литерал `values`: в манифест он не попадает, но входит в хеш
- * содержимого, поэтому им проверяется реакция хеша на правку внутри файла.
+ * @param dataSources - Литерал `dataSources`: в манифест он не попадает, но
+ * входит в хеш содержимого, поэтому им проверяется реакция хеша на правку,
+ * невидимую в записях манифеста.
  */
-async function writeBrickFile(name: string, category: string, values = '{}'): Promise<void> {
+async function writeBrickFile(name: string, category: string, dataSources = '[]'): Promise<void> {
     await writeFile(
         join(srcDir, 'components', `${name}.brick.ts`),
-        `export default { category: '${category}', values: ${values} };\n`,
+        `export const brick = { category: '${category}', values: {}, dataSources: ${dataSources} };\n`,
         'utf8'
     );
 }
@@ -219,7 +220,12 @@ describe('манифест бриков: атомарная публикация
         const manifest = await generateBricksManifest({ srcDir, manifestDir });
 
         expect(manifest.bricks).toEqual([
-            { name: 'CardHero', category: 'Cards', brickPath: '/components/CardHero.brick.ts' },
+            {
+                name: 'CardHero',
+                category: 'Cards',
+                brickPath: '/components/CardHero.brick.ts',
+                values: {},
+            },
         ]);
         expect(probe.renames).toHaveLength(1);
         expect(probe.renames[0].to).toBe(manifestPath);
@@ -247,22 +253,23 @@ describe('манифест бриков: атомарная публикация
     });
 
     it('хеш меняется от правки внутри brick-файла, хотя записи манифеста те же', async () => {
-        await writeBrickFile('CardHero', 'Cards', '{ title: { default: "old" } }');
+        await writeBrickFile('CardHero', 'Cards', '[{ name: "old" }]');
         const before = await generateBricksManifest({ srcDir, manifestDir });
 
-        // Инвентарь неизменен: имя, категория и путь те же, правка только в values
-        await writeBrickFile('CardHero', 'Cards', '{ title: { default: "new" } }');
+        // Записи манифеста неизменны: dataSources читает рендерер прямо из
+        // модуля, в манифест они не попадают
+        await writeBrickFile('CardHero', 'Cards', '[{ name: "new" }]');
         const after = await generateBricksManifest({ srcDir, manifestDir });
 
         expect(after.bricks).toEqual(before.bricks);
         // Хеш по инвентарю записей на этой правке не менялся, то есть по нему
-        // нельзя было отличить правку values от повторного скана — ради этого
+        // нельзя было отличить правку файла от повторного скана — ради этого
         // хеш и считается от исходников
         expect(after.hash).not.toBe(before.hash);
     });
 
     it('повторный скан без правок даёт тот же хеш', async () => {
-        await writeBrickFile('CardHero', 'Cards', '{ title: { default: "same" } }');
+        await writeBrickFile('CardHero', 'Cards', '[{ name: "same" }]');
 
         const first = await generateBricksManifest({ srcDir, manifestDir });
         const second = await generateBricksManifest({ srcDir, manifestDir });

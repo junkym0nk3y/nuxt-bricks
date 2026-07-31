@@ -31,6 +31,7 @@ function mockManifest(entries: Array<[name: string, category: string]>): IBricks
             name,
             category,
             brickPath: `/components/${name}.brick.ts`,
+            values: {},
         })),
         hash: 'test-hash',
     };

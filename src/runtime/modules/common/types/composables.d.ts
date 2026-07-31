@@ -49,6 +49,11 @@ export interface IUseBrickImportsReturn {
      * загрузчиков.
      */
     findImportModule: (brickPath: string) => (() => Promise<IBrickExportModule>) | undefined;
+    /**
+     * Есть ли лоадер под этот `brickPath`. В отличие от `findImportModule`
+     * молчит при промахе — рассчитан на вызов из вычисляемых свойств.
+     */
+    hasBrickModule: (brickPath: string) => boolean;
 }
 // #endregion
 

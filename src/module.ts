@@ -200,15 +200,50 @@ export default defineNuxtModule<IBricksModuleOptions>({
         // вызывается до build:before нового (@nuxt/cli, DevServer#load)
         nuxt.hook('close', () => manifestQueue.dispose());
 
+        // Клиентский Vite-сервер: через него ошибка разбора brick-файла
+        // показывается оверлеем поверх страницы
+        let viteClientServer: ViteDevServer | undefined;
+
+        /**
+         * Показывает ошибку генерации манифеста разработчику: строка в терминал
+         * и оверлей Vite поверх страницы, если dev-сервер уже поднят. Оверлей
+         * снимется сам — следующая удачная генерация присылает перезагрузку.
+         *
+         * @param context - Что именно не удалось (событие вотчера или сборка).
+         * @param error - Ошибка генерации.
+         */
+        function reportManifestFailure(context: string, error: unknown): void {
+            const message = error instanceof Error ? error.message : String(error);
+
+            console.error(`[nuxt-bricks] ${context} не обработано: ${message}`);
+            viteClientServer?.hot.send({
+                type: 'error',
+                err: { message, stack: error instanceof Error ? (error.stack ?? '') : '' },
+            });
+        }
+
         // Сам манифест нужен только билдеру: библиотеку компонентов читает лишь
         // он, рендерер берёт brickPath прямо из схемы страницы.
         if (isBuilderEnabled) {
             // build:before, а не setup: nuxi build/prepare чистят buildDir
             // между setup модуля и сборкой, запись из setup была бы стёрта.
-            // Ошибку здесь не глотаем: сборка не должна тихо уехать в прод
-            // без манифеста.
             nuxt.hook('build:before', async () => {
-                await manifestQueue.enqueue();
+                try {
+                    await manifestQueue.enqueue();
+                } catch (error) {
+                    // В сборке ошибка обязана быть фатальной: прод не должен
+                    // тихо уехать без манифеста. В dev — наоборот: brick-файл
+                    // правят на живом сервере, и неразобранный файл не должен
+                    // уносить с собой загрузку инстанса. На диске остаётся
+                    // прежний манифест, редактор продолжает работать на нём, а
+                    // причина видна разработчику. Иначе любой рестарт, начатый
+                    // до починки файла, оставлял бы редактор недоступным.
+                    if (!isDev) {
+                        throw error;
+                    }
+
+                    reportManifestFailure('генерация манифеста brick-компонентов', error);
+                }
             });
 
             // Манифест доезжает до Nitro как server asset: в dev каталог
@@ -238,8 +273,6 @@ export default defineNuxtModule<IBricksModuleOptions>({
         // Карту загрузчиков читает не только билдер: published-рендерер тянет
         // brick-модули тем же glob'ом, поэтому рестарт нужен обеим поверхностям.
         if (isDev && (isBuilderEnabled || arePublishedPagesEnabled)) {
-            let viteClientServer: ViteDevServer | undefined;
-
             nuxt.hook('vite:serverCreated', (server, env) => {
                 // Клиентский сервер — тот, чей hot-канал слушает браузер
                 if (env.isClient) {
@@ -256,14 +289,19 @@ export default defineNuxtModule<IBricksModuleOptions>({
                 // в необслуженный промис, а Node с дефолтным
                 // --unhandled-rejections=throw убивает на этом dev-сервер
                 try {
-                    // Состав glob'а изменился — только рестарт
+                    // Состав glob'а изменился — только рестарт, и он идёт
+                    // безусловно. Пробный скан перед ним ничего не давал бы:
+                    // состояние «рестарт ещё нужен» пришлось бы держать между
+                    // инстансами, а рестарт как раз создаёт новый инстанс модуля
+                    // — на той стороне такого состояния уже нет. Вместо этого
+                    // неразобранный файл не роняет `build:before` в dev.
                     if (event === 'add' || event === 'unlink') {
                         await nuxt.callHook('restart');
 
                         return;
                     }
 
-                    // change: состав тот же, но category могла поменяться —
+                    // change: состав тот же, но метаданные могли поменяться —
                     // это уже про манифест, то есть только про билдер
                     if (event !== 'change' || !isBuilderEnabled) {
                         return;
@@ -275,10 +313,7 @@ export default defineNuxtModule<IBricksModuleOptions>({
                     // точечного HMR тут недостаточно
                     viteClientServer?.hot.send({ type: 'full-reload' });
                 } catch (error) {
-                    console.warn(
-                        `[nuxt-bricks] событие ${event} brick-файла ${path} не обработано`,
-                        error
-                    );
+                    reportManifestFailure(`событие ${event} brick-файла ${path}`, error);
                 }
             });
         }

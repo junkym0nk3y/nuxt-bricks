@@ -63,12 +63,11 @@ vi.mock(
     })
 );
 
-vi.mock(
-    '../../src/runtime/modules/builder/shell/sidebar/composables/useSidebarBrickDescription',
-    () => ({
-        useSidebarBrickDescription: () => ({ brickDescription: ref('') }),
-    })
-);
+// Панель резолвит описание выбранного компонента через i18n, а композабл здесь
+// вызывается вне setup-контекста компонента
+vi.mock('vue-i18n', () => ({
+    useI18n: () => ({ t: (key: string) => key, te: () => false }),
+}));
 
 vi.mock('../../src/runtime/modules/builder/shell/sidebar/composables/usePropertyVariants', () => ({
     usePropertyVariants: () => ({

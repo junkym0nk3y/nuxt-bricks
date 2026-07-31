@@ -1,11 +1,10 @@
 // #region Imports
 // Types
 import type { ICanvasItemProps, ICanvasContextMenuPosition } from '../../types/components';
-import type { IPropertyDefinition, TBricksDeviceKey } from '../../../../common/types/brick';
-import type { IBrickValues } from '../../../../common/types/index';
+import type { TBricksDeviceKey } from '../../../../common/types/brick';
 
 // Vue
-import { computed, nextTick, ref, type ComputedRef, type Ref } from 'vue';
+import { computed, nextTick, ref, type Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Pinia
@@ -14,16 +13,11 @@ import { useCanvasStore } from '../../../core/stores/canvas';
 import { useSidebarStore } from '../../../core/stores/sidebar';
 
 // Composables
-import { useBrickImports } from '../../../../common/composables/useBrickImports';
-import { useComponentProperties } from '../../../core/composables/useComponentProperties';
+import { useComponentEditorMetadata } from '../../../core/composables/useComponentEditorMetadata';
 import { useBuilderToast } from '../../../core/composables/useBuilderToast';
 
 // Utils
-import { getLayoutProperties } from '../../../core/utils/layoutProperties';
 import { scrollToComponentOnCanvas } from '../../../core/utils/scrollToComponent';
-
-// Constants
-import { LAYOUT_COMPONENTS } from '../../../core/constants/layoutComponents';
 // #endregion
 
 /**
@@ -33,15 +27,12 @@ import { LAYOUT_COMPONENTS } from '../../../core/constants/layoutComponents';
  */
 export function useCanvasItemActions(
     props: ICanvasItemProps,
-    isLayout: ComputedRef<boolean>,
-    layoutName: ComputedRef<string>,
     figmaViewport: Ref<TBricksDeviceKey> | null
 ) {
     const componentsStore = useComponentsStore();
     const canvasStore = useCanvasStore();
     const sidebarStore = useSidebarStore();
-    const { findImportModule } = useBrickImports();
-    const { brickValuesToProperties } = useComponentProperties();
+    const { resolveComponentEditorMetadata } = useComponentEditorMetadata();
     const { showToast } = useBuilderToast();
     const { t } = useI18n();
 
@@ -107,42 +98,11 @@ export function useCanvasItemActions(
 
     // #region Methods
     /**
-     * Выделяет компонент: загружает properties из brick/layout definitions
-     * и синхронизирует активный viewport в Figma mode.
+     * Выделяет компонент: берёт properties из метаданных манифеста либо из
+     * layout definitions и синхронизирует активный viewport в Figma mode.
      */
-    async function selectSelf(): Promise<void> {
-        let properties: IPropertyDefinition[] = [];
-        let description: string | undefined;
-
-        if (isLayout.value) {
-            properties = getLayoutProperties(layoutName.value);
-            description = LAYOUT_COMPONENTS.find(
-                (item) => item.brickPath === props.component.brickPath
-            )?.description;
-        } else {
-            const moduleLoader = findImportModule(props.component.brickPath);
-            if (moduleLoader) {
-                try {
-                    const module = await moduleLoader();
-                    if (module?.brick) {
-                        description = (module.brick as Record<string, unknown>).description as
-                            | string
-                            | undefined;
-
-                        if ((module.brick as Record<string, unknown>).values !== undefined) {
-                            properties = brickValuesToProperties(
-                                (module.brick as Record<string, unknown>).values as Record<
-                                    string,
-                                    IBrickValues
-                                >
-                            );
-                        }
-                    }
-                } catch (error) {
-                    console.error('[BuilderCanvasItem] Failed to load brick:', error);
-                }
-            }
-        }
+    function selectSelf(): void {
+        const { properties, description } = resolveComponentEditorMetadata(props.component);
 
         componentsStore.selectComponent(props.component.id, properties, description);
 
@@ -158,7 +118,7 @@ export function useCanvasItemActions(
         // Определяем, нужна ли анимация панели свойств (повлияет на размер канваса)
         const sidebarAlreadyOpen = sidebarStore.right.visible;
 
-        await selectSelf();
+        selectSelf();
 
         // Скроллим до компонента после открытия сайдбара
         // Если сайдбар уже был открыт — достаточно nextTick

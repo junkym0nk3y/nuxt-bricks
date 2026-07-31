@@ -1,6 +1,7 @@
 import type { IBricksComponent } from '../../../../common/types/brick';
 import { cloneBricksComponent } from '../../../../common/utils/bricks/components';
 import { generateComponentId } from '../../utils/ids';
+import { useComponentEditorMetadata } from '../../composables/useComponentEditorMetadata';
 import type {
     IComponentsClipboardActions,
     IComponentsStore,
@@ -136,11 +137,6 @@ function createClipboardSnapshot(
         return null;
     }
 
-    // Сохраняем свойства из selectedComponent, если копируем выбранный компонент
-    const selectedData = store.selectedComponent;
-    const properties = selectedData?.id === rootId ? selectedData.properties : undefined;
-    const description = selectedData?.id === rootId ? selectedData.description : undefined;
-
     return {
         rootId: root.id,
         parentId: root.parent ?? null,
@@ -148,8 +144,6 @@ function createClipboardSnapshot(
         insertIndex: resolveInsertIndex(store, root),
         fullWidth: root.fullWidth,
         tree,
-        properties,
-        description,
     };
 }
 
@@ -208,13 +202,22 @@ function pasteClipboardSnapshot(
             entry.component.zIndex = maxZIndex + index + 1;
         });
 
-    store.components.push(...clones.map((entry) => entry.component));
-
     const rootClone = clones.find((entry) => entry.originalId === snapshot.rootId)?.component;
     if (!rootClone) {
         console.warn('[Bricks Store] pasteFromClipboard: root clone not found');
         return null;
     }
+
+    // Свойства редактора берутся из актуальных метаданных, а не из снимка
+    // клипборда: снимок пережил бы и загрузку манифеста, и правку brick-файла,
+    // то есть панель после вставки показывала бы устаревшее описание полей.
+    // Считаются до записи в стор: резолверу нужны только поля клона и индекс
+    // метаданных, зато схема и история не останутся изменёнными, если он
+    // почему-то бросит исключение
+    const { resolveComponentEditorMetadata } = useComponentEditorMetadata();
+    const { properties, description } = resolveComponentEditorMetadata(rootClone);
+
+    store.components.push(...clones.map((entry) => entry.component));
 
     if (snapshot.parentId) {
         const parent = store.getComponentById(snapshot.parentId);
@@ -245,7 +248,7 @@ function pasteClipboardSnapshot(
     }
 
     store.saveToHistory();
-    store.selectComponent(rootClone.id, snapshot.properties ?? [], snapshot.description);
+    store.selectComponent(rootClone.id, properties, description);
     return rootClone.id;
 }
 

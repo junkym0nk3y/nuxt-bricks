@@ -93,17 +93,13 @@ const skippedBrickNames = computed<string>(() =>
 );
 
 /**
- * Есть ли среди пропусков рассинхрон манифеста и сборки. Такой пропуск
- * подсказывает конкретное действие (перезапуск dev-сервера), а отказ импорта —
- * нет: там нужно смотреть саму ошибку в консоли.
+ * Подсказка про перезапуск нужна только там, где перезапуск и возможен. Всякий
+ * пропуск теперь означает рассинхрон манифеста и сборки — библиотека собирается
+ * из манифеста и brick-модулей не импортирует, так что упасть на импорте больше
+ * нечему.
  */
-const hasMissingLoaders = computed<boolean>(() =>
-    props.skippedBricks.some((brick) => brick.reason === 'loader-missing')
-);
-
-/** Подсказка про перезапуск нужна только там, где перезапуск и возможен. */
 const isDevHintVisible = computed<boolean>(
-    () => import.meta.dev === true && hasMissingLoaders.value
+    () => import.meta.dev === true && props.skippedBricks.length > 0
 );
 // #endregion
 

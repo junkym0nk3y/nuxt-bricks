@@ -123,7 +123,7 @@ const {
     handleMoveDown,
     handleToggleFavorite,
     handleToggleInteractivePreview,
-} = useCanvasItemActions(props, isLayout, layoutName, figmaViewport);
+} = useCanvasItemActions(props, figmaViewport);
 </script>
 
 <template>

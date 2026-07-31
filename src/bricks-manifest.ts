@@ -7,6 +7,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { globby } from 'globby';
 import { basename, isAbsolute, join, relative } from 'pathe';
+import { extractBrickMetadata } from './brick-metadata';
 import {
     BRICKS_MANIFEST_DIR,
     BRICKS_MANIFEST_FILENAME,
@@ -32,9 +33,6 @@ const BRICK_COMPONENTS_DIR = 'components';
  * и перебирать варианты пути больше не нужно.
  */
 const BRICK_FILES_GLOB = `${BRICK_COMPONENTS_DIR}/**/*${BRICK_FILE_SUFFIX}`;
-
-const CATEGORY_RE = /category\s*:\s*(['"])(.*?)\1/;
-const DEFAULT_CATEGORY = 'Common';
 
 /**
  * Суффикс временного файла атомарной публикации. Каталог манифеста смонтирован
@@ -76,25 +74,13 @@ export function isBrickFilePath(srcDir: string, path: string): boolean {
 }
 
 /**
- * Достаёт категорию из содержимого brick-файла.
- *
- * @param content - Исходник `*.brick.ts`.
- * @returns Значение `category` или дефолтная категория.
- */
-function extractCategory(content: string): string {
-    return content.match(CATEGORY_RE)?.[2] || DEFAULT_CATEGORY;
-}
-
-/**
  * Считает хеш манифеста по содержимому brick-файлов.
  *
  * Хеш — сигнал «brick-файлы изменились». Потребителя у него пока нет: тот, ради
  * которого он приехал, снят вместе с HMR-надстройкой, а вернётся, когда
  * обновление библиотеки в dev сведётся к «сравнил хеш → перефетчил библиотеку».
- * Считается от исходников, а не от
- * инвентаря записей: `values`, `slots` и `description` лежат внутри файла и в
- * манифест не попадают, так что инвентарный хеш к их правке слеп — а именно она и
- * есть самая частая при разработке компонента.
+ * Считается от исходников, а не от инвентаря записей: правка `dataSources` или
+ * самого Vue-компонента в инвентарь не попадает, а перезагрузки требует.
  *
  * Путь и содержимое разделены NUL: без разделителя пара «путь + исходник» могла
  * бы склеиться с другой парой в ту же последовательность байт.
@@ -143,6 +129,10 @@ function isMissingFileError(error: unknown): error is Error {
  * гонку, и ронять из-за неё весь скан (а в dev — процесс) нельзя. Удаление всё
  * равно придёт отдельным событием вотчера и перегенерирует манифест.
  *
+ * Ошибка разбора метаданных, наоборот, уходит наружу: молча записанный в
+ * манифест брик без свойств выглядел бы как исправный, а его панель свойств —
+ * как пустая по замыслу автора.
+ *
  * @param srcDir - `nuxt.options.srcDir` (база ключа загрузчика).
  * @param filePath - Абсолютный путь brick-файла.
  * @returns Запись манифеста с исходником или `null`, если файла уже нет.
@@ -151,17 +141,10 @@ async function readManifestEntry(
     srcDir: string,
     filePath: string
 ): Promise<IBrickManifestSource | null> {
-    try {
-        const content = await readFile(filePath, 'utf8');
+    let content: string;
 
-        return {
-            entry: {
-                name: basename(filePath, BRICK_FILE_SUFFIX),
-                category: extractCategory(content),
-                brickPath: `/${relative(srcDir, filePath)}`,
-            },
-            content,
-        };
+    try {
+        content = await readFile(filePath, 'utf8');
     } catch (error) {
         if (isMissingFileError(error)) {
             return null;
@@ -169,6 +152,17 @@ async function readManifestEntry(
 
         throw error;
     }
+
+    const metadata = extractBrickMetadata(filePath, content);
+
+    return {
+        entry: {
+            name: basename(filePath, BRICK_FILE_SUFFIX),
+            brickPath: `/${relative(srcDir, filePath)}`,
+            ...metadata,
+        },
+        content,
+    };
 }
 
 /**

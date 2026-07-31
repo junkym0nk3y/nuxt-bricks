@@ -10,12 +10,13 @@ import type { IComponentLibraryItem } from '../../src/runtime/modules/common/typ
  * `defaultProps` собирались присваиванием в аккумулятор
  * (`acc[key] = val.default`). Имена пропов объявляет brick-файл, поэтому
  * `values.__proto__` подменял прототип собираемого объекта вместо записи ключа.
+ * Генератор манифеста такое имя теперь отвергает, но ответ ручки — внешние
+ * данные: правленый руками манифест обязан оставаться безопасным.
  */
 
 // #region Mocks
-const { apiFetcherMock, findImportModuleMock } = vi.hoisted(() => ({
+const { apiFetcherMock } = vi.hoisted(() => ({
     apiFetcherMock: vi.fn(),
-    findImportModuleMock: vi.fn(),
 }));
 
 vi.mock('#imports', async (importOriginal) => {
@@ -33,7 +34,14 @@ vi.mock('../../src/runtime/modules/common/composables/useApiClient', () => ({
 }));
 
 vi.mock('../../src/runtime/modules/common/composables/useBrickImports', () => ({
-    useBrickImports: () => ({ findImportModule: findImportModuleMock }),
+    useBrickImports: () => ({ findImportModule: vi.fn(), hasBrickModule: () => true }),
+}));
+
+vi.mock('../../src/runtime/modules/builder/core/stores/components', () => ({
+    useComponentsStore: () => ({
+        selectedComponentData: null,
+        setSelectedComponentMetadata: vi.fn(),
+    }),
 }));
 // #endregion
 
@@ -42,14 +50,20 @@ import { useComponentLibrary } from '../../src/runtime/modules/builder/app/compo
 /**
  * Прогоняет библиотеку компонентов для одного brick'а с заданными values.
  *
- * @param values - Объявление values из brick-файла.
+ * @param values - Определения свойств из записи манифеста.
  * @returns Элемент библиотеки, соответствующий brick'у.
  */
 async function loadSingleBrick(values: unknown): Promise<IComponentLibraryItem> {
     apiFetcherMock.mockResolvedValue({
-        bricks: [{ name: 'TestBrick', category: 'Other', brickPath: '/components/Test.brick.ts' }],
+        bricks: [
+            {
+                name: 'TestBrick',
+                category: 'Other',
+                brickPath: '/components/Test.brick.ts',
+                values,
+            },
+        ],
     });
-    findImportModuleMock.mockReturnValue(() => Promise.resolve({ brick: { values } }));
 
     const { componentLibraryList } = await useComponentLibrary();
     const item = componentLibraryList.value.find((entry) => entry.name === 'TestBrick');
@@ -67,7 +81,6 @@ describe('useComponentLibrary: имена пропов из Object.prototype', (
     afterEach(() => {
         vi.restoreAllMocks();
         apiFetcherMock.mockReset();
-        findImportModuleMock.mockReset();
     });
 
     it('пропы с именами членов прототипа становятся собственными ключами', async () => {

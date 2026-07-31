@@ -39,6 +39,32 @@ export const selectionActions: IComponentsSelectionActions = {
     },
 
     /**
+     * Обновляет метаданные уже выбранного компонента, не трогая сам выбор.
+     *
+     * Нужно повтору загрузки библиотеки: свойства приезжают из манифеста, и
+     * после его отказа открытая панель пуста, пока метаданные не доедут.
+     * Повторный `selectComponent` для этого не годится — он ещё и открывает
+     * панель свойств, то есть свернул бы её обратно тому, кто её закрыл.
+     *
+     * @param id - Компонент, для которого пришли метаданные.
+     * @param properties - Определения редактируемых свойств.
+     * @param description - Описание компонента.
+     */
+    setSelectedComponentMetadata(
+        this: IComponentsStore,
+        id: string,
+        properties: ISelectedComponent['properties'],
+        description?: ISelectedComponent['description']
+    ) {
+        // Пока метаданные ехали, пользователь мог выбрать другой компонент
+        if (this.selectedComponent?.id !== id) {
+            return;
+        }
+
+        this.selectedComponent = { id, properties, description };
+    },
+
+    /**
      * Сбрасывает выбор и скрывает правую панель свойств.
      */
     deselectComponent(this: IComponentsStore) {
