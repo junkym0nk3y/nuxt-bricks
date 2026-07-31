@@ -6,15 +6,33 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createFetch } from 'ofetch';
 
 // Utils
-import { isRequestTimeoutError } from '../../src/runtime/modules/common/utils/apiRequestPolicy';
+import {
+    applyApiRequestTimeout,
+    isRequestTimeoutError,
+} from '../../src/runtime/modules/common/utils/apiRequestPolicy';
+
+// Constants
+import { BRICKS_API_READ_TIMEOUT_MS } from '../../src/runtime/modules/common/constants/apiTimeouts';
 
 // Composables
 import {
-    PUBLIC_PAGE_REQUEST_TIMEOUT_MS,
     resolvePublicPageBaseUrl,
     usePublicPageClient,
 } from '../../src/runtime/modules/render/composables/usePublicPageClient';
 // #endregion
+
+// Политика оставлена настоящей, обёрнута только ради подсматривания аргументов:
+// бюджет, с которым клиент её зовёт, иначе наблюдать нечем — ofetch свой таймер
+// при выставленном сигнале не ставит, а `AbortSignal.timeout` фейковым таймерам
+// не подчиняется, то есть проверка по времени требовала бы настоящих 10 секунд
+vi.mock('../../src/runtime/modules/common/utils/apiRequestPolicy', async (importOriginal) => {
+    const actual =
+        await importOriginal<
+            typeof import('../../src/runtime/modules/common/utils/apiRequestPolicy')
+        >();
+
+    return { ...actual, applyApiRequestTimeout: vi.fn(actual.applyApiRequestTimeout) };
+});
 
 describe('resolvePublicPageBaseUrl', () => {
     it('SSR: относительный app.baseURL с trailing slash (внутренний вызов Nitro)', () => {
@@ -59,7 +77,7 @@ describe('usePublicPageClient', () => {
         expect(options.timeout).toBeUndefined();
     });
 
-    it('потолок ожидания ставится на каждый запрос', async () => {
+    it('бюджет каждого запроса — общий потолок чтения, а не своя копия числа', async () => {
         const requests: { signal?: AbortSignal | null }[] = [];
         const captured: typeof globalThis.fetch = (_input, init) => {
             requests.push({ signal: init?.signal });
@@ -69,13 +87,18 @@ describe('usePublicPageClient', () => {
 
         vi.stubGlobal('window', { location: { origin: 'http://localhost:3000' } });
         vi.stubGlobal('$fetch', createFetch({ fetch: captured }));
+        vi.mocked(applyApiRequestTimeout).mockClear();
 
         const { publicPageFetcher } = usePublicPageClient();
         await publicPageFetcher('/api/bricks/page');
 
-        // Бюджет по умолчанию — тот же, что объявлен константой клиента
         expect(requests[0]?.signal).toBeDefined();
-        expect(PUBLIC_PAGE_REQUEST_TIMEOUT_MS).toBe(10_000);
+        // Со своей константой клиента поднятие бюджета здесь начал бы обрезать
+        // внешний SSR-дедлайн, который берёт именно общий потолок чтения
+        expect(applyApiRequestTimeout).toHaveBeenCalledWith(
+            '/api/bricks/page',
+            expect.objectContaining({ timeout: BRICKS_API_READ_TIMEOUT_MS })
+        );
     });
 
     it('зависшее тело ответа обрывается по потолку, а не держит посетителя', async () => {

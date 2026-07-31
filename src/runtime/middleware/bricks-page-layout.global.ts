@@ -4,12 +4,11 @@ import { createError, useState, useRequestHeaders, useRuntimeConfig } from '#imp
 import type { TPublishedPageSummary, IPublishedPage } from '../modules/common/types/bricks-api';
 import { normalizeBricksError, parseBricksBooleanFlag } from '../modules/common/utils/main';
 import { isRequestTimeoutError } from '../modules/common/utils/apiRequestPolicy';
-import { withPromiseDeadline } from '../modules/common/utils/promiseDeadline';
 import { useApiClient } from '../modules/common/composables/useApiClient';
 import { usePublicPageClient } from '../modules/render/composables/usePublicPageClient';
+import { withPageLookupDeadline } from '../modules/render/utils/pageLookupDeadline';
 import { toCamelCase } from '../modules/common/utils/case-transform';
 import { BRICKS_ROUTE_NAMES } from '../modules/common/constants/routes';
-import { BRICKS_API_READ_TIMEOUT_MS } from '../modules/common/constants/apiTimeouts';
 import {
     matchesPageSubdomain,
     matchesPageUrlPrefix,
@@ -24,27 +23,13 @@ import {
 const HTTP_GATEWAY_TIMEOUT = 504;
 
 /**
- * Ограничивает SSR-lookup страницы по времени.
- *
- * Потолок транспорта здесь не срабатывает: на SSR относительные URL уходят
- * внутренним вызовом Nitro, а он `AbortSignal` не слушает — то есть сигнал,
- * которым политика запросов держит потолок, для такого вызова инертен. Зависший
- * обработчик держал бы весь SSR-ответ, то есть посетитель ждал бы вечно. Гонка
- * обработчик не останавливает, но перестаёт его ждать и отдаёт 504.
- *
- * Ошибка помечена именем `TimeoutError`, поэтому её классифицирует тот же
- * `isRequestTimeoutError`, что и обрыв на клиенте.
+ * Ограничивает SSR-lookup страницы по времени (детали политики — в утилите).
  *
  * @param operation - Промис lookup'а.
- * @returns Промис lookup'а с дедлайном.
+ * @returns Промис lookup'а с дедлайном на SSR.
  */
 function withLookupDeadline<T>(operation: Promise<T>): Promise<T> {
-    return withPromiseDeadline(operation, BRICKS_API_READ_TIMEOUT_MS, () => {
-        const error = new Error('Bricks page lookup timed out');
-        error.name = 'TimeoutError';
-
-        return error;
-    });
+    return withPageLookupDeadline(operation, Boolean(import.meta.server));
 }
 
 /**

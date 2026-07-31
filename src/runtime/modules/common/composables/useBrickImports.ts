@@ -11,6 +11,11 @@ import { readOwnKey } from '../utils/safeRecord';
  * у Nuxt 3 srcDir равен rootDir, у Nuxt 4 — `<rootDir>/app`, у playground —
  * `<repo>/playground`. Build-time генератор (`src/bricks-manifest.ts`) пишет
  * `brickPath` ровно в этом виде, так что поиск лоадера — прямой lookup.
+ *
+ * Опора — стандартный `vite.root === srcDir`: при переопределённом root ключи
+ * этой карты и пути генератора расходятся. Дополнительные каталоги компонентов
+ * (`components.dirs`, слои Nuxt, другие модули, пакеты npm) сюда не попадают —
+ * область поддержки перечислена в README.
  */
 const brickModules = import.meta.glob<IBrickExportModule>('/components/**/*.brick.ts');
 

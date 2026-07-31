@@ -31,6 +31,11 @@ const BRICK_COMPONENTS_DIR = 'components';
  * `<repo>/playground`; во всех трёх случаях ключ загрузчика получается один и
  * тот же (`/components/…`), поэтому разбирать префиксы `app/`/`playground/`
  * и перебирать варианты пути больше не нужно.
+ *
+ * Равенство «ключ карты загрузчиков == `/` + путь от `srcDir`» держится на
+ * стандартном `vite.root === srcDir` и на единственном каталоге скана.
+ * Каталоги из `components.dirs`, слоёв Nuxt, других Nuxt-модулей и пакетов
+ * npm в карту намеренно не входят — область поддержки перечислена в README.
  */
 const BRICK_FILES_GLOB = `${BRICK_COMPONENTS_DIR}/**/*${BRICK_FILE_SUFFIX}`;
 

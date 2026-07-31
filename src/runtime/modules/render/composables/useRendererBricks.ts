@@ -34,23 +34,19 @@ function extractBrickComponent(module: unknown, brickPath: string): Component | 
 /**
  * Загружает brick-модуль и кладёт его в кеш.
  *
+ * Лоадер приходит уже найденным: вызывающий обязан проверить его наличие сам,
+ * иначе отсутствие модуля обнаруживалось бы только внутри async-компонента, где
+ * исключение не доходит до заглушки.
+ *
  * @param brickPath Путь до brick-файла.
- * @param findImportModule Функция поиска loader-а.
+ * @param importModule Найденный loader brick-модуля.
  * @returns Компонент или null.
  */
 async function loadBrickComponent(
     brickPath: string,
-    findImportModule: (brickPath: string) => (() => Promise<unknown>) | undefined
+    importModule: () => Promise<unknown>
 ): Promise<Component | null> {
     const cacheKey = normalizeBrickPath(brickPath);
-    const importModule = findImportModule(brickPath);
-
-    if (!importModule) {
-        // О промахе сообщает сама точка поиска лоадера — второй лог на то же
-        // событие только удваивал вывод на published-странице
-        // НЕ кэшируем null — компонент может появиться после HMR
-        return null;
-    }
 
     try {
         const module = await importModule();
@@ -89,9 +85,25 @@ export function useRendererBricks({ findImportModule }: IRendererBrickResolverOp
             return componentCache.get(cacheKey) || null;
         }
 
+        // Лоадер проверяется ДО создания async-компонента: внутри лоадера промах
+        // превращался в исключение, оно доходило до SSR-рендера и роняло
+        // published-страницу целиком в 500 (замерено на prod-сборке), вместе с
+        // исправными компонентами схемы — то есть один устаревший brickPath
+        // выносил всю страницу. Синхронный отказ доводит управление до ветки
+        // заглушки в рендерере. Решение одинаково на сервере и клиенте: карта
+        // лоадеров разворачивается из одного паттерна по одному набору файлов,
+        // поэтому гидрация сходится.
+        const importModule = findImportModule(brickPath);
+
+        if (!importModule) {
+            // О промахе сообщает сама точка поиска лоадера, один раз на путь;
+            // НЕ кэшируем null — компонент может появиться после HMR
+            return null;
+        }
+
         const asyncComponent = defineAsyncComponent({
             loader: async () => {
-                const component = await loadBrickComponent(brickPath, findImportModule);
+                const component = await loadBrickComponent(brickPath, importModule);
 
                 if (!component) {
                     throw new Error(`Module ${brickPath} has no usable component export`);
@@ -102,7 +114,9 @@ export function useRendererBricks({ findImportModule }: IRendererBrickResolverOp
             suspensible: true,
         });
 
-        componentCache.set(brickPath, asyncComponent);
+        // Ключ нормализованный, как и у чтения выше: с сырым путём запись не
+        // находилась, и на каждую перерисовку создавалась новая async-обёртка
+        componentCache.set(cacheKey, asyncComponent);
         return asyncComponent;
     }
 
@@ -122,7 +136,14 @@ export function useRendererBricks({ findImportModule }: IRendererBrickResolverOp
             return;
         }
 
-        await loadBrickComponent(brickPath, findImportModule);
+        const importModule = findImportModule(brickPath);
+
+        // Нечего предзагружать: заглушку покажет рендер, предзагрузка молчит
+        if (!importModule) {
+            return;
+        }
+
+        await loadBrickComponent(brickPath, importModule);
     }
 
     return {

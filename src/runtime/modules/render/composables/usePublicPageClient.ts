@@ -8,22 +8,11 @@ import {
     normalizeRequestAbortError,
 } from '../../common/utils/apiRequestPolicy';
 
+// Constants
+import { BRICKS_API_READ_TIMEOUT_MS } from '../../common/constants/apiTimeouts';
+
 // Nuxt
 import { useRuntimeConfig } from '#imports';
-// #endregion
-
-// #region Data
-/**
- * Таймаут запроса published-страницы: повисший backend не должен держать
- * посетителя дольше этого лимита (паттерн data sources).
- *
- * Оговорка про SSR: относительный URL на сервере выполняется внутренним вызовом
- * Nitro (`fetchNodeRequestHandler`), а он `AbortSignal` не слушает — этот
- * потолок там инертен. SSR-путь ограничивает внешний дедлайн вокруг lookup'а в
- * `bricks-page-layout.global.ts`; здесь потолок работает на клиенте и при
- * внешнем backend'е.
- */
-export const PUBLIC_PAGE_REQUEST_TIMEOUT_MS = 10_000;
 // #endregion
 
 // #region Methods
@@ -91,12 +80,12 @@ export function usePublicPageClient() {
     /**
      * Выполняет lookup с потолком ожидания на обе фазы ответа.
      *
-     * Опция `timeout` выше — только декларация бюджета: её таймер ofetch снимает
-     * на заголовках, и зависшее тело держало бы посетителя без границы. Политика
-     * переводит бюджет в живой сигнал, а `normalizeRequestAbortError` возвращает
-     * обрыву опознаваемое имя там, где платформа его потеряла (браузер на фазе
-     * чтения тела). Через `.raw`, потому что на переменном URL вывод типа ответа
-     * по Nitro-роутам упирается в предел рекурсии компилятора.
+     * Опция `timeout` в запросе — только декларация бюджета: её таймер ofetch
+     * снимает на заголовках, и зависшее тело держало бы посетителя без границы.
+     * Политика переводит бюджет в живой сигнал, а `normalizeRequestAbortError`
+     * возвращает обрыву опознаваемое имя там, где платформа его потеряла
+     * (браузер на фазе чтения тела). Через `.raw`, потому что на переменном URL
+     * вывод типа ответа по Nitro-роутам упирается в предел рекурсии компилятора.
      *
      * @param request - Путь запроса.
      * @param options - Опции запроса.
@@ -107,7 +96,17 @@ export function usePublicPageClient() {
         options: TPublicRequestOptions = {}
     ): Promise<T> {
         const requestOptions: TPublicRequestOptions = {
-            timeout: PUBLIC_PAGE_REQUEST_TIMEOUT_MS,
+            // Общий потолок чтения, а не собственная константа клиента: со второй
+            // копией того же числа поднятие бюджета здесь начало бы обрезаться
+            // внешним SSR-дедлайном, который берёт именно эту константу, и
+            // реальная ошибка сервера превращалась бы в 504.
+            //
+            // На SSR потолок инертен: относительный URL выполняется внутренним
+            // вызовом Nitro (`fetchNodeRequestHandler`), а он `AbortSignal` не
+            // слушает. Там границу держит внешний дедлайн вокруг lookup'а
+            // (`bricks-page-layout.global.ts`); здесь потолок работает на
+            // клиенте и при внешнем backend'е.
+            timeout: BRICKS_API_READ_TIMEOUT_MS,
             ...options,
         };
         const effectiveSignal = applyApiRequestTimeout(request, requestOptions);
