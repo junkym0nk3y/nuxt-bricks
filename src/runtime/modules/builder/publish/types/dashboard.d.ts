@@ -3,6 +3,8 @@
  */
 
 import type { IPageVersionSummary, TPublishedPageSummary } from '../../../common/types/bricks-api';
+import type { IBricksSchema } from '../../../common/types/brick';
+import type { IParsedSchemaFile } from './composables';
 
 export type TPublishDashboardSection = 'pages' | 'templates';
 
@@ -111,10 +113,26 @@ export interface IPublishPageFormOptions {
 
 export interface IPublishCreatePageFormOptions {
     onCreated: (pagename: string) => void;
+    /**
+     * Отдаёт схему новой страницы: пустой холст либо разобранный JSON-файл,
+     * прогнанный через резолвер картинок. `null` — создание отменено (резолвер
+     * закрыли), POST не уходит.
+     */
+    resolveSchema: () => Promise<IBricksSchema | null>;
 }
+
+/**
+ * Прогон схемы через резолвер картинок дашборда. `null` — импорт отменён.
+ *
+ * Функцией-пропом, а не своим экземпляром резолвера в модалке: резолвер один на
+ * весь дашборд, иначе две его модалки открывались бы поверх друг друга и
+ * параллельно правили одно состояние медиатеки.
+ */
+export type TResolveImportedSchema = (schema: IBricksSchema) => Promise<IBricksSchema | null>;
 
 export interface IPublishCreatePageModalProps {
     isOpen: boolean;
+    resolveImportedSchema: TResolveImportedSchema;
 }
 
 export interface IPublishCreatePageModalEmits {
@@ -125,6 +143,8 @@ export interface IPublishCreatePageModalEmits {
 export interface IPublishDetailsPanelProps {
     page: TPublishedPageSummary;
     isDuplicating?: boolean;
+    /** Идёт импорт схемы (координатор импорта живёт в контроллере дашборда). */
+    isImporting?: boolean;
 }
 
 export interface IPublishDetailsPanelEmits {
@@ -135,6 +155,8 @@ export interface IPublishDetailsPanelEmits {
     'toggle-published': [page: TPublishedPageSummary, published: boolean];
     'open-media': [];
     'restore-version': [page: TPublishedPageSummary, version: IPageVersionSummary];
+    /** Файл схемы выбран и разобран; подтверждение и запись — на контроллере. */
+    'import-schema-file': [page: TPublishedPageSummary, file: IParsedSchemaFile];
     notify: [message: string, variant: 'success' | 'error'];
 }
 
@@ -188,6 +210,40 @@ export interface IPublishDetailsPanelVersionsProps {
 export interface IPublishDetailsPanelVersionsEmits {
     restore: [version: IPageVersionSummary];
     notify: [message: string, variant: 'success' | 'error'];
+}
+
+export interface IPublishDetailsPanelSchemaProps {
+    page: TPublishedPageSummary;
+    /** Идёт импорт схемы этой страницы (владеет им координатор на дашборде). */
+    isImporting: boolean;
+    /** Идёт сохранение meta-формы — запись схемы в это окно не начинают. */
+    isSaving: boolean;
+}
+
+export interface IPublishDetailsPanelSchemaEmits {
+    /**
+     * Файл разобран и готов к применению; подтверждение спрашивает контроллер.
+     * Страница передаётся снимком на момент выбора файла, а не читается из пропа
+     * получателем: чтение файла переживает смену выбранной страницы.
+     */
+    'import-file': [page: TPublishedPageSummary, file: IParsedSchemaFile];
+}
+
+/** Источник содержимого новой страницы в модалке создания. */
+export type TPublishCreatePageSource = 'blank' | 'template' | 'file';
+
+export interface IPublishCreatePageStartOptionsProps {
+    source: TPublishCreatePageSource;
+    /** Разобранный JSON-файл, выбранный как источник (ждёт сабмита). */
+    selectedFile: IParsedSchemaFile | null;
+    error: string;
+    isSubmitting: boolean;
+}
+
+export interface IPublishCreatePageStartOptionsEmits {
+    'select-blank': [];
+    'pick-file': [];
+    'clear-file': [];
 }
 
 /**

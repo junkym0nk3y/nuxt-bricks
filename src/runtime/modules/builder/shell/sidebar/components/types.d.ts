@@ -2,11 +2,7 @@
  * Sidebar component types
  */
 
-import type {
-    IBricksSchema,
-    IDragVisualSize,
-    IComponentLibraryItem,
-} from '../../../../common/types/brick';
+import type { IDragVisualSize, IComponentLibraryItem } from '../../../../common/types/brick';
 import type { TMediaGalleryContext } from '../../../../common/types/media';
 import type { ISkippedBrick } from '../../../core/types/componentLibrary';
 import type { Component, ComputedRef, Ref, ShallowRef } from 'vue';
@@ -30,7 +26,6 @@ export interface ISidebarProps {
 
 export interface ISidebarEmits {
     openMediaGallery: [context: TMediaGalleryContext];
-    importSchema: [schema: IBricksSchema];
     retryLibrary: [];
 }
 

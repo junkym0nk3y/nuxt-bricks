@@ -1,6 +1,6 @@
 # builder/shell/sidebar/composables
 
-Композаблы сайдбара: панель свойств, форма публикации, импорт/экспорт схемы.
+Композаблы сайдбара: панель свойств и форма публикации.
 
 | Файл                            | Назначение                                                                                  |
 | ------------------------------- | ------------------------------------------------------------------------------------------- |
@@ -13,4 +13,3 @@
 | `useComponentCardDrag.ts`       | Dragstart карточки через инжектированный drag-композабл (`dragComposable`)                  |
 | `useSidebarPublishForm.ts`      | Форма публикации сайдбара: state из publish-стора, layout-опции, превью URL, обработчики    |
 | `usePublishValidationSchema.ts` | Обёртка над `publish/utils/validationSchema` (store + i18n, исключение `editingPageId`)     |
-| `useSchemaFileTransfer.ts`      | Экспорт схемы в JSON-файл и импорт из файла с валидацией структуры                          |

@@ -47,7 +47,6 @@ import TheBuilderCanvas from '../../canvas/viewport/components/TheBuilderCanvas.
 import TheBuilderLoader from '../components/TheBuilderLoader.vue';
 import TheBuilderSessionError from '../components/TheBuilderSessionError.vue';
 import BricksConfirmModal from '../../../ui/feedback/BricksConfirmModal.vue';
-import TheBuilderMediaImageResolverModal from '../../media/components/TheBuilderMediaImageResolverModal.vue';
 import BricksToast from '../../../ui/feedback/BricksToast.vue';
 
 // Модалки — lazy-чанки: не нужны до открытия
@@ -176,14 +175,6 @@ const {
     handleSaveDraft,
     handleSaveAsCopy,
     handlePreview,
-    isImageResolverModalOpen,
-    imageResolverState,
-    handleImportSchema,
-    handleImageResolverConfirm,
-    handleImageResolverCancel,
-    handleImageResolverSkip,
-    handleSetImageAction,
-    handleSetGlobalAction,
 } = builder;
 
 const darkModeCookie = useCookie<boolean>('bricks-dark-mode', {
@@ -370,7 +361,6 @@ onBeforeUnmount(() => {
                     :is-library-load-failed="isComponentLibraryLoadFailed"
                     :is-library-loading="isComponentLibraryLoading"
                     @open-media-gallery="handleOpenMediaGalleryWithContext"
-                    @import-schema="handleImportSchema"
                     @retry-library="handleRetryComponentLibrary"
                 />
 
@@ -428,16 +418,6 @@ onBeforeUnmount(() => {
             confirm-variant="primary"
             @close="handleDiscardDraft"
             @confirm="handleRestoreDraft"
-        />
-
-        <TheBuilderMediaImageResolverModal
-            :is-open="isImageResolverModalOpen"
-            :state="imageResolverState"
-            @confirm="handleImageResolverConfirm"
-            @cancel="handleImageResolverCancel"
-            @skip="handleImageResolverSkip"
-            @set-image-action="handleSetImageAction"
-            @set-global-action="handleSetGlobalAction"
         />
 
         <BricksToast

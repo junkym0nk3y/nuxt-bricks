@@ -2,17 +2,13 @@
  * Типы для composables.
  */
 
-import type { IComponentLibraryItem, IBricksSchema } from '../../../common/types/brick';
+import type { IComponentLibraryItem } from '../../../common/types/brick';
 import type { ComputedRef, Ref } from 'vue';
 import type { useSidebarStore } from '../../core/stores/sidebar';
 import type { usePublishStore } from '../../publish/stores/publish';
 import type { IMediaItem, TMediaGalleryContext } from '../../../common/types/media';
 import type { IPublishedPage } from '../../../common/types/bricks-api';
 import type { ISidebarExpose } from './builder';
-import type {
-    IImageResolverState,
-    TImageResolveAction,
-} from '../../media/types/schemaImageResolver';
 import type { IBuilderDraftSnapshot } from '../../publish/types/builderDrafts';
 import type { IBuilderToastState } from '../../core/types/toast';
 import type { TCachedModal } from '../../core/types/modals';
@@ -302,13 +298,5 @@ export interface IUseBuilderPageReturn {
     handleSaveDraft: () => Promise<void>;
     handleSaveAsCopy: () => Promise<void>;
     handlePreview: () => Promise<void>;
-    isImageResolverModalOpen: Ref<boolean>;
-    imageResolverState: IImageResolverState;
-    handleImportSchema: (schema: IBricksSchema) => Promise<void>;
-    handleImageResolverConfirm: () => void;
-    handleImageResolverCancel: () => void;
-    handleImageResolverSkip: () => void;
-    handleSetImageAction: (url: string, action: TImageResolveAction) => void;
-    handleSetGlobalAction: (action: TImageResolveAction) => void;
 }
 // #endregion

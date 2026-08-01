@@ -90,7 +90,12 @@ function onLeave(element: Element): void {
 <template>
     <DialogRoot :open="props.isOpen" @update:open="onUpdateOpen">
         <DialogPortal>
-            <Transition name="bricks-modal-fade" :duration="props.duration" @leave="onLeave">
+            <Transition
+                name="bricks-modal-fade"
+                :duration="props.duration"
+                @leave="onLeave"
+                @after-leave="emit('afterLeave')"
+            >
                 <!--
                     DialogContent не должен быть вложен в DialogOverlay: overlay Reka
                     делает preventDefault на левый pointerdown, и вложенный контент

@@ -69,6 +69,7 @@ function handleConfirm(): void {
         :z-index="999999"
         :duration="200"
         @close="handleClose"
+        @after-leave="emit('afterLeave')"
     >
         <div :class="$style.BricksConfirmModal">
             <div :class="$style.header">

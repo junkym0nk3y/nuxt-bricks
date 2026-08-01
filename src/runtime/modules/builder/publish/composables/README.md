@@ -10,3 +10,5 @@
 | `usePublishPageVersions.ts`   | Версии страницы для панели деталей: список сводок (`loadVersions`) + превью снапшота (`previewVersion`)     |
 | `usePublishPreview.ts`        | Превью лендинга/версии: снапшот в localStorage (`bricks-preview-page`) + открытие `/preview/[pagename]`     |
 | `usePublishVersionRestore.ts` | Confirm-флоу отката к версии: состояние модалки подтверждения + вызов `restorePageVersion` стора            |
+| `useSchemaFileTransfer.ts`    | Перенос схемы файлом: скачивание JSON и чтение выбранного файла с валидацией структуры                      |
+| `usePublishSchemaImport.ts`   | Импорт схемы на дашборде: подтверждение замены, резолвинг картинок, запись схемы с precondition             |

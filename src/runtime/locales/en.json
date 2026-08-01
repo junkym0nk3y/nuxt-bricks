@@ -224,6 +224,20 @@
                             "previewFailed": "Failed to open the version preview"
                         }
                     },
+                    "schema": {
+                        "title": "Schema",
+                        "replaceHint": "Import will replace the page content",
+                        "exporting": "Preparing the file…",
+                        "importing": "Applying the schema…",
+                        "exportFailed": "Failed to build the schema file",
+                        "importFailed": "Failed to apply the schema",
+                        "busy": "Wait for the current import to finish",
+                        "replaceConfirm": {
+                            "title": "Replace the page content?",
+                            "description": "The schema of “{title}” will be replaced with {filename}. The previous state will be kept in the version history.",
+                            "confirm": "Import"
+                        }
+                    },
                     "save": "Save changes",
                     "cancel": "Cancel",
                     "openInEditor": "Open in editor",
@@ -245,6 +259,9 @@
                     "blankDescription": "A clean canvas with no blocks",
                     "templateTitle": "From a template",
                     "templateDescription": "Coming soon — save pages as templates",
+                    "fileTitle": "From a JSON file",
+                    "fileDescription": "Upload a ready-made schema",
+                    "fileBlocks": "Blocks: {count}",
                     "advanced": "Advanced: urlPrefix, subdomain, keywords",
                     "submit": "Create and open in editor",
                     "createFailed": "Failed to create the page"

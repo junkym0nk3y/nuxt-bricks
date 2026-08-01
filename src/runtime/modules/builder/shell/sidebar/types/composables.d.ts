@@ -98,16 +98,6 @@ export interface IUseSidebarPublishFormReturn {
 }
 // #endregion
 
-// #region useSchemaFileTransfer
-/**
- * Опции composable useSchemaFileTransfer (экспорт/импорт схемы JSON-файлом).
- */
-export interface ISchemaFileTransferOptions {
-    /** Вызывается с провалидированной схемой из выбранного файла. */
-    onImport: (schema: IBricksSchema) => void;
-}
-// #endregion
-
 // #region useComponentCardDrag
 /**
  * Возвращаемое значение composable useComponentCardDrag.

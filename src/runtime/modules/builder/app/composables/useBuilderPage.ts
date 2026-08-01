@@ -1,6 +1,5 @@
 // #region Imports
 // Types
-import type { IBricksSchema } from '../../../common/types/brick';
 import type { IMediaItem, TMediaGalleryContext } from '../../../common/types/media';
 import type { ISidebarExpose } from '../types/builder';
 import type { IBuilderPageOptions, IUseBuilderPageReturn } from '../types/composables';
@@ -21,7 +20,6 @@ import { useBuilderToast } from '../../core/composables/useBuilderToast';
 import { usePreviewSync } from './usePreviewSync';
 import { usePublishPreview } from '../../publish/composables/usePublishPreview';
 import { useBricksConfig } from '../../../common/composables/useBricksConfig';
-import { useSchemaImageResolver } from '../../media/composables/useSchemaImageResolver';
 
 // Pinia
 import { useComponentsStore } from '../../core/stores/components';
@@ -58,7 +56,6 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
 
     provide('dragComposable', dragComposable);
 
-    const imageResolver = useSchemaImageResolver();
     const { startPreviewSync } = usePreviewSync(sessionToken);
     const { previewCurrentPage } = usePublishPreview();
     const { handleKeyDown } = useBuilderShortcuts();
@@ -250,13 +247,11 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
     // #region Session reset
     // Поверхности, телепортированные в body, лежат вне `.workspace`, поэтому
     // барьер `inert` рабочей области их не закрывает и они переживают смену сессии:
-    // резолвер импорта, открытый на странице A, подтверждается уже на B и кладёт
-    // её схему на чужой канвас; галерея тем же путём пишет `socialImage` или проп
-    // компонента через контекст выбора прежней страницы; inline-редактирование
-    // остаётся привязанным к компоненту, которого на новом канвасе нет
-    // (`loadSchema` сбрасывает только `selectedComponent`). Проверки готовности
-    // здесь мало — к моменту подтверждения новая сессия уже готова, — поэтому
-    // открытие сессии гасит их явно.
+    // галерея пишет `socialImage` или проп компонента через контекст выбора прежней
+    // страницы; inline-редактирование остаётся привязанным к компоненту, которого
+    // на новом канвасе нет (`loadSchema` сбрасывает только `selectedComponent`).
+    // Проверки готовности здесь мало — к моменту подтверждения новая сессия уже
+    // готова, — поэтому открытие сессии гасит их явно.
     //
     // flush: 'sync' — сброс обязан произойти в момент инвалидации токена, а не на
     // следующем тике: `openBuilderSession` сразу уходит в await, и отложенный
@@ -264,47 +259,11 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
     watch(
         sessionToken.token,
         () => {
-            imageResolver.handleCancel();
             inlineMediaBridge.cancelInlineEditing();
             handleCloseMediaGallery();
         },
         { flush: 'sync' }
     );
-    // #endregion
-
-    // #region Schema import with image resolving
-    /**
-     * Импортирует JSON-схему с предварительным резолвингом изображений.
-     * Если найдены новые изображения — показывает модалку с выбором действий.
-     *
-     * @param schema - Импортируемая схема.
-     */
-    async function handleImportSchema(schema: IBricksSchema): Promise<void> {
-        const startedIn = sessionToken.capture();
-        const { schema: resolved, isComparisonSkipped } =
-            await imageResolver.startResolving(schema);
-
-        // Сброса выше недостаточно: до показа модалки резолвер ждёт загрузку
-        // медиа-галереи, и если новых изображений в схеме нет, он возвращает её без
-        // модалки вовсе — гасить в этом окне нечего, а схема прежней страницы легла
-        // бы на канвас новой
-        if (!resolved || !sessionToken.isCurrent(startedIn)) {
-            return;
-        }
-
-        componentsStore.loadSchema(resolved, { resetHistory: true });
-
-        // Один тост на исход, а не два подряд: toast — синглтон, и сообщение об
-        // успешном импорте немедленно затёрло бы предупреждение о пропущенном
-        // сравнении. Вариант `error` — единственный заметный: импорт состоялся,
-        // но пользователю нужно знать, что URL изображений никто не проверял
-        if (isComparisonSkipped) {
-            showToast(t('bricks.media.resolver.importedWithoutComparison'), 'error');
-            return;
-        }
-
-        showToast(t('bricks.publish.toasts.schemaImported'), 'success');
-    }
     // #endregion
 
     // Единственный await composable'а — и он последний. После него активный
@@ -396,13 +355,5 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
         handleSaveDraft,
         handleSaveAsCopy,
         handlePreview,
-        isImageResolverModalOpen: imageResolver.isModalOpen,
-        imageResolverState: imageResolver.state,
-        handleImportSchema,
-        handleImageResolverConfirm: imageResolver.handleConfirm,
-        handleImageResolverCancel: imageResolver.handleCancel,
-        handleImageResolverSkip: imageResolver.handleSkip,
-        handleSetImageAction: imageResolver.setImageAction,
-        handleSetGlobalAction: imageResolver.setGlobalAction,
     };
 }

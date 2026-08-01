@@ -1,9 +1,12 @@
 <script setup lang="ts">
 // #region Imports
 // Types
+import type { IBricksSchema } from '../../../common/types/brick';
+import type { IParsedSchemaFile } from '../types/composables';
 import type {
     IPublishCreatePageModalProps,
     IPublishCreatePageModalEmits,
+    TPublishCreatePageSource,
 } from '../types/dashboard';
 
 // Vue
@@ -12,6 +15,7 @@ import { useI18n } from 'vue-i18n';
 
 // Composables
 import { usePublishCreatePageForm } from '../composables/usePublishCreatePageForm';
+import { useSchemaFileTransfer } from '../composables/useSchemaFileTransfer';
 
 // Components
 import BricksInput from '../../../ui/inputs/BricksInput.vue';
@@ -19,6 +23,7 @@ import BricksFieldError from '../../../ui/inputs/BricksFieldError.vue';
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
 import BricksCloseButton from '../../../ui/base/modal/BricksCloseButton.vue';
 import BricksModal from '../../../ui/base/modal/BricksModal.vue';
+import BuilderPublishCreatePageStartOptions from './BuilderPublishCreatePageStartOptions.vue';
 // #endregion
 
 // #region Props
@@ -31,6 +36,12 @@ const emit = defineEmits<IPublishCreatePageModalEmits>();
 
 // #region Data
 const { t } = useI18n();
+const { fileInputRef, openFilePicker, readSelectedFile } = useSchemaFileTransfer();
+
+/** Источник содержимого: выбранный файл делает страницу непустой. */
+const source = ref<TPublishCreatePageSource>('blank');
+const selectedFile = ref<IParsedSchemaFile | null>(null);
+const fileError = ref('');
 
 const {
     title,
@@ -48,11 +59,18 @@ const {
     resetToEmpty,
 } = usePublishCreatePageForm({
     onCreated: (createdPagename) => emit('created', createdPagename),
+    resolveSchema: resolveCreateSchema,
 });
 
 const isAdvancedOpen = ref(false);
 const host = ref('');
 const titleFieldRef = ref<HTMLDivElement | null>(null);
+
+/**
+ * Поколение формы: растёт на каждом открытии модалки. Им отсекается разбор
+ * файла, завершившийся уже после закрытия — см. `handleFileSelect`.
+ */
+let formGeneration = 0;
 // #endregion
 
 // #region Computed
@@ -89,6 +107,72 @@ function handleClose(): void {
 function handleToggleAdvanced(): void {
     isAdvancedOpen.value = !isAdvancedOpen.value;
 }
+
+/**
+ * Отдаёт схему создаваемой страницы форме.
+ *
+ * Пустой холст отдаётся сразу. Выбранный файл сначала уходит в резолвер картинок
+ * владельца дашборда: до создания страницы нужно решить, что делать с URL,
+ * которых нет в медиатеке.
+ *
+ * @returns Схема к записи либо `null`, если создание отменено.
+ */
+async function resolveCreateSchema(): Promise<IBricksSchema | null> {
+    const file = selectedFile.value;
+
+    if (source.value !== 'file' || !file) {
+        return { components: [] };
+    }
+
+    return await props.resolveImportedSchema(file.schema);
+}
+
+/**
+ * Возвращает источник к пустой странице.
+ */
+function handleSelectBlank(): void {
+    source.value = 'blank';
+    selectedFile.value = null;
+    fileError.value = '';
+}
+
+/**
+ * Открывает диалог выбора JSON-файла.
+ */
+function handlePickFile(): void {
+    fileError.value = '';
+    openFilePicker();
+}
+
+/**
+ * Разбирает выбранный файл и делает его источником содержимого.
+ *
+ * Ошибка разбора оставляет выбор на пустой странице и не блокирует создание:
+ * пользователь либо возьмёт другой файл, либо создаст чистый холст.
+ *
+ * Исход применяется только к тому открытию модалки, в котором файл выбрали:
+ * чтение большого файла переживает закрытие, и без этой сверки завершившийся
+ * разбор подставил бы файл прошлой сессии в форму уже новой страницы.
+ */
+async function handleFileSelect(): Promise<void> {
+    const startedIn = formGeneration;
+    const result = await readSelectedFile(fileInputRef.value);
+
+    if (!result || startedIn !== formGeneration) {
+        return;
+    }
+
+    if (result.status === 'error') {
+        fileError.value = result.message;
+        source.value = 'blank';
+        selectedFile.value = null;
+        return;
+    }
+
+    fileError.value = '';
+    selectedFile.value = result.file;
+    source.value = 'file';
+}
 // #endregion
 
 // #region Lifecycle
@@ -98,8 +182,10 @@ watch(
         if (!isOpen) {
             return;
         }
+        formGeneration += 1;
         resetToEmpty();
         isAdvancedOpen.value = false;
+        handleSelectBlank();
         await nextTick();
         titleFieldRef.value?.querySelector('input')?.focus();
     }
@@ -170,34 +256,23 @@ onMounted(() => {
                     />
                 </div>
 
-                <div :class="$style.field">
-                    <span :class="$style.fieldLabel">
-                        {{ t('bricks.publish.dashboard.createModal.startWith') }}
-                    </span>
-                    <div :class="$style.startCards">
-                        <div :class="[$style.startCard, $style.startCardActive]">
-                            <BricksIcon
-                                icon="ta:outline-file-pencil"
-                                :class="$style.startCardIcon"
-                            />
-                            <span :class="$style.startCardTitle">
-                                {{ t('bricks.publish.dashboard.createModal.blankTitle') }}
-                            </span>
-                            <span :class="$style.startCardDescription">
-                                {{ t('bricks.publish.dashboard.createModal.blankDescription') }}
-                            </span>
-                        </div>
-                        <div :class="[$style.startCard, $style.startCardDisabled]">
-                            <BricksIcon icon="ta:outline-package" :class="$style.startCardIcon" />
-                            <span :class="$style.startCardTitle">
-                                {{ t('bricks.publish.dashboard.createModal.templateTitle') }}
-                            </span>
-                            <span :class="$style.startCardDescription">
-                                {{ t('bricks.publish.dashboard.createModal.templateDescription') }}
-                            </span>
-                        </div>
-                    </div>
-                </div>
+                <BuilderPublishCreatePageStartOptions
+                    :source="source"
+                    :selected-file="selectedFile"
+                    :error="fileError"
+                    :is-submitting="isSubmitting"
+                    @select-blank="handleSelectBlank"
+                    @pick-file="handlePickFile"
+                    @clear-file="handleSelectBlank"
+                />
+
+                <input
+                    ref="fileInputRef"
+                    type="file"
+                    accept=".json"
+                    :class="$style.hiddenInput"
+                    @change="handleFileSelect"
+                />
 
                 <div :class="$style.advanced">
                     <button
@@ -327,66 +402,18 @@ onMounted(() => {
     gap: 0.6rem;
 }
 
-.fieldLabel {
-    font-size: 1.2rem;
-    font-weight: 500;
-    color: var(--bricks-base-600);
-}
-
 .fieldHint {
     font-size: 1.2rem;
     color: var(--bricks-base-400);
 }
 
-.startCards {
-    display: flex;
-    gap: 1.2rem;
-}
-
-.startCard {
-    display: flex;
-    flex: 1;
-    min-width: 0;
-    padding: 1.4rem 1.4rem 1.2rem;
-    border-radius: var(--bricks-border-radius-sm);
-    border: 1px solid var(--bricks-base-300);
-    background: var(--bricks-base-0);
-    flex-direction: column;
-    gap: 0.6rem;
-}
-
-.startCardActive {
-    border-color: var(--bricks-primary-500);
-    background: var(--bricks-primary-50);
-
-    .startCardTitle {
-        color: var(--bricks-primary-600);
-    }
-
-    .startCardIcon {
-        color: var(--bricks-primary-600);
-    }
-}
-
-.startCardDisabled {
-    opacity: 0.55;
-}
-
-.startCardIcon {
-    width: 2rem;
-    height: 2rem;
-    color: var(--bricks-base-600);
-}
-
-.startCardTitle {
-    font-size: 1.4rem;
-    font-weight: 600;
-    color: var(--bricks-base-900);
-}
-
-.startCardDescription {
-    font-size: 1.2rem;
-    color: var(--bricks-base-500);
+.hiddenInput {
+    position: absolute;
+    overflow: hidden;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    pointer-events: none;
 }
 
 .advanced {

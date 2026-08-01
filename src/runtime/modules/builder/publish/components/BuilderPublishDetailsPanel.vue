@@ -1,8 +1,9 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IPageVersionSummary } from '../../../common/types/bricks-api';
+import type { IPageVersionSummary, TPublishedPageSummary } from '../../../common/types/bricks-api';
 import type { IMediaItem } from '../../../common/types/media';
+import type { IParsedSchemaFile } from '../types/composables';
 import type { IPublishDetailsPanelProps, IPublishDetailsPanelEmits } from '../types/dashboard';
 
 // Utils
@@ -24,11 +25,13 @@ import BuilderPublishDetailsPanelSeoFields from './BuilderPublishDetailsPanelSeo
 import BuilderPublishDetailsPanelOgImage from './BuilderPublishDetailsPanelOgImage.vue';
 import BuilderPublishDetailsPanelRouting from './BuilderPublishDetailsPanelRouting.vue';
 import BuilderPublishDetailsPanelVersions from './BuilderPublishDetailsPanelVersions.vue';
+import BuilderPublishDetailsPanelSchema from './BuilderPublishDetailsPanelSchema.vue';
 // #endregion
 
 // #region Props
 const props = withDefaults(defineProps<IPublishDetailsPanelProps>(), {
     isDuplicating: false,
+    isImporting: false,
 });
 // #endregion
 
@@ -165,6 +168,20 @@ function handleVersionsNotify(message: string, variant: 'success' | 'error'): vo
 }
 
 /**
+ * Пробрасывает разобранный файл схемы контроллеру: подтверждение замены,
+ * резолвинг картинок и запись принадлежат ему.
+ *
+ * Страница берётся из события, а не из пропа: секция снимает её до чтения файла,
+ * и к моменту эмита проп может указывать уже на другую страницу.
+ *
+ * @param page - Страница на момент выбора файла.
+ * @param file - Разобранный JSON-файл схемы.
+ */
+function handleImportFile(page: TPublishedPageSummary, file: IParsedSchemaFile): void {
+    emit('import-schema-file', page, file);
+}
+
+/**
  * Запрашивает удаление страницы.
  */
 function handleDelete(): void {
@@ -243,17 +260,35 @@ defineExpose({
                 @notify="handleVersionsNotify"
             />
 
+            <BuilderPublishDetailsPanelSchema
+                :page="props.page"
+                :is-importing="props.isImporting"
+                :is-saving="isSaving"
+                @import-file="handleImportFile"
+            />
+
+            <!--
+                Сохранение meta заблокировано и на время импорта схемы: обе
+                операции — PATCH с одним и тем же `expectedRevision`, и второй
+                получил бы 409, заставив заново выбирать JSON-файл. Потери данных
+                precondition не допускает, но конфликт здесь рукотворный
+            -->
             <div v-if="isDirty || isSaving" :class="$style.saveBar">
                 <BricksButton
                     size="md"
                     variant="primary"
                     block
-                    :disabled="isSaving"
+                    :disabled="isSaving || props.isImporting"
                     @click="submitForm"
                 >
                     {{ t('bricks.publish.dashboard.details.save') }}
                 </BricksButton>
-                <BricksButton size="md" variant="ghost" :disabled="isSaving" @click="resetToPage">
+                <BricksButton
+                    size="md"
+                    variant="ghost"
+                    :disabled="isSaving || props.isImporting"
+                    @click="resetToPage"
+                >
                     {{ t('bricks.publish.dashboard.details.cancel') }}
                 </BricksButton>
             </div>

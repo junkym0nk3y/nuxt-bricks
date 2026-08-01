@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IBricksSchema, TSidebarView } from '../../../../common/types/brick';
+import type { TSidebarView } from '../../../../common/types/brick';
 import type { IMediaItem, TMediaGalleryContext } from '../../../../common/types/media';
 import type { ISidebarProps, ISidebarEmits } from './types';
 
@@ -97,15 +97,6 @@ function handleMediaSelect(item: IMediaItem): void {
 }
 
 /**
- * Пробрасывает импорт схемы из BuilderShellSidebarPublishView наверх.
- *
- * @param schema - Импортированная схема.
- */
-function handleImportSchema(schema: IBricksSchema): void {
-    emit('importSchema', schema);
-}
-
-/**
  * Пробрасывает запрос повторной загрузки библиотеки наверх.
  */
 function handleRetryLibrary(): void {
@@ -152,7 +143,6 @@ watch(isVisible, (visible) => {
                     ref="publishViewRef"
                     @close="handleClosePublish"
                     @open-media-gallery="handleOpenMediaGallery"
-                    @import-schema="handleImportSchema"
                 />
 
                 <BuilderShellSidebarSchemaTreeView

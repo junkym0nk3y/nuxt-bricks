@@ -1,8 +1,5 @@
 <script setup lang="ts">
 // #region Imports
-// Types
-import type { IBricksSchema } from '../../../../common/types/brick';
-
 // Vue
 import { useI18n } from 'vue-i18n';
 
@@ -22,7 +19,6 @@ import BricksSelect from '../../../../ui/inputs/BricksSelect.vue';
 import BricksTextarea from '../../../../ui/inputs/BricksTextarea.vue';
 import BricksCloseButton from '../../../../ui/base/modal/BricksCloseButton.vue';
 import BuilderShellSidebarNavigationEditor from './BuilderShellSidebarNavigationEditor.vue';
-import BuilderShellSidebarPublishSchemaActions from './BuilderShellSidebarPublishSchemaActions.vue';
 import BuilderShellSidebarPublishSocialImage from './BuilderShellSidebarPublishSocialImage.vue';
 // #endregion
 
@@ -30,7 +26,6 @@ import BuilderShellSidebarPublishSocialImage from './BuilderShellSidebarPublishS
 const emit = defineEmits<{
     close: [];
     openMediaGallery: [];
-    importSchema: [schema: IBricksSchema];
 }>();
 // #endregion
 
@@ -69,15 +64,6 @@ function handleClose(): void {
  */
 function handleOpenMediaGallery(): void {
     emit('openMediaGallery');
-}
-
-/**
- * Пробрасывает импортированную схему наверх (загрузка без сохранения).
- *
- * @param schema - Провалидированная схема из JSON-файла.
- */
-function handleImportSchema(schema: IBricksSchema): void {
-    emit('importSchema', schema);
 }
 
 defineExpose({
@@ -246,16 +232,6 @@ defineExpose({
             <div :class="$style.formGroup">
                 <BuilderShellSidebarNavigationEditor />
             </div>
-
-            <div :class="$style.divider" />
-
-            <div :class="$style.formGroup">
-                <label :class="$style.label">{{ t('bricks.schema.title') }}</label>
-                <BuilderShellSidebarPublishSchemaActions
-                    :is-submitting="isSubmitting"
-                    @import-schema="handleImportSchema"
-                />
-            </div>
         </Form>
     </div>
 </template>
@@ -336,10 +312,5 @@ defineExpose({
     background-color: rgb(239 68 68 / 10%);
     font-size: 1.4rem;
     color: var(--bricks-danger-500);
-}
-
-.divider {
-    margin: 0.8rem 0 1.6rem;
-    border-top: 1px solid var(--bricks-base-200);
 }
 </style>

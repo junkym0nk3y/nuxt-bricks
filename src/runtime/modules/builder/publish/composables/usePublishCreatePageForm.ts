@@ -43,9 +43,10 @@ function buildEmptyFormValues(): IPublishPageFormValues {
  * Форма модалки создания страницы: авто-slugify pagename от названия
  * (до первого ручного редактирования slug), валидация общей схемой
  * `createPublishValidationSchema`, создание через `createPage` store'а
- * (POST с пустой схемой и `published: false`).
+ * (POST с `published: false`).
  *
- * @param options - Колбэк успешного создания (переход в редактор — на стороне вызывающего).
+ * @param options - Источник схемы и колбэк успешного создания (переход в
+ * редактор — на стороне вызывающего).
  */
 export function usePublishCreatePageForm(options: IPublishCreatePageFormOptions) {
     // #region Data
@@ -93,7 +94,11 @@ export function usePublishCreatePageForm(options: IPublishCreatePageFormOptions)
     }
 
     /**
-     * Валидирует форму и создаёт страницу-черновик с пустой схемой.
+     * Валидирует форму и создаёт страницу-черновик.
+     *
+     * Схему отдаёт вызывающий (`resolveSchema`): пустой холст или разобранный
+     * JSON-файл. Отказ оттуда прекращает создание — это отмена, а не ошибка,
+     * поэтому сообщение не показывается.
      */
     const submitForm = handleSubmit(async (values) => {
         if (isSubmitting.value) {
@@ -103,7 +108,13 @@ export function usePublishCreatePageForm(options: IPublishCreatePageFormOptions)
         isSubmitting.value = true;
         generalError.value = '';
         try {
-            await publishStore.createPage({
+            const schema = await options.resolveSchema();
+
+            if (!schema) {
+                return;
+            }
+
+            await publishStore.createPage(schema, {
                 ...buildDefaultFormState(),
                 pagename: values.pagename.trim(),
                 title: values.title.trim(),

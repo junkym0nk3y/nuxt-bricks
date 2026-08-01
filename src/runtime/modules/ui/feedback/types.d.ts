@@ -15,4 +15,6 @@ export interface IBricksConfirmModalProps {
 export interface IBricksConfirmModalEmits {
     close: [];
     confirm: [];
+    /** Диалог ушёл из DOM — можно открывать следующую модалку (см. IBricksModalEmits). */
+    afterLeave: [];
 }

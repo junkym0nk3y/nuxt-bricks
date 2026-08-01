@@ -11,7 +11,7 @@ import { BRICKS_ROUTE_NAMES } from '../../../common/constants/routes';
 import { isRequestTimeoutError } from '../../../common/utils/apiRequestPolicy';
 
 // Vue
-import { computed, defineAsyncComponent, ref } from 'vue';
+import { computed, defineAsyncComponent, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Nuxt
@@ -27,6 +27,7 @@ import { usePublishDashboard } from '../composables/usePublishDashboard';
 import { usePublishPagesData } from '../composables/usePublishPagesData';
 import { usePublishPreview } from '../composables/usePublishPreview';
 import { usePublishVersionRestore } from '../composables/usePublishVersionRestore';
+import { usePublishSchemaImport } from '../composables/usePublishSchemaImport';
 
 // Components
 import TheBuilderPublishDashboard from '../components/TheBuilderPublishDashboard.vue';
@@ -43,6 +44,12 @@ const TheBuilderDocumentationModal = defineAsyncComponent(
 );
 const TheBuilderMediaGalleryModal = defineAsyncComponent(
     () => import('../../media/components/TheBuilderMediaGalleryModal.vue')
+);
+// Резолвер картинок нужен только импорту схемы — держим его в отдельном чанке.
+// Условие монтирования в шаблоне обязательно: без него чанк уехал бы к первому
+// рендеру дашборда, и ленивым импорт был бы только на бумаге
+const TheBuilderMediaImageResolverModal = defineAsyncComponent(
+    () => import('../../media/components/TheBuilderMediaImageResolverModal.vue')
 );
 // #endregion
 
@@ -78,6 +85,16 @@ const {
 const selectedPageId = ref<string | null>(null);
 const thumbnailPreviewItem = ref<TMediaLightboxItem | null>(null);
 const detailsPanelRef = ref<InstanceType<typeof BuilderPublishDetailsPanel> | null>(null);
+
+// Импорт схемы: подтверждение замены, резолвинг картинок и запись. Живёт здесь,
+// а не в панели деталей, потому что обслуживает и модалку создания, и потому что
+// его модалки телепортированы в body — то есть переживают и смену выбранной
+// страницы, и закрытие панели. Не разбирается по именам: полями пользуется
+// только шаблон, а россыпь из семнадцати переменных читается хуже
+const schemaImport = usePublishSchemaImport({
+    onNotify: showToast,
+    isTargetSelected: (pageId) => selectedPageId.value === String(pageId),
+});
 
 const darkModeCookie = useCookie<boolean>('bricks-dark-mode', {
     default: () => false,
@@ -171,6 +188,14 @@ function handleSelectPage(page: TPublishedPageSummary): void {
 function handleCloseDetails(): void {
     selectedPageId.value = null;
 }
+
+// Смена выбранной страницы (в том числе её закрытие и удаление) гасит начатый
+// импорт: его подтверждение и резолвер лежат в body, вне панели деталей, поэтому
+// сами по себе не закрываются — а подтверждение, данное для прежней страницы,
+// относилось к её содержимому
+watch(selectedPageId, () => {
+    schemaImport.cancelImport();
+});
 
 /**
  * Открывает страницу в редакторе билдера.
@@ -494,6 +519,7 @@ const { isLoadingPages } = await usePublishPagesData({
                     ref="detailsPanelRef"
                     :page="selectedPage"
                     :is-duplicating="duplicatingPageId === String(selectedPage.id)"
+                    :is-importing="schemaImport.isImporting.value"
                     @close="handleCloseDetails"
                     @edit="handleEditPage"
                     @duplicate="handleDuplicatePage"
@@ -501,6 +527,7 @@ const { isLoadingPages } = await usePublishPagesData({
                     @toggle-published="handleTogglePublished"
                     @open-media="handleOpenMediaFromDetails"
                     @restore-version="requestRestoreVersion"
+                    @import-schema-file="schemaImport.requestPageImport"
                     @notify="handleDetailsNotify"
                 />
             </template>
@@ -508,6 +535,7 @@ const { isLoadingPages } = await usePublishPagesData({
 
         <TheBuilderPublishCreatePageModal
             :is-open="isCreatePageModalOpen"
+            :resolve-imported-schema="schemaImport.resolveSchemaForCreate"
             @close="handleCloseCreatePageModal"
             @created="handlePageCreated"
         />
@@ -545,6 +573,35 @@ const { isLoadingPages } = await usePublishPagesData({
             :is-loading="isRestoring"
             @close="closeRestoreConfirmation()"
             @confirm="confirmRestoreVersion"
+        />
+
+        <!--
+            Подтверждение замены содержимого. Резолвер картинок запускается не по
+            confirm, а по уходу диалога из DOM: `force-mount` держит уезжающее
+            подтверждение до конца анимации, и открытая синхронно модалка
+            резолвера встала бы под ним (z-index подтверждения выше) со вторым
+            focus trap
+        -->
+        <BricksConfirmModal
+            :is-open="schemaImport.isReplaceConfirmationOpen.value"
+            :title="t('bricks.publish.dashboard.details.schema.replaceConfirm.title')"
+            :description="schemaImport.replaceConfirmationDescription.value"
+            :confirm-text="t('bricks.publish.dashboard.details.schema.replaceConfirm.confirm')"
+            confirm-variant="primary"
+            @close="schemaImport.closeReplaceConfirmation"
+            @confirm="schemaImport.confirmReplace"
+            @after-leave="schemaImport.handleConfirmationAfterLeave"
+        />
+
+        <TheBuilderMediaImageResolverModal
+            v-if="schemaImport.shouldMountResolver.value"
+            :is-open="schemaImport.isResolverModalOpen.value"
+            :state="schemaImport.resolverState"
+            @confirm="schemaImport.handleResolverConfirm"
+            @cancel="schemaImport.handleResolverCancel"
+            @skip="schemaImport.handleResolverSkip"
+            @set-image-action="schemaImport.handleSetImageAction"
+            @set-global-action="schemaImport.handleSetGlobalAction"
         />
 
         <BuilderMediaGalleryPreviewLightbox

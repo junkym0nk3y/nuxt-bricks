@@ -7,6 +7,7 @@ import { createPinia, setActivePinia } from 'pinia';
 
 // Types
 import type { TPublishFormState } from '../../src/runtime/modules/common/types/bricks-api';
+import type { IBricksSchema } from '../../src/runtime/modules/common/types/brick';
 // #endregion
 
 const { apiFetcherMock } = vi.hoisted(() => ({ apiFetcherMock: vi.fn() }));
@@ -57,10 +58,13 @@ describe('usePublishStore: создание страницы и URL превью
         );
     });
 
-    it('createPage создаёт черновик с пустой схемой независимо от published в форме', async () => {
+    it('createPage создаёт черновик независимо от published в форме', async () => {
         const store = usePublishStore();
 
-        const createdId = await store.createPage(buildFormState({ published: true }));
+        const createdId = await store.createPage(
+            { components: [] },
+            buildFormState({ published: true })
+        );
 
         expect(createdId).toBe(42);
 
@@ -73,6 +77,35 @@ describe('usePublishStore: создание страницы и URL превью
         expect(body.body.pagename).toBe('new-page');
         expect(body.body.published).toBe(false);
         expect(body.body.schema).toEqual({ components: [] });
+    });
+
+    it('createPage кладёт в POST переданную схему, а не пустой холст', async () => {
+        const store = usePublishStore();
+        const schema: IBricksSchema = {
+            components: [
+                {
+                    id: 'grid-1',
+                    type: 'layout',
+                    componentName: 'grid',
+                    brickPath: '/layouts/grid',
+                    zIndex: 1,
+                    props: {},
+                    children: [],
+                },
+            ],
+        };
+
+        await store.createPage(schema, buildFormState());
+
+        const postCall = apiFetcherMock.mock.calls.find(([, options]) => {
+            return (options as { method?: string } | undefined)?.method === 'POST';
+        });
+        const body = (postCall as unknown[])[1] as { body: Record<string, unknown> };
+
+        // Создание из JSON-файла — один POST со схемой, а не POST пустой страницы
+        // плюс PATCH: второй запрос оставлял бы окно, в котором страница пустая
+        expect(body.body.schema).toEqual(schema);
+        expect(body.body.published).toBe(false);
     });
 
     it('generatePreviewUrl ведёт на превью-роут /preview/[pagename] без query', () => {

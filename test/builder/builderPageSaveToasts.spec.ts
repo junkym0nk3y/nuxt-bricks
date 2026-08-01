@@ -3,7 +3,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Vue
-import { computed, effectScope, reactive, ref, type EffectScope } from 'vue';
+import { computed, effectScope, ref, type EffectScope } from 'vue';
 // #endregion
 
 /**
@@ -14,48 +14,41 @@ import { computed, effectScope, reactive, ref, type EffectScope } from 'vue';
  */
 
 // #region Mocks
-const {
-    toasts,
-    publishStoreMock,
-    componentsStoreMock,
-    sidebarStoreMock,
-    imageResolverMock,
-    componentLibraryMock,
-} = vi.hoisted(() => ({
-    toasts: [] as Array<{ message: string; variant: string }>,
-    imageResolverMock: { startResolving: vi.fn() },
-    componentLibraryMock: {
-        skippedBricks: [] as Array<{ name: string; brickPath: string; reason: string }>,
-        isLoadFailed: false,
-    },
-    publishStoreMock: {
-        currentFormState: {
-            pagename: 'page-a',
-            title: 'Page A',
-            published: false,
-            description: '',
+const { toasts, publishStoreMock, componentsStoreMock, sidebarStoreMock, componentLibraryMock } =
+    vi.hoisted(() => ({
+        toasts: [] as Array<{ message: string; variant: string }>,
+        componentLibraryMock: {
+            skippedBricks: [] as Array<{ name: string; brickPath: string; reason: string }>,
+            isLoadFailed: false,
         },
-        generalError: '',
-        editingPageId: 1 as string | number | null,
-        publishCurrentPage: vi.fn(),
-        saveCurrentPageAsCopy: vi.fn(),
-        setCurrentFormField: vi.fn(),
-        startEditingPage: vi.fn(),
-        startNewPublish: vi.fn(),
-        clearErrors: vi.fn(),
-    },
-    componentsStoreMock: {
-        selectedComponent: null,
-        exportSchema: vi.fn(() => ({ components: [] })),
-        loadSchema: vi.fn(),
-    },
-    sidebarStoreMock: {
-        left: { visible: false, width: '0px' },
-        activeView: 'components',
-        toggleSidebarView: vi.fn(),
-        hideSidebar: vi.fn(),
-    },
-}));
+        publishStoreMock: {
+            currentFormState: {
+                pagename: 'page-a',
+                title: 'Page A',
+                published: false,
+                description: '',
+            },
+            generalError: '',
+            editingPageId: 1 as string | number | null,
+            publishCurrentPage: vi.fn(),
+            saveCurrentPageAsCopy: vi.fn(),
+            setCurrentFormField: vi.fn(),
+            startEditingPage: vi.fn(),
+            startNewPublish: vi.fn(),
+            clearErrors: vi.fn(),
+        },
+        componentsStoreMock: {
+            selectedComponent: null,
+            exportSchema: vi.fn(() => ({ components: [] })),
+            loadSchema: vi.fn(),
+        },
+        sidebarStoreMock: {
+            left: { visible: false, width: '0px' },
+            activeView: 'components',
+            toggleSidebarView: vi.fn(),
+            hideSidebar: vi.fn(),
+        },
+    }));
 
 vi.mock('vue-i18n', () => ({
     useI18n: () => ({
@@ -121,18 +114,6 @@ vi.mock('../../src/runtime/modules/common/composables/useBricksConfig', () => ({
     useBricksConfig: () => ({ backgroundColor: '#FFFFFF' }),
 }));
 
-vi.mock('../../src/runtime/modules/builder/media/composables/useSchemaImageResolver', () => ({
-    useSchemaImageResolver: () => ({
-        isModalOpen: ref(false),
-        state: reactive({ newImages: [], actions: new Map(), globalAction: 'keep' }),
-        startResolving: imageResolverMock.startResolving,
-        handleConfirm: vi.fn(),
-        handleCancel: vi.fn(),
-        handleSkip: vi.fn(),
-        setImageAction: vi.fn(),
-        setGlobalAction: vi.fn(),
-    }),
-}));
 // #endregion
 
 import { useBuilderPage } from '../../src/runtime/modules/builder/app/composables/useBuilderPage';
@@ -193,7 +174,6 @@ describe('страница билдера: тосты операции, доех
         };
         publishStoreMock.publishCurrentPage.mockReset();
         publishStoreMock.saveCurrentPageAsCopy.mockReset();
-        imageResolverMock.startResolving.mockReset();
         componentLibraryMock.skippedBricks = [];
         componentLibraryMock.isLoadFailed = false;
         // provide() вне setup-компонента предупреждает в консоль — здесь это шум
@@ -349,26 +329,6 @@ describe('страница билдера: тосты операции, доех
         scope.stop();
     });
 
-    it('импорт без сравнения с медиатекой сообщает об этом вместо обычного успеха', async () => {
-        const { scope, page } = await mountBuilderPage();
-
-        const schema = { components: [] };
-        imageResolverMock.startResolving.mockResolvedValueOnce({
-            schema,
-            isComparisonSkipped: true,
-        });
-
-        await page.handleImportSchema(schema);
-
-        expect(componentsStoreMock.loadSchema).toHaveBeenCalledWith(schema, { resetHistory: true });
-        // Ровно один тост: toast — синглтон, и сообщение об успехе, показанное
-        // следом, стёрло бы предупреждение, ради которого всё и затевалось
-        expect(toasts).toHaveLength(1);
-        expect(toasts[0]?.message).toBe('bricks.media.resolver.importedWithoutComparison');
-
-        scope.stop();
-    });
-
     it('о пропущенных бриках сообщается, даже когда сама ручка ответила', async () => {
         componentLibraryMock.skippedBricks = [
             {
@@ -405,24 +365,6 @@ describe('страница билдера: тосты операции, доех
         // Второй тост затёр бы первый — синглтон; отказ и свежее, и чинится повтором
         expect(toasts).toHaveLength(1);
         expect(toasts[0]?.message).toBe('bricks.library.loadFailed');
-
-        scope.stop();
-    });
-
-    it('импорт после выполненного сравнения сообщает об успехе', async () => {
-        const { scope, page } = await mountBuilderPage();
-
-        const schema = { components: [] };
-        imageResolverMock.startResolving.mockResolvedValueOnce({
-            schema,
-            isComparisonSkipped: false,
-        });
-
-        await page.handleImportSchema(schema);
-
-        expect(toasts).toHaveLength(1);
-        expect(toasts[0]?.message).toBe('bricks.publish.toasts.schemaImported');
-        expect(toasts[0]?.variant).toBe('success');
 
         scope.stop();
     });

@@ -2,16 +2,6 @@
  * Типы для компонентов домена sidebar.
  */
 
-import type { IBricksSchema } from '../../../../common/types/brick';
-
-export interface ISidebarPublishSchemaActionsProps {
-    isSubmitting: boolean;
-}
-
-export interface ISidebarPublishSchemaActionsEmits {
-    importSchema: [schema: IBricksSchema];
-}
-
 export interface ISidebarPublishSocialImageProps {
     socialImage: string | null;
     isSubmitting: boolean;

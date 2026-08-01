@@ -1,12 +1,14 @@
 /**
- * Запись страниц вне сессии редактора: создание черновика из модалки дашборда и
- * дублирование произвольной страницы. Общая черта — `currentFormState` не
+ * Запись страниц вне сессии редактора: создание черновика из модалки дашборда
+ * (пустым холстом или сразу из JSON-файла) и дублирование произвольной
+ * страницы. Общая черта — `currentFormState` не
  * трогается: форма принадлежит открытой в редакторе странице, а эти операции
  * работают со списком.
  *
  * Зависимость стора передаётся узким контрактом — логика тестируется юнитом без
  * Pinia (паттерн `currentPageWrite.ts`).
  */
+import type { IBricksSchema } from '../../../common/types/brick';
 import type { TPublishFormState } from '../../../common/types/bricks-api';
 import type { IPageLibraryWriteStoreDeps } from '../types/publishStore';
 import { buildCopyFormState } from './formState';
@@ -14,20 +16,26 @@ import { fetchPageRequest } from './publishApi';
 import { generateCopyPagename } from './slugify';
 
 /**
- * Создаёт страницу-черновик с пустой схемой.
+ * Создаёт страницу-черновик с заданной схемой.
+ *
+ * Схема приходит параметром, а не подставляется пустой здесь: страницу можно
+ * создать как чистый холст, так и сразу из JSON-файла, и выбор источника — дело
+ * вызывающего. Пустой холст передаёт `{ components: [] }` явно.
  *
  * `published: false` навязывается здесь, а не оставляется на форму: страница без
  * содержимого, опубликованная сразу, немедленно уходит в выдачу пустой.
  *
  * @param store - Узкий контракт стора.
+ * @param schema - Схема новой страницы.
  * @param formState - Meta-поля новой страницы.
  * @returns ID созданной страницы.
  */
 export async function runCreatePage(
     store: IPageLibraryWriteStoreDeps,
+    schema: IBricksSchema,
     formState: TPublishFormState
 ): Promise<number> {
-    return await store.publishPage({ components: [] }, { ...formState, published: false });
+    return await store.publishPage(schema, { ...formState, published: false });
 }
 
 /**

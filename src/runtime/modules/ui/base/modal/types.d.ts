@@ -32,4 +32,11 @@ export interface IBricksModalEmits {
     close: [];
     /** Esc внутри модалки; event.preventDefault() отменяет закрытие */
     escapeKeyDown: [event: KeyboardEvent];
+    /**
+     * Leave-анимация закончилась, модалка ушла из DOM. Нужен тому, кто открывает
+     * вторую модалку следом за первой: `force-mount` держит уезжающий диалог в
+     * DOM до конца анимации, поэтому открытая синхронно вторая модалка встаёт
+     * под ним (у неё свой z-index) и получает второй focus trap.
+     */
+    afterLeave: [];
 }

@@ -449,14 +449,16 @@ export const usePublishStore = defineStore('bricksPublish', {
         },
 
         /**
-         * Создаёт новую страницу-черновик с пустой схемой (модалка создания
-         * дашборда) — см. `utils/pageLibraryWrite.runCreatePage`.
+         * Создаёт новую страницу-черновик (модалка создания дашборда) — см.
+         * `utils/pageLibraryWrite.runCreatePage`. Схема приходит от вызывающего:
+         * пустой холст или разобранный JSON-файл.
          *
+         * @param schema - Схема новой страницы.
          * @param formState - Meta-поля новой страницы.
          * @returns ID созданной страницы.
          */
-        async createPage(formState: TPublishFormState): Promise<number> {
-            return await runCreatePage(this, formState);
+        async createPage(schema: IBricksSchema, formState: TPublishFormState): Promise<number> {
+            return await runCreatePage(this, schema, formState);
         },
 
         /**
