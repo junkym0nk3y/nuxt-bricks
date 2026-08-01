@@ -23,7 +23,11 @@ import { createPageBuilder } from '../helpers/publishFixtures';
 const { restorePageVersionMock } = vi.hoisted(() => ({ restorePageVersionMock: vi.fn() }));
 
 vi.mock('vue-i18n', () => ({
-    useI18n: () => ({ t: (key: string) => key }),
+    // Подстановки видны в результате: описание подтверждения проверяется по дате
+    useI18n: () => ({
+        t: (key: string, params?: Record<string, unknown>) =>
+            params ? `${key}|${Object.values(params).join(',')}` : key,
+    }),
 }));
 
 vi.mock('../../src/runtime/modules/builder/publish/stores/publish', () => ({
@@ -37,7 +41,11 @@ const buildPage = createPageBuilder({ id: 9, socialImage: '', revision: 3 });
 
 const VERSION: IPageVersionSummary = {
     id: 5,
-    createdAt: '2026-07-10T10:00:00Z',
+    // Даты снапшота разные по смыслу: pageUpdatedAt — когда состояние сохранили,
+    // createdAt — когда его вытеснило следующее сохранение. Без зоны: формат
+    // дашборда локальный, и с `Z` ожидание зависело бы от TZ машины
+    pageUpdatedAt: '2026-07-10T10:00:00',
+    createdAt: '2026-07-10T14:35:00',
 } as IPageVersionSummary;
 
 /**
@@ -59,6 +67,16 @@ function mountRestoreFlow() {
 describe('usePublishVersionRestore: судьба подтверждения при отказе', () => {
     beforeEach(() => {
         restorePageVersionMock.mockReset();
+    });
+
+    it('подтверждение называет состояние датой карточки, а не датой вытеснения', async () => {
+        const { flow } = mountRestoreFlow();
+
+        // Дата вытеснения (createdAt) в описании — это чужое время: пользователь
+        // выбирает карточку с одной датой, а перед необратимым действием увидел
+        // бы другую, отличающуюся на интервал между сохранениями
+        expect(flow.restoreConfirmationDescription.value).toContain('10.07.2026 10:00');
+        expect(flow.restoreConfirmationDescription.value).not.toContain('14:35');
     });
 
     it('определённый отказ оставляет подтверждение открытым для повтора', async () => {

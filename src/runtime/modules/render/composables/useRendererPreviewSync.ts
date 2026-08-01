@@ -24,12 +24,24 @@ const DEVICE_ICONS: Record<string, string> = {
  * BroadcastChannel, повторный запрос схемы при возврате на вкладку,
  * ResizeObserver для баннера с текущим устройством/разрешением.
  * Вне превью (или на сервере) — только computed для баннера, без подписок.
+ * Превью сохранённой версии (`?version=` в URL) ни синка, ни снапшота не
+ * получает: его состояние приезжает с сервера и меняться не должно.
  *
  * @param options - Данные страницы, refs live-синка и колбэк перезапуска data sources.
  */
 export function useRendererPreviewSync(options: IRendererPreviewSyncOptions): IRendererPreviewSync {
-    const { pagename, isPreview, middlewarePageData, livePreviewData, page, refreshDataSources } =
-        options;
+    const {
+        pagename,
+        isPreview,
+        previewVersionId,
+        middlewarePageData,
+        livePreviewData,
+        page,
+        refreshDataSources,
+    } = options;
+
+    // Превью версии показывает состояние из истории: живой канвас ему не источник
+    const isVersionPreview = previewVersionId !== null;
 
     // Текущее разрешение и адаптив для превью-баннера
     const windowWidth = ref(0);
@@ -64,13 +76,20 @@ export function useRendererPreviewSync(options: IRendererPreviewSyncOptions): IR
 
     /**
      * Закрывает окно превью и очищает сохранённые данные превью.
+     *
+     * Запись в localStorage принадлежит превью текущего канваса: вкладка версии её
+     * не заводила и не должна уносить — иначе закрытие превью версии оставило бы
+     * живое превью без снапшота.
      */
     function closePreview(): void {
         if (typeof window === 'undefined') {
             return;
         }
 
-        window.localStorage.removeItem('bricks-preview-page');
+        if (!isVersionPreview) {
+            window.localStorage.removeItem('bricks-preview-page');
+        }
+
         window.close();
     }
 
@@ -109,6 +128,12 @@ export function useRendererPreviewSync(options: IRendererPreviewSyncOptions): IR
             });
             resizeObserver.observe(document.documentElement);
 
+            // Превью версии получило состояние с сервера: снапшот живого канваса
+            // подменил бы историю тем, что сейчас в редакторе
+            if (isVersionPreview) {
+                return;
+            }
+
             try {
                 const stored = window.localStorage.getItem('bricks-preview-page');
                 if (stored) {
@@ -122,45 +147,53 @@ export function useRendererPreviewSync(options: IRendererPreviewSyncOptions): IR
             }
         });
 
-        // Подписываемся на realtime-обновления схемы от builder-вкладки
-        const previewChannel = new BroadcastChannel('bricks-preview-sync');
+        // Синк с билдером — только для превью текущего состояния: вкладка версии
+        // не просит схему у билдера (иначе он ответил бы живым канвасом) и не
+        // принимает его обновлений
+        if (!isVersionPreview) {
+            // Подписываемся на realtime-обновления схемы от builder-вкладки
+            const previewChannel = new BroadcastChannel('bricks-preview-sync');
 
-        previewChannel.onmessage = (event: MessageEvent) => {
-            const { type, pagename: msgPagename, schema } = event.data ?? {};
+            previewChannel.onmessage = (event: MessageEvent) => {
+                const { type, pagename: msgPagename, schema } = event.data ?? {};
 
-            if (type === 'schema-update' && msgPagename === pagename) {
-                // livePreviewData как fallback: актуально для временных страниц, которых нет в БД
-                const base = middlewarePageData.value ?? livePreviewData.value;
-                if (base) {
-                    livePreviewData.value = { ...base, schema };
+                if (type === 'schema-update' && msgPagename === pagename) {
+                    // livePreviewData как fallback: актуально для временных страниц, которых нет в БД
+                    const base = middlewarePageData.value ?? livePreviewData.value;
+                    if (base) {
+                        livePreviewData.value = { ...base, schema };
+                    }
+                }
+            };
+
+            /**
+             * Запрашивает свежую схему у билдер-вкладки: восстанавливает live-синк
+             * после перезагрузки превью или самого билдера.
+             */
+            function requestFreshSchema(): void {
+                previewChannel.postMessage({ type: 'request-schema', pagename });
+            }
+
+            /**
+             * Повторный запрос при возврате на вкладку — билдер мог перезагрузиться,
+             * пока превью было в фоне.
+             */
+            function handleVisibilityChange(): void {
+                if (!document.hidden) {
+                    requestFreshSchema();
                 }
             }
-        };
 
-        /**
-         * Запрашивает свежую схему у билдер-вкладки: восстанавливает live-синк
-         * после перезагрузки превью или самого билдера.
-         */
-        function requestFreshSchema(): void {
-            previewChannel.postMessage({ type: 'request-schema', pagename });
+            requestFreshSchema();
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+
+            onUnmounted(() => {
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
+                previewChannel.close();
+            });
         }
-
-        /**
-         * Повторный запрос при возврате на вкладку — билдер мог перезагрузиться,
-         * пока превью было в фоне.
-         */
-        function handleVisibilityChange(): void {
-            if (!document.hidden) {
-                requestFreshSchema();
-            }
-        }
-
-        requestFreshSchema();
-        document.addEventListener('visibilitychange', handleVisibilityChange);
 
         onUnmounted(() => {
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
-            previewChannel.close();
             resizeObserver?.disconnect();
             resizeObserver = null;
         });

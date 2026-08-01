@@ -209,6 +209,8 @@
                     "versions": {
                         "title": "Versions",
                         "empty": "No saved versions yet",
+                        "current": "Current",
+                        "noThumbnail": "No preview",
                         "restore": "Restore",
                         "preview": "Preview",
                         "restoreConfirm": {

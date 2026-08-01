@@ -36,13 +36,21 @@ import type { IMediaItem } from '../../../common/types/media';
 /**
  * Снапшот текущей строки bricks_pages в историю версий (page_updated_at = updated_at).
  * 0 строк в результате = страница не найдена.
+ *
+ * `thumbnail_url` копируется вместе со schema и по той же причине: снимок канваса
+ * снимается ПОСЛЕ сохранения и приезжает отдельным PATCH'ем, поэтому на момент
+ * снапшота thumbnail_url страницы — это кадр ровно того состояния, которое
+ * снапшот и уносит в историю. Заполнять его снимком, пришедшим после снапшота,
+ * нельзя: тот кадр показывает уже новое содержимое страницы.
  */
 const SNAPSHOT_VERSION_SQL = `
 INSERT INTO bricks_page_versions
     (page_id, pagename, title, description, keywords, social_image, layout,
-     background_color, url_prefix, subdomain, schema, published, page_updated_at)
+     background_color, url_prefix, subdomain, thumbnail_url, schema, published,
+     page_updated_at)
 SELECT id, pagename, title, description, keywords, social_image, layout,
-       background_color, url_prefix, subdomain, schema, published, updated_at
+       background_color, url_prefix, subdomain, thumbnail_url, schema, published,
+       updated_at
 FROM bricks_pages
 WHERE id = $1
 RETURNING id

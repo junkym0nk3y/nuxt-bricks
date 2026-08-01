@@ -9,6 +9,8 @@
  * и `/preview` в новом коде запрещены — только эти хелперы.
  */
 
+import { PREVIEW_VERSION_QUERY_PARAM } from './previewRoute';
+
 /** Префиксы маршрутов поверхностей bricks. */
 export interface IBricksRoutePrefixes {
     /** Префикс билдера: дашборд `<prefix>`, редактор `<prefix>/:pagename`. */
@@ -93,13 +95,22 @@ export function getBuilderLoginPath(prefixes: IBricksRoutePrefixes): string {
 }
 
 /**
- * Путь превью страницы.
+ * Путь превью страницы; с `versionId` — превью сохранённой версии.
  *
  * @param prefixes - Активные префиксы.
  * @param pagename - ЧПУ страницы.
+ * @param versionId - Id версии для `?version=` (без него — текущее состояние).
  */
-export function getPreviewPagePath(prefixes: IBricksRoutePrefixes, pagename: string): string {
-    return `${prefixes.previewPrefix}/${pagename}`;
+export function getPreviewPagePath(
+    prefixes: IBricksRoutePrefixes,
+    pagename: string,
+    versionId?: number
+): string {
+    const path = `${prefixes.previewPrefix}/${pagename}`;
+
+    return versionId === undefined
+        ? path
+        : `${path}?${PREVIEW_VERSION_QUERY_PARAM}=${encodeURIComponent(versionId)}`;
 }
 
 /**

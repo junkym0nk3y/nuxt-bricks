@@ -8,7 +8,7 @@ import type {
 } from '../types/composables';
 import { isRequestTimeoutError } from '../../../common/utils/apiRequestPolicy';
 import { usePublishStore } from '../stores/publish';
-import { formatPageDateTime } from '../utils/dates';
+import { formatPageVersionDateTime } from '../utils/dates';
 
 /**
  * Confirm-флоу отката страницы к версии для дашборда: состояние модалки
@@ -31,8 +31,10 @@ export function usePublishVersionRestore(
             return '';
         }
 
+        // Та же дата, которой подписана карточка версии в галерее: подтверждение
+        // необратимого действия обязано называть выбранное состояние так же
         return t('bricks.publish.dashboard.details.versions.restoreConfirm.description', {
-            date: formatPageDateTime(restore.version.createdAt),
+            date: formatPageVersionDateTime(restore.version),
         });
     });
 

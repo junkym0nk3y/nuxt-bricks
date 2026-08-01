@@ -105,8 +105,11 @@ export interface IUseBricksRoutePathsReturn {
     builderRootPath: string;
     /** Логический путь страницы логина (без baseURL). */
     builderLoginPath: string;
-    /** Логический путь превью страницы (без baseURL). */
-    previewPagePath: (pagename: string) => string;
+    /**
+     * Логический путь превью страницы (без baseURL); с `versionId` — превью
+     * сохранённой версии (`?version=`).
+     */
+    previewPagePath: (pagename: string, versionId?: number) => string;
     /** Добавляет `app.baseURL` — для `window.location`/`window.open`/`<a href>`. */
     withBase: (path: string) => string;
     /** Убирает `app.baseURL` из фактического pathname. */

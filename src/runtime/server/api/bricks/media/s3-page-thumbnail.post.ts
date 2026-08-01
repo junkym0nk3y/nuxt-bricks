@@ -1,12 +1,19 @@
 // #region Imports
 import { createError, defineEventHandler } from 'h3';
 import { normalizeBricksError } from '../../../../modules/common/utils/main';
-import { useBricksPublishAdapter } from '../../../../modules/persistence/server/registry';
+import {
+    useBricksPublishAdapter,
+    useBricksStorageAdapter,
+} from '../../../../modules/persistence/server/registry';
 import { sniffImageFormat } from '../../../../modules/persistence/server/utils/fileSignatures';
 import {
     optimizeToWebp,
     toBuffer,
 } from '../../../../modules/persistence/server/utils/imageProcessing';
+import {
+    buildPageThumbnailKey,
+    prunePageThumbnailsAfterUpload,
+} from '../../../../modules/persistence/server/utils/pageThumbnails';
 import {
     MULTIPART_ENVELOPE_ALLOWANCE_BYTES,
     readMultipartFormDataWithLimit,
@@ -100,13 +107,33 @@ function assertPageId(formData: IUploadedFilePart[]): number {
 
     return pageId;
 }
+
+/**
+ * Удаляет только что загруженный кадр, если страница исчезла: уборка удалённой
+ * страницы прошла раньше, чем появился этот файл, и следующего прохода по её
+ * префиксу уже не будет — без компенсации файл остался бы в хранилище навсегда.
+ *
+ * @param uploadedUrl - URL загруженного кадра.
+ */
+async function discardUploadedThumbnail(uploadedUrl: string): Promise<void> {
+    try {
+        await useBricksPublishAdapter().deleteFile(uploadedUrl);
+    } catch (error: unknown) {
+        console.warn('[S3 Page Thumbnail] Failed to discard thumbnail of a missing page:', error);
+    }
+}
 // #endregion
 
 /**
  * POST /api/bricks/media/s3-page-thumbnail — принимает снапшот канваса страницы,
- * пережимает в webp ≤480px и кладёт в хранилище публикации под детерминированным
- * ключом `page-{pageId}.webp` в thumbnail-namespace адаптера (перезапись при
- * каждом сохранении — без сирот; файл удаляется вместе со страницей).
+ * пережимает в webp ≤480px и кладёт в хранилище публикации под уникальным на
+ * загрузку ключом `page-{pageId}-{uuid}.webp` в thumbnail-namespace адаптера.
+ *
+ * Ключ уникален, потому что кадр нужен не только странице, но и версии, которую
+ * снапшотит сохранение: при одном перезаписываемом ключе вся история версий
+ * показывала бы последний кадр. Сироты (кадры версий, вытесненных prune'ом
+ * истории) убираются здесь же — по префиксу страницы с точным списком ещё
+ * нужных URL.
  *
  * Ingress-контроль: rate limit по IP, тело читается с жёстким лимитом,
  * содержимое подтверждается magic bytes, пережатие — через общий
@@ -130,6 +157,18 @@ export default defineEventHandler(async (event): Promise<IThumbnailUploadRespons
         const file = assertUploadedFile(formData);
         const pageId = assertPageId(formData);
 
+        const storage = useBricksStorageAdapter();
+
+        // Существование страницы проверяется до пережатия и загрузки: кадр
+        // несуществующей страницы не убрать ничем — уборку по префиксу запускает
+        // сохранение или удаление той же страницы, а их не будет никогда
+        if (!(await storage.getPage(pageId))) {
+            throw createError({
+                statusCode: 404,
+                message: 'Page not found',
+            });
+        }
+
         const optimizedBuffer = await optimizeToWebp(toBuffer(file.data), {
             maxWidth: THUMBNAIL_WIDTH,
             quality: THUMBNAIL_WEBP_QUALITY,
@@ -139,8 +178,29 @@ export default defineEventHandler(async (event): Promise<IThumbnailUploadRespons
         const uploaded = await publishAdapter.uploadFile({
             buffer: optimizedBuffer,
             mimeType: 'image/webp',
-            key: publishAdapter.buildFileKey('thumbnail', `page-${pageId}.webp`),
+            key: buildPageThumbnailKey(publishAdapter, pageId),
         });
+
+        // Повторное чтение — не дубль проверки выше: страницу могли удалить, пока
+        // шло пережатие. Оно же даёт первый кадр страницы для keep-list, и потому
+        // идёт раньше списка версий (см. prunePageThumbnailsAfterUpload)
+        const page = await storage.getPage(pageId);
+
+        if (!page) {
+            await discardUploadedThumbnail(uploaded.url);
+
+            throw createError({
+                statusCode: 404,
+                message: 'Page not found',
+            });
+        }
+
+        await prunePageThumbnailsAfterUpload(
+            { storage, publish: publishAdapter },
+            pageId,
+            uploaded.url,
+            page.thumbnailUrl
+        );
 
         return {
             success: true,

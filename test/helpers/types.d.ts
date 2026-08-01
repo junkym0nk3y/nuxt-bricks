@@ -1,5 +1,5 @@
 import type { EffectScope, Ref } from 'vue';
-import type { vi } from 'vitest';
+import type { Mock, vi } from 'vitest';
 
 import type { useBuilderPagename } from '../../src/runtime/modules/builder/app/composables/useBuilderPagename';
 import type { useBuilderSession } from '../../src/runtime/modules/builder/app/composables/useBuilderSession';
@@ -53,6 +53,15 @@ export interface IWindowStub {
     addEventListener: (type: string, listener: () => void) => void;
     removeEventListener: (type: string, listener: () => void) => void;
     dispatchEvent: (event: { type: string }) => void;
+}
+
+/**
+ * Стаб `window` для тестов превью: localStorage и `open`, чьё возвращаемое
+ * значение тест подменяет (блокировщик попапов отдаёт null).
+ */
+export interface IPreviewWindowStub {
+    localStorage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
+    open: Mock<(url?: string, target?: string) => Window | null>;
 }
 
 /**

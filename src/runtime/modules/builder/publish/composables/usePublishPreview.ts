@@ -1,11 +1,7 @@
 import type { Composer } from 'vue-i18n';
 import { useNuxtApp } from '#imports';
 import type { IBricksSchema } from '../../../common/types/brick';
-import type {
-    IPageVersion,
-    IPreviewStoredPage,
-    TPublishedPageSummary,
-} from '../../../common/types/bricks-api';
+import type { IPreviewStoredPage } from '../../../common/types/bricks-api';
 import type { IUsePublishPreviewReturn } from '../types/composables';
 import { useBricksRoutePaths } from '../../../common/composables/useBricksRoutePaths';
 import { usePublishStore } from '../stores/publish';
@@ -33,9 +29,10 @@ export function usePublishPreview(): IUsePublishPreviewReturn {
      * `<previewPrefix>/[pagename]`; с `app.baseURL` (открывается window.open).
      *
      * @param pagename - ЧПУ страницы.
+     * @param versionId - Id сохранённой версии (без него — текущее состояние).
      */
-    function generatePreviewUrl(pagename: string): string {
-        return withBase(previewPagePath(pagename));
+    function generatePreviewUrl(pagename: string, versionId?: number): string {
+        return withBase(previewPagePath(pagename, versionId));
     }
 
     /**
@@ -86,55 +83,26 @@ export function usePublishPreview(): IUsePublishPreviewReturn {
     }
 
     /**
-     * Превью сохранённой версии страницы: снапшот версии кладётся в localStorage
-     * (`bricks-preview-page`) и открывается общий превью-роут.
+     * Превью сохранённой версии страницы: открывает превью-роут с `?version=`.
+     * Снапшот приезжает с сервера (middleware превью тянет версию по id), поэтому
+     * localStorage тут не участвует вовсе — слот там один, и открытый рядом
+     * билдер той же страницы либо второе превью перетирали бы снимок версии.
      *
      * `pagename` берётся из ТЕКУЩЕЙ страницы, не из версии — он должен совпасть
      * с параметром роута `/preview/<pagename>` (страница могла быть переименована).
      *
-     * Известное ограничение v1: если билдер с этой же страницей открыт в соседней
-     * вкладке, его `BroadcastChannel('bricks-preview-sync')` ответит превью-вкладке
-     * живой схемой канваса и перекроет схему версии.
-     *
-     * @param page - Текущая страница (источник pagename).
-     * @param version - Полный снапшот версии.
-     * @returns `pagename` открытого превью или null при ошибке.
+     * @param pagename - ЧПУ текущей страницы.
+     * @param versionId - Id сохранённой версии.
+     * @returns `pagename` открытого превью или null, если вкладка не открылась.
      */
-    function previewPageVersion(page: TPublishedPageSummary, version: IPageVersion): string | null {
-        try {
-            const previewData: IPreviewStoredPage = {
-                id: page.id,
-                pagename: page.pagename,
-                title: version.title || t('bricks.publish.previewFallback'),
-                description: version.description || t('bricks.publish.previewFallback'),
-                keywords: version.keywords,
-                published: version.published,
-                layout: version.layout,
-                backgroundColor: version.backgroundColor,
-                socialImage: version.socialImage,
-                urlPrefix: version.urlPrefix,
-                subdomain: version.subdomain,
-                thumbnailUrl: null,
-                createdAt: page.createdAt,
-                updatedAt: page.updatedAt,
-                schema: version.schema,
-                isPreview: true,
-                storedAt: new Date().toISOString(),
-            };
-
-            if (typeof window === 'undefined') {
-                console.warn('[Publish Preview] previewPageVersion: window is not available');
-                return null;
-            }
-
-            window.localStorage.setItem('bricks-preview-page', JSON.stringify(previewData));
-            window.open(generatePreviewUrl(page.pagename), '_blank');
-            return page.pagename;
-        } catch (error) {
-            console.error('[Publish Preview] Failed to create version preview:', error);
-            publishStore.generalError = t('bricks.publish.previewCreateFailed');
+    function previewPageVersion(pagename: string, versionId: number): string | null {
+        if (typeof window === 'undefined') {
+            console.warn('[Publish Preview] previewPageVersion: window is not available');
             return null;
         }
+
+        // Блокировщик попапов возвращает null — без проверки отказ был бы тихим
+        return window.open(generatePreviewUrl(pagename, versionId), '_blank') ? pagename : null;
     }
 
     return { previewCurrentPage, previewPageVersion, generatePreviewUrl };

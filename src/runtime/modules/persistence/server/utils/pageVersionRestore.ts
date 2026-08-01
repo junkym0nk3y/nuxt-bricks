@@ -1,9 +1,9 @@
 /**
  * Оркестрация отката страницы к сохранённой версии (POST .../restore).
  *
- * Применяет только schema + layout + backgroundColor: pagename/title/SEO/
- * published не трогает (нет конфликтов уникальности pagename и неожиданных
- * SEO-откатов). Идёт через storage.updatePage, который сам снапшотит текущее
+ * Применяет только schema + layout + backgroundColor + thumbnailUrl:
+ * pagename/title/SEO/published не трогает (нет конфликтов уникальности pagename
+ * и неожиданных SEO-откатов). Идёт через storage.updatePage, который сам снапшотит текущее
  * состояние перед откатом («откат отката» бесплатно) и применяет optimistic
  * locking по expectedRevision — несовпадение бросает BricksRevisionConflictError
  * (маппится на 409 REVISION_CONFLICT в toPageHttpError на ручке).
@@ -65,10 +65,17 @@ export async function restorePageVersion(
         });
     }
 
+    // Превью едет вместе со схемой, включая `null`: содержимое страницы после
+    // отката — содержимое версии, и прежний кадр показывал бы то, чего на
+    // странице больше нет. У версии без снимка честнее плейсхолдер, чем чужая
+    // картинка; страница получит свой кадр на первом же сохранении из билдера.
+    // Кадр состояния, которое откат вытесняет, не теряется — его уносит
+    // снапшот, который updatePage делает перед записью.
     const result = await deps.storage.updatePage(pageId, {
         schema: version.schema,
         layout: version.layout,
         backgroundColor: version.backgroundColor,
+        thumbnailUrl: version.thumbnailUrl,
         expectedRevision,
     });
 

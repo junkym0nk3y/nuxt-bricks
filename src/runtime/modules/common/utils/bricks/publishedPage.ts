@@ -169,6 +169,45 @@ export function normalizePublishedPage(
 }
 
 /**
+ * Собирает страницу превью из снапшота сохранённой версии: содержимое и meta —
+ * версии, тождество страницы — текущей строки.
+ *
+ * `id` снапшота — идентификатор записи истории, а не страницы; `pagename` в нём
+ * мог остаться прежним, если страницу переименовали, — а превью открыто по
+ * нынешнему слагу. Поэтому оба берутся у страницы.
+ *
+ * `updatedAt` — `pageUpdatedAt` снапшота, то есть момент, когда снятое состояние
+ * сохранили: этой же датой подписана карточка версии в галерее. `revision` не
+ * переносится — из превью писать нечем, precondition ни к чему.
+ *
+ * @param rawVersion - Ответ `GET /api/bricks/:id/versions/:versionId` (возможен snake_case).
+ * @param page - Сводка текущей страницы.
+ * @returns Страница для рендера превью версии.
+ */
+export function normalizePageVersionPreview(
+    rawVersion: unknown,
+    page: TPublishedPageSummary
+): IPublishedPage {
+    const rawRecord: Record<string, unknown> =
+        typeof rawVersion === 'object' && rawVersion !== null && !Array.isArray(rawVersion)
+            ? (rawVersion as Record<string, unknown>)
+            : {};
+
+    const rawPageUpdatedAt = rawRecord.pageUpdatedAt ?? rawRecord.page_updated_at;
+    const pageUpdatedAt = typeof rawPageUpdatedAt === 'string' ? rawPageUpdatedAt : '';
+
+    return {
+        ...normalizePublishedPage(rawVersion),
+        id: page.id,
+        pagename: page.pagename,
+        createdAt: page.createdAt,
+        updatedAt: pageUpdatedAt || page.updatedAt,
+        revision: undefined,
+        isPreview: true,
+    };
+}
+
+/**
  * Нормализует сводку страницы editorial-списка (без `schema`): те же правила,
  * что normalizePublishedPage, но без фабрикации пустой схемы — сводка схему
  * не несёт, и в стор списка она попадать не должна.

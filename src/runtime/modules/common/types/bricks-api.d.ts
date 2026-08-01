@@ -81,6 +81,11 @@ export type TPublishedPageSummary = Omit<IPublishedPage, 'schema' | 'isPreview'>
  * Снапшот страницы для превью в localStorage (`bricks-preview-page`).
  * `storedAt` — момент записи; превью сравнивает его с `updatedAt` из БД,
  * чтобы устаревший снапшот не перетирал свежие сохранённые данные.
+ *
+ * Хранит только состояние КАНВАСА (его в БД нет). Превью сохранённой версии
+ * этот слот не использует: версия уходит в `?version=` превью-роута и приезжает
+ * с сервера — иначе открытый рядом билдер перетирал бы снимок версии живой
+ * схемой, а второе превью — снимком другой версии.
  */
 export interface IPreviewStoredPage extends IPublishedPage {
     storedAt?: string;
@@ -88,16 +93,26 @@ export interface IPreviewStoredPage extends IPublishedPage {
 
 /**
  * Сводка сохранённой версии страницы (лёгкий список без schema).
+ *
+ * `thumbnailUrl` — снимок канваса того состояния, которое унесла версия;
+ * `null` у версий, созданных до появления снимков у истории (и у тех, чей
+ * снимок не доехал: съёмка превью — fire-and-forget).
+ *
+ * Две даты — не дубль: `createdAt` — момент снапшота, то есть момент, когда
+ * состояние **вытеснили**; `pageUpdatedAt` (updated_at исходной строки на
+ * момент снапшота) — момент, когда его **сохранили**. Пользователю показывают
+ * вторую: она описывает то, что на снимке.
  */
 export interface IPageVersionSummary {
     id: number;
     pageId: number;
+    thumbnailUrl: string | null;
+    pageUpdatedAt: string | null;
     createdAt: string;
 }
 
 /**
  * Полный снапшот версии страницы: meta + schema на момент сохранения.
- * `pageUpdatedAt` — updated_at исходной строки на момент снапшота.
  */
 export interface IPageVersion extends IPageVersionSummary {
     pagename: string;
@@ -111,7 +126,6 @@ export interface IPageVersion extends IPageVersionSummary {
     subdomain: string | null;
     schema: IBricksSchema;
     published: boolean;
-    pageUpdatedAt: string | null;
 }
 
 export interface ICreatePagePayload {

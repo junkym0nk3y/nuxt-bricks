@@ -2,7 +2,6 @@ import type { IBricksSchema } from '../../../common/types/brick';
 import type {
     ICreatePagePayload,
     IUpdatePagePayload,
-    IPageVersion,
     IPageVersionSummary,
     IPublishedPage,
     TPublishedPageSummary,
@@ -139,27 +138,6 @@ export async function fetchPageVersionsRequest(
         return await apiFetcher<IPageVersionSummary[]>(`/api/bricks/${id}/versions/`);
     } catch (error: unknown) {
         throw toRequestError('GET', `/api/bricks/${id}/versions`, error);
-    }
-}
-
-/**
- * Загружает полный снапшот версии через GET /api/bricks/:id/versions/:versionId.
- *
- * @param id - Идентификатор страницы.
- * @param versionId - Идентификатор версии.
- * @returns Полный снапшот версии (meta + schema).
- * @throws Ошибка запроса, приведённая через `toRequestError`.
- */
-export async function fetchPageVersionRequest(
-    id: string | number,
-    versionId: number
-): Promise<IPageVersion> {
-    const { apiFetcher } = useApiClient();
-
-    try {
-        return await apiFetcher<IPageVersion>(`/api/bricks/${id}/versions/${versionId}/`);
-    } catch (error: unknown) {
-        throw toRequestError('GET', `/api/bricks/${id}/versions/${versionId}`, error);
     }
 }
 

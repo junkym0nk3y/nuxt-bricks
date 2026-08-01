@@ -37,7 +37,8 @@ export function useBricksRoutePaths(): IUseBricksRoutePathsReturn {
         prefixes,
         builderRootPath: prefixes.builderPrefix,
         builderLoginPath: getBuilderLoginPath(prefixes),
-        previewPagePath: (pagename: string) => getPreviewPagePath(prefixes, pagename),
+        previewPagePath: (pagename: string, versionId?: number) =>
+            getPreviewPagePath(prefixes, pagename, versionId),
         withBase: (path: string) => joinPathBase(baseURL, path),
         stripBase: (pathname: string) => stripPathBase(pathname, baseURL),
         isBuilderPath: (pathname: string) => isBuilderPath(prefixes, pathname),

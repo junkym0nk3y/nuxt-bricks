@@ -1,7 +1,11 @@
 import type { LayoutKey } from 'nuxt/app';
 import { defineNuxtRouteMiddleware, useNuxtApp, setPageLayout } from '#app';
 import { createError, useState, useRequestHeaders, useRuntimeConfig } from '#imports';
-import type { TPublishedPageSummary, IPublishedPage } from '../modules/common/types/bricks-api';
+import type {
+    IPageVersion,
+    IPublishedPage,
+    TPublishedPageSummary,
+} from '../modules/common/types/bricks-api';
 import { normalizeBricksError, parseBricksBooleanFlag } from '../modules/common/utils/main';
 import { isRequestTimeoutError } from '../modules/common/utils/apiRequestPolicy';
 import { useApiClient } from '../modules/common/composables/useApiClient';
@@ -12,9 +16,15 @@ import { BRICKS_ROUTE_NAMES } from '../modules/common/constants/routes';
 import {
     matchesPageSubdomain,
     matchesPageUrlPrefix,
+    normalizePageVersionPreview,
     normalizePublishedPage,
     resolveRequestedUrlPrefix,
 } from '../modules/common/utils/bricks/publishedPage';
+import {
+    PREVIEW_VERSION_QUERY_PARAM,
+    getBricksPageDataKey,
+    parsePreviewVersionId,
+} from '../modules/common/utils/bricks/previewRoute';
 
 /**
  * Статус неотвечающего backend'а. Таймаут lookup'а — не «страницы нет»: 404 на
@@ -67,14 +77,23 @@ export default defineNuxtRouteMiddleware(async (to) => {
     const nuxtApp = useNuxtApp();
     const pagename = to.params.pagename as string;
 
-    const pageDataKey = `bricks-page-${pagename}-${isPreview ? 'preview' : 'live'}`;
+    // Версия превью живёт в URL: ключ payload'а обязан её учитывать, иначе
+    // вторая версия той же страницы подобрала бы данные первой
+    const previewVersionId = isPreview
+        ? parsePreviewVersionId(to.query[PREVIEW_VERSION_QUERY_PARAM])
+        : null;
+
+    const pageDataKey = getBricksPageDataKey(pagename, isPreview, previewVersionId);
 
     // Пытаемся получить данные из payload, если они уже были загружены этим middleware
     // Это обрабатывает клиентскую навигацию, когда middleware может запуститься повторно
     let page: IPublishedPage | null = nuxtApp.payload.data[pageDataKey] as IPublishedPage | null;
 
     if (!page) {
-        if (isPreview && import.meta.client) {
+        // Снапшот из localStorage — только для превью текущего состояния канваса
+        // (оно в БД не лежит). У превью версии источник один — сервер по `?version=`,
+        // и подмена его живым снапшотом показала бы вместо истории канвас билдера
+        if (isPreview && previewVersionId === null && import.meta.client) {
             const previewData = window.localStorage.getItem('bricks-preview-page');
 
             if (previewData) {
@@ -113,22 +132,44 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
             const targetPage = pagesList.value.find((candidate) => candidate.pagename === pagename);
 
-            // Драфт может жить только в localStorage (недоступен на сервере).
-            // Не кидаем 404 — страница сама подхватит данные из localStorage на клиенте.
             if (!targetPage) {
+                // Версия существует только вместе со строкой страницы, и подхватить
+                // её на клиенте нечем: пустое превью читалось бы как «версия пустая»
+                if (previewVersionId !== null) {
+                    return createError({
+                        statusCode: 404,
+                        statusMessage: 'Page not found',
+                    });
+                }
+
+                // Драфт может жить только в localStorage (недоступен на сервере).
+                // Не кидаем 404 — страница сама подхватит данные из localStorage на клиенте.
                 return;
             }
 
             try {
-                const response = await withLookupDeadline(
-                    apiFetcher<IPublishedPage>(`/api/bricks/${targetPage.id}/`)
-                );
-                page = normalizePublishedPage(response);
+                if (previewVersionId === null) {
+                    const response = await withLookupDeadline(
+                        apiFetcher<IPublishedPage>(`/api/bricks/${targetPage.id}/`)
+                    );
+                    page = normalizePublishedPage(response);
+                } else {
+                    // Снапшот версии приезжает с сервера, а не из localStorage: слот
+                    // там один, и открытый рядом билдер перетирал бы его живой схемой
+                    const response = await withLookupDeadline(
+                        apiFetcher<IPageVersion>(
+                            `/api/bricks/${targetPage.id}/versions/${previewVersionId}/`
+                        )
+                    );
+                    page = normalizePageVersionPreview(response, targetPage);
+                }
             } catch (error) {
                 return createError(
                     normalizeBricksError(
                         error,
-                        'Failed to load page',
+                        previewVersionId === null
+                            ? 'Failed to load page'
+                            : 'Failed to load page version',
                         resolveLookupErrorStatus(error, 500)
                     )
                 );

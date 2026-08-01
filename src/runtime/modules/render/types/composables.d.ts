@@ -65,6 +65,12 @@ export type TDataSourceRequestCache = Map<string, Promise<unknown>>;
 export interface IRendererPreviewSyncOptions {
     pagename: string;
     isPreview: boolean;
+    /**
+     * Id сохранённой версии из `?version=` (null — превью текущего состояния).
+     * Вкладка версии показывает состояние из истории: live-синк с билдером и
+     * снапшот из localStorage для неё выключены.
+     */
+    previewVersionId: number | null;
     /** Данные страницы из payload middleware (БД). */
     middlewarePageData: Ref<IPublishedPage | null>;
     /** Live-данные превью: заполняются из localStorage и BroadcastChannel. */

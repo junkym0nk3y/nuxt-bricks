@@ -189,3 +189,17 @@ export interface IPublishDetailsPanelVersionsEmits {
     restore: [version: IPageVersionSummary];
     notify: [message: string, variant: 'success' | 'error'];
 }
+
+/**
+ * Карточка галереи версий. `version === null` — текущее состояние страницы:
+ * оно в списке версий не лежит (версия — снимок состояния, которое сохранение
+ * вытеснило), но без него галерее не с чем сравнивать историю.
+ * У текущей карточки нет действий: восстанавливать нечего, страница уже в этом
+ * состоянии.
+ */
+export interface IPublishVersionCard {
+    key: string;
+    version: IPageVersionSummary | null;
+    thumbnailUrl: string | null;
+    date: string;
+}

@@ -46,9 +46,12 @@ export interface IUsePublishVersionRestoreReturn {
 export interface IUsePublishPageVersionsReturn {
     versions: Ref<IPageVersionSummary[]>;
     isLoading: ComputedRef<boolean>;
-    previewingVersionId: Ref<number | null>;
     loadVersions: (pageId: string | number) => Promise<void>;
-    previewVersion: (page: TPublishedPageSummary, versionId: number) => Promise<void>;
+    /**
+     * Открывает превью версии в новой вкладке. Синхронно: снапшот тянет сервер по
+     * `?version=`, клиенту грузить нечего. `false` — вкладка не открылась.
+     */
+    previewVersion: (page: TPublishedPageSummary, versionId: number) => boolean;
     /** Очищает список и обесценивает летящий запрос (переключение страницы). */
     resetVersions: () => void;
 }
@@ -117,7 +120,8 @@ export interface IPublishDetailsUrlReturn {
  */
 export interface IUsePublishPreviewReturn {
     previewCurrentPage: (schema: IBricksSchema) => string | null;
-    previewPageVersion: (page: TPublishedPageSummary, version: IPageVersion) => string | null;
-    generatePreviewUrl: (pagename: string) => string;
+    /** Превью сохранённой версии: `?version=` в превью-роуте, без localStorage. */
+    previewPageVersion: (pagename: string, versionId: number) => string | null;
+    generatePreviewUrl: (pagename: string, versionId?: number) => string;
 }
 // #endregion

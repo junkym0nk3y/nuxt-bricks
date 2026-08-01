@@ -34,6 +34,7 @@ function makeVersion(overrides: Partial<IPageVersion> = {}): IPageVersion {
         backgroundColor: '#ffffff',
         urlPrefix: null,
         subdomain: null,
+        thumbnailUrl: 'https://storage.example.com/my-bucket/bricks-thumbnails/page-1-old.webp',
         schema: { components: [] },
         published: true,
         pageUpdatedAt: '2026-07-01T00:00:00.000Z',
@@ -108,7 +109,7 @@ describe('restorePageVersion: version lookup + updatePage с revision-preconditi
         expect(calls).toEqual(['getPageVersion:1:5']);
     });
 
-    it('актуальная revision: возвращает обновлённую страницу, передаёт schema/layout/backgroundColor + expectedRevision', async () => {
+    it('актуальная revision: возвращает обновлённую страницу, передаёт schema/layout/backgroundColor/thumbnailUrl + expectedRevision', async () => {
         const { deps, calls } = makeDeps({});
 
         const result = await restorePageVersion(deps, 1, 5, 8);
@@ -120,9 +121,18 @@ describe('restorePageVersion: version lookup + updatePage с revision-preconditi
                 schema: makeVersion().schema,
                 layout: makeVersion().layout,
                 backgroundColor: makeVersion().backgroundColor,
+                thumbnailUrl: makeVersion().thumbnailUrl,
                 expectedRevision: 8,
             })}`,
         ]);
+    });
+
+    it('версия без снимка обнуляет превью страницы — прежний кадр показывал бы вытесненное содержимое', async () => {
+        const { deps, calls } = makeDeps({ version: makeVersion({ thumbnailUrl: null }) });
+
+        await restorePageVersion(deps, 1, 5, 8);
+
+        expect(calls[1]).toContain('"thumbnailUrl":null');
     });
 
     it('updatePage вернул null (страница удалена между чтением версии и апдейтом) — 404', async () => {
@@ -147,6 +157,7 @@ describe('restorePageVersion: version lookup + updatePage с revision-preconditi
                 schema: makeVersion().schema,
                 layout: makeVersion().layout,
                 backgroundColor: makeVersion().backgroundColor,
+                thumbnailUrl: makeVersion().thumbnailUrl,
                 expectedRevision: 3,
             })}`,
         ]);

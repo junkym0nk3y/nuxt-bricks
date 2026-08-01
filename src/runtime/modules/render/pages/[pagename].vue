@@ -1,12 +1,13 @@
 <script setup lang="ts">
 // #region Imports
 // Types
+import type { RouteLocationNormalizedLoaded } from 'vue-router';
 import type { IPublishedPage } from '../../common/types/bricks-api';
 import type { IBricksComponent } from '../../common/types/brick';
 
 // Vue
 import { computed, ref } from 'vue';
-import { createError, useHead, useNuxtData, useRoute } from '#imports';
+import { createError, definePageMeta, useHead, useNuxtData, useRoute } from '#imports';
 
 // Composables
 import { useBrickImports } from '../../common/composables/useBrickImports';
@@ -15,11 +16,27 @@ import { useRendererDataSources } from '../composables/useRendererDataSources';
 import { useRendererPreviewSync } from '../composables/useRendererPreviewSync';
 import { normalizeBrickPath } from '../../common/utils/bricks/paths';
 import { isRenderableSchemaComponent } from '../../common/utils/bricks/schemaContract';
+import {
+    PREVIEW_VERSION_QUERY_PARAM,
+    getBricksPageDataKey,
+    getRenderPageKey,
+    parsePreviewVersionId,
+} from '../../common/utils/bricks/previewRoute';
 import { BRICKS_ROUTE_NAMES } from '../../common/constants/routes';
 
 // Components
 import TheRenderer from '../components/TheRenderer.vue';
 import RendererCloseButton from '../components/RendererCloseButton.vue';
+// #endregion
+
+// #region Meta
+// Ключ включает нормализованный id версии на превью-роуте: без него переход
+// между версиями оставил бы вкладку на прежней (см. getRenderPageKey). Прочий
+// query — фильтры потребителя, параметры data sources — на монтирование
+// по-прежнему не влияет.
+definePageMeta({
+    key: (route: RouteLocationNormalizedLoaded) => getRenderPageKey(route),
+});
 // #endregion
 
 // #region Data
@@ -29,7 +46,13 @@ const pagename = route.params.pagename as string;
 // на динамических ЧПУ маршрутах компонент работает в live-режиме
 const isPreview = route.name === BRICKS_ROUTE_NAMES.preview;
 
-const pageDataKey = `bricks-page-${pagename}-${isPreview ? 'preview' : 'live'}`;
+// Превью сохранённой версии: id из query. Такая вкладка показывает состояние из
+// истории, поэтому live-синк с билдером ей не нужен (см. useRendererPreviewSync)
+const previewVersionId = isPreview
+    ? parsePreviewVersionId(route.query[PREVIEW_VERSION_QUERY_PARAM])
+    : null;
+
+const pageDataKey = getBricksPageDataKey(pagename, isPreview, previewVersionId);
 const { data: middlewarePageData } = useNuxtData<IPublishedPage>(pageDataKey);
 
 // Данные live-синхронизации превью: обновляются через BroadcastChannel без перезагрузки страницы
@@ -64,6 +87,7 @@ await dataSourcesReady;
 const { currentDevice, resolutionText, closePreview } = useRendererPreviewSync({
     pagename,
     isPreview,
+    previewVersionId,
     middlewarePageData,
     livePreviewData,
     page,

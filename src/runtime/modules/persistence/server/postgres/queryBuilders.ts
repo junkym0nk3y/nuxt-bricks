@@ -51,10 +51,15 @@ export const PAGE_SUMMARY_FIELDS = `
 
 /**
  * Поля сводки версии страницы (bricks_page_versions) — лёгкий список без schema.
+ * `thumbnailUrl` и `pageUpdatedAt` входят в сводку: галерея версий рисует по
+ * списку и превью, и дату сохранения снятого состояния, а без них на каждую
+ * карточку пришлось бы тянуть полный снапшот со schema.
  */
 export const VERSION_SUMMARY_FIELDS = `
     id,
     page_id as "pageId",
+    thumbnail_url as "thumbnailUrl",
+    page_updated_at as "pageUpdatedAt",
     created_at as "createdAt"
 `;
 
@@ -73,6 +78,7 @@ export const VERSION_SELECT_FIELDS = `
     background_color as "backgroundColor",
     url_prefix as "urlPrefix",
     subdomain,
+    thumbnail_url as "thumbnailUrl",
     schema,
     published,
     page_updated_at as "pageUpdatedAt",

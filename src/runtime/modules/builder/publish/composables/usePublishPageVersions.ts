@@ -1,19 +1,19 @@
 import { computed, ref } from 'vue';
 import type { IPageVersionSummary, TPublishedPageSummary } from '../../../common/types/bricks-api';
 import type { IUsePublishPageVersionsReturn } from '../types/composables';
-import { fetchPageVersionsRequest, fetchPageVersionRequest } from '../utils/publishApi';
+import { fetchPageVersionsRequest } from '../utils/publishApi';
 import { usePublishPreview } from './usePublishPreview';
 
 /**
- * Версии страницы для панели деталей дашборда: список сводок и превью полного
- * снапшота через общий механизм `/preview/<pagename>` (см. `usePublishPreview`).
+ * Версии страницы для панели деталей дашборда: список сводок и превью версии
+ * через общий превью-роут `/preview/<pagename>?version=<id>`
+ * (см. `usePublishPreview`).
  * Ошибки запросов пробрасываются — уведомления показывает вызывающий компонент.
  */
 export function usePublishPageVersions(): IUsePublishPageVersionsReturn {
     const { previewPageVersion } = usePublishPreview();
 
     const versions = ref<IPageVersionSummary[]>([]);
-    const previewingVersionId = ref<number | null>(null);
 
     // Номер последнего стартовавшего запроса: им отсекается ответ, пришедший
     // после переключения панели на другую страницу или после более свежей
@@ -70,29 +70,23 @@ export function usePublishPageVersions(): IUsePublishPageVersionsReturn {
     }
 
     /**
-     * Загружает полный снапшот версии и открывает его превью в новой вкладке.
+     * Открывает превью версии в новой вкладке.
+     *
+     * Снапшот не загружается: версия уходит в URL (`?version=`), и её тянет
+     * middleware превью-роута — вкладка рендерится сервером сразу нужным
+     * состоянием, а клиенту ждать нечего.
      *
      * @param page - Текущая страница (источник pagename превью-роута).
      * @param versionId - Идентификатор версии.
+     * @returns false, если вкладка не открылась (блокировщик попапов).
      */
-    async function previewVersion(page: TPublishedPageSummary, versionId: number): Promise<void> {
-        if (previewingVersionId.value !== null) {
-            return;
-        }
-
-        previewingVersionId.value = versionId;
-        try {
-            const version = await fetchPageVersionRequest(page.id, versionId);
-            previewPageVersion(page, version);
-        } finally {
-            previewingVersionId.value = null;
-        }
+    function previewVersion(page: TPublishedPageSummary, versionId: number): boolean {
+        return previewPageVersion(page.pagename, versionId) !== null;
     }
 
     return {
         versions,
         isLoading,
-        previewingVersionId,
         loadVersions,
         previewVersion,
         resetVersions,

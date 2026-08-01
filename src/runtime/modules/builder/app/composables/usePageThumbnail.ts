@@ -196,10 +196,11 @@ export function usePageThumbnail(sessionToken: IBuilderSessionToken): IUsePageTh
                 throw new Error('Thumbnail upload failed');
             }
 
-            // Cache-buster: S3-ключ детерминированный (перезапись), CDN/браузер не должны отдавать старый кадр
-            await publishStore.patchPage(pageId, {
-                thumbnailUrl: `${response.url}?v=${Date.now()}`,
-            });
+            // Без cache-buster'а: ключ уникален на каждую загрузку, поэтому URL
+            // нового кадра сам по себе новый. Прежний `?v=<ts>` теперь только
+            // мешал бы — этот же URL уносит в историю снапшот версии, и версии
+            // отличались бы друг от друга параметром, а не файлом
+            await publishStore.patchPage(pageId, { thumbnailUrl: response.url });
         } catch (error: unknown) {
             console.warn('[Bricks Thumbnail] Capture failed:', error);
         }

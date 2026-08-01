@@ -216,3 +216,25 @@ export interface IAuthAdapter {
     /** Sliding-продление: обновляет expires_at и last_used_at. */
     touchSession(tokenHash: string, expiresAt: Date): Promise<void>;
 }
+
+/**
+ * Опции уборки файлов превью страницы (`prunePageThumbnails`).
+ */
+export interface IPrunePageThumbnailsOptions {
+    /**
+     * Снимает защиту недавно загруженных файлов. Ставится при удалении
+     * страницы: следующего прохода уборки там не будет, и отложенный файл
+     * остался бы в хранилище навсегда.
+     */
+    includeRecentUploads?: boolean;
+}
+
+/**
+ * Зависимости уборки сирот после загрузки кадра (`prunePageThumbnailsAfterUpload`):
+ * узкие Pick-контракты вместо полных адаптеров — логика тестируется без
+ * Postgres и S3.
+ */
+export interface IPageThumbnailPruneDeps {
+    storage: Pick<IStorageAdapter, 'getPage' | 'listPageVersions'>;
+    publish: Pick<IPublishAdapter, 'buildFileKey' | 'listFiles' | 'deleteFile'>;
+}

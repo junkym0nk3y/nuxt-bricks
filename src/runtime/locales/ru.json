@@ -209,6 +209,8 @@
                     "versions": {
                         "title": "Версии",
                         "empty": "Сохранённых версий пока нет",
+                        "current": "Текущая",
+                        "noThumbnail": "Без снимка",
                         "restore": "Восстановить",
                         "preview": "Превью",
                         "restoreConfirm": {

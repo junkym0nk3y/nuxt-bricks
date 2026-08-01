@@ -5,17 +5,22 @@ import type { IPageVersionSummary } from '../../../common/types/bricks-api';
 import type {
     IPublishDetailsPanelVersionsProps,
     IPublishDetailsPanelVersionsEmits,
+    IPublishVersionCard,
 } from '../types/dashboard';
 
 // Utils
-import { formatPageDateTime } from '../utils/dates';
+import { formatPageDateTime, formatPageVersionDateTime } from '../utils/dates';
 
 // Vue
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Composables
 import { usePublishPageVersions } from '../composables/usePublishPageVersions';
+
+// Components
+import BricksTooltip from '../../../ui/tooltip/BricksTooltip.vue';
+import BricksTooltipHint from '../../../ui/tooltip/BricksTooltipHint.vue';
 // #endregion
 
 // #region Props
@@ -27,12 +32,46 @@ const emit = defineEmits<IPublishDetailsPanelVersionsEmits>();
 // #endregion
 
 // #region Data
+/** Сколько карточек-заглушек держат высоту панели, пока список едет. */
+const SKELETON_CARDS_COUNT = 4;
+
 const { t } = useI18n();
 
-const { versions, isLoading, previewingVersionId, loadVersions, previewVersion, resetVersions } =
+const { versions, isLoading, loadVersions, previewVersion, resetVersions } =
     usePublishPageVersions();
 
 const isOpen = ref(false);
+// #endregion
+
+// #region Computed
+/**
+ * Карточки галереи: текущее состояние страницы первым, за ним история.
+ * Пока истории нет, текущая карточка не показывается — сравнивать не с чем,
+ * и секция честно отвечает пустым состоянием.
+ */
+const versionCards = computed<IPublishVersionCard[]>(() => {
+    if (versions.value.length === 0) {
+        return [];
+    }
+
+    return [
+        {
+            key: 'current',
+            version: null,
+            thumbnailUrl: props.page.thumbnailUrl,
+            date: formatPageDateTime(props.page.updatedAt),
+        },
+        // Дата карточки — момент, когда снятое состояние сохранили, а не когда
+        // его вытеснили (см. formatPageVersionDateTime); той же датой
+        // подписывается подтверждение отката
+        ...versions.value.map((version) => ({
+            key: `version-${version.id}`,
+            version,
+            thumbnailUrl: version.thumbnailUrl,
+            date: formatPageVersionDateTime(version),
+        })),
+    ];
+});
 // #endregion
 
 // #region Methods
@@ -59,14 +98,13 @@ async function handleToggle(): Promise<void> {
 }
 
 /**
- * Открывает превью версии в новой вкладке.
+ * Открывает превью версии в новой вкладке. Загружать нечего — версия уходит в
+ * URL превью-роута; сообщаем только о неоткрывшейся вкладке.
  *
  * @param version - Сводка версии.
  */
-async function handlePreview(version: IPageVersionSummary): Promise<void> {
-    try {
-        await previewVersion(props.page, version.id);
-    } catch {
+function handlePreview(version: IPageVersionSummary): void {
+    if (!previewVersion(props.page, version.id)) {
         emit(
             'notify',
             t('bricks.publish.dashboard.details.versions.toasts.previewFailed'),
@@ -119,38 +157,97 @@ watch(
         </button>
 
         <div v-if="isOpen" :class="$style.versionsContent">
-            <div v-if="isLoading" :class="$style.loading">
-                <BricksIcon icon="ta:outline-loader-2" :class="$style.loadingIcon" />
+            <!-- Скелет — только пока показывать нечего: перезагрузка открытой
+                 секции (после отката или сохранения) не должна мигать пустой
+                 сеткой поверх уже показанных версий -->
+            <div v-if="isLoading && versions.length === 0" :class="$style.grid">
+                <div v-for="index in SKELETON_CARDS_COUNT" :key="index" :class="$style.card">
+                    <div :class="[$style.thumb, $style.thumbSkeleton]" />
+                    <span :class="$style.dateSkeleton" />
+                </div>
             </div>
 
             <p v-else-if="versions.length === 0" :class="$style.empty">
                 {{ t('bricks.publish.dashboard.details.versions.empty') }}
             </p>
 
-            <ul v-else :class="$style.list">
-                <li v-for="version in versions" :key="version.id" :class="$style.row">
-                    <span :class="$style.date">{{ formatPageDateTime(version.createdAt) }}</span>
-                    <div :class="$style.actions">
-                        <button
-                            :class="$style.actionButton"
-                            type="button"
-                            :disabled="previewingVersionId !== null"
-                            :title="t('bricks.publish.dashboard.details.versions.preview')"
-                            :aria-label="t('bricks.publish.dashboard.details.versions.preview')"
-                            @click="handlePreview(version)"
-                        >
-                            <BricksIcon icon="ta:outline-eye" />
-                        </button>
-                        <button
-                            :class="$style.actionButton"
-                            type="button"
-                            :title="t('bricks.publish.dashboard.details.versions.restore')"
-                            :aria-label="t('bricks.publish.dashboard.details.versions.restore')"
-                            @click="handleRestore(version)"
-                        >
-                            <BricksIcon icon="ta:outline-arrow-back-up" />
-                        </button>
+            <ul v-else :class="$style.grid">
+                <li
+                    v-for="card in versionCards"
+                    :key="card.key"
+                    :class="[$style.card, !card.version && $style.cardCurrent]"
+                >
+                    <div :class="$style.thumb">
+                        <!-- alt пустой намеренно: описать скриншот страницы
+                             текстом нечем, а дата уже озвучена соседней
+                             строкой — с `alt="дата"` скринридер повторял бы её
+                             дважды подряд -->
+                        <img
+                            v-if="card.thumbnailUrl"
+                            :class="$style.thumbImage"
+                            :src="card.thumbnailUrl"
+                            alt=""
+                            loading="lazy"
+                        />
+                        <div v-else :class="$style.placeholder">
+                            <BricksIcon icon="ta:outline-photo" :class="$style.placeholderIcon" />
+                            <span :class="$style.placeholderText">
+                                {{ t('bricks.publish.dashboard.details.versions.noThumbnail') }}
+                            </span>
+                        </div>
+
+                        <span v-if="!card.version" :class="$style.currentBadge">
+                            {{ t('bricks.publish.dashboard.details.versions.current') }}
+                        </span>
+
+                        <!-- Подпись действий — тултип кита, а не нативный
+                             `title`: стрелка «восстановить» без подписи
+                             читается как «отменить», а цена ошибки здесь —
+                             перезаписанное содержимое страницы. `aria-label`
+                             остаётся: содержимое тултипа уезжает в портал и
+                             доступным именем кнопки не становится -->
+                        <div v-if="card.version" :class="$style.actions">
+                            <BricksTooltip bottom>
+                                <template #activator>
+                                    <button
+                                        :class="$style.actionButton"
+                                        type="button"
+                                        :aria-label="
+                                            t('bricks.publish.dashboard.details.versions.preview')
+                                        "
+                                        @click="handlePreview(card.version)"
+                                    >
+                                        <BricksIcon icon="ta:outline-eye" />
+                                    </button>
+                                </template>
+                                <BricksTooltipHint
+                                    :text="t('bricks.publish.dashboard.details.versions.preview')"
+                                />
+                            </BricksTooltip>
+
+                            <BricksTooltip bottom>
+                                <template #activator>
+                                    <button
+                                        :class="$style.actionButton"
+                                        type="button"
+                                        :aria-label="
+                                            t('bricks.publish.dashboard.details.versions.restore')
+                                        "
+                                        @click="handleRestore(card.version)"
+                                    >
+                                        <BricksIcon icon="ta:outline-arrow-back-up" />
+                                    </button>
+                                </template>
+                                <BricksTooltipHint
+                                    :text="t('bricks.publish.dashboard.details.versions.restore')"
+                                />
+                            </BricksTooltip>
+                        </div>
                     </div>
+
+                    <span :class="[$style.date, !card.version && $style.dateCurrent]">
+                        {{ card.date }}
+                    </span>
                 </li>
             </ul>
         </div>
@@ -198,53 +295,122 @@ watch(
     flex-direction: column;
 }
 
-.loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.8rem 0;
-}
-
-.loadingIcon {
-    font-size: 1.8rem;
-    color: var(--bricks-primary-500);
-    animation: spin 1s linear infinite;
-}
-
 .empty {
     margin: 0;
     font-size: 1.2rem;
     color: var(--bricks-base-400);
 }
 
-.list {
-    display: flex;
+.grid {
+    display: grid;
+
+    // Две карточки в ряд — ширина контента панели (34rem минус паддинги)
+    // делится ровно на 14.4rem + 1.2rem + 14.4rem, и превью получает точное 16:10
     margin: 0;
     padding: 0;
-    flex-direction: column;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.2rem;
     list-style: none;
 }
 
-.row {
+.card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    min-width: 0;
+}
+
+.thumb {
+    position: relative;
+    overflow: hidden;
+
+    // 16:10 — то же соотношение, что у миниатюры в списке страниц
+    aspect-ratio: 16 / 10;
+    border-radius: var(--bricks-border-radius-xs);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-base-0);
+}
+
+.thumbSkeleton {
+    border-color: transparent;
+    background: var(--bricks-base-100);
+}
+
+.thumbImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+}
+
+.placeholder {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 0.6rem 0;
-    gap: 0.8rem;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    flex-direction: column;
+    gap: 0.4rem;
+    background: var(--bricks-base-100);
+    transition: opacity var(--bricks-default-transition);
+}
 
-    &:not(:last-child) {
-        border-bottom: 1px solid var(--bricks-base-200);
+.placeholderIcon {
+    font-size: 2rem;
+    color: var(--bricks-base-400);
+}
+
+.placeholderText {
+    font-size: 1.2rem;
+    color: var(--bricks-base-400);
+}
+
+.currentBadge {
+    position: absolute;
+    top: 0.8rem;
+    left: 0.8rem;
+    padding: 0.2rem 0.8rem;
+    border-radius: var(--bricks-border-radius-pill);
+    background: var(--bricks-primary-500);
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: var(--bricks-static-white);
+}
+
+.cardCurrent {
+    .thumb {
+        border-color: var(--bricks-primary-500);
+        border-width: 0.2rem;
     }
 }
 
-.date {
-    font-size: 1.2rem;
-    color: var(--bricks-base-600);
+.actions {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.2rem;
+
+    // Затемнение — не отдельный слой: своим фоном оно и гасит превью,
+    // и ловит мышь, пока действия видны
+    background: var(--bricks-overlay-dark);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--bricks-default-transition);
 }
 
-.actions {
-    display: flex;
-    gap: 0.4rem;
+.card:hover .actions,
+.card:focus-within .actions {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+// Знак «снимка нет» под вуалью сталкивается с иконками действий: он тоже
+// по центру. Пока действия открыты, показывать нечего — плейсхолдер уходит
+.card:hover .placeholder,
+.card:focus-within .placeholder {
+    opacity: 0;
 }
 
 .actionButton {
@@ -252,22 +418,22 @@ watch(
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    width: 2.4rem;
-    height: 2.4rem;
+    width: 2.8rem;
+    height: 2.8rem;
     padding: 0;
     border-radius: var(--bricks-border-radius-xs);
     border: none;
     background: transparent;
-    font-size: 1.4rem;
-    color: var(--bricks-base-400);
-    transition:
-        background-color var(--bricks-default-transition),
-        color var(--bricks-default-transition);
+    font-size: 1.8rem;
+
+    // Кнопки лежат на тёмной вуали в обеих темах — цвет статичный,
+    // `base-900` в тёмной теме стал бы почти белым на почти белом
+    color: var(--bricks-static-white);
+    transition: background-color var(--bricks-default-transition);
     cursor: pointer;
 
     &:hover:not(:disabled) {
-        background: var(--bricks-base-100);
-        color: var(--bricks-base-900);
+        background: var(--bricks-overlay-light);
     }
 
     &:disabled {
@@ -276,13 +442,23 @@ watch(
     }
 }
 
-@keyframes spin {
-    from {
-        transform: rotate(0deg);
-    }
+.date {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 1.2rem;
+    color: var(--bricks-base-600);
+}
 
-    to {
-        transform: rotate(360deg);
-    }
+.dateCurrent {
+    font-weight: 500;
+    color: var(--bricks-base-900);
+}
+
+.dateSkeleton {
+    width: 60%;
+    height: 1.2rem;
+    border-radius: var(--bricks-border-radius-xs);
+    background: var(--bricks-base-100);
 }
 </style>

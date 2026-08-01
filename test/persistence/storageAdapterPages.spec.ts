@@ -34,6 +34,21 @@ function makeRow(overrides: Record<string, unknown> = {}): Record<string, unknow
     return { id: 1, pagename: 'landing', revision: 2, ...overrides };
 }
 
+/**
+ * Оборачивает мок в generic-сигнатуру транзакционного запроса: мок отдаёт
+ * `unknown[]`, адаптер ждёт `Promise<T[]>`, и без обёртки присваивание пришлось
+ * бы протаскивать двойным приведением, запрещённым в проекте.
+ *
+ * @param mock - Мок запроса внутри транзакции.
+ * @returns Функция в сигнатуре withTransaction.
+ */
+function asTransactionQuery(
+    mock: (text: string, params?: unknown[]) => Promise<unknown[]>
+): TTransactionQuery {
+    return <T>(text: string, params?: unknown[]): Promise<T[]> =>
+        mock(text, params) as Promise<T[]>;
+}
+
 /** Ошибка pg с SQLSTATE unique_violation. */
 function makeUniqueViolation(): Error & { code: string } {
     return Object.assign(new Error('duplicate key value violates unique constraint'), {
@@ -135,7 +150,7 @@ describe('postgresStorageAdapter: конфликты и RETURNING-мутации
 
         withTransactionMock.mockImplementation(
             async (fn: (tx: TTransactionQuery) => Promise<unknown>) =>
-                fn(txQuery as unknown as TTransactionQuery)
+                fn(asTransactionQuery(txQuery))
         );
 
         const adapter = createPostgresStorageAdapter();
@@ -146,6 +161,27 @@ describe('postgresStorageAdapter: конфликты и RETURNING-мутации
 
         // prune после несматченного UPDATE не выполняется
         expect(txQuery).toHaveBeenCalledTimes(2);
+    });
+
+    it('updatePage со schema: снапшот уносит в версию thumbnail_url страницы', async () => {
+        const txQuery = vi.fn<(text: string, params?: unknown[]) => Promise<unknown[]>>();
+        txQuery.mockResolvedValueOnce([{ id: 100 }]); // снапшот
+        txQuery.mockResolvedValueOnce([makeRow()]); // UPDATE
+        txQuery.mockResolvedValueOnce([]); // prune
+
+        withTransactionMock.mockImplementation(
+            async (fn: (tx: TTransactionQuery) => Promise<unknown>) =>
+                fn(asTransactionQuery(txQuery))
+        );
+
+        const adapter = createPostgresStorageAdapter();
+        await adapter.updatePage(1, { schema: { components: [] } });
+
+        // Кадр страницы на момент снапшота — это кадр сохраняемого состояния:
+        // снимок канваса приезжает отдельным PATCH'ем уже после сохранения
+        const [snapshotSql] = txQuery.mock.calls[0] as [string];
+        expect(snapshotSql).toContain('thumbnail_url');
+        expect(snapshotSql).toContain('INSERT INTO bricks_page_versions');
     });
 
     it('updatePage: занятый pagename → BricksPagenameConflictError', async () => {

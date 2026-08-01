@@ -15,7 +15,6 @@ const { fetchVersionsMock } = vi.hoisted(() => ({ fetchVersionsMock: vi.fn() }))
 
 vi.mock('../../src/runtime/modules/builder/publish/utils/publishApi', () => ({
     fetchPageVersionsRequest: fetchVersionsMock,
-    fetchPageVersionRequest: vi.fn(),
 }));
 
 vi.mock('../../src/runtime/modules/builder/publish/composables/usePublishPreview', () => ({
