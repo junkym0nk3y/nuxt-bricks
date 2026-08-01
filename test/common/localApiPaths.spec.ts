@@ -64,4 +64,28 @@ describe('isLocalApiRequest (решение local-vs-external useApiClient)', ()
         expect(isLocalApiRequest('api/bricks/pages')).toBe(false);
         expect(isLocalApiRequest('')).toBe(false);
     });
+
+    // При разборе до pathname authority теряется, и адрес чужого хоста выглядел
+    // бы своим — то есть получил бы identity инсталляции, положенную только
+    // локальным ручкам. Написаний много: слэши, бэкслэши и мусорные TAB/LF/CR
+    // между ними (разборщик URL их выкидывает) дают один и тот же чужой host
+    it('адрес с чужим authority локальным не считается, в любом написании', () => {
+        expect(isLocalApiRequest('//example.com/api/bricks/pages')).toBe(false);
+        expect(isLocalApiRequest('/\\example.com/api/bricks/pages')).toBe(false);
+        expect(isLocalApiRequest('/\\/example.com/api/bricks/pages')).toBe(false);
+        expect(isLocalApiRequest('/\t/example.com/api/bricks/pages')).toBe(false);
+        expect(isLocalApiRequest('/\r\n//example.com/api/bricks/pages')).toBe(false);
+        expect(isLocalApiRequest('//example.com/api/items')).toBe(false);
+    });
+
+    // Отдельный кейс, потому что тут не помогает сравнение с базой разбора:
+    // строка называет host самой базы, и сравнение видит совпадение. Authority
+    // опознаётся синтаксически — иначе такой адрес прошёл бы как локальный
+    it('authority с именем базы разбора тоже не локален', () => {
+        expect(isLocalApiRequest('//local-api.invalid/api/bricks/pages')).toBe(false);
+        expect(isLocalApiRequest('//LOCAL-API.INVALID/api/bricks/pages')).toBe(false);
+        expect(isLocalApiRequest('//local-api.invalid:80/api/bricks/pages')).toBe(false);
+        expect(isLocalApiRequest('//user:password@local-api.invalid/api/bricks/pages')).toBe(false);
+        expect(isLocalApiRequest('/\\local-api.invalid/api/bricks/pages')).toBe(false);
+    });
 });

@@ -5,6 +5,7 @@
 import type { IBrickExportModule } from './index';
 import type { IBricksBreakpoints, IBricksBreakpointConfig } from './config';
 import type { IBricksRoutePrefixes } from '../utils/bricks/routePaths';
+import type { CLIENT_OWNED_REQUEST_OPTIONS } from '../utils/apiRequestPolicy';
 
 // #region useApiClient
 /**
@@ -13,8 +14,20 @@ import type { IBricksRoutePrefixes } from '../utils/bricks/routePaths';
  */
 type TRawApiFetcher = ReturnType<typeof globalThis.$fetch.create>;
 
-/** Опции одного запроса клиента билдера. */
-export type TApiRequestOptions = NonNullable<Parameters<TRawApiFetcher>[1]>;
+/**
+ * Опции одного запроса клиента билдера — без транспортной политики: хуков и
+ * повторов. Вызывающий описывает запрос (метод, тело, заголовки, потолок,
+ * сигнал), а адрес, identity и политику повторов держит клиент.
+ *
+ * Вычитаемые ключи берутся из `CLIENT_OWNED_REQUEST_OPTIONS` — того же списка,
+ * который клиент снимает в рантайме (там же объяснено, чем каждый опасен).
+ * Переписывать союз ключей руками нельзя: расхождение двух копий возвращает
+ * утечку identity, а компилятор о нём не скажет.
+ */
+export type TApiRequestOptions = Omit<
+    NonNullable<Parameters<TRawApiFetcher>[1]>,
+    (typeof CLIENT_OWNED_REQUEST_OPTIONS)[number]
+>;
 
 /**
  * Фетчер API билдера.

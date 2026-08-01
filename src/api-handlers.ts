@@ -47,8 +47,7 @@ export const BRICKS_API_HANDLERS: IBricksApiHandler[] = [
     },
     {
         // Открыта для GET/HEAD auth-матрицей (routeProtection.ts): манифест —
-        // только имена, категории и пути brick-файлов, а SSR билдера в
-        // basic-режиме не умеет пробрасывать Authorization
+        // только имена, категории и пути brick-файлов
         route: '/api/bricks/components',
         method: 'get',
         file: 'server/api/bricks/components.get',

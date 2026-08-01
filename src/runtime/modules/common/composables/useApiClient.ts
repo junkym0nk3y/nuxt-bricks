@@ -1,15 +1,22 @@
 // #region Imports
 // Types
-import type { IncomingHttpHeaders } from 'http';
 import type { IUseApiClientReturn, TApiRequestOptions } from '../types/composables';
 
 // Utils
-import { applyApiRequestTimeout, normalizeRequestAbortError } from '../utils/apiRequestPolicy';
-import { stripCookieByName } from '../utils/cookieHeader';
+import {
+    applyApiRequestTimeout,
+    CLIENT_OWNED_REQUEST_OPTIONS,
+    normalizeRequestAbortError,
+} from '../utils/apiRequestPolicy';
 import { isLocalApiRequest } from '../utils/localApiPaths';
+import {
+    pickForwardedHeaders,
+    pickIdentityHeaders,
+    toExternalHeaders,
+} from '../utils/ssrRequestHeaders';
 
 // Constants
-import { BRICKS_CSRF_HEADER_NAME, BRICKS_SESSION_COOKIE_NAME } from '../constants/auth';
+import { BRICKS_CSRF_HEADER_NAME } from '../constants/auth';
 
 // Composables
 import { useBricksRoutePaths } from './useBricksRoutePaths';
@@ -18,62 +25,7 @@ import { useBricksRoutePaths } from './useBricksRoutePaths';
 import { useCookie, useRequestEvent, useRuntimeConfig } from '#imports';
 // #endregion
 
-// #region Data
-/**
- * Список заголовков, которые нужно пробросить из SSR-запроса в backend-запрос
- */
-const targetHeadersList: string[] = [
-    'x-real-ip',
-    'x-forwarded-for',
-    'x-forwarded-host',
-    'x-forwarded-port',
-    'x-forwarded-proto',
-    'cookie',
-];
-// #endregion
-
 // #region Methods
-/**
- * Извлекает нужные заголовки из SSR-запроса для проброса в backend-запрос
- */
-function getHeaders(
-    reqHeaders: IncomingHttpHeaders | undefined,
-    targetHeadersList: string[]
-): Record<string, string> {
-    if (!reqHeaders) {
-        return {};
-    }
-
-    return targetHeadersList.reduce((result: Record<string, string>, header: string) => {
-        if (reqHeaders && reqHeaders[header]) {
-            result[header] = <string>reqHeaders[header];
-        }
-        return result;
-    }, {});
-}
-
-/**
- * Возвращает копию заголовков без cookie сессии bricks: она — секрет билдера
- * и внешнему backend не предназначена; остальные cookie проекта пробрасываются.
- *
- * @param headers - Заголовки, собранные из SSR-запроса.
- */
-function toExternalHeaders(headers: Record<string, string>): Record<string, string> {
-    const externalHeaders = { ...headers };
-
-    if (externalHeaders.cookie) {
-        const cookie = stripCookieByName(externalHeaders.cookie, BRICKS_SESSION_COOKIE_NAME);
-
-        if (cookie) {
-            externalHeaders.cookie = cookie;
-        } else {
-            delete externalHeaders.cookie;
-        }
-    }
-
-    return externalHeaders;
-}
-
 /**
  * Возвращает базовый URL Nuxt-сервера для локальных ручек.
  * SSR: относительный `app.baseURL` — серверный `$fetch` (Nitro) выполняет
@@ -107,8 +59,9 @@ function resolveLocalBaseUrl(appBaseURL: string): string {
  *
  * Поддерживает:
  * - CSRF токен из cookie (для REST backend)
- * - Проброс headers на SSR (x-forwarded-*, cookie, IP); cookie сессии bricks
- *   внешнему backend не пробрасывается
+ * - Проброс headers на SSR (x-forwarded-*, IP и identity запроса — cookie
+ *   сессии и Authorization); identity уходит ТОЛЬКО на локальные
+ *   `/api/bricks/**` (common/utils/ssrRequestHeaders.ts)
  * - credentials: 'include' для автоматической отправки cookies на клиенте
  *
  * Базой служит Nuxt/Nitro `$fetch` (globalThis): на SSR относительные URL
@@ -118,7 +71,7 @@ export function useApiClient(): IUseApiClientReturn {
     const config = useRuntimeConfig();
     const { builderLoginPath, withBase, stripBase } = useBricksRoutePaths();
 
-    // Проброс headers из SSR-запроса (x-forwarded-*, cookie, IP)
+    // Проброс headers из SSR-запроса (x-forwarded-*, IP, identity запроса)
     const event = useRequestEvent();
 
     const appBaseURL = (config.app?.baseURL as string | undefined) || '/';
@@ -129,7 +82,7 @@ export function useApiClient(): IUseApiClientReturn {
     if (import.meta.server) {
         // SSR: API host-проекта, если задан (server-only ключ — адрес не попадает
         // в client payload). Локальные ручки уходят внутренним вызовом Nitro
-        // (см. onRequest).
+        // (см. applyLocalApiRouting).
         const proxyEndpoint = config.bricksProxyUrl as string | undefined;
 
         if (proxyEndpoint) {
@@ -137,11 +90,13 @@ export function useApiClient(): IUseApiClientReturn {
         }
     }
 
-    const isExternalEndpoint = endpoint !== localBaseUrl;
-
-    const headers = getHeaders(event?.node?.req?.headers, targetHeadersList);
-    // Дефолтные заголовки соответствуют дефолтному endpoint инстанса
-    const defaultHeaders = isExternalEndpoint ? toExternalHeaders(headers) : headers;
+    const headers = pickForwardedHeaders(event?.node?.req?.headers);
+    // Дефолтные заголовки клиента identity НЕ несут — независимо от того, задан
+    // внешний endpoint или нет: дефолты уходят с каждым запросом, включая
+    // абсолютный URL на чужой origin (для него ofetch не применяет baseURL, а
+    // заголовки применяет). Identity добавляется адресно, запросам к локальным
+    // ручкам — см. applyLocalApiRouting
+    const defaultHeaders = toExternalHeaders(headers);
 
     // Добавляем CSRF токен из cookie (для Django backend)
     const csrf = useCookie('csrftoken');
@@ -164,25 +119,6 @@ export function useApiClient(): IUseApiClientReturn {
         // повторы понадобятся, их вводить отдельно: только идемпотентные чтения,
         // задержка и общий бюджет на все попытки
         retry: 0,
-        onRequest({ request, options }) {
-            if (typeof request !== 'string') {
-                return;
-            }
-
-            // Локальные ручки: /api/bricks/** — всегда, независимо от
-            // режима persistence (актуально для SSR с PROXY_URL)
-            if (!isLocalApiRequest(request)) {
-                return;
-            }
-
-            options.baseURL = localBaseUrl;
-
-            // Дефолтные заголовки фильтрованы под внешний endpoint —
-            // локальным ручкам возвращаем полную cookie (auth-сессия)
-            if (isExternalEndpoint && headers.cookie) {
-                options.headers.set('cookie', headers.cookie);
-            }
-        },
         onResponseError({ response }) {
             // Database-auth: мёртвая сессия → полная перезагрузка на login
             // (чисто сбрасывает сторы; вне гарантированного Nuxt-контекста).
@@ -209,6 +145,47 @@ export function useApiClient(): IUseApiClientReturn {
     });
 
     /**
+     * Приводит опции запроса к локальным ручкам: `/api/bricks/**` уходят на
+     * Nuxt-сервер независимо от режима persistence (актуально для SSR с
+     * PROXY_URL) и получают identity входящего SSR-запроса — полную cookie
+     * (сессия билдера) и `Authorization` (креды basic-режима). Без identity
+     * editorial API отвечает им 401, а он защищён целиком.
+     *
+     * Живёт в обёртке, а не в хуке `onRequest` клиента, потому что ofetch
+     * собирает опции вызова как `{ ...defaults, ...call }`: переданный
+     * вызывающим `onRequest` ЗАМЕНЯЕТ хук клиента целиком (проверено на
+     * ofetch 1.5.1), и маршрутизация вместе с identity молча пропала бы.
+     * Сам хук вызывающего при этом не поддерживается вовсе — он исполняется
+     * позже обёртки и может увести уже авторизованный запрос на чужой origin
+     * (см. `TApiRequestOptions` и снятие ключа в `apiFetcher`).
+     *
+     * Заголовки вызывающего сохраняются: identity выставляется точечно поверх
+     * них, а дефолты клиента ofetch домешивает сам.
+     *
+     * @param request - Путь или URL запроса.
+     * @param requestOptions - Копия опций запроса (мутируется).
+     */
+    function applyLocalApiRouting(request: string, requestOptions: TApiRequestOptions): void {
+        if (!isLocalApiRequest(request)) {
+            return;
+        }
+
+        requestOptions.baseURL = localBaseUrl;
+
+        // Без раннего выхода на пустой identity: переключение endpoint'а не должно
+        // зависеть от того, есть ли в запросе авторизация. Публичные ручки
+        // (`components`, health) её не несут, и при заданном PROXY_URL такой
+        // запрос ушёл бы на API host-проекта вместо локального обработчика
+        const mergedHeaders = new Headers(requestOptions.headers);
+
+        Object.entries(pickIdentityHeaders(headers)).forEach(([name, value]) => {
+            mergedHeaders.set(name, value);
+        });
+
+        requestOptions.headers = mergedHeaders;
+    }
+
+    /**
      * Выполняет запрос с потолком ожидания и опознаваемым обрывом.
      *
      * Потолок ставится здесь, а не в `onRequest`, потому что опознать его
@@ -229,6 +206,16 @@ export function useApiClient(): IUseApiClientReturn {
         options: TApiRequestOptions = {}
     ): Promise<T> {
         const requestOptions: TApiRequestOptions = { ...options };
+
+        // Транспортная политика принадлежит клиенту: хуки и повторы снимаются,
+        // иначе вызывающий уводит уже авторизованный запрос на чужой адрес —
+        // `onRequest` до отправки, остальные хуки вместе с call-level `retry`
+        // перед повтором (заголовки повтора те же, с identity)
+        CLIENT_OWNED_REQUEST_OPTIONS.forEach((option) => {
+            Reflect.deleteProperty(requestOptions, option);
+        });
+
+        applyLocalApiRouting(request, requestOptions);
         const effectiveSignal = applyApiRequestTimeout(request, requestOptions);
 
         try {

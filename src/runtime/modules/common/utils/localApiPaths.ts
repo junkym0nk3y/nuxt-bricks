@@ -11,6 +11,30 @@
 /** Префиксы локальных ручек: persistence, health, auth, библиотека
  * компонентов, media proxy, page thumbnail. */
 const LOCAL_API_PREFIXES = ['/api/bricks'];
+
+/**
+ * Синтетическая база для разбора origin-form строки запроса. Домен в зоне
+ * `.invalid` (RFC 2606) настоящему сервису принадлежать не может.
+ *
+ * Совпадение host с этой базой — НЕ доказательство, что своего authority в
+ * строке не было: строка вправе назвать тот же host сама
+ * (`//local-api.invalid/api/bricks/x`), и сравнение этого не различит. Поэтому
+ * authority опознаётся синтаксически, до разбора (`startsWithAuthority`), а
+ * сравнение с host базы остаётся второй сетью.
+ */
+const INTERNAL_PARSE_BASE = new URL('http://local-api.invalid');
+
+/**
+ * Символы, которые разборщик URL выкидывает из строки перед разбором: ими можно
+ * замаскировать начало authority (`/<TAB>/host`).
+ */
+const URL_IGNORED_CHARS_PATTERN = /[\t\n\r]/g;
+
+/**
+ * Начало authority по WHATWG: два слэша, любой из которых может быть обратным
+ * (`//host`, `/\host`, `/\/host`).
+ */
+const AUTHORITY_START_PATTERN = /^[/\\]{2}/;
 // #endregion
 
 /**
@@ -36,21 +60,51 @@ export function isLocalApiPathname(pathname: string): boolean {
 }
 
 /**
+ * Начинается ли строка запроса с authority — то есть адресует ли она хост, а не
+ * путь текущего origin. Игнорируемые разборщиком TAB/LF/CR снимаются до
+ * проверки: `/<TAB>/host` парсер видит как `//host`.
+ *
+ * @param request - Строка запроса $fetch.
+ * @returns true, если строка несёт authority.
+ */
+function startsWithAuthority(request: string): boolean {
+    return AUTHORITY_START_PATTERN.test(request.replace(URL_IGNORED_CHARS_PATTERN, ''));
+}
+
+/**
  * Решает по строке запроса $fetch, локальный ли это API-путь: origin-form
  * (`/api/bricks/pages?x=1`) разбирается до pathname (query/hash не влияют
  * на решение), абсолютные URL и пути без ведущего слэша локальными не
  * считаются (для них baseURL-переключение не применяется).
  *
+ * Адрес с authority локальным не считается ни в каком написании: ему досталась
+ * бы identity инсталляции, положенная только своим ручкам, а pathname у него
+ * такой же, как у своего пути. Решает синтаксис, а не сравнение с базой разбора:
+ * host базы строка вправе назвать сама, и тогда сравнение пропустит чужой
+ * authority (`//local-api.invalid/api/bricks/x`).
+ *
+ * Сравнение host оставлено после синтаксической проверки, но при ней оно
+ * недостижимо: строка с ведущим `/` и без начала authority host базы подменить
+ * не может. Это страховка на случай, если проверки выше когда-нибудь ослабят
+ * (например разрешат абсолютные URL) — поэтому спекой она и не покрыта: мутация
+ * «убрать сравнение» набор не краснит, и это ожидаемо.
+ *
  * @param request - Строка запроса $fetch (путь, возможно с query/hash).
  * @returns true, если запрос должен уйти на локальный Nuxt-сервер.
  */
 export function isLocalApiRequest(request: string): boolean {
-    if (!request.startsWith('/')) {
+    if (!request.startsWith('/') || startsWithAuthority(request)) {
         return false;
     }
 
     try {
-        return isLocalApiPathname(new URL(request, 'http://internal').pathname);
+        const parsed = new URL(request, INTERNAL_PARSE_BASE);
+
+        if (parsed.host !== INTERNAL_PARSE_BASE.host) {
+            return false;
+        }
+
+        return isLocalApiPathname(parsed.pathname);
     } catch {
         return false;
     }

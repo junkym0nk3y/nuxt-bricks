@@ -5,8 +5,8 @@ import { resolveBricksComponents } from '../../utils/bricksComponents';
  * GET /api/bricks/components — возвращает весь манифест или компоненты
  * выбранной категории. Открыта для чтения без auth (см. routeProtection.ts):
  * отдаёт состав библиотеки — имена, категории, пути brick-файлов и их
- * редакторские метаданные, — и нужна SSR билдера в basic-режиме (useApiClient
- * не пробрасывает Authorization).
+ * редакторские метаданные, то есть ровно то, что и так уходит в клиентский
+ * бандл.
  */
 export default defineEventHandler(async (event) => {
     const { category } = getQuery(event);
