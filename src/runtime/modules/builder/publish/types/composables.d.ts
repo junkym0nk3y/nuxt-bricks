@@ -54,6 +54,44 @@ export interface IUsePublishPageVersionsReturn {
 }
 // #endregion
 
+// #region usePublishPagesData
+/**
+ * Данные списка страниц в кеше `useAsyncData('bricks-pages')`.
+ *
+ * Самих страниц здесь нет: список лежит в `publishStore.publishedPages` —
+ * единственном источнике и для дашборда, и для билдера. Вторая копия в payload
+ * разъехалась бы с ним при первой же локальной записи (создание, удаление,
+ * переключение публикации), а на SSR ещё и удвоила бы вес страницы: состояние
+ * сторов Pinia и так уезжает клиенту payload'ом.
+ */
+export interface IPublishPagesData {
+    /**
+     * SSR-прогон деградировал: список не загружен, и его обязан догрузить
+     * клиент. Поле обязательное, а не опциональное, чтобы ветка, забывшая его
+     * выставить, не выдавала пустой список за загруженный.
+     *
+     * Отказ на клиенте маркером не кодируется — он живёт в `error` того же
+     * `useAsyncData`: там его видно вызывающему, и повтор возможен сразу.
+     */
+    isPartial: boolean;
+}
+
+/**
+ * Опции `usePublishPagesData`.
+ */
+export interface IUsePublishPagesDataOptions {
+    /** Сообщает об отказе загрузки на клиенте (тост дашборда). */
+    onLoadFailed: () => void;
+}
+
+/**
+ * Возвращаемое значение `usePublishPagesData`.
+ */
+export interface IUsePublishPagesDataReturn {
+    isLoadingPages: ComputedRef<boolean>;
+}
+// #endregion
+
 // #region usePublishDetailsUrl
 /**
  * Реактивные поля формы панели деталей, участвующие в live-URL.

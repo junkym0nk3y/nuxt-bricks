@@ -34,12 +34,17 @@ export function useBricksInput(
     const { t } = useI18n();
     const innerValue = ref<string>(normalizeIncomingValue(props.value));
     const errorMessage = ref<string | null>(null);
+    const isPasswordVisible = ref<boolean>(false);
     // #endregion
 
     // #region Computed
     const nativeType = computed<'text' | 'number' | 'password'>(() => {
-        if (props.type === 'number' || props.type === 'password') {
-            return props.type;
+        if (props.type === 'password') {
+            return isPasswordVisible.value ? 'text' : 'password';
+        }
+
+        if (props.type === 'number') {
+            return 'number';
         }
 
         return 'text';
@@ -88,6 +93,16 @@ export function useBricksInput(
     });
 
     const showStepper = computed(() => props.type === 'number' && !props.disabled);
+
+    // Пустое поле скрывать нечего, а у выключенного кнопка была бы мёртвой:
+    // `_disabled` гасит pointer-events всему компоненту.
+    const showRevealButton = computed(
+        () =>
+            props.type === 'password' &&
+            props.revealable !== false &&
+            !props.disabled &&
+            innerValue.value.length > 0
+    );
     // #endregion
 
     // #region Methods
@@ -194,6 +209,13 @@ export function useBricksInput(
     }
 
     /**
+     * Переключает показ пароля открытым текстом.
+     */
+    function togglePasswordVisibility(): void {
+        isPasswordVisible.value = !isPasswordVisible.value;
+    }
+
+    /**
      * Adjusts numeric value by configured step.
      *
      * @param direction - Increment direction (1 for up, -1 for down).
@@ -233,9 +255,12 @@ export function useBricksInput(
         errorMessage,
         inputAttributes,
         showStepper,
+        isPasswordVisible,
+        showRevealButton,
         handleInput,
         handleBlur,
         handleClear,
         handleStep,
+        togglePasswordVisibility,
     };
 }

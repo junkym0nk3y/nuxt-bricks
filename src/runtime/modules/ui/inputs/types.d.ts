@@ -30,6 +30,8 @@ export interface IBricksInputProps {
     unit?: string;
     /** Кнопка-крестик очистки при непустом значении */
     clearable?: boolean;
+    /** Кнопка показа пароля; учитывается только при type="password" */
+    revealable?: boolean;
     /** Внешняя ошибка (vee-validate, сервер); приоритетнее внутренней валидации */
     errorMessage?: string | null;
 }
@@ -65,10 +67,13 @@ export interface IUseBricksInputReturn {
     errorMessage: import('vue').Ref<string | null>;
     inputAttributes: import('vue').ComputedRef<IBricksInputNativeAttributes>;
     showStepper: import('vue').ComputedRef<boolean>;
+    isPasswordVisible: import('vue').Ref<boolean>;
+    showRevealButton: import('vue').ComputedRef<boolean>;
     handleInput: (event: Event) => void;
     handleBlur: (event: FocusEvent) => void;
     handleClear: () => void;
     handleStep: (direction: 1 | -1) => void;
+    togglePasswordVisibility: () => void;
 }
 
 export interface IBricksFieldErrorProps {

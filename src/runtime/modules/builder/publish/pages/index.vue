@@ -11,7 +11,7 @@ import { BRICKS_ROUTE_NAMES } from '../../../common/constants/routes';
 import { isRequestTimeoutError } from '../../../common/utils/apiRequestPolicy';
 
 // Vue
-import { computed, defineAsyncComponent, onMounted, ref } from 'vue';
+import { computed, defineAsyncComponent, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Nuxt
@@ -24,6 +24,7 @@ import { usePublishStore } from '../stores/publish';
 import { useAuthSession } from '../../auth/composables/useAuthSession';
 import { useBuilderToast } from '../../core/composables/useBuilderToast';
 import { usePublishDashboard } from '../composables/usePublishDashboard';
+import { usePublishPagesData } from '../composables/usePublishPagesData';
 import { usePublishPreview } from '../composables/usePublishPreview';
 import { usePublishVersionRestore } from '../composables/usePublishVersionRestore';
 
@@ -61,7 +62,6 @@ const isCreatePageModalOpen = ref(false);
 const isDocumentationModalOpen = ref(false);
 const isMediaGalleryModalOpen = ref(false);
 const mediaGalleryContext = ref<'manager' | 'properties'>('manager');
-const isLoadingPages = ref(false);
 const duplicatingPageId = ref<string | null>(null);
 const pendingDeletePage = ref<TPublishedPageSummary | null>(null);
 const isDeleteConfirmationOpen = ref(false);
@@ -123,20 +123,6 @@ const bodyClass = computed(() =>
 // #endregion
 
 // #region Methods
-/**
- * Загружает список страниц для рейла и списка дашборда.
- */
-async function fetchPages(): Promise<void> {
-    isLoadingPages.value = true;
-    try {
-        await publishStore.loadAllPages();
-    } catch {
-        showToast(t('bricks.publish.dashboard.toasts.loadFailed'), 'error');
-    } finally {
-        isLoadingPages.value = false;
-    }
-}
-
 /**
  * Открывает модалку создания страницы (кнопка шапки и CTA пустого списка).
  */
@@ -455,8 +441,13 @@ useHead({
     },
 });
 
-onMounted(() => {
-    fetchPages();
+// Загрузка списка — последним оператором setup: `await` делает компонент
+// асинхронным, поэтому всё, что зависит от Nuxt-контекста (`useCookie`,
+// `useHead`), объявлено выше. На сервере ожидание обязательно: без него
+// разметка первого кадра уедет пользователю с пустым списком — ровно то, что
+// раньше делала загрузка из `onMounted`
+const { isLoadingPages } = await usePublishPagesData({
+    onLoadFailed: () => showToast(t('bricks.publish.dashboard.toasts.loadFailed'), 'error'),
 });
 // #endregion
 </script>

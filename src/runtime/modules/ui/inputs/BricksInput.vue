@@ -25,6 +25,7 @@ const props = withDefaults(defineProps<IBricksInputProps>(), {
     rules: '',
     step: 1,
     clearable: false,
+    revealable: true,
     errorMessage: null,
 });
 // #endregion
@@ -41,10 +42,13 @@ const {
     errorMessage,
     inputAttributes,
     showStepper,
+    isPasswordVisible,
+    showRevealButton,
     handleInput,
     handleBlur,
     handleClear,
     handleStep,
+    togglePasswordVisibility,
 } = useBricksInput(props, emit);
 // #endregion
 
@@ -96,6 +100,21 @@ const classList = computed(() => [
                 @click="handleClear"
             >
                 <BricksIcon icon="ta:outline-x" />
+            </button>
+
+            <button
+                v-if="showRevealButton"
+                type="button"
+                :class="$style.revealButton"
+                :aria-pressed="isPasswordVisible"
+                :aria-label="
+                    isPasswordVisible
+                        ? t('bricks.common.hidePassword')
+                        : t('bricks.common.showPassword')
+                "
+                @click="togglePasswordVisibility"
+            >
+                <BricksIcon :icon="isPasswordVisible ? 'ta:outline-eye-off' : 'ta:outline-eye'" />
             </button>
 
             <div v-if="showStepper" :class="$style.stepper">
@@ -263,6 +282,42 @@ const classList = computed(() => [
     svg {
         width: 1.4rem;
         height: 1.4rem;
+    }
+}
+
+// В отличие от clear-кнопки и степпера достижима с клавиатуры: переключить показ
+// пароля больше нечем. Высота равна строке значения (1.8rem) — бокс выше растянул бы
+// поле с 3.4rem до 4rem, и пароль разъехался бы с соседними полями формы.
+.revealButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 2.4rem;
+    height: 1.8rem;
+    padding: 0;
+    border-radius: var(--bricks-border-radius-xs);
+    border: none;
+    background: transparent;
+    color: var(--bricks-base-500);
+    transition: color var(--bricks-default-transition);
+    cursor: pointer;
+
+    &:hover {
+        color: var(--bricks-base-900);
+    }
+
+    // Кольцо вдобавок к общему для кита shadow-focus: поле в этот момент само
+    // подсвечено тем же свечением (:focus-within), и одного свечения не видно.
+    &:focus-visible {
+        outline: 1px solid var(--bricks-primary);
+        box-shadow: var(--bricks-shadow-focus);
+        color: var(--bricks-base-900);
+    }
+
+    svg {
+        width: 1.6rem;
+        height: 1.6rem;
     }
 }
 

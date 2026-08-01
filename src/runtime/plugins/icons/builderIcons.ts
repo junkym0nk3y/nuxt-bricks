@@ -32,6 +32,7 @@ import {
     TaOutlineDownload,
     TaOutlineDragDrop,
     TaOutlineEye,
+    TaOutlineEyeOff,
     TaOutlineFilePencil,
     TaOutlineFiles,
     TaOutlineFilter,
@@ -137,6 +138,7 @@ export const BUILDER_ICONS: Record<string, Component> = {
     'ta:outline-info-circle': TaOutlineInfoCircle,
     'ta:outline-loader-2': TaOutlineLoader2,
     'ta:outline-logout': TaOutlineLogout,
+    'ta:outline-eye-off': TaOutlineEyeOff,
 
     // Sidebar / Library
     'ta:outline-package': TaOutlinePackage,

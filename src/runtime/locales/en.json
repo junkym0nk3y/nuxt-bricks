@@ -12,7 +12,9 @@
             "confirm": "Confirm",
             "increase": "Increase",
             "decrease": "Decrease",
-            "clear": "Clear"
+            "clear": "Clear",
+            "showPassword": "Show password",
+            "hidePassword": "Hide password"
         },
         "toolbar": {
             "grid": "Grid",
