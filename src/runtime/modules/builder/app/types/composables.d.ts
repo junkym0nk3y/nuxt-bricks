@@ -7,7 +7,8 @@ import type { ComputedRef, Ref } from 'vue';
 import type { useSidebarStore } from '../../core/stores/sidebar';
 import type { usePublishStore } from '../../publish/stores/publish';
 import type { IMediaItem, TMediaGalleryContext } from '../../../common/types/media';
-import type { IPublishedPage } from '../../../common/types/bricks-api';
+import type { IPublishedPage, TPublishedPageSummary } from '../../../common/types/bricks-api';
+import type { IUsePublishSchemaImportReturn } from '../../publish/types/composables';
 import type { ISidebarExpose } from './builder';
 import type { IBuilderDraftSnapshot } from '../../publish/types/builderDrafts';
 import type { IBuilderToastState } from '../../core/types/toast';
@@ -324,5 +325,41 @@ export interface IUseBuilderPageReturn {
     handleSaveDraft: () => Promise<void>;
     handleSaveAsCopy: () => Promise<void>;
     handlePreview: () => Promise<void>;
+}
+// #endregion
+
+// #region useBuilderPageSelector
+/**
+ * Опции composable useBuilderPageSelector: всё, чем селектор связан с открытой
+ * сессией. Своего состояния сессии у него нет.
+ */
+export interface IBuilderPageSelectorOptions {
+    /** Идентичность открытой страницы: по ней отсекается выбор самой себя. */
+    sessionPageId: Ref<string | number | null>;
+    routePagename: ComputedRef<string>;
+    /**
+     * Токен сессии: создание страницы переживает переход на другую страницу
+     * билдера (модалка портальная, страница не перемонтируется), и переход в
+     * созданную страницу имеет смысл только для той сессии, где её создавали.
+     */
+    sessionToken: IBuilderSessionToken;
+    showToast: TShowToast;
+}
+
+/**
+ * Возвращаемое значение composable useBuilderPageSelector.
+ */
+export interface IUseBuilderPageSelectorReturn {
+    /** Идёт догрузка или освежение списка страниц. */
+    isPagesRefreshing: Ref<boolean>;
+    /** Модалку создания уже открывали — с этого момента её чанк смонтирован. */
+    shouldMountCreatePageModal: Ref<boolean>;
+    isCreatePageModalOpen: Ref<boolean>;
+    schemaImport: IUsePublishSchemaImportReturn;
+    handleOpenPageSelector: () => Promise<void>;
+    handleSelectPage: (page: TPublishedPageSummary) => Promise<void>;
+    handleOpenCreatePage: () => void;
+    handleCloseCreatePage: () => void;
+    handlePageCreated: (pagename: string) => Promise<void>;
 }
 // #endregion

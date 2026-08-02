@@ -20,7 +20,7 @@ import {
     createWindowStub,
     mountBuilderContext,
 } from '../helpers/builderSessionHarness';
-import { createPageBuilder } from '../helpers/publishFixtures';
+import { createPageBuilder, seedLoadedPages } from '../helpers/publishFixtures';
 // #endregion
 
 // #region Mocks
@@ -166,17 +166,20 @@ describe('открытие сессии билдера: гонка перекл�
         const pageA = buildPageWithComponent(1, 'page-a', 'a1');
         const pageB = buildPageWithComponent(2, 'page-b', 'b1');
         // Список прогрет: гонка остаётся только на point-lookup'е схемы
-        publishStore.publishedPages = [pageA, pageB];
+        seedLoadedPages(publishStore, [pageA, pageB]);
         serverPages = [pageA, pageB];
         deferredUrls = ['/api/bricks/1/', '/api/bricks/2/'];
 
+        // Второе открытие — после того как первое дошло до запроса схемы: до него
+        // вытесненное открытие выходит само, увидев чужое поколение
         const openingA = context.session.openBuilderSession('page-a');
+        const schemaForA = await deferred.waitFor('/api/bricks/1/');
         const openingB = context.session.openBuilderSession('page-b');
 
         // Ответы в обратном порядке: актуальное открытие доезжает первым, вытесненное — после
         (await deferred.waitFor('/api/bricks/2/')).resolve(pageB);
         await openingB;
-        (await deferred.waitFor('/api/bricks/1/')).resolve(pageA);
+        schemaForA.resolve(pageA);
         await openingA;
 
         expect(context.pagename.sessionPagename.value).toBe('page-b');
@@ -186,7 +189,7 @@ describe('открытие сессии билдера: гонка перекл�
         expect(context.session.isSessionReady.value).toBe(true);
     });
 
-    it('поздний список вытесненного открытия не переводит стор на прежнюю страницу', async () => {
+    it('общий запрос списка не переводит стор на страницу вытесненного открытия', async () => {
         const context = mountTracked();
         const publishStore = usePublishStore();
         const componentsStore = useComponentsStore();
@@ -194,20 +197,18 @@ describe('открытие сессии билдера: гонка перекл�
         const pageA = buildPageWithComponent(1, 'page-a', 'a1');
         const pageB = buildPageWithComponent(2, 'page-b', 'b1');
         serverPages = [pageA, pageB];
-        // Список страниц пуст — bootstrap каждого открытия начинается с loadAllPages
+        // Список страниц не загружен — bootstrap начинается с его запроса
         deferredUrls = ['/api/bricks/'];
 
         const openingA = context.session.openBuilderSession('page-a');
         const openingB = context.session.openBuilderSession('page-b');
 
-        expect(deferred.pending).toHaveLength(2);
-        const [listForA, listForB] = deferred.pending;
+        // Запрос один на оба открытия: список — общий кеш, и второе открытие ждёт
+        // уже летящий запрос вместо своего
+        expect(deferred.pending).toHaveLength(1);
 
-        listForB?.resolve([pageA, pageB]);
-        await openingB;
-
-        listForA?.resolve([pageA, pageB]);
-        await openingA;
+        (await deferred.waitFor('/api/bricks/')).resolve([pageA, pageB]);
+        await Promise.all([openingA, openingB]);
 
         expect(publishStore.editingPageId).toBe(2);
         expect(publishStore.currentFormState.pagename).toBe('page-b');
@@ -220,14 +221,15 @@ describe('открытие сессии билдера: гонка перекл�
 
         const pageA = buildPageWithComponent(1, 'page-a', 'a1');
         const pageB = buildPageWithComponent(2, 'page-b', 'b1');
-        publishStore.publishedPages = [pageA, pageB];
+        seedLoadedPages(publishStore, [pageA, pageB]);
         serverPages = [pageA, pageB];
         deferredUrls = ['/api/bricks/1/', '/api/bricks/2/'];
 
         const openingA = context.session.openBuilderSession('page-a');
+        const schemaForA = await deferred.waitFor('/api/bricks/1/');
         const openingB = context.session.openBuilderSession('page-b');
 
-        (await deferred.waitFor('/api/bricks/1/')).reject(new Error('Network down'));
+        schemaForA.reject(new Error('Network down'));
         await openingA;
 
         expect(context.showToastMock).not.toHaveBeenCalled();
@@ -263,11 +265,12 @@ describe('открытие сессии билдера: гонка перекл�
 
         const pageA = buildPageWithComponent(1, 'page-a', 'a1');
         const pageB = buildPageWithComponent(2, 'page-b', 'b1');
-        publishStore.publishedPages = [pageA, pageB];
+        seedLoadedPages(publishStore, [pageA, pageB]);
         serverPages = [pageA, pageB];
         deferredUrls = ['/api/bricks/1/'];
 
         const openingA = context.session.openBuilderSession('page-a');
+        const schemaForA = await deferred.waitFor('/api/bricks/1/');
 
         // Уход на дашборд: страница билдера размонтирована, но запрос схемы летит,
         // а сторы живут на уровне приложения
@@ -277,7 +280,7 @@ describe('открытие сессии билдера: гонка перекл�
         const reopened = mountTracked();
         await reopened.session.openBuilderSession('page-b');
 
-        (await deferred.waitFor('/api/bricks/1/')).resolve(pageA);
+        schemaForA.resolve(pageA);
         await openingA;
 
         expect(componentsStore.components.map((component) => component.id)).toEqual(['b1']);
@@ -290,7 +293,7 @@ describe('открытие сессии билдера: гонка перекл�
 
         const pageA = buildPageWithComponent(1, 'page-a', 'a1');
         const pageB = buildPageWithComponent(2, 'page-b', 'b1');
-        publishStore.publishedPages = [pageA, pageB];
+        seedLoadedPages(publishStore, [pageA, pageB]);
         serverPages = [pageA, pageB];
         await context.session.openBuilderSession('page-a');
 

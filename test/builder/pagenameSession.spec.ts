@@ -18,7 +18,7 @@ import {
     createWindowStub,
     mountBuilderContext,
 } from '../helpers/builderSessionHarness';
-import { createPageBuilder } from '../helpers/publishFixtures';
+import { createPageBuilder, seedLoadedPages } from '../helpers/publishFixtures';
 // #endregion
 
 // #region Mocks
@@ -190,7 +190,7 @@ describe('pagename билдера: rename, autosave, reload', () => {
     it('редактирование существующей страницы не трогает URL до сохранения', async () => {
         const context = mountTracked();
         const publishStore = usePublishStore();
-        publishStore.publishedPages = [buildPage({ id: 1, pagename: 'draft-page' })];
+        seedLoadedPages(publishStore, [buildPage({ id: 1, pagename: 'draft-page' })]);
 
         await context.session.openBuilderSession('draft-page');
         expect(publishStore.editingPageId).toBe(1);
@@ -206,7 +206,7 @@ describe('pagename билдера: rename, autosave, reload', () => {
     it('зарезервированный и занятый pagename не переносят сессию', async () => {
         const context = mountTracked();
         const publishStore = usePublishStore();
-        publishStore.publishedPages = [buildPage({ id: 2, pagename: 'taken' })];
+        seedLoadedPages(publishStore, [buildPage({ id: 2, pagename: 'taken' })]);
 
         await context.session.openBuilderSession('draft-page');
 
@@ -265,10 +265,10 @@ describe('pagename билдера: rename, autosave, reload', () => {
 
         // Обе страницы существующие: только в edit-режиме черновик сверяется с
         // savedSnapshot, то есть только там поздняя фиксация его и удаляла
-        publishStore.publishedPages = [
+        seedLoadedPages(publishStore, [
             buildPage({ id: 5, pagename: 'first-page' }),
             buildPage({ id: 7, pagename: 'second-page' }),
-        ];
+        ]);
 
         routerBridge.route.params.pagename = 'first-page';
         await context.session.openBuilderSession('first-page');
@@ -304,10 +304,10 @@ describe('pagename билдера: rename, autosave, reload', () => {
         const context = mountTracked();
         const publishStore = usePublishStore();
 
-        publishStore.publishedPages = [
+        seedLoadedPages(publishStore, [
             buildPage({ id: 5, pagename: 'first-page' }),
             buildPage({ id: 7, pagename: 'second-page' }),
-        ];
+        ]);
 
         routerBridge.route.params.pagename = 'first-page';
         await context.session.openBuilderSession('first-page');

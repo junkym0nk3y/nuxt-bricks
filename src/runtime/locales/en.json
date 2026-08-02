@@ -25,7 +25,21 @@
             "preview": "Preview",
             "save": "Save",
             "saveDraft": "Save changes",
-            "saveCopy": "Save as copy"
+            "saveCopy": "Save as copy",
+            "pageSelector": {
+                "ariaLabel": "Select page",
+                "search": "Search pages...",
+                "loading": "Loading page list",
+                "draft": "Draft",
+                "noResultsTitle": "Nothing found",
+                "noResultsDescription": "Check the query or create a page",
+                "emptyTitle": "No saved pages yet",
+                "emptyDescription": "Save the current one or create a new page",
+                "allPages": "All pages",
+                "createPage": "Create page",
+                "replaced": "The page /{pagename} was replaced elsewhere. Reload the editor to open the new version — unsaved changes to the current one will be gone.",
+                "created": "Page /{pagename} created"
+            }
         },
         "nav": {
             "library": "Components",

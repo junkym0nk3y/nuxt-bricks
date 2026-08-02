@@ -193,8 +193,14 @@ export interface IPublishSchemaImportTarget {
  */
 export interface IUsePublishSchemaImportOptions {
     onNotify: (message: string, variant: 'success' | 'error') => void;
-    /** Актуальна ли цель: id ещё выбран в списке (панель деталей открыта). */
-    isTargetSelected: (pageId: string | number) => boolean;
+    /**
+     * Актуальна ли цель: id ещё выбран в списке (панель деталей открыта).
+     *
+     * Необязательна: проверка принадлежит хосту со списком страниц. Там, где
+     * списка нет (создание страницы из редактора), импорт в существующую
+     * страницу недоступен, и сверять нечего.
+     */
+    isTargetSelected?: (pageId: string | number) => boolean;
 }
 
 /**

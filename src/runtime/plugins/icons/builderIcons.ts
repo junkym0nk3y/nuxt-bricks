@@ -19,6 +19,7 @@ import {
     TaOutlineBook,
     TaOutlineBrandFigma,
     TaOutlineBrowserShare,
+    TaOutlineCheck,
     TaOutlineChevronDown,
     TaOutlineChevronLeft,
     TaOutlineChevronRight,
@@ -113,6 +114,7 @@ export const BUILDER_ICONS: Record<string, Component> = {
     'ta:outline-browser-share': TaOutlineBrowserShare,
     'ta:outline-device-floppy': TaOutlineDeviceFloppy,
     'ta:outline-book': TaOutlineBook,
+    'ta:outline-check': TaOutlineCheck,
 
     // Toast
     'ta:outline-circle-check': TaOutlineCircleCheck,

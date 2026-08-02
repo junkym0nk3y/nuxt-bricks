@@ -2,6 +2,8 @@
  * Toolbar component types
  */
 
+import type { TPublishedPageSummary } from '../../../../common/types/bricks-api';
+
 export interface IToolbarProps {
     isEditingExistingPage: boolean;
     isSubmittingPublish: boolean;
@@ -20,6 +22,15 @@ export interface IToolbarProps {
     sidebarOffset?: string;
     pageTitle?: string;
     isPublished?: boolean;
+    /** Сохранённые страницы для селектора в заголовке. */
+    pages?: TPublishedPageSummary[];
+    /** Идентичность открытой страницы: у неё в списке стоит отметка. */
+    currentPageId?: string | number | null;
+    /** Список уже приезжал с сервера — пустота настоящая, а не «ещё не загрузили». */
+    isPagesLoaded?: boolean;
+    isPagesLoading?: boolean;
+    /** Идёт запись: создание новой страницы на это время закрыто. */
+    isSubmittingPage?: boolean;
 }
 
 export interface IToolbarEmits {
@@ -29,4 +40,30 @@ export interface IToolbarEmits {
     saveDraft: [];
     preview: [];
     clear: [];
+    openPageSelector: [];
+    selectPage: [page: TPublishedPageSummary];
+    createPage: [];
+}
+
+/**
+ * Пропсы селектора страниц в заголовке тулбара.
+ */
+export interface IToolbarPageSelectorProps {
+    /** Заголовок открытой страницы — то, что видно на триггере. */
+    pageTitle?: string;
+    pages: TPublishedPageSummary[];
+    currentPageId?: string | number | null;
+    /** Полный список уже получен: пустой результат можно показывать честно. */
+    isLoaded?: boolean;
+    isLoading?: boolean;
+    disabled?: boolean;
+    isCreateDisabled?: boolean;
+}
+
+export interface IToolbarPageSelectorEmits {
+    /** Попап открыли — момент ленивой догрузки и освежения списка. */
+    open: [];
+    select: [page: TPublishedPageSummary];
+    allPages: [];
+    createPage: [];
 }

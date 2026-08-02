@@ -83,6 +83,18 @@ export function usePublishSchemaImport(
 
     // #region Methods
     /**
+     * Выбрана ли страница-цель. Хост без списка страниц (создание из редактора)
+     * проверки не передаёт: импорт в существующую страницу оттуда недоступен,
+     * а единственная его операция — резолвинг схемы для новой страницы.
+     *
+     * @param pageId - Идентификатор страницы-цели.
+     * @returns Актуальна ли цель импорта.
+     */
+    function isTargetSelected(pageId: string | number): boolean {
+        return options.isTargetSelected?.(pageId) ?? true;
+    }
+
+    /**
      * Гасит операцию импорта: поднимает поколение, отменяет резолвер и убирает
      * подтверждение. Зовётся при смене выбранной страницы, закрытии панели и
      * размонтировании дашборда.
@@ -114,7 +126,7 @@ export function usePublishSchemaImport(
         // уже после ухода на другую. Подтверждение замены для неё было бы
         // предложением перезаписать не то, что открывал пользователь. Молча:
         // выбор относился к странице, которой на экране больше нет
-        if (!options.isTargetSelected(page.id)) {
+        if (!isTargetSelected(page.id)) {
             return;
         }
 
@@ -262,7 +274,7 @@ export function usePublishSchemaImport(
             return false;
         }
 
-        if (!options.isTargetSelected(target.pageId)) {
+        if (!isTargetSelected(target.pageId)) {
             return false;
         }
 

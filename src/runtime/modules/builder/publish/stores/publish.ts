@@ -11,6 +11,7 @@ import type {
 import type { IPublishOperationOptions } from '../types/publishStore';
 import { buildDefaultFormState, buildEditFormState, normalizeFormState } from '../utils/formState';
 import { beginActiveWrite, endActiveWrite } from '../utils/activeWrites';
+import { ensureAllPagesLoaded, runLoadAllPages } from '../utils/pagesLoad';
 import { runCreatePage, runDuplicatePage } from '../utils/pageLibraryWrite';
 import { validatePublishFormState } from '../utils/formValidation';
 import { requirePageRevision, toPageWriteError } from '../utils/requestErrors';
@@ -24,7 +25,6 @@ import {
     updatePageRequest,
     patchPageRequest,
     deletePageRequest,
-    fetchAllPagesRequest,
     fetchPageByPagenameRequest,
 } from '../utils/publishApi';
 
@@ -58,6 +58,9 @@ export const usePublishStore = defineStore('bricksPublish', {
         // Номер последнего стартовавшего запроса списка — им отсекаются ответы,
         // пришедшие не в том порядке, в каком уходили (см. loadAllPages)
         pagesRequestId: 0,
+        // Момент последнего полного ответа сервера; `null` — список не загружали.
+        // Отдельно от длины массива: пустой список законен (новая страница)
+        pagesLoadedAt: null as number | null,
     }),
 
     getters: {
@@ -276,33 +279,16 @@ export const usePublishStore = defineStore('bricksPublish', {
          * после создания (`runPublishPage`) — предупреждением в консоль.
          */
         async loadAllPages(): Promise<void> {
-            const requestId = ++this.pagesRequestId;
+            await runLoadAllPages(this);
+        },
 
-            try {
-                const pages = await fetchAllPagesRequest();
-
-                // Устаревший ответ не заменяет более свежий список: два запроса
-                // в полёте — обычное дело (уход с одной страницы на другую,
-                // сохранение параллельно с открытием), а порядок ответов не
-                // гарантирован. С устаревшим списком расходятся и point-lookup
-                // по pagename, и проверка занятости слага, и дашборд
-                if (requestId !== this.pagesRequestId) {
-                    return;
-                }
-
-                this.publishedPages = pages;
-            } catch (error: unknown) {
-                // Отказ вытесненного запроса вызывающему не докладывается: список
-                // уже обновлён более свежим запросом, а ошибка устаревшего перевела
-                // бы в состояние отказа актуальный bootstrap сессии — блокирующим
-                // экраном поверх рабочей страницы
-                if (requestId !== this.pagesRequestId) {
-                    return;
-                }
-
-                console.error('[Publish Store] Failed to load pages:', error);
-                throw error;
-            }
+        /**
+         * Гарантирует полный список страниц, не запрашивая его повторно, — см.
+         * `utils/pagesLoad`. Ошибку не глушит: её смысл разный у открытия сессии
+         * и у селектора страниц.
+         */
+        async ensurePagesLoaded(): Promise<void> {
+            await ensureAllPagesLoaded(this, t('bricks.publish.toasts.loadPageFailed'));
         },
 
         /**

@@ -31,12 +31,22 @@ const emit = defineEmits<IBuilderLoaderEmits>();
 const MIN_VISIBLE_PROGRESS = 1;
 
 /**
- * Длительность (ms) одного полного цикла волны лого: 4 куба × 0.6s (--lift-step
- * в BuilderLogo). Цикл — минимальная длительность показа: на его границе все кубы
- * в покое, поэтому раньше оверлей не снимаем, чтобы не мигало на быстрой загрузке.
+ * Минимальная длительность показа (ms) при первом открытии редактора — полный
+ * цикл волны лого: 4 куба × 0.6s (`--lift-step` в BuilderLogo). На его границе
+ * все кубы в покое, поэтому раньше оверлей не снимаем. Здесь порог почти не
+ * ощущается: холодный вход всё равно ждёт разметку, чанки и схему.
+ *
  * Максимума нет: уходит оверлей по фактическому окончанию загрузки.
  */
-const LOGO_CYCLE_DURATION_MS = 2400;
+const INITIAL_MIN_VISIBLE_DURATION_MS = 2400;
+
+/**
+ * Минимальная длительность показа (ms) при переключении страниц внутри
+ * приложения — половина волны (2 куба) и ровно одна фраза под баром. Порог
+ * нужен против мигания, но полный цикл здесь превращался в искусственную паузу:
+ * на клиенте приезжает только схема, канвас готов за десятки миллисекунд.
+ */
+const SWITCH_MIN_VISIBLE_DURATION_MS = 1200;
 
 /**
  * Потолок прогресса (%), пока загрузка идёт. Полоска, доехавшая до 100% на
@@ -71,6 +81,13 @@ let animationRafId: number | null = null;
 
 /** ID setInterval ротации фраз. */
 let phraseIntervalId: number | null = null;
+
+/**
+ * Порог показа выдержан, а загрузка ещё идёт: полоска стоит на потолке и кадры
+ * больше не заказываются — двигать нечего. Досматривает цикл до конца watcher,
+ * когда загрузка закончится.
+ */
+let isCycleParked = false;
 // #endregion
 
 // #region Computed
@@ -136,26 +153,37 @@ function startPhrases(): void {
     currentPhrase.value = pickRandomPhrase();
 
     phraseIntervalId = window.setInterval(() => {
+        // Загрузка кончилась — фразу не трогаем: оверлей досматривает свой порог и
+        // уезжает, а подмена подписи в этот момент только мелькнула бы. Интервал
+        // ротации равен короткому порогу показа, так что случай не редкий
+        if (!props.isLoading) {
+            return;
+        }
+
         currentPhrase.value = pickRandomPhrase();
     }, PHRASE_INTERVAL_MS);
 }
 
 /**
- * Показывает оверлей минимум на один цикл волны лого (LOGO_CYCLE_DURATION_MS) и
- * снимает его, когда закончились оба: цикл и сама загрузка.
+ * Показывает оверлей минимум `minVisibleDurationMs` и снимает его, когда
+ * закончились оба: порог показа и сама загрузка.
  *
  * Прогресс за цикл анимируется от MIN_VISIBLE_PROGRESS до 100% с квадратичным
  * ease-out (быстро в начале, замедляется к концу) через requestAnimationFrame; на
  * незакрытой сессии упирается в LOADING_PROGRESS_CEILING и ждёт там.
  *
  * SSR-safe: на сервере window не существует, выходим сразу.
+ *
+ * @param minVisibleDurationMs - Порог показа: полный цикл на первом открытии
+ * редактора, половина — на переключении страниц внутри приложения.
  */
-function runLoaderCycle(): void {
+function runLoaderCycle(minVisibleDurationMs: number): void {
     if (typeof window === 'undefined') {
         return;
     }
 
     stopProgress();
+    isCycleParked = false;
     isVisible.value = true;
     progress.value = MIN_VISIBLE_PROGRESS;
     startPhrases();
@@ -169,34 +197,64 @@ function runLoaderCycle(): void {
         }
 
         // Нормализованное время цикла [0..1]
-        const ratio = Math.min((timestamp - cycleStartTime) / LOGO_CYCLE_DURATION_MS, 1);
+        const ratio = Math.min((timestamp - cycleStartTime) / minVisibleDurationMs, 1);
         // Квадратичный ease-out: замедляется к концу
         const eased = 1 - (1 - ratio) * (1 - ratio);
         const target = MIN_VISIBLE_PROGRESS + (100 - MIN_VISIBLE_PROGRESS) * eased;
 
         progress.value = props.isLoading ? Math.min(target, LOADING_PROGRESS_CEILING) : target;
 
-        if (ratio < 1 || props.isLoading) {
+        if (ratio < 1) {
             animationRafId = window.requestAnimationFrame(tick);
             return;
         }
 
-        animationRafId = null;
-        progress.value = 100;
-        isVisible.value = false;
-        stopPhrases();
+        // Порог выдержан, но загрузка идёт: полоска упёрлась в потолок и с этого
+        // момента неподвижна. Кадры дальше не заказываем — они рисовали бы одно и
+        // то же значение всё время ожидания, а ждать можно до потолка bootstrap'а
+        if (props.isLoading) {
+            animationRafId = null;
+            isCycleParked = true;
+            return;
+        }
+
+        finishLoaderCycle();
     }
 
     animationRafId = window.requestAnimationFrame(tick);
 }
+
+/**
+ * Досматривает цикл: полоска доезжает до 100%, оверлей уходит.
+ *
+ * Вызывается либо последним кадром анимации, либо — если кадры уже остановлены
+ * на потолке — окончанием загрузки.
+ */
+function finishLoaderCycle(): void {
+    stopProgress();
+    isCycleParked = false;
+    progress.value = 100;
+    isVisible.value = false;
+    stopPhrases();
+}
 // #endregion
 
 // #region Watchers
+// Повторный показ — это переключение страниц или повтор после отказа: оболочка и
+// чанки уже на месте, заново приезжают только данные. Первое открытие редактора
+// сюда не попадает: там лоадер поднят ещё до монтирования (см. onMounted)
 watch(
     () => props.isLoading,
-    (newValue) => {
-        if (newValue) {
-            runLoaderCycle();
+    (isLoading) => {
+        if (isLoading) {
+            runLoaderCycle(SWITCH_MIN_VISIBLE_DURATION_MS);
+            return;
+        }
+
+        // Загрузка кончилась, когда полоска уже стояла на потолке: кадров нет,
+        // и снять оверлей больше некому
+        if (isCycleParked) {
+            finishLoaderCycle();
         }
     }
 );
@@ -207,13 +265,14 @@ watch(
 // синхронно в setup на клиенте, не совпала бы с SSR-разметкой (hydration mismatch)
 onMounted(() => {
     if (props.isLoading) {
-        runLoaderCycle();
+        runLoaderCycle(INITIAL_MIN_VISIBLE_DURATION_MS);
     }
 });
 
 onUnmounted(() => {
     stopProgress();
     stopPhrases();
+    isCycleParked = false;
 });
 // #endregion
 </script>

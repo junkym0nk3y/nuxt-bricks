@@ -26,6 +26,7 @@ import { useInlineEditingStore } from '../../../text-editor/stores/inlineEditing
 
 // Composables
 import { useBuilderPage } from '../composables/useBuilderPage';
+import { useBuilderPageSelector } from '../composables/useBuilderPageSelector';
 import { useBuilderPagename } from '../composables/useBuilderPagename';
 import { useBuilderSession } from '../composables/useBuilderSession';
 import { useBuilderSessionToken } from '../composables/useBuilderSessionToken';
@@ -56,6 +57,15 @@ const TheBuilderDocumentationModal = defineAsyncComponent(
 );
 const TheBuilderMediaGalleryModal = defineAsyncComponent(
     () => import('../../media/components/TheBuilderMediaGalleryModal.vue')
+);
+// Создание страницы и резолвер картинок его импорта: монтируются по требованию
+// (v-if ниже), иначе их чанки уехали бы к первому рендеру билдера — ленивыми они
+// были бы только на бумаге
+const TheBuilderPublishCreatePageModal = defineAsyncComponent(
+    () => import('../../publish/components/TheBuilderPublishCreatePageModal.vue')
+);
+const TheBuilderMediaImageResolverModal = defineAsyncComponent(
+    () => import('../../media/components/TheBuilderMediaImageResolverModal.vue')
 );
 // #endregion
 
@@ -113,6 +123,7 @@ const {
     isSessionLoading,
     isSessionReady,
     sessionError,
+    sessionPageId,
     isDraftRestorePending,
     isRestoreDraftModalOpen,
     pendingDraft,
@@ -201,6 +212,24 @@ const darkModeCookie = useCookie<boolean>('bricks-dark-mode', {
     maxAge: 60 * 60 * 24 * 365,
 });
 const isDarkMode = ref(darkModeCookie.value ?? false);
+
+// Селектор страниц в тулбаре: список, переход и создание новой страницы
+const {
+    isPagesRefreshing,
+    shouldMountCreatePageModal,
+    isCreatePageModalOpen,
+    schemaImport,
+    handleOpenPageSelector,
+    handleSelectPage,
+    handleOpenCreatePage,
+    handleCloseCreatePage,
+    handlePageCreated,
+} = useBuilderPageSelector({
+    sessionPageId,
+    routePagename,
+    sessionToken,
+    showToast,
+});
 
 // Горячие клавиши — только в согласованную сессию: обработчик висит на window,
 // поэтому ни щит, ни inert его не останавливают (правило — в sessionGuards)
@@ -430,7 +459,15 @@ onBeforeUnmount(() => {
             :is-session-ready="isSessionReady"
             :sidebar-offset="leftSidebarOffset"
             :page-title="currentPublishPageTitle"
+            :pages="publishStore.publishedPages"
+            :current-page-id="sessionPageId"
+            :is-pages-loaded="publishStore.pagesLoadedAt !== null"
+            :is-pages-loading="isPagesRefreshing"
+            :is-submitting-page="publishStore.isSubmitting"
             @open-pages-manager="handleOpenPagesManager"
+            @open-page-selector="handleOpenPageSelector"
+            @select-page="handleSelectPage"
+            @create-page="handleOpenCreatePage"
             @open-media-gallery="handleOpenMediaGalleryWithContext"
             @save-draft="handleSaveDraftGuarded"
             @save-as-copy="handleSaveAsCopyGuarded"
@@ -514,6 +551,25 @@ onBeforeUnmount(() => {
             @close="handleCloseMediaGallery"
             @error="handleMediaError"
             @select="handleMediaSelect"
+        />
+
+        <TheBuilderPublishCreatePageModal
+            v-if="shouldMountCreatePageModal"
+            :is-open="isCreatePageModalOpen"
+            :resolve-imported-schema="schemaImport.resolveSchemaForCreate"
+            @close="handleCloseCreatePage"
+            @created="handlePageCreated"
+        />
+
+        <TheBuilderMediaImageResolverModal
+            v-if="schemaImport.shouldMountResolver.value"
+            :is-open="schemaImport.isResolverModalOpen.value"
+            :state="schemaImport.resolverState"
+            @confirm="schemaImport.handleResolverConfirm"
+            @cancel="schemaImport.handleResolverCancel"
+            @skip="schemaImport.handleResolverSkip"
+            @set-image-action="schemaImport.handleSetImageAction"
+            @set-global-action="schemaImport.handleSetGlobalAction"
         />
 
         <TheBuilderDraftRestoreModal

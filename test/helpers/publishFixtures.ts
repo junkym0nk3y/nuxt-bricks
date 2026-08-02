@@ -2,8 +2,10 @@
 // Types
 import type {
     IPublishedPage,
+    TPublishedPageSummary,
     TPublishFormState,
 } from '../../src/runtime/modules/common/types/bricks-api';
+import type { IPagesLoadStoreDeps } from '../../src/runtime/modules/builder/publish/types/publishStore';
 // #endregion
 
 const BASE_PAGE: IPublishedPage = {
@@ -89,4 +91,18 @@ export function makeConflictFetchError(): Error {
             data: { code: 'REVISION_CONFLICT' },
         },
     });
+}
+
+/**
+ * Кладёт в стор список так, как его оставил бы полный ответ сервера: вместе со
+ * строками ставится отметка загруженности. Без неё стор считает список
+ * незагруженным (пустой список — законный ответ) и открытие сессии запрашивает
+ * его заново, затирая подготовленные тестом строки.
+ *
+ * @param store - Publish-стор теста.
+ * @param pages - Строки списка.
+ */
+export function seedLoadedPages(store: IPagesLoadStoreDeps, pages: TPublishedPageSummary[]): void {
+    store.publishedPages = pages;
+    store.pagesLoadedAt = Date.now();
 }

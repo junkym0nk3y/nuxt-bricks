@@ -84,6 +84,15 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
     const sessionError = ref<string | null>(null);
     const savedSnapshot = ref<IBuilderDraftSnapshot | null>(null);
 
+    // Идентичность открытой страницы: id сохранённой либо null у новой. Меняется
+    // только на переходах сессии, поэтому пригодна как признак «эта страница
+    // открыта» для интерфейса. `publishStore.editingPageId` для этого не годится:
+    // Save as Copy на время POST сбрасывает его в null (форма выглядит как новая
+    // страница), и отметка текущей строки мигала бы на каждом сохранении копии.
+    // Сравнение по pagename не годится тем более — оно не отличает удалённую
+    // страницу от созданной заново под тем же слагом.
+    const sessionPageId = ref<string | number | null>(null);
+
     // Поколение открытия сессии — общий токен билдера (useBuilderSessionToken):
     // инкремент на каждый вход в openBuilderSession. Watcher маршрута зовёт
     // открытие без сериализации, поэтому на быстрых переходах A → B → C ответ B
@@ -169,21 +178,23 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
      * сессия остаётся неготовой и автосейв её состояние не пишет.
      *
      * Каждый await сверяется с поколением: вытесненное открытие выходит молча, до
-     * записи в сторы. Список страниц (`loadAllPages`) — исключение: он общий кеш, и
-     * ради него не стоит второго запроса. Его собственные гонки закрыты на стороне
-     * стора, а не поколением: устаревший ответ не заменяет более свежий список, и
-     * ошибка загрузки больше не пишется в `generalError`.
+     * записи в сторы. Список страниц (`ensurePagesLoaded`) — исключение: он общий
+     * кеш, и ради него не стоит второго запроса. Его собственные гонки закрыты на
+     * стороне стора, а не поколением: устаревший ответ не заменяет более свежий
+     * список, и ошибка загрузки больше не пишется в `generalError`.
+     *
+     * Условие «список пуст» здесь не годится: пустой список — законный ответ для
+     * первой страницы проекта, и открытие сессии запрашивало бы его каждый раз.
+     * Пустоту от незагруженности отличает сам стор.
      *
      * @param pagename - ЧПУ страницы из URL.
      * @param generation - Поколение этого открытия сессии.
      */
     async function bootstrapSession(pagename: string, generation: number): Promise<void> {
-        if (!publishStore.publishedPages.length) {
-            await publishStore.loadAllPages();
+        await publishStore.ensurePagesLoaded();
 
-            if (!isCurrentSession(generation)) {
-                return;
-            }
+        if (!isCurrentSession(generation)) {
+            return;
         }
 
         const existingPage = publishStore.getPageByPagename(pagename);
@@ -191,6 +202,7 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
 
         if (existingPage) {
             publishStore.startEditingPage(existingPage.id);
+            sessionPageId.value = existingPage.id;
 
             // Список стора — сводки без schema: схему канваса грузим point-lookup'ом
             const fullPage = await fetchPageRequest(existingPage.id);
@@ -292,6 +304,9 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
         sessionError.value = null;
         resolveDraftPrompt();
         savedSnapshot.value = null;
+        // Открываемая страница ещё не опознана: до конца bootstrap'а она не
+        // «текущая» ни для одной строки списка
+        sessionPageId.value = null;
 
         try {
             await withBootstrapTimeout(bootstrapSession(pagename, generation));
@@ -383,6 +398,13 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
 
         savedSnapshot.value = buildCurrentSnapshot();
         discardDraft(sessionPagename.value);
+
+        // Здесь же сессия принимает идентичность сохранённой страницы: обе записи
+        // (обычное сохранение и переход на копию) к этому моменту уже перевели
+        // стор в edit mode, а первое сохранение новой страницы иначе оставило бы
+        // сессию безымянной до перезагрузки — в списке не было бы отмечено, что
+        // открыто именно оно
+        sessionPageId.value = publishStore.editingPageId;
     }
 
     /**
@@ -444,6 +466,7 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
         isSessionLoading,
         isSessionReady,
         sessionError,
+        sessionPageId,
         isDraftRestorePending,
         isRestoreDraftModalOpen,
         pendingDraft,

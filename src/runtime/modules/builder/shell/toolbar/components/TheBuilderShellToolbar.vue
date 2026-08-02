@@ -3,6 +3,7 @@
 // Types
 import type { IToolbarProps, IToolbarEmits } from './types';
 import type { IBrickUiCommonProp } from '../../../../ui/types/common';
+import type { TPublishedPageSummary } from '../../../../common/types/bricks-api';
 
 // Vue
 import { computed } from 'vue';
@@ -17,10 +18,17 @@ import BricksActionButton from '../../../../ui/base/action-button/BricksActionBu
 import BricksTooltip from '../../../../ui/tooltip/BricksTooltip.vue';
 import BricksTooltipHint from '../../../../ui/tooltip/BricksTooltipHint.vue';
 import BuilderLogo from '../../../core/components/BuilderLogo.vue';
+import BuilderShellToolbarPageSelector from './BuilderShellToolbarPageSelector.vue';
 // #endregion
 
 // #region Props
-const props = defineProps<IToolbarProps>();
+const props = withDefaults(defineProps<IToolbarProps>(), {
+    pages: () => [],
+    currentPageId: null,
+    isPagesLoaded: false,
+    isPagesLoading: false,
+    isSubmittingPage: false,
+});
 // #endregion
 
 // #region Emits
@@ -115,6 +123,31 @@ function handleOpenPagesManager(): void {
 }
 
 /**
+ * Сообщает об открытии селектора: список страниц догружается и освежается
+ * ровно в этот момент, а не при загрузке билдера.
+ */
+function handleOpenPageSelector(): void {
+    emit('openPageSelector');
+}
+
+/**
+ * Передаёт выбранную в селекторе страницу наверх — переход выполняет
+ * composition root.
+ *
+ * @param page - Выбранная страница.
+ */
+function handleSelectPage(page: TPublishedPageSummary): void {
+    emit('selectPage', page);
+}
+
+/**
+ * Запрашивает создание новой страницы.
+ */
+function handleCreatePage(): void {
+    emit('createPage');
+}
+
+/**
  * Открывает модальное окно галереи медиафайлов
  * Позволяет загружать и управлять изображениями/видео для лендингов
  */
@@ -156,10 +189,27 @@ function handlePreview(): void {
                 <span :class="$style.titlePrimary">
                     <BuilderLogo :class="$style.logo" :to="dashboardHref" />
                 </span>
-                <span v-if="currentPageTitle" :class="$style.titleDivider">|</span>
-                <span v-if="currentPageTitle" :class="$style.titleSecondary">
-                    {{ currentPageTitle }}
-                </span>
+                <!--
+                    Заголовок появляется только с готовым названием: до открытия
+                    сессии форма пуста, и на сервере разметка та же — иначе
+                    вернулся бы hydration mismatch
+                -->
+                <template v-if="currentPageTitle">
+                    <span :class="$style.titleDivider" aria-hidden="true">|</span>
+                    <BuilderShellToolbarPageSelector
+                        :page-title="currentPageTitle"
+                        :pages="props.pages"
+                        :current-page-id="props.currentPageId"
+                        :is-loaded="props.isPagesLoaded"
+                        :is-loading="props.isPagesLoading"
+                        :disabled="!props.isSessionReady"
+                        :is-create-disabled="props.isSubmittingPage"
+                        @open="handleOpenPageSelector"
+                        @select="handleSelectPage"
+                        @all-pages="handleOpenPagesManager"
+                        @create-page="handleCreatePage"
+                    />
+                </template>
             </h1>
         </div>
 
@@ -291,11 +341,6 @@ function handlePreview(): void {
 
 .titleDivider {
     color: var(--bricks-base-300);
-}
-
-.titleSecondary {
-    font-weight: 500;
-    color: var(--bricks-base-900);
 }
 
 .icon {

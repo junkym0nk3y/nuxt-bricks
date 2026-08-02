@@ -33,6 +33,19 @@ export interface IActiveWriteRegistry {
 }
 
 /**
+ * Узкий контракт стора для однократной загрузки полного списка страниц
+ * (`utils/pagesLoad.ts`).
+ */
+export interface IPagesLoadStoreDeps {
+    /** Момент последнего полного ответа сервера; `null` — список ещё не загружали. */
+    pagesLoadedAt: number | null;
+    /** Номер последнего стартовавшего запроса — им отсекаются устаревшие ответы. */
+    pagesRequestId: number;
+    publishedPages: TPublishedPageSummary[];
+    loadAllPages: () => Promise<void>;
+}
+
+/**
  * Узкий контракт стора для записи страниц вне сессии редактора
  * (`utils/pageLibraryWrite.ts`).
  */

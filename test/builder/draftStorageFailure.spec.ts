@@ -17,7 +17,7 @@ import {
     createWindowStub,
     mountBuilderContext,
 } from '../helpers/builderSessionHarness';
-import { createPageBuilder } from '../helpers/publishFixtures';
+import { createPageBuilder, seedLoadedPages } from '../helpers/publishFixtures';
 // #endregion
 
 // #region Mocks
@@ -252,7 +252,7 @@ describe('черновик билдера: недоступное хранили
         const context = mountTracked();
         const publishStore = usePublishStore();
 
-        publishStore.publishedPages = [buildPage({ id: 7, pagename: 'draft-page' })];
+        seedLoadedPages(publishStore, [buildPage({ id: 7, pagename: 'draft-page' })]);
         await context.session.openBuilderSession('draft-page');
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
         expect(context.draftStorageUnavailableMock).not.toHaveBeenCalled();

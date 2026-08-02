@@ -229,18 +229,24 @@
     transform: translateY(-1.6rem);
 }
 
-/* Builder loader overlay fade */
-.bricks-loader-fade-enter-active,
+/*
+ * Builder loader overlay fade.
+ *
+ * Появление — без анимации, намеренно: лоадер обязан закрыть канвас раньше, чем
+ * на нём сменится содержимое. При переключении страниц внутри приложения схема
+ * приезжает за десятки миллисекунд, и за время проявления пользователь успевал
+ * увидеть новую страницу до лоадера — то есть порядок читался наоборот.
+ * Уход остаётся плавным: там открывается уже согласованное состояние.
+ */
 .bricks-loader-fade-leave-active {
     transition: opacity var(--bricks-default-transition);
 }
 
-.bricks-loader-fade-enter-from,
 .bricks-loader-fade-leave-to {
     opacity: 0;
 }
 
-/* Builder loader rotating phrase (быстрее фраза меняется каждые 600ms) */
+/* Builder loader rotating phrase: короче самой ротации, интервал — в компоненте */
 .bricks-loader-phrase-fade-enter-active,
 .bricks-loader-phrase-fade-leave-active {
     transition: opacity 150ms ease;

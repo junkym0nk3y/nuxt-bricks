@@ -14,14 +14,24 @@ export function useBuilderShortcuts() {
 
     /**
      * Проверяет, следует ли игнорировать событие клавиатуры.
-     * Игнорируются события в полях ввода, текстовых областях и редактируемых элементах.
+     *
+     * Игнорируются события в полях ввода, текстовых областях и редактируемых
+     * элементах, а также всё, что происходит внутри открытого диалога.
+     *
+     * Диалоги — не перестраховка: обработчик висит на window, а модалки
+     * телепортированы в body, поэтому Delete на их кнопке (например, «Отмена» в
+     * окне создания страницы) удалял выбранный на канвасе блок за модалкой, а
+     * Ctrl/Cmd+Z правил канвас, которого на экране не видно.
      *
      * @param target - HTML-элемент, на котором произошло событие.
      * @returns true, если событие следует игнорировать.
      */
     function shouldIgnoreKeyEvent(target: HTMLElement): boolean {
         return (
-            target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
+            target.tagName === 'INPUT' ||
+            target.tagName === 'TEXTAREA' ||
+            target.isContentEditable ||
+            Boolean(target.closest('[role="dialog"], [role="alertdialog"]'))
         );
     }
 
