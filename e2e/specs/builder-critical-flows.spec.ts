@@ -35,7 +35,10 @@ test('restores the last form edit after an immediate page reload', async ({ page
     await title.fill('Survives reload');
     await page.reload();
 
-    await page.getByRole('button', { name: 'Restore' }).click();
+    // Предложение приходит тостом после загрузки: посреди неё спрашивать нечем —
+    // лоадер ещё на экране. Кнопка в тосте восстанавливает сразу; окно с датой и
+    // удалением открывает клик по самому тосту
+    await page.getByRole('button', { name: 'Restore', exact: true }).click();
     await page.getByRole('button', { name: 'Settings' }).click();
     await expect(page.getByRole('textbox', { name: 'Title *' })).toHaveValue('Survives reload');
 });

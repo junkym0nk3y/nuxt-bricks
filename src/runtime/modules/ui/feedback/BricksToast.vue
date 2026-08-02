@@ -1,52 +1,68 @@
 <script setup lang="ts">
 // #region Imports
+// Types
+import type { IBricksToastEmits, IBricksToastProps } from './types.d.ts';
+
 // Vue
 import { computed, useCssModule } from 'vue';
 
 // Reka UI
-import { ToastProvider, ToastRoot, ToastTitle, ToastClose, ToastViewport } from 'reka-ui';
+import {
+    ToastProvider,
+    ToastRoot,
+    ToastTitle,
+    ToastAction,
+    ToastClose,
+    ToastViewport,
+} from 'reka-ui';
 // #endregion
 
 // #region Constants
 /** Длительность для не-автоскрывающихся тостов (фактически «бесконечность»). */
 const PERSISTENT_DURATION = 1_000_000_000;
+
+/** Иконка по варианту — вместо ветвления в разметке. */
+const VARIANT_ICONS: Record<NonNullable<IBricksToastProps['variant']>, string> = {
+    success: 'ta:outline-circle-check',
+    error: 'ta:outline-circle-x',
+    info: 'ta:outline-info-circle',
+};
 // #endregion
 
 // #region Props
-const props = withDefaults(
-    defineProps<{
-        visible: boolean;
-        message: string;
-        variant?: 'success' | 'error';
-        autoHide?: boolean;
-        duration?: number;
-    }>(),
-    {
-        variant: 'success',
-        autoHide: true,
-        duration: 4000,
-    }
-);
+const props = withDefaults(defineProps<IBricksToastProps>(), {
+    variant: 'success',
+    autoHide: true,
+    duration: 4000,
+    actionLabel: '',
+});
 // #endregion
 
 // #region Emits
-const emit = defineEmits<{
-    'update:visible': [value: boolean];
-}>();
+const emit = defineEmits<IBricksToastEmits>();
 // #endregion
 
 // #region Data
 const $style = useCssModule();
+
+/** Закрытие пришло от Escape — см. `onEscapeKeyDown`. */
+let isEscapeClose = false;
 // #endregion
 
 // #region Computed
+const hasAction = computed<boolean>(() => Boolean(props.actionLabel));
+
 const toastClasses = computed(() => [
     $style.BricksToast,
     {
         [$style._success]: props.variant === 'success',
         [$style._error]: props.variant === 'error',
+        [$style._info]: props.variant === 'info',
+        [$style._actionable]: hasAction.value,
     },
 ]);
+
+const variantIcon = computed<string>(() => VARIANT_ICONS[props.variant]);
 
 /**
  * Длительность авто-скрытия для Reka ToastRoot.
@@ -64,9 +80,57 @@ const resolvedDuration = computed(() =>
  * @param open - Открыт ли тост после изменения состояния.
  */
 function onOpenChange(open: boolean): void {
-    if (!open) {
-        emit('update:visible', false);
+    if (open) {
+        return;
     }
+
+    // Закрытие по Escape тост, ждущий ответа, игнорирует: `open` контролируется
+    // пропом, поэтому без ответа наружу он просто остаётся на экране
+    if (isEscapeClose) {
+        isEscapeClose = false;
+        return;
+    }
+
+    emit('update:visible', false);
+}
+
+/**
+ * Поднимает нажатие кнопки действия.
+ */
+function onAction(): void {
+    emit('action');
+}
+
+/**
+ * Поднимает клик по телу тоста. У Reka такого события нет, поэтому слушаем
+ * корень: крестик и кнопка действия гасят всплытие сами — иначе закрытие и
+ * действие приходили бы сюда же.
+ */
+function onSelect(): void {
+    if (!hasAction.value) {
+        return;
+    }
+
+    emit('select');
+}
+
+/**
+ * Отбирает у Escape право закрывать тост, который ждёт ответа. Reka вешает
+ * обработчик глобально, без проверки фокуса (`ToastRootImpl`), поэтому Escape,
+ * нажатый где угодно — в канвасе или в открытой модалке, — уносил бы заодно и
+ * висящий вопрос. Автоскрывающиеся тосты правило не трогает: их исчезновение и
+ * так вопрос секунд.
+ *
+ * Само событие не отменяем: `defaultPrevented` сверяет и `DismissableLayer`, так
+ * что отмена оставила бы открытую модалку незакрываемой. Вместо этого помечаем
+ * источник и глушим собственное закрытие в `onOpenChange`.
+ */
+function onEscapeKeyDown(): void {
+    if (props.autoHide) {
+        return;
+    }
+
+    isEscapeClose = true;
 }
 // #endregion
 </script>
@@ -78,22 +142,27 @@ function onOpenChange(open: boolean): void {
             :duration="resolvedDuration"
             :class="toastClasses"
             @update:open="onOpenChange"
+            @escape-key-down="onEscapeKeyDown"
+            @click="onSelect"
         >
             <div :class="$style.iconWrapper">
-                <BricksIcon
-                    v-if="props.variant === 'success'"
-                    :class="$style.icon"
-                    icon="ta:outline-circle-check"
-                />
-
-                <BricksIcon v-else :class="$style.icon" icon="ta:outline-circle-x" />
+                <BricksIcon :class="$style.icon" :icon="variantIcon" />
             </div>
 
             <ToastTitle :class="$style.message">
                 {{ props.message }}
             </ToastTitle>
 
-            <ToastClose :class="$style.closeButton" aria-label="Close">
+            <ToastAction
+                v-if="hasAction"
+                :alt-text="props.actionLabel"
+                :class="$style.actionButton"
+                @click.stop="onAction"
+            >
+                {{ props.actionLabel }}
+            </ToastAction>
+
+            <ToastClose :class="$style.closeButton" aria-label="Close" @click.stop>
                 <BricksIcon icon="ta:outline-x" />
             </ToastClose>
         </ToastRoot>
@@ -138,6 +207,20 @@ function onOpenChange(open: boolean): void {
     &._error .iconWrapper {
         background-color: var(--bricks-danger-50);
         color: var(--bricks-danger-500);
+    }
+
+    &._info .iconWrapper {
+        background-color: var(--bricks-surface-raised);
+        color: var(--bricks-base-600);
+    }
+
+    /* Тост с действием кликается целиком — крестик и кнопка гасят всплытие */
+    &._actionable {
+        cursor: pointer;
+
+        &:hover {
+            border-color: var(--bricks-base-300);
+        }
     }
 
     &[data-state='open'] {
@@ -192,6 +275,34 @@ function onOpenChange(open: boolean): void {
     font-size: 1.4rem;
     font-weight: 500;
     line-height: 1.4;
+}
+
+.actionButton {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    height: 2.8rem;
+    padding: 0 1.2rem;
+    border-radius: var(--bricks-border-radius-control);
+    border: 1px solid var(--bricks-base-200);
+    background: transparent;
+    font-size: var(--bricks-font-size-sm);
+    font-weight: 500;
+    color: var(--bricks-base-900);
+    transition:
+        background-color var(--bricks-default-transition),
+        border-color var(--bricks-default-transition);
+    cursor: pointer;
+
+    &:hover {
+        border-color: var(--bricks-base-300);
+        background-color: var(--bricks-surface-raised);
+    }
+
+    &:focus-visible {
+        outline: none;
+        box-shadow: var(--bricks-shadow-focus);
+    }
 }
 
 .closeButton {

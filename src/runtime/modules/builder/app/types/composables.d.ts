@@ -21,7 +21,7 @@ import type { IDraftStorageNotice } from './draftStorage';
  */
 export type TShowToast = (
     message: string,
-    variant?: 'success' | 'error',
+    variant?: IBuilderToastState['variant'],
     duration?: number
 ) => void;
 
@@ -100,6 +100,27 @@ export interface IBuilderSessionOptions {
 }
 
 /**
+ * Опции composable useBuilderDraftPrompt: предложение восстановить черновик
+ * живёт поверх открытой сессии, поэтому всё, что связывает его с ней, приходит
+ * снаружи — своего состояния сессии у предложения нет.
+ */
+export interface IBuilderDraftPromptOptions {
+    /** Проверка поколения открытия: отсекает ответ по предложению прежней сессии. */
+    isCurrentSession: (generation: number) => boolean;
+    /** Применение снапшота черновика в сторы билдера. */
+    applySnapshot: (snapshot: IBuilderDraftSnapshot) => void;
+    /** Удаление черновика с сообщением о недоступном хранилище. */
+    discardDraft: (pagename: string) => void;
+    /** Ключ сессии — запасной ключ удаления, если у самого черновика его нет. */
+    sessionPagename: Ref<string>;
+    /**
+     * Сохранённая версия открытой страницы — эталон, по которому правка
+     * пользователя отличается от служебной перезаписи формы.
+     */
+    savedSnapshot: Ref<IBuilderDraftSnapshot | null>;
+}
+
+/**
  * Опции composable useBuilderDraftPersistence.
  */
 export interface IBuilderDraftPersistenceOptions {
@@ -107,7 +128,12 @@ export interface IBuilderDraftPersistenceOptions {
     sessionPagename: Ref<string>;
     isSessionLoading: Ref<boolean>;
     isSessionReady: Ref<boolean>;
-    isRestoreDraftModalOpen: Ref<boolean>;
+    /**
+     * Черновик найден, ответа на него нет. Запрещает автосейву и трогать запись
+     * черновика, и удалять её: на канвасе сохранённая версия, и сравнение с
+     * `savedSnapshot` снесло бы предложенный снапшот до ответа пользователя.
+     */
+    isDraftRestorePending: Ref<boolean>;
     savedSnapshot: Ref<IBuilderDraftSnapshot | null>;
     buildCurrentSnapshot: () => IBuilderDraftSnapshot;
     /**

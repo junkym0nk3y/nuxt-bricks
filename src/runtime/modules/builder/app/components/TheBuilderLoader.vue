@@ -1,5 +1,8 @@
 <script setup lang="ts">
 // #region Imports
+// Types
+import type { IBuilderLoaderEmits, IBuilderLoaderProps } from '../types/builder';
+
 // Constants
 import {
     LOADER_DEFAULT_PHRASE,
@@ -16,9 +19,11 @@ import BuilderLogo from '../../core/components/BuilderLogo.vue';
 // #endregion
 
 // #region Props
-const props = defineProps<{
-    isLoading: boolean;
-}>();
+const props = defineProps<IBuilderLoaderProps>();
+// #endregion
+
+// #region Emits
+const emit = defineEmits<IBuilderLoaderEmits>();
 // #endregion
 
 // #region Data
@@ -27,10 +32,17 @@ const MIN_VISIBLE_PROGRESS = 1;
 
 /**
  * Длительность (ms) одного полного цикла волны лого: 4 куба × 0.6s (--lift-step
- * в BuilderLogo). Оверлей живёт ровно один цикл — на его границе все кубы в покое,
- * и прогресс синхронно доезжает до 100%.
+ * в BuilderLogo). Цикл — минимальная длительность показа: на его границе все кубы
+ * в покое, поэтому раньше оверлей не снимаем, чтобы не мигало на быстрой загрузке.
+ * Максимума нет: уходит оверлей по фактическому окончанию загрузки.
  */
 const LOGO_CYCLE_DURATION_MS = 2400;
+
+/**
+ * Потолок прогресса (%), пока загрузка идёт. Полоска, доехавшая до 100% на
+ * незакрытой сессии, обещает готовность, которой нет: работать всё ещё нельзя.
+ */
+const LOADING_PROGRESS_CEILING = 99;
 
 /**
  * Интервал (ms) смены фразы под баром — два сегмента волны лого
@@ -129,11 +141,12 @@ function startPhrases(): void {
 }
 
 /**
- * Показывает оверлей ровно на один цикл волны лого (LOGO_CYCLE_DURATION_MS)
- * и скрывает его по окончании — независимо от фактического состояния загрузки.
+ * Показывает оверлей минимум на один цикл волны лого (LOGO_CYCLE_DURATION_MS) и
+ * снимает его, когда закончились оба: цикл и сама загрузка.
  *
  * Прогресс за цикл анимируется от MIN_VISIBLE_PROGRESS до 100% с квадратичным
- * ease-out (быстро в начале, замедляется к концу) через requestAnimationFrame.
+ * ease-out (быстро в начале, замедляется к концу) через requestAnimationFrame; на
+ * незакрытой сессии упирается в LOADING_PROGRESS_CEILING и ждёт там.
  *
  * SSR-safe: на сервере window не существует, выходим сразу.
  */
@@ -149,7 +162,7 @@ function runLoaderCycle(): void {
 
     let cycleStartTime: number | null = null;
 
-    /** Кадр rAF: интерполирует прогресс до 100% и скрывает оверлей на границе цикла. */
+    /** Кадр rAF: ведёт прогресс и снимает оверлей, когда кончились цикл и загрузка. */
     function tick(timestamp: number): void {
         if (cycleStartTime === null) {
             cycleStartTime = timestamp;
@@ -159,14 +172,17 @@ function runLoaderCycle(): void {
         const ratio = Math.min((timestamp - cycleStartTime) / LOGO_CYCLE_DURATION_MS, 1);
         // Квадратичный ease-out: замедляется к концу
         const eased = 1 - (1 - ratio) * (1 - ratio);
-        progress.value = MIN_VISIBLE_PROGRESS + (100 - MIN_VISIBLE_PROGRESS) * eased;
+        const target = MIN_VISIBLE_PROGRESS + (100 - MIN_VISIBLE_PROGRESS) * eased;
 
-        if (ratio < 1) {
+        progress.value = props.isLoading ? Math.min(target, LOADING_PROGRESS_CEILING) : target;
+
+        if (ratio < 1 || props.isLoading) {
             animationRafId = window.requestAnimationFrame(tick);
             return;
         }
 
         animationRafId = null;
+        progress.value = 100;
         isVisible.value = false;
         stopPhrases();
     }
@@ -203,7 +219,12 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <Transition name="bricks-loader-fade">
+    <!--
+        `hidden` поднимается после ухода оверлея, а не по снятию isLoading:
+        предложение восстановить черновик ждёт именно освободившегося экрана —
+        показанное раньше, оно вылезало бы поверх лоадера.
+    -->
+    <Transition name="bricks-loader-fade" @after-leave="emit('hidden')">
         <div v-if="isVisible" :class="$style.TheBuilderLoader">
             <div :class="$style.aurora"></div>
             <div :class="$style.grid"></div>

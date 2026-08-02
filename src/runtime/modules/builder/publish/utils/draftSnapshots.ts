@@ -31,6 +31,20 @@ function pickComparableFormState(formState: TPublishFormState): Record<string, u
 }
 
 /**
+ * Сравнивает только настройки публикации. Отдельно от снапшота целиком, потому
+ * что схему для этого пришлось бы сериализовать — а форма меняется на каждый
+ * символ в поле, и сравнивать по ней весь канвас незачем.
+ *
+ * @param a - Первое состояние формы.
+ * @param b - Второе состояние формы.
+ */
+export function isFormStateEqual(a: TPublishFormState, b: TPublishFormState): boolean {
+    return (
+        JSON.stringify(pickComparableFormState(a)) === JSON.stringify(pickComparableFormState(b))
+    );
+}
+
+/**
  * Сравнивает два снапшота (schema + publish settings).
  *
  * @param a - Первый снапшот.
@@ -42,8 +56,5 @@ export function isSnapshotEqual(a: IBuilderDraftSnapshot, b: IBuilderDraftSnapsh
         return false;
     }
 
-    return (
-        JSON.stringify(pickComparableFormState(a.formState)) ===
-        JSON.stringify(pickComparableFormState(b.formState))
-    );
+    return isFormStateEqual(a.formState, b.formState);
 }

@@ -2,7 +2,7 @@
 // Types
 import type { IBricksSchema } from '../../../common/types/brick';
 import type { IPublishedPage } from '../../../common/types/bricks-api';
-import type { IBuilderDraftEntry, IBuilderDraftSnapshot } from '../../publish/types/builderDrafts';
+import type { IBuilderDraftSnapshot } from '../../publish/types/builderDrafts';
 import type { IBuilderSessionOptions } from '../types/composables';
 
 // Utils
@@ -16,6 +16,9 @@ import { fetchPageRequest } from '../../publish/utils/publishApi';
 import { onScopeDispose, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+// Composables
+import { useBuilderDraftPrompt } from './useBuilderDraftPrompt';
+
 // Pinia
 import { useComponentsStore } from '../../core/stores/components';
 import { usePublishStore } from '../../publish/stores/publish';
@@ -27,16 +30,15 @@ const EMPTY_SCHEMA: IBricksSchema = {
 
 /**
  * Предел ожидания bootstrap'а. Зависший (не отвечающий и не падающий) запрос иначе
- * оставляет рабочую область под щитом навсегда: `catch`/`finally` недостижимы,
- * лоадер прячется сам, и пользователь видит только полупрозрачную заглушку без
- * объяснения и без выхода. По таймауту сессия уходит в состояние ошибки с кнопкой
- * «Повторить».
+ * оставляет рабочую область заблокированной навсегда: `catch`/`finally`
+ * недостижимы, и пользователь видит лоадер без конца и без выхода. По таймауту
+ * сессия уходит в состояние ошибки с кнопкой «Повторить».
  */
 const SESSION_BOOTSTRAP_TIMEOUT_MS = 30000;
 
 /**
  * Сессия билдера: открытие страницы по pagename (существующая / новая),
- * обнаружение черновика в localStorage и модалка восстановления.
+ * обнаружение черновика в localStorage и предложение его восстановить.
  * Watcher на routePagename переоткрывает сессию при навигации на другую страницу;
  * rename собственной сессии (routePagename догнал sessionPagename после
  * `renameSession`) повторного bootstrap не вызывает.
@@ -80,8 +82,6 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
     // отклоняют всё по !isSessionReady. Снимается на входе в следующее
     // открытие, в том числе на «Повторить».
     const sessionError = ref<string | null>(null);
-    const isRestoreDraftModalOpen = ref(false);
-    const pendingDraft = ref<IBuilderDraftEntry | null>(null);
     const savedSnapshot = ref<IBuilderDraftSnapshot | null>(null);
 
     // Поколение открытия сессии — общий токен билдера (useBuilderSessionToken):
@@ -94,22 +94,27 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
     // превью-вкладки, портальные модалки.
     const isCurrentSession = sessionToken.isCurrent;
 
-    // Поколение открытия, показавшего модалку восстановления, — вместе с
-    // `pointer-events: none` на уезжающей модалке (transitions.scss) закрывает
-    // запоздалый ответ: клик по уже сброшенной модалке поднимал бы готовность
-    // другой — грузящейся или упавшей — сессии. Обнуляется после ответа, поэтому
-    // ответ ещё и одноразовый: повторный клик по той же модалке — no-op.
-    let restoreDraftGeneration: number | null = null;
-
-    /**
-     * Принадлежит ли ответ на модалку восстановления актуальному открытию. Отсекает
-     * и запоздалый клик по уезжающей модалке прежней сессии, и повторный ответ.
-     *
-     * @returns Можно ли применять ответ.
-     */
-    function isRestoreAnswerCurrent(): boolean {
-        return restoreDraftGeneration !== null && isCurrentSession(restoreDraftGeneration);
-    }
+    // Предложение восстановить найденный черновик: состояние, окно и три исхода.
+    // Отдельным композаблом, потому что своей готовности у него нет — оно живёт
+    // поверх открытой сессии и снимается её же событиями (переоткрытие, rename).
+    const {
+        isDraftRestorePending,
+        isRestoreDraftModalOpen,
+        pendingDraft,
+        armDraftPrompt,
+        resolveDraftPrompt,
+        stopDraftPromptWatch,
+        openRestoreDraftModal,
+        handleDeferDraft,
+        handleRestoreDraft,
+        handleDiscardDraft,
+    } = useBuilderDraftPrompt({
+        isCurrentSession,
+        applySnapshot,
+        discardDraft,
+        sessionPagename,
+        savedSnapshot,
+    });
 
     /**
      * Гасит всё, начатое прежней сессией: и операции, сверяющие токен (открытие,
@@ -124,6 +129,11 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
     function abandonSessionOperations(): void {
         sessionToken.invalidate();
         publishStore.resetActiveWrites();
+
+        // Наблюдатель за первой правкой ставится вне setup (после await'ов
+        // bootstrap'а), поэтому активного scope в момент регистрации нет и сам он
+        // не остановится — снимаем его здесь, на общей точке гашения сессии
+        stopDraftPromptWatch();
     }
 
     // Счётчик локален экземпляру, а незавершённое открытие переживает свой экземпляр:
@@ -207,9 +217,10 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
                 isDraftOwnedByPage &&
                 !isSnapshotEqual(draft.draftSnapshot, savedSnapshot.value)
             ) {
-                pendingDraft.value = draft;
-                isRestoreDraftModalOpen.value = true;
-                restoreDraftGeneration = generation;
+                // Только взводим предложение: спрашивать посреди загрузки нечем —
+                // модалка вылезала бы поверх лоадера. Тост поднимет страница, когда
+                // лоадер уйдёт, а модалку откроет уже клик по нему
+                armDraftPrompt(draft, generation);
                 return;
             }
 
@@ -279,9 +290,7 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
         isSessionLoading.value = true;
         isSessionReady.value = false;
         sessionError.value = null;
-        isRestoreDraftModalOpen.value = false;
-        pendingDraft.value = null;
-        restoreDraftGeneration = null;
+        resolveDraftPrompt();
         savedSnapshot.value = null;
 
         try {
@@ -291,19 +300,16 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
                 return;
             }
 
-            // Модалка восстановления — тоже несогласованное состояние: на канвасе
-            // сохранённая версия, ответа пользователя ещё нет, а автосейв в этом окне
-            // всё отклоняет по `isRestoreDraftModalOpen`. С поднятой готовностью
-            // глобальный Ctrl+V проходил бы guard и тихо терялся. Готовность
-            // поднимут `handleRestoreDraft` / `handleDiscardDraft` — других выходов у
-            // модалки нет
-            if (isRestoreDraftModalOpen.value) {
-                return;
-            }
-
             // Готовность — только после всех ветвей bootstrap'а, включая применение
             // черновика: падение на нём с поднятым флагом означало бы, что сброс на
-            // выгрузке затрёт черновик недособранным состоянием
+            // выгрузке затрёт черновик недособранным состоянием.
+            //
+            // Ненайденный ответ на черновик готовность больше не держит: на канвасе
+            // лежит сохранённая версия страницы — состояние согласованное, править
+            // его можно, и первая же правка снимает предложение (`armDraftSupersedeWatch`).
+            // Пока ответа нет, автосейв не трогает запись черновика по
+            // `isDraftRestorePending` — иначе он удалил бы её как совпадающую с
+            // сохранённой версией
             isSessionReady.value = true;
         } catch (error: unknown) {
             // Ошибка вытесненного открытия пользователя уже не касается: на экране
@@ -397,68 +403,21 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
         commitSavedSnapshot(startedIn);
     }
 
-    /**
-     * Восстанавливает изменения из черновика (для существующей страницы).
-     * Ответ на модалку — вторая (и последняя) точка подъёма готовности: до него
-     * сессия несогласована, см. `openBuilderSession`.
-     */
-    function handleRestoreDraft(): void {
-        if (!isRestoreAnswerCurrent()) {
-            return;
-        }
-
-        const draft = pendingDraft.value;
-        if (draft?.draftSnapshot) {
-            applySnapshot(draft.draftSnapshot);
-        }
-
-        isRestoreDraftModalOpen.value = false;
-        pendingDraft.value = null;
-        restoreDraftGeneration = null;
-        isSessionReady.value = true;
-    }
-
-    /**
-     * Отказывается от восстановления и удаляет черновик, открывая сохранённую версию.
-     * Как и `handleRestoreDraft`, поднимает готовность сессии.
-     */
-    function handleDiscardDraft(): void {
-        if (!isRestoreAnswerCurrent()) {
-            return;
-        }
-
-        // Ключ берём у самого черновика: он и есть предмет ответа. Расходиться с
-        // `sessionPagename` он не успевает — перенос сессии снимает предложение
-        // целиком (watcher ниже)
-        const pagename = pendingDraft.value?.pagename ?? sessionPagename.value;
-        if (pagename) {
-            discardDraft(pagename);
-        }
-
-        isRestoreDraftModalOpen.value = false;
-        pendingDraft.value = null;
-        restoreDraftGeneration = null;
-        isSessionReady.value = true;
-    }
-
     // Перенос сессии отменяет предложение восстановить черновик. `renameSession`
     // зовут напрямую уже начатые save / Save as Copy, поэтому `sessionPagename`
     // меняется без смены поколения, а `migrateBuilderDraft` к этому моменту уже
     // перенёс запись под новый ключ: «Восстановить» применил бы снапшот прежней
-    // страницы, «Открыть сохранённую» удалила бы пустой старый ключ. Ничего не
-    // трогаем: черновик остаётся на диске, сессия объявляется согласованной, а
-    // пользователь при желании перезагрузит страницу и получит предложение заново.
+    // страницы, «Удалить» снесло бы пустой старый ключ. Ничего не трогаем:
+    // черновик остаётся на диске, предложение снимается, а пользователь при
+    // желании перезагрузит страницу и получит его заново.
     watch(
         () => sessionPagename.value,
         () => {
-            if (restoreDraftGeneration === null) {
+            if (!isDraftRestorePending.value) {
                 return;
             }
 
-            isRestoreDraftModalOpen.value = false;
-            pendingDraft.value = null;
-            restoreDraftGeneration = null;
-            isSessionReady.value = true;
+            resolveDraftPrompt();
         }
     );
 
@@ -485,6 +444,7 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
         isSessionLoading,
         isSessionReady,
         sessionError,
+        isDraftRestorePending,
         isRestoreDraftModalOpen,
         pendingDraft,
         savedSnapshot,
@@ -493,6 +453,8 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
         switchToSavedPage,
         openBuilderSession,
         retryBuilderSession,
+        openRestoreDraftModal,
+        handleDeferDraft,
         handleRestoreDraft,
         handleDiscardDraft,
     };

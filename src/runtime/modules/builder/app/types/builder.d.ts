@@ -5,6 +5,22 @@ export interface ISidebarExpose {
 }
 
 /**
+ * Пропсы оверлея загрузки билдера (TheBuilderLoader).
+ */
+export interface IBuilderLoaderProps {
+    /** Идёт открытие сессии; оверлей держится до её конца, но не меньше цикла анимации. */
+    isLoading: boolean;
+}
+
+/**
+ * События оверлея загрузки.
+ */
+export interface IBuilderLoaderEmits {
+    /** Оверлей ушёл с экрана вместе с анимацией — рабочая область открыта. */
+    hidden: [];
+}
+
+/**
  * Пропсы блокирующего экрана «сессия не открылась» (TheBuilderSessionError).
  */
 export interface IBuilderSessionErrorProps {
@@ -20,6 +36,25 @@ export interface IBuilderSessionErrorProps {
 export interface IBuilderSessionErrorEmits {
     retry: [];
     openPagesManager: [];
+}
+
+/**
+ * Пропсы окна выбора по найденному черновику (TheBuilderDraftRestoreModal).
+ */
+export interface IBuilderDraftRestoreModalProps {
+    isOpen: boolean;
+    /** Время последней записи черновика (ISO) — по нему пользователь и решает. */
+    updatedAt?: string | null;
+}
+
+/**
+ * События окна выбора по найденному черновику. Закрытие (`close`) — не ответ:
+ * черновик остаётся, предложение тоже. Удаляет только `discard`.
+ */
+export interface IBuilderDraftRestoreModalEmits {
+    close: [];
+    restore: [];
+    discard: [];
 }
 
 /**

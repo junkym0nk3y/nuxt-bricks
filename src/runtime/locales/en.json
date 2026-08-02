@@ -289,10 +289,13 @@
                 "forPage": "Page “{page}”: {message}"
             },
             "draft": {
+                "pendingTitle": "You have unsaved changes",
+                "pendingAction": "Restore",
                 "restoreTitle": "Restore unsaved changes?",
-                "restoreDescription": "We found changes that were not saved. Restore them?",
+                "restoreDescription": "We found changes that were not saved. Restore them or delete the draft?",
+                "restoreDescriptionDated": "The draft from {date} differs from the saved version of this page. Restore the changes or delete the draft?",
                 "restoreConfirm": "Restore changes",
-                "restoreCancel": "Open saved version",
+                "restoreDiscard": "Delete draft",
                 "storageUnavailable": "Drafts are unavailable: the browser blocked local storage. Save your changes manually"
             },
             "session": {

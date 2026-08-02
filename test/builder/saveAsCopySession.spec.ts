@@ -249,7 +249,7 @@ describe('Save as Copy: единый переход сессии', () => {
             },
         });
         await context.session.openBuilderSession('page-match');
-        expect(context.session.isRestoreDraftModalOpen.value).toBe(true);
+        expect(context.session.isDraftRestorePending.value).toBe(true);
         expect(context.session.pendingDraft.value?.pageId).toBe(5);
 
         // Чужой pageId (например, stale-черновик из-за старого бага без единого
@@ -265,7 +265,7 @@ describe('Save as Copy: единый переход сессии', () => {
             },
         });
         await context.session.openBuilderSession('page-foreign');
-        expect(context.session.isRestoreDraftModalOpen.value).toBe(false);
+        expect(context.session.isDraftRestorePending.value).toBe(false);
         expect(getBuilderDraft('page-foreign')).toBeNull();
 
         // Черновик без pageId (повреждённый/чужой формат) — тоже stale
@@ -279,7 +279,7 @@ describe('Save as Copy: единый переход сессии', () => {
             },
         });
         await context.session.openBuilderSession('page-stale');
-        expect(context.session.isRestoreDraftModalOpen.value).toBe(false);
+        expect(context.session.isDraftRestorePending.value).toBe(false);
         expect(getBuilderDraft('page-stale')).toBeNull();
     });
 

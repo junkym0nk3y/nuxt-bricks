@@ -20,7 +20,10 @@ import { usePublishStore } from '../../publish/stores/publish';
 
 /**
  * Автосохранение черновика билдера в localStorage (debounce 800ms) при изменении
- * истории канваса или настроек публикации. Ключ черновика — sessionPagename
+ * истории канваса или настроек публикации. Запись идёт всегда, а вот удаление
+ * записи ждёт ответа на предложение восстановить (`isDraftRestorePending`):
+ * запрещать заодно и запись нельзя — правка пропса меняет компонент синхронно, а
+ * историю фиксирует через 300 мс, и `pagehide` в это окно потерял бы её. Ключ черновика — sessionPagename
  * (переживает rename сессии). Если изменений относительно сохранённой версии
  * нет — черновик удаляется. Отложенное сохранение сбрасывается синхронно на обоих
  * терминальных событиях: выгрузка страницы (`pagehide`) и остановка scope
@@ -32,7 +35,7 @@ export function useBuilderDraftPersistence(options: IBuilderDraftPersistenceOpti
         sessionPagename,
         isSessionLoading,
         isSessionReady,
-        isRestoreDraftModalOpen,
+        isDraftRestorePending,
         savedSnapshot,
         buildCurrentSnapshot,
         draftStorageNotice,
@@ -63,12 +66,10 @@ export function useBuilderDraftPersistence(options: IBuilderDraftPersistenceOpti
             return;
         }
 
-        // Пока пользователь не ответил на модалку восстановления, на канвасе лежит
-        // сохранённая версия страницы — сравнение с savedSnapshot удалило бы черновик.
-        // Без isSessionReady сюда проходило бы и состояние после ошибки bootstrap'а
+        // Без isSessionReady сюда проходило бы состояние после ошибки bootstrap'а
         // (isSessionLoading снимается в finally): сохранение мусора затёрло бы
         // валидный черновик — тем заметнее, что сброс на выгрузке безусловный.
-        if (isSessionLoading.value || !isSessionReady.value || isRestoreDraftModalOpen.value) {
+        if (isSessionLoading.value || !isSessionReady.value) {
             return;
         }
 
@@ -81,6 +82,15 @@ export function useBuilderDraftPersistence(options: IBuilderDraftPersistenceOpti
         const isEditing = publishStore.editingPageId !== null;
 
         if (isEditing && savedSnapshot.value && isSnapshotEqual(snapshot, savedSnapshot.value)) {
+            // Пока на предложение восстановить не ответили, «совпадает с сохранённой
+            // версией» означает лишь то, что пользователь ещё ничего не менял, — а
+            // не то, что черновик лишний: удалить его здесь значит ответить за
+            // пользователя. Сюда приходит и служебная перезапись формы (сохранение
+            // заново присваивает `published`), и сброс на выгрузке
+            if (isDraftRestorePending.value) {
+                return;
+            }
+
             // Исход важен и здесь: неудалённый черновик равен сохранённому
             // состоянию лишь сейчас, а после следующей правки снова разойдётся
             // с ним и при новом заходе предложит восстановление
@@ -115,12 +125,7 @@ export function useBuilderDraftPersistence(options: IBuilderDraftPersistenceOpti
      * Планирует сохранение черновика (debounce).
      */
     function scheduleDraftPersist(): void {
-        if (
-            typeof window === 'undefined' ||
-            isSessionLoading.value ||
-            !isSessionReady.value ||
-            isRestoreDraftModalOpen.value
-        ) {
+        if (typeof window === 'undefined' || isSessionLoading.value || !isSessionReady.value) {
             return;
         }
 

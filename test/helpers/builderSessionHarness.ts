@@ -137,7 +137,7 @@ export function mountBuilderContext(): IBuilderContext {
             sessionPagename: pagename.sessionPagename,
             isSessionLoading: session.isSessionLoading,
             isSessionReady: session.isSessionReady,
-            isRestoreDraftModalOpen: session.isRestoreDraftModalOpen,
+            isDraftRestorePending: session.isDraftRestorePending,
             savedSnapshot: session.savedSnapshot,
             buildCurrentSnapshot: session.buildCurrentSnapshot,
             draftStorageNotice,
