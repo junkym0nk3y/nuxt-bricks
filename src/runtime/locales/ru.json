@@ -14,13 +14,13 @@
             "decrease": "Уменьшить",
             "clear": "Очистить",
             "showPassword": "Показать пароль",
-            "hidePassword": "Скрыть пароль"
+            "hidePassword": "Скрыть пароль",
+            "tagsLimit": "Лимит {max} символов исчерпан"
         },
         "toolbar": {
             "grid": "Сетка",
             "undo": "Шаг назад (Ctrl+Z)",
             "redo": "Шаг вперёд (Ctrl+Shift+Z)",
-            "pagesEditor": "Редактор страниц",
             "media": "Загружаемый контент",
             "preview": "Посмотреть превью",
             "save": "Сохранить",
@@ -152,7 +152,6 @@
             "subdomain": "Субдомен",
             "subdomainHint": "Опционально. Страница будет доступна только на этом поддомене",
             "domainStub": "домен",
-            "titleLabel": "Название *",
             "titlePlaceholder": "Заголовок страницы",
             "backgroundColor": "Цвет фона",
             "exportJson": "Экспорт JSON",
@@ -212,11 +211,6 @@
                     "created": "создана {date}",
                     "published": "Опубликована",
                     "copyUrl": "Скопировать URL",
-                    "seoMeta": "SEO и Meta",
-                    "titleLabel": "Заголовок (title)",
-                    "pagenameLabel": "Адрес (pagename)",
-                    "descriptionLabel": "Описание (description)",
-                    "keywordsLabel": "Ключевые слова (keywords)",
                     "ogImage": "OG-изображение",
                     "selectFromMedia": "Выбрать из Media",
                     "routing": "Маршрутизация: urlPrefix, subdomain",
@@ -349,6 +343,15 @@
                 "urlPrefixMax": "Максимум 100 символов",
                 "subdomainFormat": "Допустимы только строчные буквы, цифры и дефис",
                 "subdomainMax": "Максимум 63 символа"
+            },
+            "seo": {
+                "sectionLabel": "SEO и Meta",
+                "titleLabel": "Заголовок (title) *",
+                "pagenameLabel": "Адрес (pagename) *",
+                "descriptionLabel": "Описание (description) *",
+                "descriptionPlaceholder": "Краткое описание страницы для поисковой выдачи",
+                "keywordsLabel": "Ключевые слова (keywords)",
+                "keywordsPlaceholder": "промо, лендинг, маркетинг"
             }
         },
         "media": {

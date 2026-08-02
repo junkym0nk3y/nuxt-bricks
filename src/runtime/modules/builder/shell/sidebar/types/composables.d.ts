@@ -68,6 +68,7 @@ export interface IPublishFormInitialValues {
     pagename: string;
     title: string;
     description: string;
+    keywords: string;
 }
 
 /**

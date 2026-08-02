@@ -216,30 +216,6 @@ function handlePreview(): void {
         <div :class="$style.right">
             <BricksTooltip bottom>
                 <template #activator>
-                    <!--
-                        Заблокирована до готовности сессии, как и соседние: уход на
-                        дашборд из недозагруженного билдера — тот самый путь, на
-                        котором терялись правки
-                    -->
-                    <BricksButton
-                        size="md"
-                        variant="outline"
-                        equal
-                        :disabled="!props.isSessionReady"
-                        :aria-label="t('bricks.toolbar.pagesEditor')"
-                        @click="handleOpenPagesManager"
-                    >
-                        <BricksIcon :class="$style.icon" icon="ta:outline-files" />
-                    </BricksButton>
-                </template>
-
-                <template #default>
-                    <BricksTooltipHint :text="t('bricks.toolbar.pagesEditor')" />
-                </template>
-            </BricksTooltip>
-
-            <BricksTooltip bottom>
-                <template #activator>
                     <BricksButton
                         size="md"
                         variant="outline"

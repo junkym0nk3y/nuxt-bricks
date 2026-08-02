@@ -325,7 +325,7 @@ describe('Save as Copy: единый переход сессии', () => {
 
         // Пользователь правит pagename и, не дожидаясь окна debounce, жмёт Save as Copy
         publishStore.setCurrentFormField('title', 'Свежая');
-        publishStore.setCurrentFormField('description', 'Описание');
+        publishStore.setCurrentFormField('description', 'Описание свежей страницы');
         publishStore.setCurrentFormField('pagename', 'typed-name');
         await nextTick();
         await vi.advanceTimersByTimeAsync(PAGENAME_SYNC_DEBOUNCE_MS / 2);

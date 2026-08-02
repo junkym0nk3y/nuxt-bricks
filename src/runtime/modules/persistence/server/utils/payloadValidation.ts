@@ -10,12 +10,15 @@
 import type { IBricksSchema } from '../../../common/types/brick';
 import type { ICreatePagePayload, IUpdatePagePayload } from '../../../common/types/bricks-api';
 import {
+    DESCRIPTION_MAX_LENGTH,
+    KEYWORDS_MAX_LENGTH,
     PAGENAME_MAX_LENGTH,
     PAGENAME_MIN_LENGTH,
     PAGENAME_PATTERN,
     RESERVED_PAGENAMES,
     SUBDOMAIN_MAX_LENGTH,
     SUBDOMAIN_PATTERN,
+    TITLE_MAX_LENGTH,
     URL_PREFIX_MAX_LENGTH,
     URL_PREFIX_PATTERN,
 } from '../../../common/constants/publish';
@@ -36,9 +39,6 @@ import { validateSchemaComponentGraph } from '../../../common/utils/bricks/schem
 /** Лимит числа компонентов схемы. */
 const MAX_SCHEMA_COMPONENTS = 5000;
 
-const TITLE_MAX_LENGTH = 120;
-const DESCRIPTION_MAX_LENGTH = 500;
-const KEYWORDS_MAX_LENGTH = 255;
 const LAYOUT_MAX_LENGTH = 100;
 const BACKGROUND_COLOR_MAX_LENGTH = 100;
 

@@ -14,6 +14,23 @@ export const PAGENAME_MIN_LENGTH = 3;
 export const PAGENAME_MAX_LENGTH = 80;
 
 /**
+ * Границы SEO-полей страницы. Единый источник для трёх мест сразу: yup-схемы
+ * формы, серверной валидации DTO и счётчиков символов в редакторах. Раньше числа
+ * стояли константами в каждом месте, и панель деталей ограничивала title 120
+ * символами, а сайдбар — ничем.
+ */
+export const TITLE_MIN_LENGTH = 3;
+export const TITLE_MAX_LENGTH = 120;
+export const DESCRIPTION_MIN_LENGTH = 10;
+export const DESCRIPTION_MAX_LENGTH = 500;
+
+/**
+ * Лимит `keywords` считается по СКЛЕЕННОЙ строке (то, что уезжает в
+ * `<meta name="keywords">` и в колонку `keywords TEXT`), а не по числу тегов.
+ */
+export const KEYWORDS_MAX_LENGTH = 255;
+
+/**
  * Класс символов одного URL-сегмента published-страницы (pagename или сегмент
  * urlPrefix). Единый источник и для валидационных паттернов ниже, и для
  * custom-regex параметров статических published-маршрутов (module.ts).

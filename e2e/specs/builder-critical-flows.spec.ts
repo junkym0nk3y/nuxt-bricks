@@ -114,7 +114,8 @@ test('ignores a late save response after the user opens another page', async ({
     await page.getByText('Save changes', { exact: true }).click();
     await saveStartedGate;
 
-    await page.getByRole('button', { name: 'Pages editor' }).click();
+    await page.getByRole('button', { name: 'Select page' }).click();
+    await page.getByRole('button', { name: 'All pages' }).click();
     await expect(page).toHaveURL(/\/bricks$/);
     const pageBRow = page
         .locator('article')

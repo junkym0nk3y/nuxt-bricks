@@ -13,12 +13,19 @@ import type {
 import { ref, computed, watch, nextTick, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+// Utils
+import { parseKeywords, serializeKeywords } from '../utils/keywords';
+
+// Constants
+import { KEYWORDS_MAX_LENGTH } from '../../../common/constants/publish';
+
 // Composables
 import { usePublishCreatePageForm } from '../composables/usePublishCreatePageForm';
 import { useSchemaFileTransfer } from '../composables/useSchemaFileTransfer';
 
 // Components
 import BricksInput from '../../../ui/inputs/BricksInput.vue';
+import BricksTagsEditor from '../../../ui/inputs/BricksTagsEditor.vue';
 import BricksFieldError from '../../../ui/inputs/BricksFieldError.vue';
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
 import BricksCloseButton from '../../../ui/base/modal/BricksCloseButton.vue';
@@ -88,6 +95,8 @@ const urlHint = computed<string>(() => {
     const url = sub ? `${sub}.${domain}${path}` : `${domain}${path}`;
     return t('bricks.publish.dashboard.createModal.urlHint', { url });
 });
+
+const keywordTags = computed<string[]>(() => parseKeywords(String(keywords.value ?? '')));
 // #endregion
 
 // #region Methods
@@ -106,6 +115,15 @@ function handleClose(): void {
  */
 function handleToggleAdvanced(): void {
     isAdvancedOpen.value = !isAdvancedOpen.value;
+}
+
+/**
+ * Возвращает ключевые слова в форму строкой — теги живут только в редакторе.
+ *
+ * @param tags - Актуальный список тегов.
+ */
+function handleKeywordsChange(tags: string[]): void {
+    keywords.value = serializeKeywords(tags);
 }
 
 /**
@@ -229,7 +247,7 @@ onMounted(() => {
 
                 <div :class="$style.field">
                     <BricksInput
-                        :label="t('bricks.publish.dashboard.details.pagenameLabel')"
+                        :label="t('bricks.publish.seo.pagenameLabel')"
                         :value="pagename"
                         type="slug"
                         :max-length="80"
@@ -243,7 +261,7 @@ onMounted(() => {
 
                 <div :class="$style.field">
                     <BricksInput
-                        :label="t('bricks.publish.dashboard.details.descriptionLabel')"
+                        :label="t('bricks.publish.seo.descriptionLabel')"
                         :value="description"
                         type="text"
                         :max-length="500"
@@ -322,15 +340,20 @@ onMounted(() => {
                             </span>
                         </div>
                         <div :class="$style.field">
-                            <BricksInput
-                                :label="t('bricks.publish.dashboard.details.keywordsLabel')"
-                                :value="keywords"
-                                type="text"
-                                :max-length="255"
-                                placeholder="promo, page, marketing"
+                            <div :class="$style.fieldLabel">
+                                <span>{{ t('bricks.publish.seo.keywordsLabel') }}</span>
+                                <span :class="$style.charCount">
+                                    {{ String(keywords ?? '').length }}/{{ KEYWORDS_MAX_LENGTH }}
+                                </span>
+                            </div>
+                            <BricksTagsEditor
+                                :model-value="keywordTags"
+                                :aria-label="t('bricks.publish.seo.keywordsLabel')"
+                                :placeholder="t('bricks.publish.seo.keywordsPlaceholder')"
+                                :max-length="KEYWORDS_MAX_LENGTH"
                                 :disabled="isSubmitting"
                                 :error-message="errors.keywords"
-                                @update:value="(val: string) => (keywords = val)"
+                                @update:model-value="handleKeywordsChange"
                             />
                         </div>
                     </div>
@@ -404,6 +427,27 @@ onMounted(() => {
 
 .fieldHint {
     font-size: 1.2rem;
+    color: var(--bricks-base-400);
+}
+
+// Подпись над редактором тегов: своего лейбла у него нет — он общий элемент
+// кита и в свойствах блоков подписывается снаружи
+.fieldLabel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    // 0.6rem gap колонки + 0.2rem = 0.8rem, как отступ лейбла внутри полей кита
+    margin-bottom: 0.2rem;
+    font-size: 1.4rem;
+    font-weight: 500;
+    color: var(--bricks-base-600);
+}
+
+.charCount {
+    flex-shrink: 0;
+    font-size: 1.2rem;
+    font-weight: 400;
     color: var(--bricks-base-400);
 }
 

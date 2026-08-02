@@ -26,6 +26,7 @@ const props = withDefaults(defineProps<IBricksInputProps>(), {
     step: 1,
     clearable: false,
     revealable: true,
+    showCounter: false,
     errorMessage: null,
 });
 // #endregion
@@ -58,6 +59,8 @@ const {
  */
 const displayedError = computed<string | null>(() => props.errorMessage || errorMessage.value);
 
+const showCharCount = computed<boolean>(() => props.showCounter && Boolean(props.maxLength));
+
 const classList = computed(() => [
     {
         [$style._active]: Boolean(innerValue.value),
@@ -70,8 +73,11 @@ const classList = computed(() => [
 
 <template>
     <div :class="[$style.BricksInput, classList]">
-        <div v-if="props.label" :class="$style.label">
+        <div v-if="props.label || showCharCount" :class="$style.label">
             <div :class="$style.text">{{ props.label }}</div>
+            <span v-if="showCharCount" :class="$style.charCount">
+                {{ innerValue.length }}/{{ props.maxLength }}
+            </span>
         </div>
 
         <div :class="$style.inner">
@@ -178,6 +184,7 @@ const classList = computed(() => [
     }
 
     .label {
+        display: flex;
         align-items: center;
         justify-content: space-between;
         margin-bottom: 0.8rem;
@@ -190,6 +197,13 @@ const classList = computed(() => [
             font-size: 1.6rem;
         }
     }
+}
+
+.charCount {
+    flex-shrink: 0;
+    font-size: 1.2rem;
+    font-weight: 400;
+    color: var(--bricks-base-400);
 }
 
 .inner {

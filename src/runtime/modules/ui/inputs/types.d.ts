@@ -32,6 +32,11 @@ export interface IBricksInputProps {
     clearable?: boolean;
     /** Кнопка показа пароля; учитывается только при type="password" */
     revealable?: boolean;
+    /**
+     * Счётчик `длина/maxLength` в строке лейбла. По умолчанию выключен: у
+     * `maxLength` есть дефолт, и иначе счётчик появился бы у каждого поля кита.
+     */
+    showCounter?: boolean;
     /** Внешняя ошибка (vee-validate, сервер); приоритетнее внутренней валидации */
     errorMessage?: string | null;
 }
@@ -109,6 +114,30 @@ export interface IBricksSwitchProps {
 
 export interface IBricksSwitchEmits {
     'update:value': [value: boolean | string];
+}
+
+export interface IBricksTagsEditorProps {
+    modelValue?: string[];
+    placeholder?: string;
+    disabled?: boolean;
+    /**
+     * Имя поля для скринридера. Своего лейбла у редактора нет (подпись рисует
+     * вызывающий), а плейсхолдер исчезает с появлением первого чипа — без этого
+     * поле остаётся безымянным.
+     */
+    ariaLabel?: string;
+    /**
+     * Предел длины СКЛЕЕННОГО значения (теги через `TAGS_SEPARATOR`), а не числа
+     * тегов: строкой оно и хранится. Тег, который в предел не влезает, редактор
+     * не принимает и показывает отказ.
+     */
+    maxLength?: number;
+    /** Внешняя ошибка (vee-validate, сервер) — приоритетнее внутреннего отказа */
+    errorMessage?: string | null;
+}
+
+export interface IBricksTagsEditorEmits {
+    'update:modelValue': [value: string[]];
 }
 
 export interface IBricksHexInputProps {

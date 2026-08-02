@@ -1,16 +1,16 @@
 import type { Composer } from 'vue-i18n';
 import { useNuxtApp } from '#imports';
 import type { TPublishFormState } from '../../../common/types/bricks-api';
-
-/**
- * Результат валидации формы публикации.
- */
-export interface IPublishFormValidationResult {
-    /** Состояние формы с trim'нутыми pagename/urlPrefix/subdomain (та же ссылка, если ничего не изменилось). */
-    formState: TPublishFormState;
-    /** Ошибки валидации по полям (пусто — валидация пройдена). */
-    errors: Record<string, string>;
-}
+import type { IPublishFormValidationResult, IRequiredTextRule } from '../types/validation';
+import {
+    DESCRIPTION_MAX_LENGTH,
+    DESCRIPTION_MIN_LENGTH,
+    KEYWORDS_MAX_LENGTH,
+    PAGENAME_MAX_LENGTH,
+    PAGENAME_MIN_LENGTH,
+    TITLE_MAX_LENGTH,
+    TITLE_MIN_LENGTH,
+} from '../../../common/constants/publish';
 
 /**
  * Переводит ключ через глобальный i18n (утилита вызывается вне setup-контекста).
@@ -19,6 +19,66 @@ export interface IPublishFormValidationResult {
 function t(key: string): string {
     const i18n = useNuxtApp().$i18n as Composer | undefined;
     return i18n ? i18n.t(key) : key;
+}
+
+/**
+ * Проверяет обязательное текстовое поле: непустота и границы длины.
+ * Длина меряется по обрезанному значению — сервер сохраняет именно его.
+ *
+ * @param value - Значение поля.
+ * @param rule - Границы длины и ключи сообщений.
+ * @returns Текст ошибки либо пустая строка.
+ */
+function validateRequiredText(value: string | null | undefined, rule: IRequiredTextRule): string {
+    const trimmed = value?.trim() || '';
+
+    if (!trimmed) {
+        return t(rule.requiredMessage);
+    }
+
+    if (trimmed.length < rule.minLength) {
+        return t(rule.minMessage);
+    }
+
+    if (trimmed.length > rule.maxLength) {
+        return t(rule.maxMessage);
+    }
+
+    return '';
+}
+
+/**
+ * Проверяет pagename: непустота, формат, границы длины и занятость.
+ *
+ * @param pagename - Уже обрезанное значение.
+ * @param isPagenameAvailable - Проверка, свободен ли pagename.
+ * @returns Текст ошибки либо пустая строка.
+ */
+function validatePagename(
+    pagename: string,
+    isPagenameAvailable: (pagename: string) => boolean
+): string {
+    if (!pagename) {
+        return t('bricks.publish.validation.pagenameRequired');
+    }
+
+    if (!/^[a-z0-9-]+$/.test(pagename)) {
+        return t('bricks.publish.validation.pagenameFormat');
+    }
+
+    if (pagename.length < PAGENAME_MIN_LENGTH) {
+        return t('bricks.publish.validation.pagenameMin');
+    }
+
+    if (pagename.length > PAGENAME_MAX_LENGTH) {
+        return t('bricks.publish.validation.pagenameMax');
+    }
+
+    if (!isPagenameAvailable(pagename)) {
+        return t('bricks.publish.validation.pagenameTaken');
+    }
+
+    return '';
 }
 
 /**
@@ -42,8 +102,12 @@ function validateOptionalRoutingFields(
 
 /**
  * Валидирует настройки публикации перед превью или публикацией:
- * обязательные pagename/title/description, формат pagename и полей маршрутизации,
- * уникальность pagename.
+ * обязательные pagename/title/description, их длины, формат pagename и полей
+ * маршрутизации, уникальность pagename.
+ *
+ * Границы длины — те же константы, что у yup-схемы формы и у серверной проверки
+ * DTO. Без них сайдбар подсвечивал поле красным по схеме, а сохранение всё равно
+ * проходило: две проверки жили каждая со своим набором правил.
  *
  * @param formState - Текущее состояние формы.
  * @param isPagenameAvailable - Проверка, свободен ли `pagename` (с учётом редактируемой страницы).
@@ -73,20 +137,35 @@ export function validatePublishFormState(
 
     const errors: Record<string, string> = {};
 
-    if (!trimmedPagename) {
-        errors.pagename = t('bricks.publish.validation.pagenameRequired');
-    } else if (!/^[a-z0-9-]+$/.test(trimmedPagename)) {
-        errors.pagename = t('bricks.publish.validation.pagenameFormat');
-    } else if (!isPagenameAvailable(trimmedPagename)) {
-        errors.pagename = t('bricks.publish.validation.pagenameTaken');
+    const pagenameError = validatePagename(trimmedPagename, isPagenameAvailable);
+    if (pagenameError) {
+        errors.pagename = pagenameError;
     }
 
-    if (!normalized.title?.trim()) {
-        errors.title = t('bricks.publish.validation.titleRequired');
+    const titleError = validateRequiredText(normalized.title, {
+        minLength: TITLE_MIN_LENGTH,
+        maxLength: TITLE_MAX_LENGTH,
+        requiredMessage: 'bricks.publish.validation.titleRequired',
+        minMessage: 'bricks.publish.validation.titleMin',
+        maxMessage: 'bricks.publish.validation.titleMax',
+    });
+    if (titleError) {
+        errors.title = titleError;
     }
 
-    if (!normalized.description?.trim()) {
-        errors.description = t('bricks.publish.validation.descriptionRequired');
+    const descriptionError = validateRequiredText(normalized.description, {
+        minLength: DESCRIPTION_MIN_LENGTH,
+        maxLength: DESCRIPTION_MAX_LENGTH,
+        requiredMessage: 'bricks.publish.validation.descriptionRequired',
+        minMessage: 'bricks.publish.validation.descriptionMin',
+        maxMessage: 'bricks.publish.validation.descriptionMax',
+    });
+    if (descriptionError) {
+        errors.description = descriptionError;
+    }
+
+    if ((normalized.keywords?.trim() || '').length > KEYWORDS_MAX_LENGTH) {
+        errors.keywords = t('bricks.publish.validation.keywordsMax');
     }
 
     validateOptionalRoutingFields(normalized, errors);

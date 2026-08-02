@@ -27,7 +27,7 @@ export function useSidebarPublishForm(): IUseSidebarPublishFormReturn {
     const bricksConfig = useBricksConfig();
     const isEditing = computed<boolean>(() => publishStore.editingPageId !== null);
 
-    const { validationSchema } = usePublishValidationSchema(isEditing.value);
+    const { validationSchema } = usePublishValidationSchema();
 
     const settings = computed(() => publishStore.currentFormState);
     const isSubmitting = computed(() => publishStore.isSubmitting);
@@ -39,6 +39,7 @@ export function useSidebarPublishForm(): IUseSidebarPublishFormReturn {
         pagename: settings.value.pagename || '',
         title: settings.value.title || '',
         description: settings.value.description || '',
+        keywords: settings.value.keywords || '',
     }));
 
     /**

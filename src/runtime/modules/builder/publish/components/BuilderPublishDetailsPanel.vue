@@ -21,7 +21,7 @@ import { usePublishDetailsUrl } from '../composables/usePublishDetailsUrl';
 import BricksSwitch from '../../../ui/inputs/BricksSwitch.vue';
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
 import BricksCloseButton from '../../../ui/base/modal/BricksCloseButton.vue';
-import BuilderPublishDetailsPanelSeoFields from './BuilderPublishDetailsPanelSeoFields.vue';
+import BuilderPublishSeoFields from './BuilderPublishSeoFields.vue';
 import BuilderPublishDetailsPanelOgImage from './BuilderPublishDetailsPanelOgImage.vue';
 import BuilderPublishDetailsPanelRouting from './BuilderPublishDetailsPanelRouting.vue';
 import BuilderPublishDetailsPanelVersions from './BuilderPublishDetailsPanelVersions.vue';
@@ -229,13 +229,13 @@ defineExpose({
                 </div>
             </div>
 
-            <BuilderPublishDetailsPanelSeoFields
+            <BuilderPublishSeoFields
                 v-model:title="title"
                 v-model:pagename="pagename"
                 v-model:description="description"
                 v-model:keywords="keywords"
                 :errors="errors"
-                :is-saving="isSaving"
+                :disabled="isSaving"
             />
 
             <BuilderPublishDetailsPanelOgImage

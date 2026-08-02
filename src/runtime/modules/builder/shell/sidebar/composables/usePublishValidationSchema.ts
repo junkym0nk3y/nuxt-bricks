@@ -13,9 +13,12 @@ import { usePublishStore } from '../../../publish/stores/publish';
  * i18n, проверку уникальности из store и `editingPageId` текущей сессии
  * редактора как исключение при редактировании.
  *
- * @param isEditing - режим редактирования (для проверки уникальности pagename).
+ * Редактируемая страница читается из стора в момент валидации, а не снимком на
+ * создании схемы: панель настроек переживает переход на другую страницу, и
+ * снимок «редактируем новую» заставлял бы существующую страницу считать свой же
+ * pagename занятым.
  */
-export function usePublishValidationSchema(isEditing: boolean) {
+export function usePublishValidationSchema() {
     const publishStore = usePublishStore();
     const { t } = useI18n();
 
@@ -23,10 +26,7 @@ export function usePublishValidationSchema(isEditing: boolean) {
         t: (key) => t(key),
         isPagenameAvailable: (pagename, excludeId) =>
             publishStore.isPagenameAvailable(pagename, excludeId),
-        getExcludeId: () =>
-            isEditing && publishStore.editingPageId !== null
-                ? publishStore.editingPageId
-                : undefined,
+        getExcludeId: () => publishStore.editingPageId ?? undefined,
     });
 
     return {

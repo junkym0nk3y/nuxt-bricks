@@ -14,13 +14,13 @@
             "decrease": "Decrease",
             "clear": "Clear",
             "showPassword": "Show password",
-            "hidePassword": "Hide password"
+            "hidePassword": "Hide password",
+            "tagsLimit": "Character limit {max} reached"
         },
         "toolbar": {
             "grid": "Grid",
             "undo": "Undo (Ctrl+Z)",
             "redo": "Redo (Ctrl+Shift+Z)",
-            "pagesEditor": "Pages editor",
             "media": "Media library",
             "preview": "Preview",
             "save": "Save",
@@ -152,7 +152,6 @@
             "subdomain": "Subdomain",
             "subdomainHint": "Optional. The page will be available only on this subdomain",
             "domainStub": "domain",
-            "titleLabel": "Title *",
             "titlePlaceholder": "Page title",
             "backgroundColor": "Background color",
             "exportJson": "Export JSON",
@@ -212,11 +211,6 @@
                     "created": "created {date}",
                     "published": "Published",
                     "copyUrl": "Copy URL",
-                    "seoMeta": "SEO & Meta",
-                    "titleLabel": "Title",
-                    "pagenameLabel": "Address (pagename)",
-                    "descriptionLabel": "Description",
-                    "keywordsLabel": "Keywords",
                     "ogImage": "OG image",
                     "selectFromMedia": "Select from Media",
                     "routing": "Routing: urlPrefix, subdomain",
@@ -349,6 +343,15 @@
                 "urlPrefixMax": "Maximum 100 characters",
                 "subdomainFormat": "Only lowercase letters, digits and hyphens are allowed",
                 "subdomainMax": "Maximum 63 characters"
+            },
+            "seo": {
+                "sectionLabel": "SEO & Meta",
+                "titleLabel": "Title *",
+                "pagenameLabel": "Address (pagename) *",
+                "descriptionLabel": "Description *",
+                "descriptionPlaceholder": "Short page description for search results",
+                "keywordsLabel": "Keywords",
+                "keywordsPlaceholder": "promo, landing, marketing"
             }
         },
         "media": {

@@ -1,10 +1,14 @@
 <script setup lang="ts">
 // #region Imports
+// Types
+import type { TPublishFormErrors } from '../../../publish/types/dashboard';
+
 // Vue
+import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Vee-validate
-import { Form, Field } from 'vee-validate';
+import { Form } from 'vee-validate';
 
 // Composables
 import { useSidebarPublishForm } from '../composables/useSidebarPublishForm';
@@ -16,8 +20,8 @@ import { usePublishStore } from '../../../publish/stores/publish';
 import BricksInput from '../../../../ui/inputs/BricksInput.vue';
 import BricksHexInput from '../../../../ui/inputs/BricksHexInput.vue';
 import BricksSelect from '../../../../ui/inputs/BricksSelect.vue';
-import BricksTextarea from '../../../../ui/inputs/BricksTextarea.vue';
 import BricksCloseButton from '../../../../ui/base/modal/BricksCloseButton.vue';
+import BuilderPublishSeoFields from '../../../publish/components/BuilderPublishSeoFields.vue';
 import BuilderShellSidebarNavigationEditor from './BuilderShellSidebarNavigationEditor.vue';
 import BuilderShellSidebarPublishSocialImage from './BuilderShellSidebarPublishSocialImage.vue';
 // #endregion
@@ -49,9 +53,70 @@ const {
     handleClearSocialImage,
     handleLayoutChange,
 } = useSidebarPublishForm();
+
+/**
+ * Поля, которых пользователь уже касался.
+ *
+ * Схема валидируется формой сразу при монтировании и наполняет `errors` по всем
+ * своим путям — у новой страницы это значит красные «обязательно» ещё до первого
+ * клика. Раньше от этого спасали обёртки `<Field>`: они держали ошибку в своей
+ * области и до взаимодействия её не показывали. Обёрток больше нет, поэтому
+ * отметку «поле трогали» ведём сами.
+ */
+const touchedFields = ref<Set<string>>(new Set());
 // #endregion
 
 // #region Methods
+/**
+ * Сводит ошибки SEO-полей из двух источников: живой yup-схемы формы (только по
+ * тронутым полям) и проверки перед публикацией, которая пишет в стор. Второй
+ * источник показывается всегда: он появляется по явному действию пользователя и
+ * переживает уход с поля.
+ *
+ * @param formErrors - Ошибки vee-validate текущей формы.
+ * @returns Ошибки по полям для общего компонента SEO.
+ */
+function mergeSeoErrors(formErrors: Record<string, string | undefined>): TPublishFormErrors {
+    const storeErrors = publishStore.validationErrors;
+
+    /**
+     * Ошибка одного поля с учётом того, трогали ли его.
+     *
+     * @param field - Имя поля формы.
+     * @returns Текст ошибки либо undefined.
+     */
+    const fieldError = (field: string): string | undefined =>
+        (touchedFields.value.has(field) ? formErrors[field] : undefined) || storeErrors[field];
+
+    return {
+        title: fieldError('title'),
+        pagename: fieldError('pagename'),
+        description: fieldError('description'),
+        keywords: fieldError('keywords'),
+    };
+}
+
+/**
+ * Пишет значение SEO-поля и в стор (источник правды сайдбара), и в форму
+ * vee-validate — иначе схема проверяла бы прежнее значение.
+ *
+ * @param setFieldValue - Сеттер значения формы из слота `<Form>`.
+ * @param field - Имя поля.
+ * @param value - Новое значение.
+ */
+function handleSeoFieldUpdate(
+    setFieldValue: (field: string, value: string) => void,
+    field: 'title' | 'pagename' | 'description' | 'keywords',
+    value: string
+): void {
+    if (!touchedFields.value.has(field)) {
+        touchedFields.value = new Set(touchedFields.value).add(field);
+    }
+
+    setFieldValue(field, value);
+    handleUpdateField(field, value);
+}
+
 /**
  * Emits close event for parent handler.
  */
@@ -70,6 +135,14 @@ defineExpose({
     handleMediaSelect,
 });
 // #endregion
+
+// #region Lifecycle
+// Смена страницы пересобирает форму (`formKey`) — отметки «поле трогали» от
+// прошлой страницы вместе с ней должны уйти, иначе чужие ошибки покажутся сразу
+watch(formKey, () => {
+    touchedFields.value = new Set();
+});
+// #endregion
 </script>
 
 <template>
@@ -81,6 +154,7 @@ defineExpose({
 
         <Form
             :key="formKey"
+            v-slot="{ errors, setFieldValue }"
             :class="[$style.content, 'bricks-scrollbox']"
             :validation-schema="validationSchema"
             :initial-values="initialValues"
@@ -102,113 +176,74 @@ defineExpose({
                 />
             </div>
 
-            <Field v-slot="{ field, errorMessage }" name="pagename">
-                <div :class="$style.formGroup">
-                    <BricksInput
-                        label="Url *"
-                        :error-message="errorMessage || publishStore.validationErrors.pagename"
-                        :value="field.value"
-                        type="slug"
-                        :required="true"
-                        :max-length="80"
-                        placeholder="my-page"
-                        :disabled="isSubmitting"
-                        @update:value="
-                            (val: string) => {
-                                field.onChange(val);
-                                handleUpdateField('pagename', val);
-                            }
-                        "
-                        @blur="field.onBlur"
-                    />
-                </div>
-            </Field>
+            <!--
+                Значения приходят из стора, а не из формы: источник правды сайдбара —
+                `currentFormState`, форма же держит только валидацию. Поэтому каждое
+                изменение пишется в оба места — иначе схема проверяла бы прошлый ввод
+            -->
+            <BuilderPublishSeoFields
+                :class="$style.seoFields"
+                :title="settings.title || ''"
+                :pagename="settings.pagename || ''"
+                :description="settings.description || ''"
+                :keywords="settings.keywords || ''"
+                :errors="mergeSeoErrors(errors)"
+                :disabled="isSubmitting"
+                @update:title="(val: string) => handleSeoFieldUpdate(setFieldValue, 'title', val)"
+                @update:pagename="
+                    (val: string) => handleSeoFieldUpdate(setFieldValue, 'pagename', val)
+                "
+                @update:description="
+                    (val: string) => handleSeoFieldUpdate(setFieldValue, 'description', val)
+                "
+                @update:keywords="
+                    (val: string) => handleSeoFieldUpdate(setFieldValue, 'keywords', val)
+                "
+            >
+                <template #address>
+                    <div :class="$style.addressFields">
+                        <div :class="$style.addressField">
+                            <BricksInput
+                                label="URL Prefix"
+                                :value="settings.urlPrefix"
+                                type="text"
+                                placeholder="blog"
+                                :max-length="100"
+                                :disabled="isSubmitting"
+                                @update:value="
+                                    (val: string) => handleUpdateField('urlPrefix', val || null)
+                                "
+                            />
+                            <span :class="$style.hint">{{
+                                t('bricks.publish.urlPrefixHint')
+                            }}</span>
+                        </div>
 
-            <div :class="$style.formGroup">
-                <BricksInput
-                    label="URL Prefix"
-                    :value="settings.urlPrefix"
-                    type="text"
-                    placeholder="blog"
-                    :max-length="100"
-                    :disabled="isSubmitting"
-                    @update:value="(val: string) => handleUpdateField('urlPrefix', val || null)"
-                />
-                <span :class="$style.hint">{{ t('bricks.publish.urlPrefixHint') }}</span>
-            </div>
+                        <div :class="$style.addressField">
+                            <BricksInput
+                                :label="t('bricks.publish.subdomain')"
+                                :value="settings.subdomain"
+                                type="text"
+                                placeholder="spb"
+                                :max-length="63"
+                                :disabled="isSubmitting"
+                                @update:value="
+                                    (val: string) => handleUpdateField('subdomain', val || null)
+                                "
+                            />
+                            <span :class="$style.hint">{{
+                                t('bricks.publish.subdomainHint')
+                            }}</span>
+                        </div>
 
-            <div :class="$style.formGroup">
-                <BricksInput
-                    :label="t('bricks.publish.subdomain')"
-                    :value="settings.subdomain"
-                    type="text"
-                    placeholder="spb"
-                    :max-length="63"
-                    :disabled="isSubmitting"
-                    @update:value="(val: string) => handleUpdateField('subdomain', val || null)"
-                />
-                <span :class="$style.hint">{{ t('bricks.publish.subdomainHint') }}</span>
-            </div>
-
-            <Transition mode="out-in" name="bricks-fade-fast">
-                <div v-if="fullUrlPreview" :class="$style.urlPreview">
-                    {{ fullUrlPreview }}
-                </div>
-            </Transition>
-
-            <Field v-slot="{ field, errorMessage }" name="title">
-                <div :class="$style.formGroup">
-                    <BricksInput
-                        :label="t('bricks.publish.titleLabel')"
-                        :value="field.value"
-                        type="text"
-                        :required="true"
-                        :max-length="120"
-                        :placeholder="t('bricks.publish.titlePlaceholder')"
-                        :disabled="isSubmitting"
-                        :error-message="errorMessage || publishStore.validationErrors.title"
-                        @update:value="
-                            (val: string) => {
-                                field.onChange(val);
-                                handleUpdateField('title', val);
-                            }
-                        "
-                        @blur="field.onBlur"
-                    />
-                </div>
-            </Field>
-
-            <Field v-slot="{ field, errorMessage }" name="description">
-                <div :class="$style.formGroup">
-                    <BricksTextarea
-                        label="Meta Description *"
-                        :value="field.value"
-                        :max-length="500"
-                        :rows="3"
-                        placeholder="SEO Description"
-                        :disabled="isSubmitting"
-                        :error-message="errorMessage || publishStore.validationErrors.description"
-                        @update:value="
-                            (val: string) => {
-                                field.onChange(val);
-                                handleUpdateField('description', val);
-                            }
-                        "
-                        @blur="field.onBlur"
-                    />
-                </div>
-            </Field>
-
-            <div :class="$style.formGroup">
-                <BricksInput
-                    label="Meta Keywords"
-                    :value="settings.keywords"
-                    type="text"
-                    placeholder="promo, page, marketing"
-                    :disabled="isSubmitting"
-                    @update:value="(val: string) => handleUpdateField('keywords', val)"
-                />
-            </div>
+                        <Transition mode="out-in" name="bricks-fade-fast">
+                            <div v-if="fullUrlPreview" :class="$style.urlPreview">
+                                {{ fullUrlPreview }}
+                            </div>
+                        </Transition>
+                    </div>
+                </template>
+            </BuilderPublishSeoFields>
 
             <div :class="$style.formGroup">
                 <label :class="$style.label">OG/Twitter image</label>
@@ -277,6 +312,23 @@ defineExpose({
     }
 }
 
+.seoFields {
+    margin-bottom: 1.6rem;
+}
+
+// Префикс, поддомен и превью полного URL — продолжение поля адреса, поэтому
+// живут в слоте общего компонента и держат его же шаг между полями
+.addressFields {
+    display: flex;
+    flex-direction: column;
+    gap: 1.6rem;
+}
+
+.addressField {
+    display: flex;
+    flex-direction: column;
+}
+
 .label {
     display: flex;
     align-items: center;
@@ -294,7 +346,6 @@ defineExpose({
 }
 
 .urlPreview {
-    margin-bottom: 1.6rem;
     padding: 0.8rem 1.2rem;
     border-radius: var(--bricks-border-radius-sm);
     background-color: var(--bricks-base-50);
