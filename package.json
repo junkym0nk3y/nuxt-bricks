@@ -141,7 +141,7 @@
         "@types/pg": "^8.20.0",
         "@vitejs/plugin-vue": "^6.0.7",
         "@vue/test-utils": "^2.4.11",
-        "dependency-cruiser": "^17.4.3",
+        "dependency-cruiser": "^18.1.0",
         "happy-dom": "^20.11.1",
         "knip": "^6.25.0",
         "lint-staged": "^15.5.2",
