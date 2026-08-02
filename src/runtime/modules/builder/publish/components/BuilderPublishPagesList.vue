@@ -2,6 +2,7 @@
 // #region Imports
 // Types
 import type { TPublishedPageSummary } from '../../../common/types/bricks-api';
+import type { IBricksTabItem } from '../../../ui/base/tabs/types.d.ts';
 import type {
     IPublishPagesListProps,
     IPublishPagesListEmits,
@@ -9,11 +10,13 @@ import type {
 } from '../types/dashboard';
 
 // Vue
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Components
 import BuilderPublishPagesListRow from './BuilderPublishPagesListRow.vue';
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
+import BricksTabBar from '../../../ui/base/tabs/BricksTabBar.vue';
 // #endregion
 
 // #region Props
@@ -30,13 +33,28 @@ const { t } = useI18n();
 const FILTERS: TPublishPagesFilter[] = ['all', 'published', 'drafts'];
 // #endregion
 
+// #region Computed
+const filterItems = computed<IBricksTabItem[]>(() =>
+    FILTERS.map((filter) => ({
+        value: filter,
+        label: t(`bricks.publish.dashboard.filters.${filter}`),
+        count: props.counts[filter],
+    }))
+);
+// #endregion
+
 // #region Methods
 /**
  * Переключает активный сегмент-фильтр.
  *
- * @param filter - Ключ фильтра.
+ * @param value - Значение выбранного таба.
  */
-function handleSelectFilter(filter: TPublishPagesFilter): void {
+function handleSelectFilter(value: string): void {
+    const filter = FILTERS.find((item) => item === value);
+    if (!filter) {
+        return;
+    }
+
     emit('update:activeFilter', filter);
 }
 
@@ -105,17 +123,13 @@ function handleDelete(page: TPublishedPageSummary): void {
 
 <template>
     <div :class="$style.BuilderPublishPagesList">
-        <div :class="$style.filterBar">
-            <button
-                v-for="filter in FILTERS"
-                :key="filter"
-                :class="[$style.filterTab, filter === props.activeFilter && $style.filterTabActive]"
-                type="button"
-                @click="handleSelectFilter(filter)"
-            >
-                {{ t(`bricks.publish.dashboard.filters.${filter}`) }} · {{ props.counts[filter] }}
-            </button>
-        </div>
+        <BricksTabBar
+            :class="$style.filterBar"
+            :model-value="props.activeFilter"
+            :items="filterItems"
+            :group-label="t('bricks.publish.dashboard.filtersLabel')"
+            @update:model-value="handleSelectFilter"
+        />
 
         <div v-if="props.isLoading" :class="$style.loading">
             <span :class="$style.spinner" />
@@ -173,38 +187,7 @@ function handleDelete(page: TPublishedPageSummary): void {
 }
 
 .filterBar {
-    display: flex;
     align-self: flex-start;
-    gap: 0.2rem;
-    padding: 0.2rem;
-    border-radius: var(--bricks-border-radius-xs);
-    background: var(--bricks-base-100);
-}
-
-.filterTab {
-    padding: 0.6rem 1.2rem;
-    border-radius: 0.4rem;
-    border: none;
-    background: transparent;
-    white-space: nowrap;
-    font-size: 1.2rem;
-    font-weight: 500;
-    color: var(--bricks-base-500);
-    transition:
-        color var(--bricks-default-transition),
-        background-color var(--bricks-default-transition);
-    cursor: pointer;
-
-    &:hover {
-        color: var(--bricks-base-900);
-    }
-}
-
-.filterTabActive {
-    background: var(--bricks-base-0);
-    box-shadow: var(--bricks-shadow-sm);
-    font-weight: 600;
-    color: var(--bricks-base-900);
 }
 
 .rows {

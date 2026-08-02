@@ -1,11 +1,16 @@
 <script setup lang="ts">
 // #region Imports
+// Types
+import type { TBricksDeviceKey } from '../../../../common/types/brick';
+import type { IBricksTabItem } from '../../../../ui/base/tabs/types.d.ts';
+
 // Vue
 import { useI18n } from 'vue-i18n';
 
 // Components
 import BricksButton from '../../../../ui/base/button/BricksButton.vue';
 import BricksCloseButton from '../../../../ui/base/modal/BricksCloseButton.vue';
+import BricksTabBar from '../../../../ui/base/tabs/BricksTabBar.vue';
 import BuilderShellSidebarPropertyEditors from './BuilderShellSidebarPropertyEditors.vue';
 import BricksTooltip from '../../../../ui/tooltip/BricksTooltip.vue';
 import BricksTooltipHint from '../../../../ui/tooltip/BricksTooltipHint.vue';
@@ -20,6 +25,26 @@ const emit = defineEmits<{ close: []; openMediaGallery: [] }>();
 
 // #region Data
 const { t } = useI18n();
+
+/**
+ * Порядок вкладок «Устройство»: сначала базовый scope, потом оверрайды.
+ * `desktop` пишет в обычные пропы компонента, `tablet` и `mobile` — в
+ * responsive-оверрайды поверх него, поэтому обратный порядок читался бы как
+ * «правки поверх ничего». С нижним баром канваса порядок намеренно не совпадает:
+ * там ряд идёт от узкого к широкому.
+ */
+const DEVICE_SCOPES: TBricksDeviceKey[] = ['desktop', 'tablet', 'mobile'];
+
+const DEVICE_SCOPE_LABELS: Record<TBricksDeviceKey, string> = {
+    desktop: 'Desktop',
+    tablet: 'Tablet',
+    mobile: 'Mobile',
+};
+
+const DEVICE_SCOPE_ITEMS: IBricksTabItem[] = DEVICE_SCOPES.map((scope) => ({
+    value: scope,
+    label: DEVICE_SCOPE_LABELS[scope],
+}));
 
 const {
     store,
@@ -59,6 +84,20 @@ const {
  */
 function handleClose(): void {
     emit('close');
+}
+
+/**
+ * Переключает устройство, для которого правятся адаптивные свойства.
+ *
+ * @param value - Значение выбранного таба.
+ */
+function handleSelectDeviceScope(value: string): void {
+    const scope = DEVICE_SCOPES.find((item) => item === value);
+    if (!scope) {
+        return;
+    }
+
+    handleSetLayoutDeviceScope(scope);
 }
 
 /**
@@ -118,34 +157,14 @@ defineExpose({
                 </BricksButton>
             </div>
 
-            <div :class="$style.deviceScopeButtons">
-                <BricksButton
-                    size="sm"
-                    variant="secondary"
-                    :active="layoutDeviceScope === 'desktop'"
-                    @click="handleSetLayoutDeviceScope('desktop')"
-                >
-                    Desktop
-                </BricksButton>
-
-                <BricksButton
-                    size="sm"
-                    variant="secondary"
-                    :active="layoutDeviceScope === 'tablet'"
-                    @click="handleSetLayoutDeviceScope('tablet')"
-                >
-                    Tablet
-                </BricksButton>
-
-                <BricksButton
-                    size="sm"
-                    variant="secondary"
-                    :active="layoutDeviceScope === 'mobile'"
-                    @click="handleSetLayoutDeviceScope('mobile')"
-                >
-                    Mobile
-                </BricksButton>
-            </div>
+            <BricksTabBar
+                :model-value="layoutDeviceScope"
+                :items="DEVICE_SCOPE_ITEMS"
+                variant="outline"
+                block
+                :group-label="t('bricks.properties.device')"
+                @update:model-value="handleSelectDeviceScope"
+            />
         </div>
 
         <div :class="[$style.content, 'bricks-scrollbox']">
@@ -252,11 +271,6 @@ defineExpose({
     font-size: 1.2rem;
     font-weight: 600;
     color: var(--bricks-base-700);
-}
-
-.deviceScopeButtons {
-    display: flex;
-    gap: 0.8rem;
 }
 
 .actions {

@@ -6,7 +6,7 @@ import type {
     ICanvasBottomBarEmits,
     IViewportOption,
 } from '../../types/components';
-import type { TBricksDeviceKey } from '../../../../common/types/brick';
+import type { IBricksTabItem } from '../../../../ui/base/tabs/types.d.ts';
 
 // Vue
 import { computed } from 'vue';
@@ -22,6 +22,7 @@ import { useBricksConfig } from '../../../../common/composables/useBricksConfig'
 
 // Components
 import BricksButton from '../../../../ui/base/button/BricksButton.vue';
+import BricksTabBar from '../../../../ui/base/tabs/BricksTabBar.vue';
 import BricksTooltip from '../../../../ui/tooltip/BricksTooltip.vue';
 import BricksTooltipHint from '../../../../ui/tooltip/BricksTooltipHint.vue';
 // #endregion
@@ -44,6 +45,9 @@ const config = useBricksConfig();
 const componentsStore = useComponentsStore();
 const canvasStore = useCanvasStore();
 const historyStore = useHistoryStore();
+
+/** Значение таба «Figma Like»: режим стоит в одном ряду с вьюпортами, но не является ими. */
+const FIGMA_MODE_VALUE = 'figma';
 
 const VIEWPORTS: readonly IViewportOption[] = [
     {
@@ -69,6 +73,26 @@ const VIEWPORTS: readonly IViewportOption[] = [
 
 // #region Computed
 const scalePercent = computed(() => Math.round(props.scale * 100));
+
+const viewportItems = computed<IBricksTabItem[]>(() => [
+    ...VIEWPORTS.map((viewport) => ({
+        value: viewport.value,
+        icon: viewport.icon,
+        label: viewport.label,
+        tooltip: `${viewport.label} · ${viewport.width}px`,
+    })),
+    {
+        value: FIGMA_MODE_VALUE,
+        icon: 'ta:outline-brand-figma',
+        label: 'Figma Like',
+        tooltip: 'Figma Like',
+    },
+]);
+
+/** Figma mode вытесняет выбранный вьюпорт, поэтому в баре выбран либо он, либо вьюпорт. */
+const activeViewportValue = computed<string>(() =>
+    props.isFigmaMode ? FIGMA_MODE_VALUE : props.viewport
+);
 
 const normalizedSidebarOffset = computed(() => {
     const offset = props.sidebarOffset?.trim();
@@ -117,19 +141,27 @@ function handleZoomReset(): void {
 }
 
 /**
- * Changes viewport type (mobile/tablet/desktop).
+ * Переключает режим просмотра канваса: три вьюпорта и Figma mode — одна группа
+ * взаимоисключающих режимов. Повторный выбор активного таба ничего не делает,
+ * поэтому выход из Figma mode — это выбор вьюпорта.
  *
- * @param viewport - Next viewport preset selected by the user.
+ * @param value - Значение выбранного таба.
  */
-function handleViewportChange(viewport: TBricksDeviceKey): void {
-    emit('update:viewport', viewport);
-}
+function handleSelectViewport(value: string): void {
+    if (value === FIGMA_MODE_VALUE) {
+        if (!props.isFigmaMode) {
+            emit('toggleFigmaMode');
+        }
 
-/**
- * Toggles Figma Mode (three viewports side by side).
- */
-function handleToggleFigmaMode(): void {
-    emit('toggleFigmaMode');
+        return;
+    }
+
+    const viewport = VIEWPORTS.find((item) => item.value === value);
+    if (!viewport) {
+        return;
+    }
+
+    emit('update:viewport', viewport.value);
 }
 
 /**
@@ -156,45 +188,17 @@ function handleRedo(): void {
     <div :class="$style.BuilderCanvasBottomBar" :style="wrapperStyle">
         <div :class="$style.bar">
             <!-- Viewport switcher -->
-            <div :class="$style.group">
-                <BricksTooltip v-for="vp in VIEWPORTS" :key="vp.value" top>
-                    <template #activator>
-                        <BricksButton
-                            size="sm"
-                            variant="ghost"
-                            equal
-                            :active="!props.isFigmaMode && props.viewport === vp.value"
-                            :aria-label="vp.label"
-                            @click="handleViewportChange(vp.value)"
-                        >
-                            <BricksIcon :class="$style.icon" :icon="vp.icon" />
-                        </BricksButton>
-                    </template>
-
-                    <template #default>
-                        <BricksTooltipHint :text="`${vp.label} · ${vp.width}px`" />
-                    </template>
-                </BricksTooltip>
-
-                <BricksTooltip top>
-                    <template #activator>
-                        <BricksButton
-                            size="sm"
-                            variant="ghost"
-                            equal
-                            :active="props.isFigmaMode"
-                            aria-label="Figma Like"
-                            @click="handleToggleFigmaMode"
-                        >
-                            <BricksIcon :class="$style.icon" icon="ta:outline-brand-figma" />
-                        </BricksButton>
-                    </template>
-
-                    <template #default>
-                        <BricksTooltipHint text="Figma Like" />
-                    </template>
-                </BricksTooltip>
-            </div>
+            <BricksTabBar
+                :model-value="activeViewportValue"
+                :items="viewportItems"
+                variant="ghost"
+                size="md"
+                tone="primary"
+                radius="sm"
+                icon-only
+                :group-label="t('bricks.canvas.viewportLabel')"
+                @update:model-value="handleSelectViewport"
+            />
 
             <div :class="$style.divider" />
 

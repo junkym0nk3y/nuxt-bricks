@@ -2,12 +2,17 @@
 // #region Imports
 // Types
 import type { IMediaGalleryFiltersProps, IMediaGalleryFiltersEmits } from '../types/media';
+import type { IBricksTabItem } from '../../../ui/base/tabs/types.d.ts';
 
 // Vue
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Utils
 import { MEDIA_CATEGORY_OPTIONS } from '../constants/mediaCategories';
+
+// Components
+import BricksTabBar from '../../../ui/base/tabs/BricksTabBar.vue';
 // #endregion
 
 // #region Props
@@ -20,6 +25,15 @@ const emit = defineEmits<IMediaGalleryFiltersEmits>();
 
 // #region Data
 const { t } = useI18n();
+// #endregion
+
+// #region Computed
+const categoryItems = computed<IBricksTabItem[]>(() =>
+    MEDIA_CATEGORY_OPTIONS.map((option) => ({
+        value: option.value,
+        label: t(option.label),
+    }))
+);
 // #endregion
 
 // #region Methods
@@ -39,20 +53,15 @@ function onSearchInput(event: Event): void {
     <div :class="$style.BuilderMediaGalleryFilters">
         <div :class="$style.filterGroup">
             <span :class="$style.filterLabel">{{ t('bricks.media.categoryLabel') }}</span>
-            <div :class="$style.chipGroup">
-                <button
-                    v-for="option in MEDIA_CATEGORY_OPTIONS"
-                    :key="option.value"
-                    type="button"
-                    :class="[
-                        $style.filterChip,
-                        { [$style._active]: props.categoryFilter === option.value },
-                    ]"
-                    @click="handleFilterChange(option.value)"
-                >
-                    {{ t(option.label) }}
-                </button>
-            </div>
+
+            <BricksTabBar
+                :model-value="props.categoryFilter"
+                :items="categoryItems"
+                variant="outline"
+                wrap
+                :group-label="t('bricks.media.categoryFilterLabel')"
+                @update:model-value="handleFilterChange"
+            />
         </div>
 
         <div :class="$style.filterGroup">
@@ -89,29 +98,6 @@ function onSearchInput(event: Event): void {
     font-size: 1.4rem;
     font-weight: 500;
     color: var(--bricks-base-700);
-}
-
-.chipGroup {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.8rem;
-}
-
-.filterChip {
-    padding: 0.6rem 1.2rem;
-    border-radius: var(--bricks-border-radius-pill);
-    border: 1px solid var(--bricks-base-300);
-    background: transparent;
-    font-size: 1.2rem;
-    color: var(--bricks-base-600);
-    transition: all 150ms ease;
-    cursor: pointer;
-
-    &._active {
-        border-color: var(--bricks-primary-500);
-        background: var(--bricks-primary-50);
-        color: var(--bricks-primary-600);
-    }
 }
 
 .searchInput {

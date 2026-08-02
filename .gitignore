@@ -27,3 +27,5 @@ Thumbs.db
 /.claude
 /.mcp.json
 /.superpowers
+/.codex/config.toml
+/.agents/skills/verify/SKILL.md
