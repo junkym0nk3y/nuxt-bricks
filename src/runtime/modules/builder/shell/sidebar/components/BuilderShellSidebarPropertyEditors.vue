@@ -20,11 +20,14 @@ import { resolveBricksLabel } from '../../../../common/utils/i18nLabels';
 
 // Constants/Components
 import {
+    GRID_SIZE_PROPERTY_NAMES,
     PROPERTY_EDITOR_ORDER,
     SPACING_PROPERTY_NAMES,
+    type IGridSizeVariants,
     type TPropertyEditorType,
 } from './property-editors/types';
 import BuilderShellSidebarPropertyEditorRow from './BuilderShellSidebarPropertyEditorRow.vue';
+import BuilderShellSidebarPropertyGridSizeEditor from './property-editors/BuilderShellSidebarPropertyGridSizeEditor.vue';
 import BuilderShellSidebarPropertySpacingEditor from './property-editors/BuilderShellSidebarPropertySpacingEditor.vue';
 import BricksInput from '../../../../ui/inputs/BricksInput.vue';
 // #endregion
@@ -123,6 +126,22 @@ const groupedEditorItems = computed(() => {
 });
 
 const hasGroups = computed(() => groupedEditorItems.value.groups.size > 0);
+
+/**
+ * Пара числовых «колонки/строки» из плоского списка: обе рисуются одним
+ * составным редактором сетки. Группы у этих свойств нет, поэтому перехват
+ * стоит здесь, а не в `groupBody`, как у spacing.
+ */
+const gridSizeVariants = computed<IGridSizeVariants | null>(() => {
+    const columns = findNumericUngroupedItem(GRID_SIZE_PROPERTY_NAMES.columns);
+    const rows = findNumericUngroupedItem(GRID_SIZE_PROPERTY_NAMES.rows);
+
+    if (!columns || !rows) {
+        return null;
+    }
+
+    return { columnsVariant: columns.componentData, rowsVariant: rows.componentData };
+});
 // #endregion
 
 // #region Methods
@@ -166,6 +185,36 @@ function isSpacingGroup(items: TEditorItem[]): boolean {
                 item.componentData.property.type === 'number' &&
                 SPACING_PROPERTY_NAMES.has(item.componentData.property.name)
         )
+    );
+}
+
+/**
+ * Ищет негруппированное числовое свойство по имени.
+ *
+ * @param propertyName - Имя свойства.
+ * @returns Элемент плоского списка либо undefined.
+ */
+function findNumericUngroupedItem(propertyName: string): TEditorItem | undefined {
+    return groupedEditorItems.value.ungrouped.find(
+        (item) =>
+            item.type === 'input' &&
+            item.componentData.property.type === 'number' &&
+            item.componentData.property.name === propertyName
+    );
+}
+
+/**
+ * Отрисовано ли свойство составным редактором сетки — такую строку плоский
+ * список пропускает. Блоку без `rows` (flex) поля остаются числовыми.
+ */
+function isGridSizeProperty(propertyName: string): boolean {
+    if (!gridSizeVariants.value) {
+        return false;
+    }
+
+    return (
+        propertyName === GRID_SIZE_PROPERTY_NAMES.columns ||
+        propertyName === GRID_SIZE_PROPERTY_NAMES.rows
     );
 }
 
@@ -319,7 +368,17 @@ watch(
                     v-for="(item, index) in groupedEditorItems.ungrouped"
                     :key="`ungrouped_${item.type}_${item.componentData.property.name}_${index}`"
                 >
+                    <BuilderShellSidebarPropertyGridSizeEditor
+                        v-if="
+                            gridSizeVariants &&
+                            item.componentData.property.name === GRID_SIZE_PROPERTY_NAMES.columns
+                        "
+                        :columns-variant="gridSizeVariants.columnsVariant"
+                        :rows-variant="gridSizeVariants.rowsVariant"
+                        :handle-change-values="emitChange"
+                    />
                     <BuilderShellSidebarPropertyEditorRow
+                        v-else-if="!isGridSizeProperty(item.componentData.property.name)"
                         :type="item.type"
                         :variant="item.componentData"
                         :component-editors="props.componentEditors"

@@ -8,8 +8,10 @@ import {
     computed,
     ref,
     inject,
+    nextTick,
     onMounted,
     onBeforeUnmount,
+    watch,
     useCssModule,
     type Ref,
     type Slot,
@@ -18,6 +20,7 @@ import {
 // Utils
 import { convertPxToRem } from '../../common/utils/main';
 import { calculateGridDropTargetIndex } from '../utils/gridDropPlacement';
+import { countSlotContent } from '../utils/slotContent';
 
 // Composables
 import { useLayoutDropZone } from '../composables/useLayoutDropZone';
@@ -49,9 +52,7 @@ const actualRowSizes = ref<number[]>([]);
 
 // #region Computed
 
-const isEmpty = computed(() => {
-    return !slots.default?.();
-});
+const childCount = computed<number>(() => countSlotContent(slots.default?.()));
 
 const normalizedColumns = computed<number>(() => {
     if (!props.layoutProps.columns || props.layoutProps.columns < 1) {
@@ -86,6 +87,22 @@ const minRowHeight = computed<number>(() =>
 const DEFAULT_GRID_MIN_HEIGHT = '10rem';
 
 /**
+ * Пол высоты незаполненной строки грида на канвасе. Без него объявленные, но ещё
+ * не занятые контентом строки сжимаются в ноль.
+ */
+const EMPTY_ROW_MIN_HEIGHT = '4rem';
+
+/**
+ * Сколько строк уже занято контентом. Auto-placement заполняет грид по строкам,
+ * поэтому оценка идёт по числу детей; элемент, растянутый на несколько ячеек
+ * (bento-варианты), даёт заниженную оценку — такой строке достанется пол, но для
+ * содержимого выше 4rem `minmax` ведёт себя как `auto`, и раскладка не меняется.
+ */
+const occupiedRows = computed<number>(() =>
+    Math.min(normalizedRows.value, Math.ceil(childCount.value / normalizedColumns.value))
+);
+
+/**
  * Строит значение для gridTemplateRows на основе настроек.
  */
 function buildGridTemplateRows(): string {
@@ -99,7 +116,20 @@ function buildGridTemplateRows(): string {
         return `repeat(${rows}, minmax(${minValue}, ${maxValue}))`;
     }
 
-    return `repeat(${rows}, ${height})`;
+    // Строки без контента имеют нулевую высоту, а gap между ними остаётся:
+    // шесть заданных строк не влезают в min-height блока, и на канвасе виден
+    // один ряд вместо заданных — бросить компонент в третью строку некуда.
+    // Пол по высоте делает объявленную структуру видимой; занятые строки
+    // остаются на `auto`, чтобы канвас не врал про высоту контента.
+    // Опубликованной страницы это не касается: там пустые строки ничего не
+    // рисуют, а рендер идёт отдельным кодом (renderPublished в definition).
+    const filled = occupiedRows.value;
+    if (filled >= rows) {
+        return `repeat(${rows}, ${height})`;
+    }
+
+    const emptyTracks = `repeat(${rows - filled}, minmax(${EMPTY_ROW_MIN_HEIGHT}, auto))`;
+    return filled > 0 ? `repeat(${filled}, ${height}) ${emptyTracks}` : emptyTracks;
 }
 
 const normalizedPaddingX = computed<number>(
@@ -293,12 +323,18 @@ function calculateDropTargetIndex(event: DragEvent): number | null {
 function resolvePlaceholderCell(targetIndex: number): Record<string, string> {
     const columns = normalizedColumns.value;
 
+    // Новый компонент встаёт в конец списка детей: обе точки вставки в сторе
+    // (addChildToLayout, moveComponentToLayout) прижимают индекс к их числу.
+    // Плейсхолдер обязан показывать ту же ячейку — иначе он обещает шестую
+    // строку пустого грида, а компонент появляется в первой.
+    const cellIndex = Math.min(targetIndex, childCount.value);
+
     // span обязателен: у абсолютного grid-child конец области по умолчанию
     // привязывается к краю контейнера, и плейсхолдер растягивался до низа грида.
     return {
         position: 'absolute',
-        'grid-column': `${(targetIndex % columns) + 1} / span 1`,
-        'grid-row': `${Math.floor(targetIndex / columns) + 1} / span 1`,
+        'grid-column': `${(cellIndex % columns) + 1} / span 1`,
+        'grid-row': `${Math.floor(cellIndex / columns) + 1} / span 1`,
         inset: '0',
         width: 'auto',
         height: 'auto',
@@ -307,25 +343,19 @@ function resolvePlaceholderCell(targetIndex: number): Record<string, string> {
 // #endregion
 
 // #region Drop zone
-const {
-    isDragOver,
-    isCanvasDragActive,
-    handleDragEnter,
-    handleDragOver,
-    handleDragLeave,
-    handleDrop,
-} = useLayoutDropZone({
-    containerRef: gridRef,
-    layoutId: () => props.layoutId,
-    canAcceptDragOver: canAcceptGridDragOver,
-    canAcceptDrop: canAcceptGridDrop,
-    resolveDropIndex: calculateDropTargetIndex,
-    requireDropIndex: true,
-    onReset: clearGridFull,
-    extraDropDetail: { swap: true },
-    placeholderClass: styles.dropPlaceholder,
-    resolvePlaceholderStyle: resolvePlaceholderCell,
-});
+const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop } =
+    useLayoutDropZone({
+        containerRef: gridRef,
+        layoutId: () => props.layoutId,
+        canAcceptDragOver: canAcceptGridDragOver,
+        canAcceptDrop: canAcceptGridDrop,
+        resolveDropIndex: calculateDropTargetIndex,
+        requireDropIndex: true,
+        onReset: clearGridFull,
+        extraDropDetail: { swap: true },
+        placeholderClass: styles.dropPlaceholder,
+        resolvePlaceholderStyle: resolvePlaceholderCell,
+    });
 // #endregion
 
 // #region Lifecycle
@@ -343,6 +373,23 @@ onMounted(() => {
         resizeObserver.disconnect();
     });
 });
+// #endregion
+
+// #region Watchers
+// Сетка-подложка рисуется по ИЗМЕРЕННЫМ трекам, а измерение обновляют только
+// resize окна и ResizeObserver. Смена числа строк или высоты строки габариты
+// блока не меняет (их держит min-height), поэтому без этого пересчёта подложка
+// остаётся от прежнего значения: панель показывает одну строку, а на канвасе
+// видны прежние четыре. Колонки в списке по той же причине: смена их числа
+// перекладывает детей и меняет высоты строк, а сумма высот может остаться
+// прежней — наблюдатель размера тогда молчит.
+watch(
+    [normalizedRows, normalizedColumns, rowHeight, minRowHeight, normalizedGap, childCount],
+    async () => {
+        await nextTick();
+        updateSize();
+    }
+);
 // #endregion
 </script>
 
@@ -378,16 +425,6 @@ onMounted(() => {
 
         <!-- Content -->
         <slot />
-
-        <!-- Drop placeholder when empty -->
-        <div
-            v-if="isEmpty && !isCanvasDragActive"
-            :class="$style.emptyPlaceholder"
-            data-layout-drop-placeholder="true"
-            aria-label="Drop components here"
-        >
-            <span aria-hidden="true">+</span>
-        </div>
     </div>
 </template>
 
@@ -458,22 +495,6 @@ onMounted(() => {
         background: transparent;
         box-shadow: none;
     }
-}
-
-.emptyPlaceholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 7.6rem;
-    padding: 2rem;
-    border: 1px dashed color-mix(in srgb, var(--bricks-primary) 55%, transparent);
-    background: color-mix(in srgb, var(--bricks-primary) 6%, transparent);
-    text-align: center;
-    font-size: 2.6rem;
-    font-weight: 400;
-    color: var(--bricks-primary);
-    grid-column: 1 / -1;
-    pointer-events: none;
 }
 
 .dropPlaceholder {

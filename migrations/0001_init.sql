@@ -111,8 +111,17 @@ CREATE TABLE IF NOT EXISTS bricks_media (
     mime_type VARCHAR(255) NOT NULL DEFAULT 'image/png',
     category VARCHAR(50) NOT NULL DEFAULT 'other',
     svg_content TEXT,
+    -- Пиксельные размеры растра: нужны мета-тегам og:image:width/height —
+    -- без них соцсеть при первом шеринге часто рисует мелкую карточку, не
+    -- дожидаясь загрузки картинки. NULL — размеры неизвестны (старые строки,
+    -- svg, внешние URL), теги в этом случае не печатаются.
+    width INTEGER,
+    height INTEGER,
     uploaded_at TIMESTAMP DEFAULT NOW()
 );
+
+ALTER TABLE bricks_media ADD COLUMN IF NOT EXISTS width INTEGER;
+ALTER TABLE bricks_media ADD COLUMN IF NOT EXISTS height INTEGER;
 
 CREATE INDEX IF NOT EXISTS idx_bricks_media_category ON bricks_media(category);
 CREATE INDEX IF NOT EXISTS idx_bricks_media_uploaded_at ON bricks_media(uploaded_at DESC);

@@ -33,6 +33,22 @@ export const SPACING_PROPERTY_NAMES: ReadonlySet<string> = new Set([
     'marginBottom',
 ]);
 
+/**
+ * Имена пары числовых свойств, которую панель рисует одним составным редактором
+ * размера сетки. Группы у этих свойств нет, поэтому пара перехватывается прямо
+ * в плоском списке; блок без `rows` (flex) под правило не подпадает.
+ */
+export const GRID_SIZE_PROPERTY_NAMES = {
+    columns: 'columns',
+    rows: 'rows',
+} as const;
+
+/** Пара вариантов «колонки/строки», которую потребляет редактор размера сетки. */
+export interface IGridSizeVariants {
+    columnsVariant: IComponentVariant;
+    rowsVariant: IComponentVariant;
+}
+
 export const PROPERTY_EDITOR_ORDER = [
     'boolean',
     'switch',

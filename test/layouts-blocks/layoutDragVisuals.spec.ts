@@ -1,7 +1,6 @@
 // Types
 import type {
     IFlexLayoutProps,
-    IGridLayoutProps,
     ISectionLayoutProps,
 } from '../../src/runtime/modules/layouts-blocks/types/blockProps';
 
@@ -17,14 +16,7 @@ import { CANVAS_DRAG_ACTIVE_KEY } from '../../src/runtime/modules/common/constan
 
 // Components
 import BlockFlex from '../../src/runtime/modules/layouts-blocks/components/BlockFlex.vue';
-import BlockGrid from '../../src/runtime/modules/layouts-blocks/components/BlockGrid.vue';
 import BlockSection from '../../src/runtime/modules/layouts-blocks/components/BlockSection.vue';
-
-const GRID_LAYOUT_PROPS: IGridLayoutProps = {
-    columns: 2,
-    rows: 2,
-    gap: 12,
-};
 
 const FLEX_LAYOUT_PROPS: IFlexLayoutProps = {
     direction: 'column',
@@ -38,9 +30,12 @@ const SECTION_LAYOUT_PROPS: ISectionLayoutProps = {
     paddingX: 2,
 };
 
-/** Пустые layout-блоки канваса и их дефолтные пропсы. */
+/**
+ * Пустые layout-блоки канваса с подсказкой «бросьте сюда» и их дефолтные пропсы.
+ * Грида здесь нет: он показывает пустоту самой сеткой ячеек, отдельная подсказка
+ * занимала первую строку целиком и прятала её колонки.
+ */
 const EMPTY_LAYOUT_BLOCKS: Array<{ name: string; block: Component; layoutProps: object }> = [
-    { name: 'BlockGrid', block: BlockGrid, layoutProps: GRID_LAYOUT_PROPS },
     { name: 'BlockFlex', block: BlockFlex, layoutProps: FLEX_LAYOUT_PROPS },
     { name: 'BlockSection', block: BlockSection, layoutProps: SECTION_LAYOUT_PROPS },
 ];

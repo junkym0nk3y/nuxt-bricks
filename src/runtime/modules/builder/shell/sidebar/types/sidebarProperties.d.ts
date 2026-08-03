@@ -8,6 +8,7 @@ import type {
 import type {
     TComponentVariantsMap,
     IComponentVariant,
+    IGridSizeVariants,
     TPropertyEditorType,
     TSpacingSlot,
 } from '../components/property-editors/types';
@@ -83,6 +84,10 @@ export interface ISidebarPropertyEditorRowProps extends ISidebarPropertyHandlers
 export interface ISidebarPropertySpacingEditorProps {
     /** Варианты spacing-свойств группы (paddingTop/paddingBottom/paddingX/paddingY/marginTop/marginBottom). */
     items: IComponentVariant[];
+    handleChangeValues: (property: IPropertyDefinition, value: TBrickPropValue) => void;
+}
+
+export interface ISidebarPropertyGridSizeEditorProps extends IGridSizeVariants {
     handleChangeValues: (property: IPropertyDefinition, value: TBrickPropValue) => void;
 }
 
