@@ -221,8 +221,7 @@ gzip в 54 чанках**, из них 309 KB (54%) — один ленивый 
 Сборка сейчас печатает три предупреждения о смешанных импортах — компонент
 одновременно статический и динамический, code splitting для него не работает:
 `ui/inputs/BricksHexInput.vue` (динамический из `propertyEditorComponents.ts`,
-статический из `BuilderShellSidebarPublishView.vue` и
-`BuilderShellSidebarPropertyInlineContentEditor.vue`), `ui/inputs/BricksSelect.vue`
+статический из `BuilderShellSidebarPublishView.vue`), `ui/inputs/BricksSelect.vue`
 (статический из `BuilderShellSidebarPublishView.vue`),
 `ui/base/checkbox/BricksCheckbox.vue` (статический из
 `BuilderCanvasItemContextMenu.vue`). Плюс штатное «Some chunks are larger than

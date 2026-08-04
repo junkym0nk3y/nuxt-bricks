@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IInlineContentSegment, IGalleryItem } from '../../../../common/types/content';
+import type { IGalleryItem } from '../../../../common/types/content';
 import type { TBrickPropValue } from '../../../../common/types/brick';
 import type { IAccordionItem } from '../../../../layouts-blocks/types/blockProps';
 import type {
@@ -33,7 +33,6 @@ const resolvedDescription = computed<string>(
 );
 const isBooleanEditor = computed<boolean>(() => props.type === 'boolean');
 const isMediaEditor = computed<boolean>(() => props.type === 'image' || props.type === 'video');
-const isInlineEditor = computed<boolean>(() => props.type === 'inline-content');
 const isImageGalleryEditor = computed<boolean>(() => props.type === 'image-gallery');
 const isAccordionItemsEditor = computed<boolean>(() => props.type === 'accordion-items');
 const isColorEditor = computed<boolean>(() => props.type === 'color');
@@ -71,15 +70,6 @@ const resolvedInputType = computed<string | undefined>(() => {
 
 // #region Methods
 /**
- * Оборачивает emit изменения значения inline редактора.
- *
- * @param value - Массив сегментов inline контента.
- */
-function handleInlineChange(value: IInlineContentSegment[]): void {
-    props.handleChangeValues(props.variant.property, value);
-}
-
-/**
  * Обёртка для update:value/model-value стандартных редакторов.
  *
  * @param value - Новое значение свойства.
@@ -95,15 +85,6 @@ function handleValueChange(value: TBrickPropValue): void {
  */
 function handleOpenGallery(payload?: TInlineGalleryPayload): void {
     props.handleOpenMediaGallery(props.variant.property, payload);
-}
-
-/**
- * Враппер для inline-редакторов — пробрасывает payload в composable.
- *
- * @param payload - Данные для вставки/замены сегмента.
- */
-function handleInlineGallery(payload?: TInlineGalleryPayload): void {
-    handleOpenGallery(payload);
 }
 
 /**
@@ -155,16 +136,7 @@ function handleAccordionItemsChange(value: IAccordionItem[]): void {
             {{ resolvedDescription }}
         </span>
 
-        <template v-if="isInlineEditor">
-            <component
-                :is="resolvedEditorComponent"
-                :label="props.variant.label"
-                :model-value="(props.variant.value as IInlineContentSegment[]) || []"
-                @update:model-value="handleInlineChange"
-                @open-gallery="handleInlineGallery"
-            />
-        </template>
-        <template v-else-if="isImageGalleryEditor">
+        <template v-if="isImageGalleryEditor">
             <component
                 :is="resolvedEditorComponent"
                 :label="props.variant.label"

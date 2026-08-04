@@ -56,7 +56,6 @@ export const PROPERTY_EDITOR_ORDER = [
     'input',
     'textarea',
     'json',
-    'inline-content',
     'tags',
     'color',
     'image-gallery',

@@ -1,6 +1,6 @@
 // Types
 import type { IMediaItem } from '../../../../common/types/media';
-import type { IInlineContentSegment, IGalleryItem } from '../../../../common/types/content';
+import type { IGalleryItem } from '../../../../common/types/content';
 import type { IPropertyDefinition } from '../../../../common/types/brick';
 import type {
     TInlineGalleryPayload,
@@ -15,16 +15,12 @@ import { ref } from 'vue';
 import { useComponentsStore } from '../../../core/stores/components';
 
 // Utils
-import {
-    cloneInlineSegments,
-    createInlineMediaSegmentFromItem,
-} from '../../../../layouts-blocks/utils/inlineContent';
 import { readOwnKey } from '../../../../common/utils/safeRecord';
 
 /**
  * Выбор медиа из галереи для панели свойств: контекст запроса
- * (обычное свойство / inline-content / image-gallery) и применение
- * выбранного элемента к соответствующему свойству компонента.
+ * (обычное свойство / image-gallery) и применение выбранного элемента
+ * к соответствующему свойству компонента.
  */
 export function useSidebarMediaSelection(options: IUseSidebarMediaSelectionOptions) {
     const store = useComponentsStore();
@@ -40,13 +36,7 @@ export function useSidebarMediaSelection(options: IUseSidebarMediaSelectionOptio
         property: IPropertyDefinition,
         inlinePayload?: TInlineGalleryPayload
     ): void {
-        if (property.type === 'inline-content' && inlinePayload) {
-            currentMediaContext.value = {
-                kind: 'inline-content',
-                property,
-                ...inlinePayload,
-            };
-        } else if (property.type === 'image-gallery' && inlinePayload) {
+        if (property.type === 'image-gallery' && inlinePayload) {
             currentMediaContext.value = {
                 kind: 'image-gallery',
                 property,
@@ -90,40 +80,7 @@ export function useSidebarMediaSelection(options: IUseSidebarMediaSelectionOptio
             return;
         }
 
-        if (context.kind === 'image-gallery') {
-            handleImageGalleryMediaSelect(context, selected, item);
-            return;
-        }
-
-        const property = context.property;
-        // Имя пропа объявляет brick-файл, пропсы приходят из схемы
-        const currentValue = readOwnKey(selected.component.props, property.name);
-        const currentSegments = Array.isArray(currentValue)
-            ? (currentValue as IInlineContentSegment[])
-            : [];
-        const segments = cloneInlineSegments(currentSegments);
-
-        if (context.action === 'replace' && typeof context.segmentIndex === 'number') {
-            const targetIndex = context.segmentIndex;
-            if (!segments[targetIndex]) {
-                currentMediaContext.value = null;
-                return;
-            }
-
-            const mediaSegment = createInlineMediaSegmentFromItem(item);
-            segments[targetIndex] = {
-                ...segments[targetIndex],
-                ...mediaSegment,
-            };
-        } else {
-            const insertionIndex =
-                typeof context.insertIndex === 'number' ? context.insertIndex : segments.length;
-            const mediaSegment = createInlineMediaSegmentFromItem(item);
-            segments.splice(insertionIndex, 0, mediaSegment);
-        }
-
-        store.updateComponentProp(selected.id, property.name, segments);
-        currentMediaContext.value = null;
+        handleImageGalleryMediaSelect(context, selected, item);
     }
 
     /**

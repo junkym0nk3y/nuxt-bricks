@@ -26,10 +26,6 @@ export type TMediaContext =
           property: IPropertyDefinition;
       }
     | ({
-          kind: 'inline-content';
-          property: IPropertyDefinition;
-      } & TInlineGalleryPayload)
-    | ({
           kind: 'image-gallery';
           property: IPropertyDefinition;
       } & TInlineGalleryPayload);

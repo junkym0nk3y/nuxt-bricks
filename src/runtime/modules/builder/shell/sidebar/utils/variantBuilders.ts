@@ -61,7 +61,7 @@ function resolveArrayValue(context: IPropertyVariantContext): Array<unknown> {
 
 /**
  * Билдер для редакторов, принимающих массив значений с fallback на default
- * (inline-content, image-gallery, accordion-items).
+ * (image-gallery, accordion-items).
  */
 function createArrayValueBuilder(editorType: TPropertyEditorType): TVariantBuilder {
     return (context, tools) => {
@@ -205,7 +205,6 @@ export const VARIANT_BUILDERS: Partial<Record<TPropertyType, TVariantBuilder>> =
     boolean: buildBooleanVariant,
     switch: buildSwitchVariant,
     textarea: buildTextareaVariant,
-    'inline-content': createArrayValueBuilder('inline-content'),
     'image-gallery': createArrayValueBuilder('image-gallery'),
     'accordion-items': createArrayValueBuilder('accordion-items'),
     tags: buildTagsVariant,

@@ -18,10 +18,6 @@ export const componentEditors: Record<TPropertyEditorType, Component> = {
     json: defineAsyncComponent(
         () => import('../components/property-editors/BuilderShellSidebarPropertyJsonEditor.vue')
     ),
-    'inline-content': defineAsyncComponent(
-        () =>
-            import('../components/property-editors/BuilderShellSidebarPropertyInlineContentEditor.vue')
-    ),
     tags: defineAsyncComponent(() => import('../../../../ui/inputs/BricksTagsEditor.vue')),
     'image-gallery': defineAsyncComponent(
         () =>

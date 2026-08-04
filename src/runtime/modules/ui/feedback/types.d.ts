@@ -8,7 +8,7 @@ export interface IBricksConfirmModalProps {
     description?: string;
     confirmText?: string;
     cancelText?: string;
-    confirmVariant?: import('../base/button/types.d.ts').TIdaButtonVariant;
+    confirmVariant?: import('../base/button/types.d.ts').TBricksButtonVariant;
     isLoading?: boolean;
 }
 

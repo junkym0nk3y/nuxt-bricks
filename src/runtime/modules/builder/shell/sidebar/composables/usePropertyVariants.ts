@@ -63,6 +63,13 @@ export function usePropertyVariants(
             if (property.type === 'readonly') {
                 return;
             }
+
+            /* Инлайн-контент правится прямо на канвасе (двойной клик по блоку), панельного
+               редактора у него нет. Без этого отсева свойство доехало бы до fallback-инпута
+               и показало пользователю массив сегментов строкой. */
+            if (property.type === 'inline-content') {
+                return;
+            }
             try {
                 addVariantForProperty({
                     property,
