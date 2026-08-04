@@ -6,7 +6,6 @@ import type {
     IPublishedPage,
     TPublishedPageSummary,
     TPublishFormState,
-    TRequestErrorLike,
 } from '../../../common/types/bricks-api';
 import { useApiClient } from '../../../common/composables/useApiClient';
 import { toSnakeCaseShallow } from '../../../common/utils/case-transform';
@@ -206,32 +205,5 @@ export async function fetchPageRequest(id: string | number): Promise<IPublishedP
         return normalizePublishedPage(response, resolveDefaultBackgroundColor());
     } catch (error: unknown) {
         throw toRequestError('GET', `/api/bricks/${id}`, error);
-    }
-}
-
-/**
- * Загружает опубликованную страницу по `pagename` через public read-model
- * (прямой lookup без list+find).
- *
- * @param pagename - ЧПУ страницы.
- * @returns Нормализованная страница либо `null`, если страница не опубликована.
- * @throws Ошибка запроса, приведённая через `toRequestError`.
- */
-export async function fetchPageByPagenameRequest(pagename: string): Promise<IPublishedPage | null> {
-    const { apiFetcher } = useApiClient();
-    const url = `/api/bricks/public/pages/${pagename}`;
-
-    try {
-        const page = await apiFetcher<IPublishedPage>(`${url}/`);
-        return normalizePublishedPage(page, resolveDefaultBackgroundColor());
-    } catch (error: unknown) {
-        const status = (error as TRequestErrorLike).statusCode;
-
-        // Public read-model неопубликованную страницу не отдаёт — это не ошибка запроса
-        if (status === 404) {
-            return null;
-        }
-
-        throw toRequestError('GET', url, error);
     }
 }

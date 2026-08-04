@@ -14,6 +14,7 @@ import type { IPageLibraryWriteStoreDeps } from '../types/publishStore';
 import { buildCopyFormState } from './formState';
 import { fetchPageRequest } from './publishApi';
 import { generateCopyPagename } from './slugify';
+import { toPageAddress } from '../../../common/utils/bricks/pageAddress';
 
 /**
  * Создаёт страницу-черновик с заданной схемой.
@@ -58,8 +59,9 @@ export async function runDuplicatePage(
         throw new Error(failedMessage);
     }
 
-    const copyPagename = generateCopyPagename(page.pagename, (candidate) =>
-        store.isPagenameAvailable(candidate)
+    const copyPagename = generateCopyPagename(
+        toPageAddress(page.pagename, page.urlPrefix),
+        (candidate) => store.isAddressAvailable(candidate)
     );
 
     // Сводка списка схему не несёт — исходная схема запрашивается point-lookup'ом

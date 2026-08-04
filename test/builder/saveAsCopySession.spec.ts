@@ -15,7 +15,8 @@ import type { IBuilderContext, IDeferredApi } from '../helpers/types';
 // Utils
 import {
     AUTOSAVE_DEBOUNCE_MS,
-    PAGENAME_SYNC_DEBOUNCE_MS,
+    ADDRESS_SYNC_DEBOUNCE_MS,
+    bareAddress,
     createDeferredApi,
     createWindowStub,
     mountBuilderContext,
@@ -162,7 +163,7 @@ describe('Save as Copy: единый переход сессии', () => {
         publishStore.publishedPages = [
             buildPage({ id: 1, pagename: 'original', title: 'Original' }),
         ];
-        await context.session.openBuilderSession('original');
+        await context.session.openBuilderSession(bareAddress('original'));
         expect(publishStore.editingPageId).toBe(1);
 
         // Единый переход: сам handleSaveAsCopy делает ровно это в этом порядке
@@ -175,7 +176,7 @@ describe('Save as Copy: единый переход сессии', () => {
         expect(publishStore.editingPageId).toBe(copy?.id);
         expect(publishStore.currentFormState.pagename).toBe('original-copy');
         expect(routerBridge.route.params.pagename).toBe('original-copy');
-        expect(context.pagename.sessionPagename.value).toBe('original-copy');
+        expect(context.address.sessionAddress.value).toEqual(bareAddress('original-copy'));
     });
 
     it('autosave после Save as Copy пишет только по ключу копии, не оригинала', async () => {
@@ -185,7 +186,7 @@ describe('Save as Copy: единый переход сессии', () => {
         publishStore.publishedPages = [
             buildPage({ id: 1, pagename: 'original', title: 'Original' }),
         ];
-        await context.session.openBuilderSession('original');
+        await context.session.openBuilderSession(bareAddress('original'));
 
         const copy = await publishStore.saveCurrentPageAsCopy({ components: [] });
         await context.session.switchToSavedPage(copy as IPublishedPage);
@@ -194,11 +195,11 @@ describe('Save as Copy: единый переход сессии', () => {
         await nextTick();
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
 
-        expect(getBuilderDraft('original-copy')?.draftSnapshot.formState.title).toBe(
+        expect(getBuilderDraft(bareAddress('original-copy'))?.draftSnapshot.formState.title).toBe(
             'Изменения в копии'
         );
         // Регрессия P1: раньше autosave продолжал писать под slug оригинала
-        expect(getBuilderDraft('original')).toBeNull();
+        expect(getBuilderDraft(bareAddress('original'))).toBeNull();
     });
 
     it('reload по URL копии открывает копию, а не оригинал', async () => {
@@ -208,7 +209,7 @@ describe('Save as Copy: единый переход сессии', () => {
         publishStore.publishedPages = [
             buildPage({ id: 1, pagename: 'original', title: 'Original' }),
         ];
-        await context.session.openBuilderSession('original');
+        await context.session.openBuilderSession(bareAddress('original'));
 
         const copy = await publishStore.saveCurrentPageAsCopy({ components: [] });
         await context.session.switchToSavedPage(copy as IPublishedPage);
@@ -220,7 +221,7 @@ describe('Save as Copy: единый переход сессии', () => {
         const reloaded = mountTracked();
         const reloadedStore = usePublishStore();
 
-        await reloaded.session.openBuilderSession('original-copy');
+        await reloaded.session.openBuilderSession(bareAddress('original-copy'));
 
         expect(reloadedStore.editingPageId).toBe(copy?.id);
         expect(reloadedStore.editingPageId).not.toBe(1);
@@ -241,6 +242,7 @@ describe('Save as Copy: единый переход сессии', () => {
         // на сам механизм: гейт не должен ломать легитимный кейс)
         setBuilderDraft({
             pagename: 'page-match',
+            urlPrefix: null,
             updatedAt: new Date().toISOString(),
             mode: 'edit',
             pageId: 5,
@@ -249,7 +251,7 @@ describe('Save as Copy: единый переход сессии', () => {
                 formState: buildFormState({ pagename: 'page-match', title: 'Черновик' }),
             },
         });
-        await context.session.openBuilderSession('page-match');
+        await context.session.openBuilderSession(bareAddress('page-match'));
         expect(context.session.isDraftRestorePending.value).toBe(true);
         expect(context.session.pendingDraft.value?.pageId).toBe(5);
 
@@ -257,6 +259,7 @@ describe('Save as Copy: единый переход сессии', () => {
         // перехода сессии) — restore НЕ предлагается, черновик подчищается
         setBuilderDraft({
             pagename: 'page-foreign',
+            urlPrefix: null,
             updatedAt: new Date().toISOString(),
             mode: 'edit',
             pageId: 999,
@@ -265,13 +268,14 @@ describe('Save as Copy: единый переход сессии', () => {
                 formState: buildFormState({ pagename: 'page-foreign', title: 'Черновик' }),
             },
         });
-        await context.session.openBuilderSession('page-foreign');
+        await context.session.openBuilderSession(bareAddress('page-foreign'));
         expect(context.session.isDraftRestorePending.value).toBe(false);
-        expect(getBuilderDraft('page-foreign')).toBeNull();
+        expect(getBuilderDraft(bareAddress('page-foreign'))).toBeNull();
 
         // Черновик без pageId (повреждённый/чужой формат) — тоже stale
         setBuilderDraft({
             pagename: 'page-stale',
+            urlPrefix: null,
             updatedAt: new Date().toISOString(),
             mode: 'edit',
             draftSnapshot: {
@@ -279,9 +283,9 @@ describe('Save as Copy: единый переход сессии', () => {
                 formState: buildFormState({ pagename: 'page-stale', title: 'Черновик' }),
             },
         });
-        await context.session.openBuilderSession('page-stale');
+        await context.session.openBuilderSession(bareAddress('page-stale'));
         expect(context.session.isDraftRestorePending.value).toBe(false);
-        expect(getBuilderDraft('page-stale')).toBeNull();
+        expect(getBuilderDraft(bareAddress('page-stale'))).toBeNull();
     });
 
     it('медленный Save as Copy не уводит сессию на слаг копии', async () => {
@@ -291,13 +295,13 @@ describe('Save as Copy: единый переход сессии', () => {
         publishStore.publishedPages = [
             buildPage({ id: 1, pagename: 'original', title: 'Original' }),
         ];
-        await context.session.openBuilderSession('original');
+        await context.session.openBuilderSession(bareAddress('original'));
 
         // Черновик по ключу оригинала: преждевременный rename увёл бы его под slug копии
         publishStore.setCurrentFormField('title', 'Правка оригинала');
         await nextTick();
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
-        expect(getBuilderDraft('original')).not.toBeNull();
+        expect(getBuilderDraft(bareAddress('original'))).not.toBeNull();
 
         // Save as Copy на время запроса ставит editingPageId = null и pagename копии
         // в форму — для pagename-sync это выглядит как новая страница
@@ -306,14 +310,16 @@ describe('Save as Copy: единый переход сессии', () => {
         await nextTick();
 
         // POST длится дольше окна debounce синхронизации URL
-        await vi.advanceTimersByTimeAsync(PAGENAME_SYNC_DEBOUNCE_MS);
+        await vi.advanceTimersByTimeAsync(ADDRESS_SYNC_DEBOUNCE_MS);
         (await deferred.waitFor('/api/bricks/')).reject(new Error('Network down'));
 
         expect(await saving).toBeNull();
         expect(routerBridge.replace).not.toHaveBeenCalled();
-        expect(context.pagename.sessionPagename.value).toBe('original');
-        expect(getBuilderDraft('original')?.draftSnapshot.formState.title).toBe('Правка оригинала');
-        expect(getBuilderDraft('original-copy')).toBeNull();
+        expect(context.address.sessionAddress.value).toEqual(bareAddress('original'));
+        expect(getBuilderDraft(bareAddress('original'))?.draftSnapshot.formState.title).toBe(
+            'Правка оригинала'
+        );
+        expect(getBuilderDraft(bareAddress('original-copy'))).toBeNull();
     });
 
     it('уже запланированная синхронизация URL не срабатывает во время Save as Copy', async () => {
@@ -321,7 +327,7 @@ describe('Save as Copy: единый переход сессии', () => {
         const publishStore = usePublishStore();
 
         // Новая (несохранённая) страница: только для неё pagename-sync планирует перенос
-        await context.session.openBuilderSession('fresh-page');
+        await context.session.openBuilderSession(bareAddress('fresh-page'));
         expect(publishStore.editingPageId).toBeNull();
 
         // Пользователь правит pagename и, не дожидаясь окна debounce, жмёт Save as Copy
@@ -329,18 +335,18 @@ describe('Save as Copy: единый переход сессии', () => {
         publishStore.setCurrentFormField('description', 'Описание свежей страницы');
         publishStore.setCurrentFormField('pagename', 'typed-name');
         await nextTick();
-        await vi.advanceTimersByTimeAsync(PAGENAME_SYNC_DEBOUNCE_MS / 2);
+        await vi.advanceTimersByTimeAsync(ADDRESS_SYNC_DEBOUNCE_MS / 2);
 
         isPostDeferred = true;
         const saving = publishStore.saveCurrentPageAsCopy({ components: [] });
         await nextTick();
-        await vi.advanceTimersByTimeAsync(PAGENAME_SYNC_DEBOUNCE_MS);
+        await vi.advanceTimersByTimeAsync(ADDRESS_SYNC_DEBOUNCE_MS);
 
         (await deferred.waitFor('/api/bricks/')).reject(new Error('Network down'));
         expect(await saving).toBeNull();
 
         expect(routerBridge.replace).not.toHaveBeenCalled();
-        expect(context.pagename.sessionPagename.value).toBe('fresh-page');
+        expect(context.address.sessionAddress.value).toEqual(bareAddress('fresh-page'));
     });
 
     it('копия, доехавшая после открытия другой страницы, не откатывает её форму', async () => {
@@ -352,7 +358,7 @@ describe('Save as Copy: единый переход сессии', () => {
             buildPage({ id: 2, pagename: 'second', title: 'Second' }),
         ];
         publishStore.publishedPages = [...serverPages];
-        await context.session.openBuilderSession('original');
+        await context.session.openBuilderSession(bareAddress('original'));
         expect(publishStore.editingPageId).toBe(1);
 
         // Save as Copy уходит из сессии оригинала — так же, как handleSaveAsCopy:
@@ -367,7 +373,7 @@ describe('Save as Copy: единый переход сессии', () => {
 
         // Пока летит POST, пользователь открывает другую страницу
         routerBridge.route.params.pagename = 'second';
-        await context.session.openBuilderSession('second');
+        await context.session.openBuilderSession(bareAddress('second'));
         expect(publishStore.editingPageId).toBe(2);
 
         const created = buildPage({ id: 3, pagename: 'original-copy', title: 'Original (copy)' });
@@ -394,7 +400,7 @@ describe('Save as Copy: единый переход сессии', () => {
             // Занимает единственный слот генерации копии по умолчанию — не мешает
             // напрямую, но проверка ниже фиксирует поведение через generalError
         ];
-        await context.session.openBuilderSession('original');
+        await context.session.openBuilderSession(bareAddress('original'));
 
         // Пустой title после копии формы не проходит валидацию (title required) —
         // saveCurrentPageAsCopy должен вернуть null, не трогая store/route

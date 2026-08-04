@@ -132,7 +132,9 @@ describe('usePublishStore.loadAllPages: общий кеш списка', () => {
 
         expect(createdId).toBe(12);
         expect(store.getPageById(12)?.pagename).toBe('created-page');
-        expect(store.isPagenameAvailable('created-page', 12)).toBe(true);
+        expect(store.isAddressAvailable({ pagename: 'created-page', urlPrefix: null }, 12)).toBe(
+            true
+        );
     });
 
     it('зависшее обновление списка не задерживает создание', async () => {

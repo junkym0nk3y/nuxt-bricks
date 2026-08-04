@@ -8,6 +8,8 @@ import type { IPublishDetailsPanelProps, IPublishDetailsPanelEmits } from '../ty
 
 // Utils
 import { formatPageDate } from '../utils/dates';
+import { toPageAddress } from '../../../common/utils/bricks/pageAddress';
+import { getPublishedPagePath } from '../../../common/utils/bricks/routePaths';
 
 // Vue
 import { computed } from 'vue';
@@ -78,7 +80,11 @@ const panelSubtitle = computed<string>(() => {
     const created = t('bricks.publish.dashboard.details.created', {
         date: formatPageDate(props.page.createdAt),
     });
-    return `/${props.page.pagename} · ${created}`;
+    // Адрес целиком: подпись обязана называть ту же страницу, что открыта, а
+    // `/post` у `/blog/post` и `/news/post` неразличим
+    const path = getPublishedPagePath(toPageAddress(props.page.pagename, props.page.urlPrefix));
+
+    return `${path} · ${created}`;
 });
 // #endregion
 

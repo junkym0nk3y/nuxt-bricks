@@ -888,3 +888,17 @@ component») и находить нужное по `type === 'INSTANCE_SWAP'`, �
 убивать сам процесс (`kill <pid>` из lsof / `pgrep -f "nuxi dev"`) и убеждаться,
 что порт освободился, — особенно когда правка задевает build-time часть модуля
 (`module-setup.ts`), которая применяется только при полном старте.
+
+## 2026-08-04 23:45 — Opus 5 (1M context)
+
+Разовый DDL-скрипт (применение constraint'а в живую БД) лежал в scratchpad →
+`node` падал с `ERR_MODULE_NOT_FOUND: Cannot find package 'pg'`: резолвинг идёт
+от файла, а `node_modules` лежит в корне репозитория, не в `/private/tmp/...`.
+Фикс: копировать разовые скрипты в корень проекта (`./.tmp-*.mjs`) и удалять
+сразу после прогона, либо запускать через `node --input-type=module -e`.
+
+## 2026-08-04 23:46 — Opus 5 (1M context)
+
+`xargs -a <файл>` (список файлов для `prettier --write`) не работает в macOS
+xargs — опции `-a` там нет, команда падает с usage. Фикс:
+`cat список | tr '\n' '\0' | xargs -0 npx prettier --write`.

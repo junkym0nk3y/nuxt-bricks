@@ -2,8 +2,11 @@
 import type { IPublishValidationSchemaOptions } from '../types/validation';
 import type { TPublishFormState } from '../../../common/types/bricks-api';
 
+// Utils
+import { normalizeUrlPrefix, toPageAddress } from '../../../common/utils/bricks/pageAddress';
+
 // Yup
-import { object, string } from 'yup';
+import { object, string, type ValidationError } from 'yup';
 
 // Constants
 import {
@@ -28,8 +31,7 @@ import {
  * @returns Yup-схема формы публикации.
  */
 export function createPublishValidationSchema(options: IPublishValidationSchemaOptions) {
-    const { t, isPageAddressFree, isEditorAddressFree, isPagenameAvailable, getExcludeId } =
-        options;
+    const { t, isPageAddressFree, isEditorAddressFree, isAddressAvailable, getExcludeId } = options;
 
     return object({
         pagename: string()
@@ -37,12 +39,17 @@ export function createPublishValidationSchema(options: IPublishValidationSchemaO
             .min(PAGENAME_MIN_LENGTH, () => t('bricks.publish.validation.pagenameMin'))
             .max(PAGENAME_MAX_LENGTH, () => t('bricks.publish.validation.pagenameMax'))
             .matches(/^[a-z0-9-]+$/, () => t('bricks.publish.validation.pagenameFormat'))
-            // Адрес редактора от urlPrefix не зависит, поэтому проверяется всегда:
-            // занять его может статический сосед вроде страницы логина
+            // Адрес редактора теперь включает префикс, поэтому проверяется пара:
+            // `bricks-login` без префикса действительно отбирает путь у страницы
+            // логина, а `blog/bricks-login` живёт по свободному пути
             .test(
                 'editorAddress',
                 () => t('bricks.publish.validation.pagenameEditorTaken'),
-                (value) => !value || isEditorAddressFree(value)
+                function (value): boolean {
+                    const { urlPrefix } = this.parent as Pick<TPublishFormState, 'urlPrefix'>;
+
+                    return !value || isEditorAddressFree(toPageAddress(value, urlPrefix));
+                }
             )
             // Live-адрес — только когда префикса нет: с префиксом за адрес
             // отвечает поле urlPrefix, и краснеть должно оно
@@ -52,17 +59,11 @@ export function createPublishValidationSchema(options: IPublishValidationSchemaO
                 function (value): boolean {
                     const { urlPrefix } = this.parent as Pick<TPublishFormState, 'urlPrefix'>;
 
-                    return !value || Boolean(urlPrefix?.trim()) || isPageAddressFree(null, value);
-                }
-            )
-            .test(
-                'unique',
-                () => t('bricks.publish.validation.pagenameTaken'),
-                (value) => {
-                    if (!value) {
-                        return true;
-                    }
-                    return isPagenameAvailable(value, getExcludeId());
+                    return (
+                        !value ||
+                        normalizeUrlPrefix(urlPrefix) !== null ||
+                        isPageAddressFree(toPageAddress(value, null))
+                    );
                 }
             ),
         // trim: сервер меряет длину уже обрезанной строки и её же кладёт в базу —
@@ -102,7 +103,7 @@ export function createPublishValidationSchema(options: IPublishValidationSchemaO
                 function (value): boolean {
                     const { pagename } = this.parent as Pick<TPublishFormState, 'pagename'>;
 
-                    return !value || !pagename || isPageAddressFree(value, pagename);
+                    return !value || !pagename || isPageAddressFree(toPageAddress(pagename, value));
                 }
             ),
         subdomain: string()
@@ -110,5 +111,26 @@ export function createPublishValidationSchema(options: IPublishValidationSchemaO
             .transform((value) => value?.trim() || null)
             .matches(/^[a-z0-9-]*$/, () => t('bricks.publish.validation.subdomainFormat'))
             .max(SUBDOMAIN_MAX_LENGTH, () => t('bricks.publish.validation.subdomainMax')),
+    }).test('addressUnique', function (form): boolean | ValidationError {
+        // Уникальность проверяется на уровне объекта, а не в тесте поля: занят
+        // адрес целиком, и тест, висящий на одном поле, не пересчитывался бы при
+        // правке второго — смена pagename оставляла бы ошибку от прежней пары.
+        if (!form?.pagename) {
+            return true;
+        }
+
+        const address = toPageAddress(form.pagename, form.urlPrefix);
+
+        if (isAddressAvailable(address, getExcludeId())) {
+            return true;
+        }
+
+        // Поле ошибки — то, которое пользователь и правит, чтобы разойтись с
+        // занятым адресом: с префиксом это urlPrefix, без него — само имя. Та же
+        // конвенция, что у адреса, занятого роутингом приложения.
+        return this.createError({
+            path: address.urlPrefix === null ? 'pagename' : 'urlPrefix',
+            message: t('bricks.publish.validation.addressTaken'),
+        });
     });
 }

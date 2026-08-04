@@ -4,6 +4,7 @@
 
 import type { IBrickExportModule } from './index';
 import type { IBricksBreakpoints, IBricksBreakpointConfig } from './config';
+import type { IBricksPageAddress } from './pageAddress';
 import type { IBricksRoutePrefixes } from '../utils/bricks/routePaths';
 import type { CLIENT_OWNED_REQUEST_OPTIONS } from '../utils/apiRequestPolicy';
 
@@ -122,7 +123,7 @@ export interface IUseBricksRoutePathsReturn {
      * Логический путь превью страницы (без baseURL); с `versionId` — превью
      * сохранённой версии (`?version=`).
      */
-    previewPagePath: (pagename: string, versionId?: number) => string;
+    previewPagePath: (address: IBricksPageAddress, versionId?: number) => string;
     /** Добавляет `app.baseURL` — для `window.location`/`window.open`/`<a href>`. */
     withBase: (path: string) => string;
     /** Убирает `app.baseURL` из фактического pathname. */
@@ -136,8 +137,8 @@ export interface IUseBricksPageAddressReturn {
      * Свободен ли live-адрес страницы (`/<urlPrefix>/<pagename>`) в роутинге
      * приложения: не занят ли он поверхностью билдера или страницей потребителя.
      */
-    isPageAddressFree: (urlPrefix: string | null | undefined, pagename: string) => boolean;
-    /** Свободен ли адрес редактора страницы (`<builderPrefix>/<pagename>`). */
-    isEditorAddressFree: (pagename: string) => boolean;
+    isPageAddressFree: (address: IBricksPageAddress) => boolean;
+    /** Свободен ли адрес редактора страницы (`<builderPrefix>/<urlPrefix>/<pagename>`). */
+    isEditorAddressFree: (address: IBricksPageAddress) => boolean;
 }
 // #endregion

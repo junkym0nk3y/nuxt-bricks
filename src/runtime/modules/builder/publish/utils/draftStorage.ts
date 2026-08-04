@@ -1,14 +1,22 @@
+import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 import type { IBuilderDraftEntry, TBuilderDraftMigration } from '../types/builderDrafts';
+import { getPageAddressKey, toPageAddress } from '../../../common/utils/bricks/pageAddress';
 import { normalizeFormState } from './formState';
 
 /**
  * Формирует ключ localStorage для черновика билдера.
  *
- * @param pagename - ЧПУ страницы.
+ * Ключ адресный (`…:draft:blog/post`), а не по одному имени: у `/blog/post` и
+ * `/news/post` черновик был бы общим — открытая рядом вторая страница
+ * предлагала бы восстановить правки первой и затирала бы их своим автосейвом.
+ * У страницы без префикса ключ совпадает с прежним, поэтому её черновики
+ * переход на адресную идентичность переживают.
+ *
+ * @param address - Адрес страницы.
  * @returns Ключ для localStorage.
  */
-function buildBuilderDraftKey(pagename: string): string {
-    return `bricks-builder:draft:${pagename}`;
+function buildBuilderDraftKey(address: IBricksPageAddress): string {
+    return `bricks-builder:draft:${getPageAddressKey(address)}`;
 }
 
 /**
@@ -49,14 +57,14 @@ export function isBuilderDraftStorageAvailable(): boolean {
 /**
  * Возвращает черновик билдера из localStorage.
  *
- * @param pagename - ЧПУ страницы.
+ * @param address - Адрес страницы.
  */
-export function getBuilderDraft(pagename: string): IBuilderDraftEntry | null {
+export function getBuilderDraft(address: IBricksPageAddress): IBuilderDraftEntry | null {
     if (typeof window === 'undefined') {
         return null;
     }
 
-    const key = buildBuilderDraftKey(pagename);
+    const key = buildBuilderDraftKey(address);
 
     // Само обращение к хранилищу — тоже внутри try: при запрещённых данных сайта
     // бросает и `getItem`, а чтение черновика идёт из bootstrap'а сессии — оттуда
@@ -106,7 +114,7 @@ export function setBuilderDraft(draft: IBuilderDraftEntry): boolean {
             : undefined,
     };
 
-    const key = buildBuilderDraftKey(draft.pagename);
+    const key = buildBuilderDraftKey(toPageAddress(draft.pagename, draft.urlPrefix));
     try {
         window.localStorage.setItem(key, JSON.stringify(normalized));
 
@@ -125,15 +133,15 @@ export function setBuilderDraft(draft: IBuilderDraftEntry): boolean {
  * явное «открыть сохранённую» — и при следующем заходе снова предложит
  * восстановить состояние, от которого пользователь уже отказался.
  *
- * @param pagename - ЧПУ страницы.
+ * @param address - Адрес страницы.
  * @returns Удалён ли черновик.
  */
-export function removeBuilderDraft(pagename: string): boolean {
+export function removeBuilderDraft(address: IBricksPageAddress): boolean {
     if (typeof window === 'undefined') {
         return false;
     }
 
-    const key = buildBuilderDraftKey(pagename);
+    const key = buildBuilderDraftKey(address);
 
     // Удаление зовут и после успешного сохранения страницы: исключение
     // запрещённого хранилища провалило бы фиксацию сохранённого состояния,
@@ -150,7 +158,7 @@ export function removeBuilderDraft(pagename: string): boolean {
 }
 
 /**
- * Переносит черновик билдера на новый pagename.
+ * Переносит черновик билдера на новый адрес.
  *
  * Занятый ключ назначения не перезаписывается: под ним лежит черновик другой
  * страницы, и перенос уничтожал бы его молча. Исходная запись при отказе
@@ -158,19 +166,19 @@ export function removeBuilderDraft(pagename: string): boolean {
  * сессии через ~800 мс всё равно займёт новый ключ, но это уже обычное «сессия
  * владеет своим ключом», а не тихая подмена во время rename.
  *
- * @param fromPagename - Старый pagename.
- * @param toPagename - Новый pagename.
+ * @param fromAddress - Старый адрес.
+ * @param toAddress - Новый адрес.
  */
 export function migrateBuilderDraft(
-    fromPagename: string,
-    toPagename: string
+    fromAddress: IBricksPageAddress,
+    toAddress: IBricksPageAddress
 ): TBuilderDraftMigration {
     if (typeof window === 'undefined') {
         return 'nothing-to-migrate';
     }
 
-    const fromKey = buildBuilderDraftKey(fromPagename);
-    const toKey = buildBuilderDraftKey(toPagename);
+    const fromKey = buildBuilderDraftKey(fromAddress);
+    const toKey = buildBuilderDraftKey(toAddress);
 
     if (fromKey === toKey) {
         return 'nothing-to-migrate';
@@ -226,8 +234,12 @@ export function migrateBuilderDraft(
             return 'nothing-to-migrate';
         }
 
+        // Обе половины адреса, а не одно имя: перенос бывает и сменой префикса, и
+        // после него запись с прежним `urlPrefix` считалась бы черновиком чужого
+        // адреса — bootstrap сессии сверяет владельца записи
         const draft = parsed as IBuilderDraftEntry;
-        draft.pagename = toPagename;
+        draft.pagename = toAddress.pagename;
+        draft.urlPrefix = toAddress.urlPrefix;
         window.localStorage.setItem(toKey, JSON.stringify(draft));
         // Отдельный `try` не нужен, а вот исход — да: если запись под новым
         // ключом прошла, а удаление старого нет, автосейв дальше будет успешно

@@ -78,7 +78,7 @@ describe('usePublishDashboard: поиск и фильтры списка стр�
         expect(filteredPages.value.map((page) => page.pagename)).toEqual(['promo-draft']);
     });
 
-    it('поиск применяется с debounce 300мс по title/pagename/description', async () => {
+    it('поиск применяется с debounce 300мс по title/адресу/description', async () => {
         const { searchQuery, filteredPages } = usePublishDashboard(ref(PAGES));
 
         searchQuery.value = 'about';
@@ -109,6 +109,29 @@ describe('usePublishDashboard: поиск и фильтры списка стр�
         vi.advanceTimersByTime(301);
 
         expect(filterCounts.value).toEqual({ all: 1, published: 0, drafts: 1 });
+    });
+
+    it('поиск находит страницу по префиксу её адреса', async () => {
+        const addressed = [
+            buildPage({ id: 4, pagename: 'post', title: 'Пост блога', urlPrefix: 'blog' }),
+            buildPage({ id: 5, pagename: 'post', title: 'Пост новостей', urlPrefix: 'news' }),
+        ];
+        const { searchQuery, filteredPages } = usePublishDashboard(ref(addressed));
+
+        // Строка списка показывает `/news/post`, значит и найтись страница должна
+        // по этому же адресу: после появления одноимённых страниц префикс —
+        // единственная различающая часть
+        searchQuery.value = 'news/post';
+        await nextTick();
+        vi.advanceTimersByTime(301);
+
+        expect(filteredPages.value.map((page) => page.id)).toEqual([5]);
+
+        searchQuery.value = 'blog';
+        await nextTick();
+        vi.advanceTimersByTime(301);
+
+        expect(filteredPages.value.map((page) => page.id)).toEqual([4]);
     });
 
     it('hasAnyPages false только при полностью пустом списке', () => {

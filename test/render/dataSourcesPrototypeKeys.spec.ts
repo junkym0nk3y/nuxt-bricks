@@ -133,7 +133,7 @@ describe('useRendererDataSources: id компонента с именем из O
 
         const { ready, resolvedProps } = useRendererDataSources({
             page,
-            pagename: 'proto-page',
+            address: { pagename: 'proto-page', urlPrefix: null },
             isPreview: false,
         });
 
@@ -162,7 +162,7 @@ describe('useRendererDataSources: id компонента с именем из O
 
         const { ready, resolvedProps } = useRendererDataSources({
             page,
-            pagename: 'proto-page',
+            address: { pagename: 'proto-page', urlPrefix: null },
             isPreview: false,
         });
 
@@ -189,7 +189,7 @@ describe('useRendererDataSources: id компонента с именем из O
 
         const { ready, resolvedProps } = useRendererDataSources({
             page,
-            pagename: 'proto-page',
+            address: { pagename: 'proto-page', urlPrefix: null },
             isPreview: false,
         });
 

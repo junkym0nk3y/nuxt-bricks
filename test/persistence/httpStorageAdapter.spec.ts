@@ -12,7 +12,7 @@ import {
     BricksBackendRequestError,
 } from '../../src/runtime/modules/persistence/server/http/httpClient';
 import {
-    BricksPagenameConflictError,
+    BricksPageAddressConflictError,
     BricksRevisionConflictError,
 } from '../../src/runtime/modules/persistence/server/utils/storageErrors';
 import { toPublicPageProjection } from '../../src/runtime/modules/persistence/server/utils/publicProjection';
@@ -83,12 +83,22 @@ describe('HttpStorageAdapter: маппинг методов на контрак�
         expect(fetchCall().url).toBe(`${BASE_URL}/7`);
     });
 
-    it('getPageByPagename → GET {base}/public/pages/:pagename с URL-энкодингом', async () => {
+    it('getPageByAddress → GET {base}/public/pages/<адрес> с посегментным энкодингом', async () => {
         fetchMock.mockResolvedValue(jsonResponse({ id: 1, pagename: 'о нас' }));
 
-        await createAdapter().getPageByPagename('о нас');
+        await createAdapter().getPageByAddress({ pagename: 'о нас', urlPrefix: null });
 
         expect(fetchCall().url).toBe(`${BASE_URL}/public/pages/${encodeURIComponent('о нас')}`);
+    });
+
+    it('адрес с префиксом уезжает путём, а разделитель сегментов не кодируется', async () => {
+        fetchMock.mockResolvedValue(jsonResponse({ id: 1, pagename: 'post' }));
+
+        await createAdapter().getPageByAddress({ pagename: 'post', urlPrefix: 'blog/2026' });
+
+        // `encodeURIComponent` от склеенного адреса превратил бы `/` в `%2F`, и
+        // backend получил бы один сегмент вместо префикса с именем
+        expect(fetchCall().url).toBe(`${BASE_URL}/public/pages/blog/2026/post`);
     });
 
     it('createPage → POST {base} с JSON-телом', async () => {
@@ -237,8 +247,9 @@ describe('HttpStorageAdapter: 404 → null/false по контракту IStorag
     it.each([
         ['getPage', (a: ReturnType<typeof createAdapter>) => a.getPage(1), null],
         [
-            'getPageByPagename',
-            (a: ReturnType<typeof createAdapter>) => a.getPageByPagename('x'),
+            'getPageByAddress',
+            (a: ReturnType<typeof createAdapter>) =>
+                a.getPageByAddress({ pagename: 'x', urlPrefix: null }),
             null,
         ],
         [
@@ -264,12 +275,12 @@ describe('HttpStorageAdapter: 404 → null/false по контракту IStorag
 });
 
 describe('HttpStorageAdapter: 409 → доменные ошибки только по точным контрактным кодам', () => {
-    it('createPage: 409 data.code=PAGENAME_CONFLICT → BricksPagenameConflictError', async () => {
+    it('createPage: 409 data.code=PAGENAME_CONFLICT → BricksPageAddressConflictError', async () => {
         fetchMock.mockResolvedValue(jsonResponse({ data: { code: 'PAGENAME_CONFLICT' } }, 409));
 
         await expect(
             createAdapter().createPage({ pagename: 'busy', schema: { components: [] } })
-        ).rejects.toBeInstanceOf(BricksPagenameConflictError);
+        ).rejects.toBeInstanceOf(BricksPageAddressConflictError);
     });
 
     it('createPage: 409 без машиночитаемого кода → generic error, не доменный конфликт', async () => {
@@ -280,11 +291,11 @@ describe('HttpStorageAdapter: 409 → доменные ошибки только
         ).rejects.toBeInstanceOf(BricksBackendRequestError);
     });
 
-    it('updatePage: 409 data.code=PAGENAME_CONFLICT при rename → BricksPagenameConflictError', async () => {
+    it('updatePage: 409 data.code=PAGENAME_CONFLICT при rename → BricksPageAddressConflictError', async () => {
         fetchMock.mockResolvedValue(jsonResponse({ data: { code: 'PAGENAME_CONFLICT' } }, 409));
 
         await expect(createAdapter().updatePage(1, { pagename: 'busy' })).rejects.toBeInstanceOf(
-            BricksPagenameConflictError
+            BricksPageAddressConflictError
         );
     });
 
@@ -313,7 +324,7 @@ describe('HttpStorageAdapter: 409 → доменные ошибки только
         fetchMock.mockResolvedValue(jsonResponse({ code: 'PAGENAME_CONFLICT' }, 409));
 
         await expect(createAdapter().updatePage(1, { pagename: 'busy' })).rejects.toBeInstanceOf(
-            BricksPagenameConflictError
+            BricksPageAddressConflictError
         );
     });
 });
@@ -351,7 +362,7 @@ describe('HttpStorageAdapter: идемпотентный createMedia', () => {
     });
 });
 
-describe('HttpStorageAdapter: getPageByPagename — синтез editorial-полей public-проекции', () => {
+describe('HttpStorageAdapter: getPageByAddress — синтез editorial-полей public-проекции', () => {
     const externalPublicPage = {
         id: 1,
         pagename: 'landing',
@@ -372,7 +383,10 @@ describe('HttpStorageAdapter: getPageByPagename — синтез editorial-по�
     it('public projection без thumbnailUrl/revision дополняется синтетическими значениями', async () => {
         fetchMock.mockResolvedValue(jsonResponse(externalPublicPage));
 
-        const page = await createAdapter().getPageByPagename('landing');
+        const page = await createAdapter().getPageByAddress({
+            pagename: 'landing',
+            urlPrefix: null,
+        });
 
         expect(page?.thumbnailUrl).toBeNull();
         expect(page?.revision).toBe(0);
@@ -382,7 +396,10 @@ describe('HttpStorageAdapter: getPageByPagename — синтез editorial-по�
     it('идемпотентность: toPublicPageProjection поверх синтезированной строки отбрасывает синтетику', async () => {
         fetchMock.mockResolvedValue(jsonResponse(externalPublicPage));
 
-        const page = (await createAdapter().getPageByPagename('landing')) as IBricksPageRow;
+        const page = (await createAdapter().getPageByAddress({
+            pagename: 'landing',
+            urlPrefix: null,
+        })) as IBricksPageRow;
         const projection = toPublicPageProjection(page);
 
         expect(projection).not.toHaveProperty('thumbnailUrl');

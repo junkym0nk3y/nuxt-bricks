@@ -12,6 +12,7 @@ import type { IBricksSchema } from '../../../common/types/brick';
 import type { IPublishedPage, TPublishFormState } from '../../../common/types/bricks-api';
 import type { ICurrentPageWriteStoreDeps, IPublishOperationOptions } from '../types/publishStore';
 import { isRequestTimeoutError } from '../../../common/utils/apiRequestPolicy';
+import { toPageAddress } from '../../../common/utils/bricks/pageAddress';
 import { generateCopyPagename } from './slugify';
 import { publishPageRequest } from './publishApi';
 
@@ -206,8 +207,9 @@ export async function runSaveCurrentPageAsCopy(
     // промис вместо сообщения пользователю (находка ревью). Форма при этом
     // осталась бы подменённой состоянием копии — откат в `finally`
     try {
-        const copyPagename = generateCopyPagename(originalFormState.pagename, (candidate) =>
-            store.isPagenameAvailable(candidate)
+        const copyPagename = generateCopyPagename(
+            toPageAddress(originalFormState.pagename, originalFormState.urlPrefix),
+            (candidate) => store.isAddressAvailable(candidate)
         );
         const copyTitle = originalFormState.title
             ? `${originalFormState.title} (copy)`

@@ -7,6 +7,7 @@ import { buildDefaultFormState } from '../utils/formState';
 import { slugifyPageTitle } from '../utils/slugify';
 import { createPublishValidationSchema } from '../utils/validationSchema';
 import { DEFAULT_LAYOUT } from '../../../common/utils/bricks/publishedPage';
+import { toPageAddress } from '../../../common/utils/bricks/pageAddress';
 
 // Vue
 import { ref, computed, watch } from 'vue';
@@ -61,8 +62,8 @@ export function usePublishCreatePageForm(options: IPublishCreatePageFormOptions)
         t: (key) => t(key),
         isPageAddressFree,
         isEditorAddressFree,
-        isPagenameAvailable: (pagename, excludeId) =>
-            publishStore.isPagenameAvailable(pagename, excludeId),
+        isAddressAvailable: (address, excludeId) =>
+            publishStore.isAddressAvailable(address, excludeId),
         getExcludeId: () => undefined,
     });
 
@@ -120,16 +121,18 @@ export function usePublishCreatePageForm(options: IPublishCreatePageFormOptions)
                 return;
             }
 
+            const address = toPageAddress(values.pagename, values.urlPrefix);
+
             await publishStore.createPage(schema, {
                 ...buildDefaultFormState(),
-                pagename: values.pagename.trim(),
+                pagename: address.pagename,
                 title: values.title.trim(),
                 description: values.description,
                 keywords: values.keywords,
-                urlPrefix: values.urlPrefix.trim() || null,
+                urlPrefix: address.urlPrefix,
                 subdomain: values.subdomain.trim() || null,
             });
-            options.onCreated(values.pagename.trim());
+            options.onCreated(address);
         } catch (error: unknown) {
             generalError.value =
                 error instanceof Error

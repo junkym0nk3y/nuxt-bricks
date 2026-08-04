@@ -30,6 +30,9 @@ import {
 
 // Constants
 import { BRICKS_SSR_DEADLINE_MARGIN_MS } from '../../common/constants/apiTimeouts';
+
+// Utils
+import { getPageAddressKey } from '../../common/utils/bricks/pageAddress';
 // #endregion
 
 /**
@@ -42,10 +45,10 @@ import { BRICKS_SSR_DEADLINE_MARGIN_MS } from '../../common/constants/apiTimeout
  * первичное выполнение отдаётся наружу промисом `ready` —
  * его await'ит страница на top-level `<script setup>`.
  *
- * @param options - Страница, pagename и режим превью.
+ * @param options - Страница, её адрес и режим превью.
  */
 export function useRendererDataSources(options: IRendererDataSourcesOptions): IRendererDataSources {
-    const { page, pagename, isPreview } = options;
+    const { page, address, isPreview } = options;
     const brickDataSourcesCache = new Map<string, IBrickDataSource[] | null>();
     const isClientDataSourceDebug = import.meta.dev && import.meta.client;
 
@@ -56,7 +59,13 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
         maxRequestsPerPage,
         totalDeadlineMs,
     } = useBricksDataSources();
-    const dataSourceKey = `bricks-datasources-${pagename}-${isPreview ? 'preview' : 'live'}`;
+    // Ключ по адресу, а не по имени: у `/blog/post` и `/news/post` он был бы один,
+    // и вкладки двух разных страниц делили бы состояние `useAsyncData` — вторая
+    // получила бы props первой
+    // Один и тот же ярлык страницы и в ключе прогона, и в логах: в логах он
+    // должен различать одноимённые страницы так же, как в ключе
+    const addressKey = getPageAddressKey(address);
+    const dataSourceKey = `bricks-datasources-${addressKey}-${isPreview ? 'preview' : 'live'}`;
 
     /**
      * Загружает dataSources из brick-файла и кеширует результат.
@@ -152,7 +161,7 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
                 console.warn(
                     '[Bricks DataSources] Request budget exceeded — extra sources skipped:',
                     {
-                        pagename,
+                        address: addressKey,
                         total: requests.length,
                         executed: limitedRequests.length,
                     }
@@ -175,7 +184,7 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
                 console.warn(
                     '[Bricks DataSources] Total deadline exceeded — aborting remaining requests:',
                     {
-                        pagename,
+                        address: addressKey,
                         totalDeadlineMs,
                     }
                 );
@@ -254,7 +263,7 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
                 console.warn(
                     '[Bricks DataSources] Run abandoned after deadline — returning partial props:',
                     {
-                        pagename,
+                        address: addressKey,
                         totalDeadlineMs,
                         resolvedComponents: result.size,
                     }
@@ -285,7 +294,7 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
     });
 
     if (isClientDataSourceDebug) {
-        const debugLabel = `[Bricks DataSources][client:${pagename}]`;
+        const debugLabel = `[Bricks DataSources][client:${addressKey}]`;
 
         // Логируем смену статуса загрузки data sources (в превью дебаг-режиме)
         watch(
@@ -363,7 +372,7 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
 
         if (isDebugRefreshNeeded) {
             console.info(
-                `[Bricks DataSources][client:${pagename}]`,
+                `[Bricks DataSources][client:${addressKey}]`,
                 'refreshing data sources on client',
                 { isPartialRun: isRecoveryNeeded }
             );

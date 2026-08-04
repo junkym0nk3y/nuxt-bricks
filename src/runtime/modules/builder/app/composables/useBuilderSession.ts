@@ -2,11 +2,13 @@
 // Types
 import type { IBricksSchema } from '../../../common/types/brick';
 import type { IPublishedPage } from '../../../common/types/bricks-api';
+import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 import type { IBuilderDraftSnapshot } from '../../publish/types/builderDrafts';
 import type { IBuilderSessionOptions } from '../types/composables';
 
 // Utils
 import { isRequestTimeoutError } from '../../../common/utils/apiRequestPolicy';
+import { isSamePageAddress, toPageAddress } from '../../../common/utils/bricks/pageAddress';
 import { serializeSchema } from '../../core/utils/history';
 import { isSnapshotEqual } from '../../publish/utils/draftSnapshots';
 import { getBuilderDraft, removeBuilderDraft } from '../../publish/utils/draftStorage';
@@ -37,17 +39,18 @@ const EMPTY_SCHEMA: IBricksSchema = {
 const SESSION_BOOTSTRAP_TIMEOUT_MS = 30000;
 
 /**
- * Сессия билдера: открытие страницы по pagename (существующая / новая),
- * обнаружение черновика в localStorage и предложение его восстановить.
- * Watcher на routePagename переоткрывает сессию при навигации на другую страницу;
- * rename собственной сессии (routePagename догнал sessionPagename после
- * `renameSession`) повторного bootstrap не вызывает.
+ * Сессия билдера: открытие страницы по АДРЕСУ (существующая / новая) — имя
+ * страницу не определяет, одноимённые под разными префиксами разные, и поиск по
+ * имени открывал бы произвольную из них. Плюс обнаружение черновика в
+ * localStorage и предложение его восстановить.
+ * Watcher на routeAddress переоткрывает сессию при навигации; rename собственной
+ * сессии (routeAddress догнал sessionAddress) повторного bootstrap не вызывает.
  * Первичное открытие — на стороне вызывающего (onMounted, см. [pagename].vue).
  */
 export function useBuilderSession(options: IBuilderSessionOptions) {
     const {
-        routePagename,
-        sessionPagename,
+        routeAddress,
+        sessionAddress,
         showToast,
         renameSession,
         sessionToken,
@@ -59,10 +62,10 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
      * означал бы, что отклонённый или уже сохранённый черновик снова предложат
      * восстановить при следующем заходе.
      *
-     * @param pagename - Ключ сессии, по которому лежит черновик.
+     * @param address - Адрес сессии, по которому лежит черновик.
      */
-    function discardDraft(pagename: string): void {
-        if (!removeBuilderDraft(pagename)) {
+    function discardDraft(address: IBricksPageAddress): void {
+        if (!removeBuilderDraft(address)) {
             draftStorageNotice.report();
         }
     }
@@ -121,7 +124,7 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
         isCurrentSession,
         applySnapshot,
         discardDraft,
-        sessionPagename,
+        sessionAddress,
         savedSnapshot,
     });
 
@@ -187,18 +190,21 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
      * первой страницы проекта, и открытие сессии запрашивало бы его каждый раз.
      * Пустоту от незагруженности отличает сам стор.
      *
-     * @param pagename - ЧПУ страницы из URL.
+     * @param address - Адрес страницы из URL.
      * @param generation - Поколение этого открытия сессии.
      */
-    async function bootstrapSession(pagename: string, generation: number): Promise<void> {
+    async function bootstrapSession(
+        address: IBricksPageAddress,
+        generation: number
+    ): Promise<void> {
         await publishStore.ensurePagesLoaded();
 
         if (!isCurrentSession(generation)) {
             return;
         }
 
-        const existingPage = publishStore.getPageByPagename(pagename);
-        const draft = getBuilderDraft(pagename);
+        const existingPage = publishStore.getPageByAddress(address);
+        const draft = getBuilderDraft(address);
 
         if (existingPage) {
             publishStore.startEditingPage(existingPage.id);
@@ -237,14 +243,17 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
             }
 
             if (draft && draft.mode === 'edit' && draft.draftSnapshot) {
-                discardDraft(pagename);
+                discardDraft(address);
             }
 
             return;
         }
 
         publishStore.startNewPublish();
-        publishStore.setCurrentFormField('pagename', pagename);
+        publishStore.setCurrentFormField('pagename', address.pagename);
+        // Префикс из URL — тоже часть открываемого адреса: без него форма новой
+        // страницы сохранила бы её в корень, а редактор открыт по `/blog/post`
+        publishStore.setCurrentFormField('urlPrefix', address.urlPrefix);
         componentsStore.loadSchema(EMPTY_SCHEMA, { resetHistory: true });
 
         if (draft?.draftSnapshot) {
@@ -283,12 +292,12 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
     }
 
     /**
-     * Загружает страницу в билдер по pagename, учитывая черновики.
+     * Загружает страницу в билдер по адресу, учитывая черновики.
      *
-     * @param pagename - ЧПУ страницы из URL.
+     * @param address - Адрес страницы из URL.
      */
-    async function openBuilderSession(pagename: string): Promise<void> {
-        if (!pagename) {
+    async function openBuilderSession(address: IBricksPageAddress): Promise<void> {
+        if (!address.pagename) {
             return;
         }
 
@@ -296,8 +305,8 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
         const generation = sessionToken.capture();
 
         // Фиксируем ключ сессии: черновики пишутся/удаляются по нему до следующего
-        // открытия или rename (см. useBuilderPagename.renameSession)
-        sessionPagename.value = pagename;
+        // открытия или rename (см. useBuilderSessionAddress.renameSession)
+        sessionAddress.value = address;
 
         isSessionLoading.value = true;
         isSessionReady.value = false;
@@ -309,7 +318,7 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
         sessionPageId.value = null;
 
         try {
-            await withBootstrapTimeout(bootstrapSession(pagename, generation));
+            await withBootstrapTimeout(bootstrapSession(address, generation));
 
             if (!isCurrentSession(generation)) {
                 return;
@@ -366,11 +375,11 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
 
     /**
      * Повторяет открытие сессии после отказа bootstrap'а — кнопка «Повторить» на
-     * блокирующем экране. Pagename берётся из маршрута: он источник истины URL, а
-     * `sessionPagename` после неудачного открытия равен ему.
+     * блокирующем экране. Адрес берётся из маршрута: он источник истины URL, а
+     * `sessionAddress` после неудачного открытия равен ему.
      */
     async function retryBuilderSession(): Promise<void> {
-        await openBuilderSession(routePagename.value);
+        await openBuilderSession(routeAddress.value);
     }
 
     /**
@@ -397,7 +406,7 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
         }
 
         savedSnapshot.value = buildCurrentSnapshot();
-        discardDraft(sessionPagename.value);
+        discardDraft(sessionAddress.value);
 
         // Здесь же сессия принимает идентичность сохранённой страницы: обе записи
         // (обычное сохранение и переход на копию) к этому моменту уже перевели
@@ -409,33 +418,36 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
 
     /**
      * Единый переход сессии на сохранённую страницу (Save as Copy): переводит store
-     * в edit mode, переносит route/sessionPagename через `renameSession` (миграция
+     * в edit mode, переносит route/sessionAddress через `renameSession` (миграция
      * черновика + `router.replace`) и только затем фиксирует новый `savedSnapshot`
      * (удаляя черновик по актуальному ключу). Порядок фиксирован — иначе URL и
-     * ключ черновика остаются от оригинала: автосейв копии писал бы под slug
+     * ключ черновика остаются от оригинала: автосейв копии писал бы под адресом
      * оригинала, а reload оригинала предлагал бы восстановить чужие данные (P1).
      *
-     * @param page - Нормализованная страница копии (обязательны `id` и `pagename`).
+     * Адрес берётся у сохранённой строки целиком: копия наследует `urlPrefix`,
+     * и перенос по одному имени увёл бы URL редактора в корень.
+     *
+     * @param page - Нормализованная страница копии (обязательны `id` и адрес).
      */
     async function switchToSavedPage(page: IPublishedPage): Promise<void> {
         const startedIn = sessionToken.capture();
 
         publishStore.startEditingPage(page.id);
-        await renameSession(page.pagename);
+        await renameSession(toPageAddress(page.pagename, page.urlPrefix));
         commitSavedSnapshot(startedIn);
     }
 
     // Перенос сессии отменяет предложение восстановить черновик. `renameSession`
-    // зовут напрямую уже начатые save / Save as Copy, поэтому `sessionPagename`
+    // зовут напрямую уже начатые save / Save as Copy, поэтому `sessionAddress`
     // меняется без смены поколения, а `migrateBuilderDraft` к этому моменту уже
     // перенёс запись под новый ключ: «Восстановить» применил бы снапшот прежней
     // страницы, «Удалить» снесло бы пустой старый ключ. Ничего не трогаем:
     // черновик остаётся на диске, предложение снимается, а пользователь при
     // желании перезагрузит страницу и получит его заново.
     watch(
-        () => sessionPagename.value,
-        () => {
-            if (!isDraftRestorePending.value) {
+        () => sessionAddress.value,
+        (next, previous) => {
+            if (!isDraftRestorePending.value || isSamePageAddress(next, previous)) {
                 return;
             }
 
@@ -448,11 +460,12 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
     // клиентский рендер расходится с SSR (hydration mismatch в TheBuilderShellToolbar).
     // Первичное открытие сессии — в onMounted страницы, watcher отвечает только за смену маршрута.
     watch(
-        () => routePagename.value,
+        () => routeAddress.value,
         (next) => {
-            // routePagename догнал sessionPagename после renameSession — это rename
-            // собственной сессии, а не навигация: повторный bootstrap не нужен
-            if (!next || next === sessionPagename.value) {
+            // routeAddress догнал sessionAddress после renameSession — это rename
+            // собственной сессии, а не навигация: повторный bootstrap не нужен.
+            // Сравнение адресом целиком: смена префикса — тоже другая страница
+            if (!next.pagename || isSamePageAddress(next, sessionAddress.value)) {
                 return;
             }
 

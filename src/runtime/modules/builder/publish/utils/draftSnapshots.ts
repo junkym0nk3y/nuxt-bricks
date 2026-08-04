@@ -2,15 +2,6 @@ import type { TPublishFormState } from '../../../common/types/bricks-api';
 import type { IBuilderDraftSnapshot } from '../types/builderDrafts';
 
 /**
- * Проверяет валидность slug (pagename).
- *
- * @param value - ЧПУ страницы.
- */
-export function isValidPagename(value: string): boolean {
-    return Boolean(value) && /^[a-z0-9-]+$/.test(value);
-}
-
-/**
  * Формирует объект для сравнения из настроек публикации.
  *
  * @param formState - Состояние формы.

@@ -14,6 +14,7 @@ import type { IBuilderContext, IWindowStub } from '../helpers/types';
 // Utils
 import {
     AUTOSAVE_DEBOUNCE_MS,
+    bareAddress,
     createWindowStub,
     mountBuilderContext,
 } from '../helpers/builderSessionHarness';
@@ -115,7 +116,7 @@ describe('черновик билдера: недоступное хранили
         const context = mountTracked();
         const publishStore = usePublishStore();
 
-        await context.session.openBuilderSession('draft-page');
+        await context.session.openBuilderSession(bareAddress('draft-page'));
 
         // Проба на готовности сессии: без неё пользователь узнал бы о неработающем
         // восстановлении только через окно debounce после первого изменения
@@ -137,7 +138,7 @@ describe('черновик билдера: недоступное хранили
         const context = mountTracked();
         const publishStore = usePublishStore();
 
-        await context.session.openBuilderSession('draft-page');
+        await context.session.openBuilderSession(bareAddress('draft-page'));
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
         expect(context.draftStorageUnavailableMock).not.toHaveBeenCalled();
 
@@ -163,7 +164,7 @@ describe('черновик билдера: недоступное хранили
         await nextTick();
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
 
-        expect(getBuilderDraft('draft-page')?.draftSnapshot.formState.title).toBe(
+        expect(getBuilderDraft(bareAddress('draft-page'))?.draftSnapshot.formState.title).toBe(
             'После освобождения'
         );
     });
@@ -181,7 +182,7 @@ describe('черновик билдера: недоступное хранили
 
         const context = mountTracked();
 
-        await context.session.openBuilderSession('draft-page');
+        await context.session.openBuilderSession(bareAddress('draft-page'));
 
         expect(context.session.isSessionReady.value).toBe(true);
         expect(context.session.sessionError.value).toBeNull();
@@ -195,14 +196,14 @@ describe('черновик билдера: недоступное хранили
 
         const context = mountTracked();
 
-        await context.session.openBuilderSession('draft-page');
+        await context.session.openBuilderSession(bareAddress('draft-page'));
         expect(context.draftStorageUnavailableMock).toHaveBeenCalledTimes(1);
 
         // Переход на другую страницу билдера — новая сессия в том же экземпляре
         // страницы (page key статический). Латч по токену, а не по экземпляру,
         // именно поэтому: иначе предупреждение получила бы только первая страница
         routerBridge.route.params.pagename = 'other-page';
-        await context.session.openBuilderSession('other-page');
+        await context.session.openBuilderSession(bareAddress('other-page'));
 
         expect(context.draftStorageUnavailableMock).toHaveBeenCalledTimes(2);
     });
@@ -211,7 +212,7 @@ describe('черновик билдера: недоступное хранили
         const context = mountTracked();
         const publishStore = usePublishStore();
 
-        await context.session.openBuilderSession('draft-page');
+        await context.session.openBuilderSession(bareAddress('draft-page'));
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
         expect(context.draftStorageUnavailableMock).not.toHaveBeenCalled();
 
@@ -234,7 +235,7 @@ describe('черновик билдера: недоступное хранили
     it('отказ удаления черновика не остаётся тихим', async () => {
         const context = mountTracked();
 
-        await context.session.openBuilderSession('draft-page');
+        await context.session.openBuilderSession(bareAddress('draft-page'));
         expect(context.draftStorageUnavailableMock).not.toHaveBeenCalled();
 
         // Хранилище отказало уже после входной пробы — на удалении. Страница
@@ -254,7 +255,7 @@ describe('черновик билдера: недоступное хранили
         const publishStore = usePublishStore();
 
         seedLoadedPages(publishStore, [buildPage({ id: 7, pagename: 'draft-page' })]);
-        await context.session.openBuilderSession('draft-page');
+        await context.session.openBuilderSession(bareAddress('draft-page'));
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
         expect(context.draftStorageUnavailableMock).not.toHaveBeenCalled();
 
@@ -279,7 +280,7 @@ describe('черновик билдера: недоступное хранили
         const context = mountTracked();
         const publishStore = usePublishStore();
 
-        await context.session.openBuilderSession('draft-page');
+        await context.session.openBuilderSession(bareAddress('draft-page'));
         publishStore.setCurrentFormField('title', 'Черновик под старым слагом');
         await nextTick();
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
@@ -292,18 +293,18 @@ describe('черновик билдера: недоступное хранили
             throw new DOMException('denied', 'SecurityError');
         });
 
-        await context.pagename.renameSession('renamed-page');
+        await context.address.renameSession(bareAddress('renamed-page'));
 
         expect(context.draftStorageUnavailableMock).toHaveBeenCalledTimes(1);
         // Отказ переноса черновика не повод оставлять сессию на прежнем слаге
-        expect(context.pagename.sessionPagename.value).toBe('renamed-page');
+        expect(context.address.sessionAddress.value).toEqual(bareAddress('renamed-page'));
     });
 
     it('занятый ключ при rename — не отказ хранилища', async () => {
         const context = mountTracked();
         const publishStore = usePublishStore();
 
-        await context.session.openBuilderSession('draft-page');
+        await context.session.openBuilderSession(bareAddress('draft-page'));
         publishStore.setCurrentFormField('title', 'Черновик под старым слагом');
         await nextTick();
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
@@ -315,9 +316,9 @@ describe('черновик билдера: недоступное хранили
             JSON.stringify({ pagename: 'renamed-page' })
         );
 
-        await context.pagename.renameSession('renamed-page');
+        await context.address.renameSession(bareAddress('renamed-page'));
 
         expect(context.draftStorageUnavailableMock).not.toHaveBeenCalled();
-        expect(context.pagename.sessionPagename.value).toBe('renamed-page');
+        expect(context.address.sessionAddress.value).toEqual(bareAddress('renamed-page'));
     });
 });

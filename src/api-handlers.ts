@@ -28,9 +28,11 @@ export const BRICKS_API_HANDLERS: IBricksApiHandler[] = [
         file: 'server/api/bricks/auth/me.get',
     },
     {
-        route: '/api/bricks/public/pages/:pagename',
+        // Остаток пути, а не `:pagename`: страницу опознаёт полный адрес
+        // (`<urlPrefix>/<pagename>`), и у него переменное число сегментов
+        route: '/api/bricks/public/pages/**:address',
         method: 'get',
-        file: 'server/api/bricks/public/pages/[pagename].get',
+        file: 'server/api/bricks/public/pages/[...address].get',
         isPublic: true,
     },
     {

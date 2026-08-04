@@ -120,7 +120,7 @@ describe('useRendererDataSources: повреждённая схема не ро�
 
         const { ready, resolvedProps } = useRendererDataSources({
             page,
-            pagename: 'broken-page',
+            address: { pagename: 'broken-page', urlPrefix: null },
             isPreview: false,
         });
 

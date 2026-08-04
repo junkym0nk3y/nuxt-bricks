@@ -4,6 +4,10 @@
 import type { TPublishedPageSummary } from '../../../../common/types/bricks-api';
 import type { IToolbarPageSelectorProps, IToolbarPageSelectorEmits } from './types';
 
+// Utils
+import { toPageAddress } from '../../../../common/utils/bricks/pageAddress';
+import { getPublishedPagePath } from '../../../../common/utils/bricks/routePaths';
+
 // Vue
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -76,6 +80,20 @@ const isEmptyList = computed<boolean>(
 // #endregion
 
 // #region Methods
+/**
+ * Live-адрес страницы для строки списка (`/blog/post`).
+ *
+ * Полный адрес, а не один `pagename`: имя уникально только внутри своего
+ * префикса, и две одноимённые страницы под разными префиксами были бы в списке
+ * неразличимы — выбрать нужную нельзя.
+ *
+ * @param page - Сводка страницы.
+ * @returns Путь live-адреса.
+ */
+function resolvePageAddressPath(page: TPublishedPageSummary): string {
+    return getPublishedPagePath(toPageAddress(page.pagename, page.urlPrefix));
+}
+
 /**
  * Открывает и закрывает попап; на открытии сообщает наружу — это момент, когда
  * список догружается и освежается.
@@ -257,7 +275,9 @@ function handleCreatePage(): void {
                                         {{ t('bricks.toolbar.pageSelector.draft') }}
                                     </span>
                                 </span>
-                                <span :class="$style.rowUrl">/{{ page.pagename }}</span>
+                                <span :class="$style.rowUrl">
+                                    {{ resolvePageAddressPath(page) }}
+                                </span>
                             </span>
 
                             <BricksIcon

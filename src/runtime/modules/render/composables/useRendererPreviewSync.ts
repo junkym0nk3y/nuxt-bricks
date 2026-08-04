@@ -3,6 +3,9 @@
 import type { IPreviewStoredPage } from '../../common/types/bricks-api';
 import type { IRendererPreviewSync, IRendererPreviewSyncOptions } from '../types/composables';
 
+// Utils
+import { getPageAddressKey, toPageAddress } from '../../common/utils/bricks/pageAddress';
+
 // Vue
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
@@ -27,11 +30,12 @@ const DEVICE_ICONS: Record<string, string> = {
  * Превью сохранённой версии (`?version=` в URL) ни синка, ни снапшота не
  * получает: его состояние приезжает с сервера и меняться не должно.
  *
- * @param options - Данные страницы, refs live-синка и колбэк перезапуска data sources.
+ * @param options - Адрес и данные страницы, refs live-синка и колбэк перезапуска
+ * data sources.
  */
 export function useRendererPreviewSync(options: IRendererPreviewSyncOptions): IRendererPreviewSync {
     const {
-        pagename,
+        address,
         isPreview,
         previewVersionId,
         middlewarePageData,
@@ -42,6 +46,11 @@ export function useRendererPreviewSync(options: IRendererPreviewSyncOptions): IR
 
     // Превью версии показывает состояние из истории: живой канвас ему не источник
     const isVersionPreview = previewVersionId !== null;
+
+    // Токен страницы в слоте localStorage и в канале синка — ключ адреса, а не
+    // имя: слот один на билдер, и снимок `/blog/post` иначе показался бы в превью
+    // `/news/post` как её собственный
+    const addressKey = getPageAddressKey(address);
 
     // Текущее разрешение и адаптив для превью-баннера
     const windowWidth = ref(0);
@@ -75,18 +84,47 @@ export function useRendererPreviewSync(options: IRendererPreviewSyncOptions): IR
     const resolutionText = computed(() => `${windowWidth.value}×${windowHeight.value}`);
 
     /**
+     * Принадлежит ли снимок в слоте этой вкладке превью.
+     *
+     * @returns true — слот пуст, нечитаем или снят с этого же адреса.
+     */
+    function isPreviewSlotOwned(): boolean {
+        const stored = window.localStorage.getItem('bricks-preview-page');
+
+        if (!stored) {
+            return true;
+        }
+
+        try {
+            const parsed = JSON.parse(stored) as IPreviewStoredPage;
+
+            return (
+                getPageAddressKey(toPageAddress(parsed.pagename, parsed.urlPrefix)) === addressKey
+            );
+        } catch {
+            return true;
+        }
+    }
+
+    /**
      * Закрывает окно превью и очищает сохранённые данные превью.
      *
      * Запись в localStorage принадлежит превью текущего канваса: вкладка версии её
      * не заводила и не должна уносить — иначе закрытие превью версии оставило бы
      * живое превью без снапшота.
+     *
+     * Слот один на билдер, и владеет им последнее открытое превью, поэтому перед
+     * удалением сверяется адрес: закрытие вкладки A, открытой раньше B, иначе
+     * унесло бы снимок B — после перезагрузки B осталась бы без состояния канваса
+     * (канал синка передаёт только схему, накладывать её не на что). Нечитаемую
+     * запись убираем: владельца у неё не определить, а восстановить по ней нечего.
      */
     function closePreview(): void {
         if (typeof window === 'undefined') {
             return;
         }
 
-        if (!isVersionPreview) {
+        if (!isVersionPreview && isPreviewSlotOwned()) {
             window.localStorage.removeItem('bricks-preview-page');
         }
 
@@ -138,7 +176,11 @@ export function useRendererPreviewSync(options: IRendererPreviewSyncOptions): IR
                 const stored = window.localStorage.getItem('bricks-preview-page');
                 if (stored) {
                     const parsed = JSON.parse(stored) as IPreviewStoredPage;
-                    if (parsed.pagename === pagename && isStoredPreviewFresh(parsed)) {
+                    const storedKey = getPageAddressKey(
+                        toPageAddress(parsed.pagename, parsed.urlPrefix)
+                    );
+
+                    if (storedKey === addressKey && isStoredPreviewFresh(parsed)) {
                         livePreviewData.value = parsed;
                     }
                 }
@@ -155,9 +197,9 @@ export function useRendererPreviewSync(options: IRendererPreviewSyncOptions): IR
             const previewChannel = new BroadcastChannel('bricks-preview-sync');
 
             previewChannel.onmessage = (event: MessageEvent) => {
-                const { type, pagename: msgPagename, schema } = event.data ?? {};
+                const { type, address: msgAddress, schema } = event.data ?? {};
 
-                if (type === 'schema-update' && msgPagename === pagename) {
+                if (type === 'schema-update' && msgAddress === addressKey) {
                     // livePreviewData как fallback: актуально для временных страниц, которых нет в БД
                     const base = middlewarePageData.value ?? livePreviewData.value;
                     if (base) {
@@ -171,7 +213,7 @@ export function useRendererPreviewSync(options: IRendererPreviewSyncOptions): IR
              * после перезагрузки превью или самого билдера.
              */
             function requestFreshSchema(): void {
-                previewChannel.postMessage({ type: 'request-schema', pagename });
+                previewChannel.postMessage({ type: 'request-schema', address: addressKey });
             }
 
             /**

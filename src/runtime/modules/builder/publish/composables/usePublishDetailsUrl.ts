@@ -2,6 +2,10 @@
 // Types
 import type { IPublishDetailsUrlFields, IPublishDetailsUrlReturn } from '../types/composables';
 
+// Utils
+import { toPageAddress } from '../../../common/utils/bricks/pageAddress';
+import { getPublishedPagePath } from '../../../common/utils/bricks/routePaths';
+
 // Vue
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -22,13 +26,17 @@ export function usePublishDetailsUrl(fields: IPublishDetailsUrlFields): IPublish
 
     // #region Computed
     const liveUrl = computed<string>(() => {
-        const slug = String(fields.pagename.value ?? '').trim();
-        if (!slug) {
+        const address = toPageAddress(String(fields.pagename.value ?? ''), fields.urlPrefix.value);
+
+        if (!address.pagename) {
             return '';
         }
-        const prefix = String(fields.urlPrefix.value ?? '').trim();
+
         const sub = String(fields.subdomain.value ?? '').trim();
-        const path = prefix ? `/${prefix}/${slug}` : `/${slug}`;
+        // Путь адреса — общим хелпером, а не своей склейкой сегментов: третья
+        // копия правила разошлась бы с адресом, по которому страница реально
+        // открывается, и панель показывала бы ссылку не на неё
+        const path = getPublishedPagePath(address);
         const domain = host.value || t('bricks.publish.domainStub');
         return sub ? `${sub}.${domain}${path}` : `${domain}${path}`;
     });

@@ -97,10 +97,47 @@ describe('validatePublishFormState: проверка перед публикац
         expect(errors.description).toBe('bricks.publish.validation.descriptionRequired');
     });
 
-    it('отклоняет занятый pagename', () => {
+    it('отклоняет занятый адрес без префикса — ошибкой на имени', () => {
         const { errors } = validatePublishFormState(buildFormState(), () => false);
 
-        expect(errors.pagename).toBe('bricks.publish.validation.pagenameTaken');
+        expect(errors.pagename).toBe('bricks.publish.validation.addressTaken');
+    });
+
+    it('занятый адрес с префиксом краснит urlPrefix — им его и разводят', () => {
+        const { errors } = validatePublishFormState(
+            buildFormState({ urlPrefix: 'blog' }),
+            () => false
+        );
+
+        expect(errors.urlPrefix).toBe('bricks.publish.validation.addressTaken');
+        expect(errors.pagename).toBeUndefined();
+    });
+
+    it('занятость адреса не затирает ошибку формата того же поля', () => {
+        // Пара, собранная из невалидного значения, занятой быть не может, а
+        // сообщение о формате объясняет поле точнее
+        const { errors } = validatePublishFormState(
+            buildFormState({ pagename: 'Bad Name' }),
+            () => false
+        );
+
+        expect(errors.pagename).toBe('bricks.publish.validation.pagenameFormat');
+    });
+
+    it('проверяет занятость адресом целиком, а не одним именем', () => {
+        const seen: string[] = [];
+
+        validatePublishFormState(
+            buildFormState({ pagename: 'post', urlPrefix: 'blog' }),
+            (address) => {
+                seen.push(`${address.urlPrefix ?? ''}|${address.pagename}`);
+                return true;
+            }
+        );
+
+        // Проверка по одному имени объявила бы занятым `/news/post` из-за
+        // существующего `/blog/post`
+        expect(seen).toEqual(['blog|post']);
     });
 
     // Гейт стоит последним перед записью, и форма ему не единственный источник:

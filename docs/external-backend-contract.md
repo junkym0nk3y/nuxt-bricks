@@ -73,7 +73,7 @@ export default defineNuxtConfig({
 | DELETE     | `{base}/:id`                     | Удалить страницу                      | 404 → «не найдено»                                                                       |
 | GET        | `{base}/:id/versions`            | Сводки версий страницы (новые сверху) | Массив `IPageVersionSummary`                                                             |
 | GET        | `{base}/:id/versions/:versionId` | Полный снапшот версии                 | Путь SSR превью версии; 404 → «не найдено» (в т.ч. чужая версия)                         |
-| GET        | `{base}/public/pages/:pagename`  | **Public lookup** по pagename         | Горячий путь SSR; 404 для draft/несуществующей                                           |
+| GET        | `{base}/public/pages/<адрес>`    | **Public lookup** по адресу страницы  | Горячий путь SSR; адрес — остаток пути; 404 для draft/несуществующей                     |
 | GET        | `{base}/media`                   | Список media-метаданных               | Массив либо envelope `{ items: [...] }`                                                  |
 | POST       | `{base}/media`                   | Регистрация media-метаданных          | **Server-to-server-only**; идемпотентна по `url`                                         |
 | PATCH      | `{base}/media/:id`               | Обновление метаданных                 | Поля: `filename`, `alt`, `category` (частично)                                           |
@@ -86,7 +86,9 @@ export default defineNuxtConfig({
 - **409** — конфликт с машиночитаемым кодом в JSON-теле по формату
   `{ "data": { "code": "..." } }` (как локальный `toPageHttpError`; top-level
   `"code"` тоже принимается). Распознаются только точные коды:
-    - `PAGENAME_CONFLICT` — pagename занят (POST страницы; PATCH при rename);
+    - `PAGENAME_CONFLICT` — адрес страницы (`urlPrefix` + `pagename`) занят
+      (POST страницы; PATCH при смене любой половины пары). Код исторический:
+      имя оставлено ради совместимости внешних backend'ов;
     - `REVISION_CONFLICT` — не совпала `expectedRevision` (PATCH страницы).
 
     409 без кода или с незнакомым кодом — generic-ошибка (браузер получит 500 с
@@ -99,24 +101,24 @@ export default defineNuxtConfig({
 
 Полная строка страницы (`IBricksPageRow`) — обязательные поля:
 
-| Поле              | Тип                      | Примечание                          |
-| ----------------- | ------------------------ | ----------------------------------- |
-| `id`              | number                   |                                     |
-| `pagename`        | string                   | Уникален                            |
-| `title`           | string \| null           |                                     |
-| `description`     | string \| null           |                                     |
-| `keywords`        | string \| null           |                                     |
-| `backgroundColor` | string \| null           |                                     |
-| `layout`          | string \| null           |                                     |
-| `socialImage`     | string \| null           |                                     |
-| `urlPrefix`       | string \| null           |                                     |
-| `subdomain`       | string \| null           |                                     |
-| `thumbnailUrl`    | string \| null           | Машинное поле (пишется PATCH'ем)    |
-| `schema`          | object (`IBricksSchema`) | Хранить как есть (JSONB-семантика)  |
-| `published`       | boolean                  |                                     |
-| `revision`        | number                   | Монотонный счётчик изменений строки |
-| `createdAt`       | string (ISO 8601)        |                                     |
-| `updatedAt`       | string (ISO 8601)        |                                     |
+| Поле              | Тип                      | Примечание                             |
+| ----------------- | ------------------------ | -------------------------------------- |
+| `id`              | number                   |                                        |
+| `pagename`        | string                   | Уникален В ПРЕДЕЛАХ своего `urlPrefix` |
+| `title`           | string \| null           |                                        |
+| `description`     | string \| null           |                                        |
+| `keywords`        | string \| null           |                                        |
+| `backgroundColor` | string \| null           |                                        |
+| `layout`          | string \| null           |                                        |
+| `socialImage`     | string \| null           |                                        |
+| `urlPrefix`       | string \| null           | Вместе с `pagename` — адрес страницы   |
+| `subdomain`       | string \| null           |                                        |
+| `thumbnailUrl`    | string \| null           | Машинное поле (пишется PATCH'ем)       |
+| `schema`          | object (`IBricksSchema`) | Хранить как есть (JSONB-семантика)     |
+| `published`       | boolean                  |                                        |
+| `revision`        | number                   | Монотонный счётчик изменений строки    |
+| `createdAt`       | string (ISO 8601)        |                                        |
+| `updatedAt`       | string (ISO 8601)        |                                        |
 
 - `GET {base}` отдаёт сводки — те же поля **без `schema`**
   (`TBricksPageSummaryRow`). Полная строка — только point-lookup.
@@ -163,10 +165,18 @@ export default defineNuxtConfig({
 
 ### Public lookup (горячий путь)
 
-`GET {base}/public/pages/:pagename` вызывается при SSR **каждого визита**
-published-страницы — поэтому lookup по pagename обязан быть точечным
+`GET {base}/public/pages/<адрес>` вызывается при SSR **каждого визита**
+published-страницы — поэтому lookup по адресу обязан быть точечным
 (list+find на каждый визит недопустим). Требования:
 
+- адрес приходит остатком пути: `…/public/pages/blog/post` — это
+  `urlPrefix: "blog"`, `pagename: "post"`, а `…/public/pages/post` —
+  `urlPrefix: null`. Сегменты не URL-кодируются целиком: разделитель `/`
+  остаётся разделителем;
+- искать по ПАРЕ, а не по одному имени, и считать отсутствие префикса
+  значением: `/post` не должен находиться по адресу `/blog/post` и наоборот.
+  Иначе одноимённые страницы под разными префиксами вернут произвольную из
+  себя, и посетитель увидит чужую страницу под своим URL;
 - отдавать страницу только если `published: true`; draft и несуществующая —
   404;
 - формат — публичная проекция: поля `IBricksPageRow` **без** `thumbnailUrl` и

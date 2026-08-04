@@ -1,6 +1,7 @@
 // #region Imports
 // Types
 import type { IBuilderContext, IDeferredApi, IDeferredRequest, IWindowStub } from './types';
+import type { IBricksPageAddress } from '../../src/runtime/modules/common/types/pageAddress';
 
 // Vitest
 import { vi } from 'vitest';
@@ -10,8 +11,8 @@ import { effectScope, onScopeDispose } from 'vue';
 
 // Composables билдера (в spec-файлах их зависимости замоканы через vi.mock —
 // моки применяются и к импортам этого helper'а: module id общий)
-import { useBuilderPagename } from '../../src/runtime/modules/builder/app/composables/useBuilderPagename';
-import { useBuilderPagenameSync } from '../../src/runtime/modules/builder/app/composables/useBuilderPagenameSync';
+import { useBuilderSessionAddress } from '../../src/runtime/modules/builder/app/composables/useBuilderSessionAddress';
+import { useBuilderSessionAddressSync } from '../../src/runtime/modules/builder/app/composables/useBuilderSessionAddressSync';
 import { useBuilderSession } from '../../src/runtime/modules/builder/app/composables/useBuilderSession';
 import { useBuilderSessionToken } from '../../src/runtime/modules/builder/app/composables/useBuilderSessionToken';
 import { useBuilderDraftPersistence } from '../../src/runtime/modules/builder/app/composables/useBuilderDraftPersistence';
@@ -19,7 +20,17 @@ import { createDraftStorageNotice } from '../../src/runtime/modules/builder/app/
 // #endregion
 
 export const AUTOSAVE_DEBOUNCE_MS = 800;
-export const PAGENAME_SYNC_DEBOUNCE_MS = 600;
+export const ADDRESS_SYNC_DEBOUNCE_MS = 600;
+
+/**
+ * Адрес без префикса — короткая запись для тестов, которым префикс не важен.
+ *
+ * @param pagename - ЧПУ страницы.
+ * @returns Адрес страницы.
+ */
+export function bareAddress(pagename: string): IBricksPageAddress {
+    return { pagename, urlPrefix: null };
+}
 
 /**
  * Минимальный localStorage поверх Map — черновики билдера в node-окружении.
@@ -123,18 +134,18 @@ export function mountBuilderContext(): IBuilderContext {
         onScopeDispose(() => {
             draftStorageNotice.stop();
         });
-        const pagename = useBuilderPagename({ draftStorageNotice });
+        const sessionAddress = useBuilderSessionAddress({ draftStorageNotice });
         const session = useBuilderSession({
-            routePagename: pagename.routePagename,
-            sessionPagename: pagename.sessionPagename,
+            routeAddress: sessionAddress.routeAddress,
+            sessionAddress: sessionAddress.sessionAddress,
             showToast: showToastMock,
-            renameSession: pagename.renameSession,
+            renameSession: sessionAddress.renameSession,
             sessionToken,
             draftStorageNotice,
         });
         useBuilderDraftPersistence({
-            routePagename: pagename.routePagename,
-            sessionPagename: pagename.sessionPagename,
+            routeAddress: sessionAddress.routeAddress,
+            sessionAddress: sessionAddress.sessionAddress,
             isSessionLoading: session.isSessionLoading,
             isSessionReady: session.isSessionReady,
             isDraftRestorePending: session.isDraftRestorePending,
@@ -142,11 +153,11 @@ export function mountBuilderContext(): IBuilderContext {
             buildCurrentSnapshot: session.buildCurrentSnapshot,
             draftStorageNotice,
         });
-        useBuilderPagenameSync({
-            renameSession: pagename.renameSession,
+        useBuilderSessionAddressSync({
+            renameSession: sessionAddress.renameSession,
             isSessionReady: session.isSessionReady,
         });
-        return { pagename, session, sessionToken };
+        return { address: sessionAddress, session, sessionToken };
     });
 
     if (!context) {

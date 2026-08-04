@@ -30,16 +30,31 @@ CREATE TABLE IF NOT EXISTS bricks_pages (
     -- параллельное сохранение не перетирает чужие изменения молча.
     revision INTEGER NOT NULL DEFAULT 1,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    -- Уникально ИМЯ, а не полный адрес: страницу опознают по одному `pagename` и
-    -- редактор (`<builderPrefix>/:pagename`), и ключи черновиков localStorage, и
-    -- публичный lookup. Пара `(pagename, url_prefix)` разрешила бы `/blog/post`
-    -- рядом с `/news/post`, но обе страницы претендовали бы на один URL
-    -- редактора и один ключ черновика — то есть БД стала бы шире, чем код умеет
-    -- адресовать. Расширять уникальность до адреса можно только вместе с
-    -- переводом этих трёх мест на адресную идентичность.
-    CONSTRAINT uq_bricks_pages_pagename UNIQUE (pagename)
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Уникален полный АДРЕС страницы, а не одно имя: `pagename` уникален только
+-- внутри своего `url_prefix`, поэтому `/blog/post` и `/news/post` — разные
+-- страницы. Код адресует страницу этой же парой: URL редактора и превью, ключи
+-- черновиков localStorage, SSR-payload, data sources и публичный lookup
+-- (`common/utils/bricks/pageAddress.ts` — владелец сериализации).
+--
+-- ДВА partial-индекса, а не один `UNIQUE NULLS NOT DISTINCT (pagename, url_prefix)`:
+-- второе — синтаксис PostgreSQL 15, и на 14 миграция падала бы, а обычный UNIQUE
+-- по паре не годится совсем (NULL'ы считаются различными, и две страницы БЕЗ
+-- префикса с одним именем заняли бы один корневой URL `/pagename`). Пара
+-- индексов даёт ту же семантику «отсутствие префикса — это значение» на любой
+-- живой версии и ровно повторяет две ветки адресного lookup'а в
+-- postgresStorageAdapter: беспрефиксная ветка обслуживается меньшим индексом.
+--
+-- Нарушение любого из них приходит тем же SQLSTATE 23505, по которому адаптер и
+-- различает конфликт адреса, — имя ограничения в детекте не участвует.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_bricks_pages_address
+    ON bricks_pages(pagename, url_prefix)
+    WHERE url_prefix IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_bricks_pages_address_bare
+    ON bricks_pages(pagename)
+    WHERE url_prefix IS NULL;
 
 CREATE INDEX IF NOT EXISTS idx_bricks_pages_pagename ON bricks_pages(pagename);
 CREATE INDEX IF NOT EXISTS idx_bricks_pages_published ON bricks_pages(published);

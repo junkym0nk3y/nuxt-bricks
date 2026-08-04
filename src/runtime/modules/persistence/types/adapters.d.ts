@@ -1,5 +1,5 @@
 /**
- * Контракты persistence-слоя (Шаг 6 рефакторинга).
+ * Контракты persistence-слоя.
  *
  * IStorageAdapter — CRUD страниц и медиа-метаданных (дефолт — Postgres).
  * IPublishAdapter — файловое хранилище публикации (дефолт — S3/Yandex).
@@ -16,6 +16,7 @@ import type {
     IPageVersion,
 } from '../../common/types/bricks-api';
 import type { IMediaItem } from '../../common/types/media';
+import type { IBricksPageAddress } from '../../common/types/pageAddress';
 
 /**
  * Данные для создания записи медиа (id и uploadedAt генерирует хранилище).
@@ -57,11 +58,19 @@ export interface IStorageAdapter {
     /**
      * Сводки всех страниц БЕЗ поля `schema` (editorial-список: дашборд,
      * preview-резолвер). Полную строку со schema обязан отдавать только
-     * point-lookup getPage/getPageByPagename.
+     * point-lookup getPage/getPageByAddress.
      */
     listPages(): Promise<TBricksPageSummaryRow[]>;
     getPage(id: number): Promise<IBricksPageRow | null>;
-    getPageByPagename(pagename: string): Promise<IBricksPageRow | null>;
+    /**
+     * Страница по полному адресу (`urlPrefix` + `pagename`); null — если её нет.
+     *
+     * По адресу, а не по имени: имя уникально только внутри своего префикса, и
+     * lookup по нему возвращал бы произвольную из одноимённых страниц. Реализация
+     * обязана считать отсутствие префикса значением, а не «любым префиксом»:
+     * `/post` не должен находиться по адресу `/blog/post` и наоборот.
+     */
+    getPageByAddress(address: IBricksPageAddress): Promise<IBricksPageRow | null>;
     createPage(payload: ICreatePagePayload): Promise<IBricksPageRow>;
     /**
      * Обновляет переданные поля страницы; null — если страница не найдена.

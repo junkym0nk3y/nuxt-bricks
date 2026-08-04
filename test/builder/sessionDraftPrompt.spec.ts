@@ -16,6 +16,7 @@ import type { IBuilderContext, IDeferredApi } from '../helpers/types';
 // Utils
 import {
     AUTOSAVE_DEBOUNCE_MS,
+    bareAddress,
     createDeferredApi,
     createWindowStub,
     mountBuilderContext,
@@ -171,6 +172,7 @@ describe('предложение восстановить черновик', () 
 
         setBuilderDraft({
             pagename,
+            urlPrefix: null,
             updatedAt: '2026-07-28T10:00:00.000Z',
             mode: 'edit',
             pageId,
@@ -191,7 +193,7 @@ describe('предложение восстановить черновик', () 
         serverPages = [pageA];
         seedDraft('page-a', 1, 'draft-1');
 
-        await context.session.openBuilderSession('page-a');
+        await context.session.openBuilderSession(bareAddress('page-a'));
 
         // Сессия согласована: на канвасе сохранённая версия, править её можно.
         // Модалка сама не открывается — спрашивать посреди загрузки нечем
@@ -211,7 +213,7 @@ describe('предложение восстановить черновик', () 
         serverPages = [pageA];
         seedDraft('page-a', 1, 'draft-1');
 
-        await context.session.openBuilderSession('page-a');
+        await context.session.openBuilderSession(bareAddress('page-a'));
 
         context.session.openRestoreDraftModal();
         expect(context.session.isRestoreDraftModalOpen.value).toBe(true);
@@ -233,7 +235,7 @@ describe('предложение восстановить черновик', () 
         serverPages = [pageA];
         seedDraft('page-a', 1, 'draft-1');
 
-        await context.session.openBuilderSession('page-a');
+        await context.session.openBuilderSession(bareAddress('page-a'));
         context.session.openRestoreDraftModal();
 
         // Esc, крестик и клик по фону ведут сюда же: раньше это удаляло черновик,
@@ -242,7 +244,7 @@ describe('предложение восстановить черновик', () 
 
         expect(context.session.isRestoreDraftModalOpen.value).toBe(false);
         expect(context.session.isDraftRestorePending.value).toBe(true);
-        expect(getBuilderDraft('page-a')).not.toBeNull();
+        expect(getBuilderDraft(bareAddress('page-a'))).not.toBeNull();
         expect(componentsStore.components.map((component) => component.id)).toEqual(['a1']);
 
         // Отложенное предложение открывается повторно — тем же кликом по тосту
@@ -260,12 +262,12 @@ describe('предложение восстановить черновик', () 
         serverPages = [pageA];
         seedDraft('page-a', 1, 'draft-1');
 
-        await context.session.openBuilderSession('page-a');
+        await context.session.openBuilderSession(bareAddress('page-a'));
         context.session.openRestoreDraftModal();
         context.session.handleDiscardDraft();
 
         expect(context.session.isDraftRestorePending.value).toBe(false);
-        expect(getBuilderDraft('page-a')).toBeNull();
+        expect(getBuilderDraft(bareAddress('page-a'))).toBeNull();
         // На канвасе остаётся сохранённая версия, а не черновик
         expect(componentsStore.components.map((component) => component.id)).toEqual(['a1']);
     });
@@ -279,14 +281,16 @@ describe('предложение восстановить черновик', () 
         serverPages = [pageA];
         seedDraft('page-a', 1, 'draft-1');
 
-        await context.session.openBuilderSession('page-a');
+        await context.session.openBuilderSession(bareAddress('page-a'));
 
         // Сброс на выгрузке безусловен, а на канвасе — сохранённая версия: без
         // запрета по неотвеченному черновику сравнение с savedSnapshot удалило бы
         // предложенный снапшот раньше, чем пользователь успел на него ответить
         window.dispatchEvent(new Event('pagehide'));
 
-        expect(getBuilderDraft('page-a')?.draftSnapshot.schema.components[0]?.id).toBe('draft-1');
+        expect(getBuilderDraft(bareAddress('page-a'))?.draftSnapshot.schema.components[0]?.id).toBe(
+            'draft-1'
+        );
     });
 
     it('служебная перезапись формы тем же значением не считается правкой', async () => {
@@ -298,7 +302,7 @@ describe('предложение восстановить черновик', () 
         serverPages = [pageA];
         seedDraft('page-a', 1, 'draft-1');
 
-        await context.session.openBuilderSession('page-a');
+        await context.session.openBuilderSession(bareAddress('page-a'));
 
         // Сохранение на каждом заходе заново присваивает `published` — в том числе
         // тем же значением. Приняв это за правку, предложение сняли бы само, а
@@ -312,7 +316,9 @@ describe('предложение восстановить черновик', () 
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
         window.dispatchEvent(new Event('pagehide'));
 
-        expect(getBuilderDraft('page-a')?.draftSnapshot.schema.components[0]?.id).toBe('draft-1');
+        expect(getBuilderDraft(bareAddress('page-a'))?.draftSnapshot.schema.components[0]?.id).toBe(
+            'draft-1'
+        );
     });
 
     it('правка канваса до фиксации в истории переживает выгрузку страницы', async () => {
@@ -325,7 +331,7 @@ describe('предложение восстановить черновик', () 
         serverPages = [pageA];
         seedDraft('page-a', 1, 'draft-1');
 
-        await context.session.openBuilderSession('page-a');
+        await context.session.openBuilderSession(bareAddress('page-a'));
 
         // Правка пропса меняет компонент синхронно, а историю фиксирует через 300 мс:
         // в это окно предложение ещё висит, и запрет на удаление черновика не должен
@@ -333,7 +339,7 @@ describe('предложение восстановить черновик', () 
         componentsStore.updateComponentProp('a1', 'text', 'Правка до фиксации');
         window.dispatchEvent(new Event('pagehide'));
 
-        const draft = getBuilderDraft('page-a');
+        const draft = getBuilderDraft(bareAddress('page-a'));
         expect(draft?.draftSnapshot.schema.components[0]?.id).toBe('a1');
         expect(draft?.draftSnapshot.schema.components[0]?.props?.text).toBe('Правка до фиксации');
     });
@@ -347,7 +353,7 @@ describe('предложение восстановить черновик', () 
         serverPages = [pageA];
         seedDraft('page-a', 1, 'draft-1');
 
-        await context.session.openBuilderSession('page-a');
+        await context.session.openBuilderSession(bareAddress('page-a'));
 
         publishStore.setCurrentFormField('title', 'Правка поверх сохранённой');
 
@@ -359,7 +365,7 @@ describe('предложение восстановить черновик', () 
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
 
         // Черновик перезаписан собственной правкой — восстанавливать больше нечего
-        const draft = getBuilderDraft('page-a');
+        const draft = getBuilderDraft(bareAddress('page-a'));
         expect(draft?.draftSnapshot.formState.title).toBe('Правка поверх сохранённой');
         expect(draft?.draftSnapshot.schema.components.map((item) => item.id)).toEqual(['a1']);
     });
@@ -379,12 +385,12 @@ describe('предложение восстановить черновик', () 
         // брался у живой сессии
         seedDraft('page-b', 2, 'draft-b');
 
-        await context.session.openBuilderSession('page-a');
+        await context.session.openBuilderSession(bareAddress('page-a'));
         expect(context.session.isDraftRestorePending.value).toBe(true);
 
         // Навигация на B: тост прежней сессии ещё уезжает и принимает клики
         deferredUrls = ['/api/bricks/2/'];
-        const openingB = context.session.openBuilderSession('page-b');
+        const openingB = context.session.openBuilderSession(bareAddress('page-b'));
 
         context.session.openRestoreDraftModal();
         context.session.handleRestoreDraft();
@@ -393,7 +399,7 @@ describe('предложение восстановить черновик', () 
         // Открытие B ещё идёт: ни канвас, ни черновик B тронуты не были
         expect(context.session.isRestoreDraftModalOpen.value).toBe(false);
         expect(context.session.isSessionReady.value).toBe(false);
-        expect(getBuilderDraft('page-b')).not.toBeNull();
+        expect(getBuilderDraft(bareAddress('page-b'))).not.toBeNull();
         expect(componentsStore.components.map((component) => component.id)).not.toEqual([
             'draft-1',
         ]);
@@ -403,10 +409,10 @@ describe('предложение восстановить черновик', () 
         (await deferred.waitFor('/api/bricks/2/')).resolve(pageB);
         await openingB;
         expect(context.session.isDraftRestorePending.value).toBe(true);
-        expect(getBuilderDraft('page-b')).not.toBeNull();
+        expect(getBuilderDraft(bareAddress('page-b'))).not.toBeNull();
 
         context.session.handleDiscardDraft();
-        expect(getBuilderDraft('page-b')).toBeNull();
+        expect(getBuilderDraft(bareAddress('page-b'))).toBeNull();
     });
 
     it('ответ одноразовый: второй клик по уезжающей модалке ничего не делает', async () => {
@@ -419,7 +425,7 @@ describe('предложение восстановить черновик', () 
         serverPages = [pageA];
         seedDraft('page-a', 1, 'draft-1');
 
-        await context.session.openBuilderSession('page-a');
+        await context.session.openBuilderSession(bareAddress('page-a'));
         context.session.openRestoreDraftModal();
         context.session.handleRestoreDraft();
         expect(componentsStore.components.map((component) => component.id)).toEqual(['draft-1']);
@@ -428,7 +434,7 @@ describe('предложение восстановить черновик', () 
         // восстановленный черновик, ни тронуть канвас
         context.session.handleDiscardDraft();
 
-        expect(getBuilderDraft('page-a')).not.toBeNull();
+        expect(getBuilderDraft(bareAddress('page-a'))).not.toBeNull();
         expect(componentsStore.components.map((component) => component.id)).toEqual(['draft-1']);
     });
 
@@ -442,13 +448,13 @@ describe('предложение восстановить черновик', () 
         serverPages = [pageA];
         seedDraft('page-a', 1, 'draft-1');
 
-        await context.session.openBuilderSession('page-a');
+        await context.session.openBuilderSession(bareAddress('page-a'));
         expect(context.session.isDraftRestorePending.value).toBe(true);
 
         // Уже начатое сохранение доезжает и переносит сессию (renameSession зовут
         // напрямую и save, и Save as Copy) — поколение при этом не меняется, а
         // migrateBuilderDraft уже унёс запись под новый ключ
-        await context.pagename.renameSession('renamed-page');
+        await context.address.renameSession(bareAddress('renamed-page'));
         await nextTick();
 
         // Предложение снято: отвечать больше не на что. Снято именно снятием, а не
@@ -461,7 +467,7 @@ describe('предложение восстановить черновик', () 
         context.session.handleDiscardDraft();
         context.session.handleRestoreDraft();
 
-        const migrated = getBuilderDraft('renamed-page');
+        const migrated = getBuilderDraft(bareAddress('renamed-page'));
         expect(migrated?.pageId).toBe(1);
         expect(migrated?.draftSnapshot.schema.components.map((item) => item.id)).toEqual([
             'draft-1',

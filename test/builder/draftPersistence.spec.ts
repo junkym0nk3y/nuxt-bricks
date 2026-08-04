@@ -15,6 +15,7 @@ import type { IBuilderContext, IWindowStub } from '../helpers/types';
 // Utils
 import {
     AUTOSAVE_DEBOUNCE_MS,
+    bareAddress,
     createWindowStub,
     mountBuilderContext,
 } from '../helpers/builderSessionHarness';
@@ -149,7 +150,7 @@ describe('черновик билдера: автосейв и сброс при
         const context = mountTracked();
         const publishStore = usePublishStore();
 
-        await context.session.openBuilderSession('draft-page');
+        await context.session.openBuilderSession(bareAddress('draft-page'));
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
 
         publishStore.setCurrentFormField('title', 'Правка перед reload');
@@ -158,25 +159,25 @@ describe('черновик билдера: автосейв и сброс при
         // Половина окна debounce: таймер ещё тикает, и раньше такая правка гибла
         // вместе со страницей
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS / 2);
-        expect(getBuilderDraft('draft-page')?.draftSnapshot.formState.title).not.toBe(
+        expect(getBuilderDraft(bareAddress('draft-page'))?.draftSnapshot.formState.title).not.toBe(
             'Правка перед reload'
         );
 
         windowStub.dispatchEvent({ type: 'pagehide' });
-        const flushed = getBuilderDraft('draft-page');
+        const flushed = getBuilderDraft(bareAddress('draft-page'));
         expect(flushed?.draftSnapshot.formState.title).toBe('Правка перед reload');
 
         // Сброс снял таймер: повторной записи по истечении debounce нет. Сверяем
         // updatedAt, а не title — при повторном сохранении содержимое совпало бы
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
-        expect(getBuilderDraft('draft-page')?.updatedAt).toBe(flushed?.updatedAt);
+        expect(getBuilderDraft(bareAddress('draft-page'))?.updatedAt).toBe(flushed?.updatedAt);
     });
 
     it('pagehide в окне debounce истории: правка пропса не теряется', async () => {
         const context = mountTracked();
         const componentsStore = useComponentsStore();
 
-        await context.session.openBuilderSession('draft-page');
+        await context.session.openBuilderSession(bareAddress('draft-page'));
         componentsStore.loadSchema({ components: [buildComponent()] }, { resetHistory: true });
         await nextTick();
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
@@ -186,25 +187,27 @@ describe('черновик билдера: автосейв и сброс при
         // автосейва не срабатывал, таймера нет — но снимок уже другой
         componentsStore.updateComponentProp('c1', 'text', 'Новое значение');
         await nextTick();
-        expect(getBuilderDraft('draft-page')?.draftSnapshot.schema.components[0]?.props.text).toBe(
-            'Исходное значение'
-        );
+        expect(
+            getBuilderDraft(bareAddress('draft-page'))?.draftSnapshot.schema.components[0]?.props
+                .text
+        ).toBe('Исходное значение');
 
         windowStub.dispatchEvent({ type: 'pagehide' });
-        expect(getBuilderDraft('draft-page')?.draftSnapshot.schema.components[0]?.props.text).toBe(
-            'Новое значение'
-        );
+        expect(
+            getBuilderDraft(bareAddress('draft-page'))?.draftSnapshot.schema.components[0]?.props
+                .text
+        ).toBe('Новое значение');
     });
 
     it('pagehide после сохранения черновик не воскрешает', async () => {
         const context = mountTracked();
         const publishStore = usePublishStore();
 
-        await context.session.openBuilderSession('draft-page');
+        await context.session.openBuilderSession(bareAddress('draft-page'));
         publishStore.setCurrentFormField('title', 'Несохранённое');
         await nextTick();
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
-        expect(getBuilderDraft('draft-page')).not.toBeNull();
+        expect(getBuilderDraft(bareAddress('draft-page'))).not.toBeNull();
 
         // Успешное сохранение: страница появилась на сервере, черновик снят.
         // Фиксацию зовёт сам сохраняющий (useBuilderPage), сверив токен сессии, —
@@ -213,18 +216,19 @@ describe('черновик билдера: автосейв и сброс при
         publishStore.startEditingPage(5);
         context.session.commitSavedSnapshot(context.sessionToken.capture());
         await nextTick();
-        expect(getBuilderDraft('draft-page')).toBeNull();
+        expect(getBuilderDraft(bareAddress('draft-page'))).toBeNull();
 
         // Закрытие вкладки сразу после сохранения: сброс идёт через persistDraftNow,
         // то есть сверяется с savedSnapshot, а не пишет черновик мимо guard'ов
         windowStub.dispatchEvent({ type: 'pagehide' });
-        expect(getBuilderDraft('draft-page')).toBeNull();
+        expect(getBuilderDraft(bareAddress('draft-page'))).toBeNull();
     });
 
     it('pagehide после ошибки открытия сессии не затирает черновик', async () => {
         // Валидный черновик в localStorage до открытия сессии
         setBuilderDraft({
             pagename: 'draft-page',
+            urlPrefix: null,
             updatedAt: '2026-07-28T10:00:00.000Z',
             mode: 'new',
             draftSnapshot: {
@@ -238,12 +242,12 @@ describe('черновик билдера: автосейв и сброс при
 
         // Bootstrap падает на загрузке списка страниц: isSessionLoading снимается
         // в finally, а на канвасе и в форме остаются дефолты
-        await context.session.openBuilderSession('draft-page');
+        await context.session.openBuilderSession(bareAddress('draft-page'));
         expect(context.session.isSessionReady.value).toBe(false);
 
         windowStub.dispatchEvent({ type: 'pagehide' });
 
-        const draft = getBuilderDraft('draft-page');
+        const draft = getBuilderDraft(bareAddress('draft-page'));
         expect(draft?.updatedAt).toBe('2026-07-28T10:00:00.000Z');
         expect(draft?.draftSnapshot.formState.title).toBe('Ценная работа');
     });
@@ -252,7 +256,7 @@ describe('черновик билдера: автосейв и сброс при
         const context = mountTracked();
         const publishStore = usePublishStore();
 
-        await context.session.openBuilderSession('draft-page');
+        await context.session.openBuilderSession(bareAddress('draft-page'));
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
 
         publishStore.setCurrentFormField('title', 'Ушёл на дашборд');
@@ -261,7 +265,7 @@ describe('черновик билдера: автосейв и сброс при
         // SPA-навигация: pagehide не приходит, страница размонтируется
         context.scope.stop();
 
-        expect(getBuilderDraft('draft-page')?.draftSnapshot.formState.title).toBe(
+        expect(getBuilderDraft(bareAddress('draft-page'))?.draftSnapshot.formState.title).toBe(
             'Ушёл на дашборд'
         );
     });
@@ -270,7 +274,7 @@ describe('черновик билдера: автосейв и сброс при
         const context = mountTracked();
         const publishStore = usePublishStore();
 
-        await context.session.openBuilderSession('draft-page');
+        await context.session.openBuilderSession(bareAddress('draft-page'));
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
 
         publishStore.setCurrentFormField('title', 'Правка страницы A');
@@ -282,13 +286,13 @@ describe('черновик билдера: автосейв и сброс при
         routerBridge.route.params.pagename = 'other-page';
         await nextTick();
 
-        expect(getBuilderDraft('draft-page')?.draftSnapshot.formState.title).toBe(
+        expect(getBuilderDraft(bareAddress('draft-page'))?.draftSnapshot.formState.title).toBe(
             'Правка страницы A'
         );
 
         // Отложенный таймер прежней страницы снят: содержимое A в черновик B не уедет
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
-        expect(getBuilderDraft('other-page')?.draftSnapshot.formState.title).not.toBe(
+        expect(getBuilderDraft(bareAddress('other-page'))?.draftSnapshot.formState.title).not.toBe(
             'Правка страницы A'
         );
     });
@@ -298,7 +302,7 @@ describe('черновик билдера: автосейв и сброс при
         const componentsStore = useComponentsStore();
         const historyStore = useHistoryStore();
 
-        await context.session.openBuilderSession('draft-page');
+        await context.session.openBuilderSession(bareAddress('draft-page'));
         componentsStore.loadSchema({ components: [buildComponent()] }, { resetHistory: true });
         await nextTick();
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
@@ -320,24 +324,25 @@ describe('черновик билдера: автосейв и сброс при
         // в черновик на нём, а не на собственном capture за лимитом
         await nextTick();
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
-        const settledAt = getBuilderDraft('draft-page')?.updatedAt;
+        const settledAt = getBuilderDraft(bareAddress('draft-page'))?.updatedAt;
 
         componentsStore.updateComponentProp('c1', 'text', 'После лимита');
         await vi.advanceTimersByTimeAsync(PROP_HISTORY_DEBOUNCE_MS);
         await nextTick();
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
 
-        expect(getBuilderDraft('draft-page')?.draftSnapshot.schema.components[0]?.props.text).toBe(
-            'После лимита'
-        );
-        expect(getBuilderDraft('draft-page')?.updatedAt).not.toBe(settledAt);
+        expect(
+            getBuilderDraft(bareAddress('draft-page'))?.draftSnapshot.schema.components[0]?.props
+                .text
+        ).toBe('После лимита');
+        expect(getBuilderDraft(bareAddress('draft-page'))?.updatedAt).not.toBe(settledAt);
     });
 
     it('слушатель pagehide снимается вместе со scope страницы', async () => {
         const addSpy = vi.spyOn(windowStub, 'addEventListener');
         const context = mountTracked();
 
-        await context.session.openBuilderSession('draft-page');
+        await context.session.openBuilderSession(bareAddress('draft-page'));
 
         const registration = addSpy.mock.calls.find(([type]) => type === 'pagehide');
         expect(registration).toBeDefined();

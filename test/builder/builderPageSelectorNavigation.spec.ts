@@ -13,8 +13,10 @@ import type {
     IBuilderSessionToken,
     IUseBuilderPageSelectorReturn,
 } from '../../src/runtime/modules/builder/app/types/composables';
+import type { IBricksPageAddress } from '../../src/runtime/modules/common/types/pageAddress';
 
 // Utils
+import { bareAddress } from '../helpers/builderSessionHarness';
 import { createPageBuilder } from '../helpers/publishFixtures';
 // #endregion
 
@@ -72,7 +74,7 @@ function createSessionTokenStub(): IBuilderSessionToken {
 
 describe('селектор страниц: переход и догрузка списка', () => {
     let showToastMock: ReturnType<typeof vi.fn>;
-    let routePagename: Ref<string>;
+    let routeAddress: Ref<IBricksPageAddress>;
     let sessionPageId: Ref<string | number | null>;
     let sessionToken: IBuilderSessionToken;
 
@@ -82,7 +84,7 @@ describe('селектор страниц: переход и догрузка с
         apiFetcherMock.mockReset();
         apiFetcherMock.mockResolvedValue([]);
         showToastMock = vi.fn();
-        routePagename = ref('home');
+        routeAddress = ref<IBricksPageAddress>(bareAddress('home'));
         sessionPageId = ref<string | number | null>(1);
         sessionToken = createSessionTokenStub();
     });
@@ -97,7 +99,7 @@ describe('селектор страниц: переход и догрузка с
         const selector = scope.run(() =>
             useBuilderPageSelector({
                 sessionPageId,
-                routePagename: computed(() => routePagename.value),
+                routeAddress: computed(() => routeAddress.value),
                 sessionToken,
                 showToast: showToastMock,
             })
@@ -126,6 +128,20 @@ describe('селектор страниц: переход и догрузка с
         });
     });
 
+    it('одноимённая страница под другим префиксом — обычный переход, а не «та же»', async () => {
+        const selector = mountSelector();
+
+        await selector.handleSelectPage(buildPage({ id: 2, pagename: 'home', urlPrefix: 'blog' }));
+
+        // Сравнение по имени приняло бы её за открытую страницу и показало бы
+        // сообщение о подмене вместо перехода
+        expect(showToastMock).not.toHaveBeenCalled();
+        expect(routerMock.push).toHaveBeenCalledWith({
+            name: 'bricks-builder-pagename-prefixed',
+            params: { pagename: 'home', urlPrefix: ['blog'] },
+        });
+    });
+
     it('страница по тому же адресу, но с другим id, не подменяет содержимое молча', async () => {
         const selector = mountSelector();
 
@@ -150,7 +166,7 @@ describe('селектор страниц: переход и догрузка с
         // Переход на другую страницу билдера, пока модалка ждала ответа сервера
         sessionToken.invalidate();
 
-        await selector.handlePageCreated('fresh-page');
+        await selector.handlePageCreated(bareAddress('fresh-page'));
 
         expect(routerMock.push).not.toHaveBeenCalled();
         expect(selector.isCreatePageModalOpen.value).toBe(false);
@@ -164,11 +180,25 @@ describe('селектор страниц: переход и догрузка с
         const selector = mountSelector();
 
         selector.handleOpenCreatePage();
-        await selector.handlePageCreated('fresh-page');
+        await selector.handlePageCreated(bareAddress('fresh-page'));
 
         expect(routerMock.push).toHaveBeenCalledWith({
             name: 'bricks-builder-pagename',
             params: { pagename: 'fresh-page' },
+        });
+    });
+
+    it('созданная страница с префиксом открывается на prefixed-маршруте редактора', async () => {
+        const selector = mountSelector();
+
+        selector.handleOpenCreatePage();
+        await selector.handlePageCreated({ pagename: 'post', urlPrefix: 'blog' });
+
+        // Bare-маршрут открыл бы `<builderPrefix>/post` — либо чужую одноимённую
+        // страницу, либо пустую форму новой
+        expect(routerMock.push).toHaveBeenCalledWith({
+            name: 'bricks-builder-pagename-prefixed',
+            params: { pagename: 'post', urlPrefix: ['blog'] },
         });
     });
 

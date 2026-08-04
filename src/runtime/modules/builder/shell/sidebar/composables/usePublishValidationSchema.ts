@@ -30,8 +30,8 @@ export function usePublishValidationSchema() {
         t: (key) => t(key),
         isPageAddressFree,
         isEditorAddressFree,
-        isPagenameAvailable: (pagename, excludeId) =>
-            publishStore.isPagenameAvailable(pagename, excludeId),
+        isAddressAvailable: (address, excludeId) =>
+            publishStore.isAddressAvailable(address, excludeId),
         getExcludeId: () => publishStore.editingPageId ?? undefined,
     });
 

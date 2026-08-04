@@ -25,7 +25,7 @@ vi.mock('nitropack/runtime', () => ({
 
 import { createPostgresStorageAdapter } from '../../src/runtime/modules/persistence/server/postgres/postgresStorageAdapter';
 import {
-    BricksPagenameConflictError,
+    BricksPageAddressConflictError,
     BricksRevisionConflictError,
 } from '../../src/runtime/modules/persistence/server/utils/storageErrors';
 
@@ -82,14 +82,14 @@ describe('postgresStorageAdapter: конфликты и RETURNING-мутации
         expect(getSql).toContain('schema');
     });
 
-    it('createPage: unique_violation → BricksPagenameConflictError (гонка create)', async () => {
+    it('createPage: unique_violation → BricksPageAddressConflictError (гонка create)', async () => {
         queryOneMock.mockRejectedValueOnce(makeUniqueViolation());
 
         const adapter = createPostgresStorageAdapter();
 
         await expect(
             adapter.createPage({ pagename: 'landing', schema: { components: [] } })
-        ).rejects.toBeInstanceOf(BricksPagenameConflictError);
+        ).rejects.toBeInstanceOf(BricksPageAddressConflictError);
     });
 
     it('updatePage без schema: UPDATE с RETURNING, без pre-SELECT', async () => {
@@ -184,14 +184,47 @@ describe('postgresStorageAdapter: конфликты и RETURNING-мутации
         expect(snapshotSql).toContain('INSERT INTO bricks_page_versions');
     });
 
-    it('updatePage: занятый pagename → BricksPagenameConflictError', async () => {
-        queryMock.mockRejectedValueOnce(makeUniqueViolation());
-
+    it('updatePage: занятый адрес → BricksPageAddressConflictError по любому полю пары', async () => {
         const adapter = createPostgresStorageAdapter();
 
+        queryMock.mockRejectedValueOnce(makeUniqueViolation());
         await expect(adapter.updatePage(1, { pagename: 'taken' })).rejects.toBeInstanceOf(
-            BricksPagenameConflictError
+            BricksPageAddressConflictError
         );
+
+        // PATCH одного префикса собирает занятую пару так же, как переименование:
+        // с проверкой только по `pagename` такой конфликт уходил наружу драйверной
+        // ошибкой и превращался в 500 вместо 409
+        queryMock.mockRejectedValueOnce(makeUniqueViolation());
+        await expect(adapter.updatePage(1, { urlPrefix: 'blog' })).rejects.toBeInstanceOf(
+            BricksPageAddressConflictError
+        );
+    });
+
+    it('getPageByAddress: точные условия составного индекса, а не Filter по префиксу', async () => {
+        const adapter = createPostgresStorageAdapter();
+
+        queryOneMock.mockResolvedValueOnce(null);
+        await adapter.getPageByAddress({ pagename: 'post', urlPrefix: null });
+
+        // Отсутствие префикса — значение, а не «любой префикс»: `/post` не должен
+        // находиться по адресу `/blog/post` и наоборот
+        const [bareSql, bareParams] = queryOneMock.mock.calls[0] as [string, unknown[]];
+        expect(bareSql).toContain('url_prefix IS NULL');
+        expect(bareParams).toEqual(['post']);
+
+        queryOneMock.mockResolvedValueOnce(null);
+        await adapter.getPageByAddress({ pagename: 'post', urlPrefix: ' blog ' });
+
+        // Равенство, а не `IS NOT DISTINCT FROM`: второе индексируется только по
+        // ведущей колонке, и префикс уходит в Filter — на масштабе, который эта
+        // фича и создаёт (один слаг под многими префиксами), это сотни лишних
+        // buffer hits на каждый SSR-визит
+        const [prefixedSql, prefixedParams] = queryOneMock.mock.calls[1] as [string, unknown[]];
+        expect(prefixedSql).toContain('url_prefix = $2');
+        expect(prefixedSql).not.toContain('IS NOT DISTINCT FROM');
+        // Префикс нормализован: пробельное значение не создаёт второго адреса
+        expect(prefixedParams).toEqual(['post', 'blog']);
     });
 
     it('deletePage/deleteMedia: DELETE ... RETURNING вместо SELECT-then-DELETE', async () => {

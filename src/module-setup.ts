@@ -155,6 +155,11 @@ export function registerBricksPages(pages: NuxtPage[], context: IBricksRegistrat
     const { resolve, runtimeDir, surfaces } = context;
     const { routePrefixes, isBuilderEnabled, arePublishedPagesEnabled } = surfaces;
 
+    // Одна страница на пару адресных маршрутов (с префиксом и без): различаются
+    // они только формой пути, а поведение у них одно
+    const builderPageFile = resolve(runtimeDir, 'modules/builder/app/pages/[pagename].vue');
+    const renderPageFile = resolve(runtimeDir, 'modules/render/pages/[pagename].vue');
+
     if (isBuilderEnabled) {
         pages.unshift(
             {
@@ -179,17 +184,40 @@ export function registerBricksPages(pages: NuxtPage[], context: IBricksRegistrat
                     },
                     {
                         name: BRICKS_ROUTE_NAMES.builderPage,
-                        path: ':pagename',
-                        file: resolve(runtimeDir, 'modules/builder/app/pages/[pagename].vue'),
+                        path: `:pagename(${PAGE_ROUTE_SEGMENT})`,
+                        file: builderPageFile,
+                    },
+                    {
+                        // Адрес редактора повторяет адрес страницы: имя уникально
+                        // только внутри своего префикса, и у `/blog/post` с
+                        // `/news/post` редакторы обязаны различаться.
+                        //
+                        // Отдельная запись, а не `:urlPrefix*` в предыдущей:
+                        // repeatable-параметр опциональным сделать нельзя, не
+                        // проиграв ранжирование статическим детям префикса —
+                        // `:urlPrefix*` матчит и пустой остаток, то есть перехватил
+                        // бы `<builderPrefix>/bricks-login` и страницу логина.
+                        // Regex-сегменты сужают перехват до валидных адресов.
+                        name: BRICKS_ROUTE_NAMES.builderPagePrefixed,
+                        path: `:urlPrefix(${PAGE_ROUTE_SEGMENT})+/:pagename(${PAGE_ROUTE_SEGMENT})`,
+                        file: builderPageFile,
                     },
                 ],
             },
             {
-                // Превью-режим определяется именем этого роута (bricks-preview),
-                // query ?preview=true больше не используется.
+                // Превью-режим определяется именем роута (bricks-preview,
+                // bricks-preview-prefixed), query ?preview=true не используется.
                 name: BRICKS_ROUTE_NAMES.preview,
-                path: `${routePrefixes.previewPrefix}/:pagename`,
-                file: resolve(runtimeDir, 'modules/render/pages/[pagename].vue'),
+                path: `${routePrefixes.previewPrefix}/:pagename(${PAGE_ROUTE_SEGMENT})`,
+                file: renderPageFile,
+            },
+            {
+                // Превью открывается из редактора конкретной страницы, поэтому его
+                // адрес тоже полный: по одному имени кнопка «Превью» у `/news/post`
+                // открывала бы вкладку, которую билдер наполняет схемой `/blog/post`
+                name: BRICKS_ROUTE_NAMES.previewPrefixed,
+                path: `${routePrefixes.previewPrefix}/:urlPrefix(${PAGE_ROUTE_SEGMENT})+/:pagename(${PAGE_ROUTE_SEGMENT})`,
+                file: renderPageFile,
             }
         );
     }
@@ -203,18 +231,17 @@ export function registerBricksPages(pages: NuxtPage[], context: IBricksRegistrat
     // vue-router; корневой динамический маршрут потребителя без custom
     // regex (pages/[slug].vue) проиграет — задокументировано в README.
     if (arePublishedPagesEnabled) {
-        const publishedPageFile = resolve(runtimeDir, 'modules/render/pages/[pagename].vue');
         pages.push(
             {
                 name: BRICKS_ROUTE_NAMES.page,
                 path: `/:pagename(${PAGE_ROUTE_SEGMENT})`,
-                file: publishedPageFile,
+                file: renderPageFile,
                 meta: { isPublishedBricksPage: true },
             },
             {
                 name: BRICKS_ROUTE_NAMES.pagePrefixed,
                 path: `/:urlPrefix(${PAGE_ROUTE_SEGMENT})+/:pagename(${PAGE_ROUTE_SEGMENT})`,
-                file: publishedPageFile,
+                file: renderPageFile,
                 meta: { isPublishedBricksPage: true },
             }
         );

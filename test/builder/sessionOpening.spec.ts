@@ -15,7 +15,8 @@ import type { IBuilderContext, IDeferredApi } from '../helpers/types';
 
 // Utils
 import {
-    PAGENAME_SYNC_DEBOUNCE_MS,
+    ADDRESS_SYNC_DEBOUNCE_MS,
+    bareAddress,
     createDeferredApi,
     createWindowStub,
     mountBuilderContext,
@@ -173,9 +174,9 @@ describe('открытие сессии билдера: гонка перекл�
 
         // Второе открытие — после того как первое дошло до запроса схемы: до него
         // вытесненное открытие выходит само, увидев чужое поколение
-        const openingA = context.session.openBuilderSession('page-a');
+        const openingA = context.session.openBuilderSession(bareAddress('page-a'));
         const schemaForA = await deferred.waitFor('/api/bricks/1/');
-        const openingB = context.session.openBuilderSession('page-b');
+        const openingB = context.session.openBuilderSession(bareAddress('page-b'));
 
         // Ответы в обратном порядке: актуальное открытие доезжает первым, вытесненное — после
         (await deferred.waitFor('/api/bricks/2/')).resolve(pageB);
@@ -183,7 +184,7 @@ describe('открытие сессии билдера: гонка перекл�
         schemaForA.resolve(pageA);
         await openingA;
 
-        expect(context.pagename.sessionPagename.value).toBe('page-b');
+        expect(context.address.sessionAddress.value).toEqual(bareAddress('page-b'));
         expect(publishStore.editingPageId).toBe(2);
         expect(publishStore.currentFormState.pagename).toBe('page-b');
         expect(componentsStore.components.map((component) => component.id)).toEqual(['b1']);
@@ -201,8 +202,8 @@ describe('открытие сессии билдера: гонка перекл�
         // Список страниц не загружен — bootstrap начинается с его запроса
         deferredUrls = ['/api/bricks/'];
 
-        const openingA = context.session.openBuilderSession('page-a');
-        const openingB = context.session.openBuilderSession('page-b');
+        const openingA = context.session.openBuilderSession(bareAddress('page-a'));
+        const openingB = context.session.openBuilderSession(bareAddress('page-b'));
 
         // Запрос один на оба открытия: список — общий кеш, и второе открытие ждёт
         // уже летящий запрос вместо своего
@@ -226,9 +227,9 @@ describe('открытие сессии билдера: гонка перекл�
         serverPages = [pageA, pageB];
         deferredUrls = ['/api/bricks/1/', '/api/bricks/2/'];
 
-        const openingA = context.session.openBuilderSession('page-a');
+        const openingA = context.session.openBuilderSession(bareAddress('page-a'));
         const schemaForA = await deferred.waitFor('/api/bricks/1/');
-        const openingB = context.session.openBuilderSession('page-b');
+        const openingB = context.session.openBuilderSession(bareAddress('page-b'));
 
         schemaForA.reject(new Error('Network down'));
         await openingA;
@@ -250,7 +251,7 @@ describe('открытие сессии билдера: гонка перекл�
         const context = mountTracked();
         apiFetcherMock.mockRejectedValue(new Error('Network down'));
 
-        await context.session.openBuilderSession('page-a');
+        await context.session.openBuilderSession(bareAddress('page-a'));
 
         // Редактор без этого состояния выглядит рабочим, хотя автосейв отклоняет
         // всё по !isSessionReady — правки терялись молча
@@ -270,7 +271,7 @@ describe('открытие сессии билдера: гонка перекл�
         serverPages = [pageA, pageB];
         deferredUrls = ['/api/bricks/1/'];
 
-        const openingA = context.session.openBuilderSession('page-a');
+        const openingA = context.session.openBuilderSession(bareAddress('page-a'));
         const schemaForA = await deferred.waitFor('/api/bricks/1/');
 
         // Уход на дашборд: страница билдера размонтирована, но запрос схемы летит,
@@ -279,7 +280,7 @@ describe('открытие сессии билдера: гонка перекл�
 
         // Возврат в редактор другой страницы — новый экземпляр composables, те же сторы
         const reopened = mountTracked();
-        await reopened.session.openBuilderSession('page-b');
+        await reopened.session.openBuilderSession(bareAddress('page-b'));
 
         schemaForA.resolve(pageA);
         await openingA;
@@ -296,7 +297,7 @@ describe('открытие сессии билдера: гонка перекл�
         const pageB = buildPageWithComponent(2, 'page-b', 'b1');
         seedLoadedPages(publishStore, [pageA, pageB]);
         serverPages = [pageA, pageB];
-        await context.session.openBuilderSession('page-a');
+        await context.session.openBuilderSession(bareAddress('page-a'));
 
         // Сохранение страницы A: PUT ушёл и ответа ещё нет
         deferredUrls = ['/api/bricks/1/'];
@@ -308,7 +309,7 @@ describe('открытие сессии билдера: гонка перекл�
         // «записью текущей страницы» — иначе B открылась бы с заблокированным
         // сохранением и индикатором чужой операции
         deferredUrls = [];
-        await context.session.openBuilderSession('page-b');
+        await context.session.openBuilderSession(bareAddress('page-b'));
 
         expect(publishStore.isSubmitting).toBe(false);
 
@@ -328,7 +329,7 @@ describe('открытие сессии билдера: гонка перекл�
         serverPages = [pageA];
         deferredUrls = ['/api/bricks/'];
 
-        const opening = context.session.openBuilderSession('page-a');
+        const opening = context.session.openBuilderSession(bareAddress('page-a'));
 
         // Правка pagename в сайдбаре, пока список ещё грузится: лоадер закрывает
         // только канвас и прячется через один цикл анимации, панели интерактивны.
@@ -336,10 +337,10 @@ describe('открытие сессии билдера: гонка перекл�
         // незавершённый bootstrap применил бы прежнюю страницу под новым ключом
         publishStore.setCurrentFormField('pagename', 'typed-name');
         await nextTick();
-        await vi.advanceTimersByTimeAsync(PAGENAME_SYNC_DEBOUNCE_MS);
+        await vi.advanceTimersByTimeAsync(ADDRESS_SYNC_DEBOUNCE_MS);
 
         expect(routerBridge.replace).not.toHaveBeenCalled();
-        expect(context.pagename.sessionPagename.value).toBe('page-a');
+        expect(context.address.sessionAddress.value).toEqual(bareAddress('page-a'));
 
         (await deferred.waitFor('/api/bricks/')).resolve([pageA]);
         await opening;
@@ -356,7 +357,7 @@ describe('открытие сессии билдера: гонка перекл�
         // прячется сам через один цикл анимации — без таймаута щит остался бы навсегда
         deferredUrls = ['/api/bricks/'];
 
-        const opening = context.session.openBuilderSession('page-a');
+        const opening = context.session.openBuilderSession(bareAddress('page-a'));
         await vi.advanceTimersByTimeAsync(SESSION_BOOTSTRAP_TIMEOUT_MS);
         await opening;
 
@@ -387,7 +388,7 @@ describe('открытие сессии билдера: гонка перекл�
         // Падает только первый запрос списка, дальше сервер отвечает штатно
         apiFetcherMock.mockRejectedValueOnce(new Error('Network down'));
 
-        await context.session.openBuilderSession('page-a');
+        await context.session.openBuilderSession(bareAddress('page-a'));
         expect(context.session.sessionError.value).not.toBeNull();
 
         await context.session.retryBuilderSession();

@@ -4,6 +4,7 @@
 
 import type { IPageVersionSummary, TPublishedPageSummary } from '../../../common/types/bricks-api';
 import type { IBricksSchema } from '../../../common/types/brick';
+import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 import type { IParsedSchemaFile } from './composables';
 
 export type TPublishDashboardSection = 'pages' | 'templates';
@@ -112,7 +113,13 @@ export interface IPublishPageFormOptions {
 }
 
 export interface IPublishCreatePageFormOptions {
-    onCreated: (pagename: string) => void;
+    /**
+     * Созданная страница — адресом, а не одним именем: вызывающий уводит в её
+     * редактор, а адрес редактора включает префикс. По одному имени переход
+     * открывал бы `<builderPrefix>/<pagename>` — либо чужую одноимённую
+     * страницу, либо пустую форму новой.
+     */
+    onCreated: (address: IBricksPageAddress) => void;
     /**
      * Отдаёт схему новой страницы: пустой холст либо разобранный JSON-файл,
      * прогнанный через резолвер картинок. `null` — создание отменено (резолвер
@@ -137,7 +144,7 @@ export interface IPublishCreatePageModalProps {
 
 export interface IPublishCreatePageModalEmits {
     close: [];
-    created: [pagename: string];
+    created: [address: IBricksPageAddress];
 }
 
 export interface IPublishDetailsPanelProps {

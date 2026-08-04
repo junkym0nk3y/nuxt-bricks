@@ -108,10 +108,16 @@ describe('usePublishStore: создание страницы и URL превью
         expect(body.body.published).toBe(false);
     });
 
-    it('generatePreviewUrl ведёт на превью-роут <previewPrefix>/[pagename] без query', () => {
+    it('generatePreviewUrl ведёт на превью-роут <previewPrefix>/<адрес> без query', () => {
         const { generatePreviewUrl } = usePublishPreview();
+        const landing = { pagename: 'landing', urlPrefix: null };
 
-        expect(generatePreviewUrl('landing')).toBe('/bricks-preview/landing');
-        expect(generatePreviewUrl('landing')).not.toContain('?preview');
+        expect(generatePreviewUrl(landing)).toBe('/bricks-preview/landing');
+        expect(generatePreviewUrl(landing)).not.toContain('?preview');
+        // Превью открывается из редактора конкретной страницы, поэтому его адрес
+        // тоже полный: иначе кнопка у `/news/post` открывала бы вкладку `/blog/post`
+        expect(generatePreviewUrl({ pagename: 'post', urlPrefix: 'blog' })).toBe(
+            '/bricks-preview/blog/post'
+        );
     });
 });

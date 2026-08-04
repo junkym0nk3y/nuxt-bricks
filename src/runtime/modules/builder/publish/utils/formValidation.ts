@@ -1,7 +1,9 @@
 import type { Composer } from 'vue-i18n';
 import { useNuxtApp } from '#imports';
 import type { TPublishFormState } from '../../../common/types/bricks-api';
+import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 import type { IPublishFormValidationResult, IRequiredTextRule } from '../types/validation';
+import { toPageAddress } from '../../../common/utils/bricks/pageAddress';
 import {
     DESCRIPTION_MAX_LENGTH,
     DESCRIPTION_MIN_LENGTH,
@@ -49,24 +51,23 @@ function validateRequiredText(value: string | null | undefined, rule: IRequiredT
 }
 
 /**
- * Проверяет pagename: непустота, формат, границы длины, доступность адресов и
- * занятость другой страницей.
+ * Проверяет pagename: непустота, формат, границы длины и доступность адресов.
  *
  * Адреса проверяются по роутингу приложения, а не по списку имён. Проверка нужна
  * и здесь, хотя её держит yup-схема формы: этот валидатор стоит последним гейтом
  * перед записью, и форма ему не единственный источник — состояние приходит и из
  * черновика localStorage, минуя поля с их схемой.
  *
- * @param pagename - Уже обрезанное значение.
- * @param urlPrefix - Нормализованный urlPrefix (null — без префикса).
- * @param isPagenameAvailable - Проверка, свободен ли pagename.
+ * Занятость адреса другой страницей проверяется не здесь, а отдельно
+ * (`validateAddressUniqueness`): она принадлежит паре целиком, и её ошибка
+ * садится на то поле, которым пользователь адрес и разведёт.
+ *
+ * @param address - Нормализованный адрес страницы.
  * @returns Текст ошибки либо пустая строка.
  */
-function validatePagename(
-    pagename: string,
-    urlPrefix: string | null,
-    isPagenameAvailable: (pagename: string) => boolean
-): string {
+function validatePagename(address: IBricksPageAddress): string {
+    const { pagename } = address;
+
     if (!pagename) {
         return t('bricks.publish.validation.pagenameRequired');
     }
@@ -85,20 +86,43 @@ function validatePagename(
 
     const { isPageAddressFree, isEditorAddressFree } = useBricksPageAddress();
 
-    if (!isEditorAddressFree(pagename)) {
+    if (!isEditorAddressFree(address)) {
         return t('bricks.publish.validation.pagenameEditorTaken');
     }
 
     // С префиксом за адрес отвечает поле urlPrefix — ошибка ставится там
-    if (!urlPrefix && !isPageAddressFree(null, pagename)) {
+    if (address.urlPrefix === null && !isPageAddressFree(address)) {
         return t('bricks.publish.validation.pagenameAddressTaken');
     }
 
-    if (!isPagenameAvailable(pagename)) {
-        return t('bricks.publish.validation.pagenameTaken');
+    return '';
+}
+
+/**
+ * Ставит ошибку занятого адреса на то поле, которым его и разводят: с префиксом
+ * — на `urlPrefix`, без него — на `pagename`. Та же конвенция, что у yup-схемы и
+ * у адреса, занятого роутингом приложения.
+ *
+ * @param address - Нормализованный адрес страницы.
+ * @param isAddressAvailable - Проверка, свободен ли адрес у других страниц.
+ * @param errors - Аккумулятор ошибок (мутируется).
+ */
+function validateAddressUniqueness(
+    address: IBricksPageAddress,
+    isAddressAvailable: (address: IBricksPageAddress) => boolean,
+    errors: Record<string, string>
+): void {
+    if (!address.pagename || isAddressAvailable(address)) {
+        return;
     }
 
-    return '';
+    const field = address.urlPrefix === null ? 'pagename' : 'urlPrefix';
+
+    // Уже стоящую ошибку не затираем: формат и границы объясняют поле точнее,
+    // чем занятость пары, собранной из невалидного значения
+    if (!errors[field]) {
+        errors[field] = t('bricks.publish.validation.addressTaken');
+    }
 }
 
 /**
@@ -115,7 +139,9 @@ function validateOptionalRoutingFields(
         errors.urlPrefix = t('bricks.publish.validation.urlPrefixFormat');
     } else if (
         formState.urlPrefix &&
-        !useBricksPageAddress().isPageAddressFree(formState.urlPrefix, formState.pagename)
+        !useBricksPageAddress().isPageAddressFree(
+            toPageAddress(formState.pagename, formState.urlPrefix)
+        )
     ) {
         // Адрес пары urlPrefix+pagename занят в роутинге приложения: сохранённая
         // страница по нему уже не откроется
@@ -137,12 +163,12 @@ function validateOptionalRoutingFields(
  * проходило: две проверки жили каждая со своим набором правил.
  *
  * @param formState - Текущее состояние формы.
- * @param isPagenameAvailable - Проверка, свободен ли `pagename` (с учётом редактируемой страницы).
+ * @param isAddressAvailable - Проверка, свободен ли адрес (с учётом редактируемой страницы).
  * @returns Нормализованное состояние формы и ошибки по полям.
  */
 export function validatePublishFormState(
     formState: TPublishFormState,
-    isPagenameAvailable: (pagename: string) => boolean
+    isAddressAvailable: (address: IBricksPageAddress) => boolean
 ): IPublishFormValidationResult {
     const trimmedPagename = formState.pagename.trim();
     const trimmedUrlPrefix = formState.urlPrefix?.trim() || null;
@@ -163,8 +189,9 @@ export function validatePublishFormState(
         : formState;
 
     const errors: Record<string, string> = {};
+    const address = toPageAddress(trimmedPagename, trimmedUrlPrefix);
 
-    const pagenameError = validatePagename(trimmedPagename, trimmedUrlPrefix, isPagenameAvailable);
+    const pagenameError = validatePagename(address);
     if (pagenameError) {
         errors.pagename = pagenameError;
     }
@@ -196,6 +223,7 @@ export function validatePublishFormState(
     }
 
     validateOptionalRoutingFields(normalized, errors);
+    validateAddressUniqueness(address, isAddressAvailable, errors);
 
     return { formState: normalized, errors };
 }

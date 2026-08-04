@@ -7,7 +7,9 @@ import {
     DEFAULT_BRICKS_ROUTE_PREFIXES,
     getBricksOwnStaticRoutes,
     getBuilderLoginPath,
+    getBuilderPagePath,
     getPreviewPagePath,
+    getPublishedPagePath,
     isBuilderPath,
     isEditorAddressTaken,
     isPageAddressTaken,
@@ -17,18 +19,53 @@ import {
     validateBricksRoutePrefixes,
     type IBricksRoutePrefixes,
 } from '../../src/runtime/modules/common/utils/bricks/routePaths';
+import { toPageAddress } from '../../src/runtime/modules/common/utils/bricks/pageAddress';
 // #endregion
 
 const CUSTOM_PREFIXES = { builderPrefix: '/admin/builder', previewPrefix: '/look' };
+
+/**
+ * Адрес без префикса — короткая запись для кейсов, которым префикс не важен.
+ *
+ * @param pagename - ЧПУ страницы.
+ * @returns Адрес страницы.
+ */
+function bare(pagename: string) {
+    return toPageAddress(pagename, null);
+}
 
 describe('routePaths: построение путей', () => {
     it('строит login и preview пути из префиксов', () => {
         expect(getBuilderLoginPath(DEFAULT_BRICKS_ROUTE_PREFIXES)).toBe('/bricks/bricks-login');
         expect(getBuilderLoginPath(CUSTOM_PREFIXES)).toBe('/admin/builder/bricks-login');
-        expect(getPreviewPagePath(DEFAULT_BRICKS_ROUTE_PREFIXES, 'my-page')).toBe(
+        expect(getPreviewPagePath(DEFAULT_BRICKS_ROUTE_PREFIXES, bare('my-page'))).toBe(
             '/bricks-preview/my-page'
         );
-        expect(getPreviewPagePath(CUSTOM_PREFIXES, 'my-page')).toBe('/look/my-page');
+        expect(getPreviewPagePath(CUSTOM_PREFIXES, bare('my-page'))).toBe('/look/my-page');
+    });
+
+    it('адресные пути включают префикс: live, редактор и превью', () => {
+        const address = toPageAddress('post', 'blog');
+
+        // Одно имя страницу больше не определяет: у `/blog/post` и `/news/post`
+        // должны различаться и live-адрес, и редактор, и превью
+        expect(getPublishedPagePath(address)).toBe('/blog/post');
+        expect(getBuilderPagePath(DEFAULT_BRICKS_ROUTE_PREFIXES, address)).toBe(
+            '/bricks/blog/post'
+        );
+        expect(getPreviewPagePath(DEFAULT_BRICKS_ROUTE_PREFIXES, address)).toBe(
+            '/bricks-preview/blog/post'
+        );
+        expect(getPublishedPagePath(toPageAddress('post', 'news'))).toBe('/news/post');
+    });
+
+    it('пробельный префикс — это отсутствие префикса во всех путях', () => {
+        // Запись, созданная в обход нормализации, иначе отвечала бы по двум
+        // разным адресам сразу
+        expect(getPublishedPagePath(toPageAddress('post', '   '))).toBe('/post');
+        expect(getBuilderPagePath(DEFAULT_BRICKS_ROUTE_PREFIXES, toPageAddress('post', ''))).toBe(
+            '/bricks/post'
+        );
     });
 });
 
@@ -52,8 +89,7 @@ describe('routePaths: доступность адреса по роутингу'
             isPageAddressTaken(
                 DEFAULT_BRICKS_ROUTE_PREFIXES,
                 ownResolver(DEFAULT_BRICKS_ROUTE_PREFIXES),
-                urlPrefix,
-                pagename
+                toPageAddress(pagename, urlPrefix)
             );
 
         // Дашборд забирает адрес маршрутом, превью — поддеревом (маршрута ровно
@@ -69,8 +105,12 @@ describe('routePaths: доступность адреса по роутингу'
     it('точное совпадение с многосегментным префиксом видно только по паре полей', () => {
         const resolve = ownResolver(CUSTOM_PREFIXES);
 
-        expect(isPageAddressTaken(CUSTOM_PREFIXES, resolve, 'admin', 'builder')).toBe(true);
-        expect(isPageAddressTaken(CUSTOM_PREFIXES, resolve, 'admin', 'foo')).toBe(false);
+        expect(
+            isPageAddressTaken(CUSTOM_PREFIXES, resolve, toPageAddress('builder', 'admin'))
+        ).toBe(true);
+        expect(isPageAddressTaken(CUSTOM_PREFIXES, resolve, toPageAddress('foo', 'admin'))).toBe(
+            false
+        );
     });
 
     it('страница приложения-потребителя перекрывает адрес так же, как поверхность', () => {
@@ -79,8 +119,7 @@ describe('routePaths: доступность адреса по роутингу'
             isPageAddressTaken(
                 DEFAULT_BRICKS_ROUTE_PREFIXES,
                 appResolver(DEFAULT_BRICKS_ROUTE_PREFIXES),
-                null,
-                'about'
+                bare('about')
             )
         ).toBe(true);
     });
@@ -88,13 +127,29 @@ describe('routePaths: доступность адреса по роутингу'
     it('адрес редактора занимает статический сосед, live-адрес при этом свободен', () => {
         const resolve = ownResolver(DEFAULT_BRICKS_ROUTE_PREFIXES);
 
-        expect(isEditorAddressTaken(DEFAULT_BRICKS_ROUTE_PREFIXES, resolve, 'bricks-login')).toBe(
-            true
+        expect(
+            isEditorAddressTaken(DEFAULT_BRICKS_ROUTE_PREFIXES, resolve, bare('bricks-login'))
+        ).toBe(true);
+        expect(isEditorAddressTaken(DEFAULT_BRICKS_ROUTE_PREFIXES, resolve, bare('landing'))).toBe(
+            false
         );
-        expect(isEditorAddressTaken(DEFAULT_BRICKS_ROUTE_PREFIXES, resolve, 'landing')).toBe(false);
         // Сама страница /bricks-login достижима — недостижим её редактор
         expect(
-            isPageAddressTaken(DEFAULT_BRICKS_ROUTE_PREFIXES, resolve, null, 'bricks-login')
+            isPageAddressTaken(DEFAULT_BRICKS_ROUTE_PREFIXES, resolve, bare('bricks-login'))
+        ).toBe(false);
+    });
+
+    it('то же имя под префиксом редактор не отбирает', () => {
+        const resolve = ownResolver(DEFAULT_BRICKS_ROUTE_PREFIXES);
+
+        // `<builderPrefix>/blog/bricks-login` свободен: страницу логина отбирает
+        // только `bricks-login` без префикса, и запрещать пару не за что
+        expect(
+            isEditorAddressTaken(
+                DEFAULT_BRICKS_ROUTE_PREFIXES,
+                resolve,
+                toPageAddress('bricks-login', 'blog')
+            )
         ).toBe(false);
     });
 });

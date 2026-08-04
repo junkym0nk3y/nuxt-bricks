@@ -28,6 +28,12 @@ export type TBuilderDraftMigration =
 
 export interface IBuilderDraftEntry {
     pagename: string;
+    /**
+     * Префикс адреса страницы, которой принадлежит черновик (`null` — без
+     * префикса). Вместе с `pagename` даёт адрес: он же ключ записи, и по нему
+     * сессия отличает свой черновик от чужого.
+     */
+    urlPrefix: string | null;
     updatedAt: string;
     mode: TBuilderDraftMode;
     pageId?: number;

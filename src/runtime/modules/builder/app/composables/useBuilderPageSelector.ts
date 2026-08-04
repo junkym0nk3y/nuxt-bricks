@@ -1,13 +1,19 @@
 // #region Imports
 // Types
 import type { TPublishedPageSummary } from '../../../common/types/bricks-api';
+import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 import type {
     IBuilderPageSelectorOptions,
     IUseBuilderPageSelectorReturn,
 } from '../types/composables';
 
 // Utils
-import { BRICKS_ROUTE_NAMES } from '../../../common/constants/routes';
+import {
+    getBuilderPageRouteLocation,
+    getPageAddressKey,
+    isSamePageAddress,
+    toPageAddress,
+} from '../../../common/utils/bricks/pageAddress';
 
 // Vue
 import { ref } from 'vue';
@@ -123,19 +129,20 @@ export function useBuilderPageSelector(
             return;
         }
 
-        if (page.pagename === options.routePagename.value) {
+        const address = toPageAddress(page.pagename, page.urlPrefix);
+
+        if (isSamePageAddress(address, options.routeAddress.value)) {
             options.showToast(
-                t('bricks.toolbar.pageSelector.replaced', { pagename: page.pagename }),
+                t('bricks.toolbar.pageSelector.replaced', {
+                    pagename: getPageAddressKey(address),
+                }),
                 'error',
                 REPLACED_PAGE_NOTICE_MS
             );
             return;
         }
 
-        await router.push({
-            name: BRICKS_ROUTE_NAMES.builderPage,
-            params: { pagename: page.pagename },
-        });
+        await router.push(getBuilderPageRouteLocation(address));
     }
 
     /**
@@ -164,17 +171,22 @@ export function useBuilderPageSelector(
      * О созданной странице в этом случае сообщаем тостом — она создана, и знать
      * об этом нужно.
      *
-     * @param pagename - ЧПУ созданной страницы.
+     * @param address - Адрес созданной страницы.
      */
-    async function handlePageCreated(pagename: string): Promise<void> {
+    async function handlePageCreated(address: IBricksPageAddress): Promise<void> {
         isCreatePageModalOpen.value = false;
 
         if (createStartedIn !== null && !options.sessionToken.isCurrent(createStartedIn)) {
-            options.showToast(t('bricks.toolbar.pageSelector.created', { pagename }), 'success');
+            options.showToast(
+                t('bricks.toolbar.pageSelector.created', {
+                    pagename: getPageAddressKey(address),
+                }),
+                'success'
+            );
             return;
         }
 
-        await router.push({ name: BRICKS_ROUTE_NAMES.builderPage, params: { pagename } });
+        await router.push(getBuilderPageRouteLocation(address));
     }
     // #endregion
 

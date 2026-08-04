@@ -22,7 +22,8 @@ import {
     getRenderPageKey,
     parsePreviewVersionId,
 } from '../../common/utils/bricks/previewRoute';
-import { BRICKS_ROUTE_NAMES } from '../../common/constants/routes';
+import { resolvePageAddressFromRoute } from '../../common/utils/bricks/pageAddress';
+import { BRICKS_PREVIEW_ROUTE_NAMES } from '../../common/constants/routes';
 
 // Components
 import TheRenderer from '../components/TheRenderer.vue';
@@ -41,10 +42,12 @@ definePageMeta({
 
 // #region Data
 const route = useRoute();
-const pagename = route.params.pagename as string;
-// Превью-режим — чисто по роуту <previewPrefix>/[pagename] (query не используется);
+// Адрес, а не одно имя: и превью, и live-рендер обслуживают пару маршрутов
+// (с префиксом и без), а страницу опознаёт полный адрес
+const address = resolvePageAddressFromRoute(route.params);
+// Превью-режим — чисто по роуту <previewPrefix>/<адрес> (query не используется);
 // на динамических ЧПУ маршрутах компонент работает в live-режиме
-const isPreview = route.name === BRICKS_ROUTE_NAMES.preview;
+const isPreview = typeof route.name === 'string' && BRICKS_PREVIEW_ROUTE_NAMES.includes(route.name);
 
 // Превью сохранённой версии: id из query. Такая вкладка показывает состояние из
 // истории, поэтому live-синк с билдером ей не нужен (см. useRendererPreviewSync)
@@ -52,7 +55,7 @@ const previewVersionId = isPreview
     ? parsePreviewVersionId(route.query[PREVIEW_VERSION_QUERY_PARAM])
     : null;
 
-const pageDataKey = getBricksPageDataKey(pagename, isPreview, previewVersionId);
+const pageDataKey = getBricksPageDataKey(address, isPreview, previewVersionId);
 const { data: middlewarePageData } = useNuxtData<IPublishedPage>(pageDataKey);
 
 // Данные live-синхронизации превью: обновляются через BroadcastChannel без перезагрузки страницы
@@ -77,7 +80,7 @@ const {
     ready: dataSourcesReady,
 } = useRendererDataSources({
     page,
-    pagename,
+    address,
     isPreview,
 });
 
@@ -85,7 +88,7 @@ const {
 await dataSourcesReady;
 
 const { currentDevice, resolutionText, closePreview } = useRendererPreviewSync({
-    pagename,
+    address,
     isPreview,
     previewVersionId,
     middlewarePageData,

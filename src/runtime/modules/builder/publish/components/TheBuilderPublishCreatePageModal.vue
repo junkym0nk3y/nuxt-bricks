@@ -65,7 +65,7 @@ const {
     submitForm,
     resetToEmpty,
 } = usePublishCreatePageForm({
-    onCreated: (createdPagename) => emit('created', createdPagename),
+    onCreated: (createdAddress) => emit('created', createdAddress),
     resolveSchema: resolveCreateSchema,
 });
 

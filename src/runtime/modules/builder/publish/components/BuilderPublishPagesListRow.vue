@@ -5,6 +5,8 @@ import type { IPublishPagesListRowProps, IPublishPagesListRowEmits } from '../ty
 
 // Utils
 import { formatPageDate } from '../utils/dates';
+import { toPageAddress } from '../../../common/utils/bricks/pageAddress';
+import { getPublishedPagePath } from '../../../common/utils/bricks/routePaths';
 
 // Vue
 import { computed } from 'vue';
@@ -32,6 +34,15 @@ const { t } = useI18n();
  */
 const formattedDate = computed<string>(() =>
     formatPageDate(props.page.updatedAt || props.page.createdAt)
+);
+
+/**
+ * Live-адрес страницы (`/blog/post`). Полный адрес, а не один `pagename`: имя
+ * уникально только внутри своего префикса, и две одноимённые страницы под разными
+ * префиксами выглядели бы в списке одинаково — `/post` и `/post`.
+ */
+const pageAddressPath = computed<string>(() =>
+    getPublishedPagePath(toPageAddress(props.page.pagename, props.page.urlPrefix))
 );
 // #endregion
 
@@ -112,7 +123,7 @@ function handleDelete(): void {
         <div :class="$style.main">
             <div :class="$style.titleRow">
                 <h3 :class="$style.title">{{ props.page.title }}</h3>
-                <span :class="$style.pagename">/{{ props.page.pagename }}</span>
+                <span :class="$style.pagename">{{ pageAddressPath }}</span>
                 <span v-if="!props.page.published" :class="$style.draftBadge">
                     {{ t('bricks.publish.dashboard.row.draft') }}
                 </span>

@@ -12,14 +12,18 @@ import { useApiClient } from '../modules/common/composables/useApiClient';
 import { usePublicPageClient } from '../modules/render/composables/usePublicPageClient';
 import { withPageLookupDeadline } from '../modules/render/utils/pageLookupDeadline';
 import { toCamelCase } from '../modules/common/utils/case-transform';
-import { BRICKS_ROUTE_NAMES } from '../modules/common/constants/routes';
+import { BRICKS_PREVIEW_ROUTE_NAMES } from '../modules/common/constants/routes';
 import {
     matchesPageSubdomain,
-    matchesPageUrlPrefix,
     normalizePageVersionPreview,
     normalizePublishedPage,
-    resolveRequestedUrlPrefix,
 } from '../modules/common/utils/bricks/publishedPage';
+import {
+    getPageAddressKey,
+    isSamePageAddress,
+    resolvePageAddressFromRoute,
+    toPageAddress,
+} from '../modules/common/utils/bricks/pageAddress';
 import {
     PREVIEW_VERSION_QUERY_PARAM,
     getBricksPageDataKey,
@@ -56,18 +60,19 @@ function resolveLookupErrorStatus(error: unknown, fallbackStatus: number): numbe
 /**
  * Middleware для динамической установки layout на основе данных из БД.
  * Применяется к страницам лендингов:
- * - `<previewPrefix>/[pagename]` (встроенный превью-маршрут, всегда preview-режим)
+ * - `<previewPrefix>/[pagename]` и `<previewPrefix>/[...urlPrefix]/[pagename]`
+ *   (встроенные превью-маршруты, всегда preview-режим)
  * - /[pagename] и /[...urlPrefix]/[pagename] (статические catch-all маршруты
  *   bricks-page/bricks-page-prefixed из module.ts, live-режим)
  *
  * Режим определяется чисто по роуту: query ?preview=true не используется.
- * Live-страница резолвится прямым lookup public read-model по pagename;
- * соответствие urlPrefix/subdomain фактическому URL проверяется здесь же.
+ * Live-страница резолвится прямым lookup public read-model по адресу;
+ * соответствие subdomain фактическому URL проверяется здесь же.
  */
 // eslint-disable-next-line complexity
 export default defineNuxtRouteMiddleware(async (to) => {
     // Применяем middleware к превью-маршруту или динамическим ЧПУ маршрутам
-    const isPreview = to.name === BRICKS_ROUTE_NAMES.preview;
+    const isPreview = typeof to.name === 'string' && BRICKS_PREVIEW_ROUTE_NAMES.includes(to.name);
     const isDirectBricksRoute = to.meta?.isPublishedBricksPage === true;
 
     if (!isPreview && !isDirectBricksRoute) {
@@ -75,7 +80,10 @@ export default defineNuxtRouteMiddleware(async (to) => {
     }
 
     const nuxtApp = useNuxtApp();
-    const pagename = to.params.pagename as string;
+    // Адрес, а не одно имя: и редактор, и превью, и live-рендер обслуживают пару
+    // маршрутов (с префиксом и без), а одноимённые страницы под разными
+    // префиксами — разные страницы
+    const address = resolvePageAddressFromRoute(to.params);
 
     // Версия превью живёт в URL: ключ payload'а обязан её учитывать, иначе
     // вторая версия той же страницы подобрала бы данные первой
@@ -83,7 +91,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
         ? parsePreviewVersionId(to.query[PREVIEW_VERSION_QUERY_PARAM])
         : null;
 
-    const pageDataKey = getBricksPageDataKey(pagename, isPreview, previewVersionId);
+    const pageDataKey = getBricksPageDataKey(address, isPreview, previewVersionId);
 
     // Пытаемся получить данные из payload, если они уже были загружены этим middleware
     // Это обрабатывает клиентскую навигацию, когда middleware может запуститься повторно
@@ -99,7 +107,12 @@ export default defineNuxtRouteMiddleware(async (to) => {
             if (previewData) {
                 const tempPage = JSON.parse(previewData) as IPublishedPage;
 
-                if (tempPage.pagename === pagename) {
+                // Сверяется адрес, а не имя: слот превью один на билдер, и
+                // снимок страницы `/blog/post` иначе показался бы в превью
+                // `/news/post` как её собственный
+                if (
+                    isSamePageAddress(toPageAddress(tempPage.pagename, tempPage.urlPrefix), address)
+                ) {
                     page = tempPage;
                 }
             }
@@ -130,7 +143,9 @@ export default defineNuxtRouteMiddleware(async (to) => {
                 }
             }
 
-            const targetPage = pagesList.value.find((candidate) => candidate.pagename === pagename);
+            const targetPage = pagesList.value.find((candidate) =>
+                isSamePageAddress(toPageAddress(candidate.pagename, candidate.urlPrefix), address)
+            );
 
             if (!targetPage) {
                 // Версия существует только вместе со строкой страницы, и подхватить
@@ -177,15 +192,20 @@ export default defineNuxtRouteMiddleware(async (to) => {
         }
 
         if (!page && !isPreview) {
-            // Live — публичный read-model: прямой lookup по pagename, без list+find.
+            // Live — публичный read-model: прямой lookup по адресу, без list+find.
             // Публичный клиент: без cookie/CSRF/401-редиректа — ошибка lookup'а не
             // отправит посетителя на login билдера. Его собственный таймаут на SSR
             // инертен, потолок держит внешний дедлайн (`withLookupDeadline`)
             const { publicPageFetcher } = usePublicPageClient();
 
             try {
+                // Адрес уходит остатком пути (`public/pages/blog/post`): сегменты
+                // ключа уже прошли `PAGE_ROUTE_SEGMENT`, поэтому кодировать их
+                // нечем — а encode всего ключа превратил бы разделитель в `%2F`
                 const response = await withLookupDeadline(
-                    publicPageFetcher<IPublishedPage>(`/api/bricks/public/pages/${pagename}/`)
+                    publicPageFetcher<IPublishedPage>(
+                        `/api/bricks/public/pages/${getPageAddressKey(address)}/`
+                    )
                 );
                 page = normalizePublishedPage(response);
             } catch (error) {
@@ -203,12 +223,14 @@ export default defineNuxtRouteMiddleware(async (to) => {
     }
 
     // Live: catch-all маршрут матчит любой URL подходящей формы — соответствие
-    // фактического префикса и субдомена проверяем на каждую навигацию, в том
-    // числе при payload-хите (прошлый заход мог быть по другому URL той же страницы)
+    // адреса страницы фактическому URL и субдомена проверяем на каждую навигацию.
+    //
+    // Lookup уже адресный, и встроенный адаптер чужой адрес вернуть не может, но
+    // контракт внешнего HTTP-backend'а непроверяем: он вправе проигнорировать
+    // префикс в пути и ответить страницей по одному имени. Тогда эта сверка —
+    // единственное, что не даст отрендерить чужую страницу под чужим URL.
     if (page && !isPreview) {
-        const requestedPrefix = resolveRequestedUrlPrefix(to.params.urlPrefix);
-
-        if (!matchesPageUrlPrefix(page, requestedPrefix)) {
+        if (!isSamePageAddress(toPageAddress(page.pagename, page.urlPrefix), address)) {
             return createError({
                 statusCode: 404,
                 statusMessage: 'Page not found',

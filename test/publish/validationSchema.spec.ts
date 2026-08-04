@@ -10,6 +10,7 @@ import {
     isEditorAddressTaken,
     isPageAddressTaken,
 } from '../../src/runtime/modules/common/utils/bricks/routePaths';
+import { getPageAddressKey } from '../../src/runtime/modules/common/utils/bricks/pageAddress';
 // #endregion
 
 /** Переводчик-заглушка: сообщение ошибки = i18n-ключ. */
@@ -37,26 +38,21 @@ const resolveRouteName = (path: string): string | undefined => {
 };
 
 /**
- * Собирает схему с занятыми pagename и исключаемым id.
+ * Собирает схему с занятыми адресами и исключаемым id.
  *
- * @param takenPagenames - Карта занятых pagename → id владельца.
+ * @param takenAddresses - Карта занятых адресов (`blog/post`, `post`) → id владельца.
  * @param excludeId - Id страницы, исключаемой из проверки уникальности.
  * @returns Yup-схема формы публикации.
  */
-function buildSchema(takenPagenames: Record<string, number> = {}, excludeId?: number) {
+function buildSchema(takenAddresses: Record<string, number> = {}, excludeId?: number) {
     return createPublishValidationSchema({
         t,
-        isPageAddressFree: (urlPrefix, pagename) =>
-            !isPageAddressTaken(
-                DEFAULT_BRICKS_ROUTE_PREFIXES,
-                resolveRouteName,
-                urlPrefix,
-                pagename
-            ),
-        isEditorAddressFree: (pagename) =>
-            !isEditorAddressTaken(DEFAULT_BRICKS_ROUTE_PREFIXES, resolveRouteName, pagename),
-        isPagenameAvailable: (pagename, exclude) => {
-            const ownerId = takenPagenames[pagename];
+        isPageAddressFree: (address) =>
+            !isPageAddressTaken(DEFAULT_BRICKS_ROUTE_PREFIXES, resolveRouteName, address),
+        isEditorAddressFree: (address) =>
+            !isEditorAddressTaken(DEFAULT_BRICKS_ROUTE_PREFIXES, resolveRouteName, address),
+        isAddressAvailable: (address, exclude) => {
+            const ownerId = takenAddresses[getPageAddressKey(address)];
             if (ownerId === undefined) {
                 return true;
             }
@@ -129,18 +125,49 @@ describe('createPublishValidationSchema: yup-схема meta-полей', () => 
         ).resolves.toBe('bricks-site');
     });
 
-    it('отклоняет занятый pagename', async () => {
+    it('отклоняет занятый адрес без префикса — ошибкой на самом имени', async () => {
+        // Уникальность проверяется на уровне объекта, а не поля: занят адрес
+        // целиком, и тест на одном поле не пересчитывался бы при правке второго
         const schema = buildSchema({ home: 1 });
 
-        await expect(schema.validateAt('pagename', { pagename: 'home' })).rejects.toThrow(
-            'bricks.publish.validation.pagenameTaken'
-        );
+        await expect(schema.validate({ ...VALID_VALUES, pagename: 'home' })).rejects.toMatchObject({
+            path: 'pagename',
+            message: 'bricks.publish.validation.addressTaken',
+        });
     });
 
-    it('не считает занятым pagename самой редактируемой страницы (excludeId)', async () => {
+    it('занятый адрес с префиксом краснит urlPrefix — им его и разводят', async () => {
+        const schema = buildSchema({ 'blog/post': 1 });
+
+        await expect(
+            schema.validate({ ...VALID_VALUES, pagename: 'post', urlPrefix: 'blog' })
+        ).rejects.toMatchObject({
+            path: 'urlPrefix',
+            message: 'bricks.publish.validation.addressTaken',
+        });
+    });
+
+    it('то же имя под свободным префиксом занятым не считается', async () => {
+        // Это и есть смысл адресной идентичности: `/blog/post` занят, а
+        // `/news/post` и `/post` свободны
+        const schema = buildSchema({ 'blog/post': 1 });
+
+        await expect(
+            schema.validate({ ...VALID_VALUES, pagename: 'post', urlPrefix: 'news' })
+        ).resolves.toBeTruthy();
+        await expect(schema.validate({ ...VALID_VALUES, pagename: 'post' })).resolves.toBeTruthy();
+    });
+
+    it('не считает занятым адрес самой редактируемой страницы (excludeId)', async () => {
         const schema = buildSchema({ home: 1 }, 1);
 
-        await expect(schema.validateAt('pagename', { pagename: 'home' })).resolves.toBe('home');
+        await expect(schema.validate({ ...VALID_VALUES, pagename: 'home' })).resolves.toBeTruthy();
+    });
+
+    it('bricks-login под префиксом проходит: занят только его беспрефиксный редактор', async () => {
+        await expect(
+            buildSchema().validateAt('pagename', { pagename: 'bricks-login', urlPrefix: 'blog' })
+        ).resolves.toBe('bricks-login');
     });
 
     it('требует description от 10 символов', async () => {

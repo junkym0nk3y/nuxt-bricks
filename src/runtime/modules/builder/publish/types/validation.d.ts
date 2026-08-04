@@ -3,6 +3,7 @@
  */
 
 import type { TPublishFormState } from '../../../common/types/bricks-api';
+import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 
 export interface IPublishValidationSchemaOptions {
     /** Переводчик i18n-ключей (сообщения резолвятся в момент валидации). */
@@ -12,12 +13,12 @@ export interface IPublishValidationSchemaOptions {
      * (`useBricksPageAddress`) — ловит и поверхности билдера, и страницы
      * потребителя, перекрывающие published-адрес.
      */
-    isPageAddressFree: (urlPrefix: string | null | undefined, pagename: string) => boolean;
-    /** Свободен ли адрес редактора страницы (`<builderPrefix>/<pagename>`). */
-    isEditorAddressFree: (pagename: string) => boolean;
-    /** Проверка занятости pagename (обычно `publishStore.isPagenameAvailable`). */
-    isPagenameAvailable: (pagename: string, excludeId?: string | number) => boolean;
-    /** Возвращает id страницы, исключаемой из проверки уникальности pagename. */
+    isPageAddressFree: (address: IBricksPageAddress) => boolean;
+    /** Свободен ли адрес редактора страницы (`<builderPrefix>/<urlPrefix>/<pagename>`). */
+    isEditorAddressFree: (address: IBricksPageAddress) => boolean;
+    /** Свободен ли адрес у других страниц (обычно `publishStore.isAddressAvailable`). */
+    isAddressAvailable: (address: IBricksPageAddress, excludeId?: string | number) => boolean;
+    /** Возвращает id страницы, исключаемой из проверки уникальности адреса. */
     getExcludeId: () => string | number | undefined;
 }
 

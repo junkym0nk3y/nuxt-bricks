@@ -117,10 +117,19 @@ function routePagesRequest(method, path, body, state) {
         state.pages.set(row.id, row);
         return { status: 201, body: row };
     }
-    const publicMatch = path.match(/^\/public\/pages\/([^/]+)$/);
+    // Адрес приходит остатком пути: последний сегмент — pagename, всё до него —
+    // urlPrefix. Ищем по ПАРЕ, а не по имени: одноимённые страницы под разными
+    // префиксами — разные страницы, и lookup по имени вернул бы произвольную
+    const publicMatch = path.match(/^\/public\/pages\/(.+)$/);
     if (method === 'GET' && publicMatch) {
+        const segments = publicMatch[1].split('/').filter(Boolean).map(decodeURIComponent);
+        const pagename = segments.pop();
+        const urlPrefix = segments.length > 0 ? segments.join('/') : null;
         const page = [...state.pages.values()].find(
-            (row) => row.pagename === decodeURIComponent(publicMatch[1]) && row.published
+            (row) =>
+                row.pagename === pagename &&
+                (row.urlPrefix ?? row.url_prefix ?? null) === urlPrefix &&
+                row.published
         );
         if (!page) {
             return { status: 404, body: { message: 'not found' } };

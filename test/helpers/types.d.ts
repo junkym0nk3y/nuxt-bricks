@@ -1,7 +1,7 @@
 import type { EffectScope, Ref } from 'vue';
 import type { Mock, vi } from 'vitest';
 
-import type { useBuilderPagename } from '../../src/runtime/modules/builder/app/composables/useBuilderPagename';
+import type { useBuilderSessionAddress } from '../../src/runtime/modules/builder/app/composables/useBuilderSessionAddress';
 import type { useBuilderSession } from '../../src/runtime/modules/builder/app/composables/useBuilderSession';
 import type { IBuilderSessionToken } from '../../src/runtime/modules/builder/app/types/composables';
 
@@ -11,7 +11,7 @@ import type { IBuilderSessionToken } from '../../src/runtime/modules/builder/app
  */
 export interface IBuilderContext {
     scope: EffectScope;
-    pagename: ReturnType<typeof useBuilderPagename>;
+    address: ReturnType<typeof useBuilderSessionAddress>;
     session: ReturnType<typeof useBuilderSession>;
     /** Токен сессии этого экземпляра — им тесты сверяют операции вне useBuilderSession. */
     sessionToken: IBuilderSessionToken;

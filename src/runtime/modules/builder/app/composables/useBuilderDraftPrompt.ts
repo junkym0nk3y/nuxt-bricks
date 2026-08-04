@@ -5,6 +5,7 @@ import type { IBuilderDraftPromptOptions } from '../types/composables';
 
 // Utils
 import { isFormStateEqual } from '../../publish/utils/draftSnapshots';
+import { toPageAddress } from '../../../common/utils/bricks/pageAddress';
 
 // Vue
 import { ref, watch } from 'vue';
@@ -28,7 +29,7 @@ import { usePublishStore } from '../../publish/stores/publish';
  * снимает при переоткрытии сессии.
  */
 export function useBuilderDraftPrompt(options: IBuilderDraftPromptOptions) {
-    const { isCurrentSession, applySnapshot, discardDraft, sessionPagename, savedSnapshot } =
+    const { isCurrentSession, applySnapshot, discardDraft, sessionAddress, savedSnapshot } =
         options;
 
     const historyStore = useHistoryStore();
@@ -205,11 +206,15 @@ export function useBuilderDraftPrompt(options: IBuilderDraftPromptOptions) {
         }
 
         // Ключ берём у самого черновика: он и есть предмет ответа. Расходиться с
-        // `sessionPagename` он не успевает — перенос сессии снимает предложение
+        // `sessionAddress` он не успевает — перенос сессии снимает предложение
         // целиком (watcher в useBuilderSession)
-        const pagename = pendingDraft.value?.pagename ?? sessionPagename.value;
-        if (pagename) {
-            discardDraft(pagename);
+        const draft = pendingDraft.value;
+        const address = draft
+            ? toPageAddress(draft.pagename, draft.urlPrefix)
+            : sessionAddress.value;
+
+        if (address.pagename) {
+            discardDraft(address);
         }
 
         resolveDraftPrompt();

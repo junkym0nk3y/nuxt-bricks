@@ -8,6 +8,7 @@ import type {
     TPublishedPageSummary,
     TPublishFormState,
 } from '../../../common/types/bricks-api';
+import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 
 /**
  * Опции записывающей операции стора, которая переживает свою сессию.
@@ -51,7 +52,7 @@ export interface IPagesLoadStoreDeps {
  */
 export interface IPageLibraryWriteStoreDeps {
     getPageById: (id: string | number) => TPublishedPageSummary | undefined;
-    isPagenameAvailable: (pagename: string, excludeId?: string | number) => boolean;
+    isAddressAvailable: (address: IBricksPageAddress, excludeId?: string | number) => boolean;
     publishPage: (schema: IBricksSchema, formState: TPublishFormState) => Promise<number>;
 }
 
@@ -68,7 +69,7 @@ export interface ICurrentPageWriteStoreDeps {
     lastSuccessfulSaveAt: number;
     beginWrite: () => number | null;
     endWrite: (writeId: number) => void;
-    isPagenameAvailable: (pagename: string, excludeId?: string | number) => boolean;
+    isAddressAvailable: (address: IBricksPageAddress, excludeId?: string | number) => boolean;
     validateCurrentFormState: () => boolean;
     syncPageInList: (page: IPublishedPage) => void;
     loadAllPages: () => Promise<void>;

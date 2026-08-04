@@ -20,8 +20,13 @@ import {
     type IBackendHttpClient,
 } from './httpClient';
 import { toCamelCaseShallow } from '../../../common/utils/case-transform';
+import { getPageAddressKey } from '../../../common/utils/bricks/pageAddress';
+import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 import { PAGE_CONFLICT_CODES } from '../../../common/constants/publish';
-import { BricksPagenameConflictError, BricksRevisionConflictError } from '../utils/storageErrors';
+import {
+    BricksPageAddressConflictError,
+    BricksRevisionConflictError,
+} from '../utils/storageErrors';
 import type {
     IStorageAdapter,
     ICreateMediaPayload,
@@ -180,27 +185,36 @@ export function createHttpStorageAdapter(options: IHttpStorageAdapterOptions): I
         },
 
         /**
-         * Страница по pagename через public-ручку контракта
-         * (`GET {base}/public/pages/:pagename`) — SSR-горячий путь каждого
-         * визита published-страницы; list+find здесь означал бы O(N страниц)
-         * HTTP-вызова на визит. 404 (draft или нет страницы) → null.
+         * Страница по адресу через public-ручку контракта
+         * (`GET {base}/public/pages/<urlPrefix>/<pagename>`) — SSR-горячий путь
+         * каждого визита published-страницы; list+find здесь означал бы O(N
+         * страниц) HTTP-вызова на визит. 404 (draft или нет страницы) → null.
+         *
+         * Адрес уезжает путём, а не query-параметром: он и есть идентичность
+         * ресурса, и путь одинаково переживает нормализацию прокси и кеширование
+         * CDN. Каждый сегмент кодируется отдельно — `encodeURIComponent` от
+         * склеенного адреса превратил бы разделитель `/` в `%2F`, и backend
+         * получил бы один сегмент вместо префикса с именем.
          *
          * ВНИМАНИЕ: public projection не содержит `thumbnailUrl` и `revision` —
          * зазор закрывается синтезом (`thumbnailUrl: null`, `revision: 0`,
-         * `published: true`). Единственный вызывающий (public/pages/:pagename)
+         * `published: true`). Единственный вызывающий (public-ручка адреса)
          * сразу применяет toPublicPageProjection, которая эти поля отбрасывает.
          * Будущим editorial-вызывающим на синтезированные поля опираться НЕЛЬЗЯ —
          * для editorial-чтения использовать getPage(id).
          */
-        async getPageByPagename(pagename: string): Promise<IBricksPageRow | null> {
+        async getPageByAddress(address: IBricksPageAddress): Promise<IBricksPageRow | null> {
+            const addressKey = getPageAddressKey(address);
+
             try {
-                const raw = await client.request(
-                    'GET',
-                    `public/pages/${encodeURIComponent(pagename)}`
-                );
+                const encodedAddress = addressKey
+                    .split('/')
+                    .map((segment) => encodeURIComponent(segment))
+                    .join('/');
+                const raw = await client.request('GET', `public/pages/${encodedAddress}`);
                 const row = normalizeRow<Partial<IBricksPageRow>>(
                     raw,
-                    `GET public page ${pagename}`
+                    `GET public page ${addressKey}`
                 );
 
                 return {
@@ -221,7 +235,7 @@ export function createHttpStorageAdapter(options: IHttpStorageAdapterOptions): I
         /**
          * Создаёт страницу (`POST {base}`). На доменную ошибку маппится только
          * точный контрактный код: 409 `PAGENAME_CONFLICT` →
-         * BricksPagenameConflictError. 409 без кода или с незнакомым кодом —
+         * BricksPageAddressConflictError. 409 без кода или с незнакомым кодом —
          * generic error (иначе любой посторонний конфликт backend'а — квота,
          * состояние — заставил бы UI предлагать переименование).
          */
@@ -232,7 +246,7 @@ export function createHttpStorageAdapter(options: IHttpStorageAdapterOptions): I
                 return normalizeRow<IBricksPageRow>(raw, 'POST page');
             } catch (error: unknown) {
                 if (isConflictError(error) && error.conflictCode === PAGE_CONFLICT_CODES.pagename) {
-                    throw new BricksPagenameConflictError(payload.pagename);
+                    throw new BricksPageAddressConflictError();
                 }
 
                 throw error;
@@ -244,7 +258,7 @@ export function createHttpStorageAdapter(options: IHttpStorageAdapterOptions): I
          * partial-семантика IUpdatePagePayload; `expectedRevision` уходит
          * precondition-полем тела). 404 → null. На доменные ошибки маппятся
          * только точные контрактные коды 409: `PAGENAME_CONFLICT` →
-         * BricksPagenameConflictError, `REVISION_CONFLICT` →
+         * BricksPageAddressConflictError, `REVISION_CONFLICT` →
          * BricksRevisionConflictError; 409 без кода/с незнакомым кодом —
          * generic error (посторонний конфликт backend'а не должен заставлять
          * UI предлагать rename или refetch-and-retry).
@@ -264,7 +278,7 @@ export function createHttpStorageAdapter(options: IHttpStorageAdapterOptions): I
 
                 if (isConflictError(error)) {
                     if (error.conflictCode === PAGE_CONFLICT_CODES.pagename) {
-                        throw new BricksPagenameConflictError(payload.pagename ?? '');
+                        throw new BricksPageAddressConflictError();
                     }
 
                     if (error.conflictCode === PAGE_CONFLICT_CODES.revision) {

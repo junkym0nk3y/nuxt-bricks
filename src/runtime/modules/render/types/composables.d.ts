@@ -1,6 +1,7 @@
 import type { ComputedRef, Ref } from 'vue';
 
 import type { IPublishedPage } from '../../common/types/bricks-api';
+import type { IBricksPageAddress } from '../../common/types/pageAddress';
 
 // #region useRendererDataSources
 /**
@@ -9,7 +10,11 @@ import type { IPublishedPage } from '../../common/types/bricks-api';
 export interface IRendererDataSourcesOptions {
     /** Данные текущей страницы (live-превью либо payload middleware). */
     page: ComputedRef<IPublishedPage | null>;
-    pagename: string;
+    /**
+     * Адрес страницы: входит в ключ `useAsyncData` прогона. Адрес, а не имя, —
+     * иначе одноимённые страницы под разными префиксами делили бы кеш прогона.
+     */
+    address: IBricksPageAddress;
     isPreview: boolean;
 }
 
@@ -63,7 +68,8 @@ export type TDataSourceRequestCache = Map<string, Promise<unknown>>;
  * Опции composable useRendererPreviewSync.
  */
 export interface IRendererPreviewSyncOptions {
-    pagename: string;
+    /** Адрес страницы: токен сверки снапшота в слоте и сообщений канала синка. */
+    address: IBricksPageAddress;
     isPreview: boolean;
     /**
      * Id сохранённой версии из `?version=` (null — превью текущего состояния).

@@ -202,7 +202,7 @@ describe('useRendererDataSources: бюджет запросов на прого�
         try {
             const { ready, resolvedProps } = useRendererDataSources({
                 page,
-                pagename: 'stuck-source-page',
+                address: { pagename: 'stuck-source-page', urlPrefix: null },
                 isPreview: false,
             });
 
@@ -257,7 +257,7 @@ describe('useRendererDataSources: бюджет запросов на прого�
 
         const { ready, resolvedProps } = useRendererDataSources({
             page,
-            pagename: 'aborted-source-page',
+            address: { pagename: 'aborted-source-page', urlPrefix: null },
             isPreview: false,
         });
 
@@ -311,7 +311,7 @@ describe('useRendererDataSources: бюджет запросов на прого�
 
         const { ready, resolvedProps } = useRendererDataSources({
             page,
-            pagename: 'recovered-source-page',
+            address: { pagename: 'recovered-source-page', urlPrefix: null },
             isPreview: false,
         });
 
@@ -367,7 +367,7 @@ describe('useRendererDataSources: бюджет запросов на прого�
 
         const { ready } = useRendererDataSources({
             page,
-            pagename: 'still-partial-page',
+            address: { pagename: 'still-partial-page', urlPrefix: null },
             isPreview: false,
         });
 
@@ -418,7 +418,11 @@ describe('useRendererDataSources: бюджет запросов на прого�
         const page = computed(() => makePage([component]));
         const scope = effectScope();
         const dataSources = scope.run(() =>
-            useRendererDataSources({ page, pagename: 'left-page', isPreview: false })
+            useRendererDataSources({
+                page,
+                address: { pagename: 'left-page', urlPrefix: null },
+                isPreview: false,
+            })
         );
 
         await dataSources?.ready;
@@ -458,7 +462,7 @@ describe('useRendererDataSources: бюджет запросов на прого�
 
         const { ready } = useRendererDataSources({
             page,
-            pagename: 'budget-page',
+            address: { pagename: 'budget-page', urlPrefix: null },
             isPreview: false,
         });
 

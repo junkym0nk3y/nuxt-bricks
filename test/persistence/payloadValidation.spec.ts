@@ -73,6 +73,27 @@ describe('validateCreatePagePayload: server-first DTO', () => {
         );
     });
 
+    it('то же имя под свободным префиксом редактор не отбирает', () => {
+        // `bricks-login` без префикса действительно занимает путь страницы
+        // логина, а `<builderPrefix>/blog/bricks-login` свободен — запрет по
+        // одному имени отвергал бы законный адрес
+        expect(() =>
+            validateCreatePagePayload(
+                makeCreatePageBody({ pagename: 'bricks-login', urlPrefix: 'blog' })
+            )
+        ).not.toThrow();
+    });
+
+    it('запрещённый адрес редактора ловится и при валидном имени с префиксом', () => {
+        // Обратная половина того же: имя валидно, префикс валиден, а пара уводит
+        // редактор под чужой статический маршрут
+        expect(() =>
+            validateCreatePagePayload(
+                makeCreatePageBody({ pagename: 'landing', urlPrefix: 'bricks' })
+            )
+        ).toThrow(/reserved/);
+    });
+
     // Поля валидны по отдельности — адрес ломает их сумма
     it('отклоняет пару urlPrefix+pagename, уводящую адрес под билдер', () => {
         expect(() =>

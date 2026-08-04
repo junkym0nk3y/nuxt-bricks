@@ -17,7 +17,10 @@ import {
     buildUpdateQuery,
     isUniqueViolation,
 } from './queryBuilders';
-import { BricksPagenameConflictError, BricksRevisionConflictError } from '../utils/storageErrors';
+import {
+    BricksPageAddressConflictError,
+    BricksRevisionConflictError,
+} from '../utils/storageErrors';
 import type {
     IStorageAdapter,
     ICreateMediaPayload,
@@ -32,6 +35,8 @@ import type {
     IPageVersion,
 } from '../../../common/types/bricks-api';
 import type { IMediaItem } from '../../../common/types/media';
+import type { IBricksPageAddress } from '../../../common/types/pageAddress';
+import { normalizeUrlPrefix } from '../../../common/utils/bricks/pageAddress';
 
 /**
  * Снапшот текущей строки bricks_pages в историю версий (page_updated_at = updated_at).
@@ -170,7 +175,7 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
 
         /**
          * Возвращает сводки всех страниц (без schema), отсортированные
-         * по дате обновления. Полная строка — getPage/getPageByPagename.
+         * по дате обновления. Полная строка — getPage/getPageByAddress.
          */
         async listPages(): Promise<TBricksPageSummaryRow[]> {
             return query<TBricksPageSummaryRow>(
@@ -189,19 +194,38 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
         },
 
         /**
-         * Возвращает страницу по pagename или null.
+         * Возвращает страницу по адресу или null.
+         *
+         * Две ветки, а не одно `url_prefix IS NOT DISTINCT FROM $2`: второе
+         * выражение B-tree индексирует только по ведущей колонке, а префикс уходит
+         * в Filter. Замерено на PG 16 для случая, который эта фича и создаёт (один
+         * слаг под 2000 префиксов): 393 buffer hits и 1999 отброшенных строк против
+         * 3 hits у равенства — стоимость растёт с числом страниц, переиспользующих
+         * слаг. Каждой ветке отвечает свой partial unique index уникальности адреса
+         * (`uq_bricks_pages_address` и `…_bare`, см. migrations/0001_init.sql).
          */
-        async getPageByPagename(pagename: string): Promise<IBricksPageRow | null> {
+        async getPageByAddress(address: IBricksPageAddress): Promise<IBricksPageRow | null> {
+            const urlPrefix = normalizeUrlPrefix(address.urlPrefix);
+
+            if (urlPrefix === null) {
+                return queryOne<IBricksPageRow>(
+                    `SELECT ${PAGE_SELECT_FIELDS} FROM bricks_pages
+                     WHERE pagename = $1 AND url_prefix IS NULL`,
+                    [address.pagename]
+                );
+            }
+
             return queryOne<IBricksPageRow>(
-                `SELECT ${PAGE_SELECT_FIELDS} FROM bricks_pages WHERE pagename = $1`,
-                [pagename]
+                `SELECT ${PAGE_SELECT_FIELDS} FROM bricks_pages
+                 WHERE pagename = $1 AND url_prefix = $2`,
+                [address.pagename, urlPrefix]
             );
         },
 
         /**
          * Создаёт страницу и возвращает её полностью.
          * Дубликат pagename (включая гонку одновременных create) →
-         * BricksPagenameConflictError, а не драйверная ошибка.
+         * BricksPageAddressConflictError, а не драйверная ошибка.
          */
         async createPage(payload: ICreatePagePayload): Promise<IBricksPageRow> {
             let result: IBricksPageRow | null;
@@ -229,7 +253,7 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
                 );
             } catch (error: unknown) {
                 if (isUniqueViolation(error)) {
-                    throw new BricksPagenameConflictError(payload.pagename);
+                    throw new BricksPageAddressConflictError();
                 }
 
                 throw error;
@@ -246,7 +270,7 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
          * Обновляет переданные поля страницы; null — если страница не найдена.
          * Каждый успешный апдейт инкрементит revision; несовпавший
          * expectedRevision → BricksRevisionConflictError (ничего не записано),
-         * занятый pagename → BricksPagenameConflictError.
+         * занятый pagename → BricksPageAddressConflictError.
          * Если payload меняет `schema` и лимит версий > 0 — атомарно (в транзакции)
          * снапшотит прежнюю строку в bricks_page_versions и обрезает историю до N
          * (контракт IStorageAdapter.updatePage).
@@ -315,8 +339,16 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
                     return rows[0];
                 });
             } catch (error: unknown) {
-                if (isUniqueViolation(error) && payload.pagename !== undefined) {
-                    throw new BricksPagenameConflictError(payload.pagename);
+                // Любое поле адреса, а не только pagename: уникален адрес целиком,
+                // поэтому PATCH одного `urlPrefix` тоже собирает занятую пару — с
+                // прежним условием такой конфликт уходил наружу драйверной ошибкой
+                // и превращался в 500 вместо 409. Состав payload'а — единственный
+                // признак: SQLSTATE приходит без имени нарушенного ограничения
+                if (
+                    isUniqueViolation(error) &&
+                    (payload.pagename !== undefined || payload.urlPrefix !== undefined)
+                ) {
+                    throw new BricksPageAddressConflictError();
                 }
 
                 throw error;

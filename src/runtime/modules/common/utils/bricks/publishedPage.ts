@@ -42,39 +42,6 @@ export function preserveSchema(schema: IBricksSchema | null | undefined): IBrick
 }
 
 /**
- * Собирает запрошенный urlPrefix из параметра catch-all маршрута published-страницы.
- * У маршрута `bricks-page-prefixed` параметр repeatable (массив сегментов),
- * у `bricks-page` параметра нет вовсе.
- *
- * @param param - Значение `route.params.urlPrefix`.
- * @returns Префикс в виде `a/b/c` или пустая строка.
- */
-export function resolveRequestedUrlPrefix(param: unknown): string {
-    if (Array.isArray(param)) {
-        return param.join('/');
-    }
-
-    return typeof param === 'string' ? param : '';
-}
-
-/**
- * Проверяет, что страница доступна по запрошенному urlPrefix: страница без
- * префикса — только по голому `/pagename`, страница с префиксом — только по
- * `/prefix/pagename`. Пробельный urlPrefix приравнивается к отсутствию
- * (записи, созданные в обход server-нормализации ''→null).
- *
- * @param page - Страница (достаточно поля urlPrefix).
- * @param requestedPrefix - Префикс из URL (`resolveRequestedUrlPrefix`).
- * @returns true, если префикс URL соответствует странице.
- */
-export function matchesPageUrlPrefix(
-    page: Pick<IPublishedPage, 'urlPrefix'>,
-    requestedPrefix: string
-): boolean {
-    return (page.urlPrefix?.trim() ?? '') === requestedPrefix;
-}
-
-/**
  * Проверяет соответствие subdomain страницы фактическому хосту запроса
  * (прежний `includes` матчил notpromo.example под "promo").
  * Хост нормализуется URL-парсером (порт, регистр, trailing dot); значение
@@ -172,9 +139,11 @@ export function normalizePublishedPage(
  * Собирает страницу превью из снапшота сохранённой версии: содержимое и meta —
  * версии, тождество страницы — текущей строки.
  *
- * `id` снапшота — идентификатор записи истории, а не страницы; `pagename` в нём
- * мог остаться прежним, если страницу переименовали, — а превью открыто по
- * нынешнему слагу. Поэтому оба берутся у страницы.
+ * `id` снапшота — идентификатор записи истории, а не страницы; адрес
+ * (`pagename` + `urlPrefix`) в нём мог остаться прежним, если страницу
+ * переместили, — а превью открыто по нынешнему адресу. Поэтому и id, и обе
+ * половины адреса берутся у страницы: со старым префиксом в снапшоте сверка
+ * адреса в превью и рендерере отвергала бы страницу как чужую.
  *
  * `updatedAt` — `pageUpdatedAt` снапшота, то есть момент, когда снятое состояние
  * сохранили: этой же датой подписана карточка версии в галерее. `revision` не
@@ -200,6 +169,7 @@ export function normalizePageVersionPreview(
         ...normalizePublishedPage(rawVersion),
         id: page.id,
         pagename: page.pagename,
+        urlPrefix: page.urlPrefix,
         createdAt: page.createdAt,
         updatedAt: pageUpdatedAt || page.updatedAt,
         revision: undefined,

@@ -2,6 +2,9 @@
 // Types
 import type { IBuilderPageWriteOptions, IUseBuilderPageWriteReturn } from '../types/composables';
 
+// Utils
+import { toPageAddress } from '../../../common/utils/bricks/pageAddress';
+
 // Vue
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -21,7 +24,7 @@ import { usePublishStore } from '../../publish/stores/publish';
  * исхода.
  *
  * Выделено из фасада страницы: у операций записи своя цельная логика — сверка
- * токена сессии, порядок перехода на сохранённый pagename, контекст страницы в
+ * токена сессии, порядок перехода на сохранённый адрес, контекст страницы в
  * сообщениях, — и в общем фасаде она мешалась с проводкой shell'а.
  *
  * @param options - Токен сессии, переход/фиксация сессии и открытие панели
@@ -118,13 +121,20 @@ export function useBuilderPageWrite(options: IBuilderPageWriteOptions): IUseBuil
             // Fire-and-forget: превью страницы для дашборда, сохранение не блокируем
             captureAndUploadThumbnail(result, startedIn);
 
-            const currentPagename = publishStore.currentFormState.pagename;
-            if (currentPagename) {
-                // Переносим сессию на сохранённый pagename (URL + ключ черновиков),
+            // Адрес формы целиком: сохранение могло сменить и префикс, а URL
+            // редактора включает его — перенос по одному имени увёл бы редактор
+            // на адрес, которого у страницы нет
+            const currentAddress = toPageAddress(
+                publishStore.currentFormState.pagename,
+                publishStore.currentFormState.urlPrefix
+            );
+
+            if (currentAddress.pagename) {
+                // Переносим сессию на сохранённый адрес (URL + ключ черновиков),
                 // затем фиксируем снапшот и подчищаем черновик по актуальному ключу.
                 // Токен передаётся внутрь: `renameSession` ждёт `router.replace`, и
                 // перехваченная за это время навигация сделала бы фиксацию чужой
-                await renameSession(currentPagename);
+                await renameSession(currentAddress);
                 commitSavedSnapshot(startedIn);
             }
             return true;

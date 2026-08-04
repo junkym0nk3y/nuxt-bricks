@@ -10,17 +10,24 @@
  */
 
 /**
- * Конфликт уникальности pagename: страница с таким именем уже существует.
+ * Конфликт уникальности АДРЕСА: страница по этому адресу уже существует.
  * Кидается из createPage/updatePage при нарушении unique-ограничения —
  * в том числе при гонке двух одновременных запросов (pre-check её не ловит).
+ *
+ * Ошибка-маркер: конкретный адрес в неё не передаётся. Нарушение приходит от
+ * базы кодом SQLSTATE, а какая именно половина пары его вызвала — из payload'а
+ * не видно: при PATCH одного поля вторая половина лежит в сохранённой строке.
+ * Прежний вариант с обязательной строкой pagename заставлял вызывающих
+ * подставлять пустую строку, и в сообщении об ошибке оказывалось
+ * `pagename ""`.
+ *
+ * Проволочный код ответа (`PAGENAME_CONFLICT`) сохранён: он часть внешнего
+ * контракта и переименование ломало бы кастомные backend'ы без пользы.
  */
-export class BricksPagenameConflictError extends Error {
-    readonly pagename: string;
-
-    constructor(pagename: string) {
-        super(`Page with pagename "${pagename}" already exists`);
-        this.name = 'BricksPagenameConflictError';
-        this.pagename = pagename;
+export class BricksPageAddressConflictError extends Error {
+    constructor() {
+        super('Page with this address already exists');
+        this.name = 'BricksPageAddressConflictError';
     }
 }
 

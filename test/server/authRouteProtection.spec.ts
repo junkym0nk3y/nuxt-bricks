@@ -38,6 +38,12 @@ describe('routeProtection: матрица защищённых путей', () =
             expect(requiresAuth('/api/bricks/public/pages/my-page', 'HEAD', mode, PREFIXES)).toBe(
                 false
             );
+            // Адрес страницы уезжает остатком пути, поэтому у public-ручки
+            // переменное число сегментов: сузься правило до одного — SSR-визит
+            // на `/blog/post` уходил бы за логин билдера
+            expect(
+                requiresAuth('/api/bricks/public/pages/blog/2026/post', 'GET', mode, PREFIXES)
+            ).toBe(false);
         }
     });
 

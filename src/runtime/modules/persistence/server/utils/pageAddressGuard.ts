@@ -7,7 +7,8 @@
  * проверяют тесты.
  */
 import { createError } from 'h3';
-import { assertPagePathAllowed } from './payloadValidation';
+import { assertPageAddressAllowed } from './payloadValidation';
+import { toPageAddress } from '../../../common/utils/bricks/pageAddress';
 import type { IUpdatePagePayload } from '../../../common/types/bricks-api';
 import type { IPageAddressContext } from '../../types/pageAddress';
 import type { IStorageAdapter } from '../../types/adapters';
@@ -41,7 +42,7 @@ export async function withCheckedPagePath(
 
     // Оба поля пришли — сохранённая строка не нужна, и лишнего чтения нет
     if (pagename !== undefined && urlPrefix !== undefined) {
-        assertPagePathAllowed(context, urlPrefix, pagename);
+        assertPageAddressAllowed(context, toPageAddress(pagename, urlPrefix));
 
         return payload;
     }
@@ -58,10 +59,12 @@ export async function withCheckedPagePath(
     // Сравнение именно с undefined: `urlPrefix: null` — это осознанная очистка
     // префикса, и подстановка сохранённого значения на её месте проверяла бы
     // адрес, которого после записи не будет
-    assertPagePathAllowed(
+    assertPageAddressAllowed(
         context,
-        urlPrefix !== undefined ? urlPrefix : current.urlPrefix,
-        pagename !== undefined ? pagename : current.pagename
+        toPageAddress(
+            pagename !== undefined ? pagename : current.pagename,
+            urlPrefix !== undefined ? urlPrefix : current.urlPrefix
+        )
     );
 
     return payload.expectedRevision === undefined

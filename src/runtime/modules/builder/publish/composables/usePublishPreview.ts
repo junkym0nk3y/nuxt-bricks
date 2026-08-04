@@ -2,8 +2,10 @@ import type { Composer } from 'vue-i18n';
 import { useNuxtApp } from '#imports';
 import type { IBricksSchema } from '../../../common/types/brick';
 import type { IPreviewStoredPage } from '../../../common/types/bricks-api';
+import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 import type { IUsePublishPreviewReturn } from '../types/composables';
 import { useBricksRoutePaths } from '../../../common/composables/useBricksRoutePaths';
+import { isValidPageAddress, toPageAddress } from '../../../common/utils/bricks/pageAddress';
 import { usePublishStore } from '../stores/publish';
 
 /**
@@ -26,30 +28,39 @@ export function usePublishPreview(): IUsePublishPreviewReturn {
 
     /**
      * Генерирует URL для превью — встроенный превью-маршрут
-     * `<previewPrefix>/[pagename]`; с `app.baseURL` (открывается window.open).
+     * `<previewPrefix>/<адрес>`; с `app.baseURL` (открывается window.open).
      *
-     * @param pagename - ЧПУ страницы.
+     * @param address - Адрес страницы.
      * @param versionId - Id сохранённой версии (без него — текущее состояние).
      */
-    function generatePreviewUrl(pagename: string, versionId?: number): string {
-        return withBase(previewPagePath(pagename, versionId));
+    function generatePreviewUrl(address: IBricksPageAddress, versionId?: number): string {
+        return withBase(previewPagePath(address, versionId));
     }
 
     /**
      * Создаёт превью текущего лендинга из состояния формы publish-стора.
      *
      * @param schema - Схема лендинга.
-     * @returns `pagename` открытого превью или null при ошибке.
+     * @returns Адрес открытого превью или null при ошибке.
      */
-    function previewCurrentPage(schema: IBricksSchema): string | null {
+    function previewCurrentPage(schema: IBricksSchema): IBricksPageAddress | null {
         try {
             const formState = publishStore.currentFormState;
-            // Для превью достаточно pagename (или временного)
-            const pagename = formState.pagename.trim() || `preview-${Date.now()}`;
+            // Адрес формы годится для URL превью только целиком и только валидный:
+            // превью открывают и из невалидной формы, а невалидный сегмент не
+            // сматчит regex адресного маршрута — вкладка показала бы 404. Тогда
+            // берём временный bare-адрес: превью текущего канваса нужнее, чем
+            // точный URL, а слот localStorage подхватится по этому же адресу
+            const formAddress = toPageAddress(formState.pagename, formState.urlPrefix);
+            const address = isValidPageAddress(formAddress)
+                ? formAddress
+                : { pagename: `preview-${Date.now()}`, urlPrefix: null };
             const tempPageId = `preview-${Date.now()}`;
+            // В снапшот уезжает адрес URL превью, а не сырые поля формы: по нему
+            // вкладка превью и middleware опознают снимок своим
             const previewData: IPreviewStoredPage = {
                 id: Number(tempPageId.replace('preview-', '')),
-                pagename,
+                pagename: address.pagename,
                 title: formState.title || t('bricks.publish.previewFallback'),
                 description: formState.description || t('bricks.publish.previewFallback'),
                 keywords: formState.keywords,
@@ -57,7 +68,7 @@ export function usePublishPreview(): IUsePublishPreviewReturn {
                 layout: formState.layout,
                 backgroundColor: formState.backgroundColor,
                 socialImage: formState.socialImage,
-                urlPrefix: formState.urlPrefix,
+                urlPrefix: address.urlPrefix,
                 subdomain: formState.subdomain,
                 thumbnailUrl: null,
                 createdAt: formState.createdAt,
@@ -73,8 +84,8 @@ export function usePublishPreview(): IUsePublishPreviewReturn {
             }
 
             window.localStorage.setItem('bricks-preview-page', JSON.stringify(previewData));
-            window.open(generatePreviewUrl(pagename), '_blank');
-            return pagename;
+            window.open(generatePreviewUrl(address), '_blank');
+            return address;
         } catch (error) {
             console.error('[Publish Preview] Failed to create preview:', error);
             publishStore.generalError = t('bricks.publish.previewCreateFailed');
@@ -88,22 +99,25 @@ export function usePublishPreview(): IUsePublishPreviewReturn {
      * localStorage тут не участвует вовсе — слот там один, и открытый рядом
      * билдер той же страницы либо второе превью перетирали бы снимок версии.
      *
-     * `pagename` берётся из ТЕКУЩЕЙ страницы, не из версии — он должен совпасть
-     * с параметром роута `<previewPrefix>/<pagename>` (страница могла быть
-     * переименована).
+     * Адрес берётся у ТЕКУЩЕЙ страницы, не у версии — он должен совпасть с
+     * параметрами роута `<previewPrefix>/<адрес>` (страницу могли переименовать
+     * или перенести под другой префикс).
      *
-     * @param pagename - ЧПУ текущей страницы.
+     * @param address - Адрес текущей страницы.
      * @param versionId - Id сохранённой версии.
-     * @returns `pagename` открытого превью или null, если вкладка не открылась.
+     * @returns Адрес открытого превью или null, если вкладка не открылась.
      */
-    function previewPageVersion(pagename: string, versionId: number): string | null {
+    function previewPageVersion(
+        address: IBricksPageAddress,
+        versionId: number
+    ): IBricksPageAddress | null {
         if (typeof window === 'undefined') {
             console.warn('[Publish Preview] previewPageVersion: window is not available');
             return null;
         }
 
         // Блокировщик попапов возвращает null — без проверки отказ был бы тихим
-        return window.open(generatePreviewUrl(pagename, versionId), '_blank') ? pagename : null;
+        return window.open(generatePreviewUrl(address, versionId), '_blank') ? address : null;
     }
 
     return { previewCurrentPage, previewPageVersion, generatePreviewUrl };

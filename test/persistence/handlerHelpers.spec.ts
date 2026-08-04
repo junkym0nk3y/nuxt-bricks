@@ -13,7 +13,7 @@ import {
     toPageHttpError,
 } from '../../src/runtime/modules/persistence/server/utils/handlerHelpers';
 import {
-    BricksPagenameConflictError,
+    BricksPageAddressConflictError,
     BricksRevisionConflictError,
     BricksStatementTimeoutError,
 } from '../../src/runtime/modules/persistence/server/utils/storageErrors';
@@ -121,7 +121,7 @@ describe('handlerHelpers: generic 500-envelope', () => {
 
     it('toPageHttpError: доменные конфликты маппятся на 409 с машиночитаемым кодом', () => {
         const pagenameConflict = catchThrown(() =>
-            toPageHttpError(new BricksPagenameConflictError('landing'), 'Failed to save page')
+            toPageHttpError(new BricksPageAddressConflictError(), 'Failed to save page')
         ) as { statusCode: number; data: { code: string } };
 
         expect(pagenameConflict.statusCode).toBe(409);

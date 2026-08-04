@@ -9,8 +9,10 @@
  * и `/preview` в новом коде запрещены — только эти хелперы.
  */
 
+import type { IBricksPageAddress } from '../../types/pageAddress';
+import { getPageAddressKey } from './pageAddress';
 import { PREVIEW_VERSION_QUERY_PARAM } from './previewRoute';
-import { BRICKS_ROUTE_NAMES } from '../../constants/routes';
+import { BRICKS_BUILDER_PAGE_ROUTE_NAMES, BRICKS_ROUTE_NAMES } from '../../constants/routes';
 
 /** Префиксы маршрутов поверхностей bricks. */
 export interface IBricksRoutePrefixes {
@@ -135,16 +137,20 @@ export function getBuilderLoginPath(prefixes: IBricksRoutePrefixes): string {
 /**
  * Путь превью страницы; с `versionId` — превью сохранённой версии.
  *
+ * Адресный, как и путь редактора: превью открывается из редактора конкретной
+ * страницы, и по одному имени кнопка «Превью» у `/news/post` открывала бы
+ * вкладку, которую билдер наполняет схемой `/blog/post`.
+ *
  * @param prefixes - Активные префиксы.
- * @param pagename - ЧПУ страницы.
+ * @param address - Адрес страницы.
  * @param versionId - Id версии для `?version=` (без него — текущее состояние).
  */
 export function getPreviewPagePath(
     prefixes: IBricksRoutePrefixes,
-    pagename: string,
+    address: IBricksPageAddress,
     versionId?: number
 ): string {
-    const path = `${prefixes.previewPrefix}/${pagename}`;
+    const path = `${prefixes.previewPrefix}/${getPageAddressKey(address)}`;
 
     return versionId === undefined
         ? path
@@ -179,21 +185,17 @@ export function isProtectedBricksHtmlPath(
 
 /**
  * Логический live-адрес published-страницы: `/<urlPrefix>/<pagename>` либо
- * `/<pagename>` без префикса. Пустой и пробельный `urlPrefix` считается
- * отсутствующим — так же, как его нормализуют формы и серверный DTO.
+ * `/<pagename>` без префикса.
  *
- * @param urlPrefix - urlPrefix страницы (может отсутствовать).
- * @param pagename - ЧПУ страницы.
+ * Выводится из канонического ключа адреса (`getPageAddressKey`), а не считает
+ * сегменты сам: ключ адреса уже задаёт единственную сериализацию пары, и вторая
+ * копия правила разошлась бы с ключами черновиков и payload'а на пробельном
+ * префиксе.
+ *
+ * @param address - Адрес страницы.
  */
-export function getPublishedPagePath(
-    urlPrefix: string | null | undefined,
-    pagename: string
-): string {
-    const prefixSegments = getPathSegments(urlPrefix?.trim() ?? '');
-
-    return prefixSegments.length === 0
-        ? `/${pagename}`
-        : `/${prefixSegments.join('/')}/${pagename}`;
+export function getPublishedPagePath(address: IBricksPageAddress): string {
+    return `/${getPageAddressKey(address)}`;
 }
 
 /**
@@ -248,16 +250,14 @@ function isPathTakenByOther(
  *
  * @param prefixes - Активные префиксы.
  * @param resolveRouteName - Резолвер имени маршрута по пути.
- * @param urlPrefix - urlPrefix страницы (может отсутствовать).
- * @param pagename - ЧПУ страницы.
+ * @param address - Адрес страницы.
  */
 export function isPageAddressTaken(
     prefixes: IBricksRoutePrefixes,
     resolveRouteName: (path: string) => string | undefined,
-    urlPrefix: string | null | undefined,
-    pagename: string
+    address: IBricksPageAddress
 ): boolean {
-    const path = getPublishedPagePath(urlPrefix, pagename);
+    const path = getPublishedPagePath(address);
 
     return (
         isProtectedBricksHtmlPath(prefixes, path) ||
@@ -266,23 +266,45 @@ export function isPageAddressTaken(
 }
 
 /**
- * Адрес РЕДАКТОРА страницы занят: `<builderPrefix>/<pagename>` достаётся не
- * редактору, а статическому соседу (страница логина, вложенный маршрут
- * потребителя). Сама published-страница при этом обычно достижима — недостижим
- * именно её редактор, поэтому проверка отдельная от `isPageAddressTaken`.
+ * Путь редактора страницы: `<builderPrefix>/<urlPrefix>/<pagename>` либо
+ * `<builderPrefix>/<pagename>` без префикса. Адрес редактора повторяет адрес
+ * страницы, потому что имя уникально только внутри своего префикса: у `/blog/post`
+ * и `/news/post` редакторы обязаны различаться.
+ *
+ * @param prefixes - Активные префиксы.
+ * @param address - Адрес страницы.
+ */
+export function getBuilderPagePath(
+    prefixes: IBricksRoutePrefixes,
+    address: IBricksPageAddress
+): string {
+    return `${prefixes.builderPrefix}/${getPageAddressKey(address)}`;
+}
+
+/**
+ * Адрес РЕДАКТОРА страницы занят: путь редактора достаётся не редактору, а
+ * статическому соседу (страница логина, вложенный маршрут потребителя). Сама
+ * published-страница при этом обычно достижима — недостижим именно её редактор,
+ * поэтому проверка отдельная от `isPageAddressTaken`.
+ *
+ * Проверяется полный адрес, а не одно имя: `bricks-login` без префикса
+ * действительно отбирает путь у страницы логина, а `blog/bricks-login` живёт по
+ * свободному `<builderPrefix>/blog/bricks-login` и запрещать его не за что.
  *
  * @param prefixes - Активные префиксы.
  * @param resolveRouteName - Резолвер имени маршрута по пути.
- * @param pagename - ЧПУ страницы.
+ * @param address - Адрес страницы.
  */
 export function isEditorAddressTaken(
     prefixes: IBricksRoutePrefixes,
     resolveRouteName: (path: string) => string | undefined,
-    pagename: string
+    address: IBricksPageAddress
 ): boolean {
-    return isPathTakenByOther(resolveRouteName, `${prefixes.builderPrefix}/${pagename}`, [
-        BRICKS_ROUTE_NAMES.builderPage,
-    ]);
+    return isPathTakenByOther(
+        resolveRouteName,
+        getBuilderPagePath(prefixes, address),
+        BRICKS_BUILDER_PAGE_ROUTE_NAMES
+    );
 }
 
 /**

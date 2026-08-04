@@ -81,8 +81,27 @@ describe('usePublishStore: дублирование страницы', () => {
         ];
 
         expect(
-            generateCopyPagename('home', (candidate) => store.isPagenameAvailable(candidate))
+            generateCopyPagename({ pagename: 'home', urlPrefix: null }, (candidate) =>
+                store.isAddressAvailable(candidate)
+            )
         ).toBe('home-copy-2');
+    });
+
+    it('подбор копии идёт в пределах своего префикса', () => {
+        const store = usePublishStore();
+        store.publishedPages = [
+            buildPage({ id: 1, pagename: 'post', urlPrefix: 'blog' }),
+            // Занятые копии в чужом префиксе на подбор не влияют: копия наследует
+            // `urlPrefix` оригинала, и по одному имени она уехала бы в -copy-2
+            buildPage({ id: 2, pagename: 'post-copy', urlPrefix: 'news' }),
+            buildPage({ id: 3, pagename: 'post-copy-1', urlPrefix: null }),
+        ];
+
+        expect(
+            generateCopyPagename({ pagename: 'post', urlPrefix: 'blog' }, (candidate) =>
+                store.isAddressAvailable(candidate)
+            )
+        ).toBe('post-copy');
     });
 
     it('duplicatePage по id создаёт черновик с уникальным pagename и суффиксом (copy)', async () => {

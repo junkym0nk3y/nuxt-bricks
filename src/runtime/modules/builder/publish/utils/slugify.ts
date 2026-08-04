@@ -1,3 +1,6 @@
+// Types
+import type { IBricksPageAddress } from '../../../common/types/pageAddress';
+
 // Constants
 import { PAGENAME_MAX_LENGTH } from '../../../common/constants/publish';
 
@@ -64,20 +67,27 @@ export function slugifyPageTitle(title: string): string {
  * Генерирует свободный `pagename` для копии страницы: суффикс «-copy»,
  * при коллизиях — «-copy-1», «-copy-2» и т.д.
  *
- * @param base - Исходный `pagename`.
- * @param isPagenameAvailable - Проверка доступности кандидата.
- * @returns Уникальный `pagename` для копии.
+ * Свобода проверяется по АДРЕСУ, а не по имени: копия наследует `urlPrefix`
+ * оригинала (`buildCopyFormState`), поэтому занятое имя в чужом префиксе копии не
+ * мешает, а свободное в своём — единственное, что имеет значение. Проверка по
+ * одному имени уводила бы копию в `-copy-3` только потому, что `post-copy` занят
+ * под другим префиксом.
+ *
+ * @param address - Адрес исходной страницы (префикс копии — тот же).
+ * @param isAddressAvailable - Проверка доступности адреса-кандидата.
+ * @returns Уникальный в своём префиксе `pagename` для копии.
  */
 export function generateCopyPagename(
-    base: string,
-    isPagenameAvailable: (pagename: string) => boolean
+    address: IBricksPageAddress,
+    isAddressAvailable: (address: IBricksPageAddress) => boolean
 ): string {
+    const base = address.pagename;
     const safeBase = base?.trim() ? base.trim() : 'page';
     const normalizedBase = safeBase.replace(/-copy(?:-\d+)?$/, '');
     let candidate = `${normalizedBase}-copy`;
     let suffix = 1;
 
-    while (!isPagenameAvailable(candidate)) {
+    while (!isAddressAvailable({ pagename: candidate, urlPrefix: address.urlPrefix })) {
         candidate = `${normalizedBase}-copy-${suffix}`;
         suffix += 1;
     }

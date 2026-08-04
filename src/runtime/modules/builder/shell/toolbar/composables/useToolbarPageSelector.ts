@@ -6,6 +6,9 @@ import type {
     IUseToolbarPageSelectorReturn,
 } from '../types/composables';
 
+// Utils
+import { getPageAddressKey, toPageAddress } from '../../../../common/utils/bricks/pageAddress';
+
 // Vue
 import { computed, ref, toValue } from 'vue';
 // #endregion
@@ -57,9 +60,13 @@ export function useToolbarPageSelector(
             return pages;
         }
 
-        // По названию и по адресу сразу: страницу помнят то так, то так
+        // По названию и по адресу сразу: страницу помнят то так, то так. Адрес —
+        // полный (`blog/post`), поэтому и запрос по префиксу находит свои страницы,
+        // а у одноимённых различие видно в самом совпадении
         return pages.filter((page) =>
-            `${page.title ?? ''} ${page.pagename}`.toLowerCase().includes(query)
+            `${page.title ?? ''} ${getPageAddressKey(toPageAddress(page.pagename, page.urlPrefix))}`
+                .toLowerCase()
+                .includes(query)
         );
     });
 

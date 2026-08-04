@@ -5,10 +5,15 @@ import type { TPublishedPageSummary } from '../../../common/types/bricks-api';
 import type { IMediaItem } from '../../../common/types/media';
 import type { TMediaLightboxItem } from '../../media/types/media';
 import type { TPublishDashboardSection } from '../types/dashboard';
+import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 
 // Utils
-import { BRICKS_ROUTE_NAMES } from '../../../common/constants/routes';
 import { isRequestTimeoutError } from '../../../common/utils/apiRequestPolicy';
+import {
+    getBuilderPageRouteLocation,
+    toPageAddress,
+} from '../../../common/utils/bricks/pageAddress';
+import { getPublishedPagePath } from '../../../common/utils/bricks/routePaths';
 
 // Vue
 import { computed, defineAsyncComponent, ref, watch } from 'vue';
@@ -124,7 +129,10 @@ const deleteConfirmationDescription = computed<string>(() => {
 
     return t('bricks.publish.dashboard.deleteConfirm.named', {
         title: page.title,
-        path: `/${page.pagename}`,
+        // Полный адрес: у одноимённых страниц под разными префиксами путь по
+        // одному имени совпадал бы, и при равных заголовках пользователь не
+        // понимал бы, какую из них удаляет
+        path: getPublishedPagePath(toPageAddress(page.pagename, page.urlPrefix)),
     });
 });
 
@@ -157,11 +165,11 @@ function handleCloseCreatePageModal(): void {
 /**
  * После создания страницы переходит в редактор билдера.
  *
- * @param pagename - ЧПУ созданной страницы.
+ * @param address - Адрес созданной страницы.
  */
-async function handlePageCreated(pagename: string): Promise<void> {
+async function handlePageCreated(address: IBricksPageAddress): Promise<void> {
     isCreatePageModalOpen.value = false;
-    await router.push({ name: BRICKS_ROUTE_NAMES.builderPage, params: { pagename } });
+    await router.push(getBuilderPageRouteLocation(address));
 }
 
 /**
@@ -203,10 +211,7 @@ watch(selectedPageId, () => {
  * @param page - Страница.
  */
 async function handleEditPage(page: TPublishedPageSummary): Promise<void> {
-    await router.push({
-        name: BRICKS_ROUTE_NAMES.builderPage,
-        params: { pagename: page.pagename },
-    });
+    await router.push(getBuilderPageRouteLocation(toPageAddress(page.pagename, page.urlPrefix)));
 }
 
 /**
@@ -258,7 +263,7 @@ function handleDetailsNotify(message: string, variant: 'success' | 'error'): voi
  * @param page - Страница.
  */
 function handlePreviewPage(page: TPublishedPageSummary): void {
-    window.open(generatePreviewUrl(page.pagename), '_blank');
+    window.open(generatePreviewUrl(toPageAddress(page.pagename, page.urlPrefix)), '_blank');
 }
 
 /**

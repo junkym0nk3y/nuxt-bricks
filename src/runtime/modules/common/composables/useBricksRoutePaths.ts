@@ -1,6 +1,7 @@
 // #region Imports
 // Types
 import type { IUseBricksRoutePathsReturn } from '../types/composables';
+import type { IBricksPageAddress } from '../types/pageAddress';
 
 // Utils
 import {
@@ -37,8 +38,8 @@ export function useBricksRoutePaths(): IUseBricksRoutePathsReturn {
         prefixes,
         builderRootPath: prefixes.builderPrefix,
         builderLoginPath: getBuilderLoginPath(prefixes),
-        previewPagePath: (pagename: string, versionId?: number) =>
-            getPreviewPagePath(prefixes, pagename, versionId),
+        previewPagePath: (address: IBricksPageAddress, versionId?: number) =>
+            getPreviewPagePath(prefixes, address, versionId),
         withBase: (path: string) => joinPathBase(baseURL, path),
         stripBase: (pathname: string) => stripPathBase(pathname, baseURL),
         isBuilderPath: (pathname: string) => isBuilderPath(prefixes, pathname),

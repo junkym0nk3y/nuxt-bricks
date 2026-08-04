@@ -26,8 +26,7 @@ export async function updatePageFromEvent(event: H3Event): Promise<IBricksPageRo
         const adapter = useBricksStorageAdapter();
 
         const body = validateUpdatePagePayload(
-            await readNormalizedBody<Record<string, unknown>>(event),
-            context
+            await readNormalizedBody<Record<string, unknown>>(event)
         );
 
         const result = await adapter.updatePage(

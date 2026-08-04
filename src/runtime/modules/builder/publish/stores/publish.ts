@@ -9,6 +9,8 @@ import type {
     TPublishFormState,
 } from '../../../common/types/bricks-api';
 import type { IPublishOperationOptions } from '../types/publishStore';
+import type { IBricksPageAddress } from '../../../common/types/pageAddress';
+import { getPageAddressKey, toPageAddress } from '../../../common/utils/bricks/pageAddress';
 import { buildDefaultFormState, buildEditFormState, normalizeFormState } from '../utils/formState';
 import { beginActiveWrite, endActiveWrite } from '../utils/activeWrites';
 import { ensureAllPagesLoaded, runLoadAllPages } from '../utils/pagesLoad';
@@ -21,12 +23,7 @@ import {
     runPublishPage,
     runSaveCurrentPageAsCopy,
 } from '../utils/currentPageWrite';
-import {
-    updatePageRequest,
-    patchPageRequest,
-    deletePageRequest,
-    fetchPageByPagenameRequest,
-} from '../utils/publishApi';
+import { updatePageRequest, patchPageRequest, deletePageRequest } from '../utils/publishApi';
 
 /**
  * Переводит ключ через глобальный i18n (стор не имеет setup-контекста).
@@ -77,20 +74,31 @@ export const usePublishStore = defineStore('bricksPublish', {
         },
 
         /**
-         * Находит страницу по `pagename`.
+         * Находит страницу по адресу. По адресу, а не по имени: имя уникально
+         * только внутри своего префикса, и поиск по нему возвращал бы
+         * произвольную из одноимённых страниц.
          */
-        getPageByPagename: (state) => (pagename: string) => {
-            return state.publishedPages.find((page) => page.pagename === pagename);
+        getPageByAddress: (state) => (address: IBricksPageAddress) => {
+            const key = getPageAddressKey(address);
+
+            return state.publishedPages.find(
+                (page) => getPageAddressKey(toPageAddress(page.pagename, page.urlPrefix)) === key
+            );
         },
 
         /**
-         * Проверяет, свободен ли `pagename`, учитывая возможное исключение по id.
+         * Проверяет, свободен ли адрес, учитывая возможное исключение по id.
          */
-        isPagenameAvailable: (state) => (pagename: string, excludeId?: string | number) => {
-            return !state.publishedPages.some(
-                (page) => page.pagename === pagename && String(page.id) !== String(excludeId)
-            );
-        },
+        isAddressAvailable:
+            (state) => (address: IBricksPageAddress, excludeId?: string | number) => {
+                const key = getPageAddressKey(address);
+
+                return !state.publishedPages.some(
+                    (page) =>
+                        getPageAddressKey(toPageAddress(page.pagename, page.urlPrefix)) === key &&
+                        String(page.id) !== String(excludeId)
+                );
+            },
     },
 
     actions: {
@@ -292,27 +300,6 @@ export const usePublishStore = defineStore('bricksPublish', {
         },
 
         /**
-         * Загружает страницу по `pagename`.
-         *
-         * @param pagename - ЧПУ страницы.
-         */
-        async loadPageByPagename(pagename: string): Promise<IPublishedPage | null> {
-            try {
-                const page = await fetchPageByPagenameRequest(pagename);
-
-                if (!page) {
-                    this.generalError = `GET /api/bricks/public/pages/${pagename}: page is not published`;
-                }
-
-                return page;
-            } catch (error: unknown) {
-                this.generalError = (error as Error).message;
-                console.error('[Publish Store] Failed to load page:', error);
-                return null;
-            }
-        },
-
-        /**
          * Обновляет отдельное поле в текущих настройках.
          *
          * @param field - Название поля.
@@ -397,9 +384,9 @@ export const usePublishStore = defineStore('bricksPublish', {
         validateCurrentFormState(): boolean {
             const { formState, errors } = validatePublishFormState(
                 this.currentFormState,
-                (pagename) =>
-                    this.isPagenameAvailable(
-                        pagename,
+                (address) =>
+                    this.isAddressAvailable(
+                        address,
                         this.editingPageId !== null ? this.editingPageId : undefined
                     )
             );

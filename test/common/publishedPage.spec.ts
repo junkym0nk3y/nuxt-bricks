@@ -2,16 +2,18 @@
 // Vitest
 import { describe, expect, it } from 'vitest';
 
+// Types
+import type { TPublishedPageSummary } from '../../src/runtime/modules/common/types/bricks-api';
+
 // Utils
 import {
     DEFAULT_BACKGROUND_COLOR,
     DEFAULT_LAYOUT,
     matchesPageSubdomain,
-    matchesPageUrlPrefix,
+    normalizePageVersionPreview,
     normalizePublishedPage,
     normalizePublishedPageSummary,
     preserveSchema,
-    resolveRequestedUrlPrefix,
 } from '../../src/runtime/modules/common/utils/bricks/publishedPage';
 // #endregion
 
@@ -118,45 +120,6 @@ describe('normalizePublishedPageSummary', () => {
     });
 });
 
-describe('resolveRequestedUrlPrefix', () => {
-    it('склеивает repeatable-параметр маршрута в префикс', () => {
-        expect(resolveRequestedUrlPrefix(['blog'])).toBe('blog');
-        expect(resolveRequestedUrlPrefix(['blog', '2026'])).toBe('blog/2026');
-    });
-
-    it('отсутствующий параметр — пустой префикс', () => {
-        expect(resolveRequestedUrlPrefix(undefined)).toBe('');
-        expect(resolveRequestedUrlPrefix([])).toBe('');
-    });
-
-    it('строковый параметр проходит как есть', () => {
-        expect(resolveRequestedUrlPrefix('blog')).toBe('blog');
-    });
-});
-
-describe('matchesPageUrlPrefix', () => {
-    it('страница без префикса доступна только по голому URL', () => {
-        expect(matchesPageUrlPrefix({ urlPrefix: null }, '')).toBe(true);
-        expect(matchesPageUrlPrefix({ urlPrefix: null }, 'blog')).toBe(false);
-    });
-
-    it('страница с префиксом доступна только по своему префиксу', () => {
-        expect(matchesPageUrlPrefix({ urlPrefix: 'blog' }, 'blog')).toBe(true);
-        expect(matchesPageUrlPrefix({ urlPrefix: 'blog' }, '')).toBe(false);
-        expect(matchesPageUrlPrefix({ urlPrefix: 'blog' }, 'docs')).toBe(false);
-    });
-
-    it('многосегментный префикс сравнивается целиком', () => {
-        expect(matchesPageUrlPrefix({ urlPrefix: 'blog/2026' }, 'blog/2026')).toBe(true);
-        expect(matchesPageUrlPrefix({ urlPrefix: 'blog/2026' }, 'blog')).toBe(false);
-    });
-
-    it('пробельный urlPrefix приравнивается к отсутствию (запись в обход нормализации)', () => {
-        expect(matchesPageUrlPrefix({ urlPrefix: '  ' }, '')).toBe(true);
-        expect(matchesPageUrlPrefix({ urlPrefix: ' blog ' }, 'blog')).toBe(true);
-    });
-});
-
 describe('matchesPageSubdomain: точное сопоставление subdomain', () => {
     it('первый label должен совпасть точно — подстрока не матчится', () => {
         expect(matchesPageSubdomain('promo.example.com', 'promo')).toBe(true);
@@ -180,5 +143,31 @@ describe('matchesPageSubdomain: точное сопоставление subdomai
         expect(matchesPageSubdomain('anything.example', '  ')).toBe(true);
         expect(matchesPageSubdomain(undefined, 'promo')).toBe(false);
         expect(matchesPageSubdomain('', 'promo')).toBe(false);
+    });
+});
+
+describe('normalizePageVersionPreview: тождество страницы поверх снапшота версии', () => {
+    it('адрес берётся у текущей строки, а не у снапшота', () => {
+        const page = {
+            id: 7,
+            pagename: 'post',
+            urlPrefix: 'news',
+            createdAt: '2026-01-01T00:00:00Z',
+            updatedAt: '2026-02-01T00:00:00Z',
+        } as TPublishedPageSummary;
+
+        // Снимок снят до переноса страницы под другой префикс. Останься его
+        // `urlPrefix` — сверка адреса в превью и рендерере отвергла бы страницу
+        // как чужую, и вкладка версии показала бы пустой канвас
+        const preview = normalizePageVersionPreview(
+            { pagename: 'post', url_prefix: 'blog', schema: { components: [] } },
+            page
+        );
+
+        expect(preview.urlPrefix).toBe('news');
+        expect(preview.pagename).toBe('post');
+        expect(preview.id).toBe(7);
+        expect(preview.isPreview).toBe(true);
+        expect(preview.revision).toBeUndefined();
     });
 });

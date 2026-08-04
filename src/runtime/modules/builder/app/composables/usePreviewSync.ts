@@ -1,7 +1,11 @@
 // #region Imports
 // Types
 import type { IPreviewStoredPage } from '../../../common/types/bricks-api';
+import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 import type { IBuilderSessionToken } from '../types/composables';
+
+// Utils
+import { getPageAddressKey, toPageAddress } from '../../../common/utils/bricks/pageAddress';
 
 // Vue
 import { onUnmounted, watch } from 'vue';
@@ -37,8 +41,11 @@ const NON_SCHEMA_ACTIONS = new Set([
  * после перезагрузки любой из вкладок. Изменения компонентов отправляются
  * с debounce 300ms; канал закрывается при unmount.
  *
+ * Страницу в канале опознаёт КЛЮЧ АДРЕСА, а не имя: у `/blog/post` и
+ * `/news/post` имя одно, и превью первой принимало бы схему второй как свою.
+ *
  * @param sessionToken - Токен сессии: открытие другой страницы обрывает синк,
- * иначе её схема уезжала бы под именем прежней.
+ * иначе её схема уезжала бы под адресом прежней.
  */
 export function usePreviewSync(sessionToken: IBuilderSessionToken) {
     const componentsStore = useComponentsStore();
@@ -46,7 +53,8 @@ export function usePreviewSync(sessionToken: IBuilderSessionToken) {
 
     let previewBroadcastChannel: BroadcastChannel | null = null;
     let previewSyncTimer: ReturnType<typeof setTimeout> | null = null;
-    let previewPagename = '';
+    // Ключ адреса открытой превью-вкладки; пустая строка — синка нет
+    let previewAddressKey = '';
 
     /**
      * Отправляет актуальную схему канваса в открытую вкладку превью через BroadcastChannel.
@@ -54,7 +62,7 @@ export function usePreviewSync(sessionToken: IBuilderSessionToken) {
      * вкладки показывала свежие данные.
      */
     function sendPreviewSchemaUpdate(): void {
-        if (!previewBroadcastChannel || !previewPagename) {
+        if (!previewBroadcastChannel || !previewAddressKey) {
             return;
         }
 
@@ -65,7 +73,12 @@ export function usePreviewSync(sessionToken: IBuilderSessionToken) {
                 const stored = window.localStorage.getItem('bricks-preview-page');
                 if (stored) {
                     const parsed = JSON.parse(stored) as IPreviewStoredPage;
-                    if (parsed.pagename === previewPagename) {
+                    // Сверка по адресу: слот один на билдер, и снимок соседней
+                    // одноимённой страницы иначе получил бы схему этой
+                    if (
+                        getPageAddressKey(toPageAddress(parsed.pagename, parsed.urlPrefix)) ===
+                        previewAddressKey
+                    ) {
                         parsed.schema = schema;
                         parsed.storedAt = new Date().toISOString();
                         window.localStorage.setItem('bricks-preview-page', JSON.stringify(parsed));
@@ -78,14 +91,14 @@ export function usePreviewSync(sessionToken: IBuilderSessionToken) {
 
         previewBroadcastChannel.postMessage({
             type: 'schema-update',
-            pagename: previewPagename,
+            address: previewAddressKey,
             schema,
         });
     }
 
     /**
      * Создаёт BroadcastChannel и подписывается на `request-schema` от превью-вкладки:
-     * если запрошен pagename страницы, открытой в билдере, восстанавливает синк
+     * если запрошен адрес страницы, открытой в билдере, восстанавливает синк
      * и немедленно отвечает свежей схемой.
      */
     function ensurePreviewChannel(): void {
@@ -96,32 +109,38 @@ export function usePreviewSync(sessionToken: IBuilderSessionToken) {
         previewBroadcastChannel = new BroadcastChannel('bricks-preview-sync');
 
         previewBroadcastChannel.onmessage = (event: MessageEvent) => {
-            const { type, pagename } = event.data ?? {};
-            if (type !== 'request-schema' || !pagename) {
+            const { type, address } = event.data ?? {};
+            if (type !== 'request-schema' || typeof address !== 'string' || !address) {
                 return;
             }
 
-            const currentPagename = String(publishStore.currentFormState.pagename ?? '').trim();
-            if (pagename !== currentPagename && pagename !== previewPagename) {
+            const formAddressKey = getPageAddressKey(
+                toPageAddress(
+                    String(publishStore.currentFormState.pagename ?? ''),
+                    publishStore.currentFormState.urlPrefix
+                )
+            );
+
+            if (address !== formAddressKey && address !== previewAddressKey) {
                 return;
             }
 
-            previewPagename = pagename;
+            previewAddressKey = address;
             sendPreviewSchemaUpdate();
         };
     }
 
     /**
-     * Запоминает pagename открытой превью-вкладки (вызывается при клике «Превью»).
+     * Запоминает адрес открытой превью-вкладки (вызывается при клике «Превью»).
      *
-     * @param pagename - ЧПУ страницы, открытой в превью.
+     * @param address - Адрес страницы, открытой в превью.
      */
-    function startPreviewSync(pagename: string): void {
+    function startPreviewSync(address: IBricksPageAddress): void {
         if (!import.meta.client) {
             return;
         }
 
-        previewPagename = pagename;
+        previewAddressKey = getPageAddressKey(address);
         ensurePreviewChannel();
     }
 
@@ -133,7 +152,7 @@ export function usePreviewSync(sessionToken: IBuilderSessionToken) {
      * Планирует отправку схемы в превью с debounce 300ms.
      */
     function schedulePreviewSchemaUpdate(): void {
-        if (!previewBroadcastChannel || !previewPagename) {
+        if (!previewBroadcastChannel || !previewAddressKey) {
             return;
         }
 
@@ -160,17 +179,17 @@ export function usePreviewSync(sessionToken: IBuilderSessionToken) {
         });
     });
 
-    // Открытие другой страницы обрывает синк. Канал и `previewPagename` живут
+    // Открытие другой страницы обрывает синк. Канал и `previewAddressKey` живут
     // дольше сессии, поэтому схема новой страницы уезжала в localStorage и
-    // BroadcastChannel под именем прежней — превью-вкладка показывала чужой
-    // контент под своим слагом. Вкладка просто перестаёт обновляться:
-    // её `request-schema` дальше отсекается сравнением с pagename формы.
+    // BroadcastChannel под адресом прежней — превью-вкладка показывала чужой
+    // контент под своим адресом. Вкладка просто перестаёт обновляться:
+    // её `request-schema` дальше отсекается сравнением с адресом формы.
     // flush: 'sync' — сброс обязан произойти в момент инвалидации токена, до
     // того как `openBuilderSession` уйдёт в await и схема сменится на канвасе
     watch(
         sessionToken.token,
         () => {
-            previewPagename = '';
+            previewAddressKey = '';
 
             if (previewSyncTimer) {
                 clearTimeout(previewSyncTimer);

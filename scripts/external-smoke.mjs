@@ -203,6 +203,44 @@ async function runLifecycle(backend) {
         'public projection не должна содержать editor-only поля'
     );
 
+    // Адресный public lookup: страница под префиксом достаётся только по своему
+    // полному адресу. Именно этот кейс новый — адрес уезжает остатком пути, а
+    // backend обязан искать по паре `urlPrefix + pagename`
+    const prefixedCreated = await fetch(`${SERVER_ORIGIN}/api/bricks`, {
+        method: 'POST',
+        headers: { ...authHeaders(), 'content-type': 'application/json' },
+        body: JSON.stringify({
+            pagename: PAGENAME,
+            urlPrefix: 'external-smoke-prefix',
+            title: 'External smoke prefixed',
+            schema: { components: [] },
+            published: true,
+        }),
+    });
+    assertOk(
+        prefixedCreated.ok,
+        `POST страницы с urlPrefix ожидался 2xx, получен ${prefixedCreated.status}`
+    );
+
+    const prefixedPublic = await fetch(
+        `${SERVER_ORIGIN}/api/bricks/public/pages/external-smoke-prefix/${PAGENAME}`
+    );
+    assertOk(
+        prefixedPublic.status === 200,
+        `public lookup адреса с префиксом ожидался 200: ${prefixedPublic.status}`
+    );
+    const prefixedProjection = await prefixedPublic.json();
+    assertOk(
+        prefixedProjection.title === 'External smoke prefixed',
+        'адресный lookup вернул не ту страницу — искали по имени, а не по паре'
+    );
+
+    // Обратная половина: одно имя не выдаёт страницу под чужим префиксом
+    const foreignPrefix = await fetch(
+        `${SERVER_ORIGIN}/api/bricks/public/pages/external-smoke-other/${PAGENAME}`
+    );
+    assertOk(foreignPrefix.status === 404, `чужой префикс ожидался 404: ${foreignPrefix.status}`);
+
     // Multipart upload: sharp обрабатывает файл в consumer, binary — в
     // in-memory publish adapter, на external уходит только JSON metadata
     const formData = new FormData();

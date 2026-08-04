@@ -3,6 +3,9 @@
 import type { TPublishedPageSummary } from '../../../common/types/bricks-api';
 import type { TPublishPagesFilter, IPublishPagesFilterCounts } from '../types/dashboard';
 
+// Utils
+import { getPageAddressKey, toPageAddress } from '../../../common/utils/bricks/pageAddress';
+
 // Vue
 import { ref, computed, watch, type Ref, type ComputedRef } from 'vue';
 
@@ -51,7 +54,14 @@ export function usePublishDashboard(
         }
 
         return pages.value.filter((page) => {
-            const haystack = [page.title, page.pagename, page.description]
+            // Адрес целиком, а не один `pagename`: строка списка показывает
+            // `/news/post`, и запрос `news` обязан её находить — после появления
+            // одноимённых страниц префикс и есть различающая часть адреса
+            const haystack = [
+                page.title,
+                getPageAddressKey(toPageAddress(page.pagename, page.urlPrefix)),
+                page.description,
+            ]
                 .filter(Boolean)
                 .join(' ')
                 .toLowerCase();

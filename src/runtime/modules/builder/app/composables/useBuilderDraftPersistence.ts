@@ -4,6 +4,7 @@ import type { IBuilderDraftPersistenceOptions } from '../types/composables';
 
 // Utils
 import { isSnapshotEqual } from '../../publish/utils/draftSnapshots';
+import { getPageAddressKey } from '../../../common/utils/bricks/pageAddress';
 import {
     isBuilderDraftStorageAvailable,
     removeBuilderDraft,
@@ -23,7 +24,7 @@ import { usePublishStore } from '../../publish/stores/publish';
  * истории канваса или настроек публикации. Запись идёт всегда, а вот удаление
  * записи ждёт ответа на предложение восстановить (`isDraftRestorePending`):
  * запрещать заодно и запись нельзя — правка пропса меняет компонент синхронно, а
- * историю фиксирует через 300 мс, и `pagehide` в это окно потерял бы её. Ключ черновика — sessionPagename
+ * историю фиксирует через 300 мс, и `pagehide` в это окно потерял бы её. Ключ черновика — sessionAddress
  * (переживает rename сессии). Если изменений относительно сохранённой версии
  * нет — черновик удаляется. Отложенное сохранение сбрасывается синхронно на обоих
  * терминальных событиях: выгрузка страницы (`pagehide`) и остановка scope
@@ -31,8 +32,8 @@ import { usePublishStore } from '../../publish/stores/publish';
  */
 export function useBuilderDraftPersistence(options: IBuilderDraftPersistenceOptions): void {
     const {
-        routePagename,
-        sessionPagename,
+        routeAddress,
+        sessionAddress,
         isSessionLoading,
         isSessionReady,
         isDraftRestorePending,
@@ -73,8 +74,8 @@ export function useBuilderDraftPersistence(options: IBuilderDraftPersistenceOpti
             return;
         }
 
-        const pagename = sessionPagename.value;
-        if (!pagename) {
+        const address = sessionAddress.value;
+        if (!address.pagename) {
             return;
         }
 
@@ -94,7 +95,7 @@ export function useBuilderDraftPersistence(options: IBuilderDraftPersistenceOpti
             // Исход важен и здесь: неудалённый черновик равен сохранённому
             // состоянию лишь сейчас, а после следующей правки снова разойдётся
             // с ним и при новом заходе предложит восстановление
-            if (!removeBuilderDraft(pagename)) {
+            if (!removeBuilderDraft(address)) {
                 draftStorageNotice.report();
             }
 
@@ -102,7 +103,8 @@ export function useBuilderDraftPersistence(options: IBuilderDraftPersistenceOpti
         }
 
         const isPersisted = setBuilderDraft({
-            pagename,
+            pagename: address.pagename,
+            urlPrefix: address.urlPrefix,
             updatedAt: new Date().toISOString(),
             mode: isEditing ? 'edit' : 'new',
             pageId:
@@ -186,12 +188,16 @@ export function useBuilderDraftPersistence(options: IBuilderDraftPersistenceOpti
 
     // Переход на другую страницу билдера не размонтирует страницу (статический page
     // key в `[pagename].vue`), поэтому `onScopeDispose` не сработает, а
-    // `openBuilderSession` успеет переписать `sessionPagename` и снять
+    // `openBuilderSession` успеет переписать `sessionAddress` и снять
     // `isSessionReady` — отложенное сохранение прежней страницы иначе теряется.
     // `flush: 'sync'` обязателен: обычный watcher выполнился бы после watcher'а
     // сессии (тот зарегистрирован раньше), то есть уже с ключом новой страницы.
+    //
+    // Следим за адресом целиком: переход `/bricks/blog/post` → `/bricks/news/post`
+    // меняет только префикс, и watcher по имени его бы не заметил — отложенная
+    // запись прежней страницы ушла бы под ключ новой.
     watch(
-        () => routePagename.value,
+        () => getPageAddressKey(routeAddress.value),
         () => {
             flushDraft();
         },

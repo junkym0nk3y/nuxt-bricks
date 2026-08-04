@@ -27,11 +27,11 @@ import { useInlineEditingStore } from '../../../text-editor/stores/inlineEditing
 // Composables
 import { useBuilderPage } from '../composables/useBuilderPage';
 import { useBuilderPageSelector } from '../composables/useBuilderPageSelector';
-import { useBuilderPagename } from '../composables/useBuilderPagename';
+import { useBuilderSessionAddress } from '../composables/useBuilderSessionAddress';
 import { useBuilderSession } from '../composables/useBuilderSession';
 import { useBuilderSessionToken } from '../composables/useBuilderSessionToken';
 import { useBuilderDraftPersistence } from '../composables/useBuilderDraftPersistence';
-import { useBuilderPagenameSync } from '../composables/useBuilderPagenameSync';
+import { useBuilderSessionAddressSync } from '../composables/useBuilderSessionAddressSync';
 import { useBuilderToast } from '../../core/composables/useBuilderToast';
 
 // Utils
@@ -74,7 +74,7 @@ definePageMeta({
     layout: 'bricks',
     // Статический page key: дефолтный key Nuxt — интерполированный path, из-за чего
     // смена :pagename перемонтировала бы страницу. Rename сессии (router.replace из
-    // useBuilderPagename.renameSession) остаётся на живом канвасе; навигация на другую
+    // useBuilderSessionAddress.renameSession) остаётся на живом канвасе; навигация на другую
     // страницу обрабатывается watcher'ом useBuilderSession.
     key: 'bricks-builder-pagename',
 });
@@ -112,8 +112,8 @@ onScopeDispose(() => {
     draftStorageNotice.stop();
 });
 
-// Владелец pagename: route.params — источник истины URL, sessionPagename — ключ черновиков
-const { routePagename, sessionPagename, renameSession } = useBuilderPagename({
+// Владелец адреса: route.params — источник истины URL, sessionAddress — ключ черновиков
+const { routeAddress, sessionAddress, renameSession } = useBuilderSessionAddress({
     draftStorageNotice,
 });
 
@@ -138,8 +138,8 @@ const {
     handleRestoreDraft,
     handleDiscardDraft,
 } = useBuilderSession({
-    routePagename,
-    sessionPagename,
+    routeAddress,
+    sessionAddress,
     showToast,
     renameSession,
     sessionToken,
@@ -226,7 +226,7 @@ const {
     handlePageCreated,
 } = useBuilderPageSelector({
     sessionPageId,
-    routePagename,
+    routeAddress,
     sessionToken,
     showToast,
 });
@@ -238,10 +238,10 @@ const handleGuardedKeyDown = withSessionReadyGuard<KeyboardEvent>(
     handleKeyDown
 );
 
-// Автосохранение черновика (debounce) + синхронизация URL с pagename формы
+// Автосохранение черновика (debounce) + синхронизация URL с адресом формы
 useBuilderDraftPersistence({
-    routePagename,
-    sessionPagename,
+    routeAddress,
+    sessionAddress,
     isSessionLoading,
     isSessionReady,
     isDraftRestorePending,
@@ -249,7 +249,7 @@ useBuilderDraftPersistence({
     buildCurrentSnapshot,
     draftStorageNotice,
 });
-useBuilderPagenameSync({ renameSession, isSessionReady });
+useBuilderSessionAddressSync({ renameSession, isSessionReady });
 // #endregion
 
 // #region Computed
@@ -430,8 +430,8 @@ onMounted(() => {
     componentsStore.favorites = loadFavoritesFromStorage();
     notifyComponentLibraryFailure();
 
-    if (routePagename.value) {
-        openBuilderSession(routePagename.value).catch((error: unknown) => {
+    if (routeAddress.value.pagename) {
+        openBuilderSession(routeAddress.value).catch((error: unknown) => {
             console.error('[Builder] Failed to open builder session:', error);
         });
     }

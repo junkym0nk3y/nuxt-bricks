@@ -8,7 +8,7 @@ import { PAGE_CONFLICT_CODES } from '../../../common/constants/publish';
 import { BRICKS_API_ERROR_CODES } from '../../../common/constants/apiErrors';
 import { readJsonBodyWithLimit } from './requestBodyLimits';
 import {
-    BricksPagenameConflictError,
+    BricksPageAddressConflictError,
     BricksRevisionConflictError,
     BricksStatementTimeoutError,
 } from './storageErrors';
@@ -147,10 +147,13 @@ export function rethrowStatementTimeoutError(error: unknown): void {
  * @param fallbackMessage - Сообщение для 500-ответа.
  */
 export function toPageHttpError(error: unknown, fallbackMessage: string): never {
-    if (error instanceof BricksPagenameConflictError) {
+    if (error instanceof BricksPageAddressConflictError) {
         throw createError({
             statusCode: 409,
-            statusMessage: 'Page with this pagename already exists',
+            // Про адрес, а не про имя: уникальна пара `urlPrefix + pagename`, и
+            // конфликт мог возникнуть от смены одного префикса. Проволочный код
+            // (`PAGENAME_CONFLICT`) остаётся прежним — он часть внешнего контракта
+            statusMessage: 'Page with this address already exists',
             data: { code: PAGE_CONFLICT_CODES.pagename },
         });
     }

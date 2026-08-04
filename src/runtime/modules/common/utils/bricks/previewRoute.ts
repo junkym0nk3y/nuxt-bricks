@@ -1,12 +1,14 @@
 /**
- * Превью-роут `<previewPrefix>/:pagename`: параметр версии, ключ payload'а
- * страницы и page key рендера. Живут вместе, потому что версия входит во все
- * три: middleware и страница рендера обязаны сойтись на одном ключе payload'а,
- * иначе превью версии либо промахнётся мимо загруженных данных, либо подберёт
- * снапшот соседней версии.
+ * Превью-роуты `<previewPrefix>/:pagename` и `<previewPrefix>/:urlPrefix+/:pagename`:
+ * параметр версии, ключ payload'а страницы и page key рендера. Живут вместе,
+ * потому что версия входит во все три: middleware и страница рендера обязаны
+ * сойтись на одном ключе payload'а, иначе превью версии либо промахнётся мимо
+ * загруженных данных, либо подберёт снапшот соседней версии.
  */
 import type { RouteLocationNormalizedLoaded } from 'vue-router';
-import { BRICKS_ROUTE_NAMES } from '../../constants/routes';
+import type { IBricksPageAddress } from '../../types/pageAddress';
+import { getPageAddressKey } from './pageAddress';
+import { BRICKS_PREVIEW_ROUTE_NAMES } from '../../constants/routes';
 
 /**
  * Имя query-параметра версии в превью-роуте. Версия живёт в URL, а не в
@@ -40,23 +42,33 @@ export function parsePreviewVersionId(value: unknown): number | null {
  * Ключ данных страницы в `nuxtApp.payload.data`: middleware пишет, страница
  * рендера читает через `useNuxtData`.
  *
- * @param pagename - ЧПУ страницы.
- * @param isPreview - Превью-роут (иначе live-страница по ЧПУ).
+ * Ключ строится от АДРЕСА, а не от одного имени, и той же функцией
+ * (`getPageAddressKey`), что ключи черновиков: у `/blog/post` и `/news/post`
+ * ключ по имени был один, и это не просто коллизия кеша — middleware при
+ * payload-хите перепроверяет префикс и на несовпадении отдаёт 404, то есть
+ * SPA-переход между одноимёнными страницами ломал живую страницу. Вторая
+ * похожая сериализация адреса здесь тоже недопустима: разъехавшись с ключом
+ * черновика, она положила бы состояние одной страницы под ключ другой.
+ *
+ * @param address - Адрес страницы.
+ * @param isPreview - Превью-роут (иначе live-страница по адресу).
  * @param previewVersionId - Id версии из query превью-роута (null — текущее состояние).
  * @returns Ключ payload'а.
  */
 export function getBricksPageDataKey(
-    pagename: string,
+    address: IBricksPageAddress,
     isPreview: boolean,
     previewVersionId: number | null = null
 ): string {
+    const addressKey = getPageAddressKey(address);
+
     if (!isPreview) {
-        return `bricks-page-${pagename}-live`;
+        return `bricks-page-${addressKey}-live`;
     }
 
     return previewVersionId === null
-        ? `bricks-page-${pagename}-preview`
-        : `bricks-page-${pagename}-preview-version-${previewVersionId}`;
+        ? `bricks-page-${addressKey}-preview`
+        : `bricks-page-${addressKey}-preview-version-${previewVersionId}`;
 }
 
 /**
@@ -75,7 +87,7 @@ export function getBricksPageDataKey(
 export function getRenderPageKey(
     route: Pick<RouteLocationNormalizedLoaded, 'name' | 'path' | 'query'>
 ): string {
-    if (route.name !== BRICKS_ROUTE_NAMES.preview) {
+    if (typeof route.name !== 'string' || !BRICKS_PREVIEW_ROUTE_NAMES.includes(route.name)) {
         return route.path;
     }
 

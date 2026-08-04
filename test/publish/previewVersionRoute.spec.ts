@@ -80,7 +80,10 @@ describe('превью сохранённой версии', () => {
     it('открывается с версией в URL и не занимает слот превью канваса', () => {
         const { previewPageVersion } = usePublishPreview();
 
-        expect(previewPageVersion('landing', 44)).toBe('landing');
+        expect(previewPageVersion({ pagename: 'landing', urlPrefix: null }, 44)).toEqual({
+            pagename: 'landing',
+            urlPrefix: null,
+        });
 
         expect(windowStub.open).toHaveBeenCalledWith(
             '/bricks-preview/landing?version=44',
@@ -93,7 +96,7 @@ describe('превью сохранённой версии', () => {
         const { previewPageVersion } = usePublishPreview();
         windowStub.open.mockReturnValueOnce(null);
 
-        expect(previewPageVersion('landing', 44)).toBeNull();
+        expect(previewPageVersion({ pagename: 'landing', urlPrefix: null }, 44)).toBeNull();
     });
 
     it('снапшот версии рендерится под тождеством страницы и датой её сохранения', () => {

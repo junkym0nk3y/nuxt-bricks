@@ -1,6 +1,7 @@
 // #region Imports
 // Types
 import type { IUseBricksPageAddressReturn } from '../types/composables';
+import type { IBricksPageAddress } from '../types/pageAddress';
 
 // Utils
 import {
@@ -60,24 +61,24 @@ export function useBricksPageAddress(): IUseBricksPageAddressReturn {
     /**
      * Свободен ли live-адрес страницы (`/<urlPrefix>/<pagename>`).
      *
-     * @param urlPrefix - urlPrefix страницы (может отсутствовать).
-     * @param pagename - ЧПУ страницы.
+     * @param address - Адрес страницы.
      */
-    function isPageAddressFree(urlPrefix: string | null | undefined, pagename: string): boolean {
+    function isPageAddressFree(address: IBricksPageAddress): boolean {
         if (!isLiveSurfaceEnabled) {
             return true;
         }
 
-        return !isPageAddressTaken(prefixes, resolveRouteName, urlPrefix, pagename);
+        return !isPageAddressTaken(prefixes, resolveRouteName, address);
     }
 
     /**
-     * Свободен ли адрес редактора страницы (`<builderPrefix>/<pagename>`).
+     * Свободен ли адрес редактора страницы
+     * (`<builderPrefix>/<urlPrefix>/<pagename>`).
      *
-     * @param pagename - ЧПУ страницы.
+     * @param address - Адрес страницы.
      */
-    function isEditorAddressFree(pagename: string): boolean {
-        return !isEditorAddressTaken(prefixes, resolveRouteName, pagename);
+    function isEditorAddressFree(address: IBricksPageAddress): boolean {
+        return !isEditorAddressTaken(prefixes, resolveRouteName, address);
     }
 
     return { isPageAddressFree, isEditorAddressFree };

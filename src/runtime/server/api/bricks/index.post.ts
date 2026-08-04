@@ -10,7 +10,7 @@ import { getConfiguredPageAddressContext } from '../../../modules/persistence/se
 /**
  * POST /api/bricks — создаёт новую страницу и возвращает её полностью.
  * Уникальность pagename обеспечивает constraint БД: гонку одновременных
- * create ловит BricksPagenameConflictError → 409 (pre-check SELECT не нужен).
+ * create ловит BricksPageAddressConflictError → 409 (pre-check SELECT не нужен).
  */
 export default defineEventHandler(async (event) => {
     try {

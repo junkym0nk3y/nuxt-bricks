@@ -9,6 +9,7 @@ import type {
     TPublishedPageSummary,
 } from '../../../common/types/bricks-api';
 import type { IBricksSchema } from '../../../common/types/brick';
+import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 import type {
     IImageResolverState,
     TImageResolveAction,
@@ -239,9 +240,12 @@ export interface IUsePublishSchemaImportReturn {
  * Возвращаемое значение `usePublishPreview`.
  */
 export interface IUsePublishPreviewReturn {
-    previewCurrentPage: (schema: IBricksSchema) => string | null;
+    previewCurrentPage: (schema: IBricksSchema) => IBricksPageAddress | null;
     /** Превью сохранённой версии: `?version=` в превью-роуте, без localStorage. */
-    previewPageVersion: (pagename: string, versionId: number) => string | null;
-    generatePreviewUrl: (pagename: string, versionId?: number) => string;
+    previewPageVersion: (
+        address: IBricksPageAddress,
+        versionId: number
+    ) => IBricksPageAddress | null;
+    generatePreviewUrl: (address: IBricksPageAddress, versionId?: number) => string;
 }
 // #endregion

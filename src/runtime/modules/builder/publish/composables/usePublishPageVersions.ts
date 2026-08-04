@@ -1,12 +1,13 @@
 import { computed, ref } from 'vue';
 import type { IPageVersionSummary, TPublishedPageSummary } from '../../../common/types/bricks-api';
 import type { IUsePublishPageVersionsReturn } from '../types/composables';
+import { toPageAddress } from '../../../common/utils/bricks/pageAddress';
 import { fetchPageVersionsRequest } from '../utils/publishApi';
 import { usePublishPreview } from './usePublishPreview';
 
 /**
  * Версии страницы для панели деталей дашборда: список сводок и превью версии
- * через общий превью-роут `<previewPrefix>/<pagename>?version=<id>`
+ * через общий превью-роут `<previewPrefix>/<адрес>?version=<id>`
  * (см. `usePublishPreview`).
  * Ошибки запросов пробрасываются — уведомления показывает вызывающий компонент.
  */
@@ -81,7 +82,7 @@ export function usePublishPageVersions(): IUsePublishPageVersionsReturn {
      * @returns false, если вкладка не открылась (блокировщик попапов).
      */
     function previewVersion(page: TPublishedPageSummary, versionId: number): boolean {
-        return previewPageVersion(page.pagename, versionId) !== null;
+        return previewPageVersion(toPageAddress(page.pagename, page.urlPrefix), versionId) !== null;
     }
 
     return {

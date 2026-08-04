@@ -8,6 +8,7 @@ import type { useSidebarStore } from '../../core/stores/sidebar';
 import type { usePublishStore } from '../../publish/stores/publish';
 import type { IMediaItem, TMediaGalleryContext } from '../../../common/types/media';
 import type { IPublishedPage, TPublishedPageSummary } from '../../../common/types/bricks-api';
+import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 import type { IUsePublishSchemaImportReturn } from '../../publish/types/composables';
 import type { ISidebarExpose } from './builder';
 import type { IBuilderDraftSnapshot } from '../../publish/types/builderDrafts';
@@ -26,34 +27,34 @@ export type TShowToast = (
     duration?: number
 ) => void;
 
-// #region useBuilderPagename / useBuilderSession / useBuilderDraftPersistence
+// #region useBuilderSessionAddress / useBuilderSession / useBuilderDraftPersistence
 /**
- * Переносит открытую сессию билдера на новый pagename:
+ * Переносит открытую сессию билдера на новый адрес (`urlPrefix + pagename`):
  * миграция черновика localStorage + синхронизация URL через Vue Router.
  */
-export type TRenameBuilderSession = (next: string) => Promise<void>;
+export type TRenameBuilderSession = (next: IBricksPageAddress) => Promise<void>;
 
 /**
  * Единый переход сессии на сохранённую страницу (Save as Copy): store в edit mode
- * → renameSession (route + sessionPagename + миграция черновика) → фиксация
+ * → renameSession (route + sessionAddress + миграция черновика) → фиксация
  * savedSnapshot. Реализация — `useBuilderSession.switchToSavedPage`; toast/thumbnail
  * после resolve — ответственность вызывающего (`useBuilderPage.handleSaveAsCopy`).
  */
 export type TSwitchToSavedPage = (page: IPublishedPage) => Promise<void>;
 
 /**
- * Опции composable useBuilderPagename.
+ * Опции composable useBuilderSessionAddress.
  */
-export interface IBuilderPagenameOptions {
+export interface IBuilderSessionAddressOptions {
     draftStorageNotice: IDraftStorageNotice;
 }
 
 /**
- * Возвращаемое значение composable useBuilderPagename.
+ * Возвращаемое значение composable useBuilderSessionAddress.
  */
-export interface IUseBuilderPagenameReturn {
-    routePagename: ComputedRef<string>;
-    sessionPagename: Ref<string>;
+export interface IUseBuilderSessionAddressReturn {
+    routeAddress: ComputedRef<IBricksPageAddress>;
+    sessionAddress: Ref<IBricksPageAddress>;
     renameSession: TRenameBuilderSession;
 }
 
@@ -87,8 +88,8 @@ export type TCommitSavedSnapshot = (capturedToken: number) => void;
  * Опции composable useBuilderSession.
  */
 export interface IBuilderSessionOptions {
-    routePagename: ComputedRef<string>;
-    sessionPagename: Ref<string>;
+    routeAddress: ComputedRef<IBricksPageAddress>;
+    sessionAddress: Ref<IBricksPageAddress>;
     showToast: TShowToast;
     renameSession: TRenameBuilderSession;
     sessionToken: IBuilderSessionToken;
@@ -111,9 +112,9 @@ export interface IBuilderDraftPromptOptions {
     /** Применение снапшота черновика в сторы билдера. */
     applySnapshot: (snapshot: IBuilderDraftSnapshot) => void;
     /** Удаление черновика с сообщением о недоступном хранилище. */
-    discardDraft: (pagename: string) => void;
-    /** Ключ сессии — запасной ключ удаления, если у самого черновика его нет. */
-    sessionPagename: Ref<string>;
+    discardDraft: (address: IBricksPageAddress) => void;
+    /** Адрес сессии — запасной ключ удаления, если у самого черновика его нет. */
+    sessionAddress: Ref<IBricksPageAddress>;
     /**
      * Сохранённая версия открытой страницы — эталон, по которому правка
      * пользователя отличается от служебной перезаписи формы.
@@ -125,8 +126,8 @@ export interface IBuilderDraftPromptOptions {
  * Опции composable useBuilderDraftPersistence.
  */
 export interface IBuilderDraftPersistenceOptions {
-    routePagename: ComputedRef<string>;
-    sessionPagename: Ref<string>;
+    routeAddress: ComputedRef<IBricksPageAddress>;
+    sessionAddress: Ref<IBricksPageAddress>;
     isSessionLoading: Ref<boolean>;
     isSessionReady: Ref<boolean>;
     /**
@@ -146,9 +147,9 @@ export interface IBuilderDraftPersistenceOptions {
 }
 
 /**
- * Опции composable useBuilderPagenameSync.
+ * Опции composable useBuilderSessionAddressSync.
  */
-export interface IBuilderPagenameSyncOptions {
+export interface IBuilderSessionAddressSyncOptions {
     renameSession: TRenameBuilderSession;
     isSessionReady: Ref<boolean>;
 }
@@ -336,7 +337,7 @@ export interface IUseBuilderPageReturn {
 export interface IBuilderPageSelectorOptions {
     /** Идентичность открытой страницы: по ней отсекается выбор самой себя. */
     sessionPageId: Ref<string | number | null>;
-    routePagename: ComputedRef<string>;
+    routeAddress: ComputedRef<IBricksPageAddress>;
     /**
      * Токен сессии: создание страницы переживает переход на другую страницу
      * билдера (модалка портальная, страница не перемонтируется), и переход в
@@ -360,6 +361,6 @@ export interface IUseBuilderPageSelectorReturn {
     handleSelectPage: (page: TPublishedPageSummary) => Promise<void>;
     handleOpenCreatePage: () => void;
     handleCloseCreatePage: () => void;
-    handlePageCreated: (pagename: string) => Promise<void>;
+    handlePageCreated: (address: IBricksPageAddress) => Promise<void>;
 }
 // #endregion
