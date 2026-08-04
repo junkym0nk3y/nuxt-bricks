@@ -2,7 +2,11 @@
 // #region Imports
 // Types
 import type { TPublishedPageSummary } from '../../../../common/types/bricks-api';
-import type { IToolbarPageSelectorProps, IToolbarPageSelectorEmits } from './types';
+import type {
+    IToolbarPageSelectorProps,
+    IToolbarPageSelectorEmits,
+    IToolbarPageSelectorEmptyState,
+} from './types';
 
 // Utils
 import { toPageAddress } from '../../../../common/utils/bricks/pageAddress';
@@ -26,6 +30,9 @@ import {
 
 // Composables
 import { useToolbarPageSelector } from '../composables/useToolbarPageSelector';
+
+// Components
+import BricksBadge from '../../../../ui/base/badge/BricksBadge.vue';
 // #endregion
 
 // #region Props
@@ -48,6 +55,18 @@ const { t } = useI18n();
 
 /** Строк в скелете догрузки — столько же, сколько в макете. */
 const SKELETON_ROWS = 3;
+
+/** Ключи i18n пустых состояний: ничего не нашлось поиском и страниц нет вовсе. */
+const EMPTY_STATE_TEXT: Record<'noResults' | 'empty', IToolbarPageSelectorEmptyState> = {
+    noResults: {
+        title: 'bricks.toolbar.pageSelector.noResultsTitle',
+        description: 'bricks.toolbar.pageSelector.noResultsDescription',
+    },
+    empty: {
+        title: 'bricks.toolbar.pageSelector.emptyTitle',
+        description: 'bricks.toolbar.pageSelector.emptyDescription',
+    },
+};
 
 const { isOpen, searchQuery, isSearchVisible, filteredPages, isEmptyResult, handleOpenChange } =
     useToolbarPageSelector({
@@ -77,6 +96,23 @@ const isInitialLoading = computed<boolean>(() => props.isLoading && !props.isLoa
 const isEmptyList = computed<boolean>(
     () => !isInitialLoading.value && props.pages.length === 0 && !searchQuery.value
 );
+
+/**
+ * Тексты пустого состояния или `null`, когда показывать нечего. Одна разметка на
+ * оба случая: у них расходятся только строки, а копия блока разъезжается при
+ * первой же правке вёрстки.
+ */
+const emptyState = computed<IToolbarPageSelectorEmptyState | null>(() => {
+    if (isEmptyResult.value) {
+        return EMPTY_STATE_TEXT.noResults;
+    }
+
+    if (isEmptyList.value) {
+        return EMPTY_STATE_TEXT.empty;
+    }
+
+    return null;
+});
 // #endregion
 
 // #region Methods
@@ -178,14 +214,16 @@ function handleCreatePage(): void {
 
         <PopoverPortal>
             <!--
-                modal: только он даёт попапу focus trap, Esc и возврат фокуса на
-                триггер. Перехват клавиатуры — в `handleContentKeydown`
+                Поповер немодальный: Esc и возврат фокуса на триггер даёт сам
+                PopoverContent, focus trap появился бы только от `modal` на
+                PopoverRoot — а он же гасит `pointer-events` у body, пока попап
+                смонтирован, и клик сразу после закрытия пропадал бы.
+                Перехват клавиатуры — в `handleContentKeydown`
             -->
             <PopoverContent
                 :class="[$style.dropdown, 'bricks-text']"
                 align="start"
                 :side-offset="8"
-                modal
                 @keydown="handleContentKeydown"
             >
                 <!--
@@ -226,21 +264,10 @@ function handleCreatePage(): void {
                         </div>
                     </div>
 
-                    <p v-else-if="isEmptyResult" :class="$style.empty">
-                        <span :class="$style.emptyTitle">
-                            {{ t('bricks.toolbar.pageSelector.noResultsTitle') }}
-                        </span>
+                    <p v-else-if="emptyState" :class="$style.empty">
+                        <span :class="$style.emptyTitle">{{ t(emptyState.title) }}</span>
                         <span :class="$style.emptyDescription">
-                            {{ t('bricks.toolbar.pageSelector.noResultsDescription') }}
-                        </span>
-                    </p>
-
-                    <p v-else-if="isEmptyList" :class="$style.empty">
-                        <span :class="$style.emptyTitle">
-                            {{ t('bricks.toolbar.pageSelector.emptyTitle') }}
-                        </span>
-                        <span :class="$style.emptyDescription">
-                            {{ t('bricks.toolbar.pageSelector.emptyDescription') }}
+                            {{ t(emptyState.description) }}
                         </span>
                     </p>
 
@@ -271,9 +298,9 @@ function handleCreatePage(): void {
                                     <span :class="$style.rowTitle">
                                         {{ page.title || page.pagename }}
                                     </span>
-                                    <span v-if="!page.published" :class="$style.rowBadge">
+                                    <BricksBadge v-if="!page.published">
                                         {{ t('bricks.toolbar.pageSelector.draft') }}
-                                    </span>
+                                    </BricksBadge>
                                 </span>
                                 <span :class="$style.rowUrl">
                                     {{ resolvePageAddressPath(page) }}
@@ -365,15 +392,22 @@ function handleCreatePage(): void {
     flex-direction: column;
 
     // Появление — как у остальных поповеров билдера (BricksActionButton).
-    // Анимируется только открытие: закрытие ждало бы animationend перед
-    // размонтированием, а modal-поповер всё это время держит body под
-    // `pointer-events: none` — клик сразу после выбора пропадал бы
     &[data-state='open'] {
         animation: bricks-page-selector-in 0.2s ease;
     }
 
+    // Затухание короче появления: reka не размонтирует контент, пока не
+    // отработает анимация closed-состояния, и всё это время попап ещё висит
+    // над канвасом. `pointer-events: none` — чтобы клик по тому, что было под
+    // попапом, не съедался уходящим окном
+    &[data-state='closed'] {
+        animation: bricks-page-selector-out 0.15s ease;
+        pointer-events: none;
+    }
+
     @media (prefers-reduced-motion: reduce) {
-        &[data-state='open'] {
+        &[data-state='open'],
+        &[data-state='closed'] {
             animation: none;
         }
     }
@@ -390,6 +424,18 @@ function handleCreatePage(): void {
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+@keyframes bricks-page-selector-out {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(-0.4rem);
     }
 }
 
@@ -531,19 +577,6 @@ function handleCreatePage(): void {
     font-size: 1.4rem;
     font-weight: 500;
     color: var(--bricks-base-900);
-}
-
-.rowBadge {
-    flex-shrink: 0;
-    padding: 0.2rem 0.6rem;
-    border-radius: var(--bricks-border-radius-pill);
-
-    // Не base-100, как в строке дашборда: строка списка сама красится в base-100
-    // при наведении, и бейдж на ней исчезал бы
-    background: var(--bricks-base-200);
-    font-size: 1.2rem;
-    font-weight: 500;
-    color: var(--bricks-base-600);
 }
 
 .rowUrl {

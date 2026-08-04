@@ -902,3 +902,27 @@ component») и находить нужное по `type === 'INSTANCE_SWAP'`, �
 `xargs -a <файл>` (список файлов для `prettier --write`) не работает в macOS
 xargs — опции `-a` там нет, команда падает с usage. Фикс:
 `cat список | tr '\n' '\0' | xargs -0 npx prettier --write`.
+
+## 2026-08-05 00:32 — Opus 5 (1M context)
+
+Playwright MCP `browser_take_screenshot` с `filename: "имя.png"` кладёт файл в
+корень проекта, а не в `.playwright-mcp/`, хотя ответ печатает путь как
+`./имя.png`; абсолютный путь в scratchpad отвергается («outside allowed roots» —
+разрешены только корень репозитория и `.playwright-mcp/`). Фикс: писать
+`filename: ".playwright-mcp/имя.png"` явно, иначе скриншоты копятся в корне.
+
+## 2026-08-05 00:33 — Opus 5 (1M context)
+
+`docker exec nuxt-bricks-db sh -c 'psql ... -c "INSERT ... VALUES (\x27x\x27)"'`
+— тройная вложенность кавычек, zsh не даёт положить одинарные внутрь `'...'`, а
+`\x27` psql получает буквально и падает на `syntax error at or near "\"`. Фикс:
+SQL в файл и подавать через stdin — `docker exec -i ... sh -c 'psql -U ...' <
+file.sql` (или heredoc `<<'SQL'`).
+
+## 2026-08-05 00:34 — Opus 5 (1M context)
+
+Диагностика IDE (mcp__webstorm / getDiagnostics) выдала «Cannot find name
+`getPageAddressKey`» и несовпадение типов в двух файлах, которых правка не
+касалась, при чистом `git status` и зелёном `npm run type-check`; импорт в файле
+на месте. Индекс TS-сервера IDE отстал. Фикс: сверять такие сообщения с
+`vue-tsc`, а не чинить код по ним.

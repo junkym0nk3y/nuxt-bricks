@@ -11,6 +11,9 @@ import { getPublishedPagePath } from '../../../common/utils/bricks/routePaths';
 // Vue
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+// Components
+import BricksBadge from '../../../ui/base/badge/BricksBadge.vue';
 // #endregion
 
 // #region Props
@@ -124,9 +127,9 @@ function handleDelete(): void {
             <div :class="$style.titleRow">
                 <h3 :class="$style.title">{{ props.page.title }}</h3>
                 <span :class="$style.pagename">{{ pageAddressPath }}</span>
-                <span v-if="!props.page.published" :class="$style.draftBadge">
+                <BricksBadge v-if="!props.page.published">
                     {{ t('bricks.publish.dashboard.row.draft') }}
-                </span>
+                </BricksBadge>
             </div>
             <p v-if="props.page.description" :class="$style.description">
                 {{ props.page.description }}
@@ -293,16 +296,6 @@ function handleDelete(): void {
     flex-shrink: 0;
     font-size: 1.2rem;
     color: var(--bricks-base-400);
-}
-
-.draftBadge {
-    flex-shrink: 0;
-    padding: 0.2rem 0.8rem;
-    border-radius: var(--bricks-border-radius-pill);
-    background: var(--bricks-base-100);
-    font-size: 1.2rem;
-    font-weight: 500;
-    color: var(--bricks-base-500);
 }
 
 .description {

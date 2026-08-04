@@ -67,3 +67,12 @@ export interface IToolbarPageSelectorEmits {
     allPages: [];
     createPage: [];
 }
+
+/**
+ * Пустое состояние списка страниц: ключи i18n для заголовка и пояснения.
+ * Разметка у всех пустых состояний одна, расходятся только тексты.
+ */
+export interface IToolbarPageSelectorEmptyState {
+    title: string;
+    description: string;
+}

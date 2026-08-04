@@ -11,6 +11,7 @@ import { computed, ref, useCssModule, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Components
+import BricksBadge from '../base/badge/BricksBadge.vue';
 import BricksButton from '../base/button/BricksButton.vue';
 import BricksFieldError from './BricksFieldError.vue';
 // #endregion
@@ -241,11 +242,7 @@ watch(
             @click="focusInput"
         >
             <div :class="$style.tags">
-                <span
-                    v-for="(tag, index) in props.modelValue"
-                    :key="`tag-${index}`"
-                    :class="$style.tag"
-                >
+                <BricksBadge v-for="(tag, index) in props.modelValue" :key="`tag-${index}`">
                     <span :class="$style.tagText">{{ tag }}</span>
                     <button
                         type="button"
@@ -255,7 +252,7 @@ watch(
                     >
                         <BricksIcon icon="ta:outline-x" />
                     </button>
-                </span>
+                </BricksBadge>
 
                 <input
                     ref="inputRef"
@@ -337,18 +334,9 @@ watch(
     gap: 0.4rem;
 }
 
-.tag {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.2rem 0.6rem;
-    border-radius: 0.4rem;
-    background: var(--bricks-primary-100);
-    font-size: 1.2rem;
-    line-height: 1.4;
-    color: var(--bricks-primary-700);
-    gap: 0.2rem;
-}
-
+// Оболочка чипа — `BricksBadge`: тот же вид, что у плашек статуса. Прежняя пара
+// primary-100 + primary-700 в тёмной теме давала контраст около 2:1
+// (#1e2d4d под #1d4ed8): оба конца шкалы там тёмные, и тег не читался
 .tagText {
     overflow: hidden;
     max-width: 12rem;
@@ -363,14 +351,17 @@ watch(
     width: 1.4rem;
     height: 1.4rem;
     padding: 0;
+    border-radius: var(--bricks-border-radius-pill);
     border: none;
     background: transparent;
-    color: var(--bricks-primary-500);
-    transition: color 0.2s;
+    color: var(--bricks-static-white);
+    transition: background-color var(--bricks-default-transition);
     cursor: pointer;
 
+    // Подсветка белым, а не danger-500: красный на синей заливке проваливается
+    // по контрасту так же, как проваливался сам тег
     &:hover {
-        color: var(--bricks-danger-500);
+        background-color: rgb(from var(--bricks-static-white) r g b / 24%);
     }
 
     svg {
