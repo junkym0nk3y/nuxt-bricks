@@ -4,10 +4,12 @@ import type { IBuilderPagenameSyncOptions } from '../types/composables';
 
 // Utils
 import { isValidPagename } from '../../publish/utils/draftSnapshots';
-import { RESERVED_PAGENAMES } from '../../../common/constants/publish';
 
 // Vue
 import { onScopeDispose, watch } from 'vue';
+
+// Composables
+import { useBricksPageAddress } from '../../../common/composables/useBricksPageAddress';
 
 // Pinia
 import { usePublishStore } from '../../publish/stores/publish';
@@ -24,6 +26,7 @@ const PAGENAME_SYNC_DEBOUNCE_MS = 600;
 export function useBuilderPagenameSync(options: IBuilderPagenameSyncOptions): void {
     const { renameSession, isSessionReady } = options;
     const publishStore = usePublishStore();
+    const { isEditorAddressFree } = useBricksPageAddress();
 
     let pagenameRouteTimer: number | null = null;
 
@@ -66,8 +69,12 @@ export function useBuilderPagenameSync(options: IBuilderPagenameSyncOptions): vo
     }
 
     /**
-     * Проверяет, что pagename пригоден для переноса сессии:
-     * валидный формат, не зарезервирован и не занят другой страницей.
+     * Проверяет, что pagename пригоден для переноса сессии: валидный формат,
+     * свободный адрес РЕДАКТОРА, не занят другой страницей.
+     *
+     * Перенос меняет только URL редактора, поэтому live-адрес здесь не при чём:
+     * зависимость от `urlPrefix` заставила бы watcher следить и за ним, а
+     * занятый live-адрес и так держит форму невалидной и блокирует запись.
      *
      * @param value - Кандидат pagename.
      */
@@ -75,7 +82,7 @@ export function useBuilderPagenameSync(options: IBuilderPagenameSyncOptions): vo
         return (
             Boolean(value) &&
             isValidPagename(value) &&
-            !RESERVED_PAGENAMES.includes(value) &&
+            isEditorAddressFree(value) &&
             publishStore.isPagenameAvailable(value)
         );
     }

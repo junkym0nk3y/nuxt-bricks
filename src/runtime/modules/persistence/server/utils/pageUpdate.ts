@@ -5,7 +5,9 @@
 import { createError, type H3Event } from 'h3';
 import { useBricksStorageAdapter } from '../registry';
 import { requireNumericId, readNormalizedBody, toPageHttpError } from './handlerHelpers';
+import { withCheckedPagePath } from './pageAddressGuard';
 import { validateUpdatePagePayload } from './payloadValidation';
+import { getConfiguredPageAddressContext } from './pageAddressContext';
 import type { IBricksPageRow } from '../../../common/types/bricks-api';
 
 /**
@@ -20,11 +22,18 @@ export async function updatePageFromEvent(event: H3Event): Promise<IBricksPageRo
     const id = requireNumericId(event);
 
     try {
+        const context = getConfiguredPageAddressContext();
+        const adapter = useBricksStorageAdapter();
+
         const body = validateUpdatePagePayload(
-            await readNormalizedBody<Record<string, unknown>>(event)
+            await readNormalizedBody<Record<string, unknown>>(event),
+            context
         );
 
-        const result = await useBricksStorageAdapter().updatePage(id, body);
+        const result = await adapter.updatePage(
+            id,
+            await withCheckedPagePath(adapter, id, body, context)
+        );
 
         if (!result) {
             throw createError({

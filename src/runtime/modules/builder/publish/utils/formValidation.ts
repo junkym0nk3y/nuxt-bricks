@@ -11,6 +11,7 @@ import {
     TITLE_MAX_LENGTH,
     TITLE_MIN_LENGTH,
 } from '../../../common/constants/publish';
+import { useBricksPageAddress } from '../../../common/composables/useBricksPageAddress';
 
 /**
  * Переводит ключ через глобальный i18n (утилита вызывается вне setup-контекста).
@@ -48,14 +49,22 @@ function validateRequiredText(value: string | null | undefined, rule: IRequiredT
 }
 
 /**
- * Проверяет pagename: непустота, формат, границы длины и занятость.
+ * Проверяет pagename: непустота, формат, границы длины, доступность адресов и
+ * занятость другой страницей.
+ *
+ * Адреса проверяются по роутингу приложения, а не по списку имён. Проверка нужна
+ * и здесь, хотя её держит yup-схема формы: этот валидатор стоит последним гейтом
+ * перед записью, и форма ему не единственный источник — состояние приходит и из
+ * черновика localStorage, минуя поля с их схемой.
  *
  * @param pagename - Уже обрезанное значение.
+ * @param urlPrefix - Нормализованный urlPrefix (null — без префикса).
  * @param isPagenameAvailable - Проверка, свободен ли pagename.
  * @returns Текст ошибки либо пустая строка.
  */
 function validatePagename(
     pagename: string,
+    urlPrefix: string | null,
     isPagenameAvailable: (pagename: string) => boolean
 ): string {
     if (!pagename) {
@@ -72,6 +81,17 @@ function validatePagename(
 
     if (pagename.length > PAGENAME_MAX_LENGTH) {
         return t('bricks.publish.validation.pagenameMax');
+    }
+
+    const { isPageAddressFree, isEditorAddressFree } = useBricksPageAddress();
+
+    if (!isEditorAddressFree(pagename)) {
+        return t('bricks.publish.validation.pagenameEditorTaken');
+    }
+
+    // С префиксом за адрес отвечает поле urlPrefix — ошибка ставится там
+    if (!urlPrefix && !isPageAddressFree(null, pagename)) {
+        return t('bricks.publish.validation.pagenameAddressTaken');
     }
 
     if (!isPagenameAvailable(pagename)) {
@@ -93,6 +113,13 @@ function validateOptionalRoutingFields(
 ): void {
     if (formState.urlPrefix && !/^[a-z0-9-]+(\/[a-z0-9-]+)*$/.test(formState.urlPrefix)) {
         errors.urlPrefix = t('bricks.publish.validation.urlPrefixFormat');
+    } else if (
+        formState.urlPrefix &&
+        !useBricksPageAddress().isPageAddressFree(formState.urlPrefix, formState.pagename)
+    ) {
+        // Адрес пары urlPrefix+pagename занят в роутинге приложения: сохранённая
+        // страница по нему уже не откроется
+        errors.urlPrefix = t('bricks.publish.validation.urlPrefixAddressTaken');
     }
 
     if (formState.subdomain && !/^[a-z0-9-]+$/.test(formState.subdomain)) {
@@ -137,7 +164,7 @@ export function validatePublishFormState(
 
     const errors: Record<string, string> = {};
 
-    const pagenameError = validatePagename(trimmedPagename, isPagenameAvailable);
+    const pagenameError = validatePagename(trimmedPagename, trimmedUrlPrefix, isPagenameAvailable);
     if (pagenameError) {
         errors.pagename = pagenameError;
     }

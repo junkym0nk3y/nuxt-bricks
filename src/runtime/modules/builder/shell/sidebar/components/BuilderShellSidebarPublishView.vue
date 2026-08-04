@@ -68,31 +68,37 @@ const touchedFields = ref<Set<string>>(new Set());
 
 // #region Methods
 /**
- * Сводит ошибки SEO-полей из двух источников: живой yup-схемы формы (только по
+ * Ошибка одного поля из двух источников: живой yup-схемы формы (только по
  * тронутым полям) и проверки перед публикацией, которая пишет в стор. Второй
  * источник показывается всегда: он появляется по явному действию пользователя и
  * переживает уход с поля.
  *
  * @param formErrors - Ошибки vee-validate текущей формы.
- * @returns Ошибки по полям для общего компонента SEO.
+ * @param field - Имя поля формы.
+ * @returns Текст ошибки либо undefined.
+ */
+function fieldError(
+    formErrors: Record<string, string | undefined>,
+    field: string
+): string | undefined {
+    return (
+        (touchedFields.value.has(field) ? formErrors[field] : undefined) ||
+        publishStore.validationErrors[field]
+    );
+}
+
+/**
+ * Сводит ошибки SEO-полей для общего компонента SEO.
+ *
+ * @param formErrors - Ошибки vee-validate текущей формы.
+ * @returns Ошибки по полям.
  */
 function mergeSeoErrors(formErrors: Record<string, string | undefined>): TPublishFormErrors {
-    const storeErrors = publishStore.validationErrors;
-
-    /**
-     * Ошибка одного поля с учётом того, трогали ли его.
-     *
-     * @param field - Имя поля формы.
-     * @returns Текст ошибки либо undefined.
-     */
-    const fieldError = (field: string): string | undefined =>
-        (touchedFields.value.has(field) ? formErrors[field] : undefined) || storeErrors[field];
-
     return {
-        title: fieldError('title'),
-        pagename: fieldError('pagename'),
-        description: fieldError('description'),
-        keywords: fieldError('keywords'),
+        title: fieldError(formErrors, 'title'),
+        pagename: fieldError(formErrors, 'pagename'),
+        description: fieldError(formErrors, 'description'),
+        keywords: fieldError(formErrors, 'keywords'),
     };
 }
 
@@ -115,6 +121,28 @@ function handleSeoFieldUpdate(
 
     setFieldValue(field, value);
     handleUpdateField(field, value);
+}
+
+/**
+ * Пишет routing-поле в форму и в стор. В сторе пустая строка нормализуется в
+ * null (так поле уезжает в payload), схеме же нужна строка — она сама приводит
+ * пустое значение к null.
+ *
+ * @param setFieldValue - Сеттер значения формы из слота `<Form>`.
+ * @param field - Имя поля.
+ * @param value - Новое значение.
+ */
+function handleRoutingFieldUpdate(
+    setFieldValue: (field: string, value: string) => void,
+    field: 'urlPrefix' | 'subdomain',
+    value: string
+): void {
+    if (!touchedFields.value.has(field)) {
+        touchedFields.value = new Set(touchedFields.value).add(field);
+    }
+
+    setFieldValue(field, value);
+    handleUpdateField(field, value || null);
 }
 
 /**
@@ -210,8 +238,10 @@ watch(formKey, () => {
                                 placeholder="blog"
                                 :max-length="100"
                                 :disabled="isSubmitting"
+                                :error-message="fieldError(errors, 'urlPrefix')"
                                 @update:value="
-                                    (val: string) => handleUpdateField('urlPrefix', val || null)
+                                    (val: string) =>
+                                        handleRoutingFieldUpdate(setFieldValue, 'urlPrefix', val)
                                 "
                             />
                             <span :class="$style.hint">{{
@@ -227,8 +257,10 @@ watch(formKey, () => {
                                 placeholder="spb"
                                 :max-length="63"
                                 :disabled="isSubmitting"
+                                :error-message="fieldError(errors, 'subdomain')"
                                 @update:value="
-                                    (val: string) => handleUpdateField('subdomain', val || null)
+                                    (val: string) =>
+                                        handleRoutingFieldUpdate(setFieldValue, 'subdomain', val)
                                 "
                             />
                             <span :class="$style.hint">{{

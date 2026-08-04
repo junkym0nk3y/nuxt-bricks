@@ -56,7 +56,7 @@ function resolveLookupErrorStatus(error: unknown, fallbackStatus: number): numbe
 /**
  * Middleware для динамической установки layout на основе данных из БД.
  * Применяется к страницам лендингов:
- * - /preview/[pagename] (встроенный превью-маршрут, всегда preview-режим)
+ * - `<previewPrefix>/[pagename]` (встроенный превью-маршрут, всегда preview-режим)
  * - /[pagename] и /[...urlPrefix]/[pagename] (статические catch-all маршруты
  *   bricks-page/bricks-page-prefixed из module.ts, live-режим)
  *
@@ -107,7 +107,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
         // Если данные не были получены из localStorage (или это не превью), загружаем из API
         if (!page && isPreview) {
-            // Preview — авторизованный сценарий (матрица auth защищает /preview/**):
+            // Preview — авторизованный сценарий (матрица auth защищает весь previewPrefix):
             // ищем среди всех страниц, включая drafts, через editorial API
             // (админский клиент: cookie сессии билдера, 401-редирект на login)
             const { apiFetcher } = useApiClient();

@@ -2,8 +2,9 @@
  * Auth middleware для защиты builder, preview и модифицирующих API.
  * Режим — `bricks.auth.mode` ('basic' | 'database', env BRICKS_AUTH_MODE).
  *
- * Защищает (префиксы страниц — из `bricks.routes`, дефолты /bricks и /preview;
- * матрица работает с логическим путём — `app.baseURL` стрипается до проверки):
+ * Защищает (префиксы страниц — из `bricks.routes`, дефолты /bricks и
+ * /bricks-preview; матрица работает с логическим путём — `app.baseURL`
+ * стрипается до проверки):
  * - <builderPrefix>/** — менеджер страниц и редактор лендингов
  * - <previewPrefix>/** — preview режим рендера
  * - /api/bricks/** — весь editorial API, включая GET (drafts, полная schema,
@@ -14,7 +15,7 @@
  * - GET/HEAD /api/bricks/public/** — public read-model для рендера
  * - GET/HEAD /api/bricks/components — библиотека компонентов (публичный
  *   манифест: состав библиотеки и её редакторские метаданные)
- * - в database-режиме: <builderPrefix>/login и /api/bricks/auth/** (иначе не войти)
+ * - в database-режиме: страница логина и /api/bricks/auth/** (иначе не войти)
  *
  * Basic-режим — HTTP Basic Auth, настройка через ENV:
  * - BASIC_AUTH_USERNAME (дефолт: admin)
@@ -24,7 +25,8 @@
  *   с database-логином: 30 неудач за 15 минут → 429
  *
  * Database-режим — cookie-сессии в Postgres: невалидная сессия на HTML-пути
- * редиректит на /bricks/login, на API — 401 без WWW-Authenticate.
+ * редиректит на страницу логина (`getBuilderLoginPath`), на API — 401 без
+ * WWW-Authenticate.
  */
 import { createHash, timingSafeEqual } from 'node:crypto';
 import {

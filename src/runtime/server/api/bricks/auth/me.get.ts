@@ -6,7 +6,7 @@ import { resolveSessionUser } from '../../../utils/auth/session';
 /**
  * GET /api/bricks/auth/me — текущий пользователь сессии (database-режим).
  * Используется только login-страницей (гвард «уже авторизован»);
- * 401-интерцептор клиента пропускает /bricks/login — петли нет.
+ * 401-интерцептор клиента пропускает страницу логина — петли нет.
  */
 export default defineEventHandler(async (event) => {
     try {

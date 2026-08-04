@@ -343,6 +343,34 @@ function handleCreatePage(): void {
     background: var(--bricks-base-0);
     box-shadow: var(--bricks-shadow-md);
     flex-direction: column;
+
+    // Появление — как у остальных поповеров билдера (BricksActionButton).
+    // Анимируется только открытие: закрытие ждало бы animationend перед
+    // размонтированием, а modal-поповер всё это время держит body под
+    // `pointer-events: none` — клик сразу после выбора пропадал бы
+    &[data-state='open'] {
+        animation: bricks-page-selector-in 0.2s ease;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        &[data-state='open'] {
+            animation: none;
+        }
+    }
+}
+
+// Keyframes — внутри module-блока: CSS Modules скоупит имя анимации в ссылке
+// `animation:` выше, и глобальное определение с ним не совпало бы
+@keyframes bricks-page-selector-in {
+    from {
+        opacity: 0;
+        transform: translateY(-0.4rem);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .listbox {

@@ -15,7 +15,6 @@ import {
     PAGENAME_MAX_LENGTH,
     PAGENAME_MIN_LENGTH,
     PAGENAME_PATTERN,
-    RESERVED_PAGENAMES,
     SUBDOMAIN_MAX_LENGTH,
     SUBDOMAIN_PATTERN,
     TITLE_MAX_LENGTH,
@@ -33,7 +32,16 @@ import {
     requireString,
 } from './payloadPrimitives';
 import { assertSchemaComplexity } from './schemaPayloadValidation';
+import type { IPageAddressContext } from '../../types/pageAddress';
 import { validateSchemaComponentGraph } from '../../../common/utils/bricks/schemaContract';
+import {
+    DEFAULT_BRICKS_ROUTE_PREFIXES,
+    getBricksOwnStaticRoutes,
+    getPublishedPagePath,
+    isEditorAddressTaken,
+    isPageAddressTaken,
+    type IBricksRoutePrefixes,
+} from '../../../common/utils/bricks/routePaths';
 
 // #region Constants
 /** Лимит числа компонентов схемы. */
@@ -60,18 +68,48 @@ const CREATE_PAGE_KEYS = new Set([
 
 const UPDATE_PAGE_KEYS = new Set([...CREATE_PAGE_KEYS, 'thumbnailUrl', 'expectedRevision']);
 
+/**
+ * Контекст адреса для вызовов без явного аргумента: ручки передают активный
+ * (`getConfiguredPageAddressContext`), дефолт нужен прямым вызовам вне Nitro,
+ * где runtimeConfig недоступен.
+ */
+const DEFAULT_PAGE_ADDRESS_CONTEXT: IPageAddressContext = {
+    prefixes: DEFAULT_BRICKS_ROUTE_PREFIXES,
+    isLiveSurfaceEnabled: true,
+};
+
 /** Payload POST /api/bricks/:id/versions/:versionId/restore — precondition only. */
 const RESTORE_VERSION_KEYS = new Set(['expectedRevision']);
+
 // #endregion
 
 // #region Field validators
 /**
- * Валидирует pagename: формат, границы длины, зарезервированные имена.
+ * Резолвер владельца пути для сервера: живого роутера здесь нет, поэтому ответ
+ * даётся по собственным маршрутам модуля. Страниц приложения-потребителя сервер
+ * не видит — их конфликты ловит клиентская проверка через роутер.
+ *
+ * @param prefixes - Активные префиксы маршрутов.
+ * @returns Функция «путь → имя владеющего маршрута».
+ */
+function createOwnRouteResolver(
+    prefixes: IBricksRoutePrefixes
+): (path: string) => string | undefined {
+    const ownRoutes = getBricksOwnStaticRoutes(prefixes);
+
+    return (path: string) => ownRoutes[path];
+}
+
+/**
+ * Валидирует pagename: формат, границы длины и доступность адреса РЕДАКТОРА
+ * (`<builderPrefix>/<pagename>`) — его может занимать статический сосед вроде
+ * страницы логина, и тогда редактор такой страницы недостижим.
  *
  * @param value - Сырое значение.
+ * @param prefixes - Активные префиксы маршрутов.
  * @returns Нормализованный pagename.
  */
-function validatePagename(value: unknown): string {
+function validatePagename(value: unknown, prefixes: IBricksRoutePrefixes): string {
     const pagename = requireString(value, 'pagename', {
         min: PAGENAME_MIN_LENGTH,
         max: PAGENAME_MAX_LENGTH,
@@ -79,8 +117,8 @@ function validatePagename(value: unknown): string {
         patternHint: 'only lowercase letters, digits and hyphens are allowed',
     });
 
-    if (RESERVED_PAGENAMES.includes(pagename)) {
-        invalid(`Pagename "${pagename}" is reserved`);
+    if (isEditorAddressTaken(prefixes, createOwnRouteResolver(prefixes), pagename)) {
+        invalid(`Pagename "${pagename}" is reserved by a builder route`);
     }
 
     return pagename;
@@ -214,19 +252,58 @@ function validatePageMetaFields(body: Record<string, unknown>): Partial<IUpdateP
 
 // #region Page payloads
 /**
+ * Проверяет, что адрес published-страницы не перекрыт поверхностью bricks.
+ *
+ * Отдельной функцией, а не внутри валидаторов: перекрывает адрес СУММА
+ * `urlPrefix + pagename`, а PATCH несёт любое одно поле пары — вторую половину
+ * ручка обновления достаёт из сохранённой строки и зовёт эту проверку сама.
+ *
+ * @param prefixes - Активные префиксы маршрутов.
+ * @param urlPrefix - urlPrefix страницы (может отсутствовать).
+ * @param pagename - ЧПУ страницы.
+ */
+export function assertPagePathAllowed(
+    context: IPageAddressContext,
+    urlPrefix: string | null | undefined,
+    pagename: string
+): void {
+    const { prefixes, isLiveSurfaceEnabled } = context;
+
+    // Без live-рендера у страницы нет собственного URL — занимать нечего
+    if (!isLiveSurfaceEnabled) {
+        return;
+    }
+
+    if (isPageAddressTaken(prefixes, createOwnRouteResolver(prefixes), urlPrefix, pagename)) {
+        invalid(
+            `Page path "${getPublishedPagePath(urlPrefix, pagename)}" is reserved by the builder surface`
+        );
+    }
+}
+
+/**
  * Валидирует payload POST /api/bricks (создание страницы).
  *
  * @param body - Нормализованное тело запроса.
+ * @param context - Контекст адреса (дефолт — для вызовов вне Nitro).
  * @returns Чистый payload создания.
  */
-export function validateCreatePagePayload(body: Record<string, unknown>): ICreatePagePayload {
+export function validateCreatePagePayload(
+    body: Record<string, unknown>,
+    context: IPageAddressContext = DEFAULT_PAGE_ADDRESS_CONTEXT
+): ICreatePagePayload {
     assertKnownKeys(body, CREATE_PAGE_KEYS);
 
-    return {
+    const payload: ICreatePagePayload = {
         ...validatePageMetaFields(body),
-        pagename: validatePagename(body.pagename),
+        pagename: validatePagename(body.pagename, context.prefixes),
         schema: validateSchema(body.schema),
     };
+
+    // Создание знает оба поля пары сразу, поэтому проверяется здесь же
+    assertPagePathAllowed(context, payload.urlPrefix, payload.pagename);
+
+    return payload;
 }
 
 /**
@@ -234,16 +311,24 @@ export function validateCreatePagePayload(body: Record<string, unknown>): ICreat
  * Все поля опциональны; требует хотя бы одно записываемое
  * (precondition expectedRevision полем данных не считается).
  *
+ * Адрес страницы здесь НЕ проверяется: половина пары может остаться в
+ * сохранённой строке — это делает ручка (`updatePageFromEvent`) через
+ * `assertPagePathAllowed`.
+ *
  * @param body - Нормализованное тело запроса.
+ * @param context - Контекст адреса (дефолт — для вызовов вне Nitro).
  * @returns Чистый payload обновления.
  */
-export function validateUpdatePagePayload(body: Record<string, unknown>): IUpdatePagePayload {
+export function validateUpdatePagePayload(
+    body: Record<string, unknown>,
+    context: IPageAddressContext = DEFAULT_PAGE_ADDRESS_CONTEXT
+): IUpdatePagePayload {
     assertKnownKeys(body, UPDATE_PAGE_KEYS);
 
     const result: IUpdatePagePayload = validatePageMetaFields(body);
 
     if (body.pagename !== undefined) {
-        result.pagename = validatePagename(body.pagename);
+        result.pagename = validatePagename(body.pagename, context.prefixes);
     }
 
     if (body.schema !== undefined) {

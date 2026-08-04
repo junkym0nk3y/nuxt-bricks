@@ -36,10 +36,11 @@ const { routerBridge, apiFetcherMock } = vi.hoisted(() => ({
 
 vi.mock('#imports', async (importOriginal) => {
     const original = await importOriginal<Record<string, unknown>>();
+    const stubRouter = (original.useRouter as () => Record<string, unknown>)();
     return {
         ...original,
         useRoute: () => routerBridge.route,
-        useRouter: () => ({ replace: routerBridge.replace }),
+        useRouter: () => ({ ...stubRouter, replace: routerBridge.replace }),
     };
 });
 

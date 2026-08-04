@@ -18,7 +18,7 @@ vi.mock('../../src/runtime/modules/common/composables/useApiClient', () => ({
 
 vi.mock('../../src/runtime/modules/common/composables/useBricksRoutePaths', () => ({
     useBricksRoutePaths: () => ({
-        builderLoginPath: '/bricks/login',
+        builderLoginPath: '/bricks/bricks-login',
         withBase: (path: string) => path,
     }),
 }));

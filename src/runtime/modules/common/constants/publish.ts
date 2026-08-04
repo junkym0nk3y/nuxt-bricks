@@ -3,11 +3,10 @@
  * валидации (yup-схема формы) и серверной валидации DTO (/api/bricks/**).
  */
 
-/**
- * Зарезервированные pagename: 'login' занят страницей логина database-auth —
- * редактор страницы с таким именем (/bricks/login) был бы недостижим.
- */
-export const RESERVED_PAGENAMES: readonly string[] = ['login'];
+// Списка зарезервированных pagename здесь нет намеренно: занятость адреса
+// выясняется у роутинга (`utils/bricks/routePaths.ts` — `isPageAddressTaken` и
+// `isEditorAddressTaken`), потому что список пришлось бы держать вручную и он
+// всё равно не знал бы о страницах приложения-потребителя.
 
 /** Границы длины pagename (синхронизированы с клиентской yup-схемой). */
 export const PAGENAME_MIN_LENGTH = 3;

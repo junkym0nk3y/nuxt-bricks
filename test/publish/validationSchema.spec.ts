@@ -4,10 +4,37 @@ import { describe, expect, it } from 'vitest';
 
 // Utils
 import { createPublishValidationSchema } from '../../src/runtime/modules/builder/publish/utils/validationSchema';
+import {
+    DEFAULT_BRICKS_ROUTE_PREFIXES,
+    getBricksOwnStaticRoutes,
+    isEditorAddressTaken,
+    isPageAddressTaken,
+} from '../../src/runtime/modules/common/utils/bricks/routePaths';
 // #endregion
 
 /** Переводчик-заглушка: сообщение ошибки = i18n-ключ. */
 const t = (key: string): string => key;
+
+/**
+ * Резолвер владельца пути: собственные маршруты модуля плюс страница
+ * приложения-потребителя `/about` — в браузере эту роль играет `router.resolve`.
+ */
+const resolveRouteName = (path: string): string | undefined => {
+    if (path === '/about') {
+        return 'about';
+    }
+
+    const ownRoute = getBricksOwnStaticRoutes(DEFAULT_BRICKS_ROUTE_PREFIXES)[path];
+    if (ownRoute) {
+        return ownRoute;
+    }
+
+    // Остальное разбирают параметрические маршруты: под префиксом билдера —
+    // редактор, в корне — published-страница
+    return path.startsWith(`${DEFAULT_BRICKS_ROUTE_PREFIXES.builderPrefix}/`)
+        ? 'bricks-builder-pagename'
+        : 'bricks-page';
+};
 
 /**
  * Собирает схему с занятыми pagename и исключаемым id.
@@ -19,6 +46,15 @@ const t = (key: string): string => key;
 function buildSchema(takenPagenames: Record<string, number> = {}, excludeId?: number) {
     return createPublishValidationSchema({
         t,
+        isPageAddressFree: (urlPrefix, pagename) =>
+            !isPageAddressTaken(
+                DEFAULT_BRICKS_ROUTE_PREFIXES,
+                resolveRouteName,
+                urlPrefix,
+                pagename
+            ),
+        isEditorAddressFree: (pagename) =>
+            !isEditorAddressTaken(DEFAULT_BRICKS_ROUTE_PREFIXES, resolveRouteName, pagename),
         isPagenameAvailable: (pagename, exclude) => {
             const ownerId = takenPagenames[pagename];
             if (ownerId === undefined) {
@@ -64,10 +100,33 @@ describe('createPublishValidationSchema: yup-схема meta-полей', () => 
         );
     });
 
-    it('отклоняет зарезервированный pagename (login)', async () => {
-        await expect(buildSchema().validateAt('pagename', { pagename: 'login' })).rejects.toThrow(
-            'bricks.publish.validation.pagenameReserved'
-        );
+    it('отклоняет pagename, чей адрес занят в роутинге, но не похожее имя', async () => {
+        // Дашборд забирает live-адрес, страница потребителя /about — тоже
+        for (const pagename of ['bricks', 'about']) {
+            await expect(buildSchema().validateAt('pagename', { pagename })).rejects.toThrow(
+                'bricks.publish.validation.pagenameAddressTaken'
+            );
+        }
+
+        // bricks-login занимает адрес РЕДАКТОРА, а не live-адрес — сообщение другое
+        await expect(
+            buildSchema().validateAt('pagename', { pagename: 'bricks-login' })
+        ).rejects.toThrow('bricks.publish.validation.pagenameEditorTaken');
+
+        await expect(
+            buildSchema().validateAt('pagename', { pagename: 'bricks-site' })
+        ).resolves.toBe('bricks-site');
+    });
+
+    it('отклоняет urlPrefix, уводящий адрес страницы под занятый маршрут', async () => {
+        // Ошибка садится на urlPrefix: сам pagename без префикса валиден
+        await expect(
+            buildSchema().validateAt('urlPrefix', { urlPrefix: 'bricks', pagename: 'landing' })
+        ).rejects.toThrow('bricks.publish.validation.urlPrefixAddressTaken');
+
+        await expect(
+            buildSchema().validateAt('urlPrefix', { urlPrefix: 'bricks-site', pagename: 'landing' })
+        ).resolves.toBe('bricks-site');
     });
 
     it('отклоняет занятый pagename', async () => {

@@ -130,4 +130,14 @@ export interface IUseBricksRoutePathsReturn {
     /** Путь принадлежит поверхности билдера. */
     isBuilderPath: (pathname: string) => boolean;
 }
+
+export interface IUseBricksPageAddressReturn {
+    /**
+     * Свободен ли live-адрес страницы (`/<urlPrefix>/<pagename>`) в роутинге
+     * приложения: не занят ли он поверхностью билдера или страницей потребителя.
+     */
+    isPageAddressFree: (urlPrefix: string | null | undefined, pagename: string) => boolean;
+    /** Свободен ли адрес редактора страницы (`<builderPrefix>/<pagename>`). */
+    isEditorAddressFree: (pagename: string) => boolean;
+}
 // #endregion

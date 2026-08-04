@@ -108,10 +108,10 @@ describe('usePublishStore: создание страницы и URL превью
         expect(body.body.published).toBe(false);
     });
 
-    it('generatePreviewUrl ведёт на превью-роут /preview/[pagename] без query', () => {
+    it('generatePreviewUrl ведёт на превью-роут <previewPrefix>/[pagename] без query', () => {
         const { generatePreviewUrl } = usePublishPreview();
 
-        expect(generatePreviewUrl('landing')).toBe('/preview/landing');
+        expect(generatePreviewUrl('landing')).toBe('/bricks-preview/landing');
         expect(generatePreviewUrl('landing')).not.toContain('?preview');
     });
 });

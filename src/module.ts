@@ -110,7 +110,8 @@ export default defineNuxtModule<IBricksModuleOptions>({
         const backendResolution = applyBricksRuntimeConfig(
             runtimeConfig,
             options,
-            surfaces.routePrefixes
+            surfaces.routePrefixes,
+            surfaces.arePublishedPagesEnabled
         );
         // Невалидная конфигурация backend (database-auth + external) валит
         // сборку сразу — тихо сломанного прода не будет

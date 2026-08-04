@@ -37,10 +37,11 @@ const { routerBridge, apiFetcherMock } = vi.hoisted(() => ({
 
 vi.mock('#imports', async (importOriginal) => {
     const original = await importOriginal<Record<string, unknown>>();
+    const stubRouter = (original.useRouter as () => Record<string, unknown>)();
     return {
         ...original,
         useRoute: () => routerBridge.route,
-        useRouter: () => ({ replace: routerBridge.replace }),
+        useRouter: () => ({ ...stubRouter, replace: routerBridge.replace }),
     };
 });
 
@@ -203,14 +204,14 @@ describe('pagename билдера: rename, autosave, reload', () => {
         expect(context.pagename.sessionPagename.value).toBe('draft-page');
     });
 
-    it('зарезервированный и занятый pagename не переносят сессию', async () => {
+    it('pagename с занятым адресом редактора и занятый другой страницей не переносят сессию', async () => {
         const context = mountTracked();
         const publishStore = usePublishStore();
         seedLoadedPages(publishStore, [buildPage({ id: 2, pagename: 'taken' })]);
 
         await context.session.openBuilderSession('draft-page');
 
-        publishStore.setCurrentFormField('pagename', 'login');
+        publishStore.setCurrentFormField('pagename', 'bricks-login');
         await nextTick();
         await vi.advanceTimersByTimeAsync(PAGENAME_SYNC_DEBOUNCE_MS);
         expect(routerBridge.replace).not.toHaveBeenCalled();

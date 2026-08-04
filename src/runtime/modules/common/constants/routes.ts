@@ -11,7 +11,7 @@ export const BRICKS_ROUTE_NAMES = {
     builderRoot: 'bricks-builder',
     /** Дашборд менеджера страниц (index-ребёнок builderRoot). */
     builderIndex: 'bricks-builder-index',
-    /** Страница логина database-auth (`<builderPrefix>/login`). */
+    /** Страница логина database-auth (`<builderPrefix>/bricks-login`). */
     builderLogin: 'bricks-builder-login',
     /** Редактор страницы (`<builderPrefix>/:pagename`). */
     builderPage: 'bricks-builder-pagename',

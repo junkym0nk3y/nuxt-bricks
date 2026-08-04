@@ -333,7 +333,8 @@
                 "pagenameMax": "Максимум 80 символов",
                 "pagenameFormat": "Допустимы только строчные буквы, цифры и дефис",
                 "pagenameTaken": "Такой pagename уже занят",
-                "pagenameReserved": "Это имя зарезервировано системой",
+                "pagenameEditorTaken": "Это имя занято маршрутом билдера",
+                "pagenameAddressTaken": "Адрес страницы занят другим маршрутом приложения",
                 "titleRequired": "Заголовок обязателен",
                 "titleMin": "Минимум 3 символа",
                 "titleMax": "Максимум 120 символов",
@@ -345,6 +346,7 @@
                 "layoutRequired": "Layout обязателен",
                 "urlPrefixFormat": "Допустимы строчные буквы, цифры, дефис и /",
                 "urlPrefixMax": "Максимум 100 символов",
+                "urlPrefixAddressTaken": "С этим префиксом адрес страницы занят другим маршрутом",
                 "subdomainFormat": "Допустимы только строчные буквы, цифры и дефис",
                 "subdomainMax": "Максимум 63 символа"
             },

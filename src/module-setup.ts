@@ -9,6 +9,7 @@ import type { Nuxt, NuxtPage } from '@nuxt/schema';
 import { PAGE_ROUTE_SEGMENT } from './runtime/modules/common/constants/publish';
 import { BRICKS_ROUTE_NAMES } from './runtime/modules/common/constants/routes';
 import {
+    BUILDER_LOGIN_SEGMENT,
     DEFAULT_BRICKS_ROUTE_PREFIXES,
     validateBricksRoutePrefixes,
     type IBricksRoutePrefixes,
@@ -168,10 +169,12 @@ export function registerBricksPages(pages: NuxtPage[], context: IBricksRegistrat
                     },
                     {
                         // Статический сегмент бьёт :pagename по ранжированию vue-router
-                        // независимо от порядка. В basic-режиме страница редиректит
+                        // независимо от порядка, поэтому сегмент сидит в неймспейсе
+                        // `bricks-`: иначе редактор страницы потребителя `/login`
+                        // был бы недостижим. В basic-режиме страница редиректит
                         // на дашборд билдера.
                         name: BRICKS_ROUTE_NAMES.builderLogin,
-                        path: 'login',
+                        path: BUILDER_LOGIN_SEGMENT,
                         file: resolve(runtimeDir, 'modules/builder/auth/pages/login.vue'),
                     },
                     {

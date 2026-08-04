@@ -89,7 +89,8 @@ export function usePublishPreview(): IUsePublishPreviewReturn {
      * билдер той же страницы либо второе превью перетирали бы снимок версии.
      *
      * `pagename` берётся из ТЕКУЩЕЙ страницы, не из версии — он должен совпасть
-     * с параметром роута `/preview/<pagename>` (страница могла быть переименована).
+     * с параметром роута `<previewPrefix>/<pagename>` (страница могла быть
+     * переименована).
      *
      * @param pagename - ЧПУ текущей страницы.
      * @param versionId - Id сохранённой версии.

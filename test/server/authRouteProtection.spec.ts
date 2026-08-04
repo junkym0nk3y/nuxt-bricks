@@ -14,11 +14,17 @@ const PREFIXES = DEFAULT_BRICKS_ROUTE_PREFIXES;
 const CUSTOM_PREFIXES = { builderPrefix: '/admin/builder', previewPrefix: '/look' };
 
 describe('routeProtection: матрица защищённых путей', () => {
-    it('защищает /bricks, /bricks/**, /preview/** в обоих режимах', () => {
+    it('защищает поддеревья префиксов билдера и превью в обоих режимах', () => {
         for (const mode of ['basic', 'database'] as const) {
             expect(requiresAuth('/bricks', 'GET', mode, PREFIXES)).toBe(true);
             expect(requiresAuth('/bricks/my-page', 'GET', mode, PREFIXES)).toBe(true);
-            expect(requiresAuth('/preview/my-page', 'GET', mode, PREFIXES)).toBe(true);
+            expect(requiresAuth('/bricks-preview/my-page', 'GET', mode, PREFIXES)).toBe(true);
+
+            // Ходовые адреса потребителю оставлены: поверхности сидят в
+            // неймспейсе bricks-, поэтому сами /login и /preview свободны
+            expect(requiresAuth('/login', 'GET', mode, PREFIXES)).toBe(false);
+            expect(requiresAuth('/preview', 'GET', mode, PREFIXES)).toBe(false);
+            expect(requiresAuth('/preview/my-page', 'GET', mode, PREFIXES)).toBe(false);
         }
     });
 
@@ -93,22 +99,22 @@ describe('routeProtection: матрица защищённых путей', () =
         }
     });
 
-    it('database-режим открывает /bricks/login и /api/bricks/auth/**', () => {
-        expect(requiresAuth('/bricks/login', 'GET', 'database', PREFIXES)).toBe(false);
+    it('database-режим открывает страницу логина и /api/bricks/auth/**', () => {
+        expect(requiresAuth('/bricks/bricks-login', 'GET', 'database', PREFIXES)).toBe(false);
         expect(requiresAuth('/api/bricks/auth/login', 'POST', 'database', PREFIXES)).toBe(false);
         expect(requiresAuth('/api/bricks/auth/logout', 'POST', 'database', PREFIXES)).toBe(false);
         expect(requiresAuth('/api/bricks/auth/me', 'GET', 'database', PREFIXES)).toBe(false);
     });
 
-    it('basic-режим держит /bricks/login и auth-ручки под защитой (by design)', () => {
-        expect(requiresAuth('/bricks/login', 'GET', 'basic', PREFIXES)).toBe(true);
+    it('basic-режим держит страницу логина и auth-ручки под защитой (by design)', () => {
+        expect(requiresAuth('/bricks/bricks-login', 'GET', 'basic', PREFIXES)).toBe(true);
         expect(requiresAuth('/api/bricks/auth/login', 'POST', 'basic', PREFIXES)).toBe(true);
     });
 
     it('isProtectedHtmlPath различает HTML-пути и API', () => {
         expect(isProtectedHtmlPath('/bricks', PREFIXES)).toBe(true);
         expect(isProtectedHtmlPath('/bricks/my-page', PREFIXES)).toBe(true);
-        expect(isProtectedHtmlPath('/preview/my-page', PREFIXES)).toBe(true);
+        expect(isProtectedHtmlPath('/bricks-preview/my-page', PREFIXES)).toBe(true);
         expect(isProtectedHtmlPath('/api/bricks', PREFIXES)).toBe(false);
         expect(isProtectedHtmlPath('/api/bricks/media/s3-proxy', PREFIXES)).toBe(false);
         expect(isProtectedHtmlPath('/bricks-like-page', PREFIXES)).toBe(false);
@@ -135,9 +141,11 @@ describe('routeProtection: кастомные префиксы (bricks.routes)',
     });
 
     it('database-режим открывает login-страницу под кастомным префиксом', () => {
-        expect(requiresAuth('/admin/builder/login', 'GET', 'database', CUSTOM_PREFIXES)).toBe(
+        expect(
+            requiresAuth('/admin/builder/bricks-login', 'GET', 'database', CUSTOM_PREFIXES)
+        ).toBe(false);
+        expect(requiresAuth('/bricks/bricks-login', 'GET', 'database', CUSTOM_PREFIXES)).toBe(
             false
         );
-        expect(requiresAuth('/bricks/login', 'GET', 'database', CUSTOM_PREFIXES)).toBe(false);
     });
 });

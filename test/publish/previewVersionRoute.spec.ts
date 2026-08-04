@@ -82,7 +82,10 @@ describe('превью сохранённой версии', () => {
 
         expect(previewPageVersion('landing', 44)).toBe('landing');
 
-        expect(windowStub.open).toHaveBeenCalledWith('/preview/landing?version=44', '_blank');
+        expect(windowStub.open).toHaveBeenCalledWith(
+            '/bricks-preview/landing?version=44',
+            '_blank'
+        );
         expect(windowStub.localStorage.getItem('bricks-preview-page')).toBeNull();
     });
 

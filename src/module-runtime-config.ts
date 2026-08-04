@@ -188,7 +188,8 @@ function applyBricksAuthRuntimeConfig(
 export function applyBricksRuntimeConfig(
     runtimeConfig: Record<string, unknown>,
     options: IBricksModuleOptions,
-    routePrefixes: IBricksRoutePrefixes
+    routePrefixes: IBricksRoutePrefixes,
+    arePublishedPagesEnabled: boolean
 ): IBricksBackendResolution {
     runtimeConfig.basicAuthUsername =
         runtimeConfig.basicAuthUsername ??
@@ -216,6 +217,12 @@ export function applyBricksRuntimeConfig(
 
     // Единый источник префиксов для клиента и auth-матрицы (build-time)
     publicConfig.bricksRoutes = routePrefixes;
+
+    // Зарегистрирован ли live-рендер published-страниц. Публичный, потому что от
+    // него зависит проверка занятости адреса: с отключённым live-рендером у
+    // страницы нет собственного URL, и резервировать его нечего — иначе клиент и
+    // сервер приняли бы разные решения по одному и тому же имени
+    publicConfig.bricksPublishedPages = arePublishedPagesEnabled;
 
     // Политика data sources (public: рендерер выполняет их и на клиенте —
     // preview/refresh; секретов нет). Дефолты числовых значений — в

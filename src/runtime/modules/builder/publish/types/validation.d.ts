@@ -7,6 +7,14 @@ import type { TPublishFormState } from '../../../common/types/bricks-api';
 export interface IPublishValidationSchemaOptions {
     /** Переводчик i18n-ключей (сообщения резолвятся в момент валидации). */
     t: (key: string) => string;
+    /**
+     * Свободен ли live-адрес страницы в роутинге приложения
+     * (`useBricksPageAddress`) — ловит и поверхности билдера, и страницы
+     * потребителя, перекрывающие published-адрес.
+     */
+    isPageAddressFree: (urlPrefix: string | null | undefined, pagename: string) => boolean;
+    /** Свободен ли адрес редактора страницы (`<builderPrefix>/<pagename>`). */
+    isEditorAddressFree: (pagename: string) => boolean;
     /** Проверка занятости pagename (обычно `publishStore.isPagenameAvailable`). */
     isPagenameAvailable: (pagename: string, excludeId?: string | number) => boolean;
     /** Возвращает id страницы, исключаемой из проверки уникальности pagename. */

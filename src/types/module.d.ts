@@ -21,7 +21,8 @@ export interface IBricksModuleOptions {
      * Режим авторизации защищённых путей (builder/preview/мутации API).
      * - 'basic' (дефолт) — HTTP Basic Auth с парой креденшелов из basicAuth/env.
      * - 'database' — пользователи в Postgres (scrypt-хеш), страница логина
-     *   /bricks/login, cookie-сессии в БД (таблицы bricks_users/bricks_sessions).
+     *   `<builderPrefix>/bricks-login`, cookie-сессии в БД (таблицы
+     *   bricks_users/bricks_sessions).
      * ENV-переопределение: BRICKS_AUTH_MODE, BRICKS_AUTH_SESSION_MAX_AGE.
      * Провижининг пользователей — вручную (см. CLI bricks-hash-password).
      */
@@ -150,8 +151,13 @@ export interface IBricksModuleOptions {
      * Формат: ведущий `/`, lowercase-сегменты [a-z0-9-], без trailing slash;
      * префиксы не должны пересекаться. Невалидная конфигурация валит сборку.
      * - builderPrefix — дашборд `<prefix>`, редактор `<prefix>/:pagename`,
-     *   логин `<prefix>/login` (дефолт: '/bricks')
-     * - previewPrefix — превью рендера `<prefix>/:pagename` (дефолт: '/preview')
+     *   логин `<prefix>/bricks-login` (дефолт: '/bricks')
+     * - previewPrefix — превью рендера `<prefix>/:pagename`
+     *   (дефолт: '/bricks-preview')
+     *
+     * Дефолты сидят в неймспейсе `bricks-` намеренно: занятый префикс отбирает
+     * у published-страниц соответствующий адрес, поэтому ходовые `/preview` и
+     * `/login` остаются потребителю.
      */
     routes?: {
         builderPrefix?: string;

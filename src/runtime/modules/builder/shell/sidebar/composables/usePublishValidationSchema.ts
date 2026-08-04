@@ -4,6 +4,9 @@ import { createPublishValidationSchema } from '../../../publish/utils/validation
 // Vue
 import { useI18n } from 'vue-i18n';
 
+// Composables
+import { useBricksPageAddress } from '../../../../common/composables/useBricksPageAddress';
+
 // Pinia
 import { usePublishStore } from '../../../publish/stores/publish';
 
@@ -21,9 +24,12 @@ import { usePublishStore } from '../../../publish/stores/publish';
 export function usePublishValidationSchema() {
     const publishStore = usePublishStore();
     const { t } = useI18n();
+    const { isPageAddressFree, isEditorAddressFree } = useBricksPageAddress();
 
     const validationSchema = createPublishValidationSchema({
         t: (key) => t(key),
+        isPageAddressFree,
+        isEditorAddressFree,
         isPagenameAvailable: (pagename, excludeId) =>
             publishStore.isPagenameAvailable(pagename, excludeId),
         getExcludeId: () => publishStore.editingPageId ?? undefined,

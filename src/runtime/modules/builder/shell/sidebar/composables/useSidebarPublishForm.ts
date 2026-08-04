@@ -35,11 +35,15 @@ export function useSidebarPublishForm(): IUseSidebarPublishFormReturn {
         () => bricksConfig.backgroundColor || '#FFFFFF'
     );
     const defaultLayout = computed<string>(() => 'default');
+    // Routing-поля тоже отдаются форме: без них yup видел бы urlPrefix пустым, и
+    // проверка адреса страницы (пара urlPrefix+pagename) в сайдбаре не работала бы
     const initialValues = computed(() => ({
         pagename: settings.value.pagename || '',
         title: settings.value.title || '',
         description: settings.value.description || '',
         keywords: settings.value.keywords || '',
+        urlPrefix: settings.value.urlPrefix || '',
+        subdomain: settings.value.subdomain || '',
     }));
 
     /**

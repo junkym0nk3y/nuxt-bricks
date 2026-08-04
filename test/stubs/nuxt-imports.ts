@@ -79,6 +79,48 @@ export function useRuntimeConfig(): { public: Record<string, unknown> } {
 }
 
 /**
+ * Стаб useRouter: отвечает на вопрос «кто выигрывает путь» по таблице
+ * дефолтных маршрутов модуля. Дефолт неслучаен — проверки доступности адреса
+ * иначе пришлось бы настраивать в каждом тесте, а поведение «как в приложении»
+ * и есть то, что они проверяют. Параметрические маршруты эмулируются так же,
+ * как их ранжирует vue-router: статический сосед бьёт параметр.
+ */
+export function useRouter(): {
+    hasRoute: (name: string) => boolean;
+    resolve: (path: string) => { matched: Array<{ name: string }> };
+} {
+    const staticRoutes: Record<string, string> = {
+        '/bricks': 'bricks-builder-index',
+        '/bricks/bricks-login': 'bricks-builder-login',
+    };
+
+    return {
+        hasRoute: (name: string) =>
+            ['bricks-page', 'bricks-page-prefixed', 'bricks-builder-pagename'].includes(name),
+        resolve: (path: string) => {
+            const staticOwner = staticRoutes[path];
+            if (staticOwner) {
+                return { matched: [{ name: staticOwner }] };
+            }
+
+            if (path.startsWith('/bricks/')) {
+                return { matched: [{ name: 'bricks-builder-pagename' }] };
+            }
+
+            if (path.startsWith('/bricks-preview/')) {
+                return { matched: [{ name: 'bricks-preview' }] };
+            }
+
+            return {
+                matched: [
+                    { name: path.slice(1).includes('/') ? 'bricks-page-prefixed' : 'bricks-page' },
+                ],
+            };
+        },
+    };
+}
+
+/**
  * Стаб onNuxtReady: колбэки не исполняются сразу, а складываются — тест дёргает
  * их сам через `runNuxtReadyCallbacks`. В приложении Nuxt откладывает их до конца
  * гидрации, и «отложенность» здесь существенна: код, вызвавший запрос раньше

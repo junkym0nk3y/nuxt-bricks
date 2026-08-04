@@ -6,7 +6,7 @@ import { usePublishPreview } from './usePublishPreview';
 
 /**
  * Версии страницы для панели деталей дашборда: список сводок и превью версии
- * через общий превью-роут `/preview/<pagename>?version=<id>`
+ * через общий превью-роут `<previewPrefix>/<pagename>?version=<id>`
  * (см. `usePublishPreview`).
  * Ошибки запросов пробрасываются — уведомления показывает вызывающий компонент.
  */

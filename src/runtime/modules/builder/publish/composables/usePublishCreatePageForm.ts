@@ -12,6 +12,9 @@ import { DEFAULT_LAYOUT } from '../../../common/utils/bricks/publishedPage';
 import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+// Composables
+import { useBricksPageAddress } from '../../../common/composables/useBricksPageAddress';
+
 // Vee-validate
 import { useForm } from 'vee-validate';
 
@@ -52,9 +55,12 @@ export function usePublishCreatePageForm(options: IPublishCreatePageFormOptions)
     // #region Data
     const publishStore = usePublishStore();
     const { t } = useI18n();
+    const { isPageAddressFree, isEditorAddressFree } = useBricksPageAddress();
 
     const validationSchema = createPublishValidationSchema({
         t: (key) => t(key),
+        isPageAddressFree,
+        isEditorAddressFree,
         isPagenameAvailable: (pagename, excludeId) =>
             publishStore.isPagenameAvailable(pagename, excludeId),
         getExcludeId: () => undefined,

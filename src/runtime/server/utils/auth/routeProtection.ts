@@ -3,7 +3,7 @@
  * (`server/middleware/auth.ts`).
  *
  * Защищаются (префиксы билдера/превью — из `bricks.routes`, дефолты
- * `/bricks` и `/preview`):
+ * `/bricks` и `/bricks-preview`):
  * - `<builderPrefix>/**` — менеджер страниц и редактор
  * - `<previewPrefix>/**` — превью рендера
  * - /api/bricks/** — весь editorial API, включая read (списки страниц
@@ -15,7 +15,7 @@
  * (GET/HEAD /api/bricks/components — манифест описывает состав библиотеки:
  * имена, категории, пути brick-файлов и их редакторские метаданные, то есть
  * ровно то, что и так уходит в клиентский бандл). Database-only исключения:
- * `<builderPrefix>/login` (страница логина) и /api/bricks/auth/**
+ * `<builderPrefix>/bricks-login` (страница логина) и /api/bricks/auth/**
  * (login/logout/me) — иначе на форму не попасть.
  *
  * Все функции принимают ЛОГИЧЕСКИЙ путь (без `app.baseURL`) — middleware

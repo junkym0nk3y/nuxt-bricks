@@ -63,9 +63,29 @@ describe('validateCreatePagePayload: server-first DTO', () => {
         expect(() =>
             validateCreatePagePayload(makeCreatePageBody({ pagename: 'a'.repeat(81) }))
         ).toThrow();
-        expect(() => validateCreatePagePayload(makeCreatePageBody({ pagename: 'login' }))).toThrow(
+        // Сегмент логина: его занял бы редактор одноимённой страницы
+        expect(() =>
+            validateCreatePagePayload(makeCreatePageBody({ pagename: 'bricks-login' }))
+        ).toThrow(/reserved/);
+        // Корневой сегмент префикса билдера: published-URL /bricks перекрыт дашбордом
+        expect(() => validateCreatePagePayload(makeCreatePageBody({ pagename: 'bricks' }))).toThrow(
             /reserved/
         );
+    });
+
+    // Поля валидны по отдельности — адрес ломает их сумма
+    it('отклоняет пару urlPrefix+pagename, уводящую адрес под билдер', () => {
+        expect(() =>
+            validateCreatePagePayload(
+                makeCreatePageBody({ pagename: 'landing', urlPrefix: 'bricks' })
+            )
+        ).toThrow(/"\/bricks\/landing" is reserved/);
+
+        expect(() =>
+            validateCreatePagePayload(
+                makeCreatePageBody({ pagename: 'landing', urlPrefix: 'bricks-site' })
+            )
+        ).not.toThrow();
     });
 
     it('отклоняет payload без schema и schema неверной формы', () => {

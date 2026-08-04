@@ -5,6 +5,7 @@ import {
     toPageHttpError,
 } from '../../../modules/persistence/server/utils/handlerHelpers';
 import { validateCreatePagePayload } from '../../../modules/persistence/server/utils/payloadValidation';
+import { getConfiguredPageAddressContext } from '../../../modules/persistence/server/utils/pageAddressContext';
 
 /**
  * POST /api/bricks — создаёт новую страницу и возвращает её полностью.
@@ -14,7 +15,8 @@ import { validateCreatePagePayload } from '../../../modules/persistence/server/u
 export default defineEventHandler(async (event) => {
     try {
         const body = validateCreatePagePayload(
-            await readNormalizedBody<Record<string, unknown>>(event)
+            await readNormalizedBody<Record<string, unknown>>(event),
+            getConfiguredPageAddressContext()
         );
 
         return await useBricksStorageAdapter().createPage(body);

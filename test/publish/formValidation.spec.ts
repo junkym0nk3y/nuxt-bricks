@@ -102,4 +102,26 @@ describe('validatePublishFormState: проверка перед публикац
 
         expect(errors.pagename).toBe('bricks.publish.validation.pagenameTaken');
     });
+
+    // Гейт стоит последним перед записью, и форма ему не единственный источник:
+    // состояние приезжает и из черновика localStorage, минуя yup-схему полей
+    it('отклоняет pagename, чей адрес занят в роутинге приложения', () => {
+        const { errors } = validatePublishFormState(
+            buildFormState({ pagename: 'bricks' }),
+            () => true
+        );
+
+        expect(errors.pagename).toBe('bricks.publish.validation.pagenameAddressTaken');
+    });
+
+    it('отклоняет urlPrefix, уводящий адрес страницы под занятый маршрут', () => {
+        const { errors } = validatePublishFormState(
+            buildFormState({ urlPrefix: 'bricks' }),
+            () => true
+        );
+
+        expect(errors.urlPrefix).toBe('bricks.publish.validation.urlPrefixAddressTaken');
+        // pagename при этом валиден: без префикса его адрес свободен
+        expect(errors.pagename).toBeUndefined();
+    });
 });
