@@ -57,7 +57,6 @@ export function useComponentCardPreview(props: ISidebarComponentCardProps): ICom
     const { findImportModule } = useBrickImports();
     const ComponentPreview = shallowRef<Component | null>(null);
     const previewWrapperRef = ref<HTMLElement | null>(null);
-    const previewContentRef = ref<HTMLElement | null>(null);
     const componentWrapperRef = ref<HTMLElement | null>(null);
     /** Скрытый инстанс layout-блока для точного замера его реального размера. */
     const measureWrapperRef = ref<HTMLElement | null>(null);
@@ -312,7 +311,6 @@ export function useComponentCardPreview(props: ISidebarComponentCardProps): ICom
     return {
         ComponentPreview,
         previewWrapperRef,
-        previewContentRef,
         componentWrapperRef,
         measureWrapperRef,
         previewScale,

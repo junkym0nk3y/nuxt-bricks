@@ -36,7 +36,6 @@ const componentsStore = useComponentsStore();
 const {
     ComponentPreview,
     previewWrapperRef,
-    previewContentRef,
     componentWrapperRef,
     measureWrapperRef,
     previewScale,
@@ -140,7 +139,6 @@ const isFavorite = computed<boolean>(() =>
                 >
                     <!-- Обёртка с transform: scale() для масштабирования -->
                     <div
-                        ref="previewContentRef"
                         :class="$style.previewInner"
                         :style="{ transform: `scale(${previewScale})` }"
                     >
@@ -279,26 +277,16 @@ const isFavorite = computed<boolean>(() =>
 }
 
 .thumbnail {
-    /* Legacy playground variables следуют светлым bricks-токенам preview-canvas. */
-    --body-color: var(--bricks-base-900);
-    --base-0: var(--bricks-base-0);
-    --base-50: var(--bricks-base-50);
-    --base-100: var(--bricks-base-100);
-    --base-200: var(--bricks-base-200);
-    --base-300: var(--bricks-base-300);
-    --base-400: var(--bricks-base-400);
-    --base-500: var(--bricks-base-500);
-    --base-600: var(--bricks-base-600);
-    --base-900: var(--bricks-base-900);
-    --background-color: transparent;
-
     position: relative;
     overflow: hidden;
     width: 100%;
     height: 18rem;
     border-bottom: 1px solid var(--bricks-base-300);
     background-color: var(--bricks-base-0);
-    color: var(--body-color);
+
+    /* Превью — тоже .bricks-canvas, поэтому base-900 здесь светлый токен канваса
+       в обеих темах: текст компонента остаётся тёмным на белой миниатюре. */
+    color: var(--bricks-base-900);
 }
 
 .previewViewport {

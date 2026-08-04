@@ -861,3 +861,17 @@ component») и находить нужное по `type === 'INSTANCE_SWAP'`, �
 циклическую зависимость от родителя-хага. Фикс: перед `resize` явно задавать
 `primaryAxisSizingMode`/`counterAxisSizingMode = 'FIXED'`, и только потом FILL
 детям.
+
+## 2026-08-04 17:48 — Opus 5 (1M context)
+
+Проверка каскада на статичной репро-странице → Playwright MCP блокирует
+протокол `file:` («Access to "file:" protocol is blocked»). Обходится
+`python3 -m http.server <порт>` в scratchpad и переходом на `http://localhost`.
+
+## 2026-08-04 18:56 — Opus 5 (1M context)
+
+`browser_take_screenshot` (Playwright MCP) отказывается писать в scratchpad —
+«outside allowed roots», разрешены только корень проекта и `.playwright-mcp/`.
+Относительное имя без папки кладёт PNG **в корень репозитория**, где он попадает
+в `git status` как untracked-мусор. Фикс: всегда передавать
+`filename: '.playwright-mcp/<имя>.png'` — эта папка в gitignore.

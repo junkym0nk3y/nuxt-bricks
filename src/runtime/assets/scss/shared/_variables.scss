@@ -36,6 +36,11 @@
     /* Приподнятая поверхность: фон кнопок/инпутов/hover — контраст без бордеров */
     --bricks-surface-raised: #f3f4f6;
 
+    /* Фон вертикального рейла билдера. В светлой теме — тот же тон, что у тулбара:
+       разница base-0/base-50 там на грани различимости и читалась как грязь на стыке.
+       В тёмной теме рейл остаётся темнее тулбара — там контраст заметный и нужный. */
+    --bricks-surface-rail: var(--bricks-base-0);
+
     /* === Primary blue colors (light to dark) === */
     --bricks-primary-50: #eff6ff;
     --bricks-primary-100: #dbeafe;
@@ -102,7 +107,7 @@
        к светлой), и единый серый вокруг белого листа как раз и делает лист листом.
        Прежний #f3f4f6 совпадал с base-100 и в тёмной теме превращался в самое яркое
        пятно на экране, а граница листа почти не читалась. */
-    --bricks-workspace-bg: #c4c9d2;
+    --bricks-workspace-bg: #dfe0e7;
 }
 
 /* === Dark theme overrides === */
@@ -120,6 +125,7 @@
     --bricks-base-900: #e8eaef;
 
     --bricks-surface-raised: #38363c;
+    --bricks-surface-rail: var(--bricks-base-50);
 
     --bricks-primary-50: #1c2333;
     --bricks-primary-100: #1e2d4d;
@@ -204,19 +210,12 @@
             0 2.4rem 6.4rem rgb(var(--bricks-rgb-base-900) / 14%);
         --bricks-shadow-focus: 0 0 0 0.4rem rgb(var(--bricks-rgb-primary) / 18%);
 
-        /* Reset playground variables for canvas components (VTitle, etc.) */
-        --body-color: #1b1d24;
-        --base-0: #fff;
-        --base-50: #f4f4f6;
-        --base-100: #e1e2e5;
-        --base-200: #c7c8ce;
-        --base-300: #a1a4ad;
-        --base-400: #7b808c;
-        --base-500: #696d7b;
-        --base-600: #43495a;
-        --base-900: #1b1d24;
-        --background-color: transparent;
-
-        color: #1b1d24;
+        /* Наследуемый цвет текста тоже приходится сбрасывать: body билдера ставит
+           color: var(--bricks-base-900), и в тёмной теме это светлый #e8eaef.
+           Переопределение переменных выше на него не влияет — цвет уже вычислен
+           на body и наследуется в канвас, а блоки со своим color (BlockText и
+           прочий контент) его не задают. Без этой строки текст на белом листе
+           был бы почти невидимым. */
+        color: var(--bricks-base-900);
     }
 }

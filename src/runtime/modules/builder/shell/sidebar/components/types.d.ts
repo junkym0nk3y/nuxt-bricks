@@ -57,7 +57,6 @@ export interface IDragComposable {
 export interface IComponentCardPreview {
     ComponentPreview: ShallowRef<Component | null>;
     previewWrapperRef: Ref<HTMLElement | null>;
-    previewContentRef: Ref<HTMLElement | null>;
     componentWrapperRef: Ref<HTMLElement | null>;
     measureWrapperRef: Ref<HTMLElement | null>;
     previewScale: Ref<number>;

@@ -222,7 +222,7 @@ function handleToggleLocale(): void {
     width: 5.4rem;
     padding-top: 1.4rem;
     padding-bottom: 1.6rem;
-    background-color: var(--bricks-base-50);
+    background-color: var(--bricks-surface-rail);
     flex-direction: column;
     gap: 0.4rem;
 }
