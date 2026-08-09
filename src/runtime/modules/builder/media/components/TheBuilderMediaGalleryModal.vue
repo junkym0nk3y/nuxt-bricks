@@ -513,6 +513,7 @@ watch(
                         :max-image-size-mb="maxImageSizeMb"
                         :max-video-size-mb="maxVideoSizeMb"
                         :optimization="uploadOptimization"
+                        :configured-max-width="defaultOptimization.maxWidth"
                         :upload-progress="uploadProgress"
                         @upload="handleUpload"
                         @update:optimization="handleOptimizationChange"

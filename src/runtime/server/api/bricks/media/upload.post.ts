@@ -5,11 +5,10 @@ import {
     useBricksStorageAdapter,
 } from '../../../../modules/persistence/server/registry';
 import {
-    clampRequestedOptimization,
     getFileExtension,
     isVideoFile,
-    resolveImageFormat,
     resolveMediaConfig,
+    resolveRequestedOptimization,
 } from '../../../../modules/persistence/server/utils/imageProcessing';
 import {
     validateAndOptimizeImage,
@@ -51,11 +50,10 @@ const uploadRateLimiter = createFixedWindowRateLimiter({
  * ими дефолты конфига.
  *
  * Параметры приходят с формой, а не из конфига, потому что выбираются в
- * поповере на каждую загрузку; конфиг остаётся источником дефолтов. Любое
- * непонятное значение молча заменяется дефолтом — это не тот ввод, из-за
- * которого стоит отказывать в загрузке файла. Годное, но выходящее за границы
- * загоняется в них `clampRequestedOptimization`: границы общие с интерфейсом, а запрос
- * мимо интерфейса ими не ограничен.
+ * поповере на каждую загрузку; конфиг остаётся источником дефолтов. Разбор,
+ * подстановку дефолта и границы держит `resolveRequestedOptimization` — здесь
+ * остаётся только достать строки, потому что отличать «поля не было» от
+ * «пришло непригодное» обязан тот, кто применяет границы.
  *
  * @param formData - Коллекция multipart-полей.
  * @param fallback - Параметры из конфига.
@@ -67,14 +65,15 @@ function resolveUploadOptimization(
 ): IBricksMediaOptimization {
     const readField = (name: string): string | undefined =>
         formData.find((item) => item.name === name)?.data.toString();
-    const rawQuality = Number(readField('quality'));
-    const rawMaxWidth = Number(readField('maxWidth'));
 
-    return clampRequestedOptimization({
-        format: resolveImageFormat(readField('format'), fallback.format),
-        quality: Number.isFinite(rawQuality) && rawQuality > 0 ? rawQuality : fallback.quality,
-        maxWidth: Number.isFinite(rawMaxWidth) && rawMaxWidth > 0 ? rawMaxWidth : fallback.maxWidth,
-    });
+    return resolveRequestedOptimization(
+        {
+            format: readField('format'),
+            quality: readField('quality'),
+            maxWidth: readField('maxWidth'),
+        },
+        fallback
+    );
 }
 
 /**

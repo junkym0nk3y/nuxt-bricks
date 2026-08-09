@@ -79,6 +79,8 @@ export interface IMediaGalleryUploadControlsProps {
     maxImageSizeMb: number;
     maxVideoSizeMb: number;
     optimization: IBricksMediaOptimization;
+    /** Ширина из конфига — от неё считаются границы поля, см. одноимённый проп поповера. */
+    configuredMaxWidth: number;
     /** Прогресс текущей загрузки; null — загрузки нет. */
     uploadProgress: IMediaUploadProgress | null;
 }
@@ -103,6 +105,12 @@ export interface IMediaGalleryDropOverlayProps {
 
 export interface IMediaGalleryUploadOptionsProps {
     optimization: IBricksMediaOptimization;
+    /**
+     * Ширина из конфига модуля. Отдельным пропом, а не из `optimization`:
+     * границы поля должны считаться от неизменного значения, иначе введённое
+     * пользователем число само поднимало бы себе потолок.
+     */
+    configuredMaxWidth: number;
 }
 
 export interface IMediaGalleryUploadOptionsEmits {

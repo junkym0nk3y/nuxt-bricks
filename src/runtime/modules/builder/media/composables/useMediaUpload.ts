@@ -13,6 +13,7 @@ import {
     DEFAULT_MEDIA_MAX_UPLOAD_SIZE_MB,
     DEFAULT_MEDIA_MAX_VIDEO_UPLOAD_SIZE_MB,
     DEFAULT_MEDIA_OPTIMIZATION,
+    resolveConfiguredMaxWidth,
 } from '../../../common/constants/mediaOptimization';
 
 // Nuxt
@@ -49,11 +50,15 @@ export function useMediaUpload(options: IMediaUploadOptions): {
      * поповер лишь переопределяет их на текущую загрузку. Запасные значения
      * общие с сервером, иначе поповер показывал бы и отправлял своё число, а
      * серверный дефолт не применялся бы вовсе.
+     *
+     * Ширина проходит ту же нормализацию, что и на сервере: от неё считаются
+     * границы поля ввода, и своя трактовка непригодного значения на каждой
+     * стороне разводила бы эти границы.
      */
     const defaultOptimization: IBricksMediaOptimization = {
         format: mediaConfig?.optimization?.format ?? DEFAULT_MEDIA_OPTIMIZATION.format,
         quality: mediaConfig?.optimization?.quality ?? DEFAULT_MEDIA_OPTIMIZATION.quality,
-        maxWidth: mediaConfig?.optimization?.maxWidth ?? DEFAULT_MEDIA_OPTIMIZATION.maxWidth,
+        maxWidth: resolveConfiguredMaxWidth(mediaConfig?.optimization?.maxWidth),
     };
 
     const mediaStore = useMediaStore();

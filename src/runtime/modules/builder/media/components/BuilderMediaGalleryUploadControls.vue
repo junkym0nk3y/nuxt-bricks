@@ -177,6 +177,7 @@ defineExpose({ openFilePicker: handleOpenFilePicker });
                 <PopoverContent align="end" :side-offset="8" :class="$style.popover">
                     <BuilderMediaGalleryUploadOptions
                         :optimization="props.optimization"
+                        :configured-max-width="props.configuredMaxWidth"
                         @update:optimization="handleOptimizationChange"
                     />
                 </PopoverContent>

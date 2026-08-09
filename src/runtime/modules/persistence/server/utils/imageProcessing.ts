@@ -2,17 +2,21 @@
 import { useAppConfig } from 'nitropack/runtime';
 import { createError } from 'h3';
 import sharp from 'sharp';
-import type { IOptimizedImage, IResolvedMediaConfig } from '../../types/media';
+import type {
+    IMediaOptimizationRequestFields,
+    IOptimizedImage,
+    IResolvedMediaConfig,
+} from '../../types/media';
 import type { IBricksMediaOptimization } from '../../../common/types/media';
 import type { TBricksMediaImageFormat } from '../../../common/types/config';
 import {
     DEFAULT_MEDIA_MAX_UPLOAD_SIZE_MB,
     DEFAULT_MEDIA_MAX_VIDEO_UPLOAD_SIZE_MB,
     DEFAULT_MEDIA_OPTIMIZATION,
-    MEDIA_MAX_WIDTH_MAX,
-    MEDIA_MAX_WIDTH_MIN,
     MEDIA_QUALITY_MAX,
     MEDIA_QUALITY_MIN,
+    resolveConfiguredMaxWidth,
+    resolveMediaMaxWidthBounds,
 } from '../../../common/constants/mediaOptimization';
 import { createConcurrencyGate, GateOverflowError } from './concurrencyGate';
 // #endregion
@@ -203,27 +207,57 @@ function clampQuality(quality: number): number {
 }
 
 /**
- * Загоняет параметры НЕДОВЕРЕННОГО запроса в границы интерфейса.
+ * Приводит сырое поле формы к положительному числу.
  *
- * Только для полей multipart-формы, не для конфига: поле поповера ограничивает
- * ввод, а запрос мимо интерфейса им не ограничен — `maxWidth: 1` сохранял бы
- * «полный» файл шириной в один пиксель. Конфиг ставит разработчик, и резать его
- * осознанный выбор потолком, придуманным для поля ввода, нечем: `maxWidth`
- * оттуда остаётся как есть.
- *
- * @param optimization Сырые параметры из формы.
- * @returns Параметры в допустимых границах.
+ * @param value Значение поля или undefined, если поля не было.
+ * @returns Число либо null — переопределения не было.
  */
-export function clampRequestedOptimization(
-    optimization: IBricksMediaOptimization
+function toRequestedNumber(value: string | undefined): number | null {
+    if (typeof value !== 'string' || value.trim() === '') {
+        return null;
+    }
+
+    const parsed = Number(value);
+
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+/**
+ * Разбирает НЕДОВЕРЕННЫЕ поля формы и накрывает ими дефолты конфига.
+ *
+ * Границы применяются только к тому, что действительно пришло с формой: поле
+ * поповера ограничивает ввод, а запрос мимо интерфейса им не ограничен —
+ * `maxWidth: 1` сохранял бы «полный» файл шириной в один пиксель. Значение из
+ * конфига, взятое при отсутствующем поле, границами не режется: пока эта
+ * функция принимала уже склеенный объект, отличить одно от другого было
+ * нечем, и `maxWidth: 12000` из конфига молча становился 8000.
+ *
+ * Потолок и пол самого запроса тоже считаются от конфига
+ * (`resolveMediaMaxWidthBounds`): значение, которое разработчик выбрал дефолтом,
+ * не может быть недостижимо для запроса — интерфейс отправляет его дословно.
+ *
+ * @param requested Сырые поля multipart-формы.
+ * @param fallback Параметры из конфига (уже разрешённые).
+ * @returns Эффективные параметры оптимизации.
+ */
+export function resolveRequestedOptimization(
+    requested: IMediaOptimizationRequestFields,
+    fallback: IBricksMediaOptimization
 ): IBricksMediaOptimization {
+    const requestedQuality = toRequestedNumber(requested.quality);
+    const requestedMaxWidth = toRequestedNumber(requested.maxWidth);
+    const maxWidthBounds = resolveMediaMaxWidthBounds(fallback.maxWidth);
+
     return {
-        format: optimization.format,
-        quality: clampQuality(optimization.quality),
-        maxWidth: Math.min(
-            Math.max(Math.round(optimization.maxWidth), MEDIA_MAX_WIDTH_MIN),
-            MEDIA_MAX_WIDTH_MAX
-        ),
+        format: resolveImageFormat(requested.format, fallback.format),
+        quality: requestedQuality === null ? fallback.quality : clampQuality(requestedQuality),
+        maxWidth:
+            requestedMaxWidth === null
+                ? fallback.maxWidth
+                : Math.min(
+                      Math.max(Math.round(requestedMaxWidth), maxWidthBounds.min),
+                      maxWidthBounds.max
+                  ),
     };
 }
 
@@ -253,7 +287,10 @@ export function resolveMediaConfig(): IResolvedMediaConfig {
             quality: clampQuality(
                 resolveNumber(optimization.quality, DEFAULT_MEDIA_OPTIMIZATION.quality)
             ),
-            maxWidth: resolveNumber(optimization.maxWidth, DEFAULT_MEDIA_OPTIMIZATION.maxWidth),
+            // Нормализация здесь, а не при разборе запроса: границам запроса это
+            // значение больше не подчиняется, а sharp принимает ширину только
+            // положительным целым — дробный `maxWidth` из конфига ронял бы загрузку
+            maxWidth: resolveConfiguredMaxWidth(optimization.maxWidth),
         },
     };
 }

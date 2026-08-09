@@ -23,6 +23,20 @@ export interface IUploadedFilePart {
  */
 export type TMediaVariant = 'preview' | 'mock';
 
+/**
+ * Сырые поля оптимизации из multipart-формы: переопределения на одну загрузку.
+ *
+ * Именно строки, а не числа: отличать «поле не пришло» от «пришло непригодное»
+ * должен разбор запроса, а не вызывающий. Пока это делала ручка, разобранное ею
+ * значение было уже неотличимо от дефолта конфига, и границы поля ввода
+ * накрывали конфиг заодно с запросом.
+ */
+export interface IMediaOptimizationRequestFields {
+    format?: string;
+    quality?: string;
+    maxWidth?: string;
+}
+
 export interface IResolvedMediaConfig {
     maxUploadSizeBytes: number;
     maxUploadSizeMb: number;

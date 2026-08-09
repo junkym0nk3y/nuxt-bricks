@@ -19,6 +19,15 @@ export interface IBricksMediaOptimization {
     maxWidth: number;
 }
 
+/**
+ * Действующие границы «максимальной ширины» — общие у поля ввода и у ручки
+ * загрузки. Считаются от значения из конфига, поэтому не константы.
+ */
+export interface IMediaMaxWidthBounds {
+    min: number;
+    max: number;
+}
+
 export interface IMediaItem {
     id: number;
     url: string;

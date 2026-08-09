@@ -25,13 +25,13 @@ import type {
     IMediaGalleryUploadOptionsProps,
     IMediaGalleryUploadOptionsEmits,
 } from '../types/media';
+import type { IMediaMaxWidthBounds } from '../../../common/types/media';
 
 // Utils
 import {
-    MEDIA_MAX_WIDTH_MAX,
-    MEDIA_MAX_WIDTH_MIN,
     MEDIA_QUALITY_MAX,
     MEDIA_QUALITY_MIN,
+    resolveMediaMaxWidthBounds,
 } from '../../../common/constants/mediaOptimization';
 
 // Vue
@@ -65,6 +65,14 @@ const formatFacets = computed<TBrickDemoValues[]>(() =>
     formatOptions.value.map((option) => option.value)
 );
 const isOriginal = computed<boolean>(() => props.optimization.format === 'original');
+/**
+ * Границы поля ширины считаются от НЕИЗМЕННОГО значения конфига, а не от
+ * текущего в поле: иначе верхняя граница убегала бы вслед за вводом и не
+ * ограничивала бы ничего.
+ */
+const maxWidthBounds = computed<IMediaMaxWidthBounds>(() =>
+    resolveMediaMaxWidthBounds(props.configuredMaxWidth)
+);
 // #endregion
 
 // #region Methods
@@ -88,46 +96,40 @@ function handleFormatChange(value: TBrickDemoValues | null): void {
 }
 
 /**
- * Приводит ввод числового поля к допустимому значению; пустое и нечисловое
- * оставляют прежнее — иначе стирание поля обнуляло бы качество.
+ * Читает число из поля ввода; пустое и нечисловое оставляют прежнее — иначе
+ * стирание поля обнуляло бы качество.
+ *
+ * Границы и округление намеренно НЕ применяются. Значение контролируемое:
+ * `BricksInput` синхронизирует поле из пропа, поэтому кламп на каждый символ
+ * подменял набираемое — «1» становилось минимумом, а следующая цифра
+ * дописывалась уже к нему («1», «9», «2», «0» давали 16 → 169 → 1692 → 8000).
+ * Границы остаются за blur'ом самого поля и за сервером, а дробное значение —
+ * промежуточное состояние ввода, и округлять его до потери фокуса нечего.
  *
  * @param raw - Строка из поля.
- * @param min - Нижняя граница.
- * @param max - Верхняя граница.
  * @param fallback - Прежнее значение.
+ * @returns Введённое число либо прежнее значение.
  */
-function clampNumber(raw: string, min: number, max: number, fallback: number): number {
-    const parsed = Number(raw);
+function parseFieldNumber(raw: string, fallback: number): number {
+    const trimmed = raw.trim();
 
-    if (!Number.isFinite(parsed) || parsed === 0) {
+    if (!trimmed) {
         return fallback;
     }
 
-    return Math.min(Math.max(Math.round(parsed), min), max);
+    const parsed = Number(trimmed);
+
+    return Number.isFinite(parsed) ? parsed : fallback;
 }
 
 /** Обрабатывает ввод качества. */
 function handleQualityChange(value: string): void {
-    emitPatch({
-        quality: clampNumber(
-            value,
-            MEDIA_QUALITY_MIN,
-            MEDIA_QUALITY_MAX,
-            props.optimization.quality
-        ),
-    });
+    emitPatch({ quality: parseFieldNumber(value, props.optimization.quality) });
 }
 
 /** Обрабатывает ввод максимальной ширины. */
 function handleMaxWidthChange(value: string): void {
-    emitPatch({
-        maxWidth: clampNumber(
-            value,
-            MEDIA_MAX_WIDTH_MIN,
-            MEDIA_MAX_WIDTH_MAX,
-            props.optimization.maxWidth
-        ),
-    });
+    emitPatch({ maxWidth: parseFieldNumber(value, props.optimization.maxWidth) });
 }
 
 /**
@@ -173,8 +175,8 @@ function handleSkipOptimizationChange(value: boolean): void {
                 :value="props.optimization.maxWidth"
                 type="number"
                 unit="px"
-                :min="MEDIA_MAX_WIDTH_MIN"
-                :max="MEDIA_MAX_WIDTH_MAX"
+                :min="maxWidthBounds.min"
+                :max="maxWidthBounds.max"
                 :disabled="isOriginal"
                 @update:value="handleMaxWidthChange"
             />
