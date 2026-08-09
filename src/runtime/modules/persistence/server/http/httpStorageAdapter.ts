@@ -6,8 +6,7 @@
  *
  * Контракт ручек external backend — зеркало локальной структуры
  * `/api/bricks/**` относительно `bricks.backend.url` (полный base-префикс,
- * сегмент `bricks` не зашит): см. docs/external-backend-contract.md и
- * docs/backend-connection-modes-plan-2026-07-12.md (Р2).
+ * сегмент `bricks` не зашит): см. docs/external-backend-contract.md.
  *
  * Формат: даты — ISO 8601; top-level ключи ответов нормализуются
  * snake_case → camelCase (toCamelCaseShallow — вложенные объекты, включая
@@ -161,7 +160,7 @@ export function createHttpStorageAdapter(options: IHttpStorageAdapterOptions): I
 
                 return normalizeRow<IBricksPageRow>(raw, 'POST page');
             } catch (error: unknown) {
-                if (isConflictError(error) && error.conflictCode === PAGE_CONFLICT_CODES.pagename) {
+                if (isConflictError(error) && error.errorCode === PAGE_CONFLICT_CODES.pagename) {
                     throw new BricksPageAddressConflictError();
                 }
 
@@ -193,11 +192,11 @@ export function createHttpStorageAdapter(options: IHttpStorageAdapterOptions): I
                 }
 
                 if (isConflictError(error)) {
-                    if (error.conflictCode === PAGE_CONFLICT_CODES.pagename) {
+                    if (error.errorCode === PAGE_CONFLICT_CODES.pagename) {
                         throw new BricksPageAddressConflictError();
                     }
 
-                    if (error.conflictCode === PAGE_CONFLICT_CODES.revision) {
+                    if (error.errorCode === PAGE_CONFLICT_CODES.revision) {
                         throw new BricksRevisionConflictError(id);
                     }
                 }

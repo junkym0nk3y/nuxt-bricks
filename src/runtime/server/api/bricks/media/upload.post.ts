@@ -16,7 +16,7 @@ import {
 } from '../../../../modules/persistence/server/utils/mediaProcessing';
 import { uploadAndRegisterMedia } from '../../../../modules/persistence/server/utils/mediaOrchestration';
 import { buildMediaVariantFilename } from '../../../../modules/persistence/server/utils/mediaVariants';
-import { toHttpError } from '../../../../modules/persistence/server/utils/handlerHelpers';
+import { toMediaHttpError } from '../../../../modules/persistence/server/utils/handlerHelpers';
 import {
     MULTIPART_ENVELOPE_ALLOWANCE_BYTES,
     readMultipartFormDataWithLimit,
@@ -228,8 +228,9 @@ export default defineEventHandler(async (event) => {
         const category = rawCategory ? validateMediaCategory(rawCategory) : null;
         const storage = useBricksStorageAdapter();
 
-        // До обработки файла: тратить sharp на вход, который всё равно некуда
-        // записать, незачем
+        // До обработки файла: тратить sharp и заливку в бакет на вход, который
+        // всё равно некуда записать, незачем. Гонку с удалением категории эта
+        // проверка не закрывает — её ловит FK базы уже после заливки
         if (category) {
             await assertKnownMediaCategory(storage, category);
         }
@@ -256,6 +257,6 @@ export default defineEventHandler(async (event) => {
             }
         );
     } catch (error: unknown) {
-        toHttpError(error, 'Failed to upload media file');
+        toMediaHttpError(error, 'Failed to upload media file');
     }
 });

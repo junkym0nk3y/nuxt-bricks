@@ -11,6 +11,10 @@ import {
     isMediaVariantFilename,
 } from '../../src/runtime/modules/persistence/server/utils/mediaVariants';
 import { assertKnownMediaCategory } from '../../src/runtime/modules/persistence/server/utils/mediaCategoryRules';
+import {
+    BricksStorageWriteRejectedError,
+    BricksUnknownMediaCategoryError,
+} from '../../src/runtime/modules/persistence/server/utils/storageErrors';
 import { validateCreateMediaCategoryPayload } from '../../src/runtime/modules/persistence/server/utils/mediaPayloadValidation';
 // #endregion
 
@@ -71,10 +75,19 @@ describe('серверная проверка существования кат�
         ).resolves.toBeUndefined();
     });
 
-    it('неизвестная отклоняется 400, а не доходит до FK как 500', async () => {
+    it('неизвестная отклоняется доменной ошибкой — тем же классом, что и отказ FK', async () => {
         await expect(
             assertKnownMediaCategory(makeCategoryStorage(['photos']), 'typo')
-        ).rejects.toMatchObject({ statusCode: 400 });
+        ).rejects.toBeInstanceOf(BricksUnknownMediaCategoryError);
+    });
+
+    it('отказ ранней проверки безопасен для компенсации файлов', async () => {
+        // Наследование маркера — единственное, что разрешает удалить уже
+        // загруженный файл: без него загрузка с исчезнувшей категорией
+        // оставляла бы объект в бакете навсегда
+        await expect(
+            assertKnownMediaCategory(makeCategoryStorage([]), 'gone')
+        ).rejects.toBeInstanceOf(BricksStorageWriteRejectedError);
     });
 });
 

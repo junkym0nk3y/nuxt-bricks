@@ -12,10 +12,12 @@ import type { IBackendHttpClient } from './httpClient';
 import {
     isConflictError,
     isNotFoundError,
+    isUnknownMediaCategoryError,
     normalizeRow,
     normalizeRows,
     unwrapItemsList,
 } from './httpAdapterHelpers';
+import { BricksUnknownMediaCategoryError } from '../utils/storageErrors';
 import type {
     ICreateMediaPayload,
     ICreateMediaCategoryPayload,
@@ -97,6 +99,10 @@ export function createHttpMediaMethods(client: IBackendHttpClient): TStorageMedi
 
                 return normalizeRow<IMediaItem>(raw, 'POST media');
             } catch (error: unknown) {
+                if (payload.category && isUnknownMediaCategoryError(error)) {
+                    throw new BricksUnknownMediaCategoryError(payload.category, error);
+                }
+
                 if (!isConflictError(error)) {
                     throw error;
                 }
@@ -124,6 +130,10 @@ export function createHttpMediaMethods(client: IBackendHttpClient): TStorageMedi
             } catch (error: unknown) {
                 if (isNotFoundError(error)) {
                     return null;
+                }
+
+                if (payload.category && isUnknownMediaCategoryError(error)) {
+                    throw new BricksUnknownMediaCategoryError(payload.category, error);
                 }
 
                 throw error;

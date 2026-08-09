@@ -18,10 +18,17 @@ import {
     isRequestTimeoutError,
     resolveRequestTimeoutMessageKey,
 } from '../../../common/utils/apiRequestPolicy';
-import { getBricksErrorMessage, isStatementTimeoutError } from '../../../common/utils/main';
+import {
+    getBricksErrorCode,
+    getBricksErrorMessage,
+    isStatementTimeoutError,
+} from '../../../common/utils/main';
 
 // Constants
-import { BRICKS_STATEMENT_TIMEOUT_MESSAGE_KEY } from '../../../common/constants/apiErrors';
+import {
+    BRICKS_API_ERROR_CODES,
+    BRICKS_STATEMENT_TIMEOUT_MESSAGE_KEY,
+} from '../../../common/constants/apiErrors';
 // #endregion
 
 /**
@@ -91,6 +98,12 @@ function resolveMediaErrorMessage(
 
     if (isStatementTimeoutError(error)) {
         return translate(BRICKS_STATEMENT_TIMEOUT_MESSAGE_KEY);
+    }
+
+    // Категорию могли удалить в другой вкладке между показом списка и записью:
+    // серверный текст такого отказа англоязычен, а причина пользователю понятна
+    if (getBricksErrorCode(error) === BRICKS_API_ERROR_CODES.unknownMediaCategory) {
+        return translate('bricks.media.categoryUnknown');
     }
 
     return getBricksErrorMessage(error, fallbackMessage);

@@ -6,6 +6,20 @@
  * не должен тянуть за собой её резолв.
  */
 
+/**
+ * Ошибка драйвера `pg` в объёме, который разбирает адаптер: SQLSTATE-код отказа.
+ *
+ * Форма своя, а не `DatabaseError` драйвера, по той же причине, что и у
+ * конфигурации пула: `pg` — optional peer-зависимость, и тип не должен тянуть
+ * за собой её резолв.
+ */
+export interface IPostgresErrorLike {
+    /** SQLSTATE отказа ('23505' unique_violation, '23503' foreign_key_violation). */
+    code?: unknown;
+    /** Имя нарушенного ограничения — им различаются несколько ограничений одной таблицы. */
+    constraint?: unknown;
+}
+
 export interface IPostgresPoolConfig {
     /** Строка подключения PostgreSQL. */
     connectionString: string;

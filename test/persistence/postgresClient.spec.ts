@@ -181,3 +181,32 @@ describe('клиент PostgreSQL: серверный лимит и отмена
         expect(releaseMock).toHaveBeenCalledTimes(1);
     });
 });
+
+describe('клиент PostgreSQL: запрос, который не был отправлен', () => {
+    beforeEach(() => {
+        vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    });
+
+    it('несконфигурированная база даёт отказ отдельного класса, а не обычную ошибку', async () => {
+        // Пул в модуле — singleton, поэтому кейс требует свежего графа модулей:
+        // иначе уже собранный пул из соседних тестов не даст дойти до отказа.
+        // Класс ошибки берётся оттуда же — сравнение с классом из другого
+        // экземпляра модуля не сработало бы
+        vi.resetModules();
+        runtimeConfigMock.mockReturnValue({});
+
+        const [{ query: freshQuery }, { BricksPostgresQueryNotStartedError }] = await Promise.all([
+            import('../../src/runtime/modules/persistence/server/postgres/client'),
+            import('../../src/runtime/modules/persistence/server/utils/storageErrors'),
+        ]);
+
+        const thrown = await freshQuery('SELECT 1').catch((error: unknown) => error);
+
+        expect(thrown).toBeInstanceOf(BricksPostgresQueryNotStartedError);
+        // Причина сохранена: без неё в логе не осталось бы подсказки про
+        // NUXT_BRICKS_DATABASE_URL
+        expect((thrown as Error).cause).toMatchObject({
+            message: expect.stringContaining('Database connection is not configured'),
+        });
+    });
+});

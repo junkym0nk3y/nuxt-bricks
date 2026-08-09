@@ -15,7 +15,13 @@ import {
     deleteMediaWithFile,
     cleanupPageThumbnail,
     type IMediaOrchestrationDeps,
+    type IUploadMediaParams,
 } from '../../src/runtime/modules/persistence/server/utils/mediaOrchestration';
+import {
+    BricksStatementTimeoutError,
+    BricksStorageWriteRejectedError,
+    BricksUnknownMediaCategoryError,
+} from '../../src/runtime/modules/persistence/server/utils/storageErrors';
 // #endregion
 
 // #region Fakes
@@ -39,14 +45,22 @@ function makeMediaItem(overrides: Partial<IMediaItem> = {}): IMediaItem {
     };
 }
 
-/** Журналируемые фейки адаптеров: каждый вызов пишется в calls. */
+/**
+ * Журналируемые фейки адаптеров: каждый вызов пишется в calls.
+ *
+ * `createMediaErrors` — очередь отказов по попыткам: первый элемент достаётся
+ * первому вызову, второй — повтору. Пустое место в очереди означает успех.
+ */
 function makeDeps(overrides: {
     getMedia?: IMediaItem | null;
     createMediaError?: Error;
+    createMediaErrors?: (Error | null)[];
     deleteFileError?: Error;
     isOwned?: boolean;
 }): { deps: IMediaOrchestrationDeps; calls: string[] } {
     const calls: string[] = [];
+    const createErrors = overrides.createMediaErrors ?? [];
+    let createAttempt = 0;
 
     const deps: IMediaOrchestrationDeps = {
         storage: {
@@ -56,6 +70,13 @@ function makeDeps(overrides: {
             },
             async createMedia(payload: ICreateMediaPayload): Promise<IMediaItem> {
                 calls.push(`createMedia:${payload.url}`);
+                const queuedError = createErrors[createAttempt];
+                createAttempt += 1;
+
+                if (queuedError) {
+                    throw queuedError;
+                }
+
                 if (overrides.createMediaError) {
                     throw overrides.createMediaError;
                 }
@@ -94,6 +115,24 @@ function makeDeps(overrides: {
 
     return { deps, calls };
 }
+
+/** Загрузка изображения с одним уменьшенным вариантом. */
+function makeUploadParams(): IUploadMediaParams {
+    return {
+        buffer: Buffer.from('binary'),
+        mimeType: 'image/webp',
+        storedFilename: 'uuid.webp',
+        displayFilename: 'photo.webp',
+        category: 'image',
+        variants: {
+            preview: {
+                buffer: Buffer.from('preview'),
+                mimeType: 'image/webp',
+                storedFilename: 'uuid-preview.webp',
+            },
+        },
+    };
+}
 // #endregion
 
 beforeEach(() => {
@@ -122,40 +161,105 @@ describe('uploadAndRegisterMedia: файл + запись одним флоу', 
         expect(item.filename).toBe('photo.webp');
     });
 
-    it('компенсирует файл при ошибке записи в БД и пробрасывает ошибку', async () => {
-        const dbError = new Error('db down');
-        const { deps, calls } = makeDeps({ createMediaError: dbError });
+    it('компенсирует по базовому маркеру, а не по конкретному классу отказа', async () => {
+        // Оркестрация обязана понимать сам факт «запись отвергнута», иначе
+        // адаптер не сможет сообщить его ничем, кроме известных ей классов
+        const rejected = new BricksStorageWriteRejectedError('schema is missing');
+        const { deps, calls } = makeDeps({ createMediaError: rejected });
 
-        await expect(
-            uploadAndRegisterMedia(deps, {
-                buffer: Buffer.from('binary'),
-                mimeType: 'image/webp',
-                storedFilename: 'uuid.webp',
-                displayFilename: 'photo.webp',
-                category: 'image',
-            })
-        ).rejects.toThrow('db down');
+        await expect(uploadAndRegisterMedia(deps, makeUploadParams())).rejects.toBe(rejected);
 
         expect(calls).toContain(
             'deleteFile:https://storage.example.com/my-bucket/bricks-media/uuid.webp'
         );
+        expect(calls.filter((call) => call.startsWith('createMedia'))).toHaveLength(1);
     });
 
-    it('ошибка компенсации не затеняет исходную ошибку БД', async () => {
+    it('остановка запроса лимитом времени не компенсирует сама по себе', async () => {
+        // Отменён мог быть любой statement, в том числе чтение уже
+        // существующей строки: гарантию даёт адаптер, обернув отказ вставки
+        const { deps, calls } = makeDeps({
+            createMediaErrors: [
+                new BricksStatementTimeoutError(),
+                new BricksStatementTimeoutError(),
+            ],
+        });
+
+        await expect(uploadAndRegisterMedia(deps, makeUploadParams())).rejects.toBeInstanceOf(
+            BricksStatementTimeoutError
+        );
+
+        expect(calls.filter((call) => call.startsWith('deleteFile'))).toEqual([]);
+    });
+
+    it('компенсирует файл и варианты, когда хранилище гарантировало отказ записи', async () => {
+        const rejected = new BricksUnknownMediaCategoryError('gone');
+        const { deps, calls } = makeDeps({ createMediaError: rejected });
+
+        await expect(uploadAndRegisterMedia(deps, makeUploadParams())).rejects.toBe(rejected);
+
+        expect(calls).toContain(
+            'deleteFile:https://storage.example.com/my-bucket/bricks-media/uuid.webp'
+        );
+        expect(calls).toContain(
+            'deleteFile:https://storage.example.com/my-bucket/bricks-media/uuid-preview.webp'
+        );
+        // Повтора при гарантированном отказе быть не должно: он заведомо
+        // упрётся в тот же отказ и лишь задержит ответ
+        expect(calls.filter((call) => call.startsWith('createMedia'))).toHaveLength(1);
+    });
+
+    it('ошибка компенсации не затеняет исходный отказ записи', async () => {
         const { deps } = makeDeps({
-            createMediaError: new Error('db down'),
+            createMediaError: new BricksUnknownMediaCategoryError('gone'),
             deleteFileError: new Error('s3 down'),
         });
 
-        await expect(
-            uploadAndRegisterMedia(deps, {
-                buffer: Buffer.from('binary'),
-                mimeType: 'image/webp',
-                storedFilename: 'uuid.webp',
-                displayFilename: 'photo.webp',
-                category: 'image',
-            })
-        ).rejects.toThrow('db down');
+        await expect(uploadAndRegisterMedia(deps, makeUploadParams())).rejects.toThrow(
+            'Unknown media category: gone'
+        );
+    });
+
+    it('неизвестный исход: повтор регистрации возвращает запись, файлы остаются', async () => {
+        // Ответ мог не доехать уже после коммита — повтор идемпотентен по url и
+        // возвращает как уже созданную запись, так и создаёт недостающую
+        const { deps, calls } = makeDeps({
+            createMediaErrors: [new Error('connection terminated')],
+        });
+
+        const item = await uploadAndRegisterMedia(deps, makeUploadParams());
+
+        expect(item.url).toBe('https://storage.example.com/my-bucket/bricks-media/uuid.webp');
+        expect(calls.filter((call) => call.startsWith('createMedia'))).toHaveLength(2);
+        expect(calls.filter((call) => call.startsWith('deleteFile'))).toEqual([]);
+    });
+
+    it('неизвестный исход и неудачный повтор: файлы сохраняются, наружу идёт первая ошибка', async () => {
+        const first = new Error('connection terminated');
+        const { deps, calls } = makeDeps({
+            createMediaErrors: [first, new Error('connection terminated again')],
+        });
+
+        await expect(uploadAndRegisterMedia(deps, makeUploadParams())).rejects.toBe(first);
+
+        // Удаление здесь снесло бы файлы из-под записи, которую backend мог
+        // успеть закоммитить: битая плитка в галерее хуже объекта-сироты
+        expect(calls.filter((call) => call.startsWith('deleteFile'))).toEqual([]);
+    });
+
+    it('определённый отказ ПОВТОРА не разрешает компенсацию: судьбу первой попытки он не доказывает', async () => {
+        const { deps, calls } = makeDeps({
+            createMediaErrors: [
+                new Error('connection terminated'),
+                new BricksUnknownMediaCategoryError('gone'),
+            ],
+        });
+
+        await expect(uploadAndRegisterMedia(deps, makeUploadParams())).rejects.toThrow(
+            'connection terminated'
+        );
+
+        expect(calls.filter((call) => call.startsWith('deleteFile'))).toEqual([]);
     });
 });
 

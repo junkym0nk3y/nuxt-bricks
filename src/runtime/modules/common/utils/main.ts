@@ -128,24 +128,38 @@ export function normalizeBricksError(
 }
 
 /**
- * Распознаёт отказ, при котором база остановила запрос своим лимитом времени:
- * ручка отдаёт машиночитаемый код в `data.code`, h3 сериализует его в тело
- * ответа, а ofetch кладёт тело в `error.data` — код оказывается на два уровня
- * вглубь. Fallback на `data.code` покрывает форму без вложенности.
+ * Достаёт машиночитаемый код отказа из ошибки запроса: ручка отдаёт его в
+ * `data.code`, h3 сериализует в тело ответа, а ofetch кладёт тело в
+ * `error.data` — код оказывается на два уровня вглубь. Fallback на `data.code`
+ * покрывает форму без вложенности.
  *
- * Нужен обоим доменам билдера: без разбора кода отказ доехал бы до пользователя
- * англоязычным транспортным текстом (`[PUT] "/api/…": 504 …`), а по классу
- * ошибки он неотличим от прочих 5xx.
+ * Без разбора кода отказ доехал бы до пользователя англоязычным транспортным
+ * текстом (`[PUT] "/api/…": 504 …`): по классу ошибки контрактные отказы
+ * неотличимы от произвольных.
+ *
+ * @param error - Ошибка запроса.
+ * @returns Код отказа или null.
+ */
+export function getBricksErrorCode(error: unknown): string | null {
+    const payload = (error ?? {}) as TRequestErrorLike;
+    const nested = (payload.data as { data?: { code?: unknown } } | undefined)?.data?.code;
+    const code = nested ?? payload.data?.code;
+
+    return typeof code === 'string' ? code : null;
+}
+
+/**
+ * Распознаёт отказ, при котором база остановила запрос своим лимитом времени.
+ *
+ * Нужен обоим доменам билдера: у клиентского обрыва по потолку ожидания исход
+ * записи неизвестен, здесь же она определённо откатана, и тексты обязаны
+ * различаться.
  *
  * @param error - Ошибка запроса.
  * @returns Запрос остановлен серверным лимитом времени.
  */
 export function isStatementTimeoutError(error: unknown): boolean {
-    const payload = (error ?? {}) as TRequestErrorLike;
-    const nested = (payload.data as { data?: { code?: unknown } } | undefined)?.data?.code;
-    const code = nested ?? payload.data?.code;
-
-    return code === BRICKS_API_ERROR_CODES.statementTimeout;
+    return getBricksErrorCode(error) === BRICKS_API_ERROR_CODES.statementTimeout;
 }
 
 /**

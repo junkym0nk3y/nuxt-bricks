@@ -12,8 +12,17 @@ import {
     MEDIA_CATEGORY_SELECT_FIELDS,
     MEDIA_UPDATE_FIELDS,
     buildUpdateQuery,
+    isForeignKeyViolation,
     isUniqueViolation,
+    readSqlStateCode,
+    readViolatedConstraint,
 } from './queryBuilders';
+import {
+    BricksPostgresQueryNotStartedError,
+    BricksStatementTimeoutError,
+    BricksStorageWriteRejectedError,
+    BricksUnknownMediaCategoryError,
+} from '../utils/storageErrors';
 import type {
     ICreateMediaPayload,
     ICreateMediaCategoryPayload,
@@ -33,6 +42,111 @@ function findMediaByUrl(url: string): Promise<IMediaItem | null> {
     return queryOne<IMediaItem>(`SELECT ${MEDIA_SELECT_FIELDS} FROM bricks_media WHERE url = $1`, [
         url,
     ]);
+}
+
+/**
+ * Классы SQLSTATE, при которых сервер РАЗОБРАЛ statement и отверг его целиком:
+ * `22` — данные не лезут в тип или длину, `23` — нарушено ограничение,
+ * `42` — не та схема или нет прав. Во всех трёх вставка гарантированно не
+ * применилась.
+ *
+ * Список положительный и по классам, а не по отдельным кодам: перечисление
+ * кодов уже дважды оказывалось неполным (`22001` от переросшего колонку MIME,
+ * `23505` от отставшей sequence), а каждая дыра в нём — файл-сирота в бакете.
+ * Обратное правило «любой SQLSTATE = откат» при этом неверно: в классах `08`,
+ * `40`, `57` есть состояния, прямо означающие неизвестный исход
+ * (`08007 transaction_resolution_unknown`, `40003 statement_completion_unknown`),
+ * и они остаются неопределёнными вместе со всеми прочими классами.
+ */
+const REJECTED_WRITE_SQLSTATE_CLASSES = new Set(['22', '23', '42']);
+
+/** Имя уникального индекса `bricks_media(url)` — задано явно в базовой миграции. */
+const MEDIA_URL_UNIQUE_CONSTRAINT = 'uq_bricks_media_url';
+
+/**
+ * Переводит отказ внешнего ключа `bricks_media.category` в доменную ошибку.
+ *
+ * Категорию могли удалить между ранней проверкой ручки и самой записью — тогда
+ * отказ приходит от базы, и без перевода SQLSTATE доехал бы до клиента generic
+ * 500 вместо внятного «такой категории нет».
+ *
+ * Перевод применяется только когда в payload есть ненулевая категория. Полной
+ * защиты от будущего второго внешнего ключа это не даёт (его нарушение может
+ * прийти в записи, где категория тоже задана) — у `bricks_media` внешний ключ
+ * сейчас один, и появление второго потребует различать их по `constraint`.
+ *
+ * @param error - Пойманная ошибка запроса.
+ * @param category - Категория из payload'а записи (null — категория не пишется).
+ * @returns Доменная ошибка либо исходная.
+ */
+function toDomainMediaWriteError(error: unknown, category: string | null | undefined): unknown {
+    if (!category || !isForeignKeyViolation(error)) {
+        return error;
+    }
+
+    return new BricksUnknownMediaCategoryError(category, error);
+}
+
+/**
+ * Классифицирует отказ ВСТАВКИ медиа-записи: помечает маркером те отказы, при
+ * которых строка заведомо не появилась.
+ *
+ * Маркер разрешает владельцу побочных эффектов удалить уже загруженный файл,
+ * поэтому ставится только по доказанным признакам: запрос не отправлялся;
+ * сервер отменил сам statement своим лимитом времени; схема не соответствует
+ * коду. Исходная ошибка уходит в `cause` — по ней HTTP-слой сохраняет свой
+ * статус (остановку лимитом времени он ищет и через `cause`), а server-лог —
+ * подробности.
+ *
+ * @param error - Ошибка вставки.
+ * @param category - Категория из payload'а записи.
+ * @returns Ошибка с маркером, доменная ошибка категории либо исходная.
+ */
+function toMediaInsertError(error: unknown, category: string | null | undefined): unknown {
+    const domainError = toDomainMediaWriteError(error, category);
+
+    if (domainError !== error) {
+        return domainError;
+    }
+
+    const isRejected =
+        error instanceof BricksPostgresQueryNotStartedError ||
+        error instanceof BricksStatementTimeoutError ||
+        REJECTED_WRITE_SQLSTATE_CLASSES.has((readSqlStateCode(error) ?? '').slice(0, 2));
+
+    if (!isRejected) {
+        return error;
+    }
+
+    return new BricksStorageWriteRejectedError('Media row was rejected by the database', error);
+}
+
+/**
+ * Проверяет, что конфликт уникальности МОГ быть конфликтом по `url`.
+ *
+ * Различать ограничения обязательно: конфликт первичного ключа (отставшая
+ * sequence после восстановления дампа) строки с нашим url не создаёт, и уводить
+ * его в перечитывание значило бы вернуть «ничего не нашли» вместо гарантии
+ * отказа и оставить загруженный файл сиротой. Имя индекса взято из базовой
+ * миграции, где оно задано явно.
+ *
+ * Ошибка БЕЗ имени ограничения тоже идёт в перечитывание, а не в маркер:
+ * отсутствие поля не доказывает, что конфликт не по url (его можно поднять
+ * вручную, а совместимый сервер или прокси — потерять), и ошибка в эту сторону
+ * стоит удалённого файла под живой записью. Перечитывание же в худшем случае
+ * стоит одного лишнего SELECT.
+ *
+ * @param error - Пойманная ошибка запроса.
+ * @returns true, если конфликт мог произойти по уникальному индексу url.
+ */
+function isPossibleMediaUrlConflict(error: unknown): boolean {
+    if (!isUniqueViolation(error)) {
+        return false;
+    }
+
+    const constraint = readViolatedConstraint(error);
+
+    return constraint === null || constraint === MEDIA_URL_UNIQUE_CONSTRAINT;
 }
 
 /**
@@ -71,8 +185,14 @@ export function createPostgresMediaMethods(): TStorageMediaMethods {
         /**
          * Создаёт медиа-запись и возвращает её с id.
          * Идемпотентна по url (контракт IStorageAdapter.createMedia): при
-         * unique_violation (гонка импорта/ретрай, индекс uq_bricks_media_url)
-         * возвращает уже существующую запись.
+         * конфликте индекса `uq_bricks_media_url` (гонка импорта, ретрай,
+         * повтор после неизвестного исхода) возвращает уже существующую запись.
+         *
+         * Вставка и разрешение конфликта — РАЗНЫЕ фазы, и маркер отвергнутой
+         * записи ставит только первая. Во второй строка по этому url уже
+         * существует, поэтому отказ перечитывания (в том числе остановка
+         * серверным лимитом времени) не доказывает её отсутствия: маркер здесь
+         * разрешил бы удалить файл из-под живой записи.
          */
         async createMedia(payload: ICreateMediaPayload): Promise<IMediaItem> {
             let result: IMediaItem | null;
@@ -100,11 +220,20 @@ export function createPostgresMediaMethods(): TStorageMediaMethods {
                     ]
                 );
             } catch (error: unknown) {
-                if (!isUniqueViolation(error)) {
-                    throw error;
+                if (!isPossibleMediaUrlConflict(error)) {
+                    throw toMediaInsertError(error, payload.category);
                 }
 
-                result = await findMediaByUrl(payload.url);
+                const existing = await findMediaByUrl(payload.url);
+
+                if (!existing) {
+                    // Конфликт был, а строки нет: её удалили между вставкой и
+                    // перечитыванием. Исход неопределён намеренно — запись по
+                    // этому url существовала, и компенсировать файл нельзя
+                    throw new Error('Failed to resolve conflicting media item', { cause: error });
+                }
+
+                return existing;
             }
 
             if (!result) {
@@ -126,13 +255,17 @@ export function createPostgresMediaMethods(): TStorageMediaMethods {
 
             values.push(id);
 
-            return queryOne<IMediaItem>(
-                `UPDATE bricks_media
+            try {
+                return await queryOne<IMediaItem>(
+                    `UPDATE bricks_media
             SET ${updates.join(', ')}
             WHERE id = $${values.length}
             RETURNING ${MEDIA_SELECT_FIELDS}`,
-                values
-            );
+                    values
+                );
+            } catch (error: unknown) {
+                throw toDomainMediaWriteError(error, payload.category);
+            }
         },
 
         /**

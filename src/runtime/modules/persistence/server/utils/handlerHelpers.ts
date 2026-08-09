@@ -11,6 +11,7 @@ import {
     BricksPageAddressConflictError,
     BricksRevisionConflictError,
     BricksStatementTimeoutError,
+    BricksUnknownMediaCategoryError,
 } from './storageErrors';
 
 /** Строгий формат числового id: только цифры, без знака/дробей/хвостов ('1abc' ❌). */
@@ -80,6 +81,43 @@ export async function readNormalizedBody<T>(event: H3Event): Promise<T> {
 }
 
 /**
+ * Глубина обхода цепочки `cause` при поиске остановки серверным лимитом
+ * времени. Адаптер оборачивает такой отказ ровно один раз (вставка медиа —
+ * в маркер отвергнутой записи), запас взят на будущие обёртки; ограничение
+ * нужно, чтобы зацикленный `cause` не подвесил обработчик ошибки.
+ */
+const CAUSE_LOOKUP_DEPTH = 3;
+
+/**
+ * Ищет остановку запроса серверным лимитом времени в самой ошибке и в её
+ * причинах.
+ *
+ * Обход цепочки нужен потому, что адаптер оборачивает отказ вставки в маркер
+ * отвергнутой записи: без него загрузка вместо честного 504 с машиночитаемым
+ * кодом отдавала бы generic 500, а повтор выглядел бы бессмысленным.
+ *
+ * @param error - Пойманная ошибка.
+ * @returns Найденная ошибка лимита времени или null.
+ */
+function findStatementTimeoutError(error: unknown): BricksStatementTimeoutError | null {
+    let current = error;
+
+    for (let depth = 0; depth <= CAUSE_LOOKUP_DEPTH; depth += 1) {
+        if (current instanceof BricksStatementTimeoutError) {
+            return current;
+        }
+
+        if (!(current instanceof Error)) {
+            return null;
+        }
+
+        current = current.cause;
+    }
+
+    return null;
+}
+
+/**
  * Перебрасывает h3-ошибки как есть, остальное логирует и заворачивает в 500.
  *
  * Внутреннее сообщение ошибки (pg/адаптеры могут содержать детали SQL и
@@ -101,7 +139,7 @@ export function toHttpError(error: unknown, fallbackMessage: string): never {
         throw error;
     }
 
-    if (error instanceof BricksStatementTimeoutError) {
+    if (findStatementTimeoutError(error)) {
         console.error('[Bricks API] Query cancelled by the server statement timeout:', error);
 
         throw createError({
@@ -163,6 +201,30 @@ export function toPageHttpError(error: unknown, fallbackMessage: string): never 
             statusCode: 409,
             statusMessage: 'Page was modified by someone else. Refresh and try again',
             data: { code: PAGE_CONFLICT_CODES.revision },
+        });
+    }
+
+    toHttpError(error, fallbackMessage);
+}
+
+/**
+ * Маппит отсутствующую категорию медиа на 400 с машиночитаемым `data.code`;
+ * остальное — через toHttpError.
+ *
+ * Отдельным помощником, а не веткой общего `toHttpError`: категории — правило
+ * одного домена, и знание о нём в маппере всех ручек проекта не к месту.
+ * Источник ошибки при этом не важен — ранняя проверка ручки и FK базы, поймавший
+ * гонку с удалением категории, дают клиенту один и тот же ответ.
+ *
+ * @param error - Пойманная ошибка.
+ * @param fallbackMessage - Сообщение для 500-ответа.
+ */
+export function toMediaHttpError(error: unknown, fallbackMessage: string): never {
+    if (error instanceof BricksUnknownMediaCategoryError) {
+        throw createError({
+            statusCode: 400,
+            statusMessage: 'Unknown media category',
+            data: { code: BRICKS_API_ERROR_CODES.unknownMediaCategory },
         });
     }
 

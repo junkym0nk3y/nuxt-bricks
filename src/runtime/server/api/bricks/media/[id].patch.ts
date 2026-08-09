@@ -3,7 +3,7 @@ import { useBricksStorageAdapter } from '../../../../modules/persistence/server/
 import {
     readNormalizedBody,
     requireNumericId,
-    toHttpError,
+    toMediaHttpError,
 } from '../../../../modules/persistence/server/utils/handlerHelpers';
 import { validateUpdateMediaPayload } from '../../../../modules/persistence/server/utils/mediaPayloadValidation';
 import { assertKnownMediaCategory } from '../../../../modules/persistence/server/utils/mediaCategoryRules';
@@ -21,9 +21,9 @@ export default defineEventHandler(async (event) => {
         );
         const storage = useBricksStorageAdapter();
 
-        // Существование категории проверяется до записи: FK базы отклонит
-        // неизвестную и сам, но 23503 дошёл бы до клиента как 500 вместо 400.
-        // null проверять нечего — это снятие категории с файла
+        // Существование категории проверяется до записи ради раннего отказа;
+        // гонку с удалением категории ловит уже FK базы, и оба пути дают
+        // клиенту один ответ. null проверять нечего — это снятие категории
         if (body.category) {
             await assertKnownMediaCategory(storage, body.category);
         }
@@ -39,6 +39,6 @@ export default defineEventHandler(async (event) => {
 
         return updated;
     } catch (error: unknown) {
-        toHttpError(error, 'Failed to patch media item');
+        toMediaHttpError(error, 'Failed to patch media item');
     }
 });

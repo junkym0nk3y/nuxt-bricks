@@ -417,6 +417,7 @@
             "categoryCreateFailed": "Failed to create the category",
             "categoryNamePlaceholder": "Category name",
             "categoryDuplicate": "Category “{name}” already exists",
+            "categoryUnknown": "This category no longer exists — refresh the list and pick another one",
             "categoryDelete": "Delete category “{name}”",
             "categoryDeleteTitle": "Delete category “{name}”?",
             "categoryDeleteDescription": "The category will be deleted and {count} more files will have no category. The files stay in the library.",

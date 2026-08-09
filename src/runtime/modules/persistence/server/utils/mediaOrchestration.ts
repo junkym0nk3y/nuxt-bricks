@@ -10,8 +10,9 @@
  */
 import { createError } from 'h3';
 import type { IMediaItem } from '../../../common/types/media';
-import type { IPublishAdapter, IStorageAdapter } from '../../types/adapters';
+import type { ICreateMediaPayload, IPublishAdapter, IStorageAdapter } from '../../types/adapters';
 import type { IUploadMediaVariant, TMediaVariant } from '../../types/media';
+import { BricksStorageWriteRejectedError } from './storageErrors';
 
 /**
  * Зависимости оркестрации медиа.
@@ -97,9 +98,51 @@ async function deleteVariantFiles(
 }
 
 /**
+ * Компенсация загруженных файлов: запись не создана — ни полный файл, ни
+ * варианты не должны остаться сиротами.
+ *
+ * Вызывается ТОЛЬКО под гарантию отказа записи: при неизвестном исходе удаление
+ * оставило бы в БД строку, указывающую на удалённый объект.
+ *
+ * @param deps - Адаптеры persistence.
+ * @param fullUrl - URL полного файла.
+ * @param variantUrls - URL успешно загруженных вариантов.
+ */
+async function compensateUploadedFiles(
+    deps: IMediaOrchestrationDeps,
+    fullUrl: string,
+    variantUrls: (string | null)[]
+): Promise<void> {
+    await deleteVariantFiles(deps, variantUrls);
+
+    try {
+        await deps.publish.deleteFile(fullUrl);
+    } catch (cleanupError: unknown) {
+        console.error(
+            '[Media Orchestration] Failed to cleanup uploaded file after DB error:',
+            cleanupError
+        );
+    }
+}
+
+/**
  * Загружает файл (и его уменьшенные варианты) в хранилище публикации и
- * регистрирует метаданные в БД. При падении записи в БД файлы-сироты
- * компенсируются best-effort удалением.
+ * регистрирует метаданные в БД.
+ *
+ * Судьба файлов при отказе записи решается по тому, ЧТО известно об её исходе.
+ * Хранилище гарантировало отказ (`BricksStorageWriteRejectedError`) — файлы
+ * компенсируются удалением. Исход неизвестен (обрыв соединения, таймаут
+ * транспорта, 5xx внешнего backend'а) — прежнее безусловное удаление сносило
+ * файлы из-под записи, которую backend успел закоммитить, оставляя в галерее
+ * битые плитки. Поэтому здесь идёт ОДИН повтор регистрации: `createMedia`
+ * идемпотентен по url (уникальный индекс плюс перечитывание строки), так что
+ * повтор либо находит уже созданную запись, либо создаёт недостающую. Не помог и
+ * он — файлы сохраняются, а их адреса уходят в лог: невидимый объект в бакете
+ * дешевле строки, вечно указывающей на удалённый файл.
+ *
+ * Ошибка повтора наружу не идёт: неизвестным исход сделала ПЕРВАЯ ошибка, и
+ * определённый отказ повтора (например, категорию удалили только что) ничего не
+ * говорит о судьбе первой попытки — компенсировать по нему нельзя.
  *
  * @param deps - Адаптеры persistence.
  * @param params - Данные загрузки.
@@ -119,35 +162,42 @@ export async function uploadAndRegisterMedia(
     const mockVariant = params.variants?.mock;
     const previewUrl = previewVariant ? await uploadVariantFile(deps, previewVariant) : null;
     const mockUrl = mockVariant ? await uploadVariantFile(deps, mockVariant) : null;
+    const payload: ICreateMediaPayload = {
+        url: uploaded.url,
+        filename: params.displayFilename,
+        size: uploaded.size,
+        mimeType: params.mimeType,
+        category: params.category,
+        svgContent: params.svgContent ?? null,
+        width: params.width ?? null,
+        height: params.height ?? null,
+        previewUrl,
+        mockUrl,
+    };
 
     try {
-        return await deps.storage.createMedia({
-            url: uploaded.url,
-            filename: params.displayFilename,
-            size: uploaded.size,
-            mimeType: params.mimeType,
-            category: params.category,
-            svgContent: params.svgContent ?? null,
-            width: params.width ?? null,
-            height: params.height ?? null,
-            previewUrl,
-            mockUrl,
-        });
+        return await deps.storage.createMedia(payload);
     } catch (error: unknown) {
-        // Компенсация: запись не создана — ни файл, ни варианты не должны
-        // остаться сиротами
-        await deleteVariantFiles(deps, [previewUrl, mockUrl]);
+        if (error instanceof BricksStorageWriteRejectedError) {
+            await compensateUploadedFiles(deps, uploaded.url, [previewUrl, mockUrl]);
 
-        try {
-            await deps.publish.deleteFile(uploaded.url);
-        } catch (cleanupError: unknown) {
-            console.error(
-                '[Media Orchestration] Failed to cleanup uploaded file after DB error:',
-                cleanupError
-            );
+            throw error;
         }
 
-        throw error;
+        try {
+            return await deps.storage.createMedia(payload);
+        } catch (retryError: unknown) {
+            console.error(
+                '[Media Orchestration] Media registration outcome is unknown, uploaded files are retained:',
+                {
+                    urls: [uploaded.url, previewUrl, mockUrl].filter(Boolean),
+                    error,
+                    retryError,
+                }
+            );
+
+            throw error;
+        }
     }
 }
 

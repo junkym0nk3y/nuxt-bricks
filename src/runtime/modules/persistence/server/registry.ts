@@ -25,12 +25,16 @@ import { createS3PublishAdapter } from './s3/s3PublishAdapter';
 import { getBricksDefaultStorageFactory } from './defaultStorage';
 import type { IStorageAdapter, IPublishAdapter, IAuthAdapter } from '../types/adapters';
 
-// Доменные ошибки конфликтов — часть контракта IStorageAdapter (кастомные
-// адаптеры кидают их из createPage/updatePage, ручки маппят на HTTP 409).
+// Доменные ошибки — часть контракта IStorageAdapter (кастомные адаптеры кидают
+// их из create*/update*, ручки маппят на HTTP-статусы). BricksStorageWriteRejected
+// сообщает, что запись гарантированно не применена: без него исход считается
+// неизвестным, и владелец загруженных файлов их не удаляет.
 export {
     BricksPageAddressConflictError,
     BricksRevisionConflictError,
     BricksStatementTimeoutError,
+    BricksStorageWriteRejectedError,
+    BricksUnknownMediaCategoryError,
 } from './utils/storageErrors';
 
 let storageAdapter: IStorageAdapter | null = null;

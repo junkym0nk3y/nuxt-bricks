@@ -336,6 +336,29 @@ describe('media store: доставка отказа и порядок отве�
         await expect(store.removeItem(1)).rejects.toThrow('bricks.common.statementTimeout');
         expect(store.items).toHaveLength(1);
     });
+
+    it('исчезнувшая категория объясняется своим текстом, а не англоязычным статусом', async () => {
+        // Категорию могли удалить в другой вкладке между показом списка и
+        // записью: серверное сообщение таких отказов англоязычно
+        const store = useMediaStore();
+        store.items = [buildItem({ id: 1, category: 'photos' })];
+
+        apiFetcherMock.mockRejectedValueOnce(
+            Object.assign(new Error('[PATCH] "/api/bricks/media/1/": 400 Bad Request'), {
+                statusCode: 400,
+                data: {
+                    statusCode: 400,
+                    statusMessage: 'Unknown media category',
+                    message: 'Unknown media category',
+                    data: { code: 'UNKNOWN_MEDIA_CATEGORY' },
+                },
+            })
+        );
+
+        await expect(store.updateItemCategory(1, 'gone')).rejects.toThrow(
+            'bricks.media.categoryUnknown'
+        );
+    });
 });
 
 /**

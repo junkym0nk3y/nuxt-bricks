@@ -11,7 +11,10 @@ import type { IApiError } from '../../../common/types/bricks-api';
 import { buildPostgresPoolConfig, STATEMENT_TIMEOUT_APPLY_TIMEOUT_MS } from './poolConfig';
 import { withPromiseDeadline } from '../../../common/utils/promiseDeadline';
 import type { IPostgresPoolConfig } from '../../types/postgres';
-import { BricksStatementTimeoutError } from '../utils/storageErrors';
+import {
+    BricksPostgresQueryNotStartedError,
+    BricksStatementTimeoutError,
+} from '../utils/storageErrors';
 
 let pool: Pool | null = null;
 
@@ -197,8 +200,19 @@ function logMissingSchemaHint(err: IApiError): void {
  * @returns Массив строк результата.
  */
 export async function query<T>(text: string, params?: unknown[]): Promise<T[]> {
+    let client: Pool;
+
+    // Сборка пула — отдельная фаза: её отказ означает, что SQL не отправлялся,
+    // и вызывающий вправе считать исход операции определённым
     try {
-        const client = await getPool();
+        client = await getPool();
+    } catch (error: unknown) {
+        console.error('[PostgreSQL] Query was not sent:', (error as IApiError).message);
+
+        throw new BricksPostgresQueryNotStartedError(error);
+    }
+
+    try {
         const result = await client.query(text, params);
         return result.rows as T[];
     } catch (error: unknown) {

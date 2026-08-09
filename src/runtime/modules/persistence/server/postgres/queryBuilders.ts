@@ -2,6 +2,7 @@
  * SQL-фрагменты и билдеры запросов для таблиц bricks_pages / bricks_media.
  * SELECT-поля задают camelCase-алиасы — ответы ручек сразу в формате фронта.
  */
+import type { IPostgresErrorLike } from '../../types/postgres';
 import { toSnakeCaseString } from '../../../common/utils/case-transform';
 
 /**
@@ -182,6 +183,25 @@ export function buildUpdateQuery(
 /** Код unique_violation PostgreSQL. */
 const UNIQUE_VIOLATION_CODE = '23505';
 
+/** Код foreign_key_violation PostgreSQL. */
+const FOREIGN_KEY_VIOLATION_CODE = '23503';
+
+/**
+ * Достаёт SQLSTATE-код из ошибки драйвера.
+ *
+ * @param error - Пойманная ошибка запроса.
+ * @returns Код или null, если это не ошибка pg с кодом.
+ */
+export function readSqlStateCode(error: unknown): string | null {
+    if (typeof error !== 'object' || error === null) {
+        return null;
+    }
+
+    const code = (error as IPostgresErrorLike).code;
+
+    return typeof code === 'string' ? code : null;
+}
+
 /**
  * Проверяет, что ошибка — нарушение уникальности PostgreSQL (SQLSTATE 23505).
  * Используется для идемпотентных вставок: гонка «двое вставляют один url»
@@ -191,10 +211,39 @@ const UNIQUE_VIOLATION_CODE = '23505';
  * @returns true для unique_violation.
  */
 export function isUniqueViolation(error: unknown): boolean {
-    return (
-        typeof error === 'object' &&
-        error !== null &&
-        'code' in error &&
-        (error as { code?: unknown }).code === UNIQUE_VIOLATION_CODE
-    );
+    return readSqlStateCode(error) === UNIQUE_VIOLATION_CODE;
+}
+
+/**
+ * Достаёт имя нарушенного ограничения из ошибки драйвера.
+ *
+ * @param error - Пойманная ошибка запроса.
+ * @returns Имя ограничения или null.
+ */
+export function readViolatedConstraint(error: unknown): string | null {
+    if (typeof error !== 'object' || error === null) {
+        return null;
+    }
+
+    const constraint = (error as IPostgresErrorLike).constraint;
+
+    return typeof constraint === 'string' ? constraint : null;
+}
+
+/**
+ * Проверяет, что ошибка — нарушение внешнего ключа PostgreSQL (SQLSTATE 23503).
+ *
+ * Различать конкретный констрейнт по имени намеренно не стали: у `bricks_media`
+ * внешний ключ ровно один (`category` → `bricks_media_categories.slug`), а имя
+ * его в базовой миграции не задано — PostgreSQL генерирует его сам, и опечатка
+ * в ожидаемом имени провалила бы распознавание МОЛЧА, вернув ровно тот
+ * generic 500, ради которого проверка и заводится. Вызывающий обязан применять
+ * её только к записи `bricks_media` и только когда в payload есть ненулевая
+ * категория; появится второй внешний ключ — придётся сузить по `constraint`.
+ *
+ * @param error - Пойманная ошибка запроса.
+ * @returns true для foreign_key_violation.
+ */
+export function isForeignKeyViolation(error: unknown): boolean {
+    return readSqlStateCode(error) === FOREIGN_KEY_VIOLATION_CODE;
 }

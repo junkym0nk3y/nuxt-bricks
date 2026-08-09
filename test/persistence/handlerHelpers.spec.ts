@@ -10,12 +10,14 @@ import {
     readNormalizedBody,
     rethrowStatementTimeoutError,
     toHttpError,
+    toMediaHttpError,
     toPageHttpError,
 } from '../../src/runtime/modules/persistence/server/utils/handlerHelpers';
 import {
     BricksPageAddressConflictError,
     BricksRevisionConflictError,
     BricksStatementTimeoutError,
+    BricksUnknownMediaCategoryError,
 } from '../../src/runtime/modules/persistence/server/utils/storageErrors';
 import { PAGE_CONFLICT_CODES } from '../../src/runtime/modules/common/constants/publish';
 import { BRICKS_API_ERROR_CODES } from '../../src/runtime/modules/common/constants/apiErrors';
@@ -133,6 +135,41 @@ describe('handlerHelpers: generic 500-envelope', () => {
 
         expect(revisionConflict.statusCode).toBe(409);
         expect(revisionConflict.data.code).toBe(PAGE_CONFLICT_CODES.revision);
+    });
+
+    it('toMediaHttpError: отсутствующая категория — 400 с кодом, а не generic 500', () => {
+        // Пришла ли ошибка от ранней проверки ручки или от FK базы, поймавшего
+        // удаление категории на лету, клиенту видно быть не должно
+        const thrown = catchThrown(() =>
+            toMediaHttpError(new BricksUnknownMediaCategoryError('gone'), 'Failed to patch media')
+        ) as { statusCode: number; data: { code: string } };
+
+        expect(thrown.statusCode).toBe(400);
+        expect(thrown.data.code).toBe(BRICKS_API_ERROR_CODES.unknownMediaCategory);
+    });
+
+    it('toMediaHttpError: имя категории наружу не отдаётся', () => {
+        const thrown = catchThrown(() =>
+            toMediaHttpError(new BricksUnknownMediaCategoryError('gone'), 'Failed to patch media')
+        ) as { statusMessage: string };
+
+        expect(thrown.statusMessage).not.toContain('gone');
+    });
+
+    it('toMediaHttpError: прочие ошибки идут прежним путём', () => {
+        const generic = catchThrown(() =>
+            toMediaHttpError(new Error('column mismatch'), 'Failed to patch media')
+        ) as { statusCode: number; statusMessage: string };
+
+        expect(generic.statusCode).toBe(500);
+        expect(generic.statusMessage).toBe('Failed to patch media');
+
+        const cancelled = catchThrown(() =>
+            toMediaHttpError(new BricksStatementTimeoutError(), 'Failed to patch media')
+        ) as { statusCode: number; data: { code: string } };
+
+        expect(cancelled.statusCode).toBe(504);
+        expect(cancelled.data.code).toBe(BRICKS_API_ERROR_CODES.statementTimeout);
     });
 });
 

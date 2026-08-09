@@ -44,7 +44,11 @@ const DEFAULT_BACKEND_TIMEOUT_MS = 10_000;
 
 /**
  * Ошибка ответа external backend: HTTP-статус upstream + машиночитаемый код
- * конфликта из тела (`data.code` ?? `code`), если backend его прислал.
+ * отказа из тела (`data.code` ?? `code`), если backend его прислал.
+ *
+ * Код называется `errorCode`, а не `conflictCode`: он вычитывается из ЛЮБОГО
+ * не-2xx ответа, и по нему опознаются не только 409-конфликты страниц, но и
+ * доменные 400 (отсутствующая категория медиа).
  *
  * Поле статуса намеренно называется `upstreamStatus`, а НЕ `statusCode`:
  * toHttpError (handlerHelpers) перебрасывает объекты со `statusCode` как
@@ -55,25 +59,25 @@ const DEFAULT_BACKEND_TIMEOUT_MS = 10_000;
  */
 export class BricksBackendRequestError extends Error {
     readonly upstreamStatus: number;
-    readonly conflictCode: string | null;
+    readonly errorCode: string | null;
 
-    constructor(upstreamStatus: number, conflictCode: string | null, message: string) {
+    constructor(upstreamStatus: number, errorCode: string | null, message: string) {
         super(message);
         this.name = 'BricksBackendRequestError';
         this.upstreamStatus = upstreamStatus;
-        this.conflictCode = conflictCode;
+        this.errorCode = errorCode;
     }
 }
 
 // #region Helpers
 /**
- * Лояльно достаёт код конфликта из тела ошибки: формат локального
- * toPageHttpError (`data.code`) с fallback'ом на top-level `code`.
+ * Лояльно достаёт машиночитаемый код отказа из тела ошибки: формат локальных
+ * ручек (`data.code`) с fallback'ом на top-level `code`.
  *
  * @param body - Распарсенное JSON-тело ошибки (может быть любым).
  * @returns Строковый код или null.
  */
-function extractConflictCode(body: unknown): string | null {
+function extractErrorCode(body: unknown): string | null {
     if (!body || typeof body !== 'object') {
         return null;
     }
@@ -193,7 +197,7 @@ export function createBackendHttpClient(options: IBackendHttpClientOptions): IBa
 
                 throw new BricksBackendRequestError(
                     response.status,
-                    extractConflictCode(errorBody),
+                    extractErrorCode(errorBody),
                     `[Bricks Backend] ${method} ${url} responded HTTP ${response.status}`
                 );
             }

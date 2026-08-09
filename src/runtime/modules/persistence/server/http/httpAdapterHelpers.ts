@@ -8,6 +8,7 @@
  */
 import { BricksBackendRequestError } from './httpClient';
 import { toCamelCaseShallow } from '../../../common/utils/case-transform';
+import { BRICKS_API_ERROR_CODES } from '../../../common/constants/apiErrors';
 
 /**
  * Нормализует строку-ответ external backend: top-level ключи snake_case →
@@ -78,4 +79,25 @@ export function isNotFoundError(error: unknown): boolean {
  */
 export function isConflictError(error: unknown): error is BricksBackendRequestError {
     return error instanceof BricksBackendRequestError && error.upstreamStatus === 409;
+}
+
+/**
+ * Проверяет, что ошибка — контрактный отказ external backend «категории нет»:
+ * 400 С машиночитаемым кодом.
+ *
+ * Одного статуса мало: 400 без кода — это произвольная валидация чужого
+ * backend'а, и выдавать её за отсутствующую категорию значило бы врать
+ * пользователю. Ровно поэтому же исход такого отказа считается определённым
+ * только при совпадении кода — контракт обязывает backend не коммитить запись,
+ * которой он ответил этим кодом.
+ *
+ * @param error - Пойманная ошибка запроса.
+ * @returns true для 400 UNKNOWN_MEDIA_CATEGORY.
+ */
+export function isUnknownMediaCategoryError(error: unknown): boolean {
+    return (
+        error instanceof BricksBackendRequestError &&
+        error.upstreamStatus === 400 &&
+        error.errorCode === BRICKS_API_ERROR_CODES.unknownMediaCategory
+    );
 }

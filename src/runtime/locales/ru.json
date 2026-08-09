@@ -417,6 +417,7 @@
             "categoryCreateFailed": "Не удалось создать категорию",
             "categoryNamePlaceholder": "Название категории",
             "categoryDuplicate": "Категория «{name}» уже есть",
+            "categoryUnknown": "Такой категории больше нет — обновите список и выберите заново",
             "categoryDelete": "Удалить категорию «{name}»",
             "categoryDeleteTitle": "Удалить категорию «{name}»?",
             "categoryDeleteDescription": "Категория будет удалена, файлов без категории станет больше на {count}. Сами файлы останутся в медиатеке.",
