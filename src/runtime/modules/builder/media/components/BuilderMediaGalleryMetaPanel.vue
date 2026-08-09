@@ -95,22 +95,36 @@ const technicalSummary = computed<string>(() =>
  * blur в контракте нет, а `focusout` всплывает. Переход между двумя полями ряда
  * тоже его вызывает, но это безвредно — правка отправляется только при реальном
  * отличии от сохранённого.
+ *
+ * Черновик приводится к отправляемому виду до всякой проверки, и это не
+ * косметика: поле, черновик которого разошёлся с теневым значением, сторож ниже
+ * считает полем с несохранённым вводом и перестаёт доносить до него серверные
+ * обновления. Очищенное имя не отправляется (сервер требует минимум один
+ * символ), а ввод с хвостовым пробелом после trim совпадает с уже сохранённым —
+ * в обоих случаях без возврата к серверному значению поле залипало бы в этом
+ * состоянии навсегда, то есть внешняя правка имени в него уже не доехала бы.
  */
 function handleMetaCommit(): void {
     if (!props.selectedItem) {
         return;
     }
 
-    const meta: IMediaUpdateMetaRequest = {};
-    const trimmedFilename = editableFilename.value.trim();
-    const trimmedAlt = editableAlt.value.trim();
+    // Пустое имя недопустимо, и единственное значение, к которому его можно
+    // вернуть, — серверное: собственного «прежнего» у поля нет
+    const normalizedFilename = editableFilename.value.trim() || props.selectedItem.filename;
+    const normalizedAlt = editableAlt.value.trim();
 
-    if (trimmedFilename && trimmedFilename !== props.selectedItem.filename) {
-        meta.filename = trimmedFilename;
+    editableFilename.value = normalizedFilename;
+    editableAlt.value = normalizedAlt;
+
+    const meta: IMediaUpdateMetaRequest = {};
+
+    if (normalizedFilename !== props.selectedItem.filename) {
+        meta.filename = normalizedFilename;
     }
 
-    if (trimmedAlt !== props.selectedItem.alt) {
-        meta.alt = trimmedAlt;
+    if (normalizedAlt !== props.selectedItem.alt) {
+        meta.alt = normalizedAlt;
     }
 
     if (Object.keys(meta).length === 0) {

@@ -80,7 +80,7 @@ export default defineNuxtConfig({
 | DELETE     | `{base}/media/:id`               | Удалить media-запись                  | Только метаданные — файл удаляет nuxt-bricks                                             |
 | GET        | `{base}/media/categories`        | Список категорий медиатеки            | Массив либо envelope `{ items: [...] }`                                                  |
 | POST       | `{base}/media/categories`        | Создать категорию                     | Идемпотентна по `slug`                                                                   |
-| DELETE     | `{base}/media/categories/:slug`  | Удалить категорию, сняв её с файлов   | **Обе половины атомарны**; отвечать JSON, не 204                                          |
+| DELETE     | `{base}/media/categories/:slug`  | Удалить категорию, сняв её с файлов   | **Обе половины атомарны**; отвечать JSON, не 204                                         |
 
 ### Ошибки
 
@@ -243,12 +243,12 @@ svgContent?, width?, height?, previewUrl?, mockUrl?, uploadedAt? }`; серве�
 
 `IMediaCategory` — обязательные поля:
 
-| Поле        | Тип     | Примечание                                                       |
-| ----------- | ------- | ---------------------------------------------------------------- |
-| `id`        | number  |                                                                  |
-| `slug`      | string  | **Уникален**; то, что лежит в `bricks_media.category`, ≤50 симв. |
-| `label`     | string  | Подпись — введённый пользователем текст, не ключ i18n            |
-| `sortOrder` | number  | Порядок показа в дорожке категорий                               |
+| Поле        | Тип    | Примечание                                                       |
+| ----------- | ------ | ---------------------------------------------------------------- |
+| `id`        | number |                                                                  |
+| `slug`      | string | **Уникален**; то, что лежит в `bricks_media.category`, ≤50 симв. |
+| `label`     | string | Подпись — введённый пользователем текст, не ключ i18n            |
+| `sortOrder` | number | Порядок показа в дорожке категорий                               |
 
 - `GET {base}/media/categories` — плоский массив либо envelope `{ items: [...] }`,
   в порядке показа.

@@ -48,11 +48,16 @@ function normalizeMediaItem(rawItem: IMediaItem): IMediaItem {
         category: item.category || null,
         mimeType: item.mimeType || DEFAULT_MEDIA_MIME_TYPE,
         // Внешний backend вправе не отдавать эти поля вовсе; `undefined` в них
-        // сломал бы проверки «вариант есть?» — потребитель ждёт строку или null
+        // сломал бы проверки «вариант есть?» — потребитель ждёт строку или null.
+        // Размеры остаются на `??`: ноль здесь — полученное значение, а не
+        // «неизвестно», и пригодность его проверяет потребитель
         width: item.width ?? null,
         height: item.height ?? null,
-        previewUrl: item.previewUrl ?? null,
-        mockUrl: item.mockUrl ?? null,
+        // А у вариантов пустая строка равнозначна их отсутствию: потребитель
+        // берёт `previewUrl ?? url`, и `''` дошло бы до `<img src="">` —
+        // это запрос на саму страницу вместо картинки и битая плитка
+        previewUrl: item.previewUrl || null,
+        mockUrl: item.mockUrl || null,
     };
 }
 // #endregion

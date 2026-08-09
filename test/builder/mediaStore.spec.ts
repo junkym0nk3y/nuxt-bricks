@@ -337,3 +337,55 @@ describe('media store: доставка отказа и порядок отве�
         expect(store.items).toHaveLength(1);
     });
 });
+
+/**
+ * Нормализация ответа: внешний backend волен прислать пустую строку там, где
+ * контракт объявляет `string | null`, и потребитель варианта берёт его как
+ * `previewUrl ?? url` — пустая строка дошла бы до `<img src="">`.
+ */
+describe('media store: пустые URL вариантов из ответа', () => {
+    beforeEach(() => {
+        setActivePinia(createPinia());
+        apiFetcherMock.mockReset();
+    });
+
+    it('пустые варианты из списка становятся отсутствующими', async () => {
+        const store = useMediaStore();
+
+        apiFetcherMock.mockResolvedValueOnce({
+            success: true,
+            items: [buildItem({ previewUrl: '', mockUrl: '' })],
+        });
+        await store.loadItems();
+
+        expect(store.items[0]?.previewUrl).toBeNull();
+        expect(store.items[0]?.mockUrl).toBeNull();
+    });
+
+    it('пустые варианты из ответа загрузки становятся отсутствующими', async () => {
+        const store = useMediaStore();
+
+        apiFetcherMock.mockResolvedValueOnce(buildItem({ id: 5, previewUrl: '', mockUrl: '' }));
+
+        const uploaded = await store.uploadFile(
+            new File(['x'], 'photo.webp', { type: 'image/webp' })
+        );
+
+        expect(uploaded.previewUrl).toBeNull();
+        expect(uploaded.mockUrl).toBeNull();
+        expect(store.items[0]?.previewUrl).toBeNull();
+    });
+
+    it('нулевые размеры сохраняются, а не превращаются в «неизвестно»', async () => {
+        const store = useMediaStore();
+
+        apiFetcherMock.mockResolvedValueOnce({
+            success: true,
+            items: [buildItem({ width: 0, height: 0 })],
+        });
+        await store.loadItems();
+
+        expect(store.items[0]?.width).toBe(0);
+        expect(store.items[0]?.height).toBe(0);
+    });
+});

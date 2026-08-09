@@ -29,6 +29,11 @@ import BuilderMediaGalleryMetaPanel from '../../src/runtime/modules/builder/medi
 vi.mock('vue-i18n', () => ({
     useI18n: () => ({ t: (key: string) => key }),
 }));
+
+/** Правила валидации вне приложения не зарегистрированы — настоящему полю нужен ответ. */
+vi.mock('vee-validate', () => ({
+    validate: async () => ({ errors: [] as string[] }),
+}));
 // #endregion
 
 // #region Helpers
@@ -40,10 +45,10 @@ const BricksIconStub = defineComponent({
 });
 
 /**
- * Поле ввода вместо `BricksInput`: тот тянет vee-validate с правилами, которых
- * вне приложения не зарегистрировано, и валится необслуженными промисами. Под
- * тестом здесь синхронизация черновиков, а не сам инпут, поэтому нужен ровно
- * контракт `value` / `update:value` поверх нативного `<input>`.
+ * Поле ввода вместо `BricksInput` там, где под тестом синхронизация черновиков,
+ * а не сам инпут: нужен ровно контракт `value` / `update:value` поверх
+ * нативного `<input>`. Возврат значения в поле проверяется настоящим полем —
+ * см. `mountPanelWithRealInput`.
  */
 const BricksInputStub = defineComponent({
     name: 'BricksInput',
@@ -118,6 +123,51 @@ function mountPanel(item: IMediaItem) {
 function readInputs(wrapper: ReturnType<typeof mountPanel>): string[] {
     return wrapper.findAll('input').map((input) => (input.element as HTMLInputElement).value);
 }
+
+/**
+ * Монтирует панель с настоящим `BricksInput`.
+ *
+ * Стаб отражает значение пропа безусловно, поэтому возврат черновика в поле на
+ * нём выглядит рабочим всегда. Настоящее поле контролируемое и синхронизирует
+ * себя из пропа собственным сторожем — увидеть, доезжает ли возвращённое
+ * значение до разметки, можно только на нём.
+ *
+ * @param item - Выбранный медиа-элемент.
+ */
+function mountPanelWithRealInput(item: IMediaItem) {
+    return mount(BuilderMediaGalleryMetaPanel, {
+        props: {
+            selectedItem: item,
+            categories: [],
+            showPickerActions: false,
+            totalCount: 1,
+            totalSize: item.size,
+        },
+        global: {
+            components: { BricksIcon: BricksIconStub },
+            stubs: { BricksSelect: true },
+        },
+    });
+}
+
+/**
+ * Набирает значение в поле и отпускает фокус — так же, как это делает
+ * пользователь: сохранение висит на `focusout` ряда, а всплывает он с поля.
+ *
+ * @param wrapper - Смонтированная панель.
+ * @param index - Порядок поля в ряду: 0 — имя, 1 — alt.
+ * @param value - Набранное значение.
+ */
+async function commitField(
+    wrapper: ReturnType<typeof mountPanel>,
+    index: number,
+    value: string
+): Promise<void> {
+    const input = wrapper.findAll('input')[index];
+
+    await input.setValue(value);
+    await input.trigger('focusout');
+}
 // #endregion
 
 describe('мета-панель: серверные обновления против несохранённого ввода', () => {
@@ -153,6 +203,82 @@ describe('мета-панель: серверные обновления про�
 
         expect(readInputs(wrapper)).toContain('alt нового файла');
         expect(readInputs(wrapper)).not.toContain('черновик прошлого файла');
+        wrapper.unmount();
+    });
+});
+
+/**
+ * Правка, которую нельзя отправить, обязана вернуть поле к серверному значению.
+ * Иначе черновик навсегда расходится с теневым значением, поле числится полем с
+ * несохранённым вводом, и внешние обновления в него больше не доезжают — ровно
+ * та регрессия, от которой сторож черновиков и защищает.
+ */
+describe('мета-панель: правка, которую нельзя отправить', () => {
+    it('очищенное имя возвращается к серверному и не отправляется', async () => {
+        const wrapper = mountPanel(makeItem());
+
+        await commitField(wrapper, 0, '');
+
+        expect(wrapper.emitted('update-meta')).toBeUndefined();
+        expect(readInputs(wrapper)).toContain('old.png');
+
+        // Поле после очистки обязано остаться живым для внешних обновлений
+        await wrapper.setProps({ selectedItem: makeItem({ filename: 'renamed.png' }) });
+
+        expect(readInputs(wrapper)).toContain('renamed.png');
+        wrapper.unmount();
+    });
+
+    it('имя с хвостовым пробелом схлопывается и не отправляется', async () => {
+        const wrapper = mountPanel(makeItem());
+
+        await commitField(wrapper, 0, 'old.png ');
+
+        expect(wrapper.emitted('update-meta')).toBeUndefined();
+        expect(readInputs(wrapper)).toContain('old.png');
+
+        await wrapper.setProps({ selectedItem: makeItem({ filename: 'renamed.png' }) });
+
+        expect(readInputs(wrapper)).toContain('renamed.png');
+        wrapper.unmount();
+    });
+
+    it('alt с хвостовым пробелом схлопывается и не отправляется', async () => {
+        const wrapper = mountPanel(makeItem());
+
+        await commitField(wrapper, 1, 'старый alt ');
+
+        expect(wrapper.emitted('update-meta')).toBeUndefined();
+        expect(readInputs(wrapper)).toContain('старый alt');
+
+        await wrapper.setProps({ selectedItem: makeItem({ alt: 'alt со стороны' }) });
+
+        expect(readInputs(wrapper)).toContain('alt со стороны');
+        wrapper.unmount();
+    });
+
+    it('настоящее поле показывает возвращённое имя, а не остаётся пустым', async () => {
+        const wrapper = mountPanelWithRealInput(makeItem());
+
+        await commitField(wrapper, 0, '');
+
+        expect(readInputs(wrapper)).toContain('old.png');
+        wrapper.unmount();
+    });
+
+    it('новое имя уходит обрезанным, и ответ с ним черновик не ломает', async () => {
+        const wrapper = mountPanel(makeItem());
+
+        await commitField(wrapper, 0, '  new.png  ');
+
+        expect(wrapper.emitted('update-meta')).toEqual([[{ filename: 'new.png' }]]);
+        expect(readInputs(wrapper)).toContain('new.png');
+
+        // Ответ PATCH: черновик и проп сходятся, поле снова принимает внешнее
+        await wrapper.setProps({ selectedItem: makeItem({ filename: 'new.png' }) });
+        await wrapper.setProps({ selectedItem: makeItem({ filename: 'renamed.png' }) });
+
+        expect(readInputs(wrapper)).toContain('renamed.png');
         wrapper.unmount();
     });
 });
