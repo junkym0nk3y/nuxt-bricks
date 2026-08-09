@@ -83,6 +83,13 @@ export const blockMediaDefinition: IBlockDefinition = {
         loop: false,
         muted: true,
         controls: true,
+        // Адреса вариантов постепенной загрузки и пиксельные размеры файла:
+        // заполняются выбором картинки из галереи, руками не правятся — поэтому
+        // вне панели свойств
+        previewSrc: '',
+        mockSrc: '',
+        naturalWidth: 0,
+        naturalHeight: 0,
     },
     properties: [
         {
@@ -100,6 +107,10 @@ export const blockMediaDefinition: IBlockDefinition = {
             type: 'image',
             label: 'bricks.blocks.media.props.src.label',
             default: '',
+            previewUrlProperty: 'previewSrc',
+            mockUrlProperty: 'mockSrc',
+            naturalWidthProperty: 'naturalWidth',
+            naturalHeightProperty: 'naturalHeight',
         },
         {
             name: 'alt',
@@ -122,6 +133,36 @@ export const blockMediaDefinition: IBlockDefinition = {
                     value: 'scale-down',
                 },
             ],
+        },
+        {
+            name: 'loadMode',
+            type: 'select',
+            label: 'bricks.blocks.media.props.loadMode.label',
+            description: 'bricks.blocks.media.props.loadMode.description',
+            group: 'bricks.blocks.media.groups.loading',
+            default: 'config',
+            options: [
+                {
+                    label: 'bricks.blocks.media.props.loadMode.options.config',
+                    value: 'config',
+                },
+                { label: 'bricks.blocks.media.props.loadMode.options.off', value: 'off' },
+                { label: 'bricks.blocks.media.props.loadMode.options.twoStep', value: 'two-step' },
+                {
+                    label: 'bricks.blocks.media.props.loadMode.options.threeStep',
+                    value: 'three-step',
+                },
+            ],
+            showWhen: { field: 'type', equals: 'image' },
+        },
+        {
+            name: 'eagerLoad',
+            type: 'boolean',
+            label: 'bricks.blocks.media.props.eagerLoad.label',
+            description: 'bricks.blocks.media.props.eagerLoad.description',
+            group: 'bricks.blocks.media.groups.loading',
+            default: false,
+            showWhen: { field: 'type', equals: 'image' },
         },
         {
             name: 'width',

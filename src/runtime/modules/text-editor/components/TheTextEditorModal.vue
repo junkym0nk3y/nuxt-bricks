@@ -180,7 +180,6 @@ onBeforeUnmount(() => {
     <BricksModal
         :is-open="props.isOpen"
         :title="t('bricks.textEditor.editorTitle')"
-        :z-index="10000"
         @close="handleDone"
     >
         <div :class="$style.TheTextEditorModal">

@@ -14,12 +14,14 @@
  * `schema`, не трогаются); 409 маппится на доменные ошибки конфликтов по
  * `data.code`; 404 — null/false по контракту IStorageAdapter.
  */
+import { createBackendHttpClient, type IBackendHttpClient } from './httpClient';
 import {
-    createBackendHttpClient,
-    BricksBackendRequestError,
-    type IBackendHttpClient,
-} from './httpClient';
-import { toCamelCaseShallow } from '../../../common/utils/case-transform';
+    isConflictError,
+    isNotFoundError,
+    normalizeRow,
+    normalizeRows,
+} from './httpAdapterHelpers';
+import { createHttpMediaMethods } from './httpMediaMethods';
 import { getPageAddressKey } from '../../../common/utils/bricks/pageAddress';
 import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 import { PAGE_CONFLICT_CODES } from '../../../common/constants/publish';
@@ -27,11 +29,7 @@ import {
     BricksPageAddressConflictError,
     BricksRevisionConflictError,
 } from '../utils/storageErrors';
-import type {
-    IStorageAdapter,
-    ICreateMediaPayload,
-    TUpdateMediaPayload,
-} from '../../types/adapters';
+import type { IStorageAdapter } from '../../types/adapters';
 import type {
     IBricksPageRow,
     TBricksPageSummaryRow,
@@ -40,7 +38,6 @@ import type {
     IPageVersionSummary,
     IPageVersion,
 } from '../../../common/types/bricks-api';
-import type { IMediaItem } from '../../../common/types/media';
 
 // #region Types
 export interface IHttpStorageAdapterOptions {
@@ -52,78 +49,6 @@ export interface IHttpStorageAdapterOptions {
     healthUrl?: string;
     /** Таймаут одного запроса в миллисекундах (дефолт — httpClient). */
     timeoutMs?: number;
-}
-// #endregion
-
-// #region Helpers
-/**
- * Нормализует строку-ответ external backend: top-level ключи snake_case →
- * camelCase, вложенные значения (включая `schema`) — без изменений.
- *
- * @param raw - Распарсенное тело ответа.
- * @param context - Описание запроса для сообщения об ошибке формата.
- * @returns Нормализованная строка.
- */
-function normalizeRow<T>(raw: unknown, context: string): T {
-    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
-        throw new Error(`[Bricks Backend] ${context}: expected an object row in response`);
-    }
-
-    return toCamelCaseShallow<T>(raw);
-}
-
-/**
- * Нормализует массив строк-ответов external backend.
- *
- * @param raw - Распарсенное тело ответа.
- * @param context - Описание запроса для сообщения об ошибке формата.
- * @returns Массив нормализованных строк.
- */
-function normalizeRows<T>(raw: unknown, context: string): T[] {
-    if (!Array.isArray(raw)) {
-        throw new Error(`[Bricks Backend] ${context}: expected an array in response`);
-    }
-
-    return raw.map((item) => normalizeRow<T>(item, context));
-}
-
-/**
- * Достаёт список медиа из ответа: плоский массив либо envelope
- * `{ items: [...] }` (формат локального GET /api/bricks/media).
- *
- * @param raw - Распарсенное тело ответа.
- * @returns Массив сырых записей медиа.
- */
-function unwrapMediaList(raw: unknown): unknown[] {
-    if (Array.isArray(raw)) {
-        return raw;
-    }
-
-    if (raw && typeof raw === 'object' && Array.isArray((raw as { items?: unknown }).items)) {
-        return (raw as { items: unknown[] }).items;
-    }
-
-    throw new Error('[Bricks Backend] GET media: expected an array or { items: [...] } envelope');
-}
-
-/**
- * Проверяет, что ошибка — HTTP 404 external backend (контрактный «не найдено»).
- *
- * @param error - Пойманная ошибка запроса.
- * @returns true для 404.
- */
-function isNotFoundError(error: unknown): boolean {
-    return error instanceof BricksBackendRequestError && error.upstreamStatus === 404;
-}
-
-/**
- * Проверяет, что ошибка — HTTP 409 external backend (конфликт записи).
- *
- * @param error - Пойманная ошибка запроса.
- * @returns true для 409.
- */
-function isConflictError(error: unknown): error is BricksBackendRequestError {
-    return error instanceof BricksBackendRequestError && error.upstreamStatus === 409;
 }
 // #endregion
 
@@ -139,15 +64,6 @@ export function createHttpStorageAdapter(options: IHttpStorageAdapterOptions): I
         token: options.token,
         timeoutMs: options.timeoutMs,
     });
-
-    /**
-     * Список медиа external backend — общий примитив list+find lookup'ов.
-     */
-    async function fetchMediaList(): Promise<IMediaItem[]> {
-        const raw = await client.request('GET', 'media');
-
-        return normalizeRows<IMediaItem>(unwrapMediaList(raw), 'GET media');
-    }
 
     return {
         /**
@@ -333,99 +249,6 @@ export function createHttpStorageAdapter(options: IHttpStorageAdapterOptions): I
             }
         },
 
-        /**
-         * Все медиа-записи (`GET {base}/media`): плоский массив либо envelope
-         * `{ items }` (формат локальной ручки).
-         */
-        async listMedia(): Promise<IMediaItem[]> {
-            return fetchMediaList();
-        },
-
-        /**
-         * Медиа-запись по id — list+find (низкочастотный вызов: delete
-         * orchestration, media proxy). Известное ограничение O(N) на больших
-         * медиатеках; point-lookup ручка — follow-up контракта.
-         */
-        async getMedia(id: number): Promise<IMediaItem | null> {
-            const items = await fetchMediaList();
-
-            return items.find((item) => item.id === id) ?? null;
-        },
-
-        /**
-         * Медиа-запись по URL — list+find (низкочастотный вызов: дедупликация
-         * импорта из бакета).
-         */
-        async getMediaByUrl(url: string): Promise<IMediaItem | null> {
-            const items = await fetchMediaList();
-
-            return items.find((item) => item.url === url) ?? null;
-        },
-
-        /**
-         * Регистрирует метаданные медиа (`POST {base}/media` —
-         * server-to-server-only ручка контракта, binary не передаётся).
-         * Идемпотентность по `url` — обязанность external-сервера; 409 от
-         * backend'а дополнительно разруливается повторным чтением по url
-         * (гонка импорта/ретрай), как в Postgres-адаптере.
-         */
-        async createMedia(payload: ICreateMediaPayload): Promise<IMediaItem> {
-            try {
-                const raw = await client.request('POST', 'media', payload);
-
-                return normalizeRow<IMediaItem>(raw, 'POST media');
-            } catch (error: unknown) {
-                if (!isConflictError(error)) {
-                    throw error;
-                }
-
-                const existing = await fetchMediaList().then(
-                    (items) => items.find((item) => item.url === payload.url) ?? null
-                );
-
-                if (!existing) {
-                    throw error;
-                }
-
-                return existing;
-            }
-        },
-
-        /**
-         * Обновляет метаданные медиа (`PATCH {base}/media/:id`); 404 → null.
-         */
-        async updateMedia(id: number, payload: TUpdateMediaPayload): Promise<IMediaItem | null> {
-            try {
-                const raw = await client.request('PATCH', `media/${id}`, payload);
-
-                return normalizeRow<IMediaItem>(raw, `PATCH media ${id}`);
-            } catch (error: unknown) {
-                if (isNotFoundError(error)) {
-                    return null;
-                }
-
-                throw error;
-            }
-        },
-
-        /**
-         * Удаляет медиа-запись (`DELETE {base}/media/:id`); 404 → false.
-         * File-first порядок удаления файла обеспечивает локальный handler
-         * (mediaOrchestration.deleteMediaWithFile) — external получает только
-         * удаление метаданных.
-         */
-        async deleteMedia(id: number): Promise<boolean> {
-            try {
-                await client.request('DELETE', `media/${id}`);
-
-                return true;
-            } catch (error: unknown) {
-                if (isNotFoundError(error)) {
-                    return false;
-                }
-
-                throw error;
-            }
-        },
+        ...createHttpMediaMethods(client),
     };
 }

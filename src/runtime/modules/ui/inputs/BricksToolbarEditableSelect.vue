@@ -327,7 +327,7 @@ async function focusCustomInput(): Promise<void> {
 }
 
 .popup {
-    z-index: 10001;
+    z-index: var(--bricks-z-popover);
     display: flex;
     flex-direction: column;
     width: 16rem;

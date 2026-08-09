@@ -11,9 +11,7 @@
 import { createError } from 'h3';
 import type { IMediaItem } from '../../../common/types/media';
 import type { IPublishAdapter, IStorageAdapter } from '../../types/adapters';
-
-/** Категория медиа по умолчанию (когда клиент не передал свою). */
-export const DEFAULT_MEDIA_CATEGORY = 'other';
+import type { IUploadMediaVariant, TMediaVariant } from '../../types/media';
 
 /**
  * Зависимости оркестрации медиа.
@@ -34,14 +32,74 @@ export interface IUploadMediaParams {
     storedFilename: string;
     /** Отображаемое имя файла для медиа-библиотеки. */
     displayFilename: string;
-    category: string;
+    /** null — загрузка без выбранной категории. */
+    category: string | null;
     /** Уже санитизированная SVG-разметка (политика записи — на ручке). */
     svgContent?: string | null;
+    /** Пиксельные размеры полного файла; null у SVG и видео. */
+    width?: number | null;
+    height?: number | null;
+    /** Уменьшенные варианты постепенной загрузки; пустой объект — вариантов нет. */
+    variants?: Partial<Record<TMediaVariant, IUploadMediaVariant>>;
 }
 
 /**
- * Загружает файл в хранилище публикации и регистрирует метаданные в БД.
- * При падении записи в БД файл-сирота компенсируется best-effort удалением.
+ * Загружает вариант в хранилище публикации best-effort.
+ *
+ * Отказ варианта не роняет загрузку: без варианта потребитель честно покажет
+ * полный файл сразу, а провалить из-за него загрузку самого файла — потерять
+ * работу пользователя ради вторичного артефакта.
+ *
+ * @param deps - Адаптеры persistence.
+ * @param variant - Готовый вариант.
+ * @returns URL загруженного варианта или null при отказе.
+ */
+async function uploadVariantFile(
+    deps: IMediaOrchestrationDeps,
+    variant: IUploadMediaVariant
+): Promise<string | null> {
+    try {
+        const uploaded = await deps.publish.uploadFile({
+            buffer: variant.buffer,
+            mimeType: variant.mimeType,
+            key: deps.publish.buildFileKey('media', variant.storedFilename),
+        });
+
+        return uploaded.url;
+    } catch (error: unknown) {
+        console.warn('[Media Orchestration] Failed to upload media variant:', error);
+
+        return null;
+    }
+}
+
+/**
+ * Best-effort удаление файлов вариантов.
+ *
+ * @param deps - Адаптеры persistence.
+ * @param urls - URL вариантов (null/undefined пропускаются).
+ */
+async function deleteVariantFiles(
+    deps: Pick<IMediaOrchestrationDeps, 'publish'>,
+    urls: (string | null | undefined)[]
+): Promise<void> {
+    for (const url of urls) {
+        if (!url || !deps.publish.isOwnedUrl(url)) {
+            continue;
+        }
+
+        try {
+            await deps.publish.deleteFile(url);
+        } catch (error: unknown) {
+            console.warn('[Media Orchestration] Failed to delete media variant file:', error);
+        }
+    }
+}
+
+/**
+ * Загружает файл (и его уменьшенные варианты) в хранилище публикации и
+ * регистрирует метаданные в БД. При падении записи в БД файлы-сироты
+ * компенсируются best-effort удалением.
  *
  * @param deps - Адаптеры persistence.
  * @param params - Данные загрузки.
@@ -57,6 +115,10 @@ export async function uploadAndRegisterMedia(
         mimeType: params.mimeType,
         key,
     });
+    const previewVariant = params.variants?.preview;
+    const mockVariant = params.variants?.mock;
+    const previewUrl = previewVariant ? await uploadVariantFile(deps, previewVariant) : null;
+    const mockUrl = mockVariant ? await uploadVariantFile(deps, mockVariant) : null;
 
     try {
         return await deps.storage.createMedia({
@@ -66,9 +128,16 @@ export async function uploadAndRegisterMedia(
             mimeType: params.mimeType,
             category: params.category,
             svgContent: params.svgContent ?? null,
+            width: params.width ?? null,
+            height: params.height ?? null,
+            previewUrl,
+            mockUrl,
         });
     } catch (error: unknown) {
-        // Компенсация: запись не создана — файл не должен остаться сиротой
+        // Компенсация: запись не создана — ни файл, ни варианты не должны
+        // остаться сиротами
+        await deleteVariantFiles(deps, [previewUrl, mockUrl]);
+
         try {
             await deps.publish.deleteFile(uploaded.url);
         } catch (cleanupError: unknown) {
@@ -106,6 +175,12 @@ export async function deleteMediaWithFile(
     }
 
     if (deps.publish.isOwnedUrl(media.url)) {
+        // Варианты — раньше полного файла и best-effort: они вторичны, и
+        // застрявший вариант не должен блокировать удаление самого файла. После
+        // удаления записи ссылок на них не останется вовсе, поэтому порядок
+        // «сначала варианты» лишь уменьшает окно, в котором они уже осиротели
+        await deleteVariantFiles(deps, [media.previewUrl, media.mockUrl]);
+
         try {
             await deps.publish.deleteFile(media.url);
         } catch (error: unknown) {

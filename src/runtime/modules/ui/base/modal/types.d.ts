@@ -11,6 +11,20 @@ export interface IBricksCloseButtonEmits {
 
 export type TBricksModalVariant = 'dark' | 'gradient';
 
+/**
+ * Слой модалки:
+ * - `modal` — обычная (редактор текста, восстановление черновика);
+ * - `nested` — открытая ИЗ модалки (медиа-галерея поверх редактора текста);
+ * - `raised` — открытая из вложенной (резолвер картинок поверх галереи);
+ * - `confirm` — подтверждение: всегда поверх того, что его открыло.
+ *
+ * Уровнем вместо сырого z-index: прежде каждый вызывающий подбирал число сам
+ * (1000, 10000, 99999, 100001, 999999), и порядок держался на том, что кто-то
+ * взял цифру больше соседа. Числа живут в шкале `--bricks-z-*`
+ * (`assets/scss/shared/_variables.scss`).
+ */
+export type TBricksModalLayer = 'modal' | 'nested' | 'raised' | 'confirm';
+
 export interface IBricksModalProps {
     /** Контролируемое состояние открытости */
     isOpen: boolean;
@@ -22,8 +36,8 @@ export interface IBricksModalProps {
     variant?: TBricksModalVariant;
     /** Добавляет padding 2rem на overlay */
     padded?: boolean;
-    /** z-index overlay */
-    zIndex?: number;
+    /** Слой в шкале оверлеев; `nested` — для модалки, открытой из модалки */
+    layer?: TBricksModalLayer;
     /** Длительность transition в мс */
     duration?: number;
 }

@@ -108,6 +108,8 @@ const isFavorite = computed<boolean>(() =>
                 :src="thumbnailUrl"
                 :alt="props.component.name"
                 :class="$style.layoutIcon"
+                loading="lazy"
+                decoding="async"
             />
             <BricksIcon v-else :class="$style.layoutIconFallback" icon="ta:outline-puzzle" />
             <span :class="$style.layoutName">{{ props.component.name }}</span>

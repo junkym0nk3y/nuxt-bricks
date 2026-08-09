@@ -31,6 +31,10 @@ function makeMediaItem(overrides: Partial<IMediaItem> = {}): IMediaItem {
         mimeType: 'image/webp',
         category: 'other',
         svgContent: null,
+        width: null,
+        height: null,
+        previewUrl: null,
+        mockUrl: null,
         ...overrides,
     };
 }

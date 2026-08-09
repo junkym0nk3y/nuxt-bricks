@@ -259,7 +259,7 @@ onBeforeUnmount(() => {
 <style module lang="scss">
 .TextEditorImageFloatPopover {
     position: fixed;
-    z-index: 10001;
+    z-index: var(--bricks-z-popover);
     display: flex;
     gap: 0.2rem;
     padding: 0.4rem;

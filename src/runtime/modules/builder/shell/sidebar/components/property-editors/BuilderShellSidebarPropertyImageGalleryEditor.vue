@@ -209,6 +209,8 @@ function handleReplaceImage(index: number): void {
                         :src="item.url"
                         :alt="item.title || ''"
                         :class="$style.image"
+                        loading="lazy"
+                        decoding="async"
                     />
                     <div v-else :class="$style.placeholder">
                         <BricksIcon icon="ta:outline-photo-plus" />

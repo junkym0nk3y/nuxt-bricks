@@ -2,6 +2,7 @@
     "bricks": {
         "common": {
             "cancel": "Отмена",
+            "close": "Закрыть",
             "delete": "Удалить",
             "loading": "Загрузка…",
             "notFound": "Ничего не найдено",
@@ -378,26 +379,21 @@
             "deleteImageTitle": "Удалить изображение?",
             "deleteImageDescription": "Это действие нельзя отменить. Изображение будет удалено безвозвратно.",
             "fullscreen": "Полноэкранный просмотр",
-            "categoryLabel": "Категория:",
-            "searchLabel": "Поиск:",
-            "searchPlaceholder": "Введите название или alt",
-            "nameLabel": "Название:",
+            "categoryLabel": "Категория",
+            "searchLabel": "Поиск по медиатеке",
+            "searchPlaceholder": "Поиск по имени или alt",
+            "nameLabel": "Имя",
             "filenamePlaceholder": "Имя файла",
             "altPlaceholder": "Описание изображения",
-            "dropHint": "Перетащите файлы сюда или нажмите, чтобы выбрать",
+            "dropHint": "Перетащите файлы сюда или выберите на диске",
             "chooseFiles": "Выбрать файлы",
-            "sizeHint": "Изображения — до {image} МБ, видео — до {video} МБ",
+            "sizeHint": "изображения до {image} МБ, видео до {video} МБ",
             "fileTypeImage": "Изображение",
             "fileTypeVideo": "Видео",
             "fileTooLarge": "{type} «{name}» превышает лимит {max} МБ",
             "fileTypeUnsupported": "«{name}»: поддерживаются только изображения и видео",
             "categories": {
-                "all": "Все",
-                "icons": "Иконки",
-                "illustrations": "Иллюстрации",
-                "photos": "Фотографии",
-                "videos": "Видео",
-                "other": "Другое"
+                "all": "Все"
             },
             "resolver": {
                 "title": "Найдены новые изображения",
@@ -408,7 +404,50 @@
                 "apply": "Применить",
                 "importedWithoutComparison": "Схема импортирована без проверки медиатеки: она недоступна, изображения оставлены как есть"
             },
-            "categoryFilterLabel": "Фильтр по категории"
+            "categoryFilterLabel": "Фильтр по категории",
+            "emptyNoUploadsHint": "Перетащите файлы в окно или нажмите «Загрузить»",
+            "resetFilter": "Сбросить фильтр",
+            "selectFileHint": "Выберите файл, чтобы изменить его свойства",
+            "librarySummary": "файлов в медиатеке: {count} · {size}",
+            "altUnusedForVideo": "у видео alt не используется",
+            "categoryLoadFailed": "Не удалось загрузить категории",
+            "categoryListResponseInvalid": "Сервер вернул список категорий в неизвестном формате",
+            "categoryCreate": "Создать категорию",
+            "categoryCreateConfirm": "Создать",
+            "categoryCreateFailed": "Не удалось создать категорию",
+            "categoryNamePlaceholder": "Название категории",
+            "categoryDuplicate": "Категория «{name}» уже есть",
+            "categoryDelete": "Удалить категорию «{name}»",
+            "categoryDeleteTitle": "Удалить категорию «{name}»?",
+            "categoryDeleteDescription": "Категория будет удалена, файлов без категории станет больше на {count}. Сами файлы останутся в медиатеке.",
+            "categoryDeleteFailed": "Не удалось удалить категорию",
+            "categoryManage": "Управление категориями",
+            "categoryManageDone": "Готово",
+            "upload": {
+                "optionsTitle": "Параметры оптимизации",
+                "formatLabel": "Формат",
+                "formatOriginal": "Оригинал",
+                "qualityLabel": "Качество",
+                "maxWidthLabel": "Макс. ширина",
+                "skipOptimization": "Загружать без оптимизации",
+                "skipOptimizationHint": "Файл сохраняется как есть. Превью и mock всё равно генерируются — без них блоку Media нечем показывать постепенную загрузку.",
+                "variantsHint": "Превью и mock для постепенной загрузки генерируются всегда — режим выбирается у блока Media, а не здесь.",
+                "paramsSummary": "{format} · q{quality} · до {maxWidth}px",
+                "progress": "Загружаю {current} из {total} · {name}",
+                "dropNow": "Отпустите — к загрузке: {count}",
+                "progressShort": "Загружаю {current} из {total}"
+            },
+            "summary": {
+                "vector": "вектор",
+                "video": "видео",
+                "dimensionsUnknown": "размеры неизвестны"
+            },
+            "librarySummaryShort": "файлов: {count} · {size}",
+            "dropAnywhereHint": "файлы можно перетащить прямо в окно",
+            "uploadFiles": "Загрузить",
+            "tileUpload": "Загрузить файлы",
+            "tileUploadHint": "или перетащите сюда",
+            "noCategory": "Без категории"
         },
         "schema": {
             "title": "Схема страницы",
@@ -731,10 +770,25 @@
                     "borderRadius": {
                         "label": "Скругление углов",
                         "description": "Скругление углов (rem)"
+                    },
+                    "loadMode": {
+                        "label": "Постепенная загрузка",
+                        "description": "Чем показывать место картинки, пока она грузится",
+                        "options": {
+                            "config": "Как в настройках модуля",
+                            "off": "Выключено",
+                            "twoStep": "Два этапа: превью → полное",
+                            "threeStep": "Три этапа: mock → превью → полное"
+                        }
+                    },
+                    "eagerLoad": {
+                        "label": "Первый экран — грузить сразу",
+                        "description": "Снимает lazy и ставит fetchpriority=\"high\": на первом экране постепенная загрузка портит LCP"
                     }
                 },
                 "groups": {
-                    "sizes": "Размеры"
+                    "sizes": "Размеры",
+                    "loading": "Загрузка"
                 }
             },
             "slider": {

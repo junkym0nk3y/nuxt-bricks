@@ -1,14 +1,33 @@
 <script setup lang="ts">
+/**
+ * @description Сетка плиток медиатеки. Плитка 210×172: превью 126 + инфо 46,
+ * шесть колонок через 20 укладываются в ширину контента модалки ровно.
+ *
+ * Углы превью разведены намеренно: кнопка полноэкранного просмотра — в правом
+ * верхнем, бейдж выбора — в левом. У выбранной плитки под курсором они видны
+ * одновременно и в одном углу наложились бы.
+ *
+ * Светлым форсируется только окно превью — картинка остаётся на светлой подложке,
+ * как канвас. Сама карточка живёт в токенах темы: раньше светлой была плитка
+ * целиком, и в тёмной теме дюжина белых карточек читалась как световая стена.
+ */
+
 // #region Imports
 // Types
 import type { IMediaItem } from '../../../common/types/media';
 import type { IMediaGalleryGridProps, IMediaGalleryGridEmits } from '../types/media';
 
+// Utils
+import { formatFileSize } from '../utils/formatFileSize';
+import { formatMediaDimensions, isVideoMedia } from '../utils/mediaSummary';
+
 // Vue
 import { useI18n } from 'vue-i18n';
 
-// Utils
-import { formatFileSize } from '../utils/formatFileSize';
+// Components
+import BricksBadge from '../../../ui/base/badge/BricksBadge.vue';
+import BricksButton from '../../../ui/base/button/BricksButton.vue';
+import BricksImage from '../../../ui/base/image/BricksImage.vue';
 // #endregion
 
 // #region Props
@@ -33,94 +52,234 @@ function handleSelectItem(item: IMediaItem): void {
 function handleOpenPreview(item: IMediaItem): void {
     emit('preview', item);
 }
+
+/** Просит вызывающего открыть выбор файлов. */
+function handleUploadRequest(): void {
+    emit('upload');
+}
+
+/**
+ * Превью плитки: сама галерея показывает уменьшенный вариант, если он есть —
+ * двенадцать полных файлов в сетке весили бы на порядок больше без всякой пользы.
+ * Постепенная загрузка здесь не нужна: вариант и есть конечная картинка плитки.
+ *
+ * @param item - Медиа-элемент.
+ * @returns URL для показа в плитке.
+ */
+function resolveThumbSrc(item: IMediaItem): string {
+    return item.previewUrl ?? item.url;
+}
 // #endregion
 </script>
 
 <template>
-    <div :class="$style.BuilderMediaGalleryGrid">
+    <div
+        role="listbox"
+        :aria-label="t('bricks.media.galleryTitle')"
+        :class="$style.BuilderMediaGalleryGrid"
+    >
+        <!--
+            Плитка-приёмник первой ячейкой: постоянной зоны загрузки в модалке
+            нет, и точка входа обязана остаться видимой. В сетке она не может
+            «схлопнуться» — её размер задаёт колонка грида, а не свободное место
+            в колонке контента, из-за которого прежняя полоса срезала себе
+            подсказку. Из accessibility tree не убрана: это кнопка загрузки.
+        -->
+        <button
+            v-if="props.showUploadTile"
+            type="button"
+            :class="[$style.galleryItem, $style._upload]"
+            @click="handleUploadRequest"
+        >
+            <BricksIcon :class="$style.uploadIcon" icon="ta:outline-cloud-upload" />
+            <span :class="$style.uploadLabel">{{ t('bricks.media.tileUpload') }}</span>
+            <span :class="$style.uploadHint">{{ t('bricks.media.tileUploadHint') }}</span>
+        </button>
+
+        <!--
+            Скелет первым элементом: сетка идёт от новых к старым, и загруженный
+            файл встанет ровно на его место. Из accessibility tree убран — это не
+            выбираемый вариант, а место под будущий файл.
+        -->
+        <div
+            v-if="props.showSkeleton"
+            aria-hidden="true"
+            :class="[$style.galleryItem, $style._skeleton]"
+        >
+            <div :class="$style.thumb">
+                <BricksIcon :class="$style.placeholderIcon" icon="ta:outline-photo" />
+            </div>
+            <div :class="$style.itemInfo">
+                <span :class="[$style.skeletonBar, $style._wide]" />
+                <span :class="$style.skeletonBar" />
+            </div>
+        </div>
+
+        <!--
+            Плитка — `option` в списке, а не кнопка: она выбирает файл, а не
+            запускает действие. До этого она была немым `div` с `@click` — выбрать
+            файл с клавиатуры было нельзя вовсе, хотя кнопка полноэкранного
+            просмотра внутри неё в таб-порядок попадала.
+
+            `.self` на клавиатуре обязателен: внутри плитки лежит настоящая
+            кнопка, и без него Enter на ней всплывал до плитки, выбирал файл, а
+            `prevent` отменял нативную активацию кнопки — лайтбокс не открывался.
+
+            Известное ограничение: `tabindex="0"` у КАЖДОЙ плитки, то есть сетка
+            из сотни файлов проходится Tab'ом целиком. Правильный listbox — roving
+            tabindex со стрелками, и делать его руками рядом с `selectedItemId`
+            легко рассинхронизировать; это отдельный заход, возможно на готовом
+            примитиве reka.
+        -->
         <div
             v-for="item in props.items"
             :key="item.id"
-            :class="[$style.galleryItem, { [$style.selected]: props.selectedItemId === item.id }]"
+            role="option"
+            tabindex="0"
+            :aria-selected="props.selectedItemId === item.id"
+            :class="[$style.galleryItem, { [$style._selected]: props.selectedItemId === item.id }]"
             @click="handleSelectItem(item)"
+            @keydown.enter.self.prevent="handleSelectItem(item)"
+            @keydown.space.self.prevent="handleSelectItem(item)"
         >
-            <div :class="$style.imageWrapper">
-                <div v-if="item.mimeType.startsWith('video/')" :class="$style.videoPlaceholder">
-                    <BricksIcon :class="$style.videoPlayIcon" icon="ta:outline-video" />
+            <div :class="$style.thumb">
+                <div v-if="isVideoMedia(item)" :class="$style.videoPlaceholder">
+                    <BricksIcon :class="$style.placeholderIcon" icon="ta:outline-video" />
                 </div>
-                <img
+                <BricksImage
                     v-else
-                    :src="item.url"
+                    :src="resolveThumbSrc(item)"
                     :alt="item.alt || item.filename"
-                    :class="$style.image"
-                    loading="lazy"
-                    decoding="async"
+                    fit="scale-down"
                 />
-                <button
-                    type="button"
+
+                <Transition name="bricks-fade-fast">
+                    <BricksBadge
+                        v-if="props.selectedItemId === item.id"
+                        :class="$style.selectedBadge"
+                        variant="primary"
+                    >
+                        <BricksIcon icon="ta:outline-check" />
+                    </BricksBadge>
+                </Transition>
+
+                <BricksButton
                     :class="$style.previewBtn"
-                    :title="t('bricks.media.fullscreen')"
+                    size="sm"
+                    variant="ghost"
+                    equal
+                    :aria-label="t('bricks.media.fullscreen')"
                     @click.stop="handleOpenPreview(item)"
                 >
                     <BricksIcon icon="ta:outline-search" />
-                </button>
+                </BricksButton>
             </div>
+
             <div :class="$style.itemInfo">
                 <span :class="$style.filename">{{ item.filename }}</span>
-                <span :class="$style.filesize">{{ formatFileSize(item.size) }}</span>
-                <span :class="$style.categoryBadge">{{ item.category }}</span>
+                <span :class="$style.meta">
+                    {{ formatFileSize(item.size) }} · {{ formatMediaDimensions(item, t) }}
+                </span>
             </div>
         </div>
     </div>
 </template>
 
 <style module lang="scss">
+/* Минимум колонки 20rem, а не 21rem по ширине плитки макета: на вертикальный
+   скроллбар контента уходит ~11px, и при 21rem шестая колонка перестаёт влезать —
+   сетка падает до пяти и растягивает плитки до 254. С 20rem шесть колонок
+   держатся, а `1fr` доводит их до фактических ~208. */
 .BuilderMediaGalleryGrid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
-    gap: 1.6rem;
-    margin-top: 2rem;
+    gap: 2rem;
 }
 
 .galleryItem {
-    --bricks-base-0: #fff;
-    --bricks-base-200: #e5e7eb;
-    --bricks-base-500: #6b7280;
-    --bricks-base-600: #4b5563;
-    --bricks-base-900: #111827;
-
     position: relative;
     overflow: hidden;
+    height: 17.2rem;
     border-radius: var(--bricks-border-radius-md);
-    border: 0.2rem solid transparent;
+
+    /* Рамка в покое: до редизайна она была прозрачной, и на белом фоне модалки
+       плитка не читалась как объект — видны были только картинка и подписи. */
+    border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
-    transition: all 200ms ease;
+    transition:
+        border-color var(--bricks-default-transition),
+        box-shadow var(--bricks-default-transition);
     cursor: pointer;
 
     &:hover {
         border-color: var(--bricks-primary-300);
         box-shadow: var(--bricks-shadow-md);
+
+        .previewBtn {
+            opacity: 1;
+        }
     }
 
-    &.selected {
-        border-color: var(--bricks-primary-500);
-        box-shadow: 0 0 0 0.4rem rgb(var(--bricks-rgb-primary-500) / 20%);
+    /* Плитка выбирается с клавиатуры, значит фокус обязан быть виден. Кнопка
+       полноэкранного просмотра при этом показывается тоже: иначе доехать до неё
+       Tab'ом можно, а понять, где она, — нет. */
+    &:focus-visible {
+        outline: none;
+        box-shadow: var(--bricks-shadow-focus);
+
+        .previewBtn {
+            opacity: 1;
+        }
+    }
+
+    /* Рамка 2px внутрь: свечения `box-shadow` из прежней версии здесь нет — на
+       сетке из двенадцати плиток оно мылило края соседей, а рамка с бейджем
+       и так однозначны. */
+    &._selected {
+        border-color: var(--bricks-primary);
+        border-width: 0.2rem;
+    }
+
+    &._skeleton {
+        cursor: default;
+    }
+
+    /* Приёмник — та же плитка, но пунктиром и без превью: в ряду с файлами он
+       обязан читаться как место, а не как ещё один файл. */
+    &._upload {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border-style: dashed;
+        background: var(--bricks-base-50);
+        flex-direction: column;
+        gap: 0.4rem;
+
+        &:hover {
+            border-color: var(--bricks-primary);
+            background: var(--bricks-primary-50);
+        }
     }
 }
 
-.imageWrapper {
+/* Окно превью — единственное место плитки, которое форсирует светлые токены:
+   картинка и снимок страницы остаются на светлой подложке, как канвас. */
+.thumb {
+    --bricks-base-100: #f3f4f6;
+    --bricks-base-400: #9ca3af;
+
     position: relative;
-
-    &:hover .previewBtn {
-        opacity: 1;
-    }
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 12.6rem;
+    background: var(--bricks-base-100);
 }
 
-.image {
-    display: block;
-    width: 100%;
-    height: 12rem;
-    object-fit: scale-down;
+.placeholderIcon {
+    font-size: 2.8rem;
+    color: var(--bricks-base-400);
 }
 
 .videoPlaceholder {
@@ -128,55 +287,50 @@ function handleOpenPreview(item: IMediaItem): void {
     align-items: center;
     justify-content: center;
     width: 100%;
-    height: 12rem;
-    background: var(--bricks-base-100, #f3f4f6);
+    height: 100%;
 }
 
-.videoPlayIcon {
-    font-size: 4rem;
-    color: var(--bricks-base-400);
+/* Плашка кита в круглом исполнении: своих цветов не задаём, `variant="primary"`
+   уже даёт заливку primary и подпись static/white. */
+.selectedBadge {
+    position: absolute;
+    top: 0.8rem;
+    left: 0.8rem;
+    justify-content: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    padding: 0;
+    border-radius: var(--bricks-border-radius-pill);
+    font-size: 1.2rem;
 }
 
+/* Кнопка кита; переопределяется только скин: по макету это тёмный оверлей со
+   белым глифом поверх картинки, а такого варианта в ките нет. Размер, фокус и
+   семантику даёт `BricksButton`. */
 .previewBtn {
     position: absolute;
-    top: 0.6rem;
-    right: 0.6rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 3.2rem;
-    height: 3.2rem;
-    padding: 0;
-    border-radius: 0.6rem;
-    border: none;
-    background: rgb(0 0 0 / 50%);
-    font-size: 1.6rem;
+    top: 0.8rem;
+    right: 0.8rem;
+    border-radius: var(--bricks-border-radius-control);
+    background: var(--bricks-overlay-dark);
     color: var(--bricks-static-white);
     opacity: 0;
-    transition: opacity 150ms ease;
-    cursor: pointer;
 
     &:hover {
-        background: rgb(0 0 0 / 70%);
+        background: var(--bricks-overlay-dark);
+        color: var(--bricks-static-white);
+    }
+
+    &:focus-visible {
+        opacity: 1;
     }
 }
 
 .itemInfo {
     display: flex;
-    padding: 1rem;
     flex-direction: column;
-    gap: 0.4rem;
-}
-
-.categoryBadge {
-    align-self: flex-start;
-    padding: 0.2rem 0.8rem;
-    border-radius: var(--bricks-border-radius-pill);
-    border: 1px solid var(--bricks-base-200);
-    background: var(--bricks-base-0);
-    text-transform: capitalize;
-    font-size: 1.2rem;
-    color: var(--bricks-base-600);
+    gap: 0.2rem;
+    padding: 0.6rem 1rem;
 }
 
 .filename {
@@ -188,8 +342,35 @@ function handleOpenPreview(item: IMediaItem): void {
     color: var(--bricks-base-900);
 }
 
-.filesize {
+.meta {
     font-size: 1.2rem;
     color: var(--bricks-base-500);
+}
+
+.uploadIcon {
+    font-size: 2.8rem;
+    color: var(--bricks-base-400);
+}
+
+.uploadLabel {
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: var(--bricks-base-600);
+}
+
+.uploadHint {
+    font-size: 1.2rem;
+    color: var(--bricks-base-400);
+}
+
+.skeletonBar {
+    width: 60%;
+    height: 1rem;
+    border-radius: var(--bricks-border-radius-pill);
+    background: var(--bricks-base-200);
+
+    &._wide {
+        width: 85%;
+    }
 }
 </style>

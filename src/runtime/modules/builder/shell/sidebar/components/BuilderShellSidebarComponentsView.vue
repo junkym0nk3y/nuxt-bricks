@@ -16,7 +16,7 @@ import { groupComponentsByCategory } from '../utils/componentCategories';
 import BuilderShellSidebarComponentCard from './BuilderShellSidebarComponentCard.vue';
 import BricksButton from '../../../../ui/base/button/BricksButton.vue';
 import BricksCloseButton from '../../../../ui/base/modal/BricksCloseButton.vue';
-import BricksInput from '../../../../ui/inputs/BricksInput.vue';
+import BricksSearchInput from '../../../../ui/inputs/BricksSearchInput.vue';
 // #endregion
 
 // #region Props
@@ -138,17 +138,11 @@ function handleRetry(): void {
 
         <div :class="$style.search">
             <div :class="$style.searchRow">
-                <BricksInput
+                <BricksSearchInput
                     :value="searchQuery"
-                    type="text"
                     :placeholder="t('bricks.library.searchPlaceholder')"
-                    clearable
                     @update:value="(val: string) => (searchQuery = val)"
-                >
-                    <template #prefix>
-                        <BricksIcon icon="ta:outline-search" />
-                    </template>
-                </BricksInput>
+                />
                 <button
                     :class="[
                         $style.favoritesToggle,

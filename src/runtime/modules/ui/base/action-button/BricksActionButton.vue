@@ -177,8 +177,9 @@ function handleOptionSelect(option: IBrickUiCommonProp): void {
 }
 
 .dropdown {
-    /* Слой поповеров (как context menu): выше тулбара (100), vertical nav (60) и сайдбара (50) */
-    z-index: 10000;
+    /* Слой поповеров: выше оболочки билдера и выше любой модалки — дропдаун
+       всегда открывают из чего-то, что уже наверху */
+    z-index: var(--bricks-z-popover);
     min-width: 22rem;
     padding: 0.8rem;
     border-radius: var(--bricks-border-radius-sm);

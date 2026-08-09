@@ -176,7 +176,7 @@ function onEscapeKeyDown(): void {
     position: fixed;
     right: 2.4rem;
     bottom: 2.4rem;
-    z-index: 100001;
+    z-index: var(--bricks-z-toast);
     display: flex;
     margin: 0;
     padding: 0;

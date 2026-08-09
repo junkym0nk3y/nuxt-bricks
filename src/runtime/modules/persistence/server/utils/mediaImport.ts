@@ -3,7 +3,7 @@
  * (fallback для GET /api/bricks/media при пустой таблице bricks_media).
  */
 import { useBricksPublishAdapter, useBricksStorageAdapter } from '../registry';
-import { DEFAULT_MEDIA_CATEGORY } from './mediaOrchestration';
+import { isMediaVariantFilename } from './mediaVariants';
 import { detectMimeTypeByFilename, fetchSvgContent } from './mediaProcessing';
 import { sanitizeSvgMarkup } from '../../../common/utils/sanitize/sanitizeSvg';
 import type { IMediaItem } from '../../../common/types/media';
@@ -26,7 +26,8 @@ async function buildImportPayload(file: IStoredFileInfo): Promise<ICreateMediaPa
         alt: '',
         size: file.size,
         mimeType,
-        category: DEFAULT_MEDIA_CATEGORY,
+        // Категорию импорту взять неоткуда: файл лежит в бакете, а не в медиатеке
+        category: null,
         // Файл бакета — недоверенный ввод: в БД сохраняется санитизированный SVG
         svgContent: svgContent ? sanitizeSvgMarkup(svgContent) : null,
         uploadedAt: file.lastModified,
@@ -55,6 +56,14 @@ export async function importMediaFromStorage(): Promise<IMediaItem[]> {
     const importedItems: IMediaItem[] = [];
 
     for (const file of files) {
+        // Уменьшенные варианты постепенной загрузки — не самостоятельные файлы
+        // медиатеки, а принадлежность своего полного: без этого фильтра импорт
+        // из бакета показывал бы каждую картинку тремя записями, и удаление
+        // «лишних» унесло бы варианты у оставшейся
+        if (isMediaVariantFilename(file.key)) {
+            continue;
+        }
+
         const payload = await buildImportPayload(file);
         importedItems.push(await storage.createMedia(payload));
     }

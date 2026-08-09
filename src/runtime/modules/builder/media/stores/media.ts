@@ -3,6 +3,7 @@ import { defineStore } from 'pinia';
 import type { Composer } from 'vue-i18n';
 import { useNuxtApp } from '#imports';
 import type {
+    IBricksMediaOptimization,
     IMediaItem,
     IMediaUpdateCategoryRequest,
     IMediaUpdateMetaRequest,
@@ -12,10 +13,10 @@ import { toCamelCase } from '../../../common/utils/case-transform';
 import { isRequestTimeoutError } from '../../../common/utils/apiRequestPolicy';
 import { isMediaListResponse, toMediaRequestError } from '../utils/requestErrors';
 import { BRICKS_MEDIA_UPLOAD_TIMEOUT_MS } from '../../../common/constants/apiTimeouts';
+import { ALL_MEDIA_CATEGORIES_FILTER } from '../../../common/constants/mediaCategories';
 // #endregion
 
 // #region Data
-const DEFAULT_MEDIA_CATEGORY = 'other';
 const DEFAULT_MEDIA_MIME_TYPE = 'image/png';
 // #endregion
 
@@ -43,8 +44,15 @@ function normalizeMediaItem(rawItem: IMediaItem): IMediaItem {
     return {
         ...item,
         alt: item.alt ?? '',
-        category: item.category || DEFAULT_MEDIA_CATEGORY,
+        // Пустая строка от внешнего backend'а — то же самое, что «без категории»
+        category: item.category || null,
         mimeType: item.mimeType || DEFAULT_MEDIA_MIME_TYPE,
+        // Внешний backend вправе не отдавать эти поля вовсе; `undefined` в них
+        // сломал бы проверки «вариант есть?» — потребитель ждёт строку или null
+        width: item.width ?? null,
+        height: item.height ?? null,
+        previewUrl: item.previewUrl ?? null,
+        mockUrl: item.mockUrl ?? null,
     };
 }
 // #endregion
@@ -190,20 +198,38 @@ export const useMediaStore = defineStore('bricksMedia', {
          * на сервере). Ошибка пробрасывается вызывающему.
          *
          * @param file - Файл, который нужно загрузить.
-         * @param category - Категория, которая будет назначена (если задана).
+         * @param category - Категория, которая будет назначена; без неё файл
+         *   загружается без категории.
          * @returns Промис с сохранённым медиа-элементом.
          */
-        async uploadFile(file: File, category?: string): Promise<IMediaItem> {
+        async uploadFile(
+            file: File,
+            category?: string | null,
+            optimization?: IBricksMediaOptimization
+        ): Promise<IMediaItem> {
             const { apiFetcher } = useApiClient();
             this.uploadingCount += 1;
 
             try {
                 const resolvedCategory =
-                    category && category !== 'all' ? category : DEFAULT_MEDIA_CATEGORY;
+                    category && category !== ALL_MEDIA_CATEGORIES_FILTER ? category : null;
 
                 const formData = new FormData();
                 formData.append('file', file);
-                formData.append('category', resolvedCategory);
+
+                // Поле не отправляется вовсе, когда категории нет: пустая строка
+                // в multipart дошла бы до валидатора как невалидный slug
+                if (resolvedCategory) {
+                    formData.append('category', resolvedCategory);
+                }
+
+                // Параметры уходят только когда выбраны: без полей сервер берёт
+                // дефолты конфига, и передавать их клиентской копией незачем
+                if (optimization) {
+                    formData.append('format', optimization.format);
+                    formData.append('quality', String(optimization.quality));
+                    formData.append('maxWidth', String(optimization.maxWidth));
+                }
 
                 const response = await apiFetcher<IMediaItem>('/api/bricks/media/upload', {
                     method: 'POST',
@@ -259,9 +285,9 @@ export const useMediaStore = defineStore('bricksMedia', {
          * сервер её отклонил.
          *
          * @param id - Идентификатор медиа.
-         * @param category - Новая категория.
+         * @param category - Новая категория; null снимает её с файла.
          */
-        async updateItemCategory(id: number, category: string): Promise<void> {
+        async updateItemCategory(id: number, category: string | null): Promise<void> {
             const { apiFetcher } = useApiClient();
 
             if (!this.items.some((item) => item.id === id)) {
@@ -332,6 +358,24 @@ export const useMediaStore = defineStore('bricksMedia', {
             }
 
             this.applyItemPatch(id, patch);
+        },
+
+        /**
+         * Отражает серверное снятие категории с её файлов после удаления
+         * категории.
+         *
+         * Живёт здесь, а не в сторе категорий: список файлов принадлежит
+         * этому стору, и правка его извне обошла бы обесценивание летящего
+         * GET, из-за которого файлы удалённой категории исчезли бы из всех
+         * фильтров до перезагрузки.
+         *
+         * @param slug - Удалённая категория.
+         */
+        clearCategoryLocally(slug: string): void {
+            this.invalidatePendingItemsLoad();
+            this.items = this.items.map((item) =>
+                item.category === slug ? { ...item, category: null } : item
+            );
         },
     },
 });

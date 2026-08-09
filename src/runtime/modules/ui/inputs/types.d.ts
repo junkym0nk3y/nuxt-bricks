@@ -149,3 +149,13 @@ export interface IBricksHexInputEmits {
     'update:value': [value: string];
     change: [value: string];
 }
+
+export interface IBricksSearchInputProps {
+    value: string;
+    placeholder?: string;
+    disabled?: boolean;
+}
+
+export interface IBricksSearchInputEmits {
+    'update:value': [value: string];
+}

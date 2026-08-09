@@ -60,7 +60,6 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
 
     const { handleOpenMediaGallery, handleMediaSelect } = useSidebarMediaSelection({
         onOpenMediaGallery: options.onOpenMediaGallery,
-        applyPropertyValue: handleChangeValues,
     });
 
     // #endregion

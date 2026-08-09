@@ -123,6 +123,8 @@ function resolveDimension(value: string | number | undefined): string {
             :class="$style.svgImage"
             :style="svgContainerStyle"
             alt="SVG"
+            loading="lazy"
+            decoding="async"
         />
 
         <!-- Placeholder -->

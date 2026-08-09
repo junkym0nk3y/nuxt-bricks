@@ -46,7 +46,13 @@ function handleClear(): void {
     <div :class="$style.BuilderShellSidebarPublishSocialImage">
         <Transition mode="out-in" name="bricks-fade-fast">
             <div v-if="props.socialImage" :class="$style.mediaPreview">
-                <img :src="props.socialImage" alt="" :class="$style.mediaImage" />
+                <img
+                    :src="props.socialImage"
+                    alt=""
+                    :class="$style.mediaImage"
+                    loading="lazy"
+                    decoding="async"
+                />
             </div>
         </Transition>
         <div :class="$style.mediaActions">

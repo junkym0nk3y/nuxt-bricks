@@ -392,4 +392,12 @@ describe('validateUpdateMediaPayload: PATCH медиа', () => {
         expect(() => validateUpdateMediaPayload({})).toThrow(/No fields/);
         expect(() => validateUpdateMediaPayload({ url: 'https://x' })).toThrow(/Unknown fields/);
     });
+
+    it('null в категории проходит: это снятие категории с файла, а не пустой slug', () => {
+        expect(validateUpdateMediaPayload({ category: null })).toEqual({ category: null });
+    });
+
+    it('пустая строка в категории отклоняется — она не значит «без категории»', () => {
+        expect(() => validateUpdateMediaPayload({ category: '' })).toThrow();
+    });
 });

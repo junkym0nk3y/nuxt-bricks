@@ -4,7 +4,10 @@
  * живут в common/types/media.d.ts; серверные типы обработки — в persistence/types/media.d.ts.
  */
 
+import type { ComputedRef, Ref } from 'vue';
 import type {
+    IBricksMediaOptimization,
+    IMediaCategory,
     IMediaItem,
     IMediaUpdateMetaRequest,
     TMediaGalleryContext,
@@ -21,50 +24,119 @@ export interface IMediaGalleryEmits {
     error: [message: string];
 }
 
+/**
+ * Прогресс загрузки набора файлов. Считается по файлам, а не по байтам: отдача
+ * идёт одним `$fetch` на файл, и байтового прогресса у него нет.
+ */
+export interface IMediaUploadProgress {
+    /** Номер файла, который грузится сейчас (1-based). */
+    current: number;
+    total: number;
+    filename: string;
+}
+
 export interface IMediaUploadOptions {
-    /** Возвращает категорию, присваиваемую загружаемым файлам. */
-    resolveCategory: () => string;
+    /** Возвращает категорию для загружаемых файлов; null — загрузка без категории. */
+    resolveCategory: () => string | null;
+    /** Возвращает параметры оптимизации для загрузки. */
+    resolveOptimization: () => IBricksMediaOptimization;
     /** Колбэк для ошибок валидации (превышение лимита размера). */
     onError: (message: string) => void;
 }
 
 export interface IMediaGalleryFiltersProps {
     categoryFilter: string;
-    searchQuery: string;
+    categories: IMediaCategory[];
+    /** Число файлов в каждой категории по slug — счётчик в табе. */
+    categoryCounts: Record<string, number>;
+    /** Общее число файлов медиатеки — счётчик таба «Все». */
+    totalCount: number;
+    /** Идёт создание категории — поле ввода в состоянии ожидания. */
+    isCreatingCategory: boolean;
 }
 
 export interface IMediaGalleryFiltersEmits {
     'update:categoryFilter': [value: string];
-    'update:searchQuery': [value: string];
+    'create-category': [label: string];
+    'delete-category': [slug: string];
 }
 
-export interface IMediaGalleryUploadAreaProps {
+export interface IMediaGalleryCategoryTabsProps {
+    modelValue: string;
+    categories: IMediaCategory[];
+    categoryCounts: Record<string, number>;
+    totalCount: number;
+    /** Режим управления: у категорий показаны крестики удаления. */
+    isManaging: boolean;
+}
+
+export interface IMediaGalleryCategoryTabsEmits {
+    'update:modelValue': [value: string];
+    'delete-category': [slug: string];
+}
+
+export interface IMediaGalleryUploadControlsProps {
     maxImageSizeMb: number;
     maxVideoSizeMb: number;
+    optimization: IBricksMediaOptimization;
+    /** Прогресс текущей загрузки; null — загрузки нет. */
+    uploadProgress: IMediaUploadProgress | null;
 }
 
-export interface IMediaGalleryUploadAreaEmits {
+export interface IMediaGalleryUploadControlsEmits {
     upload: [files: File[]];
+    'update:optimization': [value: IBricksMediaOptimization];
+}
+
+/**
+ * Оверлей приёмника, разворачивающийся над сеткой при перетаскивании файлов.
+ * Постоянной зоны загрузки нет — точка входа живёт в шапке и первой ячейкой
+ * сетки, а приёмник показывается ровно тогда, когда файлы уже над окном.
+ */
+export interface IMediaGalleryDropOverlayProps {
+    /** Сколько файлов тащат — из dataTransfer.items. */
+    fileCount: number;
+    maxImageSizeMb: number;
+    maxVideoSizeMb: number;
+    optimization: IBricksMediaOptimization;
+}
+
+export interface IMediaGalleryUploadOptionsProps {
+    optimization: IBricksMediaOptimization;
+}
+
+export interface IMediaGalleryUploadOptionsEmits {
+    'update:optimization': [value: IBricksMediaOptimization];
 }
 
 export interface IMediaGalleryGridProps {
     items: IMediaItem[];
     selectedItemId: number | null;
+    /** Показать плитку-скелет первым элементом (идёт загрузка). */
+    showSkeleton: boolean;
+    /** Показать первой ячейкой плитку-приёмник загрузки. */
+    showUploadTile: boolean;
 }
 
 export interface IMediaGalleryGridEmits {
     select: [item: IMediaItem];
     preview: [item: IMediaItem];
+    upload: [];
 }
 
 export interface IMediaGalleryMetaPanelProps {
     selectedItem: IMediaItem | null;
+    categories: IMediaCategory[];
+    /** Показывать кнопки «Отменить» / «Выбрать» (контекст выбора картинки). */
+    showPickerActions: boolean;
 }
 
 export interface IMediaGalleryMetaPanelEmits {
     'update-meta': [meta: IMediaUpdateMetaRequest];
-    'update-category': [category: string];
+    'update-category': [category: string | null];
     remove: [];
+    close: [];
+    insert: [];
 }
 
 /**
@@ -80,4 +152,42 @@ export interface IMediaGalleryPreviewLightboxProps {
 
 export interface IMediaGalleryPreviewLightboxEmits {
     close: [];
+}
+
+/**
+ * Файл в очереди загрузки вместе с параметрами своего набора: категория и
+ * параметры оптимизации фиксируются на момент постановки в очередь, иначе смена
+ * фильтра или настроек по ходу переписала бы уже принятое задание.
+ */
+export interface IMediaUploadQueueEntry {
+    file: File;
+    /** null — файл грузится без категории. */
+    category: string | null;
+    optimization: IBricksMediaOptimization;
+}
+
+/**
+ * Что композаблу действий над категориями нужно от вызывающего: счётчик файлов
+ * для текста подтверждения, реакция на удаление (сброс фильтра, указывающего на
+ * исчезнувшую категорию) и показ ошибки.
+ */
+export interface IMediaCategoryActionsOptions {
+    resolveCategoryCount: (slug: string) => number;
+    onCategoryDeleted: (slug: string) => void;
+    onError: (message: string) => void;
+}
+
+/** Состояние и обработчики ряда чипов категорий вместе с подтверждением удаления. */
+export interface IMediaCategoryActions {
+    categories: ComputedRef<IMediaCategory[]>;
+    isCreatingCategory: Ref<boolean>;
+    categoryPendingDeletion: Ref<string | null>;
+    isDeletingCategory: Ref<boolean>;
+    deleteCategoryTitle: ComputedRef<string>;
+    deleteCategoryDescription: ComputedRef<string>;
+    handleCreateCategory: (label: string) => Promise<void>;
+    handleRequestCategoryDelete: (slug: string) => void;
+    handleCloseCategoryDelete: () => void;
+    handleConfirmCategoryDelete: () => Promise<void>;
+    resetCategoryActions: () => void;
 }

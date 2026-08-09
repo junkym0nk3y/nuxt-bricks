@@ -97,7 +97,21 @@ export const MEDIA_SELECT_FIELDS = `
     mime_type as "mimeType",
     category,
     svg_content as "svgContent",
+    width,
+    height,
+    preview_url as "previewUrl",
+    mock_url as "mockUrl",
     uploaded_at as "uploadedAt"
+`;
+
+/**
+ * Поля выборки категории медиа (bricks_media_categories) с camelCase-алиасами.
+ */
+export const MEDIA_CATEGORY_SELECT_FIELDS = `
+    id,
+    slug,
+    label,
+    sort_order as "sortOrder"
 `;
 
 /**

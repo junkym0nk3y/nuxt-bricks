@@ -1,9 +1,10 @@
 /**
- * Пропсы layout-блоков (Grid/Flex/Space/Slider/Accordion/Section/Svg).
+ * Пропсы layout-блоков (Grid/Flex/Space/Slider/Accordion/Section/Svg/Media).
  * Домен layouts-blocks — владелец этих контрактов; canvas/render/sidebar импортируют отсюда.
  */
 
 import type { IBricksComponent } from '../../common/types/brick';
+import type { TBricksMediaLoadMode } from '../../common/types/config';
 import type { VNodeChild } from 'vue';
 
 export type TGridLayoutVariant = 'default' | 'lead-left' | 'lead-right';
@@ -96,6 +97,46 @@ export interface IBlockSvgProps {
     alignment?: 'left' | 'center' | 'right';
     marginTop?: number;
     marginBottom?: number;
+}
+
+export interface IBlockMediaProps {
+    src?: string;
+    alt?: string;
+    type?: 'image' | 'video';
+    objectFit?: 'contain' | 'cover' | 'fill' | 'none' | 'scale-down';
+    width?: string | number;
+    height?: string | number;
+    borderRadius?: string | number;
+    autoplay?: boolean;
+    loop?: boolean;
+    muted?: boolean;
+    controls?: boolean;
+    /**
+     * URL уменьшенных вариантов постепенной загрузки. Заполняются при выборе
+     * картинки из галереи (`previewUrlProperty` / `mockUrlProperty` в definition):
+     * блок хранит картинку строкой, а не id медиа, и вывести их из `src` нельзя.
+     */
+    previewSrc?: string;
+    mockSrc?: string;
+    /**
+     * Пиксельные размеры выбранной картинки. Заполняются оттуда же, откуда
+     * адреса вариантов: держат место под картинку `aspect-ratio`, пока в разметке
+     * стоит прозрачный 1×1. Ноль (или отсутствие) — размеры неизвестны, и тогда
+     * постепенная загрузка возвращается к превью в разметке.
+     */
+    naturalWidth?: number;
+    naturalHeight?: number;
+    /**
+     * Режим постепенной загрузки; `config` — взять глобальный дефолт из
+     * `bricks.media.loadMode`. Режим — свойство МЕСТА на странице, а не файла:
+     * одна и та же картинка на первом экране и в подвале требует разного.
+     */
+    loadMode?: TBricksMediaLoadMode | 'config';
+    /**
+     * Первый экран: снимает lazy и ставит `fetchpriority="high"`. Постепенная
+     * загрузка на первом экране бьёт по LCP — полный файл нужен сразу.
+     */
+    eagerLoad?: boolean;
 }
 
 export interface IBlockGridOverlayProps {

@@ -381,7 +381,7 @@ function handleCreatePage(): void {
 }
 
 .dropdown {
-    z-index: 200;
+    z-index: var(--bricks-z-popover);
     display: flex;
     width: 32rem;
     padding: 0;

@@ -66,7 +66,7 @@ function handleConfirm(): void {
         :title="props.title"
         variant="gradient"
         padded
-        :z-index="999999"
+        layer="confirm"
         :duration="200"
         @close="handleClose"
         @after-leave="emit('afterLeave')"

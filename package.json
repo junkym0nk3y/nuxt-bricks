@@ -77,7 +77,8 @@
         "smoke:pack": "node ./scripts/pack-smoke.mjs",
         "smoke:integration": "node ./scripts/integration-smoke.mjs",
         "smoke:external": "node ./scripts/external-smoke.mjs",
-        "budget:bundle": "node ./scripts/bundle-budget.mjs"
+        "budget:bundle": "node ./scripts/bundle-budget.mjs",
+        "media:backfill-variants": "node ./scripts/backfill-media-variants.mjs"
     },
     "simple-git-hooks": {
         "pre-commit": "npx lint-staged",

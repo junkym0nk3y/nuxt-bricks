@@ -1,6 +1,12 @@
 // #region Types
-/** Функция перевода (`t` из vue-i18n / `$i18n.t`). */
-export type TTranslateFn = (key: string) => string;
+/**
+ * Функция перевода (`t` из vue-i18n / `$i18n.t`).
+ *
+ * Второй параметр опционален: подписи без подстановок вызывают её одним
+ * аргументом, а сводки медиа — с параметрами, и оба вызова обязаны описываться
+ * одним типом, иначе у вызывающего появляется вторая копия сигнатуры.
+ */
+export type TTranslateFn = (key: string, params?: Record<string, string | number>) => string;
 
 /** Проверка наличия ключа в текущей локали (`te` из vue-i18n). */
 export type TTranslateExistsFn = (key: string) => boolean;

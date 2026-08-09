@@ -1,24 +1,20 @@
 <script setup lang="ts">
 // #region Imports
+// Types
+import type { IAppConfig, TBricksMediaLoadMode } from '../../common/types/config';
+import type { IBlockMediaProps } from '../types/blockProps';
+
+// Nuxt
+import { useAppConfig } from 'nuxt/app';
+
 // Vue
 import { computed, useCssModule } from 'vue';
+
+// Components
+import BricksImage from '../../ui/base/image/BricksImage.vue';
 // #endregion
 
 // #region Props
-interface IBlockMediaProps {
-    src?: string;
-    alt?: string;
-    type?: 'image' | 'video';
-    objectFit?: 'contain' | 'cover' | 'fill' | 'none' | 'scale-down';
-    width?: string | number;
-    height?: string | number;
-    borderRadius?: string | number;
-    autoplay?: boolean;
-    loop?: boolean;
-    muted?: boolean;
-    controls?: boolean;
-}
-
 const props = withDefaults(defineProps<IBlockMediaProps>(), {
     src: '',
     alt: 'Media',
@@ -31,11 +27,20 @@ const props = withDefaults(defineProps<IBlockMediaProps>(), {
     loop: false,
     muted: true,
     controls: true,
+    previewSrc: '',
+    mockSrc: '',
+    naturalWidth: 0,
+    naturalHeight: 0,
+    loadMode: 'config',
+    eagerLoad: false,
 });
 // #endregion
 
 // #region Data
 const $style = useCssModule();
+const appConfig = useAppConfig() as IAppConfig;
+/** Дефолт, если ни блок, ни конфиг режим не задали. */
+const FALLBACK_LOAD_MODE: TBricksMediaLoadMode = 'two-step';
 // #endregion
 
 // #region Computed
@@ -65,31 +70,47 @@ const mediaStyle = computed(() => {
 const isVideo = computed(() => props.type === 'video');
 const isImage = computed(() => props.type === 'image');
 const hasSource = computed(() => Boolean(props.src));
+/** `config` у блока означает «взять глобальный дефолт модуля». */
+const resolvedLoadMode = computed<TBricksMediaLoadMode>(() =>
+    props.loadMode === 'config'
+        ? (appConfig.bricks?.media?.loadMode ?? FALLBACK_LOAD_MODE)
+        : props.loadMode
+);
 // #endregion
 </script>
 
 <template>
     <div :class="$style.BlockMedia">
-        <!-- Image -->
-        <img
+        <!--
+            Image. Постепенной загрузкой занимается BricksImage: у него абсолютные
+            слои, поэтому обёртка обязана иметь размер — style с width/height
+            переезжает на неё, а не на саму картинку
+        -->
+        <BricksImage
             v-if="isImage && hasSource"
-            :src="src"
-            :alt="alt"
+            :src="props.src"
+            :alt="props.alt"
+            :preview-src="props.previewSrc || null"
+            :mock-src="props.mockSrc || null"
+            :mode="resolvedLoadMode"
+            :eager="props.eagerLoad"
+            :fit="props.objectFit"
+            :natural-width="props.naturalWidth || null"
+            :natural-height="props.naturalHeight || null"
             :class="$style.media"
             :style="mediaStyle"
-            loading="lazy"
         />
 
         <!-- Video -->
         <video
             v-else-if="isVideo && hasSource"
-            :src="src"
+            :src="props.src"
             :class="$style.media"
             :style="mediaStyle"
-            :autoplay="autoplay"
-            :loop="loop"
-            :muted="muted"
-            :controls="controls"
+            :autoplay="props.autoplay"
+            :loop="props.loop"
+            :muted="props.muted"
+            :controls="props.controls"
             playsinline
         />
 

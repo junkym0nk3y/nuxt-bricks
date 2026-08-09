@@ -15,7 +15,7 @@ import type {
     IPageVersionSummary,
     IPageVersion,
 } from '../../common/types/bricks-api';
-import type { IMediaItem } from '../../common/types/media';
+import type { IMediaCategory, IMediaItem } from '../../common/types/media';
 import type { IBricksPageAddress } from '../../common/types/pageAddress';
 
 /**
@@ -26,16 +26,37 @@ export interface ICreateMediaPayload {
     filename: string;
     size: number;
     mimeType: string;
-    category: string;
+    category: string | null;
     svgContent?: string | null;
     alt?: string;
     uploadedAt?: string;
+    /** Пиксельные размеры растра; не передаются для svg и видео. */
+    width?: number | null;
+    height?: number | null;
+    /** URL уменьшенных вариантов постепенной загрузки; null — вариантов нет. */
+    previewUrl?: string | null;
+    mockUrl?: string | null;
 }
 
 /**
  * Частичное обновление метаданных медиа.
  */
 export type TUpdateMediaPayload = Partial<Pick<IMediaItem, 'filename' | 'alt' | 'category'>>;
+
+/**
+ * Данные для создания категории медиа. `slug` считает вызывающий (из подписи),
+ * а не хранилище: тот же slug нужен ему для ответа об уже существующей категории.
+ */
+export interface ICreateMediaCategoryPayload {
+    slug: string;
+    label: string;
+}
+
+/**
+ * Итог удаления категории. `null` — категории с таким slug нет (ручка отвечает
+ * 404); иначе — у скольких файлов категория снята.
+ */
+export type TDeleteMediaCategoryResult = { clearedCount: number } | null;
 
 /**
  * CRUD страниц билдера и медиа-метаданных.
@@ -101,7 +122,56 @@ export interface IStorageAdapter {
     createMedia(payload: ICreateMediaPayload): Promise<IMediaItem>;
     updateMedia(id: number, payload: TUpdateMediaPayload): Promise<IMediaItem | null>;
     deleteMedia(id: number): Promise<boolean>;
+    /** Категории медиатеки в порядке показа (по sortOrder, затем id). */
+    listMediaCategories(): Promise<IMediaCategory[]>;
+    /**
+     * Создаёт категорию.
+     *
+     * Контракт идемпотентности: `slug` уникален; повторное создание того же
+     * slug'а обязано вернуть существующую запись, а не падать — иначе двойной
+     * клик по «подтвердить» показывал бы ошибку на успешно созданной категории.
+     * Отличать «создали» от «уже была» вызывающему не нужно: обе ветки приводят
+     * к одному состоянию UI.
+     */
+    createMediaCategory(payload: ICreateMediaCategoryPayload): Promise<IMediaCategory>;
+    /**
+     * Удаляет категорию, сняв её с файлов.
+     *
+     * Обе половины обязаны быть атомарны: между снятием категории и удалением
+     * записи нельзя допустить состояние, в котором `bricks_media.category`
+     * ссылается в пустоту (чего не позволит FK). Предустановленных и
+     * неудаляемых категорий нет — удалить можно любую, файлы при этом остаются
+     * в медиатеке и видны в фильтре «Все».
+     */
+    deleteMediaCategory(slug: string): Promise<TDeleteMediaCategoryResult>;
 }
+
+/**
+ * Медиа-половина контракта хранилища.
+ *
+ * Оба адаптера (Postgres и HTTP) собирают её отдельным файлом и подмешивают в
+ * свой контракт спредом; набор методов у них обязан совпадать, поэтому имя
+ * одно и живёт здесь, а не двумя копиями в реализациях.
+ */
+export type TStorageMediaMethods = Pick<
+    IStorageAdapter,
+    | 'listMedia'
+    | 'getMedia'
+    | 'getMediaByUrl'
+    | 'createMedia'
+    | 'updateMedia'
+    | 'deleteMedia'
+    | 'listMediaCategories'
+    | 'createMediaCategory'
+    | 'deleteMediaCategory'
+>;
+
+/**
+ * Доступ к списку категорий — всё, что нужно правилам продукта из
+ * `server/utils/mediaCategoryRules.ts`. Узкий Pick, чтобы правила тестировались
+ * юнитами без реального Postgres.
+ */
+export type TMediaCategoryStorage = Pick<IStorageAdapter, 'listMediaCategories'>;
 
 /**
  * Параметры загрузки файла в хранилище публикации.

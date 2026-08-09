@@ -79,7 +79,6 @@ function handleDiscard(): void {
         :title="t('bricks.publish.draft.restoreTitle')"
         variant="gradient"
         padded
-        :z-index="999999"
         :duration="200"
         @close="handleClose"
     >

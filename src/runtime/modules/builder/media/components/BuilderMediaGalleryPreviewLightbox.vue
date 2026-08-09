@@ -1,10 +1,28 @@
 <script setup lang="ts">
+/**
+ * @description Полноэкранный предпросмотр файла поверх галереи.
+ *
+ * Это диалог, а не просто оверлей: он перекрывает всю модалку, поэтому обязан
+ * забрать фокус и не пускать Tab за свои пределы — иначе фокус остаётся на
+ * плитке под затемнением и продолжает ходить по невидимой галерее. Реализовано
+ * своими руками, а не `BricksModal`: тот телепортируется в body и создал бы
+ * собственный слой поверх галереи, тогда как лайтбокс обязан жить ВНУТРИ её
+ * контекста наложения.
+ *
+ * Escape перехватывает родитель (у Reka Dialog галереи свой обработчик), поэтому
+ * здесь его нет — два обработчика закрыли бы и лайтбокс, и саму галерею.
+ */
+
 // #region Imports
 // Types
 import type {
     IMediaGalleryPreviewLightboxProps,
     IMediaGalleryPreviewLightboxEmits,
 } from '../types/media';
+
+// Vue
+import { nextTick, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 // #endregion
 
 // #region Props
@@ -15,11 +33,73 @@ const props = withDefaults(defineProps<IMediaGalleryPreviewLightboxProps>(), {})
 const emit = defineEmits<IMediaGalleryPreviewLightboxEmits>();
 // #endregion
 
+// #region Data
+const { t } = useI18n();
+const rootRef = ref<HTMLElement | null>(null);
+const closeRef = ref<HTMLButtonElement | null>(null);
+/** Что было в фокусе до открытия — туда фокус и возвращается. */
+let previouslyFocused: HTMLElement | null = null;
+// #endregion
+
 // #region Methods
 /** Закрывает полноэкранный предпросмотр. */
 function handleClose(): void {
     emit('close');
 }
+
+/**
+ * Запирает Tab внутри диалога, замыкая его в цикл по своим фокусируемым
+ * элементам.
+ *
+ * Не «всегда возвращать фокус на закрытие»: у видео есть `controls`, и сам
+ * `<video>` фокусируем — сведение цикла к одной кнопке делало бы его контролы
+ * недостижимыми с клавиатуры. Перехватывается только выход за края, внутри
+ * диалога Tab работает нативно.
+ *
+ * @param event - Событие клавиатуры.
+ */
+function handleKeydown(event: KeyboardEvent): void {
+    if (event.key !== 'Tab') {
+        return;
+    }
+
+    const focusable = Array.from(
+        rootRef.value?.querySelectorAll<HTMLElement>('button, video[controls]') ?? []
+    );
+
+    if (focusable.length === 0) {
+        return;
+    }
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const boundary = event.shiftKey ? first : last;
+
+    if (document.activeElement !== boundary) {
+        return;
+    }
+
+    event.preventDefault();
+    (event.shiftKey ? last : first).focus();
+}
+// #endregion
+
+// #region Lifecycle
+watch(
+    () => props.item,
+    async (item) => {
+        if (!item) {
+            previouslyFocused?.focus();
+            previouslyFocused = null;
+            return;
+        }
+
+        previouslyFocused = document.activeElement as HTMLElement | null;
+
+        await nextTick();
+        closeRef.value?.focus();
+    }
+);
 // #endregion
 </script>
 
@@ -27,10 +107,21 @@ function handleClose(): void {
     <Transition name="bricks-modal-fade">
         <div
             v-if="props.item"
+            ref="rootRef"
+            role="dialog"
+            aria-modal="true"
+            :aria-label="props.item.alt || props.item.filename"
             :class="$style.BuilderMediaGalleryPreviewLightbox"
             @click.self="handleClose"
+            @keydown="handleKeydown"
         >
-            <button type="button" :class="$style.previewClose" @click="handleClose">
+            <button
+                ref="closeRef"
+                type="button"
+                :class="$style.previewClose"
+                :aria-label="t('bricks.common.close')"
+                @click="handleClose"
+            >
                 <BricksIcon icon="ta:outline-x" />
             </button>
             <video
@@ -55,7 +146,12 @@ function handleClose(): void {
 .BuilderMediaGalleryPreviewLightbox {
     position: fixed;
     inset: 0;
-    z-index: 100000;
+
+    /* Локальное значение, не из шкалы `--bricks-z-*`: лайтбокс рендерится внутри
+       модалки галереи, а её корень с z-index создаёт свой контекст наложения —
+       соперничать здесь можно только с соседями внутри модалки, у которых
+       z-index нет вовсе. */
+    z-index: 10;
     display: flex;
     align-items: center;
     justify-content: center;

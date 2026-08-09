@@ -5,33 +5,39 @@ import {
     useBricksStorageAdapter,
 } from '../../../../modules/persistence/server/registry';
 import {
+    clampRequestedOptimization,
     getFileExtension,
     isVideoFile,
+    resolveImageFormat,
     resolveMediaConfig,
 } from '../../../../modules/persistence/server/utils/imageProcessing';
 import {
     validateAndOptimizeImage,
     validateVideo,
 } from '../../../../modules/persistence/server/utils/mediaProcessing';
-import {
-    DEFAULT_MEDIA_CATEGORY,
-    uploadAndRegisterMedia,
-} from '../../../../modules/persistence/server/utils/mediaOrchestration';
+import { uploadAndRegisterMedia } from '../../../../modules/persistence/server/utils/mediaOrchestration';
+import { buildMediaVariantFilename } from '../../../../modules/persistence/server/utils/mediaVariants';
 import { toHttpError } from '../../../../modules/persistence/server/utils/handlerHelpers';
 import {
     MULTIPART_ENVELOPE_ALLOWANCE_BYTES,
     readMultipartFormDataWithLimit,
 } from '../../../../modules/persistence/server/utils/requestBodyLimits';
 import { validateMediaCategory } from '../../../../modules/persistence/server/utils/mediaPayloadValidation';
+import { assertKnownMediaCategory } from '../../../../modules/persistence/server/utils/mediaCategoryRules';
 import { sanitizeSvgMarkup } from '../../../../modules/common/utils/sanitize/sanitizeSvg';
 import {
     assertWithinRateLimit,
     createFixedWindowRateLimiter,
 } from '../../../utils/requestRateLimiter';
 import type {
+    IPreparedUpload,
     IResolvedMediaConfig,
     IUploadedFilePart,
+    IUploadMediaVariant,
+    IValidatedImage,
+    TMediaVariant,
 } from '../../../../modules/persistence/types/media';
+import type { IBricksMediaOptimization } from '../../../../modules/common/types/media';
 
 /** Лимит загрузок с одного IP в минуту. */
 const UPLOADS_PER_MINUTE = 30;
@@ -40,12 +46,62 @@ const uploadRateLimiter = createFixedWindowRateLimiter({
     windowMs: 60_000,
 });
 
-/** Подготовленный к загрузке файл. */
-export interface IPreparedUpload {
-    buffer: Buffer;
-    mimeType: string;
-    targetExtension: string;
-    svgContent: string | null;
+/**
+ * Читает переопределения параметров оптимизации из multipart-полей и накрывает
+ * ими дефолты конфига.
+ *
+ * Параметры приходят с формой, а не из конфига, потому что выбираются в
+ * поповере на каждую загрузку; конфиг остаётся источником дефолтов. Любое
+ * непонятное значение молча заменяется дефолтом — это не тот ввод, из-за
+ * которого стоит отказывать в загрузке файла. Годное, но выходящее за границы
+ * загоняется в них `clampRequestedOptimization`: границы общие с интерфейсом, а запрос
+ * мимо интерфейса ими не ограничен.
+ *
+ * @param formData - Коллекция multipart-полей.
+ * @param fallback - Параметры из конфига.
+ * @returns Эффективные параметры оптимизации.
+ */
+function resolveUploadOptimization(
+    formData: IUploadedFilePart[],
+    fallback: IBricksMediaOptimization
+): IBricksMediaOptimization {
+    const readField = (name: string): string | undefined =>
+        formData.find((item) => item.name === name)?.data.toString();
+    const rawQuality = Number(readField('quality'));
+    const rawMaxWidth = Number(readField('maxWidth'));
+
+    return clampRequestedOptimization({
+        format: resolveImageFormat(readField('format'), fallback.format),
+        quality: Number.isFinite(rawQuality) && rawQuality > 0 ? rawQuality : fallback.quality,
+        maxWidth: Number.isFinite(rawMaxWidth) && rawMaxWidth > 0 ? rawMaxWidth : fallback.maxWidth,
+    });
+}
+
+/**
+ * Достраивает вариантам имена объектов рядом с полным файлом.
+ *
+ * @param variants - Готовые байты вариантов.
+ * @param storedFilename - Имя объекта полного файла.
+ * @returns Варианты с именами объектов.
+ */
+function withVariantFilenames(
+    variants: IValidatedImage['variants'],
+    storedFilename: string
+): Partial<Record<TMediaVariant, IUploadMediaVariant>> {
+    const result: Partial<Record<TMediaVariant, IUploadMediaVariant>> = {};
+
+    for (const [variant, image] of Object.entries(variants) as [
+        TMediaVariant,
+        NonNullable<IValidatedImage['variants'][TMediaVariant]>,
+    ][]) {
+        result[variant] = {
+            buffer: image.buffer,
+            mimeType: image.mimeType,
+            storedFilename: buildMediaVariantFilename(storedFilename, variant, image.extension),
+        };
+    }
+
+    return result;
 }
 
 /**
@@ -69,15 +125,18 @@ function assertUploadedFile(formData: IUploadedFilePart[]): IUploadedFilePart {
 
 /**
  * Валидирует и подготавливает файл к загрузке: видео — как есть, изображение —
- * оптимизация в webp, SVG — санитизированная разметка для предпросмотра.
+ * оптимизация в выбранный формат плюс уменьшенные варианты, SVG —
+ * санитизированная разметка для предпросмотра.
  *
  * @param file - Multipart-файл.
  * @param config - Разрешённые медиа-настройки (лимиты, оптимизация).
- * @returns Буфер, MIME, расширение и svgContent.
+ * @param optimization - Эффективные параметры оптимизации (конфиг + форма).
+ * @returns Буфер, MIME, расширение, svgContent, размеры и варианты.
  */
 export async function prepareUpload(
     file: IUploadedFilePart,
-    config: IResolvedMediaConfig
+    config: IResolvedMediaConfig,
+    optimization: IBricksMediaOptimization = config.optimization
 ): Promise<IPreparedUpload> {
     const fileExtension = getFileExtension(file.filename);
 
@@ -93,6 +152,9 @@ export async function prepareUpload(
             mimeType: validated.mimeType,
             targetExtension: validated.targetExtension,
             svgContent: null,
+            width: null,
+            height: null,
+            variants: {},
         };
     }
 
@@ -100,7 +162,7 @@ export async function prepareUpload(
         file,
         config.maxUploadSizeBytes,
         config.maxUploadSizeMb,
-        config.optimization
+        optimization
     );
 
     if (!validated.isSvg) {
@@ -109,6 +171,9 @@ export async function prepareUpload(
             mimeType: validated.mimeType,
             targetExtension: validated.targetExtension,
             svgContent: null,
+            width: validated.width,
+            height: validated.height,
+            variants: validated.variants,
         };
     }
 
@@ -121,6 +186,9 @@ export async function prepareUpload(
         mimeType: validated.mimeType,
         targetExtension: validated.targetExtension,
         svgContent: sanitizedSvg,
+        width: null,
+        height: null,
+        variants: {},
     };
 }
 
@@ -133,7 +201,9 @@ export async function prepareUpload(
  * (Content-Length pre-check + стрим-лимит), содержимое файла подтверждается
  * magic bytes в validate*-хелперах.
  *
- * Multipart-поля: `file` (обязателен), `category` (опционален, дефолт 'other').
+ * Multipart-поля: `file` (обязателен), `category` (опционален, дефолт 'other'),
+ * `format` / `quality` / `maxWidth` (опциональны — переопределяют дефолты
+ * `bricks.media.optimization` на эту загрузку).
  */
 export default defineEventHandler(async (event) => {
     try {
@@ -154,13 +224,26 @@ export default defineEventHandler(async (event) => {
 
         const file = assertUploadedFile(formData);
         const rawCategory = formData.find((item) => item.name === 'category')?.data.toString();
-        const category = rawCategory ? validateMediaCategory(rawCategory) : DEFAULT_MEDIA_CATEGORY;
+        // Пустая форма-поле и отсутствие поля — одно и то же: загрузка без
+        // выбранной категории, файл остаётся без неё
+        const category = rawCategory ? validateMediaCategory(rawCategory) : null;
+        const storage = useBricksStorageAdapter();
 
-        const prepared = await prepareUpload(file, config);
+        // До обработки файла: тратить sharp на вход, который всё равно некуда
+        // записать, незачем
+        if (category) {
+            await assertKnownMediaCategory(storage, category);
+        }
+
+        const prepared = await prepareUpload(
+            file,
+            config,
+            resolveUploadOptimization(formData, config.optimization)
+        );
         const storedFilename = `${randomUUID()}.${prepared.targetExtension}`;
 
         return await uploadAndRegisterMedia(
-            { storage: useBricksStorageAdapter(), publish: useBricksPublishAdapter() },
+            { storage, publish: useBricksPublishAdapter() },
             {
                 buffer: prepared.buffer,
                 mimeType: prepared.mimeType,
@@ -168,6 +251,9 @@ export default defineEventHandler(async (event) => {
                 displayFilename: file.filename || storedFilename,
                 category,
                 svgContent: prepared.svgContent,
+                width: prepared.width,
+                height: prepared.height,
+                variants: withVariantFilenames(prepared.variants, storedFilename),
             }
         );
     } catch (error: unknown) {

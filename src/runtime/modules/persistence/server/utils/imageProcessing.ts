@@ -2,7 +2,18 @@
 import { useAppConfig } from 'nitropack/runtime';
 import { createError } from 'h3';
 import sharp from 'sharp';
-import type { IMediaOptimization, IResolvedMediaConfig } from '../../types/media';
+import type { IOptimizedImage, IResolvedMediaConfig } from '../../types/media';
+import type { IBricksMediaOptimization } from '../../../common/types/media';
+import type { TBricksMediaImageFormat } from '../../../common/types/config';
+import {
+    DEFAULT_MEDIA_MAX_UPLOAD_SIZE_MB,
+    DEFAULT_MEDIA_MAX_VIDEO_UPLOAD_SIZE_MB,
+    DEFAULT_MEDIA_OPTIMIZATION,
+    MEDIA_MAX_WIDTH_MAX,
+    MEDIA_MAX_WIDTH_MIN,
+    MEDIA_QUALITY_MAX,
+    MEDIA_QUALITY_MIN,
+} from '../../../common/constants/mediaOptimization';
 import { createConcurrencyGate, GateOverflowError } from './concurrencyGate';
 // #endregion
 
@@ -21,12 +32,6 @@ const sharpGate = createConcurrencyGate({
     maxConcurrent: SHARP_MAX_CONCURRENT,
     maxQueue: SHARP_MAX_QUEUE,
 });
-const DEFAULT_MAX_UPLOAD_SIZE_MB = 10;
-const DEFAULT_MAX_VIDEO_UPLOAD_SIZE_MB = 100;
-const DEFAULT_OPTIMIZATION_CONFIG: IMediaOptimization = {
-    maxWidth: 1920,
-    quality: 70,
-};
 const SUPPORTED_IMAGE_EXTENSIONS = new Set([
     'jpg',
     'jpeg',
@@ -41,6 +46,26 @@ const SUPPORTED_IMAGE_EXTENSIONS = new Set([
     'avif',
     'svg',
 ]);
+/**
+ * Форматы, которые браузер обязан показать сам, — и только для них имеет смысл
+ * «Оригинал».
+ *
+ * Принимаем мы больше (HEIC/HEIF, TIFF, BMP), но сохранение такого входа как
+ * есть кончилось бы тем, что постепенная загрузка подменяет рабочее превью
+ * неоткрываемым файлом: варианты сгенерированы в webp и видны, а полный — нет.
+ * Для этих входов конвертация остаётся обязательной, даже если запрошен
+ * «Оригинал».
+ */
+const WEB_SAFE_IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'avif', 'gif', 'svg']);
+/** MIME по расширению для файлов, сохраняемых без перекодирования. */
+const IMAGE_EXTENSION_MIME: Record<string, string> = {
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    png: 'image/png',
+    webp: 'image/webp',
+    avif: 'image/avif',
+    gif: 'image/gif',
+};
 const SUPPORTED_VIDEO_EXTENSIONS = new Set(['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv']);
 const VIDEO_EXTENSION_MIME: Record<string, string> = {
     mp4: 'video/mp4',
@@ -148,18 +173,74 @@ function resolveNumber(value: unknown, fallback: number): number {
 }
 
 /**
+ * Приводит значение к известному формату; неизвестное — к дефолту конфига.
+ *
+ * @param value Сырое значение (конфиг или поле multipart-формы).
+ * @param fallback Значение по умолчанию.
+ */
+export function resolveImageFormat(
+    value: unknown,
+    fallback: TBricksMediaImageFormat
+): TBricksMediaImageFormat {
+    if (value === 'webp' || value === 'original') {
+        return value;
+    }
+
+    return fallback;
+}
+
+/**
+ * Приводит качество к тому, что принимает кодировщик.
+ *
+ * Применяется всегда, включая конфиг: sharp падает на значении вне 1..100, и
+ * опечатка в `bricks.media.optimization.quality` роняла бы любую загрузку вместо
+ * того, чтобы дать разумный результат.
+ *
+ * @param quality Сырое качество.
+ */
+function clampQuality(quality: number): number {
+    return Math.min(Math.max(Math.round(quality), MEDIA_QUALITY_MIN), MEDIA_QUALITY_MAX);
+}
+
+/**
+ * Загоняет параметры НЕДОВЕРЕННОГО запроса в границы интерфейса.
+ *
+ * Только для полей multipart-формы, не для конфига: поле поповера ограничивает
+ * ввод, а запрос мимо интерфейса им не ограничен — `maxWidth: 1` сохранял бы
+ * «полный» файл шириной в один пиксель. Конфиг ставит разработчик, и резать его
+ * осознанный выбор потолком, придуманным для поля ввода, нечем: `maxWidth`
+ * оттуда остаётся как есть.
+ *
+ * @param optimization Сырые параметры из формы.
+ * @returns Параметры в допустимых границах.
+ */
+export function clampRequestedOptimization(
+    optimization: IBricksMediaOptimization
+): IBricksMediaOptimization {
+    return {
+        format: optimization.format,
+        quality: clampQuality(optimization.quality),
+        maxWidth: Math.min(
+            Math.max(Math.round(optimization.maxWidth), MEDIA_MAX_WIDTH_MIN),
+            MEDIA_MAX_WIDTH_MAX
+        ),
+    };
+}
+
+/**
  * Читает медиа-настройки (лимит и параметры оптимизации) из app config с дефолтами.
  */
 export function resolveMediaConfig(): IResolvedMediaConfig {
     const appConfig = useAppConfig();
     const mediaConfig = appConfig.bricks?.media ?? {};
     const optimization = mediaConfig.optimization ?? {};
-    const maxWidth = resolveNumber(optimization.maxWidth, DEFAULT_OPTIMIZATION_CONFIG.maxWidth);
-    const quality = resolveNumber(optimization.quality, DEFAULT_OPTIMIZATION_CONFIG.quality);
-    const maxUploadSizeMb = resolveNumber(mediaConfig.maxUploadSizeMb, DEFAULT_MAX_UPLOAD_SIZE_MB);
+    const maxUploadSizeMb = resolveNumber(
+        mediaConfig.maxUploadSizeMb,
+        DEFAULT_MEDIA_MAX_UPLOAD_SIZE_MB
+    );
     const maxVideoUploadSizeMb = resolveNumber(
-        (mediaConfig as Record<string, unknown>).maxVideoUploadSizeMb,
-        DEFAULT_MAX_VIDEO_UPLOAD_SIZE_MB
+        mediaConfig.maxVideoUploadSizeMb,
+        DEFAULT_MEDIA_MAX_VIDEO_UPLOAD_SIZE_MB
     );
 
     return {
@@ -168,47 +249,148 @@ export function resolveMediaConfig(): IResolvedMediaConfig {
         maxVideoUploadSizeBytes: maxVideoUploadSizeMb * BYTES_IN_MB,
         maxVideoUploadSizeMb,
         optimization: {
-            maxWidth,
-            quality: Math.min(quality, 100),
+            format: resolveImageFormat(optimization.format, DEFAULT_MEDIA_OPTIMIZATION.format),
+            quality: clampQuality(
+                resolveNumber(optimization.quality, DEFAULT_MEDIA_OPTIMIZATION.quality)
+            ),
+            maxWidth: resolveNumber(optimization.maxWidth, DEFAULT_MEDIA_OPTIMIZATION.maxWidth),
         },
     };
 }
 
 /**
- * Ресайзит источник (без увеличения) и конвертирует в WebP.
+ * Разрешено ли сохранить вход как есть при запрошенном «Оригинале».
+ *
+ * @param extension Расширение входного файла в нижнем регистре.
+ * @returns true — формат web-safe и перекодирование не обязательно.
+ */
+export function isWebSafeImageExtension(extension: string): boolean {
+    return WEB_SAFE_IMAGE_EXTENSIONS.has(extension);
+}
+
+/**
+ * Переводит ошибку переполнения очереди семафора sharp в 503, остальное
+ * пробрасывает как есть.
+ *
+ * @param error Пойманная ошибка.
+ */
+function rethrowSharpGateOverflow(error: unknown): never {
+    if (error instanceof GateOverflowError) {
+        throw createError({
+            statusCode: 503,
+            statusMessage: 'Server is busy processing images, try again later',
+        });
+    }
+
+    throw error;
+}
+
+/**
+ * Определяет, анимирован ли вход (GIF/WebP с несколькими кадрами).
+ *
+ * Нужно потому, что sharp по умолчанию берёт ПЕРВЫЙ кадр: оптимизация
+ * анимированной гифки молча превращала бы её в статичную картинку. Такой вход
+ * сохраняется как есть, а варианты для него остаются статичными — это видно и
+ * объяснимо, в отличие от потерянной анимации.
+ *
+ * @param buffer Исходные байты изображения.
+ * @returns true — кадров больше одного.
+ */
+export async function isAnimatedImage(buffer: Buffer): Promise<boolean> {
+    try {
+        const metadata = await sharpGate.run(() =>
+            sharp(buffer, { limitInputPixels: MAX_INPUT_PIXELS }).metadata()
+        );
+
+        return (metadata.pages ?? 1) > 1;
+    } catch (error) {
+        if (error instanceof GateOverflowError) {
+            rethrowSharpGateOverflow(error);
+        }
+
+        // Нечитаемые метаданные — не повод отказать в загрузке: считаем вход
+        // статичным, дальше его всё равно проверит сама конвертация
+        console.warn('[Media] Failed to read image metadata:', error);
+
+        return false;
+    }
+}
+
+/**
+ * Ресайзит источник (без увеличения) и кодирует в webp.
+ *
+ * Формата в параметрах нет: перекодирование в проекте одно — webp. Второй
+ * целевой формат существовал бы только ради выбора в поповере, а вариантам
+ * (`preview`/`mock`) он и тогда был не нужен — они всегда webp.
  *
  * Декодирование ограничено MAX_INPUT_PIXELS (декомпрессионные бомбы) и общим
  * семафором конкурентности; переполнение очереди семафора — 503.
  *
  * @param buffer Исходные байты изображения.
- * @param optimization Опции ресайза и качества.
+ * @param optimization Ресайз и качество.
+ * @returns Готовые байты, MIME, расширение и размеры результата.
  */
-export async function optimizeToWebp(
+export async function optimizeImage(
     buffer: Buffer,
-    optimization: IMediaOptimization
-): Promise<Buffer> {
+    optimization: Omit<IBricksMediaOptimization, 'format'>
+): Promise<IOptimizedImage> {
     try {
-        return await sharpGate.run(() =>
-            sharp(buffer, { limitInputPixels: MAX_INPUT_PIXELS })
-                .resize({
-                    width: optimization.maxWidth,
-                    fit: 'inside',
-                    withoutEnlargement: true,
-                })
-                .webp({
-                    quality: optimization.quality,
-                })
-                .toBuffer()
+        const encoded = sharp(buffer, { limitInputPixels: MAX_INPUT_PIXELS })
+            .resize({
+                width: optimization.maxWidth,
+                fit: 'inside',
+                withoutEnlargement: true,
+            })
+            .webp({ quality: optimization.quality });
+        const { data, info } = await sharpGate.run(() =>
+            encoded.toBuffer({ resolveWithObject: true })
         );
+
+        return {
+            buffer: data,
+            mimeType: 'image/webp',
+            extension: 'webp',
+            width: info.width ?? null,
+            height: info.height ?? null,
+        };
+    } catch (error) {
+        rethrowSharpGateOverflow(error);
+    }
+}
+
+/**
+ * Читает пиксельные размеры файла, сохраняемого без перекодирования.
+ * null — sharp не смог их определить (в том числе SVG без атрибутов размера).
+ *
+ * @param buffer Исходные байты изображения.
+ */
+export async function readImageDimensions(
+    buffer: Buffer
+): Promise<{ width: number | null; height: number | null }> {
+    try {
+        const metadata = await sharpGate.run(() =>
+            sharp(buffer, { limitInputPixels: MAX_INPUT_PIXELS }).metadata()
+        );
+
+        return { width: metadata.width ?? null, height: metadata.height ?? null };
     } catch (error) {
         if (error instanceof GateOverflowError) {
-            throw createError({
-                statusCode: 503,
-                statusMessage: 'Server is busy processing images, try again later',
-            });
+            rethrowSharpGateOverflow(error);
         }
 
-        throw error;
+        console.warn('[Media] Failed to read image dimensions:', error);
+
+        return { width: null, height: null };
     }
+}
+
+/**
+ * MIME файла, сохраняемого без перекодирования.
+ *
+ * @param extension Расширение в нижнем регистре.
+ * @param fallbackType MIME из загрузки.
+ */
+export function resolveImageMime(extension: string, fallbackType?: string): string {
+    return IMAGE_EXTENSION_MIME[extension] ?? fallbackType ?? 'image/png';
 }
 // #endregion

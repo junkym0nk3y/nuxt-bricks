@@ -10,7 +10,7 @@
 
 // #region Imports
 // Types
-import type { IMediaListResponse } from '../../../common/types/media';
+import type { IMediaCategoryListResponse, IMediaListResponse } from '../../../common/types/media';
 import type { TTranslateFn } from '../../../common/utils/i18nLabels';
 
 // Utils
@@ -34,6 +34,27 @@ import { BRICKS_STATEMENT_TIMEOUT_MESSAGE_KEY } from '../../../common/constants/
  * @returns Ответ пригоден к использованию как список медиа.
  */
 export function isMediaListResponse(value: unknown): value is IMediaListResponse {
+    return isItemsEnvelope(value);
+}
+
+/**
+ * Проверяет форму ответа списка категорий — тот же envelope, что у списка медиа.
+ *
+ * @param value - Тело ответа ручки категорий.
+ * @returns Ответ пригоден к использованию как список категорий.
+ */
+export function isMediaCategoryListResponse(value: unknown): value is IMediaCategoryListResponse {
+    return isItemsEnvelope(value);
+}
+
+/**
+ * Общая проверка оболочки `{ success: true, items: [] }`. Проверяется только
+ * оболочка — валидация каждого поля каждого элемента здесь осознанно отсутствует.
+ *
+ * @param value - Тело ответа.
+ * @returns Оболочка распознана.
+ */
+function isItemsEnvelope(value: unknown): boolean {
     if (typeof value !== 'object' || value === null) {
         return false;
     }

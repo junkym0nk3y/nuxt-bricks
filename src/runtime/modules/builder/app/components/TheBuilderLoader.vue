@@ -317,8 +317,8 @@ onUnmounted(() => {
     top: 0;
     left: 0;
 
-    /* Выше всех модалок (BricksConfirmModal — 999999): пока идёт загрузка, лоадер ничем не перекрывается */
-    z-index: 1000000;
+    /* Верх шкалы оверлеев: пока идёт загрузка, лоадер ничем не перекрывается */
+    z-index: var(--bricks-z-loader);
     display: flex;
     align-items: center;
     justify-content: center;

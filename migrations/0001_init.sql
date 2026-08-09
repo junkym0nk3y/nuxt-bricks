@@ -137,6 +137,26 @@ CREATE TABLE IF NOT EXISTS bricks_sessions (
 CREATE INDEX IF NOT EXISTS idx_bricks_sessions_user_id ON bricks_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_bricks_sessions_expires_at ON bricks_sessions(expires_at);
 
+-- Категории медиа-галереи. Прежде набор был хардкодом в UI-константе, из-за чего
+-- сервер принимал любую строку, а пользователь не мог завести свою категорию.
+-- `slug` — то, что лежит в bricks_media.category и уезжает в URL фильтра;
+-- `label` — отображаемая подпись (для системных это ключ i18n, для
+-- пользовательских — введённый текст, переводить его нечем).
+-- Системные категории неудаляемы, и `other` среди них — приёмник файлов
+-- удалённой категории, поэтому существовать обязан всегда.
+-- Категории заводит пользователь: предустановленных нет, неудаляемых тоже.
+-- `label` — введённый текст (переводить пользовательский ввод нечем), slug
+-- считает сервер транслитерацией подписи.
+CREATE TABLE IF NOT EXISTS bricks_media_categories (
+    id SERIAL PRIMARY KEY,
+    slug VARCHAR(50) UNIQUE NOT NULL,
+    label TEXT NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_bricks_media_categories_sort ON bricks_media_categories(sort_order, id);
+
 -- Метаданные медиа-галереи
 CREATE TABLE IF NOT EXISTS bricks_media (
     id SERIAL PRIMARY KEY,
@@ -145,7 +165,15 @@ CREATE TABLE IF NOT EXISTS bricks_media (
     alt TEXT NOT NULL DEFAULT '',
     size BIGINT NOT NULL,
     mime_type VARCHAR(255) NOT NULL DEFAULT 'image/png',
-    category VARCHAR(50) NOT NULL DEFAULT 'other',
+    -- FK на slug, а не на id: категория ездит по всему стеку строкой (фильтр
+    -- галереи, multipart-поле загрузки, PATCH метаданных), и подстановка id
+    -- заставила бы резолвить её в каждой из этих точек. ON UPDATE CASCADE —
+    -- переименование slug'а не рассыпает ссылки; ON DELETE SET NULL — удаление
+    -- категории оставляет файлы в медиатеке без категории (каскад снёс бы их
+    -- вместе с категорией, а RESTRICT требовал бы приёмника, которого больше
+    -- нет). NULL — файл без категории: он виден только в фильтре «Все».
+    category VARCHAR(50)
+        REFERENCES bricks_media_categories(slug) ON UPDATE CASCADE ON DELETE SET NULL,
     svg_content TEXT,
     -- Пиксельные размеры растра: нужны мета-тегам og:image:width/height — без них
     -- соцсеть при первом шеринге часто рисует мелкую карточку, не дожидаясь
@@ -153,6 +181,12 @@ CREATE TABLE IF NOT EXISTS bricks_media (
     -- этом случае не печатаются.
     width INTEGER,
     height INTEGER,
+    -- Уменьшенные варианты растра для постепенной загрузки: preview (~480px) и
+    -- mock (~32px) генерируются при каждой загрузке изображения. NULL — вариантов
+    -- нет (svg, видео, внешние URL, файлы, загруженные до появления вариантов):
+    -- потребитель в этом случае обязан сразу показывать полный файл, а не пустоту.
+    preview_url TEXT,
+    mock_url TEXT,
     uploaded_at TIMESTAMPTZ DEFAULT NOW()
 );
 

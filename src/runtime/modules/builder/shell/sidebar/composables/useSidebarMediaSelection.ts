@@ -66,15 +66,34 @@ export function useSidebarMediaSelection(options: IUseSidebarMediaSelectionOptio
         }
 
         if (context.kind === 'property') {
-            options.applyPropertyValue(context.property, item.url);
+            // Адрес файла и его спутники пишутся ОДНИМ изменением и всегда в
+            // базовые props, минуя per-device scope панели. Причина не в
+            // атомарности: `src` — свойство responsive-блока, и на mobile он
+            // уходил в `responsive.mobile`, тогда как спутники ложились в базу.
+            // Канвас на desktop получал адрес прежнего файла с пропорцией и
+            // превью нового, а published per-device адрес не читает вовсе —
+            // то есть отдельная картинка на mobile была иллюзией канваса.
+            // Пустые значения пишутся тоже: у файла без вариантов или размеров
+            // (SVG, видео, загрузка до их появления) прежние иначе остались бы
+            // от предыдущей картинки.
+            const patch: Record<string, string | number> = {
+                [context.property.name]: item.url,
+            };
+            const companions: Array<[string | undefined, string | number]> = [
+                [context.property.svgContentProperty, item.svgContent || ''],
+                [context.property.previewUrlProperty, item.previewUrl || ''],
+                [context.property.mockUrlProperty, item.mockUrl || ''],
+                [context.property.naturalWidthProperty, item.width ?? 0],
+                [context.property.naturalHeightProperty, item.height ?? 0],
+            ];
 
-            if (context.property.svgContentProperty) {
-                store.updateComponentProp(
-                    selected.id,
-                    context.property.svgContentProperty,
-                    item.svgContent || ''
-                );
+            for (const [propertyName, value] of companions) {
+                if (propertyName) {
+                    patch[propertyName] = value;
+                }
             }
+
+            store.updateComponentIdentityProps(selected.id, patch);
 
             currentMediaContext.value = null;
             return;

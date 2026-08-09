@@ -2,6 +2,7 @@
     "bricks": {
         "common": {
             "cancel": "Cancel",
+            "close": "Close",
             "delete": "Delete",
             "loading": "Loading…",
             "notFound": "Nothing found",
@@ -378,26 +379,21 @@
             "deleteImageTitle": "Delete image?",
             "deleteImageDescription": "This action cannot be undone. The image will be deleted permanently.",
             "fullscreen": "Fullscreen preview",
-            "categoryLabel": "Category:",
-            "searchLabel": "Search:",
-            "searchPlaceholder": "Enter a name or alt",
-            "nameLabel": "Name:",
+            "categoryLabel": "Category",
+            "searchLabel": "Search the library",
+            "searchPlaceholder": "Search by name or alt",
+            "nameLabel": "Name",
             "filenamePlaceholder": "File name",
             "altPlaceholder": "Image description",
-            "dropHint": "Drag files here or click to choose",
+            "dropHint": "Drop files here or pick them from disk",
             "chooseFiles": "Choose files",
-            "sizeHint": "Images — up to {image} MB, videos — up to {video} MB",
+            "sizeHint": "images up to {image} MB, video up to {video} MB",
             "fileTypeImage": "Image",
             "fileTypeVideo": "Video",
             "fileTooLarge": "{type} “{name}” exceeds the {max} MB limit",
             "fileTypeUnsupported": "“{name}”: only images and videos are supported",
             "categories": {
-                "all": "All",
-                "icons": "Icons",
-                "illustrations": "Illustrations",
-                "photos": "Photos",
-                "videos": "Videos",
-                "other": "Other"
+                "all": "All"
             },
             "resolver": {
                 "title": "New images found",
@@ -408,7 +404,50 @@
                 "apply": "Apply",
                 "importedWithoutComparison": "Schema imported without checking the media library: it is unavailable, images left as is"
             },
-            "categoryFilterLabel": "Category filter"
+            "categoryFilterLabel": "Category filter",
+            "emptyNoUploadsHint": "Drop files anywhere in this window or press “Upload”",
+            "resetFilter": "Reset filter",
+            "selectFileHint": "Select a file to edit its properties",
+            "librarySummary": "files in the library: {count} · {size}",
+            "altUnusedForVideo": "alt is not used for video",
+            "categoryLoadFailed": "Failed to load categories",
+            "categoryListResponseInvalid": "The server returned categories in an unknown format",
+            "categoryCreate": "Create category",
+            "categoryCreateConfirm": "Create",
+            "categoryCreateFailed": "Failed to create the category",
+            "categoryNamePlaceholder": "Category name",
+            "categoryDuplicate": "Category “{name}” already exists",
+            "categoryDelete": "Delete category “{name}”",
+            "categoryDeleteTitle": "Delete category “{name}”?",
+            "categoryDeleteDescription": "The category will be deleted and {count} more files will have no category. The files stay in the library.",
+            "categoryDeleteFailed": "Failed to delete the category",
+            "categoryManage": "Manage categories",
+            "categoryManageDone": "Done",
+            "upload": {
+                "optionsTitle": "Optimization settings",
+                "formatLabel": "Format",
+                "formatOriginal": "Original",
+                "qualityLabel": "Quality",
+                "maxWidthLabel": "Max width",
+                "skipOptimization": "Upload without optimization",
+                "skipOptimizationHint": "The file is stored as is. Preview and mock are still generated — without them the Media block has nothing to show while loading.",
+                "variantsHint": "Preview and mock are always generated — the progressive loading mode is a Media block property, not an upload setting.",
+                "paramsSummary": "{format} · q{quality} · up to {maxWidth}px",
+                "progress": "Uploading {current} of {total} · {name}",
+                "dropNow": "Release to upload — selected: {count}",
+                "progressShort": "Uploading {current} of {total}"
+            },
+            "summary": {
+                "vector": "vector",
+                "video": "video",
+                "dimensionsUnknown": "unknown size"
+            },
+            "librarySummaryShort": "{count} files · {size}",
+            "dropAnywhereHint": "files can be dropped anywhere in this window",
+            "uploadFiles": "Upload",
+            "tileUpload": "Upload files",
+            "tileUploadHint": "or drop them here",
+            "noCategory": "No category"
         },
         "schema": {
             "title": "Page schema",
@@ -731,10 +770,25 @@
                     "borderRadius": {
                         "label": "Border radius",
                         "description": "Border radius (rem)"
+                    },
+                    "loadMode": {
+                        "label": "Progressive loading",
+                        "description": "What fills the frame while the image loads",
+                        "options": {
+                            "config": "Same as module settings",
+                            "off": "Off",
+                            "twoStep": "Two steps: preview → full",
+                            "threeStep": "Three steps: mock → preview → full"
+                        }
+                    },
+                    "eagerLoad": {
+                        "label": "Above the fold — load at once",
+                        "description": "Drops lazy loading and sets fetchpriority=\"high\": progressive loading hurts LCP above the fold"
                     }
                 },
                 "groups": {
-                    "sizes": "Sizes"
+                    "sizes": "Sizes",
+                    "loading": "Loading"
                 }
             },
             "slider": {

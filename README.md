@@ -259,15 +259,17 @@ NUXT_BRICKS_BACKEND_HEALTH_URL=https://api.example.com/health
 ручек — [`docs/external-backend-contract.md`](docs/external-backend-contract.md);
 кратко внешний backend должен реализовать следующие JSON-ручки:
 
-| Метод                                | Назначение                  |
-| ------------------------------------ | --------------------------- |
-| `GET/POST {base}`                    | список и создание страниц   |
-| `GET/PATCH/DELETE {base}/:id`        | чтение, изменение, удаление |
-| `GET {base}/:id/versions`            | список версий               |
-| `GET {base}/:id/versions/:versionId` | снапшот версии              |
-| `GET {base}/public/pages/<адрес>`    | опубликованная страница     |
-| `GET/POST {base}/media`              | список и регистрация медиа  |
-| `PATCH/DELETE {base}/media/:id`      | изменение и удаление медиа  |
+| Метод                                  | Назначение                  |
+| -------------------------------------- | --------------------------- |
+| `GET/POST {base}`                      | список и создание страниц   |
+| `GET/PATCH/DELETE {base}/:id`          | чтение, изменение, удаление |
+| `GET {base}/:id/versions`              | список версий               |
+| `GET {base}/:id/versions/:versionId`   | снапшот версии              |
+| `GET {base}/public/pages/<адрес>`      | опубликованная страница     |
+| `GET/POST {base}/media`                | список и регистрация медиа  |
+| `PATCH/DELETE {base}/media/:id`        | изменение и удаление медиа  |
+| `GET/POST {base}/media/categories`     | список и создание категорий |
+| `DELETE {base}/media/categories/:slug` | удаление категории          |
 
 `404` означает отсутствие записи. Адрес в public-ручке приходит остатком пути
 (`{base}/public/pages/blog/post`): последний сегмент — `pagename`, всё до него —

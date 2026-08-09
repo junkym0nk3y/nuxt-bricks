@@ -35,12 +35,17 @@ const { bottom: triggerBottom, left: triggerLeft } = useElementBounding(triggerR
 // #region Computed
 /**
  * Стили позиционирования popup.
+ *
+ * Слой берётся из общей шкалы `--bricks-z-*`, а не числом: прежние 10001 стояли
+ * выше всей шкалы (её верх — 1800), поэтому открытый пикер оставался поверх
+ * блокировки сессии и лоадера, то есть ровно там, где всё остальное уже
+ * заблокировано.
  */
 const popupStyle = computed(() => ({
     position: 'fixed' as const,
     top: `${triggerBottom.value + 4}px`,
     left: `${triggerLeft.value}px`,
-    zIndex: 10001,
+    zIndex: 'var(--bricks-z-popover)',
 }));
 // #endregion
 

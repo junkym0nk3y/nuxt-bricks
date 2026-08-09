@@ -72,6 +72,8 @@ function handleRemove(): void {
                 :src="modelValue"
                 :class="$style.previewImage"
                 alt="Preview"
+                loading="lazy"
+                decoding="async"
             />
 
             <!-- Video Preview -->

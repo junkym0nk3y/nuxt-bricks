@@ -129,6 +129,11 @@ export interface IComponentsPropertyActions {
         propName: string,
         value: TBrickPropValue
     ): void;
+    updateComponentIdentityProps(
+        this: IComponentsStore,
+        id: string,
+        patch: Record<string, TBrickPropValue>
+    ): void;
     updateComponentResponsiveProp(
         this: IComponentsStore,
         id: string,

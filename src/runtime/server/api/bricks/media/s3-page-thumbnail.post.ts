@@ -7,7 +7,7 @@ import {
 } from '../../../../modules/persistence/server/registry';
 import { sniffImageFormat } from '../../../../modules/persistence/server/utils/fileSignatures';
 import {
-    optimizeToWebp,
+    optimizeImage,
     toBuffer,
 } from '../../../../modules/persistence/server/utils/imageProcessing';
 import {
@@ -169,15 +169,15 @@ export default defineEventHandler(async (event): Promise<IThumbnailUploadRespons
             });
         }
 
-        const optimizedBuffer = await optimizeToWebp(toBuffer(file.data), {
+        const optimized = await optimizeImage(toBuffer(file.data), {
             maxWidth: THUMBNAIL_WIDTH,
             quality: THUMBNAIL_WEBP_QUALITY,
         });
 
         const publishAdapter = useBricksPublishAdapter();
         const uploaded = await publishAdapter.uploadFile({
-            buffer: optimizedBuffer,
-            mimeType: 'image/webp',
+            buffer: optimized.buffer,
+            mimeType: optimized.mimeType,
             key: buildPageThumbnailKey(publishAdapter, pageId),
         });
 

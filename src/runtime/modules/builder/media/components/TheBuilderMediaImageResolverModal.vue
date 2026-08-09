@@ -95,7 +95,7 @@ function handleGlobalActionChange(event: Event): void {
         :title="t('bricks.media.resolver.title')"
         variant="gradient"
         padded
-        :z-index="100001"
+        layer="raised"
         :duration="200"
         @close="handleClose"
     >

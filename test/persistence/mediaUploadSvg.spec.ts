@@ -37,7 +37,7 @@ function makeConfig(): IResolvedMediaConfig {
         maxUploadSizeMb: 5,
         maxVideoUploadSizeBytes: 5 * 1024 * 1024,
         maxVideoUploadSizeMb: 5,
-        optimization: { maxWidth: 1920, quality: 80 },
+        optimization: { format: 'webp', maxWidth: 1920, quality: 80 },
     };
 }
 
@@ -100,6 +100,10 @@ describe('prepareUpload: SVG buffer == svgContent, оба санитизиров
                         mimeType: payload.mimeType,
                         category: payload.category,
                         svgContent: payload.svgContent ?? null,
+                        width: payload.width ?? null,
+                        height: payload.height ?? null,
+                        previewUrl: payload.previewUrl ?? null,
+                        mockUrl: payload.mockUrl ?? null,
                     };
                 },
                 async deleteMedia(): Promise<boolean> {

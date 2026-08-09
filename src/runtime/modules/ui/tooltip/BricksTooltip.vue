@@ -88,7 +88,7 @@ const side = computed<'top' | 'bottom' | 'left' | 'right'>(() => {
 }
 
 .tooltipContent {
-    z-index: 10001;
+    z-index: var(--bricks-z-tooltip);
     pointer-events: none;
     user-select: none;
 

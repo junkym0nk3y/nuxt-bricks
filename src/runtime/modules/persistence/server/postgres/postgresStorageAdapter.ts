@@ -9,23 +9,18 @@ import { query, queryOne, withTransaction } from './client';
 import {
     PAGE_SELECT_FIELDS,
     PAGE_SUMMARY_FIELDS,
-    MEDIA_SELECT_FIELDS,
     PAGE_UPDATE_FIELDS,
-    MEDIA_UPDATE_FIELDS,
     VERSION_SUMMARY_FIELDS,
     VERSION_SELECT_FIELDS,
     buildUpdateQuery,
     isUniqueViolation,
 } from './queryBuilders';
+import { createPostgresMediaMethods } from './postgresMediaMethods';
 import {
     BricksPageAddressConflictError,
     BricksRevisionConflictError,
 } from '../utils/storageErrors';
-import type {
-    IStorageAdapter,
-    ICreateMediaPayload,
-    TUpdateMediaPayload,
-} from '../../types/adapters';
+import type { IStorageAdapter } from '../../types/adapters';
 import type {
     IBricksPageRow,
     TBricksPageSummaryRow,
@@ -34,7 +29,6 @@ import type {
     IPageVersionSummary,
     IPageVersion,
 } from '../../../common/types/bricks-api';
-import type { IMediaItem } from '../../../common/types/media';
 import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 import { normalizeUrlPrefix } from '../../../common/utils/bricks/pageAddress';
 
@@ -149,16 +143,6 @@ function buildPageUpdateSql(
  * @returns Адаптер хранилища страниц и медиа-метаданных.
  */
 export function createPostgresStorageAdapter(): IStorageAdapter {
-    /**
-     * Возвращает медиа-запись по URL файла или null.
-     */
-    function findMediaByUrl(url: string): Promise<IMediaItem | null> {
-        return queryOne<IMediaItem>(
-            `SELECT ${MEDIA_SELECT_FIELDS} FROM bricks_media WHERE url = $1`,
-            [url]
-        );
-    }
-
     return {
         /**
          * Readiness-проверка: `SELECT 1` через пул. Без сконфигурированной
@@ -391,104 +375,6 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
             );
         },
 
-        /**
-         * Возвращает все медиа-записи, новые сверху.
-         */
-        async listMedia(): Promise<IMediaItem[]> {
-            return query<IMediaItem>(
-                `SELECT ${MEDIA_SELECT_FIELDS} FROM bricks_media ORDER BY uploaded_at DESC`
-            );
-        },
-
-        /**
-         * Возвращает медиа-запись по id или null.
-         */
-        async getMedia(id: number): Promise<IMediaItem | null> {
-            return queryOne<IMediaItem>(
-                `SELECT ${MEDIA_SELECT_FIELDS} FROM bricks_media WHERE id = $1`,
-                [id]
-            );
-        },
-
-        /**
-         * Возвращает медиа-запись по URL файла или null (дедупликация импорта).
-         */
-        async getMediaByUrl(url: string): Promise<IMediaItem | null> {
-            return findMediaByUrl(url);
-        },
-
-        /**
-         * Создаёт медиа-запись и возвращает её с id.
-         * Идемпотентна по url (контракт IStorageAdapter.createMedia): при
-         * unique_violation (гонка импорта/ретрай, индекс — миграция 0002)
-         * возвращает уже существующую запись.
-         */
-        async createMedia(payload: ICreateMediaPayload): Promise<IMediaItem> {
-            let result: IMediaItem | null;
-
-            try {
-                result = await queryOne<IMediaItem>(
-                    `INSERT INTO bricks_media
-                    (url, filename, alt, size, mime_type, category, svg_content, uploaded_at)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8, NOW()))
-                    RETURNING ${MEDIA_SELECT_FIELDS}`,
-                    [
-                        payload.url,
-                        payload.filename,
-                        payload.alt ?? '',
-                        payload.size,
-                        payload.mimeType,
-                        payload.category,
-                        payload.svgContent ?? null,
-                        payload.uploadedAt ? new Date(payload.uploadedAt) : null,
-                    ]
-                );
-            } catch (error: unknown) {
-                if (!isUniqueViolation(error)) {
-                    throw error;
-                }
-
-                result = await findMediaByUrl(payload.url);
-            }
-
-            if (!result) {
-                throw new Error('Failed to create media item');
-            }
-
-            return result;
-        },
-
-        /**
-         * Обновляет метаданные медиа; null — если запись не найдена.
-         */
-        async updateMedia(id: number, payload: TUpdateMediaPayload): Promise<IMediaItem | null> {
-            const { updates, values } = buildUpdateQuery(payload, MEDIA_UPDATE_FIELDS);
-
-            if (updates.length === 0) {
-                throw new Error('No fields to update');
-            }
-
-            values.push(id);
-
-            return queryOne<IMediaItem>(
-                `UPDATE bricks_media
-                SET ${updates.join(', ')}
-                WHERE id = $${values.length}
-                RETURNING ${MEDIA_SELECT_FIELDS}`,
-                values
-            );
-        },
-
-        /**
-         * Удаляет медиа-запись; false — если запись не найдена.
-         */
-        async deleteMedia(id: number): Promise<boolean> {
-            const rows = await query<{ id: number }>(
-                'DELETE FROM bricks_media WHERE id = $1 RETURNING id',
-                [id]
-            );
-
-            return rows.length > 0;
-        },
+        ...createPostgresMediaMethods(),
     };
 }

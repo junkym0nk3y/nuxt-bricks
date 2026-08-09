@@ -22,7 +22,7 @@ import {
 const props = withDefaults(defineProps<IBricksModalProps>(), {
     variant: 'dark',
     padded: false,
-    zIndex: 1000,
+    layer: 'modal',
     duration: 300,
     description: '',
 });
@@ -45,6 +45,7 @@ const rootClasses = computed(() => [
     {
         [$style._gradient]: props.variant === 'gradient',
         [$style._padded]: props.padded,
+        [$style[`_${props.layer}`]]: props.layer !== 'modal',
     },
 ]);
 
@@ -102,7 +103,7 @@ function onLeave(element: Element): void {
                     теряет фокус/выделение мышью. Центрирует обычный div, overlay —
                     прозрачная клик-ловушка под контентом.
                 -->
-                <div v-if="props.isOpen" :class="rootClasses" :style="{ zIndex: props.zIndex }">
+                <div v-if="props.isOpen" :class="rootClasses">
                     <DialogOverlay force-mount :class="$style.overlay" />
                     <DialogContent
                         force-mount
@@ -128,11 +129,26 @@ function onLeave(element: Element): void {
 <style module lang="scss">
 .BricksModal {
     position: fixed;
+    z-index: var(--bricks-z-modal);
     inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     background-color: var(--bricks-overlay-dark);
+
+    /* Уровни модалок над модалками. Все ниже дропдаунов и тостов — иначе селект
+       внутри модалки снова уехал бы под неё саму. */
+    &._nested {
+        z-index: var(--bricks-z-modal-nested);
+    }
+
+    &._raised {
+        z-index: var(--bricks-z-modal-raised);
+    }
+
+    &._confirm {
+        z-index: var(--bricks-z-modal-confirm);
+    }
 
     &._gradient {
         background: linear-gradient(

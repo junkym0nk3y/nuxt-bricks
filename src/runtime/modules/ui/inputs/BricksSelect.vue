@@ -133,9 +133,14 @@ function onUpdate(value: AcceptableValue): void {
     position: relative;
     user-select: none;
 
+    /* Flex, а не block: подпись внутри — inline-элемент, и её line-box набирал
+       высоту по strut'у родителя плюс подстрочный зазор baseline'а, из-за чего
+       поле выходило 39 против 36 у `BricksInput` и текст сидел выше центра.
+       С флексом высота считается по паддингам и строке, как у поля ввода. */
     .field {
         position: relative;
-        display: block;
+        display: flex;
+        align-items: center;
         width: 100%;
         padding: 0.8rem 3.2rem 0.8rem 1.2rem;
         border-radius: var(--bricks-border-radius-xs);
@@ -175,8 +180,9 @@ function onUpdate(value: AcceptableValue): void {
 
     .nativeInput {
         overflow: hidden;
-        display: inline-block;
+        display: block;
         width: 100%;
+        min-width: 0;
         text-overflow: ellipsis;
         white-space: nowrap;
         font-size: 1.4rem;
@@ -227,7 +233,7 @@ function onUpdate(value: AcceptableValue): void {
 }
 
 .dropdown {
-    z-index: 100;
+    z-index: var(--bricks-z-popover);
     width: var(--reka-select-trigger-width);
     padding: 0.6rem;
     border-radius: var(--bricks-border-radius-sm);

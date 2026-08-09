@@ -5,7 +5,16 @@
  */
 
 /** Растровые и векторные форматы, узнаваемые по содержимому. */
-export type TSniffedImageFormat = 'jpeg' | 'png' | 'gif' | 'webp' | 'tiff' | 'bmp' | 'heif' | 'svg';
+export type TSniffedImageFormat =
+    | 'jpeg'
+    | 'png'
+    | 'gif'
+    | 'webp'
+    | 'tiff'
+    | 'bmp'
+    | 'avif'
+    | 'heif'
+    | 'svg';
 
 /** Видео-контейнеры, узнаваемые по содержимому. */
 export type TSniffedVideoFormat = 'mp4' | 'webm' | 'ogg' | 'avi';
@@ -20,6 +29,12 @@ const SVG_LEAD_PATTERN =
     /^\uFEFF?\s*(?:(?:<\?[\s\S]*?\?>|<!--[\s\S]*?-->|<!DOCTYPE[^>]*>)\s*)*<svg[\s>/]/i;
 
 /** Бренды ISO-BMFF (`ftyp`), означающие изображение (HEIC/HEIF/AVIF), а не видео. */
+/**
+ * ISO-BMFF бренды, различающие AVIF и прочий HEIF. Разделены потому, что от
+ * этого зависит судьба файла при загрузке «как есть»: AVIF браузер показывает
+ * сам, HEIC — нет, и второй обязан быть перекодирован.
+ */
+const AVIF_IMAGE_BRANDS = new Set(['avif', 'avis']);
 const HEIF_IMAGE_BRANDS = new Set([
     'heic',
     'heix',
@@ -30,8 +45,7 @@ const HEIF_IMAGE_BRANDS = new Set([
     'hevs',
     'mif1',
     'msf1',
-    'avif',
-    'avis',
+    ...AVIF_IMAGE_BRANDS,
 ]);
 
 /**
@@ -123,6 +137,10 @@ export function sniffImageFormat(buffer: Buffer): TSniffedImageFormat | null {
     }
 
     const brand = readFtypBrand(buffer);
+
+    if (brand && AVIF_IMAGE_BRANDS.has(brand)) {
+        return 'avif';
+    }
 
     if (brand && HEIF_IMAGE_BRANDS.has(brand)) {
         return 'heif';

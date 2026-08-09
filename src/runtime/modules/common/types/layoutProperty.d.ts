@@ -5,35 +5,44 @@
  */
 
 import type { IInlineContentSegment } from './content';
+import type { IPropertyDefinition } from './brick';
 
-export interface ILayoutProperty {
-    name: string;
-    type:
-        | 'number'
-        | 'string'
-        | 'select'
-        | 'boolean'
-        | 'textarea'
-        | 'input'
-        | 'image'
-        | 'video'
-        | 'inline-content'
-        | 'array'
-        | 'accordion-items'
-        | 'color';
-    label: string;
+/**
+ * Типы редакторов, доступные layout-блокам. Уже́ набора brick-свойств
+ * (`TPropertyType`) сознательно: `object`, `readonly` и `switch` в definitions
+ * блоков не встречаются, а разрешить их значило бы обещать поведение, которого
+ * панель для layout-блоков не даёт.
+ */
+export type TLayoutPropertyType =
+    | 'number'
+    | 'string'
+    | 'select'
+    | 'boolean'
+    | 'textarea'
+    | 'input'
+    | 'image'
+    | 'video'
+    | 'inline-content'
+    | 'array'
+    | 'accordion-items'
+    | 'tags'
+    | 'image-gallery'
+    | 'color';
+
+/**
+ * Свойство панели у layout-блока.
+ *
+ * Выводится из `IPropertyDefinition`, а не объявляется заново: объект долетает
+ * до панели структурно (`layoutProperties.ts` — сквозной проброс, мапера между
+ * типами нет), поэтому две независимые копии обязаны совпадать поле в поле.
+ * Пока они были копиями, это уже разошлось — `tags` и `image-gallery` панель
+ * рисовала, а объявить их в definition было нельзя.
+ *
+ * Отличаются только те три поля, у которых у layout-блоков набор реально уже:
+ * тип редактора, форма дефолта и форма опций.
+ */
+export interface ILayoutProperty extends Omit<IPropertyDefinition, 'type' | 'default' | 'options'> {
+    type: TLayoutPropertyType;
     default: string | number | boolean | IInlineContentSegment[] | Record<string, unknown>[];
     options?: Array<{ label: string; value: string | number }>;
-    description?: string;
-    min?: number;
-    max?: number;
-    step?: number;
-    /** Имя свойства, куда сохранять svgContent при выборе SVG из галереи */
-    svgContentProperty?: string;
-    /** Суффикс единицы измерения для инпута (например, 'rem') */
-    unit?: string;
-    /** Название группы для группировки свойств в сворачиваемый аккордеон */
-    group?: string;
-    /** Свойство поддерживает адаптивные значения per-breakpoint */
-    responsive?: boolean;
 }

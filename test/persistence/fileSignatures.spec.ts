@@ -42,7 +42,11 @@ describe('fileSignatures: сниффинг форматов по magic bytes', (
         expect(sniffImageFormat(Buffer.from([0x4d, 0x4d, 0x00, 0x2a, 0x00]))).toBe('tiff');
         expect(sniffImageFormat(Buffer.from('BM6600', 'latin1'))).toBe('bmp');
         expect(sniffImageFormat(buildFtypBuffer('heic'))).toBe('heif');
-        expect(sniffImageFormat(buildFtypBuffer('avif'))).toBe('heif');
+        // AVIF отделён от прочего HEIF: от этого зависит судьба файла при
+        // загрузке «как есть» — AVIF браузер показывает сам, HEIC нет
+        expect(sniffImageFormat(buildFtypBuffer('avif'))).toBe('avif');
+        expect(sniffImageFormat(buildFtypBuffer('avis'))).toBe('avif');
+        expect(sniffImageFormat(buildFtypBuffer('mif1'))).toBe('heif');
     });
 
     it('распознаёт SVG с прологом, DOCTYPE, комментариями и BOM', () => {

@@ -57,6 +57,8 @@ function handleClear(): void {
                     :src="String(props.socialImage)"
                     alt=""
                     :class="$style.ogImage"
+                    loading="lazy"
+                    decoding="async"
                 />
                 <BricksIcon v-else icon="ta:outline-photo" :class="$style.ogPlaceholder" />
             </span>

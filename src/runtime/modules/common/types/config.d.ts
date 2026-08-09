@@ -19,13 +19,32 @@ export interface IBricksBreakpointConfig {
     remBase?: string;
 }
 
+/**
+ * Целевой формат полного файла при загрузке. `original` — сохранить как есть;
+ * применяется только к web-safe входам, для HEIC/TIFF/BMP конвертация остаётся
+ * обязательной (иначе постепенная загрузка подменила бы видимое превью файлом,
+ * который браузер не откроет).
+ */
+export type TBricksMediaImageFormat = 'webp' | 'original';
+
+/**
+ * Режим постепенной загрузки изображения. `off` — сразу полный файл;
+ * `two-step` — превью, затем полный; `three-step` — mock, превью, полный.
+ * Глобальный дефолт живёт здесь, блок Media его переопределяет: режим зависит
+ * от места на странице (первый экран против подвала), а не от файла.
+ */
+export type TBricksMediaLoadMode = 'off' | 'two-step' | 'three-step';
+
 export interface IBricksMediaConfig {
     maxUploadSizeMb?: number;
     maxVideoUploadSizeMb?: number;
     optimization?: {
+        format?: TBricksMediaImageFormat;
         maxWidth?: number;
         quality?: number;
     };
+    /** Дефолтный режим постепенной загрузки для блоков Media. Default: 'two-step'. */
+    loadMode?: TBricksMediaLoadMode;
 }
 
 export interface IBricksConfig {

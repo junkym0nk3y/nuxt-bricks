@@ -54,6 +54,7 @@ describe('useMediaUpload: доставка отказа по каждому фа
         const errors: string[] = [];
         const { uploadFiles } = useMediaUpload({
             resolveCategory: () => 'photos',
+            resolveOptimization: () => ({ format: 'webp', quality: 70, maxWidth: 1920 }),
             onError: (message) => errors.push(message),
         });
 
@@ -78,6 +79,7 @@ describe('useMediaUpload: доставка отказа по каждому фа
         const errors: string[] = [];
         const { uploadFiles } = useMediaUpload({
             resolveCategory: () => 'photos',
+            resolveOptimization: () => ({ format: 'webp', quality: 70, maxWidth: 1920 }),
             onError: (message) => errors.push(message),
         });
 
@@ -93,6 +95,7 @@ describe('useMediaUpload: доставка отказа по каждому фа
         const errors: string[] = [];
         const { uploadFiles } = useMediaUpload({
             resolveCategory: () => 'photos',
+            resolveOptimization: () => ({ format: 'webp', quality: 70, maxWidth: 1920 }),
             onError: (message) => errors.push(message),
         });
 

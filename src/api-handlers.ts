@@ -75,6 +75,23 @@ export const BRICKS_API_HANDLERS: IBricksApiHandler[] = [
         file: 'server/api/bricks/media/upload.post',
     },
     {
+        // До generic /api/bricks/media/:id: у DELETE специфичность та же, и
+        // `categories` иначе уехал бы в разбор id
+        route: '/api/bricks/media/categories',
+        method: 'get',
+        file: 'server/api/bricks/media/categories/index.get',
+    },
+    {
+        route: '/api/bricks/media/categories',
+        method: 'post',
+        file: 'server/api/bricks/media/categories/index.post',
+    },
+    {
+        route: '/api/bricks/media/categories/:slug',
+        method: 'delete',
+        file: 'server/api/bricks/media/categories/[slug].delete',
+    },
+    {
         route: '/api/bricks/media/:id',
         method: 'patch',
         file: 'server/api/bricks/media/[id].patch',

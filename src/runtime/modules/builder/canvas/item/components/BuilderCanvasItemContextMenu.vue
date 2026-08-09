@@ -333,7 +333,7 @@ onBeforeUnmount(() => {
 <style module lang="scss">
 .BuilderCanvasItemContextMenu {
     position: fixed;
-    z-index: 10000;
+    z-index: var(--bricks-z-popover);
     min-width: 24rem;
     max-width: 30rem;
     padding: 0.6rem;

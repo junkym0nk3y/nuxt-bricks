@@ -2,12 +2,18 @@
 // #region Imports
 
 // Types
-import type { IMediaItem, IMediaUpdateMetaRequest } from '../../../common/types/media';
+import type {
+    IBricksMediaOptimization,
+    IMediaItem,
+    IMediaUpdateMetaRequest,
+} from '../../../common/types/media';
 import type { IMediaGalleryProps, IMediaGalleryEmits } from '../types/media';
 
 // Utils
-import { DEFAULT_MEDIA_CATEGORY } from '../constants/mediaCategories';
+import { ALL_MEDIA_CATEGORIES_FILTER } from '../../../common/constants/mediaCategories';
+import { DEFAULT_MEDIA_OPTIMIZATION } from '../../../common/constants/mediaOptimization';
 import { getBricksErrorMessage } from '../../../common/utils/main';
+import { formatFileSize } from '../utils/formatFileSize';
 import { isRequestTimeoutError } from '../../../common/utils/apiRequestPolicy';
 
 // Vue
@@ -16,9 +22,11 @@ import { useI18n } from 'vue-i18n';
 
 // Pinia
 import { useMediaStore } from '../stores/media';
+import { useMediaCategoriesStore } from '../stores/mediaCategories';
 
 // Composables
 import { useMediaUpload } from '../composables/useMediaUpload';
+import { useMediaCategoryActions } from '../composables/useMediaCategoryActions';
 
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
@@ -26,8 +34,10 @@ import BricksCloseButton from '../../../ui/base/modal/BricksCloseButton.vue';
 import BricksModal from '../../../ui/base/modal/BricksModal.vue';
 import BricksToast from '../../../ui/feedback/BricksToast.vue';
 import BricksConfirmModal from '../../../ui/feedback/BricksConfirmModal.vue';
+import BricksSearchInput from '../../../ui/inputs/BricksSearchInput.vue';
 import BuilderMediaGalleryFilters from './BuilderMediaGalleryFilters.vue';
-import BuilderMediaGalleryUploadArea from './BuilderMediaGalleryUploadArea.vue';
+import BuilderMediaGalleryUploadControls from './BuilderMediaGalleryUploadControls.vue';
+import BuilderMediaGalleryDropOverlay from './BuilderMediaGalleryDropOverlay.vue';
 import BuilderMediaGalleryGrid from './BuilderMediaGalleryGrid.vue';
 import BuilderMediaGalleryMetaPanel from './BuilderMediaGalleryMetaPanel.vue';
 import BuilderMediaGalleryPreviewLightbox from './BuilderMediaGalleryPreviewLightbox.vue';
@@ -46,19 +56,38 @@ const emit = defineEmits<IMediaGalleryEmits>();
 // #region Data
 const { t } = useI18n();
 const mediaStore = useMediaStore();
+const categoriesStore = useMediaCategoriesStore();
 const selectedItemId = ref<number | null>(null);
-const categoryFilter = ref<string>('all');
+const categoryFilter = ref<string>(ALL_MEDIA_CATEGORIES_FILTER);
 const searchQuery = ref('');
 const previewItem = ref<IMediaItem | null>(null);
 const isDeleteConfirmOpen = ref(false);
 const isDeleting = ref(false);
 const toastVisible = ref(false);
 const toastMessage = ref('');
+/** Сколько файлов тащат над модалкой; 0 — перетаскивания нет. */
+const dragFileCount = ref(0);
+/** Глубина dragenter/dragleave — см. handleDragLeave. */
+const dragDepth = ref(0);
+const uploadControlsRef = ref<InstanceType<typeof BuilderMediaGalleryUploadControls> | null>(null);
 
-const { maxImageSizeMb, maxVideoSizeMb, uploadFiles } = useMediaUpload({
-    resolveCategory: resolveUploadCategory,
-    onError: showErrorToast,
-});
+/**
+ * Параметры загрузки живут в модалке, а не в сторе: они относятся к сессии работы
+ * с галереей, а не к самой медиатеке, и при новом открытии обязаны вернуться к
+ * дефолтам конфига. Инициализируются общими дефолтами и накрываются дефолтами
+ * конфига сразу после `useMediaUpload` — раньше конфиг взять негде, а объявить
+ * ref позже нельзя: композабл читает его в колбэке.
+ */
+const uploadOptimization = ref<IBricksMediaOptimization>({ ...DEFAULT_MEDIA_OPTIMIZATION });
+
+const { maxImageSizeMb, maxVideoSizeMb, defaultOptimization, uploadProgress, uploadFiles } =
+    useMediaUpload({
+        resolveCategory: resolveUploadCategory,
+        resolveOptimization: () => uploadOptimization.value,
+        onError: showErrorToast,
+    });
+
+uploadOptimization.value = { ...defaultOptimization };
 // #endregion
 
 // #region Computed
@@ -74,27 +103,96 @@ const filteredMediaItems = computed(() => {
     const query = searchQuery.value.trim().toLowerCase();
 
     return mediaItems.value.filter((item) => {
-        const matchesCategory = filterValue === 'all' || item.category === filterValue;
+        const matchesCategory =
+            filterValue === ALL_MEDIA_CATEGORIES_FILTER || item.category === filterValue;
         const matchesSearch =
             !query ||
             item.filename.toLowerCase().includes(query) ||
             item.alt.toLowerCase().includes(query) ||
-            item.category.toLowerCase().includes(query);
+            Boolean(item.category?.toLowerCase().includes(query));
         return matchesCategory && matchesSearch;
     });
 });
 const hasFilteredItems = computed(() => filteredMediaItems.value.length > 0);
+/**
+ * Счётчики табов считаются по уже загруженному списку — отдельного запроса нет.
+ * Файлы без категории ни в один счётчик не попадают: их видно только во «Всех».
+ */
+const categoryCounts = computed<Record<string, number>>(() =>
+    mediaItems.value.reduce<Record<string, number>>((counts, item) => {
+        if (item.category) {
+            counts[item.category] = (counts[item.category] ?? 0) + 1;
+        }
+
+        return counts;
+    }, {})
+);
+const totalSize = computed<number>(() =>
+    mediaItems.value.reduce((sum, item) => sum + item.size, 0)
+);
+/**
+ * Сводка медиатеки в шапке: она про всю библиотеку, поэтому стоит рядом с
+ * кнопкой загрузки — тем единственным, что её меняет, — а не в футере, который
+ * занят выбранным файлом.
+ */
+const librarySummary = computed<string>(() =>
+    t('bricks.media.librarySummaryShort', {
+        count: mediaItems.value.length,
+        size: formatFileSize(totalSize.value),
+    })
+);
+const isDraggingFiles = computed<boolean>(() => dragFileCount.value > 0);
+
+/**
+ * Действия над категориями. Ниже Computed, а не в Data: композабл читает
+ * `categoryCounts` для текста подтверждения, а обращение к нему выше объявления
+ * ломало бы порядок, даже будучи отложенным замыканием.
+ */
+const {
+    categories,
+    isCreatingCategory,
+    categoryPendingDeletion,
+    isDeletingCategory,
+    deleteCategoryTitle,
+    deleteCategoryDescription,
+    handleCreateCategory,
+    handleRequestCategoryDelete,
+    handleCloseCategoryDelete,
+    handleConfirmCategoryDelete,
+    resetCategoryActions,
+} = useMediaCategoryActions({
+    resolveCategoryCount: (slug) => categoryCounts.value[slug] ?? 0,
+    onCategoryDeleted: handleCategoryDeleted,
+    onError: showErrorToast,
+});
 // #endregion
 
 // #region Methods
 /**
- * Загружает медиа с обработкой ошибок.
+ * Загружает медиа и категории с обработкой ошибок.
+ *
+ * Параллельно: списки независимы, а последовательный запуск удваивал бы задержку
+ * открытия галереи.
  */
-async function loadMediaItems(): Promise<void> {
-    try {
-        await mediaStore.loadItems();
-    } catch (error: unknown) {
-        emit('error', getBricksErrorMessage(error, t('bricks.media.loadFailedCheckDb')));
+async function loadGalleryData(): Promise<void> {
+    const [itemsResult, categoriesResult] = await Promise.allSettled([
+        mediaStore.loadItems(),
+        categoriesStore.loadCategories(),
+    ]);
+
+    if (itemsResult.status === 'rejected') {
+        emit(
+            'error',
+            getBricksErrorMessage(itemsResult.reason, t('bricks.media.loadFailedCheckDb'))
+        );
+    }
+
+    // Отказ категорий не отменяет галерею: файлы видны и без ряда чипов, поэтому
+    // это тост, а не ошибка уровня всей модалки
+    if (categoriesResult.status === 'rejected') {
+        showErrorToast(
+            getBricksErrorMessage(categoriesResult.reason, t('bricks.media.categoryLoadFailed'))
+        );
     }
 }
 
@@ -115,15 +213,87 @@ function showErrorToast(message: string): void {
 /**
  * Возвращает категорию для загрузки на основе активного фильтра.
  *
- * @returns Имя категории для сохраняемого файла.
+ * Приёмника для загрузки «из общего списка» больше нет: при фильтре «Все» файл
+ * сохраняется без категории и виден только там же, во «Всех».
+ *
+ * @returns Категория сохраняемого файла или null.
  */
-function resolveUploadCategory(): string {
-    return categoryFilter.value !== 'all' ? categoryFilter.value : DEFAULT_MEDIA_CATEGORY;
+function resolveUploadCategory(): string | null {
+    return categoryFilter.value !== ALL_MEDIA_CATEGORIES_FILTER ? categoryFilter.value : null;
 }
 
 /** Загружает файлы из upload-зоны. */
 async function handleUpload(files: File[]): Promise<void> {
     await uploadFiles(files);
+}
+
+/**
+ * Открывает системный выбор файлов из плитки-приёмника: сам input живёт в
+ * контролах шапки, второй такой же в сетке означал бы две точки правды о том,
+ * какие типы файлов принимаются.
+ */
+function handleUploadRequest(): void {
+    uploadControlsRef.value?.openFilePicker();
+}
+
+/**
+ * Держит `drop` включённым: без `preventDefault` на `dragover` браузер откроет
+ * файл в соседней вкладке вместо того, чтобы отдать его модалке.
+ *
+ * @param event - Событие перетаскивания.
+ */
+function handleDragOver(event: DragEvent): void {
+    event.preventDefault();
+}
+
+/**
+ * Разворачивает приёмник и запоминает, сколько файлов тащат.
+ *
+ * @param event - Событие перетаскивания.
+ */
+function handleDragEnter(event: DragEvent): void {
+    event.preventDefault();
+    dragDepth.value += 1;
+    dragFileCount.value = event.dataTransfer?.items.length ?? 0;
+}
+
+/**
+ * Сворачивает приёмник.
+ *
+ * Считается глубина, а не просто снимается флаг: `dragleave` приходит и при
+ * переходе курсора на дочерний элемент, и без счётчика приёмник мигал бы на
+ * каждой плитке под курсором.
+ */
+function handleDragLeave(): void {
+    dragDepth.value = Math.max(0, dragDepth.value - 1);
+
+    if (dragDepth.value === 0) {
+        dragFileCount.value = 0;
+    }
+}
+
+/**
+ * Принимает брошенные файлы.
+ *
+ * @param event - Событие drop.
+ */
+function handleDrop(event: DragEvent): void {
+    event.preventDefault();
+    dragDepth.value = 0;
+    dragFileCount.value = 0;
+
+    const files = event.dataTransfer?.files;
+
+    if (!files || files.length === 0) {
+        return;
+    }
+
+    handleUpload(Array.from(files));
+}
+
+/** Принимает изменённые параметры оптимизации из поповера. */
+function handleOptimizationChange(value: IBricksMediaOptimization): void {
+    uploadOptimization.value = value;
 }
 
 /** Handles item selection. */
@@ -146,6 +316,16 @@ function handleInsert(): void {
     handleClose();
 }
 
+/**
+ * Сбрасывает фильтр и поиск. Нужен пустому результату: без него выход из него —
+ * это найти и нажать активный чип, а при выбранной категории вместе с введённым
+ * запросом требуется два действия.
+ */
+function handleResetFilter(): void {
+    categoryFilter.value = ALL_MEDIA_CATEGORIES_FILTER;
+    searchQuery.value = '';
+}
+
 /** Сохраняет изменённые метаданные выбранного элемента; отказ — toast. */
 async function handleUpdateMeta(meta: IMediaUpdateMetaRequest): Promise<void> {
     const item = selectedItem.value;
@@ -162,11 +342,15 @@ async function handleUpdateMeta(meta: IMediaUpdateMetaRequest): Promise<void> {
 }
 
 /**
- * Обновляет категорию выбранного элемента; отказ — toast.
+ * Обновляет категорию выбранного элемента; отказ — toast. null снимает
+ * категорию с файла.
+ *
  * Отказ обязателен к обработке здесь: без ожидания реджект стора ушёл бы в
  * необслуженный промис.
+ *
+ * @param category - Новая категория файла или null.
  */
-async function handleUpdateCategory(category: string): Promise<void> {
+async function handleUpdateCategory(category: string | null): Promise<void> {
     const item = selectedItem.value;
 
     if (!item) {
@@ -177,6 +361,18 @@ async function handleUpdateCategory(category: string): Promise<void> {
         await mediaStore.updateItemCategory(item.id, category);
     } catch (error: unknown) {
         showErrorToast(getBricksErrorMessage(error, t('bricks.media.updateCategoryFailed')));
+    }
+}
+
+/**
+ * Снимает фильтр, указывающий на удалённую категорию: иначе он ссылался бы на
+ * то, чего больше нет, и сетка осталась бы демонстративно пустой.
+ *
+ * @param slug - Удалённая категория.
+ */
+function handleCategoryDeleted(slug: string): void {
+    if (categoryFilter.value === slug) {
+        categoryFilter.value = ALL_MEDIA_CATEGORIES_FILTER;
     }
 }
 
@@ -248,7 +444,7 @@ function handleEscapeKeyDown(event: KeyboardEvent): void {
 
 // #region Lifecycle
 onMounted(() => {
-    loadMediaItems();
+    loadGalleryData();
 });
 
 watch(
@@ -256,19 +452,23 @@ watch(
     (visible) => {
         if (visible) {
             selectedItemId.value = null;
-            categoryFilter.value = 'all';
+            categoryFilter.value = ALL_MEDIA_CATEGORIES_FILTER;
             searchQuery.value = '';
-            loadMediaItems();
+            uploadOptimization.value = { ...defaultOptimization };
+            loadGalleryData();
             return;
         }
 
-        // Подтверждение удаления рендерится вне `BricksModal` галереи, то есть
-        // её закрытие его не снимает: диалог оставался висеть поверх приложения —
-        // в том числе поверх уже другой сессии билдера, когда галерею гасит сброс
-        // сессии. Лайтбокс живёт внутри модалки и размонтируется сам, но его
+        // Подтверждения рендерятся вне `BricksModal` галереи, то есть её закрытие
+        // их не снимает: диалог оставался висеть поверх приложения — в том числе
+        // поверх уже другой сессии билдера, когда галерею гасит сброс сессии.
+        // Лайтбокс живёт внутри модалки и размонтируется сам, но его
         // `previewItem` иначе всплывал бы при следующем открытии галереи
         isDeleteConfirmOpen.value = false;
+        resetCategoryActions();
         previewItem.value = null;
+        dragDepth.value = 0;
+        dragFileCount.value = 0;
     }
 );
 // #endregion
@@ -280,54 +480,118 @@ watch(
         :title="t('bricks.media.galleryTitle')"
         variant="gradient"
         padded
-        :z-index="99999"
+        layer="nested"
         @close="handleClose"
         @escape-key-down="handleEscapeKeyDown"
     >
-        <div :class="$style.modal">
+        <div
+            :class="$style.modal"
+            @dragover="handleDragOver"
+            @dragenter="handleDragEnter"
+            @dragleave="handleDragLeave"
+            @drop="handleDrop"
+        >
             <!-- Header -->
             <div :class="$style.header">
-                <h2 :class="$style.title">{{ t('bricks.media.galleryTitle') }}</h2>
-                <BricksCloseButton @click="handleClose" />
+                <div :class="$style.titleGroup">
+                    <h2 :class="$style.title">{{ t('bricks.media.galleryTitle') }}</h2>
+                    <p :class="$style.summary">
+                        {{ librarySummary }} · {{ t('bricks.media.dropAnywhereHint') }}
+                    </p>
+                </div>
+
+                <div :class="$style.headerActions">
+                    <BricksSearchInput
+                        :class="$style.search"
+                        :value="searchQuery"
+                        :placeholder="t('bricks.media.searchPlaceholder')"
+                        @update:value="searchQuery = $event"
+                    />
+
+                    <BuilderMediaGalleryUploadControls
+                        ref="uploadControlsRef"
+                        :max-image-size-mb="maxImageSizeMb"
+                        :max-video-size-mb="maxVideoSizeMb"
+                        :optimization="uploadOptimization"
+                        :upload-progress="uploadProgress"
+                        @upload="handleUpload"
+                        @update:optimization="handleOptimizationChange"
+                    />
+
+                    <BricksCloseButton @click="handleClose" />
+                </div>
             </div>
 
             <!-- Content -->
             <div :class="[$style.content, 'bricks-scrollbox']">
                 <BuilderMediaGalleryFilters
                     v-model:category-filter="categoryFilter"
-                    v-model:search-query="searchQuery"
-                    :class="$style.filters"
+                    :categories="categories"
+                    :category-counts="categoryCounts"
+                    :total-count="mediaItems.length"
+                    :is-creating-category="isCreatingCategory"
+                    @create-category="handleCreateCategory"
+                    @delete-category="handleRequestCategoryDelete"
                 />
 
-                <BuilderMediaGalleryUploadArea
-                    :max-image-size-mb="maxImageSizeMb"
-                    :max-video-size-mb="maxVideoSizeMb"
-                    @upload="handleUpload"
-                />
+                <!--
+                    Смена содержимого — с растворением: переключение категории
+                    подменяло сетку мгновенно, и по неподвижной раскладке
+                    (шесть плиток до и шесть после) было не видно, что список
+                    вообще обновился.
 
-                <BuilderMediaGalleryGrid
-                    v-if="hasFilteredItems"
-                    :items="filteredMediaItems"
-                    :selected-item-id="selectedItemId"
-                    @select="handleSelectItem"
-                    @preview="handleOpenPreview"
-                />
+                    Ключ — только категория, без поискового запроса: на нём
+                    перебор шёл бы по букве и сетка мигала бы на каждом
+                    нажатии. Переходы между сеткой и пустыми состояниями
+                    отрабатывают сами — это разные ветки `v-if`.
+                -->
+                <div :class="$style.gridArea">
+                    <Transition mode="out-in" name="bricks-fade-fast">
+                        <BuilderMediaGalleryGrid
+                            v-if="hasFilteredItems || isUploading"
+                            :key="categoryFilter"
+                            :items="filteredMediaItems"
+                            :selected-item-id="selectedItemId"
+                            :show-skeleton="isUploading"
+                            :show-upload-tile="!searchQuery"
+                            @select="handleSelectItem"
+                            @preview="handleOpenPreview"
+                            @upload="handleUploadRequest"
+                        />
 
-                <div v-else-if="hasItems && !isUploading" :class="$style.emptyState">
-                    <BricksIcon :class="$style.emptyIcon" icon="ta:outline-filter" />
-                    <p :class="$style.emptyText">{{ t('bricks.media.emptyFiltered') }}</p>
-                </div>
+                        <!-- Фильтр ничего не нашёл -->
+                        <div v-else-if="hasItems" :class="$style.emptyState">
+                            <BricksIcon :class="$style.emptyIcon" icon="ta:outline-filter" />
+                            <p :class="$style.emptyText">{{ t('bricks.media.emptyFiltered') }}</p>
+                            <BricksButton size="sm" variant="ghost" @click="handleResetFilter">
+                                {{ t('bricks.media.resetFilter') }}
+                            </BricksButton>
+                        </div>
 
-                <!-- Empty State -->
-                <div v-else-if="!isUploading" :class="$style.emptyState">
-                    <BricksIcon :class="$style.emptyIcon" icon="ta:outline-photo" />
-                    <p :class="$style.emptyText">{{ t('bricks.media.emptyNoUploads') }}</p>
-                </div>
+                        <!-- Медиатека пуста -->
+                        <div v-else :class="$style.emptyState">
+                            <BricksIcon :class="$style.emptyIcon" icon="ta:outline-photo" />
+                            <p :class="$style.emptyText">{{ t('bricks.media.emptyNoUploads') }}</p>
+                            <p :class="$style.emptyHint">
+                                {{ t('bricks.media.emptyNoUploadsHint') }}
+                            </p>
+                        </div>
+                    </Transition>
 
-                <!-- Loading State -->
-                <div v-if="isUploading" :class="$style.loading">
-                    <BricksIcon :class="$style.loadingIcon" icon="ta:outline-loader-2" />
-                    <p>{{ t('bricks.media.uploading') }}</p>
+                    <!--
+                        Приёмник накрывает только сетку: строка фильтров обязана
+                        остаться видимой — по ней понятно, в какую категорию
+                        уйдут файлы.
+                    -->
+                    <Transition name="bricks-fade-fast">
+                        <BuilderMediaGalleryDropOverlay
+                            v-if="isDraggingFiles"
+                            :file-count="dragFileCount"
+                            :max-image-size-mb="maxImageSizeMb"
+                            :max-video-size-mb="maxVideoSizeMb"
+                            :optimization="uploadOptimization"
+                        />
+                    </Transition>
                 </div>
             </div>
 
@@ -335,23 +599,14 @@ watch(
             <div :class="$style.footer">
                 <BuilderMediaGalleryMetaPanel
                     :selected-item="selectedItem"
+                    :categories="categories"
+                    :show-picker-actions="shouldShowPickerActions"
                     @update-meta="handleUpdateMeta"
                     @update-category="handleUpdateCategory"
                     @remove="handleRemoveItem"
+                    @close="handleClose"
+                    @insert="handleInsert"
                 />
-                <div v-if="shouldShowPickerActions" :class="$style.footerRight">
-                    <BricksButton size="md" variant="secondary" @click="handleClose">
-                        {{ t('bricks.media.cancel') }}
-                    </BricksButton>
-                    <BricksButton
-                        size="md"
-                        variant="primary"
-                        :disabled="!selectedItemId"
-                        @click="handleInsert"
-                    >
-                        {{ t('bricks.media.select') }}
-                    </BricksButton>
-                </div>
             </div>
         </div>
 
@@ -373,6 +628,18 @@ watch(
         @confirm="handleConfirmDelete"
         @close="handleCloseDeleteConfirm"
     />
+
+    <!-- Category Delete Confirmation -->
+    <BricksConfirmModal
+        :is-open="categoryPendingDeletion !== null"
+        :title="deleteCategoryTitle"
+        :description="deleteCategoryDescription"
+        :confirm-text="t('bricks.common.delete')"
+        confirm-variant="danger"
+        :is-loading="isDeletingCategory"
+        @confirm="handleConfirmCategoryDelete"
+        @close="handleCloseCategoryDelete"
+    />
 </template>
 
 <style module lang="scss">
@@ -392,8 +659,15 @@ watch(
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 1.6rem;
     padding: 2rem;
     border-bottom: 1px solid var(--bricks-base-200);
+}
+
+.titleGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
 }
 
 .title {
@@ -403,29 +677,52 @@ watch(
     color: var(--bricks-base-900);
 }
 
+/* Сводка медиатеки и подсказка о перетаскивании одной строкой: подсказка
+   обязана быть видна всегда — постоянной зоны загрузки, которая раньше о себе
+   сообщала, в модалке больше нет. */
+.summary {
+    margin: 0;
+    font-size: 1.2rem;
+    color: var(--bricks-base-400);
+}
+
+.headerActions {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 0.8rem;
+}
+
+.search {
+    width: 28rem;
+}
+
+/* Позиционирующий контейнер приёмника: он накрывает сетку целиком, поэтому
+   растягивается по её месту, а не по всему содержимому модалки. */
+.gridArea {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
 .content {
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.6rem;
     flex: 1;
     padding: 2rem;
 }
 
-.filters {
-    margin-bottom: 2rem;
-}
-
-.emptyState,
-.loading {
+.emptyState {
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 4rem 2rem;
     text-align: center;
     flex-direction: column;
-    gap: 1.6rem;
-}
-
-.emptyState {
-    padding: 6rem 2rem;
+    gap: 1.2rem;
 }
 
 .emptyText {
@@ -434,34 +731,24 @@ watch(
     color: var(--bricks-base-600);
 }
 
+.emptyHint {
+    margin: 0;
+    font-size: 1.2rem;
+    color: var(--bricks-base-400);
+}
+
 .emptyIcon {
     font-size: 8rem;
     color: var(--bricks-base-300);
 }
 
-.loadingIcon {
-    font-size: 4rem;
-    color: var(--bricks-primary-500);
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
+/* Футер двумя рядами: паддинг 1.6/2, высота приходит от содержимого — 120 с
+   выбранным файлом и 76 без него. */
 .footer {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 2rem;
+    padding: 1.6rem 2rem;
     border-top: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-50);
-}
-
-.footerRight {
-    display: flex;
-    gap: 1.2rem;
 }
 </style>

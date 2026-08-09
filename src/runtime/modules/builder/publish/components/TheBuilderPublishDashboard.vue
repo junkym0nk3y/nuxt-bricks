@@ -15,6 +15,7 @@ import { useI18n } from 'vue-i18n';
 import BuilderLogo from '../../core/components/BuilderLogo.vue';
 import BuilderPublishDashboardNav from './BuilderPublishDashboardNav.vue';
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
+import BricksSearchInput from '../../../ui/inputs/BricksSearchInput.vue';
 // #endregion
 
 // #region Props
@@ -43,10 +44,10 @@ const searchPlaceholder = computed<string>(() =>
 /**
  * Пробрасывает ввод строки поиска наверх.
  *
- * @param event - Событие ввода.
+ * @param value - Введённый запрос.
  */
-function onSearchInput(event: Event): void {
-    emit('update:searchQuery', (event.target as HTMLInputElement).value);
+function onSearchInput(value: string): void {
+    emit('update:searchQuery', value);
 }
 
 /**
@@ -111,17 +112,12 @@ function handleLogout(): void {
             </div>
 
             <div :class="$style.headerRight">
-                <div :class="$style.search">
-                    <BricksIcon icon="ta:outline-search" :class="$style.searchIcon" />
-                    <input
-                        :value="props.searchQuery"
-                        :class="$style.searchInput"
-                        type="text"
-                        :placeholder="searchPlaceholder"
-                        :aria-label="searchPlaceholder"
-                        @input="onSearchInput"
-                    />
-                </div>
+                <BricksSearchInput
+                    :class="$style.search"
+                    :value="props.searchQuery"
+                    :placeholder="searchPlaceholder"
+                    @update:value="onSearchInput"
+                />
 
                 <BricksButton size="md" variant="primary" @click="handleCreatePage">
                     + {{ t('bricks.publish.dashboard.createPage') }}
@@ -220,41 +216,7 @@ function handleLogout(): void {
 }
 
 .search {
-    position: relative;
     width: 28rem;
-}
-
-.searchIcon {
-    position: absolute;
-    top: 50%;
-    left: 1rem;
-    width: 1.6rem;
-    height: 1.6rem;
-    color: var(--bricks-base-400);
-    transform: translateY(-50%);
-    pointer-events: none;
-}
-
-.searchInput {
-    box-sizing: border-box;
-    width: 100%;
-    height: 3.6rem;
-    padding: 0 1.2rem 0 3.4rem;
-    border-radius: var(--bricks-border-radius-xs);
-    border: 1px solid var(--bricks-base-300);
-    background: var(--bricks-base-0);
-    font-size: 1.4rem;
-    color: var(--bricks-base-900);
-    transition: border-color var(--bricks-default-transition);
-
-    &::placeholder {
-        color: var(--bricks-base-400);
-    }
-
-    &:focus {
-        border-color: var(--bricks-primary-400);
-        outline: none;
-    }
 }
 
 .body {
