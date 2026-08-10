@@ -38,8 +38,12 @@ export const DEFAULT_MEDIA_OPTIMIZATION: IBricksMediaOptimization = {
  */
 export const MEDIA_QUALITY_MIN = 1;
 export const MEDIA_QUALITY_MAX = 100;
-export const MEDIA_MAX_WIDTH_MIN = 16;
-export const MEDIA_MAX_WIDTH_MAX = 8000;
+// Не экспортируются: наружу ширина отдаётся только через
+// `resolveMediaMaxWidthBounds`. Голая константа рядом с ней читалась бы как
+// готовая граница, а конфиг эти числа раздвигает — потребитель, взявший
+// константу напрямую, снова резал бы конфигурационную ширину
+const MEDIA_MAX_WIDTH_MIN = 16;
+const MEDIA_MAX_WIDTH_MAX = 8000;
 
 /**
  * Приводит `bricks.media.optimization.maxWidth` к пригодной ширине в пикселях.

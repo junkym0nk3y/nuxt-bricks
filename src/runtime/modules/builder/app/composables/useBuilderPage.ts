@@ -64,6 +64,12 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
 
     // #region State
     const isDocumentationModalOpen = ref(false);
+    // Галерея монтируется только с первым открытием: смонтированная сразу, она на
+    // старте билдера тянула списки файлов и категорий, которых у неоткрытой
+    // галереи никто не спрашивает (импорт схемы догружает медиатеку сам).
+    // Латч обратно не снимается — как у модалки создания страницы: пересоздание
+    // компонента теряло бы анимацию закрытия
+    const shouldMountMediaGallery = ref(false);
     const isMediaGalleryModalOpen = ref(false);
     const mediaGalleryContext = ref<TMediaGalleryContext>('manager');
     const sidebarRef = ref<ISidebarExpose | null>(null);
@@ -190,6 +196,7 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
     function handleOpenMediaGallery(context: TMediaGalleryContext = 'manager'): void {
         mediaGalleryContext.value = context;
         mediaGalleryToken = sessionToken.capture();
+        shouldMountMediaGallery.value = true;
         isMediaGalleryModalOpen.value = true;
     }
 
@@ -332,6 +339,7 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
         handleRetryComponentLibrary,
         notifyComponentLibraryFailure,
         isDocumentationModalOpen,
+        shouldMountMediaGallery,
         isMediaGalleryModalOpen,
         mediaGalleryContext,
         sidebarRef,

@@ -51,7 +51,6 @@ const isOptionsOpen = ref(false);
 // #endregion
 
 // #region Computed
-const isUploading = computed<boolean>(() => props.uploadProgress !== null);
 const buttonLabel = computed<string>(() => {
     const progress = props.uploadProgress;
 
@@ -127,11 +126,17 @@ defineExpose({ openFilePicker: handleOpenFilePicker });
 
         <BricksTooltip bottom>
             <template #activator>
+                <!--
+                    На время загрузки кнопка не гаснет, только меняет подпись на
+                    счётчик: очередь рассчитана на добавление наборов по ходу
+                    (один worker на все наборы), и плитка-приёмник с перетаскиванием
+                    их всё это время принимали — гасла одна кнопка, то есть три
+                    входа в одну и ту же загрузку жили по разным правилам.
+                -->
                 <BricksButton
                     :class="$style.uploadButton"
                     size="md"
                     variant="primary"
-                    :disabled="isUploading"
                     @click="handleOpenFilePicker"
                 >
                     {{ buttonLabel }}

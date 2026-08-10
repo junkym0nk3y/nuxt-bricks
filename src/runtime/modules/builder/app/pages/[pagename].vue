@@ -169,6 +169,7 @@ const {
     handleRetryComponentLibrary,
     notifyComponentLibraryFailure,
     isDocumentationModalOpen,
+    shouldMountMediaGallery,
     isMediaGalleryModalOpen,
     mediaGalleryContext,
     sidebarRef,
@@ -546,6 +547,7 @@ onBeforeUnmount(() => {
         />
 
         <TheBuilderMediaGalleryModal
+            v-if="shouldMountMediaGallery"
             :visible="isMediaGalleryModalOpen"
             :context="mediaGalleryContext"
             @close="handleCloseMediaGallery"

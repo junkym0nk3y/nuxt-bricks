@@ -200,7 +200,8 @@ export async function prepareUpload(
  * (Content-Length pre-check + стрим-лимит), содержимое файла подтверждается
  * magic bytes в validate*-хелперах.
  *
- * Multipart-поля: `file` (обязателен), `category` (опционален, дефолт 'other'),
+ * Multipart-поля: `file` (обязателен), `category` (опционален — отсутствие поля
+ * и пустое значение одинаково означают файл без категории, `null`),
  * `format` / `quality` / `maxWidth` (опциональны — переопределяют дефолты
  * `bricks.media.optimization` на эту загрузку).
  */

@@ -255,8 +255,11 @@ server-to-server запроса. В `PATCH {base}/media/:id` поле, наоб�
 - `POST {base}/media` — JSON `{ url, filename, size, mimeType, category, alt?,
 svgContent?, width?, height?, previewUrl?, mockUrl?, uploadedAt? }`; сервер
   генерирует `id` (и `uploadedAt`, если не прислан). **Никакого
-  multipart/binary**. Ручка — server-to-server-only (локальный browser-facing
-  аналог удалён аудитом A-01): принимайте её только с вашим Bearer-токеном.
+  multipart/binary**. Ручка — server-to-server-only: браузерного аналога у
+  nuxt-bricks нет (регистрация метаданных отдельно от файла из браузера
+  недоступна — есть только `POST /api/bricks/media/upload`, который заливает
+  файл и регистрирует запись одним запросом), поэтому принимайте её только с
+  вашим Bearer-токеном.
 - **Идемпотентность по `url`**: повторная регистрация того же `url` (гонка
   импорта, ретрай, повтор после неизвестного исхода) обязана вернуть
   существующую запись — не падать и не создавать дубликат. Ответ 409 адаптер

@@ -303,6 +303,7 @@ export interface IUseBuilderPageReturn {
      */
     notifyComponentLibraryFailure: () => void;
     isDocumentationModalOpen: Ref<boolean>;
+    shouldMountMediaGallery: Ref<boolean>;
     isMediaGalleryModalOpen: Ref<boolean>;
     mediaGalleryContext: Ref<TMediaGalleryContext>;
     sidebarRef: Ref<ISidebarExpose | null>;

@@ -22,6 +22,8 @@
 import type { IMediaGalleryFiltersProps, IMediaGalleryFiltersEmits } from '../types/media';
 
 // Utils
+import { mediaCategoryLabelToSlug } from '../../../common/constants/mediaCategories';
+
 // Vue
 import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -57,24 +59,40 @@ const createInputRef = ref<InstanceType<typeof BricksInput> | null>(null);
  */
 const hasDeletableCategories = computed<boolean>(() => props.categories.length > 0);
 /**
- * Дубликат ищется по подписи, а не по slug'у: slug считает сервер, и до отправки
- * его у клиента нет. Сравнение регистронезависимое — «Промо» и «промо» для
- * пользователя одна категория.
+ * Дубликат ищется по двум признакам сразу, и ни один не лишний.
+ *
+ * По slug'у — потому что уникальность сервер считает именно по нему: «Ёлка» и
+ * «Елка», «Promo» и «Promo!» дают один slug, и такой POST возвращал
+ * существующую категорию как успех — поле закрывалось, новой категории не
+ * появлялось, ошибки не было. Сюда же расширяющая транслитерация: «щ» — три
+ * символа slug'а, поэтому 17 и 20 таких букв упираются в потолок колонки и
+ * обрезаются до одного и того же значения, хотя сами подписи короче своего
+ * потолка в 50 символов и сервер их принимает.
+ *
+ * По подписи — потому что совпадение slug'ов не покрывает обратный случай:
+ * подпись и slug связаны только в момент создания, и у категории, заведённой
+ * когда-то иначе, они разъехались (в живой базе «Иконки» лежит со slug'ом
+ * `icons`, а из подписи считается `ikonki`). Сервер такую пару примет, и в
+ * дорожке окажутся два неразличимых чипа.
+ *
+ * В сообщении — подпись НАЙДЕННОЙ категории, а не введённая: иначе на «Елка»
+ * пользователь читал бы «Категория «Елка» уже есть», не находил её в дорожке и
+ * считал ошибкой поля.
  */
 const duplicateError = computed<string | null>(() => {
-    const normalized = newCategoryLabel.value.trim().toLowerCase();
+    const label = newCategoryLabel.value.trim().toLowerCase();
+    const slug = mediaCategoryLabelToSlug(newCategoryLabel.value);
 
-    if (!normalized) {
+    if (!label) {
         return null;
     }
 
-    const isDuplicate = props.categories.some(
-        (category) => category.label.toLowerCase() === normalized
+    const duplicate = props.categories.find(
+        (category) =>
+            category.label.toLowerCase() === label || (Boolean(slug) && category.slug === slug)
     );
 
-    return isDuplicate
-        ? t('bricks.media.categoryDuplicate', { name: newCategoryLabel.value })
-        : null;
+    return duplicate ? t('bricks.media.categoryDuplicate', { name: duplicate.label }) : null;
 });
 
 const canSubmitCategory = computed<boolean>(

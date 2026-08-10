@@ -13,6 +13,8 @@ import type { IMediaGalleryProps, IMediaGalleryEmits } from '../types/media';
 import { ALL_MEDIA_CATEGORIES_FILTER } from '../../../common/constants/mediaCategories';
 import { DEFAULT_MEDIA_OPTIMIZATION } from '../../../common/constants/mediaOptimization';
 import { getBricksErrorMessage } from '../../../common/utils/main';
+import { resolveMediaCategoryLabelBySlug } from '../utils/categoryLabels';
+import { countDraggedFiles } from '../utils/draggedFiles';
 import { formatFileSize } from '../utils/formatFileSize';
 import { isRequestTimeoutError } from '../../../common/utils/apiRequestPolicy';
 
@@ -98,22 +100,6 @@ const hasItems = computed(() => mediaItems.value.length > 0);
 const selectedItem = computed(
     () => mediaItems.value.find((item) => item.id === selectedItemId.value) ?? null
 );
-const filteredMediaItems = computed(() => {
-    const filterValue = categoryFilter.value;
-    const query = searchQuery.value.trim().toLowerCase();
-
-    return mediaItems.value.filter((item) => {
-        const matchesCategory =
-            filterValue === ALL_MEDIA_CATEGORIES_FILTER || item.category === filterValue;
-        const matchesSearch =
-            !query ||
-            item.filename.toLowerCase().includes(query) ||
-            item.alt.toLowerCase().includes(query) ||
-            Boolean(item.category?.toLowerCase().includes(query));
-        return matchesCategory && matchesSearch;
-    });
-});
-const hasFilteredItems = computed(() => filteredMediaItems.value.length > 0);
 /**
  * Счётчики табов считаются по уже загруженному списку — отдельного запроса нет.
  * Файлы без категории ни в один счётчик не попадают: их видно только во «Всех».
@@ -165,6 +151,35 @@ const {
     onCategoryDeleted: handleCategoryDeleted,
     onError: showErrorToast,
 });
+
+/**
+ * Отфильтрованный список сетки: категория из дорожки, затем строка поиска.
+ *
+ * Ниже `useMediaCategoryActions`, потому что поиск сверяет ПОДПИСЬ категории, а
+ * список подписей приходит оттуда. Сверка с `item.category` не годилась: там
+ * лежит slug, то есть по «Фоны» не находилось ничего — в данных `fony`.
+ */
+const filteredMediaItems = computed(() => {
+    const filterValue = categoryFilter.value;
+    const query = searchQuery.value.trim().toLowerCase();
+
+    return mediaItems.value.filter((item) => {
+        const matchesCategory =
+            filterValue === ALL_MEDIA_CATEGORIES_FILTER || item.category === filterValue;
+        const matchesSearch =
+            !query ||
+            item.filename.toLowerCase().includes(query) ||
+            item.alt.toLowerCase().includes(query) ||
+            Boolean(
+                item.category &&
+                resolveMediaCategoryLabelBySlug(item.category, categories.value)
+                    .toLowerCase()
+                    .includes(query)
+            );
+        return matchesCategory && matchesSearch;
+    });
+});
+const hasFilteredItems = computed(() => filteredMediaItems.value.length > 0);
 // #endregion
 
 // #region Methods
@@ -249,12 +264,17 @@ function handleDragOver(event: DragEvent): void {
 /**
  * Разворачивает приёмник и запоминает, сколько файлов тащат.
  *
+ * Считаются только элементы с `kind === 'file'`: в `items` попадает и выделенный
+ * текст, и перетаскиваемая ссылка, а по их числу приёмник разворачивался на том,
+ * что `drop` принять не может, и молча ничего не делал. Ноль файлов оставляет
+ * приёмник свёрнутым — `isDraggingFiles` считается по этому же счётчику.
+ *
  * @param event - Событие перетаскивания.
  */
 function handleDragEnter(event: DragEvent): void {
     event.preventDefault();
     dragDepth.value += 1;
-    dragFileCount.value = event.dataTransfer?.items.length ?? 0;
+    dragFileCount.value = countDraggedFiles(event.dataTransfer);
 }
 
 /**
@@ -443,6 +463,10 @@ function handleEscapeKeyDown(event: KeyboardEvent): void {
 // #endregion
 
 // #region Lifecycle
+// Монтирование совпадает с первым открытием: вызывающие держат латч и до него
+// компонент не создают. Поэтому первый показ грузит данные отсюда — `visible`
+// уже `true` на момент монтирования, и watch ниже на нём не срабатывает; ему
+// остаются повторные открытия.
 onMounted(() => {
     loadGalleryData();
 });

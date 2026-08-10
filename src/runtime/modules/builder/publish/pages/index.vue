@@ -72,6 +72,11 @@ const { searchQuery, activeFilter, filterCounts, filteredPages, hasAnyPages } = 
 const activeSection = ref<TPublishDashboardSection>('pages');
 const isCreatePageModalOpen = ref(false);
 const isDocumentationModalOpen = ref(false);
+// Галерея монтируется только с первым открытием: смонтированная сразу, она на
+// старте дашборда тянула списки файлов и категорий, которых у неоткрытой галереи
+// никто не спрашивает. Латч обратно не снимается — как у модалки создания
+// страницы: пересоздание компонента теряло бы анимацию закрытия
+const shouldMountMediaGallery = ref(false);
 const isMediaGalleryModalOpen = ref(false);
 const mediaGalleryContext = ref<'manager' | 'properties'>('manager');
 const duplicatingPageId = ref<string | null>(null);
@@ -422,6 +427,7 @@ function handleCloseDocs(): void {
  */
 function handleOpenMediaGallery(): void {
     mediaGalleryContext.value = 'manager';
+    shouldMountMediaGallery.value = true;
     isMediaGalleryModalOpen.value = true;
 }
 
@@ -430,6 +436,7 @@ function handleOpenMediaGallery(): void {
  */
 function handleOpenMediaFromDetails(): void {
     mediaGalleryContext.value = 'properties';
+    shouldMountMediaGallery.value = true;
     isMediaGalleryModalOpen.value = true;
 }
 
@@ -551,6 +558,7 @@ const { isLoadingPages } = await usePublishPagesData({
         />
 
         <TheBuilderMediaGalleryModal
+            v-if="shouldMountMediaGallery"
             :visible="isMediaGalleryModalOpen"
             :context="mediaGalleryContext"
             @close="handleCloseMediaGallery"
