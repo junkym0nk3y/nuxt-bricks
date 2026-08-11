@@ -21,31 +21,41 @@
  * останавливает проход — битая ссылка или неподдерживаемый sharp'ом вход
  * логируется и пропускается.
  *
+ * Судьба загруженных вариантов при отказе решается тем, ЧТО известно об исходе
+ * записи, — тем же правилом, что и в рантайме. Ссылки заведомо не будет (строка
+ * исчезла во время прохода, набор оборвался на середине) — объекты удаляются.
+ * Исход UPDATE неизвестен — объекты остаются: строка могла закоммититься, и
+ * битое превью в галерее хуже невидимого мусора в бакете.
+ *
  * Варианты всегда webp, как и при загрузке: их задача — показаться в любом
  * браузере, а не повторить формат полного файла.
  */
 import process from 'node:process';
+import { realpathSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { processRow, RASTER_MIME_PATTERN } from './backfill-variants-core.mjs';
 
-// Значения обязаны совпадать с MEDIA_VARIANT_PRESETS и MEDIA_VARIANT_SUFFIXES
-// (src/runtime/modules/persistence/server/utils/mediaVariants.ts). Импортировать
-// оттуда нельзя — это TS-модуль рантайма, а скрипт запускается голым node
-const VARIANTS = [
-    { name: 'preview', suffix: '-preview', column: 'preview_url', maxWidth: 480, quality: 40 },
-    { name: 'mock', suffix: '-mock', column: 'mock_url', maxWidth: 32, quality: 20 },
-];
-const VARIANT_EXTENSION = 'webp';
-const VARIANT_MIME = 'image/webp';
-/** Форматы, которые sharp обрабатывает: SVG и видео вариантов не получают. */
-const RASTER_MIME_PATTERN = /^image\/(jpeg|png|webp|avif|gif|tiff|bmp|heic|heif)$/;
-/** Потолок ожидания одного файла из хранилища (мс). */
-const FETCH_TIMEOUT_MS = 30_000;
+/** Потолок установки соединения с хранилищем (мс). */
+const S3_CONNECTION_TIMEOUT_MS = 5_000;
 /**
- * Потолок размера читаемого файла. Тот же, что у ручки загрузки по умолчанию,
- * плюс запас: варианты догоняются для уже лежащих в бакете файлов, и среди них
- * могут быть импортированные мимо ручки. Без потолка одна аномально большая
- * запись валила бы весь проход по памяти.
+ * Потолок тишины сокета (мс) — именно `socketTimeout`, не `requestTimeout`:
+ * второй ограничивает суммарное время запроса и без `throwOnRequestTimeout`
+ * только пишет warning, то есть зависший endpoint не обрывает.
  */
-const MAX_SOURCE_BYTES = 64 * 1024 * 1024;
+const S3_SOCKET_TIMEOUT_MS = 30_000;
+/**
+ * Всего попыток одного запроса к хранилищу (одна плюс один повтор). Дефолтные три
+ * на зависшем endpoint дают три окна тишины подряд плюс backoff, то есть проход
+ * стоит на одном файле полторы минуты; одного повтора хватает, чтобы пережить
+ * одиночный сетевой сбой.
+ */
+const S3_MAX_ATTEMPTS = 2;
+/**
+ * Ключ advisory lock прохода. Два одновременных backfill'а строят одни и те же
+ * ключи вариантов, и компенсация одного удаляла бы объект, который другой только
+ * что связал с записью.
+ */
+const BACKFILL_ADVISORY_LOCK_KEY = 4_179_002_733;
 
 /**
  * Разбирает аргументы командной строки.
@@ -100,192 +110,17 @@ function resolveConfig() {
 }
 
 /**
- * Строит URL и S3-ключ варианта из URL полного файла.
- *
- * Ключ выводится из URL, а не собирается заново из префикса конфига: у файлов,
- * импортированных из бакета, префикс мог быть другим, и «правильно собранный»
- * ключ указал бы не туда, где лежит сам файл.
- *
- * @param {string} fullUrl URL полного файла.
- * @param {string} suffix Суффикс варианта.
- * @param {object} s3 Конфигурация хранилища.
- * @returns {{ key: string, url: string } | null} Ключ и URL варианта.
- */
-function buildVariantTarget(fullUrl, suffix, s3) {
-    let parsed;
-    let expected;
-
-    try {
-        parsed = new URL(fullUrl);
-        expected = new URL(`${s3.endpoint.replace(/\/+$/, '')}/`);
-    } catch {
-        return null;
-    }
-
-    // Сверяется ОРIGIN, а не только путь: `https://attacker.example/<bucket>/x.png`
-    // проходил проверку по pathname, и скрипт шёл за файлом на чужой хост.
-    // userinfo отбрасывается отдельно — `https://host@attacker.example/...`
-    // притворяется нашим хостом при разборе глазами, но не для fetch
-    if (
-        parsed.protocol !== expected.protocol ||
-        parsed.host !== expected.host ||
-        parsed.username ||
-        parsed.password
-    ) {
-        return null;
-    }
-
-    const basePath = `/${s3.bucket}/`;
-
-    if (!parsed.pathname.startsWith(basePath)) {
-        return null;
-    }
-
-    let key;
-
-    try {
-        key = decodeURIComponent(parsed.pathname.slice(basePath.length));
-    } catch {
-        // Битое percent-кодирование: собранный из него ключ указал бы не туда
-        return null;
-    }
-
-    // Обход вверх по «дереву» ключей и пустой ключ отбрасываются: имя объекта
-    // строится из этой строки, и `../` увёл бы вариант за пределы префикса
-    if (!key || key.includes('..') || key.startsWith('/')) {
-        return null;
-    }
-    const lastSlashIndex = key.lastIndexOf('/');
-    const directory = lastSlashIndex === -1 ? '' : key.slice(0, lastSlashIndex + 1);
-    const filename = key.slice(lastSlashIndex + 1);
-    const lastDotIndex = filename.lastIndexOf('.');
-    const baseName = lastDotIndex > 0 ? filename.slice(0, lastDotIndex) : filename;
-    const variantKey = `${directory}${baseName}${suffix}.${VARIANT_EXTENSION}`;
-
-    return {
-        key: variantKey,
-        url: `${s3.endpoint.replace(/\/+$/, '')}/${s3.bucket}/${variantKey}`,
-    };
-}
-
-/**
- * Забирает файл из хранилища по публичному URL.
- *
- * Тело читается по частям с потолком, а не `arrayBuffer()`: в `bricks_media`
- * лежат и URL вне бакета (модуль это допускает — см. ветку внешнего URL в
- * mediaOrchestration), и запись с неожиданно большим объектом. Без потолка такой
- * ответ читался бы в память целиком.
- *
- * @param {string} url Публичный URL.
- * @returns {Promise<Buffer>} Байты файла.
- */
-async function downloadFile(url) {
-    const response = await fetch(url, {
-        redirect: 'error',
-        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-    });
-
-    if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-    }
-
-    if (!response.body) {
-        throw new Error('пустой ответ хранилища');
-    }
-
-    const chunks = [];
-    let total = 0;
-
-    for await (const chunk of response.body) {
-        total += chunk.length;
-
-        if (total > MAX_SOURCE_BYTES) {
-            throw new Error(`файл больше ${MAX_SOURCE_BYTES} байт`);
-        }
-
-        chunks.push(chunk);
-    }
-
-    return Buffer.concat(chunks);
-}
-
-/**
- * Обрабатывает одну медиа-запись: генерирует варианты, кладёт их в хранилище и
- * возвращает патч колонок.
- *
- * @param {object} deps Зависимости: sharp, s3Client, PutObjectCommand, конфиг.
- * @param {object} row Строка bricks_media.
- * @returns {Promise<Record<string, string>>} Патч колонок (пустой — делать нечего).
- */
-async function buildVariantsForRow(deps, row) {
-    const pending = VARIANTS.filter((variant) => !row[variant.column]);
-
-    if (pending.length === 0) {
-        return {};
-    }
-
-    // Цели считаются ДО скачивания: URL записи может лежать вне нашего бакета
-    // (модуль это допускает), и такую строку нужно пропустить, не сходив за
-    // файлом на чужой хост
-    const targets = pending
-        .map((variant) => ({
-            variant,
-            target: buildVariantTarget(row.url, variant.suffix, deps.config.s3),
-        }))
-        .filter((entry) => entry.target !== null);
-
-    if (targets.length === 0) {
-        console.warn(`[backfill] #${row.id}: URL вне бакета, пропуск — ${row.url}`);
-        return {};
-    }
-
-    const source = await downloadFile(row.url);
-    const patch = {};
-
-    for (const { variant, target } of targets) {
-        const buffer = await deps
-            .sharp(source, { limitInputPixels: 100_000_000 })
-            .resize({ width: variant.maxWidth, fit: 'inside', withoutEnlargement: true })
-            .webp({ quality: variant.quality })
-            .toBuffer();
-
-        if (!deps.config.dryRun) {
-            await deps.s3Client.send(
-                new deps.PutObjectCommand({
-                    Bucket: deps.config.s3.bucket,
-                    Key: target.key,
-                    Body: buffer,
-                    ContentType: VARIANT_MIME,
-                    // Тот же ACL, что ставит штатный адаптер публикации. Без него
-                    // в закрытом бакете, где публичность даётся объектным ACL,
-                    // скрипт записал бы в БД адреса, отдающие 403: потребитель
-                    // молча падал бы с варианта на полный файл, а проход
-                    // рапортовал полный успех
-                    ACL: 'public-read',
-                })
-            );
-        }
-
-        patch[variant.column] = target.url;
-        console.log(
-            `[backfill] #${row.id}: ${variant.name} → ${target.key} (${buffer.length} байт)` +
-                (deps.config.dryRun ? ' [dry-run]' : '')
-        );
-    }
-
-    return patch;
-}
-
-/**
  * Точка входа.
  */
 async function main() {
     const { dryRun, limit } = parseArgs();
     const config = { ...resolveConfig(), dryRun };
 
-    const [{ default: pg }, { default: sharp }, { S3Client, PutObjectCommand }] = await Promise.all(
-        [import('pg'), import('sharp'), import('@aws-sdk/client-s3')]
-    );
+    const [
+        { default: pg },
+        { default: sharp },
+        { S3Client, PutObjectCommand, DeleteObjectCommand },
+    ] = await Promise.all([import('pg'), import('sharp'), import('@aws-sdk/client-s3')]);
 
     const client = new pg.Client({ connectionString: config.databaseUrl });
     const s3Client = new S3Client({
@@ -295,11 +130,31 @@ async function main() {
             accessKeyId: config.s3.accessKeyId,
             secretAccessKey: config.s3.secretAccessKey,
         },
+        // Без потолков зависший endpoint вешает проход насовсем: у SDK по
+        // умолчанию нет ни таймаута соединения, ни таймаута тишины сокета
+        requestHandler: {
+            connectionTimeout: S3_CONNECTION_TIMEOUT_MS,
+            socketTimeout: S3_SOCKET_TIMEOUT_MS,
+        },
+        maxAttempts: S3_MAX_ATTEMPTS,
     });
 
     await client.connect();
 
     try {
+        // Первым же оператором внутри try, чтобы `client.end()` из finally
+        // выполнился и при занятом lock. Lock сессионный: закрытие соединения
+        // снимает его само, в том числе после исключения
+        const lock = await client.query('SELECT pg_try_advisory_lock($1) AS acquired', [
+            BACKFILL_ADVISORY_LOCK_KEY,
+        ]);
+
+        if (!lock.rows[0]?.acquired) {
+            throw new Error(
+                'другой проход backfill уже идёт (advisory lock занят) — параллельные проходы строят одни и те же ключи вариантов'
+            );
+        }
+
         const { rows } = await client.query(
             `SELECT id, url, mime_type, preview_url, mock_url
              FROM bricks_media
@@ -315,27 +170,22 @@ async function main() {
         let updated = 0;
         let failed = 0;
 
+        const deps = { sharp, s3Client, PutObjectCommand, DeleteObjectCommand, config };
+
         for (const row of rows) {
             try {
-                const patch = await buildVariantsForRow(
-                    { sharp, s3Client, PutObjectCommand, config },
-                    row
-                );
-                const columns = Object.keys(patch);
+                const outcome = await processRow(deps, client, row);
 
-                if (columns.length === 0) {
+                if (outcome === 'updated') {
+                    updated += 1;
                     continue;
                 }
 
-                if (!dryRun) {
-                    const assignments = columns.map((column, index) => `${column} = $${index + 2}`);
-                    await client.query(
-                        `UPDATE bricks_media SET ${assignments.join(', ')} WHERE id = $1`,
-                        [row.id, ...columns.map((column) => patch[column])]
-                    );
+                // `skipped` — не отказ: делать было нечего (варианты уже на
+                // месте либо URL записи лежит вне бакета)
+                if (outcome !== 'skipped') {
+                    failed += 1;
                 }
-
-                updated += 1;
             } catch (error) {
                 failed += 1;
                 console.warn(`[backfill] #${row.id}: пропуск — ${error.message}`);
@@ -349,7 +199,34 @@ async function main() {
     }
 }
 
-main().catch((error) => {
-    console.error('[backfill] Прервано:', error);
-    process.exit(1);
-});
+/**
+ * Запущен ли файл напрямую, а не импортирован (тестом).
+ *
+ * Пути сравниваются ПОСЛЕ разрешения симлинков: Node канонизирует путь
+ * main-модуля, а `process.argv[1]` сохраняет путь вызова, поэтому лексическое
+ * сравнение при запуске через симлинк тихо ничего не делало и выходило с кодом 0.
+ * Любой отказ разрешения пути означает «не прямой запуск» — импорт не должен
+ * падать из-за этой проверки.
+ *
+ * @param {string} metaUrl `import.meta.url` файла.
+ * @param {string | undefined} argvPath `process.argv[1]`.
+ * @returns {boolean} true — файл запущен как программа.
+ */
+function isDirectRun(metaUrl, argvPath) {
+    if (!argvPath) {
+        return false;
+    }
+
+    try {
+        return realpathSync(fileURLToPath(metaUrl)) === realpathSync(argvPath);
+    } catch {
+        return false;
+    }
+}
+
+if (isDirectRun(import.meta.url, process.argv[1])) {
+    main().catch((error) => {
+        console.error('[backfill] Прервано:', error);
+        process.exit(1);
+    });
+}

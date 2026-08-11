@@ -19,7 +19,7 @@ import { buildMediaVariantFilename } from '../../../../modules/persistence/serve
 import { toMediaHttpError } from '../../../../modules/persistence/server/utils/handlerHelpers';
 import {
     MULTIPART_ENVELOPE_ALLOWANCE_BYTES,
-    readMultipartFormDataWithLimit,
+    withMultipartFormData,
 } from '../../../../modules/persistence/server/utils/requestBodyLimits';
 import { validateMediaCategory } from '../../../../modules/persistence/server/utils/mediaPayloadValidation';
 import { assertKnownMediaCategory } from '../../../../modules/persistence/server/utils/mediaCategoryRules';
@@ -197,8 +197,11 @@ export async function prepareUpload(
  * компенсируется удалением загруженного файла (см. uploadAndRegisterMedia).
  *
  * Ingress-контроль: rate limit по IP, тело читается с жёстким лимитом
- * (Content-Length pre-check + стрим-лимит), содержимое файла подтверждается
- * magic bytes в validate*-хелперах.
+ * (Content-Length pre-check + стрим-лимит) и в пределах общего бюджета
+ * одновременно буферизуемых форм — лимит в минуту не ограничивает число
+ * ОДНОВРЕМЕННЫХ загрузок, а тело каждой собирается в память целиком. Содержимое
+ * файла подтверждается magic bytes в validate*-хелперах; свой потолок размера
+ * каждого типа они же и проверяют — до разбора формы тип файла неизвестен.
  *
  * Multipart-поля: `file` (обязателен), `category` (опционален — отсутствие поля
  * и пустое значение одинаково означают файл без категории, `null`),
@@ -213,50 +216,54 @@ export default defineEventHandler(async (event) => {
         const bodyLimitBytes =
             Math.max(config.maxUploadSizeBytes, config.maxVideoUploadSizeBytes) +
             MULTIPART_ENVELOPE_ALLOWANCE_BYTES;
-        const formData = await readMultipartFormDataWithLimit(event, bodyLimitBytes);
 
-        if (formData.length === 0) {
-            throw createError({
-                statusCode: 400,
-                message: 'No file uploaded',
-            });
-        }
-
-        const file = assertUploadedFile(formData);
-        const rawCategory = formData.find((item) => item.name === 'category')?.data.toString();
-        // Пустая форма-поле и отсутствие поля — одно и то же: загрузка без
-        // выбранной категории, файл остаётся без неё
-        const category = rawCategory ? validateMediaCategory(rawCategory) : null;
-        const storage = useBricksStorageAdapter();
-
-        // До обработки файла: тратить sharp и заливку в бакет на вход, который
-        // всё равно некуда записать, незачем. Гонку с удалением категории эта
-        // проверка не закрывает — её ловит FK базы уже после заливки
-        if (category) {
-            await assertKnownMediaCategory(storage, category);
-        }
-
-        const prepared = await prepareUpload(
-            file,
-            config,
-            resolveUploadOptimization(formData, config.optimization)
-        );
-        const storedFilename = `${randomUUID()}.${prepared.targetExtension}`;
-
-        return await uploadAndRegisterMedia(
-            { storage, publish: useBricksPublishAdapter() },
-            {
-                buffer: prepared.buffer,
-                mimeType: prepared.mimeType,
-                storedFilename,
-                displayFilename: file.filename || storedFilename,
-                category,
-                svgContent: prepared.svgContent,
-                width: prepared.width,
-                height: prepared.height,
-                variants: withVariantFilenames(prepared.variants, storedFilename),
+        // Вся обработка идёт ВНУТРИ колбэка: место в бюджете одновременного
+        // буферизования держится, пока буферы формы живы, — а живы они до конца
+        // заливки в хранилище
+        return await withMultipartFormData(event, bodyLimitBytes, async (formData) => {
+            if (formData.length === 0) {
+                throw createError({
+                    statusCode: 400,
+                    message: 'No file uploaded',
+                });
             }
-        );
+
+            const file = assertUploadedFile(formData);
+            const rawCategory = formData.find((item) => item.name === 'category')?.data.toString();
+            // Пустая форма-поле и отсутствие поля — одно и то же: загрузка без
+            // выбранной категории, файл остаётся без неё
+            const category = rawCategory ? validateMediaCategory(rawCategory) : null;
+            const storage = useBricksStorageAdapter();
+
+            // До обработки файла: тратить sharp и заливку в бакет на вход, который
+            // всё равно некуда записать, незачем. Гонку с удалением категории эта
+            // проверка не закрывает — её ловит FK базы уже после заливки
+            if (category) {
+                await assertKnownMediaCategory(storage, category);
+            }
+
+            const prepared = await prepareUpload(
+                file,
+                config,
+                resolveUploadOptimization(formData, config.optimization)
+            );
+            const storedFilename = `${randomUUID()}.${prepared.targetExtension}`;
+
+            return await uploadAndRegisterMedia(
+                { storage, publish: useBricksPublishAdapter() },
+                {
+                    buffer: prepared.buffer,
+                    mimeType: prepared.mimeType,
+                    storedFilename,
+                    displayFilename: file.filename || storedFilename,
+                    category,
+                    svgContent: prepared.svgContent,
+                    width: prepared.width,
+                    height: prepared.height,
+                    variants: withVariantFilenames(prepared.variants, storedFilename),
+                }
+            );
+        });
     } catch (error: unknown) {
         toMediaHttpError(error, 'Failed to upload media file');
     }

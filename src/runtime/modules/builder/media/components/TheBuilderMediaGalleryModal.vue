@@ -14,7 +14,6 @@ import { ALL_MEDIA_CATEGORIES_FILTER } from '../../../common/constants/mediaCate
 import { DEFAULT_MEDIA_OPTIMIZATION } from '../../../common/constants/mediaOptimization';
 import { getBricksErrorMessage } from '../../../common/utils/main';
 import { resolveMediaCategoryLabelBySlug } from '../utils/categoryLabels';
-import { countDraggedFiles } from '../utils/draggedFiles';
 import { formatFileSize } from '../utils/formatFileSize';
 import { isRequestTimeoutError } from '../../../common/utils/apiRequestPolicy';
 
@@ -29,6 +28,7 @@ import { useMediaCategoriesStore } from '../stores/mediaCategories';
 // Composables
 import { useMediaUpload } from '../composables/useMediaUpload';
 import { useMediaCategoryActions } from '../composables/useMediaCategoryActions';
+import { useMediaGalleryFileDrop } from '../composables/useMediaGalleryFileDrop';
 
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
@@ -67,10 +67,6 @@ const isDeleteConfirmOpen = ref(false);
 const isDeleting = ref(false);
 const toastVisible = ref(false);
 const toastMessage = ref('');
-/** Сколько файлов тащат над модалкой; 0 — перетаскивания нет. */
-const dragFileCount = ref(0);
-/** Глубина dragenter/dragleave — см. handleDragLeave. */
-const dragDepth = ref(0);
 const uploadControlsRef = ref<InstanceType<typeof BuilderMediaGalleryUploadControls> | null>(null);
 
 /**
@@ -90,6 +86,16 @@ const { maxImageSizeMb, maxVideoSizeMb, defaultOptimization, uploadProgress, upl
     });
 
 uploadOptimization.value = { ...defaultOptimization };
+
+const {
+    draggedFileCount,
+    isDraggingFiles,
+    handleDragOver,
+    handleDragEnter,
+    handleDragLeave,
+    handleDrop,
+    resetFileDrop,
+} = useMediaGalleryFileDrop({ onFiles: handleUpload });
 // #endregion
 
 // #region Computed
@@ -127,7 +133,6 @@ const librarySummary = computed<string>(() =>
         size: formatFileSize(totalSize.value),
     })
 );
-const isDraggingFiles = computed<boolean>(() => dragFileCount.value > 0);
 
 /**
  * Действия над категориями. Ниже Computed, а не в Data: композабл читает
@@ -249,66 +254,6 @@ async function handleUpload(files: File[]): Promise<void> {
  */
 function handleUploadRequest(): void {
     uploadControlsRef.value?.openFilePicker();
-}
-
-/**
- * Держит `drop` включённым: без `preventDefault` на `dragover` браузер откроет
- * файл в соседней вкладке вместо того, чтобы отдать его модалке.
- *
- * @param event - Событие перетаскивания.
- */
-function handleDragOver(event: DragEvent): void {
-    event.preventDefault();
-}
-
-/**
- * Разворачивает приёмник и запоминает, сколько файлов тащат.
- *
- * Считаются только элементы с `kind === 'file'`: в `items` попадает и выделенный
- * текст, и перетаскиваемая ссылка, а по их числу приёмник разворачивался на том,
- * что `drop` принять не может, и молча ничего не делал. Ноль файлов оставляет
- * приёмник свёрнутым — `isDraggingFiles` считается по этому же счётчику.
- *
- * @param event - Событие перетаскивания.
- */
-function handleDragEnter(event: DragEvent): void {
-    event.preventDefault();
-    dragDepth.value += 1;
-    dragFileCount.value = countDraggedFiles(event.dataTransfer);
-}
-
-/**
- * Сворачивает приёмник.
- *
- * Считается глубина, а не просто снимается флаг: `dragleave` приходит и при
- * переходе курсора на дочерний элемент, и без счётчика приёмник мигал бы на
- * каждой плитке под курсором.
- */
-function handleDragLeave(): void {
-    dragDepth.value = Math.max(0, dragDepth.value - 1);
-
-    if (dragDepth.value === 0) {
-        dragFileCount.value = 0;
-    }
-}
-
-/**
- * Принимает брошенные файлы.
- *
- * @param event - Событие drop.
- */
-function handleDrop(event: DragEvent): void {
-    event.preventDefault();
-    dragDepth.value = 0;
-    dragFileCount.value = 0;
-
-    const files = event.dataTransfer?.files;
-
-    if (!files || files.length === 0) {
-        return;
-    }
-
-    handleUpload(Array.from(files));
 }
 
 /** Принимает изменённые параметры оптимизации из поповера. */
@@ -491,8 +436,7 @@ watch(
         isDeleteConfirmOpen.value = false;
         resetCategoryActions();
         previewItem.value = null;
-        dragDepth.value = 0;
-        dragFileCount.value = 0;
+        resetFileDrop();
     }
 );
 // #endregion
@@ -611,7 +555,7 @@ watch(
                     <Transition name="bricks-fade-fast">
                         <BuilderMediaGalleryDropOverlay
                             v-if="isDraggingFiles"
-                            :file-count="dragFileCount"
+                            :file-count="draggedFileCount"
                             :max-image-size-mb="maxImageSizeMb"
                             :max-video-size-mb="maxVideoSizeMb"
                             :optimization="uploadOptimization"

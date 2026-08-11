@@ -7,8 +7,8 @@
  * в рантайме молча оставляла бы догенерённые варианты другого размера, и разница
  * между старыми и новыми картинками выглядела бы случайной.
  *
- * Спека читает текст скрипта, а не импортирует его: запуск потянул бы `pg`,
- * `sharp` и клиент S3.
+ * Спека читает текст ядра скрипта, а не импортирует его: нужны именно литералы,
+ * а не собранные значения.
  */
 
 // #region Imports
@@ -23,7 +23,7 @@ import { MEDIA_VARIANT_PRESETS } from '../../src/runtime/modules/persistence/ser
 // #endregion
 
 const SCRIPT_SOURCE = readFileSync(
-    new URL('../../scripts/backfill-media-variants.mjs', import.meta.url),
+    new URL('../../scripts/backfill-variants-core.mjs', import.meta.url),
     'utf8'
 );
 

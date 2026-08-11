@@ -9,6 +9,13 @@ import { assertOk } from './smoke-shared.mjs';
 /** 1x1 png для media upload. */
 const PNG_1X1_BASE64 =
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+/**
+ * Подпись категории media-этапа. Категория заводится самим этапом: в схеме
+ * предустановленных категорий нет, и загрузка с незнакомым slug'ом законно
+ * отвечает 400 — прежний хардкод `other` был зелёным только там, где категория
+ * с таким slug'ом осталась в базе от ручных прогонов.
+ */
+const MEDIA_CATEGORY_LABEL = 'IT Smoke';
 
 /**
  * Заголовки авторизованных запросов: CSRF-заголовок + cookie.
@@ -82,7 +89,12 @@ async function cleanupStalePage(api, pagename, cookie) {
 }
 
 /**
- * Media-этап (S3): multipart upload → запись с id; delete → { success }.
+ * Media-этап (S3): категория → multipart upload → запись с id → delete файла и
+ * категории.
+ *
+ * Категория создаётся здесь же, а не берётся готовой: slug считает сервер, и
+ * повторный POST с той же подписью возвращает существующую запись — то есть
+ * этап идемпотентен против одной базы.
  *
  * @param {string} origin Origin запущенного сервера.
  * @param {ReturnType<typeof createApiClient>} api API-клиент.
@@ -90,12 +102,24 @@ async function cleanupStalePage(api, pagename, cookie) {
  * @returns {Promise<void>} Резолвится при зелёном этапе.
  */
 async function runMediaStage(origin, api, cookie) {
+    const category = await api('/api/bricks/media/categories', {
+        method: 'POST',
+        cookie,
+        body: { label: MEDIA_CATEGORY_LABEL },
+    });
+    assertOk(
+        [200, 201].includes(category.response.status),
+        `создание категории: ${category.response.status}`
+    );
+    const slug = category.data?.slug;
+    assertOk(typeof slug === 'string' && slug.length > 0, 'POST категории не вернул slug');
+
     const form = new FormData();
     form.append(
         'file',
         new File([Buffer.from(PNG_1X1_BASE64, 'base64')], 'it.png', { type: 'image/png' })
     );
-    form.append('category', 'other');
+    form.append('category', slug);
     const upload = await fetch(`${origin}/api/bricks/media/upload`, {
         method: 'POST',
         headers: { 'x-bricks-csrf': '1', cookie },
@@ -105,8 +129,16 @@ async function runMediaStage(origin, api, cookie) {
     const media = await upload.json();
     assertOk(Boolean(media?.id), 'upload не вернул id медиа');
     assertOk(typeof media?.url === 'string' && media.url.length > 0, 'upload не вернул url');
+    assertOk(media?.category === slug, `upload не сохранил категорию: ${media?.category}`);
 
+    // Файл раньше категории: удаление категории снимает её со своих файлов, то
+    // есть обратный порядок проверял бы уже не ту связь
     await api(`/api/bricks/media/${media.id}`, { method: 'DELETE', cookie, expectStatus: 200 });
+    await api(`/api/bricks/media/categories/${slug}`, {
+        method: 'DELETE',
+        cookie,
+        expectStatus: 200,
+    });
     console.info('[integration-smoke] Media upload/delete через S3 прошли');
 }
 

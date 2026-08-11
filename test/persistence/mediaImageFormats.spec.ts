@@ -13,6 +13,7 @@ vi.mock('nitropack/runtime', () => ({
 import {
     isWebSafeImageExtension,
     resolveImageFormat,
+    resolveVideoMime,
 } from '../../src/runtime/modules/persistence/server/utils/imageProcessing';
 import { prepareUpload } from '../../src/runtime/server/api/bricks/media/upload.post';
 import type { IResolvedMediaConfig } from '../../src/runtime/modules/persistence/types/media';
@@ -101,5 +102,138 @@ describe('формат берётся из содержимого, а не из 
 
         expect(prepared.targetExtension).toBe('webp');
         expect(prepared.mimeType).toBe('image/webp');
+    });
+});
+
+/**
+ * Границы MIME: колонка `mime_type` — `VARCHAR(255)`, и заявленный Content-Type
+ * доезжал до записи там, где тип нельзя вывести из содержимого.
+ */
+describe('MIME запроса не проезжает в запись без границ', () => {
+    const svgMarkup = '<svg xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1"/></svg>';
+
+    /** Multipart-файл SVG с заданным заявленным типом. */
+    function makeSvgFile(type: string): {
+        name: string;
+        filename: string;
+        type: string;
+        data: Buffer;
+    } {
+        return { name: 'file', filename: 'a.svg', type, data: Buffer.from(svgMarkup, 'utf8') };
+    }
+
+    it('SVG получает канонический тип, а не заявленный клиентом', async () => {
+        const prepared = await prepareUpload(
+            makeSvgFile('image/svg+xml; charset=utf-8-and-a-lie'),
+            makeConfig()
+        );
+
+        // Содержимое уже подтверждено как SVG-разметка, то есть тип известен
+        // точно — клиентскую строку здесь принимать не за что
+        expect(prepared.mimeType).toBe('image/svg+xml');
+    });
+
+    it('расширение SVG тоже каноническое, а не из клиентского имени', async () => {
+        const prepared = await prepareUpload(
+            {
+                name: 'file',
+                filename: 'photo.png',
+                type: 'image/svg+xml',
+                data: Buffer.from(svgMarkup, 'utf8'),
+            },
+            makeConfig()
+        );
+
+        // Прежде валидный SVG с таким именем уезжал в бакет как `uuid.png`, и
+        // импорт из бакета опознавал его как PNG по расширению
+        expect(prepared.mimeType).toBe('image/svg+xml');
+        expect(prepared.targetExtension).toBe('svg');
+    });
+
+    it('нераспознанное содержимое отклоняется, а не считается вектором', async () => {
+        // Ветка «формат не распознан» прежде возвращала isSvg: true, то есть
+        // читалась как «нераспознанный формат = SVG»
+        await expect(
+            prepareUpload(
+                {
+                    name: 'file',
+                    filename: 'photo.png',
+                    type: 'image/png',
+                    data: Buffer.from('not an image at all'),
+                },
+                makeConfig()
+            )
+        ).rejects.toMatchObject({
+            statusCode: 400,
+            message: expect.stringContaining('not a supported image'),
+        });
+    });
+
+    it('слишком длинный Content-Type отклоняется до обработки файла', async () => {
+        // Прежде такой вход проходил валидацию, занимал место в бакете и падал
+        // уже на вставке: пользователь получал generic 500, а sharp и заливка
+        // делались зря
+        await expect(
+            prepareUpload(makeSvgFile(`image/${'x'.repeat(300)}`), makeConfig())
+        ).rejects.toMatchObject({ statusCode: 400 });
+    });
+
+    it('граница проходит ровно по колонке: 255 принимается, 256 отклоняется', async () => {
+        const pad = (length: number): string => `image/${'x'.repeat(length - 'image/'.length)}`;
+
+        // 255 — предел колонки `mime_type`, и он обязан оставаться рабочим: тип с
+        // параметрами (`; charset=...`) бывает длинным законно
+        await expect(prepareUpload(makeSvgFile(pad(255)), makeConfig())).resolves.toMatchObject({
+            mimeType: 'image/svg+xml',
+        });
+
+        await expect(prepareUpload(makeSvgFile(pad(256)), makeConfig())).rejects.toMatchObject({
+            statusCode: 400,
+        });
+    });
+
+    it('видео тоже отклоняет длинный Content-Type до обработки', async () => {
+        // Видео-ветка идёт мимо `validateAndOptimizeImage`, то есть проверка
+        // обязана стоять в обеих валидациях, а не в одной. Сверяется ИМЕННО
+        // сообщение: без границы этот вход тоже отказал бы 400, но уже по
+        // сигнатуре содержимого, то есть проверка ничего бы не доказывала
+        await expect(
+            prepareUpload(
+                {
+                    name: 'file',
+                    filename: 'clip.mp4',
+                    type: `video/${'x'.repeat(300)}`,
+                    data: Buffer.from('not-a-real-video'),
+                },
+                makeConfig()
+            )
+        ).rejects.toMatchObject({
+            statusCode: 400,
+            message: expect.stringContaining('longer than 255'),
+        });
+    });
+});
+
+/**
+ * MIME контейнера выводится из содержимого, а не из клиентского заголовка. Дыра
+ * была в `m4v`: расширение попадает в целевое имя как ISO-BMFF, но строки в карте
+ * не имело, и MIME брался из запроса — то есть произвольной строкой.
+ */
+describe('MIME видео берётся из карты контейнеров, а не из запроса', () => {
+    it('каждое расширение, которое может стать целевым, имеет свой MIME', () => {
+        const containerMimes: Record<string, string> = {
+            mp4: 'video/mp4',
+            m4v: 'video/x-m4v',
+            mov: 'video/quicktime',
+            webm: 'video/webm',
+            ogg: 'video/ogg',
+            avi: 'video/x-msvideo',
+        };
+
+        for (const [extension, mime] of Object.entries(containerMimes)) {
+            // Второй аргумент — клиентский MIME: он не должен побеждать ни в
+            // одном из этих случаев
+            expect(resolveVideoMime(extension, 'video/whatever-the-client-said')).toBe(mime);
+        }
     });
 });

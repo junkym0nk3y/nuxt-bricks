@@ -16,7 +16,7 @@ import {
 } from '../../../../modules/persistence/server/utils/pageThumbnails';
 import {
     MULTIPART_ENVELOPE_ALLOWANCE_BYTES,
-    readMultipartFormDataWithLimit,
+    withMultipartFormData,
 } from '../../../../modules/persistence/server/utils/requestBodyLimits';
 import {
     assertWithinRateLimit,
@@ -145,67 +145,70 @@ export default defineEventHandler(async (event): Promise<IThumbnailUploadRespons
 
         const bodyLimitBytes =
             MAX_THUMBNAIL_UPLOAD_MB * 1024 * 1024 + MULTIPART_ENVELOPE_ALLOWANCE_BYTES;
-        const formData = await readMultipartFormDataWithLimit(event, bodyLimitBytes);
 
-        if (formData.length === 0) {
-            throw createError({
-                statusCode: 400,
-                message: 'No file uploaded',
+        // Обработка внутри колбэка: место в бюджете одновременного буферизования
+        // держится, пока живы буферы формы, — то есть до конца заливки кадра
+        return await withMultipartFormData(event, bodyLimitBytes, async (formData) => {
+            if (formData.length === 0) {
+                throw createError({
+                    statusCode: 400,
+                    message: 'No file uploaded',
+                });
+            }
+
+            const file = assertUploadedFile(formData);
+            const pageId = assertPageId(formData);
+
+            const storage = useBricksStorageAdapter();
+
+            // Существование страницы проверяется до пережатия и загрузки: кадр
+            // несуществующей страницы не убрать ничем — уборку по префиксу запускает
+            // сохранение или удаление той же страницы, а их не будет никогда
+            if (!(await storage.getPage(pageId))) {
+                throw createError({
+                    statusCode: 404,
+                    message: 'Page not found',
+                });
+            }
+
+            const optimized = await optimizeImage(toBuffer(file.data), {
+                maxWidth: THUMBNAIL_WIDTH,
+                quality: THUMBNAIL_WEBP_QUALITY,
             });
-        }
 
-        const file = assertUploadedFile(formData);
-        const pageId = assertPageId(formData);
-
-        const storage = useBricksStorageAdapter();
-
-        // Существование страницы проверяется до пережатия и загрузки: кадр
-        // несуществующей страницы не убрать ничем — уборку по префиксу запускает
-        // сохранение или удаление той же страницы, а их не будет никогда
-        if (!(await storage.getPage(pageId))) {
-            throw createError({
-                statusCode: 404,
-                message: 'Page not found',
+            const publishAdapter = useBricksPublishAdapter();
+            const uploaded = await publishAdapter.uploadFile({
+                buffer: optimized.buffer,
+                mimeType: optimized.mimeType,
+                key: buildPageThumbnailKey(publishAdapter, pageId),
             });
-        }
 
-        const optimized = await optimizeImage(toBuffer(file.data), {
-            maxWidth: THUMBNAIL_WIDTH,
-            quality: THUMBNAIL_WEBP_QUALITY,
+            // Повторное чтение — не дубль проверки выше: страницу могли удалить, пока
+            // шло пережатие. Оно же даёт первый кадр страницы для keep-list, и потому
+            // идёт раньше списка версий (см. prunePageThumbnailsAfterUpload)
+            const page = await storage.getPage(pageId);
+
+            if (!page) {
+                await discardUploadedThumbnail(uploaded.url);
+
+                throw createError({
+                    statusCode: 404,
+                    message: 'Page not found',
+                });
+            }
+
+            await prunePageThumbnailsAfterUpload(
+                { storage, publish: publishAdapter },
+                pageId,
+                uploaded.url,
+                page.thumbnailUrl
+            );
+
+            return {
+                success: true,
+                url: uploaded.url,
+            };
         });
-
-        const publishAdapter = useBricksPublishAdapter();
-        const uploaded = await publishAdapter.uploadFile({
-            buffer: optimized.buffer,
-            mimeType: optimized.mimeType,
-            key: buildPageThumbnailKey(publishAdapter, pageId),
-        });
-
-        // Повторное чтение — не дубль проверки выше: страницу могли удалить, пока
-        // шло пережатие. Оно же даёт первый кадр страницы для keep-list, и потому
-        // идёт раньше списка версий (см. prunePageThumbnailsAfterUpload)
-        const page = await storage.getPage(pageId);
-
-        if (!page) {
-            await discardUploadedThumbnail(uploaded.url);
-
-            throw createError({
-                statusCode: 404,
-                message: 'Page not found',
-            });
-        }
-
-        await prunePageThumbnailsAfterUpload(
-            { storage, publish: publishAdapter },
-            pageId,
-            uploaded.url,
-            page.thumbnailUrl
-        );
-
-        return {
-            success: true,
-            url: uploaded.url,
-        };
     } catch (error: unknown) {
         // h3-ошибки (лимиты, 429/413) пробрасываем со своим статусом
         if (error && typeof error === 'object' && 'statusCode' in error) {

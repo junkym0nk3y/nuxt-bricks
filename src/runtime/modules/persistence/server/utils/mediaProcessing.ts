@@ -62,6 +62,12 @@ const SNIFFED_FORMAT_EXTENSIONS: Record<TSniffedImageFormat, string> = {
  */
 const ANIMATABLE_SNIFFED_FORMATS = new Set<TSniffedImageFormat>(['gif', 'webp', 'avif']);
 
+/**
+ * Потолок длины заявленного Content-Type — ровно колонка `mime_type`
+ * (`VARCHAR(255)`) в `bricks_media`.
+ */
+const MIME_TYPE_MAX_LENGTH = 255;
+
 /** Таймаут чтения SVG-содержимого из хранилища (мс). */
 const SVG_FETCH_TIMEOUT_MS = 10_000;
 /** Лимит размера SVG-содержимого, сохраняемого в БД для предпросмотра. */
@@ -131,30 +137,51 @@ export async function fetchSvgContent(url: string): Promise<string | undefined> 
 }
 
 /**
- * Проверяет соответствие содержимого заявленному классу «изображение»
- * по magic bytes: SVG — текстовая эвристика корневого тега, растровые —
- * сигнатура известного формата (MIME и расширению не доверяем).
+ * Отклоняет заявленный Content-Type, который не поместится в колонку `mime_type`.
+ *
+ * Проверка идёт ДО обработки файла: там, где MIME нельзя вывести из содержимого
+ * (редкие видео-контейнеры), он уходит в запись как есть, и без границы длинный
+ * Content-Type проходил валидацию, занимал место в бакете и падал уже на вставке
+ * — пользователь получал generic 500 вместо внятного отказа, а sharp и заливка
+ * делались зря.
+ *
+ * @param fileType MIME из загрузки.
+ */
+function assertDeclaredMimeType(fileType: string | undefined): void {
+    if (fileType && fileType.length > MIME_TYPE_MAX_LENGTH) {
+        throw createError({
+            statusCode: 400,
+            message: `Declared content type is longer than ${MIME_TYPE_MAX_LENGTH} characters`,
+        });
+    }
+}
+
+/**
+ * Проверяет, что содержимое — SVG-разметка (текстовая эвристика корневого тега).
+ * MIME и расширению не доверяем: заявить `image/svg+xml` может кто угодно.
  *
  * @param fileBuffer Байты файла.
- * @param isSvg Файл заявлен как SVG.
  */
-function assertImageContentSignature(
-    fileBuffer: Buffer,
-    isSvg: boolean
-): TSniffedImageFormat | null {
-    if (isSvg) {
-        const head = fileBuffer.toString('utf8', 0, Math.min(fileBuffer.length, SVG_SNIFF_BYTES));
+function assertSvgContent(fileBuffer: Buffer): void {
+    const head = fileBuffer.toString('utf8', 0, Math.min(fileBuffer.length, SVG_SNIFF_BYTES));
 
-        if (!looksLikeSvgMarkup(head)) {
-            throw createError({
-                statusCode: 400,
-                message: 'File content is not a valid SVG image',
-            });
-        }
-
-        return null;
+    if (!looksLikeSvgMarkup(head)) {
+        throw createError({
+            statusCode: 400,
+            message: 'File content is not a valid SVG image',
+        });
     }
+}
 
+/**
+ * Подтверждает растровое содержимое сигнатурой известного формата и возвращает
+ * его. Возврат ненулевой: нераспознанный формат — отказ, а не «наверное, SVG»
+ * (прежняя подпись допускала null, и ветка «не распознали» читалась как
+ * векторная).
+ *
+ * @param fileBuffer Байты файла.
+ */
+function assertRasterContentSignature(fileBuffer: Buffer): TSniffedImageFormat {
     const sniffed = sniffImageFormat(fileBuffer);
 
     if (!sniffed || sniffed === 'svg') {
@@ -270,6 +297,8 @@ export async function validateAndOptimizeImage(
     const originalExtension = getFileExtension(file.filename);
     const fileBuffer = toBuffer(file.data);
 
+    assertDeclaredMimeType(file.type);
+
     if (!isImageFile(file.type, originalExtension)) {
         throw createError({
             statusCode: 400,
@@ -284,21 +313,29 @@ export async function validateAndOptimizeImage(
         });
     }
 
-    const normalizedExtension = originalExtension || '';
-    const isSvg = isSvgFile(file.type, normalizedExtension);
-    const sniffedFormat = assertImageContentSignature(fileBuffer, isSvg);
+    if (isSvgFile(file.type, originalExtension)) {
+        assertSvgContent(fileBuffer);
 
-    if (isSvg || !sniffedFormat) {
         return {
             optimizedBuffer: fileBuffer,
-            mimeType: file.type || 'image/svg+xml',
-            targetExtension: normalizedExtension || 'svg',
+            // MIME и расширение канонические, а не из запроса: содержимое уже
+            // подтверждено как SVG-разметка, то есть тип известен точно. Из
+            // клиентских значений сюда приезжала произвольная строка — и MIME
+            // длиннее колонки `mime_type`, и расширение от чужого формата, из-за
+            // которого валидный SVG уезжал в бакет как `uuid.png`, а импорт из
+            // бакета потом опознавал его как PNG
+            mimeType: 'image/svg+xml',
+            targetExtension: 'svg',
             isSvg: true,
             width: null,
             height: null,
             variants: {},
         };
     }
+
+    // Сигнатура проверяется до try: её отказ — это отказ ВВОДА со своим текстом,
+    // и попадать в общий catch «не удалось оптимизировать» ему незачем
+    const sniffedFormat = assertRasterContentSignature(fileBuffer);
 
     try {
         const full = await prepareFullImage(fileBuffer, sniffedFormat, optimization);
@@ -340,6 +377,8 @@ export function validateVideo(
 ): IValidatedVideo {
     const extension = getFileExtension(file.filename);
     const fileBuffer = toBuffer(file.data);
+
+    assertDeclaredMimeType(file.type);
 
     if (!isVideoFile(file.type, extension)) {
         throw createError({

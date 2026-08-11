@@ -77,6 +77,10 @@ async function uploadVariantFile(
 /**
  * Best-effort удаление файлов вариантов.
  *
+ * Параллельно: удаления независимы, а последовательный проход платил бы лишний
+ * round-trip к хранилищу на каждый вариант. Отказ каждого гасится своим
+ * `catch`, поэтому `Promise.all` здесь не отменяет остальные удаления.
+ *
  * @param deps - Адаптеры persistence.
  * @param urls - URL вариантов (null/undefined пропускаются).
  */
@@ -84,17 +88,19 @@ async function deleteVariantFiles(
     deps: Pick<IMediaOrchestrationDeps, 'publish'>,
     urls: (string | null | undefined)[]
 ): Promise<void> {
-    for (const url of urls) {
-        if (!url || !deps.publish.isOwnedUrl(url)) {
-            continue;
-        }
+    const ownedUrls = urls
+        .filter((url): url is string => Boolean(url))
+        .filter((url) => deps.publish.isOwnedUrl(url));
 
-        try {
-            await deps.publish.deleteFile(url);
-        } catch (error: unknown) {
-            console.warn('[Media Orchestration] Failed to delete media variant file:', error);
-        }
-    }
+    await Promise.all(
+        ownedUrls.map(async (url) => {
+            try {
+                await deps.publish.deleteFile(url);
+            } catch (error: unknown) {
+                console.warn('[Media Orchestration] Failed to delete media variant file:', error);
+            }
+        })
+    );
 }
 
 /**
@@ -160,8 +166,13 @@ export async function uploadAndRegisterMedia(
     });
     const previewVariant = params.variants?.preview;
     const mockVariant = params.variants?.mock;
-    const previewUrl = previewVariant ? await uploadVariantFile(deps, previewVariant) : null;
-    const mockUrl = mockVariant ? await uploadVariantFile(deps, mockVariant) : null;
+    // Параллельно: варианты независимы, а последовательная заливка добавляла к
+    // каждой загрузке лишний round-trip к хранилищу. Отказ варианта гасит сам
+    // `uploadVariantFile`, поэтому отклонения здесь быть не может
+    const [previewUrl, mockUrl] = await Promise.all([
+        previewVariant ? uploadVariantFile(deps, previewVariant) : null,
+        mockVariant ? uploadVariantFile(deps, mockVariant) : null,
+    ]);
     const payload: ICreateMediaPayload = {
         url: uploaded.url,
         filename: params.displayFilename,

@@ -54,7 +54,13 @@ vi.mock('../../src/runtime/modules/persistence/server/registry', () => ({
 vi.mock('../../src/runtime/modules/persistence/server/utils/requestBodyLimits', () => ({
     readJsonBodyWithLimit: readJsonBodyMock,
     collectWebStreamWithLimit: vi.fn(),
-    readMultipartFormDataWithLimit: readMultipartMock,
+    // Читатель формы отдаёт её обработчику, а не возвращает: место в бюджете
+    // одновременного буферизования держится до конца обработки
+    withMultipartFormData: async (
+        _event: unknown,
+        _maxBytes: number,
+        use: (parts: unknown[]) => Promise<unknown>
+    ) => use(await readMultipartMock()),
     MULTIPART_ENVELOPE_ALLOWANCE_BYTES: 0,
 }));
 

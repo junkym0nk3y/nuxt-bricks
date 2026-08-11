@@ -2,19 +2,37 @@
  * Лимитированное чтение тела запроса (ingress-контроль).
  *
  * Дефолтные читатели h3 (readBody/readMultipartFormData) буферизуют тело
- * целиком до любых проверок размера. Здесь два независимых барьера:
- * заявленный Content-Length проверяется до чтения (413 бесплатно), а стрим
- * читается с жёстким лимитом и обрывается сразу при превышении — заголовок
- * может отсутствовать или врать при chunked transfer.
+ * целиком до любых проверок размера. Здесь три независимых барьера:
+ * заявленный Content-Length проверяется до чтения (413 бесплатно), стрим
+ * читается с жёстким лимитом и обрывается сразу при превышении (заголовок
+ * может отсутствовать или врать при chunked transfer), а суммарный объём
+ * ОДНОВРЕМЕННО буферизуемых форм ограничен бюджетом.
  */
 import { createError, getHeader, type H3Event } from 'h3';
 import type { IUploadedFilePart } from '../../types/media';
+import type { IBodyReservation, IInflightBodyBudget } from '../../types/requestBodyLimits';
 
 /**
  * Запас на конверт multipart-формы (границы, заголовки частей, текстовые поля)
  * сверх лимита полезной нагрузки файла.
  */
 export const MULTIPART_ENVELOPE_ALLOWANCE_BYTES = 1024 * 1024;
+
+/**
+ * Потолок суммарного объёма multipart-форм, которые сервер согласен держать в
+ * памяти одновременно.
+ *
+ * Rate limit ручек считает запросы, а не их одновременность: разрешённые
+ * тридцать загрузок в минуту могут прийти все сразу, и тело каждой собирается в
+ * память целиком. 256 МБ пропускают две загрузки видео максимального размера
+ * или сотни картинок; дальше запрос отклоняется сразу, не начав читать тело.
+ *
+ * Бюджет считает ЗАЯВЛЕННЫЙ объём тела, а не пик памяти: разбор формы копирует
+ * тело ещё раз, поэтому фактический пик — до двух бюджетов. Учитывать копию в
+ * самом резерве значило бы вдвое урезать пропускную способность ради того же
+ * порядка величины.
+ */
+const INFLIGHT_MULTIPART_BUDGET_BYTES = 256 * 1024 * 1024;
 
 /**
  * Человекочитаемый размер для сообщений об ошибке лимита.
@@ -42,6 +60,59 @@ function payloadTooLarge(maxBytes: number): Error {
         statusMessage: `Request body exceeds ${formatByteSize(maxBytes)} limit`,
     });
 }
+
+/**
+ * Ошибка 503 для переполнения бюджета одновременного буферизования.
+ *
+ * Не 429: лимит клиента не исчерпан, занят сервер, и повторить стоит тем же
+ * запросом чуть позже.
+ *
+ * @returns h3-ошибка со статусом 503.
+ */
+function tooManyInflightBodies(): Error {
+    return createError({
+        statusCode: 503,
+        statusMessage: 'Server is busy receiving uploads, try again later',
+    });
+}
+
+/**
+ * Создаёт бюджет одновременного буферизования тел.
+ *
+ * @param maxBytes - Суммарный потолок.
+ * @returns Бюджет.
+ */
+export function createInflightBodyBudget(maxBytes: number): IInflightBodyBudget {
+    let usedBytes = 0;
+
+    return {
+        reserve(bytes: number): () => void {
+            // Одинокий запрос проходит всегда, даже когда он один больше
+            // бюджета: иначе конфигурация с потолком файла выше бюджета
+            // отклоняла бы каждую загрузку, то есть ручка не работала бы вовсе
+            if (usedBytes > 0 && usedBytes + bytes > maxBytes) {
+                throw tooManyInflightBodies();
+            }
+
+            usedBytes += bytes;
+            let released = false;
+
+            return () => {
+                // Идемпотентно: повторное освобождение вернуло бы в бюджет
+                // байты, которых там нет, и потолок уехал бы вверх навсегда
+                if (released) {
+                    return;
+                }
+
+                released = true;
+                usedBytes -= bytes;
+            };
+        },
+    };
+}
+
+/** Общий бюджет всех multipart-ручек: память у них одна. */
+const inflightMultipartBudget = createInflightBodyBudget(INFLIGHT_MULTIPART_BUDGET_BYTES);
 
 /**
  * Читает async-итерируемый источник чанков с жёстким лимитом: обрывает
@@ -120,6 +191,40 @@ export async function collectWebStreamWithLimit(
 }
 
 /**
+ * Проверяет заявленный Content-Length и резервирует под тело место в бюджете.
+ *
+ * Резерв идёт по заявленной длине, а чтение — по резерву: клиент, заявивший
+ * один байт и присылающий сто мегабайт chunked'ом, иначе обходил бы бюджет —
+ * читать мы согласились бы до общего потолка ручки, зарезервировав байт.
+ * Заголовка нет вовсе — резервируется весь потолок, то есть худший случай.
+ *
+ * @param event - Событие запроса.
+ * @param maxBytes - Максимальный размер тела.
+ * @param budget - Бюджет одновременного буферизования; без него резерв не ведётся.
+ * @returns Потолок чтения и освобождение резерва.
+ */
+function reserveRequestBody(
+    event: H3Event,
+    maxBytes: number,
+    budget?: IInflightBodyBudget
+): IBodyReservation {
+    const declaredLength = Number(getHeader(event, 'content-length'));
+    const hasDeclaredLength = Number.isFinite(declaredLength) && declaredLength >= 0;
+
+    if (hasDeclaredLength && declaredLength > maxBytes) {
+        throw payloadTooLarge(maxBytes);
+    }
+
+    if (!budget) {
+        return { limitBytes: maxBytes, release: (): void => undefined };
+    }
+
+    const reservedBytes = hasDeclaredLength ? declaredLength : maxBytes;
+
+    return { limitBytes: reservedBytes, release: budget.reserve(reservedBytes) };
+}
+
+/**
  * Читает сырое тело запроса с лимитом: pre-check заявленного Content-Length
  * (413 до чтения), затем стрим-чтение с тем же лимитом.
  *
@@ -131,13 +236,9 @@ async function readRawBodyWithLimit(
     event: H3Event,
     maxBytes: number
 ): Promise<Buffer<ArrayBuffer>> {
-    const declaredLength = Number(getHeader(event, 'content-length'));
+    const { limitBytes } = reserveRequestBody(event, maxBytes);
 
-    if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
-        throw payloadTooLarge(maxBytes);
-    }
-
-    return collectStreamWithLimit(event.node.req, maxBytes, () => payloadTooLarge(maxBytes));
+    return collectStreamWithLimit(event.node.req, limitBytes, () => payloadTooLarge(maxBytes));
 }
 
 /**
@@ -214,16 +315,35 @@ export async function parseMultipartBuffer(
 
 /**
  * Читает multipart-форму с лимитом суммарного размера тела
- * (лимит полезной нагрузки + MULTIPART_ENVELOPE_ALLOWANCE_BYTES — на вызывающем).
+ * (лимит полезной нагрузки + MULTIPART_ENVELOPE_ALLOWANCE_BYTES — на вызывающем)
+ * и отдаёт её обработчику, ДЕРЖА место в бюджете одновременного буферизования до
+ * конца обработки.
+ *
+ * Форма отдаётся колбэку, а не возвращается, именно из-за бюджета. Буферы частей
+ * живут ровно столько, сколько работает обработчик: файл проходит через sharp и
+ * уезжает в хранилище, и всё это время он в памяти. Резерв, снятый сразу после
+ * разбора, ограничивал бы только короткую фазу чтения — при медленном хранилище
+ * ручка успевала бы «освободить» бюджет под десяток стомегабайтных тел, каждое из
+ * которых никуда не делось. Колбэк вместо пары «прочитать / освободить» —
+ * чтобы освобождение нельзя было забыть: утёкший резерв навсегда сужает потолок.
+ *
+ * Тип файла границам тела не подчиняется: части формы разбираются только после
+ * того, как тело прочитано целиком, поэтому лимит ЧТЕНИЯ у ручки один — по
+ * самому большому допустимому файлу. Свой потолок каждого типа проверяют
+ * validate*-хелперы уже по разобранной форме.
  *
  * @param event - Событие запроса.
  * @param maxBytes - Максимальный размер тела формы.
- * @returns Части формы.
+ * @param use - Обработчик разобранной формы; его результат возвращается наружу.
+ * @param budget - Бюджет одновременного буферизования; по умолчанию общий.
+ * @returns Результат обработчика.
  */
-export async function readMultipartFormDataWithLimit(
+export async function withMultipartFormData<T>(
     event: H3Event,
-    maxBytes: number
-): Promise<IUploadedFilePart[]> {
+    maxBytes: number,
+    use: (parts: IUploadedFilePart[]) => Promise<T>,
+    budget: IInflightBodyBudget = inflightMultipartBudget
+): Promise<T> {
     const contentType = getHeader(event, 'content-type') ?? '';
 
     if (!contentType.toLowerCase().startsWith('multipart/form-data')) {
@@ -233,11 +353,19 @@ export async function readMultipartFormDataWithLimit(
         });
     }
 
-    const buffer = await readRawBodyWithLimit(event, maxBytes);
+    const reservation = reserveRequestBody(event, maxBytes, budget);
 
-    if (buffer.length === 0) {
-        return [];
+    try {
+        const buffer = await collectStreamWithLimit(event.node.req, reservation.limitBytes, () =>
+            payloadTooLarge(maxBytes)
+        );
+
+        if (buffer.length === 0) {
+            return await use([]);
+        }
+
+        return await use(await parseMultipartBuffer(buffer, contentType));
+    } finally {
+        reservation.release();
     }
-
-    return parseMultipartBuffer(buffer, contentType);
 }

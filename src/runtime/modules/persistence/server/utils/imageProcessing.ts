@@ -71,8 +71,15 @@ const IMAGE_EXTENSION_MIME: Record<string, string> = {
     gif: 'image/gif',
 };
 const SUPPORTED_VIDEO_EXTENSIONS = new Set(['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv']);
+/**
+ * MIME по контейнеру. `m4v` здесь есть, хотя в списке принимаемых расширений его
+ * нет: тот же ISO-BMFF допускает его как имя целевого файла, и без строки в этой
+ * карте MIME такого файла брался из клиентского заголовка — то есть в запись
+ * уходила произвольная строка вместо типа, выведенного из содержимого.
+ */
 const VIDEO_EXTENSION_MIME: Record<string, string> = {
     mp4: 'video/mp4',
+    m4v: 'video/x-m4v',
     webm: 'video/webm',
     ogg: 'video/ogg',
     mov: 'video/quicktime',

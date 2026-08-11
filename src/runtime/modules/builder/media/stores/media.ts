@@ -9,15 +9,12 @@ import type {
     IMediaUpdateMetaRequest,
 } from '../../../common/types/media';
 import { useApiClient } from '../../../common/composables/useApiClient';
-import { toCamelCase } from '../../../common/utils/case-transform';
 import { isRequestTimeoutError } from '../../../common/utils/apiRequestPolicy';
 import { isMediaListResponse, toMediaRequestError } from '../utils/requestErrors';
+import { normalizeMediaItem } from '../utils/normalizeMediaItem';
+import { useMediaWriteOrderStore } from './mediaWriteOrder';
 import { BRICKS_MEDIA_UPLOAD_TIMEOUT_MS } from '../../../common/constants/apiTimeouts';
 import { ALL_MEDIA_CATEGORIES_FILTER } from '../../../common/constants/mediaCategories';
-// #endregion
-
-// #region Data
-const DEFAULT_MEDIA_MIME_TYPE = 'image/png';
 // #endregion
 
 // #region Helpers
@@ -30,36 +27,6 @@ function t(key: string): string {
     return i18n ? i18n.t(key) : key;
 }
 
-/**
- * Нормализует медиа-элемент из ответа API.
- * Конвертирует snake_case ключи из Django backend в camelCase.
- *
- * @param rawItem - Данные медиа из API (может быть в snake_case).
- * @returns Нормализованный медиа-элемент в camelCase.
- */
-function normalizeMediaItem(rawItem: IMediaItem): IMediaItem {
-    // Конвертируем snake_case → camelCase
-    const item = toCamelCase<IMediaItem>(rawItem);
-
-    return {
-        ...item,
-        alt: item.alt ?? '',
-        // Пустая строка от внешнего backend'а — то же самое, что «без категории»
-        category: item.category || null,
-        mimeType: item.mimeType || DEFAULT_MEDIA_MIME_TYPE,
-        // Внешний backend вправе не отдавать эти поля вовсе; `undefined` в них
-        // сломал бы проверки «вариант есть?» — потребитель ждёт строку или null.
-        // Размеры остаются на `??`: ноль здесь — полученное значение, а не
-        // «неизвестно», и пригодность его проверяет потребитель
-        width: item.width ?? null,
-        height: item.height ?? null,
-        // А у вариантов пустая строка равнозначна их отсутствию: потребитель
-        // берёт `previewUrl ?? url`, и `''` дошло бы до `<img src="">` —
-        // это запрос на саму страницу вместо картинки и битая плитка
-        previewUrl: item.previewUrl || null,
-        mockUrl: item.mockUrl || null,
-    };
-}
 // #endregion
 
 export const useMediaStore = defineStore('bricksMedia', {
@@ -156,9 +123,31 @@ export const useMediaStore = defineStore('bricksMedia', {
         },
 
         /**
-         * Приводит отказ записи к пользовательскому виду; при обрыве по потолку
-         * ожидания дополнительно отпускает перечитывание списка — исход записи
-         * неизвестен, и это единственная возможность его увидеть.
+         * Закрывает операцию по элементу и перечитывает список, если сверка
+         * назрела: по элементу был отказ и других летящих записей не осталось.
+         *
+         * Сверка нужна не «на всякий случай»: отказ более свежей записи оставляет
+         * успех более ранней неприменённым, потому что устаревшей она считается
+         * по порядку старта, а кто победил на сервере — неизвестно. Ждать тишины
+         * обязательно: GET, пущенный сразу из `catch`, обогнал бы незавершённый
+         * PATCH и прочитал состояние до него.
+         *
+         * @param id - Идентификатор медиа.
+         * @param failed - Операция завершилась отказом.
+         */
+        finishItemOperation(id: number, failed: boolean): void {
+            if (useMediaWriteOrderStore().endItemOperation(id, failed)) {
+                this.reloadItemsDetached();
+            }
+        },
+
+        /**
+         * Приводит отказ записи к пользовательскому виду.
+         *
+         * Перечитывание списка отсюда снято: у операций по элементу его отпускает
+         * `finishItemOperation`. Загрузка файла остаётся исключением и сверяется
+         * сама: её id до ответа неизвестен, а значит и элемента, по которому можно
+         * ждать тишины, ещё нет.
          *
          * @param error - Исходная ошибка запроса.
          * @param method - HTTP-метод запроса.
@@ -166,10 +155,6 @@ export const useMediaStore = defineStore('bricksMedia', {
          * @returns Ошибка для показа пользователю.
          */
         toWriteError(error: unknown, method: string, fallbackMessage: string): Error {
-            if (isRequestTimeoutError(error)) {
-                this.reloadItemsDetached();
-            }
-
             return toMediaRequestError(error, method, t, fallbackMessage);
         },
 
@@ -254,6 +239,14 @@ export const useMediaStore = defineStore('bricksMedia', {
             } catch (error: unknown) {
                 console.error('[Media Store] Upload failed:', error);
 
+                // Загрузка сверяется немедленно, а не через `endItemOperation`:
+                // ждать тишины по элементу не выйдет — при отказе id записи так и
+                // не стал известен. Сверять при этом стоит только неизвестный
+                // исход: определённый отказ означает, что файла в медиатеке нет
+                if (isRequestTimeoutError(error)) {
+                    this.reloadItemsDetached();
+                }
+
                 throw this.toWriteError(error, 'POST', t('bricks.media.uploadFailed'));
             } finally {
                 this.uploadingCount -= 1;
@@ -270,6 +263,8 @@ export const useMediaStore = defineStore('bricksMedia', {
          */
         async removeItem(id: number): Promise<void> {
             const { apiFetcher } = useApiClient();
+            const writeOrder = useMediaWriteOrderStore();
+            writeOrder.beginItemOperation(id);
 
             try {
                 await apiFetcher(`/api/bricks/media/${encodeURIComponent(id)}/`, {
@@ -277,12 +272,15 @@ export const useMediaStore = defineStore('bricksMedia', {
                 });
             } catch (error: unknown) {
                 console.error('[Media Store] Failed to delete item:', error);
+                this.finishItemOperation(id, true);
 
                 throw this.toWriteError(error, 'DELETE', t('bricks.media.deleteFailed'));
             }
 
             this.invalidatePendingItemsLoad();
             this.items = this.items.filter((item) => item.id !== id);
+            writeOrder.forgetItem(id);
+            this.finishItemOperation(id, false);
         },
 
         /**
@@ -300,7 +298,14 @@ export const useMediaStore = defineStore('bricksMedia', {
                 return;
             }
 
+            const writeOrder = useMediaWriteOrderStore();
+            const writeId = writeOrder.startItemWrite(id, 'category');
+            // Поколение НАЗНАЧАЕМОЙ категории: удаление любой другой этому PATCH'у
+            // не противоречит
+            const categoryGeneration = writeOrder.readCategoryGeneration(category);
             let response: IMediaItem;
+
+            writeOrder.beginItemOperation(id);
 
             try {
                 response = await apiFetcher<IMediaItem>(
@@ -314,11 +319,22 @@ export const useMediaStore = defineStore('bricksMedia', {
                 );
             } catch (error: unknown) {
                 console.error('[Media Store] Failed to update category:', error);
+                this.finishItemOperation(id, true);
 
                 throw this.toWriteError(error, 'PATCH', t('bricks.media.updateCategoryFailed'));
             }
 
-            this.applyItemPatch(id, { category: normalizeMediaItem(response).category });
+            // Отказ вызывающему докладывается всегда, а вот ПРИМЕНЯЕТСЯ только
+            // актуальный ответ: запрос удался, устарело его значение
+            const isCurrent =
+                writeOrder.isCurrentItemWrite(id, 'category', writeId) &&
+                categoryGeneration === writeOrder.readCategoryGeneration(category);
+
+            if (isCurrent) {
+                this.applyItemPatch(id, { category: normalizeMediaItem(response).category });
+            }
+
+            this.finishItemOperation(id, false);
         },
 
         /**
@@ -336,7 +352,16 @@ export const useMediaStore = defineStore('bricksMedia', {
                 return;
             }
 
+            // Номер берётся на каждое отправляемое поле: PATCH'и filename и alt
+            // независимы, и устаревший ответ одного не должен снимать правку
+            // другого — как и наоборот
+            const writeOrder = useMediaWriteOrderStore();
+            const filenameWriteId =
+                meta.filename === undefined ? null : writeOrder.startItemWrite(id, 'filename');
+            const altWriteId = meta.alt === undefined ? null : writeOrder.startItemWrite(id, 'alt');
             let response: IMediaItem;
+
+            writeOrder.beginItemOperation(id);
 
             try {
                 response = await apiFetcher<IMediaItem>(
@@ -348,6 +373,7 @@ export const useMediaStore = defineStore('bricksMedia', {
                 );
             } catch (error: unknown) {
                 console.error('[Media Store] Failed to update meta:', error);
+                this.finishItemOperation(id, true);
 
                 throw this.toWriteError(error, 'PATCH', t('bricks.media.updateMetaFailed'));
             }
@@ -355,15 +381,24 @@ export const useMediaStore = defineStore('bricksMedia', {
             const updatedItem = normalizeMediaItem(response);
             const patch: Partial<IMediaItem> = {};
 
-            if (meta.filename !== undefined) {
+            if (
+                filenameWriteId !== null &&
+                writeOrder.isCurrentItemWrite(id, 'filename', filenameWriteId)
+            ) {
                 patch.filename = updatedItem.filename;
             }
 
-            if (meta.alt !== undefined) {
+            if (altWriteId !== null && writeOrder.isCurrentItemWrite(id, 'alt', altWriteId)) {
                 patch.alt = updatedItem.alt;
             }
 
-            this.applyItemPatch(id, patch);
+            // Устаревший ответ ничего не применяет: запрос удался, но обе его
+            // правки уже перебиты более свежими
+            if (Object.keys(patch).length > 0) {
+                this.applyItemPatch(id, patch);
+            }
+
+            this.finishItemOperation(id, false);
         },
 
         /**
@@ -379,6 +414,11 @@ export const useMediaStore = defineStore('bricksMedia', {
          */
         clearCategoryLocally(slug: string): void {
             this.invalidatePendingItemsLoad();
+            // Летящие назначения ЭТОЙ категории обесцениваются: их ответ несёт
+            // slug, которого больше нет, и вернул бы удалённую категорию в
+            // элемент — как раз то, от чего это снятие и защищает. Назначения
+            // других категорий удалению не противоречат и остаются в силе
+            useMediaWriteOrderStore().invalidateCategory(slug);
             this.items = this.items.map((item) =>
                 item.category === slug ? { ...item, category: null } : item
             );

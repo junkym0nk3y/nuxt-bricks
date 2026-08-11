@@ -18,6 +18,36 @@ export interface IMediaGalleryProps {
     context?: TMediaGalleryContext;
 }
 
+/**
+ * Поле элемента, которым владеет запись. Номер записи ведётся по полю, а не по
+ * элементу: правки разных полей одного файла уходят разными PATCH'ами и друг
+ * другу не противоречат — общий счётчик глушил бы ответ соседней правки.
+ */
+export type TMediaItemWriteField = 'filename' | 'alt' | 'category';
+
+/**
+ * Зависимости приёмника файлов галереи.
+ */
+export interface IMediaGalleryFileDropOptions {
+    /** Принимает брошенные файлы. */
+    onFiles: (files: File[]) => void;
+}
+
+/**
+ * Состояние и обработчики приёмника файлов галереи.
+ */
+export interface IMediaGalleryFileDrop {
+    /** Сколько файлов тащат над модалкой; 0 — перетаскивания нет. */
+    draggedFileCount: Ref<number>;
+    isDraggingFiles: ComputedRef<boolean>;
+    handleDragOver: (event: DragEvent) => void;
+    handleDragEnter: (event: DragEvent) => void;
+    handleDragLeave: () => void;
+    handleDrop: (event: DragEvent) => void;
+    /** Сворачивает приёмник (закрытие галереи). */
+    resetFileDrop: () => void;
+}
+
 export interface IMediaGalleryEmits {
     close: [];
     select: [item: IMediaItem];
