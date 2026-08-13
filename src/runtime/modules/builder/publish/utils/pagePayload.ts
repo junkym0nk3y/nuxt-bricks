@@ -33,6 +33,7 @@ export function buildPagePayload(
         layout: formState.layout || DEFAULT_LAYOUT,
         urlPrefix: formState.urlPrefix || null,
         subdomain: formState.subdomain || null,
+        viewportConfig: formState.viewportConfig ?? null,
         schema: preserveSchema(schema),
         published: formState.published,
     };

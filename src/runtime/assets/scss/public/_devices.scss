@@ -1,0 +1,179 @@
+////
+/// Адаптивные миксины для авторов brick-компонентов.
+///
+/// Задача, которую они решают: обычная `@media` в SFC считается по ширине ОКНА,
+/// а канвас билдера — лист фиксированной ширины ВНУТРИ окна другой ширины.
+/// Из-за этого брик, адаптивный на published, в билдере не перестраивался вовсе:
+/// окно там всегда шире листа.
+///
+/// Поэтому каждый миксин раскрывается в две ветки:
+///   * `@media` для окна, огороженная `:where(:not(.bricks-canvas *))` — тем же
+///     guard'ом, которым модуль уже отделяет published-правила от канвасных;
+///   * `@container bricks` для листа канваса — `.bricks-canvas` объявлен
+///     контейнером, а `transform: scale()` на размер контейнера не влияет,
+///     поэтому лист отдаёт свою честную ширину.
+///
+/// Карта `$devices` — набор устройств ПРОЕКТА. Набор конкретной страницы
+/// миксины не знают и знать не должны: брейкпоинт автора брика («уже 768 — в
+/// одну колонку») и ступень набора страницы («у этой страницы есть ноутбук») —
+/// разные вещи. Кто хочет следовать набору страницы, объявляет
+/// `responsiveCssVars` в своём `*.brick.ts` и получает значения per-device
+/// из схемы.
+///
+/// Значения карты перекрывает опция модуля `bricks.devices`: она резолвится на
+/// сборке и пишется в файл под алиасом `#bricks-scss`, поэтому числа у миксинов
+/// и у рантайма одни. Прямой `@use ... with ($devices: ...)` тоже работает, но
+/// тогда за расхождение с рантаймом отвечает потребитель.
+////
+
+@use 'sass:list';
+@use 'sass:map';
+
+// Sass-переменные и карты здесь — осознанное исключение из запрета
+// (.claude/rules/styles.md): публичный миксин-API без них не существует.
+// Исключение ограничено этой папкой, компонентных стилей оно не касается.
+$devices: (
+    mobile: 375,
+    tablet: 768,
+    desktop: 1600,
+) !default;
+
+/// Ширина устройства по ключу.
+///
+/// @param {String} $key - Ключ устройства из карты `$devices`.
+/// @return {Number} Ширина в px.
+@function bricks-device-width($key) {
+    @if not map.has-key($devices, $key) {
+        @error 'nuxt-bricks: unknown device "#{$key}". Known: #{map.keys($devices)}.';
+    }
+
+    @return map.get($devices, $key);
+}
+
+/// Ключ следующего по ширине устройства; `null` — за ним ничего нет.
+///
+/// @param {String} $key - Ключ устройства.
+/// @return {String|null} Ключ соседа справа.
+@function bricks-device-next($key) {
+    $keys: map.keys($devices);
+    $index: list.index($keys, $key);
+
+    @if not $index or $index >= list.length($keys) {
+        @return null;
+    }
+
+    @return list.nth($keys, $index + 1);
+}
+
+/// Стили от ширины устройства и шире.
+///
+/// @param {String} $key - Ключ устройства.
+/// @content Правила ветки.
+@mixin bricks-up($key) {
+    $min: bricks-device-width($key);
+
+    @media (min-width: #{$min}px) {
+        &:where(:not(.bricks-canvas *)) {
+            @content;
+        }
+    }
+
+    @container bricks (min-width: #{$min}px) {
+        @content;
+    }
+}
+
+/// Стили уже ширины устройства (граница не включается).
+///
+/// @param {String} $key - Ключ устройства.
+/// @content Правила ветки.
+@mixin bricks-down($key) {
+    $max: bricks-device-width($key) - 1;
+
+    @media (max-width: #{$max}px) {
+        &:where(:not(.bricks-canvas *)) {
+            @content;
+        }
+    }
+
+    @container bricks (max-width: #{$max}px) {
+        @content;
+    }
+}
+
+/// Стили в диапазоне между двумя устройствами (верхняя граница не включается).
+///
+/// @param {String} $from - Ключ нижней границы.
+/// @param {String} $to - Ключ верхней границы.
+/// @content Правила ветки.
+@mixin bricks-between($from, $to) {
+    $min: bricks-device-width($from);
+    $max: bricks-device-width($to) - 1;
+
+    @media (min-width: #{$min}px) and (max-width: #{$max}px) {
+        &:where(:not(.bricks-canvas *)) {
+            @content;
+        }
+    }
+
+    @container bricks (min-width: #{$min}px) and (max-width: #{$max}px) {
+        @content;
+    }
+}
+
+/// Стили ровно на ступени устройства — той же, что считает рантайм.
+///
+/// Границы миксин считает сам — в этом и смысл: вручную их пришлось бы
+/// пересчитывать при каждой правке набора. У самого узкого устройства нижней
+/// границы НЕТ: его ступень начинается от нуля, как и в `deviceRanges`. Иначе
+/// `only(mobile)` дал бы `375–767`, и окно 360 на published осталось бы без
+/// правила, хотя лист 375 в билдере его получал — ровно то расхождение канваса и
+/// опубликованной страницы, ради которого миксины и заведены.
+///
+/// @param {String} $key - Ключ устройства.
+/// @content Правила ветки.
+@mixin bricks-only($key) {
+    $next: bricks-device-next($key);
+    $is-narrowest: list.index(map.keys($devices), $key) == 1;
+
+    @if not $next {
+        @include bricks-up($key) {
+            @content;
+        }
+    } @else if $is-narrowest {
+        @include bricks-down($next) {
+            @content;
+        }
+    } @else {
+        @include bricks-between($key, $next) {
+            @content;
+        }
+    }
+}
+
+/// Скрывает элемент от ширины устройства и шире.
+///
+/// @param {String} $key - Ключ устройства.
+@mixin bricks-hide-up($key) {
+    @include bricks-up($key) {
+        display: none;
+    }
+}
+
+/// Скрывает элемент уже ширины устройства.
+///
+/// @param {String} $key - Ключ устройства.
+@mixin bricks-hide-down($key) {
+    @include bricks-down($key) {
+        display: none;
+    }
+}
+
+/// Скрывает элемент ровно на ступени устройства.
+///
+/// @param {String} $key - Ключ устройства.
+@mixin bricks-hide-only($key) {
+    @include bricks-only($key) {
+        display: none;
+    }
+}

@@ -11,6 +11,7 @@ import type {
 
 // Utils
 import { requirePageRevision } from '../utils/requestErrors';
+import { collectOrphanDeviceKeys } from '../utils/deviceImpact';
 
 // Vue
 import { computed, onScopeDispose, ref, watch } from 'vue';
@@ -21,6 +22,7 @@ import { usePublishStore } from '../stores/publish';
 
 // Composables
 import { useSchemaImageResolver } from '../../media/composables/useSchemaImageResolver';
+import { useBricksDevices } from '../../../common/composables/useBricksDevices';
 // #endregion
 
 /**
@@ -51,6 +53,7 @@ export function usePublishSchemaImport(
     const { t } = useI18n();
     const publishStore = usePublishStore();
     const imageResolver = useSchemaImageResolver();
+    const { resolvePageDevices } = useBricksDevices();
 
     const pendingTarget = ref<IPublishSchemaImportTarget | null>(null);
     const pendingFile = ref<IParsedSchemaFile | null>(null);
@@ -206,25 +209,26 @@ export function usePublishSchemaImport(
             return;
         }
 
-        await applySchemaToPage(target, file.schema);
+        await applySchemaToPage(target, file);
     }
 
     /**
      * Прогоняет схему через резолвер и пишет её в страницу.
      *
      * @param target - Снимок цели импорта.
-     * @param schema - Схема из файла.
+     * @param file - Разобранный файл переноса.
      */
     async function applySchemaToPage(
         target: IPublishSchemaImportTarget,
-        schema: IBricksSchema
+        file: IParsedSchemaFile
     ): Promise<void> {
         const startedIn = operationGeneration;
         isImporting.value = true;
 
         try {
-            const { schema: resolved, isComparisonSkipped } =
-                await imageResolver.startResolving(schema);
+            const { schema: resolved, isComparisonSkipped } = await imageResolver.startResolving(
+                file.schema
+            );
 
             // Отмена резолвера — отмена всей операции: подтверждение ещё ничего
             // не записало
@@ -232,8 +236,17 @@ export function usePublishSchemaImport(
                 return;
             }
 
+            // Схема и набор устройств уезжают одним PATCH'ем: ключи
+            // `props.responsive` в файле относятся к его набору, и раздельная
+            // запись оставила бы страницу в состоянии, где одно уже новое, а
+            // другое ещё старое. Условие — по наличию набора, а не по `kind`:
+            // файл, который про набор ничего не говорит (legacy-схема или
+            // конверт без поля), не должен снимать набор целевой страницы
             await publishStore.patchPage(target.pageId, {
                 schema: resolved,
+                ...(file.viewportConfig === undefined
+                    ? {}
+                    : { viewportConfig: file.viewportConfig }),
                 expectedRevision: target.expectedRevision,
             });
 
@@ -244,6 +257,29 @@ export function usePublishSchemaImport(
             // импортирована
             if (isComparisonSkipped) {
                 options.onNotify(t('bricks.media.resolver.importedWithoutComparison'), 'error');
+                return;
+            }
+
+            // Ключи устройств, которых в наборе страницы нет, остаются в схеме, но
+            // CSS их не выбирает. Молчать об этом нельзя: раскладка разойдётся с
+            // той, что была у источника, и это выглядит как баг рендера
+            // Набор считается ПОСЛЕ записи: файл со своим набором его и задал, а
+            // молчащий файл оставил странице её собственный
+            const effectiveConfig =
+                file.viewportConfig === undefined
+                    ? (publishStore.getPageById(target.pageId)?.viewportConfig ?? null)
+                    : file.viewportConfig;
+
+            const orphanKeys = collectOrphanDeviceKeys(
+                resolved.components,
+                resolvePageDevices(effectiveConfig).map((device) => device.key)
+            );
+
+            if (orphanKeys.length > 0) {
+                options.onNotify(
+                    t('bricks.schema.importedWithOrphanDevices', { keys: orphanKeys.join(', ') }),
+                    'error'
+                );
                 return;
             }
 

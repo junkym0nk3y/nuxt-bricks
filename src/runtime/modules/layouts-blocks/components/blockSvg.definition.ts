@@ -7,11 +7,7 @@ import { h, defineAsyncComponent, type VNode } from 'vue';
 
 // Utils
 import { bindBoundPropsWithComponentId } from '../utils/canvasBindings';
-import {
-    getResponsiveOverrides,
-    gridPlacementStyle,
-    makeResponsiveVars,
-} from '../utils/responsiveVars';
+import { gridPlacementStyle, makeResponsiveVars } from '../utils/responsiveVars';
 
 // Components
 // Async-импорт (паттерн blockSlider): статический импорт утащил бы санитайзер (xss)
@@ -28,15 +24,14 @@ const BlockSvg = defineAsyncComponent(() => import('./BlockSvg.vue'));
 function renderSvgPublished(ctx: IBlockRenderContext): VNode {
     const { component, extraClasses, extraAttrs, styles } = ctx;
     const cp = component.props as IBlockSvgProps;
-    const mOv = getResponsiveOverrides(cp as Record<string, unknown>, 'mobile');
-    const tOv = getResponsiveOverrides(cp as Record<string, unknown>, 'tablet');
+    const props = cp as Record<string, unknown>;
 
     const style: Record<string, string> = {
-        ...makeResponsiveVars('--bricks-media-width', cp.width || '4.8rem', tOv, mOv, 'width'),
-        ...makeResponsiveVars('--bricks-media-height', cp.height || '4.8rem', tOv, mOv, 'height'),
-        '--bricks-media-radius-desktop': '0',
-        '--bricks-media-radius-tablet': '0',
-        '--bricks-media-radius-mobile': '0',
+        ...makeResponsiveVars('--bricks-media-width', cp.width || '4.8rem', props, 'width'),
+        ...makeResponsiveVars('--bricks-media-height', cp.height || '4.8rem', props, 'height'),
+        // Скругления у SVG нет ни на одном устройстве: prefix общий с Media,
+        // и без базового значения блок унаследовал бы радиус картинки
+        '--bricks-media-radius-base': '0',
     };
     Object.assign(style, gridPlacementStyle(component));
 

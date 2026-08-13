@@ -6,6 +6,7 @@ import type {
     TPublishFormState,
 } from '../../src/runtime/modules/common/types/bricks-api';
 import type { IPagesLoadStoreDeps } from '../../src/runtime/modules/builder/publish/types/publishStore';
+import type { IParsedSchemaFile } from '../../src/runtime/modules/builder/publish/types/composables';
 // #endregion
 
 const BASE_PAGE: IPublishedPage = {
@@ -20,6 +21,7 @@ const BASE_PAGE: IPublishedPage = {
     urlPrefix: null,
     subdomain: null,
     thumbnailUrl: null,
+    viewportConfig: null,
     schema: { components: [] },
     published: true,
     revision: 1,
@@ -38,6 +40,7 @@ const BASE_FORM_STATE: TPublishFormState = {
     socialImage: null,
     urlPrefix: null,
     subdomain: null,
+    viewportConfig: null,
     createdAt: '',
     updatedAt: '',
 };
@@ -105,4 +108,51 @@ export function makeConflictFetchError(): Error {
 export function seedLoadedPages(store: IPagesLoadStoreDeps, pages: TPublishedPageSummary[]): void {
     store.publishedPages = pages;
     store.pagesLoadedAt = Date.now();
+}
+
+/**
+ * Собирает разобранный файл переноса страницы.
+ *
+ * По умолчанию — конверт, прямо объявивший наследование набора проекта
+ * (`viewportConfig: null`); `kind: 'legacy'` в overrides даёт голую схему из
+ * файлов, записанных до появления набора, — у неё поля нет вовсе, и разбор
+ * отдаёт `undefined`. Разница не косметическая: `null` снимает собственный набор
+ * целевой страницы, `undefined` оставляет его как был.
+ *
+ * @param filename - Имя файла.
+ * @param overrides - Поля разбора поверх дефолтов.
+ * @returns Разобранный файл переноса.
+ */
+export function buildTransferFile(
+    filename: string,
+    overrides: Partial<IParsedSchemaFile> = {}
+): IParsedSchemaFile {
+    const kind = overrides.kind ?? 'envelope';
+
+    return {
+        schema: { components: [] },
+        filename,
+        kind,
+        viewportConfig: kind === 'legacy' ? undefined : null,
+        blocksCount: 0,
+        ...overrides,
+    };
+}
+
+/**
+ * Возвращает builder сводок страниц (editorial-список без schema).
+ *
+ * @param defaults - Дефолты конкретного spec-файла поверх базовой сводки.
+ * @returns Функция-builder: собирает сводку с переопределениями теста.
+ */
+export function createPageSummaryBuilder(
+    defaults: Partial<TPublishedPageSummary> = {}
+): (overrides?: Partial<TPublishedPageSummary>) => TPublishedPageSummary {
+    const { schema: _schema, ...baseSummary } = BASE_PAGE;
+
+    return (overrides: Partial<TPublishedPageSummary> = {}) => ({
+        ...baseSummary,
+        ...defaults,
+        ...overrides,
+    });
 }

@@ -8,6 +8,10 @@ import { computed, ref } from 'vue';
 
 // Pinia
 import { useComponentsStore } from '../../../core/stores/components';
+import { useCanvasStore } from '../../../core/stores/canvas';
+
+// Utils
+import { resolveDeviceIcon } from '../../../../common/utils/bricks/devices';
 // #endregion
 
 // #region Interfaces
@@ -34,18 +38,21 @@ const emit = defineEmits<{
 
 // #region Data
 const componentsStore = useComponentsStore();
+const canvasStore = useCanvasStore();
 const dragOverPosition = ref<'before' | 'after' | null>(null);
 // #endregion
 
 // #region Computed
 const isSelected = computed<boolean>(() => componentsStore.isComponentSelected(props.component.id));
 
-const isMobileVisible = computed<boolean>(() => props.component.deviceVisibility?.mobile !== false);
-
-const isTabletVisible = computed<boolean>(() => props.component.deviceVisibility?.tablet !== false);
-
-const isDesktopVisible = computed<boolean>(
-    () => props.component.deviceVisibility?.desktop !== false
+/** Индикаторы видимости — по одному на устройство набора страницы. */
+const deviceIndicators = computed(() =>
+    canvasStore.devices.map((device) => ({
+        key: device.key,
+        label: device.label,
+        icon: resolveDeviceIcon(device.icon),
+        isVisible: props.component.deviceVisibility?.[device.key] !== false,
+    }))
 );
 
 const isHidden = computed<boolean>(() => props.component.isHidden === true);
@@ -184,16 +191,11 @@ function handleDrop(event: DragEvent): void {
                     <BricksIcon v-if="isHidden" icon="ta:outline-eye" :class="$style.hiddenIcon" />
 
                     <BricksIcon
-                        icon="ta:outline-device-mobile"
-                        :class="[$style.deviceIcon, { [$style._inactive]: !isMobileVisible }]"
-                    />
-                    <BricksIcon
-                        icon="ta:outline-device-tablet"
-                        :class="[$style.deviceIcon, { [$style._inactive]: !isTabletVisible }]"
-                    />
-                    <BricksIcon
-                        icon="ta:outline-device-desktop"
-                        :class="[$style.deviceIcon, { [$style._inactive]: !isDesktopVisible }]"
+                        v-for="indicator in deviceIndicators"
+                        :key="indicator.key"
+                        :icon="indicator.icon"
+                        :title="indicator.label"
+                        :class="[$style.deviceIcon, { [$style._inactive]: !indicator.isVisible }]"
                     />
                 </span>
             </button>

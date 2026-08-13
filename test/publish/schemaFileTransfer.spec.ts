@@ -87,6 +87,60 @@ describe('чтение файла схемы: исход возвращаетс�
         expect(result.file.blocksCount).toBe(2);
     });
 
+    it('конверт с набором отдаёт его разбором', async () => {
+        const { readSelectedFile } = useSchemaFileTransfer();
+        const viewportConfig = [
+            { key: 'mobile', label: 'Мобильный', icon: 'device-mobile', width: 375, aside: 0.4 },
+            { key: 'desktop', label: 'Десктоп', icon: 'device-desktop', width: 1600, aside: 2 },
+        ];
+
+        const result = await readSelectedFile(
+            buildFileInput(
+                'own.json',
+                JSON.stringify({ version: 1, schema: { components: [] }, viewportConfig })
+            )
+        );
+
+        expect(result?.status === 'success' && result.file.viewportConfig).toEqual(viewportConfig);
+    });
+
+    it('конверт, прямо объявивший наследование, отдаёт null', async () => {
+        const { readSelectedFile } = useSchemaFileTransfer();
+
+        const result = await readSelectedFile(
+            buildFileInput(
+                'inherited.json',
+                JSON.stringify({ version: 1, schema: { components: [] }, viewportConfig: null })
+            )
+        );
+
+        expect(result?.status === 'success' && result.file.viewportConfig).toBeNull();
+    });
+
+    it('конверт без поля набора не выдаёт себя за наследующего', async () => {
+        // `null` означает «вернуть страницу к набору проекта» и снимает её
+        // собственный набор при импорте. Файл, в котором поля нет вовсе, такого
+        // не заказывал — разбор обязан отдать `undefined`, чтобы импорт не
+        // отправил `viewportConfig` вовсе
+        const { readSelectedFile } = useSchemaFileTransfer();
+
+        const result = await readSelectedFile(
+            buildFileInput(
+                'partial.json',
+                JSON.stringify({ version: 1, schema: { components: [] } })
+            )
+        );
+
+        expect(result?.status).toBe('success');
+
+        if (result?.status !== 'success') {
+            return;
+        }
+
+        expect(result.file.viewportConfig).toBeUndefined();
+        expect('viewportConfig' in result.file && result.file.viewportConfig === null).toBe(false);
+    });
+
     it('битый JSON отдаёт ошибку разбора, а не бросает', async () => {
         const { readSelectedFile } = useSchemaFileTransfer();
 

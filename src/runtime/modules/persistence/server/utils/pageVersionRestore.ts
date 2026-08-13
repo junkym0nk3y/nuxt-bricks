@@ -1,7 +1,7 @@
 /**
  * Оркестрация отката страницы к сохранённой версии (POST .../restore).
  *
- * Применяет только schema + layout + backgroundColor + thumbnailUrl:
+ * Применяет schema + layout + backgroundColor + thumbnailUrl + набор устройств:
  * pagename/title/SEO/published не трогает (нет конфликтов уникальности pagename
  * и неожиданных SEO-откатов). Идёт через storage.updatePage, который сам снапшотит текущее
  * состояние перед откатом («откат отката» бесплатно) и применяет optimistic
@@ -13,8 +13,10 @@
  */
 import { createError } from 'h3';
 import type { IBricksPageRow } from '../../../common/types/bricks-api';
+import type { TBricksPageDeviceSet } from '../../../common/types/devices';
 import type { IStorageAdapter } from '../../types/adapters';
 import { validateSchemaComponentGraph } from '../../../common/utils/bricks/schemaContract';
+import { validateDeviceSet } from '../../../common/utils/bricks/devices';
 
 /**
  * Зависимости оркестрации отката версии страницы.
@@ -37,6 +39,38 @@ export interface IPageVersionRestoreDeps {
  * такую версию нельзя откатывать, не восстанавливая при этом сломанный рендер;
  * BricksRevisionConflictError — precondition не совпал с текущей revision.
  */
+/**
+ * Проверяет сохранённый в версии набор устройств перед откатом.
+ *
+ * Повреждённый набор — отказ, а не тихая замена на наследование: ключи
+ * `props.responsive` в схеме версии относятся к её набору, и восстановить схему
+ * без него значит вернуть страницу в состояние, где переопределения блоков
+ * указывают на несуществующие ступени. Ровно от этого набор в версии и хранится.
+ * Схема с битым контрактом отвергается тут же рядом по той же причине.
+ *
+ * @param stored - Значение `viewport_config` из снимка версии.
+ * @returns Набор устройств либо `null` (версия наследующей страницы).
+ * @throws h3-ошибка 400 — сохранённый набор не проходит контракт.
+ */
+function resolveStoredViewportConfig(stored: unknown): TBricksPageDeviceSet | null {
+    if (stored === null || stored === undefined) {
+        return null;
+    }
+
+    const validation = validateDeviceSet(stored);
+
+    if (!validation.ok) {
+        throw createError({
+            statusCode: 400,
+            statusMessage: `Stored version viewport config is invalid: ${validation.errors
+                .slice(0, 3)
+                .join('; ')}`,
+        });
+    }
+
+    return validation.value;
+}
+
 export async function restorePageVersion(
     deps: IPageVersionRestoreDeps,
     pageId: number,
@@ -71,11 +105,19 @@ export async function restorePageVersion(
     // картинка; страница получит свой кадр на первом же сохранении из билдера.
     // Кадр состояния, которое откат вытесняет, не теряется — его уносит
     // снапшот, который updatePage делает перед записью.
+    // Набор устройств едет вместе со схемой: ключи `props.responsive` в снимке
+    // относятся к тому набору, при котором его сняли, и откат схемы без набора
+    // дал бы страницу, где переопределения блоков указывают на несуществующие
+    // ступени. `null` восстанавливается как есть — версия наследующей страницы
+    // остаётся наследующей
+    const restoredViewportConfig = resolveStoredViewportConfig(version.viewportConfig);
+
     const result = await deps.storage.updatePage(pageId, {
         schema: version.schema,
         layout: version.layout,
         backgroundColor: version.backgroundColor,
         thumbnailUrl: version.thumbnailUrl,
+        viewportConfig: restoredViewportConfig,
         expectedRevision,
     });
 

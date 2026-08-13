@@ -11,3 +11,5 @@
 | `responsiveVars.ts`      | `makeResponsiveVars` — per-device CSS-переменные и grid-позиционирование для published-рендера    |
 | `sliderCaptions.ts`      | Парсинг подписей слайдера (`parseSliderCaptions`)                                                 |
 | `slotContent.ts`         | `hasSlotContent` — есть ли в слоте рисуемый контент (анкоры v-if и пустые фрагменты не считаются) |
+| `deviceVisibilityCss.ts` | `buildDeviceVisibilityCss` — правила скрытия по устройствам набора для канваса и published        |
+| `slider.ts`              | `normalizeSlidesPerView` — общая нормализация числа слайдов для SFC и definition                  |

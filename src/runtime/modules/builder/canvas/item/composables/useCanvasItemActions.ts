@@ -213,7 +213,7 @@ export function useCanvasItemActions(
     }
 
     /** Переключает видимость на конкретном устройстве. */
-    function handleToggleDevice(device: 'mobile' | 'tablet' | 'desktop'): void {
+    function handleToggleDevice(device: TBricksDeviceKey): void {
         const current = props.component.deviceVisibility?.[device] !== false;
         componentsStore.setComponentDeviceVisibilityFlag(props.component.id, device, !current);
     }

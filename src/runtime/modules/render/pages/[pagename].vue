@@ -6,11 +6,15 @@ import type { IPublishedPage } from '../../common/types/bricks-api';
 import type { IBricksComponent } from '../../common/types/brick';
 
 // Vue
-import { computed, ref } from 'vue';
+import { computed, provide, ref } from 'vue';
 import { createError, definePageMeta, useHead, useNuxtData, useRoute } from '#imports';
 
 // Composables
 import { useBrickImports } from '../../common/composables/useBrickImports';
+import { useBricksDevices } from '../../common/composables/useBricksDevices';
+import { useBricksStyles } from '../../common/composables/useBricksStyles';
+import { useResponsiveVisibilityStyles } from '../../layouts-blocks/composables/useResponsiveVisibilityStyles';
+import { useResponsiveLayoutStyles } from '../../layouts-blocks/composables/useResponsiveLayoutStyles';
 import { useRendererBricks } from '../composables/useRendererBricks';
 import { useRendererDataSources } from '../composables/useRendererDataSources';
 import { useRendererPreviewSync } from '../composables/useRendererPreviewSync';
@@ -24,6 +28,7 @@ import {
 } from '../../common/utils/bricks/previewRoute';
 import { resolvePageAddressFromRoute } from '../../common/utils/bricks/pageAddress';
 import { BRICKS_PREVIEW_ROUTE_NAMES } from '../../common/constants/routes';
+import { BRICKS_DEVICES_KEY } from '../../common/constants/injectionKeys';
 
 // Components
 import TheRenderer from '../components/TheRenderer.vue';
@@ -86,6 +91,19 @@ const {
 
 // Блокируем SSR до первичного выполнения data sources (хуки композабла уже зарегистрированы)
 await dataSourcesReady;
+
+// Набор устройств страницы вытесняет проектный CSS плагина по ключу тега.
+// Геттер, а не значение: live-preview меняет набор без перемонтирования
+// страницы, и одноразовый вызов оставил бы раскладку прежней
+const { resolvePageDevices } = useBricksDevices();
+const pageDevices = computed(() => resolvePageDevices(page.value?.viewportConfig ?? null));
+const getPageDevices = () => pageDevices.value;
+
+provide(BRICKS_DEVICES_KEY, pageDevices);
+
+useBricksStyles(getPageDevices);
+useResponsiveVisibilityStyles(getPageDevices);
+useResponsiveLayoutStyles(getPageDevices);
 
 const { currentDevice, resolutionText, closePreview } = useRendererPreviewSync({
     address,

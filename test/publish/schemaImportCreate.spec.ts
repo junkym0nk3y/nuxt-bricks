@@ -33,6 +33,12 @@ const { toasts, publishStoreMock, resolverMock } = vi.hoisted(() => ({
     },
 }));
 
+vi.mock('nuxt/app', () => ({
+    // Композабл набора устройств читает runtimeConfig; пустой public даёт
+    // дефолтный набор проекта — этого спекам импорта достаточно
+    useRuntimeConfig: () => ({ public: {} }),
+}));
+
 vi.mock('vue-i18n', () => ({
     useI18n: () => ({
         t: (key: string) => key,

@@ -13,6 +13,9 @@ import type { TBricksDeviceKey } from '../../../../common/types/brick';
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+// Pinia
+import { useCanvasStore } from '../../../core/stores/canvas';
+
 // Components
 import BricksCheckbox from '../../../../ui/base/checkbox/BricksCheckbox.vue';
 // #endregion
@@ -31,6 +34,7 @@ const emit = defineEmits<ICanvasItemContextMenuEmits>();
 
 // #region Data
 const { t } = useI18n();
+const canvasStore = useCanvasStore();
 const menuRef = ref<HTMLElement | null>(null);
 
 /** Позиция после подгонки под границы viewport; до замера меню скрыто */
@@ -106,18 +110,23 @@ const sections = computed<ICanvasContextMenuItem[][]>(() => {
 });
 
 /**
- * Видимость компонента на конкретных устройствах (флаг отсутствует = видим).
+ * Строки флайаута видимости: по одной на устройство набора страницы.
+ * Отсутствие флага в схеме означает «видно» — набор у страниц разный, и
+ * перечислять все ключи со значением `true` пришлось бы заново при каждой
+ * правке набора.
  */
-const deviceMobile = computed<boolean>(() => props.deviceVisibility?.mobile !== false);
-const deviceTablet = computed<boolean>(() => props.deviceVisibility?.tablet !== false);
-const deviceDesktop = computed<boolean>(() => props.deviceVisibility?.desktop !== false);
+const deviceRows = computed(() =>
+    canvasStore.devices.map((device) => ({
+        key: device.key,
+        label: device.label,
+        isVisible: props.deviceVisibility?.[device.key] !== false,
+    }))
+);
 
 /**
  * Скрыт ли компонент хотя бы на одном устройстве (индикатор у пункта сабменю).
  */
-const hasDeviceOverrides = computed<boolean>(
-    () => !deviceMobile.value || !deviceTablet.value || !deviceDesktop.value
-);
+const hasDeviceOverrides = computed<boolean>(() => deviceRows.value.some((row) => !row.isVisible));
 // #endregion
 
 // #region Methods
@@ -301,28 +310,12 @@ onBeforeUnmount(() => {
                 v-if="isDeviceSubmenuOpen"
                 :class="[$style.flyout, { [$style.flyoutLeft]: submenuSide === 'left' }]"
             >
-                <div :class="$style.deviceRow">
+                <div v-for="row in deviceRows" :key="row.key" :class="$style.deviceRow">
                     <BricksCheckbox
-                        :value="deviceMobile"
+                        :value="row.isVisible"
                         size="sm"
-                        label="Mobile"
-                        @update:value="handleToggleDevice('mobile')"
-                    />
-                </div>
-                <div :class="$style.deviceRow">
-                    <BricksCheckbox
-                        :value="deviceTablet"
-                        size="sm"
-                        label="Tablet"
-                        @update:value="handleToggleDevice('tablet')"
-                    />
-                </div>
-                <div :class="$style.deviceRow">
-                    <BricksCheckbox
-                        :value="deviceDesktop"
-                        size="sm"
-                        label="Desktop"
-                        @update:value="handleToggleDevice('desktop')"
+                        :label="row.label"
+                        @update:value="handleToggleDevice(row.key)"
                     />
                 </div>
             </div>

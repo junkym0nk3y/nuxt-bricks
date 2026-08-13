@@ -6,11 +6,7 @@ import { h, type VNode } from 'vue';
 
 // Utils
 import { convertPxToRem } from '../../common/utils/main';
-import {
-    getResponsiveOverrides,
-    gridPlacementStyle,
-    resolveResponsiveValue,
-} from '../utils/responsiveVars';
+import { gridPlacementStyle, makeResponsiveVarGroup } from '../utils/responsiveVars';
 
 const FLEX_JUSTIFY_CSS: Record<string, string> = {
     start: 'flex-start',
@@ -51,6 +47,25 @@ function mapFlexAlign(align?: unknown): string {
 }
 
 /**
+ * Считает группу CSS-переменных Flex по разрешённым пропсам.
+ *
+ * Группой, а не по одной переменной: у Flex члены не производные друг от друга,
+ * но общий расчёт держит эмит переменных всех блоков в одном виде и снимает
+ * вопрос «а эта переменная точно посчитана от тех же overrides».
+ *
+ * @param resolved - Пропсы блока, слитые с overrides устройства.
+ * @returns Значения переменных группы без префикса и суффикса устройства.
+ */
+function computeFlexVars(resolved: Record<string, unknown>): Record<string, string> {
+    return {
+        direction: String(resolved.direction || 'row'),
+        justify: mapFlexJustify(resolved.justify),
+        wrap: resolved.wrap ? 'wrap' : 'nowrap',
+        gap: convertPxToRem(Math.max(0, Number(resolved.gap ?? 24) || 0)),
+    };
+}
+
+/**
  * Published-рендер Flex: `h('div')` с per-device CSS-переменными
  * (канвасный BlockFlex несёт editor chrome и на published не используется).
  *
@@ -61,79 +76,18 @@ function renderFlexPublished(ctx: IBlockRenderContext): VNode {
     const { component, extraClasses, extraAttrs, styles, renderChild, getChildComponents } = ctx;
     const currentProps = component.props as Record<string, unknown>;
 
-    const baseDirection = String(currentProps.direction || 'row');
-    const baseJustify = mapFlexJustify(currentProps.justify);
-    const baseGap = Math.max(0, Number(currentProps.gap || 24));
-
-    const mobileOverrides = getResponsiveOverrides(currentProps, 'mobile');
-    const tabletOverrides = getResponsiveOverrides(currentProps, 'tablet');
-
-    const directionMobile = String(
-        resolveResponsiveValue(baseDirection, mobileOverrides, 'direction')
-    );
-    const directionTablet = String(
-        resolveResponsiveValue(baseDirection, tabletOverrides, 'direction')
-    );
-    const directionDesktop = baseDirection;
-
-    const justifyMobile = mapFlexJustify(
-        resolveResponsiveValue(currentProps.justify, mobileOverrides, 'justify')
-    );
-    const justifyTablet = mapFlexJustify(
-        resolveResponsiveValue(currentProps.justify, tabletOverrides, 'justify')
-    );
-    const justifyDesktop = baseJustify;
-
-    const wrapMobileRaw = resolveResponsiveValue(
-        Boolean(currentProps.wrap),
-        mobileOverrides,
-        'wrap'
-    );
-    const wrapTabletRaw = resolveResponsiveValue(
-        Boolean(currentProps.wrap),
-        tabletOverrides,
-        'wrap'
-    );
-    const wrapDesktopRaw = Boolean(currentProps.wrap);
-
-    const wrapMobile = wrapMobileRaw ? 'wrap' : 'nowrap';
-    const wrapTablet = wrapTabletRaw ? 'wrap' : 'nowrap';
-    const wrapDesktop = wrapDesktopRaw ? 'wrap' : 'nowrap';
-
-    const gapMobile = Math.max(
-        0,
-        Number(resolveResponsiveValue(baseGap, mobileOverrides, 'gap')) || baseGap
-    );
-    const gapTablet = Math.max(
-        0,
-        Number(resolveResponsiveValue(baseGap, tabletOverrides, 'gap')) || baseGap
-    );
-    const gapDesktop = baseGap;
-
     const style = {
         display: 'flex',
-        flexDirection: 'var(--bricks-flex-direction, var(--bricks-flex-direction-desktop, row))',
-        justifyContent:
-            'var(--bricks-flex-justify, var(--bricks-flex-justify-desktop, flex-start))',
+        flexDirection: 'var(--bricks-flex-direction, var(--bricks-flex-direction-base, row))',
+        justifyContent: 'var(--bricks-flex-justify, var(--bricks-flex-justify-base, flex-start))',
         alignItems: mapFlexAlign(currentProps.align),
-        flexWrap: 'var(--bricks-flex-wrap, var(--bricks-flex-wrap-desktop, nowrap))',
-        gap: 'var(--bricks-flex-gap, var(--bricks-flex-gap-desktop, 0rem))',
+        flexWrap: 'var(--bricks-flex-wrap, var(--bricks-flex-wrap-base, nowrap))',
+        gap: 'var(--bricks-flex-gap, var(--bricks-flex-gap-base, 0rem))',
         minHeight: 'auto',
         backgroundColor: 'transparent',
         border: 'none',
         borderRadius: '0',
-        '--bricks-flex-direction-mobile': directionMobile,
-        '--bricks-flex-direction-tablet': directionTablet,
-        '--bricks-flex-direction-desktop': directionDesktop,
-        '--bricks-flex-justify-mobile': justifyMobile,
-        '--bricks-flex-justify-tablet': justifyTablet,
-        '--bricks-flex-justify-desktop': justifyDesktop,
-        '--bricks-flex-wrap-mobile': wrapMobile,
-        '--bricks-flex-wrap-tablet': wrapTablet,
-        '--bricks-flex-wrap-desktop': wrapDesktop,
-        '--bricks-flex-gap-mobile': convertPxToRem(gapMobile),
-        '--bricks-flex-gap-tablet': convertPxToRem(gapTablet),
-        '--bricks-flex-gap-desktop': convertPxToRem(gapDesktop),
+        ...makeResponsiveVarGroup('--bricks-flex', currentProps, computeFlexVars),
     };
 
     const basePaddingX = Math.round(Math.max(0, Number(currentProps.paddingX) || 0) * 10) / 10;

@@ -37,7 +37,8 @@ const NON_SCHEMA_ACTIONS = new Set([
  * Синхронизация схемы канваса с открытой preview-вкладкой через BroadcastChannel.
  *
  * Канал открыт всё время жизни билдера: превью при монтировании шлёт
- * `request-schema`, и билдер отвечает свежей схемой — синк самовосстанавливается
+ * `request-schema`, и билдер отвечает снимком содержимого (схема + набор
+ * устройств) — синк самовосстанавливается
  * после перезагрузки любой из вкладок. Изменения компонентов отправляются
  * с debounce 300ms; канал закрывается при unmount.
  *
@@ -57,16 +58,21 @@ export function usePreviewSync(sessionToken: IBuilderSessionToken) {
     let previewAddressKey = '';
 
     /**
-     * Отправляет актуальную схему канваса в открытую вкладку превью через BroadcastChannel.
-     * Параллельно обновляет localStorage (вместе со `storedAt`), чтобы перезагрузка
-     * вкладки показывала свежие данные.
+     * Отправляет снимок содержимого канваса в открытую вкладку превью через
+     * BroadcastChannel. Параллельно обновляет localStorage (вместе со `storedAt`),
+     * чтобы перезагрузка вкладки показывала свежие данные.
+     *
+     * Снимок — схема И набор устройств: набор задаёт пороги media-query и ширины
+     * контейнера, поэтому превью без него показывало бы новую схему в старой
+     * раскладке.
      */
-    function sendPreviewSchemaUpdate(): void {
+    function sendPreviewContentUpdate(): void {
         if (!previewBroadcastChannel || !previewAddressKey) {
             return;
         }
 
         const schema = componentsStore.exportSchema();
+        const viewportConfig = publishStore.currentFormState.viewportConfig ?? null;
 
         if (typeof window !== 'undefined') {
             try {
@@ -80,6 +86,7 @@ export function usePreviewSync(sessionToken: IBuilderSessionToken) {
                         previewAddressKey
                     ) {
                         parsed.schema = schema;
+                        parsed.viewportConfig = viewportConfig;
                         parsed.storedAt = new Date().toISOString();
                         window.localStorage.setItem('bricks-preview-page', JSON.stringify(parsed));
                     }
@@ -90,9 +97,10 @@ export function usePreviewSync(sessionToken: IBuilderSessionToken) {
         }
 
         previewBroadcastChannel.postMessage({
-            type: 'schema-update',
+            type: 'content-update',
             address: previewAddressKey,
             schema,
+            viewportConfig,
         });
     }
 
@@ -126,7 +134,7 @@ export function usePreviewSync(sessionToken: IBuilderSessionToken) {
             }
 
             previewAddressKey = address;
-            sendPreviewSchemaUpdate();
+            sendPreviewContentUpdate();
         };
     }
 
@@ -151,7 +159,7 @@ export function usePreviewSync(sessionToken: IBuilderSessionToken) {
     /**
      * Планирует отправку схемы в превью с debounce 300ms.
      */
-    function schedulePreviewSchemaUpdate(): void {
+    function schedulePreviewContentUpdate(): void {
         if (!previewBroadcastChannel || !previewAddressKey) {
             return;
         }
@@ -161,7 +169,7 @@ export function usePreviewSync(sessionToken: IBuilderSessionToken) {
         }
 
         previewSyncTimer = setTimeout(() => {
-            sendPreviewSchemaUpdate();
+            sendPreviewContentUpdate();
             previewSyncTimer = null;
         }, 300);
     }
@@ -175,9 +183,20 @@ export function usePreviewSync(sessionToken: IBuilderSessionToken) {
         }
 
         after(() => {
-            schedulePreviewSchemaUpdate();
+            schedulePreviewContentUpdate();
         });
     });
+
+    // Отдельный триггер на набор устройств: подписка выше ловит только actions
+    // стора компонентов, а правка набора блоков не трогает — превью осталось бы
+    // на прежней раскладке до следующей правки схемы
+    watch(
+        () => publishStore.currentFormState.viewportConfig,
+        () => {
+            schedulePreviewContentUpdate();
+        },
+        { deep: true }
+    );
 
     // Открытие другой страницы обрывает синк. Канал и `previewAddressKey` живут
     // дольше сессии, поэтому схема новой страницы уезжала в localStorage и

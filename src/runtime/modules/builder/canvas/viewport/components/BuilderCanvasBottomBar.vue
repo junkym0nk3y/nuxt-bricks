@@ -1,11 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type {
-    ICanvasBottomBarProps,
-    ICanvasBottomBarEmits,
-    IViewportOption,
-} from '../../types/components';
+import type { ICanvasBottomBarProps, ICanvasBottomBarEmits } from '../../types/components';
 import type { IBricksTabItem } from '../../../../ui/base/tabs/types.d.ts';
 
 // Vue
@@ -17,14 +13,14 @@ import { useComponentsStore } from '../../../core/stores/components';
 import { useCanvasStore } from '../../../core/stores/canvas';
 import { useHistoryStore } from '../../../core/stores/history';
 
-// Composables
-import { useBricksConfig } from '../../../../common/composables/useBricksConfig';
-
 // Components
 import BricksButton from '../../../../ui/base/button/BricksButton.vue';
 import BricksTabBar from '../../../../ui/base/tabs/BricksTabBar.vue';
 import BricksTooltip from '../../../../ui/tooltip/BricksTooltip.vue';
 import BricksTooltipHint from '../../../../ui/tooltip/BricksTooltipHint.vue';
+
+// Utils
+import { resolveDeviceIcon } from '../../../../common/utils/bricks/devices';
 // #endregion
 
 // #region Props
@@ -41,7 +37,6 @@ const emit = defineEmits<ICanvasBottomBarEmits>();
 
 // #region Data
 const { t } = useI18n();
-const config = useBricksConfig();
 const componentsStore = useComponentsStore();
 const canvasStore = useCanvasStore();
 const historyStore = useHistoryStore();
@@ -49,37 +44,19 @@ const historyStore = useHistoryStore();
 /** Значение таба «Figma Like»: режим стоит в одном ряду с вьюпортами, но не является ими. */
 const FIGMA_MODE_VALUE = 'figma';
 
-const VIEWPORTS: readonly IViewportOption[] = [
-    {
-        value: 'mobile',
-        label: 'Mobile',
-        icon: 'ta:outline-device-mobile',
-        width: config.canvasBreakpoints.mobile.width,
-    },
-    {
-        value: 'tablet',
-        label: 'Tablet',
-        icon: 'ta:outline-device-tablet',
-        width: config.canvasBreakpoints.tablet.width,
-    },
-    {
-        value: 'desktop',
-        label: 'Desktop',
-        icon: 'ta:outline-device-desktop',
-        width: config.canvasBreakpoints.desktop.width,
-    },
-] as const;
 // #endregion
 
 // #region Computed
 const scalePercent = computed(() => Math.round(props.scale * 100));
 
+// Подписей у табов нет с прошлого редизайна — они уехали в тултип, поэтому
+// четвёртое устройство стоит бару ровно ширины ещё одной иконки
 const viewportItems = computed<IBricksTabItem[]>(() => [
-    ...VIEWPORTS.map((viewport) => ({
-        value: viewport.value,
-        icon: viewport.icon,
-        label: viewport.label,
-        tooltip: `${viewport.label} · ${viewport.width}px`,
+    ...canvasStore.devices.map((device) => ({
+        value: device.key,
+        icon: resolveDeviceIcon(device.icon),
+        label: device.label,
+        tooltip: `${device.label} · ${device.width}px`,
     })),
     {
         value: FIGMA_MODE_VALUE,
@@ -156,12 +133,12 @@ function handleSelectViewport(value: string): void {
         return;
     }
 
-    const viewport = VIEWPORTS.find((item) => item.value === value);
-    if (!viewport) {
+    const device = canvasStore.devices.find((item) => item.key === value);
+    if (!device) {
         return;
     }
 
-    emit('update:viewport', viewport.value);
+    emit('update:viewport', device.key);
 }
 
 /**

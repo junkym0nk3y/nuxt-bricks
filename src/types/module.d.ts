@@ -7,8 +7,27 @@
  * runtimeConfig.
  */
 import type { TBricksBackendMode } from './moduleBackendConfig';
+import type { TBricksProjectDeviceSet } from '../runtime/modules/common/types/devices';
 
 export interface IBricksModuleOptions {
+    /**
+     * Набор устройств проекта: 2–4 записи, отсортированные по возрастанию
+     * `width`, обязательно с `mobile` в начале и `desktop` в конце.
+     *
+     * `width` устройства — это одновременно ширина листа в билдере и `min-width`
+     * его диапазона media-query на published: отдельного списка порогов нет,
+     * поэтому дыр и наложений между ступенями не бывает по построению.
+     *
+     * Опция build-time и единственная: той же резолвнутой картой кормится
+     * SCSS-карта миксинов (`#bricks-scss`), поэтому канвас, контейнеры, пороги
+     * published и media query авторов бриков считаются по одним числам.
+     * Невалидное значение валит сборку — молча подменять набор нельзя, это
+     * изменило бы раскладку всех страниц.
+     *
+     * Отдельная страница может завести свой набор в билдере; он хранится в
+     * `bricks_pages.viewport_config` и перекрывает проектный только для неё.
+     */
+    devices?: TBricksProjectDeviceSet;
     /**
      * Basic Auth для защиты builder/preview и модифицирующих API.
      * ВНИМАНИЕ: задайте свои значения в production (см. README).

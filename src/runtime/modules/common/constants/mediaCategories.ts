@@ -12,6 +12,8 @@
  * можно любую, а файл без категории — законное состояние (`category: null`).
  */
 
+import { labelToSlug } from '../utils/slug';
+
 /**
  * Значение фильтра «все категории». Не категория: в БД его нет, в
  * `bricks_media.category` он никогда не попадает — загрузка при активном «all»
@@ -26,65 +28,11 @@ export const MEDIA_CATEGORY_SLUG_MAX_LENGTH = 50;
 export const MEDIA_CATEGORY_LABEL_MAX_LENGTH = 50;
 
 /**
- * Таблица транслитерации для slug'ов. Мягкий и твёрдый знаки отбрасываются
- * (в slug'е они шумят дефисами).
- */
-const CYRILLIC_TRANSLITERATION: Record<string, string> = {
-    а: 'a',
-    б: 'b',
-    в: 'v',
-    г: 'g',
-    д: 'd',
-    е: 'e',
-    ё: 'e',
-    ж: 'zh',
-    з: 'z',
-    и: 'i',
-    й: 'y',
-    к: 'k',
-    л: 'l',
-    м: 'm',
-    н: 'n',
-    о: 'o',
-    п: 'p',
-    р: 'r',
-    с: 's',
-    т: 't',
-    у: 'u',
-    ф: 'f',
-    х: 'h',
-    ц: 'c',
-    ч: 'ch',
-    ш: 'sh',
-    щ: 'sch',
-    ъ: '',
-    ы: 'y',
-    ь: '',
-    э: 'e',
-    ю: 'yu',
-    я: 'ya',
-};
-
-/**
- * Приводит подпись, введённую пользователем, к slug'у: латиница и цифры в
- * нижнем регистре, всё остальное — дефис. Кириллица транслитерируется, потому
- * что slug уезжает в значение фильтра и в колонку VARCHAR(50): в проекте нет
- * ни одного места, где категория ходила бы в URL в percent-кодировке.
+ * Приводит подпись категории к slug'у колонки `VARCHAR(50)`.
  *
  * @param label - Подпись, введённая пользователем.
  * @returns Slug или пустая строка, если из подписи не вышло ни одного символа.
  */
 export function mediaCategoryLabelToSlug(label: string): string {
-    const transliterated = label
-        .trim()
-        .toLowerCase()
-        .split('')
-        .map((char) => CYRILLIC_TRANSLITERATION[char] ?? char)
-        .join('');
-
-    return transliterated
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '')
-        .slice(0, MEDIA_CATEGORY_SLUG_MAX_LENGTH)
-        .replace(/-+$/g, '');
+    return labelToSlug(label, MEDIA_CATEGORY_SLUG_MAX_LENGTH);
 }

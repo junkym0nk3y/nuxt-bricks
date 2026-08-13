@@ -1,27 +1,17 @@
 // #region Imports
 // Types
-import type { TBricksDeviceKey } from '../../common/types/brick';
+import type { TBricksResolvedDeviceSet } from '../../common/types/devices';
+import type { IResponsiveCssBlock } from '../types/responsiveCss';
+
+// Constants
+import { BASE_DEVICE_KEY, BASE_VAR_SUFFIX } from '../../common/constants/devices';
+
+// Utils
+import { deviceRanges } from '../../common/utils/bricks/devices';
 
 // Registry
 import { BLOCK_REGISTRY } from '../registry';
 // #endregion
-
-// #region Interfaces
-/** Брейкпоинты published-страницы (px) для media queries. */
-export interface IResponsiveCssBreakpoints {
-    tabletMin: number;
-    desktopMin: number;
-}
-
-/** Блок с responsiveCssVars: селектор + конфиг переменных из definition. */
-interface IResponsiveCssBlock {
-    selector: string;
-    prefix: string;
-    vars: string[];
-}
-// #endregion
-
-const DEVICES: TBricksDeviceKey[] = ['mobile', 'tablet', 'desktop'];
 
 /**
  * Собирает блоки registry, объявившие responsiveCssVars.
@@ -45,82 +35,101 @@ function getResponsiveCssBlocks(): IResponsiveCssBlock[] {
 }
 
 /**
- * Генерирует CSS-правило выбора per-device переменных блока:
- * `--bricks-<prefix>-<var>: var(--bricks-<prefix>-<var>-<device>);`.
+ * Генерирует правило выбора активных переменных блока для устройства.
+ *
+ * Переменные устройства эмитятся разрежённо — только там, где переопределение
+ * реально есть, — поэтому активное правило СНАЧАЛА гасит переменную устройства
+ * на самом элементе, и лишь потом читает её с fallback'ом на базовое значение.
+ *
+ * Сброс обязателен: custom properties наследуются, и без него вложенный блок
+ * без собственного переопределения прочитал бы значение родителя того же типа
+ * (вложенный Grid взял бы колонки внешнего Grid), а fallback не сработал бы
+ * вовсе. Инлайновое значение самого элемента сброс не задевает — объявление в
+ * `style` перебивает объявление из стилевого правила.
  *
  * @param selector - CSS-селектор правила.
  * @param block - Блок с prefix/vars.
- * @param device - Активный device.
+ * @param deviceKey - Ключ активного устройства.
  * @param indent - Базовый отступ правила.
  * @returns Текст CSS-правила.
  */
 function buildBlockRule(
     selector: string,
     block: IResponsiveCssBlock,
-    device: TBricksDeviceKey,
+    deviceKey: string,
     indent: string
 ): string {
-    const lines = block.vars
-        .map(
-            (name) =>
-                `${indent}    --bricks-${block.prefix}-${name}: var(--bricks-${block.prefix}-${name}-${device});`
-        )
-        .join('\n');
+    const isBase = deviceKey === BASE_DEVICE_KEY;
 
-    return `${indent}${selector} {\n${lines}\n${indent}}`;
+    const lines = block.vars.flatMap((name) => {
+        const varName = `--bricks-${block.prefix}-${name}`;
+        const baseVar = `${varName}-${BASE_VAR_SUFFIX}`;
+
+        // База лежит в обычных пропах блока и эмитится всегда — читаем напрямую
+        if (isBase) {
+            return [`${indent}    ${varName}: var(${baseVar});`];
+        }
+
+        const deviceVar = `${varName}-${deviceKey}`;
+        return [
+            `${indent}    ${deviceVar}: initial;`,
+            `${indent}    ${varName}: var(${deviceVar}, var(${baseVar}));`,
+        ];
+    });
+
+    return `${indent}${selector} {\n${lines.join('\n')}\n${indent}}`;
 }
 
 /**
  * Генерирует полный CSS выбора responsive-переменных layout-блоков из registry
- * по трём шаблонам: desktop-дефолты, builder-канвас (`data-bricks-viewport`)
- * и published media queries. Заменяет ручные CSS-блоки (шаг B6).
+ * по трём шаблонам: дефолты базового устройства, builder-канвас
+ * (`data-bricks-viewport`) и published media queries по диапазонам набора.
  *
- * @param breakpoints - Брейкпоинты published-страницы (px).
+ * @param devices - Резолвнутый набор устройств страницы.
  * @returns CSS для инжекта в `<style>`.
  */
-export function buildResponsiveLayoutCss(breakpoints: IResponsiveCssBreakpoints): string {
+export function buildResponsiveLayoutCss(devices: TBricksResolvedDeviceSet): string {
     const blocks = getResponsiveCssBlocks();
 
-    const mobileMax = Math.max(0, breakpoints.tabletMin - 1);
-    const tabletMax = Math.max(breakpoints.tabletMin, breakpoints.desktopMin - 1);
-
     const defaults = blocks
-        .map((block) => buildBlockRule(block.selector, block, 'desktop', '        '))
+        .map((block) => buildBlockRule(block.selector, block, BASE_DEVICE_KEY, '        '))
         .join('\n\n');
 
-    const builder = DEVICES.map((device) =>
-        blocks
-            .map((block) =>
-                buildBlockRule(
-                    `.bricks-canvas[data-bricks-viewport="${device}"] ${block.selector}`,
-                    block,
-                    device,
-                    '        '
+    const builder = devices
+        .map((device) =>
+            blocks
+                .map((block) =>
+                    buildBlockRule(
+                        `.bricks-canvas[data-bricks-viewport="${device.key}"] ${block.selector}`,
+                        block,
+                        device.key,
+                        '        '
+                    )
                 )
-            )
-            .join('\n\n')
-    ).join('\n\n');
+                .join('\n\n')
+        )
+        .join('\n\n');
 
-    const publishedQueries: Array<[string, TBricksDeviceKey]> = [
-        [`@media (max-width: ${mobileMax}px)`, 'mobile'],
-        [
-            `@media (min-width: ${breakpoints.tabletMin}px) and (max-width: ${tabletMax}px)`,
-            'tablet',
-        ],
-        [`@media (min-width: ${breakpoints.desktopMin}px)`, 'desktop'],
-    ];
+    const published = deviceRanges(devices)
+        .map((range) => {
+            const conditions = [
+                range.min > 0 ? `(min-width: ${range.min}px)` : '',
+                Number.isFinite(range.max) ? `(max-width: ${range.max}px)` : '',
+            ].filter(Boolean);
 
-    const published = publishedQueries
-        .map(([query, device]) => {
+            const query =
+                conditions.length > 0 ? `@media ${conditions.join(' and ')}` : '@media all';
+
             const rules = blocks
-                .map((block) => buildBlockRule(block.selector, block, device, '            '))
+                .map((block) => buildBlockRule(block.selector, block, range.key, '            '))
                 .join('\n\n');
+
             return `        ${query} {\n${rules}\n        }`;
         })
         .join('\n\n');
 
     return `
-        /* ===== Responsive layout vars: Defaults (desktop) ===== */
+        /* ===== Responsive layout vars: Defaults (base device) ===== */
 ${defaults}
 
         /* ===== Responsive layout vars: Builder (canvas viewport) ===== */

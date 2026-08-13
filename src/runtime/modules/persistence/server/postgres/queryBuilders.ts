@@ -20,6 +20,7 @@ export const PAGE_SELECT_FIELDS = `
     url_prefix as "urlPrefix",
     subdomain,
     thumbnail_url as "thumbnailUrl",
+    viewport_config as "viewportConfig",
     schema,
     published,
     revision,
@@ -44,6 +45,7 @@ export const PAGE_SUMMARY_FIELDS = `
     url_prefix as "urlPrefix",
     subdomain,
     thumbnail_url as "thumbnailUrl",
+    viewport_config as "viewportConfig",
     published,
     revision,
     created_at as "createdAt",
@@ -80,6 +82,7 @@ export const VERSION_SELECT_FIELDS = `
     url_prefix as "urlPrefix",
     subdomain,
     thumbnail_url as "thumbnailUrl",
+    viewport_config as "viewportConfig",
     schema,
     published,
     page_updated_at as "pageUpdatedAt",
@@ -116,6 +119,12 @@ export const MEDIA_CATEGORY_SELECT_FIELDS = `
 `;
 
 /**
+ * Поля страницы, которые уезжают в JSONB-колонки: значение сериализуется в
+ * текст перед подстановкой в запрос.
+ */
+const JSONB_PAGE_FIELDS: ReadonlySet<string> = new Set(['schema', 'viewportConfig']);
+
+/**
  * Разрешённые к обновлению поля bricks_pages (camelCase-ключи тела запроса).
  * Имена колонок интерполируются в SET — ключи вне whitelist отбрасываются
  * (защита от SQL-инъекции через имена колонок).
@@ -131,6 +140,7 @@ export const PAGE_UPDATE_FIELDS: ReadonlySet<string> = new Set([
     'urlPrefix',
     'subdomain',
     'thumbnailUrl',
+    'viewportConfig',
     'schema',
     'published',
 ]);
@@ -169,8 +179,10 @@ export function buildUpdateQuery(
         const paramIndex = values.length + 1;
         updates.push(`${column} = $${paramIndex}`);
 
-        if (key === 'schema') {
-            values.push(JSON.stringify(rawValue));
+        if (JSONB_PAGE_FIELDS.has(key)) {
+            // JSONB-колонке нужен текст: массив набора устройств драйвер иначе
+            // передал бы как postgres-массив, и колонка его не примет
+            values.push(rawValue === null ? null : JSON.stringify(rawValue));
             return;
         }
 

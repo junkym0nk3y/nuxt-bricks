@@ -19,8 +19,17 @@ import type { IBricksPageAddress } from '../../src/runtime/modules/common/types/
  */
 
 // #region Mocks
-vi.mock('../../src/runtime/modules/common/composables/useBricksConfig', () => ({
-    useBricksConfig: () => ({ breakpoints: { mobile: 0, tablet: 768, desktop: 1280 } }),
+// Набор устройств композабл берёт из runtimeConfig, а тот тянет за собой
+// `#build/nuxt.config.mjs`, которого вне сборки Nuxt нет
+vi.mock('../../src/runtime/modules/common/composables/useBricksDevices', () => ({
+    useBricksDevices: () => ({
+        projectDevices: [],
+        resolvePageDevices: () => [
+            { key: 'mobile', label: 'Мобильный', icon: 'device-mobile', width: 375, aside: 0.4 },
+            { key: 'desktop', label: 'Десктоп', icon: 'device-desktop', width: 1600, aside: 2 },
+        ],
+        deviceRanges: () => [],
+    }),
 }));
 // #endregion
 

@@ -23,6 +23,7 @@ function makePageRow(): IBricksPageRow {
         urlPrefix: 'docs',
         subdomain: null,
         thumbnailUrl: 'https://cdn.example.com/editor-thumbnail.webp',
+        viewportConfig: null,
         schema: { components: [] },
         published: true,
         revision: 7,

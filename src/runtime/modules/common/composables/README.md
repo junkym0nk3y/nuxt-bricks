@@ -3,15 +3,16 @@
 Общие композаблы (используются 2+ доменами). Доменные композаблы живут рядом со своим кодом —
 в каждой папке `composables/`/`utils/` есть свой README с таблицей файлов.
 
-| Файл                      | Назначение                                                                                                                                                                                                 |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `useBricksConfig.ts`      | Конфигурация билдера с дефолтными значениями. Читает из `app.config.ts`                                                                                                                                    |
-| `useApiClient.ts`         | Работа с API: пути `/api/bricks/**` всегда локальны (`utils/localApiPaths.ts`), остальные /api/\* — на API host-проекта (SSR-заголовки из `utils/ssrRequestHeaders.ts`, CSRF, 401 → login в database-auth) |
-| `useBrickImports.ts`      | Динамический импорт brick-файлов компонентов: lookup лоадера по `brickPath` из схемы (ключи glob'а = записи манифеста, см. `src/bricks-manifest.ts`)                                                       |
-| `useBricksStyles.ts`      | Генерация и инъекция стилей `.bricks-container` в `<head>` (канвас + published media queries)                                                                                                              |
-| `useBricksRoutePaths.ts`  | Пути поверхностей bricks (`bricks.routes` + `app.baseURL`) для `window.location`/`window.open`/`<a href>`; внутри Vue Router — именованные роуты                                                           |
-| `useBricksAssetUrl.ts`    | URL публичных ассетов модуля (`/_bricks/` + `app.baseURL`) — обёртка над `resolveBricksAssetUrl` для setup-контекста                                                                                       |
-| `useBricksPageAddress.ts` | Доступность адресов страницы по РЕАЛЬНОМУ роутингу (`router.resolve`): live-адрес и адрес редактора. Ловит и поверхности билдера, и страницы приложения-потребителя — списка зарезервированных имён нет    |
+| Файл                      | Назначение                                                                                                                                                                                                                                      |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `useBricksConfig.ts`      | Конфигурация билдера с дефолтными значениями. Читает из `app.config.ts` (набора устройств здесь нет — см. `useBricksDevices.ts`)                                                                                                                |
+| `useBricksDevices.ts`     | Набор устройств проекта (опция модуля `bricks.devices` поверх `constants/devices.ts`) и резолв набора конкретной страницы поверх него; `deviceRanges` — диапазоны ширины окна. Ширина устройства служит и листом канваса, и порогом media-query |
+| `useApiClient.ts`         | Работа с API: пути `/api/bricks/**` всегда локальны (`utils/localApiPaths.ts`), остальные /api/\* — на API host-проекта (SSR-заголовки из `utils/ssrRequestHeaders.ts`, CSRF, 401 → login в database-auth)                                      |
+| `useBrickImports.ts`      | Динамический импорт brick-файлов компонентов: lookup лоадера по `brickPath` из схемы (ключи glob'а = записи манифеста, см. `src/bricks-manifest.ts`)                                                                                            |
+| `useBricksStyles.ts`      | Генерация и инъекция стилей `.bricks-container` в `<head>` (канвас + published media queries)                                                                                                                                                   |
+| `useBricksRoutePaths.ts`  | Пути поверхностей bricks (`bricks.routes` + `app.baseURL`) для `window.location`/`window.open`/`<a href>`; внутри Vue Router — именованные роуты                                                                                                |
+| `useBricksAssetUrl.ts`    | URL публичных ассетов модуля (`/_bricks/` + `app.baseURL`) — обёртка над `resolveBricksAssetUrl` для setup-контекста                                                                                                                            |
+| `useBricksPageAddress.ts` | Доступность адресов страницы по РЕАЛЬНОМУ роутингу (`router.resolve`): live-адрес и адрес редактора. Ловит и поверхности билдера, и страницы приложения-потребителя — списка зарезервированных имён нет                                         |
 
 ## Правила
 

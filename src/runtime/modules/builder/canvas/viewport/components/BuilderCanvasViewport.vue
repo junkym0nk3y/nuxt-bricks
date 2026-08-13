@@ -2,7 +2,7 @@
 // #region Imports
 // Types
 import type { ICanvasViewportProps, IDragComposableCanvas } from '../../types/components';
-import type { IDeviceVisibilityConfig, TBricksDeviceKey } from '../../../../common/types/brick';
+import type { TBricksDeviceKey } from '../../../../common/types/brick';
 import type { TDropFlowEntry } from '../../../core/types/drag';
 
 // Vue
@@ -18,12 +18,13 @@ import { useBricksConfig } from '../../../../common/composables/useBricksConfig'
 import { useCanvasDrops } from '../composables/useCanvasDrops';
 import { useCanvasFlowGuard } from '../composables/useCanvasFlowGuard';
 
+// Constants
+import { DEFAULT_CANVAS_HEIGHT } from '../../../../common/constants/devices';
+import { CANVAS_VIEWPORT_KEY } from '../../../../common/constants/injectionKeys';
+
 // Utils
 import { convertPxToRem } from '../../../../common/utils/main';
 import { buildDropFlowEntries, getDragPlaceholderVars } from '../../../core/utils/dragVisuals';
-
-// Constants
-import { CANVAS_VIEWPORT_KEY } from '../../../../common/constants/injectionKeys';
 
 // Components
 import BuilderCanvasItem from '../../item/components/BuilderCanvasItem.vue';
@@ -54,19 +55,7 @@ provide(
 const canvasRef = ref<HTMLElement | null>(null);
 const containerRef = ref<HTMLElement | null>(null);
 
-const VIEWPORT_HEIGHTS: Record<TBricksDeviceKey, number> = {
-    mobile: 812,
-    tablet: 1024,
-    desktop: 1080,
-};
-
 const CANVAS_HEIGHT_BUFFER = 400;
-
-const DEVICE_VISIBILITY_MAP: Record<TBricksDeviceKey, IDeviceVisibilityConfig> = {
-    mobile: { mobile: true, tablet: false, desktop: false },
-    tablet: { mobile: false, tablet: true, desktop: false },
-    desktop: { mobile: false, tablet: false, desktop: true },
-};
 
 const {
     rootDropIndex,
@@ -93,17 +82,12 @@ useCanvasFlowGuard(canvasRef);
 // #endregion
 
 // #region Computed
-const viewportWidth = computed<number>(() => {
-    const breakpoints = config.canvasBreakpoints;
-    const widths: Record<TBricksDeviceKey, number> = {
-        mobile: breakpoints.mobile.width,
-        tablet: breakpoints.tablet.width,
-        desktop: breakpoints.desktop.width,
-    };
-    return widths[props.viewport];
-});
+/** Устройство набора, которому принадлежит этот лист. */
+const device = computed(() => canvasStore.devices.find((item) => item.key === props.viewport));
 
-const viewportHeight = ref<number>(VIEWPORT_HEIGHTS.desktop);
+const viewportWidth = computed<number>(() => canvasStore.getViewportWidth(props.viewport));
+
+const viewportHeight = ref<number>(DEFAULT_CANVAS_HEIGHT);
 
 const canvasStyle = computed<Record<string, string>>(() => {
     const compensation = getRemCompensation?.(props.viewport) ?? 1;
@@ -128,14 +112,11 @@ const rootFlowEntries = computed<TDropFlowEntry[]>(() =>
     buildDropFlowEntries(componentsStore.getRootComponents(), rootDropIndex.value, 'root-drop')
 );
 
-const viewportLabel = computed<string>(() => {
-    const labels: Record<TBricksDeviceKey, string> = {
-        mobile: 'Mobile',
-        tablet: 'Tablet',
-        desktop: 'Desktop',
-    };
-    return `${labels[props.viewport]} — ${viewportWidth.value}px`;
-});
+// Подпись берётся из набора: имён Mobile/Tablet/Desktop в коде больше нет —
+// устройство может называться как угодно и быть четвёртым
+const viewportLabel = computed<string>(
+    () => `${device.value?.label ?? props.viewport} — ${viewportWidth.value}px`
+);
 // #endregion
 
 // #region Methods
@@ -148,7 +129,7 @@ function updateViewportHeight(): void {
         return;
     }
 
-    const baseHeight = VIEWPORT_HEIGHTS[props.viewport];
+    const baseHeight = canvasStore.getViewportHeight(props.viewport);
 
     if (!componentsStore.hasComponents) {
         viewportHeight.value = baseHeight;
@@ -196,9 +177,13 @@ function handleViewportDrop(event: DragEvent): void {
 
     const newComponent = componentsStore.components.find((c) => !idsBefore.has(c.id));
     if (newComponent) {
+        // One-hot по набору, а не по трём зашитым ключам: блок, брошенный на
+        // лист ноутбука, обязан скрыться и на всех остальных устройствах набора
         componentsStore.setComponentDeviceVisibility(
             newComponent.id,
-            DEVICE_VISIBILITY_MAP[props.viewport]
+            Object.fromEntries(
+                canvasStore.devices.map((item) => [item.key, item.key === props.viewport])
+            )
         );
     }
 }
@@ -310,7 +295,10 @@ onBeforeUnmount(() => {
     font-size: 2.4rem;
     font-weight: 600;
     letter-spacing: 0.05rem;
-    color: var(--bricks-base-500);
+
+    // Подпись лежит на фоне рабочей области, а он один в обеих темах: с
+    // темозависимым base-500 в тёмной теме получался светлый текст на светлом
+    color: var(--bricks-workspace-fg);
 }
 
 .canvas {

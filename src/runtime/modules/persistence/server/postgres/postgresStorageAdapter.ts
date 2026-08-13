@@ -45,11 +45,11 @@ import { normalizeUrlPrefix } from '../../../common/utils/bricks/pageAddress';
 const SNAPSHOT_VERSION_SQL = `
 INSERT INTO bricks_page_versions
     (page_id, pagename, title, description, keywords, social_image, layout,
-     background_color, url_prefix, subdomain, thumbnail_url, schema, published,
-     page_updated_at)
+     background_color, url_prefix, subdomain, thumbnail_url, viewport_config, schema,
+     published, page_updated_at)
 SELECT id, pagename, title, description, keywords, social_image, layout,
-       background_color, url_prefix, subdomain, thumbnail_url, schema, published,
-       updated_at
+       background_color, url_prefix, subdomain, thumbnail_url, viewport_config, schema,
+       published, updated_at
 FROM bricks_pages
 WHERE id = $1
 RETURNING id
@@ -218,8 +218,9 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
                 result = await queryOne<IBricksPageRow>(
                     `INSERT INTO bricks_pages
                     (pagename, title, description, keywords, social_image, layout,
-                     background_color, url_prefix, subdomain, schema, published)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                     background_color, url_prefix, subdomain, viewport_config, schema,
+                     published)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
                     RETURNING ${PAGE_SELECT_FIELDS}`,
                     [
                         payload.pagename,
@@ -231,6 +232,7 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
                         payload.backgroundColor ?? null,
                         payload.urlPrefix ?? null,
                         payload.subdomain ?? null,
+                        payload.viewportConfig ? JSON.stringify(payload.viewportConfig) : null,
                         JSON.stringify(payload.schema),
                         payload.published ?? true,
                     ]
@@ -277,8 +279,14 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
 
             const versionsLimit = resolveVersionsLimit();
 
+            // Набор устройств — такая же часть версионируемого состояния, как и
+            // схема: ключи `props.responsive` относятся к нему, и правка одного
+            // набора без снимка делает смену топологии невосстановимой
+            const shouldSnapshot =
+                payload.schema !== undefined || payload.viewportConfig !== undefined;
+
             try {
-                if (payload.schema === undefined || versionsLimit === 0) {
+                if (!shouldSnapshot || versionsLimit === 0) {
                     const rows = await query<IBricksPageRow>(update.sql, update.values);
 
                     if (rows.length > 0) {

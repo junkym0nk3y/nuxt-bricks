@@ -5,6 +5,7 @@ import type {
     IBricksSchemaMeta,
 } from '../../../../common/types/brick';
 import { deserializeSchema, serializeSchema } from '../../utils/history';
+import { stripDeviceKeysFromSchema } from '../../utils/deviceKeyCleanup';
 import { useSidebarStore } from '../sidebar';
 import { useHistoryStore } from '../history';
 import { useNavigationStore } from '../navigation';
@@ -175,6 +176,33 @@ export const schemaActions: IComponentsSchemaActions = {
         if (schema) {
             this.loadSchema(schema);
         }
+    },
+
+    /**
+     * Убирает из схемы и из истории всё, что относилось к исчезнувшим устройствам.
+     *
+     * Правка топологии набора отменяться не должна, но и историю целиком
+     * сбрасывать нельзя: подтверждение обещает удалить переопределения
+     * устройства и только их, а сброс заодно отнял бы возможность отменить
+     * прежние правки текста и структуры. Поэтому сохранённая ветка истории
+     * переписывается той же чисткой — undo продолжает работать, а удалённые
+     * значения не воскресают ни через undo, ни через redo, ни через повторное
+     * добавление устройства с тем же ключом.
+     *
+     * @param removedKeys - Ключи устройств, которых в наборе больше нет.
+     */
+    stripDeviceKeys(this: IComponentsStore, removedKeys: ReadonlySet<string>) {
+        if (removedKeys.size === 0) {
+            return;
+        }
+
+        const historyStore = useHistoryStore();
+
+        historyStore.rebase((schema) => stripDeviceKeysFromSchema(schema, removedKeys));
+
+        this.components = deserializeSchema(
+            stripDeviceKeysFromSchema(this.exportSchema(), removedKeys)
+        );
     },
 
     /**

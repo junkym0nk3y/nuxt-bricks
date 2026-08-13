@@ -1,6 +1,7 @@
 // #region Imports
 import type { InjectionKey, Ref } from 'vue';
 import type { TBricksDeviceKey } from '../types/brick';
+import type { TBricksResolvedDeviceSet } from '../types/devices';
 import type { IInlineEditorHost } from '../types/inlineEditing';
 // #endregion
 
@@ -11,6 +12,17 @@ import type { IInlineEditorHost } from '../types/inlineEditing';
  * На published-странице провайдера нет — потребители используют fallback.
  */
 export const CANVAS_VIEWPORT_KEY: InjectionKey<Ref<TBricksDeviceKey>> = Symbol('canvasViewport');
+
+/**
+ * Резолвнутый набор устройств текущей страницы (реактивный).
+ *
+ * Провайдится страницей билдера (из canvas-store) и страницей рендерера (из
+ * `viewportConfig` страницы). Нужен блокам, которым мало CSS-переменных, —
+ * Slider строит по набору JS-брейкпоинты Swiper. Без провайдера потребители
+ * берут набор проекта.
+ */
+export const BRICKS_DEVICES_KEY: InjectionKey<Ref<TBricksResolvedDeviceSet>> =
+    Symbol('bricksDevices');
 
 /**
  * Активна ли drag-сессия на canvas. Layout-блоки используют сигнал, чтобы скрыть

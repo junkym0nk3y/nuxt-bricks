@@ -3,6 +3,7 @@
 // Types
 import type { IBricksSchema } from '../../../common/types/brick';
 import type { IParsedSchemaFile } from '../types/composables';
+import type { TBricksPageDeviceSet } from '../../../common/types/devices';
 import type {
     IPublishCreatePageModalProps,
     IPublishCreatePageModalEmits,
@@ -15,6 +16,8 @@ import { useI18n } from 'vue-i18n';
 
 // Utils
 import { parseKeywords, serializeKeywords } from '../utils/keywords';
+import { resolveDeviceIcon } from '../../../common/utils/bricks/devices';
+import { applyDeviceSetToSchema, collectOrphanDeviceKeys } from '../utils/deviceImpact';
 
 // Constants
 import { KEYWORDS_MAX_LENGTH } from '../../../common/constants/publish';
@@ -22,6 +25,7 @@ import { KEYWORDS_MAX_LENGTH } from '../../../common/constants/publish';
 // Composables
 import { usePublishCreatePageForm } from '../composables/usePublishCreatePageForm';
 import { useSchemaFileTransfer } from '../composables/useSchemaFileTransfer';
+import { useBricksDevices } from '../../../common/composables/useBricksDevices';
 
 // Components
 import BricksInput from '../../../ui/inputs/BricksInput.vue';
@@ -31,6 +35,7 @@ import BricksButton from '../../../ui/base/button/BricksButton.vue';
 import BricksCloseButton from '../../../ui/base/modal/BricksCloseButton.vue';
 import BricksModal from '../../../ui/base/modal/BricksModal.vue';
 import BuilderPublishCreatePageStartOptions from './BuilderPublishCreatePageStartOptions.vue';
+import BuilderPublishDevicesModal from './BuilderPublishDevicesModal.vue';
 // #endregion
 
 // #region Props
@@ -50,6 +55,16 @@ const source = ref<TPublishCreatePageSource>('blank');
 const selectedFile = ref<IParsedSchemaFile | null>(null);
 const fileError = ref('');
 
+/**
+ * Набор устройств создаваемой страницы: `null` — наследует набор проекта.
+ * Правится группой «Устройства» в секции «Дополнительно» и приезжает из
+ * конверта при создании из JSON-файла.
+ */
+const viewportConfig = ref<TBricksPageDeviceSet | null>(null);
+
+const isDevicesModalOpen = ref(false);
+const { projectDevices } = useBricksDevices();
+
 const {
     title,
     pagename,
@@ -67,6 +82,7 @@ const {
 } = usePublishCreatePageForm({
     onCreated: (createdAddress) => emit('created', createdAddress),
     resolveSchema: resolveCreateSchema,
+    resolveViewportConfig: () => viewportConfig.value,
 });
 
 const isAdvancedOpen = ref(false);
@@ -99,7 +115,73 @@ const urlHint = computed<string>(() => {
 const keywordTags = computed<string[]>(() => parseKeywords(String(keywords.value ?? '')));
 // #endregion
 
+// #region Computed
+/** Набор, который показывает строка: свой у страницы либо проектный. */
+const shownDevices = computed(() => viewportConfig.value ?? projectDevices);
+
+const devicesSummary = computed<string>(() => {
+    const count = shownDevices.value.length;
+
+    return viewportConfig.value
+        ? t('bricks.devices.settingsCustom', { count })
+        : t('bricks.devices.settingsInherited', { count });
+});
+
+/**
+ * Компоненты схемы выбранного файла: по ним редактор набора считает, сколько
+ * переопределений унесёт удаление устройства. Пустая страница компонентов не
+ * имеет, и счётчик там честно нулевой.
+ */
+const importedComponents = computed<IBricksSchema['components']>(
+    () => selectedFile.value?.schema.components ?? []
+);
+
+/**
+ * Ключи устройств из импортируемой схемы, которых в наборе страницы нет.
+ *
+ * Считаются против набора, который реально будет действовать: файл может о
+ * наборе молчать, и тогда ступени задаёт проект. Такие переопределения не
+ * удаляются, но и не применяются — без предупреждения расхождение раскладки
+ * выглядит как баг рендера.
+ */
+const orphanDeviceKeys = computed<string[]>(() =>
+    collectOrphanDeviceKeys(
+        importedComponents.value,
+        shownDevices.value.map((device) => device.key)
+    )
+);
+// #endregion
+
 // #region Methods
+/**
+ * Применяет набор устройств к создаваемой странице.
+ *
+ * Исчезнувшие ключи вычищаются из схемы выбранного файла: подтверждение удаления
+ * обещает удалить переопределения устройства, а страница создаётся из этой самой
+ * схемы — оставив их, мы записали бы ровно то, что обещали удалить. Файл
+ * заменяется целиком, а не правится на месте: у него рядом лежат число блоков и
+ * список сирот, и правка схемы в обход них дала бы рассогласованный объект.
+ *
+ * @param config - Набор страницы либо `null` (наследование набора проекта).
+ */
+function handleDevicesSave(config: TBricksPageDeviceSet | null): void {
+    const file = selectedFile.value;
+
+    if (file) {
+        const schema = applyDeviceSetToSchema(
+            file.schema,
+            shownDevices.value.map((device) => device.key),
+            (config ?? projectDevices).map((device) => device.key)
+        );
+
+        if (schema !== file.schema) {
+            selectedFile.value = { ...file, schema };
+        }
+    }
+
+    viewportConfig.value = config;
+}
+
 /**
  * Закрывает модалку (форма сбрасывается при следующем открытии).
  */
@@ -190,6 +272,14 @@ async function handleFileSelect(): Promise<void> {
     fileError.value = '';
     selectedFile.value = result.file;
     source.value = 'file';
+
+    // Конверт несёт набор устройств — берём его: ключи `props.responsive` в
+    // импортируемой схеме относятся именно к нему. Файл, который про набор
+    // ничего не говорит (legacy-схема или конверт без поля), оставляет
+    // создаваемую страницу наследующей
+    if (result.file.viewportConfig !== undefined) {
+        viewportConfig.value = result.file.viewportConfig;
+    }
 }
 // #endregion
 
@@ -203,6 +293,8 @@ watch(
         formGeneration += 1;
         resetToEmpty();
         isAdvancedOpen.value = false;
+        // Набор прошлой создаваемой страницы не должен доехать до следующей
+        viewportConfig.value = null;
         handleSelectBlank();
         await nextTick();
         titleFieldRef.value?.querySelector('input')?.focus();
@@ -356,6 +448,41 @@ onMounted(() => {
                                 @update:model-value="handleKeywordsChange"
                             />
                         </div>
+                        <div :class="$style.field">
+                            <span :class="$style.fieldLabel">
+                                {{ t('bricks.devices.settingsGroup') }}
+                            </span>
+                            <div :class="$style.devices">
+                                <div :class="$style.deviceIcons">
+                                    <BricksIcon
+                                        v-for="device in shownDevices"
+                                        :key="device.key"
+                                        :icon="resolveDeviceIcon(device.icon)"
+                                        :title="device.label"
+                                    />
+                                    <span :class="$style.devicesSummary">{{ devicesSummary }}</span>
+                                </div>
+                                <BricksButton
+                                    variant="ghost"
+                                    size="sm"
+                                    :disabled="isSubmitting"
+                                    @click="isDevicesModalOpen = true"
+                                >
+                                    {{ t('bricks.devices.settingsAction') }}
+                                </BricksButton>
+                            </div>
+                            <!--
+                                Предупреждение до сабмита, а не тост после: пока
+                                страница не создана, набор ещё можно поправить
+                            -->
+                            <span v-if="orphanDeviceKeys.length > 0" :class="$style.devicesOrphans">
+                                {{
+                                    t('bricks.devices.orphanKeys', {
+                                        keys: orphanDeviceKeys.join(', '),
+                                    })
+                                }}
+                            </span>
+                        </div>
                     </div>
                 </div>
 
@@ -382,6 +509,17 @@ onMounted(() => {
             </div>
         </div>
     </BricksModal>
+
+    <BuilderPublishDevicesModal
+        :is-open="isDevicesModalOpen"
+        :viewport-config="viewportConfig"
+        :project-devices="projectDevices"
+        :active-device-key="''"
+        :schema-components="importedComponents"
+        layer="nested"
+        @close="isDevicesModalOpen = false"
+        @save="handleDevicesSave"
+    />
 </template>
 
 <style module lang="scss">
@@ -493,6 +631,39 @@ onMounted(() => {
 
 .advancedCaretOpen {
     transform: rotate(90deg);
+}
+
+.devices {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    padding: 0.8rem 1.2rem;
+    border-radius: var(--bricks-border-radius-sm);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-surface-raised);
+}
+
+.deviceIcons {
+    display: flex;
+    align-items: center;
+
+    // Глифы 1.8rem по макету: без явного размера они наследуют кегль текста
+    font-size: 1.8rem;
+    color: var(--bricks-base-600);
+    gap: 0.8rem;
+}
+
+.devicesSummary {
+    margin-left: 0.4rem;
+    font-size: 1.2rem;
+    color: var(--bricks-base-500);
+}
+
+.devicesOrphans {
+    margin-top: 0.4rem;
+    font-size: 1.1rem;
+    color: var(--bricks-yellow);
 }
 
 .advancedFields {

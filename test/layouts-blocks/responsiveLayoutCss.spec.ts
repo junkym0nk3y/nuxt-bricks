@@ -2,14 +2,34 @@
 // Vitest
 import { describe, expect, it } from 'vitest';
 
+// Types
+import type { TBricksResolvedDeviceSet } from '../../src/runtime/modules/common/types/devices';
+
+// Constants
+import { DEFAULT_BRICKS_DEVICES } from '../../src/runtime/modules/common/constants/devices';
+
 // Utils
+import { resolveDeviceSet } from '../../src/runtime/modules/common/utils/bricks/devices';
 import { buildResponsiveLayoutCss } from '../../src/runtime/modules/layouts-blocks/utils/responsiveCss';
 
 // Registry
 import { BLOCK_REGISTRY } from '../../src/runtime/modules/layouts-blocks/registry';
 // #endregion
 
-const CSS = buildResponsiveLayoutCss({ tabletMin: 768, desktopMin: 1600 });
+const TRIO: TBricksResolvedDeviceSet = resolveDeviceSet(null, DEFAULT_BRICKS_DEVICES).devices;
+
+/** Набор с четвёртой ступенью: ноутбук закрывает диапазон 1280–1599. */
+const QUARTET: TBricksResolvedDeviceSet = resolveDeviceSet(
+    [
+        { key: 'mobile', label: 'Мобильный', icon: 'device-mobile', width: 375, aside: 0.4 },
+        { key: 'tablet', label: 'Планшет', icon: 'device-tablet', width: 768, aside: 0.8 },
+        { key: 'laptop', label: 'Ноутбук', icon: 'device-laptop', width: 1280, aside: 1.2 },
+        { key: 'desktop', label: 'Десктоп', icon: 'device-desktop', width: 1600, aside: 2 },
+    ],
+    DEFAULT_BRICKS_DEVICES
+).devices;
+
+const CSS = buildResponsiveLayoutCss(TRIO);
 
 /**
  * Извлекает декларации правила по селектору (первое вхождение вне media query).
@@ -25,13 +45,15 @@ function ruleBody(css: string, selector: string): string | null {
 }
 
 describe('buildResponsiveLayoutCss', () => {
-    it('генерирует desktop-дефолты для всех блоков с responsiveCssVars', () => {
+    it('дефолты читают базовое значение напрямую: база лежит в обычных пропах блока', () => {
         const expected: Record<string, string[]> = {
             grid: ['columns', 'rows', 'auto-rows', 'gap', 'auto-flow', 'lead-left', 'lead-right'],
             flex: ['direction', 'justify', 'wrap', 'gap'],
             section: ['pt', 'pb', 'px', 'radius', 'min-h'],
             space: ['size', 'divider-mx'],
             media: ['width', 'height', 'radius'],
+            text: ['font-size'],
+            slider: ['spv'],
         };
 
         for (const [prefix, vars] of Object.entries(expected)) {
@@ -39,7 +61,7 @@ describe('buildResponsiveLayoutCss', () => {
             expect(body, `defaults for ${prefix}`).toBeTruthy();
             for (const name of vars) {
                 expect(body).toContain(
-                    `--bricks-${prefix}-${name}: var(--bricks-${prefix}-${name}-desktop);`
+                    `--bricks-${prefix}-${name}: var(--bricks-${prefix}-${name}-base);`
                 );
             }
         }
@@ -48,29 +70,71 @@ describe('buildResponsiveLayoutCss', () => {
     it('Svg шарит media-переменные под собственным селектором', () => {
         const body = ruleBody(CSS, '[data-bricks-layout="svg"]');
         expect(body).toBeTruthy();
-        expect(body).toContain('--bricks-media-width: var(--bricks-media-width-desktop);');
-        expect(body).toContain('--bricks-media-radius: var(--bricks-media-radius-desktop);');
+        expect(body).toContain('--bricks-media-width: var(--bricks-media-width-base);');
+        expect(body).toContain('--bricks-media-radius: var(--bricks-media-radius-base);');
     });
 
-    it('генерирует builder-правила для всех трёх viewport', () => {
-        for (const device of ['mobile', 'tablet', 'desktop']) {
+    it('правило устройства гасит свою переменную на элементе перед чтением', () => {
+        // Custom properties наследуются: без сброса вложенный блок без своего
+        // переопределения взял бы значение родителя того же типа, а fallback на
+        // `-base` не сработал бы вовсе
+        const body = ruleBody(
+            CSS,
+            '.bricks-canvas[data-bricks-viewport="mobile"] [data-bricks-layout="grid"]'
+        );
+        expect(body).toContain('--bricks-grid-columns-mobile: initial;');
+        expect(body).toContain(
+            '--bricks-grid-columns: var(--bricks-grid-columns-mobile, var(--bricks-grid-columns-base));'
+        );
+    });
+
+    it('базовое устройство сброса не получает: у него своей переменной нет', () => {
+        const body = ruleBody(
+            CSS,
+            '.bricks-canvas[data-bricks-viewport="desktop"] [data-bricks-layout="grid"]'
+        );
+        expect(body).toContain('--bricks-grid-columns: var(--bricks-grid-columns-base);');
+        expect(body).not.toContain('--bricks-grid-columns-desktop');
+    });
+
+    it('генерирует builder-правила для каждого устройства набора', () => {
+        for (const device of TRIO) {
             const body = ruleBody(
                 CSS,
-                `.bricks-canvas[data-bricks-viewport="${device}"] [data-bricks-layout="flex"]`
+                `.bricks-canvas[data-bricks-viewport="${device.key}"] [data-bricks-layout="flex"]`
             );
-            expect(body, `builder flex ${device}`).toBeTruthy();
-            expect(body).toContain(`--bricks-flex-gap: var(--bricks-flex-gap-${device});`);
+            expect(body, `builder flex ${device.key}`).toBeTruthy();
         }
     });
 
-    it('генерирует published media queries с корректными границами', () => {
+    it('published media queries покрывают 0..∞ без дыр', () => {
         expect(CSS).toContain('@media (max-width: 767px)');
         expect(CSS).toContain('@media (min-width: 768px) and (max-width: 1599px)');
         expect(CSS).toContain('@media (min-width: 1600px)');
     });
 
+    it('четвёртое устройство разрезает планшетный диапазон, а не добавляется поверх', () => {
+        const css = buildResponsiveLayoutCss(QUARTET);
+
+        expect(css).toContain('@media (max-width: 767px)');
+        expect(css).toContain('@media (min-width: 768px) and (max-width: 1279px)');
+        expect(css).toContain('@media (min-width: 1280px) and (max-width: 1599px)');
+        expect(css).toContain('@media (min-width: 1600px)');
+        // Прежний планшетный диапазон до 1599 исчез: его хвост забрал ноутбук
+        expect(css).not.toContain('@media (min-width: 768px) and (max-width: 1599px)');
+    });
+
+    it('произвольный ключ устройства попадает и в канвас, и в media query', () => {
+        const css = buildResponsiveLayoutCss(QUARTET);
+
+        expect(css).toContain('.bricks-canvas[data-bricks-viewport="laptop"]');
+        expect(css).toContain(
+            '--bricks-grid-columns: var(--bricks-grid-columns-laptop, var(--bricks-grid-columns-base));'
+        );
+    });
+
     it('не генерирует правил для блоков без responsiveCssVars', () => {
-        for (const name of ['slider', 'title', 'text', 'accordion']) {
+        for (const name of ['title', 'accordion']) {
             expect(CSS).not.toContain(`[data-bricks-layout="${name}"]`);
         }
     });
@@ -82,8 +146,10 @@ describe('buildResponsiveLayoutCss', () => {
             'Grid',
             'Media',
             'Section',
+            'Slider',
             'Space',
             'Svg',
+            'Text',
         ]);
         for (const def of withVars) {
             expect(CSS).toContain(`[data-bricks-layout="${def.name.toLowerCase()}"]`);

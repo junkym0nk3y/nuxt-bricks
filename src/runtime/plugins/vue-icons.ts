@@ -2,7 +2,7 @@
 import { h, defineComponent, type Component, type PropType } from 'vue';
 import { defineNuxtPlugin } from '#imports';
 import { registerSystemIcons, resolveSystemIcon } from './icons/systemIconsRegistry';
-import { runOnBuilderRoute } from './utils/builderRouteScope';
+import { runOnBricksSurface, runOnBuilderRoute } from './utils/builderRouteScope';
 
 export default defineNuxtPlugin(async (nuxtApp) => {
     // Регистрируем глобальный компонент BricksIcon (ядро иконок — published/preview);
@@ -37,6 +37,13 @@ export default defineNuxtPlugin(async (nuxtApp) => {
             },
         })
     );
+
+    // Глифы устройств нужны и билдеру (выбор иконки, табы, флайаут), и превью
+    // (баннер текущего устройства) — поэтому отдельным чанком на обе поверхности
+    await runOnBricksSurface(async () => {
+        const { DEVICE_ICONS } = await import('./icons/deviceIcons');
+        registerSystemIcons(DEVICE_ICONS);
+    });
 
     await runOnBuilderRoute(async () => {
         const { BUILDER_ICONS } = await import('./icons/builderIcons');

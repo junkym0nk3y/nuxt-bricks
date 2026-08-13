@@ -95,6 +95,7 @@ function makePage(components: unknown[]): IPublishedPage {
         urlPrefix: null,
         subdomain: null,
         thumbnailUrl: null,
+        viewportConfig: null,
         schema: { components: components as IBricksComponent[] },
         published: true,
         createdAt: '2026-01-01T00:00:00.000Z',

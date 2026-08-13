@@ -132,13 +132,6 @@ export interface ICanvasBottomBarEmits {
     toggleFigmaMode: [];
 }
 
-export interface IViewportOption {
-    value: TBricksDeviceKey;
-    label: string;
-    icon: string;
-    width: number;
-}
-
 export interface IInlineEditingHeaderProps {
     propLabel: string;
     editablePropsCount: number;

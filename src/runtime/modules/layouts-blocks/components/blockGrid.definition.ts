@@ -7,11 +7,7 @@ import { h, type VNode } from 'vue';
 
 // Utils
 import { convertPxToRem } from '../../common/utils/main';
-import {
-    getResponsiveOverrides,
-    gridPlacementStyle,
-    resolveResponsiveValue,
-} from '../utils/responsiveVars';
+import { gridPlacementStyle, makeResponsiveVarGroup } from '../utils/responsiveVars';
 
 /**
  * Нормализует вариант Grid.
@@ -92,152 +88,60 @@ function buildGridTemplateRows(
 }
 
 /**
- * Published-рендер Grid: `h('div')` с per-device CSS-переменными
- * (канвасный BlockGrid несёт editor chrome и на published не используется).
+ * Считает связанную группу CSS-переменных Grid по разрешённым пропсам.
+ *
+ * Группа считается целиком, а не по одной переменной: `variant` и `columns`
+ * вместе задают разброс акцентной ячейки и `auto-flow`, а `rows`/`rowHeight`/
+ * `minRowHeight` — шаблон строк. Переопределение одного члена группы без
+ * пересчёта остальных дало бы сетку с новым числом колонок и старым lead-span.
+ *
+ * @param resolved - Пропсы блока, слитые с overrides устройства.
+ * @returns Значения переменных группы без префикса и суффикса устройства.
+ */
+function computeGridVars(resolved: Record<string, unknown>): Record<string, string> {
+    const columns = Math.max(1, Number(resolved.columns) || 1);
+    const rows = Math.max(1, Number(resolved.rows) || 1);
+    const gap = Math.max(0, Number(resolved.gap) || 0);
+    const rowHeight = normalizeGridRowHeight(resolved.rowHeight);
+    const minRowHeight = Math.max(0, Number(resolved.minRowHeight) || 0);
+    const variant = normalizeGridVariant(resolved.variant);
+    const accentSpan = Math.max(1, Math.round(columns / 2));
+
+    return {
+        columns: String(columns),
+        rows: buildGridTemplateRows(rows, rowHeight, minRowHeight),
+        'auto-rows': minRowHeight > 0 ? `minmax(${minRowHeight}rem, auto)` : 'auto',
+        gap: convertPxToRem(gap),
+        'auto-flow': variant === 'default' ? 'row' : 'row dense',
+        'lead-left': buildGridLeadColumn(variant, 'left', accentSpan),
+        'lead-right': buildGridLeadColumn(variant, 'right', accentSpan),
+    };
+}
+
+/**
+ * Published-рендер Grid.
  *
  * @param ctx - Контекст рендера published-страницы.
- * @returns VNode grid-компонента.
+ * @returns VNode Grid.
  */
-// eslint-disable-next-line complexity
 function renderGridPublished(ctx: IBlockRenderContext): VNode {
     const { component, extraClasses, extraAttrs, styles, renderChild, getChildComponents } = ctx;
     const currentProps = component.props as Record<string, unknown>;
-    const baseColumns = Math.max(1, Number(currentProps.columns) || 1);
-    const baseRows = Math.max(1, Number(currentProps.rows) || 1);
-    const baseGapValue = Math.max(0, Number(currentProps.gap) || 0);
-    const baseRowHeight = normalizeGridRowHeight(currentProps.rowHeight);
-    const baseMinRowHeight = Math.max(0, Number(currentProps.minRowHeight) || 0);
-
-    const mobileOverrides = getResponsiveOverrides(currentProps, 'mobile');
-    const tabletOverrides = getResponsiveOverrides(currentProps, 'tablet');
-
-    const columnsMobile = Math.max(
-        1,
-        Number(resolveResponsiveValue(baseColumns, mobileOverrides, 'columns')) || baseColumns
-    );
-    const columnsTablet = Math.max(
-        1,
-        Number(resolveResponsiveValue(baseColumns, tabletOverrides, 'columns')) || baseColumns
-    );
-    const columnsDesktop = baseColumns;
-
-    const rowsMobile = Math.max(
-        1,
-        Number(resolveResponsiveValue(baseRows, mobileOverrides, 'rows')) || baseRows
-    );
-    const rowsTablet = Math.max(
-        1,
-        Number(resolveResponsiveValue(baseRows, tabletOverrides, 'rows')) || baseRows
-    );
-    const rowsDesktop = baseRows;
-
-    const gapMobile = Math.max(
-        0,
-        Number(resolveResponsiveValue(baseGapValue, mobileOverrides, 'gap')) || baseGapValue
-    );
-    const gapTablet = Math.max(
-        0,
-        Number(resolveResponsiveValue(baseGapValue, tabletOverrides, 'gap')) || baseGapValue
-    );
-    const gapDesktop = baseGapValue;
-
-    const rowHeightMobile = normalizeGridRowHeight(
-        resolveResponsiveValue(baseRowHeight, mobileOverrides, 'rowHeight')
-    );
-    const rowHeightTablet = normalizeGridRowHeight(
-        resolveResponsiveValue(baseRowHeight, tabletOverrides, 'rowHeight')
-    );
-    const rowHeightDesktop = baseRowHeight;
-
-    const minRowHeightMobile = Math.max(
-        0,
-        Number(resolveResponsiveValue(baseMinRowHeight, mobileOverrides, 'minRowHeight')) ||
-            baseMinRowHeight
-    );
-    const minRowHeightTablet = Math.max(
-        0,
-        Number(resolveResponsiveValue(baseMinRowHeight, tabletOverrides, 'minRowHeight')) ||
-            baseMinRowHeight
-    );
-    const minRowHeightDesktop = baseMinRowHeight;
-
-    const baseVariant = normalizeGridVariant(currentProps.variant);
-    const variantMobile = normalizeGridVariant(
-        resolveResponsiveValue(baseVariant, mobileOverrides, 'variant')
-    );
-    const variantTablet = normalizeGridVariant(
-        resolveResponsiveValue(baseVariant, tabletOverrides, 'variant')
-    );
-    const variantDesktop = baseVariant;
-
-    const accentSpanMobile = Math.max(1, Math.round(columnsMobile / 2));
-    const accentSpanTablet = Math.max(1, Math.round(columnsTablet / 2));
-    const accentSpanDesktop = Math.max(1, Math.round(columnsDesktop / 2));
-
-    const leadLeftMobile = buildGridLeadColumn(variantMobile, 'left', accentSpanMobile);
-    const leadRightMobile = buildGridLeadColumn(variantMobile, 'right', accentSpanMobile);
-
-    const leadLeftTablet = buildGridLeadColumn(variantTablet, 'left', accentSpanTablet);
-    const leadRightTablet = buildGridLeadColumn(variantTablet, 'right', accentSpanTablet);
-
-    const leadLeftDesktop = buildGridLeadColumn(variantDesktop, 'left', accentSpanDesktop);
-    const leadRightDesktop = buildGridLeadColumn(variantDesktop, 'right', accentSpanDesktop);
-
-    const autoFlowMobile = variantMobile === 'default' ? 'row' : 'row dense';
-    const autoFlowTablet = variantTablet === 'default' ? 'row' : 'row dense';
-    const autoFlowDesktop = variantDesktop === 'default' ? 'row' : 'row dense';
-
-    // Строим gridTemplateRows для каждого viewport
-    const gridRowsMobile = buildGridTemplateRows(rowsMobile, rowHeightMobile, minRowHeightMobile);
-    const gridRowsTablet = buildGridTemplateRows(rowsTablet, rowHeightTablet, minRowHeightTablet);
-    const gridRowsDesktop = buildGridTemplateRows(
-        rowsDesktop,
-        rowHeightDesktop,
-        minRowHeightDesktop
-    );
-
-    // gridAutoRows для новых строк
-    const autoRowsMobile =
-        minRowHeightMobile > 0 ? `minmax(${minRowHeightMobile}rem, auto)` : 'auto';
-    const autoRowsTablet =
-        minRowHeightTablet > 0 ? `minmax(${minRowHeightTablet}rem, auto)` : 'auto';
-    const autoRowsDesktop =
-        minRowHeightDesktop > 0 ? `minmax(${minRowHeightDesktop}rem, auto)` : 'auto';
 
     const style: Record<string, string> = {
         display: 'grid',
         gridTemplateColumns:
-            'repeat(var(--bricks-grid-columns, var(--bricks-grid-columns-desktop, 1)), 1fr)',
-        gridTemplateRows: 'var(--bricks-grid-rows, var(--bricks-grid-rows-desktop, auto))',
-        gridAutoRows: 'var(--bricks-grid-auto-rows, var(--bricks-grid-auto-rows-desktop, auto))',
-        gap: 'var(--bricks-grid-gap, var(--bricks-grid-gap-desktop, 0rem))',
+            'repeat(var(--bricks-grid-columns, var(--bricks-grid-columns-base, 1)), 1fr)',
+        gridTemplateRows: 'var(--bricks-grid-rows, var(--bricks-grid-rows-base, auto))',
+        gridAutoRows: 'var(--bricks-grid-auto-rows, var(--bricks-grid-auto-rows-base, auto))',
+        gap: 'var(--bricks-grid-gap, var(--bricks-grid-gap-base, 0rem))',
         minHeight: '10rem',
         backgroundColor: 'transparent',
         border: 'none',
         borderRadius: '0',
-        gridAutoFlow: 'var(--bricks-grid-auto-flow, var(--bricks-grid-auto-flow-desktop, row))',
+        gridAutoFlow: 'var(--bricks-grid-auto-flow, var(--bricks-grid-auto-flow-base, row))',
         alignItems: 'stretch',
-        '--bricks-grid-columns-mobile': String(columnsMobile),
-        '--bricks-grid-columns-tablet': String(columnsTablet),
-        '--bricks-grid-columns-desktop': String(columnsDesktop),
-        '--bricks-grid-rows-mobile': gridRowsMobile,
-        '--bricks-grid-rows-tablet': gridRowsTablet,
-        '--bricks-grid-rows-desktop': gridRowsDesktop,
-        '--bricks-grid-auto-rows-mobile': autoRowsMobile,
-        '--bricks-grid-auto-rows-tablet': autoRowsTablet,
-        '--bricks-grid-auto-rows-desktop': autoRowsDesktop,
-        '--bricks-grid-gap-mobile': convertPxToRem(gapMobile),
-        '--bricks-grid-gap-tablet': convertPxToRem(gapTablet),
-        '--bricks-grid-gap-desktop': convertPxToRem(gapDesktop),
-        '--bricks-grid-auto-flow-mobile': autoFlowMobile,
-        '--bricks-grid-auto-flow-tablet': autoFlowTablet,
-        '--bricks-grid-auto-flow-desktop': autoFlowDesktop,
-        '--bricks-grid-lead-left-mobile': leadLeftMobile,
-        '--bricks-grid-lead-right-mobile': leadRightMobile,
-        '--bricks-grid-lead-left-tablet': leadLeftTablet,
-        '--bricks-grid-lead-right-tablet': leadRightTablet,
-        '--bricks-grid-lead-left-desktop': leadLeftDesktop,
-        '--bricks-grid-lead-right-desktop': leadRightDesktop,
+        ...makeResponsiveVarGroup('--bricks-grid', currentProps, computeGridVars),
     };
 
     const basePaddingX = Math.round(Math.max(0, Number(currentProps.paddingX) || 0) * 10) / 10;

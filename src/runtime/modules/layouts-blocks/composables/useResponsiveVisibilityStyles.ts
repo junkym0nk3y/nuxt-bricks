@@ -1,59 +1,37 @@
 // #region Imports
+// Types
+import type { TBricksResolvedDeviceSet } from '../../common/types/devices';
+
 // Nuxt
 import { useHead } from 'nuxt/app';
 
-// Composables
-import { useBricksConfig } from '../../common/composables/useBricksConfig';
+// Utils
+import { buildDeviceVisibilityCss } from '../utils/deviceVisibilityCss';
 // #endregion
+
+/** Ключ тега: по нему набор страницы вытесняет проектный. */
+const BRICKS_VISIBILITY_STYLE_KEY = 'bricks-responsive-visibility';
 
 /**
  * Инжектит глобальные CSS-правила для скрытия элементов по устройствам.
  *
- * Две ветки:
- * - Builder preview: ориентируемся на `data-bricks-viewport` у `.bricks-canvas`.
- * - Published page: ориентируемся на реальные брейкпоинты из `app.config.ts` через `@media`.
+ * Две ветки: канвас ориентируется на `data-bricks-viewport`, published — на
+ * диапазоны набора. Реализация SSR-safe: правила задаются через CSS, без JS
+ * device detection.
  *
- * Реализация SSR-safe: правила задаются через CSS (`display: none`), без JS device detection.
+ * Геттер, а не значение: набор страницы меняется без перемонтирования
+ * (см. `useBricksStyles`).
+ *
+ * @param getDevices - Геттер резолвнутого набора устройств.
  */
-export function useResponsiveVisibilityStyles(): void {
-    const config = useBricksConfig();
-    const breakpoints = config.breakpoints;
-
-    const tabletMin = Number(breakpoints.tablet ?? 768);
-    const desktopMin = Number(breakpoints.desktop ?? 1600);
-
-    const mobileMax = Math.max(0, tabletMin - 1);
-    const tabletMax = Math.max(tabletMin, desktopMin - 1);
-
-    const styleContent = `
-        /* ===== Device visibility: Builder (canvas viewport) ===== */
-        .bricks-canvas[data-bricks-viewport="mobile"] .bricks-hide--mobile,
-        .bricks-canvas[data-bricks-viewport="tablet"] .bricks-hide--tablet,
-        .bricks-canvas[data-bricks-viewport="desktop"] .bricks-hide--desktop {
-            display: none !important;
-        }
-
-        /* ===== Device visibility: Published (real viewport) ===== */
-        /* На опубликованной странице полностью скрываем компоненты по media queries. */
-        @media (max-width: ${mobileMax}px) {
-            .bricks-hide--mobile:not(.bricks-canvas *) { display: none !important; }
-        }
-
-        @media (min-width: ${tabletMin}px) and (max-width: ${tabletMax}px) {
-            .bricks-hide--tablet:not(.bricks-canvas *) { display: none !important; }
-        }
-
-        @media (min-width: ${desktopMin}px) {
-            .bricks-hide--desktop:not(.bricks-canvas *) { display: none !important; }
-        }
-    `;
-
-    useHead({
+export function useResponsiveVisibilityStyles(getDevices: () => TBricksResolvedDeviceSet): void {
+    useHead(() => ({
         style: [
             {
-                key: 'bricks-responsive-visibility',
-                innerHTML: styleContent,
+                key: BRICKS_VISIBILITY_STYLE_KEY,
+                tagDuplicateStrategy: 'replace',
+                innerHTML: buildDeviceVisibilityCss(getDevices()),
             },
         ],
-    });
+    }));
 }

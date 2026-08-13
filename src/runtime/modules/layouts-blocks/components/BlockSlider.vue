@@ -17,10 +17,13 @@ import {
 } from 'vue';
 
 // Constants
-import { CANVAS_VIEWPORT_KEY } from '../../common/constants/injectionKeys';
+import { BRICKS_DEVICES_KEY, CANVAS_VIEWPORT_KEY } from '../../common/constants/injectionKeys';
 
 // Utils
 import { parseSliderCaptions } from '../utils/sliderCaptions';
+import { normalizeSlidesPerView } from '../utils/slider';
+import { deviceRanges } from '../../common/utils/bricks/devices';
+import { DEFAULT_BRICKS_DEVICES } from '../../common/constants/devices';
 
 // Composables
 import { useLayoutDropZone } from '../composables/useLayoutDropZone';
@@ -71,6 +74,12 @@ const props = withDefaults(defineProps<IBlockSliderProps>(), {
 // #region Data
 const sliderRef = ref<HTMLElement | null>(null);
 const injectedViewport = inject(CANVAS_VIEWPORT_KEY, null);
+
+// Набор страницы для JS-брейкпоинтов Swiper. Провайдера может не быть (блок
+// отрисован вне билдера и рендерера) — тогда берём константу проекта, а не
+// runtimeConfig: лист-блоку незачем знать про конфигурацию приложения
+const injectedDevices = inject(BRICKS_DEVICES_KEY, null);
+const devices = computed(() => injectedDevices?.value ?? DEFAULT_BRICKS_DEVICES);
 const activeSlideIndex = ref(0);
 const styles = useCssModule();
 
@@ -113,53 +122,52 @@ const sliderLoop = computed<boolean>(() => {
 const spaceBetween = computed<number>(() => Number(props.layoutProps.spaceBetween) || 16);
 
 /**
- * slidesPerView для текущего viewport канваса (из injected CANVAS_VIEWPORT_KEY).
- * На published провайдера нет — fallback 'desktop' (Swiper работает через breakpoints).
+ * slidesPerView для текущего листа канваса.
+ *
+ * На канвасе значение уже разрешено под активное устройство (`resolveBlockProps`
+ * мержит `props.responsive[viewport]`), поэтому берётся напрямую из пропа.
  */
-const currentSlidesPerView = computed<number>(() => {
-    const viewport = injectedViewport?.value ?? 'desktop';
-
-    if (viewport === 'mobile') {
-        return normalizeSlidesPerView(props.layoutProps.slidesPerViewMobile);
-    }
-    if (viewport === 'tablet') {
-        return normalizeSlidesPerView(props.layoutProps.slidesPerViewTablet);
-    }
-    return normalizeSlidesPerView(props.layoutProps.slidesPerViewDesktop);
-});
+const currentSlidesPerView = computed<number>(() =>
+    normalizeSlidesPerView(props.layoutProps.slidesPerView)
+);
 
 /**
  * Breakpoints для Swiper (только published mode).
+ *
+ * Считаются по набору устройств страницы, а не по зашитым 768/1024: с
+ * собственным набором страницы прежние границы разошлись бы и с CSS-раскладкой,
+ * и с SSR-fallback'ом — на ширине 1400 Swiper показывал бы десктопное число
+ * слайдов, пока контейнер уже ноутбучный.
  */
-const sliderBreakpoints = computed(() => ({
-    0: {
-        slidesPerView: normalizeSlidesPerView(props.layoutProps.slidesPerViewMobile),
-    },
-    768: {
-        slidesPerView: normalizeSlidesPerView(props.layoutProps.slidesPerViewTablet),
-    },
-    1024: {
-        slidesPerView: normalizeSlidesPerView(props.layoutProps.slidesPerViewDesktop),
-    },
-}));
+const sliderBreakpoints = computed<Record<number, { slidesPerView: number }>>(() => {
+    const responsive = (props.layoutProps.responsive ?? {}) as Record<
+        string,
+        Record<string, unknown> | undefined
+    >;
+    const base = normalizeSlidesPerView(props.layoutProps.slidesPerView);
+
+    return Object.fromEntries(
+        deviceRanges(devices.value).map((range) => {
+            const override = responsive[range.key]?.slidesPerView;
+
+            return [
+                range.min,
+                { slidesPerView: override === undefined ? base : normalizeSlidesPerView(override) },
+            ];
+        })
+    );
+});
 
 /**
- * CSS-переменные статического SSR-fallback'а: те же slidesPerView per-breakpoint,
- * что и у Swiper (медиа-границы 768/1024 продублированы в стилях .ssrSlides).
- * Fallback рендерится на сервере — контент слайдов попадает в HTML (SEO),
- * после mount его заменяет интерактивный Swiper.
+ * CSS-переменные статического SSR-fallback'а.
+ *
+ * Число слайдов сюда больше не входит: активную переменную
+ * `--bricks-slider-spv` выбирает сгенерированное правило по набору страницы —
+ * то же, что раскладывает остальные блоки. Здесь остаётся только зазор, который
+ * от устройства не зависит.
  */
 const ssrFallbackStyle = computed<Record<string, string>>(() => ({
     '--bricks-slider-gap': `${spaceBetween.value}px`,
-    '--bricks-slider-spv-mobile': String(
-        normalizeSlidesPerView(props.layoutProps.slidesPerViewMobile)
-    ),
-    '--bricks-slider-spv-tablet': String(
-        normalizeSlidesPerView(props.layoutProps.slidesPerViewTablet)
-    ),
-    '--bricks-slider-spv-desktop': String(
-        normalizeSlidesPerView(props.layoutProps.slidesPerViewDesktop)
-    ),
 }));
 
 const sliderRootStyle = computed<Record<string, string>>(() => ({
@@ -182,13 +190,6 @@ const isCaptionClickable = computed<boolean>(
 // #endregion
 
 // #region Methods
-/**
- * Normalizes a slidesPerView prop value to a positive number (min 1).
- */
-function normalizeSlidesPerView(value: number | string | undefined): number {
-    return Math.max(1, Number(value) || 1);
-}
-
 /**
  * Handles Swiper slideChange event to sync active caption.
  */
@@ -266,11 +267,7 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
                 :key="`slider-${currentSlidesPerView}`"
                 :modules="sliderModules"
                 :space-between="spaceBetween"
-                :slides-per-view="
-                    isEditor
-                        ? currentSlidesPerView
-                        : Math.max(1, Number(props.layoutProps.slidesPerViewDesktop) || 1)
-                "
+                :slides-per-view="currentSlidesPerView"
                 :breakpoints="isEditor ? undefined : sliderBreakpoints"
                 :loop="sliderLoop"
                 :autoplay="autoplayOptions"
@@ -381,23 +378,14 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
     }
 }
 
-// Статическая SSR-раскладка слайдов до гидратации Swiper: ширины повторяют
-// slidesPerView per-breakpoint (границы 768/1024 — как в sliderBreakpoints)
+// Статическая SSR-раскладка слайдов до гидратации Swiper. Ширины считаются от
+// `--bricks-slider-spv`, которую выбирает сгенерированное правило по набору
+// устройств страницы — те же ступени, что у Swiper и у остальных блоков
 .ssrSlides {
-    --bricks-slider-spv: var(--bricks-slider-spv-mobile);
-
     overflow: hidden;
     display: flex;
     width: 100%;
     gap: var(--bricks-slider-gap);
-
-    @media (width >= 768px) {
-        --bricks-slider-spv: var(--bricks-slider-spv-tablet);
-    }
-
-    @media (width >= 1024px) {
-        --bricks-slider-spv: var(--bricks-slider-spv-desktop);
-    }
 }
 
 .ssrSlide {

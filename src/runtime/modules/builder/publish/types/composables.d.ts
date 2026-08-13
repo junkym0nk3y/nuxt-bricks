@@ -2,6 +2,7 @@
  * Типы композаблов домена publish.
  */
 
+import type { TBricksPageDeviceSet } from '../../../common/types/devices';
 import type { ComputedRef, Ref } from 'vue';
 import type {
     IPageVersion,
@@ -133,6 +134,50 @@ export interface IParsedSchemaFile {
     filename: string;
     /** Число корневых блоков схемы — то, что показывает строка выбранного файла. */
     blocksCount: number;
+    /**
+     * Откуда взялся файл: `envelope` несёт набор устройств, `legacy` — голая
+     * схема из файлов, записанных до появления набора.
+     *
+     * Различать обязательно: у legacy-файла набора нет, и подставлять ему
+     * какой-либо — значит менять раскладку целевой страницы без спроса.
+     */
+    kind: 'envelope' | 'legacy';
+    /**
+     * Набор устройств из файла. Три состояния, и третье обязательно:
+     *
+     * - набор — файл описывает свои ступени;
+     * - `null` — файл прямо говорит «страница наследует набор проекта»;
+     * - `undefined` — файл про набор не говорит **ничего**: legacy-схема или
+     *   конверт, в котором поля нет. Целевая страница сохраняет свой набор.
+     *
+     * Без третьего состояния конверт без поля читался бы как явный `null` и
+     * молча снимал бы собственный набор страницы, в которую импортируют.
+     */
+    viewportConfig?: TBricksPageDeviceSet | null;
+}
+
+/**
+ * Формат файла переноса страницы.
+ *
+ * Версия в файле, а не в имени: голая схема (файлы до появления набора
+ * устройств) продолжает приниматься, и отличить её от конверта нужно по
+ * содержимому.
+ */
+export interface IBricksPageTransferFile {
+    version: 1;
+    schema: IBricksSchema;
+    viewportConfig: TBricksPageDeviceSet | null;
+}
+
+/**
+ * Конверт после разбора чужого файла.
+ *
+ * Отличается от записываемого формата одним: поля `viewportConfig` в файле может
+ * не быть вовсе. Свои файлы пакет всегда пишет с ним, но разбирать приходится и
+ * то, что собрал кто-то другой.
+ */
+export interface IParsedEnvelope extends Omit<IBricksPageTransferFile, 'viewportConfig'> {
+    viewportConfig?: TBricksPageDeviceSet | null;
 }
 
 /**
@@ -169,7 +214,16 @@ export interface IUseSchemaFileTransferReturn {
      * файла не поднимет `change`.
      */
     readSelectedFile: (input: ISchemaFileInput | null) => Promise<TSchemaFileReadResult | null>;
-    downloadSchema: (schema: IBricksSchema, filename: string) => void;
+    /**
+     * Скачивает страницу конвертом: схема вместе с набором устройств. Без
+     * набора round-trip терял бы описание диапазонов, и импортированная
+     * страница показывала бы `props.responsive` ступеней, которых у неё нет.
+     */
+    downloadSchema: (
+        schema: IBricksSchema,
+        filename: string,
+        viewportConfig: TBricksPageDeviceSet | null
+    ) => void;
 }
 // #endregion
 

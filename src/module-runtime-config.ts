@@ -8,8 +8,40 @@ import type { IBricksRoutePrefixes } from './runtime/modules/common/utils/bricks
 import { resolveBricksBackendConfig } from './module-backend-config';
 import type { IBricksModuleOptions } from './types/module';
 import type { IBricksBackendResolution } from './types/moduleBackendConfig';
+import type { TBricksProjectDeviceSet } from './runtime/modules/common/types/devices';
+import { DEFAULT_BRICKS_DEVICES } from './runtime/modules/common/constants/devices';
+import { validateDeviceSet } from './runtime/modules/common/utils/bricks/devices';
 
 // #region Helpers
+/**
+ * Резолвит набор устройств проекта: опция модуля поверх константы.
+ *
+ * Невалидная опция валит сборку, а не заменяется дефолтом: набор задаёт и
+ * ширины канваса, и пороги media-query всех страниц сразу, поэтому тихая
+ * подмена означала бы, что проект собрался с раскладкой, которую никто не
+ * заказывал. Ошибку видно один раз на сборке, а не по расползшейся вёрстке.
+ *
+ * @param configured - Значение `bricks.devices` из nuxt.config.
+ * @returns Набор устройств проекта.
+ * @throws Error — опция задана и не проходит контракт набора.
+ */
+export function resolveBricksDevices(
+    configured: TBricksProjectDeviceSet | undefined
+): TBricksProjectDeviceSet {
+    if (!configured) {
+        return DEFAULT_BRICKS_DEVICES;
+    }
+
+    const validation = validateDeviceSet(configured, 'project');
+
+    if (!validation.ok) {
+        throw new Error(`[nuxt-bricks] Invalid bricks.devices: ${validation.errors.join('; ')}`);
+    }
+
+    // Валидатор возвращает поля страницы; project-only remBase он не знает и
+    // отбрасывать его нельзя — берём исходные записи, уже признанные валидными
+    return configured;
+}
 /**
  * Логирует разрешённый режим data backend при старте модуля — только сам mode,
  * без URL и секретов. При наличии ошибок mode не логируется: module.ts валит
@@ -217,6 +249,10 @@ export function applyBricksRuntimeConfig(
 
     // Единый источник префиксов для клиента и auth-матрицы (build-time)
     publicConfig.bricksRoutes = routePrefixes;
+
+    // Набор устройств проекта. Публичный и build-time: теми же числами кормится
+    // SCSS-карта миксинов, и env-override развёл бы рантайм с уже собранным CSS
+    publicConfig.bricksDevices = resolveBricksDevices(options.devices);
 
     // Зарегистрирован ли live-рендер published-страниц. Публичный, потому что от
     // него зависит проверка занятости адреса: с отключённым live-рендером у

@@ -32,6 +32,7 @@ function makeStoredPage(overrides: Partial<IBricksPageRow> = {}): IBricksPageRow
         urlPrefix: null,
         subdomain: null,
         thumbnailUrl: null,
+        viewportConfig: null,
         schema: { components: [] },
         published: true,
         revision: 7,

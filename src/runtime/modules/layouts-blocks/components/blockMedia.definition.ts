@@ -5,12 +5,7 @@ import type { IBlockDefinition, IBlockRenderContext } from '../types/registry';
 import { h, defineAsyncComponent, type VNode } from 'vue';
 
 // Utils
-import {
-    getResponsiveOverrides,
-    gridPlacementStyle,
-    makeResponsiveVars,
-    toRem,
-} from '../utils/responsiveVars';
+import { gridPlacementStyle, makeResponsiveVars, toRem } from '../utils/responsiveVars';
 
 // Components
 // Async-импорт (паттерн blockSlider): registry импортируется плагином bricks-styles
@@ -27,17 +22,14 @@ const BlockMedia = defineAsyncComponent(() => import('./BlockMedia.vue'));
 function renderMediaPublished(ctx: IBlockRenderContext): VNode {
     const { component, extraClasses, extraAttrs, styles } = ctx;
     const cp = component.props as Record<string, unknown>;
-    const mOv = getResponsiveOverrides(cp, 'mobile');
-    const tOv = getResponsiveOverrides(cp, 'tablet');
 
     const style: Record<string, string> = {
-        ...makeResponsiveVars('--bricks-media-width', cp.width || '100%', tOv, mOv, 'width'),
-        ...makeResponsiveVars('--bricks-media-height', cp.height || 'auto', tOv, mOv, 'height'),
+        ...makeResponsiveVars('--bricks-media-width', cp.width || '100%', cp, 'width'),
+        ...makeResponsiveVars('--bricks-media-height', cp.height || 'auto', cp, 'height'),
         ...makeResponsiveVars(
             '--bricks-media-radius',
             cp.borderRadius || '0',
-            tOv,
-            mOv,
+            cp,
             'borderRadius',
             toRem
         ),

@@ -6,9 +6,13 @@ import type { IBlockDefinition, IBlockRenderContext } from '../types/registry';
 // Vue
 import { h, defineAsyncComponent, type VNode } from 'vue';
 
+// Constants
+import { DEFAULT_SLIDES_PER_VIEW } from '../constants/blockSlider';
+
 // Utils
+import { normalizeSlidesPerView } from '../utils/slider';
 import { resolvePublishedProps } from '../utils/publishedProps';
-import { gridPlacementStyle } from '../utils/responsiveVars';
+import { gridPlacementStyle, makeResponsiveVars } from '../utils/responsiveVars';
 
 // Components
 // Async-импорт: Swiper (~100KB) не должен попадать в бандл каждой published-страницы —
@@ -27,7 +31,12 @@ function renderSliderPublished(ctx: IBlockRenderContext): VNode {
         ctx;
     const componentProps = resolvePublishedProps<ISliderLayoutProps>(definition, component.props);
     const childComponents = getChildComponents(component);
-    const style = gridPlacementStyle(component);
+    // Переменные считаются от СЫРЫХ пропсов схемы: `resolvePublishedProps`
+    // отдаёт базовые значения без `responsive`, а переменные нужны per-device
+    const style: Record<string, string> = {
+        ...gridPlacementStyle(component),
+        ...buildSliderVars(component.props as Record<string, unknown>),
+    };
 
     return h(BlockSlider, {
         layoutProps: componentProps,
@@ -38,9 +47,28 @@ function renderSliderPublished(ctx: IBlockRenderContext): VNode {
         key: component.id,
         id: component.htmlId || undefined,
         class: extraClasses,
-        style: Object.keys(style).length ? style : undefined,
+        style,
+        // По атрибуту сматчится сгенерированное правило выбора per-device
+        // `--bricks-slider-spv`
+        'data-bricks-layout': 'slider',
         ...extraAttrs,
     });
+}
+
+/**
+ * Считает per-device переменные числа слайдов.
+ *
+ * @param props - Сырые пропсы блока из схемы.
+ * @returns CSS-переменные `--bricks-slider-spv-*`.
+ */
+function buildSliderVars(props: Record<string, unknown>): Record<string, string> {
+    return makeResponsiveVars(
+        '--bricks-slider-spv',
+        props.slidesPerView ?? DEFAULT_SLIDES_PER_VIEW,
+        props,
+        'slidesPerView',
+        (value) => String(normalizeSlidesPerView(value))
+    );
 }
 
 /**
@@ -53,13 +81,19 @@ export const blockSliderDefinition: IBlockDefinition = {
     name: 'Slider',
     description: 'bricks.blocks.slider.description',
     thumbnail: 'images/layouts/slider.svg',
-    responsiveMode: 'none',
+    responsiveMode: 'all',
+    responsiveCssVars: {
+        prefix: 'slider',
+        vars: ['spv'],
+    },
     canvasBind: (ctx) => ({
         layoutProps: ctx.layoutProps,
         layoutId: ctx.component.id,
         slides: ctx.childComponents,
         renderSlide: ctx.renderChild,
         isEditor: true,
+        style: buildSliderVars(ctx.component.props as Record<string, unknown>),
+        'data-bricks-layout': 'slider',
     }),
     renderPublished: renderSliderPublished,
     properties: [
@@ -70,22 +104,13 @@ export const blockSliderDefinition: IBlockDefinition = {
             default: 16,
         },
         {
-            name: 'slidesPerViewDesktop',
+            name: 'slidesPerView',
             type: 'number',
-            label: 'bricks.blocks.slider.props.slidesPerViewDesktop.label',
-            default: 3,
-        },
-        {
-            name: 'slidesPerViewTablet',
-            type: 'number',
-            label: 'bricks.blocks.slider.props.slidesPerViewTablet.label',
-            default: 2,
-        },
-        {
-            name: 'slidesPerViewMobile',
-            type: 'number',
-            label: 'bricks.blocks.slider.props.slidesPerViewMobile.label',
-            default: 1,
+            label: 'bricks.blocks.slider.props.slidesPerView.label',
+            default: DEFAULT_SLIDES_PER_VIEW,
+            min: 1,
+            step: 1,
+            responsive: true,
         },
         {
             name: 'loop',

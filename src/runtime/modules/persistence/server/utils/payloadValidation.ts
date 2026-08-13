@@ -9,6 +9,7 @@
  */
 import type { IBricksSchema } from '../../../common/types/brick';
 import type { ICreatePagePayload, IUpdatePagePayload } from '../../../common/types/bricks-api';
+import type { TBricksPageDeviceSet } from '../../../common/types/devices';
 import {
     DESCRIPTION_MAX_LENGTH,
     KEYWORDS_MAX_LENGTH,
@@ -35,6 +36,7 @@ import { assertSchemaComplexity } from './schemaPayloadValidation';
 import type { IPageAddressContext } from '../../types/pageAddress';
 import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 import { validateSchemaComponentGraph } from '../../../common/utils/bricks/schemaContract';
+import { validateDeviceSet } from '../../../common/utils/bricks/devices';
 import { toPageAddress } from '../../../common/utils/bricks/pageAddress';
 import {
     DEFAULT_BRICKS_ROUTE_PREFIXES,
@@ -65,6 +67,7 @@ const CREATE_PAGE_KEYS = new Set([
     'backgroundColor',
     'urlPrefix',
     'subdomain',
+    'viewportConfig',
     'schema',
     'published',
 ]);
@@ -87,6 +90,31 @@ const RESTORE_VERSION_KEYS = new Set(['expectedRevision']);
 // #endregion
 
 // #region Field validators
+/**
+ * Валидирует набор устройств страницы.
+ *
+ * Строгий и не чинящий: значение уезжает и в генерацию `<style>`, и в ключи
+ * схемы, поэтому «почти валидный» набор опаснее отказа. Сортировка, обрезка
+ * длины и отбрасывание дублей здесь запрещены — они молча меняли бы раскладку
+ * страницы на не ту, что заказывал клиент.
+ *
+ * @param value - Сырое значение поля.
+ * @returns Набор устройств либо `null` (наследование набора проекта).
+ */
+function validateViewportConfig(value: unknown): TBricksPageDeviceSet | null {
+    if (value === null) {
+        return null;
+    }
+
+    const validation = validateDeviceSet(value);
+
+    if (!validation.ok) {
+        invalid(`Field "viewportConfig" is invalid: ${validation.errors.join('; ')}`);
+    }
+
+    return validation.value;
+}
+
 /**
  * Резолвер владельца пути для сервера: живого роутера здесь нет, поэтому ответ
  * даётся по собственным маршрутам модуля. Страниц приложения-потребителя сервер
@@ -223,6 +251,10 @@ function validatePageMetaFields(body: Record<string, unknown>): Partial<IUpdateP
     });
     if (backgroundColor !== undefined) {
         result.backgroundColor = backgroundColor;
+    }
+
+    if (body.viewportConfig !== undefined) {
+        result.viewportConfig = validateViewportConfig(body.viewportConfig);
     }
 
     const urlPrefix = optionalNullableString(body.urlPrefix, 'urlPrefix', {

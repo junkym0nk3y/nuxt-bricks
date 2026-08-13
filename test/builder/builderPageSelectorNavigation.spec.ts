@@ -37,6 +37,12 @@ vi.mock('#imports', async (importOriginal) => {
 
 // Ключ вместе с параметрами: тексту тест не судья, а вот попала ли в сообщение
 // нужная страница — проверяемое поведение
+vi.mock('nuxt/app', () => ({
+    // Композабл набора устройств читает runtimeConfig; пустой public даёт
+    // дефолтный набор проекта — этого спекам импорта достаточно
+    useRuntimeConfig: () => ({ public: {} }),
+}));
+
 vi.mock('vue-i18n', () => ({
     useI18n: () => ({
         t: (key: string, params?: Record<string, unknown>) =>

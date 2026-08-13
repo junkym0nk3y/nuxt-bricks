@@ -71,6 +71,7 @@ export function usePublishPreview(): IUsePublishPreviewReturn {
                 urlPrefix: address.urlPrefix,
                 subdomain: formState.subdomain,
                 thumbnailUrl: null,
+                viewportConfig: formState.viewportConfig ?? null,
                 createdAt: formState.createdAt,
                 updatedAt: formState.updatedAt,
                 schema,

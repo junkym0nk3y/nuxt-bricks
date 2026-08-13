@@ -2,7 +2,6 @@ import { ref, computed, watch } from 'vue';
 import { useCanvasStore } from '../../../core/stores/canvas';
 import { useSidebarStore } from '../../../core/stores/sidebar';
 import { convertRemToPx, convertPxToRem } from '../../../../common/utils/main';
-import { useBricksConfig } from '../../../../common/composables/useBricksConfig';
 import { useCanvasRemBase } from './useCanvasRemBase';
 
 /**
@@ -14,7 +13,6 @@ import { useCanvasRemBase } from './useCanvasRemBase';
 export function useCanvas() {
     const canvasStore = useCanvasStore();
     const sidebarStore = useSidebarStore();
-    const config = useBricksConfig();
     const { remCompensation, getRemCompensation } = useCanvasRemBase();
     const canvasContainer = ref<HTMLElement | null>(null);
 
@@ -33,17 +31,25 @@ export function useCanvas() {
     const VERTICAL_NAV_WIDTH_PX = convertRemToPx(VERTICAL_NAV_WIDTH_REM);
 
     /**
-     * Визуальная ширина контента Figma Mode при scale = 1
-     * (три viewport-а с rem-компенсацией + gap'ы).
+     * Визуальная ширина контента Figma Mode при scale = 1: все листы набора с
+     * rem-компенсацией плюс промежутки между ними.
+     *
+     * Считается по набору, а не по трём зашитым устройствам: с четвёртым листом
+     * сумма растёт, и фиксированная тройка оставила бы вписывание завышенным.
      */
     const getFigmaContentWidth = (): number => {
-        const bp = config.canvasBreakpoints;
-        return (
-            bp.mobile.width * getRemCompensation('mobile') +
-            bp.tablet.width * getRemCompensation('tablet') +
-            bp.desktop.width * getRemCompensation('desktop') +
-            FIGMA_GAP_PX * 2
+        const devices = canvasStore.devices;
+
+        if (devices.length === 0) {
+            return 0;
+        }
+
+        const sheets = devices.reduce(
+            (total, device) => total + device.width * getRemCompensation(device.key),
+            0
         );
+
+        return sheets + FIGMA_GAP_PX * (devices.length - 1);
     };
 
     const calculateOptimalScale = (): number => {
@@ -71,7 +77,18 @@ export function useCanvas() {
         return Math.min(scaleX, 1);
     };
 
-    // Обновляем масштаб при переключении сайдбаров, figma mode или viewport (rem compensation).
+    /**
+     * Сигнатура геометрии набора: только то, что меняет размеры листов.
+     *
+     * Подпись и глиф устройства сюда не входят — иначе ввод имени в редакторе
+     * набора пересчитывал бы масштаб и сбрасывал ручной зум на каждый символ.
+     */
+    const devicesGeometry = computed(() =>
+        canvasStore.devices.map((device) => `${device.key}:${device.width}`).join('|')
+    );
+
+    // Обновляем масштаб при переключении сайдбаров, figma mode, viewport
+    // (rem compensation) или смене геометрии набора устройств.
     // Ручной зум (wheel/кнопки) не перетираем — авто-фит только при !hasManualZoom
     // (смена viewport сбрасывает флаг в store).
     watch(
@@ -80,6 +97,7 @@ export function useCanvas() {
             sidebarStore.right.visible,
             canvasStore.isFigmaMode,
             canvasStore.viewport,
+            devicesGeometry.value,
         ],
         () => {
             if (canvasStore.hasManualZoom) {

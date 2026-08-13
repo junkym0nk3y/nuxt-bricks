@@ -2,6 +2,7 @@
 import {
     DEFAULT_BRICKS_ROUTE_PREFIXES,
     isBuilderPath,
+    isProtectedBricksHtmlPath,
     stripPathBase,
     type IBricksRoutePrefixes,
 } from '../../modules/common/utils/bricks/routePaths';
@@ -20,6 +21,32 @@ import { useRequestURL, useRouter, useRuntimeConfig } from '#imports';
  * @param install - Асинхронная установка тяжёлой части плагина.
  */
 export async function runOnBuilderRoute(install: () => Promise<void>): Promise<void> {
+    await runOnBricksRoute(install, isBuilderPath);
+}
+
+/**
+ * То же для поверхностей билдера И превью.
+ *
+ * Нужна тем чанкам, которые видны на обеих: набор устройств правится в билдере,
+ * но глиф выбранного устройства показывает и баннер превью, а превью-роут
+ * лежит за `previewPrefix` и в `runOnBuilderRoute` не попадает.
+ *
+ * @param install - Асинхронная установка тяжёлой части плагина.
+ */
+export async function runOnBricksSurface(install: () => Promise<void>): Promise<void> {
+    await runOnBricksRoute(install, isProtectedBricksHtmlPath);
+}
+
+/**
+ * Общая механика однократной установки по предикату пути.
+ *
+ * @param install - Асинхронная установка.
+ * @param matches - Предикат «этот путь обслуживается».
+ */
+async function runOnBricksRoute(
+    install: () => Promise<void>,
+    matches: (prefixes: IBricksRoutePrefixes, pathname: string) => boolean
+): Promise<void> {
     const router = useRouter();
     const config = useRuntimeConfig();
     const prefixes =
@@ -31,7 +58,7 @@ export async function runOnBuilderRoute(install: () => Promise<void>): Promise<v
      * Однократно запускает install, если путь принадлежит билдеру.
      */
     async function ensureInstalled(path: string): Promise<void> {
-        if (isInstalled || !isBuilderPath(prefixes, path)) {
+        if (isInstalled || !matches(prefixes, path)) {
             return;
         }
 

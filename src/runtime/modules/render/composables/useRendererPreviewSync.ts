@@ -1,7 +1,11 @@
 // #region Imports
 // Types
 import type { IPreviewStoredPage } from '../../common/types/bricks-api';
-import type { IRendererPreviewSync, IRendererPreviewSyncOptions } from '../types/composables';
+import type {
+    IPreviewDeviceBreakpoint,
+    IRendererPreviewSync,
+    IRendererPreviewSyncOptions,
+} from '../types/composables';
 
 // Utils
 import { getPageAddressKey, toPageAddress } from '../../common/utils/bricks/pageAddress';
@@ -10,16 +14,11 @@ import { getPageAddressKey, toPageAddress } from '../../common/utils/bricks/page
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 // Composables
-import { useBricksConfig } from '../../common/composables/useBricksConfig';
-// #endregion
+import { useBricksDevices } from '../../common/composables/useBricksDevices';
 
-const DEVICE_ICONS: Record<string, string> = {
-    desktop: 'ta:outline-device-desktop',
-    ultra: 'ta:outline-device-desktop',
-    laptop: 'ta:outline-device-desktop',
-    tablet: 'ta:outline-device-tablet',
-    mobile: 'ta:outline-device-mobile',
-};
+// Utils
+import { deviceRanges, resolveDeviceIcon } from '../../common/utils/bricks/devices';
+// #endregion
 
 /**
  * Live-синхронизация превью с builder-вкладкой: снапшот из localStorage
@@ -56,19 +55,28 @@ export function useRendererPreviewSync(options: IRendererPreviewSyncOptions): IR
     const windowWidth = ref(0);
     const windowHeight = ref(0);
 
-    const { breakpoints: deviceBreakpoints } = useBricksConfig();
+    const { resolvePageDevices } = useBricksDevices();
 
-    const sortedDeviceBreakpoints = computed(() =>
-        Object.entries(deviceBreakpoints)
-            .map(([name, minWidth]) => ({
-                name,
-                minWidth,
-                icon: DEVICE_ICONS[name] ?? 'ta:outline-device-desktop',
+    // Набор страницы, а не проекта: у страницы со своим набором баннер обязан
+    // показывать её ступени — иначе на ширине 1400 он скажет «Планшет», пока
+    // страница уже отрисована как ноутбук. Подпись и глиф приходят из набора,
+    // второй таблицы иконок в коде больше нет
+    const pageDevices = computed(() => resolvePageDevices(page.value?.viewportConfig ?? null));
+
+    const sortedDeviceBreakpoints = computed<IPreviewDeviceBreakpoint[]>(() => {
+        const devices = pageDevices.value;
+        const ranges = deviceRanges(devices);
+
+        return devices
+            .map((device, index) => ({
+                name: device.label,
+                minWidth: ranges[index].min,
+                icon: resolveDeviceIcon(device.icon),
             }))
-            .sort((a, b) => b.minWidth - a.minWidth)
-    );
+            .sort((a, b) => b.minWidth - a.minWidth);
+    });
 
-    const currentDevice = computed(() => {
+    const currentDevice = computed<IPreviewDeviceBreakpoint>(() => {
         const width = windowWidth.value;
         const bps = sortedDeviceBreakpoints.value;
 
@@ -197,13 +205,20 @@ export function useRendererPreviewSync(options: IRendererPreviewSyncOptions): IR
             const previewChannel = new BroadcastChannel('bricks-preview-sync');
 
             previewChannel.onmessage = (event: MessageEvent) => {
-                const { type, address: msgAddress, schema } = event.data ?? {};
+                const { type, address: msgAddress, schema, viewportConfig } = event.data ?? {};
 
-                if (type === 'schema-update' && msgAddress === addressKey) {
+                if (type === 'content-update' && msgAddress === addressKey) {
                     // livePreviewData как fallback: актуально для временных страниц, которых нет в БД
                     const base = middlewarePageData.value ?? livePreviewData.value;
                     if (base) {
-                        livePreviewData.value = { ...base, schema };
+                        // Набор устройств приезжает вместе со схемой: он задаёт
+                        // пороги и ширины контейнера, и без него превью
+                        // показывало бы новую схему в прежней раскладке
+                        livePreviewData.value = {
+                            ...base,
+                            schema,
+                            viewportConfig: viewportConfig ?? null,
+                        };
                     }
                 }
             };

@@ -76,6 +76,10 @@ vi.mock('../../src/runtime/modules/builder/core/stores/components', () => ({
     useComponentsStore: () => componentsStoreMock,
 }));
 
+vi.mock('../../src/runtime/modules/builder/core/stores/canvas', () => ({
+    useCanvasStore: () => ({ devices: [], setDevices: vi.fn() }),
+}));
+
 vi.mock('../../src/runtime/modules/builder/core/stores/sidebar', () => ({
     useSidebarStore: () => sidebarStoreMock,
 }));
@@ -112,6 +116,27 @@ vi.mock('../../src/runtime/modules/builder/publish/composables/usePublishPreview
 
 vi.mock('../../src/runtime/modules/common/composables/useBricksConfig', () => ({
     useBricksConfig: () => ({ backgroundColor: '#FFFFFF' }),
+}));
+
+// Набор устройств композабл берёт из runtimeConfig, а тот тянет
+// `#build/nuxt.config.mjs`, которого вне сборки Nuxt нет
+vi.mock('../../src/runtime/modules/common/composables/useBricksDevices', () => ({
+    useBricksDevices: () => ({ projectDevices: [], resolvePageDevices: () => [] }),
+}));
+
+// Инъекция стилей в <head> к сохранению отношения не имеет, а `useHead`
+// требует контекста Nuxt-приложения
+vi.mock('../../src/runtime/modules/common/composables/useBricksStyles', () => ({
+    useBricksStyles: () => undefined,
+}));
+
+vi.mock(
+    '../../src/runtime/modules/layouts-blocks/composables/useResponsiveVisibilityStyles',
+    () => ({ useResponsiveVisibilityStyles: () => undefined })
+);
+
+vi.mock('../../src/runtime/modules/layouts-blocks/composables/useResponsiveLayoutStyles', () => ({
+    useResponsiveLayoutStyles: () => undefined,
 }));
 
 // #endregion

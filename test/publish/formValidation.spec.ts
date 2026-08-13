@@ -27,6 +27,7 @@ function buildFormState(overrides: Partial<TPublishFormState> = {}): TPublishFor
         backgroundColor: null,
         urlPrefix: null,
         subdomain: null,
+        viewportConfig: null,
         published: false,
         createdAt: '2026-08-01T10:00:00.000Z',
         updatedAt: '2026-08-01T10:00:00.000Z',

@@ -1,4 +1,5 @@
 // Types
+import { BASE_DEVICE_KEY } from '../../../common/constants/devices';
 import type {
     IBuilderSessionToken,
     IThumbnailUploadResponse,
@@ -44,12 +45,16 @@ export function usePageThumbnail(sessionToken: IBuilderSessionToken): IUsePageTh
 
     /**
      * Находит DOM-ноду канваса для снапшота.
-     * В Figma mode на странице несколько `.bricks-canvas` — берём desktop-viewport.
+     *
+     * В Figma mode на странице несколько `.bricks-canvas` — берём лист базового
+     * устройства: снимок идёт в карточку страницы, и узкий лист показывал бы
+     * не ту раскладку, по которой страницу узнают.
      */
     function findCanvasNode(): HTMLElement | null {
         return (
-            document.querySelector<HTMLElement>('[data-bricks-viewport="desktop"].bricks-canvas') ??
-            document.querySelector<HTMLElement>('.bricks-canvas')
+            document.querySelector<HTMLElement>(
+                `[data-bricks-viewport="${BASE_DEVICE_KEY}"].bricks-canvas`
+            ) ?? document.querySelector<HTMLElement>('.bricks-canvas')
         );
     }
 

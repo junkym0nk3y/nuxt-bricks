@@ -6,12 +6,7 @@ import type { IBlockDefinition, IBlockRenderContext } from '../types/registry';
 import { h, type VNode } from 'vue';
 
 // Utils
-import {
-    getResponsiveOverrides,
-    gridPlacementStyle,
-    makeResponsiveVars,
-    toRem,
-} from '../utils/responsiveVars';
+import { gridPlacementStyle, makeResponsiveVars, toRem } from '../utils/responsiveVars';
 
 /**
  * Published-рендер Section: `h('div')` с per-device CSS-переменными
@@ -23,8 +18,7 @@ import {
 function renderSectionPublished(ctx: IBlockRenderContext): VNode {
     const { component, extraClasses, extraAttrs, styles, renderChild, getChildComponents } = ctx;
     const cp = component.props as ISectionLayoutProps;
-    const mOv = getResponsiveOverrides(cp as Record<string, unknown>, 'mobile');
-    const tOv = getResponsiveOverrides(cp as Record<string, unknown>, 'tablet');
+    const props = cp as Record<string, unknown>;
 
     const style: Record<string, string> = {
         display: 'flex',
@@ -33,25 +27,23 @@ function renderSectionPublished(ctx: IBlockRenderContext): VNode {
         padding: 'var(--bricks-section-pt) var(--bricks-section-px) var(--bricks-section-pb)',
         borderRadius: 'var(--bricks-section-radius)',
         minHeight: 'var(--bricks-section-min-h)',
-        ...makeResponsiveVars('--bricks-section-pt', cp.paddingTop, tOv, mOv, 'paddingTop', toRem),
+        ...makeResponsiveVars('--bricks-section-pt', cp.paddingTop, props, 'paddingTop', toRem),
         ...makeResponsiveVars(
             '--bricks-section-pb',
             cp.paddingBottom,
-            tOv,
-            mOv,
+            props,
             'paddingBottom',
             toRem
         ),
-        ...makeResponsiveVars('--bricks-section-px', cp.paddingX, tOv, mOv, 'paddingX', toRem),
+        ...makeResponsiveVars('--bricks-section-px', cp.paddingX, props, 'paddingX', toRem),
         ...makeResponsiveVars(
             '--bricks-section-radius',
             cp.borderRadius,
-            tOv,
-            mOv,
+            props,
             'borderRadius',
             toRem
         ),
-        ...makeResponsiveVars('--bricks-section-min-h', cp.minHeight, tOv, mOv, 'minHeight', toRem),
+        ...makeResponsiveVars('--bricks-section-min-h', cp.minHeight, props, 'minHeight', toRem),
     };
 
     if (cp.backgroundColor) {

@@ -12,6 +12,11 @@ import type {
     IParsedSchemaFile,
     IUsePublishSchemaImportReturn,
 } from '../../src/runtime/modules/builder/publish/types/composables';
+
+// Helpers
+import { buildTransferFile, createPageSummaryBuilder } from '../helpers/publishFixtures';
+
+const buildPageSummary = createPageSummaryBuilder({ published: false });
 // #endregion
 
 /**
@@ -35,6 +40,12 @@ const { toasts, publishStoreMock, resolverMock } = vi.hoisted(() => ({
         pages: [] as TPublishedPageSummary[],
         patchPage: vi.fn(),
     },
+}));
+
+vi.mock('nuxt/app', () => ({
+    // Композабл набора устройств читает runtimeConfig; пустой public даёт
+    // дефолтный набор проекта — этого спекам импорта достаточно
+    useRuntimeConfig: () => ({ public: {} }),
 }));
 
 vi.mock('vue-i18n', () => ({
@@ -86,45 +97,33 @@ function buildComponent(id: string): IBricksComponent {
 }
 
 /**
- * Собирает сводку страницы.
+ * Сводка страницы с заданной ревизией.
  *
  * @param id - Идентификатор страницы.
- * @param pagename - ЧПУ страницы.
+ * @param pagename - Имя страницы.
  * @param revision - Ревизия строки.
  * @returns Сводка страницы.
  */
 function buildPage(id: number, pagename: string, revision: number): TPublishedPageSummary {
-    return {
-        id,
-        pagename,
-        title: `Page ${pagename}`,
-        description: '',
-        keywords: '',
-        backgroundColor: null,
-        layout: null,
-        socialImage: null,
-        urlPrefix: null,
-        subdomain: null,
-        thumbnailUrl: null,
-        published: false,
-        revision,
-        createdAt: '2026-08-01T10:00:00.000Z',
-        updatedAt: '2026-08-01T10:00:00.000Z',
-    };
+    return buildPageSummary({ id, pagename, title: `Page ${pagename}`, revision });
 }
 
 /**
- * Собирает разобранный файл схемы.
+ * Разобранный файл с одним grid-блоком поверх общей фикстуры.
  *
  * @param filename - Имя файла.
- * @returns Разобранный файл.
+ * @param overrides - Поля разбора поверх дефолтов.
+ * @returns Разобранный файл переноса.
  */
-function buildFile(filename: string): IParsedSchemaFile {
-    return {
+function buildFile(
+    filename: string,
+    overrides: Partial<IParsedSchemaFile> = {}
+): IParsedSchemaFile {
+    return buildTransferFile(filename, {
         schema: { components: [buildComponent('grid-1')] },
-        filename,
         blocksCount: 1,
-    };
+        ...overrides,
+    });
 }
 
 /**
@@ -245,12 +244,33 @@ describe('импорт схемы в страницу из списка', () => 
 
         expect(publishStoreMock.patchPage).toHaveBeenCalledWith(1, {
             schema: file.schema,
+            viewportConfig: null,
             expectedRevision: 3,
         });
         expect(toasts).toEqual([
             { message: 'bricks.publish.toasts.schemaImported', variant: 'success' },
         ]);
 
+        scope.stop();
+    });
+
+    it('legacy-файл набор устройств страницы не трогает: у него его нет', async () => {
+        const { scope, coordinator } = mountCoordinator(ref<string | null>('1'));
+        const file = buildFile('legacy.json', { kind: 'legacy' });
+        resolverMock.startResolving.mockResolvedValue({
+            schema: file.schema,
+            isComparisonSkipped: false,
+        });
+
+        coordinator.requestPageImport(buildPage(1, 'page-a', 3), file);
+        await confirmAndRun(coordinator);
+
+        // Ключа нет вовсе, а не `null`: `null` означал бы «вернуть к набору
+        // проекта», чего legacy-файл не заказывал
+        expect(publishStoreMock.patchPage).toHaveBeenCalledWith(1, {
+            schema: file.schema,
+            expectedRevision: 3,
+        });
         scope.stop();
     });
 

@@ -1,19 +1,14 @@
 import { defineStore } from 'pinia';
-import { useAppConfig } from 'nuxt/app';
 import type {
     ICanvasDragState,
     ICanvasDragStartPayload,
     ICanvasState,
     TBricksDeviceKey,
 } from '../../../common/types/brick';
-import type { IAppConfig } from '../../../common/types/config';
+import type { TBricksResolvedDeviceSet } from '../../../common/types/devices';
+import { BASE_DEVICE_KEY, DEFAULT_CANVAS_HEIGHT } from '../../../common/constants/devices';
 import { MIN_CANVAS_SCALE, MAX_CANVAS_SCALE } from '../constants/canvasScale';
 
-const VIEWPORT_BASE_HEIGHT: Record<TBricksDeviceKey, number> = {
-    mobile: 812,
-    tablet: 1024,
-    desktop: 1080,
-};
 const CANVAS_HEIGHT_BUFFER = 400;
 
 /** Состояние покоя transient drag-сессии: единственный источник дефолтов. */
@@ -27,19 +22,19 @@ const IDLE_DRAG_STATE: ICanvasDragState = {
 };
 
 /**
- * Возвращает ширину холста для viewport из конфига (с дефолтами).
+ * Сигнатура набора для семантического сравнения.
+ *
+ * В неё входит только то, от чего зависит геометрия канваса: ключи, ширины и
+ * высоты листов. Подпись и глиф устройства сюда не входят намеренно — иначе
+ * ввод имени в редакторе набора сбрасывал бы ручной зум на каждый символ.
+ *
+ * @param devices - Набор устройств.
+ * @returns Строковая сигнатура.
  */
-function getConfiguredViewportWidth(viewport: TBricksDeviceKey): number {
-    const appConfig = useAppConfig() as IAppConfig;
-    const canvasBreakpoints = appConfig?.bricks?.breakpoints;
-
-    const widths = {
-        mobile: canvasBreakpoints?.mobile?.width ?? 375,
-        tablet: canvasBreakpoints?.tablet?.width ?? 768,
-        desktop: canvasBreakpoints?.desktop?.width ?? 1600,
-    };
-
-    return widths[viewport];
+function getDevicesSignature(devices: TBricksResolvedDeviceSet): string {
+    return devices
+        .map((device) => `${device.key}:${device.width}:${device.canvasHeight}:${device.remBase}`)
+        .join('|');
 }
 
 /**
@@ -48,10 +43,11 @@ function getConfiguredViewportWidth(viewport: TBricksDeviceKey): number {
  */
 export const useCanvasStore = defineStore('bricksCanvas', {
     state: (): ICanvasState => ({
+        devices: [],
         width: 1920,
-        height: VIEWPORT_BASE_HEIGHT.desktop,
+        height: DEFAULT_CANVAS_HEIGHT,
         scale: 1,
-        viewport: 'desktop',
+        viewport: BASE_DEVICE_KEY,
         isFigmaMode: false,
         showGrid: true,
         isViewportSwitching: false,
@@ -65,13 +61,82 @@ export const useCanvasStore = defineStore('bricksCanvas', {
 
     actions: {
         /**
-         * Синхронизирует размеры холста с конфигом для текущего viewport.
+         * Заменяет набор устройств канваса набором страницы.
+         *
+         * Только состояние: пересчёт масштаба живёт в `useCanvas` — он читает
+         * размер окна и сайдбары, а ядро состояния канвас-домена не видит.
+         * Геометрию после смены набора пересчитывает сам канвас, следя за
+         * сигнатурой набора.
+         *
+         * Идемпотентен: повторный вызов с тем же набором ничего не делает, —
+         * иначе правка подписи устройства дёргала бы размеры на каждый символ.
+         *
+         * @param devices - Резолвнутый набор устройств страницы.
+         */
+        setDevices(devices: TBricksResolvedDeviceSet) {
+            if (getDevicesSignature(this.devices) === getDevicesSignature(devices)) {
+                this.devices = devices;
+                return;
+            }
+
+            this.devices = devices;
+
+            // Активное устройство могли удалить из набора: без переезда на
+            // базовое канвас остался бы на ключе, которого в наборе нет, и
+            // ширину для него взять было бы неоткуда
+            if (!devices.some((device) => device.key === this.viewport)) {
+                this.viewport = BASE_DEVICE_KEY;
+            }
+
+            if (this.activeViewport && !devices.some((d) => d.key === this.activeViewport)) {
+                this.activeViewport = null;
+            }
+
+            // Размеры листа до входа в Figma mode считались по прежнему набору
+            this._preFigmaWidth = null;
+            this._preFigmaHeight = null;
+
+            // Ручной зум снимается, как и при смене устройства: он подобран под
+            // прежние размеры листа, и с ним авто-фит не сработает — четыре листа
+            // в Figma-режиме или ставший шире лист остались бы обрезанными до
+            // ручного вмешательства. Ниже раннего выхода намеренно: правка
+            // подписи или глифа геометрию не меняет и зум не трогает
+            this.hasManualZoom = false;
+
+            this.width = this.getViewportWidth(this.viewport);
+            this.height = this.getViewportHeight(this.viewport);
+        },
+
+        /**
+         * Ширина листа для устройства набора.
+         *
+         * @param viewport - Ключ устройства.
+         * @returns Ширина в px.
+         */
+        getViewportWidth(viewport: TBricksDeviceKey): number {
+            const device = this.devices.find((item) => item.key === viewport);
+            return device?.width ?? this.devices.at(-1)?.width ?? 1600;
+        },
+
+        /**
+         * Базовая высота листа для устройства набора.
+         *
+         * @param viewport - Ключ устройства.
+         * @returns Высота в px.
+         */
+        getViewportHeight(viewport: TBricksDeviceKey): number {
+            const device = this.devices.find((item) => item.key === viewport);
+            return device?.canvasHeight ?? DEFAULT_CANVAS_HEIGHT;
+        },
+
+        /**
+         * Синхронизирует размеры холста с набором для текущего viewport.
          * Вызывается при инициализации билдера: дефолт state (1920) может
-         * не совпадать с шириной viewport из app.config.
+         * не совпадать с шириной устройства из набора.
          */
         initCanvasSize() {
-            this.width = getConfiguredViewportWidth(this.viewport);
-            this.height = VIEWPORT_BASE_HEIGHT[this.viewport] ?? VIEWPORT_BASE_HEIGHT.desktop;
+            this.width = this.getViewportWidth(this.viewport);
+            this.height = this.getViewportHeight(this.viewport);
         },
 
         /**
@@ -109,15 +174,13 @@ export const useCanvasStore = defineStore('bricksCanvas', {
             // Если выходим из Figma mode с тем же viewport — восстанавливаем размеры
             if (wasInFigma && viewport === this.viewport && this._preFigmaWidth !== null) {
                 this.width = this._preFigmaWidth;
-                this.height = this._preFigmaHeight ?? VIEWPORT_BASE_HEIGHT[viewport];
+                this.height = this._preFigmaHeight ?? this.getViewportHeight(viewport);
                 this._preFigmaWidth = null;
                 this._preFigmaHeight = null;
             } else {
                 this.viewport = viewport;
-                this.width = getConfiguredViewportWidth(viewport);
-
-                const baseHeight = VIEWPORT_BASE_HEIGHT[viewport] ?? VIEWPORT_BASE_HEIGHT.desktop;
-                this.height = baseHeight;
+                this.width = this.getViewportWidth(viewport);
+                this.height = this.getViewportHeight(viewport);
 
                 this._preFigmaWidth = null;
                 this._preFigmaHeight = null;
@@ -209,7 +272,7 @@ export const useCanvasStore = defineStore('bricksCanvas', {
          * @param hasComponents - Есть ли компоненты на холсте.
          */
         syncCanvasHeightWithContent(contentHeight: number, hasComponents: boolean) {
-            const baseHeight = VIEWPORT_BASE_HEIGHT[this.viewport] ?? VIEWPORT_BASE_HEIGHT.desktop;
+            const baseHeight = this.getViewportHeight(this.viewport);
 
             if (!hasComponents) {
                 if (this.height !== baseHeight) {

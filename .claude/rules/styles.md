@@ -93,6 +93,16 @@ $primary-color: #6366f1; // FORBIDDEN
 - ✅ Форс светлой темы области ввода текста (`TextEditorArea`, `TheTextEditorModal`) — hex-блоки намеренные
 - Текст на фиксированных фонах (primary, тёмные оверлеи) — `var(--bricks-static-white)`, НЕ `--bricks-base-0` (перевернётся в тёмной теме) и не `#fff`
 - Pill-радиус — `var(--bricks-border-radius-pill)`, не `999px`/`99.9rem`
+- ✅ **Sass-переменные и карты в `assets/scss/public/**`** — публичный миксин-API пакета
+  (`bricks-up`/`bricks-down`/`bricks-between`/`bricks-only`) без `$devices` и `!default`
+  не существует: перекрыть карту потребитель может только так. Исключение ограничено
+  этой папкой; в компонентных стилях запрет SCSS-переменных действует как прежде
+- ✅ **`display: none !important` в генерируемом utility-CSS видимости**
+  (`.bricks-hide--<ключ устройства>`, `useResponsiveVisibilityStyles`) — класс конкурирует
+  с **инлайновым** `display` контейнерных блоков (Grid/Flex/Section ставят его в `style`
+  при рендере), и без `!important` скрытие у них молча перестаёт работать. Правило запрета
+  писано для компонентных стилей; на генерируемый глобальный utility-CSS оно не
+  распространяется
 
 ## Dark Theme / Color Scheme
 

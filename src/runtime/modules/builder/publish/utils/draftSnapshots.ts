@@ -18,6 +18,9 @@ function pickComparableFormState(formState: TPublishFormState): Record<string, u
         socialImage: formState.socialImage ?? '',
         urlPrefix: formState.urlPrefix ?? '',
         subdomain: formState.subdomain ?? '',
+        // Без этого правка ширины устройства не считалась бы изменением: форма
+        // помечалась бы чистой, и «Сохранить» уходило бы без набора
+        viewportConfig: formState.viewportConfig ?? null,
     };
 }
 

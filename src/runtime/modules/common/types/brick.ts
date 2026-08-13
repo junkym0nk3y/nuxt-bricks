@@ -2,9 +2,20 @@
  * Types for Bricks Builder
  */
 
+import type { TBricksResolvedDeviceSet } from './devices';
+
 // Пропсы layout-блоков переехали в layouts-blocks/types/blockProps.d.ts (шаг B1)
 
-export type TBricksDeviceKey = 'mobile' | 'tablet' | 'desktop';
+/**
+ * Ключ устройства из набора страницы или проекта.
+ *
+ * Литеральным объединением быть перестал: набор произвольный (2–4 устройства,
+ * ключ строится из подписи при создании), поэтому валидность ключа проверяется
+ * по самому набору — `validateDeviceSet` в `common/utils/bricks/devices.ts`, —
+ * а не системой типов. Гарантированно присутствуют только `mobile` и `desktop`:
+ * они обязательны и всегда крайние.
+ */
+export type TBricksDeviceKey = string;
 
 export type TCanvasDragSource = 'canvas' | 'library';
 
@@ -47,11 +58,14 @@ export type TBrickDemoValues =
     | Record<string, unknown>
     | Array<unknown>;
 
-export interface IDeviceVisibilityConfig {
-    mobile: boolean;
-    tablet: boolean;
-    desktop: boolean;
-}
+/**
+ * Видимость блока по устройствам: ключ устройства → показывать ли.
+ *
+ * Отсутствие ключа означает «видно»: набор устройств у страниц разный, и
+ * перечислять в схеме все ключи со значением `true` пришлось бы заново при
+ * каждой правке набора. Поэтому в схему попадают только явные `false`.
+ */
+export type IDeviceVisibilityConfig = Record<string, boolean>;
 
 // Component instance on canvas
 export interface IComponentSlotDefinition {
@@ -121,6 +135,12 @@ export interface IBricksSchema {
 
 // Canvas state
 export interface ICanvasState {
+    /**
+     * Резолвнутый набор устройств текущей страницы. Кладёт composition root:
+     * `builder/core` не имеет права импортировать `builder/publish`, где живёт
+     * форма с `viewportConfig`.
+     */
+    devices: TBricksResolvedDeviceSet;
     width: number;
     height: number;
     scale: number;

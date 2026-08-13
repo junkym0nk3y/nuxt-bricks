@@ -35,6 +35,7 @@ function makeVersion(overrides: Partial<IPageVersion> = {}): IPageVersion {
         urlPrefix: null,
         subdomain: null,
         thumbnailUrl: 'https://storage.example.com/my-bucket/bricks-thumbnails/page-1-old.webp',
+        viewportConfig: null,
         schema: { components: [] },
         published: true,
         pageUpdatedAt: '2026-07-01T00:00:00.000Z',
@@ -56,6 +57,7 @@ function makePageRow(overrides: Partial<IBricksPageRow> = {}): IBricksPageRow {
         urlPrefix: null,
         subdomain: null,
         thumbnailUrl: null,
+        viewportConfig: null,
         schema: { components: [] },
         published: true,
         revision: 8,
@@ -70,8 +72,9 @@ function makeDeps(overrides: {
     version?: IPageVersion | null;
     updateResult?: IBricksPageRow | null;
     updateError?: Error;
-}): { deps: IPageVersionRestoreDeps; calls: string[] } {
+}): { deps: IPageVersionRestoreDeps; calls: string[]; payloads: IUpdatePagePayload[] } {
     const calls: string[] = [];
+    const payloads: IUpdatePagePayload[] = [];
 
     const deps: IPageVersionRestoreDeps = {
         storage: {
@@ -84,6 +87,7 @@ function makeDeps(overrides: {
                 payload: IUpdatePagePayload
             ): Promise<IBricksPageRow | null> {
                 calls.push(`updatePage:${id}:${JSON.stringify(payload)}`);
+                payloads.push(payload);
                 if (overrides.updateError) {
                     throw overrides.updateError;
                 }
@@ -94,7 +98,7 @@ function makeDeps(overrides: {
         },
     };
 
-    return { deps, calls };
+    return { deps, calls, payloads };
 }
 // #endregion
 
@@ -122,6 +126,7 @@ describe('restorePageVersion: version lookup + updatePage с revision-preconditi
                 layout: makeVersion().layout,
                 backgroundColor: makeVersion().backgroundColor,
                 thumbnailUrl: makeVersion().thumbnailUrl,
+                viewportConfig: null,
                 expectedRevision: 8,
             })}`,
         ]);
@@ -158,6 +163,7 @@ describe('restorePageVersion: version lookup + updatePage с revision-preconditi
                 layout: makeVersion().layout,
                 backgroundColor: makeVersion().backgroundColor,
                 thumbnailUrl: makeVersion().thumbnailUrl,
+                viewportConfig: null,
                 expectedRevision: 3,
             })}`,
         ]);
@@ -179,5 +185,37 @@ describe('restorePageVersion: version lookup + updatePage с revision-preconditi
         });
         expect(calls).toEqual(['getPageVersion:1:5']);
         expect(calls.some((call) => call.startsWith('updatePage'))).toBe(false);
+    });
+
+    it('версия с повреждённым набором устройств — 400, а не откат схемы без него', async () => {
+        // Ключи `props.responsive` в схеме версии относятся к её набору: откат
+        // схемы с наследованием проектного набора вернул бы страницу в
+        // состояние, от которого хранение набора в версии и защищает
+        const { deps, calls } = makeDeps({
+            version: makeVersion({
+                viewportConfig: [
+                    { key: 'desktop', label: 'Д', icon: 'device-desktop', width: 375, aside: 2 },
+                    { key: 'mobile', label: 'М', icon: 'device-mobile', width: 1600, aside: 0.4 },
+                ],
+            }),
+        });
+
+        await expect(restorePageVersion(deps, 1, 5, 8)).rejects.toMatchObject({
+            statusCode: 400,
+        });
+        expect(calls.some((call) => call.startsWith('updatePage'))).toBe(false);
+    });
+
+    it('валидный набор версии восстанавливается вместе со схемой', async () => {
+        const viewportConfig = [
+            { key: 'mobile', label: 'М', icon: 'device-mobile', width: 375, aside: 0.4 },
+            { key: 'laptop', label: 'Н', icon: 'device-laptop', width: 1280, aside: 1.2 },
+            { key: 'desktop', label: 'Д', icon: 'device-desktop', width: 1600, aside: 2 },
+        ];
+        const { deps, payloads } = makeDeps({ version: makeVersion({ viewportConfig }) });
+
+        await restorePageVersion(deps, 1, 5, 8);
+
+        expect(payloads[0]).toMatchObject({ viewportConfig });
     });
 });

@@ -1,10 +1,10 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { TInlineEditingPropType } from '../../common/types/inlineEditing';
+import type { IBlockTextProps, IInlineEditingContext } from '../types/blockProps';
 
 // Vue
-import { computed, inject, watch, useCssModule, type ComputedRef } from 'vue';
+import { computed, inject, watch, useCssModule } from 'vue';
 
 // Composables
 import { useInlineEditor } from '../../text-editor/composables/useInlineEditor';
@@ -13,26 +13,14 @@ import { useInlineEditor } from '../../text-editor/composables/useInlineEditor';
 import { sanitizeRichTextHtml } from '../../common/utils/sanitize/sanitizeRichText';
 // #endregion
 
-// #region Interfaces
-interface IBlockTextProps {
-    componentId?: string;
-    content?: string;
-    marginTop?: string | number;
-    marginBottom?: string | number;
-}
-
-interface IInlineEditingContext {
-    componentId: ComputedRef<string | null>;
-    propName: ComputedRef<string | null>;
-    propType: ComputedRef<TInlineEditingPropType | null>;
-    isEditing: ComputedRef<boolean>;
-}
-// #endregion
-
 // #region Props
+// `fontSize` объявлен, но в стилях не используется: размер приходит
+// CSS-переменной `--bricks-text-font-size`, которую выставляет definition на
+// обеих поверхностях. Без объявления проп протёк бы в DOM атрибутом `fontsize`
 const props = withDefaults(defineProps<IBlockTextProps>(), {
     componentId: '',
     content: '<p>Начните вводить текст...</p>',
+    fontSize: undefined,
     marginTop: 0,
     marginBottom: 0,
 });
@@ -117,16 +105,12 @@ function handleEditorClick(event: MouseEvent): void {
 
 <style module lang="scss">
 .BlockText {
-    font-size: 1.4rem;
+    // Значение выбирает сгенерированное правило по устройству набора; fallback —
+    // базовый размер. Прежние `@container`-запросы убраны: `container-type`
+    // объявлен только на `.bricks-canvas`, поэтому на published они не работали
+    // вовсе и текст оставался базового размера
+    font-size: var(--bricks-text-font-size, 1.8rem);
     line-height: 1.6;
-
-    @container (min-width: 768px) {
-        font-size: 1.6rem;
-    }
-
-    @container (min-width: 1024px) {
-        font-size: 1.8rem;
-    }
 
     &.isEditing {
         cursor: text;

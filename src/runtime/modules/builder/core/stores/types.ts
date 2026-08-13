@@ -181,6 +181,7 @@ export interface IComponentsSchemaActions {
         value: boolean
     ): void;
     exportSchema(this: IComponentsStore): IBricksSchema;
+    stripDeviceKeys(this: IComponentsStore, removedKeys: ReadonlySet<string>): void;
     saveToHistory(this: IComponentsStore): void;
     undo(this: IComponentsStore): void;
     redo(this: IComponentsStore): void;

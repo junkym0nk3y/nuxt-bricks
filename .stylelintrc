@@ -200,6 +200,8 @@
                     "breakpoint-next",
                     "breakpoint-infix",
                     "rgb-from-hex",
+                    "bricks-device-width",
+                    "bricks-device-next",
                     "get-border-radius",
                     "get-flex-column-width"
                 ]

@@ -1,4 +1,5 @@
 import type { IBricksSchema } from './brick';
+import type { TBricksPageDeviceSet } from './devices';
 
 /**
  * Общая форма ошибки API/fetch/БД: покрывает createError (h3), FetchError (ofetch, `data`)
@@ -28,6 +29,15 @@ export interface IBricksPageRow {
     urlPrefix: string | null;
     subdomain: string | null;
     thumbnailUrl: string | null;
+    /**
+     * Свой набор устройств страницы; `null` — страница наследует набор проекта.
+     *
+     * Ширина устройства служит и листом канваса, и `min-width` его диапазона
+     * media-query, поэтому набор — единственный источник раскладки страницы.
+     * Семантика `null` важна для истории: восстановленная версия наследующей
+     * страницы покажет ТЕКУЩИЙ набор проекта, а не тот, что был на момент снимка.
+     */
+    viewportConfig: TBricksPageDeviceSet | null;
     schema: IBricksSchema;
     published: boolean;
     /** Монотонный счётчик изменений строки — precondition optimistic locking. */
@@ -57,6 +67,15 @@ export interface IPublishedPage {
     urlPrefix: string | null;
     subdomain: string | null;
     thumbnailUrl: string | null;
+    /**
+     * Свой набор устройств страницы; `null` — страница наследует набор проекта.
+     *
+     * Ширина устройства служит и листом канваса, и `min-width` его диапазона
+     * media-query, поэтому набор — единственный источник раскладки страницы.
+     * Семантика `null` важна для истории: восстановленная версия наследующей
+     * страницы покажет ТЕКУЩИЙ набор проекта, а не тот, что был на момент снимка.
+     */
+    viewportConfig: TBricksPageDeviceSet | null;
     schema: IBricksSchema;
     published: boolean;
     /**
@@ -124,6 +143,15 @@ export interface IPageVersion extends IPageVersionSummary {
     backgroundColor: string | null;
     urlPrefix: string | null;
     subdomain: string | null;
+    /**
+     * Свой набор устройств страницы; `null` — страница наследует набор проекта.
+     *
+     * Ширина устройства служит и листом канваса, и `min-width` его диапазона
+     * media-query, поэтому набор — единственный источник раскладки страницы.
+     * Семантика `null` важна для истории: восстановленная версия наследующей
+     * страницы покажет ТЕКУЩИЙ набор проекта, а не тот, что был на момент снимка.
+     */
+    viewportConfig: TBricksPageDeviceSet | null;
     schema: IBricksSchema;
     published: boolean;
 }
@@ -138,6 +166,7 @@ export interface ICreatePagePayload {
     backgroundColor?: string | null;
     urlPrefix?: string | null;
     subdomain?: string | null;
+    viewportConfig?: TBricksPageDeviceSet | null;
     schema: IBricksSchema;
     published?: boolean;
 }
@@ -152,6 +181,7 @@ export interface IUpdatePagePayload {
     backgroundColor?: string | null;
     urlPrefix?: string | null;
     subdomain?: string | null;
+    viewportConfig?: TBricksPageDeviceSet | null;
     thumbnailUrl?: string | null;
     schema?: IBricksSchema;
     published?: boolean;

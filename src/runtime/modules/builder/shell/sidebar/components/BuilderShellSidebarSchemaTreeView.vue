@@ -11,6 +11,9 @@ import { useI18n } from 'vue-i18n';
 import { useComponentsStore } from '../../../core/stores/components';
 import { useCanvasStore } from '../../../core/stores/canvas';
 
+// Constants
+import { BASE_DEVICE_KEY } from '../../../../common/constants/devices';
+
 // Composables
 import { useComponentEditorMetadata } from '../../../core/composables/useComponentEditorMetadata';
 
@@ -92,16 +95,16 @@ function ensureViewportForComponent(component: IBricksComponent): boolean {
         return false;
     }
 
-    // Порядок приоритета: desktop → tablet → mobile
-    const VIEWPORT_PRIORITY: Array<'desktop' | 'tablet' | 'mobile'> = [
-        'desktop',
-        'tablet',
-        'mobile',
+    // Приоритет: базовое устройство, затем остальные от широкого к узкому —
+    // на широком листе блок виден целиком, и переключение туда информативнее
+    const priority = [
+        ...canvasStore.devices.filter((device) => device.key === BASE_DEVICE_KEY),
+        ...[...canvasStore.devices].reverse().filter((device) => device.key !== BASE_DEVICE_KEY),
     ];
 
-    const firstAvailable = VIEWPORT_PRIORITY.find((vp) => visibility[vp] !== false);
+    const firstAvailable = priority.find((device) => visibility[device.key] !== false);
     if (firstAvailable) {
-        canvasStore.setViewport(firstAvailable);
+        canvasStore.setViewport(firstAvailable.key);
         return true;
     }
 

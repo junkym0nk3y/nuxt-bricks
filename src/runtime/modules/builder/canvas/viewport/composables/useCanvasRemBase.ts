@@ -8,8 +8,6 @@ import { computed } from 'vue';
 // Pinia
 import { useCanvasStore } from '../../../core/stores/canvas';
 
-// Composables
-import { useBricksConfig } from '../../../../common/composables/useBricksConfig';
 // #endregion
 
 /** Базовое значение rem библиотеки (px). */
@@ -23,19 +21,22 @@ const LIBRARY_REM_BASE = 10;
  * а этот composable возвращает коэффициент, на который нужно домножить
  * scale канваса, чтобы контент выглядел так же, как на published page.
  *
+ * `remBase` — свойство набора ПРОЕКТА (опция модуля `bricks.devices`), а не
+ * страницы: одна страница в другой rem-системе, чем соседние, — не настройка,
+ * а поломка. Резолвер набора подмешивает его по совпадающему ключу.
+ *
  * @example
- * // app.config.ts
+ * // nuxt.config.ts
  * bricks: {
- *     breakpoints: {
- *         desktop: { width: 1600, remBase: '0.6944vw' },
- *         tablet:  { width: 768,  remBase: '10px' },
- *         mobile:  { width: 375,  remBase: '10px' },
- *     }
+ *     devices: [
+ *         { key: 'mobile', label: 'Мобильный', icon: 'device-mobile', width: 375, aside: 0.4 },
+ *         { key: 'desktop', label: 'Десктоп', icon: 'device-desktop', width: 1600, aside: 2,
+ *           remBase: '0.6944vw' },
+ *     ],
  * }
  */
 export function useCanvasRemBase() {
     const canvasStore = useCanvasStore();
-    const config = useBricksConfig();
 
     /**
      * Вычисляет целевой rem (в px) для указанного viewport на основе remBase из конфига.
@@ -44,8 +45,13 @@ export function useCanvasRemBase() {
      * @returns Целевое значение 1rem в пикселях.
      */
     function computeTargetRemPx(viewport: TBricksDeviceKey): number {
-        const bp = config.canvasBreakpoints[viewport];
-        const remBase = bp.remBase ?? `${LIBRARY_REM_BASE}px`;
+        const device = canvasStore.devices.find((item) => item.key === viewport);
+
+        if (!device) {
+            return LIBRARY_REM_BASE;
+        }
+
+        const remBase = device.remBase ?? `${LIBRARY_REM_BASE}px`;
 
         if (remBase.endsWith('vw')) {
             const coefficient = parseFloat(remBase);
@@ -54,7 +60,7 @@ export function useCanvasRemBase() {
                 return LIBRARY_REM_BASE;
             }
 
-            return (coefficient * bp.width) / 100;
+            return (coefficient * device.width) / 100;
         }
 
         const parsed = parseFloat(remBase);

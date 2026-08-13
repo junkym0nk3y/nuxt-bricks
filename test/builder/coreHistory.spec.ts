@@ -103,16 +103,14 @@ describe('serializeSchema / deserializeSchema', () => {
         expect(serializeSchema([], meta).meta).toEqual(meta);
     });
 
-    it('deserializeSchema заполняет deviceVisibility дефолтами', () => {
+    it('deserializeSchema не дописывает недостающие ключи видимости', () => {
+        // Ключи устройств зависят от набора страницы: дописывание вернуло бы в
+        // схему ступени, которых у страницы уже нет
         const restored = deserializeSchema({
             components: [buildComponent({ deviceVisibility: { mobile: false } })],
         });
 
-        expect(restored[0].deviceVisibility).toEqual({
-            mobile: false,
-            tablet: true,
-            desktop: true,
-        });
+        expect(restored[0].deviceVisibility).toEqual({ mobile: false });
     });
 
     it('deserializeSchema переживает схему без components', () => {

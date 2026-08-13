@@ -37,6 +37,7 @@ function buildFormState(overrides: Partial<TPublishFormState> = {}): TPublishFor
         socialImage: null,
         urlPrefix: null,
         subdomain: null,
+        viewportConfig: null,
         createdAt: '',
         updatedAt: '',
         ...overrides,

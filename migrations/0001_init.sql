@@ -22,6 +22,13 @@ CREATE TABLE IF NOT EXISTS bricks_pages (
     url_prefix VARCHAR(255),
     subdomain VARCHAR(255),
     thumbnail_url TEXT,
+    -- Свой набор устройств страницы: 2–4 записи
+    -- { key, label, icon, width, aside, maxWidth?, minWidth? }, отсортированные
+    -- по возрастанию width, с обязательными `mobile` в начале и `desktop` в конце.
+    -- NULL — страница наследует набор проекта (опция модуля bricks.devices).
+    -- Ширина устройства служит и листом канваса, и min-width его диапазона
+    -- media-query, поэтому отдельного списка порогов в схеме нет.
+    viewport_config JSONB,
     schema JSONB NOT NULL,
     published BOOLEAN DEFAULT false,
     -- Монотонный счётчик изменений строки (инкремент — в
@@ -98,6 +105,11 @@ CREATE TABLE IF NOT EXISTS bricks_page_versions (
     -- thumbnail_url страницы — это кадр того состояния, которое снапшот и
     -- сохраняет. NULL — снимка нет и не появится, UI рисует плейсхолдер
     thumbnail_url TEXT,
+    -- Зеркало bricks_pages.viewport_config на момент снимка: набор устройств —
+    -- часть состояния страницы, и откат к версии обязан вернуть ту раскладку,
+    -- в которой её сохраняли. NULL у версий наследующих страниц и у тех, что
+    -- сняты до появления колонки
+    viewport_config JSONB,
     schema JSONB NOT NULL,
     published BOOLEAN NOT NULL DEFAULT false,
     page_updated_at TIMESTAMPTZ,          -- updated_at исходной строки на момент снапшота

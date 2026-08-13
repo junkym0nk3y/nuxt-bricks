@@ -34,6 +34,7 @@ const PAGE: TPublishedPageSummary = {
     urlPrefix: null,
     subdomain: null,
     thumbnailUrl: null,
+    viewportConfig: null,
     published: true,
     revision: 3,
     createdAt: '2026-07-01T00:00:00Z',

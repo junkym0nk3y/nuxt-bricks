@@ -29,7 +29,8 @@ import {
     resolveBricksSurfaces,
     setupBricksBuilderModules,
 } from './module-setup';
-import { applyBricksRuntimeConfig } from './module-runtime-config';
+import { applyBricksRuntimeConfig, resolveBricksDevices } from './module-runtime-config';
+import { resolveBricksMixinsPath, setupBricksScss } from './module-scss';
 import type { IBricksModuleOptions } from './types/module';
 import type { IBricksRegistrationContext } from './types/moduleSetup';
 
@@ -176,6 +177,16 @@ export default defineNuxtModule<IBricksModuleOptions>({
                     : resolve(runtimeDir, `assets/scss/${stylesheet}.css`)
             );
         }
+        // #endregion
+
+        // #region Публичный SCSS-API
+        // Карта устройств пишется в buildDir и подключается алиасом: миксины
+        // авторов бриков обязаны считать по тем же числам, что рантайм
+        setupBricksScss(
+            nuxt,
+            resolveBricksDevices(options.devices),
+            resolveBricksMixinsPath(runtimeDir)
+        );
         // #endregion
 
         // #region Vite (optimizeDeps)

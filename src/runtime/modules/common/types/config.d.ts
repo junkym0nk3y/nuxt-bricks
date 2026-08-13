@@ -2,23 +2,6 @@
  * Bricks configuration types
  */
 
-export interface IBricksBreakpoints {
-    mobile: number;
-    tablet: number;
-    laptop: number;
-    desktop: number;
-    ultra: number;
-}
-
-export interface IBricksBreakpointConfig {
-    width: number;
-    aside?: string;
-    minWidth?: string;
-    maxWidth?: string;
-    /** Базовый rem для viewport, напр. "10px" или "0.6944vw". Default: "10px" */
-    remBase?: string;
-}
-
 /**
  * Целевой формат полного файла при загрузке. `original` — сохранить как есть;
  * применяется только к web-safe входам, для HEIC/TIFF/BMP конвертация остаётся
@@ -47,46 +30,31 @@ export interface IBricksMediaConfig {
     loadMode?: TBricksMediaLoadMode;
 }
 
+/**
+ * Рантайм-конфигурация лендинга.
+ *
+ * Набора устройств здесь нет: прежние `bricks.breakpoints` (ширины канваса) и
+ * `device.breakpoints` (пороги media-query) были двумя несвязанными ручками и
+ * успели разойтись — объявленная в порогах ступень `laptop` в генерацию CSS не
+ * попадала вовсе. Их заменила одна build-time опция модуля `bricks.devices`:
+ * она кормит и рантайм, и SCSS-карту миксинов, а app.config до сборки миксинов
+ * не доезжает.
+ */
 export interface IBricksConfig {
     defaultFont?: string;
     fonts?: string[];
     backgroundColor?: string;
     layouts?: string[];
     nuxt4?: boolean;
-    breakpoints?: {
-        mobile?: IBricksBreakpointConfig;
-        tablet?: IBricksBreakpointConfig;
-        desktop?: IBricksBreakpointConfig;
-    };
     media?: IBricksMediaConfig;
 }
 
-export interface IDeviceConfig {
-    breakpoints: IBricksBreakpoints;
-}
-
 export interface IAppConfig {
-    bricks?: {
-        defaultFont?: string;
-        fonts?: string[];
-        backgroundColor?: string;
-        layouts?: string[];
-        nuxt4?: boolean;
-        breakpoints?: {
-            mobile?: IBricksBreakpointConfig;
-            tablet?: IBricksBreakpointConfig;
-            desktop?: IBricksBreakpointConfig;
-        };
-        media?: IBricksMediaConfig;
-    };
-    device?: {
-        breakpoints?: IBricksBreakpoints;
-    };
+    bricks?: IBricksConfig;
 }
 
 declare module '@nuxt/schema' {
     interface AppConfigInput {
         bricks?: IBricksConfig;
-        device?: IDeviceConfig;
     }
 }

@@ -8,6 +8,9 @@ import { computed, ref, watch } from 'vue';
 import { useComponentsStore } from '../../../core/stores/components';
 import { useCanvasStore } from '../../../core/stores/canvas';
 
+// Constants
+import { BASE_DEVICE_KEY } from '../../../../common/constants/devices';
+
 // Utils
 import { getBlockDefinition } from '../../../../layouts-blocks/registry';
 
@@ -51,7 +54,7 @@ export function useSidebarResponsiveScope() {
         return isResponsiveLayout.value || hasResponsiveBrickValues.value;
     });
 
-    const layoutDeviceScope = ref<TBricksDeviceKey>('desktop');
+    const layoutDeviceScope = ref<TBricksDeviceKey>(BASE_DEVICE_KEY);
 
     const responsiveOverridesForScope = computed<Record<string, unknown> | null>(() => {
         const selected = store.selectedComponentData;
@@ -60,7 +63,7 @@ export function useSidebarResponsiveScope() {
         }
 
         const scope = layoutDeviceScope.value;
-        if (scope === 'desktop') {
+        if (scope === BASE_DEVICE_KEY) {
             return null;
         }
 
@@ -86,7 +89,7 @@ export function useSidebarResponsiveScope() {
         }
 
         const scope = layoutDeviceScope.value;
-        if (scope === 'desktop') {
+        if (scope === BASE_DEVICE_KEY) {
             return selected;
         }
 
@@ -117,7 +120,9 @@ export function useSidebarResponsiveScope() {
     watch(
         () => store.selectedComponentData?.id,
         () => {
-            layoutDeviceScope.value = canvasStore.isFigmaMode ? 'desktop' : canvasStore.viewport;
+            layoutDeviceScope.value = canvasStore.isFigmaMode
+                ? BASE_DEVICE_KEY
+                : canvasStore.viewport;
         }
     );
 
@@ -132,6 +137,23 @@ export function useSidebarResponsiveScope() {
                 layoutDeviceScope.value = newViewport;
             }
         }
+    );
+
+    /**
+     * Возвращает scope на базовое устройство, если активное исчезло из набора.
+     *
+     * Вкладка живёт своей жизнью и переживает правку набора: без сброса
+     * удалённый `laptop` остался бы выбранным, и панель продолжила бы писать
+     * переопределения в ключ, которого в наборе страницы больше нет.
+     */
+    watch(
+        () => canvasStore.devices,
+        (devices) => {
+            if (devices.length > 0 && !devices.some((d) => d.key === layoutDeviceScope.value)) {
+                layoutDeviceScope.value = BASE_DEVICE_KEY;
+            }
+        },
+        { deep: true }
     );
 
     /**
@@ -153,7 +175,7 @@ export function useSidebarResponsiveScope() {
         }
 
         const scope = layoutDeviceScope.value;
-        if (scope === 'desktop') {
+        if (scope === BASE_DEVICE_KEY) {
             return;
         }
 

@@ -3,7 +3,7 @@
  */
 
 import type { IBrickExportModule } from './index';
-import type { IBricksBreakpoints, IBricksBreakpointConfig } from './config';
+import type { IBricksDeviceRange, IBricksPageDevice, TBricksResolvedDeviceSet } from './devices';
 import type { IBricksPageAddress } from './pageAddress';
 import type { IBricksRoutePrefixes } from '../utils/bricks/routePaths';
 import type { CLIENT_OWNED_REQUEST_OPTIONS } from '../utils/apiRequestPolicy';
@@ -97,14 +97,23 @@ export interface IUseBricksConfigReturn {
     backgroundColor: string;
     /** Доступные в билдере layout-блоки. */
     layouts: string[];
-    /** Device breakpoints приложения — база media queries published-страницы. */
-    breakpoints: IBricksBreakpoints;
-    /** Геометрия трёх viewport'ов канваса (ширина + боковые отступы). */
-    canvasBreakpoints: {
-        mobile: IBricksBreakpointConfig;
-        tablet: IBricksBreakpointConfig;
-        desktop: IBricksBreakpointConfig;
-    };
+}
+// #endregion
+
+// #region useBricksDevices
+/**
+ * Возвращаемое значение `useBricksDevices`.
+ *
+ * Набора страницы здесь нет намеренно: композабл живёт в `common` и страницы не
+ * знает — её конфиг передаёт тот, кто её загрузил.
+ */
+export interface IUseBricksDevicesReturn {
+    /** Резолвнутый набор проекта (опция модуля поверх константы). */
+    projectDevices: TBricksResolvedDeviceSet;
+    /** Резолвит `viewport_config` страницы поверх проектного набора. */
+    resolvePageDevices: (pageConfig: unknown) => TBricksResolvedDeviceSet;
+    /** Диапазоны ширины окна по набору. */
+    deviceRanges: (devices: ReadonlyArray<IBricksPageDevice>) => IBricksDeviceRange[];
 }
 // #endregion
 

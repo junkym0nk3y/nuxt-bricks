@@ -5,6 +5,7 @@
  */
 
 // Types
+import { BASE_DEVICE_KEY } from '../../../../common/constants/devices';
 import type { IComponentCardPreview, ISidebarComponentCardProps } from '../components/types';
 import type { IBrickExportModule } from '../../../../common/types/index';
 import type { IDragVisualSize, IBricksComponent } from '../../../../common/types/brick';
@@ -131,7 +132,13 @@ export function useComponentCardPreview(props: ISidebarComponentCardProps): ICom
         };
         const context: IBlockCanvasContext = {
             component: probeComponent,
-            layoutProps: resolveBlockProps(props.component.name, componentProps.value, 'desktop'),
+            // Превью карточки библиотеки меряется на базовом устройстве: карточка
+            // одна на все страницы, и набор конкретной страницы к ней отношения не имеет
+            layoutProps: resolveBlockProps(
+                props.component.name,
+                componentProps.value,
+                BASE_DEVICE_KEY
+            ),
             boundProps: componentProps.value,
             childComponents: [],
             renderChild: () => null,

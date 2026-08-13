@@ -131,6 +131,7 @@ export function usePublishCreatePageForm(options: IPublishCreatePageFormOptions)
                 keywords: values.keywords,
                 urlPrefix: address.urlPrefix,
                 subdomain: values.subdomain.trim() || null,
+                viewportConfig: options.resolveViewportConfig?.() ?? null,
             });
             options.onCreated(address);
         } catch (error: unknown) {

@@ -16,7 +16,8 @@
             "clear": "Clear",
             "showPassword": "Show password",
             "hidePassword": "Hide password",
-            "tagsLimit": "Character limit {max} reached"
+            "tagsLimit": "Character limit {max} reached",
+            "save": "Save"
         },
         "toolbar": {
             "grid": "Grid",
@@ -453,8 +454,10 @@
             "importErrorFileType": "Choose a .json file",
             "importErrorInvalid": "Invalid schema: missing components array",
             "importErrorStructure": "Schema file failed structure validation: {detail}",
+            "importErrorDevices": "Device set in the file failed validation: {detail}",
             "importErrorParse": "Failed to parse the JSON file",
-            "importErrorRead": "Failed to read the file"
+            "importErrorRead": "Failed to read the file",
+            "importedWithOrphanDevices": "Schema imported. Overrides for devices outside the page device set are kept but not applied: {keys}"
         },
         "canvas": {
             "emptyTitle": "Add new components",
@@ -791,17 +794,11 @@
             "slider": {
                 "description": "Slider container (swiper) for scrolling through child elements.",
                 "props": {
+                    "slidesPerView": {
+                        "label": "Slides per view"
+                    },
                     "spaceBetween": {
                         "label": "Space between (px)"
-                    },
-                    "slidesPerViewDesktop": {
-                        "label": "Slides per view (desktop)"
-                    },
-                    "slidesPerViewTablet": {
-                        "label": "Slides per view (tablet)"
-                    },
-                    "slidesPerViewMobile": {
-                        "label": "Slides per view (mobile)"
                     },
                     "loop": {
                         "label": "Loop slides"
@@ -876,6 +873,9 @@
             "text": {
                 "description": "Text block with HTML content.",
                 "props": {
+                    "fontSize": {
+                        "label": "Font size"
+                    },
                     "content": {
                         "label": "Content"
                     },
@@ -923,6 +923,49 @@
                     }
                 }
             }
+        },
+        "devices": {
+            "title": "Page devices",
+            "ownTitle": "Custom devices for this page",
+            "ownHintOn": "Custom set — {count} devices. The project keeps its own; other pages are unaffected.",
+            "ownHintOff": "The page uses the project set — {count} devices. Turn on to define a set for this page only.",
+            "add": "Add device",
+            "addCounter": "{current} of {max}",
+            "addMaxReached": "{max} of {max} — maximum",
+            "remove": "Remove “{label}”",
+            "locked": "Edge devices cannot be removed",
+            "iconPicker": "Device icon",
+            "rangesTitle": "Window width ranges",
+            "rangesHint": "The threshold is the device width. The narrowest always starts at 0, the widest has no upper bound. The outlined segment is the device open on the canvas.",
+            "rangeFrom": "from {min}",
+            "settingsGroup": "Devices",
+            "settingsAction": "Configure devices",
+            "settingsInherited": "Same as project · {count}",
+            "settingsCustom": "Custom set · {count}",
+            "columns": {
+                "device": "Device",
+                "width": "Width, px",
+                "aside": "Padding, rem",
+                "maxWidth": "Max, rem",
+                "minWidth": "Min, rem"
+            },
+            "errors": {
+                "labelRequired": "A name is required — the device key in the schema is built from it",
+                "widthMin": "Nothing goes below {min}: no block is designed for such a window",
+                "widthTaken": "“{label}” already uses this width",
+                "widthBetween": "An intermediate device width must be between {min} (“{minLabel}”) and {max} (“{maxLabel}”)",
+                "widthMax": "Nothing goes above {max}: that is no longer a screen",
+                "edgeOrder": "Mobile must stay the narrowest and desktop the widest"
+            },
+            "removeConfirm": {
+                "title": "Remove “{label}”?",
+                "description": "Property overrides for this device will be removed from every block on the page: {count} right now. The {range} range goes to “{label}”."
+            },
+            "revertConfirm": {
+                "title": "Restore the project set?",
+                "description": "The page's own set will be removed. Blocks keep overrides only for devices that also exist in the project set; the rest are lost."
+            },
+            "orphanKeys": "The schema has overrides for devices outside the set — they are kept but will not be applied: {keys}"
         }
     }
 }

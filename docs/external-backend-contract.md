@@ -127,24 +127,25 @@ nuxt-bricks сам), метаданные регистрируются у вас
 
 Полная строка страницы (`IBricksPageRow`) — обязательные поля:
 
-| Поле              | Тип                      | Примечание                             |
-| ----------------- | ------------------------ | -------------------------------------- |
-| `id`              | number                   |                                        |
-| `pagename`        | string                   | Уникален В ПРЕДЕЛАХ своего `urlPrefix` |
-| `title`           | string \| null           |                                        |
-| `description`     | string \| null           |                                        |
-| `keywords`        | string \| null           |                                        |
-| `backgroundColor` | string \| null           |                                        |
-| `layout`          | string \| null           |                                        |
-| `socialImage`     | string \| null           |                                        |
-| `urlPrefix`       | string \| null           | Вместе с `pagename` — адрес страницы   |
-| `subdomain`       | string \| null           |                                        |
-| `thumbnailUrl`    | string \| null           | Машинное поле (пишется PATCH'ем)       |
-| `schema`          | object (`IBricksSchema`) | Хранить как есть (JSONB-семантика)     |
-| `published`       | boolean                  |                                        |
-| `revision`        | number                   | Монотонный счётчик изменений строки    |
-| `createdAt`       | string (ISO 8601)        |                                        |
-| `updatedAt`       | string (ISO 8601)        |                                        |
+| Поле              | Тип                      | Примечание                                                                                     |
+| ----------------- | ------------------------ | ---------------------------------------------------------------------------------------------- |
+| `id`              | number                   |                                                                                                |
+| `pagename`        | string                   | Уникален В ПРЕДЕЛАХ своего `urlPrefix`                                                         |
+| `title`           | string \| null           |                                                                                                |
+| `description`     | string \| null           |                                                                                                |
+| `keywords`        | string \| null           |                                                                                                |
+| `backgroundColor` | string \| null           |                                                                                                |
+| `layout`          | string \| null           |                                                                                                |
+| `socialImage`     | string \| null           |                                                                                                |
+| `urlPrefix`       | string \| null           | Вместе с `pagename` — адрес страницы                                                           |
+| `subdomain`       | string \| null           |                                                                                                |
+| `thumbnailUrl`    | string \| null           | Машинное поле (пишется PATCH'ем)                                                               |
+| `viewportConfig`  | array \| null            | Набор устройств страницы; хранить как есть (JSONB-семантика), `null` — наследует набор проекта |
+| `schema`          | object (`IBricksSchema`) | Хранить как есть (JSONB-семантика)                                                             |
+| `published`       | boolean                  |                                                                                                |
+| `revision`        | number                   | Монотонный счётчик изменений строки                                                            |
+| `createdAt`       | string (ISO 8601)        |                                                                                                |
+| `updatedAt`       | string (ISO 8601)        |                                                                                                |
 
 - `GET {base}` отдаёт сводки — те же поля **без `schema`**
   (`TBricksPageSummaryRow`). Полная строка — только point-lookup.
@@ -159,7 +160,10 @@ nuxt-bricks сам), метаданные регистрируются у вас
   `revision`.
 
 **Инвариант версионирования** (обязанность external-сервера, автоматически не
-проверяется): если в PATCH-payload присутствует `schema` и лимит версий больше
+проверяется): если в PATCH-payload присутствует `schema` либо `viewportConfig`
+(обе — части версионируемого состояния: ключи `props.responsive` в схеме
+относятся к набору устройств, и правка одного набора без снимка делает смену
+топологии невосстановимой) и лимит версий больше
 нуля, сервер обязан атомарно снапшотить ПРЕЖНЮЮ строку в историю версий и
 обрезать (prune) историю страницы до лимита. Лимит — ваша конфигурация
 (builtin использует `bricks.versionsLimit`).
@@ -176,8 +180,13 @@ nuxt-bricks сам), метаданные регистрируются у вас
 - `IPageVersionSummary`: `id`, `pageId`, `thumbnailUrl` (string | null),
   `pageUpdatedAt` (updated_at исходной строки на момент снапшота, string | null),
   `createdAt`.
-- `IPageVersion` (полный снапшот): summary + meta-поля страницы + `schema`,
-  `published`.
+- `IPageVersion` (полный снапшот): summary + meta-поля страницы + `viewportConfig`,
+  `schema`, `published`.
+
+`viewportConfig` обязан входить и в снапшот версии, и в её восстановление: ключи
+`props.responsive` в схеме относятся к тому набору устройств, при котором её
+сняли. Откат схемы без набора дал бы страницу, где переопределения блоков
+указывают на ступени, которых у неё нет.
 
 `pageUpdatedAt` обязан быть и в сводке, а не только в полном снапшоте: даты
 означают разное. `createdAt` — момент снапшота, то есть момент, когда состояние
@@ -205,7 +214,8 @@ published-страницы — поэтому lookup по адресу обяз�
   себя, и посетитель увидит чужую страницу под своим URL;
 - отдавать страницу только если `published: true`; draft и несуществующая —
   404;
-- формат — публичная проекция: поля `IBricksPageRow` **без** `thumbnailUrl` и
+- формат — публичная проекция: поля `IBricksPageRow` (включая `viewportConfig` —
+  он задаёт пороги media-query опубликованной страницы) **без** `thumbnailUrl` и
   `revision` (можно отдавать и полную строку — лишние поля не мешают);
 - сегмент `public` — имя пути в структуре, а не требование открытого доступа:
   запросы приходят server-to-server с тем же Bearer.

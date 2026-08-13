@@ -80,5 +80,26 @@ export const useHistoryStore = defineStore('bricksHistory', {
             this.history = [];
             this.historyIndex = -1;
         },
+
+        /**
+         * Перебирает сохранённую ветку истории, применяя преобразование к каждому снимку.
+         *
+         * Нужен разрушающим правкам топологии страницы — удалению устройства из
+         * набора и возврату к набору проекта. Полный сброс истории там не годится:
+         * подтверждение обещает удалить переопределения устройства и только их, а
+         * заодно отняло бы возможность отменить прежние правки текста и структуры.
+         *
+         * Redo-хвост отбрасывается обязательно: очистка одних лишь пройденных
+         * снимков позволила бы redo вернуть только что удалённые переопределения.
+         *
+         * @param transform - Преобразование снимка (чистка ключей устройства).
+         */
+        rebase(transform: (schema: IBricksSchema) => IBricksSchema) {
+            if (this.historyIndex < this.history.length - 1) {
+                this.history.splice(this.historyIndex + 1);
+            }
+
+            this.history = this.history.map((schema) => transform(schema));
+        },
     },
 });

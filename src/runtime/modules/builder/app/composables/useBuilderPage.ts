@@ -20,10 +20,17 @@ import { useBuilderToast } from '../../core/composables/useBuilderToast';
 import { usePreviewSync } from './usePreviewSync';
 import { usePublishPreview } from '../../publish/composables/usePublishPreview';
 import { useBricksConfig } from '../../../common/composables/useBricksConfig';
+import { useBricksDevices } from '../../../common/composables/useBricksDevices';
+import { findRemovedDeviceKeys } from '../../core/utils/deviceKeyCleanup';
+import { BRICKS_DEVICES_KEY } from '../../../common/constants/injectionKeys';
+import { useBricksStyles } from '../../../common/composables/useBricksStyles';
+import { useResponsiveVisibilityStyles } from '../../../layouts-blocks/composables/useResponsiveVisibilityStyles';
+import { useResponsiveLayoutStyles } from '../../../layouts-blocks/composables/useResponsiveLayoutStyles';
 
 // Pinia
 import { useComponentsStore } from '../../core/stores/components';
 import { useSidebarStore } from '../../core/stores/sidebar';
+import { useCanvasStore } from '../../core/stores/canvas';
 import { usePublishStore } from '../../publish/stores/publish';
 // #endregion
 
@@ -47,12 +54,63 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
     const { t } = useI18n();
     const componentsStore = useComponentsStore();
     const sidebarStore = useSidebarStore();
+    const canvasStore = useCanvasStore();
     const publishStore = usePublishStore();
     const dragComposable = useComponentLibraryDrag();
     const bricksConfig = useBricksConfig();
 
     // Кэшируем backgroundColor для использования в store (вне Vue контекста)
     setPublishStoreBackgroundColor(bricksConfig.backgroundColor || '#FFFFFF');
+
+    // Набор устройств кладёт composition root: `builder/core` не имеет права
+    // импортировать `builder/publish`, где живёт форма с `viewportConfig`.
+    // Watcher, а не разовый вызов на bootstrap: страница билдера намеренно не
+    // перемонтируется при смене адреса, набор правится модалкой и приезжает с
+    // восстановленным черновиком — каждый из этих источников проходит через форму.
+    // `flush: 'sync'` — канвас смонтирован с самого начала (под лоадером), и
+    // отложенное применение оставило бы его на прежних размерах.
+    const { resolvePageDevices } = useBricksDevices();
+
+    watch(
+        () => publishStore.currentFormState.viewportConfig,
+        (config, previousConfig) => {
+            const previousKeys = canvasStore.devices.map((device) => device.key);
+            const devices = resolvePageDevices(config ?? null);
+
+            canvasStore.setDevices(devices);
+
+            // Первый прогон (immediate) сравнивать не с чем: прежнего набора
+            // ещё не было, и «исчезнувшими» оказались бы все ключи схемы
+            if (previousConfig === undefined) {
+                return;
+            }
+
+            const removed = findRemovedDeviceKeys(
+                previousKeys,
+                devices.map((device) => device.key)
+            );
+
+            if (removed.size > 0) {
+                componentsStore.stripDeviceKeys(removed);
+            }
+        },
+        { immediate: true, deep: true, flush: 'sync' }
+    );
+
+    // Блокам, которым мало CSS-переменных (Slider строит JS-брейкпоинты Swiper),
+    // набор нужен значением — отдаём инъекцией
+    provide(
+        BRICKS_DEVICES_KEY,
+        computed(() => canvasStore.devices)
+    );
+
+    // Тот же набор — источник CSS страницы билдера: вытесняет проектные теги
+    // плагина по ключу, канвас получает правила своих устройств
+    const getPageDevices = () => canvasStore.devices;
+
+    useBricksStyles(getPageDevices);
+    useResponsiveVisibilityStyles(getPageDevices);
+    useResponsiveLayoutStyles(getPageDevices);
 
     provide('dragComposable', dragComposable);
 

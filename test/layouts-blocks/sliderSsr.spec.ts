@@ -25,9 +25,7 @@ const ClientOnlyServerStub = defineComponent({
 
 const BASE_LAYOUT_PROPS: ISliderLayoutProps = {
     spaceBetween: 24,
-    slidesPerViewDesktop: 3,
-    slidesPerViewTablet: 2,
-    slidesPerViewMobile: 1,
+    slidesPerView: 3,
     loop: false,
     autoplay: false,
     autoplayDelay: 3000,
@@ -81,34 +79,21 @@ describe('BlockSlider SSR fallback', () => {
         expect(html).toContain('Third slide content');
     });
 
-    it('published: fallback несёт slidesPerView per-breakpoint и gap в CSS-переменных', async () => {
+    it('published: fallback несёт только зазор — число слайдов приходит переменной набора', async () => {
         const html = await renderSliderToString({});
 
         expect(html).toContain('--bricks-slider-gap:24px');
-        expect(html).toContain('--bricks-slider-spv-mobile:1');
-        expect(html).toContain('--bricks-slider-spv-tablet:2');
-        expect(html).toContain('--bricks-slider-spv-desktop:3');
-    });
-
-    it('published: невалидные slidesPerView нормализуются к минимуму 1', async () => {
-        const html = await renderSliderToString({
-            layoutProps: {
-                slidesPerViewDesktop: 0,
-                slidesPerViewTablet: Number.NaN,
-                slidesPerViewMobile: -2,
-            },
-        });
-
-        expect(html).toContain('--bricks-slider-spv-mobile:1');
-        expect(html).toContain('--bricks-slider-spv-tablet:1');
-        expect(html).toContain('--bricks-slider-spv-desktop:1');
+        // Активную `--bricks-slider-spv` выбирает сгенерированное правило по
+        // набору страницы, а не media query, зашитая в сам компонент
+        expect(html).not.toContain('--bricks-slider-spv-mobile');
+        expect(html).not.toContain('--bricks-slider-spv-desktop');
     });
 
     it('editor: SSR-fallback не рендерится', async () => {
         const html = await renderSliderToString({ isEditor: true });
 
         expect(html).not.toContain('First slide content');
-        expect(html).not.toContain('--bricks-slider-spv-desktop');
+        expect(html).not.toContain('--bricks-slider-gap');
     });
 
     it('published без слайдов: fallback отсутствует', async () => {

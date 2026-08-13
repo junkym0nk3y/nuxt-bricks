@@ -20,6 +20,10 @@
         "./sanitize": {
             "types": "./dist/runtime/modules/common/utils/sanitize/index.d.ts",
             "import": "./dist/runtime/modules/common/utils/sanitize/index.js"
+        },
+        "./scss/mixins": {
+            "sass": "./dist/scss/mixins.scss",
+            "default": "./dist/scss/mixins.scss"
         }
     },
     "main": "./dist/module.mjs",
@@ -119,6 +123,7 @@
         "pg": "^8.20.0",
         "pinia": "^3.0.0",
         "reka-ui": "^2.0.0",
+        "sass": "^1.80.0",
         "swiper": "^14.0.5",
         "vanilla-jsoneditor": "^3.11.0",
         "vee-validate": "^4.13.1",
@@ -126,6 +131,9 @@
     },
     "peerDependenciesMeta": {
         "pg": {
+            "optional": true
+        },
+        "sass": {
             "optional": true
         }
     },

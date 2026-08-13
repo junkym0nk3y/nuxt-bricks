@@ -3,9 +3,10 @@
  * Домен layouts-blocks — владелец этих контрактов; canvas/render/sidebar импортируют отсюда.
  */
 
+import type { ComputedRef, VNodeChild } from 'vue';
+import type { TInlineEditingPropType } from '../../common/types/inlineEditing';
 import type { IBricksComponent } from '../../common/types/brick';
 import type { TBricksMediaLoadMode } from '../../common/types/config';
-import type { VNodeChild } from 'vue';
 
 export type TGridLayoutVariant = 'default' | 'lead-left' | 'lead-right';
 
@@ -49,9 +50,15 @@ export interface ISliderCaption {
 
 export interface ISliderLayoutProps {
     spaceBetween: number;
-    slidesPerViewDesktop: number;
-    slidesPerViewTablet: number;
-    slidesPerViewMobile: number;
+    /**
+     * Число слайдов на базовом устройстве. Прежние
+     * `slidesPerViewDesktop/Tablet/Mobile` сняты: набор устройств произвольный,
+     * и три отдельных пропа не описали бы ни четвёртую ступень, ни ключ,
+     * придуманный пользователем. Ступени задаются `responsive[<ключ>]`.
+     */
+    slidesPerView: number;
+    /** Переопределения свойств по ключам устройств набора страницы. */
+    responsive?: Record<string, Record<string, unknown>>;
     loop: boolean;
     autoplay: boolean;
     autoplayDelay: number;
@@ -190,3 +197,29 @@ export type TLayoutProps =
     | IAccordionLayoutProps
     | ISectionLayoutProps
     | IBlockSvgProps;
+
+/**
+ * Пропсы блока Text.
+ *
+ * `fontSize` — responsive-свойство: до перевода на CSS-переменные размер задавался
+ * `@container`-запросами прямо в SFC, но `container-type` объявлен только на
+ * `.bricks-canvas`, поэтому на published текст всегда оставался базовым.
+ */
+export interface IBlockTextProps {
+    componentId?: string;
+    content?: string;
+    fontSize?: number;
+    marginTop?: string | number;
+    marginBottom?: string | number;
+}
+
+/**
+ * Контекст inline-редактирования, который канвас прокидывает блокам через
+ * provide/inject.
+ */
+export interface IInlineEditingContext {
+    componentId: ComputedRef<string | null>;
+    propName: ComputedRef<string | null>;
+    propType: ComputedRef<TInlineEditingPropType | null>;
+    isEditing: ComputedRef<boolean>;
+}

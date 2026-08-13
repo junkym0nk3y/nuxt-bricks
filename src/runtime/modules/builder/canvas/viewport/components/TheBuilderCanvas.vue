@@ -363,9 +363,11 @@ onBeforeUnmount(() => {
                     :style="figmaWrapperStyle"
                     data-canvas-zoom-target="true"
                 >
-                    <BuilderCanvasViewport viewport="mobile" />
-                    <BuilderCanvasViewport viewport="tablet" />
-                    <BuilderCanvasViewport viewport="desktop" />
+                    <BuilderCanvasViewport
+                        v-for="device in canvasStore.devices"
+                        :key="device.key"
+                        :viewport="device.key"
+                    />
                 </div>
             </div>
 
@@ -495,6 +497,13 @@ onBeforeUnmount(() => {
 .canvas {
     position: relative;
     overflow: visible;
+
+    // Лист — flex-item в .canvasWrapper, и без запрета сжатия заданная width
+    // ведёт себя как flex-basis: масштаб применялся дважды (transform + реальное
+    // сжатие layout-ширины), грид считал 1fr от неверной ширины, и канвас
+    // показывал не то, что будет на published. За вписывание отвечает только
+    // transform: scale()
+    flex-shrink: 0;
     margin-top: 2rem;
     border-radius: var(--bricks-border-radius-xs);
     background-color: var(--bricks-base-0);

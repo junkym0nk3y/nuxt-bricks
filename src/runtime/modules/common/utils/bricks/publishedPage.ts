@@ -125,6 +125,7 @@ export function normalizePublishedPage(
         urlPrefix: page.urlPrefix ?? null,
         subdomain: page.subdomain ?? null,
         thumbnailUrl: page.thumbnailUrl ?? null,
+        viewportConfig: page.viewportConfig ?? null,
         schema: preserveSchema(schema),
         published: Boolean(page.published),
         // Отсутствует в public-проекции и старых снапшотах — тогда запись без precondition

@@ -6,12 +6,7 @@ import { h, type VNode } from 'vue';
 
 // Utils
 import { convertPxToRem } from '../../common/utils/main';
-import {
-    getResponsiveOverrides,
-    gridPlacementStyle,
-    makeResponsiveVars,
-    toRem,
-} from '../utils/responsiveVars';
+import { gridPlacementStyle, makeResponsiveVars, toRem } from '../utils/responsiveVars';
 
 /**
  * Нормализует значение отступа в rem.
@@ -77,8 +72,6 @@ function renderSpaceDivider(spaceProps: Record<string, unknown>, isVertical: boo
 function renderSpacePublished(ctx: IBlockRenderContext): VNode {
     const { component, extraClasses, extraAttrs, styles } = ctx;
     const currentProps = component.props as Record<string, unknown>;
-    const mOv = getResponsiveOverrides(currentProps, 'mobile');
-    const tOv = getResponsiveOverrides(currentProps, 'tablet');
 
     const toSize = (v: unknown): string => normalizeSpacingSize((v || '2.4rem') as string | number);
 
@@ -86,12 +79,17 @@ function renderSpacePublished(ctx: IBlockRenderContext): VNode {
         backgroundColor: 'transparent',
         border: 'none',
         borderRadius: '0',
-        ...makeResponsiveVars('--bricks-space-size', currentProps.size, tOv, mOv, 'size', toSize),
+        ...makeResponsiveVars(
+            '--bricks-space-size',
+            currentProps.size,
+            currentProps,
+            'size',
+            toSize
+        ),
         ...makeResponsiveVars(
             '--bricks-space-divider-mx',
             currentProps.dividerMarginX,
-            tOv,
-            mOv,
+            currentProps,
             'dividerMarginX',
             toRem
         ),

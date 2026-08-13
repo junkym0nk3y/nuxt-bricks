@@ -2,8 +2,10 @@
  * Pages Manager dashboard types.
  */
 
+import type { IBricksResolvedDevice, TBricksPageDeviceSet } from '../../../common/types/devices';
+import type { TBricksModalLayer } from '../../../ui/base/modal/types';
 import type { IPageVersionSummary, TPublishedPageSummary } from '../../../common/types/bricks-api';
-import type { IBricksSchema } from '../../../common/types/brick';
+import type { IBricksComponent, IBricksSchema } from '../../../common/types/brick';
 import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 import type { IParsedSchemaFile } from './composables';
 
@@ -126,6 +128,15 @@ export interface IPublishCreatePageFormOptions {
      * закрыли), POST не уходит.
      */
     resolveSchema: () => Promise<IBricksSchema | null>;
+    /**
+     * Отдаёт набор устройств новой страницы: правку из группы «Устройства» либо
+     * набор из импортированного конверта. `null` — страница наследует набор
+     * проекта.
+     *
+     * Отдельным колбэком, а не полем формы: набор правится своей модалкой, и
+     * его состояние живёт рядом с ней, а не в схеме валидации meta-полей.
+     */
+    resolveViewportConfig?: () => TBricksPageDeviceSet | null;
 }
 
 /**
@@ -249,4 +260,34 @@ export interface IPublishVersionCard {
     version: IPageVersionSummary | null;
     thumbnailUrl: string | null;
     date: string;
+}
+
+/**
+ * Пропсы модалки «Устройства страницы».
+ *
+ * Набор приходит значением, а не читается из стора: модалка открывается и из
+ * настроек сохранённой страницы, и из формы ещё не созданной, — у второй стора
+ * с её набором нет вовсе.
+ */
+export interface IPublishDevicesModalProps {
+    isOpen: boolean;
+    /** Набор страницы; `null` — наследует набор проекта. */
+    viewportConfig: TBricksPageDeviceSet | null;
+    /** Резолвнутый набор проекта — то, что показывает выключенный тумблер. */
+    projectDevices: IBricksResolvedDevice[];
+    /** Ключ устройства, открытого на канвасе (подсветка сегмента шкалы). */
+    activeDeviceKey: string;
+    /**
+     * Компоненты схемы: по ним считается число теряемых переопределений в
+     * подтверждении удаления. У ещё не созданной страницы список пуст.
+     */
+    schemaComponents: IBricksComponent[];
+    /** `nested` — модалка открыта поверх другой (форма создания страницы). */
+    layer?: TBricksModalLayer;
+}
+
+export interface IPublishDevicesModalEmits {
+    close: [];
+    /** Набор подтверждён: уезжает в состояние редактора, а не на сервер. */
+    save: [viewportConfig: TBricksPageDeviceSet | null];
 }

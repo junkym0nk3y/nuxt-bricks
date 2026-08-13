@@ -100,7 +100,7 @@ async function handleExport(): Promise<void> {
             return;
         }
 
-        downloadSchema(fullPage.schema, filename);
+        downloadSchema(fullPage.schema, filename, fullPage.viewportConfig);
     } catch (error: unknown) {
         if (startedIn !== exportGeneration) {
             return;

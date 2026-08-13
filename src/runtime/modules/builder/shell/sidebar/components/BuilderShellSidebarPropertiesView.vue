@@ -5,7 +5,11 @@ import type { TBricksDeviceKey } from '../../../../common/types/brick';
 import type { IBricksTabItem } from '../../../../ui/base/tabs/types.d.ts';
 
 // Vue
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+// Pinia
+import { useCanvasStore } from '../../../core/stores/canvas';
 
 // Components
 import BricksButton from '../../../../ui/base/button/BricksButton.vue';
@@ -17,6 +21,12 @@ import BricksTooltipHint from '../../../../ui/tooltip/BricksTooltipHint.vue';
 
 // Composables
 import { useSidebarPropertiesPanel } from '../composables/useSidebarPropertiesPanel';
+
+// Constants
+import { BASE_DEVICE_KEY } from '../../../../common/constants/devices';
+
+// Utils
+import { resolveDeviceIcon } from '../../../../common/utils/bricks/devices';
 // #endregion
 
 // #region Emits
@@ -25,26 +35,31 @@ const emit = defineEmits<{ close: []; openMediaGallery: [] }>();
 
 // #region Data
 const { t } = useI18n();
+const canvasStore = useCanvasStore();
 
 /**
- * Порядок вкладок «Устройство»: сначала базовый scope, потом оверрайды.
- * `desktop` пишет в обычные пропы компонента, `tablet` и `mobile` — в
- * responsive-оверрайды поверх него, поэтому обратный порядок читался бы как
- * «правки поверх ничего». С нижним баром канваса порядок намеренно не совпадает:
- * там ряд идёт от узкого к широкому.
+ * Вкладки «Устройство»: сначала базовый scope, потом переопределения.
+ * Базовое устройство пишет в обычные пропы компонента, остальные — в
+ * responsive-переопределения поверх него, поэтому обратный порядок читался бы
+ * как «правки поверх ничего». С нижним баром канваса порядок намеренно не
+ * совпадает: там ряд идёт от узкого к широкому.
+ *
+ * Только иконки: при четырёх устройствах подписи в полосу панели не помещаются,
+ * поэтому имя устройства уезжает в тултип.
  */
-const DEVICE_SCOPES: TBricksDeviceKey[] = ['desktop', 'tablet', 'mobile'];
+const deviceScopeItems = computed<IBricksTabItem[]>(() => {
+    const devices = canvasStore.devices;
+    const base = devices.filter((device) => device.key === BASE_DEVICE_KEY);
+    const rest = [...devices].reverse().filter((device) => device.key !== BASE_DEVICE_KEY);
 
-const DEVICE_SCOPE_LABELS: Record<TBricksDeviceKey, string> = {
-    desktop: 'Desktop',
-    tablet: 'Tablet',
-    mobile: 'Mobile',
-};
-
-const DEVICE_SCOPE_ITEMS: IBricksTabItem[] = DEVICE_SCOPES.map((scope) => ({
-    value: scope,
-    label: DEVICE_SCOPE_LABELS[scope],
-}));
+    return [...base, ...rest].map((device) => ({
+        value: device.key,
+        // Подпись не рисуется (iconOnly), но остаётся доступным именем таба
+        label: device.label,
+        icon: resolveDeviceIcon(device.icon),
+        tooltip: `${device.label} · ${device.width}px`,
+    }));
+});
 
 const {
     store,
@@ -92,12 +107,12 @@ function handleClose(): void {
  * @param value - Значение выбранного таба.
  */
 function handleSelectDeviceScope(value: string): void {
-    const scope = DEVICE_SCOPES.find((item) => item === value);
-    if (!scope) {
+    const device = canvasStore.devices.find((item) => item.key === value);
+    if (!device) {
         return;
     }
 
-    handleSetLayoutDeviceScope(scope);
+    handleSetLayoutDeviceScope(device.key);
 }
 
 /**
@@ -159,8 +174,9 @@ defineExpose({
 
             <BricksTabBar
                 :model-value="layoutDeviceScope"
-                :items="DEVICE_SCOPE_ITEMS"
+                :items="deviceScopeItems"
                 variant="outline"
+                icon-only
                 block
                 :group-label="t('bricks.properties.device')"
                 @update:model-value="handleSelectDeviceScope"

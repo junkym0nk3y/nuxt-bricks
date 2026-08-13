@@ -45,6 +45,7 @@ import {
     TaOutlineLibraryPhoto,
     TaOutlineLoader2,
     TaOutlineLogout,
+    TaOutlineLock,
     TaOutlineMinus,
     TaOutlinePackage,
     TaOutlinePencil,
@@ -122,6 +123,7 @@ export const BUILDER_ICONS: Record<string, Component> = {
 
     // Общие действия
     'ta:outline-plus': TaOutlinePlus,
+    'ta:outline-lock': TaOutlineLock,
     'ta:outline-minus': TaOutlineMinus,
     'ta:outline-trash': TaOutlineTrash,
     'ta:outline-copy': TaOutlineCopy,

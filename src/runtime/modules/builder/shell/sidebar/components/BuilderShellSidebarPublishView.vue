@@ -2,9 +2,10 @@
 // #region Imports
 // Types
 import type { TPublishFormErrors } from '../../../publish/types/dashboard';
+import type { TBricksPageDeviceSet } from '../../../../common/types/devices';
 
 // Vue
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Vee-validate
@@ -15,12 +16,22 @@ import { useSidebarPublishForm } from '../composables/useSidebarPublishForm';
 
 // Pinia
 import { usePublishStore } from '../../../publish/stores/publish';
+import { useCanvasStore } from '../../../core/stores/canvas';
+import { useComponentsStore } from '../../../core/stores/components';
+
+// Composables
+import { useBricksDevices } from '../../../../common/composables/useBricksDevices';
+
+// Utils
+import { resolveDeviceIcon } from '../../../../common/utils/bricks/devices';
 
 // Components
 import BricksInput from '../../../../ui/inputs/BricksInput.vue';
 import BricksHexInput from '../../../../ui/inputs/BricksHexInput.vue';
 import BricksSelect from '../../../../ui/inputs/BricksSelect.vue';
+import BricksButton from '../../../../ui/base/button/BricksButton.vue';
 import BricksCloseButton from '../../../../ui/base/modal/BricksCloseButton.vue';
+import BuilderPublishDevicesModal from '../../../publish/components/BuilderPublishDevicesModal.vue';
 import BuilderPublishSeoFields from '../../../publish/components/BuilderPublishSeoFields.vue';
 import BuilderShellSidebarNavigationEditor from './BuilderShellSidebarNavigationEditor.vue';
 import BuilderShellSidebarPublishSocialImage from './BuilderShellSidebarPublishSocialImage.vue';
@@ -36,6 +47,11 @@ const emit = defineEmits<{
 // #region Data
 const { t } = useI18n();
 const publishStore = usePublishStore();
+const canvasStore = useCanvasStore();
+const componentsStore = useComponentsStore();
+const { projectDevices } = useBricksDevices();
+
+const isDevicesModalOpen = ref(false);
 const {
     settings,
     isSubmitting,
@@ -66,7 +82,32 @@ const {
 const touchedFields = ref<Set<string>>(new Set());
 // #endregion
 
+// #region Computed
+/**
+ * Подпись группы: наследует ли страница набор проекта и сколько в нём устройств.
+ */
+const devicesSummary = computed<string>(() => {
+    const count = canvasStore.devices.length;
+
+    return publishStore.currentFormState.viewportConfig
+        ? t('bricks.devices.settingsCustom', { count })
+        : t('bricks.devices.settingsInherited', { count });
+});
+// #endregion
+
 // #region Methods
+/**
+ * Записывает набор устройств в состояние редактора.
+ *
+ * На сервер он уедет общим сохранением страницы: набор и схема — одно
+ * состояние, и точечный PATCH прошёл бы мимо снапшота версии.
+ *
+ * @param config - Набор страницы либо `null` (наследование).
+ */
+function handleSaveDevices(config: TBricksPageDeviceSet | null): void {
+    publishStore.currentFormState.viewportConfig = config;
+}
+
 /**
  * Ошибка одного поля из двух источников: живой yup-схемы формы (только по
  * тронутым полям) и проверки перед публикацией, которая пишет в стор. Второй
@@ -204,6 +245,30 @@ watch(formKey, () => {
                 />
             </div>
 
+            <div :class="$style.formGroup">
+                <span :class="$style.label">{{ t('bricks.devices.settingsGroup') }}</span>
+                <div :class="$style.devices">
+                    <div :class="$style.deviceIcons">
+                        <BricksIcon
+                            v-for="device in canvasStore.devices"
+                            :key="device.key"
+                            :icon="resolveDeviceIcon(device.icon)"
+                            :title="device.label"
+                        />
+                        <span :class="$style.devicesSummary">{{ devicesSummary }}</span>
+                    </div>
+                    <BricksButton
+                        :class="$style.devicesAction"
+                        variant="ghost"
+                        size="sm"
+                        :disabled="isSubmitting"
+                        @click="isDevicesModalOpen = true"
+                    >
+                        {{ t('bricks.devices.settingsAction') }}
+                    </BricksButton>
+                </div>
+            </div>
+
             <!--
                 Значения приходят из стора, а не из формы: источник правды сайдбара —
                 `currentFormState`, форма же держит только валидацию. Поэтому каждое
@@ -274,6 +339,16 @@ watch(formKey, () => {
                             </div>
                         </Transition>
                     </div>
+
+                    <BuilderPublishDevicesModal
+                        :is-open="isDevicesModalOpen"
+                        :viewport-config="publishStore.currentFormState.viewportConfig ?? null"
+                        :project-devices="projectDevices"
+                        :active-device-key="canvasStore.viewport"
+                        :schema-components="componentsStore.components"
+                        @close="isDevicesModalOpen = false"
+                        @save="handleSaveDevices"
+                    />
                 </template>
             </BuilderPublishSeoFields>
 
@@ -304,6 +379,35 @@ watch(formKey, () => {
 </template>
 
 <style module lang="scss">
+.devices {
+    // Колонка, а не строка: в 28rem сайдбара кнопка рядом с чипами сжималась до
+    // переноса подписи на две строки. По макету она стоит под ними во всю ширину
+    display: flex;
+    padding: 1.2rem;
+    border-radius: var(--bricks-border-radius-sm);
+    border: 1px solid var(--bricks-base-200);
+    background: var(--bricks-surface-raised);
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.deviceIcons {
+    display: flex;
+    align-items: center;
+    font-size: 1.8rem;
+    color: var(--bricks-base-600);
+    gap: 0.8rem;
+}
+
+.devicesSummary {
+    font-size: 1.2rem;
+    color: var(--bricks-base-500);
+}
+
+.devicesAction {
+    width: 100%;
+}
+
 .BuilderShellSidebarPublishView {
     overflow-y: auto;
     display: flex;

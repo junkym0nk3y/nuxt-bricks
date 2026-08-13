@@ -29,6 +29,10 @@ export function toPublicPageProjection(page: IBricksPageRow): TPublicPageProject
         socialImage: page.socialImage,
         urlPrefix: page.urlPrefix,
         subdomain: page.subdomain,
+        // Набор устройств — часть раскладки published-страницы, а не editor-only
+        // данные: без него опубликованная страница считала бы пороги по набору
+        // проекта, пока билдер показывает собственный набор страницы
+        viewportConfig: page.viewportConfig,
         schema: page.schema,
         published: page.published,
         createdAt: page.createdAt,
