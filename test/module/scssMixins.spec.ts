@@ -37,7 +37,7 @@ describe('SCSS-миксины адаптива', () => {
         // Ветка окна огорожена: без guard'а правило протекло бы в канвас, где
         // ширина окна к раскладке листа отношения не имеет
         expect(css).toContain('@media (min-width: 768px)');
-        expect(css).toContain('.A:where(:not(.bricks-canvas *))');
+        expect(css).toContain('.A:where(:not([class~=bricks-canvas] *))');
         // Ветка канваса: `transform: scale()` на размер контейнера не влияет,
         // поэтому лист отдаёт честную ширину
         expect(css).toContain('@container bricks (min-width: 768px)');
@@ -99,6 +99,17 @@ describe('SCSS-миксины адаптива', () => {
         expect(() => compile('.A { @include bricks.bricks-up(watch) { color: red; } }')).toThrow(
             /unknown device "watch"/
         );
+    });
+
+    it('guard окна не содержит класса, который CSS Modules переписал бы', () => {
+        // Миксин раскрывается в блоке стилей потребителя, а там обычно
+        // `<style module>`: голый `.bricks-canvas` в guard'е превращался в
+        // `._bricks-canvas_<hash>` и не совпадал ни с чем. Оконная ветка
+        // переставала отсекаться, и брик на узком листе получал раскладку по
+        // ширине окна — ровно то, ради чего миксины и заведены
+        const css = compile('.A { @include bricks.bricks-up(tablet) { color: red; } }');
+
+        expect(css).not.toMatch(/\.bricks-canvas/);
     });
 
     it('хелперы видимости раскрываются в те же две ветки', () => {

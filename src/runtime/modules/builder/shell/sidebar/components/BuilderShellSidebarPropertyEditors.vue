@@ -15,6 +15,9 @@ import type {
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+// Pinia
+import { useCanvasStore } from '../../../core/stores/canvas';
+
 // Utils
 import { resolveBricksLabel } from '../../../../common/utils/i18nLabels';
 
@@ -40,6 +43,7 @@ const props = withDefaults(defineProps<ISidebarPropertyEditorsProps>(), {
 
 // #region Data
 const { t, te } = useI18n();
+const canvasStore = useCanvasStore();
 const openGroups = ref<Set<string>>(new Set());
 // #endregion
 
@@ -126,6 +130,22 @@ const groupedEditorItems = computed(() => {
 });
 
 const hasGroups = computed(() => groupedEditorItems.value.groups.size > 0);
+
+/**
+ * Тумблеры видимости — по одному на устройство набора страницы.
+ *
+ * Список берётся из набора, а не из трёх фиксированных ключей: у страницы со
+ * своим набором блок иначе нельзя было скрыть на добавленном устройстве из
+ * панели свойств. Скрытие — это только явный `false`: отсутствующий ключ и
+ * записанный `true` одинаково означают «видно».
+ */
+const deviceVisibilityToggles = computed(() =>
+    canvasStore.devices.map((device) => ({
+        key: device.key,
+        label: device.label,
+        isVisible: props.deviceVisibilityValue[device.key] !== false,
+    }))
+);
 
 /**
  * Пара числовых «колонки/строки» из плоского списка: обе рисуются одним
@@ -311,26 +331,12 @@ watch(
 
                 <component
                     :is="props.componentEditors.boolean"
-                    label="Mobile"
-                    :value="props.deviceVisibilityValue.mobile"
+                    v-for="device in deviceVisibilityToggles"
+                    :key="device.key"
+                    :label="device.label"
+                    :value="device.isVisible"
                     :disabled="props.isHiddenValue"
-                    @update:value="handleDeviceVisibilityToggle('mobile', $event as boolean)"
-                />
-
-                <component
-                    :is="props.componentEditors.boolean"
-                    label="Tablet"
-                    :value="props.deviceVisibilityValue.tablet"
-                    :disabled="props.isHiddenValue"
-                    @update:value="handleDeviceVisibilityToggle('tablet', $event as boolean)"
-                />
-
-                <component
-                    :is="props.componentEditors.boolean"
-                    label="Desktop"
-                    :value="props.deviceVisibilityValue.desktop"
-                    :disabled="props.isHiddenValue"
-                    @update:value="handleDeviceVisibilityToggle('desktop', $event as boolean)"
+                    @update:value="handleDeviceVisibilityToggle(device.key, $event as boolean)"
                 />
             </div>
 

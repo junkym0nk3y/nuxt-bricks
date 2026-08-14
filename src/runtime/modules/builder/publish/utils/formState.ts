@@ -1,5 +1,5 @@
 import type { TPublishedPageSummary, TPublishFormState } from '../../../common/types/bricks-api';
-import type { TBricksPageDeviceSet } from '../../../common/types/devices';
+import { cloneDeviceSet } from '../../../common/utils/bricks/devices';
 import {
     DEFAULT_BACKGROUND_COLOR,
     DEFAULT_LAYOUT,
@@ -55,21 +55,6 @@ export function buildDefaultFormState(): TPublishFormState {
 }
 
 /**
- * Глубоко копирует набор устройств.
- *
- * Набор — массив объектов, и поверхностная передача ссылки связала бы форму
- * копии с исходной страницей: правка ширины в одной меняла бы обе.
- *
- * @param config - Набор устройств страницы или `null`.
- * @returns Независимая копия набора либо `null`.
- */
-function cloneViewportConfig(
-    config: TBricksPageDeviceSet | null | undefined
-): TBricksPageDeviceSet | null {
-    return config ? config.map((device) => ({ ...device })) : null;
-}
-
-/**
  * Собирает состояние формы для копии страницы: клонирует meta, копия — черновик
  * с переданным `pagename` и суффиксом «(copy)» в названии.
  *
@@ -94,7 +79,7 @@ export function buildCopyFormState(
         subdomain: page.subdomain,
         // Глубокая копия: с общей ссылкой правка набора у копии меняла бы набор
         // оригинала, пока обе формы открыты
-        viewportConfig: cloneViewportConfig(page.viewportConfig),
+        viewportConfig: cloneDeviceSet(page.viewportConfig),
         createdAt: '',
         updatedAt: '',
     };
@@ -121,7 +106,7 @@ export function buildEditFormState(page: TPublishedPageSummary): TPublishFormSta
         socialImage: page.socialImage,
         urlPrefix: page.urlPrefix,
         subdomain: page.subdomain,
-        viewportConfig: cloneViewportConfig(page.viewportConfig),
+        viewportConfig: cloneDeviceSet(page.viewportConfig),
         createdAt: page.createdAt,
         updatedAt: page.updatedAt,
     };
@@ -151,7 +136,7 @@ export function normalizeFormState(formState: Partial<TPublishFormState>): TPubl
         subdomain: formState.subdomain ?? null,
         // Черновики, записанные до появления набора, поля не содержат — это
         // законное «наследует набор проекта», а не потеря данных
-        viewportConfig: cloneViewportConfig(formState.viewportConfig),
+        viewportConfig: cloneDeviceSet(formState.viewportConfig),
         createdAt: formState.createdAt ?? defaults.createdAt,
         updatedAt: formState.updatedAt ?? defaults.updatedAt,
     };

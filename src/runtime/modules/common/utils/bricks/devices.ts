@@ -229,6 +229,23 @@ function validateSetShape(devices: TBricksPageDeviceSet, errors: string[]): void
 }
 
 /**
+ * Копирует набор устройств, отвязывая записи от источника.
+ *
+ * Две задачи сразу. Первая — независимость данных: копия страницы, разделившая
+ * массив с оригиналом, меняла бы ширины обеих. Вторая — снятие reactive-обёртки:
+ * набор в состоянии формы это Proxy, а structured clone на Proxy бросает
+ * `DataCloneError`, поэтому напрямую в `postMessage` его отдавать нельзя.
+ *
+ * @param config - Набор устройств или `null`/`undefined`.
+ * @returns Независимая копия из простых объектов либо `null`.
+ */
+export function cloneDeviceSet(
+    config: ReadonlyArray<IBricksPageDevice> | null | undefined
+): TBricksPageDeviceSet | null {
+    return config ? config.map((device) => ({ ...device })) : null;
+}
+
+/**
  * Проверяет набор устройств страницы.
  *
  * Ничего не чинит намеренно: повреждённый набор, приведённый сортировкой и

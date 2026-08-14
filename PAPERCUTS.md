@@ -1256,3 +1256,30 @@ capacity»), и `wait-codex.mjs` отдал `status=failed` с одной пре
 заново, оформить уже найденное». Вывод: при `status=failed` сначала читать
 `logFile` из companion, а не перезапускать ревью с нуля, и добор оформлять
 `--resume`.
+
+## 2026-08-14 01:35 — claude-opus-5[1m]
+
+Рисовал концепт-страницу в Figma через `use_figma` → 62 текстовых узла (caption-sub,
+board-note, label) оказались схлопнуты в высоту 10px и обрезали вторую строку. Причина:
+в хелпере стояло `textAutoResize = 'HEIGHT'` ПЕРЕД `resize(w, 10)`, а `resize()`
+переводит текст обратно в `NONE` — та же механика, что у сброса auto-layout sizing.
+Порядок должен быть обратный: сначала `resize(w, h)`, потом `textAutoResize = 'HEIGHT'`.
+Визуально дефект незаметен, пока текст влезает в одну строку, — ловится только
+проверкой `height < 12` по всем текстам страницы.
+
+## 2026-08-14 01:36 — claude-opus-5[1m]
+
+Извлекал SVG иконок из `@kalimahapps/vue-icons` для макета: скрипт не запускается ни из
+scratchpad (`Cannot find package 'vue'` — резолв идёт от файла скрипта, не от cwd), ни по
+имени пакета (`ERR_PACKAGE_PATH_NOT_EXPORTED` для `./icons/ta` — exports-карта закрывает
+подпуть и для `import`, и для `require`). Рабочий вариант: копия скрипта в корне проекта
+плюс `createRequire` с абсолютным путём `process.cwd() + '/node_modules/@kalimahapps/vue-icons/icons/ta/index.js'`.
+
+## 2026-08-14 03:05 — claude-opus-5[1m]
+
+Живая верификация через chrome-devtools MCP: `resize_page` меняет размер только у вкладки,
+выбранной с `bringToFront: true` — на фоновой вкладке вызов проходит без ошибки, но
+`innerWidth` остаётся прежним, и замеры молча снимаются не на той ширине. После
+`select_page(bringToFront)` следующий `resize_page` иногда падает с `Restore window to
+normal state before setting content size` (окно осталось maximized) — помогает повторить
+вызов или проверить `innerWidth`: он мог уже совпасть с нужным.

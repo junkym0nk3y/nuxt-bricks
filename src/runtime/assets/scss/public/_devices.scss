@@ -7,8 +7,8 @@
 /// окно там всегда шире листа.
 ///
 /// Поэтому каждый миксин раскрывается в две ветки:
-///   * `@media` для окна, огороженная `:where(:not(.bricks-canvas *))` — тем же
-///     guard'ом, которым модуль уже отделяет published-правила от канвасных;
+///   * `@media` для окна, огороженная от потомков канваса (тем же по смыслу
+///     guard'ом, которым модуль отделяет published-правила от канвасных);
 ///   * `@container bricks` для листа канваса — `.bricks-canvas` объявлен
 ///     контейнером, а `transform: scale()` на размер контейнера не влияет,
 ///     поэтому лист отдаёт свою честную ширину.
@@ -37,6 +37,16 @@ $devices: (
     tablet: 768,
     desktop: 1600,
 ) !default;
+
+// Канвас в guard'е оконной ветки опознаётся по атрибуту, а не по классу
+// `.bricks-canvas`. Причина: миксины раскрываются в блоке стилей потребителя,
+// и в `<style module>` CSS Modules переписывает голый класс в хэшированный
+// (`._bricks-canvas_a1b2c3`). Такой guard не совпадает никогда — оконная ветка
+// переставала отсекаться, и брик на узком листе канваса получал раскладку по
+// ширине окна, то есть ровно тот баг, ради которого миксины и заведены.
+// Селектор по атрибуту CSS Modules не трогает, а `~=` сверяет токен класса
+// целиком, а не подстроку
+$canvas-guard: '[class~="bricks-canvas"]';
 
 /// Ширина устройства по ключу.
 ///
@@ -73,7 +83,7 @@ $devices: (
     $min: bricks-device-width($key);
 
     @media (min-width: #{$min}px) {
-        &:where(:not(.bricks-canvas *)) {
+        &:where(:not(#{$canvas-guard} *)) {
             @content;
         }
     }
@@ -91,7 +101,7 @@ $devices: (
     $max: bricks-device-width($key) - 1;
 
     @media (max-width: #{$max}px) {
-        &:where(:not(.bricks-canvas *)) {
+        &:where(:not(#{$canvas-guard} *)) {
             @content;
         }
     }
@@ -111,7 +121,7 @@ $devices: (
     $max: bricks-device-width($to) - 1;
 
     @media (min-width: #{$min}px) and (max-width: #{$max}px) {
-        &:where(:not(.bricks-canvas *)) {
+        &:where(:not(#{$canvas-guard} *)) {
             @content;
         }
     }

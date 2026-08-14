@@ -5,6 +5,7 @@ import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 import type { IBuilderSessionToken } from '../types/composables';
 
 // Utils
+import { cloneDeviceSet } from '../../../common/utils/bricks/devices';
 import { getPageAddressKey, toPageAddress } from '../../../common/utils/bricks/pageAddress';
 
 // Vue
@@ -72,7 +73,11 @@ export function usePreviewSync(sessionToken: IBuilderSessionToken) {
         }
 
         const schema = componentsStore.exportSchema();
-        const viewportConfig = publishStore.currentFormState.viewportConfig ?? null;
+        // Копия, а не значение из состояния формы: там лежит reactive-прокси, а
+        // structured clone на Proxy бросает DataCloneError — postMessage падал
+        // целиком, и превью переставало обновляться до перезагрузки вкладки.
+        // Запись в localStorage идёт ниже и проходила бы, маскируя отказ
+        const viewportConfig = cloneDeviceSet(publishStore.currentFormState.viewportConfig);
 
         if (typeof window !== 'undefined') {
             try {

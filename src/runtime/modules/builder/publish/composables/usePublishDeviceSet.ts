@@ -22,7 +22,11 @@ import {
 } from '../../../common/constants/devices';
 
 // Utils
-import { deviceRanges, validateDeviceSet } from '../../../common/utils/bricks/devices';
+import {
+    cloneDeviceSet,
+    deviceRanges,
+    validateDeviceSet,
+} from '../../../common/utils/bricks/devices';
 // #endregion
 
 /**
@@ -86,8 +90,27 @@ export function usePublishDeviceSet(options: IPublishDeviceSetOptions) {
         }))
     );
 
+    /**
+     * Тот же набор, но упорядоченный по ширине.
+     *
+     * Порядок задаётся шириной, однако СТРОКИ таблицы, пока модалка открыта, не
+     * переставляются: перестановка переносит DOM-узел строки, и всё, что в этот
+     * момент связано с её позицией, ломается — ввод в поле ширины терял фокус
+     * после первой цифры, а крестик соседней строки успевал приехать под
+     * курсор между нажатием и отпусканием кнопки, из-за чего подтверждение
+     * предлагало удалить не то устройство. Сортировка нужна не глазу, а
+     * данным: `deviceRanges` берёт верхнюю границу у соседа справа, а серверный
+     * контракт несортированный массив отклоняет — поэтому диапазоны, проверка
+     * сохранения и значение для формы считаются по этой копии. Пользователь
+     * видит новый порядок в шкале диапазонов сразу, а в таблице — при следующем
+     * открытии модалки.
+     */
+    const sortedDevices = computed<TBricksPageDeviceSet>(() =>
+        [...shownDevices.value].sort((a, b) => a.width - b.width)
+    );
+
     const ranges = computed<IPublishDeviceRange[]>(() => {
-        const devices = shownDevices.value;
+        const devices = sortedDevices.value;
         const activeKey = options.activeDeviceKey();
 
         return deviceRanges(devices).map((range, index) => ({
@@ -140,7 +163,7 @@ export function usePublishDeviceSet(options: IPublishDeviceSetOptions) {
      * страницы — когда модалка уже закрыта и показать ошибку негде.
      */
     const canSave = computed<boolean>(
-        () => !hasErrors.value && (!isCustom.value || validateDeviceSet(draft.value).ok)
+        () => !hasErrors.value && (!isCustom.value || validateDeviceSet(sortedDevices.value).ok)
     );
     // #endregion
 
@@ -195,18 +218,6 @@ export function usePublishDeviceSet(options: IPublishDeviceSetOptions) {
     }
 
     /**
-     * Пересортировывает черновик по возрастанию ширины.
-     *
-     * Порядок задаётся шириной, а не перетаскиванием: строка уезжает на своё
-     * место сразу после ввода. Ключ при этом не меняется — переопределения
-     * блоков остаются привязанными к своему устройству, даже если оно стало
-     * шире соседнего.
-     */
-    function sortDraft(): void {
-        draft.value = [...draft.value].sort((a, b) => a.width - b.width);
-    }
-
-    /**
      * Включает или выключает собственный набор страницы.
      *
      * @param value - Новое положение тумблера.
@@ -232,10 +243,6 @@ export function usePublishDeviceSet(options: IPublishDeviceSetOptions) {
         draft.value = draft.value.map((device) =>
             device.key === key ? { ...device, ...patch } : device
         );
-
-        if (patch.width !== undefined) {
-            sortDraft();
-        }
     }
 
     /**
@@ -254,6 +261,9 @@ export function usePublishDeviceSet(options: IPublishDeviceSetOptions) {
             return;
         }
 
+        // Новая строка встаёт на своё место по ширине сразу: перестановка здесь
+        // безопасна, курсор в этот момент не над таблицей и не в поле ввода —
+        // пользователь только что выбрал устройство в меню
         draft.value = [
             ...draft.value,
             {
@@ -264,9 +274,7 @@ export function usePublishDeviceSet(options: IPublishDeviceSetOptions) {
                 aside: choice.aside,
                 ...(choice.maxWidth === undefined ? {} : { maxWidth: choice.maxWidth }),
             },
-        ];
-
-        sortDraft();
+        ].sort((a, b) => a.width - b.width);
     }
 
     /**
@@ -285,10 +293,13 @@ export function usePublishDeviceSet(options: IPublishDeviceSetOptions) {
     /**
      * Собирает значение для формы публикации.
      *
+     * Отдаётся отсортированный набор независимо от порядка строк: перестановка
+     * отложена до конца ввода, а сервер несортированный массив отклоняет.
+     *
      * @returns Набор страницы либо `null` (наследование набора проекта).
      */
     function toFormValue(): TBricksPageDeviceSet | null {
-        return isCustom.value ? draft.value.map((device) => ({ ...device })) : null;
+        return isCustom.value ? cloneDeviceSet(sortedDevices.value) : null;
     }
     // #endregion
 

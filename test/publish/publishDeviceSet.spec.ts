@@ -98,6 +98,75 @@ describe('usePublishDeviceSet', () => {
         scope.stop();
     });
 
+    it('правка ширины не переставляет строки, пока модалка открыта', () => {
+        // Перестановка переносит DOM-узел строки: на каждый символ она отбирала
+        // фокус у поля ширины («1440» превращалось в «1144»), а между нажатием и
+        // отпусканием кнопки подставляла под курсор крестик соседней строки —
+        // подтверждение предлагало удалить не то устройство. Диапазоны при этом
+        // обязаны считаться уже по новой ширине: они берутся из отсортированной
+        // копии, а не из порядка строк
+        const { scope, api } = mountEditor();
+
+        api.setCustom(true);
+        api.addDevice('laptop');
+        api.updateDevice('laptop', { width: 500 });
+
+        expect(api.rows.value.map((row) => row.key)).toEqual([
+            'mobile',
+            'tablet',
+            'laptop',
+            'desktop',
+        ]);
+        expect(api.ranges.value.map((range) => range.text)).toEqual([
+            '0 – 499',
+            '500 – 767',
+            '768 – 1599',
+            'bricks.devices.rangeFrom',
+        ]);
+        scope.stop();
+    });
+
+    it('повторное открытие показывает строки уже по возрастанию ширины', () => {
+        // Порядок задаётся шириной — просто не в момент ввода: сохранённый набор
+        // отсортирован, и следующий сеанс редактирования открывается по нему
+        const { scope, api, isOpen, config } = mountEditor();
+
+        api.setCustom(true);
+        api.addDevice('laptop');
+        api.updateDevice('laptop', { width: 500 });
+        config.value = api.toFormValue();
+
+        isOpen.value = false;
+        isOpen.value = true;
+
+        expect(api.rows.value.map((row) => row.key)).toEqual([
+            'mobile',
+            'laptop',
+            'tablet',
+            'desktop',
+        ]);
+        scope.stop();
+    });
+
+    it('набор уезжает в форму отсортированным, даже если строки не переставлены', () => {
+        // Серверный контракт несортированный массив отклоняет, а строки таблицы
+        // порядок ввода сохраняют — значение формы обязано быть по ширине
+        const { scope, api } = mountEditor();
+
+        api.setCustom(true);
+        api.addDevice('laptop');
+        api.updateDevice('laptop', { width: 500 });
+
+        expect(api.toFormValue()?.map((device) => device.key)).toEqual([
+            'mobile',
+            'laptop',
+            'tablet',
+            'desktop',
+        ]);
+        expect(api.canSave.value).toBe(true);
+        scope.stop();
+    });
+
     it('замок держится на mobile и desktop, даже когда сортировка их переставила', () => {
         // Порядок задаётся шириной: при mobile 1400 строка уезжает в конец, и
         // замок «по позиции» встал бы на планшет
