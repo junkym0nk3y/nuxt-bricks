@@ -12,6 +12,8 @@ import { useApiClient } from '../../../common/composables/useApiClient';
 import { isRequestTimeoutError } from '../../../common/utils/apiRequestPolicy';
 import { isMediaListResponse, toMediaRequestError } from '../utils/requestErrors';
 import { normalizeMediaItem } from '../utils/normalizeMediaItem';
+import { requestMediaStorageImport } from '../utils/storageImport';
+import type { IMediaStorageImportResult } from '../types/storageImport';
 import { useMediaWriteOrderStore } from './mediaWriteOrder';
 import { BRICKS_MEDIA_UPLOAD_TIMEOUT_MS } from '../../../common/constants/apiTimeouts';
 import { ALL_MEDIA_CATEGORIES_FILTER } from '../../../common/constants/mediaCategories';
@@ -27,6 +29,14 @@ function t(key: string): string {
     return i18n ? i18n.t(key) : key;
 }
 
+/**
+ * Летящий обход хранилища — по одному на экземпляр стора.
+ *
+ * Держится вне state: это Promise, а state стора сериализуется. Ключ —
+ * сам стор, а не модуль: один общий Promise смешал бы SSR-запросы разных
+ * пользователей, отдав одному состав медиатеки, полученный для другого.
+ */
+const pendingStorageImports = new WeakMap<object, Promise<IMediaStorageImportResult>>();
 // #endregion
 
 export const useMediaStore = defineStore('bricksMedia', {
@@ -48,6 +58,11 @@ export const useMediaStore = defineStore('bricksMedia', {
         // Отказом не сбрасывается: последний удачный ответ остаётся достоверным
         // снимком, даже если следующий запрос не дошёл.
         hasLoadedItemsSnapshot: false,
+        // Пробовали ли уже подтянуть в медиатеку содержимое бакета. Импорт имеет
+        // смысл ровно один раз за сессию: он идемпотентен, но обходит весь
+        // managed-префикс хранилища, и повторять этот обход на каждое открытие
+        // пустой галереи незачем.
+        hasAttemptedStorageImport: false,
     }),
 
     getters: {
@@ -90,7 +105,15 @@ export const useMediaStore = defineStore('bricksMedia', {
                     return;
                 }
 
-                this.items = response.items.map(normalizeMediaItem);
+                const items = response.items.length
+                    ? response.items
+                    : await this.importFromStorage();
+
+                if (requestId !== this.itemsRequestId) {
+                    return;
+                }
+
+                this.items = items.map(normalizeMediaItem);
                 // Только здесь: ответ принят, значит список равен составу
                 // медиатеки на момент ответа. У вытесненного запроса выход выше —
                 // его список неактуален, и объявлять по нему снимок нельзя
@@ -106,6 +129,51 @@ export const useMediaStore = defineStore('bricksMedia', {
                 console.error('[Media Store] Failed to load items from backend:', error);
 
                 throw toMediaRequestError(error, 'GET', t, t('bricks.media.loadFailed'));
+            }
+        },
+
+        /**
+         * Подтягивает в медиатеку файлы, уже лежащие в хранилище публикации.
+         * Вызывается, когда список пришёл пустым.
+         *
+         * Обход хранилища идёт не чаще раза за сессию — но только если попытка
+         * состоялась. Временный отказ (обрыв сети, 5xx) флаг не выставляет:
+         * иначе один сбой оставлял бы администратора с пустой галереей до
+         * перезагрузки страницы. Отказ по правам окончателен.
+         *
+         * @returns Состав медиатеки после импорта; пустой массив — импортировать
+         * было нечего или попытка не удалась.
+         */
+        async importFromStorage(): Promise<IMediaItem[]> {
+            // Второй вызов, пока первый ещё летит, ждёт тот же ответ, а не
+            // получает пустой список: иначе он объявлял бы себя последним
+            // запросом, показывал пустую галерею — и результат уже успешного
+            // импорта отбрасывался бы как устаревший
+            const pending = pendingStorageImports.get(this);
+
+            if (pending) {
+                return (await pending).items;
+            }
+
+            if (this.hasAttemptedStorageImport) {
+                return [];
+            }
+
+            this.hasAttemptedStorageImport = true;
+
+            const request = requestMediaStorageImport(useApiClient().apiFetcher);
+            pendingStorageImports.set(this, request);
+
+            try {
+                const result = await request;
+
+                if (result.isRetryable) {
+                    this.hasAttemptedStorageImport = false;
+                }
+
+                return result.items;
+            } finally {
+                pendingStorageImports.delete(this);
             }
         },
 

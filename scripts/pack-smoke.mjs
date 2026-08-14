@@ -195,15 +195,20 @@ async function main() {
         }
 
         console.info('[pack-smoke] CLI bricks-hash-password из пакета...');
+        // Пароль уходит на stdin: аргументом CLI его не принимает — он был бы
+        // виден в списке процессов и остался бы в истории шелла
         const hashOutput = await runCapture(
             'node',
             [
                 join(installedRoot, 'dist', 'cli', 'bricks-hash-password.mjs'),
-                'smoke-password',
                 '--username',
                 'smoke',
+                '--role',
+                'admin',
+                '--password-stdin',
             ],
-            consumerDir
+            consumerDir,
+            'smoke-password'
         );
         assertOk(hashOutput.includes('scrypt:'), 'bricks-hash-password не вернул scrypt-хеш');
 

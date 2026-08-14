@@ -23,22 +23,21 @@ import {
 } from '../../../utils/auth/sessionCookie';
 import { resolveRequestClientIp } from '../../../utils/requestClientIp';
 import type { IAuthAdapter } from '../../../../modules/persistence/types/adapters';
+import type {
+    IAuthLoginBody,
+    IAuthLoginCandidate,
+    IAuthLoginCredentials,
+} from '../../../utils/auth/types';
 
 /** Максимальная длина username (равна VARCHAR(255) в БД). */
 const MAX_USERNAME_LENGTH = 255;
 /** Максимальная длина пароля (санитарная граница против DoS scrypt'ом). */
 const MAX_PASSWORD_LENGTH = 1024;
 
-/** Тело запроса логина. */
-interface ILoginBody {
-    username?: unknown;
-    password?: unknown;
-}
-
 /**
  * Валидирует тело логина; 400 — если поля отсутствуют или выходят за границы.
  */
-function validateLoginBody(body: ILoginBody): { username: string; password: string } {
+function validateLoginBody(body: IAuthLoginBody): IAuthLoginCredentials {
     const { username, password } = body;
 
     if (
@@ -61,12 +60,16 @@ function validateLoginBody(body: ILoginBody): { username: string; password: stri
 /**
  * Проверяет креденшелы: verify всегда выполняется (против DUMMY_PASSWORD_HASH
  * при неизвестном username) — выравнивание тайминга, анти-enumeration.
+ *
+ * Возвращает и поколение учётных данных, прочитанное ДО проверки пароля: оно
+ * уходит условием во вставку сессии, поэтому смена пароля или деактивация,
+ * успевшая пройти за время scrypt-проверки, отменяет этот вход.
  */
 async function verifyCredentials(
     auth: IAuthAdapter,
     username: string,
     password: string
-): Promise<{ id: number; username: string } | null> {
+): Promise<IAuthLoginCandidate | null> {
     const user = await auth.getUserByUsername(username);
     const isPasswordValid = await runScryptTask(() =>
         verifyPassword(password, user?.passwordHash ?? DUMMY_PASSWORD_HASH)
@@ -76,7 +79,12 @@ async function verifyCredentials(
         return null;
     }
 
-    return { id: user.id, username: user.username };
+    return {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        authVersion: user.authVersion,
+    };
 }
 
 /**
@@ -96,7 +104,7 @@ export default defineEventHandler(async (event) => {
             throw createError({ statusCode: 404, statusMessage: 'Not Found' });
         }
 
-        const body = await readNormalizedBody<ILoginBody>(event);
+        const body = await readNormalizedBody<IAuthLoginBody>(event);
         const { username, password } = validateLoginBody(body);
 
         const clientIp = resolveRequestClientIp(event);
@@ -155,15 +163,23 @@ export default defineEventHandler(async (event) => {
         const maxAgeSeconds = resolveSessionMaxAgeSeconds();
         const token = generateSessionToken();
 
-        await auth.createSession({
+        const isSessionCreated = await auth.createSession({
             tokenHash: hashSessionToken(token),
             userId: user.id,
             expiresAt: new Date(Date.now() + maxAgeSeconds * 1000),
+            expectedAuthVersion: user.authVersion,
         });
+
+        // Учётку деактивировали или сменили ей пароль, пока шла scrypt-проверка:
+        // креденшелы, с которыми пришёл запрос, уже отозваны — сессии не будет.
+        // Ответ тот же 401, что и у неверного пароля: различать их наружу незачем
+        if (!isSessionCreated) {
+            throw createError({ statusCode: 401, statusMessage: 'Invalid credentials' });
+        }
 
         setSessionCookie(event, token, maxAgeSeconds);
 
-        return { user };
+        return { user: { id: user.id, username: user.username, role: user.role } };
     } catch (error: unknown) {
         toHttpError(error, 'Failed to log in');
     }

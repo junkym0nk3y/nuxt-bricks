@@ -329,6 +329,30 @@ export function stripPathBase(pathname: string, baseURL: string): string {
 }
 
 /**
+ * Убирает завершающий `/` — приводит путь к тому виду, в котором его
+ * сопоставляет роутер.
+ *
+ * Нужно там, где путь сверяется с маршрутами вручную (матрицы защиты и прав):
+ * radix3 в нестрогом режиме — а именно так его заводит h3 — сам отбрасывает
+ * завершающий слеш, поэтому `/api/bricks/media/import/` попадает в ту же ручку,
+ * что и `/api/bricks/media/import`. Сверяйся матрица с сырым путём — вариант со
+ * слешем не совпал бы с её записями и получил бы права по умолчанию, а ручку
+ * при этом вызвал бы ту же.
+ *
+ * Корень остаётся `/`: пустой путь не совпал бы уже ни с чем.
+ *
+ * @param pathname - Путь без query.
+ * @returns Путь без завершающего слеша.
+ */
+export function normalizePathTrailingSlash(pathname: string): string {
+    if (pathname.length <= 1 || !pathname.endsWith('/')) {
+        return pathname;
+    }
+
+    return pathname.replace(/\/+$/, '') || '/';
+}
+
+/**
  * Добавляет `app.baseURL` к логическому пути — для `window.location` /
  * `window.open` / серверного redirect, где роутер Nuxt base не подставит.
  *

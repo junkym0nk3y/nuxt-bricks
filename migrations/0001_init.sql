@@ -120,15 +120,40 @@ CREATE INDEX IF NOT EXISTS idx_bricks_page_versions_page_created
     ON bricks_page_versions(page_id, created_at DESC);
 
 -- Пользователи database-auth (bricks.auth.mode = 'database').
--- Провижининг вручную: npm run bricks:hash -- <password> --username <name> → INSERT.
+-- Провижининг вручную: npm run bricks:hash -- --username <name> --role admin → SQL.
 CREATE TABLE IF NOT EXISTS bricks_users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(255) UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,          -- scrypt:N:r:p:saltB64:hashB64
     is_active BOOLEAN NOT NULL DEFAULT true,
+    -- Роль в матрице прав: admin — удаление (страниц, версий, медиа, категорий)
+    -- и управление учётками; editor — сохранение, публикация, загрузка;
+    -- viewer — только чтение. Дефолт 'editor' относится к провижинингу через
+    -- CLI без явной роли: самая ходовая учётка — редактор, а раздача admin по
+    -- умолчанию сделала бы полные права наградой за невнимательность.
+    role VARCHAR(32) NOT NULL DEFAULT 'editor'
+        CONSTRAINT bricks_users_role_check CHECK (role IN ('admin', 'editor', 'viewer')),
+    -- Отображаемое имя и фото профиля: правит их себе сам пользователь, логин
+    -- при этом неизменяем. NULL — показывается логин и буквенная заглушка.
+    display_name TEXT,
+    avatar_url TEXT,
+    -- Поколение учётных данных. Инкремент — единственный носитель отзыва
+    -- сессий: смена пароля, деактивация и смена роли поднимают его в той же
+    -- транзакции, что меняет состояние, и все прежние сессии перестают
+    -- совпадать по auth_version мгновенно. Удаление строк bricks_sessions идёт
+    -- следом как уборка, а не как механизм безопасности: отдельный DELETE мог
+    -- бы отказать после успешной смены пароля и оставить украденную куку живой.
+    auth_version INTEGER NOT NULL DEFAULT 1,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Регистронезависимая уникальность логина: rate limiter логина уже считает
+-- `Admin` и `admin` одним ключом (buildRateLimitKey лоуэркейсит), а поиск по
+-- username регистрозависим — без индекса это две учётки, делящие один бюджет
+-- попыток. Логин канонизируется в нижний регистр на входе.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_bricks_users_username_lower
+    ON bricks_users(lower(username));
 
 DROP TRIGGER IF EXISTS update_bricks_users_updated_at ON bricks_users;
 CREATE TRIGGER update_bricks_users_updated_at
@@ -141,6 +166,13 @@ CREATE TABLE IF NOT EXISTS bricks_sessions (
     id SERIAL PRIMARY KEY,
     token_hash CHAR(64) UNIQUE NOT NULL,  -- sha256 hex
     user_id INTEGER NOT NULL REFERENCES bricks_users(id) ON DELETE CASCADE,
+    -- Поколение учётных данных на момент входа. Сессия считается живой, только
+    -- пока совпадает с bricks_users.auth_version: смена пароля/деактивация/смена
+    -- роли отзывают её одним инкрементом, не полагаясь на успех DELETE.
+    -- Та же колонка закрывает гонку «вход одновременно со сменой пароля»:
+    -- проверка пароля идёт секунды (scrypt), и за это время состояние учётки
+    -- могло измениться — вставка сессии условная, по совпадению поколения.
+    auth_version INTEGER NOT NULL DEFAULT 1,
     expires_at TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     last_used_at TIMESTAMPTZ DEFAULT NOW()

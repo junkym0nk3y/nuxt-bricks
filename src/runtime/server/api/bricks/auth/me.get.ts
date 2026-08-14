@@ -5,8 +5,9 @@ import { resolveSessionUser } from '../../../utils/auth/session';
 
 /**
  * GET /api/bricks/auth/me — текущий пользователь сессии (database-режим).
- * Используется только login-страницей (гвард «уже авторизован»);
- * 401-интерцептор клиента пропускает страницу логина — петли нет.
+ * Используется login-страницей (гвард «уже авторизован») и композиционными
+ * корнями билдера и дашборда, которые по роли решают, какие действия вообще
+ * показывать; 401-интерцептор клиента пропускает страницу логина — петли нет.
  */
 export default defineEventHandler(async (event) => {
     try {
@@ -22,7 +23,15 @@ export default defineEventHandler(async (event) => {
             throw createError({ statusCode: 401, statusMessage: 'Unauthorized' });
         }
 
-        return { user: { id: session.user.id, username: session.user.username } };
+        return {
+            user: {
+                id: session.user.id,
+                username: session.user.username,
+                role: session.user.role,
+                displayName: session.user.displayName,
+                avatarUrl: session.user.avatarUrl,
+            },
+        };
     } catch (error: unknown) {
         toHttpError(error, 'Failed to resolve session');
     }

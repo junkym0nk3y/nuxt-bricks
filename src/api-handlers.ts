@@ -75,6 +75,12 @@ export const BRICKS_API_HANDLERS: IBricksApiHandler[] = [
         file: 'server/api/bricks/media/upload.post',
     },
     {
+        // До generic /api/bricks/media/:id — та же причина, что и у categories
+        route: '/api/bricks/media/import',
+        method: 'post',
+        file: 'server/api/bricks/media/import.post',
+    },
+    {
         // До generic /api/bricks/media/:id: у DELETE специфичность та же, и
         // `categories` иначе уехал бы в разбор id
         route: '/api/bricks/media/categories',

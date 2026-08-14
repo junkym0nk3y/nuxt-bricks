@@ -146,15 +146,20 @@ async function ensureBucket(consumerDir) {
  */
 async function provisionUser(consumerDir) {
     const installedRoot = join(consumerDir, 'node_modules', 'nuxt-bricks');
+    // Пароль уходит на stdin: аргументом CLI его не принимает — он был бы виден
+    // в списке процессов и остался бы в истории шелла
     const hashOutput = await runCapture(
         'node',
         [
             join(installedRoot, 'dist', 'cli', 'bricks-hash-password.mjs'),
-            IT_PASSWORD,
             '--username',
             IT_USERNAME,
+            '--role',
+            'admin',
+            '--password-stdin',
         ],
-        consumerDir
+        consumerDir,
+        IT_PASSWORD
     );
     const hash = hashOutput
         .split('\n')
@@ -168,9 +173,17 @@ async function provisionUser(consumerDir) {
     await client.connect();
 
     try {
+        // Роль задаётся явно: сценарий доходит до удаления страницы, а оно
+        // доступно только администратору — на дефолтном 'editor' финальная
+        // уборка получила бы 403. Повторный прогон поднимает поколение учётных
+        // данных: сессии прошлого прогона иначе пережили бы смену пароля
         await client.query(
-            `INSERT INTO bricks_users (username, password_hash) VALUES ($1, $2)
-             ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash`,
+            `INSERT INTO bricks_users (username, password_hash, role) VALUES ($1, $2, 'admin')
+             ON CONFLICT (lower(username)) DO UPDATE
+             SET password_hash = EXCLUDED.password_hash,
+                 role = EXCLUDED.role,
+                 is_active = TRUE,
+                 auth_version = bricks_users.auth_version + 1`,
             [IT_USERNAME, hash]
         );
     } finally {

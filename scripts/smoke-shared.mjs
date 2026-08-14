@@ -39,15 +39,22 @@ export function run(command, args, options = {}) {
  * @param {string} command Исполняемый файл.
  * @param {string[]} args Аргументы.
  * @param {string} cwd Рабочая папка.
+ * @param {string} [input] Данные на stdin процесса. Без него stdin закрыт —
+ * команда, ожидающая ввода, повисла бы или получила EOF вместо значения.
  * @returns {Promise<string>} stdout процесса.
  */
-export function runCapture(command, args, cwd) {
+export function runCapture(command, args, cwd, input) {
     return new Promise((resolve, reject) => {
         const child = spawn(command, args, {
             cwd,
             env: process.env,
-            stdio: ['ignore', 'pipe', 'inherit'],
+            stdio: [input === undefined ? 'ignore' : 'pipe', 'pipe', 'inherit'],
         });
+
+        if (input !== undefined) {
+            child.stdin.end(input);
+        }
+
         let stdout = '';
         child.stdout.on('data', (chunk) => {
             stdout += chunk;

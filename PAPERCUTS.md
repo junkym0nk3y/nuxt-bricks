@@ -1283,3 +1283,13 @@ scratchpad (`Cannot find package 'vue'` — резолв идёт от файл�
 `select_page(bringToFront)` следующий `resize_page` иногда падает с `Restore window to
 normal state before setting content size` (окно осталось maximized) — помогает повторить
 вызов или проверить `innerWidth`: он мог уже совпасть с нужным.
+
+## 2026-08-14 22:10 — Opus 5
+
+Ждал отчёт ревью через `.claude/scripts/wait-codex.mjs --new` сразу после старта
+сабагента-форвардера → скрипт вернул задание-handshake `codex:codex-rescue`
+(`promptLen=0`, 11 с, ответ-приветствие) и завершился, хотя `--new` документирован
+как отсекающий задания с пустым промптом. Отчёт настоящего задания при этом ещё
+не существовал. Обход — `--match <подстрока промпта>`; возможная причина —
+проверка непустого `request.prompt` в скрипте не срабатывает для handshake,
+у которого пустое поле `request`, а не отсутствующее.

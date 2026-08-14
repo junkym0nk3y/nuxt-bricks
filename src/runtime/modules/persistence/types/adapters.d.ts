@@ -17,6 +17,7 @@ import type {
 } from '../../common/types/bricks-api';
 import type { IMediaCategory, IMediaItem } from '../../common/types/media';
 import type { IBricksPageAddress } from '../../common/types/pageAddress';
+import type { TBricksUserRole } from '../../common/types/auth';
 
 /**
  * Данные для создания записи медиа (id и uploadedAt генерирует хранилище).
@@ -280,6 +281,13 @@ export interface IAuthUserRecord {
     /** Самоописывающий формат scrypt:N:r:p:saltB64:hashB64. */
     passwordHash: string;
     isActive: boolean;
+    role: TBricksUserRole;
+    /**
+     * Поколение учётных данных на момент чтения. Вход обязан передать его в
+     * `createSession`: проверка пароля занимает секунды (scrypt), и за это
+     * время учётку могли деактивировать или сменить ей пароль.
+     */
+    authVersion: number;
 }
 
 /**
@@ -289,6 +297,16 @@ export interface IAuthSessionUser {
     id: number;
     username: string;
     isActive: boolean;
+    /**
+     * Актуальная роль, а не снимок на момент входа: гард ручек читает её на
+     * каждом запросе, поэтому понижение прав действует со следующего запроса
+     * без ожидания истечения куки.
+     */
+    role: TBricksUserRole;
+    /** Отображаемое имя профиля; null — показывается логин. */
+    displayName: string | null;
+    /** Ссылка на фото профиля; null — буквенная заглушка. */
+    avatarUrl: string | null;
 }
 
 /**
@@ -308,16 +326,42 @@ export interface ICreateAuthSessionPayload {
     tokenHash: string;
     userId: number;
     expiresAt: Date;
+    /**
+     * Поколение учётных данных, прочитанное ПЕРЕД проверкой пароля. Сессия
+     * создаётся, только если оно всё ещё актуально и учётка активна.
+     */
+    expectedAuthVersion: number;
 }
 
 /**
  * Хранилище пользователей и cookie-сессий database-auth (дефолт — Postgres).
+ *
+ * Требование к свежести, обязательное для любой реализации (в том числе
+ * внешней — HTTP-backend, OIDC): `getSessionWithUser` обязан отдавать
+ * АКТУАЛЬНЫЕ `role`, `isActive` и профиль, а не снимок на момент входа, и
+ * обязан считать сессию отсутствующей, если поколение учётных данных
+ * разошлось с сохранённым при входе. На этом держится отзыв прав: смена
+ * пароля, деактивация и смена роли действуют со следующего запроса, а не
+ * через семь суток жизни куки. Реализация, кеширующая роль или носящая её в
+ * самоподписанном токене без проверки, контракт нарушает.
  */
 export interface IAuthAdapter {
     getUserByUsername(username: string): Promise<IAuthUserRecord | null>;
-    /** Возвращает только непросроченную сессию (просроченная неотличима от отсутствующей). */
+    /**
+     * Возвращает только непросроченную сессию активного пользователя с
+     * актуальным поколением учётных данных (всё остальное неотличимо от
+     * отсутствующей сессии).
+     */
     getSessionWithUser(tokenHash: string): Promise<IAuthSessionWithUser | null>;
-    createSession(payload: ICreateAuthSessionPayload): Promise<void>;
+    /**
+     * Создаёт сессию, если учётка всё ещё активна и её поколение совпадает с
+     * `expectedAuthVersion`.
+     *
+     * @returns false — состояние учётки изменилось между проверкой пароля и
+     * вставкой (сменили пароль, деактивировали, сменили роль); куку в этом
+     * случае выставлять нельзя.
+     */
+    createSession(payload: ICreateAuthSessionPayload): Promise<boolean>;
     deleteSession(tokenHash: string): Promise<void>;
     /** Удаляет просроченные сессии; возвращает количество удалённых. */
     deleteExpiredSessions(): Promise<number>;

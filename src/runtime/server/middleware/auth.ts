@@ -3,8 +3,8 @@
  * Режим — `bricks.auth.mode` ('basic' | 'database', env BRICKS_AUTH_MODE).
  *
  * Защищает (префиксы страниц — из `bricks.routes`, дефолты /bricks и
- * /bricks-preview; матрица работает с логическим путём — `app.baseURL`
- * стрипается до проверки):
+ * /bricks-preview; матрицы работают с логическим путём — его отдаёт `event.path`,
+ * из которого h3 уже срезал префикс монтирования middleware, то есть `app.baseURL`):
  * - <builderPrefix>/** — менеджер страниц и редактор лендингов
  * - <previewPrefix>/** — preview режим рендера
  * - /api/bricks/** — весь editorial API, включая GET (drafts, полная schema,
@@ -44,7 +44,7 @@ import {
     DEFAULT_BRICKS_ROUTE_PREFIXES,
     getBuilderLoginPath,
     joinPathBase,
-    stripPathBase,
+    normalizePathTrailingSlash,
     type IBricksRoutePrefixes,
 } from '../../modules/common/utils/bricks/routePaths';
 import { resolveSessionUser } from '../utils/auth/session';
@@ -55,7 +55,11 @@ import {
     resolveSessionMaxAgeSeconds,
     setSessionCookie,
 } from '../utils/auth/sessionCookie';
+import { isAccessSatisfied, resolveRequiredAccess } from '../utils/auth/rolePolicy';
 import { isIpLockedOut, registerIpFailure } from '../utils/auth/loginRateLimiter';
+import { BRICKS_BASIC_MODE_ROLE } from '../../modules/common/constants/auth';
+import { BRICKS_API_ERROR_CODES } from '../../modules/common/constants/apiErrors';
+import type { TBricksUserRole } from '../../modules/common/types/auth';
 import { resolveRequestClientIp } from '../utils/requestClientIp';
 import { useBricksAuthAdapter } from '../../modules/persistence/server/registry';
 import { getBricksDefaultStorageFactory } from '../../modules/persistence/server/defaultStorage';
@@ -160,6 +164,36 @@ function rejectDatabaseAuth(event: H3Event, target: IAuthRequestTarget): Promise
 }
 
 /**
+ * Отказывает запросу, роль которого не покрывает требование пути.
+ *
+ * 403, а не 404: сессия действительна, маршрут существует, и клиенту нужно
+ * отличать «нет прав» от «не авторизован» — иначе билдер увёл бы наблюдателя
+ * на форму логина, где повторный вход ничего не изменит.
+ *
+ * @param event - Событие запроса.
+ * @param role - Роль пользователя запроса.
+ * @param target - Разобранная цель запроса.
+ */
+function assertRoleAllowed(
+    event: H3Event,
+    role: TBricksUserRole,
+    target: IAuthRequestTarget
+): void {
+    const method = event.node.req.method || 'GET';
+    const requirement = resolveRequiredAccess(target.logicalPathname, method);
+
+    if (isAccessSatisfied(role, requirement)) {
+        return;
+    }
+
+    throw createError({
+        statusCode: 403,
+        statusMessage: 'Insufficient role',
+        data: { code: BRICKS_API_ERROR_CODES.insufficientRole },
+    });
+}
+
+/**
  * Sliding-продление сессии: если осталось меньше половины срока —
  * продлевает запись в БД и переустанавливает cookie.
  */
@@ -241,12 +275,28 @@ async function handleDatabaseAuth(event: H3Event, target: IAuthRequestTarget): P
     }
 
     event.context.bricksUser = session.user;
+    assertRoleAllowed(event, session.user.role, target);
     await extendSessionIfNeeded(event, session.expiresAt);
 }
 
 export default defineEventHandler(async (event: H3Event) => {
-    const url = event.node.req.url || '';
-    const parsedUrl = new URL(url, 'http://localhost');
+    // Путь берётся из `event.path` и приводится к тому же виду, в каком его
+    // сопоставляет роутер: h3 декодирует путь до вызова стека обработчиков, а
+    // radix3 отбрасывает завершающий слеш. Сверяйся матрицы с сырым URL —
+    // `/api/bricks/media/%69mport` и `/api/bricks/media/import/` не совпали бы
+    // с записями матрицы прав и получили бы права по умолчанию, а роутер вызвал
+    // бы ту же admin-ручку; ровно так editor и добирался до массового импорта.
+    //
+    // `app.baseURL` из пути НЕ снимается: Nitro монтирует глобальные middleware
+    // под base, а h3 перед вызовом слоя срезает его префикс, поэтому `event.path`
+    // — уже логический путь. Снимай базу ещё раз — при `baseURL = '/api/'`
+    // запрос к `/api/api/bricks/media/import` превращался бы в
+    // `/bricks/media/import`: матрица принимала бы ручку API за HTML-страницу
+    // билдера, CSRF-гейт не срабатывал бы, а требуемая роль падала до viewer.
+    // База нужна дальше только для сборки Location редиректа на логин.
+    const url = event.path || event.node.req.url || '/';
+    const queryIndex = url.indexOf('?');
+    const rawPathname = queryIndex === -1 ? url : url.slice(0, queryIndex);
     const method = event.node.req.method || 'GET';
 
     const config = useRuntimeConfig();
@@ -256,10 +306,9 @@ export default defineEventHandler(async (event: H3Event) => {
         DEFAULT_BRICKS_ROUTE_PREFIXES;
     const baseURL = (config.app?.baseURL as string | undefined) || '/';
 
-    // Матрица работает с логическим путём — фактический pathname содержит baseURL
     const target: IAuthRequestTarget = {
-        logicalPathname: stripPathBase(parsedUrl.pathname, baseURL),
-        search: parsedUrl.search,
+        logicalPathname: normalizePathTrailingSlash(rawPathname),
+        search: queryIndex === -1 ? '' : url.slice(queryIndex),
         prefixes,
         baseURL,
     };
@@ -278,5 +327,14 @@ export default defineEventHandler(async (event: H3Event) => {
         return handleDatabaseAuth(event, target);
     }
 
-    return handleBasicAuth(event);
+    handleBasicAuth(event);
+
+    // Basic-identity проходит ту же матрицу, что и учётка: учёток в этом режиме
+    // нет, сужать права не по кому, поэтому ей приписана роль с полными
+    // редакторскими правами и проверка сейчас проходит всегда. Она здесь не
+    // для отказа, а чтобы матрица прав применялась к обоим режимам одним
+    // вызовом: отдельная ветка «в basic роли не проверяем» стала бы дырой в
+    // тот день, когда basic-роль сузят. Ручки учёток при этом недоступны и в
+    // basic — они отвечают 404 вне database-режима
+    assertRoleAllowed(event, BRICKS_BASIC_MODE_ROLE, target);
 });

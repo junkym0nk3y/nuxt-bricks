@@ -10,6 +10,7 @@ import type {
     IAuthSessionWithUser,
     ICreateAuthSessionPayload,
 } from '../../types/adapters';
+import type { TBricksUserRole } from '../../../common/types/auth';
 
 /** Строка JOIN-результата сессии с полями пользователя (алиасы camelCase). */
 interface ISessionJoinRow {
@@ -20,6 +21,9 @@ interface ISessionJoinRow {
     userId: number;
     username: string;
     isActive: boolean;
+    role: TBricksUserRole;
+    displayName: string | null;
+    avatarUrl: string | null;
 }
 
 /**
@@ -31,12 +35,16 @@ export function createPostgresAuthAdapter(): IAuthAdapter {
     return {
         /**
          * Возвращает пользователя по username (включая хеш пароля) или null.
+         * Поиск регистронезависимый — под уникальным индексом по lower(username);
+         * регистрозависимый поиск разошёлся бы с rate limiter'ом логина, который
+         * считает `Admin` и `admin` одним ключом попыток.
          */
         async getUserByUsername(username: string): Promise<IAuthUserRecord | null> {
             return queryOne<IAuthUserRecord>(
-                `SELECT id, username, password_hash AS "passwordHash", is_active AS "isActive"
+                `SELECT id, username, password_hash AS "passwordHash", is_active AS "isActive",
+                    role, auth_version AS "authVersion"
                 FROM bricks_users
-                WHERE username = $1`,
+                WHERE lower(username) = lower($1)`,
                 [username]
             );
         },
@@ -44,6 +52,12 @@ export function createPostgresAuthAdapter(): IAuthAdapter {
         /**
          * Возвращает непросроченную сессию вместе с пользователем или null.
          * Просроченная сессия неотличима от отсутствующей (SQL-фильтр по expires_at).
+         *
+         * Сверка `s.auth_version = u.auth_version` — носитель отзыва прав:
+         * смена пароля, деактивация и смена роли поднимают поколение учётки, и
+         * все прежние сессии перестают совпадать тем же запросом, которым их
+         * читают. Полагаться вместо этого на удаление строк сессий нельзя:
+         * отдельный DELETE может отказать уже после успешной смены пароля.
          */
         async getSessionWithUser(tokenHash: string): Promise<IAuthSessionWithUser | null> {
             const row = await queryOne<ISessionJoinRow>(
@@ -52,10 +66,15 @@ export function createPostgresAuthAdapter(): IAuthAdapter {
                     s.last_used_at AS "lastUsedAt",
                     u.id AS "userId",
                     u.username,
-                    u.is_active AS "isActive"
+                    u.is_active AS "isActive",
+                    u.role,
+                    u.display_name AS "displayName",
+                    u.avatar_url AS "avatarUrl"
                 FROM bricks_sessions s
                 JOIN bricks_users u ON u.id = s.user_id
-                WHERE s.token_hash = $1 AND s.expires_at > NOW()`,
+                WHERE s.token_hash = $1
+                    AND s.expires_at > NOW()
+                    AND s.auth_version = u.auth_version`,
                 [tokenHash]
             );
 
@@ -75,19 +94,37 @@ export function createPostgresAuthAdapter(): IAuthAdapter {
                     id: row.userId,
                     username: row.username,
                     isActive: row.isActive,
+                    role: row.role,
+                    displayName: row.displayName,
+                    avatarUrl: row.avatarUrl,
                 },
             };
         },
 
         /**
-         * Создаёт сессию (в БД — только SHA-256 hex токена).
+         * Создаёт сессию (в БД — только SHA-256 hex токена), если учётка всё ещё
+         * активна и её поколение совпадает с прочитанным до проверки пароля.
+         *
+         * Вставка условная (INSERT ... SELECT), а не безусловная: проверка
+         * пароля идёт под scrypt секунды, и параллельная смена пароля или
+         * деактивация могли завершиться раньше вставки — тогда безусловный
+         * INSERT выдал бы рабочую сессию по уже отозванным креденшелам.
+         *
+         * @returns false — состояние учётки изменилось, куку выставлять нельзя.
          */
-        async createSession(payload: ICreateAuthSessionPayload): Promise<void> {
-            await query(
-                `INSERT INTO bricks_sessions (token_hash, user_id, expires_at)
-                VALUES ($1, $2, $3)`,
-                [payload.tokenHash, payload.userId, payload.expiresAt]
+        async createSession(payload: ICreateAuthSessionPayload): Promise<boolean> {
+            const rows = await query<{ id: number }>(
+                `INSERT INTO bricks_sessions (token_hash, user_id, auth_version, expires_at)
+                SELECT $1, u.id, u.auth_version, $3
+                FROM bricks_users u
+                WHERE u.id = $2
+                    AND u.is_active = TRUE
+                    AND u.auth_version = $4
+                RETURNING id`,
+                [payload.tokenHash, payload.userId, payload.expiresAt, payload.expectedAuthVersion]
             );
+
+            return rows.length > 0;
         },
 
         /**
