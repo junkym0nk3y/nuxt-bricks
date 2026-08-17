@@ -12,6 +12,9 @@ import { getPublishedPagePath } from '../../../common/utils/bricks/routePaths';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+// Composables
+import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
+
 // Components
 import BricksBadge from '../../../ui/base/badge/BricksBadge.vue';
 // #endregion
@@ -29,6 +32,7 @@ const emit = defineEmits<IPublishPagesListRowEmits>();
 
 // #region Data
 const { t } = useI18n();
+const { canEdit, canDelete } = useBuilderPermissions();
 // #endregion
 
 // #region Computed
@@ -161,7 +165,9 @@ function handleDelete(): void {
                 <BricksIcon icon="ph:eye" />
             </button>
 
+            <!-- Копия — создание страницы: доступно редактору и выше -->
             <button
+                v-if="canEdit"
                 :class="$style.actionButton"
                 type="button"
                 :disabled="props.isDuplicating"
@@ -172,7 +178,9 @@ function handleDelete(): void {
                 <BricksIcon icon="ta:outline-copy" />
             </button>
 
+            <!-- Удаление страницы — только администратору -->
             <button
+                v-if="canDelete"
                 :class="[$style.actionButton, $style['actionButton--danger']]"
                 type="button"
                 :title="t('bricks.publish.dashboard.row.delete')"

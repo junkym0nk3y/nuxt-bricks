@@ -197,8 +197,23 @@ function applyBricksAuthRuntimeConfig(
         process.env.BRICKS_AUTH_SESSION_MAX_AGE ??
         options.auth?.sessionMaxAgeSeconds;
 
+    // Управление учётками включено по умолчанию: значение пишется явным
+    // булевым, а не оставляется пустым, — иначе `NUXT_BRICKS_AUTH_ALLOW_USER_
+    // MANAGEMENT=false` не имел бы типа, к которому Nitro приводит env-строку
+    runtimeConfig.bricksAuthAllowUserManagement =
+        runtimeConfig.bricksAuthAllowUserManagement ??
+        process.env.BRICKS_AUTH_ALLOW_USER_MANAGEMENT ??
+        options.auth?.allowUserManagement ??
+        true;
+
     // Публичный флаг auth-режима (не секрет) — клиенту нужен для редиректа на login
     publicConfig.bricksAuthMode = publicConfig.bricksAuthMode ?? runtimeConfig.bricksAuthMode;
+
+    // Публичный флаг управления учётками: по нему билдер и дашборд решают,
+    // показывать ли раздел. Скрытие в UI — удобство, а не защита: ручки при
+    // выключенном флаге отвечают 404 сами
+    publicConfig.bricksAuthAllowUserManagement =
+        publicConfig.bricksAuthAllowUserManagement ?? runtimeConfig.bricksAuthAllowUserManagement;
 }
 // #endregion
 

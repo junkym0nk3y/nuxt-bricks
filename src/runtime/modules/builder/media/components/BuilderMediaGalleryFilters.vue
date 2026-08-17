@@ -28,6 +28,9 @@ import { mediaCategoryLabelToSlug } from '../../../common/constants/mediaCategor
 import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+// Composables
+import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
+
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
 import BricksInput from '../../../ui/inputs/BricksInput.vue';
@@ -46,6 +49,7 @@ const emit = defineEmits<IMediaGalleryFiltersEmits>();
 
 // #region Data
 const { t } = useI18n();
+const { canEdit, canDelete } = useBuilderPermissions();
 const isCreateOpen = ref(false);
 const isManaging = ref(false);
 const newCategoryLabel = ref('');
@@ -178,9 +182,12 @@ watch(hasDeletableCategories, (hasDeletable) => {
         <!--
             Поле создания и кнопка «+» — одно место ряда, поэтому подмена идёт
             через `out-in`: одновременно на экране они выглядели бы двумя
-            разными способами создать категорию
+            разными способами создать категорию.
+
+            Весь блок — правка библиотеки: без права правки категории только
+            фильтруют
         -->
-        <Transition mode="out-in" name="bricks-fade-fast">
+        <Transition v-if="canEdit" mode="out-in" name="bricks-fade-fast">
             <div v-if="isCreateOpen" :class="$style.createRow">
                 <BricksInput
                     ref="createInputRef"
@@ -243,7 +250,12 @@ watch(hasDeletableCategories, (hasDeletable) => {
                     </template>
                 </BricksTooltip>
 
-                <BricksTooltip v-if="hasDeletableCategories" top>
+                <!--
+                    Режим управления открывает крестики удаления, а удаление —
+                    право администратора: редактору он показал бы ряд без единого
+                    крестика
+                -->
+                <BricksTooltip v-if="hasDeletableCategories && canDelete" top>
                     <template #activator>
                         <BricksButton
                             size="sm"

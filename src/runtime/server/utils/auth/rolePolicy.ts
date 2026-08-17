@@ -22,6 +22,7 @@
  * а не самое широкое.
  */
 import { BRICKS_ROLE_RANK } from '../../../modules/common/constants/auth';
+import { parseBricksBooleanFlag } from '../../../modules/common/utils/main';
 import type { TBricksUserRole } from '../../../modules/common/types/auth';
 import type { TBricksAccessRequirement } from './types';
 
@@ -53,6 +54,42 @@ const SELF_PROFILE_PREFIX = '/api/bricks/users/me';
 
 /** Префикс ручек управления учётками: только администратор. */
 const USER_MANAGEMENT_PREFIX = '/api/bricks/users';
+
+/**
+ * Путь принадлежит управлению чужими учётками (и потому исчезает вместе с
+ * выключенным разделом). Собственный профиль сюда НЕ входит: он доступен любому
+ * вошедшему независимо от флага раздела.
+ *
+ * @param pathname - Логический путь запроса (без baseURL и query).
+ */
+export function isUserManagementPath(pathname: string): boolean {
+    if (pathname === SELF_PROFILE_PREFIX || pathname.startsWith(`${SELF_PROFILE_PREFIX}/`)) {
+        return false;
+    }
+
+    return pathname === USER_MANAGEMENT_PREFIX || pathname.startsWith(`${USER_MANAGEMENT_PREFIX}/`);
+}
+
+/**
+ * Доступен ли раздел управления учётками. Одно правило на два вызова — гейт
+ * middleware (отвечает 404 до всякой авторизации) и проверка внутри ручек:
+ * разъехавшись, они дали бы разный ответ на один и тот же запрос.
+ *
+ * @param mode - Активный auth-режим.
+ * @param allowUserManagementFlag - Значение `bricksAuthAllowUserManagement`
+ * (boolean из опций либо строка из env; не задано — включено).
+ */
+export function isUserManagementAvailable(
+    mode: string | undefined,
+    allowUserManagementFlag: unknown
+): boolean {
+    // Вне database-режима учёток нет вовсе, управлять нечем
+    if (mode !== 'database') {
+        return false;
+    }
+
+    return parseBricksBooleanFlag(allowUserManagementFlag ?? true);
+}
 
 /**
  * Возвращает минимальный доступ, необходимый защищённому пути.

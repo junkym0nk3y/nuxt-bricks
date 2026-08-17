@@ -9,6 +9,29 @@ import type { IBuilderSessionToken } from '../../src/runtime/modules/builder/app
  * Контекст, который отдаёт `mountBuilderContext`: scope для очистки и заведённые
  * composables страницы билдера.
  */
+/**
+ * Опции фейкового события h3 (`createFakeH3Event`).
+ */
+export interface IFakeH3EventOptions {
+    /** Логический путь запроса. */
+    path?: string;
+    method?: string;
+    headers?: Record<string, string>;
+    /** Контекст запроса — сюда middleware кладёт пользователя сессии. */
+    context?: Record<string, unknown>;
+}
+
+/**
+ * Опции подъёма контекста билдера в тесте.
+ */
+export interface IBuilderContextOptions {
+    /**
+     * Право правки роли (дефолт — есть). `false` поднимает связку так, как её
+     * видит наблюдатель: черновики не читаются и не пишутся вовсе.
+     */
+    canEdit?: boolean;
+}
+
 export interface IBuilderContext {
     scope: EffectScope;
     address: ReturnType<typeof useBuilderSessionAddress>;

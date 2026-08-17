@@ -139,12 +139,42 @@ describe('черновик билдера: автосейв и сброс при
 
     /**
      * Поднимает контекст и регистрирует scope для очистки в afterEach.
+     *
+     * @param canEdit - Право правки роли (дефолт — есть).
      */
-    function mountTracked(): IBuilderContext {
-        const context = mountBuilderContext();
+    function mountTracked(canEdit = true): IBuilderContext {
+        const context = mountBuilderContext({ canEdit });
         activeScopes.push(context.scope);
         return context;
     }
+
+    it('роль без права правки черновик не читает и не трогает', async () => {
+        // Ключ черновика адресный — один на всех, кто откроет страницу в этом
+        // браузере. Наблюдателю он показал бы незавершённую работу редактора, а
+        // ответ «удалить» в окне восстановления унёс бы её насовсем; автосейв же
+        // снял бы запись как совпадающую с сохранённой версией
+        setBuilderDraft({
+            pagename: 'draft-page',
+            urlPrefix: null,
+            updatedAt: '2026-07-28T10:00:00.000Z',
+            mode: 'new',
+            draftSnapshot: {
+                schema: { components: [buildComponent()] },
+                formState: buildFormState({ pagename: 'draft-page', title: 'Чужая работа' }),
+            },
+        });
+
+        const context = mountTracked(false);
+
+        await context.session.openBuilderSession(bareAddress('draft-page'));
+        await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS * 2);
+        windowStub.dispatchEvent({ type: 'pagehide' });
+
+        expect(context.session.isDraftRestorePending.value).toBe(false);
+        expect(getBuilderDraft(bareAddress('draft-page'))?.draftSnapshot.formState.title).toBe(
+            'Чужая работа'
+        );
+    });
 
     it('pagehide до истечения debounce: правка попадает в localStorage', async () => {
         const context = mountTracked();

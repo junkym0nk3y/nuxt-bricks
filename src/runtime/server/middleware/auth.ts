@@ -55,7 +55,12 @@ import {
     resolveSessionMaxAgeSeconds,
     setSessionCookie,
 } from '../utils/auth/sessionCookie';
-import { isAccessSatisfied, resolveRequiredAccess } from '../utils/auth/rolePolicy';
+import {
+    isAccessSatisfied,
+    isUserManagementAvailable,
+    isUserManagementPath,
+    resolveRequiredAccess,
+} from '../utils/auth/rolePolicy';
 import { isIpLockedOut, registerIpFailure } from '../utils/auth/loginRateLimiter';
 import { BRICKS_BASIC_MODE_ROLE } from '../../modules/common/constants/auth';
 import { BRICKS_API_ERROR_CODES } from '../../modules/common/constants/apiErrors';
@@ -312,6 +317,20 @@ export default defineEventHandler(async (event: H3Event) => {
         prefixes,
         baseURL,
     };
+
+    // Выключенный раздел учёток отвечает 404 РАНЬШЕ всех прочих гейтов.
+    // Проверка внутри ручек до этого не доходила: гард по роли требует от
+    // `/api/bricks/users/**` администратора, поэтому редактор получал 403,
+    // аноним — 401 или редирект на логин, а кросс-сайтовый POST — CSRF-403.
+    // Каждый из них подтверждает, что маршрут существует и просто закрыт, —
+    // ровно то, что 404 обещает скрыть. Ручки свою проверку сохраняют как
+    // второй рубеж
+    if (
+        isUserManagementPath(target.logicalPathname) &&
+        !isUserManagementAvailable(mode, config.bricksAuthAllowUserManagement)
+    ) {
+        throw createError({ statusCode: 404, statusMessage: 'Not Found' });
+    }
 
     // CSRF-гейт unsafe-методов: ДО auth — login/logout не под
     // requiresAuth, но под CSRF; неавторизованный кросс-сайтовый POST — 403

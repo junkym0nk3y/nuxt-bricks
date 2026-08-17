@@ -37,6 +37,12 @@ export {
     BricksUnknownMediaCategoryError,
 } from './utils/storageErrors';
 
+// То же для контракта IAuthAdapter: ручки учёток различают эти отказы через
+// `instanceof`, поэтому кастомная реализация обязана кидать ИМЕННО эти классы —
+// одноимённый локальный класс дал бы 500 вместо 409 с машиночитаемым кодом.
+// Без реэкспорта требование `@throws` в контракте было бы невыполнимым.
+export { BricksLastActiveAdminError, BricksUsernameTakenError } from './utils/authErrors';
+
 let storageAdapter: IStorageAdapter | null = null;
 let publishAdapter: IPublishAdapter | null = null;
 let authAdapter: IAuthAdapter | null = null;

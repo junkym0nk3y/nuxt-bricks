@@ -11,6 +11,9 @@ import type {
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+// Composables
+import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
+
 // Components
 import BuilderLogo from '../../core/components/BuilderLogo.vue';
 import BuilderPublishDashboardNav from './BuilderPublishDashboardNav.vue';
@@ -28,6 +31,7 @@ const emit = defineEmits<IPublishDashboardEmits>();
 
 // #region Data
 const { t, locale } = useI18n();
+const { canEdit } = useBuilderPermissions();
 // #endregion
 
 // #region Computed
@@ -119,7 +123,8 @@ function handleLogout(): void {
                     @update:value="onSearchInput"
                 />
 
-                <BricksButton size="md" variant="primary" @click="handleCreatePage">
+                <!-- Создание страницы — запись: наблюдателю ручка откажет -->
+                <BricksButton v-if="canEdit" size="md" variant="primary" @click="handleCreatePage">
                     + {{ t('bricks.publish.dashboard.createPage') }}
                 </BricksButton>
             </div>

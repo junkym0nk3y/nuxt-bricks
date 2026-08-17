@@ -15,6 +15,7 @@ import { useI18n } from 'vue-i18n';
 
 // Composables
 import { useSchemaFileTransfer } from '../composables/useSchemaFileTransfer';
+import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
 
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
@@ -30,6 +31,7 @@ const emit = defineEmits<IPublishDetailsPanelSchemaEmits>();
 
 // #region Data
 const { t } = useI18n();
+const { canEdit } = useBuilderPermissions();
 const { fileInputRef, openFilePicker, readSelectedFile, downloadSchema } = useSchemaFileTransfer();
 
 const isOpen = ref(false);
@@ -202,7 +204,9 @@ onBeforeUnmount(() => {
                     <BricksIcon icon="ta:outline-download" />
                     {{ t('bricks.publish.exportJson') }}
                 </BricksButton>
+                <!-- Импорт схемы переписывает страницу — запись, экспорт остаётся всем -->
                 <BricksButton
+                    v-if="canEdit"
                     :class="$style.actionButton"
                     size="sm"
                     variant="secondary"

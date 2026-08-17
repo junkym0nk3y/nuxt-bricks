@@ -10,6 +10,9 @@ import type {
 // Vue
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+// Composables
+import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
 // #endregion
 
 // #region Props
@@ -22,6 +25,7 @@ const emit = defineEmits<IPublishDashboardNavEmits>();
 
 // #region Data
 const { t } = useI18n();
+const { canEdit } = useBuilderPermissions();
 
 interface INavSection {
     key: TPublishDashboardSection;
@@ -120,7 +124,12 @@ function handleLogout(): void {
                 <span :class="$style.itemCounter">{{ sectionCounters[section.key] }}</span>
             </button>
 
-            <button type="button" :class="$style.item" @click="handleOpenMedia">
+            <!--
+                Медиатека — вход в загрузку и правку файлов: у роли без права
+                правки она открылась бы формой, каждое действие которой
+                заканчивается отказом сервера
+            -->
+            <button v-if="canEdit" type="button" :class="$style.item" @click="handleOpenMedia">
                 <BricksIcon icon="ta:outline-photo-video" :class="$style.itemIcon" />
                 <span :class="$style.itemLabel">{{ t('bricks.publish.dashboard.nav.media') }}</span>
             </button>

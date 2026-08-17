@@ -11,6 +11,7 @@ import { useComponentsStore } from '../../../core/stores/components';
 import { useCanvasStore } from '../../../core/stores/canvas';
 
 // Composables
+import { useBuilderPermissions } from '../../../core/composables/useBuilderPermissions';
 import { useCanvasItemLayout } from '../composables/useCanvasItemLayout';
 import { useCanvasItemLoader } from '../composables/useCanvasItemLoader';
 import { useCanvasItemInlineEditing } from '../../editing/composables/useCanvasItemInlineEditing';
@@ -35,6 +36,7 @@ const props = withDefaults(defineProps<ICanvasItemProps>(), {});
 const componentsStore = useComponentsStore();
 const canvasStore = useCanvasStore();
 const dragComposable = inject<IDragComposableCanvas | undefined>('dragComposable');
+const { canEdit } = useBuilderPermissions();
 
 /** Активный viewport (в Figma mode — per-viewport от BuilderCanvasViewport); используется только при isFigmaMode */
 const figmaViewport = inject(CANVAS_VIEWPORT_KEY, null);
@@ -94,6 +96,13 @@ const { isInlineEditing, handleDoubleClick } = useCanvasItemInlineEditing(
     layoutName
 );
 
+/**
+ * Блок можно тянуть. Роль без права правки не перетаскивает вовсе: снимаем
+ * атрибут, а не гасим обработчик, — иначе браузер всё равно ведёт «призрак»
+ * блока за курсором, обещая перенос, которого не будет.
+ */
+const isDraggable = computed<boolean>(() => !isInlineEditing.value && canEdit.value);
+
 // Drag & drop
 const { handleDragStart, handleDragEnd } = useCanvasItemDrag(
     props,
@@ -144,7 +153,7 @@ const {
             },
         ]"
         :style="itemStyle"
-        :draggable="!isInlineEditing"
+        :draggable="isDraggable"
         data-layout-drop-item="true"
         :data-component-id="props.component.id"
         :data-slot-child="props.component.slotName ? 'true' : null"

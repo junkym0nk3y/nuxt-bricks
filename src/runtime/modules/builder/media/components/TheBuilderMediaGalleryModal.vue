@@ -29,6 +29,7 @@ import { useMediaCategoriesStore } from '../stores/mediaCategories';
 import { useMediaUpload } from '../composables/useMediaUpload';
 import { useMediaCategoryActions } from '../composables/useMediaCategoryActions';
 import { useMediaGalleryFileDrop } from '../composables/useMediaGalleryFileDrop';
+import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
 
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
@@ -59,6 +60,7 @@ const emit = defineEmits<IMediaGalleryEmits>();
 const { t } = useI18n();
 const mediaStore = useMediaStore();
 const categoriesStore = useMediaCategoriesStore();
+const { canEdit, canDelete } = useBuilderPermissions();
 const selectedItemId = ref<number | null>(null);
 const categoryFilter = ref<string>(ALL_MEDIA_CATEGORIES_FILTER);
 const searchQuery = ref('');
@@ -242,8 +244,18 @@ function resolveUploadCategory(): string | null {
     return categoryFilter.value !== ALL_MEDIA_CATEGORIES_FILTER ? categoryFilter.value : null;
 }
 
-/** Загружает файлы из upload-зоны. */
+/**
+ * Загружает файлы из upload-зоны.
+ *
+ * Проверка права — не дубль скрытых контролов: приёмник файлов ловит перетаскивание
+ * на всю сетку, и он остался бы рабочим входом в загрузку у роли, для которой
+ * кнопки уже убраны.
+ */
 async function handleUpload(files: File[]): Promise<void> {
+    if (!canEdit.value) {
+        return;
+    }
+
     await uploadFiles(files);
 }
 
@@ -253,6 +265,10 @@ async function handleUpload(files: File[]): Promise<void> {
  * какие типы файлов принимаются.
  */
 function handleUploadRequest(): void {
+    if (!canEdit.value) {
+        return;
+    }
+
     uploadControlsRef.value?.openFilePicker();
 }
 
@@ -295,7 +311,7 @@ function handleResetFilter(): void {
 async function handleUpdateMeta(meta: IMediaUpdateMetaRequest): Promise<void> {
     const item = selectedItem.value;
 
-    if (!item) {
+    if (!item || !canEdit.value) {
         return;
     }
 
@@ -318,7 +334,7 @@ async function handleUpdateMeta(meta: IMediaUpdateMetaRequest): Promise<void> {
 async function handleUpdateCategory(category: string | null): Promise<void> {
     const item = selectedItem.value;
 
-    if (!item) {
+    if (!item || !canEdit.value) {
         return;
     }
 
@@ -359,7 +375,7 @@ function handleRemoveItem(): void {
  * уже перечитывает сам.
  */
 async function handleConfirmDelete(): Promise<void> {
-    if (!selectedItemId.value) {
+    if (!selectedItemId.value || !canDelete.value) {
         return;
     }
     isDeleting.value = true;
@@ -476,7 +492,9 @@ watch(
                         @update:value="searchQuery = $event"
                     />
 
+                    <!-- Загрузка — запись: роли наблюдателя ручка откажет -->
                     <BuilderMediaGalleryUploadControls
+                        v-if="canEdit"
                         ref="uploadControlsRef"
                         :max-image-size-mb="maxImageSizeMb"
                         :max-video-size-mb="maxVideoSizeMb"

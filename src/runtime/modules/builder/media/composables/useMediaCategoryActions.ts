@@ -23,6 +23,9 @@ import { useI18n } from 'vue-i18n';
 
 // Pinia
 import { useMediaCategoriesStore } from '../stores/mediaCategories';
+
+// Composables
+import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
 // #endregion
 
 /**
@@ -36,6 +39,10 @@ export function useMediaCategoryActions(
 ): IMediaCategoryActions {
     const { t } = useI18n();
     const categoriesStore = useMediaCategoriesStore();
+    // Права проверяются и здесь, а не только скрытием кнопок: категории —
+    // запись (создание) и удаление (админ), а вход в галерею со временем
+    // появится не только из тулбара
+    const { canEdit, canDelete } = useBuilderPermissions();
     const isCreatingCategory = ref(false);
     const categoryPendingDeletion = ref<string | null>(null);
     const isDeletingCategory = ref(false);
@@ -71,6 +78,10 @@ export function useMediaCategoryActions(
      * @param label - Подпись, введённая пользователем; slug считает сервер.
      */
     async function handleCreateCategory(label: string): Promise<void> {
+        if (!canEdit.value) {
+            return;
+        }
+
         isCreatingCategory.value = true;
 
         try {
@@ -107,7 +118,7 @@ export function useMediaCategoryActions(
     async function handleConfirmCategoryDelete(): Promise<void> {
         const slug = categoryPendingDeletion.value;
 
-        if (!slug) {
+        if (!slug || !canDelete.value) {
             return;
         }
 

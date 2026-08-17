@@ -17,6 +17,7 @@ import { useI18n } from 'vue-i18n';
 
 // Composables
 import { usePublishPageVersions } from '../composables/usePublishPageVersions';
+import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
 
 // Components
 import BricksTooltip from '../../../ui/tooltip/BricksTooltip.vue';
@@ -36,6 +37,7 @@ const emit = defineEmits<IPublishDetailsPanelVersionsEmits>();
 const SKELETON_CARDS_COUNT = 4;
 
 const { t } = useI18n();
+const { canEdit } = useBuilderPermissions();
 
 const { versions, isLoading, loadVersions, previewVersion, resetVersions } =
     usePublishPageVersions();
@@ -228,7 +230,8 @@ watch(
                                 />
                             </BricksTooltip>
 
-                            <BricksTooltip bottom>
+                            <!-- Восстановление версии — правка страницы: только редактору и выше -->
+                            <BricksTooltip v-if="canEdit" bottom>
                                 <template #activator>
                                     <button
                                         :class="$style.actionButton"

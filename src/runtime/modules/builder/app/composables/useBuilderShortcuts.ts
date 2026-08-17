@@ -1,6 +1,9 @@
 // #region Imports
 // Pinia
 import { useComponentsStore } from '../../core/stores/components';
+
+// Composables
+import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
 // #endregion
 
 /**
@@ -8,9 +11,14 @@ import { useComponentsStore } from '../../core/stores/components';
  * Ctrl/Cmd+Z и Ctrl/Cmd+Shift+Z (undo/redo), Escape (сброс выбора → скрытие панели свойств).
  * Возвращает обработчик для `keydown` на window — подписку/отписку выполняет вызывающий
  * (composition root).
+ *
+ * Роли без права правки остаётся только Escape: клавиатура — путь мимо
+ * интерфейса, и спрятанных кнопок для неё недостаточно (Ctrl+V вставил бы блок
+ * на канвас, у которого нет ни одной видимой кнопки правки).
  */
 export function useBuilderShortcuts() {
     const componentsStore = useComponentsStore();
+    const { canEdit } = useBuilderPermissions();
 
     /**
      * Проверяет, следует ли игнорировать событие клавиатуры.
@@ -133,6 +141,11 @@ export function useBuilderShortcuts() {
     function handleKeyDown(event: KeyboardEvent): void {
         const target = event.target as HTMLElement;
         if (shouldIgnoreKeyEvent(target)) {
+            return;
+        }
+        if (!canEdit.value) {
+            // Escape только снимает выбор — единственное, что и так доступно
+            handleEscapeShortcut(event);
             return;
         }
         if (handleDeleteShortcut(event)) {

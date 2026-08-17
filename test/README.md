@@ -62,6 +62,8 @@ Playwright сам запускает disposable external backend и consumer fix
 - `helpers/publishFixtures.ts` — fixtures publish-домена.
 - `helpers/builderSessionHarness.ts` — harness для детерминированных
   session/race-тестов билдера.
+- `helpers/h3Events.ts` — фейковое событие h3 для серверных тестов; единственное
+  место, где форма фейка приводится к `H3Event`.
 - `stubs/nuxt-imports.ts` — стаб Nuxt auto-imports для node-тестов.
 
 Директория спеки соответствует домену в `src/runtime/modules/` либо серверному

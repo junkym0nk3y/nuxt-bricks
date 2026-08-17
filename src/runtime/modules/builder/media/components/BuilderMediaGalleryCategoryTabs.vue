@@ -34,6 +34,9 @@ import { ALL_MEDIA_CATEGORIES_FILTER } from '../../../common/constants/mediaCate
 // Vue
 import { useI18n } from 'vue-i18n';
 
+// Composables
+import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
+
 // Reka UI
 import { ToggleGroupItem, ToggleGroupRoot } from 'reka-ui';
 
@@ -51,6 +54,7 @@ const emit = defineEmits<IMediaGalleryCategoryTabsEmits>();
 
 // #region Data
 const { t } = useI18n();
+const { canDelete } = useBuilderPermissions();
 const allFilterValue = ALL_MEDIA_CATEGORIES_FILTER;
 // #endregion
 
@@ -113,8 +117,9 @@ function handleDelete(slug: string): void {
             </ToggleGroupItem>
 
             <Transition name="bricks-fade-fast">
+                <!-- Удаление категории — право администратора, создание остаётся редактору -->
                 <BricksButton
-                    v-if="props.isManaging"
+                    v-if="props.isManaging && canDelete"
                     :class="$style.remove"
                     size="sm"
                     variant="ghost"

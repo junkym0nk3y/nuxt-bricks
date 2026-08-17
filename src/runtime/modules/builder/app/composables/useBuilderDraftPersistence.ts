@@ -40,6 +40,7 @@ export function useBuilderDraftPersistence(options: IBuilderDraftPersistenceOpti
         savedSnapshot,
         buildCurrentSnapshot,
         draftStorageNotice,
+        canEdit,
     } = options;
 
     const historyStore = useHistoryStore();
@@ -64,6 +65,12 @@ export function useBuilderDraftPersistence(options: IBuilderDraftPersistenceOpti
      */
     function persistDraftNow(): void {
         if (typeof window === 'undefined') {
+            return;
+        }
+
+        // Без права правки автосейв не трогает черновик вовсе — ни запись, ни
+        // удаление (почему — в IBuilderDraftPersistenceOptions)
+        if (!canEdit.value) {
             return;
         }
 
@@ -161,9 +168,13 @@ export function useBuilderDraftPersistence(options: IBuilderDraftPersistenceOpti
     // Проба на готовности сессии, а не на первой правке: запрещённое хранилище
     // иначе обнаружилось бы только через ~800 мс после первого изменения на
     // канвасе — то есть предупреждение приходило бы уже после того, как
-    // пользователь начал работать, считая правки защищёнными
-    watch(isSessionReady, (isReady) => {
-        if (!isReady || isBuilderDraftStorageAvailable()) {
+    // пользователь начал работать, считая правки защищёнными.
+    //
+    // Право правки — второй источник наблюдения, а не просто условие внутри:
+    // проба сама пишет в хранилище, и без него роль без права правки трогала бы
+    // localStorage и получала бы сообщение о черновиках, которых у неё нет
+    watch([isSessionReady, canEdit], ([isReady, isEditable]) => {
+        if (!isReady || !isEditable || isBuilderDraftStorageAvailable()) {
             return;
         }
 

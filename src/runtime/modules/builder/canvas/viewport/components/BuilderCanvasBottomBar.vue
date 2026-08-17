@@ -13,6 +13,9 @@ import { useComponentsStore } from '../../../core/stores/components';
 import { useCanvasStore } from '../../../core/stores/canvas';
 import { useHistoryStore } from '../../../core/stores/history';
 
+// Composables
+import { useBuilderPermissions } from '../../../core/composables/useBuilderPermissions';
+
 // Components
 import BricksButton from '../../../../ui/base/button/BricksButton.vue';
 import BricksTabBar from '../../../../ui/base/tabs/BricksTabBar.vue';
@@ -40,6 +43,7 @@ const { t } = useI18n();
 const componentsStore = useComponentsStore();
 const canvasStore = useCanvasStore();
 const historyStore = useHistoryStore();
+const { canEdit } = useBuilderPermissions();
 
 /** Значение таба «Figma Like»: режим стоит в одном ряду с вьюпортами, но не является ими. */
 const FIGMA_MODE_VALUE = 'figma';
@@ -237,48 +241,56 @@ function handleRedo(): void {
                 </BricksTooltip>
             </div>
 
-            <div :class="$style.divider" />
+            <template v-if="canEdit">
+                <div :class="$style.divider" />
 
-            <!-- History -->
-            <div :class="$style.group">
-                <BricksTooltip top>
-                    <template #activator>
-                        <BricksButton
-                            size="sm"
-                            variant="ghost"
-                            equal
-                            :disabled="!historyStore.canUndo"
-                            :aria-label="t('bricks.toolbar.undo')"
-                            @click="handleUndo"
-                        >
-                            <BricksIcon :class="$style.icon" icon="ta:outline-arrow-back-up" />
-                        </BricksButton>
-                    </template>
+                <!--
+                    Отмена и повтор — правки схемы: без права правки истории не
+                    появится вовсе, и кнопки остались бы навсегда пустыми
+                -->
+                <div :class="$style.group">
+                    <BricksTooltip top>
+                        <template #activator>
+                            <BricksButton
+                                size="sm"
+                                variant="ghost"
+                                equal
+                                :disabled="!historyStore.canUndo"
+                                :aria-label="t('bricks.toolbar.undo')"
+                                @click="handleUndo"
+                            >
+                                <BricksIcon :class="$style.icon" icon="ta:outline-arrow-back-up" />
+                            </BricksButton>
+                        </template>
 
-                    <template #default>
-                        <BricksTooltipHint :text="t('bricks.toolbar.undo')" />
-                    </template>
-                </BricksTooltip>
+                        <template #default>
+                            <BricksTooltipHint :text="t('bricks.toolbar.undo')" />
+                        </template>
+                    </BricksTooltip>
 
-                <BricksTooltip top>
-                    <template #activator>
-                        <BricksButton
-                            size="sm"
-                            variant="ghost"
-                            equal
-                            :disabled="!historyStore.canRedo"
-                            :aria-label="t('bricks.toolbar.redo')"
-                            @click="handleRedo"
-                        >
-                            <BricksIcon :class="$style.icon" icon="ta:outline-arrow-forward-up" />
-                        </BricksButton>
-                    </template>
+                    <BricksTooltip top>
+                        <template #activator>
+                            <BricksButton
+                                size="sm"
+                                variant="ghost"
+                                equal
+                                :disabled="!historyStore.canRedo"
+                                :aria-label="t('bricks.toolbar.redo')"
+                                @click="handleRedo"
+                            >
+                                <BricksIcon
+                                    :class="$style.icon"
+                                    icon="ta:outline-arrow-forward-up"
+                                />
+                            </BricksButton>
+                        </template>
 
-                    <template #default>
-                        <BricksTooltipHint :text="t('bricks.toolbar.redo')" />
-                    </template>
-                </BricksTooltip>
-            </div>
+                        <template #default>
+                            <BricksTooltipHint :text="t('bricks.toolbar.redo')" />
+                        </template>
+                    </BricksTooltip>
+                </div>
+            </template>
 
             <div :class="$style.divider" />
 

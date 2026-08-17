@@ -1,13 +1,19 @@
 // #region Imports
 // Types
-import type { IBuilderContext, IDeferredApi, IDeferredRequest, IWindowStub } from './types';
+import type {
+    IBuilderContext,
+    IBuilderContextOptions,
+    IDeferredApi,
+    IDeferredRequest,
+    IWindowStub,
+} from './types';
 import type { IBricksPageAddress } from '../../src/runtime/modules/common/types/pageAddress';
 
 // Vitest
 import { vi } from 'vitest';
 
 // Vue
-import { effectScope, onScopeDispose } from 'vue';
+import { computed, effectScope, onScopeDispose } from 'vue';
 
 // Composables билдера (в spec-файлах их зависимости замоканы через vi.mock —
 // моки применяются и к импортам этого helper'а: module id общий)
@@ -118,10 +124,14 @@ export function createDeferredApi(): IDeferredApi {
  *
  * @returns Контекст с scope для очистки и заведёнными composables.
  */
-export function mountBuilderContext(): IBuilderContext {
+export function mountBuilderContext(options: IBuilderContextOptions = {}): IBuilderContext {
     const scope = effectScope();
     const showToastMock = vi.fn();
     const draftStorageUnavailableMock = vi.fn();
+    // Право правки по умолчанию есть: session-тесты писались до ролей и проверяют
+    // поведение редактора. Роль без правки передаётся явно — она отсекает
+    // черновики целиком
+    const canEdit = computed<boolean>(() => options.canEdit ?? true);
 
     const context = scope.run(() => {
         const sessionToken = useBuilderSessionToken();
@@ -142,6 +152,7 @@ export function mountBuilderContext(): IBuilderContext {
             renameSession: sessionAddress.renameSession,
             sessionToken,
             draftStorageNotice,
+            canEdit,
         });
         useBuilderDraftPersistence({
             routeAddress: sessionAddress.routeAddress,
@@ -152,6 +163,7 @@ export function mountBuilderContext(): IBuilderContext {
             savedSnapshot: session.savedSnapshot,
             buildCurrentSnapshot: session.buildCurrentSnapshot,
             draftStorageNotice,
+            canEdit,
         });
         useBuilderSessionAddressSync({
             renameSession: sessionAddress.renameSession,

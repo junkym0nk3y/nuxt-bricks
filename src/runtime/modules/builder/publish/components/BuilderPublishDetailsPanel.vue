@@ -18,6 +18,7 @@ import { useI18n } from 'vue-i18n';
 // Composables
 import { usePublishPageForm } from '../composables/usePublishPageForm';
 import { usePublishDetailsUrl } from '../composables/usePublishDetailsUrl';
+import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
 
 // Components
 import BricksSwitch from '../../../ui/inputs/BricksSwitch.vue';
@@ -43,6 +44,7 @@ const emit = defineEmits<IPublishDetailsPanelEmits>();
 
 // #region Data
 const { t } = useI18n();
+const { canEdit, canDelete } = useBuilderPermissions();
 
 const {
     title,
@@ -212,11 +214,17 @@ defineExpose({
 
         <div :class="[$style.content, 'bricks-scrollbox']">
             <div :class="$style.publication">
+                <!--
+                    Тумблер публикации остаётся на экране и без права правки, но
+                    заблокирован: он же — единственный показ того, опубликована
+                    страница или нет
+                -->
                 <BricksSwitch
                     :value="props.page.published"
                     :true-value="true"
                     :false-value="false"
                     false-label=""
+                    :disabled="!canEdit"
                     :true-label="t('bricks.publish.dashboard.details.published')"
                     @update:value="handleTogglePublished"
                 />
@@ -235,19 +243,24 @@ defineExpose({
                 </div>
             </div>
 
+            <!--
+                Поля мета-описания и маршрутизации без права правки показываются
+                заблокированными, а не прячутся: адрес и описание страницы —
+                сведения о ней, и наблюдателю они нужны ровно так же
+            -->
             <BuilderPublishSeoFields
                 v-model:title="title"
                 v-model:pagename="pagename"
                 v-model:description="description"
                 v-model:keywords="keywords"
                 :errors="errors"
-                :disabled="isSaving"
+                :disabled="isSaving || !canEdit"
             />
 
             <BuilderPublishDetailsPanelOgImage
                 :social-image="String(socialImage ?? '')"
                 :error="errors.socialImage"
-                :is-saving="isSaving"
+                :is-saving="isSaving || !canEdit"
                 @open-media="handleOpenMediaGallery"
                 @clear="handleClearSocialImage"
             />
@@ -257,7 +270,7 @@ defineExpose({
                 v-model:subdomain="subdomain"
                 :page="props.page"
                 :errors="errors"
-                :is-saving="isSaving"
+                :is-saving="isSaving || !canEdit"
             />
 
             <BuilderPublishDetailsPanelVersions
@@ -279,7 +292,7 @@ defineExpose({
                 получил бы 409, заставив заново выбирать JSON-файл. Потери данных
                 precondition не допускает, но конфликт здесь рукотворный
             -->
-            <div v-if="isDirty || isSaving" :class="$style.saveBar">
+            <div v-if="canEdit && (isDirty || isSaving)" :class="$style.saveBar">
                 <BricksButton
                     size="md"
                     variant="primary"
@@ -311,7 +324,9 @@ defineExpose({
                 {{ t('bricks.publish.dashboard.details.openInEditor') }}
             </BricksButton>
             <div :class="$style.footerRow">
+                <!-- Копия — создание страницы (редактор), удаление — администратор -->
                 <BricksButton
+                    v-if="canEdit"
                     :class="$style.duplicateButton"
                     size="md"
                     variant="secondary"
@@ -321,6 +336,7 @@ defineExpose({
                     {{ t('bricks.publish.dashboard.row.duplicate') }}
                 </BricksButton>
                 <button
+                    v-if="canDelete"
                     :class="$style.deleteButton"
                     type="button"
                     :title="t('bricks.publish.dashboard.row.delete')"

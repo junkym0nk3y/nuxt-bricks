@@ -108,6 +108,33 @@ export const BRICKS_API_HANDLERS: IBricksApiHandler[] = [
         file: 'server/api/bricks/media/[id].delete',
     },
     {
+        route: '/api/bricks/users',
+        method: 'get',
+        file: 'server/api/bricks/users/index.get',
+    },
+    {
+        route: '/api/bricks/users',
+        method: 'post',
+        file: 'server/api/bricks/users/index.post',
+    },
+    {
+        // До generic /api/bricks/users/:id — специфичность у POST та же, и
+        // `password` иначе уехал бы в разбор id
+        route: '/api/bricks/users/:id/password',
+        method: 'post',
+        file: 'server/api/bricks/users/[id]/password.post',
+    },
+    {
+        route: '/api/bricks/users/:id',
+        method: 'patch',
+        file: 'server/api/bricks/users/[id].patch',
+    },
+    {
+        route: '/api/bricks/users/:id',
+        method: 'delete',
+        file: 'server/api/bricks/users/[id].delete',
+    },
+    {
         route: '/api/bricks/:id/versions',
         method: 'get',
         file: 'server/api/bricks/[id]/versions/index.get',

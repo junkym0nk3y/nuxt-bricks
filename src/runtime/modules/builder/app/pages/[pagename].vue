@@ -33,6 +33,8 @@ import { useBuilderSessionToken } from '../composables/useBuilderSessionToken';
 import { useBuilderDraftPersistence } from '../composables/useBuilderDraftPersistence';
 import { useBuilderSessionAddressSync } from '../composables/useBuilderSessionAddressSync';
 import { useBuilderToast } from '../../core/composables/useBuilderToast';
+import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
+import { useAuthSession } from '../../auth/composables/useAuthSession';
 
 // Utils
 import { createDraftStorageNotice } from '../utils/draftStorageNotice';
@@ -92,6 +94,14 @@ const publishStore = usePublishStore();
 // useBuilderPage (switchToSavedPage требуется useBuilderPage для Save as Copy)
 const { showToast, showActionToast, hideToast } = useBuilderToast();
 
+// Права сессии: на SSR роль приходит из контекста запроса, и до первого кадра
+// известно, рисовать ли действия правки. Досылка ручкой `me` нужна только
+// сборкам без SSR — там контекста запроса нет вовсе
+const { canEdit, ensureRole } = useBuilderPermissions();
+const { fetchMe } = useAuthSession();
+
+await ensureRole(async () => (await fetchMe())?.role ?? null);
+
 // Токен сессии — общая точка отсечения операций, которые начинаются в одной
 // сессии и завершаются в другой (сохранение, снимок превью, синк превью-вкладки,
 // портальные модалки). Инкрементами владеет useBuilderSession, остальные читают
@@ -144,6 +154,7 @@ const {
     renameSession,
     sessionToken,
     draftStorageNotice,
+    canEdit,
 });
 
 // Мост inline-редактора: editor подключается только здесь (composition root)
@@ -249,6 +260,7 @@ useBuilderDraftPersistence({
     savedSnapshot,
     buildCurrentSnapshot,
     draftStorageNotice,
+    canEdit,
 });
 useBuilderSessionAddressSync({ renameSession, isSessionReady });
 // #endregion
@@ -506,7 +518,13 @@ onBeforeUnmount(() => {
                     @retry-library="handleRetryComponentLibrary"
                 />
 
+                <!--
+                    Панель свойств — редакторская поверхность целиком: у роли
+                    наблюдателя она не монтируется вовсе, а не гасится полями.
+                    Выбор блока при этом работает — он же подсветка на канвасе
+                -->
                 <TheBuilderShellSidebarPropertiesPanel
+                    v-if="canEdit"
                     ref="propertiesPanelRef"
                     @open-media-gallery="handleOpenMediaGalleryWithContext('properties')"
                 />

@@ -27,6 +27,7 @@ import { usePublishStore } from '../stores/publish';
 
 // Composables
 import { useAuthSession } from '../../auth/composables/useAuthSession';
+import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
 import { useBuilderToast } from '../../core/composables/useBuilderToast';
 import { usePublishDashboard } from '../composables/usePublishDashboard';
 import { usePublishPagesData } from '../composables/usePublishPagesData';
@@ -64,7 +65,8 @@ const router = useRouter();
 const publishStore = usePublishStore();
 const { toast, showToast } = useBuilderToast();
 const { generatePreviewUrl } = usePublishPreview();
-const { isDatabaseMode, logout } = useAuthSession();
+const { isDatabaseMode, logout, fetchMe } = useAuthSession();
+const { ensureRole } = useBuilderPermissions();
 const { searchQuery, activeFilter, filterCounts, filteredPages, hasAnyPages } = usePublishDashboard(
     computed(() => publishStore.publishedPages)
 );
@@ -486,6 +488,12 @@ useHead({
 const { isLoadingPages } = await usePublishPagesData({
     onLoadFailed: () => showToast(t('bricks.publish.dashboard.toasts.loadFailed'), 'error'),
 });
+
+// Роль сессии — до первого кадра: список страниц рисует действия по правам, и
+// показать их «пока не выяснили» значило бы отобрать у наблюдателя кнопки уже
+// после того, как он их увидел. На SSR роль приходит из контекста запроса,
+// ручка `me` нужна только сборкам без SSR
+await ensureRole(async () => (await fetchMe())?.role ?? null);
 // #endregion
 </script>
 

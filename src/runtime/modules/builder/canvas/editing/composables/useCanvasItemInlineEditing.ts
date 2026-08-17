@@ -14,6 +14,7 @@ import { useCanvasStore } from '../../../core/stores/canvas';
 
 // Composables
 import { useBrickMetadata } from '../../../core/composables/useBrickMetadata';
+import { useBuilderPermissions } from '../../../core/composables/useBuilderPermissions';
 
 // Utils
 import { getLayoutProperties } from '../../../core/utils/layoutProperties';
@@ -37,6 +38,7 @@ export function useCanvasItemInlineEditing(
     const inlineEditingStore = useInlineEditingStore();
     const canvasStore = useCanvasStore();
     const { readBrickMetadata } = useBrickMetadata();
+    const { canEdit } = useBuilderPermissions();
 
     // #region Computed
     const isInlineEditing = computed<boolean>(() =>
@@ -74,11 +76,12 @@ export function useCanvasItemInlineEditing(
 
     /**
      * Обрабатывает двойной клик для активации inline-editing.
+     * Роль без права правки в редактор текста не входит.
      */
     function handleDoubleClick(event: MouseEvent): void {
         event.stopPropagation();
 
-        if (isInlineEditing.value) {
+        if (isInlineEditing.value || !canEdit.value) {
             return;
         }
 

@@ -55,6 +55,7 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
         renameSession,
         sessionToken,
         draftStorageNotice,
+        canEdit,
     } = options;
 
     /**
@@ -204,7 +205,8 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
         }
 
         const existingPage = publishStore.getPageByAddress(address);
-        const draft = getBuilderDraft(address);
+        // Без права правки черновик не читается вовсе (почему — в IBuilderSessionOptions)
+        const draft = canEdit.value ? getBuilderDraft(address) : null;
 
         if (existingPage) {
             publishStore.startEditingPage(existingPage.id);

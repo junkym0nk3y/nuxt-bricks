@@ -29,6 +29,9 @@ import { formatMediaTechnicalSummary, isVideoMedia } from '../utils/mediaSummary
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+// Composables
+import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
+
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
 import BricksTooltip from '../../../ui/tooltip/BricksTooltip.vue';
@@ -48,6 +51,7 @@ const emit = defineEmits<IMediaGalleryMetaPanelEmits>();
 
 // #region Data
 const { t } = useI18n();
+const { canEdit, canDelete } = useBuilderPermissions();
 const editableFilename = ref('');
 const editableAlt = ref('');
 /**
@@ -230,8 +234,14 @@ watch(
                     <div :class="$style.field">
                         <span :class="$style.fieldLabel">{{ t('bricks.media.nameLabel') }}</span>
                         <div :class="[$style.control, $style._name]">
+                            <!--
+                                Поля файла без права правки заблокированы, а не
+                                скрыты: имя, alt и категория — сведения о файле,
+                                и наблюдателю они нужны ровно так же
+                            -->
                             <BricksInput
                                 :value="editableFilename"
+                                :disabled="!canEdit"
                                 :placeholder="t('bricks.media.filenamePlaceholder')"
                                 @update:value="editableFilename = $event"
                             />
@@ -243,7 +253,7 @@ watch(
                         <div :class="[$style.control, $style._alt]">
                             <BricksInput
                                 :value="editableAlt"
-                                :disabled="isAltDisabled"
+                                :disabled="isAltDisabled || !canEdit"
                                 :placeholder="
                                     isAltDisabled
                                         ? t('bricks.media.altUnusedForVideo')
@@ -263,6 +273,7 @@ watch(
                                 :value="selectedCategory"
                                 :specs="categoryOptions"
                                 :facets="categoryFacets"
+                                :disabled="!canEdit"
                                 @update:value="handleCategoryChange"
                             />
                         </div>
@@ -275,7 +286,8 @@ watch(
                         появляется по наведению — до него это ещё не «красная
                         кнопка».
                     -->
-                    <BricksTooltip top>
+                    <!-- Удаление файла — право администратора: редактору ручка откажет -->
+                    <BricksTooltip v-if="canDelete" top>
                         <template #activator>
                             <BricksButton
                                 :class="$style.removeButton"

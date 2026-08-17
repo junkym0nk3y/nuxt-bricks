@@ -30,6 +30,7 @@ import {
 
 // Composables
 import { useToolbarPageSelector } from '../composables/useToolbarPageSelector';
+import { useBuilderPermissions } from '../../../core/composables/useBuilderPermissions';
 
 // Components
 import BricksBadge from '../../../../ui/base/badge/BricksBadge.vue';
@@ -52,6 +53,7 @@ const emit = defineEmits<IToolbarPageSelectorEmits>();
 
 // #region Data
 const { t } = useI18n();
+const { canEdit } = useBuilderPermissions();
 
 /** Строк в скелете догрузки — столько же, сколько в макете. */
 const SKELETON_ROWS = 3;
@@ -323,7 +325,9 @@ function handleCreatePage(): void {
                         {{ t('bricks.toolbar.pageSelector.allPages') }}
                     </button>
 
+                    <!-- Создание страницы — запись: наблюдателю ручка откажет -->
                     <button
+                        v-if="canEdit"
                         :class="$style.footerAction"
                         type="button"
                         :disabled="props.isCreateDisabled"

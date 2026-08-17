@@ -13,6 +13,9 @@ import type {
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+// Composables
+import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
+
 // Components
 import BuilderPublishPagesListRow from './BuilderPublishPagesListRow.vue';
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
@@ -29,6 +32,7 @@ const emit = defineEmits<IPublishPagesListEmits>();
 
 // #region Data
 const { t } = useI18n();
+const { canEdit } = useBuilderPermissions();
 
 const FILTERS: TPublishPagesFilter[] = ['all', 'published', 'drafts'];
 // #endregion
@@ -144,7 +148,7 @@ function handleDelete(page: TPublishedPageSummary): void {
             <p :class="$style.emptyDescription">
                 {{ t('bricks.publish.dashboard.empty.description') }}
             </p>
-            <BricksButton size="md" variant="primary" @click="handleCreatePage">
+            <BricksButton v-if="canEdit" size="md" variant="primary" @click="handleCreatePage">
                 + {{ t('bricks.publish.dashboard.empty.cta') }}
             </BricksButton>
         </div>

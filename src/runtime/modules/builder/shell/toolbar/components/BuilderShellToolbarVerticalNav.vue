@@ -4,6 +4,9 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+// Composables
+import { useBuilderPermissions } from '../../../core/composables/useBuilderPermissions';
+
 // Components
 import BricksTooltip from '../../../../ui/tooltip/BricksTooltip.vue';
 import BricksTooltipHint from '../../../../ui/tooltip/BricksTooltipHint.vue';
@@ -44,7 +47,13 @@ const emit = defineEmits<IToolbarVerticalNavEmits>();
 
 // #region Data
 const { t, locale } = useI18n();
+const { canEdit } = useBuilderPermissions();
 
+/**
+ * Разделы рейла. `isEditing` — раздел существует только для правки: библиотека
+ * компонентов служит источником drag&drop, настройки публикации правят адрес и
+ * мета-описание страницы. Дерево схемы остаётся всем — это навигация по канвасу.
+ */
 const NAV_ITEMS = [
     {
         key: 'library',
@@ -52,6 +61,7 @@ const NAV_ITEMS = [
         label: 'bricks.nav.library',
         event: 'toggleLibrary' as const,
         activeProp: 'isLibraryActive' as const,
+        isEditing: true,
     },
     {
         key: 'schema',
@@ -59,6 +69,7 @@ const NAV_ITEMS = [
         label: 'bricks.nav.schema',
         event: 'toggleSchema' as const,
         activeProp: 'isSchemaActive' as const,
+        isEditing: false,
     },
     {
         key: 'settings',
@@ -66,11 +77,17 @@ const NAV_ITEMS = [
         label: 'bricks.nav.settings',
         event: 'openPublishSettings' as const,
         activeProp: 'isPublishSettingsActive' as const,
+        isEditing: true,
     },
 ] as const;
 // #endregion
 
 // #region Computed
+/** Разделы, доступные текущей роли. */
+const navItems = computed<readonly (typeof NAV_ITEMS)[number][]>(() =>
+    NAV_ITEMS.filter((item) => canEdit.value || !item.isEditing)
+);
+
 /**
  * Проверяет, нужно ли показывать danger-индикатор на настройках.
  */
@@ -139,7 +156,7 @@ function handleToggleLocale(): void {
 
 <template>
     <nav :class="$style.BuilderShellToolbarVerticalNav">
-        <BricksTooltip v-for="item in NAV_ITEMS" :key="item.key" right>
+        <BricksTooltip v-for="item in navItems" :key="item.key" right>
             <template #activator>
                 <button
                     :class="[$style.navItem, { [$style._active]: props[item.activeProp] }]"

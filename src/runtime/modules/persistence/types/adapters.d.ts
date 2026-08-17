@@ -320,6 +320,61 @@ export interface IAuthSessionWithUser {
 }
 
 /**
+ * Учётка в списке управления пользователями (без секретов и без
+ * `auth_version`: поколение — деталь механизма отзыва, наружу ей незачем).
+ */
+export interface IAuthUserSummary {
+    id: number;
+    username: string;
+    role: TBricksUserRole;
+    isActive: boolean;
+    displayName: string | null;
+    avatarUrl: string | null;
+    /** ISO 8601 UTC — момент создания учётки. */
+    createdAt: string;
+}
+
+/**
+ * Данные создания учётки администратором. Хеш пароля считает ручка
+ * (`server/utils/auth/passwords.ts`) — адаптер паролей в открытом виде не
+ * видит вовсе, поэтому не может ни залогировать их, ни отправить наружу.
+ */
+export interface ICreateAuthUserPayload {
+    username: string;
+    passwordHash: string;
+    role: TBricksUserRole;
+}
+
+/**
+ * Правка состояния чужой учётки: роль и/или активность. `undefined` — поле не
+ * передано и сохраняет текущее значение.
+ *
+ * Оба поля в одном контракте, а не двумя методами, потому что применяться они
+ * обязаны одной транзакцией: разбей их на пару вызовов — и отказ второго оставил
+ * бы строку в состоянии, которого клиент не просил, не сообщив, какая половина
+ * прошла. Заодно краевое правило про последнего администратора проверяется по
+ * ИТОГОВОМУ состоянию, а не по каждому полю отдельно.
+ *
+ * Имя и фото профиля здесь отсутствуют намеренно: их правит себе сам человек,
+ * администратору доступны только права, активность, пароль и удаление. Логин
+ * неизменяем вовсе — переименование ломало бы ссылки на автора и журналы.
+ */
+export interface IAuthUserStateChange {
+    role?: TBricksUserRole;
+    isActive?: boolean;
+}
+
+/**
+ * Состояние учётки, от которого зависят краевые правила
+ * (`server/utils/authUserRules.ts`): роль и активность. Читается под
+ * блокировкой строки и сравнивается с итоговым состоянием.
+ */
+export interface IAuthUserStateSnapshot {
+    role: TBricksUserRole;
+    isActive: boolean;
+}
+
+/**
  * Данные для создания cookie-сессии (в БД хранится только SHA-256 токена).
  */
 export interface ICreateAuthSessionPayload {
@@ -367,6 +422,40 @@ export interface IAuthAdapter {
     deleteExpiredSessions(): Promise<number>;
     /** Sliding-продление: обновляет expires_at и last_used_at. */
     touchSession(tokenHash: string, expiresAt: Date): Promise<void>;
+    /** Все учётки для раздела управления, в стабильном порядке (по id). */
+    listUsers(): Promise<IAuthUserSummary[]>;
+    /**
+     * Создаёт учётку.
+     *
+     * @throws BricksUsernameTakenError - Логин занят (сравнение
+     * регистронезависимое — как и вход).
+     */
+    createUser(payload: ICreateAuthUserPayload): Promise<IAuthUserSummary>;
+    /**
+     * Меняет роль и/или активность учётки одной транзакцией и отзывает её
+     * сессии: украденная кука иначе получила бы новые полномочия при повышении,
+     * а понижение действовало бы только со следующего входа. Правка, не
+     * меняющая состояние, сессии не рвёт.
+     *
+     * @returns Новое состояние строки; null — учётки нет.
+     * @throws BricksLastActiveAdminError - Итоговое состояние оставило бы
+     * систему без активного администратора.
+     */
+    updateUserState(userId: number, change: IAuthUserStateChange): Promise<IAuthUserSummary | null>;
+    /**
+     * Ставит новый хеш пароля и отзывает сессии учётки.
+     *
+     * @returns Состояние строки; null — учётки нет.
+     */
+    updateUserPassword(userId: number, passwordHash: string): Promise<IAuthUserSummary | null>;
+    /**
+     * Удаляет учётку (сессии уходят каскадом FK).
+     *
+     * @returns false — учётки нет.
+     * @throws BricksLastActiveAdminError - Удаление оставило бы систему без
+     * активного администратора.
+     */
+    deleteUser(userId: number): Promise<boolean>;
 }
 
 /**

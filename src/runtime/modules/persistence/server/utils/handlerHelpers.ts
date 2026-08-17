@@ -13,6 +13,7 @@ import {
     BricksStatementTimeoutError,
     BricksUnknownMediaCategoryError,
 } from './storageErrors';
+import { BricksLastActiveAdminError, BricksUsernameTakenError } from './authErrors';
 
 /** Строгий формат числового id: только цифры, без знака/дробей/хвостов ('1abc' ❌). */
 const NUMERIC_ID_PATTERN = /^\d+$/;
@@ -225,6 +226,36 @@ export function toMediaHttpError(error: unknown, fallbackMessage: string): never
             statusCode: 400,
             statusMessage: 'Unknown media category',
             data: { code: BRICKS_API_ERROR_CODES.unknownMediaCategory },
+        });
+    }
+
+    toHttpError(error, fallbackMessage);
+}
+
+/**
+ * Маппит доменные отказы управления учётками на 409 с машиночитаемым
+ * `data.code`; остальное — через toHttpError.
+ *
+ * 409, а не 403: права у запроса есть, отказано состоянию системы (последний
+ * администратор, занятый логин), и клиент показывает разные объяснения — по коду.
+ *
+ * @param error - Пойманная ошибка.
+ * @param fallbackMessage - Сообщение для 500-ответа.
+ */
+export function toUsersHttpError(error: unknown, fallbackMessage: string): never {
+    if (error instanceof BricksLastActiveAdminError) {
+        throw createError({
+            statusCode: 409,
+            statusMessage: 'The last active administrator cannot be demoted, disabled or deleted',
+            data: { code: BRICKS_API_ERROR_CODES.lastActiveAdmin },
+        });
+    }
+
+    if (error instanceof BricksUsernameTakenError) {
+        throw createError({
+            statusCode: 409,
+            statusMessage: 'User with this username already exists',
+            data: { code: BRICKS_API_ERROR_CODES.usernameTaken },
         });
     }
 

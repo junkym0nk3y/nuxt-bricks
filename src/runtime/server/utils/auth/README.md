@@ -17,4 +17,7 @@ rate limiting и матрицами путей и прав). Хранилище 
 | `loginRateLimiter.ts` | In-memory лимитер логина: 5 неудач/15 мин → lockout 15 мин, opportunistic sweep, bound 10k записей                            |
 | `routeProtection.ts`  | `requiresAuth(pathname, method, mode)` + `isProtectedHtmlPath()` — матрица защищённых путей                                   |
 | `rolePolicy.ts`       | `resolveRequiredAccess(pathname, method)` + `isAccessSatisfied(role, requirement)` — матрица прав уже авторизованного запроса |
+| `csrfProtection.ts`   | Гейт unsafe-методов: кастомный заголовок + сверка Origin/Referer, список защищённых путей                                     |
+| `scryptGate.ts`       | Общий семафор scrypt-дериваций (вход и установка паролей); переполнение очереди → 503                                         |
+| `userManagement.ts`   | Ручки `users/**`: доступность раздела (404), запрет операций над собой (409), валидация DTO и хеширование пароля              |
 | `types.d.ts`          | `TBricksAuthMode`, типы логина и требования доступа, augmentation `H3EventContext.bricksUser`                                 |

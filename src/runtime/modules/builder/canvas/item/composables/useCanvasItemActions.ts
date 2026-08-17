@@ -15,6 +15,7 @@ import { useSidebarStore } from '../../../core/stores/sidebar';
 // Composables
 import { useComponentEditorMetadata } from '../../../core/composables/useComponentEditorMetadata';
 import { useBuilderToast } from '../../../core/composables/useBuilderToast';
+import { useBuilderPermissions } from '../../../core/composables/useBuilderPermissions';
 
 // Utils
 import { scrollToComponentOnCanvas } from '../../../core/utils/scrollToComponent';
@@ -34,6 +35,7 @@ export function useCanvasItemActions(
     const sidebarStore = useSidebarStore();
     const { resolveComponentEditorMetadata } = useComponentEditorMetadata();
     const { showToast } = useBuilderToast();
+    const { canEdit } = useBuilderPermissions();
     const { t } = useI18n();
 
     // #region Data
@@ -156,9 +158,14 @@ export function useCanvasItemActions(
     /**
      * Открывает контекстное меню в точке курсора. Компонент НЕ выделяется —
      * панель свойств открывает только пункт «Редактировать».
+     *
+     * Роли без права правки меню не открывается вовсе: все его пункты, кроме
+     * избранного, меняют схему, а отбирать их по одному значило бы оставить меню
+     * из одного пункта и держать список исключений в двух местах. Правой кнопкой
+     * при этом возвращается штатное меню браузера.
      */
     function handleContextMenu(event: MouseEvent): void {
-        if (isInteractivePreview.value) {
+        if (isInteractivePreview.value || !canEdit.value) {
             return;
         }
 

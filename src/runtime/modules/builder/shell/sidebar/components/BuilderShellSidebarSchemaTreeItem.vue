@@ -10,6 +10,9 @@ import { computed, ref } from 'vue';
 import { useComponentsStore } from '../../../core/stores/components';
 import { useCanvasStore } from '../../../core/stores/canvas';
 
+// Composables
+import { useBuilderPermissions } from '../../../core/composables/useBuilderPermissions';
+
 // Utils
 import { resolveDeviceIcon } from '../../../../common/utils/bricks/devices';
 // #endregion
@@ -39,6 +42,7 @@ const emit = defineEmits<{
 // #region Data
 const componentsStore = useComponentsStore();
 const canvasStore = useCanvasStore();
+const { canEdit } = useBuilderPermissions();
 const dragOverPosition = ref<'before' | 'after' | null>(null);
 // #endregion
 
@@ -163,9 +167,13 @@ function handleDrop(event: DragEvent): void {
             <!-- Drop indicator -->
             <div v-if="dragOverPosition === 'before'" :class="$style.dropIndicator" />
 
+            <!--
+                Дерево остаётся навигацией при любой роли, но перестановка блоков
+                мышью — правка схемы: без права правки строка не тянется
+            -->
             <button
                 type="button"
-                draggable="true"
+                :draggable="canEdit"
                 :class="[
                     $style.row,
                     { [$style._selected]: isSelected, [$style._hidden]: isHidden },

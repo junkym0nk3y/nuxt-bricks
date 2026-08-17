@@ -11,6 +11,7 @@ import { useI18n } from 'vue-i18n';
 
 // Composables
 import { useBricksRoutePaths } from '../../../../common/composables/useBricksRoutePaths';
+import { useBuilderPermissions } from '../../../core/composables/useBuilderPermissions';
 
 // Components
 import BricksButton from '../../../../ui/base/button/BricksButton.vue';
@@ -37,6 +38,7 @@ const emit = defineEmits<IToolbarEmits>();
 
 // #region Data
 const { t } = useI18n();
+const { canEdit } = useBuilderPermissions();
 
 // href дашборда: BuilderLogo рендерит обычный <a>, base роутер не подставит
 const { builderRootPath, withBase } = useBricksRoutePaths();
@@ -214,7 +216,12 @@ function handlePreview(): void {
         </div>
 
         <div :class="$style.right">
-            <BricksTooltip bottom>
+            <!--
+                Медиатека — вход в загрузку и правку файлов: наблюдателю она
+                открылась бы галереей без единого доступного действия, потому что
+                выбирать картинку ему некуда (панели свойств у него нет)
+            -->
+            <BricksTooltip v-if="canEdit" bottom>
                 <template #activator>
                     <BricksButton
                         size="md"
@@ -252,7 +259,9 @@ function handlePreview(): void {
                 </template>
             </BricksTooltip>
 
+            <!-- Сохранение и публикация — записи: у наблюдателя их нет вовсе -->
             <BricksActionButton
+                v-if="canEdit"
                 :label="publishButtonConfig.label"
                 :options="publishButtonConfig.options"
                 :is-submitting="props.isSubmittingPublish"
