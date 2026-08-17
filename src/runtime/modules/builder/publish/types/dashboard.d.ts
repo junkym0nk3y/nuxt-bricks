@@ -184,7 +184,14 @@ export type TPublishFormErrors = Partial<Record<keyof IPublishPageFormValues, st
 export interface IPublishDetailsPanelOgImageProps {
     socialImage: string;
     error?: string;
-    isSaving: boolean;
+    /**
+     * Управление выбором картинки закрыто. Причин две и они разной природы:
+     * идёт сохранение (временно) и роль без права правки (постоянно), поэтому
+     * проп называется по следствию, а не по одной из причин: имя `isSaving`
+     * обещало бы временное состояние, и естественный для него спиннер достался
+     * бы наблюдателю навсегда.
+     */
+    isDisabled: boolean;
 }
 
 export interface IPublishDetailsPanelOgImageEmits {
@@ -197,7 +204,8 @@ export interface IPublishDetailsPanelRoutingProps {
     urlPrefix: string;
     subdomain: string;
     errors: TPublishFormErrors;
-    isSaving: boolean;
+    /** Поля закрыты для ввода: идёт сохранение либо у роли нет права правки. */
+    isDisabled: boolean;
 }
 
 export interface IPublishDetailsPanelRoutingEmits {

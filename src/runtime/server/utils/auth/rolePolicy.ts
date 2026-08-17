@@ -49,24 +49,27 @@ const PATH_ACCESS_OVERRIDES: Record<string, TBricksAccessRequirement> = {
     '/api/bricks/media/import': 'admin',
 };
 
-/** Префикс ручек собственного профиля: доступны любому вошедшему. */
-const SELF_PROFILE_PREFIX = '/api/bricks/users/me';
-
-/** Префикс ручек управления учётками: только администратор. */
+/**
+ * Префикс ручек управления учётками: только администратор.
+ *
+ * Поддерево собственного профиля (`/api/bricks/users/me/**`) из него НЕ
+ * исключается, хотя ручки профиля будут доступны любому вошедшему: пока их не
+ * существует, `PATCH /api/bricks/users/me` матчится параметрическим маршрутом
+ * `[id].patch.ts`, то есть админской ручкой правки чужой учётки. Ослабь префикс
+ * заранее — и единственным, что держит наблюдателя снаружи, останется разбор
+ * `:id` (нечисловой id отвергается четырёхсотым), а это не право доступа, а
+ * совпадение. Ослабление вводится вместе с самими ручками профиля, ни днём
+ * раньше.
+ */
 const USER_MANAGEMENT_PREFIX = '/api/bricks/users';
 
 /**
- * Путь принадлежит управлению чужими учётками (и потому исчезает вместе с
- * выключенным разделом). Собственный профиль сюда НЕ входит: он доступен любому
- * вошедшему независимо от флага раздела.
+ * Путь принадлежит управлению учётками (и потому исчезает вместе с выключенным
+ * разделом).
  *
  * @param pathname - Логический путь запроса (без baseURL и query).
  */
 export function isUserManagementPath(pathname: string): boolean {
-    if (pathname === SELF_PROFILE_PREFIX || pathname.startsWith(`${SELF_PROFILE_PREFIX}/`)) {
-        return false;
-    }
-
     return pathname === USER_MANAGEMENT_PREFIX || pathname.startsWith(`${USER_MANAGEMENT_PREFIX}/`);
 }
 
@@ -77,7 +80,9 @@ export function isUserManagementPath(pathname: string): boolean {
  *
  * @param mode - Активный auth-режим.
  * @param allowUserManagementFlag - Значение `bricksAuthAllowUserManagement`
- * (boolean из опций либо строка из env; не задано — включено).
+ * (boolean из опций либо строка из env). Не задано — включено, и пустая строка
+ * тоже: `NUXT_BRICKS_AUTH_ALLOW_USER_MANAGEMENT=` доезжает до собранного
+ * приложения как `''` мимо build-time нормализации.
  */
 export function isUserManagementAvailable(
     mode: string | undefined,
@@ -88,7 +93,7 @@ export function isUserManagementAvailable(
         return false;
     }
 
-    return parseBricksBooleanFlag(allowUserManagementFlag ?? true);
+    return parseBricksBooleanFlag(allowUserManagementFlag, true);
 }
 
 /**
@@ -107,10 +112,6 @@ export function resolveRequiredAccess(
     // отказ на входе оставил бы его без единственного доступного экрана
     if (!pathname.startsWith('/api/bricks')) {
         return 'viewer';
-    }
-
-    if (pathname === SELF_PROFILE_PREFIX || pathname.startsWith(`${SELF_PROFILE_PREFIX}/`)) {
-        return 'authenticated';
     }
 
     if (pathname === USER_MANAGEMENT_PREFIX || pathname.startsWith(`${USER_MANAGEMENT_PREFIX}/`)) {

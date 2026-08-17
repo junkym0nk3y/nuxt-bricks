@@ -66,7 +66,7 @@ watch(
                     type="text"
                     :max-length="100"
                     placeholder="blog"
-                    :disabled="props.isSaving"
+                    :disabled="props.isDisabled"
                     :error-message="props.errors.urlPrefix"
                     @update:value="(val: string) => emit('update:urlPrefix', val)"
                 />
@@ -79,7 +79,7 @@ watch(
                     type="text"
                     :max-length="63"
                     placeholder="spb"
-                    :disabled="props.isSaving"
+                    :disabled="props.isDisabled"
                     :error-message="props.errors.subdomain"
                     @update:value="(val: string) => emit('update:subdomain', val)"
                 />

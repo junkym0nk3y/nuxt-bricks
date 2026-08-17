@@ -49,19 +49,18 @@ describe('rolePolicy: минимальный доступ по пути и ме�
         expect(resolveRequiredAccess('/api/bricks/media/import', 'POST')).toBe('admin');
     });
 
-    it('открывает собственный профиль любой роли, а управление учётками — только администратору', () => {
-        expect(resolveRequiredAccess('/api/bricks/users/me', 'PATCH')).toBe('authenticated');
-        expect(resolveRequiredAccess('/api/bricks/users/me/avatar', 'POST')).toBe('authenticated');
-        expect(resolveRequiredAccess('/api/bricks/users/me/avatar', 'DELETE')).toBe(
-            'authenticated'
-        );
-
+    it('требует администратора на всё поддерево учёток, включая ещё не существующий профиль', () => {
         expect(resolveRequiredAccess('/api/bricks/users', 'GET')).toBe('admin');
         expect(resolveRequiredAccess('/api/bricks/users', 'POST')).toBe('admin');
         expect(resolveRequiredAccess('/api/bricks/users/5/password', 'POST')).toBe('admin');
-        // Префикс сопоставляется по сегменту: чужая ручка со схожим началом
-        // имени не должна попасть в неймспейс собственного профиля
-        expect(resolveRequiredAccess('/api/bricks/users/mentions', 'GET')).toBe('admin');
+
+        // Ручек собственного профиля пока нет, и `users/me` матчится
+        // параметрическим маршрутом админской правки чужой учётки. Ослабление
+        // этого поддерева вводится вместе с самими ручками профиля: раньше оно
+        // оставляет наблюдателя в админской ручке, где его держит только разбор
+        // `:id`
+        expect(resolveRequiredAccess('/api/bricks/users/me', 'PATCH')).toBe('admin');
+        expect(resolveRequiredAccess('/api/bricks/users/me/password', 'POST')).toBe('admin');
     });
 
     it('пускает на HTML-страницы билдера любую роль — наблюдателю нужен канвас', () => {

@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 // Types
 import type { H3Event } from 'h3';
+import type { TBricksUserRole } from '../../src/runtime/modules/common/types/auth';
 
 // Utils
 import { createFakeH3Event } from '../helpers/h3Events';
@@ -23,6 +24,7 @@ vi.mock('nitropack/runtime', () => ({
 }));
 
 const {
+    assertAdminRole,
     assertNotSelfTarget,
     assertUserManagementAvailable,
     buildCreateUserPayload,
@@ -42,6 +44,16 @@ const { BRICKS_API_ERROR_CODES } =
  */
 function createEvent(userId: number): H3Event {
     return createFakeH3Event({ context: { bricksUser: { id: userId } } });
+}
+
+/**
+ * Событие запроса от пользователя известной роли.
+ *
+ * @param role - Роль сессии.
+ * @returns Событие h3 в минимальной форме.
+ */
+function createRoleEvent(role: TBricksUserRole): H3Event {
+    return createFakeH3Event({ context: { bricksUser: { id: 1, role } } });
 }
 
 describe('userManagement: доступность раздела учёток', () => {
@@ -74,6 +86,43 @@ describe('userManagement: доступность раздела учёток', (
         runtimeConfig.bricksAuthAllowUserManagement = undefined;
 
         expect(() => assertUserManagementAvailable(createEvent(1))).not.toThrow();
+    });
+
+    it('не выключается пустой строкой: так выглядит объявленная без значения env', () => {
+        // Build-time нормализацию этот путь минует: собранное приложение получает
+        // `NUXT_BRICKS_AUTH_ALLOW_USER_MANAGEMENT=` от Nitro как есть
+        runtimeConfig.bricksAuthAllowUserManagement = '';
+
+        expect(() => assertUserManagementAvailable(createEvent(1))).not.toThrow();
+    });
+});
+
+describe('userManagement: требование роли администратора внутри ручки', () => {
+    it('отклоняет наблюдателя и редактора, добравшихся до админской ручки', () => {
+        // Проверка не декоративная: `/api/bricks/users/me` матчится тем же
+        // параметрическим маршрутом, что и правка чужой учётки, поэтому послабление
+        // для поддерева профиля не должно оставлять единственной преградой
+        // нечисловой `:id`
+        for (const role of ['viewer', 'editor'] as const) {
+            expect(() => assertAdminRole(createRoleEvent(role)), role).toThrowError(
+                expect.objectContaining({
+                    statusCode: 403,
+                    data: { code: BRICKS_API_ERROR_CODES.insufficientRole },
+                })
+            );
+        }
+    });
+
+    it('отклоняет запрос без пользователя в контексте', () => {
+        // Ручка, зарегистрированная мимо матрицы путей middleware, получила бы
+        // событие без `bricksUser` — «роли нет» означает отказ, а не пропуск
+        expect(() => assertAdminRole(createFakeH3Event({}))).toThrowError(
+            expect.objectContaining({ statusCode: 403 })
+        );
+    });
+
+    it('пропускает администратора', () => {
+        expect(() => assertAdminRole(createRoleEvent('admin'))).not.toThrow();
     });
 });
 

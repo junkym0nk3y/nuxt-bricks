@@ -260,7 +260,7 @@ defineExpose({
             <BuilderPublishDetailsPanelOgImage
                 :social-image="String(socialImage ?? '')"
                 :error="errors.socialImage"
-                :is-saving="isSaving || !canEdit"
+                :is-disabled="isSaving || !canEdit"
                 @open-media="handleOpenMediaGallery"
                 @clear="handleClearSocialImage"
             />
@@ -270,7 +270,7 @@ defineExpose({
                 v-model:subdomain="subdomain"
                 :page="props.page"
                 :errors="errors"
-                :is-saving="isSaving || !canEdit"
+                :is-disabled="isSaving || !canEdit"
             />
 
             <BuilderPublishDetailsPanelVersions

@@ -146,16 +146,40 @@ describe('гейт раздела учёток в auth-middleware', () => {
         expect(error.data?.code).toBe(BRICKS_API_ERROR_CODES.insufficientRole);
     });
 
-    it('оставляет собственный профиль вне гейта: он от флага раздела не зависит', async () => {
-        // `/users/me` живёт своими правами («любая валидная сессия»), и выключенный
-        // раздел управления чужими учётками не должен уносить свой профиль
+    it('не пускает наблюдателя в `users/me`, пока ручек профиля не существует', async () => {
+        // Путь матчится параметрическим маршрутом админской правки чужой учётки,
+        // поэтому ослабление поддерева профиля оставило бы наблюдателя внутри
+        // админской ручки — снаружи его держал бы только разбор `:id`
+        runtimeConfigMock.mockReturnValue({
+            bricksAuthMode: 'database',
+            bricksDatabaseUrl: 'postgresql://localhost:5432/bricks',
+            bricksAuthAllowUserManagement: true,
+            public: {},
+            app: {},
+        });
         resolveSessionUserMock.mockResolvedValue({
             expiresAt: new Date(Date.now() + 60_000).toISOString(),
             user: { id: 1, username: 'viewer', isActive: true, role: 'viewer' },
         });
 
-        await expect(
-            authMiddleware(makeEvent('/api/bricks/users/me', 'PATCH', { 'x-bricks-csrf': '1' }))
-        ).resolves.toBeUndefined();
+        const error = await catchThrown(
+            makeEvent('/api/bricks/users/me', 'PATCH', { 'x-bricks-csrf': '1' })
+        );
+
+        expect(error.statusCode).toBe(403);
+        expect(error.data?.code).toBe(BRICKS_API_ERROR_CODES.insufficientRole);
+    });
+
+    it('уносит `users/me` вместе с выключенным разделом: отдельного профиля пока нет', async () => {
+        resolveSessionUserMock.mockResolvedValue({
+            expiresAt: new Date(Date.now() + 60_000).toISOString(),
+            user: { id: 1, username: 'viewer', isActive: true, role: 'viewer' },
+        });
+
+        const error = await catchThrown(
+            makeEvent('/api/bricks/users/me', 'PATCH', { 'x-bricks-csrf': '1' })
+        );
+
+        expect(error.statusCode).toBe(404);
     });
 });

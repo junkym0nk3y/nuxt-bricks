@@ -34,6 +34,7 @@ import { useBuilderDraftPersistence } from '../composables/useBuilderDraftPersis
 import { useBuilderSessionAddressSync } from '../composables/useBuilderSessionAddressSync';
 import { useBuilderToast } from '../../core/composables/useBuilderToast';
 import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
+import { usePropertiesPanelAvailability } from '../../core/composables/usePropertiesPanelAvailability';
 import { useAuthSession } from '../../auth/composables/useAuthSession';
 
 // Utils
@@ -263,6 +264,10 @@ useBuilderDraftPersistence({
     canEdit,
 });
 useBuilderSessionAddressSync({ renameSession, isSessionReady });
+
+// Правая панель свойств монтируется ниже по `canEdit` — сайдбар-стор обязан
+// знать об этом, иначе выбор блока резервирует её ширину и роли без панели
+usePropertiesPanelAvailability(canEdit);
 // #endregion
 
 // #region Computed

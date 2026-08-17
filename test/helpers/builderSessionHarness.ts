@@ -22,6 +22,7 @@ import { useBuilderSessionAddressSync } from '../../src/runtime/modules/builder/
 import { useBuilderSession } from '../../src/runtime/modules/builder/app/composables/useBuilderSession';
 import { useBuilderSessionToken } from '../../src/runtime/modules/builder/app/composables/useBuilderSessionToken';
 import { useBuilderDraftPersistence } from '../../src/runtime/modules/builder/app/composables/useBuilderDraftPersistence';
+import { usePropertiesPanelAvailability } from '../../src/runtime/modules/builder/core/composables/usePropertiesPanelAvailability';
 import { createDraftStorageNotice } from '../../src/runtime/modules/builder/app/utils/draftStorageNotice';
 // #endregion
 
@@ -169,6 +170,7 @@ export function mountBuilderContext(options: IBuilderContextOptions = {}): IBuil
             renameSession: sessionAddress.renameSession,
             isSessionReady: session.isSessionReady,
         });
+        usePropertiesPanelAvailability(canEdit);
         return { address: sessionAddress, session, sessionToken };
     });
 

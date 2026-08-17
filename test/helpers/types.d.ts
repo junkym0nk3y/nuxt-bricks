@@ -6,9 +6,15 @@ import type { useBuilderSession } from '../../src/runtime/modules/builder/app/co
 import type { IBuilderSessionToken } from '../../src/runtime/modules/builder/app/types/composables';
 
 /**
- * Контекст, который отдаёт `mountBuilderContext`: scope для очистки и заведённые
- * composables страницы билдера.
+ * Значение флага управления учётками после заполнения runtimeConfig: серверный
+ * ключ и его публичная копия. Проверяются оба — интерфейс решает по публичному,
+ * ручки по серверному, и разъехавшись они дали бы разный ответ на один запрос.
  */
+export interface IUserManagementFlagResolution {
+    server: unknown;
+    published: unknown;
+}
+
 /**
  * Опции фейкового события h3 (`createFakeH3Event`).
  */
@@ -32,6 +38,10 @@ export interface IBuilderContextOptions {
     canEdit?: boolean;
 }
 
+/**
+ * Контекст, который отдаёт `mountBuilderContext`: scope для очистки и заведённые
+ * composables страницы билдера.
+ */
 export interface IBuilderContext {
     scope: EffectScope;
     address: ReturnType<typeof useBuilderSessionAddress>;

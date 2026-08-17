@@ -6,6 +6,7 @@ import {
     toUsersHttpError,
 } from '../../../../modules/persistence/server/utils/handlerHelpers';
 import {
+    assertAdminRole,
     assertNotSelfTarget,
     assertUserManagementAvailable,
     validateUpdateUserPayload,
@@ -19,13 +20,15 @@ import {
  * профиля), 409 `LAST_ACTIVE_ADMIN` (система осталась бы без администратора),
  * 404 (учётки нет).
  *
- * Разбор `:id` идёт ДО всякой работы: путь `/api/bricks/users/me` матчится этим
- * же маршрутом, а требуемая роль для префикса своего профиля — «любая сессия»,
- * поэтому нечисловой id обязан отваливаться раньше, чем ручка что-то прочитает.
+ * Роль требуется явно (`assertAdminRole`), хотя её же требует middleware: этим
+ * маршрутом матчится и `/api/bricks/users/me`, поэтому послабление для
+ * поддерева профиля не должно превращать нечисловой `:id` в единственную
+ * преграду. Разбор `:id` при этом остаётся до всякой работы с телом запроса.
  */
 export default defineEventHandler(async (event) => {
     try {
         assertUserManagementAvailable(event);
+        assertAdminRole(event);
 
         const userId = requireNumericId(event);
         assertNotSelfTarget(event, userId);

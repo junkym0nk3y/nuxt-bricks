@@ -4,7 +4,7 @@
  * runtime-DDL адаптер не выполняет.
  */
 import { query, queryOne, withTransaction, type TTransactionQuery } from './client';
-import { isUniqueViolation } from './queryBuilders';
+import { isUniqueViolation, readViolatedConstraint } from './queryBuilders';
 import type {
     IAuthAdapter,
     IAuthUserRecord,
@@ -46,6 +46,39 @@ function toUserSummary(row: IAuthUserSummaryRow): IAuthUserSummary {
         ...row,
         createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt,
     };
+}
+
+/**
+ * Первичный ключ `bricks_users`. Единственное уникальное ограничение таблицы,
+ * которое НЕ может быть нарушено логином: остальные два (колоночное `UNIQUE` и
+ * регистронезависимый индекс) построены по `username`.
+ */
+const USERS_PRIMARY_KEY_CONSTRAINT = 'bricks_users_pkey';
+
+/**
+ * Проверяет, что конфликт уникальности МОГ быть конфликтом по логину.
+ *
+ * Различать ограничения обязательно: после восстановления дампа с отставшей
+ * `bricks_users_id_seq` вставка свободного логина упирается в первичный ключ, а
+ * ответ «логин занят» отправляет администратора придумывать другой логин —
+ * поломка базы маскируется штатным конфликтом и остаётся ненайденной.
+ *
+ * Исключается именно первичный ключ, а не сверяются имена индексов логина: имя
+ * колоночного `UNIQUE` генерирует PostgreSQL, и опечатка в ожидаемом имени
+ * превратила бы обычный занятый логин в 500 — отказ хуже нынешнего. Так же
+ * трактуется ошибка без имени ограничения (совместимый сервер или прокси могут
+ * его не прислать): худший исход — сегодняшнее поведение. Появится у таблицы
+ * третий смысл уникальности — расширить исключение.
+ *
+ * @param error - Пойманная ошибка запроса.
+ * @returns true, если конфликт мог произойти по логину.
+ */
+function isPossibleUsernameConflict(error: unknown): boolean {
+    if (!isUniqueViolation(error)) {
+        return false;
+    }
+
+    return readViolatedConstraint(error) !== USERS_PRIMARY_KEY_CONSTRAINT;
 }
 
 /**
@@ -318,7 +351,7 @@ export function createPostgresAuthAdapter(): IAuthAdapter {
 
                 return toUserSummary(rows[0]);
             } catch (error: unknown) {
-                if (isUniqueViolation(error)) {
+                if (isPossibleUsernameConflict(error)) {
                     throw new BricksUsernameTakenError(payload.username, error);
                 }
 

@@ -8,18 +8,28 @@ const TRUTHY_FLAG_VALUES = new Set(['true', '1', 'yes', 'on']);
  * Приводит значение runtimeConfig/env к булеву флагу (boolean из опций
  * модуля или строка из env-override).
  *
+ * Пустая строка — «не задано», а не «выключено»: переменная, объявленная в
+ * `.env` или compose без значения, доезжает и до сборки, и до собранного
+ * приложения (Nitro накрывает runtimeConfig значениями `NUXT_*` как есть,
+ * пустую строку в том числе). Считай её выключением — и флаг с дефолтом
+ * «включено» молча гас бы у всех, включая администратора, от одной строки
+ * без значения.
+ *
  * @param value - Сырое значение флага.
+ * @param fallback - Значение для незаданного флага (по умолчанию выключено).
  */
-export function parseBricksBooleanFlag(value: unknown): boolean {
+export function parseBricksBooleanFlag(value: unknown, fallback: boolean = false): boolean {
     if (typeof value === 'boolean') {
         return value;
     }
 
     if (typeof value === 'string') {
-        return TRUTHY_FLAG_VALUES.has(value.trim().toLowerCase());
+        const normalized = value.trim().toLowerCase();
+
+        return normalized === '' ? fallback : TRUTHY_FLAG_VALUES.has(normalized);
     }
 
-    return false;
+    return value === null || value === undefined ? fallback : false;
 }
 
 /**

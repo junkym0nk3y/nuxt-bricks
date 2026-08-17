@@ -10,6 +10,8 @@ interface ISidebarState {
         visible: boolean;
         width: string;
     };
+    /** Монтируется ли правая панель свойств вообще (см. `setPropertiesPanelAvailable`). */
+    isPropertiesPanelAvailable: boolean;
     activeView: TSidebarView;
 }
 
@@ -27,6 +29,7 @@ export const useSidebarStore = defineStore('bricksSidebar', {
             visible: false,
             width: '35rem',
         },
+        isPropertiesPanelAvailable: true,
         activeView: 'components',
     }),
 
@@ -85,9 +88,36 @@ export const useSidebarStore = defineStore('bricksSidebar', {
         },
 
         /**
+         * Объявляет, монтируется ли правая панель свойств в этой сессии.
+         *
+         * Роли без права правки панель не рендерится вовсе, а её ширину вычитают
+         * из канваса три места (ширина контейнера, смещение тулбара,
+         * перецентровка). Без этого флага выбор блока — законное для наблюдателя
+         * действие, это подсветка, а не правка — открывал бы `right.visible`, и
+         * справа появлялось бы 35rem пустоты, под которую канвас сжимался и
+         * пересчитывал масштаб. Флаг держит `right.visible` в значении «панель на
+         * экране», поэтому все три расчёта верны по построению.
+         *
+         * @param isAvailable - Монтируется ли панель.
+         */
+        setPropertiesPanelAvailable(isAvailable: boolean) {
+            this.isPropertiesPanelAvailable = isAvailable;
+
+            // Панель могла быть открыта до того, как право правки отобрали
+            // (роль досылается запросом в сборках без SSR)
+            if (!isAvailable) {
+                this.right.visible = false;
+            }
+        },
+
+        /**
          * Показывает правую панель свойств выбранного компонента.
          */
         showPropertiesPanel() {
+            if (!this.isPropertiesPanelAvailable) {
+                return;
+            }
+
             this.right.visible = true;
         },
 

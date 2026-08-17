@@ -176,6 +176,26 @@ function applyBricksProxyRuntimeConfig(
 }
 
 /**
+ * Отбрасывает пустую строку в цепочке источников значения.
+ *
+ * Нужно флагам, чей дефолт — «включено»: `??` считает `''` заданным значением, а
+ * разбор булева флага читает пустую строку как `false`, поэтому объявленная без
+ * значения env-переменная молча выключала бы фичу вместо того, чтобы отдать её
+ * дефолту. Флагам с дефолтом `false` это безразлично, но правило дешевле
+ * исключения.
+ *
+ * @param value - Значение из runtimeConfig, env или опций модуля.
+ * @returns Само значение либо `undefined`, если оно пустое.
+ */
+function readDefinedFlag(value: unknown): unknown {
+    if (typeof value === 'string' && value.trim() === '') {
+        return undefined;
+    }
+
+    return value;
+}
+
+/**
  * Заполняет runtimeConfig auth-режима: server-ключи + публичный флаг для
  * 401-интерцептора и login-страницы.
  * Runtime-нюанс: NUXT_BRICKS_AUTH_MODE переопределяет только server-ключ,
@@ -199,10 +219,14 @@ function applyBricksAuthRuntimeConfig(
 
     // Управление учётками включено по умолчанию: значение пишется явным
     // булевым, а не оставляется пустым, — иначе `NUXT_BRICKS_AUTH_ALLOW_USER_
-    // MANAGEMENT=false` не имел бы типа, к которому Nitro приводит env-строку
+    // MANAGEMENT=false` не имел бы типа, к которому Nitro приводит env-строку.
+    // Пустая строка считается незаданным значением: `??` пропустил бы её дальше
+    // как заданную, а разбор флага читает её как `false` — объявленная без
+    // значения переменная в .env или compose выключала бы раздел учёток целиком,
+    // включая администратора, при документированном дефолте «включено»
     runtimeConfig.bricksAuthAllowUserManagement =
-        runtimeConfig.bricksAuthAllowUserManagement ??
-        process.env.BRICKS_AUTH_ALLOW_USER_MANAGEMENT ??
+        readDefinedFlag(runtimeConfig.bricksAuthAllowUserManagement) ??
+        readDefinedFlag(process.env.BRICKS_AUTH_ALLOW_USER_MANAGEMENT) ??
         options.auth?.allowUserManagement ??
         true;
 
@@ -213,7 +237,8 @@ function applyBricksAuthRuntimeConfig(
     // показывать ли раздел. Скрытие в UI — удобство, а не защита: ручки при
     // выключенном флаге отвечают 404 сами
     publicConfig.bricksAuthAllowUserManagement =
-        publicConfig.bricksAuthAllowUserManagement ?? runtimeConfig.bricksAuthAllowUserManagement;
+        readDefinedFlag(publicConfig.bricksAuthAllowUserManagement) ??
+        runtimeConfig.bricksAuthAllowUserManagement;
 }
 // #endregion
 

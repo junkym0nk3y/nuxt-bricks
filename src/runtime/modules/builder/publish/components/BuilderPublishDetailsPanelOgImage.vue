@@ -65,7 +65,7 @@ function handleClear(): void {
             <BricksButton
                 size="sm"
                 variant="secondary"
-                :disabled="props.isSaving"
+                :disabled="props.isDisabled"
                 @click="handleOpenMediaGallery"
             >
                 {{ t('bricks.publish.dashboard.details.selectFromMedia') }}
@@ -74,7 +74,7 @@ function handleClear(): void {
                 v-if="props.socialImage"
                 size="sm"
                 variant="ghost"
-                :disabled="props.isSaving"
+                :disabled="props.isDisabled"
                 @click="handleClear"
             >
                 {{ t('bricks.publish.socialImageClear') }}

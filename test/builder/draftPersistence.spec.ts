@@ -165,15 +165,64 @@ describe('черновик билдера: автосейв и сброс при
         });
 
         const context = mountTracked(false);
+        const publishStore = usePublishStore();
 
         await context.session.openBuilderSession(bareAddress('draft-page'));
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS * 2);
         windowStub.dispatchEvent({ type: 'pagehide' });
 
+        // Черновик не лёг ни на форму, ни на канвас: страница открыта пустой, как
+        // её отдал бы сервер. Сверяется именно содержимое формы — совпадающий
+        // заголовок означал бы, что чужая работа уже на экране
+        expect(publishStore.currentFormState.title).toBe('');
         expect(context.session.isDraftRestorePending.value).toBe(false);
-        expect(getBuilderDraft(bareAddress('draft-page'))?.draftSnapshot.formState.title).toBe(
-            'Чужая работа'
+        expect(context.showToastMock).not.toHaveBeenCalledWith(
+            'bricks.publish.toasts.unsavedChanges',
+            expect.anything(),
+            expect.anything()
         );
+
+        // Запись цела целиком, а не только по заголовку: автосейв наблюдателя не
+        // перезаписывал её и своим `updatedAt`
+        const draft = getBuilderDraft(bareAddress('draft-page'));
+        expect(draft?.updatedAt).toBe('2026-07-28T10:00:00.000Z');
+        expect(draft?.draftSnapshot.formState.title).toBe('Чужая работа');
+    });
+
+    it('роли без права правки не предлагают восстановить черновик открытой страницы', async () => {
+        // Второй вход в тот же гард: у страницы, которая уже сохранена, черновик
+        // не применяется молча, а взводит предложение восстановить — и ответ
+        // «удалить» унёс бы чужую незавершённую работу насовсем
+        const page = buildPage({ id: 5, pagename: 'draft-page' });
+        apiFetcherMock.mockImplementation((url: unknown) =>
+            Promise.resolve(/^\/api\/bricks\/\d+\/$/.test(String(url)) ? page : [page])
+        );
+
+        const publishStore = usePublishStore();
+        setBuilderDraft({
+            pagename: 'draft-page',
+            urlPrefix: null,
+            updatedAt: '2026-07-28T10:00:00.000Z',
+            mode: 'edit',
+            pageId: 5,
+            draftSnapshot: {
+                schema: { components: [buildComponent()] },
+                formState: buildFormState({ pagename: 'draft-page', title: 'Чужая работа' }),
+            },
+        });
+
+        const viewer = mountTracked(false);
+        await viewer.session.openBuilderSession(bareAddress('draft-page'));
+
+        expect(viewer.session.isDraftRestorePending.value).toBe(false);
+        expect(publishStore.currentFormState.title).toBe('Home');
+
+        // Тому же черновику редактор предложение получает — проверка выше не
+        // вырождена: гард снимает именно предложение, а не отсутствие черновика
+        const editor = mountTracked();
+        await editor.session.openBuilderSession(bareAddress('draft-page'));
+
+        expect(editor.session.isDraftRestorePending.value).toBe(true);
     });
 
     it('pagehide до истечения debounce: правка попадает в localStorage', async () => {

@@ -1,11 +1,13 @@
 /**
- * Общая логика ручек `/api/bricks/users/**`: доступность раздела, запрет
- * операций над собой и валидация DTO.
+ * Общая логика ручек `/api/bricks/users/**`: доступность раздела, требование
+ * роли администратора, запрет операций над собой и валидация DTO.
  *
- * Гард по роли (`admin`) здесь НЕ повторяется — он живёт в auth-middleware
- * (`rolePolicy.ts`), единственном разборщике путей проекта. Второй разборщик
- * рядом с ним неизбежно разошёлся бы с ним в краях, а именно такой разрыв уже
- * приводил к обходу гарда кодированным путём.
+ * Второго разборщика ПУТЕЙ здесь по-прежнему нет: сопоставление маршрута с
+ * требуемым правом остаётся за auth-middleware (`rolePolicy.ts`), потому что
+ * два разборщика неизбежно разошлись бы в краях — таким разрывом уже случался
+ * обход гарда кодированным путём. `assertAdminRole` путей не разбирает вовсе:
+ * ручка, вызывающая его, сама и есть админская, и роль читается из контекста
+ * запроса, который положило то же middleware.
  */
 import { createError, type H3Event } from 'h3';
 import { useRuntimeConfig } from 'nitropack/runtime';
@@ -18,7 +20,7 @@ import {
     BRICKS_ROLE_RANK,
 } from '../../../modules/common/constants/auth';
 import { BRICKS_API_ERROR_CODES } from '../../../modules/common/constants/apiErrors';
-import { isUserManagementAvailable } from './rolePolicy';
+import { isAccessSatisfied, isUserManagementAvailable } from './rolePolicy';
 import {
     assertKnownKeys,
     invalid,
@@ -161,6 +163,33 @@ export function assertUserManagementAvailable(event: H3Event): void {
     if (!isUserManagementAvailable(config.bricksAuthMode, config.bricksAuthAllowUserManagement)) {
         throw createError({ statusCode: 404, statusMessage: 'Not Found' });
     }
+}
+
+/**
+ * Требует роль администратора у уже авторизованного запроса.
+ *
+ * Дубль ролевого гарда middleware — намеренный, и не ради «на всякий случай»:
+ * ручки с параметром `:id` матчатся и путями, которых матрица прав не считает
+ * админскими. `PATCH /api/bricks/users/me` попадает сюда же, потому что
+ * отдельного маршрута профиля ещё нет, и стоит поддереву профиля получить
+ * послабление, как единственным препятствием останется разбор `:id` —
+ * совпадение, а не право доступа. Роль читается из контекста, положенного
+ * middleware, поэтому проверка не зависит от того, как разобран путь.
+ *
+ * @param event - Событие запроса.
+ */
+export function assertAdminRole(event: H3Event): void {
+    const role = event.context.bricksUser?.role;
+
+    if (role && isAccessSatisfied(role, 'admin')) {
+        return;
+    }
+
+    throw createError({
+        statusCode: 403,
+        statusMessage: 'Insufficient role',
+        data: { code: BRICKS_API_ERROR_CODES.insufficientRole },
+    });
 }
 
 /**

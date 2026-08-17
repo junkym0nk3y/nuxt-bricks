@@ -5,6 +5,7 @@ import {
     toUsersHttpError,
 } from '../../../../modules/persistence/server/utils/handlerHelpers';
 import {
+    assertAdminRole,
     assertNotSelfTarget,
     assertUserManagementAvailable,
 } from '../../../utils/auth/userManagement';
@@ -22,6 +23,7 @@ import {
 export default defineEventHandler(async (event) => {
     try {
         assertUserManagementAvailable(event);
+        assertAdminRole(event);
 
         const userId = requireNumericId(event);
         assertNotSelfTarget(event, userId);

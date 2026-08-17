@@ -114,6 +114,16 @@ describe('useBuilderPermissions: права по роли сессии', () => {
         expect(canManageUsers.value).toBe(false);
     });
 
+    it('не прячет раздел учёток от пустой строки в публичном флаге', () => {
+        // Так выглядит `NUXT_PUBLIC_BRICKS_AUTH_ALLOW_USER_MANAGEMENT=`: Nitro
+        // накрывает собранное значение пустой строкой, минуя build-time
+        // нормализацию, — интерфейс не должен считать это выключением
+        requestContext.role = 'admin';
+        runtimePublicConfig.bricksAuthAllowUserManagement = '';
+
+        expect(useBuilderPermissions().canManageUsers.value).toBe(true);
+    });
+
     it('в basic-режиме раздел учёток недоступен: управлять нечем', () => {
         runtimePublicConfig.bricksAuthMode = 'basic';
 

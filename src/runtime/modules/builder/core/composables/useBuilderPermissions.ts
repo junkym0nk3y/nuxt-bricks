@@ -49,8 +49,12 @@ export function useBuilderPermissions(): IBuilderPermissions {
     const event = useRequestEvent();
 
     const isDatabaseMode = (config.public?.bricksAuthMode as string | undefined) === 'database';
+    // Дефолт «включено» — и для незаданного флага, и для пустой строки:
+    // `NUXT_PUBLIC_BRICKS_AUTH_ALLOW_USER_MANAGEMENT=` доезжает до собранного
+    // приложения как `''`, мимо build-time нормализации
     const isUserManagementAllowed = parseBricksBooleanFlag(
-        config.public?.bricksAuthAllowUserManagement ?? true
+        config.public?.bricksAuthAllowUserManagement,
+        true
     );
 
     // В basic-режиме учёток нет вовсе: identity одна на всех и задана
