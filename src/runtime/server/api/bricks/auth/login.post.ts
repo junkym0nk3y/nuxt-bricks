@@ -22,7 +22,7 @@ import {
     setSessionCookie,
 } from '../../../utils/auth/sessionCookie';
 import { resolveRequestClientIp } from '../../../utils/requestClientIp';
-import type { IAuthAdapter } from '../../../../modules/persistence/types/adapters';
+import type { IAuthAdapter } from '../../../../modules/persistence/types/authAdapters';
 import type {
     IAuthLoginBody,
     IAuthLoginCandidate,

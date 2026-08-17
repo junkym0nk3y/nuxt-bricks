@@ -24,7 +24,7 @@ vi.mock('nitropack/runtime', () => ({ useAppConfig: () => appConfig.value }));
 import {
     resolveMediaConfig,
     resolveRequestedOptimization,
-} from '../../src/runtime/modules/persistence/server/utils/imageProcessing';
+} from '../../src/runtime/modules/persistence/server/utils/mediaConfig';
 
 // #region Helpers
 /**

@@ -57,6 +57,13 @@ const EXPECTED_ACCESS: Record<string, TBricksAccessRequirement> = {
     'DELETE /api/bricks/media/:id': 'admin',
     'GET /api/bricks/users': 'admin',
     'POST /api/bricks/users': 'admin',
+    // Свой профиль — любой вошедший: наблюдателю это единственное доступное
+    // изменение. Роль внутри поддерева не спрашивается вовсе, поэтому `:id`-ручки
+    // требуют её сами (test/server/authUserHandlersRoleGuard.spec.ts)
+    'PATCH /api/bricks/users/me': 'authenticated',
+    'POST /api/bricks/users/me/password': 'authenticated',
+    'POST /api/bricks/users/me/avatar': 'authenticated',
+    'DELETE /api/bricks/users/me/avatar': 'authenticated',
     'POST /api/bricks/users/:id/password': 'admin',
     'PATCH /api/bricks/users/:id': 'admin',
     'DELETE /api/bricks/users/:id': 'admin',

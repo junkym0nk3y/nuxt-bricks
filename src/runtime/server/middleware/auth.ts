@@ -326,7 +326,7 @@ export default defineEventHandler(async (event: H3Event) => {
     // ровно то, что 404 обещает скрыть. Ручки свою проверку сохраняют как
     // второй рубеж
     if (
-        isUserManagementPath(target.logicalPathname) &&
+        isUserManagementPath(target.logicalPathname, method) &&
         !isUserManagementAvailable(mode, config.bricksAuthAllowUserManagement)
     ) {
         throw createError({ statusCode: 404, statusMessage: 'Not Found' });

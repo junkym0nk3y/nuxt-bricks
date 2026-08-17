@@ -1,8 +1,12 @@
 /**
- * Контракты persistence-слоя.
+ * Контракты persistence-слоя: данные страниц, медиа и файловое хранилище.
  *
  * IStorageAdapter — CRUD страниц и медиа-метаданных (дефолт — Postgres).
  * IPublishAdapter — файловое хранилище публикации (дефолт — S3/Yandex).
+ *
+ * Контракт учёток (`IAuthAdapter`) живёт в `authAdapters.d.ts`: он не может
+ * уехать во внешний backend, у него другие потребители и другая причина
+ * меняться.
  *
  * Кастомный адаптер потребитель регистрирует из своего Nitro-плагина через
  * сеттеры в `modules/persistence/server/registry.ts`.
@@ -17,7 +21,6 @@ import type {
 } from '../../common/types/bricks-api';
 import type { IMediaCategory, IMediaItem } from '../../common/types/media';
 import type { IBricksPageAddress } from '../../common/types/pageAddress';
-import type { TBricksUserRole } from '../../common/types/auth';
 
 /**
  * Данные для создания записи медиа (id и uploadedAt генерирует хранилище).
@@ -219,17 +222,22 @@ export interface IStoredFileInfo {
 
 /**
  * Тип файла хранилища публикации — определяет namespace-префикс ключа.
+ *
+ * `avatar` — фото профиля. Отдельный namespace, а не медиатека: попади аватары
+ * в галерею, любой редактор увидел бы их среди рабочих файлов и мог удалить
+ * чужое фото, а импорт бакета зарегистрировал бы их как медиа.
  */
-export type TPublishFileKind = 'media' | 'thumbnail';
+export type TPublishFileKind = 'media' | 'thumbnail' | 'avatar';
 
 /**
  * Файловое хранилище публикации (медиа-файлы).
  *
  * Managed namespace: адаптер владеет ограниченным набором префиксов ключей
- * (для S3-дефолта — `prefix` и `thumbnailsPrefix` конфигурации). Все ключи
- * строятся через `buildFileKey`, а `deleteFile`/`isOwnedUrl` обязаны отказывать
- * ключам вне namespace — в shared-бакете модуль не должен уметь трогать
- * посторонние объекты даже по синтаксически валидному URL бакета.
+ * (для S3-дефолта — `prefix`, `thumbnailsPrefix` и `avatarsPrefix`
+ * конфигурации). Все ключи строятся через `buildFileKey`, а
+ * `deleteFile`/`isOwnedUrl` обязаны отказывать ключам вне namespace — в
+ * shared-бакете модуль не должен уметь трогать посторонние объекты даже по
+ * синтаксически валидному URL бакета.
  */
 export interface IPublishAdapter {
     /**
@@ -270,192 +278,6 @@ export interface IPublishAdapter {
      * хранилищем (включая префикс ключа), а не с форматом URL вообще.
      */
     isOwnedUrl(url: string): boolean;
-}
-
-/**
- * Запись пользователя database-auth (включая хеш пароля — только для verify).
- */
-export interface IAuthUserRecord {
-    id: number;
-    username: string;
-    /** Самоописывающий формат scrypt:N:r:p:saltB64:hashB64. */
-    passwordHash: string;
-    isActive: boolean;
-    role: TBricksUserRole;
-    /**
-     * Поколение учётных данных на момент чтения. Вход обязан передать его в
-     * `createSession`: проверка пароля занимает секунды (scrypt), и за это
-     * время учётку могли деактивировать или сменить ей пароль.
-     */
-    authVersion: number;
-}
-
-/**
- * Пользователь авторизованной сессии (без секретов — уходит в event.context и клиенту).
- */
-export interface IAuthSessionUser {
-    id: number;
-    username: string;
-    isActive: boolean;
-    /**
-     * Актуальная роль, а не снимок на момент входа: гард ручек читает её на
-     * каждом запросе, поэтому понижение прав действует со следующего запроса
-     * без ожидания истечения куки.
-     */
-    role: TBricksUserRole;
-    /** Отображаемое имя профиля; null — показывается логин. */
-    displayName: string | null;
-    /** Ссылка на фото профиля; null — буквенная заглушка. */
-    avatarUrl: string | null;
-}
-
-/**
- * Сессия вместе с пользователем (JOIN bricks_sessions × bricks_users).
- */
-export interface IAuthSessionWithUser {
-    tokenHash: string;
-    expiresAt: string;
-    lastUsedAt: string;
-    user: IAuthSessionUser;
-}
-
-/**
- * Учётка в списке управления пользователями (без секретов и без
- * `auth_version`: поколение — деталь механизма отзыва, наружу ей незачем).
- */
-export interface IAuthUserSummary {
-    id: number;
-    username: string;
-    role: TBricksUserRole;
-    isActive: boolean;
-    displayName: string | null;
-    avatarUrl: string | null;
-    /** ISO 8601 UTC — момент создания учётки. */
-    createdAt: string;
-}
-
-/**
- * Данные создания учётки администратором. Хеш пароля считает ручка
- * (`server/utils/auth/passwords.ts`) — адаптер паролей в открытом виде не
- * видит вовсе, поэтому не может ни залогировать их, ни отправить наружу.
- */
-export interface ICreateAuthUserPayload {
-    username: string;
-    passwordHash: string;
-    role: TBricksUserRole;
-}
-
-/**
- * Правка состояния чужой учётки: роль и/или активность. `undefined` — поле не
- * передано и сохраняет текущее значение.
- *
- * Оба поля в одном контракте, а не двумя методами, потому что применяться они
- * обязаны одной транзакцией: разбей их на пару вызовов — и отказ второго оставил
- * бы строку в состоянии, которого клиент не просил, не сообщив, какая половина
- * прошла. Заодно краевое правило про последнего администратора проверяется по
- * ИТОГОВОМУ состоянию, а не по каждому полю отдельно.
- *
- * Имя и фото профиля здесь отсутствуют намеренно: их правит себе сам человек,
- * администратору доступны только права, активность, пароль и удаление. Логин
- * неизменяем вовсе — переименование ломало бы ссылки на автора и журналы.
- */
-export interface IAuthUserStateChange {
-    role?: TBricksUserRole;
-    isActive?: boolean;
-}
-
-/**
- * Состояние учётки, от которого зависят краевые правила
- * (`server/utils/authUserRules.ts`): роль и активность. Читается под
- * блокировкой строки и сравнивается с итоговым состоянием.
- */
-export interface IAuthUserStateSnapshot {
-    role: TBricksUserRole;
-    isActive: boolean;
-}
-
-/**
- * Данные для создания cookie-сессии (в БД хранится только SHA-256 токена).
- */
-export interface ICreateAuthSessionPayload {
-    tokenHash: string;
-    userId: number;
-    expiresAt: Date;
-    /**
-     * Поколение учётных данных, прочитанное ПЕРЕД проверкой пароля. Сессия
-     * создаётся, только если оно всё ещё актуально и учётка активна.
-     */
-    expectedAuthVersion: number;
-}
-
-/**
- * Хранилище пользователей и cookie-сессий database-auth (дефолт — Postgres).
- *
- * Требование к свежести, обязательное для любой реализации (в том числе
- * внешней — HTTP-backend, OIDC): `getSessionWithUser` обязан отдавать
- * АКТУАЛЬНЫЕ `role`, `isActive` и профиль, а не снимок на момент входа, и
- * обязан считать сессию отсутствующей, если поколение учётных данных
- * разошлось с сохранённым при входе. На этом держится отзыв прав: смена
- * пароля, деактивация и смена роли действуют со следующего запроса, а не
- * через семь суток жизни куки. Реализация, кеширующая роль или носящая её в
- * самоподписанном токене без проверки, контракт нарушает.
- */
-export interface IAuthAdapter {
-    getUserByUsername(username: string): Promise<IAuthUserRecord | null>;
-    /**
-     * Возвращает только непросроченную сессию активного пользователя с
-     * актуальным поколением учётных данных (всё остальное неотличимо от
-     * отсутствующей сессии).
-     */
-    getSessionWithUser(tokenHash: string): Promise<IAuthSessionWithUser | null>;
-    /**
-     * Создаёт сессию, если учётка всё ещё активна и её поколение совпадает с
-     * `expectedAuthVersion`.
-     *
-     * @returns false — состояние учётки изменилось между проверкой пароля и
-     * вставкой (сменили пароль, деактивировали, сменили роль); куку в этом
-     * случае выставлять нельзя.
-     */
-    createSession(payload: ICreateAuthSessionPayload): Promise<boolean>;
-    deleteSession(tokenHash: string): Promise<void>;
-    /** Удаляет просроченные сессии; возвращает количество удалённых. */
-    deleteExpiredSessions(): Promise<number>;
-    /** Sliding-продление: обновляет expires_at и last_used_at. */
-    touchSession(tokenHash: string, expiresAt: Date): Promise<void>;
-    /** Все учётки для раздела управления, в стабильном порядке (по id). */
-    listUsers(): Promise<IAuthUserSummary[]>;
-    /**
-     * Создаёт учётку.
-     *
-     * @throws BricksUsernameTakenError - Логин занят (сравнение
-     * регистронезависимое — как и вход).
-     */
-    createUser(payload: ICreateAuthUserPayload): Promise<IAuthUserSummary>;
-    /**
-     * Меняет роль и/или активность учётки одной транзакцией и отзывает её
-     * сессии: украденная кука иначе получила бы новые полномочия при повышении,
-     * а понижение действовало бы только со следующего входа. Правка, не
-     * меняющая состояние, сессии не рвёт.
-     *
-     * @returns Новое состояние строки; null — учётки нет.
-     * @throws BricksLastActiveAdminError - Итоговое состояние оставило бы
-     * систему без активного администратора.
-     */
-    updateUserState(userId: number, change: IAuthUserStateChange): Promise<IAuthUserSummary | null>;
-    /**
-     * Ставит новый хеш пароля и отзывает сессии учётки.
-     *
-     * @returns Состояние строки; null — учётки нет.
-     */
-    updateUserPassword(userId: number, passwordHash: string): Promise<IAuthUserSummary | null>;
-    /**
-     * Удаляет учётку (сессии уходят каскадом FK).
-     *
-     * @returns false — учётки нет.
-     * @throws BricksLastActiveAdminError - Удаление оставило бы систему без
-     * активного администратора.
-     */
-    deleteUser(userId: number): Promise<boolean>;
 }
 
 /**

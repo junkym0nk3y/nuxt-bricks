@@ -5,6 +5,8 @@ import { describe, expect, it } from 'vitest';
 // Utils
 import {
     isAccessSatisfied,
+    isPasswordChangeAvailable,
+    isUserManagementPath,
     resolveRequiredAccess,
 } from '../../src/runtime/server/utils/auth/rolePolicy';
 import { BRICKS_BASIC_MODE_ROLE } from '../../src/runtime/modules/common/constants/auth';
@@ -49,18 +51,43 @@ describe('rolePolicy: минимальный доступ по пути и ме�
         expect(resolveRequiredAccess('/api/bricks/media/import', 'POST')).toBe('admin');
     });
 
-    it('требует администратора на всё поддерево учёток, включая ещё не существующий профиль', () => {
+    it('требует администратора на управление чужими учётками', () => {
         expect(resolveRequiredAccess('/api/bricks/users', 'GET')).toBe('admin');
         expect(resolveRequiredAccess('/api/bricks/users', 'POST')).toBe('admin');
+        expect(resolveRequiredAccess('/api/bricks/users/5', 'PATCH')).toBe('admin');
+        expect(resolveRequiredAccess('/api/bricks/users/5', 'DELETE')).toBe('admin');
         expect(resolveRequiredAccess('/api/bricks/users/5/password', 'POST')).toBe('admin');
+    });
 
-        // Ручек собственного профиля пока нет, и `users/me` матчится
-        // параметрическим маршрутом админской правки чужой учётки. Ослабление
-        // этого поддерева вводится вместе с самими ручками профиля: раньше оно
-        // оставляет наблюдателя в админской ручке, где его держит только разбор
-        // `:id`
-        expect(resolveRequiredAccess('/api/bricks/users/me', 'PATCH')).toBe('admin');
-        expect(resolveRequiredAccess('/api/bricks/users/me/password', 'POST')).toBe('admin');
+    it('пускает в свой профиль любую валидную сессию, включая удаление фото', () => {
+        // Своё имя, фото и пароль правит любой вошедший — наблюдателю это
+        // единственное доступное изменение. DELETE аватара не становится
+        // админским, хотя по методу должен был бы: правило профиля раньше
+        expect(resolveRequiredAccess('/api/bricks/users/me', 'PATCH')).toBe('authenticated');
+        expect(resolveRequiredAccess('/api/bricks/users/me/password', 'POST')).toBe(
+            'authenticated'
+        );
+        expect(resolveRequiredAccess('/api/bricks/users/me/avatar', 'POST')).toBe('authenticated');
+        expect(resolveRequiredAccess('/api/bricks/users/me/avatar', 'DELETE')).toBe(
+            'authenticated'
+        );
+    });
+
+    it('ослабляет ровно перечисленные пары «метод + путь», а не префикс профиля', () => {
+        // Префикс работал бы fail-open: он ослаблял бы и то, чего в нём ещё нет.
+        // `DELETE /users/me` матчится админской ручкой удаления учётки, а будущая
+        // `/users/:id/<действие>` стала бы доступна любой сессии на `id=me`
+        expect(resolveRequiredAccess('/api/bricks/users/me', 'DELETE')).toBe('admin');
+        expect(resolveRequiredAccess('/api/bricks/users/me', 'POST')).toBe('admin');
+        expect(resolveRequiredAccess('/api/bricks/users/me/sessions', 'DELETE')).toBe('admin');
+        expect(resolveRequiredAccess('/api/bricks/users/me/password', 'PATCH')).toBe('admin');
+    });
+
+    it('не распространяет послабление профиля на похожие пути', () => {
+        // Сегмент сверяется целиком: учётка с id, начинающимся на «me», и чужой
+        // логин `mentor` не должны получить права профиля
+        expect(resolveRequiredAccess('/api/bricks/users/mentor', 'PATCH')).toBe('admin');
+        expect(resolveRequiredAccess('/api/bricks/users/me2/avatar', 'POST')).toBe('admin');
     });
 
     it('пускает на HTML-страницы билдера любую роль — наблюдателю нужен канвас', () => {
@@ -101,6 +128,41 @@ describe('rolePolicy: путь приводится к виду, который 
         expect(normalizePathTrailingSlash('/')).toBe('/');
         expect(normalizePathTrailingSlash('/bricks')).toBe('/bricks');
         expect(normalizePathTrailingSlash('/bricks/')).toBe('/bricks');
+    });
+});
+
+describe('rolePolicy: границы раздела учёток и флага паролей', () => {
+    it('не считает ручки своего профиля частью раздела учёток', () => {
+        // От этого зависит 404-гейт: выключенный `allowUserManagement` — про
+        // ведение чужих учёток снаружи, а не про запрет сменить себе фото
+        expect(isUserManagementPath('/api/bricks/users', 'GET')).toBe(true);
+        expect(isUserManagementPath('/api/bricks/users/5', 'PATCH')).toBe(true);
+        expect(isUserManagementPath('/api/bricks/users/5/password', 'POST')).toBe(true);
+
+        expect(isUserManagementPath('/api/bricks/users/me', 'PATCH')).toBe(false);
+        expect(isUserManagementPath('/api/bricks/users/me/avatar', 'POST')).toBe(false);
+        expect(isUserManagementPath('/api/bricks/users/me/avatar', 'DELETE')).toBe(false);
+
+        // Всё непокрытое под `/users/me` остаётся частью раздела и вместе с ним
+        // отвечает 404: иначе выключенный раздел выдавал бы себя чужим статусом
+        expect(isUserManagementPath('/api/bricks/users/me', 'DELETE')).toBe(true);
+        expect(isUserManagementPath('/api/bricks/users/me/sessions', 'DELETE')).toBe(true);
+
+        // Похожий сегмент профилем не становится
+        expect(isUserManagementPath('/api/bricks/users/mentor', 'PATCH')).toBe(true);
+    });
+
+    it('держит смену пароля включённой по умолчанию и выключает её строкой из env', () => {
+        expect(isPasswordChangeAvailable('database', undefined)).toBe(true);
+        // Так выглядит объявленная без значения env-переменная: не «выключено»
+        expect(isPasswordChangeAvailable('database', '')).toBe(true);
+        expect(isPasswordChangeAvailable('database', false)).toBe(false);
+        expect(isPasswordChangeAvailable('database', 'false')).toBe(false);
+    });
+
+    it('не даёт менять пароль вне database-режима: паролей учёток там нет', () => {
+        expect(isPasswordChangeAvailable('basic', true)).toBe(false);
+        expect(isPasswordChangeAvailable(undefined, true)).toBe(false);
     });
 });
 

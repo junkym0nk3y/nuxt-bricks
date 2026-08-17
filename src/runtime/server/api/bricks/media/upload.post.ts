@@ -7,9 +7,11 @@ import {
 import {
     getFileExtension,
     isVideoFile,
+} from '../../../../modules/persistence/server/utils/imageProcessing';
+import {
     resolveMediaConfig,
     resolveRequestedOptimization,
-} from '../../../../modules/persistence/server/utils/imageProcessing';
+} from '../../../../modules/persistence/server/utils/mediaConfig';
 import {
     validateAndOptimizeImage,
     validateVideo,

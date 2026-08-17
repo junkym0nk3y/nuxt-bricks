@@ -127,6 +127,7 @@ function applyBricksPersistenceRuntimeConfig(
         secretAccessKey: '',
         prefix: 'bricks-media/',
         thumbnailsPrefix: 'bricks-thumbnails/',
+        avatarsPrefix: 'bricks-avatars/',
     });
 }
 
@@ -230,6 +231,15 @@ function applyBricksAuthRuntimeConfig(
         options.auth?.allowUserManagement ??
         true;
 
+    // Смена пароля включена по умолчанию — та же цепочка и та же причина
+    // отбрасывать пустую строку: объявленная без значения переменная не должна
+    // отбирать у людей возможность сменить свой пароль
+    runtimeConfig.bricksAuthAllowPasswordChange =
+        readDefinedFlag(runtimeConfig.bricksAuthAllowPasswordChange) ??
+        readDefinedFlag(process.env.BRICKS_AUTH_ALLOW_PASSWORD_CHANGE) ??
+        options.auth?.allowPasswordChange ??
+        true;
+
     // Публичный флаг auth-режима (не секрет) — клиенту нужен для редиректа на login
     publicConfig.bricksAuthMode = publicConfig.bricksAuthMode ?? runtimeConfig.bricksAuthMode;
 
@@ -239,6 +249,13 @@ function applyBricksAuthRuntimeConfig(
     publicConfig.bricksAuthAllowUserManagement =
         readDefinedFlag(publicConfig.bricksAuthAllowUserManagement) ??
         runtimeConfig.bricksAuthAllowUserManagement;
+
+    // Публичный флаг смены пароля: по нему профиль решает, показывать ли вкладку
+    // пароля, а строка списка учёток — «ключ» смены чужого. Тоже удобство:
+    // ручки при выключенном флаге отвечают 403 сами
+    publicConfig.bricksAuthAllowPasswordChange =
+        readDefinedFlag(publicConfig.bricksAuthAllowPasswordChange) ??
+        runtimeConfig.bricksAuthAllowPasswordChange;
 }
 // #endregion
 

@@ -56,6 +56,12 @@ export function useBuilderPermissions(): IBuilderPermissions {
         config.public?.bricksAuthAllowUserManagement,
         true
     );
+    // Тот же дефолт и та же причина: пустая строка публичного флага — не
+    // «выключено», а «не задано»
+    const isPasswordChangeAllowedByFlag = parseBricksBooleanFlag(
+        config.public?.bricksAuthAllowPasswordChange,
+        true
+    );
 
     // В basic-режиме учёток нет вовсе: identity одна на всех и задана
     // окружением, поэтому сужать права не по кому — роль известна сразу и
@@ -77,6 +83,11 @@ export function useBuilderPermissions(): IBuilderPermissions {
     );
     const canManageUsers = computed<boolean>(
         () => canDelete.value && isDatabaseMode && isUserManagementAllowed
+    );
+    // Роль не участвует: свой пароль меняет любой вошедший, включая наблюдателя.
+    // Ручка чужого пароля закрыта тем же флагом, но требует ещё и `canManageUsers`
+    const canChangePassword = computed<boolean>(
+        () => isDatabaseMode && isPasswordChangeAllowedByFlag
     );
     // #endregion
 
@@ -103,5 +114,5 @@ export function useBuilderPermissions(): IBuilderPermissions {
     }
     // #endregion
 
-    return { role, isRoleKnown, canEdit, canDelete, canManageUsers, ensureRole };
+    return { role, isRoleKnown, canEdit, canDelete, canManageUsers, canChangePassword, ensureRole };
 }

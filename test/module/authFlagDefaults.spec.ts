@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Types
 import type { IBricksModuleOptions } from '../../src/types/module';
-import type { IUserManagementFlagResolution } from '../helpers/types';
+import type { IAuthFlagResolution } from '../helpers/types';
 
 // Utils
 import { applyBricksRuntimeConfig } from '../../src/module-runtime-config';
@@ -25,9 +25,7 @@ import { DEFAULT_BRICKS_ROUTE_PREFIXES } from '../../src/runtime/modules/common/
  * @param options - Опции модуля из nuxt.config.
  * @returns Server- и public-значения флага управления учётками.
  */
-function resolveUserManagementFlag(
-    options: IBricksModuleOptions = {}
-): IUserManagementFlagResolution {
+function resolveUserManagementFlag(options: IBricksModuleOptions = {}): IAuthFlagResolution {
     const runtimeConfig: Record<string, unknown> = {};
 
     applyBricksRuntimeConfig(runtimeConfig, options, DEFAULT_BRICKS_ROUTE_PREFIXES, true);
@@ -37,6 +35,25 @@ function resolveUserManagementFlag(
     return {
         server: runtimeConfig.bricksAuthAllowUserManagement,
         published: publicConfig.bricksAuthAllowUserManagement,
+    };
+}
+
+/**
+ * То же для флага смены пароля: у него своя пара ключей и свой env.
+ *
+ * @param options - Опции модуля из nuxt.config.
+ * @returns Server- и public-значения флага смены пароля.
+ */
+function resolvePasswordChangeFlag(options: IBricksModuleOptions = {}): IAuthFlagResolution {
+    const runtimeConfig: Record<string, unknown> = {};
+
+    applyBricksRuntimeConfig(runtimeConfig, options, DEFAULT_BRICKS_ROUTE_PREFIXES, true);
+
+    const publicConfig = runtimeConfig.public as Record<string, unknown>;
+
+    return {
+        server: runtimeConfig.bricksAuthAllowPasswordChange,
+        published: publicConfig.bricksAuthAllowPasswordChange,
     };
 }
 
@@ -52,6 +69,7 @@ describe('runtimeConfig: флаг управления учётками', () => 
     afterEach(() => {
         vi.restoreAllMocks();
         delete process.env.BRICKS_AUTH_ALLOW_USER_MANAGEMENT;
+        delete process.env.BRICKS_AUTH_ALLOW_PASSWORD_CHANGE;
     });
 
     it('включён, когда ни env, ни опция ничего не сказали', () => {
@@ -77,6 +95,51 @@ describe('runtimeConfig: флаг управления учётками', () => 
         process.env.BRICKS_AUTH_ALLOW_USER_MANAGEMENT = 'false';
 
         expect(resolveUserManagementFlag({ auth: { allowUserManagement: true } })).toEqual({
+            server: 'false',
+            published: 'false',
+        });
+    });
+});
+
+describe('runtimeConfig: флаг смены пароля', () => {
+    beforeEach(() => {
+        vi.spyOn(console, 'info').mockImplementation(() => undefined);
+        vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        delete process.env.BRICKS_AUTH_ALLOW_PASSWORD_CHANGE;
+    });
+
+    afterEach(() => {
+        vi.restoreAllMocks();
+        delete process.env.BRICKS_AUTH_ALLOW_PASSWORD_CHANGE;
+    });
+
+    it('включён по умолчанию — иначе никто не сменил бы себе пароль', () => {
+        expect(resolvePasswordChangeFlag()).toEqual({ server: true, published: true });
+    });
+
+    it('не выключается объявленной без значения env-переменной', () => {
+        process.env.BRICKS_AUTH_ALLOW_PASSWORD_CHANGE = '';
+
+        expect(resolvePasswordChangeFlag()).toEqual({ server: true, published: true });
+    });
+
+    it('выключается опцией модуля и env, не задевая флаг раздела учёток', () => {
+        // Флаги независимы: паролями снаружи ведут и там, где раздел учёток нужен
+        const runtimeConfig: Record<string, unknown> = {};
+
+        applyBricksRuntimeConfig(
+            runtimeConfig,
+            { auth: { allowPasswordChange: false } },
+            DEFAULT_BRICKS_ROUTE_PREFIXES,
+            true
+        );
+
+        expect(runtimeConfig.bricksAuthAllowPasswordChange).toBe(false);
+        expect(runtimeConfig.bricksAuthAllowUserManagement).toBe(true);
+
+        process.env.BRICKS_AUTH_ALLOW_PASSWORD_CHANGE = 'false';
+
+        expect(resolvePasswordChangeFlag({ auth: { allowPasswordChange: true } })).toEqual({
             server: 'false',
             published: 'false',
         });

@@ -51,25 +51,70 @@ const PATH_ACCESS_OVERRIDES: Record<string, TBricksAccessRequirement> = {
 
 /**
  * Префикс ручек управления учётками: только администратор.
- *
- * Поддерево собственного профиля (`/api/bricks/users/me/**`) из него НЕ
- * исключается, хотя ручки профиля будут доступны любому вошедшему: пока их не
- * существует, `PATCH /api/bricks/users/me` матчится параметрическим маршрутом
- * `[id].patch.ts`, то есть админской ручкой правки чужой учётки. Ослабь префикс
- * заранее — и единственным, что держит наблюдателя снаружи, останется разбор
- * `:id` (нечисловой id отвергается четырёхсотым), а это не право доступа, а
- * совпадение. Ослабление вводится вместе с самими ручками профиля, ни днём
- * раньше.
  */
 const USER_MANAGEMENT_PREFIX = '/api/bricks/users';
+
+/**
+ * Ручки собственного профиля, которым достаточно любой валидной сессии: точные
+ * пары «метод + путь», а не префикс.
+ *
+ * Своё имя, фото и пароль правит любой вошедший, включая наблюдателя, — это
+ * единственное, что он вообще может изменить, и от флага раздела учёток профиль
+ * не зависит.
+ *
+ * Список, а не префикс `/api/bricks/users/me/**`, потому что префикс работает
+ * fail-open: он ослабляет и то, чего в нём ещё нет. `DELETE /api/bricks/users/me`
+ * своей ручки не имеет и матчится параметрическим админским маршрутом
+ * `[id].delete.ts`, а любая будущая админская ручка `/users/:id/<действие>`
+ * автоматически стала бы доступна любой сессии на `id=me`, стоило автору забыть
+ * продублировать ролевой гард внутри. С точным списком новая ручка по умолчанию
+ * остаётся админской, и послабление для неё — отдельное осознанное решение.
+ *
+ * Дубль ролевого гарда внутри `:id`-ручек при этом сохраняется (`assertAdminRole`):
+ * он ловит и случай, когда статический маршрут почему-то не совпал.
+ *
+ * Пути перечислены целиком: `PATH_ACCESS_OVERRIDES` рядом устроен так же —
+ * второго разборщика параметрических путей здесь по-прежнему нет.
+ */
+const OWN_PROFILE_ROUTES: ReadonlySet<string> = new Set([
+    'PATCH /api/bricks/users/me',
+    'POST /api/bricks/users/me/password',
+    'POST /api/bricks/users/me/avatar',
+    'DELETE /api/bricks/users/me/avatar',
+]);
+
+/**
+ * Запрос адресован ручке собственного профиля.
+ *
+ * @param pathname - Логический путь запроса (без baseURL и query).
+ * @param method - HTTP-метод.
+ */
+function isOwnProfileRequest(pathname: string, method: string): boolean {
+    return OWN_PROFILE_ROUTES.has(`${method.toUpperCase()} ${pathname}`);
+}
 
 /**
  * Путь принадлежит управлению учётками (и потому исчезает вместе с выключенным
  * разделом).
  *
+ * Ручки собственного профиля в раздел не входят: `allowUserManagement: false` —
+ * про ведение учёток снаружи, а не про запрет человеку сменить себе фото, и
+ * документирован флаг именно так. Свою доступность профиль проверяет сам
+ * (database-режим) и своим флагом закрывает только пароль.
+ *
+ * Исключение — те же точные пары «метод + путь», что и в матрице прав: всё
+ * остальное под `/users/me` остаётся частью раздела и вместе с ним отвечает 404.
+ * Иначе выключенный раздел выдавал бы себя чужим статусом на любом непокрытом
+ * методе этого поддерева.
+ *
  * @param pathname - Логический путь запроса (без baseURL и query).
+ * @param method - HTTP-метод.
  */
-export function isUserManagementPath(pathname: string): boolean {
+export function isUserManagementPath(pathname: string, method: string): boolean {
+    if (isOwnProfileRequest(pathname, method)) {
+        return false;
+    }
+
     return pathname === USER_MANAGEMENT_PREFIX || pathname.startsWith(`${USER_MANAGEMENT_PREFIX}/`);
 }
 
@@ -97,6 +142,29 @@ export function isUserManagementAvailable(
 }
 
 /**
+ * Разрешена ли смена пароля из интерфейса — и своего в профиле, и чужого
+ * администратором. Одно правило на обе ручки: разъехавшись, они дали бы
+ * установке, где пароли ведут снаружи, ровно одну лазейку из двух.
+ *
+ * @param mode - Активный auth-режим.
+ * @param allowPasswordChangeFlag - Значение `bricksAuthAllowPasswordChange`
+ * (boolean из опций либо строка из env). Не задано — включено, и пустая строка
+ * тоже: `NUXT_BRICKS_AUTH_ALLOW_PASSWORD_CHANGE=` доезжает до собранного
+ * приложения как `''` мимо build-time нормализации.
+ */
+export function isPasswordChangeAvailable(
+    mode: string | undefined,
+    allowPasswordChangeFlag: unknown
+): boolean {
+    // Вне database-режима паролей учёток нет вовсе, менять нечего
+    if (mode !== 'database') {
+        return false;
+    }
+
+    return parseBricksBooleanFlag(allowPasswordChangeFlag, true);
+}
+
+/**
  * Возвращает минимальный доступ, необходимый защищённому пути.
  *
  * @param pathname - Логический путь запроса (без baseURL и query).
@@ -112,6 +180,12 @@ export function resolveRequiredAccess(
     // отказ на входе оставил бы его без единственного доступного экрана
     if (!pathname.startsWith('/api/bricks')) {
         return 'viewer';
+    }
+
+    // Свой профиль — до правила раздела учёток: его пути лежат внутри
+    // админского префикса, и порядок здесь и есть то самое послабление
+    if (isOwnProfileRequest(pathname, method)) {
+        return 'authenticated';
     }
 
     if (pathname === USER_MANAGEMENT_PREFIX || pathname.startsWith(`${USER_MANAGEMENT_PREFIX}/`)) {

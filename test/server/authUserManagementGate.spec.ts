@@ -67,19 +67,23 @@ function makeEvent(path: string, method: string, headers: Record<string, string>
 }
 
 /**
- * Выполняет middleware и возвращает брошенную им ошибку.
+ * Выполняет middleware (или переданную ручку) и возвращает брошенную ошибку.
  *
  * @param event - Событие запроса.
+ * @param handler - Обработчик; по умолчанию — само auth-middleware.
  * @returns Пойманная ошибка.
  */
-async function catchThrown(event: H3Event): Promise<IThrownHttpError> {
+async function catchThrown(
+    event: H3Event,
+    handler: (event: H3Event) => unknown = authMiddleware
+): Promise<IThrownHttpError> {
     try {
-        await authMiddleware(event);
+        await handler(event);
     } catch (error: unknown) {
         return error as IThrownHttpError;
     }
 
-    throw new Error('Expected middleware to throw');
+    throw new Error('Expected handler to throw');
 }
 
 describe('гейт раздела учёток в auth-middleware', () => {
@@ -146,10 +150,51 @@ describe('гейт раздела учёток в auth-middleware', () => {
         expect(error.data?.code).toBe(BRICKS_API_ERROR_CODES.insufficientRole);
     });
 
-    it('не пускает наблюдателя в `users/me`, пока ручек профиля не существует', async () => {
-        // Путь матчится параметрическим маршрутом админской правки чужой учётки,
-        // поэтому ослабление поддерева профиля оставило бы наблюдателя внутри
-        // админской ручки — снаружи его держал бы только разбор `:id`
+    it('пускает наблюдателя в свой профиль при включённом разделе', async () => {
+        runtimeConfigMock.mockReturnValue({
+            bricksAuthMode: 'database',
+            bricksDatabaseUrl: 'postgresql://localhost:5432/bricks',
+            bricksAuthAllowUserManagement: true,
+            public: {},
+            app: {},
+        });
+        resolveSessionUserMock.mockResolvedValue({
+            expiresAt: new Date(Date.now() + 60_000).toISOString(),
+            user: { id: 1, username: 'viewer', isActive: true, role: 'viewer' },
+        });
+
+        await expect(
+            authMiddleware(makeEvent('/api/bricks/users/me', 'PATCH', { 'x-bricks-csrf': '1' }))
+        ).resolves.not.toThrow();
+    });
+
+    it('оставляет свой профиль работать при выключенном разделе учёток', async () => {
+        // Флаг про ведение ЧУЖИХ учёток снаружи. Унеси он вместе с собой профиль —
+        // и человек в такой установке не смог бы ни сменить себе фото, ни пароль,
+        // хотя документирован флаг иначе
+        resolveSessionUserMock.mockResolvedValue({
+            expiresAt: new Date(Date.now() + 60_000).toISOString(),
+            user: { id: 1, username: 'viewer', isActive: true, role: 'viewer' },
+        });
+
+        for (const route of [
+            { url: '/api/bricks/users/me', method: 'PATCH' },
+            { url: '/api/bricks/users/me/password', method: 'POST' },
+            { url: '/api/bricks/users/me/avatar', method: 'POST' },
+            { url: '/api/bricks/users/me/avatar', method: 'DELETE' },
+        ]) {
+            await expect(
+                authMiddleware(makeEvent(route.url, route.method, { 'x-bricks-csrf': '1' })),
+                `${route.method} ${route.url}`
+            ).resolves.not.toThrow();
+        }
+    });
+
+    it('не отдаёт наблюдателю удаление учётки под видом своего профиля', async () => {
+        // `DELETE /api/bricks/users/me` своей ручки не имеет и матчится
+        // параметрическим маршрутом админского удаления. Матрица ослабляет ровно
+        // перечисленные пары «метод + путь», поэтому этот запрос остаётся
+        // админским и отказ даёт САМО middleware — до ручки дело не доходит
         runtimeConfigMock.mockReturnValue({
             bricksAuthMode: 'database',
             bricksDatabaseUrl: 'postgresql://localhost:5432/bricks',
@@ -163,21 +208,23 @@ describe('гейт раздела учёток в auth-middleware', () => {
         });
 
         const error = await catchThrown(
-            makeEvent('/api/bricks/users/me', 'PATCH', { 'x-bricks-csrf': '1' })
+            makeEvent('/api/bricks/users/me', 'DELETE', { 'x-bricks-csrf': '1' })
         );
 
         expect(error.statusCode).toBe(403);
         expect(error.data?.code).toBe(BRICKS_API_ERROR_CODES.insufficientRole);
     });
 
-    it('уносит `users/me` вместе с выключенным разделом: отдельного профиля пока нет', async () => {
+    it('уносит непокрытые методы `/users/me` вместе с выключенным разделом', async () => {
+        // Иначе выключенный раздел выдавал бы себя чужим статусом на любом
+        // методе этого поддерева, которого нет в списке ручек профиля
         resolveSessionUserMock.mockResolvedValue({
             expiresAt: new Date(Date.now() + 60_000).toISOString(),
-            user: { id: 1, username: 'viewer', isActive: true, role: 'viewer' },
+            user: { id: 1, username: 'admin', isActive: true, role: 'admin' },
         });
 
         const error = await catchThrown(
-            makeEvent('/api/bricks/users/me', 'PATCH', { 'x-bricks-csrf': '1' })
+            makeEvent('/api/bricks/users/me', 'DELETE', { 'x-bricks-csrf': '1' })
         );
 
         expect(error.statusCode).toBe(404);

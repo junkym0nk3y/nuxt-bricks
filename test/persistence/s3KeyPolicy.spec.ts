@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 // Utils
 import {
     extractStorageKey,
+    findManagedPrefixConflict,
     isManagedStorageKey,
     isSafeStorageKey,
 } from '../../src/runtime/modules/persistence/server/s3/s3KeyPolicy';
@@ -197,5 +198,73 @@ describe('isSafeStorageKey / isManagedStorageKey: segment safety', () => {
     it('принимает обычный managed-ключ', () => {
         expect(isSafeStorageKey('bricks-media/a.webp')).toBe(true);
         expect(isManagedStorageKey('bricks-media/a.webp', MANAGED_PREFIXES)).toBe(true);
+    });
+});
+
+/**
+ * Изоляция namespace'ов модуля (медиа, превью, аватары) держится ТОЛЬКО на том,
+ * что префиксы не пересекаются: листинг медиатеки идёт по `prefix`, и вложенный
+ * в него префикс аватаров превратил бы фото профиля в медиа-записи галереи.
+ */
+describe('findManagedPrefixConflict: набор managed-префиксов', () => {
+    it('принимает дефолтный набор', () => {
+        expect(
+            findManagedPrefixConflict({
+                prefix: 'bricks-media/',
+                thumbnailsPrefix: 'bricks-thumbnails/',
+                avatarsPrefix: 'bricks-avatars/',
+            })
+        ).toBeNull();
+    });
+
+    it('ловит вложенность одного префикса в другой', () => {
+        const conflict = findManagedPrefixConflict({
+            prefix: 'bricks/',
+            thumbnailsPrefix: 'bricks-thumbnails/',
+            avatarsPrefix: 'bricks/avatars/',
+        });
+
+        expect(conflict).toContain('avatarsPrefix');
+        expect(conflict).toContain('prefix');
+    });
+
+    it('ловит совпадение префиксов', () => {
+        expect(
+            findManagedPrefixConflict({
+                prefix: 'bricks-media/',
+                avatarsPrefix: 'bricks-media/',
+            })
+        ).not.toBeNull();
+    });
+
+    it('требует завершающий слеш: без него namespace — не каталог', () => {
+        // `bricks-media` сделал бы своим и `bricks-media-archive/x`
+        expect(findManagedPrefixConflict({ prefix: 'bricks-media' })).toContain('prefix');
+    });
+
+    it('отклоняет небезопасные и абсолютные значения', () => {
+        for (const value of ['/bricks-media/', 'bricks-media//', '../bricks-media/', './x/', '/']) {
+            expect(findManagedPrefixConflict({ prefix: value }), value).not.toBeNull();
+        }
+    });
+
+    it('отклоняет разделители URL: публичная ссылка собирается конкатенацией', () => {
+        // Всё после `?` уехало бы в query, после `#` — во fragment: ссылка
+        // перестала бы адресовать объект, а `isOwnedUrl` не смог бы восстановить
+        // ключ — файл стал бы неудаляемым. `isSafeStorageKey` этих символов не
+        // ловит: в ключе, вынутом ИЗ URL, их быть не может
+        for (const value of ['bricks-media?archive/', 'bricks-media#archive/']) {
+            expect(findManagedPrefixConflict({ prefix: value }), value).toContain('prefix');
+        }
+    });
+
+    it('пропускает вложенный путь, если он не пересекается с другими', () => {
+        expect(
+            findManagedPrefixConflict({
+                prefix: 'bricks/media/',
+                thumbnailsPrefix: 'bricks/thumbnails/',
+                avatarsPrefix: 'bricks/avatars/',
+            })
+        ).toBeNull();
     });
 });

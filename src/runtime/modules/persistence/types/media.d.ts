@@ -75,6 +75,24 @@ export interface IUploadMediaVariant {
     storedFilename: string;
 }
 
+/**
+ * Квадратная рамка кадрирования в пикселях входного изображения — уже с
+ * применённой EXIF-ориентацией, то есть в тех же координатах, в которых
+ * фотографию видит браузер (он ориентацию применяет сам).
+ */
+export interface IImageCropFrame {
+    left: number;
+    top: number;
+    /** Сторона квадрата: аватар квадратный, и вторая сторона была бы копией. */
+    side: number;
+}
+
+/** Пиксельные размеры изображения; null — sharp не смог их определить. */
+export interface IImageDimensions {
+    width: number;
+    height: number;
+}
+
 /** Результат обработки растра: готовые байты и то, чем он оказался. */
 export interface IOptimizedImage {
     buffer: Buffer;

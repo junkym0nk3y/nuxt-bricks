@@ -12,9 +12,9 @@ vi.mock('nitropack/runtime', () => ({
 // Utils
 import {
     isWebSafeImageExtension,
-    resolveImageFormat,
     resolveVideoMime,
 } from '../../src/runtime/modules/persistence/server/utils/imageProcessing';
+import { resolveImageFormat } from '../../src/runtime/modules/persistence/server/utils/mediaConfig';
 import { prepareUpload } from '../../src/runtime/server/api/bricks/media/upload.post';
 import type { IResolvedMediaConfig } from '../../src/runtime/modules/persistence/types/media';
 // #endregion

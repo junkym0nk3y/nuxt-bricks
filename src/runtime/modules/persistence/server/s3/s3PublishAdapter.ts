@@ -10,7 +10,7 @@ import {
     ListObjectsV2Command,
 } from '@aws-sdk/client-s3';
 import { useRuntimeConfig } from 'nitropack/runtime';
-import { extractStorageKey, isManagedStorageKey } from './s3KeyPolicy';
+import { extractStorageKey, findManagedPrefixConflict, isManagedStorageKey } from './s3KeyPolicy';
 import type {
     IPublishAdapter,
     IUploadFileParams,
@@ -63,6 +63,7 @@ interface IResolvedS3Config {
     secretAccessKey: string;
     prefix: string;
     thumbnailsPrefix: string;
+    avatarsPrefix: string;
 }
 
 /**
@@ -88,14 +89,32 @@ function resolveS3Config(): IResolvedS3Config {
         );
     }
 
+    const prefix = raw?.prefix || 'bricks-media/';
+    const thumbnailsPrefix = raw?.thumbnailsPrefix || 'bricks-thumbnails/';
+    const avatarsPrefix = raw?.avatarsPrefix || 'bricks-avatars/';
+
+    // Изоляция namespace'ов держится только на непересечении префиксов, а
+    // значения переопределяются NUXT_BRICKS_S3_* уже в рантайме — build-time
+    // проверка их не увидела бы. Отказ громкий: молча работающая конфигурация, в
+    // которой аватары попадают в листинг медиатеки, нарушает обещание модуля
+    const conflict = findManagedPrefixConflict({ prefix, thumbnailsPrefix, avatarsPrefix });
+
+    if (conflict) {
+        throw new Error(
+            `[S3] Invalid managed prefixes: ${conflict}. ` +
+                'Set distinct, non-nested bricks.s3 prefixes (or NUXT_BRICKS_S3_* env).'
+        );
+    }
+
     return {
         endpoint: raw?.endpoint || 'https://storage.yandexcloud.net',
         region: raw?.region || 'ru-central1',
         bucket,
         accessKeyId: raw?.accessKeyId || '',
         secretAccessKey: raw?.secretAccessKey || '',
-        prefix: raw?.prefix || 'bricks-media/',
-        thumbnailsPrefix: raw?.thumbnailsPrefix || 'bricks-thumbnails/',
+        prefix,
+        thumbnailsPrefix,
+        avatarsPrefix,
     };
 }
 
@@ -103,11 +122,16 @@ function resolveS3Config(): IResolvedS3Config {
  * Managed-префиксы ключей модуля в бакете: только внутри них адаптер
  * создаёт и удаляет объекты (см. контракт IPublishAdapter).
  *
+ * Аватары входят в набор, потому что иначе адаптер не смог бы ни записать, ни
+ * удалить их файл (`uploadFile` и `deleteFile` отказывают ключам вне
+ * namespace). Медиатека от этого не наполняется: импорт бакета читает только
+ * `prefix`, а записи медиа создаёт загрузка со своим ключом.
+ *
  * @param config - Конфигурация хранилища.
  * @returns Список префиксов.
  */
 function resolveManagedPrefixes(config: IResolvedS3Config): string[] {
-    return [config.prefix, config.thumbnailsPrefix];
+    return [config.prefix, config.thumbnailsPrefix, config.avatarsPrefix];
 }
 
 /**
@@ -194,13 +218,15 @@ export function createS3PublishAdapter(): IPublishAdapter {
     return {
         /**
          * Строит полный object key нового файла: managed-префикс по типу файла
-         * (`prefix` для медиа, `thumbnailsPrefix` для превью страниц) + имя.
+         * (`prefix` для медиа, `thumbnailsPrefix` для превью страниц,
+         * `avatarsPrefix` для фото профиля) + имя.
          */
         buildFileKey(kind: TPublishFileKind, filename: string): string {
             const { config } = useClient();
             const prefixByKind: Record<TPublishFileKind, string> = {
                 media: config.prefix,
                 thumbnail: config.thumbnailsPrefix,
+                avatar: config.avatarsPrefix,
             };
 
             return `${prefixByKind[kind]}${filename}`;

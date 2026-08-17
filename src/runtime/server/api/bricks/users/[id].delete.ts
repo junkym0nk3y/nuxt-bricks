@@ -1,5 +1,9 @@
 import { createError, defineEventHandler } from 'h3';
-import { useBricksAuthAdapter } from '../../../../modules/persistence/server/registry';
+import {
+    useBricksAuthAdapter,
+    useBricksPublishAdapter,
+} from '../../../../modules/persistence/server/registry';
+import { discardAvatarFile } from '../../../../modules/persistence/server/utils/avatarFiles';
 import {
     requireNumericId,
     toUsersHttpError,
@@ -17,6 +21,11 @@ import {
  * `SELF_TARGET_FORBIDDEN` (себя не удалить — иначе один неверный клик отнимает
  * доступ у того, кто его выдаёт), 409 `LAST_ACTIVE_ADMIN`, 404 (учётки нет).
  *
+ * Фото профиля удаляется вслед за учёткой: ссылки на него больше нет нигде, и без
+ * уборки файл остался бы в хранилище навсегда. Идёт она best-effort и ПОСЛЕ
+ * удаления строки — отказ хранилища не должен превращать успешное удаление
+ * учётки в ошибку, повторить которую уже нечем.
+ *
  * Страницы и медиа удалённого автора остаются: авторство в схеме не хранится, и
  * учётка — только вход в систему.
  */
@@ -28,11 +37,13 @@ export default defineEventHandler(async (event) => {
         const userId = requireNumericId(event);
         assertNotSelfTarget(event, userId);
 
-        const isDeleted = await useBricksAuthAdapter().deleteUser(userId);
+        const deletedUser = await useBricksAuthAdapter().deleteUser(userId);
 
-        if (!isDeleted) {
+        if (!deletedUser) {
             throw createError({ statusCode: 404, statusMessage: 'User not found' });
         }
+
+        await discardAvatarFile(useBricksPublishAdapter(), deletedUser.avatarUrl);
 
         return { success: true };
     } catch (error: unknown) {

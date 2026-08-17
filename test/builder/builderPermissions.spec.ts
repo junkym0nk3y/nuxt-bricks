@@ -45,6 +45,7 @@ describe('useBuilderPermissions: права по роли сессии', () => {
         resetNuxtStateStub();
         runtimePublicConfig.bricksAuthMode = 'database';
         runtimePublicConfig.bricksAuthAllowUserManagement = true;
+        runtimePublicConfig.bricksAuthAllowPasswordChange = true;
         requestContext.role = null;
     });
 
@@ -128,5 +129,37 @@ describe('useBuilderPermissions: права по роли сессии', () => {
         runtimePublicConfig.bricksAuthMode = 'basic';
 
         expect(useBuilderPermissions().canManageUsers.value).toBe(false);
+    });
+
+    it('разрешает смену пароля любой роли, включая наблюдателя', () => {
+        // Свой пароль — не редакторское действие: наблюдателю профиль доступен
+        // целиком, и роль в этом флаге не участвует
+        requestContext.role = 'viewer';
+
+        const { canEdit, canChangePassword } = useBuilderPermissions();
+
+        expect(canEdit.value).toBe(false);
+        expect(canChangePassword.value).toBe(true);
+    });
+
+    it('скрывает формы пароля при выключенной опции и вне database-режима', () => {
+        requestContext.role = 'admin';
+        runtimePublicConfig.bricksAuthAllowPasswordChange = false;
+
+        expect(useBuilderPermissions().canChangePassword.value).toBe(false);
+
+        resetNuxtStateStub();
+        runtimePublicConfig.bricksAuthAllowPasswordChange = true;
+        runtimePublicConfig.bricksAuthMode = 'basic';
+
+        expect(useBuilderPermissions().canChangePassword.value).toBe(false);
+    });
+
+    it('не считает пустую строку публичного флага выключением', () => {
+        // `NUXT_PUBLIC_BRICKS_AUTH_ALLOW_PASSWORD_CHANGE=` доезжает как `''`
+        requestContext.role = 'editor';
+        runtimePublicConfig.bricksAuthAllowPasswordChange = '';
+
+        expect(useBuilderPermissions().canChangePassword.value).toBe(true);
     });
 });

@@ -20,7 +20,11 @@ import {
     BRICKS_ROLE_RANK,
 } from '../../../modules/common/constants/auth';
 import { BRICKS_API_ERROR_CODES } from '../../../modules/common/constants/apiErrors';
-import { isAccessSatisfied, isUserManagementAvailable } from './rolePolicy';
+import {
+    isAccessSatisfied,
+    isPasswordChangeAvailable,
+    isUserManagementAvailable,
+} from './rolePolicy';
 import {
     assertKnownKeys,
     invalid,
@@ -33,7 +37,7 @@ import type { TBricksUserRole } from '../../../modules/common/types/auth';
 import type {
     IAuthUserStateChange,
     ICreateAuthUserPayload,
-} from '../../../modules/persistence/types/adapters';
+} from '../../../modules/persistence/types/authAdapters';
 
 /** Разрешённые ключи тела создания учётки. */
 const CREATE_USER_KEYS: ReadonlySet<string> = new Set(['username', 'password', 'role']);
@@ -74,20 +78,27 @@ function requireRole(value: unknown, field: string): TBricksUserRole {
  * пробел — законный символ пароля, и `trim` менял бы то, что человек ввёл
  * (обрезанный пароль потом не подошёл бы при входе).
  *
+ * Экспортируется ручкам своего профиля намеренно: границы нового пароля обязаны
+ * совпадать на обоих путях смены — иначе профиль принимал бы пароль, который
+ * администратор задать не может, и минимальная длина перестала бы что-либо
+ * значить.
+ *
  * @param value - Сырое значение поля.
+ * @param field - Имя поля для сообщения об ошибке: у своего пароля оно
+ * `newPassword`, и общее «password» отправило бы подсказку формы под чужое поле.
  * @returns Пароль в открытом виде.
  */
-function requirePassword(value: unknown): string {
+export function requirePassword(value: unknown, field = 'password'): string {
     if (typeof value !== 'string') {
-        invalid('Field "password" must be a string');
+        invalid(`Field "${field}" must be a string`);
     }
 
     if (value.length < BRICKS_PASSWORD_MIN_LENGTH) {
-        invalid(`Field "password" must be at least ${BRICKS_PASSWORD_MIN_LENGTH} characters`);
+        invalid(`Field "${field}" must be at least ${BRICKS_PASSWORD_MIN_LENGTH} characters`);
     }
 
     if (value.length > BRICKS_PASSWORD_MAX_LENGTH) {
-        invalid(`Field "password" must be at most ${BRICKS_PASSWORD_MAX_LENGTH} characters`);
+        invalid(`Field "${field}" must be at most ${BRICKS_PASSWORD_MAX_LENGTH} characters`);
     }
 
     return value;
@@ -123,11 +134,12 @@ function requireUsername(value: unknown): string {
  * ответ, что у логина: сервер занят, повтор осмыслен).
  *
  * Через семафор, а не напрямую: derive занимает секунды CPU, и серия созданий
- * учёток иначе отняла бы процессор у входов.
+ * учёток иначе отняла бы процессор у входов. По той же причине через него идут и
+ * ручки профиля — семафор общий на все scrypt-дериватации процесса.
  *
  * @param password - Пароль в открытом виде.
  */
-async function hashPasswordUnderGate(password: string): Promise<string> {
+export async function hashPasswordUnderGate(password: string): Promise<string> {
     try {
         return await runScryptTask(() => hashPassword(password));
     } catch (error: unknown) {
@@ -163,6 +175,33 @@ export function assertUserManagementAvailable(event: H3Event): void {
     if (!isUserManagementAvailable(config.bricksAuthMode, config.bricksAuthAllowUserManagement)) {
         throw createError({ statusCode: 404, statusMessage: 'Not Found' });
     }
+}
+
+/**
+ * Отказывает, если смена пароля выключена опцией `auth.allowPasswordChange`.
+ *
+ * 403 с машиночитаемым кодом, а не 404 раздела учёток: наличие паролей в
+ * установке и так очевидно (ими же входят), скрывать нечего, а клиенту нужно
+ * отличить «выключено настройкой» от «нет прав» — второе он предложил бы
+ * повторить под другой учёткой.
+ *
+ * Одна проверка на две ручки (свой пароль и чужой): установка, где пароли ведут
+ * снаружи, иначе получила бы одну лазейку из двух.
+ *
+ * @param event - Событие запроса.
+ */
+export function assertPasswordChangeAllowed(event: H3Event): void {
+    const config = useRuntimeConfig(event);
+
+    if (isPasswordChangeAvailable(config.bricksAuthMode, config.bricksAuthAllowPasswordChange)) {
+        return;
+    }
+
+    throw createError({
+        statusCode: 403,
+        statusMessage: 'Password change is disabled',
+        data: { code: BRICKS_API_ERROR_CODES.passwordChangeDisabled },
+    });
 }
 
 /**

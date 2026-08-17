@@ -6,11 +6,11 @@ import type { useBuilderSession } from '../../src/runtime/modules/builder/app/co
 import type { IBuilderSessionToken } from '../../src/runtime/modules/builder/app/types/composables';
 
 /**
- * Значение флага управления учётками после заполнения runtimeConfig: серверный
- * ключ и его публичная копия. Проверяются оба — интерфейс решает по публичному,
- * ручки по серверному, и разъехавшись они дали бы разный ответ на один запрос.
+ * Значение auth-флага после заполнения runtimeConfig: серверный ключ и его
+ * публичная копия. Проверяются оба — интерфейс решает по публичному, ручки по
+ * серверному, и разъехавшись они дали бы разный ответ на один запрос.
  */
-export interface IUserManagementFlagResolution {
+export interface IAuthFlagResolution {
     server: unknown;
     published: unknown;
 }

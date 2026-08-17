@@ -26,6 +26,12 @@ export interface IStorageUrlBase {
     bucket: string;
 }
 
+/**
+ * Разделители URL: в managed-префиксе они запрещены, потому что публичный URL
+ * собирается конкатенацией и всё после них уезжает в query либо fragment.
+ */
+const URL_DELIMITERS_PATTERN = /[?#]/;
+
 /** Управляющие символы (C0 + DEL) и backslash — запрещены в object key. */
 // oxlint-disable-next-line no-control-regex
 const UNSAFE_KEY_CHARS_PATTERN = /[\\\u0000-\u001F\u007F]/;
@@ -103,4 +109,60 @@ export function isManagedStorageKey(key: string, managedPrefixes: readonly strin
     }
 
     return managedPrefixes.some((prefix) => key.startsWith(prefix) && key.length > prefix.length);
+}
+
+/**
+ * Ищет нарушение в наборе managed-префиксов: небезопасное значение, отсутствие
+ * завершающего `/` или вложенность одного префикса в другой.
+ *
+ * Проверка обязательна, потому что изоляция namespace'ов держится ТОЛЬКО на том,
+ * что префиксы не пересекаются. Пара вида `prefix: 'bricks/'` и
+ * `avatarsPrefix: 'bricks/avatars/'` выглядит естественно, но листинг медиатеки
+ * (`listFiles` идёт по `prefix`) увидел бы аватары как медиа-файлы: импорт бакета
+ * зарегистрировал бы фото профиля в галерее, а оттуда их удалил бы любой
+ * редактор. Обещание «аватары вне медиатеки» в такой конфигурации было бы ложью.
+ *
+ * Завершающий `/` требуется по той же причине: `bricks-media` без него делает
+ * своим и `bricks-media-archive/x`, то есть namespace перестаёт быть каталогом.
+ *
+ * @param prefixes - Именованные префиксы модуля (имя опции → значение).
+ * @returns Текст нарушения или null, если набор корректен.
+ */
+export function findManagedPrefixConflict(prefixes: Record<string, string>): string | null {
+    const entries = Object.entries(prefixes);
+
+    for (const [name, value] of entries) {
+        // Само значение через `isSafeStorageKey` не проходит по построению:
+        // завершающий слеш даёт пустой последний сегмент, а для ключа объекта это
+        // запрещено. Проверяется каталог без него
+        const directory = value.endsWith('/') ? value.slice(0, -1) : '';
+
+        if (!directory || value.startsWith('/') || !isSafeStorageKey(directory)) {
+            return `${name} must be a relative path ending with "/" (got "${value}")`;
+        }
+
+        // `?` и `#` `isSafeStorageKey` пропускает — в ключе, ВЫНУТОМ из URL, их
+        // быть не может, парсер отрезает query и fragment раньше. А вот публичный
+        // URL адаптер собирает конкатенацией, и такой префикс превратил бы часть
+        // ключа в query: ссылка перестала бы адресовать объект, а `isOwnedUrl` не
+        // смог бы восстановить ключ — файл стал бы неудаляемым
+        if (URL_DELIMITERS_PATTERN.test(value)) {
+            return `${name} must not contain "?" or "#" (got "${value}")`;
+        }
+    }
+
+    for (const [name, value] of entries) {
+        for (const [otherName, otherValue] of entries) {
+            if (name === otherName) {
+                continue;
+            }
+
+            // Равенство ловится тем же условием: префикс начинается с себя
+            if (value.startsWith(otherValue)) {
+                return `${name} ("${value}") must not be nested in ${otherName} ("${otherValue}")`;
+            }
+        }
+    }
+
+    return null;
 }

@@ -10,7 +10,7 @@ import {
 } from '../../src/runtime/modules/persistence/server/utils/authUserRules';
 
 // Types
-import type { IAuthUserStateSnapshot } from '../../src/runtime/modules/persistence/types/adapters';
+import type { IAuthUserStateSnapshot } from '../../src/runtime/modules/persistence/types/authAdapters';
 // #endregion
 
 /** Активный администратор — цель, которую краевое правило и защищает. */

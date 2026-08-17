@@ -63,6 +63,23 @@ export interface IBricksModuleOptions {
          * ENV-переопределение: BRICKS_AUTH_ALLOW_USER_MANAGEMENT.
          */
         allowUserManagement?: boolean;
+        /**
+         * Смена пароля из интерфейса (дефолт true) — и своего в профиле, и
+         * чужого администратором.
+         *
+         * `false` — обе ручки отвечают **403** с кодом
+         * `PASSWORD_CHANGE_DISABLED`, а формы пароля не показываются. 403, а не
+         * 404 как у раздела учёток: наличие пароля в установке и так очевидно
+         * (им же и входят), скрывать нечего, а клиенту нужно отличить «выключено
+         * настройкой» от «нет прав». Флаг для установок, где пароли ведут
+         * снаружи (LDAP, единый каталог) и смена их в билдере
+         * рассинхронизировала бы источник истины; провижининг остаётся за CLI.
+         *
+         * В режиме `auth.mode: 'basic'` ручки недоступны независимо от флага:
+         * учёток в нём нет вовсе.
+         * ENV-переопределение: BRICKS_AUTH_ALLOW_PASSWORD_CHANGE.
+         */
+        allowPasswordChange?: boolean;
     };
     /**
      * Режим data backend: где живут данные страниц, версий и media metadata.
@@ -127,6 +144,13 @@ export interface IBricksModuleOptions {
         prefix?: string;
         /** Managed-префикс ключей превью страниц (дефолт 'bricks-thumbnails/'). */
         thumbnailsPrefix?: string;
+        /**
+         * Managed-префикс ключей фото профиля (дефолт 'bricks-avatars/').
+         *
+         * Свой префикс, а не медиатека: иначе аватары попали бы в галерею — под
+         * удаление любым редактором и в импорт бакета как медиа-записи.
+         */
+        avatarsPrefix?: string;
     };
     /**
      * Dev-only проксирование не-bricks /api/* на backend host-проекта

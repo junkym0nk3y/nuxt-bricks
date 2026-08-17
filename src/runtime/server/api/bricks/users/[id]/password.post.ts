@@ -8,6 +8,7 @@ import {
 import {
     assertAdminRole,
     assertNotSelfTarget,
+    assertPasswordChangeAllowed,
     assertUserManagementAvailable,
     buildUserPasswordHash,
 } from '../../../../utils/auth/userManagement';
@@ -23,11 +24,17 @@ import {
  *
  * Успешная смена рвёт все сессии учётки (инкремент поколения в адаптере).
  * Ответ — без тела учётки: клиенту после смены пароля обновлять в строке нечего.
+ *
+ * Флаг `allowPasswordChange` закрывает эту ручку так же, как ручку своего пароля
+ * (403 `PASSWORD_CHANGE_DISABLED`): установка, где пароли ведут снаружи, иначе
+ * получила бы одну лазейку из двух. Проверка идёт ПОСЛЕ роли — состояние флага не
+ * должно быть видно тому, у кого нет прав на раздел.
  */
 export default defineEventHandler(async (event) => {
     try {
         assertUserManagementAvailable(event);
         assertAdminRole(event);
+        assertPasswordChangeAllowed(event);
 
         const userId = requireNumericId(event);
         assertNotSelfTarget(event, userId);

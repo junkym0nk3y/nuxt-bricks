@@ -6,7 +6,7 @@
  * отнимает и понижение роли, и отключение учётки, и её удаление, поэтому проверка
  * идёт по ИТОГОВОМУ состоянию, а не по каждому изменённому полю.
  */
-import type { IAuthUserStateChange, IAuthUserStateSnapshot } from '../../types/adapters';
+import type { IAuthUserStateChange, IAuthUserStateSnapshot } from '../../types/authAdapters';
 
 /**
  * Считает итоговое состояние учётки после правки: непереданное поле сохраняет

@@ -1,28 +1,12 @@
 // #region Imports
-import { useAppConfig } from 'nitropack/runtime';
 import { createError } from 'h3';
 import sharp from 'sharp';
-import type {
-    IMediaOptimizationRequestFields,
-    IOptimizedImage,
-    IResolvedMediaConfig,
-} from '../../types/media';
+import type { IImageCropFrame, IImageDimensions, IOptimizedImage } from '../../types/media';
 import type { IBricksMediaOptimization } from '../../../common/types/media';
-import type { TBricksMediaImageFormat } from '../../../common/types/config';
-import {
-    DEFAULT_MEDIA_MAX_UPLOAD_SIZE_MB,
-    DEFAULT_MEDIA_MAX_VIDEO_UPLOAD_SIZE_MB,
-    DEFAULT_MEDIA_OPTIMIZATION,
-    MEDIA_QUALITY_MAX,
-    MEDIA_QUALITY_MIN,
-    resolveConfiguredMaxWidth,
-    resolveMediaMaxWidthBounds,
-} from '../../../common/constants/mediaOptimization';
 import { createConcurrencyGate, GateOverflowError } from './concurrencyGate';
 // #endregion
 
 // #region Data
-const BYTES_IN_MB = 1024 * 1024;
 /**
  * Потолок пикселей входного изображения (защита от декомпрессионных бомб):
  * 100 МП покрывает любые реальные фото и в ~2.7 раза ниже дефолта sharp.
@@ -169,140 +153,6 @@ export function resolveVideoMime(extension: string, fallbackType?: string): stri
 }
 
 /**
- * Приводит значение к положительному числу, иначе возвращает запасное.
- * @param value Сырое значение.
- * @param fallback Значение по умолчанию.
- */
-function resolveNumber(value: unknown, fallback: number): number {
-    const numericValue = Number(value);
-
-    if (Number.isFinite(numericValue) && numericValue > 0) {
-        return numericValue;
-    }
-
-    return fallback;
-}
-
-/**
- * Приводит значение к известному формату; неизвестное — к дефолту конфига.
- *
- * @param value Сырое значение (конфиг или поле multipart-формы).
- * @param fallback Значение по умолчанию.
- */
-export function resolveImageFormat(
-    value: unknown,
-    fallback: TBricksMediaImageFormat
-): TBricksMediaImageFormat {
-    if (value === 'webp' || value === 'original') {
-        return value;
-    }
-
-    return fallback;
-}
-
-/**
- * Приводит качество к тому, что принимает кодировщик.
- *
- * Применяется всегда, включая конфиг: sharp падает на значении вне 1..100, и
- * опечатка в `bricks.media.optimization.quality` роняла бы любую загрузку вместо
- * того, чтобы дать разумный результат.
- *
- * @param quality Сырое качество.
- */
-function clampQuality(quality: number): number {
-    return Math.min(Math.max(Math.round(quality), MEDIA_QUALITY_MIN), MEDIA_QUALITY_MAX);
-}
-
-/**
- * Приводит сырое поле формы к положительному числу.
- *
- * @param value Значение поля или undefined, если поля не было.
- * @returns Число либо null — переопределения не было.
- */
-function toRequestedNumber(value: string | undefined): number | null {
-    if (typeof value !== 'string' || value.trim() === '') {
-        return null;
-    }
-
-    const parsed = Number(value);
-
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-}
-
-/**
- * Разбирает НЕДОВЕРЕННЫЕ поля формы и накрывает ими дефолты конфига.
- *
- * Границы применяются только к тому, что действительно пришло с формой: поле
- * поповера ограничивает ввод, а запрос мимо интерфейса им не ограничен —
- * `maxWidth: 1` сохранял бы «полный» файл шириной в один пиксель. Значение из
- * конфига, взятое при отсутствующем поле, границами не режется: пока эта
- * функция принимала уже склеенный объект, отличить одно от другого было
- * нечем, и `maxWidth: 12000` из конфига молча становился 8000.
- *
- * Потолок и пол самого запроса тоже считаются от конфига
- * (`resolveMediaMaxWidthBounds`): значение, которое разработчик выбрал дефолтом,
- * не может быть недостижимо для запроса — интерфейс отправляет его дословно.
- *
- * @param requested Сырые поля multipart-формы.
- * @param fallback Параметры из конфига (уже разрешённые).
- * @returns Эффективные параметры оптимизации.
- */
-export function resolveRequestedOptimization(
-    requested: IMediaOptimizationRequestFields,
-    fallback: IBricksMediaOptimization
-): IBricksMediaOptimization {
-    const requestedQuality = toRequestedNumber(requested.quality);
-    const requestedMaxWidth = toRequestedNumber(requested.maxWidth);
-    const maxWidthBounds = resolveMediaMaxWidthBounds(fallback.maxWidth);
-
-    return {
-        format: resolveImageFormat(requested.format, fallback.format),
-        quality: requestedQuality === null ? fallback.quality : clampQuality(requestedQuality),
-        maxWidth:
-            requestedMaxWidth === null
-                ? fallback.maxWidth
-                : Math.min(
-                      Math.max(Math.round(requestedMaxWidth), maxWidthBounds.min),
-                      maxWidthBounds.max
-                  ),
-    };
-}
-
-/**
- * Читает медиа-настройки (лимит и параметры оптимизации) из app config с дефолтами.
- */
-export function resolveMediaConfig(): IResolvedMediaConfig {
-    const appConfig = useAppConfig();
-    const mediaConfig = appConfig.bricks?.media ?? {};
-    const optimization = mediaConfig.optimization ?? {};
-    const maxUploadSizeMb = resolveNumber(
-        mediaConfig.maxUploadSizeMb,
-        DEFAULT_MEDIA_MAX_UPLOAD_SIZE_MB
-    );
-    const maxVideoUploadSizeMb = resolveNumber(
-        mediaConfig.maxVideoUploadSizeMb,
-        DEFAULT_MEDIA_MAX_VIDEO_UPLOAD_SIZE_MB
-    );
-
-    return {
-        maxUploadSizeBytes: maxUploadSizeMb * BYTES_IN_MB,
-        maxUploadSizeMb,
-        maxVideoUploadSizeBytes: maxVideoUploadSizeMb * BYTES_IN_MB,
-        maxVideoUploadSizeMb,
-        optimization: {
-            format: resolveImageFormat(optimization.format, DEFAULT_MEDIA_OPTIMIZATION.format),
-            quality: clampQuality(
-                resolveNumber(optimization.quality, DEFAULT_MEDIA_OPTIMIZATION.quality)
-            ),
-            // Нормализация здесь, а не при разборе запроса: границам запроса это
-            // значение больше не подчиняется, а sharp принимает ширину только
-            // положительным целым — дробный `maxWidth` из конфига ронял бы загрузку
-            maxWidth: resolveConfiguredMaxWidth(optimization.maxWidth),
-        },
-    };
-}
-
-/**
  * Разрешено ли сохранить вход как есть при запрошенном «Оригинале».
  *
  * @param extension Расширение входного файла в нижнем регистре.
@@ -386,6 +236,96 @@ export async function optimizeImage(
                 withoutEnlargement: true,
             })
             .webp({ quality: optimization.quality });
+        const { data, info } = await sharpGate.run(() =>
+            encoded.toBuffer({ resolveWithObject: true })
+        );
+
+        return {
+            buffer: data,
+            mimeType: 'image/webp',
+            extension: 'webp',
+            width: info.width ?? null,
+            height: info.height ?? null,
+        };
+    } catch (error) {
+        rethrowSharpGateOverflow(error);
+    }
+}
+
+/**
+ * Читает размеры входа С УЧЁТОМ EXIF-ориентации — те, в которых изображение
+ * видит браузер (ориентацию он применяет сам).
+ *
+ * Нужны кадрированию: рамку рисует человек по картинке на экране, а `metadata()`
+ * отдаёт размеры до поворота. Сверяй рамку с ними — и у повёрнутой съёмкой
+ * фотографии проверка границ считалась бы по перепутанным сторонам: законная
+ * рамка отвергалась бы как выходящая за край, а невалидная проходила бы в
+ * `extract`, который отказал бы уже своей ошибкой.
+ *
+ * @param buffer Исходные байты изображения.
+ * @returns Размеры или null — sharp не смог их определить (вход не растр).
+ */
+export async function readOrientedImageDimensions(
+    buffer: Buffer
+): Promise<IImageDimensions | null> {
+    try {
+        const metadata = await sharpGate.run(() =>
+            sharp(buffer, { limitInputPixels: MAX_INPUT_PIXELS }).metadata()
+        );
+        const { width, height } = metadata.autoOrient;
+
+        return width && height ? { width, height } : null;
+    } catch (error) {
+        if (error instanceof GateOverflowError) {
+            rethrowSharpGateOverflow(error);
+        }
+
+        console.warn('[Media] Failed to read oriented image dimensions:', error);
+
+        return null;
+    }
+}
+
+/**
+ * Вырезает квадрат по рамке и кодирует его в webp заданной стороны.
+ *
+ * Порядок операций держится на том, что `autoOrient` — опция ВХОДА (sharp
+ * применяет её при декодировании), поэтому `extract` работает в тех же
+ * координатах, что видел человек, рисовавший рамку.
+ *
+ * Результат — один файл на все размеры показа: аватар выводится максимум в
+ * 36 пикселей в углу и до сотни в профиле, и набор вариантов ради этого
+ * означал бы три объекта в хранилище и три ссылки в колонке вместо одной.
+ * Увеличение мелкой рамки до целевой стороны сознательно не запрещено: иначе
+ * часть аватаров была бы меньше остальных, и угол экрана «прыгал» бы.
+ *
+ * Границы рамки обязан проверить вызывающий (см. `readOrientedImageDimensions`):
+ * `extract` за краем отказывает своей ошибкой, которая наружу пойдёт
+ * четырёхсотым «не удалось обработать» вместо внятного «рамка вне изображения».
+ *
+ * @param buffer Исходные байты изображения.
+ * @param frame Квадратная рамка в координатах ориентированного изображения.
+ * @param size Сторона результата в пикселях.
+ * @param quality Качество webp-кодирования.
+ * @returns Готовые байты, MIME, расширение и размеры результата.
+ */
+export async function cropSquareImage(
+    buffer: Buffer,
+    frame: IImageCropFrame,
+    size: number,
+    quality: number
+): Promise<IOptimizedImage> {
+    try {
+        const encoded = sharp(buffer, { limitInputPixels: MAX_INPUT_PIXELS })
+            .autoOrient()
+            .extract({
+                left: frame.left,
+                top: frame.top,
+                width: frame.side,
+                height: frame.side,
+            })
+            .resize({ width: size, height: size, fit: 'cover' })
+            .webp({ quality });
         const { data, info } = await sharpGate.run(() =>
             encoded.toBuffer({ resolveWithObject: true })
         );

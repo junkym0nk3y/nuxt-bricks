@@ -23,7 +23,8 @@ import { createPostgresStorageAdapter } from './postgres/postgresStorageAdapter'
 import { createPostgresAuthAdapter } from './postgres/postgresAuthAdapter';
 import { createS3PublishAdapter } from './s3/s3PublishAdapter';
 import { getBricksDefaultStorageFactory } from './defaultStorage';
-import type { IStorageAdapter, IPublishAdapter, IAuthAdapter } from '../types/adapters';
+import type { IStorageAdapter, IPublishAdapter } from '../types/adapters';
+import type { IAuthAdapter } from '../types/authAdapters';
 
 // Доменные ошибки — часть контракта IStorageAdapter (кастомные адаптеры кидают
 // их из create*/update*, ручки маппят на HTTP-статусы). BricksStorageWriteRejected

@@ -118,6 +118,30 @@ export const BRICKS_API_HANDLERS: IBricksApiHandler[] = [
         file: 'server/api/bricks/users/index.post',
     },
     {
+        // Ручки своего профиля идут ДО параметрических: `me` — не число, и в
+        // разборе `:id` этот путь получил бы 400 вместо своей ручки. Роутер
+        // предпочитает статический сегмент параметру сам, но порядок манифеста —
+        // единственное, что видно при чтении
+        route: '/api/bricks/users/me',
+        method: 'patch',
+        file: 'server/api/bricks/users/me.patch',
+    },
+    {
+        route: '/api/bricks/users/me/password',
+        method: 'post',
+        file: 'server/api/bricks/users/me/password.post',
+    },
+    {
+        route: '/api/bricks/users/me/avatar',
+        method: 'post',
+        file: 'server/api/bricks/users/me/avatar.post',
+    },
+    {
+        route: '/api/bricks/users/me/avatar',
+        method: 'delete',
+        file: 'server/api/bricks/users/me/avatar.delete',
+    },
+    {
         // До generic /api/bricks/users/:id — специфичность у POST та же, и
         // `password` иначе уехал бы в разбор id
         route: '/api/bricks/users/:id/password',

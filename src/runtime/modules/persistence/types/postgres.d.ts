@@ -6,7 +6,7 @@
  * optional peer-зависимость (external-режим её не требует), и тип конфигурации
  * не должен тянуть за собой её резолв.
  */
-import type { IAuthUserSummary } from './adapters';
+import type { IAuthUserSummary } from './authAdapters';
 import type { TBricksUserRole } from '../../common/types/auth';
 
 /**
@@ -37,7 +37,10 @@ export interface IAuthUserStateRow {
  */
 export interface IGuardedUserMutation {
     isRefused: boolean;
-    /** Новое состояние строки; null — мутация ничего не возвращает (удаление). */
+    /**
+     * Состояние строки после мутации, а для удаления — снятое перед ним;
+     * null — отказ краевого правила, возвращать нечего.
+     */
     user: IAuthUserSummary | null;
 }
 
@@ -51,6 +54,8 @@ export interface IAuthSessionJoinRow {
     username: string;
     isActive: boolean;
     role: TBricksUserRole;
+    /** Поколение учётных данных: уходит условием в записи профиля. */
+    authVersion: number;
     displayName: string | null;
     avatarUrl: string | null;
 }

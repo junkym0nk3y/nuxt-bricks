@@ -4,7 +4,7 @@
  */
 import { getSessionTokenFromCookie, hashSessionToken } from './sessionCookie';
 import { useBricksAuthAdapter } from '../../../modules/persistence/server/registry';
-import type { IAuthSessionWithUser } from '../../../modules/persistence/types/adapters';
+import type { IAuthSessionWithUser } from '../../../modules/persistence/types/authAdapters';
 import type { H3Event } from 'h3';
 
 /**

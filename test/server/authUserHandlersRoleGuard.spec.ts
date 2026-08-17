@@ -98,6 +98,7 @@ describe('ручки учёток с :id: собственное требова�
         vi.clearAllMocks();
         runtimeConfig.bricksAuthMode = 'database';
         runtimeConfig.bricksAuthAllowUserManagement = true;
+        runtimeConfig.bricksAuthAllowPasswordChange = true;
     });
 
     it('отказывает наблюдателю и редактору, не трогая адаптер', async () => {
@@ -136,6 +137,34 @@ describe('ручки учёток с :id: собственное требова�
             const error = await catchThrown(route.handler, 'viewer');
 
             expect(error.statusCode, route.name).toBe(404);
+        }
+    });
+
+    it('выключённая смена пароля закрывает и админскую ручку пароля', async () => {
+        // Установка, где пароли ведут снаружи, иначе получила бы одну лазейку из
+        // двух: свой пароль закрыт, а чужой администратор задать может
+        runtimeConfig.bricksAuthAllowPasswordChange = false;
+
+        const error = await catchThrown(setUserPassword, 'admin');
+
+        expect(error.statusCode).toBe(403);
+        expect(error.data?.code).toBe(BRICKS_API_ERROR_CODES.passwordChangeDisabled);
+        expect(authAdapterMock.updateUserPassword).not.toHaveBeenCalled();
+
+        // Роль проверяется раньше флага: состояние настройки не должно быть видно
+        // тому, у кого нет прав на раздел
+        const viewerError = await catchThrown(setUserPassword, 'viewer');
+
+        expect(viewerError.data?.code).toBe(BRICKS_API_ERROR_CODES.insufficientRole);
+    });
+
+    it('не задевает флагом паролей остальные ручки раздела', async () => {
+        runtimeConfig.bricksAuthAllowPasswordChange = false;
+
+        // Роль, активность и удаление правятся независимо: администратор доходит
+        // до разбора `:id`, где `me` и отвергается четырёхсотым
+        for (const route of [GUARDED_HANDLERS[0], GUARDED_HANDLERS[1]]) {
+            expect((await catchThrown(route.handler, 'admin')).statusCode, route.name).toBe(400);
         }
     });
 });
