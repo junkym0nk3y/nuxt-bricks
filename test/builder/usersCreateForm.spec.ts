@@ -11,8 +11,15 @@
  * 2. Занятый логин встаёт ПОД ПОЛЕ, а не в общий текст ошибки: исправлять нужно
  *    именно его.
  * 3. Обрыв по потолку ожидания — не отказ: сервер мог создать учётку и не успеть
- *    ответить, поэтому список перечитывается и в нём ищется логин. Повтор формы
- *    иначе получил бы «логин занят» и выглядел бы противоречием.
+ *    ответить, а мог и отклонить её занятым логином, и обработчик его вообще не
+ *    обязан был остановиться. Поэтому список перечитывается — но только чтобы
+ *    сказать человеку, что видно, а не чтобы объявить исход.
+ * 4. Успех объявляет ТОЛЬКО ответ POST. Найденная после обрыва строка успеха не
+ *    доказывает: список мог отстать от базы задолго до отправки, и тогда чужая
+ *    учётка выглядела бы новой — форма закрылась бы тостом успеха о посторонней
+ *    записи, с её ролью и без заданного здесь пароля. Поэтому ветка обрыва только
+ *    сообщает наблюдаемое состояние, различая три исхода: строка видна, строки не
+ *    видно, список перечитать не удалось.
  */
 
 // #region Imports
@@ -45,6 +52,7 @@ import { defineComponent, h, nextTick } from 'vue';
 import { mount } from '@vue/test-utils';
 import { resetNuxtStateStub } from '../stubs/nuxt-imports';
 import { useUsersCreateForm } from '../../src/runtime/modules/builder/users/composables/useUsersCreateForm';
+import { useUsersData } from '../../src/runtime/modules/builder/users/composables/useUsersData';
 import type { IBricksUserSummary } from '../../src/runtime/modules/common/types/auth';
 
 /**
@@ -91,6 +99,36 @@ function mountForm(onCreated = vi.fn()) {
     }
 
     return { form, wrapper, onCreated };
+}
+
+/**
+ * Приводит список раздела в `ready` с заданными учётками.
+ *
+ * Нужен там, где кейс различает исходы ПО СПИСКУ: без посева состояние остаётся
+ * непрочитанным, и ветка ушла бы в «список перечитать не удалось» независимо от
+ * того, что вернул GET.
+ *
+ * @param users - Учётки списка до отправки формы.
+ */
+async function seedReadyList(users: IBricksUserSummary[]): Promise<void> {
+    apiFetcherMock.mockResolvedValueOnce({ users });
+
+    const { ensureUsers, status } = useUsersData();
+
+    await ensureUsers();
+
+    if (status.value !== 'ready') {
+        throw new Error('Список не пришёл в ready — посев состояния не удался');
+    }
+}
+
+/**
+ * Обрыв запроса по потолку ожидания — так его видит клиент ofetch.
+ *
+ * @returns Ошибка обрыва.
+ */
+function makeTimeoutError(): Error {
+    return Object.assign(new Error('timeout'), { name: 'TimeoutError' });
 }
 
 describe('useUsersCreateForm: создание учётки', () => {
@@ -187,11 +225,14 @@ describe('useUsersCreateForm: создание учётки', () => {
     });
 
     describe('обрыв по потолку ожидания', () => {
-        it('учётка нашлась в перечитанном списке — создание состоялось', async () => {
-            apiFetcherMock.mockRejectedValueOnce(
-                Object.assign(new Error('timeout'), { name: 'TimeoutError' })
-            );
-            apiFetcherMock.mockResolvedValueOnce({ users: [makeUser()] });
+        // Ветка обрыва не различает «создал я» и «создал кто-то другой», поэтому
+        // не различает и успех: чужую строку она объявила бы созданной здесь
+        it('строка видна в списке — успех всё равно не объявляется', async () => {
+            await seedReadyList([]);
+            apiFetcherMock.mockRejectedValueOnce(makeTimeoutError());
+            apiFetcherMock.mockResolvedValueOnce({
+                users: [makeUser({ createdAt: '2026-04-02T09:00:00.000Z' })],
+            });
 
             const { form, onCreated } = mountForm();
 
@@ -201,14 +242,15 @@ describe('useUsersCreateForm: создание учётки', () => {
 
             await form.submitForm();
 
-            expect(onCreated).toHaveBeenCalledWith(makeUser());
-            expect(form.generalError.value).toBe('');
+            expect(onCreated).not.toHaveBeenCalled();
+            expect(form.generalError.value).toBe('bricks.users.errors.createOutcomeUnknown');
         });
 
-        it('учётки в списке нет — форма остаётся с честным «результат неизвестен»', async () => {
-            apiFetcherMock.mockRejectedValueOnce(
-                Object.assign(new Error('timeout'), { name: 'TimeoutError' })
-            );
+        // Серверный обработчик клиентским потолком не останавливается: «не видно»
+        // означает «пока не видно», и текст обязан отличаться от «учётки нет»
+        it('строки пока не видно — исход остаётся незавершённым', async () => {
+            await seedReadyList([]);
+            apiFetcherMock.mockRejectedValueOnce(makeTimeoutError());
             apiFetcherMock.mockResolvedValueOnce({ users: [] });
 
             const { form, onCreated } = mountForm();
@@ -220,7 +262,26 @@ describe('useUsersCreateForm: создание учётки', () => {
             await form.submitForm();
 
             expect(onCreated).not.toHaveBeenCalled();
-            expect(form.generalError.value).toBe('bricks.users.errors.createTimeout');
+            expect(form.generalError.value).toBe('bricks.users.errors.createStillProcessing');
+        });
+
+        // Перечитывание отказ не бросает по построению: упавший GET оставляет
+        // прежний кеш, и говорить по нему о списке нельзя вовсе
+        it('перечитывание списка упало — о списке не говорится ничего', async () => {
+            await seedReadyList([makeUser({ id: 9, username: 'ivan.admin' })]);
+            apiFetcherMock.mockRejectedValueOnce(makeTimeoutError());
+            apiFetcherMock.mockRejectedValueOnce(new Error('network down'));
+
+            const { form, onCreated } = mountForm();
+
+            form.username.value = 'anna.editor';
+            form.password.value = 'sixteen-char-pass';
+            await nextTick();
+
+            await form.submitForm();
+
+            expect(onCreated).not.toHaveBeenCalled();
+            expect(form.generalError.value).toBe('bricks.users.errors.createReconcileFailed');
         });
     });
 });

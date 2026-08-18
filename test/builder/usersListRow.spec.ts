@@ -14,8 +14,9 @@
  * 3. Замок последнего активного администратора стоит на пилюле роли и на
  *    операциях состояния, но кнопки остаются в обходе с клавиатуры: причина
  *    запрета — единственное, что человеку здесь нужно.
- * 4. Выключенная настройка `allowPasswordChange` убирает ключ из строки: ручка в
- *    такой установке отвечает отказом.
+ * 4. Ключ убирает из строки только выключенная настройка `allowPasswordChange`
+ *    (ручка в такой установке отвечает отказом), но НЕ деактивация учётки:
+ *    пароль ей задают до открытия входа, а не после.
  * 5. Пока в разделе идёт операция, ни одна кнопка строки не выключается через
  *    `disabled`, а её действия не срабатывают: выключенная кнопка теряет фокус
  *    посреди запроса, а занятость общая на раздел — гасить надо и соседние
@@ -208,15 +209,18 @@ describe('BuilderUsersListRow: строка учётки', () => {
     });
 
     describe('деактивированная учётка', () => {
-        it('вместо ключа и выключения — включение входа', async () => {
+        it('включение вместо выключения, а ключ остаётся на месте', async () => {
             const wrapper = mountRow({ user: makeUser({ isActive: false }) });
 
-            expect(findActionByIcon(wrapper, 'ta:outline-key')).toBeUndefined();
             expect(findActionByIcon(wrapper, 'ta:outline-user-off')).toBeUndefined();
 
             await findActionByIcon(wrapper, 'ta:outline-user-check')?.trigger('click');
 
             expect(wrapper.emitted('activate')).toHaveLength(1);
+
+            await findActionByIcon(wrapper, 'ta:outline-key')?.trigger('click');
+
+            expect(wrapper.emitted('set-password')).toHaveLength(1);
         });
     });
 

@@ -64,7 +64,7 @@ export function useUsersCreateForm(options: IUseUsersCreateFormOptions) {
     // #region Data
     const { t } = useI18n();
     const { apiFetcher } = useApiClient();
-    const { users, upsertUser, refreshUsers } = useUsersData();
+    const { users, status, upsertUser, refreshUsers } = useUsersData();
 
     const validationSchema = createUsersCreateValidationSchema({
         t: (key, params) => t(key, params ?? {}),
@@ -102,25 +102,47 @@ export function useUsersCreateForm(options: IUseUsersCreateFormOptions) {
     /**
      * Разбирает исход оборванного по потолку ожидания создания.
      *
-     * Обрыв — не отказ: сервер мог создать учётку и не успеть ответить, а повтор
-     * формы получил бы «логин занят» и выглядел бы противоречием. Поэтому список
-     * перечитывается и в нём ищется канонический (приведённый к нижнему регистру)
-     * логин: нашёлся — создание состоялось, не нашёлся — форма остаётся с
-     * честным «результат неизвестен».
+     * Обрыв — не отказ и не успех: сервер мог создать учётку и не успеть ответить,
+     * а мог и отклонить её занятым логином. Поэтому ветка ТОЛЬКО перечитывает
+     * список и сообщает наблюдаемое состояние; успех объявляет исключительно ответ
+     * самого POST.
+     *
+     * Найденная строка успеха не доказывает. Проверять это по списку нечем ни
+     * снимком логинов до отправки (список живёт в состоянии приложения и мог
+     * отстать от базы задолго до этой отправки — тогда чужая учётка выглядела бы
+     * новой), ни временем создания (расхождение часов браузера и сервера в любую
+     * сторону сдвигает границу), ни совпадением роли, имени и активности (их мог
+     * отправить и другой администратор, а заданный здесь пароль в списке не
+     * виден). Объявить такую строку своей значило бы закрыть форму тостом успеха о
+     * посторонней учётке. Доказательство требует идентификатора операции,
+     * отправленного вместе с первым POST и зарегистрированного сервером.
+     *
+     * Исход перечитывания учитывается: `refreshUsers` отказ не бросает (иначе он
+     * унёс бы дашборд), и упавшее чтение оставляет прежний кеш — говорить по нему
+     * о списке нельзя вовсе.
+     *
+     * Отдельно от исхода: серверный обработчик клиентским потолком не
+     * останавливается, поэтому «строки пока не видно» не означает, что её не
+     * будет, — тексты об этом и предупреждают, вместо того чтобы предлагать
+     * немедленный повтор.
      *
      * @param canonicalUsername - Логин в том виде, в котором его сохранил бы сервер.
      */
     async function reconcileTimedOutCreate(canonicalUsername: string): Promise<void> {
         await refreshUsers();
 
-        const created = users.value.find((user) => user.username === canonicalUsername);
-
-        if (created) {
-            options.onCreated(created);
+        if (status.value !== 'ready') {
+            generalError.value = t('bricks.users.errors.createReconcileFailed');
             return;
         }
 
-        generalError.value = t('bricks.users.errors.createTimeout');
+        const isVisible = users.value.some((user) => user.username === canonicalUsername);
+
+        generalError.value = t(
+            isVisible
+                ? 'bricks.users.errors.createOutcomeUnknown'
+                : 'bricks.users.errors.createStillProcessing'
+        );
     }
 
     /**
