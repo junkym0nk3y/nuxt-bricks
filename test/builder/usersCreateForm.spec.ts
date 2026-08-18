@@ -24,6 +24,8 @@
  *    просьба без запрета ничего не стоит — обработчик на сервере клиентским
  *    потолком не останавливается, и повтор упёрся бы в логин, занятый первой же
  *    отправкой.
+ * 6. Сброс формы обесценивает прежнюю отправку целиком: окно закрывают и во
+ *    время запроса, и его исход к новой, чистой форме уже не относится.
  */
 
 // #region Imports
@@ -320,6 +322,49 @@ describe('useUsersCreateForm: создание учётки', () => {
             await form.submitForm();
 
             expect(apiFetcherMock.mock.calls.length).toBe(callsAfterTimeout + 1);
+        });
+
+        // Окно закрывают и во время запроса — ни крестик, ни Esc этого не
+        // запрещают, — а следующее открытие сбрасывает форму. Прежняя отправка к
+        // ней уже не относится: без этого её обрыв запечатывал бы чистую форму и
+        // показывал ошибку о логине, которого человек больше не вводит
+        it('обрыв прежней отправки не запечатывает сброшенную форму', async () => {
+            await seedReadyList([]);
+
+            // Присваивается синхронно в моке ниже — до первого использования
+            let breakFirstSubmit!: (error: Error) => void;
+
+            apiFetcherMock.mockImplementationOnce(
+                () =>
+                    new Promise((_, reject) => {
+                        breakFirstSubmit = reject;
+                    })
+            );
+
+            const { form } = mountForm();
+
+            form.username.value = 'anna.editor';
+            form.password.value = 'sixteen-char-pass';
+            await nextTick();
+
+            const abandoned = form.submitForm();
+
+            // Дождаться СТАРТА запроса обязательно: submitForm сперва проходит
+            // валидацию, и сброс до её конца отменил бы отправку вовсе — кейс
+            // проверял бы тогда пустую форму, а не брошенный запрос
+            await vi.waitFor(() => expect(apiFetcherMock).toHaveBeenCalledTimes(2));
+
+            // Модалку закрыли и открыли снова: форма чистая, отправка свободна
+            form.resetToEmpty();
+
+            // Прежний запрос обрывается уже после этого
+            apiFetcherMock.mockResolvedValueOnce({ users: [] });
+            breakFirstSubmit(makeTimeoutError());
+            await abandoned;
+
+            expect(form.generalError.value).toBe('');
+            expect(form.isSubmitSealed.value).toBe(false);
+            expect(form.isSubmitting.value).toBe(false);
         });
     });
 });

@@ -19,6 +19,8 @@
  *    отнимал бы у человека то, за чем он пришёл. Первое чтение при этом
  *    состояние загрузки сохраняет: «ещё не знаем» и «знаем, что пусто» —
  *    разные вещи.
+ * 6. Ответ чтения, обогнанный локальной правкой, не применяется: он снят
+ *    сервером ДО неё и откатил бы только что показанное изменение.
  */
 
 // #region Imports
@@ -172,6 +174,42 @@ describe('useUsersData: список учёток', () => {
         await ensureUsers();
 
         expect(statusDuringLoad).toBe('loading');
+    });
+
+    // Чтение при входе в раздел идёт параллельно работе человека: пока ответ
+    // летит, он успевает создать учётку или сменить роль. Снимок сервера сделан
+    // ДО этой правки, и применить его значило бы откатить показанное изменение —
+    // вместе со счётчиком рейла и замком последнего администратора
+    it('правка списка во время чтения не откатывается пришедшим ответом', async () => {
+        apiFetcherMock.mockResolvedValueOnce({ users: [makeUser()] });
+
+        const { ensureUsers, refreshUsers, upsertUser, users } = useUsersData();
+
+        await ensureUsers();
+
+        // Присваивается синхронно в моке ниже — до первого использования
+        let releaseStaleRead!: (value: { users: IBricksUserSummary[] }) => void;
+
+        // Первый ответ — снимок без новой учётки, второй — уже с ней: чтение
+        // обязано перезапроситься, а не применить устаревшее
+        apiFetcherMock.mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    releaseStaleRead = resolve;
+                })
+        );
+        apiFetcherMock.mockResolvedValueOnce({
+            users: [makeUser(), makeUser({ id: 2, username: 'new.editor' })],
+        });
+
+        const reading = refreshUsers();
+
+        upsertUser(makeUser({ id: 2, username: 'new.editor' }));
+        releaseStaleRead({ users: [makeUser()] });
+
+        await reading;
+
+        expect(users.value.map((user) => user.id)).toEqual([1, 2]);
     });
 
     // 403 и 404 означают «раздела нет»: повторять их бессмысленно, а пункт рейла

@@ -180,6 +180,28 @@ describe('userManagement: валидация DTO', () => {
         ).rejects.toThrowError(expect.objectContaining({ statusCode: 400 }));
     });
 
+    // Предел логина задан продуктом, а не колонкой (VARCHAR(255)): строка списка
+    // показывает логин целиком и не обрезает его, потому что по нему входят и по
+    // нему учётку находят. Числа здесь намеренно записаны литералами: взятые из
+    // той же константы, они повторили бы реализацию и не заметили бы её правку
+    it('принимает логин из 14 символов и отклоняет 15', async () => {
+        const payload = await buildCreateUserPayload({
+            username: 'a'.repeat(14),
+            password: 'sufficient-password',
+            role: 'editor',
+        });
+
+        expect(payload.username).toBe('a'.repeat(14));
+
+        await expect(
+            buildCreateUserPayload({
+                username: 'a'.repeat(15),
+                password: 'sufficient-password',
+                role: 'editor',
+            })
+        ).rejects.toThrowError(expect.objectContaining({ statusCode: 400 }));
+    });
+
     it('без имени и активности учётка активна и показывается логином', async () => {
         const payload = await buildCreateUserPayload({
             username: 'ivan',

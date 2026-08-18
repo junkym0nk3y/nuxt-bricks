@@ -98,6 +98,15 @@ export function useUsersCreateForm(options: IUseUsersCreateFormOptions) {
      * значениями — другую учётку создают из чистой формы.
      */
     const isSubmitSealed = ref(false);
+    /**
+     * Поколение отправки. Модалку закрывают и во время запроса (крестик, Esc и
+     * клик по фону этого не запрещают), а следующее открытие сбрасывает форму —
+     * значит прежний запрос может завершиться, когда его формы уже нет. Всё, что
+     * он вернёт, к чистой форме отношения не имеет: без этого счётчика обрыв
+     * старой отправки запечатывал бы новую и показывал бы ошибку о логине,
+     * который человек уже не вводит.
+     */
+    const submissionGeneration = ref(0);
     const generalError = ref('');
     // #endregion
 
@@ -177,6 +186,9 @@ export function useUsersCreateForm(options: IUseUsersCreateFormOptions) {
         isSubmitting.value = true;
         generalError.value = '';
 
+        submissionGeneration.value += 1;
+
+        const generation = submissionGeneration.value;
         const canonicalUsername = values.username.trim().toLowerCase();
 
         try {
@@ -192,9 +204,22 @@ export function useUsersCreateForm(options: IUseUsersCreateFormOptions) {
                 timeout: BRICKS_API_WRITE_TIMEOUT_MS,
             });
 
+            // Список правится в любом случае: учётка создана, и прятать её от
+            // раздела только потому, что окно успели закрыть, было бы враньём.
+            // А вот закрывать модалку и объявлять успех — уже не по адресу:
+            // форма перед человеком другая
             upsertUser(response.user);
+
+            if (generation !== submissionGeneration.value) {
+                return;
+            }
+
             options.onCreated(response.user);
         } catch (error: unknown) {
+            if (generation !== submissionGeneration.value) {
+                return;
+            }
+
             if (isUsernameTakenError(error)) {
                 setFieldError('username', t('bricks.users.errors.usernameTaken'));
                 return;
@@ -208,7 +233,9 @@ export function useUsersCreateForm(options: IUseUsersCreateFormOptions) {
 
             generalError.value = t(resolveUserActionErrorKey(error));
         } finally {
-            isSubmitting.value = false;
+            if (generation === submissionGeneration.value) {
+                isSubmitting.value = false;
+            }
         }
     });
 
@@ -216,9 +243,16 @@ export function useUsersCreateForm(options: IUseUsersCreateFormOptions) {
      * Возвращает форму к пустым значениям — при повторном открытии модалки.
      */
     function resetToEmpty(): void {
+        // Прежняя отправка объявляется чужой: она может лететь до сих пор — окно
+        // закрывают и во время запроса. Вместе с ней снимается и признак
+        // отправки, иначе чистая форма встречала бы человека выключенной кнопкой
+        // до конца запроса, которого он уже не ждёт
+        submissionGeneration.value += 1;
+
         resetForm({ values: buildEmptyFormValues() });
         generalError.value = '';
         isSubmitSealed.value = false;
+        isSubmitting.value = false;
     }
     // #endregion
 

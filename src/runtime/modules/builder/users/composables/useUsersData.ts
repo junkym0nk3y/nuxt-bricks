@@ -41,6 +41,14 @@ const USERS_ENDPOINT = '/api/bricks/users';
  * после его завершения.
  */
 const inflightRequests = new WeakMap<object, Promise<void>>();
+
+/**
+ * Счётчик локальных правок списка — тоже по экземпляру приложения.
+ *
+ * Живёт рядом с состоянием, а не внутри него: `useState` уезжает в payload
+ * гидрации, и служебному счётчику там не место.
+ */
+const localRevisions = new WeakMap<object, { count: number }>();
 // #endregion
 
 /**
@@ -69,6 +77,11 @@ export function useUsersData(): IUseUsersDataReturn {
     // хранит объект, и точечная мутация внутри него не обязана оповещать
     // подписчиков — счётчик рейла и строки списка читают его через computed
     const state = useState<IUsersState>(USERS_STATE_KEY, () => ({ users: [], status: 'idle' }));
+
+    // Общий на приложение: композабл зовут и рейл, и раздел, и формы
+    const revision = localRevisions.get(nuxtApp) ?? { count: 0 };
+
+    localRevisions.set(nuxtApp, revision);
     // #endregion
 
     // #region Computed
@@ -117,17 +130,33 @@ export function useUsersData(): IUseUsersDataReturn {
             state.value = { ...state.value, status: 'loading' };
         }
 
-        try {
-            const response = await requestWithinDeadline();
+        // Цикл, а не один запрос: ответ, обогнанный локальной правкой, применять
+        // нельзя, но и бросить чтение нельзя — раздел остался бы с состоянием,
+        // о котором никто уже не знает, свежее оно или нет. Итерация повторяется
+        // ровно тогда, когда между стартом запроса и его ответом список правила
+        // операция, поэтому останавливается она сама: правки делает человек, и
+        // они реже, чем ответы сервера
+        for (;;) {
+            const revisionAtStart = revision.count;
 
-            state.value = { users: response.users, status: 'ready' };
-        } catch (error: unknown) {
-            state.value = {
-                ...state.value,
-                status: isUsersSectionUnavailableError(error) ? 'unavailable' : 'error',
-            };
+            try {
+                const response = await requestWithinDeadline();
 
-            console.error('[Builder] Failed to load users list:', error);
+                if (revision.count !== revisionAtStart) {
+                    continue;
+                }
+
+                state.value = { users: response.users, status: 'ready' };
+            } catch (error: unknown) {
+                state.value = {
+                    ...state.value,
+                    status: isUsersSectionUnavailableError(error) ? 'unavailable' : 'error',
+                };
+
+                console.error('[Builder] Failed to load users list:', error);
+            }
+
+            return;
         }
     }
 
@@ -236,6 +265,8 @@ export function useUsersData(): IUseUsersDataReturn {
     function upsertUser(user: IBricksUserSummary): void {
         const isKnown = state.value.users.some((item) => item.id === user.id);
 
+        revision.count += 1;
+
         state.value = {
             ...state.value,
             users: isKnown
@@ -250,6 +281,8 @@ export function useUsersData(): IUseUsersDataReturn {
      * @param userId - Идентификатор удалённой учётки.
      */
     function removeUser(userId: number): void {
+        revision.count += 1;
+
         state.value = {
             ...state.value,
             users: state.value.users.filter((item) => item.id !== userId),
