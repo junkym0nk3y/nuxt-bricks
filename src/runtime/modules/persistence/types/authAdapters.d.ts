@@ -7,7 +7,7 @@
  * backend'ом несовместимы по сборке. Разные потребители, разные причины меняться;
  * вместе файл перерастал потолок в 500 строк.
  */
-import type { TBricksUserRole } from '../../common/types/auth';
+import type { IBricksUserSummary, TBricksUserRole } from '../../common/types/auth';
 
 /**
  * Запись пользователя database-auth (включая хеш пароля — только для verify).
@@ -67,29 +67,27 @@ export interface IAuthSessionWithUser {
 }
 
 /**
- * Учётка в списке управления пользователями (без секретов и без
- * `auth_version`: поколение — деталь механизма отзыва, наружу ей незачем).
- */
-export interface IAuthUserSummary {
-    id: number;
-    username: string;
-    role: TBricksUserRole;
-    isActive: boolean;
-    displayName: string | null;
-    avatarUrl: string | null;
-    /** ISO 8601 UTC — момент создания учётки. */
-    createdAt: string;
-}
-
-/**
  * Данные создания учётки администратором. Хеш пароля считает ручка
  * (`server/utils/auth/passwords.ts`) — адаптер паролей в открытом виде не
  * видит вовсе, поэтому не может ни залогировать их, ни отправить наружу.
+ *
+ * Отображаемое имя и активность обязательны и уже разрешены вызывающим, хотя в
+ * форме создания оба необязательны: адаптер подставляет значения в INSERT
+ * позиционно, и `undefined` уехал бы в колонку как NULL — для `is_active NOT
+ * NULL` это отказ вставки, а не «взять дефолт таблицы». Решение «чего не
+ * прислали» принимает ручка, у которой есть контекст запроса.
  */
 export interface ICreateAuthUserPayload {
     username: string;
     passwordHash: string;
     role: TBricksUserRole;
+    /** Отображаемое имя; null — везде показывается логин. */
+    displayName: string | null;
+    /**
+     * Может ли учётка входить сразу. `false` — заведена заранее: вход запрещён,
+     * пока администратор её не включит.
+     */
+    isActive: boolean;
 }
 
 /**
@@ -139,7 +137,7 @@ export interface IAuthUserProfileChange {
  * ссылается.
  */
 export interface IAuthProfileUpdateResult {
-    user: IAuthUserSummary;
+    user: IBricksUserSummary;
     previousAvatarUrl: string | null;
 }
 
@@ -203,7 +201,12 @@ export interface IAuthAdapter {
     getSessionWithUser(tokenHash: string): Promise<IAuthSessionWithUser | null>;
     /**
      * Создаёт сессию, если учётка всё ещё активна и её поколение совпадает с
-     * `expectedAuthVersion`.
+     * `expectedAuthVersion`, и отмечает момент входа (`lastLoginAt`).
+     *
+     * Обе записи обязаны применяться вместе и под одним условием: отметка входа
+     * до успешной вставки сессии зафиксировала бы вход, которого не случилось, а
+     * отдельная запись после неё могла бы потеряться. Поколение учётных данных
+     * при этом не двигается — вход не отзывает права.
      *
      * @returns false — состояние учётки изменилось между проверкой пароля и
      * вставкой (сменили пароль, деактивировали, сменили роль); куку в этом
@@ -216,14 +219,14 @@ export interface IAuthAdapter {
     /** Sliding-продление: обновляет expires_at и last_used_at. */
     touchSession(tokenHash: string, expiresAt: Date): Promise<void>;
     /** Все учётки для раздела управления, в стабильном порядке (по id). */
-    listUsers(): Promise<IAuthUserSummary[]>;
+    listUsers(): Promise<IBricksUserSummary[]>;
     /**
      * Создаёт учётку.
      *
      * @throws BricksUsernameTakenError - Логин занят (сравнение
      * регистронезависимое — как и вход).
      */
-    createUser(payload: ICreateAuthUserPayload): Promise<IAuthUserSummary>;
+    createUser(payload: ICreateAuthUserPayload): Promise<IBricksUserSummary>;
     /**
      * Меняет роль и/или активность учётки одной транзакцией и отзывает её
      * сессии: украденная кука иначе получила бы новые полномочия при повышении,
@@ -234,13 +237,16 @@ export interface IAuthAdapter {
      * @throws BricksLastActiveAdminError - Итоговое состояние оставило бы
      * систему без активного администратора.
      */
-    updateUserState(userId: number, change: IAuthUserStateChange): Promise<IAuthUserSummary | null>;
+    updateUserState(
+        userId: number,
+        change: IAuthUserStateChange
+    ): Promise<IBricksUserSummary | null>;
     /**
      * Ставит новый хеш пароля и отзывает сессии учётки.
      *
      * @returns Состояние строки; null — учётки нет.
      */
-    updateUserPassword(userId: number, passwordHash: string): Promise<IAuthUserSummary | null>;
+    updateUserPassword(userId: number, passwordHash: string): Promise<IBricksUserSummary | null>;
     /**
      * Правит отображаемое имя и/или ссылку на фото своего профиля.
      *
@@ -286,7 +292,7 @@ export interface IAuthAdapter {
      * @throws BricksLastActiveAdminError - Удаление оставило бы систему без
      * активного администратора.
      */
-    deleteUser(userId: number): Promise<IAuthUserSummary | null>;
+    deleteUser(userId: number): Promise<IBricksUserSummary | null>;
 }
 
 /**

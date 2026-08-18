@@ -15,13 +15,13 @@ import type {
     IAuthProfileUpdateResult,
     IAuthUserProfileChange,
     IAuthUserStateChange,
-    IAuthUserSummary,
     ICreateAuthUserPayload,
     TAuthUserMethods,
 } from '../../types/authAdapters';
+import type { IBricksUserSummary } from '../../../common/types/auth';
 import type {
     IAuthUserStateRow,
-    IAuthUserSummaryRow,
+    IBricksUserSummaryRow,
     IGuardedUserMutation,
 } from '../../types/postgres';
 import { BricksLastActiveAdminError, BricksUsernameTakenError } from '../utils/authErrors';
@@ -37,19 +37,33 @@ import {
  */
 const USER_SUMMARY_COLUMNS = `id, username, role, is_active AS "isActive",
     display_name AS "displayName", avatar_url AS "avatarUrl",
-    created_at AS "createdAt"`;
+    created_at AS "createdAt", last_login_at AS "lastLoginAt"`;
 
 /**
- * Приводит строку учётки к контракту: TIMESTAMPTZ-колонку — к ISO-строке.
+ * Приводит строку учётки к контракту: TIMESTAMPTZ-колонки — к ISO-строкам.
  *
  * @param row - Строка результата запроса.
- * @returns Учётка в форме IAuthUserSummary.
+ * @returns Учётка в форме IBricksUserSummary.
  */
-function toUserSummary(row: IAuthUserSummaryRow): IAuthUserSummary {
+function toUserSummary(row: IBricksUserSummaryRow): IBricksUserSummary {
     return {
         ...row,
-        createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt,
+        createdAt: toIsoDate(row.createdAt) ?? row.createdAt.toString(),
+        lastLoginAt: toIsoDate(row.lastLoginAt),
     };
+}
+
+/**
+ * Нормализует TIMESTAMPTZ-значение к ISO-строке; null и undefined остаются null.
+ *
+ * @param value - Значение колонки: `Date` от драйвера, строка или пусто.
+ */
+function toIsoDate(value: string | Date | null | undefined): string | null {
+    if (value === null || value === undefined) {
+        return null;
+    }
+
+    return value instanceof Date ? value.toISOString() : value;
 }
 
 /**
@@ -170,8 +184,8 @@ async function withActiveAdminLock(
  * @param txQuery - Запрос внутри открытой транзакции.
  * @param userId - Идентификатор учётки (существование уже проверено).
  */
-async function readUser(txQuery: TTransactionQuery, userId: number): Promise<IAuthUserSummary> {
-    const rows = await txQuery<IAuthUserSummaryRow>(
+async function readUser(txQuery: TTransactionQuery, userId: number): Promise<IBricksUserSummary> {
+    const rows = await txQuery<IBricksUserSummaryRow>(
         `SELECT ${USER_SUMMARY_COLUMNS} FROM bricks_users WHERE id = $1`,
         [userId]
     );
@@ -185,7 +199,7 @@ async function readUser(txQuery: TTransactionQuery, userId: number): Promise<IAu
  *
  * @param mutation - Исход `withActiveAdminLock`.
  */
-function unwrapGuardedMutation(mutation: IGuardedUserMutation | null): IAuthUserSummary | null {
+function unwrapGuardedMutation(mutation: IGuardedUserMutation | null): IBricksUserSummary | null {
     if (mutation === null) {
         return null;
     }
@@ -206,8 +220,8 @@ export function createPostgresAuthUserMethods(): TAuthUserMethods {
         /**
          * Все учётки для раздела управления, в порядке создания (по id).
          */
-        async listUsers(): Promise<IAuthUserSummary[]> {
-            const rows = await query<IAuthUserSummaryRow>(
+        async listUsers(): Promise<IBricksUserSummary[]> {
+            const rows = await query<IBricksUserSummaryRow>(
                 `SELECT ${USER_SUMMARY_COLUMNS}
                 FROM bricks_users
                 ORDER BY id`
@@ -226,13 +240,20 @@ export function createPostgresAuthUserMethods(): TAuthUserMethods {
          * предварительным чтением: между чтением и вставкой успевает
          * вклиниться параллельное создание.
          */
-        async createUser(payload: ICreateAuthUserPayload): Promise<IAuthUserSummary> {
+        async createUser(payload: ICreateAuthUserPayload): Promise<IBricksUserSummary> {
             try {
-                const rows = await query<IAuthUserSummaryRow>(
-                    `INSERT INTO bricks_users (username, password_hash, role)
-                    VALUES (lower($1), $2, $3)
+                const rows = await query<IBricksUserSummaryRow>(
+                    `INSERT INTO bricks_users
+                        (username, password_hash, role, display_name, is_active)
+                    VALUES (lower($1), $2, $3, $4, $5)
                     RETURNING ${USER_SUMMARY_COLUMNS}`,
-                    [payload.username, payload.passwordHash, payload.role]
+                    [
+                        payload.username,
+                        payload.passwordHash,
+                        payload.role,
+                        payload.displayName,
+                        payload.isActive,
+                    ]
                 );
 
                 return toUserSummary(rows[0]);
@@ -254,7 +275,7 @@ export function createPostgresAuthUserMethods(): TAuthUserMethods {
         async updateUserState(
             userId: number,
             change: IAuthUserStateChange
-        ): Promise<IAuthUserSummary | null> {
+        ): Promise<IBricksUserSummary | null> {
             const mutation = await withActiveAdminLock(
                 userId,
                 async (txQuery, target, activeAdminCount) => {
@@ -268,7 +289,7 @@ export function createPostgresAuthUserMethods(): TAuthUserMethods {
                         return { isRefused: true, user: null };
                     }
 
-                    const rows = await txQuery<IAuthUserSummaryRow>(
+                    const rows = await txQuery<IBricksUserSummaryRow>(
                         `UPDATE bricks_users
                         SET role = $2, is_active = $3, auth_version = auth_version + 1
                         WHERE id = $1
@@ -294,9 +315,9 @@ export function createPostgresAuthUserMethods(): TAuthUserMethods {
         async updateUserPassword(
             userId: number,
             passwordHash: string
-        ): Promise<IAuthUserSummary | null> {
+        ): Promise<IBricksUserSummary | null> {
             return withTransaction(async (txQuery) => {
-                const rows = await txQuery<IAuthUserSummaryRow>(
+                const rows = await txQuery<IBricksUserSummaryRow>(
                     `UPDATE bricks_users
                     SET password_hash = $2, auth_version = auth_version + 1
                     WHERE id = $1
@@ -367,7 +388,7 @@ export function createPostgresAuthUserMethods(): TAuthUserMethods {
                     return { user: await readUser(txQuery, userId), previousAvatarUrl };
                 }
 
-                const rows = await txQuery<IAuthUserSummaryRow>(
+                const rows = await txQuery<IBricksUserSummaryRow>(
                     `UPDATE bricks_users
                     SET ${updates.join(', ')}
                     WHERE id = $${values.length + 1}
@@ -420,7 +441,7 @@ export function createPostgresAuthUserMethods(): TAuthUserMethods {
          * прежнее фото, и из хранилища ушёл бы файл, на который уже никто не
          * ссылается, вместо актуального.
          */
-        async deleteUser(userId: number): Promise<IAuthUserSummary | null> {
+        async deleteUser(userId: number): Promise<IBricksUserSummary | null> {
             const mutation = await withActiveAdminLock(
                 userId,
                 async (txQuery, target, activeAdminCount) => {
@@ -428,7 +449,7 @@ export function createPostgresAuthUserMethods(): TAuthUserMethods {
                         return { isRefused: true, user: null };
                     }
 
-                    const rows = await txQuery<IAuthUserSummaryRow>(
+                    const rows = await txQuery<IBricksUserSummaryRow>(
                         `DELETE FROM bricks_users
                         WHERE id = $1
                         RETURNING ${USER_SUMMARY_COLUMNS}`,

@@ -97,23 +97,38 @@ export function createPostgresAuthAdapter(): IAuthAdapter {
 
         /**
          * Создаёт сессию (в БД — только SHA-256 hex токена), если учётка всё ещё
-         * активна и её поколение совпадает с прочитанным до проверки пароля.
+         * активна и её поколение совпадает с прочитанным до проверки пароля, и
+         * тем же запросом отмечает момент входа.
          *
-         * Вставка условная (INSERT ... SELECT), а не безусловная: проверка
-         * пароля идёт под scrypt секунды, и параллельная смена пароля или
-         * деактивация могли завершиться раньше вставки — тогда безусловный
-         * INSERT выдал бы рабочую сессию по уже отозванным креденшелам.
+         * Вставка условная, а не безусловная: проверка пароля идёт под scrypt
+         * секунды, и параллельная смена пароля или деактивация могли завершиться
+         * раньше вставки — тогда безусловный INSERT выдал бы рабочую сессию по
+         * уже отозванным креденшелам.
+         *
+         * Отметка входа живёт в CTE того же запроса, а не отдельным UPDATE, и
+         * условие у неё то же самое. Порядок здесь и есть смысл конструкции:
+         * запись даты ДО условной вставки отметила бы вход, которого не
+         * случилось (учётку успели деактивировать), а отдельный запрос ПОСЛЕ
+         * коммита сессии мог бы потеряться, оставив вошедшего без даты. Одним
+         * оператором обе записи применяются вместе либо не применяются вовсе.
+         * `auth_version` при этом не двигается: вход — не отзыв прав, и
+         * инкремент погасил бы только что созданную сессию.
          *
          * @returns false — состояние учётки изменилось, куку выставлять нельзя.
          */
         async createSession(payload: ICreateAuthSessionPayload): Promise<boolean> {
             const rows = await query<{ id: number }>(
-                `INSERT INTO bricks_sessions (token_hash, user_id, auth_version, expires_at)
-                SELECT $1, u.id, u.auth_version, $3
-                FROM bricks_users u
-                WHERE u.id = $2
-                    AND u.is_active = TRUE
-                    AND u.auth_version = $4
+                `WITH authenticated AS (
+                    UPDATE bricks_users
+                    SET last_login_at = NOW()
+                    WHERE id = $2
+                        AND is_active = TRUE
+                        AND auth_version = $4
+                    RETURNING id, auth_version
+                )
+                INSERT INTO bricks_sessions (token_hash, user_id, auth_version, expires_at)
+                SELECT $1, a.id, a.auth_version, $3
+                FROM authenticated a
                 RETURNING id`,
                 [payload.tokenHash, payload.userId, payload.expiresAt, payload.expectedAuthVersion]
             );

@@ -15,6 +15,7 @@ import type {
     IImageResolverState,
     TImageResolveAction,
 } from '../../media/types/schemaImageResolver';
+import type { TMediaLightboxItem } from '../../media/types/media';
 
 // #region usePublishVersionRestore
 /**
@@ -65,6 +66,63 @@ export interface IUsePublishPageDeleteReturn {
     requestDeletePage: (page: TPublishedPageSummary) => void;
     closeDeleteConfirmation: (force?: boolean) => void;
     confirmDeletePage: () => Promise<void>;
+}
+// #endregion
+
+// #region usePublishDashboardPreferences
+/**
+ * Возвращаемое значение `usePublishDashboardPreferences`.
+ */
+export interface IUsePublishDashboardPreferencesReturn {
+    isDarkMode: ComputedRef<boolean>;
+    /** Класс `body` дашборда: несёт `bricks-dark` при тёмной теме. */
+    bodyClass: ComputedRef<string>;
+    toggleDarkMode: () => void;
+    toggleLocale: () => Promise<void>;
+}
+// #endregion
+
+// #region usePublishMediaGallery
+/**
+ * Роль, в которой открыта медиа-галерея: менеджер файлов (пункт рейла) или пикер
+ * OG-изображения панели деталей. Пикер возвращает выбранный файл в форму,
+ * менеджер не возвращает ничего.
+ */
+export type TPublishMediaGalleryContext = 'manager' | 'properties';
+
+/**
+ * Возвращаемое значение `usePublishMediaGallery`.
+ */
+export interface IUsePublishMediaGalleryReturn {
+    /** Компонент галереи нужно держать в разметке (латч первого открытия). */
+    shouldMount: Ref<boolean>;
+    isOpen: Ref<boolean>;
+    context: Ref<TPublishMediaGalleryContext>;
+    openAsManager: () => void;
+    openAsPicker: () => void;
+    close: () => void;
+}
+// #endregion
+
+// #region usePublishPageActions
+export interface IUsePublishPageActionsOptions {
+    onNotify: (message: string, variant: 'success' | 'error') => void;
+}
+
+/**
+ * Возвращаемое значение `usePublishPageActions`: действия строки и панели
+ * деталей, не требующие подтверждения.
+ */
+export interface IUsePublishPageActionsReturn {
+    /** Идентификатор дублируемой страницы; `null` — копирования нет. */
+    duplicatingPageId: Ref<string | null>;
+    /** Миниатюра, открытая в лайтбоксе; `null` — лайтбокс закрыт. */
+    thumbnailPreviewItem: Ref<TMediaLightboxItem | null>;
+    togglePublished: (page: TPublishedPageSummary, published: boolean) => Promise<void>;
+    duplicatePage: (page: TPublishedPageSummary) => Promise<void>;
+    previewPage: (page: TPublishedPageSummary) => void;
+    previewThumbnail: (page: TPublishedPageSummary) => void;
+    closeThumbnailPreview: () => void;
 }
 // #endregion
 

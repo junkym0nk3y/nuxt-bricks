@@ -38,6 +38,7 @@ import {
     TaOutlineFiles,
     TaOutlineFilter,
     TaOutlineFolderOpen,
+    TaOutlineKey,
     TaOutlineGrid4X4,
     TaOutlineInfoCircle,
     TaOutlineLayoutGridAdd,
@@ -61,6 +62,9 @@ import {
     TaOutlineTrash,
     TaOutlineUpload,
     TaOutlineUser,
+    TaOutlineUserCheck,
+    TaOutlineUserOff,
+    TaOutlineUsers,
     TaOutlineZoomIn,
     TaOutlineZoomOut,
     // Иконки текстового редактора (уже Tabler)
@@ -145,6 +149,12 @@ export const BUILDER_ICONS: Record<string, Component> = {
     'ta:outline-logout': TaOutlineLogout,
     'ta:outline-user': TaOutlineUser,
     'ta:outline-eye-off': TaOutlineEyeOff,
+
+    // Раздел «Пользователи»: рейл, пароль учётки и переключение входа
+    'ta:outline-users': TaOutlineUsers,
+    'ta:outline-key': TaOutlineKey,
+    'ta:outline-user-off': TaOutlineUserOff,
+    'ta:outline-user-check': TaOutlineUserCheck,
 
     // Sidebar / Library
     'ta:outline-package': TaOutlinePackage,

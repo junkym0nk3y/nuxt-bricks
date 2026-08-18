@@ -108,11 +108,20 @@ export interface IUseAuthProfileReturn {
 }
 
 /** Монтирование и открытость модалки профиля (`useAuthProfileModal`). */
+/** Вкладка модалки профиля, с которой она открывается. */
+export type TAuthProfileTab = 'profile' | 'password';
+
 export interface IUseAuthProfileModalReturn {
     /** Компонент модалки нужно держать в разметке (латч первого открытия). */
     shouldMount: Ref<boolean>;
     isOpen: Ref<boolean>;
-    open(): void;
+    /**
+     * Вкладка, запрошенная при открытии. Нужна второй точке входа: ключ в своей
+     * строке раздела «Пользователи» ведёт именно в смену своего пароля, а
+     * админская ручка чужого пароля на своей учётке отказывает намеренно.
+     */
+    requestedTab: Ref<TAuthProfileTab>;
+    open(tab?: TAuthProfileTab): void;
     close(): void;
 }
 
@@ -147,6 +156,12 @@ export interface IAuthProfileModalProps {
      * auth-домен не видит по границам модулей.
      */
     canChangePassword?: boolean;
+    /**
+     * Вкладка, с которой открывается модалка. Применяется на КАЖДОМ открытии, а
+     * не однажды: иначе открытая раз паролем модалка так и продолжала бы
+     * открываться на пароле из меню профиля.
+     */
+    initialTab?: TAuthProfileTab;
 }
 
 export interface IAuthProfileModalEmits {

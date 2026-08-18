@@ -12,6 +12,8 @@
 import { createError, type H3Event } from 'h3';
 import { useRuntimeConfig } from 'nitropack/runtime';
 import {
+    BRICKS_DISPLAY_NAME_MAX_LENGTH,
+    BRICKS_DISPLAY_NAME_PATTERN,
     BRICKS_NEW_USERNAME_MAX_LENGTH,
     BRICKS_NEW_USERNAME_MIN_LENGTH,
     BRICKS_NEW_USERNAME_PATTERN,
@@ -29,6 +31,7 @@ import {
     assertKnownKeys,
     invalid,
     optionalBoolean,
+    optionalNullableString,
     requireString,
 } from '../../../modules/persistence/server/utils/payloadPrimitives';
 import { runScryptTask, GateOverflowError } from './scryptGate';
@@ -40,7 +43,13 @@ import type {
 } from '../../../modules/persistence/types/authAdapters';
 
 /** Разрешённые ключи тела создания учётки. */
-const CREATE_USER_KEYS: ReadonlySet<string> = new Set(['username', 'password', 'role']);
+const CREATE_USER_KEYS: ReadonlySet<string> = new Set([
+    'username',
+    'password',
+    'role',
+    'displayName',
+    'isActive',
+]);
 
 /** Разрешённые ключи тела правки учётки администратором. */
 const UPDATE_USER_KEYS: ReadonlySet<string> = new Set(['role', 'isActive']);
@@ -260,6 +269,16 @@ export function assertNotSelfTarget(event: H3Event, targetUserId: number): void 
  * Валидирует тело создания учётки и хеширует пароль: адаптер пароля в открытом
  * виде не видит вовсе.
  *
+ * Отображаемое имя и активность необязательны и разрешаются здесь, а не в
+ * адаптере: `undefined` уехал бы в INSERT как NULL, а `is_active` объявлен NOT
+ * NULL — дефолт таблицы при явном значении не применяется вовсе. Пустая строка
+ * имени равна его отсутствию — это просьба показывать логин, та же трактовка,
+ * что у правки своего профиля.
+ *
+ * Имя задаётся ТОЛЬКО при создании, дальше его правит себе сам человек
+ * (`PATCH /users/me`): администратор наполняет список читаемыми именами до
+ * первого входа новых людей, но переписывать чужую подпись потом не может.
+ *
  * @param body - Нормализованное тело запроса.
  * @returns Данные для адаптера.
  */
@@ -271,10 +290,17 @@ export async function buildCreateUserPayload(
     const username = requireUsername(body.username);
     const password = requirePassword(body.password);
     const role = requireRole(body.role, 'role');
+    const displayName = optionalNullableString(body.displayName, 'displayName', {
+        max: BRICKS_DISPLAY_NAME_MAX_LENGTH,
+        pattern: BRICKS_DISPLAY_NAME_PATTERN,
+        patternHint: 'control characters are not allowed',
+    });
 
     return {
         username,
         role,
+        displayName: displayName ?? null,
+        isActive: optionalBoolean(body.isActive, 'isActive') ?? true,
         passwordHash: await hashPasswordUnderGate(password),
     };
 }

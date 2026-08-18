@@ -6,15 +6,18 @@
  * optional peer-зависимость (external-режим её не требует), и тип конфигурации
  * не должен тянуть за собой её резолв.
  */
-import type { IAuthUserSummary } from './authAdapters';
-import type { TBricksUserRole } from '../../common/types/auth';
+import type { IBricksUserSummary, TBricksUserRole } from '../../common/types/auth';
 
 /**
- * Строка учётки из `bricks_users` до нормализации даты: TIMESTAMPTZ-колонку
+ * Строка учётки из `bricks_users` до нормализации дат: TIMESTAMPTZ-колонки
  * node-postgres отдаёт как `Date`, а контракт требует ISO-строку.
  */
-export interface IAuthUserSummaryRow extends Omit<IAuthUserSummary, 'createdAt'> {
+export interface IBricksUserSummaryRow extends Omit<
+    IBricksUserSummary,
+    'createdAt' | 'lastLoginAt'
+> {
     createdAt: string | Date;
+    lastLoginAt: string | Date | null;
 }
 
 /**
@@ -41,7 +44,7 @@ export interface IGuardedUserMutation {
      * Состояние строки после мутации, а для удаления — снятое перед ним;
      * null — отказ краевого правила, возвращать нечего.
      */
-    user: IAuthUserSummary | null;
+    user: IBricksUserSummary | null;
 }
 
 /** Строка JOIN-результата сессии с полями пользователя (алиасы camelCase). */

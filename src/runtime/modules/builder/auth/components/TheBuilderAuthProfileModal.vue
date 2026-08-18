@@ -21,7 +21,11 @@
 
 // #region Imports
 // Types
-import type { IAuthProfileModalProps, IAuthProfileModalEmits } from '../types/auth';
+import type {
+    IAuthProfileModalProps,
+    IAuthProfileModalEmits,
+    TAuthProfileTab,
+} from '../types/auth';
 
 // Vue
 import { computed, ref, shallowRef, watch } from 'vue';
@@ -45,6 +49,7 @@ import BuilderAuthProfilePasswordForm from './BuilderAuthProfilePasswordForm.vue
 // #region Props
 const props = withDefaults(defineProps<IAuthProfileModalProps>(), {
     canChangePassword: false,
+    initialTab: 'profile',
 });
 // #endregion
 
@@ -57,7 +62,7 @@ const { t } = useI18n();
 const { profile } = useAuthProfile();
 
 /** Выбранная вкладка; при выключенной смене пароля вторая недостижима. */
-const activeTab = ref<'profile' | 'password'>('profile');
+const activeTab = ref<TAuthProfileTab>('profile');
 
 /**
  * Выбранный для кадрирования файл; null — вложенная модалка закрыта.
@@ -189,15 +194,23 @@ function handleNotify(message: string, variant: 'success' | 'error'): void {
 // #endregion
 
 // #region Lifecycle
-// Закрытая модалка возвращается на первую вкладку: открывший её человек просил
-// «Профиль», а не ту вкладку, где он был в прошлый раз
+// Вкладка выбирается на КАЖДОМ открытии по запрошенной, а не запоминается между
+// ними: точек входа две — меню профиля просит «Профиль», ключ в своей строке
+// раздела учёток просит «Пароль», — и вкладка, оставшаяся с прошлого раза,
+// показала бы человеку не то, что он открывал. При выключенной смене пароля
+// запрос пароля безопасно сводится к профилю: вкладки в этом режиме нет вовсе
 watch(
     () => props.isOpen,
     (isOpen) => {
         if (!isOpen) {
             activeTab.value = 'profile';
+            return;
         }
-    }
+
+        activeTab.value =
+            props.initialTab === 'password' && props.canChangePassword ? 'password' : 'profile';
+    },
+    { immediate: true }
 );
 
 // Выключение смены пароля посреди открытой модалки (перечитанный конфиг) не

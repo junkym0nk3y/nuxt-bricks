@@ -3,7 +3,6 @@
 // Types
 import type { TPublishedPageSummary } from '../../../common/types/bricks-api';
 import type { IMediaItem } from '../../../common/types/media';
-import type { TMediaLightboxItem } from '../../media/types/media';
 import type { TPublishDashboardSection } from '../types/dashboard';
 import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 
@@ -18,7 +17,7 @@ import { computed, defineAsyncComponent, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Nuxt
-import { useRouter, useCookie, useHead } from '#imports';
+import { useRouter, useHead } from '#imports';
 
 // Pinia
 import { usePublishStore } from '../stores/publish';
@@ -30,11 +29,14 @@ import { useAuthSession } from '../../auth/composables/useAuthSession';
 import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
 import { useBuilderToast } from '../../core/composables/useBuilderToast';
 import { usePublishDashboard } from '../composables/usePublishDashboard';
+import { usePublishDashboardPreferences } from '../composables/usePublishDashboardPreferences';
+import { usePublishMediaGallery } from '../composables/usePublishMediaGallery';
+import { usePublishPageActions } from '../composables/usePublishPageActions';
 import { usePublishPageDelete } from '../composables/usePublishPageDelete';
 import { usePublishPagesData } from '../composables/usePublishPagesData';
-import { usePublishPreview } from '../composables/usePublishPreview';
 import { usePublishVersionRestore } from '../composables/usePublishVersionRestore';
 import { usePublishSchemaImport } from '../composables/usePublishSchemaImport';
+import { useUsersData } from '../../users/composables/useUsersData';
 
 // Components
 import TheBuilderPublishDashboard from '../components/TheBuilderPublishDashboard.vue';
@@ -42,6 +44,7 @@ import BuilderPublishPagesList from '../components/BuilderPublishPagesList.vue';
 import BuilderPublishDetailsPanel from '../components/BuilderPublishDetailsPanel.vue';
 import TheBuilderPublishCreatePageModal from '../components/TheBuilderPublishCreatePageModal.vue';
 import BuilderMediaGalleryPreviewLightbox from '../../media/components/BuilderMediaGalleryPreviewLightbox.vue';
+import TheBuilderUsersSection from '../../users/components/TheBuilderUsersSection.vue';
 import BricksConfirmModal from '../../../ui/feedback/BricksConfirmModal.vue';
 import BricksToast from '../../../ui/feedback/BricksToast.vue';
 
@@ -66,11 +69,10 @@ const TheBuilderMediaImageResolverModal = defineAsyncComponent(
 // #endregion
 
 // #region Data
-const { t, locale, setLocale } = useI18n();
+const { t } = useI18n();
 const router = useRouter();
 const publishStore = usePublishStore();
 const { toast, showToast } = useBuilderToast();
-const { generatePreviewUrl } = usePublishPreview();
 const { logout } = useAuthSession();
 // Композабл создаётся здесь, синхронно: внутри `useState`/`useRequestEvent`, а
 // они обязаны вызваться до первого `await` этого setup — досылка профиля идёт
@@ -78,22 +80,35 @@ const { logout } = useAuthSession();
 const { profile, ensureProfile } = useAuthProfile();
 // Модалку профиля открывает меню в углу шапки
 const profileModal = useAuthProfileModal();
-const { canChangePassword, ensureRole } = useBuilderPermissions();
+const { canChangePassword, canManageUsers, ensureRole } = useBuilderPermissions();
 const { searchQuery, activeFilter, filterCounts, filteredPages, hasAnyPages } = usePublishDashboard(
     computed(() => publishStore.publishedPages)
 );
+const {
+    duplicatingPageId,
+    thumbnailPreviewItem,
+    togglePublished,
+    duplicatePage,
+    previewPage,
+    previewThumbnail,
+    closeThumbnailPreview,
+} = usePublishPageActions({ onNotify: showToast });
+const { isDarkMode, bodyClass, toggleDarkMode, toggleLocale } = usePublishDashboardPreferences();
+const mediaGallery = usePublishMediaGallery();
+// Список учёток нужен дашборду и до открытия раздела: пункт рейла показывает
+// счётчик. Сам раздел читает то же состояние — оно одно на приложение
+const { usersCount, status: usersStatus, ensureUsers } = useUsersData();
 
 const activeSection = ref<TPublishDashboardSection>('pages');
 const isCreatePageModalOpen = ref(false);
+const isCreateUserModalOpen = ref(false);
+/**
+ * Поисковый запрос раздела учёток — свой, а не общий с страницами: запрос,
+ * набранный для страниц, отфильтровал бы список людей до пустого, и раздел
+ * выглядел бы сломанным.
+ */
+const usersSearchQuery = ref('');
 const isDocumentationModalOpen = ref(false);
-// Галерея монтируется только с первым открытием: смонтированная сразу, она на
-// старте дашборда тянула списки файлов и категорий, которых у неоткрытой галереи
-// никто не спрашивает. Латч обратно не снимается — как у модалки создания
-// страницы: пересоздание компонента теряло бы анимацию закрытия
-const shouldMountMediaGallery = ref(false);
-const isMediaGalleryModalOpen = ref(false);
-const mediaGalleryContext = ref<'manager' | 'properties'>('manager');
-const duplicatingPageId = ref<string | null>(null);
 
 const {
     isRestoreConfirmationOpen,
@@ -104,7 +119,6 @@ const {
     confirmRestoreVersion,
 } = usePublishVersionRestore({ onNotify: showToast });
 const selectedPageId = ref<string | null>(null);
-const thumbnailPreviewItem = ref<TMediaLightboxItem | null>(null);
 const detailsPanelRef = ref<InstanceType<typeof BuilderPublishDetailsPanel> | null>(null);
 
 const {
@@ -133,10 +147,6 @@ const schemaImport = usePublishSchemaImport({
     isTargetSelected: (pageId) => selectedPageId.value === String(pageId),
 });
 
-const darkModeCookie = useCookie<boolean>('bricks-dark-mode', {
-    default: () => false,
-    maxAge: 60 * 60 * 24 * 365,
-});
 // #endregion
 
 // #region Computed
@@ -153,15 +163,28 @@ const selectedPage = computed<TPublishedPageSummary | null>(() => {
     return publishStore.getPageById(selectedPageId.value) ?? null;
 });
 
-const isDarkMode = computed<boolean>(() => darkModeCookie.value ?? false);
+/**
+ * Раздел «Пользователи» показывается, когда права есть И ручки отвечают:
+ * `unavailable` ставится на 403 и 404 первой загрузки, то есть «раздела в этой
+ * установке нет». Оставить пункт в этом состоянии значило бы вести человека на
+ * пустой экран, который ничем не наполнится.
+ */
+const isUsersSectionVisible = computed<boolean>(
+    () => canManageUsers.value && usersStatus.value !== 'unavailable'
+);
+
+/** Своя учётка: её строка в списке помечается и теряет часть действий. */
+const currentUserId = computed<number | null>(() => profile.value?.id ?? null);
 
 /**
- * Класс body формируется реактивно — включает bricks-dark при активной тёмной теме.
- * Работает на SSR: cookie читается на сервере, класс рендерится сразу.
+ * Запрос из поля поиска шапки — того раздела, который открыт. Своё значение у
+ * каждого раздела: у страниц и учёток разные списки, и общая строка искала бы в
+ * одном по запросу, набранному для другого.
  */
-const bodyClass = computed(() =>
-    darkModeCookie.value ? 'bricks-page bricks-dark' : 'bricks-page'
+const activeSearchQuery = computed<string>(() =>
+    activeSection.value === 'users' ? usersSearchQuery.value : searchQuery.value
 );
+
 // #endregion
 
 // #region Methods
@@ -192,10 +215,55 @@ async function handlePageCreated(address: IBricksPageAddress): Promise<void> {
 /**
  * Переключает активный раздел рейла.
  *
+ * Раздел, которого нет в этой установке, не открывается даже по прямому вызову:
+ * пункт рейла при выключенном разделе не рисуется, но состояние `unavailable`
+ * может прийти уже после того, как человек в разделе оказался.
+ *
  * @param section - Ключ раздела.
  */
 function handleSelectSection(section: TPublishDashboardSection): void {
+    if (section === 'users' && !isUsersSectionVisible.value) {
+        return;
+    }
+
     activeSection.value = section;
+}
+
+/**
+ * Пишет запрос поиска в тот раздел, который открыт.
+ *
+ * @param value - Введённый запрос.
+ */
+function handleSearchInput(value: string): void {
+    if (activeSection.value === 'users') {
+        usersSearchQuery.value = value;
+        return;
+    }
+
+    searchQuery.value = value;
+}
+
+/**
+ * Открывает форму создания учётки (кнопка шапки и CTA пустого списка).
+ */
+function handleCreateUser(): void {
+    isCreateUserModalOpen.value = true;
+}
+
+/**
+ * Закрывает форму создания учётки.
+ */
+function handleCloseCreateUserModal(): void {
+    isCreateUserModalOpen.value = false;
+}
+
+/**
+ * Открывает свой профиль на вкладке пароля — ключ в своей строке раздела
+ * учёток. Админская ручка чужого пароля на своей учётке отказывает намеренно:
+ * свой пароль меняется только с вводом текущего.
+ */
+function handleChangeOwnPassword(): void {
+    profileModal.open('password');
 }
 
 /**
@@ -222,6 +290,15 @@ watch(selectedPageId, () => {
     schemaImport.cancelImport();
 });
 
+// Раздел учёток мог исчезнуть под руками: 403 или 404 на его ручках означают,
+// что в этой установке его нет, — оставшийся открытым, он показывал бы пустой
+// экран без объяснения
+watch(isUsersSectionVisible, (isVisible) => {
+    if (!isVisible && activeSection.value === 'users') {
+        activeSection.value = 'pages';
+    }
+});
+
 /**
  * Открывает страницу в редакторе билдера.
  *
@@ -232,39 +309,6 @@ async function handleEditPage(page: TPublishedPageSummary): Promise<void> {
 }
 
 /**
- * Оптимистично переключает статус публикации; при ошибке откатывает.
- *
- * @param page - Страница.
- * @param published - Новый флаг публикации.
- */
-async function handleTogglePublished(
-    page: TPublishedPageSummary,
-    published: boolean
-): Promise<void> {
-    const target = publishStore.getPageById(page.id);
-    if (!target || target.published === published) {
-        return;
-    }
-
-    const previousPublished = target.published;
-    target.published = published;
-
-    try {
-        await publishStore.patchPage(page.id, { published });
-    } catch (error: unknown) {
-        const current = publishStore.getPageById(page.id);
-        if (current) {
-            current.published = previousPublished;
-        }
-        const message =
-            error instanceof Error
-                ? error.message
-                : t('bricks.publish.dashboard.details.toasts.statusFailed');
-        showToast(message, 'error');
-    }
-}
-
-/**
  * Показывает тост из панели деталей (сохранение, копирование URL).
  *
  * @param message - Текст уведомления.
@@ -272,80 +316,6 @@ async function handleTogglePublished(
  */
 function handleDetailsNotify(message: string, variant: 'success' | 'error'): void {
     showToast(message, variant);
-}
-
-/**
- * Открывает превью страницы в новой вкладке.
- *
- * @param page - Страница.
- */
-function handlePreviewPage(page: TPublishedPageSummary): void {
-    window.open(generatePreviewUrl(toPageAddress(page.pagename, page.urlPrefix)), '_blank');
-}
-
-/**
- * Открывает миниатюру страницы в лайтбоксе медиа-галереи.
- *
- * @param page - Страница с thumbnailUrl.
- */
-function handlePreviewThumbnail(page: TPublishedPageSummary): void {
-    if (!page.thumbnailUrl) {
-        return;
-    }
-
-    thumbnailPreviewItem.value = {
-        url: page.thumbnailUrl,
-        mimeType: 'image/webp',
-        alt: page.title || page.pagename,
-        filename: `${page.pagename}.webp`,
-    };
-}
-
-/**
- * Закрывает лайтбокс миниатюры.
- */
-function handleCloseThumbnailPreview(): void {
-    thumbnailPreviewItem.value = null;
-}
-
-/**
- * Дублирует страницу: копия создаётся черновиком с уникальным pagename.
- *
- * @param page - Исходная страница.
- */
-async function handleDuplicatePage(page: TPublishedPageSummary): Promise<void> {
-    if (duplicatingPageId.value !== null) {
-        return;
-    }
-
-    duplicatingPageId.value = String(page.id);
-    try {
-        await publishStore.duplicatePage(page.id);
-        showToast(t('bricks.publish.dashboard.toasts.duplicated'), 'success');
-    } catch (error: unknown) {
-        const message =
-            error instanceof Error
-                ? error.message
-                : t('bricks.publish.dashboard.toasts.duplicateFailed');
-        showToast(message, 'error');
-    } finally {
-        duplicatingPageId.value = null;
-    }
-}
-
-/**
- * Переключает тёмную/светлую тему дашборда и сохраняет выбор в cookie
- * (общий с редактором билдера cookie `bricks-dark-mode`).
- */
-function handleToggleDarkMode(): void {
-    darkModeCookie.value = !darkModeCookie.value;
-}
-
-/**
- * Переключает локаль интерфейса (ru ⇄ en); cookie `bricks-locale` пишет сам i18n.
- */
-async function handleToggleLocale(): Promise<void> {
-    await setLocale(locale.value === 'ru' ? 'en' : 'ru');
 }
 
 /**
@@ -374,41 +344,21 @@ function handleCloseDocs(): void {
 }
 
 /**
- * Открывает медиа-галерею в режиме менеджера (пункт рейла).
- */
-function handleOpenMediaGallery(): void {
-    mediaGalleryContext.value = 'manager';
-    shouldMountMediaGallery.value = true;
-    isMediaGalleryModalOpen.value = true;
-}
-
-/**
- * Открывает медиа-галерею как пикер OG-изображения панели деталей.
- */
-function handleOpenMediaFromDetails(): void {
-    mediaGalleryContext.value = 'properties';
-    shouldMountMediaGallery.value = true;
-    isMediaGalleryModalOpen.value = true;
-}
-
-/**
- * Закрывает медиа-галерею.
- */
-function handleCloseMediaGallery(): void {
-    isMediaGalleryModalOpen.value = false;
-}
-
-/**
  * Передаёт выбранное в галерее изображение в форму панели деталей.
+ *
+ * Проверка роли обязательна: галерея, открытая пунктом рейла, ничего никуда не
+ * возвращает — иначе просмотр файлов подставлял бы картинку в SEO-поля открытой
+ * страницы.
  *
  * @param item - Выбранный медиа-объект.
  */
 function handleMediaSelect(item: IMediaItem): void {
-    if (mediaGalleryContext.value !== 'properties') {
+    if (mediaGallery.context.value !== 'properties') {
         return;
     }
+
     detailsPanelRef.value?.handleMediaSelect(item);
-    isMediaGalleryModalOpen.value = false;
+    mediaGallery.close();
 }
 
 /**
@@ -429,12 +379,16 @@ useHead({
     },
 });
 
-// Загрузка списка — последним оператором setup: `await` делает компонент
+// Загрузка данных — последними операторами setup: `await` делает компонент
 // асинхронным, поэтому всё, что зависит от Nuxt-контекста (`useCookie`,
 // `useHead`), объявлено выше. На сервере ожидание обязательно: без него
 // разметка первого кадра уедет пользователю с пустым списком — ровно то, что
-// раньше делала загрузка из `onMounted`
-const { isLoadingPages } = await usePublishPagesData({
+// раньше делала загрузка из `onMounted`.
+//
+// Список страниц СТАРТУЕТ здесь, а ждём его ниже: он не зависит ни от профиля,
+// ни от роли, и последовательное ожидание сложило бы задержки трёх запросов в
+// одну задержку HTML
+const pagesDataPromise = usePublishPagesData({
     onLoadFailed: () => showToast(t('bricks.publish.dashboard.toasts.loadFailed'), 'error'),
 });
 
@@ -446,6 +400,13 @@ const { isLoadingPages } = await usePublishPagesData({
 // из уже полученного профиля, а не запрашивает вторым разом
 await ensureProfile();
 await ensureRole(() => Promise.resolve(profile.value?.role ?? null));
+
+// Учётки читаются ПОСЛЕ роли: до `ensureRole` сборка без SSR считает роль самой
+// узкой, и запрос ушёл бы от наблюдателя за заведомым отказом. Право на раздел
+// проверяет сам `ensureUsers` — гард живёт рядом с запросом, а не здесь. Отказ
+// загрузки наружу не выходит: он остаётся состоянием раздела, поэтому дашборд
+// приезжает даже с недоступными учётками
+const [{ isLoadingPages }] = await Promise.all([pagesDataPromise, ensureUsers()]);
 // #endregion
 </script>
 
@@ -453,17 +414,20 @@ await ensureRole(() => Promise.resolve(profile.value?.role ?? null));
     <div :class="[$style.BuilderIndex, 'bricks-text']">
         <TheBuilderPublishDashboard
             :active-section="activeSection"
-            :search-query="searchQuery"
+            :search-query="activeSearchQuery"
             :pages-count="pagesCount"
+            :users-count="usersCount"
+            :is-users-section-visible="isUsersSectionVisible"
             :is-dark-mode="isDarkMode"
-            @update:search-query="searchQuery = $event"
+            @update:search-query="handleSearchInput"
             @select-section="handleSelectSection"
             @create-page="handleCreatePage"
-            @open-media="handleOpenMediaGallery"
+            @create-user="handleCreateUser"
+            @open-media="mediaGallery.openAsManager"
             @open-docs="handleOpenDocs"
-            @toggle-dark-mode="handleToggleDarkMode"
-            @toggle-locale="handleToggleLocale"
-            @open-profile="profileModal.open"
+            @toggle-dark-mode="toggleDarkMode"
+            @toggle-locale="toggleLocale"
+            @open-profile="profileModal.open()"
             @logout="handleLogout"
         >
             <template #list>
@@ -478,11 +442,28 @@ await ensureRole(() => Promise.resolve(profile.value?.role ?? null));
                     @update:active-filter="activeFilter = $event"
                     @create-page="handleCreatePage"
                     @select="handleSelectPage"
-                    @preview-thumbnail="handlePreviewThumbnail"
+                    @preview-thumbnail="previewThumbnail"
                     @edit="handleEditPage"
-                    @preview="handlePreviewPage"
-                    @duplicate="handleDuplicatePage"
+                    @preview="previewPage"
+                    @duplicate="duplicatePage"
                     @delete="requestDeletePage"
+                />
+            </template>
+
+            <!--
+                Раздел учёток — компонент-контроллер: у него своё состояние и свои
+                четыре окна, и собранный здесь он добавил бы в этот файл вторую
+                машину состояний рядом со страницами
+            -->
+            <template v-if="isUsersSectionVisible" #users>
+                <TheBuilderUsersSection
+                    :search-query="usersSearchQuery"
+                    :is-create-modal-open="isCreateUserModalOpen"
+                    :current-user-id="currentUserId"
+                    @notify="showToast"
+                    @close-create-modal="handleCloseCreateUserModal"
+                    @create-user="handleCreateUser"
+                    @change-own-password="handleChangeOwnPassword"
                 />
             </template>
 
@@ -494,10 +475,10 @@ await ensureRole(() => Promise.resolve(profile.value?.role ?? null));
                     :is-importing="schemaImport.isImporting.value"
                     @close="handleCloseDetails"
                     @edit="handleEditPage"
-                    @duplicate="handleDuplicatePage"
+                    @duplicate="duplicatePage"
                     @delete="requestDeletePage"
-                    @toggle-published="handleTogglePublished"
-                    @open-media="handleOpenMediaFromDetails"
+                    @toggle-published="togglePublished"
+                    @open-media="mediaGallery.openAsPicker"
                     @restore-version="requestRestoreVersion"
                     @import-schema-file="schemaImport.requestPageImport"
                     @notify="handleDetailsNotify"
@@ -516,6 +497,7 @@ await ensureRole(() => Promise.resolve(profile.value?.role ?? null));
             v-if="profileModal.shouldMount.value"
             :is-open="profileModal.isOpen.value"
             :can-change-password="canChangePassword"
+            :initial-tab="profileModal.requestedTab.value"
             @close="profileModal.close"
             @notify="showToast"
         />
@@ -526,10 +508,10 @@ await ensureRole(() => Promise.resolve(profile.value?.role ?? null));
         />
 
         <TheBuilderMediaGalleryModal
-            v-if="shouldMountMediaGallery"
-            :visible="isMediaGalleryModalOpen"
-            :context="mediaGalleryContext"
-            @close="handleCloseMediaGallery"
+            v-if="mediaGallery.shouldMount.value"
+            :visible="mediaGallery.isOpen.value"
+            :context="mediaGallery.context.value"
+            @close="mediaGallery.close"
             @select="handleMediaSelect"
             @error="handleMediaError"
         />
@@ -587,7 +569,7 @@ await ensureRole(() => Promise.resolve(profile.value?.role ?? null));
 
         <BuilderMediaGalleryPreviewLightbox
             :item="thumbnailPreviewItem"
-            @close="handleCloseThumbnailPreview"
+            @close="closeThumbnailPreview"
         />
 
         <BricksToast

@@ -32,7 +32,7 @@ const emit = defineEmits<IPublishDashboardEmits>();
 
 // #region Data
 const { t, locale } = useI18n();
-const { canEdit } = useBuilderPermissions();
+const { canEdit, canManageUsers } = useBuilderPermissions();
 // #endregion
 
 // #region Computed
@@ -42,6 +42,20 @@ const sectionTitle = computed<string>(() =>
 
 const searchPlaceholder = computed<string>(() =>
     t(`bricks.publish.dashboard.search.${props.activeSection}`)
+);
+
+/**
+ * Первичная кнопка шапки принадлежит разделу, а не панели: в страницах она
+ * создаёт страницу, в учётках — учётку, в шаблонах её нет вовсе (сохранить
+ * шаблон можно только из готовой страницы). Одна кнопка на все разделы
+ * предлагала бы создать страницу из списка людей.
+ */
+const isCreatePageVisible = computed<boolean>(
+    () => props.activeSection === 'pages' && canEdit.value
+);
+
+const isCreateUserVisible = computed<boolean>(
+    () => props.activeSection === 'users' && canManageUsers.value
 );
 // #endregion
 
@@ -69,6 +83,13 @@ function handleSelectSection(section: TPublishDashboardSection): void {
  */
 function handleCreatePage(): void {
     emit('create-page');
+}
+
+/**
+ * Открывает создание учётки.
+ */
+function handleCreateUser(): void {
+    emit('create-user');
 }
 
 /**
@@ -132,8 +153,22 @@ function handleOpenProfile(): void {
                 />
 
                 <!-- Создание страницы — запись: наблюдателю ручка откажет -->
-                <BricksButton v-if="canEdit" size="md" variant="primary" @click="handleCreatePage">
+                <BricksButton
+                    v-if="isCreatePageVisible"
+                    size="md"
+                    variant="primary"
+                    @click="handleCreatePage"
+                >
                     + {{ t('bricks.publish.dashboard.createPage') }}
+                </BricksButton>
+
+                <BricksButton
+                    v-else-if="isCreateUserVisible"
+                    size="md"
+                    variant="primary"
+                    @click="handleCreateUser"
+                >
+                    + {{ t('bricks.users.createUser') }}
                 </BricksButton>
 
                 <!--
@@ -149,6 +184,8 @@ function handleOpenProfile(): void {
             <BuilderPublishDashboardNav
                 :active-section="props.activeSection"
                 :pages-count="props.pagesCount"
+                :users-count="props.usersCount"
+                :is-users-section-visible="props.isUsersSectionVisible"
                 :locale="locale"
                 :is-dark-mode="props.isDarkMode"
                 @select-section="handleSelectSection"
@@ -169,6 +206,14 @@ function handleOpenProfile(): void {
                         </aside>
                     </Transition>
                 </template>
+
+                <!--
+                    Раздел учёток панели деталей не имеет: у учётки нет
+                    содержимого, которое стоило бы разворачивать сбоку
+                -->
+                <div v-else-if="props.activeSection === 'users'" :class="$style.listArea">
+                    <slot name="users" />
+                </div>
 
                 <div v-else :class="$style.templatesEmpty">
                     <div :class="$style.emptyIconCircle">

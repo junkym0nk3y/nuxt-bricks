@@ -9,7 +9,7 @@ import type { IBricksComponent, IBricksSchema } from '../../../common/types/bric
 import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 import type { IParsedSchemaFile } from './composables';
 
-export type TPublishDashboardSection = 'pages' | 'templates';
+export type TPublishDashboardSection = 'pages' | 'templates' | 'users';
 
 export type TPublishPagesFilter = 'all' | 'published' | 'drafts';
 
@@ -23,6 +23,19 @@ export interface IPublishDashboardProps {
     activeSection: TPublishDashboardSection;
     searchQuery: string;
     pagesCount: number;
+    /**
+     * Число учёток для счётчика рейла; `null` — список ещё не прочитан, и
+     * счётчик не рисуется вовсе: ноль во время загрузки читался бы как «учёток
+     * нет», чего не бывает — кто-то же вошёл.
+     */
+    usersCount: number | null;
+    /**
+     * Показывать ли раздел «Пользователи». Складывается из двух разных вещей —
+     * прав на управление учётками и того, отвечают ли ручки вообще (в установке
+     * без них раздела нет), — поэтому решает хост, а не сам рейл: право он
+     * прочитал бы сам, а состояние загрузки правом не является.
+     */
+    isUsersSectionVisible: boolean;
     isDarkMode: boolean;
 }
 
@@ -30,6 +43,8 @@ export interface IPublishDashboardEmits {
     'update:searchQuery': [value: string];
     'select-section': [section: TPublishDashboardSection];
     'create-page': [];
+    /** Первичная кнопка шапки в разделе «Пользователи». */
+    'create-user': [];
     'open-media': [];
     'open-docs': [];
     'toggle-dark-mode': [];
@@ -42,6 +57,10 @@ export interface IPublishDashboardEmits {
 export interface IPublishDashboardNavProps {
     activeSection: TPublishDashboardSection;
     pagesCount: number;
+    /** Число учёток; `null` — не прочитано, счётчик скрыт. */
+    usersCount: number | null;
+    /** Раздел «Пользователи» доступен: есть права и ручки отвечают. */
+    isUsersSectionVisible: boolean;
     locale: string;
     isDarkMode: boolean;
 }

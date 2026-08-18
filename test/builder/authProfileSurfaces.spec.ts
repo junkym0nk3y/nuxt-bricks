@@ -102,6 +102,8 @@ describe('Шапка дашборда: аватар вместо пункта р
                 activeSection: 'pages',
                 searchQuery: '',
                 pagesCount: 0,
+                usersCount: null,
+                isUsersSectionVisible: false,
                 isDarkMode: false,
             },
             shallow: true,
@@ -125,6 +127,8 @@ describe('Шапка дашборда: аватар вместо пункта р
             props: {
                 activeSection: 'pages',
                 pagesCount: 0,
+                usersCount: null,
+                isUsersSectionVisible: false,
                 locale: 'ru',
                 isDarkMode: false,
             },

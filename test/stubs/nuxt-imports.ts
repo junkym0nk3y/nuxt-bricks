@@ -20,6 +20,14 @@ const stateByKey = new Map<string, Ref<unknown>>();
 
 /** Отложенные колбэки `onNuxtReady` — исполняются тестом вручную. */
 const nuxtReadyCallbacks: Array<() => unknown> = [];
+
+/**
+ * Экземпляр приложения Nuxt. Один на «жизнь приложения», как в самом Nuxt: по
+ * нему код ключует состояние, привязанное к запросу (например, идущую загрузку в
+ * `WeakMap`), и новый объект на каждый вызов ломал бы ровно ту изоляцию, ради
+ * которой этот ключ и выбран.
+ */
+let nuxtApp: Record<string, unknown> = {};
 // #endregion
 
 /**
@@ -48,13 +56,15 @@ export function useState<T>(key: string, init?: () => T): Ref<T> {
  */
 export function resetNuxtStateStub(): void {
     stateByKey.clear();
+    nuxtApp = {};
 }
 
 /**
- * Стаб useNuxtApp: без `$i18n` — переводы в сторах падают обратно на ключ.
+ * Стаб useNuxtApp: один экземпляр на «жизнь приложения», без `$i18n` — переводы
+ * в сторах падают обратно на ключ. Сбрасывается вместе с состояниями.
  */
 export function useNuxtApp(): Record<string, unknown> {
-    return {};
+    return nuxtApp;
 }
 
 /**

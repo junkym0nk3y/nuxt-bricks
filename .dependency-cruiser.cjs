@@ -105,13 +105,28 @@ module.exports = {
         {
             // дашборд /bricks (publish/pages/index.vue) — поверхность-хост:
             // рендерит модалки документации и медиа-галереи (решение фазы 1
-            // pages-manager-плана), поэтому media/documentation разрешены
+            // pages-manager-плана), поэтому media/documentation разрешены.
+            // `builder/users` — раздел «Пользователи» того же дашборда: он живёт
+            // отдельным поддоменом (управление учётками — не публикация), а
+            // хостом ему остаётся дашборд
             name: 'builder-publish-deps',
             severity: 'error',
             from: { path: `^${M}/builder/publish` },
             to: {
-                path: `^${M}/(?!builder/publish|builder/core|builder/media|builder/documentation|builder/auth|ui|common)`,
+                path: `^${M}/(?!builder/publish|builder/core|builder/media|builder/documentation|builder/auth|builder/users|ui|common)`,
             },
+        },
+        {
+            // users — раздел учёток дашборда: читает права из core, всё
+            // остальное берёт из кита и common. `auth` в список НЕ входит
+            // намеренно: свой профиль и чужие учётки — разные вещи, и модалку
+            // профиля (свой пароль из своей строки) открывает хост по событию.
+            // `publish` тоже: раздел не знает ни о страницах, ни о дашборде —
+            // иначе появился бы цикл publish↔users
+            name: 'builder-users-deps',
+            severity: 'error',
+            from: { path: `^${M}/builder/users` },
+            to: { path: `^${M}/(?!builder/users|builder/core|ui|common)` },
         },
         {
             // auth — малый самодостаточный поддомен (страница логина, сессия)

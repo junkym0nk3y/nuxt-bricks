@@ -180,6 +180,65 @@ describe('userManagement: валидация DTO', () => {
         ).rejects.toThrowError(expect.objectContaining({ statusCode: 400 }));
     });
 
+    it('без имени и активности учётка активна и показывается логином', async () => {
+        const payload = await buildCreateUserPayload({
+            username: 'ivan',
+            password: 'sufficient-password',
+            role: 'editor',
+        });
+
+        // Разрешает их ручка, а не адаптер: `undefined` уехал бы в INSERT как
+        // NULL, а `is_active` объявлен NOT NULL — дефолт таблицы при явном
+        // значении не применяется вовсе
+        expect(payload.displayName).toBeNull();
+        expect(payload.isActive).toBe(true);
+    });
+
+    it('принимает отображаемое имя и выключенный вход при создании', async () => {
+        const payload = await buildCreateUserPayload({
+            username: 'anna.editor',
+            password: 'sufficient-password',
+            role: 'editor',
+            displayName: '  Анна Ким  ',
+            isActive: false,
+        });
+
+        expect(payload.displayName).toBe('Анна Ким');
+        expect(payload.isActive).toBe(false);
+    });
+
+    it('пустое имя равно его отсутствию: просьба показывать логин', async () => {
+        const payload = await buildCreateUserPayload({
+            username: 'ivan',
+            password: 'sufficient-password',
+            role: 'editor',
+            displayName: '   ',
+        });
+
+        expect(payload.displayName).toBeNull();
+    });
+
+    it('отклоняет имя с управляющим символом и неизвестные ключи создания', async () => {
+        // Перенос строки внутри имени сломал бы строку списка и меню профиля
+        await expect(
+            buildCreateUserPayload({
+                username: 'ivan',
+                password: 'sufficient-password',
+                role: 'editor',
+                displayName: 'Иван\nПетров',
+            })
+        ).rejects.toThrowError(expect.objectContaining({ statusCode: 400 }));
+
+        await expect(
+            buildCreateUserPayload({
+                username: 'ivan',
+                password: 'sufficient-password',
+                role: 'editor',
+                avatarUrl: 'https://example.test/photo.webp',
+            })
+        ).rejects.toThrowError(expect.objectContaining({ statusCode: 400 }));
+    });
+
     it('требует хотя бы одно поле в правке и отклоняет неизвестные ключи', () => {
         expect(validateUpdateUserPayload({ role: 'viewer' })).toEqual({
             role: 'viewer',

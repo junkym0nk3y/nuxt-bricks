@@ -244,11 +244,13 @@
                 "nav": {
                     "pages": "Pages",
                     "templates": "Templates",
+                    "users": "Users",
                     "media": "Media"
                 },
                 "search": {
                     "pages": "Search pages...",
-                    "templates": "Search templates..."
+                    "templates": "Search templates...",
+                    "users": "Search by name..."
                 },
                 "templates": {
                     "emptyTitle": "No templates yet",
@@ -1035,6 +1037,123 @@
                 "description": "The page's own set will be removed. Blocks keep overrides only for devices that also exist in the project set; the rest are lost."
             },
             "orphanKeys": "The schema has overrides for devices outside the set — they are kept but will not be applied: {keys}"
+        },
+        "users": {
+            "createUser": "User",
+            "filtersLabel": "User filter",
+            "filters": {
+                "all": "All",
+                "active": "Active",
+                "inactive": "Deactivated"
+            },
+            "status": {
+                "active": "Active",
+                "inactive": "Deactivated"
+            },
+            "row": {
+                "you": "you",
+                "created": "Created {date}",
+                "lastLogin": "Signed in {date}",
+                "neverLoggedIn": "Never signed in",
+                "today": "today",
+                "yesterday": "yesterday",
+                "setPassword": "Set password: {user}",
+                "changeOwnPassword": "Change your password",
+                "deactivate": "Disable sign-in: {user}",
+                "activate": "Enable sign-in: {user}",
+                "delete": "Delete account: {user}",
+                "locks": {
+                    "self": "You cannot deactivate or delete your own account: there would be no way back in",
+                    "selfRole": "You cannot change your own role: another admin does that",
+                    "lastAdmin": "This is the last active admin: assign a second one first, otherwise user management is lost"
+                }
+            },
+            "role": {
+                "changeLabel": "Role: {role}. Change role of {user}",
+                "descriptions": {
+                    "admin": "Everything, including accounts and page deletion",
+                    "editor": "Pages, media, templates — no user management",
+                    "viewer": "Read only: open and look"
+                }
+            },
+            "empty": {
+                "title": "No accounts yet",
+                "description": "Create the first one — it can sign in right after creation.",
+                "noResultsTitle": "Nobody found",
+                "noResultsDescription": "Check the query: search covers the display name and the username."
+            },
+            "loadError": {
+                "title": "The list did not load",
+                "description": "The server did not answer. The section is there — try again.",
+                "retry": "Try again"
+            },
+            "createModal": {
+                "title": "New user",
+                "username": "Username",
+                "usernameHint": "Latin letters, digits and . _ {'@'} + -, starting with a letter or a digit. The username is unique and never changes: renaming an account is not supported.",
+                "displayName": "Display name",
+                "displayNameHint": "Shown in the corner and in the list. Optional: empty means the username is shown. From now on the person edits their own name and photo.",
+                "password": "Password",
+                "passwordHint": "At least {min} characters. Stored as a scrypt hash: the password cannot be read later, only replaced.",
+                "generate": "Generate",
+                "role": "Role",
+                "roleHint": "The role is changed later right in the list row.",
+                "canSignIn": "Can sign in right away",
+                "submit": "Create"
+            },
+            "passwordModal": {
+                "title": "Password · {user}",
+                "titleFallback": "User password",
+                "newPassword": "New password",
+                "sessionsTitle": "All sessions of this user will end",
+                "sessionsText": "The password change revokes sessions in the same transaction that writes the hash: the person signs in again with the new password.",
+                "hint": "At least {min} characters. The admin does not enter the current password — your own password is changed in the profile, where the current one is required.",
+                "submit": "Set password"
+            },
+            "confirm": {
+                "deactivate": {
+                    "title": "Deactivate {user}?",
+                    "description": "Sign-in will be denied and active sessions end immediately. The account, its role and history stay — the same row action turns it back on.",
+                    "action": "Deactivate"
+                },
+                "delete": {
+                    "title": "Delete {user}?",
+                    "description": "The account and its sessions are gone for good. Pages and versions are not linked to the person and stay intact. To only close access, deactivation is enough.",
+                    "action": "Delete"
+                }
+            },
+            "toasts": {
+                "created": "User {user} created",
+                "roleChanged": "Role changed · user sessions ended",
+                "activated": "Sign-in enabled",
+                "deactivated": "Sign-in denied · user sessions ended",
+                "deleted": "User {user} deleted",
+                "passwordChanged": "Password changed · sessions of {user} ended"
+            },
+            "validation": {
+                "usernameRequired": "Enter a username",
+                "usernameTooShort": "At least {min} characters",
+                "usernameTooLong": "At most {max} characters",
+                "usernameInvalid": "Allowed: latin letters, digits and . _ {'@'} + -; must start with a letter or a digit",
+                "displayNameTooLong": "At most {max} characters",
+                "displayNameInvalid": "The name must not contain control characters",
+                "passwordRequired": "Enter a password",
+                "passwordTooShort": "At least {min} characters",
+                "passwordTooLong": "At most {max} characters"
+            },
+            "errors": {
+                "usernameTaken": "This username is already taken",
+                "lastActiveAdmin": "The last active admin cannot be demoted, deactivated or deleted",
+                "selfTarget": "Your own account cannot be changed this way — refresh the list",
+                "passwordChangeDisabled": "Password change is disabled by the installation settings",
+                "insufficientRole": "Not enough permissions to manage accounts",
+                "userGone": "The account no longer exists — the list has been refreshed",
+                "tooManyRequests": "Too many requests. Try again in a moment",
+                "serverBusy": "The server is busy. Try again",
+                "timeout": "No answer in time: the outcome is unknown, the list has been refreshed",
+                "createTimeout": "No answer in time and the account is not in the list. Check the list and try again",
+                "actionFailed": "The action failed. Try again"
+            }
         }
     }
 }

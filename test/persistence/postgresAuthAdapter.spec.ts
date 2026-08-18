@@ -31,11 +31,13 @@ function makeUniqueViolation(constraint: string | undefined): Error {
     return Object.assign(new Error('duplicate key value'), { code: '23505', constraint });
 }
 
-/** Данные создания учётки. */
+/** Данные создания учётки: имя и активность разрешает ручка, адаптер их не угадывает. */
 const CREATE_PAYLOAD: ICreateAuthUserPayload = {
     username: 'ivan',
     passwordHash: 'scrypt:1:1:1:salt:hash',
     role: 'editor',
+    displayName: null,
+    isActive: true,
 };
 
 /**
@@ -132,5 +134,129 @@ describe('postgresAuthAdapter: конфликт уникальности при 
         await expect(
             createPostgresAuthAdapter().createUser(CREATE_PAYLOAD)
         ).rejects.not.toBeInstanceOf(BricksUsernameTakenError);
+    });
+});
+
+describe('postgresAuthAdapter: вход отмечает момент входа', () => {
+    beforeEach(() => {
+        queryMock.mockReset();
+    });
+
+    /**
+     * Одним оператором, а не двумя: отметка входа ДО условной вставки сессии
+     * зафиксировала бы вход, которого не случилось (учётку успели
+     * деактивировать), а отдельный запрос ПОСЛЕ коммита сессии мог бы
+     * потеряться — и вошедший остался бы без даты.
+     */
+    it('пишет last_login_at тем же запросом, что создаёт сессию, и под тем же условием', async () => {
+        queryMock.mockResolvedValueOnce([{ id: 1 }]);
+
+        const isCreated = await createPostgresAuthAdapter().createSession({
+            tokenHash: 'a'.repeat(64),
+            userId: 7,
+            expiresAt: new Date('2026-08-25T00:00:00.000Z'),
+            expectedAuthVersion: 3,
+        });
+
+        expect(isCreated).toBe(true);
+
+        const [sql, params] = queryMock.mock.calls[0];
+
+        expect(sql).toContain('UPDATE bricks_users');
+        expect(sql).toContain('SET last_login_at = NOW()');
+        expect(sql).toContain('is_active = TRUE');
+        expect(sql).toContain('auth_version = $4');
+        expect(sql).toContain('INSERT INTO bricks_sessions');
+        // Поколение НЕ двигается: вход не отзывает права, а инкремент погасил бы
+        // только что созданную сессию
+        expect(sql).not.toContain('auth_version + 1');
+        expect(params).toEqual(['a'.repeat(64), 7, new Date('2026-08-25T00:00:00.000Z'), 3]);
+    });
+
+    it('несовпадение поколения не создаёт сессию', async () => {
+        queryMock.mockResolvedValueOnce([]);
+
+        const isCreated = await createPostgresAuthAdapter().createSession({
+            tokenHash: 'b'.repeat(64),
+            userId: 7,
+            expiresAt: new Date('2026-08-25T00:00:00.000Z'),
+            expectedAuthVersion: 2,
+        });
+
+        expect(isCreated).toBe(false);
+    });
+});
+
+describe('postgresAuthAdapter: проекция учётки', () => {
+    beforeEach(() => {
+        queryMock.mockReset();
+    });
+
+    it('отдаёт момент входа ISO-строкой, а его отсутствие — null', async () => {
+        queryMock.mockResolvedValueOnce([
+            {
+                id: 1,
+                username: 'anna.editor',
+                role: 'editor',
+                isActive: true,
+                displayName: null,
+                avatarUrl: null,
+                createdAt: new Date('2026-04-02T10:00:00.000Z'),
+                lastLoginAt: new Date('2026-08-18T09:24:00.000Z'),
+            },
+            {
+                id: 2,
+                username: 'qa.viewer',
+                role: 'viewer',
+                isActive: true,
+                displayName: null,
+                avatarUrl: null,
+                createdAt: new Date('2026-06-30T10:00:00.000Z'),
+                lastLoginAt: null,
+            },
+        ]);
+
+        const users = await createPostgresAuthAdapter().listUsers();
+
+        expect(queryMock.mock.calls[0][0]).toContain('last_login_at AS "lastLoginAt"');
+        expect(users[0].lastLoginAt).toBe('2026-08-18T09:24:00.000Z');
+        expect(users[0].createdAt).toBe('2026-04-02T10:00:00.000Z');
+        expect(users[1].lastLoginAt).toBeNull();
+    });
+
+    it('создание пишет отображаемое имя и активность, разрешённые ручкой', async () => {
+        queryMock.mockResolvedValueOnce([
+            {
+                id: 3,
+                username: 'anna.editor',
+                role: 'editor',
+                isActive: false,
+                displayName: 'Анна Ким',
+                avatarUrl: null,
+                createdAt: new Date('2026-08-18T10:00:00.000Z'),
+                lastLoginAt: null,
+            },
+        ]);
+
+        const user = await createPostgresAuthAdapter().createUser({
+            ...CREATE_PAYLOAD,
+            username: 'anna.editor',
+            displayName: 'Анна Ким',
+            isActive: false,
+        });
+
+        const [sql, params] = queryMock.mock.calls[0];
+
+        expect(sql).toContain('display_name');
+        expect(sql).toContain('is_active');
+        expect(params).toEqual([
+            'anna.editor',
+            CREATE_PAYLOAD.passwordHash,
+            'editor',
+            'Анна Ким',
+            false,
+        ]);
+        expect(user.displayName).toBe('Анна Ким');
+        expect(user.isActive).toBe(false);
     });
 });

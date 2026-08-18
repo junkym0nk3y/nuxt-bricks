@@ -44,13 +44,32 @@ const NAV_SECTIONS: INavSection[] = [
         icon: 'ta:outline-package',
         labelKey: 'bricks.publish.dashboard.nav.templates',
     },
+    {
+        key: 'users',
+        icon: 'ta:outline-users',
+        labelKey: 'bricks.publish.dashboard.nav.users',
+    },
 ];
 // #endregion
 
 // #region Computed
-const sectionCounters = computed<Record<TPublishDashboardSection, number>>(() => ({
+/**
+ * Пункты рейла: раздел учёток есть не в каждой установке — его убирают роль без
+ * права управления, выключенный флаг и режим без учёток вовсе.
+ */
+const visibleSections = computed<INavSection[]>(() =>
+    NAV_SECTIONS.filter((section) => section.key !== 'users' || props.isUsersSectionVisible)
+);
+
+/**
+ * Счётчики разделов. `null` — значение неизвестно, и счётчик не рисуется: у
+ * учёток он появляется только после успешной загрузки списка, потому что ноль на
+ * его месте читался бы как «учёток нет».
+ */
+const sectionCounters = computed<Record<TPublishDashboardSection, number | null>>(() => ({
     pages: props.pagesCount,
     templates: 0,
+    users: props.usersCount,
 }));
 
 const darkModeIcon = computed<string>(() =>
@@ -106,7 +125,7 @@ function handleToggleLocale(): void {
     <nav :class="$style.BuilderPublishDashboardNav">
         <div :class="$style.sections">
             <button
-                v-for="section in NAV_SECTIONS"
+                v-for="section in visibleSections"
                 :key="section.key"
                 type="button"
                 :class="[$style.item, { [$style._active]: props.activeSection === section.key }]"
@@ -114,7 +133,9 @@ function handleToggleLocale(): void {
             >
                 <BricksIcon :icon="section.icon" :class="$style.itemIcon" />
                 <span :class="$style.itemLabel">{{ t(section.labelKey) }}</span>
-                <span :class="$style.itemCounter">{{ sectionCounters[section.key] }}</span>
+                <span v-if="sectionCounters[section.key] !== null" :class="$style.itemCounter">
+                    {{ sectionCounters[section.key] }}
+                </span>
             </button>
 
             <!--
