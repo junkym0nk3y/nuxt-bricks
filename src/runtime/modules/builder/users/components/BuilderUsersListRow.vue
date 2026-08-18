@@ -13,6 +13,12 @@
  * выдаёт, и вернуть его нечем. Свой пароль при этом меняется отсюда же, но
  * формой профиля: админская ручка чужого пароля текущий не спрашивает, и себе
  * она отказывает намеренно.
+ *
+ * Занятость объявляет корень строки (`aria-busy`), а не её кнопки: состояние не
+ * хранит вида операции, и busy на ключе во время смены роли называл бы занятым
+ * то, что не менялось. Комментарием в разметке это не пояснить — комментарий
+ * перед корневым узлом делает шаблон фрагментом, и строка перестаёт принимать
+ * атрибуты снаружи.
  */
 
 // #region Imports
@@ -40,6 +46,7 @@ const props = withDefaults(defineProps<IUsersListRowProps>(), {
     isCurrentUser: false,
     isLastActiveAdmin: false,
     isPending: false,
+    isOperationLocked: false,
 });
 // #endregion
 
@@ -117,6 +124,18 @@ const stateLockHint = computed<string>(() => {
 const isStateLocked = computed<boolean>(() => stateLockHint.value !== '');
 
 /**
+ * Выключение входа и удаление не сработают сейчас: либо запрещены правилом, либо
+ * в разделе идёт операция, а операции сериализованы.
+ *
+ * Оба состояния гасят кнопку одинаково, но объявляются по-разному: запрет
+ * правилом постоянен и объясняется подсказкой, занятость длится доли секунды и
+ * снимается сама.
+ */
+const isStateActionBlocked = computed<boolean>(
+    () => isStateLocked.value || props.isOperationLocked
+);
+
+/**
  * Ключ смены пароля: у деактивированной учётки его нет — входить ей всё равно
  * нечем, и заданный пароль ничего не изменит до включения. Флаг установки
  * (`allowPasswordChange`) убирает ключ у всех строк: ручка в такой установке
@@ -163,13 +182,25 @@ const deleteTitle = computed<string>(() =>
  * @param role - Выбранная роль.
  */
 function handleSelectRole(role: TBricksUserRole): void {
+    if (props.isOperationLocked) {
+        return;
+    }
+
     emit('change-role', props.user, role);
 }
 
 /**
  * Открывает форму пароля: свою (профиль) или админскую (чужая учётка).
+ *
+ * Занятость раздела закрывает и её: сама смена пароля через очередь операций не
+ * идёт, но открытая поверх идущей операции форма показывала бы учётку в
+ * состоянии, которое вот-вот заменится ответом сервера.
  */
 function handlePasswordAction(): void {
+    if (props.isOperationLocked) {
+        return;
+    }
+
     if (props.isCurrentUser) {
         emit('change-own-password');
         return;
@@ -183,7 +214,7 @@ function handlePasswordAction(): void {
  * включение применяется сразу.
  */
 function handleToggleActive(): void {
-    if (isStateLocked.value) {
+    if (isStateActionBlocked.value) {
         return;
     }
 
@@ -199,7 +230,7 @@ function handleToggleActive(): void {
  * Просит удалить учётку.
  */
 function handleDelete(): void {
-    if (isStateLocked.value) {
+    if (isStateActionBlocked.value) {
         return;
     }
 
@@ -215,6 +246,7 @@ function handleDelete(): void {
             !props.user.isActive && $style._inactive,
             props.isPending && $style._pending,
         ]"
+        :aria-busy="props.isPending"
     >
         <BricksAvatar
             :class="$style.avatar"
@@ -242,6 +274,7 @@ function handleDelete(): void {
                 :is-locked="isRoleLocked"
                 :locked-hint="roleLockHint"
                 :is-pending="props.isPending"
+                :is-operation-locked="props.isOperationLocked"
                 :user-label="userLabel"
                 @select="handleSelectRole"
             />
@@ -252,12 +285,20 @@ function handleDelete(): void {
             <span :class="$style.statusLabel">{{ statusLabel }}</span>
         </div>
 
+        <!--
+            Ни одна кнопка строки не выключается через `disabled` — ни правилом,
+            ни занятостью. Причина у двух состояний разная, а следствие одно:
+            выключенная кнопка выпадает из обхода с клавиатуры вместе с причиной
+            запрета, а на включении входа ещё и теряет фокус посреди операции —
+            браузер снимает его с кнопки, и человек оказывается в начале
+            страницы. Клик гасится обработчиком, а не разметкой.
+        -->
         <div :class="$style.actions">
             <button
                 v-if="isPasswordActionVisible"
                 type="button"
-                :class="$style.actionButton"
-                :disabled="props.isPending"
+                :class="[$style.actionButton, props.isOperationLocked && $style._busy]"
+                :aria-disabled="props.isOperationLocked"
                 :title="passwordActionLabel"
                 :aria-label="passwordActionLabel"
                 @click="handlePasswordAction"
@@ -265,17 +306,14 @@ function handleDelete(): void {
                 <BricksIcon icon="ta:outline-key" />
             </button>
 
-            <!--
-                Заблокированные действия остаются в обходе с клавиатуры
-                (`aria-disabled` вместо `disabled`): причина запрета — то
-                единственное, что человеку здесь нужно, а выключенная кнопка
-                уносит её вместе с собой
-            -->
             <button
                 type="button"
-                :class="[$style.actionButton, isStateLocked && $style._blocked]"
-                :disabled="props.isPending"
-                :aria-disabled="isStateLocked"
+                :class="[
+                    $style.actionButton,
+                    isStateLocked && $style._blocked,
+                    props.isOperationLocked && $style._busy,
+                ]"
+                :aria-disabled="isStateActionBlocked"
                 :title="toggleActiveTitle"
                 :aria-label="toggleActiveLabel"
                 @click="handleToggleActive"
@@ -291,9 +329,9 @@ function handleDelete(): void {
                     $style.actionButton,
                     $style['actionButton--danger'],
                     isStateLocked && $style._blocked,
+                    props.isOperationLocked && $style._busy,
                 ]"
-                :disabled="props.isPending"
-                :aria-disabled="isStateLocked"
+                :aria-disabled="isStateActionBlocked"
                 :title="deleteTitle"
                 :aria-label="deleteLabel"
                 @click="handleDelete"
@@ -351,6 +389,12 @@ function handleDelete(): void {
         // Курсор ожидания на всей строке: пока идёт операция, ни одно её
         // действие не начнётся вторым
         cursor: progress;
+
+        // Перекрывает `default` временной недоступности: над обновляемой
+        // строкой честнее ожидание, чем отказ
+        .actionButton {
+            cursor: progress;
+        }
     }
 }
 
@@ -483,9 +527,17 @@ function handleDelete(): void {
         color: var(--bricks-base-900);
     }
 
-    &:disabled {
+    /* В разделе идёт операция: кнопка гасится, но остаётся фокусируемой и
+       живой в разметке — выключенная потеряла бы фокус посреди запроса. */
+    &._busy {
         opacity: 0.5;
         cursor: default;
+
+        &:hover {
+            border-color: var(--bricks-base-200);
+            background: var(--bricks-base-0);
+            color: var(--bricks-base-500);
+        }
     }
 
     /* Запрет правилом — не «сейчас неприменимо»: кнопка гасится, но остаётся
@@ -510,7 +562,8 @@ function handleDelete(): void {
             color: var(--bricks-danger-600);
         }
 
-        &._blocked:hover {
+        &._blocked:hover,
+        &._busy:hover {
             border-color: var(--bricks-base-200);
             background: var(--bricks-base-0);
             color: var(--bricks-danger-500);

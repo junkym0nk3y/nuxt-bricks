@@ -186,6 +186,12 @@ function handleDelete(user: IBricksUserSummary): void {
             </p>
         </div>
 
+        <!--
+            Занятость раздела приходит в строку двумя разными признаками:
+            обновляется одна строка, а недоступны на это время действия ВСЕХ —
+            операции сериализованы, и клик по соседней строке был бы отброшен
+            молча
+        -->
         <div v-else :class="$style.rows">
             <BuilderUsersListRow
                 v-for="user in props.users"
@@ -194,6 +200,7 @@ function handleDelete(user: IBricksUserSummary): void {
                 :is-current-user="user.id === props.currentUserId"
                 :is-last-active-admin="user.id === props.lastActiveAdminId"
                 :is-pending="user.id === props.pendingUserId"
+                :is-operation-locked="props.pendingUserId !== null"
                 @change-role="handleChangeRole"
                 @set-password="handleSetPassword"
                 @change-own-password="handleChangeOwnPassword"

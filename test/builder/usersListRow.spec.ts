@@ -16,6 +16,10 @@
  *    запрета — единственное, что человеку здесь нужно.
  * 4. Выключенная настройка `allowPasswordChange` убирает ключ из строки: ручка в
  *    такой установке отвечает отказом.
+ * 5. Пока в разделе идёт операция, ни одна кнопка строки не выключается через
+ *    `disabled`, а её действия не срабатывают: выключенная кнопка теряет фокус
+ *    посреди запроса, а занятость общая на раздел — гасить надо и соседние
+ *    строки, иначе их кнопки выглядят рабочими и молчат в ответ на клик.
  */
 
 // #region Imports
@@ -102,6 +106,25 @@ function findActionByIcon(wrapper: ReturnType<typeof mountRow>, icon: string) {
     return wrapper
         .findAll('button')
         .find((button) => button.find(`[data-icon="${icon}"]`).exists());
+}
+
+/**
+ * Пилюля роли. Отсутствие — ошибка, а не пустой результат: проверки её
+ * атрибутов через `?.` прошли бы и на исчезнувшей кнопке.
+ *
+ * @param wrapper - Обёртка теста.
+ * @returns Обёртка пилюли.
+ */
+function findRolePill(wrapper: ReturnType<typeof mountRow>) {
+    const pill = wrapper
+        .findAll('button')
+        .find((button) => button.attributes('aria-label')?.startsWith('bricks.users.role'));
+
+    if (!pill) {
+        throw new Error('Пилюля роли в строке не найдена');
+    }
+
+    return pill;
 }
 
 describe('BuilderUsersListRow: строка учётки', () => {
@@ -208,14 +231,79 @@ describe('BuilderUsersListRow: строка учётки', () => {
     // Найдено живой проверкой: выключенный на время запроса триггер меню выпадает
     // из обхода, Reka не может вернуть на него фокус, и человек, сменивший роль с
     // клавиатуры, оказывается в начале страницы
-    it('пилюля роли остаётся фокусируемой во время запроса', () => {
-        const wrapper = mountRow({ user: makeUser(), isPending: true });
-        const pill = wrapper
-            .findAll('button')
-            .find((button) => button.attributes('aria-label')?.startsWith('bricks.users.role'));
+    describe('пока идёт операция', () => {
+        it('пилюля роли остаётся фокусируемой, а занятость объявляет строка', () => {
+            const wrapper = mountRow({
+                user: makeUser(),
+                isPending: true,
+                isOperationLocked: true,
+            });
+            const pill = findRolePill(wrapper);
 
-        expect(pill?.attributes('disabled')).toBeUndefined();
-        expect(pill?.attributes('aria-busy')).toBe('true');
+            expect(pill.attributes('disabled')).toBeUndefined();
+            expect(wrapper.attributes('aria-busy')).toBe('true');
+        });
+
+        // Одного `aria-disabled` мало: кликам он не мешает, и меню открылось бы
+        // поверх чужой операции, а выбранная в нём роль была бы отброшена молча
+        it('меню роли не открывается', async () => {
+            const wrapper = mountRow({ user: makeUser(), isOperationLocked: true });
+            const pill = findRolePill(wrapper);
+
+            expect(pill.attributes('aria-disabled')).toBe('true');
+
+            await pill.trigger('click');
+
+            expect(pill.attributes('aria-expanded')).toBe('false');
+            expect(document.body.querySelectorAll('[role="menu"]')).toHaveLength(0);
+        });
+
+        it('в свободном разделе то же меню открывается', async () => {
+            const wrapper = mountRow({ user: makeUser() });
+            const pill = findRolePill(wrapper);
+
+            await pill.trigger('click');
+
+            expect(pill.attributes('aria-expanded')).toBe('true');
+        });
+
+        // Тот же дефект, что у пилюли: включение входа применяется сразу, и
+        // выключенная на время запроса кнопка теряет фокус — человек с
+        // клавиатуры оказывается в начале страницы
+        it('кнопки действий не выключаются, а объявляются недоступными', () => {
+            const wrapper = mountRow({
+                user: makeUser(),
+                isPending: true,
+                isOperationLocked: true,
+            });
+
+            const actions = [
+                findActionByIcon(wrapper, 'ta:outline-key'),
+                findActionByIcon(wrapper, 'ta:outline-user-off'),
+                findActionByIcon(wrapper, 'ta:outline-trash'),
+            ];
+
+            actions.forEach((action) => {
+                expect(action?.attributes('disabled')).toBeUndefined();
+                expect(action?.attributes('aria-disabled')).toBe('true');
+            });
+        });
+
+        // Занятость общая на раздел, поэтому гасятся действия и той строки, над
+        // которой операция НЕ идёт: иначе её кнопки выглядят рабочими, а клик по
+        // ним молча ничего не делает
+        it('действия соседней строки не срабатывают', async () => {
+            const wrapper = mountRow({ user: makeUser(), isOperationLocked: true });
+
+            await findActionByIcon(wrapper, 'ta:outline-key')?.trigger('click');
+            await findActionByIcon(wrapper, 'ta:outline-user-off')?.trigger('click');
+            await findActionByIcon(wrapper, 'ta:outline-trash')?.trigger('click');
+
+            expect(wrapper.emitted('set-password')).toBeUndefined();
+            expect(wrapper.emitted('deactivate')).toBeUndefined();
+            expect(wrapper.emitted('delete')).toBeUndefined();
+            expect(wrapper.attributes('aria-busy')).toBe('false');
+        });
     });
 
     it('доступные действия чужой строки уходят наверх событиями', async () => {

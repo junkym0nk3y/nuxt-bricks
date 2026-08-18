@@ -18,7 +18,7 @@ import type { TBricksUserRole } from '../../../common/types/auth';
 import type { IUsersRolePillProps, IUsersRolePillEmits } from '../types/users';
 
 // Vue
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Reka UI
@@ -38,6 +38,7 @@ const props = withDefaults(defineProps<IUsersRolePillProps>(), {
     isLocked: false,
     lockedHint: '',
     isPending: false,
+    isOperationLocked: false,
 });
 // #endregion
 
@@ -53,6 +54,9 @@ const { t } = useI18n();
  * повторяющее матрицу прав, читается как шкала, а не как случайный список.
  */
 const ROLE_ORDER: TBricksUserRole[] = ['admin', 'editor', 'viewer'];
+
+/** Меню открыто. Состоянием владеет компонент: открытие бывает отклонено. */
+const isMenuOpen = ref<boolean>(false);
 // #endregion
 
 // #region Computed
@@ -74,6 +78,25 @@ const triggerLabel = computed<string>(() => {
 // #endregion
 
 // #region Methods
+/**
+ * Открывает и закрывает меню ролей.
+ *
+ * Открытие отклоняется, пока в разделе идёт операция: операции сериализованы, и
+ * выбранная в этот момент роль была бы отброшена молча — меню обещало бы
+ * действие, которого не будет. Отклоняется именно открытие, а не сам триггер:
+ * выключенная кнопка (в том числе штатным `disabled` у триггера Reka) выпадает
+ * из обхода с клавиатуры и уносит с собой фокус.
+ *
+ * @param isOpen - Запрошенное состояние меню.
+ */
+function handleMenuOpenChange(isOpen: boolean): void {
+    if (isOpen && props.isOperationLocked) {
+        return;
+    }
+
+    isMenuOpen.value = isOpen;
+}
+
 /**
  * Пробрасывает выбранную роль наверх.
  *
@@ -108,13 +131,15 @@ function handleSelect(value: AcceptableValue): void {
         <BricksIcon icon="ta:outline-lock" :class="$style.lockIcon" />
     </button>
 
-    <DropdownMenuRoot v-else>
+    <DropdownMenuRoot v-else :open="isMenuOpen" @update:open="handleMenuOpenChange">
         <!--
             Триггер НЕ выключается на время запроса, хотя соблазн есть: выключенная
             кнопка выпадает из обхода, и Reka не может вернуть на неё фокус —
             человек, сменивший роль с клавиатуры, оказывался в начале страницы
             (найдено живой проверкой). От второго запроса защищает не кнопка, а
-            занятость строки в самих операциях; здесь остаётся только `aria-busy`.
+            занятость раздела: она же отклоняет и открытие меню. Занятость строки
+            объявляет её корень (`aria-busy`), а не эта кнопка, — состояние не
+            хранит вида операции.
         -->
         <DropdownMenuTrigger as-child>
             <button
@@ -124,8 +149,9 @@ function handleSelect(value: AcceptableValue): void {
                     $style[`_${props.role}`],
                     $style._actionable,
                     props.isPending && $style._pending,
+                    props.isOperationLocked && !props.isPending && $style._busy,
                 ]"
-                :aria-busy="props.isPending"
+                :aria-disabled="props.isOperationLocked"
                 :aria-label="triggerLabel"
             >
                 <span>{{ roleLabel }}</span>
@@ -224,6 +250,13 @@ function handleSelect(value: AcceptableValue): void {
     &._pending {
         opacity: 0.7;
         cursor: progress;
+    }
+
+    /* Операция идёт в соседней строке: роль этой сейчас не меняется, но кнопка
+       по той же причине остаётся фокусируемой. */
+    &._busy {
+        opacity: 0.7;
+        cursor: default;
     }
 }
 
