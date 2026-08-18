@@ -71,6 +71,7 @@ const {
     errors,
     generalError,
     isSubmitting,
+    isSubmitSealed,
     generatePassword,
     submitForm,
     resetToEmpty,
@@ -234,11 +235,18 @@ watch(
                         {{ t('bricks.common.cancel') }}
                     </BricksButton>
 
+                    <!--
+                        Отправка закрыта не только на время запроса, но и после
+                        обрыва по потолку ожидания: исход неизвестен, повтор
+                        запустил бы второй дорогой запрос и упёрся бы в занятый
+                        собственной первой отправкой логин. Отмена рядом при этом
+                        остаётся рабочей — модалку обязано быть чем закрыть.
+                    -->
                     <BricksButton
                         size="md"
                         variant="primary"
                         type="submit"
-                        :disabled="isSubmitting"
+                        :disabled="isSubmitting || isSubmitSealed"
                     >
                         {{ t('bricks.users.createModal.submit') }}
                     </BricksButton>

@@ -14,6 +14,11 @@
  *    «учёток нет», чего не бывает — кто-то же вошёл.
  * 4. Последний активный администратор определяется по ПОЛНОМУ списку: замок в
  *    его строке появляется до клика, а не 409 после.
+ * 5. Перечитывание готового списка идёт тихо — строки на экране не гаснут:
+ *    раздел читает список при каждом входе, и спиннер поверх известных строк
+ *    отнимал бы у человека то, за чем он пришёл. Первое чтение при этом
+ *    состояние загрузки сохраняет: «ещё не знаем» и «знаем, что пусто» —
+ *    разные вещи.
  */
 
 // #region Imports
@@ -123,6 +128,50 @@ describe('useUsersData: список учёток', () => {
 
         expect(apiFetcherMock).toHaveBeenCalledTimes(2);
         expect(users.value).toHaveLength(2);
+    });
+
+    // Список перечитывается при каждом входе в раздел, и спиннер вместо готовых
+    // строк на это время отнимал бы у человека ровно то, за чем он пришёл
+    it('перечитывание готового списка не гасит показанные строки', async () => {
+        apiFetcherMock.mockResolvedValueOnce({ users: [makeUser()] });
+
+        const { ensureUsers, refreshUsers, users, status } = useUsersData();
+
+        await ensureUsers();
+
+        let statusDuringRefresh: string | null = null;
+        let usersDuringRefresh: IBricksUserSummary[] = [];
+
+        apiFetcherMock.mockImplementationOnce(() => {
+            statusDuringRefresh = status.value;
+            usersDuringRefresh = users.value;
+
+            return Promise.resolve({ users: [makeUser(), makeUser({ id: 2 })] });
+        });
+
+        await refreshUsers();
+
+        expect(statusDuringRefresh).toBe('ready');
+        expect(usersDuringRefresh).toHaveLength(1);
+        expect(users.value).toHaveLength(2);
+    });
+
+    // Первое чтение гасить нечего, и состояние обязано отличать «ещё не знаем»
+    // от «знаем, что пусто»: без этого раздел утверждал бы отсутствие учёток
+    it('первое чтение проходит через состояние загрузки', async () => {
+        let statusDuringLoad: string | null = null;
+
+        const { ensureUsers, status } = useUsersData();
+
+        apiFetcherMock.mockImplementationOnce(() => {
+            statusDuringLoad = status.value;
+
+            return Promise.resolve({ users: [makeUser()] });
+        });
+
+        await ensureUsers();
+
+        expect(statusDuringLoad).toBe('loading');
     });
 
     // 403 и 404 означают «раздела нет»: повторять их бессмысленно, а пункт рейла

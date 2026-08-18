@@ -108,7 +108,14 @@ export function useUsersData(): IUseUsersDataReturn {
      * и второе показывает кнопку повтора.
      */
     async function loadUsers(): Promise<void> {
-        state.value = { ...state.value, status: 'loading' };
+        // Прочитанный список на время чтения не гасится: строки на экране уже
+        // верны на момент прошлого ответа, а спиннер вместо них при каждом входе
+        // в раздел отнимал бы у человека то, что он пришёл посмотреть. Отказ
+        // состояние помечает по-прежнему — устаревший список молча выдавать за
+        // свежий нельзя
+        if (state.value.status !== 'ready') {
+            state.value = { ...state.value, status: 'loading' };
+        }
 
         try {
             const response = await requestWithinDeadline();

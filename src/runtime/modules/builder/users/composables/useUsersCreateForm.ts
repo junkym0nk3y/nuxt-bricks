@@ -83,6 +83,21 @@ export function useUsersCreateForm(options: IUseUsersCreateFormOptions) {
     const [isActive] = defineField('isActive');
 
     const isSubmitting = ref(false);
+    /**
+     * Отправка закрыта после обрыва по потолку ожидания — до сброса формы.
+     *
+     * Текст об обрыве просит не отправлять форму заново, и просьба обязана быть
+     * подкреплена: серверный обработчик клиентским потолком не останавливается,
+     * поэтому повтор запускает ВТОРОЙ scrypt под тем же семафором и упирается в
+     * «логин занят» от собственной же первой отправки — то самое противоречие,
+     * ради которого исход и разбирается. Безопасного повтора у формы нет, пока
+     * операция не получит идентификатора, отправленного вместе с первым POST.
+     *
+     * Закрыта именно отправка, а не форма целиком: отмена и закрытие остаются
+     * рабочими, а следующее открытие модалки сбрасывает признак вместе со
+     * значениями — другую учётку создают из чистой формы.
+     */
+    const isSubmitSealed = ref(false);
     const generalError = ref('');
     // #endregion
 
@@ -155,7 +170,7 @@ export function useUsersCreateForm(options: IUseUsersCreateFormOptions) {
      * администратор.
      */
     const submitForm = handleSubmit(async (values) => {
-        if (isSubmitting.value) {
+        if (isSubmitting.value || isSubmitSealed.value) {
             return;
         }
 
@@ -186,6 +201,7 @@ export function useUsersCreateForm(options: IUseUsersCreateFormOptions) {
             }
 
             if (isRequestTimeoutError(error)) {
+                isSubmitSealed.value = true;
                 await reconcileTimedOutCreate(canonicalUsername);
                 return;
             }
@@ -202,6 +218,7 @@ export function useUsersCreateForm(options: IUseUsersCreateFormOptions) {
     function resetToEmpty(): void {
         resetForm({ values: buildEmptyFormValues() });
         generalError.value = '';
+        isSubmitSealed.value = false;
     }
     // #endregion
 
@@ -214,6 +231,7 @@ export function useUsersCreateForm(options: IUseUsersCreateFormOptions) {
         errors,
         generalError,
         isSubmitting,
+        isSubmitSealed,
         generatePassword,
         submitForm,
         resetToEmpty,

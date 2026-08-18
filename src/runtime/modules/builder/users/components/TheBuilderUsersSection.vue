@@ -24,7 +24,7 @@ import type { IUsersSectionProps, IUsersSectionEmits } from '../types/users';
 import { resolveUserLabel } from '../utils/userFormatting';
 
 // Vue
-import { computed, ref, toRef } from 'vue';
+import { computed, onMounted, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Composables
@@ -136,6 +136,26 @@ function handleCloseCreateModal(): void {
 function handleChangeOwnPassword(): void {
     emit('change-own-password');
 }
+// #endregion
+
+// #region Lifecycle
+/*
+    Список перечитывается на КАЖДОМ входе в раздел, а не только при первом.
+    Учётки правит не один человек: между двумя открытиями раздела соседний
+    администратор мог завести или выключить учётку, а созданная по оборванному
+    запросу строка появляется в базе уже после того, как форма о ней сказала.
+    Другого пути обновить список у раздела нет — кнопка повтора живёт только в
+    экране отказа, — и без этого чтения показанное состояние держалось бы до
+    перезагрузки страницы.
+
+    Секция монтируется ровно при открытии раздела (хост рисует её слот по
+    активному разделу), поэтому `onMounted` здесь и означает «вход в раздел».
+    Чтение тихое: строки на экране не гаснут, спиннера при переключении не
+    видно.
+*/
+onMounted(() => {
+    refreshUsers();
+});
 // #endregion
 </script>
 

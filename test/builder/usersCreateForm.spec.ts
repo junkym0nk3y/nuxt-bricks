@@ -20,6 +20,10 @@
  *    записи, с её ролью и без заданного здесь пароля. Поэтому ветка обрыва только
  *    сообщает наблюдаемое состояние, различая три исхода: строка видна, строки не
  *    видно, список перечитать не удалось.
+ * 5. После обрыва отправка закрыта до сброса формы: текст просит не повторять, а
+ *    просьба без запрета ничего не стоит — обработчик на сервере клиентским
+ *    потолком не останавливается, и повтор упёрся бы в логин, занятый первой же
+ *    отправкой.
  */
 
 // #region Imports
@@ -282,6 +286,40 @@ describe('useUsersCreateForm: создание учётки', () => {
 
             expect(onCreated).not.toHaveBeenCalled();
             expect(form.generalError.value).toBe('bricks.users.errors.createReconcileFailed');
+        });
+
+        // Просьба «не отправляйте форму повторно» обязана быть подкреплена:
+        // серверный обработчик потолком клиента не останавливается, и повтор
+        // запустил бы второй scrypt, чтобы упереться в занятый первой отправкой
+        // логин. Сброс формы признак снимает — другую учётку создают из чистой
+        it('повторная отправка после обрыва до сброса формы на сервер не уходит', async () => {
+            await seedReadyList([]);
+            apiFetcherMock.mockRejectedValueOnce(makeTimeoutError());
+            apiFetcherMock.mockResolvedValueOnce({ users: [] });
+
+            const { form } = mountForm();
+
+            form.username.value = 'anna.editor';
+            form.password.value = 'sixteen-char-pass';
+            await nextTick();
+
+            await form.submitForm();
+
+            const callsAfterTimeout = apiFetcherMock.mock.calls.length;
+
+            await form.submitForm();
+
+            expect(apiFetcherMock.mock.calls.length).toBe(callsAfterTimeout);
+
+            form.resetToEmpty();
+            form.username.value = 'anna.editor';
+            form.password.value = 'sixteen-char-pass';
+            await nextTick();
+            apiFetcherMock.mockResolvedValueOnce({ users: [makeUser()] });
+
+            await form.submitForm();
+
+            expect(apiFetcherMock.mock.calls.length).toBe(callsAfterTimeout + 1);
         });
     });
 });
