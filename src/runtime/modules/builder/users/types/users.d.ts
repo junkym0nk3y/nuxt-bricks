@@ -243,6 +243,41 @@ export interface IUsersListRowEmits {
     delete: [user: IBricksUserSummary];
 }
 
+/**
+ * Тексты строки учётки: подписи, мета-строка и причины запретов.
+ *
+ * Замки здесь же, а не отдельным контрактом: `isRoleLocked` и `isStateLocked`
+ * производны от подсказок (замок стоит ровно тогда, когда есть причина), и
+ * разъезд двух половин одного правила по разным местам был бы молчаливым.
+ */
+export interface IUseUsersRowLabelsReturn {
+    /** Отображаемое имя, если оно задано, иначе логин. */
+    userLabel: ComputedRef<string>;
+    /** Логин показывается рядом с именем: он отличается от подписи строки. */
+    hasSecondaryUsername: ComputedRef<boolean>;
+    /** Когда учётку создали и когда по ней входили последний раз. */
+    metaText: ComputedRef<string>;
+    /** Метка своей строки. */
+    selfBadgeLabel: ComputedRef<string>;
+    statusLabel: ComputedRef<string>;
+    /** Причина, по которой роль не меняется; пустая строка — замка нет. */
+    roleLockHint: ComputedRef<string>;
+    isRoleLocked: ComputedRef<boolean>;
+    /**
+     * Выключение входа и удаление закрыты правилом. Причина наружу не отдаётся:
+     * она уже вошла в подсказки кнопок, а второй способ её получить развёл бы
+     * текст и флаг.
+     */
+    isStateLocked: ComputedRef<boolean>;
+    /** Доступные имена кнопок — с подписью владельца: списком читают вслух. */
+    passwordActionLabel: ComputedRef<string>;
+    toggleActiveLabel: ComputedRef<string>;
+    deleteLabel: ComputedRef<string>;
+    /** Подсказки: у заблокированной кнопки — причина, у доступной — действие. */
+    toggleActiveTitle: ComputedRef<string>;
+    deleteTitle: ComputedRef<string>;
+}
+
 export interface IUsersRolePillProps {
     role: TBricksUserRole;
     /** Подпись владельца роли для доступного имени кнопки. */

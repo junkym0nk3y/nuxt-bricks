@@ -167,6 +167,11 @@ describe('postgresAuthAdapter: вход отмечает момент входа
         expect(sql).toContain('is_active = TRUE');
         expect(sql).toContain('auth_version = $4');
         expect(sql).toContain('INSERT INTO bricks_sessions');
+        // Вставка читает CTE, а не таблицу: сама по себе она безусловна, и
+        // условной её делает ровно то, что строк у `authenticated` не будет,
+        // если UPDATE ничего не нашёл. Вставка в обход CTE выдала бы рабочую
+        // сессию по отозванным креденшелам, оставив остальные ожидания зелёными
+        expect(sql).toContain('FROM authenticated');
         // Поколение НЕ двигается: вход не отзывает права, а инкремент погасил бы
         // только что созданную сессию
         expect(sql).not.toContain('auth_version + 1');

@@ -26,15 +26,12 @@
 import type { TBricksUserRole } from '../../../common/types/auth';
 import type { IUsersListRowProps, IUsersListRowEmits } from '../types/users';
 
-// Utils
-import { formatUserDate, formatUserLoginDate, resolveUserLabel } from '../utils/userFormatting';
-
 // Vue
 import { computed } from 'vue';
-import { useI18n } from 'vue-i18n';
 
 // Composables
 import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
+import { useUsersRowLabels } from '../composables/useUsersRowLabels';
 
 // Components
 import BricksAvatar from '../../../ui/base/avatar/BricksAvatar.vue';
@@ -55,74 +52,26 @@ const emit = defineEmits<IUsersListRowEmits>();
 // #endregion
 
 // #region Data
-const { t } = useI18n();
 const { canChangePassword } = useBuilderPermissions();
+
+const {
+    userLabel,
+    hasSecondaryUsername,
+    metaText,
+    selfBadgeLabel,
+    statusLabel,
+    roleLockHint,
+    isRoleLocked,
+    isStateLocked,
+    passwordActionLabel,
+    toggleActiveLabel,
+    toggleActiveTitle,
+    deleteLabel,
+    deleteTitle,
+} = useUsersRowLabels(props);
 // #endregion
 
 // #region Computed
-const userLabel = computed<string>(() => resolveUserLabel(props.user));
-
-/**
- * Логин рядом с именем — только если он отличается от показанного имени: у
- * учётки без отображаемого имени в заголовке и так стоит логин, и повтор
- * выглядел бы как две разные подписи одного человека.
- */
-const hasSecondaryUsername = computed<boolean>(() => userLabel.value !== props.user.username);
-
-/**
- * Мета-строка: когда учётку создали и когда по ней входили последний раз.
- *
- * «Ни разу не входил» — не украшение: по нему администратор находит учётки,
- * которые завели и забыли, а именно они и остаются лишним входом в систему.
- */
-const metaText = computed<string>(() => {
-    const created = t('bricks.users.row.created', {
-        date: formatUserDate(props.user.createdAt),
-    });
-    const login = formatUserLoginDate(props.user.lastLoginAt, {
-        today: t('bricks.users.row.today'),
-        yesterday: t('bricks.users.row.yesterday'),
-    });
-
-    const loginText = login
-        ? t('bricks.users.row.lastLogin', { date: login })
-        : t('bricks.users.row.neverLoggedIn');
-
-    return `${created} · ${loginText}`;
-});
-
-const statusLabel = computed<string>(() =>
-    props.user.isActive ? t('bricks.users.status.active') : t('bricks.users.status.inactive')
-);
-
-/**
- * Причина, по которой роль не меняется. Своя учётка и последний администратор —
- * разные причины, и общий текст «нельзя» не подсказал бы, что делать: во втором
- * случае достаточно назначить второго администратора.
- */
-const roleLockHint = computed<string>(() => {
-    if (props.isCurrentUser) {
-        return t('bricks.users.row.locks.selfRole');
-    }
-
-    return props.isLastActiveAdmin ? t('bricks.users.row.locks.lastAdmin') : '';
-});
-
-const isRoleLocked = computed<boolean>(() => roleLockHint.value !== '');
-
-/**
- * Причина, по которой недоступны выключение входа и удаление.
- */
-const stateLockHint = computed<string>(() => {
-    if (props.isCurrentUser) {
-        return t('bricks.users.row.locks.self');
-    }
-
-    return props.isLastActiveAdmin ? t('bricks.users.row.locks.lastAdmin') : '';
-});
-
-const isStateLocked = computed<boolean>(() => stateLockHint.value !== '');
-
 /**
  * Выключение входа и удаление не сработают сейчас: либо запрещены правилом, либо
  * в разделе идёт операция, а операции сериализованы.
@@ -146,35 +95,6 @@ const isStateActionBlocked = computed<boolean>(
  * такой установке отвечает отказом, и кнопка обещала бы несуществующее.
  */
 const isPasswordActionVisible = computed<boolean>(() => canChangePassword.value);
-
-/** Подпись кнопки пароля: своя форма и админская — разные операции. */
-const passwordActionLabel = computed<string>(() =>
-    props.isCurrentUser
-        ? t('bricks.users.row.changeOwnPassword')
-        : t('bricks.users.row.setPassword', { user: userLabel.value })
-);
-
-/** Подпись кнопки входа — по текущему состоянию учётки. */
-const toggleActiveLabel = computed<string>(() =>
-    props.user.isActive
-        ? t('bricks.users.row.deactivate', { user: userLabel.value })
-        : t('bricks.users.row.activate', { user: userLabel.value })
-);
-
-/**
- * Подсказка кнопки: у заблокированной — причина запрета, у доступной — само
- * действие. Доступное имя при этом остаётся действием всегда: подсказка
- * объясняет, почему кнопка не срабатывает, но не отменяет того, чем она была.
- */
-const toggleActiveTitle = computed<string>(() =>
-    isStateLocked.value ? stateLockHint.value : toggleActiveLabel.value
-);
-
-const deleteLabel = computed<string>(() => t('bricks.users.row.delete', { user: userLabel.value }));
-
-const deleteTitle = computed<string>(() =>
-    isStateLocked.value ? stateLockHint.value : deleteLabel.value
-);
 // #endregion
 
 // #region Methods
@@ -264,7 +184,7 @@ function handleDelete(): void {
                     {{ props.user.username }}
                 </span>
                 <span v-if="props.isCurrentUser" :class="$style.selfBadge">
-                    {{ t('bricks.users.row.you') }}
+                    {{ selfBadgeLabel }}
                 </span>
             </div>
             <p :class="$style.meta">{{ metaText }}</p>
@@ -299,7 +219,7 @@ function handleDelete(): void {
             <button
                 v-if="isPasswordActionVisible"
                 type="button"
-                :class="[$style.actionButton, props.isOperationLocked && $style._busy]"
+                :class="[$style.actionButton, props.isOperationLocked && $style._muted]"
                 :aria-disabled="props.isOperationLocked"
                 :title="passwordActionLabel"
                 :aria-label="passwordActionLabel"
@@ -310,11 +230,7 @@ function handleDelete(): void {
 
             <button
                 type="button"
-                :class="[
-                    $style.actionButton,
-                    isStateLocked && $style._blocked,
-                    props.isOperationLocked && $style._busy,
-                ]"
+                :class="[$style.actionButton, isStateActionBlocked && $style._muted]"
                 :aria-disabled="isStateActionBlocked"
                 :title="toggleActiveTitle"
                 :aria-label="toggleActiveLabel"
@@ -330,8 +246,7 @@ function handleDelete(): void {
                 :class="[
                     $style.actionButton,
                     $style['actionButton--danger'],
-                    isStateLocked && $style._blocked,
-                    props.isOperationLocked && $style._busy,
+                    isStateActionBlocked && $style._muted,
                 ]"
                 :aria-disabled="isStateActionBlocked"
                 :title="deleteTitle"
@@ -429,11 +344,20 @@ function handleDelete(): void {
     color: var(--bricks-base-900);
 }
 
-/* Логин не обрезается никогда: по нему человек входит и по нему его находят. */
+/*
+    Логин не обрезается никогда: по нему человек входит и по нему его находят.
+    Поэтому длинный логин переносится ВНУТРИ слова, а не выезжает за строку:
+    паттерн допускает 64 символа без единого пробела и дефиса, то есть места для
+    штатного переноса в нём может не быть вовсе. `max-width` здесь и делает
+    перенос возможным: сжиматься под соседями логин по-прежнему не должен
+    (`flex-shrink: 0` — первым обрезается имя), но и шире строки быть не может.
+*/
 .username {
     flex-shrink: 0;
+    max-width: 100%;
     font-size: 1.2rem;
     color: var(--bricks-base-400);
+    overflow-wrap: anywhere;
 }
 
 .selfBadge {
@@ -529,23 +453,14 @@ function handleDelete(): void {
         color: var(--bricks-base-900);
     }
 
-    /* В разделе идёт операция: кнопка гасится, но остаётся фокусируемой и
-       живой в разметке — выключенная потеряла бы фокус посреди запроса. */
-    &._busy {
+    /* Кнопка гашена: запретом правила (постоянный, объяснён подсказкой) либо
+       занятостью раздела (доли секунды, снимается сама). Вид у двух причин
+       один: разной прозрачностью их всё равно не различить, а объясняет
+       причину подсказка. Выключенной кнопка не становится ни в одном из них —
+       выключенная выпала бы из обхода с клавиатуры и потеряла фокус посреди
+       запроса. */
+    &._muted {
         opacity: 0.5;
-        cursor: default;
-
-        &:hover {
-            border-color: var(--bricks-base-200);
-            background: var(--bricks-base-0);
-            color: var(--bricks-base-500);
-        }
-    }
-
-    /* Запрет правилом — не «сейчас неприменимо»: кнопка гасится, но остаётся
-       фокусируемой, и её подсказка объясняет причину. */
-    &._blocked {
-        opacity: 0.4;
         cursor: default;
 
         &:hover {
@@ -564,8 +479,7 @@ function handleDelete(): void {
             color: var(--bricks-danger-600);
         }
 
-        &._blocked:hover,
-        &._busy:hover {
+        &._muted:hover {
             border-color: var(--bricks-base-200);
             background: var(--bricks-base-0);
             color: var(--bricks-danger-500);
