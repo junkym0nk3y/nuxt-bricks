@@ -30,6 +30,7 @@ defineOptions({
 // #region Props
 const props = withDefaults(defineProps<IBricksSelectProps>(), {
     disabled: false,
+    ariaLabel: '',
 });
 // #endregion
 
@@ -105,7 +106,14 @@ function onUpdate(value: AcceptableValue): void {
         @update:open="isOpened = $event"
     >
         <div :class="[$style.BricksSelect, classList]">
-            <SelectTrigger :class="$style.field">
+            <!--
+                Подпись приходит пропом, а не атрибутом: наследование атрибутов
+                отключено (`inheritAttrs: false`), а корень компонента — не
+                DOM-узел, так что упасть внешнему `aria-label` всё равно некуда.
+                Пустое значение атрибут не создаёт: `aria-label=""` имени не даёт,
+                зато мешает браузеру взять его из других источников.
+            -->
+            <SelectTrigger :class="$style.field" :aria-label="props.ariaLabel || undefined">
                 <SelectValue :class="$style.nativeInput">{{ selectedLabel }}</SelectValue>
             </SelectTrigger>
         </div>

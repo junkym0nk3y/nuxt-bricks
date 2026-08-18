@@ -153,6 +153,7 @@ function handleSkipOptimizationChange(value: boolean): void {
                 :value="props.optimization.format"
                 :specs="formatOptions"
                 :facets="formatFacets"
+                :aria-label="t('bricks.media.upload.formatLabel')"
                 @update:value="handleFormatChange"
             />
         </div>

@@ -241,6 +241,7 @@ watch(formKey, () => {
                     :specs="layoutOptions"
                     :facets="layoutFacets"
                     :disabled="isSubmitting"
+                    aria-label="Layout"
                     @update:value="handleLayoutChange"
                 />
             </div>

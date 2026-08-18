@@ -6,6 +6,13 @@ export interface IBricksSelectProps {
     facets: TBrickDemoValues[];
     value: TBrickDemoValues;
     disabled?: boolean;
+    /**
+     * Доступное имя поля. Единственный способ подписать селект: наследование
+     * атрибутов у него отключено, а корень — не DOM-узел, поэтому внешний
+     * `aria-label` до триггера не доходит. Без имени скринридер читает у поля
+     * только текущее значение («Редактор»), но не то, чем это поле является.
+     */
+    ariaLabel?: string;
 }
 
 export interface IBricksSelectEmits {

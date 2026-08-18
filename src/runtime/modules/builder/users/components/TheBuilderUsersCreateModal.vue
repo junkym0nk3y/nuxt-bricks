@@ -210,6 +210,7 @@ watch(
                         :specs="roleOptions"
                         :facets="roleFacets"
                         :disabled="isSubmitting"
+                        :aria-label="t('bricks.users.createModal.role')"
                         @update:value="handleSelectRole"
                     />
                     <p :class="$style.hint">{{ t('bricks.users.createModal.roleHint') }}</p>

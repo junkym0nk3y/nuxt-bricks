@@ -1,7 +1,25 @@
 <script setup lang="ts">
+/**
+ * @description Кнопка закрытия модалки: только иконка, без текста.
+ *
+ * Доступное имя компонент даёт себе сам. Иконка имени не образует, и без него
+ * скринридер объявляет кнопку просто «кнопка» — единственный выход из окна
+ * оказывается безымянным. Имя общее («Закрыть»), потому что оно и описывает
+ * действие: чего именно кнопка закрывает, человеку сообщает заголовок окна, в
+ * котором она стоит.
+ *
+ * Перекрыть имя снаружи можно обычным `aria-label`: наследование атрибутов у
+ * компонента включено, и внешнее значение заменяет внутреннее. Это нужно там,
+ * где окон несколько уровней вложенности и «Закрыть» перестаёт быть
+ * однозначным.
+ */
+
 // #region Imports
 // Types
 import type { IBricksCloseButtonEmits, IBricksCloseButtonProps } from './types.d.ts';
+
+// Vue
+import { useI18n } from 'vue-i18n';
 // #endregion
 
 // #region Props
@@ -13,6 +31,10 @@ const props = withDefaults(defineProps<IBricksCloseButtonProps>(), {
 
 // #region Emits
 const emit = defineEmits<IBricksCloseButtonEmits>();
+// #endregion
+
+// #region Data
+const { t } = useI18n();
 // #endregion
 
 // #region Methods
@@ -32,6 +54,7 @@ function handleClick(event: MouseEvent): void {
         type="button"
         :class="$style.BricksCloseButton"
         :disabled="props.disabled"
+        :aria-label="t('bricks.common.close')"
         @click="handleClick"
     >
         <BricksIcon icon="ta:outline-x" />

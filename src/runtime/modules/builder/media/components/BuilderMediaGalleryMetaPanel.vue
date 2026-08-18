@@ -274,6 +274,7 @@ watch(
                                 :specs="categoryOptions"
                                 :facets="categoryFacets"
                                 :disabled="!canEdit"
+                                :aria-label="t('bricks.media.categoryLabel')"
                                 @update:value="handleCategoryChange"
                             />
                         </div>

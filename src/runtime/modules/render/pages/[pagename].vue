@@ -222,7 +222,13 @@ useHead(() => {
                     <span :class="$style.previewText">Режим превью</span>
                     <BricksIcon :icon="currentDevice.icon" :class="$style.previewDeviceIcon" />
                     <span :class="$style.previewResolution">{{ resolutionText }}</span>
-                    <RendererCloseButton :class="$style.previewClose" @click="closePreview" />
+                    <!-- Имя кнопке нужно своё: внутри неё только иконка, а
+                         рядом нет текста, из которого читалка взяла бы смысл -->
+                    <RendererCloseButton
+                        :class="$style.previewClose"
+                        aria-label="Закрыть превью"
+                        @click="closePreview"
+                    />
                 </div>
             </div>
 
