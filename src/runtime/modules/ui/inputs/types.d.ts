@@ -18,6 +18,16 @@ export interface IBricksInputProps {
     disabled?: boolean;
     placeholder?: string;
     type?: 'text' | 'number' | 'slug' | 'password';
+    /**
+     * Значение только для чтения — в отличие от `disabled`, поле остаётся
+     * полноконтрастным, фокусируемым и копируемым.
+     *
+     * Разница по смыслу: `disabled` говорит «сейчас неприменимо» и гасит поле до
+     * половинной прозрачности, а read-only — «это значение можно прочитать и
+     * скопировать, но не изменить». Логин в профиле именно такой: его показывают,
+     * чтобы человек его видел.
+     */
+    readonly?: boolean;
     required?: boolean;
     rules?: string;
     maxLength?: number;
@@ -58,6 +68,7 @@ export interface IBricksInputNativeAttributes {
     autocomplete: string;
     placeholder: string;
     disabled: boolean;
+    readonly: boolean;
     maxlength: number | undefined;
     inputmode: 'decimal' | 'text';
     min: number | undefined;
@@ -158,4 +169,26 @@ export interface IBricksSearchInputProps {
 
 export interface IBricksSearchInputEmits {
     'update:value': [value: string];
+}
+
+export interface IBricksSliderProps {
+    value: number;
+    min?: number;
+    max?: number;
+    step?: number;
+    disabled?: boolean;
+    /**
+     * Доступное имя ползунка: своей подписи у дорожки нет (её рисует вызывающий),
+     * и без имени ползунок читается как безымянное поле.
+     *
+     * Не `ariaLabel`: одноимённый проп в шаблоне пришлось бы писать camelCase —
+     * `:aria-label` компилятор считает нативным атрибутом, а не пропом, и
+     * обязательный проп остался бы незаполненным (та же причина у `groupLabel`
+     * таб-бара).
+     */
+    label: string;
+}
+
+export interface IBricksSliderEmits {
+    'update:value': [value: number];
 }

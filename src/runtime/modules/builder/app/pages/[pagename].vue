@@ -35,6 +35,8 @@ import { useBuilderSessionAddressSync } from '../composables/useBuilderSessionAd
 import { useBuilderToast } from '../../core/composables/useBuilderToast';
 import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
 import { usePropertiesPanelAvailability } from '../../core/composables/usePropertiesPanelAvailability';
+import { useAuthProfile } from '../../auth/composables/useAuthProfile';
+import { useAuthProfileModal } from '../../auth/composables/useAuthProfileModal';
 import { useAuthSession } from '../../auth/composables/useAuthSession';
 
 // Utils
@@ -70,6 +72,11 @@ const TheBuilderPublishCreatePageModal = defineAsyncComponent(
 const TheBuilderMediaImageResolverModal = defineAsyncComponent(
     () => import('../../media/components/TheBuilderMediaImageResolverModal.vue')
 );
+// Профиль открывают из меню в углу тулбара — до этого ни разметка, ни чанк не
+// нужны (в модалке форма пароля, кадрирование и vee-validate)
+const TheBuilderAuthProfileModal = defineAsyncComponent(
+    () => import('../../auth/components/TheBuilderAuthProfileModal.vue')
+);
 // #endregion
 
 // #region Meta
@@ -95,13 +102,19 @@ const publishStore = usePublishStore();
 // useBuilderPage (switchToSavedPage требуется useBuilderPage для Save as Copy)
 const { showToast, showActionToast, hideToast } = useBuilderToast();
 
-// Права сессии: на SSR роль приходит из контекста запроса, и до первого кадра
-// известно, рисовать ли действия правки. Досылка ручкой `me` нужна только
-// сборкам без SSR — там контекста запроса нет вовсе
-const { canEdit, ensureRole } = useBuilderPermissions();
-const { fetchMe } = useAuthSession();
+// Права и профиль сессии: на SSR оба приходят из контекста запроса, и до первого
+// кадра известно, рисовать ли действия правки и чем наполнить аватар в углу.
+// Досылка ручкой `me` нужна только сборкам без SSR — там контекста запроса нет
+// вовсе, и уходит она ОДНА на два состояния: роль `ensureRole` берёт из уже
+// полученного профиля
+const { canEdit, canChangePassword, ensureRole } = useBuilderPermissions();
+const { logout } = useAuthSession();
+const { profile, ensureProfile } = useAuthProfile();
+// Модалку профиля открывает меню в углу тулбара
+const profileModal = useAuthProfileModal();
 
-await ensureRole(async () => (await fetchMe())?.role ?? null);
+await ensureProfile();
+await ensureRole(() => Promise.resolve(profile.value?.role ?? null));
 
 // Токен сессии — общая точка отсечения операций, которые начинаются в одной
 // сессии и завершаются в другой (сохранение, снимок превью, синк превью-вкладки,
@@ -393,6 +406,21 @@ function handleToggleDarkMode(): void {
 async function handleToggleLocale(): Promise<void> {
     await setLocale(locale.value === 'ru' ? 'en' : 'ru');
 }
+
+/**
+ * Выходит из сессии; при отказе показывает тост.
+ *
+ * Подтверждения нет намеренно: несохранённая правка не теряется — переход уводит
+ * страницу, а `pagehide` синхронно допишет отложенный черновик, и после входа
+ * билдер предложит его восстановить.
+ */
+async function handleLogout(): Promise<void> {
+    try {
+        await logout();
+    } catch {
+        showToast(t('bricks.auth.logoutFailed'), 'error');
+    }
+}
 // #endregion
 
 // #region Watchers
@@ -490,6 +518,8 @@ onBeforeUnmount(() => {
             @save-draft="handleSaveDraftGuarded"
             @save-as-copy="handleSaveAsCopyGuarded"
             @preview="handlePreview"
+            @open-profile="profileModal.open"
+            @logout="handleLogout"
         />
 
         <div :class="$style.content">
@@ -563,6 +593,14 @@ onBeforeUnmount(() => {
             терялись
         -->
         <div v-if="isBuilderLocked" :class="$style.sessionBlocker" aria-hidden="true"></div>
+
+        <TheBuilderAuthProfileModal
+            v-if="profileModal.shouldMount.value"
+            :is-open="profileModal.isOpen.value"
+            :can-change-password="canChangePassword"
+            @close="profileModal.close"
+            @notify="showToast"
+        />
 
         <TheBuilderDocumentationModal
             :is-open="isDocumentationModalOpen"

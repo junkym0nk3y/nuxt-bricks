@@ -36,13 +36,3 @@ export function countSlotContent(nodes?: VNode[]): number {
         return total + 1;
     }, 0);
 }
-
-/**
- * Есть ли в слоте настоящий контент.
- *
- * @param nodes - Узлы слота (результат вызова слот-функции).
- * @returns true, если хотя бы один узел что-то рисует.
- */
-export function hasSlotContent(nodes?: VNode[]): boolean {
-    return countSlotContent(nodes) > 0;
-}

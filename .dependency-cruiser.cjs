@@ -72,13 +72,22 @@ module.exports = {
             to: { path: `^${M}/(?!builder/core|common|ui|layouts-blocks)` },
         },
         {
-            // canvas/shell → core/publish/media + text-editor/layouts-blocks/ui/common;
-            // не друг в друга и не в composition root (app)
+            // canvas/shell → core/publish/media/auth + text-editor/layouts-blocks/ui/common;
+            // не друг в друга и не в composition root (app).
+            //
+            // auth разрешён с появлением аватара в тулбаре билдера: меню профиля —
+            // один компонент на обе поверхности (шапка дашборда и тулбар), и
+            // подключить его в тулбар можно либо так, либо слотом из composition
+            // root — то есть двумя разными механизмами для одного компонента.
+            // Цикла это не создаёт по построению: сам auth ограничен
+            // `auth|ui|common` (см. `builder-auth-deps`), поэтому обратного пути
+            // из него в shell не существует. `core` в этот список добавлять
+            // нельзя — вот там и появился бы цикл canvas↔shell.
             name: 'builder-canvas-shell-deps',
             severity: 'error',
             from: { path: `^${M}/builder/(canvas|shell)` },
             to: {
-                path: `^${M}/(?!builder/(canvas|shell|core|publish|media)|text-editor|layouts-blocks|ui|common)`,
+                path: `^${M}/(?!builder/(canvas|shell|core|publish|media|auth)|text-editor|layouts-blocks|ui|common)`,
             },
         },
         {

@@ -1,6 +1,9 @@
 # builder/auth/composables
 
-| Файл                  | Назначение                                                                      |
-| --------------------- | ------------------------------------------------------------------------------- |
-| `useAuthSession.ts`   | Клиентская сессия database-auth: `isDatabaseMode`, `login`, `logout`, `fetchMe` |
-| `useAuthLoginForm.ts` | Форма страницы логина: vee-validate, маппинг ошибок по statusCode, redirect     |
+| Файл                     | Назначение                                                                         |
+| ------------------------ | ---------------------------------------------------------------------------------- |
+| `useAuthSession.ts`      | Клиентская сессия database-auth: `isDatabaseMode`, `login`, `logout`, `fetchMe`    |
+| `useAuthLoginForm.ts`    | Форма страницы логина: vee-validate, маппинг ошибок по statusCode, redirect        |
+| `useAuthProfile.ts`      | Профиль сессии (имя, логин, роль, фото) и его правка: имя, аватар, свой пароль     |
+| `useAuthProfileModal.ts` | Латч монтирования и открытость модалки профиля — общие для дашборда и билдера      |
+| `useAuthAvatarCrop.ts`   | Кадрирование фото: декодирование файла, масштаб, сдвиг, рамка в пикселях исходника |

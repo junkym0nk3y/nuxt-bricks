@@ -24,6 +24,9 @@ import {
     requireSessionUser,
     toAuthProfileUser,
 } from '../../../../utils/auth/profile';
+// Потолок размера общий с формой профиля: она печатает его в подсказке и
+// отсекает по нему файл до отправки (modules/common/constants/auth.ts)
+import { BRICKS_AVATAR_MAX_UPLOAD_MB } from '../../../../../modules/common/constants/auth';
 import {
     assertWithinRateLimit,
     createFixedWindowRateLimiter,
@@ -40,13 +43,6 @@ const AVATAR_SIZE_PX = 256;
 
 /** Качество webp-кодирования аватара. */
 const AVATAR_WEBP_QUALITY = 82;
-
-/**
- * Потолок входного файла (МБ). Меньше медийного (10 МБ) намеренно: аватар — одна
- * фотография, а не рабочий файл страницы, и держать под него тот же бюджет
- * буферизации незачем.
- */
-const MAX_AVATAR_UPLOAD_MB = 5;
 
 /**
  * Минимальная сторона рамки (px). Меньше — не кадрирование, а увеличение
@@ -86,10 +82,10 @@ function assertAvatarFile(formData: IUploadedFilePart[]): IUploadedFilePart {
         });
     }
 
-    if (file.data.length > MAX_AVATAR_UPLOAD_MB * 1024 * 1024) {
+    if (file.data.length > BRICKS_AVATAR_MAX_UPLOAD_MB * 1024 * 1024) {
         throw createError({
             statusCode: 413,
-            message: `Avatar exceeds ${MAX_AVATAR_UPLOAD_MB}MB limit`,
+            message: `Avatar exceeds ${BRICKS_AVATAR_MAX_UPLOAD_MB}MB limit`,
         });
     }
 
@@ -199,7 +195,7 @@ export default defineEventHandler(async (event) => {
         assertWithinRateLimit(event, avatarRateLimiter, 'Too many avatar uploads');
 
         const bodyLimitBytes =
-            MAX_AVATAR_UPLOAD_MB * 1024 * 1024 + MULTIPART_ENVELOPE_ALLOWANCE_BYTES;
+            BRICKS_AVATAR_MAX_UPLOAD_MB * 1024 * 1024 + MULTIPART_ENVELOPE_ALLOWANCE_BYTES;
 
         // Обработка внутри колбэка: место в бюджете одновременного буферизования
         // держится, пока живы буферы формы, — то есть до конца заливки файла

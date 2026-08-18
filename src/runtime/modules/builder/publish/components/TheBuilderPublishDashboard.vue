@@ -15,6 +15,7 @@ import { useI18n } from 'vue-i18n';
 import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
 
 // Components
+import BuilderAuthProfileMenu from '../../auth/components/BuilderAuthProfileMenu.vue';
 import BuilderLogo from '../../core/components/BuilderLogo.vue';
 import BuilderPublishDashboardNav from './BuilderPublishDashboardNav.vue';
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
@@ -104,6 +105,13 @@ function handleToggleLocale(): void {
 function handleLogout(): void {
     emit('logout');
 }
+
+/**
+ * Пробрасывает запрос модалки профиля наверх: монтирует её хост.
+ */
+function handleOpenProfile(): void {
+    emit('open-profile');
+}
 // #endregion
 </script>
 
@@ -127,6 +135,13 @@ function handleLogout(): void {
                 <BricksButton v-if="canEdit" size="md" variant="primary" @click="handleCreatePage">
                     + {{ t('bricks.publish.dashboard.createPage') }}
                 </BricksButton>
+
+                <!--
+                    Аватар — последний в правой группе, как в тулбаре билдера: он
+                    не действие панели, а «кем вошёл». Вне database-режима не
+                    рисуется сам
+                -->
+                <BuilderAuthProfileMenu @open-profile="handleOpenProfile" @logout="handleLogout" />
             </div>
         </header>
 
@@ -136,13 +151,11 @@ function handleLogout(): void {
                 :pages-count="props.pagesCount"
                 :locale="locale"
                 :is-dark-mode="props.isDarkMode"
-                :is-logout-visible="props.isLogoutVisible"
                 @select-section="handleSelectSection"
                 @open-media="handleOpenMedia"
                 @open-docs="handleOpenDocs"
                 @toggle-dark-mode="handleToggleDarkMode"
                 @toggle-locale="handleToggleLocale"
-                @logout="handleLogout"
             />
 
             <main :class="$style.main">

@@ -60,6 +60,7 @@ import {
     TaOutlineStar,
     TaOutlineTrash,
     TaOutlineUpload,
+    TaOutlineUser,
     TaOutlineZoomIn,
     TaOutlineZoomOut,
     // Иконки текстового редактора (уже Tabler)
@@ -142,6 +143,7 @@ export const BUILDER_ICONS: Record<string, Component> = {
     'ta:outline-info-circle': TaOutlineInfoCircle,
     'ta:outline-loader-2': TaOutlineLoader2,
     'ta:outline-logout': TaOutlineLogout,
+    'ta:outline-user': TaOutlineUser,
     'ta:outline-eye-off': TaOutlineEyeOff,
 
     // Sidebar / Library

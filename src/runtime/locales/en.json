@@ -73,7 +73,76 @@
                 "sessionCheckFailed": "Failed to verify the session. Check the connection and try signing in"
             },
             "logout": "Sign out",
-            "logoutFailed": "Failed to sign out. Try again"
+            "logoutFailed": "Failed to sign out. Try again",
+            "roles": {
+                "admin": "Administrator",
+                "editor": "Editor",
+                "viewer": "Viewer"
+            },
+            "profile": {
+                "title": "Profile",
+                "open": "Profile",
+                "menuLabel": "Profile: {name}",
+                "tabsLabel": "Profile sections",
+                "tabs": {
+                    "profile": "Profile",
+                    "password": "Password"
+                },
+                "displayName": "Display name",
+                "displayNamePlaceholder": "How to show you",
+                "displayNameHint": "Shown in the corner, in the profile menu and in the user list.",
+                "usernameHint": "The username never changes: it is how you sign in and how the account is listed.",
+                "role": "Role",
+                "roleHint": "— cannot be changed for yourself",
+                "currentPassword": "Current password",
+                "newPassword": "New password",
+                "changePassword": "Change",
+                "passwordHint": "At least {min} characters. Changing the password ends every session, including this one — you will need to sign in again.",
+                "photo": {
+                    "upload": "Upload photo",
+                    "replace": "Replace photo",
+                    "hint": "PNG, JPEG or WebP up to {max}MB. Cropped to a square and re-encoded to WebP 256×256 — the original is not stored.",
+                    "emptyHint": "Without a photo the first letter of the name is shown everywhere. PNG, JPEG or WebP up to {max}MB."
+                },
+                "crop": {
+                    "title": "Profile photo",
+                    "zoom": "Zoom",
+                    "hint": "Drag the photo to choose the area. The circle is drawn by the interface, the file itself is stored as a square.",
+                    "submit": "Save photo",
+                    "frameLabel": "Photo area: drag with the mouse or move with arrow keys"
+                },
+                "toasts": {
+                    "saved": "Profile saved",
+                    "photoSaved": "Photo updated",
+                    "photoRemoved": "Photo removed"
+                },
+                "validation": {
+                    "displayNameTooLong": "The name must be at most {max} characters",
+                    "displayNameInvalid": "The name must not contain control characters",
+                    "currentPasswordRequired": "Enter the current password",
+                    "newPasswordRequired": "Enter the new password",
+                    "passwordTooShort": "The password must be at least {min} characters",
+                    "passwordTooLong": "The password must be at most {max} characters"
+                },
+                "errors": {
+                    "invalidCurrentPassword": "The current password is incorrect",
+                    "passwordChangeDisabled": "Password changes are disabled by the installation settings",
+                    "passwordRejected": "The password was rejected. Check its length and try again",
+                    "passwordFailed": "Failed to change the password. Try again",
+                    "tooManyAttempts": "Too many attempts. Try again later",
+                    "tooManyUploads": "Too many uploads. Try again in a minute",
+                    "serverBusy": "The server is busy processing images. Try again in a minute",
+                    "avatarTooLarge": "The file is larger than {max}MB",
+                    "avatarRejected": "Failed to process the image. Choose another file",
+                    "avatarTimeout": "The server did not confirm the upload in time: the photo may have been saved. Reload the page",
+                    "avatarFailed": "Failed to save the photo. Try again",
+                    "photoTooSmall": "The image is too small: the selected area is under {min} pixels",
+                    "photoUnreadable": "Failed to read the file. Choose another image",
+                    "displayNameRejected": "The server rejected the name. Check its length and contents",
+                    "saveTimeout": "The server did not confirm the save in time. Reload the page before trying again",
+                    "saveFailed": "Failed to save the profile. Try again"
+                }
+            }
         },
         "library": {
             "title": "Add component",

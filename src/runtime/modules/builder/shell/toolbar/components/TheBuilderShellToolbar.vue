@@ -18,6 +18,7 @@ import BricksButton from '../../../../ui/base/button/BricksButton.vue';
 import BricksActionButton from '../../../../ui/base/action-button/BricksActionButton.vue';
 import BricksTooltip from '../../../../ui/tooltip/BricksTooltip.vue';
 import BricksTooltipHint from '../../../../ui/tooltip/BricksTooltipHint.vue';
+import BuilderAuthProfileMenu from '../../../auth/components/BuilderAuthProfileMenu.vue';
 import BuilderLogo from '../../../core/components/BuilderLogo.vue';
 import BuilderShellToolbarPageSelector from './BuilderShellToolbarPageSelector.vue';
 // #endregion
@@ -181,6 +182,20 @@ function handleSaveDraft(): void {
 function handlePreview(): void {
     emit('preview');
 }
+
+/**
+ * Пробрасывает запрос модалки профиля наверх: монтирует её composition root.
+ */
+function handleOpenProfile(): void {
+    emit('openProfile');
+}
+
+/**
+ * Пробрасывает выход наверх: сессией и переходом на login владеет composition root.
+ */
+function handleLogout(): void {
+    emit('logout');
+}
 // #endregion
 </script>
 
@@ -271,6 +286,20 @@ function handlePreview(): void {
             >
                 <BricksIcon :class="$style.icon" icon="ta:outline-device-floppy" />
             </BricksActionButton>
+
+            <!--
+                Аватар за вертикальной чертой: он не действие панели, а «кем
+                вошёл», и без разделителя читался бы как ещё одна кнопка рядом с
+                «Сохранить». Черту рисует сам компонент — он же решает, рисоваться
+                ли вообще (вне database-режима профиля нет), иначе в basic-режиме
+                в панели висела бы линия без аватара. До него выхода в билдере не
+                было вовсе — logout жил только в рейле дашборда
+            -->
+            <BuilderAuthProfileMenu
+                separated
+                @open-profile="handleOpenProfile"
+                @logout="handleLogout"
+            />
         </div>
     </div>
 </template>

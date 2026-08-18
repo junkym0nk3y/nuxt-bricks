@@ -57,6 +57,7 @@ export function useBricksInput(
         autocomplete: props.autocomplete ?? 'off',
         placeholder: placeholderText.value,
         disabled: Boolean(props.disabled),
+        readonly: Boolean(props.readonly),
         maxlength: nativeType.value !== 'number' ? props.maxLength : undefined,
         inputmode: props.type === 'number' ? ('decimal' as const) : ('text' as const),
         min: props.type === 'number' ? props.min : undefined,

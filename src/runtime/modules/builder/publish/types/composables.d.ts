@@ -45,6 +45,29 @@ export interface IUsePublishVersionRestoreReturn {
 }
 // #endregion
 
+// #region usePublishPageDelete
+export interface IUsePublishPageDeleteOptions {
+    onNotify: (message: string, variant: 'success' | 'error') => void;
+    /**
+     * Страница удалена. Хосту нужно снять выделение, если удалили открытую в
+     * панели деталей: сама панель об удалении не узнаёт.
+     */
+    onDeleted: (pageId: string) => void;
+}
+
+/**
+ * Возвращаемое значение `usePublishPageDelete`.
+ */
+export interface IUsePublishPageDeleteReturn {
+    isDeleteConfirmationOpen: Ref<boolean>;
+    isDeleting: Ref<boolean>;
+    deleteConfirmationDescription: ComputedRef<string>;
+    requestDeletePage: (page: TPublishedPageSummary) => void;
+    closeDeleteConfirmation: (force?: boolean) => void;
+    confirmDeletePage: () => Promise<void>;
+}
+// #endregion
+
 // #region usePublishPageVersions
 /**
  * Возвращаемое значение `usePublishPageVersions`.

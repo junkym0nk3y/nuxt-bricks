@@ -8,12 +8,10 @@ import type { TPublishDashboardSection } from '../types/dashboard';
 import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 
 // Utils
-import { isRequestTimeoutError } from '../../../common/utils/apiRequestPolicy';
 import {
     getBuilderPageRouteLocation,
     toPageAddress,
 } from '../../../common/utils/bricks/pageAddress';
-import { getPublishedPagePath } from '../../../common/utils/bricks/routePaths';
 
 // Vue
 import { computed, defineAsyncComponent, ref, watch } from 'vue';
@@ -26,10 +24,13 @@ import { useRouter, useCookie, useHead } from '#imports';
 import { usePublishStore } from '../stores/publish';
 
 // Composables
+import { useAuthProfile } from '../../auth/composables/useAuthProfile';
+import { useAuthProfileModal } from '../../auth/composables/useAuthProfileModal';
 import { useAuthSession } from '../../auth/composables/useAuthSession';
 import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
 import { useBuilderToast } from '../../core/composables/useBuilderToast';
 import { usePublishDashboard } from '../composables/usePublishDashboard';
+import { usePublishPageDelete } from '../composables/usePublishPageDelete';
 import { usePublishPagesData } from '../composables/usePublishPagesData';
 import { usePublishPreview } from '../composables/usePublishPreview';
 import { usePublishVersionRestore } from '../composables/usePublishVersionRestore';
@@ -51,6 +52,11 @@ const TheBuilderDocumentationModal = defineAsyncComponent(
 const TheBuilderMediaGalleryModal = defineAsyncComponent(
     () => import('../../media/components/TheBuilderMediaGalleryModal.vue')
 );
+// Профиль открывают с меню в углу — до этого модалка не нужна ни разметкой, ни
+// чанком (в ней форма пароля, кадрирование и vee-validate)
+const TheBuilderAuthProfileModal = defineAsyncComponent(
+    () => import('../../auth/components/TheBuilderAuthProfileModal.vue')
+);
 // Резолвер картинок нужен только импорту схемы — держим его в отдельном чанке.
 // Условие монтирования в шаблоне обязательно: без него чанк уехал бы к первому
 // рендеру дашборда, и ленивым импорт был бы только на бумаге
@@ -65,8 +71,14 @@ const router = useRouter();
 const publishStore = usePublishStore();
 const { toast, showToast } = useBuilderToast();
 const { generatePreviewUrl } = usePublishPreview();
-const { isDatabaseMode, logout, fetchMe } = useAuthSession();
-const { ensureRole } = useBuilderPermissions();
+const { logout } = useAuthSession();
+// Композабл создаётся здесь, синхронно: внутри `useState`/`useRequestEvent`, а
+// они обязаны вызваться до первого `await` этого setup — досылка профиля идёт
+// ниже, вместе с ролью
+const { profile, ensureProfile } = useAuthProfile();
+// Модалку профиля открывает меню в углу шапки
+const profileModal = useAuthProfileModal();
+const { canChangePassword, ensureRole } = useBuilderPermissions();
 const { searchQuery, activeFilter, filterCounts, filteredPages, hasAnyPages } = usePublishDashboard(
     computed(() => publishStore.publishedPages)
 );
@@ -82,9 +94,6 @@ const shouldMountMediaGallery = ref(false);
 const isMediaGalleryModalOpen = ref(false);
 const mediaGalleryContext = ref<'manager' | 'properties'>('manager');
 const duplicatingPageId = ref<string | null>(null);
-const pendingDeletePage = ref<TPublishedPageSummary | null>(null);
-const isDeleteConfirmationOpen = ref(false);
-const isDeleting = ref(false);
 
 const {
     isRestoreConfirmationOpen,
@@ -97,6 +106,22 @@ const {
 const selectedPageId = ref<string | null>(null);
 const thumbnailPreviewItem = ref<TMediaLightboxItem | null>(null);
 const detailsPanelRef = ref<InstanceType<typeof BuilderPublishDetailsPanel> | null>(null);
+
+const {
+    isDeleteConfirmationOpen,
+    isDeleting,
+    deleteConfirmationDescription,
+    requestDeletePage,
+    closeDeleteConfirmation,
+    confirmDeletePage,
+} = usePublishPageDelete({
+    onNotify: showToast,
+    onDeleted: (pageId) => {
+        if (selectedPageId.value === pageId) {
+            selectedPageId.value = null;
+        }
+    },
+});
 
 // Импорт схемы: подтверждение замены, резолвинг картинок и запись. Живёт здесь,
 // а не в панели деталей, потому что обслуживает и модалку создания, и потому что
@@ -126,21 +151,6 @@ const selectedPage = computed<TPublishedPageSummary | null>(() => {
         return null;
     }
     return publishStore.getPageById(selectedPageId.value) ?? null;
-});
-
-const deleteConfirmationDescription = computed<string>(() => {
-    const page = pendingDeletePage.value;
-    if (!page) {
-        return t('bricks.publish.dashboard.deleteConfirm.generic');
-    }
-
-    return t('bricks.publish.dashboard.deleteConfirm.named', {
-        title: page.title,
-        // Полный адрес: у одноимённых страниц под разными префиксами путь по
-        // одному имени совпадал бы, и при равных заголовках пользователь не
-        // понимал бы, какую из них удаляет
-        path: getPublishedPagePath(toPageAddress(page.pagename, page.urlPrefix)),
-    });
 });
 
 const isDarkMode = computed<boolean>(() => darkModeCookie.value ?? false);
@@ -324,67 +334,6 @@ async function handleDuplicatePage(page: TPublishedPageSummary): Promise<void> {
 }
 
 /**
- * Запрашивает подтверждение удаления страницы.
- *
- * @param page - Страница.
- */
-function handleDeletePage(page: TPublishedPageSummary): void {
-    pendingDeletePage.value = page;
-    isDeleteConfirmationOpen.value = true;
-}
-
-/**
- * Закрывает подтверждение удаления.
- *
- * @param force - Закрыть даже во время выполнения удаления.
- */
-function handleCloseDeleteConfirmation(force = false): void {
-    if (!force && isDeleting.value) {
-        return;
-    }
-
-    isDeleteConfirmationOpen.value = false;
-    pendingDeletePage.value = null;
-}
-
-/**
- * Подтверждает и выполняет удаление страницы (файл превью в хранилище
- * best-effort чистит сервер в DELETE /api/bricks/:id).
- *
- * Определённый отказ сервера оставляет подтверждение открытым — страница на
- * месте, и повтор под рукой. Обрыв по потолку ожидания его закрывает: исход
- * неизвестен, страница могла быть удалена, и сообщение об этом прямо просит
- * сначала обновить данные (список стор перечитывает сам), а не повторять.
- */
-async function handleConfirmDelete(): Promise<void> {
-    const page = pendingDeletePage.value;
-    if (!page) {
-        return;
-    }
-
-    isDeleting.value = true;
-    try {
-        await publishStore.deletePage(page.id);
-        if (selectedPageId.value === String(page.id)) {
-            selectedPageId.value = null;
-        }
-        handleCloseDeleteConfirmation(true);
-    } catch (error: unknown) {
-        const message =
-            error instanceof Error
-                ? error.message
-                : t('bricks.publish.dashboard.toasts.deleteFailed');
-        showToast(message, 'error');
-
-        if (isRequestTimeoutError(error)) {
-            handleCloseDeleteConfirmation(true);
-        }
-    } finally {
-        isDeleting.value = false;
-    }
-}
-
-/**
  * Переключает тёмную/светлую тему дашборда и сохраняет выбор в cookie
  * (общий с редактором билдера cookie `bricks-dark-mode`).
  */
@@ -489,11 +438,14 @@ const { isLoadingPages } = await usePublishPagesData({
     onLoadFailed: () => showToast(t('bricks.publish.dashboard.toasts.loadFailed'), 'error'),
 });
 
-// Роль сессии — до первого кадра: список страниц рисует действия по правам, и
-// показать их «пока не выяснили» значило бы отобрать у наблюдателя кнопки уже
-// после того, как он их увидел. На SSR роль приходит из контекста запроса,
-// ручка `me` нужна только сборкам без SSR
-await ensureRole(async () => (await fetchMe())?.role ?? null);
+// Профиль и роль сессии — до первого кадра: список страниц рисует действия по
+// правам, и показать их «пока не выяснили» значило бы отобрать у наблюдателя
+// кнопки уже после того, как он их увидел; аватар в углу без профиля рисовать
+// нечем. На SSR оба приходят из контекста запроса, ручка `me` нужна только
+// сборкам без SSR — и уходит она ОДНА на два состояния: роль `ensureRole` берёт
+// из уже полученного профиля, а не запрашивает вторым разом
+await ensureProfile();
+await ensureRole(() => Promise.resolve(profile.value?.role ?? null));
 // #endregion
 </script>
 
@@ -504,7 +456,6 @@ await ensureRole(async () => (await fetchMe())?.role ?? null);
             :search-query="searchQuery"
             :pages-count="pagesCount"
             :is-dark-mode="isDarkMode"
-            :is-logout-visible="isDatabaseMode"
             @update:search-query="searchQuery = $event"
             @select-section="handleSelectSection"
             @create-page="handleCreatePage"
@@ -512,6 +463,7 @@ await ensureRole(async () => (await fetchMe())?.role ?? null);
             @open-docs="handleOpenDocs"
             @toggle-dark-mode="handleToggleDarkMode"
             @toggle-locale="handleToggleLocale"
+            @open-profile="profileModal.open"
             @logout="handleLogout"
         >
             <template #list>
@@ -530,7 +482,7 @@ await ensureRole(async () => (await fetchMe())?.role ?? null);
                     @edit="handleEditPage"
                     @preview="handlePreviewPage"
                     @duplicate="handleDuplicatePage"
-                    @delete="handleDeletePage"
+                    @delete="requestDeletePage"
                 />
             </template>
 
@@ -543,7 +495,7 @@ await ensureRole(async () => (await fetchMe())?.role ?? null);
                     @close="handleCloseDetails"
                     @edit="handleEditPage"
                     @duplicate="handleDuplicatePage"
-                    @delete="handleDeletePage"
+                    @delete="requestDeletePage"
                     @toggle-published="handleTogglePublished"
                     @open-media="handleOpenMediaFromDetails"
                     @restore-version="requestRestoreVersion"
@@ -558,6 +510,14 @@ await ensureRole(async () => (await fetchMe())?.role ?? null);
             :resolve-imported-schema="schemaImport.resolveSchemaForCreate"
             @close="handleCloseCreatePageModal"
             @created="handlePageCreated"
+        />
+
+        <TheBuilderAuthProfileModal
+            v-if="profileModal.shouldMount.value"
+            :is-open="profileModal.isOpen.value"
+            :can-change-password="canChangePassword"
+            @close="profileModal.close"
+            @notify="showToast"
         />
 
         <TheBuilderDocumentationModal
@@ -581,8 +541,8 @@ await ensureRole(async () => (await fetchMe())?.role ?? null);
             :confirm-text="t('bricks.common.delete')"
             confirm-variant="danger"
             :is-loading="isDeleting"
-            @close="handleCloseDeleteConfirmation"
-            @confirm="handleConfirmDelete"
+            @close="closeDeleteConfirmation()"
+            @confirm="confirmDeletePage"
         />
 
         <BricksConfirmModal

@@ -43,6 +43,10 @@ export interface IToolbarEmits {
     openPageSelector: [];
     selectPage: [page: TPublishedPageSummary];
     createPage: [];
+    /** Меню профиля в углу: открыть модалку профиля. */
+    openProfile: [];
+    /** Меню профиля в углу: выйти из сессии. */
+    logout: [];
 }
 
 /**

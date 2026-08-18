@@ -19,6 +19,7 @@ const props = withDefaults(defineProps<IBricksInputProps>(), {
     label: '',
     placeholder: '',
     disabled: false,
+    readonly: false,
     type: 'text',
     required: false,
     maxLength: 120,
