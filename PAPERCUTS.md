@@ -31,3 +31,16 @@ permitted, open .../plugins/data/.../<job>.log` (read-only sandbox). Призн�
 первая версия хендлера просто падала, роняя все запросы к API. Рабочий способ
 задержки: CDP `Network.emulateNetworkConditions` с `latency`, а клики на время
 окна делать через `page.evaluate(() => el.click())`, а не локатором.
+
+## 2026-08-18 18:52 — Opus 5
+
+Поднимал playground для живой проверки по скиллу `verify` → его шаг с временным
+пользователем печатает `npm run bricks:hash -- <pass> --username verify-bot`, а CLI
+пароль аргументом больше не принимает: он виден в `ps` и в истории шелла, поэтому
+команда выходит с подсказкой вместо хеша. Рабочая форма —
+`printf '<pass>' | npm run bricks:hash -- --username verify-bot --role admin --password-stdin`.
+Шаг в скилле стоит поправить.
+
+Там же: `curl` на `/api/bricks/auth/login` без заголовка `origin` отвечает 403
+(CSRF-гард), что легко прочитать как «пароль не подошёл» — при проверке входа
+запросом заголовок обязателен, иначе исход неотличим от неверных данных.
