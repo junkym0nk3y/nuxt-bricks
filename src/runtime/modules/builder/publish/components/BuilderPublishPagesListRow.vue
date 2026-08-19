@@ -17,6 +17,7 @@ import { useBuilderPermissions } from '../../core/composables/useBuilderPermissi
 
 // Components
 import BricksBadge from '../../../ui/base/badge/BricksBadge.vue';
+import BricksIconButton from '../../../ui/base/icon-button/BricksIconButton.vue';
 // #endregion
 
 // #region Props
@@ -153,67 +154,48 @@ function handleDelete(): void {
         </span>
 
         <div :class="$style.actions" @click.stop>
-            <button
-                :class="$style.actionButton"
-                type="button"
-                :title="t('bricks.publish.dashboard.row.edit')"
-                :aria-label="t('bricks.publish.dashboard.row.edit')"
+            <BricksIconButton
+                icon="ta:outline-pencil"
+                :label="t('bricks.publish.dashboard.row.edit')"
                 @click="handleEdit"
-            >
-                <BricksIcon icon="ta:outline-pencil" />
-            </button>
+            />
 
-            <button
-                :class="$style.actionButton"
-                type="button"
-                :title="t('bricks.publish.dashboard.row.preview')"
-                :aria-label="t('bricks.publish.dashboard.row.preview')"
+            <BricksIconButton
+                icon="ph:eye"
+                :label="t('bricks.publish.dashboard.row.preview')"
                 @click="handlePreview"
-            >
-                <BricksIcon icon="ph:eye" />
-            </button>
+            />
 
             <!-- Копия — создание страницы: доступно редактору и выше -->
-            <button
+            <BricksIconButton
                 v-if="canEdit"
-                :class="$style.actionButton"
-                type="button"
+                icon="ta:outline-copy"
+                :label="t('bricks.publish.dashboard.row.duplicate')"
                 :disabled="props.isDuplicating"
-                :title="t('bricks.publish.dashboard.row.duplicate')"
-                :aria-label="t('bricks.publish.dashboard.row.duplicate')"
                 @click="handleDuplicate"
-            >
-                <BricksIcon icon="ta:outline-copy" />
-            </button>
+            />
 
             <!--
                 Шаблон из страницы — между копией и удалением: обе соседки тоже
                 создают или уничтожают сущность, а не правят текущую. Как и
                 копия, это создание записи — доступно редактору и выше
             -->
-            <button
+            <BricksIconButton
                 v-if="canEdit"
-                :class="$style.actionButton"
-                type="button"
+                icon="ta:outline-package"
+                :label="t('bricks.publish.dashboard.row.saveAsTemplate')"
                 :disabled="props.isPreparingTemplate"
-                :title="t('bricks.publish.dashboard.row.saveAsTemplate')"
-                :aria-label="t('bricks.publish.dashboard.row.saveAsTemplate')"
                 @click="handleSaveAsTemplate"
-            >
-                <BricksIcon icon="ta:outline-package" />
-            </button>
+            />
 
             <!-- Удаление страницы — только администратору -->
-            <button
+            <BricksIconButton
                 v-if="canDelete"
-                :class="[$style.actionButton, $style['actionButton--danger']]"
-                type="button"
-                :title="t('bricks.publish.dashboard.row.delete')"
-                :aria-label="t('bricks.publish.dashboard.row.delete')"
+                icon="ta:outline-trash"
+                :label="t('bricks.publish.dashboard.row.delete')"
+                danger
                 @click="handleDelete"
-            >
-                <BricksIcon icon="ta:outline-trash" />
-            </button>
+            />
         </div>
     </article>
 </template>
@@ -359,46 +341,6 @@ function handleDelete(): void {
     &:focus-within {
         opacity: 1;
         pointer-events: auto;
-    }
-}
-
-.actionButton {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.8rem;
-    height: 2.8rem;
-    padding: 0;
-    border-radius: var(--bricks-border-radius-xs);
-    border: 1px solid var(--bricks-base-200);
-    background: var(--bricks-base-0);
-    font-size: 1.4rem;
-    color: var(--bricks-base-500);
-    transition:
-        color var(--bricks-default-transition),
-        border-color var(--bricks-default-transition),
-        background-color var(--bricks-default-transition);
-    cursor: pointer;
-
-    &:hover {
-        border-color: var(--bricks-base-300);
-        background: var(--bricks-base-50);
-        color: var(--bricks-base-900);
-    }
-
-    &:disabled {
-        opacity: 0.5;
-        cursor: default;
-    }
-
-    &--danger {
-        color: var(--bricks-danger-500);
-
-        &:hover {
-            border-color: var(--bricks-danger-500);
-            background: var(--bricks-danger-50);
-            color: var(--bricks-danger-600);
-        }
     }
 }
 </style>

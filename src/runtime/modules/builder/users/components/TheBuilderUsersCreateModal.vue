@@ -1,7 +1,12 @@
 <script setup lang="ts">
 /**
  * @description Модалка создания учётки: логин, отображаемое имя, пароль, роль и
- * признак «может входить сразу».
+ * признак «разрешить вход сразу».
+ *
+ * Признак входа — это `isActive` новой учётки, и подпись у него есть по той же
+ * причине, что и у остальных полей: без неё галочка не сообщает, что снятая
+ * заводит учётку, по которой сервер откажет во входе, — а не, скажем, отправляет
+ * приглашение.
  *
  * Форма появляется только там, где нужен ввод: роль и возможность входа
  * существующей учётки правятся прямо в строке списка, поэтому отдельной формы
@@ -216,12 +221,15 @@ watch(
                     <p :class="$style.hint">{{ t('bricks.users.createModal.roleHint') }}</p>
                 </div>
 
-                <BricksCheckbox
-                    :value="isActive"
-                    :label="t('bricks.users.createModal.canSignIn')"
-                    :disabled="isSubmitting"
-                    @update:value="(value: boolean) => (isActive = value)"
-                />
+                <div :class="$style.field">
+                    <BricksCheckbox
+                        :value="isActive"
+                        :label="t('bricks.users.createModal.canSignIn')"
+                        :disabled="isSubmitting"
+                        @update:value="(value: boolean) => (isActive = value)"
+                    />
+                    <p :class="$style.hint">{{ t('bricks.users.createModal.canSignInHint') }}</p>
+                </div>
 
                 <BricksFieldError :message="generalError" />
 

@@ -35,6 +35,7 @@ import { useUsersRowLabels } from '../composables/useUsersRowLabels';
 
 // Components
 import BricksAvatar from '../../../ui/base/avatar/BricksAvatar.vue';
+import BricksIconButton from '../../../ui/base/icon-button/BricksIconButton.vue';
 import BuilderUsersRolePill from './BuilderUsersRolePill.vue';
 // #endregion
 
@@ -208,53 +209,41 @@ function handleDelete(): void {
         </div>
 
         <!--
-            Ни одна кнопка строки не выключается через `disabled` — ни правилом,
-            ни занятостью. Причина у двух состояний разная, а следствие одно:
+            Кнопки строки гасятся `muted`, а не `disabled` — ни правилом, ни
+            занятостью. Причина у двух состояний разная, а следствие одно:
             выключенная кнопка выпадает из обхода с клавиатуры вместе с причиной
             запрета, а на включении входа ещё и теряет фокус посреди операции —
             браузер снимает его с кнопки, и человек оказывается в начале
-            страницы. Клик гасится обработчиком, а не разметкой.
+            страницы. Клик гасит обработчик, а не разметка.
         -->
         <div :class="$style.actions">
-            <button
+            <BricksIconButton
                 v-if="isPasswordActionVisible"
-                type="button"
-                :class="[$style.actionButton, props.isOperationLocked && $style._muted]"
-                :aria-disabled="props.isOperationLocked"
-                :title="passwordActionLabel"
-                :aria-label="passwordActionLabel"
+                icon="ta:outline-key"
+                :label="passwordActionLabel"
+                :muted="props.isOperationLocked"
+                :busy="props.isPending"
                 @click="handlePasswordAction"
-            >
-                <BricksIcon icon="ta:outline-key" />
-            </button>
+            />
 
-            <button
-                type="button"
-                :class="[$style.actionButton, isStateActionBlocked && $style._muted]"
-                :aria-disabled="isStateActionBlocked"
-                :title="toggleActiveTitle"
-                :aria-label="toggleActiveLabel"
+            <BricksIconButton
+                :icon="props.user.isActive ? 'ta:outline-user-off' : 'ta:outline-user-check'"
+                :label="toggleActiveLabel"
+                :hint="toggleActiveTitle"
+                :muted="isStateActionBlocked"
+                :busy="props.isPending"
                 @click="handleToggleActive"
-            >
-                <BricksIcon
-                    :icon="props.user.isActive ? 'ta:outline-user-off' : 'ta:outline-user-check'"
-                />
-            </button>
+            />
 
-            <button
-                type="button"
-                :class="[
-                    $style.actionButton,
-                    $style['actionButton--danger'],
-                    isStateActionBlocked && $style._muted,
-                ]"
-                :aria-disabled="isStateActionBlocked"
-                :title="deleteTitle"
-                :aria-label="deleteLabel"
+            <BricksIconButton
+                icon="ta:outline-trash"
+                :label="deleteLabel"
+                :hint="deleteTitle"
+                danger
+                :muted="isStateActionBlocked"
+                :busy="props.isPending"
                 @click="handleDelete"
-            >
-                <BricksIcon icon="ta:outline-trash" />
-            </button>
+            />
         </div>
     </article>
 </template>
@@ -304,14 +293,10 @@ function handleDelete(): void {
 
     &._pending {
         // Курсор ожидания на всей строке: пока идёт операция, ни одно её
-        // действие не начнётся вторым
+        // действие не начнётся вторым. Кнопкам его отдельно объявляет проп
+        // `busy` — свой курсор они ставят сами, и наследованием он не перекрылся
+        // бы
         cursor: progress;
-
-        // Перекрывает `default` временной недоступности: над обновляемой
-        // строкой честнее ожидание, чем отказ
-        .actionButton {
-            cursor: progress;
-        }
     }
 }
 
@@ -429,64 +414,6 @@ function handleDelete(): void {
 
     @media (hover: none) {
         opacity: 1;
-    }
-}
-
-.actionButton {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.8rem;
-    height: 2.8rem;
-    padding: 0;
-    border-radius: var(--bricks-border-radius-xs);
-    border: 1px solid var(--bricks-base-200);
-    background: var(--bricks-base-0);
-    font-size: 1.4rem;
-    color: var(--bricks-base-500);
-    transition:
-        color var(--bricks-default-transition),
-        border-color var(--bricks-default-transition),
-        background-color var(--bricks-default-transition);
-    cursor: pointer;
-
-    &:hover {
-        border-color: var(--bricks-base-300);
-        background: var(--bricks-base-50);
-        color: var(--bricks-base-900);
-    }
-
-    /* Кнопка гашена: запретом правила (постоянный, объяснён подсказкой) либо
-       занятостью раздела (доли секунды, снимается сама). Вид у двух причин
-       один: разной прозрачностью их всё равно не различить, а объясняет
-       причину подсказка. Выключенной кнопка не становится ни в одном из них —
-       выключенная выпала бы из обхода с клавиатуры и потеряла фокус посреди
-       запроса. */
-    &._muted {
-        opacity: 0.5;
-        cursor: default;
-
-        &:hover {
-            border-color: var(--bricks-base-200);
-            background: var(--bricks-base-0);
-            color: var(--bricks-base-500);
-        }
-    }
-
-    &--danger {
-        color: var(--bricks-danger-500);
-
-        &:hover {
-            border-color: var(--bricks-danger-500);
-            background: var(--bricks-danger-50);
-            color: var(--bricks-danger-600);
-        }
-
-        &._muted:hover {
-            border-color: var(--bricks-base-200);
-            background: var(--bricks-base-0);
-            color: var(--bricks-danger-500);
-        }
     }
 }
 </style>

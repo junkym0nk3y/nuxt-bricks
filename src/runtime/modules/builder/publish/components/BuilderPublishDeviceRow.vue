@@ -7,6 +7,7 @@ import type { IPublishDeviceRow } from '../types/devices';
 import { useI18n } from 'vue-i18n';
 
 // Components
+import BricksIconButton from '../../../ui/base/icon-button/BricksIconButton.vue';
 import BricksInput from '../../../ui/inputs/BricksInput.vue';
 import BuilderPublishDeviceIconPopover from './BuilderPublishDeviceIconPopover.vue';
 // #endregion
@@ -142,16 +143,16 @@ function handleRemove(): void {
         <span v-if="props.row.isLocked" :class="$style.lock" :title="t('bricks.devices.locked')">
             <BricksIcon icon="ta:outline-lock" />
         </span>
-        <button
+        <BricksIconButton
             v-else
-            type="button"
-            :class="$style.remove"
+            variant="ghost"
+            size="lg"
+            icon="ta:outline-x"
+            :label="t('bricks.devices.remove', { label: props.row.label })"
+            danger
             :disabled="props.disabled"
-            :aria-label="t('bricks.devices.remove', { label: props.row.label })"
             @click="handleRemove"
-        >
-            <BricksIcon icon="ta:outline-x" />
-        </button>
+        />
     </div>
 </template>
 
@@ -181,8 +182,7 @@ function handleRemove(): void {
     gap: 0.8rem;
 }
 
-.lock,
-.remove {
+.lock {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -193,21 +193,5 @@ function handleRemove(): void {
     // окружающего текста и болталась в центре 3.2rem-бокса мелкой точкой
     font-size: 1.6rem;
     color: var(--bricks-base-300);
-}
-
-.remove {
-    padding: 0;
-    border: none;
-    background: none;
-    transition: var(--bricks-default-transition);
-    cursor: pointer;
-
-    &:hover:not(:disabled) {
-        color: var(--bricks-danger-500);
-    }
-
-    &:disabled {
-        cursor: default;
-    }
 }
 </style>

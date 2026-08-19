@@ -11,6 +11,7 @@ import { useComponentsStore } from '../../../core/stores/components';
 // Components
 import BricksInput from '../../../../ui/inputs/BricksInput.vue';
 import BricksButton from '../../../../ui/base/button/BricksButton.vue';
+import BricksIconButton from '../../../../ui/base/icon-button/BricksIconButton.vue';
 // #endregion
 
 // #region Data
@@ -110,33 +111,34 @@ function handleMoveDown(index: number): void {
                     />
                 </div>
 
+                <!-- Подсказки уходят влево: колонка кнопок прижата к правому
+                     краю сайдбара, и снизу подсказка накрыла бы соседнюю
+                     кнопку той же колонки -->
                 <div :class="$style.itemActions">
-                    <button
-                        type="button"
-                        :class="$style.actionBtn"
+                    <BricksIconButton
+                        variant="ghost"
+                        icon="ta:outline-chevron-up"
+                        :label="t('bricks.publish.navigation.moveUp')"
                         :disabled="index === 0"
-                        :title="t('bricks.publish.navigation.moveUp')"
+                        tooltip-side="left"
                         @click="handleMoveUp(index)"
-                    >
-                        <BricksIcon icon="ta:outline-chevron-up" />
-                    </button>
-                    <button
-                        type="button"
-                        :class="$style.actionBtn"
+                    />
+                    <BricksIconButton
+                        variant="ghost"
+                        icon="ta:outline-chevron-down"
+                        :label="t('bricks.publish.navigation.moveDown')"
                         :disabled="index === items.length - 1"
-                        :title="t('bricks.publish.navigation.moveDown')"
+                        tooltip-side="left"
                         @click="handleMoveDown(index)"
-                    >
-                        <BricksIcon icon="ta:outline-chevron-down" />
-                    </button>
-                    <button
-                        type="button"
-                        :class="[$style.actionBtn, $style.actionBtnDanger]"
-                        :title="t('bricks.common.delete')"
+                    />
+                    <BricksIconButton
+                        variant="ghost"
+                        icon="ta:outline-trash"
+                        :label="t('bricks.common.delete')"
+                        danger
+                        tooltip-side="left"
                         @click="handleRemoveItem(item.id)"
-                    >
-                        <BricksIcon icon="ta:outline-trash" />
-                    </button>
+                    />
                 </div>
             </div>
         </div>
@@ -206,40 +208,5 @@ function handleMoveDown(index: number): void {
     flex-direction: column;
     gap: 0.4rem;
     flex-shrink: 0;
-}
-
-.actionBtn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.8rem;
-    height: 2.8rem;
-    padding: 0;
-    border-radius: var(--bricks-border-radius-sm);
-    border: none;
-    background: transparent;
-    font-size: 1.4rem;
-    color: var(--bricks-base-500);
-    transition:
-        background-color var(--bricks-default-transition),
-        color var(--bricks-default-transition);
-    cursor: pointer;
-
-    &:hover:not(:disabled) {
-        background-color: var(--bricks-base-100);
-        color: var(--bricks-base-700);
-    }
-
-    &:disabled {
-        opacity: 0.3;
-        cursor: not-allowed;
-    }
-}
-
-.actionBtnDanger {
-    &:hover:not(:disabled) {
-        background-color: rgb(239 68 68 / 10%);
-        color: var(--bricks-danger-500);
-    }
 }
 </style>

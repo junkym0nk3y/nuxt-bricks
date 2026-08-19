@@ -1112,7 +1112,8 @@
                 "generate": "Generate",
                 "role": "Role",
                 "roleHint": "The role is changed later right in the list row.",
-                "canSignIn": "Can sign in right away",
+                "canSignIn": "Allow signing in right away",
+                "canSignInHint": "Unchecked creates the account deactivated: it already has a username, a role and a password, but signing in is refused until someone opens it from the list row.",
                 "submit": "Create"
             },
             "passwordModal": {

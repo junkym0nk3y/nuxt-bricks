@@ -54,6 +54,7 @@ vi.mock('vue-i18n', () => ({
 }));
 // #endregion
 
+import BricksIconButton from '../../src/runtime/modules/ui/base/icon-button/BricksIconButton.vue';
 import BuilderUsersListRow from '../../src/runtime/modules/builder/users/components/BuilderUsersListRow.vue';
 
 /** Глобальная иконка билдера регистрируется плагином приложения — здесь заглушка. */
@@ -107,6 +108,27 @@ function findActionByIcon(wrapper: ReturnType<typeof mountRow>, icon: string) {
     return wrapper
         .findAll('button')
         .find((button) => button.find(`[data-icon="${icon}"]`).exists());
+}
+
+/**
+ * Кнопка-действие строки как компонент — нужна там, где проверяется не разметка,
+ * а то, что доехало до подсказки: содержимое подсказки живёт в портале и на
+ * закрытой кнопке не смонтировано вовсе.
+ *
+ * @param wrapper - Обёртка теста.
+ * @param icon - Ключ иконки.
+ * @returns Обёртка компонента кнопки.
+ */
+function findActionComponentByIcon(wrapper: ReturnType<typeof mountRow>, icon: string) {
+    const action = wrapper
+        .findAllComponents(BricksIconButton)
+        .find((button) => button.props('icon') === icon);
+
+    if (!action) {
+        throw new Error(`Кнопка с иконкой ${icon} в строке не найдена`);
+    }
+
+    return action;
 }
 
 /**
@@ -204,7 +226,15 @@ describe('BuilderUsersListRow: строка учётки', () => {
             // Не `disabled`: выключенная кнопка уносит из обхода клавиатуры
             // причину запрета, а она здесь и есть содержание
             expect(deactivate?.attributes('disabled')).toBeUndefined();
-            expect(deactivate?.attributes('title')).toBe('bricks.users.row.locks.lastAdmin');
+
+            // Причина уходит в подсказку, а доступным именем остаётся само
+            // действие — иначе кнопка перестаёт называть то, что делает
+            const deactivateAction = findActionComponentByIcon(wrapper, 'ta:outline-user-off');
+
+            expect(deactivateAction.props('hint')).toBe('bricks.users.row.locks.lastAdmin');
+            expect(deactivate?.attributes('aria-label')).toBe(
+                'bricks.users.row.deactivate:{"user":"anna.editor"}'
+            );
         });
     });
 

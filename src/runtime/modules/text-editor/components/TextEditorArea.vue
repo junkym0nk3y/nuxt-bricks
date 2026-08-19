@@ -12,9 +12,8 @@ import { useTextEditorArea } from '../composables/useTextEditorArea';
 
 // Components
 import BricksButton from '../../ui/base/button/BricksButton.vue';
+import BricksIconButton from '../../ui/base/icon-button/BricksIconButton.vue';
 import BricksTextEditorToolbar from '../../ui/inputs/BricksTextEditorToolbar.vue';
-import BricksTooltip from '../../ui/tooltip/BricksTooltip.vue';
-import BricksTooltipHint from '../../ui/tooltip/BricksTooltipHint.vue';
 
 const TheTextEditorModal = defineAsyncComponent(() => import('./TheTextEditorModal.vue'));
 const TextEditorLinkModal = defineAsyncComponent(() => import('./TextEditorLinkModal.vue'));
@@ -157,36 +156,23 @@ function handleModalClose(): void {
 
                     <TextEditorImageFloatPopover :editor="editor" />
 
-                    <BricksTooltip bottom :class="$style.expandButtonWrapper">
-                        <template #activator>
-                            <button
-                                type="button"
-                                :class="$style.expandButton"
-                                :disabled="props.disabled"
-                                @click="isExpandedModalOpen = true"
-                            >
-                                <BricksIcon icon="ph:arrows-out" />
-                            </button>
-                        </template>
-                        <BricksTooltipHint :text="t('bricks.textEditor.expand')" />
-                    </BricksTooltip>
+                    <BricksIconButton
+                        :class="$style.expandButtonWrapper"
+                        icon="ph:arrows-out"
+                        :label="t('bricks.textEditor.expand')"
+                        :disabled="props.disabled"
+                        @click="isExpandedModalOpen = true"
+                    />
 
-                    <BricksTooltip top :class="$style.backgroundToggleWrapper">
-                        <template #activator>
-                            <button
-                                type="button"
-                                :class="[
-                                    $style.backgroundToggleButton,
-                                    { [$style._active]: isDarkEditorBackground },
-                                ]"
-                                :disabled="props.disabled"
-                                @click="toggleEditorBackground"
-                            >
-                                <BricksIcon icon="ph:circle-half-tilt" />
-                            </button>
-                        </template>
-                        <BricksTooltipHint :text="t('bricks.textEditor.toolbar.darkBackground')" />
-                    </BricksTooltip>
+                    <BricksIconButton
+                        :class="$style.backgroundToggleWrapper"
+                        icon="ph:circle-half-tilt"
+                        :label="t('bricks.textEditor.toolbar.darkBackground')"
+                        :active="isDarkEditorBackground"
+                        :disabled="props.disabled"
+                        tooltip-side="top"
+                        @click="toggleEditorBackground"
+                    />
                 </div>
                 <div v-else :class="editorWrapperClasses">
                     <textarea
@@ -200,19 +186,13 @@ function handleModalClose(): void {
                     >
                     </textarea>
 
-                    <BricksTooltip bottom :class="$style.expandButtonWrapper">
-                        <template #activator>
-                            <button
-                                type="button"
-                                :class="$style.expandButton"
-                                :disabled="props.disabled"
-                                @click="isExpandedModalOpen = true"
-                            >
-                                <BricksIcon icon="ph:arrows-out" />
-                            </button>
-                        </template>
-                        <BricksTooltipHint :text="t('bricks.textEditor.expand')" />
-                    </BricksTooltip>
+                    <BricksIconButton
+                        :class="$style.expandButtonWrapper"
+                        icon="ph:arrows-out"
+                        :label="t('bricks.textEditor.expand')"
+                        :disabled="props.disabled"
+                        @click="isExpandedModalOpen = true"
+                    />
                 </div>
             </transition>
         </template>
@@ -411,32 +391,6 @@ function handleModalClose(): void {
     }
 }
 
-.expandButton {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.8rem;
-    height: 2.8rem;
-    border-radius: var(--bricks-border-radius-xs);
-    border: 1px solid var(--bricks-base-200);
-    background: var(--bricks-base-0);
-    color: var(--bricks-base-500);
-    transition:
-        border-color var(--bricks-default-transition),
-        color var(--bricks-default-transition);
-    cursor: pointer;
-
-    svg {
-        width: 1.4rem;
-        height: 1.4rem;
-    }
-
-    &:hover {
-        border-color: var(--bricks-primary);
-        color: var(--bricks-primary);
-    }
-}
-
 .backgroundToggleWrapper {
     position: absolute;
     right: 0.4rem;
@@ -446,39 +400,6 @@ function handleModalClose(): void {
 
     .editorWrapper:hover & {
         opacity: 1;
-    }
-}
-
-.backgroundToggleButton {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.8rem;
-    height: 2.8rem;
-    border-radius: var(--bricks-border-radius-xs);
-    border: 1px solid var(--bricks-base-200);
-    background: var(--bricks-base-0);
-    color: var(--bricks-base-500);
-    transition:
-        border-color var(--bricks-default-transition),
-        background var(--bricks-default-transition),
-        color var(--bricks-default-transition);
-    cursor: pointer;
-
-    svg {
-        width: 1.4rem;
-        height: 1.4rem;
-    }
-
-    &:hover {
-        border-color: var(--bricks-primary);
-        color: var(--bricks-primary);
-    }
-
-    &._active {
-        border-color: var(--bricks-primary);
-        background: var(--bricks-primary);
-        color: #fff;
     }
 }
 </style>

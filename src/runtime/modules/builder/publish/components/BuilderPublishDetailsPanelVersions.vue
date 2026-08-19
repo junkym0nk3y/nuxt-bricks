@@ -21,8 +21,7 @@ import { usePublishPageVersions } from '../composables/usePublishPageVersions';
 import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
 
 // Components
-import BricksTooltip from '../../../ui/tooltip/BricksTooltip.vue';
-import BricksTooltipHint from '../../../ui/tooltip/BricksTooltipHint.vue';
+import BricksIconButton from '../../../ui/base/icon-button/BricksIconButton.vue';
 // #endregion
 
 // #region Props
@@ -206,49 +205,26 @@ watch(
                             {{ t('bricks.publish.dashboard.details.versions.current') }}
                         </span>
 
-                        <!-- Подпись действий — тултип кита, а не нативный
-                             `title`: стрелка «восстановить» без подписи
-                             читается как «отменить», а цена ошибки здесь —
-                             перезаписанное содержимое страницы. `aria-label`
-                             остаётся: содержимое тултипа уезжает в портал и
-                             доступным именем кнопки не становится -->
+                        <!-- Подписи обязательны, а не желательны: стрелка
+                             «восстановить» без подписи читается как «отменить»,
+                             а цена ошибки здесь — перезаписанное содержимое
+                             страницы -->
                         <div v-if="card.version" :class="$style.actions">
-                            <BricksTooltip bottom>
-                                <template #activator>
-                                    <button
-                                        :class="$style.actionButton"
-                                        type="button"
-                                        :aria-label="
-                                            t('bricks.publish.dashboard.details.versions.preview')
-                                        "
-                                        @click="handlePreview(card.version)"
-                                    >
-                                        <BricksIcon icon="ta:outline-eye" />
-                                    </button>
-                                </template>
-                                <BricksTooltipHint
-                                    :text="t('bricks.publish.dashboard.details.versions.preview')"
-                                />
-                            </BricksTooltip>
+                            <BricksIconButton
+                                variant="overlay"
+                                icon="ta:outline-eye"
+                                :label="t('bricks.publish.dashboard.details.versions.preview')"
+                                @click="handlePreview(card.version)"
+                            />
 
                             <!-- Восстановление версии — правка страницы: только редактору и выше -->
-                            <BricksTooltip v-if="canEdit" bottom>
-                                <template #activator>
-                                    <button
-                                        :class="$style.actionButton"
-                                        type="button"
-                                        :aria-label="
-                                            t('bricks.publish.dashboard.details.versions.restore')
-                                        "
-                                        @click="handleRestore(card.version)"
-                                    >
-                                        <BricksIcon icon="ta:outline-arrow-back-up" />
-                                    </button>
-                                </template>
-                                <BricksTooltipHint
-                                    :text="t('bricks.publish.dashboard.details.versions.restore')"
-                                />
-                            </BricksTooltip>
+                            <BricksIconButton
+                                v-if="canEdit"
+                                variant="overlay"
+                                icon="ta:outline-arrow-back-up"
+                                :label="t('bricks.publish.dashboard.details.versions.restore')"
+                                @click="handleRestore(card.version)"
+                            />
                         </div>
                     </div>
 
@@ -418,35 +394,6 @@ watch(
 .card:hover .placeholder,
 .card:focus-within .placeholder {
     opacity: 0;
-}
-
-.actionButton {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    width: 2.8rem;
-    height: 2.8rem;
-    padding: 0;
-    border-radius: var(--bricks-border-radius-xs);
-    border: none;
-    background: transparent;
-    font-size: 1.8rem;
-
-    // Кнопки лежат на тёмной вуали в обеих темах — цвет статичный,
-    // `base-900` в тёмной теме стал бы почти белым на почти белом
-    color: var(--bricks-static-white);
-    transition: background-color var(--bricks-default-transition);
-    cursor: pointer;
-
-    &:hover:not(:disabled) {
-        background: var(--bricks-overlay-light);
-    }
-
-    &:disabled {
-        opacity: 0.5;
-        cursor: default;
-    }
 }
 
 .date {

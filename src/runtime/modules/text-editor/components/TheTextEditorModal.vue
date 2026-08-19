@@ -21,6 +21,7 @@ import { useInlineEditingStore } from '../stores/inlineEditing';
 // Components
 import BricksButton from '../../ui/base/button/BricksButton.vue';
 import BricksCloseButton from '../../ui/base/modal/BricksCloseButton.vue';
+import BricksIconButton from '../../ui/base/icon-button/BricksIconButton.vue';
 import BricksModal from '../../ui/base/modal/BricksModal.vue';
 import BricksTextEditorToolbar from '../../ui/inputs/BricksTextEditorToolbar.vue';
 import TextEditorImageFloatPopover from './TextEditorImageFloatPopover.vue';
@@ -259,19 +260,16 @@ onBeforeUnmount(() => {
                     </div>
                 </transition>
 
-                <button
+                <BricksIconButton
                     v-if="!isCodeView"
-                    type="button"
-                    :title="t('bricks.textEditor.toolbar.darkBackground')"
-                    :class="[
-                        $style.backgroundToggleButton,
-                        { [$style._active]: isDarkEditorBackground },
-                    ]"
+                    :class="$style.backgroundToggleWrapper"
+                    icon="ph:circle-half-tilt"
+                    :label="t('bricks.textEditor.toolbar.darkBackground')"
+                    :active="isDarkEditorBackground"
                     :disabled="props.disabled"
+                    tooltip-side="top"
                     @click="toggleEditorBackground"
-                >
-                    <BricksIcon icon="ph:circle-half-tilt" />
-                </button>
+                />
             </div>
 
             <!-- Форма ссылки поверх развёрнутого редактора -->
@@ -350,40 +348,12 @@ onBeforeUnmount(() => {
     min-height: 0;
 }
 
-.backgroundToggleButton {
+/* Позиционируется обёртка, а не сама кнопка: внешние атрибуты
+   `BricksIconButton` достаются обёртке тултипа — она и стоит в потоке. */
+.backgroundToggleWrapper {
     position: absolute;
     right: 1.2rem;
     bottom: 1.2rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.8rem;
-    height: 2.8rem;
-    border-radius: var(--bricks-border-radius-xs);
-    border: 1px solid var(--bricks-base-200);
-    background: var(--bricks-base-0);
-    color: var(--bricks-base-500);
-    transition:
-        border-color var(--bricks-default-transition),
-        background var(--bricks-default-transition),
-        color var(--bricks-default-transition);
-    cursor: pointer;
-
-    svg {
-        width: 1.4rem;
-        height: 1.4rem;
-    }
-
-    &:hover {
-        border-color: var(--bricks-primary);
-        color: var(--bricks-primary);
-    }
-
-    &._active {
-        border-color: var(--bricks-primary);
-        background: var(--bricks-primary);
-        color: #fff;
-    }
 }
 
 .editorWrapper {

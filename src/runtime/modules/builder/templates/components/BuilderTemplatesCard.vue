@@ -27,6 +27,7 @@ import { useBuilderPermissions } from '../../core/composables/useBuilderPermissi
 
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
+import BricksIconButton from '../../../ui/base/icon-button/BricksIconButton.vue';
 // #endregion
 
 // #region Props
@@ -145,41 +146,30 @@ function handleDelete(): void {
                 <span :class="$style.metaText">{{ metaLine }}</span>
 
                 <div :class="$style.actions" @click.stop>
-                    <button
-                        :class="$style.actionButton"
-                        type="button"
-                        :title="t('bricks.templates.card.preview')"
-                        :aria-label="t('bricks.templates.card.preview')"
+                    <BricksIconButton
+                        icon="ph:eye"
+                        :label="t('bricks.templates.card.preview')"
                         @click="handlePreviewThumbnail"
-                    >
-                        <BricksIcon icon="ph:eye" />
-                    </button>
+                    />
 
                     <!-- Правка подписи — запись: наблюдателю ручка откажет -->
-                    <button
+                    <BricksIconButton
                         v-if="canEdit"
-                        :class="$style.actionButton"
-                        type="button"
+                        icon="ta:outline-pencil"
+                        :label="t('bricks.templates.card.rename')"
                         :disabled="props.isPending"
-                        :title="t('bricks.templates.card.rename')"
-                        :aria-label="t('bricks.templates.card.rename')"
                         @click="handleRename"
-                    >
-                        <BricksIcon icon="ta:outline-pencil" />
-                    </button>
+                    />
 
                     <!-- Удаление — только администратору, как и у страницы -->
-                    <button
+                    <BricksIconButton
                         v-if="canDelete"
-                        :class="[$style.actionButton, $style['actionButton--danger']]"
-                        type="button"
+                        icon="ta:outline-trash"
+                        :label="t('bricks.templates.card.delete')"
+                        danger
                         :disabled="props.isPending"
-                        :title="t('bricks.templates.card.delete')"
-                        :aria-label="t('bricks.templates.card.delete')"
                         @click="handleDelete"
-                    >
-                        <BricksIcon icon="ta:outline-trash" />
-                    </button>
+                    />
                 </div>
             </div>
         </div>
@@ -308,45 +298,5 @@ function handleDelete(): void {
     opacity: 0;
     pointer-events: none;
     transition: opacity var(--bricks-default-transition);
-}
-
-.actionButton {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.8rem;
-    height: 2.8rem;
-    padding: 0;
-    border-radius: var(--bricks-border-radius-xs);
-    border: 1px solid var(--bricks-base-200);
-    background: var(--bricks-base-0);
-    font-size: 1.4rem;
-    color: var(--bricks-base-500);
-    transition:
-        color var(--bricks-default-transition),
-        border-color var(--bricks-default-transition),
-        background-color var(--bricks-default-transition);
-    cursor: pointer;
-
-    &:hover {
-        border-color: var(--bricks-base-300);
-        background: var(--bricks-base-50);
-        color: var(--bricks-base-900);
-    }
-
-    &:disabled {
-        opacity: 0.5;
-        cursor: default;
-    }
-
-    &--danger {
-        color: var(--bricks-danger-500);
-
-        &:hover {
-            border-color: var(--bricks-danger-500);
-            background: var(--bricks-danger-50);
-            color: var(--bricks-danger-600);
-        }
-    }
 }
 </style>
