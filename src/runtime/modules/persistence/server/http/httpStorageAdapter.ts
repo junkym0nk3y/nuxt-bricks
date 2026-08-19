@@ -1,7 +1,7 @@
 /**
  * HTTP-реализация IStorageAdapter поверх пользовательского backend
- * (`bricks.backend.mode = 'external'`): страницы, версии и media metadata
- * живут на external-сервере, файлы (S3), sharp и browser-facing
+ * (`bricks.backend.mode = 'external'`): страницы, версии, шаблоны и media
+ * metadata живут на external-сервере, файлы (S3), sharp и browser-facing
  * `/api/bricks/**` остаются локальными.
  *
  * Контракт ручек external backend — зеркало локальной структуры
@@ -21,6 +21,7 @@ import {
     normalizeRows,
 } from './httpAdapterHelpers';
 import { createHttpMediaMethods } from './httpMediaMethods';
+import { createHttpTemplateMethods } from './httpTemplateMethods';
 import { getPageAddressKey } from '../../../common/utils/bricks/pageAddress';
 import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 import { PAGE_CONFLICT_CODES } from '../../../common/constants/publish';
@@ -249,5 +250,6 @@ export function createHttpStorageAdapter(options: IHttpStorageAdapterOptions): I
         },
 
         ...createHttpMediaMethods(client),
+        ...createHttpTemplateMethods(client),
     };
 }

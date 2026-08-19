@@ -17,6 +17,8 @@ import type { TCachedModal } from '../../core/types/modals';
 import type { IBrickManifestEntry } from '../../../common/types/brickManifest';
 import type { ISkippedBrick } from '../../core/types/componentLibrary';
 import type { IDraftStorageNotice } from './draftStorage';
+import type { TBricksTemplateSummary } from '../../../common/types/templates';
+import type { ITemplateSaveSource } from '../../templates/types/templates';
 
 /**
  * Функция показа toast-уведомления билдера.
@@ -380,5 +382,32 @@ export interface IUseBuilderPageSelectorReturn {
     handleOpenCreatePage: () => void;
     handleCloseCreatePage: () => void;
     handlePageCreated: (address: IBricksPageAddress) => Promise<void>;
+}
+// #endregion
+
+// #region useBuilderTemplateSave
+/**
+ * Опции composable useBuilderTemplateSave.
+ */
+export interface IUseBuilderTemplateSaveOptions {
+    /** Сессия открыта до согласованного состояния: до этого канвас пуст. */
+    isSessionReady: Ref<boolean> | ComputedRef<boolean>;
+    showToast: TShowToast;
+}
+
+/**
+ * Возвращаемое значение composable useBuilderTemplateSave.
+ */
+export interface IUseBuilderTemplateSaveReturn {
+    /** Содержимое будущего шаблона и подпись его источника; `null` — не собрано. */
+    source: ComputedRef<ITemplateSaveSource | null>;
+    isModalOpen: ComputedRef<boolean>;
+    /** Форму уже открывали — с этого момента её чанк смонтирован. */
+    shouldMountModal: ComputedRef<boolean>;
+    /** Собирает источник из канваса и открывает форму шаблона. */
+    requestFromCanvas: () => void;
+    close: () => void;
+    /** Шаблон сохранён: закрыть форму и показать тост. */
+    handleSaved: (template: TBricksTemplateSummary) => void;
 }
 // #endregion

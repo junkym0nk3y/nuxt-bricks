@@ -206,6 +206,7 @@ function onViewLeave(element: Element): void {
             <BuilderPublishDashboardNav
                 :active-section="props.activeSection"
                 :pages-count="props.pagesCount"
+                :templates-count="props.templatesCount"
                 :users-count="props.usersCount"
                 :is-users-section-visible="props.isUsersSectionVisible"
                 :locale="locale"
@@ -258,19 +259,13 @@ function onViewLeave(element: Element): void {
                         <slot name="users" />
                     </div>
 
-                    <div v-else key="templates" :class="$style.templatesEmpty">
-                        <div :class="$style.emptyIconCircle">
-                            <BricksIcon icon="ta:outline-package" :class="$style.emptyIcon" />
-                        </div>
-                        <h2 :class="$style.emptyTitle">
-                            {{ t('bricks.publish.dashboard.templates.emptyTitle') }}
-                        </h2>
-                        <p :class="$style.emptyDescription">
-                            {{ t('bricks.publish.dashboard.templates.emptyDescription') }}
-                        </p>
-                        <BricksButton size="md" variant="secondary" disabled>
-                            {{ t('bricks.publish.dashboard.templates.saveCurrent') }}
-                        </BricksButton>
+                    <!--
+                        Раздел шаблонов — своя сетка на всю ширину: панели деталей
+                        у шаблона нет, разворачивать сбоку нечего (карточка и есть
+                        всё, что о нём известно)
+                    -->
+                    <div v-else key="templates" :class="$style.listArea">
+                        <slot name="templates" />
                     </div>
                 </Transition>
             </main>
@@ -361,47 +356,5 @@ function onViewLeave(element: Element): void {
     border-left: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
     flex-direction: column;
-}
-
-.templatesEmpty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
-    flex-direction: column;
-    gap: 0.8rem;
-    padding: 2.4rem;
-}
-
-.emptyIconCircle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 6.4rem;
-    height: 6.4rem;
-    margin-bottom: 1.2rem;
-    border-radius: 50%;
-    background: var(--bricks-base-100);
-}
-
-.emptyIcon {
-    width: 2.8rem;
-    height: 2.8rem;
-    color: var(--bricks-base-400);
-}
-
-.emptyTitle {
-    margin: 0;
-    font-size: 1.6rem;
-    font-weight: 700;
-    color: var(--bricks-base-900);
-}
-
-.emptyDescription {
-    max-width: 32rem;
-    margin: 0 0 1.6rem;
-    text-align: center;
-    font-size: 1.4rem;
-    color: var(--bricks-base-500);
 }
 </style>

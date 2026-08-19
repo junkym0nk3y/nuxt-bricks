@@ -8,6 +8,7 @@ import type { IPageVersionSummary, TPublishedPageSummary } from '../../../common
 import type { IBricksComponent, IBricksSchema } from '../../../common/types/brick';
 import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 import type { IParsedSchemaFile } from './composables';
+import type { TBricksTemplateSummary } from '../../../common/types/templates';
 
 export type TPublishDashboardSection = 'pages' | 'templates' | 'users';
 
@@ -23,6 +24,12 @@ export interface IPublishDashboardProps {
     activeSection: TPublishDashboardSection;
     searchQuery: string;
     pagesCount: number;
+    /**
+     * Число шаблонов для счётчика рейла; `null` — список ещё не прочитан.
+     * Ноль здесь — законное значение (шаблонов может не быть вовсе), поэтому
+     * состояние загрузки отличается от нуля именно `null`.
+     */
+    templatesCount: number | null;
     /**
      * Число учёток для счётчика рейла; `null` — список ещё не прочитан, и
      * счётчик не рисуется вовсе: ноль во время загрузки читался бы как «учёток
@@ -57,6 +64,8 @@ export interface IPublishDashboardEmits {
 export interface IPublishDashboardNavProps {
     activeSection: TPublishDashboardSection;
     pagesCount: number;
+    /** Число шаблонов; `null` — не прочитано, счётчик скрыт. */
+    templatesCount: number | null;
     /** Число учёток; `null` — не прочитано, счётчик скрыт. */
     usersCount: number | null;
     /** Раздел «Пользователи» доступен: есть права и ручки отвечают. */
@@ -80,6 +89,12 @@ export interface IPublishPagesListProps {
     isLoading: boolean;
     hasAnyPages: boolean;
     duplicatingPageId: string | null;
+    /**
+     * Страница, чью схему читают для сохранения шаблона; `null` — свободны все.
+     * Строка при этом ждёт: сводка списка схему не несёт, и до её чтения формы
+     * шаблона показывать нечего.
+     */
+    templateSourcePageId: string | null;
     selectedPageId: string | null;
 }
 
@@ -91,12 +106,16 @@ export interface IPublishPagesListEmits {
     edit: [page: TPublishedPageSummary];
     preview: [page: TPublishedPageSummary];
     duplicate: [page: TPublishedPageSummary];
+    /** Сохранить страницу как шаблон: схему читает и форму открывает хост. */
+    'save-as-template': [page: TPublishedPageSummary];
     delete: [page: TPublishedPageSummary];
 }
 
 export interface IPublishPagesListRowProps {
     page: TPublishedPageSummary;
     isDuplicating?: boolean;
+    /** Идёт подготовка шаблона из этой страницы (чтение её схемы). */
+    isPreparingTemplate?: boolean;
     isSelected?: boolean;
 }
 
@@ -106,6 +125,7 @@ export interface IPublishPagesListRowEmits {
     edit: [page: TPublishedPageSummary];
     preview: [page: TPublishedPageSummary];
     duplicate: [page: TPublishedPageSummary];
+    'save-as-template': [page: TPublishedPageSummary];
     delete: [page: TPublishedPageSummary];
 }
 
@@ -153,6 +173,21 @@ export interface IPublishCreatePageFormOptions {
      * его состояние живёт рядом с ней, а не в схеме валидации meta-полей.
      */
     resolveViewportConfig?: () => TBricksPageDeviceSet | null;
+    /**
+     * Отдаёт оформление новой страницы (раскладка и фон) — им наполняет форму
+     * выбранный шаблон. `null` — оформление по умолчанию.
+     *
+     * Отдельно от набора устройств: набор правится своей модалкой и живёт в форме
+     * независимо от источника содержимого, а раскладка с фоном приходят только из
+     * шаблона и в форме не редактируются вовсе.
+     */
+    resolveAppearance?: () => IPublishCreatePageAppearance | null;
+}
+
+/** Оформление страницы, приходящее из шаблона в форму создания. */
+export interface IPublishCreatePageAppearance {
+    layout: string | null;
+    backgroundColor: string | null;
 }
 
 /**
@@ -166,6 +201,12 @@ export type TResolveImportedSchema = (schema: IBricksSchema) => Promise<IBricksS
 
 export interface IPublishCreatePageModalProps {
     isOpen: boolean;
+    /**
+     * Шаблон, выбранный источником заранее (форму открыла карточка шаблона);
+     * `null` — источник выбирают в самой форме. Необязателен: билдер открывает ту
+     * же форму без раздела шаблонов рядом, и предвыбирать ему нечем.
+     */
+    initialTemplate?: TBricksTemplateSummary | null;
     resolveImportedSchema: TResolveImportedSchema;
 }
 
@@ -262,6 +303,8 @@ export interface IPublishCreatePageStartOptionsProps {
     source: TPublishCreatePageSource;
     /** Разобранный JSON-файл, выбранный как источник (ждёт сабмита). */
     selectedFile: IParsedSchemaFile | null;
+    /** Выбранный шаблон-источник; `null` — не выбран. */
+    selectedTemplate: TBricksTemplateSummary | null;
     error: string;
     isSubmitting: boolean;
 }
@@ -270,6 +313,10 @@ export interface IPublishCreatePageStartOptionsEmits {
     'select-blank': [];
     'pick-file': [];
     'clear-file': [];
+    /** Клик по карточке «Из шаблона»: открыть выбор шаблона. */
+    'pick-template': [];
+    /** Снять выбранный шаблон — источник вернётся к пустой странице. */
+    'clear-template': [];
 }
 
 /**

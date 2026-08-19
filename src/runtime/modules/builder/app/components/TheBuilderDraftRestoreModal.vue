@@ -7,7 +7,7 @@ import type {
 } from '../types/builder';
 
 // Utils
-import { formatPageDateTime } from '../../publish/utils/dates';
+import { formatPageDateTime } from '../../../common/utils/bricks/dates';
 
 // Vue
 import { computed } from 'vue';

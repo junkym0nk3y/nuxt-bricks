@@ -248,6 +248,54 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_bricks_media_url ON bricks_media(url);
 CREATE INDEX IF NOT EXISTS idx_bricks_media_category ON bricks_media(category);
 CREATE INDEX IF NOT EXISTS idx_bricks_media_uploaded_at ON bricks_media(uploaded_at DESC);
 
+-- Шаблоны страниц: отпечаток готовой страницы, из которого рождаются новые.
+--
+-- Отпечаток, а НЕ источник наследования: связи с созданными страницами нет,
+-- правка шаблона задним числом ничего в них не меняет. Обратное потребовало бы
+-- версий шаблона и разрешения конфликтов при правке страницы — цена, которой
+-- фича не стоит.
+--
+-- Что уходит в шаблон: содержимое (`schema`) и оформление страницы
+-- (`page_meta` — layout, фон, набор устройств). Адрес (`pagename`,
+-- `url_prefix`, `subdomain`), SEO-поля, OG-картинка и статус публикации
+-- остаются у страницы: две страницы из одного шаблона иначе родились бы с
+-- одинаковым адресом, то есть отказом уникального индекса адреса.
+--
+-- `page_meta` — один JSONB, а не три колонки: набор полей оформления меняется
+-- вместе с формой страницы, и каждое такое изменение стоило бы миграции обеим
+-- таблицам. Ключи внутри — те же camelCase, что у полей страницы на клиенте
+-- (`layout`, `backgroundColor`, `viewportConfig`).
+CREATE TABLE IF NOT EXISTS bricks_templates (
+    id SERIAL PRIMARY KEY,
+    -- Имя уникально: оно и есть то, чем шаблон опознают в списке и в выборе
+    -- источника новой страницы. Регистр значим (в отличие от логина учётки):
+    -- «Лендинг» и «лендинг» человек различает глазами, а нижний регистр в
+    -- индексе запретил бы вторую подпись, отличающуюся только заглавной буквой.
+    name VARCHAR(255) UNIQUE NOT NULL,
+    description TEXT,
+    -- Свой файл превью, скопированный при создании шаблона из кадра страницы, а
+    -- не ссылка на кадр страницы. Кадры страницы живут по её keep-list'у
+    -- (страница + её версии, см. pageThumbnails.ts): чужая ссылка на такой файл
+    -- уборке невидима, и первое же сохранение страницы оставило бы шаблон с
+    -- битой картинкой. NULL — снимка нет (страницу ни разу не сохраняли, копия
+    -- файла не удалась): карточка рисует плейсхолдер.
+    thumbnail_url TEXT,
+    schema JSONB NOT NULL,
+    page_meta JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Сетка шаблонов сортируется по дате СОЗДАНИЯ, а не обновления: переименование
+-- шаблона не должно перебрасывать карточку в начало списка.
+CREATE INDEX IF NOT EXISTS idx_bricks_templates_created_at ON bricks_templates(created_at DESC);
+
+DROP TRIGGER IF EXISTS update_bricks_templates_updated_at ON bricks_templates;
+CREATE TRIGGER update_bricks_templates_updated_at
+    BEFORE UPDATE ON bricks_templates
+    FOR EACH ROW
+    EXECUTE FUNCTION bricks_update_updated_at_column();
+
 -- Дефолтный администратор свежей базы: `admin` / `bricks-pass`.
 --
 -- Учётка нужна, чтобы database-режим вообще можно было открыть: ручка создания

@@ -41,7 +41,8 @@
                 "createPage": "Create page",
                 "replaced": "The page /{pagename} was replaced elsewhere. Reload the editor to open the new version — unsaved changes to the current one will be gone.",
                 "created": "Page /{pagename} created"
-            }
+            },
+            "saveTemplate": "Save as template"
         },
         "nav": {
             "library": "Components",
@@ -258,11 +259,6 @@
                     "templates": "Search templates...",
                     "users": "Search by name..."
                 },
-                "templates": {
-                    "emptyTitle": "No templates yet",
-                    "emptyDescription": "Save finished pages as templates to build new ones faster",
-                    "saveCurrent": "Save current page as a template"
-                },
                 "filters": {
                     "all": "All",
                     "published": "Published",
@@ -275,7 +271,8 @@
                     "preview": "Preview",
                     "duplicate": "Duplicate",
                     "delete": "Delete",
-                    "thumbnailPreview": "Open page preview"
+                    "thumbnailPreview": "Open page preview",
+                    "saveAsTemplate": "Save as template"
                 },
                 "empty": {
                     "title": "No pages yet",
@@ -349,7 +346,7 @@
                     "blankTitle": "Blank page",
                     "blankDescription": "A clean canvas with no blocks",
                     "templateTitle": "From a template",
-                    "templateDescription": "Coming soon — save pages as templates",
+                    "templateDescription": "A copy of a saved template",
                     "fileTitle": "From a JSON file",
                     "fileDescription": "Upload a ready-made schema",
                     "fileBlocks": "Blocks: {count}",
@@ -1173,6 +1170,76 @@
                 "createReconcileFailed": "No answer in time and the list could not be refreshed. The request may still be running. Do not submit the form again now — refresh the list later",
                 "createOutcomeUnknown": "No answer in time. An account with this username is visible in the list, but it cannot be linked to this request. Do not create it again — inspect the account",
                 "actionFailed": "The action failed. Try again"
+            }
+        },
+        "templates": {
+            "summary": {
+                "count": "Templates: {count}",
+                "lastSaved": "last saved {date}"
+            },
+            "card": {
+                "blocks": "Blocks: {count}",
+                "createPage": "Create page",
+                "preview": "View",
+                "rename": "Edit name and description",
+                "delete": "Delete template"
+            },
+            "empty": {
+                "title": "No templates yet",
+                "description": "Open any page and choose “Save as template” — or save it right from the pages list",
+                "action": "Go to pages"
+            },
+            "notFound": {
+                "title": "Nothing found",
+                "description": "Try changing the search query"
+            },
+            "loadFailed": "Failed to load templates",
+            "retry": "Retry",
+            "deleteConfirm": {
+                "title": "Delete template?",
+                "description": "Template “{name}” will be deleted. Pages created from it stay unchanged."
+            },
+            "saveModal": {
+                "title": "Save as template",
+                "nameLabel": "Template name",
+                "descriptionLabel": "Description",
+                "descriptionPlaceholder": "What the template is made of — briefly",
+                "contentHint": "The template keeps the page content and its appearance: blocks, layout, background and device set. Address, SEO fields and publication status are not copied — you set them when creating a page. From the builder it takes what is on the canvas right now, unsaved edits included, while the thumbnail comes from the last save.",
+                "pageUpdated": "updated {date}",
+                "pageUnsaved": "page is not saved yet",
+                "submit": "Save template"
+            },
+            "renameModal": {
+                "title": "Template name and description"
+            },
+            "picker": {
+                "title": "Choose a template",
+                "empty": "No templates yet: save the first one from a finished page"
+            },
+            "toasts": {
+                "saved": "Template “{name}” saved",
+                "renamed": "Template “{name}” updated",
+                "deleted": "Template “{name}” deleted"
+            },
+            "validation": {
+                "nameRequired": "Enter the template name",
+                "nameTooShort": "At least {min} characters",
+                "nameTooLong": "At most {max} characters",
+                "descriptionTooLong": "At most {max} characters"
+            },
+            "errors": {
+                "nameTaken": "A template with this name already exists",
+                "actionFailed": "Failed to complete the template operation",
+                "timeout": "The server did not confirm the operation in time: it may have completed. Refresh the list before retrying",
+                "templateGone": "Template not found: it may have been deleted already",
+                "insufficientRole": "Not enough permissions for this operation",
+                "tooLarge": "The page is too large for a template",
+                "serverBusy": "The server is busy, try again later",
+                "saveOutcomeUnknown": "The server did not confirm the save in time: the template may have been saved. Check the section before retrying",
+                "renameOutcomeUnknown": "The server did not confirm the change in time: it may have been applied. Check the section before retrying",
+                "deleteOutcomeUnknown": "The server did not confirm the deletion in time: the template may be gone. Check the section",
+                "sourceReadFailed": "Failed to read the page content for a template",
+                "contentReadFailed": "Failed to read the template content"
             }
         }
     }

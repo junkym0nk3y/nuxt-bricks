@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 
 // Utils
-import { formatPageDate } from '../../src/runtime/modules/builder/publish/utils/dates';
+import { formatPageDate } from '../../src/runtime/modules/common/utils/bricks/dates';
 // #endregion
 
 describe('formatPageDate: дата строки списка и панели деталей', () => {

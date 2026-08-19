@@ -1,6 +1,6 @@
 /**
  * Правила слоистости доменов src/runtime/modules/ (см. CLAUDE.md → «Направления зависимостей»).
- * Структура 2026-06-12: builder/{app,core,shell,canvas,publish,documentation,media},
+ * Структура 2026-06-12: builder/{app,core,shell,canvas,publish,documentation,media,users,auth,templates},
  * text-editor, render, layouts-blocks, persistence, ui, common.
  * builder/app — composition root, ограничений не имеет (кроме глобальных правил).
  */
@@ -108,12 +108,14 @@ module.exports = {
             // pages-manager-плана), поэтому media/documentation разрешены.
             // `builder/users` — раздел «Пользователи» того же дашборда: он живёт
             // отдельным поддоменом (управление учётками — не публикация), а
-            // хостом ему остаётся дашборд
+            // хостом ему остаётся дашборд. `builder/templates` — так же: раздел
+            // «Шаблоны» плюс выбор шаблона в форме создания страницы, и
+            // направление у пары одно (publish → templates)
             name: 'builder-publish-deps',
             severity: 'error',
             from: { path: `^${M}/builder/publish` },
             to: {
-                path: `^${M}/(?!builder/publish|builder/core|builder/media|builder/documentation|builder/auth|builder/users|ui|common)`,
+                path: `^${M}/(?!builder/publish|builder/core|builder/media|builder/documentation|builder/auth|builder/users|builder/templates|ui|common)`,
             },
         },
         {
@@ -127,6 +129,17 @@ module.exports = {
             severity: 'error',
             from: { path: `^${M}/builder/users` },
             to: { path: `^${M}/(?!builder/users|builder/core|ui|common)` },
+        },
+        {
+            // templates — раздел шаблонов дашборда: читает права из core, всё
+            // остальное берёт из кита и common. `publish` в список НЕ входит:
+            // страницу из шаблона создаёт форма домена публикации, и знание о ней
+            // здесь дало бы цикл publish↔templates. Схему страницы-источника
+            // собирает вызывающий и передаёт значением
+            name: 'builder-templates-deps',
+            severity: 'error',
+            from: { path: `^${M}/builder/templates` },
+            to: { path: `^${M}/(?!builder/templates|builder/core|ui|common)` },
         },
         {
             // auth — малый самодостаточный поддомен (страница логина, сессия)

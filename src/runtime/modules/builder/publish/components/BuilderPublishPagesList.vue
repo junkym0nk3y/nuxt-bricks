@@ -118,6 +118,15 @@ function handleDuplicate(page: TPublishedPageSummary): void {
 }
 
 /**
+ * Пробрасывает сохранение страницы как шаблона.
+ *
+ * @param page - Страница.
+ */
+function handleSaveAsTemplate(page: TPublishedPageSummary): void {
+    emit('save-as-template', page);
+}
+
+/**
  * Пробрасывает удаление страницы.
  *
  * @param page - Страница.
@@ -200,12 +209,14 @@ function onViewLeave(element: Element): void {
                     :key="page.id"
                     :page="page"
                     :is-duplicating="props.duplicatingPageId === String(page.id)"
+                    :is-preparing-template="props.templateSourcePageId === String(page.id)"
                     :is-selected="props.selectedPageId === String(page.id)"
                     @select="handleSelect"
                     @preview-thumbnail="handlePreviewThumbnail"
                     @edit="handleEdit"
                     @preview="handlePreview"
                     @duplicate="handleDuplicate"
+                    @save-as-template="handleSaveAsTemplate"
                     @delete="handleDelete"
                 />
             </div>

@@ -163,12 +163,17 @@ function validatePagename(value: unknown): string {
  * дерева) — `validateSchemaComponentGraph` (см.
  * common/utils/bricks/schemaContract.ts).
  *
+ * Экспортируется: те же правила применяет валидатор шаблонов
+ * (`templatePayloadValidation.ts`) — шаблон несёт ровно ту схему, которую
+ * приняла бы страница, и второй набор границ разошёлся бы с этим при первой же
+ * правке.
+ *
  * @param value - Сырое значение поля schema.
  * @returns Схема (форма и граф компонентов проверены).
  * @throws 400 — форма schema/components невалидна, либо превышены лимиты
  * сложности, либо граф компонентов нарушает контракт (см. schemaContract.ts).
  */
-function validateSchema(value: unknown): IBricksSchema {
+export function validatePageSchema(value: unknown): IBricksSchema {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
         invalid('Field "schema" must be an object');
     }
@@ -339,7 +344,7 @@ export function validateCreatePagePayload(
     const payload: ICreatePagePayload = {
         ...validatePageMetaFields(body),
         pagename: validatePagename(body.pagename),
-        schema: validateSchema(body.schema),
+        schema: validatePageSchema(body.schema),
     };
 
     // Создание знает оба поля пары сразу, поэтому проверяется здесь же
@@ -371,7 +376,7 @@ export function validateUpdatePagePayload(body: Record<string, unknown>): IUpdat
     }
 
     if (body.schema !== undefined) {
-        result.schema = validateSchema(body.schema);
+        result.schema = validatePageSchema(body.schema);
     }
 
     const thumbnailUrl = optionalNullableString(body.thumbnailUrl, 'thumbnailUrl', {

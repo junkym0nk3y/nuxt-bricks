@@ -85,12 +85,10 @@ const currentPageTitle = computed(() => {
 /**
  * Формирует конфигурацию кнопки публикации с учетом режима редактирования
  *
- * Базовые опции:
- * - 'draft' - Сохранить как черновик
- * - 'publish' - Опубликовать
- *
- * Если редактируется существующая страница (isEditingExistingPage = true),
- * добавляется опция 'copy' (Сохранить как копию) между draft и publish
+ * Опции:
+ * - 'draft' — сохранить страницу
+ * - 'copy' — сохранить как копию страницы
+ * - 'template' — сохранить канвас как шаблон (страницу не пишет)
  *
  * @returns Объект с label кнопки и массивом опций для dropdown
  */
@@ -106,6 +104,10 @@ const publishButtonConfig = computed<{
         {
             label: t('bricks.toolbar.saveCopy'),
             value: 'copy',
+        },
+        {
+            label: t('bricks.toolbar.saveTemplate'),
+            value: 'template',
         },
     ];
 
@@ -165,6 +167,15 @@ function handleOpenMediaGallery(): void {
  */
 function handleSaveAsCopy(): void {
     emit('saveAsCopy');
+}
+
+/**
+ * Просит сохранить содержимое канваса как шаблон. Саму страницу пункт не
+ * записывает: шаблон — отпечаток содержимого, и сохранение страницы осталось бы
+ * незаявленным побочным действием.
+ */
+function handleSaveAsTemplate(): void {
+    emit('saveAsTemplate');
 }
 
 /**
@@ -282,6 +293,7 @@ function handleLogout(): void {
                 :is-submitting="props.isSubmittingPublish"
                 :disabled="!props.isSessionReady"
                 @save-as-copy="handleSaveAsCopy"
+                @save-as-template="handleSaveAsTemplate"
                 @save-draft="handleSaveDraft"
             >
                 <BricksIcon :class="$style.icon" icon="ta:outline-device-floppy" />

@@ -1,9 +1,14 @@
 /**
- * SQL-фрагменты и билдеры запросов для таблиц bricks_pages / bricks_media.
+ * SQL-фрагменты и билдеры запросов для таблиц bricks_pages / bricks_media /
+ * bricks_templates.
  * SELECT-поля задают camelCase-алиасы — ответы ручек сразу в формате фронта.
  */
 import type { IPostgresErrorLike } from '../../types/postgres';
 import { toSnakeCaseString } from '../../../common/utils/case-transform';
+import {
+    BricksPostgresQueryNotStartedError,
+    BricksStatementTimeoutError,
+} from '../utils/storageErrors';
 
 /**
  * Поля выборки страницы (bricks_pages) с camelCase-алиасами.
@@ -119,6 +124,48 @@ export const MEDIA_CATEGORY_SELECT_FIELDS = `
 `;
 
 /**
+ * Поля выборки шаблона (bricks_templates) с camelCase-алиасами.
+ */
+export const TEMPLATE_SELECT_FIELDS = `
+    id,
+    name,
+    description,
+    thumbnail_url as "thumbnailUrl",
+    schema,
+    page_meta as "pageMeta",
+    created_at as "createdAt",
+    updated_at as "updatedAt"
+`;
+
+/**
+ * Поля сводки шаблона (bricks_templates) — список без JSONB `schema` и
+ * `pageMeta`, зато с числом блоков: карточка показывает объём шаблона, а тянуть
+ * ради одного числа всю схему значило бы отдавать список весом в мегабайты.
+ *
+ * `jsonb_typeof` перед `jsonb_array_length` — не перестраховка: на не-массиве
+ * второе падает ошибкой, а `schema` в базе лежит с записей произвольной
+ * давности (валидатор ручки гарантирует форму только для новых строк).
+ */
+export const TEMPLATE_SUMMARY_FIELDS = `
+    id,
+    name,
+    description,
+    thumbnail_url as "thumbnailUrl",
+    CASE WHEN jsonb_typeof(schema -> 'components') = 'array'
+        THEN jsonb_array_length(schema -> 'components')
+        ELSE 0
+    END as "blocksCount",
+    created_at as "createdAt",
+    updated_at as "updatedAt"
+`;
+
+/**
+ * Разрешённые к обновлению поля bricks_templates: только подпись шаблона.
+ * Содержимое отпечатка не обновляется — см. IUpdateTemplatePayload.
+ */
+export const TEMPLATE_UPDATE_FIELDS: ReadonlySet<string> = new Set(['name', 'description']);
+
+/**
  * Поля страницы, которые уезжают в JSONB-колонки: значение сериализуется в
  * текст перед подстановкой в запрос.
  */
@@ -224,6 +271,43 @@ export function readSqlStateCode(error: unknown): string | null {
  */
 export function isUniqueViolation(error: unknown): boolean {
     return readSqlStateCode(error) === UNIQUE_VIOLATION_CODE;
+}
+
+/**
+ * Классы SQLSTATE, при которых сервер РАЗОБРАЛ statement и отверг его целиком:
+ * `22` — данные не лезут в тип или длину, `23` — нарушено ограничение,
+ * `42` — не та схема или нет прав. Во всех трёх вставка гарантированно не
+ * применилась.
+ *
+ * Список положительный и по классам, а не по отдельным кодам: перечисление кодов
+ * уже дважды оказывалось неполным (`22001` от переросшего колонку MIME, `23505`
+ * от отставшей sequence), а каждая дыра в нём — файл-сирота в хранилище.
+ * Обратное правило «любой SQLSTATE = откат» при этом неверно: в классах `08`,
+ * `40`, `57` есть состояния, прямо означающие неизвестный исход
+ * (`08007 transaction_resolution_unknown`, `40003 statement_completion_unknown`),
+ * и они остаются неопределёнными вместе со всеми прочими классами.
+ */
+const REJECTED_WRITE_SQLSTATE_CLASSES: ReadonlySet<string> = new Set(['22', '23', '42']);
+
+/**
+ * Отвергнута ли вставка ГАРАНТИРОВАННО — по доказанным признакам: запрос не
+ * отправлялся; сервер отменил сам statement своим лимитом времени; схема не
+ * соответствует коду либо данные нарушили ограничение.
+ *
+ * Общая на медиа и шаблоны: у обеих записей есть внешний побочный эффект (файл в
+ * хранилище), удалять его можно только под эту гарантию, и вторая копия правила
+ * разошлась бы с первой при следующей находке — цена расхождения — файл-сирота
+ * либо, наоборот, удалённый файл под живой строкой.
+ *
+ * @param error - Ошибка вставки.
+ * @returns true, если строки в базе точно не появилось.
+ */
+export function isRejectedPostgresWrite(error: unknown): boolean {
+    return (
+        error instanceof BricksPostgresQueryNotStartedError ||
+        error instanceof BricksStatementTimeoutError ||
+        REJECTED_WRITE_SQLSTATE_CLASSES.has((readSqlStateCode(error) ?? '').slice(0, 2))
+    );
 }
 
 /**

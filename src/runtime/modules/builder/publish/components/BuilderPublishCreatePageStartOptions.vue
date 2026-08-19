@@ -59,6 +59,29 @@ function handleClearFile(): void {
 
     emit('clear-file');
 }
+
+/**
+ * Открывает выбор шаблона. Клик по карточке сразу ведёт к списку: вариант «из
+ * шаблона» без шаблона ничего не значит — та же логика, что у выбора файла.
+ */
+function handlePickTemplate(): void {
+    if (props.isSubmitting) {
+        return;
+    }
+
+    emit('pick-template');
+}
+
+/**
+ * Снимает выбранный шаблон — источник возвращается к пустой странице.
+ */
+function handleClearTemplate(): void {
+    if (props.isSubmitting) {
+        return;
+    }
+
+    emit('clear-template');
+}
 // #endregion
 </script>
 
@@ -84,12 +107,12 @@ function handleClearFile(): void {
                 </span>
             </button>
 
-            <!--
-                Шаблоны ещё не реализованы: карточка показывает будущий вариант и
-                не активируется. `disabled` вместо одной прозрачности — иначе
-                карточка ловила бы клик и фокус, ничего не делая
-            -->
-            <button :class="[$style.card, $style.cardDisabled]" type="button" disabled>
+            <button
+                :class="[$style.card, props.source === 'template' && $style.cardActive]"
+                type="button"
+                :aria-pressed="props.source === 'template'"
+                @click="handlePickTemplate"
+            >
                 <BricksIcon icon="ta:outline-package" :class="$style.cardIcon" />
                 <span :class="$style.cardTitle">
                     {{ t('bricks.publish.dashboard.createModal.templateTitle') }}
@@ -112,6 +135,33 @@ function handleClearFile(): void {
                 <span :class="$style.cardDescription">
                     {{ t('bricks.publish.dashboard.createModal.fileDescription') }}
                 </span>
+            </button>
+        </div>
+
+        <!--
+            Выбранный шаблон — той же строкой, что и выбранный файл: оба сообщают
+            «источник выбран, вот какой», и одинаковое место делает их
+            взаимозаменяемость очевидной
+        -->
+        <div v-if="props.selectedTemplate" :class="$style.selectedFile">
+            <BricksIcon icon="ta:outline-package" :class="$style.selectedFileIcon" />
+            <span :class="$style.selectedFileName">{{ props.selectedTemplate.name }}</span>
+            <span :class="$style.selectedFileMeta">
+                {{
+                    t('bricks.templates.card.blocks', {
+                        count: props.selectedTemplate.blocksCount,
+                    })
+                }}
+            </span>
+            <button
+                :class="$style.selectedFileClear"
+                type="button"
+                :disabled="props.isSubmitting"
+                :aria-label="t('bricks.common.clear')"
+                :title="t('bricks.common.clear')"
+                @click="handleClearTemplate"
+            >
+                <BricksIcon icon="ta:outline-x" />
             </button>
         </div>
 
@@ -199,11 +249,6 @@ function handleClearFile(): void {
     .cardIcon {
         color: var(--bricks-primary-600);
     }
-}
-
-.cardDisabled {
-    opacity: 0.55;
-    cursor: default;
 }
 
 .cardIcon {

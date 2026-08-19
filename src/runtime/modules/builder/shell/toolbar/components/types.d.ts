@@ -37,6 +37,8 @@ export interface IToolbarEmits {
     openPagesManager: [];
     openMediaGallery: [];
     saveAsCopy: [];
+    /** Третий пункт сплит-кнопки: сохранить канвас как шаблон. */
+    saveAsTemplate: [];
     saveDraft: [];
     preview: [];
     clear: [];

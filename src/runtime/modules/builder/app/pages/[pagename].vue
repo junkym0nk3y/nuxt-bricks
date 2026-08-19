@@ -32,6 +32,7 @@ import { useBuilderSession } from '../composables/useBuilderSession';
 import { useBuilderSessionToken } from '../composables/useBuilderSessionToken';
 import { useBuilderDraftPersistence } from '../composables/useBuilderDraftPersistence';
 import { useBuilderSessionAddressSync } from '../composables/useBuilderSessionAddressSync';
+import { useBuilderTemplateSave } from '../composables/useBuilderTemplateSave';
 import { useBuilderToast } from '../../core/composables/useBuilderToast';
 import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
 import { usePropertiesPanelAvailability } from '../../core/composables/usePropertiesPanelAvailability';
@@ -76,6 +77,11 @@ const TheBuilderMediaImageResolverModal = defineAsyncComponent(
 // нужны (в модалке форма пароля, кадрирование и vee-validate)
 const TheBuilderAuthProfileModal = defineAsyncComponent(
     () => import('../../auth/components/TheBuilderAuthProfileModal.vue')
+);
+// Форма шаблона открывается пунктом сплит-кнопки — до этого ни разметка, ни чанк
+// не нужны (в ней своя форма с vee-validate)
+const TheBuilderTemplatesSaveModal = defineAsyncComponent(
+    () => import('../../templates/components/TheBuilderTemplatesSaveModal.vue')
 );
 // #endregion
 
@@ -277,6 +283,10 @@ useBuilderDraftPersistence({
     canEdit,
 });
 useBuilderSessionAddressSync({ renameSession, isSessionReady });
+
+// Шаблон из канваса: собирает источник, гасит попытку до готовности сессии и
+// держит форму. Своё состояние, поэтому композабл, а не пара ref'ов в этом файле
+const templateSave = useBuilderTemplateSave({ isSessionReady, showToast });
 
 // Правая панель свойств монтируется ниже по `canEdit` — сайдбар-стор обязан
 // знать об этом, иначе выбор блока резервирует её ширину и роли без панели
@@ -517,6 +527,7 @@ onBeforeUnmount(() => {
             @open-media-gallery="handleOpenMediaGalleryWithContext"
             @save-draft="handleSaveDraftGuarded"
             @save-as-copy="handleSaveAsCopyGuarded"
+            @save-as-template="templateSave.requestFromCanvas"
             @preview="handlePreview"
             @open-profile="profileModal.open"
             @logout="handleLogout"
@@ -622,6 +633,20 @@ onBeforeUnmount(() => {
             :resolve-imported-schema="schemaImport.resolveSchemaForCreate"
             @close="handleCloseCreatePage"
             @created="handlePageCreated"
+        />
+
+        <!--
+            Условие монтирования обязательно: без него чанк формы шаблона уехал бы
+            к первому рендеру билдера, и ленивым импорт был бы только на бумаге.
+            Латч не снимается — иначе компонент пересоздавался бы и терял
+            leave-анимацию
+        -->
+        <TheBuilderTemplatesSaveModal
+            v-if="templateSave.shouldMountModal.value"
+            :is-open="templateSave.isModalOpen.value"
+            :source="templateSave.source.value"
+            @close="templateSave.close"
+            @saved="templateSave.handleSaved"
         />
 
         <TheBuilderMediaImageResolverModal

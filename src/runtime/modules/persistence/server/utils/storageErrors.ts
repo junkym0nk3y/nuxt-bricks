@@ -94,6 +94,22 @@ export class BricksPageAddressConflictError extends Error {
 }
 
 /**
+ * Конфликт уникальности имени шаблона: шаблон с такой подписью уже есть.
+ * Кидается из createTemplate/updateTemplate при нарушении unique-ограничения —
+ * в том числе при гонке двух одновременных запросов.
+ *
+ * Ошибка-маркер, как и конфликт адреса страницы: конкретное имя в неё не
+ * передаётся. Клиенту нужен только факт (подсказка встаёт под полем формы), а
+ * имя он и так знает — сам его и отправил.
+ */
+export class BricksTemplateNameConflictError extends Error {
+    constructor() {
+        super('Template with this name already exists');
+        this.name = 'BricksTemplateNameConflictError';
+    }
+}
+
+/**
  * Конфликт optimistic locking: страница была изменена после того, как клиент
  * прочитал переданный `expectedRevision`. Кидается из updatePage, когда
  * precondition не совпал с текущей revision строки.

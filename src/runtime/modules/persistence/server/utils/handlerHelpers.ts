@@ -5,12 +5,14 @@ import { randomUUID } from 'node:crypto';
 import { createError, getHeader, getRouterParam, type H3Event } from 'h3';
 import { toCamelCaseShallow } from '../../../common/utils/case-transform';
 import { PAGE_CONFLICT_CODES } from '../../../common/constants/publish';
+import { TEMPLATE_CONFLICT_CODES } from '../../../common/constants/templates';
 import { BRICKS_API_ERROR_CODES } from '../../../common/constants/apiErrors';
 import { readJsonBodyWithLimit } from './requestBodyLimits';
 import {
     BricksPageAddressConflictError,
     BricksRevisionConflictError,
     BricksStatementTimeoutError,
+    BricksTemplateNameConflictError,
     BricksUnknownMediaCategoryError,
 } from './storageErrors';
 import { BricksLastActiveAdminError, BricksUsernameTakenError } from './authErrors';
@@ -202,6 +204,29 @@ export function toPageHttpError(error: unknown, fallbackMessage: string): never 
             statusCode: 409,
             statusMessage: 'Page was modified by someone else. Refresh and try again',
             data: { code: PAGE_CONFLICT_CODES.revision },
+        });
+    }
+
+    toHttpError(error, fallbackMessage);
+}
+
+/**
+ * Маппит занятое имя шаблона на 409 с машиночитаемым `data.code`; остальное —
+ * через toHttpError.
+ *
+ * 409, а не 400: с запросом всё в порядке, отказано состоянию системы (имя уже
+ * занято другим шаблоном), и клиент по коду подставляет подсказку под поле
+ * формы вместо общего текста ошибки.
+ *
+ * @param error - Пойманная ошибка.
+ * @param fallbackMessage - Сообщение для 500-ответа.
+ */
+export function toTemplateHttpError(error: unknown, fallbackMessage: string): never {
+    if (error instanceof BricksTemplateNameConflictError) {
+        throw createError({
+            statusCode: 409,
+            statusMessage: 'Template with this name already exists',
+            data: { code: TEMPLATE_CONFLICT_CODES.name },
         });
     }
 

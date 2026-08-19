@@ -20,6 +20,12 @@ import type {
     IPageVersion,
 } from '../../common/types/bricks-api';
 import type { IMediaCategory, IMediaItem } from '../../common/types/media';
+import type {
+    IBricksTemplateRow,
+    ICreateTemplatePayload,
+    IUpdateTemplatePayload,
+    TBricksTemplateSummary,
+} from '../../common/types/templates';
 import type { IBricksPageAddress } from '../../common/types/pageAddress';
 
 /**
@@ -163,6 +169,43 @@ export interface IStorageAdapter {
      * в медиатеке и видны в фильтре «Все».
      */
     deleteMediaCategory(slug: string): Promise<TDeleteMediaCategoryResult>;
+    /**
+     * Сводки шаблонов страниц (без `schema` и `pageMeta`, с числом блоков) —
+     * новые сверху, по дате СОЗДАНИЯ: переименование шаблона не должно
+     * перебрасывать его карточку в начало сетки.
+     */
+    listTemplates(): Promise<TBricksTemplateSummary[]>;
+    /** Полный шаблон со схемой и оформлением; `null` — шаблона нет. */
+    getTemplate(id: number): Promise<IBricksTemplateRow | null>;
+    /**
+     * Создаёт шаблон и возвращает его полностью.
+     *
+     * Контракт отказа: занятое имя — `BricksTemplateNameConflictError` (в том
+     * числе на гонке двух одновременных создателей: pre-check её не ловит).
+     * Идемпотентности здесь НЕТ и быть не должно — повторный POST с тем же
+     * именем означает вторую попытку человека, и молчаливый ответ «уже есть»
+     * выдал бы чужой шаблон за только что сохранённый.
+     *
+     * `thumbnailUrl` приходит уже собственным файлом шаблона: копию кадра
+     * страницы делает ручка, потому что ссылка на кадр страницы не переживает
+     * её следующего сохранения (уборка `prunePageThumbnails` о шаблонах не знает).
+     */
+    createTemplate(payload: ICreateTemplatePayload): Promise<IBricksTemplateRow>;
+    /**
+     * Правит подпись шаблона (имя и/или описание); `null` — шаблона нет.
+     * Занятое имя — `BricksTemplateNameConflictError`.
+     */
+    updateTemplate(id: number, payload: IUpdateTemplatePayload): Promise<IBricksTemplateRow | null>;
+    /**
+     * Удаляет шаблон; `null` — шаблона нет (ручка отвечает 404), иначе — URL его
+     * файла превью, который остался без ссылки.
+     *
+     * Результат несёт `thumbnailUrl`, а не `boolean`: файл превью убирает ручка,
+     * и без URL из этого же запроса ей пришлось бы читать строку заранее — то
+     * есть гонка «двое удаляют один шаблон» оставила бы файл в хранилище
+     * навсегда. `thumbnailUrl: null` — убирать нечего.
+     */
+    deleteTemplate(id: number): Promise<TDeleteTemplateResult>;
 }
 
 /**
@@ -183,6 +226,25 @@ export type TStorageMediaMethods = Pick<
     | 'listMediaCategories'
     | 'createMediaCategory'
     | 'deleteMediaCategory'
+>;
+
+/**
+ * Итог удаления шаблона. `null` — шаблона с таким id нет; иначе — URL файла
+ * превью удалённой записи (`null` внутри — превью не было).
+ */
+export type TDeleteTemplateResult = { thumbnailUrl: string | null } | null;
+
+/**
+ * Половина контракта хранилища, отвечающая за шаблоны страниц.
+ *
+ * Собирается отдельным файлом и подмешивается спредом — по той же причине, что
+ * и медиа-половина: у страниц и шаблонов нет общих запросов, а вместе файл
+ * адаптера перерос бы потолок в 500 строк. Имя одно на две реализации
+ * (Postgres и HTTP), чтобы набор методов у них не разъехался.
+ */
+export type TStorageTemplateMethods = Pick<
+    IStorageAdapter,
+    'listTemplates' | 'getTemplate' | 'createTemplate' | 'updateTemplate' | 'deleteTemplate'
 >;
 
 /**

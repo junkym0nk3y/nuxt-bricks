@@ -13,13 +13,11 @@ import {
     MEDIA_UPDATE_FIELDS,
     buildUpdateQuery,
     isForeignKeyViolation,
+    isRejectedPostgresWrite,
     isUniqueViolation,
-    readSqlStateCode,
     readViolatedConstraint,
 } from './queryBuilders';
 import {
-    BricksPostgresQueryNotStartedError,
-    BricksStatementTimeoutError,
     BricksStorageWriteRejectedError,
     BricksUnknownMediaCategoryError,
 } from '../utils/storageErrors';
@@ -43,22 +41,6 @@ function findMediaByUrl(url: string): Promise<IMediaItem | null> {
         url,
     ]);
 }
-
-/**
- * Классы SQLSTATE, при которых сервер РАЗОБРАЛ statement и отверг его целиком:
- * `22` — данные не лезут в тип или длину, `23` — нарушено ограничение,
- * `42` — не та схема или нет прав. Во всех трёх вставка гарантированно не
- * применилась.
- *
- * Список положительный и по классам, а не по отдельным кодам: перечисление
- * кодов уже дважды оказывалось неполным (`22001` от переросшего колонку MIME,
- * `23505` от отставшей sequence), а каждая дыра в нём — файл-сирота в бакете.
- * Обратное правило «любой SQLSTATE = откат» при этом неверно: в классах `08`,
- * `40`, `57` есть состояния, прямо означающие неизвестный исход
- * (`08007 transaction_resolution_unknown`, `40003 statement_completion_unknown`),
- * и они остаются неопределёнными вместе со всеми прочими классами.
- */
-const REJECTED_WRITE_SQLSTATE_CLASSES = new Set(['22', '23', '42']);
 
 /** Имя уникального индекса `bricks_media(url)` — задано явно в базовой миграции. */
 const MEDIA_URL_UNIQUE_CONSTRAINT = 'uq_bricks_media_url';
@@ -109,12 +91,7 @@ function toMediaInsertError(error: unknown, category: string | null | undefined)
         return domainError;
     }
 
-    const isRejected =
-        error instanceof BricksPostgresQueryNotStartedError ||
-        error instanceof BricksStatementTimeoutError ||
-        REJECTED_WRITE_SQLSTATE_CLASSES.has((readSqlStateCode(error) ?? '').slice(0, 2));
-
-    if (!isRejected) {
+    if (!isRejectedPostgresWrite(error)) {
         return error;
     }
 

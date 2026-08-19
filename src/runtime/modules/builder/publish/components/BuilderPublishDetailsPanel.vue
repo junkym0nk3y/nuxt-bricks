@@ -7,7 +7,7 @@ import type { IParsedSchemaFile } from '../types/composables';
 import type { IPublishDetailsPanelProps, IPublishDetailsPanelEmits } from '../types/dashboard';
 
 // Utils
-import { formatPageDate } from '../utils/dates';
+import { formatPageDate } from '../../../common/utils/bricks/dates';
 import { toPageAddress } from '../../../common/utils/bricks/pageAddress';
 import { getPublishedPagePath } from '../../../common/utils/bricks/routePaths';
 

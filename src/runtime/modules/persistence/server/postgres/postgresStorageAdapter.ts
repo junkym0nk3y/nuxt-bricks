@@ -1,5 +1,6 @@
 /**
- * Дефолтный IStorageAdapter поверх PostgreSQL (таблицы bricks_pages / bricks_media).
+ * Дефолтный IStorageAdapter поверх PostgreSQL (таблицы bricks_pages /
+ * bricks_media / bricks_templates).
  * Схема таблиц — versioned-миграции migrations/*.sql (CLI bricks-migrate);
  * runtime-DDL адаптер не выполняет — непримененные миграции проявляются
  * ошибкой 42P01/42703 с подсказкой в логе (см. client.ts).
@@ -16,6 +17,7 @@ import {
     isUniqueViolation,
 } from './queryBuilders';
 import { createPostgresMediaMethods } from './postgresMediaMethods';
+import { createPostgresTemplateMethods } from './postgresTemplateMethods';
 import {
     BricksPageAddressConflictError,
     BricksRevisionConflictError,
@@ -384,5 +386,6 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
         },
 
         ...createPostgresMediaMethods(),
+        ...createPostgresTemplateMethods(),
     };
 }

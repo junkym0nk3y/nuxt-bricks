@@ -1,6 +1,6 @@
 /**
  * Манифест Nitro-ручек /api/bricks/** (persistence, auth, health, builder-поверхность:
- * библиотека компонентов, media proxy, page thumbnail).
+ * библиотека компонентов, media proxy, page thumbnail, шаблоны страниц).
  *
  * Роуты модуля не автосканируются — module.ts регистрирует каждую запись
  * через addServerHandler (file — путь от runtimeDir без расширения).
@@ -157,6 +157,33 @@ export const BRICKS_API_HANDLERS: IBricksApiHandler[] = [
         route: '/api/bricks/users/:id',
         method: 'delete',
         file: 'server/api/bricks/users/[id].delete',
+    },
+    {
+        // Весь блок шаблонов — до generic /api/bricks/:id: специфичность у пары
+        // «метод + один сегмент» та же, и `templates` иначе уехал бы в разбор id
+        route: '/api/bricks/templates',
+        method: 'get',
+        file: 'server/api/bricks/templates/index.get',
+    },
+    {
+        route: '/api/bricks/templates',
+        method: 'post',
+        file: 'server/api/bricks/templates/index.post',
+    },
+    {
+        route: '/api/bricks/templates/:id',
+        method: 'get',
+        file: 'server/api/bricks/templates/[id].get',
+    },
+    {
+        route: '/api/bricks/templates/:id',
+        method: 'patch',
+        file: 'server/api/bricks/templates/[id].patch',
+    },
+    {
+        route: '/api/bricks/templates/:id',
+        method: 'delete',
+        file: 'server/api/bricks/templates/[id].delete',
     },
     {
         route: '/api/bricks/:id/versions',

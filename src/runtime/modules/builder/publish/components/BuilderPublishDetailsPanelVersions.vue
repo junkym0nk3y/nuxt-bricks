@@ -9,7 +9,8 @@ import type {
 } from '../types/dashboard';
 
 // Utils
-import { formatPageDateTime, formatPageVersionDateTime } from '../utils/dates';
+import { formatPageDateTime } from '../../../common/utils/bricks/dates';
+import { formatPageVersionDateTime } from '../utils/dates';
 
 // Vue
 import { computed, ref, watch } from 'vue';

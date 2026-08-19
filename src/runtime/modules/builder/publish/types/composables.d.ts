@@ -325,6 +325,14 @@ export interface IPublishSchemaImportTarget {
 }
 
 /**
+ * Опции `usePublishTemplatesSurface`.
+ */
+export interface IUsePublishTemplateSurfaceOptions {
+    /** Показ тоста: отказ чтения схемы страницы-источника. */
+    onNotify: (message: string, variant: 'success' | 'error') => void;
+}
+
+/**
  * Опции `usePublishSchemaImport`.
  */
 export interface IUsePublishSchemaImportOptions {

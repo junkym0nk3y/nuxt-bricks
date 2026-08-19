@@ -4,6 +4,8 @@
 import type { TPublishedPageSummary } from '../../../common/types/bricks-api';
 import type { IMediaItem } from '../../../common/types/media';
 import type { TPublishDashboardSection } from '../types/dashboard';
+import type { TBricksTemplateSummary } from '../../../common/types/templates';
+import type { TMediaLightboxItem } from '../../media/types/media';
 import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 
 // Utils
@@ -36,6 +38,8 @@ import { usePublishPageDelete } from '../composables/usePublishPageDelete';
 import { usePublishPagesData } from '../composables/usePublishPagesData';
 import { usePublishVersionRestore } from '../composables/usePublishVersionRestore';
 import { usePublishSchemaImport } from '../composables/usePublishSchemaImport';
+import { usePublishTemplatesSurface } from '../composables/usePublishTemplatesSurface';
+import { useTemplatesData } from '../../templates/composables/useTemplatesData';
 import { useUsersData } from '../../users/composables/useUsersData';
 
 // Components
@@ -45,6 +49,8 @@ import BuilderPublishDetailsPanel from '../components/BuilderPublishDetailsPanel
 import TheBuilderPublishCreatePageModal from '../components/TheBuilderPublishCreatePageModal.vue';
 import BuilderMediaGalleryPreviewLightbox from '../../media/components/BuilderMediaGalleryPreviewLightbox.vue';
 import TheBuilderUsersSection from '../../users/components/TheBuilderUsersSection.vue';
+import TheBuilderTemplatesSection from '../../templates/components/TheBuilderTemplatesSection.vue';
+import TheBuilderTemplatesSaveModal from '../../templates/components/TheBuilderTemplatesSaveModal.vue';
 import BuilderAuthDefaultPasswordNotice from '../../auth/components/BuilderAuthDefaultPasswordNotice.vue';
 import BricksConfirmModal from '../../../ui/feedback/BricksConfirmModal.vue';
 import BricksToast from '../../../ui/feedback/BricksToast.vue';
@@ -99,6 +105,13 @@ const mediaGallery = usePublishMediaGallery();
 // Список учёток нужен дашборду и до открытия раздела: пункт рейла показывает
 // счётчик. Сам раздел читает то же состояние — оно одно на приложение
 const { usersCount, status: usersStatus, ensureUsers } = useUsersData();
+// То же со шаблонами: счётчик рейла рисуется до открытия раздела, а список один
+// на приложение — его же читают раздел и выбор источника новой страницы
+const { templatesCount, ensureTemplates } = useTemplatesData();
+// Поверхность шаблонов: подготовка источника из строки списка (схему страницы
+// приходится читать point-lookup'ом), предвыбор шаблона формы создания и снимок
+// для лайтбокса
+const templates = usePublishTemplatesSurface({ onNotify: showToast });
 
 const activeSection = ref<TPublishDashboardSection>('pages');
 const isCreatePageModalOpen = ref(false);
@@ -106,9 +119,10 @@ const isCreateUserModalOpen = ref(false);
 /**
  * Поисковый запрос раздела учёток — свой, а не общий с страницами: запрос,
  * набранный для страниц, отфильтровал бы список людей до пустого, и раздел
- * выглядел бы сломанным.
+ * выглядел бы сломанным. У шаблонов он свой по той же причине.
  */
 const usersSearchQuery = ref('');
+const templatesSearchQuery = ref('');
 const isDocumentationModalOpen = ref(false);
 
 const {
@@ -182,8 +196,21 @@ const currentUserId = computed<number | null>(() => profile.value?.id ?? null);
  * каждого раздела: у страниц и учёток разные списки, и общая строка искала бы в
  * одном по запросу, набранному для другого.
  */
-const activeSearchQuery = computed<string>(() =>
-    activeSection.value === 'users' ? usersSearchQuery.value : searchQuery.value
+const activeSearchQuery = computed<string>(() => {
+    if (activeSection.value === 'users') {
+        return usersSearchQuery.value;
+    }
+
+    return activeSection.value === 'templates' ? templatesSearchQuery.value : searchQuery.value;
+});
+
+/**
+ * Что показывает лайтбокс: снимок страницы либо снимок шаблона. Один компонент
+ * на оба раздела — открыт всегда ровно один из них, и второй экземпляр
+ * лайтбокса добавил бы в разметку вторую копию диалога с focus trap.
+ */
+const lightboxItem = computed<TMediaLightboxItem | null>(
+    () => templates.previewItem.value ?? thumbnailPreviewItem.value
 );
 
 // #endregion
@@ -193,7 +220,41 @@ const activeSearchQuery = computed<string>(() =>
  * Открывает модалку создания страницы (кнопка шапки и CTA пустого списка).
  */
 function handleCreatePage(): void {
+    templates.clearCreateSelection();
     isCreatePageModalOpen.value = true;
+}
+
+/**
+ * Открывает форму создания страницы с выбранным шаблоном-источником.
+ *
+ * Форма та же, что у кнопки шапки: у страницы из шаблона тот же адрес, те же SEO
+ * поля и та же проверка занятости — отдельная форма повторяла бы всё это ради
+ * одного предвыбранного источника.
+ *
+ * @param template - Шаблон-источник.
+ */
+function handleCreatePageFromTemplate(template: TBricksTemplateSummary): void {
+    templates.selectForCreate(template);
+    isCreatePageModalOpen.value = true;
+}
+
+/**
+ * Закрывает лайтбокс: гасятся оба источника снимка — какой из них был открыт,
+ * компоненту неизвестно, а лишний сброс ничего не стоит.
+ */
+function handleCloseLightbox(): void {
+    templates.closePreview();
+    closeThumbnailPreview();
+}
+
+/**
+ * Шаблон сохранён: закрываем форму и сообщаем.
+ *
+ * @param template - Сохранённый шаблон.
+ */
+function handleTemplateSaved(template: TBricksTemplateSummary): void {
+    templates.close();
+    showToast(t('bricks.templates.toasts.saved', { name: template.name }), 'success');
 }
 
 /**
@@ -238,6 +299,11 @@ function handleSelectSection(section: TPublishDashboardSection): void {
 function handleSearchInput(value: string): void {
     if (activeSection.value === 'users') {
         usersSearchQuery.value = value;
+        return;
+    }
+
+    if (activeSection.value === 'templates') {
+        templatesSearchQuery.value = value;
         return;
     }
 
@@ -407,7 +473,15 @@ await ensureRole(() => Promise.resolve(profile.value?.role ?? null));
 // проверяет сам `ensureUsers` — гард живёт рядом с запросом, а не здесь. Отказ
 // загрузки наружу не выходит: он остаётся состоянием раздела, поэтому дашборд
 // приезжает даже с недоступными учётками
-const [{ isLoadingPages }] = await Promise.all([pagesDataPromise, ensureUsers()]);
+// Шаблоны читаются в той же группе, что и учётки: их счётчик тоже рисуется в
+// первом кадре рейла, а отказ загрузки остаётся состоянием раздела и дашборд не
+// уносит. Права на чтение шаблонов есть у любой роли, поэтому ждать `ensureRole`
+// им не нужно — но и отдельной очереди они не заводят
+const [{ isLoadingPages }] = await Promise.all([
+    pagesDataPromise,
+    ensureUsers(),
+    ensureTemplates(),
+]);
 // #endregion
 </script>
 
@@ -417,6 +491,7 @@ const [{ isLoadingPages }] = await Promise.all([pagesDataPromise, ensureUsers()]
             :active-section="activeSection"
             :search-query="activeSearchQuery"
             :pages-count="pagesCount"
+            :templates-count="templatesCount"
             :users-count="usersCount"
             :is-users-section-visible="isUsersSectionVisible"
             :is-dark-mode="isDarkMode"
@@ -451,6 +526,7 @@ const [{ isLoadingPages }] = await Promise.all([pagesDataPromise, ensureUsers()]
                     :is-loading="isLoadingPages"
                     :has-any-pages="hasAnyPages"
                     :duplicating-page-id="duplicatingPageId"
+                    :template-source-page-id="templates.preparingPageId.value"
                     :selected-page-id="selectedPageId"
                     @update:active-filter="activeFilter = $event"
                     @create-page="handleCreatePage"
@@ -459,7 +535,23 @@ const [{ isLoadingPages }] = await Promise.all([pagesDataPromise, ensureUsers()]
                     @edit="handleEditPage"
                     @preview="previewPage"
                     @duplicate="duplicatePage"
+                    @save-as-template="templates.requestFromPage"
                     @delete="requestDeletePage"
+                />
+            </template>
+
+            <!--
+                Раздел шаблонов — тоже компонент-контроллер: своё состояние, свои
+                окна, а хост остаётся тем, кто показывает тосты, открывает форму
+                создания страницы и лайтбокс
+            -->
+            <template #templates>
+                <TheBuilderTemplatesSection
+                    :search-query="templatesSearchQuery"
+                    @notify="showToast"
+                    @go-to-pages="handleSelectSection('pages')"
+                    @create-page="handleCreatePageFromTemplate"
+                    @preview-thumbnail="templates.previewThumbnail"
                 />
             </template>
 
@@ -501,9 +593,21 @@ const [{ isLoadingPages }] = await Promise.all([pagesDataPromise, ensureUsers()]
 
         <TheBuilderPublishCreatePageModal
             :is-open="isCreatePageModalOpen"
+            :initial-template="templates.createTemplate.value"
             :resolve-imported-schema="schemaImport.resolveSchemaForCreate"
             @close="handleCloseCreatePageModal"
             @created="handlePageCreated"
+        />
+
+        <!--
+            Форма шаблона одна на дашборд: её открывает действие строки списка
+            страниц, а содержимое приносит `usePublishTemplateSave`
+        -->
+        <TheBuilderTemplatesSaveModal
+            :is-open="templates.isModalOpen.value"
+            :source="templates.source.value"
+            @close="templates.close"
+            @saved="handleTemplateSaved"
         />
 
         <TheBuilderAuthProfileModal
@@ -580,10 +684,7 @@ const [{ isLoadingPages }] = await Promise.all([pagesDataPromise, ensureUsers()]
             @set-global-action="schemaImport.handleSetGlobalAction"
         />
 
-        <BuilderMediaGalleryPreviewLightbox
-            :item="thumbnailPreviewItem"
-            @close="closeThumbnailPreview"
-        />
+        <BuilderMediaGalleryPreviewLightbox :item="lightboxItem" @close="handleCloseLightbox" />
 
         <BricksToast
             v-model:visible="toast.visible"

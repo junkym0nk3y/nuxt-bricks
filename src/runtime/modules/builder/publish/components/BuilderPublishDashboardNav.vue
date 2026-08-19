@@ -63,12 +63,14 @@ const visibleSections = computed<INavSection[]>(() =>
 
 /**
  * Счётчики разделов. `null` — значение неизвестно, и счётчик не рисуется: у
- * учёток он появляется только после успешной загрузки списка, потому что ноль на
- * его месте читался бы как «учёток нет».
+ * учёток и шаблонов он появляется только после успешной загрузки списка. У
+ * учёток ноль на его месте читался бы как «учёток нет» (чего не бывает — кто-то
+ * же вошёл), у шаблонов ноль — законное значение, и от «ещё не прочитано» его
+ * отличает как раз `null`.
  */
 const sectionCounters = computed<Record<TPublishDashboardSection, number | null>>(() => ({
     pages: props.pagesCount,
-    templates: 0,
+    templates: props.templatesCount,
     users: props.usersCount,
 }));
 

@@ -39,6 +39,7 @@ const props = withDefaults(
 // #region Emits
 const emit = defineEmits<{
     saveAsCopy: [];
+    saveAsTemplate: [];
     publish: [];
     saveDraft: [];
 }>();
@@ -51,6 +52,7 @@ const isOpened = ref(false);
 /** Соответствие значения опции меню событию компонента. */
 const ACTION_EMITTERS: Record<string, () => void> = {
     copy: () => emit('saveAsCopy'),
+    template: () => emit('saveAsTemplate'),
     publish: () => emit('publish'),
     draft: () => emit('saveDraft'),
 };

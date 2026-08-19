@@ -49,8 +49,8 @@ function buildEmptyFormValues(): IPublishPageFormValues {
  * `createPublishValidationSchema`, создание через `createPage` store'а
  * (POST с `published: false`).
  *
- * @param options - Источник схемы и колбэк успешного создания (переход в
- * редактор — на стороне вызывающего).
+ * @param options - Источник схемы, набор устройств, оформление (из шаблона) и
+ * колбэк успешного создания (переход в редактор — на стороне вызывающего).
  */
 export function usePublishCreatePageForm(options: IPublishCreatePageFormOptions) {
     // #region Data
@@ -122,9 +122,17 @@ export function usePublishCreatePageForm(options: IPublishCreatePageFormOptions)
             }
 
             const address = toPageAddress(values.pagename, values.urlPrefix);
+            const defaults = buildDefaultFormState();
+            // Оформление шаблона поверх дефолтов, но только заполненными полями:
+            // шаблон мог не иметь ни раскладки, ни фона (страница-источник их не
+            // задавала), и пустое значение обязано оставить дефолт проекта, а не
+            // записать странице `null`
+            const appearance = options.resolveAppearance?.() ?? null;
 
             await publishStore.createPage(schema, {
-                ...buildDefaultFormState(),
+                ...defaults,
+                layout: appearance?.layout || defaults.layout,
+                backgroundColor: appearance?.backgroundColor || defaults.backgroundColor,
                 pagename: address.pagename,
                 title: values.title.trim(),
                 description: values.description,

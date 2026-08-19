@@ -4,7 +4,7 @@
 import type { IPublishPagesListRowProps, IPublishPagesListRowEmits } from '../types/dashboard';
 
 // Utils
-import { formatPageDate } from '../utils/dates';
+import { formatPageDate } from '../../../common/utils/bricks/dates';
 import { toPageAddress } from '../../../common/utils/bricks/pageAddress';
 import { getPublishedPagePath } from '../../../common/utils/bricks/routePaths';
 
@@ -22,6 +22,7 @@ import BricksBadge from '../../../ui/base/badge/BricksBadge.vue';
 // #region Props
 const props = withDefaults(defineProps<IPublishPagesListRowProps>(), {
     isDuplicating: false,
+    isPreparingTemplate: false,
     isSelected: false,
 });
 // #endregion
@@ -87,6 +88,13 @@ function handlePreview(): void {
  */
 function handleDuplicate(): void {
     emit('duplicate', props.page);
+}
+
+/**
+ * Эмитит сохранение страницы как шаблона.
+ */
+function handleSaveAsTemplate(): void {
+    emit('save-as-template', props.page);
 }
 
 /**
@@ -176,6 +184,23 @@ function handleDelete(): void {
                 @click="handleDuplicate"
             >
                 <BricksIcon icon="ta:outline-copy" />
+            </button>
+
+            <!--
+                Шаблон из страницы — между копией и удалением: обе соседки тоже
+                создают или уничтожают сущность, а не правят текущую. Как и
+                копия, это создание записи — доступно редактору и выше
+            -->
+            <button
+                v-if="canEdit"
+                :class="$style.actionButton"
+                type="button"
+                :disabled="props.isPreparingTemplate"
+                :title="t('bricks.publish.dashboard.row.saveAsTemplate')"
+                :aria-label="t('bricks.publish.dashboard.row.saveAsTemplate')"
+                @click="handleSaveAsTemplate"
+            >
+                <BricksIcon icon="ta:outline-package" />
             </button>
 
             <!-- Удаление страницы — только администратору -->

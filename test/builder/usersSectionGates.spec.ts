@@ -93,6 +93,7 @@ function mountNav(props: Record<string, unknown> = {}) {
         props: {
             activeSection: 'pages',
             pagesCount: 4,
+            templatesCount: null,
             usersCount: null,
             isUsersSectionVisible: true,
             locale: 'ru',
@@ -115,6 +116,7 @@ function mountDashboard(props: Record<string, unknown> = {}) {
             activeSection: 'pages',
             searchQuery: '',
             pagesCount: 4,
+            templatesCount: null,
             usersCount: 5,
             isUsersSectionVisible: true,
             isDarkMode: false,
@@ -123,6 +125,7 @@ function mountDashboard(props: Record<string, unknown> = {}) {
         slots: {
             list: () => h('div', { 'data-slot': 'list' }),
             users: () => h('div', { 'data-slot': 'users' }),
+            templates: () => h('div', { 'data-slot': 'templates' }),
         },
         global: { components: { BricksIcon: BricksIconStub } },
     });
@@ -192,12 +195,12 @@ describe('Оболочка дашборда: раздел решает, что �
         expect(wrapper.text()).not.toContain('bricks.publish.dashboard.createPage');
     });
 
-    it('раздел учёток рисует свой слот, а не пустое состояние шаблонов', () => {
+    it('раздел учёток рисует свой слот, а не слот другого раздела', () => {
         const wrapper = mountDashboard({ activeSection: 'users' });
 
         expect(wrapper.find('[data-slot="users"]').exists()).toBe(true);
         expect(wrapper.find('[data-slot="list"]').exists()).toBe(false);
-        expect(wrapper.text()).not.toContain('bricks.publish.dashboard.templates.emptyTitle');
+        expect(wrapper.find('[data-slot="templates"]').exists()).toBe(false);
     });
 
     // Роль без права управления учётками не должна получить кнопку создания даже

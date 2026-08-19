@@ -35,6 +35,7 @@ export {
     BricksRevisionConflictError,
     BricksStatementTimeoutError,
     BricksStorageWriteRejectedError,
+    BricksTemplateNameConflictError,
     BricksUnknownMediaCategoryError,
 } from './utils/storageErrors';
 
