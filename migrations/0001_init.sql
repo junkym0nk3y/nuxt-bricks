@@ -120,7 +120,8 @@ CREATE INDEX IF NOT EXISTS idx_bricks_page_versions_page_created
     ON bricks_page_versions(page_id, created_at DESC);
 
 -- Пользователи database-auth (bricks.auth.mode = 'database').
--- Провижининг вручную: npm run bricks:hash -- --username <name> --role admin → SQL.
+-- Первую учётку заводит эта же миграция (сид в конце файла) — из неё заводятся
+-- остальные, уже из интерфейса.
 CREATE TABLE IF NOT EXISTS bricks_users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(255) UNIQUE NOT NULL,
@@ -246,3 +247,36 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_bricks_media_url ON bricks_media(url);
 
 CREATE INDEX IF NOT EXISTS idx_bricks_media_category ON bricks_media(category);
 CREATE INDEX IF NOT EXISTS idx_bricks_media_uploaded_at ON bricks_media(uploaded_at DESC);
+
+-- Дефолтный администратор свежей базы: `admin` / `bricks-pass`.
+--
+-- Учётка нужна, чтобы database-режим вообще можно было открыть: ручка создания
+-- учёток требует сессии активного администратора, а до первой учётки сессии нет
+-- ни у кого — без сида первый вход брать неоткуда. Дальше пользователи заводятся
+-- и правятся из интерфейса, внешний провижининг не нужен.
+--
+-- Хеш вписан литералом, а не считается на месте: у Postgres нет scrypt, а формат
+-- `scrypt:N:r:p:saltB64:hashB64` разбирает verify приложения
+-- (src/runtime/server/utils/auth/passwords.ts). Соль поэтому одна на все
+-- инсталляции — для пароля, напечатанного в README, это ничего не ослабляет.
+-- Та же строка продублирована константой BRICKS_DEFAULT_ADMIN_PASSWORD_HASH:
+-- по ней приложение узнаёт, что пароль всё ещё дефолтный, и просит его сменить.
+-- Расхождение literal↔константа ловит test/server/authDefaultAdmin.spec.ts.
+--
+-- DO NOTHING, а не DO UPDATE: миграции применяются повторно (реестр, initdb,
+-- ручной прогон), и обновление вернуло бы дефолтный пароль учётке, которой его
+-- уже сменили.
+--
+-- Учётку, которую УДАЛИЛИ, сид заведёт заново: DO NOTHING молчит только о
+-- существующей строке. Через bricks-migrate этого не случится (файл записан в
+-- реестр и повторно не исполняется), но прямой прогон файла руками — заявленный
+-- сценарий, и после него в базе снова окажется активный администратор с
+-- общеизвестным паролем. Кто сносит сид-учётку намеренно, должен знать: файл
+-- руками больше не прогонять либо сразу сменить пароль.
+INSERT INTO bricks_users (username, password_hash, role)
+VALUES (
+    'admin',
+    'scrypt:16384:8:1:mQgIxUboEImrtO4oD16ruw==:pqKwvl8Mzrn56ggLzSKzGiYLw2tgDCFObpl/3Ajx5jlF3GVAxqgMAhmZjruEmxilY6xNiXRPuGu/GuujVznG7A==',
+    'admin'
+)
+ON CONFLICT (lower(username)) DO NOTHING;

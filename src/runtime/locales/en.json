@@ -79,6 +79,11 @@
                 "editor": "Editor",
                 "viewer": "Viewer"
             },
+            "defaultPassword": {
+                "title": "Default password.",
+                "description": "You signed in with the password from the migration — it is the same in every nuxt-bricks installation. Replace it with your own.",
+                "action": "Change password"
+            },
             "profile": {
                 "title": "Profile",
                 "open": "Profile",
@@ -122,7 +127,8 @@
                     "currentPasswordRequired": "Enter the current password",
                     "newPasswordRequired": "Enter the new password",
                     "passwordTooShort": "The password must be at least {min} characters",
-                    "passwordTooLong": "The password must be at most {max} characters"
+                    "passwordTooLong": "The password must be at most {max} characters",
+                    "passwordIsDefault": "This password is the default in every installation — choose another one."
                 },
                 "errors": {
                     "invalidCurrentPassword": "The current password is incorrect",
@@ -580,10 +586,21 @@
             "fontWeightPlaceholder": "e.g. 450",
             "lineHeightPlaceholder": "e.g. 1.35, 120% or 2rem",
             "letterSpacingPlaceholder": "e.g. 0.15rem or 5%",
+            "linkModal": {
+                "title": "Link",
+                "url": "URL",
+                "urlPlaceholder": "example.com",
+                "newTab": "Open in a new tab",
+                "hint": "Without a protocol the URL is prefixed with https://. Allowed: http(s), mailto, tel, an anchor (#) and a site-root path (/).",
+                "invalidUrl": "This link address is not allowed",
+                "apply": "Apply",
+                "remove": "Remove link"
+            },
             "toolbar": {
                 "bold": "Bold",
                 "italic": "Italic",
                 "underline": "Underline",
+                "link": "Link",
                 "fontFamily": "Font family",
                 "fontSize": "Font size",
                 "fontWeight": "Font weight",
@@ -1139,7 +1156,8 @@
                 "displayNameInvalid": "The name must not contain control characters",
                 "passwordRequired": "Enter a password",
                 "passwordTooShort": "At least {min} characters",
-                "passwordTooLong": "At most {max} characters"
+                "passwordTooLong": "At most {max} characters",
+                "passwordIsDefault": "This password is the default in every installation — choose another one."
             },
             "errors": {
                 "usernameTaken": "This username is already taken",

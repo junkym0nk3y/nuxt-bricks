@@ -17,6 +17,7 @@ import BricksTooltip from '../../ui/tooltip/BricksTooltip.vue';
 import BricksTooltipHint from '../../ui/tooltip/BricksTooltipHint.vue';
 
 const TheTextEditorModal = defineAsyncComponent(() => import('./TheTextEditorModal.vue'));
+const TextEditorLinkModal = defineAsyncComponent(() => import('./TextEditorLinkModal.vue'));
 const TextEditorImageFloatPopover = defineAsyncComponent(
     () => import('./TextEditorImageFloatPopover.vue')
 );
@@ -57,7 +58,13 @@ const {
     handleTextareaInput,
     handleModalUpdate,
     handleRequestImage,
+    link,
 } = useTextEditorArea(props, emit);
+
+// Разворачиваем ref-ы модалки ссылки: вложенные в объект они не разворачиваются
+// в шаблоне, и обращение шло бы через `.value`
+const { isLinkModalOpen, linkValue, hasLinkAtSelection, applyLink, removeLink, closeLinkModal } =
+    link;
 // #endregion
 
 // #region Computed
@@ -234,6 +241,16 @@ function handleModalClose(): void {
             @update:value="handleModalUpdate"
             @close="handleModalClose"
         />
+
+        <!-- Форма ссылки для редактора в панели свойств -->
+        <TextEditorLinkModal
+            :is-open="isLinkModalOpen"
+            :value="linkValue"
+            :can-remove="hasLinkAtSelection"
+            @apply="applyLink"
+            @remove="removeLink"
+            @close="closeLinkModal"
+        />
     </div>
 </template>
 
@@ -278,10 +295,13 @@ function handleModalClose(): void {
 }
 
 .editor {
-    /* Фиксируем светлую тему для области ввода контента */
+    /* Фиксируем светлую тему для области ввода контента.
+       primary — тоже: им красится ссылка, а фон здесь всегда белый, и тёмный
+       вариант токена дал бы на нём заметно более тусклую ссылку */
     --bricks-base-0: #fff;
     --bricks-base-300: #d1d5db;
     --bricks-base-900: #111827;
+    --bricks-primary: #2563eb;
 
     overflow: hidden;
     min-height: inherit;
@@ -304,10 +324,13 @@ function handleModalClose(): void {
 }
 
 .fallbackArea {
-    /* Фиксируем светлую тему для области ввода контента */
+    /* Фиксируем светлую тему для области ввода контента.
+       primary — тоже: им красится ссылка, а фон здесь всегда белый, и тёмный
+       вариант токена дал бы на нём заметно более тусклую ссылку */
     --bricks-base-0: #fff;
     --bricks-base-300: #d1d5db;
     --bricks-base-900: #111827;
+    --bricks-primary: #2563eb;
 
     box-sizing: border-box;
     width: 100%;

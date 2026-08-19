@@ -9,6 +9,9 @@ import type {
     TPublishPagesFilter,
 } from '../types/dashboard';
 
+// Utils
+import { markLeavingInert } from '../../../common/utils/transitionInert';
+
 // Vue
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -122,6 +125,17 @@ function handleDuplicate(page: TPublishedPageSummary): void {
 function handleDelete(page: TPublishedPageSummary): void {
     emit('delete', page);
 }
+
+/**
+ * Гасит интерактивность уходящего экрана: при `mode="out-in"` он живёт в DOM всю
+ * фазу leave, а переход бывает и не по клику человека, то есть фокус внутри
+ * возможен. `pointer-events` из transitions.scss закрывает только указатель.
+ *
+ * @param element - Корневой элемент уходящего экрана.
+ */
+function onViewLeave(element: Element): void {
+    markLeavingInert(element);
+}
 // #endregion
 </script>
 
@@ -135,51 +149,67 @@ function handleDelete(page: TPublishedPageSummary): void {
             @update:model-value="handleSelectFilter"
         />
 
-        <div v-if="props.isLoading" :class="$style.loading">
-            <span :class="$style.spinner" />
-            <p :class="$style.loadingText">{{ t('bricks.common.loading') }}</p>
-        </div>
+        <!--
+            Переход между состояниями списка и между наборами фильтра.
+            `mode="out-in"`: загрузка, пустые состояния и сам список сильно
+            разной высоты, и одновременный переход дёргал бы страницу.
 
-        <div v-else-if="props.pages.length === 0 && !props.hasAnyPages" :class="$style.empty">
-            <div :class="$style.emptyIconCircle">
-                <BricksIcon icon="ta:outline-files" :class="$style.emptyIcon" />
+            Ключ списка включает фильтр — иначе смена сегмента меняет строки
+            внутри того же узла, и перехода нет вовсе: для Vue это тот же
+            элемент. Строки при этом пересоздаются, но состояния, которое
+            стоило бы сохранять между наборами, у них нет.
+        -->
+        <Transition name="bricks-view-switch" mode="out-in" @leave="onViewLeave">
+            <div v-if="props.isLoading" key="loading" :class="$style.loading">
+                <span :class="$style.spinner" />
+                <p :class="$style.loadingText">{{ t('bricks.common.loading') }}</p>
             </div>
-            <h2 :class="$style.emptyTitle">{{ t('bricks.publish.dashboard.empty.title') }}</h2>
-            <p :class="$style.emptyDescription">
-                {{ t('bricks.publish.dashboard.empty.description') }}
-            </p>
-            <BricksButton v-if="canEdit" size="md" variant="primary" @click="handleCreatePage">
-                + {{ t('bricks.publish.dashboard.empty.cta') }}
-            </BricksButton>
-        </div>
 
-        <div v-else-if="props.pages.length === 0" :class="$style.empty">
-            <div :class="$style.emptyIconCircle">
-                <BricksIcon icon="ta:outline-search" :class="$style.emptyIcon" />
+            <div
+                v-else-if="props.pages.length === 0 && !props.hasAnyPages"
+                key="empty"
+                :class="$style.empty"
+            >
+                <div :class="$style.emptyIconCircle">
+                    <BricksIcon icon="ta:outline-files" :class="$style.emptyIcon" />
+                </div>
+                <h2 :class="$style.emptyTitle">{{ t('bricks.publish.dashboard.empty.title') }}</h2>
+                <p :class="$style.emptyDescription">
+                    {{ t('bricks.publish.dashboard.empty.description') }}
+                </p>
+                <BricksButton v-if="canEdit" size="md" variant="primary" @click="handleCreatePage">
+                    + {{ t('bricks.publish.dashboard.empty.cta') }}
+                </BricksButton>
             </div>
-            <h2 :class="$style.emptyTitle">
-                {{ t('bricks.publish.dashboard.empty.noResultsTitle') }}
-            </h2>
-            <p :class="$style.emptyDescription">
-                {{ t('bricks.publish.dashboard.empty.noResultsDescription') }}
-            </p>
-        </div>
 
-        <div v-else :class="$style.rows">
-            <BuilderPublishPagesListRow
-                v-for="page in props.pages"
-                :key="page.id"
-                :page="page"
-                :is-duplicating="props.duplicatingPageId === String(page.id)"
-                :is-selected="props.selectedPageId === String(page.id)"
-                @select="handleSelect"
-                @preview-thumbnail="handlePreviewThumbnail"
-                @edit="handleEdit"
-                @preview="handlePreview"
-                @duplicate="handleDuplicate"
-                @delete="handleDelete"
-            />
-        </div>
+            <div v-else-if="props.pages.length === 0" key="no-results" :class="$style.empty">
+                <div :class="$style.emptyIconCircle">
+                    <BricksIcon icon="ta:outline-search" :class="$style.emptyIcon" />
+                </div>
+                <h2 :class="$style.emptyTitle">
+                    {{ t('bricks.publish.dashboard.empty.noResultsTitle') }}
+                </h2>
+                <p :class="$style.emptyDescription">
+                    {{ t('bricks.publish.dashboard.empty.noResultsDescription') }}
+                </p>
+            </div>
+
+            <div v-else :key="`rows-${props.activeFilter}`" :class="$style.rows">
+                <BuilderPublishPagesListRow
+                    v-for="page in props.pages"
+                    :key="page.id"
+                    :page="page"
+                    :is-duplicating="props.duplicatingPageId === String(page.id)"
+                    :is-selected="props.selectedPageId === String(page.id)"
+                    @select="handleSelect"
+                    @preview-thumbnail="handlePreviewThumbnail"
+                    @edit="handleEdit"
+                    @preview="handlePreview"
+                    @duplicate="handleDuplicate"
+                    @delete="handleDelete"
+                />
+            </div>
+        </Transition>
     </div>
 </template>
 

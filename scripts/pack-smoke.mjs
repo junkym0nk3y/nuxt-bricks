@@ -7,8 +7,7 @@
  *   1. `npm pack` собирает tarball (prepack → nuxt-module-build).
  *   2. Чистый consumer во временной папке ставит tarball (peers доезжают
  *      автоматически, npm >= 7) — package.json/exports/files корректны.
- *   3. В установленном пакете есть dist, migrations/*.sql и CLI-бины;
- *      bricks-hash-password работает без БД.
+ *   3. В установленном пакете есть dist, migrations/*.sql и CLI-бин миграций.
  *   4. `nuxi build` consumer-приложения проходит без Postgres и PROXY_URL.
  *   5. Прод-сервер из .output поднимается и держит auth-матрицу:
  *      своя страница отвечает 200, editorial API и /bricks — 401 анониму,
@@ -160,9 +159,10 @@ async function main() {
                 `migrations/${migration}`
             );
         }
-        for (const bin of ['bricks-hash-password', 'bricks-migrate']) {
-            await assertFileExists(join(installedRoot, 'dist', 'cli', `${bin}.mjs`), `CLI ${bin}`);
-        }
+        await assertFileExists(
+            join(installedRoot, 'dist', 'cli', 'bricks-migrate.mjs'),
+            'CLI bricks-migrate'
+        );
         // Контракт external backend обязан доезжать до установивших пакет:
         // на него ссылается README (ре-ревью PR3)
         await assertFileExists(
@@ -193,24 +193,6 @@ async function main() {
                 `${dep} не доехал в node_modules consumer`
             );
         }
-
-        console.info('[pack-smoke] CLI bricks-hash-password из пакета...');
-        // Пароль уходит на stdin: аргументом CLI его не принимает — он был бы
-        // виден в списке процессов и остался бы в истории шелла
-        const hashOutput = await runCapture(
-            'node',
-            [
-                join(installedRoot, 'dist', 'cli', 'bricks-hash-password.mjs'),
-                '--username',
-                'smoke',
-                '--role',
-                'admin',
-                '--password-stdin',
-            ],
-            consumerDir,
-            'smoke-password'
-        );
-        assertOk(hashOutput.includes('scrypt:'), 'bricks-hash-password не вернул scrypt-хеш');
 
         console.info('[pack-smoke] nuxi build consumer-приложения...');
         await run('npx', ['nuxi', 'build'], {

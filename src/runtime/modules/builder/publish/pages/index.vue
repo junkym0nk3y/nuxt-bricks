@@ -45,6 +45,7 @@ import BuilderPublishDetailsPanel from '../components/BuilderPublishDetailsPanel
 import TheBuilderPublishCreatePageModal from '../components/TheBuilderPublishCreatePageModal.vue';
 import BuilderMediaGalleryPreviewLightbox from '../../media/components/BuilderMediaGalleryPreviewLightbox.vue';
 import TheBuilderUsersSection from '../../users/components/TheBuilderUsersSection.vue';
+import BuilderAuthDefaultPasswordNotice from '../../auth/components/BuilderAuthDefaultPasswordNotice.vue';
 import BricksConfirmModal from '../../../ui/feedback/BricksConfirmModal.vue';
 import BricksToast from '../../../ui/feedback/BricksToast.vue';
 
@@ -430,6 +431,18 @@ const [{ isLoadingPages }] = await Promise.all([pagesDataPromise, ensureUsers()]
             @open-profile="profileModal.open()"
             @logout="handleLogout"
         >
+            <!--
+                Полоса дефолтного пароля рисуется сама и только когда он
+                дефолтный: условие живёт внутри компонента, вместе с флагом
+                сессии, который он читает.
+            -->
+            <template #notice>
+                <BuilderAuthDefaultPasswordNotice
+                    :can-change-password="canChangePassword"
+                    @change-password="handleChangeOwnPassword"
+                />
+            </template>
+
             <template #list>
                 <BuilderPublishPagesList
                     :pages="filteredPages"

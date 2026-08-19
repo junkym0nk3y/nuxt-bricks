@@ -4,6 +4,7 @@ import type { IUsersValidationSchemaOptions } from '../types/users';
 
 // Constants
 import {
+    BRICKS_DEFAULT_ADMIN_PASSWORD,
     BRICKS_DISPLAY_NAME_MAX_LENGTH,
     BRICKS_DISPLAY_NAME_PATTERN,
     BRICKS_NEW_USERNAME_MAX_LENGTH,
@@ -106,13 +107,24 @@ export function createUsersPasswordValidationSchema(options: IUsersValidationSch
 function createNewPasswordRule(options: IUsersValidationSchemaOptions) {
     const { t } = options;
 
-    return string()
-        .required(() => t('bricks.users.validation.passwordRequired'))
-        .min(BRICKS_PASSWORD_MIN_LENGTH, () =>
-            t('bricks.users.validation.passwordTooShort', { min: BRICKS_PASSWORD_MIN_LENGTH })
-        )
-        .max(BRICKS_PASSWORD_MAX_LENGTH, () =>
-            t('bricks.users.validation.passwordTooLong', { max: BRICKS_PASSWORD_MAX_LENGTH })
-        );
+    return (
+        string()
+            .required(() => t('bricks.users.validation.passwordRequired'))
+            .min(BRICKS_PASSWORD_MIN_LENGTH, () =>
+                t('bricks.users.validation.passwordTooShort', { min: BRICKS_PASSWORD_MIN_LENGTH })
+            )
+            .max(BRICKS_PASSWORD_MAX_LENGTH, () =>
+                t('bricks.users.validation.passwordTooLong', { max: BRICKS_PASSWORD_MAX_LENGTH })
+            )
+            // Дефолтный пароль сида запрещён и здесь: выданный администратором, он
+            // сделал бы чужую учётку общеизвестной, а распознавание «пароль всё ещё
+            // дефолтный» на неё не сработало бы вовсе — оно узнаёт только сидовый
+            // хеш, а у заново заданного пароля своя соль
+            .test(
+                'not-default-password',
+                () => t('bricks.users.validation.passwordIsDefault'),
+                (value) => value !== BRICKS_DEFAULT_ADMIN_PASSWORD
+            )
+    );
 }
 // #endregion

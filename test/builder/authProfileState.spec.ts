@@ -148,6 +148,66 @@ describe('useAuthProfile: профиль сессии', () => {
         consoleError.mockRestore();
     });
 
+    it('признак дефолтного пароля берётся из контекста запроса', () => {
+        requestContext.user = {
+            id: 7,
+            username: 'admin',
+            role: 'admin',
+            displayName: null,
+            avatarUrl: null,
+            isActive: true,
+            authVersion: 1,
+            isDefaultPassword: true,
+        };
+
+        const { isDefaultPassword } = useAuthProfile();
+
+        expect(isDefaultPassword.value).toBe(true);
+    });
+
+    it('без контекста признак приезжает тем же запросом `me`', async () => {
+        apiFetcherMock.mockResolvedValueOnce({
+            user: { id: 3, username: 'admin', role: 'admin' },
+            isDefaultPassword: true,
+        });
+
+        const { isDefaultPassword, ensureProfile } = useAuthProfile();
+
+        await ensureProfile();
+
+        expect(apiFetcherMock).toHaveBeenCalledTimes(1);
+        expect(isDefaultPassword.value).toBe(true);
+    });
+
+    // Флаг относится к креденшелам, а не к профилю: держи он общее с профилем
+    // состояние, ответ ручки имени (в нём флага нет) стирал бы предупреждение —
+    // смена аватара гасила бы просьбу сменить пароль
+    it('правка профиля признак дефолтного пароля не гасит', async () => {
+        requestContext.user = {
+            id: 7,
+            username: 'admin',
+            role: 'admin',
+            displayName: null,
+            avatarUrl: null,
+            isDefaultPassword: true,
+        };
+
+        const { isDefaultPassword, saveDisplayName } = useAuthProfile();
+
+        apiFetcherMock.mockResolvedValueOnce({
+            user: {
+                id: 7,
+                username: 'admin',
+                role: 'admin',
+                displayName: 'Сергей',
+                avatarUrl: null,
+            },
+        });
+        await saveDisplayName('Сергей');
+
+        expect(isDefaultPassword.value).toBe(true);
+    });
+
     it('подпись владельца — имя, а без имени логин', async () => {
         requestContext.user = {
             id: 7,

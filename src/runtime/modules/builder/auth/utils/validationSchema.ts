@@ -4,6 +4,7 @@ import type { IAuthValidationSchemaOptions } from '../types/auth';
 
 // Constants
 import {
+    BRICKS_DEFAULT_ADMIN_PASSWORD,
     BRICKS_DISPLAY_NAME_MAX_LENGTH,
     BRICKS_DISPLAY_NAME_PATTERN,
     BRICKS_PASSWORD_MAX_LENGTH,
@@ -67,10 +68,12 @@ export function createAuthProfileValidationSchema(options: IAuthValidationSchema
 /**
  * Собирает yup-схему формы «Пароль» (смена своего пароля).
  *
- * К ТЕКУЩЕМУ паролю минимальная длина не применяется намеренно: учётку мог
- * создать CLI с более коротким паролем, и требование «не короче восьми» не дало
- * бы такому человеку сменить пароль вовсе. Границы НОВОГО — те же, что на
- * сервере.
+ * К ТЕКУЩЕМУ паролю минимальная длина не применяется намеренно: пароль учётке
+ * могли задать записью в базу, короче нынешней границы, и требование «не короче
+ * восьми» не дало бы такому человеку сменить пароль вовсе. Границы НОВОГО — те
+ * же, что на сервере, включая запрет дефолтного пароля сида: «сменить» пароль на
+ * тот же самый — не смена, а способ погасить предупреждение, оставив учётку
+ * общеизвестной.
  *
  * @param options - Контекст валидации.
  * @returns Yup-схема формы пароля.
@@ -97,6 +100,11 @@ export function createAuthOwnPasswordValidationSchema(options: IAuthValidationSc
                 t('bricks.auth.profile.validation.passwordTooLong', {
                     max: BRICKS_PASSWORD_MAX_LENGTH,
                 })
+            )
+            .test(
+                'not-default-password',
+                () => t('bricks.auth.profile.validation.passwordIsDefault'),
+                (value) => value !== BRICKS_DEFAULT_ADMIN_PASSWORD
             ),
     });
 }

@@ -61,6 +61,8 @@ export interface IAuthSessionJoinRow {
     authVersion: number;
     displayName: string | null;
     avatarUrl: string | null;
+    /** Результат сравнения хеша с сидовым: пароль учётки всё ещё дефолтный. */
+    isDefaultPassword: boolean;
 }
 
 /**

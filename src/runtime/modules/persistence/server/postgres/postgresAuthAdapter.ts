@@ -10,6 +10,7 @@
  */
 import { query, queryOne } from './client';
 import { createPostgresAuthUserMethods } from './postgresAuthUserMethods';
+import { BRICKS_DEFAULT_ADMIN_PASSWORD_HASH } from '../utils/defaultAdmin';
 import type {
     IAuthAdapter,
     IAuthUserRecord,
@@ -62,13 +63,18 @@ export function createPostgresAuthAdapter(): IAuthAdapter {
                     u.role,
                     u.auth_version AS "authVersion",
                     u.display_name AS "displayName",
-                    u.avatar_url AS "avatarUrl"
+                    u.avatar_url AS "avatarUrl",
+                    -- Дефолтность пароля считается здесь, а не отдельным
+                    -- запросом: интерфейсу она нужна на каждом входе в билдер,
+                    -- а сравнение строки хеша ничего не стоит рядом с уже
+                    -- идущим JOIN. Сам хеш при этом не покидает базу.
+                    (u.password_hash = $2) AS "isDefaultPassword"
                 FROM bricks_sessions s
                 JOIN bricks_users u ON u.id = s.user_id
                 WHERE s.token_hash = $1
                     AND s.expires_at > NOW()
                     AND s.auth_version = u.auth_version`,
-                [tokenHash]
+                [tokenHash, BRICKS_DEFAULT_ADMIN_PASSWORD_HASH]
             );
 
             if (!row) {
@@ -91,6 +97,7 @@ export function createPostgresAuthAdapter(): IAuthAdapter {
                     authVersion: row.authVersion,
                     displayName: row.displayName,
                     avatarUrl: row.avatarUrl,
+                    isDefaultPassword: row.isDefaultPassword,
                 },
             };
         },

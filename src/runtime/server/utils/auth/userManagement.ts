@@ -12,6 +12,7 @@
 import { createError, type H3Event } from 'h3';
 import { useRuntimeConfig } from 'nitropack/runtime';
 import {
+    BRICKS_DEFAULT_ADMIN_PASSWORD,
     BRICKS_DISPLAY_NAME_MAX_LENGTH,
     BRICKS_DISPLAY_NAME_PATTERN,
     BRICKS_NEW_USERNAME_MAX_LENGTH,
@@ -100,6 +101,16 @@ function requireRole(value: unknown, field: string): TBricksUserRole {
 export function requirePassword(value: unknown, field = 'password'): string {
     if (typeof value !== 'string') {
         invalid(`Field "${field}" must be a string`);
+    }
+
+    // Дефолтный пароль сида запрещён кому бы то ни было: он одинаков во всех
+    // установках и напечатан в README. Без этого запрета человек мог бы «сменить»
+    // пароль на тот же самый — предупреждение о дефолтном пароле погасло бы
+    // (оно узнаёт дефолт по хешу, а у новой записи своя соль), а учётка осталась
+    // бы общеизвестной. Тем же запретом закрыт и обратный путь: администратор не
+    // может выдать этот пароль другому.
+    if (value === BRICKS_DEFAULT_ADMIN_PASSWORD) {
+        invalid(`Field "${field}" must not be the default password`);
     }
 
     if (value.length < BRICKS_PASSWORD_MIN_LENGTH) {

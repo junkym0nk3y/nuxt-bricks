@@ -2,7 +2,7 @@ import { defineBuildConfig } from 'unbuild';
 
 export default defineBuildConfig({
     entries: [
-        // CLI-скрипты (миграции, хеш пароля) копируются в dist/cli как есть (без бандлинга).
+        // CLI-скрипт миграций копируется в dist/cli как есть (без бандлинга).
         {
             builder: 'mkdist',
             input: 'src/cli',

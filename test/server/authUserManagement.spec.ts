@@ -28,11 +28,14 @@ const {
     assertNotSelfTarget,
     assertUserManagementAvailable,
     buildCreateUserPayload,
+    requirePassword,
     validateUpdateUserPayload,
 } = await import('../../src/runtime/server/utils/auth/userManagement');
 const { verifyPassword } = await import('../../src/runtime/server/utils/auth/passwords');
 const { BRICKS_API_ERROR_CODES } =
     await import('../../src/runtime/modules/common/constants/apiErrors');
+const { BRICKS_DEFAULT_ADMIN_PASSWORD } =
+    await import('../../src/runtime/modules/common/constants/auth');
 // #endregion
 
 /**
@@ -164,6 +167,30 @@ describe('userManagement: валидация DTO', () => {
 
         expect(await verifyPassword(password, payload.passwordHash)).toBe(true);
         expect(await verifyPassword(password.trim(), payload.passwordHash)).toBe(false);
+    });
+
+    // Пароль сида одинаков во всех установках и напечатан в README. Задай его
+    // администратор другому человеку — учётка была бы общеизвестной, а
+    // предупреждение о дефолтном пароле на неё не сработало бы: оно узнаёт
+    // только сидовый хеш, а у заново заданного пароля своя соль. Тем же запретом
+    // закрыта «смена» своего пароля на тот же самый ради гашения полосы.
+    it('отклоняет дефолтный пароль сида на всех путях установки пароля', async () => {
+        await expect(
+            buildCreateUserPayload({
+                username: 'ivan',
+                password: BRICKS_DEFAULT_ADMIN_PASSWORD,
+                role: 'editor',
+            })
+        ).rejects.toThrowError(expect.objectContaining({ statusCode: 400 }));
+
+        // Тот же путь используют админская ручка чужого пароля и вкладка своего:
+        // границы нового пароля у них общие
+        expect(() => requirePassword(BRICKS_DEFAULT_ADMIN_PASSWORD, 'newPassword')).toThrowError(
+            expect.objectContaining({ statusCode: 400 })
+        );
+        expect(requirePassword(`${BRICKS_DEFAULT_ADMIN_PASSWORD}-own`)).toBe(
+            `${BRICKS_DEFAULT_ADMIN_PASSWORD}-own`
+        );
     });
 
     it('отклоняет логин с недопустимыми символами и слишком короткий пароль', async () => {

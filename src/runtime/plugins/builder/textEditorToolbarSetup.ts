@@ -85,6 +85,7 @@ export function createToolbarConfig({
     currentFontFamily,
     currentLineHeight,
     currentLetterSpacing,
+    onRequestLink,
 }: ITextEditorToolbarConfigParams): IToolbarGroup[] {
     /**
      * Устанавливает толщину шрифта и синхронизирует select.
@@ -165,7 +166,7 @@ export function createToolbarConfig({
     }
 
     return [
-        // Форматирование текста (B, I, U)
+        // Форматирование текста (B, I, U) и ссылка
         {
             name: 'marks',
             items: [
@@ -187,6 +188,18 @@ export function createToolbarConfig({
                     run: () => editor.chain().focus().toggleUnderline().run(),
                     isActive: () => editor.isActive('underline'),
                 },
+                // Ссылка — там же, где остальные марки; кнопки нет у поверхностей,
+                // которые не смонтировали модалку ссылки
+                ...(onRequestLink
+                    ? [
+                          {
+                              icon: 'ta:outline-link',
+                              title: 'Link',
+                              run: onRequestLink,
+                              isActive: () => editor.isActive('link'),
+                          },
+                      ]
+                    : []),
             ],
         },
 

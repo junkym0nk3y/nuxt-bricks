@@ -118,6 +118,55 @@ const richTextFilter = new FilterXSS({
 });
 
 /**
+ * Открывающий тег `<a>` в уже отфильтрованном выводе. Атрибуты после js-xss
+ * нормализованы (значения в двойных кавычках, `>` внутри значений невозможен),
+ * поэтому «до первого `>`» здесь — не эвристика.
+ */
+const OPEN_ANCHOR_TAG = /<a\s[^>]*>/gi;
+
+/** Ссылка, открывающая новую вкладку. */
+const BLANK_TARGET_ATTR = /\starget\s*=\s*"_blank"/i;
+
+/** Существующий rel — его значение заменяется целиком. */
+const REL_ATTR = /\srel\s*=\s*"[^"]*"/i;
+
+/** Значение rel, обязательное для ссылок в новую вкладку. */
+const FORCED_REL_VALUE = 'noopener noreferrer';
+
+/**
+ * Навязывает `rel="noopener noreferrer"` ссылкам с `target="_blank"`.
+ *
+ * Без `noopener` открытая вкладка получает `window.opener` исходной страницы и
+ * может увести её на свой адрес (tabnabbing); `noreferrer` не отдаёт адрес
+ * источника. Расширение редактора проставляет rel само, но HTML в схему
+ * попадает и мимо него — через режим кода редактора и через импорт схемы, —
+ * поэтому гарантию даёт рендер, а не редактор.
+ *
+ * @param html - Разметка после FilterXSS.
+ * @returns Разметка, где у каждой ссылки в новую вкладку выставлен rel.
+ */
+function forceBlankTargetRel(html: string): string {
+    return html.replace(OPEN_ANCHOR_TAG, (tag) => {
+        if (!BLANK_TARGET_ATTR.test(tag)) {
+            return tag;
+        }
+
+        const forcedRel = ` rel="${FORCED_REL_VALUE}"`;
+
+        if (REL_ATTR.test(tag)) {
+            return tag.replace(REL_ATTR, forcedRel);
+        }
+
+        // Self-closing форму js-xss сохраняет (`<a … />`) — дописывать атрибут
+        // после слэша нельзя, он уехал бы в имя атрибута
+        const closing = tag.endsWith('/>') ? ' />' : '>';
+        const withoutClosing = tag.slice(0, tag.length - closing.trimStart().length).trimEnd();
+
+        return `${withoutClosing}${forcedRel}${closing}`;
+    });
+}
+
+/**
  * Убирает служебные маркеры js-xss: парные `[removed]…[/removed]` вырезаются
  * самим фильтром, но self-closing тег из stripIgnoreTagBody (без закрывающего)
  * оставляет одиночный маркер в выводе.
@@ -140,6 +189,6 @@ export function sanitizeRichTextHtml(html: string | null | undefined): string {
         return '';
     }
 
-    return stripSanitizerMarkers(richTextFilter.process(html));
+    return forceBlankTargetRel(stripSanitizerMarkers(richTextFilter.process(html)));
 }
 // #endregion

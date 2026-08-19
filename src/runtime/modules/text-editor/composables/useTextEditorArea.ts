@@ -13,6 +13,7 @@ import { createTiptapEditor } from '../utils/createTiptapEditor';
 import { insertMediaIntoEditor } from '../utils/insertMediaIntoEditor';
 
 // Composables
+import { useTextEditorLink } from './useTextEditorLink';
 import { useToolbarStateSync } from './useToolbarStateSync';
 
 // Pinia
@@ -42,8 +43,11 @@ export function useTextEditorArea(
     const editor = shallowRef<Editor | null>(null);
     const EditorContentComponent = shallowRef<Component | null>(null);
 
+    const link = useTextEditorLink(editor);
+
     const { toolbarGroups } = useToolbarStateSync(editor, {
         isEnabled: () => props.useRichEditor !== false && isClient.value,
+        onRequestLink: link.openLinkModal,
     });
 
     /**
@@ -201,5 +205,6 @@ export function useTextEditorArea(
         handleTextareaInput,
         handleModalUpdate,
         handleRequestImage,
+        link,
     };
 }

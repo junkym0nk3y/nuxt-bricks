@@ -14,6 +14,7 @@ import { insertMediaIntoEditor } from '../../../../text-editor/utils/insertMedia
 import { resolveBricksLabel } from '../../../../common/utils/i18nLabels';
 
 // Composables
+import { useTextEditorLink } from '../../../../text-editor/composables/useTextEditorLink';
 import { useToolbarStateSync } from '../../../../text-editor/composables/useToolbarStateSync';
 import { useInlineEditingFallback } from '../composables/useInlineEditingFallback';
 import { useDraggableOverlay } from '../composables/useDraggableOverlay';
@@ -21,6 +22,7 @@ import { useDraggableOverlay } from '../composables/useDraggableOverlay';
 // Components
 import BricksTextEditorToolbar from '../../../../ui/inputs/BricksTextEditorToolbar.vue';
 import TextEditorImageFloatPopover from '../../../../text-editor/components/TextEditorImageFloatPopover.vue';
+import TextEditorLinkModal from '../../../../text-editor/components/TextEditorLinkModal.vue';
 import BuilderCanvasInlineEditingHeader from './BuilderCanvasInlineEditingHeader.vue';
 // #endregion
 
@@ -34,11 +36,25 @@ const componentsStore = useComponentsStore();
 const overlayRef = ref<HTMLElement | null>(null);
 
 /**
+ * Форма ссылки для редактора, активного на канвасе.
+ */
+const {
+    isLinkModalOpen,
+    linkValue,
+    hasLinkAtSelection,
+    openLinkModal,
+    applyLink,
+    removeLink,
+    closeLinkModal,
+} = useTextEditorLink(() => inlineEditingStore.editor);
+
+/**
  * Toolbar-синк с TipTap-транзакциями: состояние selects + конфигурация групп.
  * Группы пустые вне textarea-типа (тулбар показывается только для него).
  */
 const { toolbarGroups, resetToolbarState } = useToolbarStateSync(() => inlineEditingStore.editor, {
     isEnabled: () => inlineEditingStore.propType === 'textarea',
+    onRequestLink: openLinkModal,
 });
 
 /**
@@ -132,6 +148,18 @@ watch(
         }
     }
 );
+
+/**
+ * Закрывает форму ссылки вместе с выходом из inline-редактирования: редактор,
+ * к выделению которого она применялась, к этому моменту уже уничтожен, и
+ * оставшаяся форма применила бы ссылку в никуда. Флаг гасится напрямую —
+ * closeLinkModal возвращал бы фокус в несуществующий редактор.
+ */
+watch(isVisible, (visible) => {
+    if (!visible) {
+        isLinkModalOpen.value = false;
+    }
+});
 // #endregion
 
 // #region Methods
@@ -257,6 +285,15 @@ function handleRequestImage(): void {
         </Transition>
 
         <TextEditorImageFloatPopover :editor="inlineEditingStore.editor" />
+
+        <TextEditorLinkModal
+            :is-open="isLinkModalOpen"
+            :value="linkValue"
+            :can-remove="hasLinkAtSelection"
+            @apply="applyLink"
+            @remove="removeLink"
+            @close="closeLinkModal"
+        />
     </Teleport>
 </template>
 

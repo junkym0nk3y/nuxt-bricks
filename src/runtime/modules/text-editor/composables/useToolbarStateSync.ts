@@ -28,7 +28,7 @@ const DEFAULT_TOOLBAR_STATE = Object.freeze({
  * Подписка на 'transaction' пересоздаётся автоматически при смене editor (watchEffect).
  *
  * @param editorRef - Ref или getter активного TipTap-редактора (null — редактор не создан).
- * @param options - Опциональное условие isEnabled для скрытия тулбара.
+ * @param options - Условие isEnabled для скрытия тулбара и обработчик кнопки ссылки.
  */
 export function useToolbarStateSync(
     editorRef: MaybeRefOrGetter<Editor | null>,
@@ -68,6 +68,7 @@ export function useToolbarStateSync(
             editor,
             availableFonts: availableFonts.value,
             ...toolbarState,
+            ...(options.onRequestLink ? { onRequestLink: options.onRequestLink } : {}),
         });
     });
 

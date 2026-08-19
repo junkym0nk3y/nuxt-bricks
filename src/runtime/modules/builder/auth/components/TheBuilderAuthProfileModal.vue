@@ -27,6 +27,9 @@ import type {
     TAuthProfileTab,
 } from '../types/auth';
 
+// Utils
+import { markLeavingInert } from '../../../common/utils/transitionInert';
+
 // Vue
 import { computed, ref, shallowRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -191,6 +194,17 @@ function handlePhotoUploaded(): void {
 function handleNotify(message: string, variant: 'success' | 'error'): void {
     emit('notify', message, variant);
 }
+
+/**
+ * Гасит интерактивность уходящего экрана: при `mode="out-in"` он живёт в DOM всю
+ * фазу leave, а переход бывает и не по клику человека, то есть фокус внутри
+ * возможен. `pointer-events` из transitions.scss закрывает только указатель.
+ *
+ * @param element - Корневой элемент уходящего экрана.
+ */
+function onViewLeave(element: Element): void {
+    markLeavingInert(element);
+}
 // #endregion
 
 // #region Lifecycle
@@ -251,22 +265,31 @@ watch(
                 />
 
                 <!--
+                    Смена вкладки — `mode="out-in"`: формы разной высоты, и при
+                    одновременном переходе новая проявлялась бы поверх уходящей,
+                    прыгая по вертикали. Ключи обязательны: без них Vue считает
+                    ветки v-if/v-else одним узлом и переход не запускается.
+
                     Профиль приходит из общего состояния сессии; без него рисовать
                     нечего — модалку в этот момент открыть невозможно (аватар,
                     который её открывает, тоже не отрисован)
                 -->
-                <BuilderAuthProfileDetailsForm
-                    v-if="profile && activeTab === 'profile'"
-                    :profile="profile"
-                    @pick-photo="handlePickPhoto"
-                    @close="handleClose"
-                    @notify="handleNotify"
-                />
+                <Transition name="bricks-view-switch" mode="out-in" @leave="onViewLeave">
+                    <BuilderAuthProfileDetailsForm
+                        v-if="profile && activeTab === 'profile'"
+                        key="profile"
+                        :profile="profile"
+                        @pick-photo="handlePickPhoto"
+                        @close="handleClose"
+                        @notify="handleNotify"
+                    />
 
-                <BuilderAuthProfilePasswordForm
-                    v-else-if="props.canChangePassword && activeTab === 'password'"
-                    @close="handleClose"
-                />
+                    <BuilderAuthProfilePasswordForm
+                        v-else-if="props.canChangePassword && activeTab === 'password'"
+                        key="password"
+                        @close="handleClose"
+                    />
+                </Transition>
             </div>
 
             <input

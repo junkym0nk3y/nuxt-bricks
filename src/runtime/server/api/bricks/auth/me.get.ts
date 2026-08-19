@@ -13,6 +13,12 @@ import { toAuthProfileUser } from '../../../utils/auth/profile';
  * Проекция общая с ручками профиля (`toAuthProfileUser`): угол экрана
  * наполняется этим ответом и обновляется ответами профиля, и две разные формы
  * заставили бы его угадывать, что именно приехало.
+ *
+ * `isDefaultPassword` лежит РЯДОМ с проекцией, а не внутри неё: ручки профиля
+ * отдают ту же форму `user`, и любая правка имени или фото затирала бы флаг в
+ * состоянии клиента — предупреждение о дефолтном пароле исчезало бы от смены
+ * аватара. Смена самого пароля рвёт сессию, поэтому обновлять флаг ответом
+ * профиля не нужно вовсе: следующий вход считает его заново.
  */
 export default defineEventHandler(async (event) => {
     try {
@@ -28,7 +34,10 @@ export default defineEventHandler(async (event) => {
             throw createError({ statusCode: 401, statusMessage: 'Unauthorized' });
         }
 
-        return { user: toAuthProfileUser(session.user) };
+        return {
+            user: toAuthProfileUser(session.user),
+            isDefaultPassword: session.user.isDefaultPassword,
+        };
     } catch (error: unknown) {
         toHttpError(error, 'Failed to resolve session');
     }

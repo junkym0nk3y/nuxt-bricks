@@ -3,6 +3,8 @@
  */
 
 import type { Editor } from '@tiptap/vue-3';
+import type { TBricksModalLayer } from '../../ui/base/modal/types';
+import type { ITextEditorLinkValue } from '../types/composables';
 
 export interface ITextEditorImageFloatPopoverProps {
     editor: Editor | null;
@@ -25,4 +27,20 @@ export interface ITextEditorAreaProps {
 
 export interface ITextEditorAreaEmits {
     'update:value': [value: string];
+}
+
+export interface ITextEditorLinkModalProps {
+    isOpen: boolean;
+    /** Начальное значение формы (адрес ссылки под курсором). */
+    value: ITextEditorLinkValue;
+    /** Есть ли ссылка в выделении — от этого зависит показ кнопки «убрать». */
+    canRemove?: boolean;
+    /** Слой оверлея: `nested` для вызова из развёрнутой модалки редактора. */
+    layer?: TBricksModalLayer;
+}
+
+export interface ITextEditorLinkModalEmits {
+    apply: [value: ITextEditorLinkValue];
+    remove: [];
+    close: [];
 }

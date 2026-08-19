@@ -54,9 +54,18 @@ describe('useAuthSession.fetchMe: 401 против недоступности с
         await expect(useAuthSession().fetchMe()).rejects.toThrow('<no response>');
     });
 
-    it('успешный ответ отдаёт пользователя сессии', async () => {
-        apiFetcherMock.mockResolvedValueOnce({ user: { id: 1, username: 'editor' } });
+    it('успешный ответ отдаёт сессию целиком, вместе с признаком дефолтного пароля', async () => {
+        // Флаг лежит рядом с пользователем, а не внутри него: вернись отсюда
+        // только `user`, предупреждение о дефолтном пароле пришлось бы добирать
+        // вторым запросом того же самого
+        apiFetcherMock.mockResolvedValueOnce({
+            user: { id: 1, username: 'editor' },
+            isDefaultPassword: true,
+        });
 
-        await expect(useAuthSession().fetchMe()).resolves.toEqual({ id: 1, username: 'editor' });
+        await expect(useAuthSession().fetchMe()).resolves.toEqual({
+            user: { id: 1, username: 'editor' },
+            isDefaultPassword: true,
+        });
     });
 });

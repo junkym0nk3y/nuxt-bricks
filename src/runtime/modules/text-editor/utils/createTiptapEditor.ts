@@ -119,6 +119,24 @@ export async function createTiptapEditor(
                 bulletList: { keepMarks: true },
                 orderedList: { keepMarks: true },
                 underline: false,
+                // Ссылки уже входят в StarterKit — отдельным расширением их не
+                // подключать: два расширения с именем `link` роняют редактор
+                // («Duplicate extension names»). Настраивается только конфигом.
+                link: {
+                    // В билдере клик по ссылке — постановка курсора, а не переход:
+                    // иначе редактирование текста уводило бы со страницы билдера.
+                    openOnClick: false,
+                    // Ссылка появляется только по явному действию: автолинковка
+                    // размечает набранный домен на лету, и автор получает ссылку
+                    // (со своим target/rel) там, где просто печатал текст.
+                    autolink: false,
+                    defaultProtocol: 'https',
+                    // Без обнуления дефолтов расширение вешает
+                    // target="_blank" rel="noopener noreferrer nofollow" на КАЖДУЮ
+                    // ссылку. target и rel задаёт автор в модалке ссылки, nofollow
+                    // всем внешним ссылкам подряд — чужое SEO-решение.
+                    HTMLAttributes: { target: null, rel: null, class: null },
+                },
             }),
             BoldOverride,
             Underline,

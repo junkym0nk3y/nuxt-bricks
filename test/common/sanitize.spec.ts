@@ -43,7 +43,8 @@ describe('sanitizeRichTextHtml: rich-text allow-list', () => {
         const link = sanitizeRichTextHtml('<a href="javascript:alert(1)">x</a>');
         expect(link).not.toContain('javascript');
 
-        const okLink = '<a href="https://example.com" target="_blank" rel="noopener">x</a>';
+        const okLink =
+            '<a href="https://example.com" target="_blank" rel="noopener noreferrer">x</a>';
         expect(sanitizeRichTextHtml(okLink)).toBe(okLink);
 
         expect(sanitizeRichTextHtml('<a href="#anchor">x</a>')).toBe('<a href="#anchor">x</a>');
@@ -68,6 +69,31 @@ describe('sanitizeRichTextHtml: rich-text allow-list', () => {
         expect(result).not.toContain('position');
         expect(result).not.toContain('url(');
         expect(result).toContain('color');
+    });
+
+    it('навязывает rel="noopener noreferrer" ссылкам в новую вкладку', () => {
+        // Без rel открытая вкладка получает window.opener исходной страницы
+        expect(sanitizeRichTextHtml('<a href="https://e.com" target="_blank">x</a>')).toBe(
+            '<a href="https://e.com" target="_blank" rel="noopener noreferrer">x</a>'
+        );
+
+        // Чужой rel заменяется целиком, а не дополняется
+        expect(
+            sanitizeRichTextHtml('<a href="https://e.com" target="_blank" rel="nofollow">x</a>')
+        ).toBe('<a href="https://e.com" target="_blank" rel="noopener noreferrer">x</a>');
+
+        // Self-closing форму js-xss сохраняет — атрибут не должен уехать за слэш
+        expect(sanitizeRichTextHtml('<a href="https://e.com" target="_blank"/>')).toBe(
+            '<a href="https://e.com" target="_blank" rel="noopener noreferrer" />'
+        );
+
+        // Ссылка в той же вкладке остаётся как есть — rel не про неё
+        const sameTab = '<a href="https://e.com" rel="nofollow">x</a>';
+        expect(sanitizeRichTextHtml(sameTab)).toBe(sameTab);
+
+        // Экранированный текст не тег: подстановка не должна его трогать
+        const escaped = '<p>&lt;a target="_blank"&gt;</p>';
+        expect(sanitizeRichTextHtml(escaped)).toBe(escaped);
     });
 
     it('переживает null/undefined/пустую строку', () => {
@@ -120,7 +146,9 @@ describe('sanitizeRichTextHtml: URL-политика src/poster/href (R0.1)', ()
     });
 
     it('идемпотентна на второй прогон', () => {
-        const html = '<p>x</p><video poster="https://good.example/x.jpg" src="/a.mp4"></video>';
+        const html =
+            '<p>x</p><video poster="https://good.example/x.jpg" src="/a.mp4"></video>' +
+            '<a href="https://e.com" target="_blank">x</a>';
         const once = sanitizeRichTextHtml(html);
         const twice = sanitizeRichTextHtml(once);
         expect(twice).toBe(once);

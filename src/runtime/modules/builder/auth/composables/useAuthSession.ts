@@ -67,17 +67,20 @@ export function useAuthSession() {
     }
 
     /**
-     * Текущий пользователь сессии; null — если не авторизован (401).
+     * Текущая сессия целиком; null — если не авторизован (401).
+     *
+     * Отдаётся весь ответ, а не только пользователь: рядом с ним приезжает
+     * признак дефолтного пароля, и вытащить его вторым запросом значило бы
+     * спросить сервер о том же самом дважды.
      *
      * Прочие отказы (5xx, обрыв по потолку ожидания) пробрасываются: они не
      * означают «не авторизован», и вызывающий, приняв их за 401, показал бы форму
      * логина человеку с рабочей сессией — или, наоборот, увёл бы его в цикл
      * входа. Различить их можно только здесь: наружу уходит один и тот же `null`.
      */
-    async function fetchMe(): Promise<IAuthSessionUserPayload | null> {
+    async function fetchMe(): Promise<IAuthSessionResponse | null> {
         try {
-            const response = await apiFetcher<IAuthSessionResponse>('/api/bricks/auth/me');
-            return response.user;
+            return await apiFetcher<IAuthSessionResponse>('/api/bricks/auth/me');
         } catch (error: unknown) {
             if ((error as TRequestErrorLike).statusCode === UNAUTHORIZED_STATUS) {
                 return null;

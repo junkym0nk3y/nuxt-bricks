@@ -12,6 +12,7 @@ import { createTiptapEditor } from '../utils/createTiptapEditor';
 import { insertMediaIntoEditor } from '../utils/insertMediaIntoEditor';
 
 // Composables
+import { useTextEditorLink } from '../composables/useTextEditorLink';
 import { useToolbarStateSync } from '../composables/useToolbarStateSync';
 
 // Pinia
@@ -23,6 +24,7 @@ import BricksCloseButton from '../../ui/base/modal/BricksCloseButton.vue';
 import BricksModal from '../../ui/base/modal/BricksModal.vue';
 import BricksTextEditorToolbar from '../../ui/inputs/BricksTextEditorToolbar.vue';
 import TextEditorImageFloatPopover from './TextEditorImageFloatPopover.vue';
+import TextEditorLinkModal from './TextEditorLinkModal.vue';
 // #endregion
 
 // #region Interfaces
@@ -58,7 +60,17 @@ const isCodeView = ref(false);
 const isDarkEditorBackground = ref(false);
 const codeValue = ref('');
 
-const { toolbarGroups } = useToolbarStateSync(editor);
+const {
+    isLinkModalOpen,
+    linkValue,
+    hasLinkAtSelection,
+    openLinkModal,
+    applyLink,
+    removeLink,
+    closeLinkModal,
+} = useTextEditorLink(editor);
+
+const { toolbarGroups } = useToolbarStateSync(editor, { onRequestLink: openLinkModal });
 // #endregion
 
 // #region Computed
@@ -262,6 +274,17 @@ onBeforeUnmount(() => {
                 </button>
             </div>
 
+            <!-- Форма ссылки поверх развёрнутого редактора -->
+            <TextEditorLinkModal
+                :is-open="isLinkModalOpen"
+                :value="linkValue"
+                :can-remove="hasLinkAtSelection"
+                layer="nested"
+                @apply="applyLink"
+                @remove="removeLink"
+                @close="closeLinkModal"
+            />
+
             <!-- Footer -->
             <div :class="$style.footer">
                 <BricksButton variant="primary" size="md" @click="handleDone">
@@ -382,10 +405,13 @@ onBeforeUnmount(() => {
 }
 
 .editor {
-    /* Фиксируем светлую тему для области ввода контента */
+    /* Фиксируем светлую тему для области ввода контента.
+       primary — тоже: им красится ссылка, а фон здесь всегда белый, и тёмный
+       вариант токена дал бы на нём заметно более тусклую ссылку */
     --bricks-base-0: #fff;
     --bricks-base-300: #d1d5db;
     --bricks-base-900: #111827;
+    --bricks-primary: #2563eb;
 
     flex: 1;
     padding: 2.4rem;

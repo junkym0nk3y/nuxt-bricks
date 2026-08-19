@@ -30,6 +30,15 @@ import { useRequestEvent, useState } from '#imports';
 const PROFILE_STATE_KEY = 'bricks-session-profile';
 
 /**
+ * Ключ состояния «пароль всё ещё дефолтный».
+ *
+ * Отдельно от профиля намеренно: профиль перезаписывается ответом каждой правки
+ * (имя, фото), а флаг относится не к профилю, а к креденшелам — держи он одно
+ * состояние с профилем, смена аватара стирала бы предупреждение.
+ */
+const DEFAULT_PASSWORD_STATE_KEY = 'bricks-session-default-password';
+
+/**
  * Пути ручек своего профиля.
  *
  * Совпадать с гардом они обязаны буквально: послабление прав держится
@@ -104,10 +113,16 @@ export function useAuthProfile(): IUseAuthProfileReturn {
     const profileState = useState<IAuthProfile | null>(PROFILE_STATE_KEY, () =>
         toClientProfile(event?.context.bricksUser)
     );
+    const isDefaultPasswordState = useState<boolean>(
+        DEFAULT_PASSWORD_STATE_KEY,
+        () => event?.context.bricksUser?.isDefaultPassword ?? false
+    );
     // #endregion
 
     // #region Computed
     const profile = computed<IAuthProfile | null>(() => profileState.value);
+
+    const isDefaultPassword = computed<boolean>(() => isDefaultPasswordState.value);
 
     const displayLabel = computed<string>(() => {
         const current = profileState.value;
@@ -134,9 +149,10 @@ export function useAuthProfile(): IUseAuthProfileReturn {
         }
 
         try {
-            const user = await fetchMe();
+            const session = await fetchMe();
 
-            profileState.value = toClientProfile(user ?? undefined);
+            profileState.value = toClientProfile(session?.user);
+            isDefaultPasswordState.value = session?.isDefaultPassword ?? false;
         } catch (error: unknown) {
             console.error('[Builder] Failed to resolve session profile:', error);
         }
@@ -227,6 +243,7 @@ export function useAuthProfile(): IUseAuthProfileReturn {
     return {
         profile,
         displayLabel,
+        isDefaultPassword,
         ensureProfile,
         saveDisplayName,
         uploadAvatar,

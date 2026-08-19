@@ -44,6 +44,7 @@ const TOOLBAR_TOOLTIP_KEYS: Record<string, string> = {
     Bold: 'bricks.textEditor.toolbar.bold',
     Italic: 'bricks.textEditor.toolbar.italic',
     Underline: 'bricks.textEditor.toolbar.underline',
+    Link: 'bricks.textEditor.toolbar.link',
     'Font Family': 'bricks.textEditor.toolbar.fontFamily',
     'Font Size': 'bricks.textEditor.toolbar.fontSize',
     'Font Weight': 'bricks.textEditor.toolbar.fontWeight',

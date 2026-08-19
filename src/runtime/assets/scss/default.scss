@@ -142,7 +142,10 @@ body.bricks-page {
         box-sizing: border-box;
     }
 
-    a:not(:where(.bricks-canvas *)) {
+    /* .ProseMirror исключён вместе с канвасом: правило нелейерное, а типографика
+       TipTap-контента лежит в @layer — по происхождению каскада она проиграла бы
+       любой специфичности, и ссылка в редакторе осталась бы без подчёркивания */
+    a:not(:where(.bricks-canvas *, .ProseMirror *)) {
         text-decoration: none;
         color: inherit;
     }
@@ -200,7 +203,9 @@ body.bricks-page {
     box-sizing: border-box;
 }
 
-:where(.bricks-container a) {
+/* Ссылки внутри rich-text (v-html блока и редактора) исключены по той же
+   причине: вид им задаёт @layer bricks-typography ниже */
+:where(.bricks-container a):not(:where([data-tiptap-content] *, .ProseMirror *)) {
     text-decoration: none;
     color: inherit;
 }
@@ -376,6 +381,14 @@ body.bricks-page {
         li {
             margin: 0.6rem 0;
             list-style: inherit;
+        }
+
+        // Ссылка: reset снимает с `a` подчёркивание и цвет, поэтому без явного
+        // правила вставленная ссылка визуально не отличается от текста
+        a {
+            text-decoration: underline;
+            text-underline-offset: 0.2rem;
+            color: var(--bricks-primary);
         }
 
         blockquote {

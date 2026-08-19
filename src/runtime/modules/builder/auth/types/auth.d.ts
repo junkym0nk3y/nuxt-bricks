@@ -47,6 +47,16 @@ export interface IAuthSessionUserPayload {
 /** Ответ ручек login/me. */
 export interface IAuthSessionResponse {
     user: IAuthSessionUserPayload;
+    /**
+     * Пароль учётки всё ещё дефолтный (сид миграции) — билдер просит его
+     * сменить. Отдаёт только `me`: ответу логина флаг не нужен, форма сразу
+     * уходит со страницы.
+     *
+     * Лежит рядом с `user`, а не внутри: ручки профиля отдают ту же форму
+     * пользователя, и правка имени или фото затирала бы флаг в состоянии — от
+     * смены аватара предупреждение молча исчезало бы.
+     */
+    isDefaultPassword?: boolean;
 }
 
 /**
@@ -92,6 +102,11 @@ export interface IUseAuthProfileReturn {
      * разъехавшись, они показывали бы одному человеку два разных имени.
      */
     displayLabel: ComputedRef<string>;
+    /**
+     * Пароль текущей учётки всё ещё дефолтный (`admin` / `bricks-pass` из сида
+     * миграции). Пока это так, билдер показывает просьбу сменить пароль.
+     */
+    isDefaultPassword: ComputedRef<boolean>;
     /** Досылает профиль, если контекст запроса его не дал (сборка без SSR). */
     ensureProfile(): Promise<void>;
     /** Пишет отображаемое имя; пустая строка снимает имя (показывается логин). */
@@ -105,6 +120,21 @@ export interface IUseAuthProfileReturn {
      * обязан увести человека на форму логина.
      */
     changeOwnPassword(currentPassword: string, newPassword: string): Promise<void>;
+}
+
+/** Props полосы «пароль всё ещё дефолтный» (`BuilderAuthDefaultPasswordNotice`). */
+export interface IAuthDefaultPasswordNoticeProps {
+    /**
+     * Доступна ли смена своего пароля (`auth.allowPasswordChange`). `false` —
+     * предупреждение остаётся, но без кнопки: вести ей некуда.
+     */
+    canChangePassword?: boolean;
+}
+
+/** События полосы «пароль всё ещё дефолтный». */
+export interface IAuthDefaultPasswordNoticeEmits {
+    /** Просьба открыть смену своего пароля. */
+    'change-password': [];
 }
 
 /** Монтирование и открытость модалки профиля (`useAuthProfileModal`). */

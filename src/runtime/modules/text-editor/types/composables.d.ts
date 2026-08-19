@@ -64,6 +64,8 @@ export interface ITextEditorArea {
     handleModalUpdate: (value: string) => void;
     /** Запрашивает медиа из MediaGallery и вставляет в редактор. */
     handleRequestImage: () => void;
+    /** Состояние и операции модалки ссылки для этого редактора. */
+    link: ITextEditorLink;
 }
 // #endregion
 
@@ -74,6 +76,8 @@ export interface ITextEditorArea {
 export interface IToolbarStateSyncOptions {
     /** Дополнительное условие показа toolbar (false → пустой список групп). */
     isEnabled?: MaybeRefOrGetter<boolean>;
+    /** Открывает модалку ссылки; без него кнопки ссылки в тулбаре нет. */
+    onRequestLink?: () => void;
 }
 
 /**
@@ -88,5 +92,35 @@ export interface IToolbarStateSync {
     toolbarGroups: ComputedRef<IToolbarGroup[]>;
     /** Сбрасывает toolbar state к дефолтам (например, при смене редактируемого свойства). */
     resetToolbarState: () => void;
+}
+// #endregion
+
+// #region useTextEditorLink
+/**
+ * Значение формы ссылки: адрес и признак открытия в новой вкладке.
+ */
+export interface ITextEditorLinkValue {
+    href: string;
+    openInNewTab: boolean;
+}
+
+/**
+ * Возвращаемое значение composable useTextEditorLink.
+ */
+export interface ITextEditorLink {
+    /** Открыта ли модалка ссылки. */
+    isLinkModalOpen: Ref<boolean>;
+    /** Начальное значение формы: адрес и вкладка текущей ссылки под курсором. */
+    linkValue: Ref<ITextEditorLinkValue>;
+    /** Есть ли ссылка в текущем выделении — от этого зависит кнопка «убрать». */
+    hasLinkAtSelection: Ref<boolean>;
+    /** Открывает модалку, подставляя атрибуты ссылки под курсором. */
+    openLinkModal: () => void;
+    /** Закрывает модалку, возвращая фокус в редактор. */
+    closeLinkModal: () => void;
+    /** Применяет ссылку к выделению (или вставляет адрес текстом). */
+    applyLink: (value: ITextEditorLinkValue) => void;
+    /** Снимает ссылку с выделения целиком. */
+    removeLink: () => void;
 }
 // #endregion

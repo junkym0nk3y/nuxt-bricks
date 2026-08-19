@@ -79,6 +79,11 @@
                 "editor": "Редактор",
                 "viewer": "Наблюдатель"
             },
+            "defaultPassword": {
+                "title": "Пароль по умолчанию.",
+                "description": "Вход выполнен паролем из миграции — он одинаков во всех установках nuxt-bricks. Смените его на свой.",
+                "action": "Сменить пароль"
+            },
             "profile": {
                 "title": "Профиль",
                 "open": "Профиль",
@@ -122,7 +127,8 @@
                     "currentPasswordRequired": "Введите текущий пароль",
                     "newPasswordRequired": "Введите новый пароль",
                     "passwordTooShort": "Пароль не короче {min} символов",
-                    "passwordTooLong": "Пароль не длиннее {max} символов"
+                    "passwordTooLong": "Пароль не длиннее {max} символов",
+                    "passwordIsDefault": "Этот пароль стоит по умолчанию во всех установках — выберите другой."
                 },
                 "errors": {
                     "invalidCurrentPassword": "Текущий пароль неверный",
@@ -580,10 +586,21 @@
             "fontWeightPlaceholder": "напр. 450",
             "lineHeightPlaceholder": "напр. 1.35, 120% или 2rem",
             "letterSpacingPlaceholder": "напр. 0.15rem или 5%",
+            "linkModal": {
+                "title": "Ссылка",
+                "url": "Адрес",
+                "urlPlaceholder": "example.com",
+                "newTab": "Открывать в новой вкладке",
+                "hint": "Без протокола адрес дополняется https://. Разрешены http(s), mailto, tel, якорь (#) и путь от корня сайта (/).",
+                "invalidUrl": "Недопустимый адрес ссылки",
+                "apply": "Применить",
+                "remove": "Убрать ссылку"
+            },
             "toolbar": {
                 "bold": "Жирный",
                 "italic": "Курсив",
                 "underline": "Подчёркивание",
+                "link": "Ссылка",
                 "fontFamily": "Семейство шрифта",
                 "fontSize": "Размер шрифта",
                 "fontWeight": "Толщина шрифта",
@@ -1139,7 +1156,8 @@
                 "displayNameInvalid": "Имя не должно содержать управляющие символы",
                 "passwordRequired": "Введите пароль",
                 "passwordTooShort": "Пароль не короче {min} символов",
-                "passwordTooLong": "Пароль не длиннее {max} символов"
+                "passwordTooLong": "Пароль не длиннее {max} символов",
+                "passwordIsDefault": "Этот пароль стоит по умолчанию во всех установках — выберите другой."
             },
             "errors": {
                 "usernameTaken": "Такое имя уже занято",

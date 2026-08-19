@@ -66,6 +66,9 @@
     --bricks-rgb-base-0: 255 255 255; /* from #fff */
     --bricks-rgb-primary: 37 99 235; /* from --bricks-primary #2563eb */
     --bricks-rgb-gray: 150 150 150; /* neutral gray */
+    /* from --bricks-yellow: подложка предупреждений собирается прозрачностью —
+       готового светлого тона у акцента нет, а в тёмной теме он и не годился бы */
+    --bricks-rgb-yellow: 245 158 11;
 
     /* Layout indicator colors */
     --bricks-rgb-layout-flex: 255 120 0; /* orange */
@@ -180,6 +183,7 @@
     --bricks-rgb-base-900: 232 234 239;
     --bricks-rgb-base-0: 22 24 29;
     --bricks-rgb-primary: 59 130 246;
+    --bricks-rgb-yellow: 251 191 36; /* from --bricks-yellow #fbbf24 */
 
     --bricks-shadow-sm: 0 0.1rem 0.2rem rgb(0 0 0 / 20%), 0 0.2rem 0.8rem rgb(0 0 0 / 25%);
     --bricks-shadow-md: 0 0.4rem 1.2rem rgb(0 0 0 / 30%), 0 1.2rem 3.2rem rgb(0 0 0 / 35%);
@@ -228,6 +232,7 @@
         --bricks-rgb-base-900: 17 24 39;
         --bricks-rgb-base-0: 255 255 255;
         --bricks-rgb-primary: 37 99 235;
+        --bricks-rgb-yellow: 245 158 11;
 
         --bricks-shadow-sm:
             0 0.1rem 0.2rem rgb(var(--bricks-rgb-base-900) / 5%),

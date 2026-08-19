@@ -49,7 +49,8 @@ describe('passwords: scrypt hash/verify', () => {
     });
 
     it('verify парсит параметры из строки (совместим с хешем CLI)', async () => {
-        // Хеш, сгенерированный src/cli/bricks-hash-password.mjs для пароля secret123
+        // Хеш пароля secret123, посчитанный сторонним прогоном scrypt с теми же
+        // параметрами: verify обязан принимать чужую строку своего формата
         const cliHash =
             'scrypt:16384:8:1:soguTg8BLm2sIG6oKSf4Sw==:mF2cEexZ1CHEvQe/cd6uDXIilNQAB+nn4jp1psoJAHrBZXeDBiNc3L7IYx7iG5qcIE2hjDh6LGjsxoww/HIa0A==';
 

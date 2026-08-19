@@ -3,6 +3,9 @@
 // Types
 import type { IBricksModalProps, IBricksModalEmits } from './types.d.ts';
 
+// Utils
+import { markLeavingInert } from '../../../common/utils/transitionInert';
+
 // Vue
 import { useCssModule, computed } from 'vue';
 
@@ -50,6 +53,16 @@ const rootClasses = computed(() => [
 ]);
 
 /**
+ * Длительность перехода уезжает в CSS-переменную: тем же значением ограничен
+ * `<Transition>`, и без общего источника transform окна (transitions.scss) шёл бы
+ * своей константой — у модалок с укороченным переходом Vue снимал бы классы
+ * раньше, чем доигрывает масштаб, и окно доезжало бы скачком.
+ */
+const rootStyle = computed<Record<string, string>>(() => ({
+    '--bricks-modal-duration': `${props.duration}ms`,
+}));
+
+/**
  * Без description явно сбрасываем aria-describedby (undefined снимает атрибут
  * и внутреннюю привязку Reka) — иначе Reka предупреждает про DialogContent
  * без DialogDescription. С description — не вмешиваемся, Reka свяжет id сама.
@@ -77,13 +90,12 @@ function onUpdateOpen(open: boolean): void {
  * `DialogContent` в DOM до её конца, поэтому кнопки уезжающей модалки остаются
  * активируемыми — с клавиатуры и из assistive tech в том числе, а `pointer-events`
  * (transitions.scss) закрывает только указатель. Клик по уже отвеченной модалке
- * отвечал бы за следующую. Атрибут ставится императивно: у уезжающего
- * элемента биндинги шаблона больше не патчатся.
+ * отвечал бы за следующую.
  *
  * @param element - Корневой элемент уезжающей модалки.
  */
 function onLeave(element: Element): void {
-    element.setAttribute('inert', '');
+    markLeavingInert(element);
 }
 // #endregion
 </script>
@@ -91,7 +103,16 @@ function onLeave(element: Element): void {
 <template>
     <DialogRoot :open="props.isOpen" @update:open="onUpdateOpen">
         <DialogPortal>
+            <!--
+                `appear` обязателен: модалки с ленивым монтированием (профиль,
+                медиа-галерея) появляются в разметке хоста уже открытыми —
+                латч монтирования и `isOpen` поднимаются одним действием, а
+                чанк приезжает ещё позже. Без `appear` первое открытие такой
+                модалки шло без анимации вовсе, а второе — с ней: у уже
+                смонтированного компонента `isOpen` меняется штатно.
+            -->
             <Transition
+                appear
                 name="bricks-modal-fade"
                 :duration="props.duration"
                 @leave="onLeave"
@@ -103,10 +124,18 @@ function onLeave(element: Element): void {
                     теряет фокус/выделение мышью. Центрирует обычный div, overlay —
                     прозрачная клик-ловушка под контентом.
                 -->
-                <div v-if="props.isOpen" :class="rootClasses">
+                <div v-if="props.isOpen" :class="rootClasses" :style="rootStyle">
                     <DialogOverlay force-mount :class="$style.overlay" />
+                    <!--
+                        `bricks-modal-window` — глобальный класс-конвенция, якорь
+                        для масштаба окна из transitions.scss: сам `DialogContent`
+                        стоит с `display: contents`, поэтому анимировать надо его
+                        потомков, а хешированное имя из CSS Modules глобальному
+                        файлу переходов недоступно.
+                    -->
                     <DialogContent
                         force-mount
+                        class="bricks-modal-window"
                         :class="$style.content"
                         v-bind="contentAria"
                         @escape-key-down="emit('escapeKeyDown', $event)"

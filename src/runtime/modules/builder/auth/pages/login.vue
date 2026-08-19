@@ -49,9 +49,9 @@ onMounted(async () => {
 
     try {
         // Уже авторизован — сразу на возвратный путь
-        const user = await fetchMe();
+        const session = await fetchMe();
 
-        if (user) {
+        if (session) {
             await navigateTo(sanitizeRedirectPath(route.query.redirect, builderRootPath));
         }
     } catch {

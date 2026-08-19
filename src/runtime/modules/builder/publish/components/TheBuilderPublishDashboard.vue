@@ -7,6 +7,9 @@ import type {
     TPublishDashboardSection,
 } from '../types/dashboard';
 
+// Utils
+import { markLeavingInert } from '../../../common/utils/transitionInert';
+
 // Vue
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -133,6 +136,17 @@ function handleLogout(): void {
 function handleOpenProfile(): void {
     emit('open-profile');
 }
+
+/**
+ * Гасит интерактивность уходящего экрана: при `mode="out-in"` он живёт в DOM всю
+ * фазу leave, а переход бывает и не по клику человека, то есть фокус внутри
+ * возможен. `pointer-events` из transitions.scss закрывает только указатель.
+ *
+ * @param element - Корневой элемент уходящего экрана.
+ */
+function onViewLeave(element: Element): void {
+    markLeavingInert(element);
+}
 // #endregion
 </script>
 
@@ -180,6 +194,14 @@ function handleOpenProfile(): void {
             </div>
         </header>
 
+        <!--
+            Полоса-предупреждение (дефолтный пароль) — между шапкой и телом:
+            выше рейла и списка, но ниже логотипа, чтобы не подменять собой
+            заголовок раздела. Слот пустует всё остальное время и места не
+            занимает.
+        -->
+        <slot name="notice" />
+
         <div :class="$style.body">
             <BuilderPublishDashboardNav
                 :active-section="props.activeSection"
@@ -196,39 +218,61 @@ function handleOpenProfile(): void {
             />
 
             <main :class="$style.main">
-                <template v-if="props.activeSection === 'pages'">
-                    <div :class="$style.listArea">
-                        <slot name="list" />
-                    </div>
-                    <Transition name="bricks-details-slide">
-                        <aside v-if="$slots.details" :class="$style.detailsArea">
-                            <slot name="details" />
-                        </aside>
-                    </Transition>
-                </template>
-
                 <!--
-                    Раздел учёток панели деталей не имеет: у учётки нет
-                    содержимого, которое стоило бы разворачивать сбоку
+                    Смена раздела рейла — `mode="out-in"` с ключом на каждой
+                    ветке: без ключей Vue переиспользует один и тот же div
+                    (ветки v-if/v-else-if/v-else одного тега) и перехода нет
+                    вовсе, а без `out-in` уходящий раздел наложился бы на
+                    приходящий — списки страниц и учёток разной высоты.
                 -->
-                <div v-else-if="props.activeSection === 'users'" :class="$style.listArea">
-                    <slot name="users" />
-                </div>
-
-                <div v-else :class="$style.templatesEmpty">
-                    <div :class="$style.emptyIconCircle">
-                        <BricksIcon icon="ta:outline-package" :class="$style.emptyIcon" />
+                <Transition name="bricks-view-switch" mode="out-in" @leave="onViewLeave">
+                    <!--
+                        Обёртка обязана быть одним элементом: у `<Transition>`
+                        ровно один потомок, а раздел страниц состоит из списка и
+                        панели деталей
+                    -->
+                    <div
+                        v-if="props.activeSection === 'pages'"
+                        key="pages"
+                        :class="$style.pagesArea"
+                    >
+                        <div :class="$style.listArea">
+                            <slot name="list" />
+                        </div>
+                        <Transition name="bricks-details-slide">
+                            <aside v-if="$slots.details" :class="$style.detailsArea">
+                                <slot name="details" />
+                            </aside>
+                        </Transition>
                     </div>
-                    <h2 :class="$style.emptyTitle">
-                        {{ t('bricks.publish.dashboard.templates.emptyTitle') }}
-                    </h2>
-                    <p :class="$style.emptyDescription">
-                        {{ t('bricks.publish.dashboard.templates.emptyDescription') }}
-                    </p>
-                    <BricksButton size="md" variant="secondary" disabled>
-                        {{ t('bricks.publish.dashboard.templates.saveCurrent') }}
-                    </BricksButton>
-                </div>
+
+                    <!--
+                        Раздел учёток панели деталей не имеет: у учётки нет
+                        содержимого, которое стоило бы разворачивать сбоку
+                    -->
+                    <div
+                        v-else-if="props.activeSection === 'users'"
+                        key="users"
+                        :class="$style.listArea"
+                    >
+                        <slot name="users" />
+                    </div>
+
+                    <div v-else key="templates" :class="$style.templatesEmpty">
+                        <div :class="$style.emptyIconCircle">
+                            <BricksIcon icon="ta:outline-package" :class="$style.emptyIcon" />
+                        </div>
+                        <h2 :class="$style.emptyTitle">
+                            {{ t('bricks.publish.dashboard.templates.emptyTitle') }}
+                        </h2>
+                        <p :class="$style.emptyDescription">
+                            {{ t('bricks.publish.dashboard.templates.emptyDescription') }}
+                        </p>
+                        <BricksButton size="md" variant="secondary" disabled>
+                            {{ t('bricks.publish.dashboard.templates.saveCurrent') }}
+                        </BricksButton>
+                    </div>
+                </Transition>
             </main>
         </div>
     </div>
@@ -289,6 +333,15 @@ function handleOpenProfile(): void {
 }
 
 .main {
+    overflow: hidden;
+    display: flex;
+    flex: 1;
+}
+
+/* Раздел страниц целиком: список плюс панель деталей. Повторяет раскладку
+   `.main`, потому что встал между ним и своим содержимым — обёртку потребовал
+   переход между разделами. */
+.pagesArea {
     overflow: hidden;
     display: flex;
     flex: 1;

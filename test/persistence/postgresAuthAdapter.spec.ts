@@ -18,6 +18,7 @@ vi.mock('../../src/runtime/modules/persistence/server/postgres/client', () => ({
 
 import { createPostgresAuthAdapter } from '../../src/runtime/modules/persistence/server/postgres/postgresAuthAdapter';
 import { BricksUsernameTakenError } from '../../src/runtime/modules/persistence/server/utils/authErrors';
+import { BRICKS_DEFAULT_ADMIN_PASSWORD_HASH } from '../../src/runtime/modules/persistence/server/utils/defaultAdmin';
 import type { ICreateAuthUserPayload } from '../../src/runtime/modules/persistence/types/authAdapters';
 // #endregion
 
@@ -78,6 +79,33 @@ describe('postgresAuthAdapter: сессия с пользователем', () =
         expect(sql).toContain('u.auth_version AS "authVersion"');
         // Сверка поколений — носитель отзыва сессий
         expect(sql).toContain('s.auth_version = u.auth_version');
+    });
+
+    it('спрашивает у базы, дефолтный ли пароль, и доставляет ответ наружу', async () => {
+        queryOneMock.mockResolvedValueOnce({
+            tokenHash: 'a'.repeat(64),
+            expiresAt: new Date('2026-08-24T00:00:00.000Z'),
+            lastUsedAt: '2026-08-17T00:00:00.000Z',
+            userId: 7,
+            username: 'admin',
+            isActive: true,
+            role: 'admin',
+            authVersion: 1,
+            displayName: null,
+            avatarUrl: null,
+            isDefaultPassword: true,
+        });
+
+        const session = await createPostgresAuthAdapter().getSessionWithUser('a'.repeat(64));
+
+        expect(session?.user.isDefaultPassword).toBe(true);
+
+        const [sql, params] = queryOneMock.mock.calls[0] as [string, unknown[]];
+
+        // Сравнение идёт в SQL: сам хеш при этом не покидает базу, а на клиент
+        // уходит только булев ответ
+        expect(sql).toContain('(u.password_hash = $2) AS "isDefaultPassword"');
+        expect(params[1]).toBe(BRICKS_DEFAULT_ADMIN_PASSWORD_HASH);
     });
 
     it('считает отсутствующую строку отсутствующей сессией', async () => {

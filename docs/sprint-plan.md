@@ -20,37 +20,9 @@ DDL руками в живую БД → пересчёт строки в `bricks
 
 ## Фаза 1 — малые фиксы (без макетов)
 
-Пункты 1.1 (статика канваса) и 1.2 (`BlockText` без container queries) сделаны
-12.08.2026 и из плана убраны; что именно поменялось — в README и в истории
-коммитов. Остаётся 1.3: владелец вынес его из этой итерации, поэтому пункт лежит
-здесь как готовая к работе заготовка.
-
-### 1.3 П.1: ссылки в текстовом редакторе
-
-- `package.json`: `@tiptap/extension-link@^3.0.0` в `peerDependencies` (рядом с остальными
-  tiptap-пакетами, ~строки 112-127) и в devDependencies.
-- `text-editor/utils/createTiptapEditor.ts`: добавить в lazy-`Promise.all` и в набор
-  extensions — `Link.configure({ openOnClick: false, autolink: false })`.
-- `plugins/builder/textEditorToolbarSetup.ts`: кнопка в группу `marks` (или своя группа
-  `link`) с `isActive: () => editor.isActive('link')`; действие открывает модалку.
-- Новая модалка `text-editor/components/TheTextEditorLinkModal.vue` на `BricksModal`
-  (образец — `TheTextEditorModal.vue`): поле URL, чекбокс «в новой вкладке», кнопки
-  «Применить» / «Убрать ссылку». Валидация URL — переиспользовать `isSafeLinkUrl`
-  из `common/utils/sanitize/urlPolicy.ts`.
-- `ui/inputs/BricksTextEditorToolbar.vue`: ключ в `TOOLBAR_TOOLTIP_KEYS` (~строки 42-61)
-    - строки в `locales/ru.json` и `en.json` (`bricks.textEditor.toolbar.*`).
-- **Санитайзер**: `a[href,target,rel,title]` и `isSafeLinkUrl` уже готовы
-  (`sanitizeRichText.ts:38-77`), правок allowlist не требуется. Но `rel` сейчас не
-  навязывается — добавить в `safeAttrValue`/пост-обработку принудительный
-  `rel="noopener noreferrer"` при `target="_blank"`.
-- **Стили обязательны**: `default.scss:55` делает reset `a { text-decoration: none;
-color: inherit }` для `body.bricks-page`, а правила для `a` внутри `[data-tiptap-content]`
-  нет — без него вставленная ссылка визуально неотличима от текста. Добавить правило
-  в блок `.bricks-text [data-tiptap-content]` (~строки 354-460).
-- Решение по внутренним ссылкам: оставить нативный `<a>` (full reload). Перехват в
-  `NuxtLink` не делать — рендерер работает через `v-html`, замена потребовала бы парсинга
-  HTML в рантайме. Зафиксировать как осознанное ограничение.
-- Тесты: расширить `test/common/sanitize.spec.ts` кейсом принудительного `rel`.
+Фаза закрыта. Пункты 1.1 (статика канваса) и 1.2 (`BlockText` без container
+queries) сделаны 12.08.2026, 1.3 (П.1: ссылки в текстовом редакторе) —
+19.08.2026. Что именно поменялось — в README и в истории коммитов.
 
 ---
 
@@ -62,9 +34,10 @@ color: inherit }` для `body.bricks-page`, а правила для `a` вну
 
 - **Users & Roles (concept)** и **Профиль и аватар** — п.5: нарисованы 14.08.2026 и
   реализованы; ID страницы и бордов — в `docs/figma-sync-workflow.md`.
-- **Templates (concept)** — п.7: живая секция «Шаблоны» дашборда (сетка карточек с
-  миниатюрами), «Сохранить как шаблон» из билдера и из строки списка страниц, выбор
-  шаблона в модалке создания.
+- **Templates (concept)** — п.7: нарисован 19.08.2026, на утверждение. Пять бордов
+  (сейчас → стало, карточка и сетка, сохранение шаблона, создание страницы из шаблона,
+  состояния и края) плюс тёмные копии; ID страницы и бордов — в
+  `docs/figma-sync-workflow.md`.
 
 ---
 
@@ -116,8 +89,6 @@ Playground: dev-сервер на порту 3001 (может быть уже з
 Билдер за логином (`auth.mode: 'database'`), временный пользователь по процедуре
 скилла `verify`, удалять после проверки. Страница `test` — published, содержит гриды.
 
-- **п.1**: вставить ссылку в трёх поверхностях (панель свойств, модалка, inline на
-  канвасе), проверить `rel` на published, проверить видимость ссылки в обеих темах.
 - **п.7**: сохранить страницу как шаблон, создать из шаблона, сверить схему.
 
 Визуальные правки — проверять в светлой и тёмной теме.

@@ -46,6 +46,45 @@
     transform: translate3d(0, 0, 0);
 }
 
+/* View switch (смена содержимого при переключении раздела дашборда, фильтра списка
+   или вкладки модалки). Одна фаза заметно короче --bricks-default-transition
+   намеренно: переход идёт `mode="out-in"`, то есть человек ждёт две фазы подряд,
+   и 300 мс на каждую превращают переключение таба в загрузку. */
+.bricks-view-switch-enter-active,
+.bricks-view-switch-leave-active {
+    transition:
+        opacity 140ms ease,
+        transform 140ms ease;
+}
+
+/*
+ * Уходящий экран кликов больше не принимает: при `mode="out-in"` он живёт в DOM
+ * ещё всю фазу leave, и кнопка строки списка или submit формы срабатывали бы уже
+ * после того, как экран сменился. Потомки перечислены явно — кнопки ставят себе
+ * `pointer-events: auto`, и наследование от обёртки их не гасит (то же решение,
+ * что у модалок ниже).
+ *
+ * Указателем дело не ограничивается: клавиатура и assistive tech ходят мимо
+ * `pointer-events`, а переход бывает и не по клику человека — раздел учёток
+ * закрывается сам, когда его ручки начинают отвечать 403, и в этот момент фокус
+ * остаётся внутри уходящего экрана. Поэтому парно к этому правилу хосты ставят
+ * уходящему узлу `inert` (`common/utils/transitionInert.ts`).
+ */
+.bricks-view-switch-leave-active,
+.bricks-view-switch-leave-active * {
+    pointer-events: none;
+}
+
+.bricks-view-switch-enter-from {
+    opacity: 0;
+    transform: translate3d(0, 0.4rem, 0);
+}
+
+.bricks-view-switch-leave-to {
+    opacity: 0;
+    transform: translate3d(0, -0.4rem, 0);
+}
+
 /* Details panel slide (панель деталей дашборда, выезжает справа — зеркало sidebar-slide) */
 .bricks-details-slide-enter-active,
 .bricks-details-slide-leave-active {
@@ -61,9 +100,17 @@
 }
 
 /* Modal transitions */
+
+/*
+ * Длительность берётся из переменной, которую BricksModal ставит инлайном по
+ * пропу `duration`: тем же значением он ограничивает `<Transition>`, и константа
+ * здесь обрезалась бы на модалках с укороченным переходом (подтверждения, восстановление
+ * черновика и резолвер картинок просят 200 мс) — Vue снимал бы классы раньше, чем
+ * доигрывает анимация, и окно доезжало бы скачком.
+ */
 .bricks-modal-fade-enter-active,
 .bricks-modal-fade-leave-active {
-    transition: opacity 0.3s ease;
+    transition: opacity var(--bricks-modal-duration, 300ms) ease;
 }
 
 /*
@@ -83,17 +130,56 @@
     opacity: 0;
 }
 
-.bricks-modal-fade-enter-active .modal,
-.bricks-modal-fade-leave-active .modal {
-    transition: transform 0.3s ease;
+/*
+ * Само окно приезжает с масштабом, а фон под ним только гаснет.
+ *
+ * Прицел — прямые потомки `.bricks-modal-window` (это `DialogContent`), а не он
+ * сам: контент стоит с `display: contents`, своего бокса не имеет, и transform
+ * на нём не действует. Целить в корень перехода тоже нельзя — вместе с окном
+ * съедет затемнение, обнажив края экрана.
+ *
+ * Вложенные самостоятельные диалоги исключены: медиа-галерея держит в слоте не
+ * только своё окно, но и полноэкранный просмотр файла (`role="dialog"` со своим
+ * затемнением на всю страницу и своим переходом). С клавиатуры они не пересекаются
+ * — Esc галерея перехватывает и закрывает только просмотр, — но при закрытии
+ * галереи извне (например, когда её гасит сброс сессии) просмотр уезжает внутри
+ * уходящей модалки, и масштаб сжимал бы его затемнение, обнажая полосу подложки
+ * по краям экрана.
+ *
+ * До этого правила были написаны на класс `.modal`, которого в разметке нет ни у
+ * одной модалки: контент у всех на CSS Modules, то есть масштаб не проигрывался
+ * вовсе и окна приезжали чистым fade.
+ */
+.bricks-modal-fade-enter-active .bricks-modal-window > *:not([role='dialog']),
+.bricks-modal-fade-leave-active .bricks-modal-window > *:not([role='dialog']) {
+    transition: transform var(--bricks-modal-duration, 300ms) ease;
 }
 
-.bricks-modal-fade-enter-from .modal {
+.bricks-modal-fade-enter-from .bricks-modal-window > *:not([role='dialog']) {
     transform: scale(0.95) translateY(-2rem);
 }
 
-.bricks-modal-fade-leave-to .modal {
+.bricks-modal-fade-leave-to .bricks-modal-window > *:not([role='dialog']) {
     transform: scale(0.95) translateY(-2rem);
+}
+
+/*
+ * Уменьшенная анимация: движение и масштаб снимаются, затухание остаётся — оно
+ * вестибулярных жалоб не вызывает, а полностью убранный переход лишил бы подсказки
+ * о смене экрана. Покрыты только переключение представлений и масштаб окна модалки;
+ * остальные переходы этого файла режим не учитывают — долг с их появления, не трогаю
+ * его заодно, чтобы правка не меняла поведение всего интерфейса.
+ */
+@media (prefers-reduced-motion: reduce) {
+    .bricks-view-switch-enter-from,
+    .bricks-view-switch-leave-to {
+        transform: none;
+    }
+
+    .bricks-modal-fade-enter-from .bricks-modal-window > *:not([role='dialog']),
+    .bricks-modal-fade-leave-to .bricks-modal-window > *:not([role='dialog']) {
+        transform: none;
+    }
 }
 
 /* Dropdown transitions */

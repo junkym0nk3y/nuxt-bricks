@@ -189,6 +189,57 @@ function handleLogout(): void {
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
     box-shadow: var(--bricks-shadow-md);
+
+    // Появление и уход — как у остальных поповеров билдера (селектор страниц,
+    // BricksActionButton). Vue-`<Transition>` здесь неприменима: контентом
+    // распоряжается Presence самой reka, поэтому анимация вешается на её
+    // `data-state`.
+    &[data-state='open'] {
+        animation: profile-menu-in 0.2s ease;
+    }
+
+    // Затухание короче появления: reka не размонтирует контент, пока играет
+    // анимация closed-состояния, и всё это время меню ещё висит над шапкой.
+    // `pointer-events: none` — чтобы клик по тому, что было под меню, не съедался
+    // уходящим окном
+    &[data-state='closed'] {
+        animation: profile-menu-out 0.15s ease;
+        pointer-events: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        &[data-state='open'],
+        &[data-state='closed'] {
+            animation: none;
+        }
+    }
+}
+
+// Keyframes — внутри module-блока: CSS Modules скоупит имя анимации в ссылке
+// `animation:` выше, и глобальное определение с ним не совпало бы (анимация не
+// проигралась бы, а reka зависла бы на closed)
+@keyframes profile-menu-in {
+    from {
+        opacity: 0;
+        transform: translateY(-0.4rem);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes profile-menu-out {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(-0.4rem);
+    }
 }
 
 .header {

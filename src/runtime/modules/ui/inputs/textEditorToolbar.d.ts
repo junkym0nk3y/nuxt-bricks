@@ -69,6 +69,12 @@ export interface IToolbarStateRefs {
 export interface ITextEditorToolbarConfigParams extends IToolbarStateRefs {
     editor: Editor;
     availableFonts: string[];
+    /**
+     * Открывает модалку ссылки для текущего выделения. Конфигуратор тулбара —
+     * чистая функция без доступа к UI, поэтому кнопку ссылки он отдаёт только
+     * тем поверхностям, которые такую модалку смонтировали.
+     */
+    onRequestLink?: () => void;
 }
 
 export interface ITextEditorToolbar {

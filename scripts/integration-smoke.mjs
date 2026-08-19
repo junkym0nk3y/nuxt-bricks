@@ -6,8 +6,9 @@
  * заданных BRICKS_IT_S3_ENDPOINT/ACCESS_KEY/SECRET_KEY/BUCKET (MinIO в CI).
  *
  * Поток: npm pack → чистый consumer (database-auth) → bricks-migrate из
- * tarball (+ status без pending/drift) → провижининг пользователя через CLI
- * tarball'а → nuxi build → boot → black-box HTTP lifecycle
+ * tarball (+ status без pending/drift; та же миграция заводит дефолтного
+ * администратора, под которым идёт сценарий) → nuxi build → boot →
+ * black-box HTTP lifecycle
  * (scripts/integration-lifecycle.mjs): CSRF-гейт → login → CRUD страницы →
  * контракт схемы (400) → optimistic locking (409 REVISION_CONFLICT) →
  * publish → public read-model → версии + restore → media upload/delete (S3)
@@ -35,8 +36,16 @@ const S3 = {
     bucket: process.env.BRICKS_IT_S3_BUCKET,
 };
 const HAS_S3 = Boolean(S3.endpoint && S3.accessKeyId && S3.secretAccessKey && S3.bucket);
-const IT_USERNAME = 'it-admin';
-const IT_PASSWORD = 'integration-smoke-password';
+/**
+ * Учётка сценария — дефолтный администратор из сида миграции: он и есть
+ * единственный способ войти в свежую базу, и роль у него `admin`, а сценарий
+ * доходит до удаления страницы (editor'у там 403).
+ *
+ * Пароль намеренно НЕ меняется по ходу прогона: смена рвёт все сессии учётки,
+ * и следующий шаг сценария получил бы 401 на живой, казалось бы, куке.
+ */
+const IT_USERNAME = 'admin';
+const IT_PASSWORD = 'bricks-pass';
 const IT_PAGENAME = 'it-page';
 
 /**
@@ -138,60 +147,6 @@ async function ensureBucket(consumerDir) {
 }
 
 /**
- * Провижининг editor-пользователя: hash через CLI tarball'а + идемпотентный
- * INSERT через pg из node_modules consumer'а.
- *
- * @param {string} consumerDir Папка consumer.
- * @returns {Promise<void>} Резолвится после записи пользователя.
- */
-async function provisionUser(consumerDir) {
-    const installedRoot = join(consumerDir, 'node_modules', 'nuxt-bricks');
-    // Пароль уходит на stdin: аргументом CLI его не принимает — он был бы виден
-    // в списке процессов и остался бы в истории шелла
-    const hashOutput = await runCapture(
-        'node',
-        [
-            join(installedRoot, 'dist', 'cli', 'bricks-hash-password.mjs'),
-            '--username',
-            IT_USERNAME,
-            '--role',
-            'admin',
-            '--password-stdin',
-        ],
-        consumerDir,
-        IT_PASSWORD
-    );
-    const hash = hashOutput
-        .split('\n')
-        .map((line) => line.trim())
-        .find((line) => line.startsWith('scrypt:'));
-    assertOk(Boolean(hash), 'bricks-hash-password не вернул scrypt-хеш');
-
-    const pgUrl = pathToFileURL(join(consumerDir, 'node_modules', 'pg', 'lib', 'index.js')).href;
-    const { default: pg } = await import(pgUrl);
-    const client = new pg.Client({ connectionString: DATABASE_URL });
-    await client.connect();
-
-    try {
-        // Роль задаётся явно: сценарий доходит до удаления страницы, а оно
-        // доступно только администратору — на дефолтном 'editor' финальная
-        // уборка получила бы 403. Повторный прогон поднимает поколение учётных
-        // данных: сессии прошлого прогона иначе пережили бы смену пароля
-        await client.query(
-            `INSERT INTO bricks_users (username, password_hash, role) VALUES ($1, $2, 'admin')
-             ON CONFLICT (lower(username)) DO UPDATE
-             SET password_hash = EXCLUDED.password_hash,
-                 role = EXCLUDED.role,
-                 is_active = TRUE,
-                 auth_version = bricks_users.auth_version + 1`,
-            [IT_USERNAME, hash]
-        );
-    } finally {
-        await client.end();
-    }
-}
-
-/**
  * Основной сценарий integration smoke.
  *
  * @returns {Promise<void>} Резолвится при полном успехе.
@@ -237,9 +192,6 @@ async function main() {
             console.info('[integration-smoke] Создание S3-бакета (MinIO)...');
             await ensureBucket(consumerDir);
         }
-
-        console.info('[integration-smoke] Провижининг editor-пользователя...');
-        await provisionUser(consumerDir);
 
         console.info('[integration-smoke] nuxi build consumer-приложения...');
         await run('npx', ['nuxi', 'build'], {
