@@ -78,7 +78,7 @@ $primary-color: #6366f1; // FORBIDDEN
 - ❌ `px` for sizes (except `1px` border)
 - ❌ `em`, `%` for sizes
 - ❌ SCSS variables (`$color`)
-- ❌ `backdrop-filter: blur()` — kills performance, use `linear-gradient` for overlays
+- ❌ `backdrop-filter: blur()` — kills performance, use `linear-gradient` for overlays (исключение — контекстное меню канваса, см. ниже)
 - ❌ `:global()` for transitions in components
 - ❌ Sizes not divisible by 0.2rem (`1.5rem`, `0.9rem`)
 - ❌ `!important` — use higher specificity via nesting or CSS Modules instead
@@ -97,6 +97,10 @@ $primary-color: #6366f1; // FORBIDDEN
   (`bricks-up`/`bricks-down`/`bricks-between`/`bricks-only`) без `$devices` и `!default`
   не существует: перекрыть карту потребитель может только так. Исключение ограничено
   этой папкой; в компонентных стилях запрет SCSS-переменных действует как прежде
+- ✅ **`backdrop-filter: blur(1rem)` + `opacity: 0.9` у контекстного меню канваса**
+  (`BuilderCanvasItemContextMenu`) — решение владельца: меню намеренно показывает,
+  над каким местом страницы оно висит. Пара работает только вместе, порознь их не
+  снимать. Общий запрет размытия остаётся в силе для всех остальных узлов
 - ✅ **`display: none !important` в генерируемом utility-CSS видимости**
   (`.bricks-hide--<ключ устройства>`, `useResponsiveVisibilityStyles`) — класс конкурирует
   с **инлайновым** `display` контейнерных блоков (Grid/Flex/Section ставят его в `style`

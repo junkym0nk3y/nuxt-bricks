@@ -8,8 +8,8 @@ import { useI18n } from 'vue-i18n';
 import { useBuilderPermissions } from '../../../core/composables/useBuilderPermissions';
 
 // Components
-import BricksTooltip from '../../../../ui/tooltip/BricksTooltip.vue';
-import BricksTooltipHint from '../../../../ui/tooltip/BricksTooltipHint.vue';
+import BricksTooltip from '../../../../ui/base/tooltip/BricksTooltip.vue';
+import BricksTooltipHint from '../../../../ui/base/tooltip/BricksTooltipHint.vue';
 // #endregion
 
 // #region Interfaces
@@ -159,7 +159,7 @@ function handleToggleLocale(): void {
         <BricksTooltip v-for="item in navItems" :key="item.key" right>
             <template #activator>
                 <button
-                    :class="[$style.navItem, { [$style._active]: props[item.activeProp] }]"
+                    :class="[$style.railButton, { [$style._active]: props[item.activeProp] }]"
                     :aria-label="t(item.label)"
                     @click="handleClick(item.event)"
                 >
@@ -183,7 +183,7 @@ function handleToggleLocale(): void {
         <BricksTooltip right>
             <template #activator>
                 <button
-                    :class="$style.themeToggle"
+                    :class="$style.railButton"
                     :aria-label="t('bricks.nav.docs')"
                     @click="handleOpenDocs"
                 >
@@ -199,7 +199,7 @@ function handleToggleLocale(): void {
         <BricksTooltip right>
             <template #activator>
                 <button
-                    :class="$style.localeToggle"
+                    :class="[$style.railButton, $style._locale]"
                     :aria-label="t('bricks.nav.language')"
                     @click="handleToggleLocale"
                 >
@@ -215,7 +215,7 @@ function handleToggleLocale(): void {
         <BricksTooltip right>
             <template #activator>
                 <button
-                    :class="[$style.themeToggle, { [$style._active]: props.isDarkMode }]"
+                    :class="[$style.railButton, { [$style._lit]: props.isDarkMode }]"
                     :aria-label="darkModeTooltip"
                     @click="handleToggleDarkMode"
                 >
@@ -244,7 +244,13 @@ function handleToggleLocale(): void {
     gap: 0.4rem;
 }
 
-.navItem {
+/* Один вид на все кнопки рейла — разделы, документация, язык, тема. Прежде их
+   было три почти одинаковых блока, и они успели разъехаться: у переключателя темы
+   ховер брал `base-100` вместо `surface-raised` (в светлой теме это один и тот же
+   `#f3f4f6`, а в тёмной — разные тона, и кнопка подсвечивалась иначе соседних), а
+   радиус у двух из трёх стоял числом вместо токена. Кнопка документации при этом
+   носила класс `themeToggle`. */
+.railButton {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -265,14 +271,26 @@ function handleToggleLocale(): void {
         color: var(--bricks-base-900);
     }
 
-    &._active {
+    /* Выбранный раздел: заливка primary. Ховер вида не сбрасывает. */
+    &._active,
+    &._active:hover {
         background-color: var(--bricks-primary);
         color: var(--bricks-static-white);
+    }
 
-        &:hover {
-            background-color: var(--bricks-primary);
-            color: var(--bricks-static-white);
-        }
+    /* Включённая тёмная тема: не выбранный раздел, а состояние переключателя —
+       поэтому глиф, а не заливка. */
+    &._lit,
+    &._lit:hover {
+        background-color: transparent;
+        color: var(--bricks-yellow);
+    }
+
+    /* Язык — подпись вместо глифа */
+    &._locale {
+        font-size: var(--bricks-font-size-sm);
+        font-weight: 600;
+        letter-spacing: 0.05rem;
     }
 }
 
@@ -299,58 +317,5 @@ function handleToggleLocale(): void {
 
 .spacer {
     flex: 1;
-}
-
-.localeToggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 3.6rem;
-    height: 3.6rem;
-    border-radius: 0.8rem;
-    border: none;
-    background: transparent;
-    font-size: 1.2rem;
-    font-weight: 600;
-    letter-spacing: 0.05rem;
-    color: var(--bricks-base-500);
-    transition:
-        color var(--bricks-default-transition),
-        background-color var(--bricks-default-transition);
-    cursor: pointer;
-
-    &:hover {
-        background-color: var(--bricks-surface-raised);
-        color: var(--bricks-base-900);
-    }
-}
-
-.themeToggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 3.6rem;
-    height: 3.6rem;
-    border-radius: 0.8rem;
-    border: none;
-    background: transparent;
-    color: var(--bricks-base-500);
-    transition:
-        color var(--bricks-default-transition),
-        background-color var(--bricks-default-transition);
-    cursor: pointer;
-
-    &:hover {
-        background-color: var(--bricks-base-100);
-        color: var(--bricks-base-900);
-    }
-
-    &._active {
-        color: var(--bricks-yellow);
-
-        &:hover {
-            color: var(--bricks-yellow);
-        }
-    }
 }
 </style>

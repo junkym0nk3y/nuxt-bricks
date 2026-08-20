@@ -84,7 +84,7 @@ onMounted(() => {
                 {{ t('bricks.publish.session.errorRetry') }}
             </BricksButton>
 
-            <BricksButton size="md" variant="outline" @click="handleOpenPagesManager">
+            <BricksButton size="md" variant="quiet" @click="handleOpenPagesManager">
                 {{ t('bricks.publish.session.errorOpenPages') }}
             </BricksButton>
         </div>

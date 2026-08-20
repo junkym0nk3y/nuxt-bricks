@@ -34,8 +34,8 @@ import { useBuilderPermissions } from '../../core/composables/useBuilderPermissi
 
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
-import BricksTooltip from '../../../ui/tooltip/BricksTooltip.vue';
-import BricksTooltipHint from '../../../ui/tooltip/BricksTooltipHint.vue';
+import BricksTooltip from '../../../ui/base/tooltip/BricksTooltip.vue';
+import BricksTooltipHint from '../../../ui/base/tooltip/BricksTooltipHint.vue';
 import BricksImage from '../../../ui/base/image/BricksImage.vue';
 import BricksInput from '../../../ui/inputs/BricksInput.vue';
 import BricksSelect from '../../../ui/inputs/BricksSelect.vue';

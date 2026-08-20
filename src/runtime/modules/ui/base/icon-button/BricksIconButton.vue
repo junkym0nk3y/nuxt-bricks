@@ -33,8 +33,8 @@ import type { IBricksIconButtonProps, IBricksIconButtonEmits } from './types.d.t
 import { computed, useCssModule } from 'vue';
 
 // Components
-import BricksTooltip from '../../tooltip/BricksTooltip.vue';
-import BricksTooltipHint from '../../tooltip/BricksTooltipHint.vue';
+import BricksTooltip from '../tooltip/BricksTooltip.vue';
+import BricksTooltipHint from '../tooltip/BricksTooltipHint.vue';
 // #endregion
 
 // #region Props

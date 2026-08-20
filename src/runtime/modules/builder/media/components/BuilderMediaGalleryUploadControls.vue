@@ -31,8 +31,8 @@ import { PopoverAnchor, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigg
 
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
-import BricksTooltip from '../../../ui/tooltip/BricksTooltip.vue';
-import BricksTooltipHint from '../../../ui/tooltip/BricksTooltipHint.vue';
+import BricksTooltip from '../../../ui/base/tooltip/BricksTooltip.vue';
+import BricksTooltipHint from '../../../ui/base/tooltip/BricksTooltipHint.vue';
 import BricksPopoverSurface from '../../../ui/base/popover/BricksPopoverSurface.vue';
 import BuilderMediaGalleryUploadOptions from './BuilderMediaGalleryUploadOptions.vue';
 // #endregion

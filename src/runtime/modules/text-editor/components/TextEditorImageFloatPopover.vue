@@ -12,8 +12,8 @@ import { useI18n } from 'vue-i18n';
 
 // Components
 import BricksPopoverSurface from '../../ui/base/popover/BricksPopoverSurface.vue';
-import BricksTooltip from '../../ui/tooltip/BricksTooltip.vue';
-import BricksTooltipHint from '../../ui/tooltip/BricksTooltipHint.vue';
+import BricksTooltip from '../../ui/base/tooltip/BricksTooltip.vue';
+import BricksTooltipHint from '../../ui/base/tooltip/BricksTooltipHint.vue';
 import TextEditorImageSizePanel from './TextEditorImageSizePanel.vue';
 // #endregion
 

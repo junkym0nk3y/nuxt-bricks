@@ -27,7 +27,7 @@ import { mount } from '@vue/test-utils';
 // #endregion
 
 import BricksIconButton from '../../src/runtime/modules/ui/base/icon-button/BricksIconButton.vue';
-import BricksTooltipHint from '../../src/runtime/modules/ui/tooltip/BricksTooltipHint.vue';
+import BricksTooltipHint from '../../src/runtime/modules/ui/base/tooltip/BricksTooltipHint.vue';
 
 /** Глобальная иконка билдера регистрируется плагином приложения — здесь заглушка. */
 const BricksIconStub = defineComponent({

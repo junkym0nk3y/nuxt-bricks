@@ -11,8 +11,8 @@ import { useI18n } from 'vue-i18n';
 import { useComponentsStore } from '../../../core/stores/components';
 
 // Components
-import BricksTooltip from '../../../../ui/tooltip/BricksTooltip.vue';
-import BricksTooltipHint from '../../../../ui/tooltip/BricksTooltipHint.vue';
+import BricksTooltip from '../../../../ui/base/tooltip/BricksTooltip.vue';
+import BricksTooltipHint from '../../../../ui/base/tooltip/BricksTooltipHint.vue';
 
 // Composables
 import { useBricksAssetUrl } from '../../../../common/composables/useBricksAssetUrl';

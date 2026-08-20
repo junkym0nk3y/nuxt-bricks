@@ -110,19 +110,19 @@ function onClick(event: MouseEvent): void {
     &._sm {
         min-height: 3.2rem;
         padding: 0 1.2rem;
-        font-size: 1.2rem;
+        font-size: var(--bricks-font-size-sm);
     }
 
     &._md {
         min-height: 3.6rem;
         padding: 1rem 1.6rem;
-        font-size: 1.4rem;
+        font-size: var(--bricks-font-size-base);
     }
 
     &._lg {
         min-height: 4rem;
         padding: 1.2rem 2rem;
-        font-size: 1.6rem;
+        font-size: var(--bricks-font-size-lg);
     }
 
     &._primary {
@@ -191,7 +191,11 @@ function onClick(event: MouseEvent): void {
         }
     }
 
-    &._outline {
+    /* Тихая кнопка: та же приподнятая плитка, что у secondary, но подпись и глиф
+       приглушены до base-500 — инструмент панели не спорит с «Сохранить» рядом.
+       Прежнее имя `outline` осталось от бордерного вида до soft-UI и врало: рамки
+       у варианта нет, а `outlined` у BricksIconButton её рисует. */
+    &._quiet {
         border-color: transparent;
         background-color: var(--bricks-surface-raised);
         color: var(--bricks-base-500);
@@ -201,7 +205,12 @@ function onClick(event: MouseEvent): void {
         }
     }
 
-    &._active {
+    /* Кольцо нажатого переключателя. Варианты перечислены намеренно: у primary и
+       danger это правило красило бы глиф в primary поверх залитого primary или
+       danger фона — глиф исчезал бы на своём же фоне. У ghost свой вид нажатия
+       (заливка primary с белым глифом) объявлен выше. */
+    &._secondary._active,
+    &._quiet._active {
         border-color: var(--bricks-primary);
         color: var(--bricks-primary);
     }

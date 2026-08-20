@@ -2,7 +2,7 @@
 // #region Imports
 // Components
 import BricksInput from './BricksInput.vue';
-import BricksTooltipHint from '../tooltip/BricksTooltipHint.vue';
+import BricksTooltipHint from '../base/tooltip/BricksTooltipHint.vue';
 
 // Vue
 import { computed, ref, watch, useCssModule } from 'vue';

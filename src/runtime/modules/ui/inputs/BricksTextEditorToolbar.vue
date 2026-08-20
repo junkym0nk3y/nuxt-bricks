@@ -8,8 +8,8 @@ import { useCssModule } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Components
-import BricksTooltip from '../tooltip/BricksTooltip.vue';
-import BricksTooltipHint from '../tooltip/BricksTooltipHint.vue';
+import BricksTooltip from '../base/tooltip/BricksTooltip.vue';
+import BricksTooltipHint from '../base/tooltip/BricksTooltipHint.vue';
 import BricksToolbarEditableSelect from './BricksToolbarEditableSelect.vue';
 import BricksToolbarColorPicker from './BricksToolbarColorPicker.vue';
 // #endregion

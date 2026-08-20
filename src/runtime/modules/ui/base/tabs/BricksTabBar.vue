@@ -37,8 +37,8 @@ import { ToggleGroupRoot } from 'reka-ui';
 
 // Components
 import BricksTabBarItem from './BricksTabBarItem.vue';
-import BricksTooltip from '../../tooltip/BricksTooltip.vue';
-import BricksTooltipHint from '../../tooltip/BricksTooltipHint.vue';
+import BricksTooltip from '../tooltip/BricksTooltip.vue';
+import BricksTooltipHint from '../tooltip/BricksTooltipHint.vue';
 // #endregion
 
 // #region Props

@@ -16,8 +16,8 @@ import { useBuilderPermissions } from '../../../core/composables/useBuilderPermi
 // Components
 import BricksButton from '../../../../ui/base/button/BricksButton.vue';
 import BricksActionButton from '../../../../ui/base/action-button/BricksActionButton.vue';
-import BricksTooltip from '../../../../ui/tooltip/BricksTooltip.vue';
-import BricksTooltipHint from '../../../../ui/tooltip/BricksTooltipHint.vue';
+import BricksTooltip from '../../../../ui/base/tooltip/BricksTooltip.vue';
+import BricksTooltipHint from '../../../../ui/base/tooltip/BricksTooltipHint.vue';
 import BuilderAuthProfileMenu from '../../../auth/components/BuilderAuthProfileMenu.vue';
 import BuilderLogo from '../../../core/components/BuilderLogo.vue';
 import BuilderShellToolbarPageSelector from './BuilderShellToolbarPageSelector.vue';
@@ -251,7 +251,7 @@ function handleLogout(): void {
                 <template #activator>
                     <BricksButton
                         size="md"
-                        variant="outline"
+                        variant="quiet"
                         equal
                         :disabled="!props.isSessionReady"
                         :aria-label="t('bricks.toolbar.media')"
@@ -270,7 +270,7 @@ function handleLogout(): void {
                 <template #activator>
                     <BricksButton
                         size="md"
-                        variant="outline"
+                        variant="quiet"
                         equal
                         :disabled="!props.isSessionReady"
                         :aria-label="t('bricks.toolbar.preview')"

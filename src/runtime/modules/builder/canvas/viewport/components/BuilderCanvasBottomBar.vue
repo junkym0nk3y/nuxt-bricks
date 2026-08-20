@@ -19,8 +19,8 @@ import { useBuilderPermissions } from '../../../core/composables/useBuilderPermi
 // Components
 import BricksButton from '../../../../ui/base/button/BricksButton.vue';
 import BricksTabBar from '../../../../ui/base/tabs/BricksTabBar.vue';
-import BricksTooltip from '../../../../ui/tooltip/BricksTooltip.vue';
-import BricksTooltipHint from '../../../../ui/tooltip/BricksTooltipHint.vue';
+import BricksTooltip from '../../../../ui/base/tooltip/BricksTooltip.vue';
+import BricksTooltipHint from '../../../../ui/base/tooltip/BricksTooltipHint.vue';
 
 // Utils
 import { resolveDeviceIcon } from '../../../../common/utils/bricks/devices';

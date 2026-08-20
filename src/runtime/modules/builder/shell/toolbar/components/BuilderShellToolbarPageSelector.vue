@@ -307,7 +307,8 @@ function handleCreatePage(): void {
                                         <span :class="$style.rowTitle">
                                             {{ page.title || page.pagename }}
                                         </span>
-                                        <BricksBadge v-if="!page.published">
+                                        <!-- Тон как у плашки черновика в списке страниц дашборда -->
+                                        <BricksBadge v-if="!page.published" tone="muted">
                                             {{ t('bricks.toolbar.pageSelector.draft') }}
                                         </BricksBadge>
                                     </span>

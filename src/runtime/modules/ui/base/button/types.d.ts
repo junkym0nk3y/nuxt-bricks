@@ -1,5 +1,5 @@
 /** Варианты оформления кнопки — ровно те, под которые в `BricksButton.vue` есть классы. */
-export type TBricksButtonVariant = 'primary' | 'secondary' | 'ghost' | 'outline' | 'danger';
+export type TBricksButtonVariant = 'primary' | 'secondary' | 'ghost' | 'quiet' | 'danger';
 
 export type TBricksButtonSize = 'sm' | 'md' | 'lg';
 

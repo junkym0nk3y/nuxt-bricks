@@ -188,10 +188,16 @@ function handleDelete(slug: string): void {
     }
 }
 
+/* Вид один в один с `BricksTabBar variant="underline" size="sm"` — тот же бокс
+   3.2rem, паддинг 0 1.2rem, кегль 1.2rem/500 и та же полоса 0.2rem через
+   scaleX. Компонент кита здесь не взят из-за крестика: вложить кнопку внутрь
+   `ToggleGroupItem` нельзя (кнопка в кнопке), а отдельным item она переключала бы
+   категорию. Значения держатся равными киту сознательно — копия уже успела
+   разъехаться по гэпу и цвету счётчика, и это выправлено. */
 .label {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.8rem;
     min-height: 3.2rem;
     padding: 0 1.2rem;
     border: none;
@@ -215,7 +221,7 @@ function handleDelete(slug: string): void {
 }
 
 .count {
-    color: var(--bricks-base-400);
+    color: var(--bricks-base-500);
     transition: color var(--bricks-default-transition);
 }
 

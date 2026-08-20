@@ -164,7 +164,14 @@ function handleDelete(): void {
             <div :class="$style.titleRow">
                 <h3 :class="$style.title">{{ props.page.title }}</h3>
                 <span :class="$style.pagename">{{ pageAddressPath }}</span>
-                <BricksBadge v-if="!props.page.published">
+                <!--
+                    Тон `muted`, а не дефолтный `primary`: «Черновик» — тихий
+                    статус, а заливка primary в ките значит «главное здесь»
+                    («Текущая» у версии, выбранный файл в медиатеке). Синей
+                    плашкой каждая неопубликованная страница кричала акцентом,
+                    хотя статус рядом уже несёт точка.
+                -->
+                <BricksBadge v-if="!props.page.published" tone="muted">
                     {{ t('bricks.publish.dashboard.row.draft') }}
                 </BricksBadge>
             </div>
