@@ -9,8 +9,9 @@ import { useI18n } from 'vue-i18n';
 
 // Components
 import BricksButton from '../base/button/BricksButton.vue';
-import BricksCloseButton from '../base/modal/BricksCloseButton.vue';
 import BricksModal from '../base/modal/BricksModal.vue';
+import BricksModalFooter from '../base/modal/BricksModalFooter.vue';
+import BricksModalHeader from '../base/modal/BricksModalHeader.vue';
 // #endregion
 
 // #region Props
@@ -72,16 +73,13 @@ function handleConfirm(): void {
         @after-leave="emit('afterLeave')"
     >
         <div :class="$style.BricksConfirmModal">
-            <div :class="$style.header">
-                <h3 :class="$style.title">{{ props.title }}</h3>
-                <BricksCloseButton :disabled="props.isLoading" @click="handleClose" />
-            </div>
+            <BricksModalHeader :close-disabled="props.isLoading" @close="handleClose" />
 
             <div v-if="normalizedDescription" :class="$style.content">
                 <p :class="$style.description">{{ normalizedDescription }}</p>
             </div>
 
-            <div :class="$style.actions">
+            <BricksModalFooter>
                 <BricksButton
                     size="sm"
                     variant="secondary"
@@ -99,7 +97,7 @@ function handleConfirm(): void {
                 >
                     {{ confirmLabel }}
                 </BricksButton>
-            </div>
+            </BricksModalFooter>
         </div>
     </BricksModal>
 </template>
@@ -116,21 +114,6 @@ function handleConfirm(): void {
     flex-direction: column;
 }
 
-.header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1.6rem 2rem;
-    border-bottom: 1px solid var(--bricks-base-200);
-}
-
-.title {
-    margin: 0;
-    font-size: 1.6rem;
-    font-weight: 600;
-    color: var(--bricks-base-900);
-}
-
 .content {
     padding: 1.6rem 2rem;
 }
@@ -140,13 +123,5 @@ function handleConfirm(): void {
     font-size: 1.4rem;
     line-height: 1.5;
     color: var(--bricks-base-700);
-}
-
-.actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.8rem;
-    padding: 1.6rem 2rem;
-    border-top: 1px solid var(--bricks-base-200);
 }
 </style>

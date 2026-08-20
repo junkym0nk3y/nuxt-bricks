@@ -27,10 +27,11 @@ import { useTemplateRenameForm } from '../composables/useTemplateRenameForm';
 
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
-import BricksCloseButton from '../../../ui/base/modal/BricksCloseButton.vue';
 import BricksFieldError from '../../../ui/inputs/BricksFieldError.vue';
 import BricksInput from '../../../ui/inputs/BricksInput.vue';
 import BricksModal from '../../../ui/base/modal/BricksModal.vue';
+import BricksModalFooter from '../../../ui/base/modal/BricksModalFooter.vue';
+import BricksModalHeader from '../../../ui/base/modal/BricksModalHeader.vue';
 // #endregion
 
 // #region Props
@@ -85,10 +86,7 @@ watch(
         @close="handleClose"
     >
         <div :class="$style.TheBuilderTemplatesRenameModal">
-            <div :class="$style.header">
-                <h3 :class="$style.title">{{ t('bricks.templates.renameModal.title') }}</h3>
-                <BricksCloseButton :disabled="isSubmitting" @click="handleClose" />
-            </div>
+            <BricksModalHeader :close-disabled="isSubmitting" @close="handleClose" />
 
             <form :class="$style.form" novalidate @submit.prevent="submitForm">
                 <div :class="$style.field">
@@ -118,7 +116,7 @@ watch(
 
                 <BricksFieldError :message="generalError" />
 
-                <div :class="$style.footer">
+                <BricksModalFooter variant="inline">
                     <BricksButton
                         size="md"
                         variant="ghost"
@@ -136,7 +134,7 @@ watch(
                     >
                         {{ t('bricks.common.save') }}
                     </BricksButton>
-                </div>
+                </BricksModalFooter>
             </form>
         </div>
     </BricksModal>
@@ -154,40 +152,16 @@ watch(
     flex-direction: column;
 }
 
-.header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.8rem;
-    padding: 1.8rem 2rem 1.8rem 2.4rem;
-    border-bottom: 1px solid var(--bricks-base-200);
-}
-
-.title {
-    margin: 0;
-    font-size: 1.6rem;
-    font-weight: 600;
-    color: var(--bricks-base-900);
-}
-
 .form {
     display: flex;
     flex-direction: column;
     gap: 1.6rem;
-    padding: 2rem 2.4rem;
+    padding: 2rem;
 }
 
 .field {
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
-}
-
-.footer {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 0.8rem;
-    padding-top: 0.4rem;
 }
 </style>

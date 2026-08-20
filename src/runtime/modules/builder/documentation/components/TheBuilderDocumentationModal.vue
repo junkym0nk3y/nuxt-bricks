@@ -11,8 +11,8 @@ import { useI18n } from 'vue-i18n';
 import { useDocumentationArticles } from '../composables/useDocumentationArticles';
 
 // Components
-import BricksCloseButton from '../../../ui/base/modal/BricksCloseButton.vue';
 import BricksModal from '../../../ui/base/modal/BricksModal.vue';
+import BricksModalHeader from '../../../ui/base/modal/BricksModalHeader.vue';
 // #endregion
 
 // #region Props
@@ -92,11 +92,7 @@ watch(
 <template>
     <BricksModal :is-open="props.isOpen" :title="t('bricks.docs.title')" @close="handleClose">
         <div :class="$style.TheBuilderDocumentationModal">
-            <!-- Header -->
-            <div :class="$style.header">
-                <h2 :class="$style.title">{{ t('bricks.docs.title') }}</h2>
-                <BricksCloseButton @click="handleClose" />
-            </div>
+            <BricksModalHeader size="lg" @close="handleClose" />
 
             <!-- Body -->
             <div :class="$style.body">
@@ -148,21 +144,6 @@ watch(
     background-color: var(--bricks-base-0);
     box-shadow: var(--bricks-shadow-md);
     flex-direction: column;
-}
-
-.header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 2rem 2.4rem;
-    border-bottom: 1px solid var(--bricks-base-300);
-}
-
-.title {
-    margin: 0;
-    font-size: 2rem;
-    font-weight: 600;
-    color: var(--bricks-base-900);
 }
 
 .body {

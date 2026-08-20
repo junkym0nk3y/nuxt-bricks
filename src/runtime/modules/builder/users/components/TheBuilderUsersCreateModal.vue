@@ -46,10 +46,12 @@ import { useUsersCreateForm } from '../composables/useUsersCreateForm';
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
 import BricksCheckbox from '../../../ui/base/checkbox/BricksCheckbox.vue';
-import BricksCloseButton from '../../../ui/base/modal/BricksCloseButton.vue';
 import BricksFieldError from '../../../ui/inputs/BricksFieldError.vue';
+import BricksFieldHint from '../../../ui/inputs/BricksFieldHint.vue';
 import BricksInput from '../../../ui/inputs/BricksInput.vue';
 import BricksModal from '../../../ui/base/modal/BricksModal.vue';
+import BricksModalFooter from '../../../ui/base/modal/BricksModalFooter.vue';
+import BricksModalHeader from '../../../ui/base/modal/BricksModalHeader.vue';
 import BricksSelect from '../../../ui/inputs/BricksSelect.vue';
 // #endregion
 
@@ -141,10 +143,7 @@ watch(
         @close="handleClose"
     >
         <div :class="$style.TheBuilderUsersCreateModal">
-            <div :class="$style.header">
-                <h3 :class="$style.title">{{ t('bricks.users.createModal.title') }}</h3>
-                <BricksCloseButton @click="handleClose" />
-            </div>
+            <BricksModalHeader @close="handleClose" />
 
             <form :class="$style.form" novalidate @submit.prevent="submitForm">
                 <div :class="$style.field">
@@ -157,7 +156,9 @@ watch(
                         autocomplete="off"
                         @update:value="(value: string) => (username = value)"
                     />
-                    <p :class="$style.hint">{{ t('bricks.users.createModal.usernameHint') }}</p>
+                    <BricksFieldHint>{{
+                        t('bricks.users.createModal.usernameHint')
+                    }}</BricksFieldHint>
                 </div>
 
                 <div :class="$style.field">
@@ -170,7 +171,9 @@ watch(
                         autocomplete="off"
                         @update:value="(value: string) => (displayName = value)"
                     />
-                    <p :class="$style.hint">{{ t('bricks.users.createModal.displayNameHint') }}</p>
+                    <BricksFieldHint>{{
+                        t('bricks.users.createModal.displayNameHint')
+                    }}</BricksFieldHint>
                 </div>
 
                 <div :class="$style.field">
@@ -199,13 +202,13 @@ watch(
                             {{ t('bricks.users.createModal.generate') }}
                         </BricksButton>
                     </div>
-                    <p :class="$style.hint">
+                    <BricksFieldHint>
                         {{
                             t('bricks.users.createModal.passwordHint', {
                                 min: BRICKS_PASSWORD_MIN_LENGTH,
                             })
                         }}
-                    </p>
+                    </BricksFieldHint>
                 </div>
 
                 <div :class="$style.field">
@@ -218,7 +221,7 @@ watch(
                         :aria-label="t('bricks.users.createModal.role')"
                         @update:value="handleSelectRole"
                     />
-                    <p :class="$style.hint">{{ t('bricks.users.createModal.roleHint') }}</p>
+                    <BricksFieldHint>{{ t('bricks.users.createModal.roleHint') }}</BricksFieldHint>
                 </div>
 
                 <div :class="$style.field">
@@ -228,12 +231,14 @@ watch(
                         :disabled="isSubmitting"
                         @update:value="(value: boolean) => (isActive = value)"
                     />
-                    <p :class="$style.hint">{{ t('bricks.users.createModal.canSignInHint') }}</p>
+                    <BricksFieldHint>{{
+                        t('bricks.users.createModal.canSignInHint')
+                    }}</BricksFieldHint>
                 </div>
 
                 <BricksFieldError :message="generalError" />
 
-                <div :class="$style.footer">
+                <BricksModalFooter variant="inline">
                     <BricksButton
                         size="md"
                         variant="ghost"
@@ -259,7 +264,7 @@ watch(
                     >
                         {{ t('bricks.users.createModal.submit') }}
                     </BricksButton>
-                </div>
+                </BricksModalFooter>
             </form>
         </div>
     </BricksModal>
@@ -277,28 +282,11 @@ watch(
     box-shadow: var(--bricks-shadow-lg);
 }
 
-.header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-shrink: 0;
-    padding: 2rem 2.4rem 1.6rem;
-    border-bottom: 1px solid var(--bricks-base-200);
-    gap: 1.6rem;
-}
-
-.title {
-    margin: 0;
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: var(--bricks-base-900);
-}
-
 .form {
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    padding: 2rem 2.4rem 2.4rem;
+    padding: 2rem;
     gap: 1.6rem;
 }
 
@@ -312,13 +300,6 @@ watch(
     font-size: 1.2rem;
     font-weight: 600;
     color: var(--bricks-base-700);
-}
-
-.hint {
-    margin: 0;
-    font-size: 1.2rem;
-    line-height: 1.4;
-    color: var(--bricks-base-500);
 }
 
 /* Кнопка генерации стоит рядом с полем и выровнена по его нижнему краю: поле
@@ -337,13 +318,5 @@ watch(
 
 .generateButton {
     flex-shrink: 0;
-}
-
-.footer {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding-top: 0.4rem;
-    gap: 0.8rem;
 }
 </style>

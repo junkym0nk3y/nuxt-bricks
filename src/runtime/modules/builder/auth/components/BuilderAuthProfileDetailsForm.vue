@@ -49,6 +49,7 @@ import BricksAvatar from '../../../ui/base/avatar/BricksAvatar.vue';
 import BricksBadge from '../../../ui/base/badge/BricksBadge.vue';
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
 import BricksFieldError from '../../../ui/inputs/BricksFieldError.vue';
+import BricksFieldHint from '../../../ui/inputs/BricksFieldHint.vue';
 import BricksInput from '../../../ui/inputs/BricksInput.vue';
 // #endregion
 
@@ -186,7 +187,7 @@ const submitForm = handleSubmit(async (values) => {
                     </BricksButton>
                 </div>
 
-                <p :class="$style.hint">
+                <BricksFieldHint>
                     {{
                         hasPhoto
                             ? t('bricks.auth.profile.photo.hint', {
@@ -196,7 +197,7 @@ const submitForm = handleSubmit(async (values) => {
                                   max: BRICKS_AVATAR_MAX_UPLOAD_MB,
                               })
                     }}
-                </p>
+                </BricksFieldHint>
             </div>
         </div>
 
@@ -211,7 +212,7 @@ const submitForm = handleSubmit(async (values) => {
                 :error-message="errors.displayName"
                 @update:value="(val: string) => (displayName = val)"
             />
-            <span :class="$style.hint">{{ t('bricks.auth.profile.displayNameHint') }}</span>
+            <BricksFieldHint>{{ t('bricks.auth.profile.displayNameHint') }}</BricksFieldHint>
         </div>
 
         <div :class="$style.field">
@@ -227,13 +228,13 @@ const submitForm = handleSubmit(async (values) => {
                 type="text"
                 readonly
             />
-            <span :class="$style.hint">{{ t('bricks.auth.profile.usernameHint') }}</span>
+            <BricksFieldHint>{{ t('bricks.auth.profile.usernameHint') }}</BricksFieldHint>
         </div>
 
         <div :class="$style.role">
             <span :class="$style.roleLabel">{{ t('bricks.auth.profile.role') }}</span>
-            <BricksBadge variant="primary">{{ roleLabel }}</BricksBadge>
-            <span :class="$style.hint">{{ t('bricks.auth.profile.roleHint') }}</span>
+            <BricksBadge tone="primary">{{ roleLabel }}</BricksBadge>
+            <BricksFieldHint>{{ t('bricks.auth.profile.roleHint') }}</BricksFieldHint>
         </div>
 
         <BricksFieldError :message="generalError" />
@@ -285,13 +286,6 @@ const submitForm = handleSubmit(async (values) => {
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
-}
-
-.hint {
-    margin: 0;
-    font-size: 1.2rem;
-    line-height: 1.4;
-    color: var(--bricks-base-500);
 }
 
 .role {

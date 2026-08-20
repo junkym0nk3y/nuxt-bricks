@@ -24,6 +24,7 @@ import { useBuilderPermissions } from '../../core/composables/useBuilderPermissi
 import BricksSwitch from '../../../ui/inputs/BricksSwitch.vue';
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
 import BricksCloseButton from '../../../ui/base/modal/BricksCloseButton.vue';
+import BricksIconButton from '../../../ui/base/icon-button/BricksIconButton.vue';
 import BuilderPublishSeoFields from './BuilderPublishSeoFields.vue';
 import BuilderPublishDetailsPanelOgImage from './BuilderPublishDetailsPanelOgImage.vue';
 import BuilderPublishDetailsPanelRouting from './BuilderPublishDetailsPanelRouting.vue';
@@ -231,15 +232,12 @@ defineExpose({
                 <div v-if="liveUrl" :class="$style.urlRow">
                     <BricksIcon icon="ph:link" :class="$style.urlIcon" />
                     <span :class="$style.urlText">{{ liveUrl }}</span>
-                    <button
-                        :class="$style.copyButton"
-                        type="button"
-                        :title="t('bricks.publish.dashboard.details.copyUrl')"
-                        :aria-label="t('bricks.publish.dashboard.details.copyUrl')"
+                    <BricksIconButton
+                        icon="ta:outline-copy"
+                        :label="t('bricks.publish.dashboard.details.copyUrl')"
+                        variant="ghost"
                         @click="handleCopyUrl"
-                    >
-                        <BricksIcon icon="ta:outline-copy" />
-                    </button>
+                    />
                 </div>
             </div>
 
@@ -335,16 +333,14 @@ defineExpose({
                 >
                     {{ t('bricks.publish.dashboard.row.duplicate') }}
                 </BricksButton>
-                <button
+                <BricksIconButton
                     v-if="canDelete"
-                    :class="$style.deleteButton"
-                    type="button"
-                    :title="t('bricks.publish.dashboard.row.delete')"
-                    :aria-label="t('bricks.publish.dashboard.row.delete')"
+                    icon="ta:outline-trash"
+                    :label="t('bricks.publish.dashboard.row.delete')"
+                    size="lg"
+                    danger
                     @click="handleDelete"
-                >
-                    <BricksIcon icon="ta:outline-trash" />
-                </button>
+                />
             </div>
         </div>
     </div>
@@ -434,26 +430,6 @@ defineExpose({
     color: var(--bricks-primary-600);
 }
 
-.copyButton {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    width: 2rem;
-    height: 2rem;
-    padding: 0;
-    border: none;
-    background: transparent;
-    font-size: 1.4rem;
-    color: var(--bricks-base-400);
-    transition: color var(--bricks-default-transition);
-    cursor: pointer;
-
-    &:hover {
-        color: var(--bricks-base-900);
-    }
-}
-
 .saveBar {
     display: flex;
     flex-direction: column;
@@ -476,29 +452,5 @@ defineExpose({
 
 .duplicateButton {
     flex: 1;
-}
-
-.deleteButton {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    width: 3.6rem;
-    height: 3.6rem;
-    padding: 0;
-    border-radius: var(--bricks-border-radius-xs);
-    border: 1px solid var(--bricks-danger-500);
-    background: var(--bricks-base-0);
-    font-size: 1.6rem;
-    color: var(--bricks-danger-500);
-    transition:
-        background-color var(--bricks-default-transition),
-        color var(--bricks-default-transition);
-    cursor: pointer;
-
-    &:hover {
-        background: var(--bricks-danger-50);
-        color: var(--bricks-danger-600);
-    }
 }
 </style>

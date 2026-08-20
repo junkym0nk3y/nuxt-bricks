@@ -21,6 +21,7 @@ import { useDraggableOverlay } from '../composables/useDraggableOverlay';
 
 // Components
 import BricksTextEditorToolbar from '../../../../ui/inputs/BricksTextEditorToolbar.vue';
+import BricksFieldHint from '../../../../ui/inputs/BricksFieldHint.vue';
 import TextEditorImageFloatPopover from '../../../../text-editor/components/TextEditorImageFloatPopover.vue';
 import TextEditorLinkModal from '../../../../text-editor/components/TextEditorLinkModal.vue';
 import BuilderCanvasInlineEditingHeader from './BuilderCanvasInlineEditingHeader.vue';
@@ -279,7 +280,9 @@ function handleRequestImage(): void {
                     <button type="button" :class="$style.doneButton" @click="handleDone">
                         {{ t('bricks.textEditor.done') }}
                     </button>
-                    <span :class="$style.hint">{{ t('bricks.textEditor.escToExit') }}</span>
+                    <BricksFieldHint :class="$style.escHint">{{
+                        t('bricks.textEditor.escToExit')
+                    }}</BricksFieldHint>
                 </div>
             </div>
         </Transition>
@@ -298,6 +301,13 @@ function handleRequestImage(): void {
 </template>
 
 <style module lang="scss">
+/*
+    Поверхность написана руками, а не взята из `BricksPopoverSurface`: ссылка на
+    этот узел уходит в composable перетаскивания как элемент, и подменять её
+    инстансом компонента ради одинакового вида не стоит. Тень `md` — та же
+    ступень, что у остальных поповеров; на перетаскивании она поднимается до
+    `lg` как состояние, а не как расхождение.
+*/
 .BuilderCanvasInlineEditingOverlay {
     z-index: 1;
     overflow: hidden;
@@ -352,6 +362,12 @@ function handleRequestImage(): void {
     border-top: 1px solid var(--bricks-base-200);
 }
 
+/* Подсказка про Esc не переносится: футер узкий, а перенос растягивал бы панель
+   редактирования по высоте прямо под курсором. */
+.escHint {
+    white-space: nowrap;
+}
+
 .doneButton {
     padding: 0.4rem 1rem;
     border-radius: var(--bricks-border-radius-xs);
@@ -367,12 +383,6 @@ function handleRequestImage(): void {
     &:hover {
         opacity: 0.85;
     }
-}
-
-.hint {
-    white-space: nowrap;
-    font-size: 1.2rem;
-    color: var(--bricks-base-500);
 }
 
 .fallbackEditorContainer {

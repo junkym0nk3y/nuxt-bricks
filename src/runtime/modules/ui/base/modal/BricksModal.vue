@@ -6,8 +6,11 @@ import type { IBricksModalProps, IBricksModalEmits } from './types.d.ts';
 // Utils
 import { markLeavingInert } from '../../../common/utils/transitionInert';
 
+// Constants
+import { BRICKS_MODAL_TITLE_KEY } from '../../../common/constants/injectionKeys';
+
 // Vue
-import { useCssModule, computed } from 'vue';
+import { useCssModule, computed, provide } from 'vue';
 
 // Reka UI
 import {
@@ -37,6 +40,17 @@ const emit = defineEmits<IBricksModalEmits>();
 
 // #region Data
 const $style = useCssModule();
+
+/**
+ * Заголовок отдаётся вниз, в `BricksModalHeader`: то же значение уходит в
+ * скрытый `DialogTitle`, и видимая шапка обязана печатать именно его, а не свою
+ * копию — расхождение имени диалога с надписью в нём не заметно ни в одной
+ * проверке.
+ */
+provide(
+    BRICKS_MODAL_TITLE_KEY,
+    computed(() => props.title)
+);
 // #endregion
 
 // #region Computed

@@ -19,6 +19,9 @@ import {
     SelectItemText,
     type AcceptableValue,
 } from 'reka-ui';
+
+// Components
+import BricksPopoverSurface from '../base/popover/BricksPopoverSurface.vue';
 // #endregion
 
 // #region Options
@@ -119,18 +122,25 @@ function onUpdate(value: AcceptableValue): void {
         </div>
 
         <SelectPortal>
-            <SelectContent :class="$style.dropdown" position="popper" :side-offset="4">
-                <SelectViewport class="bricks-scrollbox" :class="$style.optionsWrapper">
-                    <SelectItem
-                        v-for="(spec, index) in props.specs"
-                        :key="`${index}_${spec.value}`"
-                        :value="toInternalValue(spec.value)"
-                        :disabled="!props.facets.includes(spec.value)"
-                        :class="$style.listItem"
-                    >
-                        <SelectItemText>{{ spec.label }}</SelectItemText>
-                    </SelectItem>
-                </SelectViewport>
+            <!--
+                `as-child`: узел поверхности и узел reka — один и тот же, иначе
+                позиционирование и `data-state` оказались бы на внешней обёртке,
+                а вид — на внутренней.
+            -->
+            <SelectContent as-child position="popper" :side-offset="4">
+                <BricksPopoverSurface :class="$style.dropdown">
+                    <SelectViewport class="bricks-scrollbox" :class="$style.optionsWrapper">
+                        <SelectItem
+                            v-for="(spec, index) in props.specs"
+                            :key="`${index}_${spec.value}`"
+                            :value="toInternalValue(spec.value)"
+                            :disabled="!props.facets.includes(spec.value)"
+                            :class="$style.listItem"
+                        >
+                            <SelectItemText>{{ spec.label }}</SelectItemText>
+                        </SelectItem>
+                    </SelectViewport>
+                </BricksPopoverSurface>
             </SelectContent>
         </SelectPortal>
     </SelectRoot>
@@ -241,14 +251,8 @@ function onUpdate(value: AcceptableValue): void {
 }
 
 .dropdown {
-    z-index: var(--bricks-z-popover);
     width: var(--reka-select-trigger-width);
-    padding: 0.6rem;
-    border-radius: var(--bricks-border-radius-sm);
-    border: 1px solid var(--bricks-base-200);
-    background: var(--bricks-base-0);
     color: var(--bricks-base-900);
-    box-shadow: var(--bricks-shadow-md);
 }
 
 .optionsWrapper {

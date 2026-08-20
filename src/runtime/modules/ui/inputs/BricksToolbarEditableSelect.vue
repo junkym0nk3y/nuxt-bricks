@@ -18,6 +18,9 @@ import {
     ComboboxItem,
     type AcceptableValue,
 } from 'reka-ui';
+
+// Components
+import BricksPopoverSurface from '../base/popover/BricksPopoverSurface.vue';
 // #endregion
 
 // #region Props
@@ -217,55 +220,57 @@ async function focusCustomInput(): Promise<void> {
 
         <ComboboxPortal>
             <ComboboxContent
+                as-child
                 position="popper"
                 :side-offset="4"
                 align="start"
-                :class="$style.popup"
                 @mousedown.prevent
             >
-                <!-- Preset options -->
-                <ComboboxViewport :class="$style.optionsList">
-                    <ComboboxItem
-                        v-for="option in props.item.options"
-                        :key="option.value || EMPTY_OPTION_SENTINEL"
-                        :value="option.value || EMPTY_OPTION_SENTINEL"
-                        :class="[
-                            $style.optionItem,
-                            { [$style._selected]: option.value === props.item.value },
-                        ]"
-                        @mousedown.prevent
-                    >
-                        {{ option.label }}
-                    </ComboboxItem>
-                </ComboboxViewport>
+                <BricksPopoverSurface :class="$style.popup">
+                    <!-- Preset options -->
+                    <ComboboxViewport :class="$style.optionsList">
+                        <ComboboxItem
+                            v-for="option in props.item.options"
+                            :key="option.value || EMPTY_OPTION_SENTINEL"
+                            :value="option.value || EMPTY_OPTION_SENTINEL"
+                            :class="[
+                                $style.optionItem,
+                                { [$style._selected]: option.value === props.item.value },
+                            ]"
+                            @mousedown.prevent
+                        >
+                            {{ option.label }}
+                        </ComboboxItem>
+                    </ComboboxViewport>
 
-                <!-- Custom input -->
-                <div :class="$style.divider" />
-                <div :class="$style.customInputRow">
-                    <input
-                        ref="customInputRef"
-                        type="text"
-                        :class="[$style.customInput, { [$style._error]: hasError }]"
-                        :value="customValue"
-                        :placeholder="
-                            props.item.customInputPlaceholder || t('bricks.textEditor.value')
-                        "
-                        @input="handleCustomInput"
-                        @keydown="handleCustomKeydown"
-                        @mousedown.stop
-                        @vue:mounted="focusCustomInput"
-                    />
-                    <button
-                        type="button"
-                        :class="$style.confirmButton"
-                        :disabled="!customValue.trim()"
-                        @mousedown.prevent
-                        @click.prevent="handleCustomConfirm"
-                    >
-                        ✓
-                    </button>
-                </div>
-                <div v-if="hasError" :class="$style.errorText">Некорректное значение</div>
+                    <!-- Custom input -->
+                    <div :class="$style.divider" />
+                    <div :class="$style.customInputRow">
+                        <input
+                            ref="customInputRef"
+                            type="text"
+                            :class="[$style.customInput, { [$style._error]: hasError }]"
+                            :value="customValue"
+                            :placeholder="
+                                props.item.customInputPlaceholder || t('bricks.textEditor.value')
+                            "
+                            @input="handleCustomInput"
+                            @keydown="handleCustomKeydown"
+                            @mousedown.stop
+                            @vue:mounted="focusCustomInput"
+                        />
+                        <button
+                            type="button"
+                            :class="$style.confirmButton"
+                            :disabled="!customValue.trim()"
+                            @mousedown.prevent
+                            @click.prevent="handleCustomConfirm"
+                        >
+                            ✓
+                        </button>
+                    </div>
+                    <div v-if="hasError" :class="$style.errorText">Некорректное значение</div>
+                </BricksPopoverSurface>
             </ComboboxContent>
         </ComboboxPortal>
     </ComboboxRoot>
@@ -327,15 +332,9 @@ async function focusCustomInput(): Promise<void> {
 }
 
 .popup {
-    z-index: var(--bricks-z-popover);
     display: flex;
     flex-direction: column;
     width: 16rem;
-    padding: 0.6rem;
-    border-radius: var(--bricks-border-radius-sm);
-    border: 1px solid var(--bricks-base-200);
-    background: var(--bricks-base-0);
-    box-shadow: var(--bricks-shadow-md);
 }
 
 .optionsList {

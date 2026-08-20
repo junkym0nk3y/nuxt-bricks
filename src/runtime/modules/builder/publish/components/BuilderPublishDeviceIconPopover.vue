@@ -9,6 +9,9 @@ import { DEVICE_ICON_CHOICES } from '../../../common/constants/devices';
 
 // Utils
 import { resolveDeviceIcon } from '../../../common/utils/bricks/devices';
+
+// Components
+import BricksPopoverSurface from '../../../ui/base/popover/BricksPopoverSurface.vue';
 // #endregion
 
 // #region Props
@@ -114,7 +117,13 @@ onBeforeUnmount(() => {
             <BricksIcon :icon="resolveDeviceIcon(props.icon)" />
         </button>
 
-        <div v-if="isOpen" :class="$style.popover" role="listbox">
+        <BricksPopoverSurface
+            v-if="isOpen"
+            density="roomy"
+            layer="local"
+            :class="$style.popover"
+            role="listbox"
+        >
             <button
                 v-for="choice in choices"
                 :key="choice.value"
@@ -126,7 +135,7 @@ onBeforeUnmount(() => {
             >
                 <BricksIcon :icon="choice.glyph" />
             </button>
-        </div>
+        </BricksPopoverSurface>
     </div>
 </template>
 
@@ -171,15 +180,9 @@ onBeforeUnmount(() => {
     position: absolute;
     top: calc(100% + 0.4rem);
     left: 0;
-    z-index: 1;
     display: grid;
-    padding: 0.8rem;
-    border-radius: var(--bricks-border-radius-sm);
-    border: 1px solid var(--bricks-base-200);
-    background: var(--bricks-base-0);
     grid-template-columns: repeat(4, 3.6rem);
     gap: 0.4rem;
-    box-shadow: var(--bricks-shadow-md);
 }
 
 .choice {

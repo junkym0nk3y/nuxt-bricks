@@ -17,6 +17,7 @@ import {
 
 // Components
 import BricksButton from '../button/BricksButton.vue';
+import BricksPopoverSurface from '../popover/BricksPopoverSurface.vue';
 import BricksSelectOption from '../../inputs/BricksSelectOption.vue';
 // #endregion
 
@@ -97,22 +98,28 @@ function handleOptionSelect(option: IBrickUiCommonProp): void {
             </DropdownMenuTrigger>
 
             <DropdownMenuPortal>
-                <DropdownMenuContent
-                    :class="$style.dropdown"
-                    align="end"
-                    :side-offset="4"
-                    position="popper"
-                >
-                    <div :class="$style.optionsWrapper">
-                        <DropdownMenuItem
-                            v-for="option in resolvedOptions"
-                            :key="String(option.value)"
-                            as-child
-                            @select="handleOptionSelect(option)"
-                        >
-                            <BricksSelectOption :spec="option" value="" :class="$style.option" />
-                        </DropdownMenuItem>
-                    </div>
+                <!--
+                    `as-child`: узел поверхности и узел reka — один и тот же,
+                    иначе анимация появления (она висит на `data-state`) и вид
+                    оказались бы на разных элементах.
+                -->
+                <DropdownMenuContent as-child align="end" :side-offset="4" position="popper">
+                    <BricksPopoverSurface density="roomy" :class="$style.dropdown">
+                        <div :class="$style.optionsWrapper">
+                            <DropdownMenuItem
+                                v-for="option in resolvedOptions"
+                                :key="String(option.value)"
+                                as-child
+                                @select="handleOptionSelect(option)"
+                            >
+                                <BricksSelectOption
+                                    :spec="option"
+                                    value=""
+                                    :class="$style.option"
+                                />
+                            </DropdownMenuItem>
+                        </div>
+                    </BricksPopoverSurface>
                 </DropdownMenuContent>
             </DropdownMenuPortal>
         </div>
@@ -179,15 +186,7 @@ function handleOptionSelect(option: IBrickUiCommonProp): void {
 }
 
 .dropdown {
-    /* Слой поповеров: выше оболочки билдера и выше любой модалки — дропдаун
-       всегда открывают из чего-то, что уже наверху */
-    z-index: var(--bricks-z-popover);
     min-width: 22rem;
-    padding: 0.8rem;
-    border-radius: var(--bricks-border-radius-sm);
-    border: 1px solid var(--bricks-base-200);
-    background-color: var(--bricks-base-0);
-    box-shadow: var(--bricks-shadow-md);
 
     &[data-state='open'] {
         animation: dropdown-in 0.2s ease;

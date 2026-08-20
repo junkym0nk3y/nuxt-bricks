@@ -8,6 +8,9 @@ import { useI18n } from 'vue-i18n';
 
 // Utils
 import { resolveDeviceIcon } from '../../../common/utils/bricks/devices';
+
+// Components
+import BricksFieldHint from '../../../ui/inputs/BricksFieldHint.vue';
 // #endregion
 
 // #region Props
@@ -37,7 +40,7 @@ const { t } = useI18n();
             </div>
         </div>
 
-        <p :class="$style.hint">{{ t('bricks.devices.rangesHint') }}</p>
+        <BricksFieldHint>{{ t('bricks.devices.rangesHint') }}</BricksFieldHint>
     </div>
 </template>
 
@@ -90,13 +93,6 @@ const { t } = useI18n();
 
 .segmentRange {
     font-size: 1.1rem;
-    color: var(--bricks-base-500);
-}
-
-.hint {
-    margin: 0;
-    font-size: 1.1rem;
-    line-height: 1.4;
     color: var(--bricks-base-500);
 }
 </style>

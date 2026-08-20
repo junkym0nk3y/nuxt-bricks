@@ -24,6 +24,7 @@ import { useI18n } from 'vue-i18n';
 // Components
 import BuilderUsersListRow from './BuilderUsersListRow.vue';
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
+import BricksEmptyState from '../../../ui/feedback/BricksEmptyState.vue';
 import BricksTabBar from '../../../ui/base/tabs/BricksTabBar.vue';
 // #endregion
 
@@ -154,37 +155,37 @@ function handleDelete(user: IBricksUserSummary): void {
             <p :class="$style.loadingText">{{ t('bricks.common.loading') }}</p>
         </div>
 
-        <div v-else-if="props.status === 'error'" :class="$style.empty">
-            <div :class="$style.emptyIconCircle">
-                <BricksIcon icon="ta:outline-users" :class="$style.emptyIcon" />
-            </div>
-            <h2 :class="$style.emptyTitle">{{ t('bricks.users.loadError.title') }}</h2>
-            <p :class="$style.emptyDescription">{{ t('bricks.users.loadError.description') }}</p>
+        <BricksEmptyState
+            v-else-if="props.status === 'error'"
+            :class="$style.empty"
+            icon="ta:outline-users"
+            :title="t('bricks.users.loadError.title')"
+            :description="t('bricks.users.loadError.description')"
+        >
             <BricksButton size="md" variant="secondary" @click="handleRetry">
                 {{ t('bricks.users.loadError.retry') }}
             </BricksButton>
-        </div>
+        </BricksEmptyState>
 
-        <div v-else-if="props.users.length === 0 && !props.hasAnyUsers" :class="$style.empty">
-            <div :class="$style.emptyIconCircle">
-                <BricksIcon icon="ta:outline-users" :class="$style.emptyIcon" />
-            </div>
-            <h2 :class="$style.emptyTitle">{{ t('bricks.users.empty.title') }}</h2>
-            <p :class="$style.emptyDescription">{{ t('bricks.users.empty.description') }}</p>
+        <BricksEmptyState
+            v-else-if="props.users.length === 0 && !props.hasAnyUsers"
+            :class="$style.empty"
+            icon="ta:outline-users"
+            :title="t('bricks.users.empty.title')"
+            :description="t('bricks.users.empty.description')"
+        >
             <BricksButton size="md" variant="primary" @click="handleCreateUser">
                 + {{ t('bricks.users.createUser') }}
             </BricksButton>
-        </div>
+        </BricksEmptyState>
 
-        <div v-else-if="props.users.length === 0" :class="$style.empty">
-            <div :class="$style.emptyIconCircle">
-                <BricksIcon icon="ta:outline-search" :class="$style.emptyIcon" />
-            </div>
-            <h2 :class="$style.emptyTitle">{{ t('bricks.users.empty.noResultsTitle') }}</h2>
-            <p :class="$style.emptyDescription">
-                {{ t('bricks.users.empty.noResultsDescription') }}
-            </p>
-        </div>
+        <BricksEmptyState
+            v-else-if="props.users.length === 0"
+            :class="$style.empty"
+            icon="ta:outline-search"
+            :title="t('bricks.users.empty.noResultsTitle')"
+            :description="t('bricks.users.empty.noResultsDescription')"
+        />
 
         <!--
             Занятость раздела приходит в строку двумя разными признаками:
@@ -263,44 +264,8 @@ function handleDelete(user: IBricksUserSummary): void {
     font-size: 1.4rem;
 }
 
+/* Отступы состояния задаёт раздел: у списка это высокая полоса по центру. */
 .empty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 0.8rem;
     padding: 8rem 2.4rem;
-}
-
-.emptyIconCircle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 6.4rem;
-    height: 6.4rem;
-    margin-bottom: 1.2rem;
-    border-radius: 50%;
-    background: var(--bricks-base-100);
-}
-
-.emptyIcon {
-    width: 2.8rem;
-    height: 2.8rem;
-    color: var(--bricks-base-400);
-}
-
-.emptyTitle {
-    margin: 0;
-    font-size: 1.6rem;
-    font-weight: 700;
-    color: var(--bricks-base-900);
-}
-
-.emptyDescription {
-    max-width: 36rem;
-    margin: 0 0 1.6rem;
-    text-align: center;
-    font-size: 1.4rem;
-    color: var(--bricks-base-500);
 }
 </style>

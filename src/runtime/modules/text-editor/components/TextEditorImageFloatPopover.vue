@@ -11,6 +11,7 @@ import { ref, watchEffect, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Components
+import BricksPopoverSurface from '../../ui/base/popover/BricksPopoverSurface.vue';
 import BricksTooltip from '../../ui/tooltip/BricksTooltip.vue';
 import BricksTooltipHint from '../../ui/tooltip/BricksTooltipHint.vue';
 import TextEditorImageSizePanel from './TextEditorImageSizePanel.vue';
@@ -163,8 +164,10 @@ onBeforeUnmount(() => {
 <template>
     <Teleport to="body">
         <Transition name="fade">
-            <div
+            <BricksPopoverSurface
                 v-if="isVisible"
+                density="compact"
+                elevation="sm"
                 :class="$style.TextEditorImageFloatPopover"
                 :style="{ top: `${popoverTop}px`, left: `${popoverLeft}px` }"
             >
@@ -251,7 +254,7 @@ onBeforeUnmount(() => {
                     :editor="props.editor"
                     :active-node-type="activeNodeType"
                 />
-            </div>
+            </BricksPopoverSurface>
         </Transition>
     </Teleport>
 </template>
@@ -259,14 +262,8 @@ onBeforeUnmount(() => {
 <style module lang="scss">
 .TextEditorImageFloatPopover {
     position: fixed;
-    z-index: var(--bricks-z-popover);
     display: flex;
     gap: 0.2rem;
-    padding: 0.4rem;
-    border-radius: var(--bricks-border-radius-sm);
-    border: 1px solid var(--bricks-base-200);
-    background: var(--bricks-base-0);
-    box-shadow: var(--bricks-shadow-sm);
 }
 
 .button {

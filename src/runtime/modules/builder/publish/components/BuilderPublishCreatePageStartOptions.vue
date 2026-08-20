@@ -11,6 +11,7 @@ import { useI18n } from 'vue-i18n';
 
 // Components
 import BricksFieldError from '../../../ui/inputs/BricksFieldError.vue';
+import BricksIconButton from '../../../ui/base/icon-button/BricksIconButton.vue';
 // #endregion
 
 // #region Props
@@ -153,16 +154,13 @@ function handleClearTemplate(): void {
                     })
                 }}
             </span>
-            <button
-                :class="$style.selectedFileClear"
-                type="button"
+            <BricksIconButton
+                icon="ta:outline-x"
+                :label="t('bricks.common.clear')"
+                variant="ghost"
                 :disabled="props.isSubmitting"
-                :aria-label="t('bricks.common.clear')"
-                :title="t('bricks.common.clear')"
                 @click="handleClearTemplate"
-            >
-                <BricksIcon icon="ta:outline-x" />
-            </button>
+            />
         </div>
 
         <!--
@@ -179,16 +177,13 @@ function handleClearTemplate(): void {
                     })
                 }}
             </span>
-            <button
-                :class="$style.selectedFileClear"
-                type="button"
+            <BricksIconButton
+                icon="ta:outline-x"
+                :label="t('bricks.common.clear')"
+                variant="ghost"
                 :disabled="props.isSubmitting"
-                :aria-label="t('bricks.common.clear')"
-                :title="t('bricks.common.clear')"
                 @click="handleClearFile"
-            >
-                <BricksIcon icon="ta:outline-x" />
-            </button>
+            />
         </div>
 
         <BricksFieldError :message="props.error" />
@@ -299,30 +294,5 @@ function handleClearTemplate(): void {
     white-space: nowrap;
     font-size: 1.2rem;
     color: var(--bricks-base-400);
-}
-
-.selectedFileClear {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    width: 2rem;
-    height: 2rem;
-    padding: 0;
-    border: none;
-    background: transparent;
-    font-size: 1.4rem;
-    color: var(--bricks-base-400);
-    transition: color var(--bricks-default-transition);
-    cursor: pointer;
-
-    &:hover:not(:disabled) {
-        color: var(--bricks-base-900);
-    }
-
-    &:disabled {
-        opacity: 0.5;
-        cursor: default;
-    }
 }
 </style>

@@ -20,9 +20,10 @@ import { useInlineEditingStore } from '../stores/inlineEditing';
 
 // Components
 import BricksButton from '../../ui/base/button/BricksButton.vue';
-import BricksCloseButton from '../../ui/base/modal/BricksCloseButton.vue';
 import BricksIconButton from '../../ui/base/icon-button/BricksIconButton.vue';
 import BricksModal from '../../ui/base/modal/BricksModal.vue';
+import BricksModalFooter from '../../ui/base/modal/BricksModalFooter.vue';
+import BricksModalHeader from '../../ui/base/modal/BricksModalHeader.vue';
 import BricksTextEditorToolbar from '../../ui/inputs/BricksTextEditorToolbar.vue';
 import TextEditorImageFloatPopover from './TextEditorImageFloatPopover.vue';
 import TextEditorLinkModal from './TextEditorLinkModal.vue';
@@ -196,16 +197,14 @@ onBeforeUnmount(() => {
         @close="handleDone"
     >
         <div :class="$style.TheTextEditorModal">
-            <!-- Header -->
-            <div :class="$style.header">
-                <h2 :class="$style.title">{{ t('bricks.textEditor.editorTitle') }}</h2>
-
-                <div :class="$style.headerActions">
+            <BricksModalHeader size="lg" @close="handleDone">
+                <template #actions>
                     <BricksButton
                         :active="isCodeView"
                         variant="secondary"
                         size="sm"
                         :disabled="props.disabled"
+                        :class="$style.codeViewButton"
                         @click="toggleCodeView"
                     >
                         <BricksIcon :icon="isCodeView ? 'ph:eye' : 'ph:code'" />
@@ -213,10 +212,8 @@ onBeforeUnmount(() => {
                             isCodeView ? t('bricks.textEditor.render') : t('bricks.textEditor.code')
                         }}</span>
                     </BricksButton>
-
-                    <BricksCloseButton @click="handleDone" />
-                </div>
-            </div>
+                </template>
+            </BricksModalHeader>
 
             <!-- Toolbar -->
             <transition name="bricks-fade" mode="out-in">
@@ -283,12 +280,11 @@ onBeforeUnmount(() => {
                 @close="closeLinkModal"
             />
 
-            <!-- Footer -->
-            <div :class="$style.footer">
+            <BricksModalFooter size="lg">
                 <BricksButton variant="primary" size="md" @click="handleDone">
                     Готово
                 </BricksButton>
-            </div>
+            </BricksModalFooter>
         </div>
     </BricksModal>
 </template>
@@ -306,26 +302,9 @@ onBeforeUnmount(() => {
     flex-direction: column;
 }
 
-.header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1.6rem 2.4rem;
-    border-bottom: 1px solid var(--bricks-base-300);
-}
-
-.title {
-    margin: 0;
-    font-size: 1.8rem;
-    font-weight: 600;
-    color: var(--bricks-base-900);
-}
-
-.headerActions {
-    display: flex;
-    align-items: center;
-    gap: 0.8rem;
-
+/* Глиф кнопки переключения вида: без явного размера он наследует кегль
+   заголовка шапки и вырастает вдвое. */
+.codeViewButton {
     svg {
         width: 1.6rem;
         height: 1.6rem;
@@ -409,12 +388,5 @@ onBeforeUnmount(() => {
     line-height: 1.6;
     color: var(--bricks-base-900);
     resize: none;
-}
-
-.footer {
-    display: flex;
-    justify-content: flex-end;
-    padding: 1.2rem 2.4rem;
-    border-top: 1px solid var(--bricks-base-300);
 }
 </style>

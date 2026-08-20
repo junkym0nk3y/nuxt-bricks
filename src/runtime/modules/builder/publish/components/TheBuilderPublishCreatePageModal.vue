@@ -37,8 +37,11 @@ import BricksInput from '../../../ui/inputs/BricksInput.vue';
 import BricksTagsEditor from '../../../ui/inputs/BricksTagsEditor.vue';
 import BricksFieldError from '../../../ui/inputs/BricksFieldError.vue';
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
-import BricksCloseButton from '../../../ui/base/modal/BricksCloseButton.vue';
+import BricksDisclosure from '../../../ui/base/disclosure/BricksDisclosure.vue';
 import BricksModal from '../../../ui/base/modal/BricksModal.vue';
+import BricksModalFooter from '../../../ui/base/modal/BricksModalFooter.vue';
+import BricksModalHeader from '../../../ui/base/modal/BricksModalHeader.vue';
+import BricksFieldHint from '../../../ui/inputs/BricksFieldHint.vue';
 import BuilderPublishCreatePageStartOptions from './BuilderPublishCreatePageStartOptions.vue';
 import BuilderPublishDevicesModal from './BuilderPublishDevicesModal.vue';
 import BuilderTemplatesPickerList from '../../templates/components/BuilderTemplatesPickerList.vue';
@@ -256,13 +259,6 @@ function handleClose(): void {
         return;
     }
     emit('close');
-}
-
-/**
- * Разворачивает/сворачивает секцию дополнительных полей.
- */
-function handleToggleAdvanced(): void {
-    isAdvancedOpen.value = !isAdvancedOpen.value;
 }
 
 /**
@@ -506,12 +502,7 @@ onMounted(() => {
         @close="handleClose"
     >
         <div :class="$style.TheBuilderPublishCreatePageModal">
-            <div :class="$style.header">
-                <h3 :class="$style.title">
-                    {{ t('bricks.publish.dashboard.createModal.title') }}
-                </h3>
-                <BricksCloseButton :disabled="isSubmitting" @click="handleClose" />
-            </div>
+            <BricksModalHeader :close-disabled="isSubmitting" @close="handleClose" />
 
             <div :class="$style.body">
                 <div ref="titleFieldRef" :class="$style.field">
@@ -538,7 +529,7 @@ onMounted(() => {
                         :error-message="errors.pagename"
                         @update:value="setPagename"
                     />
-                    <span v-if="urlHint" :class="$style.fieldHint">{{ urlHint }}</span>
+                    <BricksFieldHint v-if="urlHint">{{ urlHint }}</BricksFieldHint>
                 </div>
 
                 <div :class="$style.field">
@@ -577,23 +568,11 @@ onMounted(() => {
                     @change="handleFileSelect"
                 />
 
-                <div :class="$style.advanced">
-                    <button
-                        :class="$style.advancedToggle"
-                        type="button"
-                        @click="handleToggleAdvanced"
-                    >
-                        <BricksIcon
-                            icon="ta:outline-chevron-right"
-                            :class="[
-                                $style.advancedCaret,
-                                isAdvancedOpen && $style.advancedCaretOpen,
-                            ]"
-                        />
-                        {{ t('bricks.publish.dashboard.createModal.advanced') }}
-                    </button>
-
-                    <div v-if="isAdvancedOpen" :class="$style.advancedFields">
+                <BricksDisclosure
+                    v-model:value="isAdvancedOpen"
+                    :label="t('bricks.publish.dashboard.createModal.advanced')"
+                >
+                    <div :class="$style.advancedFields">
                         <div :class="$style.field">
                             <BricksInput
                                 label="URL Prefix"
@@ -605,9 +584,9 @@ onMounted(() => {
                                 :error-message="errors.urlPrefix"
                                 @update:value="(val: string) => (urlPrefix = val)"
                             />
-                            <span :class="$style.fieldHint">
+                            <BricksFieldHint>
                                 {{ t('bricks.publish.urlPrefixHint') }}
-                            </span>
+                            </BricksFieldHint>
                         </div>
                         <div :class="$style.field">
                             <BricksInput
@@ -620,9 +599,9 @@ onMounted(() => {
                                 :error-message="errors.subdomain"
                                 @update:value="(val: string) => (subdomain = val)"
                             />
-                            <span :class="$style.fieldHint">
+                            <BricksFieldHint>
                                 {{ t('bricks.publish.subdomainHint') }}
-                            </span>
+                            </BricksFieldHint>
                         </div>
                         <div :class="$style.field">
                             <div :class="$style.fieldLabel">
@@ -677,12 +656,16 @@ onMounted(() => {
                             </span>
                         </div>
                     </div>
-                </div>
+                </BricksDisclosure>
 
                 <BricksFieldError :message="generalError" />
             </div>
 
-            <div :class="$style.footer">
+            <!--
+                Полоса действий без разделителя: тело модалки скроллится по
+                содержимому, и линия над кнопками читалась бы как край списка.
+            -->
+            <BricksModalFooter variant="plain">
                 <BricksButton
                     size="md"
                     variant="ghost"
@@ -704,7 +687,7 @@ onMounted(() => {
                 >
                     {{ t('bricks.publish.dashboard.createModal.submit') }}
                 </BricksButton>
-            </div>
+            </BricksModalFooter>
         </div>
     </BricksModal>
 
@@ -733,10 +716,7 @@ onMounted(() => {
         @close="handleCloseTemplatePicker"
     >
         <div :class="$style.picker">
-            <div :class="$style.header">
-                <h3 :class="$style.title">{{ t('bricks.templates.picker.title') }}</h3>
-                <BricksCloseButton @click="handleCloseTemplatePicker" />
-            </div>
+            <BricksModalHeader @close="handleCloseTemplatePicker" />
 
             <div :class="$style.pickerBody">
                 <BuilderTemplatesPickerList
@@ -762,38 +742,17 @@ onMounted(() => {
     flex-direction: column;
 }
 
-.header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.8rem;
-    padding: 1.8rem 2rem 1.8rem 2.4rem;
-    border-bottom: 1px solid var(--bricks-base-200);
-}
-
-.title {
-    margin: 0;
-    font-size: 1.6rem;
-    font-weight: 600;
-    color: var(--bricks-base-900);
-}
-
 .body {
     display: flex;
     flex-direction: column;
     gap: 1.6rem;
-    padding: 2rem 2.4rem 0.8rem;
+    padding: 2rem 2rem 0.8rem;
 }
 
 .field {
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
-}
-
-.fieldHint {
-    font-size: 1.2rem;
-    color: var(--bricks-base-400);
 }
 
 // Подпись над редактором тегов: своего лейбла у него нет — он общий элемент
@@ -824,41 +783,6 @@ onMounted(() => {
     height: 0;
     opacity: 0;
     pointer-events: none;
-}
-
-.advanced {
-    display: flex;
-    flex-direction: column;
-    gap: 1.2rem;
-}
-
-.advancedToggle {
-    display: flex;
-    align-items: center;
-    align-self: flex-start;
-    padding: 0;
-    border: none;
-    background: transparent;
-    font-size: 1.2rem;
-    font-weight: 500;
-    color: var(--bricks-base-600);
-    transition: color var(--bricks-default-transition);
-    cursor: pointer;
-    gap: 0.6rem;
-
-    &:hover {
-        color: var(--bricks-base-900);
-    }
-}
-
-.advancedCaret {
-    width: 1.2rem;
-    height: 1.2rem;
-    transition: transform var(--bricks-default-transition);
-}
-
-.advancedCaretOpen {
-    transform: rotate(90deg);
 }
 
 .devices {
@@ -898,14 +822,6 @@ onMounted(() => {
     display: flex;
     flex-direction: column;
     gap: 1.2rem;
-}
-
-.footer {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 0.8rem;
-    padding: 1.6rem 2.4rem 2rem;
 }
 
 .picker {

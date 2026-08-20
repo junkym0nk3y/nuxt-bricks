@@ -4,13 +4,16 @@
 import type { IToolbarColorPicker } from './textEditorToolbar.d.ts';
 
 // Vue
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, type ComponentPublicInstance } from 'vue';
 
 // VueUse
 import { onClickOutside, useElementBounding } from '@vueuse/core';
 
 // Utils
 import { validateHex, normalizeHex } from '../../common/utils/main';
+
+// Components
+import BricksPopoverSurface from '../base/popover/BricksPopoverSurface.vue';
 // #endregion
 
 // #region Props
@@ -24,7 +27,12 @@ const props = withDefaults(
 
 // #region Data
 const triggerRef = ref<HTMLElement | null>(null);
-const popupRef = ref<HTMLElement | null>(null);
+/**
+ * Попап — компонент поверхности, а не div: `onClickOutside` разворачивает `$el`
+ * сам (`unrefElement`), поэтому в списке исключений инстанс работает так же, как
+ * элемент, но тип обязан это допускать.
+ */
+const popupRef = ref<ComponentPublicInstance | null>(null);
 const isOpen = ref(false);
 const hexInput = ref('');
 const hasError = ref(false);
@@ -140,9 +148,10 @@ watch(
 
         <Teleport to="body">
             <Transition name="fade-fast">
-                <div
+                <BricksPopoverSurface
                     v-if="isOpen"
                     ref="popupRef"
+                    density="roomy"
                     :class="$style.popup"
                     :style="popupStyle"
                     @mousedown.prevent
@@ -172,7 +181,7 @@ watch(
                         />
                     </div>
                     <div v-if="hasError" :class="$style.errorText">Неверный HEX</div>
-                </div>
+                </BricksPopoverSurface>
             </Transition>
         </Teleport>
     </div>
@@ -236,11 +245,6 @@ watch(
     flex-direction: column;
     gap: 0.6rem;
     width: 18rem;
-    padding: 0.8rem;
-    border-radius: var(--bricks-border-radius-sm);
-    border: 1px solid var(--bricks-base-200);
-    background: var(--bricks-base-0);
-    box-shadow: var(--bricks-shadow-md);
 }
 
 .colorPickerRow {

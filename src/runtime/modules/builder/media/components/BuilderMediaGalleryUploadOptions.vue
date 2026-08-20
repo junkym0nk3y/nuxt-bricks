@@ -40,6 +40,7 @@ import { useI18n } from 'vue-i18n';
 
 // Components
 import BricksCheckbox from '../../../ui/base/checkbox/BricksCheckbox.vue';
+import BricksFieldHint from '../../../ui/inputs/BricksFieldHint.vue';
 import BricksInput from '../../../ui/inputs/BricksInput.vue';
 import BricksSelect from '../../../ui/inputs/BricksSelect.vue';
 // #endregion
@@ -189,27 +190,25 @@ function handleSkipOptimizationChange(value: boolean): void {
             @update:value="handleSkipOptimizationChange"
         />
 
-        <p :class="$style.hint">
+        <BricksFieldHint>
             {{
                 isOriginal
                     ? t('bricks.media.upload.skipOptimizationHint')
                     : t('bricks.media.upload.variantsHint')
             }}
-        </p>
+        </BricksFieldHint>
     </div>
 </template>
 
 <style module lang="scss">
+/* Поверхность поповера рисует хозяин поверхности — `PopoverContent` в
+   `BuilderMediaGalleryUploadControls`; здесь остаётся раскладка полей. */
 .BuilderMediaGalleryUploadOptions {
     display: flex;
     flex-direction: column;
     gap: 1.2rem;
     width: 28rem;
     padding: 1.6rem;
-    border-radius: var(--bricks-border-radius-sm);
-    border: 1px solid var(--bricks-base-200);
-    background: var(--bricks-base-0);
-    box-shadow: var(--bricks-shadow-lg);
 }
 
 .title {
@@ -230,11 +229,5 @@ function handleSkipOptimizationChange(value: boolean): void {
     font-size: 1.2rem;
     font-weight: 500;
     color: var(--bricks-base-600);
-}
-
-.hint {
-    margin: 0;
-    font-size: 1.2rem;
-    color: var(--bricks-base-400);
 }
 </style>

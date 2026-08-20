@@ -36,10 +36,12 @@ import { useUsersPasswordForm } from '../composables/useUsersPasswordForm';
 
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
-import BricksCloseButton from '../../../ui/base/modal/BricksCloseButton.vue';
 import BricksFieldError from '../../../ui/inputs/BricksFieldError.vue';
+import BricksFieldHint from '../../../ui/inputs/BricksFieldHint.vue';
 import BricksInput from '../../../ui/inputs/BricksInput.vue';
 import BricksModal from '../../../ui/base/modal/BricksModal.vue';
+import BricksModalFooter from '../../../ui/base/modal/BricksModalFooter.vue';
+import BricksModalHeader from '../../../ui/base/modal/BricksModalHeader.vue';
 // #endregion
 
 // #region Props
@@ -109,10 +111,7 @@ watch(targetUser, (user) => {
         @close="handleClose"
     >
         <div :class="$style.TheBuilderUsersPasswordModal">
-            <div :class="$style.header">
-                <h3 :class="$style.title">{{ modalTitle }}</h3>
-                <BricksCloseButton @click="handleClose" />
-            </div>
+            <BricksModalHeader @close="handleClose" />
 
             <form :class="$style.form" novalidate @submit.prevent="submitForm">
                 <div :class="$style.passwordRow">
@@ -155,13 +154,13 @@ watch(targetUser, (user) => {
                     </div>
                 </div>
 
-                <p :class="$style.hint">
+                <BricksFieldHint>
                     {{ t('bricks.users.passwordModal.hint', { min: BRICKS_PASSWORD_MIN_LENGTH }) }}
-                </p>
+                </BricksFieldHint>
 
                 <BricksFieldError :message="generalError" />
 
-                <div :class="$style.footer">
+                <BricksModalFooter variant="inline">
                     <BricksButton
                         size="md"
                         variant="ghost"
@@ -180,7 +179,7 @@ watch(targetUser, (user) => {
                     >
                         {{ t('bricks.users.passwordModal.submit') }}
                     </BricksButton>
-                </div>
+                </BricksModalFooter>
             </form>
         </div>
     </BricksModal>
@@ -198,30 +197,11 @@ watch(targetUser, (user) => {
     box-shadow: var(--bricks-shadow-lg);
 }
 
-.header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-shrink: 0;
-    padding: 2rem 2.4rem 1.6rem;
-    border-bottom: 1px solid var(--bricks-base-200);
-    gap: 1.6rem;
-}
-
-.title {
-    overflow: hidden;
-    margin: 0;
-    text-overflow: ellipsis;
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: var(--bricks-base-900);
-}
-
 .form {
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    padding: 2rem 2.4rem 2.4rem;
+    padding: 2rem;
     gap: 1.6rem;
 }
 
@@ -274,20 +254,5 @@ watch(targetUser, (user) => {
     font-size: 1.2rem;
     line-height: 1.4;
     color: var(--bricks-danger-600);
-}
-
-.hint {
-    margin: 0;
-    font-size: 1.2rem;
-    line-height: 1.4;
-    color: var(--bricks-base-500);
-}
-
-.footer {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding-top: 0.4rem;
-    gap: 0.8rem;
 }
 </style>

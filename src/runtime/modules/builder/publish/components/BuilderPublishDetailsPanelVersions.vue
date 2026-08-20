@@ -21,7 +21,10 @@ import { usePublishPageVersions } from '../composables/usePublishPageVersions';
 import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
 
 // Components
+import BricksBadge from '../../../ui/base/badge/BricksBadge.vue';
+import BricksDisclosure from '../../../ui/base/disclosure/BricksDisclosure.vue';
 import BricksIconButton from '../../../ui/base/icon-button/BricksIconButton.vue';
+import BricksSkeleton from '../../../ui/feedback/BricksSkeleton.vue';
 // #endregion
 
 // #region Props
@@ -90,9 +93,14 @@ async function reloadVersions(): Promise<void> {
 
 /**
  * Разворачивает/сворачивает секцию версий; при открытии загружает свежий список.
+ *
+ * Открытость приходит от складной секции, а не переворачивается здесь: список
+ * закрывает и смена страницы, и хозяин состояния должен быть один.
+ *
+ * @param value - Запрошенное состояние секции.
  */
-async function handleToggle(): Promise<void> {
-    isOpen.value = !isOpen.value;
+async function handleToggle(value: boolean): Promise<void> {
+    isOpen.value = value;
 
     if (isOpen.value) {
         await reloadVersions();
@@ -152,23 +160,19 @@ watch(
 </script>
 
 <template>
-    <div :class="$style.BuilderPublishDetailsPanelVersions">
-        <button :class="$style.versionsToggle" type="button" @click="handleToggle">
-            <BricksIcon
-                icon="ta:outline-chevron-right"
-                :class="[$style.versionsCaret, isOpen && $style.versionsCaretOpen]"
-            />
-            {{ t('bricks.publish.dashboard.details.versions.title') }}
-        </button>
-
-        <div v-if="isOpen" :class="$style.versionsContent">
+    <BricksDisclosure
+        :value="isOpen"
+        :label="t('bricks.publish.dashboard.details.versions.title')"
+        @update:value="handleToggle"
+    >
+        <div :class="$style.versionsContent">
             <!-- Скелет — только пока показывать нечего: перезагрузка открытой
                  секции (после отката или сохранения) не должна мигать пустой
                  сеткой поверх уже показанных версий -->
             <div v-if="isLoading && versions.length === 0" :class="$style.grid">
                 <div v-for="index in SKELETON_CARDS_COUNT" :key="index" :class="$style.card">
-                    <div :class="[$style.thumb, $style.thumbSkeleton]" />
-                    <span :class="$style.dateSkeleton" />
+                    <BricksSkeleton shape="block" :class="[$style.thumb, $style.thumbSkeleton]" />
+                    <BricksSkeleton :class="$style.dateSkeleton" />
                 </div>
             </div>
 
@@ -201,9 +205,14 @@ watch(
                             </span>
                         </div>
 
-                        <span v-if="!card.version" :class="$style.currentBadge">
+                        <BricksBadge
+                            v-if="!card.version"
+                            shape="pill"
+                            tone="primary"
+                            :class="$style.currentBadge"
+                        >
                             {{ t('bricks.publish.dashboard.details.versions.current') }}
-                        </span>
+                        </BricksBadge>
 
                         <!-- Подписи обязательны, а не желательны: стрелка
                              «восстановить» без подписи читается как «отменить»,
@@ -234,45 +243,10 @@ watch(
                 </li>
             </ul>
         </div>
-    </div>
+    </BricksDisclosure>
 </template>
 
 <style module lang="scss">
-.BuilderPublishDetailsPanelVersions {
-    display: flex;
-    flex-direction: column;
-    gap: 1.2rem;
-}
-
-.versionsToggle {
-    display: flex;
-    align-items: center;
-    align-self: flex-start;
-    padding: 0;
-    border: none;
-    background: transparent;
-    font-size: 1.2rem;
-    font-weight: 500;
-    color: var(--bricks-base-600);
-    transition: color var(--bricks-default-transition);
-    cursor: pointer;
-    gap: 0.6rem;
-
-    &:hover {
-        color: var(--bricks-base-900);
-    }
-}
-
-.versionsCaret {
-    width: 1.2rem;
-    height: 1.2rem;
-    transition: transform var(--bricks-default-transition);
-}
-
-.versionsCaretOpen {
-    transform: rotate(90deg);
-}
-
 .versionsContent {
     display: flex;
     flex-direction: column;
@@ -316,7 +290,6 @@ watch(
 
 .thumbSkeleton {
     border-color: transparent;
-    background: var(--bricks-base-100);
 }
 
 .thumbImage {
@@ -348,16 +321,12 @@ watch(
     color: var(--bricks-base-400);
 }
 
+/* Место на превью — своё, вид — из кита (заливка `primary`, а не прежний
+   `primary-500`: у плашки статуса в ките одна заливка на все места). */
 .currentBadge {
     position: absolute;
     top: 0.8rem;
     left: 0.8rem;
-    padding: 0.2rem 0.8rem;
-    border-radius: var(--bricks-border-radius-pill);
-    background: var(--bricks-primary-500);
-    font-size: 1.2rem;
-    font-weight: 500;
-    color: var(--bricks-static-white);
 }
 
 .cardCurrent {
@@ -412,7 +381,5 @@ watch(
 .dateSkeleton {
     width: 60%;
     height: 1.2rem;
-    border-radius: var(--bricks-border-radius-xs);
-    background: var(--bricks-base-100);
 }
 </style>

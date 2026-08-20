@@ -20,9 +20,10 @@ import { countDeviceOverrides, describeAbsorbedRange } from '../utils/deviceImpa
 
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
-import BricksCloseButton from '../../../ui/base/modal/BricksCloseButton.vue';
 import BricksConfirmModal from '../../../ui/feedback/BricksConfirmModal.vue';
 import BricksModal from '../../../ui/base/modal/BricksModal.vue';
+import BricksModalFooter from '../../../ui/base/modal/BricksModalFooter.vue';
+import BricksModalHeader from '../../../ui/base/modal/BricksModalHeader.vue';
 import BricksSwitch from '../../../ui/inputs/BricksSwitch.vue';
 import BuilderPublishDeviceAddMenu from './BuilderPublishDeviceAddMenu.vue';
 import BuilderPublishDeviceRanges from './BuilderPublishDeviceRanges.vue';
@@ -202,10 +203,7 @@ function handleSave(): void {
         @close="emit('close')"
     >
         <div :class="$style.BuilderPublishDevicesModal">
-            <header :class="$style.header">
-                <h2 :class="$style.heading">{{ t('bricks.devices.title') }}</h2>
-                <BricksCloseButton @click="emit('close')" />
-            </header>
+            <BricksModalHeader @close="emit('close')" />
 
             <div :class="$style.body">
                 <div :class="$style.inherit">
@@ -263,14 +261,14 @@ function handleSave(): void {
                 <BuilderPublishDeviceRanges :ranges="ranges" />
             </div>
 
-            <footer :class="$style.footer">
+            <BricksModalFooter>
                 <BricksButton variant="ghost" @click="emit('close')">
                     {{ t('bricks.common.cancel') }}
                 </BricksButton>
                 <BricksButton variant="primary" :disabled="!canSave" @click="handleSave">
                     {{ t('bricks.common.save') }}
                 </BricksButton>
-            </footer>
+            </BricksModalFooter>
         </div>
     </BricksModal>
 
@@ -306,26 +304,11 @@ function handleSave(): void {
     box-shadow: var(--bricks-shadow-lg);
 }
 
-.header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 2rem 2.4rem;
-    border-bottom: 1px solid var(--bricks-base-200);
-}
-
-.heading {
-    margin: 0;
-    font-size: 1.6rem;
-    font-weight: 600;
-    color: var(--bricks-base-900);
-}
-
 .body {
     display: flex;
     flex-direction: column;
     gap: 2rem;
-    padding: 2rem 2.4rem;
+    padding: 2rem;
 }
 
 .inherit {
@@ -376,13 +359,5 @@ function handleSave(): void {
     color: var(--bricks-base-500);
     grid-template-columns: 23.6rem 9.6rem 9.6rem 9.6rem 9.6rem 3.2rem;
     gap: 1.2rem;
-}
-
-.footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.8rem;
-    padding: 1.6rem 2.4rem;
-    border-top: 1px solid var(--bricks-base-200);
 }
 </style>

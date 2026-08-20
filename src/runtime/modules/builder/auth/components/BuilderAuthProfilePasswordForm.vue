@@ -44,6 +44,7 @@ import { useBricksRoutePaths } from '../../../common/composables/useBricksRouteP
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
 import BricksFieldError from '../../../ui/inputs/BricksFieldError.vue';
+import BricksFieldHint from '../../../ui/inputs/BricksFieldHint.vue';
 import BricksInput from '../../../ui/inputs/BricksInput.vue';
 // #endregion
 
@@ -143,9 +144,9 @@ const submitForm = handleSubmit(async (values) => {
             @update:value="(val: string) => (newPassword = val)"
         />
 
-        <p :class="$style.hint">
+        <BricksFieldHint>
             {{ t('bricks.auth.profile.passwordHint', { min: BRICKS_PASSWORD_MIN_LENGTH }) }}
-        </p>
+        </BricksFieldHint>
 
         <BricksFieldError :message="generalError" />
 
@@ -172,13 +173,6 @@ const submitForm = handleSubmit(async (values) => {
     display: flex;
     flex-direction: column;
     gap: 1.6rem;
-}
-
-.hint {
-    margin: 0;
-    font-size: 1.2rem;
-    line-height: 1.4;
-    color: var(--bricks-base-500);
 }
 
 .footer {

@@ -16,6 +16,8 @@ import { groupComponentsByCategory } from '../utils/componentCategories';
 import BuilderShellSidebarComponentCard from './BuilderShellSidebarComponentCard.vue';
 import BricksButton from '../../../../ui/base/button/BricksButton.vue';
 import BricksCloseButton from '../../../../ui/base/modal/BricksCloseButton.vue';
+import BricksEmptyState from '../../../../ui/feedback/BricksEmptyState.vue';
+import BricksIconButton from '../../../../ui/base/icon-button/BricksIconButton.vue';
 import BricksSearchInput from '../../../../ui/inputs/BricksSearchInput.vue';
 // #endregion
 
@@ -143,16 +145,18 @@ function handleRetry(): void {
                     :placeholder="t('bricks.library.searchPlaceholder')"
                     @update:value="(val: string) => (searchQuery = val)"
                 />
-                <button
-                    :class="[
-                        $style.favoritesToggle,
-                        { [$style.favoritesToggleActive]: showFavoritesOnly },
-                    ]"
-                    type="button"
+                <!--
+                    Кнопка кита, а не своя: у прежней не было доступного имени
+                    вовсе — скринридер объявлял фильтр библиотеки безымянной
+                    кнопкой. Нажатое состояние кит объявляет `aria-pressed`.
+                -->
+                <BricksIconButton
+                    :icon="showFavoritesOnly ? 'ta:filled-star' : 'ta:outline-star'"
+                    :label="t('bricks.library.favoritesToggle')"
+                    size="lg"
+                    :active="showFavoritesOnly"
                     @click="showFavoritesOnly = !showFavoritesOnly"
-                >
-                    <BricksIcon :icon="showFavoritesOnly ? 'ta:filled-star' : 'ta:outline-star'" />
-                </button>
+                />
             </div>
         </div>
 
@@ -222,21 +226,23 @@ function handleRetry(): void {
                 </div>
             </div>
 
-            <div v-if="hasAvailableComponents && !hasFilteredResults" :class="$style.empty">
-                <span :class="$style.emptyIcon">
-                    <BricksIcon icon="ta:outline-search" />
-                </span>
-                <p>{{ t('bricks.common.notFound') }}</p>
-                <p :class="$style.emptyHint">{{ t('bricks.library.emptyHint') }}</p>
-            </div>
+            <BricksEmptyState
+                v-if="hasAvailableComponents && !hasFilteredResults"
+                :class="$style.empty"
+                size="sm"
+                icon="ta:outline-search"
+                :title="t('bricks.common.notFound')"
+                :description="t('bricks.library.emptyHint')"
+            />
 
-            <div v-if="!hasAvailableComponents" :class="$style.empty">
-                <span :class="$style.emptyIcon">
-                    <BricksIcon icon="ta:outline-package" />
-                </span>
-                <p>{{ t('bricks.library.noComponents') }}</p>
-                <p :class="$style.emptyHint">{{ t('bricks.library.noComponentsHint') }}</p>
-            </div>
+            <BricksEmptyState
+                v-if="!hasAvailableComponents"
+                :class="$style.empty"
+                size="sm"
+                icon="ta:outline-package"
+                :title="t('bricks.library.noComponents')"
+                :description="t('bricks.library.noComponentsHint')"
+            />
         </div>
     </div>
 </template>
@@ -275,43 +281,6 @@ function handleRetry(): void {
     gap: 0.8rem;
 }
 
-.favoritesToggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    width: 3.6rem;
-    height: 3.6rem;
-    padding: 0;
-    border-radius: var(--bricks-border-radius-control);
-    border: 1px solid var(--bricks-base-300);
-    background-color: var(--bricks-base-50);
-    color: var(--bricks-base-400);
-    transition: all var(--bricks-default-transition);
-    cursor: pointer;
-
-    svg {
-        width: 1.6rem;
-        height: 1.6rem;
-    }
-
-    &:hover {
-        border-color: var(--bricks-primary);
-        color: var(--bricks-primary);
-    }
-}
-
-.favoritesToggleActive {
-    border-color: var(--bricks-primary);
-    background-color: var(--bricks-primary);
-    color: var(--bricks-static-white);
-
-    &:hover {
-        background-color: var(--bricks-primary);
-        color: var(--bricks-static-white);
-    }
-}
-
 .content {
     overflow-y: auto;
     flex: 1;
@@ -348,40 +317,10 @@ function handleRetry(): void {
     grid-template-columns: 1fr;
 }
 
+/* Состояние занимает всю свободную высоту панели: она узкая и высокая, и
+   сообщение по её центру читается как ответ на пустой список, а не как строка. */
 .empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
     height: 100%;
-    text-align: center;
-    color: var(--bricks-base-500);
-
-    p {
-        margin: 0.8rem 0;
-    }
-}
-
-.emptyIcon {
-    margin-bottom: 1.6rem;
-    color: var(--bricks-base-400);
-
-    svg {
-        width: 4.8rem;
-        height: 4.8rem;
-    }
-}
-
-.emptyHint {
-    font-size: 1.2rem;
-    color: var(--bricks-base-500);
-
-    code {
-        padding: 0.2rem 0.6rem;
-        border-radius: var(--bricks-border-radius-xs);
-        background-color: var(--bricks-base-100);
-        font-family: monospace;
-    }
 }
 
 .loadError {

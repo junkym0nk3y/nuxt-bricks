@@ -28,6 +28,7 @@ import { useBuilderPermissions } from '../../core/composables/useBuilderPermissi
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
 import BricksIconButton from '../../../ui/base/icon-button/BricksIconButton.vue';
+import BricksSurfaceCard from '../../../ui/base/surface/BricksSurfaceCard.vue';
 // #endregion
 
 // #region Props
@@ -101,7 +102,9 @@ function handleDelete(): void {
 </script>
 
 <template>
-    <article
+    <BricksSurfaceCard
+        as="article"
+        clickable
         :class="[$style.BuilderTemplatesCard, props.isPending && $style._pending]"
         @click="handlePrimaryAction"
     >
@@ -173,27 +176,19 @@ function handleDelete(): void {
                 </div>
             </div>
         </div>
-    </article>
+    </BricksSurfaceCard>
 </template>
 
 <style module lang="scss">
+/* Вид поверхности — из кита (`BricksSurfaceCard`); здесь раскладка карточки и
+   проявление действий на наведении. */
 .BuilderTemplatesCard {
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    border-radius: var(--bricks-border-radius-sm);
-    border: 1px solid var(--bricks-base-200);
-    background: var(--bricks-base-0);
-    transition:
-        border-color var(--bricks-default-transition),
-        box-shadow var(--bricks-default-transition);
-    cursor: pointer;
 
     &:hover,
     &:focus-within {
-        border-color: var(--bricks-primary-300);
-        box-shadow: var(--bricks-shadow-sm);
-
         .overlay,
         .actions {
             opacity: 1;

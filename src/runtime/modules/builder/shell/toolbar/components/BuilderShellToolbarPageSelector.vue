@@ -34,6 +34,9 @@ import { useBuilderPermissions } from '../../../core/composables/useBuilderPermi
 
 // Components
 import BricksBadge from '../../../../ui/base/badge/BricksBadge.vue';
+import BricksEmptyState from '../../../../ui/feedback/BricksEmptyState.vue';
+import BricksPopoverSurface from '../../../../ui/base/popover/BricksPopoverSurface.vue';
+import BricksSkeleton from '../../../../ui/feedback/BricksSkeleton.vue';
 // #endregion
 
 // #region Props
@@ -222,121 +225,126 @@ function handleCreatePage(): void {
                 смонтирован, и клик сразу после закрытия пропадал бы.
                 Перехват клавиатуры — в `handleContentKeydown`
             -->
-            <PopoverContent
-                :class="[$style.dropdown, 'bricks-text']"
-                align="start"
-                :side-offset="8"
-                @keydown="handleContentKeydown"
-            >
-                <!--
+            <PopoverContent as-child align="start" :side-offset="8" @keydown="handleContentKeydown">
+                <BricksPopoverSurface density="flush" :class="[$style.dropdown, 'bricks-text']">
+                    <!--
                     Поиск живёт внутри списка (ListboxFilter), а не отдельным
                     полем над ним: так стрелки и Enter из поля ведут по строкам
                     штатно, без своей эмуляции фокуса
                 -->
-                <ListboxRoot
-                    :model-value="currentPageValue"
-                    selection-behavior="replace"
-                    :class="$style.listbox"
-                >
-                    <div v-if="isSearchVisible" :class="$style.search">
-                        <BricksIcon :class="$style.searchIcon" icon="ta:outline-search" />
-                        <ListboxFilter
-                            v-model="searchQuery"
-                            :class="$style.searchInput"
-                            :placeholder="t('bricks.toolbar.pageSelector.search')"
-                            :aria-label="t('bricks.toolbar.pageSelector.search')"
-                            auto-focus
-                        />
-                    </div>
-
-                    <div
-                        v-if="isInitialLoading"
-                        :class="$style.skeleton"
-                        role="status"
-                        :aria-label="t('bricks.toolbar.pageSelector.loading')"
+                    <ListboxRoot
+                        :model-value="currentPageValue"
+                        selection-behavior="replace"
+                        :class="$style.listbox"
                     >
-                        <div v-for="row in SKELETON_ROWS" :key="row" :class="$style.skeletonRow">
-                            <span :class="$style.skeletonThumbnail" aria-hidden="true"></span>
-                            <span :class="$style.skeletonLines" aria-hidden="true">
-                                <span :class="$style.skeletonLine"></span>
-                                <span
-                                    :class="[$style.skeletonLine, $style.skeletonLineShort]"
-                                ></span>
-                            </span>
+                        <div v-if="isSearchVisible" :class="$style.search">
+                            <BricksIcon :class="$style.searchIcon" icon="ta:outline-search" />
+                            <ListboxFilter
+                                v-model="searchQuery"
+                                :class="$style.searchInput"
+                                :placeholder="t('bricks.toolbar.pageSelector.search')"
+                                :aria-label="t('bricks.toolbar.pageSelector.search')"
+                                auto-focus
+                            />
                         </div>
-                    </div>
 
-                    <p v-else-if="emptyState" :class="$style.empty">
-                        <span :class="$style.emptyTitle">{{ t(emptyState.title) }}</span>
-                        <span :class="$style.emptyDescription">
-                            {{ t(emptyState.description) }}
-                        </span>
-                    </p>
-
-                    <ListboxContent v-else class="bricks-scrollbox" :class="$style.list">
-                        <ListboxItem
-                            v-for="page in filteredPages"
-                            :key="String(page.id)"
-                            :class="[
-                                $style.row,
-                                String(page.id) === currentPageValue && $style.rowCurrent,
-                            ]"
-                            :value="String(page.id)"
-                            @select="handleSelect(page)"
+                        <div
+                            v-if="isInitialLoading"
+                            :class="$style.skeleton"
+                            role="status"
+                            :aria-label="t('bricks.toolbar.pageSelector.loading')"
                         >
-                            <img
-                                v-if="page.thumbnailUrl"
-                                :class="$style.thumbnail"
-                                :src="page.thumbnailUrl"
-                                alt=""
-                                loading="lazy"
-                            />
-                            <span v-else :class="[$style.thumbnail, $style.thumbnailEmpty]">
-                                <BricksIcon :class="$style.thumbnailIcon" icon="ta:outline-photo" />
-                            </span>
+                            <div
+                                v-for="row in SKELETON_ROWS"
+                                :key="row"
+                                :class="$style.skeletonRow"
+                            >
+                                <BricksSkeleton shape="block" :class="$style.skeletonThumbnail" />
+                                <span :class="$style.skeletonLines" aria-hidden="true">
+                                    <BricksSkeleton :class="$style.skeletonLine" />
+                                    <BricksSkeleton
+                                        :class="[$style.skeletonLine, $style.skeletonLineShort]"
+                                    />
+                                </span>
+                            </div>
+                        </div>
 
-                            <span :class="$style.rowMain">
-                                <span :class="$style.rowTitleLine">
-                                    <span :class="$style.rowTitle">
-                                        {{ page.title || page.pagename }}
+                        <BricksEmptyState
+                            v-else-if="emptyState"
+                            :class="$style.empty"
+                            size="sm"
+                            :title="t(emptyState.title)"
+                            :description="t(emptyState.description)"
+                        />
+
+                        <ListboxContent v-else class="bricks-scrollbox" :class="$style.list">
+                            <ListboxItem
+                                v-for="page in filteredPages"
+                                :key="String(page.id)"
+                                :class="[
+                                    $style.row,
+                                    String(page.id) === currentPageValue && $style.rowCurrent,
+                                ]"
+                                :value="String(page.id)"
+                                @select="handleSelect(page)"
+                            >
+                                <img
+                                    v-if="page.thumbnailUrl"
+                                    :class="$style.thumbnail"
+                                    :src="page.thumbnailUrl"
+                                    alt=""
+                                    loading="lazy"
+                                />
+                                <span v-else :class="[$style.thumbnail, $style.thumbnailEmpty]">
+                                    <BricksIcon
+                                        :class="$style.thumbnailIcon"
+                                        icon="ta:outline-photo"
+                                    />
+                                </span>
+
+                                <span :class="$style.rowMain">
+                                    <span :class="$style.rowTitleLine">
+                                        <span :class="$style.rowTitle">
+                                            {{ page.title || page.pagename }}
+                                        </span>
+                                        <BricksBadge v-if="!page.published">
+                                            {{ t('bricks.toolbar.pageSelector.draft') }}
+                                        </BricksBadge>
                                     </span>
-                                    <BricksBadge v-if="!page.published">
-                                        {{ t('bricks.toolbar.pageSelector.draft') }}
-                                    </BricksBadge>
+                                    <span :class="$style.rowUrl">
+                                        {{ resolvePageAddressPath(page) }}
+                                    </span>
                                 </span>
-                                <span :class="$style.rowUrl">
-                                    {{ resolvePageAddressPath(page) }}
-                                </span>
-                            </span>
 
-                            <BricksIcon
-                                v-if="String(page.id) === currentPageValue"
-                                :class="$style.rowCheck"
-                                icon="ta:outline-check"
-                                aria-hidden="true"
-                            />
-                        </ListboxItem>
-                    </ListboxContent>
-                </ListboxRoot>
+                                <BricksIcon
+                                    v-if="String(page.id) === currentPageValue"
+                                    :class="$style.rowCheck"
+                                    icon="ta:outline-check"
+                                    aria-hidden="true"
+                                />
+                            </ListboxItem>
+                        </ListboxContent>
+                    </ListboxRoot>
 
-                <div :class="$style.footer">
-                    <button :class="$style.footerAction" type="button" @click="handleAllPages">
-                        <BricksIcon :class="$style.footerIcon" icon="ta:outline-files" />
-                        {{ t('bricks.toolbar.pageSelector.allPages') }}
-                    </button>
+                    <div :class="$style.footer">
+                        <button :class="$style.footerAction" type="button" @click="handleAllPages">
+                            <BricksIcon :class="$style.footerIcon" icon="ta:outline-files" />
+                            {{ t('bricks.toolbar.pageSelector.allPages') }}
+                        </button>
 
-                    <!-- Создание страницы — запись: наблюдателю ручка откажет -->
-                    <button
-                        v-if="canEdit"
-                        :class="$style.footerAction"
-                        type="button"
-                        :disabled="props.isCreateDisabled"
-                        @click="handleCreatePage"
-                    >
-                        <BricksIcon :class="$style.footerIcon" icon="ta:outline-plus" />
-                        {{ t('bricks.toolbar.pageSelector.createPage') }}
-                    </button>
-                </div>
+                        <!-- Создание страницы — запись: наблюдателю ручка откажет -->
+                        <button
+                            v-if="canEdit"
+                            :class="$style.footerAction"
+                            type="button"
+                            :disabled="props.isCreateDisabled"
+                            @click="handleCreatePage"
+                        >
+                            <BricksIcon :class="$style.footerIcon" icon="ta:outline-plus" />
+                            {{ t('bricks.toolbar.pageSelector.createPage') }}
+                        </button>
+                    </div>
+                </BricksPopoverSurface>
             </PopoverContent>
         </PopoverPortal>
     </PopoverRoot>
@@ -385,14 +393,8 @@ function handleCreatePage(): void {
 }
 
 .dropdown {
-    z-index: var(--bricks-z-popover);
     display: flex;
     width: 32rem;
-    padding: 0;
-    border-radius: var(--bricks-border-radius-sm);
-    border: 1px solid var(--bricks-base-200);
-    background: var(--bricks-base-0);
-    box-shadow: var(--bricks-shadow-md);
     flex-direction: column;
 
     // Появление — как у остальных поповеров билдера (BricksActionButton).
@@ -512,9 +514,12 @@ function handleCreatePage(): void {
     cursor: pointer;
     gap: 1rem;
 
+    /* Тот же фон наведения, что у пунктов меню в ките (`BricksMenuItem`): у одной
+       роли было три значения — `base-50`, `base-100` и `surface-raised`, причём
+       последние два — один и тот же цвет под разными именами. */
     &:hover,
     &[data-highlighted] {
-        background: var(--bricks-base-100);
+        background: var(--bricks-base-50);
     }
 
     &:focus-visible {
@@ -616,8 +621,6 @@ function handleCreatePage(): void {
     flex-shrink: 0;
     width: 4.8rem;
     height: 3rem;
-    border-radius: var(--bricks-border-radius-xs);
-    background: var(--bricks-base-100);
 }
 
 .skeletonLines {
@@ -630,33 +633,15 @@ function handleCreatePage(): void {
 .skeletonLine {
     width: 100%;
     height: 1rem;
-    border-radius: var(--bricks-border-radius-pill);
-    background: var(--bricks-base-100);
 }
 
 .skeletonLineShort {
     width: 40%;
 }
 
+/* Отступы состояния задаёт попап: список в нём идёт без внешних полей. */
 .empty {
-    display: flex;
-    align-items: center;
-    margin: 0;
     padding: 3.2rem 1.6rem;
-    flex-direction: column;
-    gap: 0.4rem;
-    text-align: center;
-}
-
-.emptyTitle {
-    font-size: 1.4rem;
-    font-weight: 500;
-    color: var(--bricks-base-900);
-}
-
-.emptyDescription {
-    font-size: 1.2rem;
-    color: var(--bricks-base-500);
 }
 
 .footer {

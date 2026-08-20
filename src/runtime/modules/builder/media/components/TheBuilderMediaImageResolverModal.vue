@@ -9,8 +9,9 @@ import { useI18n } from 'vue-i18n';
 
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
-import BricksCloseButton from '../../../ui/base/modal/BricksCloseButton.vue';
 import BricksModal from '../../../ui/base/modal/BricksModal.vue';
+import BricksModalFooter from '../../../ui/base/modal/BricksModalFooter.vue';
+import BricksModalHeader from '../../../ui/base/modal/BricksModalHeader.vue';
 import BuilderMediaImageResolverItem from './BuilderMediaImageResolverItem.vue';
 // #endregion
 
@@ -100,13 +101,11 @@ function handleGlobalActionChange(event: Event): void {
         @close="handleClose"
     >
         <div :class="$style.modal">
-            <div :class="$style.header">
-                <h3 :class="$style.title">
-                    {{ t('bricks.media.resolver.title') }}
+            <BricksModalHeader @close="handleClose">
+                <template #titleExtra>
                     <span :class="$style.count">{{ imageCount }}</span>
-                </h3>
-                <BricksCloseButton @click="handleClose" />
-            </div>
+                </template>
+            </BricksModalHeader>
 
             <div :class="$style.globalAction">
                 <label :class="$style.globalLabel">{{
@@ -134,21 +133,21 @@ function handleGlobalActionChange(event: Event): void {
                 />
             </div>
 
-            <div :class="$style.footer">
-                <BricksButton size="sm" variant="ghost" @click="handleSkip">
-                    {{ t('bricks.media.resolver.skip') }}
+            <BricksModalFooter>
+                <template #leading>
+                    <BricksButton size="sm" variant="ghost" @click="handleSkip">
+                        {{ t('bricks.media.resolver.skip') }}
+                    </BricksButton>
+                </template>
+
+                <BricksButton size="sm" variant="secondary" @click="handleClose">
+                    {{ t('bricks.common.cancel') }}
                 </BricksButton>
 
-                <div :class="$style.actionsRight">
-                    <BricksButton size="sm" variant="secondary" @click="handleClose">
-                        {{ t('bricks.common.cancel') }}
-                    </BricksButton>
-
-                    <BricksButton size="sm" variant="primary" @click="handleConfirm">
-                        {{ t('bricks.media.resolver.apply') }}
-                    </BricksButton>
-                </div>
-            </div>
+                <BricksButton size="sm" variant="primary" @click="handleConfirm">
+                    {{ t('bricks.media.resolver.apply') }}
+                </BricksButton>
+            </BricksModalFooter>
         </div>
     </BricksModal>
 </template>
@@ -164,25 +163,6 @@ function handleGlobalActionChange(event: Event): void {
     background: var(--bricks-base-0);
     box-shadow: var(--bricks-shadow-xl);
     flex-direction: column;
-}
-
-.header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-shrink: 0;
-    padding: 1.6rem 2rem;
-    border-bottom: 1px solid var(--bricks-base-200);
-}
-
-.title {
-    display: flex;
-    align-items: center;
-    gap: 0.8rem;
-    margin: 0;
-    font-size: 1.6rem;
-    font-weight: 600;
-    color: var(--bricks-base-900);
 }
 
 .count {
@@ -238,19 +218,5 @@ function handleGlobalActionChange(event: Event): void {
     flex-direction: column;
     gap: 0.8rem;
     padding: 1.6rem 2rem;
-}
-
-.footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-shrink: 0;
-    padding: 1.2rem 2rem;
-    border-top: 1px solid var(--bricks-base-200);
-}
-
-.actionsRight {
-    display: flex;
-    gap: 0.8rem;
 }
 </style>

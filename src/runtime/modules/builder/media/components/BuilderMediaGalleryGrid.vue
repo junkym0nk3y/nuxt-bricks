@@ -28,6 +28,7 @@ import { useI18n } from 'vue-i18n';
 import BricksBadge from '../../../ui/base/badge/BricksBadge.vue';
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
 import BricksImage from '../../../ui/base/image/BricksImage.vue';
+import BricksSkeleton from '../../../ui/feedback/BricksSkeleton.vue';
 // #endregion
 
 // #region Props
@@ -110,8 +111,8 @@ function resolveThumbSrc(item: IMediaItem): string {
                 <BricksIcon :class="$style.placeholderIcon" icon="ta:outline-photo" />
             </div>
             <div :class="$style.itemInfo">
-                <span :class="[$style.skeletonBar, $style._wide]" />
-                <span :class="$style.skeletonBar" />
+                <BricksSkeleton :class="[$style.skeletonBar, $style._wide]" />
+                <BricksSkeleton :class="$style.skeletonBar" />
             </div>
         </div>
 
@@ -157,7 +158,8 @@ function resolveThumbSrc(item: IMediaItem): string {
                     <BricksBadge
                         v-if="props.selectedItemId === item.id"
                         :class="$style.selectedBadge"
-                        variant="primary"
+                        tone="primary"
+                        shape="pill"
                     >
                         <BricksIcon icon="ta:outline-check" />
                     </BricksBadge>
@@ -290,8 +292,10 @@ function resolveThumbSrc(item: IMediaItem): string {
     height: 100%;
 }
 
-/* Плашка кита в круглом исполнении: своих цветов не задаём, `variant="primary"`
-   уже даёт заливку primary и подпись static/white. */
+/* Плашка кита в круглом исполнении: своих цветов не задаём, `tone="primary"` уже
+   даёт заливку primary и подпись static/white. Квадрат под галочку — своя
+   геометрия: формы «круг фиксированного размера» в ките нет и заводить её ради
+   одного места не стоит. */
 .selectedBadge {
     position: absolute;
     top: 0.8rem;
@@ -300,8 +304,6 @@ function resolveThumbSrc(item: IMediaItem): string {
     width: 2.4rem;
     height: 2.4rem;
     padding: 0;
-    border-radius: var(--bricks-border-radius-pill);
-    font-size: 1.2rem;
 }
 
 /* Кнопка кита; переопределяется только скин: по макету это тёмный оверлей со
@@ -363,11 +365,11 @@ function resolveThumbSrc(item: IMediaItem): string {
     color: var(--bricks-base-400);
 }
 
+/* Фон приезжает из `BricksSkeleton` — здесь он был `base-200` против `base-100`
+   у остальных трёх наборов заглушек. */
 .skeletonBar {
     width: 60%;
     height: 1rem;
-    border-radius: var(--bricks-border-radius-pill);
-    background: var(--bricks-base-200);
 
     &._wide {
         width: 85%;

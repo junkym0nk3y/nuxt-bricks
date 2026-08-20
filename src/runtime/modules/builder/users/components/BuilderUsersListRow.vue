@@ -35,7 +35,9 @@ import { useUsersRowLabels } from '../composables/useUsersRowLabels';
 
 // Components
 import BricksAvatar from '../../../ui/base/avatar/BricksAvatar.vue';
+import BricksBadge from '../../../ui/base/badge/BricksBadge.vue';
 import BricksIconButton from '../../../ui/base/icon-button/BricksIconButton.vue';
+import BricksSurfaceCard from '../../../ui/base/surface/BricksSurfaceCard.vue';
 import BuilderUsersRolePill from './BuilderUsersRolePill.vue';
 // #endregion
 
@@ -163,7 +165,8 @@ function handleDelete(): void {
 </script>
 
 <template>
-    <article
+    <BricksSurfaceCard
+        as="article"
         :class="[
             $style.BuilderUsersListRow,
             !props.user.isActive && $style._inactive,
@@ -184,9 +187,9 @@ function handleDelete(): void {
                 <span v-if="hasSecondaryUsername" :class="$style.username">
                     {{ props.user.username }}
                 </span>
-                <span v-if="props.isCurrentUser" :class="$style.selfBadge">
+                <BricksBadge v-if="props.isCurrentUser" shape="pill" tone="muted">
                     {{ selfBadgeLabel }}
-                </span>
+                </BricksBadge>
             </div>
             <p :class="$style.meta">{{ metaText }}</p>
         </div>
@@ -203,10 +206,13 @@ function handleDelete(): void {
             />
         </div>
 
-        <div :class="$style.statusCell">
-            <span :class="[$style.statusDot, props.user.isActive && $style['statusDot--active']]" />
-            <span :class="$style.statusLabel">{{ statusLabel }}</span>
-        </div>
+        <BricksBadge
+            tone="plain"
+            :dot="props.user.isActive ? 'positive' : 'neutral'"
+            :class="$style.statusCell"
+        >
+            {{ statusLabel }}
+        </BricksBadge>
 
         <!--
             Кнопки строки гасятся `muted`, а не `disabled` — ни правилом, ни
@@ -245,29 +251,22 @@ function handleDelete(): void {
                 @click="handleDelete"
             />
         </div>
-    </article>
+    </BricksSurfaceCard>
 </template>
 
 <style module lang="scss">
+/* Вид поверхности — из кита (`BricksSurfaceCard`); здесь раскладка строки и её
+   состояния: выключенный вход и идущая операция. */
 .BuilderUsersListRow {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     min-height: 7.2rem;
     padding: 1.4rem 1.6rem;
-    border-radius: var(--bricks-border-radius-sm);
-    border: 1px solid var(--bricks-base-200);
-    background: var(--bricks-base-0);
-    transition:
-        border-color var(--bricks-default-transition),
-        box-shadow var(--bricks-default-transition);
     gap: 0.8rem 1.6rem;
 
     &:hover,
     &:focus-within {
-        border-color: var(--bricks-primary-300);
-        box-shadow: var(--bricks-shadow-sm);
-
         .actions {
             opacity: 1;
         }
@@ -281,8 +280,7 @@ function handleDelete(): void {
     &._inactive {
         background: var(--bricks-base-50);
 
-        .name,
-        .statusLabel {
+        .name {
             color: var(--bricks-base-500);
         }
 
@@ -348,16 +346,6 @@ function handleDelete(): void {
     overflow-wrap: anywhere;
 }
 
-.selfBadge {
-    flex-shrink: 0;
-    padding: 0.2rem 0.8rem;
-    border-radius: var(--bricks-border-radius-pill);
-    background: var(--bricks-base-100);
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--bricks-base-500);
-}
-
 .meta {
     overflow: hidden;
     margin: 0;
@@ -374,29 +362,11 @@ function handleDelete(): void {
     width: 21rem;
 }
 
+/* Ширина колонки статуса — своя: плашка кита по умолчанию сжимается по
+   содержимому, а колонки строки обязаны совпадать между строками. */
 .statusCell {
-    display: flex;
-    align-items: center;
-    flex-shrink: 0;
     width: 13rem;
     gap: 0.8rem;
-}
-
-.statusDot {
-    flex-shrink: 0;
-    width: 0.8rem;
-    height: 0.8rem;
-    border-radius: 50%;
-    background: var(--bricks-base-300);
-
-    &--active {
-        background: var(--bricks-green);
-    }
-}
-
-.statusLabel {
-    font-size: 1.3rem;
-    color: var(--bricks-base-500);
 }
 
 /*

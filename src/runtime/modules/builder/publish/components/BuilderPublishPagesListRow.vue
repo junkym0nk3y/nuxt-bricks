@@ -18,6 +18,7 @@ import { useBuilderPermissions } from '../../core/composables/useBuilderPermissi
 // Components
 import BricksBadge from '../../../ui/base/badge/BricksBadge.vue';
 import BricksIconButton from '../../../ui/base/icon-button/BricksIconButton.vue';
+import BricksSurfaceCard from '../../../ui/base/surface/BricksSurfaceCard.vue';
 // #endregion
 
 // #region Props
@@ -43,6 +44,17 @@ const { canEdit, canDelete } = useBuilderPermissions();
  */
 const formattedDate = computed<string>(() =>
     formatPageDate(props.page.updatedAt || props.page.createdAt)
+);
+
+/**
+ * Подпись статуса — доступное имя точки в начале строки. Видимой подписи у
+ * статуса здесь нет: у черновика рядом с именем стоит плашка «Черновик», а у
+ * опубликованной страницы статус читается только цветом точки.
+ */
+const statusLabel = computed<string>(() =>
+    props.page.published
+        ? t('bricks.publish.dashboard.row.statusPublished')
+        : t('bricks.publish.dashboard.row.statusDraft')
 );
 
 /**
@@ -108,14 +120,26 @@ function handleDelete(): void {
 </script>
 
 <template>
-    <article
-        :class="[
-            $style.BuilderPublishPagesListRow,
-            props.isSelected && $style.BuilderPublishPagesListRowSelected,
-        ]"
+    <BricksSurfaceCard
+        as="article"
+        clickable
+        :selected="props.isSelected"
+        :class="$style.BuilderPublishPagesListRow"
         @click="handleSelect"
     >
-        <span :class="[$style.statusDot, props.page.published && $style['statusDot--published']]" />
+        <!--
+            Статус страницы держался на одном цвете: подпись «Черновик» стоит
+            рядом с именем, а опубликованная страница не объявляла статус вовсе —
+            ни скринридеру, ни человеку, не различающему зелёный. Имя даёт
+            `role="img"` с подписью: вид строки при этом не меняется.
+        -->
+        <BricksBadge
+            tone="plain"
+            :dot="props.page.published ? 'positive' : 'neutral'"
+            :class="$style.statusDot"
+            role="img"
+            :aria-label="statusLabel"
+        />
 
         <button
             v-if="props.page.thumbnailUrl"
@@ -197,28 +221,21 @@ function handleDelete(): void {
                 @click="handleDelete"
             />
         </div>
-    </article>
+    </BricksSurfaceCard>
 </template>
 
 <style module lang="scss">
+/* Вид поверхности — из кита (`BricksSurfaceCard`); здесь только раскладка строки
+   и то, что она делает с содержимым на наведении. */
 .BuilderPublishPagesListRow {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     padding: 1.4rem 1.6rem;
-    border-radius: var(--bricks-border-radius-sm);
-    border: 1px solid var(--bricks-base-200);
-    background: var(--bricks-base-0);
-    transition:
-        border-color var(--bricks-default-transition),
-        box-shadow var(--bricks-default-transition);
-    cursor: pointer;
     gap: 0.8rem 1.2rem;
 
-    &:hover {
-        border-color: var(--bricks-primary-300);
-        box-shadow: var(--bricks-shadow-sm);
-
+    &:hover,
+    &:focus-within {
         .actions {
             opacity: 1;
             pointer-events: auto;
@@ -226,21 +243,8 @@ function handleDelete(): void {
     }
 }
 
-.BuilderPublishPagesListRowSelected {
-    border-color: var(--bricks-primary-300);
-    box-shadow: var(--bricks-shadow-sm);
-}
-
 .statusDot {
     flex-shrink: 0;
-    width: 0.8rem;
-    height: 0.8rem;
-    border-radius: 50%;
-    background: var(--bricks-base-300);
-
-    &--published {
-        background: var(--bricks-green);
-    }
 }
 
 .thumbnail {

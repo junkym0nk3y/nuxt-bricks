@@ -39,3 +39,13 @@ export const CANVAS_DRAG_ACTIVE_KEY = Symbol.for('nuxt-bricks.canvasDragActive')
  * `useInlineEditor` без хоста не инициализирует редактор.
  */
 export const INLINE_EDITOR_HOST_KEY: InjectionKey<IInlineEditorHost> = Symbol('inlineEditorHost');
+
+/**
+ * Заголовок открытой модалки (реактивный). Провайдит `BricksModal` — тем же
+ * значением, которое уходит в скрытый `DialogTitle`.
+ *
+ * Нужен `BricksModalHeader`: пока видимый заголовок писали в шаблоне руками, он
+ * дублировал проп `title` и мог разъехаться со звучащим для скринридера молча.
+ * Провайд, а не проп шапки, — чтобы источник остался один.
+ */
+export const BRICKS_MODAL_TITLE_KEY: InjectionKey<Ref<string>> = Symbol('bricksModalTitle');

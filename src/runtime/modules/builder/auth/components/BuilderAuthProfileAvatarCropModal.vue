@@ -40,8 +40,11 @@ import { useAuthProfile } from '../composables/useAuthProfile';
 
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
-import BricksCloseButton from '../../../ui/base/modal/BricksCloseButton.vue';
+
+import BricksFieldHint from '../../../ui/inputs/BricksFieldHint.vue';
 import BricksModal from '../../../ui/base/modal/BricksModal.vue';
+import BricksModalFooter from '../../../ui/base/modal/BricksModalFooter.vue';
+import BricksModalHeader from '../../../ui/base/modal/BricksModalHeader.vue';
 import BricksSlider from '../../../ui/inputs/BricksSlider.vue';
 // #endregion
 
@@ -264,10 +267,7 @@ watch(
         @after-leave="emit('afterLeave')"
     >
         <div :class="$style.BuilderAuthProfileAvatarCropModal">
-            <div :class="$style.header">
-                <h3 :class="$style.title">{{ t('bricks.auth.profile.crop.title') }}</h3>
-                <BricksCloseButton :disabled="isSubmitting" @click="handleClose" />
-            </div>
+            <BricksModalHeader :close-disabled="isSubmitting" @close="handleClose" />
 
             <div :class="$style.body">
                 <!--
@@ -311,11 +311,11 @@ watch(
                     />
                 </div>
 
-                <p :class="$style.hint">{{ t('bricks.auth.profile.crop.hint') }}</p>
+                <BricksFieldHint>{{ t('bricks.auth.profile.crop.hint') }}</BricksFieldHint>
                 <p v-if="errorMessage" :class="$style.error">{{ errorMessage }}</p>
             </div>
 
-            <div :class="$style.footer">
+            <BricksModalFooter>
                 <BricksButton
                     size="md"
                     variant="ghost"
@@ -335,7 +335,7 @@ watch(
                 >
                     {{ t('bricks.auth.profile.crop.submit') }}
                 </BricksButton>
-            </div>
+            </BricksModalFooter>
         </div>
     </BricksModal>
 </template>
@@ -350,21 +350,6 @@ watch(
     border-radius: var(--bricks-border-radius-md);
     background: var(--bricks-base-0);
     box-shadow: var(--bricks-shadow-lg);
-}
-
-.header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1.6rem 2rem;
-    border-bottom: 1px solid var(--bricks-base-200);
-}
-
-.title {
-    margin: 0;
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: var(--bricks-base-900);
 }
 
 .body {
@@ -443,25 +428,9 @@ watch(
     color: var(--bricks-base-700);
 }
 
-.hint {
-    margin: 0;
-    font-size: 1.2rem;
-    line-height: 1.4;
-    color: var(--bricks-base-500);
-}
-
 .error {
     margin: 0;
     font-size: 1.2rem;
     color: var(--bricks-danger-500);
-}
-
-.footer {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding: 1.6rem 2rem;
-    border-top: 1px solid var(--bricks-base-200);
-    gap: 0.8rem;
 }
 </style>

@@ -340,6 +340,50 @@ describe('BuilderUsersListRow: строка учётки', () => {
         });
     });
 
+    /*
+        Плашки строки после переезда на кит: статус и роль рисует `BricksBadge`, и
+        проверить их вживую под учёткой редактора нечем — раздел учёток закрыт
+        правом `canManageUsers`.
+    */
+    describe('плашки строки', () => {
+        it('статус объявлен подписью и точкой, а не одним цветом', () => {
+            const active = mountRow({ user: makeUser({ isActive: true }) });
+            const inactive = mountRow({ user: makeUser({ isActive: false }) });
+
+            expect(active.text()).toContain('bricks.users.status.active');
+            expect(inactive.text()).toContain('bricks.users.status.inactive');
+
+            // Точка — часть плашки: тон у активной и выключенной учётки разный
+            const activeDot = active.find('[class*="_dot-"]');
+            const inactiveDot = inactive.find('[class*="_dot-"]');
+
+            expect(activeDot.exists()).toBe(true);
+            expect(inactiveDot.exists()).toBe(true);
+            expect(activeDot.classes().join(' ')).not.toBe(inactiveDot.classes().join(' '));
+        });
+
+        /*
+            Тон проверяется по имени, а не «лишь бы отличался»: набор ролей — это
+            шкала «насколько выделять», и подмена тона на соседний по шкале
+            (например `muted` вместо `accent` у администратора) прошла бы
+            проверку на различие. Сами цвета живут в ките: у `muted` подпись
+            `base-600`, потому что `base-500` давал на `base-100` 4.4:1.
+        */
+        it.each([
+            ['admin', 'accent'],
+            ['editor', 'muted'],
+            ['viewer', 'quiet'],
+        ] as const)('роль %s носит тон %s', (role, tone) => {
+            const pill = findRolePill(mountRow({ user: makeUser({ role }) }));
+            const tones = pill
+                .classes()
+                .filter((name) => /^__(primary|neutral|muted|accent|quiet|plain)_/.test(name));
+
+            expect(tones).toHaveLength(1);
+            expect(tones[0]).toMatch(new RegExp(`^__${tone}_`));
+        });
+    });
+
     it('доступные действия чужой строки уходят наверх событиями', async () => {
         const wrapper = mountRow({ user: makeUser() });
 

@@ -154,6 +154,7 @@
         "library": {
             "title": "Добавить компонент",
             "searchPlaceholder": "Поиск компонентов...",
+            "favoritesToggle": "Только избранные",
             "emptyHint": "Попробуйте изменить поисковый запрос",
             "noComponents": "Нет доступных компонентов",
             "noComponentsHint": "Добавьте файл *.brick.ts рядом с компонентом в components/",
@@ -267,6 +268,8 @@
                 "row": {
                     "updated": "Обновлена {date}",
                     "draft": "Черновик",
+                    "statusPublished": "Опубликована",
+                    "statusDraft": "Черновик",
                     "edit": "Редактировать",
                     "preview": "Превью",
                     "duplicate": "Дублировать",

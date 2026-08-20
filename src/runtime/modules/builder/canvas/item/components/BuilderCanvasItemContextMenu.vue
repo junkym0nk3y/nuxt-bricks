@@ -18,6 +18,8 @@ import { useCanvasStore } from '../../../core/stores/canvas';
 
 // Components
 import BricksCheckbox from '../../../../ui/base/checkbox/BricksCheckbox.vue';
+import BricksIconButton from '../../../../ui/base/icon-button/BricksIconButton.vue';
+import BricksPopoverSurface from '../../../../ui/base/popover/BricksPopoverSurface.vue';
 // #endregion
 
 // #region Props
@@ -262,14 +264,12 @@ onBeforeUnmount(() => {
         <!-- Имя компонента + закрытие -->
         <div :class="$style.header">
             <span :class="$style.headerName">{{ props.componentName }}</span>
-            <button
-                :class="$style.closeButton"
-                type="button"
-                :aria-label="t('bricks.common.cancel')"
+            <BricksIconButton
+                icon="ta:outline-x"
+                :label="t('bricks.common.cancel')"
+                variant="ghost"
                 @click="emit('close')"
-            >
-                <BricksIcon icon="ta:outline-x" />
-            </button>
+            />
         </div>
 
         <template v-for="(section, sectionIndex) in sections" :key="sectionIndex">
@@ -306,8 +306,10 @@ onBeforeUnmount(() => {
                 <span :class="$style.submenuArrow">›</span>
             </button>
 
-            <div
+            <BricksPopoverSurface
                 v-if="isDeviceSubmenuOpen"
+                elevation="lg"
+                layer="none"
                 :class="[$style.flyout, { [$style.flyoutLeft]: submenuSide === 'left' }]"
             >
                 <div v-for="row in deviceRows" :key="row.key" :class="$style.deviceRow">
@@ -318,12 +320,19 @@ onBeforeUnmount(() => {
                         @update:value="handleToggleDevice(row.key)"
                     />
                 </div>
-            </div>
+            </BricksPopoverSurface>
         </div>
     </div>
 </template>
 
 <style module lang="scss">
+/*
+    Поверхность здесь написана руками, а не взята из `BricksPopoverSurface`:
+    ссылка на этот узел нужна как элемент — по нему проверяется попадание курсора
+    и считается место для авторазмещения меню. Инстанс компонента заставил бы
+    тащить `$el` в три места логики ради одинакового вида. Тень `lg` осознанная:
+    меню всплывает над содержимым канваса, а не над панелью интерфейса.
+*/
 .BuilderCanvasItemContextMenu {
     position: fixed;
     z-index: var(--bricks-z-popover);
@@ -358,34 +367,6 @@ onBeforeUnmount(() => {
     font-weight: 600;
     letter-spacing: 0.05rem;
     color: var(--bricks-base-400);
-}
-
-.closeButton {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    width: 2.2rem;
-    height: 2.2rem;
-    padding: 0;
-    border-radius: var(--bricks-border-radius-xs);
-    border: none;
-    background: transparent;
-    color: var(--bricks-base-400);
-    transition:
-        background var(--bricks-default-transition),
-        color var(--bricks-default-transition);
-    cursor: pointer;
-
-    svg {
-        width: 1.4rem;
-        height: 1.4rem;
-    }
-
-    &:hover {
-        background: var(--bricks-base-50);
-        color: var(--bricks-base-900);
-    }
 }
 
 .separator {
@@ -472,11 +453,6 @@ onBeforeUnmount(() => {
     top: -0.6rem;
     left: 100%;
     min-width: 16rem;
-    padding: 0.6rem;
-    border-radius: var(--bricks-border-radius-sm);
-    border: 1px solid var(--bricks-base-200);
-    background: var(--bricks-base-0);
-    box-shadow: var(--bricks-shadow-lg);
 }
 
 .flyoutLeft {

@@ -11,6 +11,8 @@ import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Components
+import BricksDisclosure from '../../../ui/base/disclosure/BricksDisclosure.vue';
+import BricksFieldHint from '../../../ui/inputs/BricksFieldHint.vue';
 import BricksInput from '../../../ui/inputs/BricksInput.vue';
 // #endregion
 
@@ -28,15 +30,6 @@ const { t } = useI18n();
 const isOpen = ref(false);
 // #endregion
 
-// #region Methods
-/**
- * Разворачивает/сворачивает секцию маршрутизации.
- */
-function handleToggle(): void {
-    isOpen.value = !isOpen.value;
-}
-// #endregion
-
 // #region Lifecycle
 watch(
     () => props.page.id,
@@ -49,16 +42,8 @@ watch(
 </script>
 
 <template>
-    <div :class="$style.BuilderPublishDetailsPanelRouting">
-        <button :class="$style.routingToggle" type="button" @click="handleToggle">
-            <BricksIcon
-                icon="ta:outline-chevron-right"
-                :class="[$style.routingCaret, isOpen && $style.routingCaretOpen]"
-            />
-            {{ t('bricks.publish.dashboard.details.routing') }}
-        </button>
-
-        <div v-if="isOpen" :class="$style.routingFields">
+    <BricksDisclosure v-model:value="isOpen" :label="t('bricks.publish.dashboard.details.routing')">
+        <div :class="$style.routingFields">
             <div :class="$style.field">
                 <BricksInput
                     label="URL Prefix"
@@ -70,7 +55,7 @@ watch(
                     :error-message="props.errors.urlPrefix"
                     @update:value="(val: string) => emit('update:urlPrefix', val)"
                 />
-                <span :class="$style.fieldHint">{{ t('bricks.publish.urlPrefixHint') }}</span>
+                <BricksFieldHint>{{ t('bricks.publish.urlPrefixHint') }}</BricksFieldHint>
             </div>
             <div :class="$style.field">
                 <BricksInput
@@ -83,48 +68,13 @@ watch(
                     :error-message="props.errors.subdomain"
                     @update:value="(val: string) => emit('update:subdomain', val)"
                 />
-                <span :class="$style.fieldHint">{{ t('bricks.publish.subdomainHint') }}</span>
+                <BricksFieldHint>{{ t('bricks.publish.subdomainHint') }}</BricksFieldHint>
             </div>
         </div>
-    </div>
+    </BricksDisclosure>
 </template>
 
 <style module lang="scss">
-.BuilderPublishDetailsPanelRouting {
-    display: flex;
-    flex-direction: column;
-    gap: 1.2rem;
-}
-
-.routingToggle {
-    display: flex;
-    align-items: center;
-    align-self: flex-start;
-    padding: 0;
-    border: none;
-    background: transparent;
-    font-size: 1.2rem;
-    font-weight: 500;
-    color: var(--bricks-base-600);
-    transition: color var(--bricks-default-transition);
-    cursor: pointer;
-    gap: 0.6rem;
-
-    &:hover {
-        color: var(--bricks-base-900);
-    }
-}
-
-.routingCaret {
-    width: 1.2rem;
-    height: 1.2rem;
-    transition: transform var(--bricks-default-transition);
-}
-
-.routingCaretOpen {
-    transform: rotate(90deg);
-}
-
 .routingFields {
     display: flex;
     flex-direction: column;
@@ -135,10 +85,5 @@ watch(
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
-}
-
-.fieldHint {
-    font-size: 1.2rem;
-    color: var(--bricks-base-400);
 }
 </style>

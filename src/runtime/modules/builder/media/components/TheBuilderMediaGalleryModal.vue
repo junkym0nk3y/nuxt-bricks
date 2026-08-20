@@ -33,11 +33,12 @@ import { useBuilderPermissions } from '../../core/composables/useBuilderPermissi
 
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
-import BricksCloseButton from '../../../ui/base/modal/BricksCloseButton.vue';
 import BricksModal from '../../../ui/base/modal/BricksModal.vue';
+import BricksModalHeader from '../../../ui/base/modal/BricksModalHeader.vue';
 import BricksToast from '../../../ui/feedback/BricksToast.vue';
 import BricksConfirmModal from '../../../ui/feedback/BricksConfirmModal.vue';
 import BricksSearchInput from '../../../ui/inputs/BricksSearchInput.vue';
+import BricksEmptyState from '../../../ui/feedback/BricksEmptyState.vue';
 import BuilderMediaGalleryFilters from './BuilderMediaGalleryFilters.vue';
 import BuilderMediaGalleryUploadControls from './BuilderMediaGalleryUploadControls.vue';
 import BuilderMediaGalleryDropOverlay from './BuilderMediaGalleryDropOverlay.vue';
@@ -475,16 +476,16 @@ watch(
             @dragleave="handleDragLeave"
             @drop="handleDrop"
         >
-            <!-- Header -->
-            <div :class="$style.header">
-                <div :class="$style.titleGroup">
-                    <h2 :class="$style.title">{{ t('bricks.media.galleryTitle') }}</h2>
-                    <p :class="$style.summary">
-                        {{ librarySummary }} · {{ t('bricks.media.dropAnywhereHint') }}
-                    </p>
-                </div>
+            <BricksModalHeader size="lg" @close="handleClose">
+                <!-- Сводка медиатеки и подсказка о перетаскивании одной строкой:
+                     подсказка обязана быть видна всегда — постоянной зоны
+                     загрузки, которая раньше о себе сообщала, в модалке больше
+                     нет. -->
+                <template #subtitle>
+                    {{ librarySummary }} · {{ t('bricks.media.dropAnywhereHint') }}
+                </template>
 
-                <div :class="$style.headerActions">
+                <template #actions>
                     <BricksSearchInput
                         :class="$style.search"
                         :value="searchQuery"
@@ -504,10 +505,8 @@ watch(
                         @upload="handleUpload"
                         @update:optimization="handleOptimizationChange"
                     />
-
-                    <BricksCloseButton @click="handleClose" />
-                </div>
-            </div>
+                </template>
+            </BricksModalHeader>
 
             <!-- Content -->
             <div :class="[$style.content, 'bricks-scrollbox']">
@@ -547,22 +546,25 @@ watch(
                         />
 
                         <!-- Фильтр ничего не нашёл -->
-                        <div v-else-if="hasItems" :class="$style.emptyState">
-                            <BricksIcon :class="$style.emptyIcon" icon="ta:outline-filter" />
-                            <p :class="$style.emptyText">{{ t('bricks.media.emptyFiltered') }}</p>
+                        <BricksEmptyState
+                            v-else-if="hasItems"
+                            :class="$style.emptyState"
+                            icon="ta:outline-filter"
+                            :title="t('bricks.media.emptyFiltered')"
+                        >
                             <BricksButton size="sm" variant="ghost" @click="handleResetFilter">
                                 {{ t('bricks.media.resetFilter') }}
                             </BricksButton>
-                        </div>
+                        </BricksEmptyState>
 
                         <!-- Медиатека пуста -->
-                        <div v-else :class="$style.emptyState">
-                            <BricksIcon :class="$style.emptyIcon" icon="ta:outline-photo" />
-                            <p :class="$style.emptyText">{{ t('bricks.media.emptyNoUploads') }}</p>
-                            <p :class="$style.emptyHint">
-                                {{ t('bricks.media.emptyNoUploadsHint') }}
-                            </p>
-                        </div>
+                        <BricksEmptyState
+                            v-else
+                            :class="$style.emptyState"
+                            icon="ta:outline-photo"
+                            :title="t('bricks.media.emptyNoUploads')"
+                            :description="t('bricks.media.emptyNoUploadsHint')"
+                        />
                     </Transition>
 
                     <!--
@@ -642,44 +644,6 @@ watch(
     flex-direction: column;
 }
 
-.header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1.6rem;
-    padding: 2rem;
-    border-bottom: 1px solid var(--bricks-base-200);
-}
-
-.titleGroup {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-}
-
-.title {
-    margin: 0;
-    font-size: 2rem;
-    font-weight: 600;
-    color: var(--bricks-base-900);
-}
-
-/* Сводка медиатеки и подсказка о перетаскивании одной строкой: подсказка
-   обязана быть видна всегда — постоянной зоны загрузки, которая раньше о себе
-   сообщала, в модалке больше нет. */
-.summary {
-    margin: 0;
-    font-size: 1.2rem;
-    color: var(--bricks-base-400);
-}
-
-.headerActions {
-    display: flex;
-    align-items: center;
-    flex-shrink: 0;
-    gap: 0.8rem;
-}
-
 .search {
     width: 28rem;
 }
@@ -699,42 +663,21 @@ watch(
     flex-direction: column;
     gap: 1.6rem;
     flex: 1;
-    padding: 2rem;
+    padding: 2.4rem;
 }
 
+/* Отступы состояния задаёт сетка модалки. */
 .emptyState {
-    display: flex;
-    align-items: center;
-    justify-content: center;
     padding: 4rem 2rem;
-    text-align: center;
-    flex-direction: column;
-    gap: 1.2rem;
 }
 
-.emptyText {
-    margin: 0;
-    font-size: 1.6rem;
-    color: var(--bricks-base-600);
-}
-
-.emptyHint {
-    margin: 0;
-    font-size: 1.2rem;
-    color: var(--bricks-base-400);
-}
-
-.emptyIcon {
-    font-size: 8rem;
-    color: var(--bricks-base-300);
-}
-
-/* Футер двумя рядами: паддинг 1.6/2, высота приходит от содержимого — 120 с
-   выбранным файлом и 76 без него. */
+/* Полоса метаданных, а не полоса действий: внутри неё живёт панель свойств
+   выбранного файла, поэтому `BricksModalFooter` тут не подходит — он про кнопки.
+   Высота приходит от содержимого: 120 с выбранным файлом и 76 без него. */
 .footer {
     display: flex;
     align-items: center;
-    padding: 1.6rem 2rem;
+    padding: 1.6rem 2.4rem;
     border-top: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-50);
 }

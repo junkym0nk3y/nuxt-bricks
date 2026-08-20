@@ -42,7 +42,7 @@ import { useAuthProfile } from '../composables/useAuthProfile';
 
 // Components
 import BricksModal from '../../../ui/base/modal/BricksModal.vue';
-import BricksCloseButton from '../../../ui/base/modal/BricksCloseButton.vue';
+import BricksModalHeader from '../../../ui/base/modal/BricksModalHeader.vue';
 import BricksTabBar from '../../../ui/base/tabs/BricksTabBar.vue';
 import BuilderAuthProfileAvatarCropModal from './BuilderAuthProfileAvatarCropModal.vue';
 import BuilderAuthProfileDetailsForm from './BuilderAuthProfileDetailsForm.vue';
@@ -249,10 +249,7 @@ watch(
         @close="handleClose"
     >
         <div :class="$style.TheBuilderAuthProfileModal">
-            <div :class="$style.header">
-                <h3 :class="$style.title">{{ t('bricks.auth.profile.title') }}</h3>
-                <BricksCloseButton @click="handleClose" />
-            </div>
+            <BricksModalHeader @close="handleClose" />
 
             <div :class="$style.body">
                 <BricksTabBar
@@ -321,21 +318,6 @@ watch(
     border-radius: var(--bricks-border-radius-md);
     background: var(--bricks-base-0);
     box-shadow: var(--bricks-shadow-lg);
-}
-
-.header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1.6rem 2rem;
-    border-bottom: 1px solid var(--bricks-base-200);
-}
-
-.title {
-    margin: 0;
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: var(--bricks-base-900);
 }
 
 .body {

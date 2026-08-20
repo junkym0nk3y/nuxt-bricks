@@ -19,6 +19,7 @@ import { useBuilderPermissions } from '../../core/composables/useBuilderPermissi
 
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
+import BricksDisclosure from '../../../ui/base/disclosure/BricksDisclosure.vue';
 // #endregion
 
 // #region Props
@@ -70,13 +71,6 @@ const isPendingState = computed<boolean>(() => isExporting.value || props.isImpo
 // #endregion
 
 // #region Methods
-/**
- * Разворачивает/сворачивает секцию схемы.
- */
-function handleToggle(): void {
-    isOpen.value = !isOpen.value;
-}
-
 /**
  * Тянет полную страницу и скачивает её схему файлом `<pagename>.json`.
  *
@@ -183,16 +177,11 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div :class="$style.BuilderPublishDetailsPanelSchema">
-        <button :class="$style.schemaToggle" type="button" @click="handleToggle">
-            <BricksIcon
-                icon="ta:outline-chevron-right"
-                :class="[$style.schemaCaret, isOpen && $style.schemaCaretOpen]"
-            />
-            {{ t('bricks.publish.dashboard.details.schema.title') }}
-        </button>
-
-        <div v-if="isOpen" :class="$style.schemaContent">
+    <BricksDisclosure
+        v-model:value="isOpen"
+        :label="t('bricks.publish.dashboard.details.schema.title')"
+    >
+        <div :class="$style.schemaContent">
             <div :class="$style.actions">
                 <BricksButton
                     :class="$style.actionButton"
@@ -241,45 +230,10 @@ onBeforeUnmount(() => {
                 {{ statusText }}
             </p>
         </div>
-    </div>
+    </BricksDisclosure>
 </template>
 
 <style module lang="scss">
-.BuilderPublishDetailsPanelSchema {
-    display: flex;
-    flex-direction: column;
-    gap: 1.2rem;
-}
-
-.schemaToggle {
-    display: flex;
-    align-items: center;
-    align-self: flex-start;
-    padding: 0;
-    border: none;
-    background: transparent;
-    font-size: 1.2rem;
-    font-weight: 500;
-    color: var(--bricks-base-600);
-    transition: color var(--bricks-default-transition);
-    cursor: pointer;
-    gap: 0.6rem;
-
-    &:hover {
-        color: var(--bricks-base-900);
-    }
-}
-
-.schemaCaret {
-    width: 1.2rem;
-    height: 1.2rem;
-    transition: transform var(--bricks-default-transition);
-}
-
-.schemaCaretOpen {
-    transform: rotate(90deg);
-}
-
 .schemaContent {
     display: flex;
     flex-direction: column;

@@ -22,9 +22,11 @@ import { useI18n } from 'vue-i18n';
 // Components
 import BricksButton from '../../ui/base/button/BricksButton.vue';
 import BricksCheckbox from '../../ui/base/checkbox/BricksCheckbox.vue';
-import BricksCloseButton from '../../ui/base/modal/BricksCloseButton.vue';
+import BricksFieldHint from '../../ui/inputs/BricksFieldHint.vue';
 import BricksInput from '../../ui/inputs/BricksInput.vue';
 import BricksModal from '../../ui/base/modal/BricksModal.vue';
+import BricksModalFooter from '../../ui/base/modal/BricksModalFooter.vue';
+import BricksModalHeader from '../../ui/base/modal/BricksModalHeader.vue';
 // #endregion
 
 // #region Props
@@ -120,10 +122,7 @@ watch(
         @close="handleClose"
     >
         <div :class="$style.TextEditorLinkModal">
-            <div :class="$style.header">
-                <h3 :class="$style.title">{{ t('bricks.textEditor.linkModal.title') }}</h3>
-                <BricksCloseButton @click="handleClose" />
-            </div>
+            <BricksModalHeader @close="handleClose" />
 
             <form :class="$style.form" novalidate @submit.prevent="handleApply">
                 <BricksInput
@@ -143,9 +142,9 @@ watch(
                     @update:value="(value: boolean) => (openInNewTab = value)"
                 />
 
-                <p :class="$style.hint">{{ t('bricks.textEditor.linkModal.hint') }}</p>
+                <BricksFieldHint>{{ t('bricks.textEditor.linkModal.hint') }}</BricksFieldHint>
 
-                <div :class="$style.footer">
+                <BricksModalFooter variant="inline">
                     <BricksButton
                         v-if="props.canRemove"
                         size="md"
@@ -159,7 +158,7 @@ watch(
                     <BricksButton size="md" variant="primary" type="submit">
                         {{ t('bricks.textEditor.linkModal.apply') }}
                     </BricksButton>
-                </div>
+                </BricksModalFooter>
             </form>
         </div>
     </BricksModal>
@@ -177,45 +176,11 @@ watch(
     box-shadow: var(--bricks-shadow-lg);
 }
 
-.header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-shrink: 0;
-    padding: 2rem 2.4rem 1.6rem;
-    border-bottom: 1px solid var(--bricks-base-200);
-    gap: 1.6rem;
-}
-
-.title {
-    overflow: hidden;
-    margin: 0;
-    text-overflow: ellipsis;
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: var(--bricks-base-900);
-}
-
 .form {
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    padding: 2rem 2.4rem 2.4rem;
+    padding: 2rem;
     gap: 1.6rem;
-}
-
-.hint {
-    margin: 0;
-    font-size: 1.2rem;
-    line-height: 1.4;
-    color: var(--bricks-base-500);
-}
-
-.footer {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding-top: 0.4rem;
-    gap: 0.8rem;
 }
 </style>

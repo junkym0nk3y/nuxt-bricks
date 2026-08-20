@@ -23,6 +23,7 @@ import { scrollToComponentOnCanvas } from '../../../core/utils/scrollToComponent
 // Components
 import BuilderShellSidebarSchemaTreeItem from './BuilderShellSidebarSchemaTreeItem.vue';
 import BricksCloseButton from '../../../../ui/base/modal/BricksCloseButton.vue';
+import BricksEmptyState from '../../../../ui/feedback/BricksEmptyState.vue';
 // #endregion
 
 // #region Emits
@@ -173,11 +174,14 @@ async function handleSelectComponent(id: string): Promise<void> {
                 />
             </div>
 
-            <div v-else :class="$style.empty">
-                <BricksIcon icon="ta:outline-drag-drop" :class="$style.emptyIcon" />
-                <p>{{ t('bricks.schema.empty') }}</p>
-                <p :class="$style.emptyHint">{{ t('bricks.schema.emptyHint') }}</p>
-            </div>
+            <BricksEmptyState
+                v-else
+                :class="$style.empty"
+                size="sm"
+                icon="ta:outline-drag-drop"
+                :title="t('bricks.schema.empty')"
+                :description="t('bricks.schema.emptyHint')"
+            />
         </div>
     </div>
 </template>
@@ -216,29 +220,8 @@ async function handleSelectComponent(id: string): Promise<void> {
     flex-direction: column;
 }
 
+/* Состояние занимает всю свободную высоту панели. */
 .empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
     height: 100%;
-    text-align: center;
-    color: var(--bricks-base-400);
-
-    p {
-        margin: 0.8rem 0;
-    }
-}
-
-.emptyIcon {
-    width: 6.4rem;
-    height: 6.4rem;
-    margin-bottom: 1.6rem;
-    color: var(--bricks-base-300);
-}
-
-.emptyHint {
-    font-size: 1.2rem;
-    color: var(--bricks-base-400);
 }
 </style>

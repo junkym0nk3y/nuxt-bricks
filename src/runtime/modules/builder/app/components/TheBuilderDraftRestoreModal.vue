@@ -15,8 +15,9 @@ import { useI18n } from 'vue-i18n';
 
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
-import BricksCloseButton from '../../../ui/base/modal/BricksCloseButton.vue';
 import BricksModal from '../../../ui/base/modal/BricksModal.vue';
+import BricksModalFooter from '../../../ui/base/modal/BricksModalFooter.vue';
+import BricksModalHeader from '../../../ui/base/modal/BricksModalHeader.vue';
 // #endregion
 
 // #region Props
@@ -83,24 +84,28 @@ function handleDiscard(): void {
         @close="handleClose"
     >
         <div :class="$style.TheBuilderDraftRestoreModal">
-            <div :class="$style.header">
-                <h3 :class="$style.title">{{ t('bricks.publish.draft.restoreTitle') }}</h3>
-                <BricksCloseButton @click="handleClose" />
-            </div>
+            <BricksModalHeader @close="handleClose" />
 
             <div :class="$style.content">
                 <p :class="$style.description">{{ description }}</p>
             </div>
 
-            <div :class="$style.actions">
-                <BricksButton size="sm" variant="ghost" @click="handleDiscard">
-                    {{ t('bricks.publish.draft.restoreDiscard') }}
-                </BricksButton>
+            <!--
+                Отказ от черновика стоит слева и отдельно от восстановления: обе
+                кнопки в правом углу стоят рядом, и промах по необратимой стал бы
+                вопросом пары пикселей.
+            -->
+            <BricksModalFooter>
+                <template #leading>
+                    <BricksButton size="sm" variant="ghost" @click="handleDiscard">
+                        {{ t('bricks.publish.draft.restoreDiscard') }}
+                    </BricksButton>
+                </template>
 
                 <BricksButton size="sm" variant="primary" @click="handleRestore">
                     {{ t('bricks.publish.draft.restoreConfirm') }}
                 </BricksButton>
-            </div>
+            </BricksModalFooter>
         </div>
     </BricksModal>
 </template>
@@ -117,21 +122,6 @@ function handleDiscard(): void {
     flex-direction: column;
 }
 
-.header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1.6rem 2rem;
-    border-bottom: 1px solid var(--bricks-base-200);
-}
-
-.title {
-    margin: 0;
-    font-size: 1.6rem;
-    font-weight: 600;
-    color: var(--bricks-base-900);
-}
-
 .content {
     padding: 1.6rem 2rem;
 }
@@ -141,18 +131,5 @@ function handleDiscard(): void {
     font-size: 1.4rem;
     line-height: 1.5;
     color: var(--bricks-base-700);
-}
-
-/*
- * Удаление стоит слева и отдельно от восстановления: обе кнопки в правом углу
- * стоят рядом, и промах по необратимой стал бы вопросом пары пикселей.
- */
-.actions {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.8rem;
-    padding: 1.6rem 2rem;
-    border-top: 1px solid var(--bricks-base-200);
 }
 </style>

@@ -9,6 +9,10 @@ import { useI18n } from 'vue-i18n';
 
 // Utils
 import { resolveDeviceIcon } from '../../../common/utils/bricks/devices';
+
+// Components
+import BricksPopoverSurface from '../../../ui/base/popover/BricksPopoverSurface.vue';
+import BricksMenuItem from '../../../ui/base/popover/BricksMenuItem.vue';
 // #endregion
 
 // #region Props
@@ -101,21 +105,18 @@ onBeforeUnmount(() => {
             <span :class="$style.counter">{{ props.counter }}</span>
         </button>
 
-        <div v-if="isOpen" :class="$style.menu" role="listbox">
-            <button
+        <BricksPopoverSurface v-if="isOpen" layer="local" :class="$style.menu" role="listbox">
+            <BricksMenuItem
                 v-for="choice in props.choices"
                 :key="choice.key"
-                type="button"
                 role="option"
                 :aria-selected="false"
-                :class="$style.choice"
+                :icon="resolveDeviceIcon(choice.icon)"
+                :label="choice.label"
+                :hint="String(choice.width)"
                 @click="handleSelect(choice.key)"
-            >
-                <BricksIcon :class="$style.choiceGlyph" :icon="resolveDeviceIcon(choice.icon)" />
-                <span :class="$style.choiceLabel">{{ choice.label }}</span>
-                <span :class="$style.choiceWidth">{{ choice.width }}</span>
-            </button>
-        </div>
+            />
+        </BricksPopoverSurface>
     </div>
 </template>
 
@@ -164,53 +165,10 @@ onBeforeUnmount(() => {
     position: absolute;
     top: calc(100% + 0.4rem);
     left: 50%;
-    z-index: 1;
     display: flex;
     width: 24rem;
-    padding: 0.6rem;
-    border-radius: var(--bricks-border-radius-sm);
-    border: 1px solid var(--bricks-base-200);
-    background: var(--bricks-base-0);
     flex-direction: column;
     gap: 0.2rem;
-    box-shadow: var(--bricks-shadow-md);
     transform: translateX(-50%);
-}
-
-.choice {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    padding: 0.8rem 1rem;
-    border-radius: var(--bricks-border-radius-xs);
-    border: none;
-    background: none;
-    font-size: 1.3rem;
-    color: var(--bricks-base-900);
-    transition: var(--bricks-default-transition);
-    cursor: pointer;
-    gap: 0.8rem;
-
-    &:hover {
-        background: var(--bricks-surface-raised);
-    }
-}
-
-.choiceGlyph {
-    flex-shrink: 0;
-    font-size: 1.8rem;
-    color: var(--bricks-base-600);
-}
-
-.choiceLabel {
-    flex: 1;
-    text-align: left;
-}
-
-// Ширина — не украшение: она объясняет, куда встанет строка в наборе,
-// отсортированном по ширине
-.choiceWidth {
-    font-size: 1.2rem;
-    color: var(--bricks-base-500);
 }
 </style>

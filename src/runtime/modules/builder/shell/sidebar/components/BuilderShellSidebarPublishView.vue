@@ -31,6 +31,7 @@ import BricksHexInput from '../../../../ui/inputs/BricksHexInput.vue';
 import BricksSelect from '../../../../ui/inputs/BricksSelect.vue';
 import BricksButton from '../../../../ui/base/button/BricksButton.vue';
 import BricksCloseButton from '../../../../ui/base/modal/BricksCloseButton.vue';
+import BricksFieldHint from '../../../../ui/inputs/BricksFieldHint.vue';
 import BuilderPublishDevicesModal from '../../../publish/components/BuilderPublishDevicesModal.vue';
 import BuilderPublishSeoFields from '../../../publish/components/BuilderPublishSeoFields.vue';
 import BuilderShellSidebarNavigationEditor from './BuilderShellSidebarNavigationEditor.vue';
@@ -310,9 +311,9 @@ watch(formKey, () => {
                                         handleRoutingFieldUpdate(setFieldValue, 'urlPrefix', val)
                                 "
                             />
-                            <span :class="$style.hint">{{
+                            <BricksFieldHint>{{
                                 t('bricks.publish.urlPrefixHint')
-                            }}</span>
+                            }}</BricksFieldHint>
                         </div>
 
                         <div :class="$style.addressField">
@@ -329,9 +330,9 @@ watch(formKey, () => {
                                         handleRoutingFieldUpdate(setFieldValue, 'subdomain', val)
                                 "
                             />
-                            <span :class="$style.hint">{{
+                            <BricksFieldHint>{{
                                 t('bricks.publish.subdomainHint')
-                            }}</span>
+                            }}</BricksFieldHint>
                         </div>
 
                         <Transition mode="out-in" name="bricks-fade-fast">
@@ -464,6 +465,7 @@ watch(formKey, () => {
 .addressField {
     display: flex;
     flex-direction: column;
+    gap: 0.4rem;
 }
 
 .label {
@@ -474,12 +476,6 @@ watch(formKey, () => {
     font-size: 1.4rem;
     font-weight: 500;
     color: var(--bricks-base-600);
-}
-
-.hint {
-    margin-top: 0.4rem;
-    font-size: 1.2rem;
-    color: var(--bricks-base-400);
 }
 
 .urlPreview {

@@ -42,6 +42,8 @@ import { useAuthSession } from '../composables/useAuthSession';
 
 // Components
 import BricksAvatar from '../../../ui/base/avatar/BricksAvatar.vue';
+import BricksMenuItem from '../../../ui/base/popover/BricksMenuItem.vue';
+import BricksPopoverSurface from '../../../ui/base/popover/BricksPopoverSurface.vue';
 // #endregion
 
 // #region Props
@@ -110,36 +112,41 @@ function handleLogout(): void {
             </DropdownMenuTrigger>
 
             <DropdownMenuPortal>
-                <DropdownMenuContent
-                    :class="$style.menu"
-                    align="end"
-                    :side-offset="8"
-                    position="popper"
-                >
-                    <div :class="$style.header">
-                        <BricksAvatar
-                            size="md"
-                            :name="displayLabel"
-                            :image-url="profile.avatarUrl"
-                        />
+                <!-- `as-child`: анимация висит на `data-state`, поэтому вид и
+                     состояние обязаны быть на одном узле -->
+                <DropdownMenuContent as-child align="end" :side-offset="8" position="popper">
+                    <BricksPopoverSurface :class="$style.menu">
+                        <div :class="$style.header">
+                            <BricksAvatar
+                                size="md"
+                                :name="displayLabel"
+                                :image-url="profile.avatarUrl"
+                            />
 
-                        <div :class="$style.identity">
-                            <span :class="$style.name">{{ displayLabel }}</span>
-                            <span :class="$style.summary">{{ accountSummary }}</span>
+                            <div :class="$style.identity">
+                                <span :class="$style.name">{{ displayLabel }}</span>
+                                <span :class="$style.summary">{{ accountSummary }}</span>
+                            </div>
                         </div>
-                    </div>
 
-                    <div :class="$style.items">
-                        <DropdownMenuItem :class="$style.item" @select="handleOpenProfile">
-                            <BricksIcon icon="ta:outline-user" :class="$style.itemIcon" />
-                            <span>{{ t('bricks.auth.profile.open') }}</span>
-                        </DropdownMenuItem>
+                        <div :class="$style.items">
+                            <!-- `as-child`: `role="menuitem"` и выбор приезжают
+                                 на кнопку пункта, а не на обёртку вокруг неё -->
+                            <DropdownMenuItem as-child @select="handleOpenProfile">
+                                <BricksMenuItem
+                                    icon="ta:outline-user"
+                                    :label="t('bricks.auth.profile.open')"
+                                />
+                            </DropdownMenuItem>
 
-                        <DropdownMenuItem :class="$style.item" @select="handleLogout">
-                            <BricksIcon icon="ta:outline-logout" :class="$style.itemIcon" />
-                            <span>{{ t('bricks.auth.logout') }}</span>
-                        </DropdownMenuItem>
-                    </div>
+                            <DropdownMenuItem as-child @select="handleLogout">
+                                <BricksMenuItem
+                                    icon="ta:outline-logout"
+                                    :label="t('bricks.auth.logout')"
+                                />
+                            </DropdownMenuItem>
+                        </div>
+                    </BricksPopoverSurface>
                 </DropdownMenuContent>
             </DropdownMenuPortal>
         </div>
@@ -182,13 +189,7 @@ function handleLogout(): void {
 }
 
 .menu {
-    z-index: var(--bricks-z-popover);
     width: 26.8rem;
-    padding: 0.6rem;
-    border-radius: var(--bricks-border-radius-sm);
-    border: 1px solid var(--bricks-base-200);
-    background: var(--bricks-base-0);
-    box-shadow: var(--bricks-shadow-md);
 
     // Появление и уход — как у остальных поповеров билдера (селектор страниц,
     // BricksActionButton). Vue-`<Transition>` здесь неприменима: контентом
@@ -281,34 +282,5 @@ function handleLogout(): void {
     flex-direction: column;
     padding-top: 0.6rem;
     gap: 0.2rem;
-}
-
-.item {
-    display: flex;
-    align-items: center;
-    height: 3.6rem;
-    padding: 0 0.8rem;
-    border-radius: var(--bricks-border-radius-xs);
-    font-size: 1.4rem;
-    color: var(--bricks-base-700);
-    transition:
-        background-color var(--bricks-default-transition),
-        color var(--bricks-default-transition);
-    cursor: pointer;
-    gap: 1rem;
-
-    &:hover,
-    &[data-highlighted] {
-        background: var(--bricks-base-50);
-        outline: none;
-        color: var(--bricks-base-900);
-    }
-}
-
-.itemIcon {
-    flex-shrink: 0;
-    width: 1.8rem;
-    height: 1.8rem;
-    color: var(--bricks-base-500);
 }
 </style>

@@ -23,6 +23,9 @@ import { formatOptimizationSummary } from '../utils/optimizationSummary';
 // Vue
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+// Components
+import BricksFieldHint from '../../../ui/inputs/BricksFieldHint.vue';
 // #endregion
 
 // #region Props
@@ -50,7 +53,7 @@ const hint = computed<string>(
         <div :class="$style.message">
             <BricksIcon :class="$style.icon" icon="ta:outline-cloud-upload" />
             <span :class="$style.title">{{ title }}</span>
-            <span :class="$style.hint">{{ hint }}</span>
+            <BricksFieldHint>{{ hint }}</BricksFieldHint>
         </div>
     </div>
 </template>
@@ -101,10 +104,5 @@ const hint = computed<string>(
     font-size: 1.4rem;
     font-weight: 500;
     color: var(--bricks-primary);
-}
-
-.hint {
-    font-size: 1.2rem;
-    color: var(--bricks-base-500);
 }
 </style>

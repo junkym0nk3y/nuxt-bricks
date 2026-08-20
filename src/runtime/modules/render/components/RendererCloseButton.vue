@@ -1,6 +1,18 @@
 <script setup lang="ts">
-// TODO: получит уникальный стиль при редизайне (сейчас — самодостаточная копия
-// ui/base/modal/BricksCloseButton; render не импортирует ui — правило render-lean).
+/**
+ * @description Кнопка закрытия превью на published-странице.
+ *
+ * Самодостаточная копия `ui/base/modal/BricksCloseButton`: `render` не
+ * импортирует `ui` — иначе кит уехал бы в бандл published-страницы, где из него
+ * нужна одна кнопка. Копия осознанная, но она однажды уже отстала (радиус `md` с
+ * рамкой против `control` без рамки, ховер фоном вместо цвета глифа, не было
+ * рамки фокуса), поэтому расхождение токенов сторожит
+ * `test/render/rendererCloseButtonParity.spec.ts`.
+ *
+ * Доступное имя приходит снаружи: локалей в `render` нет, а зашитая строка
+ * годилась бы ровно для одного языка. Единственное место вызова — баннер превью
+ * — имя передаёт.
+ */
 
 // #region Interfaces
 interface IRendererCloseButtonProps {
@@ -46,21 +58,32 @@ function handleClick(event: MouseEvent): void {
 </template>
 
 <style module lang="scss">
+/* Те же значения, что у `ui/base/modal/BricksCloseButton`: копия обязана
+   выглядеть тем же контролом, что и в билдере. Расхождение сторожит спека
+   паритета — правится либо оба файла, либо ни один. */
 .RendererCloseButton {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 3.2rem;
-    min-height: 3.2rem;
+    width: 3.2rem;
+    height: 3.2rem;
     padding: 0;
-    border-radius: var(--bricks-border-radius-md);
-    border: 1px solid var(--bricks-base-300);
-    background-color: var(--bricks-base-0);
+    border-radius: var(--bricks-border-radius-control);
+    border: none;
+    background-color: var(--bricks-surface-raised);
     color: var(--bricks-base-600);
+    transition:
+        color var(--bricks-default-transition),
+        background-color var(--bricks-default-transition);
     cursor: pointer;
 
     &:not(:disabled):hover {
-        background-color: var(--bricks-base-300);
+        color: var(--bricks-base-900);
+    }
+
+    &:focus-visible {
+        outline: none;
+        box-shadow: var(--bricks-shadow-focus);
     }
 
     &:disabled {

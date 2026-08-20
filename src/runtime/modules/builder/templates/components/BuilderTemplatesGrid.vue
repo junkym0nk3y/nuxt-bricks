@@ -17,6 +17,8 @@ import { useI18n } from 'vue-i18n';
 
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
+import BricksEmptyState from '../../../ui/feedback/BricksEmptyState.vue';
+import BricksSkeleton from '../../../ui/feedback/BricksSkeleton.vue';
 import BuilderTemplatesCard from './BuilderTemplatesCard.vue';
 // #endregion
 
@@ -93,35 +95,32 @@ function handleGoToPages(): void {
                 :key="`skeleton-${index}`"
                 :class="$style.skeletonCard"
             >
-                <div :class="$style.skeletonThumbnail" />
+                <BricksSkeleton shape="block" :class="$style.skeletonThumbnail" />
                 <div :class="$style.skeletonMeta">
-                    <span :class="[$style.skeletonLine, $style.skeletonLineWide]" />
-                    <span :class="$style.skeletonLine" />
+                    <BricksSkeleton :class="[$style.skeletonLine, $style.skeletonLineWide]" />
+                    <BricksSkeleton :class="$style.skeletonLine" />
                 </div>
             </div>
         </div>
 
         <div v-else-if="props.isSearchEmpty" :class="$style.state">
-            <div :class="$style.stateIconCircle">
-                <BricksIcon icon="ta:outline-search" :class="$style.stateIcon" />
-            </div>
-            <h2 :class="$style.stateTitle">{{ t('bricks.templates.notFound.title') }}</h2>
-            <p :class="$style.stateDescription">
-                {{ t('bricks.templates.notFound.description') }}
-            </p>
+            <BricksEmptyState
+                icon="ta:outline-search"
+                :title="t('bricks.templates.notFound.title')"
+                :description="t('bricks.templates.notFound.description')"
+            />
         </div>
 
         <div v-else-if="!props.hasAnyTemplates" :class="$style.state">
-            <div :class="$style.stateIconCircle">
-                <BricksIcon icon="ta:outline-package" :class="$style.stateIcon" />
-            </div>
-            <h2 :class="$style.stateTitle">{{ t('bricks.templates.empty.title') }}</h2>
-            <p :class="$style.stateDescription">
-                {{ t('bricks.templates.empty.description') }}
-            </p>
-            <BricksButton size="md" variant="secondary" @click="handleGoToPages">
-                {{ t('bricks.templates.empty.action') }}
-            </BricksButton>
+            <BricksEmptyState
+                icon="ta:outline-package"
+                :title="t('bricks.templates.empty.title')"
+                :description="t('bricks.templates.empty.description')"
+            >
+                <BricksButton size="md" variant="secondary" @click="handleGoToPages">
+                    {{ t('bricks.templates.empty.action') }}
+                </BricksButton>
+            </BricksEmptyState>
         </div>
 
         <div v-else :class="$style.grid">
@@ -165,38 +164,6 @@ function handleGoToPages(): void {
     padding: 2.4rem;
 }
 
-.stateIconCircle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 6.4rem;
-    height: 6.4rem;
-    margin-bottom: 1.2rem;
-    border-radius: 50%;
-    background: var(--bricks-base-100);
-}
-
-.stateIcon {
-    width: 2.8rem;
-    height: 2.8rem;
-    color: var(--bricks-base-400);
-}
-
-.stateTitle {
-    margin: 0;
-    font-size: 1.6rem;
-    font-weight: 700;
-    color: var(--bricks-base-900);
-}
-
-.stateDescription {
-    max-width: 36rem;
-    margin: 0 0 1.6rem;
-    text-align: center;
-    font-size: 1.4rem;
-    color: var(--bricks-base-500);
-}
-
 .skeletonCard {
     overflow: hidden;
     border-radius: var(--bricks-border-radius-sm);
@@ -206,7 +173,6 @@ function handleGoToPages(): void {
 
 .skeletonThumbnail {
     aspect-ratio: 16 / 10;
-    background: var(--bricks-base-100);
 }
 
 .skeletonMeta {
@@ -219,8 +185,6 @@ function handleGoToPages(): void {
 .skeletonLine {
     width: 60%;
     height: 1.2rem;
-    border-radius: var(--bricks-border-radius-xs);
-    background: var(--bricks-base-100);
 }
 
 .skeletonLineWide {

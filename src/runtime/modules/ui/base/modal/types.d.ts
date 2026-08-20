@@ -54,3 +54,41 @@ export interface IBricksModalEmits {
      */
     afterLeave: [];
 }
+
+/**
+ * Геометрия шапки и футера модалки:
+ * - `md` — диалоги и формы (52рем и уже);
+ * - `lg` — рабочие модалки на весь экран (редактор текста, документация,
+ *   медиатека): у них своя, более крупная сетка отступов и заголовка.
+ *
+ * Две ступени, а не проп на каждое значение: прежде шапка была написана в
+ * пятнадцати местах с семью разными паддингами и четырьмя размерами заголовка.
+ */
+export type TBricksModalSectionSize = 'md' | 'lg';
+
+export interface IBricksModalHeaderProps {
+    size?: TBricksModalSectionSize;
+    /** Отделять шапку линией от тела */
+    bordered?: boolean;
+    /** Гасит крестик — на время сабмита, пока закрывать нельзя */
+    closeDisabled?: boolean;
+}
+
+export interface IBricksModalHeaderEmits {
+    close: [];
+}
+
+/**
+ * Раскладка футера:
+ * - `bar` — отделённая линией полоса действий со своими отступами;
+ * - `plain` — та же полоса, но без линии (тело модалки и без неё читается
+ *   отдельно);
+ * - `inline` — футер стоит ВНУТРИ формы или тела, чьи отступы уже действуют, и
+ *   добавляет только зазор сверху.
+ */
+export type TBricksModalFooterVariant = 'bar' | 'plain' | 'inline';
+
+export interface IBricksModalFooterProps {
+    size?: TBricksModalSectionSize;
+    variant?: TBricksModalFooterVariant;
+}

@@ -14,6 +14,7 @@
 
 // #region Imports
 // Types
+import type { TBricksBadgeTone } from '../../../ui/base/badge/types';
 import type { TBricksUserRole } from '../../../common/types/auth';
 import type { IUsersRolePillProps, IUsersRolePillEmits } from '../types/users';
 
@@ -31,6 +32,10 @@ import {
     DropdownMenuRoot,
     DropdownMenuTrigger,
 } from 'reka-ui';
+
+// Components
+import BricksPopoverSurface from '../../../ui/base/popover/BricksPopoverSurface.vue';
+import BricksBadge from '../../../ui/base/badge/BricksBadge.vue';
 // #endregion
 
 // #region Props
@@ -55,12 +60,31 @@ const { t } = useI18n();
  */
 const ROLE_ORDER: TBricksUserRole[] = ['admin', 'editor', 'viewer'];
 
+/**
+ * Тон плашки на роль. Карта, а не цвета в своих стилях: тона живут в ките, а
+ * здесь остаётся только соответствие «роль → насколько её надо выделять».
+ */
+const ROLE_TONE: Record<TBricksUserRole, TBricksBadgeTone> = {
+    admin: 'accent',
+    editor: 'muted',
+    viewer: 'quiet',
+};
+
+/*
+    Тон редактора — `muted` (`base-100`/`base-600`). Своя пара до переезда в кит
+    была `base-100`/`base-700`; `base-500`, который тон нёс сначала, давал на
+    `base-100` 4.4:1 — ниже порога AA, поэтому подпись тона поднята до `base-600`
+    (6.9:1) в самом ките, а не перекрыта здесь.
+*/
+
 /** Меню открыто. Состоянием владеет компонент: открытие бывает отклонено. */
 const isMenuOpen = ref<boolean>(false);
 // #endregion
 
 // #region Computed
 const roleLabel = computed<string>(() => t(`bricks.auth.roles.${props.role}`));
+
+const roleTone = computed<TBricksBadgeTone>(() => ROLE_TONE[props.role]);
 
 /**
  * Доступное имя кнопки: роль, чья она и что с ней можно сделать. Внутри кнопки
@@ -119,17 +143,19 @@ function handleSelect(value: AcceptableValue): void {
 </script>
 
 <template>
-    <button
+    <BricksBadge
         v-if="props.isLocked"
-        type="button"
-        :class="[$style.BuilderUsersRolePill, $style[`_${props.role}`], $style._locked]"
+        as="button"
+        shape="pill"
+        :tone="roleTone"
+        :class="[$style.BuilderUsersRolePill, $style._locked]"
         aria-disabled="true"
         :title="props.lockedHint"
         :aria-label="triggerLabel"
     >
         <span>{{ roleLabel }}</span>
         <BricksIcon icon="ta:outline-lock" :class="$style.lockIcon" />
-    </button>
+    </BricksBadge>
 
     <DropdownMenuRoot v-else :open="isMenuOpen" @update:open="handleMenuOpenChange">
         <!--
@@ -142,11 +168,12 @@ function handleSelect(value: AcceptableValue): void {
             хранит вида операции.
         -->
         <DropdownMenuTrigger as-child>
-            <button
-                type="button"
+            <BricksBadge
+                as="button"
+                shape="pill"
+                :tone="roleTone"
                 :class="[
                     $style.BuilderUsersRolePill,
-                    $style[`_${props.role}`],
                     $style._actionable,
                     props.isPending && $style._pending,
                     props.isOperationLocked && !props.isPending && $style._busy,
@@ -156,81 +183,55 @@ function handleSelect(value: AcceptableValue): void {
             >
                 <span>{{ roleLabel }}</span>
                 <BricksIcon icon="ta:outline-chevron-down" :class="$style.chevron" />
-            </button>
+            </BricksBadge>
         </DropdownMenuTrigger>
 
         <DropdownMenuPortal>
-            <DropdownMenuContent
-                :class="$style.menu"
-                align="start"
-                :side-offset="6"
-                position="popper"
-            >
-                <DropdownMenuRadioGroup
-                    :model-value="props.role"
-                    @update:model-value="handleSelect"
-                >
-                    <DropdownMenuRadioItem
-                        v-for="item in ROLE_ORDER"
-                        :key="item"
-                        :class="$style.item"
-                        :value="item"
+            <DropdownMenuContent as-child align="start" :side-offset="6" position="popper">
+                <BricksPopoverSurface :class="$style.menu">
+                    <DropdownMenuRadioGroup
+                        :model-value="props.role"
+                        @update:model-value="handleSelect"
                     >
-                        <span :class="$style.itemBody">
-                            <span :class="$style.itemTitle">{{
-                                t(`bricks.auth.roles.${item}`)
-                            }}</span>
-                            <span :class="$style.itemDescription">
-                                {{ t(`bricks.users.role.descriptions.${item}`) }}
+                        <DropdownMenuRadioItem
+                            v-for="item in ROLE_ORDER"
+                            :key="item"
+                            :class="$style.item"
+                            :value="item"
+                        >
+                            <span :class="$style.itemBody">
+                                <span :class="$style.itemTitle">{{
+                                    t(`bricks.auth.roles.${item}`)
+                                }}</span>
+                                <span :class="$style.itemDescription">
+                                    {{ t(`bricks.users.role.descriptions.${item}`) }}
+                                </span>
                             </span>
-                        </span>
 
-                        <BricksIcon
-                            v-if="item === props.role"
-                            icon="ta:outline-check"
-                            :class="$style.itemCheck"
-                        />
-                    </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
+                            <BricksIcon
+                                v-if="item === props.role"
+                                icon="ta:outline-check"
+                                :class="$style.itemCheck"
+                            />
+                        </DropdownMenuRadioItem>
+                    </DropdownMenuRadioGroup>
+                </BricksPopoverSurface>
             </DropdownMenuContent>
         </DropdownMenuPortal>
     </DropdownMenuRoot>
 </template>
 
 <style module lang="scss">
+/*
+    Вид пилюли — плашка кита (`shape="pill"` + тон по роли); здесь остаются только
+    состояния: чем она отличается от плашки-подписи, так это тем, что по ней
+    щёлкают.
+*/
 .BuilderUsersRolePill {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    height: 2.4rem;
-    padding: 0 1rem;
-    border-radius: var(--bricks-border-radius-pill);
-    border: 1px solid transparent;
-    background: var(--bricks-base-100);
-    white-space: nowrap;
-    font-size: 1.2rem;
-    font-weight: 500;
-    color: var(--bricks-base-700);
     transition:
         background-color var(--bricks-default-transition),
         color var(--bricks-default-transition),
         box-shadow var(--bricks-default-transition);
-
-    &._admin {
-        background: var(--bricks-primary-50);
-        color: var(--bricks-primary-600);
-    }
-
-    &._editor {
-        background: var(--bricks-base-100);
-        color: var(--bricks-base-700);
-    }
-
-    &._viewer {
-        border-color: var(--bricks-base-200);
-        background: var(--bricks-base-50);
-        color: var(--bricks-base-500);
-    }
 
     &._actionable {
         cursor: pointer;
@@ -283,13 +284,7 @@ function handleSelect(value: AcceptableValue): void {
 }
 
 .menu {
-    z-index: var(--bricks-z-popover);
     width: 28rem;
-    padding: 0.6rem;
-    border-radius: var(--bricks-border-radius-sm);
-    border: 1px solid var(--bricks-base-200);
-    background: var(--bricks-base-0);
-    box-shadow: var(--bricks-shadow-md);
 }
 
 .item {

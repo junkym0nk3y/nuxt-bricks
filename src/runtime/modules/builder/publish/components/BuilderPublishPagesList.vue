@@ -22,6 +22,7 @@ import { useBuilderPermissions } from '../../core/composables/useBuilderPermissi
 // Components
 import BuilderPublishPagesListRow from './BuilderPublishPagesListRow.vue';
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
+import BricksEmptyState from '../../../ui/feedback/BricksEmptyState.vue';
 import BricksTabBar from '../../../ui/base/tabs/BricksTabBar.vue';
 // #endregion
 
@@ -174,34 +175,27 @@ function onViewLeave(element: Element): void {
                 <p :class="$style.loadingText">{{ t('bricks.common.loading') }}</p>
             </div>
 
-            <div
+            <BricksEmptyState
                 v-else-if="props.pages.length === 0 && !props.hasAnyPages"
                 key="empty"
                 :class="$style.empty"
+                icon="ta:outline-files"
+                :title="t('bricks.publish.dashboard.empty.title')"
+                :description="t('bricks.publish.dashboard.empty.description')"
             >
-                <div :class="$style.emptyIconCircle">
-                    <BricksIcon icon="ta:outline-files" :class="$style.emptyIcon" />
-                </div>
-                <h2 :class="$style.emptyTitle">{{ t('bricks.publish.dashboard.empty.title') }}</h2>
-                <p :class="$style.emptyDescription">
-                    {{ t('bricks.publish.dashboard.empty.description') }}
-                </p>
                 <BricksButton v-if="canEdit" size="md" variant="primary" @click="handleCreatePage">
                     + {{ t('bricks.publish.dashboard.empty.cta') }}
                 </BricksButton>
-            </div>
+            </BricksEmptyState>
 
-            <div v-else-if="props.pages.length === 0" key="no-results" :class="$style.empty">
-                <div :class="$style.emptyIconCircle">
-                    <BricksIcon icon="ta:outline-search" :class="$style.emptyIcon" />
-                </div>
-                <h2 :class="$style.emptyTitle">
-                    {{ t('bricks.publish.dashboard.empty.noResultsTitle') }}
-                </h2>
-                <p :class="$style.emptyDescription">
-                    {{ t('bricks.publish.dashboard.empty.noResultsDescription') }}
-                </p>
-            </div>
+            <BricksEmptyState
+                v-else-if="props.pages.length === 0"
+                key="no-results"
+                :class="$style.empty"
+                icon="ta:outline-search"
+                :title="t('bricks.publish.dashboard.empty.noResultsTitle')"
+                :description="t('bricks.publish.dashboard.empty.noResultsDescription')"
+            />
 
             <div v-else :key="`rows-${props.activeFilter}`" :class="$style.rows">
                 <BuilderPublishPagesListRow
@@ -275,44 +269,8 @@ function onViewLeave(element: Element): void {
     font-size: 1.4rem;
 }
 
+/* Отступы состояния задаёт раздел: у списка это высокая полоса по центру. */
 .empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.8rem;
     padding: 8rem 2.4rem;
-}
-
-.emptyIconCircle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 6.4rem;
-    height: 6.4rem;
-    margin-bottom: 1.2rem;
-    border-radius: 50%;
-    background: var(--bricks-base-100);
-}
-
-.emptyIcon {
-    width: 2.8rem;
-    height: 2.8rem;
-    color: var(--bricks-base-400);
-}
-
-.emptyTitle {
-    margin: 0;
-    font-size: 1.6rem;
-    font-weight: 700;
-    color: var(--bricks-base-900);
-}
-
-.emptyDescription {
-    max-width: 36rem;
-    margin: 0 0 1.6rem;
-    text-align: center;
-    font-size: 1.4rem;
-    color: var(--bricks-base-500);
 }
 </style>
