@@ -80,9 +80,7 @@ const isToolbarVisible = computed(() => !isCodeView.value && toolbarGroups.value
 // #endregion
 
 // #region Methods
-/**
- * Инициализирует TipTap редактор с полным набором расширений.
- */
+/** Initializes the TipTap editor with the full set of extensions */
 async function initEditor(): Promise<void> {
     if (editor.value) {
         return;
@@ -102,9 +100,7 @@ async function initEditor(): Promise<void> {
     codeValue.value = props.value;
 }
 
-/**
- * Уничтожает TipTap редактор и очищает ресурсы.
- */
+/** Destroys the TipTap editor and releases its resources */
 function destroyEditor(): void {
     editor.value?.destroy();
     editor.value = null;
@@ -113,9 +109,7 @@ function destroyEditor(): void {
     isDarkEditorBackground.value = false;
 }
 
-/**
- * Переключает отображение между визуальным режимом и кодом.
- */
+/** Switches the view between the visual mode and the source */
 function toggleCodeView(): void {
     isCodeView.value = !isCodeView.value;
 
@@ -124,24 +118,18 @@ function toggleCodeView(): void {
     }
 }
 
-/**
- * Переключает фон визуального редактора между светлым и тёмным.
- */
+/** Switches the background of the visual editor between light and dark */
 function toggleEditorBackground(): void {
     isDarkEditorBackground.value = !isDarkEditorBackground.value;
 }
 
-/**
- * Обрабатывает ввод в code-view textarea.
- */
+/** Handles input in the code-view textarea */
 function handleCodeInput(event: Event): void {
     const target = event.target as HTMLTextAreaElement;
     codeValue.value = target.value;
 }
 
-/**
- * Подтверждает изменения и закрывает модалку.
- */
+/** Commits the changes and closes the modal */
 function handleDone(): void {
     const html = isCodeView.value ? codeValue.value : (editor.value?.getHTML() ?? codeValue.value);
 
@@ -149,9 +137,7 @@ function handleDone(): void {
     emit('close');
 }
 
-/**
- * Запрашивает медиа через MediaGallery и вставляет в редактор.
- */
+/** Requests media through MediaGallery and inserts it into the editor */
 function handleRequestImage(): void {
     if (!editor.value) {
         return;
@@ -215,7 +201,6 @@ onBeforeUnmount(() => {
                 </template>
             </BricksModalHeader>
 
-            <!-- Toolbar -->
             <transition name="bricks-fade" mode="out-in">
                 <div v-if="isToolbarVisible" :class="$style.toolbar">
                     <BricksTextEditorToolbar
@@ -227,7 +212,6 @@ onBeforeUnmount(() => {
                 </div>
             </transition>
 
-            <!-- Editor Content -->
             <div :class="$style.body">
                 <transition name="bricks-fade" mode="out-in">
                     <div
@@ -269,7 +253,6 @@ onBeforeUnmount(() => {
                 />
             </div>
 
-            <!-- Форма ссылки поверх развёрнутого редактора -->
             <TextEditorLinkModal
                 :is-open="isLinkModalOpen"
                 :value="linkValue"
@@ -302,8 +285,6 @@ onBeforeUnmount(() => {
     flex-direction: column;
 }
 
-/* Глиф кнопки переключения вида: без явного размера он наследует кегль
-   заголовка шапки и вырастает вдвое. */
 .codeViewButton {
     svg {
         width: 1.6rem;
@@ -327,8 +308,6 @@ onBeforeUnmount(() => {
     min-height: 0;
 }
 
-/* Позиционируется обёртка, а не сама кнопка: внешние атрибуты
-   `BricksIconButton` достаются обёртке тултипа — она и стоит в потоке. */
 .backgroundToggleWrapper {
     position: absolute;
     right: 1.2rem;
@@ -354,9 +333,6 @@ onBeforeUnmount(() => {
 }
 
 .editor {
-    /* Фиксируем светлую тему для области ввода контента.
-       primary — тоже: им красится ссылка, а фон здесь всегда белый, и тёмный
-       вариант токена дал бы на нём заметно более тусклую ссылку */
     --bricks-base-0: #fff;
     --bricks-base-300: #d1d5db;
     --bricks-base-900: #111827;

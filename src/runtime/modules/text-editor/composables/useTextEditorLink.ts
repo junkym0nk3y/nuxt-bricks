@@ -11,13 +11,13 @@ import { NEW_TAB_LINK_REL, normalizeLinkHref } from '../utils/linkHref';
 // #endregion
 
 /**
- * Состояние и операции модалки ссылки для одного TipTap-редактора.
- * Композабл держится рядом с редактором, а не в общем сторе: модалка живёт
- * дольше одного клика, и запрос, привязанный к глобальному состоянию, применял
- * бы ссылку к редактору, который за это время успели уничтожить (выход из
- * inline-редактирования, закрытие развёрнутой модалки).
+ * State and operations of the link modal for a single TipTap editor.
+ * The composable stays next to the editor instead of living in a shared store: the
+ * modal outlives a single click, and a request bound to global state would apply the
+ * link to an editor that has been destroyed in the meantime (leaving inline editing,
+ * closing the expanded modal).
  *
- * @param editorRef - Ref или getter редактора, к выделению которого применяется ссылка.
+ * @param editorRef - Ref or getter of the editor whose selection the link applies to.
  */
 export function useTextEditorLink(editorRef: MaybeRefOrGetter<Editor | null>): ITextEditorLink {
     const isLinkModalOpen = ref<boolean>(false);
@@ -25,8 +25,9 @@ export function useTextEditorLink(editorRef: MaybeRefOrGetter<Editor | null>): I
     const linkValue = ref<ITextEditorLinkValue>({ href: '', openInNewTab: false });
 
     /**
-     * Открывает модалку, подставляя в форму атрибуты ссылки под курсором.
-     * Без подстановки правка существующей ссылки означала бы набор адреса заново.
+     * Opens the modal, prefilling the form with the attributes of the link under the
+     * cursor. Without the prefill, editing an existing link would mean typing the
+     * address again from scratch.
      */
     function openLinkModal(): void {
         const editor = toValue(editorRef);
@@ -46,8 +47,8 @@ export function useTextEditorLink(editorRef: MaybeRefOrGetter<Editor | null>): I
     }
 
     /**
-     * Закрывает модалку и возвращает фокус в редактор: без возврата курсор
-     * остаётся в закрытой форме, и следующий набор текста уходит в никуда.
+     * Closes the modal and returns the focus to the editor: without that, the cursor
+     * stays in the closed form and the next typing goes nowhere.
      */
     function closeLinkModal(): void {
         isLinkModalOpen.value = false;
@@ -55,11 +56,11 @@ export function useTextEditorLink(editorRef: MaybeRefOrGetter<Editor | null>): I
     }
 
     /**
-     * Применяет ссылку к выделению. Пустое выделение вне ссылки означает, что
-     * размечать нечего — тогда адрес вставляется текстом и сразу размечается,
-     * иначе кнопка «Применить» молча ничего бы не делала.
+     * Applies the link to the selection. An empty selection outside a link means there
+     * is nothing to mark up — then the address is inserted as text and marked up right
+     * away, otherwise the "Apply" button would silently do nothing.
      *
-     * @param value - Адрес и признак открытия в новой вкладке.
+     * @param value - The address and the open-in-a-new-tab flag.
      */
     function applyLink(value: ITextEditorLinkValue): void {
         const editor = toValue(editorRef);
@@ -70,8 +71,9 @@ export function useTextEditorLink(editorRef: MaybeRefOrGetter<Editor | null>): I
 
         const href = normalizeLinkHref(value.href);
 
-        // Последний барьер: форма не пускает запрещённый адрес, но применение
-        // вызывается и по Enter в поле
+        // The form checks the address itself, on the button and on Enter alike. The
+        // check is repeated because applyLink is a public entry point of the
+        // composable: a caller reaching it past the form must not be trusted
         if (!href) {
             return;
         }
@@ -83,13 +85,13 @@ export function useTextEditorLink(editorRef: MaybeRefOrGetter<Editor | null>): I
         };
         const isCollapsedOutsideLink = editor.state.selection.empty && !editor.isActive('link');
 
-        // extendMarkRange — чтобы курсор внутри ссылки правил её целиком,
-        // а не резал на две с разными адресами
+        // extendMarkRange so that a cursor inside a link edits the whole of it
+        // instead of cutting it into two with different addresses
         const chain = editor.chain().focus().extendMarkRange('link');
 
         if (isCollapsedOutsideLink) {
             chain
-                // marks[].attrs — форма ProseMirror-JSON, не то же имя, что в setLink
+                // marks[].attrs is the ProseMirror-JSON shape, not the naming setLink uses
                 .insertContent({
                     type: 'text',
                     text: href,
@@ -103,9 +105,7 @@ export function useTextEditorLink(editorRef: MaybeRefOrGetter<Editor | null>): I
         isLinkModalOpen.value = false;
     }
 
-    /**
-     * Снимает ссылку целиком, даже если выделения нет и курсор стоит внутри неё.
-     */
+    /** Removes the link as a whole, even with no selection and the cursor inside it */
     function removeLink(): void {
         toValue(editorRef)?.chain().focus().extendMarkRange('link').unsetLink().run();
         isLinkModalOpen.value = false;

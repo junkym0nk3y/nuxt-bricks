@@ -19,8 +19,8 @@ declare module '@tiptap/core' {
 }
 
 /**
- * Кастомное расширение для поддержки fontWeight атрибута в TextStyle
- * Позволяет устанавливать толщину шрифта для выделенного текста
+ * Custom extension adding the fontWeight attribute to TextStyle.
+ * Lets the font weight be set on the selected text.
  */
 export const FontWeight = Extension.create({
     name: 'fontWeight',

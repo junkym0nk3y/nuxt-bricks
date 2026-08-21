@@ -1,6 +1,7 @@
 /**
- * Чистые конверсии размеров медиа-нодов TipTap (px/rem/em/%).
- * px-эквивалент 1em зависит от computed font-size элемента — передаётся параметром.
+ * Pure size conversions for TipTap media nodes (px/rem/em/%).
+ * The px equivalent of 1em depends on the computed font-size of the element, so it
+ * comes in as a parameter.
  */
 
 export const SIZE_UNITS = ['px', 'rem', 'em', '%'] as const;
@@ -10,9 +11,7 @@ export type TSizeUnit = (typeof SIZE_UNITS)[number];
 const PX_PER_REM = 10;
 export const DEFAULT_PX_PER_EM = 16;
 
-/**
- * Парсит строку вида "10rem" в число и единицу.
- */
+/** Parses a string such as "10rem" into a number and a unit */
 export function parseCustomDimension(value: string): { value: number; unit: TSizeUnit } | null {
     const match = value.match(/^(\d+(?:\.\d+)?)(rem|em|%|px)$/);
     if (!match) {
@@ -22,8 +21,8 @@ export function parseCustomDimension(value: string): { value: number; unit: TSiz
 }
 
 /**
- * Конвертирует значение в пиксели для ResizableNodeView.
- * Для px/% возвращает 0 — пиксельный эквивалент для них не вычисляется.
+ * Converts a value into pixels for ResizableNodeView.
+ * Returns 0 for px/% — no pixel equivalent is computed for those.
  */
 export function convertToPx(value: number, unit: TSizeUnit, emPixelSize: number): number {
     switch (unit) {
@@ -36,9 +35,7 @@ export function convertToPx(value: number, unit: TSizeUnit, emPixelSize: number)
     }
 }
 
-/**
- * Конвертирует значение из пикселей в заданную единицу.
- */
+/** Converts a value from pixels into the given unit */
 export function convertFromPx(px: number, unit: TSizeUnit, emPixelSize: number): number {
     switch (unit) {
         case 'rem':
@@ -50,9 +47,7 @@ export function convertFromPx(px: number, unit: TSizeUnit, emPixelSize: number):
     }
 }
 
-/**
- * Округляет число до заданного количества знаков после запятой.
- */
+/** Rounds a number to the given number of decimal places */
 export function roundDecimal(value: number, decimals: number): number {
     const factor = 10 ** decimals;
     return Math.round(value * factor) / factor;

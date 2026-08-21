@@ -19,8 +19,8 @@ declare module '@tiptap/core' {
 }
 
 /**
- * Кастомное расширение для поддержки fontSize атрибута в TextStyle
- * Позволяет устанавливать размер шрифта для выделенного текста
+ * Custom extension adding the fontSize attribute to TextStyle.
+ * Lets the font size be set on the selected text.
  */
 export const FontSize = Extension.create({
     name: 'fontSize',

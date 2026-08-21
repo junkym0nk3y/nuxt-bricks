@@ -24,11 +24,12 @@ const DEFAULT_TOOLBAR_STATE = Object.freeze({
 });
 
 /**
- * Синхронизирует toolbar state с TipTap-транзакциями и строит конфигурацию групп тулбара.
- * Подписка на 'transaction' пересоздаётся автоматически при смене editor (watchEffect).
+ * Keeps the toolbar state in sync with TipTap transactions and builds the config of the
+ * toolbar groups. The 'transaction' subscription is recreated on its own whenever the
+ * editor changes (watchEffect).
  *
- * @param editorRef - Ref или getter активного TipTap-редактора (null — редактор не создан).
- * @param options - Условие isEnabled для скрытия тулбара и обработчик кнопки ссылки.
+ * @param editorRef - Ref or getter of the active TipTap editor (null — no editor created).
+ * @param options - The isEnabled condition that hides the toolbar, and the link button handler.
  */
 export function useToolbarStateSync(
     editorRef: MaybeRefOrGetter<Editor | null>,
@@ -46,15 +47,16 @@ export function useToolbarStateSync(
         currentLetterSpacing: ref<string>(DEFAULT_TOOLBAR_STATE.letterSpacing),
     };
 
-    /** Счётчик транзакций для реактивного обновления toolbar */
+    /** Transaction counter that drives the reactive refresh of the toolbar */
     const editorTransactionCount = ref<number>(0);
 
     const availableFonts = computed<string[]>(() => config.fonts ?? []);
 
     /**
-     * Конфигурация групп тулбара.
-     * Зависит от editorTransactionCount, чтобы пересчитываться при каждой транзакции
-     * редактора (обновление isActive() кнопок при смене выделения/курсора).
+     * Config of the toolbar groups.
+     * Depends on editorTransactionCount so that it recomputes on every editor
+     * transaction (refreshing isActive() of the buttons as the selection or the
+     * cursor moves).
      */
     const toolbarGroups = computed<IToolbarGroup[]>(() => {
         const editor = toValue(editorRef);
@@ -72,9 +74,7 @@ export function useToolbarStateSync(
         });
     });
 
-    /**
-     * Сбрасывает toolbar state к дефолтным значениям.
-     */
+    /** Resets the toolbar state to the default values */
     function resetToolbarState(): void {
         toolbarState.currentFontSize.value = DEFAULT_TOOLBAR_STATE.fontSize;
         toolbarState.currentFontWeight.value = DEFAULT_TOOLBAR_STATE.fontWeight;
@@ -85,8 +85,8 @@ export function useToolbarStateSync(
     }
 
     /**
-     * Подписывается на TipTap-транзакции для синхронизации toolbar state с курсором.
-     * watchEffect автоматически очищает предыдущий listener при смене editor.
+     * Subscribes to TipTap transactions to keep the toolbar state in sync with the cursor.
+     * watchEffect drops the previous listener on its own whenever the editor changes.
      */
     watchEffect((onCleanup) => {
         const editor = toValue(editorRef);

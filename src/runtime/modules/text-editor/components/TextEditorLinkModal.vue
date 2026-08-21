@@ -1,11 +1,11 @@
 <script setup lang="ts">
 /**
- * @description Форма ссылки для выделения в TipTap-редакторе.
+ * @description Link form for a selection inside the TipTap editor.
  *
- * Монтируется каждой поверхностью редактора отдельно (панель свойств,
- * развёрнутая модалка, inline-оверлей канваса), а не одним экземпляром на
- * приложение: у каждой поверхности свой инстанс редактора, и общая модалка
- * применяла бы ссылку к тому, который к моменту подтверждения уже уничтожен.
+ * Every editor surface mounts its own copy (the properties panel, the expanded modal,
+ * the inline overlay on the canvas) instead of one instance per application: each
+ * surface has an editor instance of its own, and a shared modal would apply the link to
+ * the one that has already been destroyed by the time the author confirms.
  */
 
 // #region Imports
@@ -41,7 +41,7 @@ const emit = defineEmits<ITextEditorLinkModalEmits>();
 // #endregion
 
 // #region Data
-/** Потолок длины адреса: дефолт поля (120) режет обычный URL с query. */
+/** Ceiling on the address length: the field default (120) cuts an ordinary URL with a query */
 const HREF_MAX_LENGTH = 2048;
 
 const { t } = useI18n();
@@ -49,12 +49,12 @@ const { t } = useI18n();
 const href = ref<string>('');
 const openInNewTab = ref<boolean>(false);
 
-/** Ошибка показывается после попытки применить, а не на каждом набранном символе. */
+/** The error shows after an attempt to apply, not on every typed character */
 const isValidationVisible = ref<boolean>(false);
 // #endregion
 
 // #region Computed
-/** Нормализованный адрес; null — политика ссылок его не пропускает. */
+/** Normalized address; null means the link policy does not let it through */
 const normalizedHref = computed<string | null>(() => normalizeLinkHref(href.value));
 
 const errorMessage = computed<string | null>(() =>
@@ -66,8 +66,8 @@ const errorMessage = computed<string | null>(() =>
 
 // #region Methods
 /**
- * Применяет ссылку. Пустой или запрещённый адрес показывает ошибку и оставляет
- * форму открытой: молчаливое закрытие читалось бы как «ссылка поставлена».
+ * Applies the link. An empty or forbidden address shows the error and leaves the form
+ * open: closing silently would read as "the link has been set".
  */
 function handleApply(): void {
     if (!normalizedHref.value) {
@@ -78,24 +78,20 @@ function handleApply(): void {
     emit('apply', { href: href.value, openInNewTab: openInNewTab.value });
 }
 
-/**
- * Снимает ссылку с выделения.
- */
+/** Removes the link from the selection */
 function handleRemove(): void {
     emit('remove');
 }
 
-/**
- * Закрывает форму без изменений.
- */
+/** Closes the form with no changes */
 function handleClose(): void {
     emit('close');
 }
 // #endregion
 
 // #region Lifecycle
-// Форма наполняется на каждом открытии: адрес прошлой ссылки, оставшийся в
-// полях, применился бы к следующему выделению одним нажатием кнопки
+// The form is refilled on every opening: an address left over from the previous link
+// would be applied to the next selection with a single press of the button
 watch(
     () => [props.isOpen, props.value] as const,
     ([isOpen, value]) => {

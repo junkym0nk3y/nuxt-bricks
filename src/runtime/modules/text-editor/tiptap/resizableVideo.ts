@@ -19,9 +19,7 @@ const floatSyncPluginKey = new PluginKey('resizableVideoFloatSync');
 const customSizeClearPluginKey = new PluginKey('resizableVideoCustomSizeClear');
 const DEFAULT_VIDEO_WIDTH = 480;
 
-/**
- * Извлекает размерность с единицей измерения (rem, em, %) из inline style элемента.
- */
+/** Pulls a dimension carrying a unit (rem, em, %) out of the inline style of the element */
 function extractStyledDimension(element: HTMLElement, prop: 'width' | 'height'): string | null {
     const style = element.getAttribute('style');
     if (!style) {
@@ -34,8 +32,8 @@ function extractStyledDimension(element: HTMLElement, prop: 'width' | 'height'):
 }
 
 /**
- * Применяет custom-размер к DOM-элементу контейнера.
- * Для em-значений конвертирует в px на основе computed font-size элемента.
+ * Applies a custom size to the DOM element of the container.
+ * em values are converted into px against the computed font-size of the element.
  */
 function applyCustomDimension(
     container: HTMLElement,
@@ -55,11 +53,12 @@ function applyCustomDimension(
 }
 
 /**
- * TipTap Node extension для встраивания видео с поддержкой resize и float.
+ * TipTap Node extension that embeds a video with resize and float support.
  *
- * Использует ResizableNodeView из @tiptap/core напрямую (по паттерну Image extension).
- * Float реализован через CSS-классы (float-left, float-right, float-none).
- * Vertical-align — через CSS-классы (valign-baseline, valign-middle, valign-top).
+ * Uses ResizableNodeView from @tiptap/core directly (the same pattern the Image
+ * extension follows). Float rides on CSS classes (float-left, float-right, float-none).
+ * Vertical-align rides on CSS classes as well (valign-baseline, valign-middle,
+ * valign-top).
  */
 const ResizableVideoBase = Node.create({
     name: 'video',
@@ -234,8 +233,9 @@ const ResizableVideoBase = Node.create({
     },
 
     /**
-     * Создаёт ResizableNodeView с <video> элементом (по паттерну Image extension).
-     * Для новых видео без явных width/height вычисляет размеры после loadedmetadata.
+     * Builds a ResizableNodeView around a <video> element (the Image extension pattern).
+     * For new videos with no explicit width/height the sizes are computed once
+     * loadedmetadata has fired.
      */
     addNodeView() {
         if (
@@ -266,7 +266,7 @@ const ResizableVideoBase = Node.create({
 
             el.src = HTMLAttributes.src;
 
-            // Браузеры требуют DOM-свойства (не только атрибуты) для autoplay
+            // Browsers want the DOM properties, not just the attributes, for autoplay
             el.muted = true;
             el.autoplay = true;
             el.loop = true;
@@ -308,7 +308,7 @@ const ResizableVideoBase = Node.create({
 
             dom.style.display = 'inline-flex';
 
-            // Для новых видео без явных размеров — вычисляем после загрузки метаданных
+            // A new video with no explicit size is measured once its metadata loads
             if (!node.attrs.width && !node.attrs.height) {
                 dom.style.visibility = 'hidden';
 
@@ -342,8 +342,8 @@ const ResizableVideoBase = Node.create({
     },
 
     /**
-     * ProseMirror plugin для синхронизации float и verticalAlign с DOM.
-     * ResizableNodeView не применяет renderHTML атрибуты к data-resize-container.
+     * ProseMirror plugin that syncs float and verticalAlign into the DOM.
+     * ResizableNodeView does not apply the renderHTML attributes to data-resize-container.
      */
     addProseMirrorPlugins() {
         return [

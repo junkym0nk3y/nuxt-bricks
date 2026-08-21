@@ -12,8 +12,9 @@ import { defineStore } from 'pinia';
 // #endregion
 
 /**
- * Управляет состоянием inline-editing на канвасе.
- * Хранит ID активного компонента, имя/тип свойства и экземпляр TipTap-редактора.
+ * Owns the state of inline editing on the canvas.
+ * Keeps the ID of the active component, the name/type of the property and the
+ * TipTap editor instance.
  */
 export const useInlineEditingStore = defineStore('bricksInlineEditing', () => {
     // #region State
@@ -22,73 +23,59 @@ export const useInlineEditingStore = defineStore('bricksInlineEditing', () => {
     const propType = ref<TInlineEditingPropType | null>(null);
 
     /**
-     * Смещение курсора мыши относительно top-left редактируемого элемента в момент dblclick.
-     * Overlay привязывается к элементу по этому смещению и следует за ним при скролле.
+     * Offset of the mouse cursor from the top-left of the edited element at the moment
+     * of the dblclick. The overlay pins itself to the element by that offset and follows
+     * it on scroll.
      */
     const cursorOffset = ref<{ x: number; y: number } | null>(null);
 
     /**
-     * DOM-элемент компонента, на котором произошёл dblclick.
-     * Используется overlay для точного позиционирования — особенно важно в Figma Mode,
-     * где один компонент рендерится в нескольких viewport-ах одновременно.
+     * DOM element of the component the dblclick landed on.
+     * The overlay uses it to position itself exactly — which matters most in Figma Mode,
+     * where one component is rendered in several viewports at once.
      */
     const editingElement = ref<HTMLElement | null>(null);
 
     /**
-     * Экземпляр TipTap Editor, активный в данный момент на канвасе.
-     * Используется overlay-тулбаром для управления форматированием.
-     * shallowRef — TipTap Editor нельзя делать глубоко реактивным.
+     * TipTap Editor instance currently active on the canvas.
+     * The overlay toolbar drives formatting through it.
+     * shallowRef — a TipTap Editor must not be made deeply reactive.
      */
     const editor = shallowRef<Editor | null>(null);
 
     /**
-     * Callback, вызываемый при выборе изображения из MediaGallery.
-     * Устанавливается через requestMedia(), разрешается через resolveMediaRequest().
+     * Callback fired once an item has been picked in MediaGallery. Any media kind:
+     * the consumer routes a video into setVideo and an image into setImage.
+     * Set through requestMedia(), settled through resolveMediaRequest().
      */
     const mediaRequestCallback = ref<((item: IMediaItem) => void) | null>(null);
 
-    /**
-     * Все inline-editable свойства текущего компонента.
-     */
+    /** Every inline-editable property of the current component */
     const editableProps = ref<IInlineEditableProp[]>([]);
 
-    /**
-     * Индекс текущего редактируемого свойства в editableProps.
-     */
+    /** Index of the property being edited inside editableProps */
     const currentPropIndex = ref<number>(0);
     // #endregion
 
     // #region Getters
-    /**
-     * Активен ли режим inline editing.
-     */
+    /** Whether inline editing is active */
     const isEditing = computed<boolean>(() => componentId.value !== null);
 
-    /**
-     * Ожидается ли выбор изображения из MediaGallery.
-     */
+    /** Whether a pick from MediaGallery is being awaited */
     const isRequestingMedia = computed<boolean>(() => mediaRequestCallback.value !== null);
 
-    /**
-     * Label текущего редактируемого свойства.
-     */
+    /** Label of the property being edited */
     const currentPropLabel = computed<string>(
         () => editableProps.value[currentPropIndex.value]?.label ?? ''
     );
 
-    /**
-     * Количество editable свойств у текущего компонента.
-     */
+    /** Number of editable properties of the current component */
     const editablePropsCount = computed<number>(() => editableProps.value.length);
 
-    /**
-     * Можно ли переключиться на предыдущее свойство.
-     */
+    /** Whether switching to the previous property is possible */
     const canSwitchPrev = computed<boolean>(() => currentPropIndex.value > 0);
 
-    /**
-     * Можно ли переключиться на следующее свойство.
-     */
+    /** Whether switching to the next property is possible */
     const canSwitchNext = computed<boolean>(
         () => currentPropIndex.value < editableProps.value.length - 1
     );
@@ -96,23 +83,23 @@ export const useInlineEditingStore = defineStore('bricksInlineEditing', () => {
 
     // #region Actions
     /**
-     * Проверяет, редактируется ли конкретный компонент.
+     * Checks whether a particular component is being edited.
      *
-     * @param id - ID компонента.
+     * @param id - Component ID.
      */
     function isEditingComponent(id: string): boolean {
         return componentId.value === id;
     }
 
     /**
-     * Активирует inline-editing для компонента.
+     * Turns inline editing on for a component.
      *
-     * @param cId - ID компонента.
-     * @param pName - Имя редактируемого свойства.
-     * @param pType - Тип редактируемого свойства.
-     * @param allProps - Все inline-editable свойства компонента.
-     * @param offset - Смещение курсора относительно top-left элемента в момент dblclick.
-     * @param element - DOM-элемент компонента (для точного позиционирования в Figma Mode).
+     * @param cId - Component ID.
+     * @param pName - Name of the property being edited.
+     * @param pType - Type of the property being edited.
+     * @param allProps - Every inline-editable property of the component.
+     * @param offset - Cursor offset from the top-left of the element at the dblclick.
+     * @param element - DOM element of the component (for exact positioning in Figma Mode).
      */
     function startEditing(
         cId: string,
@@ -134,9 +121,7 @@ export const useInlineEditingStore = defineStore('bricksInlineEditing', () => {
         editingElement.value = element ?? null;
     }
 
-    /**
-     * Деактивирует inline-editing и сбрасывает editor-инстанс.
-     */
+    /** Turns inline editing off and drops the editor instance */
     function stopEditing(): void {
         componentId.value = null;
         propName.value = null;
@@ -149,9 +134,9 @@ export const useInlineEditingStore = defineStore('bricksInlineEditing', () => {
     }
 
     /**
-     * Переключает на свойство по индексу.
+     * Switches to the property at the given index.
      *
-     * @param index - Индекс свойства в editableProps.
+     * @param index - Index of the property inside editableProps.
      */
     function switchToProp(index: number): void {
         if (index < 0 || index >= editableProps.value.length) {
@@ -168,18 +153,14 @@ export const useInlineEditingStore = defineStore('bricksInlineEditing', () => {
         propType.value = prop.propType;
     }
 
-    /**
-     * Переключает на следующее свойство.
-     */
+    /** Switches to the next property */
     function switchToNextProp(): void {
         if (canSwitchNext.value) {
             switchToProp(currentPropIndex.value + 1);
         }
     }
 
-    /**
-     * Переключает на предыдущее свойство.
-     */
+    /** Switches to the previous property */
     function switchToPrevProp(): void {
         if (canSwitchPrev.value) {
             switchToProp(currentPropIndex.value - 1);
@@ -187,29 +168,29 @@ export const useInlineEditingStore = defineStore('bricksInlineEditing', () => {
     }
 
     /**
-     * Регистрирует активный TipTap editor-инстанс.
-     * Вызывается из useInlineEditor после инициализации TipTap.
+     * Registers the active TipTap editor instance.
+     * Called from useInlineEditor once TipTap has been initialized.
      *
-     * @param e - Инстанс Editor или null при уничтожении.
+     * @param e - Editor instance, or null when it is destroyed.
      */
     function setEditor(e: Editor | null): void {
         editor.value = e;
     }
 
     /**
-     * Запрашивает выбор изображения из MediaGallery.
-     * Builder page отслеживает isRequestingMedia и открывает галерею.
+     * Requests a pick from MediaGallery.
+     * The builder page watches isRequestingMedia and opens the gallery.
      *
-     * @param callback - Вызывается с выбранным IMediaItem.
+     * @param callback - Called with the picked IMediaItem.
      */
     function requestMedia(callback: (item: IMediaItem) => void): void {
         mediaRequestCallback.value = callback;
     }
 
     /**
-     * Разрешает запрос медиа — передаёт выбранный элемент в callback.
+     * Settles the media request — hands the picked item to the callback.
      *
-     * @param item - Выбранный медиа-элемент.
+     * @param item - The picked media item.
      */
     function resolveMediaRequest(item: IMediaItem): void {
         const cb = mediaRequestCallback.value;
@@ -219,9 +200,7 @@ export const useInlineEditingStore = defineStore('bricksInlineEditing', () => {
         }
     }
 
-    /**
-     * Отменяет запрос медиа (галерея закрыта без выбора).
-     */
+    /** Cancels the media request (the gallery was closed without a pick) */
     function cancelMediaRequest(): void {
         mediaRequestCallback.value = null;
     }

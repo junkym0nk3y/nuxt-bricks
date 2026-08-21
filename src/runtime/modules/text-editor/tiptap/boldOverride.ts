@@ -23,18 +23,18 @@ declare module '@tiptap/core' {
 }
 
 /**
- * Кастомный Bold mark, написанный с нуля без наследования от @tiptap/extension-bold.
+ * Custom Bold mark written from scratch instead of extending @tiptap/extension-bold.
  *
- * Нативный Bold из TipTap v3 автоматически распознаёт inline font-weight >= 500
- * как bold и оборачивает текст в <strong>. Даже Bold.extend() наследует input rules,
- * paste rules и keyboard shortcuts, которые создают <strong> теги.
+ * The native Bold of TipTap v3 treats an inline font-weight of 500 or above as bold
+ * on its own and wraps the text into <strong>. Even Bold.extend() inherits the input
+ * rules, the paste rules and the keyboard shortcuts that produce <strong> tags.
  *
- * Этот mark:
- * - Парсит только явные <strong> и чистые <b> теги (без inline font-weight)
- * - НЕ имеет input rules (нет авто-bold при **text**)
- * - НЕ имеет paste rules
- * - Keyboard shortcut Mod-b переключает bold mark
- * - Рендерит как <strong>
+ * This mark:
+ * - parses only explicit <strong> and plain <b> tags (no inline font-weight)
+ * - has NO input rules (no auto-bold on **text**)
+ * - has NO paste rules
+ * - toggles the bold mark on the Mod-b keyboard shortcut
+ * - renders as <strong>
  */
 export const BoldOverride = Mark.create({
     name: 'bold',
@@ -49,12 +49,12 @@ export const BoldOverride = Mark.create({
                 getAttrs: (node) => {
                     const el = node as HTMLElement;
 
-                    // <b> с любым явным font-weight стилем — FontWeight extension обработает
+                    // <b> with any explicit font-weight style: the FontWeight extension takes it
                     if (el.style.fontWeight) {
                         return false;
                     }
 
-                    // Чистый <b> без inline стиля — обычный bold тег
+                    // Plain <b> without an inline style: an ordinary bold tag
                     return null;
                 },
             },

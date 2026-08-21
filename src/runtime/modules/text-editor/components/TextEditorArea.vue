@@ -60,23 +60,19 @@ const {
     link,
 } = useTextEditorArea(props, emit);
 
-// Разворачиваем ref-ы модалки ссылки: вложенные в объект они не разворачиваются
-// в шаблоне, и обращение шло бы через `.value`
+// Unwrap the refs of the link modal: nested inside an object they are not unwrapped
+// in the template, and every access would go through `.value`
 const { isLinkModalOpen, linkValue, hasLinkAtSelection, applyLink, removeLink, closeLinkModal } =
     link;
 // #endregion
 
 // #region Computed
-/**
- * Стили для редактора (минимальная высота)
- */
+/** Inline style of the editor (its minimum height) */
 const editorStyles = computed(() => ({
     minHeight: `${props.minHeight}px`,
 }));
 
-/**
- * CSS классы для wrapper компонента
- */
+/** CSS classes of the wrapper element */
 const wrapperClasses = computed(() => [
     $style.TextEditorArea,
     {
@@ -99,9 +95,7 @@ const isToolbarVisible = computed(
 // #endregion
 
 // #region Methods
-/**
- * Закрывает модальный редактор.
- */
+/** Closes the modal editor */
 function handleModalClose(): void {
     isExpandedModalOpen.value = false;
 }
@@ -110,7 +104,6 @@ function handleModalClose(): void {
 
 <template>
     <div :class="wrapperClasses">
-        <!-- Rich Text Editor Toolbar + Code Toggle -->
         <div v-if="props.useRichEditor !== false && props.toolbar" :class="$style.toolbarSection">
             <div :class="$style.toolbarActions">
                 <BricksButton
@@ -140,7 +133,6 @@ function handleModalClose(): void {
             </transition>
         </div>
 
-        <!-- Editor Content / Code View -->
         <template v-if="props.useRichEditor !== false">
             <transition name="bricks-fade" mode="out-in">
                 <div
@@ -197,7 +189,6 @@ function handleModalClose(): void {
             </transition>
         </template>
 
-        <!-- Fallback Textarea when rich editor disabled -->
         <textarea
             v-else
             :class="$style.fallbackArea"
@@ -208,12 +199,10 @@ function handleModalClose(): void {
             @input="handleTextareaInput"
         ></textarea>
 
-        <!-- Error Message -->
         <p v-if="loadingError" :class="$style.error">
             Не удалось загрузить редактор. Используется простой textarea.
         </p>
 
-        <!-- Expanded Modal Editor -->
         <TheTextEditorModal
             :is-open="isExpandedModalOpen"
             :value="innerValue"
@@ -222,7 +211,6 @@ function handleModalClose(): void {
             @close="handleModalClose"
         />
 
-        <!-- Форма ссылки для редактора в панели свойств -->
         <TextEditorLinkModal
             :is-open="isLinkModalOpen"
             :value="linkValue"
@@ -275,9 +263,6 @@ function handleModalClose(): void {
 }
 
 .editor {
-    /* Фиксируем светлую тему для области ввода контента.
-       primary — тоже: им красится ссылка, а фон здесь всегда белый, и тёмный
-       вариант токена дал бы на нём заметно более тусклую ссылку */
     --bricks-base-0: #fff;
     --bricks-base-300: #d1d5db;
     --bricks-base-900: #111827;
@@ -304,9 +289,6 @@ function handleModalClose(): void {
 }
 
 .fallbackArea {
-    /* Фиксируем светлую тему для области ввода контента.
-       primary — тоже: им красится ссылка, а фон здесь всегда белый, и тёмный
-       вариант токена дал бы на нём заметно более тусклую ссылку */
     --bricks-base-0: #fff;
     --bricks-base-300: #d1d5db;
     --bricks-base-900: #111827;

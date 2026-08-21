@@ -19,8 +19,8 @@ declare module '@tiptap/core' {
 }
 
 /**
- * Кастомное расширение для поддержки lineHeight атрибута
- * Позволяет устанавливать межстрочный интервал для параграфов и заголовков
+ * Custom extension adding the lineHeight attribute.
+ * Lets the line height be set on paragraphs and headings.
  */
 export const LineHeight = Extension.create({
     name: 'lineHeight',

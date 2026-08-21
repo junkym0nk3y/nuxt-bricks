@@ -4,11 +4,12 @@ import type { IInlineContentSegment } from '../../common/types/content';
 // #endregion
 
 /**
- * Конвертирует массив inline-content сегментов в TipTap JSONContent (документ).
- * Text сегменты → text nodes, line-break → hardBreak, image/svg → inlineSegmentImage atom.
+ * Converts an array of inline-content segments into a TipTap JSONContent document.
+ * Text segments become text nodes, a line-break closes the current paragraph and opens
+ * the next one, image/svg become an inlineSegmentImage atom.
  *
- * @param segments - Массив сегментов inline-content.
- * @returns TipTap JSONContent документ.
+ * @param segments - Array of inline-content segments.
+ * @returns TipTap JSONContent document.
  */
 export function segmentsToTiptapDoc(segments: IInlineContentSegment[]): JSONContent {
     if (!segments || segments.length === 0) {
@@ -69,12 +70,13 @@ export function segmentsToTiptapDoc(segments: IInlineContentSegment[]): JSONCont
 }
 
 /**
- * Конвертирует TipTap JSONContent обратно в массив inline-content сегментов.
- * Image/SVG ноды восстанавливаются из originalSegments по segmentId (round-trip safe).
+ * Converts a TipTap JSONContent back into an array of inline-content segments.
+ * Image/SVG nodes are restored from originalSegments by segmentId (round-trip safe).
+ * Both a paragraph boundary and a hardBreak come back as a line-break segment.
  *
- * @param doc - TipTap JSONContent документ.
- * @param originalSegments - Оригинальные сегменты для восстановления медиа-данных.
- * @returns Массив IInlineContentSegment.
+ * @param doc - TipTap JSONContent document.
+ * @param originalSegments - Original segments the media data is restored from.
+ * @returns Array of IInlineContentSegment.
  */
 export function tiptapDocToSegments(
     doc: JSONContent,

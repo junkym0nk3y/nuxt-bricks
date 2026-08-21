@@ -1,5 +1,5 @@
 /**
- * Типы композаблов домена text-editor.
+ * Types of the composables of the text-editor domain.
  */
 
 import type { Editor } from '@tiptap/vue-3';
@@ -10,7 +10,7 @@ import type { IToolbarGroup, IToolbarStateRefs } from '../../ui/inputs/textEdito
 
 // #region useInlineEditor
 /**
- * Опции composable useInlineEditor: редактируемое свойство компонента схемы.
+ * Options of the useInlineEditor composable: the editable property of a schema component.
  */
 export interface IUseInlineEditorOptions {
     componentId: string;
@@ -19,7 +19,7 @@ export interface IUseInlineEditorOptions {
 }
 
 /**
- * Возвращаемое значение composable useInlineEditor.
+ * Return value of the useInlineEditor composable.
  */
 export interface IUseInlineEditorReturn {
     editor: ShallowRef<Editor | null>;
@@ -33,71 +33,71 @@ export interface IUseInlineEditorReturn {
 
 // #region useTextEditorArea
 /**
- * Возвращаемое значение composable useTextEditorArea.
+ * Return value of the useTextEditorArea composable.
  */
 export interface ITextEditorArea {
-    /** Текущее значение контента (HTML). */
+    /** Current content value (HTML) */
     innerValue: Ref<string>;
-    /** true после mount — редактор существует только на клиенте. */
+    /** true after mount — the editor exists on the client only */
     isClient: Ref<boolean>;
-    /** Ошибка загрузки rich-редактора (fallback на textarea). */
+    /** Loading error of the rich editor (falls back to a textarea) */
     loadingError: Ref<unknown | null>;
-    /** Режим просмотра HTML-кода вместо визуального редактора. */
+    /** HTML source view instead of the visual editor */
     isCodeView: Ref<boolean>;
-    /** Тёмный фон области ввода. */
+    /** Dark background of the input area */
     isDarkEditorBackground: Ref<boolean>;
-    /** Экземпляр TipTap-редактора (null до инициализации). */
+    /** TipTap editor instance (null until it is initialized) */
     editor: ShallowRef<Editor | null>;
-    /** Компонент EditorContent из @tiptap/vue-3 (lazy). */
+    /** The EditorContent component from @tiptap/vue-3 (lazy) */
     EditorContentComponent: ShallowRef<Component | null>;
-    /** Конфигурация групп тулбара. */
+    /** Config of the toolbar groups */
     toolbarGroups: ComputedRef<IToolbarGroup[]>;
-    /** Переключает визуальный режим ↔ код. */
+    /** Switches between the visual mode and the source */
     toggleCodeView: () => void;
-    /** Переключает фон редактора светлый ↔ тёмный. */
+    /** Switches the editor background between light and dark */
     toggleEditorBackground: () => void;
-    /** Обновляет значение и эмитит update:value. */
+    /** Updates the value and emits update:value */
     handleContentUpdate: (content: string) => void;
-    /** Обрабатывает ввод в fallback textarea. */
+    /** Handles input in the fallback textarea */
     handleTextareaInput: (event: Event) => void;
-    /** Обрабатывает обновление значения из модального редактора. */
+    /** Handles a value update coming from the modal editor */
     handleModalUpdate: (value: string) => void;
-    /** Запрашивает медиа из MediaGallery и вставляет в редактор. */
+    /** Requests media from MediaGallery and inserts it into the editor */
     handleRequestImage: () => void;
-    /** Состояние и операции модалки ссылки для этого редактора. */
+    /** State and operations of the link modal of this editor */
     link: ITextEditorLink;
 }
 // #endregion
 
 // #region useToolbarStateSync
 /**
- * Опции composable useToolbarStateSync.
+ * Options of the useToolbarStateSync composable.
  */
 export interface IToolbarStateSyncOptions {
-    /** Дополнительное условие показа toolbar (false → пустой список групп). */
+    /** Extra condition for showing the toolbar (false gives an empty list of groups) */
     isEnabled?: MaybeRefOrGetter<boolean>;
-    /** Открывает модалку ссылки; без него кнопки ссылки в тулбаре нет. */
+    /** Opens the link modal; without it the toolbar has no link button */
     onRequestLink?: () => void;
 }
 
 /**
- * Возвращаемое значение composable useToolbarStateSync.
+ * Return value of the useToolbarStateSync composable.
  */
 export interface IToolbarStateSync {
-    /** Refs текущих значений шрифта/цвета/межстрочных для selects тулбара. */
+    /** Refs of the current font/color/spacing values for the toolbar selects */
     toolbarState: IToolbarStateRefs;
-    /** Счётчик транзакций — реактивная зависимость для пересчёта toolbarGroups. */
+    /** Transaction counter — the reactive dependency that recomputes toolbarGroups */
     editorTransactionCount: Ref<number>;
-    /** Конфигурация групп тулбара (пустая, если editor нет или isEnabled = false). */
+    /** Config of the toolbar groups (empty with no editor or with isEnabled = false) */
     toolbarGroups: ComputedRef<IToolbarGroup[]>;
-    /** Сбрасывает toolbar state к дефолтам (например, при смене редактируемого свойства). */
+    /** Resets the toolbar state to the defaults (say, when the edited property changes) */
     resetToolbarState: () => void;
 }
 // #endregion
 
 // #region useTextEditorLink
 /**
- * Значение формы ссылки: адрес и признак открытия в новой вкладке.
+ * Value of the link form: the address and the open-in-a-new-tab flag.
  */
 export interface ITextEditorLinkValue {
     href: string;
@@ -105,22 +105,22 @@ export interface ITextEditorLinkValue {
 }
 
 /**
- * Возвращаемое значение composable useTextEditorLink.
+ * Return value of the useTextEditorLink composable.
  */
 export interface ITextEditorLink {
-    /** Открыта ли модалка ссылки. */
+    /** Whether the link modal is open */
     isLinkModalOpen: Ref<boolean>;
-    /** Начальное значение формы: адрес и вкладка текущей ссылки под курсором. */
+    /** Initial form value: address and tab flag of the link currently under the cursor */
     linkValue: Ref<ITextEditorLinkValue>;
-    /** Есть ли ссылка в текущем выделении — от этого зависит кнопка «убрать». */
+    /** Whether the current selection holds a link — decides on the "remove" button */
     hasLinkAtSelection: Ref<boolean>;
-    /** Открывает модалку, подставляя атрибуты ссылки под курсором. */
+    /** Opens the modal, prefilling the attributes of the link under the cursor */
     openLinkModal: () => void;
-    /** Закрывает модалку, возвращая фокус в редактор. */
+    /** Closes the modal and returns the focus to the editor */
     closeLinkModal: () => void;
-    /** Применяет ссылку к выделению (или вставляет адрес текстом). */
+    /** Applies the link to the selection (or inserts the address as text) */
     applyLink: (value: ITextEditorLinkValue) => void;
-    /** Снимает ссылку с выделения целиком. */
+    /** Removes the link from the selection as a whole */
     removeLink: () => void;
 }
 // #endregion

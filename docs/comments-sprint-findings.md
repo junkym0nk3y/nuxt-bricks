@@ -1018,6 +1018,324 @@ knip может быть списана как известный шум.
 
 ---
 
+## Этап 4 — text-editor
+
+### 4.1 JSDoc `segmentsToTiptapDoc` обещал `hardBreak` там, где код делит абзацы
+
+**Файл:** `src/runtime/modules/text-editor/utils/inlineContentTiptap.ts` (шапка
+`segmentsToTiptapDoc`)
+**Категория:** разъехавшийся комментарий
+**Статус:** текст исправлен в этапе 4
+
+Шапка перечисляла соответствия сегментов узлам TipTap и утверждала
+«line-break → hardBreak». Фактически ветка `segment.kind === 'line-break'`
+закрывает текущий абзац и открывает следующий (`paragraphs.push(...)`,
+`currentInline = []`), узел `hardBreak` в прямом направлении не создаётся вовсе.
+`hardBreak` разбирается только в обратной функции `tiptapDocToSegments` — там он
+наравне с границей абзаца превращается в сегмент `line-break`, и по этой причине
+набранный Shift+Enter при следующем открытии редактора приходит уже абзацем.
+
+В переводе прямое направление названо по коду, а факт про обратное («и граница
+абзаца, и `hardBreak` возвращаются сегментом `line-break`») дописан в шапку
+`tiptapDocToSegments`, где ему и место.
+
+### 4.2 Комментарий у `.codeViewButton` называл механизм, которого нет
+
+**Файл:** `src/runtime/modules/text-editor/components/TheTextEditorModal.vue`
+(секция `<style>`, класс `.codeViewButton`)
+**Категория:** разъехавшийся комментарий
+**Статус:** комментарий удалён в этапе 4 как неверный
+
+Комментарий утверждал: «без явного размера глиф наследует кегль заголовка шапки и
+вырастает вдвое». Ни одна половина не подтверждается.
+
+Проверено по коду: в `BricksModalHeader` слот `actions` лежит в `.actions` —
+это сосед `.titleGroup`, а `font-size: 2rem` объявлен у `.title` внутри
+`.titleGroup`, то есть до кнопки кегль заголовка не доходит по каскаду вообще.
+Сама `BricksButton` при `size="sm"` ставит себе `font-size: var(--bricks-font-size-sm)`
+(1.2rem), а `.content svg { width: auto; height: auto }` перебивает
+презентационный `width="1em"` иконки.
+
+Проверено замером в браузере на минимальном воспроизведении того же каскада
+(html 62.5%, кнопка `._sm`, `.content svg { width: auto; height: auto }`, иконка
+`viewBox="0 0 256 256"` с `width="1em"`): без правила глиф выходит 12 × 14.4 px,
+с правилом — ровно 16 × 16. То есть явное `1.6rem` глиф **увеличивает**, приводя
+его к тому же размеру, что даёт правило `.codeToggle` у второй копии того же
+тоггла в `TextEditorArea`.
+
+Переносить факт было некуда: механизм «явный класс у вызывающего перебивает размер
+глифа кнопки» уже описан в шапке `BricksButton`.
+
+### 4.3 «Не удаляемый пользователем» у `InlineSegmentImage` ничем не обеспечен
+
+**Файл:** `src/runtime/modules/text-editor/tiptap/inlineSegmentImage.ts` (шапка)
+**Категория:** непроверенное утверждение в комментарии
+**Статус:** формулировка сужена в этапе 4, живая проверка не проводилась
+
+Шапка называла узел «read-only, не редактируемый и не удаляемый пользователем».
+Первую половину код обеспечивает: `atom: true` плюс `contenteditable="false"`
+закрывают внутренности от правки, `selectable: false` не даёт узлу попасть в
+`NodeSelection`. Вторую — нет: ни `addKeyboardShortcuts`, ни `filterTransaction`,
+ни какой-либо иной барьер в файле не стоит, а редактор inline-content собран из
+`Document`, `Paragraph`, `Text`, `HardBreak` и этого узла, то есть штатная цепочка
+Backspace из `@tiptap/core` работает как обычно.
+
+В переводе оставлено только то, что подтверждается спецификацией узла. Прежде чем
+возвращать сильное утверждение, нужно проверить браузером, снимает ли Backspace
+атом (unit-тестами такое не ловится — см. `.claude/rules/testing.md`).
+
+### 4.4 `cycleUnit` записывает число пикселей как проценты
+
+**Файлы:** `src/runtime/modules/text-editor/utils/sizeUnits.ts` (`convertFromPx`),
+`src/runtime/modules/text-editor/components/TextEditorImageSizePanel.vue`
+(`cycleUnit`)
+**Категория:** дефект
+**Статус:** открыта, логику в этом спринте не правил
+
+`SIZE_UNITS` — `['px', 'rem', 'em', '%']`, и `cycleUnit` листает их по кругу,
+пересчитывая значение из пиксельных `attr` через `convertFromPx`. Ветки для `%` в
+`convertFromPx` нет: `default` возвращает пиксели как есть. Поэтому переключение
+единицы на `%` у картинки шириной 300 px даёт `customWidth: '300%'`, а
+`applySize` пишет это в атрибут узла (обратный `convertToPx` для `%` возвращает 0,
+поэтому пиксельная ширина остаётся прежней, но в DOM уезжает `width: 300%`).
+
+Комментарий над `cycleUnit` при этом верен: пересчёт действительно идёт от
+пиксельных `attr`, чтобы не копить ошибки округления. Дефект в отсутствии ветки
+для процентов, а не в описании.
+
+### 4.5 `float-none` и `valign-bottom` не создаёт ни один путь интерфейса
+
+**Файлы:** `src/runtime/modules/text-editor/tiptap/resizableImage.ts`,
+`resizableVideo.ts` (`FLOAT_CLASSES`, `VALIGN_CLASSES`, `renderHTML` атрибутов),
+`src/runtime/modules/text-editor/components/TextEditorImageFloatPopover.vue`
+(`VALIGN_OPTIONS`, `handleTransaction`), CSS —
+`src/runtime/assets/scss/default.scss:457,475`
+**Категория:** неполный интерфейс (не мёртвый код)
+**Статус:** открыта
+
+`renderHTML` атрибута `float` при пустом значении возвращает `{}`, а кнопка «без
+обтекания» вызывает `setFloat(null)` — класс `float-none` не выставляется никогда.
+`parseHTML` его тоже не читает (проверяются только `float-left`/`float-right`, затем
+legacy-атрибут `data-float`), так что при разборе входящего HTML он теряется. Класс
+`valign-bottom` живёт в `VALIGN_CLASSES` и разбирается `parseHTML`, но в
+`VALIGN_OPTIONS` попавера его нет, и `handleTransaction` распознаёт только
+`baseline`/`middle`/`top`.
+
+**Уточнение после ревью Codex:** «мёртвыми» эти классы назвать нельзя, и правила в
+`default.scss` не лишние. `valign-bottom` проходит полный круг: `parseHTML` его
+читает, `renderHTML` возвращает обратно, плагин синхронизации навешивает на
+контейнер NodeView — то есть разметка, введённая через режим кода или пришедшая
+извне, отрисуется. `float-none` теряется при разборе, но режим кода сохраняет
+`codeValue` дословно (`handleDone` в `TheTextEditorModal` при активном code-view
+отдаёт именно его, без круга через TipTap), поэтому на published-странице класс
+доживает до CSS. Недостижимы они из интерфейса: попавер не умеет их поставить.
+
+При этом правила `.float-none` и `.valign-bottom` в `default.scss` объявлены. В
+`FLOAT_CLASSES`/`VALIGN_CLASSES` обе строки нужны как цели `classList.remove(...)`
+для legacy-разметки — это единственное их живое употребление, и оно не требует
+правил в CSS.
+
+### 4.6 `Baseline` — единственная подпись попавера без ключа локали
+
+**Файл:** `src/runtime/modules/text-editor/components/TextEditorImageFloatPopover.vue`
+(`VALIGN_OPTIONS`, разметка подсказки)
+**Категория:** i18n-долг плюс KISS
+**Статус:** открыта
+
+У двух опций из трёх `label` — ключ локали (`bricks.textEditor.alignMiddle`,
+`bricks.textEditor.alignTop`), у первой — литерал `'Baseline'`. Из-за этого в
+разметке пришлось развести случаи тернарником:
+`option.value === 'baseline' ? option.label : t(option.label)`. Ключ локали убрал
+бы и литерал, и тернарник разом.
+
+### 4.7 Хардкод русского UI-текста в домене
+
+**Файлы:** `src/runtime/modules/text-editor/components/TextEditorArea.vue`
+(сообщение об ошибке загрузки редактора),
+`src/runtime/modules/text-editor/components/TheTextEditorModal.vue` (кнопка
+«Готово»)
+**Категория:** i18n-долг
+**Статус:** открыта, по решению владельца в спринте не переводится
+
+Два места в `<template>` из тех десяти строк, что план выводит из границ спринта.
+Рядом в тех же файлах всё остальное уже идёт через `t(...)`, включая заголовок
+модалки и подписи кнопок тулбара, поэтому эти две строки — не стиль, а пропуск.
+
+### 4.8 Проп `label` у `TextEditorArea` принимается и теряется
+
+**Файлы:** `src/runtime/modules/text-editor/components/types.d.ts`
+(`ITextEditorAreaProps`), `src/runtime/modules/text-editor/components/TextEditorArea.vue`
+(`withDefaults`, класс `.label` в `<style>`)
+**Категория:** мёртвый код
+**Статус:** открыта
+
+`label` объявлен в контракте пропсов и получает дефолт `''`, но в разметке не
+используется ни разу; класс `.label` в секции стилей тоже не навешивается ни на
+что. Проп при этом реально приходит: `normalizeVariantProps` кладёт `label` в
+нормализованные пропсы, а `BuilderShellSidebarPropertyEditorRow` раздаёт их
+редактору через `v-bind` — то есть панель свойств передаёт подпись и молча её
+теряет. Подпись при этом рисует сама строка панели
+(`<span v-if="shouldShowLabel">`), так что видимого дефекта нет, а есть два
+осколка: проп без применения и правило CSS без владельца.
+
+### 4.9 Отступ попавера над медиа — безымянное число рядом с именованным
+
+**Файл:** `src/runtime/modules/text-editor/components/TextEditorImageFloatPopover.vue`
+(`updatePosition`)
+**Категория:** KISS
+**Статус:** открыта
+
+Ширина попавера вынесена в константу `POPOVER_WIDTH = 270` и участвует в расчёте
+центровки, а вертикальный подъём над элементом остаётся литералом:
+`popoverTop.value = rect.top - 44`. Число связано с высотой самого попавера
+(2.8rem кнопки плюс отбивка), то есть при изменении вида поедет молча.
+
+### 4.10 Условие `editorTransactionCount.value < 0` читается как барьер
+
+**Файл:** `src/runtime/modules/text-editor/composables/useToolbarStateSync.ts`
+(`toolbarGroups`)
+**Категория:** KISS
+**Статус:** открыта
+
+Счётчик только инкрементируется (`editorTransactionCount.value++`), поэтому
+`editorTransactionCount.value < 0` не бывает истинным никогда. Чтение `.value`
+внутри условия существует ради регистрации реактивной зависимости — приём рабочий,
+но в виде третьего слагаемого в `if` он выглядит проверкой на невозможное
+состояние. Комментарий над `computed` про зависимость от счётчика есть, а вот сам
+код о своём назначении не говорит.
+
+### 4.12 Tech-debt-исключение для `useInlineEditor` в `.dependency-cruiser.cjs` устарело
+
+**Файл:** `.dependency-cruiser.cjs` (`text-editor-deps` — `pathNot`,
+плюс правило `text-editor-tech-debt-scope` целиком)
+**Категория:** ослабленная граница домена
+**Статус:** открыта
+
+Конфиг выводит `text-editor/composables/useInlineEditor.ts` из-под правила
+`text-editor-deps` с пометкой «tech-debt: useInlineEditor → builder/core/stores/components
+(кандидат на DI)» и отдельным правилом разрешает ему `builder/core/stores`.
+Долг закрыт: файл не импортирует ничего из `builder` вовсе — состояние билдера
+приходит через `inject` по ключу `INLINE_EDITOR_HOST_KEY` из `common`, то есть DI,
+которого правило и ждало. Проверено прогоном
+`npx depcruise src/runtime/modules/text-editor/composables/useInlineEditor.ts`:
+в зависимостях только `common` и `text-editor`.
+
+То есть исключение сейчас не отражает код и держит границу открытой: возврат
+импорта `builder/core/stores` в этот файл `deps:check` не заметит. Кандидат: снять
+`pathNot` и удалить правило `text-editor-tech-debt-scope`.
+
+### 4.11 `resizableImage` и `resizableVideo` — два почти дословных файла
+
+**Файлы:** `src/runtime/modules/text-editor/tiptap/resizableImage.ts`,
+`src/runtime/modules/text-editor/tiptap/resizableVideo.ts`
+**Категория:** нарушение DRY
+**Статус:** открыта
+
+Совпадения проверены сравнением текста, а не на глаз:
+
+- `extractStyledDimension` и `applyCustomDimension` — дословно одинаковые функции в
+  обоих файлах (различается только длина JSDoc);
+- `FLOAT_CLASSES` и `VALIGN_CLASSES` — одинаковые константы;
+- тело плагина `floatSync` совпадает посимвольно после замены имени типа узла
+  (`image` против `video`) — расходятся только комментарии;
+- тело `appendTransaction` плагина очистки `customWidth`/`customHeight` совпадает
+  после той же замены полностью, включая комментарии.
+
+Кандидат: общий модуль в `text-editor/utils/` для двух функций и фабрика плагинов,
+принимающая имя типа узла. Сейчас исправление дефекта в одном файле нужно помнить
+продублировать во второй — при переводе это было видно дважды.
+
+---
+
+### 4.13 Placeholder до rich-редактора не доходит
+
+**Файл:** `src/runtime/modules/text-editor/composables/useTextEditorArea.ts`
+(watcher `props.placeholder`)
+**Категория:** мёртвый путь
+**Статус:** шапка исправлена в этапе 4, логика открыта
+
+Watcher пишет в `editorProps.attributes` атрибут `data-placeholder`. Потребителя у
+атрибута нет: расширения `@tiptap/extension-placeholder` в зависимостях нет, и
+`data-placeholder` не читает ни один селектор репозитория — единственное вхождение
+строки во всём дереве и есть эта запись. Плюс watcher не `immediate`, и
+`createTiptapEditor` начальный placeholder не получает, так что до первой смены
+пропа атрибута нет вообще. Placeholder виден только у fallback-textarea, куда он
+уходит обычным HTML-атрибутом.
+
+Найдено ревью Codex. Шапка композабла перечисляла `placeholder` среди
+синхронизируемых пропсов — формально верно (запись есть), по сути обещание
+работающего placeholder. В переводе оставлены `value` и `disabled`, а про
+placeholder сказано, до какой границы он доходит.
+
+### 4.14 JSDoc `addNodeView` противоречил собственной ветке
+
+**Файл:** `src/runtime/modules/text-editor/tiptap/inlineSegmentImage.ts`
+(`addNodeView`)
+**Категория:** разъехавшийся комментарий
+**Статус:** текст исправлен в этапе 4
+
+Комментарий утверждал, что NodeView создаётся только для SVG, а image-сегменты идут
+через штатный `renderHTML`. Ветка `!isSvg` прямо под ним создаёт `img` и возвращает
+`{ dom: img }`, то есть NodeView получают оба вида. `renderHTML` при этом остаётся
+путём сериализации (`getHTML`), а не отображения.
+
+Найдено ревью Codex. Утверждение досталось переводу из русского оригинала — я его
+пропустил, хотя ветку читал.
+
+### 4.15 Рационал конфигурации ссылок содержал два неверных «только»
+
+**Файл:** `src/runtime/modules/text-editor/utils/createTiptapEditor.ts`
+(блок `link` в `StarterKit.configure`)
+**Категория:** разъехавшийся комментарий
+**Статус:** текст исправлен в этапе 4
+
+Первое: «ссылка появляется только по явному действию» — `autolink: false` снимает
+разметку набранного домена, но `linkOnPaste` остаётся в дефолте `true`
+(`node_modules/@tiptap/extension-link/dist/index.js:236`), то есть вставка адреса
+по-прежнему создаёт ссылку сама. Второе: «настраивается только конфигом» — ссылки
+можно выключить в StarterKit (`link: false`) и подключить отдельно
+сконфигурированный Link, ровно как рядом сделано с bold и underline.
+
+Найдено ревью Codex. В переводе первое утверждение сведено к тому, что реально
+обеспечивает флаг (набранный домен не размечается), с прямым указанием, что вставка
+ссылку создаёт; второе заменено фактом про `Duplicate extension names` и решением
+не выключать штатную ссылку.
+
+### 4.16 «Выбор изображения» сузил контракт медиа-запроса
+
+**Файлы:** `src/runtime/modules/text-editor/stores/inlineEditing.ts`
+(`mediaRequestCallback`, `isRequestingMedia`, `requestMedia`)
+**Категория:** разъехавшийся комментарий
+**Статус:** текст исправлен в этапе 4
+
+Три комментария говорили про «выбор изображения», тогда как колбэк принимает
+`IMediaItem`, а единственный потребитель (`insertMediaIntoEditor`) разводит видео в
+`setVideo` и картинку в `setImage`. Формулировка из оригинала, перевод её сохранил.
+
+Найдено ревью Codex. Имена `handleRequestImage` у двух вызывающих тоже говорят про
+картинку — это уже не комментарий, отдельным кандидатом на переименование.
+
+### 4.17 «Последний барьер» в `applyLink` обоснован обходом, которого нет
+
+**Файл:** `src/runtime/modules/text-editor/composables/useTextEditorLink.ts`
+(`applyLink`)
+**Категория:** разъехавшийся комментарий
+**Статус:** текст исправлен в этапе 4
+
+Комментарий объяснял повторную проверку адреса тем, что «применение вызывается и по
+Enter в поле», то есть в обход формы. Обхода нет: поле стоит внутри
+`<form novalidate @submit.prevent="handleApply">`, `BricksInput` собственного
+обработчика Enter не имеет, и нажатие Enter отправляет ту же форму в тот же
+`handleApply` с той же проверкой `normalizedHref`. Все три поверхности редактора
+(панель свойств, развёрнутая модалка, inline-оверлей канваса) ходят через
+`@apply` этой формы.
+
+Найдено ревью Codex. Настоящая причина проверки другая и в переводе названа:
+`applyLink` — публичная точка входа композабла, и вызывающему помимо формы верить
+нельзя.
+
+---
+
 ## Известные находки из планирования (не закрыты)
 
 Перенесены из `comments-sprint.md` («затравка документа»). Правятся текстом по ходу

@@ -41,18 +41,14 @@ const showSizePanel = ref(false);
 // #endregion
 
 // #region Methods
-/**
- * Обновляет позицию попавера относительно выбранного элемента.
- */
+/** Moves the popover to sit above the selected element */
 function updatePosition(element: HTMLElement): void {
     const rect = element.getBoundingClientRect();
     popoverTop.value = rect.top - 44;
     popoverLeft.value = rect.left + rect.width / 2 - POPOVER_WIDTH / 2;
 }
 
-/**
- * Устанавливает float-атрибут на медиа-элемент.
- */
+/** Sets the float attribute on the media element */
 function setFloat(value: string | null): void {
     if (!props.editor || !activeNodeType.value) {
         return;
@@ -61,9 +57,7 @@ function setFloat(value: string | null): void {
     props.editor.chain().focus().updateAttributes(activeNodeType.value, { float: value }).run();
 }
 
-/**
- * Устанавливает vertical-align атрибут на медиа-элемент.
- */
+/** Sets the vertical-align attribute on the media element */
 function setVerticalAlign(value: string | null): void {
     if (!props.editor || !activeNodeType.value) {
         return;
@@ -76,9 +70,7 @@ function setVerticalAlign(value: string | null): void {
         .run();
 }
 
-/**
- * Открывает/закрывает панель размеров (панель читает размеры при монтировании).
- */
+/** Opens or closes the size panel (the panel reads the sizes when it mounts) */
 function toggleSizePanel(): void {
     showSizePanel.value = !showSizePanel.value;
 }
@@ -93,9 +85,7 @@ watchEffect((onCleanup) => {
         return;
     }
 
-    /**
-     * Обработчик транзакций — проверяет, выбран ли медиа-нод.
-     */
+    /** Transaction handler — checks whether a media node is selected */
     function handleTransaction(): void {
         if (!editor) {
             return;
@@ -120,7 +110,7 @@ watchEffect((onCleanup) => {
         activeNodeType.value = media.nodeName;
         const nodeType = media.nodeName;
 
-        // Определяем текущий float
+        // Work out the current float
         if (editor.isActive(nodeType, { float: 'left' })) {
             currentFloat.value = 'left';
         } else if (editor.isActive(nodeType, { float: 'right' })) {
@@ -129,7 +119,7 @@ watchEffect((onCleanup) => {
             currentFloat.value = null;
         }
 
-        // Определяем текущий verticalAlign
+        // Work out the current verticalAlign
         if (editor.isActive(nodeType, { verticalAlign: 'baseline' })) {
             currentVerticalAlign.value = 'baseline';
         } else if (editor.isActive(nodeType, { verticalAlign: 'middle' })) {
@@ -144,7 +134,7 @@ watchEffect((onCleanup) => {
         isVisible.value = true;
     }
 
-    // Начальная проверка
+    // Initial check
     handleTransaction();
 
     editor.on('transaction', handleTransaction);
@@ -171,7 +161,6 @@ onBeforeUnmount(() => {
                 :class="$style.TextEditorImageFloatPopover"
                 :style="{ top: `${popoverTop}px`, left: `${popoverLeft}px` }"
             >
-                <!-- Float controls -->
                 <BricksTooltip top>
                     <template #activator>
                         <button
@@ -211,7 +200,6 @@ onBeforeUnmount(() => {
                     <BricksTooltipHint :text="t('bricks.textEditor.floatNone')" />
                 </BricksTooltip>
 
-                <!-- Vertical align controls -->
                 <div :class="$style.separator" />
                 <BricksTooltip v-for="option in VALIGN_OPTIONS" :key="option.value" top>
                     <template #activator>
@@ -233,7 +221,6 @@ onBeforeUnmount(() => {
                     />
                 </BricksTooltip>
 
-                <!-- Size toggle -->
                 <div :class="$style.separator" />
                 <BricksTooltip top>
                     <template #activator>
@@ -248,7 +235,6 @@ onBeforeUnmount(() => {
                     <BricksTooltipHint :text="t('bricks.textEditor.size')" />
                 </BricksTooltip>
 
-                <!-- Size panel dropdown -->
                 <TextEditorImageSizePanel
                     v-if="showSizePanel"
                     :editor="props.editor"

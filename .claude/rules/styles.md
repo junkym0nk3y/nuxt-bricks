@@ -90,7 +90,15 @@ $primary-color: #6366f1; // FORBIDDEN
 - ✅ `letter-spacing` микрозначения (`0.05rem`, `0.1rem`) — правило кратности 0.2 не применяется (0.2rem — уже гигантский трекинг); только `rem`, не `em`
 - ✅ Значения, производные от `1px`-бордера (`calc(var(--bricks-border-radius-xs) - 0.1rem)`) и центровка хэндлов (`-0.5rem` = половина 1rem-хэндла)
 - ✅ Hover/focus `transition:` внутри компонентов — правило «transitions в `transitions.scss`» касается Vue-`<transition>`-анимаций, а не интерактивных состояний; длительность брать из `--bricks-default-transition`
-- ✅ Форс светлой темы области ввода текста (`TextEditorArea`, `TheTextEditorModal`) — hex-блоки намеренные
+- ✅ Форс светлой темы области ввода текста (`TextEditorArea` — `.editor` и `.fallbackArea`,
+  `TheTextEditorModal` — `.editor`) — hex-блоки намеренные. Фон области ввода всегда белый,
+  потому что она показывает контент published-страницы, а не интерфейс билдера. Роли
+  переопределений: `--bricks-base-0` — фон, `--bricks-base-900` — текст,
+  `--bricks-base-300` — рамка поля (есть только у `TextEditorArea`; у `.editor` модалки
+  рамки нет), `--bricks-primary` — цвет ссылки внутри контента (правило
+  `body.bricks-page .ProseMirror a` в `default.scss`), а в `.fallbackArea`, где контента
+  нет, он же красит рамку в фокусе. Тёмный вариант `primary` дал бы на белом фоне заметно
+  более тусклую ссылку — поэтому он в наборе, хотя в отдельных блоках потребителя не имеет
 - Текст на фиксированных фонах (primary, тёмные оверлеи) — `var(--bricks-static-white)`, НЕ `--bricks-base-0` (перевернётся в тёмной теме) и не `#fff`
 - Pill-радиус — `var(--bricks-border-radius-pill)`, не `999px`/`99.9rem`
 - ✅ **Sass-переменные и карты в `assets/scss/public/**`** — публичный миксин-API пакета

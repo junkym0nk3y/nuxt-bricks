@@ -37,9 +37,7 @@ const lockAspectRatio = ref(true);
 // #endregion
 
 // #region Methods
-/**
- * Читает текущие размеры из атрибутов выбранного нода.
- */
+/** Reads the current sizes out of the attributes of the selected node */
 function readCurrentSize(): void {
     if (!props.editor || !props.activeNodeType) {
         return;
@@ -62,8 +60,8 @@ function readCurrentSize(): void {
 }
 
 /**
- * Возвращает реальный px-эквивалент 1em для текущего выбранного медиа-элемента.
- * Использует computed font-size элемента, а не константу.
+ * Returns the real px equivalent of 1em for the media element currently selected.
+ * Takes the computed font-size of the element rather than a constant.
  */
 function getEmPixelSize(): number {
     if (!props.editor || !props.activeNodeType) {
@@ -78,9 +76,7 @@ function getEmPixelSize(): number {
     return parseFloat(getComputedStyle(media.element).fontSize) || DEFAULT_PX_PER_EM;
 }
 
-/**
- * Возвращает текущее соотношение сторон (width/height) выбранного медиа.
- */
+/** Returns the current aspect ratio (width/height) of the selected media */
 function getCurrentAspectRatio(): number | null {
     if (!props.editor || !props.activeNodeType) {
         return null;
@@ -92,9 +88,7 @@ function getCurrentAspectRatio(): number | null {
     return attrs.width / attrs.height;
 }
 
-/**
- * Применяет текущие значения размеров к атрибутам нода.
- */
+/** Applies the current size values to the attributes of the node */
 function applySize(): void {
     if (!props.editor || !props.activeNodeType) {
         return;
@@ -136,9 +130,9 @@ function applySize(): void {
         }
     }
 
-    // Запоминаем позицию ноды — updateAttributes внутри вызывает setNodeMarkup,
-    // который заменяет ноду и конвертирует NodeSelection → TextSelection.
-    // После обновления восстанавливаем NodeSelection на той же позиции.
+    // Remember the position of the node — inside, updateAttributes calls setNodeMarkup,
+    // which replaces the node and turns the NodeSelection into a TextSelection.
+    // Once the update is through, the NodeSelection is restored at the same position.
     const nodePos = props.editor.state.selection.from;
 
     props.editor
@@ -152,9 +146,7 @@ function applySize(): void {
         .run();
 }
 
-/**
- * Применяет ширину и пересчитывает высоту при lock aspect ratio.
- */
+/** Applies the width and recomputes the height while the aspect ratio is locked */
 function applyWidth(): void {
     const w = parseFloat(sizeWidth.value);
     if (isNaN(w) || w <= 0) {
@@ -171,9 +163,7 @@ function applyWidth(): void {
     applySize();
 }
 
-/**
- * Применяет высоту и пересчитывает ширину при lock aspect ratio.
- */
+/** Applies the height and recomputes the width while the aspect ratio is locked */
 function applyHeight(): void {
     const h = parseFloat(sizeHeight.value);
     if (isNaN(h) || h <= 0) {
@@ -191,14 +181,15 @@ function applyHeight(): void {
 }
 
 /**
- * Переключает единицу измерения и конвертирует значения.
- * Конвертирует от пиксельных attr (source of truth), чтобы избежать накопления ошибок округления.
+ * Cycles the unit of measure and converts the values.
+ * Converts from the pixel attrs (the source of truth) so that rounding errors do not
+ * pile up.
  */
 function cycleUnit(): void {
     const currentIndex = SIZE_UNITS.indexOf(sizeUnit.value);
     const newUnit = SIZE_UNITS[(currentIndex + 1) % SIZE_UNITS.length];
 
-    // Берём пиксельные значения из attr — они всегда актуальны
+    // Take the pixel values from the attrs — those are always current
     if (props.editor && props.activeNodeType) {
         const attrs = props.editor.getAttributes(props.activeNodeType);
         const pxW = Number(attrs.width);
@@ -217,9 +208,7 @@ function cycleUnit(): void {
     applySize();
 }
 
-/**
- * Обрабатывает ввод в поле размера (санитизация).
- */
+/** Handles input in a size field (sanitization) */
 function handleSizeInput(event: Event, dimension: 'width' | 'height'): void {
     const target = event.target as HTMLInputElement | null;
     if (!target) {

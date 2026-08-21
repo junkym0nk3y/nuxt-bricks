@@ -4,7 +4,7 @@ import type { Editor } from '@tiptap/vue-3';
 // ProseMirror
 import { NodeSelection } from '@tiptap/pm/state';
 
-/** Типы медиа-нодов, поддерживаемые попавером обтекания/размера. */
+/** Media node types supported by the float/size popover */
 const SUPPORTED_MEDIA_NODES = ['image', 'video'] as const;
 
 export interface ISelectedMediaNode {
@@ -13,8 +13,8 @@ export interface ISelectedMediaNode {
 }
 
 /**
- * Определяет тип и DOM-элемент выбранного медиа-нода (image или video).
- * Возвращает null, если selection — не NodeSelection на поддерживаемом ноде.
+ * Resolves the type and the DOM element of the selected media node (image or video).
+ * Returns null when the selection is not a NodeSelection on a supported node.
  */
 export function findSelectedMediaNode(editor: Editor): ISelectedMediaNode | null {
     const { state } = editor.view;
@@ -37,7 +37,7 @@ export function findSelectedMediaNode(editor: Editor): ISelectedMediaNode | null
         return { nodeName: mediaNodeName, element: domNode };
     }
 
-    // ResizableNodeView: domNode — контейнер, ищем элемент внутри
+    // ResizableNodeView: domNode is the container, look for the element inside it
     if (domNode instanceof HTMLElement) {
         const inner = domNode.querySelector<HTMLElement>(
             mediaNodeName === 'video' ? 'video' : 'img'

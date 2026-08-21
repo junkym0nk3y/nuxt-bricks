@@ -31,11 +31,11 @@ export interface ITextEditorAreaEmits {
 
 export interface ITextEditorLinkModalProps {
     isOpen: boolean;
-    /** Начальное значение формы (адрес ссылки под курсором). */
+    /** Initial form value (address of the link under the cursor) */
     value: ITextEditorLinkValue;
-    /** Есть ли ссылка в выделении — от этого зависит показ кнопки «убрать». */
+    /** Whether the selection holds a link — decides if the "remove" button shows */
     canRemove?: boolean;
-    /** Слой оверлея: `nested` для вызова из развёрнутой модалки редактора. */
+    /** Overlay layer: `nested` when opened from the expanded editor modal */
     layer?: TBricksModalLayer;
 }
 

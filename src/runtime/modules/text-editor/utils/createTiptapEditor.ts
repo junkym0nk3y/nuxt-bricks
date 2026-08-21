@@ -6,13 +6,13 @@ import type { Editor, EditorOptions } from '@tiptap/vue-3';
 
 // #region Interfaces
 export interface ICreateTiptapEditorOptions {
-    /** Начальное содержимое редактора (HTML). */
+    /** Initial editor content (HTML) */
     content: string;
-    /** Редактируемость (по умолчанию true). */
+    /** Editability (true by default) */
     editable?: boolean;
-    /** ProseMirror editorProps (атрибуты contenteditable-элемента и т.п.). */
+    /** ProseMirror editorProps (attributes of the contenteditable element and the like) */
     editorProps?: EditorOptions['editorProps'];
-    /** Колбэк на изменение содержимого. */
+    /** Callback fired when the content changes */
     onUpdate?: EditorOptions['onUpdate'];
 }
 
@@ -23,8 +23,8 @@ export interface ICreateTiptapEditorResult {
 // #endregion
 
 /**
- * Lazy-загружает все TipTap-модули полнофункционального rich-text редактора
- * одним Promise.all (сохраняет code-splitting — TipTap не попадает в основной бандл).
+ * Loads every TipTap module of the full rich-text editor lazily, in a single
+ * Promise.all (keeps the code splitting — TipTap stays out of the main bundle).
  */
 async function loadTiptapModules() {
     const [
@@ -79,14 +79,16 @@ async function loadTiptapModules() {
 }
 
 /**
- * Единая фабрика полнофункционального TipTap-редактора (textarea-тип).
- * Собирает Editor с полным набором extensions — единственная точка их конфигурации.
+ * Single factory for the full TipTap editor (the textarea property type).
+ * Builds an Editor with the complete set of extensions — the only place they are
+ * configured.
  *
- * Встроенные bold/underline StarterKit отключены: bold заменён на BoldOverride,
- * underline подключается отдельным расширением (иначе в TipTap v3 — дубль).
+ * The built-in bold/underline of StarterKit are switched off: bold is replaced by
+ * BoldOverride, underline comes in as a separate extension (in TipTap v3 keeping both
+ * would be a duplicate).
  *
- * @param options - Содержимое, редактируемость, editorProps и onUpdate.
- * @returns Созданный Editor и компонент EditorContent для рендеринга.
+ * @param options - Content, editability, editorProps and onUpdate.
+ * @returns The created Editor and the EditorContent component to render it with.
  */
 export async function createTiptapEditor(
     options: ICreateTiptapEditorOptions
@@ -119,22 +121,27 @@ export async function createTiptapEditor(
                 bulletList: { keepMarks: true },
                 orderedList: { keepMarks: true },
                 underline: false,
-                // Ссылки уже входят в StarterKit — отдельным расширением их не
-                // подключать: два расширения с именем `link` роняют редактор
-                // («Duplicate extension names»). Настраивается только конфигом.
+                // Links already come with StarterKit, so the extension is configured
+                // here instead of being added a second time: two extensions named
+                // `link` crash the editor ("Duplicate extension names"). Switching
+                // StarterKit off for links would work too, the way bold and underline
+                // above do, but there is nothing to gain from it.
                 link: {
-                    // В билдере клик по ссылке — постановка курсора, а не переход:
-                    // иначе редактирование текста уводило бы со страницы билдера.
+                    // In the builder a click on a link places the cursor instead of
+                    // following it: otherwise editing text would navigate away from
+                    // the builder page.
                     openOnClick: false,
-                    // Ссылка появляется только по явному действию: автолинковка
-                    // размечает набранный домен на лету, и автор получает ссылку
-                    // (со своим target/rel) там, где просто печатал текст.
+                    // A typed domain must not become a link on its own: autolinking
+                    // marks it up on the fly, and the author ends up with a link
+                    // (carrying its own target/rel) where they were merely typing text.
+                    // Pasting still creates one — `linkOnPaste` stays at its default.
                     autolink: false,
                     defaultProtocol: 'https',
-                    // Без обнуления дефолтов расширение вешает
-                    // target="_blank" rel="noopener noreferrer nofollow" на КАЖДУЮ
-                    // ссылку. target и rel задаёт автор в модалке ссылки, nofollow
-                    // всем внешним ссылкам подряд — чужое SEO-решение.
+                    // Without zeroing the defaults the extension puts
+                    // target="_blank" rel="noopener noreferrer nofollow" on EVERY
+                    // link. target and rel are the author's call in the link modal,
+                    // and nofollow on every external link is someone else's SEO
+                    // decision.
                     HTMLAttributes: { target: null, rel: null, class: null },
                 },
             }),

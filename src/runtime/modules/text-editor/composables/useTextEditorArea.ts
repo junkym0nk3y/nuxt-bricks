@@ -21,12 +21,16 @@ import { useInlineEditingStore } from '../stores/inlineEditing';
 // #endregion
 
 /**
- * Логика TextEditorArea: lifecycle TipTap-редактора (lazy-инициализация на клиенте,
- * destroy на unmount), синхронизация props.value/disabled/placeholder с редактором,
- * тогглы code-view и тёмного фона, обработчики контента и вставки медиа.
+ * The logic of TextEditorArea: the TipTap editor lifecycle (lazy initialization on the
+ * client, destroy on unmount), syncing props.value and props.disabled into the editor,
+ * the code-view and dark-background toggles, the content and media-insert handlers.
  *
- * @param props - Пропсы TextEditorArea (реактивный объект defineProps).
- * @param emit - Функция emit компонента (событие update:value).
+ * The placeholder reaches the rich editor no further than the `data-placeholder`
+ * attribute: no Placeholder extension is installed and no stylesheet reads that
+ * attribute, so only the fallback textarea shows a placeholder at all.
+ *
+ * @param props - Props of TextEditorArea (the reactive defineProps object).
+ * @param emit - The emit function of the component (the update:value event).
  */
 export function useTextEditorArea(
     props: ITextEditorAreaProps,
@@ -50,9 +54,7 @@ export function useTextEditorArea(
         onRequestLink: link.openLinkModal,
     });
 
-    /**
-     * Переключает отображение между визуальным режимом и кодом
-     */
+    /** Switches the view between the visual mode and the source */
     function toggleCodeView(): void {
         if (props.useRichEditor === false) {
             return;
@@ -65,24 +67,18 @@ export function useTextEditorArea(
         }
     }
 
-    /**
-     * Переключает фон визуального редактора между светлым и тёмным.
-     */
+    /** Switches the background of the visual editor between light and dark */
     function toggleEditorBackground(): void {
         isDarkEditorBackground.value = !isDarkEditorBackground.value;
     }
 
-    /**
-     * Обновляет внутреннее значение и эмитит событие update:value
-     */
+    /** Updates the inner value and emits the update:value event */
     function handleContentUpdate(content: string): void {
         innerValue.value = content;
         emit('update:value', content);
     }
 
-    /**
-     * Обрабатывает ввод в fallback textarea (без rich editor)
-     */
+    /** Handles input in the fallback textarea (no rich editor) */
     function handleTextareaInput(event: Event): void {
         const target = event.target as HTMLTextAreaElement;
         const value = target.value;
@@ -92,9 +88,7 @@ export function useTextEditorArea(
         handleContentUpdate(value);
     }
 
-    /**
-     * Обрабатывает обновление значения из модального редактора.
-     */
+    /** Handles a value update coming from the modal editor */
     function handleModalUpdate(value: string): void {
         handleContentUpdate(value);
         if (editor.value && editor.value.getHTML() !== value) {
@@ -103,8 +97,8 @@ export function useTextEditorArea(
     }
 
     /**
-     * Запрашивает медиа из MediaGallery через inlineEditingStore.
-     * При выборе вставляет изображение или видео в TipTap-редактор.
+     * Requests media from MediaGallery through inlineEditingStore.
+     * Once something is picked, inserts the image or the video into the TipTap editor.
      */
     function handleRequestImage(): void {
         if (!editor.value) {
@@ -115,9 +109,7 @@ export function useTextEditorArea(
         inlineEditingStore.requestMedia((item) => insertMediaIntoEditor(ed, item));
     }
 
-    /**
-     * Инициализирует rich text редактор только на клиенте
-     */
+    /** Initializes the rich text editor, on the client only */
     async function initEditor(): Promise<void> {
         if (import.meta.server || props.useRichEditor === false || editor.value) {
             return;

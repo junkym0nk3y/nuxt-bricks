@@ -5,8 +5,8 @@ import { Plugin, PluginKey } from '@tiptap/pm/state';
 // #endregion
 
 /**
- * Внутренние поля ResizableNodeView — @tiptap/extension-image не экспортирует
- * тип, поэтому доступ идёт через нормализацию `getNodeViewInternals`.
+ * Internal fields of ResizableNodeView — @tiptap/extension-image does not export the
+ * type, so they are reached through the `getNodeViewInternals` normalization.
  */
 interface IResizableNodeViewInternals {
     dom?: HTMLElement;
@@ -16,10 +16,10 @@ interface IResizableNodeViewInternals {
 }
 
 /**
- * Нормализует результат родительской NodeView-фабрики к внутренним полям.
+ * Normalizes the result of the parent NodeView factory down to the internal fields.
  *
- * @param view - NodeView, возвращённый parent-фабрикой.
- * @returns Объект с опциональными внутренними полями NodeView.
+ * @param view - NodeView returned by the parent factory.
+ * @returns Object with the optional internal fields of the NodeView.
  */
 function getNodeViewInternals(view: unknown): IResizableNodeViewInternals {
     return (view ?? {}) as IResizableNodeViewInternals;
@@ -32,8 +32,8 @@ const customSizeClearPluginKey = new PluginKey('resizableImageCustomSizeClear');
 const DEFAULT_IMAGE_WIDTH = 300;
 
 /**
- * Извлекает размерность с единицей измерения (rem, em, %) из inline style элемента.
- * Возвращает null для px-значений — они обрабатываются стандартными width/height атрибутами.
+ * Pulls a dimension carrying a unit (rem, em, %) out of the inline style of the element.
+ * Returns null for px values — those are handled by the regular width/height attributes.
  */
 function extractStyledDimension(element: HTMLElement, prop: 'width' | 'height'): string | null {
     const style = element.getAttribute('style');
@@ -47,9 +47,9 @@ function extractStyledDimension(element: HTMLElement, prop: 'width' | 'height'):
 }
 
 /**
- * Применяет custom-размер к DOM-элементу контейнера.
- * Для em-значений конвертирует в px на основе computed font-size элемента,
- * т.к. контекст font-size различается между sidebar-редактором и canvas.
+ * Applies a custom size to the DOM element of the container.
+ * em values are converted into px against the computed font-size of the element,
+ * because the font-size context differs between the sidebar editor and the canvas.
  */
 function applyCustomDimension(
     container: HTMLElement,
@@ -69,16 +69,16 @@ function applyCustomDimension(
 }
 
 /**
- * Расширение официального Image extension с поддержкой float (обтекание текстом)
- * и встроенного resize из TipTap v3.
+ * The official Image extension, extended with float support (text wrapping) and with
+ * the resize built into TipTap v3.
  *
- * Float реализован через CSS-классы (float-left, float-right, float-none).
- * ParseHTML поддерживает как новый формат (CSS-классы), так и старый (data-float атрибут).
- * Использует parseHTML-селектор `img[src]:not([data-segment-id])` для избежания конфликта
- * с InlineSegmentImage.
+ * Float rides on CSS classes (float-left, float-right, float-none).
+ * ParseHTML understands both the new format (CSS classes) and the old one (the data-float
+ * attribute). The parseHTML selector is `img[src]:not([data-segment-id])` to keep it from
+ * clashing with InlineSegmentImage.
  *
- * Включает ProseMirror plugin для синхронизации float-атрибута с DOM в режиме редактирования,
- * т.к. ResizableNodeView не применяет renderHTML-атрибуты к DOM-элементам.
+ * Carries a ProseMirror plugin that syncs the float attribute into the DOM while editing,
+ * because ResizableNodeView does not apply the renderHTML attributes to the DOM elements.
  */
 const ResizableImageBase = Image.extend({
     addAttributes() {
@@ -94,7 +94,7 @@ const ResizableImageBase = Image.extend({
                         return 'right';
                     }
 
-                    // Backward compat: data-float атрибут из старого формата
+                    // Backward compat: the data-float attribute of the old format
                     return element.getAttribute('data-float') || null;
                 },
                 renderHTML: (attributes: Record<string, unknown>) => {
@@ -153,13 +153,13 @@ const ResizableImageBase = Image.extend({
                 },
             },
             /**
-             * Отложенная загрузка картинок внутри текста. Атрибуты санитайзер
-             * разрешает давно, но никто их не выставлял: длинная статья с
-             * десятком картинок грузила их все сразу.
+             * Deferred loading of the images inside the text. The sanitizer has allowed
+             * the attributes for a long time, but nobody was setting them: a long article
+             * with a dozen images loaded all of them at once.
              *
-             * Значения жёсткие, а не из документа: `parseHTML` возвращает
-             * константу, поэтому сохранённый прежде HTML тоже получает их при
-             * следующем открытии редактора.
+             * The values are fixed rather than taken from the document: `parseHTML`
+             * returns a constant, so HTML saved earlier gets them too the next time the
+             * editor opens it.
              */
             loading: {
                 default: 'lazy',
@@ -183,12 +183,12 @@ const ResizableImageBase = Image.extend({
     },
 
     /**
-     * Override addNodeView для исправления бага ResizableNodeView:
-     * applyInitialSize() вызывается в конструкторе ДО загрузки изображения,
-     * поэтому initialWidth/Height = 0 и aspectRatio не вычисляется.
+     * addNodeView is overridden to work around a ResizableNodeView bug:
+     * applyInitialSize() runs in the constructor BEFORE the image has loaded, so
+     * initialWidth/Height are 0 and the aspectRatio is never computed.
      *
-     * Фикс: пересчитываем размеры после загрузки img, а для новых изображений
-     * без явных width/height задаём DEFAULT_IMAGE_WIDTH.
+     * The fix: recompute the sizes once the img has loaded, and for new images with no
+     * explicit width/height cap the width at DEFAULT_IMAGE_WIDTH.
      */
     addNodeView() {
         const parentFactory = this.parent?.();
@@ -202,9 +202,9 @@ const ResizableImageBase = Image.extend({
             const internals = getNodeViewInternals(nodeView);
             const dom = internals.dom;
 
-            // Fix: TipTap ставит display:flex на контейнер, что растягивает его на всю ширину.
-            // Для inline-изображений нужен inline-flex, чтобы контейнер облегал содержимое
-            // и визуально совпадал с результатом после сохранения (plain <img>).
+            // Fix: TipTap puts display:flex on the container, which stretches it to the
+            // full width. Inline images need inline-flex so that the container hugs its
+            // content and looks the same as the saved result does (a plain <img>).
             if (dom instanceof HTMLElement) {
                 dom.style.display = 'inline-flex';
             }
@@ -215,7 +215,7 @@ const ResizableImageBase = Image.extend({
                 return nodeView;
             }
 
-            // Для новых изображений без явных размеров — задаём дефолтную ширину
+            // A new image with no explicit size is capped at the default width
             if (!internals.node?.attrs?.width && !internals.node?.attrs?.height) {
                 img.addEventListener(
                     'load',
@@ -233,8 +233,8 @@ const ResizableImageBase = Image.extend({
 
                         internals.applyInitialSize?.();
 
-                        // Персистим размеры в ProseMirror node attrs,
-                        // иначе при сохранении (getHTML) width/height останутся null
+                        // Persist the sizes into the ProseMirror node attrs, otherwise
+                        // width/height would stay null on save (getHTML)
                         const pos = props.getPos();
 
                         if (typeof pos === 'number') {
@@ -261,9 +261,10 @@ const ResizableImageBase = Image.extend({
     },
 
     /**
-     * ProseMirror plugin для синхронизации float-атрибута image-нод с DOM.
-     * ResizableNodeView (TipTap v3) не применяет renderHTML атрибуты к data-resize-container,
-     * поэтому float-класс нужно проставлять вручную после каждой транзакции.
+     * ProseMirror plugin that syncs the float attribute of the image nodes into the DOM.
+     * ResizableNodeView (TipTap v3) does not apply the renderHTML attributes to
+     * data-resize-container, so the float class has to be set by hand after every
+     * transaction.
      */
     addProseMirrorPlugins() {
         return [
@@ -282,7 +283,7 @@ const ResizableImageBase = Image.extend({
                                     return;
                                 }
 
-                                // domNode — data-resize-container (корень NodeView)
+                                // domNode is the data-resize-container (the NodeView root)
                                 const container = domNode.hasAttribute('data-resize-container')
                                     ? domNode
                                     : domNode.closest('[data-resize-container]');
@@ -301,8 +302,9 @@ const ResizableImageBase = Image.extend({
                                     container.classList.add(`valign-${node.attrs.verticalAlign}`);
                                 }
 
-                                // Синхронизация custom-размеров (rem, em, %) с DOM-контейнером.
-                                // Если задан только один — второй автопропорционируется.
+                                // Sync the custom sizes (rem, em, %) into the DOM
+                                // container. With only one of them set, the other one
+                                // follows the aspect ratio.
                                 const cw = node.attrs.customWidth as string | null;
                                 const ch = node.attrs.customHeight as string | null;
                                 const el = container as HTMLElement;
@@ -312,7 +314,7 @@ const ResizableImageBase = Image.extend({
                                     applyCustomDimension(el, 'height', ch);
                                 } else if (cw) {
                                     applyCustomDimension(el, 'width', cw);
-                                    // offsetWidth даёт реальные пиксели после layout (rem/em → px)
+                                    // offsetWidth gives the real pixels after layout (rem/em → px)
                                     if (node.attrs.width && node.attrs.height) {
                                         const ratio = node.attrs.width / node.attrs.height;
                                         const actualW = el.offsetWidth;
@@ -335,7 +337,8 @@ const ResizableImageBase = Image.extend({
                     };
                 },
             }),
-            // Очистка customWidth/customHeight при drag-resize (когда width/height меняются без мета-флага)
+            // Clears customWidth/customHeight on a drag-resize (width/height change
+            // with no meta flag)
             new Plugin({
                 key: customSizeClearPluginKey,
                 appendTransaction(transactions, oldState, newState) {

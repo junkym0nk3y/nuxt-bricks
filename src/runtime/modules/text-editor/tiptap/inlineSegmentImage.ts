@@ -6,9 +6,10 @@ import { sanitizeSvgMarkup } from '../../common/utils/sanitize/sanitizeSvg';
 const DEFAULT_MEDIA_SIZE = '2.4rem';
 
 /**
- * Кастомный inline atom node для image/SVG сегментов в inline-content.
- * Read-only, не редактируемый и не удаляемый пользователем.
- * Показывает превью изображения или SVG внутри TipTap-редактора.
+ * Custom inline atom node for the image/SVG segments of inline-content.
+ * Read-only: `atom` plus `contenteditable=false` keep the insides out of editing,
+ * `selectable: false` keeps the node out of a NodeSelection.
+ * Shows a preview of the image or of the SVG inside the TipTap editor.
  */
 export const InlineSegmentImage = Node.create({
     name: 'inlineSegmentImage',
@@ -77,8 +78,9 @@ export const InlineSegmentImage = Node.create({
     },
 
     /**
-     * Vanilla NodeView для рендеринга SVG контента внутри TipTap-редактора.
-     * Для image-сегментов используется стандартный renderHTML (NodeView не создаётся).
+     * Vanilla NodeView for both kinds of segment: an `img` element for an image, a
+     * `span` with sanitized SVG markup for an SVG. renderHTML above stays the
+     * serialization path (`getHTML`); what the editor shows is built here.
      */
     addNodeView() {
         return ({ node }) => {
@@ -100,8 +102,8 @@ export const InlineSegmentImage = Node.create({
                 return { dom: img };
             }
 
-            // SVG: создаём span и вставляем SVG-контент как innerHTML
-            // (svgContent — недоверенный ввод медиа-библиотеки: только через sanitizer)
+            // SVG: build a span and put the SVG content in as innerHTML
+            // (svgContent is untrusted input from the media library: sanitizer only)
             const dom = document.createElement('span');
             dom.setAttribute('data-segment-id', node.attrs.segmentId || '');
             dom.setAttribute('data-kind', 'svg');
@@ -115,9 +117,7 @@ export const InlineSegmentImage = Node.create({
     },
 });
 
-/**
- * Строит CSS style string для SVG-контейнера (span).
- */
+/** Builds the CSS style string of the SVG container (span) */
 function buildSvgStyle(width: string | number, height: string | number): string {
     const w = typeof width === 'number' ? `${width}rem` : width;
     const h = typeof height === 'number' ? `${height}rem` : height;
@@ -125,9 +125,7 @@ function buildSvgStyle(width: string | number, height: string | number): string 
     return `display: inline-flex; vertical-align: middle; width: ${w}; height: ${h}`;
 }
 
-/**
- * Строит CSS style string для img-элемента.
- */
+/** Builds the CSS style string of the img element */
 function buildImgStyle(width: string | number, height: string | number): string {
     const w = typeof width === 'number' ? `${width}rem` : width;
     const h = typeof height === 'number' ? `${height}rem` : height;

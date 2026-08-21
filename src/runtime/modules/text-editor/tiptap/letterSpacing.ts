@@ -19,8 +19,8 @@ declare module '@tiptap/core' {
 }
 
 /**
- * Кастомное расширение для поддержки letterSpacing атрибута
- * Позволяет устанавливать межбуквенный интервал для параграфов и заголовков
+ * Custom extension adding the letterSpacing attribute.
+ * Lets the letter spacing be set on paragraphs and headings.
  */
 export const LetterSpacing = Extension.create({
     name: 'letterSpacing',
