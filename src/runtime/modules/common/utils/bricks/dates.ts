@@ -1,18 +1,19 @@
 /**
- * Формат дат интерфейса дашборда: строки списка страниц, карточки шаблонов,
- * панель деталей и подтверждения.
+ * Date format of the dashboard interface: the rows of the page list, the template
+ * cards, the details panel and the confirmations.
  *
- * Живёт в `common`, а не в домене публикации: тот же формат читают шаблоны, и
- * вторая копия функции разошлась бы с первой при первой же правке формата.
- * Дата сохранённой ВЕРСИИ страницы остаётся в `publish/utils/dates.ts` — она
- * знает про тип снапшота и никому больше не нужна.
+ * It lives in `common` rather than in the publishing domain: the templates read the
+ * same format, and a second copy of the function would drift away from the first on
+ * the very first edit of the format. The date of a saved page VERSION stays in
+ * `publish/utils/dates.ts` — it knows about the snapshot type and nobody else needs
+ * it.
  */
 
 /**
- * Форматирует дату в `DD.MM.YYYY` (формат дашборда).
+ * Formats a date as `DD.MM.YYYY` (the dashboard format).
  *
- * @param rawDate - ISO-строка даты (createdAt/updatedAt).
- * @returns Отформатированная дата или «—» для пустых/битых значений.
+ * @param rawDate - ISO date string (createdAt/updatedAt).
+ * @returns The formatted date, or an em dash for empty and broken values.
  */
 export function formatPageDate(rawDate: string | null | undefined): string {
     if (!rawDate) {
@@ -33,10 +34,10 @@ export function formatPageDate(rawDate: string | null | undefined): string {
 }
 
 /**
- * Форматирует дату в `DD.MM.YYYY HH:mm` (список версий — несколько снапшотов в день).
+ * Formats a date as `DD.MM.YYYY HH:mm` (the version list — several snapshots a day).
  *
- * @param rawDate - ISO-строка даты.
- * @returns Отформатированные дата и время или «—» для пустых/битых значений.
+ * @param rawDate - ISO date string.
+ * @returns The formatted date and time, or an em dash for empty and broken values.
  */
 export function formatPageDateTime(rawDate: string | null | undefined): string {
     const formattedDate = formatPageDate(rawDate);

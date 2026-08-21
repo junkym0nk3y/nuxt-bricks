@@ -1,26 +1,27 @@
 /**
- * Wall-clock дедлайн вокруг промиса (чистая изоморфная утилита).
+ * A wall-clock deadline around a promise (a pure isomorphic utility).
  *
- * Нужна там, где потолок транспорта не работает: на SSR относительные URL
- * выполняются внутренним вызовом Nitro (`fetchNodeRequestHandler`), а он
- * `AbortSignal` не слушает вовсе — ни `timeout` ofetch, ни собственный
- * `AbortController` вызывающего такой запрос не оборвут. Единственное,
- * что остаётся снаружи, — перестать его ждать.
+ * Needed where the transport ceiling does not work: on SSR relative URLs are served
+ * by an internal Nitro call (`fetchNodeRequestHandler`), and it does not listen to an
+ * `AbortSignal` at all — neither the ofetch `timeout` nor the caller's own
+ * `AbortController` will abort such a request. The only thing left from the outside
+ * is to stop waiting for it.
  *
- * Обработчик при этом продолжает работу: гонка освобождает ожидающего, но не
- * ресурс. Для самого ресурса нужен серверный лимит (у HTTP-backend он есть —
- * `persistence/server/http/httpClient.ts`).
+ * The handler keeps working meanwhile: the race releases the waiter, not the
+ * resource. The resource itself needs a server-side limit (the HTTP backend has one
+ * — `persistence/server/http/httpClient.ts`).
  */
 
 /**
- * Ждёт промис не дольше дедлайна.
+ * Waits for a promise no longer than the deadline.
  *
- * @param operation - Ожидаемый промис.
- * @param timeoutMs - Потолок ожидания в миллисекундах.
- * @param createTimeoutError - Фабрика ошибки дедлайна: текст и тип решает
- * вызывающий (у SSR-lookup'а это HTTP-статус, у сессии — локализованная строка).
- * @returns Значение промиса.
- * @throws Ошибка из `createTimeoutError`, если дедлайн истёк первым.
+ * @param operation - The promise being awaited.
+ * @param timeoutMs - Waiting ceiling in milliseconds.
+ * @param createTimeoutError - Factory of the deadline error: the text and the type
+ * are the caller's decision (for the SSR lookup it is an HTTP status, for the session
+ * a localized string).
+ * @returns The value of the promise.
+ * @throws The error from `createTimeoutError` when the deadline elapsed first.
  */
 export function withPromiseDeadline<T>(
     operation: Promise<T>,
@@ -33,8 +34,8 @@ export function withPromiseDeadline<T>(
         timer = setTimeout(() => reject(createTimeoutError()), timeoutMs);
     });
 
-    // Таймер снимается в обоих исходах: незачищенный держал бы event loop
-    // Node открытым до конца дедлайна на каждый SSR-запрос
+    // The timer is cleared in both outcomes: an uncleared one would keep the Node
+    // event loop open until the end of the deadline on every SSR request
     return Promise.race([operation, deadline]).finally(() => {
         if (timer !== null) {
             clearTimeout(timer);

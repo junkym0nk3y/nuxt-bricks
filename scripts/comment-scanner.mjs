@@ -334,7 +334,7 @@ function advanceTemplateText(source, index, stack, literals) {
     }
 
     if (char === '$' && source[index + 1] === '{') {
-        stack.push({ kind: 'substitution', depth: 1 });
+        stack.push({ kind: 'substitution', depth: 1, start: index });
 
         return index + 2;
     }
@@ -373,6 +373,13 @@ function matchCommentAt(source, index, syntax) {
  * Collects comment ranges from a source string in one pass.
  *
  * @param {string} source - Source (a whole file, or one SFC block).
+ * The `${...}` substitutions are reported too: their content is code, not text,
+ * so a reader that collapses translatable text (the `--diff` projection) has to
+ * keep them. Recording them here rather than re-finding them means there is one
+ * JavaScript scanner in the toolchain — a second, simpler one would not know
+ * about regexp literals or comments, and `${/}/.test(flag)` alone was enough to
+ * derail it.
+ *
  * @param {string} language - Key of `SYNTAX`.
  * @returns {{ comments: Array<{ start: number, end: number }>, literals: Array<{ start: number, end: number }>, strings: Array<{ start: number, end: number }> }} Ranges.
  */
@@ -381,6 +388,7 @@ export function scanSource(source, language) {
     const comments = [];
     const literals = [];
     const strings = [];
+    const substitutions = [];
     // Template literals interleave text and code, and the code inside `${...}`
     // can open another template literal. A stack of contexts keeps both apart
     // without a second scanner, so a comment inside a substitution is found
@@ -422,7 +430,7 @@ export function scanSource(source, language) {
             frame.depth += char === '{' ? 1 : -1;
 
             if (frame.depth === 0) {
-                stack.pop();
+                substitutions.push({ start: stack.pop().start, end: index + 1 });
             }
 
             index += 1;
@@ -445,5 +453,5 @@ export function scanSource(source, language) {
         }
     }
 
-    return { comments, literals, strings };
+    return { comments, literals, strings, substitutions };
 }

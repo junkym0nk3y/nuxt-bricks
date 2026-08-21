@@ -1,86 +1,90 @@
 /**
- * Потолки ожидания API-запросов проекта: билдер, публичный lookup страницы и
- * внешние SSR-дедлайны вокруг них берут значения отсюда.
+ * Waiting ceilings of the project's API requests: the builder, the public page
+ * lookup and the external SSR deadlines around them all take their values from
+ * here.
  *
- * Зависание — отдельный класс отказа: `catch`/`finally` при нём недостижимы,
- * поэтому общие флаги (`isSubmitting`, `isSaving`, `isRestoring`) остаются
- * поднятыми и переживают уход пользователя на другую страницу. Обработка ошибок
- * написана против отказа и против зависания не помогает вовсе, значит потолок
- * нужен на транспорте, а не в каждой операции.
+ * A hang is a class of failure of its own: `catch`/`finally` are unreachable
+ * under it, so the shared flags (`isSubmitting`, `isSaving`, `isRestoring`) stay
+ * raised and survive the user navigating to another page. The error handling is
+ * written against a failure and does not help against a hang at all, which means
+ * the ceiling belongs to the transport rather than to every single operation.
  *
- * Дефолт выбирается по HTTP-методу (`utils/apiRequestPolicy.ts`), а операции с
- * законно иной длительностью переопределяют его на вызове — знание о том,
- * сколько нормально длится съёмка превью или загрузка видео, живёт рядом с
- * вызовом, а не в общей политике.
+ * The default is chosen by the HTTP method (`utils/apiRequestPolicy.ts`), while
+ * operations with a legitimately different duration override it at the call site
+ * — the knowledge of how long taking a preview snapshot or uploading a video
+ * normally takes lives next to the call, not in the shared policy.
  *
- * Каждый потолок запроса ниже ограничивает ВЕСЬ обмен, включая чтение тела
- * ответа: политика ставит его живым сигналом, а не опцией `timeout` ofetch, чей
- * таймер снимается сразу после заголовков. Исключение —
- * `BRICKS_SSR_DEADLINE_MARGIN_MS` в конце файла: это не потолок запроса и
- * политика его не применяет.
+ * Every request ceiling below bounds the WHOLE exchange, the reading of the
+ * response body included: the policy sets it with a live signal rather than with
+ * the ofetch `timeout` option, whose timer is cleared right after the headers.
+ * The exception is `BRICKS_SSR_DEADLINE_MARGIN_MS` at the end of the file: it is
+ * not a request ceiling and the policy does not apply it.
  */
 
 /**
- * Чтения: список страниц, страница, версии, манифест компонентов, медиатека.
- * Её же берёт публичный lookup published-страницы (`usePublicPageClient`) —
- * своей копии этого числа у него нет намеренно: внешний SSR-дедлайн вокруг того
- * же вызова считается от этой константы, и разъехавшись, они начали бы обрезать
- * друг друга.
+ * Reads: the page list, a page, versions, the component manifest, the media
+ * library. The public lookup of a published page (`usePublicPageClient`) takes
+ * the same one — it deliberately has no copy of this number: the external SSR
+ * deadline around that very call is computed from this constant, and once they
+ * drifted apart they would start cutting each other short.
  *
- * Своё значение остаётся у двух клиентов, и это не дублирование: потолок data
- * sources (`DEFAULT_DATA_SOURCE_TIMEOUT_MS`) и потолок внешнего backend'а
- * (`DEFAULT_BACKEND_TIMEOUT_MS` серверного `httpClient`) настраиваются
- * развёртыванием, то есть это отдельные бюджеты, совпадающие по дефолту.
+ * Two clients keep a value of their own, and that is not duplication: the ceiling
+ * of the data sources (`DEFAULT_DATA_SOURCE_TIMEOUT_MS`) and the ceiling of the
+ * external backend (`DEFAULT_BACKEND_TIMEOUT_MS` of the server-side `httpClient`)
+ * are configured by the deployment, that is, they are separate budgets that merely
+ * coincide by default.
  */
 export const BRICKS_API_READ_TIMEOUT_MS = 10_000;
 
 /**
- * Записи: создание, обновление, PATCH, удаление, откат версии. Потолок щедрее
- * чтения, потому что оборванная запись оставляет клиент в неопределённости
- * (сервер мог её применить) — размен в пользу «дать серверу договорить».
+ * Writes: creation, update, PATCH, deletion, version rollback. The ceiling is
+ * more generous than for reads because an aborted write leaves the client in
+ * uncertainty (the server may have applied it) — a trade-off in favor of "let the
+ * server finish speaking".
  */
 export const BRICKS_API_WRITE_TIMEOUT_MS = 30_000;
 
 /**
- * Login/logout: короткая запись, которой общие 30 секунд ни к чему — форма
- * логина должна отпускать кнопку быстро.
+ * Login/logout: a short write that has no use for the shared 30 seconds — the
+ * login form has to release its button quickly.
  */
 export const BRICKS_AUTH_REQUEST_TIMEOUT_MS = 10_000;
 
 /**
- * Прокси cross-origin ресурса для снапшота канваса: семантически чтение,
- * выполненное POST'ом. Чуть выше собственного потолка ручки
- * (`PROXY_FETCH_TIMEOUT_MS`, 10 с), чтобы наверх доезжала её ошибка, а не наш
- * обрыв.
+ * Proxying of a cross-origin resource for the canvas snapshot: semantically a
+ * read performed with a POST. Slightly above the endpoint's own ceiling
+ * (`PROXY_FETCH_TIMEOUT_MS`, 10 s), so that its error is what reaches the caller
+ * rather than our abort.
  */
 export const BRICKS_S3_PROXY_TIMEOUT_MS = 15_000;
 
 /**
- * Загрузка снапшота превью: JPEG канваса плюс серверная дожимка в webp и
- * выгрузка в S3.
+ * Upload of the preview snapshot: the canvas JPEG plus the server-side
+ * recompression into webp and the upload to S3.
  */
 export const BRICKS_THUMBNAIL_UPLOAD_TIMEOUT_MS = 60_000;
 
 /**
- * Загрузка файла в медиатеку: сервер принимает видео до 100 МБ
- * (`DEFAULT_MAX_VIDEO_UPLOAD_SIZE_MB`), поэтому потолок здесь — про медленный
- * канал, а не про зависший сервер.
+ * Upload of a file into the media library: the server accepts videos up to 100 MB
+ * (`DEFAULT_MEDIA_MAX_VIDEO_UPLOAD_SIZE_MB`), so the ceiling here is about a slow
+ * connection rather than about a hung server.
  */
 export const BRICKS_MEDIA_UPLOAD_TIMEOUT_MS = 300_000;
 
 /**
- * Запас для внешнего SSR-дедлайна над внутренним механизмом операции.
+ * Margin of the external SSR deadline over the operation's own mechanism.
  *
- * Внешний дедлайн (`withPromiseDeadline` вокруг операции) — страховка ровно от
- * одного случая: на SSR относительные URL уходят внутренним вызовом Nitro,
- * который `AbortSignal` не слушает, поэтому ни потолок транспорта, ни
- * собственный `AbortController` операции её не оборвут. Срабатывать он должен
- * ПОЗЖЕ внутреннего механизма: совпадение значений отняло бы у операции штатную
- * деградацию (data sources отдают то, что успели дойти) и превратило бы её в
- * отказ целиком.
+ * The external deadline (`withPromiseDeadline` around the operation) insures
+ * against exactly one case: on SSR relative URLs go out as an internal Nitro
+ * call, which does not listen to an `AbortSignal`, so neither the transport
+ * ceiling nor the operation's own `AbortController` will abort it. It has to fire
+ * LATER than the internal mechanism: equal values would take the operation's
+ * regular degradation away (data sources return whatever managed to arrive) and
+ * turn it into a failure of the whole thing.
  *
- * Ставить его именно вокруг операции, а не снаружи через `useAsyncData({ timeout })`:
- * внешний вариант отклоняет handler целиком, то есть выбрасывает и то, что уже
- * успело дойти, — на этом уже спотыкались оба SSR-места.
+ * It goes around the operation specifically, not outside through
+ * `useAsyncData({ timeout })`: the external variant rejects the whole handler,
+ * that is, throws away what had already arrived — both SSR sites have tripped over
+ * that already.
  */
 export const BRICKS_SSR_DEADLINE_MARGIN_MS = 2_000;

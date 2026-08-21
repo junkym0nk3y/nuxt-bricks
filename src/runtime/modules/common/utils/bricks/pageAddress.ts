@@ -1,12 +1,13 @@
 /**
- * Адресная идентичность страницы: нормализация пары `urlPrefix + pagename`, её
- * канонический ключ и сравнение адресов.
+ * Address identity of a page: normalization of the `urlPrefix + pagename` pair,
+ * its canonical key and the comparison of addresses.
  *
- * Единственный владелец сериализации адреса. Ключ отсюда используют и ключи
- * черновиков localStorage, и ключи SSR-payload и data sources: разъехавшись, две
- * похожие сериализации дали бы черновик под одним ключом, а payload — под другим.
- * Путь адреса (`/blog/post`) строит `getPublishedPagePath` в `routePaths.ts` —
- * он же выводится из этого ключа, чтобы логика сегментов жила в одном месте.
+ * The single owner of address serialization. The key from here is used by the
+ * localStorage draft keys and by the keys of the SSR payload and of the data
+ * sources alike: once they drift apart, two similar serializations would put the
+ * draft under one key and the payload under another. The address path
+ * (`/blog/post`) is built by `getPublishedPagePath` in `routePaths.ts` — derived
+ * from this very key, so that the segment logic lives in one place.
  */
 
 import type {
@@ -24,27 +25,28 @@ import {
 } from '../../constants/publish';
 
 /**
- * Приводит `urlPrefix` к каноническому виду: пробельное и пустое значение —
- * это отсутствие префикса.
+ * Brings `urlPrefix` to its canonical shape: a whitespace-only or empty value
+ * means the absence of a prefix.
  *
- * Одно правило на весь проект: так же нормализует префикс серверный DTO (''→null)
- * и так же его трактовали прежние сверки URL. Иначе строка из одних пробелов,
- * созданная в обход валидации, считалась бы префиксом в одном месте и его
- * отсутствием в другом — то есть страница отвечала бы по двум разным адресам.
+ * One rule for the whole project: the server DTO normalizes the prefix the same
+ * way (''→null), and so did the earlier URL comparisons. Otherwise a string of
+ * nothing but spaces, created bypassing the validation, would count as a prefix
+ * in one place and as its absence in another — that is, the page would answer at
+ * two different addresses.
  *
- * @param value - Сырое значение префикса.
- * @returns Префикс без окружающих пробелов либо null.
+ * @param value - Raw prefix value.
+ * @returns The prefix without surrounding spaces, or null.
  */
 export function normalizeUrlPrefix(value: string | null | undefined): string | null {
     return value?.trim() || null;
 }
 
 /**
- * Собирает адрес из пары значений, нормализуя обе половины.
+ * Assembles an address out of the pair of values, normalizing both halves.
  *
- * @param pagename - ЧПУ страницы.
- * @param urlPrefix - Префикс адреса (может отсутствовать).
- * @returns Нормализованный адрес.
+ * @param pagename - Page slug.
+ * @param urlPrefix - Address prefix (may be absent).
+ * @returns Normalized address.
  */
 export function toPageAddress(
     pagename: string,
@@ -57,19 +59,21 @@ export function toPageAddress(
 }
 
 /**
- * Канонический ключ адреса: `blog/post` либо `post` у страницы без префикса.
+ * Canonical key of an address: `blog/post`, or `post` for a page without a
+ * prefix.
  *
- * Без ведущего слэша намеренно: ключ подставляется внутрь составных ключей
- * хранилища и payload'а, где слэш в начале читался бы как разделитель их
- * собственных частей. Побочное следствие полезно — у страницы без префикса ключ
- * совпадает с прежним, построенным по одному имени, поэтому её черновики
- * localStorage переживают переход на адресную идентичность.
+ * Without a leading slash deliberately: the key is inserted inside the composite
+ * keys of the storage and of the payload, where a leading slash would read as the
+ * separator of their own parts. A side effect is welcome — for a page without a
+ * prefix the key matches the former one built out of the name alone, so its
+ * localStorage drafts survive the move to address identity.
  *
- * Неоднозначности между префиксом и именем нет: и сегменты префикса, и pagename
- * ограничены `PAGE_ROUTE_SEGMENT`, то есть слэша не содержат.
+ * There is no ambiguity between the prefix and the name: both the prefix segments
+ * and the pagename are constrained by `PAGE_ROUTE_SEGMENT`, that is, they contain
+ * no slash.
  *
- * @param address - Адрес страницы.
- * @returns Ключ адреса.
+ * @param address - Page address.
+ * @returns Address key.
  */
 export function getPageAddressKey(address: IBricksPageAddress): string {
     const urlPrefix = normalizeUrlPrefix(address.urlPrefix);
@@ -78,25 +82,26 @@ export function getPageAddressKey(address: IBricksPageAddress): string {
 }
 
 /**
- * Один ли это адрес. Сравнение по каноническому ключу, а не по полям: `null`,
- * `''` и `'  '` в префиксе означают одно и то же, и сравнение полей объявило бы
- * такие адреса разными.
+ * Whether this is one and the same address. Compared by the canonical key rather
+ * than field by field: `null`, `''` and `'  '` in the prefix all mean the same
+ * thing, and a comparison of fields would declare such addresses different.
  *
- * @param first - Первый адрес.
- * @param second - Второй адрес.
- * @returns true — адреса совпадают.
+ * @param first - First address.
+ * @param second - Second address.
+ * @returns true — the addresses match.
  */
 export function isSamePageAddress(first: IBricksPageAddress, second: IBricksPageAddress): boolean {
     return getPageAddressKey(first) === getPageAddressKey(second);
 }
 
 /**
- * Собирает запрошенный `urlPrefix` из параметра маршрута. У prefixed-маршрутов
- * (`bricks-page-prefixed`, `bricks-builder-pagename-prefixed`, `bricks-preview-prefixed`)
- * параметр repeatable — массив сегментов; у bare-маршрутов его нет вовсе.
+ * Assembles the requested `urlPrefix` out of the route parameter. On the prefixed
+ * routes (`bricks-page-prefixed`, `bricks-builder-pagename-prefixed`,
+ * `bricks-preview-prefixed`) the parameter is repeatable — an array of segments;
+ * on the bare routes it is absent altogether.
  *
- * @param param - Значение `route.params.urlPrefix`.
- * @returns Префикс в виде `a/b/c` или пустая строка.
+ * @param param - Value of `route.params.urlPrefix`.
+ * @returns The prefix shaped as `a/b/c`, or an empty string.
  */
 export function resolveRequestedUrlPrefix(param: unknown): string {
     if (Array.isArray(param)) {
@@ -107,11 +112,11 @@ export function resolveRequestedUrlPrefix(param: unknown): string {
 }
 
 /**
- * Адрес страницы из параметров маршрута — источник истины URL для редактора,
- * превью и live-рендера.
+ * Page address out of the route parameters — the URL source of truth for the
+ * editor, the preview and the live render.
  *
- * @param params - Параметры маршрута.
- * @returns Нормализованный адрес.
+ * @param params - Route parameters.
+ * @returns Normalized address.
  */
 export function resolvePageAddressFromRoute(params: IBricksPageRouteParams): IBricksPageAddress {
     return toPageAddress(
@@ -121,17 +126,17 @@ export function resolvePageAddressFromRoute(params: IBricksPageRouteParams): IBr
 }
 
 /**
- * Валиден ли адрес по формату — теми же константами, что серверный DTO и
- * yup-схема формы.
+ * Whether the address is valid by format — by the very constants the server DTO
+ * and the yup schema of the form use.
  *
- * Одна проверка на все поверхности: невалидный адрес не может принадлежать
- * существующей странице, поэтому и публичный lookup, и перенос сессии по форме
- * обязаны отвергать его одинаково. Разойдись они — lookup принимал бы адрес,
- * который запись никогда не создаст, а перенос сессии уводил бы URL редактора на
- * маршрут, который его не матчит (regex параметров), и открывал 404.
+ * One check for all the surfaces: an invalid address cannot belong to an existing
+ * page, so both the public lookup and the session move by form have to reject it
+ * identically. Were they to diverge, the lookup would accept an address no record
+ * will ever create, and the session move would steer the editor URL onto a route
+ * that does not match it (the parameter regex) and open a 404.
  *
- * @param address - Проверяемый адрес.
- * @returns Валиден ли адрес.
+ * @param address - Address being checked.
+ * @returns Whether the address is valid.
  */
 export function isValidPageAddress(address: IBricksPageAddress): boolean {
     if (
@@ -152,17 +157,18 @@ export function isValidPageAddress(address: IBricksPageAddress): boolean {
 }
 
 /**
- * Обратное преобразование: named-локация адресного маршрута из адреса.
+ * The reverse transformation: a named location of an address route out of an
+ * address.
  *
- * Собрано здесь, рядом с разбором параметров: имя маршрута зависит от наличия
- * префикса, и call-site, выбирающий имя сам, легко забывал бы про
- * prefixed-вариант — переход тогда уходил бы на bare-маршрут и открывал чужую
- * одноимённую страницу.
+ * Assembled here, next to the parsing of the parameters: the route name depends
+ * on whether a prefix is present, and a call site picking the name on its own
+ * would easily forget about the prefixed variant — the navigation would then go
+ * to the bare route and open a foreign page of the same name.
  *
- * @param bareRouteName - Имя маршрута для адреса без префикса.
- * @param prefixedRouteName - Имя маршрута для адреса с префиксом.
- * @param address - Адрес страницы.
- * @returns Локация для `router.push`.
+ * @param bareRouteName - Route name for an address without a prefix.
+ * @param prefixedRouteName - Route name for an address with a prefix.
+ * @param address - Page address.
+ * @returns Location for `router.push`.
  */
 function getPageRouteLocation(
     bareRouteName: string,
@@ -182,10 +188,10 @@ function getPageRouteLocation(
 }
 
 /**
- * Named-локация редактора страницы (`<builderPrefix>/<адрес>`).
+ * Named location of the page editor (`<builderPrefix>/<address>`).
  *
- * @param address - Адрес страницы.
- * @returns Локация для `router.push`.
+ * @param address - Page address.
+ * @returns Location for `router.push`.
  */
 export function getBuilderPageRouteLocation(address: IBricksPageAddress): IBricksPageRouteLocation {
     return getPageRouteLocation(

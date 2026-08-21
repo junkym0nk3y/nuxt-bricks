@@ -1,6 +1,6 @@
 /**
- * Контрактные типы контента — схема данных, общая для редактора,
- * рендерера и панели свойств.
+ * Contract types of the content — the data schema shared by the editor, the renderer
+ * and the properties panel.
  */
 
 export interface IInlineContentSegment {
@@ -16,7 +16,7 @@ export interface IInlineContentSegment {
 }
 
 /**
- * Элемент галереи изображений для image-gallery редактора.
+ * An item of the image gallery for the image-gallery editor.
  */
 export interface IGalleryItem {
     id: string;
@@ -24,10 +24,10 @@ export interface IGalleryItem {
     title?: string;
     caption?: string;
     alt?: string;
-    /** Теги элемента (опционально, включается через fields.tags в brick) */
+    /** Tags of the item (optional, enabled through fields.tags in the brick) */
     tags?: string[];
-    /** Опциональный inline svg (для редактора image-gallery). */
+    /** Optional inline svg (for the image-gallery editor) */
     svgContent?: string;
-    /** MIME-тип медиа (для определения видео/изображения). */
+    /** MIME type of the media (to tell a video from an image) */
     mimeType?: string;
 }

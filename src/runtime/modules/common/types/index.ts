@@ -10,14 +10,14 @@ export interface IBrickFileStructure {
 }
 
 /**
- * Конфигурация дополнительных полей для image-gallery редактора.
+ * Configuration of the additional fields of the image-gallery editor.
  */
 export interface IBrickGalleryFieldsConfig {
-    /** Показывать поле title (default: true) */
+    /** Whether to show the title field (default: true) */
     title?: boolean;
-    /** Показывать поле caption (default: false) */
+    /** Whether to show the caption field (default: false) */
     caption?: boolean;
-    /** Показывать редактор тегов (default: false) */
+    /** Whether to show the tags editor (default: false) */
     tags?: boolean;
 }
 
@@ -50,29 +50,29 @@ export interface IBrickValues {
     desc?: string;
     vars?: TBrickDemoValues[];
     listDelimiter?: string;
-    /** Конфигурация полей для image-gallery */
+    /** Field configuration for the image gallery */
     fields?: IBrickGalleryFieldsConfig;
-    /** При изменении пропа с forceRender компонент полностью пересоздаётся (для lazy-load) */
+    /** When a prop with forceRender changes, the component is recreated entirely (for lazy loading) */
     forceRender?: boolean;
-    /** Минимальное значение для number-свойств */
+    /** Minimum value for number properties */
     min?: number;
-    /** Максимальное значение для number-свойств */
+    /** Maximum value for number properties */
     max?: number;
-    /** Шаг для number-свойств */
+    /** Step for number properties */
     step?: number;
     showWhen?: IBrickShowWhen;
-    /** Имя свойства, куда сохранять svgContent при выборе SVG из галереи */
+    /** Name of the property to store svgContent in when an SVG is picked from the gallery */
     svgContentProperty?: string;
-    /** Суффикс единицы измерения для инпута (например, 'rem') */
+    /** Unit suffix for the input (for example, 'rem') */
     unit?: string;
-    /** Название группы для группировки свойств в сворачиваемый аккордеон */
+    /** Group name that folds the properties into a collapsible accordion */
     group?: string;
-    /** Свойство поддерживает адаптивные значения per-breakpoint */
+    /** The property supports responsive values per breakpoint */
     responsive?: boolean;
 }
 
 export interface IBrickSlotDefinition {
-    /** Имя слота — обязательно для array-формы определения, в Record-форме берётся из ключа */
+    /** Slot name — required in the array notation, in the Record notation it comes from the key */
     name?: string;
     label?: string;
     description?: string;

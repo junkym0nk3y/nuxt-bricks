@@ -2,8 +2,8 @@ import 'vue';
 import type { RouteLocationNormalizedLoaded } from 'vue-router';
 
 /**
- * Минимальный шим NuxtApp для module-окружения: payload типизирован,
- * инжекты плагинов (`$i18n` и т.п.) доступны через открытый словарь.
+ * A minimal NuxtApp shim for the module environment: the payload is typed, while the
+ * plugin injections (`$i18n` and the like) are available through an open dictionary.
  */
 interface INuxtAppShim {
     payload: { data: Record<string, unknown> };
@@ -49,18 +49,19 @@ declare module 'vue' {
 declare module '#imports' {
     export const useNuxtApp: () => INuxtAppShim;
     /**
-     * Compiler macro страниц Nuxt. В module-окружении (`nuxt-module-build prepare`)
-     * pages-модуль не активен и тип не генерируется — шим повторяет сигнатуру
+     * The compiler macro of Nuxt pages. In the module environment
+     * (`nuxt-module-build prepare`) the pages module is not active and the type is not
+     * generated — the shim repeats the signature of
      * `nuxt/dist/pages/runtime/composables`.
      */
     export const definePageMeta: (meta: Record<string, unknown>) => void;
 }
 
 /**
- * В приложении-потребителе `NuxtLayouts`/`LayoutKey` генерируются в
- * `.nuxt/types/layouts.d.ts` из реальных layout'ов. Runtime модуля
- * компилируется без этой генерации, поэтому шим объявляет открытый словарь —
- * имена layout'ов потребителя заранее неизвестны.
+ * In a consumer application `NuxtLayouts`/`LayoutKey` are generated into
+ * `.nuxt/types/layouts.d.ts` out of the real layouts. The runtime of the module is
+ * compiled without that generation, so the shim declares an open dictionary — the
+ * names of the consumer's layouts are not known in advance.
  */
 declare module 'nuxt/app' {
     interface NuxtLayouts {
@@ -70,8 +71,8 @@ declare module 'nuxt/app' {
 }
 
 /**
- * `@nuxtjs/i18n` добавляет `setLocale` в Composer через генерируемую
- * аугментацию `ComposerCustom` — в module-окружении её нет, шимим вручную.
+ * `@nuxtjs/i18n` adds `setLocale` to the Composer through a generated `ComposerCustom`
+ * augmentation — in the module environment there is none, so it is shimmed by hand.
  */
 declare module 'vue-i18n' {
     interface ComposerCustom {

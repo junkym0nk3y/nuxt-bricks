@@ -1,27 +1,29 @@
 /**
- * Структурный контракт графа компонентов схемы страницы.
+ * Structural contract of the component graph of a page schema.
  *
- * До этого сервер принимал `components: [null]`, `[42]`, `[{}]` и циклические
- * связи — public render падал runtime exception'ом либо уходил в
- * неограниченную рекурсию. Изоморфный чистый модуль (без h3/Nuxt): одна и та
- * же проверка используется серверной валидацией payload'ов (create/update,
- * restore) и импортом JSON в билдере; guard `isRenderableSchemaComponent` и
- * лимит глубины — защитными фильтрами рендера для строк БД, записанных в
- * обход контракта (или повреждённых).
+ * Before it, the server accepted `components: [null]`, `[42]`, `[{}]` and
+ * cyclic links — the public render either crashed with a runtime exception or
+ * went into unbounded recursion. An isomorphic pure module (no h3/Nuxt): the
+ * very same check is used by the server-side validation of the payloads
+ * (create/update, restore) and by the JSON import in the builder, while the
+ * `isRenderableSchemaComponent` guard and the depth limit are used as the
+ * render's defensive filters for database rows written bypassing the contract
+ * (or corrupted).
  *
- * Лимиты сложности JSON-графа (глубина/узлы/размер) — отдельный слой
- * schemaPayloadValidation.ts (persistence); здесь — семантика компонентов.
+ * The complexity limits of the JSON graph (depth/nodes/size) are a separate
+ * layer, schemaPayloadValidation.ts (persistence); here it is the semantics of
+ * the components.
  */
 import type { IBricksComponent } from '../../types/brick';
 
 // #region Constants
-/** Максимальная глубина дерева компонентов (children-вложенность). */
+/** Maximum depth of the component tree (children nesting) */
 export const MAX_COMPONENT_TREE_DEPTH = 32;
 
 const COMPONENT_ID_MAX_LENGTH = 100;
 const COMPONENT_NAME_MAX_LENGTH = 200;
 const BRICK_PATH_MAX_LENGTH = 500;
-/** Верхняя граница накапливаемых ошибок — диагностики достаточно, шум не нужен. */
+/** Upper bound on the accumulated errors — enough for diagnostics, the noise is not needed */
 const MAX_CONTRACT_ERRORS = 20;
 
 const COMPONENT_TYPES = new Set(['layout', 'component']);
@@ -29,10 +31,10 @@ const COMPONENT_TYPES = new Set(['layout', 'component']);
 
 // #region Helpers
 /**
- * Проверяет, что значение — plain object.
+ * Checks that the value is a plain object.
  *
- * @param value - Проверяемое значение.
- * @returns true для plain object.
+ * @param value - Value being checked.
+ * @returns true for a plain object.
  */
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
@@ -44,18 +46,19 @@ function isPlainRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
- * Проверяет непустую строку с верхней границей длины.
+ * Checks a non-empty string against an upper length bound.
  *
- * @param value - Проверяемое значение.
- * @param max - Максимальная длина.
- * @returns true для непустой строки в границах.
+ * @param value - Value being checked.
+ * @param max - Maximum length.
+ * @returns true for a non-empty string within the bounds.
  */
 function isNonEmptyString(value: unknown, max: number): value is string {
     return typeof value === 'string' && value.length > 0 && value.length <= max;
 }
 
 /**
- * Слот с детьми — форма IBricksComponentSlot без деталей definition.
+ * A slot with children — the shape of IBricksComponentSlot without the
+ * definition details.
  */
 interface ISchemaSlotShape {
     name: string;
@@ -63,10 +66,10 @@ interface ISchemaSlotShape {
 }
 
 /**
- * Проверяет форму слота: объект с именем и массивом id детей.
+ * Checks the shape of a slot: an object with a name and an array of child ids.
  *
- * @param value - Проверяемое значение.
- * @returns true для валидной формы слота.
+ * @param value - Value being checked.
+ * @returns true for a valid slot shape.
  */
 function isValidSlotShape(value: unknown): value is ISchemaSlotShape {
     return (
@@ -78,10 +81,11 @@ function isValidSlotShape(value: unknown): value is ISchemaSlotShape {
 }
 
 /**
- * Собирает все id детей компонента: прямые `children` + `slots[].children`.
+ * Collects all the child ids of a component: the direct `children` +
+ * `slots[].children`.
  *
- * @param component - Компонент с валидированной формой.
- * @returns Список id детей.
+ * @param component - Component whose shape has been validated.
+ * @returns List of child ids.
  */
 function collectChildIds(component: Record<string, unknown>): string[] {
     const direct = (component.children as string[] | undefined) ?? [];
@@ -91,11 +95,11 @@ function collectChildIds(component: Record<string, unknown>): string[] {
 }
 
 /**
- * Фаза 1: валидация формы компонентов и уникальность id.
+ * Phase 1: validation of the component shapes and of id uniqueness.
  *
- * @param components - Массив компонентов.
- * @param push - Функция добавления ошибки.
- * @returns Map компонентов по id (пусто если есть ошибки).
+ * @param components - Array of components.
+ * @param push - Function that appends an error.
+ * @returns Map of components by id (empty if there are errors).
  */
 function validateComponentShapes(
     components: readonly unknown[],
@@ -166,11 +170,11 @@ function validateComponentShapes(
 }
 
 /**
- * Фаза 2: валидация ссылок и двусторонняя согласованность.
+ * Phase 2: validation of the references and of their two-way consistency.
  *
- * @param byId - Map компонентов по id.
- * @param push - Функция добавления ошибки.
- * @returns Map контейнеров по id дочерних компонентов.
+ * @param byId - Map of components by id.
+ * @param push - Function that appends an error.
+ * @returns Map of containers by the id of their child components.
  */
 function validateComponentReferences(
     byId: Map<string, Record<string, unknown>>,
@@ -218,10 +222,10 @@ function validateComponentReferences(
 }
 
 /**
- * Фаза 3: валидация ацикличности и глубины дерева.
+ * Phase 3: validation of acyclicity and of the tree depth.
  *
- * @param byId - Map компонентов по id.
- * @param push - Функция добавления ошибки.
+ * @param byId - Map of components by id.
+ * @param push - Function that appends an error.
  */
 function validateComponentCyclesAndDepth(
     byId: Map<string, Record<string, unknown>>,
@@ -268,11 +272,12 @@ function validateComponentCyclesAndDepth(
 
 // #region Public API
 /**
- * Минимальный shape-guard компонента для рендера: plain object с непустыми
- * строковыми `id` и `componentName` (рендер обращается к ним без проверок).
+ * Minimal shape guard of a component for the render: a plain object with
+ * non-empty string `id` and `componentName` (the render reads them without any
+ * checks).
  *
- * @param value - Элемент массива schema.components.
- * @returns true, если компонент безопасно рендерить.
+ * @param value - Element of the schema.components array.
+ * @returns true if the component is safe to render.
  */
 export function isRenderableSchemaComponent(value: unknown): value is IBricksComponent {
     return (
@@ -283,20 +288,20 @@ export function isRenderableSchemaComponent(value: unknown): value is IBricksCom
 }
 
 /**
- * Валидирует граф компонентов схемы: форму каждого компонента, уникальность
- * id, существование parent/children/slot-ссылок, двустороннюю согласованность
- * связей, ацикличность и глубину дерева. Ошибки формы возвращаются сразу
- * (проверки графа требуют валидной формы); список ограничен
- * MAX_CONTRACT_ERRORS.
+ * Validates the component graph of a schema: the shape of every component, id
+ * uniqueness, the existence of the parent/children/slot references, the two-way
+ * consistency of the links, acyclicity and the tree depth. Shape errors are
+ * returned right away (the graph checks require a valid shape); the list is
+ * bounded by MAX_CONTRACT_ERRORS.
  *
- * @param components - Сырое значение schema.components.
- * @returns Список ошибок (пустой = схема валидна).
+ * @param components - Raw value of schema.components.
+ * @returns List of errors (empty = the schema is valid).
  */
 export function validateSchemaComponentGraph(components: readonly unknown[]): string[] {
     const errors: string[] = [];
 
     /**
-     * Добавляет ошибку с учётом верхней границы.
+     * Appends an error, honoring the upper bound.
      */
     function push(message: string): void {
         if (errors.length < MAX_CONTRACT_ERRORS) {
@@ -304,21 +309,21 @@ export function validateSchemaComponentGraph(components: readonly unknown[]): st
         }
     }
 
-    // Фаза 1: форма компонентов + уникальность id
+    // Phase 1: component shapes + id uniqueness
     const byId = validateComponentShapes(components, push);
 
     if (errors.length > 0) {
         return errors;
     }
 
-    // Фаза 2: ссылки и двусторонняя согласованность
+    // Phase 2: references and their two-way consistency
     validateComponentReferences(byId, push);
 
     if (errors.length > 0) {
         return errors;
     }
 
-    // Фаза 3: ацикличность parent-цепочек и глубина дерева.
+    // Phase 3: acyclicity of the parent chains and the tree depth.
     validateComponentCyclesAndDepth(byId, push);
 
     return errors;

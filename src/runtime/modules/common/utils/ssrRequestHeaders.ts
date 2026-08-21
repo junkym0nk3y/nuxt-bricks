@@ -1,14 +1,16 @@
 /**
- * Заголовки входящего SSR-запроса, которые API-клиент билдера пробрасывает
- * дальше, и граница «локальные ручки vs внешний endpoint».
+ * Headers of the incoming SSR request that the builder API client forwards on, and
+ * the "local endpoints vs external endpoint" boundary.
  *
- * Правило вынесено чистыми функциями, потому что у него два противоположных
- * края и оба обязательны:
- * - identity билдера (cookie сессии database-auth и `Authorization`
- *   basic-режима) — секрет инсталляции, внешнему сервису он не предназначен;
- * - та же identity обязательна локальным `/api/bricks/**`: editorial API
- *   защищён целиком, и без неё SSR билдера получает на них 401 (превью
- *   отдавало страницу статусом 401, дашборд деградировал в спиннер).
+ * The rule is extracted as pure functions because it has two opposite edges and
+ * both are mandatory:
+ * - the builder identity (the session cookie of database auth and the
+ *   `Authorization` of basic mode) is a secret of the installation and is not
+ *   meant for an external service;
+ * - that same identity is mandatory for the local `/api/bricks/**`: the editorial
+ *   API is protected in its entirety, and without it the builder SSR gets a 401
+ *   from those endpoints (the preview returned the page with a 401 status, the
+ *   dashboard degraded into a spinner).
  */
 
 // #region Imports
@@ -24,8 +26,8 @@ import { BRICKS_SESSION_COOKIE_NAME } from '../constants/auth';
 
 // #region Data
 /**
- * Заголовки, пробрасываемые из SSR-запроса в API-запрос: адрес клиента для
- * серверных лимитов и identity запроса.
+ * Headers forwarded from the SSR request into the API request: the client address
+ * for the server-side limits and the identity of the request.
  */
 const FORWARDED_HEADERS: string[] = [
     'x-real-ip',
@@ -38,19 +40,20 @@ const FORWARDED_HEADERS: string[] = [
 ];
 
 /**
- * Identity билдера: заголовки, которые `toExternalHeaders` снимает и которые
- * поэтому нужно вернуть локальным ручкам в исходном виде. Один список на оба
- * действия — иначе снятое из дефолтов молча теряется и на локальных ручках.
+ * The builder identity: the headers `toExternalHeaders` strips and which therefore
+ * have to be returned to the local endpoints in their original shape. One list for
+ * both actions — otherwise whatever is stripped from the defaults would silently be
+ * lost on the local endpoints as well.
  */
 const IDENTITY_HEADERS: string[] = ['cookie', 'authorization'];
 // #endregion
 
 // #region Methods
 /**
- * Собирает пробрасываемые заголовки из входящего SSR-запроса.
+ * Collects the forwardable headers out of the incoming SSR request.
  *
- * @param reqHeaders - Заголовки входящего запроса (вне SSR отсутствуют).
- * @returns Только пробрасываемые заголовки, в нижнем регистре имён.
+ * @param reqHeaders - Headers of the incoming request (absent outside SSR).
+ * @returns The forwardable headers only, with lowercased names.
  */
 export function pickForwardedHeaders(
     reqHeaders: IncomingHttpHeaders | undefined
@@ -71,27 +74,30 @@ export function pickForwardedHeaders(
 }
 
 /**
- * Возвращает копию заголовков без identity билдера: cookie сессии и
- * `Authorization`. Basic-креды браузер после первого challenge шлёт на все
- * пути origin, включая SSR-документ, — наружу им нельзя, у внешнего сервиса
- * своя авторизация. Остальные cookie и заголовки проекта проходят как есть.
+ * Returns a copy of the headers without the builder identity: the session cookie
+ * and `Authorization`. After the first challenge the browser sends the basic
+ * credentials to every path of the origin, the SSR document included — they must
+ * not go outside, an external service has an authorization of its own. The other
+ * cookies and headers of the project pass as they are.
  *
- * Результат — дефолтные заголовки клиента: они уходят с КАЖДЫМ запросом, в том
- * числе на абсолютный URL чужого origin (для такого URL ofetch не применяет
- * baseURL, а заголовки применяет). Поэтому граница здесь fail-closed: identity
- * не наследуется никем, а локальным `/api/bricks/**` возвращается адресно.
+ * The result is the default headers of the client: they go out with EVERY request,
+ * including one to an absolute URL on a foreign origin (for such a URL ofetch does
+ * not apply the baseURL, but it does apply the headers). That is why the boundary
+ * here is fail-closed: the identity is inherited by nobody, and it is returned to
+ * the local `/api/bricks/**` per address.
  *
- * Снятие безусловное, не по auth-режиму. Dev-прокси снимает `Authorization`
- * только в basic (`devProxyHandler.ts`), исходя из того, что в database-режиме
- * заголовок принадлежит проекту-хосту, — но режим авторизации bricks
- * происхождение заголовка не доказывает: это может быть и Basic
- * инфраструктуры перед инсталляцией. Инвариант формулируется по источнику, а
- * не по режиму: identity, захваченная из входящего SSR-запроса, наружу не
- * уходит. Явные креды, переданные вызывающим в опциях запроса, под запрет не
- * попадают — ofetch домешивает их поверх дефолтов.
+ * The stripping is unconditional, not per auth mode. The dev proxy strips
+ * `Authorization` in basic mode only (`devProxyHandler.ts`), on the assumption that
+ * in database mode the header belongs to the host project — but the authorization
+ * mode of bricks proves nothing about where the header came from: it may just as
+ * well be an infrastructure Basic in front of the installation. The invariant is
+ * stated in terms of the source rather than of the mode: identity captured from the
+ * incoming SSR request does not go outside. Explicit credentials passed by the
+ * caller in the request options are not covered by the ban — ofetch mixes them in
+ * on top of the defaults.
  *
- * @param headers - Заголовки, собранные из SSR-запроса.
- * @returns Заголовки, безопасные для любого endpoint.
+ * @param headers - Headers collected from the SSR request.
+ * @returns Headers safe for any endpoint.
  */
 export function toExternalHeaders(headers: Record<string, string>): Record<string, string> {
     const externalHeaders = { ...headers };
@@ -112,11 +118,12 @@ export function toExternalHeaders(headers: Record<string, string>): Record<strin
 }
 
 /**
- * Возвращает identity-заголовки в исходном виде — для адресного добавления к
- * запросам к локальным ручкам: в дефолтных заголовках клиента их нет.
+ * Returns the identity headers in their original shape — to be added per address to
+ * the requests hitting the local endpoints: the client's default headers do not
+ * carry them.
  *
- * @param headers - Заголовки, собранные из SSR-запроса.
- * @returns Только identity-заголовки, присутствующие в запросе.
+ * @param headers - Headers collected from the SSR request.
+ * @returns Only the identity headers present in the request.
  */
 export function pickIdentityHeaders(headers: Record<string, string>): Record<string, string> {
     return IDENTITY_HEADERS.reduce((result: Record<string, string>, header: string) => {

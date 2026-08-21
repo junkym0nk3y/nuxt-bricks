@@ -3,18 +3,19 @@
  */
 
 /**
- * Целевой формат полного файла при загрузке. `original` — сохранить как есть;
- * применяется только к web-safe входам, для HEIC/TIFF/BMP конвертация остаётся
- * обязательной (иначе постепенная загрузка подменила бы видимое превью файлом,
- * который браузер не откроет).
+ * Target format of the full file on upload. `original` — store it as it is; it
+ * applies to web-safe inputs only, for HEIC/TIFF/BMP the conversion stays mandatory
+ * (otherwise progressive loading would replace the visible preview with a file the
+ * browser will not open).
  */
 export type TBricksMediaImageFormat = 'webp' | 'original';
 
 /**
- * Режим постепенной загрузки изображения. `off` — сразу полный файл;
- * `two-step` — превью, затем полный; `three-step` — mock, превью, полный.
- * Глобальный дефолт живёт здесь, блок Media его переопределяет: режим зависит
- * от места на странице (первый экран против подвала), а не от файла.
+ * Progressive loading mode of an image. `off` — the full file right away;
+ * `two-step` — the preview, then the full file; `three-step` — the mock, the
+ * preview, the full file. The global default lives here and a Media block overrides
+ * it: the mode depends on the place on the page (the first screen versus the footer)
+ * rather than on the file.
  */
 export type TBricksMediaLoadMode = 'off' | 'two-step' | 'three-step';
 
@@ -26,19 +27,19 @@ export interface IBricksMediaConfig {
         maxWidth?: number;
         quality?: number;
     };
-    /** Дефолтный режим постепенной загрузки для блоков Media. Default: 'two-step'. */
+    /** Default progressive loading mode for the Media blocks. Default: 'two-step' */
     loadMode?: TBricksMediaLoadMode;
 }
 
 /**
- * Рантайм-конфигурация лендинга.
+ * Runtime configuration of the landing.
  *
- * Набора устройств здесь нет: прежние `bricks.breakpoints` (ширины канваса) и
- * `device.breakpoints` (пороги media-query) были двумя несвязанными ручками и
- * успели разойтись — объявленная в порогах ступень `laptop` в генерацию CSS не
- * попадала вовсе. Их заменила одна build-time опция модуля `bricks.devices`:
- * она кормит и рантайм, и SCSS-карту миксинов, а app.config до сборки миксинов
- * не доезжает.
+ * The device set is not here: the former `bricks.breakpoints` (canvas widths) and
+ * `device.breakpoints` (media-query thresholds) were two unconnected knobs and did
+ * manage to drift apart — the `laptop` step declared among the thresholds never
+ * reached the CSS generation at all. They were replaced by a single build-time module
+ * option, `bricks.devices`: it feeds both the runtime and the SCSS map of the mixins,
+ * whereas app.config does not reach the mixins by the time they are built.
  */
 export interface IBricksConfig {
     defaultFont?: string;

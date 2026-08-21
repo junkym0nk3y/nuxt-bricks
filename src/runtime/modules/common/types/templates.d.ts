@@ -1,23 +1,25 @@
 /**
- * Шаблоны страниц: строка хранилища, сводка списка и payload'ы записи.
+ * Page templates: the storage row, the list summary and the write payloads.
  *
- * Живут рядом с типами страниц (`bricks-api.d.ts`), а не в домене билдера:
- * контракт один на три стороны — Postgres-адаптер, Nitro-ручки
- * `/api/bricks/templates/**` и раздел «Шаблоны» дашборда.
+ * They live next to the page types (`bricks-api.d.ts`) rather than in a builder
+ * domain: the contract is one for three sides — the Postgres adapter, the Nitro
+ * endpoints of `/api/bricks/templates/**` and the "Templates" section of the
+ * dashboard.
  */
 import type { IBricksSchema } from './brick';
 import type { TBricksPageDeviceSet } from './devices';
 
 /**
- * Оформление страницы, уезжающее в шаблон вместе со схемой.
+ * The styling of a page that travels into a template along with the schema.
  *
- * Ровно три поля: раскладка, фон и набор устройств. Адрес, SEO и статус
- * публикации в шаблон не попадают — две страницы из одного шаблона иначе
- * родились бы с одним адресом, то есть отказом уникального индекса.
+ * Exactly three fields: the layout, the background and the device set. The address,
+ * the SEO fields and the publication status do not reach a template — otherwise two
+ * pages made from one template would be born with the same address, that is, with a
+ * rejection by the unique index.
  *
- * `viewportConfig: null` — страница-источник наследовала набор проекта, и
- * созданная из шаблона унаследует его же (то есть ТЕКУЩИЙ набор проекта, а не
- * тот, что действовал на момент сохранения шаблона).
+ * `viewportConfig: null` — the source page inherited the project set, and a page
+ * created from the template will inherit it too (that is, the CURRENT project set
+ * rather than the one in effect when the template was saved).
  */
 export interface IBricksTemplatePageMeta {
     layout: string | null;
@@ -26,14 +28,14 @@ export interface IBricksTemplatePageMeta {
 }
 
 /**
- * Полная строка шаблона (`bricks_templates`) — со схемой и оформлением.
- * Отдаётся только point-lookup'ом `GET /api/bricks/templates/:id`.
+ * The full template row (`bricks_templates`) — with the schema and the styling.
+ * Returned by the point lookup `GET /api/bricks/templates/:id` only.
  */
 export interface IBricksTemplateRow {
     id: number;
     name: string;
     description: string | null;
-    /** Свой файл превью шаблона; `null` — снимка нет, UI рисует плейсхолдер. */
+    /** The template's own preview file; `null` — there is no snapshot, the UI draws a placeholder */
     thumbnailUrl: string | null;
     schema: IBricksSchema;
     pageMeta: IBricksTemplatePageMeta;
@@ -42,23 +44,24 @@ export interface IBricksTemplateRow {
 }
 
 /**
- * Сводка шаблона для сетки раздела и выбора источника новой страницы: без
- * `schema` и `pageMeta`, зато с числом блоков.
+ * Summary of a template for the grid of the section and for picking the source of a
+ * new page: without `schema` and `pageMeta`, but with the number of blocks.
  *
- * Число блоков считает хранилище (`jsonb_array_length`), а не клиент: схема в
- * сводку не входит, а карточка обязана показать объём шаблона — иначе выбирать
- * пришлось бы по одному имени.
+ * The number of blocks is counted by the storage (`jsonb_array_length`) rather than
+ * by the client: the schema is not part of the summary, while the card has to show
+ * how much a template holds — otherwise one would have to choose by the name alone.
  */
 export type TBricksTemplateSummary = Omit<IBricksTemplateRow, 'schema' | 'pageMeta'> & {
     blocksCount: number;
 };
 
 /**
- * Данные создания шаблона на уровне хранилища.
+ * Data for creating a template at the storage level.
  *
- * `thumbnailUrl` здесь — УЖЕ собственный файл шаблона: копию кадра страницы
- * делает ручка до вызова адаптера (`copyThumbnailForTemplate`), потому что
- * ссылка на кадр страницы не переживает её следующего сохранения.
+ * `thumbnailUrl` here is ALREADY the template's own file: the copy of the page frame
+ * is made by the endpoint before the adapter is called
+ * (`copyThumbnailForTemplate`), because a link to the page frame does not survive
+ * the next save of that page.
  */
 export interface ICreateTemplatePayload {
     name: string;
@@ -69,11 +72,12 @@ export interface ICreateTemplatePayload {
 }
 
 /**
- * Частичное обновление шаблона: правится только подпись (имя и описание).
+ * Partial update of a template: only the caption (the name and the description) is
+ * editable.
  *
- * Содержимое шаблона не обновляется намеренно: шаблон — отпечаток момента, и
- * «обновить его текущей страницей» означало бы вторую сущность (источник
- * наследования) с версиями и разрешением конфликтов.
+ * The content of a template is deliberately not updated: a template is an imprint
+ * of a moment, and "update it from the current page" would mean a second entity (an
+ * inheritance source) with versions and conflict resolution.
  */
 export interface IUpdateTemplatePayload {
     name?: string;

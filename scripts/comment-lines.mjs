@@ -7,16 +7,12 @@
  * not a comment at all but still has to be counted.
  */
 
+import { CYRILLIC, DIRECTIVE, SYNTAX, indexLines, scanSource } from './comment-scanner.mjs';
 import {
-    CYRILLIC,
-    DIRECTIVE,
-    SYNTAX,
-    findMatchingParen,
-    indexLines,
-    readStringLiteral,
-    scanSource,
-    skipWhitespace,
-} from './comment-scanner.mjs';
+    devMessageRanges,
+    testTitleRanges,
+    translatableTextRanges,
+} from './comment-text-ranges.mjs';
 
 /**
  * @typedef {object} TCommentLine
@@ -31,6 +27,7 @@ import {
  * @property {Array<{ start: number, end: number, section: string }>} comments - Comment ranges.
  * @property {Array<{ start: number, end: number }>} literals - Template literal ranges.
  * @property {Array<{ start: number, end: number }>} strings - Quoted string ranges.
+ * @property {Array<{ start: number, end: number }>} substitutions - `${...}` ranges inside template literals.
  * @property {boolean} prose - The whole file is prose, with no code to protect.
  * @property {boolean} indentSensitive - Leading whitespace carries meaning.
  */
@@ -210,7 +207,14 @@ function cyrillicLiteralLines(ranges, index) {
  */
 function scanFile(path, source) {
     const extension = path.split('.').pop();
-    const empty = { comments: [], literals: [], strings: [], prose: false, indentSensitive: false };
+    const empty = {
+        comments: [],
+        literals: [],
+        strings: [],
+        substitutions: [],
+        prose: false,
+        indentSensitive: false,
+    };
 
     if (extension === 'md') {
         return { ...empty, prose: true };
@@ -220,6 +224,7 @@ function scanFile(path, source) {
         const comments = [];
         const literals = [];
         const strings = [];
+        const substitutions = [];
 
         for (const block of splitSfcBlocks(source)) {
             const language = { template: 'html', style: 'css', script: 'js' }[block.kind];
@@ -234,9 +239,10 @@ function scanFile(path, source) {
             );
             literals.push(...shiftRanges(scanned.literals, block.start));
             strings.push(...shiftRanges(scanned.strings, block.start));
+            substitutions.push(...shiftRanges(scanned.substitutions, block.start));
         }
 
-        return { ...empty, comments, literals, strings };
+        return { ...empty, comments, literals, strings, substitutions };
     }
 
     const language = SYNTAX_BY_EXTENSION[extension] ?? SYNTAX_BY_BASENAME[basename(path)];
@@ -252,6 +258,7 @@ function scanFile(path, source) {
         comments: scanned.comments.map((range) => ({ ...range, section })),
         literals: scanned.literals,
         strings: scanned.strings,
+        substitutions: scanned.substitutions,
         prose: false,
         indentSensitive: SYNTAX[language].indentSensitive === true,
     };
@@ -289,8 +296,8 @@ export function collectComments(path, source) {
 }
 
 /**
- * Projects a file down to its code: comment characters are blanked out, then
- * blank lines are dropped.
+ * Projects a file down to its code: comment characters are blanked out,
+ * translatable text is collapsed, then blank lines are dropped.
  *
  * Two revisions with equal projections differ in comments only. Comparing
  * projections is what makes the check honest — asking merely whether a changed
@@ -302,11 +309,22 @@ export function collectComments(path, source) {
  * syntaxes keep their leading whitespace, because in YAML a changed indent is a
  * changed document, not a reformatted line.
  *
+ * Text the sprint translates outside comments — dev messages, test case titles,
+ * the comments of generated CSS and SQL — is collapsed to nothing rather than
+ * blanked, so that its own length does not leak into the projection. Without
+ * this the check contradicted the sprint: translating the one Russian
+ * `console.warn` of a domain was reported as a change of code, and no stage
+ * touching a dev message or a generated-output comment could ever be verified.
+ * Surrounding code on the same line is still compared, and the caller is told
+ * that such text differed (`projectCode(path, source, { normalizeText: false })`
+ * keeps it).
+ *
  * @param {string} path - Repository-relative path.
  * @param {string} source - File contents.
+ * @param {{ normalizeText?: boolean }} [options] - `normalizeText: false` compares translatable text too.
  * @returns {string[]} Code lines, in order.
  */
-export function projectCode(path, source) {
+export function projectCode(path, source, options = {}) {
     const scanned = scanFile(path, source);
 
     if (scanned.prose) {
@@ -323,6 +341,16 @@ export function projectCode(path, source) {
         }
     }
 
+    if (options.normalizeText !== false) {
+        for (const range of translatableTextRanges(path, scanned, source)) {
+            for (let position = range.start; position < range.end; position += 1) {
+                if (characters[position] !== '\n') {
+                    characters[position] = '';
+                }
+            }
+        }
+    }
+
     return characters
         .join('')
         .split('\n')
@@ -331,19 +359,15 @@ export function projectCode(path, source) {
 }
 
 /**
- * Statements whose string arguments a developer reads: they are part of the
- * sprint's scope, and no comment counter would ever see them.
- */
-const DEV_MESSAGE_CALL = /\b(throw|new Error|createError|console\.\w+)\b/;
-
-/**
  * Collects Russian developer-facing messages: text passed to `throw`,
  * `new Error`, `createError` or `console.*`.
  *
- * Not comments and not product text — a русский `throw` reaches the integrating
+ * Not comments and not product text — a Russian `throw` reaches the integrating
  * developer just as a Russian comment does, so the sprint covers it and the gate
- * has to see it. The statement is taken as everything back to the previous `;`,
- * which keeps a multi-line `createError({ ... })` intact.
+ * has to see it. The ranges themselves come from `comment-text-ranges.mjs`,
+ * shared with the `--diff` projection: two copies of "what counts as a message"
+ * would let the gate demand a translation the projection then reports as a change
+ * of code.
  *
  * @param {string} path - Repository-relative path.
  * @param {string} source - File contents.
@@ -352,67 +376,38 @@ const DEV_MESSAGE_CALL = /\b(throw|new Error|createError|console\.\w+)\b/;
 export function collectDevMessages(path, source) {
     const index = indexLines(source);
     const scanned = scanFile(path, source);
-    const messages = [];
+    const byLine = new Map();
 
-    for (const range of [...scanned.strings, ...scanned.literals]) {
-        const text = source.slice(range.start, range.end);
+    // One entry per line, because the column counts lines: the text of a message
+    // built out of a template literal arrives in several pieces (the parts around
+    // its substitutions), and counting the pieces would inflate the report
+    for (const range of devMessageRanges(scanned, source)) {
+        const line = index.offsetToLine(range.start);
 
-        if (!CYRILLIC.test(text)) {
-            continue;
-        }
-
-        const before = source.slice(0, range.start);
-        const statement = before.slice(before.lastIndexOf(';') + 1);
-
-        if (DEV_MESSAGE_CALL.test(statement)) {
-            messages.push({ line: index.offsetToLine(range.start), text: text.slice(0, 80) });
+        if (!byLine.has(line)) {
+            byLine.set(line, source.slice(range.start, range.end).slice(0, 80));
         }
     }
 
-    return messages.sort((left, right) => left.line - right.line);
+    return [...byLine.entries()]
+        .map(([line, text]) => ({ line, text }))
+        .sort((left, right) => left.line - right.line);
 }
 
 /**
  * Collects test case titles written in Russian. Renaming `describe`/`it` titles
  * is a stage of its own, and titles are string literals rather than comments, so
- * they need their own counter.
- *
- * Two call shapes carry a title: the plain `it('title', fn)` and the
- * table-driven `it.each([...])('title %s', fn)`, where the title is the first
- * argument of the second call. Only that first argument is ever read, which
- * keeps the Russian values asserted inside test bodies out of the count.
- *
- * Known limit: the tagged-template table form (`it.each` followed by a backtick)
- * is not recognised. No test uses it here.
+ * they need their own counter. The parsing lives in `comment-text-ranges.mjs`,
+ * shared with the `--diff` projection.
  *
  * @param {string} source - File contents.
  * @returns {Array<{ line: number, text: string }>} Russian titles.
  */
 export function collectTestTitles(source) {
     const index = indexLines(source);
-    const pattern = /\b(?:describe|it|test)((?:\.\w+)*)\s*\(/g;
-    const titles = [];
-    let match = pattern.exec(source);
 
-    while (match) {
-        const openParen = match.index + match[0].length - 1;
-        let literal = readStringLiteral(source, skipWhitespace(source, openParen + 1));
-
-        if (!literal && match[1].includes('.each')) {
-            const closeParen = findMatchingParen(source, openParen);
-            const afterTable = closeParen === -1 ? -1 : skipWhitespace(source, closeParen + 1);
-
-            if (afterTable !== -1 && source[afterTable] === '(') {
-                literal = readStringLiteral(source, skipWhitespace(source, afterTable + 1));
-            }
-        }
-
-        if (literal && CYRILLIC.test(literal.text)) {
-            titles.push({ line: index.offsetToLine(match.index), text: literal.text });
-        }
-
-        match = pattern.exec(source);
-    }
-
-    return titles;
+    return testTitleRanges(source).map((range) => ({
+        line: index.offsetToLine(range.line),
+        text: range.text,
+    }));
 }

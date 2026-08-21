@@ -8,12 +8,14 @@ import { useAppConfig } from 'nuxt/app';
 // #endregion
 
 /**
- * Composable для конфигурации лендинга с дефолтными значениями.
- * Читает конфигурацию из app.config.ts и возвращает значения по умолчанию, если не указаны.
+ * Composable for the landing configuration with its default values.
+ * Reads the configuration out of app.config.ts and returns the defaults for whatever
+ * is not stated.
  *
- * Набор устройств сюда больше не входит: он фиксируется на сборке опцией модуля
- * `bricks.devices`, потому что теми же числами кормится SCSS-карта миксинов, а
- * рантайм-ручка в app.config до сборки не доезжает. За набором — `useBricksDevices`.
+ * The device set is no longer part of it: the set is fixed at build time by the
+ * `bricks.devices` module option, because the same numbers feed the SCSS map of the
+ * mixins, and a runtime knob in app.config does not reach them by the time they are
+ * built. For the set there is `useBricksDevices`.
  */
 export function useBricksConfig(): IUseBricksConfigReturn {
     const appConfig = useAppConfig() as IAppConfig;

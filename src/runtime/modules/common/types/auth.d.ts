@@ -1,57 +1,61 @@
 /**
- * Типы ролевой модели database-auth.
+ * Types of the role model of database auth.
  *
- * Живут в common: роль нужна и серверу (гард ручек, матрица прав), и клиенту
- * (какие действия рисовать в билдере и дашборде), а common — нижний слой,
- * доступный обеим сторонам.
+ * They live in common: the role is needed by the server (the endpoint guard, the
+ * permission matrix) and by the client (which actions to draw in the builder and
+ * in the dashboard) alike, and common is the bottom layer available to both sides.
  */
 
 /**
- * Роль учётной записи.
+ * Role of an account.
  *
- * - `admin` — удаление (страниц, версий, медиа, категорий) и управление учётками;
- * - `editor` — сохранение, публикация, загрузка медиа, набор устройств;
- * - `viewer` — только чтение.
+ * - `admin` — deletion (of pages, versions, media, categories) and account management;
+ * - `editor` — saving, publishing, media uploads, the device set;
+ * - `viewer` — read only.
  *
- * Роли строго вложены: права `viewer` ⊂ `editor` ⊂ `admin`, поэтому проверка
- * сводится к сравнению рангов (`BRICKS_ROLE_RANK`), а не к перечислению
- * разрешений на каждую роль.
+ * The roles are strictly nested: the permissions of `viewer` ⊂ `editor` ⊂ `admin`,
+ * so a check comes down to comparing ranks (`BRICKS_ROLE_RANK`) rather than to
+ * enumerating the permissions of every role.
  */
 export type TBricksUserRole = 'admin' | 'editor' | 'viewer';
 
 /**
- * Учётка в ответе раздела управления пользователями (`GET /api/bricks/users` и
- * все ручки, отдающие строку учётки после правки).
+ * An account in the responses of the user management section
+ * (`GET /api/bricks/users` and every endpoint returning an account row after an
+ * edit).
  *
- * Живёт в common, а не в контракте адаптера, по границам модулей: тип нужен и
- * серверу (persistence-реализация, проекции ручек), и клиенту (раздел
- * «Пользователи» дашборда), а `persistence` — server-only слой, импорт из
- * которого клиенту запрещён правилом dependency-cruiser (type-only импорты граф
- * тоже учитывает). Второе объявление той же формы в клиентском домене разошлось
- * бы с серверным молча — при добавлении колонки правили бы одну копию.
+ * It lives in common rather than in the adapter contract because of the module
+ * boundaries: the type is needed by the server (the persistence implementation, the
+ * endpoint projections) and by the client (the "Users" section of the dashboard),
+ * while `persistence` is a server-only layer the client is forbidden to import from
+ * by a dependency-cruiser rule (the graph counts type-only imports too). A second
+ * declaration of the same shape in a client domain would drift away from the
+ * server-side one silently — on adding a column only one copy would be edited.
  *
- * Секретов здесь нет: ни хеша пароля, ни поколения учётных данных
- * (`auth_version` — деталь механизма отзыва сессий, наружу ей незачем).
+ * There are no secrets here: no password hash and no credential generation
+ * (`auth_version` is a detail of the session revocation mechanism and has no
+ * business going outside).
  */
 export interface IBricksUserSummary {
     id: number;
     username: string;
     role: TBricksUserRole;
     isActive: boolean;
-    /** Отображаемое имя; null — везде показывается логин. */
+    /** Display name; null — the login is shown everywhere */
     displayName: string | null;
-    /** Ссылка на фото профиля; null — буквенная заглушка. */
+    /** Link to the profile photo; null — a letter placeholder */
     avatarUrl: string | null;
-    /** ISO 8601 UTC — момент создания учётки. */
+    /** ISO 8601 UTC — the moment the account was created */
     createdAt: string;
     /**
-     * ISO 8601 UTC — момент последнего УСПЕШНОГО входа; null — не входил ни
-     * разу. Пишется в той же операции, что создаёт сессию, поэтому отражает
-     * именно вход, а не любую активность.
+     * ISO 8601 UTC — the moment of the last SUCCESSFUL sign-in; null — never signed
+     * in. Written by the same operation that creates the session, so it reflects a
+     * sign-in specifically rather than any activity.
      *
-     * Не выводится из `bricks_sessions.last_used_at`: строки сессий уходят при
-     * выходе, отзыве прав, уборке просроченных и удалении учётки — по их
-     * отсутствию «не входил ни разу» было бы ложью о каждом, кто вышел.
+     * Not derived from `bricks_sessions.last_used_at`: session rows go away on
+     * sign-out, on a revocation of permissions, on the cleanup of expired ones and
+     * on the deletion of an account — by their absence, "never signed in" would be
+     * a lie about everybody who signed out.
      */
     lastLoginAt: string | null;
 }

@@ -1,44 +1,45 @@
 /**
- * Имена роутов, регистрируемых модулем (module.ts → extendPages).
+ * Names of the routes the module registers (module.ts → extendPages).
  *
- * Имена — стабильный контракт: пути зависят от `bricks.routes`
- * (builderPrefix/previewPrefix) и `app.baseURL`, имена — нет. Внутренние
- * переходы делать по именам (`router.push({ name })`), захардкоженные
- * строки-пути запрещены (см. `common/utils/bricks/routePaths.ts`).
+ * The names are a stable contract: the paths depend on `bricks.routes`
+ * (builderPrefix/previewPrefix) and on `app.baseURL`, the names do not. Internal
+ * navigation goes by name (`router.push({ name })`); hardcoded path strings are
+ * forbidden (see `common/utils/bricks/routePaths.ts`).
  */
 export const BRICKS_ROUTE_NAMES = {
-    /** Родительский роут билдера (`<builderPrefix>`). */
+    /** Parent route of the builder (`<builderPrefix>`) */
     builderRoot: 'bricks-builder',
-    /** Дашборд менеджера страниц (index-ребёнок builderRoot). */
+    /** Dashboard of the pages manager (the index child of builderRoot) */
     builderIndex: 'bricks-builder-index',
-    /** Страница логина database-auth (`<builderPrefix>/bricks-login`). */
+    /** Login page of database auth (`<builderPrefix>/bricks-login`) */
     builderLogin: 'bricks-builder-login',
-    /** Редактор страницы без префикса (`<builderPrefix>/:pagename`). */
+    /** Page editor without a prefix (`<builderPrefix>/:pagename`) */
     builderPage: 'bricks-builder-pagename',
-    /** Редактор страницы с urlPrefix (`<builderPrefix>/:urlPrefix+/:pagename`). */
+    /** Page editor with a urlPrefix (`<builderPrefix>/:urlPrefix+/:pagename`) */
     builderPagePrefixed: 'bricks-builder-pagename-prefixed',
-    /** Превью рендера без префикса (`<previewPrefix>/:pagename`). */
+    /** Render preview without a prefix (`<previewPrefix>/:pagename`) */
     preview: 'bricks-preview',
-    /** Превью рендера с urlPrefix (`<previewPrefix>/:urlPrefix+/:pagename`). */
+    /** Render preview with a urlPrefix (`<previewPrefix>/:urlPrefix+/:pagename`) */
     previewPrefixed: 'bricks-preview-prefixed',
-    /** Live-рендер published-страницы (catch-all `/:pagename`). */
+    /** Live render of a published page (the catch-all `/:pagename`) */
     page: 'bricks-page',
-    /** Live-рендер с urlPrefix (catch-all `/:urlPrefix+/:pagename`). */
+    /** Live render with a urlPrefix (the catch-all `/:urlPrefix+/:pagename`) */
     pagePrefixed: 'bricks-page-prefixed',
 } as const;
 
 /**
- * Маршруты редактора страницы. Их два, а не один с опциональным параметром,
- * потому что repeatable-параметр опциональным сделать нельзя, не проиграв
- * ранжирование статическим детям префикса (страница логина): `:urlPrefix*`
- * матчит и пустой остаток, то есть перехватывал бы `<builderPrefix>/bricks-login`.
+ * Routes of the page editor. There are two of them rather than one with an optional
+ * parameter, because a repeatable parameter cannot be made optional without losing
+ * the ranking against the static children of the prefix (the login page):
+ * `:urlPrefix*` matches an empty remainder too, that is, it would intercept
+ * `<builderPrefix>/bricks-login`.
  */
 export const BRICKS_BUILDER_PAGE_ROUTE_NAMES: readonly string[] = [
     BRICKS_ROUTE_NAMES.builderPage,
     BRICKS_ROUTE_NAMES.builderPagePrefixed,
 ];
 
-/** Маршруты превью рендера (с префиксом адреса и без). */
+/** Routes of the render preview (with and without an address prefix) */
 export const BRICKS_PREVIEW_ROUTE_NAMES: readonly string[] = [
     BRICKS_ROUTE_NAMES.preview,
     BRICKS_ROUTE_NAMES.previewPrefixed,

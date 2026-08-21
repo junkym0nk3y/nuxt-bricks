@@ -1,18 +1,20 @@
 /**
- * Санитайзер inline SVG (BlockSvg, превью SVG-сегментов, svgContent медиа).
- * Изоморфный (js-xss, без DOM): SSR-ответ и hydration дают одинаковый результат.
+ * Sanitizer of inline SVG (BlockSvg, the preview of SVG segments, the svgContent of
+ * media). Isomorphic (js-xss, no DOM): the SSR response and the hydration give the
+ * same result.
  *
- * Allow-list: статичная векторная графика — фигуры, пути, градиенты,
- * clip/mask/pattern, текст, базовые fe*-фильтры. Вырезаются: script,
- * foreignObject, SMIL-анимации, event-атрибуты, `<style>` (инлайн-SVG в DOM —
- * его CSS протёк бы на всю страницу) и любые внешние href (только #fragment).
+ * The allow-list is static vector graphics — shapes, paths, gradients,
+ * clip/mask/pattern, text, the basic fe* filters. Cut out are: script,
+ * foreignObject, SMIL animations, event attributes, `<style>` (an inline SVG lives
+ * in the DOM — its CSS would leak onto the whole page) and any external href (only
+ * #fragment is allowed).
  */
 import { FilterXSS, friendlyAttrValue, safeAttrValue } from './xssInterop';
 import { stripSanitizerMarkers } from './sanitizeRichText';
 import { containsUnsafeSvgReference, isLocalSvgReferenceValue } from './urlPolicy';
 
 // #region Constants
-/** Разрешённые CSS-свойства style-атрибута SVG. */
+/** Allowed CSS properties of the SVG style attribute */
 const SVG_CSS_WHITELIST: Record<string, boolean> = {
     fill: true,
     'fill-opacity': true,
@@ -30,7 +32,7 @@ const SVG_CSS_WHITELIST: Record<string, boolean> = {
     'transform-origin': true,
 };
 
-/** Презентационные атрибуты, разрешённые на любом SVG-теге. */
+/** Presentation attributes allowed on any SVG tag */
 const SVG_GLOBAL_ATTRS = [
     'id',
     'class',
@@ -56,7 +58,7 @@ const SVG_GLOBAL_ATTRS = [
     'vector-effect',
 ];
 
-/** Теги статичной векторной графики и их специфичные атрибуты. */
+/** Tags of static vector graphics and their specific attributes */
 const SVG_TAGS: Record<string, string[]> = {
     svg: [
         'xmlns',
@@ -162,29 +164,29 @@ const SVG_TAGS: Record<string, string[]> = {
     feDropShadow: ['dx', 'dy', 'stdDeviation', 'flood-color', 'flood-opacity', 'result'],
 };
 
-/** Безопасное значение href внутри SVG — только ссылка на локальный fragment. */
+/** A safe href value inside an SVG — a reference to a local fragment only */
 const SVG_LOCAL_HREF_PATTERN = /^#[\w:.-]+$/;
 
 /**
- * Атрибуты, где допустима только одна локальная ссылка `url(#fragment)`
- * либо `none` — внешний ресурс здесь означает загрузку filter/mask с
- * произвольного origin (tracking/exfil), не исполнение кода.
+ * Attributes where only a single local `url(#fragment)` reference or `none` is
+ * admissible — an external resource here means loading a filter/mask from an
+ * arbitrary origin (tracking/exfil), not code execution.
  */
 const STRICT_LOCAL_REFERENCE_ATTRS = new Set(['filter', 'clip-path', 'mask']);
 
 /**
- * Paint-атрибуты: обычные значения (`#fff`, `currentColor`, `none`)
- * сохраняются как есть, `url(...)` разрешён только с `#`-fragment.
+ * Paint attributes: ordinary values (`#fff`, `currentColor`, `none`) are kept as
+ * they are, a `url(...)` is allowed with a `#`-fragment only.
  */
 const PAINT_REFERENCE_ATTRS = new Set(['fill', 'stroke']);
 // #endregion
 
 // #region Filter
 /**
- * Собирает whitelist «тег → атрибуты» с презентационными атрибутами.
- * Имена тегов SVG регистрозависимы (clipPath, linearGradient) — js-xss
- * приводит теги к lowercase при матчинге, поэтому ключи дублируются в lowercase,
- * а исходный регистр сохраняется в выводе.
+ * Assembles the "tag → attributes" whitelist, adding the presentation attributes.
+ * SVG tag names are case-sensitive (clipPath, linearGradient) — js-xss lowercases
+ * the tags when matching, so the keys are duplicated in lowercase while the
+ * original case is preserved in the output.
  */
 function buildSvgWhiteList(): Record<string, string[]> {
     const whiteList: Record<string, string[]> = {};
@@ -199,7 +201,7 @@ function buildSvgWhiteList(): Record<string, string[]> {
 const svgFilter = new FilterXSS({
     whiteList: buildSvgWhiteList(),
     css: { whiteList: SVG_CSS_WHITELIST },
-    // Неразрешённые теги вырезаются, исполняемые/анимируемые — вместе с содержимым
+    // Disallowed tags are cut out, executable and animating ones along with their content
     stripIgnoreTag: true,
     stripIgnoreTagBody: [
         'script',
@@ -217,13 +219,13 @@ const svgFilter = new FilterXSS({
         'embed',
     ],
     safeAttrValue(tag, name, value, cssFilter) {
-        // Политику применяем к ДЕКОДИРОВАННОМУ значению — той же строке, что
-        // js-xss выдаст после friendlyAttrValue (numeric/hex HTML-энтити,
-        // `&colon;`, control-chars). Иначе encoded `url&#40;…&#41;` обходит
-        // deny-list в paint/style, а декодируется в живую внешнюю ссылку.
+        // The policy is applied to the DECODED value — the very string js-xss will
+        // produce after friendlyAttrValue (numeric/hex HTML entities, `&colon;`,
+        // control chars). Otherwise the encoded `url&#40;…&#41;` gets around the
+        // deny-list in paint/style and decodes into a live external reference.
         const decoded = friendlyAttrValue(value);
 
-        // Внешние ссылки (use/gradient/pattern href) — только локальный fragment
+        // External references (the href of use/gradient/pattern) — a local fragment only
         if (
             (name === 'href' || name === 'xlink:href') &&
             !SVG_LOCAL_HREF_PATTERN.test(decoded.trim())
@@ -231,15 +233,15 @@ const svgFilter = new FilterXSS({
             return '';
         }
 
-        // filter/clip-path/mask — только `none` либо одна локальная ссылка
+        // filter/clip-path/mask — only `none` or a single local reference
         if (STRICT_LOCAL_REFERENCE_ATTRS.has(name) && !isLocalSvgReferenceValue(decoded)) {
             return '';
         }
 
-        // fill/stroke/style — обычные paint-значения (`#fff`, `currentColor`)
-        // проходят, url() допустим только с локальным fragment. style —
-        // whole-attribute-drop при любом небезопасном url() (SVG CSS-whitelist
-        // делает url-способными лишь fill/stroke, per-declaration не нужен).
+        // fill/stroke/style — ordinary paint values (`#fff`, `currentColor`) pass,
+        // a url() is admissible with a local fragment only. style is dropped as a
+        // whole attribute on any unsafe url() (the SVG CSS whitelist makes only
+        // fill/stroke url-capable, so a per-declaration drop is not needed).
         if (
             (PAINT_REFERENCE_ATTRS.has(name) || name === 'style') &&
             containsUnsafeSvgReference(decoded)
@@ -252,10 +254,10 @@ const svgFilter = new FilterXSS({
 });
 
 /**
- * Санитизирует inline SVG-разметку по allow-list статичной графики.
+ * Sanitizes inline SVG markup against the allow-list of static graphics.
  *
- * @param svg - Произвольная SVG-разметка (из медиа-библиотеки/схемы).
- * @returns Безопасная разметка для v-html.
+ * @param svg - Arbitrary SVG markup (from the media library or the schema).
+ * @returns Markup safe for v-html.
  */
 export function sanitizeSvgMarkup(svg: string | null | undefined): string {
     if (!svg) {

@@ -115,7 +115,7 @@ export function createInflightBodyBudget(maxBytes: number): IInflightBodyBudget 
     };
 }
 
-/** One budget shared by every multipart endpoint: they share the memory. */
+/** One budget shared by every multipart endpoint: they share the memory */
 const inflightMultipartBudget = createInflightBodyBudget(INFLIGHT_MULTIPART_BUDGET_BYTES);
 
 /**

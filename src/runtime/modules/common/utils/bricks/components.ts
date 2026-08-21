@@ -5,26 +5,26 @@ import type {
 } from '../../types/brick';
 
 /**
- * Реплейсер `JSON.stringify`, вырезающий own-ключ `__proto__` на любой глубине.
- * Схема приходит из API и из импортированного руками JSON, а `JSON.parse` такой
- * own-ключ создаёт штатно. В Nuxt payload он непредставим: devalue бросает
- * «Cannot stringify objects with `__proto__` keys», то есть один такой ключ в
- * пропсах роняет SSR и билдера, и опубликованной страницы. Отбрасываем его в
- * единственной точке — на входе схемы в стор.
+ * A `JSON.stringify` replacer that cuts the own key `__proto__` out at any depth.
+ * A schema arrives from the API and from hand-imported JSON, and `JSON.parse`
+ * creates such an own key as a matter of course. It is unrepresentable in a Nuxt
+ * payload: devalue throws "Cannot stringify objects with `__proto__` keys", that is,
+ * a single such key in the props brings down the SSR of both the builder and the
+ * published page. It is dropped in a single place — where a schema enters the store.
  *
- * @param key - Имя текущего ключа.
- * @param value - Значение по ключу.
- * @returns Значение либо undefined — тогда ключ в результат не попадает.
+ * @param key - Name of the current key.
+ * @param value - Value at that key.
+ * @returns The value, or undefined — then the key does not reach the result.
  */
 function omitProtoKey(key: string, value: unknown): unknown {
     return key === '__proto__' ? undefined : value;
 }
 
 /**
- * Создаёт копию объекта пропсов для безопасного использования в истории/драг&дропе.
+ * Creates a copy of a props object for safe use in the history and in drag & drop.
  *
- * @param props - Исходный объект пропсов.
- * @returns Глубокая копия без сохранения ссылок и без own-ключей `__proto__`.
+ * @param props - Source props object.
+ * @returns A deep copy that keeps no references and no `__proto__` own keys.
  */
 export function cloneComponentProps<T extends object>(props: T | undefined): T {
     if (!props) {
@@ -35,10 +35,10 @@ export function cloneComponentProps<T extends object>(props: T | undefined): T {
 }
 
 /**
- * Создаёт описание слота на основе входящих данных.
+ * Creates a slot description out of the incoming data.
  *
- * @param slot - Исходное описание из brick.
- * @returns Структура слота с пустыми children.
+ * @param slot - Source description from the brick.
+ * @returns The slot structure with empty children.
  */
 export function createComponentSlot(slot: IComponentSlotDefinition): IBricksComponentSlot {
     return {
@@ -50,10 +50,10 @@ export function createComponentSlot(slot: IComponentSlotDefinition): IBricksComp
 }
 
 /**
- * Создаёт глубокую копию слота компонента.
+ * Creates a deep copy of a component slot.
  *
- * @param slot - Слот, сохранённый у компонента.
- * @returns Полностью независимая копия слота.
+ * @param slot - Slot stored on the component.
+ * @returns A fully independent copy of the slot.
  */
 function cloneComponentSlot(slot: IBricksComponentSlot): IBricksComponentSlot {
     return {
@@ -65,10 +65,10 @@ function cloneComponentSlot(slot: IBricksComponentSlot): IBricksComponentSlot {
 }
 
 /**
- * Создаёт глубокую копию компонента холста.
+ * Creates a deep copy of a canvas component.
  *
- * @param component - Компонент, который требуется клонировать.
- * @returns Клон с независимыми ссылками для props, children и slots.
+ * @param component - Component that has to be cloned.
+ * @returns A clone with independent references for props, children and slots.
  */
 export function cloneBricksComponent(component: IBricksComponent): IBricksComponent {
     return {
@@ -83,21 +83,21 @@ export function cloneBricksComponent(component: IBricksComponent): IBricksCompon
 }
 
 /**
- * Проверяет, является ли компонент layout-ом.
+ * Checks whether the component is a layout.
  *
- * @param component - Компонент Canvas.
- * @returns true, если `type === 'layout'`.
+ * @param component - Canvas component.
+ * @returns true if `type === 'layout'`.
  */
 export function isLayoutComponent(component: IBricksComponent | undefined): boolean {
     return Boolean(component && component.type === 'layout');
 }
 
 /**
- * Удаляет дочерний компонент из списка детей layout-компонента.
+ * Removes a child component from the children list of a layout component.
  *
- * @param layout - Родительский layout.
- * @param childId - ID дочернего компонента.
- * @returns true, если удаление произошло.
+ * @param layout - Parent layout.
+ * @param childId - ID of the child component.
+ * @returns true if the removal happened.
  */
 export function removeChildFromLayout(layout: IBricksComponent, childId: string): boolean {
     if (!layout.children) {

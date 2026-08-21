@@ -1,12 +1,12 @@
 /**
- * Единый источник путей поверхностей bricks: префиксы билдера и превью
- * (`bricks.routes` в nuxt.config, runtime — `runtimeConfig.public.bricksRoutes`)
- * и работа с `app.baseURL`.
+ * Single source for the paths of the bricks surfaces: the builder and preview
+ * prefixes (`bricks.routes` in nuxt.config, `runtimeConfig.public.bricksRoutes`
+ * at runtime) and everything that touches `app.baseURL`.
  *
- * Используется build-time (module.ts — регистрация страниц и валидация),
- * сервером (auth-матрица, редирект на login) и клиентом
- * (`useBricksRoutePaths`, гейт плагинов билдера). Захардкоженные `/bricks`
- * и `/preview` в новом коде запрещены — только эти хелперы.
+ * Used at build time (module.ts — page registration and validation), by the
+ * server (auth matrix, redirect to login) and by the client
+ * (`useBricksRoutePaths`, the builder plugin gate). Hardcoded `/bricks` and
+ * `/preview` are forbidden in new code — these helpers only.
  */
 
 import type { IBricksPageAddress } from '../../types/pageAddress';
@@ -14,18 +14,18 @@ import { getPageAddressKey } from './pageAddress';
 import { PREVIEW_VERSION_QUERY_PARAM } from './previewRoute';
 import { BRICKS_BUILDER_PAGE_ROUTE_NAMES, BRICKS_ROUTE_NAMES } from '../../constants/routes';
 
-/** Префиксы маршрутов поверхностей bricks. */
+/** Route prefixes of the bricks surfaces */
 export interface IBricksRoutePrefixes {
-    /** Префикс билдера: дашборд `<prefix>`, редактор `<prefix>/:pagename`. */
+    /** Builder prefix: dashboard at `<prefix>`, editor at `<prefix>/:pagename` */
     builderPrefix: string;
-    /** Префикс превью рендера: `<prefix>/:pagename`. */
+    /** Render preview prefix: `<prefix>/:pagename` */
     previewPrefix: string;
 }
 
 /**
- * Дефолтные префиксы. Все поверхности модуля сидят в неймспейсе `bricks-`
- * намеренно: каждый занятый префикс отбирает у потребителя published-адрес, а
- * `/preview` — слишком ходовой URL, чтобы забирать его под превью билдера.
+ * Default prefixes. Every surface of the module sits in the `bricks-` namespace
+ * deliberately: each occupied prefix takes a published address away from the
+ * consumer, and `/preview` is too common a URL to claim for the builder preview.
  */
 export const DEFAULT_BRICKS_ROUTE_PREFIXES: IBricksRoutePrefixes = {
     builderPrefix: '/bricks',
@@ -33,59 +33,62 @@ export const DEFAULT_BRICKS_ROUTE_PREFIXES: IBricksRoutePrefixes = {
 };
 
 /**
- * Сегмент страницы логина внутри префикса билдера. Единый источник и для
- * регистрации маршрута, и для резервирования одноимённого pagename: разъехавшись,
- * они дали бы либо недостижимый редактор, либо запрет без причины.
+ * Login page segment inside the builder prefix. A single source for both the
+ * route registration and the reservation of the same pagename: once they drift
+ * apart, the result is either an unreachable editor or a ban with no reason
+ * behind it.
  *
- * В неймспейсе `bricks-` по той же причине, что и префиксы: сегмент `login`
- * забирал бы у потребителя редактор его собственной страницы `/login`.
+ * In the `bricks-` namespace for the same reason as the prefixes: a `login`
+ * segment would take away the consumer's editor for their own `/login` page.
  */
 export const BUILDER_LOGIN_SEGMENT = 'bricks-login';
 
-/** Формат префикса: ведущий `/`, lowercase-сегменты, без trailing slash. */
+/** Prefix format: leading `/`, lowercase segments, no trailing slash */
 const ROUTE_PREFIX_PATTERN = /^\/[a-z0-9-]+(?:\/[a-z0-9-]+)*$/;
 
-/** Корневые сегменты, зарезервированные другими поверхностями модуля/Nuxt. */
+/** Root segments reserved by other surfaces of the module or of Nuxt */
 const RESERVED_ROOT_SEGMENTS = ['api', '_nuxt', '__nuxt_error'];
 
-/** Маршруты, по которым published-страница и должна открываться. */
+/** Routes a published page is supposed to open on */
 const PUBLISHED_PAGE_ROUTE_NAMES: readonly string[] = [
     BRICKS_ROUTE_NAMES.page,
     BRICKS_ROUTE_NAMES.pagePrefixed,
 ];
 
 /**
- * Владелец пути, у которого нет строкового имени: у vue-router имя маршрута
- * необязательно и может быть `Symbol`. Такой маршрут адрес всё равно занимает,
- * поэтому резолвер обязан отличать его от «не сматчилось вовсе» — иначе
- * безымянная страница потребителя молча перекрыла бы published-адрес.
+ * Owner of a path that has no string name: in vue-router a route name is
+ * optional and may be a `Symbol`. Such a route still occupies the address, so
+ * the resolver has to tell it apart from "nothing matched at all" — otherwise a
+ * nameless consumer page would silently shadow a published address.
  */
 export const UNNAMED_ROUTE_OWNER = '(unnamed route)';
 
 /**
- * Путь принадлежит поддереву префикса (сам префикс или `<prefix>/**`).
+ * Whether the path belongs to the prefix subtree (the prefix itself or
+ * `<prefix>/**`).
  *
- * @param prefix - Префикс без trailing slash.
- * @param pathname - Проверяемый путь.
+ * @param prefix - Prefix without a trailing slash.
+ * @param pathname - Path being checked.
  */
 function matchesPathPrefix(prefix: string, pathname: string): boolean {
     return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
 
 /**
- * Непустые сегменты пути: `/admin/builder` → `['admin', 'builder']`.
+ * Non-empty path segments: `/admin/builder` → `['admin', 'builder']`.
  *
- * @param path - Путь с ведущим `/`.
+ * @param path - Path with a leading `/`.
  */
 function getPathSegments(path: string): string[] {
     return path.split('/').filter(Boolean);
 }
 
 /**
- * Валидирует один префикс; кидает с именем опции — fail-fast при старте модуля.
+ * Validates a single prefix; throws with the option name — fail-fast on module
+ * startup.
  *
- * @param name - Имя опции для сообщения об ошибке.
- * @param prefix - Значение префикса.
+ * @param name - Option name for the error message.
+ * @param prefix - Prefix value.
  */
 function validateRoutePrefix(name: string, prefix: string): void {
     if (!ROUTE_PREFIX_PATTERN.test(prefix)) {
@@ -105,11 +108,11 @@ function validateRoutePrefix(name: string, prefix: string): void {
 }
 
 /**
- * Валидирует пару префиксов: формат каждого + отсутствие пересечения
- * (равенство или вложенность ломает и роутинг, и auth-матрицу).
- * Кидает Error — module.ts вызывает это в setup, ошибка валит сборку.
+ * Validates the pair of prefixes: the format of each one plus the absence of an
+ * overlap (equality or nesting breaks both the routing and the auth matrix).
+ * Throws an Error — module.ts calls this in setup, so the error fails the build.
  *
- * @param prefixes - Префиксы из опций модуля.
+ * @param prefixes - Prefixes from the module options.
  */
 export function validateBricksRoutePrefixes(prefixes: IBricksRoutePrefixes): void {
     validateRoutePrefix('builderPrefix', prefixes.builderPrefix);
@@ -126,24 +129,25 @@ export function validateBricksRoutePrefixes(prefixes: IBricksRoutePrefixes): voi
 }
 
 /**
- * Путь страницы логина database-auth.
+ * Path of the database-auth login page.
  *
- * @param prefixes - Активные префиксы.
+ * @param prefixes - Active prefixes.
  */
 export function getBuilderLoginPath(prefixes: IBricksRoutePrefixes): string {
     return `${prefixes.builderPrefix}/${BUILDER_LOGIN_SEGMENT}`;
 }
 
 /**
- * Путь превью страницы; с `versionId` — превью сохранённой версии.
+ * Preview path of a page; with a `versionId` — preview of a saved version.
  *
- * Адресный, как и путь редактора: превью открывается из редактора конкретной
- * страницы, и по одному имени кнопка «Превью» у `/news/post` открывала бы
- * вкладку, которую билдер наполняет схемой `/blog/post`.
+ * Address-based, just like the editor path: the preview is opened from the
+ * editor of a specific page, and keyed by name alone the "Preview" button of
+ * `/news/post` would open a tab the builder then fills with the schema of
+ * `/blog/post`.
  *
- * @param prefixes - Активные префиксы.
- * @param address - Адрес страницы.
- * @param versionId - Id версии для `?version=` (без него — текущее состояние).
+ * @param prefixes - Active prefixes.
+ * @param address - Page address.
+ * @param versionId - Version id for `?version=` (without it — the current state).
  */
 export function getPreviewPagePath(
     prefixes: IBricksRoutePrefixes,
@@ -158,20 +162,22 @@ export function getPreviewPagePath(
 }
 
 /**
- * Путь принадлежит поверхности билдера (`<builderPrefix>` и `<builderPrefix>/**`).
+ * Whether the path belongs to the builder surface (`<builderPrefix>` and
+ * `<builderPrefix>/**`).
  *
- * @param prefixes - Активные префиксы.
- * @param pathname - Путь без baseURL.
+ * @param prefixes - Active prefixes.
+ * @param pathname - Path without the baseURL.
  */
 export function isBuilderPath(prefixes: IBricksRoutePrefixes, pathname: string): boolean {
     return matchesPathPrefix(prefixes.builderPrefix, pathname);
 }
 
 /**
- * Путь — HTML-страница билдера или превью (выбор redirect-vs-401 в auth).
+ * Whether the path is an HTML page of the builder or of the preview (picks
+ * redirect vs 401 in auth).
  *
- * @param prefixes - Активные префиксы.
- * @param pathname - Путь без baseURL.
+ * @param prefixes - Active prefixes.
+ * @param pathname - Path without the baseURL.
  */
 export function isProtectedBricksHtmlPath(
     prefixes: IBricksRoutePrefixes,
@@ -184,31 +190,31 @@ export function isProtectedBricksHtmlPath(
 }
 
 /**
- * Логический live-адрес published-страницы: `/<urlPrefix>/<pagename>` либо
- * `/<pagename>` без префикса.
+ * Logical live address of a published page: `/<urlPrefix>/<pagename>` or
+ * `/<pagename>` without a prefix.
  *
- * Выводится из канонического ключа адреса (`getPageAddressKey`), а не считает
- * сегменты сам: ключ адреса уже задаёт единственную сериализацию пары, и вторая
- * копия правила разошлась бы с ключами черновиков и payload'а на пробельном
- * префиксе.
+ * Derived from the canonical address key (`getPageAddressKey`) instead of
+ * counting the segments itself: the address key already defines the one
+ * serialization of the pair, and a second copy of the rule would drift away
+ * from the keys of drafts and of the payload on a whitespace prefix.
  *
- * @param address - Адрес страницы.
+ * @param address - Page address.
  */
 export function getPublishedPagePath(address: IBricksPageAddress): string {
     return `/${getPageAddressKey(address)}`;
 }
 
 /**
- * Статические (беспараметрические) маршруты, которые регистрирует сам модуль:
- * путь → имя роута. Выводится из тех же префиксов и сегментов, что и регистрация
- * страниц, поэтому разъехаться с ней не может.
+ * Static (parameterless) routes the module registers itself: path → route name.
+ * Derived from the same prefixes and segments as the page registration, so it
+ * cannot drift away from it.
  *
- * Нужна там, где живого роутера нет (сервер): дать `isPageAddressTaken` и
- * `isEditorAddressTaken` ответ «кто владеет этим путём» хотя бы по своим
- * поверхностям. Клиент вместо этого спрашивает роутер приложения и видит ещё и
- * страницы потребителя.
+ * Needed where there is no live router (the server): to give
+ * `isPageAddressTaken` and `isEditorAddressTaken` an answer to "who owns this
+ * path" at least for our own surfaces. The client asks the application router
+ * instead and sees the consumer's pages as well.
  *
- * @param prefixes - Активные префиксы.
+ * @param prefixes - Active prefixes.
  */
 export function getBricksOwnStaticRoutes(prefixes: IBricksRoutePrefixes): Record<string, string> {
     return {
@@ -218,16 +224,17 @@ export function getBricksOwnStaticRoutes(prefixes: IBricksRoutePrefixes): Record
 }
 
 /**
- * Адрес занят чужим маршрутом.
+ * Whether the address is taken by a foreign route.
  *
- * Вопрос задаётся роутингу («кто выигрывает этот путь»), а не списку имён:
- * список пришлось бы держать вручную, и он всё равно не знал бы о страницах
- * приложения-потребителя. `undefined` от резолвера — «статического владельца
- * нет», то есть путь достаётся ожидаемому маршруту.
+ * The question goes to the routing ("who wins this path"), not to a list of
+ * names: such a list would have to be maintained by hand, and it still would
+ * not know about the pages of the consumer application. `undefined` from the
+ * resolver means "no static owner", that is, the path goes to the expected
+ * route.
  *
- * @param resolveRouteName - Имя маршрута, выигрывающего путь (undefined — никто).
- * @param path - Проверяемый путь.
- * @param expectedOwners - Маршруты, которым путь и должен достаться.
+ * @param resolveRouteName - Name of the route that wins the path (undefined — nobody).
+ * @param path - Path being checked.
+ * @param expectedOwners - Routes the path is supposed to go to.
  */
 function isPathTakenByOther(
     resolveRouteName: (path: string) => string | undefined,
@@ -240,17 +247,17 @@ function isPathTakenByOther(
 }
 
 /**
- * Live-адрес published-страницы недоступен: его либо выигрывает чужой маршрут,
- * либо он уходит под поверхность bricks целиком.
+ * The live address of a published page is unavailable: either a foreign route
+ * wins it, or it falls under a bricks surface entirely.
  *
- * Две причины проверяются отдельно, потому что вторая маршрутом не видна:
- * `<previewPrefix>` сам по себе маршрута не имеет (превью живёт на
- * `<prefix>/:pagename`), но auth-матрица защищает и сам префикс — публичная
- * страница на нём уехала бы за логин билдера.
+ * The two reasons are checked separately because the second one is invisible to
+ * the router: `<previewPrefix>` itself has no route (the preview lives on
+ * `<prefix>/:pagename`), yet the auth matrix protects the prefix as well — a
+ * public page on it would end up behind the builder login.
  *
- * @param prefixes - Активные префиксы.
- * @param resolveRouteName - Резолвер имени маршрута по пути.
- * @param address - Адрес страницы.
+ * @param prefixes - Active prefixes.
+ * @param resolveRouteName - Resolver of a route name by path.
+ * @param address - Page address.
  */
 export function isPageAddressTaken(
     prefixes: IBricksRoutePrefixes,
@@ -266,13 +273,13 @@ export function isPageAddressTaken(
 }
 
 /**
- * Путь редактора страницы: `<builderPrefix>/<urlPrefix>/<pagename>` либо
- * `<builderPrefix>/<pagename>` без префикса. Адрес редактора повторяет адрес
- * страницы, потому что имя уникально только внутри своего префикса: у `/blog/post`
- * и `/news/post` редакторы обязаны различаться.
+ * Editor path of a page: `<builderPrefix>/<urlPrefix>/<pagename>` or
+ * `<builderPrefix>/<pagename>` without a prefix. The editor address repeats the
+ * page address because a name is unique only within its own prefix: the editors
+ * of `/blog/post` and `/news/post` have to differ.
  *
- * @param prefixes - Активные префиксы.
- * @param address - Адрес страницы.
+ * @param prefixes - Active prefixes.
+ * @param address - Page address.
  */
 export function getBuilderPagePath(
     prefixes: IBricksRoutePrefixes,
@@ -282,18 +289,20 @@ export function getBuilderPagePath(
 }
 
 /**
- * Адрес РЕДАКТОРА страницы занят: путь редактора достаётся не редактору, а
- * статическому соседу (страница логина, вложенный маршрут потребителя). Сама
- * published-страница при этом обычно достижима — недостижим именно её редактор,
- * поэтому проверка отдельная от `isPageAddressTaken`.
+ * The address of the page EDITOR is taken: the editor path goes not to the
+ * editor but to a static neighbor (the login page, a nested route of the
+ * consumer). The published page itself is usually still reachable — it is
+ * precisely its editor that is not, which is why this check is separate from
+ * `isPageAddressTaken`.
  *
- * Проверяется полный адрес, а не одно имя: `bricks-login` без префикса
- * действительно отбирает путь у страницы логина, а `blog/bricks-login` живёт по
- * свободному `<builderPrefix>/blog/bricks-login` и запрещать его не за что.
+ * The full address is checked rather than the name alone: `bricks-login` with no
+ * prefix really does take the path away from the login page, whereas
+ * `blog/bricks-login` lives on the free `<builderPrefix>/blog/bricks-login` and
+ * there is nothing to forbid it for.
  *
- * @param prefixes - Активные префиксы.
- * @param resolveRouteName - Резолвер имени маршрута по пути.
- * @param address - Адрес страницы.
+ * @param prefixes - Active prefixes.
+ * @param resolveRouteName - Resolver of a route name by path.
+ * @param address - Page address.
  */
 export function isEditorAddressTaken(
     prefixes: IBricksRoutePrefixes,
@@ -308,10 +317,10 @@ export function isEditorAddressTaken(
 }
 
 /**
- * Убирает `app.baseURL` из фактического pathname запроса → логический путь
- * роутера. Чужой путь (не под base) возвращается как есть.
+ * Strips `app.baseURL` off the actual request pathname → the logical router
+ * path. A foreign path (not under the base) is returned as is.
  *
- * @param pathname - Фактический pathname (с base).
+ * @param pathname - Actual pathname (with the base).
  * @param baseURL - `app.baseURL` (`/` — no-op).
  */
 export function stripPathBase(pathname: string, baseURL: string): string {
@@ -329,20 +338,21 @@ export function stripPathBase(pathname: string, baseURL: string): string {
 }
 
 /**
- * Убирает завершающий `/` — приводит путь к тому виду, в котором его
- * сопоставляет роутер.
+ * Strips the trailing `/` — brings the path to the shape the router matches it
+ * in.
  *
- * Нужно там, где путь сверяется с маршрутами вручную (матрицы защиты и прав):
- * radix3 в нестрогом режиме — а именно так его заводит h3 — сам отбрасывает
- * завершающий слеш, поэтому `/api/bricks/media/import/` попадает в ту же ручку,
- * что и `/api/bricks/media/import`. Сверяйся матрица с сырым путём — вариант со
- * слешем не совпал бы с её записями и получил бы права по умолчанию, а ручку
- * при этом вызвал бы ту же.
+ * Needed wherever a path is checked against routes by hand (the protection and
+ * permission matrices): radix3 in non-strict mode — and that is exactly how h3
+ * sets it up — drops the trailing slash itself, so `/api/bricks/media/import/`
+ * lands in the same handler as `/api/bricks/media/import`. Were a matrix to
+ * check the raw path, the variant with the slash would match none of its entries
+ * and would get the default permissions, while still calling the very same
+ * handler.
  *
- * Корень остаётся `/`: пустой путь не совпал бы уже ни с чем.
+ * The root stays `/`: an empty path would no longer match anything at all.
  *
- * @param pathname - Путь без query.
- * @returns Путь без завершающего слеша.
+ * @param pathname - Path without the query.
+ * @returns Path without a trailing slash.
  */
 export function normalizePathTrailingSlash(pathname: string): string {
     if (pathname.length <= 1 || !pathname.endsWith('/')) {
@@ -353,11 +363,12 @@ export function normalizePathTrailingSlash(pathname: string): string {
 }
 
 /**
- * Добавляет `app.baseURL` к логическому пути — для `window.location` /
- * `window.open` / серверного redirect, где роутер Nuxt base не подставит.
+ * Prepends `app.baseURL` to a logical path — for `window.location`,
+ * `window.open` and server redirects, where the Nuxt router will not add the
+ * base itself.
  *
  * @param baseURL - `app.baseURL` (`/` — no-op).
- * @param path - Логический путь с ведущим `/`.
+ * @param path - Logical path with a leading `/`.
  */
 export function joinPathBase(baseURL: string, path: string): string {
     if (!baseURL || baseURL === '/') {

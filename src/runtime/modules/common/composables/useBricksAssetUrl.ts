@@ -10,8 +10,8 @@ import { useRuntimeConfig } from '#imports';
 // #endregion
 
 /**
- * URL публичных ассетов модуля с учётом `app.baseURL`
- * (паттерн `useBricksRoutePaths.withBase`).
+ * URLs of the public assets of the module, honoring `app.baseURL` (the same pattern
+ * as `useBricksRoutePaths.withBase`).
  */
 export function useBricksAssetUrl(): IUseBricksAssetUrlReturn {
     const config = useRuntimeConfig();

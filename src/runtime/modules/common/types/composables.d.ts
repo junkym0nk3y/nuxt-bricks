@@ -1,5 +1,5 @@
 /**
- * Возвращаемые значения composables домена `common`.
+ * Return values of the composables of the `common` domain.
  */
 
 import type { IBrickExportModule } from './index';
@@ -10,20 +10,23 @@ import type { CLIENT_OWNED_REQUEST_OPTIONS } from '../utils/apiRequestPolicy';
 
 // #region useApiClient
 /**
- * Инстанс ofetch, на котором построен клиент билдера. Тип берётся из
- * `globalThis.$fetch.create`, чтобы форма опций не разъезжалась с транспортом.
+ * The ofetch instance the builder client is built on. The type is taken from
+ * `globalThis.$fetch.create` so that the shape of the options cannot drift away
+ * from the transport.
  */
 type TRawApiFetcher = ReturnType<typeof globalThis.$fetch.create>;
 
 /**
- * Опции одного запроса клиента билдера — без транспортной политики: хуков и
- * повторов. Вызывающий описывает запрос (метод, тело, заголовки, потолок,
- * сигнал), а адрес, identity и политику повторов держит клиент.
+ * Options of a single request of the builder client — without the transport
+ * policy: the hooks and the retries. The caller describes the request (method,
+ * body, headers, ceiling, signal), while the address, the identity and the retry
+ * policy stay with the client.
  *
- * Вычитаемые ключи берутся из `CLIENT_OWNED_REQUEST_OPTIONS` — того же списка,
- * который клиент снимает в рантайме (там же объяснено, чем каждый опасен).
- * Переписывать союз ключей руками нельзя: расхождение двух копий возвращает
- * утечку identity, а компилятор о нём не скажет.
+ * The subtracted keys come from `CLIENT_OWNED_REQUEST_OPTIONS` — the very list
+ * the client strips at runtime (the danger of each one is explained there too).
+ * Rewriting the union of keys by hand is not allowed: a divergence of the two
+ * copies brings the identity leak back, and the compiler will not say a word
+ * about it.
  */
 export type TApiRequestOptions = Omit<
     NonNullable<Parameters<TRawApiFetcher>[1]>,
@@ -31,41 +34,42 @@ export type TApiRequestOptions = Omit<
 >;
 
 /**
- * Фетчер API билдера.
+ * Fetcher of the builder API.
  *
- * Это обёртка над инстансом ofetch, а не сам инстанс: потолок ожидания ставится
- * до вызова, чтобы обрыв по нему можно было опознать на выходе (в браузере
- * платформа теряет причину аборта на фазе чтения тела —
- * см. `normalizeRequestAbortError`). Цена обёртки — Nitro-типизация роутов по
- * URL здесь не выводится; дженерик ответа задаётся на вызове.
+ * It is a wrapper over an ofetch instance rather than the instance itself: the
+ * waiting ceiling is set before the call so that an abort by it can be recognized
+ * on the way out (in the browser the platform loses the reason of an abort during
+ * the body-reading phase — see `normalizeRequestAbortError`). The price of the
+ * wrapper is that the Nitro typing of the routes by URL is not inferred here; the
+ * response generic is stated at the call site.
  */
 export interface IApiFetcher {
     <T = unknown>(request: string, options?: TApiRequestOptions): Promise<T>;
 }
 
 /**
- * Возвращаемое значение `useApiClient`.
+ * Return value of `useApiClient`.
  */
 export interface IUseApiClientReturn {
-    /** Фетчер API билдера с потолком ожидания и опознаваемым обрывом. */
+    /** Fetcher of the builder API with a waiting ceiling and a recognizable abort */
     apiFetcher: IApiFetcher;
 }
 // #endregion
 
 // #region useBrickImports
 /**
- * Возвращаемое значение `useBrickImports`.
+ * Return value of `useBrickImports`.
  */
 export interface IUseBrickImportsReturn {
     /**
-     * Ищет loader brick-модуля по `brickPath` из схемы компонента.
-     * `undefined` — layout-блок (brick-файла не имеет) либо промах по карте
-     * загрузчиков.
+     * Looks up the loader of a brick module by the `brickPath` from the component
+     * schema. `undefined` — either a layout block (which has no brick file) or a
+     * miss in the loader map.
      */
     findImportModule: (brickPath: string) => (() => Promise<IBrickExportModule>) | undefined;
     /**
-     * Есть ли лоадер под этот `brickPath`. В отличие от `findImportModule`
-     * молчит при промахе — рассчитан на вызов из вычисляемых свойств.
+     * Whether there is a loader for this `brickPath`. Unlike `findImportModule` it
+     * stays silent on a miss — it is meant to be called from computed properties.
      */
     hasBrickModule: (brickPath: string) => boolean;
 }
@@ -73,81 +77,82 @@ export interface IUseBrickImportsReturn {
 
 // #region useBricksAssetUrl
 /**
- * Возвращаемое значение `useBricksAssetUrl`.
+ * Return value of `useBricksAssetUrl`.
  */
 export interface IUseBricksAssetUrlReturn {
-    /** `app.baseURL` приложения (`/` без конфигурации). */
+    /** The application's `app.baseURL` (`/` when not configured) */
     baseURL: string;
-    /** URL публичного ассета модуля (`/_bricks/...`) с учётом `app.baseURL`. */
+    /** URL of a public asset of the module (`/_bricks/...`) honoring `app.baseURL` */
     resolveAssetUrl: (assetPath: string) => string;
 }
 // #endregion
 
 // #region useBricksConfig
 /**
- * Возвращаемое значение `useBricksConfig`: конфигурация лендинга с
- * подставленными дефолтами.
+ * Return value of `useBricksConfig`: the landing configuration with the defaults
+ * filled in.
  */
 export interface IUseBricksConfigReturn {
-    /** Шрифт по умолчанию для контента страницы. */
+    /** Default font of the page content */
     defaultFont: string;
-    /** Дополнительные шрифты, объявленные потребителем (подключает он же). */
+    /** Additional fonts declared by the consumer (who also loads them) */
     fonts?: string[];
-    /** Фон страницы. */
+    /** Page background */
     backgroundColor: string;
-    /** Доступные в билдере layout-блоки. */
+    /** Layout blocks available in the builder */
     layouts: string[];
 }
 // #endregion
 
 // #region useBricksDevices
 /**
- * Возвращаемое значение `useBricksDevices`.
+ * Return value of `useBricksDevices`.
  *
- * Набора страницы здесь нет намеренно: композабл живёт в `common` и страницы не
- * знает — её конфиг передаёт тот, кто её загрузил.
+ * The page set is deliberately absent here: the composable lives in `common` and
+ * knows nothing about a page — its config is passed in by whoever loaded it.
  */
 export interface IUseBricksDevicesReturn {
-    /** Резолвнутый набор проекта (опция модуля поверх константы). */
+    /** Resolved project set (the module option on top of the constant) */
     projectDevices: TBricksResolvedDeviceSet;
-    /** Резолвит `viewport_config` страницы поверх проектного набора. */
+    /** Resolves the `viewport_config` of a page on top of the project set */
     resolvePageDevices: (pageConfig: unknown) => TBricksResolvedDeviceSet;
-    /** Диапазоны ширины окна по набору. */
+    /** Window width ranges derived from the set */
     deviceRanges: (devices: ReadonlyArray<IBricksPageDevice>) => IBricksDeviceRange[];
 }
 // #endregion
 
 // #region useBricksRoutePaths
 /**
- * Возвращаемое значение `useBricksRoutePaths`.
+ * Return value of `useBricksRoutePaths`.
  */
 export interface IUseBricksRoutePathsReturn {
-    /** Активные префиксы маршрутов. */
+    /** Active route prefixes */
     prefixes: IBricksRoutePrefixes;
-    /** Логический путь дашборда билдера (без baseURL). */
+    /** Logical path of the builder dashboard (without the baseURL) */
     builderRootPath: string;
-    /** Логический путь страницы логина (без baseURL). */
+    /** Logical path of the login page (without the baseURL) */
     builderLoginPath: string;
     /**
-     * Логический путь превью страницы (без baseURL); с `versionId` — превью
-     * сохранённой версии (`?version=`).
+     * Logical path of the page preview (without the baseURL); with a `versionId` —
+     * preview of a saved version (`?version=`).
      */
     previewPagePath: (address: IBricksPageAddress, versionId?: number) => string;
-    /** Добавляет `app.baseURL` — для `window.location`/`window.open`/`<a href>`. */
+    /** Adds `app.baseURL` — for `window.location`/`window.open`/`<a href>` */
     withBase: (path: string) => string;
-    /** Убирает `app.baseURL` из фактического pathname. */
+    /** Strips `app.baseURL` off the actual pathname */
     stripBase: (pathname: string) => string;
-    /** Путь принадлежит поверхности билдера. */
+    /** Whether the path belongs to the builder surface */
     isBuilderPath: (pathname: string) => boolean;
 }
 
 export interface IUseBricksPageAddressReturn {
     /**
-     * Свободен ли live-адрес страницы (`/<urlPrefix>/<pagename>`) в роутинге
-     * приложения: не занят ли он поверхностью билдера или страницей потребителя.
+     * Whether the live address of a page (`/<urlPrefix>/<pagename>`) is free in the
+     * application routing: whether it is taken by a builder surface or by a page of
+     * the consumer.
      */
     isPageAddressFree: (address: IBricksPageAddress) => boolean;
-    /** Свободен ли адрес редактора страницы (`<builderPrefix>/<urlPrefix>/<pagename>`). */
+    /** Whether the editor address of a page (`<builderPrefix>/<urlPrefix>/<pagename>`) is free */
     isEditorAddressFree: (address: IBricksPageAddress) => boolean;
 }
 // #endregion

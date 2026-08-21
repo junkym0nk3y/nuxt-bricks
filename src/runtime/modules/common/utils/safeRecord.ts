@@ -1,46 +1,46 @@
 /**
- * Доступ к объектам по ключу, пришедшему извне (схема страницы, brick-файл,
- * ответ data source). Для таких ключей `obj[key]` небезопасен: имена членов
+ * Access to objects by a key that came from outside (a page schema, a brick file, a
+ * data source response). For such keys `obj[key]` is unsafe: the member names of
  * `Object.prototype` (`__proto__`, `constructor`, `toString`, `hasOwnProperty`)
- * читаются как существующие значения, поэтому проверка «уже есть» ложно
- * срабатывает, а запись в мнимую корзину уходит в глобальный прототип.
+ * read as existing values, so an "already there" check fires falsely and a write
+ * into an imaginary bin lands in the global prototype.
  *
- * `Object.prototype.hasOwnProperty.call` вместо `Object.hasOwn` — по привычке к
- * широкой совместимости, а не по необходимости: фактический JS-пол проекта —
- * `safari 16` (дефолтный `build.target` Vite 7, см. `.browserslistrc`), так что
- * `Object.hasOwn` (Safari 15.4) прошёл бы. Прежнее обоснование «в
- * `.browserslistrc` есть `ios_saf 11`» неверно: этот файл читает только
- * autoprefixer и на JS не влияет. Менять форму записи не на что —
- * поведение идентично.
+ * `Object.prototype.hasOwnProperty.call` rather than `Object.hasOwn` — out of habit
+ * of broad compatibility, not out of necessity: the actual JS floor of the project
+ * is `safari 16` (the default `build.target` of Vite 7, see `.browserslistrc`), so
+ * `Object.hasOwn` (Safari 15.4) would have passed. The former justification, "there
+ * is an `ios_saf 11` in `.browserslistrc`", is wrong: that file is read by
+ * autoprefixer only and has no effect on JS. There is nothing to change the form of
+ * the call to — the behavior is identical.
  */
 
 // #region Constants
 /**
- * Единственный ключ, который нельзя внести в обычный объект: присваивание
- * вызывает сеттер прототипа, а own-свойство с таким именем не переживает
- * сериализацию Nuxt payload (devalue бросает «Cannot stringify objects with
- * __proto__ keys»). Ключи-контейнеры такого ограничения не имеют — там `Map`.
+ * The only key that cannot be put into an ordinary object: assigning it calls the
+ * prototype setter, and an own property of that name does not survive the
+ * serialization of a Nuxt payload (devalue throws "Cannot stringify objects with
+ * __proto__ keys"). Container keys have no such restriction — a `Map` is used there.
  */
 const PROTO_KEY = '__proto__';
 // #endregion
 
 /**
- * Проверяет наличие собственного (не унаследованного) ключа.
+ * Checks for an own (not inherited) key.
  *
- * @param target - Объект произвольной формы.
- * @param key - Ключ из недоверенного источника.
- * @returns true, если ключ объявлен в самом объекте.
+ * @param target - An object of an arbitrary shape.
+ * @param key - Key from an untrusted source.
+ * @returns true if the key is declared on the object itself.
  */
 export function hasOwnKey(target: object, key: string): boolean {
     return Object.prototype.hasOwnProperty.call(target, key);
 }
 
 /**
- * Читает значение по внешнему ключу, не поднимаясь в прототип.
+ * Reads a value by an external key without climbing into the prototype.
  *
- * @param target - Словарь-объект.
- * @param key - Ключ из недоверенного источника.
- * @returns Значение либо undefined, если own-ключа нет.
+ * @param target - Dictionary object.
+ * @param key - Key from an untrusted source.
+ * @returns The value, or undefined when there is no own key.
  */
 export function readOwnKey<TValue>(
     target: Record<string, TValue>,
@@ -50,12 +50,13 @@ export function readOwnKey<TValue>(
 }
 
 /**
- * Собирает обычный объект из пар «ключ — значение» так, что специальные имена
- * становятся own-свойствами, а не членами прототипа. `__proto__` отбрасывается:
- * представить его в объекте, переживающем payload, невозможно (см. PROTO_KEY).
+ * Assembles an ordinary object out of key/value pairs in such a way that the
+ * special names become own properties rather than members of the prototype.
+ * `__proto__` is dropped: representing it in an object that survives the payload is
+ * impossible (see PROTO_KEY).
  *
- * @param entries - Пары ключ/значение с ключами из недоверенного источника.
- * @returns Объект с own-свойствами по всем ключам, кроме `__proto__`.
+ * @param entries - Key/value pairs whose keys come from an untrusted source.
+ * @returns An object with own properties for every key except `__proto__`.
  */
 export function toSafeRecord<TValue>(entries: Iterable<[string, TValue]>): Record<string, TValue> {
     return Object.fromEntries(Array.from(entries).filter(([key]) => key !== PROTO_KEY)) as Record<

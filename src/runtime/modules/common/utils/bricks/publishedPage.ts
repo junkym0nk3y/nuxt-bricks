@@ -6,9 +6,9 @@ export const DEFAULT_BACKGROUND_COLOR = '#FFFFFF';
 export const DEFAULT_LAYOUT = 'default';
 
 /**
- * Проверяет, что значение похоже на IBricksSchema.
+ * Checks that the value looks like an IBricksSchema.
  *
- * @param value - Проверяемое значение.
+ * @param value - Value being checked.
  */
 function isBricksSchema(value: unknown): value is IBricksSchema {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
@@ -20,10 +20,11 @@ function isBricksSchema(value: unknown): value is IBricksSchema {
 }
 
 /**
- * Нормализует схему: гарантирует наличие components, сохраняет meta если не пуста.
+ * Normalizes a schema: guarantees that components is present, keeps meta when it
+ * is not empty.
  *
- * @param schema - Схема лендинга.
- * @returns Нормализованная схема.
+ * @param schema - Landing schema.
+ * @returns Normalized schema.
  */
 export function preserveSchema(schema: IBricksSchema | null | undefined): IBricksSchema {
     if (!schema) {
@@ -42,16 +43,16 @@ export function preserveSchema(schema: IBricksSchema | null | undefined): IBrick
 }
 
 /**
- * Проверяет соответствие subdomain страницы фактическому хосту запроса
- * (прежний `includes` матчил notpromo.example под "promo").
- * Хост нормализуется URL-парсером (порт, регистр, trailing dot); значение
- * без точек сравнивается с первым label hostname, с точками — с полным
- * hostname (явный mapping). Ожидаются ASCII-slug значения — punycode-хосты
- * с non-ASCII конфигом сознательно не матчатся.
+ * Checks the subdomain of a page against the actual host of the request (the
+ * former `includes` matched notpromo.example under "promo").
+ * The host is normalized by the URL parser (port, case, trailing dot); a value
+ * without dots is compared with the first label of the hostname, one with dots
+ * with the full hostname (an explicit mapping). ASCII slug values are expected —
+ * punycode hosts with a non-ASCII config deliberately do not match.
  *
- * @param hostHeader - Host-заголовок SSR (может содержать порт) или hostname браузера.
- * @param subdomain - Поле subdomain страницы.
- * @returns true — страница показывается на этом хосте.
+ * @param hostHeader - The SSR Host header (may carry a port) or the browser hostname.
+ * @param subdomain - The subdomain field of the page.
+ * @returns true — the page is shown on this host.
  */
 export function matchesPageSubdomain(
     hostHeader: string | undefined,
@@ -86,13 +87,13 @@ export function matchesPageSubdomain(
 }
 
 /**
- * Нормализует ответ API в форму IPublishedPage.
- * Конвертирует snake_case ключи из Django backend в camelCase, но не трогает `schema`
- * (это пользовательский JSON).
+ * Normalizes an API response into the IPublishedPage shape.
+ * Converts the snake_case keys (database rows, an external backend) into
+ * camelCase, but leaves `schema` alone (that is user JSON).
  *
- * @param rawPage - Данные страницы из API (может быть в snake_case).
- * @param defaultBackgroundColor - Цвет фона, если страница его не хранит.
- * @returns Нормализованная опубликованная страница в camelCase.
+ * @param rawPage - Page data from the API (may be in snake_case).
+ * @param defaultBackgroundColor - Background color when the page stores none.
+ * @returns The normalized published page in camelCase.
  */
 export function normalizePublishedPage(
     rawPage: unknown,
@@ -128,7 +129,8 @@ export function normalizePublishedPage(
         viewportConfig: page.viewportConfig ?? null,
         schema: preserveSchema(schema),
         published: Boolean(page.published),
-        // Отсутствует в public-проекции и старых снапшотах — тогда запись без precondition
+        // Absent from the public projection and from old snapshots — a write with
+        // no precondition then
         revision: typeof page.revision === 'number' ? page.revision : undefined,
         createdAt,
         updatedAt,
@@ -137,22 +139,24 @@ export function normalizePublishedPage(
 }
 
 /**
- * Собирает страницу превью из снапшота сохранённой версии: содержимое и meta —
- * версии, тождество страницы — текущей строки.
+ * Assembles a preview page out of the snapshot of a saved version: the content and
+ * the meta come from the version, the identity of the page from the current row.
  *
- * `id` снапшота — идентификатор записи истории, а не страницы; адрес
- * (`pagename` + `urlPrefix`) в нём мог остаться прежним, если страницу
- * переместили, — а превью открыто по нынешнему адресу. Поэтому и id, и обе
- * половины адреса берутся у страницы: со старым префиксом в снапшоте сверка
- * адреса в превью и рендерере отвергала бы страницу как чужую.
+ * The `id` of a snapshot identifies a history record rather than a page; the
+ * address (`pagename` + `urlPrefix`) in it may have stayed the old one if the page
+ * was moved — while the preview is opened at the present address. That is why both
+ * the id and both halves of the address are taken from the page: with an old prefix
+ * in the snapshot the address check in the preview and in the renderer would reject
+ * the page as a foreign one.
  *
- * `updatedAt` — `pageUpdatedAt` снапшота, то есть момент, когда снятое состояние
- * сохранили: этой же датой подписана карточка версии в галерее. `revision` не
- * переносится — из превью писать нечем, precondition ни к чему.
+ * `updatedAt` is the `pageUpdatedAt` of the snapshot, that is, the moment the
+ * captured state was saved: the version card in the gallery is labeled with that
+ * very date. `revision` is not carried over — there is nothing to write from a
+ * preview, so a precondition is of no use.
  *
- * @param rawVersion - Ответ `GET /api/bricks/:id/versions/:versionId` (возможен snake_case).
- * @param page - Сводка текущей страницы.
- * @returns Страница для рендера превью версии.
+ * @param rawVersion - Response of `GET /api/bricks/:id/versions/:versionId` (snake_case possible).
+ * @param page - Summary of the current page.
+ * @returns The page to render the version preview from.
  */
 export function normalizePageVersionPreview(
     rawVersion: unknown,
@@ -179,13 +183,13 @@ export function normalizePageVersionPreview(
 }
 
 /**
- * Нормализует сводку страницы editorial-списка (без `schema`): те же правила,
- * что normalizePublishedPage, но без фабрикации пустой схемы — сводка схему
- * не несёт, и в стор списка она попадать не должна.
+ * Normalizes the page summary of the editorial list (without `schema`): the same
+ * rules as normalizePublishedPage, but without fabricating an empty schema — a
+ * summary carries no schema, and none must reach the store of the list.
  *
- * @param rawPage - Данные сводки из API (может быть в snake_case).
- * @param defaultBackgroundColor - Цвет фона, если страница его не хранит.
- * @returns Нормализованная сводка страницы.
+ * @param rawPage - Summary data from the API (may be in snake_case).
+ * @param defaultBackgroundColor - Background color when the page stores none.
+ * @returns The normalized page summary.
  */
 export function normalizePublishedPageSummary(
     rawPage: unknown,

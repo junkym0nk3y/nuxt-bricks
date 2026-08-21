@@ -1,48 +1,50 @@
 /**
- * Контракт манифеста brick-компонентов: build-time скан `*.brick.ts` пишет его
- * в buildDir, ручка `GET /api/bricks/components` отдаёт билдеру.
+ * Contract of the brick component manifest: the build-time scan of `*.brick.ts`
+ * writes it into buildDir, and the `GET /api/bricks/components` endpoint hands it to
+ * the builder.
  */
 import type { IComponentSlotDefinition } from './brick';
 import type { IBrickValues } from './index';
 
-/** Запись манифеста — один найденный `*.brick.ts`. */
+/** A manifest entry — one `*.brick.ts` that was found */
 export interface IBrickManifestEntry {
-    /** Имя компонента: basename файла без суффикса `.brick.ts`. */
+    /** Component name: the basename of the file without the `.brick.ts` suffix */
     name: string;
-    /** Категория из `category` внутри brick-файла. */
+    /** Category taken from `category` inside the brick file */
     category: string;
     /**
-     * Ключ загрузчика: путь до brick-файла относительно `srcDir` с ведущим `/`.
-     * Совпадает с ключами `import.meta.glob` в `useBrickImports`, поэтому поиск
-     * компонента — прямой lookup без разбора вариантов пути.
+     * Loader key: the path of the brick file relative to `srcDir` with a leading
+     * `/`. Matches the `import.meta.glob` keys in `useBrickImports`, so finding a
+     * component is a direct lookup with no guessing among path variants.
      */
     brickPath: string;
-    /** Описание компонента для панели свойств. */
+    /** Description of the component for the properties panel */
     description?: string;
     /**
-     * Определения редактируемых свойств. Приезжают в манифест с build-time,
-     * поэтому библиотеке, панели свойств и inline-редактированию не нужно
-     * импортировать brick-модуль в браузере — а вместе с ним и Vue-компонент со
-     * стилями, который брик тянет своим импортом.
+     * Definitions of the editable properties. They reach the manifest at build time,
+     * so the library, the properties panel and inline editing need not import the
+     * brick module in the browser — and with it the Vue component and its styles the
+     * brick pulls in with its own import.
      */
     values: Record<string, IBrickValues>;
     /**
-     * Нормализованные определения слотов. Обе формы записи (список и объект)
-     * приводятся к одной на build-time: разбирать сырые варианты в рантайме
-     * больше некому.
+     * Normalized slot definitions. Both notations (a list and an object) are brought
+     * to one at build time: there is nobody left to parse the raw variants at
+     * runtime.
      */
     slots?: IComponentSlotDefinition[];
 }
 
-/** Манифест целиком: записи + хеш содержимого. */
+/** The whole manifest: the entries + the hash of the content */
 export interface IBricksManifest {
     bricks: IBrickManifestEntry[];
     hash: string;
 }
 
 /**
- * Узкая форма записи: имя компонента и ключ загрузчика, без метаданных.
- * В этом виде записи уходят в ответ `?category=<name>` — категория там известна
- * из запроса, а редакторские метаданные запросу по категории не нужны.
+ * The narrow shape of an entry: the component name and the loader key, without the
+ * metadata. Entries go out in this shape in the `?category=<name>` response — the
+ * category is known there from the request, and a request by category has no use for
+ * the editorial metadata.
  */
 export type TBrickManifestRef = Pick<IBrickManifestEntry, 'name' | 'brickPath'>;

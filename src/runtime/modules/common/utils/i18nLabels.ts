@@ -1,29 +1,30 @@
 // #region Types
 /**
- * Функция перевода (`t` из vue-i18n / `$i18n.t`).
+ * The translation function (`t` of vue-i18n / `$i18n.t`).
  *
- * Второй параметр опционален: подписи без подстановок вызывают её одним
- * аргументом, а сводки медиа — с параметрами, и оба вызова обязаны описываться
- * одним типом, иначе у вызывающего появляется вторая копия сигнатуры.
+ * The second parameter is optional: captions without substitutions call it with one
+ * argument while the media summaries call it with parameters, and both calls have to be
+ * described by one type, otherwise a second copy of the signature appears at the call
+ * site.
  */
 export type TTranslateFn = (key: string, params?: Record<string, string | number>) => string;
 
-/** Проверка наличия ключа в текущей локали (`te` из vue-i18n). */
+/** Check for the presence of a key in the current locale (`te` of vue-i18n) */
 export type TTranslateExistsFn = (key: string) => boolean;
 // #endregion
 
 /**
- * Резолвит label/description из brick/block definitions: ключи `bricks.*`
- * переводятся, произвольные строки (кастомные .brick.ts потребителя)
- * возвращаются как есть.
+ * Resolves a label or a description out of the brick and block definitions: the
+ * `bricks.*` keys are translated, arbitrary strings (the consumer's custom .brick.ts)
+ * are returned as they are.
  *
- * `te()` не смотрит в fallback-локаль, поэтому для ключей `bricks.*`,
- * отсутствующих в текущей локали, перевод вызывается безусловно —
- * vue-i18n сам применит fallback-цепочку.
+ * `te()` does not look into the fallback locale, so for the `bricks.*` keys absent
+ * from the current locale the translation is called unconditionally — vue-i18n applies
+ * the fallback chain itself.
  *
- * @param t - Функция перевода.
- * @param te - Проверка наличия ключа в текущей локали.
- * @param raw - Сырое значение из definition (ключ или готовая строка).
+ * @param t - Translation function.
+ * @param te - Check for the presence of a key in the current locale.
+ * @param raw - Raw value from the definition (a key or a ready string).
  */
 export function resolveBricksLabel(
     t: TTranslateFn,

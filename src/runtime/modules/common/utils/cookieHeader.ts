@@ -1,18 +1,18 @@
 /**
- * Работа со значением HTTP-заголовка Cookie (строка пар RFC 6265).
+ * Working with the value of the HTTP Cookie header (a string of RFC 6265 pairs).
  *
- * Используется при проксировании запросов на внешний backend (PROXY_URL):
- * cookie сессии bricks — секрет билдера и внешнему сервису не предназначена,
- * остальные cookie проекта пробрасываются как есть.
+ * Used when proxying requests to an external backend (PROXY_URL): the bricks session
+ * cookie is a secret of the builder and is not meant for an external service, while
+ * the other cookies of the project are forwarded as they are.
  */
 
 /**
- * Возвращает значение заголовка Cookie без пары с указанным именем.
- * Прочие пары сохраняются в исходном порядке; если после фильтрации
- * пар не осталось — возвращает пустую строку (заголовок не отправлять).
+ * Returns the value of the Cookie header without the pair of the given name.
+ * The other pairs are kept in their original order; when no pairs are left after the
+ * filtering it returns an empty string (the header is then not to be sent).
  *
- * @param cookieHeader - Исходное значение заголовка Cookie.
- * @param cookieName - Точное имя вырезаемой cookie (регистрозависимое).
+ * @param cookieHeader - Source value of the Cookie header.
+ * @param cookieName - Exact name of the cookie being cut out (case-sensitive).
  */
 export function stripCookieByName(cookieHeader: string, cookieName: string): string {
     return cookieHeader

@@ -1,24 +1,27 @@
 /**
- * Дефолты и границы оптимизации медиа — один источник на клиент и сервер.
+ * Defaults and bounds of media optimization — one source for the client and the
+ * server.
  *
- * Прежде эти числа жили тремя копиями: в серверном `imageProcessing.ts`, в
- * клиентском `useMediaUpload.ts` и литералом в модалке галереи. Расхождение
- * было бы невидимым и однонаправленным: поповер продолжал бы показывать старое
- * значение И отправлять его в multipart-форме, то есть новый серверный дефолт
- * для загрузок из галереи просто не заработал бы. То же с лимитами размера —
- * клиент отбивал бы файл своим прежним потолком, не доводя запрос до сервера.
+ * These numbers used to live as three copies: in the server-side
+ * `imageProcessing.ts`, in the client-side `useMediaUpload.ts` and as a literal in
+ * the gallery modal. A divergence would have been invisible and one-directional:
+ * the popover would keep showing the old value AND sending it in the multipart
+ * form, that is, a new server-side default simply would not take effect for
+ * uploads from the gallery. The same goes for the size limits — the client would
+ * reject the file by its own former ceiling without ever letting the request reach
+ * the server.
  */
 
 // Types
 import type { IBricksMediaOptimization, IMediaMaxWidthBounds } from '../types/media';
 
-/** Потолок размера изображения по умолчанию (МБ). */
+/** Default size ceiling of an image (MB) */
 export const DEFAULT_MEDIA_MAX_UPLOAD_SIZE_MB = 10;
 
-/** Потолок размера видео по умолчанию (МБ) — видео не оптимизируется. */
+/** Default size ceiling of a video (MB) — videos are not optimized */
 export const DEFAULT_MEDIA_MAX_VIDEO_UPLOAD_SIZE_MB = 100;
 
-/** Параметры оптимизации по умолчанию; переопределяются `bricks.media.optimization`. */
+/** Default optimization parameters; overridden by `bricks.media.optimization` */
 export const DEFAULT_MEDIA_OPTIMIZATION: IBricksMediaOptimization = {
     format: 'webp',
     quality: 70,
@@ -26,39 +29,42 @@ export const DEFAULT_MEDIA_OPTIMIZATION: IBricksMediaOptimization = {
 };
 
 /**
- * Границы поля ввода параметров — и, следовательно, границы запроса.
+ * Bounds of the parameter input field — and therefore the bounds of the request.
  *
- * Общие с сервером, а не «клиентские»: поле поповера ограничивает ввод, а ручка
- * загрузки — запрос мимо интерфейса. Пока границы жили только в компоненте,
- * `maxWidth: 1` из crafted-запроса проходил, и «полный» файл сохранялся шириной
- * в один пиксель.
+ * Shared with the server rather than "client-side": the popover field constrains
+ * the input, while the upload endpoint constrains a request that bypasses the
+ * interface. As long as the bounds lived in the component alone, a `maxWidth: 1`
+ * from a crafted request went through, and the "full" file was stored one pixel
+ * wide.
  *
- * Качество режется всегда, включая конфиг: вне 1..100 падает сам кодировщик.
- * Ширина — нет, см. `resolveMediaMaxWidthBounds`.
+ * The quality is always clamped, the config included: outside 1..100 the encoder
+ * itself fails. The width is not — see `resolveMediaMaxWidthBounds`.
  */
 export const MEDIA_QUALITY_MIN = 1;
 export const MEDIA_QUALITY_MAX = 100;
-// Не экспортируются: наружу ширина отдаётся только через
-// `resolveMediaMaxWidthBounds`. Голая константа рядом с ней читалась бы как
-// готовая граница, а конфиг эти числа раздвигает — потребитель, взявший
-// константу напрямую, снова резал бы конфигурационную ширину
+// Not exported: the width is exposed only through `resolveMediaMaxWidthBounds`. A
+// bare constant next to it would read as a ready-made bound, whereas the config
+// widens these numbers — a consumer taking the constant directly would clamp the
+// configured width all over again
 const MEDIA_MAX_WIDTH_MIN = 16;
 const MEDIA_MAX_WIDTH_MAX = 8000;
 
 /**
- * Приводит `bricks.media.optimization.maxWidth` к пригодной ширине в пикселях.
+ * Brings `bricks.media.optimization.maxWidth` to a usable width in pixels.
  *
- * Единственная нормализация конфигурационной ширины на клиент и сервер: обе
- * стороны считают от неё границы поля, и стоило им нормализовать значение
- * по-разному, как они разъезжались — клиент отдавал `min: 0`, сервер `min: 16`.
+ * The single normalization of the configured width for both the client and the
+ * server: both sides compute the bounds of the field from it, and the moment they
+ * normalized the value differently they drifted apart — the client returned
+ * `min: 0` and the server `min: 16`.
  *
- * Значение меньше пикселя — не ширина, а опечатка, и уходит в дефолт: округление
- * дало бы ноль, а `sharp` принимает только положительное целое, то есть загрузка
- * падала бы на каждом файле. Малые, но осмысленные значения при этом сохраняются:
- * `8` остаётся восьмёркой, потолок поля ввода конфигу не указ.
+ * A value below one pixel is not a width but a typo, and falls back to the
+ * default: rounding would give a zero, while `sharp` only accepts a positive
+ * integer, that is, the upload would fail on every file. Small but meaningful
+ * values are preserved nonetheless: `8` stays an eight, the ceiling of an input
+ * field is no law for the config.
  *
- * @param value - Сырое значение из конфига модуля.
- * @returns Положительная целая ширина.
+ * @param value - Raw value from the module config.
+ * @returns A positive integer width.
  */
 export function resolveConfiguredMaxWidth(value: unknown): number {
     const parsed = Number(value);
@@ -71,20 +77,23 @@ export function resolveConfiguredMaxWidth(value: unknown): number {
 }
 
 /**
- * Считает действующие границы «максимальной ширины» от значения из конфига.
+ * Computes the effective bounds of the "maximum width" from the value in the
+ * config.
  *
- * Конфиг ставит разработчик, и резать его осознанный выбор потолком,
- * придуманным для поля ввода, нечем: значение оттуда границы не сужает, а
- * раздвигает — в обе стороны, иначе `maxWidth: 8` из конфига превращалось бы в
- * 16 при том, что 12000 сохранялось бы как есть.
+ * The config is set by a developer, and there is nothing to clamp their deliberate
+ * choice with a ceiling invented for an input field: a value from there does not
+ * narrow the bounds but widens them — in both directions, otherwise a
+ * `maxWidth: 8` from the config would turn into 16 while 12000 would be kept as
+ * is.
  *
- * Формула общая у клиента и сервера намеренно. Пока потолок был константой,
- * `maxWidth: 12000` из конфига жил ровно до первой загрузки: поповер показывал
- * 12000 и отправлял его в форме, поле схлопывало значение до 8000 на blur, а
- * ручка — на каждой загрузке, то есть настройка не работала вообще.
+ * The formula is deliberately shared by the client and the server. As long as the
+ * ceiling was a constant, a `maxWidth: 12000` from the config lived exactly until
+ * the first upload: the popover showed 12000 and sent it in the form, the field
+ * collapsed the value down to 8000 on blur, and the endpoint did the same on every
+ * upload, that is, the setting did not work at all.
  *
- * @param configuredMaxWidth - Значение `bricks.media.optimization.maxWidth`.
- * @returns Границы для поля ввода и для проверки запроса.
+ * @param configuredMaxWidth - Value of `bricks.media.optimization.maxWidth`.
+ * @returns Bounds for the input field and for the validation of a request.
  */
 export function resolveMediaMaxWidthBounds(configuredMaxWidth: number): IMediaMaxWidthBounds {
     const configured = resolveConfiguredMaxWidth(configuredMaxWidth);

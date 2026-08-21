@@ -1,55 +1,56 @@
 /**
- * Чистые (без DOM) функции URL-политики, общие для sanitizeSvg и
- * sanitizeRichText. Изоморфны — одинаковый результат на SSR и клиенте.
+ * Pure (DOM-free) functions of the URL policy, shared by sanitizeSvg and
+ * sanitizeRichText. Isomorphic — the same result on SSR and on the client.
  *
- * Контекст: js-xss проверяет протокол только у `href`/`src`/`background` и
- * ищет `javascript:` внутри `url()` одного лишь `style`-атрибута (см.
- * `node_modules/xss/lib/default.js#safeAttrValue`). Остальные URL-bearing
- * атрибуты (`fill`, `stroke`, `filter`, `clip-path`, `mask`, `poster`,
- * произвольные CSS-декларации вне `style` c `url()`) проходят без проверки —
- * этот модуль закрывает разрыв.
+ * Context: js-xss checks the protocol of `href`/`src`/`background` only, and looks
+ * for `javascript:` inside the `url()` of the `style` attribute alone (see
+ * `node_modules/xss/lib/default.js#safeAttrValue`). The remaining URL-bearing
+ * attributes (`fill`, `stroke`, `filter`, `clip-path`, `mask`, `poster`, arbitrary
+ * CSS declarations with a `url()` outside `style`) pass unchecked — this module
+ * closes the gap.
  */
 
 // #region Constants
-/** Локальная #-ссылка внутри документа (fragment identifier). */
+/** Local #-reference inside the document (fragment identifier) */
 const LOCAL_FRAGMENT = /^#[\w:.-]+$/;
 
 /**
- * Значение вида `url(#fragment)` — с необязательными пробелами и кавычками
- * (`'`/`"`), без остатка после закрывающей скобки. Якорится на всю строку —
- * используется для строгих атрибутов (`filter`/`clip-path`/`mask`), которым
- * разрешена ровно одна локальная ссылка.
+ * A value shaped as `url(#fragment)` — with optional spaces and quotes (`'`/`"`),
+ * with nothing left after the closing parenthesis. Anchored to the whole string —
+ * used for the strict attributes (`filter`/`clip-path`/`mask`), which are allowed
+ * exactly one local reference.
  */
 const LOCAL_FRAGMENT_URL_FUNCTION = /^url\(\s*(['"]?)(#[\w:.-]+)\1\s*\)$/i;
 
 /**
- * Все вхождения `url(...)` в произвольном CSS-значении (paint-атрибуты,
- * `style`). Кавычки вокруг содержимого — опциональны и должны совпадать
- * (backreference), поддерживаются множественные вхождения в одной строке.
+ * Every occurrence of `url(...)` in an arbitrary CSS value (paint attributes,
+ * `style`). The quotes around the content are optional and have to match
+ * (a backreference); multiple occurrences in one string are supported.
  */
 const URL_FUNCTION_GLOBAL = /url\(\s*(['"]?)(.*?)\1\s*\)/gi;
 
 /**
- * Любое начало `url(`-функции (в т.ч. с пробелом перед скобкой) — детектор
- * незакрытых/непарсибельных вхождений, которые `URL_FUNCTION_GLOBAL` не матчит.
+ * Any start of a `url(` function (including one with a space before the
+ * parenthesis) — the detector of unclosed or unparsable occurrences that
+ * `URL_FUNCTION_GLOBAL` does not match.
  */
 const URL_FUNCTION_OPENER = /url\s*\(/i;
 
-/** Разрешённые протоколы ссылок: http(s)/mailto/tel/#fragment/root-relative (не protocol-relative). */
+/** Allowed link protocols: http(s)/mailto/tel/#fragment/root-relative (not protocol-relative) */
 const SAFE_LINK_PATTERN = /^(https?:\/\/|mailto:|tel:|#|\/(?!\/))/i;
 
-/** Разрешённые источники медиа: http(s) и root-relative (не protocol-relative `//host`). */
+/** Allowed media sources: http(s) and root-relative (not the protocol-relative `//host`) */
 const SAFE_MEDIA_SRC_PATTERN = /^(https?:\/\/|\/(?!\/))/i;
 // #endregion
 
 // #region Utils
 /**
- * Проверяет значение строгих SVG-атрибутов (`filter`, `clip-path`, `mask`):
- * разрешены только `none` и одна локальная ссылка `url(#fragment)`.
- * Обратный слэш отклоняется целиком — потенциальный CSS-escape, который
- * собственный неполный парсер не должен пытаться декодировать.
+ * Checks the value of the strict SVG attributes (`filter`, `clip-path`, `mask`):
+ * only `none` and a single local `url(#fragment)` reference are allowed.
+ * A backslash is rejected outright — it is a potential CSS escape, and our own
+ * incomplete parser must not try to decode it.
  *
- * @param value - Сырое значение атрибута.
+ * @param value - Raw attribute value.
  */
 export function isLocalSvgReferenceValue(value: string): boolean {
     const normalized = value.trim();
@@ -62,13 +63,13 @@ export function isLocalSvgReferenceValue(value: string): boolean {
 }
 
 /**
- * Проверяет, содержит ли значение (paint-атрибут `fill`/`stroke`, `style`)
- * небезопасную URL-ссылку: обратный слэш, хотя бы один `url(...)`, чей
- * аргумент — не локальный fragment, либо незакрытый/непарсибельный `url(`
- * (fail-closed: что собственный парсер не разобрал — то небезопасно).
- * Значения без `url(` (цвета, `currentColor`, `none`) считаются безопасными.
+ * Checks whether the value (a `fill`/`stroke` paint attribute, `style`) contains
+ * an unsafe URL reference: a backslash, at least one `url(...)` whose argument is
+ * not a local fragment, or an unclosed/unparsable `url(` (fail-closed: whatever
+ * our own parser did not parse is unsafe).
+ * Values without a `url(` (colors, `currentColor`, `none`) count as safe.
  *
- * @param value - Сырое значение атрибута.
+ * @param value - Raw attribute value.
  */
 export function containsUnsafeSvgReference(value: string): boolean {
     if (value.includes('\\')) {
@@ -81,19 +82,20 @@ export function containsUnsafeSvgReference(value: string): boolean {
         return true;
     }
 
-    // Незакрытый url( — сам по себе или рядом с валидными вхождениями
-    // (`url(#a) url(https://evil`): вырезаем распознанные и смотрим остаток
+    // An unclosed url( — on its own or next to valid occurrences
+    // (`url(#a) url(https://evil`): cut the recognized ones out and look at the rest
     return URL_FUNCTION_OPENER.test(value.replace(URL_FUNCTION_GLOBAL, ''));
 }
 
 /**
- * Проверяет href-ссылку rich text: http(s)/mailto/tel/#fragment/root-relative.
- * Backslash запрещён целиком — URL-парсер браузера нормализует `\` в `/`,
- * превращая «локальный» путь `/\evil.example/x` в protocol-relative
- * `//evil.example/x`. Значение передавать ДЕКОДИРОВАННЫМ (friendlyAttrValue),
- * иначе entity-варианты (`/&#92;…`, `/&#47;…`) обходят проверку.
+ * Checks an href link of rich text: http(s)/mailto/tel/#fragment/root-relative.
+ * A backslash is forbidden outright — the browser's URL parser normalizes `\`
+ * into `/`, turning the "local" path `/\evil.example/x` into the
+ * protocol-relative `//evil.example/x`. The value has to be passed in DECODED
+ * (friendlyAttrValue), otherwise the entity variants (`/&#92;…`, `/&#47;…`) get
+ * around the check.
  *
- * @param decodedValue - Значение атрибута после декодирования HTML-энтити.
+ * @param decodedValue - Attribute value after the HTML entities have been decoded.
  */
 export function isSafeLinkUrl(decodedValue: string): boolean {
     const normalized = decodedValue.trim();
@@ -102,11 +104,11 @@ export function isSafeLinkUrl(decodedValue: string): boolean {
 }
 
 /**
- * Проверяет источник медиа (`src`/`poster`): http(s) и root-relative.
- * Backslash запрещён по той же причине, что в {@link isSafeLinkUrl};
- * значение передавать декодированным.
+ * Checks a media source (`src`/`poster`): http(s) and root-relative.
+ * A backslash is forbidden for the same reason as in {@link isSafeLinkUrl}; the
+ * value has to be passed in decoded.
  *
- * @param decodedValue - Значение атрибута после декодирования HTML-энтити.
+ * @param decodedValue - Attribute value after the HTML entities have been decoded.
  */
 export function isSafeMediaSrcUrl(decodedValue: string): boolean {
     const normalized = decodedValue.trim();

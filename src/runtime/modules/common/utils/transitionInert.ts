@@ -1,35 +1,36 @@
 /**
- * Интерактивность узла, уезжающего по leave-анимации.
+ * Interactivity of a node leaving by a leave animation.
  *
- * `pointer-events: none` из `transitions.scss` закрывает только указатель, а узел
- * всё это время остаётся в DOM: сфокусированную кнопку в нём можно активировать
- * Enter или Space, и она доступна assistive tech. Само по себе это не край —
- * край в том, что переход между экранами бывает не только по клику человека:
- * раздел учёток дашборда закрывается сам, когда его ручки начинают отвечать 403,
- * а список страниц уходит в состояние загрузки по фоновому обновлению. В такие
- * переходы фокус остаётся внутри уходящего экрана.
+ * The `pointer-events: none` from `transitions.scss` shuts the pointer out only,
+ * while the node stays in the DOM all that time: a focused button inside it can be
+ * activated with Enter or Space, and it is available to assistive tech. That alone
+ * is not the edge — the edge is that a transition between screens does not always
+ * follow a human click: the accounts section of the dashboard closes by itself once
+ * its endpoints start answering 403, and the page list goes into the loading state
+ * on a background refresh. In transitions like those the focus stays inside the
+ * leaving screen.
  *
- * Атрибут ставится императивно: у уезжающего элемента биндинги шаблона больше не
- * патчатся.
+ * The attribute is set imperatively: the template bindings of a leaving element are
+ * no longer patched.
  *
- * Парной функции снятия нет намеренно. Все потребители переключают экраны через
- * `v-if`, а такой узел не переиспользуется: при возврате к прежнему экрану до
- * конца анимации Vue досрочно завершает leave уходящего узла (`afterLeave`, не
- * `leaveCancelled` — тот приходит только к переиспользованному элементу, то есть
- * при `v-show`), удаляет его и создаёт новый, уже чистый. Снимать атрибут не с
- * чего.
+ * There is deliberately no matching removal function. Every consumer switches
+ * screens with `v-if`, and such a node is not reused: when the previous screen comes
+ * back before the animation is over, Vue finishes the leave of the departing node
+ * early (`afterLeave`, not `leaveCancelled` — that one only arrives for a reused
+ * element, that is, with `v-show`), removes it and creates a new, already clean one.
+ * There is nothing to remove the attribute from.
  *
- * Ограничение: `inert` действует на поддерево, поэтому контент, вынесённый из
- * него телепортом (меню reka живут в `DropdownMenuPortal`, то есть в `body`), им
- * не гасится. Для нынешних мест этого достаточно: жизненным циклом таких меню
- * владеют компоненты внутри уходящего поддерева, и телепортированное содержимое
- * уходит вместе с их размонтированием.
+ * A limitation: `inert` applies to a subtree, so content carried out of it by a
+ * teleport (the reka menus live in a `DropdownMenuPortal`, that is, in `body`) is
+ * not shut down by it. For the present places that is enough: the lifecycle of such
+ * menus is owned by components inside the leaving subtree, and the teleported
+ * content goes away when they unmount.
  */
 
 /**
- * Гасит интерактивность уходящего узла.
+ * Shuts down the interactivity of a leaving node.
  *
- * @param element - Корневой элемент, уезжающий по leave-анимации.
+ * @param element - Root element leaving by a leave animation.
  */
 export function markLeavingInert(element: Element): void {
     element.setAttribute('inert', '');

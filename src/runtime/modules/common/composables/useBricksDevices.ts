@@ -14,29 +14,31 @@ import { deviceRanges, resolveDeviceSet, validateDeviceSet } from '../utils/bric
 // #endregion
 
 /**
- * Предупреждение о подмене набора печатается один раз за загрузку приложения:
- * резолвер зовётся из `computed`, и на каждый пересчёт вывод превратился бы в
- * поток. Диагностика нужна как факт, а не как счётчик.
+ * The warning about a substituted set is printed once per application load: the
+ * resolver is called from a `computed`, and printing on every recomputation would
+ * turn the output into a stream. The diagnostics are needed as a fact, not as a
+ * counter.
  */
 let hasWarnedInvalidPageDevices = false;
 
 /**
- * Набор устройств проекта и резолвер набора страницы.
+ * The project device set and the resolver of a page set.
  *
- * Набор проекта фиксируется на сборке (опция модуля `bricks.devices` поверх
- * константы) и приезжает в `runtimeConfig.public`: те же числа уходят в
- * SCSS-карту миксинов, поэтому канвас, контейнеры, пороги published и media
- * query авторов бриков считаются по одному источнику.
+ * The project set is fixed at build time (the `bricks.devices` module option on top
+ * of the constant) and arrives in `runtimeConfig.public`: the same numbers go into
+ * the SCSS map of the mixins, so the canvas, the containers, the published
+ * thresholds and the media queries of brick authors are all computed from one
+ * source.
  *
- * Набор страницы этот композабл не читает — страницу знает только тот, кто её
- * загрузил, и он передаёт конфиг в `resolvePageDevices` сам.
+ * This composable does not read the page set — only whoever loaded the page knows
+ * it, and they pass the config into `resolvePageDevices` themselves.
  */
 export function useBricksDevices(): IUseBricksDevicesReturn {
     const runtimeConfig = useRuntimeConfig();
     const raw = runtimeConfig.public?.bricksDevices;
 
-    // Опция валидируется fail-fast на сборке модуля; здесь проверка нужна на
-    // случай, если runtimeConfig переопределили в обход неё
+    // The option is validated fail-fast when the module is built; the check here is
+    // needed in case runtimeConfig was overridden bypassing it
     const validation = validateDeviceSet(raw, 'project');
     const projectDevices: TBricksProjectDeviceSet = validation.ok
         ? (raw as TBricksProjectDeviceSet)
@@ -45,21 +47,22 @@ export function useBricksDevices(): IUseBricksDevicesReturn {
     const project = resolveDeviceSet(null, projectDevices);
 
     /**
-     * Резолвит набор конкретной страницы поверх проектного.
+     * Resolves the set of a particular page on top of the project one.
      *
-     * @param pageConfig - `viewport_config` страницы либо `null` (наследование).
-     * @returns Резолвнутый набор устройств.
+     * @param pageConfig - The `viewport_config` of the page, or `null` (inheritance).
+     * @returns The resolved device set.
      */
     function resolvePageDevices(pageConfig: unknown): TBricksResolvedDeviceSet {
         const resolved = resolveDeviceSet(pageConfig, projectDevices);
 
-        // Молча отдавать проектный набор вместо повреждённого нельзя: страница
-        // покажется в чужой раскладке, и единственный след останется в строке БД.
-        // Сырое значение в лог не пишем — это данные страницы
+        // Silently returning the project set instead of a corrupted one is not
+        // allowed: the page will show up in a layout not its own, and the only trace
+        // will stay in the database row. The raw value is not written into the log —
+        // it is page data
         if (resolved.usedFallback && !hasWarnedInvalidPageDevices) {
             hasWarnedInvalidPageDevices = true;
             console.warn(
-                '[Bricks] Набор устройств страницы не проходит контракт — страница отрисована набором проекта. Проверьте bricks_pages.viewport_config.'
+                '[Bricks] The device set of the page does not pass the contract — the page was rendered with the project set. Check bricks_pages.viewport_config.'
             );
         }
 

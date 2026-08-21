@@ -1,22 +1,22 @@
 import type { IApiError, TRequestErrorLike } from '../types/bricks-api';
 import { BRICKS_API_ERROR_CODES } from '../constants/apiErrors';
 
-/** Строковые значения флага, считающиеся включением (env-переменные — строки). */
+/** String values of a flag that count as "on" (env variables are strings) */
 const TRUTHY_FLAG_VALUES = new Set(['true', '1', 'yes', 'on']);
 
 /**
- * Приводит значение runtimeConfig/env к булеву флагу (boolean из опций
- * модуля или строка из env-override).
+ * Coerces a runtimeConfig/env value into a boolean flag (a boolean from the
+ * module options or a string from an env override).
  *
- * Пустая строка — «не задано», а не «выключено»: переменная, объявленная в
- * `.env` или compose без значения, доезжает и до сборки, и до собранного
- * приложения (Nitro накрывает runtimeConfig значениями `NUXT_*` как есть,
- * пустую строку в том числе). Считай её выключением — и флаг с дефолтом
- * «включено» молча гас бы у всех, включая администратора, от одной строки
- * без значения.
+ * An empty string means "not set" rather than "off": a variable declared in
+ * `.env` or in a compose file with no value reaches both the build and the built
+ * application (Nitro overlays runtimeConfig with the `NUXT_*` values as they
+ * are, an empty string included). Count it as "off" — and a flag defaulting to
+ * "on" would silently go dark for everybody, the administrator included, because
+ * of a single valueless line.
  *
- * @param value - Сырое значение флага.
- * @param fallback - Значение для незаданного флага (по умолчанию выключено).
+ * @param value - Raw flag value.
+ * @param fallback - Value for a flag that is not set (off by default).
  */
 export function parseBricksBooleanFlag(value: unknown, fallback: boolean = false): boolean {
     if (typeof value === 'boolean') {
@@ -33,22 +33,22 @@ export function parseBricksBooleanFlag(value: unknown, fallback: boolean = false
 }
 
 /**
- * Конвертирует значения в пикселях в rem-единицы, используя базовое значение.
+ * Converts values in pixels into rem units using the base value.
  *
- * @param valueInPixels - Размер в пикселях.
- * @param remBasePx - Базовое значение rem в пикселях (по умолчанию 10).
- * @returns Размер в rem-единицах.
+ * @param valueInPixels - Size in pixels.
+ * @param remBasePx - Base rem value in pixels (10 by default).
+ * @returns Size in rem units.
  */
 export function convertPxToRem(valueInPixels: number, remBasePx: number = 10): string {
     return `${valueInPixels / remBasePx}rem`;
 }
 
 /**
- * Конвертирует значения в rem обратно в пиксели, используя базовое значение.
+ * Converts values in rem back into pixels using the base value.
  *
- * @param valueInRem - Размер в rem, может включать суффикс 'rem'.
- * @param remBasePx - Базовое значение rem в пикселях (по умолчанию 10).
- * @returns Размер в пикселях.
+ * @param valueInRem - Size in rem, may include the 'rem' suffix.
+ * @param remBasePx - Base rem value in pixels (10 by default).
+ * @returns Size in pixels.
  */
 export function convertRemToPx(valueInRem: string | number, remBasePx: number = 10): number {
     const numericValue =
@@ -64,10 +64,10 @@ export function convertRemToPx(valueInRem: string | number, remBasePx: number = 
 }
 
 /**
- * Валидирует шестнадцатеричное значение цвета.
+ * Validates a hexadecimal color value.
  *
- * @param hex - Значение цвета для проверки (с # или без).
- * @returns True если корректный hex-цвет, false в противном случае.
+ * @param hex - Color value to check (with or without #).
+ * @returns True if it is a valid hex color, false otherwise.
  */
 export function validateHex(hex: string): boolean {
     if (!hex) {
@@ -76,20 +76,20 @@ export function validateHex(hex: string): boolean {
 
     const stripped = hex.replace(/^#/, '');
 
-    // Допустимые длины: 3 (RGB) или 6 (RRGGBB)
+    // Allowed lengths: 3 (RGB) or 6 (RRGGBB)
     if (stripped.length !== 3 && stripped.length !== 6) {
         return false;
     }
 
-    // Проверяем, что все символы являются валидными hex-цифрами
+    // Check that every character is a valid hex digit
     return /^[0-9A-Fa-f]+$/.test(stripped);
 }
 
 /**
- * Нормализует шестнадцатеричное значение цвета, всегда добавляя префикс #.
+ * Normalizes a hexadecimal color value, always adding the # prefix.
  *
- * @param hex - Значение цвета для нормализации.
- * @returns Нормализованный hex-цвет с префиксом #.
+ * @param hex - Color value to normalize.
+ * @returns Normalized hex color with the # prefix.
  */
 export function normalizeHex(hex: string): string {
     if (!hex) {
@@ -98,7 +98,7 @@ export function normalizeHex(hex: string): string {
 
     let stripped = hex.replace(/^#/, '').toUpperCase();
 
-    // Если это 3-символьный hex, разворачиваем до 6
+    // Expand a 3-character hex to 6
     if (stripped.length === 3) {
         stripped = stripped
             .split('')
@@ -106,7 +106,7 @@ export function normalizeHex(hex: string): string {
             .join('');
     }
 
-    // Гарантируем 6 символов, дополняя нулями при необходимости
+    // Guarantee 6 characters, padding with zeros when needed
     while (stripped.length < 6) {
         stripped = '0' + stripped;
     }
@@ -115,13 +115,14 @@ export function normalizeHex(hex: string): string {
 }
 
 /**
- * Нормализует любую ошибку в структуру, подходящую для createError.
- * Используется для консистентного форматирования статуса и сообщения без утечки внутренних деталей.
+ * Normalizes any error into a structure suitable for createError.
+ * Used for consistent formatting of the status and the message without leaking
+ * internal details.
  *
- * @param error - Объект ошибки для нормализации.
- * @param fallbackMessage - Сообщение по умолчанию, если в ошибке не найдено конкретное сообщение.
- * @param fallbackStatus - Код статуса по умолчанию, если в ошибке не найден конкретный статус.
- * @returns Объект с statusCode и statusMessage.
+ * @param error - Error object to normalize.
+ * @param fallbackMessage - Default message when no specific one is found in the error.
+ * @param fallbackStatus - Default status code when no specific one is found in the error.
+ * @returns An object with statusCode and statusMessage.
  */
 export function normalizeBricksError(
     error: unknown,
@@ -138,17 +139,17 @@ export function normalizeBricksError(
 }
 
 /**
- * Достаёт машиночитаемый код отказа из ошибки запроса: ручка отдаёт его в
- * `data.code`, h3 сериализует в тело ответа, а ofetch кладёт тело в
- * `error.data` — код оказывается на два уровня вглубь. Fallback на `data.code`
- * покрывает форму без вложенности.
+ * Extracts the machine-readable rejection code out of a request error: the
+ * endpoint returns it in `data.code`, h3 serializes it into the response body,
+ * and ofetch puts the body into `error.data` — so the code ends up two levels
+ * deep. The fallback to `data.code` covers the shape without the nesting.
  *
- * Без разбора кода отказ доехал бы до пользователя англоязычным транспортным
- * текстом (`[PUT] "/api/…": 504 …`): по классу ошибки контрактные отказы
- * неотличимы от произвольных.
+ * Without reading the code the rejection would reach the user as an
+ * English-language transport text (`[PUT] "/api/…": 504 …`): by their class,
+ * contract rejections are indistinguishable from arbitrary ones.
  *
- * @param error - Ошибка запроса.
- * @returns Код отказа или null.
+ * @param error - Request error.
+ * @returns Rejection code or null.
  */
 export function getBricksErrorCode(error: unknown): string | null {
     const payload = (error ?? {}) as TRequestErrorLike;
@@ -159,26 +160,27 @@ export function getBricksErrorCode(error: unknown): string | null {
 }
 
 /**
- * Распознаёт отказ, при котором база остановила запрос своим лимитом времени.
+ * Recognizes the rejection where the database stopped the request by its own time
+ * limit.
  *
- * Нужен обоим доменам билдера: у клиентского обрыва по потолку ожидания исход
- * записи неизвестен, здесь же она определённо откатана, и тексты обязаны
- * различаться.
+ * Needed by both builder domains: with a client-side abort by the waiting ceiling
+ * the outcome of a write is unknown, whereas here it is definitely rolled back,
+ * and the texts have to differ.
  *
- * @param error - Ошибка запроса.
- * @returns Запрос остановлен серверным лимитом времени.
+ * @param error - Request error.
+ * @returns Whether the request was stopped by a server-side time limit.
  */
 export function isStatementTimeoutError(error: unknown): boolean {
     return getBricksErrorCode(error) === BRICKS_API_ERROR_CODES.statementTimeout;
 }
 
 /**
- * Извлекает человекочитаемое сообщение из любой ошибки (FetchError, createError, Error).
- * Порядок: `data.message` (тело ответа ofetch) → `statusMessage` → `message` → fallback.
+ * Extracts a human-readable message out of any error (FetchError, createError, Error).
+ * Order: `data.message` (the ofetch response body) → `statusMessage` → `message` → fallback.
  *
- * @param error - Объект ошибки.
- * @param fallbackMessage - Сообщение по умолчанию, если в ошибке ничего не найдено.
- * @returns Текст сообщения об ошибке.
+ * @param error - Error object.
+ * @param fallbackMessage - Default message when nothing is found in the error.
+ * @returns Error message text.
  */
 export function getBricksErrorMessage(error: unknown, fallbackMessage: string): string {
     const normalized = (error ?? {}) as IApiError;

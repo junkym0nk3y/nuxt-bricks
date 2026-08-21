@@ -1,32 +1,32 @@
 /**
- * Общие константы шаблонов страниц — единый источник для клиентской валидации
- * (yup-схема формы «Сохранить как шаблон»), серверной валидации DTO
- * (`/api/bricks/templates/**`) и счётчиков символов в полях формы.
+ * Shared constants of page templates — a single source for the client-side validation
+ * (the yup schema of the "Save as template" form), the server-side validation of the
+ * DTOs (`/api/bricks/templates/**`) and the character counters in the form fields.
  */
 
 /**
- * Границы имени шаблона. Минимум как у названия страницы: имя — единственное,
- * чем шаблон опознают в сетке и в выборе источника, и односимвольная подпись
- * там ничего не сообщает.
+ * Bounds of a template name. The minimum is the same as for a page title: the name is
+ * the only thing a template is recognized by in the grid and in the source picker, and
+ * a one-character caption tells nothing there.
  */
 export const TEMPLATE_NAME_MIN_LENGTH = 3;
 export const TEMPLATE_NAME_MAX_LENGTH = 120;
 
-/** Граница описания шаблона (в карточке — одна строка с усечением). */
+/** Bound of a template description (in the card it is one truncated line) */
 export const TEMPLATE_DESCRIPTION_MAX_LENGTH = 500;
 
 /**
- * Машиночитаемый код 409 при занятом имени шаблона (`data.code` ответа): имя
- * уникально индексом, и клиент подставляет подсказку под поле формы, а не
- * показывает англоязычный текст статуса.
+ * Machine-readable code of the 409 for a taken template name (the `data.code` of the
+ * response): the name is unique by an index, and the client puts a hint under the form
+ * field instead of showing the English status text.
  */
 export const TEMPLATE_CONFLICT_CODES = {
     name: 'TEMPLATE_NAME_CONFLICT',
 } as const;
 
 /**
- * От какого числа шаблонов в выборе источника новой страницы появляется поиск.
- * До этого порога список виден целиком, и поле поиска было бы лишним элементом
- * над четырьмя строками.
+ * The number of templates at which the search appears in the source picker of a new
+ * page. Below this threshold the list is visible in full, and a search field would be
+ * a redundant element above four rows.
  */
 export const TEMPLATE_PICKER_SEARCH_THRESHOLD = 8;

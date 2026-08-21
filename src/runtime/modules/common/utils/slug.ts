@@ -1,15 +1,14 @@
 /**
- * Приведение пользовательской подписи к машинному идентификатору.
+ * Turning a user-entered caption into a machine identifier.
  *
- * Вынесено из констант медиа-категорий, когда та же операция понадобилась
- * ключам устройств: два независимых экземпляра таблицы транслитерации
- * разошлись бы молча, а идентификаторы, построенные по разным правилам,
- * невозможно сверить глазами.
+ * Extracted out of the media category constants once the device keys needed the same
+ * operation: two independent instances of the transliteration table would drift apart
+ * silently, and identifiers built by different rules cannot be compared by eye.
  */
 
 /**
- * Таблица транслитерации. Мягкий и твёрдый знаки отбрасываются — в
- * идентификаторе они шумят дефисами.
+ * The transliteration table. The soft and hard signs are dropped — in an identifier
+ * they only add noise in the form of hyphens.
  */
 const CYRILLIC_TRANSLITERATION: Record<string, string> = {
     а: 'a',
@@ -48,17 +47,17 @@ const CYRILLIC_TRANSLITERATION: Record<string, string> = {
 };
 
 /**
- * Приводит подпись к slug'у: латиница и цифры в нижнем регистре, всё остальное —
- * дефис. Кириллица транслитерируется: slug уезжает в значения фильтров, колонки
- * БД и имена CSS-переменных, где percent-кодировке места нет.
+ * Brings a caption to a slug: lowercase Latin letters and digits, everything else a
+ * hyphen. Cyrillic is transliterated: a slug travels into filter values, database
+ * columns and CSS variable names, where there is no place for percent encoding.
  *
- * Составные символы нормализуются (NFKC) до транслитерации — иначе «й»,
- * набранная как «и» + комбинирующая краткая, дала бы другой slug, чем та же
- * буква одним кодом.
+ * Composed characters are normalized (NFKC) before the transliteration — otherwise
+ * the Cyrillic short i typed as U+0438 plus a combining breve (U+0306) would give a
+ * different slug than the same letter written as a single code point (U+0439).
  *
- * @param label - Подпись, введённая пользователем.
- * @param maxLength - Потолок длины результата.
- * @returns Slug или пустая строка, если из подписи не вышло ни одного символа.
+ * @param label - Caption entered by the user.
+ * @param maxLength - Ceiling on the length of the result.
+ * @returns The slug, or an empty string when not a single character came out of the caption.
  */
 export function labelToSlug(label: string, maxLength: number): string {
     const transliterated = label

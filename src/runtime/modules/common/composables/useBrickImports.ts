@@ -4,54 +4,57 @@ import { normalizeBrickPath } from '../utils/bricks/paths';
 import { readOwnKey } from '../utils/safeRecord';
 
 /**
- * Лоадеры brick-файлов проекта-потребителя.
+ * Loaders of the brick files of the consumer project.
  *
- * Паттерн root-абсолютный, поэтому Vite резолвит его от своего root
- * (`nuxt.options.srcDir`), а ключи всегда имеют вид `/components/<путь>.brick.ts`:
- * у Nuxt 3 srcDir равен rootDir, у Nuxt 4 — `<rootDir>/app`, у playground —
- * `<repo>/playground`. Build-time генератор (`src/bricks-manifest.ts`) пишет
- * `brickPath` ровно в этом виде, так что поиск лоадера — прямой lookup.
+ * The pattern is root-absolute, so Vite resolves it from its own root
+ * (`nuxt.options.srcDir`), and the keys always look like
+ * `/components/<path>.brick.ts`: in Nuxt 3 srcDir equals rootDir, in Nuxt 4 it is
+ * `<rootDir>/app`, and in the playground it is `<repo>/playground`. The build-time
+ * generator (`src/bricks-manifest.ts`) writes `brickPath` in exactly that shape,
+ * so finding a loader is a direct lookup.
  *
- * Опора — стандартный `vite.root === srcDir`: при переопределённом root ключи
- * этой карты и пути генератора расходятся. Дополнительные каталоги компонентов
- * (`components.dirs`, слои Nuxt, другие модули, пакеты npm) сюда не попадают —
- * область поддержки перечислена в README.
+ * It relies on the standard `vite.root === srcDir`: with an overridden root the
+ * keys of this map and the paths of the generator diverge. Additional component
+ * directories (`components.dirs`, Nuxt layers, other modules, npm packages) do
+ * not get here — the supported scope is listed in the README.
  */
 const brickModules = import.meta.glob<IBrickExportModule>('/components/**/*.brick.ts');
 
-/** Layout-блоки встроены в модуль и brick-файлов не имеют. */
+/** Layout blocks are built into the module and have no brick files */
 const LAYOUT_BRICK_PREFIX = 'layout';
 
 /**
- * Пути, о промахе которых уже сообщено, в нормализованном виде.
+ * Paths whose miss has already been reported, in their normalized shape.
  *
- * Один раз на путь за жизнь этого модуля: добавить лоадер в готовую карту
- * нельзя — `import.meta.glob` разворачивается на этапе трансформации, — поэтому
- * повторное сообщение о том же пути не несёт нового повода. Загрузка при этом
- * повторяется как раньше: дедуплицируется только лог.
+ * Once per path for the lifetime of this module: a loader cannot be added to a
+ * finished map — `import.meta.glob` is expanded at the transformation stage — so
+ * reporting the same path again carries no new occasion. The loading itself is
+ * still retried as before: only the log is deduplicated.
  *
- * Плата: на SSR состояние живёт между запросами, и второй запрос по тому же
- * битому пути промолчит. Размен сознательный — иначе бот, обходящий страницу с
- * устаревшим компонентом, забивал бы серверный лог одним и тем же дефектом.
- * В dev состав карты пересобирает рестарт, который перезагружает и этот модуль.
+ * The price: on SSR the state lives between requests, and a second request for the
+ * same broken path stays silent. The trade-off is deliberate — otherwise a bot
+ * crawling a page with an outdated component would flood the server log with one
+ * and the same defect. In dev the contents of the map are rebuilt by a restart,
+ * which reloads this module too.
  */
 const reportedMissingBrickPaths = new Set<string>();
 
-/** Состав карты лоадеров: не меняется без пересборки, поэтому считается один раз. */
+/** Contents of the loader map: they do not change without a rebuild, so they are computed once */
 let availableBrickPaths: string[] | null = null;
 
 /**
- * Сообщает о первом промахе по пути.
+ * Reports the first miss for a path.
  *
- * Сериализовать весь состав карты на каждый промах было дорого: published-
- * страница с несколькими устаревшими компонентами печатала всю библиотеку
- * компонентов по разу на каждую попытку загрузки, и на SSR, и на клиенте.
- * Наружу идёт запрошенный путь и размер карты, полный список — только в dev.
+ * Serializing the whole contents of the map on every miss was expensive: a
+ * published page with several outdated components printed the entire component
+ * library once per loading attempt, both on SSR and on the client. What goes out is
+ * the requested path and the size of the map; the full list only in dev.
  *
- * Уровень `warn`, а не `error`: страница остаётся рабочей, компонент просто не
- * рендерится. `error` оставлен сбоям самого импорта и повреждённому экспорту.
+ * At the `warn` level rather than `error`: the page stays operable, the component
+ * simply does not render. `error` is reserved for failures of the import itself and
+ * for a corrupted export.
  *
- * @param brickPath - Значение `brickPath` из схемы или манифеста.
+ * @param brickPath - The `brickPath` value from the schema or the manifest.
  */
 function reportMissingBrick(brickPath: string): void {
     const normalizedPath = normalizeBrickPath(brickPath);
@@ -65,7 +68,8 @@ function reportMissingBrick(brickPath: string): void {
     const modulePaths = (availableBrickPaths ??= Object.keys(brickModules));
 
     console.warn('[useBrickImports] Brick module is absent from the transformed import map', {
-        // Исходный путь, а не нормализованный: диагносту нужно то, что записано в схеме
+        // The original path rather than the normalized one: whoever diagnoses this
+        // needs what is written in the schema
         brickPath,
         availableBrickModuleCount: modulePaths.length,
         ...(import.meta.dev ? { availableBrickPaths: modulePaths } : {}),
@@ -73,14 +77,14 @@ function reportMissingBrick(brickPath: string): void {
 }
 
 /**
- * Ищет лоадер brick-модуля без побочных эффектов.
+ * Looks up the loader of a brick module without side effects.
  *
- * `brickPath` приходит из схемы страницы или манифеста, поэтому lookup — только
- * по own-ключу: иначе `"__proto__"` вернул бы `Object.prototype`,
- * а `"constructor"` — функцию `Object`, и оба ушли бы наружу как «лоадер».
+ * `brickPath` comes from a page schema or from the manifest, so the lookup goes by
+ * an own key only: otherwise `"__proto__"` would return `Object.prototype` and
+ * `"constructor"` the `Object` function, and both would go out as a "loader".
  *
- * @param brickPath - Значение `brickPath` из схемы или манифеста.
- * @returns Функция-лоадер Vite или `undefined`, если файла нет.
+ * @param brickPath - The `brickPath` value from the schema or the manifest.
+ * @returns The Vite loader function, or `undefined` if there is no such file.
  */
 function resolveBrickLoader(brickPath: string): (() => Promise<IBrickExportModule>) | undefined {
     if (brickPath.startsWith(LAYOUT_BRICK_PREFIX)) {
@@ -91,16 +95,16 @@ function resolveBrickLoader(brickPath: string): (() => Promise<IBrickExportModul
 }
 
 /**
- * Предоставляет доступ к динамическим импортам `.brick.ts` файлов потребителя.
+ * Gives access to the dynamic imports of the consumer's `.brick.ts` files.
  *
- * @returns Функции поиска лоадера и проверки его наличия.
+ * @returns The functions that look a loader up and check whether it exists.
  */
 export function useBrickImports(): IUseBrickImportsReturn {
     /**
-     * Возвращает loader brick-модуля по пути из схемы компонента.
+     * Returns the loader of a brick module by the path from the component schema.
      *
-     * @param brickPath - Значение `brickPath`, сохранённое в схеме.
-     * @returns Функция-лоадер Vite или `undefined`, если файла нет.
+     * @param brickPath - The `brickPath` value stored in the schema.
+     * @returns The Vite loader function, or `undefined` if there is no such file.
      */
     function findImportModule(brickPath: string): (() => Promise<IBrickExportModule>) | undefined {
         const importModule = resolveBrickLoader(brickPath);
@@ -113,14 +117,15 @@ export function useBrickImports(): IUseBrickImportsReturn {
     }
 
     /**
-     * Есть ли в сборке лоадер под этот `brickPath`.
+     * Whether the build has a loader for this `brickPath`.
      *
-     * Отдельно от `findImportModule`, потому что зовётся из вычисляемых свойств
-     * на каждой перерисовке библиотеки: сообщение о промахе там повторялось бы
-     * без нового повода, а само отсутствие лоадера показывает сайдбар.
+     * Separate from `findImportModule` because it is called from computed
+     * properties on every redraw of the library: a miss report there would repeat
+     * with no new occasion, while the absence of a loader is shown by the sidebar
+     * itself.
      *
-     * @param brickPath - Значение `brickPath` из манифеста.
-     * @returns Признак наличия лоадера.
+     * @param brickPath - The `brickPath` value from the manifest.
+     * @returns Whether a loader exists.
      */
     function hasBrickModule(brickPath: string): boolean {
         return resolveBrickLoader(brickPath) !== undefined;

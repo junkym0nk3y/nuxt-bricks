@@ -1,17 +1,18 @@
 /**
- * Типы конфигурации свойств layout-компонентов.
- * Контракт панели свойств: используется builder-ядром, canvas и sidebar;
- * обязателен в common для Части B (layouts-blocks не должен импортировать builder).
+ * Types of the property configuration of layout components.
+ * The contract of the properties panel: used by the builder core, by the canvas and by
+ * the sidebar; it has to live in common because layouts-blocks must not import
+ * builder.
  */
 
 import type { IInlineContentSegment } from './content';
 import type { IPropertyDefinition } from './brick';
 
 /**
- * Типы редакторов, доступные layout-блокам. Уже́ набора brick-свойств
- * (`TPropertyType`) сознательно: `object`, `readonly` и `switch` в definitions
- * блоков не встречаются, а разрешить их значило бы обещать поведение, которого
- * панель для layout-блоков не даёт.
+ * Editor types available to layout blocks. Narrower than the set of brick properties
+ * (`TPropertyType`) deliberately: `object`, `readonly` and `switch` do not occur in
+ * block definitions, and allowing them would mean promising behavior the panel does
+ * not provide for layout blocks.
  */
 export type TLayoutPropertyType =
     | 'number'
@@ -30,16 +31,16 @@ export type TLayoutPropertyType =
     | 'color';
 
 /**
- * Свойство панели у layout-блока.
+ * A panel property of a layout block.
  *
- * Выводится из `IPropertyDefinition`, а не объявляется заново: объект долетает
- * до панели структурно (`layoutProperties.ts` — сквозной проброс, мапера между
- * типами нет), поэтому две независимые копии обязаны совпадать поле в поле.
- * Пока они были копиями, это уже разошлось — `tags` и `image-gallery` панель
- * рисовала, а объявить их в definition было нельзя.
+ * Derived from `IPropertyDefinition` rather than declared anew: the object reaches the
+ * panel structurally (`layoutProperties.ts` is a pass-through, there is no mapper
+ * between the types), so two independent copies would have to match field by field. As
+ * long as they were copies, they did diverge — the panel drew `tags` and
+ * `image-gallery` while declaring them in a definition was impossible.
  *
- * Отличаются только те три поля, у которых у layout-блоков набор реально уже:
- * тип редактора, форма дефолта и форма опций.
+ * Only the three fields whose set really is narrower for layout blocks differ: the
+ * editor type, the shape of the default and the shape of the options.
  */
 export interface ILayoutProperty extends Omit<IPropertyDefinition, 'type' | 'default' | 'options'> {
     type: TLayoutPropertyType;

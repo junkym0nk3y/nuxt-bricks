@@ -33,7 +33,7 @@ import {
 // #endregion
 
 // #region Constants
-/** Поля записи устройства, известные странице. Всё прочее — отказ. */
+/** Fields of a device entry a page knows about. Anything else is a rejection */
 const PAGE_DEVICE_KEYS = new Set([
     'key',
     'label',
@@ -45,36 +45,37 @@ const PAGE_DEVICE_KEYS = new Set([
 ]);
 
 /**
- * Поля устройства проекта. `remBase` есть только здесь: нестандартная rem-база —
- * свойство проекта целиком, и per-page его правка означала бы, что одна
- * страница живёт в другой rem-системе, чем соседние.
+ * Fields of a project device. `remBase` exists here only: a non-standard rem base
+ * is a property of the whole project, and editing it per page would mean one page
+ * living in a different rem system than its neighbors.
  */
 const PROJECT_DEVICE_KEYS = new Set([...PAGE_DEVICE_KEYS, 'remBase']);
 
 const ICON_CHOICES = new Set<string>(DEVICE_ICON_CHOICES);
 
-/** Погрешность сравнения rem-значений с шагом: 0.1 + 0.2 в double даёт 0.30000000000000004. */
+/** Tolerance for comparing rem values against the step: 0.1 + 0.2 in double gives 0.30000000000000004 */
 const REM_STEP_EPSILON = 1e-6;
 // #endregion
 
 // #region Validation
 /**
- * Проверяет, что значение — целое число в границах.
+ * Checks that the value is an integer within the bounds.
  *
- * @param value - Проверяемое значение.
- * @param min - Нижняя граница включительно.
- * @param max - Верхняя граница включительно.
- * @returns true, если значение подходит.
+ * @param value - Value being checked.
+ * @param min - Lower bound, inclusive.
+ * @param max - Upper bound, inclusive.
+ * @returns true if the value fits.
  */
 function isIntegerInRange(value: unknown, min: number, max: number): boolean {
     return typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max;
 }
 
 /**
- * Проверяет rem-значение: неотрицательное конечное число, кратное шагу 0.2.
+ * Checks a rem value: a non-negative finite number up to the ceiling and a
+ * multiple of the 0.2 step.
  *
- * @param value - Проверяемое значение.
- * @returns true, если значение подходит.
+ * @param value - Value being checked.
+ * @returns true if the value fits.
  */
 function isRemValue(value: unknown): boolean {
     if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
@@ -90,13 +91,13 @@ function isRemValue(value: unknown): boolean {
 }
 
 /**
- * Проверяет одну запись устройства.
+ * Checks a single device entry.
  *
- * @param raw - Сырая запись.
- * @param index - Позиция в наборе (для текста ошибки).
- * @param errors - Аккумулятор причин отказа.
- * @param allowedFields - Разрешённые поля записи (страница или проект).
- * @returns Нормализованная запись либо null.
+ * @param raw - Raw entry.
+ * @param index - Position in the set (for the error text).
+ * @param errors - Accumulator of rejection reasons.
+ * @param allowedFields - Fields allowed in the entry (page or project).
+ * @returns The normalized entry or null.
  */
 // eslint-disable-next-line complexity
 function validateDevice(
@@ -133,8 +134,9 @@ function validateDevice(
         return null;
     }
 
-    // Ключ `base` занят суффиксом базового значения responsive-переменных:
-    // устройство с таким ключом затёрло бы дефолт всех блоков сразу
+    // The `base` key is taken by the suffix of the base value of the responsive
+    // variables: a device with such a key would overwrite the default of every
+    // block at once
     if (key === BASE_VAR_SUFFIX) {
         errors.push(`${at}.key "${BASE_VAR_SUFFIX}" is reserved`);
         return null;
@@ -182,10 +184,11 @@ function validateDevice(
 }
 
 /**
- * Проверяет структуру набора целиком: длину, уникальность, порядок и крайних.
+ * Checks the shape of the whole set: its length, uniqueness, order and the
+ * outermost devices.
  *
- * @param devices - Уже проверенные поштучно записи.
- * @param errors - Аккумулятор причин отказа.
+ * @param devices - Entries already checked one by one.
+ * @param errors - Accumulator of rejection reasons.
  */
 function validateSetShape(devices: TBricksPageDeviceSet, errors: string[]): void {
     const keys = new Set<string>();
@@ -202,9 +205,9 @@ function validateSetShape(devices: TBricksPageDeviceSet, errors: string[]): void
         widths.add(device.width);
     }
 
-    // Строгая монотонность, а не «отсортируем сами»: диапазон устройства
-    // считается как `следующая.width - 1`, и на неотсортированном массиве это
-    // дало бы пересекающийся или отрицательный диапазон
+    // Strict monotonicity rather than "we will sort it ourselves": a device range
+    // is computed as `next.width - 1`, and on an unsorted array that would give an
+    // overlapping or a negative range
     for (let i = 1; i < devices.length; i += 1) {
         if (devices[i].width <= devices[i - 1].width) {
             errors.push('devices must be sorted by ascending width');
@@ -229,15 +232,16 @@ function validateSetShape(devices: TBricksPageDeviceSet, errors: string[]): void
 }
 
 /**
- * Копирует набор устройств, отвязывая записи от источника.
+ * Copies a device set, detaching the entries from their source.
  *
- * Две задачи сразу. Первая — независимость данных: копия страницы, разделившая
- * массив с оригиналом, меняла бы ширины обеих. Вторая — снятие reactive-обёртки:
- * набор в состоянии формы это Proxy, а structured clone на Proxy бросает
- * `DataCloneError`, поэтому напрямую в `postMessage` его отдавать нельзя.
+ * Two jobs at once. First, independence of the data: a page copy sharing the
+ * array with the original would change the widths of both. Second, shedding the
+ * reactive wrapper: a set inside form state is a Proxy, and a structured clone of
+ * a Proxy throws `DataCloneError`, so it cannot be handed to `postMessage`
+ * directly.
  *
- * @param config - Набор устройств или `null`/`undefined`.
- * @returns Независимая копия из простых объектов либо `null`.
+ * @param config - Device set or `null`/`undefined`.
+ * @returns An independent copy made of plain objects, or `null`.
  */
 export function cloneDeviceSet(
     config: ReadonlyArray<IBricksPageDevice> | null | undefined
@@ -246,15 +250,16 @@ export function cloneDeviceSet(
 }
 
 /**
- * Проверяет набор устройств страницы.
+ * Validates the device set of a page.
  *
- * Ничего не чинит намеренно: повреждённый набор, приведённый сортировкой и
- * обрезкой к «валидному», получил бы новую семантику молча — мог потерять
- * обязательное устройство или сдвинуть диапазоны. Отказ виден, тихая подмена — нет.
+ * It deliberately repairs nothing: a corrupted set brought to a "valid" one by
+ * sorting and trimming would silently acquire new semantics — it could lose a
+ * mandatory device or shift the ranges. A rejection is visible, a quiet
+ * substitution is not.
  *
- * @param input - Сырое значение (тело запроса, строка БД, импортированный файл).
- * @param scope - Чей это набор: у проекта дополнительно разрешён `remBase`.
- * @returns Успех с нормализованным набором либо список причин отказа.
+ * @param input - Raw value (request body, database row, imported file).
+ * @param scope - Whose set this is: a project one additionally allows `remBase`.
+ * @returns Success with the normalized set, or the list of rejection reasons.
  */
 export function validateDeviceSet(
     input: unknown,
@@ -295,13 +300,13 @@ export function validateDeviceSet(
 
 // #region Resolve
 /**
- * Достраивает запись страницы до резолвнутой: `remBase` берётся у одноимённого
- * устройства проекта (свойство проекта, страница его не задаёт), высота листа —
- * у канонического ключа.
+ * Completes a page entry into a resolved one: `remBase` is taken from the project
+ * device of the same key (a project property, a page does not set it), and the
+ * sheet height from the canonical key.
  *
- * @param device - Запись набора страницы.
- * @param projectByKey - Устройства проекта по ключу.
- * @returns Резолвнутая запись.
+ * @param device - Entry of the page set.
+ * @param projectByKey - Project devices by key.
+ * @returns Resolved entry.
  */
 function toResolvedDevice(
     device: IBricksPageDevice,
@@ -317,16 +322,16 @@ function toResolvedDevice(
 }
 
 /**
- * Резолвит набор устройств для страницы.
+ * Resolves the device set for a page.
  *
- * `null` — страница наследует набор проекта. Повреждённый набор заменяется
- * набором проекта целиком: на публичном пути лучше показать страницу в
- * проектной раскладке, чем уронить её, — но факт подмены не замалчивается,
- * вызывающий получает его в `usedFallback`.
+ * `null` — the page inherits the project set. A corrupted set is replaced by the
+ * project set as a whole: on a public path it is better to show the page in the
+ * project layout than to bring it down — but the substitution is not hushed up,
+ * the caller receives it in `usedFallback`.
  *
- * @param pageConfig - Набор страницы или `null`.
- * @param projectDevices - Резолвнутый набор проекта.
- * @returns Резолвнутый набор и признак срабатывания fallback.
+ * @param pageConfig - The page set or `null`.
+ * @param projectDevices - Resolved project set.
+ * @returns The resolved set and a flag telling whether the fallback fired.
  */
 export function resolveDeviceSet(
     pageConfig: unknown,
@@ -355,17 +360,18 @@ export function resolveDeviceSet(
 
 // #region Icons
 /**
- * Переводит короткий ключ глифа устройства в ключ реестра иконок.
+ * Turns the short glyph key of a device into an icon registry key.
  *
- * В схеме хранится короткий ключ (`device-laptop`), а не имя из icon-пакета:
- * набор уезжает в данные страницы, и привязывать их к конкретному пакету иконок
- * незачем. Имя отличается от ключа только префиксом, поэтому таблицы
- * соответствий нет. Неизвестный ключ отдаёт глиф десктопа, а не пустоту —
- * иконка устройства всплывает в баре, табах и флайауте, и «иконка не найдена»
- * там заметнее, чем неточный глиф.
+ * The schema stores the short key (`device-laptop`) rather than a name from the
+ * icon package: the set travels into the page data, and there is no point tying
+ * it to a particular icon package. The name differs from the key by the prefix
+ * alone, which is why there is no mapping table. An unknown key yields the
+ * desktop glyph rather than nothing — a device icon surfaces in the bar, in the
+ * tabs and in the flyout, and "icon not found" is more noticeable there than an
+ * imprecise glyph.
  *
- * @param icon - Короткий ключ глифа из записи устройства.
- * @returns Ключ реестра иконок.
+ * @param icon - Short glyph key from the device entry.
+ * @returns Icon registry key.
  */
 export function resolveDeviceIcon(icon: string): string {
     const known = ICON_CHOICES.has(icon) ? icon : DEVICE_CATALOG[BASE_DEVICE_KEY].icon;
@@ -376,14 +382,15 @@ export function resolveDeviceIcon(icon: string): string {
 
 // #region Ranges
 /**
- * Считает диапазоны ширины окна по набору.
+ * Computes the window width ranges out of the set.
  *
- * Самое узкое устройство обслуживает диапазон от 0, самое широкое — без верхней
- * границы, промежуточные — до ширины следующего минус пиксель. Поэтому дыр и
- * наложений не бывает по построению, и отдельного списка порогов не нужно.
+ * The narrowest device serves the range starting at 0, the widest one has no
+ * upper bound, and the intermediate ones go up to the width of the next device
+ * minus a pixel. That is why there are no gaps and no overlaps by construction,
+ * and no separate list of thresholds is needed.
  *
- * @param devices - Набор, отсортированный по возрастанию ширины.
- * @returns Диапазоны в том же порядке.
+ * @param devices - The set, sorted by ascending width.
+ * @returns The ranges in the same order.
  */
 export function deviceRanges(devices: ReadonlyArray<IBricksPageDevice>): IBricksDeviceRange[] {
     return devices.map((device, index) => ({

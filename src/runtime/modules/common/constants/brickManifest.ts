@@ -1,37 +1,38 @@
 /**
- * Транспорт манифеста brick-компонентов. Константы общие для build-time
- * генератора (`src/bricks-manifest.ts`) и серверного читателя
- * (`server/utils/bricksComponents.ts`) — обе стороны обязаны сходиться в
- * baseName Nitro server asset и имени файла.
+ * Transport of the brick component manifest. The constants are shared by the
+ * build-time generator (`src/bricks-manifest.ts`) and the server-side reader
+ * (`server/utils/bricksComponents.ts`) — both sides have to agree on the baseName
+ * of the Nitro server asset and on the file name.
  */
 
 /**
- * Подкаталог манифеста внутри `nuxt.options.buildDir`.
+ * Subdirectory of the manifest inside `nuxt.options.buildDir`.
  *
- * Имя совпадает с namespace осознанно: nitro сканирует каталог рекурсивно и
- * без фильтра по имени, поэтому любой чужой файл, попавший сюда, стал бы ключом
- * нашего server asset — вплоть до подмены `manifest.json`. `buildDir` общий для
- * Nuxt и всех модулей, так что каталог, как и namespace, держим за именем пакета.
+ * The name matches the namespace deliberately: nitro scans the directory
+ * recursively and without filtering by name, so any foreign file landing here would
+ * become a key of our server asset — up to substituting `manifest.json`. `buildDir`
+ * is shared by Nuxt and by every module, so the directory, like the namespace, is
+ * held under the name of the package.
  */
 export const BRICKS_MANIFEST_DIR = 'nuxt-bricks-manifest';
 
 /**
- * baseName Nitro server asset — ключ storage `assets:<baseName>`.
- * В dev каталог монтируется fs-драйвером (манифест перечитывается с диска),
- * в prod содержимое запекается в серверный бандл.
+ * baseName of the Nitro server asset — the `assets:<baseName>` storage key.
+ * In dev the directory is mounted by the fs driver (the manifest is re-read from
+ * disk), in prod its content is baked into the server bundle.
  *
- * Namespace квалифицирован именем пакета, потому что он общий для всего
- * приложения: `serverAssets` — плоский список, и при совпадении baseName с
- * записью потребителя или другого модуля dev и prod расходятся в поведении.
- * В dev nitro монтирует каждую запись отдельно, а `mount` unstorage на занятой
- * базе бросает `already mounted at ${base}` (двоеточие в сообщении — часть
- * нормализованной базы) — причём на верхнем уровне модуля Nitro, так что
- * **любой** запрос отдаёт 500 (проверено). В prod ключи `baseName + '/' + file`
- * сливаются пофайлово, и коллизия проходит незамеченной. Совпадение на общем
- * слове `bricks` слишком вероятно; имя пакета его исключает, хотя занять ровно
- * `nuxt-bricks-manifest` потребителю никто не мешает.
+ * The namespace is qualified with the package name because it is shared by the whole
+ * application: `serverAssets` is a flat list, and when a baseName coincides with an
+ * entry of the consumer or of another module, dev and prod diverge in behavior. In
+ * dev nitro mounts every entry separately, and the unstorage `mount` on an occupied
+ * base throws `already mounted at ${base}` (the colon in the message is part of the
+ * normalized base) — and it does so at the top level of the Nitro module, so **any**
+ * request answers a 500 (verified). In prod the `baseName + '/' + file` keys merge
+ * file by file, and the collision goes unnoticed. A coincidence on the common word
+ * `bricks` is far too likely; the package name rules it out, although nothing stops
+ * a consumer from taking exactly `nuxt-bricks-manifest`.
  */
 export const BRICKS_MANIFEST_ASSET_BASE = 'nuxt-bricks-manifest';
 
-/** Имя файла манифеста внутри каталога. */
+/** File name of the manifest inside the directory */
 export const BRICKS_MANIFEST_FILENAME = 'manifest.json';

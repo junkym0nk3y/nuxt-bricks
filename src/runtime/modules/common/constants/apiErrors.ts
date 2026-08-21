@@ -1,68 +1,72 @@
 /**
- * Машиночитаемые коды отказов `/api/bricks/**` (`data.code` ответа), общие для
- * всех доменов — в отличие от PAGE_CONFLICT_CODES, которые относятся только к
- * записи страницы.
+ * Machine-readable rejection codes of `/api/bricks/**` (the `data.code` of the
+ * response), shared by every domain — unlike PAGE_CONFLICT_CODES, which concern
+ * the writing of a page only.
  *
- * Единый источник для сервера (handlerHelpers) и клиента (утилиты отказов
- * publish и media): по коду выбирается локализованный текст, потому что
- * серверное сообщение англоязычно и деталей наружу не отдаёт.
+ * A single source for the server (handlerHelpers) and for the client (the
+ * rejection utilities of publish and media): the code selects the localized text,
+ * because the server-side message is in English and gives away no details.
  */
 
-/** Коды отказов, которые клиент разбирает по существу. */
+/** Rejection codes the client acts upon */
 export const BRICKS_API_ERROR_CODES = {
     /**
-     * Запрос остановлен серверным лимитом времени (`statement_timeout` БД).
-     * Отличается от клиентского обрыва по потолку ожидания: там исход неизвестен,
-     * здесь незавершённая запись определённо откатана.
+     * The request was stopped by a server-side time limit (the database
+     * `statement_timeout`). Differs from a client-side abort by the waiting
+     * ceiling: there the outcome is unknown, here an unfinished write is
+     * definitely rolled back.
      */
     statementTimeout: 'STATEMENT_TIMEOUT',
     /**
-     * Категории с таким slug'ом в медиатеке нет: либо опечатка в запросе, либо
-     * её удалили между показом списка и записью. Код нужен и клиенту (иначе
-     * пользователь увидел бы англоязычный текст статуса), и HTTP-адаптеру —
-     * по нему отказ внешнего backend'а опознаётся как доменный, а не как
-     * произвольная валидация.
+     * The media library has no category with such a slug: either a typo in the
+     * request or it was deleted between the list being shown and the write. The
+     * code is needed both by the client (otherwise the user would see the English
+     * status text) and by the HTTP adapter — it lets a rejection from an external
+     * backend be recognized as a domain one rather than as arbitrary validation.
      */
     unknownMediaCategory: 'UNKNOWN_MEDIA_CATEGORY',
     /**
-     * Роль учётки не покрывает требование пути. Отличается от 401 тем, что
-     * сессия действительна: повторный вход ничего не изменит, и клиент обязан
-     * показать «недостаточно прав», а не форму логина.
+     * The role of the account does not cover what the path requires. Differs from a
+     * 401 in that the session is valid: signing in again changes nothing, and the
+     * client has to show "insufficient permissions" rather than the login form.
      */
     insufficientRole: 'INSUFFICIENT_ROLE',
     /**
-     * Операция оставила бы систему без активного администратора (понижение,
-     * отключение или удаление последнего). Отдельный код нужен клиенту: строка
-     * списка показывает замок именно с этим объяснением, а не «конфликт».
+     * The operation would leave the system without an active administrator
+     * (demoting, deactivating or deleting the last one). The client needs a code of
+     * its own: the list row shows a lock with exactly this explanation rather than
+     * a "conflict".
      */
     lastActiveAdmin: 'LAST_ACTIVE_ADMIN',
     /**
-     * Администратор направил на себя ручку управления чужими учётками.
-     * Собственные роль и активность не правятся вовсе, а свой пароль меняется
-     * ручкой профиля — она требует текущий пароль, и админ-путь обходил бы это
-     * требование, то есть украденная кука администратора сменила бы пароль сама.
+     * An administrator pointed an endpoint meant for other people's accounts at
+     * themselves. One's own role and activity cannot be edited at all, and one's own
+     * password is changed by the profile endpoint — it demands the current password,
+     * and the admin path would bypass that demand, that is, a stolen administrator
+     * cookie would change the password by itself.
      */
     selfTargetForbidden: 'SELF_TARGET_FORBIDDEN',
     /**
-     * Логин занят (сравнение регистронезависимое, как и при входе). Клиенту
-     * нужен код, а не текст: подсказка встаёт под полем формы создания.
+     * The login is taken (the comparison is case-insensitive, as it is at sign-in).
+     * The client needs a code rather than a text: the hint goes under the field of
+     * the creation form.
      */
     usernameTaken: 'USERNAME_TAKEN',
     /**
-     * Смена пароля выключена опцией `auth.allowPasswordChange`. Отдельно от
-     * «нет прав»: права у запроса могут быть полными, а формы пароля в такой
-     * установке нет вовсе — клиент обязан сказать «пароли ведут снаружи», а не
-     * предлагать повторить.
+     * Password changing is switched off by the `auth.allowPasswordChange` option.
+     * Separate from "no permissions": the request may have full permissions while
+     * such an installation has no password form at all — the client has to say that
+     * passwords are managed outside rather than offer to try again.
      */
     passwordChangeDisabled: 'PASSWORD_CHANGE_DISABLED',
     /**
-     * Текущий пароль в форме смены своего пароля не совпал. Не 401: тот увёл бы
-     * человека с рабочей сессией на форму логина (клиентский интерцептор
-     * реагирует на статус, а не на путь), хотя ошибка относится к одному полю
-     * формы.
+     * The current password in the "change my password" form did not match. Not a
+     * 401: that would take a person with a working session to the login form (the
+     * client interceptor reacts to the status, not to the path) even though the
+     * error concerns a single field of the form.
      */
     invalidCurrentPassword: 'INVALID_CURRENT_PASSWORD',
 } as const;
 
-/** Локаль отказа по серверному лимиту времени: один текст на все домены. */
+/** Locale key of the server-side time limit rejection: one text for every domain */
 export const BRICKS_STATEMENT_TIMEOUT_MESSAGE_KEY = 'bricks.common.statementTimeout';

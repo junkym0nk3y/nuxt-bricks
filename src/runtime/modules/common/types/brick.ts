@@ -4,16 +4,17 @@
 
 import type { TBricksResolvedDeviceSet } from './devices';
 
-// Пропсы layout-блоков переехали в layouts-blocks/types/blockProps.d.ts (шаг B1)
+// Props of the layout blocks live in layouts-blocks/types/blockProps.d.ts
 
 /**
- * Ключ устройства из набора страницы или проекта.
+ * Device key from the set of a page or of the project.
  *
- * Литеральным объединением быть перестал: набор произвольный (2–4 устройства,
- * ключ строится из подписи при создании), поэтому валидность ключа проверяется
- * по самому набору — `validateDeviceSet` в `common/utils/bricks/devices.ts`, —
- * а не системой типов. Гарантированно присутствуют только `mobile` и `desktop`:
- * они обязательны и всегда крайние.
+ * It stopped being a literal union: the set is arbitrary (2–4 devices, the key is
+ * built out of the label on creation), so the validity of a key is checked
+ * against the set itself — `validateDeviceSet` in
+ * `common/utils/bricks/devices.ts` — rather than by the type system. Only
+ * `mobile` and `desktop` are guaranteed to be present: they are mandatory and
+ * always the outermost ones.
  */
 export type TBricksDeviceKey = string;
 
@@ -37,16 +38,17 @@ export interface ICanvasDragState {
     height: number;
     isFullWidth: boolean;
     /**
-     * Оригинал перетаскиваемого блока убран из потока. Ставится с задержкой после
-     * dragstart, иначе мгновенный display:none на источнике отменяет нативный drag.
+     * The original of the block being dragged has been taken out of the flow. Set
+     * with a delay after dragstart, otherwise an immediate display:none on the
+     * source cancels the native drag.
      */
     sourceVacated: boolean;
 }
 
-/** Значение редактируемого свойства брика (единый источник правды для props-значений) */
+/** Value of an editable brick property (the single source of truth for props values) */
 export type TBrickPropValue = string | number | boolean | Record<string, unknown> | Array<unknown>;
 
-/** Demo/default-значение brick: TBrickPropValue + редкие примитивы и nullable-варианты */
+/** Demo/default value of a brick: TBrickPropValue + the rare primitives and the nullable variants */
 export type TBrickDemoValues =
     | string
     | number
@@ -59,11 +61,11 @@ export type TBrickDemoValues =
     | Array<unknown>;
 
 /**
- * Видимость блока по устройствам: ключ устройства → показывать ли.
+ * Visibility of a block per device: device key → whether to show it.
  *
- * Отсутствие ключа означает «видно»: набор устройств у страниц разный, и
- * перечислять в схеме все ключи со значением `true` пришлось бы заново при
- * каждой правке набора. Поэтому в схему попадают только явные `false`.
+ * A missing key means "visible": pages have different device sets, and listing
+ * every key with a `true` value in the schema would have to be redone on every
+ * edit of the set. That is why only the explicit `false` values reach the schema.
  */
 export type IDeviceVisibilityConfig = Record<string, boolean>;
 
@@ -81,22 +83,22 @@ export interface IBricksComponentSlot extends IComponentSlotDefinition {
 
 export interface IBricksComponent {
     id: string;
-    type: 'layout' | 'component'; // Новое: различаем Layout и обычные компоненты
-    componentName: string; // 'grid', 'flex', 'space' для layout, или название UI компонента
+    type: 'layout' | 'component'; // Tells Layout blocks apart from regular components
+    componentName: string; // 'grid', 'flex', 'space' for a layout, or the name of a UI component
     brickPath: string;
     zIndex: number;
     props: Record<string, unknown>;
-    // Вложенность
-    parent?: string; // ID родительского компонента
-    children?: string[]; // Массив ID дочерних компонентов (только для layout)
+    // Nesting
+    parent?: string; // ID of the parent component
+    children?: string[]; // Array of child component IDs (layout only)
     slots?: IBricksComponentSlot[];
     slotName?: string;
     fullWidth?: boolean;
     isHidden?: boolean;
-    htmlId?: string; // Кастомный HTML id для якорной навигации
+    htmlId?: string; // Custom HTML id for anchor navigation
     deviceVisibility?: Partial<IDeviceVisibilityConfig>;
     isInteractive?: boolean;
-    // Grid positioning (для компонентов внутри Grid Layout)
+    // Grid positioning (for components inside a Grid Layout)
     gridColumn?: string; // e.g. '1 / 3' or 'span 2'
     gridRow?: string; // e.g. '2 / 4' or 'span 2' or 'auto'
 }
@@ -136,9 +138,9 @@ export interface IBricksSchema {
 // Canvas state
 export interface ICanvasState {
     /**
-     * Резолвнутый набор устройств текущей страницы. Кладёт composition root:
-     * `builder/core` не имеет права импортировать `builder/publish`, где живёт
-     * форма с `viewportConfig`.
+     * Resolved device set of the current page. Put here by the composition root:
+     * `builder/core` is not allowed to import `builder/publish`, where the form
+     * holding `viewportConfig` lives.
      */
     devices: TBricksResolvedDeviceSet;
     width: number;
@@ -148,15 +150,15 @@ export interface ICanvasState {
     isFigmaMode: boolean;
     showGrid: boolean;
     isViewportSwitching: boolean;
-    /** Пользователь зумил вручную (wheel/кнопки) — авто-фит не перетирает масштаб */
+    /** The user zoomed manually (wheel/buttons) — auto-fit does not overwrite the scale */
     hasManualZoom: boolean;
-    /** В Figma mode — viewport, на котором последний раз кликнули компонент */
+    /** In Figma mode — the viewport where a component was clicked last */
     activeViewport: TBricksDeviceKey | null;
-    /** Ограничивать новый компонент только тем viewport, куда его бросили (Figma mode) */
+    /** Confine a new component to the viewport it was dropped into (Figma mode) */
     figmaDropPerViewport: boolean;
-    /** Transient drag-state: не сериализуется в schema/history. */
+    /** Transient drag state: not serialized into the schema/history */
     dragState: ICanvasDragState;
-    /** Ширина и высота канваса до входа в Figma mode (для восстановления при выходе) */
+    /** Canvas width and height before entering Figma mode (to restore them on exit) */
     _preFigmaWidth: number | null;
     _preFigmaHeight: number | null;
 }
@@ -189,50 +191,53 @@ export interface IPropertyDefinition {
     options?: Array<{ label: string; value: TBrickDemoValues }>;
     description?: string;
     listDelimiter?: string;
-    /** Минимальное значение для number-свойств */
+    /** Minimum value for number properties */
     min?: number;
-    /** Максимальное значение для number-свойств */
+    /** Maximum value for number properties */
     max?: number;
-    /** Шаг для number-свойств */
+    /** Step for number properties */
     step?: number;
     showWhen?: {
         field: string;
         equals: unknown;
     };
-    /** Конфигурация полей для image-gallery редактора */
+    /** Field configuration for the image-gallery editor */
     fields?: {
         title?: boolean;
         tags?: boolean;
     };
-    /** Имя свойства, куда сохранять svgContent при выборе SVG из галереи */
+    /** Name of the property to store svgContent in when an SVG is picked from the gallery */
     svgContentProperty?: string;
     /**
-     * Имена свойств, куда сохранять URL уменьшенных вариантов при выборе
-     * изображения из галереи (постепенная загрузка).
+     * Names of the properties to store the URLs of the downscaled variants in when
+     * an image is picked from the gallery (progressive loading).
      *
-     * Тем же способом, что `svgContentProperty`: блок хранит картинку строкой, а
-     * не id медиа, поэтому вывести адреса вариантов из `src` он не может —
-     * расширение варианта не совпадает с расширением полного файла, а у внешних
-     * URL вариантов нет вовсе. Догадка «подставить суффикс в имя» давала бы 404
-     * на каждой картинке не из медиатеки.
+     * The same way as `svgContentProperty`: a block stores an image as a string
+     * rather than as a media id, so it cannot derive the addresses of the variants
+     * from `src` — the extension of a variant does not match the extension of the
+     * full file, and external URLs have no variants at all. A guess along the
+     * lines of "append a suffix to the name" would give a 404 on every image that
+     * does not come from the media library.
      */
     previewUrlProperty?: string;
     mockUrlProperty?: string;
     /**
-     * Имена свойств, куда сохранять пиксельные размеры выбранного изображения.
+     * Names of the properties to store the pixel dimensions of the picked image
+     * in.
      *
-     * Нужны постепенной загрузке: до попадания кадра во вьюпорт на месте
-     * картинки стоит прозрачный 1×1, у которого нет ни высоты, ни пропорции.
-     * Место под картинку в этот момент держит `aspect-ratio`, а взять её больше
-     * негде — блок хранит картинку строкой, размеры лежат в медиатеке.
+     * Progressive loading needs them: until the frame enters the viewport, a
+     * transparent 1×1 stands in place of the image, and it has neither a height
+     * nor a ratio. The space for the image is held by `aspect-ratio` at that
+     * moment, and there is nowhere else to get it from — a block stores the image
+     * as a string, while the dimensions live in the media library.
      */
     naturalWidthProperty?: string;
     naturalHeightProperty?: string;
-    /** Суффикс единицы измерения для инпута (например, 'rem') */
+    /** Unit suffix for the input (for example, 'rem') */
     unit?: string;
-    /** Название группы для группировки свойств в сворачиваемый аккордеон */
+    /** Group name that folds the properties into a collapsible accordion */
     group?: string;
-    /** Свойство поддерживает адаптивные значения per-breakpoint */
+    /** The property supports responsive values per breakpoint */
     responsive?: boolean;
 }
 

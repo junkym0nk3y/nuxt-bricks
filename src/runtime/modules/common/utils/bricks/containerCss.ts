@@ -7,15 +7,16 @@ import { deviceRanges } from './devices';
 // #endregion
 
 /**
- * Возвращает CSS-свойства контейнера для устройства.
+ * Returns the CSS properties of the container for a device.
  *
- * @param device - Резолвнутое устройство набора.
- * @param indent - Базовый отступ правила.
- * @returns Тело правила `.bricks-container`.
+ * @param device - Resolved device of the set.
+ * @param indent - Base indentation of the rule.
+ * @returns Body of the `.bricks-container` rule.
  */
 function buildContainerProps(device: IBricksResolvedDevice, indent: string): string {
-    // Ширина устройства в px — это лист канваса; контейнерные величины хранятся
-    // в rem числами, чтобы в генерируемый CSS не попадала строка из БД
+    // The device width in px is the canvas sheet; the container values are stored
+    // in rem as numbers, so that no string out of the database reaches the generated
+    // CSS
     const maxWidth = device.maxWidth ?? device.width / 10;
     const lines = [`max-width: ${maxWidth}rem;`, `padding: 0 ${device.aside}rem;`];
 
@@ -27,15 +28,15 @@ function buildContainerProps(device: IBricksResolvedDevice, indent: string): str
 }
 
 /**
- * Собирает CSS контейнера контента по набору устройств.
+ * Assembles the CSS of the content container out of the device set.
  *
- * Канвас адресуется атрибутом `data-bricks-viewport`, published — media query
- * по диапазонам набора. Диапазоны считаются из ширин самих устройств, поэтому
- * ступень не может «объявиться, но не участвовать в генерации», как это было с
- * прежним отдельным списком порогов.
+ * The canvas is addressed by the `data-bricks-viewport` attribute, a published page
+ * by a media query over the ranges of the set. The ranges are computed from the
+ * widths of the devices themselves, so a step cannot "be declared yet take no part
+ * in the generation", the way it could with the former separate list of thresholds.
  *
- * @param devices - Резолвнутый набор устройств.
- * @returns CSS для инжекта в `<style>`.
+ * @param devices - Resolved device set.
+ * @returns CSS to inject into a `<style>`.
  */
 export function buildBricksContainerCss(devices: TBricksResolvedDeviceSet): string {
     const ranges = deviceRanges(devices);
@@ -58,8 +59,9 @@ ${buildContainerProps(device, '            ')}
                 Number.isFinite(range.max) ? `(max-width: ${range.max}px)` : '',
             ].filter(Boolean);
 
-            // У самого узкого устройства нижней границы нет, у самого широкого —
-            // верхней; условий может не остаться вовсе, если устройство одно
+            // The narrowest device has no lower bound and the widest one no upper
+            // bound; there may be no conditions left at all when there is a single
+            // device
             const query =
                 conditions.length > 0 ? `@media ${conditions.join(' and ')}` : '@media all';
 
@@ -72,24 +74,25 @@ ${buildContainerProps(device, '                ')}
         .join('\n\n');
 
     return `
-        /* Канвас как контейнер для Container Queries */
+        /* The canvas as a container for Container Queries */
         .bricks-canvas {
             container-type: inline-size;
             container-name: bricks;
         }
 
-        /* Базовые стили контейнера контента (канвас и published-страница).
-           box-sizing задаётся явно: модуль не полагается на глобальный reset хост-проекта,
-           иначе width: 100% + padding (aside) выталкивает контейнер за пределы канваса */
+        /* Base styles of the content container (the canvas and a published page).
+           box-sizing is set explicitly: the module does not rely on a global reset of
+           the host project, otherwise width: 100% + padding (aside) pushes the
+           container beyond the canvas */
         .bricks-container {
             box-sizing: border-box;
             width: 100%;
             margin: 0 auto;
         }
 
-        /* Канвас: стили по выбранному устройству набора */
+        /* Canvas: styles for the selected device of the set */
 ${canvasRules}
 
-        /* Published-страница: те же значения по диапазонам набора */
+        /* Published page: the same values across the ranges of the set */
 ${publishedRules}`;
 }

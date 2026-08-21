@@ -9,23 +9,24 @@ import { useHead } from 'nuxt/app';
 import { buildBricksContainerCss } from '../utils/bricks/containerCss';
 // #endregion
 
-/** Ключ тега: по нему набор страницы вытесняет проектный. */
+/** Key of the tag: the page set displaces the project one by it */
 const BRICKS_CONTAINER_STYLE_KEY = 'bricks-container';
 
 /**
- * Инъекция стилей контейнера в `<head>`.
+ * Injection of the container styles into the `<head>`.
  *
- * Тег помечен фиксированным `key` и `tagDuplicateStrategy: 'replace'`: плагин
- * пишет CSS набора ПРОЕКТА, а страница со своим набором регистрирует запись
- * позже и вытесняет её по тому же ключу. Уход со страницы снимает запись, и
- * проектный CSS возвращается. Без `key` дедупа не будет вовсе — в `<head>`
- * окажутся оба тега, и раскладку решит порядок.
+ * The tag is marked with a fixed `key` and `tagDuplicateStrategy: 'replace'`: the
+ * plugin writes the CSS of the PROJECT set, while a page with a set of its own
+ * registers an entry later and displaces it by the same key. Leaving the page removes
+ * the entry and the project CSS comes back. Without a `key` there would be no
+ * deduplication at all — both tags would end up in the `<head>` and the layout would
+ * be decided by their order.
  *
- * Аргумент — геттер, а не значение: набор страницы меняется без перемонтирования
- * (правка в модалке, live-preview, переход между страницами билдера), и
- * одноразовый вызов оставил бы CSS первой открытой страницы.
+ * The argument is a getter rather than a value: the page set changes without a
+ * remount (an edit in the modal, the live preview, a navigation between builder
+ * pages), and a one-off call would leave the CSS of the first page that was opened.
  *
- * @param getDevices - Геттер резолвнутого набора устройств.
+ * @param getDevices - Getter of the resolved device set.
  */
 export function useBricksStyles(getDevices: () => TBricksResolvedDeviceSet): void {
     useHead(() => ({

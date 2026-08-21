@@ -1,23 +1,24 @@
 /**
- * Утилиты для конвертации snake_case ↔ camelCase.
- * Используется для нормализации ответов от Django backend.
+ * Utilities for converting snake_case ↔ camelCase.
+ * Used to normalize database rows and the responses of an external backend, whose
+ * keys arrive in snake_case.
  */
 
 /**
- * Конвертирует строку из snake_case в camelCase.
+ * Converts a string from snake_case into camelCase.
  *
- * @param str - Строка в snake_case.
- * @returns Строка в camelCase.
+ * @param str - String in snake_case.
+ * @returns String in camelCase.
  */
 function toCamelCaseString(str: string): string {
     return str.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
 }
 
 /**
- * Конвертирует ключи объекта из snake_case в camelCase (рекурсивно).
+ * Converts the keys of an object from snake_case into camelCase (recursively).
  *
- * @param obj - Объект с ключами в snake_case.
- * @returns Новый объект с ключами в camelCase.
+ * @param obj - Object with keys in snake_case.
+ * @returns A new object with keys in camelCase.
  */
 export function toCamelCase<T>(obj: unknown): T {
     if (obj === null || obj === undefined) {
@@ -43,11 +44,11 @@ export function toCamelCase<T>(obj: unknown): T {
 }
 
 /**
- * Конвертирует только top-level ключи объекта из snake_case в camelCase.
- * Значения (включая вложенные объекты, например `schema`) остаются без изменений.
+ * Converts only the top-level keys of an object from snake_case into camelCase.
+ * The values (nested objects such as `schema` included) are left untouched.
  *
- * @param obj - Объект с ключами в snake_case.
- * @returns Новый объект с top-level ключами в camelCase.
+ * @param obj - Object with keys in snake_case.
+ * @returns A new object with top-level keys in camelCase.
  */
 export function toCamelCaseShallow<T>(obj: object): T {
     const result: Record<string, unknown> = {};
@@ -60,10 +61,10 @@ export function toCamelCaseShallow<T>(obj: object): T {
 }
 
 /**
- * Конвертирует строку из camelCase в snake_case.
+ * Converts a string from camelCase into snake_case.
  *
- * @param str - Строка в camelCase.
- * @returns Строка в snake_case.
+ * @param str - String in camelCase.
+ * @returns String in snake_case.
  */
 export function toSnakeCaseString(str: string): string {
     return str
@@ -73,11 +74,11 @@ export function toSnakeCaseString(str: string): string {
 }
 
 /**
- * Конвертирует только top-level ключи объекта из camelCase в snake_case.
- * Значения (включая вложенные объекты) остаются без изменений.
+ * Converts only the top-level keys of an object from camelCase into snake_case.
+ * The values (nested objects included) are left untouched.
  *
- * @param obj - Объект с ключами в camelCase.
- * @returns Новый объект с top-level ключами в snake_case.
+ * @param obj - Object with keys in camelCase.
+ * @returns A new object with top-level keys in snake_case.
  */
 export function toSnakeCaseShallow(obj: object): Record<string, unknown> {
     const result: Record<string, unknown> = {};

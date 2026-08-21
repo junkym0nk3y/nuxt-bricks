@@ -5,8 +5,8 @@ import type { IDragVisualSize } from '../types/brick';
 
 // #region Data
 /**
- * Доля ширины родителя, с которой блок считается полноширинным:
- * плейсхолдер такого блока растягивается на 100% вместо фиксированных px.
+ * The share of the parent width at which a block counts as full-width: the
+ * placeholder of such a block stretches to 100% instead of fixed px.
  */
 const FULL_WIDTH_RATIO = 0.95;
 
@@ -17,11 +17,11 @@ const PLACEHOLDER_EASING = 'cubic-bezier(0.2, 0, 0, 1)';
 
 // #region Methods
 /**
- * Определяет, что именно перетаскивают: существующий компонент канваса,
- * карточку библиотеки или чужой payload (файл ОС, узел дерева схемы).
+ * Determines what exactly is being dragged: an existing canvas component, a library
+ * card or a foreign payload (an OS file, a node of the schema tree).
  *
- * @param event - Текущее drag-событие.
- * @returns Признаки payload; `isAccepted` — можно ли принимать drop.
+ * @param event - The current drag event.
+ * @returns Traits of the payload; `isAccepted` — whether the drop may be accepted.
  */
 function resolveDragPayload(event: DragEvent): {
     isExisting: boolean;
@@ -36,11 +36,12 @@ function resolveDragPayload(event: DragEvent): {
 }
 
 /**
- * Выставляет `dropEffect` по типу payload. Без явного эффекта браузер
- * может отклонить drop, а чужой payload не должен подсвечивать зону.
+ * Sets the `dropEffect` according to the type of the payload. Without an explicit
+ * effect the browser may reject the drop, and a foreign payload must not highlight
+ * the zone.
  *
- * @param event - Текущее drag-событие.
- * @returns Принимается ли payload текущей зоной.
+ * @param event - The current drag event.
+ * @returns Whether the current zone accepts the payload.
  */
 export function applyDropEffect(event: DragEvent): boolean {
     const { isExisting, isAccepted } = resolveDragPayload(event);
@@ -59,15 +60,16 @@ export function applyDropEffect(event: DragEvent): boolean {
 }
 
 /**
- * Анимирует место вставки, живущее вне Vue-потока (layout-зоны вставляют его в DOM
- * императивно, поэтому `<TransitionGroup>` его не видит).
+ * Animates the insertion point, which lives outside the Vue flow (the layout zones
+ * insert it into the DOM imperatively, so `<TransitionGroup>` does not see it).
  *
- * Первое появление — мягкий fade-in; смена позиции — FLIP-переезд от прежних
- * координат. Через Web Animations API, а не CSS: перестановка узла в DOM
- * перезапускала бы CSS-анимацию появления, и плейсхолдер мигал бы на каждом шаге.
+ * The first appearance is a soft fade-in; a change of position is a FLIP move from
+ * the former coordinates. Through the Web Animations API rather than CSS: moving the
+ * node inside the DOM would restart the CSS appearance animation, and the
+ * placeholder would blink on every step.
  *
- * @param element - Элемент плейсхолдера, уже вставленный в новую позицию.
- * @param previousRect - Прежние координаты элемента или null, если он только появился.
+ * @param element - The placeholder element, already inserted at its new position.
+ * @param previousRect - The former coordinates of the element, or null when it has just appeared.
  */
 export function animateFlowPlaceholder(element: HTMLElement, previousRect: DOMRect | null): void {
     if (typeof element.animate !== 'function') {
@@ -100,11 +102,12 @@ export function animateFlowPlaceholder(element: HTMLElement, previousRect: DOMRe
 }
 
 /**
- * Измеряет фактический размер блока для drag-визуалов (призрак и плейсхолдер).
- * Источник истины — отрендеренный DOM, никаких хардкод-оценок по типу блока.
+ * Measures the actual size of a block for the drag visuals (the ghost and the
+ * placeholder). The source of truth is the rendered DOM, with no hardcoded guesses
+ * by block type.
  *
- * @param element - Измеряемый элемент.
- * @returns Размер и признак полноширинного блока.
+ * @param element - The element being measured.
+ * @returns The size and whether the block is full-width.
  */
 export function measureDragSize(element: HTMLElement | null): IDragVisualSize {
     if (!element) {

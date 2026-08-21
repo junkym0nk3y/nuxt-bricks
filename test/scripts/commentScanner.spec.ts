@@ -219,4 +219,123 @@ describe('code projection', () => {
 
         expect(projectCode('ci.yml', before)).not.toEqual(projectCode('ci.yml', after));
     });
+
+    it('accepts a translated developer message, whatever its length', () => {
+        const before = "console.warn('[Bricks] набор устройств не проходит контракт');";
+        const after = "console.warn('[Bricks] the device set does not pass the contract');";
+
+        expect(projectCode('a.ts', before)).toEqual(projectCode('a.ts', after));
+    });
+
+    it('still reports code rewritten around a translated message', () => {
+        const before = "if (a) console.warn('текст сообщения');";
+        const after = "if (b) console.warn('message text');";
+
+        expect(projectCode('a.ts', before)).not.toEqual(projectCode('a.ts', after));
+    });
+
+    it('accepts a translated comment inside generated CSS and SQL', () => {
+        const before = [
+            'const css = `',
+            '    /* Канвас как контейнер */',
+            '    .bricks-canvas { container-type: inline-size; }',
+            '`;',
+            'const sql = `',
+            '    -- Дефолтность пароля считается здесь',
+            '    SELECT 1',
+            '`;',
+        ].join('\n');
+        const after = [
+            'const css = `',
+            '    /* The canvas as a container */',
+            '    .bricks-canvas { container-type: inline-size; }',
+            '`;',
+            'const sql = `',
+            '    -- Whether the password is the default one is computed here',
+            '    SELECT 1',
+            '`;',
+        ].join('\n');
+
+        expect(projectCode('a.ts', before)).toEqual(projectCode('a.ts', after));
+    });
+
+    it('protects custom properties of generated CSS from the SQL comment rule', () => {
+        const before = 'const css = `\n    --bricks-base-0: #fff;\n`;';
+        const after = 'const css = `\n    --bricks-base-0: #000;\n`;';
+
+        expect(projectCode('a.ts', before)).not.toEqual(projectCode('a.ts', after));
+    });
+
+    it('reports an expression rewritten inside a translated message', () => {
+        const before = 'throw new Error(`потолок ${maxBytes} байт`);';
+        const after = 'throw new Error(`ceiling of ${maxBytes + 1} bytes`);';
+
+        expect(projectCode('a.ts', before)).not.toEqual(projectCode('a.ts', after));
+    });
+
+    it('accepts a translated message around an untouched expression', () => {
+        const before = 'throw new Error(`потолок ${maxBytes} байт`);';
+        const after = 'throw new Error(`ceiling of ${maxBytes} bytes`);';
+
+        expect(projectCode('a.ts', before)).toEqual(projectCode('a.ts', after));
+    });
+
+    it('accepts a translated message string inside a ternary substitution', () => {
+        const before = 'console.log(`${name}: ${ok ? "OK" : "ПРЕВЫШЕН"}`);';
+        const after = 'console.log(`${name}: ${ok ? "OK" : "EXCEEDED"}`);';
+
+        expect(projectCode('a.ts', before)).toEqual(projectCode('a.ts', after));
+    });
+
+    it('reports the condition of that ternary being rewritten', () => {
+        const before = 'console.log(`${name}: ${ok ? "OK" : "EXCEEDED"}`);';
+        const after = 'console.log(`${name}: ${bad ? "OK" : "EXCEEDED"}`);';
+
+        expect(projectCode('a.ts', before)).not.toEqual(projectCode('a.ts', after));
+    });
+
+    it('reports a locale key rewritten inside a thrown error', () => {
+        const before = 'throw new Error(t("bricks.media.listResponseInvalid"));';
+        const after = 'throw new Error(t("bricks.media.other"));';
+
+        expect(projectCode('a.ts', before)).not.toEqual(projectCode('a.ts', after));
+    });
+
+    it('reports a machine value rewritten in a nested call of a message', () => {
+        const before = 'console.warn("message", choose("safe"));';
+        const after = 'console.warn("message", choose("unsafe"));';
+
+        expect(projectCode('a.ts', before)).not.toEqual(projectCode('a.ts', after));
+    });
+
+    it('reports an expression rewritten inside a substitution holding a regexp', () => {
+        const before = 'throw new Error(`${/}/.test(flag) ? "a" : "b"}`);';
+        const after = 'throw new Error(`${/}/.test(other) ? "a" : "b"}`);';
+
+        expect(projectCode('a.ts', before)).not.toEqual(projectCode('a.ts', after));
+    });
+
+    it('treats a yup .test name in production code as code, not as a case title', () => {
+        const before = 'schema.test("slug-taken", "адрес занят", check);';
+        const after = 'schema.test("slug-free", "адрес занят", check);';
+
+        expect(projectCode('src/a.ts', before)).not.toEqual(projectCode('src/a.ts', after));
+    });
+
+    it('accepts a renamed case title in a spec file', () => {
+        // The fixture stays in Latin on purpose: the projection collapses a title
+        // whatever its language, and a Cyrillic one here would be counted as a
+        // Russian case title of this very spec file by the report
+        const before = 'it("the old name", fn);';
+        const after = 'it("the new name", fn);';
+
+        expect(projectCode('test/a.spec.ts', before)).toEqual(projectCode('test/a.spec.ts', after));
+    });
+
+    it('reports generated output rewritten next to its comment', () => {
+        const before = 'const css = `\n    /* заголовок */\n    .a { display: none; }\n`;';
+        const after = 'const css = `\n    /* a heading */\n    .a { display: block; }\n`;';
+
+        expect(projectCode('a.ts', before)).not.toEqual(projectCode('a.ts', after));
+    });
 });

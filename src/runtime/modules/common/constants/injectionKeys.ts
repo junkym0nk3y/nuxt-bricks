@@ -6,46 +6,48 @@ import type { IInlineEditorHost } from '../types/inlineEditing';
 // #endregion
 
 /**
- * Активный viewport канваса (реактивный).
- * Провайдится `TheBuilderCanvas` (обычный режим, из canvas-store) и `BuilderCanvasViewport`
- * (Figma mode, per-viewport — ближайший провайдер выигрывает).
- * На published-странице провайдера нет — потребители используют fallback.
+ * The active canvas viewport (reactive).
+ * Provided by `TheBuilderCanvas` (the regular mode, out of the canvas store) and by
+ * `BuilderCanvasViewport` (Figma mode, per viewport — the nearest provider wins).
+ * On a published page there is no provider — the consumers use a fallback.
  */
 export const CANVAS_VIEWPORT_KEY: InjectionKey<Ref<TBricksDeviceKey>> = Symbol('canvasViewport');
 
 /**
- * Резолвнутый набор устройств текущей страницы (реактивный).
+ * The resolved device set of the current page (reactive).
  *
- * Провайдится страницей билдера (из canvas-store) и страницей рендерера (из
- * `viewportConfig` страницы). Нужен блокам, которым мало CSS-переменных, —
- * Slider строит по набору JS-брейкпоинты Swiper. Без провайдера потребители
- * берут набор проекта.
+ * Provided by the builder page (out of the canvas store) and by the renderer page
+ * (out of the page `viewportConfig`). Needed by the blocks for which CSS variables
+ * are not enough — the Slider builds the Swiper JS breakpoints out of the set.
+ * Without a provider the consumers take the project set.
  */
 export const BRICKS_DEVICES_KEY: InjectionKey<Ref<TBricksResolvedDeviceSet>> =
     Symbol('bricksDevices');
 
 /**
- * Активна ли drag-сессия на canvas. Layout-блоки используют сигнал, чтобы скрыть
- * пустые drop-маркеры («Drop components here») и сбросить локальное drag-состояние
- * зоны по завершении сессии. Вспомогательная сетка (тумблер) при драге остаётся.
+ * Whether a drag session is active on the canvas. The layout blocks use the signal
+ * to hide the empty drop markers ("Drop components here") and to reset the local
+ * drag state of a zone once the session ends. The helper grid (the toggle) stays
+ * during a drag.
  */
 export const CANVAS_DRAG_ACTIVE_KEY = Symbol.for('nuxt-bricks.canvasDragActive') as InjectionKey<
     Ref<boolean>
 >;
 
 /**
- * Порт inline editing к состоянию билдера (пропы + история).
- * Провайдится `TheBuilderCanvas`; на published-странице провайдера нет —
- * `useInlineEditor` без хоста не инициализирует редактор.
+ * The port of inline editing into the builder state (props + history).
+ * Provided by `TheBuilderCanvas`; on a published page there is no provider —
+ * without a host `useInlineEditor` does not initialize the editor.
  */
 export const INLINE_EDITOR_HOST_KEY: InjectionKey<IInlineEditorHost> = Symbol('inlineEditorHost');
 
 /**
- * Заголовок открытой модалки (реактивный). Провайдит `BricksModal` — тем же
- * значением, которое уходит в скрытый `DialogTitle`.
+ * Title of the open modal (reactive). Provided by `BricksModal` — with the very
+ * value that goes into the hidden `DialogTitle`.
  *
- * Нужен `BricksModalHeader`: пока видимый заголовок писали в шаблоне руками, он
- * дублировал проп `title` и мог разъехаться со звучащим для скринридера молча.
- * Провайд, а не проп шапки, — чтобы источник остался один.
+ * Needed by `BricksModalHeader`: as long as the visible title was written in the
+ * template by hand, it duplicated the `title` prop and could drift away from what a
+ * screen reader announces, silently. A provide rather than a prop of the header, so
+ * that the source stays a single one.
  */
 export const BRICKS_MODAL_TITLE_KEY: InjectionKey<Ref<string>> = Symbol('bricksModalTitle');

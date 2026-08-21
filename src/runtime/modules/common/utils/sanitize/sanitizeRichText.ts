@@ -1,18 +1,20 @@
 /**
- * Санитайзер rich-text HTML (вывод TipTap: BlockText, BlockAccordion,
- * slot-контент канваса). Изоморфный (SSR + клиент): собственный парсер js-xss,
- * DOM не нужен — SSR-ответ и hydration дают одинаковый результат.
+ * Sanitizer of rich-text HTML (the TipTap output: BlockText, BlockAccordion, the
+ * slot content of the canvas). Isomorphic (SSR + client): js-xss has a parser of
+ * its own, no DOM is needed — the SSR response and the hydration give the same
+ * result.
  *
- * Allow-list покрывает ровно набор расширений `createTiptapEditor` (StarterKit,
- * TextStyle/Color/FontFamily/FontSize/FontWeight/LineHeight/LetterSpacing,
- * TextAlign, ResizableImage/Video, ссылки). Всё вне списка — вырезается,
- * включая on*-атрибуты, script/iframe и не-http(s) протоколы ссылок.
+ * The allow-list covers exactly the set of `createTiptapEditor` extensions
+ * (StarterKit, TextStyle/Color/FontFamily/FontSize/FontWeight/LineHeight/
+ * LetterSpacing, TextAlign, ResizableImage/Video, links). Everything outside the
+ * list is cut out, on* attributes, script/iframe and non-http(s) link protocols
+ * included.
  */
 import { FilterXSS, friendlyAttrValue, safeAttrValue } from './xssInterop';
 import { isSafeLinkUrl, isSafeMediaSrcUrl } from './urlPolicy';
 
 // #region Constants
-/** Разрешённые CSS-свойства inline-style (расширения TipTap пишут только их). */
+/** Allowed CSS properties of an inline style (the TipTap extensions write these only) */
 const RICH_TEXT_CSS_WHITELIST: Record<string, boolean> = {
     color: true,
     'background-color': true,
@@ -30,12 +32,12 @@ const RICH_TEXT_CSS_WHITELIST: Record<string, boolean> = {
     'max-width': true,
 };
 
-/** Атрибуты, разрешённые на любом rich-text теге. */
+/** Attributes allowed on any rich-text tag */
 const GLOBAL_ATTRS = ['style', 'class'];
 
 /**
- * Теги rich-text: блочные и inline узлы TipTap-набора.
- * img/video — ResizableImage/ResizableVideo (медиа-галерея).
+ * Rich-text tags: the block and inline nodes of the TipTap set.
+ * img/video are ResizableImage/ResizableVideo (the media gallery).
  */
 const RICH_TEXT_TAGS: Record<string, string[]> = {
     p: [],
@@ -81,7 +83,7 @@ const RICH_TEXT_TAGS: Record<string, string[]> = {
 
 // #region Filter
 /**
- * Собирает whitelist «тег → атрибуты» с глобальными атрибутами.
+ * Assembles the "tag → attributes" whitelist, adding the global attributes.
  */
 function buildWhiteList(): Record<string, string[]> {
     const whiteList: Record<string, string[]> = {};
@@ -96,19 +98,20 @@ function buildWhiteList(): Record<string, string[]> {
 const richTextFilter = new FilterXSS({
     whiteList: buildWhiteList(),
     css: { whiteList: RICH_TEXT_CSS_WHITELIST },
-    // Неразрешённые теги вырезаются (текст сохраняется), исполняемые — целиком
+    // Disallowed tags are cut out (the text is kept), executable ones entirely
     stripIgnoreTag: true,
     stripIgnoreTagBody: ['script', 'style', 'iframe', 'object', 'embed', 'noscript'],
     safeAttrValue(tag, name, value, cssFilter) {
-        // Политика — по ДЕКОДИРОВАННОМУ значению (numeric/hex HTML-энтити):
-        // encoded `/&#92;…`/`/&#47;…` проходят raw-проверку как локальный путь,
-        // а декодируются в protocol-relative `//host`
+        // The policy works on the DECODED value (numeric/hex HTML entities): the
+        // encoded `/&#92;…`/`/&#47;…` pass a raw check as a local path but decode
+        // into the protocol-relative `//host`
         if (name === 'href' && !isSafeLinkUrl(friendlyAttrValue(value))) {
             return '';
         }
 
-        // src (img/video/source) и poster (video) — одна и та же media-политика:
-        // http(s)/root-relative, protocol-relative `//host` и backslash запрещены
+        // src (img/video/source) and poster (video) share one media policy:
+        // http(s)/root-relative, while the protocol-relative `//host` and a
+        // backslash are forbidden
         if ((name === 'src' || name === 'poster') && !isSafeMediaSrcUrl(friendlyAttrValue(value))) {
             return '';
         }
@@ -118,32 +121,33 @@ const richTextFilter = new FilterXSS({
 });
 
 /**
- * Открывающий тег `<a>` в уже отфильтрованном выводе. Атрибуты после js-xss
- * нормализованы (значения в двойных кавычках, `>` внутри значений невозможен),
- * поэтому «до первого `>`» здесь — не эвристика.
+ * The opening `<a>` tag in the already filtered output. After js-xss the
+ * attributes are normalized (values in double quotes, a `>` inside a value is
+ * impossible), so "up to the first `>`" is not a heuristic here.
  */
 const OPEN_ANCHOR_TAG = /<a\s[^>]*>/gi;
 
-/** Ссылка, открывающая новую вкладку. */
+/** A link that opens a new tab */
 const BLANK_TARGET_ATTR = /\starget\s*=\s*"_blank"/i;
 
-/** Существующий rel — его значение заменяется целиком. */
+/** An existing rel — its value is replaced as a whole */
 const REL_ATTR = /\srel\s*=\s*"[^"]*"/i;
 
-/** Значение rel, обязательное для ссылок в новую вкладку. */
+/** The rel value mandatory for links opening a new tab */
 const FORCED_REL_VALUE = 'noopener noreferrer';
 
 /**
- * Навязывает `rel="noopener noreferrer"` ссылкам с `target="_blank"`.
+ * Forces `rel="noopener noreferrer"` onto the links with `target="_blank"`.
  *
- * Без `noopener` открытая вкладка получает `window.opener` исходной страницы и
- * может увести её на свой адрес (tabnabbing); `noreferrer` не отдаёт адрес
- * источника. Расширение редактора проставляет rel само, но HTML в схему
- * попадает и мимо него — через режим кода редактора и через импорт схемы, —
- * поэтому гарантию даёт рендер, а не редактор.
+ * Without `noopener` the opened tab receives the `window.opener` of the source
+ * page and can steer it to an address of its own (tabnabbing); `noreferrer`
+ * withholds the address of the source. The editor extension sets the rel itself,
+ * but HTML reaches the schema bypassing it too — through the code mode of the
+ * editor and through a schema import — so the guarantee is given by the render,
+ * not by the editor.
  *
- * @param html - Разметка после FilterXSS.
- * @returns Разметка, где у каждой ссылки в новую вкладку выставлен rel.
+ * @param html - Markup after FilterXSS.
+ * @returns Markup where every link opening a new tab has the rel set.
  */
 function forceBlankTargetRel(html: string): string {
     return html.replace(OPEN_ANCHOR_TAG, (tag) => {
@@ -157,8 +161,9 @@ function forceBlankTargetRel(html: string): string {
             return tag.replace(REL_ATTR, forcedRel);
         }
 
-        // Self-closing форму js-xss сохраняет (`<a … />`) — дописывать атрибут
-        // после слэша нельзя, он уехал бы в имя атрибута
+        // js-xss preserves the self-closing form (`<a … />`) — an attribute must
+        // not be appended after the slash, it would end up inside the attribute
+        // name
         const closing = tag.endsWith('/>') ? ' />' : '>';
         const withoutClosing = tag.slice(0, tag.length - closing.trimStart().length).trimEnd();
 
@@ -167,22 +172,22 @@ function forceBlankTargetRel(html: string): string {
 }
 
 /**
- * Убирает служебные маркеры js-xss: парные `[removed]…[/removed]` вырезаются
- * самим фильтром, но self-closing тег из stripIgnoreTagBody (без закрывающего)
- * оставляет одиночный маркер в выводе.
+ * Strips the service markers of js-xss: the paired `[removed]…[/removed]` is cut
+ * out by the filter itself, but a self-closing tag from stripIgnoreTagBody (with
+ * no closing one) leaves a lone marker in the output.
  *
- * @param html - Результат FilterXSS.process.
- * @returns Разметка без маркеров.
+ * @param html - Result of FilterXSS.process.
+ * @returns Markup without the markers.
  */
 export function stripSanitizerMarkers(html: string): string {
     return html.replace(/\[\/?removed\]/g, '');
 }
 
 /**
- * Санитизирует rich-text HTML по allow-list TipTap-набора.
+ * Sanitizes rich-text HTML against the allow-list of the TipTap set.
  *
- * @param html - Произвольный HTML (из схемы страницы).
- * @returns Безопасный HTML для v-html.
+ * @param html - Arbitrary HTML (from the page schema).
+ * @returns HTML safe for v-html.
  */
 export function sanitizeRichTextHtml(html: string | null | undefined): string {
     if (!html) {

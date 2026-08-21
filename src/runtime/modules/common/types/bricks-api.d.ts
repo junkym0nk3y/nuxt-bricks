@@ -2,8 +2,9 @@ import type { IBricksSchema } from './brick';
 import type { TBricksPageDeviceSet } from './devices';
 
 /**
- * Общая форма ошибки API/fetch/БД: покрывает createError (h3), FetchError (ofetch, `data`)
- * и драйверные ошибки с `code` (pg). Все поля опциональны — реальная ошибка может быть любой.
+ * Common shape of an API/fetch/database error: covers createError (h3), FetchError
+ * (ofetch, `data`) and driver errors carrying a `code` (pg). Every field is
+ * optional — a real error can be anything.
  */
 export interface IApiError {
     statusCode?: number;
@@ -14,8 +15,9 @@ export interface IApiError {
 }
 
 /**
- * Формат данных для фронтенда.
- * БД возвращает snake_case, но Vue автоматически конвертирует в camelCase.
+ * Data shape for the frontend.
+ * The database returns snake_case; the keys are camelized on the way out by
+ * `toCamelCase` (common/utils/case-transform.ts).
  */
 export interface IBricksPageRow {
     id: number;
@@ -30,30 +32,32 @@ export interface IBricksPageRow {
     subdomain: string | null;
     thumbnailUrl: string | null;
     /**
-     * Свой набор устройств страницы; `null` — страница наследует набор проекта.
+     * The page's own device set; `null` — the page inherits the project set.
      *
-     * Ширина устройства служит и листом канваса, и `min-width` его диапазона
-     * media-query, поэтому набор — единственный источник раскладки страницы.
-     * Семантика `null` важна для истории: восстановленная версия наследующей
-     * страницы покажет ТЕКУЩИЙ набор проекта, а не тот, что был на момент снимка.
+     * A device width serves both as the canvas sheet and as the `min-width` of its
+     * media-query range, so the set is the single source of the page layout. The
+     * `null` semantics matter for the history: a restored version of an inheriting
+     * page will show the CURRENT project set rather than the one in effect at the
+     * moment of the snapshot.
      */
     viewportConfig: TBricksPageDeviceSet | null;
     schema: IBricksSchema;
     published: boolean;
-    /** Монотонный счётчик изменений строки — precondition optimistic locking. */
+    /** Monotonic counter of row changes — the precondition of optimistic locking */
     revision: number;
     createdAt: string;
     updatedAt: string;
 }
 
 /**
- * Сводка строки страницы для editorial-списка (`GET /api/bricks`) — без JSONB
- * `schema`. Полная строка отдаётся только point-lookup'ом `GET /api/bricks/:id`.
+ * Summary of a page row for the editorial list (`GET /api/bricks`) — without the
+ * JSONB `schema`. The full row is only returned by the point lookup
+ * `GET /api/bricks/:id`.
  */
 export type TBricksPageSummaryRow = Omit<IBricksPageRow, 'schema'>;
 
 /**
- * Формат данных для фронтенда (плоская структура без settings).
+ * Data shape for the frontend (a flat structure without settings).
  */
 export interface IPublishedPage {
     id: number;
@@ -68,20 +72,21 @@ export interface IPublishedPage {
     subdomain: string | null;
     thumbnailUrl: string | null;
     /**
-     * Свой набор устройств страницы; `null` — страница наследует набор проекта.
+     * The page's own device set; `null` — the page inherits the project set.
      *
-     * Ширина устройства служит и листом канваса, и `min-width` его диапазона
-     * media-query, поэтому набор — единственный источник раскладки страницы.
-     * Семантика `null` важна для истории: восстановленная версия наследующей
-     * страницы покажет ТЕКУЩИЙ набор проекта, а не тот, что был на момент снимка.
+     * A device width serves both as the canvas sheet and as the `min-width` of its
+     * media-query range, so the set is the single source of the page layout. The
+     * `null` semantics matter for the history: a restored version of an inheriting
+     * page will show the CURRENT project set rather than the one in effect at the
+     * moment of the snapshot.
      */
     viewportConfig: TBricksPageDeviceSet | null;
     schema: IBricksSchema;
     published: boolean;
     /**
-     * Revision editorial-строки для optimistic locking. Опциональна только
-     * потому, что публичная проекция (`/api/bricks/public/**`) поле не отдаёт;
-     * editorial-записи без revision не пишутся (`requirePageRevision`).
+     * Revision of the editorial row for optimistic locking. Optional only because
+     * the public projection (`/api/bricks/public/**`) does not return the field;
+     * no editorial write happens without a revision (`requirePageRevision`).
      */
     revision?: number;
     createdAt: string;
@@ -90,37 +95,40 @@ export interface IPublishedPage {
 }
 
 /**
- * Клиентская сводка страницы (editorial-список без `schema`): meta, routing,
- * `thumbnailUrl` и `revision` — всё, что нужно дашборду и precondition'ам.
- * Схему редактор и дублирование получают point-lookup'ом `GET /api/bricks/:id`.
+ * Client-side page summary (the editorial list without `schema`): meta, routing,
+ * `thumbnailUrl` and `revision` — everything the dashboard and the preconditions
+ * need. The editor and the duplication get the schema with the point lookup
+ * `GET /api/bricks/:id`.
  */
 export type TPublishedPageSummary = Omit<IPublishedPage, 'schema' | 'isPreview'>;
 
 /**
- * Снапшот страницы для превью в localStorage (`bricks-preview-page`).
- * `storedAt` — момент записи; превью сравнивает его с `updatedAt` из БД,
- * чтобы устаревший снапшот не перетирал свежие сохранённые данные.
+ * Page snapshot for the preview in localStorage (`bricks-preview-page`).
+ * `storedAt` is the moment of the write; the preview compares it with the
+ * `updatedAt` from the database so that a stale snapshot does not overwrite fresh
+ * saved data.
  *
- * Хранит только состояние КАНВАСА (его в БД нет). Превью сохранённой версии
- * этот слот не использует: версия уходит в `?version=` превью-роута и приезжает
- * с сервера — иначе открытый рядом билдер перетирал бы снимок версии живой
- * схемой, а второе превью — снимком другой версии.
+ * Stores the state of the CANVAS only (the database does not hold it). The preview
+ * of a saved version does not use this slot: the version goes into the `?version=`
+ * of the preview route and arrives from the server — otherwise a builder open
+ * alongside would overwrite the version snapshot with the live schema, and a
+ * second preview would overwrite it with a snapshot of another version.
  */
 export interface IPreviewStoredPage extends IPublishedPage {
     storedAt?: string;
 }
 
 /**
- * Сводка сохранённой версии страницы (лёгкий список без schema).
+ * Summary of a saved page version (a light list without the schema).
  *
- * `thumbnailUrl` — снимок канваса того состояния, которое унесла версия;
- * `null` у версий, созданных до появления снимков у истории (и у тех, чей
- * снимок не доехал: съёмка превью — fire-and-forget).
+ * `thumbnailUrl` is the canvas snapshot of the state the version carried away;
+ * `null` for the versions created before the history got snapshots (and for those
+ * whose snapshot never arrived: taking a preview is fire-and-forget).
  *
- * Две даты — не дубль: `createdAt` — момент снапшота, то есть момент, когда
- * состояние **вытеснили**; `pageUpdatedAt` (updated_at исходной строки на
- * момент снапшота) — момент, когда его **сохранили**. Пользователю показывают
- * вторую: она описывает то, что на снимке.
+ * The two dates are not a duplicate: `createdAt` is the moment of the snapshot,
+ * that is, the moment the state was **displaced**; `pageUpdatedAt` (the updated_at
+ * of the source row at the moment of the snapshot) is the moment it was **saved**.
+ * The user is shown the second one: it describes what is on the snapshot.
  */
 export interface IPageVersionSummary {
     id: number;
@@ -131,7 +139,7 @@ export interface IPageVersionSummary {
 }
 
 /**
- * Полный снапшот версии страницы: meta + schema на момент сохранения.
+ * Full snapshot of a page version: meta + schema as of the moment it was saved.
  */
 export interface IPageVersion extends IPageVersionSummary {
     pagename: string;
@@ -144,12 +152,13 @@ export interface IPageVersion extends IPageVersionSummary {
     urlPrefix: string | null;
     subdomain: string | null;
     /**
-     * Свой набор устройств страницы; `null` — страница наследует набор проекта.
+     * The page's own device set; `null` — the page inherits the project set.
      *
-     * Ширина устройства служит и листом канваса, и `min-width` его диапазона
-     * media-query, поэтому набор — единственный источник раскладки страницы.
-     * Семантика `null` важна для истории: восстановленная версия наследующей
-     * страницы покажет ТЕКУЩИЙ набор проекта, а не тот, что был на момент снимка.
+     * A device width serves both as the canvas sheet and as the `min-width` of its
+     * media-query range, so the set is the single source of the page layout. The
+     * `null` semantics matter for the history: a restored version of an inheriting
+     * page will show the CURRENT project set rather than the one in effect at the
+     * moment of the snapshot.
      */
     viewportConfig: TBricksPageDeviceSet | null;
     schema: IBricksSchema;
@@ -186,18 +195,19 @@ export interface IUpdatePagePayload {
     schema?: IBricksSchema;
     published?: boolean;
     /**
-     * Precondition optimistic locking (НЕ записываемое поле): ожидаемая клиентом
-     * revision строки. При несовпадении с текущей адаптер обязан кинуть
-     * BricksRevisionConflictError (409), ничего не меняя. Без поля — запись
-     * без precondition (last-write-wins).
+     * Precondition of optimistic locking (NOT a writable field): the row revision
+     * the client expects. On a mismatch with the current one the adapter has to
+     * throw BricksRevisionConflictError (409) changing nothing. Without the field
+     * — a write with no precondition (last-write-wins).
      */
     expectedRevision?: number;
 }
 
 /**
- * Данные формы публикации (без schema).
- * `thumbnailUrl` исключён: поле машинное (пишется только PATCH'ем после снапшота канваса),
- * форма/duplicate его не трогают — так PUT полной страницы не затирает превью.
+ * Data of the publish form (without the schema).
+ * `thumbnailUrl` is excluded: the field is machine-written (only by a PATCH after
+ * a canvas snapshot), the form and the duplication never touch it — that way a PUT
+ * of the full page does not wipe the preview.
  */
 export type TPublishFormState = Omit<
     IPublishedPage,

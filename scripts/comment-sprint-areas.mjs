@@ -65,7 +65,7 @@ export const AREAS = [
     {
         id: '1',
         title: 'common',
-        done: false,
+        done: true,
         // `runtime/types.d.ts` is a one-line re-export of the common types
         // barrel, so it belongs to this area rather than to the build-time layer
         match: ['src/runtime/modules/common/', 'src/runtime/types.d.ts'],

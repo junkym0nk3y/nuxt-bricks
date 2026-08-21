@@ -1,16 +1,18 @@
 /**
- * Единственный источник знания о наборе устройств.
+ * The single source of knowledge about the device set.
  *
- * Прежде набор жил тремя независимыми копиями и они расходились: ключи схемы
- * были литеральным типом из трёх, ширины канваса — в `bricks.breakpoints`
- * app.config, а пороги media-query — отдельным списком `device.breakpoints`,
- * который с ширинами не был связан вовсе. Из-за этого объявленная в порогах
- * ступень `laptop: 1024` в генерацию CSS не попадала, и окно 1280 получало
- * планшетную раскладку, хотя в билдере тот же экран показывался десктопным.
+ * It used to live as three independent copies, and they drifted apart: the
+ * schema keys were a literal type of three, the canvas widths sat in
+ * `bricks.breakpoints` of app.config, and the media-query thresholds were a
+ * separate `device.breakpoints` list that was not tied to the widths at all.
+ * Because of that the `laptop: 1024` step declared among the thresholds never
+ * reached the CSS generation, and a 1280 window got the tablet layout even
+ * though the builder showed that very screen as a desktop one.
  *
- * Теперь ширина устройства — это и лист билдера, и `min-width` его диапазона.
- * Перекрыть дефолт можно build-time опцией модуля `bricks.devices`; она же
- * кормит SCSS-карту миксинов, поэтому числа у рантайма и у авторов бриков одни.
+ * Now a device width is both the builder sheet and the `min-width` of its range.
+ * The default can be overridden with the build-time module option
+ * `bricks.devices`; the same option feeds the SCSS map of the mixins, so the
+ * runtime and the brick authors work off the same numbers.
  */
 
 // Types
@@ -20,18 +22,18 @@ import type {
     TBricksProjectDeviceSet,
 } from '../types/devices';
 
-/** Ключ базового устройства: его пропсы лежат в схеме без обёртки `responsive`. */
+/** Key of the base device: its props sit in the schema without a `responsive` wrapper */
 export const BASE_DEVICE_KEY = 'desktop';
 
-/** Ключ самого узкого устройства. */
+/** Key of the narrowest device */
 export const NARROW_DEVICE_KEY = 'mobile';
 
 /**
- * Крайние устройства обязательны и неудаляемы, а промежуточные обязаны
- * помещаться строго между ними. Из этих двух правил следует, что `mobile`
- * всегда первый, а `desktop` — последний; на этом инварианте держится то, что
- * база переопределений и канонический для SEO device остаются фиксированными
- * ключами, а не «самым широким устройством из набора».
+ * The outermost devices are mandatory and cannot be removed, while the
+ * intermediate ones have to fit strictly between them. From these two rules it
+ * follows that `mobile` is always the first and `desktop` always the last; that
+ * invariant is what keeps the base of the overrides and the device canonical for
+ * SEO fixed keys rather than "the widest device of the set".
  */
 export const REQUIRED_DEVICE_KEYS = [NARROW_DEVICE_KEY, BASE_DEVICE_KEY] as const;
 
@@ -39,9 +41,9 @@ export const DEVICE_SET_MIN = 2;
 export const DEVICE_SET_MAX = 4;
 
 /**
- * Ниже 320 не рассчитан ни один блок — такую ширину редактор не принимает.
- * Верхняя граница — 8K: не столько реальный экран, сколько потолок, за которым
- * значение заведомо мусорное.
+ * No block is designed for anything below 320 — the editor does not accept such
+ * a width. The upper bound is 8K: not so much a real screen as the ceiling past
+ * which the value is certainly garbage.
  */
 export const DEVICE_MIN_WIDTH = 320;
 export const DEVICE_MAX_WIDTH = 7680;
@@ -49,32 +51,33 @@ export const DEVICE_MAX_WIDTH = 7680;
 export const DEVICE_KEY_PATTERN = /^[a-z][a-z0-9-]{0,62}$/;
 
 /**
- * Суффикс базового значения responsive-переменных (`--bricks-grid-columns-base`).
- * Ключ `base` поэтому занят: устройство с таким ключом затёрло бы значение по
- * умолчанию всех блоков сразу.
+ * Suffix of the base value of the responsive variables
+ * (`--bricks-grid-columns-base`). That is why the `base` key is taken: a device
+ * with such a key would overwrite the default value of every block at once.
  */
 export const BASE_VAR_SUFFIX = 'base';
 
-/** Шаг rem-полей: правило кратности 0.2 действует и на вводимые значения. */
+/** Step of the rem fields: the 0.2 multiple rule applies to entered values too */
 export const DEVICE_REM_STEP = 0.2;
 
-/** Потолок rem-полей — заведомо больше любого осмысленного отступа и max-width. */
+/** Ceiling of the rem fields — certainly above any meaningful padding or max-width */
 export const DEVICE_REM_MAX = 1000;
 
-/** Высота листа канваса, если устройства нет в каталоге. */
+/** Canvas sheet height for a device that is not in the catalog */
 export const DEFAULT_CANVAS_HEIGHT = 1080;
 
-/** База rem библиотеки: билдер форсирует `html { font-size: 10px }`. */
+/** The library's rem base: the builder forces `html { font-size: 10px }` */
 export const DEFAULT_REM_BASE = '10px';
 
 /**
- * Каталог устройств — одна таблица на всё: дефолтный набор проекта, выбор при
- * добавлении строки и высота листа канваса.
+ * The device catalog — one table for everything: the default project set, the
+ * choices when adding a row and the canvas sheet height.
  *
- * Ровно четыре записи, и это не заготовка «на будущее»: устройство добавляется
- * выбором из этого списка, а не свободным вводом, поэтому каждая лишняя строка
- * здесь — лишний пункт в меню. Ключ уезжает в схему (`props.responsive[key]`) и
- * в имена CSS-переменных, подпись правится пользователем в строке таблицы.
+ * Exactly four entries, and that is not a placeholder "for the future": a device
+ * is added by picking from this list rather than by free input, so every extra
+ * row here is an extra menu item. The key travels into the schema
+ * (`props.responsive[key]`) and into CSS variable names, while the label is
+ * edited by the user in the table row.
  */
 export const DEVICE_CATALOG: Record<string, IBricksDeviceCatalogEntry> = {
     mobile: { label: 'Mobile', icon: 'device-mobile', width: 375, aside: 0.4, canvasHeight: 812 },
@@ -91,25 +94,26 @@ export const DEVICE_CATALOG: Record<string, IBricksDeviceCatalogEntry> = {
 };
 
 /**
- * Глифы выбора иконки — по одному на устройство каталога.
+ * Glyphs to choose an icon from — one per catalog device.
  *
- * Короткий ключ, а не имя из icon-пакета: набор уезжает в схему страницы, и
- * привязывать её к конкретному пакету иконок незачем. Полное имя строится
- * префиксом (см. `resolveDeviceIcon`), поэтому второй таблицы соответствий нет.
+ * A short key rather than a name from the icon package: the set travels into the
+ * page schema, and there is no point tying it to a particular icon package. The
+ * full name is built by prepending a prefix (see `resolveDeviceIcon`), so there
+ * is no second mapping table.
  */
 export const DEVICE_ICON_CHOICES: string[] = Object.values(DEVICE_CATALOG).map(
     (entry) => entry.icon
 );
 
-/** Префикс реестра иконок: короткий ключ глифа отличается от имени только им. */
+/** Icon registry prefix: it is the only difference between a short glyph key and a name */
 export const DEVICE_ICON_PREFIX = 'ta:outline-';
 
 /**
- * Собирает запись набора из каталога: `canvasHeight` в наборе не хранится — это
- * свойство интерфейса, а не раскладки страницы.
+ * Assembles a set entry from the catalog: `canvasHeight` is not stored in the
+ * set — it is a property of the interface, not of the page layout.
  *
- * @param key - Ключ устройства каталога.
- * @returns Запись набора устройств.
+ * @param key - Catalog device key.
+ * @returns Device set entry.
  */
 function toPageDevice(key: string): TBricksProjectDeviceSet[number] {
     const { canvasHeight: _canvasHeight, ...device } = DEVICE_CATALOG[key];
@@ -118,9 +122,9 @@ function toPageDevice(key: string): TBricksProjectDeviceSet[number] {
 }
 
 /**
- * Дефолтный набор проекта. Ровно те три устройства, что были зашиты в код, —
- * добавление сюда четвёртой ступени изменило бы published-раскладку всех
- * существующих страниц молча. Ноутбук страница добавляет себе сама.
+ * The default project set. Exactly the three devices that used to be hardcoded —
+ * adding a fourth step here would silently change the published layout of every
+ * existing page. A page adds the laptop for itself.
  */
 export const DEFAULT_BRICKS_DEVICES: TBricksProjectDeviceSet = [
     NARROW_DEVICE_KEY,
@@ -129,8 +133,9 @@ export const DEFAULT_BRICKS_DEVICES: TBricksProjectDeviceSet = [
 ].map(toPageDevice);
 
 /**
- * Записи каталога, которые можно добавить строкой: крайние устройства
- * обязательны и уже стоят в наборе, поэтому в выборе им места нет.
+ * Catalog entries that can be added as a row: the outermost devices are
+ * mandatory and already stand in the set, so there is no place for them among
+ * the choices.
  */
 export const DEVICE_CHOICES: IBricksDeviceChoice[] = Object.entries(DEVICE_CATALOG)
     .filter(([key]) => !(REQUIRED_DEVICE_KEYS as ReadonlyArray<string>).includes(key))

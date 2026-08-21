@@ -1,11 +1,11 @@
 /**
- * Единый источник URL публичных ассетов модуля (превью layout-блоков,
- * плейсхолдер изображений, картинки документации).
+ * The single source of the URLs of the module's public assets (the previews of the
+ * layout blocks, the image placeholder, the documentation pictures).
  *
- * Ассеты раздаются Nitro под выделенным префиксом `/_bricks/`
- * (publicAssets в module.ts — папки потребителя не затеняются), а под
- * non-root `app.baseURL` — с его учётом. Хардкод `/images/...` в новом
- * коде запрещён — только эти хелперы.
+ * The assets are served by Nitro under the dedicated `/_bricks/` prefix (publicAssets
+ * in module.ts — the consumer's folders are not shadowed), and under a non-root
+ * `app.baseURL` they honor it. Hardcoded `/images/...` is forbidden in new code —
+ * these helpers only.
  */
 
 // #region Imports
@@ -13,18 +13,18 @@
 import { joinPathBase } from './routePaths';
 // #endregion
 
-/** Префикс публичных ассетов модуля (без `app.baseURL`). */
+/** Prefix of the module's public assets (without `app.baseURL`) */
 export const BRICKS_PUBLIC_ASSETS_BASE = '/_bricks/';
 
-/** Абсолютные (external/protocol-relative/data:) URL — не наши ассеты. */
+/** Absolute (external/protocol-relative/data:) URLs are not our assets */
 const EXTERNAL_URL_PATTERN = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i;
 
 /**
- * Строит URL публичного ассета модуля с учётом `app.baseURL`.
- * Абсолютные внешние URL возвращаются как есть.
+ * Builds the URL of a public asset of the module, honoring `app.baseURL`.
+ * Absolute external URLs are returned as they are.
  *
- * @param baseURL - `app.baseURL` приложения (`/` — no-op).
- * @param assetPath - Путь ассета внутри `public/` модуля (ведущий `/` опционален).
+ * @param baseURL - The application's `app.baseURL` (`/` — no-op).
+ * @param assetPath - Path of the asset inside the module's `public/` (the leading `/` is optional).
  */
 export function resolveBricksAssetUrl(baseURL: string, assetPath: string): string {
     if (EXTERNAL_URL_PATTERN.test(assetPath)) {

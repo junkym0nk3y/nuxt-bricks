@@ -2,16 +2,17 @@ import type { IDeviceVisibilityConfig } from '../../types/brick';
 import { BASE_DEVICE_KEY, DEVICE_KEY_PATTERN } from '../../constants/devices';
 
 /**
- * Нормализует конфигурацию видимости по устройствам.
+ * Normalizes the per-device visibility configuration.
  *
- * Отсутствие ключа означает «видно», поэтому нормализация только приводит уже
- * существующие значения к булеву и отбрасывает мусор. Дописывать недостающие
- * ключи со значением `true` нельзя: набор устройств у страниц разный, и такая
- * нормализация возвращала бы в схему ключи только что удалённых устройств при
- * каждой десериализации — тихо копя данные о несуществующих ступенях.
+ * A missing key means "visible", so the normalization merely coerces the values
+ * that are already there into booleans and drops the garbage. Filling in the
+ * missing keys with a `true` value is not allowed: pages have different device
+ * sets, and such a normalization would return the keys of just-deleted devices into
+ * the schema on every deserialization — quietly accumulating data about steps that
+ * do not exist.
  *
- * @param value - Частичная конфигурация видимости.
- * @returns Конфигурация только из явно заданных флагов.
+ * @param value - Partial visibility configuration.
+ * @returns A configuration made of the explicitly set flags only.
  */
 export function normalizeDeviceVisibility(
     value: Partial<IDeviceVisibilityConfig> | null | undefined
@@ -20,8 +21,8 @@ export function normalizeDeviceVisibility(
         return {};
     }
 
-    // Значения приводятся к булеву, а не отбрасываются по типу: схема — внешние
-    // данные, и `0` в ней означает «скрыто», а не «поле не задано»
+    // The values are coerced into booleans rather than dropped by type: a schema is
+    // external data, and a `0` in it means "hidden" rather than "the field is unset"
     return Object.fromEntries(
         Object.entries(value)
             .filter(([, flag]) => flag !== undefined && flag !== null)
@@ -30,21 +31,22 @@ export function normalizeDeviceVisibility(
 }
 
 /**
- * Возвращает список CSS-классов для скрытия компонента на заданных устройствах.
+ * Returns the list of CSS classes that hide a component on the given devices.
  *
- * Набор устройств здесь не нужен: классы строятся только по явным `false`, а
- * какие ключи активны — решает генерируемый CSS (правила есть только для
- * устройств набора страницы, поэтому осиротевший класс ни на что не влияет).
+ * The device set is not needed here: the classes are built out of the explicit
+ * `false` values only, and which keys are active is decided by the generated CSS
+ * (there are rules for the devices of the page set only, so an orphaned class
+ * affects nothing).
  *
- * Ключ проверяется контрактом имени: он уезжает в ИМЯ класса, а схема — внешние
- * данные. Ключ `x bricks-hide--desktop` дал бы элементу два класса, второй из
- * которых — настоящее правило скрытия, то есть чужая строка в БД или
- * импортированный файл могли бы навязать элементу произвольный глобальный класс.
- * Осиротевший, но синтаксически валидный ключ (`laptop` вне набора) сохраняется —
- * фильтруется мусор, а не отсутствие ключа в наборе.
+ * The key is checked against the name contract: it travels into a class NAME, while
+ * a schema is external data. The key `x bricks-hide--desktop` would give the element
+ * two classes, the second of which is a real hiding rule, that is, a foreign row in
+ * the database or an imported file could impose an arbitrary global class on the
+ * element. An orphaned but syntactically valid key (`laptop` outside the set) is
+ * kept — what is filtered out is garbage, not the absence of a key from the set.
  *
- * @param value - Конфигурация видимости по устройствам.
- * @returns Классы вида `bricks-hide--<ключ устройства>`.
+ * @param value - Per-device visibility configuration.
+ * @returns Classes shaped as `bricks-hide--<device key>`.
  */
 export function buildDeviceVisibilityClasses(
     value: Partial<IDeviceVisibilityConfig> | null | undefined
@@ -55,13 +57,13 @@ export function buildDeviceVisibilityClasses(
 }
 
 /**
- * Определяет, нужно ли пометить компонент как `aria-hidden="true"`.
+ * Decides whether the component has to be marked as `aria-hidden="true"`.
  *
- * Базовое устройство считается канонической версией для SEO — компоненты,
- * скрытые на нём, помечаются как дубли.
+ * The base device counts as the canonical version for SEO — components hidden on it
+ * are marked as duplicates.
  *
- * @param value - Конфигурация видимости по устройствам.
- * @returns true — компонент скрыт на базовом устройстве.
+ * @param value - Per-device visibility configuration.
+ * @returns true — the component is hidden on the base device.
  */
 export function shouldAriaHideComponent(
     value: Partial<IDeviceVisibilityConfig> | null | undefined

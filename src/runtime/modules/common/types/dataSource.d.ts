@@ -1,6 +1,6 @@
 /**
- * Контракт data sources для brick-компонентов.
- * Определяется в brick (.brick.ts), резолвится рендерером published-страницы.
+ * Contract of the data sources of brick components.
+ * Declared in a brick (.brick.ts), resolved by the renderer of a published page.
  */
 
 import type { TPublishFormState } from './bricks-api';
@@ -17,32 +17,32 @@ export interface IBrickDataSourceContext {
 }
 
 /**
- * HTTP-метод data source (оба регистра — контракт Nitro-fetch).
- * Только безопасные идемпотентные методы: data source выполняется на каждый
- * SSR/refresh published-страницы — мутирующий запрос здесь был бы побочным
- * эффектом рендера (политика — render/utils/dataSourcePolicy.ts).
+ * HTTP method of a data source (both cases — the Nitro fetch contract).
+ * Safe idempotent methods only: a data source runs on every SSR and every refresh of
+ * a published page — a mutating request here would be a side effect of the render (the
+ * policy is in render/utils/dataSourcePolicy.ts).
  */
 export type TBrickDataSourceMethod = 'GET' | 'HEAD' | 'get' | 'head';
 
 /**
- * Публичная runtime-конфигурация data sources
- * (`runtimeConfig.public.bricksDataSources`, источник — `bricks.dataSources`).
+ * Public runtime configuration of the data sources
+ * (`runtimeConfig.public.bricksDataSources`, sourced from `bricks.dataSources`).
  */
 export interface IBricksDataSourcesConfig {
     /**
-     * Хосты, для которых разрешены абсолютные http(s)-URL data sources.
-     * Пусто (дефолт) — разрешены только относительные URL (`/api/...`).
+     * Hosts for which absolute http(s) URLs of data sources are allowed.
+     * Empty (the default) — only relative URLs are allowed (`/api/...`).
      */
     allowedHosts: string[];
-    /** Таймаут одного запроса, мс. */
+    /** Timeout of a single request, ms */
     timeoutMs: number;
-    /** Максимум одновременных запросов data sources на страницу. */
+    /** Maximum number of concurrent data source requests per page */
     concurrency: number;
-    /** Лимит размера одного ответа, байт (JSON-length approximation). */
+    /** Size limit of a single response, bytes (a JSON-length approximation) */
     maxResponseBytes: number;
-    /** Максимум запросов data sources на один прогон страницы. */
+    /** Maximum number of data source requests per page run */
     maxRequestsPerPage: number;
-    /** Суммарный wall-clock budget одного прогона, мс (по истечении — abort). */
+    /** Total wall-clock budget of one run, ms (an abort once it elapses) */
     totalDeadlineMs: number;
 }
 

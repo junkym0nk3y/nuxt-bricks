@@ -56,6 +56,7 @@ export function verifyDiff(ref) {
         .map((line) => line.split('\t'));
     const violations = [];
     const skipped = [];
+    const textChanged = [];
     let inspected = 0;
 
     // Untracked files are invisible to `git diff`, so a file created during the
@@ -97,17 +98,36 @@ export function verifyDiff(ref) {
             encoding: 'utf8',
             maxBuffer: 64 * 1024 * 1024,
         });
+        const current = readFileSync(resolve(ROOT, path), 'utf8');
         const before = projectCode(path, previous);
-        const after = projectCode(path, readFileSync(resolve(ROOT, path), 'utf8'));
+        const after = projectCode(path, current);
 
         if (before.join('\n') !== after.join('\n')) {
             violations.push(`${path}: ${describeDivergence(before, after)}`);
+            continue;
+        }
+
+        // Text the sprint translates outside comments (dev messages, case titles,
+        // comments of generated CSS/SQL) is collapsed by the projection, so a
+        // rewrite of it lands here rather than among the violations. Reported all
+        // the same: "code identical" and "code identical, one message rewritten"
+        // are different claims, and silence would hide the second one
+        const strict = { normalizeText: false };
+
+        if (
+            projectCode(path, previous, strict).join('\n') !==
+            projectCode(path, current, strict).join('\n')
+        ) {
+            textChanged.push(path);
         }
     }
 
     console.log(
         `Diff against ${ref}: ${inspected} file(s) inspected` +
-            (skipped.length > 0 ? `, ${skipped.length} out of scope (${skipped.join(', ')})` : '')
+            (skipped.length > 0 ? `, ${skipped.length} out of scope (${skipped.join(', ')})` : '') +
+            (textChanged.length > 0
+                ? `, ${textChanged.length} with translated text outside comments (${textChanged.join(', ')})`
+                : '')
     );
 
     if (violations.length === 0) {

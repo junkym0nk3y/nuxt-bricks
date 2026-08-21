@@ -1,11 +1,11 @@
 /**
- * Контракт inline editing — разрывает циклический type-импорт
+ * Contract of inline editing — breaks the cyclic type import
  * builder/core/utils/inlineEditableProp ↔ editor/stores/inlineEditing.
  */
 import type { TBrickPropValue } from './brick';
 
 /**
- * Тип редактируемого свойства для inline editing.
+ * Type of an editable property for inline editing.
  */
 export type TInlineEditingPropType = 'inline-content' | 'textarea';
 
@@ -16,9 +16,10 @@ export interface IInlineEditableProp {
 }
 
 /**
- * Порт text-editor'а к состоянию билдера (чтение/запись пропов + история).
- * Провайдится канвасом через INLINE_EDITOR_HOST_KEY — text-editor не импортирует
- * builder/core (иначе граф builder-сторов утекает в published-бандл через BlockText).
+ * The port of the text editor into the builder state (reading and writing props +
+ * history). Provided by the canvas through INLINE_EDITOR_HOST_KEY — the text editor
+ * does not import builder/core (otherwise the graph of the builder stores leaks into
+ * the published bundle through BlockText).
  */
 export interface IInlineEditorHost {
     getPropValue(componentId: string, propName: string): unknown;

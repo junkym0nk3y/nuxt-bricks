@@ -19,13 +19,13 @@ import { useRuntimeConfig } from '#imports';
 // #endregion
 
 /**
- * Пути поверхностей bricks с учётом `bricks.routes` и `app.baseURL`.
+ * Paths of the bricks surfaces, honoring `bricks.routes` and `app.baseURL`.
  *
- * Для переходов внутри Vue Router предпочтительны именованные роуты
- * (`bricks-builder-index`, `bricks-builder-pagename`, `bricks-preview`) —
- * они не зависят ни от префиксов, ни от base. Композабл нужен там, где
- * требуется строковый путь: `window.location`, `window.open`, `<a href>`,
- * сравнение с `location.pathname`.
+ * For navigation inside Vue Router the named routes are preferable
+ * (`bricks-builder-index`, `bricks-builder-pagename`, `bricks-preview`) — they depend
+ * on neither the prefixes nor the base. The composable is for the places that need a
+ * path as a string: `window.location`, `window.open`, `<a href>`, a comparison with
+ * `location.pathname`.
  */
 export function useBricksRoutePaths(): IUseBricksRoutePathsReturn {
     const config = useRuntimeConfig();
