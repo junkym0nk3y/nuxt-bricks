@@ -54,7 +54,7 @@ function onUpdate(value: boolean | 'indeterminate'): void {
 }
 
 /**
- * Toggles checkbox on Enter key (parity with native behaviour)
+ * Toggles checkbox on Enter key (parity with native behavior)
  */
 function onEnter(): void {
     if (props.disabled) {
@@ -149,7 +149,6 @@ function onKeydown(event: KeyboardEvent): void {
             mask-position: center;
             mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10.06 10.06'%3E%3Cpath d='M9.74,1.82a1,1,0,0,1,0,1.42l-5,5a1,1,0,0,1-1.42,0l-3-3A1,1,0,0,1,1.74,3.82L4,6.12l4.29-4.3A1,1,0,0,1,9.74,1.82Z'/%3E%3C/svg%3E");
             /* stylelint-disable */
-            /* postcss-ignore-line */
             -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10.06 10.06'%3E%3Cpath d='M9.74,1.82a1,1,0,0,1,0,1.42l-5,5a1,1,0,0,1-1.42,0l-3-3A1,1,0,0,1,1.74,3.82L4,6.12l4.29-4.3A1,1,0,0,1,9.74,1.82Z'/%3E%3C/svg%3E");
             /* stylelint-enable */
         }

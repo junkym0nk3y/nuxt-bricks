@@ -1,6 +1,26 @@
 <script setup lang="ts">
 /**
- * @description Универсальный компонент кнопки с вариантами оформления и размерами
+ * @description Generic button component with looks and sizes.
+ *
+ * The `quiet` look is the same raised tile as `secondary`, but with the caption
+ * and the glyph muted down to `base-500` — a panel tool must not compete with the
+ * "Save" next to it. Its earlier name, `outline`, was left over from the bordered
+ * look that preceded soft-UI and lied: the variant has no border, while
+ * `outlined` on `BricksIconButton` does draw one.
+ *
+ * The pressed-toggle ring lists its variants deliberately. On `primary` and
+ * `danger` that rule would paint the glyph `primary` over a `primary` or `danger`
+ * fill — the glyph would disappear against its own background. `ghost` has a
+ * pressed look of its own (a `primary` fill with a white glyph).
+ *
+ * A square button (`equal`) is set by its side rather than by padding around the
+ * icon. Padding made the width depend on the glyph font size, and the icon
+ * inherits that size from the button: a place that had not given the icon a size
+ * of its own got a `1.2rem` glyph and a 2.6×3.2 button instead of a square — that
+ * is how the whole media gallery drifted away from the rest of the builder
+ * (32×32 with a `1.8rem` glyph). The font size therefore lives here too:
+ * otherwise "squareness" rests on every caller remembering an icon class of its
+ * own. An explicit class at the caller still overrides this value.
  */
 
 // #region Imports
@@ -51,7 +71,7 @@ const classList = computed(() => ({
 
 // #region Methods
 /**
- * @description Обрабатывает клик по кнопке
+ * @description Handles a click on the button
  */
 function onClick(event: MouseEvent): void {
     if (props.disabled) {
@@ -191,10 +211,6 @@ function onClick(event: MouseEvent): void {
         }
     }
 
-    /* Тихая кнопка: та же приподнятая плитка, что у secondary, но подпись и глиф
-       приглушены до base-500 — инструмент панели не спорит с «Сохранить» рядом.
-       Прежнее имя `outline` осталось от бордерного вида до soft-UI и врало: рамки
-       у варианта нет, а `outlined` у BricksIconButton её рисует. */
     &._quiet {
         border-color: transparent;
         background-color: var(--bricks-surface-raised);
@@ -205,10 +221,6 @@ function onClick(event: MouseEvent): void {
         }
     }
 
-    /* Кольцо нажатого переключателя. Варианты перечислены намеренно: у primary и
-       danger это правило красило бы глиф в primary поверх залитого primary или
-       danger фона — глиф исчезал бы на своём же фоне. У ghost свой вид нажатия
-       (заливка primary с белым глифом) объявлен выше. */
     &._secondary._active,
     &._quiet._active {
         border-color: var(--bricks-primary);
@@ -243,19 +255,10 @@ function onClick(event: MouseEvent): void {
         color: var(--bricks-static-white);
     }
 
-    // Modifiers from new_ui
     &._round {
         border-radius: 100%;
     }
 
-    /* Квадрат задаётся стороной, а не паддингом вокруг иконки.
-       Паддинг ставил ширину в зависимость от кегля глифа, а кегль иконка
-       наследует от кнопки: место, не задавшее иконке свой размер, получало
-       глиф 1.2rem и кнопку 2.6×3.2 вместо квадрата — так разъехалась вся
-       галерея медиа против остального билдера (32×32 с глифом 1.8rem).
-       Поэтому кегль тоже здесь: иначе «квадратность» держится на том, что
-       каждый вызывающий не забыл про собственный класс иконки. Явный класс у
-       вызывающего по-прежнему перебивает это значение. */
     &._equal {
         padding: 0;
 

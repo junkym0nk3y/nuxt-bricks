@@ -1,7 +1,7 @@
 export interface IBricksDisclosureProps {
-    /** Заголовок секции — он же доступное имя кнопки раскрытия */
+    /** Section title, doubling as the accessible name of the disclosure button */
     label: string;
-    /** Секция раскрыта. Состояние контролируемое: содержимое монтируется только на открытии */
+    /** Section is expanded. The state is controlled: content mounts only when open */
     value: boolean;
 }
 

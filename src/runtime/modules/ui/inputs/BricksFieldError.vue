@@ -1,4 +1,12 @@
 <script setup lang="ts">
+/**
+ * @description One look for a field error across every form (inputs, textareas,
+ * arbitrary fields).
+ *
+ * The outer spacing is set by the context (the container's gap or a
+ * fallthrough class), so the paragraph itself carries no margin.
+ */
+
 // #region Imports
 // Types
 import type { IBricksFieldErrorProps } from './types.d.ts';
@@ -18,8 +26,6 @@ const props = withDefaults(defineProps<IBricksFieldErrorProps>(), {
 </template>
 
 <style lang="scss" module>
-// Единый вид ошибки поля для всех форм (инпуты, textarea, произвольные поля).
-// Внешние отступы задаёт контекст (gap контейнера или класс-fallthrough).
 .BricksFieldError {
     margin: 0;
     font-size: 1.2rem;

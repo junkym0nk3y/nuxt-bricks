@@ -1,5 +1,5 @@
 /**
- * Общие типы UI-кита (используются в base/ и inputs/).
+ * Shared UI kit types (used by `base/` and `inputs/`).
  */
 
 export interface IBrickUiCommonProp {

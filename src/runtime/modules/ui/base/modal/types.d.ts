@@ -12,65 +12,71 @@ export interface IBricksCloseButtonEmits {
 export type TBricksModalVariant = 'dark' | 'gradient';
 
 /**
- * Слой модалки:
- * - `modal` — обычная (редактор текста, восстановление черновика);
- * - `nested` — открытая ИЗ модалки (медиа-галерея поверх редактора текста);
- * - `raised` — открытая из вложенной (резолвер картинок поверх галереи);
- * - `confirm` — подтверждение: всегда поверх того, что его открыло.
+ * Modal layer:
+ * - `modal` — an ordinary one (the text editor, draft recovery);
+ * - `nested` — opened FROM a modal (the media gallery over the text editor);
+ * - `raised` — opened from a nested one (the image resolver over the gallery);
+ * - `confirm` — a confirmation: always above whatever opened it.
  *
- * Уровнем вместо сырого z-index: прежде каждый вызывающий подбирал число сам
- * (1000, 10000, 99999, 100001, 999999), и порядок держался на том, что кто-то
- * взял цифру больше соседа. Числа живут в шкале `--bricks-z-*`
- * (`assets/scss/shared/_variables.scss`).
+ * A level instead of a raw z-index: each caller used to pick its own number
+ * (1000, 10000, 99999, 100001, 999999), and the ordering rested on somebody
+ * having taken a figure larger than their neighbor's. The numbers live in the
+ * `--bricks-z-*` scale (`assets/scss/shared/_variables.scss`), and all four sit
+ * below dropdowns and toasts — otherwise a select inside a modal would once again
+ * end up underneath the modal itself.
  */
 export type TBricksModalLayer = 'modal' | 'nested' | 'raised' | 'confirm';
 
 export interface IBricksModalProps {
-    /** Контролируемое состояние открытости */
+    /** Controlled open state */
     isOpen: boolean;
-    /** Заголовок для скринридеров (DialogTitle, визуально скрыт) */
+    /** Title for screen readers (DialogTitle, visually hidden) */
     title: string;
-    /** Описание для скринридеров (DialogDescription, визуально скрыто); без него aria-describedby отключается явно */
+    /**
+     * Description for screen readers (DialogDescription, visually hidden);
+     * without it aria-describedby is disabled explicitly
+     */
     description?: string;
-    /** Фон overlay: тёмный или градиентный */
+    /** Overlay background: dark or gradient */
     variant?: TBricksModalVariant;
-    /** Добавляет padding 2rem на overlay */
+    /** Adds 2rem of padding on the overlay */
     padded?: boolean;
-    /** Слой в шкале оверлеев; `nested` — для модалки, открытой из модалки */
+    /** Layer in the overlay scale; `nested` is for a modal opened from a modal */
     layer?: TBricksModalLayer;
-    /** Длительность transition в мс */
+    /** Transition duration in ms */
     duration?: number;
 }
 
 export interface IBricksModalEmits {
     close: [];
-    /** Esc внутри модалки; event.preventDefault() отменяет закрытие */
+    /** Esc inside the modal; event.preventDefault() cancels the close */
     escapeKeyDown: [event: KeyboardEvent];
     /**
-     * Leave-анимация закончилась, модалка ушла из DOM. Нужен тому, кто открывает
-     * вторую модалку следом за первой: `force-mount` держит уезжающий диалог в
-     * DOM до конца анимации, поэтому открытая синхронно вторая модалка встаёт
-     * под ним (у неё свой z-index) и получает второй focus trap.
+     * The leave animation has finished and the modal has left the DOM. Needed by
+     * whoever opens a second modal right after the first: `force-mount` keeps
+     * the departing dialog in the DOM until the animation ends, so a second
+     * modal opened synchronously ends up underneath it (it has its own z-index)
+     * and gets a second focus trap.
      */
     afterLeave: [];
 }
 
 /**
- * Геометрия шапки и футера модалки:
- * - `md` — диалоги и формы (52рем и уже);
- * - `lg` — рабочие модалки на весь экран (редактор текста, документация,
- *   медиатека): у них своя, более крупная сетка отступов и заголовка.
+ * Geometry of the modal header and footer:
+ * - `md` — dialogs and forms (52rem and narrower);
+ * - `lg` — full-screen working modals (the text editor, documentation, the media
+ *   library): they have their own, larger grid of padding and title.
  *
- * Две ступени, а не проп на каждое значение: прежде шапка была написана в
- * пятнадцати местах с семью разными паддингами и четырьмя размерами заголовка.
+ * Two steps rather than a prop per value: the header used to be written in
+ * fifteen places with seven different paddings and four title sizes.
  */
 export type TBricksModalSectionSize = 'md' | 'lg';
 
 export interface IBricksModalHeaderProps {
     size?: TBricksModalSectionSize;
-    /** Отделять шапку линией от тела */
+    /** Separate the header from the body with a line */
     bordered?: boolean;
-    /** Гасит крестик — на время сабмита, пока закрывать нельзя */
+    /** Blocks the close button while a submit is running and closing is not allowed */
     closeDisabled?: boolean;
 }
 
@@ -79,12 +85,12 @@ export interface IBricksModalHeaderEmits {
 }
 
 /**
- * Раскладка футера:
- * - `bar` — отделённая линией полоса действий со своими отступами;
- * - `plain` — та же полоса, но без линии (тело модалки и без неё читается
- *   отдельно);
- * - `inline` — футер стоит ВНУТРИ формы или тела, чьи отступы уже действуют, и
- *   добавляет только зазор сверху.
+ * Footer layout:
+ * - `bar` — an action strip separated by a line, with its own padding;
+ * - `plain` — the same strip without the line (the modal body reads as separate
+ *   even without it);
+ * - `inline` — the footer stands INSIDE a form or a body whose padding already
+ *   applies, and only adds a gap above itself.
  */
 export type TBricksModalFooterVariant = 'bar' | 'plain' | 'inline';
 

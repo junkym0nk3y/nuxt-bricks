@@ -1,4 +1,30 @@
 <script setup lang="ts">
+/**
+ * @description Modal window: a reka dialog plus the overlay, the layer and the
+ * appearance transition.
+ *
+ * Three markup decisions that the template no longer spells out.
+ *
+ * `appear` on the `<Transition>` is mandatory: modals with lazy mounting (the
+ * profile, the media gallery) show up in the host markup already open — the mount
+ * latch and `isOpen` are raised by one and the same action, and the chunk arrives
+ * even later. Without `appear` the first opening of such a modal ran with no
+ * animation at all while the second one had it: on an already mounted component
+ * `isOpen` changes the regular way.
+ *
+ * `DialogContent` must not be nested inside `DialogOverlay`: the reka overlay
+ * calls `preventDefault` on a left `pointerdown`, and nested content loses focus
+ * and mouse selection. An ordinary div does the centering, while the overlay is a
+ * transparent click trap underneath the content — hence its `z-index: -1`, below
+ * the content in the root's stack but above the root's own background, so a click
+ * on the background closes the modal.
+ *
+ * `bricks-modal-window` is a global class by convention, the anchor for the
+ * window scale from `transitions.scss`: `DialogContent` itself stands with
+ * `display: contents`, so what has to be animated are its children, and a hashed
+ * CSS Modules name is out of reach for the global transitions file.
+ */
+
 // #region Imports
 // Types
 import type { IBricksModalProps, IBricksModalEmits } from './types.d.ts';
@@ -42,10 +68,10 @@ const emit = defineEmits<IBricksModalEmits>();
 const $style = useCssModule();
 
 /**
- * Заголовок отдаётся вниз, в `BricksModalHeader`: то же значение уходит в
- * скрытый `DialogTitle`, и видимая шапка обязана печатать именно его, а не свою
- * копию — расхождение имени диалога с надписью в нём не заметно ни в одной
- * проверке.
+ * The title is handed down to `BricksModalHeader`: the same value goes into the
+ * hidden `DialogTitle`, and the visible header has to print exactly that rather
+ * than a copy of its own — a dialog name that has drifted from the caption inside
+ * it is not visible to any check.
  */
 provide(
     BRICKS_MODAL_TITLE_KEY,
@@ -55,7 +81,8 @@ provide(
 
 // #region Computed
 /**
- * Классы корневой обёртки: центрирование + вариант фона + опциональный padding.
+ * Classes of the root wrapper: centering plus the background variant plus
+ * optional padding.
  */
 const rootClasses = computed(() => [
     $style.BricksModal,
@@ -67,19 +94,21 @@ const rootClasses = computed(() => [
 ]);
 
 /**
- * Длительность перехода уезжает в CSS-переменную: тем же значением ограничен
- * `<Transition>`, и без общего источника transform окна (transitions.scss) шёл бы
- * своей константой — у модалок с укороченным переходом Vue снимал бы классы
- * раньше, чем доигрывает масштаб, и окно доезжало бы скачком.
+ * The transition duration goes out into a CSS variable: the same value bounds the
+ * `<Transition>`, and without a shared source the window transform
+ * (`transitions.scss`) would run on a constant of its own — on modals with a
+ * shortened transition Vue would strip the classes before the scale finished
+ * playing, and the window would arrive with a jump.
  */
 const rootStyle = computed<Record<string, string>>(() => ({
     '--bricks-modal-duration': `${props.duration}ms`,
 }));
 
 /**
- * Без description явно сбрасываем aria-describedby (undefined снимает атрибут
- * и внутреннюю привязку Reka) — иначе Reka предупреждает про DialogContent
- * без DialogDescription. С description — не вмешиваемся, Reka свяжет id сама.
+ * Without a description, aria-describedby is cleared explicitly (`undefined`
+ * removes both the attribute and Reka's internal binding) — otherwise Reka warns
+ * about a DialogContent without a DialogDescription. With a description we do not
+ * interfere: Reka binds the id itself.
  */
 const contentAria = computed<Record<string, undefined>>(() =>
     props.description ? {} : { 'aria-describedby': undefined }
@@ -88,10 +117,10 @@ const contentAria = computed<Record<string, undefined>>(() =>
 
 // #region Methods
 /**
- * Пробрасывает закрытие наружу (Esc, клик по overlay).
- * Состояние контролируемое — модалка закроется, только если родитель обновит isOpen.
+ * Passes the close outwards (Esc, a click on the overlay). The state is
+ * controlled — the modal closes only if the parent updates isOpen.
  *
- * @param open - Новое состояние открытости от Reka.
+ * @param open - New open state from Reka.
  */
 function onUpdateOpen(open: boolean): void {
     if (!open) {
@@ -100,13 +129,13 @@ function onUpdateOpen(open: boolean): void {
 }
 
 /**
- * Гасит интерактивность модалки на время leave-анимации. `force-mount` держит
- * `DialogContent` в DOM до её конца, поэтому кнопки уезжающей модалки остаются
- * активируемыми — с клавиатуры и из assistive tech в том числе, а `pointer-events`
- * (transitions.scss) закрывает только указатель. Клик по уже отвеченной модалке
- * отвечал бы за следующую.
+ * Kills the modal's interactivity for the duration of the leave animation.
+ * `force-mount` keeps `DialogContent` in the DOM until it ends, so the buttons of
+ * a departing modal stay activatable — from the keyboard and from assistive tech
+ * included — while `pointer-events` (`transitions.scss`) closes off the pointer
+ * only. A click on an already answered modal would answer for the next one.
  *
- * @param element - Корневой элемент уезжающей модалки.
+ * @param element - Root element of the departing modal.
  */
 function onLeave(element: Element): void {
     markLeavingInert(element);
@@ -117,14 +146,6 @@ function onLeave(element: Element): void {
 <template>
     <DialogRoot :open="props.isOpen" @update:open="onUpdateOpen">
         <DialogPortal>
-            <!--
-                `appear` обязателен: модалки с ленивым монтированием (профиль,
-                медиа-галерея) появляются в разметке хоста уже открытыми —
-                латч монтирования и `isOpen` поднимаются одним действием, а
-                чанк приезжает ещё позже. Без `appear` первое открытие такой
-                модалки шло без анимации вовсе, а второе — с ней: у уже
-                смонтированного компонента `isOpen` меняется штатно.
-            -->
             <Transition
                 appear
                 name="bricks-modal-fade"
@@ -132,21 +153,9 @@ function onLeave(element: Element): void {
                 @leave="onLeave"
                 @after-leave="emit('afterLeave')"
             >
-                <!--
-                    DialogContent не должен быть вложен в DialogOverlay: overlay Reka
-                    делает preventDefault на левый pointerdown, и вложенный контент
-                    теряет фокус/выделение мышью. Центрирует обычный div, overlay —
-                    прозрачная клик-ловушка под контентом.
-                -->
                 <div v-if="props.isOpen" :class="rootClasses" :style="rootStyle">
                     <DialogOverlay force-mount :class="$style.overlay" />
-                    <!--
-                        `bricks-modal-window` — глобальный класс-конвенция, якорь
-                        для масштаба окна из transitions.scss: сам `DialogContent`
-                        стоит с `display: contents`, поэтому анимировать надо его
-                        потомков, а хешированное имя из CSS Modules глобальному
-                        файлу переходов недоступно.
-                    -->
+
                     <DialogContent
                         force-mount
                         class="bricks-modal-window"
@@ -179,8 +188,6 @@ function onLeave(element: Element): void {
     justify-content: center;
     background-color: var(--bricks-overlay-dark);
 
-    /* Уровни модалок над модалками. Все ниже дропдаунов и тостов — иначе селект
-       внутри модалки снова уехал бы под неё саму. */
     &._nested {
         z-index: var(--bricks-z-modal-nested);
     }
@@ -208,8 +215,6 @@ function onLeave(element: Element): void {
 
 .overlay {
     position: fixed;
-
-    // Под контентом (в стеке корня), но над фоном корня — клик по фону закрывает модалку
     z-index: -1;
     inset: 0;
 }

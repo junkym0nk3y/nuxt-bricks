@@ -1,4 +1,13 @@
 <script setup lang="ts">
+/**
+ * @description Text editor toolbar: groups of buttons, selects, an editable
+ * select and a color picker.
+ *
+ * The expandable group carries a `min-width` equal to the width of the
+ * font-family group in the design: in a narrow sidebar it pushes the font size
+ * onto the next row, while in a wide modal the row stays single.
+ */
+
 // #region Imports
 // Types
 import type { IToolbarGroup } from './textEditorToolbar.d.ts';
@@ -64,7 +73,10 @@ const TOOLBAR_TOOLTIP_KEYS: Record<string, string> = {
 
 // #region Methods
 /**
- * Возвращает локализованный текст тултипа по английскому title элемента.
+ * Returns the localized tooltip text for an element's English title.
+ *
+ * @param title - English title of the toolbar item.
+ * @returns Localized text, or the title itself if there is no key for it.
  */
 function getTooltipText(title: string): string {
     const key = TOOLBAR_TOOLTIP_KEYS[title];
@@ -88,7 +100,6 @@ function getTooltipText(title: string): string {
             ]"
         >
             <template v-for="item in group.items" :key="item.title">
-                <!-- Button -->
                 <template v-if="!('type' in item)">
                     <BricksTooltip v-if="props.useTooltips" bottom>
                         <template #activator>
@@ -132,7 +143,6 @@ function getTooltipText(title: string): string {
                     </button>
                 </template>
 
-                <!-- Select -->
                 <template v-else-if="'type' in item && item.type === 'select'">
                     <BricksTooltip
                         v-if="props.useTooltips"
@@ -191,7 +201,6 @@ function getTooltipText(title: string): string {
                     </div>
                 </template>
 
-                <!-- Editable Select (with custom input) -->
                 <template v-else-if="'type' in item && item.type === 'editable-select'">
                     <BricksTooltip v-if="props.useTooltips" bottom>
                         <template #activator>
@@ -202,7 +211,6 @@ function getTooltipText(title: string): string {
                     <BricksToolbarEditableSelect v-else :item="item" />
                 </template>
 
-                <!-- Color Picker -->
                 <template v-else-if="'type' in item && item.type === 'color'">
                     <BricksTooltip v-if="props.useTooltips" bottom>
                         <template #activator>
@@ -215,7 +223,6 @@ function getTooltipText(title: string): string {
             </template>
         </div>
 
-        <!-- Image Insert -->
         <div v-if="props.showImageInsert" :class="$style.imageInsertGroup">
             <BricksTooltip v-if="props.useTooltips" bottom>
                 <template #activator>
@@ -288,8 +295,6 @@ function getTooltipText(title: string): string {
     }
 
     &._expandable {
-        /* min-width = ширина группы font-family в макете: в узком сайдбаре
-           выталкивает font-size на следующий ряд, в широкой модалке ряд один */
         flex: 1 1 auto;
         min-width: 17rem;
     }

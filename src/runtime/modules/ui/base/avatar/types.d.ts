@@ -1,22 +1,23 @@
 /**
- * Типы аватара `BricksAvatar`.
+ * Types of the `BricksAvatar` component.
  */
 
 /**
- * Размер аватара. Ровно три — те, что существуют на экране: угол шапки (36),
- * строка списка и шапка меню профиля (40), модалка профиля (96). Произвольного
- * числа нет намеренно: файл в хранилище один (webp 256×256), и каждый новый
- * размер — это ещё одно место, где аватар отличается от остальных.
+ * Avatar size. Exactly three — the ones that exist on screen: the header corner
+ * (36), a list row and the profile menu header (40), the profile modal (96).
+ * There is deliberately no arbitrary number: the stored file is a single
+ * webp 256×256, and every new size is one more place where the avatar differs
+ * from the rest.
  */
 export type TBricksAvatarSize = 'sm' | 'md' | 'lg';
 
 export interface IBricksAvatarProps {
     /**
-     * Подпись владельца аватара — отображаемое имя или логин. Нужна не для
-     * показа: из неё берётся буква запасного варианта, когда фото нет.
+     * Caption of the avatar owner — display name or login. Not needed for
+     * display: the fallback letter is taken from it when there is no photo.
      */
     name: string;
-    /** Ссылка на фото; `null`/пусто — рисуется буква. */
+    /** Photo link; `null`/empty draws the letter instead */
     imageUrl?: string | null;
     size?: TBricksAvatarSize;
 }

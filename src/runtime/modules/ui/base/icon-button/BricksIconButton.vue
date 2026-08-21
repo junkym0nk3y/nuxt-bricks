@@ -1,28 +1,40 @@
 <script setup lang="ts">
 /**
- * @description Кнопка-действие из одного глифа: квадрат с иконкой и тултипом.
+ * @description Action button made of a single glyph: a square with an icon and a
+ * tooltip.
  *
- * Тултип здесь не украшение, а единственный способ узнать, что кнопка делает:
- * ряд одинаковых квадратов без подписей не читается ни глазами, ни скринридером.
- * Поэтому подпись — обязательный проп, а не атрибут: забыть её нельзя, тип не
- * даст. Она же становится доступным именем — содержимое тултипа уезжает в портал
- * и именем кнопки не становится.
+ * The tooltip here is not decoration but the only way to learn what the button
+ * does: a row of identical squares without captions reads neither by eye nor by
+ * screen reader. That is why the caption is a required prop rather than an
+ * attribute — it cannot be forgotten, the type will not allow it. It also becomes
+ * the accessible name: the tooltip content goes off into a portal and never
+ * becomes the button's name.
  *
- * Нативный `title` компонент не ставит намеренно: рядом с настоящим тултипом он
- * даёт вторую подсказку поверх первой, со своей задержкой и своим оформлением.
+ * The component deliberately does not set a native `title`: next to a real
+ * tooltip it gives a second hint on top of the first, with its own delay and its
+ * own styling.
  *
- * Гашение двух видов, и это не дублирование. `disabled` — обычный запрет, кнопка
- * уходит из обхода с клавиатуры. `muted` — запрет, причину которого человеку
- * надо прочитать: кнопка остаётся фокусируемой, объявляется через
- * `aria-disabled`, клик гасит обработчик. Выключенная `disabled` унесла бы
- * причину из обхода вместе с собой, а на операции, применяющейся сразу, ещё и
- * потеряла бы фокус посреди запроса — браузер снимает его с выключаемой кнопки,
- * и человек оказывается в начале страницы.
+ * There are two kinds of blocking, and that is not duplication. `disabled` is the
+ * plain block: the button leaves the keyboard tab order. `muted` is a block whose
+ * reason a person has to read: the button stays focusable, is announced through
+ * `aria-disabled`, and the handler swallows the click. A `disabled` button would
+ * carry the reason out of the tab order along with itself, and on an operation
+ * that applies immediately it would also lose focus mid-request — the browser
+ * takes focus off a button being disabled, and the person ends up at the top of
+ * the page.
  *
- * Внешние атрибуты, включая `class`, достаются ОБЁРТКЕ тултипа, а не кнопке:
- * в потоке стоит и позиционируется снаружи именно обёртка. Триггером тултипа она
- * же и служит — поэтому подсказка показывается даже над `disabled`-кнопкой,
- * которая событий указателя не порождает.
+ * Outer attributes, `class` included, go to the tooltip WRAPPER rather than to
+ * the button: it is the wrapper that stands in the flow and gets positioned from
+ * the outside. It also serves as the tooltip trigger — which is why the hint
+ * shows even over a `disabled` button, which produces no pointer events.
+ *
+ * Two style decisions the CSS no longer explains: the size sets the font size
+ * too, because the glyph inherits `font-size` from the button and without an
+ * explicit value its size would depend on the surrounding text (the same trap
+ * that made `BricksButton` spell the font size out inside `_equal`); and hover
+ * together with "pressed" live under a shared block — nothing changes on a
+ * blocked button — with `._active` placed AFTER `:hover` at equal specificity, so
+ * hovering a pressed toggle does not reset the pressed look.
  */
 
 // #region Imports
@@ -40,12 +52,12 @@ import BricksTooltipHint from '../tooltip/BricksTooltipHint.vue';
 // #region Props
 const props = withDefaults(defineProps<IBricksIconButtonProps>(), {
     hint: '',
-    // Явный `undefined` гасит булево приведение: без него отсутствующий проп
-    // стал бы `false`, и `aria-pressed` объявлял бы переключателем каждое
-    // обычное действие
+    // An explicit `undefined` blocks boolean coercion: without it a missing prop
+    // would become `false`, and `aria-pressed` would announce every ordinary
+    // action as a toggle
     active: undefined,
-    // Тем же приёмом, что `active`: отсутствующий проп не должен становиться
-    // `false` и вешать `aria-expanded` на кнопку, которая ничего не раскрывает
+    // The same trick as for `active`: a missing prop must not become `false` and
+    // hang `aria-expanded` on a button that expands nothing
     expanded: undefined,
     variant: 'outlined',
     size: 'md',
@@ -76,18 +88,18 @@ const classList = computed(() => ({
 }));
 
 /**
- * Текст подсказки: причина запрета, если она задана, иначе само действие.
- * Доступным именем при этом всегда остаётся действие — подсказка объясняет,
- * почему кнопка не срабатывает, но не отменяет того, чем она была.
+ * Hint text: the reason for the block if one is given, otherwise the action
+ * itself. The accessible name always stays the action — the hint explains why the
+ * button does not fire, but does not cancel what it was.
  */
 const tooltipText = computed<string>(() => props.hint || props.label);
 // #endregion
 
 // #region Methods
 /**
- * Пробрасывает клик наружу, если кнопка не погашена.
+ * Passes the click outwards if the button is not blocked.
  *
- * @param event - Событие клика.
+ * @param event - Click event.
  */
 function handleClick(event: MouseEvent): void {
     if (props.disabled || props.muted) {
@@ -147,9 +159,6 @@ function handleClick(event: MouseEvent): void {
         box-shadow: var(--bricks-shadow-focus);
     }
 
-    /* Сторона задаёт и кегль: глиф наследует `font-size` кнопки, и без явного
-       значения его размер зависел бы от кегля окружающего текста — та же
-       ловушка, из-за которой у `BricksButton` кегль прописан внутри `_equal`. */
     &._sm {
         width: 2rem;
         height: 2rem;
@@ -184,30 +193,18 @@ function handleClick(event: MouseEvent): void {
         border-radius: var(--bricks-border-radius-xs);
     }
 
-    /* Приподнятая плашка тулбара: кнопка стоит на фоне самой панели, и без
-       собственного фона терялась бы на нём — рамки, как у `outlined`, при этом
-       не нужно, её роль играет плашка. Скин повторяет `quiet` у `BricksButton`:
-       одно и то же место интерфейса, две разные кнопки. */
     &._quiet {
         border-radius: var(--bricks-border-radius-xs);
         border-color: transparent;
         background: var(--bricks-surface-raised);
     }
 
-    /* Кнопка лежит на тёмной вуали в обеих темах, поэтому цвет статичный:
-       `base-900` в тёмной теме стал бы почти белым на почти белом. Глиф крупнее
-       остальных — вуаль накрывает миниатюру страницы, и на её фоне 1.4rem
-       теряется. */
     &._overlay {
         border-radius: var(--bricks-border-radius-xs);
         font-size: 1.8rem;
         color: var(--bricks-static-white);
     }
 
-    /* Ховер и «нажато» живут под общим запретом: у погашенной кнопки не
-       меняется ничего. Внутри блока `._active` стоит ПОСЛЕ `:hover` при равной
-       специфичности — у нажатого переключателя наведение не должно сбрасывать
-       вид нажатия. */
     &:not(:disabled, ._muted) {
         &._outlined:hover {
             border-color: var(--bricks-base-300);
@@ -241,9 +238,6 @@ function handleClick(event: MouseEvent): void {
             color: var(--bricks-danger-500);
         }
 
-        /* Наведение на нажатый переключатель вида нажатия не сбрасывает:
-           парный `:hover`-селектор догоняет по специфичности ховер варианта и
-           стоит после него. */
         &._active,
         &._active:hover {
             border-color: var(--bricks-primary);
@@ -260,15 +254,12 @@ function handleClick(event: MouseEvent): void {
         color: var(--bricks-static-white);
     }
 
-    /* Запрет правилом и занятость раздела гасят кнопку одинаково: разной
-       прозрачностью их всё равно не различить, а причину объясняет подсказка. */
     &:disabled,
     &._muted {
         opacity: 0.5;
         cursor: default;
     }
 
-    /* Над обновляемой строкой честнее ожидание, чем отказ. */
     &._busy {
         cursor: progress;
     }

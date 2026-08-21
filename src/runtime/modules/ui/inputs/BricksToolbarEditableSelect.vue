@@ -40,16 +40,17 @@ const customValue = ref('');
 const hasError = ref(false);
 
 /**
- * Reka UI запрещает ComboboxItem с value="" (пустая строка = сброс выбора),
- * поэтому пустые значения опций («Авто»/«Обычный») подменяются sentinel'ом.
+ * Reka UI forbids a ComboboxItem with value="" (an empty string means clearing
+ * the selection), so empty option values ("Auto"/"Normal") are swapped for a
+ * sentinel.
  */
 const EMPTY_OPTION_SENTINEL = '__bricks-empty__';
 // #endregion
 
 // #region Computed
 /**
- * Краткое отображение текущего значения для триггер-кнопки.
- * Пустое значение показывает label соответствующей опции (например, «Авто»).
+ * Short display of the current value for the trigger button. An empty value shows
+ * the label of the matching option ("Auto", for instance).
  */
 const displayValue = computed<string>(() => {
     if (props.item.hideValue) {
@@ -61,16 +62,16 @@ const displayValue = computed<string>(() => {
 });
 
 /**
- * model-value для ComboboxRoot с учётом sentinel-подмены пустого значения.
+ * The model-value for ComboboxRoot, with the empty value swapped for the sentinel.
  */
 const comboboxValue = computed<string>(() => props.item.value || EMPTY_OPTION_SENTINEL);
 // #endregion
 
 // #region Methods
 /**
- * Сбрасывает состояние кастомного ввода при открытии/закрытии попапа.
+ * Resets the custom input state when the popup opens or closes.
  *
- * @param open - Новое состояние открытости.
+ * @param open - New open state.
  */
 function onUpdateOpen(open: boolean): void {
     isOpen.value = open;
@@ -79,9 +80,9 @@ function onUpdateOpen(open: boolean): void {
 }
 
 /**
- * Выбирает значение из списка пресетов (sentinel → пустая строка).
+ * Picks a value from the preset list (sentinel → empty string).
  *
- * @param value - Значение выбранной опции.
+ * @param value - Value of the selected option.
  */
 function handleOptionSelect(value: AcceptableValue): void {
     if (typeof value !== 'string') {
@@ -93,7 +94,7 @@ function handleOptionSelect(value: AcceptableValue): void {
 }
 
 /**
- * Подтверждает введённое пользовательское значение.
+ * Confirms the custom value that was entered.
  */
 function handleCustomConfirm(): void {
     const raw = customValue.value.trim();
@@ -114,8 +115,11 @@ function handleCustomConfirm(): void {
 }
 
 /**
- * Санитизирует ввод: запятую → точку, убирает буквы, ограничивает формат до X.XX.
- * Допускает опциональный минус в начале, % или rem в конце.
+ * Sanitizes the input: comma → dot, letters dropped, at most three digits after
+ * the dot. An optional leading minus and a trailing `%` or `rem` are allowed.
+ *
+ * @param raw - Raw text from the field.
+ * @returns Sanitized value.
  */
 function sanitizeNumericInput(raw: string): string {
     const trimmed = raw.trimEnd();
@@ -123,23 +127,23 @@ function sanitizeNumericInput(raw: string): string {
     const endsWithRem = trimmed.endsWith('rem') || trimmed.endsWith('re') || trimmed.endsWith('r');
     let result = raw.replace(',', '.');
 
-    // Убираем всё кроме цифр, точки и минуса
+    // Drop everything except digits, the dot and the minus
     result = result.replace(/[^\d.-]/g, '');
 
-    // Минус только в начале
+    // The minus is allowed at the start only
     const hasLeadingMinus = result.startsWith('-');
     result = result.replace(/-/g, '');
     if (hasLeadingMinus) {
         result = `-${result}`;
     }
 
-    // Только одна точка
+    // Only one dot
     const parts = result.split('.');
     if (parts.length > 2) {
         result = `${parts[0]}.${parts.slice(1).join('')}`;
     }
 
-    // Максимум 3 знака после точки
+    // At most three digits after the dot
     const dotIndex = result.indexOf('.');
     if (dotIndex !== -1 && result.length - dotIndex - 1 > 3) {
         result = result.slice(0, dotIndex + 4);
@@ -156,7 +160,9 @@ function sanitizeNumericInput(raw: string): string {
 }
 
 /**
- * Обрабатывает ввод в кастомном поле.
+ * Handles input in the custom field.
+ *
+ * @param event - Input event.
  */
 function handleCustomInput(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -167,7 +173,9 @@ function handleCustomInput(event: Event): void {
 }
 
 /**
- * Обрабатывает нажатия клавиш в кастомном поле.
+ * Handles key presses in the custom field.
+ *
+ * @param event - Keyboard event.
  */
 function handleCustomKeydown(event: KeyboardEvent): void {
     if (event.key === 'Enter') {
@@ -180,7 +188,7 @@ function handleCustomKeydown(event: KeyboardEvent): void {
 }
 
 /**
- * Фокусирует поле ввода при открытии секции кастомного ввода.
+ * Focuses the input field when the custom input section opens.
  */
 async function focusCustomInput(): Promise<void> {
     await nextTick();
@@ -227,7 +235,6 @@ async function focusCustomInput(): Promise<void> {
                 @mousedown.prevent
             >
                 <BricksPopoverSurface :class="$style.popup">
-                    <!-- Preset options -->
                     <ComboboxViewport :class="$style.optionsList">
                         <ComboboxItem
                             v-for="option in props.item.options"
@@ -243,7 +250,6 @@ async function focusCustomInput(): Promise<void> {
                         </ComboboxItem>
                     </ComboboxViewport>
 
-                    <!-- Custom input -->
                     <div :class="$style.divider" />
                     <div :class="$style.customInputRow">
                         <input

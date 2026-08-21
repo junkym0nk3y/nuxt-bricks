@@ -1,4 +1,10 @@
 <script setup lang="ts">
+/**
+ * @description Multiline field of the kit. Its visual shell repeats
+ * `BricksInput` (`.inner` / `.native` / `.errorMessage`), so the two fields read
+ * as one family in a form.
+ */
+
 // #region Imports
 // Types
 import type { IBricksTextareaProps, IBricksTextareaEmits } from './types.d.ts';
@@ -41,7 +47,7 @@ const classList = computed(() => [
 
 // #region Methods
 /**
- * Пробрасывает ввод наружу.
+ * Passes the input outwards.
  *
  * @param event - Native input event.
  */
@@ -55,7 +61,7 @@ function handleInput(event: Event): void {
 }
 
 /**
- * Пробрасывает blur наружу (для vee-validate touched-состояния).
+ * Passes the blur outwards (for the vee-validate touched state).
  *
  * @param event - Blur event.
  */
@@ -94,7 +100,6 @@ function handleBlur(event: FocusEvent): void {
 </template>
 
 <style lang="scss" module>
-// Визуальная оболочка повторяет BricksInput (.inner / .native / .errorMessage)
 .BricksTextarea {
     position: relative;
     width: 100%;

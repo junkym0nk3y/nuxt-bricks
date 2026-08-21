@@ -1,37 +1,63 @@
 <script setup lang="ts">
 /**
- * @description Постепенная загрузка изображения: заглушка ~32px → превью ~480px →
- * полный файл. Варианты готовит медиатека при загрузке файла, режим выбирает
- * место на странице (проп блока Media), а не сам файл.
+ * @description Progressive image loading: a mock around 32px → a preview around
+ * 480px → the full file. The variants are prepared by the media library when the
+ * file is uploaded; the mode is chosen by the place in the page (a prop of the
+ * Media block), not by the file itself.
  *
- * Два слоя, а не один меняющийся `src`: полный файл проявляется по `opacity`
- * поверх заглушки, поэтому смена этапа не даёт ни мигания, ни прыжка раскладки.
- * Внутри слоя заглушки src повышается mock → preview без перехода — превью к
- * этому моменту уже в кэше, и подмена происходит мгновенно.
+ * Two layers rather than one changing `src`: the full file fades in by `opacity`
+ * over the placeholder, so a stage change gives neither a flash nor a layout
+ * jump. Inside the placeholder layer the src is upgraded mock → preview with no
+ * transition — by that point the preview is already in cache, and the swap is
+ * instant.
  *
- * **До вьюпорта в разметке стоит прозрачный 1×1, а не превью.** Иначе страница со
- * сотней блоков скачивала бы сотню превью сразу, хотя видно два: полный файл был
- * бы отложен, а бо́льшая часть экономии — потеряна. Место под картинку в этот
- * момент держит `aspect-ratio` из пиксельных размеров файла; если размеров нет
- * (схемы, сохранённые до того, как они начали храниться), компонент возвращается
- * к превью в разметке — прыгающая раскладка хуже лишнего запроса.
+ * How the two layers hold the layout. The placeholder is the layer in the flow:
+ * it holds the height of the wrapper when no ratio is set on the root, having the
+ * same proportions as the full file, so `height: auto` behaves as on a plain
+ * `<img>`. Once the full file is shown it does not unmount but fades out —
+ * otherwise a block with automatic height would collapse to zero at the moment of
+ * the swap. The full file is the layer above the flow: it covers the one in the
+ * flow exactly and fades in by opacity, has no height of its own and therefore
+ * moves nothing.
  *
- * В `three-step` первым в разметку идёт не 1×1, а сам mock (~1 КБ): в этом и
- * смысл третьего этапа — что-то осмысленное на месте картинки до того, как
- * приедет превью. Ждать вьюпорта ему незачем, он дешевле накладных расходов на
- * отсрочку.
+ * The root itself is `height: 100%`, which CSS resolves to `auto` against a
+ * container of indefinite height — so the component works the same inside a block
+ * with a set height and inside a block with `height: auto`, where the image sets
+ * the height. The inline `aspect-ratio` combines with that same rule: with a
+ * definite container height `height` wins, with an indefinite one the ratio gives
+ * the height. That is how one and the same layout holds the space both under the
+ * transparent 1×1 and under the real image.
  *
- * Полный файл начинает грузиться, только когда кадр появился во вьюпорте
- * (`IntersectionObserver`). Исключение — `eager`: на первом экране откладывать
- * полный файл нельзя, он и есть LCP.
+ * **Before the viewport, the markup carries a transparent 1×1, not the preview.**
+ * Otherwise a page with a hundred blocks would download a hundred previews at
+ * once while two are visible: the full file would be deferred and most of the
+ * saving lost. The space for the image is held at that moment by an
+ * `aspect-ratio` computed from the file's pixel dimensions; if there are no
+ * dimensions (schemas saved before they started being stored), the component
+ * falls back to the preview in the markup — a jumping layout is worse than a
+ * extra request.
  *
- * Если вариантов нет (SVG, видео, файл загружен до их появления) или режим
- * выключен, компонент честно грузит полный файл сразу и ничем не отличается от
- * обычного `<img>` — показывать пустоту вместо картинки он не должен.
+ * In `three-step` what goes into the markup first is not the 1×1 but the mock
+ * itself (around 1 KB): that is the whole point of the third stage — something
+ * meaningful in place of the image before the preview arrives. It has no reason
+ * to wait for the viewport, being cheaper than the overhead of deferring it.
  *
- * Доступное имя живёт на корне, а не на слоях: слои монтируются и снимаются по
- * ходу загрузки, и пока полного файла в разметке нет, его `alt` был бы
- * недостижим — картинка ниже экрана просто отсутствовала бы в accessibility tree.
+ * The full file only starts loading once the frame approaches the viewport
+ * (`IntersectionObserver`, with the margin of `OBSERVER_ROOT_MARGIN` ahead of the
+ * edge). The exception is `eager`: above the fold the full file must not be
+ * deferred, it is the LCP.
+ *
+ * If there are no variants (SVG, video, a file uploaded before they existed) or
+ * the mode is off, the component honestly loads the full file at once and is no
+ * different from a plain `<img>` — showing emptiness instead of an image is not
+ * its job.
+ *
+ * The accessible name lives on the root rather than on the layers: the layers
+ * mount and unmount as loading proceeds, and while the full file is not in the
+ * markup its `alt` would be unreachable — an image below the fold would simply be
+ * absent from the accessibility tree. Without a caption the image is decorative,
+ * and then the root is removed from the accessibility tree altogether instead of
+ * staying a nameless `role="img"`.
  */
 
 // #region Imports
@@ -61,30 +87,31 @@ const emit = defineEmits<IBricksImageEmits>();
 
 // #region Data
 /**
- * Запас за краем вьюпорта: полный файл начинает грузиться до того, как кадр
- * доехал до экрана, иначе подмена происходит уже на виду.
+ * Margin beyond the edge of the viewport: the full file starts loading before the
+ * frame has reached the screen, otherwise the swap happens in plain sight.
  */
 const OBSERVER_ROOT_MARGIN = '200px';
 /**
- * Прозрачный GIF 1×1 в data-URI: занимает место в разметке, не стоя ни одного
- * запроса. Приём взят из библиотечного `VImage` — там он тоже стоит в `src`, пока
- * настоящий первый этап ждёт попадания во вьюпорт.
+ * A transparent 1×1 GIF as a data URI: it holds a place in the markup without
+ * costing a single request. The trick is taken from the library `VImage` — there
+ * it also sits in `src` while the real first stage waits to enter the viewport.
  */
 const EMPTY_GIF = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 const rootRef = ref<HTMLElement | null>(null);
-/** Показан ли полный файл (загружен успешно). */
+/** Whether the full file is on screen (loaded successfully) */
 const isFullVisible = ref(false);
 
 /**
- * Можно ли держать место под картинку без самой картинки. Только при известных
- * пиксельных размерах: `aspect-ratio` считается из них, а без него прозрачный
- * 1×1 дал бы нулевую высоту блоку с `height: auto`.
+ * Whether the space for the image can be held without the image itself. Only when
+ * the pixel dimensions are known: `aspect-ratio` is computed from them, and
+ * without it a transparent 1×1 would give zero height to a block with
+ * `height: auto`.
  *
- * Сверяются оба значения на конечность и строгую положительность, а не просто
- * truthiness: отрицательное число тоже truthy, и `-1 / 900` дало бы невалидную
- * пропорцию при включённом прозрачном 1×1 — то есть нулевую высоту, ровно то, от
- * чего проверка и защищает. Размеры приходят из схемы или внешнего backend'а,
- * гарантий на них нет.
+ * Both values are checked for being finite and strictly positive rather than
+ * merely truthy: a negative number is truthy too, and `-1 / 900` would give an
+ * invalid ratio with the transparent 1×1 on — that is, zero height, exactly what
+ * the check guards against. The dimensions come from the schema or from an
+ * external backend, and there are no guarantees on them.
  */
 function hasKnownBox(): boolean {
     const width = Number(props.naturalWidth);
@@ -94,25 +121,27 @@ function hasKnownBox(): boolean {
 }
 
 /**
- * Что стоит в слое заглушки до попадания во вьюпорт. `null` — заглушки нет
- * вовсе, полный файл идёт сразу (режим выключен, `eager`, либо у файла нет
- * превью — SVG, видео, загрузка до появления вариантов).
+ * What stands in the placeholder layer before the frame enters the viewport.
+ * `null` means there is no placeholder at all and the full file goes in right
+ * away (the mode is off, `eager`, or the file has no preview — SVG, video, an
+ * upload predating the variants).
  *
- * Обычная функция, а не computed: её результат нужен для НАЧАЛЬНЫХ значений
- * ref'ов ниже. Если начинать с пустого состояния и заполнять его в `onMounted`,
- * серверный рендер отдаёт пустой `<span>` без единого `<img>` — то есть `eager`
- * получает `fetchpriority="high"` уже после mount, когда он бесполезен.
+ * A plain function rather than a computed: its result is needed for the INITIAL
+ * values of the refs below. Starting from an empty state and filling it in
+ * `onMounted` makes the server render an empty `<span>` without a single `<img>`
+ * — that is, `eager` gets its `fetchpriority="high"` only after mount, when it is
+ * useless.
  */
 function resolveInitialPlaceholder(): string | null {
     if (props.mode === 'off' || props.eager) {
         return null;
     }
 
-    // Mock — единственный этап, который имеет смысл держать в разметке сразу:
-    // он и существует ради того, чтобы место не было пустым до превью. Проверка
-    // идёт ДО отсутствия превью: у файла, которому построился mock, но не
-    // построилось превью (варианты генерируются независимо), иначе не осталось бы
-    // ни одного этапа, и постепенная загрузка молча отключалась бы
+    // The mock is the only stage worth keeping in the markup right away: it
+    // exists precisely so that the space is not empty before the preview. The
+    // check comes BEFORE the missing-preview one: for a file that got a mock but
+    // no preview (the variants are generated independently) there would otherwise
+    // be no stage left at all, and progressive loading would silently switch off
     if (props.mode === 'three-step' && props.mockSrc) {
         return props.mockSrc;
     }
@@ -126,39 +155,45 @@ function resolveInitialPlaceholder(): string | null {
 
 const placeholderSrc = ref<string | null>(resolveInitialPlaceholder());
 /**
- * Нужно ли грузить полный файл (кадр во вьюпорте либо режим не откладывает).
+ * Whether the full file has to be loaded (the frame is in the viewport, or the
+ * mode does not defer).
  *
- * На сервере полный файл включается сразу только когда этапов нет: у `off` и
- * `eager` он и есть то, что должно попасть в разметку. Для постепенной загрузки
- * в SSR уходит заглушка — иначе браузер начал бы полную загрузку до того, как
- * `IntersectionObserver` вообще успеет появиться, и оптимизации не останется.
+ * On the server the full file is turned on right away only when there are no
+ * stages: with `off` and `eager` it is exactly what has to end up in the markup.
+ * For progressive loading it is the placeholder that goes out in SSR — otherwise
+ * the browser would start the full load before `IntersectionObserver` even had a
+ * chance to appear, and nothing would be left of the optimization.
  */
 const shouldLoadFull = ref(placeholderSrc.value === null);
 let observer: IntersectionObserver | null = null;
 let previewLoader: HTMLImageElement | null = null;
 /**
- * Номер текущего состояния: предзагрузка превью сверяет его перед записью.
- * Без него `onload`, начатый для прошлого файла, подкладывал бы его превью под
- * новый полный файл — компонент переиспользуется при смене медиа у блока,
- * undo/redo и быстром переключении.
+ * Number of the current state: the preview preload checks it before writing.
+ * Without it an `onload` started for the previous file would slip that file's
+ * preview under the new full one — the component is reused when a block's media
+ * changes, on undo/redo and on fast switching.
  */
 let loadGeneration = 0;
 // #endregion
 
 // #region Computed
-/** Показана именно заглушка ~32px — только её и нужно размывать. */
+/**
+ * The mock around 32px is the one on screen. It is the only stage that gets
+ * blurred: stretched to the frame size it would otherwise read as a broken image
+ * rather than as "still loading", while the preview around 480px needs no blur.
+ */
 const isShowingMock = computed<boolean>(
     () => Boolean(props.mockSrc) && placeholderSrc.value === props.mockSrc
 );
 /**
- * Полный файл можно показывать: он загрузился, либо заглушки нет вовсе и
- * прятать его за прозрачностью не за чем.
+ * The full file may be shown: it has loaded, or there is no placeholder at all and
+ * there is nothing to hide it behind opacity for.
  */
 const isFullReady = computed<boolean>(() => isFullVisible.value || !placeholderSrc.value);
 /**
- * Пропорция для корня. Ставится всегда, когда размеры известны, а не только под
- * 1×1: место под картинку тогда держится с первого кадра и не меняется ни при
- * одной подмене этапа.
+ * Ratio for the root. Set whenever the dimensions are known, not only under the
+ * 1×1: the space for the image is then held from the first frame and does not
+ * change on any stage swap.
  */
 const boxStyle = computed<Record<string, string>>(() => {
     const style: Record<string, string> = {};
@@ -172,18 +207,18 @@ const boxStyle = computed<Record<string, string>>(() => {
 // #endregion
 
 // #region Methods
-/** Останавливает наблюдение за вьюпортом. */
+/** Stops watching the viewport */
 function stopObserving(): void {
     observer?.disconnect();
     observer = null;
 }
 
 /**
- * Отменяет предзагрузку превью.
+ * Cancels the preview preload.
  *
- * Отдельно от `stopObserving`, а не одной функцией: обсервер снимается ровно в
- * тот момент, когда предзагрузка запускается, и общая «остановка всего» убивала
- * бы её сразу после старта.
+ * Kept apart from `stopObserving` rather than merged into one function: the
+ * observer is removed at exactly the moment the preload starts, and a shared
+ * "stop everything" would kill it right after the start.
  */
 function cancelPreviewPreload(): void {
     if (!previewLoader) {
@@ -196,9 +231,9 @@ function cancelPreviewPreload(): void {
 }
 
 /**
- * Догружает превью в слой заглушки: mock показан, следующий этап — превью.
- * Подмена делается только после реальной загрузки, иначе на месте mock'а
- * мелькнул бы пустой кадр.
+ * Fetches the preview into the placeholder layer: the mock is on screen and the
+ * next stage is the preview. The swap happens only after the real load, otherwise
+ * an empty frame would flash in the mock's place.
  */
 function upgradePlaceholderToPreview(): void {
     const previewSrc = props.previewSrc;
@@ -213,8 +248,8 @@ function upgradePlaceholderToPreview(): void {
     const loader = new Image();
 
     loader.onload = (): void => {
-        // Пропы могли смениться, пока грузилось: чужое превью под новым полным
-        // файлом хуже, чем отсутствие этапа
+        // The props may have changed while it was loading: someone else's preview
+        // under the new full file is worse than a missing stage
         if (generation !== loadGeneration) {
             return;
         }
@@ -230,36 +265,38 @@ function upgradePlaceholderToPreview(): void {
 }
 
 /**
- * Отказ заглушки. Она снимается и полный файл переезжает в поток: адрес варианта
- * мог устареть (файл перезагрузили, объект удалён), и без этого блок с
- * автовысотой остался бы нулевой высоты — то есть картинки не было бы вовсе.
- * Полный файл при этом уже не ждёт вьюпорт: ждать нечему, показывать нечего.
+ * The placeholder failed. It is removed and the full file moves into the flow: the
+ * variant address may have gone stale (the file was re-uploaded, the object
+ * deleted), and without this a block with automatic height would stay at zero
+ * height — that is, there would be no image at all. The full file no longer waits
+ * for the viewport either: there is nothing to wait for and nothing to show.
  */
 function handlePlaceholderError(): void {
     placeholderSrc.value = null;
     shouldLoadFull.value = true;
 }
 
-/** Отмечает полный файл показанным. */
+/** Marks the full file as shown */
 function handleFullLoad(): void {
     isFullVisible.value = true;
     emit('load');
 }
 
 /**
- * Отказ полного файла. Заглушка остаётся на экране: пустой кадр вместо картинки
- * хуже, чем её низкое разрешение.
+ * The full file failed. The placeholder stays on screen: an empty frame instead of
+ * the image is worse than a low resolution of it.
  */
 function handleFullError(): void {
     emit('error');
 }
 
-/** Ставит наблюдение за появлением кадра во вьюпорте. */
+/** Starts watching for the frame to enter the viewport */
 function startObserving(): void {
     const element = rootRef.value;
 
-    // Без IntersectionObserver (старый браузер, SSR-гидрация до mount) грузим
-    // сразу: постепенная загрузка — оптимизация, а не условие показа картинки
+    // Without IntersectionObserver (an old browser, SSR hydration before mount)
+    // we load right away: progressive loading is an optimization, not a condition
+    // for showing the image
     if (!element || typeof IntersectionObserver === 'undefined') {
         shouldLoadFull.value = true;
         return;
@@ -272,8 +309,8 @@ function startObserving(): void {
             }
 
             shouldLoadFull.value = true;
-            // Обсервер снимается ДО запуска предзагрузки: обратный порядок
-            // отменял бы её же следом
+            // The observer is removed BEFORE the preload starts: the reverse order
+            // would cancel that very preload right afterwards
             stopObserving();
             upgradePlaceholderToPreview();
         },
@@ -283,8 +320,8 @@ function startObserving(): void {
 }
 
 /**
- * Приводит состояние к текущим пропам: сбрасывает показанное и заново решает,
- * ждать вьюпорт или грузить сразу.
+ * Brings the state in line with the current props: clears what is shown and
+ * decides anew whether to wait for the viewport or load right away.
  */
 function resetLoading(): void {
     stopObserving();
@@ -305,9 +342,9 @@ function resetLoading(): void {
 
 // #region Lifecycle
 /**
- * Начальное состояние уже посчитано синхронно (см. `placeholderSrc`), поэтому
- * здесь остаётся только подключить наблюдение — переустанавливать разметку
- * нельзя, она обязана совпасть с серверной.
+ * The initial state has already been computed synchronously (see
+ * `placeholderSrc`), so all that is left here is to hook up the observation — the
+ * markup must not be re-established, it has to match the server's.
  */
 onMounted(() => {
     if (!shouldLoadFull.value) {
@@ -315,10 +352,11 @@ onMounted(() => {
     }
 });
 
-// Размеры в списке наравне с адресами: от них зависит выбор первого слоя
-// (прозрачный 1×1 против превью), и смена одних размеров при том же адресе —
-// undo, обновление данных извне — иначе оставляла бы 1×1 без пропорции, то есть
-// квадрат 1:1 на месте картинки до попадания во вьюпорт
+// The dimensions are in the list on a par with the addresses: the choice of the
+// first layer depends on them (transparent 1×1 against preview), and a change of
+// dimensions alone at the same address — undo, data refreshed from the outside —
+// would otherwise leave the 1×1 without a ratio, that is a 1:1 square in place of
+// the image until it enters the viewport
 watch(
     () => [
         props.src,
@@ -337,20 +375,14 @@ watch(
 onBeforeUnmount(() => {
     stopObserving();
     cancelPreviewPreload();
-    // Дожившая до размонтирования предзагрузка иначе дёрнула бы ref мёртвого
-    // компонента
+    // A preload that survived until unmount would otherwise touch a ref of a dead
+    // component
     loadGeneration += 1;
 });
 // #endregion
 </script>
 
 <template>
-    <!--
-        Доступное имя на корне: слои монтируются и снимаются по ходу загрузки, и
-        `alt` на них был бы недостижим, пока полного файла в разметке ещё нет.
-        Без подписи картинка декоративна — корень тогда убирается из
-        accessibility tree целиком, а не остаётся безымянным `role="img"`.
-    -->
     <span
         ref="rootRef"
         :class="$style.BricksImage"
@@ -359,13 +391,6 @@ onBeforeUnmount(() => {
         :aria-label="props.alt || undefined"
         :aria-hidden="props.alt ? undefined : 'true'"
     >
-        <!--
-            Заглушка держит поток и задаёт высоту обёртки, когда пропорция корню
-            не задана: у неё та же пропорция, что у полного файла, поэтому
-            `height: auto` работает как у обычного <img>. После показа полного она
-            не размонтируется, а гаснет — иначе блок с автовысотой схлопнулся бы в
-            ноль в момент подмены.
-        -->
         <img
             v-if="placeholderSrc"
             :src="placeholderSrc"
@@ -402,14 +427,6 @@ onBeforeUnmount(() => {
 </template>
 
 <style module lang="scss">
-/* `height: 100%` против контейнера с неопределённой высотой CSS резолвит в
-   `auto` — поэтому компонент одинаково работает и в блоке с заданной высотой, и
-   в блоке с `height: auto`, где высоту задаёт сама картинка.
-
-   С этим же правилом сочетается инлайновый `aspect-ratio`: при определённой
-   высоте контейнера побеждает `height`, при неопределённой — высоту даёт
-   пропорция. Поэтому одна и та же вёрстка держит место и под прозрачным 1×1, и
-   под настоящей картинкой. */
 .BricksImage {
     position: relative;
     overflow: hidden;
@@ -424,13 +441,10 @@ onBeforeUnmount(() => {
     height: 100%;
 }
 
-/* Слой в потоке — он и определяет высоту обёртки. */
 ._flow {
     position: relative;
 }
 
-/* Слой поверх потока: точно накрывает тот, что в потоке, и проявляется по
-   opacity. Своей высоты не имеет и потому раскладку не двигает. */
 ._overlay {
     position: absolute;
     opacity: 0;
@@ -442,15 +456,10 @@ onBeforeUnmount(() => {
     }
 }
 
-/* Гаснет, но остаётся в потоке: место под картинку нужно держать и после того,
-   как полный файл её накрыл. */
 ._hidden {
     opacity: 0;
 }
 
-/* Размывается только заглушка ~32px: растянутая до размера кадра, она иначе
-   читается как испорченная картинка, а не как «ещё грузится». Превью ~480px в
-   размытии не нуждается. */
 ._blurred {
     filter: blur(0.8rem);
     transform: scale(1.05);

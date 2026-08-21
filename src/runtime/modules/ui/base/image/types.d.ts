@@ -1,45 +1,49 @@
 import type { TBricksMediaLoadMode } from '../../../common/types/config';
 
 export interface IBricksImageProps {
-    /** Полный файл — то, что должно оказаться на экране в итоге. */
+    /** The full file — what has to end up on screen eventually */
     src: string;
     alt?: string;
-    /** Превью ~480px; null — варианта нет, этап пропускается. */
+    /** Preview around 480px; `null` means no such variant, and the stage is skipped */
     previewSrc?: string | null;
-    /** Заглушка ~32px; null — варианта нет, этап пропускается. */
+    /** Mock around 32px; `null` means no such variant, and the stage is skipped */
     mockSrc?: string | null;
     /**
-     * Режим постепенной загрузки. Дефолт задаёт вызывающий (у блока Media — проп,
-     * у остальных — `off`): режим зависит от места на странице, а не от файла.
+     * Progressive loading mode. The default is set by the caller (a prop on the
+     * Media block, `off` everywhere else): the mode depends on the place in the
+     * page, not on the file.
      */
     mode?: TBricksMediaLoadMode;
     /**
-     * Первый экран: снимает lazy и ставит `fetchpriority="high"`. На первом экране
-     * постепенная загрузка бьёт по LCP — полный файл нужен сразу.
+     * Above the fold: drops lazy loading and sets `fetchpriority="high"`. Above
+     * the fold progressive loading hurts LCP — the full file is needed at once.
      */
     eager?: boolean;
     /**
-     * Значение `object-fit` картинки. Набор повторяет нативный, включая `none`:
-     * блок Media отдаёт его напрямую из своего свойства, и подмена `none` на
-     * `fill` молча растянула бы картинку во всех уже сохранённых схемах.
+     * The `object-fit` value of the image. The set repeats the native one,
+     * `none` included: the Media block passes it straight through from its own
+     * property, and substituting `fill` for `none` would silently stretch the
+     * image in every schema already saved.
      */
     fit?: 'cover' | 'contain' | 'scale-down' | 'fill' | 'none';
     /**
-     * Пиксельные размеры полного файла. Нужны, чтобы держать место под картинку
-     * `aspect-ratio`, пока в разметке стоит прозрачный 1×1: у него ни высоты, ни
-     * пропорции нет, и блок с `height: auto` схлопнулся бы в ноль.
+     * Pixel dimensions of the full file. Needed to hold the space for the image
+     * with `aspect-ratio` while the markup still carries a transparent 1×1: that
+     * one has neither height nor ratio, and a block with `height: auto` would
+     * collapse to zero.
      *
-     * Без них компонент честно грузит превью сразу — постепенная загрузка теряет
-     * часть экономии, зато раскладка не прыгает. Так работают схемы, сохранённые
-     * до того, как размеры начали храниться.
+     * Without them the component honestly loads the preview right away —
+     * progressive loading loses part of its saving, but the layout does not
+     * jump. That is how schemas saved before dimensions started being stored
+     * behave.
      */
     naturalWidth?: number | null;
     naturalHeight?: number | null;
 }
 
 export interface IBricksImageEmits {
-    /** Полный файл загружен и показан. */
+    /** The full file has loaded and is on screen */
     load: [];
-    /** Полный файл не загрузился (битая ссылка, удалённый объект). */
+    /** The full file failed to load (broken link, deleted object) */
     error: [];
 }

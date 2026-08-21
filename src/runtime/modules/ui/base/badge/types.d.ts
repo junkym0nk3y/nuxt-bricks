@@ -1,45 +1,50 @@
 /**
- * Тон плашки. Тонов шесть, и у каждого есть свой вызывающий — набор собран из
- * того, что уже было написано руками в пяти местах:
- * - `primary` — заливка `primary` с белой подписью (текущая версия страницы,
- *   выбранный файл медиатеки, роль в профиле);
- * - `neutral` — `base-200`/`base-600` (чипы ключевых слов, метка черновика);
- * - `muted` — `base-100`/`base-600`: тихая подпись рядом с именем («вы») и роль
- *   редактора. Подпись `base-500`, с которой плашка «вы» жила до переезда в кит,
- *   давала на `base-100` 4.4:1 — ниже порога AA для обычного текста, и как тон
- *   кита это распространилось бы на всех;
- * - `accent` — `primary-50`/`primary-600`, выделенное значение без заливки в
- *   полный тон (роль администратора);
- * - `quiet` — `base-50`/`base-500` с рамкой: значение, которое не надо
- *   подчёркивать вовсе (роль наблюдателя);
- * - `plain` — без заливки: строка статуса, где значение несёт точка и подпись.
+ * Badge tone. The set is assembled from what had already been written by hand in
+ * five places:
+ * - `primary` — `primary` fill with a white caption (current page version,
+ *   selected media library file, role in the profile);
+ * - `neutral` — `base-200`/`base-600`: the quiet counterpart of `primary` for a
+ *   badge that has no caller of its own right now (the keyword chip and the
+ *   draft marker, which the set was assembled from, ended up on `primary` and
+ *   `muted`);
+ * - `muted` — `base-100`/`base-600`: a quiet caption next to a name ("you") and
+ *   the editor role. The `base-500` caption the "you" badge lived with before it
+ *   moved into the kit gave 4.4:1 on `base-100` — below the AA threshold for
+ *   regular text, and as a kit tone that would have spread to everyone;
+ * - `accent` — `primary-50`/`primary-600`, a highlighted value without a
+ *   full-tone fill (administrator role);
+ * - `quiet` — `base-50`/`base-500` with a border: a value that needs no emphasis
+ *   at all (viewer role);
+ * - `plain` — no fill: a status line where the value is carried by the dot and
+ *   the caption.
  */
 export type TBricksBadgeTone = 'primary' | 'neutral' | 'muted' | 'accent' | 'quiet' | 'plain';
 
 /**
- * Форма: `rounded` — скруглённый прямоугольник, `pill` — пилюля.
+ * Shape: `rounded` for a rounded rectangle, `pill` for a pill.
  *
- * Радиус `rounded` — `0.4rem` числом, а не токеном: в шкале радиусов такого
- * значения нет (ближайший `--bricks-border-radius-xs` — `0.6rem`), а подтягивать
- * шкалу под одну плашку значило бы менять её вид ради чистоты.
+ * The `rounded` radius is `0.4rem` as a number rather than a token: the radius
+ * scale has no such value (the nearest, `--bricks-border-radius-xs`, is
+ * `0.6rem`), and pulling the scale towards a single badge would mean changing
+ * its look for the sake of purity.
  */
 export type TBricksBadgeShape = 'rounded' | 'pill';
 
 /**
- * Ведущая точка статуса. Ею объявляется состояние там, где раньше был свой
- * `statusDot`: круг `0.8rem` был написан дважды, а в списке страниц статус
- * держался на одном цвете — ни скринридер, ни человек, не различающий зелёный,
- * его не получали.
+ * Leading status dot. It is what announces a state where each place used to have
+ * its own `statusDot`: the `0.8rem` circle had been written twice, and in the
+ * page list the status rested on color alone — neither a screen reader nor a
+ * person who cannot tell green apart received it.
  */
 export type TBricksBadgeDot = 'neutral' | 'positive';
 
-/** Тег корня: плашка бывает и триггером меню (пилюля роли в строке учётки). */
+/** Root tag: a badge is sometimes a menu trigger too (the role pill in a row) */
 export type TBricksBadgeTag = 'span' | 'button';
 
 export interface IBricksBadgeProps {
     tone?: TBricksBadgeTone;
     shape?: TBricksBadgeShape;
-    /** Пустая строка — точки нет */
+    /** Empty string means no dot */
     dot?: TBricksBadgeDot | '';
     as?: TBricksBadgeTag;
 }

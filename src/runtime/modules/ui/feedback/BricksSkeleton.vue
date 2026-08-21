@@ -1,12 +1,13 @@
 <script setup lang="ts">
 /**
- * @description Заглушка на месте содержимого, которое ещё едет. Своя у неё
- * только заливка и радиус — размеры задаёт вызывающий, потому что в каждом из
- * мест они свои (превью 16:10, строка списка, полоса подписи).
+ * @description A placeholder standing in for content that is still on its way.
+ * All it owns is the fill and the radius — the dimensions are set by the caller,
+ * because they differ in every place (a 16:10 preview, a list row, a caption
+ * bar).
  *
- * Заглушка скрыта от скринридера: она ничего не сообщает, а озвученная как
- * пустой элемент только мешает. Состояние загрузки объявляет тот, кто её
- * показывает.
+ * The placeholder is hidden from screen readers: it announces nothing, and read
+ * out as an empty element it only gets in the way. The loading state is
+ * announced by whoever shows it.
  */
 
 // #region Imports

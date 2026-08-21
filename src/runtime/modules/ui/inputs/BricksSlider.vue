@@ -1,13 +1,13 @@
 <script setup lang="ts">
 /**
- * @description Ползунок непрерывного значения. В ките его не было: там, где
- * значение вводят числом, стоит `BricksInput`, а дорожка нужна кадрированию
- * фото — масштаб выбирают глазами, а не набором цифры.
+ * @description Slider for a continuous value. The kit had none: where a value is
+ * typed as a number there is `BricksInput`, and a track is what photo cropping
+ * needs — the scale is chosen by eye, not by typing a figure.
  *
- * Поведение (клавиатура, шаг, перетаскивание, RTL) даёт reka-ui, как у остальных
- * полей кита. Наша часть — один ползунок вместо диапазона: `SliderRoot` работает
- * с массивом значений, наружу отдаётся число, потому что двух ручек ни у одного
- * потребителя нет и появление второй означало бы другой компонент.
+ * The behavior (keyboard, step, dragging, RTL) comes from reka-ui, as with the
+ * other fields of the kit. Our part is a single thumb instead of a range:
+ * `SliderRoot` works with an array of values, while a number goes out, because
+ * no consumer has two thumbs and a second one would mean a different component.
  */
 
 // #region Imports
@@ -40,12 +40,13 @@ const modelValue = computed<number[]>(() => [props.value]);
 
 // #region Methods
 /**
- * Отдаёт первое значение наружу числом.
+ * Sends the first value out as a number.
  *
- * Пустой массив отсекается: reka сообщает об изменении и в момент, когда ручка
- * снята, а `undefined` в числовом пропе превратил бы масштаб в `NaN`.
+ * An empty array is cut off: reka reports a change at the moment the thumb is
+ * removed too, and an `undefined` in a numeric prop would turn the scale into
+ * `NaN`.
  *
- * @param value - Значения ручек от reka.
+ * @param value - Thumb values from reka.
  */
 function handleValueChange(value: number[] | undefined): void {
     const [next] = value ?? [];

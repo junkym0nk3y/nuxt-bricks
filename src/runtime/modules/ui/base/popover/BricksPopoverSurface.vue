@@ -1,21 +1,21 @@
 <script setup lang="ts">
 /**
- * @description Плавающая поверхность: радиус, рамка, фон, тень и слой. Всё, что
- * было написано тринадцать раз — от дропдауна селекта до контекстного меню
- * канваса, — и уже разъехалось: одна и та же роль встречалась с тенью `sm`, `md`
- * и `lg`.
+ * @description Floating surface: radius, border, background, shadow and layer.
+ * Everything that had been written thirteen times — from the select dropdown to
+ * the canvas context menu — and had already drifted apart: one and the same role
+ * turned up with an `sm`, an `md` and an `lg` shadow.
  *
- * **Позиционирование не берёт на себя намеренно.** Часть поверхностей ставит
- * reka (`SelectContent`, `DropdownMenuContent`, `PopoverContent`), часть —
- * собственный `position: absolute` от родителя, часть — `position: fixed` из
- * `Teleport` по координатам выделения. Навязать один способ значило бы
- * переписать работающую логику в десяти местах ради общего вида; поэтому
- * геометрию (ширину, координаты, анимацию появления) вызывающий по-прежнему
- * задаёт своим классом — он приезжает на этот же узел.
+ * **It deliberately takes no part in positioning.** Some surfaces are placed by
+ * reka (`SelectContent`, `DropdownMenuContent`, `PopoverContent`), some by their
+ * own `position: absolute` against a parent, some by `position: fixed` out of a
+ * `Teleport` at selection coordinates. Imposing a single way would mean
+ * rewriting working logic in ten places for the sake of a shared look; so the
+ * geometry (width, coordinates, appearance animation) is still set by the caller
+ * through its own class — that class lands on this very node.
  *
- * С поверхностями reka компонент составляется через `as-child`: тогда узел
- * остаётся один, и `data-state`, на который вызывающий вешает анимацию, стоит
- * там же, где его класс.
+ * With reka surfaces the component is composed through `as-child`: then the node
+ * stays single, and the `data-state` the caller hangs its animation on sits in
+ * the same place as its class.
  */
 
 // #region Imports
@@ -40,10 +40,10 @@ const $style = useCssModule();
 
 // #region Computed
 /**
- * `layer: 'none'` не печатает класса слоя вовсе, а не печатает пустой: слоем в
- * этом случае распоряжается вызывающий (или reka, если поверхность стоит в её
- * контенте), и лишний класс в списке спорил бы с его значением за одинаковую
- * специфичность.
+ * `layer: 'none'` prints no layer class at all rather than printing an empty one:
+ * in that case the layer is owned by the caller (or by reka, if the surface sits
+ * inside its content), and an extra class in the list would fight its value at
+ * equal specificity.
  */
 const rootClasses = computed(() => [
     $style.BricksPopoverSurface,
@@ -95,8 +95,6 @@ const rootClasses = computed(() => [
     box-shadow: var(--bricks-shadow-lg);
 }
 
-/* Слой поповеров: выше оболочки билдера и выше любой модалки — поповер всегда
-   открывают из чего-то, что уже наверху. */
 ._layer-popover {
     z-index: var(--bricks-z-popover);
 }

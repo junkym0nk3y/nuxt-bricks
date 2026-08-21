@@ -1,4 +1,20 @@
 <script setup lang="ts">
+/**
+ * @description Text field of the kit: a label row, the native input and its
+ * trailing controls (clear, stepper, password reveal).
+ *
+ * Three geometry decisions the styles no longer explain. The native number
+ * spinner is replaced with a custom stepper, whose visible glyph is `1.2rem` (as
+ * in the design) while the button box is `1.2` by `1.8rem` — the taller box is
+ * the click target, not the glyph. The reveal button is `1.8rem` tall, the height of the value line:
+ * a taller box would stretch the field from 3.4rem to 4rem and the password field
+ * would drift away from its neighbors in the form. And unlike the clear button and
+ * the stepper, the reveal button is reachable from the keyboard — there is nothing
+ * else to toggle the password with — so its focus ring gets an `outline` on top of
+ * the kit's shared `shadow-focus`: at that moment the field itself is lit by the
+ * very same glow (`:focus-within`), and one glow alone is invisible.
+ */
+
 // #region Imports
 // Types
 import type { IBricksInputProps, IBricksInputEmits } from './types.d.ts';
@@ -56,7 +72,8 @@ const {
 
 // #region Computed
 /**
- * Отображаемая ошибка: внешняя (vee-validate, сервер) приоритетнее внутренней.
+ * The error on screen: an external one (vee-validate, server) takes precedence
+ * over the internal one.
  */
 const displayedError = computed<string | null>(() => props.errorMessage || errorMessage.value);
 
@@ -255,7 +272,6 @@ const classList = computed(() => [
         color: var(--bricks-base-400);
     }
 
-    // Нативный спиннер number-инпута заменён кастомным степпером
     &::-webkit-inner-spin-button,
     &::-webkit-outer-spin-button {
         margin: 0;
@@ -300,9 +316,6 @@ const classList = computed(() => [
     }
 }
 
-// В отличие от clear-кнопки и степпера достижима с клавиатуры: переключить показ
-// пароля больше нечем. Высота равна строке значения (1.8rem) — бокс выше растянул бы
-// поле с 3.4rem до 4rem, и пароль разъехался бы с соседними полями формы.
 .revealButton {
     display: inline-flex;
     align-items: center;
@@ -322,8 +335,6 @@ const classList = computed(() => [
         color: var(--bricks-base-900);
     }
 
-    // Кольцо вдобавок к общему для кита shadow-focus: поле в этот момент само
-    // подсвечено тем же свечением (:focus-within), и одного свечения не видно.
     &:focus-visible {
         outline: 1px solid var(--bricks-primary);
         box-shadow: var(--bricks-shadow-focus);
@@ -353,7 +364,6 @@ const classList = computed(() => [
     pointer-events: auto;
 }
 
-// Видимый глиф 1.2rem (как в макете), высота 1.8rem — увеличенная зона клика
 .stepButton {
     display: inline-flex;
     align-items: center;

@@ -40,7 +40,7 @@ const cancelLabel = computed(() => props.cancelText || t('bricks.common.cancel')
 
 // #region Methods
 /**
- * Закрывает модалку подтверждения.
+ * Closes the confirmation modal.
  */
 function handleClose(): void {
     if (props.isLoading) {
@@ -50,7 +50,7 @@ function handleClose(): void {
 }
 
 /**
- * Подтверждает действие.
+ * Confirms the action.
  */
 function handleConfirm(): void {
     if (props.isLoading) {

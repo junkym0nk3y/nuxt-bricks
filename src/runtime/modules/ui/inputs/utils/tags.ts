@@ -1,18 +1,18 @@
 /**
- * Разделитель склеенного значения тегов.
+ * Separator of the joined tags value.
  *
- * Один и тот же для редактора (`BricksTagsEditor` меряет по нему лимит и
- * счётчик) и для формы, которая хранит теги строкой (`keywords` страницы):
- * разъедься они — счётчик показывал бы одну длину, а на сервер уезжала другая,
- * и отказ приходил бы уже после сохранения.
+ * The same one for the editor (`BricksTagsEditor` measures its limit and counter
+ * by it) and for the form that stores tags as a string (a page's `keywords`):
+ * should they drift apart, the counter would show one length while another one
+ * travels to the server, and the refusal would arrive only after the save.
  */
 export const TAGS_SEPARATOR = ', ';
 
 /**
- * Длина строки, в которую склеятся теги.
+ * Length of the string the tags will be joined into.
  *
- * @param tags - Список тегов.
- * @returns Число символов склеенного значения.
+ * @param tags - Tag list.
+ * @returns Character count of the joined value.
  */
 export function getTagsSerializedLength(tags: string[]): number {
     return tags.join(TAGS_SEPARATOR).length;

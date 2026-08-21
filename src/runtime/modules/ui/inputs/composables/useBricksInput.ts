@@ -19,12 +19,12 @@ import { validate } from 'vee-validate';
 // #endregion
 
 /**
- * Логика BricksInput: значение, санитизация, валидация VeeValidate,
- * clamp по blur и кастомный степпер number-инпута.
+ * BricksInput logic: value, sanitization, VeeValidate validation, clamping on
+ * blur and the custom stepper of a number input.
  *
- * @param props - Пропсы компонента (после withDefaults).
- * @param emit - Функция emit компонента.
- * @returns Состояние, атрибуты нативного input и обработчики.
+ * @param props - Component props (after withDefaults).
+ * @param emit - Component emit function.
+ * @returns State, native input attributes and handlers.
  */
 export function useBricksInput(
     props: IBricksInputProps,
@@ -95,8 +95,8 @@ export function useBricksInput(
 
     const showStepper = computed(() => props.type === 'number' && !props.disabled);
 
-    // Пустое поле скрывать нечего, а у выключенного кнопка была бы мёртвой:
-    // `_disabled` гасит pointer-events всему компоненту.
+    // An empty field has nothing to hide, and on a disabled one the button would
+    // be dead: `_disabled` kills pointer-events for the whole component.
     const showRevealButton = computed(
         () =>
             props.type === 'password' &&
@@ -142,7 +142,7 @@ export function useBricksInput(
      * Updates current value and triggers validation.
      *
      * @param nextValue - Value to set.
-     * @param target - Optional HTML input to sync sanitised value.
+     * @param target - Optional HTML input to sync the sanitized value to.
      */
     async function updateValue(nextValue: string, target?: HTMLInputElement): Promise<void> {
         const sanitised = sanitizeUserInput(nextValue, props.type, props.min);
@@ -203,14 +203,14 @@ export function useBricksInput(
     }
 
     /**
-     * Очищает значение (кнопка-крестик при clearable).
+     * Clears the value (the clear button shown when clearable).
      */
     function handleClear(): void {
         updateValue('');
     }
 
     /**
-     * Переключает показ пароля открытым текстом.
+     * Toggles showing the password as plain text.
      */
     function togglePasswordVisibility(): void {
         isPasswordVisible.value = !isPasswordVisible.value;

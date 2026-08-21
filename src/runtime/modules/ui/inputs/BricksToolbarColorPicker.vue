@@ -28,9 +28,9 @@ const props = withDefaults(
 // #region Data
 const triggerRef = ref<HTMLElement | null>(null);
 /**
- * Попап — компонент поверхности, а не div: `onClickOutside` разворачивает `$el`
- * сам (`unrefElement`), поэтому в списке исключений инстанс работает так же, как
- * элемент, но тип обязан это допускать.
+ * The popup is a surface component rather than a div: `onClickOutside` unwraps
+ * `$el` by itself (`unrefElement`), so in the ignore list an instance works just
+ * like an element — but the type has to allow for that.
  */
 const popupRef = ref<ComponentPublicInstance | null>(null);
 const isOpen = ref(false);
@@ -42,12 +42,12 @@ const { bottom: triggerBottom, left: triggerLeft } = useElementBounding(triggerR
 
 // #region Computed
 /**
- * Стили позиционирования popup.
+ * Positioning styles of the popup.
  *
- * Слой берётся из общей шкалы `--bricks-z-*`, а не числом: прежние 10001 стояли
- * выше всей шкалы (её верх — 1800), поэтому открытый пикер оставался поверх
- * блокировки сессии и лоадера, то есть ровно там, где всё остальное уже
- * заблокировано.
+ * The layer is taken from the shared `--bricks-z-*` scale rather than as a
+ * number: the previous 10001 stood above the whole scale (its top is 1800), so an
+ * open picker stayed on top of the session block and the loader — that is,
+ * exactly where everything else is already blocked.
  */
 const popupStyle = computed(() => ({
     position: 'fixed' as const,
@@ -59,7 +59,7 @@ const popupStyle = computed(() => ({
 
 // #region Methods
 /**
- * Переключает открытие/закрытие попапа.
+ * Toggles the popup open and closed.
  */
 function togglePopup(): void {
     isOpen.value = !isOpen.value;
@@ -70,7 +70,9 @@ function togglePopup(): void {
 }
 
 /**
- * Обрабатывает выбор цвета через нативный color picker.
+ * Handles a color choice made through the native color picker.
+ *
+ * @param event - Input event of the native picker.
  */
 function handleColorInput(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
@@ -80,7 +82,9 @@ function handleColorInput(event: Event): void {
 }
 
 /**
- * Обрабатывает ввод hex значения в текстовое поле.
+ * Handles a hex value typed into the text field.
+ *
+ * @param event - Input event.
  */
 function handleHexInput(event: Event): void {
     const raw = (event.target as HTMLInputElement).value.trim();
@@ -96,7 +100,9 @@ function handleHexInput(event: Event): void {
 }
 
 /**
- * Обрабатывает нажатия клавиш в hex поле.
+ * Handles key presses in the hex field.
+ *
+ * @param event - Keyboard event.
  */
 function handleKeydown(event: KeyboardEvent): void {
     if (event.key === 'Escape') {
@@ -156,7 +162,6 @@ watch(
                     :style="popupStyle"
                     @mousedown.prevent
                 >
-                    <!-- Native color picker -->
                     <div :class="$style.colorPickerRow">
                         <input
                             type="color"
@@ -167,7 +172,6 @@ watch(
                         />
                     </div>
 
-                    <!-- Hex input -->
                     <div :class="$style.hexInputRow">
                         <span :class="$style.hexLabel">HEX</span>
                         <input

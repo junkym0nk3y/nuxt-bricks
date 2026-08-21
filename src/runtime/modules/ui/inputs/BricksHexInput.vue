@@ -28,7 +28,7 @@ const emit = defineEmits<IBricksHexInputEmits>();
 // #region Data
 const { t } = useI18n();
 const $style = useCssModule();
-// локальное значение, чтобы валидировать/нормализовать ввод
+// Local value, so that the input can be validated and normalized
 const internal = ref(normalizeHex(props.value));
 const error = ref<string | null>(null);
 // #endregion

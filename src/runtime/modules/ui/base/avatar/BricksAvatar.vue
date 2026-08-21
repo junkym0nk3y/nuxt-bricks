@@ -1,21 +1,24 @@
 <script setup lang="ts">
 /**
- * @description Аватар учётки: фото из хранилища либо буква на подложке.
+ * @description Account avatar: either a photo from storage or a letter on a
+ * backing.
  *
- * Запасной вариант — не заглушка «нет фото», а полноценное состояние: фото
- * необязательно, и буква первого символа подписи отличает учётки друг от друга
- * в углу экрана и в списке. Одна формула на все размеры (кегль ≈ 40% диаметра,
- * округлённый до шага 0.2rem) — иначе буква у мелкого аватара оказывается
- * непропорционально крупной, и угол экрана «прыгает» при смене человека.
+ * The fallback is not a "no photo" placeholder but a state in its own right: a
+ * photo is optional, and the first character of the caption is what tells
+ * accounts apart in the corner of the screen and in a list. One formula for
+ * every size (font size around 40% of the diameter, rounded to the 0.2rem step)
+ * — otherwise the letter on a small avatar comes out disproportionately large,
+ * and the corner of the screen "jumps" as the person changes.
  *
- * Отказ загрузки фото (`@error`) возвращает букву: ссылка живёт в колонке
- * учётки, а файл лежит в хранилище отдельно — объект могли снести уборкой
- * бакета, и без этого в углу остался бы пустой квадрат вместо опознаваемой
- * буквы.
+ * A failed photo load (`@error`) brings the letter back: the link lives in the
+ * account column while the file sits in storage separately — the object could
+ * have been swept away by a bucket cleanup, and without this the corner would
+ * keep an empty square instead of a recognizable letter.
  *
- * Компонент декоративен (`aria-hidden`): имя владельца всегда есть рядом —
- * текстом в шапке меню и в модалке профиля, `aria-label`'ом у кнопки-триггера.
- * Второе прочтение того же имени скринридером ничего не добавляет.
+ * The component is decorative (`aria-hidden`): the owner's name is always right
+ * there — as text in the menu header and in the profile modal, as the
+ * `aria-label` of the trigger button. A second reading of the same name by a
+ * screen reader adds nothing.
  */
 
 // #region Imports
@@ -34,15 +37,16 @@ const props = withDefaults(defineProps<IBricksAvatarProps>(), {
 // #endregion
 
 // #region Data
-/** Фото не загрузилось — показываем букву. */
+/** The photo failed to load — the letter is shown instead */
 const hasImageError = ref(false);
 // #endregion
 
 // #region Computed
 /**
- * Первый символ подписи. `Array.from`, а не `[0]`: имя пишет человек, и первым
- * символом бывает эмодзи или буква вне BMP — индексация по code unit разрезала
- * бы её на половину суррогатной пары.
+ * First character of the caption. `Array.from` rather than `[0]`: the name is
+ * written by a person, and the first character is sometimes an emoji or a letter
+ * outside the BMP — indexing by code unit would cut it down to half a surrogate
+ * pair.
  */
 const initial = computed<string>(() => {
     const [first] = Array.from(props.name.trim());
@@ -55,7 +59,7 @@ const shouldShowImage = computed<boolean>(() => Boolean(props.imageUrl) && !hasI
 
 // #region Methods
 /**
- * Отмечает фото недоступным.
+ * Marks the photo as unavailable.
  */
 function handleImageError(): void {
     hasImageError.value = true;
@@ -63,9 +67,9 @@ function handleImageError(): void {
 // #endregion
 
 // #region Lifecycle
-// Смена ссылки снимает прежний отказ: компонент переиспользуется (угол экрана
-// живёт всю сессию), и после загрузки нового фото он иначе продолжал бы
-// показывать букву
+// A changed link clears the previous failure: the component is reused (the
+// corner of the screen lives for the whole session), and otherwise it would keep
+// showing the letter after a new photo had loaded
 watch(
     () => props.imageUrl,
     () => {
@@ -116,7 +120,6 @@ watch(
     color: var(--bricks-base-500);
 }
 
-/* Угол шапки: дашборд после «+ Пользователь», билдер после «Сохранить». */
 ._sm {
     width: 3.6rem;
     height: 3.6rem;
@@ -126,7 +129,6 @@ watch(
     }
 }
 
-/* Строка списка учёток и шапка меню профиля. */
 ._md {
     width: 4rem;
     height: 4rem;
@@ -136,7 +138,6 @@ watch(
     }
 }
 
-/* Модалка профиля. */
 ._lg {
     width: 9.6rem;
     height: 9.6rem;

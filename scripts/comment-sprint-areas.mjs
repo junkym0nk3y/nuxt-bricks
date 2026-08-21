@@ -70,7 +70,7 @@ export const AREAS = [
         // barrel, so it belongs to this area rather than to the build-time layer
         match: ['src/runtime/modules/common/', 'src/runtime/types.d.ts'],
     },
-    { id: '2', title: 'ui', done: false, match: ['src/runtime/modules/ui/'] },
+    { id: '2', title: 'ui', done: true, match: ['src/runtime/modules/ui/'] },
     {
         id: '3',
         title: 'layouts-blocks',

@@ -1,18 +1,23 @@
 <script setup lang="ts">
 /**
- * @description Пустое состояние: глиф, заголовок, пояснение и место под
- * действие.
+ * @description Empty state: a glyph, a title, a note and room for an action.
  *
- * Внешние отступы задаёт вызывающий своим классом — раздел дашборда отводит
- * состоянию `8rem` по вертикали, панель сайдбара всю свою высоту, а сетка
- * шаблонов растягивает его флексом. Собственный `padding` пришлось бы
- * перекрывать в каждом втором месте, и перекрытие класса классом решалось бы
- * порядком в стилях, а не намерением.
+ * The outer spacing is set by the caller through its own class — a dashboard
+ * section gives the state `8rem` vertically, a sidebar panel its whole height,
+ * and the template grid stretches it with flex. A `padding` of its own would
+ * have to be overridden in every other place, and overriding a class with a
+ * class would be decided by style order rather than by intent.
  *
- * Пустое состояние канваса сюда НЕ переезжает: там своя иллюстрация и
- * подсказка про перетаскивание, то есть это приглашение к действию, а не отчёт
- * «список пуст». По той же причине здесь нет кликабельного варианта, каким
- * сделаны заглушки «добавить первый пункт» в редакторах свойств.
+ * The canvas empty state does NOT move here: it has an illustration of its own
+ * and a hint about dragging, which makes it an invitation to act rather than a
+ * report that the list is empty. For the same reason there is no clickable
+ * variant here, the way the "add the first item" placeholders in property
+ * editors are built.
+ *
+ * The circle under the glyph belongs to the large size only: in a sidebar panel
+ * it takes up a third of the free height and turns the message into a banner.
+ * The description has a width ceiling — without it the text stretches across the
+ * whole section and reads as a 120-character line.
  */
 
 // #region Imports
@@ -66,8 +71,6 @@ const rootClasses = computed(() => [$style.BricksEmptyState, $style[`_${props.si
     text-align: center;
 }
 
-/* Круг под глифом — только у крупного размера: в панели сайдбара он занимает
-   треть свободной высоты и превращает сообщение в баннер. */
 .iconBox {
     display: flex;
     align-items: center;
@@ -115,8 +118,6 @@ const rootClasses = computed(() => [$style.BricksEmptyState, $style[`_${props.si
 }
 
 .description {
-    // Потолок ширины: без него описание растягивается на всю ширину раздела и
-    // читается строкой в 120 знаков
     max-width: 36rem;
     margin: 0;
 

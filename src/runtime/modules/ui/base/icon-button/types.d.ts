@@ -1,61 +1,69 @@
 /**
- * Поверхность, на которой стоит кнопка: от неё зависят рамка, фон и цвет глифа.
+ * The surface the button stands on: border, background and glyph color all
+ * depend on it.
  *
- * `outlined` — рамка на светлом фоне (строки списков, карточки, инструменты
- * редактора); `ghost` — без рамки, в плотной панели, где рамки соседей уже
- * рисуют сетку; `quiet` — приподнятая плашка без рамки (тулбар билдера, где
- * кнопка обязана читаться на собственном фоне панели); `overlay` — белый глиф
- * поверх тёмной вуали на миниатюре.
+ * `outlined` — a border on a light background (list rows, cards, editor tools);
+ * `ghost` — borderless, inside a dense panel where the borders of its neighbors
+ * already draw the grid; `quiet` — a raised borderless plate (the builder
+ * toolbar, where the button has to read against the panel's own background);
+ * `overlay` — a white glyph over a dark veil on a thumbnail. Its color is static
+ * in both themes: `base-900` would turn almost white on almost white in the dark
+ * theme. Its glyph is also larger than the rest — the veil covers a page
+ * thumbnail, and against that `1.4rem` gets lost.
  */
 export type TBricksIconButtonVariant = 'outlined' | 'ghost' | 'quiet' | 'overlay';
 
 /**
- * Сторона квадрата: `sm` 20 (крестик внутри чипа или таба), `md` 28, `lg` 32
- * (ряды действий и панели), `xl` 40 (тулбар — там кнопка стоит одна и крупнее
- * соседей по строке).
+ * Side of the square: `sm` 20 (a close button inside a chip or a tab), `md` 28,
+ * `lg` 32 (action rows and panels), `xl` 40 (the toolbar — there the button
+ * stands alone and larger than its row neighbors).
  */
 export type TBricksIconButtonSize = 'sm' | 'md' | 'lg' | 'xl';
 
 export type TBricksIconButtonTooltipSide = 'top' | 'bottom' | 'left' | 'right';
 
 export interface IBricksIconButtonProps {
-    /** Ключ глифа для `BricksIcon`. */
+    /** Glyph key for `BricksIcon` */
     icon: string;
     /**
-     * Доступное имя и текст тултипа. Обязательно: из одного глифа назначение
-     * кнопки не следует ни для скринридера, ни для глаза.
+     * Accessible name and tooltip text. Required: a single glyph does not imply
+     * what the button does, neither for a screen reader nor for the eye.
      */
     label: string;
     /**
-     * Текст тултипа, когда он не совпадает с именем: у закрытой кнопки подсказка
-     * объясняет ПРИЧИНУ запрета, но именем кнопки остаётся само действие.
+     * Tooltip text when it differs from the name: on a blocked button the hint
+     * explains the REASON for the block, while the button's name stays the
+     * action itself.
      */
     hint?: string;
     variant?: TBricksIconButtonVariant;
     size?: TBricksIconButtonSize;
-    /** Разрушающее действие: удаление, отключение. */
+    /** Destructive action: deletion, disabling */
     danger?: boolean;
     /**
-     * Состояние переключателя. Не задан — кнопка не переключатель и
-     * `aria-pressed` не получает вовсе, иначе скринридер объявил бы нажимаемым
-     * каждое обычное действие.
+     * Toggle state. Left unset, the button is not a toggle and gets no
+     * `aria-pressed` at all — otherwise a screen reader would announce every
+     * ordinary action as pressable.
      */
     active?: boolean;
-    /** Обычный запрет: кнопка уходит из обхода с клавиатуры. */
+    /** Plain block: the button leaves the keyboard tab order */
     disabled?: boolean;
     /**
-     * Запрет с причиной: кнопка остаётся фокусируемой, объявляется через
-     * `aria-disabled`, клик гасит обработчик. Нужен там, где причину запрета
-     * человеку надо прочитать, — выключенная кнопка унесла бы её с собой.
+     * Block with a reason: the button stays focusable, is announced via
+     * `aria-disabled`, and the handler swallows the click. Needed where the
+     * reason for the block has to be readable by a person — a disabled button
+     * would take it away with itself. Visually it dims exactly like `disabled`:
+     * two different opacities would not tell them apart anyway, and the reason is
+     * what the hint explains.
      */
     muted?: boolean;
-    /** Над кнопкой идёт операция: курсор ожидания вместо курсора отказа. */
+    /** An operation is running on the button: a waiting cursor, not a refusal one */
     busy?: boolean;
     /**
-     * Кнопка раскрывает поповер или меню: значение уезжает в `aria-expanded`, а
-     * сама кнопка объявляется как `aria-haspopup`. Не задан — кнопка ничего не
-     * раскрывает и атрибутов не получает вовсе, иначе скринридер объявлял бы
-     * раскрывающим каждое обычное действие.
+     * The button opens a popover or a menu: the value goes into `aria-expanded`,
+     * and the button itself is announced as `aria-haspopup`. Left unset, the
+     * button opens nothing and gets no such attributes at all — otherwise a
+     * screen reader would announce every ordinary action as expanding.
      */
     expanded?: boolean;
     tooltipSide?: TBricksIconButtonTooltipSide;

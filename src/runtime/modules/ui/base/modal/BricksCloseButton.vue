@@ -1,17 +1,20 @@
 <script setup lang="ts">
 /**
- * @description Кнопка закрытия модалки: только иконка, без текста.
+ * @description Modal close button: icon only, no text.
  *
- * Доступное имя компонент даёт себе сам. Иконка имени не образует, и без него
- * скринридер объявляет кнопку просто «кнопка» — единственный выход из окна
- * оказывается безымянным. Имя общее («Закрыть»), потому что оно и описывает
- * действие: чего именно кнопка закрывает, человеку сообщает заголовок окна, в
- * котором она стоит.
+ * The component gives itself its accessible name. An icon forms no name, and
+ * without one a screen reader announces the button as just "button" — the only
+ * way out of the window ends up nameless. The name is generic ("Close") because
+ * that is what describes the action: what exactly the button closes is told to a
+ * person by the title of the window it stands in.
  *
- * Перекрыть имя снаружи можно обычным `aria-label`: наследование атрибутов у
- * компонента включено, и внешнее значение заменяет внутреннее. Это нужно там,
- * где окон несколько уровней вложенности и «Закрыть» перестаёт быть
- * однозначным.
+ * The name can be overridden from the outside with a plain `aria-label`:
+ * attribute inheritance is on for the component, and an outer value replaces the
+ * inner one. That is needed where windows nest several levels deep and "Close"
+ * stops being unambiguous.
+ *
+ * The look is an exact implementation of the Figma Close Button node (174:190):
+ * `surface-raised` background, `0.8rem` radius, `base-600` icon, no border.
  */
 
 // #region Imports
@@ -39,7 +42,7 @@ const { t } = useI18n();
 
 // #region Methods
 /**
- * Пробрасывает клик наружу.
+ * Passes the click outwards.
  *
  * @param event - MouseEvent.
  */
@@ -62,8 +65,6 @@ function handleClick(event: MouseEvent): void {
 </template>
 
 <style module lang="scss">
-// Точная реализация узла Figma Close Button (174:190): фон surface-raised,
-// радиус 0.8rem, иконка base-600, без бордера.
 .BricksCloseButton {
     display: inline-flex;
     align-items: center;

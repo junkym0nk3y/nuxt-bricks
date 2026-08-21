@@ -88,8 +88,10 @@ dev-сообщения и 34 локальных `README.md`.
   к этому привёл». Нормативные формулировки оставлять нормативными:
   `common/utils/bricks/routePaths.ts` запрещает хардкод `/bricks` — в переводе это должно
   остаться запретом, а не описанием.
-- Орфография: **американская** (`behavior`, не `behaviour` — единственный существующий пример
-  использует британскую, её и переписать).
+- Орфография: **американская** (`behavior`, не `behaviour`). Три британских написания в уже
+  готовых английских комментариях переписаны в этапе 2 (`behaviour` в `BricksCheckbox.vue`,
+  `Sanitises`/`Sanitised` в `inputs/utils/bricksInput.ts`); в переводе следить за
+  `cancelled`, `towards`, `labelled`, `neighbouring` — они лезут сами.
 - `// #region` уже английские везде (~1 630 маркеров), кроме **9 в `src/module.ts`**
   (:99, :130, :146, :152, :165, :182, :203, :344, :351). У `:344` метка вдобавок обрезана —
   открытая скобка не закрыта.
@@ -107,43 +109,48 @@ dev-сообщения и 34 локальных `README.md`.
 
 ## Правила для template и style
 
-Секции `<template>` и `<style>` остаются без комментариев. **1 498 строк** к удалению
-(596 template в 73 файлах, 567 `<style>` в 93, 335 `.scss` в 8).
+Секции `<template>` и `<style>` остаются без комментариев. Остаток к удалению даёт
+колонка `tpl/style` гейта: **1 392 строки** после закрытия этапа 2 (`ui` унёс 218).
+Из них 329 — `.scss` этапа 10.
 
 **Шаг 1 — перенести, потом удалять.** ~110 строк несут знание, которого больше нигде нет.
 Переезжают в `<script setup>` (JSDoc на соответствующий `computed`/prop или блок в шапке
 файла), сразу по-английски. Обязательные к переносу:
 
-- `ui/base/modal/BricksModal.vue:120,135,143` — зачем `appear` у `<Transition>` для ленивых
-  модалок; почему `DialogContent` не вкладывается в `DialogOverlay`; почему
-  `bricks-modal-window` — глобальный класс.
-- `ui/inputs/BricksSelect.vue:112` и `render/pages/[pagename].vue:225` — **рационал, на
-  который опирается `test/module/accessibleNameUsages.spec.ts:73-75,84-86`**.
+- `render/pages/[pagename].vue:225` — **рационал, на который опирается
+  `test/module/accessibleNameUsages.spec.ts:73-75,84-86`** (парный ему
+  `ui/inputs/BricksSelect.vue` закрыт в этапе 2).
 - `render/components/RendererCloseButton.vue:61` — почему дубль `BricksCloseButton` законен
   (граница `render-lean`); это единственное объяснение того, что ассертит
   `test/render/rendererCloseButtonParity.spec.ts`.
-- `ui/base/tooltip/BricksTooltip.vue:141-143` и `ui/feedback/BricksToast.vue:340-342` — почему
-  keyframes живут в module-блоке (иначе Reka зависает на `closed`).
-- Замеры контраста: `ui/inputs/BricksTagsEditor.vue:337-339`, `ui/base/badge/BricksBadge.vue:95`.
-- `ui/base/modal/BricksCloseButton.vue:65-66` — единственная в коде ссылка на node макета `174:190`.
-- `layouts-blocks/components/BlockText.vue:108-111` — почему `@container` убраны;
-  `BlockMedia.vue:84`, `BlockSlider.vue:288`, `ui/base/image/BricksImage.vue:348,362`,
-  `BricksModalHeader.vue:69`, `BricksActionButton.vue:101`, `BricksSwitch.vue:132-136`,
-  `ui/base/surface/BricksSurfaceCard.vue:78,98,104`, `ui/base/tabs/BricksTabBar*.vue`.
+- `layouts-blocks/components/BlockText.vue:108-111` — почему `@container` убраны; плюс
+  `BlockMedia.vue:84` и `BlockSlider.vue:288`.
+
+Опыт этапа 2 по переносу (действует дальше):
+
+- **Переносить не обязательно в `<script>`.** Если тот же факт уже описан в соседнем
+  `types.d.ts`, знание доносится туда, а не копируется в компонент: запрет на дубль
+  рационала соседнего файла сильнее буквы «переезжает в `<script setup>`».
+- **Шапка компонента — не свалка.** После переноса всего рационала `BricksImage`
+  получил шестидесятистрочную шапку, повторяющую то, что объяснено у самого кода;
+  ревью справедливо назвало это нарушением DRY. Факт кладётся к ближайшему
+  `computed`/`ref`, в шапку — только то, что не привязано к одному месту.
+- **Удаление комментария из блока объявлений оставляет пустую строку**, которую
+  стандартный `declaration-empty-line-before` считает нарушением: прежде её прикрывал
+  `ignore: ["after-comment"]`. Убирать сразу — тогда `sl:fix` не нужен вовсе (в этапе 2
+  предсказанного покраснения stylelint не случилось).
+- **Ничего не переставлять в CSS ради линтера.** Перестановка свойств — правка кода, и
+  `--diff` её показывает; в этапе 2 правило оказалось зелёным и без неё.
 
 **Шаг 2 — удалить всё остальное**, кроме жёсткого allow-list:
 
-| Оставить дословно                                      | Причина                                                                                                             |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| `layouts-blocks/components/BlockSvg.vue:110,117`       | `eslint-disable`/`enable vue/no-v-html`                                                                             |
-| `layouts-blocks/components/BlockAccordion.vue:116,140` | `eslint-disable-next-line vue/no-v-html`                                                                            |
-| `ui/base/checkbox/BricksCheckbox.vue:151,154`          | `stylelint-disable`/`enable` — иначе `-webkit-mask-image` валит `property-no-vendor-prefix`                         |
-| `assets/scss/common/_normalize.scss:16,191`            | `stylelint-disable`/`enable` — прикрывает **175 строк вендоренного normalize.css**; удаление зальёт сборку ошибками |
-| `assets/scss/common/_normalize.scss:1-13`              | атрибуция MIT для вендоренного кода                                                                                 |
-
-`BricksCheckbox.vue:152` `/* postcss-ignore-line */` — в этой цепочке инструментов директивы
-нет ни у stylelint, ни у postcss. Проверить `sl:check` до/после; если инертна — удалить,
-пару `stylelint-disable` оставить.
+| Оставить дословно                                      | Причина                                                                                                                                                               |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `layouts-blocks/components/BlockSvg.vue:110,117`       | `eslint-disable`/`enable vue/no-v-html`                                                                                                                               |
+| `layouts-blocks/components/BlockAccordion.vue:116,140` | `eslint-disable-next-line vue/no-v-html`                                                                                                                              |
+| `ui/base/checkbox/BricksCheckbox.vue:151,154`          | `stylelint-disable`/`enable` — иначе `-webkit-mask-image` валит `order/properties-order`; проверено в этапе 2 (`property-no-vendor-prefix` в `.stylelintrc` выключен) |
+| `assets/scss/common/_normalize.scss:16,191`            | `stylelint-disable`/`enable` — прикрывает **175 строк вендоренного normalize.css**; удаление зальёт сборку ошибками                                                   |
+| `assets/scss/common/_normalize.scss:1-13`              | атрибуция MIT для вендоренного кода                                                                                                                                   |
 
 **Шаг 3 — SCSS `public/**` → README.** 94 строки SassDoc (`mixins.scss:1-15`,
 `public/\_devices.scss:1-27,32-34,41-48`и 9 блоков с`@param`/`@return`для`device-width`,
@@ -172,12 +179,11 @@ sass не ребейзит `url()`, `woff2`ломается в`dist`), `common/f
 
 ### Фаза A — фундамент
 
-| №   | Область          | Объём    | Заметки                                                                                                                                                                                                                                          |
-| --- | ---------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 2   | `ui`             | 882 + 39 | Полная чистка template/style + перенос рационала (список выше). `BricksImage.vue` — 105-строчный `@description` о трёхстадийной загрузке. Фактчек: `ui/base/button/BricksButton.vue:246` `// Modifiers from new_ui` — `new_ui` в репозитории нет |
-| 3   | `layouts-blocks` | 602 + 5  | Inline-тяжёлый (100 строк `//`), много CSS-рационала. allow-list `BlockSvg`/`BlockAccordion`. Ловушка №2 (`deviceVisibilityCss.ts`)                                                                                                              |
-| 4   | `text-editor`    | 361 + 2  | Короткие тактические заметки об обходах TipTap                                                                                                                                                                                                   |
-| 5   | `render`         | 566 + 2  | ⚠️ Инверсия формы: 163 строки inline `//` против 27 JSDoc — пошаговые комментарии внутри функций дрейфуют быстрее всего, самый урожайный фактчек. `useRendererDataSources.ts` 92, `useBricksDataSources.ts` 75                                   |
+| №   | Область          | Объём   | Заметки                                                                                                                                                                                                        |
+| --- | ---------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 3   | `layouts-blocks` | 602 + 5 | Inline-тяжёлый (100 строк `//`), много CSS-рационала. allow-list `BlockSvg`/`BlockAccordion`. Ловушка №2 (`deviceVisibilityCss.ts`)                                                                            |
+| 4   | `text-editor`    | 361 + 2 | Короткие тактические заметки об обходах TipTap                                                                                                                                                                 |
+| 5   | `render`         | 566 + 2 | ⚠️ Инверсия формы: 163 строки inline `//` против 27 JSDoc — пошаговые комментарии внутри функций дрейфуют быстрее всего, самый урожайный фактчек. `useRendererDataSources.ts` 92, `useBricksDataSources.ts` 75 |
 
 ### Фаза B — сервер и сборка
 

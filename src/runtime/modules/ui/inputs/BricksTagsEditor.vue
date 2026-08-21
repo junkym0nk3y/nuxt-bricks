@@ -1,4 +1,15 @@
 <script setup lang="ts">
+/**
+ * @description Tag editor: chips plus an input field in one box.
+ *
+ * The chip shell is `BricksBadge` — the same look as the status badges. The
+ * earlier pair of `primary-100` + `primary-700` gave a contrast of about 2:1 in
+ * the dark theme (#1e2d4d under #1d4ed8): both ends of the scale are dark there,
+ * and the tag did not read. For the same reason the remove button highlights in
+ * white rather than in `danger-500`: red on a blue fill fails contrast just as
+ * the tag itself did.
+ */
+
 // #region Imports
 // Types
 import type { IBricksTagsEditorProps, IBricksTagsEditorEmits } from './types.d.ts';
@@ -34,13 +45,13 @@ const { t } = useI18n();
 const $style = useCssModule();
 const inputValue = ref('');
 const inputRef = ref<HTMLInputElement | null>(null);
-/** Отказ по лимиту: живёт до следующего успешного изменения набора тегов. */
+/** Limit refusal: lives until the next successful change of the tag set */
 const limitMessage = ref('');
 /**
- * Последний набор, отданный наружу. По нему приход нового `modelValue`
- * отличается от внешней подмены (сброс формы, переключение страницы): своё
- * эхо оставляет недописанный хвост в поле, чужое — очищает его вместе с
- * отказом по лимиту, иначе они переехали бы в чужой контекст.
+ * The last set sent outwards. It is what tells an incoming `modelValue` apart
+ * from an external substitution (a form reset, a page switch): our own echo
+ * leaves the unfinished tail in the field, someone else's clears it along with
+ * the limit refusal, which would otherwise travel into a foreign context.
  */
 let lastEmittedTags: string[] | null = null;
 // #endregion
@@ -50,15 +61,15 @@ const displayPlaceholder = computed<string>(
     () => props.placeholder || t('bricks.properties.gallery.tagPlaceholder')
 );
 
-/** Внешняя ошибка приоритетнее собственного отказа по лимиту. */
+/** An external error takes precedence over the editor's own limit refusal */
 const displayedError = computed<string>(() => props.errorMessage || limitMessage.value);
 // #endregion
 
 // #region Methods
 /**
- * Отдаёт новый набор тегов наружу, запоминая его как своё эхо.
+ * Sends the new tag set outwards, remembering it as our own echo.
  *
- * @param tags - Новый набор тегов.
+ * @param tags - New tag set.
  */
 function emitTags(tags: string[]): void {
     lastEmittedTags = tags;
@@ -66,21 +77,21 @@ function emitTags(tags: string[]): void {
 }
 
 /**
- * Сравнивает наборы тегов поэлементно.
+ * Compares tag sets element by element.
  *
- * @param first - Первый набор.
- * @param second - Второй набор.
- * @returns Совпадают ли наборы.
+ * @param first - First set.
+ * @param second - Second set.
+ * @returns Whether the sets match.
  */
 function isSameTags(first: string[], second: string[]): boolean {
     return first.length === second.length && first.every((tag, index) => tag === second[index]);
 }
 
 /**
- * Проверяет, помещается ли набор тегов в предел склеенного значения.
+ * Checks whether a tag set fits within the limit of the joined value.
  *
- * @param tags - Проверяемый набор тегов.
- * @returns Помещается ли набор (без maxLength — всегда true).
+ * @param tags - Tag set to check.
+ * @returns Whether the set fits (always true without maxLength).
  */
 function fitsLimit(tags: string[]): boolean {
     if (!props.maxLength) {
@@ -91,13 +102,13 @@ function fitsLimit(tags: string[]): boolean {
 }
 
 /**
- * Добавляет теги из введённого текста: trim, отбрасывание пустых и дублей.
- * На первом теге, который не влезает в лимит, останавливается — он и всё,
- * что за ним, возвращается вызывающему, чтобы остаться в поле ввода: молча
- * съеденный ввод выглядел бы как потеря текста.
+ * Adds tags from the entered text: trimming, dropping empties and duplicates. It
+ * stops at the first tag that does not fit the limit — that tag and everything
+ * after it is returned to the caller to stay in the input field: input swallowed
+ * silently would look like lost text.
  *
- * @param parts - Части введённого текста, разделённые запятой.
- * @returns Непринятый остаток (пустая строка — принято всё).
+ * @param parts - Parts of the entered text, split by comma.
+ * @returns The unaccepted remainder (an empty string means everything was taken).
  */
 function commitTags(parts: string[]): string {
     const next = [...props.modelValue];
@@ -135,7 +146,7 @@ function commitTags(parts: string[]): string {
 }
 
 /**
- * Фиксирует введённый текст целиком (Enter, blur, кнопка «плюс»).
+ * Commits the entered text as a whole (Enter, blur, the plus button).
  */
 function addTag(): void {
     if (!inputValue.value.trim()) {
@@ -146,16 +157,16 @@ function addTag(): void {
 }
 
 /**
- * Обрабатывает ввод: запятая — разделитель, поэтому всё до последней запятой
- * превращается в чипы сразу (в том числе при вставке `a, b, c`), а хвост после
- * неё остаётся в поле — его пользователь ещё дописывает.
+ * Handles input: a comma is the separator, so everything before the last comma
+ * turns into chips right away (pasting `a, b, c` included), while the tail after
+ * it stays in the field — the person is still typing it.
  *
- * @param event - Событие ввода.
+ * @param event - Input event.
  */
 function handleInput(event: Event): void {
-    // Пробел после запятой — часть разделителя, а не начало следующего тега:
-    // при вводе по символу он приходит отдельным событием и иначе оставался бы
-    // в поле отступом перед каждым следующим словом
+    // A space after a comma is part of the separator, not the start of the next
+    // tag: when typing character by character it arrives as a separate event and
+    // would otherwise stay in the field as an indent before every next word
     const value = (event.target as HTMLInputElement).value.trimStart();
     if (!value.includes(',')) {
         inputValue.value = value;
@@ -175,9 +186,9 @@ function handleInput(event: Event): void {
 }
 
 /**
- * Удаляет тег по индексу.
+ * Removes a tag by index.
  *
- * @param index - Индекс тега для удаления.
+ * @param index - Index of the tag to remove.
  */
 function removeTag(index: number): void {
     const next = [...props.modelValue];
@@ -187,9 +198,9 @@ function removeTag(index: number): void {
 }
 
 /**
- * Обрабатывает нажатие Enter в поле ввода.
+ * Handles an Enter press in the input field.
  *
- * @param event - Событие клавиатуры.
+ * @param event - Keyboard event.
  */
 function handleKeydown(event: KeyboardEvent): void {
     if (event.key === 'Enter') {
@@ -197,14 +208,14 @@ function handleKeydown(event: KeyboardEvent): void {
         addTag();
     }
 
-    // Backspace на пустом инпуте — удаляем последний тег
+    // Backspace on an empty input removes the last tag
     if (event.key === 'Backspace' && !inputValue.value && props.modelValue.length > 0) {
         removeTag(props.modelValue.length - 1);
     }
 }
 
 /**
- * Фокусирует поле ввода при клике на контейнер.
+ * Focuses the input field when the container is clicked.
  */
 function focusInput(): void {
     inputRef.value?.focus();
@@ -212,8 +223,8 @@ function focusInput(): void {
 // #endregion
 
 // #region Lifecycle
-// Набор подменили снаружи (отмена правок, переход на другую страницу) —
-// недописанный хвост и отказ по лимиту относятся к прежнему значению
+// The set was substituted from the outside (edits undone, a move to another
+// page) — the unfinished tail and the limit refusal belong to the previous value
 watch(
     () => props.modelValue,
     (next) => {
@@ -334,9 +345,6 @@ watch(
     gap: 0.4rem;
 }
 
-// Оболочка чипа — `BricksBadge`: тот же вид, что у плашек статуса. Прежняя пара
-// primary-100 + primary-700 в тёмной теме давала контраст около 2:1
-// (#1e2d4d под #1d4ed8): оба конца шкалы там тёмные, и тег не читался
 .tagText {
     overflow: hidden;
     max-width: 12rem;
@@ -358,8 +366,6 @@ watch(
     transition: background-color var(--bricks-default-transition);
     cursor: pointer;
 
-    // Подсветка белым, а не danger-500: красный на синей заливке проваливается
-    // по контрасту так же, как проваливался сам тег
     &:hover {
         background-color: rgb(from var(--bricks-static-white) r g b / 24%);
     }

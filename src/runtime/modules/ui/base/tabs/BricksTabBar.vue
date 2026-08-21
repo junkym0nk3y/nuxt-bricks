@@ -1,23 +1,36 @@
 <script setup lang="ts">
 /**
- * @description Сегментированный переключатель: один компонент вместо самописных
- * рядов кнопок и чипов. Четыре стиля (`segmented`, `outline`, `underline`,
- * `ghost`), клавиатура и семантика группы — общие для всех потребителей.
+ * @description Segmented switch: one component instead of hand-written rows of
+ * buttons and chips. Four variants (`segmented`, `outline`, `underline`,
+ * `ghost`), the keyboard and the group semantics are shared by every consumer.
  *
- * Группа кнопок, а не вкладки. Роли `tablist`/`tab` обещают скринридеру панель
- * на каждую вкладку, но панелей здесь нет ни у одного потребителя: выбор
- * переключает режим канваса или фильтрует уже видимый список. Поэтому под
- * капотом `ToggleGroupRoot` (`role="group"`, у кнопок `aria-pressed`), а не
- * `TabsRoot`. Побочно это убрало и ловушку вкладок: `Tabs` активирует таб при
- * получении фокуса, поэтому переход табом внутрь группы менял значение сам по
- * себе; `ToggleGroup` меняет его только по клику или Enter/Space.
+ * A group of buttons, not tabs. The `tablist`/`tab` roles promise a screen
+ * reader a panel per tab, but none of the consumers here has panels: the choice
+ * switches a canvas mode or filters an already visible list. Hence
+ * `ToggleGroupRoot` under the hood (`role="group"`, `aria-pressed` on the
+ * buttons) rather than `TabsRoot`. As a side effect that also removed the tab
+ * trap: `Tabs` activates a tab on receiving focus, so tabbing into the group
+ * changed the value by itself; `ToggleGroup` changes it only on a click or
+ * Enter/Space.
  *
- * Поведение (roving tabindex, стрелки по кругу, Home/End, пропуск выключенных,
- * RTL) даёт reka-ui — на ней в проекте уже собраны чекбокс, селект и модалка.
- * Наша часть — только пропы, разметка кнопки и стили.
+ * The behavior (roving tabindex, arrow keys wrapping around, Home/End, skipping
+ * disabled ones, RTL) comes from reka-ui — the checkbox, the select and the modal
+ * in this project are already built on it. Our part is only the props, the button
+ * markup and the styles.
  *
- * Тултипу нужен `role="presentation"` на обёртке: без него лишний элемент
- * встаёт между группой и кнопкой и мешает читать их как одно целое.
+ * The tooltip needs `role="presentation"` on its wrapper: without it an extra
+ * element stands between the group and the button and gets in the way of reading
+ * them as one whole.
+ *
+ * Style notes that the markup no longer says out loud: `_wrap` wraps lines
+ * instead of overflowing the container, because the bar has no width of its own
+ * and tabs do not wrap by words (`white-space: nowrap`); the bar radius equals
+ * the tab radius plus its padding, so at `radius="sm"` the tab takes `1rem` and
+ * the bar needs `1.2rem`, otherwise the corners drift apart; and `_ghost` has no
+ * bar at all — the row stands directly on the background of its neighbors (the
+ * bottom canvas bar is one panel shared with the zoom and history buttons), and
+ * only the active tab gets a backing. With a segmented bar such a row would fall
+ * apart into two blocks.
  */
 
 // #region Imports
@@ -72,10 +85,10 @@ const classList = computed(() => ({
 
 // #region Methods
 /**
- * Собирает пропсы элемента: разметка таба одинакова для обеих веток шаблона
- * (с тултипом и без), поэтому пропсы считаются в одном месте.
+ * Assembles the props of an element: the tab markup is the same for both template
+ * branches (with and without a tooltip), so the props are computed in one place.
  *
- * @param item - Описание таба.
+ * @param item - Tab description.
  */
 function getItemProps(item: IBricksTabItem): IBricksTabBarItemProps {
     return {
@@ -90,20 +103,20 @@ function getItemProps(item: IBricksTabItem): IBricksTabBarItemProps {
 }
 
 /**
- * Отдаёт выбор наверх. Отсекаются два случая, в которых группа сообщает о
- * событии, но выбор не меняется:
+ * Sends the choice upwards. Two cases are cut off, in which the group reports an
+ * event but the choice does not change:
  *
- * 1. `undefined` — повторное нажатие на выбранную кнопку. `ToggleGroup` считает
- *    это снятием выбора, а группа режимов не может остаться пустой: канвас без
- *    вьюпорта и список без фильтра не имеют смысла.
- * 2. То же значение — потребители отвечают на обновление запросом или
- *    перерисовкой, и лишний повтор стоил бы им лишней работы.
+ * 1. `undefined` — pressing the selected button again. `ToggleGroup` treats that
+ *    as clearing the selection, and a group of modes cannot stay empty: a canvas
+ *    without a viewport and a list without a filter make no sense.
+ * 2. The same value — consumers answer an update with a request or a repaint, and
+ *    an extra repeat would cost them extra work.
  *
- * Параметр объявлен как `unknown`: `ToggleGroup` типизирует событие под оба
- * режима сразу (в `multiple` приходит массив), поэтому сузить его до строки
- * можно только проверкой на месте.
+ * The parameter is declared as `unknown`: `ToggleGroup` types the event for both
+ * modes at once (in `multiple` an array arrives), so narrowing it to a string is
+ * only possible with a check on the spot.
  *
- * @param value - Значение нажатой кнопки; при снятии выбора приходит пустое.
+ * @param value - Value of the pressed button; empty when the selection is cleared.
  */
 function handleValueChange(value: unknown): void {
     if (typeof value !== 'string' || value === props.modelValue) {
@@ -154,8 +167,6 @@ function handleValueChange(value: unknown): void {
         width: 100%;
     }
 
-    /* Перенос строк вместо вылезания за край контейнера: у дорожки нет своей
-       ширины, а табы не переносятся по словам (`white-space: nowrap`). */
     &._wrap {
         flex-wrap: wrap;
     }
@@ -166,16 +177,11 @@ function handleValueChange(value: unknown): void {
         border-radius: var(--bricks-border-radius-xs);
         background: var(--bricks-base-100);
 
-        /* Скругление дорожки = скругление таба + её паддинг: при radius="sm" таб
-           берёт 1rem, значит дорожке нужно 1.2rem, иначе углы разъезжаются. */
         &._radiusSm {
             border-radius: calc(var(--bricks-border-radius-sm) + 0.2rem);
         }
     }
 
-    /* Дорожки нет вовсе: ряд стоит прямо на фоне соседей (нижний бар канваса —
-       общая панель с кнопками зума и истории), подложку получает только активный
-       таб. С дорожкой segmented такой ряд распадался бы на два блока. */
     &._ghost {
         gap: 0.2rem;
     }

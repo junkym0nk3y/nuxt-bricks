@@ -1,19 +1,20 @@
 <script setup lang="ts">
 /**
- * @description Складная секция: строка-заголовок с шевроном и содержимое под
- * ней. Содержимое монтируется только на открытии — секции в проекте тянут
- * данные (список версий) и держат файловый инпут, поэтому скрывать их атрибутом
- * `hidden` значило бы держать это живым в закрытом состоянии.
+ * @description Collapsible section: a title row with a chevron and the content
+ * underneath. The content mounts only when open — sections in this project fetch
+ * data (the version list) and hold a file input, so hiding them with the
+ * `hidden` attribute would mean keeping all that alive while closed.
  *
- * Состояние контролируемое: три из четырёх мест, откуда секция собрана,
- * открывают её сами (маршрутизация раскрывается, если у страницы задан префикс;
- * версии закрываются при смене страницы), то есть владеть открытостью компонент
- * не может.
+ * The state is controlled: three of the four places the section is assembled
+ * from open it themselves (routing expands if the page has a prefix set;
+ * versions collapse when the page changes), which means the component cannot own
+ * openness.
  *
- * `aria-expanded` и `aria-controls` — то, чего не было ни в одной из копий: без
- * них скринридер читал заголовок как обычную кнопку и не сообщал, что она
- * что-то раскрывает. `aria-controls` привязывается только в открытом состоянии:
- * в закрытом содержимого в разметке нет, и ссылка вела бы в пустоту.
+ * `aria-expanded` and `aria-controls` are what none of the copies had: without
+ * them a screen reader read the title as an ordinary button and did not report
+ * that it expands anything. `aria-controls` is bound only in the open state:
+ * while closed there is no content in the markup, and the reference would point
+ * into nothing.
  */
 
 // #region Imports
@@ -34,16 +35,16 @@ const emit = defineEmits<IBricksDisclosureEmits>();
 
 // #region Data
 /**
- * Идентификатор содержимого для `aria-controls`. `useId` здесь на месте — он
- * решает ровно задачу стабильного между сервером и клиентом id DOM-атрибута
- * (в отличие от персистируемых id схемы, где он не годится).
+ * Content identifier for `aria-controls`. `useId` is the right tool here — it
+ * solves exactly the problem of a DOM attribute id that stays stable between
+ * server and client (unlike persisted schema ids, where it does not fit).
  */
 const contentId = useId();
 // #endregion
 
 // #region Methods
 /**
- * Просит хозяина состояния перевернуть открытость.
+ * Asks the owner of the state to flip openness.
  */
 function handleToggle(): void {
     emit('update:value', !props.value);

@@ -1,13 +1,20 @@
 <script setup lang="ts">
 /**
- * @description Одна кнопка таб-бара. Отдельным компонентом — чтобы кнопка с
- * тултипом и кнопка без него описывались одной разметкой: тултип оборачивает
- * активатор в собственный элемент, и без выделенного компонента пришлось бы
- * дублировать разметку.
+ * @description A single tab bar button. A component of its own so that a button
+ * with a tooltip and a button without one are described by the same markup: the
+ * tooltip wraps its activator into an element of its own, and without a dedicated
+ * component the markup would have to be duplicated.
  *
- * Корень — `ToggleGroupItem` из reka-ui: он ставит `aria-pressed`, `tabindex` и
- * `data-state`, поэтому выбранное состояние стили берут из `[data-state='on']`,
- * а не из собственного класса.
+ * The root is `ToggleGroupItem` from reka-ui: it sets `aria-pressed`, `tabindex`
+ * and `data-state`, which is why the styles take the selected state from
+ * `[data-state='on']` rather than from a class of their own.
+ *
+ * Two geometry rules the styles no longer explain themselves: a `segmented` tab
+ * is `0.2rem` smaller in radius than its bar, because the bar's padding eats the
+ * difference and the inner corner then matches the outer one (otherwise the pill
+ * looks crookedly inscribed); and `ghost` follows the buttons next to it
+ * (`BricksButton variant="ghost"`) — neither the row nor an inactive tab has a
+ * background, and a backing appears only under hover and selection.
  */
 
 // #region Imports
@@ -42,9 +49,10 @@ const classList = computed(() => ({
 }));
 
 /**
- * Доступное имя кнопки без подписи: в разметке текста нет, поэтому берём его из
- * `label` — он обязателен как раз ради этого случая. Тултип запасным вариантом
- * не служит: он необязателен, и кнопка осталась бы безымянной.
+ * Accessible name of a button without a caption: there is no text in the markup,
+ * so it is taken from `label` — which is required for exactly this case. The
+ * tooltip does not serve as a fallback: it is optional, and the button would have
+ * stayed nameless.
  */
 const ariaLabel = computed<string | undefined>(() =>
     props.iconOnly ? props.item.label : undefined
@@ -133,8 +141,6 @@ const ariaLabel = computed<string | undefined>(() =>
     }
 
     &._segmented {
-        /* Таб на 0.2rem меньше дорожки: её паддинг съедает разницу, и внутренний
-           угол совпадает с внешним. Иначе пилюля выглядит вписанной криво. */
         border-radius: calc(var(--bricks-border-radius-xs) - 0.2rem);
 
         &:not([data-state='on'], :disabled):hover {
@@ -171,8 +177,6 @@ const ariaLabel = computed<string | undefined>(() =>
         }
     }
 
-    /* Как у кнопок рядом (`BricksButton variant="ghost"`): фона нет ни у ряда, ни
-       у неактивных табов, подложка появляется только под наведением и выбором. */
     &._ghost {
         border-radius: var(--bricks-border-radius-xs);
         color: var(--bricks-base-600);

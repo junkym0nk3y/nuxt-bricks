@@ -1,4 +1,28 @@
 <script setup lang="ts">
+/**
+ * @description Select field: a reka select with the kit's own trigger and
+ * dropdown surface.
+ *
+ * The label arrives as a prop rather than as an attribute: attribute inheritance
+ * is off (`inheritAttrs: false`) and the component root is not a DOM node, so an
+ * outer `aria-label` has nowhere to land anyway. An empty value creates no
+ * attribute: `aria-label=""` gives no name while stopping the browser from taking
+ * one from other sources. That the callers actually pass it is guarded by
+ * `test/module/accessibleNameUsages.spec.ts`.
+ *
+ * The dropdown content is composed through `as-child`: the surface node and the
+ * reka node are one and the same, otherwise the positioning and `data-state`
+ * would end up on the outer wrapper and the look on the inner one.
+ *
+ * Two style decisions the CSS no longer explains. The field is flex, not block:
+ * the caption inside is an inline element, and its line box picked up the height
+ * of the parent's strut plus the baseline's descender gap, which made the field
+ * 39 against `BricksInput`'s 36 and left the text above center; with flex the
+ * height is computed from the padding and the line, as in an input. And the
+ * visible part of the chevron triangle is the upper half of its `0.8rem` box, so
+ * it is centered with `translateY(25%)` downwards rather than by the box center.
+ */
+
 // #region Imports
 // Types
 import type { IBricksSelectProps, IBricksSelectEmits } from './types.d.ts';
@@ -46,28 +70,28 @@ const $style = useCssModule();
 const isOpened = ref(false);
 
 /**
- * Reka UI запрещает SelectItem с value === '' (пустая строка зарезервирована
- * под сброс выбора). Пустые значения опций ('По-умолчанию' и т.п.) подменяем
- * sentinel-значением внутри селекта и возвращаем '' наружу при выборе.
+ * Reka UI forbids a SelectItem with value === '' (the empty string is reserved
+ * for clearing the selection). Empty option values ("Default" and the like) are
+ * swapped for a sentinel inside the select and turned back into '' on the way out.
  */
 const EMPTY_VALUE_SENTINEL = '__bricks-select-empty__';
 // #endregion
 
 // #region Computed
 /**
- * Select заблокирован, если передан disabled или список опций пуст.
+ * The select is blocked if `disabled` was passed or the option list is empty.
  */
 const isDisabled = computed(() => toValue(props.disabled) || toValue(props.specs)?.length === 0);
 
 /**
- * Возвращает label выбранной опции для отображения в триггере.
+ * Returns the label of the selected option for display in the trigger.
  */
 const selectedLabel = computed(
     () => props.specs.find((spec) => props.value === spec.value)?.label ?? ''
 );
 
 /**
- * Классы состояния, совместимые с прежней разметкой.
+ * State classes, compatible with the previous markup.
  */
 const classList = computed(() => [
     {
@@ -80,19 +104,19 @@ const classList = computed(() => [
 
 // #region Methods
 /**
- * Подменяет пустую строку sentinel-значением для Reka UI.
+ * Swaps an empty string for the sentinel value Reka UI needs.
  *
- * @param value - Внешнее значение опции.
+ * @param value - External option value.
  */
 function toInternalValue(value: unknown): AcceptableValue {
     return (value === '' ? EMPTY_VALUE_SENTINEL : value) as AcceptableValue;
 }
 
 /**
- * Обрабатывает выбор опции и пробрасывает значение наружу,
- * возвращая sentinel обратно в пустую строку.
+ * Handles the option choice and passes the value outwards, turning the sentinel
+ * back into an empty string.
  *
- * @param value - Значение выбранной опции.
+ * @param value - Value of the selected option.
  */
 function onUpdate(value: AcceptableValue): void {
     const external = value === EMPTY_VALUE_SENTINEL ? '' : value;
@@ -109,24 +133,12 @@ function onUpdate(value: AcceptableValue): void {
         @update:open="isOpened = $event"
     >
         <div :class="[$style.BricksSelect, classList]">
-            <!--
-                Подпись приходит пропом, а не атрибутом: наследование атрибутов
-                отключено (`inheritAttrs: false`), а корень компонента — не
-                DOM-узел, так что упасть внешнему `aria-label` всё равно некуда.
-                Пустое значение атрибут не создаёт: `aria-label=""` имени не даёт,
-                зато мешает браузеру взять его из других источников.
-            -->
             <SelectTrigger :class="$style.field" :aria-label="props.ariaLabel || undefined">
                 <SelectValue :class="$style.nativeInput">{{ selectedLabel }}</SelectValue>
             </SelectTrigger>
         </div>
 
         <SelectPortal>
-            <!--
-                `as-child`: узел поверхности и узел reka — один и тот же, иначе
-                позиционирование и `data-state` оказались бы на внешней обёртке,
-                а вид — на внутренней.
-            -->
             <SelectContent as-child position="popper" :side-offset="4">
                 <BricksPopoverSurface :class="$style.dropdown">
                     <SelectViewport class="bricks-scrollbox" :class="$style.optionsWrapper">
@@ -151,10 +163,6 @@ function onUpdate(value: AcceptableValue): void {
     position: relative;
     user-select: none;
 
-    /* Flex, а не block: подпись внутри — inline-элемент, и её line-box набирал
-       высоту по strut'у родителя плюс подстрочный зазор baseline'а, из-за чего
-       поле выходило 39 против 36 у `BricksInput` и текст сидел выше центра.
-       С флексом высота считается по паддингам и строке, как у поля ввода. */
     .field {
         position: relative;
         display: flex;
@@ -176,8 +184,6 @@ function onUpdate(value: AcceptableValue): void {
             background-color: var(--bricks-surface-raised);
         }
 
-        // Видимая часть треугольника — верхняя половина бокса 0.8rem,
-        // поэтому центровка через translateY(25%) вниз, а не по центру бокса
         &:after {
             content: '';
             position: absolute;

@@ -1,6 +1,9 @@
 <script setup lang="ts">
 /**
- * @description Компонент для отображения текстового содержимого тултипа
+ * @description Renders the text content of a tooltip.
+ *
+ * The tooltip is teleported into `body`, so theme-dependent tokens resolve
+ * against the `.bricks-dark` class on `body` rather than against a wrapper.
  */
 
 // #region Imports
@@ -22,7 +25,6 @@ const props = withDefaults(defineProps<IBricksTooltipHintProps>(), {
 
 <style module lang="scss">
 .tooltipHint {
-    /* Тултип телепортируется в body — темозависимые токены резолвятся от .bricks-dark на body */
     max-width: 24rem;
     padding: 0.8rem 1.2rem;
     border-radius: var(--bricks-border-radius-sm);

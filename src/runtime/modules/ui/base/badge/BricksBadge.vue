@@ -1,14 +1,26 @@
 <script setup lang="ts">
 /**
- * @description Плашка: короткое значение рядом с именем. Роль была написана пять
- * раз — метка «вы» в строке учётки, «текущая» у версии страницы, пилюля роли,
- * чип ключевого слова и сама эта плашка, — и разъехалась по радиусу, кеглю и
- * паддингу.
+ * @description Badge: a short value next to a name. The role had been written
+ * five times — the "you" marker in an account row, "current" on a page version,
+ * the role pill, the keyword chip and this badge itself — and had drifted apart
+ * in radius, font size and padding.
  *
- * Геометрию задаёт форма и кегль, а не вызывающий классом: перекрытие класса
- * классом решалось бы порядком в стилях. Место, где своей геометрии не избежать
- * (круглая плашка выбранного файла в медиатеке), перекрывает её осознанно и
- * помечено комментарием на своей стороне.
+ * The geometry is set by the shape and the font size, not by the caller through a
+ * class: overriding a class with a class would be decided by style order. The one
+ * place that cannot avoid a geometry of its own (the round badge of the selected
+ * file in the media library) overrides it deliberately and says so in a comment
+ * on its own side.
+ *
+ * There is one font size for every badge: the `1.2rem` and `1.1rem` steps
+ * differed to the eye only in weight, and `1.1rem` is outside the `0.2rem`
+ * multiple scale.
+ *
+ * The `plain` tone drops its border by width rather than by color: a transparent
+ * border from the base rule would add `0.2rem` of box to the status dot, and the
+ * circle would stop matching the previous one. Its padding is dropped by a pair
+ * of classes rather than by `._plain` alone — with a single class the outcome
+ * would depend on rule order in the file rather than on intent, and without a
+ * fill the padding would only push the caption away from its neighbor.
  */
 
 // #region Imports
@@ -54,8 +66,6 @@ const rootClasses = computed(() => [
 </template>
 
 <style module lang="scss">
-/* Кегль один на все плашки: ступени `1.2rem` и `1.1rem` различались на глаз
-   только весом, а `1.1rem` вне шкалы кратности `0.2rem`. */
 .BricksBadge {
     display: inline-flex;
     align-items: center;
@@ -68,11 +78,8 @@ const rootClasses = computed(() => [
     line-height: 1.4;
 }
 
-/* Форма */
 ._rounded {
     padding: 0.2rem 0.6rem;
-
-    // Значения вне шкалы радиусов — см. комментарий у типа формы
     border-radius: 0.4rem;
 }
 
@@ -81,7 +88,6 @@ const rootClasses = computed(() => [
     border-radius: var(--bricks-border-radius-pill);
 }
 
-/* Тон */
 ._primary {
     background: var(--bricks-primary);
     color: var(--bricks-static-white);
@@ -92,8 +98,6 @@ const rootClasses = computed(() => [
     color: var(--bricks-base-600);
 }
 
-/* Подпись `base-600`, а не `base-500`: на `base-100` последняя даёт 4.4:1 —
-   ниже порога AA для обычного текста. */
 ._muted {
     background: var(--bricks-base-100);
     color: var(--bricks-base-600);
@@ -110,18 +114,12 @@ const rootClasses = computed(() => [
     color: var(--bricks-base-500);
 }
 
-/* Без заливки: значение несут точка и подпись, а не плашка. Рамка снимается по
-   ширине, а не цветом: прозрачная рамка базового правила добавляла бы точке
-   статуса 0.2rem габарита, и круг переставал бы совпадать с прежним. */
 ._plain {
     border-width: 0;
     background: transparent;
     color: var(--bricks-base-500);
 }
 
-/* Паддинг снимается парой классов, а не одиночным `._plain`: с одиночным исход
-   зависел бы от порядка правил в файле, а не от намерения. Без фона паддинг
-   только отодвигал бы подпись от соседа. */
 ._plain._rounded,
 ._plain._pill {
     padding: 0;

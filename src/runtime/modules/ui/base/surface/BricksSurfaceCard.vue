@@ -1,17 +1,19 @@
 <script setup lang="ts">
 /**
- * @description Поверхность карточки: радиус, рамка, фон и поведение
- * наведения/фокуса. Раскладку содержимого НЕ берёт: у строки страницы, строки
- * учётки, карточки шаблона и плитки медиатеки она разная, и общий компонент,
- * который знал бы про все четыре, был бы конфигуратором, а не поверхностью.
+ * @description Card surface: radius, border, background and hover/focus
+ * behavior. It does NOT take on the layout of the content: a page row, an
+ * account row, a template card and a media library tile all lay out differently,
+ * and a shared component that knew about all four would be a configurator rather
+ * than a surface.
  *
- * Класс вызывающего приезжает на этот же узел, поэтому его правила вида
- * `.Row:hover .actions` продолжают работать, а раскладка (`padding`, `gap`,
- * `display`) остаётся там, где ей место.
+ * The caller's class lands on this very node, so its rules of the
+ * `.Row:hover .actions` kind keep working, while the layout (`padding`, `gap`,
+ * `display`) stays where it belongs.
  *
- * Чего здесь нет: карточка компонента в сайдбаре библиотеки. Она источник
- * перетаскивания на прозрачном фоне панели, с рамкой `base-300` и подъёмом на
- * наведении — другой язык, а не отставшая копия этого.
+ * What is not here: the component card in the library sidebar. That one is a
+ * drag source on the transparent background of the panel, with a `base-300`
+ * border and a lift on hover — a different language, not a copy of this one that
+ * fell behind.
  */
 
 // #region Imports
@@ -74,9 +76,6 @@ const rootClasses = computed(() => [
     border-radius: var(--bricks-border-radius-md);
 }
 
-/* Наведение и фокус внутри — одно состояние: у строк действия проявляются на
-   наведении, и без `focus-within` они оставались бы невидимыми при обходе с
-   клавиатуры. */
 ._interactive {
     &:hover,
     &:focus-within {
@@ -94,14 +93,10 @@ const rootClasses = computed(() => [
     }
 }
 
-/* Курсор — отдельно от отклика: строка учётки подсвечивается, чтобы проявить
-   свои кнопки, но клик по ней ничего не делает, и `pointer` обещал бы переход. */
 ._clickable {
     cursor: pointer;
 }
 
-/* Выбранная карточка держит вид наведения постоянно: иначе, уведя курсор, о
-   выборе напоминает только содержимое панели рядом. */
 ._selected {
     border-color: var(--bricks-primary-300);
 

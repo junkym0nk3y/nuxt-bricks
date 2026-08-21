@@ -1,4 +1,17 @@
 <script setup lang="ts">
+/**
+ * @description Toast: a short report plus an optional action, on top of the reka
+ * toast.
+ *
+ * The keyframes live in the module block on purpose: CSS Modules scopes the
+ * animation name in the `animation:` reference, so the definition has to be local
+ * too. A global name would not match, the animation would never play, and Reka
+ * would hang on `closed` waiting for `animationend`. Under
+ * `prefers-reduced-motion` every state becomes `animation: none`, which is safe
+ * for `closed` as well: without an animation Presence unmounts the content right
+ * away and never waits for `animationend`.
+ */
+
 // #region Imports
 // Types
 import type { IBricksToastEmits, IBricksToastProps } from './types.d.ts';
@@ -18,10 +31,10 @@ import {
 // #endregion
 
 // #region Constants
-/** Длительность для не-автоскрывающихся тостов (фактически «бесконечность»). */
+/** Duration for toasts that do not auto-hide ("infinity" in practice) */
 const PERSISTENT_DURATION = 1_000_000_000;
 
-/** Иконка по варианту — вместо ветвления в разметке. */
+/** Icon per variant — instead of branching in the markup */
 const VARIANT_ICONS: Record<NonNullable<IBricksToastProps['variant']>, string> = {
     success: 'ta:outline-circle-check',
     error: 'ta:outline-circle-x',
@@ -45,7 +58,7 @@ const emit = defineEmits<IBricksToastEmits>();
 // #region Data
 const $style = useCssModule();
 
-/** Закрытие пришло от Escape — см. `onEscapeKeyDown`. */
+/** The close came from Escape — see `onEscapeKeyDown` */
 let isEscapeClose = false;
 // #endregion
 
@@ -65,8 +78,8 @@ const toastClasses = computed(() => [
 const variantIcon = computed<string>(() => VARIANT_ICONS[props.variant]);
 
 /**
- * Длительность авто-скрытия для Reka ToastRoot.
- * При autoHide=false (или неположительной duration) тост остаётся открытым.
+ * Auto-hide duration for the Reka ToastRoot. With autoHide=false (or a
+ * non-positive duration) the toast stays open.
  */
 const resolvedDuration = computed(() =>
     props.autoHide && props.duration > 0 ? props.duration : PERSISTENT_DURATION
@@ -75,17 +88,17 @@ const resolvedDuration = computed(() =>
 
 // #region Methods
 /**
- * Пробрасывает закрытие тоста (по таймеру, свайпу или кнопке) наружу.
+ * Passes a toast close (by timer, swipe or button) outwards.
  *
- * @param open - Открыт ли тост после изменения состояния.
+ * @param open - Whether the toast is open after the state change.
  */
 function onOpenChange(open: boolean): void {
     if (open) {
         return;
     }
 
-    // Закрытие по Escape тост, ждущий ответа, игнорирует: `open` контролируется
-    // пропом, поэтому без ответа наружу он просто остаётся на экране
+    // A toast waiting for an answer ignores a close by Escape: `open` is
+    // controlled by a prop, so without an answer going out it simply stays put
     if (isEscapeClose) {
         isEscapeClose = false;
         return;
@@ -95,16 +108,16 @@ function onOpenChange(open: boolean): void {
 }
 
 /**
- * Поднимает нажатие кнопки действия.
+ * Raises a press of the action button.
  */
 function onAction(): void {
     emit('action');
 }
 
 /**
- * Поднимает клик по телу тоста. У Reka такого события нет, поэтому слушаем
- * корень: крестик и кнопка действия гасят всплытие сами — иначе закрытие и
- * действие приходили бы сюда же.
+ * Raises a click on the toast body. Reka has no such event, so the root is what we
+ * listen to: the close button and the action button stop propagation themselves —
+ * otherwise a close and an action would arrive here as well.
  */
 function onSelect(): void {
     if (!hasAction.value) {
@@ -115,15 +128,15 @@ function onSelect(): void {
 }
 
 /**
- * Отбирает у Escape право закрывать тост, который ждёт ответа. Reka вешает
- * обработчик глобально, без проверки фокуса (`ToastRootImpl`), поэтому Escape,
- * нажатый где угодно — в канвасе или в открытой модалке, — уносил бы заодно и
- * висящий вопрос. Автоскрывающиеся тосты правило не трогает: их исчезновение и
- * так вопрос секунд.
+ * Takes away Escape's right to close a toast that is waiting for an answer. Reka
+ * attaches its handler globally, without checking focus (`ToastRootImpl`), so an
+ * Escape pressed anywhere — in the canvas or in an open modal — would carry the
+ * pending question away with it. The rule leaves auto-hiding toasts alone: their
+ * disappearance is a matter of seconds anyway.
  *
- * Само событие не отменяем: `defaultPrevented` сверяет и `DismissableLayer`, так
- * что отмена оставила бы открытую модалку незакрываемой. Вместо этого помечаем
- * источник и глушим собственное закрытие в `onOpenChange`.
+ * The event itself is not canceled: `DismissableLayer` checks `defaultPrevented`
+ * too, so canceling would leave an open modal impossible to close. Instead the
+ * source is marked and our own close is swallowed in `onOpenChange`.
  */
 function onEscapeKeyDown(): void {
     if (props.autoHide) {
@@ -214,7 +227,6 @@ function onEscapeKeyDown(): void {
         color: var(--bricks-base-600);
     }
 
-    /* Тост с действием кликается целиком — крестик и кнопка гасят всплытие */
     &._actionable {
         cursor: pointer;
 
@@ -244,8 +256,6 @@ function onEscapeKeyDown(): void {
         animation: bricks-toast-swipe-out 150ms ease-in;
     }
 
-    // animation: none безопасен и для closed — без анимации Presence
-    // размонтирует контент сразу, ожидания animationend нет
     @media (prefers-reduced-motion: reduce) {
         &[data-state='open'],
         &[data-state='closed'],
@@ -337,9 +347,6 @@ function onEscapeKeyDown(): void {
     }
 }
 
-// Keyframes держим в module-блоке: CSS Modules скоупит имя анимации в ссылке
-// `animation:` выше, поэтому и определение должно быть локальным (глобальное
-// имя не совпало бы → анимация не проигрывалась, а Reka зависал бы на closed).
 @keyframes bricks-toast-in {
     from {
         opacity: 0;

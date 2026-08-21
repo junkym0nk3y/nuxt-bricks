@@ -30,11 +30,11 @@ export interface IToolbarEditableSelect {
     options: Array<{ label: string; value: string }>;
     onChange: (value: string) => void;
     customInputPlaceholder?: string;
-    /** Функция преобразования введённого значения перед передачей в onChange */
+    /** Transforms the entered value before it is passed to onChange */
     transformInput?: (raw: string) => string;
-    /** Функция валидации введённого значения (true = валидно) */
+    /** Validates the entered value (true means valid) */
     validateInput?: (raw: string) => boolean;
-    /** Компактный триггер: только иконка, текущее значение не отображается */
+    /** Compact trigger: icon only, the current value is not shown */
     hideValue?: boolean;
 }
 
@@ -70,9 +70,9 @@ export interface ITextEditorToolbarConfigParams extends IToolbarStateRefs {
     editor: Editor;
     availableFonts: string[];
     /**
-     * Открывает модалку ссылки для текущего выделения. Конфигуратор тулбара —
-     * чистая функция без доступа к UI, поэтому кнопку ссылки он отдаёт только
-     * тем поверхностям, которые такую модалку смонтировали.
+     * Opens the link modal for the current selection. The toolbar configurator is
+     * a pure function with no access to the UI, so it hands out the link button
+     * only to those surfaces that have mounted such a modal.
      */
     onRequestLink?: () => void;
 }

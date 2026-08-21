@@ -1,11 +1,11 @@
 <script setup lang="ts">
 /**
- * @description Полоса действий модалки: кнопки прижаты вправо, слот `leading` —
- * группа, которая остаётся слева («Удалить», «Пропустить»).
+ * @description Action strip of a modal: the buttons are pushed to the right, and
+ * the `leading` slot is the group that stays on the left ("Delete", "Skip").
  *
- * Левая группа отдельным слотом с `margin-right: auto`, а не
- * `justify-content: space-between` у всей полосы: со `space-between` три кнопки
- * разъезжаются по всей ширине, и «Отмена» повисает в середине.
+ * The left group is a separate slot with `margin-right: auto` rather than
+ * `justify-content: space-between` on the whole strip: with `space-between`
+ * three buttons spread across the full width and "Cancel" hangs in the middle.
  */
 
 // #region Imports
@@ -69,8 +69,6 @@ const rootClasses = computed(() => [
         }
     }
 
-    /* Футер внутри формы: её отступы уже действуют, нужен только зазор от
-       последнего поля. */
     &._inline {
         padding-top: 0.4rem;
     }

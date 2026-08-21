@@ -1,17 +1,25 @@
 <script setup lang="ts">
 /**
- * @description Шапка модалки: заголовок, необязательная подпись под ним, слот
- * действий и крестик.
+ * @description Modal header: the title, an optional caption under it, an actions
+ * slot and the close button.
  *
- * Заголовок компонент не принимает пропом, а берёт из `BricksModal` через
- * провайд. Причина не в удобстве: то же значение уходит в скрытый `DialogTitle`,
- * то есть в имя диалога для скринридера, а пока видимый заголовок писали в
- * шаблоне руками, эти две строки были двумя источниками правды и могли
- * разъехаться молча.
+ * The component does not take the title as a prop but reads it from
+ * `BricksModal` through a provide. The reason is not convenience: the same value
+ * goes into the hidden `DialogTitle`, that is into the dialog's name for a screen
+ * reader, and while the visible title was written by hand in the template those
+ * two strings were two sources of truth and could drift apart silently.
  *
- * Отдельного `size` под каждый случай нет: две ступени (`md` — диалоги и формы,
- * `lg` — рабочие модалки на весь экран) заменяют семь паддингов и четыре размера
- * заголовка, которые накопились, пока шапку писали в каждой модалке заново.
+ * There is no separate `size` per case: two steps (`md` for dialogs and forms,
+ * `lg` for full-screen working modals) replace the seven paddings and four title
+ * sizes that had piled up while the header was rewritten in every modal.
+ *
+ * The title text sits in a node of its own rather than directly in the heading: a
+ * long title (a login in the password form) is cut off with an ellipsis, and
+ * next to it there is sometimes a badge with a counter — without a separate node
+ * the truncation would eat that too. The header itself does not shrink: in
+ * modals with a limited height the body scrolls, and without that the header
+ * would give away its padding to it. The title group carries `min-width: 0`,
+ * otherwise it does not let the heading shrink and the ellipsis never appears.
  */
 
 // #region Imports
@@ -44,9 +52,9 @@ const emit = defineEmits<IBricksModalHeaderEmits>();
 const $style = useCssModule();
 
 /**
- * Заголовок открытой модалки. Провайдер отсутствует только если шапку поставили
- * вне `BricksModal` — вне модалки у неё нет ни смысла, ни крестика, который
- * что-то закрывает.
+ * Title of the open modal. The provider is missing only if the header has been
+ * placed outside `BricksModal` — outside a modal it has neither a meaning nor a
+ * close button that closes anything.
  */
 const injectedTitle = inject(BRICKS_MODAL_TITLE_KEY, null);
 // #endregion
@@ -66,12 +74,6 @@ const rootClasses = computed(() => [
     <div :class="rootClasses">
         <div :class="$style.titleGroup">
             <h2 :class="$style.title">
-                <!--
-                    Текст в своём узле, а не прямо в заголовке: длинный заголовок
-                    (логин в форме пароля) обрезается многоточием, а рядом бывает
-                    плашка со счётчиком — без отдельного узла обрезка съедала бы
-                    и её.
-                -->
                 <span :class="$style.titleText">{{ title }}</span>
                 <slot name="titleExtra" />
             </h2>
@@ -94,9 +96,6 @@ const rootClasses = computed(() => [
     display: flex;
     align-items: center;
     justify-content: space-between;
-
-    // Шапка не сжимается: у модалок с ограниченной высотой скроллится тело, и
-    // без этого шапка отдавала бы ему свои отступы
     flex-shrink: 0;
     gap: 1.6rem;
 
@@ -117,8 +116,6 @@ const rootClasses = computed(() => [
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
-
-    // Иначе группа не даёт заголовку сжаться, и обрезка многоточием не работает
     min-width: 0;
 }
 

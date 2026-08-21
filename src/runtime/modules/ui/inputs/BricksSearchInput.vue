@@ -1,25 +1,27 @@
 <script setup lang="ts">
 /**
- * @description Поле поиска: один вид для всех списков билдера — библиотека
- * компонентов, список страниц дашборда, медиатека.
+ * @description Search field: one look for every list in the builder — the
+ * component library, the dashboard page list, the media library.
  *
- * До него каждое место собирало поиск заново: в сайдбаре компонентов это был
- * `BricksInput` с глифом в `#prefix`, в дашборде — нативный `<input>` с
- * абсолютно позиционированной лупой и тремя десятками собственных строк стилей,
- * в медиатеке — третья копия того же. Расходились они молча: разная высота,
- * разный фокус, крестик очистки был только в одном из трёх.
+ * Before it, each place assembled its own search: in the components sidebar it
+ * was a `BricksInput` with a glyph in `#prefix`, in the dashboard a native
+ * `<input>` with an absolutely positioned magnifier and three dozen style lines
+ * of its own, in the media library a third copy of the same. They drifted apart
+ * silently: different height, different focus, and only one of the three had a
+ * clear button.
  *
- * Своей разметки поля здесь нет — это `BricksInput` с глифом и `clearable`.
- * Отдельным компонентом, а не «правилом всегда писать так»: правило соблюдается
- * ровно до следующего списка.
+ * There is no field markup of its own here — it is a `BricksInput` with a glyph
+ * and `clearable`. A component rather than a "rule to always write it this way":
+ * such a rule holds exactly until the next list.
  *
- * Ширину задаёт вызывающий классом — она везде разная (280 в медиатеке, во всю
- * колонку в сайдбаре), и зашивать её сюда значило бы переопределять её в каждом
- * втором месте.
+ * The width is set by the caller through a class — it differs everywhere (280 in
+ * the media library, the full column in the sidebar), and hardwiring it here
+ * would mean overriding it in every other place.
  *
- * Исключение, которое сюда НЕ переводится: поиск в селекторе страниц тулбара.
- * Там полем обязан быть reka `ListboxFilter` — стрелки и Enter из него ведут по
- * строкам списка, и подмена на обычный input сломала бы клавиатурную навигацию.
+ * The exception that is NOT moved here: the search in the toolbar page selector.
+ * There the field has to be a reka `ListboxFilter` — arrow keys and Enter from
+ * it walk the rows of the list, and swapping it for a plain input would break
+ * keyboard navigation.
  */
 
 // #region Imports
@@ -43,8 +45,9 @@ const emit = defineEmits<IBricksSearchInputEmits>();
 
 // #region Methods
 /**
- * Пробрасывает ввод наверх. Значение контролируемое: поле показывает то, что
- * пришло пропом, поэтому вызывающий вправе фильтровать или нормализовать запрос.
+ * Passes the input upwards. The value is controlled: the field shows whatever
+ * arrived through the prop, so the caller is free to filter or normalize the
+ * query.
  */
 function handleInput(value: string): void {
     emit('update:value', value);

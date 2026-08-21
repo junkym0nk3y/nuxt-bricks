@@ -1,4 +1,14 @@
 <script setup lang="ts">
+/**
+ * @description Split action button: a primary action plus a menu of related ones
+ * behind a chevron. The look is segmented — a vertical divider between the
+ * caption and the chevron splits the button in two without splitting the node.
+ *
+ * The menu content is composed through `as-child`: the surface node and the reka
+ * node are one and the same, otherwise the appearance animation (it hangs on
+ * `data-state`) and the look would end up on different elements.
+ */
+
 // #region Imports
 // Types
 import type { IBrickUiCommonProp } from '../../types/common';
@@ -50,7 +60,7 @@ const emit = defineEmits<{
 const $style = useCssModule();
 const isOpened = ref(false);
 
-/** Соответствие значения опции меню событию компонента. */
+/** Maps a menu option value onto a component event */
 const ACTION_EMITTERS: Record<string, () => void> = {
     copy: () => emit('saveAsCopy'),
     template: () => emit('saveAsTemplate'),
@@ -98,11 +108,6 @@ function handleOptionSelect(option: IBrickUiCommonProp): void {
             </DropdownMenuTrigger>
 
             <DropdownMenuPortal>
-                <!--
-                    `as-child`: узел поверхности и узел reka — один и тот же,
-                    иначе анимация появления (она висит на `data-state`) и вид
-                    оказались бы на разных элементах.
-                -->
                 <DropdownMenuContent as-child align="end" :side-offset="4" position="popper">
                     <BricksPopoverSurface density="roomy" :class="$style.dropdown">
                         <div :class="$style.optionsWrapper">
@@ -148,7 +153,6 @@ function handleOptionSelect(option: IBrickUiCommonProp): void {
         white-space: nowrap;
     }
 
-    // Вертикальный разделитель между лейблом и chevron — сегментированный вид
     &:before {
         content: '';
         position: absolute;

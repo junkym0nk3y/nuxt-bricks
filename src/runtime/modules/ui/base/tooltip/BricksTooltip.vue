@@ -1,4 +1,22 @@
 <script setup lang="ts">
+/**
+ * @description Tooltip: an activator slot plus content shown through a reka
+ * portal.
+ *
+ * The keyframes live in the module block on purpose: CSS Modules scopes the
+ * animation name in the `animation:` reference, so the definition has to be local
+ * too. A global name would not match, the animation would never play, and Reka
+ * would hang on `closed` waiting for `animationend`.
+ *
+ * The three animation states differ on purpose. `delayed-open` slides in from
+ * the side the tooltip appears on, so it looks like it rides out toward the
+ * activator; `instant-open` means a jump from a neighboring tooltip, where a
+ * full slide-in only jerks, so it keeps the fade alone. Under
+ * `prefers-reduced-motion` all three become `animation: none`, which is safe for
+ * `closed` too: without an animation Presence unmounts the content right away
+ * and never waits for `animationend`.
+ */
+
 // #region Imports
 // Types
 import type { IBricksTooltipProps } from './types.d.ts';
@@ -42,8 +60,9 @@ const $style = useCssModule();
 
 // #region Computed
 /**
- * Сторона отображения тултипа относительно активатора.
- * Reka/floating-ui сам зеркалит сторону при нехватке места (collision avoidance).
+ * Side the tooltip is shown on relative to the activator. Reka/floating-ui
+ * mirrors the side by itself when there is not enough room (collision
+ * avoidance).
  */
 const side = computed<'top' | 'bottom' | 'left' | 'right'>(() => {
     if (props.top) {
@@ -92,7 +111,6 @@ const side = computed<'top' | 'bottom' | 'left' | 'right'>(() => {
     pointer-events: none;
     user-select: none;
 
-    // Стартовый сдвиг зависит от стороны появления (tooltip «выезжает» к активатору)
     &[data-side='top'] {
         --bricks-tooltip-offset-y: 0.4rem;
     }
@@ -113,8 +131,6 @@ const side = computed<'top' | 'bottom' | 'left' | 'right'>(() => {
         animation: bricks-tooltip-in 150ms ease-out;
     }
 
-    // instant-open = перескок с соседнего тултипа: полный slide-in дёргается,
-    // оставляем только fade
     &[data-state='instant-open'] {
         animation: bricks-tooltip-fade-in 100ms ease-out;
     }
@@ -123,8 +139,6 @@ const side = computed<'top' | 'bottom' | 'left' | 'right'>(() => {
         animation: bricks-tooltip-out 100ms ease-in;
     }
 
-    // animation: none безопасен и для closed — без анимации Presence
-    // размонтирует контент сразу, ожидания animationend нет
     @media (prefers-reduced-motion: reduce) {
         &[data-state='delayed-open'],
         &[data-state='instant-open'],
@@ -138,9 +152,6 @@ const side = computed<'top' | 'bottom' | 'left' | 'right'>(() => {
     }
 }
 
-// Keyframes держим в module-блоке: CSS Modules скоупит имя анимации в ссылке
-// `animation:` выше, поэтому и определение должно быть локальным (глобальное
-// имя не совпало бы → анимация не проигрывалась, а Reka зависал бы на closed).
 @keyframes bricks-tooltip-in {
     from {
         opacity: 0;

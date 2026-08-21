@@ -1,21 +1,23 @@
 <script setup lang="ts">
 /**
- * @description Строка меню внутри `BricksPopoverSurface`: глиф, подпись и
- * необязательное значение справа.
+ * @description Menu row inside `BricksPopoverSurface`: a glyph, a caption and an
+ * optional value on the right.
  *
- * Фон наведения — `base-50` на всех: до выделения компонента у одной и той же
- * роли встречались `base-50`, `base-100` и `surface-raised`, причём последние два
- * — один и тот же цвет под разными именами.
+ * The hover background is `base-50` for all of them: before the component was
+ * extracted, one and the same role turned up with `base-50`, `base-100` and
+ * `surface-raised` — and the last two are the same color under different names.
  *
- * Корень — `button`, а не `div`: пункт всегда что-то делает, и с кнопкой он
- * попадает в обход с клавиатуры без `tabindex` руками. С пунктами reka
- * составляется через `as-child` — тогда `role="menuitem"` и обработчик выбора
- * приезжают на эту же кнопку.
+ * The root is a `button` rather than a `div`: an item always does something, and
+ * as a button it joins the keyboard tab order without a hand-written `tabindex`.
+ * With reka items it is composed through `as-child` — then `role="menuitem"` and
+ * the selection handler land on this same button. The hover style also covers
+ * `data-highlighted`, which reka sets while walking the menu with the keyboard;
+ * without it the keyboard walk would not be visible at all.
  *
- * Контекстное меню канваса на этот компонент НЕ переводится: у него своё
- * оформление наведения (заливка `primary` с белой подписью, как у системных
- * контекстных меню), и сводить его к нейтральному значило бы менять дизайн, а не
- * убирать дубль.
+ * The canvas context menu is NOT moved onto this component: it has a hover look
+ * of its own (a `primary` fill with a white caption, like system context menus),
+ * and reducing it to the neutral one would mean changing the design rather than
+ * removing a duplicate.
  */
 
 // #region Imports
@@ -56,7 +58,7 @@ const rootClasses = computed(() => [
 
 // #region Methods
 /**
- * Пробрасывает клик наружу.
+ * Passes the click outwards.
  *
  * @param event - MouseEvent.
  */
@@ -94,8 +96,6 @@ function handleClick(event: MouseEvent): void {
     cursor: pointer;
     gap: 0.8rem;
 
-    /* `data-highlighted` ставит reka при переходе по меню с клавиатуры — без него
-       клавиатурный обход не был бы виден вовсе. */
     &:hover,
     &[data-highlighted] {
         background: var(--bricks-base-50);

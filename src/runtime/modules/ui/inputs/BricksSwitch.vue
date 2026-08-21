@@ -1,4 +1,15 @@
 <script setup lang="ts">
+/**
+ * @description Toggle switch on top of the reka switch: a track plus a knob and
+ * optional captions.
+ *
+ * The knob has `top`/`left` set explicitly. Without them its position depends on
+ * the static position of `::after`, which the UA `text-align: center` on a
+ * `button` shifts on pages without a global reset — the dashboard, for instance.
+ * The pair `top: 50%` plus `translateY(-50%)` centers the knob vertically at any
+ * track height, and the track-to-knob gap is not a multiple of `0.2rem`.
+ */
+
 // #region Imports
 // Types
 import type { IBricksSwitchProps, IBricksSwitchEmits } from './types.d.ts';
@@ -129,11 +140,6 @@ function onUpdate(checked: boolean): void {
         background-color: var(--bricks-base-300);
         transition: background-color var(--bricks-default-transition);
 
-        // top/left заданы явно: без них позиция кружка зависит от статической
-        // позиции ::after (UA text-align: center у button сдвигает её на страницах
-        // без глобального reset — например, на дашборде).
-        // top 50% + translateY(-50%) центрируют кружок по вертикали при любой
-        // высоте трека (зазор трек−кружок не кратен 0.2rem).
         &:after {
             content: '';
             position: absolute;

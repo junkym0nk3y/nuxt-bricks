@@ -22,12 +22,13 @@ export function normalizeIncomingValue(value: IBricksInputProps['value']): strin
 }
 
 /**
- * Sanitises user input according to the input type.
+ * Sanitizes user input according to the input type.
  *
  * @param value - Raw user input.
- * @param type - Input type ('text' | 'number' | 'slug').
+ * @param type - Input type; only 'slug' and 'number' are sanitized, 'text' and
+ *     'password' pass through untouched.
  * @param min - Minimum allowed value (number inputs; non-negative min forbids leading minus).
- * @returns Sanitised string.
+ * @returns Sanitized string.
  */
 export function sanitizeUserInput(
     value: string,
@@ -72,11 +73,11 @@ export function sanitizeUserInput(
 }
 
 /**
- * Округляет число до заданного шага для устранения floating point ошибок.
+ * Rounds a number to the given step to get rid of floating point errors.
  *
- * @param value - Числовое значение.
- * @param step - Шаг округления.
- * @returns Округлённое значение.
+ * @param value - Numeric value.
+ * @param step - Rounding step.
+ * @returns Rounded value.
  */
 export function roundToStep(value: number, step: number): number {
     const precision = Math.max(0, Math.ceil(-Math.log10(step)));

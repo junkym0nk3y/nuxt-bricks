@@ -7,10 +7,11 @@ export interface IBricksSelectProps {
     value: TBrickDemoValues;
     disabled?: boolean;
     /**
-     * Доступное имя поля. Единственный способ подписать селект: наследование
-     * атрибутов у него отключено, а корень — не DOM-узел, поэтому внешний
-     * `aria-label` до триггера не доходит. Без имени скринридер читает у поля
-     * только текущее значение («Редактор»), но не то, чем это поле является.
+     * Accessible name of the field. The only way to label the select: attribute
+     * inheritance is disabled on it and the root is not a DOM node, so an
+     * `aria-label` from the outside never reaches the trigger. Without a name a
+     * screen reader reads only the current value of the field ("Editor"), but
+     * not what the field is.
      */
     ariaLabel?: string;
 }
@@ -23,45 +24,46 @@ export interface IBricksInputProps {
     value: string | number | boolean | null | undefined;
     label?: string;
     /**
-     * Доступное имя поля, когда подписи нет ни в `label`, ни в `placeholder`.
-     * Нужно полям, подписанным снаружи собственной разметкой вызывающего: без
-     * него скринридер читает у поля только значение, но не то, чем это поле
-     * является (адрес файла, а не просто строка).
+     * Accessible name of the field when there is no label in either `label` or
+     * `placeholder`. Needed by fields labeled from the outside by the caller's
+     * own markup: without it a screen reader reads only the value of the field,
+     * but not what the field is (a file address rather than just a string).
      */
     ariaLabel?: string;
     disabled?: boolean;
     placeholder?: string;
     type?: 'text' | 'number' | 'slug' | 'password';
     /**
-     * Значение только для чтения — в отличие от `disabled`, поле остаётся
-     * полноконтрастным, фокусируемым и копируемым.
+     * Read-only value — unlike `disabled`, the field stays at full contrast,
+     * focusable and copyable.
      *
-     * Разница по смыслу: `disabled` говорит «сейчас неприменимо» и гасит поле до
-     * половинной прозрачности, а read-only — «это значение можно прочитать и
-     * скопировать, но не изменить». Логин в профиле именно такой: его показывают,
-     * чтобы человек его видел.
+     * The difference in meaning: `disabled` says "not applicable right now" and
+     * dims the field to half opacity, while read-only says "this value can be
+     * read and copied, but not changed". The login in the profile is exactly
+     * that: it is shown so that a person can see it.
      */
     readonly?: boolean;
     required?: boolean;
     rules?: string;
     maxLength?: number;
-    /** Значение атрибута autocomplete нативного input (дефолт: 'off') */
+    /** Value of the native input's autocomplete attribute (default: 'off') */
     autocomplete?: string;
     min?: number;
     max?: number;
     step?: number;
-    /** Суффикс единицы измерения (например, 'rem', 'px') */
+    /** Unit suffix (for example, 'rem', 'px') */
     unit?: string;
-    /** Кнопка-крестик очистки при непустом значении */
+    /** Clear button shown while the value is non-empty */
     clearable?: boolean;
-    /** Кнопка показа пароля; учитывается только при type="password" */
+    /** Reveal-password button; honored only when type="password" */
     revealable?: boolean;
     /**
-     * Счётчик `длина/maxLength` в строке лейбла. По умолчанию выключен: у
-     * `maxLength` есть дефолт, и иначе счётчик появился бы у каждого поля кита.
+     * A `length/maxLength` counter in the label row. Off by default: `maxLength`
+     * has a default of its own, and otherwise the counter would show up on
+     * every field of the kit.
      */
     showCounter?: boolean;
-    /** Внешняя ошибка (vee-validate, сервер); приоритетнее внутренней валидации */
+    /** External error (vee-validate, server); wins over internal validation */
     errorMessage?: string | null;
 }
 
@@ -70,13 +72,13 @@ export interface IBricksInputEmits {
     'validation-state': [payload: { valid: boolean; message: string | null }];
 }
 
-/** Функция emit компонента BricksInput (для передачи в композабл). */
+/** The emit function of BricksInput (to be passed into the composable) */
 export interface IBricksInputEmitFn {
     (event: 'update:value', value: string): void;
     (event: 'validation-state', payload: { valid: boolean; message: string | null }): void;
 }
 
-/** Атрибуты нативного input, собранные композаблом useBricksInput. */
+/** Native input attributes assembled by the useBricksInput composable */
 export interface IBricksInputNativeAttributes {
     type: 'text' | 'number' | 'password';
     autocomplete: string;
@@ -107,7 +109,7 @@ export interface IUseBricksInputReturn {
 }
 
 export interface IBricksFieldErrorProps {
-    /** Текст ошибки; null/пустая строка — ошибка скрыта (с fade-транзишеном) */
+    /** Error text; null or empty hides the error (with a fade transition) */
     message?: string | null;
 }
 
@@ -118,7 +120,7 @@ export interface IBricksTextareaProps {
     placeholder?: string;
     maxLength?: number;
     rows?: number;
-    /** Внешняя ошибка (vee-validate и т.п.) — компонент сам не валидирует */
+    /** External error (vee-validate and the like); the component does not validate */
     errorMessage?: string | null;
 }
 
@@ -146,18 +148,18 @@ export interface IBricksTagsEditorProps {
     placeholder?: string;
     disabled?: boolean;
     /**
-     * Имя поля для скринридера. Своего лейбла у редактора нет (подпись рисует
-     * вызывающий), а плейсхолдер исчезает с появлением первого чипа — без этого
-     * поле остаётся безымянным.
+     * Field name for a screen reader. The editor has no label of its own (the
+     * caption is drawn by the caller), and the placeholder disappears as soon as
+     * the first chip appears — without this the field stays nameless.
      */
     ariaLabel?: string;
     /**
-     * Предел длины СКЛЕЕННОГО значения (теги через `TAGS_SEPARATOR`), а не числа
-     * тегов: строкой оно и хранится. Тег, который в предел не влезает, редактор
-     * не принимает и показывает отказ.
+     * Length limit of the JOINED value (tags separated by `TAGS_SEPARATOR`),
+     * not of the number of tags: a string is how it is stored. A tag that does
+     * not fit within the limit is rejected by the editor, which shows a refusal.
      */
     maxLength?: number;
-    /** Внешняя ошибка (vee-validate, сервер) — приоритетнее внутреннего отказа */
+    /** External error (vee-validate, server); wins over an internal refusal */
     errorMessage?: string | null;
 }
 
@@ -192,13 +194,13 @@ export interface IBricksSliderProps {
     step?: number;
     disabled?: boolean;
     /**
-     * Доступное имя ползунка: своей подписи у дорожки нет (её рисует вызывающий),
-     * и без имени ползунок читается как безымянное поле.
+     * Accessible name of the thumb: the track has no caption of its own (the
+     * caller draws it), and without a name the thumb reads as a nameless field.
      *
-     * Не `ariaLabel`: одноимённый проп в шаблоне пришлось бы писать camelCase —
-     * `:aria-label` компилятор считает нативным атрибутом, а не пропом, и
-     * обязательный проп остался бы незаполненным (та же причина у `groupLabel`
-     * таб-бара).
+     * Not `ariaLabel`: a prop of that name would have to be written in camelCase
+     * in the template — the compiler treats `:aria-label` as a native attribute
+     * rather than as a prop, and the required prop would have stayed unfilled
+     * (the same reason as for the tab bar's `groupLabel`).
      */
     label: string;
 }
