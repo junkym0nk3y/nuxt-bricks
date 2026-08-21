@@ -2,7 +2,7 @@
 import type { ISliderCaption } from '../types/blockProps';
 
 /**
- * Type guard: элемент является валидной подписью слайда.
+ * Type guard: the item is a valid slide caption.
  */
 function isSliderCaption(item: unknown): item is ISliderCaption {
     return (
@@ -13,8 +13,8 @@ function isSliderCaption(item: unknown): item is ISliderCaption {
 }
 
 /**
- * Парсит captions слайдера из массива объектов или JSON-строки.
- * Невалидные элементы и ошибки парсинга дают пустой результат.
+ * Parses the slider captions out of an array of objects or a JSON string.
+ * Invalid items and parsing errors yield an empty result.
  */
 export function parseSliderCaptions(raw: ISliderCaption[] | string | undefined): ISliderCaption[] {
     if (!raw) {

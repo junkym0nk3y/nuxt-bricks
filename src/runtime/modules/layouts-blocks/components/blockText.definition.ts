@@ -17,17 +17,18 @@ import {
 } from '../utils/responsiveVars';
 
 // Components
-// Async-импорт (паттерн blockSlider): registry импортируется плагином bricks-styles
-// на каждой странице, статический импорт .vue утащил бы компонент (и санитайзер xss)
-// в entry-бандл всех страниц потребителя. Канвас использует eager-версию из
-// canvasBlockComponents.ts.
+// Async import (the blockSlider pattern): the registry is imported by the bricks-styles
+// plugin on every page, and a static .vue import would drag the component (and the xss
+// sanitizer with it) into the entry bundle of every page of the consumer. The canvas uses
+// the eager version out of canvasBlockComponents.ts.
 const BlockText = defineAsyncComponent(() => import('./BlockText.vue'));
 
 /**
- * Published-рендер Text: канвасный компонент без editor chrome — рендерим напрямую.
+ * Published render of Text: the canvas component without the editor chrome, so it is
+ * rendered directly.
  *
- * @param ctx - Контекст рендера published-страницы.
- * @returns VNode Text.
+ * @param ctx - Render context of the published page.
+ * @returns Text VNode.
  */
 function renderTextPublished(ctx: IBlockRenderContext): VNode {
     const { component, extraClasses, extraAttrs, styles } = ctx;
@@ -43,25 +44,25 @@ function renderTextPublished(ctx: IBlockRenderContext): VNode {
         id: component.htmlId || undefined,
         class: [styles.bricksText, ...extraClasses],
         style,
-        // Атрибут обязателен: по нему сматчится сгенерированное правило выбора
-        // per-device размера шрифта (`[data-bricks-layout="text"]`)
+        // The attribute is mandatory: it is what the generated rule that selects the
+        // per-device font size matches on (`[data-bricks-layout="text"]`)
         'data-bricks-layout': 'text',
         ...extraAttrs,
     });
 }
 
 /**
- * Считает per-device переменные размера шрифта Text.
+ * Computes the per-device font size variables of Text.
  *
- * Свойства `fontSize` у старых схем нет вовсе, а размер им задавали
- * `@container`-запросы в SFC: 1.4rem до 768, 1.6rem до 1024 и 1.8rem дальше.
- * Просто взять базовое значение нельзя — весь существующий текст на узких
- * устройствах стал бы крупнее. Поэтому у схемы без своего `fontSize`
- * подставляются прежние размеры по каноническим ключам, а всё, чего в той
- * таблице нет (новое промежуточное устройство), наследует базовый размер.
+ * Older schemas have no `fontSize` property at all, and their size came from
+ * `@container` queries in the SFC. Simply taking the base value is not an option — all
+ * existing text would get larger on narrow devices. So a schema without a `fontSize` of
+ * its own gets the former sizes under the canonical keys of
+ * `BLOCK_TEXT_LEGACY_FONT_SIZES`, and anything missing from that table (a new
+ * intermediate device) inherits the base size.
  *
- * @param props - Пропсы блока.
- * @returns CSS-переменные размера шрифта.
+ * @param props - Block props.
+ * @returns CSS variables of the font size.
  */
 function buildTextFontSizeVars(props: Record<string, unknown>): Record<string, string> {
     const hasOwnFontSize = props.fontSize !== undefined;
@@ -80,9 +81,9 @@ function buildTextFontSizeVars(props: Record<string, unknown>): Record<string, s
     for (const device of getOverriddenDeviceKeys(props)) {
         const overrides = getResponsiveOverrides(props, device);
 
-        // Только явные переопределения: устройство, у которого переопределено
-        // что-то другое, должно наследовать базовый размер через fallback в CSS,
-        // а не получать копию базового значения своей переменной
+        // Explicit overrides only: a device that overrides something else has to
+        // inherit the base size through the CSS fallback rather than get a copy of the
+        // base value in its own variable
         if (!hasOwnKey(overrides, 'fontSize')) {
             continue;
         }
@@ -98,16 +99,17 @@ function buildTextFontSizeVars(props: Record<string, unknown>): Record<string, s
 }
 
 /**
- * Канвас-биндинг Text: пропсы блока плюс те же per-device переменные, что у
- * published-рендера.
+ * Canvas binding of Text: the block props plus the same per-device variables the
+ * published render gets.
  *
- * Переменные нужны и на канвасе: размер выбирает сгенерированное правило по
- * `data-bricks-viewport`, а не проп. Иначе легаси-схема без своего `fontSize`
- * показывала бы на канвасе базовый размер, хотя раньше на узком листе была
- * мельче, — билдер снова разошёлся бы с published, только в другую сторону.
+ * The variables are needed on the canvas too: the size is chosen by the generated rule
+ * keyed on `data-bricks-viewport`, not by the prop. Otherwise a legacy schema without a
+ * `fontSize` of its own would show the base size on the canvas even though it used to be
+ * smaller on a narrow sheet — and the builder would disagree with the published page
+ * again, only the other way round.
  *
- * @param ctx - Контекст биндинга канваса.
- * @returns Пропсы канвасного компонента.
+ * @param ctx - Canvas binding context.
+ * @returns Props of the canvas component.
  */
 function bindTextCanvas(ctx: IBlockCanvasContext): Record<string, unknown> {
     return {
@@ -118,8 +120,9 @@ function bindTextCanvas(ctx: IBlockCanvasContext): Record<string, unknown> {
 }
 
 /**
- * Definition блока Text: HTML-текст.
- * Дефолт content — RU-строка по поведению создания (сверка дефолтов, Часть B).
+ * Definition of the Text block: HTML text.
+ * The `content` default is a Russian string, matching what block creation has always
+ * produced; it is UI text still awaiting i18n.
  */
 export const blockTextDefinition: IBlockDefinition = {
     name: 'Text',

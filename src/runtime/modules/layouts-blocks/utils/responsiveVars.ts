@@ -1,6 +1,6 @@
 /**
- * Общие утилиты responsive CSS-переменных и grid-позиционирования layout-блоков.
- * Используются published-рендерером и definitions блоков.
+ * Utilities shared by the layout blocks for responsive CSS variables and grid
+ * placement. Used by the published renderer and by the block definitions.
  */
 
 // Types
@@ -17,21 +17,21 @@ import {
 import { hasOwnKey } from '../../common/utils/safeRecord';
 
 /**
- * Округляет значение в rem до 1 десятичного знака.
+ * Rounds a rem value to one decimal place.
  *
- * @param v - Произвольное значение (число в rem).
- * @returns CSS-значение в rem (минимум 0).
+ * @param v - Arbitrary value (a number of rem).
+ * @returns CSS value in rem (no less than 0).
  */
 export function toRem(v: unknown): string {
     return `${Math.round(Math.max(0, Number(v) || 0) * 10) / 10}rem`;
 }
 
 /**
- * Возвращает объект overrides для конкретного device из `props.responsive`.
+ * Returns the overrides object of a particular device out of `props.responsive`.
  *
- * @param props - Пропсы layout-компонента.
- * @param device - Ключ устройства.
- * @returns Overrides устройства или пустой объект.
+ * @param props - Props of the layout component.
+ * @param device - Device key.
+ * @returns Overrides of the device, or an empty object.
  */
 export function getResponsiveOverrides(
     props: Record<string, unknown>,
@@ -49,14 +49,15 @@ export function getResponsiveOverrides(
 }
 
 /**
- * Возвращает ключи устройств, у которых в схеме блока реально есть overrides.
+ * Returns the keys of the devices that really do have overrides in the block schema.
  *
- * Ключ базового устройства отбрасывается: его значения лежат в обычных пропах,
- * а `responsive.desktop` рендер не читает (см. `resolveBlockProps`), поэтому
- * переменная базового устройства и переменная `-base` описывали бы одно и то же.
+ * The key of the base device is dropped: its values live in the ordinary props, and
+ * the renderer does not read `responsive.desktop` (see `resolveBlockProps`), so a
+ * variable for the base device and the `-base` variable would describe one and the
+ * same thing.
  *
- * @param props - Пропсы layout-компонента.
- * @returns Ключи устройств с переопределениями.
+ * @param props - Props of the layout component.
+ * @returns Keys of the devices that carry overrides.
  */
 export function getOverriddenDeviceKeys(props: Record<string, unknown>): string[] {
     const rawResponsive = props?.responsive;
@@ -68,10 +69,11 @@ export function getOverriddenDeviceKeys(props: Record<string, unknown>): string[
         .filter(
             ([key, value]) =>
                 key !== BASE_DEVICE_KEY &&
-                // Ключ уезжает в ИМЯ inline custom property, а схема — внешние
-                // данные: legacy-файл или чужой backend могут принести что
-                // угодно, и `x; color: red` дал бы поломанный style-атрибут.
-                // Невалидный ключ просто не эмитится — в JSON он остаётся
+                // The key goes into the NAME of an inline custom property, and the
+                // schema is external data: a legacy file or somebody else's backend
+                // can bring in anything, and `x; color: red` would produce a broken
+                // style attribute. An invalid key is simply not emitted — it stays
+                // in the JSON
                 DEVICE_KEY_PATTERN.test(key) &&
                 key !== BASE_VAR_SUFFIX &&
                 Boolean(value) &&
@@ -82,22 +84,22 @@ export function getOverriddenDeviceKeys(props: Record<string, unknown>): string[
 }
 
 /**
- * Создаёт CSS-переменные responsive-свойства: базовую и по одной на устройство,
- * у которого это свойство реально переопределено.
+ * Creates the CSS variables of a responsive property: the base one plus one per
+ * device that really does override that property.
  *
- * Раньше эмитилась полная тройка mobile/tablet/desktop. С произвольным набором
- * устройств полная таблица потребовала бы протащить активный набор во все
- * definitions и оба контекста рендера (канвас и published), а один пропущенный
- * контекст дал бы расхождение билдера с опубликованной страницей. Поэтому
- * набор здесь не нужен: недостающие ступени добирает CSS — активное правило
- * читает переменную устройства с fallback'ом на `-base` (см. `responsiveCss.ts`).
+ * The full mobile/tablet/desktop triple used to be emitted. With an arbitrary set of
+ * devices, a full table would mean threading the active set through every definition
+ * and both rendering contexts (canvas and published), and a single missed context
+ * would make the builder disagree with the published page. So the set is not needed
+ * here: CSS picks up the missing steps — the active rule reads the device variable
+ * with a fallback to `-base` (see `responsiveCss.ts`).
  *
- * @param prefix - Префикс переменной (например, '--bricks-section-pt').
- * @param base - Базовое значение.
- * @param props - Пропсы блока целиком (нужны `props.responsive`).
- * @param key - Имя свойства в overrides.
- * @param transform - Преобразование значения в CSS-строку.
- * @returns Объект CSS-переменных.
+ * @param prefix - Variable prefix (for example, '--bricks-section-pt').
+ * @param base - Base value.
+ * @param props - The block props as a whole (`props.responsive` is needed).
+ * @param key - Name of the property inside the overrides.
+ * @param transform - Turns a value into a CSS string.
+ * @returns Object of CSS variables.
  */
 export function makeResponsiveVars(
     prefix: string,
@@ -122,20 +124,20 @@ export function makeResponsiveVars(
 }
 
 /**
- * Создаёт группу связанных CSS-переменных: базовую и по группе на каждое
- * устройство с переопределениями.
+ * Creates a group of related CSS variables: the base group plus one group per device
+ * that carries overrides.
  *
- * Нужна там, где переменные производные и поодиночке несогласуемы: у Grid
- * `columns` тянет за собой `auto-flow` и обе lead-колонки, а `rowHeight`
- * с `minRowHeight` — `rows` и `auto-rows`. Если переопределить одну переменную
- * группы, а остальные оставить базовыми, получится сетка с новым числом колонок
- * и старым разбросом акцентной ячейки. Поэтому группа считается целиком от
- * пропсов, слитых с overrides устройства.
+ * Needed wherever the variables are derived and cannot be reconciled one at a time:
+ * in Grid, `columns` drags `auto-flow` and both lead columns along with it, while
+ * `rowHeight` and `minRowHeight` drag `rows` and `auto-rows`. Override one variable
+ * of the group and leave the rest on the base values, and the result is a grid with
+ * the new number of columns and the old span of the accent cell. That is why the
+ * group is computed as a whole from the props merged with the device overrides.
  *
- * @param prefix - Общий префикс группы (например, '--bricks-grid').
- * @param props - Пропсы блока целиком (нужны `props.responsive`).
- * @param compute - Считает значения группы по разрешённым пропсам.
- * @returns Объект CSS-переменных с суффиксами `-base` и `-<ключ устройства>`.
+ * @param prefix - Prefix shared by the group (for example, '--bricks-grid').
+ * @param props - The block props as a whole (`props.responsive` is needed).
+ * @param compute - Computes the values of the group from the resolved props.
+ * @returns Object of CSS variables with the `-base` and `-<device key>` suffixes.
  */
 export function makeResponsiveVarGroup(
     prefix: string,
@@ -160,10 +162,10 @@ export function makeResponsiveVarGroup(
 }
 
 /**
- * Возвращает inline-стили grid-позиционирования компонента внутри родительского Grid.
+ * Returns the inline styles that place a component inside its parent Grid.
  *
- * @param component - Компонент схемы.
- * @returns Объект с gridColumn/gridRow (только заданные).
+ * @param component - Schema component.
+ * @returns Object with gridColumn/gridRow (only the ones that are set).
  */
 export function gridPlacementStyle(component: IBricksComponent): Record<string, string> {
     const style: Record<string, string> = {};

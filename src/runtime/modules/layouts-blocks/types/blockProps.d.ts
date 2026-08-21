@@ -1,6 +1,7 @@
 /**
- * Пропсы layout-блоков (Grid/Flex/Space/Slider/Accordion/Section/Svg/Media).
- * Домен layouts-blocks — владелец этих контрактов; canvas/render/sidebar импортируют отсюда.
+ * Props of the layout blocks (Grid/Flex/Space/Slider/Accordion/Section/Svg/Media).
+ * The layouts-blocks domain owns these contracts; canvas/render/sidebar import them
+ * from here.
  */
 
 import type { ComputedRef, VNodeChild } from 'vue';
@@ -14,13 +15,13 @@ export type TGridRowHeight = 'auto' | '1fr' | 'min-content' | 'max-content';
 
 export interface IGridLayoutProps {
     columns: number;
-    rows?: number; // минимум 1
+    rows?: number; // no less than 1
     gap: number;
     variant?: TGridLayoutVariant;
-    rowHeight?: TGridRowHeight; // режим высоты строк
-    minRowHeight?: number; // минимальная высота строки в rem
-    paddingX?: number; // горизонтальный padding контейнера в rem
-    paddingY?: number; // вертикальный padding контейнера в rem
+    rowHeight?: TGridRowHeight; // row height mode
+    minRowHeight?: number; // minimum row height in rem
+    paddingX?: number; // horizontal padding of the container in rem
+    paddingY?: number; // vertical padding of the container in rem
 }
 
 export interface IFlexLayoutProps {
@@ -29,18 +30,18 @@ export interface IFlexLayoutProps {
     align: 'stretch' | 'start' | 'center' | 'end' | 'baseline';
     gap: number;
     wrap: boolean;
-    paddingX?: number; // горизонтальный padding контейнера в rem
-    paddingY?: number; // вертикальный padding контейнера в rem
+    paddingX?: number; // horizontal padding of the container in rem
+    paddingY?: number; // vertical padding of the container in rem
 }
 
 export interface ISpaceProps {
-    size: string | number; // number в rem (2.4) или строка с единицей ('2.4rem')
+    size: string | number; // a number in rem (2.4) or a string with a unit ('2.4rem')
     direction: 'vertical' | 'horizontal' | 'both';
     showDivider?: boolean;
     dividerColor?: string; // CSS color, default: var(--bricks-base-200)
     dividerWidth?: number; // px, default: 1
     dividerStyle?: 'solid' | 'dashed' | 'dotted';
-    dividerMarginX?: number; // rem, отступы по бокам
+    dividerMarginX?: number; // rem, margins on the sides
 }
 
 export interface ISliderCaption {
@@ -51,13 +52,13 @@ export interface ISliderCaption {
 export interface ISliderLayoutProps {
     spaceBetween: number;
     /**
-     * Число слайдов на базовом устройстве. Прежние
-     * `slidesPerViewDesktop/Tablet/Mobile` сняты: набор устройств произвольный,
-     * и три отдельных пропа не описали бы ни четвёртую ступень, ни ключ,
-     * придуманный пользователем. Ступени задаются `responsive[<ключ>]`.
+     * Number of slides on the base device. The former
+     * `slidesPerViewDesktop/Tablet/Mobile` are gone: the set of devices is arbitrary,
+     * and three separate props would describe neither a fourth step nor a key invented
+     * by the user. The steps are set through `responsive[<key>]`.
      */
     slidesPerView: number;
-    /** Переопределения свойств по ключам устройств набора страницы. */
+    /** Property overrides keyed by the device keys of the page's set */
     responsive?: Record<string, Record<string, unknown>>;
     loop: boolean;
     autoplay: boolean;
@@ -77,30 +78,30 @@ export interface IAccordionItem {
 export interface IAccordionLayoutProps {
     items: IAccordionItem[];
     allowMultiple: boolean;
-    initialOpenIndex: number; // -1 = все закрыты
-    gap?: number; // rem, отступ между items (0 = единый блок, >0 = карточный режим)
-    borderRadius?: number; // rem, закругление углов
-    accentColor?: string; // hex, акцентный цвет
-    animationDuration?: number; // ms, скорость анимации
+    initialOpenIndex: number; // -1 = everything closed
+    gap?: number; // rem, gap between items (0 = one solid block, >0 = card mode)
+    borderRadius?: number; // rem, corner rounding
+    accentColor?: string; // hex, accent color
+    animationDuration?: number; // ms, animation speed
 }
 
 export interface ISectionLayoutProps {
     backgroundColor?: string; // CSS color / CSS variable
-    backgroundImage?: string; // URL фонового изображения
+    backgroundImage?: string; // URL of the background image
     paddingTop?: number; // rem
     paddingBottom?: number; // rem
     paddingX?: number; // rem
     borderRadius?: number; // rem
-    minHeight?: number; // rem, минимальная высота секции
+    minHeight?: number; // rem, minimum height of the section
 }
 
 export interface IBlockSvgProps {
     componentId?: string;
-    src?: string; // URL из медиа-галереи
-    svgContent?: string; // Raw SVG content (заполняется через svgContentProperty)
-    color?: string; // CSS color — применяется к fill/stroke
-    width?: string | number; // rem или CSS value
-    height?: string | number; // rem или CSS value
+    src?: string; // URL from the media gallery
+    svgContent?: string; // Raw SVG content (filled in through svgContentProperty)
+    color?: string; // CSS color — applied to fill/stroke
+    width?: string | number; // rem or a CSS value
+    height?: string | number; // rem or a CSS value
     alignment?: 'left' | 'center' | 'right';
     marginTop?: number;
     marginBottom?: number;
@@ -119,29 +120,32 @@ export interface IBlockMediaProps {
     muted?: boolean;
     controls?: boolean;
     /**
-     * URL уменьшенных вариантов постепенной загрузки. Заполняются при выборе
-     * картинки из галереи (`previewUrlProperty` / `mockUrlProperty` в definition):
-     * блок хранит картинку строкой, а не id медиа, и вывести их из `src` нельзя.
+     * URLs of the smaller variants used by progressive loading. Filled in when a
+     * picture is chosen from the gallery (`previewUrlProperty` / `mockUrlProperty` in
+     * the definition): the block stores the picture as a string rather than a media id,
+     * so they cannot be derived from `src`.
      */
     previewSrc?: string;
     mockSrc?: string;
     /**
-     * Пиксельные размеры выбранной картинки. Заполняются оттуда же, откуда
-     * адреса вариантов: держат место под картинку `aspect-ratio`, пока в разметке
-     * стоит прозрачный 1×1. Ноль (или отсутствие) — размеры неизвестны, и тогда
-     * постепенная загрузка возвращается к превью в разметке.
+     * Pixel dimensions of the chosen picture. Filled in from the same place as the
+     * variant addresses: they hold the space for the picture through `aspect-ratio`
+     * while a transparent 1×1 sits in the markup. Zero (or absent) means the dimensions
+     * are unknown, and then progressive loading falls back to the preview in the
+     * markup.
      */
     naturalWidth?: number;
     naturalHeight?: number;
     /**
-     * Режим постепенной загрузки; `config` — взять глобальный дефолт из
-     * `bricks.media.loadMode`. Режим — свойство МЕСТА на странице, а не файла:
-     * одна и та же картинка на первом экране и в подвале требует разного.
+     * Progressive loading mode; `config` means take the global default from
+     * `bricks.media.loadMode`. The mode is a property of the PLACE on the page, not of
+     * the file: one and the same picture needs different treatment above the fold and
+     * in the footer.
      */
     loadMode?: TBricksMediaLoadMode | 'config';
     /**
-     * Первый экран: снимает lazy и ставит `fetchpriority="high"`. Постепенная
-     * загрузка на первом экране бьёт по LCP — полный файл нужен сразу.
+     * Above the fold: drops lazy and sets `fetchpriority="high"`. Progressive loading
+     * above the fold hurts LCP — the full file is needed straight away.
      */
     eagerLoad?: boolean;
 }
@@ -199,11 +203,12 @@ export type TLayoutProps =
     | IBlockSvgProps;
 
 /**
- * Пропсы блока Text.
+ * Props of the Text block.
  *
- * `fontSize` — responsive-свойство: до перевода на CSS-переменные размер задавался
- * `@container`-запросами прямо в SFC, но `container-type` объявлен только на
- * `.bricks-canvas`, поэтому на published текст всегда оставался базовым.
+ * `fontSize` is a responsive property: before the move to CSS variables the size was
+ * set by `@container` queries right inside the SFC, but `container-type` is declared
+ * on `.bricks-canvas` only, so on a published page the text always stayed at the base
+ * size.
  */
 export interface IBlockTextProps {
     componentId?: string;
@@ -214,7 +219,7 @@ export interface IBlockTextProps {
 }
 
 /**
- * Контекст inline-редактирования, который канвас прокидывает блокам через
+ * Inline editing context that the canvas passes down to the blocks through
  * provide/inject.
  */
 export interface IInlineEditingContext {

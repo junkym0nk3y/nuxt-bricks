@@ -46,7 +46,6 @@ const horizontalGapRects = computed(() =>
         :viewBox="`0 0 ${props.containerSize.width} ${props.containerSize.height}`"
         preserveAspectRatio="none"
     >
-        <!-- Vertical gap highlight (columns) -->
         <rect
             v-for="(gapRect, gapIndex) in gapRects"
             :key="`col-gap-${gapIndex}`"
@@ -57,7 +56,6 @@ const horizontalGapRects = computed(() =>
             fill="color-mix(in srgb, var(--bricks-primary) 12%, transparent)"
         />
 
-        <!-- Horizontal gap highlight (rows) -->
         <rect
             v-for="(gapRect, gapIndex) in horizontalGapRects"
             :key="`row-gap-${gapIndex}`"
@@ -68,7 +66,6 @@ const horizontalGapRects = computed(() =>
             fill="color-mix(in srgb, var(--bricks-primary) 12%, transparent)"
         />
 
-        <!-- Vertical lines (columns) -->
         <line
             v-for="(position, index) in columnBoundaries"
             :key="`v-${index}`"
@@ -80,7 +77,6 @@ const horizontalGapRects = computed(() =>
             stroke-width="1"
         />
 
-        <!-- Horizontal lines (rows) -->
         <line
             v-for="(position, index) in rowBoundaries"
             :key="`h-${index}`"

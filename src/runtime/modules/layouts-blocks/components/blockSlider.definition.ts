@@ -15,24 +15,26 @@ import { resolvePublishedProps } from '../utils/publishedProps';
 import { gridPlacementStyle, makeResponsiveVars } from '../utils/responsiveVars';
 
 // Components
-// Async-импорт: Swiper (~100KB) не должен попадать в бандл каждой published-страницы —
-// грузится только там, где слайдер реально есть в схеме. Канвас использует
-// eager-версию из canvasBlockComponents.ts, definitions она не касается.
+// Async import: Swiper (~100KB) must not end up in the bundle of every published page —
+// it is loaded only where a slider really is present in the schema. The canvas uses the
+// eager version out of canvasBlockComponents.ts, which the definitions never touch.
 const BlockSlider = defineAsyncComponent(() => import('./BlockSlider.vue'));
 
 /**
- * Published-рендер Slider: children идут пропами slides/renderSlide, isEditor: false.
+ * Published render of Slider: the children go in as the slides/renderSlide props, with
+ * isEditor: false.
  *
- * @param ctx - Контекст рендера published-страницы.
- * @returns VNode слайдера.
+ * @param ctx - Render context of the published page.
+ * @returns Slider VNode.
  */
 function renderSliderPublished(ctx: IBlockRenderContext): VNode {
     const { component, definition, extraClasses, extraAttrs, renderChild, getChildComponents } =
         ctx;
     const componentProps = resolvePublishedProps<ISliderLayoutProps>(definition, component.props);
     const childComponents = getChildComponents(component);
-    // Переменные считаются от СЫРЫХ пропсов схемы: `resolvePublishedProps`
-    // отдаёт базовые значения без `responsive`, а переменные нужны per-device
+    // The variables are computed from the RAW schema props: `resolvePublishedProps`
+    // hands back the base values without `responsive`, and the variables are needed
+    // per device
     const style: Record<string, string> = {
         ...gridPlacementStyle(component),
         ...buildSliderVars(component.props as Record<string, unknown>),
@@ -48,18 +50,18 @@ function renderSliderPublished(ctx: IBlockRenderContext): VNode {
         id: component.htmlId || undefined,
         class: extraClasses,
         style,
-        // По атрибуту сматчится сгенерированное правило выбора per-device
-        // `--bricks-slider-spv`
+        // The attribute is what the generated rule that selects the per-device
+        // `--bricks-slider-spv` matches on
         'data-bricks-layout': 'slider',
         ...extraAttrs,
     });
 }
 
 /**
- * Считает per-device переменные числа слайдов.
+ * Computes the per-device variables of the slide count.
  *
- * @param props - Сырые пропсы блока из схемы.
- * @returns CSS-переменные `--bricks-slider-spv-*`.
+ * @param props - Raw block props out of the schema.
+ * @returns The `--bricks-slider-spv-*` CSS variables.
  */
 function buildSliderVars(props: Record<string, unknown>): Record<string, string> {
     return makeResponsiveVars(
@@ -72,10 +74,11 @@ function buildSliderVars(props: Record<string, unknown>): Record<string, string>
 }
 
 /**
- * Definition блока Slider: swiper-контейнер; children идут через canvasBind
- * (пропы slides/renderSlide), а не default slot. Дефолты
- * captions/captionPosition/showCaptionNavigation войдут в derived defaultProps
- * (поведенчески нейтрально — сверка дефолтов, Часть B).
+ * Definition of the Slider block: a swiper container; the children arrive through
+ * canvasBind (the slides/renderSlide props) rather than the default slot. The
+ * captions/captionPosition/showCaptionNavigation defaults become part of the derived
+ * defaultProps, which is behaviorally neutral — they repeat what the component itself
+ * already falls back to.
  */
 export const blockSliderDefinition: IBlockDefinition = {
     name: 'Slider',

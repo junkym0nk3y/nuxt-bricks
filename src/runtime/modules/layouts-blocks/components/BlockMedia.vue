@@ -39,11 +39,16 @@ const props = withDefaults(defineProps<IBlockMediaProps>(), {
 // #region Data
 const $style = useCssModule();
 const appConfig = useAppConfig() as IAppConfig;
-/** Дефолт, если ни блок, ни конфиг режим не задали. */
+/** The default for when neither the block nor the config has set a mode */
 const FALLBACK_LOAD_MODE: TBricksMediaLoadMode = 'two-step';
 // #endregion
 
 // #region Computed
+/**
+ * Sizing styles of the media. They go onto the BricksImage root rather than onto the
+ * picture itself: progressive loading is BricksImage's job and its layers are absolutely
+ * positioned, so the wrapper is the element that has to carry a size.
+ */
 const mediaStyle = computed(() => {
     const style: Record<string, string> = {
         objectFit: props.objectFit,
@@ -70,7 +75,7 @@ const mediaStyle = computed(() => {
 const isVideo = computed(() => props.type === 'video');
 const isImage = computed(() => props.type === 'image');
 const hasSource = computed(() => Boolean(props.src));
-/** `config` у блока означает «взять глобальный дефолт модуля». */
+/** `config` on the block means "take the global default of the module" */
 const resolvedLoadMode = computed<TBricksMediaLoadMode>(() =>
     props.loadMode === 'config'
         ? (appConfig.bricks?.media?.loadMode ?? FALLBACK_LOAD_MODE)
@@ -81,11 +86,6 @@ const resolvedLoadMode = computed<TBricksMediaLoadMode>(() =>
 
 <template>
     <div :class="$style.BlockMedia">
-        <!--
-            Image. Постепенной загрузкой занимается BricksImage: у него абсолютные
-            слои, поэтому обёртка обязана иметь размер — style с width/height
-            переезжает на неё, а не на саму картинку
-        -->
         <BricksImage
             v-if="isImage && hasSource"
             :src="props.src"
@@ -101,7 +101,6 @@ const resolvedLoadMode = computed<TBricksMediaLoadMode>(() =>
             :style="mediaStyle"
         />
 
-        <!-- Video -->
         <video
             v-else-if="isVideo && hasSource"
             :src="props.src"
@@ -114,7 +113,6 @@ const resolvedLoadMode = computed<TBricksMediaLoadMode>(() =>
             playsinline
         />
 
-        <!-- Placeholder -->
         <div v-else :class="$style.placeholder">
             <BricksIcon
                 :class="$style.placeholderIcon"

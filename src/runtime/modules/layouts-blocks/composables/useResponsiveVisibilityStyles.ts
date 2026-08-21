@@ -9,20 +9,20 @@ import { useHead } from 'nuxt/app';
 import { buildDeviceVisibilityCss } from '../utils/deviceVisibilityCss';
 // #endregion
 
-/** Ключ тега: по нему набор страницы вытесняет проектный. */
+/** Tag key: it is how the page device set displaces the project one */
 const BRICKS_VISIBILITY_STYLE_KEY = 'bricks-responsive-visibility';
 
 /**
- * Инжектит глобальные CSS-правила для скрытия элементов по устройствам.
+ * Injects the global CSS rules that hide elements per device.
  *
- * Две ветки: канвас ориентируется на `data-bricks-viewport`, published — на
- * диапазоны набора. Реализация SSR-safe: правила задаются через CSS, без JS
- * device detection.
+ * Two branches: the canvas keys off `data-bricks-viewport`, a published page off the
+ * ranges of the set. The implementation is SSR-safe: the rules are expressed in CSS,
+ * with no JS device detection.
  *
- * Геттер, а не значение: набор страницы меняется без перемонтирования
- * (см. `useBricksStyles`).
+ * A getter rather than a value: the page device set changes without a remount (see
+ * `useBricksStyles`).
  *
- * @param getDevices - Геттер резолвнутого набора устройств.
+ * @param getDevices - Getter of the resolved device set.
  */
 export function useResponsiveVisibilityStyles(getDevices: () => TBricksResolvedDeviceSet): void {
     useHead(() => ({

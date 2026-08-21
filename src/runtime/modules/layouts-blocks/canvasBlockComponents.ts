@@ -15,9 +15,11 @@ import BlockSvg from './components/BlockSvg.vue';
 // #endregion
 
 /**
- * Eager-мапа канвасных компонентов всех layout-блоков.
- * Bundle firewall: импортируется ТОЛЬКО канвасом (BuilderCanvasItemLayout, шаг B4) —
- * published-бандл эту мапу не тянет, контейнерные блоки не попадают в него.
+ * Eager map of the canvas components of every layout block.
+ * Bundle firewall: imported by the builder only — the canvas item
+ * (BuilderCanvasItemLayout) and the library card preview (useComponentCardPreview).
+ * The published bundle does not pull this map in, so the container blocks never end up
+ * in it.
  */
 export const CANVAS_BLOCK_COMPONENTS: Record<string, Component> = {
     Grid: BlockGrid,

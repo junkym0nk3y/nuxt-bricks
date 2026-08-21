@@ -34,8 +34,8 @@ import { Swiper, SwiperSlide } from 'swiper/vue';
 import { Navigation, Pagination, Autoplay, A11y } from 'swiper/modules';
 import BlockSliderCaptions from './BlockSliderCaptions.vue';
 
-// Styles: css слайдера едет в чанк компонента, а не в глобальный css всех
-// страниц потребителя (изоляция модуля)
+// Styles: the slider css travels in the chunk of the component rather than in the
+// global css of every page of the consumer (module isolation)
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
@@ -75,9 +75,10 @@ const props = withDefaults(defineProps<IBlockSliderProps>(), {
 const sliderRef = ref<HTMLElement | null>(null);
 const injectedViewport = inject(CANVAS_VIEWPORT_KEY, null);
 
-// Набор страницы для JS-брейкпоинтов Swiper. Провайдера может не быть (блок
-// отрисован вне билдера и рендерера) — тогда берём константу проекта, а не
-// runtimeConfig: лист-блоку незачем знать про конфигурацию приложения
+// The page device set for the JS breakpoints of Swiper. The provider may be absent (the
+// block is rendered outside the builder and the renderer) — then the project constant is
+// taken rather than runtimeConfig: a leaf block has no business knowing about the
+// application configuration
 const injectedDevices = inject(BRICKS_DEVICES_KEY, null);
 const devices = computed(() => injectedDevices?.value ?? DEFAULT_BRICKS_DEVICES);
 const activeSlideIndex = ref(0);
@@ -88,6 +89,12 @@ const { dropInsertIndex, getDraggableSlides, updateDropTarget, clearDropTarget }
 // #endregion
 
 // #region Computed
+/**
+ * Editor mode. BuilderCanvasItem switches pointer events off for the deep descendants
+ * of a canvas item, and the slide contents inherit that from the Swiper wrappers even
+ * though the slide itself is a drop item — which is why the editor styles put
+ * `pointer-events: auto` back on `.slideInner`.
+ */
 const isEditor = computed<boolean>(() => props.isEditor === true);
 const hasSlides = computed<boolean>(() => props.slides.length > 0);
 const sliderModules = computed(() => {
@@ -122,22 +129,23 @@ const sliderLoop = computed<boolean>(() => {
 const spaceBetween = computed<number>(() => Number(props.layoutProps.spaceBetween) || 16);
 
 /**
- * slidesPerView для текущего листа канваса.
+ * slidesPerView for the current canvas sheet.
  *
- * На канвасе значение уже разрешено под активное устройство (`resolveBlockProps`
- * мержит `props.responsive[viewport]`), поэтому берётся напрямую из пропа.
+ * On the canvas the value has already been resolved for the active device
+ * (`resolveBlockProps` merges `props.responsive[viewport]`), so it is taken straight
+ * from the prop.
  */
 const currentSlidesPerView = computed<number>(() =>
     normalizeSlidesPerView(props.layoutProps.slidesPerView)
 );
 
 /**
- * Breakpoints для Swiper (только published mode).
+ * Breakpoints for Swiper (published mode only).
  *
- * Считаются по набору устройств страницы, а не по зашитым 768/1024: с
- * собственным набором страницы прежние границы разошлись бы и с CSS-раскладкой,
- * и с SSR-fallback'ом — на ширине 1400 Swiper показывал бы десктопное число
- * слайдов, пока контейнер уже ноутбучный.
+ * Computed from the device set of the page rather than from a hardwired 768/1024: with
+ * a set of the page's own, the former boundaries would disagree both with the CSS
+ * layout and with the SSR fallback — at a width of 1400 Swiper would show the desktop
+ * number of slides while the container is already a laptop one.
  */
 const sliderBreakpoints = computed<Record<number, { slidesPerView: number }>>(() => {
     const responsive = (props.layoutProps.responsive ?? {}) as Record<
@@ -159,12 +167,13 @@ const sliderBreakpoints = computed<Record<number, { slidesPerView: number }>>(()
 });
 
 /**
- * CSS-переменные статического SSR-fallback'а.
+ * CSS variables of the static SSR fallback — the one that puts the slide contents into
+ * the server HTML for SEO and is replaced by the interactive Swiper after mount.
  *
- * Число слайдов сюда больше не входит: активную переменную
- * `--bricks-slider-spv` выбирает сгенерированное правило по набору страницы —
- * то же, что раскладывает остальные блоки. Здесь остаётся только зазор, который
- * от устройства не зависит.
+ * The number of slides is no longer part of it: the active `--bricks-slider-spv`
+ * variable is chosen by the generated rule for the device set of the page — the same
+ * rule that lays out the rest of the blocks. What is left here is the gap alone, which
+ * does not depend on the device.
  */
 const ssrFallbackStyle = computed<Record<string, string>>(() => ({
     '--bricks-slider-gap': `${spaceBetween.value}px`,
@@ -253,7 +262,6 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
         @dragleave="handleDragLeave"
         @drop="handleDrop"
     >
-        <!-- Caption navigation (top) -->
         <BlockSliderCaptions
             v-if="hasCaptions && captionPosition === 'top'"
             :captions="parsedCaptions"
@@ -285,8 +293,6 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
                 </SwiperSlide>
             </Swiper>
 
-            <!-- Статический SSR-fallback: контент слайдов в server-HTML (SEO),
-                 после mount заменяется интерактивным Swiper -->
             <template #fallback>
                 <div
                     v-if="!isEditor && hasSlides"
@@ -304,7 +310,6 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
             </template>
         </ClientOnly>
 
-        <!-- Caption navigation (bottom) -->
         <BlockSliderCaptions
             v-if="hasCaptions && captionPosition === 'bottom'"
             :captions="parsedCaptions"
@@ -333,8 +338,6 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
             background: color-mix(in srgb, var(--bricks-primary) 6%, transparent);
         }
 
-        // pointer-events: auto для дочерних элементов внутри Swiper,
-        // чтобы преодолеть наследование pointer-events: none от BuilderCanvasItem > * *
         .slideInner {
             pointer-events: auto;
         }
@@ -378,9 +381,6 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
     }
 }
 
-// Статическая SSR-раскладка слайдов до гидратации Swiper. Ширины считаются от
-// `--bricks-slider-spv`, которую выбирает сгенерированное правило по набору
-// устройств страницы — те же ступени, что у Swiper и у остальных блоков
 .ssrSlides {
     overflow: hidden;
     display: flex;

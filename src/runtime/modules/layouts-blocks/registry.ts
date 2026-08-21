@@ -20,11 +20,12 @@ import { readOwnKey } from '../common/utils/safeRecord';
 // #endregion
 
 /**
- * Registry layout-блоков. Bundle firewall: definitions контейнеров (Grid/Flex/Section/Space)
- * НЕ импортируют свои `.vue` — их published-рендер это `h('div')`, а канвас-мапа лежит
- * отдельно в canvasBlockComponents.ts. Leaf-definitions импортируют свои компоненты
- * для `renderPublished` — ровно сегодняшний состав published-бандла.
- * Порядок ключей = порядок блоков в библиотеке компонентов.
+ * Registry of the layout blocks. Bundle firewall: the definitions of the containers
+ * (Grid/Flex/Section/Space) do NOT import their `.vue` files — their published render
+ * is an `h('div')`, and the canvas map lives separately in canvasBlockComponents.ts.
+ * The leaf definitions do import their components, for `renderPublished` — which is
+ * exactly what the published bundle contains today.
+ * Key order = the order of the blocks in the component library.
  */
 export const BLOCK_REGISTRY: Record<string, IBlockDefinition> = {
     Grid: blockGridDefinition,
@@ -39,13 +40,13 @@ export const BLOCK_REGISTRY: Record<string, IBlockDefinition> = {
 };
 
 /**
- * Возвращает definition блока по componentName схемы.
- * Регистронезависимо: канвас оперирует lowercase-именами ('grid'), схема — 'Grid'.
- * `componentName` приходит из схемы и проверяется контрактом лишь как непустая
- * строка, поэтому lookup — только по own-ключу.
+ * Returns the definition of a block by the componentName from the schema.
+ * Case-insensitive: the canvas works with lowercase names ('grid'), the schema with
+ * 'Grid'. `componentName` arrives from the schema and the contract only checks it for
+ * being a non-empty string, hence the lookup by own key alone.
  *
- * @param name - Имя блока ('Grid' или 'grid').
- * @returns Definition или undefined для неизвестного блока.
+ * @param name - Block name ('Grid' or 'grid').
+ * @returns The definition, or undefined for an unknown block.
  */
 export function getBlockDefinition(name: string): IBlockDefinition | undefined {
     const direct = readOwnKey(BLOCK_REGISTRY, name);
@@ -59,10 +60,10 @@ export function getBlockDefinition(name: string): IBlockDefinition | undefined {
 }
 
 /**
- * Возвращает свойства панели редактора для блока.
+ * Returns the editor panel properties of a block.
  *
- * @param name - Имя блока.
- * @returns Массив определений свойств (пустой для неизвестного блока).
+ * @param name - Block name.
+ * @returns Array of property definitions (empty for an unknown block).
  */
 export function getBlockProperties(name: string): ILayoutProperty[] {
     const definition = getBlockDefinition(name);
@@ -70,10 +71,10 @@ export function getBlockProperties(name: string): ILayoutProperty[] {
 }
 
 /**
- * Derive defaultProps блока: дефолты свойств панели + extraDefaults.
+ * Derives the defaultProps of a block: the panel property defaults plus extraDefaults.
  *
- * @param definition - Definition блока.
- * @returns Объект дефолтных пропсов для создания компонента.
+ * @param definition - Block definition.
+ * @returns Object of default props for creating the component.
  */
 function deriveDefaultProps(definition: IBlockDefinition): Record<string, unknown> {
     const defaults = getBlockProperties(definition.name).reduce<Record<string, unknown>>(
@@ -88,10 +89,11 @@ function deriveDefaultProps(definition: IBlockDefinition): Record<string, unknow
 }
 
 /**
- * Возвращает элементы библиотеки компонентов для всех layout-блоков
- * (замена руками собранного LAYOUT_COMPONENTS, шаг B3).
+ * Returns the component library items of every layout block. `LAYOUT_COMPONENTS` used
+ * to be assembled by hand and is now derived from this call, so a new block shows up in
+ * the library without a second list to keep in sync.
  *
- * @returns Массив элементов библиотеки с derived defaultProps.
+ * @returns Array of library items with derived defaultProps.
  */
 export function getLayoutLibraryItems(): IComponentLibraryItem[] {
     return Object.values(BLOCK_REGISTRY).map((definition) => ({
@@ -106,11 +108,11 @@ export function getLayoutLibraryItems(): IComponentLibraryItem[] {
 }
 
 /**
- * Применяет коэрцию значения по определению свойства.
+ * Coerces a value according to its property definition.
  *
- * @param value - Сырое значение из props.
- * @param property - Определение свойства.
- * @returns Нормализованное значение.
+ * @param value - Raw value out of props.
+ * @param property - Property definition.
+ * @returns Normalized value.
  */
 function coercePropValue(value: unknown, property: ILayoutProperty): unknown {
     if (property.type === 'number') {
@@ -140,15 +142,16 @@ function coercePropValue(value: unknown, property: ILayoutProperty): unknown {
 }
 
 /**
- * Резолвит пропсы блока под viewport: generic merge `props.responsive[viewport]`
- * (при responsiveMode === 'all') + коэрция по определениям свойств.
- * Воспроизводит normalizeGridRowHeight и justify/align-guards старого
- * useCanvasItemLayout (валидация select по options).
+ * Resolves the props of a block for a viewport: a generic merge of
+ * `props.responsive[viewport]` (when responsiveMode === 'all') plus coercion by the
+ * property definitions. The select-against-options validation here reproduces the
+ * rowHeight normalization and the justify/align guards that `useCanvasItemLayout`
+ * used to carry itself.
  *
- * @param name - Имя блока.
- * @param baseProps - Пропсы компонента из схемы.
- * @param viewport - Активный viewport.
- * @returns Resolved-пропсы для биндинга на канвасе.
+ * @param name - Block name.
+ * @param baseProps - Component props out of the schema.
+ * @param viewport - Active viewport.
+ * @returns Resolved props for binding on the canvas.
  */
 export function resolveBlockProps(
     name: string,
@@ -182,13 +185,13 @@ export function resolveBlockProps(
 }
 
 /**
- * Возвращает канвас-биндинг блока: кастомный canvasBind из definition либо
- * generic-биндинг (контейнер — layoutProps + layoutId + data-bricks-layout,
- * leaf — только layoutProps).
+ * Returns the canvas binding of a block: either the custom canvasBind from the
+ * definition or the generic binding (a container gets layoutProps + layoutId +
+ * data-bricks-layout, a leaf gets layoutProps only).
  *
- * @param definition - Definition блока.
- * @param ctx - Контекст биндинга канваса.
- * @returns Пропсы для канвасного компонента блока.
+ * @param definition - Block definition.
+ * @param ctx - Canvas binding context.
+ * @returns Props for the canvas component of the block.
  */
 export function resolveCanvasBind(
     definition: IBlockDefinition,

@@ -1,12 +1,12 @@
 /**
- * Утилиты блока Slider, общие для SFC и definition.
+ * Utilities of the Slider block, shared by the SFC and the definition.
  */
 
 /**
- * Приводит значение `slidesPerView` к положительному числу (минимум 1).
+ * Brings a `slidesPerView` value to a positive number (no less than 1).
  *
- * @param value - Значение из схемы или переопределения устройства.
- * @returns Число слайдов, не меньше единицы.
+ * @param value - Value out of the schema or out of a device override.
+ * @returns Number of slides, no less than one.
  */
 export function normalizeSlidesPerView(value: unknown): number {
     return Math.max(1, Number(value) || 1);

@@ -9,25 +9,25 @@ import { useHead } from 'nuxt/app';
 import { buildResponsiveLayoutCss } from '../utils/responsiveCss';
 // #endregion
 
-/** Ключ тега: по нему набор страницы вытесняет проектный. */
+/** Tag key: it is how the page device set displaces the project one */
 const BRICKS_LAYOUT_STYLE_KEY = 'bricks-responsive-layout';
 
 /**
- * Инжектит глобальные CSS-правила для responsive layout-настроек через CSS variables.
+ * Injects the global CSS rules of the responsive layout settings through CSS variables.
  *
- * В схеме layout-компоненты хранят `props.responsive[<ключ устройства>]` с
- * overrides. Рендерер выставляет базовые переменные (`--bricks-grid-columns-base`)
- * и переменные тех устройств, у которых override реально есть; здесь мы только
- * выбираем активную переменную в зависимости от текущего устройства канваса или
- * диапазона окна.
+ * In the schema, layout components keep their overrides in
+ * `props.responsive[<device key>]`. The renderer emits the base variables
+ * (`--bricks-grid-columns-base`) plus the variables of the devices that really do carry
+ * an override; all that happens here is picking the active variable depending on the
+ * current canvas device or on the window range.
  *
- * Правила генерируются из `responsiveCssVars` definitions блоков.
- * Реализация SSR-safe: никаких JS device detection, только CSS.
+ * The rules are generated from the `responsiveCssVars` of the block definitions.
+ * The implementation is SSR-safe: no JS device detection, CSS only.
  *
- * Геттер, а не значение: набор страницы меняется без перемонтирования
- * (см. `useBricksStyles`).
+ * A getter rather than a value: the page device set changes without a remount (see
+ * `useBricksStyles`).
  *
- * @param getDevices - Геттер резолвнутого набора устройств.
+ * @param getDevices - Getter of the resolved device set.
  */
 export function useResponsiveLayoutStyles(getDevices: () => TBricksResolvedDeviceSet): void {
     useHead(() => ({

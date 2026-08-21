@@ -7,17 +7,16 @@ import { deviceRanges } from '../../common/utils/bricks/devices';
 // #endregion
 
 /**
- * Собирает правила скрытия по устройствам для набора.
+ * Assembles the per-device hiding rules for a device set.
  *
- * `display: none !important` — осознанное исключение из запрета `!important`
- * (`.claude/rules/styles.md`): класс видимости конкурирует с ИНЛАЙНОВЫМ
- * `display` контейнерных блоков (Grid, Flex, Section ставят его в `style`
- * элемента при рендере), и без `!important` скрытие у них молча перестало бы
- * работать. Правило запрета писано для компонентных стилей; здесь —
- * генерируемый глобальный utility-CSS.
+ * `display: none !important` is a deliberate exception to the ban on `!important`
+ * (`.claude/rules/styles.md`): the visibility class competes with the INLINE `display`
+ * of the container blocks (Grid, Flex and Section put it into the element `style` when
+ * they render), and without `!important` hiding would silently stop working for them.
+ * The ban was written for component styles; this is generated global utility CSS.
  *
- * @param devices - Резолвнутый набор устройств.
- * @returns CSS для инжекта в `<style>`.
+ * @param devices - Resolved device set.
+ * @returns CSS to inject into a `<style>`.
  */
 export function buildDeviceVisibilityCss(devices: TBricksResolvedDeviceSet): string {
     const canvasSelectors = devices
@@ -50,7 +49,7 @@ ${canvasSelectors} {
         }
 
         /* ===== Device visibility: Published (real viewport) ===== */
-        /* На опубликованной странице полностью скрываем компоненты по media queries. */
+        /* On a published page the components are hidden outright by media queries. */
 ${publishedRules}
     `;
 }

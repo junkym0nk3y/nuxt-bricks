@@ -3,14 +3,14 @@ import type { ILayoutProperty } from '../../common/types/layoutProperty';
 import type { IBlockDefinition } from '../types/registry';
 
 /**
- * Резолвит пропсы блока для published-рендера: дефолты definition
- * (properties[].default + extraDefaults) перекрываются значениями из схемы.
- * Страницы, сохранённые до добавления новых свойств блока, получают их дефолты,
- * а результат честно удовлетворяет полному интерфейсу props блока.
+ * Resolves the props of a block for the published render: the definition defaults
+ * (properties[].default plus extraDefaults) are overlaid with the values from the schema.
+ * Pages saved before new properties were added to a block get the defaults of those
+ * properties, and the result honestly satisfies the full props interface of the block.
  *
- * @param definition - Definition блока (источник дефолтов).
- * @param componentProps - Пропсы компонента из схемы страницы.
- * @returns Полные пропсы блока.
+ * @param definition - Block definition (the source of the defaults).
+ * @param componentProps - Component props out of the page schema.
+ * @returns The complete block props.
  */
 export function resolvePublishedProps<T>(
     definition: Pick<IBlockDefinition, 'properties' | 'extraDefaults'>,

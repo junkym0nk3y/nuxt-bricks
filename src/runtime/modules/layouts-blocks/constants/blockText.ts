@@ -1,20 +1,20 @@
 /**
- * Размеры шрифта блока Text.
+ * Font sizes of the Text block.
  */
 
-/** Базовый размер: то, что раньше давал самый широкий `@container`-запрос. */
+/** Base size: what the widest `@container` query used to give */
 export const BLOCK_TEXT_BASE_FONT_SIZE = 1.8;
 
 /**
- * Размеры прежней вёрстки по каноническим ключам устройств.
+ * Sizes of the former layout, under the canonical device keys.
  *
- * До перевода на CSS-переменные размер задавали `@container`-запросы прямо в
- * SFC: 1.4rem до 768, 1.6rem до 1024, дальше 1.8rem. Свойства `fontSize` у
- * существующих схем нет, и без этой таблицы весь их текст на узких устройствах
- * стал бы базового размера — молчаливое изменение всех страниц сразу.
+ * Before the move to CSS variables the size was set by `@container` queries right in
+ * the SFC: 1.4rem up to 768, 1.6rem up to 1024, 1.8rem beyond. Existing schemas have
+ * no `fontSize` property, and without this table all of their text on narrow devices
+ * would jump to the base size — a silent change to every page at once.
  *
- * Только для схем без своего `fontSize`: как только пользователь задал размер
- * явно, действуют его значения и его переопределения.
+ * For schemas without a `fontSize` of their own only: as soon as the user sets the size
+ * explicitly, their values and their overrides take effect.
  */
 export const BLOCK_TEXT_LEGACY_FONT_SIZES: Record<string, number> = {
     mobile: 1.4,

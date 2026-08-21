@@ -75,16 +75,16 @@ const sectionStyle = computed<CSSProperties>(() => {
 
 // #region Methods
 /**
- * Сбрасывает вычисленный индекс flow-плейсхолдера.
+ * Resets the computed index of the flow placeholder.
  */
 function clearDropTarget(): void {
     dropInsertIndex.value = null;
 }
 
 /**
- * Вычисляет индекс flow-плейсхолдера по вертикальной позиции курсора.
+ * Computes the index of the flow placeholder from the vertical cursor position.
  *
- * @param event - Текущее dragover-событие.
+ * @param event - Current dragover event.
  */
 function updateDropTarget(event: DragEvent): void {
     const container = sectionRef.value;
@@ -155,10 +155,8 @@ const {
         @dragleave="handleDragLeave"
         @drop="handleDrop"
     >
-        <!-- Content -->
         <slot />
 
-        <!-- Drop placeholder when empty -->
         <div
             v-if="isEmpty && !isCanvasDragActive"
             :class="$style.emptyPlaceholder"
@@ -184,7 +182,6 @@ const {
         min-width: 0;
     }
 
-    // Кольцо hover/выделения рисует BuilderCanvasItem — здесь только подсветка зоны.
     &:hover {
         border-color: var(--bricks-primary);
         background-color: color-mix(in srgb, var(--bricks-primary) 6%, var(--bricks-base-50));

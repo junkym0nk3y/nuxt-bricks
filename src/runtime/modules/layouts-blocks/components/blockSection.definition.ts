@@ -9,11 +9,11 @@ import { h, type VNode } from 'vue';
 import { gridPlacementStyle, makeResponsiveVars, toRem } from '../utils/responsiveVars';
 
 /**
- * Published-рендер Section: `h('div')` с per-device CSS-переменными
- * (канвасный BlockSection несёт editor chrome и на published не используется).
+ * Published render of Section: an `h('div')` with the per-device CSS variables (the
+ * canvas BlockSection carries the editor chrome and is not used on a published page).
  *
- * @param ctx - Контекст рендера published-страницы.
- * @returns VNode section-компонента.
+ * @param ctx - Render context of the published page.
+ * @returns VNode of the section component.
  */
 function renderSectionPublished(ctx: IBlockRenderContext): VNode {
     const { component, extraClasses, extraAttrs, styles, renderChild, getChildComponents } = ctx;
@@ -74,7 +74,8 @@ function renderSectionPublished(ctx: IBlockRenderContext): VNode {
 }
 
 /**
- * Definition блока Section: секция-обёртка с фоном, children в default slot.
+ * Definition of the Section block: a wrapper section with a background, children in
+ * the default slot.
  */
 export const blockSectionDefinition: IBlockDefinition = {
     name: 'Section',

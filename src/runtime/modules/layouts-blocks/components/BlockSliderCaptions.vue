@@ -14,7 +14,7 @@ const emit = defineEmits<IBlockSliderCaptionsEmits>();
 
 // #region Methods
 /**
- * Эмитит выбор слайда по клику на подпись.
+ * Raises the slide selection on a click on a caption.
  */
 function handleCaptionClick(index: number): void {
     emit('select', index);

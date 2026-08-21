@@ -85,16 +85,16 @@ const isHorizontal = computed(() => props.layoutProps.direction === 'row');
 
 // #region Methods
 /**
- * Сбрасывает вычисленный индекс flow-плейсхолдера.
+ * Resets the computed index of the flow placeholder.
  */
 function clearDropTarget(): void {
     dropInsertIndex.value = null;
 }
 
 /**
- * Пересчитывает индекс flow-плейсхолдера по текущей позиции курсора.
+ * Recomputes the index of the flow placeholder from the current cursor position.
  *
- * @param event - Dragover-событие браузера.
+ * @param event - Browser dragover event.
  */
 function updateDropTarget(event: DragEvent): void {
     const container = flexRef.value;
@@ -168,10 +168,8 @@ const {
         @dragleave="handleDragLeave"
         @drop="handleDrop"
     >
-        <!-- Content -->
         <slot />
 
-        <!-- Drop placeholder when empty -->
         <div
             v-if="isEmpty && !isCanvasDragActive"
             :class="$style.emptyPlaceholder"
@@ -197,8 +195,6 @@ const {
         min-width: 0;
     }
 
-    // Кольцо hover/выделения рисует BuilderCanvasItem — здесь только подсветка
-    // самой зоны, иначе на канвасе получались два кольца разной толщины.
     &:hover {
         border-color: var(--bricks-primary);
         background: color-mix(in srgb, var(--bricks-primary) 6%, var(--bricks-base-50));

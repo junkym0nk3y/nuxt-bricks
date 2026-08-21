@@ -35,7 +35,7 @@ const colorizedSvg = computed<string>(() => {
         return '';
     }
 
-    // Санитизация ПОСЛЕ colorize: в v-html уходит только результат sanitizer'а
+    // Sanitizing comes AFTER colorize: only the sanitizer output ever reaches v-html
     return sanitizeSvgMarkup(applyColorToSvgContent(props.svgContent!, props.color || undefined));
 });
 
@@ -106,7 +106,6 @@ function resolveDimension(value: string | number | undefined): string {
 
 <template>
     <div :class="$style.BlockSvg" :style="wrapperStyle">
-        <!-- Inline SVG (when svgContent available from media gallery) -->
         <!-- eslint-disable vue/no-v-html -->
         <div
             v-if="hasSvgContent"
@@ -116,7 +115,6 @@ function resolveDimension(value: string | number | undefined): string {
         />
         <!-- eslint-enable vue/no-v-html -->
 
-        <!-- Image fallback (SVG as <img> when no raw content) -->
         <img
             v-else-if="hasSource"
             :src="props.src"
@@ -127,7 +125,6 @@ function resolveDimension(value: string | number | undefined): string {
             decoding="async"
         />
 
-        <!-- Placeholder -->
         <div v-else :class="$style.placeholder">
             <BricksIcon :class="$style.placeholderIcon" icon="ta:outline-photo" />
             <span :class="$style.placeholderText">Выберите SVG из медиа</span>

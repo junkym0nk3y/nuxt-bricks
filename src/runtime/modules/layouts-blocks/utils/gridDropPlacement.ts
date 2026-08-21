@@ -1,8 +1,8 @@
 /**
- * Разбирает значение grid-template-* из computed style в размеры треков (CSS px).
+ * Parses a grid-template-* value out of the computed style into track sizes (CSS px).
  *
- * @param templateValue - Значение `gridTemplateColumns`/`gridTemplateRows`.
- * @returns Размеры треков в порядке следования.
+ * @param templateValue - Value of `gridTemplateColumns`/`gridTemplateRows`.
+ * @returns Track sizes in order.
  */
 export function parseGridTracks(templateValue: string | undefined): number[] {
     if (!templateValue || templateValue === 'none') {
@@ -16,15 +16,15 @@ export function parseGridTracks(templateValue: string | undefined): number[] {
 }
 
 /**
- * Находит трек, в который попадает точка.
+ * Finds the track a point falls into.
  *
- * Ряды грида почти всегда разной высоты (`rowHeight: auto`), поэтому делить
- * контент на равные полосы нельзя — идём по фактическим размерам треков.
+ * Grid rows almost always differ in height (`rowHeight: auto`), so the content cannot
+ * be split into equal bands — the actual track sizes are walked instead.
  *
- * @param position - Смещение точки внутри content-box зоны (CSS px).
- * @param tracks - Размеры треков (CSS px).
- * @param gap - Зазор между треками (CSS px).
- * @returns Индекс трека; за пределами — крайний.
+ * @param position - Offset of the point inside the content box of the zone (CSS px).
+ * @param tracks - Track sizes (CSS px).
+ * @param gap - Gap between the tracks (CSS px).
+ * @returns Track index; outside the bounds, the outermost one.
  */
 export function resolveGridTrackIndex(position: number, tracks: number[], gap: number): number {
     if (tracks.length === 0) {
@@ -52,24 +52,24 @@ export function resolveGridTrackIndex(position: number, tracks: number[], gap: n
 }
 
 /**
- * Проверяет, что треки имеют ненулевой суммарный размер.
+ * Checks that the tracks add up to a non-zero size.
  *
- * @param tracks - Размеры треков.
- * @returns Есть ли по чему считать попадание курсора.
+ * @param tracks - Track sizes.
+ * @returns Whether there is anything to compute the cursor hit against.
  */
 function hasSize(tracks: number[]): boolean {
     return tracks.reduce((total, track) => total + track, 0) > 0;
 }
 
 /**
- * Делит область на равные треки — резерв для случая, когда фактические треки
- * нулевые (пустой грид с `rowHeight: auto` растянут только своим min-height).
+ * Splits the area into equal tracks — the fallback for when the actual tracks are
+ * zero (an empty grid with `rowHeight: auto` is held open by its min-height alone).
  *
- * @param position - Смещение точки внутри content-box зоны (CSS px).
- * @param count - Количество треков.
- * @param contentSize - Размер content-box вдоль оси (CSS px).
- * @param gap - Зазор между треками (CSS px).
- * @returns Индекс трека в пределах count.
+ * @param position - Offset of the point inside the content box of the zone (CSS px).
+ * @param count - Number of tracks.
+ * @param contentSize - Size of the content box along the axis (CSS px).
+ * @param gap - Gap between the tracks (CSS px).
+ * @returns Track index within count.
  */
 export function resolveUniformTrackIndex(
     position: number,
@@ -92,14 +92,15 @@ export function resolveUniformTrackIndex(
 }
 
 /**
- * Вычисляет targetIndex (ячейку грида) по позиции курсора.
- * Учитывает CSS transform (canvas scale), padding, реальные gap и размеры треков.
+ * Computes the targetIndex (the grid cell) from the cursor position.
+ * Accounts for the CSS transform (canvas scale), the padding, and the real gaps and
+ * track sizes.
  *
- * @param event - Drop-событие с координатами курсора.
- * @param gridEl - DOM-элемент грида.
- * @param columns - Нормализованное число колонок.
- * @param rows - Нормализованное число строк.
- * @returns targetIndex или null, если невозможно вычислить.
+ * @param event - Drop event carrying the cursor coordinates.
+ * @param gridEl - Grid DOM element.
+ * @param columns - Normalized number of columns.
+ * @param rows - Normalized number of rows.
+ * @returns targetIndex, or null when it cannot be computed.
  */
 export function calculateGridDropTargetIndex(
     event: DragEvent,
@@ -112,9 +113,9 @@ export function calculateGridDropTargetIndex(
         return null;
     }
 
-    // getBoundingClientRect() отдаёт визуальные размеры (после canvas scale), а
-    // computed style — CSS-пиксели. Приводим точку курсора к CSS-пикселям, тогда
-    // треки, gap и padding используются как есть.
+    // getBoundingClientRect() gives the visual sizes (after the canvas scale), while
+    // the computed style gives CSS pixels. Bringing the cursor point to CSS pixels lets
+    // the tracks, the gaps and the padding be used as they are.
     const computedStyle = window.getComputedStyle(gridEl);
     const offsetWidth = gridEl.offsetWidth;
     const scale = offsetWidth > 0 ? rect.width / offsetWidth : 1;
@@ -130,8 +131,9 @@ export function calculateGridDropTargetIndex(
     const x = (event.clientX - rect.left) / safeScale - paddingLeft;
     const y = (event.clientY - rect.top) / safeScale - paddingTop;
 
-    // Неявные треки (их мог добавить сам плейсхолдер или контент) в расчёт не идут:
-    // адресуемая ёмкость грида — ровно columns × rows.
+    // Implicit tracks (the placeholder itself or the content may have added them) are
+    // left out of the calculation: the addressable capacity of the grid is exactly
+    // columns × rows.
     const columnTracks = parseGridTracks(computedStyle.gridTemplateColumns).slice(0, columns);
     const rowTracks = parseGridTracks(computedStyle.gridTemplateRows).slice(0, rows);
 

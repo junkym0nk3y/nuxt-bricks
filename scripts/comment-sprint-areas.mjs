@@ -74,7 +74,7 @@ export const AREAS = [
     {
         id: '3',
         title: 'layouts-blocks',
-        done: false,
+        done: true,
         match: ['src/runtime/modules/layouts-blocks/'],
     },
     { id: '4', title: 'text-editor', done: false, match: ['src/runtime/modules/text-editor/'] },

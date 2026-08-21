@@ -4,16 +4,16 @@ import { Comment, Fragment, Text, type VNode } from 'vue';
 // #endregion
 
 /**
- * Сколько узлов слота реально что-то рисуют.
+ * How many nodes of a slot really draw anything.
  *
- * Проверка вида `!slots.default?.()` для этого не годится: слот возвращает
- * массив и тогда, когда рисовать нечего — внутри лежат анкоры-комментарии
- * `v-if`, пустые фрагменты `v-for` и пробелы шаблона. Массив истинный, и пустой
- * контейнер считается заполненным: на канвасе это гасит подсказку «бросьте
- * сюда» и оставляет объявленные строки грида нулевой высоты.
+ * A check of the form `!slots.default?.()` will not do here: the slot returns an array
+ * even when there is nothing to draw — inside sit the comment anchors of `v-if`, empty
+ * `v-for` fragments and template whitespace. The array is truthy, and an empty container
+ * counts as filled: on the canvas that suppresses the "drop here" hint and leaves the
+ * declared grid rows at zero height.
  *
- * @param nodes - Узлы слота (результат вызова слот-функции).
- * @returns Число рисуемых узлов.
+ * @param nodes - Slot nodes (the result of calling the slot function).
+ * @returns Number of nodes that draw.
  */
 export function countSlotContent(nodes?: VNode[]): number {
     if (!nodes) {

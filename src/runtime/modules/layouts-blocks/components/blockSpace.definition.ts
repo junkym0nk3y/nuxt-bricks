@@ -9,35 +9,35 @@ import { convertPxToRem } from '../../common/utils/main';
 import { gridPlacementStyle, makeResponsiveVars, toRem } from '../utils/responsiveVars';
 
 /**
- * Нормализует значение отступа в rem.
- * Числа интерпретируются как rem (например, 2.4 → "2.4rem").
- * Строки с px конвертируются в rem.
+ * Normalizes a spacing value to rem.
+ * Numbers are read as rem (2.4 → "2.4rem", for example).
+ * Strings in px are converted to rem.
  *
- * @param size - Значение отступа (число в rem или строка).
- * @returns Нормализованное значение в rem.
+ * @param size - Spacing value (a number of rem, or a string).
+ * @returns Normalized value in rem.
  */
 function normalizeSpacingSize(size: string | number): string {
-    // Числа уже в rem - просто добавляем единицу измерения
+    // Numbers are already in rem — just add the unit
     if (typeof size === 'number') {
         return `${size}rem`;
     }
 
-    // Строка с px - конвертируем в rem
+    // A string in px — convert to rem
     if (size.endsWith('px')) {
         const numericValue = Number(size.replace('px', ''));
         return convertPxToRem(Number.isFinite(numericValue) ? numericValue : 0);
     }
 
-    // Остальные строки возвращаем как есть (уже с единицей измерения)
+    // Any other string comes back as it is (it already carries a unit)
     return size;
 }
 
 /**
- * Рендерит линию-разделитель внутри Space.
+ * Renders the divider line inside a Space.
  *
- * @param spaceProps - Пропсы Space-компонента.
- * @param isVertical - Вертикальное ли направление отступа.
- * @returns VNode разделителя.
+ * @param spaceProps - Props of the Space component.
+ * @param isVertical - Whether the spacing direction is vertical.
+ * @returns VNode of the divider.
  */
 function renderSpaceDivider(spaceProps: Record<string, unknown>, isVertical: boolean): VNode {
     const color = spaceProps.dividerColor || 'var(--bricks-base-200)';
@@ -64,10 +64,11 @@ function renderSpaceDivider(spaceProps: Record<string, unknown>, isVertical: boo
 }
 
 /**
- * Published-рендер Space: `h('div')` с per-device CSS-переменными и опциональным разделителем.
+ * Published render of Space: an `h('div')` with the per-device CSS variables and an
+ * optional divider.
  *
- * @param ctx - Контекст рендера published-страницы.
- * @returns VNode spacer-компонента.
+ * @param ctx - Render context of the published page.
+ * @returns VNode of the spacer component.
  */
 function renderSpacePublished(ctx: IBlockRenderContext): VNode {
     const { component, extraClasses, extraAttrs, styles } = ctx;
@@ -130,7 +131,7 @@ function renderSpacePublished(ctx: IBlockRenderContext): VNode {
 }
 
 /**
- * Definition блока Space: отступ (spacer), без children.
+ * Definition of the Space block: a spacer, with no children.
  */
 export const blockSpaceDefinition: IBlockDefinition = {
     name: 'Space',

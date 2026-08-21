@@ -14,11 +14,11 @@ import { BLOCK_REGISTRY } from '../registry';
 // #endregion
 
 /**
- * Собирает блоки registry, объявившие responsiveCssVars.
- * Селектор — `[data-bricks-layout="<name>"]`; prefix может шариться
- * (Media и Svg используют общие `--bricks-media-*`).
+ * Collects the registry blocks that declared responsiveCssVars.
+ * The selector is `[data-bricks-layout="<name>"]`; a prefix may be shared (Media and
+ * Svg both use the common `--bricks-media-*`).
  *
- * @returns Массив блоков для генерации CSS-правил.
+ * @returns Array of blocks to generate CSS rules for.
  */
 function getResponsiveCssBlocks(): IResponsiveCssBlock[] {
     return Object.values(BLOCK_REGISTRY).flatMap((definition) =>
@@ -35,23 +35,23 @@ function getResponsiveCssBlocks(): IResponsiveCssBlock[] {
 }
 
 /**
- * Генерирует правило выбора активных переменных блока для устройства.
+ * Generates the rule that picks the active variables of a block for a device.
  *
- * Переменные устройства эмитятся разрежённо — только там, где переопределение
- * реально есть, — поэтому активное правило СНАЧАЛА гасит переменную устройства
- * на самом элементе, и лишь потом читает её с fallback'ом на базовое значение.
+ * Device variables are emitted sparsely — only where an override really exists — so
+ * the active rule FIRST clears the device variable on the element itself, and only
+ * then reads it with a fallback to the base value.
  *
- * Сброс обязателен: custom properties наследуются, и без него вложенный блок
- * без собственного переопределения прочитал бы значение родителя того же типа
- * (вложенный Grid взял бы колонки внешнего Grid), а fallback не сработал бы
- * вовсе. Инлайновое значение самого элемента сброс не задевает — объявление в
- * `style` перебивает объявление из стилевого правила.
+ * The reset is mandatory: custom properties are inherited, and without it a nested
+ * block with no override of its own would read the value of a parent of the same type
+ * (a nested Grid would take the columns of the outer Grid), and the fallback would
+ * never fire at all. The reset does not touch the inline value of the element itself —
+ * a declaration in `style` beats a declaration coming from a style rule.
  *
- * @param selector - CSS-селектор правила.
- * @param block - Блок с prefix/vars.
- * @param deviceKey - Ключ активного устройства.
- * @param indent - Базовый отступ правила.
- * @returns Текст CSS-правила.
+ * @param selector - CSS selector of the rule.
+ * @param block - Block with its prefix/vars.
+ * @param deviceKey - Key of the active device.
+ * @param indent - Base indent of the rule.
+ * @returns Text of the CSS rule.
  */
 function buildBlockRule(
     selector: string,
@@ -65,7 +65,8 @@ function buildBlockRule(
         const varName = `--bricks-${block.prefix}-${name}`;
         const baseVar = `${varName}-${BASE_VAR_SUFFIX}`;
 
-        // База лежит в обычных пропах блока и эмитится всегда — читаем напрямую
+        // The base lives in the ordinary block props and is always emitted — read it
+        // directly
         if (isBase) {
             return [`${indent}    ${varName}: var(${baseVar});`];
         }
@@ -81,12 +82,13 @@ function buildBlockRule(
 }
 
 /**
- * Генерирует полный CSS выбора responsive-переменных layout-блоков из registry
- * по трём шаблонам: дефолты базового устройства, builder-канвас
- * (`data-bricks-viewport`) и published media queries по диапазонам набора.
+ * Generates the whole CSS that selects the responsive variables of the layout blocks
+ * from the registry, following three templates: the base device defaults, the builder
+ * canvas (`data-bricks-viewport`) and the published media queries over the ranges of
+ * the set.
  *
- * @param devices - Резолвнутый набор устройств страницы.
- * @returns CSS для инжекта в `<style>`.
+ * @param devices - Resolved device set of the page.
+ * @returns CSS to inject into a `<style>`.
  */
 export function buildResponsiveLayoutCss(devices: TBricksResolvedDeviceSet): string {
     const blocks = getResponsiveCssBlocks();

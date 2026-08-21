@@ -10,10 +10,10 @@ import { convertPxToRem } from '../../common/utils/main';
 import { gridPlacementStyle, makeResponsiveVarGroup } from '../utils/responsiveVars';
 
 /**
- * Нормализует вариант Grid.
+ * Normalizes the Grid variant.
  *
- * @param value - Любое значение из props.
- * @returns Валидный вариант Grid.
+ * @param value - Any value out of props.
+ * @returns A valid Grid variant.
  */
 function normalizeGridVariant(value: unknown): TGridLayoutVariant {
     if (value === 'lead-left' || value === 'lead-right' || value === 'default') {
@@ -24,12 +24,12 @@ function normalizeGridVariant(value: unknown): TGridLayoutVariant {
 }
 
 /**
- * Возвращает значение `grid-column` для акцентного элемента в Grid.
+ * Returns the `grid-column` value for the accent item of a Grid.
  *
- * @param variant - Вариант Grid.
- * @param side - Сторона акцентного элемента.
- * @param span - Сколько колонок должен занимать акцент.
- * @returns Значение для `grid-column`.
+ * @param variant - Grid variant.
+ * @param side - Side the accent item sits on.
+ * @param span - How many columns the accent has to take.
+ * @returns Value for `grid-column`.
  */
 function buildGridLeadColumn(
     variant: TGridLayoutVariant,
@@ -50,10 +50,10 @@ function buildGridLeadColumn(
 }
 
 /**
- * Нормализует значение rowHeight для Grid.
+ * Normalizes the rowHeight value of a Grid.
  *
- * @param value - Значение из props.
- * @returns Валидное значение rowHeight.
+ * @param value - Value out of props.
+ * @returns A valid rowHeight value.
  */
 function normalizeGridRowHeight(value: unknown): TGridRowHeight {
     if (value === 'auto' || value === '1fr' || value === 'min-content' || value === 'max-content') {
@@ -64,12 +64,12 @@ function normalizeGridRowHeight(value: unknown): TGridRowHeight {
 }
 
 /**
- * Строит значение для gridTemplateRows.
+ * Builds the gridTemplateRows value.
  *
- * @param rows - Количество строк (минимум 1).
- * @param rowHeight - Режим высоты строк.
- * @param minRowHeight - Минимальная высота строки в rem.
- * @returns CSS-значение для gridTemplateRows.
+ * @param rows - Number of rows (no less than 1).
+ * @param rowHeight - Row height mode.
+ * @param minRowHeight - Minimum row height in rem.
+ * @returns CSS value for gridTemplateRows.
  */
 function buildGridTemplateRows(
     rows: number,
@@ -88,15 +88,16 @@ function buildGridTemplateRows(
 }
 
 /**
- * Считает связанную группу CSS-переменных Grid по разрешённым пропсам.
+ * Computes the related group of Grid CSS variables from the resolved props.
  *
- * Группа считается целиком, а не по одной переменной: `variant` и `columns`
- * вместе задают разброс акцентной ячейки и `auto-flow`, а `rows`/`rowHeight`/
- * `minRowHeight` — шаблон строк. Переопределение одного члена группы без
- * пересчёта остальных дало бы сетку с новым числом колонок и старым lead-span.
+ * The group is computed as a whole rather than one variable at a time: `variant` and
+ * `columns` together set the span of the accent cell and `auto-flow`, while `rows`,
+ * `rowHeight` and `minRowHeight` set the row template. Overriding one member of the
+ * group without recomputing the rest would give a grid with the new number of columns
+ * and the old lead span.
  *
- * @param resolved - Пропсы блока, слитые с overrides устройства.
- * @returns Значения переменных группы без префикса и суффикса устройства.
+ * @param resolved - Block props merged with the device overrides.
+ * @returns Values of the group variables, without the prefix and the device suffix.
  */
 function computeGridVars(resolved: Record<string, unknown>): Record<string, string> {
     const columns = Math.max(1, Number(resolved.columns) || 1);
@@ -119,10 +120,10 @@ function computeGridVars(resolved: Record<string, unknown>): Record<string, stri
 }
 
 /**
- * Published-рендер Grid.
+ * Published render of a Grid.
  *
- * @param ctx - Контекст рендера published-страницы.
- * @returns VNode Grid.
+ * @param ctx - Render context of the published page.
+ * @returns Grid VNode.
  */
 function renderGridPublished(ctx: IBlockRenderContext): VNode {
     const { component, extraClasses, extraAttrs, styles, renderChild, getChildComponents } = ctx;
@@ -169,7 +170,8 @@ function renderGridPublished(ctx: IBlockRenderContext): VNode {
 }
 
 /**
- * Definition блока Grid: сетка-контейнер с children в default slot.
+ * Definition of the Grid block: a grid container with its children in the default
+ * slot.
  */
 export const blockGridDefinition: IBlockDefinition = {
     name: 'Grid',

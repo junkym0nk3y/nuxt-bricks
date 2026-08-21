@@ -43,10 +43,10 @@ const styles = useCssModule();
 const gridRef = ref<HTMLElement | null>(null);
 const containerSize = ref({ width: 0, height: 0 });
 
-/** Грид заполнен и drop невозможен (визуальная обратная связь) */
+/** Grid is at capacity and a drop is impossible (visual feedback) */
 const isGridFull = ref(false);
 
-/** Реальные размеры строк грида из DOM */
+/** Actual grid row sizes measured from the DOM */
 const actualRowSizes = ref<number[]>([]);
 // #endregion
 
@@ -87,23 +87,24 @@ const minRowHeight = computed<number>(() =>
 const DEFAULT_GRID_MIN_HEIGHT = '10rem';
 
 /**
- * Пол высоты незаполненной строки грида на канвасе. Без него объявленные, но ещё
- * не занятые контентом строки сжимаются в ноль.
+ * Floor height of an unfilled grid row on the canvas. Without it, rows that are
+ * declared but not yet taken by content collapse to zero.
  */
 const EMPTY_ROW_MIN_HEIGHT = '4rem';
 
 /**
- * Сколько строк уже занято контентом. Auto-placement заполняет грид по строкам,
- * поэтому оценка идёт по числу детей; элемент, растянутый на несколько ячеек
- * (bento-варианты), даёт заниженную оценку — такой строке достанется пол, но для
- * содержимого выше 4rem `minmax` ведёт себя как `auto`, и раскладка не меняется.
+ * How many rows are already taken by content. Auto-placement fills the grid row by
+ * row, so the estimate goes by the number of children; an item spanning several
+ * cells (the bento variants) makes the estimate too low — such a row gets the floor,
+ * but for content taller than 4rem `minmax` behaves like `auto` and the layout is
+ * unchanged.
  */
 const occupiedRows = computed<number>(() =>
     Math.min(normalizedRows.value, Math.ceil(childCount.value / normalizedColumns.value))
 );
 
 /**
- * Строит значение для gridTemplateRows на основе настроек.
+ * Builds the gridTemplateRows value out of the current settings.
  */
 function buildGridTemplateRows(): string {
     const rows = normalizedRows.value;
@@ -116,13 +117,14 @@ function buildGridTemplateRows(): string {
         return `repeat(${rows}, minmax(${minValue}, ${maxValue}))`;
     }
 
-    // Строки без контента имеют нулевую высоту, а gap между ними остаётся:
-    // шесть заданных строк не влезают в min-height блока, и на канвасе виден
-    // один ряд вместо заданных — бросить компонент в третью строку некуда.
-    // Пол по высоте делает объявленную структуру видимой; занятые строки
-    // остаются на `auto`, чтобы канвас не врал про высоту контента.
-    // Опубликованной страницы это не касается: там пустые строки ничего не
-    // рисуют, а рендер идёт отдельным кодом (renderPublished в definition).
+    // Rows without content have zero height while the gap between them stays: six
+    // declared rows do not fit into the block min-height, and the canvas shows a
+    // single row instead of the declared ones — there is nowhere to drop a component
+    // into the third row. A height floor makes the declared structure visible; taken
+    // rows stay on `auto` so that the canvas does not lie about the height of the
+    // content. The published page is untouched by this: there empty rows draw
+    // nothing, and rendering goes through separate code (renderPublished in the
+    // definition).
     const filled = occupiedRows.value;
     if (filled >= rows) {
         return `repeat(${rows}, ${height})`;
@@ -183,7 +185,7 @@ const overlayStyle = computed<Record<string, string>>((): Record<string, string>
 // #region Methods
 /**
  * Synchronizes internal container size with DOM measurements.
- * Вычисляет content area (без padding) для корректного overlay.
+ * Computes the content area (without padding) so the overlay lines up.
  * Also extracts actual row sizes from computed grid style.
  */
 function updateSize(): void {
@@ -199,11 +201,11 @@ function updateSize(): void {
             height: gridRef.value.offsetHeight - padTop - padBottom,
         };
 
-        // Получаем реальные размеры строк из CSS Grid
+        // Read the actual row sizes out of the CSS Grid
         const gridRowSizes = computedStyle.gridTemplateRows;
 
         if (gridRowSizes && gridRowSizes !== 'none') {
-            // Парсим значения вида "100px 200px 150px" в массив чисел
+            // Parse values like "100px 200px 150px" into an array of numbers
             const sizes = gridRowSizes
                 .split(/\s+/)
                 .map((size) => parseFloat(size))
@@ -217,7 +219,7 @@ function updateSize(): void {
 }
 
 /**
- * Возвращает количество дочерних элементов в гриде.
+ * Returns the number of child items in the grid.
  */
 function getCurrentChildCount(): number {
     if (!gridRef.value) {
@@ -227,7 +229,7 @@ function getCurrentChildCount(): number {
 }
 
 /**
- * Проверяет, заполнен ли грид до максимальной ёмкости (rows × columns).
+ * Checks whether the grid is filled to its maximum capacity (rows × columns).
  */
 function checkGridAtCapacity(): boolean {
     const maxItems = normalizedRows.value * normalizedColumns.value;
@@ -235,7 +237,7 @@ function checkGridAtCapacity(): boolean {
 }
 
 /**
- * Проверяет, является ли перетаскиваемый компонент дочерним элементом этого грида.
+ * Checks whether the component being dragged is a child of this grid.
  */
 function isChildOfThisGrid(componentId: string): boolean {
     if (!gridRef.value) {
@@ -250,12 +252,12 @@ function isChildOfThisGrid(componentId: string): boolean {
 }
 
 /**
- * Dragover-проверка ёмкости. Во время dragover нельзя прочитать данные из
- * dataTransfer (security), но можно проверить types. Если есть component-id —
- * это перемещение существующего компонента (возможно внутри этого же грида →
- * swap). Блокируем только добавление новых из библиотеки при полном гриде.
+ * Capacity check on dragover. During dragover the data in dataTransfer cannot be
+ * read (security), but its types can be inspected. A `component-id` type means an
+ * existing component is being moved (possibly inside this very grid → swap). Only
+ * adding a new component from the library is blocked while the grid is full.
  *
- * @param event - Dragover-событие браузера.
+ * @param event - Browser dragover event.
  */
 function canAcceptGridDragOver(event: DragEvent): boolean {
     const types = Array.from(event.dataTransfer?.types || []);
@@ -271,11 +273,11 @@ function canAcceptGridDragOver(event: DragEvent): boolean {
 }
 
 /**
- * Drop-проверка ёмкости: в заполненном гриде разрешены только перемещения
- * его собственных детей (внутренний swap ёмкость не меняет).
+ * Capacity check on drop: a full grid only allows its own children to be moved
+ * around (an internal swap does not change the capacity).
  *
- * @param _event - Drop-событие браузера (не используется).
- * @param movedComponentId - ID перемещаемого компонента или null для нового.
+ * @param _event - Browser drop event (unused).
+ * @param movedComponentId - ID of the component being moved, or null for a new one.
  */
 function canAcceptGridDrop(_event: DragEvent, movedComponentId: string | null): boolean {
     if (!checkGridAtCapacity()) {
@@ -291,14 +293,14 @@ function canAcceptGridDrop(_event: DragEvent, movedComponentId: string | null): 
 }
 
 /**
- * Сбрасывает флаг заполненности грида.
+ * Clears the grid-is-full flag.
  */
 function clearGridFull(): void {
     isGridFull.value = false;
 }
 
 /**
- * Вычисляет targetIndex (ячейку грида) по позиции курсора.
+ * Computes the targetIndex (the grid cell) from the cursor position.
  */
 function calculateDropTargetIndex(event: DragEvent): number | null {
     return calculateGridDropTargetIndex(
@@ -310,27 +312,28 @@ function calculateDropTargetIndex(event: DragEvent): number | null {
 }
 
 /**
- * Прижимает место вставки к целевой ячейке вне потока грида.
+ * Pins the insertion point to the target cell outside the grid flow.
  *
- * Обычный flow-плейсхолдер здесь становится лишним grid-item: при заполненном
- * гриде auto-placement добавлял неявный ряд, грид «подрастал», а вместе с ним
- * ехала геометрия — расчёт ячейки под курсором начинал врать. Абсолютный элемент
- * позиционируется по своей grid-area и на раскладку не влияет.
+ * An ordinary flow placeholder becomes one more grid item here: with a full grid,
+ * auto-placement added an implicit row, the grid grew, and the geometry moved with
+ * it — the cell computed under the cursor started coming out wrong. An absolutely
+ * positioned element is placed by its own grid-area and does not affect the layout.
  *
- * @param targetIndex - Индекс ячейки под курсором.
- * @returns Inline-стили плейсхолдера (kebab-case).
+ * @param targetIndex - Index of the cell under the cursor.
+ * @returns Inline styles of the placeholder (kebab-case).
  */
 function resolvePlaceholderCell(targetIndex: number): Record<string, string> {
     const columns = normalizedColumns.value;
 
-    // Новый компонент встаёт в конец списка детей: обе точки вставки в сторе
-    // (addChildToLayout, moveComponentToLayout) прижимают индекс к их числу.
-    // Плейсхолдер обязан показывать ту же ячейку — иначе он обещает шестую
-    // строку пустого грида, а компонент появляется в первой.
+    // A new component lands at the end of the children list: both insertion points
+    // in the store (addChildToLayout, moveComponentToLayout) clamp the index to their
+    // count. The placeholder has to point at that same cell — otherwise it promises
+    // the sixth row of an empty grid while the component appears in the first.
     const cellIndex = Math.min(targetIndex, childCount.value);
 
-    // span обязателен: у абсолютного grid-child конец области по умолчанию
-    // привязывается к краю контейнера, и плейсхолдер растягивался до низа грида.
+    // The span is mandatory: for an absolutely positioned grid child the end of the
+    // area is tied to the container edge by default, and the placeholder stretched
+    // down to the bottom of the grid.
     return {
         position: 'absolute',
         'grid-column': `${(cellIndex % columns) + 1} / span 1`,
@@ -376,13 +379,14 @@ onMounted(() => {
 // #endregion
 
 // #region Watchers
-// Сетка-подложка рисуется по ИЗМЕРЕННЫМ трекам, а измерение обновляют только
-// resize окна и ResizeObserver. Смена числа строк или высоты строки габариты
-// блока не меняет (их держит min-height), поэтому без этого пересчёта подложка
-// остаётся от прежнего значения: панель показывает одну строку, а на канвасе
-// видны прежние четыре. Колонки в списке по той же причине: смена их числа
-// перекладывает детей и меняет высоты строк, а сумма высот может остаться
-// прежней — наблюдатель размера тогда молчит.
+// The grid underlay is drawn from MEASURED tracks, and the measurement is refreshed
+// only by a window resize and by the ResizeObserver. Changing the number of rows or
+// the row height does not change the outer size of the block (min-height holds it),
+// so without this recalculation the underlay keeps the previous value: the panel
+// shows one row while the canvas still shows the previous four. Columns are in the
+// list for the same reason: changing their number re-flows the children and changes
+// the row heights, yet the sum of those heights may stay the same — and then the size
+// observer says nothing.
 watch(
     [normalizedRows, normalizedColumns, rowHeight, minRowHeight, normalizedGap, childCount],
     async () => {
@@ -413,7 +417,6 @@ watch(
         @dragleave="handleDragLeave"
         @drop="handleDrop"
     >
-        <!-- Grid visualization SVG overlay -->
         <BlockGridOverlay
             v-if="showGrid && containerSize.width > 0"
             :style="overlayStyle"
@@ -423,7 +426,6 @@ watch(
             :row-sizes="actualRowSizes"
         />
 
-        <!-- Content -->
         <slot />
     </div>
 </template>
@@ -445,10 +447,9 @@ watch(
         overflow: hidden;
         min-width: 0;
         min-height: 0;
-        grid-row: span 1; // Ограничиваем элемент одной строкой
+        grid-row: span 1;
     }
 
-    // Кольцо hover/выделения рисует BuilderCanvasItem — здесь только подсветка зоны.
     &:hover {
         border-color: var(--bricks-primary);
         background: color-mix(in srgb, var(--bricks-primary) 6%, var(--bricks-base-50));

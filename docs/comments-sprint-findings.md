@@ -765,6 +765,257 @@ Codex поймал и мою первую редакцию этой правки
 `mock` переехала в JSDoc `isShowingMock` — туда, где стоит соответствующий computed,
 — и из шапки убрана.
 
+## Этап 3 — layouts-blocks
+
+### 3.1 Шапка `canvasBlockComponents.ts` называла единственного импортёра, а их два
+
+**Файл:** `src/runtime/modules/layouts-blocks/canvasBlockComponents.ts`
+**Категория:** разъехавшийся с кодом комментарий
+**Статус:** исправлено в этапе 3 (текст)
+
+Шапка утверждала: «импортируется ТОЛЬКО канвасом (BuilderCanvasItemLayout, шаг B4)».
+Импортёров два — `builder/canvas/item/components/BuilderCanvasItemLayout.vue:15` и
+`builder/shell/sidebar/composables/useComponentCardPreview.ts:38`. Утверждение
+считалось несущим: рядом с ним стоит слово «bundle firewall», то есть комментарий
+защищает границу бандла, и капитализированное «ТОЛЬКО» читается как инвариант,
+который нельзя нарушить.
+
+Сам инвариант при этом жив: оба импортёра — билдерные, published-бандл мапу не
+тянет. Поэтому исправлен текст, а не код: перечислены оба импортёра, вывод про
+published-бандл сохранён.
+
+### 3.2 Пять запрещённых ссылок на этапы спринтов
+
+**Файлы:** `canvasBlockComponents.ts` («шаг B4»), `registry.ts` («шаг B3»),
+`types/registry.d.ts` («Часть B architecture-cleanup», «шаг B6»),
+`components/blockFlex.definition.ts` и `components/blockText.definition.ts`
+(«сверка дефолтов, Часть B»), `components/blockSlider.definition.ts` (то же)
+**Категория:** нарушение правила проекта
+**Статус:** исправлено в этапе 3 (текст)
+
+`AGENTS.md` запрещает ссылки на идентификаторы этапов тех. спринтов и файлы-планы:
+через месяц по «шагу B3» ничего не восстановить. Убраны, факт в каждом случае
+сохранён словами — например, «Дефолт `wrap: false` — по поведению создания (сверка
+дефолтов, Часть B)» стало «The `wrap: false` default matches what block creation has
+always produced».
+
+Заодно проверено то, что эти ссылки прикрывали. Утверждение
+`blockSlider.definition.ts` про поведенческую нейтральность дефолтов
+`captions`/`captionPosition`/`showCaptionNavigation` подтвердилось по коду: у
+`BlockSlider.vue` `captionPosition` фолбэчится на `'top'`, `showCaptionNavigation`
+читается как `!== false`, а `captions: '[]'` парсится в пустой массив
+(`parseSliderCaptions`) — дефолты definition повторяют фолбэки компонента, и
+попадание их в derived defaultProps поведение не меняет. Это в переводе и написано
+вместо ссылки.
+
+### 3.3 «Старый `useCanvasItemLayout`» — композабл жив, а имя функции занято
+
+**Файл:** `src/runtime/modules/layouts-blocks/registry.ts` (`resolveBlockProps`)
+**Категория:** разъехавшийся с кодом комментарий
+**Статус:** исправлено в этапе 3 (текст)
+
+Комментарий говорил: «Воспроизводит `normalizeGridRowHeight` и justify/align-guards
+старого `useCanvasItemLayout`». Две неточности:
+
+- `useCanvasItemLayout` не «старый» — композабл на месте
+  (`builder/canvas/item/composables/useCanvasItemLayout.ts:73`), просто нормализацию
+  он больше не делает: у него остался item-level clamp `grid-column` по колонкам
+  родительского Grid;
+- `normalizeGridRowHeight` — **живое** имя функции в
+  `components/blockGrid.definition.ts:58`, поэтому «воспроизводит
+  `normalizeGridRowHeight`» читается как «дублирует ту функцию», хотя речь про
+  прежнюю одноимённую в композабле.
+
+Механизм при этом описан верно: `coercePropValue` валидирует `select` по `options`,
+а `rowHeight` объявлен как `select` с четырьмя вариантами — та же нормализация. В
+переводе сказано именно это: валидация select-по-options воспроизводит нормализацию
+`rowHeight` и justify/align-guards, которые `useCanvasItemLayout` носил в себе
+раньше.
+
+### 3.4 Один и тот же рационал кольца выделения — в трёх блоках
+
+**Файлы:** `components/BlockGrid.vue`, `components/BlockFlex.vue`,
+`components/BlockSection.vue` (секции `<style>`)
+**Категория:** нарушение DRY
+**Статус:** исправлено в этапе 3
+
+Три копии одного факта над `&:hover`: кольцо hover/выделения рисует
+`BuilderCanvasItem`, блок подкрашивает только свою зону. У `BlockFlex` копия была
+полнее остальных — в ней назван дефект («иначе на канвасе получались два кольца
+разной толщины»).
+
+Секции `<style>` по плану чистятся, и три копии в `<script>` дали бы три копии
+снова. Факт донесён в единственный общий дом — JSDoc `setActiveDropContainer` в
+`composables/useLayoutDropZone.ts`, который импортируют все три блока и который как
+раз и отвечает за «лёгкую подсветку» активной зоны. Дефект из копии `BlockFlex`
+сохранён.
+
+### 3.5 История `@container` блока Text выписана в трёх местах
+
+**Файлы:** `types/blockProps.d.ts` (`IBlockTextProps`), `constants/blockText.ts`
+(`BLOCK_TEXT_LEGACY_FONT_SIZES`), `components/blockText.definition.ts`
+(`buildTextFontSizeVars`), плюс копия в `<style>` `components/BlockText.vue`
+**Категория:** нарушение DRY
+**Статус:** исправлено в этапе 3
+
+Четыре описания одного и того же: до перевода на CSS-переменные размер задавали
+`@container`-запросы в SFC, 1.4rem до 768, 1.6rem до 1024, дальше 1.8rem. Числа
+дословно повторялись дважды.
+
+Приведено к одному источнику: полная история осталась там, где живёт сама таблица
+(`constants/blockText.ts`), `blockText.definition.ts` теперь ссылается на
+`BLOCK_TEXT_LEGACY_FONT_SIZES` вместо повтора чисел, `blockProps.d.ts` держит
+отдельный факт, которого нет больше нигде (`container-type` объявлен только на
+`.bricks-canvas`, поэтому на published `@container` не работали вовсе), а копия из
+`<style>` удалена без переноса — переносить было некуда, всё уже сказано у соседей.
+
+Утверждение про `container-type` проверено: он объявлен в
+`builder/canvas/viewport/components/BuilderCanvasViewport.vue:310`,
+`TheBuilderCanvas.vue:513` и в генерируемом `common/utils/bricks/containerCss.ts:79`
+(`.bricks-canvas`) — все три места билдерные, на published-странице `container-type`
+не объявлен нигде.
+
+### 3.6 Обход детей курсором написан трижды
+
+**Файлы:** `components/BlockFlex.vue` (`updateDropTarget`),
+`components/BlockSection.vue` (`updateDropTarget`),
+`composables/useSliderDropTarget.ts` (`updateDropTarget`)
+**Категория:** нарушение DRY
+**Статус:** открыта
+
+Один алгоритм в трёх экземплярах: собрать `:scope > [data-layout-drop-item]`, найти
+первого ребёнка, чью середину курсор ещё не прошёл, иначе индекс равен числу детей.
+`BlockFlex` умеет обе оси (по `isHorizontal`), `BlockSection` — вертикальный частный
+случай этого же кода на 25 почти дословно совпадающих строк, `useSliderDropTarget` —
+горизонтальный, отличается только выборкой узлов (слайды Swiper без
+loop-дубликатов).
+
+Естественный вид — параметризованный хелпер рядом с `useLayoutDropZone` (ось +
+геттер детей); тогда `BlockSection` перестаёт быть копией `BlockFlex`, а слайдер
+оставляет себе только свою выборку.
+
+### 3.7 Условия media query собираются в трёх файлах одинаково
+
+**Файлы:** `utils/responsiveCss.ts:118`, `utils/deviceVisibilityCss.ts:32`,
+`common/utils/bricks/containerCss.ts:58`
+**Категория:** нарушение DRY
+**Статус:** открыта
+
+Дословно повторяющийся блок: `min-width` только при `range.min > 0`, `max-width`
+только при конечном `range.max`, а если условий не осталось — `@media all`.
+`deviceRanges` уже живёт в `common/utils/bricks/devices.ts` и отдаёт диапазоны; там
+же напрашивается и функция, превращающая диапазон в текст запроса. Сейчас
+единственное объяснение ветки `@media all` («у самого узкого устройства нет нижней
+границы, у самого широкого — верхней, а при единственном устройстве условий не
+остаётся вовсе») лежит в `containerCss.ts` — то есть в одной из трёх копий, и две
+другие читаются как код без причины.
+
+### 3.8 `buildGridTemplateRows` — две функции с одним именем и разным поведением
+
+**Файлы:** `components/BlockGrid.vue`, `components/blockGrid.definition.ts`
+**Категория:** нарушение DRY
+**Статус:** открыта
+
+Обе строят `grid-template-rows` из `rows`/`rowHeight`/`minRowHeight`, обе начинают
+с ветки `minRowHeight > 0` и `minmax(...)`. Расходятся ровно в одном: канвасная
+версия добавляет пол высоты незанятым строкам (`EMPTY_ROW_MIN_HEIGHT`), чтобы
+объявленная структура была видна, published-версия — нет. Различие намеренное и
+объяснено в комментарии, но одинаковое имя в двух файлах одного каталога
+приглашает поправить одну копию и не заметить вторую.
+
+Рядом та же история с меньшим радиусом: `FLEX_JUSTIFY_CSS`/`FLEX_ALIGN_CSS` в
+`blockFlex.definition.ts` против `justifyMap`/`alignMap` в `BlockFlex.vue` — две
+пары одинаковых таблиц; `normalizeSpacingSize` в `blockSpace.definition.ts` против
+`normalizeSize` в `BlockSpace.vue` — одна и та же нормализация, различающаяся
+конвертацией `px`.
+
+### 3.9 Минимальная высота грида — именованная константа против литерала
+
+**Файлы:** `components/BlockGrid.vue` (`DEFAULT_GRID_MIN_HEIGHT`),
+`components/blockGrid.definition.ts:139`, `components/BlockSection.vue:68`
+**Категория:** нарушение DRY
+**Статус:** открыта
+
+`10rem` — одно и то же решение о минимальной высоте контейнера, записанное трижды:
+именованной константой на канвасе Grid, литералом в его published-рендере и
+литералом в `BlockSection`. Правило проекта требует выносить «магические» значения в
+константы; здесь константа есть, но две другие точки её не видят.
+
+### 3.10 `normalizeSvgContent` — обёртка над `trim()` с JSDoc на пять строк
+
+**Файл:** `utils/inlineContent.ts`
+**Категория:** нарушение KISS
+**Статус:** открыта
+
+Тело функции — `return svgContent.trim()`, вызывающий один. JSDoc при этом обещает
+«подготовку SVG к inline-вставке» и «очищенный SVG», то есть описывает
+несуществующий этап обработки: читатель ждёт снятия XML-пролога или
+`<?xml ... ?>`, а получает обрезку пробелов. В переводе формулировка сохранена
+дословно (перевод не место для правок), но описание кода она даёт завышенное.
+
+### 3.11 `sliderRootStyle` — computed из одного неизменного свойства
+
+**Файл:** `components/BlockSlider.vue:182`
+**Категория:** кандидат на упрощение
+**Статус:** открыта
+
+`computed(() => ({ pointerEvents: 'auto' }))` не зависит ни от одного реактивного
+источника: реактивность здесь платится за константу. Упрощение — обычная константа
+модуля или литерал в биндинге.
+
+**Чего делать нельзя** (проверено, первая версия находки была неверной): переносить
+правило в `<style module>`. `BuilderCanvasItem` гасит интерактивность прямых детей
+селектором `.BuilderCanvasItem > *` (специфичность 0,1,1), и правило `.BlockSlider`
+(0,1,0) ему проиграет — инлайновый стиль здесь несущий, а не избыточный. Та же
+конструкция по той же причине стоит в `flexStyle` (`BlockFlex.vue`) и `gridStyle`
+(`BlockGrid.vue`); объяснения нет ни в одном из трёх мест, и это отдельный повод
+его дописать.
+
+### 3.12 `BlockGrid.vue` вышел за потолок размера SFC
+
+**Файл:** `components/BlockGrid.vue` (510 строк)
+**Категория:** нарушение правила проекта
+**Статус:** открыта
+
+`.claude/rules/vue-best-practices.md` держит потолок 300–500 строк, `oxlint`
+настроен на `max-lines: 500` (SFC он не читает, поэтому молчит). На HEAD файл был
+509 строк, то есть уже за потолком; перевод добавил одну строку переносом прозы.
+Естественный шов — drop-логика грида (ёмкость, `resolvePlaceholderCell`,
+измерение треков) в композабл рядом с `useLayoutDropZone`.
+
+Заодно в `#region Computed` этого файла лежат две константы
+(`DEFAULT_GRID_MIN_HEIGHT`, `EMPTY_ROW_MIN_HEIGHT`) и функция
+`buildGridTemplateRows` — порядок региона из `.claude/rules/vue-sfc.md` этого не
+предполагает.
+
+### 3.13 Дефолт текста блока Text разный в двух местах
+
+**Файлы:** `components/blockText.definition.ts` (`'<p>Введите текст</p>'`),
+`components/BlockText.vue` (`withDefaults`, `'<p>Начните вводить текст...</p>'`)
+**Категория:** i18n-долг плюс расхождение
+**Статус:** открыта
+
+Оба литерала русские (по решению владельца в спринте не переводятся), но они ещё и
+разные. Дефолт компонента виден только там, где блок отрисован без пропа `content`,
+то есть в обход definition — то есть либо это мёртвая ветка, либо на published
+пользователь увидит другой текст, чем в билдере. Правится вместе с i18n-долгом
+хардкода UI-текста, тогда же и решится, нужен ли второй дефолт вообще.
+
+### 3.14 Запись в `AGENTS.md` про красный `knip:check` устарела
+
+**Файл:** `AGENTS.md`, раздел «Проверки»
+**Категория:** разъехавшаяся документация
+**Статус:** открыта
+
+`AGENTS.md` предупреждает: «`knip:check` красный и на чистом HEAD — держит unused
+exports в `layouts-blocks/utils/inlineContent.ts` и `slotContent.ts`. По exit-коду
+`lint:check` свою регрессию от этого долга не отличить». Сейчас `npm run knip:check`
+зелёный (exit 0), а оба экспорта используются: `applyColorToSvgContent` —
+`BlockSvg.vue:11`, `countSlotContent` — `BlockGrid.vue:23` и спека
+`test/layouts-blocks/gridDeclaredRows.spec.ts`. То есть долг закрыт, а инструкция
+продолжает учить не верить exit-коду `lint:check` — из-за неё настоящая регрессия
+knip может быть списана как известный шум.
+
 ---
 
 ## Известные находки из планирования (не закрыты)

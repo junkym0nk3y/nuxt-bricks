@@ -25,36 +25,37 @@ const FLEX_ALIGN_CSS: Record<string, string> = {
 };
 
 /**
- * Маппит значение justify ('start', 'center', 'end', 'space-between', 'space-around')
- * в CSS flex justify-content.
+ * Maps a justify value ('start', 'center', 'end', 'space-between', 'space-around') onto
+ * the CSS flex justify-content.
  *
- * @param justify - Значение выравнивания из пропсов (тип не гарантирован схемой).
- * @returns CSS-значение для justify-content.
+ * @param justify - Alignment value out of props (the schema does not guarantee the type).
+ * @returns CSS value for justify-content.
  */
 function mapFlexJustify(justify?: unknown): string {
     return FLEX_JUSTIFY_CSS[String(justify)] ?? 'flex-start';
 }
 
 /**
- * Маппит значение align ('stretch', 'start', 'center', 'end', 'baseline')
- * в CSS flex align-items.
+ * Maps an align value ('stretch', 'start', 'center', 'end', 'baseline') onto the CSS
+ * flex align-items.
  *
- * @param align - Значение выравнивания из пропсов (тип не гарантирован схемой).
- * @returns CSS-значение для align-items.
+ * @param align - Alignment value out of props (the schema does not guarantee the type).
+ * @returns CSS value for align-items.
  */
 function mapFlexAlign(align?: unknown): string {
     return FLEX_ALIGN_CSS[String(align)] ?? 'stretch';
 }
 
 /**
- * Считает группу CSS-переменных Flex по разрешённым пропсам.
+ * Computes the group of Flex CSS variables from the resolved props.
  *
- * Группой, а не по одной переменной: у Flex члены не производные друг от друга,
- * но общий расчёт держит эмит переменных всех блоков в одном виде и снимает
- * вопрос «а эта переменная точно посчитана от тех же overrides».
+ * As a group rather than one variable at a time: in Flex the members are not derived
+ * from one another, but a shared computation keeps the variable emission of every block
+ * in one shape and removes the question of whether a given variable really was computed
+ * from the same overrides.
  *
- * @param resolved - Пропсы блока, слитые с overrides устройства.
- * @returns Значения переменных группы без префикса и суффикса устройства.
+ * @param resolved - Block props merged with the device overrides.
+ * @returns Values of the group variables, without the prefix and the device suffix.
  */
 function computeFlexVars(resolved: Record<string, unknown>): Record<string, string> {
     return {
@@ -66,11 +67,11 @@ function computeFlexVars(resolved: Record<string, unknown>): Record<string, stri
 }
 
 /**
- * Published-рендер Flex: `h('div')` с per-device CSS-переменными
- * (канвасный BlockFlex несёт editor chrome и на published не используется).
+ * Published render of Flex: an `h('div')` with the per-device CSS variables (the canvas
+ * BlockFlex carries the editor chrome and is not used on a published page).
  *
- * @param ctx - Контекст рендера published-страницы.
- * @returns VNode flex-компонента.
+ * @param ctx - Render context of the published page.
+ * @returns VNode of the flex component.
  */
 function renderFlexPublished(ctx: IBlockRenderContext): VNode {
     const { component, extraClasses, extraAttrs, styles, renderChild, getChildComponents } = ctx;
@@ -115,8 +116,8 @@ function renderFlexPublished(ctx: IBlockRenderContext): VNode {
 }
 
 /**
- * Definition блока Flex: flex-контейнер с children в default slot.
- * Дефолт `wrap: false` — по поведению создания (сверка дефолтов, Часть B).
+ * Definition of the Flex block: a flex container with its children in the default slot.
+ * The `wrap: false` default matches what block creation has always produced.
  */
 export const blockFlexDefinition: IBlockDefinition = {
     name: 'Flex',

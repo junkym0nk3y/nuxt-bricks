@@ -14,9 +14,11 @@ import { sanitizeRichTextHtml } from '../../common/utils/sanitize/sanitizeRichTe
 // #endregion
 
 // #region Props
-// `fontSize` объявлен, но в стилях не используется: размер приходит
-// CSS-переменной `--bricks-text-font-size`, которую выставляет definition на
-// обеих поверхностях. Без объявления проп протёк бы в DOM атрибутом `fontsize`
+// `fontSize` is declared but unused in the styles: the size arrives as the
+// `--bricks-text-font-size` CSS variable, which the definition sets on both surfaces,
+// and the generated rule picks the value of the current device with a fallback to the
+// base size. Without the declaration the prop would leak into the DOM as a `fontsize`
+// attribute
 const props = withDefaults(defineProps<IBlockTextProps>(), {
     componentId: '',
     content: '<p>Начните вводить текст...</p>',
@@ -48,7 +50,7 @@ const textStyle = computed(() => ({
 }));
 
 /**
- * Проверяет, активен ли inline-editing для этого компонента.
+ * Checks whether inline editing is active for this component.
  */
 const isEditing = computed<boolean>(() => {
     if (!inlineEditingContext || !props.componentId) {
@@ -57,7 +59,7 @@ const isEditing = computed<boolean>(() => {
     return inlineEditingContext.isEditing.value;
 });
 
-/** Контент схемы — недоверенный ввод: санитизация обязательна перед v-html. */
+/** Schema content is untrusted input: sanitizing is mandatory before v-html */
 const sanitizedContent = computed<string>(() => sanitizeRichTextHtml(props.content));
 // #endregion
 
@@ -71,9 +73,9 @@ watch(isEditing, async (editing) => {
 
 // #region Methods
 /**
- * Предотвращает всплытие клика внутри редактора.
+ * Stops a click inside the editor from bubbling.
  *
- * @param event - Событие клика.
+ * @param event - Click event.
  */
 function handleEditorClick(event: MouseEvent): void {
     event.stopPropagation();
@@ -87,7 +89,6 @@ function handleEditorClick(event: MouseEvent): void {
         :style="textStyle"
         @click.stop="isEditing ? handleEditorClick($event) : undefined"
     >
-        <!-- Inline editing mode: TipTap -->
         <template
             v-if="isEditing && inlineEditor?.editor.value && inlineEditor?.editorContent.value"
         >
@@ -98,17 +99,12 @@ function handleEditorClick(event: MouseEvent): void {
             />
         </template>
 
-        <!-- Normal mode: static HTML -->
         <div v-else data-tiptap-content v-html="sanitizedContent"></div>
     </div>
 </template>
 
 <style module lang="scss">
 .BlockText {
-    // Значение выбирает сгенерированное правило по устройству набора; fallback —
-    // базовый размер. Прежние `@container`-запросы убраны: `container-type`
-    // объявлен только на `.bricks-canvas`, поэтому на published они не работали
-    // вовсе и текст оставался базового размера
     font-size: var(--bricks-text-font-size, 1.8rem);
     line-height: 1.6;
 

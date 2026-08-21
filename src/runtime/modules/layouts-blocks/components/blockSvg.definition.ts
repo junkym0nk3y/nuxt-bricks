@@ -10,16 +10,16 @@ import { bindBoundPropsWithComponentId } from '../utils/canvasBindings';
 import { gridPlacementStyle, makeResponsiveVars } from '../utils/responsiveVars';
 
 // Components
-// Async-импорт (паттерн blockSlider): статический импорт утащил бы санитайзер (xss)
-// в entry-бандл всех страниц потребителя. Канвас использует eager-версию
-// из canvasBlockComponents.ts.
+// Async import (the blockSlider pattern): a static import would drag the sanitizer (xss)
+// into the entry bundle of every page of the consumer. The canvas uses the eager version
+// out of canvasBlockComponents.ts.
 const BlockSvg = defineAsyncComponent(() => import('./BlockSvg.vue'));
 
 /**
- * Published-рендер Svg: компонент в CSS-var-обёртке (per-device размеры).
+ * Published render of Svg: the component inside a CSS-var wrapper (per-device sizes).
  *
- * @param ctx - Контекст рендера published-страницы.
- * @returns VNode SVG-блока.
+ * @param ctx - Render context of the published page.
+ * @returns VNode of the SVG block.
  */
 function renderSvgPublished(ctx: IBlockRenderContext): VNode {
     const { component, extraClasses, extraAttrs, styles } = ctx;
@@ -29,8 +29,8 @@ function renderSvgPublished(ctx: IBlockRenderContext): VNode {
     const style: Record<string, string> = {
         ...makeResponsiveVars('--bricks-media-width', cp.width || '4.8rem', props, 'width'),
         ...makeResponsiveVars('--bricks-media-height', cp.height || '4.8rem', props, 'height'),
-        // Скругления у SVG нет ни на одном устройстве: prefix общий с Media,
-        // и без базового значения блок унаследовал бы радиус картинки
+        // An SVG has no rounding on any device: the prefix is shared with Media, and
+        // without a base value the block would inherit the radius of a picture
         '--bricks-media-radius-base': '0',
     };
     Object.assign(style, gridPlacementStyle(component));
@@ -49,15 +49,17 @@ function renderSvgPublished(ctx: IBlockRenderContext): VNode {
 }
 
 /**
- * Definition блока Svg: inline-SVG с перекраской.
- * svgContent заполняется через svgContentProperty при выборе из галереи — в extraDefaults.
+ * Definition of the Svg block: an inline SVG with recoloring.
+ * svgContent is filled in through svgContentProperty when a file is chosen from the
+ * gallery, hence its place in extraDefaults.
  */
 export const blockSvgDefinition: IBlockDefinition = {
     name: 'Svg',
     description: 'bricks.blocks.svg.description',
     thumbnail: 'images/layouts/svg.svg',
     responsiveMode: 'all',
-    // Svg шарит media-переменные (--bricks-media-*) с Media — обёртка у обоих одинаковая
+    // Svg shares the media variables (--bricks-media-*) with Media — both have the same
+    // wrapper
     responsiveCssVars: {
         prefix: 'media',
         vars: ['width', 'height', 'radius'],

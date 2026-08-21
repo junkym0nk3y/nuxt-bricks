@@ -8,16 +8,16 @@ import { h, defineAsyncComponent, type VNode } from 'vue';
 import { gridPlacementStyle, makeResponsiveVars, toRem } from '../utils/responsiveVars';
 
 // Components
-// Async-импорт (паттерн blockSlider): registry импортируется плагином bricks-styles
-// на каждой странице — компонент не должен попадать в entry-бандл. Канвас
-// использует eager-версию из canvasBlockComponents.ts.
+// Async import (the blockSlider pattern): the registry is imported by the bricks-styles
+// plugin on every page, so the component must not end up in the entry bundle. The canvas
+// uses the eager version out of canvasBlockComponents.ts.
 const BlockMedia = defineAsyncComponent(() => import('./BlockMedia.vue'));
 
 /**
- * Published-рендер Media: компонент в CSS-var-обёртке (per-device размеры).
+ * Published render of Media: the component inside a CSS-var wrapper (per-device sizes).
  *
- * @param ctx - Контекст рендера published-страницы.
- * @returns VNode медиа-компонента.
+ * @param ctx - Render context of the published page.
+ * @returns VNode of the media component.
  */
 function renderMediaPublished(ctx: IBlockRenderContext): VNode {
     const { component, extraClasses, extraAttrs, styles } = ctx;
@@ -51,8 +51,8 @@ function renderMediaPublished(ctx: IBlockRenderContext): VNode {
 }
 
 /**
- * Definition блока Media: изображение/видео.
- * Видео-флаги вне панели свойств — в extraDefaults.
+ * Definition of the Media block: an image or a video.
+ * The video flags live in extraDefaults rather than in the properties panel.
  */
 export const blockMediaDefinition: IBlockDefinition = {
     name: 'Media',
@@ -75,9 +75,9 @@ export const blockMediaDefinition: IBlockDefinition = {
         loop: false,
         muted: true,
         controls: true,
-        // Адреса вариантов постепенной загрузки и пиксельные размеры файла:
-        // заполняются выбором картинки из галереи, руками не правятся — поэтому
-        // вне панели свойств
+        // Addresses of the progressive loading variants and the pixel dimensions of the
+        // file: filled in by choosing a picture from the gallery, never edited by hand —
+        // hence outside the properties panel
         previewSrc: '',
         mockSrc: '',
         naturalWidth: 0,

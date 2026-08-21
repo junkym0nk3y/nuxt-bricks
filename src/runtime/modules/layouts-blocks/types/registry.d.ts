@@ -1,17 +1,18 @@
 /**
- * Контракты registry layout-блоков (Часть B architecture-cleanup).
- * Definition описывает блок целиком: метаданные библиотеки, свойства панели,
- * responsive-режим и escape hatches для канваса/published-рендера.
+ * Contracts of the layout block registry.
+ * A definition describes a block as a whole: its library metadata, the panel
+ * properties, the responsive mode and the escape hatches for the canvas and the
+ * published render.
  */
 
 import type { VNode, VNodeChild } from 'vue';
 import type { IBricksComponent } from '../../common/types/brick';
 import type { ILayoutProperty } from '../../common/types/layoutProperty';
 
-/** Контекст рендера published-страницы (из TheRenderer) */
+/** Render context of the published page (comes from TheRenderer) */
 export interface IBlockRenderContext {
     component: IBricksComponent;
-    /** Definition рендерящегося блока — источник дефолтов для resolvePublishedProps */
+    /** Definition of the block being rendered — the defaults for resolvePublishedProps */
     definition: IBlockDefinition;
     extraClasses: string[];
     extraAttrs: Record<string, string | undefined>;
@@ -20,31 +21,31 @@ export interface IBlockRenderContext {
     getChildComponents: (c: IBricksComponent) => IBricksComponent[];
 }
 
-/** Контекст биндинга на канвасе (из BuilderCanvasItemLayout) */
+/** Binding context on the canvas (comes from BuilderCanvasItemLayout) */
 export interface IBlockCanvasContext {
     component: IBricksComponent;
-    layoutProps: Record<string, unknown>; // уже resolved по viewport
+    layoutProps: Record<string, unknown>; // already resolved for the viewport
     boundProps: Record<string, unknown>; // componentBoundProps
     childComponents: IBricksComponent[];
     renderChild: (child: IBricksComponent) => VNodeChild; // slider slides
 }
 
 export interface IBlockDefinition {
-    name: string; // 'Grid' — componentName в схеме
+    name: string; // 'Grid' — the componentName in the schema
     description: string;
-    thumbnail: string; // asset-путь модуля 'images/layouts/grid.svg' (резолв — resolveBricksAssetUrl)
+    thumbnail: string; // module asset path 'images/layouts/grid.svg' (resolveBricksAssetUrl)
     isInteractive?: boolean;
-    hasChildren?: boolean; // контейнер: children в default slot
-    /** Свойства панели */
+    hasChildren?: boolean; // a container: children go in the default slot
+    /** Panel properties */
     properties: ILayoutProperty[];
-    /** Дефолты вне properties (Media: muted/controls…, Svg: svgContent) */
+    /** Defaults outside properties (Media: muted/controls…, Svg: svgContent) */
     extraDefaults?: Record<string, unknown>;
-    /** 'all' — все пропсы device-scoped (Grid/Flex/Section/Space/Media/Svg) */
+    /** 'all' — every prop is device-scoped (Grid/Flex/Section/Space/Media/Svg) */
     responsiveMode: 'all' | 'none';
-    /** Кастомный биндинг канваса; undefined = generic layout-props */
+    /** Custom canvas binding; undefined = the generic layout props */
     canvasBind?: (ctx: IBlockCanvasContext) => Record<string, unknown>;
-    /** Кастомный published-рендер; undefined = generic h(component, props) */
+    /** Custom published render; undefined = the generic h(component, props) */
     renderPublished?: (ctx: IBlockRenderContext) => VNode;
-    /** Генерация responsive CSS-vars (шаг B6) */
+    /** Generation of the responsive CSS vars */
     responsiveCssVars?: { prefix: string; vars: string[] };
 }

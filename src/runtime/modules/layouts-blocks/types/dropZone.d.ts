@@ -1,12 +1,13 @@
 /**
- * Типы общей drag&drop-логики layout-блоков (composables/useLayoutDropZone).
+ * Types of the drag&drop logic shared by the layout blocks
+ * (composables/useLayoutDropZone).
  */
 
 import type { MaybeRefOrGetter, Ref } from 'vue';
 
 /**
- * Detail кастомного события `layout-drop`.
- * Читается канвасом (builder/canvas → ILayoutDropDetail) — поля должны совпадать.
+ * Detail of the custom `layout-drop` event.
+ * Read by the canvas (builder/canvas → ILayoutDropDetail) — the fields have to match.
  */
 export interface ILayoutDropZoneDetail {
     layoutId?: string;
@@ -16,57 +17,57 @@ export interface ILayoutDropZoneDetail {
 }
 
 export interface ILayoutDropZoneOptions {
-    /** Корневой элемент drop-зоны — источник bubbling-события `layout-drop` */
+    /** Root element of the drop zone — the source of the bubbling `layout-drop` event */
     containerRef: Ref<HTMLElement | null>;
 
-    /** ID layout-компонента (component.id из схемы) */
+    /** ID of the layout component (component.id from the schema) */
     layoutId: MaybeRefOrGetter<string | undefined>;
 
-    /** Drop-зона активна (slider: только в режиме редактора). Дефолт — true */
+    /** The drop zone is active (slider: in editor mode only). Defaults to true */
     isEnabled?: MaybeRefOrGetter<boolean>;
 
-    /** Считать вложенные dragenter/dragleave (зоны, где курсор проходит над детьми) */
+    /** Count nested dragenter/dragleave (zones where the cursor passes over children) */
     useDragDepth?: boolean;
 
-    /** Перемещение курсора с payload (enter/over/drop) — пересчёт drop-индикатора */
+    /** Cursor movement carrying a payload (enter/over/drop) — recompute the drop indicator */
     onDragMove?: (event: DragEvent) => void;
 
-    /** Сброс специфичного состояния блока (drop-индикатор, флаг заполненности) */
+    /** Reset of the block's own state (drop indicator, the is-full flag) */
     onReset?: () => void;
 
-    /** Доп. проверка dragover (grid: ёмкость). false → dropEffect 'none', зона неактивна */
+    /** Extra dragover check (grid: capacity). false → dropEffect 'none', zone inactive */
     canAcceptDragOver?: (event: DragEvent) => boolean;
 
-    /** Доп. проверка перед dispatch (grid: ёмкость с учётом внутренних перемещений) */
+    /** Extra check before the dispatch (grid: capacity, allowing for internal moves) */
     canAcceptDrop?: (event: DragEvent, movedComponentId: string | null) => boolean;
 
-    /** Вычисляет targetIndex для события `layout-drop` */
+    /** Computes the targetIndex for the `layout-drop` event */
     resolveDropIndex: (event: DragEvent) => number | null;
 
-    /** Отменять drop, если resolveDropIndex() вернул null (grid) */
+    /** Cancel the drop when resolveDropIndex() returned null (grid) */
     requireDropIndex?: boolean;
 
-    /** Доп. поля в detail события `layout-drop` (grid: `{ swap: true }`) */
+    /** Extra fields in the detail of the `layout-drop` event (grid: `{ swap: true }`) */
     extraDropDetail?: Record<string, unknown>;
 
     /**
-     * CSS Modules class flow-плейсхолдера места вставки. Геометрию задаёт сам класс
-     * через переменные канваса (`--bricks-drag-placeholder-*`); без класса
-     * плейсхолдер не рисуется.
+     * CSS Modules class of the flow placeholder that marks the insertion point. The
+     * geometry comes from the class itself through the canvas variables
+     * (`--bricks-drag-placeholder-*`); without the class no placeholder is drawn.
      */
     placeholderClass?: string;
 
-    /** Внутренний flow-контейнер, если плейсхолдер вставляется не в корень drop-зоны. */
+    /** Inner flow container, when the placeholder is not inserted into the drop-zone root */
     resolvePlaceholderContainer?: () => HTMLElement | null;
 
-    /** Элементы, между которыми резервируется место вставки. */
+    /** Elements between which the insertion point is reserved */
     resolvePlaceholderChildren?: () => HTMLElement[];
 
     /**
-     * Inline-стили плейсхолдера для целевого индекса (grid: абсолютная привязка к
-     * ячейке). Нужен зонам с фиксированной сеткой: обычный flow-плейсхолдер там
-     * стал бы лишним grid-item и породил неявный ряд.
-     * Ключи — CSS-свойства в kebab-case (`grid-column`, а не `gridColumn`).
+     * Inline styles of the placeholder for the target index (grid: an absolute binding
+     * to the cell). Needed by zones with a fixed grid: an ordinary flow placeholder
+     * would become one more grid item there and spawn an implicit row.
+     * The keys are CSS properties in kebab-case (`grid-column`, not `gridColumn`).
      */
     resolvePlaceholderStyle?: (targetIndex: number) => Record<string, string> | null;
 }
@@ -74,7 +75,7 @@ export interface ILayoutDropZoneOptions {
 export interface ILayoutDropZone {
     isDragOver: Ref<boolean>;
 
-    /** Активна ли drag-сессия канваса: блоки прячут пустые drop-маркеры. */
+    /** Whether the canvas drag session is active: blocks hide their empty drop markers */
     isCanvasDragActive: Ref<boolean>;
     handleDragEnter: (event: DragEvent) => void;
     handleDragOver: (event: DragEvent) => void;

@@ -10,16 +10,18 @@ import { resolvePublishedProps } from '../utils/publishedProps';
 import { gridPlacementStyle } from '../utils/responsiveVars';
 
 // Components
-// Async-импорт (паттерн blockSlider): статический импорт утащил бы reka-ui
-// и санитайзер в entry-бандл всех страниц потребителя (registry импортируется
-// плагином bricks-styles). Канвас использует eager-версию из canvasBlockComponents.ts.
+// Async import (the blockSlider pattern): a static import would drag reka-ui and the
+// sanitizer into the entry bundle of every page of the consumer (the registry is imported
+// by the bricks-styles plugin). The canvas uses the eager version out of
+// canvasBlockComponents.ts.
 const BlockAccordion = defineAsyncComponent(() => import('./BlockAccordion.vue'));
 
 /**
- * Published-рендер Accordion: канвасный компонент без editor chrome — рендерим напрямую.
+ * Published render of Accordion: the canvas component without the editor chrome, so it
+ * is rendered directly.
  *
- * @param ctx - Контекст рендера published-страницы.
- * @returns VNode аккордеона.
+ * @param ctx - Render context of the published page.
+ * @returns VNode of the accordion.
  */
 function renderAccordionPublished(ctx: IBlockRenderContext): VNode {
     const { component, definition, extraClasses, extraAttrs } = ctx;
@@ -40,7 +42,7 @@ function renderAccordionPublished(ctx: IBlockRenderContext): VNode {
 }
 
 /**
- * Definition блока Accordion: раскрывающиеся элементы.
+ * Definition of the Accordion block: expandable items.
  */
 export const blockAccordionDefinition: IBlockDefinition = {
     name: 'Accordion',

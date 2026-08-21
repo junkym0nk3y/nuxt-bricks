@@ -4,15 +4,15 @@ import { ref, type Ref } from 'vue';
 // #endregion
 
 /**
- * Вычисляет индекс вставки между слайдами без отдельной линии-индикатора.
+ * Computes the insertion index between slides without a separate indicator line.
  *
- * @param containerRef - Корень Slider layout-блока.
+ * @param containerRef - Root of the Slider layout block.
  */
 export function useSliderDropTarget(containerRef: Ref<HTMLElement | null>) {
     const dropInsertIndex = ref<number | null>(null);
 
     /**
-     * Возвращает реальные Swiper-слайды без loop-дубликатов.
+     * Returns the real Swiper slides, without the loop duplicates.
      */
     function getDraggableSlides(): HTMLElement[] {
         const wrapper = containerRef.value?.querySelector<HTMLElement>('.swiper-wrapper') ?? null;
@@ -28,16 +28,16 @@ export function useSliderDropTarget(containerRef: Ref<HTMLElement | null>) {
     }
 
     /**
-     * Сбрасывает вычисленную цель вставки.
+     * Resets the computed insertion target.
      */
     function clearDropTarget(): void {
         dropInsertIndex.value = null;
     }
 
     /**
-     * Пересчитывает индекс вставки по горизонтальной позиции курсора.
+     * Recomputes the insertion index from the horizontal position of the cursor.
      *
-     * @param event - Dragover-событие браузера.
+     * @param event - Browser dragover event.
      */
     function updateDropTarget(event: DragEvent): void {
         const slides = getDraggableSlides();

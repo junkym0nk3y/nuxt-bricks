@@ -1,6 +1,6 @@
 /**
- * Константы блока Slider.
+ * Constants of the Slider block.
  */
 
-/** Число слайдов по умолчанию на базовом устройстве. */
+/** Default number of slides on the base device */
 export const DEFAULT_SLIDES_PER_VIEW = 3;

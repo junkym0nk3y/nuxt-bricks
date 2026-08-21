@@ -17,11 +17,11 @@ import { CANVAS_DRAG_ACTIVE_KEY } from '../../common/constants/injectionKeys';
 // #endregion
 
 /**
- * Диспатчит bubbling-событие `layout-drop` с информацией о вставке компонента.
- * Слушается на корне канваса (builder/canvas → handleLayoutDrop).
+ * Dispatches the bubbling `layout-drop` event carrying the component insertion
+ * details. Listened for at the canvas root (builder/canvas → handleLayoutDrop).
  *
- * @param el - Элемент drop-зоны, из которого всплывает событие.
- * @param detail - Параметры вставки (layoutId, movedComponentId, targetIndex, …).
+ * @param el - Drop-zone element the event bubbles out of.
+ * @param detail - Insertion parameters (layoutId, movedComponentId, targetIndex, …).
  */
 function dispatchLayoutDrop(el: HTMLElement | null, detail: ILayoutDropZoneDetail): void {
     const layoutDropEvent = new CustomEvent('layout-drop', {
@@ -32,10 +32,10 @@ function dispatchLayoutDrop(el: HTMLElement | null, detail: ILayoutDropZoneDetai
 }
 
 /**
- * Гарантирует единственный flow-плейсхолдер на канвасе: удаляет все чужие
- * layout-плейсхолдеры, осиротевшие из-за ненадёжного dragleave между зонами.
+ * Guarantees a single flow placeholder on the canvas: removes every foreign layout
+ * placeholder orphaned by an unreliable dragleave between zones.
  *
- * @param current - Плейсхолдер активной зоны, который нужно сохранить.
+ * @param current - Placeholder of the active zone, the one to keep.
  */
 function removeForeignDropPlaceholders(current: HTMLElement | null): void {
     if (typeof document === 'undefined') {
@@ -54,37 +54,37 @@ function removeForeignDropPlaceholders(current: HTMLElement | null): void {
 }
 
 /**
- * Общая drag&drop-логика layout-блоков (Grid/Flex/Section/Slider):
- * dropEffect по типу payload, drag-over состояние с опциональным счётчиком
- * вложенности, guard от self-drop и dispatch события `layout-drop`.
- * Специфика блока (ёмкость грида, drop-индикатор) подключается через хуки опций.
+ * Drag&drop logic shared by the layout blocks (Grid/Flex/Section/Slider): dropEffect
+ * by payload type, drag-over state with an optional nesting counter, a guard against
+ * self-drop and dispatch of the `layout-drop` event. Whatever is specific to a block
+ * (grid capacity, the drop indicator) is plugged in through the option hooks.
  *
- * @param options - Конфигурация зоны и хуки специфики блока.
+ * @param options - Zone configuration and hooks for the block specifics.
  */
 export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZone {
     // #region Data
     const isDragOver = ref(false);
 
-    /** Глубина вложенных dragenter/dragleave (курсор над детьми зоны) */
+    /** Depth of nested dragenter/dragleave (cursor over the children of the zone) */
     const dragDepth = ref(0);
     let dropPlaceholder: HTMLElement | null = null;
     let activeDropContainer: HTMLElement | null = null;
 
-    /** Последний применённый индекс вставки: у зон вне потока DOM-позиция не меняется. */
+    /** Last applied insertion index: for out-of-flow zones the DOM position never changes */
     let placeholderTargetIndex: number | null = null;
     const isCanvasDragActive = inject(CANVAS_DRAG_ACTIVE_KEY, ref(false));
     // #endregion
 
     // #region Methods
     /**
-     * Проверяет, активна ли drop-зона (slider: только в режиме редактора).
+     * Checks whether the drop zone is active (slider: in editor mode only).
      */
     function isEnabled(): boolean {
         return toValue(options.isEnabled) ?? true;
     }
 
     /**
-     * Удаляет flow-плейсхолдер из текущей drop-зоны.
+     * Removes the flow placeholder from the current drop zone.
      */
     function removeDropPlaceholder(): void {
         dropPlaceholder?.remove();
@@ -93,13 +93,18 @@ export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZ
     }
 
     /**
-     * Помечает единственную активную layout drop-зону для лёгкой подсветки.
+     * Marks the single active layout drop zone for a light highlight. Highlighting is
+     * the whole of what a container block draws: the hover and selection ring around a
+     * canvas item comes from BuilderCanvasItem, so a block only tints its own border and
+     * background — when a block drew a ring of its own, the canvas ended up with two
+     * rings of different thickness.
      *
-     * @param container - Текущий контейнер или null при сбросе.
+     * @param container - Current container, or null on reset.
      */
     function setActiveDropContainer(container: HTMLElement | null): void {
-        // Повторная отметка того же контейнера снимала бы и возвращала атрибут на
-        // каждом dragover — подсветка зоны мигала бы на всю длину своего перехода.
+        // Re-marking the same container would remove and put the attribute back on
+        // every dragover — the zone highlight would blink for the whole length of its
+        // own transition.
         if (container && activeDropContainer === container) {
             return;
         }
@@ -123,9 +128,10 @@ export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZ
     }
 
     /**
-     * Создаёт flow-плейсхолдер с CSS Modules class текущего layout-блока.
+     * Creates the flow placeholder with the CSS Modules class of the current layout
+     * block.
      *
-     * @returns DOM-элемент плейсхолдера или null, если визуализация не настроена.
+     * @returns Placeholder DOM element, or null when no visualization is configured.
      */
     function getDropPlaceholder(): HTMLElement | null {
         if (dropPlaceholder?.isConnected) {
@@ -144,11 +150,12 @@ export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZ
     }
 
     /**
-     * Применяет к плейсхолдеру inline-геометрию зоны для целевого индекса.
-     * Зоны без своей раскладки (Flex/Section/Slider) остаются на flow-размерах класса.
+     * Applies the zone geometry for the target index to the placeholder as inline
+     * styles. Zones with no layout of their own (Flex/Section/Slider) stay on the flow
+     * sizes that come from the class.
      *
-     * @param placeholder - Элемент плейсхолдера.
-     * @param targetIndex - Индекс места вставки.
+     * @param placeholder - Placeholder element.
+     * @param targetIndex - Index of the insertion point.
      */
     function applyPlaceholderStyle(placeholder: HTMLElement, targetIndex: number): void {
         const style = options.resolvePlaceholderStyle?.(targetIndex);
@@ -162,16 +169,17 @@ export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZ
     }
 
     /**
-     * Вставляет плейсхолдер между layout children по вычисленному targetIndex.
+     * Inserts the placeholder between the layout children at the computed targetIndex.
      *
-     * @param event - Текущее drag-событие.
+     * @param event - Current drag event.
      */
     function syncDropPlaceholder(event: DragEvent): void {
         const container = options.resolvePlaceholderContainer?.() ?? options.containerRef.value;
         const placeholder = getDropPlaceholder();
         const targetIndex = options.resolveDropIndex(event);
 
-        // Активная зона забирает единственный плейсхолдер, вычищая осиротевшие в других зонах.
+        // The active zone claims the single placeholder, clearing out the ones orphaned
+        // in other zones.
         removeForeignDropPlaceholders(placeholder);
 
         if (!container || !placeholder || targetIndex === null) {
@@ -189,8 +197,9 @@ export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZ
             );
         const referenceNode = children[targetIndex] ?? null;
 
-        // Позиция не изменилась — узел не трогаем: insertBefore даже в ту же точку
-        // переподключает элемент, а это сбрасывает его анимации на каждом dragover.
+        // The position has not changed — leave the node alone: insertBefore reconnects
+        // the element even when it goes back into the same spot, and that resets its
+        // animations on every dragover.
         if (
             placeholder.parentNode === container &&
             placeholder.nextElementSibling === referenceNode &&
@@ -208,7 +217,8 @@ export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZ
     }
 
     /**
-     * Полностью сбрасывает drag-состояние зоны (специфичное блоку — через onReset).
+     * Fully resets the drag state of the zone (whatever is block-specific goes through
+     * onReset).
      */
     function resetDropState(): void {
         isDragOver.value = false;
@@ -219,10 +229,10 @@ export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZ
     }
 
     /**
-     * Обрабатывает вход курсора в drop-зону во время перетаскивания.
-     * Без preventDefault на dragenter браузер может не считать зону валидной.
+     * Handles the cursor entering the drop zone during a drag.
+     * Without preventDefault on dragenter the browser may not treat the zone as valid.
      *
-     * @param event - Текущее dragenter-событие.
+     * @param event - Current dragenter event.
      */
     function handleDragEnter(event: DragEvent): void {
         if (!isEnabled()) {
@@ -246,9 +256,9 @@ export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZ
     }
 
     /**
-     * Активирует drag-over состояние и разрешает drop на зону.
+     * Activates the drag-over state and allows a drop onto the zone.
      *
-     * @param event - Dragover-событие браузера.
+     * @param event - Browser dragover event.
      */
     function handleDragOver(event: DragEvent): void {
         if (!isEnabled()) {
@@ -273,9 +283,9 @@ export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZ
     }
 
     /**
-     * Сбрасывает drag-over состояние при выходе курсора за пределы зоны.
+     * Resets the drag-over state when the cursor leaves the bounds of the zone.
      *
-     * @param event - Dragleave-событие браузера.
+     * @param event - Browser dragleave event.
      */
     function handleDragLeave(event: DragEvent): void {
         if (!isEnabled()) {
@@ -299,9 +309,9 @@ export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZ
     }
 
     /**
-     * Обрабатывает drop и диспатчит `layout-drop` с информацией о вставке.
+     * Handles the drop and dispatches `layout-drop` with the insertion details.
      *
-     * @param event - Drop-событие браузера.
+     * @param event - Browser drop event.
      */
     function handleDrop(event: DragEvent): void {
         if (!isEnabled()) {
@@ -343,9 +353,9 @@ export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZ
     }
 
     /**
-     * Сбрасывает локальные состояния всех посещённых drop-зон после завершения drag.
+     * Resets the local state of every visited drop zone once the drag has finished.
      *
-     * @param isActive - Глобальное состояние нативной drag-сессии.
+     * @param isActive - Global state of the native drag session.
      */
     function handleCanvasDragActiveChange(isActive: boolean): void {
         if (!isActive) {

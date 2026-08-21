@@ -26,7 +26,10 @@ const props = defineProps<{
 // #endregion
 
 // #region Data
-/** Открытые элементы (значения = строковые индексы). Режим всегда multiple, single эмулируется. */
+/**
+ * Open items (the values are string indices). The mode is always multiple; single is
+ * emulated.
+ */
 const openValues = ref<string[]>(
     props.layoutProps.initialOpenIndex >= 0 ? [String(props.layoutProps.initialOpenIndex)] : []
 );
@@ -38,7 +41,7 @@ const normalizedItems = computed<IAccordionItem[]>(() => {
         return [];
     }
 
-    // title/content — недоверенный ввод схемы: санитизация обязательна перед v-html
+    // title/content are untrusted schema input: sanitizing is mandatory before v-html
     return props.layoutProps.items.map((item) => ({
         ...item,
         title: sanitizeRichTextHtml(item.title),
@@ -46,10 +49,10 @@ const normalizedItems = computed<IAccordionItem[]>(() => {
     }));
 });
 
-/** Карточный режим (gap > 0) */
+/** Card mode (gap > 0) */
 const isCardMode = computed<boolean>(() => (props.layoutProps.gap ?? 0) > 0);
 
-/** CSS-переменные для динамических стилей */
+/** CSS variables for the dynamic styles */
 const accordionCssVars = computed<Record<string, string>>(() => {
     const lp = props.layoutProps;
     const duration = `${lp.animationDuration ?? 250}ms`;
@@ -73,9 +76,9 @@ const accordionCssVars = computed<Record<string, string>>(() => {
 
 // #region Methods
 /**
- * Обновляет открытые элементы. В режиме single оставляет только последний открытый.
+ * Updates the open items. In single mode only the last opened one is kept.
  *
- * @param values - Новый список открытых значений от Reka.
+ * @param values - New list of open values coming from Reka.
  */
 function handleUpdateValues(values: string | string[] | undefined): void {
     const next = Array.isArray(values) ? values : values ? [values] : [];
@@ -150,7 +153,6 @@ function handleUpdateValues(values: string | string[] | undefined): void {
 </template>
 
 <style module lang="scss">
-/* Единый блок (gap = 0) */
 .BlockAccordion {
     overflow: hidden;
     width: 100%;
@@ -158,7 +160,6 @@ function handleUpdateValues(values: string | string[] | undefined): void {
     border: 1px solid var(--bricks-base-200);
 }
 
-/* Карточный режим (gap > 0) */
 .accordionCard {
     overflow: visible;
     display: flex;
@@ -179,7 +180,6 @@ function handleUpdateValues(values: string | string[] | undefined): void {
     }
 }
 
-/* Акцентный цвет */
 .accented {
     &:not(.accordionCard) {
         border-color: var(--accordion-accent);

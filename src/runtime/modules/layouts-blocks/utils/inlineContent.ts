@@ -1,20 +1,20 @@
 // #region Helpers
 /**
- * Подготавливает SVG содержимое для inline-вставки.
+ * Prepares SVG content for inline insertion.
  *
- * @param svgContent - Содержимое SVG файла.
- * @returns Очищенный SVG с обрезанными пробелами.
+ * @param svgContent - Contents of the SVG file.
+ * @returns Cleaned SVG with the whitespace trimmed.
  */
 function normalizeSvgContent(svgContent: string): string {
     return svgContent.trim();
 }
 
 /**
- * Применяет цвет к SVG контенту, заменяя fill/stroke на currentColor.
+ * Applies a color to SVG content by replacing fill/stroke with currentColor.
  *
- * @param svgContent - Исходное содержимое SVG.
- * @param color - Цвет текста, который нужно применить.
- * @returns SVG содержимое с подстановкой currentColor.
+ * @param svgContent - Original SVG content.
+ * @param color - Text color to apply.
+ * @returns SVG content with currentColor substituted in.
  */
 export function applyColorToSvgContent(svgContent: string, color?: string): string {
     if (!svgContent) {

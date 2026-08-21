@@ -18,18 +18,18 @@ type TSpaceStyle = Record<string, string>;
 
 // #region Methods
 /**
- * Нормализует значение размера, добавляя 'rem' если это число.
- * Поддерживает обратную совместимость со строковыми значениями ('2.4rem').
+ * Normalizes a size value, adding 'rem' when it is a number.
+ * String values ('2.4rem') keep working.
  *
- * @param rawSize - Значение размера (число или строка)
- * @returns Строка с единицей измерения
+ * @param rawSize - Size value (a number or a string)
+ * @returns String carrying a unit
  */
 function normalizeSize(rawSize: string | number | undefined): string {
     if (rawSize === undefined || rawSize === null) {
         return '2.4rem';
     }
 
-    // Если число - добавляем rem
+    // A number — add rem
     if (typeof rawSize === 'number') {
         return `${rawSize}rem`;
     }
@@ -39,12 +39,12 @@ function normalizeSize(rawSize: string | number | undefined): string {
         return '2.4rem';
     }
 
-    // Если просто число в строке - добавляем rem
+    // Just a number inside a string — add rem
     if (/^-?\d+(\.\d+)?$/.test(trimmed)) {
         return `${trimmed}rem`;
     }
 
-    // Иначе возвращаем как есть (уже с единицей измерения)
+    // Otherwise it comes back as it is (it already carries a unit)
     return trimmed;
 }
 // #endregion
@@ -53,8 +53,10 @@ function normalizeSize(rawSize: string | number | undefined): string {
 const normalizedSize = computed<string>(() => normalizeSize(props.layoutProps.size));
 
 const spaceStyle = computed<TSpaceStyle>(() => {
-    // Фон отбивки — целиком на CSS: inline `background-color` перебивал
-    // редакторскую подложку и hover-подсветку зоны.
+    // The spacer background stays entirely in CSS: an inline `background-color`
+    // overrode the editor backing and the hover highlight of the zone. In CSS it is a
+    // delicate diagonal hatch rather than a squared-paper grid, so the spacer reads as
+    // empty space without fighting the canvas grid or shimmering at small heights.
     const style: TSpaceStyle = {};
 
     if (props.layoutProps.direction === 'vertical' || props.layoutProps.direction === 'both') {
@@ -113,8 +115,6 @@ const dividerStyle = computed<TSpaceStyle>((): TSpaceStyle => {
 </template>
 
 <style module lang="scss">
-// Отбивка читается как «пустое место»: деликатная диагональная штриховка вместо
-// тетрадной клетки — она не спорит с сеткой канваса и не рябит на мелких высотах.
 .BlockSpace {
     position: relative;
     overflow: hidden;
