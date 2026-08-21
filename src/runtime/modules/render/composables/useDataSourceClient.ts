@@ -25,31 +25,36 @@ import { useRuntimeConfig } from '#imports';
 // #endregion
 
 /**
- * Отдельный HTTP-клиент для data sources published-страницы — публичный
- * контекст рендера, политики намеренно отличаются от useApiClient (клиент
- * билдера): без проброса cookie и x-forwarded-* (identity посетителя и билдера
- * не утекает во внешний backend), без CSRF, без 401-редиректа на login
- * (ошибка публичного источника данных не должна отправлять посетителя
- * на страницу логина), с таймаутом и без ретраев (детерминированный SSR).
+ * A separate HTTP client for the data sources of a published page — the public
+ * render context, and the policies deliberately differ from useApiClient (the
+ * builder client): no forwarding of cookies and x-forwarded-* (neither the
+ * visitor's nor the builder's identity leaks into an external backend), no CSRF,
+ * no 401 redirect to login (an error of a public data source must not send the
+ * visitor to the login page), with a timeout and without retries (a deterministic
+ * SSR).
  *
- * Per-request потолок ставит сам клиент (`onRequest` → политика запросов): он
- * должен действовать независимо от того, передал ли вызывающий сигнал общего
- * дедлайна прогона, и должен покрывать чтение тела, а не только заголовки — тело
- * здесь читается вручную, потоком, уже после ответа ofetch.
+ * The per-request ceiling is set by the client itself — by the fetcher wrapper
+ * below, through the request policy, and not in an ofetch `onRequest` hook (why
+ * the policy stays out of the hooks is spelled out in `useApiClient.ts`). The
+ * ceiling has to be in force regardless of whether the caller passed the signal
+ * of the run's total deadline, and it has to cover the reading of the body, not
+ * the headers alone — the body here is read by hand, as a stream, after the
+ * ofetch response has already arrived.
  *
- * Оговорка про SSR: относительный URL на сервере выполняется внутренним вызовом
- * Nitro, который `AbortSignal` не слушает, поэтому там инертны и потолок
- * запроса, и общий дедлайн прогона на `AbortController`. Такой запрос
- * ограничивает `withPromiseDeadline` вокруг прогона в `useRendererDataSources`.
- * Абсолютные URL из allow-list'а и клиентские запросы сигнал слушают штатно.
+ * A caveat about SSR: on the server a relative URL is served by an internal Nitro
+ * call, which does not listen to an `AbortSignal`, so both the request ceiling
+ * and the run's total deadline on an `AbortController` are inert there. Such a
+ * request is bounded by the `withPromiseDeadline` around the run in
+ * `useRendererDataSources`. Absolute URLs from the allow-list and client-side
+ * requests do listen to the signal as usual.
  *
- * Маршрутизация запросов та же, что у остального API: относительные URL на SSR
- * выполняются внутренним вызовом Nitro (в т.ч. через proxy middleware /api/*),
- * на клиенте — под `app.baseURL`. Абсолютные URL допускаются политикой
- * dataSourcePolicy (allow-list хостов) и уходят напрямую.
+ * Request routing is the same as for the rest of the API: on SSR relative URLs
+ * are served by an internal Nitro call (through the /api/* proxy middleware as
+ * well), on the client — under `app.baseURL`. Absolute URLs are admitted by the
+ * dataSourcePolicy (the host allow-list) and go out directly.
  *
- * @returns Фетчер и параметры выполнения (allow-list, лимит одновременности,
- * бюджеты размера ответа/числа запросов/суммарного дедлайна).
+ * @returns The fetcher and the execution parameters (allow-list, concurrency
+ * limit, budgets for the response size / request count / total deadline).
  */
 export function useDataSourceClient() {
     const config = useRuntimeConfig();
@@ -69,42 +74,44 @@ export function useDataSourceClient() {
 
     const appBaseURL = (config.app?.baseURL as string | undefined) || '/';
     const basePath = appBaseURL.endsWith('/') ? appBaseURL : `${appBaseURL}/`;
-    // SSR: относительный base — внутренний вызов Nitro без сети и без origin
-    // из Host; клиент: origin + base (см. useApiClient.resolveLocalBaseUrl)
+    // SSR: a relative base — an internal Nitro call with no network and no origin
+    // built out of Host; client: origin + base (see useApiClient.resolveLocalBaseUrl)
     const baseURL = import.meta.server ? basePath : `${window.location.origin}${basePath}`;
 
-    // Потолка в опциях инстанса нет намеренно: его ставит фетчер ниже, и держать
-    // второе объявление того же бюджета значило бы дать ему шанс разъехаться
+    // There is deliberately no ceiling in the instance options: the fetcher below
+    // sets it, and keeping a second declaration of the same budget would mean
+    // giving the two a chance to drift apart
     const rawDataSourceFetcher = globalThis.$fetch.create({
         baseURL,
         retry: 0,
-        // Публичный контекст: cookies посетителя запросам data sources не нужны
+        // Public context: data source requests have no use for the visitor's cookies
         credentials: 'omit',
     });
 
     /**
-     * Фетчер data source: HTTP — через ofetch (baseURL/без ретраев), тело —
-     * потоковое чтение с байтовым бюджетом ДО JSON.parse (крупный ответ
-     * обрывается на чтении, а не замеряется после полной буферизации и разбора).
+     * The data source fetcher: HTTP through ofetch (baseURL / no retries), the
+     * body through a streaming read with a byte budget applied BEFORE JSON.parse
+     * (a large response is cut off while being read, not measured after being
+     * buffered and parsed in full).
      *
-     * Потолок ожидания ставится здесь: тело читается вручную, уже после ответа
-     * ofetch, поэтому опция `timeout` его не покрыла бы — её таймер снимается на
-     * заголовках. Сигнал вызывающего (общий дедлайн прогона) политика
-     * комбинирует с потолком, а `normalizeRequestAbortError` возвращает обрыву
-     * опознаваемое имя там, где платформа его потеряла.
+     * The waiting ceiling is set here: the body is read by hand, after the ofetch
+     * response, so the `timeout` option would not have covered it — its timer is
+     * cleared on the headers. The policy combines the caller's signal (the run's
+     * total deadline) with the ceiling, and `normalizeRequestAbortError` gives the
+     * abort a recognizable name where the platform has lost it.
      *
-     * @param url - Резолвленный URL запроса.
-     * @param options - Метод и опциональный сигнал отмены.
-     * @returns Распарсенное тело ответа.
-     * @throws DataSourceResponseTooLargeError при превышении maxResponseBytes.
+     * @param url - Resolved request URL.
+     * @param options - The method and an optional abort signal.
+     * @returns The parsed response body.
+     * @throws DataSourceResponseTooLargeError once maxResponseBytes is exceeded.
      */
     async function dataSourceFetcher<T>(
         url: string,
         options: { method: 'GET' | 'HEAD'; signal?: AbortSignal }
     ): Promise<T> {
-        // ignoreResponseError: дефолтный throw ofetch на 4xx/5xx оставил бы
-        // поток тела непрочитанным и неотменённым — статус обрабатывается
-        // ниже сами, после освобождения потока
+        // ignoreResponseError: the default ofetch throw on 4xx/5xx would leave the
+        // body stream unread and not canceled — we handle the status ourselves
+        // below, after releasing the stream
         const requestOptions: TPublicRequestOptions = {
             ...options,
             timeout: timeoutMs,
@@ -117,7 +124,7 @@ export function useDataSourceClient() {
             const response = await rawDataSourceFetcher.raw(url, requestOptions);
 
             if (response.status >= 400) {
-                // Тело ошибки не используется — отменяем поток вместо чтения
+                // The error body is not used — cancel the stream instead of reading it
                 await response.body?.cancel().catch(() => undefined);
                 throw new DataSourceHttpError(response.status);
             }
@@ -128,8 +135,8 @@ export function useDataSourceClient() {
         }
     }
 
-    // `timeoutMs` наружу не отдаётся: потолок одного запроса — дело клиента,
-    // вызывающему остаются бюджеты прогона
+    // `timeoutMs` is not handed out: the ceiling of a single request is the
+    // client's business, the caller is left with the budgets of the run
     return {
         dataSourceFetcher,
         allowedHosts,

@@ -1,24 +1,24 @@
 /**
- * Лимитированное чтение ответа data source.
+ * Bounded reading of a data source response.
  *
- * Байтовый бюджет применяется к транспортному потоку ДО JSON.parse: крупный
- * ответ обрывается на чтении и не буферизуется целиком (прежний post-parse
- * замер через JSON.stringify держал в памяти и полный распарсенный объект,
- * и его сериализованную копию — memory spike оставался возможным).
- * Content-Length, если сервер его прислал, проверяется до чтения тела.
+ * The byte budget is applied to the transport stream BEFORE JSON.parse: a large
+ * response is cut off while being read and never buffered in full (the former
+ * post-parse measurement through JSON.stringify kept both the fully parsed
+ * object and its serialized copy in memory — a memory spike stayed possible).
+ * Content-Length, if the server sent it, is checked before the body is read.
  */
 
 // #region Types
-/** Минимальный контракт ответа для лимитированного чтения (fetch Response). */
+/** Minimal response contract for bounded reading (fetch Response). */
 export interface IReadableResponse {
     headers: { get(name: string): string | null };
     body: ReadableStream<Uint8Array> | null;
 }
 // #endregion
 
-/** Ошибка HTTP-статуса ответа data source (4xx/5xx; тело не читается). */
+/** HTTP status error of a data source response (4xx/5xx; the body is not read). */
 export class DataSourceHttpError extends Error {
-    /** HTTP-статус ответа (попадает в redacted prod-лог — toDataSourceLogError). */
+    /** Response HTTP status (reaches the redacted prod log — toDataSourceLogError). */
     readonly statusCode: number;
 
     constructor(statusCode: number) {
@@ -28,12 +28,12 @@ export class DataSourceHttpError extends Error {
     }
 }
 
-/** Ошибка превышения байтового бюджета ответа data source. */
+/** Error of exceeding the byte budget of a data source response. */
 export class DataSourceResponseTooLargeError extends Error {
-    /** Байт получено к моменту обрыва (или заявлено в Content-Length). */
+    /** Bytes received by the moment of the cut-off (or declared in Content-Length). */
     readonly receivedBytes: number;
 
-    /** Действующий бюджет, байт. */
+    /** The budget in force, bytes. */
     readonly maxResponseBytes: number;
 
     constructor(receivedBytes: number, maxResponseBytes: number) {
@@ -47,15 +47,22 @@ export class DataSourceResponseTooLargeError extends Error {
 }
 
 /**
- * Reviver JSON.parse, отбрасывающий prototype-pollution ключи (та же защита,
- * что у destr, которую ofetch давал из коробки): `__proto__` и `constructor`
- * со свойством `prototype` не попадают в распарсенный объект — иначе они
- * доехали бы до `source.map`/props, где обычный merge уже создаёт pollution.
- * JSON.parse декодирует Unicode-escape ключей ДО вызова reviver'а, поэтому
- * `"__proto__"` отбрасывается так же.
+ * A JSON.parse reviver that drops prototype-pollution keys (the same protection
+ * destr has, the one ofetch used to give out of the box): `__proto__` and a
+ * `constructor` with a `prototype` property never reach the parsed object.
  *
- * @param key - Ключ текущего свойства.
- * @param value - Значение текущего свойства.
+ * The renderer's own path pollutes nothing today: the props are merged with
+ * object spread, which creates an own `__proto__` key instead of changing the
+ * prototype, and `toSafeRecord` strips that key before the merge even happens.
+ * What the reviver still guards is the one merge outside our control — the `map`
+ * of a data source is consumer code out of a brick file, and an `Object.assign`
+ * or a deep merge there over the raw response is the classic way in.
+ *
+ * JSON.parse decodes Unicode escapes in keys BEFORE calling the reviver, so an
+ * escaped `"__proto__"` is dropped just the same.
+ *
+ * @param key - Key of the current property.
+ * @param value - Value of the current property.
  */
 function jsonPollutionSafeReviver(key: string, value: unknown): unknown {
     if (
@@ -72,11 +79,11 @@ function jsonPollutionSafeReviver(key: string, value: unknown): unknown {
 }
 
 /**
- * Разбирает текст тела по паттерну ofetch/destr: валидный JSON — значением
- * (без prototype-pollution ключей), прочее — исходной строкой; пустое
- * тело — undefined.
+ * Parses the body text after the ofetch/destr pattern: valid JSON as a value
+ * (without prototype-pollution keys), anything else as the original string; an
+ * empty body as undefined.
  *
- * @param text - Декодированный текст тела ответа.
+ * @param text - Decoded text of the response body.
  */
 function parseResponseText(text: string): unknown {
     if (text.trim() === '') {
@@ -91,20 +98,21 @@ function parseResponseText(text: string): unknown {
 }
 
 /**
- * Читает тело ответа потоково с обрывом при превышении бюджета и разбирает
- * результат как JSON (не-JSON текст возвращается строкой).
+ * Reads the response body as a stream, cutting it off once the budget is
+ * exceeded, and parses the result as JSON (non-JSON text comes back as a string).
  *
- * @param response - Ответ fetch/ofetch с непрочитанным телом (responseType 'stream').
- * @param maxResponseBytes - Байтовый бюджет одного ответа data source.
- * @returns Распарсенное значение тела; undefined для пустого тела (HEAD/204).
- * @throws DataSourceResponseTooLargeError при превышении бюджета.
+ * @param response - fetch/ofetch response with an unread body (responseType 'stream').
+ * @param maxResponseBytes - Byte budget of one data source response.
+ * @returns The parsed body value; undefined for an empty body (HEAD/204).
+ * @throws DataSourceResponseTooLargeError once the budget is exceeded.
  */
 export async function readResponseWithinByteBudget(
     response: IReadableResponse,
     maxResponseBytes: number
 ): Promise<unknown> {
-    // Ответ без тела (HEAD/204) проходит без бюджета: Content-Length у HEAD
-    // описывает НЕпереданное тело и не должен давать ложный отказ
+    // A response without a body (HEAD/204) passes without the budget: on HEAD
+    // Content-Length describes the body that was NOT sent and must not produce a
+    // false refusal
     if (!response.body) {
         return undefined;
     }

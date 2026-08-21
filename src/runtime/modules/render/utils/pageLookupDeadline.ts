@@ -11,31 +11,35 @@ import {
 
 // #region Methods
 /**
- * Ограничивает SSR-lookup страницы по времени.
+ * Bounds the SSR page lookup in time.
  *
- * Зачем нужен внешний дедлайн: на SSR относительные URL уходят внутренним
- * вызовом Nitro, а он `AbortSignal` не слушает — то есть сигнал, которым
- * политика запросов держит потолок транспорта, для такого вызова инертен.
- * Зависший обработчик держал бы весь SSR-ответ, и посетитель ждал бы вечно.
- * Гонка обработчик не останавливает, но перестаёт его ждать.
+ * Why an external deadline is needed: on SSR relative URLs go out as an internal
+ * Nitro call, and it does not listen to an `AbortSignal` — that is, the signal
+ * with which the request policy holds the transport ceiling is inert for such a
+ * call. A hung handler would hold the entire SSR response, and the visitor would
+ * wait forever. The race does not stop the handler, but it does stop waiting for
+ * it.
  *
- * Почему с запасом, а не ровно потолок чтения: совпадение границ отдаёт исход
- * гонке. Обработчик мог успеть вернуть собственную ошибку с настоящим статусом
- * и причиной (например, свой таймаут внешнего backend'а), а generic
- * `TimeoutError` внешнего дедлайна её бы затёр. С запасом штатная ошибка
- * доезжает наружу первой, а дедлайн остаётся аварийной стенкой. Плата —
- * зависший lookup завершается на величину запаса позже.
+ * Why with a margin rather than exactly the read ceiling: equal boundaries turn
+ * the outcome into a coin toss. The handler may have been about to return an
+ * error of its own, with a real status and a real reason (the external backend
+ * timing out, for one), and the generic `TimeoutError` of the external deadline
+ * would have buried it. The margin lets the real error surface first and leaves
+ * the deadline as a backstop. What it costs: on a hung lookup we wait out the
+ * margin on top before giving up.
  *
- * Почему только на сервере: на клиенте оба фетчера (`publicPageFetcher` и
- * `apiFetcher`) ставят живой сигнал, накрывающий и заголовки, и чтение тела, —
- * второй таймер там лишний и мешал бы переопределить потолок на вызове.
+ * Why on the server only: on the client both fetchers (`publicPageFetcher` and
+ * `apiFetcher`) install a live signal covering both the headers and the reading
+ * of the body — a second timer there is redundant and would get in the way of
+ * overriding the ceiling per call.
  *
- * Ошибка помечена именем `TimeoutError`, поэтому её классифицирует тот же
- * `isRequestTimeoutError`, что и обрыв на клиенте.
+ * The error carries the name `TimeoutError`, so it goes through the same
+ * `isRequestTimeoutError` as an abort on the client does.
  *
- * @param operation - Промис lookup'а.
- * @param isServer - Выполняется ли код на сервере (SSR).
- * @returns Промис lookup'а с дедлайном на SSR или он же без изменений на клиенте.
+ * @param operation - The lookup promise.
+ * @param isServer - Whether the code runs on the server (SSR).
+ * @returns The lookup promise with a deadline on SSR, or the same promise
+ * unchanged on the client.
  */
 export function withPageLookupDeadline<T>(operation: Promise<T>, isServer: boolean): Promise<T> {
     if (!isServer) {

@@ -36,10 +36,10 @@ import RendererCloseButton from '../components/RendererCloseButton.vue';
 // #endregion
 
 // #region Meta
-// Ключ включает нормализованный id версии на превью-роуте: без него переход
-// между версиями оставил бы вкладку на прежней (см. getRenderPageKey). Прочий
-// query — фильтры потребителя, параметры data sources — на монтирование
-// по-прежнему не влияет.
+// The key includes the normalized version id on the preview route: without it a
+// move between versions would leave the tab on the previous one (see
+// getRenderPageKey). The rest of the query — the consumer's filters, the data
+// source parameters — still has no effect on mounting.
 definePageMeta({
     key: (route: RouteLocationNormalizedLoaded) => getRenderPageKey(route),
 });
@@ -47,15 +47,17 @@ definePageMeta({
 
 // #region Data
 const route = useRoute();
-// Адрес, а не одно имя: и превью, и live-рендер обслуживают пару маршрутов
-// (с префиксом и без), а страницу опознаёт полный адрес
+// The address, not the name alone: both the preview and the live render serve a
+// pair of routes (with a prefix and without one), and it is the full address that
+// identifies the page
 const address = resolvePageAddressFromRoute(route.params);
-// Превью-режим — чисто по роуту <previewPrefix>/<адрес> (query не используется);
-// на динамических ЧПУ маршрутах компонент работает в live-режиме
+// Preview mode is decided purely by the route <previewPrefix>/<address> (the query
+// is not used); on dynamic pretty-URL routes the component works in live mode
 const isPreview = typeof route.name === 'string' && BRICKS_PREVIEW_ROUTE_NAMES.includes(route.name);
 
-// Превью сохранённой версии: id из query. Такая вкладка показывает состояние из
-// истории, поэтому live-синк с билдером ей не нужен (см. useRendererPreviewSync)
+// Preview of a saved version: the id comes from the query. Such a tab shows a
+// state taken from the history, so it has no use for the live sync with the
+// builder (see useRendererPreviewSync)
 const previewVersionId = isPreview
     ? parsePreviewVersionId(route.query[PREVIEW_VERSION_QUERY_PARAM])
     : null;
@@ -63,12 +65,14 @@ const previewVersionId = isPreview
 const pageDataKey = getBricksPageDataKey(address, isPreview, previewVersionId);
 const { data: middlewarePageData } = useNuxtData<IPublishedPage>(pageDataKey);
 
-// Данные live-синхронизации превью: обновляются через BroadcastChannel без перезагрузки страницы
+// Data of the preview live sync: updated through BroadcastChannel without a page
+// reload
 const livePreviewData = ref<IPublishedPage | null>(null);
 
 const page = computed(() => livePreviewData.value || middlewarePageData.value || null);
 
-// Error handling based on middleware, if middlewarePageData is null, an error was thrown in middleware
+// Error handling based on middleware: if middlewarePageData is null, an error was
+// thrown in the middleware
 if (!page.value && !isPreview) {
     throw createError({
         statusCode: 404,
@@ -89,12 +93,14 @@ const {
     isPreview,
 });
 
-// Блокируем SSR до первичного выполнения data sources (хуки композабла уже зарегистрированы)
+// Block SSR until the first data sources run (the composable's hooks are already
+// registered)
 await dataSourcesReady;
 
-// Набор устройств страницы вытесняет проектный CSS плагина по ключу тега.
-// Геттер, а не значение: live-preview меняет набор без перемонтирования
-// страницы, и одноразовый вызов оставил бы раскладку прежней
+// The page's device set replaces the plugin's project CSS by head tag key (the
+// mechanism is in useBricksStyles).
+// A getter rather than a value: a live preview changes the set without remounting
+// the page, and a one-off call would have left the layout as it was
 const { resolvePageDevices } = useBricksDevices();
 const pageDevices = computed(() => resolvePageDevices(page.value?.viewportConfig ?? null));
 const getPageDevices = () => pageDevices.value;
@@ -125,14 +131,16 @@ const pageBackgroundColor = computed(() => page.value?.backgroundColor || 'var(-
 
 const allComponents = computed<IBricksComponent[]>(() => {
     const components = page.value?.schema?.components ?? [];
-    // Строка БД могла быть повреждена или записана в обход контракта схемы
-    //: мусорные элементы отфильтровываются, а не роняют SSR
+    // The stored page could have been corrupted or written around the schema
+    // contract: garbage elements are filtered out rather than taking SSR down
     return components.filter(
         (component): component is IBricksComponent =>
             isRenderableSchemaComponent(component) && !component.isHidden
     );
 });
 
+// Only the root level goes into the template: the children of a layout are
+// rendered by the layout block itself, through renderChild
 const rootComponents = computed<IBricksComponent[]>(() =>
     allComponents.value.filter((component: IBricksComponent) => !component.parent)
 );
@@ -140,8 +148,9 @@ const rootComponents = computed<IBricksComponent[]>(() =>
 
 // #region Methods
 /**
- * Предзагружает brick-компоненты, чтобы избежать рассинхрона SSR/CSR при первом рендере.
- * Загружает только UI-компоненты (layout исключены), чтобы не тормозить и не тянуть лишнее.
+ * Prefetches the brick components to avoid an SSR/CSR mismatch on the first render.
+ * Loads UI components only (layouts are excluded), so as not to slow things down or
+ * pull in more than is needed.
  */
 async function prefetchPageBricks(): Promise<void> {
     const components = allComponents.value;
@@ -166,14 +175,18 @@ await prefetchPageBricks();
 // #endregion
 
 // #region Meta
-// bricks-render на body включает зону контента reset'а (@layer bricks-reset в
-// default.scss: normalize + strip-reset, проектные стили всегда побеждают) —
-// preview-роут использует этот же компонент и покрывается автоматически.
-// Rem-база и html-часть normalize (бывшие глобальные html { font-size: 10px } из
-// default.scss и html { line-height; text-size-adjust } из normalize.css) +
-// body { margin: 0 }: fallback'и нулевой специфичности — одноимённые правила
-// проекта-потребителя всегда побеждают (см. remBase в конфиге breakpoints),
-// а UA-дефолты (база 16px, margin 8px) перебиваются.
+// `bricks-render` on the body turns on the content zone of the reset — `@layer
+// bricks-reset` in default.scss, that is normalize plus strip-reset, and the
+// project styles always win over it. The preview route renders this same
+// component, so it is covered too.
+//
+// The inline style below carries what used to be global: the rem base and the
+// html part of normalize (`html { font-size: 10px }` from default.scss,
+// `html { line-height; text-size-adjust }` from normalize.css) plus
+// `body { margin: 0 }`. All of it is wrapped in `:where()`, so it has zero
+// specificity: a rule of the same name in the consuming project wins without
+// effort (see remBase in the breakpoints config), while the UA defaults — a 16px
+// base and an 8px body margin — lose to it.
 useHead({
     bodyAttrs: { class: 'bricks-render' },
     style: [
@@ -222,8 +235,6 @@ useHead(() => {
                     <span :class="$style.previewText">Режим превью</span>
                     <BricksIcon :icon="currentDevice.icon" :class="$style.previewDeviceIcon" />
                     <span :class="$style.previewResolution">{{ resolutionText }}</span>
-                    <!-- Имя кнопке нужно своё: внутри неё только иконка, а
-                         рядом нет текста, из которого читалка взяла бы смысл -->
                     <RendererCloseButton
                         :class="$style.previewClose"
                         aria-label="Закрыть превью"
@@ -232,7 +243,6 @@ useHead(() => {
                 </div>
             </div>
 
-            <!-- Render only root-level components (not children of layouts) -->
             <TheRenderer
                 v-for="component in rootComponents"
                 :key="component.id"

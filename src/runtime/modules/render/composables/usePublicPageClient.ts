@@ -17,15 +17,15 @@ import { useRuntimeConfig } from '#imports';
 
 // #region Methods
 /**
- * Резолвит base URL для запросов публичного read-model.
- * SSR: относительный `app.baseURL` — серверный `$fetch` (Nitro) выполняет
- * относительные запросы внутренним вызовом обработчика (в т.ч. через proxy
- * middleware /api/*), без построения origin из Host-заголовка.
- * Клиент: `origin + app.baseURL` — сразу под base, без 302 base-redirect.
+ * Resolves the base URL for public read-model requests.
+ * SSR: a relative `app.baseURL` — the server-side `$fetch` (Nitro) serves
+ * relative requests by calling the handler internally (through the /api/* proxy
+ * middleware as well), without building an origin out of the Host header.
+ * Client: `origin + app.baseURL` — straight under the base, no 302 base redirect.
  *
- * @param appBaseURL - `app.baseURL` приложения.
- * @param isServer - Выполняется ли код на сервере (SSR).
- * @param origin - `window.location.origin` (только на клиенте).
+ * @param appBaseURL - The application's `app.baseURL`.
+ * @param isServer - Whether the code runs on the server (SSR).
+ * @param origin - `window.location.origin` (on the client only).
  */
 export function resolvePublicPageBaseUrl(
     appBaseURL: string,
@@ -43,20 +43,21 @@ export function resolvePublicPageBaseUrl(
 // #endregion
 
 /**
- * Отдельный HTTP-клиент для lookup'а published-страницы (live-путь рендера) —
- * публичный контекст посетителя, политики намеренно отличаются от useApiClient
- * (клиента билдера): без проброса cookie и x-forwarded-* (identity посетителя
- * не утекает во внешний backend), без CSRF, без 401-редиректа на login
- * (ошибка публичного lookup'а не должна отправлять посетителя на страницу
- * логина билдера — она превращается в 404), с таймаутом и без ретраев
- * (детерминированный SSR). Паттерн — useDataSourceClient.
+ * A separate HTTP client for the published page lookup (the live render path) —
+ * the visitor's public context, and the policies deliberately differ from
+ * useApiClient (the builder client): no forwarding of cookies and x-forwarded-*
+ * (the visitor's identity does not leak into an external backend), no CSRF, no
+ * 401 redirect to login (an error of a public lookup must not send the visitor to
+ * the builder's login page — it turns into a 404), with a timeout and without
+ * retries (a deterministic SSR). The pattern is useDataSourceClient.
  *
- * Маршрутизация та же, что у остального API: относительные URL на SSR
- * выполняются внутренним вызовом Nitro (при сконфигурированной БД — локальные
- * persistence-ручки, иначе proxy middleware уводит /api/* на PROXY_URL),
- * на клиенте — под `app.baseURL`.
+ * The lookup goes to `/api/bricks/**`, and those handlers are local in every
+ * backend mode: the dev proxy never sends them to PROXY_URL, and under
+ * `bricks.backend.mode: 'external'` it is the local handler that walks to the
+ * consumer backend, through the storage adapter. On SSR such a call is an
+ * internal Nitro one; on the client the request goes out under `app.baseURL`.
  *
- * @returns Фетчер публичного read-model.
+ * @returns The public read-model fetcher.
  */
 export function usePublicPageClient() {
     const config = useRuntimeConfig();
@@ -68,44 +69,49 @@ export function usePublicPageClient() {
         import.meta.client ? window.location.origin : undefined
     );
 
-    // Потолка в опциях инстанса нет намеренно: его ставит обёртка ниже, и держать
-    // второе объявление того же бюджета значило бы дать ему шанс разъехаться
+    // There is deliberately no ceiling in the instance options: the wrapper below
+    // sets it, and keeping a second declaration of the same budget would mean
+    // giving the two a chance to drift apart
     const rawPublicPageFetcher = globalThis.$fetch.create({
         baseURL,
         retry: 0,
-        // Публичный контекст: cookies посетителя lookup'у страницы не нужны
+        // Public context: the page lookup has no use for the visitor's cookies
         credentials: 'omit',
     });
 
     /**
-     * Выполняет lookup с потолком ожидания на обе фазы ответа.
+     * Performs the lookup with a waiting ceiling over both phases of the response.
      *
-     * Опция `timeout` в запросе — только декларация бюджета: её таймер ofetch
-     * снимает на заголовках, и зависшее тело держало бы посетителя без границы.
-     * Политика переводит бюджет в живой сигнал, а `normalizeRequestAbortError`
-     * возвращает обрыву опознаваемое имя там, где платформа его потеряла
-     * (браузер на фазе чтения тела). Через `.raw`, потому что на переменном URL
-     * вывод типа ответа по Nitro-роутам упирается в предел рекурсии компилятора.
+     * The `timeout` option in the request is only a declaration of the budget:
+     * ofetch clears its timer on the headers, and a hung body would keep the
+     * visitor waiting without a bound. The policy turns the budget into a live
+     * signal, and `normalizeRequestAbortError` gives the abort a recognizable name
+     * where the platform has lost it (the browser during the body-reading phase).
+     * Through `.raw`, because on a variable URL inferring the response type over
+     * the Nitro routes runs into the compiler's recursion limit.
      *
-     * @param request - Путь запроса.
-     * @param options - Опции запроса.
-     * @returns Тело ответа.
+     * @param request - Request path.
+     * @param options - Request options.
+     * @returns The response body.
      */
     async function publicPageFetcher<T = unknown>(
         request: string,
         options: TPublicRequestOptions = {}
     ): Promise<T> {
         const requestOptions: TPublicRequestOptions = {
-            // Общий потолок чтения, а не собственная константа клиента: со второй
-            // копией того же числа поднятие бюджета здесь начало бы обрезаться
-            // внешним SSR-дедлайном, который берёт именно эту константу, и
-            // реальная ошибка сервера превращалась бы в 504.
+            // The shared read ceiling, not a constant of the client's own: with a
+            // second copy of the same number, raising the budget here would start
+            // being cut short by the external SSR deadline, which takes exactly
+            // this constant, and a real server error would turn into a 504.
             //
-            // На SSR потолок инертен: относительный URL выполняется внутренним
-            // вызовом Nitro (`fetchNodeRequestHandler`), а он `AbortSignal` не
-            // слушает. Там границу держит внешний дедлайн вокруг lookup'а
-            // (`bricks-page-layout.global.ts`); здесь потолок работает на
-            // клиенте и при внешнем backend'е.
+            // On SSR the ceiling is inert in every backend mode: the lookup goes to
+            // a local `/api/bricks/**` handler, that is, an internal Nitro call
+            // (`fetchNodeRequestHandler`), and it does not listen to an
+            // `AbortSignal`. The bound there is the external deadline around the
+            // lookup (`bricks-page-layout.global.ts`), and the further hop to a
+            // consumer backend carries a ceiling of its own inside the storage
+            // adapter (`persistence/server/http/httpClient.ts`). This ceiling is
+            // what works on the client.
             timeout: BRICKS_API_READ_TIMEOUT_MS,
             ...options,
         };

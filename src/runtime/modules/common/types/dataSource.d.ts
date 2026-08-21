@@ -38,7 +38,7 @@ export interface IBricksDataSourcesConfig {
     timeoutMs: number;
     /** Maximum number of concurrent data source requests per page */
     concurrency: number;
-    /** Size limit of a single response, bytes (a JSON-length approximation) */
+    /** Size limit of a single response, bytes of the transport stream */
     maxResponseBytes: number;
     /** Maximum number of data source requests per page run */
     maxRequestsPerPage: number;

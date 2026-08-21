@@ -43,10 +43,10 @@ const { renderLayoutComponent, needsContainerWrapper } = useRendererLayouts({
 
 // #region Methods
 /**
- * Рендерит компонент из схемы с учётом его типа.
+ * Renders a component from the schema according to its type.
  *
- * @param component - Компонент схемы, который необходимо визуализировать.
- * @returns VNode отрисованного компонента.
+ * @param component - Schema component that has to be visualized.
+ * @returns VNode of the rendered component.
  */
 function renderComponent(component: IBricksComponent) {
     const visibilityClasses = buildDeviceVisibilityClasses(component.deviceVisibility);
@@ -66,10 +66,10 @@ function renderComponent(component: IBricksComponent) {
 }
 
 /**
- * Рендерит UI-компонент или placeholder, если brick не найден.
+ * Renders a UI component, or the placeholder when the brick is not found.
  *
- * @param component - Компонент схемы, соответствующий brick-файлу.
- * @returns VNode UI-компонента или placeholder.
+ * @param component - Schema component matching a brick file.
+ * @returns VNode of the UI component or of the placeholder.
  */
 function renderUiComponent(
     component: IBricksComponent,
@@ -113,11 +113,11 @@ function renderUiComponent(
 }
 
 /**
- * Оборачивает компонент в контейнер, если требуется фиксированная ширина.
+ * Wraps the component into a container when a fixed width is required.
  *
- * @param content - Уже подготовленный vnode.
- * @param component - Компонент схемы для проверки.
- * @returns Исходный контент или обёрнутый в контейнер vnode.
+ * @param content - The already prepared vnode.
+ * @param component - Schema component to check.
+ * @returns The original content, or the vnode wrapped into a container.
  */
 function wrapWithContainer(
     content: ReturnType<typeof h>,
@@ -164,7 +164,7 @@ function wrapWithContainer(
         overflow: hidden;
         min-width: 0;
         min-height: 0;
-        grid-row: span 1; // Ограничиваем элемент одной строкой
+        grid-row: span 1;
     }
 }
 

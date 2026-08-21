@@ -1,17 +1,22 @@
 <script setup lang="ts">
 /**
- * @description Кнопка закрытия превью на published-странице.
+ * @description Preview close button on a published page.
  *
- * Самодостаточная копия `ui/base/modal/BricksCloseButton`: `render` не
- * импортирует `ui` — иначе кит уехал бы в бандл published-страницы, где из него
- * нужна одна кнопка. Копия осознанная, но она однажды уже отстала (радиус `md` с
- * рамкой против `control` без рамки, ховер фоном вместо цвета глифа, не было
- * рамки фокуса), поэтому расхождение токенов сторожит
- * `test/render/rendererCloseButtonParity.spec.ts`.
+ * A self-contained copy of `ui/base/modal/BricksCloseButton`: `render` never
+ * imports `ui`, or the whole kit would be pulled into the published page bundle
+ * for the sake of a single button. The copy is deliberate, but it has drifted
+ * once already — radius `md` with a border where the original had `control` and
+ * none, hover changing the background instead of the glyph color, and no focus
+ * ring at all — so `test/render/rendererCloseButtonParity.spec.ts` now watches
+ * the tokens. The style values below are exactly `BricksCloseButton`'s, because
+ * the copy has to read as the same control the builder shows: change both files
+ * or neither.
  *
- * Доступное имя приходит снаружи: локалей в `render` нет, а зашитая строка
- * годилась бы ровно для одного языка. Единственное место вызова — баннер превью
- * — имя передаёт.
+ * The accessible name comes from the outside: `render` has no locales, and a
+ * baked-in string would serve exactly one language. A name is required at all
+ * because the button holds nothing but an icon and stands next to no text a
+ * screen reader could borrow meaning from. The single call site — the preview
+ * banner — supplies it.
  */
 
 // #region Interfaces
@@ -36,7 +41,7 @@ const emit = defineEmits<IRendererCloseButtonEmits>();
 
 // #region Methods
 /**
- * Пробрасывает клик наружу.
+ * Forwards the click outward.
  *
  * @param event - MouseEvent.
  */
@@ -58,9 +63,6 @@ function handleClick(event: MouseEvent): void {
 </template>
 
 <style module lang="scss">
-/* Те же значения, что у `ui/base/modal/BricksCloseButton`: копия обязана
-   выглядеть тем же контролом, что и в билдере. Расхождение сторожит спека
-   паритета — правится либо оба файла, либо ни один. */
 .RendererCloseButton {
     display: inline-flex;
     align-items: center;

@@ -1,15 +1,16 @@
 /**
- * Redaction лог-payload'ов data sources для production (чистые функции).
+ * Redaction of data source log payloads for production (pure functions).
  *
- * Резолвленный URL data source содержит подставленные параметры (значения из
- * props компонентов и настроек страницы), а сырая ошибка ofetch — request,
- * response и options целиком. В production ни то, ни другое в логи не попадает:
- * URL сворачивается до цели (`local` / origin), ошибка — до allow-list полей.
- * Подробные payload'ы остаются в dev-ветках (`import.meta.dev`) composable.
+ * A resolved data source URL contains the substituted parameters (values from
+ * component props and page settings), and a raw ofetch error contains the
+ * request, the response and the options in full. In production neither of the
+ * two reaches the logs: the URL is folded down to the target (`local` / origin),
+ * the error down to allow-listed fields. Detailed payloads stay in the dev
+ * branches (`import.meta.dev`) of the composable.
  */
 
 // #region Types
-/** Allow-list полей ошибки data source для production-лога. */
+/** Allow-list of data source error fields for the production log. */
 export interface IDataSourceLogError {
     name: string;
     statusCode?: number;
@@ -17,12 +18,19 @@ export interface IDataSourceLogError {
 // #endregion
 
 /**
- * Сворачивает резолвленный URL data source до безопасной цели для лога:
- * относительный путь → `'local'`, абсолютный http(s) → только origin,
- * всё остальное (protocol-relative, мусор) → `'invalid-url'`.
+ * Folds a resolved data source URL down to a safe target for the log:
+ * a relative path → `'local'`, anything the URL parser accepts → its origin
+ * alone, everything else → `'invalid-url'`. A protocol-relative `//host` ends up
+ * in that last case because the parser rejects it without a base, and so do the
+ * schemes with an opaque origin — `mailto:`, `javascript:`, `file:` — whose
+ * origin comes back as the string `'null'`.
  *
- * @param url - Резолвленный URL запроса (после подстановки параметров).
- * @returns Цель запроса без path/query/параметров.
+ * The scheme is not filtered here: `ftp://host/x` reaches the log as `ftp://host`.
+ * This is a log target, not a gate; the gate is `checkDataSourceUrl`, and it
+ * admits http(s) only.
+ *
+ * @param url - Resolved request URL (after parameter substitution).
+ * @returns The request target without path/query/parameters.
  */
 export function resolveDataSourceLogTarget(url: string): string {
     if (!url) {
@@ -42,11 +50,11 @@ export function resolveDataSourceLogTarget(url: string): string {
 }
 
 /**
- * Извлекает числовой HTTP-статус из ошибки fetch-клиента (statusCode/status/
- * response.status — поля FetchError и совместимых ошибок).
+ * Extracts the numeric HTTP status from a fetch client error (statusCode/status/
+ * response.status — the fields of FetchError and compatible errors).
  *
- * @param error - Ошибка запроса data source.
- * @returns Статус ответа или undefined, если его нет.
+ * @param error - Data source request error.
+ * @returns The response status, or undefined when there is none.
  */
 function extractStatusCode(error: unknown): number | undefined {
     if (!error || typeof error !== 'object') {
@@ -64,12 +72,13 @@ function extractStatusCode(error: unknown): number | undefined {
 }
 
 /**
- * Сводит произвольную ошибку запроса data source к allow-list полям для
- * production-лога: имя класса ошибки и HTTP-статус. message/request/response/
- * options сознательно не включаются (содержат URL с параметрами и тело ответа).
+ * Reduces an arbitrary data source request error to the allow-listed fields for
+ * the production log: the error class name and the HTTP status. message/request/
+ * response/options are deliberately left out (they contain the URL with the
+ * parameters and the response body).
  *
- * @param error - Ошибка запроса data source.
- * @returns Redacted-представление ошибки.
+ * @param error - Data source request error.
+ * @returns Redacted representation of the error.
  */
 export function toDataSourceLogError(error: unknown): IDataSourceLogError {
     const name = error instanceof Error ? error.name : typeof error;

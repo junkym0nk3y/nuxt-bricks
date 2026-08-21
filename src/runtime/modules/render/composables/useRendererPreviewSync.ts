@@ -21,16 +21,17 @@ import { deviceRanges, resolveDeviceIcon } from '../../common/utils/bricks/devic
 // #endregion
 
 /**
- * Live-синхронизация превью с builder-вкладкой: снапшот из localStorage
- * (только если свежее данных БД), realtime-обновления схемы через
- * BroadcastChannel, повторный запрос схемы при возврате на вкладку,
- * ResizeObserver для баннера с текущим устройством/разрешением.
- * Вне превью (или на сервере) — только computed для баннера, без подписок.
- * Превью сохранённой версии (`?version=` в URL) ни синка, ни снапшота не
- * получает: его состояние приезжает с сервера и меняться не должно.
+ * Live synchronization of the preview with the builder tab: the localStorage
+ * snapshot (taken only when it is no older than the saved page), realtime schema
+ * updates over BroadcastChannel, a repeat request for the schema when the tab
+ * regains focus, and a ResizeObserver for the banner showing the current device
+ * and resolution. Outside preview (or on the server) nothing is subscribed — only
+ * the computed values the banner needs. A preview of a saved version (`?version=`
+ * in the URL) gets neither the sync nor the snapshot: its state comes from the
+ * server and must not change.
  *
- * @param options - Адрес и данные страницы, refs live-синка и колбэк перезапуска
- * data sources.
+ * @param options - The address and the data of the page, the refs of the live sync
+ * and the callback that restarts the data sources.
  */
 export function useRendererPreviewSync(options: IRendererPreviewSyncOptions): IRendererPreviewSync {
     const {
@@ -43,24 +44,26 @@ export function useRendererPreviewSync(options: IRendererPreviewSyncOptions): IR
         refreshDataSources,
     } = options;
 
-    // Превью версии показывает состояние из истории: живой канвас ему не источник
+    // A version preview shows a state taken from the history: the live canvas is
+    // not a source for it
     const isVersionPreview = previewVersionId !== null;
 
-    // Токен страницы в слоте localStorage и в канале синка — ключ адреса, а не
-    // имя: слот один на билдер, и снимок `/blog/post` иначе показался бы в превью
-    // `/news/post` как её собственный
+    // The page token in the localStorage slot and in the sync channel is the
+    // address key, not the name: there is one slot per builder, and a snapshot of
+    // `/blog/post` would otherwise show up in the preview of `/news/post` as its own
     const addressKey = getPageAddressKey(address);
 
-    // Текущее разрешение и адаптив для превью-баннера
+    // Window size behind the resolution readout and the device match in the banner
     const windowWidth = ref(0);
     const windowHeight = ref(0);
 
     const { resolvePageDevices } = useBricksDevices();
 
-    // Набор страницы, а не проекта: у страницы со своим набором баннер обязан
-    // показывать её ступени — иначе на ширине 1400 он скажет «Планшет», пока
-    // страница уже отрисована как ноутбук. Подпись и глиф приходят из набора,
-    // второй таблицы иконок в коде больше нет
+    // The page's device set, not the project's: a page that defines its own set
+    // has to be described by that set in the banner — otherwise at a width of 1400
+    // the banner says "Tablet" while the page is already laid out as a laptop. The
+    // label and the glyph come from the set itself; no second icon table is left
+    // in the code
     const pageDevices = computed(() => resolvePageDevices(page.value?.viewportConfig ?? null));
 
     const sortedDeviceBreakpoints = computed<IPreviewDeviceBreakpoint[]>(() => {
@@ -92,9 +95,9 @@ export function useRendererPreviewSync(options: IRendererPreviewSyncOptions): IR
     const resolutionText = computed(() => `${windowWidth.value}×${windowHeight.value}`);
 
     /**
-     * Принадлежит ли снимок в слоте этой вкладке превью.
+     * Whether the snapshot in the slot belongs to this preview tab.
      *
-     * @returns true — слот пуст, нечитаем или снят с этого же адреса.
+     * @returns true — the slot is empty, unreadable, or taken from this same address.
      */
     function isPreviewSlotOwned(): boolean {
         const stored = window.localStorage.getItem('bricks-preview-page');
@@ -115,17 +118,18 @@ export function useRendererPreviewSync(options: IRendererPreviewSyncOptions): IR
     }
 
     /**
-     * Закрывает окно превью и очищает сохранённые данные превью.
+     * Closes the preview window and clears the stored preview data.
      *
-     * Запись в localStorage принадлежит превью текущего канваса: вкладка версии её
-     * не заводила и не должна уносить — иначе закрытие превью версии оставило бы
-     * живое превью без снапшота.
+     * The localStorage entry belongs to the preview of the current canvas: a
+     * version tab neither created it nor may delete it — otherwise closing a
+     * version preview would strip the live preview of its snapshot.
      *
-     * Слот один на билдер, и владеет им последнее открытое превью, поэтому перед
-     * удалением сверяется адрес: закрытие вкладки A, открытой раньше B, иначе
-     * унесло бы снимок B — после перезагрузки B осталась бы без состояния канваса
-     * (канал синка передаёт только схему, накладывать её не на что). Нечитаемую
-     * запись убираем: владельца у неё не определить, а восстановить по ней нечего.
+     * There is one slot per builder and the preview opened last owns it, so the
+     * address is matched before the removal: closing tab A, opened before B, would
+     * otherwise delete B's snapshot, and after a reload B would come up without any
+     * canvas state (the sync channel carries the schema alone, with no base to
+     * apply it to). An unreadable entry is removed anyway: its owner cannot be
+     * determined and nothing can be restored from it.
      */
     function closePreview(): void {
         if (typeof window === 'undefined') {
@@ -143,9 +147,10 @@ export function useRendererPreviewSync(options: IRendererPreviewSyncOptions): IR
         let resizeObserver: ResizeObserver | null = null;
 
         /**
-         * Проверяет, что снапшот превью из localStorage не старее данных БД из SSR payload.
-         * Записи без `storedAt` (легаси) при наличии данных БД считаются устаревшими —
-         * иначе замороженный снапшот перетирал бы свежесохранённую страницу.
+         * Checks that the preview snapshot from localStorage is no older than the
+         * saved page out of the SSR payload. Entries without `storedAt` (legacy)
+         * count as stale whenever a saved page exists — otherwise a frozen snapshot
+         * would overwrite a page that had just been saved.
          */
         function isStoredPreviewFresh(stored: IPreviewStoredPage): boolean {
             const dbPage = middlewarePageData.value;
@@ -166,7 +171,8 @@ export function useRendererPreviewSync(options: IRendererPreviewSyncOptions): IR
             return storedAt >= updatedAt;
         }
 
-        // При монтировании читаем данные из localStorage — но только если они свежее БД
+        // On mount read the data from localStorage — but only when it is no older
+        // than the saved page
         onMounted(() => {
             resizeObserver = new ResizeObserver(() => {
                 windowWidth.value = window.innerWidth;
@@ -174,8 +180,9 @@ export function useRendererPreviewSync(options: IRendererPreviewSyncOptions): IR
             });
             resizeObserver.observe(document.documentElement);
 
-            // Превью версии получило состояние с сервера: снапшот живого канваса
-            // подменил бы историю тем, что сейчас в редакторе
+            // A version preview has received its state from the server: a snapshot
+            // of the live canvas would replace the history with whatever is in the
+            // editor right now
             if (isVersionPreview) {
                 return;
             }
@@ -197,23 +204,24 @@ export function useRendererPreviewSync(options: IRendererPreviewSyncOptions): IR
             }
         });
 
-        // Синк с билдером — только для превью текущего состояния: вкладка версии
-        // не просит схему у билдера (иначе он ответил бы живым канвасом) и не
-        // принимает его обновлений
+        // The sync with the builder is for a preview of the current state only: a
+        // version tab does not ask the builder for the schema (it would answer with
+        // the live canvas) and does not accept its updates
         if (!isVersionPreview) {
-            // Подписываемся на realtime-обновления схемы от builder-вкладки
+            // Subscribe to realtime schema updates from the builder tab
             const previewChannel = new BroadcastChannel('bricks-preview-sync');
 
             previewChannel.onmessage = (event: MessageEvent) => {
                 const { type, address: msgAddress, schema, viewportConfig } = event.data ?? {};
 
                 if (type === 'content-update' && msgAddress === addressKey) {
-                    // livePreviewData как fallback: актуально для временных страниц, которых нет в БД
+                    // livePreviewData as the fallback: relevant for temporary pages
+                    // that are not in the database
                     const base = middlewarePageData.value ?? livePreviewData.value;
                     if (base) {
-                        // Набор устройств приезжает вместе со схемой: он задаёт
-                        // пороги и ширины контейнера, и без него превью
-                        // показывало бы новую схему в прежней раскладке
+                        // The device set arrives together with the schema: it sets
+                        // the thresholds and the container widths, and without it
+                        // the preview would show the new schema in the old layout
                         livePreviewData.value = {
                             ...base,
                             schema,
@@ -224,16 +232,16 @@ export function useRendererPreviewSync(options: IRendererPreviewSyncOptions): IR
             };
 
             /**
-             * Запрашивает свежую схему у билдер-вкладки: восстанавливает live-синк
-             * после перезагрузки превью или самого билдера.
+             * Asks the builder tab for a fresh schema: restores the live sync after
+             * a reload of the preview or of the builder itself.
              */
             function requestFreshSchema(): void {
                 previewChannel.postMessage({ type: 'request-schema', address: addressKey });
             }
 
             /**
-             * Повторный запрос при возврате на вкладку — билдер мог перезагрузиться,
-             * пока превью было в фоне.
+             * A repeated request on coming back to the tab — the builder could have
+             * reloaded while the preview was in the background.
              */
             function handleVisibilityChange(): void {
                 if (!document.hidden) {
@@ -255,7 +263,8 @@ export function useRendererPreviewSync(options: IRendererPreviewSyncOptions): IR
             resizeObserver = null;
         });
 
-        // Обновляем data sources при смене данных страницы (первичная загрузка или live-обновление)
+        // Refresh the data sources when the page data changes (the first load or a
+        // live update)
         watch(
             () => page.value,
             (value) => {

@@ -1,35 +1,37 @@
 /**
- * Политика выполнения data sources published-страницы (чистые функции).
+ * Execution policy for the data sources of a published page (pure functions).
  *
- * Data sources объявляются в brick-файлах и выполняются рендерером на каждый
- * SSR/refresh публичной страницы, поэтому клиент к ним — отдельный и ограниченный
- * (см. useDataSourceClient): без cookies и identity, только безопасные методы,
- * абсолютные URL — по allow-list хостов из `bricks.dataSources.allowedHosts`.
+ * Data sources are declared in brick files and executed by the renderer on every
+ * SSR/refresh of a public page, so the client for them is a separate and
+ * restricted one (see useDataSourceClient): no cookies and no identity, safe
+ * methods only, absolute URLs by the host allow-list from
+ * `bricks.dataSources.allowedHosts`.
  */
 
 // #region Constants
-/** Дефолтный таймаут одного запроса data source, мс. */
+/** Default timeout of a single data source request, ms. */
 export const DEFAULT_DATA_SOURCE_TIMEOUT_MS = 10000;
 
-/** Дефолтный лимит одновременных запросов data sources на страницу. */
+/** Default limit of simultaneous data source requests per page. */
 export const DEFAULT_DATA_SOURCE_CONCURRENCY = 6;
 
-/** Дефолтный лимит размера одного ответа data source, байт транспортного потока. */
+/** Default size limit of one data source response, bytes of the transport stream. */
 export const DEFAULT_DATA_SOURCE_MAX_RESPONSE_BYTES = 1024 * 1024;
 
-/** Дефолтный максимум запросов data sources на один прогон страницы. */
+/** Default maximum of data source requests per one page run. */
 export const DEFAULT_DATA_SOURCE_MAX_REQUESTS_PER_PAGE = 24;
 
-/** Дефолтный суммарный wall-clock budget всех data sources одного прогона, мс. */
+/** Default total wall-clock budget of all data sources of one run, ms. */
 export const DEFAULT_DATA_SOURCE_TOTAL_DEADLINE_MS = 15000;
 
-/** Разрешённые HTTP-методы data source (safe/idempotent — выполняются на рендер). */
+/** Allowed data source HTTP methods (safe/idempotent — they run on render). */
 const ALLOWED_DATA_SOURCE_METHODS = new Set(['GET', 'HEAD']);
 
 /**
- * Имя ошибки аварийного дедлайна прогона. Отдельное имя, а не `TimeoutError`:
- * прогон гасит только свой дедлайн и возвращает частичный результат, а чужой
- * таймаут (например, программный отказ внутри запроса) должен уйти наружу.
+ * Name of the run's emergency deadline error. A name of its own rather than
+ * `TimeoutError`: the run swallows only its own deadline and returns a partial
+ * result, while somebody else's timeout (a deliberate failure inside a request,
+ * for example) has to get out.
  */
 const DATA_SOURCE_DEADLINE_ERROR_NAME = 'BricksDataSourceDeadlineError';
 // #endregion
@@ -41,10 +43,10 @@ export type TResolvedDataSourceMethod = 'GET' | 'HEAD';
 // #endregion
 
 /**
- * Создаёт ошибку аварийного дедлайна прогона data sources.
+ * Creates the emergency deadline error of a data sources run.
  *
- * @param totalDeadlineMs - Внутренний wall-clock budget прогона, мс.
- * @returns Ошибка с опознаваемым именем.
+ * @param totalDeadlineMs - Internal wall-clock budget of the run, ms.
+ * @returns An error with a recognizable name.
  */
 export function createDataSourceDeadlineError(totalDeadlineMs: number): Error {
     const error = new Error(
@@ -56,20 +58,20 @@ export function createDataSourceDeadlineError(totalDeadlineMs: number): Error {
 }
 
 /**
- * Ошибка — аварийный дедлайн прогона data sources.
+ * The error is the emergency deadline of a data sources run.
  *
- * @param error - Произвольная ошибка.
- * @returns Это дедлайн прогона.
+ * @param error - An arbitrary error.
+ * @returns This is the run's deadline.
  */
 export function isDataSourceDeadlineError(error: unknown): boolean {
     return error instanceof Error && error.name === DATA_SOURCE_DEADLINE_ERROR_NAME;
 }
 
 /**
- * Нормализует HTTP-метод data source и проверяет его по allow-list.
+ * Normalizes the data source HTTP method and checks it against the allow-list.
  *
- * @param method - Метод из объявления data source (любой регистр, опционален).
- * @returns Нормализованный метод (верхний регистр) или null, если метод запрещён.
+ * @param method - Method from the data source declaration (any case, optional).
+ * @returns The normalized method (upper case), or null when it is forbidden.
  */
 export function resolveDataSourceMethod(method?: string): TResolvedDataSourceMethod | null {
     const normalized = (method || 'GET').toUpperCase();
@@ -79,19 +81,19 @@ export function resolveDataSourceMethod(method?: string): TResolvedDataSourceMet
 }
 
 /**
- * Проверяет URL data source по политике: относительные URL разрешены всегда,
- * абсолютные — только http(s) на хост из allow-list.
+ * Checks a data source URL against the policy: relative URLs are always allowed,
+ * absolute ones only over http(s) to a host from the allow-list.
  *
- * @param url - Резолвленный URL запроса (после подстановки параметров).
- * @param allowedHosts - Разрешённые хосты абсолютных URL (без порта/протокола).
- * @returns Результат проверки; при отказе — машиночитаемая причина для лога.
+ * @param url - Resolved request URL (after parameter substitution).
+ * @param allowedHosts - Allowed hosts of absolute URLs (no port/protocol).
+ * @returns The check result; on refusal, a machine-readable reason for the log.
  */
 export function checkDataSourceUrl(url: string, allowedHosts: string[]): TDataSourceUrlCheck {
     if (!url) {
         return { allowed: false, reason: 'empty url' };
     }
 
-    // Относительный путь внутри приложения (protocol-relative `//host` — не он)
+    // A relative path inside the application (a protocol-relative `//host` is not one)
     if (url.startsWith('/') && !url.startsWith('//')) {
         return { allowed: true };
     }

@@ -10,12 +10,14 @@ import { MAX_COMPONENT_TREE_DEPTH } from '../../common/utils/bricks/schemaContra
 // #endregion
 
 /**
- * Composable для рендеринга layout-блоков published-страницы.
- * Диспатч через registry: каждый блок несёт свой `renderPublished` в definition
- * (контейнеры — `h('div')` с per-device CSS-vars, leaf-блоки — свой `.vue`-компонент).
+ * Composable for rendering the layout blocks of a published page.
+ * Dispatch through the registry: every block carries its own `renderPublished`
+ * in its definition (containers — `h('div')` with per-device CSS vars, leaf
+ * blocks — a `.vue` component of their own).
  *
- * @param options - Опции с данными схемы, стилями и функцией рендеринга дочерних компонентов.
- * @returns Объект с функциями needsContainerWrapper и renderLayoutComponent.
+ * @param options - The schema data, the styles and the function that renders
+ * child components.
+ * @returns The needsContainerWrapper and renderLayoutComponent functions.
  */
 export function useRendererLayouts({
     allComponents,
@@ -24,21 +26,22 @@ export function useRendererLayouts({
 }: IRendererLayoutsOptions) {
     // #region Data
     /**
-     * Id layout-предков активного вызова renderChild. Блоки с отложенным
-     * рендером детей (Slider вызывает renderSlide из своего `.vue` уже после
-     * выхода из renderPublished) получают снимок цепочки в замыкании и
-     * подставляют его на время вызова — иначе цикл в повреждённой схеме
-     * (A -> B -> A) не детектируется и рекурсия не ограничена.
+     * Ids of the layout ancestors of the active renderChild call. Blocks that
+     * render their children later (Slider calls renderSlide from its own `.vue`
+     * after renderPublished has already returned) get a snapshot of the chain in
+     * a closure and put it back for the duration of the call — otherwise a cycle
+     * in a corrupted schema (A -> B -> A) goes undetected and the recursion is
+     * unbounded.
      */
     let activeAncestry: ReadonlySet<string> = new Set<string>();
     // #endregion
 
     // #region Methods
     /**
-     * Возвращает список дочерних компонентов.
+     * Returns the list of child components.
      *
-     * @param component - Родительский layout.
-     * @returns Отфильтрованный список дочерних компонентов.
+     * @param component - The parent layout.
+     * @returns The filtered list of child components.
      */
     function getChildComponents(component: IBricksComponent): IBricksComponent[] {
         if (!component.children || !allComponents.value.length) {
@@ -51,10 +54,10 @@ export function useRendererLayouts({
     }
 
     /**
-     * Проверяет, нужен ли контейнер с ограничением ширины.
+     * Checks whether a width-constraining container is needed.
      *
-     * @param component - Компонент верхнего уровня.
-     * @returns Требуется ли контейнер.
+     * @param component - Top-level component.
+     * @returns Whether a container is required.
      */
     function needsContainerWrapper(component: IBricksComponent): boolean {
         if (component.parent) {
@@ -65,13 +68,13 @@ export function useRendererLayouts({
     }
 
     /**
-     * Рендерит layout-блок через registry, дополняя классами из внешнего контекста
-     * (например, device visibility).
+     * Renders a layout block through the registry, adding classes from the outer
+     * context (device visibility, for example).
      *
-     * @param component - Компонент схемы.
-     * @param extraClasses - Дополнительные классы.
-     * @param extraAttrs - Дополнительные атрибуты.
-     * @returns VNode layout-блока или `null` для не-layout компонентов.
+     * @param component - Schema component.
+     * @param extraClasses - Additional classes.
+     * @param extraAttrs - Additional attributes.
+     * @returns VNode of the layout block, or `null` for non-layout components.
      */
     function renderLayoutComponent(
         component: IBricksComponent,
@@ -91,10 +94,10 @@ export function useRendererLayouts({
         const ancestry: ReadonlySet<string> = new Set(activeAncestry).add(component.id);
 
         /**
-         * renderChild с восстановлением цепочки предков: снимок живёт в
-         * замыкании, поэтому и eager-вызовы (Grid/Flex внутри renderPublished),
-         * и deferred-вызовы (renderSlide слайдера после выхода отсюда) видят
-         * своих предков.
+         * renderChild with the ancestor chain restored: the snapshot lives in the
+         * closure, so both the eager calls (Grid/Flex inside renderPublished) and
+         * the deferred ones (the slider's renderSlide after this function has
+         * returned) see their ancestors.
          */
         const scopedRenderChild: typeof renderChild = (child) => {
             const previousAncestry = activeAncestry;

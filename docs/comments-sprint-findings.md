@@ -1336,6 +1336,378 @@ Enter в поле», то есть в обход формы. Обхода нет
 
 ---
 
+## Этап 5 — render
+
+### 5.1 Шапка `useDataSourceClient` называла хук `onRequest`, которого нет
+
+**Файл:** `src/runtime/modules/render/composables/useDataSourceClient.ts` (шапка)
+**Категория:** разъехавшийся комментарий
+**Статус:** текст исправлен в этапе 5
+
+Шапка утверждала: «Per-request потолок ставит сам клиент (`onRequest` → политика
+запросов)». Хука `onRequest` в файле нет; потолок ставит обёртка
+`dataSourceFetcher` вызовом `applyApiRequestTimeout`. `git log -S onRequest` по
+файлу показывает, что хука не было никогда — формулировка родилась сразу неверной.
+
+Хуже того, она противоречит двум соседям. Комментарием ниже в том же файле:
+«Потолка в опциях инстанса нет намеренно: его ставит фетчер ниже». И шапкой
+`common/utils/apiRequestPolicy.ts`, которая прямо говорит, что политика живёт **не**
+в хуке `onRequest`, и отсылает за причиной к `useApiClient.ts`; там же
+`CLIENT_OWNED_REQUEST_OPTIONS` запрещает хуки вызывающему.
+
+В переводе назван настоящий механизм и отсылка ведёт в `useApiClient.ts` — туда,
+где причина отказа от хуков и записана.
+
+### 5.2 `maxResponseBytes` описан как «JSON-length approximation» — замер давно другой
+
+**Файлы:** `src/runtime/modules/common/types/dataSource.d.ts` (поле
+`IBricksDataSourcesConfig.maxResponseBytes`), `src/types/module.d.ts:185` (то же
+поле в публичной опции `bricks.dataSources`)
+**Категория:** разъехавшийся комментарий
+**Статус:** английская копия исправлена в этапе 5; русская — этапу 9
+
+Оба комментария описывают снятый post-parse замер через `JSON.stringify`. Бюджет
+применяется к транспортному потоку **до** `JSON.parse`
+(`readResponseWithinByteBudget`: проверка `content-length` до чтения тела плюс
+суммирование `value.byteLength` по чанкам с обрывом), и шапка
+`utils/dataSourceResponseReading.ts` прямо рассказывает про замену прежнего
+подхода — то есть внутри домена факт записан верно, а в контракте остался старый.
+
+Копия в `src/types/module.d.ts` дороже: это публичный контракт опции `bricks` в
+`nuxt.config`, его читает интегрирующий разработчик. Она русская и подлежит
+переводу в этапе 9 — поправить формулировку там же.
+
+### 5.3 Маршрутизация `usePublicPageClient`: `/api/bricks/**` на PROXY_URL не уходит
+
+**Файл:** `src/runtime/modules/render/composables/usePublicPageClient.ts` (шапка и
+блок над `timeout` в `publicPageFetcher`)
+**Категория:** разъехавшийся комментарий
+**Статус:** текст исправлен в этапе 5
+
+Шапка обещала маршрутизацию «как у остального API»: относительные URL на SSR —
+внутренним вызовом Nitro, «иначе proxy middleware уводит /api/\* на PROXY_URL».
+Для этого клиента вторая половина неверна. Его единственный путь —
+`/api/bricks/public/pages/<адрес>/` (`bricks-page-layout.global.ts:206`), а
+`shouldProxyRequest` через `isLocalApiPathname` отсекает весь префикс
+`/api/bricks`; в шапке `proxyRouting.ts` это записано капслоком: «`/api/bricks/**`
+НИКОГДА не проксируется». Для `useDataSourceClient` та же фраза законна — там URL
+произвольный, из brick-файла, — поэтому исправление точечное.
+
+Вторая неточность в том же файле: блок над `timeout` заканчивался словами «здесь
+потолок работает на клиенте и при внешнем backend'е». При `bricks.backend.mode:
+'external'` запрос всё равно попадает в **локальную** Nitro-ручку, а наружу к
+backend'у потребителя ходит она сама через `createHttpStorageAdapter`, и у того
+клиента свой `AbortSignal.timeout(timeoutMs)`
+(`persistence/server/http/httpClient.ts:172`). То есть на SSR потолок инертен во
+всех режимах, а не только при локальной БД. Это же говорит комментарий на месте
+вызова (`bricks-page-layout.global.ts:197`).
+
+Найдено ревью Codex, подтверждено по коду.
+
+### 5.4 `resolveDataSourceLogTarget` обещает `invalid-url` там, где вернёт origin
+
+**Файл:** `src/runtime/modules/render/utils/dataSourceLogging.ts` (шапка
+`resolveDataSourceLogTarget`)
+**Категория:** разъехавшийся комментарий
+**Статус:** текст исправлен в этапе 5
+
+Комментарий делил мир на три части: относительный путь → `'local'`, абсолютный
+http(s) → origin, «всё остальное (protocol-relative, мусор)» → `'invalid-url'`.
+Реализация схему не фильтрует вовсе: `'invalid-url'` возвращается только когда
+парсер бросил или отдал непрозрачный origin. Замерено в Node:
+
+| URL                   | `new URL(...).origin` | что вернёт функция |
+| --------------------- | --------------------- | ------------------ |
+| `ftp://host/path`     | `"ftp://host"`        | `ftp://host`       |
+| `ws://host/x`         | `"ws://host"`         | `ws://host`        |
+| `file:///a/b`         | `"null"`              | `invalid-url`      |
+| `mailto:a@b.c`        | `"null"`              | `invalid-url`      |
+| `javascript:alert(1)` | `"null"`              | `invalid-url`      |
+| `//host/x`            | бросает               | `invalid-url`      |
+
+Дыры нет: это цель для лога, а не гейт — гейт `checkDataSourceUrl` пропускает
+только http(s). Но комментарий обещал фильтрацию, которой не делает. В переводе
+названо поведение по факту и отдельно сказано, где живёт настоящий гейт.
+
+Найдено ревью Codex, подтверждено замером.
+
+### 5.5 «Зависший lookup завершается позже» — он не завершается вовсе
+
+**Файл:** `src/runtime/modules/render/utils/pageLookupDeadline.ts` (шапка
+`withPageLookupDeadline`)
+**Категория:** разъехавшийся комментарий
+**Статус:** текст исправлен в этапе 5
+
+Абзац про запас заканчивался ценой: «зависший lookup завершается на величину
+запаса позже». Он противоречит абзацу выше в той же шапке: «Гонка обработчик не
+останавливает, но перестаёт его ждать». `withPromiseDeadline` — гонка промисов,
+обработчик после неё продолжает работать; позже наступает не завершение lookup'а, а
+конец ожидания. В переводе ценой названо именно ожидание.
+
+Найдено ревью Codex.
+
+### 5.6 Рационал reviver'а преувеличивал текущий путь prototype pollution
+
+**Файл:** `src/runtime/modules/render/utils/dataSourceResponseReading.ts` (шапка
+`jsonPollutionSafeReviver`)
+**Категория:** разъехавшийся комментарий
+**Статус:** текст исправлен в этапе 5
+
+Комментарий говорил, что без reviver'а ключи «доехали бы до `source.map`/props, где
+обычный merge **уже создаёт** pollution». Штатный путь pollution не создаёт:
+
+- `TheRenderer.renderUiComponent` мержит спредом, а спред кладёт `__proto__`
+  собственным data-свойством и прототип не трогает (проверено в Node:
+  `{...JSON.parse('{"__proto__":{"polluted":1}}')}` даёт own-ключ, `({}).polluted`
+  остаётся `undefined`);
+- до спреда ключ и так снимает `toSafeRecord`
+  (`common/utils/safeRecord.ts:62` — фильтр по `PROTO_KEY`);
+- сам мердж пропсов в `useRendererDataSources` идёт по own-ключу
+  (`hasOwnKey(mapped, propName)`) и только по объявленным `source.props`.
+
+Reviver при этом оправдан — но другим: `source.map` это код потребителя из
+brick-файла, и `Object.assign` или глубокий merge внутри него по сырому ответу и
+есть классический вход. Так в переводе и написано.
+
+Найдено ревью Codex, подтверждено в Node и по коду.
+
+### 5.7 «БД» в комментариях уже, чем поддерживаемая архитектура
+
+**Файлы:** `render/composables/useRendererPreviewSync.ts` (шапка,
+`isStoredPreviewFresh`, комментарий у `onMounted`),
+`render/composables/useRendererDataSources.ts` (`collectDataSourceRequests`),
+`render/pages/[pagename].vue` (`allComponents`),
+`render/types/composables.d.ts` (`middlewarePageData`)
+**Категория:** разъехавшийся комментарий
+**Статус:** текст исправлен в этапе 5
+
+Комментарии говорили «данные БД» и «строка БД» так, будто хранилище одно.
+`bricks.backend.mode` даёт два режима (`src/module-backend-config.ts`): `builtin` —
+локальный Postgres, `external` — HTTP-backend потребителя по контракту
+`docs/external-backend-contract.md` (реализация `IStorageAdapter`). При `external`
+никакой нашей строки нет, и «строка БД могла быть повреждена» читается как
+описание чужой инфраструктуры. В переводе — «сохранённая страница», с оговоркой,
+что хранилище выбирает `bricks.backend.mode`.
+
+Найдено ревью Codex, подтверждено по `module-backend-config.ts`.
+
+### 5.8 `fresher` против `not older`: код принимает равный timestamp
+
+**Файл:** `src/runtime/modules/render/composables/useRendererPreviewSync.ts` (шапка
+композабла и комментарий у `onMounted`)
+**Категория:** разъехавшийся комментарий
+**Статус:** текст исправлен в этапе 5
+
+Три места описывали одно условие двумя разными способами: шапка и комментарий у
+`onMounted` — «только если свежее данных БД», JSDoc `isStoredPreviewFresh` — «не
+старее». Код: `return storedAt >= updatedAt` — равный timestamp принимается, верна
+вторая формулировка. Расхождение досталось переводу из оригинала; во всех трёх
+местах теперь «no older».
+
+Найдено ревью Codex.
+
+### 5.9 Бюджет прогона не покрывает загрузку brick-файлов
+
+**Файл:** `src/runtime/modules/render/composables/useRendererDataSources.ts`
+(handler `useAsyncData`, `collectDataSourceRequests`)
+**Категория:** кандидат на оптимизацию / расхождение обещания с кодом
+**Статус:** записано, логика не менялась
+
+`totalDeadlineMs` объявлен как «общий wall-clock budget прогона», но таймер
+(`setTimeout`) заводится **после** `await collectDataSourceRequests()`. Всё, что
+происходит до, в бюджет не входит, а происходит там последовательная загрузка
+brick-модулей: цикл `for` по компонентам схемы с `await loadBrickDataSources(...)`
+на каждом, то есть N динамических импортов друг за другом. Один зависший импорт
+держит SSR дольше заявленного бюджета, и ни аварийный дедлайн, ни
+`abortController` его не касаются.
+
+Отдельно это ещё и водопад на холодном старте: соседний `prefetchPageBricks` в
+`pages/[pagename].vue` те же модули грузит через `Promise.all`, и `await
+dataSourcesReady` стоит **до** него — то есть первым отрабатывает как раз
+последовательный обход. `.claude/rules/vue-best-practices.md` требует `Promise.all`
+для параллельных запросов.
+
+Починка (не в этом спринте): собрать уникальные `brickPath` и загрузить их
+`Promise.all`, а таймер бюджета завести до сбора запросов.
+
+Найдено ревью Codex (в части бюджета) и мной (в части водопада).
+
+### 5.10 `hasUnresolvedParams` ищет любое двоеточие, а не `:paramName`
+
+**Файл:** `src/runtime/modules/render/composables/useBricksDataSources.ts`
+**Категория:** дефект логики
+**Статус:** записано, логика не менялась
+
+Проверка заканчивается `return checkedPart.includes(':')`, хотя плейсхолдер имеет
+форму `:paramName` (её знает `buildDataSourceUrl`:
+`/:([a-zA-Z0-9_]+)/g`). Легальный URL с двоеточием в query отбрасывается как
+«unresolved params»: `/api/events?at=12:30` — относительный, значит `checkedPart`
+это вся строка, `includes(':')` истинно, источник пропускается с предупреждением и
+компонент остаётся на fallback props. Для абсолютных URL `checkedPart` это
+`pathname + search`, то есть тот же случай.
+
+Починка: искать тем же регекспом, что подставляет, — остаток `:([a-zA-Z0-9_]+)`.
+
+Найдено ревью Codex.
+
+### 5.11 `.catch()` у восстановительного прогона недостижим
+
+**Файл:** `src/runtime/modules/render/composables/useRendererDataSources.ts`
+(`recoverPartialRun`)
+**Категория:** мёртвый код
+**Статус:** записано, логика не менялась
+
+`refreshDataSources().catch((error) => console.warn('[Bricks DataSources] Partial
+run recovery failed:', error))` не сработает никогда. В установленном Nuxt 3.21.8
+`useAsyncData` ловит ошибку внутри себя: `asyncData.execute` заканчивается
+`.catch((error) => { asyncData.error.value = createError(error); asyncData.data.value
+= unref(options.default()); asyncData.status.value = 'error'; })`
+(`node_modules/nuxt/dist/app/composables/asyncData.js:409-422`) и **не** пробрасывает
+её дальше, а `.finally` возвращаемое значение не меняет. Промис резолвится всегда;
+предупреждение в лог не попадёт, отказ восстановления виден только по
+`dataSourceAsyncData.error`.
+
+Найдено ревью Codex, подтверждено по исходнику Nuxt.
+
+### 5.12 Кеширование `null` запрещает повтор в пределах экземпляра страницы
+
+**Файлы:** `render/composables/useRendererDataSources.ts`
+(`loadBrickDataSources`), `render/composables/useRendererBricks.ts`
+(`loadBrickComponent`)
+**Категория:** край поведения / несогласованность
+**Статус:** записано, логика не менялась
+
+`loadBrickDataSources` после ошибки импорта пишет в `brickDataSourcesCache`
+значение `null`. Кеш живёт на экземпляр композабла, то есть на экземпляр страницы,
+и клиентский восстановительный прогон (`recoverPartialRun` → `refresh()`) загрузку
+не повторит — источники этого brick'а потеряны до перемонтирования.
+
+Рядом, в `useRendererBricks`, тот же приём применён непоследовательно: `catch`
+специально **не** кеширует `null` с явным объяснением («компонент может заработать
+после HMR»), а строкой выше успешный импорт без пригодного экспорта кешируется как
+`null` — навсегда, потому что `componentCache` объявлен на уровне модуля и на
+сервере переживает запросы.
+
+Найдено ревью Codex.
+
+### 5.13 Линейный поиск детей по всему списку компонентов
+
+**Файл:** `src/runtime/modules/render/composables/useRendererLayouts.ts`
+(`getChildComponents`)
+**Категория:** кандидат на оптимизацию
+**Статус:** записано, логика не менялась
+
+Каждый дочерний id ищется `allComponents.value.find(...)`, то есть обходом всего
+списка на каждого ребёнка. Контракт разрешает 5000 компонентов на страницу
+(`persistence/server/utils/payloadValidation.ts:53`, `MAX_SCHEMA_COMPONENTS`), и в
+худшем случае получается квадратичный обход на каждый рендер. Индекс
+`computed<Map<string, IBricksComponent>>` по `allComponents` убрал бы повтор.
+
+Найдено ревью Codex.
+
+### 5.14 Отказ layout-блока по циклу неотличим от «это не layout»
+
+**Файл:** `src/runtime/modules/render/composables/useRendererLayouts.ts`
+(`renderLayoutComponent`), `render/components/TheRenderer.vue`
+**Категория:** нарушение KISS / вводящее в заблуждение поведение
+**Статус:** записано, логика не менялась
+
+`renderLayoutComponent` возвращает `null` в двух разных случаях: у компонента нет
+`renderPublished` (не layout — штатный путь диспетчера) и блок **отказано**
+рендерить из-за цикла или превышения `MAX_COMPONENT_TREE_DEPTH`. Вызывающий их не
+различает: `TheRenderer.renderComponent` берёт `layoutContent ?? renderUiComponent(...)`.
+
+Для отказавшего layout-блока это значит поход в `resolveBrickComponent` с
+`brickPath` вида `layout/grid`, а `findImportModule` на префиксе `layout`
+возвращает `undefined` молча (`common/composables/useBrickImports.ts`:
+`resolveBrickLoader` отсекает `LAYOUT_BRICK_PREFIX`, `reportMissingBrick` для него
+не зовётся). Итог: посетитель повреждённой страницы видит заглушку «Компонент не
+найден в библиотеке. Обновите bricks или schema» — диагноз неверный, а в лог не
+уходит ничего.
+
+Спека это не ловит: харнесс `test/render/layoutsCycleGuard.spec.ts:44` подменяет
+отказ безобидным `h('div')` (`renderLayout(child) ?? h('div')`), то есть проверяет
+завершаемость рекурсии, но не то, что увидит посетитель.
+
+Найдено мной.
+
+### 5.15 Непроверенный каст параметров: объект уезжает в URL как `[object Object]`
+
+**Файл:** `src/runtime/modules/render/composables/useBricksDataSources.ts`
+(`executeDataSource`, сборка `params`)
+**Категория:** нарушение правил типизации / дефект логики
+**Статус:** записано, логика не менялась
+
+`resolveParamValue` возвращает `unknown` — иначе и не может, у
+`IBrickDataSourceParam` поле `value: unknown` и `map: (…) => unknown`. При сборке
+`Map` результат приводится кастом `as [string, string | number]`, а фильтр снимает
+только `undefined` и `null`. Объект, массив или boolean каст переживают, и
+`buildDataSourceUrl` подставляет их через `String(...)`:
+`/api/x?f=%5Bobject%20Object%5D`. Такой URL проходит и `hasUnresolvedParams`
+(двоеточия нет), и `checkDataSourceUrl` — запрос уходит с мусором, без единого
+предупреждения.
+
+`.claude/rules/typescript.md` запрещает такие приведения и требует type guard.
+
+Найдено мной.
+
+### 5.16 Двойной вызов `needsContainerWrapper` на каждый компонент
+
+**Файл:** `src/runtime/modules/render/components/TheRenderer.vue`
+**Категория:** нарушение KISS
+**Статус:** записано, логика не менялась
+
+`renderComponent` вычисляет `hasContainer`, чтобы решить, куда положить
+`aria-hidden`, и передаёт `content` в `wrapWithContainer`, который вычисляет то же
+самое второй раз. Решение «aria на обёртку, если она есть, иначе на сам компонент»
+размазано по двум функциям и держится на том, что обе получают одинаковый ответ.
+Дешевле и честнее считать один раз и передавать флаг аргументом.
+
+Найдено мной.
+
+### 5.17 `Content-Length` и потоковый счётчик меряют разное
+
+**Файл:** `src/runtime/modules/render/utils/dataSourceResponseReading.ts`
+(`readResponseWithinByteBudget`)
+**Категория:** край поведения (не дыра)
+**Статус:** записано, логика не менялась
+
+Ранняя проверка сравнивает с бюджетом заголовок `Content-Length` — по RFC 9110 это
+длина тела **после** content-coding, то есть при `Content-Encoding: gzip` сжатая. А
+поток `response.body` в fetch отдаётся уже распакованным, и счётчик
+`receivedBytes` считает распакованные байты. Для сжатого ответа ранний отказ
+поэтому не срабатывает и бюджет держит только потоковая проверка.
+
+Дыры нет — потоковая проверка ловит превышение в любом случае, — но ранний выход
+работает лишь на несжатых ответах, и об этом стоит знать, если бюджет когда-нибудь
+захотят объявить точным.
+
+Найдено мной.
+
+### 5.18 i18n-долг published-рендера собран в одном месте
+
+**Файлы:** `render/components/TheRenderer.vue:107-108`,
+`render/components/RendererPlaceholder.vue:8-9`,
+`render/pages/[pagename].vue` (баннер превью и заглушка загрузки)
+**Категория:** i18n-долг
+**Статус:** записано, границей спринта не покрыто — не переводить
+
+Русский текст, который видит посетитель опубликованной страницы: заголовок и
+описание заглушки недоступного компонента (в двух местах — дефолты
+`RendererPlaceholder` и явные значения из `TheRenderer`), «Режим превью»,
+«Закрыть превью», «Загружаем страницу...». План спринта выводит хардкод UI-текста
+за границы (`10 строк в <template>`, `4 плейсхолдера рендера`), поэтому строки
+оставлены как есть; колонка `literals` гейта показывает одну из них
+(`TheRenderer.vue:107`) информационно.
+
+Codex заметил край, которого в плане нет: шапка `RendererCloseButton` объясняет
+вынос доступного имени наружу тем, что «зашитая строка годилась бы ровно для
+одного языка», — а единственный вызывающий передаёт как раз зашитую русскую
+строку. Рационал верен по устройству (компонент языка не знает), но выигрыш от него
+сегодня нулевой и появится только вместе с i18n рендера.
+
+---
+
 ## Известные находки из планирования (не закрыты)
 
 Перенесены из `comments-sprint.md` («затравка документа»). Правятся текстом по ходу

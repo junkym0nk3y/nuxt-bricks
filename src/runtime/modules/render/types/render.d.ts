@@ -10,7 +10,7 @@ export interface IRendererBrickResolverOptions {
 export interface IRendererProps {
     component: IBricksComponent;
     allComponents?: IBricksComponent[];
-    /** Ключ — `component.id` из схемы, поэтому контейнер — `Map`. */
+    /** The key is `component.id` from the schema, hence a `Map` as the container. */
     resolvedProps?: Map<string, Record<string, unknown>>;
 }
 
@@ -28,13 +28,15 @@ export interface IRendererPlaceholderProps {
 }
 
 /**
- * Опции одного запроса публичных клиентов рендера (lookup published-страницы,
- * data sources). Форма — та же, что у клиента билдера: под обоими один ofetch.
+ * Options of a single request of the public render clients (published page
+ * lookup, data sources). The shape is the same as the builder client's: one
+ * ofetch underlies both.
  *
- * Вместе с формой наследуется и запрет хуков с политикой повторов. Публичным
- * клиентам он не нужен по той же причине (им нечего утекать — identity они не
- * пробрасывают вовсе, `credentials: 'omit'`), но контракт транспорта у всех
- * клиентов модуля одинаковый, и более узкий из двух — безопасный. Снятия
- * ключей в рантайме у них нет: оно защищает identity, которой здесь не бывает.
+ * Along with the shape comes the ban on hooks and on a retry policy. The public
+ * clients have no need for it — they have nothing to leak, since they do not
+ * forward identity at all (`credentials: 'omit'`) — but the transport contract is
+ * the same for every client of the module, and the narrower of the two is the
+ * safe one. They do not strip the keys at runtime: that guards identity, and
+ * there is never any identity here.
  */
 export type TPublicRequestOptions = TApiRequestOptions;

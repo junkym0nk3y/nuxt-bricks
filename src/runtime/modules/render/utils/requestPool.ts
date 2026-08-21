@@ -1,17 +1,17 @@
 /**
- * Пул промисов с лимитом одновременности (изоморфный, без зависимостей).
- * Используется рендерером data sources: страница с десятками компонентов
- * не должна открывать неограниченное число одновременных запросов на SSR.
+ * Promise pool with a concurrency limit (isomorphic, no dependencies).
+ * Used by the data sources renderer: a page with dozens of components must not
+ * open an unbounded number of simultaneous requests during SSR.
  */
 
 /**
- * Выполняет задачи с ограничением числа одновременных.
- * Порядок результатов соответствует порядку задач; ошибка задачи
- * отклоняет общий промис (вызывающий код сам решает, глотать ли ошибки задач).
+ * Runs tasks with a cap on how many of them are in flight at once.
+ * Result order follows task order; a failing task rejects the shared promise
+ * (the calling code decides for itself whether to swallow task errors).
  *
- * @param tasks - Ленивая очередь задач (функции, создающие промис).
- * @param limit - Максимум одновременно выполняемых задач (минимум 1).
- * @returns Результаты всех задач в исходном порядке.
+ * @param tasks - Lazy task queue (functions that create a promise).
+ * @param limit - Maximum number of tasks running at once (at least 1).
+ * @returns Results of all tasks in their original order.
  */
 export async function runWithConcurrencyLimit<T>(
     tasks: ReadonlyArray<() => Promise<T>>,
@@ -22,7 +22,7 @@ export async function runWithConcurrencyLimit<T>(
     let nextIndex = 0;
 
     /**
-     * Последовательно забирает задачи из общей очереди, пока она не опустеет.
+     * Takes tasks off the shared queue one after another until it runs dry.
      */
     async function runWorker(): Promise<void> {
         while (nextIndex < tasks.length) {

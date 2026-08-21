@@ -36,16 +36,17 @@ import { getPageAddressKey } from '../../common/utils/bricks/pageAddress';
 // #endregion
 
 /**
- * Выполнение data sources published-страницы: загружает объявления dataSources
- * из brick-файлов (с кешем), выполняет запросы через useAsyncData
- * (SSR — только вне превью) и мержит только запрошенные props.
- * В dev-режиме на клиенте логирует статус/ошибки/слепок resolved props.
+ * Execution of the data sources of a published page: loads the dataSources
+ * declarations out of the brick files (with a cache), performs the requests
+ * through useAsyncData (on SSR only outside preview) and merges the requested
+ * props only. In dev mode on the client it logs the status, the errors and a
+ * snapshot of the resolved props.
  *
- * Синхронный: lifecycle-хуки и watchers регистрируются до любого await,
- * первичное выполнение отдаётся наружу промисом `ready` —
- * его await'ит страница на top-level `<script setup>`.
+ * Synchronous: the lifecycle hooks and the watchers are registered before any
+ * await, and the first run is handed out as the `ready` promise — the page awaits
+ * it in its top-level `<script setup>`.
  *
- * @param options - Страница, её адрес и режим превью.
+ * @param options - The page, its address and the preview mode.
  */
 export function useRendererDataSources(options: IRendererDataSourcesOptions): IRendererDataSources {
     const { page, address, isPreview } = options;
@@ -59,19 +60,20 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
         maxRequestsPerPage,
         totalDeadlineMs,
     } = useBricksDataSources();
-    // Ключ по адресу, а не по имени: у `/blog/post` и `/news/post` он был бы один,
-    // и вкладки двух разных страниц делили бы состояние `useAsyncData` — вторая
-    // получила бы props первой
-    // Один и тот же ярлык страницы и в ключе прогона, и в логах: в логах он
-    // должен различать одноимённые страницы так же, как в ключе
+    // The key is built from the address, not from the name: for `/blog/post` and
+    // `/news/post` it would have been one and the same, and the tabs of two
+    // different pages would share the `useAsyncData` state — the second one would
+    // get the props of the first.
+    // One and the same page label both in the run key and in the logs: in the logs
+    // it has to tell pages of the same name apart just as it does in the key
     const addressKey = getPageAddressKey(address);
     const dataSourceKey = `bricks-datasources-${addressKey}-${isPreview ? 'preview' : 'live'}`;
 
     /**
-     * Загружает dataSources из brick-файла и кеширует результат.
+     * Loads the dataSources out of a brick file and caches the result.
      *
-     * @param brickPath - путь до brick-файла.
-     * @returns Список dataSources для компонента или пустой массив.
+     * @param brickPath - path to the brick file.
+     * @returns The list of dataSources for the component, or an empty array.
      */
     async function loadBrickDataSources(brickPath: string): Promise<IBrickDataSource[]> {
         if (!brickPath) {
@@ -104,9 +106,9 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
     }
 
     /**
-     * Собирает список всех dataSources для компонентов страницы.
+     * Collects the list of all dataSources for the components of the page.
      *
-     * @returns Список запросов с компонентом и его источником данных.
+     * @returns The list of requests, each with its component and its data source.
      */
     async function collectDataSourceRequests(): Promise<
         Array<{ component: IBricksComponent; source: IBrickDataSource }>
@@ -117,20 +119,21 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
 
         const requests: Array<{ component: IBricksComponent; source: IBrickDataSource }> = [];
 
-        // Собираем все data sources, объявленные в brick-файлах компонентов.
-        // Строка БД могла быть повреждена или записана в обход контракта
-        // схемы: мусорные элементы (null/примитивы/объекты без
-        // id+componentName) пропускаются, а не роняют SSR обращением к
-        // component.brickPath.
+        // Collect all data sources declared in the brick files of the components.
+        // The stored page could have been corrupted or written around the schema
+        // contract — the store is whatever `bricks.backend.mode` points at, our
+        // own table or a consumer backend. Garbage elements (null/primitives/
+        // objects without id+componentName) are skipped rather than taking SSR
+        // down on an access to component.brickPath.
         for (const component of page.value.schema.components) {
             if (!isRenderableSchemaComponent(component) || !component.brickPath) {
                 continue;
             }
 
-            // Загружаем список источников для конкретного компонента
+            // Load the list of sources for this particular component
             const sources = await loadBrickDataSources(component.brickPath);
 
-            // Добавляем каждый источник в очередь выполнения
+            // Add every source to the execution queue
             sources.forEach((source) => {
                 requests.push({ component, source });
             });
@@ -139,7 +142,7 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
         return requests;
     }
 
-    // Считаем и мержим все data sources из bricks для текущей страницы
+    // Run and merge all data sources from the bricks of the current page
     const dataSourceAsyncData = useAsyncData<IRendererDataSourcesData>(
         dataSourceKey,
         async () => {
@@ -153,8 +156,8 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
                 return { props: new Map(), isPartial: false };
             }
 
-            // Бюджет запросов на прогон: излишек отбрасывается с логом,
-            // а не выполняется молча
+            // Request budget per run: the excess is dropped with a log entry
+            // rather than executed silently
             const limitedRequests = requests.slice(0, maxRequestsPerPage);
 
             if (limitedRequests.length < requests.length) {
@@ -168,17 +171,18 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
                 );
             }
 
-            // Кеш ответов одного прогона: одинаковые (method + url) запросы
-            // выполняются один раз; новый прогон (refresh) — свежие данные
+            // Response cache of one run: identical (method + url) requests run
+            // once; a new run (refresh) gets fresh data
             const requestCache: TDataSourceRequestCache = new Map();
-            // Прогон оборван по времени. Помечается здесь, в момент истечения
-            // бюджета, а не только в `catch` аварийного дедлайна ниже: там, где
-            // abort работает (клиент, абсолютные URL), запросы честно падают по
-            // сигналу и прогон завершается штатно — `catch` не срабатывает вовсе,
-            // а результат при этом всё равно неполон
+            // The run was cut off by time. The flag is raised here, the moment the
+            // budget elapses, and not only in the `catch` of the emergency deadline
+            // below: wherever abort really works (the client, absolute URLs) the
+            // requests do fail on the signal and the run ends normally, so that
+            // `catch` never fires — and the result is still incomplete
             let isRunAborted = false;
-            // Общий wall-clock budget прогона: по истечении оставшиеся запросы
-            // прерываются AbortController'ом, компоненты остаются на fallback props
+            // Total wall-clock budget of the run: once it elapses the remaining
+            // requests are aborted by the AbortController, and the components stay
+            // on fallback props
             const abortController = new AbortController();
             const deadlineTimer = setTimeout(() => {
                 console.warn(
@@ -192,24 +196,26 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
                 abortController.abort();
             }, totalDeadlineMs);
 
-            // Аккумулятор на Map'ах: и id компонента, и имена пропсов приходят
-            // из схемы и brick-файла, а `result[id] ||= {}` для `'__proto__'`
-            // отдал бы `Object.prototype` вместо новой корзины
+            // An accumulator built on Maps: both the component id and the prop
+            // names come from the schema and from a brick file, and for
+            // `'__proto__'` a `result[id] ||= {}` would hand out
+            // `Object.prototype` instead of a fresh bucket
             const result = new Map<string, Map<string, unknown>>();
 
             try {
-                // Выполняем с лимитом одновременности (bricks.dataSources.concurrency):
-                // страница с десятками компонентов не открывает неограниченное
-                // число одновременных запросов на SSR.
+                // Run with a concurrency limit (bricks.dataSources.concurrency):
+                // a page with dozens of components does not open an unbounded
+                // number of simultaneous requests during SSR.
                 //
-                // Аварийный дедлайн поверх `abortController`: на SSR относительный
-                // URL уходит внутренним вызовом Nitro, который сигнал не слушает,
-                // поэтому зависший источник не завершается по аборту и держал бы
-                // весь SSR-ответ посетителя. Ждать перестаём здесь же, внутри
-                // прогона, — тогда ниже возвращается то, что успело дойти. Внешний
-                // дедлайн (`useAsyncData({ timeout })`) для этого не годится: он
-                // отклоняет handler целиком, и успевшие props пропадают вместе с
-                // зависшими (находка ревью)
+                // The emergency deadline on top of `abortController`: on SSR a
+                // relative URL goes out as an internal Nitro call, which does not
+                // listen to the signal, so a hung source does not finish on the
+                // abort and would hold the visitor's entire SSR response. We stop
+                // waiting right here, inside the run — then what did manage to
+                // arrive is returned below. An external deadline
+                // (`useAsyncData({ timeout })`) will not do for this: it rejects
+                // the handler as a whole, and the props that did arrive are lost
+                // together with the hung ones
                 await withPromiseDeadline(
                     runWithConcurrencyLimit(
                         limitedRequests.map(({ component, source }) => async () => {
@@ -232,9 +238,10 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
                             const target = result.get(component.id) ?? new Map<string, unknown>();
                             result.set(component.id, target);
 
-                            // Применяем только запрошенные props, чтобы избежать лишнего
-                            // шумового мерджа. Проверка — по own-ключу: `propName in mapped`
-                            // для `'toString'` был бы истинным и подставил бы метод прототипа
+                            // Apply the requested props only, to avoid a needless
+                            // noisy merge. The check is by own key: for
+                            // `'toString'` a `propName in mapped` would have been
+                            // true and would have substituted a prototype method
                             source.props.forEach((propName) => {
                                 if (hasOwnKey(mapped, propName)) {
                                     target.set(
@@ -250,16 +257,16 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
                     () => createDataSourceDeadlineError(totalDeadlineMs)
                 );
             } catch (error: unknown) {
-                // Гасим только свой дедлайн: любая другая ошибка прогона — наружу
+                // Swallow our own deadline only: any other error of the run gets out
                 if (!isDataSourceDeadlineError(error)) {
                     throw error;
                 }
 
-                // Помечать неполноту здесь не нужно: аварийный дедлайн наступает
-                // строго позже бюджета прогона (`totalDeadlineMs` + запас), то
-                // есть таймер выше к этому моменту уже сработал. Второе
-                // присваивание было бы кодом, который нечем отличить от его
-                // отсутствия
+                // There is no need to mark the incompleteness here: the emergency
+                // deadline arrives strictly later than the budget of the run
+                // (`totalDeadlineMs` plus the margin), that is, the timer above has
+                // already fired by this moment. A second assignment would be code
+                // there is no way to tell apart from its absence
                 console.warn(
                     '[Bricks DataSources] Run abandoned after deadline — returning partial props:',
                     {
@@ -288,7 +295,7 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
         }
     );
 
-    // Слепок смёрдженных пропсов для всех компонентов с учётом data sources
+    // Snapshot of the merged props for all components, data sources included
     const resolvedProps = computed<Map<string, Record<string, unknown>>>(() => {
         return dataSourceAsyncData.data?.value?.props ?? new Map();
     });
@@ -296,68 +303,71 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
     if (isClientDataSourceDebug) {
         const debugLabel = `[Bricks DataSources][client:${addressKey}]`;
 
-        // Логируем смену статуса загрузки data sources (в превью дебаг-режиме)
+        // Log every change of the data sources loading status (in preview debug mode)
         watch(
             () => dataSourceAsyncData.status.value,
             (status) => {
-                console.info(debugLabel, 'статус изменён:', status);
+                console.info(debugLabel, 'status changed:', status);
             },
             { immediate: true }
         );
 
-        // Выводим ошибку загрузки data sources, если она возникла
+        // Print the data sources loading error, if there was one
         watch(
             () => dataSourceAsyncData.error?.value,
             (error) => {
                 if (error) {
-                    console.error(debugLabel, 'ошибка data source:', error);
+                    console.error(debugLabel, 'data source error:', error);
                 }
             },
             { immediate: true }
         );
 
-        // Снимаем слепок смёрдженных пропсов компонентов после обработки data sources
+        // Take a snapshot of the merged component props once the data sources are done
         watch(
             () => resolvedProps.value,
             (value) => {
-                console.info(debugLabel, 'снимок resolved props:', value);
+                console.info(debugLabel, 'resolved props snapshot:', value);
             },
             { deep: true, immediate: true }
         );
     }
 
     /**
-     * Перезапускает выполнение data sources.
+     * Restarts the data sources run.
      */
     async function refreshDataSources(): Promise<void> {
         await dataSourceAsyncData.refresh();
     }
 
-    // Страница ещё смонтирована на момент запуска: восстановление ждёт конца
-    // гидрации, а посетитель за это время успевает уйти. Уже улетевший прогон
-    // проверка не отменяет — для этого сигнал пришлось бы протаскивать через
-    // handler `useAsyncData` в клиент источников; здесь достаточно не начинать
-    // новый прогон для страницы, которую уже закрыли
+    // The page is still mounted by the time this starts: the recovery waits for
+    // hydration to end, and the visitor may well leave in the meantime. The check
+    // does not cancel a run that has already gone out — for that the signal would
+    // have to be threaded through the `useAsyncData` handler into the sources
+    // client; here it is enough not to start a new run for a page that has already
+    // been closed
     let isPageAlive = true;
     let isRecoveryStarted = false;
 
     /**
-     * Догоняет неполный SSR-прогон одним прогоном с клиента и логирует прогон в
-     * dev — один хук на оба дела, потому что оба сводятся к одному и тому же
-     * `refresh()`: два независимых запустили бы два прогона, из которых
-     * дедупликация `useAsyncData` (`dedupe: 'cancel'`) отменила бы первый.
+     * Completes an incomplete SSR run with a single run from the client, and logs
+     * the run in dev — one hook for both jobs, because both come down to the very
+     * same `refresh()`: two independent ones would start two runs, of which the
+     * `useAsyncData` deduplication (`dedupe: 'cancel'`) would cancel the first.
      *
-     * Повтор нужен там, где дедлайн оборвал часть источников: на сервере
-     * относительный URL уходит внутренним вызовом Nitro и сигнал не слушает,
-     * поэтому зависший источник забирает весь бюджет прогона. В браузере обрыв
-     * работает честно, и у не ответивших источников появляется второй шанс.
+     * The repeat is needed where the deadline cut some of the sources off: on the
+     * server a relative URL goes out as an internal Nitro call and ignores the
+     * signal, so a hung source eats the whole budget of the run. In the browser
+     * abort actually takes effect, and the sources that never answered get a
+     * second chance.
      *
-     * Ровно одна попытка на экземпляр страницы. Клиентский прогон ограничен тем же
-     * дедлайном и способен снова выйти неполным, поэтому второй попытки быть не
-     * должно; сегодня её и так нет — `onNuxtReady` зовёт колбэк единожды, — но
-     * флаг делает это свойством кода, а не совпадением. Живое превью
-     * (`refreshDataSources`) флаг не сбрасывает: иначе один постоянно зависающий
-     * источник добавлял бы лишний прогон к каждой синхронизации схемы.
+     * Exactly one attempt per page instance. The client run is bounded by the same
+     * deadline and is capable of coming out incomplete again, so there must be no
+     * second attempt; there is none today anyway — `onNuxtReady` calls the callback
+     * once — but the flag makes that a property of the code rather than a
+     * coincidence. A live preview (`refreshDataSources`) does not reset the flag:
+     * otherwise one permanently hanging source would add a superfluous run to every
+     * schema synchronization.
      */
     function recoverPartialRun(): void {
         const isDebugRefreshNeeded = isClientDataSourceDebug;
@@ -378,24 +388,26 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
             );
         }
 
-        // Отпускаем: ждать результат некому, а исход виден по `resolvedProps`.
-        // `void` не пишем — правило `no-void` в oxlint
+        // Let it go: there is nobody to await the result, and the outcome is
+        // visible through `resolvedProps`. No `void` here — the `no-void` rule in
+        // oxlint
         refreshDataSources().catch((error: unknown) => {
             console.warn('[Bricks DataSources] Partial run recovery failed:', error);
         });
     }
 
-    // `onScopeDispose` со вторым аргументом молчит вне компонента: композабл
-    // остаётся вызываемым в unit-тестах без предупреждения Vue
+    // `onScopeDispose` with the second argument stays silent outside a component:
+    // the composable remains callable in unit tests without a Vue warning
     onScopeDispose(() => {
         isPageAlive = false;
     }, true);
 
-    // Не `onMounted`: mounted-хуки успевают отработать до того, как Nuxt снимет
-    // `isHydrating`, а пока гидрация идёт, `refresh()` отдаёт тот же ответ из
-    // payload, не выполняя прогон (`getDefaultCachedData`). `onNuxtReady` привязан
-    // к `app:suspense:resolve` — моменту, когда прогон действительно уйдёт в сеть.
-    // На сервере хук не делает ничего
+    // Not `onMounted`: the mounted hooks manage to run before Nuxt clears
+    // `isHydrating`, and while hydration is going on `refresh()` hands back the
+    // same answer out of the payload without performing a run
+    // (`getDefaultCachedData`). `onNuxtReady` is tied to `app:suspense:resolve` —
+    // the moment when the run really will go out to the network. On the server the
+    // hook does nothing
     onNuxtReady(recoverPartialRun);
 
     return {

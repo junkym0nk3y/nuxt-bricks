@@ -5,11 +5,11 @@ import { normalizeBrickPath } from '../../common/utils/bricks/paths';
 const componentCache = new Map<string, Component | null>();
 
 /**
- * Извлекает Vue-компонент из загруженного brick-модуля.
+ * Extracts the Vue component from a loaded brick module.
  *
- * @param module Brick-модуль с компонентом.
- * @param brickPath Путь до brick для логирования ошибок.
- * @returns Компонент или null.
+ * @param module Brick module with the component.
+ * @param brickPath Path to the brick, for error logging.
+ * @returns The component, or null.
  */
 function extractBrickComponent(module: unknown, brickPath: string): Component | null {
     const exportedComponent = (module as Record<string, unknown>)?.Component;
@@ -32,15 +32,15 @@ function extractBrickComponent(module: unknown, brickPath: string): Component | 
 }
 
 /**
- * Загружает brick-модуль и кладёт его в кеш.
+ * Loads a brick module and puts it into the cache.
  *
- * Лоадер приходит уже найденным: вызывающий обязан проверить его наличие сам,
- * иначе отсутствие модуля обнаруживалось бы только внутри async-компонента, где
- * исключение не доходит до заглушки.
+ * The loader arrives already found: the caller has to check that it exists
+ * itself, otherwise a missing module would only be discovered inside the async
+ * component, where the exception never reaches the placeholder.
  *
- * @param brickPath Путь до brick-файла.
- * @param importModule Найденный loader brick-модуля.
- * @returns Компонент или null.
+ * @param brickPath Path to the brick file.
+ * @param importModule The brick module loader that was found.
+ * @returns The component, or null.
  */
 async function loadBrickComponent(
     brickPath: string,
@@ -55,23 +55,23 @@ async function loadBrickComponent(
         return component;
     } catch (error) {
         console.error(`[TheRenderer] Failed to load component for ${brickPath}:`, error);
-        // НЕ кэшируем null при ошибке — компонент может заработать после HMR
+        // Do NOT cache null on an error — the component may start working after HMR
         return null;
     }
 }
 
 /**
- * Оборачивает загрузку brick-компонентов с кэшированием результатов.
+ * Wraps the loading of brick components with caching of the results.
  *
- * @param options - Опции, содержащие функцию поиска loader-а по пути brick.
- * @returns Утилиты для резолва brick-компонентов.
+ * @param options - Options holding the function that finds a loader by brick path.
+ * @returns Utilities for resolving brick components.
  */
 export function useRendererBricks({ findImportModule }: IRendererBrickResolverOptions) {
     /**
-     * Возвращает Vue-компонент по `brickPath`, используя динамический импорт.
+     * Returns the Vue component for a `brickPath` using a dynamic import.
      *
-     * @param brickPath - Путь до `.brick.ts` файла.
-     * @returns Загруженный компонент или `null`, если найти не удалось.
+     * @param brickPath - Path to the `.brick.ts` file.
+     * @returns The loaded component, or `null` when it could not be found.
      */
     function resolveBrickComponent(brickPath: string): Component | null {
         if (!brickPath) {
@@ -85,19 +85,19 @@ export function useRendererBricks({ findImportModule }: IRendererBrickResolverOp
             return componentCache.get(cacheKey) || null;
         }
 
-        // Лоадер проверяется ДО создания async-компонента: внутри лоадера промах
-        // превращался в исключение, оно доходило до SSR-рендера и роняло
-        // published-страницу целиком в 500 (замерено на prod-сборке), вместе с
-        // исправными компонентами схемы — то есть один устаревший brickPath
-        // выносил всю страницу. Синхронный отказ доводит управление до ветки
-        // заглушки в рендерере. Решение одинаково на сервере и клиенте: карта
-        // лоадеров разворачивается из одного паттерна по одному набору файлов,
-        // поэтому гидрация сходится.
+        // The loader is checked BEFORE the async component is created: inside the
+        // loader a miss turned into an exception, it reached the SSR render and
+        // took the whole published page down to a 500 (measured on a prod build),
+        // together with the intact components of the schema — that is, one stale
+        // brickPath carried away the entire page. A synchronous refusal hands
+        // control to the placeholder branch in the renderer. The decision is the
+        // same on the server and on the client: the loader map is expanded from
+        // one pattern over one set of files, so hydration converges.
         const importModule = findImportModule(brickPath);
 
         if (!importModule) {
-            // О промахе сообщает сама точка поиска лоадера, один раз на путь;
-            // НЕ кэшируем null — компонент может появиться после HMR
+            // The miss is reported by the loader lookup itself, once per path;
+            // do NOT cache null — the component may appear after HMR
             return null;
         }
 
@@ -114,16 +114,16 @@ export function useRendererBricks({ findImportModule }: IRendererBrickResolverOp
             suspensible: true,
         });
 
-        // Ключ нормализованный, как и у чтения выше: с сырым путём запись не
-        // находилась, и на каждую перерисовку создавалась новая async-обёртка
+        // The key is normalized, as in the read above: with a raw path the entry
+        // was never found, and every repaint created a new async wrapper
         componentCache.set(cacheKey, asyncComponent);
         return asyncComponent;
     }
 
     /**
-     * Предзагружает brick-компонент и кладёт его в общий кеш, чтобы избежать рассинхрона при гидрации.
+     * Prefetches a brick component into the shared cache to avoid a hydration mismatch.
      *
-     * @param brickPath - Путь до brick-файла.
+     * @param brickPath - Path to the brick file.
      */
     async function prefetchBrickComponent(brickPath: string): Promise<void> {
         if (!brickPath || brickPath.startsWith('layout')) {
@@ -138,7 +138,8 @@ export function useRendererBricks({ findImportModule }: IRendererBrickResolverOp
 
         const importModule = findImportModule(brickPath);
 
-        // Нечего предзагружать: заглушку покажет рендер, предзагрузка молчит
+        // Nothing to prefetch: the render will show the placeholder, and the
+        // prefetch stays silent
         if (!importModule) {
             return;
         }

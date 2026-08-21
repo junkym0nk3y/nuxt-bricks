@@ -110,19 +110,13 @@ dev-сообщения и 34 локальных `README.md`.
 ## Правила для template и style
 
 Секции `<template>` и `<style>` остаются без комментариев. Остаток к удалению даёт
-колонка `tpl/style` гейта: **1 321 строка** после закрытия этапа 4 (`ui` унёс 218,
-`layouts-blocks` — 45, `text-editor` — 26). Из них 329 — `.scss` этапа 10.
+колонка `tpl/style` гейта: **1 314 строк** после закрытия этапа 5 (`ui` унёс 218,
+`layouts-blocks` — 45, `text-editor` — 26, `render` — 7). Из них 329 — `.scss` этапа 10.
 
 **Шаг 1 — перенести, потом удалять.** ~110 строк несут знание, которого больше нигде нет.
 Переезжают в `<script setup>` (JSDoc на соответствующий `computed`/prop или блок в шапке
-файла), сразу по-английски. Обязательные к переносу:
-
-- `render/pages/[pagename].vue:225` — **рационал, на который опирается
-  `test/module/accessibleNameUsages.spec.ts:73-75,84-86`** (парный ему
-  `ui/inputs/BricksSelect.vue` закрыт в этапе 2).
-- `render/components/RendererCloseButton.vue:61` — почему дубль `BricksCloseButton` законен
-  (граница `render-lean`); это единственное объяснение того, что ассертит
-  `test/render/rendererCloseButtonParity.spec.ts`.
+файла), сразу по-английски. Оба обязательных к переносу пункта плана закрыты в этапе 5
+(оба свелись в одну шапку `RendererCloseButton.vue` — см. журнал).
 
 Опыт этапа 2 по переносу (действует дальше):
 
@@ -175,12 +169,6 @@ sass не ребейзит `url()`, `woff2`ломается в`dist`), `common/f
 Порядок — снизу вверх по слоям `.dependency-cruiser.cjs`: когда комментарий ссылается на
 нижний слой, тот уже нормализован. Числа — строки русских комментариев (`js` + `html`).
 
-### Фаза A — фундамент
-
-| №   | Область  | Объём   | Заметки                                                                                                                                                                                                        |
-| --- | -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 5   | `render` | 566 + 2 | ⚠️ Инверсия формы: 163 строки inline `//` против 27 JSDoc — пошаговые комментарии внутри функций дрейфуют быстрее всего, самый урожайный фактчек. `useRendererDataSources.ts` 92, `useBricksDataSources.ts` 75 |
-
 ### Фаза B — сервер и сборка
 
 | №   | Область                              | Объём     | Заметки                                                                                                                                                                                                                                                                 |
@@ -220,7 +208,8 @@ sass не ребейзит `url()`, `woff2`ломается в`dist`), `common/f
 
 Русских `throw`/`console` в `src/runtime` почти нет — правится в этапе своего домена:
 `server/middleware/auth.ts:109,242`, `server/utils/bricksComponents.ts:24`,
-`common/composables/useBricksDevices.ts:62`, `render/composables/useRendererDataSources.ts:303,313,323`.
+`common/composables/useBricksDevices.ts:62` (закрыт в этапе 1),
+`render/composables/useRendererDataSources.ts` (три штуки, закрыты в этапе 5).
 Build-time — этап 9: `brick-literals.ts` 13, `brick-metadata.ts` 13,
 `module-backend-config.ts` 14, `module-runtime-config.ts:78`, `module.ts:230,257,328`.
 В `src/runtime` **нет** русских `statusMessage` (все 124 `createError` английские) и нет
