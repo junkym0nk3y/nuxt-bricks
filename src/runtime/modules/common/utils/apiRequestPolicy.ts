@@ -1,14 +1,16 @@
 /**
- * Политика запросов: потолок ожидания по методу и распознавание его
- * срабатывания. Чистые функции без Nuxt-контекста — применяют их в `onRequest`
- * все три транспорта проекта: клиент билдера (`composables/useApiClient.ts`) и
- * публичные клиенты рендера (lookup страницы, data sources).
+ * Request policy: selecting the timeout ceiling for each method and detecting
+ * when it fires. Pure functions with no Nuxt context, applied by all three
+ * transports of the project inside their own fetcher wrapper: the builder client
+ * (`composables/useApiClient.ts`) and the public render clients (page lookup,
+ * data sources). Not in an ofetch `onRequest` hook — the reason is spelled out in
+ * `useApiClient.ts`.
  *
- * Политика рассчитана на клиентов без повторов (`retry: 0` у всех трёх). При
- * включённых повторах ofetch зовёт запрос заново с теми же опциями, где уже
- * стоит наш сработавший сигнал, — вторая попытка упала бы мгновенно, не дойдя до
- * сети. Повторы вводить придётся вместе с решением, чей это бюджет: попытки или
- * всего логического запроса.
+ * The policy expects clients without retries (`retry: 0` in all three). With
+ * retries enabled ofetch calls the request again with the same options, which
+ * already carry our fired signal — the second attempt would fail instantly,
+ * never reaching the network. Introducing retries means deciding first whether
+ * the ceiling applies per attempt or to the whole logical request.
  */
 
 // #region Imports
@@ -24,21 +26,26 @@ import { BRICKS_API_READ_TIMEOUT_MS, BRICKS_API_WRITE_TIMEOUT_MS } from '../cons
 
 // #region Data
 /**
- * Опции запроса, которыми распоряжается только клиент: хуки и политика повторов.
- * Вызывающий описывает запрос (метод, тело, заголовки, потолок, сигнал), а адрес
- * и повторы — дело клиента.
+ * Request options only the client gets to set: the hooks and the retry policy.
+ * The caller describes the request (method, body, headers, ceiling, signal); the
+ * address and the retries are the client's business.
  *
- * Причина запрета в том, что все они действуют ПОСЛЕ того, как клиент решил
- * маршрутизацию и добавил identity инсталляции: `onRequest` — до построения URL,
- * хуки ответа и функциональный `retryDelay` — перед повтором, которому
- * call-level `retry` перебивает `retry: 0` инстанса. Каждая умеет переписать
- * `baseURL` или сам `request`, и повтор уходит с теми же заголовками. Проверено
- * на ofetch 1.5.1: и `onRequest`, и связка `retry` + `onResponseError`
- * доставляли креды инсталляции на чужой origin.
+ * They are forbidden because every one of them takes effect AFTER the client has
+ * decided the routing and added the installation identity: `onRequest` runs
+ * before the URL is built, and the response hooks and a functional `retryDelay`
+ * run before a retry — the one a call-level `retry` enables by overriding the
+ * instance's `retry: 0`. Their roles differ. The hooks and a functional
+ * `retryDelay` receive the context, so they can rewrite `baseURL` or the
+ * `request` itself, and the retry goes out with `{ ...context.options }`.
+ * `retry` and `retryStatusCodes` rewrite nothing — they merely allow a repeat,
+ * and the repeat reuses the already authorized headers. Verified on ofetch
+ * 1.5.1: both `onRequest` and the `retry` + `onResponseError` pair delivered
+ * installation credentials to a foreign origin.
  *
- * Список — источник для обоих применений: тип опций (`TApiRequestOptions`
- * вычитает эти ключи) и снятие их в рантайме клиентом. Две копии разъехались бы
- * молча, а расхождение здесь возвращает утечку.
+ * The list is the single source for both of its uses: the options type
+ * (`TApiRequestOptions` omits these keys) and the client stripping them at
+ * runtime. Two copies would drift apart silently, and a divergence here brings
+ * the leak back.
  */
 export const CLIENT_OWNED_REQUEST_OPTIONS = [
     'onRequest',
@@ -51,20 +58,20 @@ export const CLIENT_OWNED_REQUEST_OPTIONS = [
 ] as const;
 
 /**
- * Методы, которые ничего не меняют на сервере. Единственный список в политике:
- * от него зависят и потолок, и текст сообщения при обрыве — иначе две копии
- * одного знания разъехались бы молча. Незнакомый метод считается записью:
- * оптимистичная классификация опаснее осторожной.
+ * Methods that change nothing on the server. The only such list in the policy:
+ * both the ceiling and the text of the abort message depend on it, and two
+ * copies of one piece of knowledge would drift apart silently. An unknown method
+ * counts as a write: optimistic classification is the more dangerous one.
  */
 const READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 /**
- * Ключи локали для обрыва по потолку ожидания. Чтение и запись различаются по
- * существу, а не по формулировке: оборванное чтение можно просто повторить, а
- * оборванная запись могла быть применена сервером.
+ * Locale keys for a request aborted by the timeout ceiling. Reads and writes
+ * differ in substance, not in wording: an aborted read can simply be repeated,
+ * while an aborted write may already have been applied by the server.
  *
- * Ключи живут здесь же, где список методов: иначе два домена выбирали бы текст
- * по своей копии правила, и копии разъехались бы молча.
+ * The keys live next to the method list: otherwise two domains would pick the
+ * text by their own copy of the rule, and the copies would drift apart silently.
  */
 const TIMEOUT_MESSAGE_KEYS = {
     read: 'bricks.common.readTimeout',
@@ -72,21 +79,21 @@ const TIMEOUT_MESSAGE_KEYS = {
 } as const;
 
 /**
- * Предел обхода цепочки `cause`: ofetch кладёт исходную ошибку в `cause`
- * (`FetchError` → `TimeoutError`), но цепочка теоретически может быть
- * циклической.
+ * Bound on walking the `cause` chain: ofetch puts the original error into
+ * `cause` (`FetchError` → `TimeoutError`), but the chain could in theory be
+ * cyclic.
  */
 const MAX_ERROR_CAUSE_DEPTH = 5;
 // #endregion
 
 // #region Methods
 /**
- * Читает произвольное значение как словарь без приведения к `any`: и
- * `Request`-объект, и DOMException, которым абортится `AbortSignal.timeout`,
- * нужны здесь только по нескольким полям.
+ * Reads an arbitrary value as a record without casting to `any`: both a
+ * `Request` object and the DOMException that aborts `AbortSignal.timeout` are
+ * needed here for a couple of fields only.
  *
- * @param value - Произвольное значение.
- * @returns Словарь полей либо null для не-объектов.
+ * @param value - Arbitrary value.
+ * @returns Record of fields, or null for non-objects.
  */
 function readRecord(value: unknown): Record<string, unknown> | null {
     if (typeof value !== 'object' || value === null) {
@@ -97,45 +104,46 @@ function readRecord(value: unknown): Record<string, unknown> | null {
 }
 
 /**
- * Меняет ли запрос состояние на сервере. Отсутствие метода — это GET
- * (`options.method` ofetch у него не заполняет), то есть чтение.
+ * Whether the request changes state on the server. A missing method is a GET
+ * (ofetch does not fill `options.method` for one), that is, a read.
  *
- * @param method - HTTP-метод (регистр любой).
- * @returns Запрос является записью.
+ * @param method - HTTP method (any case).
+ * @returns The request is a write.
  */
 export function isApiWriteMethod(method?: string): boolean {
     return Boolean(method) && !READ_METHODS.has(String(method).toUpperCase());
 }
 
 /**
- * Возвращает ключ локали для обрыва запроса по потолку ожидания. Перевод
- * остаётся за вызывающим: у стора, утилиты и компонента свой доступ к i18n.
+ * Returns the locale key for a request aborted by the timeout ceiling.
+ * Translating it stays with the caller: a store, a utility and a component each
+ * have their own access to i18n.
  *
- * @param method - HTTP-метод оборванного запроса (регистр любой).
- * @returns Ключ локали сообщения.
+ * @param method - HTTP method of the aborted request (any case).
+ * @returns Locale key of the message.
  */
 export function resolveRequestTimeoutMessageKey(method?: string): string {
     return isApiWriteMethod(method) ? TIMEOUT_MESSAGE_KEYS.write : TIMEOUT_MESSAGE_KEYS.read;
 }
 
 /**
- * Возвращает потолок ожидания для метода.
+ * Returns the timeout ceiling for a method.
  *
- * @param method - HTTP-метод (регистр любой) либо undefined — как у GET в ofetch.
- * @returns Потолок в миллисекундах.
+ * @param method - HTTP method (any case), or undefined — as with an ofetch GET.
+ * @returns Ceiling in milliseconds.
  */
 export function resolveApiRequestTimeout(method?: string): number {
     return isApiWriteMethod(method) ? BRICKS_API_WRITE_TIMEOUT_MS : BRICKS_API_READ_TIMEOUT_MS;
 }
 
 /**
- * Определяет метод запроса. `options.method` заполнен не всегда: у GET его нет,
- * а при вызове с `Request`-объектом ofetch метод в опции не копирует — тогда
- * читаем его с самого запроса.
+ * Determines the request method. `options.method` is not always filled: a GET
+ * has none, and when called with a `Request` object ofetch does not copy the
+ * method into the options — then it is read off the request itself.
  *
- * @param request - Запрос (строка, URL или Request).
- * @param method - Метод из опций запроса.
- * @returns Метод в верхнем регистре либо undefined (равносильно GET).
+ * @param request - Request (string, URL or Request).
+ * @param method - Method from the request options.
+ * @returns Uppercased method, or undefined (equivalent to GET).
  */
 export function resolveApiRequestMethod(request: unknown, method?: string): string | undefined {
     if (method) {
@@ -148,11 +156,12 @@ export function resolveApiRequestMethod(request: unknown, method?: string): stri
 }
 
 /**
- * Значение похоже на `AbortSignal`. Проверка структурная, а не `instanceof`:
- * сигнал может приехать из другого realm (worker, jsdom), где конструктор свой.
+ * Whether a value looks like an `AbortSignal`. A structural check rather than
+ * `instanceof`: the signal may arrive from another realm (worker, jsdom), where
+ * the constructor is its own.
  *
- * @param value - Произвольное значение.
- * @returns Значение можно использовать как сигнал отмены.
+ * @param value - Arbitrary value.
+ * @returns The value can be used as an abort signal.
  */
 function isAbortSignalLike(value: unknown): value is AbortSignal {
     const record = readRecord(value);
@@ -165,18 +174,19 @@ function isAbortSignalLike(value: unknown): value is AbortSignal {
 }
 
 /**
- * Определяет сигнал отмены вызывающего. Как и метод, `signal` из
- * `Request`-объекта ofetch в опции не копирует, а сигнал, переданный в опциях,
- * по правилам fetch перекрывает сигнал самого запроса — без этого fallback'а
- * отмена вызывающего переставала бы работать до истечения потолка.
+ * Determines the caller's abort signal. As with the method, ofetch does not copy
+ * `signal` from a `Request` object into the options, while a signal passed in the
+ * options overrides the request's own one by the rules of fetch — without this
+ * fallback the caller's cancellation would stop working until the ceiling ran
+ * out.
  *
- * Явный `options.signal` приоритетнее; `null` означает отказ наследовать сигнал
- * с `Request`-объекта, а не отказ от потолка — потолок политика ставит отдельно
- * и в любом случае.
+ * An explicit `options.signal` wins; `null` means refusing to inherit the signal
+ * from the `Request` object, not refusing the ceiling — the policy sets the
+ * ceiling separately and in any case.
  *
- * @param request - Запрос (строка, URL или Request).
- * @param signal - Сигнал из опций запроса.
- * @returns Сигнал вызывающего либо undefined/null.
+ * @param request - Request (string, URL or Request).
+ * @param signal - Signal from the request options.
+ * @returns The caller's signal, or undefined/null.
  */
 function resolveApiRequestSignal(
     request: unknown,
@@ -192,33 +202,38 @@ function resolveApiRequestSignal(
 }
 
 /**
- * Применяет политику к опциям запроса: выбирает потолок и ставит его сигналом.
+ * Applies the policy to the request options: picks the ceiling and installs it
+ * as a signal.
  *
- * Сигнал ставится ВСЕГДА, а не только поверх чужого. Опция `timeout` ofetch
- * покрывает лишь ожидание заголовков: её таймер снимается в `finally` вокруг
- * одного `await fetch(...)`, а тело читается позже (1.5.1,
- * `shared/ofetch.*.mjs:287-300`) — сервер, отдавший статус и зависший посреди
- * JSON, держал бы промис вечно вместе с `isSubmitting` и недостижимым `finally`.
- * Живой сигнал обрывает обе фазы. Внутренний механизм ofetch при этом не
- * включается вовсе: он строится только при отсутствии `signal` (`:261`).
+ * The signal is installed ALWAYS, not only on top of the caller's own. The ofetch
+ * `timeout` option covers waiting for the headers only: its timer is cleared in
+ * a `finally` around the single `await fetch(...)`, while the body is read later
+ * (1.5.1, `shared/ofetch.*.mjs:287-300`) — a server that returned a status and
+ * then hung mid-JSON would hold the promise forever, together with
+ * `isSubmitting` and an unreachable `finally`. A live signal aborts both phases.
+ * The internal ofetch mechanism does not engage at all: it is only built when
+ * there is no `signal` (`:261`).
  *
- * `options.timeout` остаётся заполненным как эффективное значение политики —
- * читаемая декларация бюджета в опциях; фактическую границу держит сигнал.
+ * `options.timeout` stays filled in as the policy's effective value — a readable
+ * declaration of the budget in the options; the actual boundary is held by the
+ * signal.
  *
- * Опт-аутом политика не считает ни `timeout: 0`, ни нечисловое значение, ни
- * `signal: null` — каждое из них было бы тихим возвратом исходного дефекта.
+ * The policy treats neither `timeout: 0`, nor a non-numeric value, nor
+ * `signal: null` as an opt-out — each of them would be a silent return of the
+ * original defect.
  *
- * @param request - Запрос (строка, URL или Request).
- * @param options - Опции запроса; мутируются на месте.
- * @returns Сигнал, легший в опции: по его `reason` вызывающий отличает
- * сработавший потолок от отмены (см. `normalizeRequestAbortError`).
+ * @param request - Request (string, URL or Request).
+ * @param options - Request options; mutated in place.
+ * @returns The signal that ended up in the options: by its `reason` the caller
+ * tells a fired ceiling from a cancellation (see `normalizeRequestAbortError`).
  */
 export function applyApiRequestTimeout(
     request: unknown,
     options: IApiRequestTimeoutTarget
 ): AbortSignal {
-    // Значение с вызова уважается, но только интерпретируемое: `Infinity` или
-    // `NaN` в override'е — не «ждать дольше», а потерянный потолок
+    // A value from the call site is respected, but only an interpretable one:
+    // `Infinity` or `NaN` in an override is not "wait longer", it is a lost
+    // ceiling
     const timeoutMs =
         typeof options.timeout === 'number' &&
         Number.isFinite(options.timeout) &&
@@ -240,17 +255,19 @@ export function applyApiRequestTimeout(
 }
 
 /**
- * Распознаёт срабатывание потолка ожидания по имени `TimeoutError` в цепочке
- * `cause`: обрыв на фазе заголовков ofetch оборачивает в `FetchError`, а обрыв на
- * фазе чтения тела летит наружу как есть — чтение тела в ofetch не обёрнуто
- * try/catch. Поэтому цепочка обходится целиком, а не проверяется одним уровнем.
+ * Recognizes the timeout ceiling firing by the `TimeoutError` name anywhere in
+ * the `cause` chain: an abort in the header phase is wrapped by ofetch into a
+ * `FetchError`, while an abort during the body read propagates unchanged — body
+ * reading in ofetch is not wrapped in try/catch. That is why the whole chain is
+ * walked instead of one level being checked.
  *
- * Ошибку с фазы тела в браузере предикат сам по себе не распознает — там имя
- * подменено платформой; её приводит к распознаваемому виду
- * `normalizeRequestAbortError` на выходе транспорта.
+ * On its own the predicate does not recognize an error from the body phase in a
+ * browser — the name there is replaced by the platform; it is
+ * `normalizeRequestAbortError` that brings it back to a recognizable shape at
+ * the transport boundary.
  *
- * @param error - Ошибка запроса.
- * @returns Запрос оборван по таймауту.
+ * @param error - Request error.
+ * @returns The request was aborted by the timeout.
  */
 export function isRequestTimeoutError(error: unknown): boolean {
     let current: unknown = error;
@@ -273,10 +290,11 @@ export function isRequestTimeoutError(error: unknown): boolean {
 }
 
 /**
- * Ошибка — обрыв запроса (`AbortError` где-либо в цепочке `cause`).
+ * Whether the error is a request abort (`AbortError` anywhere in the `cause`
+ * chain).
  *
- * @param error - Ошибка запроса.
- * @returns Запрос оборван.
+ * @param error - Request error.
+ * @returns The request was aborted.
  */
 function isRequestAbortError(error: unknown): boolean {
     let current: unknown = error;
@@ -299,27 +317,29 @@ function isRequestAbortError(error: unknown): boolean {
 }
 
 /**
- * Приводит обрыв по потолку к распознаваемому виду, когда платформа потеряла
- * причину аборта.
+ * Brings an abort by the ceiling back to a recognizable shape when the platform
+ * has lost the reason for the abort.
  *
- * Установлено замером: причину сохраняет не всякая платформа и не на всякой фазе.
- * Node (undici) отдаёт `reason` сигнала и на заголовках, и на чтении тела, а
- * Chrome — только на заголовках: при аборте во время чтения тела он подменяет
- * ошибку на `AbortError` («The user aborted a request») независимо от того, чем
- * абортировали, так что собственный `TimeoutError` в `reason` теряется так же,
- * как нативный. Без этой нормализации зависшее тело выглядело бы как отмена
- * пользователя: запись не получила бы честного текста неизвестного исхода, а
- * список страниц — сверки, хотя именно зависание на теле чаще всего и означает,
- * что сервер запись уже применил.
+ * Established by measurement: not every platform preserves the reason, and not
+ * in every phase. Node (undici) preserves `signal.reason` whether the abort
+ * happens while awaiting the response headers or while reading the body; Chrome
+ * preserves it during the header phase only — during a body read it surfaces an
+ * `AbortError` ("The user aborted a request") no matter what did the aborting,
+ * so our own `TimeoutError` in `reason` is lost exactly as a native one would be.
+ * Without this normalization a hung body would look like a user cancellation: a
+ * write would not get the truthful unknown-outcome message, and the page list
+ * would not trigger reconciliation — even though hanging on the body is the most
+ * likely sign that the server has already applied the write.
  *
- * Судим не по ошибке, а по сигналу: `reason` комбинированного сигнала хранит
- * причину ПЕРВОГО аборта, поэтому отмена вызывающего остаётся отменой. Считать
- * таймаутом любой `AbortError` было бы нельзя — уход пользователя со страницы и
- * общий дедлайн прогона data sources стали бы таймаутами.
+ * The verdict comes from the signal, not from the error: the `reason` of a
+ * combined signal holds the cause of the FIRST abort, so a caller's cancellation
+ * stays a cancellation. Treating any `AbortError` as a timeout would not do —
+ * a user leaving the page and the overall deadline of a data source run would
+ * both become timeouts.
  *
- * @param error - Ошибка запроса.
- * @param effectiveSignal - Сигнал, поставленный `applyApiRequestTimeout`.
- * @returns Исходная ошибка либо `TimeoutError` с ней в `cause`.
+ * @param error - Request error.
+ * @param effectiveSignal - Signal installed by `applyApiRequestTimeout`.
+ * @returns The original error, or a `TimeoutError` with it in `cause`.
  */
 export function normalizeRequestAbortError(error: unknown, effectiveSignal: AbortSignal): unknown {
     if (isRequestTimeoutError(error) || !isRequestAbortError(error)) {

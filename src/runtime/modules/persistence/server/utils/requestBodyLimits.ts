@@ -1,44 +1,46 @@
 /**
- * Лимитированное чтение тела запроса (ingress-контроль).
+ * Size-limited request body reading (ingress control).
  *
- * Дефолтные читатели h3 (readBody/readMultipartFormData) буферизуют тело
- * целиком до любых проверок размера. Здесь три независимых барьера:
- * заявленный Content-Length проверяется до чтения (413 бесплатно), стрим
- * читается с жёстким лимитом и обрывается сразу при превышении (заголовок
- * может отсутствовать или врать при chunked transfer), а суммарный объём
- * ОДНОВРЕМЕННО буферизуемых форм ограничен бюджетом.
+ * The default h3 readers (readBody/readMultipartFormData) buffer the body in
+ * full before any size check. Three independent barriers here: the declared
+ * Content-Length is checked before reading (a 413 for free), the stream is read
+ * under a hard limit and aborted the moment it is exceeded (the header may be
+ * absent, or misreport the size under chunked transfer), and the total size of
+ * the forms buffered SIMULTANEOUSLY is capped by a budget.
  */
 import { createError, getHeader, type H3Event } from 'h3';
 import type { IUploadedFilePart } from '../../types/media';
 import type { IBodyReservation, IInflightBodyBudget } from '../../types/requestBodyLimits';
 
 /**
- * Запас на конверт multipart-формы (границы, заголовки частей, текстовые поля)
- * сверх лимита полезной нагрузки файла.
+ * Headroom for the multipart envelope (boundaries, part headers, text fields) on
+ * top of the file payload limit.
  */
 export const MULTIPART_ENVELOPE_ALLOWANCE_BYTES = 1024 * 1024;
 
 /**
- * Потолок суммарного объёма multipart-форм, которые сервер согласен держать в
- * памяти одновременно.
+ * Ceiling on the total size of the multipart forms the server agrees to hold in
+ * memory at the same time.
  *
- * Rate limit ручек считает запросы, а не их одновременность: разрешённые
- * тридцать загрузок в минуту могут прийти все сразу, и тело каждой собирается в
- * память целиком. 256 МБ пропускают две загрузки видео максимального размера
- * или сотни картинок; дальше запрос отклоняется сразу, не начав читать тело.
+ * The endpoint rate limit counts requests, not their concurrency: the thirty
+ * uploads per minute it allows may all arrive at once, and every body is
+ * assembled in memory in full. 256 MB admits two maximum-size video uploads, or
+ * hundreds of images; past that the request is rejected outright, without
+ * starting to read the body.
  *
- * Бюджет считает ЗАЯВЛЕННЫЙ объём тела, а не пик памяти: разбор формы копирует
- * тело ещё раз, поэтому фактический пик — до двух бюджетов. Учитывать копию в
- * самом резерве значило бы вдвое урезать пропускную способность ради того же
- * порядка величины.
+ * The budget counts the DECLARED body size (and the whole ceiling when the
+ * header is absent — see the reservation below), not peak memory: parsing the
+ * form copies the body once more, so the real peak is up to two budgets.
+ * Counting that copy inside the reservation itself would halve throughput for
+ * the same order of magnitude.
  */
 const INFLIGHT_MULTIPART_BUDGET_BYTES = 256 * 1024 * 1024;
 
 /**
- * Человекочитаемый размер для сообщений об ошибке лимита.
+ * Human-readable size for the limit error messages.
  *
- * @param bytes - Размер в байтах.
- * @returns Строка вида «25MB» или «16KB».
+ * @param bytes - Size in bytes.
+ * @returns A string such as "25MB" or "16KB".
  */
 function formatByteSize(bytes: number): string {
     if (bytes >= 1024 * 1024) {
@@ -49,10 +51,10 @@ function formatByteSize(bytes: number): string {
 }
 
 /**
- * Ошибка 413 для превышения лимита тела запроса.
+ * A 413 for exceeding the request body limit.
  *
- * @param maxBytes - Лимит, использованный при чтении.
- * @returns h3-ошибка со статусом 413.
+ * @param maxBytes - The limit the read was performed under.
+ * @returns h3 error with status 413.
  */
 function payloadTooLarge(maxBytes: number): Error {
     return createError({
@@ -62,12 +64,12 @@ function payloadTooLarge(maxBytes: number): Error {
 }
 
 /**
- * Ошибка 503 для переполнения бюджета одновременного буферизования.
+ * A 503 for overflowing the concurrent buffering budget.
  *
- * Не 429: лимит клиента не исчерпан, занят сервер, и повторить стоит тем же
- * запросом чуть позже.
+ * Not a 429: the client has not exhausted a request quota, it is the server that
+ * is busy, and the same request is worth repeating a little later.
  *
- * @returns h3-ошибка со статусом 503.
+ * @returns h3 error with status 503.
  */
 function tooManyInflightBodies(): Error {
     return createError({
@@ -77,19 +79,20 @@ function tooManyInflightBodies(): Error {
 }
 
 /**
- * Создаёт бюджет одновременного буферизования тел.
+ * Creates a budget for buffering bodies concurrently.
  *
- * @param maxBytes - Суммарный потолок.
- * @returns Бюджет.
+ * @param maxBytes - Total ceiling.
+ * @returns The budget.
  */
 export function createInflightBodyBudget(maxBytes: number): IInflightBodyBudget {
     let usedBytes = 0;
 
     return {
         reserve(bytes: number): () => void {
-            // Одинокий запрос проходит всегда, даже когда он один больше
-            // бюджета: иначе конфигурация с потолком файла выше бюджета
-            // отклоняла бы каждую загрузку, то есть ручка не работала бы вовсе
+            // A lone request always gets through, even when it alone is larger
+            // than the budget: otherwise a configuration whose file ceiling
+            // exceeds the budget would reject every upload, meaning the endpoint
+            // would not work at all
             if (usedBytes > 0 && usedBytes + bytes > maxBytes) {
                 throw tooManyInflightBodies();
             }
@@ -98,8 +101,9 @@ export function createInflightBodyBudget(maxBytes: number): IInflightBodyBudget 
             let released = false;
 
             return () => {
-                // Идемпотентно: повторное освобождение вернуло бы в бюджет
-                // байты, которых там нет, и потолок уехал бы вверх навсегда
+                // Idempotent: releasing twice would return bytes to the budget
+                // that are not there, and the ceiling would drift upwards
+                // for good
                 if (released) {
                     return;
                 }
@@ -111,17 +115,17 @@ export function createInflightBodyBudget(maxBytes: number): IInflightBodyBudget 
     };
 }
 
-/** Общий бюджет всех multipart-ручек: память у них одна. */
+/** One budget shared by every multipart endpoint: they share the memory. */
 const inflightMultipartBudget = createInflightBodyBudget(INFLIGHT_MULTIPART_BUDGET_BYTES);
 
 /**
- * Читает async-итерируемый источник чанков с жёстким лимитом: обрывает
- * чтение сразу при превышении, не буферизуя остаток.
+ * Reads an async iterable source of chunks under a hard limit: aborts the read
+ * the moment it is exceeded, without buffering the remainder.
  *
- * @param source - Источник чанков (Node request, генератор).
- * @param maxBytes - Максимальный суммарный размер.
- * @param buildLimitError - Фабрика ошибки превышения.
- * @returns Буфер с прочитанным содержимым.
+ * @param source - Chunk source (Node request, generator).
+ * @param maxBytes - Maximum total size.
+ * @param buildLimitError - Factory of the limit error.
+ * @returns Buffer holding what was read.
  */
 export async function collectStreamWithLimit(
     source: AsyncIterable<Uint8Array>,
@@ -145,10 +149,11 @@ export async function collectStreamWithLimit(
 }
 
 /**
- * Адаптер web ReadableStream → AsyncIterable с отменой стрима при раннем
- * обрыве чтения (превышение лимита отменяет и сетевую загрузку).
+ * Adapter from a web ReadableStream to an AsyncIterable, cancelling the stream
+ * when the read is aborted early (exceeding the limit cancels the network
+ * transfer as well).
  *
- * @param stream - Web-стрим (тело fetch-ответа).
+ * @param stream - Web stream (body of a fetch response).
  */
 async function* iterateWebStream(stream: ReadableStream<Uint8Array>): AsyncGenerator<Uint8Array> {
     const reader = stream.getReader();
@@ -175,12 +180,12 @@ async function* iterateWebStream(stream: ReadableStream<Uint8Array>): AsyncGener
 }
 
 /**
- * Читает web ReadableStream (тело fetch-ответа) с жёстким лимитом размера.
+ * Reads a web ReadableStream (body of a fetch response) under a hard size limit.
  *
- * @param stream - Web-стрим.
- * @param maxBytes - Максимальный суммарный размер.
- * @param buildLimitError - Фабрика ошибки превышения.
- * @returns Буфер с прочитанным содержимым.
+ * @param stream - Web stream.
+ * @param maxBytes - Maximum total size.
+ * @param buildLimitError - Factory of the limit error.
+ * @returns Buffer holding what was read.
  */
 export async function collectWebStreamWithLimit(
     stream: ReadableStream<Uint8Array>,
@@ -191,17 +196,19 @@ export async function collectWebStreamWithLimit(
 }
 
 /**
- * Проверяет заявленный Content-Length и резервирует под тело место в бюджете.
+ * Checks the declared Content-Length and reserves room for the body in the
+ * budget.
  *
- * Резерв идёт по заявленной длине, а чтение — по резерву: клиент, заявивший
- * один байт и присылающий сто мегабайт chunked'ом, иначе обходил бы бюджет —
- * читать мы согласились бы до общего потолка ручки, зарезервировав байт.
- * Заголовка нет вовсе — резервируется весь потолок, то есть худший случай.
+ * The reservation goes by the declared length and the read goes by the
+ * reservation: otherwise a client declaring one byte and sending a hundred
+ * megabytes chunked would slip past the budget — we would have agreed to read up
+ * to the endpoint's full ceiling having reserved a single byte. With no header at
+ * all the whole ceiling is reserved, that is, the worst case.
  *
- * @param event - Событие запроса.
- * @param maxBytes - Максимальный размер тела.
- * @param budget - Бюджет одновременного буферизования; без него резерв не ведётся.
- * @returns Потолок чтения и освобождение резерва.
+ * @param event - Request event.
+ * @param maxBytes - Maximum body size.
+ * @param budget - Concurrent buffering budget; without it nothing is reserved.
+ * @returns The read ceiling and the release of the reservation.
  */
 function reserveRequestBody(
     event: H3Event,
@@ -225,12 +232,13 @@ function reserveRequestBody(
 }
 
 /**
- * Читает сырое тело запроса с лимитом: pre-check заявленного Content-Length
- * (413 до чтения), затем стрим-чтение с тем же лимитом.
+ * Reads the raw request body under a limit: a pre-check of the declared
+ * Content-Length (a 413 before reading), then a streaming read under the same
+ * limit.
  *
- * @param event - Событие запроса.
- * @param maxBytes - Максимальный размер тела.
- * @returns Буфер с телом запроса.
+ * @param event - Request event.
+ * @param maxBytes - Maximum body size.
+ * @returns Buffer holding the request body.
  */
 async function readRawBodyWithLimit(
     event: H3Event,
@@ -242,12 +250,12 @@ async function readRawBodyWithLimit(
 }
 
 /**
- * Читает JSON-тело с лимитом размера. Пустое тело — null (валидацию
- * «тело обязательно» делает вызывающий), невалидный JSON — 400.
+ * Reads a JSON body under a size limit. An empty body gives null (validating
+ * "the body is required" is up to the caller); invalid JSON gives a 400.
  *
- * @param event - Событие запроса.
- * @param maxBytes - Максимальный размер тела.
- * @returns Распарсенное тело или null.
+ * @param event - Request event.
+ * @param maxBytes - Maximum body size.
+ * @returns The parsed body, or null.
  */
 export async function readJsonBodyWithLimit<T>(
     event: H3Event,
@@ -270,12 +278,13 @@ export async function readJsonBodyWithLimit<T>(
 }
 
 /**
- * Парсит multipart/form-data из буфера через стандартный парсер undici
- * (Response.formData). Файловые части — с filename/type, текстовые — только data.
+ * Parses multipart/form-data out of a buffer with the standard undici parser
+ * (Response.formData). File parts carry filename and type, text parts carry data
+ * only.
  *
- * @param buffer - Сырое тело запроса.
- * @param contentType - Заголовок Content-Type с boundary.
- * @returns Части формы.
+ * @param buffer - Raw request body.
+ * @param contentType - Content-Type header with the boundary.
+ * @returns Parts of the form.
  */
 export async function parseMultipartBuffer(
     buffer: Uint8Array<ArrayBuffer>,
@@ -314,29 +323,30 @@ export async function parseMultipartBuffer(
 }
 
 /**
- * Читает multipart-форму с лимитом суммарного размера тела
- * (лимит полезной нагрузки + MULTIPART_ENVELOPE_ALLOWANCE_BYTES — на вызывающем)
- * и отдаёт её обработчику, ДЕРЖА место в бюджете одновременного буферизования до
- * конца обработки.
+ * Reads a multipart form under a limit on the total body size (the payload limit
+ * plus MULTIPART_ENVELOPE_ALLOWANCE_BYTES — that sum is the caller's job) and
+ * hands it to a handler, HOLDING its room in the concurrent buffering budget
+ * until the handling is over.
  *
- * Форма отдаётся колбэку, а не возвращается, именно из-за бюджета. Буферы частей
- * живут ровно столько, сколько работает обработчик: файл проходит через sharp и
- * уезжает в хранилище, и всё это время он в памяти. Резерв, снятый сразу после
- * разбора, ограничивал бы только короткую фазу чтения — при медленном хранилище
- * ручка успевала бы «освободить» бюджет под десяток стомегабайтных тел, каждое из
- * которых никуда не делось. Колбэк вместо пары «прочитать / освободить» —
- * чтобы освобождение нельзя было забыть: утёкший резерв навсегда сужает потолок.
+ * The form is handed to a callback rather than returned precisely because of the
+ * budget. The part buffers live exactly as long as the handler runs: the file
+ * goes through sharp and off to storage, and it is in memory the whole time. A
+ * reservation released right after parsing would bound the short read phase only
+ * — with slow storage the endpoint would manage to "free" the budget for a dozen
+ * hundred-megabyte bodies, none of which had gone anywhere. The callback instead
+ * of a read/release pair is there so that the release cannot be forgotten: a
+ * leaked reservation narrows the ceiling for good.
  *
- * Тип файла границам тела не подчиняется: части формы разбираются только после
- * того, как тело прочитано целиком, поэтому лимит ЧТЕНИЯ у ручки один — по
- * самому большому допустимому файлу. Свой потолок каждого типа проверяют
- * validate*-хелперы уже по разобранной форме.
+ * The body-read limit cannot vary by file type: parts of the form become
+ * available only after the whole body has been read. The endpoint therefore uses
+ * a single READ limit, set by the largest file type it may accept; each type's
+ * own ceiling is enforced by the `validate*` helpers after parsing.
  *
- * @param event - Событие запроса.
- * @param maxBytes - Максимальный размер тела формы.
- * @param use - Обработчик разобранной формы; его результат возвращается наружу.
- * @param budget - Бюджет одновременного буферизования; по умолчанию общий.
- * @returns Результат обработчика.
+ * @param event - Request event.
+ * @param maxBytes - Maximum size of the form body.
+ * @param use - Handler of the parsed form; its result is returned to the caller.
+ * @param budget - Concurrent buffering budget; the shared one by default.
+ * @returns Result of the handler.
  */
 export async function withMultipartFormData<T>(
     event: H3Event,
