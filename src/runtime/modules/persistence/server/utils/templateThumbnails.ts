@@ -1,32 +1,32 @@
 /**
- * Жизненный цикл файлов превью шаблона в хранилище публикации.
+ * The lifecycle of a template's preview files in the publication storage.
  *
- * У шаблона СВОЙ файл, скопированный из кадра страницы, а не ссылка на этот
- * кадр. Причина не в аккуратности: кадры страницы живут по её keep-list'у
- * (страница + её версии, см. `pageThumbnails.ts`), и ссылка из шаблона той
- * уборке невидима — первое же сохранение страницы, вытеснившее кадр из истории,
- * оставило бы карточку шаблона с битой картинкой.
+ * A template has a file OF ITS OWN, copied out of a page's frame, rather than a link
+ * to that frame. The reason is not tidiness: a page's frames live by its keep list
+ * (the page + its versions, see `pageThumbnails.ts`), and a link from a template is
+ * invisible to that sweep — the very first save of the page that pushed the frame out
+ * of the history would leave the template's card with a broken picture.
  *
- * Ключ шаблона (`template-<uuid>.webp`) лежит в том же thumbnail-namespace, но
- * под другим именем: уборка страницы перечисляет только префиксы
- * `page-<id>-`/`page-<id>.`, поэтому файлы шаблонов ей не видны вовсе.
+ * The template's key (`template-<uuid>.webp`) sits in the same thumbnail namespace
+ * but under a different name: the page's sweep enumerates only the prefixes
+ * `page-<id>-`/`page-<id>.`, so the templates' files are invisible to it entirely.
  *
- * Зависимости передаются параметром (узкие Pick-контракты) — логика тестируется
- * юнитами без реального S3 (паттерн `avatarFiles.ts`).
+ * The dependencies are passed as a parameter (narrow Pick contracts) — the logic is
+ * unit-tested without a real S3 (the `avatarFiles.ts` pattern).
  */
 import { randomUUID } from 'node:crypto';
 import type { IPublishAdapter } from '../../types/adapters';
 import { sniffImageFormat, type TSniffedImageFormat } from './fileSignatures';
 import { collectWebStreamWithLimit } from './requestBodyLimits';
 
-/** Потолок размера копируемого кадра (МБ): превью страницы — webp ≤480px. */
+/** The size ceiling of the copied frame (MB): a page's preview is a webp ≤480px. */
 const MAX_THUMBNAIL_COPY_MB = 10;
 const MAX_THUMBNAIL_COPY_BYTES = MAX_THUMBNAIL_COPY_MB * 1024 * 1024;
 
-/** Потолок ожидания хранилища при копировании кадра (мс). */
+/** The ceiling on waiting for storage while copying the frame (ms). */
 const THUMBNAIL_COPY_TIMEOUT_MS = 10_000;
 
-/** MIME по распознанному формату растра: content-type хранилища не авторитет. */
+/** MIME by the recognized raster format: storage's content-type is no authority. */
 const THUMBNAIL_MIME_TYPES: Partial<Record<TSniffedImageFormat, string>> = {
     webp: 'image/webp',
     jpeg: 'image/jpeg',
@@ -36,36 +36,37 @@ const THUMBNAIL_MIME_TYPES: Partial<Record<TSniffedImageFormat, string>> = {
 };
 
 /**
- * Строит object key для нового файла превью шаблона.
+ * Builds the object key for a new template preview file.
  *
- * Имя не содержит id шаблона: файл копируется ДО вставки строки (id ещё нет), а
- * uuid делает ключ уникальным сам по себе. Связь «файл → шаблон» держит колонка
- * `thumbnail_url`, и она же единственный источник для уборки.
+ * The name carries no template id: the file is copied BEFORE the row is inserted (the
+ * id does not exist yet), and the uuid makes the key unique on its own. The
+ * "file → template" link is held by the `thumbnail_url` column, and it is also the
+ * single source for the sweep.
  *
- * @param publish - Publish-адаптер (источник namespace-префикса).
- * @returns Полный object key.
+ * @param publish - The publish adapter (the source of the namespace prefix).
+ * @returns The full object key.
  */
 export function buildTemplateThumbnailKey(publish: Pick<IPublishAdapter, 'buildFileKey'>): string {
     return publish.buildFileKey('thumbnail', `template-${randomUUID()}.webp`);
 }
 
 /**
- * Копирует кадр страницы в собственный файл шаблона.
+ * Copies a page's frame into the template's own file.
  *
- * Best-effort: превью — вторичный артефакт, и отказ копирования обязан оставить
- * шаблон без картинки, а не отменить его сохранение (карточка нарисует
- * плейсхолдер — состояние предусмотренное). Поэтому исход — `string | null`, а
- * не исключение.
+ * Best-effort: a preview is a secondary artifact, and a failed copy must
+ * leave the template without a picture rather than cancel its save (the card draws a
+ * placeholder — a state that is provided for). That is why the outcome is
+ * `string | null` rather than an exception.
  *
- * Проверок две, и обе обязательны. `isOwnedUrl` — anti-SSRF: URL приходит из
- * тела запроса, и без него ручка тянула бы произвольный хост (localhost,
- * cloud metadata) серверным fetch'ем. Магические байты — потому что источник
- * может отдать что угодно под любым content-type, а в бакет уйдёт файл, который
- * потом покажется в интерфейсе.
+ * There are two checks, and both are mandatory. `isOwnedUrl` is anti-SSRF: the URL
+ * comes from the request body, and without it the handler would pull an arbitrary
+ * host (localhost, cloud metadata) with a server-side fetch. The magic bytes —
+ * because the source can return anything under any content-type, while the file that
+ * goes into the bucket will later be shown in the interface.
  *
- * @param publish - Publish-адаптер хранилища.
- * @param sourceUrl - URL кадра страницы; null/пустой — копировать нечего.
- * @returns URL собственного файла шаблона либо null.
+ * @param publish - The storage's publish adapter.
+ * @param sourceUrl - The page frame's URL; null/empty — there is nothing to copy.
+ * @returns The URL of the template's own file, or null.
  */
 export async function copyThumbnailForTemplate(
     publish: Pick<IPublishAdapter, 'buildFileKey' | 'uploadFile' | 'isOwnedUrl'>,
@@ -125,19 +126,19 @@ export async function copyThumbnailForTemplate(
 }
 
 /**
- * Убирает файл превью удалённого шаблона.
+ * Removes the preview file of a deleted template.
  *
- * Best-effort и после удаления строки — по той же причине, что у фото профиля:
- * ссылки на файл больше нет, состояние, которое видит пользователь, верно, и
- * отказ хранилища не должен превращать успешное удаление в ошибку, повторить
- * которую уже нечем.
+ * Best-effort and after the row has been deleted — for the same reason as with a
+ * profile photo: there is no link to the file any more, the state the user sees is
+ * correct, and a storage failure must not turn a successful deletion into an error
+ * there is no longer anything to retry with.
  *
- * Проверка принадлежности идёт ВНУТРИ `try`: `isOwnedUrl` дефолтного адаптера
- * резолвит конфигурацию и бросает на несконфигурированном бакете — снаружи это
- * дало бы клиенту 500 на успешно удалённом шаблоне.
+ * The ownership check runs INSIDE the `try`: the default adapter's `isOwnedUrl`
+ * resolves the configuration and throws over an unconfigured bucket — outside the
+ * try that would give the client a 500 over a successfully deleted template.
  *
- * @param publish - Publish-адаптер хранилища.
- * @param url - Ссылка на файл; null/пустая — убирать нечего.
+ * @param publish - The storage's publish adapter.
+ * @param url - The link to the file; null/empty — there is nothing to remove.
  */
 export async function discardTemplateThumbnail(
     publish: Pick<IPublishAdapter, 'deleteFile' | 'isOwnedUrl'>,

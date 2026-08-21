@@ -8,13 +8,13 @@ import { createConcurrencyGate, GateOverflowError } from './concurrencyGate';
 
 // #region Data
 /**
- * Потолок пикселей входного изображения (защита от декомпрессионных бомб):
- * 100 МП покрывает любые реальные фото и в ~2.7 раза ниже дефолта sharp.
+ * The pixel ceiling of an input image (protection against decompression bombs):
+ * 100 MP covers any real photo and is ~2.7 times below the sharp default.
  */
 const MAX_INPUT_PIXELS = 100_000_000;
-/** Максимум одновременных sharp-конвертаций (декодирование держит память/CPU). */
+/** The cap on simultaneous sharp conversions (decoding holds memory/CPU). */
 const SHARP_MAX_CONCURRENT = 4;
-/** Максимум конвертаций, ожидающих слот; сверх — 503. */
+/** The cap on conversions waiting for a slot; above it — 503. */
 const SHARP_MAX_QUEUE = 32;
 const sharpGate = createConcurrencyGate({
     maxConcurrent: SHARP_MAX_CONCURRENT,
@@ -35,17 +35,17 @@ const SUPPORTED_IMAGE_EXTENSIONS = new Set([
     'svg',
 ]);
 /**
- * Форматы, которые браузер обязан показать сам, — и только для них имеет смысл
- * «Оригинал».
+ * The formats a browser must display on its own — and "Original" only
+ * makes sense for those.
  *
- * Принимаем мы больше (HEIC/HEIF, TIFF, BMP), но сохранение такого входа как
- * есть кончилось бы тем, что постепенная загрузка подменяет рабочее превью
- * неоткрываемым файлом: варианты сгенерированы в webp и видны, а полный — нет.
- * Для этих входов конвертация остаётся обязательной, даже если запрошен
- * «Оригинал».
+ * We accept more (HEIC/HEIF, TIFF, BMP), but storing such an input as it is
+ * would end with progressive loading replacing a working preview by a file that
+ * cannot be opened: the variants are generated in webp and are visible, while the
+ * full one is not. For these inputs the conversion stays mandatory even when
+ * "Original" is requested.
  */
 const WEB_SAFE_IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'avif', 'gif', 'svg']);
-/** MIME по расширению для файлов, сохраняемых без перекодирования. */
+/** MIME by extension for the files stored without re-encoding. */
 const IMAGE_EXTENSION_MIME: Record<string, string> = {
     jpg: 'image/jpeg',
     jpeg: 'image/jpeg',
@@ -56,10 +56,11 @@ const IMAGE_EXTENSION_MIME: Record<string, string> = {
 };
 const SUPPORTED_VIDEO_EXTENSIONS = new Set(['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv']);
 /**
- * MIME по контейнеру. `m4v` здесь есть, хотя в списке принимаемых расширений его
- * нет: тот же ISO-BMFF допускает его как имя целевого файла, и без строки в этой
- * карте MIME такого файла брался из клиентского заголовка — то есть в запись
- * уходила произвольная строка вместо типа, выведенного из содержимого.
+ * MIME by container. `m4v` is here even though the list of accepted extensions
+ * has none: the same ISO-BMFF allows it as the name of a target file, and without
+ * a row in this map such a file's MIME was taken from the client header — that is,
+ * an arbitrary string went into the record instead of the type derived from the
+ * content.
  */
 const VIDEO_EXTENSION_MIME: Record<string, string> = {
     mp4: 'video/mp4',
@@ -74,8 +75,9 @@ const VIDEO_EXTENSION_MIME: Record<string, string> = {
 
 // #region Helpers
 /**
- * Возвращает расширение файла в нижнем регистре без точки или пустую строку, если его нет.
- * @param filename Имя файла.
+ * Returns the file extension in lower case without the dot, or an empty string
+ * when there is none.
+ * @param filename The file name.
  */
 export function getFileExtension(filename?: string): string {
     if (!filename) {
@@ -93,26 +95,26 @@ export function getFileExtension(filename?: string): string {
 }
 
 /**
- * Нормализует данные загруженного файла в Buffer.
- * @param data Данные из multipart.
+ * Normalizes the uploaded file's data into a Buffer.
+ * @param data The data from multipart.
  */
 export function toBuffer(data: Buffer | string): Buffer {
     return Buffer.isBuffer(data) ? data : Buffer.from(data);
 }
 
 /**
- * Определяет, что файл является SVG, по MIME или расширению.
- * @param fileType MIME из загрузки.
- * @param extension Расширение в нижнем регистре.
+ * Decides that a file is an SVG, by MIME or by extension.
+ * @param fileType The MIME from the upload.
+ * @param extension The extension in lower case.
  */
 export function isSvgFile(fileType: string | undefined, extension: string): boolean {
     return fileType === 'image/svg+xml' || extension === 'svg';
 }
 
 /**
- * Проверяет, что загруженное содержимое — изображение (MIME или известное расширение).
- * @param fileType MIME из загрузки.
- * @param extension Расширение в нижнем регистре.
+ * Checks that the uploaded content is an image (MIME or a known extension).
+ * @param fileType The MIME from the upload.
+ * @param extension The extension in lower case.
  */
 export function isImageFile(fileType: string | undefined, extension: string): boolean {
     if (fileType?.startsWith('image/')) {
@@ -127,9 +129,9 @@ export function isImageFile(fileType: string | undefined, extension: string): bo
 }
 
 /**
- * Проверяет, что загруженное содержимое — видео (MIME или известное расширение).
- * @param fileType MIME из загрузки.
- * @param extension Расширение в нижнем регистре.
+ * Checks that the uploaded content is a video (MIME or a known extension).
+ * @param fileType The MIME from the upload.
+ * @param extension The extension in lower case.
  */
 export function isVideoFile(fileType: string | undefined, extension: string): boolean {
     if (fileType?.startsWith('video/')) {
@@ -144,29 +146,29 @@ export function isVideoFile(fileType: string | undefined, extension: string): bo
 }
 
 /**
- * Определяет MIME видеофайла по расширению.
- * @param extension Расширение в нижнем регистре.
- * @param fallbackType MIME из загрузки.
+ * Decides a video file's MIME by its extension.
+ * @param extension The extension in lower case.
+ * @param fallbackType The MIME from the upload.
  */
 export function resolveVideoMime(extension: string, fallbackType?: string): string {
     return VIDEO_EXTENSION_MIME[extension] ?? fallbackType ?? 'video/mp4';
 }
 
 /**
- * Разрешено ли сохранить вход как есть при запрошенном «Оригинале».
+ * Whether the input may be stored as it is when "Original" was requested.
  *
- * @param extension Расширение входного файла в нижнем регистре.
- * @returns true — формат web-safe и перекодирование не обязательно.
+ * @param extension The input file's extension in lower case.
+ * @returns true — the format is web-safe and re-encoding is not mandatory.
  */
 export function isWebSafeImageExtension(extension: string): boolean {
     return WEB_SAFE_IMAGE_EXTENSIONS.has(extension);
 }
 
 /**
- * Переводит ошибку переполнения очереди семафора sharp в 503, остальное
- * пробрасывает как есть.
+ * Turns an overflow of the sharp semaphore's queue into a 503 and rethrows
+ * everything else as it is.
  *
- * @param error Пойманная ошибка.
+ * @param error The caught error.
  */
 function rethrowSharpGateOverflow(error: unknown): never {
     if (error instanceof GateOverflowError) {
@@ -180,15 +182,15 @@ function rethrowSharpGateOverflow(error: unknown): never {
 }
 
 /**
- * Определяет, анимирован ли вход (GIF/WebP с несколькими кадрами).
+ * Decides whether the input is animated (a GIF/WebP with several frames).
  *
- * Нужно потому, что sharp по умолчанию берёт ПЕРВЫЙ кадр: оптимизация
- * анимированной гифки молча превращала бы её в статичную картинку. Такой вход
- * сохраняется как есть, а варианты для него остаются статичными — это видно и
- * объяснимо, в отличие от потерянной анимации.
+ * Needed because sharp takes the FIRST frame by default: optimizing an animated
+ * gif would silently turn it into a static picture. Such an input is stored as it
+ * is, and its variants stay static — that is visible and explainable, unlike lost
+ * animation.
  *
- * @param buffer Исходные байты изображения.
- * @returns true — кадров больше одного.
+ * @param buffer The image's source bytes.
+ * @returns true — there is more than one frame.
  */
 export async function isAnimatedImage(buffer: Buffer): Promise<boolean> {
     try {
@@ -202,8 +204,8 @@ export async function isAnimatedImage(buffer: Buffer): Promise<boolean> {
             rethrowSharpGateOverflow(error);
         }
 
-        // Нечитаемые метаданные — не повод отказать в загрузке: считаем вход
-        // статичным, дальше его всё равно проверит сама конвертация
+        // Unreadable metadata is no reason to refuse the upload: treat the
+        // input as static, the conversion itself will check it further on anyway
         console.warn('[Media] Failed to read image metadata:', error);
 
         return false;
@@ -211,18 +213,19 @@ export async function isAnimatedImage(buffer: Buffer): Promise<boolean> {
 }
 
 /**
- * Ресайзит источник (без увеличения) и кодирует в webp.
+ * Resizes the source (never enlarging) and encodes it into webp.
  *
- * Формата в параметрах нет: перекодирование в проекте одно — webp. Второй
- * целевой формат существовал бы только ради выбора в поповере, а вариантам
- * (`preview`/`mock`) он и тогда был не нужен — они всегда webp.
+ * There is no format among the parameters: the project has one re-encoding —
+ * webp. A second target format would exist only for the sake of a choice in the
+ * popover, and even then the variants (`preview`/`mock`) would not need it — they
+ * are always webp.
  *
- * Декодирование ограничено MAX_INPUT_PIXELS (декомпрессионные бомбы) и общим
- * семафором конкурентности; переполнение очереди семафора — 503.
+ * Decoding is bounded by MAX_INPUT_PIXELS (decompression bombs) and by the shared
+ * concurrency semaphore; an overflow of the semaphore's queue is a 503.
  *
- * @param buffer Исходные байты изображения.
- * @param optimization Ресайз и качество.
- * @returns Готовые байты, MIME, расширение и размеры результата.
+ * @param buffer The image's source bytes.
+ * @param optimization The resize and the quality.
+ * @returns The finished bytes, MIME, extension and the result's dimensions.
  */
 export async function optimizeImage(
     buffer: Buffer,
@@ -253,17 +256,19 @@ export async function optimizeImage(
 }
 
 /**
- * Читает размеры входа С УЧЁТОМ EXIF-ориентации — те, в которых изображение
- * видит браузер (ориентацию он применяет сам).
+ * Reads the input's dimensions WITH THE EXIF ORIENTATION APPLIED — the ones the
+ * browser sees the image in (it applies the orientation itself).
  *
- * Нужны кадрированию: рамку рисует человек по картинке на экране, а `metadata()`
- * отдаёт размеры до поворота. Сверяй рамку с ними — и у повёрнутой съёмкой
- * фотографии проверка границ считалась бы по перепутанным сторонам: законная
- * рамка отвергалась бы как выходящая за край, а невалидная проходила бы в
- * `extract`, который отказал бы уже своей ошибкой.
+ * Cropping needs them: the frame is drawn by a person over the picture on screen,
+ * while `metadata()` returns the dimensions before the rotation. Match the frame
+ * against those and for a photo shot rotated the bounds check would be computed
+ * over swapped sides: a legitimate frame would be rejected as out of bounds, and
+ * an invalid one would make it into `extract`, which would then refuse with an
+ * error of its own.
  *
- * @param buffer Исходные байты изображения.
- * @returns Размеры или null — sharp не смог их определить (вход не растр).
+ * @param buffer The image's source bytes.
+ * @returns The dimensions, or null — sharp could not determine them (the input is
+ * not a raster).
  */
 export async function readOrientedImageDimensions(
     buffer: Buffer
@@ -287,27 +292,29 @@ export async function readOrientedImageDimensions(
 }
 
 /**
- * Вырезает квадрат по рамке и кодирует его в webp заданной стороны.
+ * Cuts a square out along the frame and encodes it into webp of a given side.
  *
- * Порядок операций держится на том, что `autoOrient` — опция ВХОДА (sharp
- * применяет её при декодировании), поэтому `extract` работает в тех же
- * координатах, что видел человек, рисовавший рамку.
+ * The order of operations rests on `autoOrient` being an INPUT option (sharp
+ * applies it while decoding), so `extract` works in the same coordinates the
+ * person drawing the frame saw.
  *
- * Результат — один файл на все размеры показа: аватар выводится максимум в
- * 36 пикселей в углу и до сотни в профиле, и набор вариантов ради этого
- * означал бы три объекта в хранилище и три ссылки в колонке вместо одной.
- * Увеличение мелкой рамки до целевой стороны сознательно не запрещено: иначе
- * часть аватаров была бы меньше остальных, и угол экрана «прыгал» бы.
+ * The result is one file for every display size: an avatar is shown at 36 pixels
+ * at most in the corner and up to a hundred in the profile, and a set of variants
+ * for that would mean three objects in storage and three links in the column
+ * instead of one. Enlarging a small frame up to the target side is deliberately
+ * not forbidden: otherwise some avatars would be smaller than the rest, and the
+ * corner of the screen would "jump".
  *
- * Границы рамки обязан проверить вызывающий (см. `readOrientedImageDimensions`):
- * `extract` за краем отказывает своей ошибкой, которая наружу пойдёт
- * четырёхсотым «не удалось обработать» вместо внятного «рамка вне изображения».
+ * The caller must check the frame's bounds (see
+ * `readOrientedImageDimensions`): out of bounds `extract` refuses with an error of
+ * its own, which goes to the client as a 400 "failed to process" instead of a clear
+ * "the frame is outside the image".
  *
- * @param buffer Исходные байты изображения.
- * @param frame Квадратная рамка в координатах ориентированного изображения.
- * @param size Сторона результата в пикселях.
- * @param quality Качество webp-кодирования.
- * @returns Готовые байты, MIME, расширение и размеры результата.
+ * @param buffer The image's source bytes.
+ * @param frame The square frame in the oriented image's coordinates.
+ * @param size The result's side in pixels.
+ * @param quality The webp encoding quality.
+ * @returns The finished bytes, MIME, extension and the result's dimensions.
  */
 export async function cropSquareImage(
     buffer: Buffer,
@@ -343,10 +350,11 @@ export async function cropSquareImage(
 }
 
 /**
- * Читает пиксельные размеры файла, сохраняемого без перекодирования.
- * null — sharp не смог их определить (в том числе SVG без атрибутов размера).
+ * Reads the pixel dimensions of a file stored without re-encoding.
+ * null — sharp could not determine them (an SVG with no size attributes
+ * included).
  *
- * @param buffer Исходные байты изображения.
+ * @param buffer The image's source bytes.
  */
 export async function readImageDimensions(
     buffer: Buffer
@@ -369,10 +377,10 @@ export async function readImageDimensions(
 }
 
 /**
- * MIME файла, сохраняемого без перекодирования.
+ * The MIME of a file stored without re-encoding.
  *
- * @param extension Расширение в нижнем регистре.
- * @param fallbackType MIME из загрузки.
+ * @param extension The extension in lower case.
+ * @param fallbackType The MIME from the upload.
  */
 export function resolveImageMime(extension: string, fallbackType?: string): string {
     return IMAGE_EXTENSION_MIME[extension] ?? fallbackType ?? 'image/png';

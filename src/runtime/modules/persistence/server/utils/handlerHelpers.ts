@@ -1,5 +1,5 @@
 /**
- * Общие помощники для Nitro-ручек /api/bricks/** (parse → adapter → return).
+ * Shared helpers for the /api/bricks/** Nitro handlers (parse → adapter → return).
  */
 import { randomUUID } from 'node:crypto';
 import { createError, getHeader, getRouterParam, type H3Event } from 'h3';
@@ -17,22 +17,22 @@ import {
 } from './storageErrors';
 import { BricksLastActiveAdminError, BricksUsernameTakenError } from './authErrors';
 
-/** Строгий формат числового id: только цифры, без знака/дробей/хвостов ('1abc' ❌). */
+/** The strict format of a numeric id: digits only, no sign/fraction/tail ('1abc' ❌). */
 const NUMERIC_ID_PATTERN = /^\d+$/;
 
 /**
- * Лимит JSON-тела editorial-ручек: вдвое больше максимально валидного payload
- * (schema ограничена 2 МБ JSON в payloadValidation) — честные запросы проходят,
- * гигантские отбрасываются до буферизации.
+ * The JSON body limit of the editorial handlers: twice the largest valid payload
+ * (the schema is bounded to 2 MB of JSON in payloadValidation) — honest requests
+ * pass, giant ones are dropped ahead of buffering.
  */
 const MAX_JSON_BODY_BYTES = 4 * 1024 * 1024;
 
 /**
- * Достаёт числовой параметр роута; 400 — если это не positive safe integer.
+ * Pulls a numeric route parameter; 400 — when it is not a positive safe integer.
  *
- * @param event - Событие запроса.
- * @param paramName - Имя параметра роута (дефолт — 'id').
- * @returns Числовое значение параметра.
+ * @param event - The request event.
+ * @param paramName - The route parameter's name (the default is 'id').
+ * @returns The parameter's numeric value.
  */
 export function requireNumericId(event: H3Event, paramName = 'id'): number {
     const rawId = getRouterParam(event, paramName);
@@ -50,18 +50,18 @@ export function requireNumericId(event: H3Event, paramName = 'id'): number {
 }
 
 /**
- * Читает тело запроса (JSON, с лимитом размера — 413 до буферизации сверх
- * лимита) и нормализует top-level ключи snake_case → camelCase.
- * Вложенные объекты (включая `schema`) не трогаются. Проверяет только форму
- * «непустой объект» — типы/границы полей проверяют валидаторы
- * `payloadValidation.ts` в конкретных ручках.
+ * Reads the request body (JSON, with a size limit — 413 ahead of buffering beyond
+ * the limit) and normalizes the top-level keys snake_case → camelCase.
+ * Nested objects (`schema` included) are left alone. Checks the "non-empty object"
+ * shape only — the fields' types and bounds are checked by the
+ * `payloadValidation.ts` validators in the particular handlers.
  *
- * @param event - Событие запроса.
- * @returns Нормализованное тело запроса.
+ * @param event - The request event.
+ * @returns The normalized request body.
  */
 export async function readNormalizedBody<T>(event: H3Event): Promise<T> {
-    // Unsafe-запрос с не-JSON контентом (form/text) — типичный CSRF-вектор
-    // мимо preflight; требуем явный application/json
+    // An unsafe request with non-JSON content (form/text) is a typical CSRF
+    // vector past the preflight; an explicit application/json is required
     const contentType = getHeader(event, 'content-type') ?? '';
 
     if (!contentType.toLowerCase().includes('application/json')) {
@@ -84,23 +84,25 @@ export async function readNormalizedBody<T>(event: H3Event): Promise<T> {
 }
 
 /**
- * Глубина обхода цепочки `cause` при поиске остановки серверным лимитом
- * времени. Адаптер оборачивает такой отказ ровно один раз (вставка медиа —
- * в маркер отвергнутой записи), запас взят на будущие обёртки; ограничение
- * нужно, чтобы зацикленный `cause` не подвесил обработчик ошибки.
+ * The depth of the walk along the `cause` chain while looking for a stop by the
+ * server-side time limit. The adapter wraps such a refusal exactly once (a media
+ * insert — into the rejected-write marker), the margin is taken for future
+ * wrappers; the bound is needed so that a looped `cause` does not hang the error
+ * handler.
  */
 const CAUSE_LOOKUP_DEPTH = 3;
 
 /**
- * Ищет остановку запроса серверным лимитом времени в самой ошибке и в её
- * причинах.
+ * Looks for a stop of the query by the server-side time limit in the error itself
+ * and in its causes.
  *
- * Обход цепочки нужен потому, что адаптер оборачивает отказ вставки в маркер
- * отвергнутой записи: без него загрузка вместо честного 504 с машиночитаемым
- * кодом отдавала бы generic 500, а повтор выглядел бы бессмысленным.
+ * The walk along the chain is needed because the adapter wraps a failed insert into
+ * the rejected-write marker: without it an upload would return a generic 500
+ * instead of an honest 504 with a machine-readable code, and a retry would look
+ * pointless.
  *
- * @param error - Пойманная ошибка.
- * @returns Найденная ошибка лимита времени или null.
+ * @param error - The caught error.
+ * @returns The time limit error found, or null.
  */
 function findStatementTimeoutError(error: unknown): BricksStatementTimeoutError | null {
     let current = error;
@@ -121,21 +123,22 @@ function findStatementTimeoutError(error: unknown): BricksStatementTimeoutError 
 }
 
 /**
- * Перебрасывает h3-ошибки как есть, остальное логирует и заворачивает в 500.
+ * Rethrows h3 errors as they are, logs everything else and wraps it into a 500.
  *
- * Внутреннее сообщение ошибки (pg/адаптеры могут содержать детали SQL и
- * инфраструктуры) наружу не отдаётся: клиент получает generic envelope с
- * `data.errorId`, полная ошибка с тем же errorId уходит в server-лог —
- * корреляция ответа и лога по идентификатору.
+ * The error's internal message (pg and the adapters can carry SQL and
+ * infrastructure details) is never handed outward: the client gets a generic
+ * envelope with a `data.errorId`, and the full error with that same errorId goes
+ * into the server log — the response and the log correlate by the identifier.
  *
- * Исключение — остановка запроса серверным лимитом времени: generic 500 выдавал
- * бы её за внутреннюю поломку, хотя причина известна и повтор осмыслен, поэтому
- * она отдаётся отдельным статусом с машиночитаемым кодом (текст выбирает
- * клиент). 504, а не 503: недоступен не сервис целиком, а upstream не успел
- * ответить в отведённое время.
+ * The exception is a stop of the query by the server-side time limit: a generic 500
+ * would pass it off as an internal breakage, although the cause is known and a
+ * retry makes sense, so it is returned with a status of its own and a
+ * machine-readable code (the text is chosen by the client). A 504 rather than a
+ * 503: it is not the whole service that is unavailable — the upstream did not
+ * manage to answer within the time given.
  *
- * @param error - Пойманная ошибка.
- * @param fallbackMessage - Сообщение для 500-ответа.
+ * @param error - The caught error.
+ * @param fallbackMessage - The message for the 500 response.
  */
 export function toHttpError(error: unknown, fallbackMessage: string): never {
     if (error && typeof error === 'object' && 'statusCode' in error) {
@@ -143,7 +146,7 @@ export function toHttpError(error: unknown, fallbackMessage: string): never {
     }
 
     if (findStatementTimeoutError(error)) {
-        console.error('[Bricks API] Query cancelled by the server statement timeout:', error);
+        console.error('[Bricks API] Query canceled by the server statement timeout:', error);
 
         throw createError({
             statusCode: 504,
@@ -163,16 +166,17 @@ export function toHttpError(error: unknown, fallbackMessage: string): never {
 }
 
 /**
- * Пробрасывает остановку запроса серверным лимитом времени как готовую
- * HTTP-ошибку; прочие ошибки оставляет вызывающему.
+ * Rethrows a stop of the query by the server-side time limit as a ready HTTP
+ * error; leaves every other error to the caller.
  *
- * Нужен там, где общий `catch` иначе подменил бы её своим статусом и потерял бы
- * машиночитаемый код: middleware авторизации отвечает 503 на любую ошибку
- * хранилища сессий, media-прокси — 500. В database-режиме сессия читается перед
- * КАЖДЫМ защищённым запросом, то есть без этого проброса самый вероятный путь
- * отказа доходил бы до пользователя чужим статусом и англоязычным текстом.
+ * Needed where a shared `catch` would otherwise replace it with a status of its own
+ * and lose the machine-readable code: the authorization middleware answers 503 to
+ * any error of the session storage, the media proxy — 500. In database mode the
+ * session is read before EVERY protected request, that is, without this rethrow the
+ * most likely failure path would reach the user with a foreign status and an
+ * English text.
  *
- * @param error - Пойманная ошибка.
+ * @param error - The caught error.
  */
 export function rethrowStatementTimeoutError(error: unknown): void {
     if (error instanceof BricksStatementTimeoutError) {
@@ -181,19 +185,21 @@ export function rethrowStatementTimeoutError(error: unknown): void {
 }
 
 /**
- * Маппит доменные конфликты storage-слоя (create/update страницы) на 409
- * с машиночитаемым `data.code`; остальное — через toHttpError.
+ * Maps the storage layer's domain conflicts (a page create/update) onto a 409 with
+ * a machine-readable `data.code`; everything else goes through toHttpError.
  *
- * @param error - Пойманная ошибка.
- * @param fallbackMessage - Сообщение для 500-ответа.
+ * @param error - The caught error.
+ * @param fallbackMessage - The message for the 500 response.
  */
 export function toPageHttpError(error: unknown, fallbackMessage: string): never {
     if (error instanceof BricksPageAddressConflictError) {
         throw createError({
             statusCode: 409,
-            // Про адрес, а не про имя: уникальна пара `urlPrefix + pagename`, и
-            // конфликт мог возникнуть от смены одного префикса. Проволочный код
-            // (`PAGENAME_CONFLICT`) остаётся прежним — он часть внешнего контракта
+            // About the address rather than the name: it is the pair
+            // `urlPrefix + pagename` that is unique, and the conflict could have
+            // arisen from a change of the prefix alone. The wire code
+            // (`PAGENAME_CONFLICT`) stays as it was — it is part of the external
+            // contract
             statusMessage: 'Page with this address already exists',
             data: { code: PAGE_CONFLICT_CODES.pagename },
         });
@@ -211,15 +217,16 @@ export function toPageHttpError(error: unknown, fallbackMessage: string): never 
 }
 
 /**
- * Маппит занятое имя шаблона на 409 с машиночитаемым `data.code`; остальное —
- * через toHttpError.
+ * Maps a taken template name onto a 409 with a machine-readable `data.code`;
+ * everything else goes through toHttpError.
  *
- * 409, а не 400: с запросом всё в порядке, отказано состоянию системы (имя уже
- * занято другим шаблоном), и клиент по коду подставляет подсказку под поле
- * формы вместо общего текста ошибки.
+ * A 409 rather than a 400: there is nothing wrong with the request, it is the
+ * system's state that was refused (the name is already taken by another template),
+ * and by the code the client puts a hint under the form's field instead of a
+ * general error text.
  *
- * @param error - Пойманная ошибка.
- * @param fallbackMessage - Сообщение для 500-ответа.
+ * @param error - The caught error.
+ * @param fallbackMessage - The message for the 500 response.
  */
 export function toTemplateHttpError(error: unknown, fallbackMessage: string): never {
     if (error instanceof BricksTemplateNameConflictError) {
@@ -234,16 +241,17 @@ export function toTemplateHttpError(error: unknown, fallbackMessage: string): ne
 }
 
 /**
- * Маппит отсутствующую категорию медиа на 400 с машиночитаемым `data.code`;
- * остальное — через toHttpError.
+ * Maps a missing media category onto a 400 with a machine-readable `data.code`;
+ * everything else goes through toHttpError.
  *
- * Отдельным помощником, а не веткой общего `toHttpError`: категории — правило
- * одного домена, и знание о нём в маппере всех ручек проекта не к месту.
- * Источник ошибки при этом не важен — ранняя проверка ручки и FK базы, поймавший
- * гонку с удалением категории, дают клиенту один и тот же ответ.
+ * A helper of its own rather than a branch of the shared `toHttpError`: categories
+ * are one domain's rule, and knowledge of it is out of place in the mapper of every
+ * handler in the project. The error's source does not matter here — the handler's
+ * early check and the database FK that caught a race with the category's deletion
+ * give the client one and the same answer.
  *
- * @param error - Пойманная ошибка.
- * @param fallbackMessage - Сообщение для 500-ответа.
+ * @param error - The caught error.
+ * @param fallbackMessage - The message for the 500 response.
  */
 export function toMediaHttpError(error: unknown, fallbackMessage: string): never {
     if (error instanceof BricksUnknownMediaCategoryError) {
@@ -258,14 +266,15 @@ export function toMediaHttpError(error: unknown, fallbackMessage: string): never
 }
 
 /**
- * Маппит доменные отказы управления учётками на 409 с машиночитаемым
- * `data.code`; остальное — через toHttpError.
+ * Maps the domain refusals of account management onto a 409 with a machine-readable
+ * `data.code`; everything else goes through toHttpError.
  *
- * 409, а не 403: права у запроса есть, отказано состоянию системы (последний
- * администратор, занятый логин), и клиент показывает разные объяснения — по коду.
+ * A 409 rather than a 403: the request does have the rights, it is the system's
+ * state that was refused (the last administrator, a taken username), and the client
+ * shows different explanations — by the code.
  *
- * @param error - Пойманная ошибка.
- * @param fallbackMessage - Сообщение для 500-ответа.
+ * @param error - The caught error.
+ * @param fallbackMessage - The message for the 500 response.
  */
 export function toUsersHttpError(error: unknown, fallbackMessage: string): never {
     if (error instanceof BricksLastActiveAdminError) {

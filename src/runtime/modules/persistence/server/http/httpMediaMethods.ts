@@ -1,12 +1,11 @@
 /**
- * Медиа-часть HTTP-адаптера external backend: записи медиа и категории.
+ * The media part of the external backend's HTTP adapter: media records and categories.
+ * Mixed into the adapter with a spread; why the half is split off and why its name is
+ * shared with the Postgres implementation — `TStorageMediaMethods` in
+ * `types/adapters.d.ts`.
  *
- * Отдельным файлом от `httpStorageAdapter.ts` по шву домена — страницы и медиа не
- * пересекаются ни одним запросом, а вместе файл перерастал потолок в 500 строк.
- * Адаптер собирает контракт спредом этих методов.
- *
- * Контракт ручек — зеркало локальных `/api/bricks/media/**`:
- * см. docs/external-backend-contract.md.
+ * The endpoints' contract mirrors the local `/api/bricks/media/**`:
+ * see docs/external-backend-contract.md.
  */
 import type { IBackendHttpClient } from './httpClient';
 import {
@@ -28,14 +27,15 @@ import type {
 import type { IMediaCategory, IMediaItem } from '../../../common/types/media';
 
 /**
- * Создаёт медиа-часть HTTP-адаптера.
+ * Creates the media part of the HTTP adapter.
  *
- * @param client - HTTP-клиент external backend.
- * @returns Медиа-методы контракта хранилища.
+ * @param client - The external backend's HTTP client.
+ * @returns The media methods of the storage contract.
  */
 export function createHttpMediaMethods(client: IBackendHttpClient): TStorageMediaMethods {
     /**
-     * Список медиа external backend — общий примитив list+find lookup'ов.
+     * The external backend's media list — the shared primitive of the list+find
+     * lookups.
      */
     async function fetchMediaList(): Promise<IMediaItem[]> {
         const raw = await client.request('GET', 'media');
@@ -44,8 +44,8 @@ export function createHttpMediaMethods(client: IBackendHttpClient): TStorageMedi
     }
 
     /**
-     * Список категорий external backend — общий примитив листинга и разрешения
-     * конфликта при создании.
+     * The external backend's category list — the shared primitive of the listing and
+     * of resolving a conflict on creation.
      */
     async function fetchMediaCategoryList(): Promise<IMediaCategory[]> {
         const raw = await client.request('GET', 'media/categories');
@@ -58,17 +58,17 @@ export function createHttpMediaMethods(client: IBackendHttpClient): TStorageMedi
 
     return {
         /**
-         * Все медиа-записи (`GET {base}/media`): плоский массив либо envelope
-         * `{ items }` (формат локальной ручки).
+         * Every media record (`GET {base}/media`): a flat array or an `{ items }`
+         * envelope (the local endpoint's format).
          */
         async listMedia(): Promise<IMediaItem[]> {
             return fetchMediaList();
         },
 
         /**
-         * Медиа-запись по id — list+find (низкочастотный вызов: delete
-         * orchestration, media proxy). Известное ограничение O(N) на больших
-         * медиатеках; point-lookup ручка — follow-up контракта.
+         * A media record by id — a list+find (the delete orchestration). A known O(N)
+         * limitation over large media libraries; a point-lookup endpoint is a
+         * follow-up of the contract.
          */
         async getMedia(id: number): Promise<IMediaItem | null> {
             const items = await fetchMediaList();
@@ -77,8 +77,10 @@ export function createHttpMediaMethods(client: IBackendHttpClient): TStorageMedi
         },
 
         /**
-         * Медиа-запись по URL — list+find (низкочастотный вызов: дедупликация
-         * импорта из бакета).
+         * A media record by URL — a list+find. Two callers: deduplication of the
+         * import from the bucket, and the media proxy, which resolves every canvas
+         * snapshot image through it — so over a large library this walks the whole
+         * list on a hot path.
          */
         async getMediaByUrl(url: string): Promise<IMediaItem | null> {
             const items = await fetchMediaList();
@@ -87,11 +89,11 @@ export function createHttpMediaMethods(client: IBackendHttpClient): TStorageMedi
         },
 
         /**
-         * Регистрирует метаданные медиа (`POST {base}/media` —
-         * server-to-server-only ручка контракта, binary не передаётся).
-         * Идемпотентность по `url` — обязанность external-сервера; 409 от
-         * backend'а дополнительно разруливается повторным чтением по url
-         * (гонка импорта/ретрай), как в Postgres-адаптере.
+         * Registers media metadata (`POST {base}/media` — a server-to-server-only
+         * endpoint of the contract, no binary is passed).
+         * Idempotency by `url` is the external server's duty; a 409 from the backend
+         * is additionally resolved by reading again by url (an import race/a retry),
+         * as in the Postgres adapter.
          */
         async createMedia(payload: ICreateMediaPayload): Promise<IMediaItem> {
             try {
@@ -120,7 +122,7 @@ export function createHttpMediaMethods(client: IBackendHttpClient): TStorageMedi
         },
 
         /**
-         * Обновляет метаданные медиа (`PATCH {base}/media/:id`); 404 → null.
+         * Updates media metadata (`PATCH {base}/media/:id`); a 404 → null.
          */
         async updateMedia(id: number, payload: TUpdateMediaPayload): Promise<IMediaItem | null> {
             try {
@@ -141,10 +143,10 @@ export function createHttpMediaMethods(client: IBackendHttpClient): TStorageMedi
         },
 
         /**
-         * Удаляет медиа-запись (`DELETE {base}/media/:id`); 404 → false.
-         * File-first порядок удаления файла обеспечивает локальный handler
-         * (mediaOrchestration.deleteMediaWithFile) — external получает только
-         * удаление метаданных.
+         * Deletes a media record (`DELETE {base}/media/:id`); a 404 → false.
+         * The file-first order of the file's deletion is provided by the local handler
+         * (mediaOrchestration.deleteMediaWithFile) — the external one only gets the
+         * deletion of the metadata.
          */
         async deleteMedia(id: number): Promise<boolean> {
             try {
@@ -161,21 +163,21 @@ export function createHttpMediaMethods(client: IBackendHttpClient): TStorageMedi
         },
 
         /**
-         * Категории медиатеки (`GET {base}/media/categories`): плоский массив
-         * либо envelope `{ items }` — тот же разбор, что у списка медиа.
+         * The media library's categories (`GET {base}/media/categories`): a flat array
+         * or an `{ items }` envelope — the same parsing as the media list's.
          *
-         * Отказ не подменяется системным набором: галерея без категорий выглядит
-         * рабочей, и «категории не сохраняются» читалось бы как дефект UI, а не
-         * как нереализованная ручка контракта.
+         * A failure is not substituted by a system set: a gallery with no categories
+         * looks like a working one, and "the categories are not saved" would read as a
+         * UI defect rather than as an unimplemented endpoint of the contract.
          */
         async listMediaCategories(): Promise<IMediaCategory[]> {
             return fetchMediaCategoryList();
         },
 
         /**
-         * Создаёт категорию (`POST {base}/media/categories`). Идемпотентность по
-         * `slug` — обязанность external-сервера (как и у createMedia); 409
-         * разруливается повторным чтением списка.
+         * Creates a category (`POST {base}/media/categories`). Idempotency by `slug`
+         * is the external server's duty (as it is for createMedia); a 409 is resolved
+         * by reading the list again.
          */
         async createMediaCategory(payload: ICreateMediaCategoryPayload): Promise<IMediaCategory> {
             try {
@@ -200,13 +202,13 @@ export function createHttpMediaMethods(client: IBackendHttpClient): TStorageMedi
         },
 
         /**
-         * Удаляет категорию, сняв её с файлов
-         * (`DELETE {base}/media/categories/:slug`); 404 → null.
+         * Deletes a category, clearing it off the files
+         * (`DELETE {base}/media/categories/:slug`); a 404 → null.
          *
-         * Атомарность обеих половин — обязанность external-сервера: локальная
-         * сторона не может обернуть чужие две записи в транзакцию, и разбивать
-         * операцию на два HTTP-вызова означало бы окно, в котором категория с
-         * файлов уже снята, а сама категория осталась.
+         * The atomicity of both halves is the external server's duty: the local side
+         * cannot wrap somebody else's two writes into a transaction, and splitting the
+         * operation into two HTTP calls would mean a window in which the category has
+         * already been cleared off the files while the category itself remains.
          */
         async deleteMediaCategory(slug: string): Promise<TDeleteMediaCategoryResult> {
             try {

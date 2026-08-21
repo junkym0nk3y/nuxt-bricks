@@ -1,15 +1,16 @@
 /**
- * Оркестрация отката страницы к сохранённой версии (POST .../restore).
+ * Orchestration of rolling a page back to a saved version (POST .../restore).
  *
- * Применяет schema + layout + backgroundColor + thumbnailUrl + набор устройств:
- * pagename/title/SEO/published не трогает (нет конфликтов уникальности pagename
- * и неожиданных SEO-откатов). Идёт через storage.updatePage, который сам снапшотит текущее
- * состояние перед откатом («откат отката» бесплатно) и применяет optimistic
- * locking по expectedRevision — несовпадение бросает BricksRevisionConflictError
- * (маппится на 409 REVISION_CONFLICT в toPageHttpError на ручке).
+ * Applies the schema + layout + backgroundColor + thumbnailUrl + the device set:
+ * pagename/title/SEO/published are left alone (no pagename uniqueness conflicts and
+ * no unexpected SEO rollbacks). Goes through storage.updatePage, which snapshots the
+ * current state before the rollback itself (an "undo of the undo" for free) and
+ * applies optimistic locking by expectedRevision — a mismatch throws
+ * BricksRevisionConflictError (mapped onto a 409 REVISION_CONFLICT in toPageHttpError
+ * at the handler).
  *
- * Зависимость передаётся параметром (узкий Pick-контракт) — логика
- * тестируется юнитом без реального Postgres (паттерн mediaOrchestration.ts).
+ * The dependency is passed as a parameter (a narrow Pick contract) — the logic is
+ * unit-tested without a real Postgres (the mediaOrchestration.ts pattern).
  */
 import { createError } from 'h3';
 import type { IBricksPageRow } from '../../../common/types/bricks-api';
@@ -19,38 +20,24 @@ import { validateSchemaComponentGraph } from '../../../common/utils/bricks/schem
 import { validateDeviceSet } from '../../../common/utils/bricks/devices';
 
 /**
- * Зависимости оркестрации отката версии страницы.
+ * The dependencies of the page version rollback orchestration.
  */
 export interface IPageVersionRestoreDeps {
     storage: Pick<IStorageAdapter, 'getPageVersion' | 'updatePage'>;
 }
 
 /**
- * Откатывает страницу к указанной версии с проверкой revision-precondition.
+ * Checks the device set stored in the version before the rollback.
  *
- * @param deps - Storage-адаптер (узкий контракт).
- * @param pageId - Идентификатор страницы.
- * @param versionId - Идентификатор версии (обязана принадлежать pageId).
- * @param expectedRevision - Precondition optimistic locking.
- * @returns Обновлённая страница.
- * @throws h3-ошибка 404 — версия или страница не найдены;
- * h3-ошибка 400 — сохранённая версия содержит схему, не проходящую
- * структурный контракт графа компонентов (см. schemaContract.ts) —
- * такую версию нельзя откатывать, не восстанавливая при этом сломанный рендер;
- * BricksRevisionConflictError — precondition не совпал с текущей revision.
- */
-/**
- * Проверяет сохранённый в версии набор устройств перед откатом.
+ * A corrupted set is a refusal rather than a silent replacement by inheritance: the
+ * `props.responsive` keys in the version's schema belong to its set, and restoring the
+ * schema without it means returning the page to a state where the blocks' overrides
+ * point at nonexistent steps. That is exactly why the set is stored in the version.
+ * A schema with a broken contract is rejected right alongside it for the same reason.
  *
- * Повреждённый набор — отказ, а не тихая замена на наследование: ключи
- * `props.responsive` в схеме версии относятся к её набору, и восстановить схему
- * без него значит вернуть страницу в состояние, где переопределения блоков
- * указывают на несуществующие ступени. Ровно от этого набор в версии и хранится.
- * Схема с битым контрактом отвергается тут же рядом по той же причине.
- *
- * @param stored - Значение `viewport_config` из снимка версии.
- * @returns Набор устройств либо `null` (версия наследующей страницы).
- * @throws h3-ошибка 400 — сохранённый набор не проходит контракт.
+ * @param stored - The `viewport_config` value from the version's snapshot.
+ * @returns The device set, or `null` (a version of an inheriting page).
+ * @throws An h3 400 error — the stored set does not pass the contract.
  */
 function resolveStoredViewportConfig(stored: unknown): TBricksPageDeviceSet | null {
     if (stored === null || stored === undefined) {
@@ -71,6 +58,20 @@ function resolveStoredViewportConfig(stored: unknown): TBricksPageDeviceSet | nu
     return validation.value;
 }
 
+/**
+ * Rolls a page back to the given version, checking the revision precondition.
+ *
+ * @param deps - The storage adapter (a narrow contract).
+ * @param pageId - The page identifier.
+ * @param versionId - The version identifier (must belong to pageId).
+ * @param expectedRevision - The optimistic locking precondition.
+ * @returns The updated page.
+ * @throws An h3 404 error — the version or the page was not found;
+ * an h3 400 error — the stored version carries a schema failing the structural
+ * contract of the component graph (see schemaContract.ts) — such a version cannot be
+ * rolled back to without restoring a broken render along with it;
+ * BricksRevisionConflictError — the precondition did not match the current revision.
+ */
 export async function restorePageVersion(
     deps: IPageVersionRestoreDeps,
     pageId: number,
@@ -99,17 +100,18 @@ export async function restorePageVersion(
         });
     }
 
-    // Превью едет вместе со схемой, включая `null`: содержимое страницы после
-    // отката — содержимое версии, и прежний кадр показывал бы то, чего на
-    // странице больше нет. У версии без снимка честнее плейсхолдер, чем чужая
-    // картинка; страница получит свой кадр на первом же сохранении из билдера.
-    // Кадр состояния, которое откат вытесняет, не теряется — его уносит
-    // снапшот, который updatePage делает перед записью.
-    // Набор устройств едет вместе со схемой: ключи `props.responsive` в снимке
-    // относятся к тому набору, при котором его сняли, и откат схемы без набора
-    // дал бы страницу, где переопределения блоков указывают на несуществующие
-    // ступени. `null` восстанавливается как есть — версия наследующей страницы
-    // остаётся наследующей
+    // The preview travels along with the schema, `null` included: the page's content
+    // after the rollback is the version's content, and the former frame would show
+    // what is no longer on the page. For a version with no snapshot a placeholder is
+    // more honest than somebody else's picture; the page will get a frame of its own
+    // at the very first save from the builder. The frame of the state the rollback
+    // pushes out is not lost — it is carried off by the snapshot updatePage makes
+    // before the write.
+    // The device set travels along with the schema: the `props.responsive` keys in the
+    // snapshot belong to the set it was taken under, and a rollback of the schema
+    // without the set would give a page where the blocks' overrides point at
+    // nonexistent steps. `null` is restored as it is — a version of an inheriting page
+    // stays inheriting
     const restoredViewportConfig = resolveStoredViewportConfig(version.viewportConfig);
 
     const result = await deps.storage.updatePage(pageId, {

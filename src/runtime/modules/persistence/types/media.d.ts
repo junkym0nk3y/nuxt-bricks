@@ -1,11 +1,15 @@
 /**
- * Серверные типы обработки медиа (upload, оптимизация, валидация).
- * Контрактные data-типы (IMediaItem, ответы API) живут в common/types/media.d.ts,
- * там же — форма параметров оптимизации: она общая у клиента и сервера.
+ * The server-side types of media processing (upload, optimization, validation).
+ * The contract data types (IMediaItem, the API responses) live in
+ * common/types/media.d.ts, and so does the shape of the optimization parameters: it is
+ * shared between the client and the server.
  */
 import type { IBricksMediaOptimization } from '../../common/types/media';
 
-/** Часть multipart-формы, прочитанной с лимитом (структурно совместима с h3 MultiPartData). */
+/**
+ * A part of a multipart form read with a limit (structurally compatible with h3's
+ * MultiPartData).
+ */
 export interface IUploadedFilePart {
     name?: string;
     filename?: string;
@@ -14,22 +18,24 @@ export interface IUploadedFilePart {
 }
 
 /**
- * Уменьшенные варианты растра для постепенной загрузки.
+ * The downscaled raster variants for progressive loading.
  *
- * Живёт здесь, а не рядом с политикой имён в `server/utils/mediaVariants.ts`:
- * этот файл описывает форму данных, и импорт типа ИЗ серверного рантайма
- * переворачивал бы зависимость — декларации начинали зависеть от реализации, а
- * перенос утилиты ломал бы сами декларации.
+ * Lives here rather than next to the naming policy in
+ * `server/utils/mediaVariants.ts`: this file describes the data's shape, and importing
+ * a type FROM the server runtime would invert the dependency — the declarations would
+ * start depending on the implementation, and moving the utility would break the
+ * declarations themselves.
  */
 export type TMediaVariant = 'preview' | 'mock';
 
 /**
- * Сырые поля оптимизации из multipart-формы: переопределения на одну загрузку.
+ * The raw optimization fields from the multipart form: overrides for one upload.
  *
- * Именно строки, а не числа: отличать «поле не пришло» от «пришло непригодное»
- * должен разбор запроса, а не вызывающий. Пока это делала ручка, разобранное ею
- * значение было уже неотличимо от дефолта конфига, и границы поля ввода
- * накрывали конфиг заодно с запросом.
+ * Strings specifically rather than numbers: telling "the field did not arrive" from
+ * "an unusable one arrived" is the request's parsing job, not the caller's. While the
+ * handler did it, the value it had parsed was already indistinguishable from the
+ * config's default, and the input field's bounds covered the config along with the
+ * request.
  */
 export interface IMediaOptimizationRequestFields {
     format?: string;
@@ -46,18 +52,18 @@ export interface IResolvedMediaConfig {
 }
 
 /**
- * Подготовленный к загрузке файл: результат валидации и обработки одного
- * multipart-файла, который ручка загрузки передаёт оркестрации.
+ * A file prepared for upload: the result of validating and processing one multipart
+ * file, which the upload handler passes to the orchestration.
  */
 export interface IPreparedUpload {
     buffer: Buffer;
     mimeType: string;
     targetExtension: string;
     svgContent: string | null;
-    /** Пиксельные размеры полного файла; null у SVG и видео. */
+    /** The full file's pixel dimensions; null for an SVG and a video. */
     width: number | null;
     height: number | null;
-    /** Уменьшенные варианты постепенной загрузки (без имён объектов). */
+    /** The downscaled variants of progressive loading (with no object names). */
     variants: Partial<Record<TMediaVariant, IOptimizedImage>>;
 }
 
@@ -67,38 +73,43 @@ export interface IValidatedVideo {
     targetExtension: string;
 }
 
-/** Готовый к загрузке уменьшенный вариант растра. */
+/** A downscaled raster variant ready for upload. */
 export interface IUploadMediaVariant {
     buffer: Buffer;
     mimeType: string;
-    /** Server-generated имя объекта варианта (`uuid-preview.webp`). */
+    /** The server-generated object name of the variant (`uuid-preview.webp`). */
     storedFilename: string;
 }
 
 /**
- * Квадратная рамка кадрирования в пикселях входного изображения — уже с
- * применённой EXIF-ориентацией, то есть в тех же координатах, в которых
- * фотографию видит браузер (он ориентацию применяет сам).
+ * The square cropping frame in the input image's pixels — with the EXIF orientation
+ * already applied, that is, in the same coordinates the browser sees the photo in (it
+ * applies the orientation itself).
  */
 export interface IImageCropFrame {
     left: number;
     top: number;
-    /** Сторона квадрата: аватар квадратный, и вторая сторона была бы копией. */
+    /** The square's side: an avatar is square, and a second side would be a copy. */
     side: number;
 }
 
-/** Пиксельные размеры изображения; null — sharp не смог их определить. */
+/**
+ * An image's pixel dimensions, both known. The readers return `… | null` and use the
+ * `null` for "sharp could not determine them" — the shape itself carries no absence.
+ */
 export interface IImageDimensions {
     width: number;
     height: number;
 }
 
-/** Результат обработки растра: готовые байты и то, чем он оказался. */
+/**
+ * The result of processing a raster: the finished bytes and what it turned out to be.
+ */
 export interface IOptimizedImage {
     buffer: Buffer;
     mimeType: string;
     extension: string;
-    /** Пиксельные размеры результата; null — sharp не смог их определить. */
+    /** The result's pixel dimensions; null — sharp could not determine them. */
     width: number | null;
     height: number | null;
 }
@@ -108,13 +119,16 @@ export interface IValidatedImage {
     mimeType: string;
     targetExtension: string;
     isSvg: boolean;
-    /** Размеры полного файла; null у SVG (векторные размеры к пикселям не сводятся). */
+    /**
+     * The full file's dimensions; null for an SVG (vector dimensions do not reduce to
+     * pixels).
+     */
     width: number | null;
     height: number | null;
     /**
-     * Уменьшенные варианты постепенной загрузки. Пустой объект — вариантов нет
-     * (SVG, либо sharp не справился с этим входом): потребитель обязан в таком
-     * случае показывать полный файл сразу.
+     * The downscaled variants of progressive loading. An empty object — there are no
+     * variants (an SVG, or sharp did not manage this input): the consumer must then
+     * show the full file right away.
      */
     variants: Partial<Record<TMediaVariant, IOptimizedImage>>;
 }

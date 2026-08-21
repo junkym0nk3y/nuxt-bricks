@@ -1,12 +1,13 @@
 /**
- * Оркестрация парных операций «файл хранилища + запись БД» для медиа.
+ * Orchestration of the paired "storage file + database record" operations for
+ * media.
  *
- * Сервер владеет обеими половинами операции целиком (клиент делает один
- * запрос) — прежний двухэтапный клиентский флоу (s3-ручки + /api/bricks/media)
- * оставлял сирот при падении второго шага и рапортовал успех при ошибке.
+ * The server owns both halves of the operation in full (the client makes one
+ * request) — the former two-step client flow (the s3 handlers + /api/bricks/media)
+ * left orphans behind when the second step failed and reported success on an error.
  *
- * Зависимости передаются параметром (узкие Pick-контракты) — логика
- * тестируется юнитами без реальных Postgres/S3.
+ * The dependencies are passed as a parameter (narrow Pick contracts) — the logic is
+ * unit-tested without a real Postgres or S3.
  */
 import { createError } from 'h3';
 import type { IMediaItem } from '../../../common/types/media';
@@ -15,7 +16,7 @@ import type { IUploadMediaVariant, TMediaVariant } from '../../types/media';
 import { BricksStorageWriteRejectedError } from './storageErrors';
 
 /**
- * Зависимости оркестрации медиа.
+ * The dependencies of the media orchestration.
  */
 export interface IMediaOrchestrationDeps {
     storage: Pick<IStorageAdapter, 'getMedia' | 'createMedia' | 'deleteMedia'>;
@@ -23,37 +24,43 @@ export interface IMediaOrchestrationDeps {
 }
 
 /**
- * Параметры регистрации загруженного медиа-файла.
+ * The parameters for registering an uploaded media file.
  */
 export interface IUploadMediaParams {
-    /** Готовый к загрузке буфер (после оптимизации/валидации). */
+    /** The buffer ready to be uploaded (after optimization/validation). */
     buffer: Buffer;
     mimeType: string;
-    /** Server-generated имя объекта (`uuid.ext`) — клиентские имена в ключ не попадают. */
+    /**
+     * The server-generated object name (`uuid.ext`) — client names never make it into
+     * the key.
+     */
     storedFilename: string;
-    /** Отображаемое имя файла для медиа-библиотеки. */
+    /** The file's display name for the media library. */
     displayFilename: string;
-    /** null — загрузка без выбранной категории. */
+    /** null — an upload with no category chosen. */
     category: string | null;
-    /** Уже санитизированная SVG-разметка (политика записи — на ручке). */
+    /** Already sanitized SVG markup (the write policy is the handler's). */
     svgContent?: string | null;
-    /** Пиксельные размеры полного файла; null у SVG и видео. */
+    /** The full file's pixel dimensions; null for an SVG and a video. */
     width?: number | null;
     height?: number | null;
-    /** Уменьшенные варианты постепенной загрузки; пустой объект — вариантов нет. */
+    /**
+     * The downscaled variants of progressive loading; an empty object — no variants.
+     */
     variants?: Partial<Record<TMediaVariant, IUploadMediaVariant>>;
 }
 
 /**
- * Загружает вариант в хранилище публикации best-effort.
+ * Uploads a variant into the publication storage best-effort.
  *
- * Отказ варианта не роняет загрузку: без варианта потребитель честно покажет
- * полный файл сразу, а провалить из-за него загрузку самого файла — потерять
- * работу пользователя ради вторичного артефакта.
+ * A variant failing does not bring the upload down: with no variant the consumer
+ * plainly shows the full file right away, whereas failing the file's own upload
+ * because of it would mean losing the user's work for the sake of a secondary
+ * artifact.
  *
- * @param deps - Адаптеры persistence.
- * @param variant - Готовый вариант.
- * @returns URL загруженного варианта или null при отказе.
+ * @param deps - The persistence adapters.
+ * @param variant - The finished variant.
+ * @returns The uploaded variant's URL, or null on a failure.
  */
 async function uploadVariantFile(
     deps: IMediaOrchestrationDeps,
@@ -75,14 +82,14 @@ async function uploadVariantFile(
 }
 
 /**
- * Best-effort удаление файлов вариантов.
+ * Best-effort deletion of the variants' files.
  *
- * Параллельно: удаления независимы, а последовательный проход платил бы лишний
- * round-trip к хранилищу на каждый вариант. Отказ каждого гасится своим
- * `catch`, поэтому `Promise.all` здесь не отменяет остальные удаления.
+ * In parallel: the deletions are independent, while a sequential pass would pay an
+ * extra round trip to storage per variant. Each one's failure is muted by a `catch`
+ * of its own, so `Promise.all` here does not cancel the remaining deletions.
  *
- * @param deps - Адаптеры persistence.
- * @param urls - URL вариантов (null/undefined пропускаются).
+ * @param deps - The persistence adapters.
+ * @param urls - The variants' URLs (null/undefined are skipped).
  */
 async function deleteVariantFiles(
     deps: Pick<IMediaOrchestrationDeps, 'publish'>,
@@ -104,15 +111,15 @@ async function deleteVariantFiles(
 }
 
 /**
- * Компенсация загруженных файлов: запись не создана — ни полный файл, ни
- * варианты не должны остаться сиротами.
+ * Compensation of the uploaded files: the record was not created — neither the full
+ * file nor the variants must be left as orphans.
  *
- * Вызывается ТОЛЬКО под гарантию отказа записи: при неизвестном исходе удаление
- * оставило бы в БД строку, указывающую на удалённый объект.
+ * Called ONLY under a guarantee that the write was refused: on an unknown outcome
+ * the deletion would leave a row in the database pointing at a deleted object.
  *
- * @param deps - Адаптеры persistence.
- * @param fullUrl - URL полного файла.
- * @param variantUrls - URL успешно загруженных вариантов.
+ * @param deps - The persistence adapters.
+ * @param fullUrl - The full file's URL.
+ * @param variantUrls - The URLs of the successfully uploaded variants.
  */
 async function compensateUploadedFiles(
     deps: IMediaOrchestrationDeps,
@@ -132,27 +139,29 @@ async function compensateUploadedFiles(
 }
 
 /**
- * Загружает файл (и его уменьшенные варианты) в хранилище публикации и
- * регистрирует метаданные в БД.
+ * Uploads the file (and its downscaled variants) into the publication storage and
+ * registers the metadata in the database.
  *
- * Судьба файлов при отказе записи решается по тому, ЧТО известно об её исходе.
- * Хранилище гарантировало отказ (`BricksStorageWriteRejectedError`) — файлы
- * компенсируются удалением. Исход неизвестен (обрыв соединения, таймаут
- * транспорта, 5xx внешнего backend'а) — прежнее безусловное удаление сносило
- * файлы из-под записи, которую backend успел закоммитить, оставляя в галерее
- * битые плитки. Поэтому здесь идёт ОДИН повтор регистрации: `createMedia`
- * идемпотентен по url (уникальный индекс плюс перечитывание строки), так что
- * повтор либо находит уже созданную запись, либо создаёт недостающую. Не помог и
- * он — файлы сохраняются, а их адреса уходят в лог: невидимый объект в бакете
- * дешевле строки, вечно указывающей на удалённый файл.
+ * The files' fate when the write fails is decided by WHAT is known about the
+ * write's outcome. Storage guaranteed the refusal
+ * (`BricksStorageWriteRejectedError`) — the files are compensated by deletion. The
+ * outcome is unknown (a dropped connection, a transport timeout, a 5xx from an
+ * external backend) — the former unconditional deletion wiped the files out from
+ * under a record the backend had managed to commit, leaving broken tiles in the
+ * gallery. That is why ONE retry of the registration happens here: `createMedia` is
+ * idempotent by url (a unique index plus rereading the row), so the retry either
+ * finds the record already created or creates the missing one. Should it not help
+ * either — the files are kept and their addresses go into the log: an invisible
+ * object in the bucket costs less than a row pointing at a deleted file forever.
  *
- * Ошибка повтора наружу не идёт: неизвестным исход сделала ПЕРВАЯ ошибка, и
- * определённый отказ повтора (например, категорию удалили только что) ничего не
- * говорит о судьбе первой попытки — компенсировать по нему нельзя.
+ * The retry's error never reaches the client: it was the FIRST error that made the
+ * outcome unknown, and a definite refusal of the retry (the category was deleted just
+ * now, for instance) says nothing about the fate of the first attempt — compensating
+ * by it is not allowed.
  *
- * @param deps - Адаптеры persistence.
- * @param params - Данные загрузки.
- * @returns Созданная медиа-запись.
+ * @param deps - The persistence adapters.
+ * @param params - The upload's data.
+ * @returns The created media record.
  */
 export async function uploadAndRegisterMedia(
     deps: IMediaOrchestrationDeps,
@@ -166,9 +175,9 @@ export async function uploadAndRegisterMedia(
     });
     const previewVariant = params.variants?.preview;
     const mockVariant = params.variants?.mock;
-    // Параллельно: варианты независимы, а последовательная заливка добавляла к
-    // каждой загрузке лишний round-trip к хранилищу. Отказ варианта гасит сам
-    // `uploadVariantFile`, поэтому отклонения здесь быть не может
+    // In parallel: the variants are independent, while a sequential upload added
+    // an extra round trip to storage to every upload. A variant's failure is muted
+    // by `uploadVariantFile` itself, so there can be no rejection here
     const [previewUrl, mockUrl] = await Promise.all([
         previewVariant ? uploadVariantFile(deps, previewVariant) : null,
         mockVariant ? uploadVariantFile(deps, mockVariant) : null,
@@ -213,17 +222,18 @@ export async function uploadAndRegisterMedia(
 }
 
 /**
- * Удаляет медиа: сначала файл хранилища, затем запись БД (file-first).
+ * Deletes a media item: the storage file first, the database record after
+ * (file-first).
  *
- * Порядок делает операцию восстановимой: удаление объекта S3 идемпотентно,
- * поэтому после сбоя БД повторный DELETE доводит операцию до конца. Ошибка
- * хранилища — 502, запись остаётся (иначе файл стал бы невидимой сиротой).
- * URL вне собственного хранилища (внешний файл) модулем не управляется —
- * удаляется только запись.
+ * The order makes the operation recoverable: deleting an S3 object is idempotent,
+ * so after a database failure a repeated DELETE carries the operation through. A
+ * storage error is a 502, and the record stays (otherwise the file would become an
+ * invisible orphan). A URL outside our own storage (an external file) is not managed
+ * by the module — only the record is deleted.
  *
- * @param deps - Адаптеры persistence.
- * @param id - Идентификатор медиа-записи.
- * @returns false — запись не найдена; true — удалено.
+ * @param deps - The persistence adapters.
+ * @param id - The media record's identifier.
+ * @returns false — the record was not found; true — deleted.
  */
 export async function deleteMediaWithFile(
     deps: IMediaOrchestrationDeps,
@@ -236,10 +246,11 @@ export async function deleteMediaWithFile(
     }
 
     if (deps.publish.isOwnedUrl(media.url)) {
-        // Варианты — раньше полного файла и best-effort: они вторичны, и
-        // застрявший вариант не должен блокировать удаление самого файла. После
-        // удаления записи ссылок на них не останется вовсе, поэтому порядок
-        // «сначала варианты» лишь уменьшает окно, в котором они уже осиротели
+        // The variants come before the full file and are best-effort: they are
+        // secondary, and a stuck variant must not block the deletion of the file
+        // itself. After the record is deleted no links to them will remain at all,
+        // so the "variants first" order merely narrows the window in which they are
+        // already orphaned
         await deleteVariantFiles(deps, [media.previewUrl, media.mockUrl]);
 
         try {
@@ -262,12 +273,12 @@ export async function deleteMediaWithFile(
 }
 
 /**
- * Best-effort удаление файла превью удалённой страницы: превью — вторичный
- * артефакт, его ошибка не должна ронять удаление страницы. URL хранится
- * с cache-buster (`?v=`) — query отрезает политика ключей адаптера.
+ * Best-effort deletion of a deleted page's preview file: a preview is a secondary
+ * artifact, and its error must not bring the page's deletion down. The URL is stored
+ * with a cache buster (`?v=`) — the query is cut off by the adapter's key policy.
  *
- * @param publish - Publish-адаптер.
- * @param thumbnailUrl - Сохранённый URL превью страницы.
+ * @param publish - The publish adapter.
+ * @param thumbnailUrl - The page's stored preview URL.
  */
 export async function cleanupPageThumbnail(
     publish: Pick<IPublishAdapter, 'deleteFile' | 'isOwnedUrl'>,

@@ -1,7 +1,8 @@
 /**
- * SQL-фрагменты и билдеры запросов для таблиц bricks_pages / bricks_media /
- * bricks_templates.
- * SELECT-поля задают camelCase-алиасы — ответы ручек сразу в формате фронта.
+ * SQL fragments and query builders for the bricks_pages / bricks_media /
+ * bricks_templates tables.
+ * The SELECT fields set camelCase aliases — the handlers' responses come out in
+ * the frontend's format right away.
  */
 import type { IPostgresErrorLike } from '../../types/postgres';
 import { toSnakeCaseString } from '../../../common/utils/case-transform';
@@ -11,7 +12,7 @@ import {
 } from '../utils/storageErrors';
 
 /**
- * Поля выборки страницы (bricks_pages) с camelCase-алиасами.
+ * The page selection fields (bricks_pages) with camelCase aliases.
  */
 export const PAGE_SELECT_FIELDS = `
     id,
@@ -34,9 +35,9 @@ export const PAGE_SELECT_FIELDS = `
 `;
 
 /**
- * Поля сводки страницы (bricks_pages) — editorial-список без JSONB schema
- * (тот же паттерн, что VERSION_SUMMARY_FIELDS: список лёгкий, полная строка —
- * point-lookup'ом по id).
+ * The page summary fields (bricks_pages) — the editorial list without the JSONB
+ * schema (the same pattern as VERSION_SUMMARY_FIELDS: the list is light, the full
+ * row comes from a point lookup by id).
  */
 export const PAGE_SUMMARY_FIELDS = `
     id,
@@ -58,10 +59,11 @@ export const PAGE_SUMMARY_FIELDS = `
 `;
 
 /**
- * Поля сводки версии страницы (bricks_page_versions) — лёгкий список без schema.
- * `thumbnailUrl` и `pageUpdatedAt` входят в сводку: галерея версий рисует по
- * списку и превью, и дату сохранения снятого состояния, а без них на каждую
- * карточку пришлось бы тянуть полный снапшот со schema.
+ * The page version summary fields (bricks_page_versions) — a light list without
+ * the schema. `thumbnailUrl` and `pageUpdatedAt` are part of the summary: the
+ * version gallery draws both the preview and the save date of the captured state
+ * from the list, and without them every card would have to pull the full snapshot
+ * with its schema.
  */
 export const VERSION_SUMMARY_FIELDS = `
     id,
@@ -72,7 +74,8 @@ export const VERSION_SUMMARY_FIELDS = `
 `;
 
 /**
- * Поля полного снапшота версии страницы (bricks_page_versions) с camelCase-алиасами.
+ * The fields of a page version's full snapshot (bricks_page_versions) with
+ * camelCase aliases.
  */
 export const VERSION_SELECT_FIELDS = `
     id,
@@ -95,7 +98,7 @@ export const VERSION_SELECT_FIELDS = `
 `;
 
 /**
- * Поля выборки медиа (bricks_media) с camelCase-алиасами.
+ * The media selection fields (bricks_media) with camelCase aliases.
  */
 export const MEDIA_SELECT_FIELDS = `
     id,
@@ -114,7 +117,8 @@ export const MEDIA_SELECT_FIELDS = `
 `;
 
 /**
- * Поля выборки категории медиа (bricks_media_categories) с camelCase-алиасами.
+ * The media category selection fields (bricks_media_categories) with camelCase
+ * aliases.
  */
 export const MEDIA_CATEGORY_SELECT_FIELDS = `
     id,
@@ -124,7 +128,7 @@ export const MEDIA_CATEGORY_SELECT_FIELDS = `
 `;
 
 /**
- * Поля выборки шаблона (bricks_templates) с camelCase-алиасами.
+ * The template selection fields (bricks_templates) with camelCase aliases.
  */
 export const TEMPLATE_SELECT_FIELDS = `
     id,
@@ -138,13 +142,15 @@ export const TEMPLATE_SELECT_FIELDS = `
 `;
 
 /**
- * Поля сводки шаблона (bricks_templates) — список без JSONB `schema` и
- * `pageMeta`, зато с числом блоков: карточка показывает объём шаблона, а тянуть
- * ради одного числа всю схему значило бы отдавать список весом в мегабайты.
+ * The template summary fields (bricks_templates) — a list without the JSONB
+ * `schema` and `pageMeta`, but with the block count: the card shows a template's
+ * size, and pulling the whole schema for the sake of one number would mean serving
+ * a list weighing megabytes.
  *
- * `jsonb_typeof` перед `jsonb_array_length` — не перестраховка: на не-массиве
- * второе падает ошибкой, а `schema` в базе лежит с записей произвольной
- * давности (валидатор ручки гарантирует форму только для новых строк).
+ * The `jsonb_typeof` ahead of `jsonb_array_length` is not over-caution: over a
+ * non-array the latter fails with an error, and `schema` sits in the database from
+ * records of arbitrary age (the handler's validator guarantees the shape for new
+ * rows only).
  */
 export const TEMPLATE_SUMMARY_FIELDS = `
     id,
@@ -160,21 +166,21 @@ export const TEMPLATE_SUMMARY_FIELDS = `
 `;
 
 /**
- * Разрешённые к обновлению поля bricks_templates: только подпись шаблона.
- * Содержимое отпечатка не обновляется — см. IUpdateTemplatePayload.
+ * The bricks_templates fields allowed to be updated: the template's label only.
+ * The captured content is never updated — see IUpdateTemplatePayload.
  */
 export const TEMPLATE_UPDATE_FIELDS: ReadonlySet<string> = new Set(['name', 'description']);
 
 /**
- * Поля страницы, которые уезжают в JSONB-колонки: значение сериализуется в
- * текст перед подстановкой в запрос.
+ * The page fields that go into JSONB columns: the value is serialized into text
+ * before being substituted into the query.
  */
 const JSONB_PAGE_FIELDS: ReadonlySet<string> = new Set(['schema', 'viewportConfig']);
 
 /**
- * Разрешённые к обновлению поля bricks_pages (camelCase-ключи тела запроса).
- * Имена колонок интерполируются в SET — ключи вне whitelist отбрасываются
- * (защита от SQL-инъекции через имена колонок).
+ * The bricks_pages fields allowed to be updated (the request body's camelCase
+ * keys). Column names are interpolated into SET — keys outside the whitelist are
+ * dropped (protection against SQL injection through column names).
  */
 export const PAGE_UPDATE_FIELDS: ReadonlySet<string> = new Set([
     'pagename',
@@ -193,19 +199,23 @@ export const PAGE_UPDATE_FIELDS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Разрешённые к обновлению поля bricks_media (camelCase-ключи тела запроса).
+ * The bricks_media fields allowed to be updated (the request body's camelCase
+ * keys).
  */
 export const MEDIA_UPDATE_FIELDS: ReadonlySet<string> = new Set(['filename', 'alt', 'category']);
 
 /**
- * Собирает динамический UPDATE на основе переданных полей (camelCase → snake_case).
- * Поле `schema` сериализуется в JSON для записи в JSONB-колонку.
- * Ключи вне `allowedFields` молча отбрасываются — тело запроса приходит от клиента,
- * и без whitelist произвольный ключ попал бы в SET как имя колонки.
+ * Assembles a dynamic UPDATE from the passed fields (camelCase → snake_case).
+ * The `schema` field is serialized into JSON to be written into a JSONB column.
+ * Keys outside `allowedFields` are dropped silently — the request body comes from
+ * the client, and without the whitelist an arbitrary key would land in SET as a
+ * column name.
  *
- * @param body - Объект с изменяемыми полями (camelCase, undefined-поля пропускаются).
- * @param allowedFields - Whitelist camelCase-ключей, разрешённых для таблицы.
- * @returns Массив SET-выражений и массив значений для параметризованного запроса.
+ * @param body - The object with the changed fields (camelCase, undefined fields
+ * are skipped).
+ * @param allowedFields - The whitelist of camelCase keys allowed for the table.
+ * @returns The array of SET expressions and the array of values for the
+ * parameterized query.
  */
 export function buildUpdateQuery(
     body: object,
@@ -227,8 +237,9 @@ export function buildUpdateQuery(
         updates.push(`${column} = $${paramIndex}`);
 
         if (JSONB_PAGE_FIELDS.has(key)) {
-            // JSONB-колонке нужен текст: массив набора устройств драйвер иначе
-            // передал бы как postgres-массив, и колонка его не примет
+            // A JSONB column needs text: otherwise the driver would pass the
+            // device set's array as a postgres array, and the column will not
+            // take it
             values.push(rawValue === null ? null : JSON.stringify(rawValue));
             return;
         }
@@ -239,17 +250,17 @@ export function buildUpdateQuery(
     return { updates, values };
 }
 
-/** Код unique_violation PostgreSQL. */
+/** The PostgreSQL unique_violation code. */
 const UNIQUE_VIOLATION_CODE = '23505';
 
-/** Код foreign_key_violation PostgreSQL. */
+/** The PostgreSQL foreign_key_violation code. */
 const FOREIGN_KEY_VIOLATION_CODE = '23503';
 
 /**
- * Достаёт SQLSTATE-код из ошибки драйвера.
+ * Pulls the SQLSTATE code from a driver error.
  *
- * @param error - Пойманная ошибка запроса.
- * @returns Код или null, если это не ошибка pg с кодом.
+ * @param error - The caught query error.
+ * @returns The code, or null when this is not a pg error with a code.
  */
 function readSqlStateCode(error: unknown): string | null {
     if (typeof error !== 'object' || error === null) {
@@ -262,45 +273,47 @@ function readSqlStateCode(error: unknown): string | null {
 }
 
 /**
- * Проверяет, что ошибка — нарушение уникальности PostgreSQL (SQLSTATE 23505).
- * Используется для идемпотентных вставок: гонка «двое вставляют один url»
- * разруливается повторным чтением, а не 500.
+ * Checks that the error is a PostgreSQL uniqueness violation (SQLSTATE 23505).
+ * Used for idempotent inserts: the race of "two inserting one url" is resolved by
+ * reading again rather than by a 500.
  *
- * @param error - Пойманная ошибка запроса.
- * @returns true для unique_violation.
+ * @param error - The caught query error.
+ * @returns true for unique_violation.
  */
 export function isUniqueViolation(error: unknown): boolean {
     return readSqlStateCode(error) === UNIQUE_VIOLATION_CODE;
 }
 
 /**
- * Классы SQLSTATE, при которых сервер РАЗОБРАЛ statement и отверг его целиком:
- * `22` — данные не лезут в тип или длину, `23` — нарушено ограничение,
- * `42` — не та схема или нет прав. Во всех трёх вставка гарантированно не
- * применилась.
+ * The SQLSTATE classes in which the server PARSED the statement and rejected it
+ * outright: `22` — the data does not fit the type or the length, `23` — a
+ * constraint was violated, `42` — the wrong schema or no rights. In all three the
+ * insert is guaranteed not to have been applied.
  *
- * Список положительный и по классам, а не по отдельным кодам: перечисление кодов
- * уже дважды оказывалось неполным (`22001` от переросшего колонку MIME, `23505`
- * от отставшей sequence), а каждая дыра в нём — файл-сирота в хранилище.
- * Обратное правило «любой SQLSTATE = откат» при этом неверно: в классах `08`,
- * `40`, `57` есть состояния, прямо означающие неизвестный исход
- * (`08007 transaction_resolution_unknown`, `40003 statement_completion_unknown`),
- * и они остаются неопределёнными вместе со всеми прочими классами.
+ * The list is a positive one and goes by classes rather than by individual codes:
+ * an enumeration of codes has already turned out incomplete twice (`22001` from a
+ * MIME that outgrew its column, `23505` from a lagging sequence), and every hole
+ * in it is an orphaned file in storage. The reverse rule "any SQLSTATE = a
+ * rollback" is wrong, though: classes `08`, `40` and `57` hold states that mean an
+ * unknown outcome outright (`08007 transaction_resolution_unknown`,
+ * `40003 statement_completion_unknown`), and they stay undetermined along with
+ * every other class.
  */
 const REJECTED_WRITE_SQLSTATE_CLASSES: ReadonlySet<string> = new Set(['22', '23', '42']);
 
 /**
- * Отвергнута ли вставка ГАРАНТИРОВАННО — по доказанным признакам: запрос не
- * отправлялся; сервер отменил сам statement своим лимитом времени; схема не
- * соответствует коду либо данные нарушили ограничение.
+ * Whether the insert was rejected FOR CERTAIN — by proven signs: the request was
+ * never sent; the server canceled the statement itself by its own time limit; the
+ * schema does not match the code or the data violated a constraint.
  *
- * Общая на медиа и шаблоны: у обеих записей есть внешний побочный эффект (файл в
- * хранилище), удалять его можно только под эту гарантию, и вторая копия правила
- * разошлась бы с первой при следующей находке — цена расхождения — файл-сирота
- * либо, наоборот, удалённый файл под живой строкой.
+ * Shared between media and templates: both writes have an external side effect (a
+ * file in storage), it may only be deleted under this guarantee, and a second copy
+ * of the rule would drift away from the first at the next finding — the price of
+ * the divergence is either an orphaned file or, the other way round, a deleted file
+ * under a live row.
  *
- * @param error - Ошибка вставки.
- * @returns true, если строки в базе точно не появилось.
+ * @param error - The insert's error.
+ * @returns true when the row definitely never appeared in the database.
  */
 export function isRejectedPostgresWrite(error: unknown): boolean {
     return (
@@ -311,10 +324,10 @@ export function isRejectedPostgresWrite(error: unknown): boolean {
 }
 
 /**
- * Достаёт имя нарушенного ограничения из ошибки драйвера.
+ * Pulls the name of the violated constraint from a driver error.
  *
- * @param error - Пойманная ошибка запроса.
- * @returns Имя ограничения или null.
+ * @param error - The caught query error.
+ * @returns The constraint's name, or null.
  */
 export function readViolatedConstraint(error: unknown): string | null {
     if (typeof error !== 'object' || error === null) {
@@ -327,18 +340,19 @@ export function readViolatedConstraint(error: unknown): string | null {
 }
 
 /**
- * Проверяет, что ошибка — нарушение внешнего ключа PostgreSQL (SQLSTATE 23503).
+ * Checks that the error is a PostgreSQL foreign key violation (SQLSTATE 23503).
  *
- * Различать конкретный констрейнт по имени намеренно не стали: у `bricks_media`
- * внешний ключ ровно один (`category` → `bricks_media_categories.slug`), а имя
- * его в базовой миграции не задано — PostgreSQL генерирует его сам, и опечатка
- * в ожидаемом имени провалила бы распознавание МОЛЧА, вернув ровно тот
- * generic 500, ради которого проверка и заводится. Вызывающий обязан применять
- * её только к записи `bricks_media` и только когда в payload есть ненулевая
- * категория; появится второй внешний ключ — придётся сузить по `constraint`.
+ * Telling the particular constraint apart by name was deliberately left undone:
+ * `bricks_media` has exactly one foreign key (`category` →
+ * `bricks_media_categories.slug`), and its name is not set in the base migration —
+ * PostgreSQL generates it itself, and a typo in the expected name would fail the
+ * recognition SILENTLY, returning the very generic 500 this check is introduced
+ * for. The caller must apply it to a `bricks_media` write only and only
+ * when the payload carries a non-null category; should a second foreign key
+ * appear, it will have to be narrowed by `constraint`.
  *
- * @param error - Пойманная ошибка запроса.
- * @returns true для foreign_key_violation.
+ * @param error - The caught query error.
+ * @returns true for foreign_key_violation.
  */
 export function isForeignKeyViolation(error: unknown): boolean {
     return readSqlStateCode(error) === FOREIGN_KEY_VIOLATION_CODE;

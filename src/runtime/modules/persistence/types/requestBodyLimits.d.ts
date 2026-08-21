@@ -1,26 +1,26 @@
 /**
- * Типы ingress-контроля чтения тела запроса
+ * The types of the ingress control over reading a request's body
  * (`server/utils/requestBodyLimits.ts`).
  */
 
 /**
- * Бюджет одновременно буферизуемых тел запросов.
+ * The budget of request bodies buffered at the same time.
  */
 export interface IInflightBodyBudget {
     /**
-     * Резервирует место под тело; 503, если места нет.
+     * Reserves room for a body; a 503 when there is none.
      *
-     * @param bytes - Резервируемый объём.
-     * @returns Освобождение резерва (идемпотентно).
+     * @param bytes - The volume being reserved.
+     * @returns The release of the reservation (idempotent).
      */
     reserve(bytes: number): () => void;
 }
 
 /**
- * Резерв тела запроса: потолок чтения и освобождение бюджета.
+ * A request body's reservation: the reading ceiling and the budget's release.
  */
 export interface IBodyReservation {
-    /** Сколько байт согласны прочитать — не больше зарезервированного. */
+    /** How many bytes we agree to read — no more than was reserved. */
     limitBytes: number;
     release: () => void;
 }

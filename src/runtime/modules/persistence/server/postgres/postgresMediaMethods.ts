@@ -1,10 +1,8 @@
 /**
- * Медиа-часть Postgres-адаптера: записи `bricks_media` и категории
- * `bricks_media_categories`.
- *
- * Отдельным файлом от `postgresStorageAdapter.ts` по шву домена — страницы и
- * медиа не пересекаются ни одним запросом, а вместе файл перерастал потолок в
- * 500 строк. Адаптер собирает контракт спредом этих методов.
+ * The media part of the Postgres adapter: the `bricks_media` records and the
+ * `bricks_media_categories` categories. Mixed into the adapter with a spread; why the
+ * half is split off and why its name is shared with the HTTP implementation —
+ * `TStorageMediaMethods` in `types/adapters.d.ts`.
  */
 import { query, queryOne, withTransaction } from './client';
 import {
@@ -31,10 +29,10 @@ import type {
 import type { IMediaCategory, IMediaItem } from '../../../common/types/media';
 
 /**
- * Возвращает медиа-запись по URL файла или null.
+ * Returns a media record by the file's URL, or null.
  *
- * @param url - Публичный URL файла.
- * @returns Медиа-запись или null.
+ * @param url - The file's public URL.
+ * @returns The media record, or null.
  */
 function findMediaByUrl(url: string): Promise<IMediaItem | null> {
     return queryOne<IMediaItem>(`SELECT ${MEDIA_SELECT_FIELDS} FROM bricks_media WHERE url = $1`, [
@@ -42,24 +40,31 @@ function findMediaByUrl(url: string): Promise<IMediaItem | null> {
     ]);
 }
 
-/** Имя уникального индекса `bricks_media(url)` — задано явно в базовой миграции. */
+/**
+ * The name of the `bricks_media(url)` unique index — set explicitly in the base
+ * migration.
+ */
 const MEDIA_URL_UNIQUE_CONSTRAINT = 'uq_bricks_media_url';
 
 /**
- * Переводит отказ внешнего ключа `bricks_media.category` в доменную ошибку.
+ * Translates a refusal by the `bricks_media.category` foreign key into a domain
+ * error.
  *
- * Категорию могли удалить между ранней проверкой ручки и самой записью — тогда
- * отказ приходит от базы, и без перевода SQLSTATE доехал бы до клиента generic
- * 500 вместо внятного «такой категории нет».
+ * The category could have been deleted between the handler's early check and the
+ * write itself — then the refusal comes from the database, and without the
+ * translation the SQLSTATE would reach the client as a generic 500 instead of a
+ * clear "there is no such category".
  *
- * Перевод применяется только когда в payload есть ненулевая категория. Полной
- * защиты от будущего второго внешнего ключа это не даёт (его нарушение может
- * прийти в записи, где категория тоже задана) — у `bricks_media` внешний ключ
- * сейчас один, и появление второго потребует различать их по `constraint`.
+ * The translation is applied only when the payload carries a non-null category.
+ * That gives no full protection against a future second foreign key (its violation
+ * can arrive in a write where the category is set too) — `bricks_media` has one
+ * foreign key at present, and a second one appearing will require telling them
+ * apart by `constraint`.
  *
- * @param error - Пойманная ошибка запроса.
- * @param category - Категория из payload'а записи (null — категория не пишется).
- * @returns Доменная ошибка либо исходная.
+ * @param error - The caught query error.
+ * @param category - The category from the write's payload (null — the category is
+ * not being written).
+ * @returns The domain error, or the original one.
  */
 function toDomainMediaWriteError(error: unknown, category: string | null | undefined): unknown {
     if (!category || !isForeignKeyViolation(error)) {
@@ -70,19 +75,20 @@ function toDomainMediaWriteError(error: unknown, category: string | null | undef
 }
 
 /**
- * Классифицирует отказ ВСТАВКИ медиа-записи: помечает маркером те отказы, при
- * которых строка заведомо не появилась.
+ * Classifies a refusal of a media record's INSERT: marks the refusals in which the
+ * row is known not to have appeared.
  *
- * Маркер разрешает владельцу побочных эффектов удалить уже загруженный файл,
- * поэтому ставится только по доказанным признакам: запрос не отправлялся;
- * сервер отменил сам statement своим лимитом времени; схема не соответствует
- * коду. Исходная ошибка уходит в `cause` — по ней HTTP-слой сохраняет свой
- * статус (остановку лимитом времени он ищет и через `cause`), а server-лог —
- * подробности.
+ * The marker permits the owner of the side effects to delete the file already
+ * uploaded, so it is set by proven signs only: the request was never sent; the
+ * server canceled the statement itself by its own time limit; the schema does not
+ * match the code. The original error goes into `cause` — the HTTP layer keeps its
+ * status by it (it looks for a stop by the time limit through `cause` as well), and
+ * the server log keeps the details.
  *
- * @param error - Ошибка вставки.
- * @param category - Категория из payload'а записи.
- * @returns Ошибка с маркером, доменная ошибка категории либо исходная.
+ * @param error - The insert's error.
+ * @param category - The category from the write's payload.
+ * @returns The error with the marker, the category's domain error, or the original
+ * one.
  */
 function toMediaInsertError(error: unknown, category: string | null | undefined): unknown {
     const domainError = toDomainMediaWriteError(error, category);
@@ -99,22 +105,22 @@ function toMediaInsertError(error: unknown, category: string | null | undefined)
 }
 
 /**
- * Проверяет, что конфликт уникальности МОГ быть конфликтом по `url`.
+ * Checks whether a uniqueness conflict COULD have been a conflict over `url`.
  *
- * Различать ограничения обязательно: конфликт первичного ключа (отставшая
- * sequence после восстановления дампа) строки с нашим url не создаёт, и уводить
- * его в перечитывание значило бы вернуть «ничего не нашли» вместо гарантии
- * отказа и оставить загруженный файл сиротой. Имя индекса взято из базовой
- * миграции, где оно задано явно.
+ * Telling the constraints apart is mandatory: a primary key conflict (a lagging
+ * sequence after a dump restore) creates no row carrying our url, and routing it
+ * into a reread would mean returning "found nothing" instead of a guaranteed refusal
+ * and leaving the uploaded file an orphan. The index's name is taken from the base
+ * migration, where it is set explicitly.
  *
- * Ошибка БЕЗ имени ограничения тоже идёт в перечитывание, а не в маркер:
- * отсутствие поля не доказывает, что конфликт не по url (его можно поднять
- * вручную, а совместимый сервер или прокси — потерять), и ошибка в эту сторону
- * стоит удалённого файла под живой записью. Перечитывание же в худшем случае
- * стоит одного лишнего SELECT.
+ * An error WITHOUT a constraint name goes into the reread as well rather than into
+ * the marker: the absence of the field does not prove the conflict is not over the
+ * url (it can be raised by hand, and a compatible server or a proxy can lose it),
+ * and an error in that direction costs a deleted file under a live record. A reread,
+ * meanwhile, costs one extra SELECT at worst.
  *
- * @param error - Пойманная ошибка запроса.
- * @returns true, если конфликт мог произойти по уникальному индексу url.
+ * @param error - The caught query error.
+ * @returns true when the conflict could have happened over the url unique index.
  */
 function isPossibleMediaUrlConflict(error: unknown): boolean {
     if (!isUniqueViolation(error)) {
@@ -127,14 +133,14 @@ function isPossibleMediaUrlConflict(error: unknown): boolean {
 }
 
 /**
- * Создаёт медиа-часть Postgres-адаптера.
+ * Creates the media part of the Postgres adapter.
  *
- * @returns Медиа-методы контракта хранилища.
+ * @returns The media methods of the storage contract.
  */
 export function createPostgresMediaMethods(): TStorageMediaMethods {
     return {
         /**
-         * Возвращает все медиа-записи, новые сверху.
+         * Returns every media record, newest first.
          */
         async listMedia(): Promise<IMediaItem[]> {
             return query<IMediaItem>(
@@ -143,7 +149,7 @@ export function createPostgresMediaMethods(): TStorageMediaMethods {
         },
 
         /**
-         * Возвращает медиа-запись по id или null.
+         * Returns a media record by id, or null.
          */
         async getMedia(id: number): Promise<IMediaItem | null> {
             return queryOne<IMediaItem>(
@@ -153,23 +159,23 @@ export function createPostgresMediaMethods(): TStorageMediaMethods {
         },
 
         /**
-         * Возвращает медиа-запись по URL файла или null (дедупликация импорта).
+         * Returns a media record by the file's URL, or null (import deduplication).
          */
         async getMediaByUrl(url: string): Promise<IMediaItem | null> {
             return findMediaByUrl(url);
         },
 
         /**
-         * Создаёт медиа-запись и возвращает её с id.
-         * Идемпотентна по url (контракт IStorageAdapter.createMedia): при
-         * конфликте индекса `uq_bricks_media_url` (гонка импорта, ретрай,
-         * повтор после неизвестного исхода) возвращает уже существующую запись.
+         * Creates a media record and returns it with its id.
+         * Idempotent by url (the IStorageAdapter.createMedia contract): on a
+         * conflict of the `uq_bricks_media_url` index (an import race, a retry, a
+         * repeat after an unknown outcome) it returns the already existing record.
          *
-         * Вставка и разрешение конфликта — РАЗНЫЕ фазы, и маркер отвергнутой
-         * записи ставит только первая. Во второй строка по этому url уже
-         * существует, поэтому отказ перечитывания (в том числе остановка
-         * серверным лимитом времени) не доказывает её отсутствия: маркер здесь
-         * разрешил бы удалить файл из-под живой записи.
+         * The insert and resolving the conflict are DIFFERENT phases, and only the
+         * first one sets the rejected-write marker. In the second one a row for
+         * this url already exists, so a failed reread (a stop by the server-side
+         * time limit included) does not prove its absence: the marker here would
+         * permit deleting the file from under a live record.
          */
         async createMedia(payload: ICreateMediaPayload): Promise<IMediaItem> {
             let result: IMediaItem | null;
@@ -204,9 +210,10 @@ export function createPostgresMediaMethods(): TStorageMediaMethods {
                 const existing = await findMediaByUrl(payload.url);
 
                 if (!existing) {
-                    // Конфликт был, а строки нет: её удалили между вставкой и
-                    // перечитыванием. Исход неопределён намеренно — запись по
-                    // этому url существовала, и компенсировать файл нельзя
+                    // There was a conflict but there is no row: it was deleted
+                    // between the insert and the reread. The outcome is deliberately
+                    // left undetermined — a record for this url did exist, and the
+                    // file must not be compensated
                     throw new Error('Failed to resolve conflicting media item', { cause: error });
                 }
 
@@ -221,7 +228,7 @@ export function createPostgresMediaMethods(): TStorageMediaMethods {
         },
 
         /**
-         * Обновляет метаданные медиа; null — если запись не найдена.
+         * Updates media metadata; null — the record was not found.
          */
         async updateMedia(id: number, payload: TUpdateMediaPayload): Promise<IMediaItem | null> {
             const { updates, values } = buildUpdateQuery(payload, MEDIA_UPDATE_FIELDS);
@@ -246,7 +253,7 @@ export function createPostgresMediaMethods(): TStorageMediaMethods {
         },
 
         /**
-         * Удаляет медиа-запись; false — если запись не найдена.
+         * Deletes a media record; false — the record was not found.
          */
         async deleteMedia(id: number): Promise<boolean> {
             const rows = await query<{ id: number }>(
@@ -258,7 +265,7 @@ export function createPostgresMediaMethods(): TStorageMediaMethods {
         },
 
         /**
-         * Возвращает категории медиатеки в порядке показа.
+         * Returns the media library's categories in display order.
          */
         async listMediaCategories(): Promise<IMediaCategory[]> {
             return query<IMediaCategory>(
@@ -269,12 +276,12 @@ export function createPostgresMediaMethods(): TStorageMediaMethods {
         },
 
         /**
-         * Создаёт пользовательскую категорию; при повторе того же slug'а
-         * возвращает существующую (контракт идемпотентности).
+         * Creates a user category; on a repeat of the same slug it returns the
+         * existing one (the idempotency contract).
          *
-         * `sort_order` считается как «после всех» с шагом 10: без этого новая
-         * категория садилась бы в 0 и уезжала в начало ряда, перед заведёнными
-         * раньше.
+         * `sort_order` is computed as "after everyone" with a step of 10: without
+         * that a new category would settle at 0 and go off to the start of the row,
+         * ahead of the ones created earlier.
          */
         async createMediaCategory(payload: ICreateMediaCategoryPayload): Promise<IMediaCategory> {
             const created = await queryOne<IMediaCategory>(
@@ -293,7 +300,7 @@ export function createPostgresMediaMethods(): TStorageMediaMethods {
                 return created;
             }
 
-            // DO NOTHING не вернул строку — категория с этим slug'ом уже есть
+            // DO NOTHING returned no row — a category with this slug already exists
             const existing = await queryOne<IMediaCategory>(
                 `SELECT ${MEDIA_CATEGORY_SELECT_FIELDS}
             FROM bricks_media_categories
@@ -309,12 +316,12 @@ export function createPostgresMediaMethods(): TStorageMediaMethods {
         },
 
         /**
-         * Снимает категорию с её файлов и удаляет саму категорию одной
-         * транзакцией; null — категории с таким slug нет.
+         * Clears the category off its files and deletes the category itself in a
+         * single transaction; null — there is no category with that slug.
          *
-         * Категорию с файлов снимает явный UPDATE, хотя то же сделал бы
-         * `ON DELETE SET NULL`: ответ обязан сказать, скольких файлов это
-         * коснулось, а из DELETE такого числа не получить.
+         * The category is cleared off the files by an explicit UPDATE, even though
+         * `ON DELETE SET NULL` would do the same: the response must say how
+         * many files it touched, and no such number can be had out of a DELETE.
          */
         async deleteMediaCategory(slug: string): Promise<TDeleteMediaCategoryResult> {
             return withTransaction(async (txQuery) => {

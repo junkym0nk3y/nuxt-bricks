@@ -1,9 +1,10 @@
 /**
- * Конфигурация пула PostgreSQL: размеры и серверные лимиты.
+ * The PostgreSQL pool configuration: sizes and server-side limits.
  *
- * Вынесено из `client.ts` отдельным модулем без импорта `pg`: значение лимита
- * приходит из конфигурации (то есть строкой из ENV) и его резолв нужно
- * проверять юнитами, а `pg` — optional peer-зависимость.
+ * Moved out of `client.ts` into a module of its own with no `pg` import: the
+ * limit's value arrives from the configuration (that is, as a string out of ENV)
+ * and its resolution needs to be checked by unit tests, while `pg` is an optional
+ * peer dependency.
  */
 
 // #region Imports
@@ -13,81 +14,87 @@ import type { IPostgresPoolConfig } from '../../types/postgres';
 
 // #region Constants
 /**
- * Серверный потолок исполнения одного statement по умолчанию.
+ * The default server-side ceiling on executing one statement.
  *
- * Зачем он нужен: клиентский потолок ожидания освобождает ожидающего
- * (посетителя SSR, флаг операции в билдере), но не ресурс — отменённый на
- * клиенте запрос продолжает занимать соединение из пула. Пул конечен, поэтому
- * серия таких запросов исчерпала бы его, и лечение UX превратилось бы в отказ
- * обслуживания. Отменить запрос может только сам PostgreSQL.
+ * Why it is needed: a client-side waiting ceiling frees the waiter (an SSR
+ * visitor, an operation flag in the builder) but not the resource — a request
+ * canceled on the client goes on holding a connection from the pool. The pool is
+ * finite, so a series of such requests would exhaust it, and a cure for UX would
+ * turn into a denial of service. Only PostgreSQL itself can cancel a query.
  *
- * Почему восемь секунд: у чтения клиентский потолок 10 с, и лимит поставлен ниже
- * на принятый в проекте запас (2 с) — чтобы в типичном случае пользователь
- * получал внятный отказ сервера, а не собственный обрыв.
+ * Why eight seconds: a read has a client-side ceiling of 10 s, and the limit is
+ * set below it by the margin adopted in the project (2 s) — so that in the typical
+ * case the user gets a clear refusal from the server rather than an abort of their
+ * own.
  *
- * Порядка «сервер ответит раньше клиента» это НЕ гарантирует, и строить на нём
- * логику нельзя: лимит ограничивает каждый statement по отдельности, а не запрос
- * целиком. Один HTTP-запрос выполняет их несколько (проверка сессии
- * database-auth, затем BEGIN, снапшот, запись, очистка истории, COMMIT), и до
- * двух секунд может уйти на получение соединения из пула
- * (`connectionTimeoutMillis`) — серверный таймер стартует только после. Цель
- * лимита — освободить соединение; бюджет всей операции живёт на стороне клиента.
+ * This does NOT guarantee the order "the server answers before the client", and
+ * logic must not be built on it: the limit bounds each statement separately rather
+ * than the request as a whole. One HTTP request executes several of them (the
+ * database-auth session check, then BEGIN, the snapshot, the write, the history
+ * cleanup, COMMIT), and up to two seconds can go on getting a connection out of the
+ * pool (`connectionTimeoutMillis`) — the server-side timer only starts after that.
+ * The limit's goal is to free the connection; the budget of the whole operation
+ * lives on the client's side.
  */
 const DEFAULT_STATEMENT_TIMEOUT_MS = 8_000;
 
-/** Верхняя граница `statement_timeout` в PostgreSQL: значение хранится как int32 мс. */
+/**
+ * The upper bound of `statement_timeout` in PostgreSQL: the value is stored as
+ * int32 ms.
+ */
 const MAX_STATEMENT_TIMEOUT_MS = 2_147_483_647;
 
-/** Максимум соединений в пуле. */
+/** The cap on connections in the pool. */
 const POOL_MAX_CONNECTIONS = 20;
 
-/** Сколько держать простаивающее соединение перед закрытием, мс. */
+/** How long to hold an idle connection before closing it, ms. */
 const POOL_IDLE_TIMEOUT_MS = 30_000;
 
-/** Потолок ожидания свободного соединения из пула, мс. */
+/** The ceiling on waiting for a free connection from the pool, ms. */
 const POOL_CONNECTION_TIMEOUT_MS = 2_000;
 
 /**
- * Потолок установки лимита в новой сессии (`client.ts`).
+ * The ceiling on setting the limit in a new session (`client.ts`).
  *
- * Величина та же, что у получения соединения, но бюджет отдельный и
- * последовательный: пул снимает свой таймер до вызова хука, поэтому получение
- * пригодного клиента в худшем случае занимает сумму двух потолков, а не один.
- * Держать его коротким можно: к моменту хука соединение уже установлено, а
- * `set_config` — дешёвая локальная команда; медленный старт БД проявляется
- * раньше, на фазе подключения.
+ * The value is the same as for getting a connection, but the budget is a separate
+ * and sequential one: the pool clears its own timer before calling the hook, so
+ * getting a usable client takes, in the worst case, the sum of the two ceilings
+ * rather than one. It can be kept short: by the time of the hook the connection is
+ * already established, and `set_config` is a cheap local command; a slow database
+ * start shows up earlier, in the connection phase.
  */
 export const STATEMENT_TIMEOUT_APPLY_TIMEOUT_MS = POOL_CONNECTION_TIMEOUT_MS;
 // #endregion
 
 // #region Methods
 /**
- * Резолвит серверный лимит statement из конфигурации (ENV-значения приходят
- * строками). Дробное значение округляется вниз.
+ * Resolves the server-side statement limit from the configuration (ENV values
+ * arrive as strings). A fractional value is rounded down.
  *
- * Опт-аута нет намеренно: `0` и `false` — не «без лимита», а тихий возврат
- * исходного дефекта, при котором зависший запрос держит соединение до конца
- * жизни процесса. Законно долгий запрос обслуживается большим конечным
- * значением, а не снятием лимита.
+ * There is deliberately no opt-out: `0` and `false` are not "no limit" but a quiet
+ * return of the original defect, in which a hung query holds a connection until the
+ * end of the process's life. A legitimately long query is served by a large finite
+ * value, not by lifting the limit.
  *
- * @param raw - Значение из runtimeConfig (число, строка или ничего).
- * @returns Лимит в миллисекундах.
+ * @param raw - The value from runtimeConfig (a number, a string, or nothing).
+ * @returns The limit in milliseconds.
  */
 export function resolveStatementTimeoutMs(raw: unknown): number {
     if (raw === undefined || raw === null || raw === '') {
         return DEFAULT_STATEMENT_TIMEOUT_MS;
     }
 
-    // Тип проверяется до Number(): `true` иначе стал бы лимитом в 1 мс, при
-    // котором не проходит ни один запрос. Значение приходит и через Nitro-env,
-    // где строка «true» разбирается в boolean, — то есть опечатка в переменной
-    // окружения останавливала бы работу с БД вместо дефолта с предупреждением
+    // The type is checked ahead of Number(): otherwise `true` would become a
+    // limit of 1 ms, under which not a single query goes through. The value also
+    // arrives through the Nitro env, where the string "true" is parsed into a
+    // boolean — that is, a typo in an environment variable would stop all database
+    // work instead of falling back to the default with a warning
     const parsed =
         typeof raw === 'number' || typeof raw === 'string' ? Math.floor(Number(raw)) : Number.NaN;
 
     if (!Number.isFinite(parsed) || parsed < 1 || parsed > MAX_STATEMENT_TIMEOUT_MS) {
-        // Молча подставленный дефолт выглядел бы как принятая настройка: попытка
-        // выключить лимит нулём казалась бы удавшейся
+        // A default substituted silently would look like an accepted setting: an
+        // attempt to switch the limit off with a zero would appear to have worked
         console.warn(
             `[PostgreSQL] Ignoring statement timeout value "${String(raw)}": expected an integer ` +
                 `between 1 and ${MAX_STATEMENT_TIMEOUT_MS} ms. ` +
@@ -101,28 +108,31 @@ export function resolveStatementTimeoutMs(raw: unknown): number {
 }
 
 /**
- * Есть ли в строке подключения свой `statement_timeout`.
+ * Whether the connection string carries a `statement_timeout` of its own.
  *
- * Драйвер накладывает разобранный URL ПОВЕРХ объекта конфигурации
- * (`Object.assign({}, config, parse(connectionString))`), а туда попадают все
- * query-параметры без фильтра, поэтому `?statement_timeout=0` в строке снимал
- * бы лимит целиком (замерено: запрос не отменяется, `SHOW statement_timeout`
- * возвращает 0). Фактическую защиту от этого даёт не проверка строки, а
- * сессионный `SET` при выдаче соединения (см. `client.ts`) — он выполняется
- * после старта сессии и перекрывает любое startup-значение.
+ * The driver lays the parsed URL OVER the configuration object
+ * (`Object.assign({}, config, parse(connectionString))`), and every query
+ * parameter gets in there unfiltered, so `?statement_timeout=0` in the string
+ * would lift the limit entirely (measured: the query is not canceled, `SHOW
+ * statement_timeout` returns 0). The actual protection against that comes not from
+ * checking the string but from the session `SET` when a connection is handed out
+ * (see `client.ts`) — it runs after the session has started and overrides any
+ * startup value.
  *
- * Проверка здесь нужна только для предупреждения и потому best-effort: разбор
- * идёт как URL (так `%5F` в имени параметра декодируется и тоже попадается), а
- * для строк другой грамматики (`host=… port=…`) остаётся поиск подстроки.
- * Строка при этом НЕ переписывается: у драйвера своя грамматика — он умеет,
- * например, восстанавливать разбор URL без хоста, — и любая наша правка
- * рисковала бы исказить подключение, ничего не давая сверх `SET`.
+ * The check here is only needed for the warning and is therefore best-effort: the
+ * parsing goes as a URL (that way a `%5F` in the parameter's name is decoded and
+ * gets caught too), while for strings of another grammar (`host=… port=…`) a
+ * substring search is what remains. The string is NOT rewritten in the process: the
+ * driver has a grammar of its own — it can, for instance, recover the parsing of a
+ * URL with no host — and any edit of ours would risk distorting the connection
+ * while giving nothing beyond the `SET`.
  *
- * Вектор через `options=-c statement_timeout=…` проверен отдельно и обработки
- * не требует: отдельный startup-параметр применяется после command-line options.
+ * The vector through `options=-c statement_timeout=…` was checked separately and
+ * needs no handling: a standalone startup parameter is applied after the
+ * command-line options.
  *
- * @param connectionString - Строка подключения из конфигурации.
- * @returns Строка задаёт собственный лимит.
+ * @param connectionString - The connection string from the configuration.
+ * @returns The string sets a limit of its own.
  */
 function hasStatementTimeoutParam(connectionString: string): boolean {
     const PARAM_NAME = 'statement_timeout';
@@ -135,24 +145,26 @@ function hasStatementTimeoutParam(connectionString: string): boolean {
 }
 
 /**
- * Собирает конфигурацию пула.
+ * Assembles the pool configuration.
  *
- * `statement_timeout` уезжает startup-параметром соединения, то есть действует
- * на каждый запрос любого потребителя пула (storage-адаптер и database-auth).
- * Альтернативы отклонены: `query_timeout` драйвера — клиентский таймер, при
- * котором серверный запрос продолжает исполняться (замерено), а `SET` в
- * обработчике `pool.on('connect')` ненадёжен — `pg-pool` не ждёт промис
- * слушателя, поэтому первый запрос способен обогнать установку лимита.
+ * `statement_timeout` goes out as a startup parameter of the connection, that is,
+ * it applies to every query of any consumer of the pool (the storage adapter and
+ * database-auth). The alternatives were rejected: the driver's `query_timeout` is a
+ * client-side timer, under which the server-side query goes on executing
+ * (measured), and a `SET` in the `pool.on('connect')` handler is unreliable —
+ * `pg-pool` does not await the listener's promise, so the first query is able to
+ * outrun the setting of the limit.
  *
- * Соседние серверные лимиты не задаются осознанно: ожидание блокировки уже
- * входит в бюджет statement, а `idle_in_transaction_session_timeout` не отменяет
- * запрос, а рвёт сессию — и приходит асинхронным событием `error` на ВЫДАННОМ
- * клиенте, где слушателя пула нет (`pool.on('error')` обслуживает только
- * простаивающие соединения), то есть уронил бы процесс.
+ * The neighboring server-side limits are deliberately left unset: waiting for a
+ * lock is already part of the statement's budget, and
+ * `idle_in_transaction_session_timeout` does not cancel a query but tears the
+ * session down — and it arrives as an asynchronous `error` event on the HANDED OUT
+ * client, where the pool has no listener (`pool.on('error')` serves idle
+ * connections only), meaning it would bring the process down.
  *
- * @param connectionString - Строка подключения PostgreSQL.
- * @param statementTimeoutRaw - Значение лимита из runtimeConfig.
- * @returns Конфигурация для конструктора пула.
+ * @param connectionString - The PostgreSQL connection string.
+ * @param statementTimeoutRaw - The limit's value from runtimeConfig.
+ * @returns The configuration for the pool's constructor.
  */
 export function buildPostgresPoolConfig(
     connectionString: string,
@@ -165,8 +177,8 @@ export function buildPostgresPoolConfig(
             '[PostgreSQL] Remove "statement_timeout" from the connection string: the limit is ' +
                 'owned by bricks.database.statementTimeoutMs ' +
                 `(NUXT_BRICKS_DATABASE_STATEMENT_TIMEOUT_MS), effective value is ${statementTimeout} ms. ` +
-                'The value from the string still applies until the connection is initialised, ' +
-                'so a tiny one can cancel that initialisation and an invalid one can break the connection.'
+                'The value from the string still applies until the connection is initialized, ' +
+                'so a tiny one can cancel that initialization and an invalid one can break the connection.'
         );
     }
 

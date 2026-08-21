@@ -1,16 +1,17 @@
 /**
- * Контракт конфигурации пула PostgreSQL (`server/postgres/poolConfig.ts`) и
- * формы строк результата, которые адаптеры приводят к контрактам `types/adapters`.
+ * The contract of the PostgreSQL pool configuration
+ * (`server/postgres/poolConfig.ts`) and the shapes of the result rows the adapters
+ * bring to the `types/adapters` contracts.
  *
- * Форма пула описана своими полями, а не через `PoolConfig` драйвера: `pg` —
- * optional peer-зависимость (external-режим её не требует), и тип конфигурации
- * не должен тянуть за собой её резолв.
+ * The pool's shape is described by fields of its own rather than through the driver's
+ * `PoolConfig`: `pg` is an optional peer dependency (external mode does not require
+ * it), and the configuration's type must not drag its resolution along.
  */
 import type { IBricksUserSummary, TBricksUserRole } from '../../common/types/auth';
 
 /**
- * Строка учётки из `bricks_users` до нормализации дат: TIMESTAMPTZ-колонки
- * node-postgres отдаёт как `Date`, а контракт требует ISO-строку.
+ * An account row out of `bricks_users` before the dates are normalized: node-postgres
+ * returns TIMESTAMPTZ columns as `Date`, while the contract requires an ISO string.
  */
 export interface IBricksUserSummaryRow extends Omit<
     IBricksUserSummary,
@@ -21,8 +22,8 @@ export interface IBricksUserSummaryRow extends Omit<
 }
 
 /**
- * Состояние учётки, нужное краевым правилам управления (читается под
- * `FOR UPDATE` вместе с набором активных администраторов).
+ * The account state the management's edge rules need (read under a `FOR UPDATE`
+ * together with the set of active administrators).
  */
 export interface IAuthUserStateRow {
     id: number;
@@ -31,66 +32,76 @@ export interface IAuthUserStateRow {
 }
 
 /**
- * Исход мутации учётки под блокировкой набора активных администраторов.
+ * The outcome of an account mutation under a lock on the set of active administrators.
  *
- * Отказ краевого правила возвращается флагом, а не исключением изнутри
- * транзакции: `withTransaction` логирует любую пойманную ошибку как сбой
- * транзакции, и штатный отказ («последнего администратора не понизить») уезжал
- * бы в лог сбоем базы. Ошибку создаёт вызывающий, уже вне транзакции.
+ * An edge rule's refusal is returned as a flag rather than as an exception from inside
+ * the transaction: `withTransaction` logs any caught error as a transaction failure,
+ * and a routine refusal ("the last administrator cannot be demoted") would go into the
+ * log as a database failure. The error is created by the caller, outside the
+ * transaction by then.
  */
 export interface IGuardedUserMutation {
     isRefused: boolean;
     /**
-     * Состояние строки после мутации, а для удаления — снятое перед ним;
-     * null — отказ краевого правила, возвращать нечего.
+     * The row's state after the mutation, and for a deletion — the one removed by it;
+     * null — an edge rule's refusal, there is nothing to return.
      */
     user: IBricksUserSummary | null;
 }
 
-/** Строка JOIN-результата сессии с полями пользователя (алиасы camelCase). */
+/** A row of the session's JOIN result with the user's fields (camelCase aliases). */
 export interface IAuthSessionJoinRow {
     tokenHash: string;
-    /** TIMESTAMPTZ-колонка: node-postgres возвращает Date. */
+    /** A TIMESTAMPTZ column: node-postgres returns a Date. */
     expiresAt: string | Date;
     lastUsedAt: string;
     userId: number;
     username: string;
     isActive: boolean;
     role: TBricksUserRole;
-    /** Поколение учётных данных: уходит условием в записи профиля. */
+    /** The credentials generation: goes out as a condition of the profile's writes. */
     authVersion: number;
     displayName: string | null;
     avatarUrl: string | null;
-    /** Результат сравнения хеша с сидовым: пароль учётки всё ещё дефолтный. */
+    /**
+     * The result of comparing the hash against the seed one: the account's password
+     * is still the default.
+     */
     isDefaultPassword: boolean;
 }
 
 /**
- * Ошибка драйвера `pg` в объёме, который разбирает адаптер: SQLSTATE-код отказа.
+ * A `pg` driver error in the scope the adapter examines: the refusal's SQLSTATE code.
  *
- * Форма своя, а не `DatabaseError` драйвера, по той же причине, что и у
- * конфигурации пула: `pg` — optional peer-зависимость, и тип не должен тянуть
- * за собой её резолв.
+ * A shape of its own rather than the driver's `DatabaseError`, for the same reason as
+ * with the pool's configuration: `pg` is an optional peer dependency, and the type must
+ * not drag its resolution along.
  */
 export interface IPostgresErrorLike {
-    /** SQLSTATE отказа ('23505' unique_violation, '23503' foreign_key_violation). */
+    /**
+     * The refusal's SQLSTATE ('23505' unique_violation, '23503'
+     * foreign_key_violation).
+     */
     code?: unknown;
-    /** Имя нарушенного ограничения — им различаются несколько ограничений одной таблицы. */
+    /**
+     * The violated constraint's name — several constraints of one table are told apart
+     * by it.
+     */
     constraint?: unknown;
 }
 
 export interface IPostgresPoolConfig {
-    /** Строка подключения PostgreSQL. */
+    /** The PostgreSQL connection string. */
     connectionString: string;
-    /** Максимум соединений в пуле. */
+    /** The cap on connections in the pool. */
     max: number;
-    /** Сколько держать простаивающее соединение перед закрытием, мс. */
+    /** How long to hold an idle connection before closing it, ms. */
     idleTimeoutMillis: number;
-    /** Потолок ожидания свободного соединения из пула, мс. */
+    /** The ceiling on waiting for a free connection from the pool, ms. */
     connectionTimeoutMillis: number;
     /**
-     * Серверный лимит на исполнение ОДНОГО statement, мс: PostgreSQL отменяет
-     * запрос сам и освобождает соединение.
+     * The server-side limit on executing ONE statement, ms: PostgreSQL cancels the
+     * query itself and frees the connection.
      */
     statement_timeout: number;
 }

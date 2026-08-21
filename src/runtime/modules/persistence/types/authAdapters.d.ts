@@ -1,74 +1,78 @@
 /**
- * Контракты auth-слоя persistence: пользователи database-auth и их cookie-сессии.
+ * Persistence auth-layer contracts: database-auth users and their cookie sessions.
  *
- * Отдельно от `adapters.d.ts` не по стилю: там контракт данных страницы и медиа,
- * который может жить во ВНЕШНЕМ backend'е (см. docs/external-backend-contract.md),
- * а здесь — учётки, которые живут только во встроенном Postgres и с внешним
- * backend'ом несовместимы по сборке. Разные потребители, разные причины меняться;
- * вместе файл перерастал потолок в 500 строк.
+ * Kept apart from `adapters.d.ts` not for style: that one holds the page and
+ * media data contract, which can live in an EXTERNAL backend (see
+ * docs/external-backend-contract.md), while this one holds accounts, which live
+ * only in the built-in Postgres and are incompatible with an external backend by
+ * build. Different consumers, different reasons to change; together the file
+ * kept outgrowing the 500-line ceiling.
  */
 import type { IBricksUserSummary, TBricksUserRole } from '../../common/types/auth';
 
 /**
- * Запись пользователя database-auth (включая хеш пароля — только для verify).
+ * A database-auth user record (the password hash included — for verify only).
  */
 export interface IAuthUserRecord {
     id: number;
     username: string;
-    /** Самоописывающий формат scrypt:N:r:p:saltB64:hashB64. */
+    /** The self-describing format scrypt:N:r:p:saltB64:hashB64. */
     passwordHash: string;
     isActive: boolean;
     role: TBricksUserRole;
     /**
-     * Поколение учётных данных на момент чтения. Вход обязан передать его в
-     * `createSession`: проверка пароля занимает секунды (scrypt), и за это
-     * время учётку могли деактивировать или сменить ей пароль.
+     * The credentials generation as of the read. Login must pass it into
+     * `createSession`: verifying the password takes seconds (scrypt), and in that
+     * time the account could have been deactivated or had its password changed.
      */
     authVersion: number;
 }
 
 /**
- * Пользователь авторизованной сессии (без секретов — уходит в event.context и клиенту).
+ * The user of an authorized session (no secrets — goes into event.context and to
+ * the client).
  */
 export interface IAuthSessionUser {
     id: number;
     username: string;
     isActive: boolean;
     /**
-     * Актуальная роль, а не снимок на момент входа: гард ручек читает её на
-     * каждом запросе, поэтому понижение прав действует со следующего запроса
-     * без ожидания истечения куки.
+     * The current role, not a snapshot as of login: the handler guard reads it on
+     * every request, so a demotion takes effect from the next request without
+     * waiting for the cookie to expire.
      */
     role: TBricksUserRole;
     /**
-     * Поколение учётных данных на момент резолва сессии. Нужно записям, которые
-     * идут ЗАМЕТНО позже проверки сессии (правка профиля, загрузка фото через
-     * sharp и хранилище): они условны по этому значению, иначе доезжали бы уже
-     * отозванными креденшелами.
+     * The credentials generation as of resolving the session. Needed by the
+     * writes that run NOTICEABLY later than the session check (a profile edit, a
+     * photo upload through sharp and storage): they are conditional on this
+     * value, otherwise they would land with credentials already revoked.
      *
-     * Наружу не отдаётся: проекции ответов (`toAuthProfileUser`) его отбрасывают,
-     * а в клиентский payload попадает только роль.
+     * Never handed outward: the response projections (`toAuthProfileUser`) drop
+     * it, and only the role makes it into the client payload.
      */
     authVersion: number;
-    /** Отображаемое имя профиля; null — показывается логин. */
+    /** The profile's display name; null — the username is shown. */
     displayName: string | null;
-    /** Ссылка на фото профиля; null — буквенная заглушка. */
+    /** A link to the profile photo; null — the letter placeholder. */
     avatarUrl: string | null;
     /**
-     * Пароль учётки всё ещё тот, что задал сид миграции (`admin` /
-     * `bricks-pass`). Интерфейс по этому флагу просит его сменить: сид
-     * одинаков во всех инсталляциях и опубликован в README, то есть до смены
-     * пароля учётка защищена ровно ничем.
+     * The account's password is still the one the migration seed set (`admin` /
+     * `bricks-pass`). The interface asks for a change on this flag: the seed is
+     * the same across every installation and is published in the README, meaning
+     * that until the password is changed the account is protected by exactly
+     * nothing.
      *
-     * Считается сравнением строки хеша с константой, а не проверкой пароля:
-     * scrypt на каждом резолве сессии стоил бы сотни миллисекунд, а хеш меняет
-     * любая смена пароля — своя, админская или правка в базе.
+     * Computed by comparing the hash string against a constant rather than by
+     * verifying the password: scrypt on every session resolve would cost hundreds
+     * of milliseconds, and the hash is changed by any password change — one's
+     * own, an administrator's, or an edit in the database.
      */
     isDefaultPassword: boolean;
 }
 
 /**
- * Сессия вместе с пользователем (JOIN bricks_sessions × bricks_users).
+ * A session together with its user (JOIN bricks_sessions × bricks_users).
  */
 export interface IAuthSessionWithUser {
     tokenHash: string;
@@ -78,42 +82,45 @@ export interface IAuthSessionWithUser {
 }
 
 /**
- * Данные создания учётки администратором. Хеш пароля считает ручка
- * (`server/utils/auth/passwords.ts`) — адаптер паролей в открытом виде не
- * видит вовсе, поэтому не может ни залогировать их, ни отправить наружу.
+ * Data for an administrator creating an account. The password hash is computed
+ * by the handler (`server/utils/auth/passwords.ts`) — the adapter never sees
+ * plaintext passwords at all, so it can neither log them nor send them outward.
  *
- * Отображаемое имя и активность обязательны и уже разрешены вызывающим, хотя в
- * форме создания оба необязательны: адаптер подставляет значения в INSERT
- * позиционно, и `undefined` уехал бы в колонку как NULL — для `is_active NOT
- * NULL` это отказ вставки, а не «взять дефолт таблицы». Решение «чего не
- * прислали» принимает ручка, у которой есть контекст запроса.
+ * The display name and the activity flag are mandatory and have already been
+ * decided by the caller, even though both are optional in the creation form: the
+ * adapter substitutes values into the INSERT positionally, and `undefined` would
+ * reach the column as NULL — which for `is_active NOT NULL` is a rejected insert,
+ * not "take the table default". The decision about "what was not sent" is made by
+ * the handler, which has the request context.
  */
 export interface ICreateAuthUserPayload {
     username: string;
     passwordHash: string;
     role: TBricksUserRole;
-    /** Отображаемое имя; null — везде показывается логин. */
+    /** The display name; null — the username is shown everywhere. */
     displayName: string | null;
     /**
-     * Может ли учётка входить сразу. `false` — заведена заранее: вход запрещён,
-     * пока администратор её не включит.
+     * Whether the account can log in right away. `false` — created ahead of time:
+     * login is refused until an administrator enables it.
      */
     isActive: boolean;
 }
 
 /**
- * Правка состояния чужой учётки: роль и/или активность. `undefined` — поле не
- * передано и сохраняет текущее значение.
+ * An edit to somebody else's account state: role and/or activity. `undefined` —
+ * the field was not passed and keeps its current value.
  *
- * Оба поля в одном контракте, а не двумя методами, потому что применяться они
- * обязаны одной транзакцией: разбей их на пару вызовов — и отказ второго оставил
- * бы строку в состоянии, которого клиент не просил, не сообщив, какая половина
- * прошла. Заодно краевое правило про последнего администратора проверяется по
- * ИТОГОВОМУ состоянию, а не по каждому полю отдельно.
+ * Both fields in one contract rather than in two methods, because they must be
+ * applied in a single transaction: split them into a pair of calls
+ * and a failure of the second would leave the row in a state the client never
+ * asked for, without telling which half went through. It also lets the edge rule
+ * about the last administrator be checked against the RESULTING state rather
+ * than against each field on its own.
  *
- * Имя и фото профиля здесь отсутствуют намеренно: их правит себе сам человек,
- * администратору доступны только права, активность, пароль и удаление. Логин
- * неизменяем вовсе — переименование ломало бы ссылки на автора и журналы.
+ * The profile name and photo are deliberately absent here: those are edited by
+ * the person themselves, and an administrator only has access to rights,
+ * activity, the password and deletion. The username cannot be changed at all —
+ * a rename would break links to an author and the journals.
  */
 export interface IAuthUserStateChange {
     role?: TBricksUserRole;
@@ -121,17 +128,17 @@ export interface IAuthUserStateChange {
 }
 
 /**
- * Правка СВОЕГО профиля: отображаемое имя и/или ссылка на фото. `undefined` —
- * поле не передано и сохраняет текущее значение, `null` — снять значение
- * (показывается логин и буквенная заглушка).
+ * An edit to ONE'S OWN profile: the display name and/or the photo link.
+ * `undefined` — the field was not passed and keeps its current value, `null` —
+ * clear the value (the username and the letter placeholder are shown).
  *
- * Ссылка на фото приходит сюда только от ручек аватара, которые сами и
- * загрузили файл: принимай её от клиента — и в колонке оказался бы
- * произвольный внешний адрес, то есть чужой ресурс, который грузится в углу
- * билдера у всех, кто видит эту учётку.
+ * The photo link only ever arrives here from the avatar handlers, which uploaded
+ * that file themselves: accept it from the client and the column would hold an
+ * arbitrary external address — that is, somebody else's resource loading in the
+ * corner of the builder for everyone who sees this account.
  *
- * Роли и активности здесь нет: свои права мимо второго администратора не
- * меняются. Логина тоже — он неизменяем вовсе.
+ * There is no role or activity here: one's own rights are not changed behind a
+ * second administrator's back. Nor a username — it cannot be changed at all.
  */
 export interface IAuthUserProfileChange {
     displayName?: string | null;
@@ -139,13 +146,12 @@ export interface IAuthUserProfileChange {
 }
 
 /**
- * Итог правки профиля: новое состояние строки и ссылка на фото, которая была ДО
- * правки.
+ * The outcome of a profile edit: the row's new state and the photo link as it was
+ * BEFORE the edit.
  *
- * Прежняя ссылка нужна вызывающему, чтобы убрать осиротевший файл, и прочитать
- * её обязана та же транзакция, что пишет новую: прочитай раньше — и две
- * загрузки подряд оставили бы в хранилище файл, на который уже никто не
- * ссылается.
+ * The caller needs the previous link to remove the orphaned file, and the same
+ * transaction that writes the new one must read it: read it earlier and
+ * two uploads in a row would leave a file in storage nobody references any more.
  */
 export interface IAuthProfileUpdateResult {
     user: IBricksUserSummary;
@@ -153,23 +159,23 @@ export interface IAuthProfileUpdateResult {
 }
 
 /**
- * Смена СВОЕГО пароля: новый хеш и поколение учётных данных, прочитанное перед
- * проверкой текущего пароля.
+ * Changing ONE'S OWN password: the new hash and the credentials generation read
+ * before verifying the current password.
  */
 export interface IAuthOwnPasswordChange {
     passwordHash: string;
     /**
-     * Поколение на момент чтения учётки. Проверка текущего пароля идёт секунды
-     * (scrypt), и за это время учётку могли деактивировать или сбросить ей
-     * пароль — запись обязана быть условной.
+     * The generation as of reading the account. Verifying the current password
+     * takes seconds (scrypt), and in that time the account could have been
+     * deactivated or had its password reset — the write must be
+     * conditional.
      */
     expectedAuthVersion: number;
 }
 
 /**
- * Состояние учётки, от которого зависят краевые правила
- * (`server/utils/authUserRules.ts`): роль и активность. Читается под
- * блокировкой строки и сравнивается с итоговым состоянием.
+ * The account state the edge rules (`server/utils/authUserRules.ts`) depend on:
+ * role and activity. Read under a row lock and compared with the resulting state.
  */
 export interface IAuthUserStateSnapshot {
     role: TBricksUserRole;
@@ -177,103 +183,111 @@ export interface IAuthUserStateSnapshot {
 }
 
 /**
- * Данные для создания cookie-сессии (в БД хранится только SHA-256 токена).
+ * Data for creating a cookie session (only the token's SHA-256 is stored in the
+ * database).
  */
 export interface ICreateAuthSessionPayload {
     tokenHash: string;
     userId: number;
     expiresAt: Date;
     /**
-     * Поколение учётных данных, прочитанное ПЕРЕД проверкой пароля. Сессия
-     * создаётся, только если оно всё ещё актуально и учётка активна.
+     * The credentials generation read BEFORE verifying the password. A session is
+     * created only if it is still current and the account is active.
      */
     expectedAuthVersion: number;
 }
 
 /**
- * Хранилище пользователей и cookie-сессий database-auth (дефолт — Postgres).
+ * Storage of database-auth users and cookie sessions (Postgres by default).
  *
- * Требование к свежести, обязательное для любой реализации (в том числе
- * внешней — HTTP-backend, OIDC): `getSessionWithUser` обязан отдавать
- * АКТУАЛЬНЫЕ `role`, `isActive` и профиль, а не снимок на момент входа, и
- * обязан считать сессию отсутствующей, если поколение учётных данных
- * разошлось с сохранённым при входе. На этом держится отзыв прав: смена
- * пароля, деактивация и смена роли действуют со следующего запроса, а не
- * через семь суток жизни куки. Реализация, кеширующая роль или носящая её в
- * самоподписанном токене без проверки, контракт нарушает.
+ * A freshness requirement mandatory for any implementation (an external one
+ * included — an HTTP backend, OIDC): `getSessionWithUser` must return
+ * the CURRENT `role`, `isActive` and profile rather than a snapshot as of login,
+ * and must treat the session as absent when the credentials generation
+ * has diverged from the one stored at login. Revocation of rights rests on this:
+ * a password change, a deactivation and a role change take effect from the next
+ * request rather than after the cookie's seven days of life. An implementation
+ * that caches the role or carries it in a self-signed token without a check
+ * violates the contract.
  */
 export interface IAuthAdapter {
     getUserByUsername(username: string): Promise<IAuthUserRecord | null>;
     /**
-     * Возвращает только непросроченную сессию активного пользователя с
-     * актуальным поколением учётных данных (всё остальное неотличимо от
-     * отсутствующей сессии).
+     * Returns only an unexpired session of an active user with a current
+     * credentials generation (everything else is indistinguishable from an
+     * absent session).
      */
     getSessionWithUser(tokenHash: string): Promise<IAuthSessionWithUser | null>;
     /**
-     * Создаёт сессию, если учётка всё ещё активна и её поколение совпадает с
-     * `expectedAuthVersion`, и отмечает момент входа (`lastLoginAt`).
+     * Creates a session if the account is still active and its generation
+     * matches `expectedAuthVersion`, and marks the moment of login
+     * (`lastLoginAt`).
      *
-     * Обе записи обязаны применяться вместе и под одним условием: отметка входа
-     * до успешной вставки сессии зафиксировала бы вход, которого не случилось, а
-     * отдельная запись после неё могла бы потеряться. Поколение учётных данных
-     * при этом не двигается — вход не отзывает права.
+     * Both writes must be applied together and under one condition:
+     * marking the login before the session insert succeeds would record a login
+     * that never happened, and a separate write after it could be lost. The
+     * credentials generation does not move in the process — logging in does not
+     * revoke rights.
      *
-     * @returns false — состояние учётки изменилось между проверкой пароля и
-     * вставкой (сменили пароль, деактивировали, сменили роль); куку в этом
-     * случае выставлять нельзя.
+     * @returns false — the account state changed between the password check and
+     * the insert (the password was changed, the account deactivated, the role
+     * changed); the cookie must not be set in that case.
      */
     createSession(payload: ICreateAuthSessionPayload): Promise<boolean>;
     deleteSession(tokenHash: string): Promise<void>;
-    /** Удаляет просроченные сессии; возвращает количество удалённых. */
+    /** Deletes expired sessions; returns how many were deleted. */
     deleteExpiredSessions(): Promise<number>;
-    /** Sliding-продление: обновляет expires_at и last_used_at. */
+    /** Sliding extension: updates expires_at and last_used_at. */
     touchSession(tokenHash: string, expiresAt: Date): Promise<void>;
-    /** Все учётки для раздела управления, в стабильном порядке (по id). */
+    /** Every account for the management section, in a stable order (by id). */
     listUsers(): Promise<IBricksUserSummary[]>;
     /**
-     * Создаёт учётку.
+     * Creates an account.
      *
-     * @throws BricksUsernameTakenError - Логин занят (сравнение
-     * регистронезависимое — как и вход).
+     * @throws BricksUsernameTakenError - The username is taken (the comparison is
+     * case-insensitive — as it is at login).
      */
     createUser(payload: ICreateAuthUserPayload): Promise<IBricksUserSummary>;
     /**
-     * Меняет роль и/или активность учётки одной транзакцией и отзывает её
-     * сессии: украденная кука иначе получила бы новые полномочия при повышении,
-     * а понижение действовало бы только со следующего входа. Правка, не
-     * меняющая состояние, сессии не рвёт.
+     * Changes the account's role and/or activity in a single transaction and
+     * revokes its sessions: otherwise a stolen cookie would gain the new powers
+     * on a promotion, and a demotion would only take effect from the next login.
+     * An edit that does not change the state does not tear down the sessions.
      *
-     * @returns Новое состояние строки; null — учётки нет.
-     * @throws BricksLastActiveAdminError - Итоговое состояние оставило бы
-     * систему без активного администратора.
+     * @returns The row's new state; null — no such account.
+     * @throws BricksLastActiveAdminError - The resulting state would leave the
+     * system without an active administrator.
      */
     updateUserState(
         userId: number,
         change: IAuthUserStateChange
     ): Promise<IBricksUserSummary | null>;
     /**
-     * Ставит новый хеш пароля и отзывает сессии учётки.
+     * Sets a new password hash and revokes the account's sessions.
      *
-     * @returns Состояние строки; null — учётки нет.
+     * @returns The row's state; null — no such account.
      */
     updateUserPassword(userId: number, passwordHash: string): Promise<IBricksUserSummary | null>;
     /**
-     * Правит отображаемое имя и/или ссылку на фото своего профиля.
+     * Edits the display name and/or the photo link of one's own profile.
      *
-     * Поколение НЕ поднимается и сессии НЕ рвутся: имя и фото — не креденшелы,
-     * и человек, переименовавший себя, оказался бы выброшен из своей сессии.
-     * Строка учётки при этом блокируется до чтения прежней ссылки на фото —
-     * иначе две одновременные загрузки аватара обе сочли бы предыдущим один и
-     * тот же файл, и один из загруженных остался бы в хранилище навсегда.
+     * The generation is NOT raised and the sessions are NOT torn down: a name and
+     * a photo are not credentials, and a person who renamed themselves would find
+     * themselves thrown out of their own session. The account row is locked until
+     * the previous photo link has been read, though — otherwise two simultaneous
+     * avatar uploads would both take the same file for the previous one, and one
+     * of the uploaded files would stay in storage forever.
      *
-     * Запись обязана быть условной по `expectedAuthVersion` и активности: между
-     * резолвом сессии и этим вызовом проходит время (у загрузки фото — секунды),
-     * и за него учётку могли деактивировать или сбросить ей пароль.
+     * The write must be conditional on `expectedAuthVersion` and on
+     * activity: time passes between resolving the session and this call (seconds,
+     * for a photo upload), and during it the account could have been deactivated
+     * or had its password reset.
      *
-     * @param expectedAuthVersion - Поколение, прочитанное при резолве сессии.
-     * @returns Новое состояние и прежняя ссылка на фото; null — живой учётки с
-     * этим поколением нет (удалена, деактивирована или креденшелы отозваны).
+     * @param expectedAuthVersion - The generation read when the session was
+     * resolved.
+     * @returns The new state and the previous photo link; null — there is no live
+     * account with this generation (deleted, deactivated, or the credentials were
+     * revoked).
      */
     updateUserProfile(
         userId: number,
@@ -281,38 +295,40 @@ export interface IAuthAdapter {
         expectedAuthVersion: number
     ): Promise<IAuthProfileUpdateResult | null>;
     /**
-     * Ставит новый хеш пароля, если учётка всё ещё активна и её поколение
-     * совпадает с прочитанным до проверки текущего пароля, и отзывает все её
-     * сессии (включая ту, из которой пришёл запрос).
+     * Sets a new password hash if the account is still active and its generation
+     * matches the one read before verifying the current password, and revokes
+     * every session of it (the one the request came from included).
      *
-     * Условие обязательно: проверка текущего пароля занимает секунды, и за это
-     * время администратор мог сбросить пароль этой учётке, чтобы отобрать её у
-     * того, кто знает старый. Безусловная запись отменила бы сброс — тем самым
-     * старым паролем.
+     * The condition is mandatory: verifying the current password takes seconds,
+     * and in that time an administrator could have reset this account's password
+     * to take it away from whoever knows the old one. An unconditional write
+     * would undo that reset — with that very old password.
      *
-     * @returns false — учётки нет, она деактивирована или поколение сдвинулось.
+     * @returns false — there is no such account, it is deactivated, or the
+     * generation has moved.
      */
     updateOwnPassword(userId: number, change: IAuthOwnPasswordChange): Promise<boolean>;
     /**
-     * Удаляет учётку (сессии уходят каскадом FK).
+     * Deletes an account (the sessions go with it through the FK cascade).
      *
-     * @returns Удалённая строка; null — учётки нет. Строка, а не признак
-     * успеха: вызывающему нужен её `avatarUrl`, чтобы убрать файл фото, а
-     * прочитать его отдельным запросом до удаления значило бы удалить не тот
-     * файл, если учётка успела сменить фото.
-     * @throws BricksLastActiveAdminError - Удаление оставило бы систему без
-     * активного администратора.
+     * @returns The deleted row; null — no such account. The row rather than a
+     * success flag: the caller needs its `avatarUrl` to remove the photo file,
+     * and reading it in a separate request before the deletion would mean
+     * deleting the wrong file if the account managed to change its photo.
+     * @throws BricksLastActiveAdminError - The deletion would leave the system
+     * without an active administrator.
      */
     deleteUser(userId: number): Promise<IBricksUserSummary | null>;
 }
 
 /**
- * Мутирующая половина контракта учёток: всё, что меняет строку `bricks_users`.
+ * The mutating half of the account contract: everything that changes a
+ * `bricks_users` row.
  *
- * Postgres-реализация собирает её отдельным файлом и подмешивает в адаптер
- * спредом (тот же приём, что у `TStorageMediaMethods`); набор методов обязан
- * совпадать с контрактом, поэтому имя одно и живёт здесь, а не копией в
- * реализации.
+ * The Postgres implementation assembles it in a file of its own and mixes it into the
+ * adapter with a spread — the same arrangement as `TStorageMediaMethods`, and split
+ * off for the same reason plus one of its own: these mutations carry edge rules and
+ * row locks that session reads have no use for.
  */
 export type TAuthUserMethods = Pick<
     IAuthAdapter,

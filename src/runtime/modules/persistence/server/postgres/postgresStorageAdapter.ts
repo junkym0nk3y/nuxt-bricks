@@ -1,9 +1,9 @@
 /**
- * Дефолтный IStorageAdapter поверх PostgreSQL (таблицы bricks_pages /
- * bricks_media / bricks_templates).
- * Схема таблиц — versioned-миграции migrations/*.sql (CLI bricks-migrate);
- * runtime-DDL адаптер не выполняет — непримененные миграции проявляются
- * ошибкой 42P01/42703 с подсказкой в логе (см. client.ts).
+ * The default IStorageAdapter over PostgreSQL (the bricks_pages / bricks_media /
+ * bricks_templates tables).
+ * The tables' schema comes from the versioned migrations migrations/*.sql (the
+ * bricks-migrate CLI); the adapter runs no runtime DDL — unapplied migrations show
+ * up as a 42P01/42703 error with a hint in the log (see client.ts).
  */
 import { useRuntimeConfig } from 'nitropack/runtime';
 import { query, queryOne, withTransaction } from './client';
@@ -35,14 +35,15 @@ import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 import { normalizeUrlPrefix } from '../../../common/utils/bricks/pageAddress';
 
 /**
- * Снапшот текущей строки bricks_pages в историю версий (page_updated_at = updated_at).
- * 0 строк в результате = страница не найдена.
+ * A snapshot of the current bricks_pages row into the version history
+ * (page_updated_at = updated_at). 0 rows in the result = the page was not found.
  *
- * `thumbnail_url` копируется вместе со schema и по той же причине: снимок канваса
- * снимается ПОСЛЕ сохранения и приезжает отдельным PATCH'ем, поэтому на момент
- * снапшота thumbnail_url страницы — это кадр ровно того состояния, которое
- * снапшот и уносит в историю. Заполнять его снимком, пришедшим после снапшота,
- * нельзя: тот кадр показывает уже новое содержимое страницы.
+ * `thumbnail_url` is copied along with the schema and for the same reason: the
+ * canvas snapshot is taken AFTER the save and arrives with a separate PATCH, so at
+ * the moment of the snapshot the page's thumbnail_url is the frame of exactly the
+ * state the snapshot carries off into the history. Filling it with a snapshot that
+ * arrived after the snapshot is not allowed: that frame shows the page's new content
+ * already.
  */
 const SNAPSHOT_VERSION_SQL = `
 INSERT INTO bricks_page_versions
@@ -58,7 +59,7 @@ RETURNING id
 `;
 
 /**
- * Обрезает историю версий страницы до N последних снапшотов.
+ * Trims a page's version history down to the N latest snapshots.
  */
 const PRUNE_VERSIONS_SQL = `
 DELETE FROM bricks_page_versions
@@ -71,10 +72,10 @@ WHERE page_id = $1 AND id NOT IN (
 const DEFAULT_VERSIONS_LIMIT = 5;
 
 /**
- * Резолвит лимит версий из runtimeConfig (env-значения приходят строками).
- * Невалидное или отрицательное значение → дефолт 5; `0` — версионирование выключено.
+ * Resolves the version limit from runtimeConfig (env values arrive as strings).
+ * An invalid or negative value → the default of 5; `0` — versioning is off.
  *
- * @returns Целое число хранимых версий.
+ * @returns The whole number of versions kept.
  */
 function resolveVersionsLimit(): number {
     const raw = useRuntimeConfig().bricksVersionsLimit as unknown;
@@ -88,21 +89,21 @@ function resolveVersionsLimit(): number {
 }
 
 /**
- * Машинные поля, изменение которых не считается контентным: апдейт только их
- * не инкрементит revision. thumbnailUrl пишется fire-and-forget PATCH'ем после
- * снапшота канваса — если бы он двигал revision, параллельный PATCH превью
- * ронял бы следующее сохранение пользователя ложным 409.
+ * The machine fields whose change does not count as a content one: an update of
+ * them alone does not increment the revision. thumbnailUrl is written by a
+ * fire-and-forget PATCH after the canvas snapshot — were it to move the revision, a
+ * parallel preview PATCH would bring the user's next save down with a false 409.
  */
 const REVISION_NEUTRAL_FIELDS: ReadonlySet<string> = new Set(['thumbnailUrl']);
 
 /**
- * Собирает UPDATE bricks_pages из payload: контентный апдейт инкрементит
- * revision, а переданный expectedRevision становится precondition в WHERE —
- * при несовпадении UPDATE не матчит строку (optimistic locking).
+ * Assembles the bricks_pages UPDATE out of the payload: a content update increments
+ * the revision, and a passed expectedRevision becomes a precondition in the WHERE —
+ * on a mismatch the UPDATE matches no row (optimistic locking).
  *
- * @param id - Идентификатор страницы.
- * @param payload - Изменяемые поля + опциональный expectedRevision.
- * @returns SQL и параметры; null — если изменяемых полей нет.
+ * @param id - The page identifier.
+ * @param payload - The changed fields + an optional expectedRevision.
+ * @returns The SQL and the parameters; null — there are no changed fields.
  */
 function buildPageUpdateSql(
     id: number,
@@ -140,16 +141,16 @@ function buildPageUpdateSql(
 }
 
 /**
- * Создаёт Postgres-реализацию IStorageAdapter.
+ * Creates the Postgres implementation of IStorageAdapter.
  *
- * @returns Адаптер хранилища страниц и медиа-метаданных.
+ * @returns The storage adapter for pages and media metadata.
  */
 export function createPostgresStorageAdapter(): IStorageAdapter {
     return {
         /**
-         * Readiness-проверка: `SELECT 1` через пул. Без сконфигурированной
-         * строки подключения (proxy-режим) проверка пропускается — локальной
-         * БД нет, отвечать 503 из-за этого нельзя.
+         * The readiness check: a `SELECT 1` through the pool. With no connection
+         * string configured (proxy mode) the check is skipped — there is no local
+         * database, and answering 503 over that is not allowed.
          */
         async checkHealth(): Promise<void> {
             if (!useRuntimeConfig().bricksDatabaseUrl) {
@@ -160,8 +161,8 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
         },
 
         /**
-         * Возвращает сводки всех страниц (без schema), отсортированные
-         * по дате обновления. Полная строка — getPage/getPageByAddress.
+         * Returns summaries of every page (without the schema), sorted by their
+         * update date. The full row comes from getPage/getPageByAddress.
          */
         async listPages(): Promise<TBricksPageSummaryRow[]> {
             return query<TBricksPageSummaryRow>(
@@ -170,7 +171,7 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
         },
 
         /**
-         * Возвращает страницу по id или null.
+         * Returns a page by id, or null.
          */
         async getPage(id: number): Promise<IBricksPageRow | null> {
             return queryOne<IBricksPageRow>(
@@ -180,15 +181,16 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
         },
 
         /**
-         * Возвращает страницу по адресу или null.
+         * Returns a page by its address, or null.
          *
-         * Две ветки, а не одно `url_prefix IS NOT DISTINCT FROM $2`: второе
-         * выражение B-tree индексирует только по ведущей колонке, а префикс уходит
-         * в Filter. Замерено на PG 16 для случая, который эта фича и создаёт (один
-         * слаг под 2000 префиксов): 393 buffer hits и 1999 отброшенных строк против
-         * 3 hits у равенства — стоимость растёт с числом страниц, переиспользующих
-         * слаг. Каждой ветке отвечает свой partial unique index уникальности адреса
-         * (`uq_bricks_pages_address` и `…_bare`, см. migrations/0001_init.sql).
+         * Two branches rather than a single `url_prefix IS NOT DISTINCT FROM $2`:
+         * over the latter expression a B-tree indexes by the leading column only,
+         * and the prefix goes off into a Filter. Measured on PG 16 for the case this
+         * feature itself creates (one slug under 2000 prefixes): 393 buffer hits and
+         * 1999 discarded rows against 3 hits for the equality — the cost grows with
+         * the number of pages reusing the slug. Each branch is answered by an address
+         * uniqueness partial unique index of its own (`uq_bricks_pages_address` and
+         * `…_bare`, see migrations/0001_init.sql).
          */
         async getPageByAddress(address: IBricksPageAddress): Promise<IBricksPageRow | null> {
             const urlPrefix = normalizeUrlPrefix(address.urlPrefix);
@@ -209,9 +211,11 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
         },
 
         /**
-         * Создаёт страницу и возвращает её полностью.
-         * Дубликат pagename (включая гонку одновременных create) →
-         * BricksPageAddressConflictError, а не драйверная ошибка.
+         * Creates a page and returns it in full.
+         * A taken ADDRESS — the pair `urlPrefix + pagename` — gives
+         * BricksPageAddressConflictError rather than a driver error, a race of
+         * simultaneous creates included. The same name under a different prefix is
+         * legitimate and does not conflict.
          */
         async createPage(payload: ICreatePagePayload): Promise<IBricksPageRow> {
             let result: IBricksPageRow | null;
@@ -255,13 +259,15 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
         },
 
         /**
-         * Обновляет переданные поля страницы; null — если страница не найдена.
-         * Каждый успешный апдейт инкрементит revision; несовпавший
-         * expectedRevision → BricksRevisionConflictError (ничего не записано),
-         * занятый pagename → BricksPageAddressConflictError.
-         * Если payload меняет `schema` и лимит версий > 0 — атомарно (в транзакции)
-         * снапшотит прежнюю строку в bricks_page_versions и обрезает историю до N
-         * (контракт IStorageAdapter.updatePage).
+         * Updates the passed page fields; null — the page was not found.
+         * A content update increments the revision, while an update of the machine
+         * fields alone (see REVISION_NEUTRAL_FIELDS) deliberately does not; a
+         * mismatched expectedRevision gives BricksRevisionConflictError (nothing was
+         * written), a taken address — BricksPageAddressConflictError.
+         * When the payload changes `schema` or `viewportConfig` and the version limit
+         * is > 0 — atomically (in a transaction) snapshots the previous row into
+         * bricks_page_versions and trims the history down to N (the
+         * IStorageAdapter.updatePage contract).
          */
         async updatePage(id: number, payload: IUpdatePagePayload): Promise<IBricksPageRow | null> {
             const update = buildPageUpdateSql(id, payload);
@@ -281,9 +287,10 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
 
             const versionsLimit = resolveVersionsLimit();
 
-            // Набор устройств — такая же часть версионируемого состояния, как и
-            // схема: ключи `props.responsive` относятся к нему, и правка одного
-            // набора без снимка делает смену топологии невосстановимой
+            // The device set is as much a part of the versioned state as the
+            // schema: the `props.responsive` keys belong to it, and an edit of the
+            // set alone with no snapshot makes a change of topology
+            // unrecoverable
             const shouldSnapshot =
                 payload.schema !== undefined || payload.viewportConfig !== undefined;
 
@@ -295,7 +302,8 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
                         return rows[0];
                     }
 
-                    // 0 строк: страницы нет (404) либо не совпал precondition (409)
+                    // 0 rows: either there is no page (404) or the precondition did
+                    // not match (409)
                     if (payload.expectedRevision === undefined) {
                         return null;
                     }
@@ -313,7 +321,8 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
                 }
 
                 return await withTransaction(async (txQuery) => {
-                    // INSERT..SELECT прежней строки заодно служит existence-чеком
+                    // The INSERT..SELECT of the previous row doubles as the
+                    // existence check
                     const snapshot = await txQuery<{ id: number }>(SNAPSHOT_VERSION_SQL, [id]);
 
                     if (snapshot.length === 0) {
@@ -323,8 +332,9 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
                     const rows = await txQuery<IBricksPageRow>(update.sql, update.values);
 
                     if (rows.length === 0) {
-                        // страница есть (снапшот прошёл) → revision mismatch;
-                        // throw откатывает транзакцию вместе со снапшотом
+                        // The page exists (the snapshot went through) → a revision
+                        // mismatch; the throw rolls the transaction back along with
+                        // the snapshot
                         throw new BricksRevisionConflictError(id);
                     }
 
@@ -333,11 +343,13 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
                     return rows[0];
                 });
             } catch (error: unknown) {
-                // Любое поле адреса, а не только pagename: уникален адрес целиком,
-                // поэтому PATCH одного `urlPrefix` тоже собирает занятую пару — с
-                // прежним условием такой конфликт уходил наружу драйверной ошибкой
-                // и превращался в 500 вместо 409. Состав payload'а — единственный
-                // признак: SQLSTATE приходит без имени нарушенного ограничения
+                // Any field of the address rather than the pagename alone: it is
+                // the address as a whole that is unique, so a PATCH of the
+                // `urlPrefix` alone also assembles a taken pair — under the former
+                // condition such a conflict went outward as a driver error and turned
+                // into a 500 instead of a 409. The payload's composition is the only
+                // sign: the SQLSTATE arrives with no name of the violated
+                // constraint
                 if (
                     isUniqueViolation(error) &&
                     (payload.pagename !== undefined || payload.urlPrefix !== undefined)
@@ -350,7 +362,7 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
         },
 
         /**
-         * Удаляет страницу; false — если страница не найдена.
+         * Deletes a page; false — the page was not found.
          */
         async deletePage(id: number): Promise<boolean> {
             const rows = await query<{ id: number }>(
@@ -362,7 +374,8 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
         },
 
         /**
-         * Возвращает сводки сохранённых версий страницы (без schema), новые сверху.
+         * Returns summaries of the page's saved versions (without the schema),
+         * newest first.
          */
         async listPageVersions(pageId: number): Promise<IPageVersionSummary[]> {
             return query<IPageVersionSummary>(
@@ -374,8 +387,8 @@ export function createPostgresStorageAdapter(): IStorageAdapter {
         },
 
         /**
-         * Возвращает полный снапшот версии страницы или null.
-         * Фильтр по page_id не даёт читать versionId поперёк страниц.
+         * Returns a page version's full snapshot, or null.
+         * The page_id filter keeps a versionId from being read across pages.
          */
         async getPageVersion(pageId: number, versionId: number): Promise<IPageVersion | null> {
             return queryOne<IPageVersion>(

@@ -1,6 +1,7 @@
 /**
- * Общая реализация PUT/PATCH /api/bricks/:id — оба метода обновляют
- * только переданные поля (фронт шлёт полный payload на PUT и частичный на PATCH).
+ * The shared implementation of PUT/PATCH /api/bricks/:id — both methods update only
+ * the passed fields (the frontend sends a full payload on PUT and a partial one on
+ * PATCH).
  */
 import { createError, type H3Event } from 'h3';
 import { useBricksStorageAdapter } from '../registry';
@@ -11,12 +12,13 @@ import { getConfiguredPageAddressContext } from './pageAddressContext';
 import type { IBricksPageRow } from '../../../common/types/bricks-api';
 
 /**
- * Обновляет страницу по id из события запроса. Конфликты разруливает адаптер
- * атомарно (constraint pagename, precondition expectedRevision) — оба доменных
- * конфликта маппятся на 409 с `data.code` в toPageHttpError.
+ * Updates the page by the id from the request event. The conflicts are resolved by
+ * the adapter atomically (the address uniqueness constraint, the expectedRevision
+ * precondition) — both domain conflicts are mapped onto a 409 with a `data.code` in
+ * toPageHttpError.
  *
- * @param event - Событие запроса (PUT или PATCH).
- * @returns Обновлённая страница.
+ * @param event - The request event (PUT or PATCH).
+ * @returns The updated page.
  */
 export async function updatePageFromEvent(event: H3Event): Promise<IBricksPageRow> {
     const id = requireNumericId(event);

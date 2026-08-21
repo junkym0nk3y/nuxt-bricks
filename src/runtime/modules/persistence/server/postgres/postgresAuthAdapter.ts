@@ -1,12 +1,13 @@
 /**
- * Дефолтный IAuthAdapter поверх PostgreSQL (таблицы bricks_users / bricks_sessions).
- * Схема таблиц — versioned-миграции migrations/*.sql (CLI bricks-migrate);
- * runtime-DDL адаптер не выполняет.
+ * The default IAuthAdapter over PostgreSQL (the bricks_users / bricks_sessions
+ * tables). The tables' schema comes from the versioned migrations migrations/*.sql
+ * (the bricks-migrate CLI); the adapter runs no runtime DDL.
  *
- * Здесь — чтение учётки для входа и жизненный цикл cookie-сессий. Мутации самой
- * строки учётки (роль, активность, пароли, профиль, удаление) живут в
- * `postgresAuthUserMethods.ts` и подмешиваются спредом: у них свои краевые
- * правила и блокировки, и вместе файл перерастал потолок в 500 строк.
+ * Here — reading an account for login and the lifecycle of the cookie sessions. The
+ * mutations of the account row itself (role, activity, passwords, profile, deletion)
+ * live in `postgresAuthUserMethods.ts` and are mixed in with a spread: they have edge
+ * rules and locks of their own, and together the file kept outgrowing the 500-line
+ * ceiling.
  */
 import { query, queryOne } from './client';
 import { createPostgresAuthUserMethods } from './postgresAuthUserMethods';
@@ -20,17 +21,17 @@ import type {
 import type { IAuthSessionJoinRow } from '../../types/postgres';
 
 /**
- * Создаёт Postgres-реализацию IAuthAdapter.
+ * Creates the Postgres implementation of IAuthAdapter.
  *
- * @returns Адаптер пользователей и cookie-сессий.
+ * @returns The adapter of users and cookie sessions.
  */
 export function createPostgresAuthAdapter(): IAuthAdapter {
     return {
         /**
-         * Возвращает пользователя по username (включая хеш пароля) или null.
-         * Поиск регистронезависимый — под уникальным индексом по lower(username);
-         * регистрозависимый поиск разошёлся бы с rate limiter'ом логина, который
-         * считает `Admin` и `admin` одним ключом попыток.
+         * Returns a user by username (the password hash included), or null.
+         * The lookup is case-insensitive — under the unique index on
+         * lower(username); a case-sensitive lookup would drift away from the login
+         * rate limiter, which counts `Admin` and `admin` as one key of attempts.
          */
         async getUserByUsername(username: string): Promise<IAuthUserRecord | null> {
             return queryOne<IAuthUserRecord>(
@@ -43,14 +44,16 @@ export function createPostgresAuthAdapter(): IAuthAdapter {
         },
 
         /**
-         * Возвращает непросроченную сессию вместе с пользователем или null.
-         * Просроченная сессия неотличима от отсутствующей (SQL-фильтр по expires_at).
+         * Returns an unexpired session together with its user, or null.
+         * An expired session is indistinguishable from an absent one (the SQL filter
+         * on expires_at).
          *
-         * Сверка `s.auth_version = u.auth_version` — носитель отзыва прав:
-         * смена пароля, деактивация и смена роли поднимают поколение учётки, и
-         * все прежние сессии перестают совпадать тем же запросом, которым их
-         * читают. Полагаться вместо этого на удаление строк сессий нельзя:
-         * отдельный DELETE может отказать уже после успешной смены пароля.
+         * The `s.auth_version = u.auth_version` match is what carries the revocation
+         * of rights: a password change, a deactivation and a role change raise the
+         * account's generation, and every former session stops matching in the very
+         * request that reads it. Relying on the deletion of the session rows instead
+         * is not allowed: a separate DELETE can fail after the password change has
+         * already succeeded.
          */
         async getSessionWithUser(tokenHash: string): Promise<IAuthSessionWithUser | null> {
             const row = await queryOne<IAuthSessionJoinRow>(
@@ -64,10 +67,11 @@ export function createPostgresAuthAdapter(): IAuthAdapter {
                     u.auth_version AS "authVersion",
                     u.display_name AS "displayName",
                     u.avatar_url AS "avatarUrl",
-                    -- Дефолтность пароля считается здесь, а не отдельным
-                    -- запросом: интерфейсу она нужна на каждом входе в билдер,
-                    -- а сравнение строки хеша ничего не стоит рядом с уже
-                    -- идущим JOIN. Сам хеш при этом не покидает базу.
+                    -- Whether the password is the default one is computed here
+                    -- rather than by a separate query: the interface needs it on
+                    -- every entry into the builder, and comparing a hash string
+                    -- costs nothing next to a JOIN that is already running. The
+                    -- hash itself never leaves the database in the process.
                     (u.password_hash = $2) AS "isDefaultPassword"
                 FROM bricks_sessions s
                 JOIN bricks_users u ON u.id = s.user_id
@@ -83,9 +87,10 @@ export function createPostgresAuthAdapter(): IAuthAdapter {
 
             return {
                 tokenHash: row.tokenHash,
-                // TIMESTAMPTZ-колонка: node-postgres возвращает Date —
-                // нормализуем до ISO-строки, контракт IAuthSessionWithUser.expiresAt
-                // остаётся string (ISO 8601 UTC).
+                // A TIMESTAMPTZ column: node-postgres returns a Date — it is
+                // normalized to an ISO string, and the
+                // IAuthSessionWithUser.expiresAt contract stays a string
+                // (ISO 8601 UTC).
                 expiresAt:
                     row.expiresAt instanceof Date ? row.expiresAt.toISOString() : row.expiresAt,
                 lastUsedAt: row.lastUsedAt,
@@ -103,25 +108,26 @@ export function createPostgresAuthAdapter(): IAuthAdapter {
         },
 
         /**
-         * Создаёт сессию (в БД — только SHA-256 hex токена), если учётка всё ещё
-         * активна и её поколение совпадает с прочитанным до проверки пароля, и
-         * тем же запросом отмечает момент входа.
+         * Creates a session (the database holds only the token's SHA-256 hex) if the
+         * account is still active and its generation matches the one read before the
+         * password check, and marks the moment of login in the same request.
          *
-         * Вставка условная, а не безусловная: проверка пароля идёт под scrypt
-         * секунды, и параллельная смена пароля или деактивация могли завершиться
-         * раньше вставки — тогда безусловный INSERT выдал бы рабочую сессию по
-         * уже отозванным креденшелам.
+         * The insert is conditional rather than unconditional: the password check runs
+         * for seconds under scrypt, and a parallel password change or deactivation
+         * could have finished ahead of the insert — an unconditional INSERT would then
+         * hand out a working session on credentials already revoked.
          *
-         * Отметка входа живёт в CTE того же запроса, а не отдельным UPDATE, и
-         * условие у неё то же самое. Порядок здесь и есть смысл конструкции:
-         * запись даты ДО условной вставки отметила бы вход, которого не
-         * случилось (учётку успели деактивировать), а отдельный запрос ПОСЛЕ
-         * коммита сессии мог бы потеряться, оставив вошедшего без даты. Одним
-         * оператором обе записи применяются вместе либо не применяются вовсе.
-         * `auth_version` при этом не двигается: вход — не отзыв прав, и
-         * инкремент погасил бы только что созданную сессию.
+         * The login mark lives in a CTE of the same request rather than in a separate
+         * UPDATE, and its condition is the same one. The order here is the whole point
+         * of the construction: writing the date BEFORE the conditional insert would
+         * mark a login that never happened (the account was deactivated in time),
+         * while a separate request AFTER the session's commit could be lost, leaving
+         * whoever logged in without a date. In a single statement both writes are
+         * applied together or not at all. `auth_version` does not move in the process:
+         * logging in is not a revocation of rights, and an increment would put out the
+         * session just created.
          *
-         * @returns false — состояние учётки изменилось, куку выставлять нельзя.
+         * @returns false — the account's state changed, the cookie must not be set.
          */
         async createSession(payload: ICreateAuthSessionPayload): Promise<boolean> {
             const rows = await query<{ id: number }>(
@@ -144,14 +150,14 @@ export function createPostgresAuthAdapter(): IAuthAdapter {
         },
 
         /**
-         * Удаляет сессию по хешу токена (logout / отзыв).
+         * Deletes a session by its token hash (logout / revocation).
          */
         async deleteSession(tokenHash: string): Promise<void> {
             await query('DELETE FROM bricks_sessions WHERE token_hash = $1', [tokenHash]);
         },
 
         /**
-         * Удаляет просроченные сессии; возвращает количество удалённых.
+         * Deletes expired sessions; returns how many were deleted.
          */
         async deleteExpiredSessions(): Promise<number> {
             const rows = await query<{ id: number }>(
@@ -162,7 +168,7 @@ export function createPostgresAuthAdapter(): IAuthAdapter {
         },
 
         /**
-         * Sliding-продление: обновляет expires_at и last_used_at сессии.
+         * Sliding extension: updates the session's expires_at and last_used_at.
          */
         async touchSession(tokenHash: string, expiresAt: Date): Promise<void> {
             await query(

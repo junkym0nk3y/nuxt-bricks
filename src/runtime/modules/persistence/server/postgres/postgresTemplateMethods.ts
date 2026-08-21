@@ -1,10 +1,7 @@
 /**
- * Шаблонная часть Postgres-адаптера: записи `bricks_templates`.
- *
- * Отдельным файлом от `postgresStorageAdapter.ts` по шву домена — у страниц и
- * шаблонов нет ни одного общего запроса, а вместе файл перерос бы потолок в 500
- * строк (та же причина, что у медиа-половины). Адаптер собирает контракт
- * спредом этих методов.
+ * The template part of the Postgres adapter: the `bricks_templates` records. Mixed
+ * into the adapter with a spread; why the half is split off and why its name is shared
+ * with the HTTP implementation — `TStorageTemplateMethods` in `types/adapters.d.ts`.
  */
 import { query, queryOne } from './client';
 import {
@@ -28,17 +25,17 @@ import type {
 } from '../../../common/types/templates';
 
 /**
- * Создаёт шаблонные методы Postgres-адаптера.
+ * Creates the template methods of the Postgres adapter.
  *
- * @returns Реализация шаблонной половины контракта хранилища.
+ * @returns The implementation of the storage contract's template half.
  */
 export function createPostgresTemplateMethods(): TStorageTemplateMethods {
     return {
         /**
-         * Сводки шаблонов, новые сверху — по дате создания (её же индексирует
-         * `idx_bricks_templates_created_at`). `id DESC` вторым ключом: две
-         * записи одной транзакции получают одинаковый `NOW()`, и без него их
-         * порядок между запросами не определён.
+         * Template summaries, newest first — by the creation date (which is also what
+         * `idx_bricks_templates_created_at` indexes). `id DESC` as the second key: two
+         * records of one transaction get the same `NOW()`, and without it their order
+         * between requests is undefined.
          */
         async listTemplates(): Promise<TBricksTemplateSummary[]> {
             return query<TBricksTemplateSummary>(
@@ -48,7 +45,7 @@ export function createPostgresTemplateMethods(): TStorageTemplateMethods {
         },
 
         /**
-         * Полный шаблон по id или null.
+         * The full template by id, or null.
          */
         async getTemplate(id: number): Promise<IBricksTemplateRow | null> {
             return queryOne<IBricksTemplateRow>(
@@ -58,16 +55,17 @@ export function createPostgresTemplateMethods(): TStorageTemplateMethods {
         },
 
         /**
-         * Создаёт шаблон и возвращает его полностью. Занятое имя (в том числе на
-         * гонке двух одновременных создателей) → BricksTemplateNameConflictError,
-         * а не драйверная ошибка.
+         * Creates a template and returns it in full. A taken name (on a race of two
+         * simultaneous creators included) → BricksTemplateNameConflictError rather than
+         * a driver error.
          *
-         * Прочие ДОКАЗАННЫЕ отказы вставки (запрос не ушёл, statement отменён
-         * лимитом времени базы, схема или ограничение отвергли данные) уходят в
-         * маркер отвергнутой записи: у создания шаблона есть внешний побочный
-         * эффект — скопированный файл превью, — и убрать его ручка вправе только
-         * под гарантию, что строки нет. Без маркера такой файл оставался бы
-         * сиротой в хранилище (та же причина, что у вставки медиа).
+         * The other PROVEN refusals of the insert (the request never left, the
+         * statement was canceled by the database's time limit, the schema or a
+         * constraint rejected the data) go into the rejected-write marker: creating a
+         * template has an external side effect — the copied preview file — and the
+         * handler is entitled to remove it only under a guarantee that there is no
+         * row. Without the marker such a file would stay an orphan in storage (the same
+         * reason as with a media insert).
          */
         async createTemplate(payload: ICreateTemplatePayload): Promise<IBricksTemplateRow> {
             let result: IBricksTemplateRow | null;
@@ -86,8 +84,9 @@ export function createPostgresTemplateMethods(): TStorageTemplateMethods {
                     ]
                 );
             } catch (error: unknown) {
-                // Конфликт имени — раньше общего маркера: он и сам гарантирует
-                // отказ, но клиенту нужен именно он (подсказка под полем)
+                // The name conflict comes ahead of the shared marker: it guarantees
+                // the refusal on its own, but it is the one the client needs (the hint
+                // under the field)
                 if (isUniqueViolation(error)) {
                     throw new BricksTemplateNameConflictError();
                 }
@@ -110,11 +109,12 @@ export function createPostgresTemplateMethods(): TStorageTemplateMethods {
         },
 
         /**
-         * Правит подпись шаблона; null — шаблона нет. Занятое имя →
+         * Edits a template's label; null — no such template. A taken name →
          * BricksTemplateNameConflictError.
          *
-         * Пустой payload сюда не доходит: «хотя бы одно поле» требует валидатор
-         * ручки — иначе PATCH без полей собрал бы `UPDATE ... SET WHERE id`.
+         * An empty payload never reaches here: "at least one field" is required by the
+         * handler's validator — otherwise a PATCH with no fields would assemble an
+         * `UPDATE ... SET WHERE id`.
          */
         async updateTemplate(
             id: number,
@@ -146,8 +146,8 @@ export function createPostgresTemplateMethods(): TStorageTemplateMethods {
         },
 
         /**
-         * Удаляет шаблон и возвращает URL его превью (он нужен ручке для уборки
-         * файла); null — шаблона нет.
+         * Deletes a template and returns the URL of its preview (the handler needs it
+         * to sweep the file); null — no such template.
          */
         async deleteTemplate(id: number): Promise<TDeleteTemplateResult> {
             return queryOne<{ thumbnailUrl: string | null }>(

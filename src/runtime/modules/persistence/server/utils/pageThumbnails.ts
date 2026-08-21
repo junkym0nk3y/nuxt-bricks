@@ -1,15 +1,15 @@
 /**
- * Жизненный цикл файлов превью страницы в хранилище публикации.
+ * The lifecycle of a page's preview files in the publication storage.
  *
- * Ключ уникален на каждую загрузку (`page-<id>-<uuid>.webp`), а не постоянен на
- * страницу: галерея версий показывает превью каждого сохранённого состояния, и
- * при одном перезаписываемом ключе все версии показывали бы последний кадр.
- * Плата за уникальность — сироты: файл перестаёт быть нужным, когда версию,
- * которая на него ссылалась, вытеснил prune истории. Поэтому уборка идёт по
- * префиксу страницы с явным списком ещё нужных URL, а не по одному ключу.
+ * The key is unique per upload (`page-<id>-<uuid>.webp`) rather than constant per
+ * page: the version gallery shows a preview of every saved state, and with a
+ * single overwritten key all the versions would show the latest frame. The price
+ * of uniqueness is orphans: a file stops being needed once the version referencing
+ * it was pushed out by the history prune. That is why the sweep walks the page's
+ * prefix with an explicit list of the URLs still needed, rather than a single key.
  *
- * Зависимости передаются параметром (узкие Pick-контракты) — логика
- * тестируется юнитами без реального S3 (паттерн mediaOrchestration.ts).
+ * The dependencies are passed as a parameter (narrow Pick contracts) — the logic
+ * is unit-tested without a real S3 (the mediaOrchestration.ts pattern).
  */
 import { randomUUID } from 'node:crypto';
 import type {
@@ -19,29 +19,30 @@ import type {
 } from '../../types/adapters';
 
 /**
- * Префиксы имён файлов превью одной страницы внутри thumbnail-namespace.
+ * The file name prefixes of one page's previews inside the thumbnail namespace.
  *
- * Их два: `page-<id>-` — нынешний формат с uuid, `page-<id>.` — прежний
- * единственный файл страницы. Второй нужен, чтобы прежний кадр не остался
- * сиротой навсегда: после первого сохранения он перестаёт быть превью страницы
- * и уходит в версию, а из версии — в никуда, когда её вытеснит prune истории.
+ * There are two: `page-<id>-` — the present format with a uuid, and `page-<id>.` —
+ * the former single file of a page. The second one is needed so that the former
+ * frame does not stay an orphan forever: after the first save it stops being the
+ * page's preview and goes into a version, and from the version into nowhere once
+ * the history prune pushes that version out.
  *
- * Разделитель на конце обязателен у обоих: без него префикс страницы 1 накрыл
- * бы файлы страницы 12.
+ * The separator at the end is mandatory for both: without it page 1's prefix would
+ * cover page 12's files.
  *
- * @param pageId - Идентификатор страницы.
- * @returns Имена-префиксы для buildFileKey.
+ * @param pageId - The page identifier.
+ * @returns The prefix names for buildFileKey.
  */
 function buildThumbnailFilenamePrefixes(pageId: number): string[] {
     return [`page-${pageId}-`, `page-${pageId}.`];
 }
 
 /**
- * Строит object key для нового файла превью страницы.
+ * Builds the object key for a new page preview file.
  *
- * @param publish - Publish-адаптер (источник namespace-префикса).
- * @param pageId - Идентификатор страницы.
- * @returns Полный object key.
+ * @param publish - The publish adapter (the source of the namespace prefix).
+ * @param pageId - The page identifier.
+ * @returns The full object key.
  */
 export function buildPageThumbnailKey(
     publish: Pick<IPublishAdapter, 'buildFileKey'>,
@@ -51,42 +52,44 @@ export function buildPageThumbnailKey(
 }
 
 /**
- * Отрезает query от URL файла: у превью, сохранённых прежней схемой,
- * в URL есть cache-buster `?v=<ts>`, и без нормализации такой URL не совпал бы
- * с URL того же объекта из листинга хранилища.
+ * Cuts the query off a file's URL: previews saved by the former scheme carry a
+ * cache buster `?v=<ts>` in their URL, and without normalization such a URL would
+ * not match the URL of the same object from the storage listing.
  *
- * @param url - URL файла.
- * @returns URL без query и fragment.
+ * @param url - The file's URL.
+ * @returns The URL without its query and fragment.
  */
 function stripUrlQuery(url: string): string {
     return url.split('#')[0].split('?')[0];
 }
 
 /**
- * Возраст, младше которого файл не удаляется как сирота (мс).
+ * The age below which a file is not deleted as an orphan (ms).
  *
- * Ссылка на свежезагруженный кадр появляется в БД не в момент загрузки: ручка
- * отдаёт URL, а записывает его отдельным PATCH'ем клиент. Пока PATCH в пути,
- * файл не значится нигде — и параллельная уборка соседнего сохранения приняла
- * бы его за сироту. Два сохранения подряд такие POST'ы реально порождают:
- * съёмка превью запускается fire-and-forget и не держит `isSubmitting`.
- * Отложенная на окно уборка сироту не теряет — её заберёт следующий проход.
+ * A link to a freshly uploaded frame does not appear in the database at the moment
+ * of the upload: the handler returns the URL, and the client writes it with a
+ * separate PATCH. While the PATCH is in flight the file is listed nowhere — and a
+ * parallel sweep from a neighboring save would take it for an orphan. Two saves in
+ * a row really do produce such POSTs: the preview capture is started
+ * fire-and-forget and does not hold `isSubmitting`. A sweep deferred by the window
+ * loses no orphan — the next pass will take it.
  */
 const RECENT_UPLOAD_GRACE_MS = 10 * 60 * 1000;
 
 /**
- * Проверяет, что файл загружен слишком недавно, чтобы считать его сиротой.
+ * Checks that a file was uploaded too recently to be counted as an orphan.
  *
- * @param lastModified - ISO-дата последней записи объекта.
- * @param graceMs - Ширина защитного окна.
- * @returns true, если файл моложе окна.
+ * @param lastModified - The ISO date of the object's last write.
+ * @param graceMs - The width of the protective window.
+ * @returns true when the file is younger than the window.
  */
 function isRecentUpload(lastModified: string, graceMs: number): boolean {
     const modifiedAt = new Date(lastModified).getTime();
 
     if (Number.isNaN(modifiedAt)) {
-        // Хранилище не отдало внятную дату — считаем файл свежим и не трогаем:
-        // ошибочное удаление живого кадра дороже пережившей проход сироты
+        // Storage returned no intelligible date — treat the file as fresh and
+        // leave it alone: mistakenly deleting a live frame costs more than an
+        // orphan surviving the pass
         return true;
     }
 
@@ -94,23 +97,23 @@ function isRecentUpload(lastModified: string, graceMs: number): boolean {
 }
 
 /**
- * Best-effort удаление файлов превью страницы, на которые больше никто не
- * ссылается: всё под префиксами страницы, кроме перечисленных в `keepUrls` и
- * кроме слишком свежих (см. `RECENT_UPLOAD_GRACE_MS`).
+ * Best-effort deletion of the page preview files nobody references any more:
+ * everything under the page's prefixes except the ones listed in `keepUrls` and
+ * except the too fresh ones (see `RECENT_UPLOAD_GRACE_MS`).
  *
- * Список нужных URL передаётся снаружи целиком (страница + все её версии +
- * только что загруженный кадр) — сравнение точное, без эвристик «оставить N
- * свежих».
+ * The list of needed URLs is passed in from outside in full (the page + all of its
+ * versions + the frame just uploaded) — the comparison is exact, with no "keep the
+ * N freshest" heuristics.
  *
- * Превью — вторичный артефакт: любая ошибка гасится предупреждением и не роняет
- * вызывающую операцию (загрузку снимка, удаление страницы).
+ * A preview is a secondary artifact: any error is muted into a warning and does not
+ * bring the calling operation (a snapshot upload, a page deletion) down.
  *
- * @param publish - Publish-адаптер.
- * @param pageId - Идентификатор страницы.
- * @param keepUrls - URL, которые удалять нельзя (null/undefined игнорируются).
- * @param options - `includeRecentUploads` снимает защиту свежих файлов; ставится
- * при удалении страницы, где следующего прохода уже не будет и отложенный
- * файл остался бы в хранилище навсегда.
+ * @param publish - The publish adapter.
+ * @param pageId - The page identifier.
+ * @param keepUrls - The URLs that must not be deleted (null/undefined are ignored).
+ * @param options - `includeRecentUploads` lifts the protection of fresh files; set
+ * when a page is deleted, where there will be no next pass and a deferred file
+ * would stay in storage forever.
  */
 export async function prunePageThumbnails(
     publish: Pick<IPublishAdapter, 'buildFileKey' | 'listFiles' | 'deleteFile'>,
@@ -129,10 +132,10 @@ export async function prunePageThumbnails(
         try {
             prefixKey = publish.buildFileKey('thumbnail', filenamePrefix);
         } catch {
-            // Отказ на построении ключа означает несконфигурированное хранилище
-            // публикации: файлов превью в такой установке нет вовсе, и убирать
-            // нечего. Молча — иначе обычное удаление страницы печатало бы
-            // стектрейс на каждой инсталляции без S3
+            // A refusal while building the key means the publication storage is
+            // not configured: such an installation has no preview files at all,
+            // and there is nothing to sweep. Silently — otherwise an ordinary page
+            // deletion would print a stack trace on every installation with no S3
             return;
         }
 
@@ -161,31 +164,32 @@ export async function prunePageThumbnails(
 }
 
 /**
- * Убирает сирот после загрузки нового кадра страницы: собирает keep-list из
- * живых источников и отдаёт его `prunePageThumbnails`.
+ * Sweeps the orphans after a new page frame has been uploaded: assembles the keep
+ * list out of the live sources and hands it to `prunePageThumbnails`.
  *
- * Источников три — сама страница, все её версии и только что загруженный кадр
- * (в БД его ещё нет: URL записывает отдельным PATCH клиент). Собрать их одним
- * чтением нельзя, а между чтениями может лечь commit отката: одной транзакцией
- * он уносит кадр страницы в новую версию, ставит странице кадр выбранной версии
- * и обрезает историю лимитом — на заполненной истории откат к самой старой
- * версии удаляет её же строку.
+ * There are three sources — the page itself, all of its versions and the frame just
+ * uploaded (it is not in the database yet: the client writes the URL with a
+ * separate PATCH). They cannot be collected in a single read, and a restore's
+ * commit can land between the reads: in one transaction it carries the page's frame
+ * off into a new version, gives the page the chosen version's frame and trims the
+ * history down to the limit — over a filled history a restore to the oldest version
+ * deletes that very version's row.
  *
- * Отсюда порядок «страница → версии → страница»: страница читается дважды, и
- * любой интерливинг оставляет оба спорных кадра в списке. Кадр, который откат
- * вытеснил, — либо ещё на странице (чтение до отката), либо уже в версии
- * (список после). Кадр восстановленной версии — либо ещё в списке версий
- * (чтение до отката), либо уже на странице (второе чтение после). Первое
- * чтение приходит параметром: его делает вызывающий, которому страница нужна и
- * для проверки существования.
+ * Hence the order "page → versions → page": the page is read twice, and any
+ * interleaving leaves both contested frames in the list. The frame the restore
+ * pushed out is either still on the page (a read before the restore) or already in
+ * a version (the list after it). The restored version's frame is either still in
+ * the version list (a read before the restore) or already on the page (the second
+ * read after it). The first read arrives as a parameter: it is done by the caller,
+ * who needs the page for the existence check anyway.
  *
- * Best-effort целиком: превью — вторичный артефакт, и отказ чтения БД не должен
- * превращать успешную загрузку снимка в ошибку.
+ * Best-effort throughout: a preview is a secondary artifact, and a failed database
+ * read must not turn a successful snapshot upload into an error.
  *
- * @param deps - Storage- и publish-адаптеры (узкие контракты).
- * @param pageId - Идентификатор страницы.
- * @param uploadedUrl - URL только что загруженного кадра.
- * @param pageThumbnailUrl - Кадр страницы на момент чтения перед этим вызовом.
+ * @param deps - The storage and publish adapters (narrow contracts).
+ * @param pageId - The page identifier.
+ * @param uploadedUrl - The URL of the frame just uploaded.
+ * @param pageThumbnailUrl - The page's frame as of the read before this call.
  */
 export async function prunePageThumbnailsAfterUpload(
     deps: IPageThumbnailPruneDeps,

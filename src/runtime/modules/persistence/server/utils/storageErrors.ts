@@ -1,32 +1,33 @@
 /**
- * Доменные ошибки storage-слоя.
+ * The storage layer's domain errors.
  *
- * Адаптеры (дефолтный Postgres и кастомные реализации IStorageAdapter) кидают
- * эти классы вместо драйверных ошибок — ручки маппят их на HTTP-статусы с
- * машиночитаемым `data.code` (см. handlerHelpers, коды — PAGE_CONFLICT_CODES в
- * common/constants/publish.ts и BRICKS_API_ERROR_CODES в
- * common/constants/apiErrors.ts). Классы реэкспортируются из
- * `nuxt-bricks/persistence` для кастомных адаптеров.
+ * The adapters (the default Postgres one and custom IStorageAdapter
+ * implementations) throw these classes instead of driver errors — the handlers map
+ * them onto HTTP statuses with a machine-readable `data.code` (see handlerHelpers;
+ * the codes are PAGE_CONFLICT_CODES in common/constants/publish.ts and
+ * BRICKS_API_ERROR_CODES in common/constants/apiErrors.ts). The classes are
+ * re-exported from `nuxt-bricks/persistence` for custom adapters.
  */
 
 /**
- * Запись ГАРАНТИРОВАННО отвергнута: хранилище ответило отказом, и ни одна
- * половина операции не зафиксирована.
+ * The write was rejected FOR CERTAIN: storage answered with a refusal, and not a
+ * single half of the operation was committed.
  *
- * Маркер нужен владельцу внешних побочных эффектов — оркестрации медиа: удалять
- * уже загруженные в бакет файлы можно только под эту гарантию. Всё остальное
- * (обрыв соединения, таймаут транспорта, 5xx внешнего backend'а) означает
- * НЕИЗВЕСТНЫЙ исход: ответ мог не доехать уже после коммита, и компенсация
- * оставила бы в БД строку, указывающую на удалённый объект. Поэтому умолчание
- * обратное — ошибка без этого маркера считается неопределённой.
+ * The marker is needed by the owner of the external side effects — the media
+ * orchestration: files already uploaded into the bucket may only be deleted under
+ * this guarantee. Everything else (a dropped connection, a transport timeout, a 5xx
+ * from an external backend) means an UNKNOWN outcome: the response could have failed
+ * to arrive after the commit already happened, and the compensation would leave a row
+ * in the database pointing at a deleted object. That is why the default is the
+ * opposite one — an error without this marker is treated as undetermined.
  *
- * Ставит маркер тот, кто знает, какая именно операция отвергнута, и делает это
- * положительным списком, а не по косвенным признакам: наличие у драйверной
- * ошибки SQLSTATE ничего не доказывает — `08007 transaction_resolution_unknown`
- * и `40003 statement_completion_unknown` прямо означают обратное.
+ * The marker is set by whoever knows which operation exactly was rejected, and it is
+ * done by a positive list rather than by indirect signs: a driver error carrying a
+ * SQLSTATE proves nothing — `08007 transaction_resolution_unknown` and
+ * `40003 statement_completion_unknown` mean the opposite outright.
  *
- * Класс — часть контракта IStorageAdapter: кастомный адаптер сообщает им тот же
- * факт (реэкспортируется из `nuxt-bricks/persistence`).
+ * The class is part of the IStorageAdapter contract: a custom adapter reports the
+ * same fact with it (re-exported from `nuxt-bricks/persistence`).
  */
 export class BricksStorageWriteRejectedError extends Error {
     constructor(message: string, cause?: unknown) {
@@ -36,15 +37,16 @@ export class BricksStorageWriteRejectedError extends Error {
 }
 
 /**
- * Запрос не был отправлен в базу: пул не удалось даже собрать (нет строки
- * подключения, не загрузился драйвер).
+ * The query was never sent to the database: the pool could not even be assembled
+ * (no connection string, the driver did not load).
  *
- * Внутренняя ошибка дефолтного Postgres-адаптера — в отличие от соседей, из
- * `nuxt-bricks/persistence` НЕ реэкспортируется. Живёт здесь потому, что это
- * файл классов ошибок слоя, а нужна там, где важно отличить «SQL не ушёл» от
- * «ушёл, а ответа нет»: у первого исход определён. Сам маркер отвергнутой
- * записи она не несёт — общий `query` обслуживает и чтения, которым такая
- * гарантия ничего не значит; перевод делает адаптер, знающий свою операцию.
+ * An internal error of the default Postgres adapter — unlike its neighbors, it is
+ * NOT re-exported from `nuxt-bricks/persistence`. It lives here because this is the
+ * file of the layer's error classes, and it is needed where telling "the SQL never
+ * left" from "it left and there is no answer" matters: the former has a determined
+ * outcome. It does not carry the rejected-write marker itself — the shared `query`
+ * serves reads too, to which such a guarantee means nothing; the translation is done
+ * by the adapter, which knows its own operation.
  */
 export class BricksPostgresQueryNotStartedError extends Error {
     constructor(cause: unknown) {
@@ -54,12 +56,13 @@ export class BricksPostgresQueryNotStartedError extends Error {
 }
 
 /**
- * Категории с таким slug'ом в медиатеке нет.
+ * There is no category with that slug in the media library.
  *
- * Кидается и ранней проверкой (`assertKnownMediaCategory`), и самим FK базы,
- * если категорию удалили между проверкой и записью, — ответ обязан быть
- * одинаковым в обоих случаях. Наследует маркер определённого отказа: FK
- * отклоняет запись целиком, поэтому загруженный до этого файл безопасно удалить.
+ * Thrown both by the early check (`assertKnownMediaCategory`) and by the database's
+ * FK itself, should the category be deleted between the check and the write — the
+ * answer must be the same in both cases. Inherits the marker of a definite
+ * refusal: the FK rejects the write outright, so the file uploaded before it is safe
+ * to delete.
  */
 export class BricksUnknownMediaCategoryError extends BricksStorageWriteRejectedError {
     readonly category: string;
@@ -72,19 +75,19 @@ export class BricksUnknownMediaCategoryError extends BricksStorageWriteRejectedE
 }
 
 /**
- * Конфликт уникальности АДРЕСА: страница по этому адресу уже существует.
- * Кидается из createPage/updatePage при нарушении unique-ограничения —
- * в том числе при гонке двух одновременных запросов (pre-check её не ловит).
+ * An ADDRESS uniqueness conflict: a page at this address already exists.
+ * Thrown from createPage/updatePage on a violation of the unique constraint — on a
+ * race of two simultaneous requests included (the pre-check does not catch it).
  *
- * Ошибка-маркер: конкретный адрес в неё не передаётся. Нарушение приходит от
- * базы кодом SQLSTATE, а какая именно половина пары его вызвала — из payload'а
- * не видно: при PATCH одного поля вторая половина лежит в сохранённой строке.
- * Прежний вариант с обязательной строкой pagename заставлял вызывающих
- * подставлять пустую строку, и в сообщении об ошибке оказывалось
+ * A marker error: no particular address is passed into it. The violation comes from
+ * the database as a SQLSTATE code, and which half of the pair caused it is not
+ * visible from the payload: on a PATCH of one field the other half sits in the stored
+ * row. The former variant with a mandatory pagename string made the callers
+ * substitute an empty string, and the error message ended up reading
  * `pagename ""`.
  *
- * Проволочный код ответа (`PAGENAME_CONFLICT`) сохранён: он часть внешнего
- * контракта и переименование ломало бы кастомные backend'ы без пользы.
+ * The wire code of the response (`PAGENAME_CONFLICT`) is kept: it is part of the
+ * external contract and renaming it would break custom backends to no benefit.
  */
 export class BricksPageAddressConflictError extends Error {
     constructor() {
@@ -94,13 +97,13 @@ export class BricksPageAddressConflictError extends Error {
 }
 
 /**
- * Конфликт уникальности имени шаблона: шаблон с такой подписью уже есть.
- * Кидается из createTemplate/updateTemplate при нарушении unique-ограничения —
- * в том числе при гонке двух одновременных запросов.
+ * A template name uniqueness conflict: a template with that label already exists.
+ * Thrown from createTemplate/updateTemplate on a violation of the unique constraint —
+ * on a race of two simultaneous requests included.
  *
- * Ошибка-маркер, как и конфликт адреса страницы: конкретное имя в неё не
- * передаётся. Клиенту нужен только факт (подсказка встаёт под полем формы), а
- * имя он и так знает — сам его и отправил.
+ * A marker error, like the page address conflict: no particular name is passed into
+ * it. The client needs the fact alone (the hint goes under the form's field), and it
+ * knows the name anyway — it sent it itself.
  */
 export class BricksTemplateNameConflictError extends Error {
     constructor() {
@@ -110,9 +113,9 @@ export class BricksTemplateNameConflictError extends Error {
 }
 
 /**
- * Конфликт optimistic locking: страница была изменена после того, как клиент
- * прочитал переданный `expectedRevision`. Кидается из updatePage, когда
- * precondition не совпал с текущей revision строки.
+ * An optimistic locking conflict: the page was changed after the client read the
+ * `expectedRevision` it passed. Thrown from updatePage when the precondition did not
+ * match the row's current revision.
  */
 export class BricksRevisionConflictError extends Error {
     readonly pageId: number;
@@ -125,19 +128,20 @@ export class BricksRevisionConflictError extends Error {
 }
 
 /**
- * Запрос остановлен серверным лимитом времени: база отменила его сама и
- * освободила соединение. Откат ОТМЕНЁННОГО statement'а при этом гарантирован,
- * поэтому ручка отдаёт отказ, а не «исход неизвестен» клиентского обрыва.
+ * The query was stopped by the server-side time limit: the database canceled it
+ * itself and freed the connection. The rollback of the CANCELED statement is
+ * guaranteed in the process, so the handler returns a refusal rather than the
+ * "outcome unknown" of a client-side abort.
  *
- * Маркер отвергнутой записи класс намеренно НЕ несёт: отменён мог быть любой
- * запрос, в том числе чтение. Так, перечитывание строки после конфликта
- * уникальности выполняется, когда запись уже существует, и его таймаут ничего
- * не говорит об отсутствии записи — маркер здесь разрешил бы удалить файл
- * из-под живой строки. Гарантию даёт тот, кто знает, какой statement отменён:
- * адаптер оборачивает в маркер только отказ самой вставки.
+ * The class deliberately does NOT carry the rejected-write marker: any query could
+ * have been canceled, a read included. Rereading a row after a uniqueness conflict,
+ * for one, runs when the record already exists, and its timeout says nothing about
+ * the record's absence — the marker here would permit deleting the file from under a
+ * live row. The guarantee is given by whoever knows which statement was canceled:
+ * the adapter wraps only a refusal of the insert itself into the marker.
  *
- * Драйверная ошибка сохраняется в `cause`: наружу она не отдаётся (текст
- * PostgreSQL содержал бы детали SQL), но нужна в server-логе.
+ * The driver error is kept in `cause`: it is never handed outward (the PostgreSQL
+ * text would carry SQL details), but it is needed in the server log.
  */
 export class BricksStatementTimeoutError extends Error {
     constructor(cause?: unknown) {

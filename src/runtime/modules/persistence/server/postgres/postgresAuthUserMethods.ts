@@ -1,12 +1,11 @@
 /**
- * Часть Postgres-адаптера учёток, работающая со СТРОКОЙ `bricks_users`: список,
- * создание, состояние (роль и активность), пароли, профиль и удаление.
+ * The part of the Postgres account adapter working with the `bricks_users` ROW:
+ * listing, creation, state (role and activity), passwords, profile and deletion.
+ * Session reads and login live in `postgresAuthAdapter.ts` — the seam is
+ * responsibility: the mutations here carry their own edge rules and row locks.
  *
- * Отдельным файлом от `postgresAuthAdapter.ts` по шву ответственности — там
- * чтение сессий и вход, здесь мутации учёток со своими краевыми правилами и
- * блокировками; вместе файл перерастал потолок в 500 строк. Адаптер собирает
- * контракт спредом этих методов (тот же приём, что у медиа-части
- * storage-адаптера).
+ * Mixed into the adapter with a spread; why the half is split off — `TAuthUserMethods`
+ * in `types/authAdapters.d.ts`.
  */
 import { query, withTransaction, type TTransactionQuery } from './client';
 import { buildUpdateQuery, isUniqueViolation, readViolatedConstraint } from './queryBuilders';
@@ -32,18 +31,19 @@ import {
 } from '../utils/authUserRules';
 
 /**
- * Колонки учётки для раздела управления, с алиасами camelCase. Один список на
- * все методы: разъехавшись, они отдали бы клиенту разную форму одной сущности.
+ * The account columns for the management section, with camelCase aliases. One
+ * list for every method: had they drifted apart, they would hand the client
+ * different shapes of one entity.
  */
 const USER_SUMMARY_COLUMNS = `id, username, role, is_active AS "isActive",
     display_name AS "displayName", avatar_url AS "avatarUrl",
     created_at AS "createdAt", last_login_at AS "lastLoginAt"`;
 
 /**
- * Приводит строку учётки к контракту: TIMESTAMPTZ-колонки — к ISO-строкам.
+ * Brings an account row to the contract: TIMESTAMPTZ columns to ISO strings.
  *
- * @param row - Строка результата запроса.
- * @returns Учётка в форме IBricksUserSummary.
+ * @param row - A row of the query result.
+ * @returns The account in the IBricksUserSummary shape.
  */
 function toUserSummary(row: IBricksUserSummaryRow): IBricksUserSummary {
     return {
@@ -54,9 +54,9 @@ function toUserSummary(row: IBricksUserSummaryRow): IBricksUserSummary {
 }
 
 /**
- * Нормализует TIMESTAMPTZ-значение к ISO-строке; null и undefined остаются null.
+ * Normalizes a TIMESTAMPTZ value to an ISO string; null and undefined stay null.
  *
- * @param value - Значение колонки: `Date` от драйвера, строка или пусто.
+ * @param value - The column value: a `Date` from the driver, a string, or empty.
  */
 function toIsoDate(value: string | Date | null | undefined): string | null {
     if (value === null || value === undefined) {
@@ -67,36 +67,38 @@ function toIsoDate(value: string | Date | null | undefined): string | null {
 }
 
 /**
- * Колонки профиля, разрешённые к записи (camelCase-ключи контракта). Whitelist
- * нужен самому билдеру запроса: имена колонок интерполируются в SET, и ключ
- * мимо списка попал бы туда как есть.
+ * The profile columns allowed to be written (the contract's camelCase keys). The
+ * query builder itself needs the whitelist: column names are interpolated into
+ * SET, and a key outside the list would land there as it is.
  */
 const USER_PROFILE_UPDATE_FIELDS: ReadonlySet<string> = new Set(['displayName', 'avatarUrl']);
 
 /**
- * Первичный ключ `bricks_users`. Единственное уникальное ограничение таблицы,
- * которое НЕ может быть нарушено логином: остальные два (колоночное `UNIQUE` и
- * регистронезависимый индекс) построены по `username`.
+ * The `bricks_users` primary key. The one unique constraint of the table that
+ * CANNOT be violated by a username: the other two (the column `UNIQUE` and the
+ * case-insensitive index) are built on `username`.
  */
 const USERS_PRIMARY_KEY_CONSTRAINT = 'bricks_users_pkey';
 
 /**
- * Проверяет, что конфликт уникальности МОГ быть конфликтом по логину.
+ * Checks whether a uniqueness conflict COULD have been a username conflict.
  *
- * Различать ограничения обязательно: после восстановления дампа с отставшей
- * `bricks_users_id_seq` вставка свободного логина упирается в первичный ключ, а
- * ответ «логин занят» отправляет администратора придумывать другой логин —
- * поломка базы маскируется штатным конфликтом и остаётся ненайденной.
+ * Telling the constraints apart is mandatory: after restoring a dump with a
+ * lagging `bricks_users_id_seq`, inserting a free username runs into the primary
+ * key, and the answer "username is taken" sends the administrator off to invent
+ * another one — the broken database is masked by a routine conflict and stays
+ * undiscovered.
  *
- * Исключается именно первичный ключ, а не сверяются имена индексов логина: имя
- * колоночного `UNIQUE` генерирует PostgreSQL, и опечатка в ожидаемом имени
- * превратила бы обычный занятый логин в 500 — отказ хуже нынешнего. Так же
- * трактуется ошибка без имени ограничения (совместимый сервер или прокси могут
- * его не прислать): худший исход — сегодняшнее поведение. Появится у таблицы
- * третий смысл уникальности — расширить исключение.
+ * The primary key is excluded rather than the username index names being
+ * matched: the name of the column `UNIQUE` is generated by PostgreSQL, and a typo
+ * in the expected name would turn an ordinary taken username into a 500 — a
+ * worse failure than the present one. An error with no constraint name is read
+ * the same way (a compatible server or a proxy may not send it): the worst
+ * outcome is today's behavior. Should the table gain a third meaning of
+ * uniqueness, widen the exclusion.
  *
- * @param error - Пойманная ошибка запроса.
- * @returns true, если конфликт мог произойти по логину.
+ * @param error - The caught query error.
+ * @returns true when the conflict could have happened over the username.
  */
 function isPossibleUsernameConflict(error: unknown): boolean {
     if (!isUniqueViolation(error)) {
@@ -107,43 +109,45 @@ function isPossibleUsernameConflict(error: unknown): boolean {
 }
 
 /**
- * Отзывает сессии учётки — уборка следом за инкрементом `auth_version`.
+ * Revokes an account's sessions — the cleanup following the `auth_version`
+ * increment.
  *
- * Механизм отзыва — сам инкремент (сессия перестаёт совпадать с учёткой тем же
- * запросом, которым её читают), поэтому строки сессий удаляются только чтобы не
- * копить мусор. Полагаться на этот DELETE как на защиту нельзя: он может
- * отказать уже после успешной смены состояния.
+ * The revocation mechanism is the increment itself (the session stops matching
+ * the account in the very request that reads it), so the session rows are
+ * deleted only to keep garbage from piling up. This DELETE must not be relied on
+ * as protection: it can fail after the state change has already succeeded.
  *
- * @param txQuery - Запрос внутри открытой транзакции.
- * @param userId - Идентификатор учётки.
+ * @param txQuery - A query inside an open transaction.
+ * @param userId - The account identifier.
  */
 async function deleteUserSessions(txQuery: TTransactionQuery, userId: number): Promise<void> {
     await txQuery('DELETE FROM bricks_sessions WHERE user_id = $1', [userId]);
 }
 
 /**
- * Выполняет мутацию учётки под блокировкой набора активных администраторов.
+ * Runs an account mutation under a lock on the set of active administrators.
  *
- * Порядок блокировок фиксирован: сначала ВСЕ активные админы в порядке `id`,
- * потом строка цели. Так это сделано против двух дефектов:
+ * The lock order is fixed: ALL active admins first, in `id` order, then the
+ * target row. It is done that way against two defects:
  *
- * 1. **Write skew.** При READ COMMITTED два одновременных понижения двух
- *    последних админов читают одно и то же «админов двое» и оба проходят —
- *    система остаётся без администратора. Блокировка всего набора превращает
- *    такую пару в очередь: второй пересчитывает набор уже после первого и
- *    получает отказ.
- * 2. **Взаимная блокировка.** Захватывай транзакции строки в разном порядке —
- *    две встречные операции ждали бы друг друга. Набор берётся первым и в
- *    порядке `id`, поэтому пересекающиеся операции всегда встают в одну очередь.
+ * 1. **Write skew.** Under READ COMMITTED two simultaneous demotions of the last
+ *    two admins read the same "there are two admins" and both go through — the
+ *    system is left with no administrator. Locking the whole set turns such a
+ *    pair into a queue: the second one recounts the set after the first and gets
+ *    a refusal.
+ * 2. **Deadlock.** Let transactions take rows in differing orders and two
+ *    opposing operations would wait for each other. The set is taken first and in
+ *    `id` order, so overlapping operations always join a single queue.
  *
- * Счётчик после блокировки не может оказаться завышенным: каждая строка набора
- * заблокирована, и перестать быть активным админом она до нашего коммита не
- * может. Заниженным — может (параллельная активация админа вне набора), и тогда
- * отказ придёт на безопасную операцию; это осознанный перекос в сторону отказа.
+ * The counter after the lock cannot come out too high: every row of the set is
+ * locked, and it cannot stop being an active admin before our commit. Too low —
+ * it can (a parallel activation of an admin outside the set), and then the
+ * refusal lands on a safe operation; that is a deliberate bias toward refusal.
  *
- * @param userId - Идентификатор учётки-цели.
- * @param apply - Мутация; получает состояние цели и число активных админов.
- * @returns Результат `apply`; null — учётки нет.
+ * @param userId - The identifier of the target account.
+ * @param apply - The mutation; receives the target's state and the number of
+ * active admins.
+ * @returns The result of `apply`; null — no such account.
  */
 async function withActiveAdminLock(
     userId: number,
@@ -178,11 +182,12 @@ async function withActiveAdminLock(
 }
 
 /**
- * Читает учётку внутри открытой транзакции — ветка «состояние не изменилось»:
- * писать нечего, но ответ обязан нести актуальную строку.
+ * Reads an account inside an open transaction — the "state did not change"
+ * branch: there is nothing to write, but the response must carry the
+ * current row.
  *
- * @param txQuery - Запрос внутри открытой транзакции.
- * @param userId - Идентификатор учётки (существование уже проверено).
+ * @param txQuery - A query inside an open transaction.
+ * @param userId - The account identifier (existence has already been checked).
  */
 async function readUser(txQuery: TTransactionQuery, userId: number): Promise<IBricksUserSummary> {
     const rows = await txQuery<IBricksUserSummaryRow>(
@@ -194,10 +199,11 @@ async function readUser(txQuery: TTransactionQuery, userId: number): Promise<IBr
 }
 
 /**
- * Разворачивает исход мутации в контракт адаптера: отказ краевого правила — в
- * исключение (уже вне транзакции), отсутствие цели — в null.
+ * Unfolds the mutation's outcome into the adapter contract: an edge-rule refusal
+ * into an exception (outside the transaction by then), a missing target into
+ * null.
  *
- * @param mutation - Исход `withActiveAdminLock`.
+ * @param mutation - The outcome of `withActiveAdminLock`.
  */
 function unwrapGuardedMutation(mutation: IGuardedUserMutation | null): IBricksUserSummary | null {
     if (mutation === null) {
@@ -211,14 +217,14 @@ function unwrapGuardedMutation(mutation: IGuardedUserMutation | null): IBricksUs
     return mutation.user;
 }
 /**
- * Создаёт мутирующую часть Postgres-адаптера учёток.
+ * Creates the mutating part of the Postgres account adapter.
  *
- * @returns Методы `IAuthAdapter`, работающие со строкой `bricks_users`.
+ * @returns The `IAuthAdapter` methods working with the `bricks_users` row.
  */
 export function createPostgresAuthUserMethods(): TAuthUserMethods {
     return {
         /**
-         * Все учётки для раздела управления, в порядке создания (по id).
+         * Every account for the management section, in creation order (by id).
          */
         async listUsers(): Promise<IBricksUserSummary[]> {
             const rows = await query<IBricksUserSummaryRow>(
@@ -231,14 +237,15 @@ export function createPostgresAuthUserMethods(): TAuthUserMethods {
         },
 
         /**
-         * Создаёт учётку. Логин канонизируется в нижний регистр — уникальность
-         * держится индексом по `lower(username)`, а вход регистронезависим:
-         * сохранённый `Admin` показывал бы в списке имя, которым нельзя войти
-         * иначе как в любом регистре.
+         * Creates an account. The username is canonicalized to lower case —
+         * uniqueness is held by the index on `lower(username)`, and login is
+         * case-insensitive. Storing `Admin` as typed would show a capitalized name
+         * in the list while login accepts any case, so the list would suggest a
+         * spelling that means nothing.
          *
-         * Занятость логина определяется нарушением индекса, а не
-         * предварительным чтением: между чтением и вставкой успевает
-         * вклиниться параллельное создание.
+         * A taken username is decided by the index violation rather than by a
+         * read up front: a parallel creation has time to slip in between the read
+         * and the insert.
          */
         async createUser(payload: ICreateAuthUserPayload): Promise<IBricksUserSummary> {
             try {
@@ -267,10 +274,11 @@ export function createPostgresAuthUserMethods(): TAuthUserMethods {
         },
 
         /**
-         * Меняет роль и/или активность учётки и отзывает её сессии.
+         * Changes the account's role and/or activity and revokes its sessions.
          *
-         * Состояние, совпадающее с текущим, не пишется вовсе — иначе повторный
-         * выбор того же пункта в меню роли выбрасывал бы человека из его сессии.
+         * A state matching the current one is not written at all — otherwise
+         * picking the same item in the role menu again would throw the person out
+         * of their session.
          */
         async updateUserState(
             userId: number,
@@ -307,10 +315,11 @@ export function createPostgresAuthUserMethods(): TAuthUserMethods {
         },
 
         /**
-         * Ставит новый хеш пароля и отзывает сессии учётки.
+         * Sets a new password hash and revokes the account's sessions.
          *
-         * Набор админов здесь не блокируется: смена пароля не отнимает у
-         * системы администратора — учётка входит заново с новым паролем.
+         * The admin set is not locked here: a password change does not take an
+         * administrator away from the system — the account logs in again with the
+         * new password.
          */
         async updateUserPassword(
             userId: number,
@@ -336,26 +345,27 @@ export function createPostgresAuthUserMethods(): TAuthUserMethods {
         },
 
         /**
-         * Правит отображаемое имя и/или ссылку на фото и отдаёт вместе с новым
-         * состоянием прежнюю ссылку на фото — по ней вызывающий убирает
-         * осиротевший файл.
+         * Edits the display name and/or the photo link and hands back, together
+         * with the new state, the previous photo link — the caller removes the
+         * orphaned file by it.
          *
-         * Поколение не поднимается и сессии не рвутся: имя и фото креденшелами
-         * не являются, а переименование, выбрасывающее человека из его же
-         * сессии, — не то, что он просил.
+         * The generation is not raised and the sessions are not torn down: a name
+         * and a photo are not credentials, and a rename that throws a person out
+         * of their own session is not what they asked for.
          *
-         * Зато запись УСЛОВНА по поколению и активности, прочитанным при резолве
-         * сессии: между проверкой сессии и этой записью проходит время (у
-         * загрузки фото — секунды на sharp и заливку), и за него администратор
-         * мог деактивировать учётку или сбросить ей пароль. Без условия правка
-         * доезжала бы уже отозванными креденшелами, а фото ещё и уходило бы в
-         * хранилище. Несовпадение неотличимо от отсутствия строки: и то и другое
-         * означает «живой учётки с этими креденшелами нет».
+         * The write is CONDITIONAL, though, on the generation and the activity
+         * read when the session was resolved: time passes between the session
+         * check and this write (for a photo upload — seconds on sharp and the
+         * upload itself), and during it an administrator could have deactivated
+         * the account or reset its password. Without the condition the edit would
+         * land with credentials already revoked, and the photo would go into
+         * storage on top of that. A mismatch is indistinguishable from a missing
+         * row: both mean "there is no live account with these credentials".
          *
-         * Строка блокируется до чтения прежней ссылки: без блокировки две
-         * одновременные загрузки аватара прочитали бы одну и ту же прежнюю
-         * ссылку, удалили бы один и тот же файл, и второй загруженный остался бы
-         * в хранилище без ссылок навсегда.
+         * The row is locked until the previous link has been read: without the
+         * lock two simultaneous avatar uploads would read the same previous link,
+         * delete the same file, and the second uploaded one would stay in storage
+         * with no links to it forever.
          */
         async updateUserProfile(
             userId: number,
@@ -381,9 +391,9 @@ export function createPostgresAuthUserMethods(): TAuthUserMethods {
 
                 const previousAvatarUrl = currentRows[0].avatarUrl;
 
-                // Пустая правка сюда не приходит (ручка требует хотя бы одно
-                // поле), но собрать `SET` без выражений нельзя вовсе — вернём
-                // актуальную строку чтением
+                // An empty edit never arrives here (the handler requires at
+                // least one field), but a `SET` cannot be assembled without
+                // expressions at all — return the current row by reading it
                 if (updates.length === 0) {
                     return { user: await readUser(txQuery, userId), previousAvatarUrl };
                 }
@@ -401,14 +411,16 @@ export function createPostgresAuthUserMethods(): TAuthUserMethods {
         },
 
         /**
-         * Ставит новый хеш пароля, если учётка активна и её поколение совпадает
-         * с прочитанным до проверки текущего пароля, и отзывает все сессии.
+         * Sets a new password hash if the account is active and its generation
+         * matches the one read before verifying the current password, and revokes
+         * every session.
          *
-         * Условная запись (UPDATE с условием по поколению), а не безусловная:
-         * проверка текущего пароля идёт под scrypt секунды, и за это время
-         * администратор мог сбросить пароль этой учётке. Безусловная запись
-         * отменила бы сброс паролем, который знает пришедший, — тем самым, от
-         * которого учётку и отбирали.
+         * A conditional write (an UPDATE with a condition on the generation)
+         * rather than an unconditional one: verifying the current password runs
+         * for seconds under scrypt, and in that time an administrator could have
+         * reset this account's password. An unconditional write would undo that
+         * reset with the password the caller knows — the very one the account was
+         * being taken away from.
          */
         async updateOwnPassword(userId: number, change: IAuthOwnPasswordChange): Promise<boolean> {
             return withTransaction(async (txQuery) => {
@@ -433,13 +445,14 @@ export function createPostgresAuthUserMethods(): TAuthUserMethods {
         },
 
         /**
-         * Удаляет учётку; её сессии уходят каскадом внешнего ключа.
+         * Deletes an account; its sessions go with it through the foreign key
+         * cascade.
          *
-         * Возвращает снятую строку: вызывающему нужен её `avatarUrl`, чтобы
-         * убрать файл фото. Читается он тем же запросом, что удаляет
-         * (`RETURNING`), — отдельное чтение до транзакции могло бы застать
-         * прежнее фото, и из хранилища ушёл бы файл, на который уже никто не
-         * ссылается, вместо актуального.
+         * Returns the removed row: the caller needs its `avatarUrl` to remove the
+         * photo file. It is read by the very request that deletes (`RETURNING`) —
+         * a separate read before the transaction could catch the previous photo,
+         * and the file nobody references any more would leave storage instead of
+         * the current one.
          */
         async deleteUser(userId: number): Promise<IBricksUserSummary | null> {
             const mutation = await withActiveAdminLock(

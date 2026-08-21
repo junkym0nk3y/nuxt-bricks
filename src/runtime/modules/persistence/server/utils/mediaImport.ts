@@ -1,6 +1,6 @@
 /**
- * Импорт существующих файлов из хранилища публикации в БД медиа
- * (fallback для GET /api/bricks/media при пустой таблице bricks_media).
+ * The import of existing files from the publication storage into the media database
+ * (a fallback for GET /api/bricks/media over an empty bricks_media table).
  */
 import { useBricksPublishAdapter, useBricksStorageAdapter } from '../registry';
 import { isMediaVariantFilename } from './mediaVariants';
@@ -10,10 +10,10 @@ import type { IMediaItem } from '../../../common/types/media';
 import type { ICreateMediaPayload, IStoredFileInfo } from '../../types/adapters';
 
 /**
- * Строит payload медиа-записи по описанию файла из хранилища.
+ * Builds a media record's payload from a file's description from storage.
  *
- * @param file - Описание файла из publish-адаптера.
- * @returns Payload для создания медиа-записи.
+ * @param file - The file's description from the publish adapter.
+ * @returns The payload for creating a media record.
  */
 async function buildImportPayload(file: IStoredFileInfo): Promise<ICreateMediaPayload> {
     const filename = file.key.split('/').pop() || file.key;
@@ -26,21 +26,22 @@ async function buildImportPayload(file: IStoredFileInfo): Promise<ICreateMediaPa
         alt: '',
         size: file.size,
         mimeType,
-        // Категорию импорту взять неоткуда: файл лежит в бакете, а не в медиатеке
+        // The import has nowhere to take a category from: the file sits in the
+        // bucket rather than in the media library
         category: null,
-        // Файл бакета — недоверенный ввод: в БД сохраняется санитизированный SVG
+        // A bucket's file is untrusted input: a sanitized SVG is what gets stored
         svgContent: svgContent ? sanitizeSvgMarkup(svgContent) : null,
         uploadedAt: file.lastModified,
     };
 }
 
 /**
- * Импортирует файлы из хранилища публикации в БД. Дедупликация — контрактом
- * идемпотентного `createMedia` (unique url): повторная регистрация возвращает
- * существующую запись, отдельный SELECT на каждый файл не нужен.
- * Если хранилище не сконфигурировано или недоступно — возвращает пустой список.
+ * Imports the files from the publication storage into the database. Deduplication comes
+ * from the contract of the idempotent `createMedia` (a unique url): registering again
+ * returns the existing record, and no separate SELECT per file is needed.
+ * When storage is not configured or is unreachable — returns an empty list.
  *
- * @returns Импортированные медиа-записи.
+ * @returns The imported media records.
  */
 export async function importMediaFromStorage(): Promise<IMediaItem[]> {
     let files: IStoredFileInfo[];
@@ -56,10 +57,10 @@ export async function importMediaFromStorage(): Promise<IMediaItem[]> {
     const importedItems: IMediaItem[] = [];
 
     for (const file of files) {
-        // Уменьшенные варианты постепенной загрузки — не самостоятельные файлы
-        // медиатеки, а принадлежность своего полного: без этого фильтра импорт
-        // из бакета показывал бы каждую картинку тремя записями, и удаление
-        // «лишних» унесло бы варианты у оставшейся
+        // The downscaled variants of progressive loading are not standalone files of
+        // the media library but belongings of their own full one: without this filter
+        // the import from the bucket would show every picture as three records, and
+        // deleting the "extra" ones would carry off the remaining one's variants
         if (isMediaVariantFilename(file.key)) {
             continue;
         }

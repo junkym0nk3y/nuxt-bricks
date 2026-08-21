@@ -1,10 +1,10 @@
 /**
- * Проверка адреса страницы при ЧАСТИЧНОМ обновлении: перекрывает адрес сумма
- * `urlPrefix + pagename`, а payload несёт любое одно поле пары.
+ * The page address check on a PARTIAL update: the address is covered by the sum
+ * `urlPrefix + pagename`, while the payload carries any one field of the pair.
  *
- * Отдельно от `pageUpdate.ts` намеренно: там ручка тянет реестр адаптеров и
- * runtimeConfig (Nitro), а здесь остаётся чистая оркестрация с DI — её и
- * проверяют тесты.
+ * Kept apart from `pageUpdate.ts` deliberately: there the handler pulls in the
+ * adapters' registry and runtimeConfig (Nitro), while here pure orchestration with DI
+ * remains — and that is what the tests check.
  */
 import { createError } from 'h3';
 import { assertPageAddressAllowed } from './payloadValidation';
@@ -14,19 +14,20 @@ import type { IPageAddressContext } from '../../types/pageAddress';
 import type { IStorageAdapter } from '../../types/adapters';
 
 /**
- * Дополняет payload обновления проверкой адреса: вторую половину пары берёт из
- * сохранённой строки, если её нет в payload.
+ * Supplements the update payload with the address check: takes the pair's other half
+ * from the stored row when the payload has none.
  *
- * Найденная revision уходит в precondition, когда вызывающий свою не передал:
- * между чтением строки и записью её routing-поле может сменить другой писатель,
- * и два по отдельности безопасных изменения собрали бы запрещённый адрес. С
- * precondition такая запись падает в 409 вместо тихой поломки адреса.
+ * The revision it found goes into the precondition when the caller passed none of its
+ * own: between the row's read and the write another writer can change its routing
+ * field, and two individually safe changes would assemble a forbidden address. With
+ * the precondition such a write fails into a 409 instead of quietly breaking the
+ * address.
  *
- * @param adapter - Читающая часть storage-адаптера.
- * @param id - Id страницы.
- * @param payload - Провалидированный payload обновления.
- * @param context - Контекст адреса страницы.
- * @returns Payload (при необходимости — с добавленным precondition).
+ * @param adapter - The reading part of the storage adapter.
+ * @param id - The page's id.
+ * @param payload - The validated update payload.
+ * @param context - The page address context.
+ * @returns The payload (with the precondition added when needed).
  */
 export async function withCheckedPagePath(
     adapter: Pick<IStorageAdapter, 'getPage'>,
@@ -40,7 +41,7 @@ export async function withCheckedPagePath(
         return payload;
     }
 
-    // Оба поля пришли — сохранённая строка не нужна, и лишнего чтения нет
+    // Both fields arrived — the stored row is not needed, and there is no extra read
     if (pagename !== undefined && urlPrefix !== undefined) {
         assertPageAddressAllowed(context, toPageAddress(pagename, urlPrefix));
 
@@ -56,9 +57,9 @@ export async function withCheckedPagePath(
         });
     }
 
-    // Сравнение именно с undefined: `urlPrefix: null` — это осознанная очистка
-    // префикса, и подстановка сохранённого значения на её месте проверяла бы
-    // адрес, которого после записи не будет
+    // The comparison is against undefined specifically: `urlPrefix: null` is a
+    // deliberate clearing of the prefix, and substituting the stored value in its place
+    // would check an address that will not exist after the write
     assertPageAddressAllowed(
         context,
         toPageAddress(

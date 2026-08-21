@@ -1,9 +1,10 @@
 /**
- * Ленивый singleton-пул соединений с PostgreSQL для дефолтного storage-адаптера.
+ * The lazy singleton pool of PostgreSQL connections for the default storage
+ * adapter.
  *
- * БД активна ТОЛЬКО когда задана строка подключения
- * (`NUXT_BRICKS_DATABASE_URL` / `bricks.database.url`) — builtin-режим
- * bricks.backend.mode (см. module-backend-config.ts).
+ * The database is active ONLY when the connection string is set
+ * (`NUXT_BRICKS_DATABASE_URL` / `bricks.database.url`) — the builtin mode of
+ * bricks.backend.mode (see module-backend-config.ts).
  */
 import { useRuntimeConfig } from 'nitropack/runtime';
 import type { ClientBase, Pool, PoolClient } from 'pg';
@@ -19,10 +20,10 @@ import {
 let pool: Pool | null = null;
 
 /**
- * Резолвит строку подключения из runtimeConfig или ENV.
+ * Resolves the connection string from runtimeConfig or ENV.
  *
- * @param config - runtimeConfig Nitro.
- * @returns Строка подключения PostgreSQL.
+ * @param config - The Nitro runtimeConfig.
+ * @returns The PostgreSQL connection string.
  */
 function resolveConnectionString(config: Record<string, unknown>): string {
     const connectionString = config.bricksDatabaseUrl as string | undefined;
@@ -40,10 +41,11 @@ function resolveConnectionString(config: Record<string, unknown>): string {
 }
 
 /**
- * Динамически импортирует драйвер `pg` (optional peer-зависимость: external-режим
- * не должен требовать его установки и резолва Vite) с понятной ошибкой установки.
+ * Dynamically imports the `pg` driver (an optional peer dependency: external mode
+ * must not require installing it or resolving it in Vite) with a clear installation
+ * error.
  *
- * @returns Модуль драйвера pg.
+ * @returns The pg driver module.
  */
 async function importPgDriver(): Promise<typeof import('pg')> {
     try {
@@ -58,28 +60,29 @@ async function importPgDriver(): Promise<typeof import('pg')> {
 }
 
 /**
- * Ставит серверный лимит в самой сессии сразу после подключения.
+ * Sets the server-side limit in the session itself right after connecting.
  *
- * Startup-параметра недостаточно: драйвер накладывает разобранную строку
- * подключения поверх объекта конфигурации, поэтому `statement_timeout` в URL
- * перебивал бы наше значение и мог бы снять лимит совсем. Отследить это
- * разбором строки нельзя надёжно — у драйвера своя грамматика (декодирование
- * `%5F` в имени параметра, восстановление URL без хоста), — а `SET` выполняется
- * позже старта сессии и перекрывает любой её вариант.
+ * The startup parameter is not enough: the driver lays the parsed connection string
+ * over the configuration object, so a `statement_timeout` in the URL would override
+ * our value and could lift the limit entirely. Tracking that by parsing the string
+ * cannot be done reliably — the driver has a grammar of its own (decoding a `%5F`
+ * in a parameter's name, recovering a URL with no host) — while the `SET` runs after
+ * the session has started and overrides any variant of it.
  *
- * Момент выбран не случайно: `pg-pool` ДОЖИДАЕТСЯ этого хука и только потом
- * выдаёт соединение, поэтому первый запрос не может его обогнать. Значение
- * уходит параметром (`set_config`, а не интерполяция в текст `SET`).
+ * The moment is not chosen at random: `pg-pool` AWAITS this hook and only then hands
+ * the connection out, so the first query cannot outrun it. The value goes out as a
+ * parameter (`set_config` rather than interpolation into the text of a `SET`).
  *
- * Свой дедлайн нужен потому, что `connectionTimeoutMillis` сюда не достаёт:
- * `pg-pool` снимает таймер подключения сразу после `client.connect()` и только
- * затем ждёт хук. Зависший `set_config` иначе держал бы ожидающего без всякого
- * потолка, а соединение — учтённым в пуле, то есть возвращал бы ровно тот
- * дефект, ради которого лимит и заводится. Отказ хука пул обрабатывает сам:
- * соединение уничтожается, слот освобождается, ошибка уходит вызывающему.
+ * A deadline of its own is needed because `connectionTimeoutMillis` does not reach
+ * here: `pg-pool` clears the connection timer right after `client.connect()` and only
+ * then waits for the hook. A hung `set_config` would otherwise hold the waiter with
+ * no ceiling whatsoever, and the connection counted in the pool — that is, it would
+ * bring back the very defect the limit is introduced for. A failure of the hook is
+ * handled by the pool itself: the connection is destroyed, the slot is freed, the
+ * error goes to the caller.
  *
- * @param client - Только что подключённое соединение пула.
- * @param poolConfig - Конфигурация пула: отсюда берётся значение лимита.
+ * @param client - The connection of the pool that has just connected.
+ * @param poolConfig - The pool configuration: the limit's value is taken from here.
  */
 async function applyStatementTimeout(
     client: ClientBase,
@@ -99,16 +102,16 @@ async function applyStatementTimeout(
 }
 
 /**
- * Берёт соединение из пула, приводя отказ к тому же виду, что и у обычного
- * запроса.
+ * Takes a connection out of the pool, bringing a failure to the same shape as an
+ * ordinary query's.
  *
- * Отдельная обёртка нужна из-за хука установки лимита: его отказ приходит
- * именно из `connect()`, то есть до первого `BEGIN`, и без этого места
- * транзакционный путь отдавал бы generic 500 там, где обычный запрос отдаёт
- * честный код отказа.
+ * A wrapper of its own is needed because of the limit-setting hook: its failure
+ * arrives out of `connect()` specifically, that is, before the first `BEGIN`, and
+ * without this place the transactional path would return a generic 500 where an
+ * ordinary query returns an honest failure code.
  *
- * @param clientPool - Пул соединений.
- * @returns Выделенный клиент пула.
+ * @param clientPool - The connection pool.
+ * @returns The allocated pool client.
  */
 async function acquireClient(clientPool: Pool): Promise<PoolClient> {
     try {
@@ -125,9 +128,9 @@ async function acquireClient(clientPool: Pool): Promise<PoolClient> {
 }
 
 /**
- * Возвращает singleton-пул соединений с PostgreSQL, лениво создавая его.
+ * Returns the singleton pool of PostgreSQL connections, creating it lazily.
  *
- * @returns Пул соединений.
+ * @returns The connection pool.
  */
 async function getPool(): Promise<Pool> {
     if (!pool) {
@@ -152,22 +155,29 @@ async function getPool(): Promise<Pool> {
     return pool;
 }
 
-/** SQLSTATE-коды «схема не соответствует коду»: undefined_table / undefined_column. */
+/**
+ * The "schema does not match the code" SQLSTATE codes: undefined_table /
+ * undefined_column.
+ */
 const MISSING_SCHEMA_CODES = new Set(['42P01', '42703']);
 
-/** SQLSTATE query_canceled: запрос отменён — у нас это срабатывание statement_timeout. */
+/**
+ * SQLSTATE query_canceled: the query was canceled — for us that is
+ * statement_timeout firing.
+ */
 const QUERY_CANCELED_CODE = '57014';
 
 /**
- * Переводит отмену запроса серверным лимитом в доменную ошибку, чтобы знание о
- * SQLSTATE не расходилось за пределы этого модуля: HTTP-слой различает такой
- * отказ по классу ошибки, как и конфликты записи.
+ * Translates a cancellation of the query by the server-side limit into a domain
+ * error, so that knowledge of SQLSTATE does not spread beyond this module: the HTTP
+ * layer tells such a failure apart by the error's class, just as it does write
+ * conflicts.
  *
- * Прочие ошибки возвращаются как есть — их разбирают вызывающие
- * (`isUniqueViolation` в адаптере).
+ * Other errors are returned as they are — they are examined by the callers
+ * (`isUniqueViolation` in the adapter).
  *
- * @param error - Пойманная ошибка драйвера.
- * @returns Доменная ошибка либо исходная.
+ * @param error - The caught driver error.
+ * @returns The domain error, or the original one.
  */
 function toDomainQueryError(error: unknown): unknown {
     if ((error as IApiError)?.code === QUERY_CANCELED_CODE) {
@@ -178,10 +188,10 @@ function toDomainQueryError(error: unknown): unknown {
 }
 
 /**
- * Дописывает в лог подсказку про миграции, если ошибка похожа на
- * непримененную схему bricks_* (runtime-DDL адаптеры не выполняют).
+ * Adds a hint about the migrations to the log when the error looks like an unapplied
+ * bricks_* schema (the adapters run no runtime DDL).
  *
- * @param err - Ошибка запроса с кодом SQLSTATE.
+ * @param err - The query error with its SQLSTATE code.
  */
 function logMissingSchemaHint(err: IApiError): void {
     if (err.code && MISSING_SCHEMA_CODES.has(err.code) && err.message?.includes('bricks_')) {
@@ -193,17 +203,18 @@ function logMissingSchemaHint(err: IApiError): void {
 }
 
 /**
- * Выполняет параметризованный SELECT/INSERT/UPDATE/DELETE и возвращает rows.
+ * Runs a parameterized SELECT/INSERT/UPDATE/DELETE and returns the rows.
  *
- * @param text - SQL с плейсхолдерами ($1, $2).
- * @param params - Параметры под плейсхолдеры.
- * @returns Массив строк результата.
+ * @param text - The SQL with placeholders ($1, $2).
+ * @param params - The parameters for the placeholders.
+ * @returns The array of result rows.
  */
 export async function query<T>(text: string, params?: unknown[]): Promise<T[]> {
     let client: Pool;
 
-    // Сборка пула — отдельная фаза: её отказ означает, что SQL не отправлялся,
-    // и вызывающий вправе считать исход операции определённым
+    // Assembling the pool is a phase of its own: its failure means the SQL was
+    // never sent, and the caller is entitled to treat the operation's outcome as
+    // determined
     try {
         client = await getPool();
     } catch (error: unknown) {
@@ -217,7 +228,7 @@ export async function query<T>(text: string, params?: unknown[]): Promise<T[]> {
         return result.rows as T[];
     } catch (error: unknown) {
         const err = error as IApiError;
-        // query/params содержат контент страниц — в production логируем только code/message
+        // query/params carry page content — in production only code/message is logged
         console.error('[PostgreSQL] Query error:', {
             error: err.message,
             code: err.code,
@@ -229,11 +240,11 @@ export async function query<T>(text: string, params?: unknown[]): Promise<T[]> {
 }
 
 /**
- * Выполняет запрос и возвращает одну строку или null.
+ * Runs a query and returns one row, or null.
  *
- * @param text - SQL с плейсхолдерами.
- * @param params - Параметры запроса.
- * @returns Первая строка результата или null.
+ * @param text - The SQL with placeholders.
+ * @param params - The query's parameters.
+ * @returns The first row of the result, or null.
  */
 export async function queryOne<T>(text: string, params?: unknown[]): Promise<T | null> {
     const rows = await query<T>(text, params);
@@ -241,18 +252,18 @@ export async function queryOne<T>(text: string, params?: unknown[]): Promise<T |
 }
 
 /**
- * Запрос внутри открытой транзакции (тот же контракт, что у `query`).
+ * A query inside an open transaction (the same contract as `query`).
  */
 export type TTransactionQuery = <T>(text: string, params?: unknown[]) => Promise<T[]>;
 
 /**
- * Выполняет колбэк в транзакции на выделенном клиенте пула
- * (BEGIN → fn → COMMIT, при ошибке — ROLLBACK). Обычный `query()` идёт через
- * `pool.query` и для транзакций не подходит — каждый вызов может попасть
- * на другое соединение.
+ * Runs a callback in a transaction on an allocated pool client
+ * (BEGIN → fn → COMMIT, and a ROLLBACK on an error). The ordinary `query()` goes
+ * through `pool.query` and is unfit for transactions — every call can land on a
+ * different connection.
  *
- * @param fn - Колбэк с транзакционной версией query.
- * @returns Результат колбэка.
+ * @param fn - The callback with the transactional version of query.
+ * @returns The callback's result.
  */
 export async function withTransaction<T>(
     fn: (txQuery: TTransactionQuery) => Promise<T>
@@ -274,7 +285,7 @@ export async function withTransaction<T>(
         await client.query('COMMIT');
         return result;
     } catch (error: unknown) {
-        // ROLLBACK на мёртвом соединении не должен затенить исходную ошибку
+        // A ROLLBACK over a dead connection must not shadow the original error
         try {
             await client.query('ROLLBACK');
         } catch (rollbackError: unknown) {

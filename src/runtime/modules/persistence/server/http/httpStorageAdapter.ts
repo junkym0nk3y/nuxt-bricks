@@ -1,17 +1,18 @@
 /**
- * HTTP-реализация IStorageAdapter поверх пользовательского backend
- * (`bricks.backend.mode = 'external'`): страницы, версии, шаблоны и media
- * metadata живут на external-сервере, файлы (S3), sharp и browser-facing
- * `/api/bricks/**` остаются локальными.
+ * The HTTP implementation of IStorageAdapter over the user's backend
+ * (`bricks.backend.mode = 'external'`): pages, versions, templates and media
+ * metadata live on the external server, while the files (S3), sharp and the
+ * browser-facing `/api/bricks/**` stay local.
  *
- * Контракт ручек external backend — зеркало локальной структуры
- * `/api/bricks/**` относительно `bricks.backend.url` (полный base-префикс,
- * сегмент `bricks` не зашит): см. docs/external-backend-contract.md.
+ * The contract of the external backend's endpoints mirrors the local
+ * `/api/bricks/**` structure relative to `bricks.backend.url` (the full base
+ * prefix, the `bricks` segment is not hardwired): see
+ * docs/external-backend-contract.md.
  *
- * Формат: даты — ISO 8601; top-level ключи ответов нормализуются
- * snake_case → camelCase (toCamelCaseShallow — вложенные объекты, включая
- * `schema`, не трогаются); 409 маппится на доменные ошибки конфликтов по
- * `data.code`; 404 — null/false по контракту IStorageAdapter.
+ * The format: dates are ISO 8601; the responses' top-level keys are normalized
+ * snake_case → camelCase (toCamelCaseShallow — nested objects, `schema` included,
+ * are left alone); a 409 is mapped onto the domain conflict errors by `data.code`;
+ * a 404 is null/false by the IStorageAdapter contract.
  */
 import { createBackendHttpClient, type IBackendHttpClient } from './httpClient';
 import {
@@ -41,22 +42,23 @@ import type {
 
 // #region Types
 export interface IHttpStorageAdapterOptions {
-    /** Полный base-префикс bricks-API external backend (bricks.backend.url). */
+    /** Full base prefix of the external backend's bricks API (bricks.backend.url). */
     baseUrl: string;
-    /** Bearer-токен server-to-server запросов (NUXT_BRICKS_BACKEND_TOKEN). */
+    /** Bearer token of the server-to-server requests (NUXT_BRICKS_BACKEND_TOKEN). */
     token?: string;
-    /** Readiness-эндпоинт external backend (NUXT_BRICKS_BACKEND_HEALTH_URL). */
+    /** The external backend's readiness endpoint (NUXT_BRICKS_BACKEND_HEALTH_URL). */
     healthUrl?: string;
-    /** Таймаут одного запроса в миллисекундах (дефолт — httpClient). */
+    /** One request's timeout in milliseconds (the default is httpClient's). */
     timeoutMs?: number;
 }
 // #endregion
 
 /**
- * Создаёт HTTP-реализацию IStorageAdapter поверх external backend.
+ * Creates the HTTP implementation of IStorageAdapter over an external backend.
  *
- * @param options - baseUrl/token/healthUrl/timeout (registry берёт их из runtimeConfig).
- * @returns Адаптер хранилища страниц и медиа-метаданных.
+ * @param options - baseUrl/token/healthUrl/timeout (the registry takes them out of
+ * runtimeConfig).
+ * @returns The storage adapter for pages and media metadata.
  */
 export function createHttpStorageAdapter(options: IHttpStorageAdapterOptions): IStorageAdapter {
     const client: IBackendHttpClient = createBackendHttpClient({
@@ -67,15 +69,15 @@ export function createHttpStorageAdapter(options: IHttpStorageAdapterOptions): I
 
     return {
         /**
-         * Readiness-проверка: GET по сконфигурированному health URL, без него —
-         * дешёвая проба `GET {base}` (контрактный listPages). Готовность — 2xx.
+         * The readiness check: a GET over the configured health URL, and without one
+         * a cheap `GET {base}` probe (the contract's listPages). Readiness is a 2xx.
          */
         async checkHealth(): Promise<void> {
             await client.probeHealth(options.healthUrl || undefined);
         },
 
         /**
-         * Сводки всех страниц без `schema` (`GET {base}`).
+         * Summaries of every page without the `schema` (`GET {base}`).
          */
         async listPages(): Promise<TBricksPageSummaryRow[]> {
             const raw = await client.request('GET', '');
@@ -84,7 +86,7 @@ export function createHttpStorageAdapter(options: IHttpStorageAdapterOptions): I
         },
 
         /**
-         * Полная строка страницы по id (`GET {base}/:id`); 404 → null.
+         * The page's full row by id (`GET {base}/:id`); a 404 → null.
          */
         async getPage(id: number): Promise<IBricksPageRow | null> {
             try {
@@ -101,23 +103,24 @@ export function createHttpStorageAdapter(options: IHttpStorageAdapterOptions): I
         },
 
         /**
-         * Страница по адресу через public-ручку контракта
-         * (`GET {base}/public/pages/<urlPrefix>/<pagename>`) — SSR-горячий путь
-         * каждого визита published-страницы; list+find здесь означал бы O(N
-         * страниц) HTTP-вызова на визит. 404 (draft или нет страницы) → null.
+         * The page by its address through the contract's public endpoint
+         * (`GET {base}/public/pages/<urlPrefix>/<pagename>`) — the SSR hot path of
+         * every visit to a published page; a list+find here would mean O(N pages)
+         * HTTP calls per visit. A 404 (a draft, or no such page) → null.
          *
-         * Адрес уезжает путём, а не query-параметром: он и есть идентичность
-         * ресурса, и путь одинаково переживает нормализацию прокси и кеширование
-         * CDN. Каждый сегмент кодируется отдельно — `encodeURIComponent` от
-         * склеенного адреса превратил бы разделитель `/` в `%2F`, и backend
-         * получил бы один сегмент вместо префикса с именем.
+         * The address goes out as a path rather than a query parameter: it is the
+         * resource's identity, and a path survives proxy normalization and CDN
+         * caching equally well. Every segment is encoded separately — an
+         * `encodeURIComponent` of the joined address would turn the `/` separator
+         * into `%2F`, and the backend would get one segment instead of a prefix with
+         * a name.
          *
-         * ВНИМАНИЕ: public projection не содержит `thumbnailUrl` и `revision` —
-         * зазор закрывается синтезом (`thumbnailUrl: null`, `revision: 0`,
-         * `published: true`). Единственный вызывающий (public-ручка адреса)
-         * сразу применяет toPublicPageProjection, которая эти поля отбрасывает.
-         * Будущим editorial-вызывающим на синтезированные поля опираться НЕЛЬЗЯ —
-         * для editorial-чтения использовать getPage(id).
+         * ATTENTION: the public projection carries no `thumbnailUrl` and no
+         * `revision` — the gap is closed by synthesis (`thumbnailUrl: null`,
+         * `revision: 0`, `published: true`). The single caller (the address's public
+         * endpoint) immediately applies toPublicPageProjection, which drops those
+         * fields. Future editorial callers must never rely on the synthesized fields —
+         * for an editorial read use getPage(id).
          */
         async getPageByAddress(address: IBricksPageAddress): Promise<IBricksPageRow | null> {
             const addressKey = getPageAddressKey(address);
@@ -149,11 +152,11 @@ export function createHttpStorageAdapter(options: IHttpStorageAdapterOptions): I
         },
 
         /**
-         * Создаёт страницу (`POST {base}`). На доменную ошибку маппится только
-         * точный контрактный код: 409 `PAGENAME_CONFLICT` →
-         * BricksPageAddressConflictError. 409 без кода или с незнакомым кодом —
-         * generic error (иначе любой посторонний конфликт backend'а — квота,
-         * состояние — заставил бы UI предлагать переименование).
+         * Creates a page (`POST {base}`). Only the exact contract code is mapped onto
+         * a domain error: a 409 `PAGENAME_CONFLICT` →
+         * BricksPageAddressConflictError. A 409 with no code or with an unfamiliar
+         * one is a generic error (otherwise any unrelated conflict of the backend's —
+         * a quota, a state — would make the UI offer a rename).
          */
         async createPage(payload: ICreatePagePayload): Promise<IBricksPageRow> {
             try {
@@ -170,17 +173,18 @@ export function createHttpStorageAdapter(options: IHttpStorageAdapterOptions): I
         },
 
         /**
-         * Частично обновляет страницу (`PATCH {base}/:id`, только PATCH —
-         * partial-семантика IUpdatePagePayload; `expectedRevision` уходит
-         * precondition-полем тела). 404 → null. На доменные ошибки маппятся
-         * только точные контрактные коды 409: `PAGENAME_CONFLICT` →
+         * Partially updates a page (`PATCH {base}/:id`, PATCH only — the partial
+         * semantics of IUpdatePagePayload; `expectedRevision` goes out as a
+         * precondition field of the body). A 404 → null. Only the exact contract 409
+         * codes are mapped onto domain errors: `PAGENAME_CONFLICT` →
          * BricksPageAddressConflictError, `REVISION_CONFLICT` →
-         * BricksRevisionConflictError; 409 без кода/с незнакомым кодом —
-         * generic error (посторонний конфликт backend'а не должен заставлять
-         * UI предлагать rename или refetch-and-retry).
+         * BricksRevisionConflictError; a 409 with no code or with an unfamiliar one is
+         * a generic error (an unrelated conflict of the backend's must not make the UI
+         * offer a rename or a refetch-and-retry).
          *
-         * Инвариант версионирования (снапшот при изменении `schema` + prune до
-         * лимита) — обязанность external-сервера (контракт IStorageAdapter.updatePage).
+         * The versioning invariant (a snapshot on a change of `schema` or
+         * `viewportConfig` + a prune down to the limit) is the external server's duty
+         * (the IStorageAdapter.updatePage contract).
          */
         async updatePage(id: number, payload: IUpdatePagePayload): Promise<IBricksPageRow | null> {
             try {
@@ -207,7 +211,7 @@ export function createHttpStorageAdapter(options: IHttpStorageAdapterOptions): I
         },
 
         /**
-         * Удаляет страницу (`DELETE {base}/:id`); 404 → false.
+         * Deletes a page (`DELETE {base}/:id`); a 404 → false.
          */
         async deletePage(id: number): Promise<boolean> {
             try {
@@ -224,7 +228,7 @@ export function createHttpStorageAdapter(options: IHttpStorageAdapterOptions): I
         },
 
         /**
-         * Сводки версий страницы (`GET {base}/:id/versions`), новые сверху.
+         * Summaries of the page's versions (`GET {base}/:id/versions`), newest first.
          */
         async listPageVersions(pageId: number): Promise<IPageVersionSummary[]> {
             const raw = await client.request('GET', `${pageId}/versions`);
@@ -233,7 +237,8 @@ export function createHttpStorageAdapter(options: IHttpStorageAdapterOptions): I
         },
 
         /**
-         * Полный снапшот версии (`GET {base}/:id/versions/:versionId`); 404 → null.
+         * A version's full snapshot (`GET {base}/:id/versions/:versionId`); a 404 →
+         * null.
          */
         async getPageVersion(pageId: number, versionId: number): Promise<IPageVersion | null> {
             try {

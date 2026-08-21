@@ -1,21 +1,21 @@
 /**
- * Публичная проекция страницы для read-model `/api/bricks/public/**`.
+ * The page's public projection for the `/api/bricks/public/**` read model.
  *
- * Editorial-строка БД содержит editor-only поля (thumbnailUrl — превью канваса
- * для дашборда) — наружу уходит только безопасное подмножество. Новые
- * editor-поля по умолчанию НЕ попадают в public-ответ: проекция собирается
- * явным перечислением, а не delete-ом лишнего.
+ * The editorial database row carries editor-only fields (thumbnailUrl — the canvas
+ * preview for the dashboard) — only a safe subset is exposed. New editor fields do
+ * NOT make it into the public response by default: the projection is assembled by an
+ * explicit enumeration rather than by deleting the extras.
  */
 import type { IBricksPageRow } from '../../../common/types/bricks-api';
 
-/** Публичное подмножество полей страницы (без editor-only данных). */
+/** The public subset of a page's fields (with no editor-only data). */
 export type TPublicPageProjection = Omit<IBricksPageRow, 'thumbnailUrl' | 'revision'>;
 
 /**
- * Собирает публичную проекцию страницы.
+ * Assembles the page's public projection.
  *
- * @param page - Полная строка страницы из адаптера.
- * @returns Публичное подмножество полей.
+ * @param page - The page's full row from the adapter.
+ * @returns The public subset of the fields.
  */
 export function toPublicPageProjection(page: IBricksPageRow): TPublicPageProjection {
     return {
@@ -29,9 +29,9 @@ export function toPublicPageProjection(page: IBricksPageRow): TPublicPageProject
         socialImage: page.socialImage,
         urlPrefix: page.urlPrefix,
         subdomain: page.subdomain,
-        // Набор устройств — часть раскладки published-страницы, а не editor-only
-        // данные: без него опубликованная страница считала бы пороги по набору
-        // проекта, пока билдер показывает собственный набор страницы
+        // The device set is part of a published page's layout rather than editor-only
+        // data: without it a published page would compute its thresholds by the
+        // project's set while the builder shows the page's own set
         viewportConfig: page.viewportConfig,
         schema: page.schema,
         published: page.published,

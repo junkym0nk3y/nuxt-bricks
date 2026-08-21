@@ -1,11 +1,12 @@
 /**
- * Медиа-настройки загрузки: лимиты размера и параметры оптимизации — из app
- * config и из полей multipart-формы, которые их переопределяют на одну загрузку.
+ * The media upload settings: the size limits and the optimization parameters — out of
+ * the app config and from the multipart form's fields, which override them for one
+ * upload.
  *
- * Отдельно от `imageProcessing.ts` не только ради размера файла: там — работа с
- * пикселями (sharp, семафор, сигнатуры), здесь — чтение конфигурации и границы
- * НЕДОВЕРЕННОГО ввода. Разные причины меняться и разные зависимости: этому модулю
- * нужен `useAppConfig`, тому — sharp.
+ * Kept apart from `imageProcessing.ts` not only for the file's size: that one works
+ * with pixels (sharp, the semaphore, the signatures), this one reads the configuration
+ * and bounds UNTRUSTED input. Different reasons to change and different dependencies:
+ * this module needs `useAppConfig`, that one needs sharp.
  */
 import type { IMediaOptimizationRequestFields, IResolvedMediaConfig } from '../../types/media';
 import { useAppConfig } from 'nitropack/runtime';
@@ -27,9 +28,9 @@ const BYTES_IN_MB = 1024 * 1024;
 
 // #region Helpers
 /**
- * Приводит значение к положительному числу, иначе возвращает запасное.
- * @param value Сырое значение.
- * @param fallback Значение по умолчанию.
+ * Brings a value to a positive number, and returns the fallback otherwise.
+ * @param value The raw value.
+ * @param fallback The default value.
  */
 function resolveNumber(value: unknown, fallback: number): number {
     const numericValue = Number(value);
@@ -42,10 +43,10 @@ function resolveNumber(value: unknown, fallback: number): number {
 }
 
 /**
- * Приводит значение к известному формату; неизвестное — к дефолту конфига.
+ * Brings a value to a known format; an unknown one to the config's default.
  *
- * @param value Сырое значение (конфиг или поле multipart-формы).
- * @param fallback Значение по умолчанию.
+ * @param value The raw value (the config or a multipart form field).
+ * @param fallback The default value.
  */
 export function resolveImageFormat(
     value: unknown,
@@ -59,23 +60,23 @@ export function resolveImageFormat(
 }
 
 /**
- * Приводит качество к тому, что принимает кодировщик.
+ * Brings the quality to what the encoder accepts.
  *
- * Применяется всегда, включая конфиг: sharp падает на значении вне 1..100, и
- * опечатка в `bricks.media.optimization.quality` роняла бы любую загрузку вместо
- * того, чтобы дать разумный результат.
+ * Applied always, the config included: sharp fails over a value outside 1..100, and a
+ * typo in `bricks.media.optimization.quality` would bring any upload down instead of
+ * giving a sensible result.
  *
- * @param quality Сырое качество.
+ * @param quality The raw quality.
  */
 function clampQuality(quality: number): number {
     return Math.min(Math.max(Math.round(quality), MEDIA_QUALITY_MIN), MEDIA_QUALITY_MAX);
 }
 
 /**
- * Приводит сырое поле формы к положительному числу.
+ * Brings a raw form field to a positive number.
  *
- * @param value Значение поля или undefined, если поля не было.
- * @returns Число либо null — переопределения не было.
+ * @param value The field's value, or undefined when there was no field.
+ * @returns The number, or null — there was no override.
  */
 function toRequestedNumber(value: string | undefined): number | null {
     if (typeof value !== 'string' || value.trim() === '') {
@@ -89,22 +90,22 @@ function toRequestedNumber(value: string | undefined): number | null {
 // #endregion
 
 /**
- * Разбирает НЕДОВЕРЕННЫЕ поля формы и накрывает ими дефолты конфига.
+ * Parses the UNTRUSTED form fields and lays them over the config's defaults.
  *
- * Границы применяются только к тому, что действительно пришло с формой: поле
- * поповера ограничивает ввод, а запрос мимо интерфейса им не ограничен —
- * `maxWidth: 1` сохранял бы «полный» файл шириной в один пиксель. Значение из
- * конфига, взятое при отсутствующем поле, границами не режется: пока эта
- * функция принимала уже склеенный объект, отличить одно от другого было
- * нечем, и `maxWidth: 12000` из конфига молча становился 8000.
+ * The bounds are applied only to what actually arrived with the form: the popover's
+ * field bounds the input, while a request bypassing the interface is not bounded by
+ * it — a `maxWidth: 1` would store a "full" file one pixel wide. A value from the
+ * config, taken when the field is absent, is not cut by the bounds: while this
+ * function took an already merged object, there was nothing to tell one from the
+ * other, and a `maxWidth: 12000` from the config silently became 8000.
  *
- * Потолок и пол самого запроса тоже считаются от конфига
- * (`resolveMediaMaxWidthBounds`): значение, которое разработчик выбрал дефолтом,
- * не может быть недостижимо для запроса — интерфейс отправляет его дословно.
+ * The request's own ceiling and floor are computed from the config too
+ * (`resolveMediaMaxWidthBounds`): a value the developer chose as the default cannot be
+ * unreachable for a request — the interface sends it verbatim.
  *
- * @param requested Сырые поля multipart-формы.
- * @param fallback Параметры из конфига (уже разрешённые).
- * @returns Эффективные параметры оптимизации.
+ * @param requested The raw multipart form fields.
+ * @param fallback The parameters from the config (already resolved).
+ * @returns The effective optimization parameters.
  */
 export function resolveRequestedOptimization(
     requested: IMediaOptimizationRequestFields,
@@ -128,7 +129,8 @@ export function resolveRequestedOptimization(
 }
 
 /**
- * Читает медиа-настройки (лимит и параметры оптимизации) из app config с дефолтами.
+ * Reads the media settings (the limit and the optimization parameters) from the app
+ * config, with defaults.
  */
 export function resolveMediaConfig(): IResolvedMediaConfig {
     const appConfig = useAppConfig();
@@ -153,9 +155,10 @@ export function resolveMediaConfig(): IResolvedMediaConfig {
             quality: clampQuality(
                 resolveNumber(optimization.quality, DEFAULT_MEDIA_OPTIMIZATION.quality)
             ),
-            // Нормализация здесь, а не при разборе запроса: границам запроса это
-            // значение больше не подчиняется, а sharp принимает ширину только
-            // положительным целым — дробный `maxWidth` из конфига ронял бы загрузку
+            // The normalization is here rather than in the request's parsing: this
+            // value is no longer subject to the request's bounds, and sharp accepts a
+            // width only as a positive integer — a fractional `maxWidth` from the
+            // config would bring the upload down
             maxWidth: resolveConfiguredMaxWidth(optimization.maxWidth),
         },
     };

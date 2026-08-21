@@ -1,15 +1,15 @@
 /**
- * Реестр persistence-адаптеров (module-scoped синглтоны).
+ * The registry of the persistence adapters (module-scoped singletons).
  *
- * Дефолтный storage-адаптер выбирается по build-time режиму
- * `bricks.backend.mode`: `builtin` → PostgreSQL, `external` → HTTP-адаптер
- * поверх пользовательского backend. Носитель режима — регистрация Nitro-плагина
- * externalBackendStorage (module.ts), который ставит build-time фабрику в
- * defaultStorage.ts: в runtimeConfig режима нет, NUXT_-env его не меняет.
- * Publish — S3. Все адаптеры создаются лениво при первом обращении.
- * Кастомный адаптер потребитель модуля регистрирует из своего Nitro-плагина
- * (server/plugins/*.ts) через сеттеры до первого запроса —
- * он побеждает любой режим:
+ * The default storage adapter is chosen by the build-time mode
+ * `bricks.backend.mode`: `builtin` → PostgreSQL, `external` → the HTTP adapter over
+ * the user's backend. What carries the mode is the registration of the
+ * externalBackendStorage Nitro plugin (module.ts), which sets the build-time factory
+ * in defaultStorage.ts: runtimeConfig holds no mode, and no NUXT_ env changes it.
+ * Publish is S3. Every adapter is created lazily on the first access.
+ * A custom adapter is registered by the module's consumer from their own Nitro plugin
+ * (server/plugins/*.ts) through the setters before the first request —
+ * it beats any mode:
  *
  * ```ts
  * import { setBricksStorageAdapter } from 'nuxt-bricks/persistence';
@@ -26,10 +26,11 @@ import { getBricksDefaultStorageFactory } from './defaultStorage';
 import type { IStorageAdapter, IPublishAdapter } from '../types/adapters';
 import type { IAuthAdapter } from '../types/authAdapters';
 
-// Доменные ошибки — часть контракта IStorageAdapter (кастомные адаптеры кидают
-// их из create*/update*, ручки маппят на HTTP-статусы). BricksStorageWriteRejected
-// сообщает, что запись гарантированно не применена: без него исход считается
-// неизвестным, и владелец загруженных файлов их не удаляет.
+// The domain errors are part of the IStorageAdapter contract (custom adapters throw
+// them out of create*/update*, and the handlers map them onto HTTP statuses).
+// BricksStorageWriteRejected reports that the write is guaranteed not to have been
+// applied: without it the outcome is treated as unknown, and the owner of the
+// uploaded files does not delete them.
 export {
     BricksPageAddressConflictError,
     BricksRevisionConflictError,
@@ -39,10 +40,11 @@ export {
     BricksUnknownMediaCategoryError,
 } from './utils/storageErrors';
 
-// То же для контракта IAuthAdapter: ручки учёток различают эти отказы через
-// `instanceof`, поэтому кастомная реализация обязана кидать ИМЕННО эти классы —
-// одноимённый локальный класс дал бы 500 вместо 409 с машиночитаемым кодом.
-// Без реэкспорта требование `@throws` в контракте было бы невыполнимым.
+// The same for the IAuthAdapter contract: the account handlers tell these refusals
+// apart through `instanceof`, so a custom implementation must throw EXACTLY
+// these classes — a local class of the same name would give a 500 instead of a 409
+// with a machine-readable code. Without the re-export the contract's `@throws`
+// requirement would be impossible to satisfy.
 export { BricksLastActiveAdminError, BricksUsernameTakenError } from './utils/authErrors';
 
 let storageAdapter: IStorageAdapter | null = null;
@@ -51,9 +53,9 @@ let authAdapter: IAuthAdapter | null = null;
 let customStorageAdapterRegistered = false;
 
 /**
- * Регистрирует кастомный storage-адаптер вместо дефолтного Postgres.
+ * Registers a custom storage adapter in place of the default Postgres one.
  *
- * @param adapter - Реализация IStorageAdapter.
+ * @param adapter - An IStorageAdapter implementation.
  */
 export function setBricksStorageAdapter(adapter: IStorageAdapter): void {
     storageAdapter = adapter;
@@ -61,19 +63,19 @@ export function setBricksStorageAdapter(adapter: IStorageAdapter): void {
 }
 
 /**
- * Зарегистрирован ли кастомный storage-адаптер (для readiness probe:
- * кастомный адаптер сам отвечает за checkHealth-семантику).
+ * Whether a custom storage adapter has been registered (for the readiness probe: a
+ * custom adapter defines the checkHealth semantics itself).
  */
 export function hasCustomBricksStorageAdapter(): boolean {
     return customStorageAdapterRegistered;
 }
 
 /**
- * Создаёт дефолтный storage-адаптер: build-time фабрика external-режима
- * (её ставит Nitro-плагин externalBackendStorage при старте — сама регистрация
- * плагина и есть носитель `bricks.backend.mode`), без неё — PostgreSQL (builtin).
+ * Creates the default storage adapter: the build-time factory of external mode (set by
+ * the externalBackendStorage Nitro plugin at startup — the plugin's registration is
+ * itself what carries `bricks.backend.mode`), and without it — PostgreSQL (builtin).
  *
- * @returns Дефолтная реализация IStorageAdapter.
+ * @returns The default IStorageAdapter implementation.
  */
 function createDefaultStorageAdapter(): IStorageAdapter {
     const factory = getBricksDefaultStorageFactory();
@@ -82,10 +84,10 @@ function createDefaultStorageAdapter(): IStorageAdapter {
 }
 
 /**
- * Возвращает активный storage-адаптер, лениво создавая дефолтный по режиму
- * backend (custom-сеттер > external → HTTP > builtin → Postgres).
+ * Returns the active storage adapter, lazily creating the default one by the backend's
+ * mode (the custom setter > external → HTTP > builtin → Postgres).
  *
- * @returns Активный IStorageAdapter.
+ * @returns The active IStorageAdapter.
  */
 export function useBricksStorageAdapter(): IStorageAdapter {
     if (!storageAdapter) {
@@ -96,18 +98,18 @@ export function useBricksStorageAdapter(): IStorageAdapter {
 }
 
 /**
- * Регистрирует кастомный publish-адаптер вместо дефолтного S3.
+ * Registers a custom publish adapter in place of the default S3 one.
  *
- * @param adapter - Реализация IPublishAdapter.
+ * @param adapter - An IPublishAdapter implementation.
  */
 export function setBricksPublishAdapter(adapter: IPublishAdapter): void {
     publishAdapter = adapter;
 }
 
 /**
- * Возвращает активный publish-адаптер, лениво создавая дефолтный S3.
+ * Returns the active publish adapter, lazily creating the default S3 one.
  *
- * @returns Активный IPublishAdapter.
+ * @returns The active IPublishAdapter.
  */
 export function useBricksPublishAdapter(): IPublishAdapter {
     if (!publishAdapter) {
@@ -118,18 +120,18 @@ export function useBricksPublishAdapter(): IPublishAdapter {
 }
 
 /**
- * Регистрирует кастомный auth-адаптер вместо дефолтного Postgres.
+ * Registers a custom auth adapter in place of the default Postgres one.
  *
- * @param adapter - Реализация IAuthAdapter.
+ * @param adapter - An IAuthAdapter implementation.
  */
 export function setBricksAuthAdapter(adapter: IAuthAdapter): void {
     authAdapter = adapter;
 }
 
 /**
- * Возвращает активный auth-адаптер, лениво создавая дефолтный Postgres.
+ * Returns the active auth adapter, lazily creating the default Postgres one.
  *
- * @returns Активный IAuthAdapter.
+ * @returns The active IAuthAdapter.
  */
 export function useBricksAuthAdapter(): IAuthAdapter {
     if (!authAdapter) {

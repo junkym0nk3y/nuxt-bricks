@@ -1,10 +1,10 @@
 /**
- * Сниффинг формата файла по magic bytes: MIME и расширению из multipart
- * не доверяем — класс содержимого (растровое изображение / SVG / видео)
- * подтверждается сигнатурой до передачи в sharp/хранилище.
+ * Sniffing a file's format by its magic bytes: the MIME and the extension from the
+ * multipart are not trusted — the content's class (a raster image / an SVG / a video)
+ * is confirmed by its signature before it is passed on to sharp or to storage.
  */
 
-/** Растровые и векторные форматы, узнаваемые по содержимому. */
+/** The raster and vector formats recognizable by their content. */
 export type TSniffedImageFormat =
     | 'jpeg'
     | 'png'
@@ -16,23 +16,24 @@ export type TSniffedImageFormat =
     | 'heif'
     | 'svg';
 
-/** Видео-контейнеры, узнаваемые по содержимому. */
+/** The video containers recognizable by their content. */
 export type TSniffedVideoFormat = 'mp4' | 'webm' | 'ogg' | 'avi';
 
-/** Сколько байт головы файла декодировать для текстовой SVG-эвристики. */
+/** How many bytes of the file's head to decode for the textual SVG heuristic. */
 const SVG_SNIFF_BYTES = 4096;
 
 /**
- * XML-пролог/комментарии/DOCTYPE перед корневым `<svg` (допустим BOM и пробелы).
+ * An XML prolog/comments/DOCTYPE ahead of the root `<svg` (a BOM and whitespace are
+ * allowed).
  */
 const SVG_LEAD_PATTERN =
     /^\uFEFF?\s*(?:(?:<\?[\s\S]*?\?>|<!--[\s\S]*?-->|<!DOCTYPE[^>]*>)\s*)*<svg[\s>/]/i;
 
-/** Бренды ISO-BMFF (`ftyp`), означающие изображение (HEIC/HEIF/AVIF), а не видео. */
 /**
- * ISO-BMFF бренды, различающие AVIF и прочий HEIF. Разделены потому, что от
- * этого зависит судьба файла при загрузке «как есть»: AVIF браузер показывает
- * сам, HEIC — нет, и второй обязан быть перекодирован.
+ * The ISO-BMFF (`ftyp`) brands that mean an image (HEIC/HEIF/AVIF) rather than a
+ * video, split into the ones telling AVIF from the rest of HEIF. The split matters
+ * because the file's fate on an "as is" upload depends on it: a browser shows an AVIF
+ * itself, a HEIC it does not, and the latter must be re-encoded.
  */
 const AVIF_IMAGE_BRANDS = new Set(['avif', 'avis']);
 const HEIF_IMAGE_BRANDS = new Set([
@@ -49,11 +50,11 @@ const HEIF_IMAGE_BRANDS = new Set([
 ]);
 
 /**
- * Сверяет байты буфера с ожидаемой сигнатурой по смещению.
+ * Matches the buffer's bytes against the expected signature at an offset.
  *
- * @param buffer - Проверяемый буфер.
- * @param offset - Смещение начала сигнатуры.
- * @param bytes - Ожидаемые байты.
+ * @param buffer - The buffer being checked.
+ * @param offset - The offset of the signature's start.
+ * @param bytes - The expected bytes.
  */
 function hasBytes(buffer: Buffer, offset: number, bytes: number[]): boolean {
     if (buffer.length < offset + bytes.length) {
@@ -64,11 +65,11 @@ function hasBytes(buffer: Buffer, offset: number, bytes: number[]): boolean {
 }
 
 /**
- * Сверяет байты буфера с ASCII-строкой по смещению.
+ * Matches the buffer's bytes against an ASCII string at an offset.
  *
- * @param buffer - Проверяемый буфер.
- * @param offset - Смещение начала строки.
- * @param text - Ожидаемая ASCII-строка.
+ * @param buffer - The buffer being checked.
+ * @param offset - The offset of the string's start.
+ * @param text - The expected ASCII string.
  */
 function hasAscii(buffer: Buffer, offset: number, text: string): boolean {
     if (buffer.length < offset + text.length) {
@@ -79,10 +80,10 @@ function hasAscii(buffer: Buffer, offset: number, text: string): boolean {
 }
 
 /**
- * Возвращает major brand контейнера ISO-BMFF (MP4/MOV/HEIF) или null,
- * если буфер не начинается с box `ftyp`.
+ * Returns the major brand of an ISO-BMFF container (MP4/MOV/HEIF), or null when the
+ * buffer does not start with an `ftyp` box.
  *
- * @param buffer - Проверяемый буфер.
+ * @param buffer - The buffer being checked.
  */
 function readFtypBrand(buffer: Buffer): string | null {
     if (buffer.length < 12 || !hasAscii(buffer, 4, 'ftyp')) {
@@ -93,20 +94,20 @@ function readFtypBrand(buffer: Buffer): string | null {
 }
 
 /**
- * Текстовая эвристика SVG: после BOM/пролога/комментариев/DOCTYPE содержимое
- * начинается с корневого тега `<svg`.
+ * The textual SVG heuristic: after a BOM/prolog/comments/DOCTYPE the content starts
+ * with the root tag `<svg`.
  *
- * @param content - Голова файла как текст.
+ * @param content - The file's head as text.
  */
 export function looksLikeSvgMarkup(content: string): boolean {
     return SVG_LEAD_PATTERN.test(content);
 }
 
 /**
- * Определяет формат изображения по сигнатуре содержимого.
+ * Decides an image's format by its content's signature.
  *
- * @param buffer - Байты файла.
- * @returns Формат или null, если содержимое — не поддерживаемое изображение.
+ * @param buffer - The file's bytes.
+ * @returns The format, or null when the content is not a supported image.
  */
 export function sniffImageFormat(buffer: Buffer): TSniffedImageFormat | null {
     if (hasBytes(buffer, 0, [0xff, 0xd8, 0xff])) {
@@ -154,11 +155,11 @@ export function sniffImageFormat(buffer: Buffer): TSniffedImageFormat | null {
 }
 
 /**
- * Определяет видео-контейнер по сигнатуре содержимого. Контейнеры ISO-BMFF
- * с image-брендом (HEIC/AVIF) видео не считаются.
+ * Decides a video container by its content's signature. ISO-BMFF containers with an
+ * image brand (HEIC/AVIF) do not count as a video.
  *
- * @param buffer - Байты файла.
- * @returns Формат или null, если содержимое — не поддерживаемое видео.
+ * @param buffer - The file's bytes.
+ * @returns The format, or null when the content is not a supported video.
  */
 export function sniffVideoFormat(buffer: Buffer): TSniffedVideoFormat | null {
     const brand = readFtypBrand(buffer);

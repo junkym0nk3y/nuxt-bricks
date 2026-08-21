@@ -1,28 +1,33 @@
 /**
- * Дефолтный администратор свежей базы: сид миграции `migrations/0001_init.sql`.
+ * The default administrator of a fresh database: the seed of the
+ * `migrations/0001_init.sql` migration.
  *
- * Учётка существует ради первого входа: ручка создания учёток требует сессии
- * активного администратора, а до первой учётки сессии нет ни у кого. Дальше
- * пользователи заводятся из интерфейса, и внешний провижининг не нужен.
+ * The account exists for the sake of the first login: the account creation endpoint
+ * requires an active administrator's session, and before the first account nobody has
+ * one. After that users are created from the interface, and no external provisioning is
+ * needed.
  *
- * Хеш здесь — та же строка, что в сиде миграции, и это осознанное дублирование:
- * у Postgres нет scrypt, посчитать его в SQL нечем, а приложению нужно узнавать
- * «пароль всё ещё дефолтный» без самой scrypt-проверки на каждом запросе —
- * сравнением строки хеша. Расхождение двух копий ловит
- * `test/server/authDefaultAdmin.spec.ts`: разъехавшись, они перестали бы
- * распознавать дефолт, и предупреждение о смене пароля молча исчезло бы.
+ * The hash here is the same string as in the migration's seed, and that is
+ * deliberate duplication: Postgres has no scrypt, there is nothing to compute it
+ * with in SQL, while the application needs to learn "the password is still the
+ * default" without the scrypt check itself on every request — by comparing the hash
+ * string. A divergence of the two copies is caught by
+ * `test/server/authDefaultAdmin.spec.ts`: had they drifted apart, they would stop
+ * recognizing the default, and the warning about changing the password would
+ * silently disappear.
  *
- * Общая соль на все инсталляции ничего не ослабляет: пароль напечатан в README,
- * и его секретность держится не хешем, а тем, что его меняют после первого
- * входа — об этом и просит предупреждение в интерфейсе.
+ * A salt shared across every installation weakens nothing: the password is printed in
+ * the README, and its secrecy rests not on the hash but on it being changed after the
+ * first login — which is what the warning in the interface asks for.
  */
 
 /**
- * Хеш дефолтного пароля; копия литерала из сида миграции.
+ * The hash of the default password; a copy of the literal from the migration's seed.
  *
- * Сам логин и пароль живут в `common/constants/auth.ts` — их знают и формы
- * билдера, которые обязаны отказать в попытке задать этот пароль кому-либо.
- * Хеш остаётся здесь: он нужен только запросу сессии и в браузере бесполезен.
+ * The username and the password themselves live in `common/constants/auth.ts` — the
+ * builder's forms know them too, as they must refuse an attempt to set this
+ * password for anyone. The hash stays here: only the session query needs it, and in a
+ * browser it is useless.
  */
 export const BRICKS_DEFAULT_ADMIN_PASSWORD_HASH =
     'scrypt:16384:8:1:mQgIxUboEImrtO4oD16ruw==:pqKwvl8Mzrn56ggLzSKzGiYLw2tgDCFObpl/3Ajx5jlF3GVAxqgMAhmZjruEmxilY6xNiXRPuGu/GuujVznG7A==';

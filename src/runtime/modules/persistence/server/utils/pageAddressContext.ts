@@ -1,9 +1,9 @@
 /**
- * Контекст проверки адреса страницы для серверной валидации DTO.
+ * The page address check's context for the server-side DTO validation.
  *
- * Валидаторы payload остаются чистыми функциями (их зовут и в тестах, без
- * Nitro-контекста), поэтому runtimeConfig читается здесь, а ручка передаёт
- * готовый контекст аргументом.
+ * The payload validators stay pure functions (they are called in the tests too, with
+ * no Nitro context), so runtimeConfig is read here and the handler passes the ready
+ * context as an argument.
  */
 import { useRuntimeConfig } from 'nitropack/runtime';
 import {
@@ -13,9 +13,9 @@ import {
 import type { IPageAddressContext } from '../../types/pageAddress';
 
 /**
- * Префиксы и состояние live-поверхности из `runtimeConfig.public`.
+ * The prefixes and the live surface's state out of `runtimeConfig.public`.
  *
- * @returns Контекст проверки адреса страницы.
+ * @returns The page address check's context.
  */
 export function getConfiguredPageAddressContext(): IPageAddressContext {
     const config = useRuntimeConfig();

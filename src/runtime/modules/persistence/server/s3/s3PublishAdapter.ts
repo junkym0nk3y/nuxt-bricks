@@ -1,7 +1,7 @@
 /**
- * Дефолтный IPublishAdapter поверх S3-совместимого хранилища (Yandex Object Storage).
- * Конфигурация — runtimeConfig.bricksS3 (см. module.ts; runtime-override —
- * NUXT_BRICKS_S3_*).
+ * The default IPublishAdapter over S3-compatible storage (Yandex Object Storage).
+ * The configuration is runtimeConfig.bricksS3 (see module.ts; the runtime
+ * override is NUXT_BRICKS_S3_*).
  */
 import {
     S3Client,
@@ -20,40 +20,43 @@ import type {
 } from '../../types/adapters';
 
 /**
- * Потолок установки TCP-соединения с хранилищем (мс): недоступный endpoint
- * обязан отказать быстро — на этом ожидании стоит вся загрузка медиа.
+ * The ceiling for establishing the TCP connection to storage (ms): an unreachable
+ * endpoint must fail fast — the whole media upload waits on it.
  */
 const S3_CONNECTION_TIMEOUT_MS = 5_000;
 /**
- * Потолок ТИШИНЫ сокета (мс), а не всей операции: PUT'ом идут файлы до сотни
- * мегабайт, и общий потолок обрывал бы исправную загрузку по медленному каналу.
- * Без него зависший endpoint держал бы запрос насовсем — клиентский abort до
- * AWS SDK не доходит, то есть ручка загрузки не имела ни одной своей границы
- * ожидания хранилища.
+ * The ceiling of socket SILENCE (ms), not of the whole operation: files of up to a
+ * hundred megabytes go through PUT, and an overall ceiling would cut off a healthy
+ * upload over a slow link. Without it a hung endpoint would hold the request
+ * forever — a client abort never reaches the AWS SDK, meaning the upload handler
+ * had not a single bound of its own on waiting for storage.
  *
- * Уезжает именно в `socketTimeout`. Похожий `requestTimeout` тут ловушка: он
- * ограничивает суммарное время запроса и ответа, а без `throwOnRequestTimeout`
- * при превышении лишь пишет warning в лог, ничего не обрывая (см.
- * `@smithy/node-http-handler`). То есть зависший endpoint он не лечит, а
- * включённый как ошибка — резал бы стомегабайтную загрузку по общему времени.
+ * It goes into `socketTimeout` specifically. The similar-looking `requestTimeout`
+ * is a trap here: it bounds the total time of the request and the response, and
+ * without `throwOnRequestTimeout` it merely writes a warning to the log when
+ * exceeded, aborting nothing (see `@smithy/node-http-handler`). That is, it does
+ * not cure a hung endpoint, and turned on as an error it would cut a
+ * hundred-megabyte upload off by total time.
  */
 const S3_SOCKET_TIMEOUT_MS = 30_000;
 /**
- * Всего попыток одного запроса (одна плюс повтор). Дефолтные три на зависшем
- * endpoint дают три окна тишины подряд плюс backoff — до полутора минут ожидания
- * на интерактивной загрузке; одного повтора хватает, чтобы пережить одиночный
- * сетевой сбой, а тело запроса повторяемо (Buffer) и ключ всегда новый.
+ * The total attempts per request (one plus a retry). The default three over a hung
+ * endpoint give three silence windows in a row plus the backoff — up to a minute
+ * and a half of waiting on an interactive upload; a single retry is enough to
+ * survive a one-off network failure, and the request body is replayable (a Buffer)
+ * with the key always new.
  */
 const S3_MAX_ATTEMPTS = 2;
 /**
- * Потолок компенсирующего удаления (мс). Своя граница нужна потому, что уборка
- * идёт тем же клиентом с теми же ретраями: без неё исходная ошибка загрузки
- * возвращалась бы наружу ещё через окна тишины уборки.
+ * The ceiling of the compensating deletion (ms). A bound of its own is needed
+ * because the cleanup runs through the same client with the same retries: without
+ * it the original upload error would only come back outward after the cleanup's
+ * own silence windows.
  */
 const S3_CLEANUP_TIMEOUT_MS = 10_000;
 
 /**
- * Разрешённая конфигурация S3-хранилища.
+ * The resolved configuration of the S3 storage.
  */
 interface IResolvedS3Config {
     endpoint: string;
@@ -67,14 +70,14 @@ interface IResolvedS3Config {
 }
 
 /**
- * Сырая конфигурация из runtimeConfig.bricksS3 (все поля опциональны).
+ * The raw configuration from runtimeConfig.bricksS3 (every field optional).
  */
 type TRawS3Config = Partial<IResolvedS3Config> | undefined;
 
 /**
- * Резолвит конфигурацию S3 из runtimeConfig.
+ * Resolves the S3 configuration from runtimeConfig.
  *
- * @returns Полная конфигурация хранилища.
+ * @returns The full storage configuration.
  */
 function resolveS3Config(): IResolvedS3Config {
     const config = useRuntimeConfig();
@@ -93,10 +96,11 @@ function resolveS3Config(): IResolvedS3Config {
     const thumbnailsPrefix = raw?.thumbnailsPrefix || 'bricks-thumbnails/';
     const avatarsPrefix = raw?.avatarsPrefix || 'bricks-avatars/';
 
-    // Изоляция namespace'ов держится только на непересечении префиксов, а
-    // значения переопределяются NUXT_BRICKS_S3_* уже в рантайме — build-time
-    // проверка их не увидела бы. Отказ громкий: молча работающая конфигурация, в
-    // которой аватары попадают в листинг медиатеки, нарушает обещание модуля
+    // The isolation of the namespaces rests solely on the prefixes not
+    // overlapping, and the values are overridden by NUXT_BRICKS_S3_* at runtime —
+    // a build-time check would not see them. The refusal is loud: a silently
+    // working configuration in which avatars land in the media library's listing
+    // breaks the module's promise
     const conflict = findManagedPrefixConflict({ prefix, thumbnailsPrefix, avatarsPrefix });
 
     if (conflict) {
@@ -119,28 +123,29 @@ function resolveS3Config(): IResolvedS3Config {
 }
 
 /**
- * Managed-префиксы ключей модуля в бакете: только внутри них адаптер
- * создаёт и удаляет объекты (см. контракт IPublishAdapter).
+ * The managed prefixes of the module's keys in the bucket: only inside them does
+ * the adapter create and delete objects (see the IPublishAdapter contract).
  *
- * Аватары входят в набор, потому что иначе адаптер не смог бы ни записать, ни
- * удалить их файл (`uploadFile` и `deleteFile` отказывают ключам вне
- * namespace). Медиатека от этого не наполняется: импорт бакета читает только
- * `prefix`, а записи медиа создаёт загрузка со своим ключом.
+ * Avatars are part of the set because otherwise the adapter could neither write
+ * nor delete their file (`uploadFile` and `deleteFile` refuse keys outside the
+ * namespace). The media library does not fill up from that: the bucket import
+ * reads `prefix` only, and media records are created by an upload with a key of
+ * its own.
  *
- * @param config - Конфигурация хранилища.
- * @returns Список префиксов.
+ * @param config - The storage configuration.
+ * @returns The list of prefixes.
  */
 function resolveManagedPrefixes(config: IResolvedS3Config): string[] {
     return [config.prefix, config.thumbnailsPrefix, config.avatarsPrefix];
 }
 
 /**
- * Извлекает S3 key из публичного URL, только если ключ лежит внутри
- * managed namespace модуля.
+ * Extracts the S3 key from a public URL, only when the key lies inside the
+ * module's managed namespace.
  *
- * @param url - Полный URL файла.
- * @param config - Конфигурация хранилища.
- * @returns Key или null (чужой бакет / посторонний префикс).
+ * @param url - The file's full URL.
+ * @param config - The storage configuration.
+ * @returns The key, or null (a foreign bucket / an outside prefix).
  */
 function extractManagedKey(url: string, config: IResolvedS3Config): string | null {
     const key = extractStorageKey(url, config);
@@ -153,17 +158,18 @@ function extractManagedKey(url: string, config: IResolvedS3Config): string | nul
 }
 
 /**
- * Best-effort уборка объекта, чья запись завершилась неизвестно чем.
+ * Best-effort cleanup of an object whose write ended in an unknown outcome.
  *
- * Отказ PUT не доказывает, что объекта в бакете нет: ответ мог потеряться или
- * упереться в таймаут уже после записи. Вызывающий URL при этом не получил, то
- * есть удалить объект ему нечем и ссылки на него не появится никогда — уборка
- * возможна только здесь. Своя граница ожидания обязательна: без неё исходная
- * ошибка загрузки ждала бы ещё и ретраев уборки.
+ * A failed PUT does not prove the object is absent from the bucket: the response
+ * could have been lost or hit a timeout after the write already happened. The
+ * caller received no URL in the process, meaning it has nothing to delete the
+ * object by and no link to it will ever appear — the cleanup is only possible
+ * here. A waiting bound of its own is mandatory: without it the original upload
+ * error would additionally wait through the cleanup's retries.
  *
- * @param client - S3-клиент.
- * @param bucket - Бакет хранилища.
- * @param key - Ключ объекта, который могли записать.
+ * @param client - The S3 client.
+ * @param bucket - The storage bucket.
+ * @param key - The key of the object that may have been written.
  */
 async function discardUnconfirmedObject(
     client: S3Client,
@@ -175,24 +181,24 @@ async function discardUnconfirmedObject(
             abortSignal: AbortSignal.timeout(S3_CLEANUP_TIMEOUT_MS),
         });
     } catch (error: unknown) {
-        // Отказ уборки не заменяет ошибку загрузки: наружу обязана уйти именно
-        // она, иначе пользователь узнает о проблеме с бакетом вместо проблемы
-        // со своим файлом
+        // A failed cleanup does not replace the upload error: it is that error
+        // that must go outward, otherwise the user would learn about a
+        // problem with the bucket instead of the problem with their own file
         console.warn('[S3] Failed to discard object after a failed upload:', key, error);
     }
 }
 
 /**
- * Создаёт S3-реализацию IPublishAdapter с ленивым клиентом.
+ * Creates the S3 implementation of IPublishAdapter with a lazy client.
  *
- * @returns Адаптер файлового хранилища публикации.
+ * @returns The publication file storage adapter.
  */
 export function createS3PublishAdapter(): IPublishAdapter {
     let client: S3Client | null = null;
     let resolvedConfig: IResolvedS3Config | null = null;
 
     /**
-     * Лениво создаёт S3-клиент и резолвит конфигурацию.
+     * Lazily creates the S3 client and resolves the configuration.
      */
     function useClient(): { client: S3Client; config: IResolvedS3Config } {
         if (!client || !resolvedConfig) {
@@ -217,9 +223,9 @@ export function createS3PublishAdapter(): IPublishAdapter {
 
     return {
         /**
-         * Строит полный object key нового файла: managed-префикс по типу файла
-         * (`prefix` для медиа, `thumbnailsPrefix` для превью страниц,
-         * `avatarsPrefix` для фото профиля) + имя.
+         * Builds the full object key of a new file: the managed prefix for the
+         * file's kind (`prefix` for media, `thumbnailsPrefix` for page previews,
+         * `avatarsPrefix` for profile photos) + the name.
          */
         buildFileKey(kind: TPublishFileKind, filename: string): string {
             const { config } = useClient();
@@ -233,13 +239,14 @@ export function createS3PublishAdapter(): IPublishAdapter {
         },
 
         /**
-         * Загружает файл в бакет и возвращает публичный URL.
-         * Ключи вне managed namespace отклоняются — ключ обязан быть построен
-         * через buildFileKey.
+         * Uploads a file into the bucket and returns the public URL.
+         * Keys outside the managed namespace are rejected — a key must
+         * have been built through buildFileKey.
          *
-         * Отказ записи компенсируется здесь же (см. контракт `uploadFile` и
-         * `discardUnconfirmedObject`): наружу уходит исходная ошибка, а объект,
-         * который мог остаться в бакете без ссылки, убирается best-effort.
+         * A failed write is compensated right here (see the `uploadFile` contract
+         * and `discardUnconfirmedObject`): the original error goes to the client, and
+         * the object that could have stayed in the bucket with no link to it is
+         * removed best-effort.
          */
         async uploadFile(params: IUploadFileParams): Promise<IUploadedFile> {
             const { client: s3, config } = useClient();
@@ -261,9 +268,9 @@ export function createS3PublishAdapter(): IPublishAdapter {
                     })
                 );
             } catch (error: unknown) {
-                // Удаление по уже проверенному ключу, а не через `deleteFile(url)`:
-                // обратный разбор URL добавил бы свой путь отказа там, где ключ
-                // и так на руках
+                // Deletion by the already checked key rather than through
+                // `deleteFile(url)`: parsing the URL back would add a failure path
+                // of its own where the key is already at hand
                 await discardUnconfirmedObject(s3, config.bucket, params.key);
 
                 throw error;
@@ -277,9 +284,9 @@ export function createS3PublishAdapter(): IPublishAdapter {
         },
 
         /**
-         * Удаляет файл из бакета по публичному URL. URL вне собственного бакета
-         * или managed-префиксов — ошибка (в shared-бакете посторонние объекты
-         * не трогаем).
+         * Deletes a file from the bucket by its public URL. A URL outside our own
+         * bucket or outside the managed prefixes is an error (in a shared bucket
+         * foreign objects are left alone).
          */
         async deleteFile(url: string): Promise<void> {
             const { client: s3, config } = useClient();
@@ -300,10 +307,10 @@ export function createS3PublishAdapter(): IPublishAdapter {
         },
 
         /**
-         * Проверяет принадлежность URL собственному хранилищу (anti-SSRF контракт):
-         * хост фиксирован конфигом (`endpoint/bucket/`), ключ обязан лежать
-         * внутри managed-префиксов — произвольные origin и посторонние объекты
-         * shared-бакета не проходят.
+         * Checks that the URL belongs to our own storage (the anti-SSRF contract):
+         * the host is fixed by the config (`endpoint/bucket/`), and the key must lie
+         * inside the managed prefixes — arbitrary origins and the foreign objects of
+         * a shared bucket do not pass.
          */
         isOwnedUrl(url: string): boolean {
             const { config } = useClient();
@@ -311,9 +318,9 @@ export function createS3PublishAdapter(): IPublishAdapter {
         },
 
         /**
-         * Возвращает полный список файлов бакета по префиксу (дефолт —
-         * bricks-media/). ListObjectsV2 отдаёт максимум 1000 объектов за
-         * запрос — страницы дочитываются по NextContinuationToken.
+         * Returns the full list of the bucket's files under a prefix (the default
+         * is bricks-media/). ListObjectsV2 returns at most 1000 objects per
+         * request — the pages are read on through NextContinuationToken.
          */
         async listFiles(prefix?: string): Promise<IStoredFileInfo[]> {
             const { client: s3, config } = useClient();

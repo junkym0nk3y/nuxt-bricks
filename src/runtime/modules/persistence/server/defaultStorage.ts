@@ -1,34 +1,34 @@
 /**
- * Build-time слот дефолтной фабрики storage-адаптера.
+ * The build-time slot of the storage adapter's default factory.
  *
- * Заполняется ТОЛЬКО Nitro-плагином, который module.ts регистрирует при
+ * Filled ONLY by the Nitro plugin module.ts registers under
  * `bricks.backend.mode = 'external'` (server/plugins/externalBackendStorage.ts).
- * Сам режим в runtimeConfig не хранится — ключ был бы переопределяем
- * NUXT_BRICKS_BACKEND_MODE в обход build-time валидации (database-auth +
- * external); регистрация плагина по построению неизменяема после сборки.
+ * The mode itself is not stored in runtimeConfig — the key would be overridable by
+ * NUXT_BRICKS_BACKEND_MODE, bypassing the build-time validation (database-auth +
+ * external); the plugin's registration is by construction immutable after the build.
  *
- * Файл внутренний: НЕ экспортируется из `nuxt-bricks/persistence` — публичный
- * путь подмены адаптера для потребителей остаётся `setBricksStorageAdapter`.
+ * The file is internal: NOT exported from `nuxt-bricks/persistence` — the public path
+ * for consumers to swap the adapter remains `setBricksStorageAdapter`.
  */
 import type { IStorageAdapter } from '../types/adapters';
 
 let defaultStorageFactory: (() => IStorageAdapter) | null = null;
 
 /**
- * Устанавливает build-time дефолтную фабрику storage-адаптера
- * (вызывается плагином external-режима при старте Nitro).
+ * Sets the build-time default factory of the storage adapter (called by the external
+ * mode's plugin when Nitro starts).
  *
- * @param factory - Фабрика адаптера (вызывается лениво при первом обращении).
+ * @param factory - The adapter's factory (called lazily on the first access).
  */
 export function setBricksDefaultStorageFactory(factory: () => IStorageAdapter): void {
     defaultStorageFactory = factory;
 }
 
 /**
- * Возвращает build-time дефолтную фабрику storage-адаптера (null — не задана,
- * действует дефолт builtin/Postgres).
+ * Returns the build-time default factory of the storage adapter (null — none is set,
+ * and the builtin/Postgres default applies).
  *
- * @returns Фабрика или null.
+ * @returns The factory, or null.
  */
 export function getBricksDefaultStorageFactory(): (() => IStorageAdapter) | null {
     return defaultStorageFactory;

@@ -1,13 +1,15 @@
 /**
- * Server-first валидация DTO ручек шаблонов (`/api/bricks/templates/**`).
+ * Server-first validation of the template handlers' DTOs
+ * (`/api/bricks/templates/**`).
  *
- * Как и у страниц: клиентский yup — UX, а не защита, поэтому здесь неизвестные
- * ключи отклоняются (400), типы и границы проверяются, а наружу уходит НОВЫЙ
- * объект только из известных нормализованных полей.
+ * As with pages: the client-side yup is UX rather than protection, so unknown keys
+ * are rejected here (400), types and bounds are checked, and what it returns is a
+ * NEW object built only from the known normalized fields.
  *
- * Схема и её лимиты сложности переиспользуются целиком (`validatePageSchema` из
- * валидатора страниц): шаблон несёт ровно ту схему, которую приняла бы страница,
- * и второй набор границ разошёлся бы с первым при первой же правке.
+ * The schema and its complexity limits are reused in full (`validatePageSchema` out
+ * of the pages' validator): a template carries exactly the schema a page would
+ * accept, and a second set of bounds would drift away from the first at the very
+ * first edit.
  */
 import type {
     IBricksTemplatePageMeta,
@@ -32,18 +34,18 @@ import { validatePageSchema } from './payloadValidation';
 import { validateDeviceSet } from '../../../common/utils/bricks/devices';
 
 // #region Constants
-/** Границы полей оформления — те же, что у страницы (`bricks_pages`). */
+/** The bounds of the styling fields — the same as a page's (`bricks_pages`). */
 const LAYOUT_MAX_LENGTH = 100;
 const BACKGROUND_COLOR_MAX_LENGTH = 100;
 const LAYOUT_PATTERN = /^[\w-]+$/;
 
 /**
- * Ключи payload'а создания шаблона.
+ * The keys of the template creation payload.
  *
- * `thumbnailSourceUrl`, а не `thumbnailUrl`: клиент передаёт кадр СТРАНИЦЫ, из
- * которого ручка делает собственный файл шаблона. Имя поля говорит об этом
- * прямо — принять готовый `thumbnailUrl` значило бы позволить клиенту прописать
- * шаблону произвольную картинку и обойти копирование.
+ * `thumbnailSourceUrl` rather than `thumbnailUrl`: the client passes the PAGE's
+ * frame, out of which the handler makes the template's own file. The field's name
+ * says so outright — accepting a ready `thumbnailUrl` would mean letting the client
+ * write an arbitrary picture onto a template and bypass the copying.
  */
 const CREATE_TEMPLATE_KEYS = new Set([
     'name',
@@ -53,31 +55,32 @@ const CREATE_TEMPLATE_KEYS = new Set([
     'thumbnailSourceUrl',
 ]);
 
-/** Ключи payload'а правки подписи шаблона. */
+/** The keys of the payload editing a template's label. */
 const UPDATE_TEMPLATE_KEYS = new Set(['name', 'description']);
 
-/** Ключи объекта оформления страницы внутри payload'а. */
+/** The keys of the page styling object inside the payload. */
 const PAGE_META_KEYS = new Set(['layout', 'backgroundColor', 'viewportConfig']);
 // #endregion
 
 // #region Types
 /**
- * Payload создания шаблона на уровне ручки: содержит исходный кадр страницы
- * вместо готового URL превью (копию делает ручка).
+ * The template creation payload at the handler's level: carries the source page
+ * frame instead of a ready preview URL (the copy is made by the handler).
  */
 export interface ICreateTemplateRequest extends Omit<ICreateTemplatePayload, 'thumbnailUrl'> {
-    /** Кадр страницы-источника, из которого копируется превью шаблона. */
+    /** The source page's frame, out of which the template's preview is copied. */
     thumbnailSourceUrl: string | null;
 }
 // #endregion
 
 // #region Field validators
 /**
- * Валидирует имя шаблона: непустая строка в границах, уникальность проверяет
- * индекс базы (гонку двух создателей pre-check всё равно не ловит).
+ * Validates a template's name: a non-empty string within the bounds; uniqueness is
+ * checked by the database's index (a pre-check does not catch the race of two
+ * creators anyway).
  *
- * @param value - Сырое значение поля.
- * @returns Нормализованное имя.
+ * @param value - The field's raw value.
+ * @returns The normalized name.
  */
 function validateTemplateName(value: unknown): string {
     return requireString(value, 'name', {
@@ -87,16 +90,16 @@ function validateTemplateName(value: unknown): string {
 }
 
 /**
- * Валидирует оформление страницы, уезжающее в шаблон.
+ * Validates the page styling that goes into the template.
  *
- * Отсутствующий `pageMeta` — законное «оформление по умолчанию»: шаблон могли
- * сохранить из страницы, у которой ни layout, ни фон не заданы. Набор устройств
- * проверяется тем же строгим валидатором, что и у страницы: значение уезжает в
- * ключи схемы и в генерацию `<style>`, поэтому «почти валидный» набор опаснее
- * отказа.
+ * A missing `pageMeta` is a legitimate "default styling": the template could have
+ * been saved from a page with neither a layout nor a background set. The device set
+ * is checked by the same strict validator as a page's: the value goes into the
+ * schema's keys and into the `<style>` generation, so an "almost valid" set is more
+ * dangerous than a refusal.
  *
- * @param value - Сырое значение поля.
- * @returns Нормализованное оформление.
+ * @param value - The field's raw value.
+ * @returns The normalized styling.
  */
 function validateTemplatePageMeta(value: unknown): IBricksTemplatePageMeta {
     if (value === undefined || value === null) {
@@ -125,11 +128,10 @@ function validateTemplatePageMeta(value: unknown): IBricksTemplatePageMeta {
 }
 
 /**
- * Валидирует набор устройств шаблона; `null`/отсутствие — наследование набора
- * проекта.
+ * Validates a template's device set; `null`/absence — inherit the project's set.
  *
- * @param value - Сырое значение поля.
- * @returns Набор устройств либо null.
+ * @param value - The field's raw value.
+ * @returns The device set, or null.
  */
 function validateTemplateViewportConfig(value: unknown): TBricksPageDeviceSet | null {
     if (value === undefined || value === null) {
@@ -146,10 +148,10 @@ function validateTemplateViewportConfig(value: unknown): TBricksPageDeviceSet | 
 }
 
 /**
- * Валидирует описание шаблона (необязательное).
+ * Validates a template's description (an optional one).
  *
- * @param value - Сырое значение поля.
- * @returns Описание либо null.
+ * @param value - The field's raw value.
+ * @returns The description, or null.
  */
 function validateTemplateDescription(value: unknown): string | null {
     return (
@@ -162,10 +164,10 @@ function validateTemplateDescription(value: unknown): string | null {
 
 // #region Template payloads
 /**
- * Валидирует payload `POST /api/bricks/templates`.
+ * Validates the payload of `POST /api/bricks/templates`.
  *
- * @param body - Нормализованное тело запроса.
- * @returns Чистый payload создания (с исходным кадром страницы).
+ * @param body - The normalized request body.
+ * @returns A clean creation payload (with the source page frame).
  */
 export function validateCreateTemplatePayload(
     body: Record<string, unknown>
@@ -187,12 +189,12 @@ export function validateCreateTemplatePayload(
 }
 
 /**
- * Валидирует payload `PATCH /api/bricks/templates/:id`: оба поля опциональны,
- * но хотя бы одно обязано быть передано — иначе запрос ничего не значит, а
- * адаптер собрал бы `UPDATE ... SET` без выражений.
+ * Validates the payload of `PATCH /api/bricks/templates/:id`: both fields are
+ * optional, but at least one must be passed — otherwise the request means
+ * nothing and the adapter would assemble an `UPDATE ... SET` with no expressions.
  *
- * @param body - Нормализованное тело запроса.
- * @returns Чистый payload правки подписи.
+ * @param body - The normalized request body.
+ * @returns A clean payload editing the label.
  */
 export function validateUpdateTemplatePayload(
     body: Record<string, unknown>

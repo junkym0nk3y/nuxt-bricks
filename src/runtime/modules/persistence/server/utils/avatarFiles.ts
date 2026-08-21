@@ -1,29 +1,31 @@
 /**
- * Жизненный цикл файлов фото профиля в хранилище публикации.
+ * The lifecycle of the profile photo files in the publication storage.
  *
- * Отдельный namespace (`avatar`), а не медиатека: попади аватары в галерею,
- * любой редактор увидел бы их среди рабочих файлов и мог удалить чужое фото, а
- * импорт бакета зарегистрировал бы их как медиа-записи.
+ * A namespace of its own (`avatar`) rather than the media library: were avatars to
+ * land in the gallery, any editor would see them among the working files and could
+ * delete somebody else's photo, and the bucket import would register them as media
+ * records.
  *
- * Ключ уникален на каждую загрузку (`user-<id>-<uuid>.webp`), а не постоянен на
- * учётку. Причин две: перезапись одного ключа оставляла бы браузеры и CDN с
- * прежним фото до истечения кеша, а компенсация неподтверждённой записи в
- * `uploadFile` снесла бы живой файл (её контракт требует НОВОГО ключа). Плата за
- * уникальность — прежний файл нужно убирать самим, поэтому ссылка на него
- * читается той же транзакцией, что пишет новую (`updateUserProfile`).
+ * The key is unique per upload (`user-<id>-<uuid>.webp`) rather than constant per
+ * account. There are two reasons: overwriting one key would leave browsers and CDNs
+ * with the former photo until the cache expires, and the compensation of an
+ * unconfirmed write in `uploadFile` would wipe a live file (its contract requires a
+ * NEW key). The price of uniqueness is that the former file has to be removed by us,
+ * which is why the link to it is read by the same transaction that writes the new one
+ * (`updateUserProfile`).
  *
- * Зависимости передаются параметром (узкие Pick-контракты) — логика тестируется
- * юнитами без реального S3 (паттерн pageThumbnails.ts).
+ * The dependencies are passed as a parameter (narrow Pick contracts) — the logic is
+ * unit-tested without a real S3 (the pageThumbnails.ts pattern).
  */
 import { randomUUID } from 'node:crypto';
 import type { IPublishAdapter } from '../../types/adapters';
 
 /**
- * Строит object key для нового файла фото профиля.
+ * Builds the object key for a new profile photo file.
  *
- * @param publish - Publish-адаптер (источник namespace-префикса).
- * @param userId - Идентификатор учётки.
- * @returns Полный object key.
+ * @param publish - The publish adapter (the source of the namespace prefix).
+ * @param userId - The account identifier.
+ * @returns The full object key.
  */
 export function buildAvatarKey(
     publish: Pick<IPublishAdapter, 'buildFileKey'>,
@@ -33,27 +35,26 @@ export function buildAvatarKey(
 }
 
 /**
- * Убирает файл фото, на который больше никто не ссылается (прежний аватар,
- * фото удалённой учётки, объект неподтверждённой загрузки).
+ * Removes a photo file nobody references any more (a former avatar, the photo of a
+ * deleted account, the object of an unconfirmed upload).
  *
- * Best-effort и по построению: ссылка из колонки уже снята или заменена, то есть
- * состояние, которое видит пользователь, верно и без удаления файла. Отказ
- * хранилища превратил бы успешную смену фото в ошибку — вместо этого остаётся
- * невидимый мусор, который видно в логе.
+ * Best-effort by construction: the link in the column has already been cleared or
+ * replaced, that is, the state the user sees is correct even without the file being
+ * deleted. A storage failure would turn a successful photo change into an error —
+ * instead, invisible garbage stays behind, visible in the log.
  *
- * URL проверяется на принадлежность своему managed-namespace: в колонке может
- * лежать значение, поставленное прежней версией или руками, а `deleteFile` на
- * чужом URL бросает — здесь это дало бы шумную запись в логе вместо тихого
- * пропуска.
+ * The URL is checked for belonging to its own managed namespace: the column can hold a
+ * value set by a former version or by hand, while `deleteFile` throws over a foreign
+ * URL — here that would give a noisy log entry instead of a quiet skip.
  *
- * Проверка принадлежности идёт ВНУТРИ `try` вместе с удалением, хотя сама ничего
- * не удаляет: `isOwnedUrl` дефолтного адаптера резолвит конфигурацию хранилища и
- * бросает на несконфигурированном бакете. Снаружи `try` этот отказ доходил бы до
- * клиента пятисотым уже ПОСЛЕ применённой правки — учётка удалена, а ответ
- * «ошибка», и повтор отвечает 404.
+ * The ownership check runs INSIDE the `try` along with the deletion, even though it
+ * deletes nothing itself: the default adapter's `isOwnedUrl` resolves the storage
+ * configuration and throws over an unconfigured bucket. Outside the `try` that failure
+ * would reach the client as a 500 AFTER the edit had already been applied — the
+ * account is deleted, the answer is "an error", and a retry answers 404.
  *
- * @param publish - Publish-адаптер хранилища.
- * @param url - Ссылка на файл; null/пустая — убирать нечего.
+ * @param publish - The storage's publish adapter.
+ * @param url - The link to the file; null/empty — there is nothing to remove.
  */
 export async function discardAvatarFile(
     publish: Pick<IPublishAdapter, 'deleteFile' | 'isOwnedUrl'>,

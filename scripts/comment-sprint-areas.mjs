@@ -79,7 +79,7 @@ export const AREAS = [
     },
     { id: '4', title: 'text-editor', done: true, match: ['src/runtime/modules/text-editor/'] },
     { id: '5', title: 'render', done: true, match: ['src/runtime/modules/render/'] },
-    { id: '6', title: 'persistence', done: false, match: ['src/runtime/modules/persistence/'] },
+    { id: '6', title: 'persistence', done: true, match: ['src/runtime/modules/persistence/'] },
     { id: '7', title: 'server', done: false, match: ['src/runtime/server/'] },
     {
         id: '8',

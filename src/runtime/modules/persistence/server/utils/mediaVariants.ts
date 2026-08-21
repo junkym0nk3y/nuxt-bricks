@@ -1,29 +1,30 @@
 /**
- * Политика имён уменьшенных вариантов растра (постепенная загрузка).
+ * The naming policy of the downscaled raster variants (progressive loading).
  *
- * Варианты живут рядом с полным файлом под тем же uuid и отличаются суффиксом:
- * `<uuid>.<ext>` / `<uuid>-preview.<ext>` / `<uuid>-mock.<ext>`. Имена держатся
- * в одном месте потому, что их читают три независимых потребителя: генерация при
- * загрузке, удаление файла (варианты нужно снести вместе с полным) и импорт из
- * бакета (варианты не должны стать отдельными записями медиатеки).
+ * The variants live next to the full file under the same uuid and differ by a suffix:
+ * `<uuid>.<ext>` / `<uuid>-preview.<ext>` / `<uuid>-mock.<ext>`. The names are kept in
+ * one place because three independent consumers read them: the generation at upload
+ * time, the file's deletion (the variants have to be wiped along with the full one) and
+ * the import from the bucket (the variants must not become separate records of the
+ * media library).
  */
 
 // Types
 import type { TMediaVariant } from '../../types/media';
 
-/** Суффикс имени файла для каждого варианта. */
+/** The file name suffix for each variant. */
 const MEDIA_VARIANT_SUFFIXES: Record<TMediaVariant, string> = {
     preview: '-preview',
     mock: '-mock',
 };
 
 /**
- * Параметры генерации вариантов.
+ * The parameters for generating the variants.
  *
- * `preview` — то, что пользователь видит вместо полного файла почти сразу:
- * 480px хватает, чтобы кадр читался в любом блоке страницы. `mock` — размытая
- * заглушка первого кадра, её задача только в том, чтобы место не было пустым,
- * поэтому 32px и предельно низкое качество (единицы килобайт).
+ * `preview` is what the user sees in place of the full file almost right away: 480px is
+ * enough for the frame to read in any block of the page. `mock` is a blurred stand-in
+ * for the first frame, its only job being that the space is not empty, hence 32px and
+ * the lowest possible quality (a few kilobytes).
  */
 export const MEDIA_VARIANT_PRESETS: Record<TMediaVariant, { maxWidth: number; quality: number }> = {
     preview: { maxWidth: 480, quality: 40 },
@@ -31,13 +32,13 @@ export const MEDIA_VARIANT_PRESETS: Record<TMediaVariant, { maxWidth: number; qu
 };
 
 /**
- * Строит имя файла варианта из имени полного файла.
+ * Builds a variant's file name out of the full file's name.
  *
- * @param storedFilename - Имя полного файла (`<uuid>.<ext>`).
- * @param variant - Требуемый вариант.
- * @param extension - Расширение варианта (варианты держатся в web-safe формате
- *   независимо от формата полного файла).
- * @returns Имя файла варианта.
+ * @param storedFilename - The full file's name (`<uuid>.<ext>`).
+ * @param variant - The variant required.
+ * @param extension - The variant's extension (the variants are kept in a web-safe
+ *   format regardless of the full file's format).
+ * @returns The variant's file name.
  */
 export function buildMediaVariantFilename(
     storedFilename: string,
@@ -51,14 +52,14 @@ export function buildMediaVariantFilename(
 }
 
 /**
- * Является ли имя файла (или S3-ключ) уменьшенным вариантом.
+ * Whether a file name (or an S3 key) is a downscaled variant.
  *
- * Сверяется имя без расширения: суффикс стоит перед точкой, и проверка по
- * подстроке дала бы ложное срабатывание на честном имени вида
- * `hero-preview-final.webp`, загруженном пользователем.
+ * The name without its extension is matched: the suffix stands before the dot, and a
+ * substring check would give a false positive over an honest name like
+ * `hero-preview-final.webp` uploaded by a user.
  *
- * @param filenameOrKey - Имя файла или полный S3-ключ.
- * @returns true — файл является вариантом.
+ * @param filenameOrKey - The file's name, or the full S3 key.
+ * @returns true — the file is a variant.
  */
 export function isMediaVariantFilename(filenameOrKey: string): boolean {
     const filename = filenameOrKey.split('/').pop() ?? filenameOrKey;

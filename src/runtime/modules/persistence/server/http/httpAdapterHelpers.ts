@@ -1,22 +1,22 @@
 /**
- * Общие помощники HTTP-адаптера external backend: нормализация формы ответа и
- * распознавание контрактных статусов.
+ * Shared helpers of the external backend's HTTP adapter: normalizing the response's
+ * shape and recognizing the contract statuses.
  *
- * Выделены из `httpStorageAdapter.ts`, когда медиа-часть уехала в свой файл:
- * обеим половинам нужны те же примитивы, а вторая копия предикатов 404/409
- * разошлась бы с первой при следующей правке контракта.
+ * Extracted out of `httpStorageAdapter.ts` when the media part moved into a file of
+ * its own: both halves need the same primitives, and a second copy of the 404/409
+ * predicates would drift away from the first at the contract's next edit.
  */
 import { BricksBackendRequestError } from './httpClient';
 import { toCamelCaseShallow } from '../../../common/utils/case-transform';
 import { BRICKS_API_ERROR_CODES } from '../../../common/constants/apiErrors';
 
 /**
- * Нормализует строку-ответ external backend: top-level ключи snake_case →
- * camelCase, вложенные значения (включая `schema`) — без изменений.
+ * Normalizes a response row from the external backend: the top-level keys
+ * snake_case → camelCase, the nested values (`schema` included) unchanged.
  *
- * @param raw - Распарсенное тело ответа.
- * @param context - Описание запроса для сообщения об ошибке формата.
- * @returns Нормализованная строка.
+ * @param raw - The parsed response body.
+ * @param context - A description of the request, for the format error's message.
+ * @returns The normalized row.
  */
 export function normalizeRow<T>(raw: unknown, context: string): T {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
@@ -27,11 +27,11 @@ export function normalizeRow<T>(raw: unknown, context: string): T {
 }
 
 /**
- * Нормализует массив строк-ответов external backend.
+ * Normalizes an array of response rows from the external backend.
  *
- * @param raw - Распарсенное тело ответа.
- * @param context - Описание запроса для сообщения об ошибке формата.
- * @returns Массив нормализованных строк.
+ * @param raw - The parsed response body.
+ * @param context - A description of the request, for the format error's message.
+ * @returns The array of normalized rows.
  */
 export function normalizeRows<T>(raw: unknown, context: string): T[] {
     if (!Array.isArray(raw)) {
@@ -42,12 +42,12 @@ export function normalizeRows<T>(raw: unknown, context: string): T[] {
 }
 
 /**
- * Достаёт список из ответа: плоский массив либо envelope `{ items: [...] }`
- * (формат локальных ручек GET /api/bricks/media и /media/categories).
+ * Pulls the list from the response: a flat array or an `{ items: [...] }` envelope
+ * (the format of the local endpoints GET /api/bricks/media and /media/categories).
  *
- * @param raw - Распарсенное тело ответа.
- * @param context - Описание запроса для сообщения об ошибке формата.
- * @returns Массив сырых записей.
+ * @param raw - The parsed response body.
+ * @param context - A description of the request, for the format error's message.
+ * @returns The array of raw records.
  */
 export function unwrapItemsList(raw: unknown, context: string): unknown[] {
     if (Array.isArray(raw)) {
@@ -62,37 +62,38 @@ export function unwrapItemsList(raw: unknown, context: string): unknown[] {
 }
 
 /**
- * Проверяет, что ошибка — HTTP 404 external backend (контрактный «не найдено»).
+ * Checks that the error is an HTTP 404 from the external backend (the contract's "not
+ * found").
  *
- * @param error - Пойманная ошибка запроса.
- * @returns true для 404.
+ * @param error - The caught request error.
+ * @returns true for a 404.
  */
 export function isNotFoundError(error: unknown): boolean {
     return error instanceof BricksBackendRequestError && error.upstreamStatus === 404;
 }
 
 /**
- * Проверяет, что ошибка — HTTP 409 external backend (конфликт записи).
+ * Checks that the error is an HTTP 409 from the external backend (a write conflict).
  *
- * @param error - Пойманная ошибка запроса.
- * @returns true для 409.
+ * @param error - The caught request error.
+ * @returns true for a 409.
  */
 export function isConflictError(error: unknown): error is BricksBackendRequestError {
     return error instanceof BricksBackendRequestError && error.upstreamStatus === 409;
 }
 
 /**
- * Проверяет, что ошибка — контрактный отказ external backend «категории нет»:
- * 400 С машиночитаемым кодом.
+ * Checks that the error is the external backend's contract refusal "there is no such
+ * category": a 400 WITH the machine-readable code.
  *
- * Одного статуса мало: 400 без кода — это произвольная валидация чужого
- * backend'а, и выдавать её за отсутствующую категорию значило бы врать
- * пользователю. Ровно поэтому же исход такого отказа считается определённым
- * только при совпадении кода — контракт обязывает backend не коммитить запись,
- * которой он ответил этим кодом.
+ * The status alone is not enough: a 400 with no code is an arbitrary validation of
+ * somebody else's backend, and passing it off as a missing category would mean lying
+ * to the user. For exactly the same reason such a refusal's outcome is treated as
+ * determined only when the code matches — the contract obliges the backend not to
+ * commit a write it answered with that code.
  *
- * @param error - Пойманная ошибка запроса.
- * @returns true для 400 UNKNOWN_MEDIA_CATEGORY.
+ * @param error - The caught request error.
+ * @returns true for a 400 UNKNOWN_MEDIA_CATEGORY.
  */
 export function isUnknownMediaCategoryError(error: unknown): boolean {
     return (

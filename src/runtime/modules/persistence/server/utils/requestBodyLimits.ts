@@ -149,7 +149,7 @@ export async function collectStreamWithLimit(
 }
 
 /**
- * Adapter from a web ReadableStream to an AsyncIterable, cancelling the stream
+ * Adapter from a web ReadableStream to an AsyncIterable, canceling the stream
  * when the read is aborted early (exceeding the limit cancels the network
  * transfer as well).
  *
@@ -278,7 +278,7 @@ export async function readJsonBodyWithLimit<T>(
 }
 
 /**
- * Parses multipart/form-data out of a buffer with the standard undici parser
+ * Parses multipart/form-data from a buffer with the standard undici parser
  * (Response.formData). File parts carry filename and type, text parts carry data
  * only.
  *

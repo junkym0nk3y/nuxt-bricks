@@ -1,11 +1,14 @@
 /**
- * Семафор конкурентности для тяжёлых серверных операций (sharp-декодирование):
- * не больше maxConcurrent задач одновременно, излишек ждёт в ограниченной
- * очереди, переполнение очереди — GateOverflowError (ручки мапят в 503).
- * Чистый модуль без h3 — тестируется юнитами.
+ * A concurrency semaphore for the heavy server-side operations (sharp decoding): no
+ * more than maxConcurrent tasks at once, the excess waits in a bounded queue, and an
+ * overflow of the queue is a GateOverflowError (the handlers map it into a 503).
+ * A pure module with no h3 — unit-tested.
  */
 
-/** Переполнение очереди семафора: сервер занят, запрос отклоняется без ожидания. */
+/**
+ * An overflow of the semaphore's queue: the server is busy, and the request is
+ * refused without waiting.
+ */
 export class GateOverflowError extends Error {
     constructor() {
         super('Concurrency gate queue overflow');
@@ -13,24 +16,24 @@ export class GateOverflowError extends Error {
     }
 }
 
-/** Семафор: run исполняет задачу в пределах лимита одновременности. */
+/** The semaphore: run executes a task within the concurrency limit. */
 export interface IConcurrencyGate {
     run<T>(task: () => Promise<T>): Promise<T>;
 }
 
-/** Параметры семафора. */
+/** The semaphore's parameters. */
 export interface IConcurrencyGateOptions {
-    /** Максимум одновременно исполняемых задач. */
+    /** The cap on simultaneously executed tasks. */
     maxConcurrent: number;
-    /** Максимум задач, ожидающих слот; сверх — GateOverflowError. */
+    /** The cap on tasks waiting for a slot; above it — a GateOverflowError. */
     maxQueue: number;
 }
 
 /**
- * Создаёт семафор конкурентности с ограниченной очередью ожидания.
+ * Creates a concurrency semaphore with a bounded waiting queue.
  *
- * @param options - Лимиты одновременности и очереди.
- * @returns Семафор.
+ * @param options - The concurrency and queue limits.
+ * @returns The semaphore.
  */
 export function createConcurrencyGate(options: IConcurrencyGateOptions): IConcurrencyGate {
     const { maxConcurrent, maxQueue } = options;
@@ -38,7 +41,7 @@ export function createConcurrencyGate(options: IConcurrencyGateOptions): IConcur
     let active = 0;
 
     /**
-     * Захватывает слот исполнения или встаёт в очередь.
+     * Takes an execution slot, or joins the queue.
      */
     async function acquireSlot(): Promise<void> {
         if (active < maxConcurrent) {
@@ -56,7 +59,7 @@ export function createConcurrencyGate(options: IConcurrencyGateOptions): IConcur
     }
 
     /**
-     * Освобождает слот: передаёт его первому ожидающему либо уменьшает счётчик.
+     * Frees a slot: hands it to the first waiter, or decrements the counter.
      */
     function releaseSlot(): void {
         const next = queue.shift();

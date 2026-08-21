@@ -1,26 +1,27 @@
 /**
- * HTTP-клиент external data backend (`bricks.backend.mode = 'external'`).
+ * The HTTP client of the external data backend (`bricks.backend.mode = 'external'`).
  *
- * Server-to-server транспорт HttpStorageAdapter'а: строит заголовки с нуля
- * (browser identity — cookie `bricks-session`, Basic-креды — НЕ пробрасывается),
- * добавляет `Authorization: Bearer <токен>` при заданном NUXT_BRICKS_BACKEND_TOKEN,
- * ограничивает каждый запрос таймаутом через AbortSignal и не следует
- * редиректам (redirect: 'error' — смена метода/хоста втихую недопустима).
+ * The server-to-server transport of HttpStorageAdapter: builds the headers from
+ * scratch (the browser identity — the `bricks-session` cookie, the Basic
+ * credentials — is NOT forwarded), adds `Authorization: Bearer <token>` when
+ * NUXT_BRICKS_BACKEND_TOKEN is set, bounds every request by a timeout through an
+ * AbortSignal and follows no redirects (redirect: 'error' — a silent change of
+ * method or host is unacceptable).
  *
- * Ошибки ответа нормализуются в BricksBackendRequestError со статусом и
- * лояльно распарсенным кодом конфликта (`data.code` формата локального
- * toPageHttpError, fallback — top-level `code`); маппинг на доменные ошибки —
- * обязанность адаптера (httpStorageAdapter.ts).
+ * Response errors are normalized into a BricksBackendRequestError with the status
+ * and a leniently parsed conflict code (a `data.code` in the format of the local
+ * toPageHttpError, with a fallback to the top-level `code`); mapping them onto the
+ * domain errors is the adapter's duty (httpStorageAdapter.ts).
  */
 import { joinURL } from 'ufo';
 
 // #region Types
 export interface IBackendHttpClientOptions {
-    /** Полный base-префикс bricks-API external backend (bricks.backend.url). */
+    /** Full base prefix of the external backend's bricks API (bricks.backend.url). */
     baseUrl: string;
-    /** Bearer-токен server-to-server запросов (NUXT_BRICKS_BACKEND_TOKEN). */
+    /** Bearer token of the server-to-server requests (NUXT_BRICKS_BACKEND_TOKEN). */
     token?: string;
-    /** Таймаут одного запроса в миллисекундах. */
+    /** One request's timeout in milliseconds. */
     timeoutMs?: number;
 }
 
@@ -28,34 +29,41 @@ type TBackendHttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
 
 export interface IBackendHttpClient {
     /**
-     * Выполняет JSON-запрос по пути относительно baseUrl и возвращает
-     * распарсенное тело (null — для пустого ответа/204).
+     * Runs a JSON request over a path relative to baseUrl and returns the parsed
+     * body (null — for an empty response/204).
      */
     request(method: TBackendHttpMethod, path: string, body?: unknown): Promise<unknown>;
-    /** GET-проба готовности: reject — если ответ не 2xx или запрос не удался. */
+    /**
+     * The GET readiness probe: reject — when the response is not 2xx or the request
+     * failed.
+     */
     probeHealth(healthUrl?: string): Promise<void>;
 }
 // #endregion
 
 // #region Constants
-/** Дефолтный таймаут запроса к external backend (конвенция модуля — 10 с). */
+/**
+ * The default timeout of a request to the external backend (the module's convention —
+ * 10 s).
+ */
 const DEFAULT_BACKEND_TIMEOUT_MS = 10_000;
 // #endregion
 
 /**
- * Ошибка ответа external backend: HTTP-статус upstream + машиночитаемый код
- * отказа из тела (`data.code` ?? `code`), если backend его прислал.
+ * An error of the external backend's response: the upstream HTTP status + the
+ * machine-readable refusal code from the body (`data.code` ?? `code`), when the
+ * backend sent one.
  *
- * Код называется `errorCode`, а не `conflictCode`: он вычитывается из ЛЮБОГО
- * не-2xx ответа, и по нему опознаются не только 409-конфликты страниц, но и
- * доменные 400 (отсутствующая категория медиа).
+ * The code is called `errorCode` rather than `conflictCode`: it is read out of ANY
+ * non-2xx response, and it identifies not only the pages' 409 conflicts but domain
+ * 400s as well (a missing media category).
  *
- * Поле статуса намеренно называется `upstreamStatus`, а НЕ `statusCode`:
- * toHttpError (handlerHelpers) перебрасывает объекты со `statusCode` как
- * готовые H3-ошибки — upstream-статусы (401 неверного Bearer, 5xx backend'а)
- * стали бы browser-facing и обошли generic 500-envelope с errorId. Наружу
- * попадают только контрактные значения, которые адаптер явно маппит:
- * 404 → null/false, 409 → доменные ошибки конфликтов.
+ * The status field is deliberately called `upstreamStatus` and NOT `statusCode`:
+ * toHttpError (handlerHelpers) rethrows objects carrying a `statusCode` as ready H3
+ * errors — the upstream statuses (a 401 of a wrong Bearer, a 5xx of the backend's)
+ * would become browser-facing and would bypass the generic 500 envelope with its
+ * errorId. Only the contract values the adapter maps explicitly make it outward:
+ * a 404 → null/false, a 409 → the domain conflict errors.
  */
 export class BricksBackendRequestError extends Error {
     readonly upstreamStatus: number;
@@ -71,11 +79,11 @@ export class BricksBackendRequestError extends Error {
 
 // #region Helpers
 /**
- * Лояльно достаёт машиночитаемый код отказа из тела ошибки: формат локальных
- * ручек (`data.code`) с fallback'ом на top-level `code`.
+ * Leniently pulls the machine-readable refusal code from the error's body: the
+ * local handlers' format (`data.code`) with a fallback to the top-level `code`.
  *
- * @param body - Распарсенное JSON-тело ошибки (может быть любым).
- * @returns Строковый код или null.
+ * @param body - The parsed JSON body of the error (can be anything).
+ * @returns The string code, or null.
  */
 function extractErrorCode(body: unknown): string | null {
     if (!body || typeof body !== 'object') {
@@ -98,10 +106,10 @@ function extractErrorCode(body: unknown): string | null {
 }
 
 /**
- * Читает тело ответа как JSON best-effort (не-JSON/пустое тело → null).
+ * Reads the response body as JSON best-effort (a non-JSON/empty body → null).
  *
- * @param response - Ответ fetch.
- * @returns Распарсенное тело или null.
+ * @param response - The fetch response.
+ * @returns The parsed body, or null.
  */
 async function parseJsonSafely(response: Response): Promise<unknown> {
     try {
@@ -115,16 +123,16 @@ async function parseJsonSafely(response: Response): Promise<unknown> {
 // #endregion
 
 /**
- * Создаёт HTTP-клиент external data backend.
+ * Creates the HTTP client of the external data backend.
  *
- * @param options - baseUrl/token/timeout из runtimeConfig (см. registry.ts).
- * @returns Транспорт для HttpStorageAdapter.
+ * @param options - baseUrl/token/timeout from runtimeConfig (see registry.ts).
+ * @returns The transport for HttpStorageAdapter.
  */
 export function createBackendHttpClient(options: IBackendHttpClientOptions): IBackendHttpClient {
     const timeoutMs = options.timeoutMs ?? DEFAULT_BACKEND_TIMEOUT_MS;
 
     /**
-     * Проверяет, что base URL сконфигурирован, и возвращает его.
+     * Checks that the base URL is configured and returns it.
      */
     function requireBaseUrl(): string {
         if (!options.baseUrl) {
@@ -139,7 +147,7 @@ export function createBackendHttpClient(options: IBackendHttpClientOptions): IBa
     }
 
     /**
-     * Собирает заголовки запроса с нуля: browser identity не пробрасывается.
+     * Builds the request headers from scratch: the browser identity is not forwarded.
      */
     function buildHeaders(hasBody: boolean): Record<string, string> {
         const headers: Record<string, string> = { accept: 'application/json' };
@@ -156,7 +164,7 @@ export function createBackendHttpClient(options: IBackendHttpClientOptions): IBa
     }
 
     /**
-     * Выполняет fetch с таймаутом и контекстной ошибкой сетевого сбоя.
+     * Runs a fetch with a timeout and a contextual error for a network failure.
      */
     async function fetchWithTimeout(
         url: string,
@@ -183,10 +191,11 @@ export function createBackendHttpClient(options: IBackendHttpClientOptions): IBa
 
     return {
         /**
-         * JSON-запрос по пути относительно baseUrl. Ответ external backend'а —
-         * доверенный операторский источник (тот же уровень, что собственная БД):
-         * тело парсится обычным JSON.parse, а top-level ключи нормализует
-         * адаптер (toCamelCaseShallow — прототип не наследуется).
+         * A JSON request over a path relative to baseUrl. The external backend's
+         * response is a trusted operator source (the same level as our own
+         * database): the body is parsed by an ordinary JSON.parse, and the top-level
+         * keys are normalized by the adapter (toCamelCaseShallow — the prototype is
+         * not inherited).
          */
         async request(method: TBackendHttpMethod, path: string, body?: unknown): Promise<unknown> {
             const url = joinURL(requireBaseUrl(), path);
@@ -222,13 +231,13 @@ export function createBackendHttpClient(options: IBackendHttpClientOptions): IBa
         },
 
         /**
-         * GET-проба готовности: сконфигурированный health URL либо base URL
-         * контракта (`GET {base}` — listPages). Готовность — только 2xx.
+         * The GET readiness probe: the configured health URL, or the contract's base
+         * URL (`GET {base}` — listPages). Readiness is a 2xx only.
          */
         async probeHealth(healthUrl?: string): Promise<void> {
             const url = healthUrl || joinURL(requireBaseUrl(), '');
             const response = await fetchWithTimeout(url, 'GET', undefined);
-            // Тело пробы не используется — освобождаем поток
+            // The probe's body is never used — the stream is released
             await response.body?.cancel().catch(() => undefined);
 
             if (!response.ok) {

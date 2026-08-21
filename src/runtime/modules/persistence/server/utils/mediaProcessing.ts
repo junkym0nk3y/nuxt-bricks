@@ -32,14 +32,14 @@ import { MEDIA_VARIANT_PRESETS } from './mediaVariants';
 // #endregion
 
 // #region Constants
-/**
- * Расширение объекта по распознанному содержимому. HEIF и TIFF/BMP здесь есть,
- * хотя как есть они не сохраняются: значение нужно, чтобы решить web-safe'ность
- * по содержимому, а не по имени. `svg` сюда не попадает — вектор обрабатывается
- * отдельной ветвью.
- */
-/** Контейнеры ISO-BMFF: одна сигнатура, разные расширения (`mp4`, `mov`, `m4v`). */
+/** ISO-BMFF containers: one signature, different extensions (`mp4`, `mov`, `m4v`). */
 const ISO_BMFF_EXTENSIONS = new Set(['mp4', 'mov', 'm4v']);
+/**
+ * The object's extension by the recognized content. HEIF and TIFF/BMP are here
+ * even though they are never stored as they are: the value is needed to decide
+ * web-safeness by the content rather than by the name. `svg` does not get here —
+ * vectors are handled by a branch of their own.
+ */
 const SNIFFED_FORMAT_EXTENSIONS: Record<TSniffedImageFormat, string> = {
     jpeg: 'jpg',
     png: 'png',
@@ -53,32 +53,32 @@ const SNIFFED_FORMAT_EXTENSIONS: Record<TSniffedImageFormat, string> = {
 };
 
 /**
- * Форматы, у которых кадров может быть больше одного.
+ * The formats that can have more than one frame.
  *
- * Проверка анимации — отдельный проход sharp по метаданным, то есть ещё один
- * слот общего семафора на каждую загрузку. У JPEG и PNG результат заведомо
- * «один кадр», поэтому спрашивать про них нечего: без этого списка обычная
- * загрузка фотографии занимала два слота вместо одного.
+ * The animation check is a separate sharp pass over the metadata, that is, one
+ * more slot of the shared semaphore per upload. For JPEG and PNG the result is
+ * known in advance to be "one frame", so there is nothing to ask about them:
+ * without this list an ordinary photo upload took two slots instead of one.
  */
 const ANIMATABLE_SNIFFED_FORMATS = new Set<TSniffedImageFormat>(['gif', 'webp', 'avif']);
 
 /**
- * Потолок длины заявленного Content-Type — ровно колонка `mime_type`
- * (`VARCHAR(255)`) в `bricks_media`.
+ * The length ceiling of the declared Content-Type — exactly the `mime_type`
+ * column (`VARCHAR(255)`) in `bricks_media`.
  */
 const MIME_TYPE_MAX_LENGTH = 255;
 
-/** Таймаут чтения SVG-содержимого из хранилища (мс). */
+/** The timeout for reading SVG content out of storage (ms). */
 const SVG_FETCH_TIMEOUT_MS = 10_000;
-/** Лимит размера SVG-содержимого, сохраняемого в БД для предпросмотра. */
+/** The size limit of the SVG content stored in the database for the preview. */
 const MAX_SVG_CONTENT_BYTES = 2 * 1024 * 1024;
-/** Сколько байт головы файла декодировать для текстовой SVG-проверки. */
+/** How many bytes of the file's head to decode for the textual SVG check. */
 const SVG_SNIFF_BYTES = 4096;
 // #endregion
 
 /**
- * Определяет MIME по имени файла (используется для импортов из S3).
- * @param filename Имя файла.
+ * Decides the MIME by the file name (used for imports from S3).
+ * @param filename The file name.
  */
 export function detectMimeTypeByFilename(filename: string): string {
     const extension = filename.split('.').pop()?.toLowerCase();
@@ -107,10 +107,10 @@ export function detectMimeTypeByFilename(filename: string): string {
 }
 
 /**
- * Забирает содержимое SVG по URL, чтобы сохранить в БД для предпросмотра.
- * Читает с таймаутом, без редиректов и с жёстким лимитом размера — URL
- * приходит из собственного хранилища, но ресурсные границы обязательны.
- * @param url Публичная ссылка на файл.
+ * Fetches the SVG content by its URL to store it in the database for the preview.
+ * Reads with a timeout, with no redirects and with a hard size limit — the URL
+ * comes from our own storage, but the resource bounds are mandatory.
+ * @param url The public link to the file.
  */
 export async function fetchSvgContent(url: string): Promise<string | undefined> {
     try {
@@ -137,15 +137,15 @@ export async function fetchSvgContent(url: string): Promise<string | undefined> 
 }
 
 /**
- * Отклоняет заявленный Content-Type, который не поместится в колонку `mime_type`.
+ * Rejects a declared Content-Type that will not fit into the `mime_type` column.
  *
- * Проверка идёт ДО обработки файла: там, где MIME нельзя вывести из содержимого
- * (редкие видео-контейнеры), он уходит в запись как есть, и без границы длинный
- * Content-Type проходил валидацию, занимал место в бакете и падал уже на вставке
- * — пользователь получал generic 500 вместо внятного отказа, а sharp и заливка
- * делались зря.
+ * The check runs BEFORE the file is processed: where the MIME cannot be derived
+ * from the content (rare video containers) it goes into the record as it is, and
+ * without the bound a long Content-Type passed validation, took up room in the
+ * bucket and failed at the insert — the user got a generic 500 instead of a clear
+ * refusal, and sharp and the upload were done for nothing.
  *
- * @param fileType MIME из загрузки.
+ * @param fileType The MIME from the upload.
  */
 function assertDeclaredMimeType(fileType: string | undefined): void {
     if (fileType && fileType.length > MIME_TYPE_MAX_LENGTH) {
@@ -157,10 +157,11 @@ function assertDeclaredMimeType(fileType: string | undefined): void {
 }
 
 /**
- * Проверяет, что содержимое — SVG-разметка (текстовая эвристика корневого тега).
- * MIME и расширению не доверяем: заявить `image/svg+xml` может кто угодно.
+ * Checks that the content is SVG markup (a textual heuristic over the root tag).
+ * The MIME and the extension are not trusted: anyone can declare
+ * `image/svg+xml`.
  *
- * @param fileBuffer Байты файла.
+ * @param fileBuffer The file's bytes.
  */
 function assertSvgContent(fileBuffer: Buffer): void {
     const head = fileBuffer.toString('utf8', 0, Math.min(fileBuffer.length, SVG_SNIFF_BYTES));
@@ -174,12 +175,12 @@ function assertSvgContent(fileBuffer: Buffer): void {
 }
 
 /**
- * Подтверждает растровое содержимое сигнатурой известного формата и возвращает
- * его. Возврат ненулевой: нераспознанный формат — отказ, а не «наверное, SVG»
- * (прежняя подпись допускала null, и ветка «не распознали» читалась как
- * векторная).
+ * Confirms raster content by the signature of a known format and returns that
+ * format. The return is non-nullable: an unrecognized format is a refusal, not
+ * "probably an SVG" (the previous signature allowed null, and the "did not
+ * recognize" branch read as the vector one).
  *
- * @param fileBuffer Байты файла.
+ * @param fileBuffer The file's bytes.
  */
 function assertRasterContentSignature(fileBuffer: Buffer): TSniffedImageFormat {
     const sniffed = sniffImageFormat(fileBuffer);
@@ -195,16 +196,17 @@ function assertRasterContentSignature(fileBuffer: Buffer): TSniffedImageFormat {
 }
 
 /**
- * Генерирует уменьшенные варианты для постепенной загрузки.
+ * Generates the downscaled variants for progressive loading.
  *
- * Варианты всегда webp, независимо от формата полного файла: их задача —
- * показаться в любом браузере до того, как приедет полный, и привязывать их к
- * выбранному формату (в пределе — к «Оригиналу» в HEIC) означало бы потерять
- * весь смысл. Отказ отдельного варианта не роняет загрузку: без варианта
- * потребитель честно покажет полный файл сразу, а без файла показывать нечего.
+ * The variants are always webp regardless of the full file's format: their job is
+ * to show up in any browser before the full one arrives, and tying them to the
+ * chosen format (at the limit — to "Original" in HEIC) would mean losing the
+ * whole point. A single variant failing does not bring the upload down: with no
+ * variant the consumer plainly shows the full file right away, while with no file
+ * there is nothing to show at all.
  *
- * @param buffer Исходные байты изображения.
- * @returns Готовые варианты; отсутствующий ключ — вариант не удалось построить.
+ * @param buffer The image's source bytes.
+ * @returns The finished variants; a missing key — the variant could not be built.
  */
 async function buildImageVariants(
     buffer: Buffer
@@ -215,8 +217,8 @@ async function buildImageVariants(
         try {
             variants[variant] = await optimizeImage(buffer, MEDIA_VARIANT_PRESETS[variant]);
         } catch (error) {
-            // 503 занятого семафора пробрасываем: сервер перегружен, и полный
-            // файл тем же путём тоже не пройдёт
+            // The 503 of a busy semaphore is rethrown: the server is overloaded,
+            // and the full file will not make it through the same path either
             if (error && typeof error === 'object' && 'statusCode' in error) {
                 throw error;
             }
@@ -229,29 +231,30 @@ async function buildImageVariants(
 }
 
 /**
- * Готовит полный файл: перекодирует в выбранный формат либо сохраняет как есть.
+ * Prepares the full file: re-encodes into the chosen format or stores it as it is.
  *
- * «Как есть» — три случая: SVG (растровой обработке не подлежит), запрошенный
- * «Оригинал» у web-safe входа и анимация (sharp взял бы первый кадр, то есть
- * молча убил бы анимацию). Не-web-safe вход конвертируется даже при запросе
- * «Оригинала» — иначе постепенная загрузка подменяла бы видимое webp-превью
- * файлом, который браузер не откроет.
+ * "As it is" covers two cases here: a requested "Original" over a web-safe input
+ * and animation (sharp would take the first frame, that is, would silently kill
+ * the animation). A non-web-safe input is converted even when "Original" is
+ * requested — otherwise progressive loading would replace the visible webp
+ * preview by a file the browser will not open. SVG never reaches this function:
+ * a vector is not subject to raster processing and leaves through a branch of its
+ * own in `validateAndOptimizeImage`.
  *
- * @param buffer Исходные байты изображения.
- * @param extension Расширение входного файла.
- * @param fileType MIME из загрузки.
- * @param optimization Настройки оптимизации.
- * @returns Байты полного файла с MIME, расширением и размерами.
+ * @param buffer The image's source bytes.
+ * @param sniffedFormat The raster format confirmed by the content's signature.
+ * @param optimization The optimization settings.
+ * @returns The full file's bytes with its MIME, extension and dimensions.
  */
 async function prepareFullImage(
     buffer: Buffer,
     sniffedFormat: TSniffedImageFormat,
     optimization: IBricksMediaOptimization
 ): Promise<IOptimizedImage> {
-    // Расширение и MIME выводятся из СОДЕРЖИМОГО, а не из имени файла: имя
-    // приходит от клиента, и PNG, названный `photo.gif`, сохранялся бы как
-    // `*.gif` с `image/gif` — сигнатуру мы при этом проверяли и результат
-    // выбрасывали
+    // The extension and the MIME are derived from the CONTENT rather than from
+    // the file name: the name comes from the client, and a PNG named `photo.gif`
+    // would be stored as `*.gif` with `image/gif` — while we did check the
+    // signature and threw the result away
     const extension = SNIFFED_FORMAT_EXTENSIONS[sniffedFormat];
     const isWebSafe = Boolean(extension) && isWebSafeImageExtension(extension);
     const keepAsIs =
@@ -271,8 +274,8 @@ async function prepareFullImage(
         };
     }
 
-    // 'original' сюда доходит только для не-web-safe входа: конвертация
-    // обязательна, и перекодирование в проекте одно — webp
+    // 'original' only reaches here for a non-web-safe input: the conversion is
+    // mandatory, and the project has one re-encoding — webp
     return optimizeImage(buffer, {
         quality: optimization.quality,
         maxWidth: optimization.maxWidth,
@@ -280,13 +283,13 @@ async function prepareFullImage(
 }
 
 /**
- * Валидирует тип/размер/сигнатуру, готовит полный файл и уменьшенные варианты
- * (SVG не трогаем — ни оптимизации, ни вариантов).
+ * Validates the type/size/signature, prepares the full file and the downscaled
+ * variants (an SVG is left alone — neither optimization nor variants).
  *
- * @param file Загруженный multipart-файл.
- * @param maxUploadSizeBytes Лимит размера в байтах.
- * @param maxUploadSizeMb Лимит в мегабайтах (для сообщения).
- * @param optimization Настройки оптимизации.
+ * @param file The uploaded multipart file.
+ * @param maxUploadSizeBytes The size limit in bytes.
+ * @param maxUploadSizeMb The limit in megabytes (for the message).
+ * @param optimization The optimization settings.
  */
 export async function validateAndOptimizeImage(
     file: IUploadedFilePart,
@@ -318,12 +321,13 @@ export async function validateAndOptimizeImage(
 
         return {
             optimizedBuffer: fileBuffer,
-            // MIME и расширение канонические, а не из запроса: содержимое уже
-            // подтверждено как SVG-разметка, то есть тип известен точно. Из
-            // клиентских значений сюда приезжала произвольная строка — и MIME
-            // длиннее колонки `mime_type`, и расширение от чужого формата, из-за
-            // которого валидный SVG уезжал в бакет как `uuid.png`, а импорт из
-            // бакета потом опознавал его как PNG
+            // The MIME and the extension are canonical rather than taken from
+            // the request: the content has already been confirmed as SVG markup,
+            // so the type is known for certain. From the client values an
+            // arbitrary string used to arrive here — both a MIME longer than the
+            // `mime_type` column and an extension of a foreign format, because of
+            // which a valid SVG went into the bucket as `uuid.png` and the bucket
+            // import then recognized it as a PNG
             mimeType: 'image/svg+xml',
             targetExtension: 'svg',
             isSvg: true,
@@ -333,8 +337,9 @@ export async function validateAndOptimizeImage(
         };
     }
 
-    // Сигнатура проверяется до try: её отказ — это отказ ВВОДА со своим текстом,
-    // и попадать в общий catch «не удалось оптимизировать» ему незачем
+    // The signature is checked before the try: its refusal is an INPUT refusal
+    // with a text of its own, and there is no reason for it to land in the shared
+    // "failed to optimize" catch
     const sniffedFormat = assertRasterContentSignature(fileBuffer);
 
     try {
@@ -350,7 +355,7 @@ export async function validateAndOptimizeImage(
             variants: await buildImageVariants(fileBuffer),
         };
     } catch (error) {
-        // h3-ошибки (503 занятого семафора) пробрасываем со своим статусом
+        // h3 errors (the 503 of a busy semaphore) are rethrown with their own status
         if (error && typeof error === 'object' && 'statusCode' in error) {
             throw error;
         }
@@ -365,10 +370,11 @@ export async function validateAndOptimizeImage(
 }
 
 /**
- * Валидирует тип/размер/сигнатуру видеофайла. Видео не оптимизируется — загружается как есть.
- * @param file Загруженный multipart-файл.
- * @param maxVideoUploadSizeBytes Лимит размера в байтах.
- * @param maxVideoUploadSizeMb Лимит в мегабайтах (для сообщения).
+ * Validates a video file's type/size/signature. A video is not optimized — it is
+ * uploaded as it is.
+ * @param file The uploaded multipart file.
+ * @param maxVideoUploadSizeBytes The size limit in bytes.
+ * @param maxVideoUploadSizeMb The limit in megabytes (for the message).
  */
 export function validateVideo(
     file: IUploadedFilePart,
@@ -403,11 +409,11 @@ export function validateVideo(
         });
     }
 
-    // Контейнер берётся из содержимого, а не из имени: WebM, названный
-    // `clip.mp4`, уезжал в бакет как `*.mp4` с `video/mp4`, и плеер получал
-    // Content-Type, не совпадающий с байтами. `mov` — тот же ISO-BMFF, что mp4,
-    // и различить их сигнатурой нельзя, поэтому имя уважается внутри одной
-    // группы контейнеров
+    // The container is taken from the content rather than from the name: a WebM
+    // named `clip.mp4` went into the bucket as `*.mp4` with `video/mp4`, and the
+    // player got a Content-Type not matching the bytes. `mov` is the same ISO-BMFF
+    // as mp4, and they cannot be told apart by their signature, so the name is
+    // respected inside one group of containers
     const targetExtension =
         sniffedFormat === 'mp4' && ISO_BMFF_EXTENSIONS.has(extension) ? extension : sniffedFormat;
     const mimeType = resolveVideoMime(targetExtension, file.type);

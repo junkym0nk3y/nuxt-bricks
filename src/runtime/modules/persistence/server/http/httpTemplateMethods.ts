@@ -1,12 +1,11 @@
 /**
- * Шаблонная часть HTTP-адаптера external backend: записи шаблонов страниц.
+ * The template part of the external backend's HTTP adapter: the page template records.
+ * Mixed into the adapter with a spread; why the half is split off and why its name is
+ * shared with the Postgres implementation — `TStorageTemplateMethods` in
+ * `types/adapters.d.ts`.
  *
- * Отдельным файлом от `httpStorageAdapter.ts` по тому же шву, что и медиа: у
- * страниц и шаблонов нет общих запросов, а вместе файл перерос бы потолок в 500
- * строк.
- *
- * Контракт ручек — зеркало локальных `/api/bricks/templates/**`:
- * см. docs/external-backend-contract.md.
+ * The endpoints' contract mirrors the local `/api/bricks/templates/**`:
+ * see docs/external-backend-contract.md.
  */
 import type { IBackendHttpClient } from './httpClient';
 import {
@@ -27,19 +26,20 @@ import type {
 } from '../../../common/types/templates';
 
 /**
- * Создаёт шаблонную часть HTTP-адаптера.
+ * Creates the template part of the HTTP adapter.
  *
- * @param client - HTTP-клиент external backend.
- * @returns Шаблонные методы контракта хранилища.
+ * @param client - The external backend's HTTP client.
+ * @returns The template methods of the storage contract.
  */
 export function createHttpTemplateMethods(client: IBackendHttpClient): TStorageTemplateMethods {
     return {
         /**
-         * Сводки шаблонов (`GET {base}/templates`): плоский массив либо envelope
-         * `{ items }` — как у медиа-листингов.
+         * Template summaries (`GET {base}/templates`): a flat array or an `{ items }`
+         * envelope — as with the media listings.
          *
-         * Порядок и число блоков в сводке — обязанность backend'а: `blocksCount`
-         * из схемы здесь не досчитать, схемы в сводке нет вовсе.
+         * The order and the block count in a summary are the backend's duty:
+         * `blocksCount` cannot be computed from the schema here, as the summary carries
+         * no schema at all.
          */
         async listTemplates(): Promise<TBricksTemplateSummary[]> {
             const raw = await client.request('GET', 'templates');
@@ -51,7 +51,7 @@ export function createHttpTemplateMethods(client: IBackendHttpClient): TStorageT
         },
 
         /**
-         * Полный шаблон по id (`GET {base}/templates/:id`); 404 → null.
+         * The full template by id (`GET {base}/templates/:id`); a 404 → null.
          */
         async getTemplate(id: number): Promise<IBricksTemplateRow | null> {
             try {
@@ -68,11 +68,11 @@ export function createHttpTemplateMethods(client: IBackendHttpClient): TStorageT
         },
 
         /**
-         * Создаёт шаблон (`POST {base}/templates`). На доменную ошибку маппится
-         * только точный контрактный код: 409 `TEMPLATE_NAME_CONFLICT` →
-         * BricksTemplateNameConflictError. 409 без кода или с незнакомым кодом —
-         * generic error: посторонний конфликт backend'а (квота, состояние) не
-         * должен заставлять форму краснеть полем имени.
+         * Creates a template (`POST {base}/templates`). Only the exact contract code is
+         * mapped onto a domain error: a 409 `TEMPLATE_NAME_CONFLICT` →
+         * BricksTemplateNameConflictError. A 409 with no code or with an unfamiliar one
+         * is a generic error: an unrelated conflict of the backend's (a quota, a state)
+         * must not make the form turn its name field red.
          */
         async createTemplate(payload: ICreateTemplatePayload): Promise<IBricksTemplateRow> {
             try {
@@ -89,8 +89,8 @@ export function createHttpTemplateMethods(client: IBackendHttpClient): TStorageT
         },
 
         /**
-         * Правит подпись шаблона (`PATCH {base}/templates/:id`); 404 → null,
-         * 409 `TEMPLATE_NAME_CONFLICT` → BricksTemplateNameConflictError.
+         * Edits a template's label (`PATCH {base}/templates/:id`); a 404 → null, a 409
+         * `TEMPLATE_NAME_CONFLICT` → BricksTemplateNameConflictError.
          */
         async updateTemplate(
             id: number,
@@ -114,13 +114,13 @@ export function createHttpTemplateMethods(client: IBackendHttpClient): TStorageT
         },
 
         /**
-         * Удаляет шаблон (`DELETE {base}/templates/:id`); 404 → null.
+         * Deletes a template (`DELETE {base}/templates/:id`); a 404 → null.
          *
-         * Файлы превью остаются локальными и в external-режиме, поэтому уборкой
-         * занимается локальная ручка — ей нужен `thumbnail_url` удалённой записи.
-         * Backend, ответивший пустым телом (204), сообщает лишь факт удаления:
-         * тогда убирать нечего с точки зрения контракта, и его файл (если он
-         * хранит превью сам) остаётся его заботой.
+         * The preview files stay local in external mode too, so the sweep is done by
+         * the local handler — it needs the deleted record's `thumbnail_url`. A backend
+         * that answered with an empty body (204) reports the fact of the deletion
+         * alone: from the contract's point of view there is then nothing to sweep, and
+         * its own file (if it stores previews itself) remains its own concern.
          */
         async deleteTemplate(id: number): Promise<TDeleteTemplateResult> {
             try {

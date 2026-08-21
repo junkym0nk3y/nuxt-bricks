@@ -1,25 +1,26 @@
 /**
- * Доменные ошибки auth-слоя (учётки database-auth).
+ * The auth layer's domain errors (the database-auth accounts).
  *
- * Отдельно от `storageErrors.ts`: там ошибки страниц и медиа — контракт
- * `IStorageAdapter`, который может жить во внешнем backend'е; здесь — контракт
- * `IAuthAdapter`, у которого свои реализации и свои краевые правила.
- * Ручки маппят эти классы на HTTP-статусы с машиночитаемым `data.code`
- * (`toUsersHttpError` в handlerHelpers, коды — `BRICKS_API_ERROR_CODES`).
+ * Kept apart from `storageErrors.ts`: that one holds the pages' and media's errors —
+ * the `IStorageAdapter` contract, which can live in an external backend; this one holds
+ * the `IAuthAdapter` contract, which has implementations and edge rules of its own.
+ * The handlers map these classes onto HTTP statuses with a machine-readable `data.code`
+ * (`toUsersHttpError` in handlerHelpers; the codes are `BRICKS_API_ERROR_CODES`).
  */
 
 /**
- * Мутация оставила бы систему без активного администратора.
+ * The mutation would leave the system without an active administrator.
  *
- * Отказ ОПРЕДЕЛЯЕТСЯ внутри транзакции адаптера, где набор активных админов уже
- * заблокирован (`FOR UPDATE`): без блокировки два одновременных понижения читали
- * бы одно и то же «админов двое» и оба проходили бы — write skew, который READ
- * COMMITTED не ловит. Проверять это в ручке, до вызова адаптера, поэтому нельзя.
+ * The refusal is DECIDED inside the adapter's transaction, where the set of active
+ * admins is already locked (`FOR UPDATE`): without the lock two simultaneous demotions
+ * would read the same "there are two admins" and both would go through — a write skew
+ * READ COMMITTED does not catch. Checking this in the handler, before the adapter's
+ * call, is therefore not possible.
  *
- * А вот сама ошибка СОЗДАЁТСЯ уже после выхода из транзакции (изнутри отказ
- * возвращается флагом): `withTransaction` логирует любую пойманную ошибку как
- * сбой транзакции, и штатный отказ уезжал бы в лог сбоем базы. Перенос `throw`
- * внутрь колбэка вернёт эти ложные записи.
+ * The error itself, though, is CREATED after leaving the transaction (from inside, the
+ * refusal is returned as a flag): `withTransaction` logs any caught error as a
+ * transaction failure, and a routine refusal would go into the log as a database
+ * failure. Moving the `throw` inside the callback will bring those false entries back.
  */
 export class BricksLastActiveAdminError extends Error {
     constructor() {
@@ -29,10 +30,10 @@ export class BricksLastActiveAdminError extends Error {
 }
 
 /**
- * Логин занят. Сравнение регистронезависимое — как и вход, поэтому `Admin` при
- * существующем `admin` конфликтует. Кидается по нарушению уникального индекса
- * `lower(username)`, а не по предварительной проверке: между чтением и вставкой
- * успевает вклиниться параллельное создание.
+ * The username is taken. The comparison is case-insensitive — as it is at login, so
+ * `Admin` conflicts with an existing `admin`. Thrown on a violation of the
+ * `lower(username)` unique index rather than on a check up front: a parallel creation
+ * has time to slip in between the read and the insert.
  */
 export class BricksUsernameTakenError extends Error {
     readonly username: string;

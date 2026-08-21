@@ -1,32 +1,35 @@
 /**
- * Итеративный (без рекурсии) обход JSON-графа `schema` до `JSON.stringify`.
+ * An iterative (non-recursive) walk over the `schema` JSON graph ahead of
+ * `JSON.stringify`.
  *
- * `JSON.parse` итеративен и спокойно разбирает даже 20k-уровневую вложенность,
- * а `JSON.stringify` — рекурсивен и падает `RangeError: Maximum call stack
- * size exceeded` на глубоко вложенном, но небольшом по размеру payload —
- * вместо контролируемого 400 клиент получал 500. Обход ограничивает глубину,
- * число узлов и допустимые типы значений ещё до попытки сериализации.
- * Скетч обхода — remediation-план Codex §R0.2, принят спринтом as-is (явный
- * стек вместо рекурсии, cycle-guard через `Set` по идентичности объекта).
+ * `JSON.parse` is iterative and calmly parses even a 20k-level nesting, while
+ * `JSON.stringify` is recursive and fails with `RangeError: Maximum call stack size
+ * exceeded` over a deeply nested payload that is small in size — instead of a
+ * controlled 400 the client got a 500. The walk bounds the depth, the node count and
+ * the allowed value types before the serialization is even attempted. The walk's
+ * design is an explicit stack instead of recursion, with a cycle guard through a `Set`
+ * keyed by object identity.
  *
- * Строгий component-shape контракт (id/componentName/type/…, ссылки,
- * ацикличность) — отдельный изоморфный модуль `validateSchemaComponentGraph`
- * (common/utils/bricks/schemaContract.ts), подключается
- * `payloadValidation.ts` после лимитов сложности этого модуля.
+ * The strict component-shape contract (id/componentName/type/…, the references,
+ * acyclicity) is a separate isomorphic module `validateSchemaComponentGraph`
+ * (common/utils/bricks/schemaContract.ts), applied by `payloadValidation.ts` after
+ * this module's complexity limits.
  */
 import { invalid } from './payloadPrimitives';
 
 // #region Constants
-/** Максимальная глубина вложенности JSON-графа schema. */
+/** The maximum nesting depth of the schema's JSON graph. */
 export const MAX_SCHEMA_DEPTH = 64;
-/** Максимальное число JSON-узлов (объектов/массивов/примитивов) в schema. */
+/** The maximum number of JSON nodes (objects/arrays/primitives) in a schema. */
 export const MAX_SCHEMA_NODES = 100_000;
-/** Лимит сериализованного размера schema в байтах UTF-8 (не в UTF-16-символах). */
+/**
+ * The limit on a schema's serialized size in UTF-8 bytes (not in UTF-16 characters).
+ */
 const MAX_SCHEMA_JSON_BYTES = 2 * 1024 * 1024;
 // #endregion
 
 // #region Types
-/** Узел стека обхода: значение + его глубина относительно корня schema. */
+/** A node of the walk's stack: the value + its depth relative to the schema's root. */
 interface ISchemaTraversalNode {
     value: unknown;
     depth: number;
@@ -35,11 +38,11 @@ interface ISchemaTraversalNode {
 
 // #region Helpers
 /**
- * Проверяет, что значение — plain object (не массив, не `null`, не instance
- * класса/`Date`/`Map` и т.п.).
+ * Checks that the value is a plain object (not an array, not `null`, not an instance of
+ * a class/`Date`/`Map` and the like).
  *
- * @param value - Проверяемое значение.
- * @returns `true`, если значение — plain object.
+ * @param value - The value being checked.
+ * @returns `true` when the value is a plain object.
  */
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
@@ -51,13 +54,13 @@ function isPlainRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
- * Отклоняет значения, не являющиеся JSON-примитивами: разрешены `null`,
- * `string`, конечное `number` и `boolean`. `Date`, `Map`, class instances,
- * `undefined`, функции и символы сюда не доходят (отсеяны раньше в
- * `isPlainRecord`/`Array.isArray`), но сам примитив ещё может оказаться
- * нефинитным числом или неподдерживаемым типом.
+ * Rejects the values that are not JSON primitives: `null`, a `string`, a finite
+ * `number` and a `boolean` are allowed. `Date`, `Map`, class instances, `undefined`,
+ * functions and symbols do not reach here (they are filtered out earlier in
+ * `isPlainRecord`/`Array.isArray`), but the primitive itself can still turn out to be
+ * a non-finite number or an unsupported type.
  *
- * @param value - Проверяемое значение.
+ * @param value - The value being checked.
  */
 function assertJsonPrimitive(value: unknown): void {
     if (value === null || typeof value === 'string' || typeof value === 'boolean') {
@@ -77,13 +80,13 @@ function assertJsonPrimitive(value: unknown): void {
 
 // #region Traversal
 /**
- * Итеративно обходит JSON-граф `schema` (явный стек, без рекурсии) и
- * ограничивает глубину, число узлов и допустимые типы значений, затем
- * проверяет сериализованный размер в байтах UTF-8 — всё до `JSON.stringify`
- * основного значения, которое иначе рекурсивно падает на глубоко вложенных
- * payload раньше любой проверки размера.
+ * Iteratively walks the `schema` JSON graph (an explicit stack, no recursion) and
+ * bounds the depth, the node count and the allowed value types, then checks the
+ * serialized size in UTF-8 bytes — all of it ahead of the `JSON.stringify` of the main
+ * value, which otherwise fails recursively over deeply nested payloads before any size
+ * check.
  *
- * @param schema - Разобранное (уже прошедшее `JSON.parse`) значение поля schema.
+ * @param schema - The parsed (already through `JSON.parse`) value of the schema field.
  */
 export function assertSchemaComplexity(schema: unknown): void {
     const stack: ISchemaTraversalNode[] = [{ value: schema, depth: 0 }];

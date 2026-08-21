@@ -1,11 +1,13 @@
 /**
- * Server-first валидация DTO ручек страниц (/api/bricks — create/update).
+ * Server-first validation of the page handlers' DTOs (/api/bricks —
+ * create/update).
  *
- * Клиентский yup — UX, не защита: сюда попадает произвольное тело запроса.
- * Каждый валидатор отклоняет неизвестные ключи (400), проверяет типы/границы
- * и возвращает НОВЫЙ объект только из известных нормализованных полей —
- * лишнее не доезжает до адаптеров даже при дрейфе whitelist'ов ниже по стеку.
- * Общие примитивы — payloadPrimitives.ts, валидаторы медиа — mediaPayloadValidation.ts.
+ * The client-side yup is UX, not protection: an arbitrary request body arrives
+ * here. Every validator rejects unknown keys (400), checks types and bounds and
+ * returns a NEW object built only from the known normalized fields — nothing
+ * extra reaches the adapters even should the whitelists further down the stack
+ * drift. The shared primitives are in payloadPrimitives.ts, the media validators
+ * in mediaPayloadValidation.ts.
  */
 import type { IBricksSchema } from '../../../common/types/brick';
 import type { ICreatePagePayload, IUpdatePagePayload } from '../../../common/types/bricks-api';
@@ -49,7 +51,7 @@ import {
 } from '../../../common/utils/bricks/routePaths';
 
 // #region Constants
-/** Лимит числа компонентов схемы. */
+/** The limit on the number of schema components. */
 const MAX_SCHEMA_COMPONENTS = 5000;
 
 const LAYOUT_MAX_LENGTH = 100;
@@ -75,9 +77,9 @@ const CREATE_PAGE_KEYS = new Set([
 const UPDATE_PAGE_KEYS = new Set([...CREATE_PAGE_KEYS, 'thumbnailUrl', 'expectedRevision']);
 
 /**
- * Контекст адреса для вызовов без явного аргумента: ручки передают активный
- * (`getConfiguredPageAddressContext`), дефолт нужен прямым вызовам вне Nitro,
- * где runtimeConfig недоступен.
+ * The address context for calls with no explicit argument: the handlers pass the
+ * active one (`getConfiguredPageAddressContext`), while the default is needed by
+ * direct calls outside Nitro, where runtimeConfig is unavailable.
  */
 const DEFAULT_PAGE_ADDRESS_CONTEXT: IPageAddressContext = {
     prefixes: DEFAULT_BRICKS_ROUTE_PREFIXES,
@@ -91,15 +93,16 @@ const RESTORE_VERSION_KEYS = new Set(['expectedRevision']);
 
 // #region Field validators
 /**
- * Валидирует набор устройств страницы.
+ * Validates the page's device set.
  *
- * Строгий и не чинящий: значение уезжает и в генерацию `<style>`, и в ключи
- * схемы, поэтому «почти валидный» набор опаснее отказа. Сортировка, обрезка
- * длины и отбрасывание дублей здесь запрещены — они молча меняли бы раскладку
- * страницы на не ту, что заказывал клиент.
+ * Strict and non-repairing: the value goes both into the `<style>` generation and
+ * into the schema's keys, so an "almost valid" set is more dangerous than a
+ * refusal. Sorting, trimming the length and dropping duplicates are forbidden
+ * here — they would silently change the page's layout into one the client never
+ * ordered.
  *
- * @param value - Сырое значение поля.
- * @returns Набор устройств либо `null` (наследование набора проекта).
+ * @param value - The field's raw value.
+ * @returns The device set, or `null` (inherit the project's set).
  */
 function validateViewportConfig(value: unknown): TBricksPageDeviceSet | null {
     if (value === null) {
@@ -116,12 +119,13 @@ function validateViewportConfig(value: unknown): TBricksPageDeviceSet | null {
 }
 
 /**
- * Резолвер владельца пути для сервера: живого роутера здесь нет, поэтому ответ
- * даётся по собственным маршрутам модуля. Страниц приложения-потребителя сервер
- * не видит — их конфликты ловит клиентская проверка через роутер.
+ * The path owner resolver for the server: there is no live router here, so the
+ * answer is given by the module's own routes. The server does not see the
+ * consumer application's pages — their conflicts are caught by the client-side
+ * check through the router.
  *
- * @param prefixes - Активные префиксы маршрутов.
- * @returns Функция «путь → имя владеющего маршрута».
+ * @param prefixes - The active route prefixes.
+ * @returns A function of "path → the owning route's name".
  */
 function createOwnRouteResolver(
     prefixes: IBricksRoutePrefixes
@@ -132,18 +136,18 @@ function createOwnRouteResolver(
 }
 
 /**
- * Валидирует pagename: формат и границы длины.
+ * Validates the pagename: the format and the length bounds.
  *
- * Доступность адреса редактора здесь НЕ проверяется, хотя раньше проверялась:
- * адрес редактора складывается из пары `urlPrefix + pagename`, а PATCH несёт
- * любое одно поле пары. Проверка по одному имени отвергала бы законный
- * `pagename: bricks-login` с префиксом (его редактор живёт по свободному
- * `<builderPrefix>/blog/bricks-login`) и пропускала бы запрещённый адрес,
- * собранный из сохранённого имени и нового префикса. Обе половины сводит
- * `assertPageAddressAllowed`.
+ * The availability of the editor address is NOT checked here, although it used to
+ * be: the editor address is the pair `urlPrefix + pagename`, while a
+ * PATCH carries any one field of that pair. A check by the name alone would
+ * reject a legitimate `pagename: bricks-login` with a prefix (its editor lives at
+ * the free `<builderPrefix>/blog/bricks-login`) and would let through a forbidden
+ * address assembled out of the stored name and a new prefix. Both halves are
+ * brought together by `assertPageAddressAllowed`.
  *
- * @param value - Сырое значение.
- * @returns Нормализованный pagename.
+ * @param value - The raw value.
+ * @returns The normalized pagename.
  */
 function validatePagename(value: unknown): string {
     return requireString(value, 'pagename', {
@@ -155,23 +159,23 @@ function validatePagename(value: unknown): string {
 }
 
 /**
- * Валидирует schema страницы: объект с массивом components в допустимых
- * границах. Глубина/число узлов/типы значений/сериализованный размер —
- * `assertSchemaComplexity` (итеративный обход до `JSON.stringify`, см.
- * schemaPayloadValidation.ts); структурный контракт графа компонентов
- * (форма узла, уникальность/согласованность id, ацикличность, глубина
- * дерева) — `validateSchemaComponentGraph` (см.
+ * Validates the page's schema: an object with a components array within the
+ * allowed bounds. Depth, node count, value types and serialized size —
+ * `assertSchemaComplexity` (an iterative walk ahead of `JSON.stringify`, see
+ * schemaPayloadValidation.ts); the structural contract of the component graph
+ * (a node's shape, id uniqueness/consistency, acyclicity, tree depth) —
+ * `validateSchemaComponentGraph` (see
  * common/utils/bricks/schemaContract.ts).
  *
- * Экспортируется: те же правила применяет валидатор шаблонов
- * (`templatePayloadValidation.ts`) — шаблон несёт ровно ту схему, которую
- * приняла бы страница, и второй набор границ разошёлся бы с этим при первой же
- * правке.
+ * Exported: the template validator (`templatePayloadValidation.ts`) applies the
+ * same rules — a template carries exactly the schema a page would accept, and a
+ * second set of bounds would drift away from that at the first edit.
  *
- * @param value - Сырое значение поля schema.
- * @returns Схема (форма и граф компонентов проверены).
- * @throws 400 — форма schema/components невалидна, либо превышены лимиты
- * сложности, либо граф компонентов нарушает контракт (см. schemaContract.ts).
+ * @param value - The raw value of the schema field.
+ * @returns The schema (its shape and component graph checked).
+ * @throws 400 — the shape of schema/components is invalid, or the complexity
+ * limits are exceeded, or the component graph violates the contract (see
+ * schemaContract.ts).
  */
 export function validatePageSchema(value: unknown): IBricksSchema {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
@@ -200,20 +204,20 @@ export function validatePageSchema(value: unknown): IBricksSchema {
 }
 
 /**
- * Валидирует precondition optimistic locking: положительный safe integer.
+ * Validates the optimistic locking precondition: a positive safe integer.
  *
- * @param value - Сырое значение поля expectedRevision.
- * @returns Ожидаемая revision.
+ * @param value - The raw value of the expectedRevision field.
+ * @returns The expected revision.
  */
 function validateExpectedRevision(value: unknown): number {
     return requirePositiveInteger(value, 'expectedRevision');
 }
 
 /**
- * Валидирует общие meta-поля страницы (create и update).
+ * Validates the page's shared meta fields (both create and update).
  *
- * @param body - Нормализованное тело запроса.
- * @returns Нормализованные meta-поля (только переданные).
+ * @param body - The normalized request body.
+ * @returns The normalized meta fields (only the ones passed).
  */
 function validatePageMetaFields(body: Record<string, unknown>): Partial<IUpdatePagePayload> {
     const result: Partial<IUpdatePagePayload> = {};
@@ -291,20 +295,21 @@ function validatePageMetaFields(body: Record<string, unknown>): Partial<IUpdateP
 
 // #region Page payloads
 /**
- * Проверяет, что адрес страницы не перекрыт поверхностью bricks — и адрес
- * редактора, и live-адрес.
+ * Checks that the page's address is not covered by the bricks surface — both the
+ * editor address and the live address.
  *
- * Отдельной функцией, а не внутри валидаторов полей: адрес складывает СУММА
- * `urlPrefix + pagename`, а PATCH несёт любое одно поле пары — вторую половину
- * ручка обновления достаёт из сохранённой строки и зовёт эту проверку сама.
+ * A function of its own rather than something inside the field validators: the
+ * address is the SUM of `urlPrefix + pagename`, while a PATCH carries any
+ * one field of the pair — the update handler pulls the other half out of the
+ * stored row and calls this check itself.
  *
- * Адрес редактора проверяется всегда, а live-адрес — только при включённом
- * live-рендере: без него у страницы нет собственного URL, а редактор есть
- * всегда. Клиент решает так же, иначе один и тот же адрес проходил бы форму и
- * падал на сервере.
+ * The editor address is always checked, and the live address only when the live
+ * render is on: without it a page has no URL of its own, while an editor it always
+ * has. The client decides the same way, otherwise one and the same address would
+ * pass the form and fail on the server.
  *
- * @param context - Контекст адреса страницы.
- * @param address - Адрес страницы.
+ * @param context - The page address context.
+ * @param address - The page's address.
  */
 export function assertPageAddressAllowed(
     context: IPageAddressContext,
@@ -329,11 +334,11 @@ export function assertPageAddressAllowed(
 }
 
 /**
- * Валидирует payload POST /api/bricks (создание страницы).
+ * Validates the payload of POST /api/bricks (creating a page).
  *
- * @param body - Нормализованное тело запроса.
- * @param context - Контекст адреса (дефолт — для вызовов вне Nitro).
- * @returns Чистый payload создания.
+ * @param body - The normalized request body.
+ * @param context - The address context (the default is for calls outside Nitro).
+ * @returns A clean creation payload.
  */
 export function validateCreatePagePayload(
     body: Record<string, unknown>,
@@ -347,24 +352,24 @@ export function validateCreatePagePayload(
         schema: validatePageSchema(body.schema),
     };
 
-    // Создание знает оба поля пары сразу, поэтому проверяется здесь же
+    // Creation knows both fields of the pair at once, so it is checked right here
     assertPageAddressAllowed(context, toPageAddress(payload.pagename, payload.urlPrefix));
 
     return payload;
 }
 
 /**
- * Валидирует payload PUT/PATCH /api/bricks/:id (обновление страницы).
- * Все поля опциональны; требует хотя бы одно записываемое
- * (precondition expectedRevision полем данных не считается).
+ * Validates the payload of PUT/PATCH /api/bricks/:id (updating a page).
+ * Every field is optional; requires at least one writable one (the
+ * expectedRevision precondition does not count as a data field).
  *
- * Адрес страницы здесь НЕ проверяется, поэтому и контекст адреса не нужен:
- * половина пары может остаться в сохранённой строке, и сводит их ручка
- * (`updatePageFromEvent`) через `withCheckedPagePath` →
+ * The page's address is NOT checked here, which is why no address context is
+ * needed either: half of the pair may stay in the stored row, and they are brought
+ * together by the handler (`updatePageFromEvent`) through `withCheckedPagePath` →
  * `assertPageAddressAllowed`.
  *
- * @param body - Нормализованное тело запроса.
- * @returns Чистый payload обновления.
+ * @param body - The normalized request body.
+ * @returns A clean update payload.
  */
 export function validateUpdatePagePayload(body: Record<string, unknown>): IUpdatePagePayload {
     assertKnownKeys(body, UPDATE_PAGE_KEYS);
@@ -400,13 +405,13 @@ export function validateUpdatePagePayload(body: Record<string, unknown>): IUpdat
 }
 
 /**
- * Валидирует payload POST /api/bricks/:id/versions/:versionId/restore.
- * В отличие от PUT/PATCH, `expectedRevision` здесь обязателен — restore не
- * поддерживает last-write-wins (несовпадение revision → 409 REVISION_CONFLICT
- * в toPageHttpError, см. JSDoc ручки restore.post.ts).
+ * Validates the payload of POST /api/bricks/:id/versions/:versionId/restore.
+ * Unlike PUT/PATCH, `expectedRevision` is mandatory here — restore does not
+ * support last-write-wins (a revision mismatch → 409 REVISION_CONFLICT in
+ * toPageHttpError, see the JSDoc of the restore.post.ts handler).
  *
- * @param body - Нормализованное тело запроса.
- * @returns Precondition отката.
+ * @param body - The normalized request body.
+ * @returns The rollback precondition.
  */
 export function validateRestoreVersionPayload(body: Record<string, unknown>): {
     expectedRevision: number;
