@@ -41,7 +41,7 @@ import { useBuilderPermissions } from '../../core/composables/useBuilderPermissi
 import { ToggleGroupItem, ToggleGroupRoot } from 'reka-ui';
 
 // Components
-import BricksButton from '../../../ui/base/button/BricksButton.vue';
+import BricksIconButton from '../../../ui/base/icon-button/BricksIconButton.vue';
 // #endregion
 
 // #region Props
@@ -96,7 +96,9 @@ function handleDelete(slug: string): void {
         <div :class="$style.tab">
             <ToggleGroupItem :class="$style.label" :value="allFilterValue">
                 <span>{{ t('bricks.media.categories.all') }}</span>
-                <span :class="$style.count">· {{ props.totalCount }}</span>
+                <span v-if="props.totalCount !== null" :class="$style.count">
+                    · {{ props.totalCount }}
+                </span>
             </ToggleGroupItem>
         </div>
 
@@ -118,17 +120,17 @@ function handleDelete(slug: string): void {
 
             <Transition name="bricks-fade-fast">
                 <!-- Удаление категории — право администратора, создание остаётся редактору -->
-                <BricksButton
+                <BricksIconButton
                     v-if="props.isManaging && canDelete"
                     :class="$style.remove"
-                    size="sm"
+                    icon="ta:outline-x"
+                    :label="t('bricks.media.categoryDelete', { name: category.label })"
                     variant="ghost"
-                    equal
-                    :aria-label="t('bricks.media.categoryDelete', { name: category.label })"
+                    size="sm"
+                    danger
+                    tooltip-side="top"
                     @click="handleDelete(category.slug)"
-                >
-                    <BricksIcon icon="ta:outline-x" />
-                </BricksButton>
+                />
             </Transition>
         </div>
     </ToggleGroupRoot>
@@ -228,17 +230,11 @@ function handleDelete(slug: string): void {
 /* Кнопка кита в уменьшенном исполнении: рядом с подписью 1.2rem штатные 3.2rem
    читались бы как отдельная кнопка, приставленная к табу, а не как его часть.
    Квадратность при этом сохраняется — сторона и кегль уменьшены согласованно. */
-.remove {
-    width: 2rem;
-    height: 2rem;
-    margin-right: 0.8rem;
-    border-radius: var(--bricks-border-radius-xs);
-    font-size: 1.4rem;
-    color: var(--bricks-base-400);
 
-    &:hover {
-        background: var(--bricks-danger-50);
-        color: var(--bricks-danger-500);
-    }
+/* Снаружи задаётся только место в ряду: сторона, радиус и разрушающий тон
+   приезжают из кит-кнопки, а внешний класс достаётся обёртке тултипа — правила
+   вида на нём до самой кнопки не доходят. */
+.remove {
+    margin-right: 0.8rem;
 }
 </style>

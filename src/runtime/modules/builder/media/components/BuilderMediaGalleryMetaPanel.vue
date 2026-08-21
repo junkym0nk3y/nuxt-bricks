@@ -17,7 +17,6 @@
 
 // #region Imports
 // Types
-import type { IMediaUpdateMetaRequest } from '../../../common/types/media';
 import type { IBrickUiCommonProp } from '../../../ui/types/common';
 import type { TBrickDemoValues } from '../../../common/types/index';
 import type { IMediaGalleryMetaPanelProps, IMediaGalleryMetaPanelEmits } from '../types/media';
@@ -26,16 +25,16 @@ import type { IMediaGalleryMetaPanelProps, IMediaGalleryMetaPanelEmits } from '.
 import { formatMediaTechnicalSummary, isVideoMedia } from '../utils/mediaSummary';
 
 // Vue
-import { computed, ref, watch } from 'vue';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Composables
 import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
+import { useMediaMetaDrafts } from '../composables/useMediaMetaDrafts';
 
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
-import BricksTooltip from '../../../ui/base/tooltip/BricksTooltip.vue';
-import BricksTooltipHint from '../../../ui/base/tooltip/BricksTooltipHint.vue';
+import BricksIconButton from '../../../ui/base/icon-button/BricksIconButton.vue';
 import BricksImage from '../../../ui/base/image/BricksImage.vue';
 import BricksInput from '../../../ui/inputs/BricksInput.vue';
 import BricksSelect from '../../../ui/inputs/BricksSelect.vue';
@@ -52,16 +51,18 @@ const emit = defineEmits<IMediaGalleryMetaPanelEmits>();
 // #region Data
 const { t } = useI18n();
 const { canEdit, canDelete } = useBuilderPermissions();
-const editableFilename = ref('');
-const editableAlt = ref('');
 /**
- * Последние принятые серверные значения — по ним отличается «поле не тронуто» от
- * «в поле несохранённый ввод». Отдельного флага dirty нет намеренно: он завёл бы
- * второй источник того же факта и разъехался бы с самим значением.
+ * Черновики полей файла — общий с панелью деталей раздела механизм: ввод,
+ * нормализация и защита черновика от серверных обновлений живут в композабле.
  */
-const syncedItemId = ref<number | null>(null);
-const syncedFilename = ref('');
-const syncedAlt = ref('');
+const {
+    filename: editableFilename,
+    alt: editableAlt,
+    commit: handleMetaCommit,
+} = useMediaMetaDrafts({
+    item: () => props.selectedItem,
+    onCommit: (meta) => emit('update-meta', meta),
+});
 // #endregion
 
 // #region Computed
@@ -93,52 +94,6 @@ const technicalSummary = computed<string>(() =>
 
 // #region Methods
 /**
- * Сохраняет изменённые метаданные (filename, alt) при уходе фокуса из ряда полей.
- *
- * Слушается `focusout` обёртки, а не `blur` самого поля: у `BricksInput` события
- * blur в контракте нет, а `focusout` всплывает. Переход между двумя полями ряда
- * тоже его вызывает, но это безвредно — правка отправляется только при реальном
- * отличии от сохранённого.
- *
- * Черновик приводится к отправляемому виду до всякой проверки, и это не
- * косметика: поле, черновик которого разошёлся с теневым значением, сторож ниже
- * считает полем с несохранённым вводом и перестаёт доносить до него серверные
- * обновления. Очищенное имя не отправляется (сервер требует минимум один
- * символ), а ввод с хвостовым пробелом после trim совпадает с уже сохранённым —
- * в обоих случаях без возврата к серверному значению поле залипало бы в этом
- * состоянии навсегда, то есть внешняя правка имени в него уже не доехала бы.
- */
-function handleMetaCommit(): void {
-    if (!props.selectedItem) {
-        return;
-    }
-
-    // Пустое имя недопустимо, и единственное значение, к которому его можно
-    // вернуть, — серверное: собственного «прежнего» у поля нет
-    const normalizedFilename = editableFilename.value.trim() || props.selectedItem.filename;
-    const normalizedAlt = editableAlt.value.trim();
-
-    editableFilename.value = normalizedFilename;
-    editableAlt.value = normalizedAlt;
-
-    const meta: IMediaUpdateMetaRequest = {};
-
-    if (normalizedFilename !== props.selectedItem.filename) {
-        meta.filename = normalizedFilename;
-    }
-
-    if (normalizedAlt !== props.selectedItem.alt) {
-        meta.alt = normalizedAlt;
-    }
-
-    if (Object.keys(meta).length === 0) {
-        return;
-    }
-
-    emit('update-meta', meta);
-}
-
-/**
  * Эмитит смену категории выбранного элемента.
  *
  * Возвращать значение назад, как делал нативный `<select>`, не нужно:
@@ -158,57 +113,6 @@ function handleCategoryChange(value: TBrickDemoValues | null): void {
 function handleRemove(): void {
     emit('remove');
 }
-// #endregion
-
-// #region Lifecycle
-/**
- * Синхронизирует черновики полей с серверным состоянием — по полю, а не оптом.
- *
- * Два крайних варианта не работают оба. Сторож по объекту срабатывал на
- * СОБСТВЕННОМ ответе PATCH (стор подменяет элемент списка новым объектом) и
- * перетирал оба поля: правишь имя, уходишь Tab'ом в alt — это и отправляет
- * PATCH, — печатаешь, и набранное исчезает, когда приходит ответ. Сторож только
- * по `id` терял обратную задачу: файл заменился с тем же id (перечитывание
- * списка после обрыва, правка с другой поверхности), поле осталось с прежним
- * значением, и следующий `focusout` отправлял его назад — то есть откатывал
- * чужое изменение.
- *
- * Поэтому решение по полю: поле, которого пользователь не касался, принимает
- * серверное значение; поле с несохранённым вводом его переживает. «Не касался» —
- * это «черновик совпадает с последним принятым серверным значением», для чего и
- * нужны теневые ref'ы.
- */
-watch(
-    () => [props.selectedItem?.id ?? null, props.selectedItem?.filename, props.selectedItem?.alt],
-    () => {
-        const id = props.selectedItem?.id ?? null;
-        const filename = props.selectedItem?.filename ?? '';
-        const alt = props.selectedItem?.alt ?? '';
-
-        // Смена файла сбрасывает всё: черновик прошлого файла к новому отношения
-        // не имеет, даже если пользователь его не сохранил
-        if (id !== syncedItemId.value) {
-            syncedItemId.value = id;
-            syncedFilename.value = filename;
-            syncedAlt.value = alt;
-            editableFilename.value = filename;
-            editableAlt.value = alt;
-            return;
-        }
-
-        if (editableFilename.value === syncedFilename.value) {
-            editableFilename.value = filename;
-        }
-
-        if (editableAlt.value === syncedAlt.value) {
-            editableAlt.value = alt;
-        }
-
-        syncedFilename.value = filename;
-        syncedAlt.value = alt;
-    },
-    { immediate: true }
-);
 // #endregion
 </script>
 
@@ -282,30 +186,23 @@ watch(
 
                     <!--
                         Удаление стоит у полей файла, а не в правом углу: угол
-                        оставлен подтверждающему действию, а разрушающее рядом с
-                        ним было единственным цветовым акцентом футера. Тон
-                        появляется по наведению — до него это ещё не «красная
-                        кнопка».
+                        оставлен подтверждающему действию. Тон — общий для
+                        разрушающих действий продукта (`danger` кита), как в
+                        строках списков и в панели деталей раздела: прежний
+                        «серый до наведения» делал эту кнопку единственным
+                        исключением из правила.
                     -->
                     <!-- Удаление файла — право администратора: редактору ручка откажет -->
-                    <BricksTooltip v-if="canDelete" top>
-                        <template #activator>
-                            <BricksButton
-                                :class="$style.removeButton"
-                                size="sm"
-                                variant="ghost"
-                                equal
-                                :aria-label="t('bricks.common.delete')"
-                                @click="handleRemove"
-                            >
-                                <BricksIcon icon="ta:outline-trash" />
-                            </BricksButton>
-                        </template>
-
-                        <template #default>
-                            <BricksTooltipHint :text="t('bricks.common.delete')" />
-                        </template>
-                    </BricksTooltip>
+                    <BricksIconButton
+                        v-if="canDelete"
+                        :class="$style.removeButton"
+                        icon="ta:outline-trash"
+                        :label="t('bricks.common.delete')"
+                        danger
+                        size="lg"
+                        tooltip-side="top"
+                        @click="handleRemove"
+                    />
                 </div>
 
                 <div :class="$style.divider" />
@@ -390,16 +287,9 @@ watch(
     color: var(--bricks-base-500);
 }
 
-/* Кнопка удаления в тоне текста, danger — только по наведению: в ряду правок
-   она не должна перетягивать внимание на себя. */
+/* Кнопка прижата к правому краю ряда правок; вид даёт `danger` кита. */
 .removeButton {
     margin-left: auto;
-    color: var(--bricks-base-500);
-
-    &:hover {
-        background: var(--bricks-danger-50);
-        color: var(--bricks-danger-500);
-    }
 }
 
 /* Ширины из макета; поля не тянутся, потому что ряд обязан оставаться одной

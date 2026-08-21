@@ -34,6 +34,20 @@ function t(key: string): string {
     const i18n = useNuxtApp().$i18n as Composer | undefined;
     return i18n ? i18n.t(key) : key;
 }
+
+/**
+ * Летящее чтение категорий — по одному на экземпляр стора.
+ *
+ * Второй вызов ждёт его, а не заводит свой запрос: раздел дашборда монтируется
+ * на каждое переключение рейла, и быстрый уход-возврат давал два GET'а сразу.
+ * Это не косметика — второй запрос обесценивает ответ первого номером запроса, и
+ * если сам он потом откажет, ряд чипов остаётся пустым при удачном первом
+ * ответе.
+ *
+ * Держится вне state: это Promise, а state стора сериализуется. Ключ — сам стор,
+ * а не модуль: общий Promise смешал бы SSR-запросы разных пользователей.
+ */
+const pendingCategoriesLoads = new WeakMap<object, Promise<void>>();
 // #endregion
 
 export const useMediaCategoriesStore = defineStore('bricksMediaCategories', {
@@ -43,6 +57,15 @@ export const useMediaCategoriesStore = defineStore('bricksMediaCategories', {
         // медиа: локальная вставка чипа обгоняет летящий GET, и его ответ иначе
         // скрыл бы созданную категорию или вернул удалённую
         categoriesRequestId: 0,
+        // Виден ли весь состав ряда чипов. `categories.length > 0` этого не
+        // означает: созданная категория ложится в список локально, до всякого
+        // GET'а. Разница нужна тем, кто открывает медиатеку повторно (раздел
+        // дашборда монтируется на каждое переключение) и не должен слать
+        // одинаковый GET на каждый показ.
+        //
+        // Отказом не сбрасывается: последний удачный ответ остаётся достоверным
+        // снимком, даже если следующий запрос не дошёл.
+        hasLoadedCategoriesSnapshot: false,
     }),
 
     actions: {
@@ -54,6 +77,32 @@ export const useMediaCategoriesStore = defineStore('bricksMediaCategories', {
          * получает вызывающий.
          */
         async loadCategories(): Promise<void> {
+            const pending = pendingCategoriesLoads.get(this);
+
+            if (pending) {
+                return pending;
+            }
+
+            const request = this.requestCategories();
+
+            pendingCategoriesLoads.set(this, request);
+
+            try {
+                await request;
+            } finally {
+                // Снимается ровно своё чтение: пока шло это, локальная запись
+                // могла обесценить его и завести новое
+                if (pendingCategoriesLoads.get(this) === request) {
+                    pendingCategoriesLoads.delete(this);
+                }
+            }
+        },
+
+        /**
+         * Само чтение категорий. Отдельно от `loadCategories`, потому что тот
+         * сводит одновременные вызовы к одному запросу.
+         */
+        async requestCategories(): Promise<void> {
             const { apiFetcher } = useApiClient();
             const requestId = ++this.categoriesRequestId;
 
@@ -69,6 +118,9 @@ export const useMediaCategoriesStore = defineStore('bricksMediaCategories', {
                 }
 
                 this.categories = response.items.map((item) => toCamelCase<IMediaCategory>(item));
+                // Только здесь: ответ принят, значит ряд равен составу категорий
+                // на момент ответа. У вытесненного запроса выход выше
+                this.hasLoadedCategoriesSnapshot = true;
             } catch (error: unknown) {
                 // Отказ вытесненного запроса вызывающему не докладывается: тост об
                 // устаревшей попытке накрыл бы результат более свежей
@@ -88,14 +140,25 @@ export const useMediaCategoriesStore = defineStore('bricksMediaCategories', {
          */
         invalidatePendingCategoriesLoad(): void {
             this.categoriesRequestId += 1;
+            // Летящее чтение обесценено, и ждать его нельзя: следующий вызов
+            // обязан завести свой запрос, иначе он дождался бы ответа, который
+            // уже некуда применить
+            pendingCategoriesLoads.delete(this);
         },
 
         /**
          * Отпускает перечитывание категорий — по той же причине, что у списка
          * медиа: после обрыва записи по потолку ожидания исход неизвестен, и это
          * единственная возможность его увидеть. Отказ гасится здесь же.
+         *
+         * Летящее чтение сначала обесценивается: оно могло стартовать ДО
+         * оборванной записи, а такой ответ об её исходе ничего не знает — без
+         * этого коалесинг подсунул бы его как достоверный снимок, и ряд чипов
+         * остался бы прежним.
          */
         reloadCategoriesDetached(): void {
+            this.invalidatePendingCategoriesLoad();
+
             this.loadCategories().catch((error: unknown) => {
                 console.warn('[Media Store] Categories reload after write timeout failed:', error);
             });

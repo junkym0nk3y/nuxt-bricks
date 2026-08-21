@@ -22,6 +22,13 @@ export interface IBricksSelectEmits {
 export interface IBricksInputProps {
     value: string | number | boolean | null | undefined;
     label?: string;
+    /**
+     * Доступное имя поля, когда подписи нет ни в `label`, ни в `placeholder`.
+     * Нужно полям, подписанным снаружи собственной разметкой вызывающего: без
+     * него скринридер читает у поля только значение, но не то, чем это поле
+     * является (адрес файла, а не просто строка).
+     */
+    ariaLabel?: string;
     disabled?: boolean;
     placeholder?: string;
     type?: 'text' | 'number' | 'slug' | 'password';

@@ -333,11 +333,16 @@ defineExpose({
                 >
                     {{ t('bricks.publish.dashboard.row.duplicate') }}
                 </BricksButton>
+                <!--
+                    Сторона `xl` 40 — вровень с «Дублировать» рядом: у кнопки
+                    кита `md` высота 39, и меньшая сторона читалась как
+                    просевшая кнопка в паре
+                -->
                 <BricksIconButton
                     v-if="canDelete"
                     icon="ta:outline-trash"
                     :label="t('bricks.publish.dashboard.row.delete')"
-                    size="lg"
+                    size="xl"
                     danger
                     @click="handleDelete"
                 />

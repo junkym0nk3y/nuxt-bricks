@@ -10,9 +10,6 @@ import type {
 // Vue
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-
-// Composables
-import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
 // #endregion
 
 // #region Props
@@ -25,7 +22,6 @@ const emit = defineEmits<IPublishDashboardNavEmits>();
 
 // #region Data
 const { t } = useI18n();
-const { canEdit } = useBuilderPermissions();
 
 interface INavSection {
     key: TPublishDashboardSection;
@@ -49,6 +45,11 @@ const NAV_SECTIONS: INavSection[] = [
         icon: 'ta:outline-users',
         labelKey: 'bricks.publish.dashboard.nav.users',
     },
+    {
+        key: 'media',
+        icon: 'ta:outline-photo-video',
+        labelKey: 'bricks.publish.dashboard.nav.media',
+    },
 ];
 // #endregion
 
@@ -63,15 +64,16 @@ const visibleSections = computed<INavSection[]>(() =>
 
 /**
  * Счётчики разделов. `null` — значение неизвестно, и счётчик не рисуется: у
- * учёток и шаблонов он появляется только после успешной загрузки списка. У
- * учёток ноль на его месте читался бы как «учёток нет» (чего не бывает — кто-то
- * же вошёл), у шаблонов ноль — законное значение, и от «ещё не прочитано» его
- * отличает как раз `null`.
+ * учёток, шаблонов и медиатеки он появляется только после успешной загрузки
+ * списка. У учёток ноль на его месте читался бы как «учёток нет» (чего не
+ * бывает — кто-то же вошёл), у шаблонов и файлов ноль — законное значение, и от
+ * «ещё не прочитано» его отличает как раз `null`.
  */
 const sectionCounters = computed<Record<TPublishDashboardSection, number | null>>(() => ({
     pages: props.pagesCount,
     templates: props.templatesCount,
     users: props.usersCount,
+    media: props.mediaCount,
 }));
 
 const darkModeIcon = computed<string>(() =>
@@ -91,13 +93,6 @@ const darkModeLabel = computed<string>(() =>
  */
 function handleSelectSection(section: TPublishDashboardSection): void {
     emit('select-section', section);
-}
-
-/**
- * Открывает медиа-галерею (Media — действие, не раздел).
- */
-function handleOpenMedia(): void {
-    emit('open-media');
 }
 
 /**
@@ -138,16 +133,6 @@ function handleToggleLocale(): void {
                 <span v-if="sectionCounters[section.key] !== null" :class="$style.itemCounter">
                     {{ sectionCounters[section.key] }}
                 </span>
-            </button>
-
-            <!--
-                Медиатека — вход в загрузку и правку файлов: у роли без права
-                правки она открылась бы формой, каждое действие которой
-                заканчивается отказом сервера
-            -->
-            <button v-if="canEdit" type="button" :class="$style.item" @click="handleOpenMedia">
-                <BricksIcon icon="ta:outline-photo-video" :class="$style.itemIcon" />
-                <span :class="$style.itemLabel">{{ t('bricks.publish.dashboard.nav.media') }}</span>
             </button>
         </div>
 

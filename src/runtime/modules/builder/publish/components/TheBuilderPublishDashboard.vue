@@ -60,6 +60,17 @@ const isCreatePageVisible = computed<boolean>(
 const isCreateUserVisible = computed<boolean>(
     () => props.activeSection === 'users' && canManageUsers.value
 );
+
+/**
+ * Первичное действие медиатеки — загрузка файлов, и её контролы оболочка не
+ * рисует сама: за ними тянутся `useMediaUpload`, скрытый file-input и поповер
+ * параметров, то есть весь домен медиа в оболочке дашборда. Приходят они
+ * слотом, а решение «показывать ли» остаётся здесь — рядом с решениями про
+ * страницы и учётки, чтобы права на первичное действие читались одним местом.
+ */
+const isMediaUploadVisible = computed<boolean>(
+    () => props.activeSection === 'media' && canEdit.value
+);
 // #endregion
 
 // #region Methods
@@ -93,13 +104,6 @@ function handleCreatePage(): void {
  */
 function handleCreateUser(): void {
     emit('create-user');
-}
-
-/**
- * Открывает медиа-галерею.
- */
-function handleOpenMedia(): void {
-    emit('open-media');
 }
 
 /**
@@ -185,6 +189,9 @@ function onViewLeave(element: Element): void {
                     + {{ t('bricks.users.createUser') }}
                 </BricksButton>
 
+                <!-- Загрузка файлов: контролы приносит хост, гейт роли — здесь -->
+                <slot v-else-if="isMediaUploadVisible" name="headerAction" />
+
                 <!--
                     Аватар — последний в правой группе, как в тулбаре билдера: он
                     не действие панели, а «кем вошёл». Вне database-режима не
@@ -208,11 +215,11 @@ function onViewLeave(element: Element): void {
                 :pages-count="props.pagesCount"
                 :templates-count="props.templatesCount"
                 :users-count="props.usersCount"
+                :media-count="props.mediaCount"
                 :is-users-section-visible="props.isUsersSectionVisible"
                 :locale="locale"
                 :is-dark-mode="props.isDarkMode"
                 @select-section="handleSelectSection"
-                @open-media="handleOpenMedia"
                 @open-docs="handleOpenDocs"
                 @toggle-dark-mode="handleToggleDarkMode"
                 @toggle-locale="handleToggleLocale"
@@ -235,7 +242,7 @@ function onViewLeave(element: Element): void {
                     <div
                         v-if="props.activeSection === 'pages'"
                         key="pages"
-                        :class="$style.pagesArea"
+                        :class="$style.splitArea"
                     >
                         <div :class="$style.listArea">
                             <slot name="list" />
@@ -243,6 +250,26 @@ function onViewLeave(element: Element): void {
                         <Transition name="bricks-details-slide">
                             <aside v-if="$slots.details" :class="$style.detailsArea">
                                 <slot name="details" />
+                            </aside>
+                        </Transition>
+                    </div>
+
+                    <!--
+                        Медиатека раскладывается как страницы: сетка плюс панель
+                        деталей выбранного файла в том же контейнере 34rem —
+                        отдел дашборда, а не окно поверх него
+                    -->
+                    <div
+                        v-else-if="props.activeSection === 'media'"
+                        key="media"
+                        :class="$style.splitArea"
+                    >
+                        <div :class="$style.listArea">
+                            <slot name="media" />
+                        </div>
+                        <Transition name="bricks-details-slide">
+                            <aside v-if="$slots.mediaDetails" :class="$style.detailsArea">
+                                <slot name="mediaDetails" />
                             </aside>
                         </Transition>
                     </div>
@@ -333,10 +360,10 @@ function onViewLeave(element: Element): void {
     flex: 1;
 }
 
-/* Раздел страниц целиком: список плюс панель деталей. Повторяет раскладку
-   `.main`, потому что встал между ним и своим содержимым — обёртку потребовал
-   переход между разделами. */
-.pagesArea {
+/* Раздел с панелью деталей целиком (страницы и медиатека): список плюс панель.
+   Повторяет раскладку `.main`, потому что встал между ним и своим содержимым —
+   обёртку потребовал переход между разделами. */
+.splitArea {
     overflow: hidden;
     display: flex;
     flex: 1;

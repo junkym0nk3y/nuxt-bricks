@@ -44,6 +44,9 @@ const props = withDefaults(defineProps<IBricksIconButtonProps>(), {
     // стал бы `false`, и `aria-pressed` объявлял бы переключателем каждое
     // обычное действие
     active: undefined,
+    // Тем же приёмом, что `active`: отсутствующий проп не должен становиться
+    // `false` и вешать `aria-expanded` на кнопку, которая ничего не раскрывает
+    expanded: undefined,
     variant: 'outlined',
     size: 'md',
     danger: false,
@@ -110,6 +113,8 @@ function handleClick(event: MouseEvent): void {
                 :disabled="props.disabled"
                 :aria-disabled="props.muted || undefined"
                 :aria-pressed="props.active"
+                :aria-expanded="props.expanded"
+                :aria-haspopup="props.expanded === undefined ? undefined : 'dialog'"
                 :aria-label="props.label"
                 @click="handleClick"
             >
@@ -145,6 +150,12 @@ function handleClick(event: MouseEvent): void {
     /* Сторона задаёт и кегль: глиф наследует `font-size` кнопки, и без явного
        значения его размер зависел бы от кегля окружающего текста — та же
        ловушка, из-за которой у `BricksButton` кегль прописан внутри `_equal`. */
+    &._sm {
+        width: 2rem;
+        height: 2rem;
+        font-size: 1.4rem;
+    }
+
     &._md {
         width: 2.8rem;
         height: 2.8rem;
@@ -157,6 +168,12 @@ function handleClick(event: MouseEvent): void {
         font-size: 1.6rem;
     }
 
+    &._xl {
+        width: 4rem;
+        height: 4rem;
+        font-size: 1.8rem;
+    }
+
     &._outlined {
         border-radius: var(--bricks-border-radius-xs);
         border-color: var(--bricks-base-200);
@@ -165,6 +182,16 @@ function handleClick(event: MouseEvent): void {
 
     &._ghost {
         border-radius: var(--bricks-border-radius-xs);
+    }
+
+    /* Приподнятая плашка тулбара: кнопка стоит на фоне самой панели, и без
+       собственного фона терялась бы на нём — рамки, как у `outlined`, при этом
+       не нужно, её роль играет плашка. Скин повторяет `quiet` у `BricksButton`:
+       одно и то же место интерфейса, две разные кнопки. */
+    &._quiet {
+        border-radius: var(--bricks-border-radius-xs);
+        border-color: transparent;
+        background: var(--bricks-surface-raised);
     }
 
     /* Кнопка лежит на тёмной вуали в обеих темах, поэтому цвет статичный:
@@ -193,6 +220,10 @@ function handleClick(event: MouseEvent): void {
             color: var(--bricks-base-700);
         }
 
+        &._quiet:hover {
+            color: var(--bricks-base-900);
+        }
+
         &._overlay:hover {
             background: var(--bricks-overlay-light);
         }
@@ -204,6 +235,7 @@ function handleClick(event: MouseEvent): void {
         }
 
         &._ghost._danger:hover,
+        &._quiet._danger:hover,
         &._overlay._danger:hover {
             background: var(--bricks-danger-50);
             color: var(--bricks-danger-500);

@@ -4,18 +4,19 @@
 
 import type { TBricksPageDeviceSet } from '../../../common/types/devices';
 import type { ComputedRef, Ref } from 'vue';
-import type {
-    IPageVersion,
-    IPageVersionSummary,
-    TPublishedPageSummary,
-} from '../../../common/types/bricks-api';
+import type { IPageVersionSummary, TPublishedPageSummary } from '../../../common/types/bricks-api';
 import type { IBricksSchema } from '../../../common/types/brick';
 import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 import type {
     IImageResolverState,
     TImageResolveAction,
 } from '../../media/types/schemaImageResolver';
-import type { TMediaLightboxItem } from '../../media/types/media';
+import type { IMediaUploadProgress, TMediaLightboxItem } from '../../media/types/media';
+import type {
+    IBricksMediaOptimization,
+    IMediaItem,
+    IMediaUpdateMetaRequest,
+} from '../../../common/types/media';
 
 // #region usePublishVersionRestore
 /**
@@ -84,23 +85,69 @@ export interface IUsePublishDashboardPreferencesReturn {
 
 // #region usePublishMediaGallery
 /**
- * Роль, в которой открыта медиа-галерея: менеджер файлов (пункт рейла) или пикер
- * OG-изображения панели деталей. Пикер возвращает выбранный файл в форму,
- * менеджер не возвращает ничего.
- */
-export type TPublishMediaGalleryContext = 'manager' | 'properties';
-
-/**
  * Возвращаемое значение `usePublishMediaGallery`.
  */
 export interface IUsePublishMediaGalleryReturn {
     /** Компонент галереи нужно держать в разметке (латч первого открытия). */
     shouldMount: Ref<boolean>;
     isOpen: Ref<boolean>;
-    context: Ref<TPublishMediaGalleryContext>;
-    openAsManager: () => void;
-    openAsPicker: () => void;
+    open: () => void;
     close: () => void;
+}
+// #endregion
+
+// #region usePublishMediaSurface
+/**
+ * Опции `usePublishMediaSurface`.
+ */
+export interface IUsePublishMediaSurfaceOptions {
+    onNotify: (message: string, variant: 'success' | 'error') => void;
+}
+
+/**
+ * Возвращаемое значение `usePublishMediaSurface`: состояние медиатеки, общее у
+ * шапки дашборда, тела раздела и панели деталей файла.
+ */
+export interface IUsePublishMediaSurfaceReturn {
+    /**
+     * Активная категория дорожки. Живёт здесь, а не в разделе, потому что
+     * определяет категорию загружаемых файлов, а кнопка загрузки стоит в шапке
+     * дашборда — то есть вне раздела.
+     */
+    categoryFilter: Ref<string>;
+    /** Потолок размера картинки из конфига модуля — подсказка загрузки. */
+    maxImageSizeMb: number;
+    /** Потолок размера видео из конфига модуля. */
+    maxVideoSizeMb: number;
+    /** Параметры оптимизации из конфига — к ним возвращается поповер. */
+    defaultOptimization: IBricksMediaOptimization;
+    uploadOptimization: Ref<IBricksMediaOptimization>;
+    /** Прогресс текущей загрузки; `null` — загрузки нет. */
+    uploadProgress: Ref<IMediaUploadProgress | null>;
+    /** Выбранный файл; `null` — панель деталей закрыта. */
+    selectedItemId: Ref<number | null>;
+    selectedItem: ComputedRef<IMediaItem | null>;
+    /** Файл, открытый во весь экран; `null` — лайтбокс закрыт. */
+    previewItem: Ref<IMediaItem | null>;
+    /** Число файлов для счётчика рейла; `null` — список ещё не прочитан. */
+    mediaCount: ComputedRef<number | null>;
+    isDeleteConfirmOpen: Ref<boolean>;
+    isDeleting: Ref<boolean>;
+    /** Читает список файлов, если достоверного снимка ещё нет. */
+    ensureMedia: () => Promise<void>;
+    uploadFiles: (files: File[]) => Promise<void>;
+    setOptimization: (value: IBricksMediaOptimization) => void;
+    selectItem: (item: IMediaItem) => void;
+    closeDetails: () => void;
+    openPreview: (item: IMediaItem) => void;
+    closePreview: () => void;
+    updateMeta: (meta: IMediaUpdateMetaRequest) => Promise<void>;
+    updateCategory: (category: string | null) => Promise<void>;
+    requestDelete: () => void;
+    closeDeleteConfirm: () => void;
+    confirmDelete: () => Promise<void>;
+    /** Сбрасывает фильтр, поиск-независимое состояние и параметры загрузки. */
+    resetSurface: () => void;
 }
 // #endregion
 

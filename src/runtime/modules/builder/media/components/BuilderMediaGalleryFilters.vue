@@ -33,9 +33,8 @@ import { useBuilderPermissions } from '../../core/composables/useBuilderPermissi
 
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
+import BricksIconButton from '../../../ui/base/icon-button/BricksIconButton.vue';
 import BricksInput from '../../../ui/inputs/BricksInput.vue';
-import BricksTooltip from '../../../ui/base/tooltip/BricksTooltip.vue';
-import BricksTooltipHint from '../../../ui/base/tooltip/BricksTooltipHint.vue';
 import BuilderMediaGalleryCategoryTabs from './BuilderMediaGalleryCategoryTabs.vue';
 // #endregion
 
@@ -101,6 +100,11 @@ const duplicateError = computed<string | null>(() => {
 
 const canSubmitCategory = computed<boolean>(
     () => Boolean(newCategoryLabel.value.trim()) && !duplicateError.value
+);
+
+/** Подпись переключателя режима управления — она же текст его подсказки. */
+const manageLabel = computed<string>(() =>
+    isManaging.value ? t('bricks.media.categoryManageDone') : t('bricks.media.categoryManage')
 );
 // #endregion
 
@@ -187,107 +191,87 @@ watch(hasDeletableCategories, (hasDeletable) => {
             Весь блок — правка библиотеки: без права правки категории только
             фильтруют
         -->
-        <Transition v-if="canEdit" mode="out-in" name="bricks-fade-fast">
-            <div v-if="isCreateOpen" :class="$style.createRow">
-                <BricksInput
-                    ref="createInputRef"
-                    :class="$style.createInput"
-                    :value="newCategoryLabel"
-                    type="text"
-                    :placeholder="t('bricks.media.categoryNamePlaceholder')"
-                    :disabled="props.isCreatingCategory"
-                    :error-message="duplicateError"
-                    @update:value="newCategoryLabel = $event"
-                    @keydown.enter.prevent="handleSubmitCategory"
-                    @keydown.esc.prevent="handleCancelCreate"
-                />
+        <div v-if="canEdit" :class="$style.rowTail">
+            <Transition mode="out-in" name="bricks-fade-fast">
+                <div v-if="isCreateOpen" :class="$style.createRow">
+                    <BricksInput
+                        ref="createInputRef"
+                        :class="$style.createInput"
+                        :value="newCategoryLabel"
+                        type="text"
+                        :placeholder="t('bricks.media.categoryNamePlaceholder')"
+                        :disabled="props.isCreatingCategory"
+                        :error-message="duplicateError"
+                        @update:value="newCategoryLabel = $event"
+                        @keydown.enter.prevent="handleSubmitCategory"
+                        @keydown.esc.prevent="handleCancelCreate"
+                    />
 
-                <BricksButton
-                    size="sm"
-                    variant="primary"
-                    equal
-                    :disabled="!canSubmitCategory || props.isCreatingCategory"
-                    :aria-label="t('bricks.media.categoryCreateConfirm')"
-                    @click="handleSubmitCategory"
-                >
-                    <BricksIcon icon="ta:outline-plus" />
-                </BricksButton>
+                    <BricksButton
+                        size="sm"
+                        variant="primary"
+                        equal
+                        :disabled="!canSubmitCategory || props.isCreatingCategory"
+                        :aria-label="t('bricks.media.categoryCreateConfirm')"
+                        @click="handleSubmitCategory"
+                    >
+                        <BricksIcon icon="ta:outline-plus" />
+                    </BricksButton>
 
-                <BricksButton
-                    size="sm"
-                    variant="secondary"
-                    equal
-                    :aria-label="t('bricks.common.cancel')"
-                    @click="handleCancelCreate"
-                >
-                    <BricksIcon icon="ta:outline-x" />
-                </BricksButton>
-            </div>
+                    <BricksButton
+                        size="sm"
+                        variant="secondary"
+                        equal
+                        :aria-label="t('bricks.common.cancel')"
+                        @click="handleCancelCreate"
+                    >
+                        <BricksIcon icon="ta:outline-x" />
+                    </BricksButton>
+                </div>
 
-            <!--
+                <!--
                 Обёртка обязательна: `BricksTooltip` рендерит фрагмент
                 (активатор + портал подсказки), а `Transition` умеет работать
                 только с одним корневым элементом ветки. Без span'а режим
                 `out-in` встаёт в клин — уходящая ветка не сообщает о конце, и
                 входящая не монтируется вовсе. Тот же приём у `BricksTabBar`.
             -->
-            <span v-else :class="$style.rowActions">
-                <BricksTooltip top>
-                    <template #activator>
-                        <BricksButton
-                            size="sm"
-                            variant="ghost"
-                            equal
-                            :aria-label="t('bricks.media.categoryCreate')"
-                            @click="handleOpenCreate"
-                        >
-                            <BricksIcon icon="ta:outline-plus" />
-                        </BricksButton>
-                    </template>
+                <span v-else :class="$style.rowActions">
+                    <BricksIconButton
+                        icon="ta:outline-plus"
+                        :label="t('bricks.media.categoryCreate')"
+                        variant="ghost"
+                        size="lg"
+                        tooltip-side="top"
+                        @click="handleOpenCreate"
+                    />
 
-                    <template #default>
-                        <BricksTooltipHint :text="t('bricks.media.categoryCreate')" />
-                    </template>
-                </BricksTooltip>
-
-                <!--
+                    <!--
                     Режим управления открывает крестики удаления, а удаление —
                     право администратора: редактору он показал бы ряд без единого
                     крестика
                 -->
-                <BricksTooltip v-if="hasDeletableCategories && canDelete" top>
-                    <template #activator>
-                        <BricksButton
-                            size="sm"
-                            variant="ghost"
-                            equal
-                            :active="isManaging"
-                            :aria-label="
-                                isManaging
-                                    ? t('bricks.media.categoryManageDone')
-                                    : t('bricks.media.categoryManage')
-                            "
-                            :aria-pressed="isManaging"
-                            @click="handleToggleManaging"
-                        >
-                            <BricksIcon
-                                :icon="isManaging ? 'ta:outline-check' : 'ta:outline-pencil'"
-                            />
-                        </BricksButton>
-                    </template>
+                    <BricksIconButton
+                        v-if="hasDeletableCategories && canDelete"
+                        :icon="isManaging ? 'ta:outline-check' : 'ta:outline-pencil'"
+                        :label="manageLabel"
+                        :active="isManaging"
+                        variant="ghost"
+                        size="lg"
+                        tooltip-side="top"
+                        @click="handleToggleManaging"
+                    />
+                </span>
+            </Transition>
 
-                    <template #default>
-                        <BricksTooltipHint
-                            :text="
-                                isManaging
-                                    ? t('bricks.media.categoryManageDone')
-                                    : t('bricks.media.categoryManage')
-                            "
-                        />
-                    </template>
-                </BricksTooltip>
-            </span>
-        </Transition>
+            <!--
+                Хвост ряда для действий вызывающего: раздел дашборда ставит сюда
+                шестерёнку параметров загрузки — она относится не к дорожке, а к
+                тому, что уедет в выбранную категорию. Вне `Transition`, иначе
+                открытое поле создания категории уносило бы её с собой
+            -->
+            <slot name="actions" />
+        </div>
     </div>
 </template>
 <style module lang="scss">
@@ -317,6 +301,15 @@ watch(hasDeletableCategories, (hasDeletable) => {
     display: inline-flex;
     align-items: center;
     padding-bottom: 0.2rem;
+    gap: 0.2rem;
+}
+
+/* Хвост ряда: действия над категориями плюс то, что добавил вызывающий. Своя
+   обёртка нужна, потому что подмена «поле создания ↔ кнопки» живёт в
+   `Transition`, а слот обязан остаться на месте при обеих ветках. */
+.rowTail {
+    display: inline-flex;
+    align-items: center;
     gap: 0.2rem;
 }
 

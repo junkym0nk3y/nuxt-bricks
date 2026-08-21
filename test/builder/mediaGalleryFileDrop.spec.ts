@@ -19,7 +19,7 @@ import type { IMediaGalleryFileDrop } from '../../src/runtime/modules/builder/me
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Vue
-import { defineComponent, h } from 'vue';
+import { defineComponent, effectScope, h } from 'vue';
 import { mount } from '@vue/test-utils';
 
 // Composables
@@ -69,6 +69,28 @@ function createDragEvent(files: File[]): DragEvent {
     files.forEach((file) => dataTransfer.items.add(file));
 
     return { preventDefault: (): void => undefined, dataTransfer } as unknown as DragEvent;
+}
+
+/**
+ * Событие перетаскивания, которое помнит, гасили ли его.
+ *
+ * @param files - Перетаскиваемые файлы.
+ * @returns Событие и флаг подавления.
+ */
+function createTrackedDragEvent(files: File[]): { event: DragEvent; isPrevented: () => boolean } {
+    const dataTransfer = new DataTransfer();
+
+    files.forEach((file) => dataTransfer.items.add(file));
+
+    let prevented = false;
+    const event = {
+        preventDefault: (): void => {
+            prevented = true;
+        },
+        dataTransfer,
+    } as unknown as DragEvent;
+
+    return { event, isPrevented: () => prevented };
 }
 
 /** Один перетаскиваемый файл. */
@@ -155,5 +177,50 @@ describe('приёмник файлов галереи: сторож тишин�
         unmount();
 
         expect(vi.getTimerCount()).toBe(0);
+    });
+});
+
+// Гейт роли решает, ЗАГРУЗЯТСЯ ли файлы, но не отдаёт браузеру нативную
+// обработку: без `preventDefault` документ откроет брошенный файл соседней
+// вкладкой, то есть роль без права записи получила бы уход со страницы вместо
+// «ничего не произошло»
+describe('приёмник файлов галереи: выключенный приёмник', () => {
+    it('гасит перетаскивание и drop, но файлы не принимает', () => {
+        const onFiles = vi.fn();
+        const scope = effectScope();
+        const drop = scope.run(() =>
+            useMediaGalleryFileDrop({ onFiles, isEnabled: () => false })
+        ) as ReturnType<typeof useMediaGalleryFileDrop>;
+
+        const over = createTrackedDragEvent([makeFile()]);
+        const enter = createTrackedDragEvent([makeFile()]);
+        const dropped = createTrackedDragEvent([makeFile()]);
+
+        drop.handleDragOver(over.event);
+        drop.handleDragEnter(enter.event);
+        drop.handleDrop(dropped.event);
+
+        expect(over.isPrevented()).toBe(true);
+        expect(enter.isPrevented()).toBe(true);
+        expect(dropped.isPrevented()).toBe(true);
+        expect(drop.isDraggingFiles.value).toBe(false);
+        expect(onFiles).not.toHaveBeenCalled();
+
+        scope.stop();
+    });
+
+    it('включённый приёмник файлы принимает', () => {
+        const onFiles = vi.fn();
+        const scope = effectScope();
+        const drop = scope.run(() =>
+            useMediaGalleryFileDrop({ onFiles, isEnabled: () => true })
+        ) as ReturnType<typeof useMediaGalleryFileDrop>;
+
+        const dropped = createTrackedDragEvent([makeFile()]);
+        drop.handleDrop(dropped.event);
+
+        expect(onFiles).toHaveBeenCalledTimes(1);
+
+        scope.stop();
     });
 });

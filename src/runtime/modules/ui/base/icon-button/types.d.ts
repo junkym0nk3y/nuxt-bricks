@@ -3,11 +3,18 @@
  *
  * `outlined` — рамка на светлом фоне (строки списков, карточки, инструменты
  * редактора); `ghost` — без рамки, в плотной панели, где рамки соседей уже
- * рисуют сетку; `overlay` — белый глиф поверх тёмной вуали на миниатюре.
+ * рисуют сетку; `quiet` — приподнятая плашка без рамки (тулбар билдера, где
+ * кнопка обязана читаться на собственном фоне панели); `overlay` — белый глиф
+ * поверх тёмной вуали на миниатюре.
  */
-export type TBricksIconButtonVariant = 'outlined' | 'ghost' | 'overlay';
+export type TBricksIconButtonVariant = 'outlined' | 'ghost' | 'quiet' | 'overlay';
 
-export type TBricksIconButtonSize = 'md' | 'lg';
+/**
+ * Сторона квадрата: `sm` 20 (крестик внутри чипа или таба), `md` 28, `lg` 32
+ * (ряды действий и панели), `xl` 40 (тулбар — там кнопка стоит одна и крупнее
+ * соседей по строке).
+ */
+export type TBricksIconButtonSize = 'sm' | 'md' | 'lg' | 'xl';
 
 export type TBricksIconButtonTooltipSide = 'top' | 'bottom' | 'left' | 'right';
 
@@ -44,6 +51,13 @@ export interface IBricksIconButtonProps {
     muted?: boolean;
     /** Над кнопкой идёт операция: курсор ожидания вместо курсора отказа. */
     busy?: boolean;
+    /**
+     * Кнопка раскрывает поповер или меню: значение уезжает в `aria-expanded`, а
+     * сама кнопка объявляется как `aria-haspopup`. Не задан — кнопка ничего не
+     * раскрывает и атрибутов не получает вовсе, иначе скринридер объявлял бы
+     * раскрывающим каждое обычное действие.
+     */
+    expanded?: boolean;
     tooltipSide?: TBricksIconButtonTooltipSide;
 }
 

@@ -29,6 +29,9 @@ from completed-work logs and real bugs or tracked issues.
   `styles`, `naming`, `structure`, `vue-best-practices`) и грабли инструментов
   (`environment` — оболочка, dev-сервер, HMR, git; `testing` — vitest). Живая
   верификация — скилл `verify`.
+- Работа с макетом — `docs/figma-sync-workflow.md`. Оттуда же жёсткое правило:
+  **новый компонент в коде — компонент и в макете** (сет на 🧩 Components плюс
+  инстансы на экранах), копии фреймов по бордам запрещены.
 
 ## Карта репозитория
 

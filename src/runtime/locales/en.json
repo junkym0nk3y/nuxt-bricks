@@ -253,12 +253,13 @@
                     "pages": "Pages",
                     "templates": "Templates",
                     "users": "Users",
-                    "media": "Media"
+                    "media": "Media library"
                 },
                 "search": {
                     "pages": "Search pages...",
                     "templates": "Search templates...",
-                    "users": "Search by name..."
+                    "users": "Search by name...",
+                    "media": "Search by name or alt..."
                 },
                 "filters": {
                     "all": "All",
@@ -480,6 +481,7 @@
             },
             "categoryFilterLabel": "Category filter",
             "emptyNoUploadsHint": "Drop files anywhere in this window or press “Upload”",
+            "emptyNoUploadsSectionHint": "Drop files into this area or press Upload",
             "resetFilter": "Reset filter",
             "selectFileHint": "Select a file to edit its properties",
             "librarySummary": "files in the library: {count} · {size}",
@@ -519,10 +521,23 @@
             },
             "librarySummaryShort": "{count} files · {size}",
             "dropAnywhereHint": "files can be dropped anywhere in this window",
+            "dropSectionHint": "files can be dropped into this area",
             "uploadFiles": "Upload",
             "tileUpload": "Upload files",
             "tileUploadHint": "or drop them here",
-            "noCategory": "No category"
+            "noCategory": "No category",
+            "details": {
+                "about": "About the file",
+                "size": "Size",
+                "dimensions": "Dimensions",
+                "format": "Format",
+                "uploadedAt": "Uploaded",
+                "uploadedOn": "uploaded {date}",
+                "url": "URL",
+                "copyUrl": "Copy URL",
+                "urlCopied": "File URL copied",
+                "copyFailed": "Could not copy the URL"
+            }
         },
         "schema": {
             "title": "Page schema",

@@ -14,10 +14,8 @@ import { useBricksRoutePaths } from '../../../../common/composables/useBricksRou
 import { useBuilderPermissions } from '../../../core/composables/useBuilderPermissions';
 
 // Components
-import BricksButton from '../../../../ui/base/button/BricksButton.vue';
+import BricksIconButton from '../../../../ui/base/icon-button/BricksIconButton.vue';
 import BricksActionButton from '../../../../ui/base/action-button/BricksActionButton.vue';
-import BricksTooltip from '../../../../ui/base/tooltip/BricksTooltip.vue';
-import BricksTooltipHint from '../../../../ui/base/tooltip/BricksTooltipHint.vue';
 import BuilderAuthProfileMenu from '../../../auth/components/BuilderAuthProfileMenu.vue';
 import BuilderLogo from '../../../core/components/BuilderLogo.vue';
 import BuilderShellToolbarPageSelector from './BuilderShellToolbarPageSelector.vue';
@@ -247,43 +245,24 @@ function handleLogout(): void {
                 открылась бы галереей без единого доступного действия, потому что
                 выбирать картинку ему некуда (панели свойств у него нет)
             -->
-            <BricksTooltip v-if="canEdit" bottom>
-                <template #activator>
-                    <BricksButton
-                        size="md"
-                        variant="quiet"
-                        equal
-                        :disabled="!props.isSessionReady"
-                        :aria-label="t('bricks.toolbar.media')"
-                        @click="handleOpenMediaGallery"
-                    >
-                        <BricksIcon :class="$style.icon" icon="ta:outline-photo-video" />
-                    </BricksButton>
-                </template>
+            <BricksIconButton
+                v-if="canEdit"
+                icon="ta:outline-photo-video"
+                :label="t('bricks.toolbar.media')"
+                variant="quiet"
+                size="xl"
+                :disabled="!props.isSessionReady"
+                @click="handleOpenMediaGallery"
+            />
 
-                <template #default>
-                    <BricksTooltipHint :text="t('bricks.toolbar.media')" />
-                </template>
-            </BricksTooltip>
-
-            <BricksTooltip bottom>
-                <template #activator>
-                    <BricksButton
-                        size="md"
-                        variant="quiet"
-                        equal
-                        :disabled="!props.isSessionReady"
-                        :aria-label="t('bricks.toolbar.preview')"
-                        @click="handlePreview"
-                    >
-                        <BricksIcon :class="$style.icon" icon="ta:outline-browser-share" />
-                    </BricksButton>
-                </template>
-
-                <template #default>
-                    <BricksTooltipHint :text="t('bricks.toolbar.preview')" />
-                </template>
-            </BricksTooltip>
+            <BricksIconButton
+                icon="ta:outline-browser-share"
+                :label="t('bricks.toolbar.preview')"
+                variant="quiet"
+                size="xl"
+                :disabled="!props.isSessionReady"
+                @click="handlePreview"
+            />
 
             <!-- Сохранение и публикация — записи: у наблюдателя их нет вовсе -->
             <BricksActionButton

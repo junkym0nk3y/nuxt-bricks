@@ -9,8 +9,42 @@ import type { IBricksComponent, IBricksSchema } from '../../../common/types/bric
 import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 import type { IParsedSchemaFile } from './composables';
 import type { TBricksTemplateSummary } from '../../../common/types/templates';
+import type { ComputedRef, Ref } from 'vue';
 
-export type TPublishDashboardSection = 'pages' | 'templates' | 'users';
+export type TPublishDashboardSection = 'pages' | 'templates' | 'users' | 'media';
+
+// #region usePublishDashboardSections
+/**
+ * Опции `usePublishDashboardSections`.
+ */
+export interface IUsePublishDashboardSectionsOptions {
+    /**
+     * Строка поиска страниц. Приходит снаружи, а не заводится здесь: ею владеет
+     * `usePublishDashboard` — там же, где фильтры и отфильтрованный список.
+     */
+    pagesSearchQuery: Ref<string>;
+    /** Доступен ли раздел учёток: права плюс ответившие ручки. */
+    isUsersSectionVisible: ComputedRef<boolean>;
+    /** Ушли с медиатеки: закрыть сессию работы с ней. */
+    onLeaveMedia: () => void;
+    /** Вошли в медиатеку: дослать список файлов, если снимка ещё нет. */
+    onEnterMedia: () => void;
+}
+
+/**
+ * Возвращаемое значение `usePublishDashboardSections`.
+ */
+export interface IUsePublishDashboardSectionsReturn {
+    activeSection: Ref<TPublishDashboardSection>;
+    usersSearchQuery: Ref<string>;
+    templatesSearchQuery: Ref<string>;
+    mediaSearchQuery: Ref<string>;
+    /** Запрос открытого раздела — то, что показывает поле шапки. */
+    activeSearchQuery: ComputedRef<string>;
+    selectSection: (section: TPublishDashboardSection) => void;
+    setSearchQuery: (value: string) => void;
+}
+// #endregion
 
 export type TPublishPagesFilter = 'all' | 'published' | 'drafts';
 
@@ -37,6 +71,12 @@ export interface IPublishDashboardProps {
      */
     usersCount: number | null;
     /**
+     * Число файлов медиатеки для счётчика рейла; `null` — список ещё не
+     * прочитан. Ноль здесь законен (пустая медиатека), поэтому «ещё не читали»
+     * отличается именно `null`.
+     */
+    mediaCount: number | null;
+    /**
      * Показывать ли раздел «Пользователи». Складывается из двух разных вещей —
      * прав на управление учётками и того, отвечают ли ручки вообще (в установке
      * без них раздела нет), — поэтому решает хост, а не сам рейл: право он
@@ -52,7 +92,6 @@ export interface IPublishDashboardEmits {
     'create-page': [];
     /** Первичная кнопка шапки в разделе «Пользователи». */
     'create-user': [];
-    'open-media': [];
     'open-docs': [];
     'toggle-dark-mode': [];
     'toggle-locale': [];
@@ -68,6 +107,8 @@ export interface IPublishDashboardNavProps {
     templatesCount: number | null;
     /** Число учёток; `null` — не прочитано, счётчик скрыт. */
     usersCount: number | null;
+    /** Число файлов медиатеки; `null` — не прочитано, счётчик скрыт. */
+    mediaCount: number | null;
     /** Раздел «Пользователи» доступен: есть права и ручки отвечают. */
     isUsersSectionVisible: boolean;
     locale: string;
@@ -76,7 +117,6 @@ export interface IPublishDashboardNavProps {
 
 export interface IPublishDashboardNavEmits {
     'select-section': [section: TPublishDashboardSection];
-    'open-media': [];
     'open-docs': [];
     'toggle-dark-mode': [];
     'toggle-locale': [];

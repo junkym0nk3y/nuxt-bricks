@@ -57,6 +57,7 @@ vi.mock('../../src/runtime/modules/builder/media/stores/mediaCategories', () => 
 // #endregion
 
 import BuilderMediaGalleryFilters from '../../src/runtime/modules/builder/media/components/BuilderMediaGalleryFilters.vue';
+import BuilderMediaGalleryGrid from '../../src/runtime/modules/builder/media/components/BuilderMediaGalleryGrid.vue';
 import { useMediaCategoryActions } from '../../src/runtime/modules/builder/media/composables/useMediaCategoryActions';
 import { resetNuxtStateStub } from '../stubs/nuxt-imports';
 
@@ -177,6 +178,56 @@ describe('медиатека: контролы по роли', () => {
 
         expect(labels).toContain('bricks.media.categoryCreate:');
         expect(labels).toContain('bricks.media.categoryManage:');
+    });
+});
+
+/**
+ * Монтирует сетку медиатеки под заданной ролью.
+ *
+ * @param role - Роль сессии.
+ * @returns Обёртка компонента.
+ */
+function mountGrid(role: TBricksUserRole): VueWrapper {
+    requestContext.role = role;
+
+    return mount(BuilderMediaGalleryGrid, {
+        props: {
+            items: [],
+            selectedItemId: null,
+            showSkeleton: false,
+            showUploadTile: true,
+        },
+        global: {
+            components: { BricksIcon: BricksIconStub },
+            stubs: {
+                BricksButton: true,
+                BricksImage: true,
+                BricksBadge: true,
+                BricksSkeleton: true,
+            },
+        },
+    });
+}
+
+// Плитка-приёмник — вход в загрузку: у роли без права записи она открывала бы
+// системный выбор файлов, который ничем не заканчивается (скрытый input живёт в
+// контролах загрузки, а их этой роли уже не показывают)
+describe('медиатека: плитка-приёмник по роли', () => {
+    beforeEach(() => {
+        requestContext.role = 'admin';
+        resetNuxtStateStub();
+    });
+
+    it('редактор плитку получает', () => {
+        const wrapper = mountGrid('editor');
+
+        expect(wrapper.text()).toContain('bricks.media.tileUpload');
+    });
+
+    it('наблюдателю плитки нет', () => {
+        const wrapper = mountGrid('viewer');
+
+        expect(wrapper.text()).not.toContain('bricks.media.tileUpload');
     });
 });
 

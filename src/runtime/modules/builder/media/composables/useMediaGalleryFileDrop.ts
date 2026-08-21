@@ -46,6 +46,18 @@ export function useMediaGalleryFileDrop(
     const dragDepth = ref(0);
     let dragIdleTimer: ReturnType<typeof setTimeout> | null = null;
 
+    /**
+     * Принимает ли приёмник файлы сейчас. Проверяется на каждом событии, а не
+     * один раз при создании: право приезжает контекстом запроса и в сборке без
+     * SSR доходит уже после первого кадра.
+     *
+     * Гейт живёт здесь, а не в разметке вызывающего: без `preventDefault` на
+     * `dragover` браузер откроет брошенный файл соседней вкладкой, а оверлей
+     * «отпустите — к загрузке» у роли без права обещал бы загрузку, которую
+     * потом молча отсекает проверка перед отправкой.
+     */
+    const isEnabled = (): boolean => options.isEnabled?.() ?? true;
+
     const isDraggingFiles = computed<boolean>(() => draggedFileCount.value > 0);
 
     /** Гасит сторож тишины перетаскивания. */
@@ -88,7 +100,15 @@ export function useMediaGalleryFileDrop(
      * @param event - Событие перетаскивания.
      */
     function handleDragOver(event: DragEvent): void {
+        // `preventDefault` идёт ДО гейта роли и без него: он не разрешает
+        // загрузку, а отбирает у браузера нативную обработку файла. Без него
+        // документ откроет брошенный файл соседней вкладкой — то есть роль без
+        // права записи получила бы не «ничего не произошло», а уход со страницы
         event.preventDefault();
+
+        if (!isEnabled()) {
+            return;
+        }
 
         // Сторож нужен только при развёрнутом приёмнике: над текстом и ссылками
         // он создавал бы таймер на каждое движение курсора впустую
@@ -110,6 +130,11 @@ export function useMediaGalleryFileDrop(
      */
     function handleDragEnter(event: DragEvent): void {
         event.preventDefault();
+
+        if (!isEnabled()) {
+            return;
+        }
+
         dragDepth.value += 1;
         draggedFileCount.value = countDraggedFiles(event.dataTransfer);
 
@@ -139,7 +164,14 @@ export function useMediaGalleryFileDrop(
      * @param event - Событие drop.
      */
     function handleDrop(event: DragEvent): void {
+        // Тот же порядок, что у `dragover`: брошенный файл гасится всегда, а
+        // дальше решает право
         event.preventDefault();
+
+        if (!isEnabled()) {
+            return;
+        }
+
         resetFileDrop();
 
         const files = event.dataTransfer?.files;

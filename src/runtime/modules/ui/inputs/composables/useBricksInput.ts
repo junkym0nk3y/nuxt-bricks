@@ -63,7 +63,7 @@ export function useBricksInput(
         min: props.type === 'number' ? props.min : undefined,
         max: props.type === 'number' ? props.max : undefined,
         step: props.type === 'number' ? props.step : undefined,
-        'aria-label': props.label || placeholderText.value || undefined,
+        'aria-label': props.ariaLabel || props.label || placeholderText.value || undefined,
         'aria-invalid': Boolean(errorMessage.value),
     }));
 

@@ -253,12 +253,13 @@
                     "pages": "Страницы",
                     "templates": "Шаблоны",
                     "users": "Пользователи",
-                    "media": "Media"
+                    "media": "Медиатека"
                 },
                 "search": {
                     "pages": "Поиск страниц...",
                     "templates": "Поиск шаблонов...",
-                    "users": "Поиск по имени..."
+                    "users": "Поиск по имени...",
+                    "media": "Поиск по имени или alt..."
                 },
                 "filters": {
                     "all": "Все",
@@ -480,6 +481,7 @@
             },
             "categoryFilterLabel": "Фильтр по категории",
             "emptyNoUploadsHint": "Перетащите файлы в окно или нажмите «Загрузить»",
+            "emptyNoUploadsSectionHint": "Перетащите файлы в эту область или нажмите «Загрузить»",
             "resetFilter": "Сбросить фильтр",
             "selectFileHint": "Выберите файл, чтобы изменить его свойства",
             "librarySummary": "файлов в медиатеке: {count} · {size}",
@@ -519,10 +521,23 @@
             },
             "librarySummaryShort": "файлов: {count} · {size}",
             "dropAnywhereHint": "файлы можно перетащить прямо в окно",
+            "dropSectionHint": "файлы можно перетащить в эту область",
             "uploadFiles": "Загрузить",
             "tileUpload": "Загрузить файлы",
             "tileUploadHint": "или перетащите сюда",
-            "noCategory": "Без категории"
+            "noCategory": "Без категории",
+            "details": {
+                "about": "О файле",
+                "size": "Размер",
+                "dimensions": "Разрешение",
+                "format": "Формат",
+                "uploadedAt": "Загружен",
+                "uploadedOn": "загружен {date}",
+                "url": "URL",
+                "copyUrl": "Копировать URL",
+                "urlCopied": "URL файла скопирован",
+                "copyFailed": "Не удалось скопировать URL"
+            }
         },
         "schema": {
             "title": "Схема страницы",

@@ -251,7 +251,7 @@ const FOREIGN_KEY_VIOLATION_CODE = '23503';
  * @param error - Пойманная ошибка запроса.
  * @returns Код или null, если это не ошибка pg с кодом.
  */
-export function readSqlStateCode(error: unknown): string | null {
+function readSqlStateCode(error: unknown): string | null {
     if (typeof error !== 'object' || error === null) {
         return null;
     }

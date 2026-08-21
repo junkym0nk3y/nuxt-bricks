@@ -26,19 +26,18 @@ import type {
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-// Reka UI
-import { PopoverAnchor, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from 'reka-ui';
-
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
 import BricksTooltip from '../../../ui/base/tooltip/BricksTooltip.vue';
 import BricksTooltipHint from '../../../ui/base/tooltip/BricksTooltipHint.vue';
-import BricksPopoverSurface from '../../../ui/base/popover/BricksPopoverSurface.vue';
-import BuilderMediaGalleryUploadOptions from './BuilderMediaGalleryUploadOptions.vue';
+import BuilderMediaGalleryUploadOptionsPopover from './BuilderMediaGalleryUploadOptionsPopover.vue';
 // #endregion
 
 // #region Props
-const props = withDefaults(defineProps<IMediaGalleryUploadControlsProps>(), {});
+const props = withDefaults(defineProps<IMediaGalleryUploadControlsProps>(), {
+    showOptions: true,
+    dropHint: '',
+});
 // #endregion
 
 // #region Emits
@@ -48,7 +47,6 @@ const emit = defineEmits<IMediaGalleryUploadControlsEmits>();
 // #region Data
 const { t } = useI18n();
 const fileInputRef = ref<HTMLInputElement | null>(null);
-const isOptionsOpen = ref(false);
 // #endregion
 
 // #region Computed
@@ -64,13 +62,20 @@ const buttonLabel = computed<string>(() => {
         total: progress.total,
     });
 });
-const tooltipText = computed<string>(
-    () =>
-        `${t('bricks.media.dropAnywhereHint')} · ${t('bricks.media.sizeHint', {
-            image: props.maxImageSizeMb,
-            video: props.maxVideoSizeMb,
-        })}`
-);
+/**
+ * Подсказка кнопки: куда можно бросить файл плюс лимиты размеров. Область
+ * приёмника задаёт вызывающий — в модалке это окно, в разделе дашборда только
+ * тело раздела, и общий текст обещал бы приём там, где его нет.
+ */
+const tooltipText = computed<string>(() => {
+    const dropHint = props.dropHint || t('bricks.media.dropAnywhereHint');
+    const sizeHint = t('bricks.media.sizeHint', {
+        image: props.maxImageSizeMb,
+        video: props.maxVideoSizeMb,
+    });
+
+    return `${dropHint} · ${sizeHint}`;
+});
 // #endregion
 
 // #region Methods
@@ -149,53 +154,18 @@ defineExpose({ openFilePicker: handleOpenFilePicker });
             </template>
         </BricksTooltip>
 
-        <PopoverRoot v-model:open="isOptionsOpen">
-            <!--
-                Явный `PopoverAnchor` вокруг кнопки обязателен: обёртка тултипа
-                разрывает связь `PopoverTrigger` с кнопкой, и поповеру нечего
-                взять за точку привязки — контент открывался за верхним краем
-                окна. Клик при этом работал, поэтому поломка выглядела как
-                «поповер не открывается».
-            -->
-            <PopoverAnchor>
-                <BricksTooltip bottom>
-                    <template #activator>
-                        <PopoverTrigger as-child>
-                            <BricksButton
-                                size="sm"
-                                variant="ghost"
-                                equal
-                                :active="isOptionsOpen"
-                                :aria-label="t('bricks.media.upload.optionsTitle')"
-                            >
-                                <BricksIcon icon="ta:outline-settings" />
-                            </BricksButton>
-                        </PopoverTrigger>
-                    </template>
-
-                    <template #default>
-                        <BricksTooltipHint :text="t('bricks.media.upload.optionsTitle')" />
-                    </template>
-                </BricksTooltip>
-            </PopoverAnchor>
-
-            <PopoverPortal>
-                <!--
-                    `as-child`: поверхность и узел reka — один и тот же, иначе
-                    позиционирование с `data-state` осталось бы на внешней
-                    обёртке, а рамка с тенью — на внутренней.
-                -->
-                <PopoverContent as-child align="end" :side-offset="8">
-                    <BricksPopoverSurface density="flush" elevation="lg" :class="$style.popover">
-                        <BuilderMediaGalleryUploadOptions
-                            :optimization="props.optimization"
-                            :configured-max-width="props.configuredMaxWidth"
-                            @update:optimization="handleOptimizationChange"
-                        />
-                    </BricksPopoverSurface>
-                </PopoverContent>
-            </PopoverPortal>
-        </PopoverRoot>
+        <!--
+            Шестерёнка параметров — необязательная: в разделе дашборда она стоит
+            в строке фильтров, рядом с дорожкой категорий, и в шапке была бы
+            второй точкой правды о параметрах загрузки
+        -->
+        <BuilderMediaGalleryUploadOptionsPopover
+            v-if="props.showOptions"
+            :optimization="props.optimization"
+            :configured-max-width="props.configuredMaxWidth"
+            tooltip-side="bottom"
+            @update:optimization="handleOptimizationChange"
+        />
     </div>
 </template>
 
@@ -221,42 +191,5 @@ defineExpose({ openFilePicker: handleOpenFilePicker });
     height: 0;
     opacity: 0;
     pointer-events: none;
-}
-
-/* Анимация по `data-state`, а не Vue-транзишеном: присутствием контента управляет
-   reka, и она сама ждёт окончания CSS-анимации перед размонтированием. Тот же
-   приём у `BricksActionButton` и контекстного меню канваса. Вид, слой и рамка
-   приезжают из `BricksPopoverSurface`; ширина и паддинг — из самой панели
-   параметров (`1.6rem` в шкале плотности поверхности нет). */
-.popover {
-    &[data-state='open'] {
-        animation: options-popover-in var(--bricks-default-transition);
-    }
-
-    &[data-state='closed'] {
-        animation: options-popover-out 150ms ease;
-    }
-}
-
-@keyframes options-popover-in {
-    from {
-        opacity: 0;
-        transform: translateY(-0.4rem);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes options-popover-out {
-    from {
-        opacity: 1;
-    }
-
-    to {
-        opacity: 0;
-    }
 }
 </style>

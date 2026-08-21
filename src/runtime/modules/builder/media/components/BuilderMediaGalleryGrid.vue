@@ -24,9 +24,12 @@ import { formatMediaDimensions, isVideoMedia } from '../utils/mediaSummary';
 // Vue
 import { useI18n } from 'vue-i18n';
 
+// Composables
+import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
+
 // Components
 import BricksBadge from '../../../ui/base/badge/BricksBadge.vue';
-import BricksButton from '../../../ui/base/button/BricksButton.vue';
+import BricksIconButton from '../../../ui/base/icon-button/BricksIconButton.vue';
 import BricksImage from '../../../ui/base/image/BricksImage.vue';
 import BricksSkeleton from '../../../ui/feedback/BricksSkeleton.vue';
 // #endregion
@@ -41,6 +44,13 @@ const emit = defineEmits<IMediaGalleryGridEmits>();
 
 // #region Data
 const { t } = useI18n();
+/**
+ * Плитка-приёмник — вход в загрузку, поэтому её видит только роль с правом
+ * записи: у наблюдателя она открывала бы выбор файлов, который ничем не
+ * заканчивается (скрытый input живёт в контролах загрузки, а их роли уже не
+ * показывают).
+ */
+const { canEdit } = useBuilderPermissions();
 // #endregion
 
 // #region Methods
@@ -87,7 +97,7 @@ function resolveThumbSrc(item: IMediaItem): string {
             подсказку. Из accessibility tree не убрана: это кнопка загрузки.
         -->
         <button
-            v-if="props.showUploadTile"
+            v-if="props.showUploadTile && canEdit"
             type="button"
             :class="[$style.galleryItem, $style._upload]"
             @click="handleUploadRequest"
@@ -165,16 +175,14 @@ function resolveThumbSrc(item: IMediaItem): string {
                     </BricksBadge>
                 </Transition>
 
-                <BricksButton
+                <BricksIconButton
                     :class="$style.previewBtn"
-                    size="sm"
-                    variant="ghost"
-                    equal
-                    :aria-label="t('bricks.media.fullscreen')"
+                    icon="ta:outline-search"
+                    :label="t('bricks.media.fullscreen')"
+                    variant="overlay"
+                    size="lg"
                     @click.stop="handleOpenPreview(item)"
-                >
-                    <BricksIcon icon="ta:outline-search" />
-                </BricksButton>
+                />
             </div>
 
             <div :class="$style.itemInfo">
@@ -306,24 +314,19 @@ function resolveThumbSrc(item: IMediaItem): string {
     padding: 0;
 }
 
-/* Кнопка кита; переопределяется только скин: по макету это тёмный оверлей со
-   белым глифом поверх картинки, а такого варианта в ките нет. Размер, фокус и
-   семантику даёт `BricksButton`. */
+/* Вуаль и белый глиф приезжают из `overlay`-варианта кнопки кита — здесь только
+   место в углу превью и появление по наведению на плитку.
+
+   Фокус ловится через `:has`, а не `:focus-visible`: внешний класс кит-кнопки
+   достаётся ОБЁРТКЕ тултипа, а она не фокусируется — правило на ней самой не
+   сработало бы никогда, и доехавшая Tab'ом кнопка оставалась бы невидимой. */
 .previewBtn {
     position: absolute;
     top: 0.8rem;
     right: 0.8rem;
-    border-radius: var(--bricks-border-radius-control);
-    background: var(--bricks-overlay-dark);
-    color: var(--bricks-static-white);
     opacity: 0;
 
-    &:hover {
-        background: var(--bricks-overlay-dark);
-        color: var(--bricks-static-white);
-    }
-
-    &:focus-visible {
+    &:has(:focus-visible) {
         opacity: 1;
     }
 }

@@ -41,7 +41,7 @@ function isVectorMedia(item: IMediaItem): boolean {
  * @param mimeType - MIME файла.
  * @returns Имя формата в привычном написании.
  */
-function formatMediaFormatName(mimeType: string): string {
+export function formatMediaFormatName(mimeType: string): string {
     const subtype = mimeType.split('/')[1] ?? mimeType;
     const normalized = subtype.replace('svg+xml', 'svg').replace('quicktime', 'mov');
 

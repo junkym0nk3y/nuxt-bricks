@@ -106,6 +106,11 @@ const shouldShowPickerActions = computed<boolean>(() => props.context === 'prope
 const mediaItems = computed(() => mediaStore.items);
 const isUploading = computed(() => mediaStore.isUploading);
 const hasItems = computed(() => mediaItems.value.length > 0);
+/**
+ * Прочитан ли состав медиатеки: до первого удачного ответа счётчик «Все» не
+ * рисуется — ноль на его месте утверждал бы, что файлов нет.
+ */
+const hasLibrarySnapshot = computed<boolean>(() => mediaStore.hasLoadedItemsSnapshot);
 const selectedItem = computed(
     () => mediaItems.value.find((item) => item.id === selectedItemId.value) ?? null
 );
@@ -514,7 +519,7 @@ watch(
                     v-model:category-filter="categoryFilter"
                     :categories="categories"
                     :category-counts="categoryCounts"
-                    :total-count="mediaItems.length"
+                    :total-count="hasLibrarySnapshot ? mediaItems.length : null"
                     :is-creating-category="isCreatingCategory"
                     @create-category="handleCreateCategory"
                     @delete-category="handleRequestCategoryDelete"

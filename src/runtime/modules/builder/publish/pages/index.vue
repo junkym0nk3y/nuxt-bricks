@@ -2,13 +2,14 @@
 // #region Imports
 // Types
 import type { TPublishedPageSummary } from '../../../common/types/bricks-api';
-import type { IMediaItem } from '../../../common/types/media';
+import type { IMediaCategory, IMediaItem } from '../../../common/types/media';
 import type { TPublishDashboardSection } from '../types/dashboard';
 import type { TBricksTemplateSummary } from '../../../common/types/templates';
 import type { TMediaLightboxItem } from '../../media/types/media';
 import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 
 // Utils
+import { ALL_MEDIA_CATEGORIES_FILTER } from '../../../common/constants/mediaCategories';
 import {
     getBuilderPageRouteLocation,
     toPageAddress,
@@ -22,6 +23,7 @@ import { useI18n } from 'vue-i18n';
 import { useRouter, useHead } from '#imports';
 
 // Pinia
+import { useMediaCategoriesStore } from '../../media/stores/mediaCategories';
 import { usePublishStore } from '../stores/publish';
 
 // Composables
@@ -32,7 +34,9 @@ import { useBuilderPermissions } from '../../core/composables/useBuilderPermissi
 import { useBuilderToast } from '../../core/composables/useBuilderToast';
 import { usePublishDashboard } from '../composables/usePublishDashboard';
 import { usePublishDashboardPreferences } from '../composables/usePublishDashboardPreferences';
+import { usePublishDashboardSections } from '../composables/usePublishDashboardSections';
 import { usePublishMediaGallery } from '../composables/usePublishMediaGallery';
+import { usePublishMediaSurface } from '../composables/usePublishMediaSurface';
 import { usePublishPageActions } from '../composables/usePublishPageActions';
 import { usePublishPageDelete } from '../composables/usePublishPageDelete';
 import { usePublishPagesData } from '../composables/usePublishPagesData';
@@ -48,6 +52,9 @@ import BuilderPublishPagesList from '../components/BuilderPublishPagesList.vue';
 import BuilderPublishDetailsPanel from '../components/BuilderPublishDetailsPanel.vue';
 import TheBuilderPublishCreatePageModal from '../components/TheBuilderPublishCreatePageModal.vue';
 import BuilderMediaGalleryPreviewLightbox from '../../media/components/BuilderMediaGalleryPreviewLightbox.vue';
+import BuilderMediaGalleryUploadControls from '../../media/components/BuilderMediaGalleryUploadControls.vue';
+import BuilderMediaSectionDetailsPanel from '../../media/components/BuilderMediaSectionDetailsPanel.vue';
+import TheBuilderMediaSection from '../../media/components/TheBuilderMediaSection.vue';
 import TheBuilderUsersSection from '../../users/components/TheBuilderUsersSection.vue';
 import TheBuilderTemplatesSection from '../../templates/components/TheBuilderTemplatesSection.vue';
 import TheBuilderTemplatesSaveModal from '../../templates/components/TheBuilderTemplatesSaveModal.vue';
@@ -79,6 +86,9 @@ const TheBuilderMediaImageResolverModal = defineAsyncComponent(
 const { t } = useI18n();
 const router = useRouter();
 const publishStore = usePublishStore();
+// Ряд категорий читает раздел, а показывает ещё и панель деталей — источник
+// один, стор
+const mediaCategoriesStore = useMediaCategoriesStore();
 const { toast, showToast } = useBuilderToast();
 const { logout } = useAuthSession();
 // Композабл создаётся здесь, синхронно: внутри `useState`/`useRequestEvent`, а
@@ -102,6 +112,11 @@ const {
 } = usePublishPageActions({ onNotify: showToast });
 const { isDarkMode, bodyClass, toggleDarkMode, toggleLocale } = usePublishDashboardPreferences();
 const mediaGallery = usePublishMediaGallery();
+// Поверхность медиатеки: загрузка живёт в шапке дашборда, а выбранный файл — в
+// панели деталей, то есть по разные стороны от самого раздела. Общее состояние
+// держит хост — ровно как выбранную страницу
+const media = usePublishMediaSurface({ onNotify: showToast });
+const uploadControlsRef = ref<InstanceType<typeof BuilderMediaGalleryUploadControls> | null>(null);
 // Список учёток нужен дашборду и до открытия раздела: пункт рейла показывает
 // счётчик. Сам раздел читает то же состояние — оно одно на приложение
 const { usersCount, status: usersStatus, ensureUsers } = useUsersData();
@@ -112,17 +127,8 @@ const { templatesCount, ensureTemplates } = useTemplatesData();
 // приходится читать point-lookup'ом), предвыбор шаблона формы создания и снимок
 // для лайтбокса
 const templates = usePublishTemplatesSurface({ onNotify: showToast });
-
-const activeSection = ref<TPublishDashboardSection>('pages');
 const isCreatePageModalOpen = ref(false);
 const isCreateUserModalOpen = ref(false);
-/**
- * Поисковый запрос раздела учёток — свой, а не общий с страницами: запрос,
- * набранный для страниц, отфильтровал бы список людей до пустого, и раздел
- * выглядел бы сломанным. У шаблонов он свой по той же причине.
- */
-const usersSearchQuery = ref('');
-const templatesSearchQuery = ref('');
 const isDocumentationModalOpen = ref(false);
 
 const {
@@ -166,6 +172,7 @@ const schemaImport = usePublishSchemaImport({
 
 // #region Computed
 const pagesCount = computed<number>(() => publishStore.publishedPages.length);
+const mediaCategories = computed<IMediaCategory[]>(() => mediaCategoriesStore.categories);
 const toastDuration = computed<number>(() => toast.duration ?? 4000);
 
 /**
@@ -188,29 +195,37 @@ const isUsersSectionVisible = computed<boolean>(
     () => canManageUsers.value && usersStatus.value !== 'unavailable'
 );
 
+/**
+ * Открытый раздел и строка поиска этого раздела: у каждого списка запрос свой,
+ * а поле в шапке одно. Ниже Computed, а не в Data: композабл гасит открытый
+ * раздел учёток, когда тот пропадает, — то есть читает доступность раздела,
+ * которая складывается прямо над ним.
+ */
+const {
+    activeSection,
+    usersSearchQuery,
+    templatesSearchQuery,
+    mediaSearchQuery,
+    activeSearchQuery,
+    selectSection,
+    setSearchQuery,
+} = usePublishDashboardSections({
+    pagesSearchQuery: searchQuery,
+    isUsersSectionVisible,
+    onLeaveMedia: media.resetSurface,
+    onEnterMedia: media.ensureMedia,
+});
+
 /** Своя учётка: её строка в списке помечается и теряет часть действий. */
 const currentUserId = computed<number | null>(() => profile.value?.id ?? null);
 
 /**
- * Запрос из поля поиска шапки — того раздела, который открыт. Своё значение у
- * каждого раздела: у страниц и учёток разные списки, и общая строка искала бы в
- * одном по запросу, набранному для другого.
- */
-const activeSearchQuery = computed<string>(() => {
-    if (activeSection.value === 'users') {
-        return usersSearchQuery.value;
-    }
-
-    return activeSection.value === 'templates' ? templatesSearchQuery.value : searchQuery.value;
-});
-
-/**
- * Что показывает лайтбокс: снимок страницы либо снимок шаблона. Один компонент
- * на оба раздела — открыт всегда ровно один из них, и второй экземпляр
- * лайтбокса добавил бы в разметку вторую копию диалога с focus trap.
+ * Что показывает лайтбокс: снимок страницы, снимок шаблона либо файл медиатеки.
+ * Один компонент на все разделы — открыт всегда ровно один из них, и второй
+ * экземпляр лайтбокса добавил бы в разметку вторую копию диалога с focus trap.
  */
 const lightboxItem = computed<TMediaLightboxItem | null>(
-    () => templates.previewItem.value ?? thumbnailPreviewItem.value
+    () => media.previewItem.value ?? templates.previewItem.value ?? thumbnailPreviewItem.value
 );
 
 // #endregion
@@ -243,6 +258,7 @@ function handleCreatePageFromTemplate(template: TBricksTemplateSummary): void {
  * компоненту неизвестно, а лишний сброс ничего не стоит.
  */
 function handleCloseLightbox(): void {
+    media.closePreview();
     templates.closePreview();
     closeThumbnailPreview();
 }
@@ -272,42 +288,6 @@ function handleCloseCreatePageModal(): void {
 async function handlePageCreated(address: IBricksPageAddress): Promise<void> {
     isCreatePageModalOpen.value = false;
     await router.push(getBuilderPageRouteLocation(address));
-}
-
-/**
- * Переключает активный раздел рейла.
- *
- * Раздел, которого нет в этой установке, не открывается даже по прямому вызову:
- * пункт рейла при выключенном разделе не рисуется, но состояние `unavailable`
- * может прийти уже после того, как человек в разделе оказался.
- *
- * @param section - Ключ раздела.
- */
-function handleSelectSection(section: TPublishDashboardSection): void {
-    if (section === 'users' && !isUsersSectionVisible.value) {
-        return;
-    }
-
-    activeSection.value = section;
-}
-
-/**
- * Пишет запрос поиска в тот раздел, который открыт.
- *
- * @param value - Введённый запрос.
- */
-function handleSearchInput(value: string): void {
-    if (activeSection.value === 'users') {
-        usersSearchQuery.value = value;
-        return;
-    }
-
-    if (activeSection.value === 'templates') {
-        templatesSearchQuery.value = value;
-        return;
-    }
-
-    searchQuery.value = value;
 }
 
 /**
@@ -357,15 +337,6 @@ watch(selectedPageId, () => {
     schemaImport.cancelImport();
 });
 
-// Раздел учёток мог исчезнуть под руками: 403 или 404 на его ручках означают,
-// что в этой установке его нет, — оставшийся открытым, он показывал бы пустой
-// экран без объяснения
-watch(isUsersSectionVisible, (isVisible) => {
-    if (!isVisible && activeSection.value === 'users') {
-        activeSection.value = 'pages';
-    }
-});
-
 /**
  * Открывает страницу в редакторе билдера.
  *
@@ -413,17 +384,13 @@ function handleCloseDocs(): void {
 /**
  * Передаёт выбранное в галерее изображение в форму панели деталей.
  *
- * Проверка роли обязательна: галерея, открытая пунктом рейла, ничего никуда не
- * возвращает — иначе просмотр файлов подставлял бы картинку в SEO-поля открытой
- * страницы.
+ * Проверять контекст больше нечего: модалка на дашборде осталась только пикером
+ * OG-изображения — менеджером файлов работает раздел рейла, а он ничего никуда
+ * не возвращает.
  *
  * @param item - Выбранный медиа-объект.
  */
 function handleMediaSelect(item: IMediaItem): void {
-    if (mediaGallery.context.value !== 'properties') {
-        return;
-    }
-
     detailsPanelRef.value?.handleMediaSelect(item);
     mediaGallery.close();
 }
@@ -435,6 +402,37 @@ function handleMediaSelect(item: IMediaItem): void {
  */
 function handleMediaError(message: string): void {
     showToast(message, 'error');
+}
+
+/**
+ * Открывает системный выбор файлов из плитки-приёмника: сам input живёт в
+ * контролах шапки, второй такой же в сетке означал бы две точки правды о том,
+ * какие типы файлов принимаются.
+ */
+function handleMediaUploadRequest(): void {
+    uploadControlsRef.value?.openFilePicker();
+}
+
+/**
+ * Открывает выбранный файл во весь экран (действие панели деталей).
+ */
+function handleMediaPreviewSelected(): void {
+    const item = media.selectedItem.value;
+
+    if (!item) {
+        return;
+    }
+
+    media.openPreview(item);
+}
+
+/**
+ * Пустой результат в медиатеке: снимаются разом категория и строка поиска —
+ * владельцы у них разные (поверхность и шапка).
+ */
+function handleResetMediaFilters(): void {
+    media.categoryFilter.value = ALL_MEDIA_CATEGORIES_FILTER;
+    mediaSearchQuery.value = '';
 }
 // #endregion
 
@@ -477,10 +475,14 @@ await ensureRole(() => Promise.resolve(profile.value?.role ?? null));
 // первом кадре рейла, а отказ загрузки остаётся состоянием раздела и дашборд не
 // уносит. Права на чтение шаблонов есть у любой роли, поэтому ждать `ensureRole`
 // им не нужно — но и отдельной очереди они не заводят
+// Список файлов читается в той же группе: счётчик медиатеки рисуется в первом
+// кадре рейла, а сам раздел получает готовые данные и своего ожидания не
+// заводит. Отказ остаётся тостом и дашборд не уносит
 const [{ isLoadingPages }] = await Promise.all([
     pagesDataPromise,
     ensureUsers(),
     ensureTemplates(),
+    media.ensureMedia(),
 ]);
 // #endregion
 </script>
@@ -493,13 +495,13 @@ const [{ isLoadingPages }] = await Promise.all([
             :pages-count="pagesCount"
             :templates-count="templatesCount"
             :users-count="usersCount"
+            :media-count="media.mediaCount.value"
             :is-users-section-visible="isUsersSectionVisible"
             :is-dark-mode="isDarkMode"
-            @update:search-query="handleSearchInput"
-            @select-section="handleSelectSection"
+            @update:search-query="setSearchQuery"
+            @select-section="selectSection"
             @create-page="handleCreatePage"
             @create-user="handleCreateUser"
-            @open-media="mediaGallery.openAsManager"
             @open-docs="handleOpenDocs"
             @toggle-dark-mode="toggleDarkMode"
             @toggle-locale="toggleLocale"
@@ -511,6 +513,25 @@ const [{ isLoadingPages }] = await Promise.all([
                 дефолтный: условие живёт внутри компонента, вместе с флагом
                 сессии, который он читает.
             -->
+            <!--
+                Первичное действие медиатеки: кнопка загрузки, скрытый input и
+                поповер параметров. Оболочка их не рисует сама — за ними тянется
+                весь домен медиа; она лишь решает, показывать ли слот
+            -->
+            <template #headerAction>
+                <BuilderMediaGalleryUploadControls
+                    ref="uploadControlsRef"
+                    :max-image-size-mb="media.maxImageSizeMb"
+                    :max-video-size-mb="media.maxVideoSizeMb"
+                    :optimization="media.uploadOptimization.value"
+                    :configured-max-width="media.defaultOptimization.maxWidth"
+                    :upload-progress="media.uploadProgress.value"
+                    :show-options="false"
+                    :drop-hint="t('bricks.media.dropSectionHint')"
+                    @upload="media.uploadFiles"
+                />
+            </template>
+
             <template #notice>
                 <BuilderAuthDefaultPasswordNotice
                     :can-change-password="canChangePassword"
@@ -549,7 +570,7 @@ const [{ isLoadingPages }] = await Promise.all([
                 <TheBuilderTemplatesSection
                     :search-query="templatesSearchQuery"
                     @notify="showToast"
-                    @go-to-pages="handleSelectSection('pages')"
+                    @go-to-pages="selectSection('pages')"
                     @create-page="handleCreatePageFromTemplate"
                     @preview-thumbnail="templates.previewThumbnail"
                 />
@@ -572,6 +593,44 @@ const [{ isLoadingPages }] = await Promise.all([
                 />
             </template>
 
+            <!--
+                Раздел медиатеки: дорожка категорий, сетка и приёмник. Загрузка и
+                выбранный файл им не владеют — они по разные стороны от раздела
+                (шапка дашборда и панель деталей), поэтому приходят пропами
+            -->
+            <template #media>
+                <TheBuilderMediaSection
+                    :search-query="mediaSearchQuery"
+                    :category-filter="media.categoryFilter.value"
+                    :selected-item-id="media.selectedItemId.value"
+                    :max-image-size-mb="media.maxImageSizeMb"
+                    :max-video-size-mb="media.maxVideoSizeMb"
+                    :upload-optimization="media.uploadOptimization.value"
+                    :configured-max-width="media.defaultOptimization.maxWidth"
+                    @update:category-filter="media.categoryFilter.value = $event"
+                    @update:upload-optimization="media.setOptimization"
+                    @select="media.selectItem"
+                    @preview="media.openPreview"
+                    @upload="media.uploadFiles"
+                    @request-upload="handleMediaUploadRequest"
+                    @reset-filters="handleResetMediaFilters"
+                    @notify="showToast"
+                />
+            </template>
+
+            <template v-if="media.selectedItem.value" #mediaDetails>
+                <BuilderMediaSectionDetailsPanel
+                    :item="media.selectedItem.value"
+                    :categories="mediaCategories"
+                    @close="media.closeDetails"
+                    @update-meta="media.updateMeta"
+                    @update-category="media.updateCategory"
+                    @remove="media.requestDelete"
+                    @preview="handleMediaPreviewSelected"
+                    @notify="showToast"
+                />
+            </template>
+
             <template v-if="selectedPage" #details>
                 <BuilderPublishDetailsPanel
                     ref="detailsPanelRef"
@@ -583,7 +642,7 @@ const [{ isLoadingPages }] = await Promise.all([
                     @duplicate="duplicatePage"
                     @delete="requestDeletePage"
                     @toggle-published="togglePublished"
-                    @open-media="mediaGallery.openAsPicker"
+                    @open-media="mediaGallery.open"
                     @restore-version="requestRestoreVersion"
                     @import-schema-file="schemaImport.requestPageImport"
                     @notify="handleDetailsNotify"
@@ -624,10 +683,14 @@ const [{ isLoadingPages }] = await Promise.all([
             @close="handleCloseDocs"
         />
 
+        <!--
+            Модалка галереи осталась одним — пикером OG-изображения панели
+            деталей страницы. Менеджером файлов работает раздел рейла
+        -->
         <TheBuilderMediaGalleryModal
             v-if="mediaGallery.shouldMount.value"
             :visible="mediaGallery.isOpen.value"
-            :context="mediaGallery.context.value"
+            context="properties"
             @close="mediaGallery.close"
             @select="handleMediaSelect"
             @error="handleMediaError"
@@ -642,6 +705,22 @@ const [{ isLoadingPages }] = await Promise.all([
             :is-loading="isDeleting"
             @close="closeDeleteConfirmation()"
             @confirm="confirmDeletePage"
+        />
+
+        <!--
+            Подтверждение удаления файла — здесь, а не в разделе: удаление
+            запрашивает панель деталей, которая живёт в слоте оболочки, и её
+            состоянием владеет тот же хост
+        -->
+        <BricksConfirmModal
+            :is-open="media.isDeleteConfirmOpen.value"
+            :title="t('bricks.media.deleteImageTitle')"
+            :description="t('bricks.media.deleteImageDescription')"
+            :confirm-text="t('bricks.common.delete')"
+            confirm-variant="danger"
+            :is-loading="media.isDeleting.value"
+            @close="media.closeDeleteConfirm"
+            @confirm="media.confirmDelete"
         />
 
         <BricksConfirmModal
