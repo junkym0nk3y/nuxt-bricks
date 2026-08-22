@@ -1,7 +1,7 @@
 /**
- * Build-time хелперы setup'а модуля (см. src/module.ts): резолв поверхностей
- * (префиксы + feature flags), Pinia/i18n билдера, регистрация страниц и
- * серверных ручек. Вынесены из module.ts, вызываются только из его setup.
+ * Build-time helpers of the module setup (see src/module.ts): surface resolution
+ * (prefixes plus feature flags), the builder Pinia/i18n, registration of pages
+ * and server handlers. Moved out of module.ts and called only from its setup.
  */
 import { addServerHandler, hasNuxtModule, installModule } from '@nuxt/kit';
 import { defu } from 'defu';
@@ -19,11 +19,11 @@ import type { IBricksModuleOptions } from './types/module';
 import type { IBricksRegistrationContext, IBricksSurfaces } from './types/moduleSetup';
 
 /**
- * Резолвит поверхности модуля из опций: префиксы (fail-fast валидация)
- * и feature flags; логирует отклонения от дефолтов.
+ * Resolves the module surfaces from the options: prefixes (fail-fast validation)
+ * and feature flags; logs the deviations from the defaults.
  *
- * @param options - Опции модуля из nuxt.config.
- * @returns Активные поверхности.
+ * @param options - Module options from nuxt.config.
+ * @returns Active surfaces.
  */
 export function resolveBricksSurfaces(options: IBricksModuleOptions): IBricksSurfaces {
     const routePrefixes: IBricksRoutePrefixes = {
@@ -44,9 +44,9 @@ export function resolveBricksSurfaces(options: IBricksModuleOptions): IBricksSur
 }
 
 /**
- * Логирует нестандартную конфигурацию поверхностей при старте модуля.
+ * Logs a non-default surface configuration at module start.
  *
- * @param surfaces - Активные поверхности.
+ * @param surfaces - Active surfaces.
  */
 function logBricksSurfaces(surfaces: IBricksSurfaces): void {
     const { routePrefixes, isBuilderEnabled, arePublishedPagesEnabled } = surfaces;
@@ -73,23 +73,24 @@ function logBricksSurfaces(surfaces: IBricksSurfaces): void {
 }
 
 /**
- * Подключает зависимости поверхности билдера: Pinia и i18n (переводы ru/en).
- * render и published-страницы их не используют — вызывается только при
- * включённом features.builder.
+ * Installs the dependencies of the builder surface: Pinia and i18n (the ru/en
+ * translations). Neither render nor published pages use them — so it is called
+ * only when features.builder is on.
  *
- * @param nuxt - Инстанс Nuxt.
- * @param options - Опции модуля.
- * @param localesDir - Абсолютный путь к runtime/locales.
+ * @param nuxt - Nuxt instance.
+ * @param options - Module options.
+ * @param localesDir - Absolute path to runtime/locales.
  */
 export async function setupBricksBuilderModules(
     nuxt: Nuxt,
     options: IBricksModuleOptions,
     localesDir: string
 ): Promise<void> {
-    // Fail-fast на неверный порядок модулей: если @nuxtjs/i18n уже установлен,
-    // его setup прочитал опции ДО применения bricks-дефолтов (strategy no_prefix
-    // и др.) — маршруты билдера переписываются/переименовываются и отдают 404.
-    // Проверено живой сборкой: предупреждения недостаточно, ломается роутинг.
+    // Fail-fast on a wrong module order: if @nuxtjs/i18n is already installed, its
+    // setup read the options BEFORE the bricks defaults were applied (strategy
+    // no_prefix and the rest) — the builder routes get rewritten or renamed and
+    // answer 404. Verified with a live build: a warning is not enough, routing
+    // breaks.
     if (hasNuxtModule('@nuxtjs/i18n')) {
         throw new Error(
             '[nuxt-bricks] @nuxtjs/i18n is installed before nuxt-bricks — builder routes would break. Place nuxt-bricks BEFORE @nuxtjs/i18n in nuxt.config modules (bricks applies safe i18n defaults and registers its translations).'
@@ -100,7 +101,8 @@ export async function setupBricksBuilderModules(
         await installModule('@pinia/nuxt');
     }
 
-    // Подписка ДО installModule: @nuxtjs/i18n вызывает хук в своём setup.
+    // Subscribe BEFORE installModule: @nuxtjs/i18n calls the hook inside its own
+    // setup.
     let isI18nRegistered = false;
     nuxt.hook('i18n:registerModule', (register) => {
         isI18nRegistered = true;
@@ -113,9 +115,9 @@ export async function setupBricksBuilderModules(
         });
     });
 
-    // Дефолты применяются до установки i18n (defu: опции потребителя из
-    // nuxt.options.i18n побеждают) — голая стратегия prefix_except_default
-    // переписала бы маршруты и дашборд отдавал бы 404.
+    // The defaults are applied before i18n is installed (defu: the consumer
+    // options from nuxt.options.i18n win) — a bare prefix_except_default strategy
+    // would rewrite the routes and the dashboard would answer 404.
     const defaultLocale = options.i18n?.defaultLocale ?? 'ru';
     nuxt.options.i18n = defu(nuxt.options.i18n, {
         strategy: 'no_prefix' as const,
@@ -127,13 +129,14 @@ export async function setupBricksBuilderModules(
         },
     });
 
-    // hasNuxtModule выше гарантирует, что i18n ещё не установлен
+    // The hasNuxtModule above guarantees that i18n is not installed yet
     await installModule('@nuxtjs/i18n');
 
-    // app:resolve — после modules:done: @nuxtjs/i18n вызывает i18n:registerModule
-    // из собственного modules:done-хука, который при явном подключении i18n
-    // потребителем регистрируется позже bricks-хуков. Без переводов UI билдера
-    // отображает сырые ключи — это всегда ошибка конфигурации, валим сборку.
+    // app:resolve comes after modules:done: @nuxtjs/i18n calls
+    // i18n:registerModule from its own modules:done hook, which — when the
+    // consumer installs i18n explicitly — is registered later than the bricks
+    // hooks. Without translations the builder UI shows raw keys, and that is
+    // always a configuration mistake, so we fail the build.
     nuxt.hook('app:resolve', () => {
         if (!isI18nRegistered) {
             throw new Error(
@@ -144,19 +147,19 @@ export async function setupBricksBuilderModules(
 }
 
 /**
- * Регистрирует страницы модуля (extendPages-callback): билдер + превью
- * (features.builder) и статические catch-all live-рендера
- * (features.publishedPages), пути — из bricks.routes.
+ * Registers the module pages (as the extendPages callback): the builder plus
+ * preview (features.builder) and the static live-render catch-alls
+ * (features.publishedPages); the paths come from bricks.routes.
  *
- * @param pages - Массив страниц Nuxt.
- * @param context - Контекст регистрации.
+ * @param pages - Array of Nuxt pages.
+ * @param context - Registration context.
  */
 export function registerBricksPages(pages: NuxtPage[], context: IBricksRegistrationContext): void {
     const { resolve, runtimeDir, surfaces } = context;
     const { routePrefixes, isBuilderEnabled, arePublishedPagesEnabled } = surfaces;
 
-    // Одна страница на пару адресных маршрутов (с префиксом и без): различаются
-    // они только формой пути, а поведение у них одно
+    // One page per pair of address routes (prefixed and not): they differ only in
+    // the shape of the path, their behavior is the same
     const builderPageFile = resolve(runtimeDir, 'modules/builder/app/pages/[pagename].vue');
     const renderPageFile = resolve(runtimeDir, 'modules/render/pages/[pagename].vue');
 
@@ -173,11 +176,11 @@ export function registerBricksPages(pages: NuxtPage[], context: IBricksRegistrat
                         file: resolve(runtimeDir, 'modules/builder/publish/pages/index.vue'),
                     },
                     {
-                        // Статический сегмент бьёт :pagename по ранжированию vue-router
-                        // независимо от порядка, поэтому сегмент сидит в неймспейсе
-                        // `bricks-`: иначе редактор страницы потребителя `/login`
-                        // был бы недостижим. В basic-режиме страница редиректит
-                        // на дашборд билдера.
+                        // A static segment beats :pagename in the vue-router
+                        // ranking whatever the order, which is why the segment
+                        // sits in the `bricks-` namespace: otherwise the editor of
+                        // a consumer page named `/login` would be unreachable. In
+                        // basic mode the page redirects to the builder dashboard.
                         name: BRICKS_ROUTE_NAMES.builderLogin,
                         path: BUILDER_LOGIN_SEGMENT,
                         file: resolve(runtimeDir, 'modules/builder/auth/pages/login.vue'),
@@ -188,16 +191,18 @@ export function registerBricksPages(pages: NuxtPage[], context: IBricksRegistrat
                         file: builderPageFile,
                     },
                     {
-                        // Адрес редактора повторяет адрес страницы: имя уникально
-                        // только внутри своего префикса, и у `/blog/post` с
-                        // `/news/post` редакторы обязаны различаться.
+                        // The editor address repeats the page address: a name is
+                        // unique only inside its own prefix, and the editors of
+                        // `/blog/post` and `/news/post` have to differ.
                         //
-                        // Отдельная запись, а не `:urlPrefix*` в предыдущей:
-                        // repeatable-параметр опциональным сделать нельзя, не
-                        // проиграв ранжирование статическим детям префикса —
-                        // `:urlPrefix*` матчит и пустой остаток, то есть перехватил
-                        // бы `<builderPrefix>/bricks-login` и страницу логина.
-                        // Regex-сегменты сужают перехват до валидных адресов.
+                        // A separate entry rather than `:urlPrefix*` in the
+                        // previous one: a repeatable parameter cannot be made
+                        // optional without losing the ranking against the static
+                        // children of the prefix — `:urlPrefix*` matches an empty
+                        // rest too, so it would intercept
+                        // `<builderPrefix>/bricks-login` and the login page along
+                        // with it. The regex segments narrow the interception down
+                        // to valid addresses.
                         name: BRICKS_ROUTE_NAMES.builderPagePrefixed,
                         path: `:urlPrefix(${PAGE_ROUTE_SEGMENT})+/:pagename(${PAGE_ROUTE_SEGMENT})`,
                         file: builderPageFile,
@@ -205,16 +210,17 @@ export function registerBricksPages(pages: NuxtPage[], context: IBricksRegistrat
                 ],
             },
             {
-                // Превью-режим определяется именем роута (bricks-preview,
-                // bricks-preview-prefixed), query ?preview=true не используется.
+                // Preview mode is determined by the route name (bricks-preview,
+                // bricks-preview-prefixed); the ?preview=true query is not used.
                 name: BRICKS_ROUTE_NAMES.preview,
                 path: `${routePrefixes.previewPrefix}/:pagename(${PAGE_ROUTE_SEGMENT})`,
                 file: renderPageFile,
             },
             {
-                // Превью открывается из редактора конкретной страницы, поэтому его
-                // адрес тоже полный: по одному имени кнопка «Превью» у `/news/post`
-                // открывала бы вкладку, которую билдер наполняет схемой `/blog/post`
+                // Preview is opened from the editor of a particular page, so its
+                // address is full as well: by name alone the "Preview" button of
+                // `/news/post` would open a tab the builder then fills with the
+                // schema of `/blog/post`
                 name: BRICKS_ROUTE_NAMES.previewPrefixed,
                 path: `${routePrefixes.previewPrefix}/:urlPrefix(${PAGE_ROUTE_SEGMENT})+/:pagename(${PAGE_ROUTE_SEGMENT})`,
                 file: renderPageFile,
@@ -222,14 +228,15 @@ export function registerBricksPages(pages: NuxtPage[], context: IBricksRegistrat
         );
     }
 
-    // Live-рендер published — два статических catch-all маршрута вместо
-    // route-per-page (бывший plugins/bricks-dynamic-routes.ts грузил весь
-    // список published на каждый SSR и не имел SPA-invalidation).
-    // Страница резолвится прямым lookup в middleware bricks-page-layout;
-    // regex-сегменты сужают перехват до валидных pagename/urlPrefix.
-    // Статические маршруты потребителя всегда побеждают по ранжированию
-    // vue-router; корневой динамический маршрут потребителя без custom
-    // regex (pages/[slug].vue) проиграет — задокументировано в README.
+    // The live render of published pages is two static catch-all routes instead of
+    // route-per-page: a route-per-page registration had to load the whole
+    // published list on every SSR and had no SPA invalidation.
+    // The page is resolved by a direct lookup in the bricks-page-layout
+    // middleware; the regex segments narrow the interception down to valid
+    // pagename/urlPrefix values.
+    // Static consumer routes always win the vue-router ranking; a root-level
+    // dynamic consumer route without a custom regex (pages/[slug].vue) loses —
+    // documented in the README.
     if (arePublishedPagesEnabled) {
         pages.push(
             {
@@ -249,17 +256,18 @@ export function registerBricksPages(pages: NuxtPage[], context: IBricksRegistrat
 }
 
 /**
- * Регистрирует серверные ручки /api/bricks/** из манифеста BRICKS_API_HANDLERS
- * (persistence, auth, health плюс builder-поверхность: библиотека компонентов,
- * media proxy, page thumbnail — бывшие /mock-api/** ручки).
- * Render-only режим оставляет только public read-model (isPublic) — editorial
- * CRUD, auth- и builder-ручки без UI билдера не нужны (сужение поверхности).
+ * Registers the /api/bricks/** server handlers from the BRICKS_API_HANDLERS
+ * manifest (persistence, auth, health plus the builder surface: component
+ * library, media proxy, page thumbnail).
+ * Render-only mode keeps only the handlers flagged `isPublic` — the editorial
+ * CRUD, the auth and the builder handlers are not needed without the builder UI
+ * (a narrower surface).
  *
- * /api/bricks/** всегда обслуживаются локальными ручками; data backend под
- * ними выбирает bricks.backend.mode (builtin PostgreSQL vs external HTTP,
- * см. module-backend-config.ts). devProxy (dev-only) bricks-пути не трогает.
+ * /api/bricks/** is always served by local handlers; the data backend underneath
+ * them is chosen by bricks.backend.mode (builtin PostgreSQL vs external HTTP, see
+ * module-backend-config.ts). devProxy (dev-only) never touches bricks paths.
  *
- * @param context - Контекст регистрации.
+ * @param context - Registration context.
  */
 export function registerBricksServerHandlers(context: IBricksRegistrationContext): void {
     const { resolve, runtimeDir, surfaces } = context;
@@ -278,24 +286,25 @@ export function registerBricksServerHandlers(context: IBricksRegistrationContext
     }
 }
 
-// Модули, чьи чанки не должны prefetch'иться на published-страницах: редакторский
-// стек (TipTap/ProseMirror, JSON-редактор), документация билдера и весь код
-// builder/text-editor. Swiper сюда не входит: его чанк нужен странице со слайдером
-// сразу (SSR-fallback → hydration), а страница без слайдера его и так не рендерит.
+// The modules whose chunks must not be prefetched on published pages: the editor
+// stack (TipTap/ProseMirror, the JSON editor), the builder documentation and all
+// the builder/text-editor code. Swiper is not among them: a page with a slider
+// needs its chunk right away (SSR fallback → hydration), and a page without a
+// slider does not render it anyway.
 const BUILDER_ONLY_CHUNK_PATTERN =
     /@tiptap|prosemirror|vanilla-jsoneditor|json-editor-vue|markdown-it|\/modules\/(builder|text-editor)\/|\/docs\/guide\/|\/plugins\/builder\/|\/plugins\/icons\/builderIcons/;
 
 /**
- * Отключает `<link rel="prefetch">` для builder-only чанков. Vite ставит
- * prefetch-хинты на dynamic imports отрендеренных модулей, поэтому посетитель
- * published-страницы в idle скачивал бы весь редакторский стек (например,
- * TipTap-цепочку inline-editing через BlockText). Флагуются entries по паттерну
- * плюс транзитивное замыкание их imports/dynamicImports (vendor-чанки с
- * hash-именами иначе не атрибутировать); чанк, достижимый статическими
- * импортами из не-флагованного entry, остаётся prefetch'имым (общий vendor).
- * `preload` не трогаем — он нужен гидратации реально используемых чанков.
+ * Turns `<link rel="prefetch">` off for builder-only chunks. Vite puts prefetch
+ * hints on the dynamic imports of rendered modules, so a visitor of a published
+ * page would download the whole editor stack while idle (the TipTap inline-editing
+ * chain through BlockText, for one). Entries are flagged by the pattern, plus the
+ * transitive closure of their static imports (hash-named vendor chunks cannot be
+ * attributed otherwise); a chunk reachable by static imports from an unflagged
+ * entry stays prefetchable (shared vendor). `preload` is left alone — hydration of
+ * the chunks that are actually used needs it.
  *
- * @param nuxt - Инстанс Nuxt.
+ * @param nuxt - Nuxt instance.
  */
 export function disableBuilderChunkPrefetch(nuxt: Nuxt): void {
     nuxt.hook('build:manifest', (manifest) => {
@@ -303,9 +312,10 @@ export function disableBuilderChunkPrefetch(nuxt: Nuxt): void {
             Object.keys(manifest).filter((key) => BUILDER_ONLY_CHUNK_PATTERN.test(key))
         );
 
-        // Замыкание СТАТИЧЕСКИХ импортов флагованных входов. dynamicImports не
-        // обходим: через entry-чанк они дотянулись бы до всех lazy-чанков
-        // приложения (включая чанки потребителя и error-страницы Nuxt).
+        // The closure of the STATIC imports of the flagged entries. dynamicImports
+        // are not walked: through an entry chunk they would reach every lazy chunk
+        // of the application (the consumer chunks and the Nuxt error page
+        // included).
         const stack = [...flagged];
         while (stack.length > 0) {
             const key = stack.pop() as string;
@@ -317,8 +327,8 @@ export function disableBuilderChunkPrefetch(nuxt: Nuxt): void {
             }
         }
 
-        // Чанки, достижимые статическими импортами из не-флагованных entries,
-        // остаются prefetch'имыми — они нужны и вне билдера
+        // Chunks reachable by static imports from unflagged entries stay
+        // prefetchable — they are needed outside the builder too
         const shared = new Set<string>();
         for (const key of Object.keys(manifest)) {
             if (flagged.has(key)) {

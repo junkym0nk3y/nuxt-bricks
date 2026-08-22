@@ -11,7 +11,8 @@ import {
 } from '@nuxt/kit';
 import { defu } from 'defu';
 import type { ViteDevServer } from 'vite';
-// Side-effect type import: подтягивает augmentation NuxtOptions.i18n и хука i18n:registerModule
+// Side-effect type import: pulls in the augmentation of NuxtOptions.i18n and of
+// the i18n:registerModule hook
 import type {} from '@nuxtjs/i18n';
 import {
     BRICKS_MANIFEST_TEMP_SUFFIX,
@@ -34,7 +35,8 @@ import { resolveBricksMixinsPath, setupBricksScss } from './module-scss';
 import type { IBricksModuleOptions } from './types/module';
 import type { IBricksRegistrationContext } from './types/moduleSetup';
 
-// Опции модуля — часть публичного API пакета (`export *` в dist/types.d.mts)
+// The module options are part of the public package API (`export *` in
+// dist/types.d.mts)
 export type { IBricksModuleOptions };
 
 // #region Constants
@@ -96,7 +98,7 @@ export default defineNuxtModule<IBricksModuleOptions>({
         const runtimeDir = resolve('./runtime');
         const isDev = nuxt.options.dev;
 
-        // #region Routes и feature flags (fail-fast валидация префиксов)
+        // #region Routes and feature flags (fail-fast prefix validation)
         const surfaces = resolveBricksSurfaces(options);
         const { isBuilderEnabled, arePublishedPagesEnabled } = surfaces;
         const registrationContext: IBricksRegistrationContext = {
@@ -114,23 +116,25 @@ export default defineNuxtModule<IBricksModuleOptions>({
             surfaces.routePrefixes,
             surfaces.arePublishedPagesEnabled
         );
-        // Невалидная конфигурация backend (database-auth + external) валит
-        // сборку сразу — тихо сломанного прода не будет
+        // An invalid backend configuration (database auth + external) fails the
+        // build right away — there will be no silently broken production
         if (backendResolution.errors.length > 0) {
             throw new Error(`[nuxt-bricks] ${backendResolution.errors.join('\n\n')}`);
         }
-        // Носитель разрешённого режима — регистрация Nitro-плагинов, а не
-        // runtimeConfig: NUXT_-env не может переключить mode в обход
-        // build-time валидации (registry берёт дефолтную фабрику из плагина)
+        // What carries the resolved mode is the registration of Nitro plugins
+        // rather than runtimeConfig: a NUXT_ env variable cannot switch the mode
+        // bypassing the build-time validation (the registry takes its default
+        // factory from the plugin)
         if (backendResolution.mode === 'external') {
             addServerPlugin(resolve(runtimeDir, 'server/plugins/externalBackendStorage'));
         }
         // #endregion
 
-        // #region Public assets (превью layout-блоков, плейсхолдеры, картинки документации)
-        // Выделенный префикс /_bricks/ вместо корня: ассеты билдера не смешиваются
-        // с public/ потребителя, а клиентские URL строит resolveBricksAssetUrl
-        // (учитывает app.baseURL). Ассеты нужны только поверхности билдера.
+        // #region Public assets (block previews, placeholders, doc images)
+        // A dedicated /_bricks/ prefix instead of the root: the builder assets do
+        // not mix with the consumer `public/`, and the client URLs are built by
+        // resolveBricksAssetUrl (which accounts for app.baseURL). The assets are
+        // needed by the builder surface alone.
         if (isBuilderEnabled) {
             nuxt.hook('nitro:config', (nitroConfig) => {
                 nitroConfig.publicAssets = nitroConfig.publicAssets || [];
@@ -143,32 +147,36 @@ export default defineNuxtModule<IBricksModuleOptions>({
         }
         // #endregion
 
-        // #region Experimental flags (нужны для defineRouteRules / appManifest)
+        // #region Experimental flags (what defineRouteRules and appManifest need)
         nuxt.options.experimental.appManifest = nuxt.options.experimental.appManifest ?? true;
         nuxt.options.experimental.inlineRouteRules =
             nuxt.options.experimental.inlineRouteRules ?? true;
         // #endregion
 
-        // #region Зависимые модули + i18n (только поверхность билдера)
-        // render и published-страницы не используют ни Pinia, ни vue-i18n —
-        // в render-only режиме host-приложение не получает лишних модулей.
-        // Внутри — fail-fast при неверном порядке модулей (@nuxtjs/i18n до bricks).
+        // #region Dependency modules + i18n (builder surface only)
+        // Neither render nor published pages use Pinia or vue-i18n — in render-only
+        // mode the host application gets no modules it does not need.
+        // Inside: fail-fast on a wrong module order (@nuxtjs/i18n before bricks).
         if (isBuilderEnabled) {
             await setupBricksBuilderModules(nuxt, options, resolve(runtimeDir, 'locales'));
         }
 
-        // Prefetch-хинты builder-only чанков не должны скачивать редакторский
-        // стек посетителям published-страниц (см. disableBuilderChunkPrefetch).
+        // The prefetch hints of builder-only chunks must not download the editor
+        // stack for visitors of published pages (see
+        // disableBuilderChunkPrefetch).
         disableBuilderChunkPrefetch(nuxt);
         // #endregion
 
-        // #region Стили
-        // Только собственные scoped-стили модуля (variables/transitions/fonts + reset
-        // под body.bricks-page). Swiper CSS импортирует BlockSlider.vue в свой чанк.
-        // Из src подключаются .scss; в собранном пакете mkdist компилирует их в .css
-        // (sass у потребителя не нужен) — берём то расширение, которое существует.
-        // fonts — отдельной entry: url() на woff2 корректен только относительно
-        // самого файла (sass не ребейзит url при @use, см. bundle.scss).
+        // #region Styles
+        // Only the module's own scoped styles (variables/transitions/fonts plus the
+        // reset under body.bricks-page). The Swiper CSS is imported by
+        // BlockSlider.vue into its own chunk.
+        // From src the `.scss` files are used; in the built package mkdist compiles
+        // them into `.css` (the consumer needs no sass) — so we take whichever
+        // extension exists.
+        // fonts is a separate entry: a url() pointing at a woff2 is only correct
+        // relative to that very file (sass does not rebase url on @use, see
+        // bundle.scss).
         for (const stylesheet of ['bundle', 'default', 'common/fonts']) {
             const scssPath = resolve(runtimeDir, `assets/scss/${stylesheet}.scss`);
             nuxt.options.css.push(
@@ -179,9 +187,9 @@ export default defineNuxtModule<IBricksModuleOptions>({
         }
         // #endregion
 
-        // #region Публичный SCSS-API
-        // Карта устройств пишется в buildDir и подключается алиасом: миксины
-        // авторов бриков обязаны считать по тем же числам, что рантайм
+        // #region Public SCSS API
+        // Why the map goes through a buildDir file and an alias, and why there is no
+        // automatic prepend — the header of module-scss.ts
         setupBricksScss(
             nuxt,
             resolveBricksDevices(options.devices),
@@ -190,7 +198,8 @@ export default defineNuxtModule<IBricksModuleOptions>({
         // #endregion
 
         // #region Vite (optimizeDeps)
-        // Prebundle-список — зависимости UI билдера; render-only он не нужен
+        // The prebundle list is the dependencies of the builder UI; render-only
+        // does not need it
         if (isBuilderEnabled) {
             nuxt.options.vite = defu(nuxt.options.vite, {
                 optimizeDeps: {
@@ -200,71 +209,76 @@ export default defineNuxtModule<IBricksModuleOptions>({
         }
         // #endregion
 
-        // #region Манифест brick-компонентов и dev-вотчер
+        // #region Brick component manifest and the dev watcher
         const manifestDir = resolveBricksManifestDir(nuxt.options.buildDir);
-        // Одна очередь на инстанс Nuxt: build:before и dev-вотчер не должны
-        // сканировать параллельно
+        // One queue per Nuxt instance: build:before and the dev watcher must not
+        // scan in parallel
         const manifestQueue = createBricksManifestQueue({
             srcDir: nuxt.options.srcDir,
             manifestDir,
         });
-        // Незавершённый скан старого инстанса дожидается здесь: close
-        // вызывается до build:before нового (@nuxt/cli, DevServer#load)
+        // An unfinished scan of the old instance is awaited here: close is called
+        // before the build:before of the new one (@nuxt/cli, DevServer#load)
         nuxt.hook('close', () => manifestQueue.dispose());
 
-        // Клиентский Vite-сервер: через него ошибка разбора brick-файла
-        // показывается оверлеем поверх страницы
+        // The client Vite server: a brick-file parse error is shown through it as
+        // an overlay on top of the page
         let viteClientServer: ViteDevServer | undefined;
 
         /**
-         * Показывает ошибку генерации манифеста разработчику: строка в терминал
-         * и оверлей Vite поверх страницы, если dev-сервер уже поднят. Оверлей
-         * снимется сам — следующая удачная генерация присылает перезагрузку.
+         * Shows a manifest generation error to the developer: a line in the
+         * terminal plus a Vite overlay on top of the page when the dev server is
+         * already up. The overlay clears itself — the next successful generation
+         * sends a reload.
          *
-         * @param context - Что именно не удалось (событие вотчера или сборка).
-         * @param error - Ошибка генерации.
+         * @param context - What exactly failed (a watcher event or the build).
+         * @param error - The generation error.
          */
         function reportManifestFailure(context: string, error: unknown): void {
             const message = error instanceof Error ? error.message : String(error);
 
-            console.error(`[nuxt-bricks] ${context} не обработано: ${message}`);
+            console.error(`[nuxt-bricks] ${context} failed: ${message}`);
             viteClientServer?.hot.send({
                 type: 'error',
                 err: { message, stack: error instanceof Error ? (error.stack ?? '') : '' },
             });
         }
 
-        // Сам манифест нужен только билдеру: библиотеку компонентов читает лишь
-        // он, рендерер берёт brickPath прямо из схемы страницы.
+        // The manifest itself is only needed by the builder: it is the only reader
+        // of the component library, while the renderer takes brickPath straight
+        // from the page schema.
         if (isBuilderEnabled) {
-            // build:before, а не setup: nuxi build/prepare чистят buildDir
-            // между setup модуля и сборкой, запись из setup была бы стёрта.
+            // build:before rather than setup: nuxi build/prepare wipe buildDir
+            // between the module setup and the build, so a write from setup
+            // would be erased.
             nuxt.hook('build:before', async () => {
                 try {
                     await manifestQueue.enqueue();
                 } catch (error) {
-                    // В сборке ошибка обязана быть фатальной: прод не должен
-                    // тихо уехать без манифеста. В dev — наоборот: brick-файл
-                    // правят на живом сервере, и неразобранный файл не должен
-                    // уносить с собой загрузку инстанса. На диске остаётся
-                    // прежний манифест, редактор продолжает работать на нём, а
-                    // причина видна разработчику. Иначе любой рестарт, начатый
-                    // до починки файла, оставлял бы редактор недоступным.
+                    // In a build the error has to be fatal: production must not
+                    // silently ship without a manifest. In dev it is the other way
+                    // round: a brick file is edited against a live server, and a
+                    // file that fails to parse must not take the loading of the
+                    // instance down with it. The previous manifest stays on disk,
+                    // the editor keeps working on it, and the cause is visible to
+                    // the developer. Otherwise any restart started before the file
+                    // is fixed would leave the editor unreachable.
                     if (!isDev) {
                         throw error;
                     }
 
-                    reportManifestFailure('генерация манифеста brick-компонентов', error);
+                    reportManifestFailure('generation of the brick component manifest', error);
                 }
             });
 
-            // Манифест доезжает до Nitro как server asset: в dev каталог
-            // монтируется fs-драйвером (свежесть при add/unlink), в prod
-            // содержимое запекается в серверный бандл — ручка компонентов
-            // не зависит от process.cwd() и работает из одного .output.
-            // ignore — про временные файлы атомарной публикации: nitro отдаёт
-            // его и в globby prod-запекания, и в dev-fsDriver, так что
-            // недописанный manifest.json.<pid>.<n>.tmp в namespace не попадёт
+            // The manifest reaches Nitro as a server asset: in dev the directory
+            // is mounted by the fs driver (so add/unlink stay fresh), in prod the
+            // contents are baked into the server bundle — the components handler
+            // does not depend on process.cwd() and works from a single .output.
+            // `ignore` is about the temporary files of an atomic publish: nitro
+            // passes it both to the globby of the prod bake and to the dev fs
+            // driver, so a half-written manifest.json.<pid>.<n>.tmp never enters
+            // the namespace
             nuxt.hook('nitro:config', (nitroConfig) => {
                 nitroConfig.serverAssets = nitroConfig.serverAssets || [];
                 nitroConfig.serverAssets.push({
@@ -275,18 +289,20 @@ export default defineNuxtModule<IBricksModuleOptions>({
             });
         }
 
-        // Dev-вотчер brick-файлов на штатном хуке Nuxt. Состав
-        // `import.meta.glob` в useBrickImports разворачивает Vite на этапе
-        // трансформации — на add/unlink пересобрать карту загрузчиков может
-        // только рестарт, и у Nuxt для этого есть хук `restart` (сам Nuxt
-        // вызывает его так же — для структурно значимых файлов и создания
-        // каталога компонентов). Рестарт прогоняет и `build:before`, то есть
-        // манифест перегенерируется без нашего участия.
-        // Карту загрузчиков читает не только билдер: published-рендерер тянет
-        // brick-модули тем же glob'ом, поэтому рестарт нужен обеим поверхностям.
+        // The dev watcher of brick files sits on the standard Nuxt hook. The set of
+        // files the `import.meta.glob` in useBrickImports matches is expanded by
+        // Vite at transform time — on add/unlink only a restart can rebuild the
+        // loader map, and Nuxt has the `restart` hook for exactly that (Nuxt calls
+        // it the same way itself — for structurally significant files and for the
+        // creation of the components directory). A restart runs `build:before`
+        // too, so the manifest is regenerated without our help.
+        // The loader map is read by more than the builder: the published renderer
+        // pulls brick modules through the same glob, so both surfaces need the
+        // restart.
         if (isDev && (isBuilderEnabled || arePublishedPagesEnabled)) {
             nuxt.hook('vite:serverCreated', (server, env) => {
-                // Клиентский сервер — тот, чей hot-канал слушает браузер
+                // The client server is the one whose hot channel the browser
+                // listens to
                 if (env.isClient) {
                     viteClientServer = server;
                 }
@@ -297,35 +313,38 @@ export default defineNuxtModule<IBricksModuleOptions>({
                     return;
                 }
 
-                // Nuxt зовёт хук без await, поэтому любой реджект отсюда уходит
-                // в необслуженный промис, а Node с дефолтным
-                // --unhandled-rejections=throw убивает на этом dev-сервер
+                // Nuxt calls the hook without await, so any rejection from here
+                // goes into an unhandled promise, and Node with the default
+                // --unhandled-rejections=throw kills the dev server over it
                 try {
-                    // Состав glob'а изменился — только рестарт, и он идёт
-                    // безусловно. Пробный скан перед ним ничего не давал бы:
-                    // состояние «рестарт ещё нужен» пришлось бы держать между
-                    // инстансами, а рестарт как раз создаёт новый инстанс модуля
-                    // — на той стороне такого состояния уже нет. Вместо этого
-                    // неразобранный файл не роняет `build:before` в dev.
+                    // The set the glob matches changed — only a restart helps, and
+                    // it runs unconditionally. A trial scan before it would give
+                    // nothing: the "a restart is still needed" state would have to
+                    // be kept between instances, and a restart is precisely what
+                    // creates a new instance of the module — the new instance has
+                    // no such state to read. Instead, a file that fails to parse
+                    // does not break `build:before` in dev.
                     if (event === 'add' || event === 'unlink') {
                         await nuxt.callHook('restart');
 
                         return;
                     }
 
-                    // change: состав тот же, но метаданные могли поменяться —
-                    // это уже про манифест, то есть только про билдер
+                    // change: the set is the same, but the metadata may have
+                    // changed — that is about the manifest, hence about the builder
+                    // alone
                     if (event !== 'change' || !isBuilderEnabled) {
                         return;
                     }
 
                     await manifestQueue.enqueue();
 
-                    // Метаданные бриков закешированы в useAsyncData('bricks-components') —
-                    // точечного HMR тут недостаточно
+                    // The brick metadata is cached in
+                    // useAsyncData('bricks-components') — a targeted HMR is not
+                    // enough here
                     viteClientServer?.hot.send({ type: 'full-reload' });
                 } catch (error) {
-                    reportManifestFailure(`событие ${event} brick-файла ${path}`, error);
+                    reportManifestFailure(`the ${event} event of the brick file ${path}`, error);
                 }
             });
         }
@@ -341,14 +360,15 @@ export default defineNuxtModule<IBricksModuleOptions>({
         );
         // #endregion
 
-        // #region Pages (builder + preview по features.builder, published catch-all
-        // по features.publishedPages; пути — из bricks.routes)
+        // #region Pages
+        // builder + preview by features.builder, the published catch-all by
+        // features.publishedPages; the paths come from bricks.routes
         extendPages((pages) => {
             registerBricksPages(pages, registrationContext);
         });
         // #endregion
 
-        // #region Route middleware (layout + загрузка данных published-страниц)
+        // #region Route middleware (layout + data loading of published pages)
         addRouteMiddleware({
             name: 'bricks-page-layout',
             path: resolve(runtimeDir, 'middleware/bricks-page-layout.global'),
@@ -357,9 +377,9 @@ export default defineNuxtModule<IBricksModuleOptions>({
         // #endregion
 
         // #region Plugins
-        // vue-icons (BricksIcon + ядро иконок) и bricks-styles нужны и published-
-        // страницам; vee-validate и text-editor-toolbar — только UI билдера
-        // (и без того лениво гейтятся runOnBuilderRoute).
+        // vue-icons (BricksIcon plus the icon core) and bricks-styles are needed by
+        // published pages too; vee-validate and text-editor-toolbar belong to the
+        // builder UI alone (and are lazily gated by runOnBuilderRoute anyway).
         addPlugin(resolve(runtimeDir, 'plugins/vue-icons'));
         addPlugin(resolve(runtimeDir, 'plugins/bricks-styles'));
         if (isBuilderEnabled) {
@@ -373,16 +393,17 @@ export default defineNuxtModule<IBricksModuleOptions>({
             handler: resolve(runtimeDir, 'server/middleware/auth'),
             middleware: true,
         });
-        // devProxy — только dev-сборка: проксирование не-bricks /api/* на
-        // PROXY_URL (host-API проекта); в production middleware не существует
+        // devProxy is dev-build only: it proxies non-bricks /api/* to PROXY_URL
+        // (the host API of the project); in production the middleware does not
+        // exist
         if (isDev) {
             addServerHandler({
                 handler: resolve(runtimeDir, 'server/middleware/devProxy'),
                 middleware: true,
             });
         }
-        // /api/bricks — по манифесту BRICKS_API_HANDLERS (render-only
-        // оставляет public read-model)
+        // /api/bricks comes from the BRICKS_API_HANDLERS manifest (render-only
+        // keeps the public read-model)
         registerBricksServerHandlers(registrationContext);
         // #endregion
     },

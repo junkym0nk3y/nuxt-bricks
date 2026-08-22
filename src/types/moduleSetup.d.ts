@@ -1,26 +1,26 @@
 /**
- * Контракты build-time хелперов setup'а (`src/module-setup.ts`): активные
- * поверхности модуля и контекст регистрации файловых сущностей.
+ * Contracts of the build-time setup helpers (`src/module-setup.ts`): the active
+ * module surfaces and the context for registering file-backed entities.
  */
 import type { Resolver } from '@nuxt/kit';
 import type { IBricksRoutePrefixes } from '../runtime/modules/common/utils/bricks/routePaths';
 
-/** Активные поверхности модуля: префиксы маршрутов + feature flags. */
+/** Active module surfaces: route prefixes plus feature flags */
 export interface IBricksSurfaces {
-    /** Валидированные префиксы билдера/превью. */
+    /** Validated builder and preview prefixes */
     routePrefixes: IBricksRoutePrefixes;
-    /** UI билдера включён (страницы, плагины редактора, editorial API, i18n, Pinia). */
+    /** Builder UI is on (pages, editor plugins, editorial API, i18n, Pinia) */
     isBuilderEnabled: boolean;
-    /** Catch-all маршруты live-рендера включены. */
+    /** The live-render catch-all routes are on */
     arePublishedPagesEnabled: boolean;
 }
 
-/** Контекст регистрации файловых сущностей (страницы, ручки). */
+/** Context for registering file-backed entities (pages, handlers) */
 export interface IBricksRegistrationContext {
-    /** resolver модуля (createResolver(import.meta.url).resolve). */
+    /** Module resolver (createResolver(import.meta.url).resolve) */
     resolve: Resolver['resolve'];
-    /** Абсолютный путь src/runtime. */
+    /** Absolute path of src/runtime */
     runtimeDir: string;
-    /** Активные поверхности. */
+    /** Active surfaces */
     surfaces: IBricksSurfaces;
 }

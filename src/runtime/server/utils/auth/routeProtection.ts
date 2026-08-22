@@ -88,9 +88,10 @@ export function requiresAuth(
         return false;
     }
 
-    // The component library is open for reading: the manifest holds only names,
-    // categories and brick file paths — exactly what goes into the client bundle
-    // anyway. The former rationale ("the builder SSR does not forward
+    // The component library is open for reading: the manifest holds names,
+    // categories, brick file paths and the editorial metadata of the entries
+    // (`description`, `values`, `slots`) — exactly what goes into the client
+    // bundle anyway. The former rationale ("the builder SSR does not forward
     // Authorization") is withdrawn: request identity is now forwarded to local
     // handlers (useApiClient), which means the handler could be closed too —
     // that is a separate decision, not a consequence of fixing the forwarding

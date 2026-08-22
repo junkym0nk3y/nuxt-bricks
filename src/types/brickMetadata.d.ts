@@ -1,19 +1,20 @@
 /**
- * Типы build-time разбора метаданных brick-файлов (`src/brick-metadata.ts`).
- * Формы, уезжающие в манифест (`IBrickValues`, `IComponentSlotDefinition`), —
- * общие с рантаймом; язык допустимых значений — в `brickLiterals.d.ts`.
+ * Types of the build-time brick metadata parser (`src/brick-metadata.ts`).
+ * The shapes that travel into the manifest (`IBrickValues`,
+ * `IComponentSlotDefinition`) are shared with the runtime; the language of
+ * allowed values lives in `brickLiterals.d.ts`.
  */
 import type { IComponentSlotDefinition } from '../runtime/modules/common/types/brick';
 import type { IBrickValues } from '../runtime/modules/common/types/index';
 
-/** Метаданные одного brick-файла, извлечённые из исходника. */
+/** Metadata of one brick file, extracted from its source */
 export interface IBrickMetadata {
-    /** Категория библиотеки; при отсутствии поля — дефолтная. */
+    /** Library category; the default one when the field is absent */
     category: string;
-    /** Описание для панели свойств. */
+    /** Description for the properties panel */
     description?: string;
-    /** Определения редактируемых свойств: имя пропа → описание значения. */
+    /** Definitions of the editable properties: prop name → value description */
     values: Record<string, IBrickValues>;
-    /** Нормализованные определения слотов; отсутствуют, если слотов нет. */
+    /** Normalized slot definitions; absent when the brick has no slots */
     slots?: IComponentSlotDefinition[];
 }

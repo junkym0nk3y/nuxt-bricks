@@ -1,42 +1,43 @@
 /**
- * Типы генератора манифеста brick-компонентов (`src/bricks-manifest.ts`):
- * параметры скана и контракт сериализованной очереди. Сам манифест — общий с
- * рантаймом контракт из `runtime/modules/common/types/brickManifest.d.ts`.
+ * Types of the brick component manifest generator (`src/bricks-manifest.ts`):
+ * scan options and the contract of the serialized queue. The manifest itself is
+ * a contract shared with the runtime, in
+ * `runtime/modules/common/types/brickManifest.d.ts`.
  */
 import type {
     IBrickManifestEntry,
     IBricksManifest,
 } from '../runtime/modules/common/types/brickManifest';
 
-/** Параметры генерации манифеста. */
+/** Manifest generation options */
 export interface IBricksManifestOptions {
-    /** `nuxt.options.srcDir` — база и для поиска файлов, и для ключей загрузчика. */
+    /** `nuxt.options.srcDir` — the base both for the file search and for loader keys */
     srcDir: string;
-    /** Каталог манифеста (см. resolveBricksManifestDir). */
+    /** Manifest directory (see resolveBricksManifestDir) */
     manifestDir: string;
 }
 
 /**
- * Прочитанный brick-файл: запись манифеста и исходник, от которого считается
- * хеш содержимого. Исходник в манифест не попадает — только в хеш.
+ * A read brick file: the manifest entry plus the source the content hash is
+ * computed from. The source does not enter the manifest — only the hash.
  */
 export interface IBrickManifestSource {
-    /** Запись, уходящая в манифест. */
+    /** The entry that goes into the manifest */
     entry: IBrickManifestEntry;
-    /** Содержимое `*.brick.ts` целиком. */
+    /** The whole contents of the `*.brick.ts` */
     content: string;
 }
 
-/** Сериализованная очередь генерации манифеста (см. createBricksManifestQueue). */
+/** Serialized manifest generation queue (see createBricksManifestQueue) */
 export interface IBricksManifestQueue {
     /**
-     * Ставит генерацию в очередь. Возвращённый промис всегда относится к скану,
-     * начавшемуся после вызова; после `dispose()` — к `undefined`.
+     * Queues a generation run. The returned promise always belongs to a scan that
+     * started after the call; after `dispose()` it resolves to `undefined`.
      */
     enqueue: () => Promise<IBricksManifest | undefined>;
     /**
-     * Закрывает очередь и дожидается незавершённого скана.
-     * Новые заявки после вызова не выполняются.
+     * Closes the queue and waits for an unfinished scan.
+     * Requests arriving after the call are not served.
      */
     dispose: () => Promise<void>;
 }

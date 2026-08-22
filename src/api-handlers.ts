@@ -1,11 +1,16 @@
 /**
- * Манифест Nitro-ручек /api/bricks/** (persistence, auth, health, builder-поверхность:
- * библиотека компонентов, media proxy, page thumbnail, шаблоны страниц).
+ * Manifest of the /api/bricks/** Nitro handlers (persistence, auth, health and
+ * the builder surface: component library, media proxy, page thumbnail, page
+ * templates).
  *
- * Роуты модуля не автосканируются — module.ts регистрирует каждую запись
- * через addServerHandler (file — путь от runtimeDir без расширения).
- * Порядок важен для одинаковой специфичности: статические пути и /versions
- * идут до generic /api/bricks/:id.
+ * Module routes are not auto-scanned — module.ts registers every entry through
+ * addServerHandler (`file` is a path from runtimeDir, without the extension).
+ *
+ * The order of entries does not affect matching: the h3 router ranks a static
+ * segment above a parameter one on its own, whatever the registration order,
+ * and looks handlers up per method. The order here is for the reader: the
+ * specific routes of a subtree stand together above the generic
+ * `/api/bricks/:id`, so the whole set is visible at once.
  */
 import type { IBricksApiHandler } from './types/apiHandlers';
 
@@ -28,8 +33,8 @@ export const BRICKS_API_HANDLERS: IBricksApiHandler[] = [
         file: 'server/api/bricks/auth/me.get',
     },
     {
-        // Остаток пути, а не `:pagename`: страницу опознаёт полный адрес
-        // (`<urlPrefix>/<pagename>`), и у него переменное число сегментов
+        // The rest of the path rather than `:pagename`: a page is identified by
+        // its full address (`<urlPrefix>/<pagename>`), whose segment count varies
         route: '/api/bricks/public/pages/**:address',
         method: 'get',
         file: 'server/api/bricks/public/pages/[...address].get',
@@ -48,8 +53,10 @@ export const BRICKS_API_HANDLERS: IBricksApiHandler[] = [
         isPublic: true,
     },
     {
-        // Открыта для GET/HEAD auth-матрицей (routeProtection.ts): манифест —
-        // только имена, категории и пути brick-файлов
+        // Open for GET/HEAD in the auth matrix (routeProtection.ts): the manifest
+        // describes the library — names, categories, brick file paths and the
+        // editorial metadata of the entries, which is exactly what goes into the
+        // client bundle anyway
         route: '/api/bricks/components',
         method: 'get',
         file: 'server/api/bricks/components.get',
@@ -75,14 +82,11 @@ export const BRICKS_API_HANDLERS: IBricksApiHandler[] = [
         file: 'server/api/bricks/media/upload.post',
     },
     {
-        // До generic /api/bricks/media/:id — та же причина, что и у categories
         route: '/api/bricks/media/import',
         method: 'post',
         file: 'server/api/bricks/media/import.post',
     },
     {
-        // До generic /api/bricks/media/:id: у DELETE специфичность та же, и
-        // `categories` иначе уехал бы в разбор id
         route: '/api/bricks/media/categories',
         method: 'get',
         file: 'server/api/bricks/media/categories/index.get',
@@ -118,10 +122,10 @@ export const BRICKS_API_HANDLERS: IBricksApiHandler[] = [
         file: 'server/api/bricks/users/index.post',
     },
     {
-        // Ручки своего профиля идут ДО параметрических: `me` — не число, и в
-        // разборе `:id` этот путь получил бы 400 вместо своей ручки. Роутер
-        // предпочитает статический сегмент параметру сам, но порядок манифеста —
-        // единственное, что видно при чтении
+        // The own-profile handlers stand above the parametric ones: `me` is not a
+        // number, so read as an `:id` this path would answer 400 instead of
+        // reaching its own handler. The router prefers the static segment by
+        // itself; the manifest order only makes that visible while reading
         route: '/api/bricks/users/me',
         method: 'patch',
         file: 'server/api/bricks/users/me.patch',
@@ -142,8 +146,6 @@ export const BRICKS_API_HANDLERS: IBricksApiHandler[] = [
         file: 'server/api/bricks/users/me/avatar.delete',
     },
     {
-        // До generic /api/bricks/users/:id — специфичность у POST та же, и
-        // `password` иначе уехал бы в разбор id
         route: '/api/bricks/users/:id/password',
         method: 'post',
         file: 'server/api/bricks/users/[id]/password.post',
@@ -159,8 +161,9 @@ export const BRICKS_API_HANDLERS: IBricksApiHandler[] = [
         file: 'server/api/bricks/users/[id].delete',
     },
     {
-        // Весь блок шаблонов — до generic /api/bricks/:id: специфичность у пары
-        // «метод + один сегмент» та же, и `templates` иначе уехал бы в разбор id
+        // The whole templates block stands above the generic /api/bricks/:id: the
+        // pair "method + one segment" collides there, and `templates` is the
+        // static side the router picks
         route: '/api/bricks/templates',
         method: 'get',
         file: 'server/api/bricks/templates/index.get',

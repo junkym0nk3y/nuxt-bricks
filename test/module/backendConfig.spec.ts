@@ -50,7 +50,7 @@ describe('resolveBricksBackendConfig: external', () => {
         expect(resolution.mode).toBe('external');
         expect(resolution.errors).toEqual([]);
         expect(resolution.warnings).toHaveLength(1);
-        expect(resolution.warnings[0]).toContain('database.url игнорируется');
+        expect(resolution.warnings[0]).toContain('database.url is ignored');
     });
 
     it('external + database-auth → build-ошибка (не рантайм-503)', () => {
@@ -91,7 +91,7 @@ describe('resolveBricksBackendConfig: builtin (явный и дефолтный)
         });
         expect(resolution.mode).toBe('builtin');
         expect(resolution.warnings).toHaveLength(1);
-        expect(resolution.warnings[0]).toContain('backend.url игнорируется');
+        expect(resolution.warnings[0]).toContain('backend.url is ignored');
     });
 
     it('builtin + database-auth — валидная пара', () => {

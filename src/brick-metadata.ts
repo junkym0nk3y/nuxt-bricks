@@ -1,20 +1,22 @@
 /**
- * Build-time разбор метаданных brick-файла: `category`, `description`, `values`
- * и `slots` читаются прямо из объявления `export const brick`, без исполнения
- * модуля.
+ * Build-time parsing of brick-file metadata: `category`, `description`, `values`
+ * and `slots` are read straight from the `export const brick` declaration,
+ * without executing the module.
  *
- * Почему разбор, а не импорт: brick-файл тянет за собой `.vue`-компонент, то
- * есть исполнить его на build-time можно только через полноценный Vite-конвейер,
- * которого в prod-сборке нет. Разбор исходника даёт те же значения дешевле — но
- * только для литералов, поэтому вычисляемые формы запрещены явной ошибкой
- * сборки: тихо подставленное «значение по умолчанию» разошлось бы с тем, что
- * видит разработчик в файле. Заодно это делает честным хеш манифеста по
- * содержимому файла — метаданных, вынесенных в импортируемую константу, он бы
- * не заметил.
+ * Why parsing and not an import: the manifest is produced in the Nuxt process (the
+ * `build:before` hook and the dev watcher), outside the Vite module graph, and a
+ * brick file drags a `.vue` component along — executing it there would mean
+ * standing up a compile pipeline of our own just to read four fields. Parsing the
+ * source yields the same values more cheaply —
+ * but only for literals, which is why computed forms are rejected with an
+ * explicit build error: a silently substituted "default value" would diverge
+ * from what the developer sees in the file. It also keeps the manifest hash over
+ * the file contents honest — metadata moved out into an imported constant would
+ * go unnoticed by it.
  *
- * Читаются ровно четыре поля. Остальные (в первую очередь `dataSources` с их
- * функциями) не разбираются вовсе: они нужны рантайму, который модуль всё равно
- * импортирует.
+ * Exactly four fields are read. The rest (`dataSources` with their functions
+ * first of all) are not parsed at all: they are needed by the runtime, which
+ * imports the module anyway.
  */
 import { parseSync, type ObjectExpression, type ObjectProperty, type Program } from 'oxc-parser';
 import {
@@ -30,13 +32,13 @@ import type { IBrickSourceFile, TBrickLiteralValue } from './types/brickLiterals
 import type { IBrickMetadata } from './types/brickMetadata';
 
 // #region Constants
-/** Имя экспорта, в котором живут метаданные brick-компонента. */
+/** Name of the export the brick component metadata lives in */
 const BRICK_EXPORT_NAME = 'brick';
 
-/** Категория брика, у которого поле `category` не задано. */
+/** Category of a brick whose `category` field is not set */
 const DEFAULT_CATEGORY = 'Common';
 
-/** Поля метаданных, которые уезжают в манифест. */
+/** The metadata fields that travel into the manifest */
 const CATEGORY_FIELD = 'category';
 const DESCRIPTION_FIELD = 'description';
 const VALUES_FIELD = 'values';
@@ -45,23 +47,24 @@ const SLOTS_FIELD = 'slots';
 
 // #region Methods
 /**
- * Находит объектный литерал объявления `export const brick`.
+ * Finds the object literal of the `export const brick` declaration.
  *
- * Поддерживается ровно одна форма — прямое локальное объявление через `const`.
- * Ре-экспорт и `export { brick }` из другого модуля не поддерживаются намеренно:
- * значение тогда лежит вне разбираемого файла, а хеш манифеста считается по нему.
+ * Exactly one form is supported — a direct local declaration through `const`.
+ * A re-export and `export { brick }` from another module are deliberately
+ * unsupported: the value would then live outside the parsed file, while the
+ * manifest hash is computed over that file.
  *
- * @param source - Разбираемый файл.
- * @param program - Разобранная программа.
- * @returns Объектный литерал метаданных.
+ * @param source - File being parsed.
+ * @param program - The parsed program.
+ * @returns Object literal of the metadata.
  */
 function findBrickInitializer(source: IBrickSourceFile, program: Program): ObjectExpression {
     for (const statement of program.body) {
         if (
             statement.type !== 'ExportNamedDeclaration' ||
             statement.declaration?.type !== 'VariableDeclaration' ||
-            // `let`/`var` разбор читает в точке объявления, а переприсваивание
-            // ниже по файлу меняет то, что увидит рантайм
+            // With `let`/`var` the parser reads the declaration site, while a
+            // reassignment further down the file changes what the runtime sees
             statement.declaration.kind !== 'const'
         ) {
             continue;
@@ -77,7 +80,7 @@ function findBrickInitializer(source: IBrickSourceFile, program: Program): Objec
                     source,
                     declarator.start,
                     BRICK_EXPORT_NAME,
-                    'объявление без значения'
+                    'a declaration without a value'
                 );
             }
 
@@ -88,7 +91,7 @@ function findBrickInitializer(source: IBrickSourceFile, program: Program): Objec
                     source,
                     initializer.start,
                     BRICK_EXPORT_NAME,
-                    'ожидается объектный литерал'
+                    'an object literal is expected'
                 );
             }
 
@@ -97,21 +100,22 @@ function findBrickInitializer(source: IBrickSourceFile, program: Program): Objec
     }
 
     throw new Error(
-        `[nuxt-bricks] ${source.filePath}: brick-файл обязан объявлять \`export const ${BRICK_EXPORT_NAME} = { … }\``
+        `[nuxt-bricks] ${source.filePath}: a brick file must declare \`export const ${BRICK_EXPORT_NAME} = { … }\``
     );
 }
 
 /**
- * Раскладывает верхний уровень метаданных по именам полей.
+ * Lays the top level of the metadata out by field name.
  *
- * Верхний уровень проверяется целиком, а не только у четырёх нужных полей:
- * spread или вычисляемый ключ могут добавить или перекрыть любое из них, и
- * тогда разобранное значение разошлось бы с фактическим. Значения полей при
- * этом не читаются — `dataSources` с функциями обязан пройти без ошибки.
+ * The top level is checked in full rather than only at the four fields that are
+ * needed: a spread or a computed key can add or shadow any of them, and the
+ * parsed value would then diverge from the actual one. Field values are not read
+ * while doing so — `dataSources` with its functions must pass without an error.
  *
- * @param source - Разбираемый файл.
- * @param node - Объектный литерал метаданных.
- * @returns Свойства по именам; повтор имени перекрывается последним, как в JS.
+ * @param source - File being parsed.
+ * @param node - Object literal of the metadata.
+ * @returns Properties by name; a repeated name is shadowed by the last one, as
+ *   in JS.
  */
 function readMetadataProperties(
     source: IBrickSourceFile,
@@ -125,7 +129,7 @@ function readMetadataProperties(
                 source,
                 property.start,
                 BRICK_EXPORT_NAME,
-                'spread запрещён: он может перекрыть поля метаданных'
+                'spread is forbidden: it can shadow metadata fields'
             );
         }
 
@@ -136,12 +140,12 @@ function readMetadataProperties(
 }
 
 /**
- * Читает строковое поле метаданных.
+ * Reads a string metadata field.
  *
- * @param source - Разбираемый файл.
- * @param properties - Свойства верхнего уровня по именам.
- * @param name - Имя поля.
- * @returns Значение поля или `undefined`, если поля нет.
+ * @param source - File being parsed.
+ * @param properties - Top-level properties by name.
+ * @param name - Field name.
+ * @returns Value of the field, or `undefined` when the field is absent.
  */
 function readStringField(
     source: IBrickSourceFile,
@@ -158,35 +162,35 @@ function readStringField(
     const value = readStaticLiteral(source, property.value, path);
 
     if (typeof value !== 'string') {
-        throw createBrickSourceError(source, property.start, path, 'ожидается строка');
+        throw createBrickSourceError(source, property.start, path, 'a string is expected');
     }
 
     return value;
 }
 
 /**
- * Проверяет верхнеуровневую форму `values`: запись «имя пропа → объект».
+ * Checks the top-level shape of `values`: a record "prop name → object".
  *
- * Глубже форма не проверяется — это задача редакторов свойств, а не манифеста;
- * от разбора требуется доказать, что значение сериализуемо и имеет ожидаемую
- * структуру.
+ * The shape is not checked any deeper — that is the job of the property editors,
+ * not of the manifest; the parser only has to prove that the value is
+ * serializable and has the expected structure.
  *
- * @param value - Разобранное значение поля.
- * @returns Признак записи определений свойств.
+ * @param value - The parsed value of the field.
+ * @returns Whether it is a record of property definitions.
  */
 function isBrickValuesRecord(value: unknown): value is Record<string, IBrickValues> {
     return isLiteralRecord(value) && Object.values(value).every(isLiteralRecord);
 }
 
 /**
- * Собирает одно определение слота из объектной формы.
+ * Assembles one slot definition out of the object form.
  *
- * @param source - Разбираемый файл.
- * @param name - Имя слота.
- * @param definition - Разобранное определение.
- * @param offset - Смещение узла для сообщения об ошибке.
- * @param path - Путь до определения.
- * @returns Нормализованное определение слота.
+ * @param source - File being parsed.
+ * @param name - Slot name.
+ * @param definition - The parsed definition.
+ * @param offset - Node offset for the error message.
+ * @param path - Path to the definition.
+ * @returns Normalized slot definition.
  */
 function toSlotDefinition(
     source: IBrickSourceFile,
@@ -198,15 +202,20 @@ function toSlotDefinition(
     const { label, description, allowMultiple } = definition;
 
     if (label !== undefined && typeof label !== 'string') {
-        throw createBrickSourceError(source, offset, `${path}.label`, 'ожидается строка');
+        throw createBrickSourceError(source, offset, `${path}.label`, 'a string is expected');
     }
 
     if (description !== undefined && typeof description !== 'string') {
-        throw createBrickSourceError(source, offset, `${path}.description`, 'ожидается строка');
+        throw createBrickSourceError(source, offset, `${path}.description`, 'a string is expected');
     }
 
     if (allowMultiple !== undefined && typeof allowMultiple !== 'boolean') {
-        throw createBrickSourceError(source, offset, `${path}.allowMultiple`, 'ожидается boolean');
+        throw createBrickSourceError(
+            source,
+            offset,
+            `${path}.allowMultiple`,
+            'a boolean is expected'
+        );
     }
 
     return {
@@ -218,14 +227,15 @@ function toSlotDefinition(
 }
 
 /**
- * Нормализует обе формы записи слотов в один список определений.
+ * Normalizes both ways of writing slots into a single list of definitions.
  *
- * Нормализация делается здесь, а не в билдере: в манифест уезжает уже готовая
- * форма, поэтому разбирать сырые варианты записи в рантайме больше некому.
+ * Normalization happens here rather than in the builder: the ready shape is what
+ * travels into the manifest, so at runtime there is nobody left to take the raw
+ * spellings apart.
  *
- * @param source - Разбираемый файл.
- * @param properties - Свойства верхнего уровня по именам.
- * @returns Определения слотов или `undefined`, если слотов нет.
+ * @param source - File being parsed.
+ * @param properties - Top-level properties by name.
+ * @returns Slot definitions, or `undefined` when the brick has no slots.
  */
 function readSlots(
     source: IBrickSourceFile,
@@ -254,7 +264,7 @@ function readSlots(
                     source,
                     offset,
                     slotPath,
-                    'ожидается имя слота или объект с полем name'
+                    'a slot name or an object with a name field is expected'
                 );
             }
 
@@ -265,14 +275,19 @@ function readSlots(
     }
 
     if (!isLiteralRecord(value)) {
-        throw createBrickSourceError(source, offset, path, 'ожидается список или объект слотов');
+        throw createBrickSourceError(
+            source,
+            offset,
+            path,
+            'a list or an object of slots is expected'
+        );
     }
 
     const definitions = Object.entries(value).map(([name, definition]) => {
         const slotPath = `${path}.${name}`;
 
         if (!isLiteralRecord(definition)) {
-            throw createBrickSourceError(source, offset, slotPath, 'ожидается объект');
+            throw createBrickSourceError(source, offset, slotPath, 'an object is expected');
         }
 
         return toSlotDefinition(source, name, definition, offset, slotPath);
@@ -282,11 +297,11 @@ function readSlots(
 }
 
 /**
- * Извлекает метаданные brick-файла из его исходника.
+ * Extracts the metadata of a brick file from its source.
  *
- * @param filePath - Абсолютный путь brick-файла (для сообщений об ошибке).
- * @param content - Содержимое brick-файла.
- * @returns Метаданные для записи манифеста.
+ * @param filePath - Absolute path of the brick file (for error messages).
+ * @param content - Contents of the brick file.
+ * @returns Metadata for the manifest entry.
  */
 export function extractBrickMetadata(filePath: string, content: string): IBrickMetadata {
     const source: IBrickSourceFile = { filePath, content };
@@ -295,8 +310,9 @@ export function extractBrickMetadata(filePath: string, content: string): IBrickM
     if (parsed.errors.length > 0) {
         const [{ message, labels }] = parsed.errors;
 
-        // Позиция — из первой метки ошибки: без неё сообщение о синтаксической
-        // ошибке отличалось бы от остальных, у которых место в файле есть
+        // The position comes from the first error label: without it a syntax
+        // error message would differ from the rest, which do carry a place in
+        // the file
         throw createBrickSourceError(source, labels[0]?.start ?? 0, BRICK_EXPORT_NAME, message);
     }
 
@@ -306,7 +322,7 @@ export function extractBrickMetadata(filePath: string, content: string): IBrickM
 
     if (!valuesProperty) {
         throw new Error(
-            `[nuxt-bricks] ${filePath}: brick-файл обязан объявлять \`${VALUES_FIELD}\` (пустой объект, если редактируемых свойств нет)`
+            `[nuxt-bricks] ${filePath}: a brick file must declare \`${VALUES_FIELD}\` (an empty object when it has no editable properties)`
         );
     }
 
@@ -318,13 +334,13 @@ export function extractBrickMetadata(filePath: string, content: string): IBrickM
             source,
             valuesProperty.start,
             valuesPath,
-            'ожидается объект вида «имя свойства → его описание»'
+            'an object of the form "property name → its description" is expected'
         );
     }
 
     return {
-        // Пустая строка значила бы категорию без имени: у такой записи нет ни
-        // заголовка в библиотеке, ни адреса в фильтре по категории
+        // An empty string would mean a category without a name: such an entry has
+        // neither a heading in the library nor an address in the category filter
         category: readStringField(source, properties, CATEGORY_FIELD) || DEFAULT_CATEGORY,
         description: readStringField(source, properties, DESCRIPTION_FIELD),
         values,

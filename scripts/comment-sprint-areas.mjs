@@ -115,7 +115,7 @@ export const AREAS = [
     {
         id: '9',
         title: 'build-time src',
-        done: false,
+        done: true,
         match: ['src/types/', 'src/'],
         onlyDepth: true,
     },

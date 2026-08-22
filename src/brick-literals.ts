@@ -1,34 +1,35 @@
 /**
- * Язык литералов brick-файла: разбор значений, которые разрешено записывать в
- * метаданные, и диагностика с точным местом в файле.
+ * The literal language of a brick file: parsing of the values allowed in
+ * metadata, and diagnostics with the exact place in the file.
  *
- * Список форм закрытый, потому что метаданные читаются разбором исходника, а не
- * исполнением модуля (см. `src/brick-metadata.ts`): значение вычисляемой формы
- * здесь попросту неизвестно, и подставить вместо него «что-нибудь» значило бы
- * записать в манифест не то, что видит разработчик в файле.
+ * The list of forms is closed because metadata is read by parsing the source
+ * rather than by executing the module (see `src/brick-metadata.ts`): the value
+ * of a computed form is simply unknown here, and putting "something" in its
+ * place would mean writing into the manifest not what the developer sees in the
+ * file.
  */
 import { type Expression, type ObjectExpression, type ObjectProperty } from 'oxc-parser';
 import type { IBrickSourceFile, TBrickLiteralValue } from './types/brickLiterals';
 
 // #region Constants
 /**
- * Ключ, запрещённый на любой глубине метаданных: в объекте JS он меняет
- * прототип, а в JSON и Nuxt payload читается как обычное поле — сохранить
- * значение без искажения нельзя ни в одном из представлений.
+ * A key forbidden at any depth of the metadata: in a JS object it changes the
+ * prototype, while in JSON and the Nuxt payload it reads as an ordinary field —
+ * the value cannot be preserved undistorted in either representation.
  */
 const FORBIDDEN_LITERAL_KEY = '__proto__';
 // #endregion
 
 // #region Methods
 /**
- * Строит позицию `строка:колонка` по смещению в исходнике.
+ * Builds a `line:column` position from an offset in the source.
  *
- * Нужна сообщению об ошибке: oxc отдаёт узлы со смещениями, а разработчику
- * нужна строка, по которой он найдёт место в редакторе.
+ * The error message needs it: oxc hands out nodes with offsets, while the
+ * developer needs the line that takes them to the place in the editor.
  *
- * @param content - Исходник brick-файла.
- * @param offset - Смещение узла от начала файла.
- * @returns Позиция в виде `строка:колонка`.
+ * @param content - Source of the brick file.
+ * @param offset - Node offset from the start of the file.
+ * @returns Position in the `line:column` form.
  */
 function formatPosition(content: string, offset: number): string {
     const before = content.slice(0, offset);
@@ -39,13 +40,14 @@ function formatPosition(content: string, offset: number): string {
 }
 
 /**
- * Собирает ошибку разбора с местом в файле и путём до поля.
+ * Assembles a parse error carrying the place in the file and the path to the
+ * field.
  *
- * @param source - Разбираемый файл.
- * @param offset - Смещение проблемного узла.
- * @param path - Путь до поля вида `brick.values.headline.default`.
- * @param detail - Что именно не так.
- * @returns Ошибка сборки.
+ * @param source - File being parsed.
+ * @param offset - Offset of the offending node.
+ * @param path - Path to the field, of the form `brick.values.headline.default`.
+ * @param detail - What exactly is wrong.
+ * @returns Build error.
  */
 export function createBrickSourceError(
     source: IBrickSourceFile,
@@ -59,10 +61,11 @@ export function createBrickSourceError(
 }
 
 /**
- * Снимает обёртки, не меняющие значение: скобки, `as` и `satisfies`.
+ * Strips the wrappers that do not change the value: parentheses, `as` and
+ * `satisfies`.
  *
- * @param expression - Разбираемое выражение.
- * @returns Выражение без обёрток.
+ * @param expression - Expression being parsed.
+ * @returns The expression without wrappers.
  */
 export function unwrapStaticExpression(expression: Expression): Expression {
     let current = expression;
@@ -80,21 +83,21 @@ export function unwrapStaticExpression(expression: Expression): Expression {
 }
 
 /**
- * Читает имя свойства объекта.
+ * Reads the name of an object property.
  *
- * Вычисляемый ключ запрещён: его значение известно только исполнению, а
- * shorthand-запись (`{ name }`) отсекается общим правилом «только литералы» —
- * её значение всегда идентификатор.
+ * A computed key is forbidden: its value is known only to execution, and the
+ * shorthand form (`{ name }`) is cut off by the general "literals only" rule —
+ * its value is always an identifier.
  *
- * `__proto__` запрещается здесь, а не у вызывающих: в объектном литерале это не
- * обычное поле, а установка прототипа, поэтому исполненный модуль показал бы
- * унаследованные значения (`brick.category`, `brick.dataSources`) там, где
- * разбор видит их отсутствие.
+ * `__proto__` is rejected here rather than at the call sites: in an object
+ * literal it is not an ordinary field but a prototype assignment, so an executed
+ * module would show inherited values (`brick.category`, `brick.dataSources`)
+ * where the parser sees them missing.
  *
- * @param source - Разбираемый файл.
- * @param property - Свойство объектного литерала.
- * @param path - Путь до объекта-родителя.
- * @returns Имя свойства.
+ * @param source - File being parsed.
+ * @param property - Property of the object literal.
+ * @param path - Path to the parent object.
+ * @returns Property name.
  */
 export function readPropertyName(
     source: IBrickSourceFile,
@@ -102,7 +105,7 @@ export function readPropertyName(
     path: string
 ): string {
     if (property.computed) {
-        throw createBrickSourceError(source, property.start, path, 'вычисляемый ключ запрещён');
+        throw createBrickSourceError(source, property.start, path, 'a computed key is forbidden');
     }
 
     const name = readKeyName(source, property, path);
@@ -112,7 +115,7 @@ export function readPropertyName(
             source,
             property.start,
             `${path}.${name}`,
-            'ключ подменяет прототип и не переживает сериализацию'
+            'this key replaces the prototype and does not survive serialization'
         );
     }
 
@@ -120,12 +123,12 @@ export function readPropertyName(
 }
 
 /**
- * Читает имя ключа свойства без проверок допустимости.
+ * Reads the key name of a property without any admissibility checks.
  *
- * @param source - Разбираемый файл.
- * @param property - Свойство объектного литерала.
- * @param path - Путь до объекта-родителя.
- * @returns Имя ключа.
+ * @param source - File being parsed.
+ * @param property - Property of the object literal.
+ * @param path - Path to the parent object.
+ * @returns Key name.
  */
 function readKeyName(source: IBrickSourceFile, property: ObjectProperty, path: string): string {
     if (property.key.type === 'Identifier') {
@@ -140,42 +143,43 @@ function readKeyName(source: IBrickSourceFile, property: ObjectProperty, path: s
         source,
         property.start,
         path,
-        'ключом может быть только имя или строковый литерал'
+        'only a name or a string literal can be a key'
     );
 }
 
 /**
- * Пропускает только числа, которые дойдут до рантайма без искажения.
+ * Lets through only the numbers that reach the runtime undistorted.
  *
- * Манифест едет через JSON, а тот не умеет ни бесконечностей, ни `-0`:
- * `1e999` записался бы как `null`, а `-0` вернулся бы обычным нулём. Тихо
- * подменённое значение по умолчанию хуже отказа сборки — его никто не заметит.
+ * The manifest travels as JSON, and JSON knows neither infinities nor `-0`:
+ * `1e999` would be written as `null`, and `-0` would come back an ordinary zero.
+ * A silently substituted default value is worse than a failed build — nobody
+ * notices it.
  *
- * @param source - Разбираемый файл.
- * @param value - Прочитанное число.
- * @param offset - Смещение узла для сообщения об ошибке.
- * @param path - Путь до поля.
- * @returns То же число, если оно представимо в манифесте.
+ * @param source - File being parsed.
+ * @param value - The number that was read.
+ * @param offset - Node offset for the error message.
+ * @param path - Path to the field.
+ * @returns The same number, if it is representable in the manifest.
  */
 function readNumber(source: IBrickSourceFile, value: number, offset: number, path: string): number {
     if (!Number.isFinite(value)) {
-        throw createBrickSourceError(source, offset, path, 'число вне диапазона JSON');
+        throw createBrickSourceError(source, offset, path, 'the number is outside the JSON range');
     }
 
     if (Object.is(value, -0)) {
-        throw createBrickSourceError(source, offset, path, 'сериализация не сохраняет -0');
+        throw createBrickSourceError(source, offset, path, 'serialization does not preserve -0');
     }
 
     return value;
 }
 
 /**
- * Читает литеральное значение выражения.
+ * Reads the literal value of an expression.
  *
- * @param source - Разбираемый файл.
- * @param expression - Разбираемое выражение.
- * @param path - Путь до поля для сообщения об ошибке.
- * @returns Значение выражения.
+ * @param source - File being parsed.
+ * @param expression - Expression being parsed.
+ * @param path - Path to the field, for the error message.
+ * @returns Value of the expression.
  */
 export function readStaticLiteral(
     source: IBrickSourceFile,
@@ -190,7 +194,7 @@ export function readStaticLiteral(
                 source,
                 node.start,
                 path,
-                'допустимы строка, число, boolean и null'
+                'a string, a number, a boolean and null are allowed'
             );
         }
 
@@ -201,32 +205,27 @@ export function readStaticLiteral(
         return node.value;
     }
 
-    // Шаблон без подстановок — та же строка, записанная иначе
+    // A template with no interpolations is the same string, written differently
     if (node.type === 'TemplateLiteral') {
         if (node.expressions.length > 0) {
             throw createBrickSourceError(
                 source,
                 node.start,
                 path,
-                'подстановка в шаблонной строке запрещена'
+                'an interpolation in a template string is forbidden'
             );
         }
 
         return node.quasis[0]?.value.cooked ?? '';
     }
 
-    // Отрицательные числа приходят унарным минусом, а не литералом
+    // Negative numbers arrive as a unary minus, not as a literal
     if (node.type === 'UnaryExpression') {
         const argument = unwrapStaticExpression(node.argument);
         const isSigned = node.operator === '-' || node.operator === '+';
 
         if (!isSigned || argument.type !== 'Literal' || typeof argument.value !== 'number') {
-            throw createBrickSourceError(
-                source,
-                node.start,
-                path,
-                'вычисляемое значение запрещено'
-            );
+            throw createBrickSourceError(source, node.start, path, 'a computed value is forbidden');
         }
 
         return readNumber(
@@ -242,11 +241,21 @@ export function readStaticLiteral(
             const elementPath = `${path}[${index}]`;
 
             if (element === null) {
-                throw createBrickSourceError(source, node.start, elementPath, 'пропуск запрещён');
+                throw createBrickSourceError(
+                    source,
+                    node.start,
+                    elementPath,
+                    'a hole is forbidden'
+                );
             }
 
             if (element.type === 'SpreadElement') {
-                throw createBrickSourceError(source, element.start, elementPath, 'spread запрещён');
+                throw createBrickSourceError(
+                    source,
+                    element.start,
+                    elementPath,
+                    'spread is forbidden'
+                );
             }
 
             return readStaticLiteral(source, element, elementPath);
@@ -257,16 +266,16 @@ export function readStaticLiteral(
         return readLiteralRecord(source, node, path);
     }
 
-    throw createBrickSourceError(source, node.start, path, 'ожидается литерал');
+    throw createBrickSourceError(source, node.start, path, 'a literal is expected');
 }
 
 /**
- * Читает объектный литерал в обычный объект.
+ * Reads an object literal into a plain object.
  *
- * @param source - Разбираемый файл.
- * @param node - Объектный литерал.
- * @param path - Путь до объекта.
- * @returns Значения свойств по именам.
+ * @param source - File being parsed.
+ * @param node - The object literal.
+ * @param path - Path to the object.
+ * @returns Property values by name.
  */
 function readLiteralRecord(
     source: IBrickSourceFile,
@@ -277,14 +286,19 @@ function readLiteralRecord(
 
     for (const property of node.properties) {
         if (property.type === 'SpreadElement') {
-            throw createBrickSourceError(source, property.start, path, 'spread запрещён');
+            throw createBrickSourceError(source, property.start, path, 'spread is forbidden');
         }
 
         const name = readPropertyName(source, property, path);
         const propertyPath = `${path}.${name}`;
 
         if (property.method || property.kind !== 'init') {
-            throw createBrickSourceError(source, property.start, propertyPath, 'ожидается литерал');
+            throw createBrickSourceError(
+                source,
+                property.start,
+                propertyPath,
+                'a literal is expected'
+            );
         }
 
         record[name] = readStaticLiteral(source, property.value, propertyPath);
@@ -294,10 +308,10 @@ function readLiteralRecord(
 }
 
 /**
- * Проверяет, что значение — обычный объект, а не массив или примитив.
+ * Checks that the value is a plain object rather than an array or a primitive.
  *
- * @param value - Разобранное значение.
- * @returns Признак объекта.
+ * @param value - The parsed value.
+ * @returns Whether it is an object.
  */
 export function isLiteralRecord(value: unknown): value is Record<string, TBrickLiteralValue> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);

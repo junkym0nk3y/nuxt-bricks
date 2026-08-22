@@ -1,26 +1,26 @@
 /**
- * Контракт резолвера режима data backend (`src/module-backend-config.ts`):
- * вход (опции + env) и результат с диагностикой.
+ * Contract of the data backend mode resolver (`src/module-backend-config.ts`):
+ * the input (options + env) and the result with its diagnostics.
  */
 
 export type TBricksBackendMode = 'builtin' | 'external';
 
 export interface IBricksBackendResolutionInput {
-    /** Явный bricks.backend.mode из nuxt.config (build-time, дефолт 'builtin'). */
+    /** Explicit bricks.backend.mode from nuxt.config (build-time, default 'builtin') */
     configuredMode?: TBricksBackendMode;
-    /** Разрешённый base URL external backend (options/env). */
+    /** Resolved base URL of the external backend (options/env) */
     backendUrl: string;
-    /** Разрешённый URL PostgreSQL (options/env). */
+    /** Resolved PostgreSQL URL (options/env) */
     databaseUrl: string;
-    /** Режим авторизации ('basic' | 'database'). */
+    /** Authorization mode ('basic' | 'database') */
     authMode: string;
 }
 
 export interface IBricksBackendResolution {
-    /** Итоговый режим: при фатальных ошибках он не применяется — сборка падает. */
+    /** The resulting mode: on fatal errors it is never applied — the build fails */
     mode: TBricksBackendMode;
-    /** Предупреждения (конфигурация подозрительная, но сборка продолжается). */
+    /** Warnings (the configuration is suspicious, but the build goes on) */
     warnings: string[];
-    /** Фатальные ошибки конфигурации — валят сборку (fail-fast). */
+    /** Fatal configuration errors — they fail the build (fail-fast) */
     errors: string[];
 }
