@@ -1,17 +1,17 @@
 /**
- * Типы библиотеки компонентов, общие для сборки списка (`builder/app`) и его
- * показа (`builder/shell`). Лежат в ядре, потому что shell не имеет права
- * импортировать из composition root'а.
+ * Types of the component library, shared by the code that builds the list
+ * (`builder/app`) and the code that shows it (`builder/shell`). They live in the
+ * core because shell is not allowed to import from the composition root.
  */
 import type { IBricksComponent, IPropertyDefinition } from '../../../common/types/brick';
 import type { IBrickManifestEntry } from '../../../common/types/brickManifest';
 
 /**
- * Brick из манифеста, не попавший в библиотеку: запись есть, а лоадера под её
- * `brickPath` в сборке нет. Это рассинхрон манифеста и `import.meta.glob`:
- * карта лоадеров разворачивается на этапе трансформации, поэтому в рантайме
- * такое не чинится — в dev помогает перезапуск сервера, в проде это дефект
- * сборки.
+ * A brick from the manifest that did not make it into the library: the entry is
+ * there, but the build carries no loader for its `brickPath`. This is the manifest
+ * and `import.meta.glob` out of sync: the loader map is expanded at transform time,
+ * so nothing fixes it at runtime — in dev a server restart helps, in production it
+ * is a build defect.
  */
 export interface ISkippedBrick {
     name: string;
@@ -19,40 +19,39 @@ export interface ISkippedBrick {
 }
 
 /**
- * Метаданные бриков по `brickPath`. Собирается из ответа ручки компонентов и
- * служит единственным источником редакторских данных: панель свойств, слоты,
- * inline-редактирование и force-render читают его, а не импортируют
- * brick-модуль.
+ * Brick metadata keyed by `brickPath`. Built from the response of the components
+ * endpoint, it is the single source of editor data: the properties panel, the slots,
+ * inline editing and force-render read it instead of importing the brick module.
  */
 export type TBrickMetadataIndex = Record<string, IBrickManifestEntry>;
 
-/** Возвращаемое значение `useBrickMetadata`. */
+/** Return value of `useBrickMetadata` */
 export interface IUseBrickMetadataReturn {
     /**
-     * Заменяет индекс целиком. Именно заменяет, а не дописывает: успешный
-     * манифест обязан убрать записи бриков, которых больше нет.
+     * Replaces the index as a whole. Replaces, not appends: a manifest that arrived
+     * successfully has to drop the entries of bricks that no longer exist.
      */
     replaceBrickMetadata: (entries: IBrickManifestEntry[]) => void;
     /**
-     * Метаданные брика или `undefined`, если манифест ещё не дошёл либо записи
-     * в нём нет.
+     * Metadata of a brick, or `undefined` when the manifest has not arrived yet or
+     * carries no such entry.
      */
     readBrickMetadata: (brickPath: string) => IBrickManifestEntry | undefined;
 }
 
-/** Данные компонента для панели свойств. */
+/** Component data the properties panel needs */
 export interface IComponentEditorMetadata {
-    /** Определения редактируемых свойств; пусто, если метаданных ещё нет. */
+    /** Definitions of the editable properties; empty while there is no metadata */
     properties: IPropertyDefinition[];
-    /** Описание компонента. */
+    /** Description of the component */
     description?: string;
 }
 
-/** Возвращаемое значение `useComponentEditorMetadata`. */
+/** Return value of `useComponentEditorMetadata` */
 export interface IUseComponentEditorMetadataReturn {
     /**
-     * Собирает данные панели свойств для компонента канваса: layout-блоку — из
-     * его definitions, brick-компоненту — из индекса метаданных.
+     * Collects the properties-panel data of a canvas component: for a layout block
+     * out of its definition, for a brick component out of the metadata index.
      */
     resolveComponentEditorMetadata: (component: IBricksComponent) => IComponentEditorMetadata;
 }

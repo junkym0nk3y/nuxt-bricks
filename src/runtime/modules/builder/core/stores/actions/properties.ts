@@ -5,23 +5,25 @@ import type { TBricksDeviceKey, TBrickPropValue } from '../../../../common/types
 import { useDebounceFn } from '@vueuse/core';
 
 /**
- * Debounced saveToHistory для property-обновлений.
- * Предотвращает десятки сериализаций при быстром изменении значений (напр. кнопки +/-).
+ * A debounced saveToHistory for property updates.
+ * It keeps a fast run of value changes — the plus and minus buttons, for instance —
+ * from serializing the schema dozens of times.
  */
 const debouncedSaveToHistory = useDebounceFn((store: IComponentsStore) => {
     store.saveToHistory();
 }, 300);
 
 /**
- * Действия по обновлению props уже размещённых компонентов.
+ * Actions that update the props of components already placed on the canvas.
  */
 export const propertyActions: IComponentsPropertyActions = {
     /**
-     * Обновляет значение конкретного пропса с приведением типов (строка → число и т.д.).
+     * Updates the value of a single prop, coercing the type where it applies (a string
+     * that holds a number becomes one).
      *
-     * @param id - Идентификатор компонента.
-     * @param propName - Имя редактируемого свойства.
-     * @param value - Новое значение из UI.
+     * @param id - Id of the component.
+     * @param propName - Name of the property being edited.
+     * @param value - New value coming from the UI.
      */
     updateComponentProp(
         this: IComponentsStore,
@@ -58,22 +60,23 @@ export const propertyActions: IComponentsPropertyActions = {
     },
 
     /**
-     * Записывает набор пропсов, описывающих ОДНУ сущность, одним изменением —
-     * и снимает их per-device переопределения.
+     * Writes the set of props describing ONE entity in a single change — and drops
+     * their per-device overrides.
      *
-     * Нужно выбору картинки из галереи. Адрес файла, адреса его уменьшенных
-     * вариантов и его пиксельные размеры — это один неделимый факт «выбран этот
-     * файл». Пока они писались по отдельности, выбор на mobile разъезжался:
-     * `src` уходил в `responsive.mobile` (свойство responsive-блока), а варианты
-     * и размеры ложились в базовые props. Канвас на desktop показывал адрес
-     * прежнего файла в пропорции нового и подменял его превью, а published,
-     * который per-device адрес не читает вовсе, — прежний файл целиком.
+     * Picking an image from the gallery needs this. The address of the file, the
+     * addresses of its scaled variants and its pixel size are one indivisible fact:
+     * "this file is the chosen one". While they were written one by one, a pick made
+     * on mobile drifted apart: `src` went into `responsive.mobile` (a property of a
+     * responsive block), while the variants and the sizes landed in the base props.
+     * On desktop the canvas then showed the address of the previous file at the
+     * aspect ratio of the new one and swapped in its preview, and published, which
+     * does not read a per-device address at all, showed the previous file entirely.
      *
-     * Снятие переопределений обязательно: без него та же рассинхронизация
-     * сохранялась бы в схемах, отредактированных до этой правки.
+     * Dropping the overrides is mandatory: without it the very same mismatch would
+     * live on in schemas edited before this fix.
      *
-     * @param id - Идентификатор компонента.
-     * @param patch - Пропсы сущности целиком.
+     * @param id - Id of the component.
+     * @param patch - Every prop of the entity.
      */
     updateComponentIdentityProps(
         this: IComponentsStore,
@@ -110,8 +113,8 @@ export const propertyActions: IComponentsPropertyActions = {
             ...(Object.keys(nextResponsive).length > 0 ? { responsive: nextResponsive } : {}),
         };
 
-        // Пустой `responsive` не оставляем ключом-пустышкой: сериализованная схема
-        // иначе копит `responsive: {}` у каждого тронутого блока
+        // An empty `responsive` is not left behind as a stub key — the reason is at
+        // `utils/deviceKeyCleanup.cleanComponent`, which strips the same key
         if (Object.keys(nextResponsive).length === 0) {
             delete (component.props as Record<string, unknown>).responsive;
         }
@@ -120,12 +123,13 @@ export const propertyActions: IComponentsPropertyActions = {
     },
 
     /**
-     * Обновляет значение пропса в `props.responsive[device]` для responsive layout-настроек.
+     * Updates a prop inside `props.responsive[device]`, the per-device layout
+     * overrides.
      *
-     * @param id - Идентификатор компонента.
-     * @param device - Устройство (mobile/tablet/desktop).
-     * @param propName - Имя редактируемого свойства.
-     * @param value - Новое значение из UI.
+     * @param id - Id of the component.
+     * @param device - Device key of the set.
+     * @param propName - Name of the property being edited.
+     * @param value - New value coming from the UI.
      */
     updateComponentResponsiveProp(
         this: IComponentsStore,
@@ -176,10 +180,10 @@ export const propertyActions: IComponentsPropertyActions = {
     },
 
     /**
-     * Удаляет все responsive overrides для выбранного устройства.
+     * Removes every responsive override of one device.
      *
-     * @param id - Идентификатор компонента.
-     * @param device - Устройство (mobile/tablet/desktop).
+     * @param id - Id of the component.
+     * @param device - Device key of the set.
      */
     resetComponentResponsivePropsForDevice(
         this: IComponentsStore,

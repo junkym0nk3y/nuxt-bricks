@@ -18,7 +18,7 @@ const debouncedSaveToHistory = useDebounceFn((store: IComponentsStore) => {
 }, 300);
 
 /**
- * Собирает meta из navigation store для включения в схему.
+ * Collects the meta the schema carries out of the navigation store.
  */
 function collectSchemaMeta(): IBricksSchemaMeta | undefined {
     const navigationStore = useNavigationStore();
@@ -32,14 +32,14 @@ function collectSchemaMeta(): IBricksSchemaMeta | undefined {
 }
 
 /**
- * Действия, связанные с экспортом/импортом схемы и взаимодействием с историей.
+ * Actions around exporting and importing the schema, and around the history.
  */
 export const schemaActions: IComponentsSchemaActions = {
     /**
-     * Включает режим растягивания компонента на всю ширину или отключает его.
+     * Turns the full-width stretching of a component on or off.
      *
-     * @param id - Целевой компонент.
-     * @param fullWidth - Новое значение признака.
+     * @param id - Target component.
+     * @param fullWidth - New value of the flag.
      */
     setComponentFullWidth(this: IComponentsStore, id: string, fullWidth: boolean) {
         const component = this.getComponentById(id);
@@ -52,10 +52,10 @@ export const schemaActions: IComponentsSchemaActions = {
     },
 
     /**
-     * Устанавливает кастомный HTML id для якорной навигации.
+     * Sets a custom HTML id, the one anchor navigation targets.
      *
-     * @param id - Целевой компонент.
-     * @param htmlId - Значение атрибута id (пустая строка — удаляет).
+     * @param id - Target component.
+     * @param htmlId - Value of the id attribute (an empty string removes it).
      */
     setComponentHtmlId(this: IComponentsStore, id: string, htmlId: string) {
         const component = this.getComponentById(id);
@@ -68,10 +68,10 @@ export const schemaActions: IComponentsSchemaActions = {
     },
 
     /**
-     * Включает или выключает отображение компонента.
+     * Shows or hides a component.
      *
-     * @param id - Целевой компонент.
-     * @param hidden - Новое значение признака скрытия.
+     * @param id - Target component.
+     * @param hidden - New value of the hidden flag.
      */
     setComponentHidden(this: IComponentsStore, id: string, hidden: boolean) {
         const component = this.getComponentById(id);
@@ -84,10 +84,10 @@ export const schemaActions: IComponentsSchemaActions = {
     },
 
     /**
-     * Устанавливает видимость компонента по устройствам (mobile/tablet/desktop).
+     * Sets the per-device visibility of a component.
      *
-     * @param id - Целевой компонент.
-     * @param visibility - Новая конфигурация видимости.
+     * @param id - Target component.
+     * @param visibility - New visibility configuration.
      */
     setComponentDeviceVisibility(
         this: IComponentsStore,
@@ -104,11 +104,11 @@ export const schemaActions: IComponentsSchemaActions = {
     },
 
     /**
-     * Устанавливает флаг видимости для конкретного устройства.
+     * Sets the visibility flag of a single device.
      *
-     * @param id - Целевой компонент.
-     * @param device - Ключ устройства.
-     * @param value - Новый флаг видимости.
+     * @param id - Target component.
+     * @param device - Device key.
+     * @param value - New visibility flag.
      */
     setComponentDeviceVisibilityFlag(
         this: IComponentsStore,
@@ -130,9 +130,9 @@ export const schemaActions: IComponentsSchemaActions = {
     },
 
     /**
-     * Собирает текущую схему и выводит полезную информацию в консоль для отладки.
+     * Collects the current schema and prints a summary of it to the console.
      *
-     * @returns Сериализованная схема страницы.
+     * @returns Serialized schema of the page.
      */
     exportSchema(this: IComponentsStore) {
         console.log('[Bricks Store] Exporting schema:', {
@@ -148,7 +148,7 @@ export const schemaActions: IComponentsSchemaActions = {
     },
 
     /**
-     * Сохраняет текущее состояние схемы в историю.
+     * Captures the current state of the schema into the history.
      */
     saveToHistory(this: IComponentsStore) {
         const historyStore = useHistoryStore();
@@ -157,7 +157,7 @@ export const schemaActions: IComponentsSchemaActions = {
     },
 
     /**
-     * Выполняет undo: восстанавливает предыдущую схему из истории.
+     * Undo: restores the previous schema from the history.
      */
     undo(this: IComponentsStore) {
         const historyStore = useHistoryStore();
@@ -168,7 +168,7 @@ export const schemaActions: IComponentsSchemaActions = {
     },
 
     /**
-     * Выполняет redo и применяет полученную схему к текущему состоянию.
+     * Redo: applies the schema it gets back to the current state.
      */
     redo(this: IComponentsStore) {
         const historyStore = useHistoryStore();
@@ -179,17 +179,18 @@ export const schemaActions: IComponentsSchemaActions = {
     },
 
     /**
-     * Убирает из схемы и из истории всё, что относилось к исчезнувшим устройствам.
+     * Drops everything belonging to devices that left the set, both from the schema
+     * and from the history.
      *
-     * Правка топологии набора отменяться не должна, но и историю целиком
-     * сбрасывать нельзя: подтверждение обещает удалить переопределения
-     * устройства и только их, а сброс заодно отнял бы возможность отменить
-     * прежние правки текста и структуры. Поэтому сохранённая ветка истории
-     * переписывается той же чисткой — undo продолжает работать, а удалённые
-     * значения не воскресают ни через undo, ни через redo, ни через повторное
-     * добавление устройства с тем же ключом.
+     * An edit of the set topology must not be undoable, and wiping the history
+     * outright is not allowed either: the confirmation promises to delete the
+     * overrides of that device and nothing else, while a wipe would also take away the
+     * ability to undo earlier edits of text and structure. So the stored branch of the
+     * history is rewritten by the same cleanup — undo keeps working, and the deleted
+     * values come back neither through undo, nor through redo, nor by adding a device
+     * with the same key again.
      *
-     * @param removedKeys - Ключи устройств, которых в наборе больше нет.
+     * @param removedKeys - Keys of the devices the set no longer carries.
      */
     stripDeviceKeys(this: IComponentsStore, removedKeys: ReadonlySet<string>) {
         if (removedKeys.size === 0) {
@@ -206,10 +207,11 @@ export const schemaActions: IComponentsSchemaActions = {
     },
 
     /**
-     * Загружает сериализованную схему в стор, синхронизируя выбор и сбрасывая историю по запросу.
+     * Loads a serialized schema into the store, bringing the selection in step with it
+     * and resetting the history on request.
      *
-     * @param schema - DTO компонента/канваса.
-     * @param options - Дополнительные флаги (например, сброс истории).
+     * @param schema - DTO of the canvas.
+     * @param options - Extra flags (resetting the history, for one).
      */
     loadSchema(
         this: IComponentsStore,
@@ -224,7 +226,7 @@ export const schemaActions: IComponentsSchemaActions = {
             }
         });
 
-        // Синхронизируем навигацию из meta
+        // The navigation is brought in step with the meta
         const navigationStore = useNavigationStore();
         navigationStore.loadFromMeta(schema.meta);
 

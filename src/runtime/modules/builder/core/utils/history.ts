@@ -8,12 +8,12 @@ import { normalizeDeviceVisibility } from '../../../common/utils/bricks/deviceVi
 import { normalizeBrickPath } from '../../../common/utils/bricks/paths';
 
 /**
- * Ограничивает размер истории и позицию индекса.
+ * Caps the size of the history and the position of the index.
  *
- * @param history - Массив сохранённых схем.
- * @param historyIndex - Текущий индекс истории.
- * @param limit - Максимальное количество записей.
- * @returns Обновлённые { history, historyIndex }.
+ * @param history - Stored schemas.
+ * @param historyIndex - Current history index.
+ * @param limit - Highest number of entries kept.
+ * @returns Updated { history, historyIndex }.
  */
 export function clampHistory(
     history: IBricksSchema[],
@@ -33,11 +33,11 @@ export function clampHistory(
 }
 
 /**
- * Сериализует массив компонентов в IBricksSchema.
+ * Serializes an array of components into an IBricksSchema.
  *
- * @param components - Компоненты Canvas.
- * @param meta - Опциональные метаданные схемы (навигация и др.).
- * @returns IBricksSchema с нормализованными путями.
+ * @param components - Canvas components.
+ * @param meta - Optional schema metadata (navigation and the like).
+ * @returns IBricksSchema with normalized paths.
  */
 export function serializeSchema(
     components: IBricksComponent[],
@@ -59,10 +59,10 @@ export function serializeSchema(
 }
 
 /**
- * Восстанавливает компоненты из сохранённой схемы.
+ * Restores the components out of a stored schema.
  *
- * @param schema - Сохранённая схема.
- * @returns Компоненты с нормализованными путями.
+ * @param schema - Stored schema.
+ * @returns Components with normalized paths.
  */
 export function deserializeSchema(schema: IBricksSchema): IBricksComponent[] {
     return (schema.components || []).map((component) => {

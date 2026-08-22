@@ -1,41 +1,44 @@
 // #region Data
 /**
- * Класс канваса, снимающий move-переходы потока (`bricks-canvas-flow-move`).
+ * Canvas class that switches off the move transitions of the flow
+ * (`bricks-canvas-flow-move`).
  *
- * `<TransitionGroup>` сравнивает экранные координаты детей до и после патча, поэтому
- * реагирует не только на перестановку блоков, но и на любое изменение геометрии
- * канваса — зум, смену viewport, применение drop. В таких кадрах анимировать нечего:
- * блоки не переезжали, «доводка» выглядит как дрожание.
+ * `<TransitionGroup>` compares the screen coordinates of its children before and
+ * after the patch, so it reacts not only to blocks being reordered but to any change
+ * of canvas geometry — zoom, a viewport switch, a drop being applied. Such frames
+ * have nothing to animate: the blocks did not travel, and the "settling" reads as
+ * jitter.
  */
 const CANVAS_FLOW_INSTANT_CLASS = 'bricks-canvas--flow-instant';
 // #endregion
 
 // #region Methods
 /**
- * Помечает канвас как перерисовывающийся без анимации потока.
+ * Marks the canvas as repainting without the flow animation.
  *
- * @param canvas - Корневой элемент канваса.
+ * @param canvas - Root element of the canvas.
  */
 export function markCanvasFlowInstant(canvas: HTMLElement | null): void {
     canvas?.classList.add(CANVAS_FLOW_INSTANT_CLASS);
 }
 
 /**
- * Возвращает канвасу обычные переходы потока.
+ * Gives the canvas its usual flow transitions back.
  *
- * @param canvas - Корневой элемент канваса.
+ * @param canvas - Root element of the canvas.
  */
 export function clearCanvasFlowInstant(canvas: HTMLElement | null): void {
     canvas?.classList.remove(CANVAS_FLOW_INSTANT_CLASS);
 }
 
 /**
- * Отключает переходы потока на текущую перерисовку.
+ * Suppresses the flow transitions for the current repaint.
  *
- * Кадров два: Vue проверяет наличие transform-перехода уже после патча DOM,
- * поэтому класс должен пережить и патч, и следующий за ним кадр отрисовки.
+ * Two frames, not one: Vue checks for a transform transition only after the DOM has
+ * been patched, so the class has to outlive both the patch and the paint frame that
+ * follows it.
  *
- * @param canvas - Корневой элемент канваса.
+ * @param canvas - Root element of the canvas.
  */
 export function suspendCanvasFlowTransitions(canvas: HTMLElement | null): void {
     if (!canvas) {

@@ -7,8 +7,7 @@ import { getLayoutLibraryItems } from '../../../layouts-blocks/registry';
 // #endregion
 
 /**
- * Предустановленные layout-компоненты библиотеки билдера.
- * Wrapper над registry (шаг B3): метаданные и дефолты derive'ятся
- * из definitions в layouts-blocks (single source of truth).
+ * Preset layout components of the builder library: metadata and defaults derived from
+ * the block definitions by `layouts-blocks/registry.getLayoutLibraryItems`.
  */
 export const LAYOUT_COMPONENTS: IComponentLibraryItem[] = getLayoutLibraryItems();

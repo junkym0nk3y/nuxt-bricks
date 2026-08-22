@@ -10,20 +10,21 @@ import type { ILayoutProperty } from '../../../common/types/layoutProperty';
 import { readOwnKey } from '../../../common/utils/safeRecord';
 // #endregion
 
-// Реэкспорт для обратной совместимости импортёров (useCanvasItemInlineEditing)
+// The type travels with the helpers so that `useCanvasItemInlineEditing` takes both
+// from one place
 export type { IInlineEditableProp } from '../../../common/types/inlineEditing';
 
-/** Inline-editable типы для layout-компонентов (без input — иначе ловит CSS-пропы в Media) */
+/** Inline-editable types of a layout block: no `input`, or Media's CSS props get caught */
 const INLINE_EDITABLE_LAYOUT_TYPES = new Set<string>(['inline-content', 'textarea']);
 
-/** Inline-editable типы для brick-компонентов (включая input для заголовков и т.д.) */
+/** Inline-editable types of a brick component, `input` included for headlines */
 const INLINE_EDITABLE_BRICK_TYPES = new Set<string>(['inline-content', 'textarea', 'input']);
 
 /**
- * Находит все inline-editable свойства среди layout properties.
+ * Finds every inline-editable property among the layout properties.
  *
- * @param layoutProperties - Массив свойств layout-компонента.
- * @returns Массив editable свойств.
+ * @param layoutProperties - Properties of a layout component.
+ * @returns The editable properties.
  */
 export function findAllInlineEditableLayoutProps(
     layoutProperties: ILayoutProperty[]
@@ -44,23 +45,23 @@ export function findAllInlineEditableLayoutProps(
 }
 
 /**
- * Переводит первую букву строки в верхний регистр.
+ * Upper-cases the first letter of a string.
  */
 function capitalize(str: string): string {
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 /**
- * Проверяет, выполнено ли условие showWhen для свойства.
+ * Whether the showWhen condition of a property holds.
  *
- * Имя поля объявляет brick-файл, а пропсы приходят из схемы: `showWhen.field`
- * вида `toString` без own-ключа вернул бы метод прототипа, и сравнение с
- * `equals` было бы ложным при любой схеме — свойство молча пропадало бы из
- * inline-редактирования.
+ * The field name is declared by the brick file while the props come from the schema:
+ * a `showWhen.field` such as `toString`, read without the own-key check, would return
+ * a method of the prototype, and the comparison with `equals` would be false for any
+ * schema — the property would silently drop out of inline editing.
  *
- * @param propConfig - Конфиг свойства из brick.
- * @param componentProps - Текущие props компонента.
- * @returns true если условие выполнено или отсутствует.
+ * @param propConfig - Property configuration taken from the brick.
+ * @param componentProps - Current props of the component.
+ * @returns True when the condition holds or there is none.
  */
 function isShowWhenSatisfied(
     propConfig: IBrickValues,
@@ -74,12 +75,12 @@ function isShowWhenSatisfied(
 }
 
 /**
- * Находит все inline-editable свойства среди brick values.
- * Учитывает showWhen условия для фильтрации неактивных свойств.
+ * Finds every inline-editable property among the brick values.
+ * The showWhen conditions are honored, so inactive properties are filtered out.
  *
- * @param brickValues - Объект values из .brick.ts brick.
- * @param componentProps - Текущие props компонента для проверки showWhen.
- * @returns Массив editable свойств.
+ * @param brickValues - The `values` object of a `.brick.ts` file.
+ * @param componentProps - Current props of the component, for checking showWhen.
+ * @returns The editable properties.
  */
 export function findAllInlineEditableBrickProps(
     brickValues: Record<string, IBrickValues>,
@@ -96,7 +97,7 @@ export function findAllInlineEditableBrickProps(
             continue;
         }
 
-        // input маппится на textarea — TipTap справляется с plain text
+        // `input` maps onto `textarea`: TipTap handles plain text just as well
         const propType: TInlineEditingPropType =
             propConfig.type === 'input' ? 'textarea' : (propConfig.type as TInlineEditingPropType);
 

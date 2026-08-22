@@ -1,22 +1,23 @@
 import type { IComponentsOrderActions, IComponentsStore } from '../types';
 
 /**
- * Корректирует индекс назначения после извлечения исходного sibling-а.
+ * Corrects the target index after the moved sibling has been pulled out.
  *
- * @param currentIndex - Индекс элемента до detach.
- * @param targetIndex - Индекс destination placeholder-а до detach.
- * @returns Индекс вставки в массив после detach.
+ * @param currentIndex - Index of the element before the detach.
+ * @param targetIndex - Index of the destination placeholder before the detach.
+ * @returns Insertion index into the array after the detach.
  */
 export function adjustReorderTargetIndex(currentIndex: number, targetIndex: number): number {
     return currentIndex >= 0 && currentIndex < targetIndex ? targetIndex - 1 : targetIndex;
 }
 
 /**
- * Находит индекс компонента среди siblings (root или children layout-а).
+ * Finds the index of a component among its siblings (the root list, or the children
+ * of a layout).
  *
- * @param store - Стор компонентов.
- * @param id - ID компонента.
- * @returns Объект с массивом siblings и индексом, или null.
+ * @param store - Components store.
+ * @param id - Id of the component.
+ * @returns The siblings and the index, or null when there are none.
  */
 function findSiblingContext(
     store: IComponentsStore,
@@ -55,13 +56,13 @@ function findSiblingContext(
 }
 
 /**
- * Набор действий для перемещения компонентов вверх/вниз.
+ * Actions that move a component up and down.
  */
 export const orderActions: IComponentsOrderActions = {
     /**
-     * Перемещает компонент на одну позицию вверх среди siblings.
+     * Moves a component one position up among its siblings.
      *
-     * @param id - Идентификатор компонента.
+     * @param id - Id of the component.
      */
     moveComponentUp(this: IComponentsStore, id: string) {
         const context = findSiblingContext(this, id);
@@ -87,9 +88,9 @@ export const orderActions: IComponentsOrderActions = {
     },
 
     /**
-     * Перемещает компонент на одну позицию вниз среди siblings.
+     * Moves a component one position down among its siblings.
      *
-     * @param id - Идентификатор компонента.
+     * @param id - Id of the component.
      */
     moveComponentDown(this: IComponentsStore, id: string) {
         const context = findSiblingContext(this, id);

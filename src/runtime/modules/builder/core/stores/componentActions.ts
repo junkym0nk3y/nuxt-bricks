@@ -9,7 +9,7 @@ import { favoritesActions } from './actions/favorites';
 import type { TComponentsActions } from './types';
 
 /**
- * Собирает все действия над компонентами в единый объект для подключения к стору.
+ * Collects every component action into the single object the store plugs in.
  */
 export const componentActions: TComponentsActions = {
     ...crudActions,

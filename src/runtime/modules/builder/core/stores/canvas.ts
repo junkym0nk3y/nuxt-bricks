@@ -11,7 +11,7 @@ import { MIN_CANVAS_SCALE, MAX_CANVAS_SCALE } from '../constants/canvasScale';
 
 const CANVAS_HEIGHT_BUFFER = 400;
 
-/** Состояние покоя transient drag-сессии: единственный источник дефолтов. */
+/** Resting state of a transient drag session: the single source of the defaults */
 const IDLE_DRAG_STATE: ICanvasDragState = {
     source: null,
     componentId: null,
@@ -22,14 +22,15 @@ const IDLE_DRAG_STATE: ICanvasDragState = {
 };
 
 /**
- * Сигнатура набора для семантического сравнения.
+ * Signature of a device set, for comparing two sets by meaning.
  *
- * В неё входит только то, от чего зависит геометрия канваса: ключи, ширины и
- * высоты листов. Подпись и глиф устройства сюда не входят намеренно — иначе
- * ввод имени в редакторе набора сбрасывал бы ручной зум на каждый символ.
+ * It carries only what the canvas geometry depends on: the keys, the sheet widths
+ * and heights, and the rem base. The label and the glyph of a device are left out
+ * deliberately — otherwise typing a name in the set editor would reset the manual
+ * zoom on every character.
  *
- * @param devices - Набор устройств.
- * @returns Строковая сигнатура.
+ * @param devices - Device set.
+ * @returns The signature string.
  */
 function getDevicesSignature(devices: TBricksResolvedDeviceSet): string {
     return devices
@@ -38,8 +39,9 @@ function getDevicesSignature(devices: TBricksResolvedDeviceSet): string {
 }
 
 /**
- * Инкапсулирует логику размеров холста: ширину, высоту, масштаб и текущий viewport.
- * Используется для расчёта настройки канваса и синхронизации с реальными размерами контента.
+ * Owns the sizing of the canvas: width, height, scale and the current viewport.
+ * It backs the canvas setup calculations and keeps them in step with the real size
+ * of the content.
  */
 export const useCanvasStore = defineStore('bricksCanvas', {
     state: (): ICanvasState => ({
@@ -61,17 +63,18 @@ export const useCanvasStore = defineStore('bricksCanvas', {
 
     actions: {
         /**
-         * Заменяет набор устройств канваса набором страницы.
+         * Replaces the device set of the canvas with the set of the page.
          *
-         * Только состояние: пересчёт масштаба живёт в `useCanvas` — он читает
-         * размер окна и сайдбары, а ядро состояния канвас-домена не видит.
-         * Геометрию после смены набора пересчитывает сам канвас, следя за
-         * сигнатурой набора.
+         * State only: recomputing the scale lives in `useCanvas` — it reads the window
+         * size and the sidebars, which the state core cannot see from the canvas
+         * domain. After the set changes, the canvas recomputes its own geometry by
+         * watching the signature of the set.
          *
-         * Идемпотентен: повторный вызов с тем же набором ничего не делает, —
-         * иначе правка подписи устройства дёргала бы размеры на каждый символ.
+         * A repeat call with the same set still stores it, so an edited label or glyph
+         * reaches the interface, but skips the geometry and the manual zoom below —
+         * otherwise typing a name would make the sizes jump on every character.
          *
-         * @param devices - Резолвнутый набор устройств страницы.
+         * @param devices - Resolved device set of the page.
          */
         setDevices(devices: TBricksResolvedDeviceSet) {
             if (getDevicesSignature(this.devices) === getDevicesSignature(devices)) {
@@ -81,9 +84,9 @@ export const useCanvasStore = defineStore('bricksCanvas', {
 
             this.devices = devices;
 
-            // Активное устройство могли удалить из набора: без переезда на
-            // базовое канвас остался бы на ключе, которого в наборе нет, и
-            // ширину для него взять было бы неоткуда
+            // The active device may have been dropped from the set: without moving to
+            // the base one the canvas would sit on a key the set does not carry, and
+            // there would be nowhere to read its width from
             if (!devices.some((device) => device.key === this.viewport)) {
                 this.viewport = BASE_DEVICE_KEY;
             }
@@ -92,15 +95,17 @@ export const useCanvasStore = defineStore('bricksCanvas', {
                 this.activeViewport = null;
             }
 
-            // Размеры листа до входа в Figma mode считались по прежнему набору
+            // The sheet sizes taken before entering Figma mode were measured against
+            // the previous set
             this._preFigmaWidth = null;
             this._preFigmaHeight = null;
 
-            // Ручной зум снимается, как и при смене устройства: он подобран под
-            // прежние размеры листа, и с ним авто-фит не сработает — четыре листа
-            // в Figma-режиме или ставший шире лист остались бы обрезанными до
-            // ручного вмешательства. Ниже раннего выхода намеренно: правка
-            // подписи или глифа геометрию не меняет и зум не трогает
+            // The manual zoom is dropped, just as it is on a device switch: it was
+            // picked for the previous sheet sizes, and auto-fit will not run while it
+            // stands — the row of sheets in Figma mode, or a sheet that grew wider,
+            // would stay clipped until someone intervened. Below the early return on
+            // purpose: editing a label or a glyph changes no geometry and leaves the
+            // zoom alone
             this.hasManualZoom = false;
 
             this.width = this.getViewportWidth(this.viewport);
@@ -108,10 +113,10 @@ export const useCanvasStore = defineStore('bricksCanvas', {
         },
 
         /**
-         * Ширина листа для устройства набора.
+         * Sheet width of a device in the set.
          *
-         * @param viewport - Ключ устройства.
-         * @returns Ширина в px.
+         * @param viewport - Device key.
+         * @returns Width in px.
          */
         getViewportWidth(viewport: TBricksDeviceKey): number {
             const device = this.devices.find((item) => item.key === viewport);
@@ -119,10 +124,10 @@ export const useCanvasStore = defineStore('bricksCanvas', {
         },
 
         /**
-         * Базовая высота листа для устройства набора.
+         * Base sheet height of a device in the set.
          *
-         * @param viewport - Ключ устройства.
-         * @returns Высота в px.
+         * @param viewport - Device key.
+         * @returns Height in px.
          */
         getViewportHeight(viewport: TBricksDeviceKey): number {
             const device = this.devices.find((item) => item.key === viewport);
@@ -130,9 +135,9 @@ export const useCanvasStore = defineStore('bricksCanvas', {
         },
 
         /**
-         * Синхронизирует размеры холста с набором для текущего viewport.
-         * Вызывается при инициализации билдера: дефолт state (1920) может
-         * не совпадать с шириной устройства из набора.
+         * Brings the canvas sizes in step with the set for the current viewport.
+         * Called when the builder initializes: the state default (1920) may differ from
+         * the width of the device the set declares.
          */
         initCanvasSize() {
             this.width = this.getViewportWidth(this.viewport);
@@ -140,18 +145,19 @@ export const useCanvasStore = defineStore('bricksCanvas', {
         },
 
         /**
-         * Устанавливает масштаб холста в допустимых пределах [0.1, 4].
+         * Sets the canvas scale, clamped to [0.1, 4].
          *
-         * @param scale - Новое значение масштаба.
+         * @param scale - New scale value.
          */
         setCanvasScale(scale: number) {
             this.scale = Math.max(MIN_CANVAS_SCALE, Math.min(MAX_CANVAS_SCALE, scale));
         },
 
         /**
-         * Устанавливает масштаб как ручной (wheel/кнопки) — авто-фит его не перетирает.
+         * Sets the scale as a manual one (wheel or buttons) — auto-fit will not
+         * overwrite it.
          *
-         * @param scale - Новое значение масштаба.
+         * @param scale - New scale value.
          */
         setManualCanvasScale(scale: number) {
             this.hasManualZoom = true;
@@ -159,10 +165,10 @@ export const useCanvasStore = defineStore('bricksCanvas', {
         },
 
         /**
-         * Меняет активный viewport и ширину холста.
-         * При выходе из Figma mode с тем же viewport — восстанавливает сохранённые размеры.
+         * Switches the active viewport and the canvas width.
+         * Leaving Figma mode on the same viewport restores the stored sizes.
          *
-         * @param viewport - Новый viewport.
+         * @param viewport - New viewport.
          */
         setViewport(viewport: TBricksDeviceKey) {
             const wasInFigma = this.isFigmaMode;
@@ -171,7 +177,7 @@ export const useCanvasStore = defineStore('bricksCanvas', {
             this.activeViewport = null;
             this.hasManualZoom = false;
 
-            // Если выходим из Figma mode с тем же viewport — восстанавливаем размеры
+            // Leaving Figma mode on the same viewport: the sizes are restored
             if (wasInFigma && viewport === this.viewport && this._preFigmaWidth !== null) {
                 this.width = this._preFigmaWidth;
                 this.height = this._preFigmaHeight ?? this.getViewportHeight(viewport);
@@ -192,18 +198,18 @@ export const useCanvasStore = defineStore('bricksCanvas', {
         },
 
         /**
-         * Переключает Figma Mode (три viewport-а одновременно).
-         * При входе сохраняет текущие размеры, при выходе — восстанавливает.
+         * Toggles Figma mode, which shows every viewport of the set side by side.
+         * Entering stores the current sizes, leaving restores them.
          */
         toggleFigmaMode() {
             this.isViewportSwitching = true;
 
             if (!this.isFigmaMode) {
-                // Входим в Figma mode — сохраняем текущие размеры
+                // Entering Figma mode: the current sizes are stored
                 this._preFigmaWidth = this.width;
                 this._preFigmaHeight = this.height;
             } else {
-                // Выходим из Figma mode — восстанавливаем размеры
+                // Leaving Figma mode: the sizes are restored
                 if (this._preFigmaWidth !== null) {
                     this.width = this._preFigmaWidth;
                 }
@@ -222,16 +228,16 @@ export const useCanvasStore = defineStore('bricksCanvas', {
         },
 
         /**
-         * Переключает видимость визуальной сетки layout-компонентов.
+         * Toggles the visual grid of the layout components.
          */
         toggleGrid() {
             this.showGrid = !this.showGrid;
         },
 
         /**
-         * Начинает transient drag-сессию без изменения дерева компонентов.
+         * Starts a transient drag session without touching the component tree.
          *
-         * @param payload - Источник и фактический размер будущего плейсхолдера.
+         * @param payload - The source and the real size of the placeholder to come.
          */
         startCanvasDrag(payload: ICanvasDragStartPayload) {
             this.dragState = {
@@ -245,8 +251,9 @@ export const useCanvasStore = defineStore('bricksCanvas', {
         },
 
         /**
-         * Убирает оригинал из потока после того, как нативный drag уже стартовал.
-         * Вызывается отложенно (rAF/timeout) — синхронный display:none отменил бы drag.
+         * Takes the original out of the flow once the native drag has already started.
+         * Called deferred (rAF or timeout) — a synchronous display:none would cancel
+         * the drag.
          */
         vacateDragSource() {
             if (this.dragState.source === null) {
@@ -259,17 +266,17 @@ export const useCanvasStore = defineStore('bricksCanvas', {
         },
 
         /**
-         * Завершает или отменяет drag-сессию, восстанавливая исходный рендер.
+         * Finishes or cancels the drag session, restoring the original render.
          */
         finishCanvasDrag() {
             this.dragState = { ...IDLE_DRAG_STATE };
         },
 
         /**
-         * Синхронизирует высоту холста с фактическим контентом.
+         * Brings the canvas height in step with the real content.
          *
-         * @param contentHeight - Высота содержимого канваса в px.
-         * @param hasComponents - Есть ли компоненты на холсте.
+         * @param contentHeight - Height of the canvas content in px.
+         * @param hasComponents - Whether the canvas holds any components.
          */
         syncCanvasHeightWithContent(contentHeight: number, hasComponents: boolean) {
             const baseHeight = this.getViewportHeight(this.viewport);

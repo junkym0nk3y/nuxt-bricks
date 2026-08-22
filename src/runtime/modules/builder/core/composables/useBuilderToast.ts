@@ -6,8 +6,8 @@ import type { IBuilderActionToastOptions, IBuilderToastState } from '../types/to
 import { reactive } from 'vue';
 // #endregion
 
-// Модульный синглтон: одно состояние на всё приложение, чтобы toast
-// могли показывать и страница билдера, и глубокие потомки (контекстное меню канваса)
+// Module singleton: one state for the whole application, so that a toast can be
+// shown both by the builder page and by deep descendants (the canvas context menu)
 const toast = reactive<IBuilderToastState>({
     visible: false,
     message: '',
@@ -20,20 +20,20 @@ const toast = reactive<IBuilderToastState>({
     token: 0,
 });
 
-/** Длительность тоста, ждущего ответа: скрытие — только по действию или крестику. */
+/** Duration of a toast awaiting an answer: it hides on the action, the cross or a swipe */
 const PERSISTENT_TOAST_DURATION = 0;
 
 /**
- * Состояние toast-уведомления билдера и единая функция показа.
+ * State of the builder toast notification and the single function that shows it.
  */
 export function useBuilderToast() {
     /**
-     * Показывает toast с сообщением, вариантом и длительностью.
+     * Shows a toast with a message, a variant and a duration.
      *
-     * @param message - Текст уведомления.
-     * @param variant - Тип уведомления.
-     * @param duration - Длительность показа (мс).
-     * @returns Номер показа для `hideToast`.
+     * @param message - Text of the notification.
+     * @param variant - Kind of the notification.
+     * @param duration - How long it stays up, in milliseconds.
+     * @returns Sequence number of the toast, to pass to `hideToast`.
      */
     function showToast(
         message: string,
@@ -58,11 +58,13 @@ export function useBuilderToast() {
     }
 
     /**
-     * Показывает toast, который ждёт действия пользователя: не скрывается сам,
-     * несёт кнопку и открывает её же по клику по телу тоста.
+     * Shows a toast that waits for a user action: it never hides by itself and it carries
+     * a button. A click on the body runs a separate handler, not the button: the caller
+     * gives the two different operations — restoring a draft against opening the window
+     * that shows what would be restored.
      *
-     * @param options - Текст, подпись действия, обработчик и вариант.
-     * @returns Номер показа для `hideToast`.
+     * @param options - Text, action label, handlers and variant.
+     * @returns Sequence number of the toast, to pass to `hideToast`.
      */
     function showActionToast(options: IBuilderActionToastOptions): number {
         showToast(options.message, options.variant ?? 'info', PERSISTENT_TOAST_DURATION);
@@ -76,10 +78,10 @@ export function useBuilderToast() {
     }
 
     /**
-     * Скрывает toast, если на экране всё ещё он: чужое сообщение, успевшее
-     * заменить своё, гасить нельзя — оно про другое событие.
+     * Hides the toast when it is still the one on screen: another message that has
+     * already replaced it must not be cut off, it is about a different event.
      *
-     * @param token - Номер показа, полученный от `showToast` / `showActionToast`.
+     * @param token - Sequence number returned by `showToast` / `showActionToast`.
      */
     function hideToast(token: number): void {
         if (toast.token !== token) {

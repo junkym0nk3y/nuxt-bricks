@@ -1,12 +1,12 @@
 import type { TBrickManifestRef } from '../../../common/types/brickManifest';
 
 /**
- * Тип ключа модального окна (имя компонента)
+ * Key of a modal window (the component name)
  */
 export type TModalKey = string;
 
 /**
- * Опция для селектора модалок
+ * Option of the modal picker
  */
 export interface IModalOption {
     label: string;
@@ -14,7 +14,7 @@ export interface IModalOption {
 }
 
 /**
- * Запись модалки в кеше: имя и путь к brick-файлу из манифеста
- * brick-компонентов, категория в кеше не нужна (там всегда `Modal`)
+ * Cached modal: the name and the brick-file path taken from the manifest of
+ * brick components. The cache needs no category, it is always `Modal` there
  */
 export type TCachedModal = TBrickManifestRef;

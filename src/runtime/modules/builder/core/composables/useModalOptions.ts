@@ -9,32 +9,33 @@ import { useNuxtApp } from '#imports';
 
 // #region Data
 /**
- * Кеш модалок из манифеста brick-компонентов. Заполняется тем же ответом ручки
- * компонентов, из которого собирается библиотека (`useComponentLibrary`):
- * второй запрос того же манифеста означал бы два независимых кеша одного ответа,
- * а его отказ — селектор модалок, пустой до перезагрузки страницы.
+ * Cache of the modals from the brick component manifest. Filled from the same response
+ * the library is built from (`useComponentLibrary`): requesting the same manifest a
+ * second time would mean two independent caches of one response, and a failed request
+ * would mean a modal picker that stays empty until the page is reloaded.
  */
 let modalsCache: TCachedModal[] = [];
 // #endregion
 
 /**
- * Заменяет кеш модалок. Зовётся только после успешной загрузки манифеста:
- * неудачное обновление оставляет прежний список, иначе отказ сети опустошал бы
- * уже работающий селектор.
+ * Replaces the modal cache. Called only after the manifest has loaded successfully:
+ * a failed refresh leaves the previous list in place, otherwise a network failure
+ * would empty a picker that already worked.
  *
- * @param entries - Записи модалок из манифеста.
+ * @param entries - Modal entries from the manifest.
  */
 export function replaceModalsCache(entries: TCachedModal[]): void {
     modalsCache = entries;
 }
 
 /**
- * Получить список опций модалок для селектора
- * Синхронная функция, использует предзагруженный кеш
- * @returns Массив опций с label и value
+ * Reads the modal options of the picker.
+ * Synchronous: it works off the preloaded cache.
+ *
+ * @returns Options carrying a label and a value.
  */
 export function getModalOptions(): IModalOption[] {
-    // Вне setup-контекста: $i18n резолвится лениво через useNuxtApp
+    // Outside a setup context: $i18n is resolved lazily through useNuxtApp
     const i18n = useNuxtApp().$i18n as Composer | undefined;
 
     return [

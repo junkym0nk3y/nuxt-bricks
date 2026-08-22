@@ -7,17 +7,16 @@ import { useSidebarStore } from '../stores/sidebar';
 // #endregion
 
 /**
- * Держит сайдбар-стор в курсе того, монтируется ли правая панель свойств.
+ * Keeps the sidebar store aware of whether the right-hand properties panel mounts.
  *
- * Панель рендерится только с правом правки, а её ширину вычитают из канваса три
- * места (ширина контейнера, смещение тулбара, перецентровка). Выбор блока при
- * этом разрешён любой роли — это подсветка, а не правка, — поэтому без флага
- * клик наблюдателя резервировал бы место под панель, которой нет.
+ * What the store does with the flag, and why `right.visible` would otherwise lie, is
+ * at `sidebar.setPropertiesPanelAvailable`.
  *
- * Наблюдение, а не разовый вызов: в сборках без SSR роль приезжает запросом уже
- * после первого кадра, то есть право могут отобрать у открытой панели.
+ * A watcher rather than a single call: in builds without SSR the role arrives by
+ * request after the first frame, which means the permission can be taken away from an
+ * already open panel.
  *
- * @param canEdit - Право правки текущей роли.
+ * @param canEdit - Edit permission of the current role.
  */
 export function usePropertiesPanelAvailability(canEdit: Ref<boolean>): void {
     const sidebarStore = useSidebarStore();

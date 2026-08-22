@@ -10,14 +10,14 @@ interface ISidebarState {
         visible: boolean;
         width: string;
     };
-    /** Монтируется ли правая панель свойств вообще (см. `setPropertiesPanelAvailable`). */
+    /** Whether the right properties panel mounts at all (see `setPropertiesPanelAvailable`) */
     isPropertiesPanelAvailable: boolean;
     activeView: TSidebarView;
 }
 
 /**
- * Контролирует состояние сайдбаров конструктора: левого (библиотека/схема/публикация)
- * и правой панели свойств выбранного компонента.
+ * Owns the state of the builder sidebars: the left one (library / schema / publish)
+ * and the right properties panel of the selected component.
  */
 export const useSidebarStore = defineStore('bricksSidebar', {
     state: (): ISidebarState => ({
@@ -35,21 +35,21 @@ export const useSidebarStore = defineStore('bricksSidebar', {
 
     actions: {
         /**
-         * Показывает левый сайдбар и активирует нужный раздел.
+         * Shows the left sidebar and activates the section asked for.
          *
-         * @param view - Раздел для отображения.
+         * @param view - Section to show.
          */
         showSidebarView(view: TSidebarView) {
-            // Сначала меняем activeView, затем показываем sidebar
-            // Это предотвращает двойную анимацию при открытии скрытого sidebar
+            // activeView first, the sidebar second: the other order animates twice
+            // when a hidden sidebar is opened
             this.activeView = view;
             this.left.visible = true;
         },
 
         /**
-         * Переключает видимость сайдбара для выбранного раздела.
+         * Toggles the sidebar for the chosen section.
          *
-         * @param view - Раздел, который нужно отобразить.
+         * @param view - Section to show.
          */
         toggleSidebarView(view: TSidebarView) {
             const isSameViewVisible = this.left.visible && this.activeView === view;
@@ -63,55 +63,56 @@ export const useSidebarStore = defineStore('bricksSidebar', {
         },
 
         /**
-         * Скрывает левый сайдбар.
+         * Hides the left sidebar.
          */
         hideSidebar() {
             this.left.visible = false;
         },
 
         /**
-         * Устанавливает фиксированную ширину сайдбара.
+         * Sets a fixed width of the sidebar.
          *
-         * @param width - Значение ширины в rem/px.
+         * @param width - Width value in rem or px.
          */
         setSidebarWidth(width: string) {
             this.left.width = width;
         },
 
         /**
-         * Обновляет активный раздел без изменения видимости.
+         * Switches the active section without touching visibility.
          *
-         * @param view - Новый раздел.
+         * @param view - New section.
          */
         setActiveView(view: TSidebarView) {
             this.activeView = view;
         },
 
         /**
-         * Объявляет, монтируется ли правая панель свойств в этой сессии.
+         * Declares whether the right properties panel mounts in this session.
          *
-         * Роли без права правки панель не рендерится вовсе, а её ширину вычитают
-         * из канваса три места (ширина контейнера, смещение тулбара,
-         * перецентровка). Без этого флага выбор блока — законное для наблюдателя
-         * действие, это подсветка, а не правка — открывал бы `right.visible`, и
-         * справа появлялось бы 35rem пустоты, под которую канвас сжимался и
-         * пересчитывал масштаб. Флаг держит `right.visible` в значении «панель на
-         * экране», поэтому все три расчёта верны по построению.
+         * For a role without the edit permission the panel does not render at all,
+         * while three places subtract its width from the canvas (container width,
+         * toolbar offset, recentering). Without this flag, selecting a block — an
+         * action a viewer is allowed, it is a highlight and not an edit — would open
+         * `right.visible`, and 35rem of emptiness would appear on the right, with the
+         * canvas shrinking and rescaling to fit it. The flag keeps `right.visible`
+         * meaning "the panel is on screen", so all three calculations hold by
+         * construction.
          *
-         * @param isAvailable - Монтируется ли панель.
+         * @param isAvailable - Whether the panel mounts.
          */
         setPropertiesPanelAvailable(isAvailable: boolean) {
             this.isPropertiesPanelAvailable = isAvailable;
 
-            // Панель могла быть открыта до того, как право правки отобрали
-            // (роль досылается запросом в сборках без SSR)
+            // The panel may have been open before the edit permission was taken away
+            // (in builds without SSR the role arrives by a later request)
             if (!isAvailable) {
                 this.right.visible = false;
             }
         },
 
         /**
-         * Показывает правую панель свойств выбранного компонента.
+         * Shows the right properties panel of the selected component.
          */
         showPropertiesPanel() {
             if (!this.isPropertiesPanelAvailable) {
@@ -122,7 +123,7 @@ export const useSidebarStore = defineStore('bricksSidebar', {
         },
 
         /**
-         * Скрывает правую панель свойств.
+         * Hides the right properties panel.
          */
         hidePropertiesPanel() {
             this.right.visible = false;

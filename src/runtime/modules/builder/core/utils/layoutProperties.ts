@@ -7,12 +7,10 @@ import { getBlockProperties } from '../../../layouts-blocks/registry';
 // #endregion
 
 /**
- * Получает конфигурацию свойств для конкретного типа layout.
- * Wrapper над registry (шаг B3): свойства живут в definitions блоков
- * в layouts-blocks (single source of truth).
+ * Reads the editor properties of one layout block out of `layouts-blocks/registry`.
  *
- * @param layoutName - Имя layout (grid, flex, space, text, media, accordion).
- * @returns Массив определений свойств для типа layout.
+ * @param layoutName - Block name, case-insensitive ('Grid' or 'grid').
+ * @returns Property definitions of that block.
  */
 export function getLayoutProperties(layoutName: string): ILayoutProperty[] {
     return getBlockProperties(layoutName);

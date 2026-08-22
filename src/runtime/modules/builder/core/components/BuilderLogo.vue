@@ -1,4 +1,23 @@
 <script setup lang="ts">
+/**
+ * @description Builder wordmark: four isometric cubes lifting in a wave.
+ *
+ * The lift and the color of a cube are animated through registered custom properties
+ * (`--cube-lift`, `--cube-color`) instead of through `transform`: the browser takes a
+ * transform animation to the compositor and rasterizes the cubes at their on-screen
+ * size, which at DPR 1 comes out blurred. Animating a variable stays on the main
+ * thread, and the SVG is repainted as vector geometry every frame. `--cube-color` is
+ * registered for a second reason too — only a registered property interpolates inside
+ * keyframes — and it inherits, so the three faces read it through `color-mix` and
+ * derive their own shades from one value. Its base is a muted `base-300` rather than
+ * `base-900`: the mark must not fight the `base-0` background of the header. The lift
+ * rises above the top of the viewBox, so the icon is deliberately left unclipped.
+ *
+ * `:transform.attr` on the cube group is mandatory: during hydration a Fragment (the
+ * `v-for`) inside an `svg` loses the SVG namespace, and Vue then tries to set
+ * `transform` as a DOM property, which on an SVG element is read-only.
+ */
+
 // #region Imports
 // Vue
 import { computed, onMounted, ref, useCssModule } from 'vue';
@@ -30,29 +49,34 @@ const props = withDefaults(
 const $style = useCssModule();
 const isAnimating = ref(false);
 
-// Зацикленная волна включается только после mounted: SSR-разметка с классом .animating
-// запустила бы CSS-анимацию при загрузке стилей — раньше, чем потребитель (лоадер)
-// стартует свои таймеры после гидрации, и фазы разъезжались бы.
+// The looping wave only starts after mount: SSR markup carrying the .animating class
+// would start the CSS animation as the styles load — earlier than the consumer (the
+// loader), which starts its own timers after hydration, and the phases would drift
+// apart.
 const isMounted = ref(false);
 
-// Эстафета цвета: liftOrder куба, который остаётся перекрашенным после проходки
-// (null — все серые), и куба, который в текущей проходке гасится обратно в базовый.
+// The color relay: the liftOrder of the cube that stays painted after a pass (null
+// means every cube is gray), and of the cube the current pass fades back to the base
+// color. While a cube animates, its `animation-fill-mode: both` makes the keyframes
+// win over the cascade — which is what keeps a freshly marked cube gray until its own
+// segment of the wave arrives, because its 0% frame paints it in the base color.
 const paintedOrder = ref<number | null>(null);
 const unpaintingOrder = ref<number | null>(null);
 
-// Изо-куб: полуширина 79.67, полувысота верхней грани 46, вертикальное ребро 92.
-// Три отдельные грани (верх/лево/право) относительно верхней вершины (0,0) —
-// каждая грань получает свой оттенок --cube-color; заливка + stroke того же цвета
-// перекрывают рёбра кубов, нарисованных раньше (painter's algorithm).
+// Isometric cube: half-width 79.67, half-height of the top face 46, vertical edge 92.
+// Three separate faces (top / left / right) laid out from the top vertex (0,0) — each
+// face takes its own shade of --cube-color; a fill plus a stroke of the same color
+// cover the edges of the cubes drawn before it (painter's algorithm).
 const CUBE_FACE_PATHS = {
     top: 'M0 0 L79.67 46 L0 92 L-79.67 46 Z',
     left: 'M-79.67 46 L0 92 L0 184 L-79.67 138 Z',
     right: 'M0 92 L79.67 46 L79.67 138 L0 184 Z',
 } as const;
 
-// Порядок в массиве = порядок отрисовки (back→front): задний куб первым.
-// liftOrder — очерёдность подъёма в волне: передний ряд слева направо, затем задний.
-// activeColor — цвет, в который куб плавно перекрашивается на пике подъёма.
+// Order in the array = paint order (back to front): the rear cube comes first.
+// liftOrder — the order of the lift within the wave: the front row left to right,
+// then the rear one.
+// activeColor — the color a cube fades into at the peak of its lift.
 const LOGO_CUBES = [
     { x: 241.11, y: 2.43, liftOrder: 3, activeColor: 'var(--bricks-yellow)' },
     { x: 81.67, y: 2, liftOrder: 0, activeColor: 'var(--bricks-primary)' },
@@ -60,11 +84,14 @@ const LOGO_CUBES = [
     { x: 240.86, y: 94, liftOrder: 2, activeColor: 'var(--bricks-danger-500)' },
 ];
 
-// Полный проход hover-волны: 4 куба × 0.6s сегмент
+// A full pass of the hover wave: 4 cubes × a 0.6s segment
 const HOVER_ANIMATION_DURATION_MS = 2400;
 // #endregion
 
 // #region Computed
+// A positive animation delay keeps its phase offset across iterations, so the loop
+// holds the shape of the wave: every cube lifts inside the first quarter of the cycle
+// and waits out the rest of it.
 const isInfiniteActive = computed<boolean>(() => props.isInfiniteAnimation && isMounted.value);
 
 const classList = computed(() => [
@@ -85,7 +112,8 @@ const isLink = computed<boolean>(() => Boolean(props.to));
 
 // #region Methods
 /**
- * Собирает список классов куба: роль в эстафете цвета (остаётся цветным / гасится).
+ * Builds the class list of a cube: its role in the color relay (stays painted, or
+ * fades back).
  */
 function getCubeClassList(liftOrder: number): (string | Record<string, boolean>)[] {
     return [
@@ -98,8 +126,9 @@ function getCubeClassList(liftOrder: number): (string | Record<string, boolean>)
 }
 
 /**
- * Возвращает следующее состояние эстафеты: старт с куба 0, сдвиг на следующий по волне,
- * а после последнего куба — проход-сброс в полностью серое лого (null), замыкающий круг.
+ * Returns the next state of the relay: it starts at cube 0, steps to the next cube
+ * along the wave, and after the last one makes a reset pass to a fully gray logo
+ * (null), closing the circle.
  */
 function getNextPaintedOrder(current: number | null): number | null {
     if (current === null) {
@@ -110,8 +139,8 @@ function getNextPaintedOrder(current: number | null): number | null {
 }
 
 /**
- * Запускает один проход волны подъёма кубов и сдвигает эстафету цвета:
- * прежний цветной куб гасится, следующий по волне остаётся перекрашенным.
+ * Runs one pass of the cube lift wave and steps the color relay on: the cube painted
+ * before fades back, the next one along the wave stays painted.
  */
 function onMouseenter(): void {
     if (isAnimating.value || props.isTouch || props.isInfiniteAnimation) {
@@ -152,8 +181,6 @@ onMounted(() => {
                     shape-rendering="geometricPrecision"
                     xmlns="http://www.w3.org/2000/svg"
                 >
-                    <!-- .attr: при гидрации Fragment (v-for) внутри svg теряет SVG-неймспейс,
-                         и Vue пытается выставить transform как DOM-свойство (read-only у SVG) -->
                     <g
                         v-for="cube in LOGO_CUBES"
                         :key="cube.liftOrder"
@@ -201,13 +228,11 @@ onMounted(() => {
 }
 
 .logoIcon {
-    // Подъём кубов выходит за верх viewBox — не клипуем
     overflow: visible;
     width: 100%;
     height: 100%;
 
     path {
-        // Контур: тёмный оттенок цвета куба; round join даёт лёгкое скругление углов
         stroke: color-mix(in srgb, var(--cube-color), black 2%);
         stroke-width: 4;
         stroke-linejoin: round;
@@ -215,17 +240,12 @@ onMounted(() => {
     }
 }
 
-// Анимируем зарегистрированное custom property вместо transform: transform-анимацию
-// браузер уносит на компоситор и растеризует кубы по экранному размеру — на DPR 1 это мыло.
-// Анимация переменной идёт на main thread, и SVG перерисовывается вектором каждый кадр.
 @property --cube-lift {
     syntax: '<length>';
     inherits: false;
     initial-value: 0;
 }
 
-// Цвет куба — тоже зарегистрированное property: браузер интерполирует его в keyframes
-// вместе с подъёмом; inherits: true — грани-дети читают его через color-mix.
 @property --cube-color {
     syntax: '<color>';
     inherits: true;
@@ -234,16 +254,12 @@ onMounted(() => {
 
 .cube {
     --lift-step: 0.6s;
-
-    // Приглушённый тон вместо base-900: лого не спорит с фоном хедера (base-0)
     --cube-base-color: var(--bricks-base-300);
     --cube-color: var(--cube-base-color);
 
-    // px внутри transform SVG-элемента = user units viewBox, rem здесь некорректен
     transform: translateY(var(--cube-lift));
 }
 
-// Оттенки граней из одного --cube-color: верх светлее, лево темнее, право — почти базовый
 .faceTop {
     fill: color-mix(in srgb, var(--cube-color), white 20%);
 }
@@ -256,30 +272,23 @@ onMounted(() => {
     fill: color-mix(in srgb, var(--cube-color), black 4%);
 }
 
-// Эстафета цвета: куб, оставшийся перекрашенным после проходки, держит active-цвет
-// стационарно; во время анимации keyframes с fill: both побеждают каскад,
-// поэтому свежепомеченный куб до своего сегмента волны остаётся серым (0%-кадр).
 .painted {
     --cube-color: var(--cube-active-color);
 }
 
-// Hover: один проход, каждый куб занимает ровно свой сегмент волны
 .animating:not(.infinite) .cube {
     animation: cube-lift-pass var(--lift-step) ease-in-out both;
     animation-delay: calc(var(--lift-order) * var(--lift-step));
 }
 
-// Куб, принимающий эстафету: поднимается и остаётся в active-цвете
 .animating:not(.infinite) .painted {
     animation-name: cube-lift-paint;
 }
 
-// Куб, отдающий эстафету: поднимается цветным и гаснет в базовый
 .animating:not(.infinite) .unpainting {
     animation-name: cube-lift-unpaint;
 }
 
-// Loop: lift в первых 25% цикла, положительный delay фазово сдвигает итерации — волна сохраняется
 .infinite .cube {
     animation: cube-lift-loop calc(var(--lift-step) * 4) ease-in-out infinite;
     animation-delay: calc(var(--lift-order) * var(--lift-step));

@@ -3,7 +3,7 @@ import type { IComponentsFavoritesActions, IComponentsStore } from '../types';
 const STORAGE_KEY = 'bricks-favorite-components';
 
 /**
- * Загружает список избранных brickPath из localStorage.
+ * Loads the names of the favorite components out of localStorage.
  */
 export function loadFavoritesFromStorage(): string[] {
     try {
@@ -19,24 +19,24 @@ export function loadFavoritesFromStorage(): string[] {
 }
 
 /**
- * Сохраняет список избранных brickPath в localStorage.
+ * Stores the names of the favorite components in localStorage.
  */
 function saveFavoritesToStorage(favorites: string[]): void {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(favorites));
     } catch {
-        // Игнорируем ошибки записи в localStorage
+        // A failed write to localStorage is ignored
     }
 }
 
 /**
- * Набор действий для управления избранными компонентами.
+ * Actions that manage the favorite components.
  */
 export const favoritesActions: IComponentsFavoritesActions = {
     /**
-     * Добавляет или убирает компонент из избранного по имени.
+     * Adds a component to the favorites or takes it out, by name.
      *
-     * @param componentName - Имя компонента.
+     * @param componentName - Name of the component.
      */
     toggleFavorite(this: IComponentsStore, componentName: string) {
         const index = this.favorites.indexOf(componentName);

@@ -17,31 +17,33 @@ import { useRequestEvent, useRuntimeConfig, useState } from '#imports';
 // #endregion
 
 // #region Data
-/** Ключ общего состояния роли: одно значение на приложение. */
+/** Key of the shared role state: one value per application */
 const ROLE_STATE_KEY = 'bricks-session-role';
 
-/** Роль, от которой считаются права, пока настоящая неизвестна. */
+/** Role the permissions are computed from while the real one is unknown */
 const FALLBACK_ROLE: TBricksUserRole = 'viewer';
 // #endregion
 
 /**
- * Права билдера по роли учётки.
+ * Builder permissions derived from the account role.
  *
- * Роль берётся из контекста запроса на SSR — её уже разрешил auth-middleware
- * для самой HTML-страницы билдера, поэтому лишнего запроса не нужно и первый
- * кадр рисуется сразу с верным набором действий. Дополни это запросом `me` на
- * клиенте, и наблюдатель на мгновение увидел бы кнопки, которые у него тут же
- * отберут; поставь по умолчанию полные права — то же самое, но с отказом сервера
- * в конце. Клиентский запрос остаётся только фоллбэком для сборок без SSR
- * (`ssr: false`), где контекста запроса нет вовсе: его передаёт composition root
- * загрузчиком в `ensureRole` — сам запрос живёт в auth-домене, а сюда, в нижний
- * слой, он не виден по границам модулей.
+ * On SSR the role comes from the request context — the auth middleware has already
+ * resolved it for the builder HTML page itself, so no extra request is needed and
+ * the first frame is painted with the right set of actions straight away. Add a
+ * client-side `me` request on top of that, and a viewer would see, for an instant,
+ * buttons about to be taken away; default to full permissions instead and the same
+ * happens, only with a server rejection at the end. The client request stays as a
+ * fallback for builds without SSR (`ssr: false`), where there is no request context
+ * at all: the composition root passes it in as the loader of `ensureRole` — the
+ * request itself lives in the auth domain, invisible from this lower layer across
+ * the module boundaries.
  *
- * Права читаются компонентами напрямую, а не прокидываются пропами: их
- * спрашивает и рекурсивное дерево канваса, где проп потерялся бы на первом
- * пропущенном уровне, — а состояние тут ровно одно на сессию.
+ * Components read the permissions directly instead of receiving them as props: the
+ * recursive canvas tree asks for them too, and there a prop would be lost at the
+ * first level that forgot to pass it on — while the state here is exactly one per
+ * session.
  *
- * @returns Флаги прав и досылка роли.
+ * @returns The permission flags and the deferred role fetch.
  */
 export function useBuilderPermissions(): IBuilderPermissions {
     // #region Data
@@ -49,23 +51,23 @@ export function useBuilderPermissions(): IBuilderPermissions {
     const event = useRequestEvent();
 
     const isDatabaseMode = (config.public?.bricksAuthMode as string | undefined) === 'database';
-    // Дефолт «включено» — и для незаданного флага, и для пустой строки:
-    // `NUXT_PUBLIC_BRICKS_AUTH_ALLOW_USER_MANAGEMENT=` доезжает до собранного
-    // приложения как `''`, мимо build-time нормализации
+    // Defaults to on for an unset flag as well as for an empty string:
+    // `NUXT_PUBLIC_BRICKS_AUTH_ALLOW_USER_MANAGEMENT=` reaches the built
+    // application as `''`, past the build-time normalization
     const isUserManagementAllowed = parseBricksBooleanFlag(
         config.public?.bricksAuthAllowUserManagement,
         true
     );
-    // Тот же дефолт и та же причина: пустая строка публичного флага — не
-    // «выключено», а «не задано»
+    // The same default for the same reason: an empty string in a public flag means
+    // "not set", not "off"
     const isPasswordChangeAllowedByFlag = parseBricksBooleanFlag(
         config.public?.bricksAuthAllowPasswordChange,
         true
     );
 
-    // В basic-режиме учёток нет вовсе: identity одна на всех и задана
-    // окружением, поэтому сужать права не по кому — роль известна сразу и
-    // запроса не требует
+    // In basic mode there are no accounts at all: the identity is one for everybody
+    // and comes from the environment, so there is nobody to narrow the permissions
+    // for — the role is known at once and needs no request
     const roleState = useState<TBricksUserRole | null>(ROLE_STATE_KEY, () =>
         isDatabaseMode ? (event?.context.bricksUser?.role ?? null) : BRICKS_BASIC_MODE_ROLE
     );
@@ -84,8 +86,9 @@ export function useBuilderPermissions(): IBuilderPermissions {
     const canManageUsers = computed<boolean>(
         () => canDelete.value && isDatabaseMode && isUserManagementAllowed
     );
-    // Роль не участвует: свой пароль меняет любой вошедший, включая наблюдателя.
-    // Ручка чужого пароля закрыта тем же флагом, но требует ещё и `canManageUsers`
+    // The role plays no part: anyone signed in changes their own password, a viewer
+    // included. The endpoint for someone else's password is closed by the same flag,
+    // but demands `canManageUsers` on top of it
     const canChangePassword = computed<boolean>(
         () => isDatabaseMode && isPasswordChangeAllowedByFlag
     );
@@ -93,13 +96,15 @@ export function useBuilderPermissions(): IBuilderPermissions {
 
     // #region Methods
     /**
-     * Досылает роль, если контекст запроса её не дал (сборка без SSR).
+     * Fetches the role afterwards when the request context did not carry it (a build
+     * without SSR).
      *
-     * Отказ запроса не бросается наружу: composition root вызывает это до
-     * рендера, и упавший `me` унёс бы весь экран, хотя права уже посчитаны по
-     * самой узкой роли и интерфейс останется в режиме просмотра.
+     * A failed request is not rethrown: the composition root calls this before the
+     * render, and a failing `me` would take the whole screen down, even though the
+     * permissions are already computed from the narrowest role and the interface
+     * stays in view mode.
      *
-     * @param fetchRole - Загрузчик роли из auth-домена.
+     * @param fetchRole - Role loader from the auth domain.
      */
     async function ensureRole(fetchRole: TFetchSessionRole): Promise<void> {
         if (isRoleKnown.value) {

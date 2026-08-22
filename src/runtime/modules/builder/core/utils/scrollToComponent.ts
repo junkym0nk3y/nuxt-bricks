@@ -1,10 +1,10 @@
 /**
- * Скроллит канвас до элемента с указанным component id.
- * В Figma-режиме скоупит поиск на указанный viewport,
- * чтобы не скроллить к дубликату из другого viewport-а.
+ * Scrolls the canvas to the element carrying the given component id.
+ * In Figma mode the lookup is scoped to the named viewport, so it does not scroll
+ * to the twin of the same component rendered in another viewport.
  *
- * @param componentId - ID компонента для скролла.
- * @param viewport - Viewport для скоупинга поиска в Figma-режиме (mobile/tablet/desktop).
+ * @param componentId - Id of the component to scroll to.
+ * @param viewport - Device key of the viewport that scopes the lookup in Figma mode.
  */
 export function scrollToComponentOnCanvas(componentId: string, viewport?: string): void {
     let el: HTMLElement | null = null;

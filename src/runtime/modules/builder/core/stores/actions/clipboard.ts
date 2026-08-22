@@ -9,12 +9,12 @@ import type {
 } from '../types';
 
 /**
- * Вычисляет всех непосредственных детей компонента, независимо от того,
- * где именно хранится ссылка (children, slots или через поле parent у потомка).
+ * Works out every direct child of a component, wherever the reference is kept —
+ * `children`, a slot, or the `parent` field of the child itself.
  *
- * @param store - Стор компонентов.
- * @param component - Компонент, для которого определяется поддерево.
- * @returns Уникальный список идентификаторов дочерних элементов.
+ * @param store - Components store.
+ * @param component - Component whose subtree is being resolved.
+ * @returns Unique ids of the children.
  */
 function resolveDirectChildren(store: IComponentsStore, component: IBricksComponent): string[] {
     const directIds = new Set<string>();
@@ -43,11 +43,11 @@ function resolveDirectChildren(store: IComponentsStore, component: IBricksCompon
 }
 
 /**
- * Собирает полное дерево компонента и всех его потомков.
+ * Collects the whole tree of a component and all of its descendants.
  *
- * @param store - Стор компонентов.
- * @param rootId - Идентификатор копируемого корневого элемента.
- * @returns Массив клонов компонентов (с оригинальными ID).
+ * @param store - Components store.
+ * @param rootId - Id of the root element being copied.
+ * @returns Clones of the components, still carrying the original ids.
  */
 function collectComponentTree(store: IComponentsStore, rootId: string): IBricksComponent[] {
     const queue: string[] = [rootId];
@@ -80,11 +80,11 @@ function collectComponentTree(store: IComponentsStore, rootId: string): IBricksC
 }
 
 /**
- * Подбирает позицию, в которой вставить клон относительно исходного компонента.
+ * Picks the position the clone is inserted at, relative to the original component.
  *
- * @param store - Стор компонентов.
- * @param component - Оригинальный компонент.
- * @returns Индекс вставки или null, если позиция не определена.
+ * @param store - Components store.
+ * @param component - The original component.
+ * @returns Insertion index, or null when the position cannot be worked out.
  */
 function resolveInsertIndex(store: IComponentsStore, component: IBricksComponent): number | null {
     if (component.parent) {
@@ -116,11 +116,11 @@ function resolveInsertIndex(store: IComponentsStore, component: IBricksComponent
 }
 
 /**
- * Формирует снапшот дерева для клипборда.
+ * Builds the clipboard snapshot of a tree.
  *
- * @param store - Стор компонентов.
- * @param rootId - ID компонента, который копируем.
- * @returns Структура клипборда либо null при ошибке.
+ * @param store - Components store.
+ * @param rootId - Id of the component being copied.
+ * @returns The clipboard structure, or null on failure.
  */
 function createClipboardSnapshot(
     store: IComponentsStore,
@@ -148,11 +148,11 @@ function createClipboardSnapshot(
 }
 
 /**
- * Разворачивает снапшот клипборда и вставляет его обратно в стор.
+ * Unfolds a clipboard snapshot and puts it back into the store.
  *
- * @param store - Стор компонентов.
- * @param snapshot - Сохранённое дерево.
- * @returns ID новосозданного корневого компонента.
+ * @param store - Components store.
+ * @param snapshot - The stored tree.
+ * @returns Id of the newly created root component.
  */
 function pasteClipboardSnapshot(
     store: IComponentsStore,
@@ -208,12 +208,12 @@ function pasteClipboardSnapshot(
         return null;
     }
 
-    // Свойства редактора берутся из актуальных метаданных, а не из снимка
-    // клипборда: снимок пережил бы и загрузку манифеста, и правку brick-файла,
-    // то есть панель после вставки показывала бы устаревшее описание полей.
-    // Считаются до записи в стор: резолверу нужны только поля клона и индекс
-    // метаданных, зато схема и история не останутся изменёнными, если он
-    // почему-то бросит исключение
+    // The editor properties come from the current metadata rather than from the
+    // clipboard snapshot: a snapshot would outlive both a manifest load and an edit of
+    // the brick file, so after a paste the panel would show a stale description of the
+    // fields. They are resolved before anything is written to the store: the resolver
+    // needs nothing but the fields of the clone and the metadata index, so if it throws,
+    // the schema and the history are left untouched
     const { resolveComponentEditorMetadata } = useComponentEditorMetadata();
     const { properties, description } = resolveComponentEditorMetadata(rootClone);
 
@@ -253,13 +253,13 @@ function pasteClipboardSnapshot(
 }
 
 /**
- * Набор действий для работы с клипбордом компонентов (копирование/вставка/дублирование).
+ * Actions around the component clipboard: copy, paste and duplicate.
  */
 export const clipboardActions: IComponentsClipboardActions = {
     /**
-     * Копирует компонент по ID в буфер обмена стор.
+     * Copies a component into the clipboard of the store, by id.
      *
-     * @param id - Идентификатор корневого компонента.
+     * @param id - Id of the root component.
      */
     copyComponentToClipboard(this: IComponentsStore, id: string) {
         const snapshot = createClipboardSnapshot(this, id);
@@ -270,7 +270,7 @@ export const clipboardActions: IComponentsClipboardActions = {
     },
 
     /**
-     * Копирует текущий выбранный компонент, если он существует.
+     * Copies the currently selected component, when there is one.
      */
     copySelectedComponent(this: IComponentsStore) {
         if (!this.selectedComponent) {
@@ -280,7 +280,7 @@ export const clipboardActions: IComponentsClipboardActions = {
     },
 
     /**
-     * Вставляет дерево из клипборда, если оно существует.
+     * Pastes the tree held in the clipboard, when there is one.
      */
     pasteFromClipboard(this: IComponentsStore) {
         if (!this.clipboard) {
@@ -292,10 +292,10 @@ export const clipboardActions: IComponentsClipboardActions = {
     },
 
     /**
-     * Дублирует компонент, вставляя копию сразу после оригинала.
-     * Не затрагивает буфер обмена (this.clipboard).
+     * Duplicates a component, placing the copy right after the original.
+     * The clipboard (this.clipboard) is left alone.
      *
-     * @param id - Идентификатор компонента для дублирования.
+     * @param id - Id of the component to duplicate.
      */
     duplicateComponent(this: IComponentsStore, id: string) {
         const snapshot = createClipboardSnapshot(this, id);

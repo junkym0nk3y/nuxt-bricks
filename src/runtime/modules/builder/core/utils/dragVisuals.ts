@@ -9,9 +9,9 @@ import { convertPxToRem } from '../../../common/utils/main';
 
 // #region Data
 /**
- * Минимальная высота flow-плейсхолдера. Нужна, когда замер блока дал 0 —
- * например, user-brick, чьё превью на момент dragstart ещё не отрендерилось:
- * место вставки всё равно должно быть видно.
+ * Lowest height of a flow placeholder. It is needed when the measurement of the block
+ * came out 0 — a user brick whose preview had not rendered yet at dragstart, for
+ * instance: the drop position has to be visible all the same.
  */
 const MIN_PLACEHOLDER_HEIGHT = 24;
 const CANVAS_GHOST_MIN_WIDTH = 120;
@@ -26,11 +26,12 @@ const LIBRARY_GHOST_MAX_HEIGHT = 120;
 
 // #region Methods
 /**
- * Отдаёт CSS-переменные размера flow-плейсхолдера для корня канваса.
- * Плейсхолдеры (root, слоты, layout-зоны) читают размер только отсюда.
+ * Returns the CSS variables that size the flow placeholder of the canvas root.
+ * Every placeholder (the root, the slots, the layout zones) reads its size from here
+ * and nowhere else.
  *
- * @param dragState - Transient drag-состояние стора канваса.
- * @returns Пары CSS custom properties для style канваса.
+ * @param dragState - Transient drag state of the canvas store.
+ * @returns CSS custom properties for the style of the canvas.
  */
 export function getDragPlaceholderVars(dragState: ICanvasDragState): Record<string, string> {
     return {
@@ -44,16 +45,17 @@ export function getDragPlaceholderVars(dragState: ICanvasDragState): Record<stri
 }
 
 /**
- * Разворачивает список блоков и позицию вставки в единый поток записей.
+ * Unfolds the list of blocks and the drop position into a single flow of entries.
  *
- * Плоский keyed-список нужен `<TransitionGroup>`: плейсхолдер держит стабильный
- * ключ, поэтому при смене позиции вставки он переезжает (move-переход), а соседи
- * плавно расходятся, вместо мгновенного пересбора потока.
+ * `<TransitionGroup>` needs a flat keyed list: the placeholder holds a stable key, so
+ * when the drop position changes it travels (a move transition) and the neighbors
+ * part smoothly, instead of the flow being rebuilt in one jump.
  *
- * @param children - Блоки зоны в порядке отображения.
- * @param dropIndex - Индекс места вставки или null, если драг не над зоной.
- * @param placeholderKey - Уникальный в пределах зоны ключ плейсхолдера.
- * @returns Записи потока для рендера.
+ * @param children - Blocks of the zone in display order.
+ * @param dropIndex - Index of the drop position, or null when the drag is not over
+ * the zone.
+ * @param placeholderKey - Placeholder key, unique within the zone.
+ * @returns Flow entries to render.
  */
 export function buildDropFlowEntries(
     children: IBricksComponent[],
@@ -77,24 +79,24 @@ export function buildDropFlowEntries(
 }
 
 /**
- * Ограничивает числовое значение заданным диапазоном.
+ * Clamps a number to a range.
  *
- * @param value - Исходное значение.
- * @param minimum - Нижняя граница.
- * @param maximum - Верхняя граница.
- * @returns Нормализованное значение.
+ * @param value - Value to clamp.
+ * @param minimum - Lower bound.
+ * @param maximum - Upper bound.
+ * @returns The clamped value.
  */
 function clamp(value: number, minimum: number, maximum: number): number {
     return Math.max(minimum, Math.min(maximum, value));
 }
 
 /**
- * Добавляет нейтральную skeleton-полоску в лёгкий drag ghost.
+ * Appends a neutral skeleton bar to the lightweight drag ghost.
  *
- * @param ghost - Контейнер призрака.
- * @param width - Ширина полоски.
- * @param height - Высота полоски.
- * @param color - Цвет из bricks-токена.
+ * @param ghost - Container of the ghost.
+ * @param width - Width of the bar.
+ * @param height - Height of the bar.
+ * @param color - Color, taken from a bricks token.
  */
 function appendSkeletonBar(ghost: HTMLElement, width: string, height: string, color: string): void {
     const bar = document.createElement('span');
@@ -106,9 +108,9 @@ function appendSkeletonBar(ghost: HTMLElement, width: string, height: string, co
 }
 
 /**
- * Создаёт лёгкий skeleton-призрак без клонирования реального контента.
+ * Builds a lightweight skeleton ghost without cloning the real content.
  *
- * @param options - Drag-событие, источник и размер плейсхолдера.
+ * @param options - The drag event, the source element and the placeholder size.
  */
 export function setSkeletonDragImage(options: IDragGhostOptions): void {
     const dataTransfer = options.event.dataTransfer;
@@ -172,7 +174,7 @@ export function setSkeletonDragImage(options: IDragGhostOptions): void {
     const offsetY = clamp(relativeY, 0, 1) * ghostHeight;
     dataTransfer.setDragImage(ghost, offsetX, offsetY);
 
-    /** Удаляет временный DOM-узел после того, как браузер снимет drag bitmap. */
+    /** Removes the temporary DOM node once the browser has taken the drag bitmap */
     function removeDragGhost(): void {
         ghost.remove();
     }

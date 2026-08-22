@@ -12,42 +12,45 @@ import { readOwnKey, toSafeRecord } from '../../../common/utils/safeRecord';
 
 // #region Constants
 /**
- * Индекс живёт в состоянии уровня приложения, а не в модульной переменной:
- * значение уезжает в payload и переживает гидрацию, на которой handler
- * `useAsyncData` не исполняется, а на сервере не протекает между запросами.
+ * The index lives in application-level state rather than in a module variable: the
+ * value travels in the payload and survives hydration, where the `useAsyncData`
+ * handler does not run, and on the server it does not leak between requests.
  */
 const BRICK_METADATA_STATE_KEY = 'bricks-components-metadata';
 // #endregion
 
 /**
- * Метаданные brick-компонентов по `brickPath`: описание, определения свойств и
- * слоты, пришедшие с build-time в манифесте.
+ * Metadata of the brick components keyed by `brickPath`: the description, the
+ * property definitions and the slots, all of it delivered by the build-time
+ * manifest.
  *
- * Заменяет прежний способ их получить — импорт brick-модуля в браузере. Тот
- * тянул за собой Vue-компонент со стилями и отставал на одну перезагрузку в
- * dev: Vite инвалидировал brick-файл позже, чем уходил сигнал перезагрузки.
+ * It replaces the earlier way of getting them — importing the brick module in the
+ * browser. That one dragged the Vue component and its styles along, and in dev it
+ * lagged by one reload: Vite invalidated the brick file later than the reload signal
+ * went out.
  *
- * @returns Замена индекса и чтение записи по пути.
+ * @returns Replacing the index and reading an entry by path.
  */
 export function useBrickMetadata(): IUseBrickMetadataReturn {
     const metadataIndex = useState<TBrickMetadataIndex>(BRICK_METADATA_STATE_KEY, () => ({}));
 
     /**
-     * Заменяет индекс метаданных записями манифеста.
+     * Replaces the metadata index with the entries of the manifest.
      *
-     * @param entries - Записи манифеста brick-компонентов.
+     * @param entries - Entries of the brick component manifest.
      */
     function replaceBrickMetadata(entries: IBrickManifestEntry[]): void {
-        // Ключ приходит из манифеста, то есть из имени файла потребителя:
-        // `__proto__` в пути подменял бы прототип вместо записи ключа
+        // The key comes from the manifest, that is from a file name in the consumer
+        // project: `__proto__` in the path would swap the prototype instead of
+        // writing a key
         metadataIndex.value = toSafeRecord(entries.map((entry) => [entry.brickPath, entry]));
     }
 
     /**
-     * Возвращает метаданные брика.
+     * Reads the metadata of a brick.
      *
-     * @param brickPath - Путь brick-файла из схемы страницы.
-     * @returns Запись манифеста или `undefined`, если её нет.
+     * @param brickPath - Path of the brick file taken from the page schema.
+     * @returns The manifest entry, or `undefined` when there is none.
      */
     function readBrickMetadata(brickPath: string): IBrickManifestEntry | undefined {
         return readOwnKey(metadataIndex.value, brickPath);

@@ -5,11 +5,12 @@ import type { IBricksComponent, IBricksSchema } from '../../../common/types/bric
 // #endregion
 
 /**
- * Убирает переопределения и флаги видимости удалённых устройств из компонента.
+ * Takes the overrides and the visibility flags of the removed devices out of a
+ * component.
  *
- * @param component - Компонент схемы.
- * @param removedKeys - Ключи устройств, которых в наборе больше нет.
- * @returns Компонент без ключей удалённых устройств.
+ * @param component - Component of the schema.
+ * @param removedKeys - Keys of the devices the set no longer carries.
+ * @returns The component without the keys of the removed devices.
  */
 function cleanComponent(component: IBricksComponent, removedKeys: Set<string>): IBricksComponent {
     const props = component.props as Record<string, unknown>;
@@ -24,8 +25,8 @@ function cleanComponent(component: IBricksComponent, removedKeys: Set<string>): 
             )
         );
 
-        // Пустой `responsive` не оставляем ключом-пустышкой: сериализованная
-        // схема иначе копит `responsive: {}` у каждого тронутого блока
+        // An empty `responsive` is not left behind as a stub key: otherwise the
+        // serialized schema piles up a `responsive: {}` on every block ever touched
         const { responsive: _dropped, ...withoutResponsive } = props;
         nextProps =
             Object.keys(kept).length > 0
@@ -53,16 +54,15 @@ function cleanComponent(component: IBricksComponent, removedKeys: Set<string>): 
 }
 
 /**
- * Вычищает из схемы всё, что относилось к исчезнувшим устройствам.
+ * Cleans out of a schema everything that belonged to the devices that went away.
  *
- * Применяется и к текущей схеме, и к каждому снимку истории: иначе undo вернул
- * бы состояние, где переопределения ссылаются на ступень, которой у страницы
- * больше нет, а повторное добавление устройства с тем же ключом воскресило бы
- * удалённые значения.
+ * A pure transform: the same call serves the current schema, a snapshot of the history
+ * and the impact preview of a set edit. Why the history is walked at all is at
+ * `stripDeviceKeys`.
  *
- * @param schema - Схема страницы.
- * @param removedKeys - Ключи устройств, которых в наборе больше нет.
- * @returns Схема без ключей удалённых устройств.
+ * @param schema - Page schema.
+ * @param removedKeys - Keys of the devices the set no longer carries.
+ * @returns The schema without the keys of the removed devices.
  */
 export function stripDeviceKeysFromSchema(
     schema: IBricksSchema,
@@ -81,11 +81,11 @@ export function stripDeviceKeysFromSchema(
 }
 
 /**
- * Считает ключи устройств, исчезнувшие при смене набора.
+ * Works out which device keys went away when the set changed.
  *
- * @param previous - Ключи прежнего набора.
- * @param next - Ключи нового набора.
- * @returns Множество исчезнувших ключей.
+ * @param previous - Keys of the previous set.
+ * @param next - Keys of the new set.
+ * @returns The keys that went away.
  */
 export function findRemovedDeviceKeys(
     previous: ReadonlyArray<string>,

@@ -18,13 +18,14 @@ import type {
 } from '../types';
 
 /**
- * Вычисляет значение grid-свойства (gridColumn/gridRow) при перемещении компонента.
+ * Works out the value of a grid property (gridColumn / gridRow) when a component is
+ * moved.
  *
- * Приоритеты:
- * 1. Явно переданное значение в options
- * 2. Если передан targetIndex (позиционирование по DOM-порядку) — очистить
- * 3. Для grid-layout — сохранить текущее значение компонента
- * 4. Иначе — очистить
+ * In order of precedence:
+ * 1. A value passed explicitly in the options
+ * 2. A targetIndex was given (positioning follows the DOM order) — clear it
+ * 3. A grid layout — keep the current value of the component
+ * 4. Anything else — clear it
  */
 function resolveGridProperty(
     explicitValue: string | undefined,
@@ -44,15 +45,15 @@ function resolveGridProperty(
 }
 
 /**
- * Набор CRUD-операций по управлению компонентами канваса и их иерархией.
+ * The CRUD operations over the canvas components and their hierarchy.
  */
 export const crudActions: IComponentsCrudActions = {
     /**
-     * Создаёт новый компонент канваса с уникальным ID и корректным z-index.
+     * Creates a canvas component with a unique id and the right z-index.
      *
-     * @param component - Параметры компонента без системных полей.
-     * @param options - Флаги управления побочными эффектами (история и т.д.).
-     * @returns Сгенерированный идентификатор компонента.
+     * @param component - Component fields without the system ones.
+     * @param options - Flags over the side effects (the history entry, for one).
+     * @returns The generated id of the component.
      */
     addComponent(
         this: IComponentsStore,
@@ -84,9 +85,10 @@ export const crudActions: IComponentsCrudActions = {
     },
 
     /**
-     * Удаляет компонент по ID, рекурсивно снимая все дочерние связи и обновляя выбор.
+     * Removes a component by id, unlinking every descendant along the way and updating
+     * the selection.
      *
-     * @param id - Идентификатор компонента, который требуется удалить.
+     * @param id - Id of the component to remove.
      */
     removeComponent(this: IComponentsStore, id: string) {
         const target = this.getComponentById(id);
@@ -153,10 +155,10 @@ export const crudActions: IComponentsCrudActions = {
     },
 
     /**
-     * Отвязывает компонент от родителя и очищает позиционные свойства.
+     * Unlinks a component from its parent and clears the positional properties.
      *
-     * @param childId - Идентификатор дочернего компонента.
-     * @param options - Опции для пропуска записи в историю.
+     * @param childId - Id of the child component.
+     * @param options - Option that skips the history entry.
      */
     detachComponentFromParent(this: IComponentsStore, childId: string, options?: THistoryOptions) {
         const child = this.getComponentById(childId);
@@ -186,12 +188,12 @@ export const crudActions: IComponentsCrudActions = {
     },
 
     /**
-     * Добавляет дочерний компонент в layout в конкретную позицию.
+     * Adds a child component into a layout at a given position.
      *
-     * @param layoutId - ID layout-компонента.
-     * @param childId - ID добавляемого компонента.
-     * @param index - Желаемая позиция вставки.
-     * @param options - Дополнительные настройки истории.
+     * @param layoutId - Id of the layout component.
+     * @param childId - Id of the component being added.
+     * @param index - Wanted insertion position.
+     * @param options - Extra history settings.
      */
     addChildToLayout(
         this: IComponentsStore,
@@ -231,11 +233,11 @@ export const crudActions: IComponentsCrudActions = {
     },
 
     /**
-     * Удаляет дочерний компонент из layout и очищает метаданные позиционирования.
+     * Removes a child component from a layout and clears its positioning metadata.
      *
-     * @param layoutId - Родительский layout.
-     * @param childId - Дочерний компонент для удаления.
-     * @param options - Управление историей.
+     * @param layoutId - The parent layout.
+     * @param childId - Child component to remove.
+     * @param options - History settings.
      */
     removeChildFromLayout(
         this: IComponentsStore,
@@ -266,11 +268,12 @@ export const crudActions: IComponentsCrudActions = {
     },
 
     /**
-     * Переносит компонент в layout, сохраняя относительный порядок и сеточные параметры.
+     * Moves a component into a layout, keeping the relative order and the grid
+     * placement.
      *
-     * @param layoutId - Целевой layout.
-     * @param childId - Компонент, который нужно переместить.
-     * @param options - Параметры позиции и сетки.
+     * @param layoutId - Target layout.
+     * @param childId - Component to move.
+     * @param options - Position and grid options.
      */
     moveComponentToLayout(
         this: IComponentsStore,
@@ -310,13 +313,13 @@ export const crudActions: IComponentsCrudActions = {
                 const clampedTarget = Math.min(desiredIndex, currentChildren.length - 1);
 
                 if (options?.swap) {
-                    // Swap: меняем местами два элемента в массиве
+                    // Swap: the two entries trade places in the array
                     const swappedId = currentChildren[clampedTarget];
                     currentChildren[clampedTarget] = childId;
                     currentChildren[currentIndex] = swappedId;
 
-                    // Очищаем grid-позиционирование у обоих компонентов,
-                    // чтобы CSS Grid расставил по порядку DOM
+                    // The grid placement of both components is cleared, so that CSS
+                    // Grid lays them out in DOM order
                     const swappedComponent = this.getComponentById(swappedId);
                     if (swappedComponent) {
                         swappedComponent.gridColumn = undefined;
@@ -356,11 +359,12 @@ export const crudActions: IComponentsCrudActions = {
     },
 
     /**
-     * Перемещает компонент на корневой уровень канваса с возможностью указать позицию.
+     * Moves a component up to the root level of the canvas, optionally at a given
+     * position.
      *
-     * @param childId - Компонент, который нужно вынести на верхний уровень.
-     * @param targetIndex - Позиция среди корневых элементов.
-     * @param options - Настройки записи в историю.
+     * @param childId - Component to lift to the top level.
+     * @param targetIndex - Position among the root elements.
+     * @param options - History settings.
      */
     moveComponentToRoot(
         this: IComponentsStore,
@@ -389,8 +393,9 @@ export const crudActions: IComponentsCrudActions = {
         component.parent = undefined;
         component.gridColumn = undefined;
         component.gridRow = undefined;
-        // Блок из layout приходит в корень контейнерным (дефолт root-уровня), а
-        // reorder уже корневого блока не должен снимать выставленный fullWidth.
+        // A block arriving in the root out of a layout comes in contained (the default
+        // of the root level), while reordering a block that is already at the root must
+        // not clear the fullWidth someone set.
         component.fullWidth = wasNested ? false : (component.fullWidth ?? false);
 
         const [removedComponent] = this.components.splice(componentIndex, 1);
@@ -421,7 +426,7 @@ export const crudActions: IComponentsCrudActions = {
     },
 
     /**
-     * Возвращает все компоненты верхнего уровня (без родителя).
+     * Returns every top-level component, that is every one without a parent.
      */
     getRootComponents(this: IComponentsStore): IBricksComponent[] {
         return this.components.filter((component) => !component.parent);

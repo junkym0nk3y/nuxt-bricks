@@ -4,14 +4,15 @@ import type { IComponentsSlotActions, IComponentsStore, THistoryOptions } from '
 import { adjustReorderTargetIndex } from './order';
 
 /**
- * Оперирует слотами layout-компонентов: инициализация, добавление/удаление и перемещение детей.
+ * Operates the slots of layout components: initializing them, adding and removing
+ * children, moving them around.
  */
 export const slotActions: IComponentsSlotActions = {
     /**
-     * Создаёт структуру слотов у компонента согласно декларации brick-файла.
+     * Builds the slot structure of a component from the declaration of its brick file.
      *
-     * @param componentId - Идентификатор родительского компонента.
-     * @param slots - Описание слотов из brick.
+     * @param componentId - Id of the parent component.
+     * @param slots - Slot declarations taken from the brick.
      */
     initializeComponentSlots(
         this: IComponentsStore,
@@ -31,7 +32,7 @@ export const slotActions: IComponentsSlotActions = {
     },
 
     /**
-     * Упрощённая обёртка над `moveComponentToSlot` для добавления элемента.
+     * A thin wrapper over `moveComponentToSlot` for adding an element.
      */
     addComponentToSlot(
         this: IComponentsStore,
@@ -45,12 +46,12 @@ export const slotActions: IComponentsSlotActions = {
     },
 
     /**
-     * Удаляет компонент из заданного слота, корректно очищая ссылочные поля.
+     * Removes a component from a slot, clearing the fields that referenced it.
      *
-     * @param parentId - ID родительского компонента.
-     * @param slotName - Имя слота.
-     * @param childId - Компонент, который нужно удалить.
-     * @param options - Настройки истории.
+     * @param parentId - Id of the parent component.
+     * @param slotName - Name of the slot.
+     * @param childId - Component to remove.
+     * @param options - History settings.
      */
     removeComponentFromSlot(
         this: IComponentsStore,
@@ -92,13 +93,13 @@ export const slotActions: IComponentsSlotActions = {
     },
 
     /**
-     * Переносит компонент в указанный слот с возможностью задать позицию.
+     * Moves a component into a slot, optionally at a given position.
      *
-     * @param parentId - Родительский компонент со слотами.
-     * @param slotName - Целевой слот.
-     * @param childId - Компонент для перемещения.
-     * @param index - Индекс вставки или `null` для добавления в конец.
-     * @param options - Флаг пропуска истории.
+     * @param parentId - Parent component that carries the slots.
+     * @param slotName - Target slot.
+     * @param childId - Component to move.
+     * @param index - Insertion index, or `null` to append.
+     * @param options - Flag that skips the history entry.
      */
     moveComponentToSlot(
         this: IComponentsStore,

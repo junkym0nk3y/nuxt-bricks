@@ -3,14 +3,15 @@ import { useSidebarStore } from '../sidebar';
 import type { IComponentsSelectionActions, IComponentsStore } from '../types';
 
 /**
- * Управляет выбором компонентов и синхронизацией с панелью свойств.
+ * Owns the component selection and keeps the properties panel in step with it.
  */
 export const selectionActions: IComponentsSelectionActions = {
     /**
-     * Помечает компонент выбранным и открывает панель свойств.
+     * Marks a component as selected and opens the properties panel.
      *
-     * @param id - Идентификатор выбранного элемента.
-     * @param properties - Метаданные свойств из brick-файла.
+     * @param id - Id of the selected element.
+     * @param properties - Definitions of the editable properties: for a brick component
+     * they come from the manifest, for a layout block from its definition.
      */
     selectComponent(
         this: IComponentsStore,
@@ -23,7 +24,7 @@ export const selectionActions: IComponentsSelectionActions = {
             return;
         }
 
-        // Сбрасываем интерактивный предпросмотр при переключении на другой компонент
+        // Switching to another component drops the interactive preview
         if (this.interactivePreviewId && this.interactivePreviewId !== id) {
             this.interactivePreviewId = null;
         }
@@ -39,16 +40,17 @@ export const selectionActions: IComponentsSelectionActions = {
     },
 
     /**
-     * Обновляет метаданные уже выбранного компонента, не трогая сам выбор.
+     * Updates the metadata of the already selected component without touching the
+     * selection itself.
      *
-     * Нужно повтору загрузки библиотеки: свойства приезжают из манифеста, и
-     * после его отказа открытая панель пуста, пока метаданные не доедут.
-     * Повторный `selectComponent` для этого не годится — он ещё и открывает
-     * панель свойств, то есть свернул бы её обратно тому, кто её закрыл.
+     * Retrying the library load needs this: the properties arrive with the manifest,
+     * and after the manifest has failed the open panel stays empty until they get
+     * there. Calling `selectComponent` again is no good for that — it also opens the
+     * properties panel, so it would reopen one that the user had just closed.
      *
-     * @param id - Компонент, для которого пришли метаданные.
-     * @param properties - Определения редактируемых свойств.
-     * @param description - Описание компонента.
+     * @param id - Component the metadata arrived for.
+     * @param properties - Definitions of the editable properties.
+     * @param description - Description of the component.
      */
     setSelectedComponentMetadata(
         this: IComponentsStore,
@@ -56,7 +58,7 @@ export const selectionActions: IComponentsSelectionActions = {
         properties: ISelectedComponent['properties'],
         description?: ISelectedComponent['description']
     ) {
-        // Пока метаданные ехали, пользователь мог выбрать другой компонент
+        // While the metadata was on its way, the user may have selected another component
         if (this.selectedComponent?.id !== id) {
             return;
         }
@@ -65,7 +67,7 @@ export const selectionActions: IComponentsSelectionActions = {
     },
 
     /**
-     * Сбрасывает выбор и скрывает правую панель свойств.
+     * Clears the selection and hides the right properties panel.
      */
     deselectComponent(this: IComponentsStore) {
         this.selectedComponent = null;
@@ -75,10 +77,10 @@ export const selectionActions: IComponentsSelectionActions = {
     },
 
     /**
-     * Переключает режим интерактивного предпросмотра для компонента.
-     * Если компонент уже в режиме preview — выключает его. Иначе — включает.
+     * Toggles the interactive preview of a component: a component already in preview
+     * leaves it, any other one enters it.
      *
-     * @param id - Идентификатор компонента.
+     * @param id - Id of the component.
      */
     toggleInteractivePreview(this: IComponentsStore, id: string) {
         this.interactivePreviewId = this.interactivePreviewId === id ? null : id;

@@ -18,28 +18,29 @@ import { LAYOUT_COMPONENTS } from '../constants/layoutComponents';
 // #endregion
 
 /**
- * Данные панели свойств по компоненту канваса.
+ * Properties-panel data of a canvas component.
  *
- * Один резолвер на оба пути выбора — клик по компоненту и клик в дереве схемы:
- * раньше каждый собирал свойства сам, и правка одного молча расходилась с
- * другим.
+ * One resolver for both selection paths — a click on the component and a click in
+ * the schema tree: each of them used to collect the properties on its own, and an
+ * edit of one silently drifted away from the other.
  *
- * @returns Функция сборки данных панели свойств.
+ * @returns The function that collects the properties-panel data.
  */
 export function useComponentEditorMetadata(): IUseComponentEditorMetadataReturn {
     const { readBrickMetadata } = useBrickMetadata();
     const { brickValuesToProperties } = useComponentProperties();
 
     /**
-     * Собирает описание и определения свойств компонента.
+     * Collects the description and the property definitions of a component.
      *
-     * Пустой результат у brick-компонента означает, что манифест ещё не дошёл:
-     * отката на импорт brick-модуля нет намеренно — второй источник тех же
-     * данных расходился бы с первым. Библиотека в этот момент показывает отказ и
-     * предлагает повтор, а он наполняет уже открытую панель.
+     * An empty result for a brick component means the manifest has not arrived yet:
+     * there is deliberately no fallback to importing the brick module — a second
+     * source of the same data would drift away from the first. At that moment the
+     * library shows the failure and offers a retry, and the retry fills the panel
+     * that is already open.
      *
-     * @param component - Компонент со схемы страницы.
-     * @returns Свойства и описание для панели.
+     * @param component - Component taken from the page schema.
+     * @returns Properties and description for the panel.
      */
     function resolveComponentEditorMetadata(component: IBricksComponent): IComponentEditorMetadata {
         if (component.type === 'layout') {

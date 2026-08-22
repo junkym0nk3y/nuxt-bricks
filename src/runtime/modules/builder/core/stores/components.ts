@@ -5,8 +5,9 @@ import { loadFavoritesFromStorage } from './actions/favorites';
 import type { IComponentsState, ISelectedComponentData } from './types';
 
 /**
- * Отвечает за плоский список компонентов канваса, управление их иерархией и выбранным элементом.
- * Все операции (CRUD, слоты, история, выбор) проксируются через агрегированный набор действий.
+ * Owns the flat list of canvas components, their hierarchy and the selected one.
+ * Every operation (CRUD, slots, history, selection) is proxied through the
+ * aggregated set of actions.
  */
 export const useComponentsStore = defineStore('bricksComponents', {
     state: (): IComponentsState => ({
@@ -19,9 +20,9 @@ export const useComponentsStore = defineStore('bricksComponents', {
 
     getters: {
         /**
-         * Возвращает компонент по идентификатору или `undefined`, если элемент отсутствует.
+         * Returns a component by id, or `undefined` when there is no such component.
          *
-         * @param _state - Состояние стора (не используется напрямую).
+         * @param _state - Store state (not read directly).
          */
         getComponentById(_state) {
             return (id: string) => {
@@ -30,10 +31,11 @@ export const useComponentsStore = defineStore('bricksComponents', {
         },
 
         /**
-         * Собирает расширенные данные по выбранному компоненту для панели свойств.
+         * Collects the extended data the properties panel needs about the selection.
          *
-         * @param state - Текущее состояние с выбранным компонентом.
-         * @returns Объект с id, самим компонентом и описанием editable-свойств.
+         * @param state - Current state carrying the selected component.
+         * @returns The id, the component itself and the declarations of its editable
+         * properties.
          */
         selectedComponentData(state): ISelectedComponentData | null {
             if (!state.selectedComponent) {
@@ -56,24 +58,25 @@ export const useComponentsStore = defineStore('bricksComponents', {
         },
 
         /**
-         * Возвращает копию списка компонентов, отсортированную по z-index для корректного рендеринга.
+         * Returns a copy of the component list sorted by z-index, the order the render
+         * needs.
          */
         sortedComponents(): IBricksComponent[] {
             return [...this.components].sort((a, b) => a.zIndex - b.zIndex);
         },
 
         /**
-         * Проверяет, соответствует ли переданный id текущему выбранному элементу.
+         * Whether the given id is the one currently selected.
          */
         isComponentSelected: (state) => (id: string) => state.selectedComponent?.id === id,
 
         /**
-         * Проверяет, является ли компонент избранным по имени.
+         * Whether a component is a favorite, by name.
          */
         isFavorite: (state) => (componentName: string) => state.favorites.includes(componentName),
 
         /**
-         * Указывает, есть ли вообще компоненты на канвасе.
+         * Whether the canvas holds any components at all.
          */
         hasComponents(): boolean {
             return this.components.length > 0;

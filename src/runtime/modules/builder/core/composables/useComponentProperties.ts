@@ -7,7 +7,7 @@ import type { IBrickValues } from '../../../common/types/index';
 import { getModalOptions } from './useModalOptions';
 
 /**
- * Соответствие типа свойства типу селектора панели; отсутствующие типы → 'input'.
+ * Property type mapped to the selector type of the panel; a missing type → 'input'.
  */
 const SELECTOR_TYPE_BY_PROPERTY: Partial<Record<TPropertyType, string>> = {
     boolean: 'checkbox',
@@ -21,11 +21,11 @@ const SELECTOR_TYPE_BY_PROPERTY: Partial<Record<TPropertyType, string>> = {
 };
 
 /**
- * Composable для работы со свойствами компонентов.
+ * Composable for working with the properties of components.
  */
 export function useComponentProperties() {
     /**
-     * Определяет тип свойства на основе значения из brick.
+     * Infers the property type from a brick value.
      */
     // eslint-disable-next-line complexity
     const inferPropertyType = (value: IBrickValues): TPropertyType => {
@@ -77,13 +77,13 @@ export function useComponentProperties() {
             return 'select';
         }
 
-        // Проверяем наличие vars (опций)
+        // A declared list of options wins over a primitive type: with `vars` the
+        // property is edited as a select
         if (value.vars && Array.isArray(value.vars) && value.vars.length > 0) {
-            // 2+ опции -> select
             return 'select';
         }
 
-        // Определяем тип по значению default
+        // No editor type declared and no options: the type comes from the default value
         if (typeof value.default === 'boolean') {
             return 'boolean';
         }
@@ -101,7 +101,7 @@ export function useComponentProperties() {
     };
 
     /**
-     * Конвертирует значения brick в определения свойств.
+     * Converts brick values into property definitions.
      */
     const brickValuesToProperties = (
         brickValues: Record<string, IBrickValues>
@@ -127,24 +127,25 @@ export function useComponentProperties() {
                 responsive: value.responsive,
             };
 
-            // Автоматически инжектим модалки для modal-select
+            // The modal list is injected automatically for modal-select
             if (value.type === 'modal-select') {
                 property.options = getModalOptions().map((opt) => ({
                     label: opt.label,
                     value: opt.value,
                 }));
             }
-            // Добавляем опции, если vars существуют
+            // Options are added when `vars` carries at least one entry
             else if (value.vars && Array.isArray(value.vars) && value.vars.length > 0) {
                 property.options = value.vars.map((v) => {
-                    // Если элемент уже объект с label и value, использовать как есть
+                    // An entry that already is an object with a label and a value is
+                    // taken as it is
                     if (typeof v === 'object' && v !== null && 'label' in v && 'value' in v) {
                         return {
                             label: String(v.label),
                             value: v.value as TBrickDemoValues,
                         };
                     }
-                    // Иначе автопреобразование примитива
+                    // A primitive is converted on its own
                     return {
                         label: String(v),
                         value: v,
@@ -159,14 +160,14 @@ export function useComponentProperties() {
     };
 
     /**
-     * Возвращает тип селектора компонента для свойства.
+     * Reads the selector type a property is edited with.
      */
     const getSelectorType = (property: IPropertyDefinition): string => {
         return SELECTOR_TYPE_BY_PROPERTY[property.type] ?? 'input';
     };
 
     /**
-     * Валидирует значение свойства.
+     * Validates the value of a property.
      */
     // eslint-disable-next-line complexity
     const validatePropertyValue = (property: IPropertyDefinition, value: unknown): boolean => {

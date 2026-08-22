@@ -5,11 +5,11 @@ import type {
 } from '../../../common/types/brick';
 
 /**
- * Инициализирует слоты layout-компонента на основе метаданных.
+ * Initializes the slots of a layout component from its metadata.
  *
- * @param component - Layout-компонент, у которого нужно заполнить слоты.
- * @param slots - Описание слотов из brick.
- * @param resolveChildren - Функция, которая возвращает id дочерних элементов для слота.
+ * @param component - Layout component whose slots are to be filled.
+ * @param slots - Slot declarations taken from the brick.
+ * @param resolveChildren - Returns the ids of the children of a slot.
  */
 export function applySlotDefinitions(
     component: IBricksComponent,
@@ -30,11 +30,11 @@ export function applySlotDefinitions(
 }
 
 /**
- * Находит слот по имени внутри layout-компонента.
+ * Finds a slot by name inside a layout component.
  *
- * @param component - Компонент с описанными слотами.
- * @param slotName - Имя нужного слота.
- * @returns Найденный слот или undefined.
+ * @param component - Component with declared slots.
+ * @param slotName - Name of the slot to find.
+ * @returns The slot, or undefined when there is none.
  */
 export function findSlot(
     component: IBricksComponent | undefined,

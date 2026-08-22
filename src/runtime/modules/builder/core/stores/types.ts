@@ -22,7 +22,7 @@ export interface IComponentsState {
     selectedComponent: ISelectedComponent | null;
     clipboard: IComponentClipboardSnapshot | null;
     favorites: string[];
-    /** Transient: id компонента в режиме интерактивного предпросмотра (не экспортируется в схему) */
+    /** Transient: id of the component in interactive preview (never exported to the schema) */
     interactivePreviewId: string | null;
 }
 

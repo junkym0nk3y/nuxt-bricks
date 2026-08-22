@@ -138,7 +138,7 @@ export const AREAS = [
         onlyDepth: true,
     },
     { id: '10', title: 'assets/scss', done: true, match: ['src/runtime/assets/'] },
-    { id: '11', title: 'builder/core', done: false, match: ['src/runtime/modules/builder/core/'] },
+    { id: '11', title: 'builder/core', done: true, match: ['src/runtime/modules/builder/core/'] },
     {
         id: '12',
         title: 'builder/canvas',

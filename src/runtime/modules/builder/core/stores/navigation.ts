@@ -17,8 +17,9 @@ import { defineStore } from 'pinia';
 // #endregion
 
 /**
- * Управляет навигационными пунктами лендинга.
- * Данные хранятся в schema.meta.navigation и доступны кастомным компонентам на сайте.
+ * Owns the navigation entries of the landing page.
+ * The data is stored in schema.meta.navigation and is readable by the custom
+ * components of the site.
  */
 export const useNavigationStore = defineStore('bricksNavigation', () => {
     // #region State
@@ -27,12 +28,12 @@ export const useNavigationStore = defineStore('bricksNavigation', () => {
 
     // #region Getters
     /**
-     * Есть ли хотя бы один навигационный пункт.
+     * Whether there is at least one navigation entry.
      */
     const hasItems = computed<boolean>(() => items.value.length > 0);
 
     /**
-     * Сериализованные данные навигации для schema.meta.
+     * Serialized navigation data for schema.meta.
      */
     const navigationMeta = computed<INavigationMeta>(() => ({
         items: items.value,
@@ -41,9 +42,9 @@ export const useNavigationStore = defineStore('bricksNavigation', () => {
 
     // #region Actions
     /**
-     * Загружает навигацию из schema.meta.
+     * Loads the navigation out of schema.meta.
      *
-     * @param meta - Объект meta из IBricksSchema.
+     * @param meta - The meta object of an IBricksSchema.
      */
     function loadFromMeta(meta?: IBricksSchemaMeta): void {
         const navItems = meta?.navigation?.items;
@@ -51,10 +52,10 @@ export const useNavigationStore = defineStore('bricksNavigation', () => {
     }
 
     /**
-     * Добавляет новый навигационный пункт.
+     * Adds a navigation entry.
      *
-     * @param target - Якорь (#section-id) или URL.
-     * @param label - Отображаемый текст.
+     * @param target - An anchor (#section-id) or a URL.
+     * @param label - Text shown to the visitor.
      */
     function addItem(target: string, label: string): void {
         items.value = [
@@ -68,19 +69,19 @@ export const useNavigationStore = defineStore('bricksNavigation', () => {
     }
 
     /**
-     * Удаляет навигационный пункт по id.
+     * Removes a navigation entry by id.
      *
-     * @param id - Идентификатор пункта.
+     * @param id - Id of the entry.
      */
     function removeItem(id: string): void {
         items.value = items.value.filter((item) => item.id !== id);
     }
 
     /**
-     * Обновляет поля навигационного пункта.
+     * Updates the fields of a navigation entry.
      *
-     * @param id - Идентификатор пункта.
-     * @param updates - Частичные обновления (target и/или label).
+     * @param id - Id of the entry.
+     * @param updates - Partial update (target and/or label).
      */
     function updateItem(
         id: string,
@@ -90,10 +91,10 @@ export const useNavigationStore = defineStore('bricksNavigation', () => {
     }
 
     /**
-     * Перемещает пункт с одной позиции на другую.
+     * Moves an entry from one position to another.
      *
-     * @param fromIndex - Исходная позиция.
-     * @param toIndex - Целевая позиция.
+     * @param fromIndex - Position moved from.
+     * @param toIndex - Position moved to.
      */
     function reorderItems(fromIndex: number, toIndex: number): void {
         if (
@@ -113,14 +114,14 @@ export const useNavigationStore = defineStore('bricksNavigation', () => {
     }
 
     /**
-     * Сбрасывает все навигационные пункты.
+     * Drops every navigation entry.
      */
     function reset(): void {
         items.value = [];
     }
 
     /**
-     * Возвращает данные навигации для записи в schema.meta.
+     * Returns the navigation data to be written into schema.meta.
      */
     function toMeta(): INavigationMeta {
         return {

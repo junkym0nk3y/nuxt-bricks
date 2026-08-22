@@ -8,8 +8,8 @@ interface IHistoryState {
 }
 
 /**
- * Управляет стэком истории изменений канваса: хранит сериализованные схемы,
- * предоставляет undo/redo и очистку с ограничением на максимальный размер.
+ * Owns the undo stack of the canvas: it keeps the serialized schemas, offers
+ * undo/redo and a reset, and caps how many snapshots are held.
  */
 export const useHistoryStore = defineStore('bricksHistory', {
     state: (): IHistoryState => ({
@@ -28,9 +28,10 @@ export const useHistoryStore = defineStore('bricksHistory', {
 
     actions: {
         /**
-         * Добавляет новую схему в историю, отрезая "будущее" (redo-ветку) и применяя лимиты.
+         * Pushes a schema onto the history, cutting off the "future" (the redo branch)
+         * and applying the size cap.
          *
-         * @param schema - Текущее состояние схемы, сериализованное в DTO.
+         * @param schema - Current state of the schema, serialized into a DTO.
          */
         capture(schema: IBricksSchema) {
             if (this.historyIndex < this.history.length - 1) {
@@ -46,9 +47,9 @@ export const useHistoryStore = defineStore('bricksHistory', {
         },
 
         /**
-         * Возвращает предыдущую схему, если доступна, и сдвигает указатель истории назад.
+         * Returns the previous schema when there is one and steps the pointer back.
          *
-         * @returns Предыдущее состояние схемы или `null`, если ход невозможен.
+         * @returns The previous state of the schema, or `null` when there is no move.
          */
         undo(): IBricksSchema | null {
             if (!this.canUndo) {
@@ -60,9 +61,9 @@ export const useHistoryStore = defineStore('bricksHistory', {
         },
 
         /**
-         * Возвращает следующую схему и сдвигает указатель вперёд.
+         * Returns the next schema and steps the pointer forward.
          *
-         * @returns Следующее состояние схемы или `null`, если redo недоступен.
+         * @returns The next state of the schema, or `null` when redo is unavailable.
          */
         redo(): IBricksSchema | null {
             if (!this.canRedo) {
@@ -74,7 +75,7 @@ export const useHistoryStore = defineStore('bricksHistory', {
         },
 
         /**
-         * Полностью очищает историю и возвращает указатель в исходное состояние.
+         * Empties the history and puts the pointer back where it started.
          */
         reset() {
             this.history = [];
@@ -82,17 +83,15 @@ export const useHistoryStore = defineStore('bricksHistory', {
         },
 
         /**
-         * Перебирает сохранённую ветку истории, применяя преобразование к каждому снимку.
+         * Walks the stored branch of the history, applying a transform to every snapshot.
          *
-         * Нужен разрушающим правкам топологии страницы — удалению устройства из
-         * набора и возврату к набору проекта. Полный сброс истории там не годится:
-         * подтверждение обещает удалить переопределения устройства и только их, а
-         * заодно отняло бы возможность отменить прежние правки текста и структуры.
+         * Why a destructive edit of the device set rewrites the history instead of wiping
+         * it is at `stripDeviceKeys`, its only caller.
          *
-         * Redo-хвост отбрасывается обязательно: очистка одних лишь пройденных
-         * снимков позволила бы redo вернуть только что удалённые переопределения.
+         * The redo tail has to be discarded here: cleaning only the snapshots already
+         * walked would let redo bring the just-deleted overrides back.
          *
-         * @param transform - Преобразование снимка (чистка ключей устройства).
+         * @param transform - Transform of a snapshot (dropping the device keys).
          */
         rebase(transform: (schema: IBricksSchema) => IBricksSchema) {
             if (this.historyIndex < this.history.length - 1) {
