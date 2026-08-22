@@ -1,22 +1,32 @@
 <script setup lang="ts">
 /**
- * @description Аватар в правом верхнем углу и меню профиля под ним. Один
- * компонент на две поверхности — шапку дашборда и тулбар билдера: меню отвечает
- * на два вопроса («кем вошёл», «как отсюда выйти»), и две копии разъехались бы
- * на первой же правке.
+ * @description The avatar in the top right corner and the profile menu under it. One
+ * component for two surfaces — the dashboard header and the builder toolbar: the menu
+ * answers two questions ("who am I signed in as", "how do I get out of here"), and two
+ * copies would drift apart at the very first edit.
  *
- * До этого экрана выход жил только в футере рейла дашборда, то есть из редактора
- * выйти было нельзя вовсе — аватар в тулбаре закрывает эту дыру попутно.
+ * Before this screen the sign-out lived in the footer of the dashboard rail only, that
+ * is, there was no way out of the editor at all — the avatar in the toolbar closes that
+ * hole along the way.
  *
- * Вне database-режима компонент не рисуется: в basic identity одна на всех и
- * задана окружением, профиля у неё нет, а выхода нет и у самого протокола —
- * браузер держит заголовок до закрытия вкладки. Поэтому проп «показывать выход»
- * компоненту не нужен, он решает это сам.
+ * Outside the database mode the component is not drawn: in basic the identity is one
+ * for everybody and is set by the environment, it has no profile, and the protocol
+ * itself has no sign-out either — the browser keeps the header until the tab is closed.
+ * That is why the component needs no "show the sign-out" prop, it decides that itself.
  *
- * Профиль читается из общего состояния, а не приходит пропом: значение одно на
- * сессию, а поверхностей две, и проп пришлось бы тащить через шапку дашборда,
- * которой он не нужен. Правит профиль модалка — её открывает хост, поэтому
- * наружу уходят только события.
+ * The profile is read out of the shared state rather than arriving as a prop: the value
+ * is one per session while there are two surfaces, and the prop would have to be
+ * dragged through the dashboard header, which has no use for it. The profile is edited
+ * by the modal — that one is opened by the host, so only events leave here.
+ *
+ * Decisions held by the style section: both lines of the menu header are clipped with
+ * an ellipsis, because the width of the menu is fixed and a long name has to be cut
+ * either way — the ellipsis is what makes the cut readable instead of a glyph broken
+ * mid-way; the appearance and the departure of the popup repeat the other builder
+ * popovers, and the rationale of that pair — a closing animation shorter than the
+ * opening one with `pointer-events` switched off, and the keyframes declared inside
+ * the module block — is written down where it is owned, at
+ * `BuilderShellToolbarPageSelector`.
  */
 
 // #region Imports
@@ -63,7 +73,7 @@ const { profile, displayLabel } = useAuthProfile();
 // #endregion
 
 // #region Computed
-/** Подпись под именем: «логин · роль» — обе строки про учётку, не про профиль. */
+/** Caption under the name: "login · role" — both are about the account, not the profile. */
 const accountSummary = computed<string>(() => {
     const current = profile.value;
 
@@ -75,8 +85,8 @@ const accountSummary = computed<string>(() => {
 });
 
 /**
- * Доступное имя кнопки. Без него у триггера нет подписи вовсе: внутри только
- * аватар, а он декоративен.
+ * Accessible name of the button. Without it the trigger has no caption at all: inside
+ * there is only the avatar, and that one is decorative.
  */
 const triggerLabel = computed<string>(() =>
     t('bricks.auth.profile.menuLabel', { name: displayLabel.value })
@@ -85,14 +95,15 @@ const triggerLabel = computed<string>(() =>
 
 // #region Methods
 /**
- * Просит хост открыть модалку профиля.
+ * Asks the host to open the profile modal.
  */
 function handleOpenProfile(): void {
     emit('open-profile');
 }
 
 /**
- * Просит хост выполнить выход: он же показывает отказ и уводит на login.
+ * Asks the host to sign out: it is the host that shows a failure and leaves for the
+ * login.
  */
 function handleLogout(): void {
     emit('logout');
@@ -112,8 +123,6 @@ function handleLogout(): void {
             </DropdownMenuTrigger>
 
             <DropdownMenuPortal>
-                <!-- `as-child`: анимация висит на `data-state`, поэтому вид и
-                     состояние обязаны быть на одном узле -->
                 <DropdownMenuContent as-child align="end" :side-offset="8" position="popper">
                     <BricksPopoverSurface :class="$style.menu">
                         <div :class="$style.header">
@@ -130,8 +139,6 @@ function handleLogout(): void {
                         </div>
 
                         <div :class="$style.items">
-                            <!-- `as-child`: `role="menuitem"` и выбор приезжают
-                                 на кнопку пункта, а не на обёртку вокруг неё -->
                             <DropdownMenuItem as-child @select="handleOpenProfile">
                                 <BricksMenuItem
                                     icon="ta:outline-user"
@@ -160,8 +167,6 @@ function handleLogout(): void {
     gap: 1.2rem;
 }
 
-/* Отделяет аватар от кнопок панели билдера; в шапке дашборда не нужна —
-   там он идёт за кнопкой «+ Страница», которая уже сама по себе край группы. */
 .divider {
     width: 1px;
     height: 2.4rem;
@@ -191,18 +196,10 @@ function handleLogout(): void {
 .menu {
     width: 26.8rem;
 
-    // Появление и уход — как у остальных поповеров билдера (селектор страниц,
-    // BricksActionButton). Vue-`<Transition>` здесь неприменима: контентом
-    // распоряжается Presence самой reka, поэтому анимация вешается на её
-    // `data-state`.
     &[data-state='open'] {
         animation: profile-menu-in 0.2s ease;
     }
 
-    // Затухание короче появления: reka не размонтирует контент, пока играет
-    // анимация closed-состояния, и всё это время меню ещё висит над шапкой.
-    // `pointer-events: none` — чтобы клик по тому, что было под меню, не съедался
-    // уходящим окном
     &[data-state='closed'] {
         animation: profile-menu-out 0.15s ease;
         pointer-events: none;
@@ -216,9 +213,6 @@ function handleLogout(): void {
     }
 }
 
-// Keyframes — внутри module-блока: CSS Modules скоупит имя анимации в ссылке
-// `animation:` выше, и глобальное определение с ним не совпало бы (анимация не
-// проигралась бы, а reka зависла бы на closed)
 @keyframes profile-menu-in {
     from {
         opacity: 0;
@@ -258,8 +252,6 @@ function handleLogout(): void {
     gap: 0.2rem;
 }
 
-/* Длинное имя обрезается многоточием: логин под ним не обрезается никогда —
-   по нему человек себя опознаёт. */
 .name {
     overflow: hidden;
     text-overflow: ellipsis;

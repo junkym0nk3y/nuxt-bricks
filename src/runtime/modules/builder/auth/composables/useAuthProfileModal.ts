@@ -7,16 +7,17 @@ import { ref } from 'vue';
 // #endregion
 
 /**
- * Монтирование и открытость модалки своего профиля.
+ * Mounting and openness of one's own profile modal.
  *
- * Живёт композаблом, а не парой ref'ов в каждом хосте: модалку монтируют обе
- * поверхности — дашборд и билдер, — и латч монтирования у них обязан работать
- * одинаково. Латч обратно не снимается (как у медиа-галереи): пересоздание
- * компонента теряло бы анимацию закрытия, а чанк, уже приехавший в браузер,
- * второй раз не грузится.
+ * It lives as a composable rather than as a pair of refs in every host: the modal is
+ * mounted by both surfaces — the dashboard and the builder — and the mounting latch has
+ * to work the same way for them. The latch is never released back — the same decision as
+ * the one taken for the media gallery, whose rationale is written down at
+ * `useBuilderPage`; on top of that, a chunk already delivered to the browser is not
+ * loaded a second time.
  *
- * @returns Состояние модалки профиля, запрошенная вкладка и операции открытия
- * и закрытия.
+ * @returns State of the profile modal, the requested tab and the operations of
+ * opening and closing.
  */
 export function useAuthProfileModal(): IUseAuthProfileModalReturn {
     // #region Data
@@ -27,14 +28,15 @@ export function useAuthProfileModal(): IUseAuthProfileModalReturn {
 
     // #region Methods
     /**
-     * Открывает модалку, монтируя её при первом обращении.
+     * Opens the modal, mounting it at the first call.
      *
-     * Вкладка передаётся вызывающим: из меню профиля открывается сам профиль, а
-     * из своей строки раздела «Пользователи» — форма пароля, потому что ключ в
-     * строке обещает именно её. Дефолт возвращает профиль, поэтому открытие,
-     * пришедшее однажды за паролем, не остаётся паролем навсегда.
+     * The tab is passed by the caller: from the profile menu the profile itself
+     * opens, and from one's own row of the "Users" section — the password form,
+     * because the key in that row promises exactly it. The default returns the
+     * profile, so an open that came for the password once does not stay the password
+     * forever.
      *
-     * @param tab - Вкладка, с которой открыть модалку.
+     * @param tab - Tab to open the modal on.
      */
     function open(tab: TAuthProfileTab = 'profile'): void {
         requestedTab.value = tab;
@@ -43,7 +45,7 @@ export function useAuthProfileModal(): IUseAuthProfileModalReturn {
     }
 
     /**
-     * Закрывает модалку, оставляя компонент смонтированным.
+     * Closes the modal, leaving the component mounted.
      */
     function close(): void {
         isOpen.value = false;

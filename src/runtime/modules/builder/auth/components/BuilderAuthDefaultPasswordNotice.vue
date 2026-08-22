@@ -1,16 +1,26 @@
 <script setup lang="ts">
 /**
- * @description Полоса-предупреждение: учётка всё ещё живёт с дефолтным паролем
- * сида миграции (`admin` / `bricks-pass`). Пароль одинаков во всех инсталляциях
- * и напечатан в README — до смены учётка защищена ровно ничем.
+ * @description Warning bar: the account still lives with the default password of the
+ * migration seed (`admin` / `bricks-pass`). The password is the same in every
+ * installation and is printed in the README — until it is changed the account is
+ * protected by exactly nothing.
  *
- * Предупреждение, а не принудительный экран смены: заблокировать интерфейс до
- * смены пароля значило бы запереть и того, кто только поднял playground, а
- * блокировать вход в production (как это делает basic-режим с паролем
- * `change-me`) здесь нельзя вовсе — сменить пароль можно только войдя.
+ * A warning rather than a forced change screen: locking the interface until the
+ * password is changed would lock up whoever has only just started the playground,
+ * while blocking the sign-in in production (the way basic mode does with the
+ * `change-me` password) is impossible here at all — the password can only be changed
+ * once signed in.
  *
- * Своего запроса компонент не делает: флаг приезжает вместе с сессией, которую
- * билдер и так резолвит на SSR.
+ * The component makes no request of its own: the flag arrives together with the
+ * session the builder resolves on SSR anyway.
+ *
+ * The bar carries `role="status"` and not `"alert"`: it lives on the page for as long
+ * as the password stays the default, and "alert" would cut across the reading of
+ * every screen with an assertive announcement.
+ *
+ * One decision is held by the style section: yellow is the only accent of a warning
+ * in the palette, and the background is assembled out of it with transparency so that
+ * the bar reads in the dark theme too, where this color has no ready light tone.
  */
 
 // #region Imports
@@ -47,7 +57,7 @@ const { isDefaultPassword } = useAuthProfile();
 
 // #region Methods
 /**
- * Просит открыть форму смены пароля.
+ * Asks for the password change form to be opened.
  */
 function handleChangePassword(): void {
     emit('change-password');
@@ -56,11 +66,6 @@ function handleChangePassword(): void {
 </script>
 
 <template>
-    <!--
-        role="status", а не "alert": полоса живёт на странице постоянно, пока
-        пароль дефолтный, и «alert» перебивал бы озвучку каждого экрана billboard
-        assertive-объявлением.
-    -->
     <div v-if="isDefaultPassword" :class="$style.BuilderAuthDefaultPasswordNotice" role="status">
         <BricksIcon icon="ta:outline-key" :class="$style.icon" />
 
@@ -71,11 +76,6 @@ function handleChangePassword(): void {
             {{ t('bricks.auth.defaultPassword.description') }}
         </p>
 
-        <!--
-            Смена своего пароля выключена конфигом (`auth.allowPasswordChange`):
-            кнопка вела бы в форму, которой нет. Предупреждение при этом
-            остаётся верным — пароль всё тот же, менять его придётся снаружи.
-        -->
         <BricksButton
             v-if="props.canChangePassword"
             size="sm"
@@ -94,10 +94,6 @@ function handleChangePassword(): void {
     gap: 1.2rem;
     padding: 1.2rem 2.4rem;
     border-bottom: 1px solid var(--bricks-base-200);
-
-    /* Жёлтый — единственный акцент предупреждения в палитре; фон собирается из
-       него прозрачностью, чтобы полоса читалась и в тёмной теме, где готового
-       светлого тона у этого цвета нет. */
     background: rgb(var(--bricks-rgb-yellow) / 12%);
 }
 

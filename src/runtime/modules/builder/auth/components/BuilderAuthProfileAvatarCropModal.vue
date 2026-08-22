@@ -1,22 +1,31 @@
 <script setup lang="ts">
 /**
- * @description Кадрирование фото профиля: снимок под круглой рамкой, масштаб
- * ползунком, перетаскивание мышью.
+ * @description Cropping of the profile photo: the picture under a round frame, the zoom
+ * on a slider, dragging with the mouse.
  *
- * Кадрирование — отдельный шаг, а не кроп по центру: центр фотографии почти
- * никогда не совпадает с лицом, и «загрузили и обрезали по центру» срезало бы
- * половину аватаров. Круг рисует интерфейс, а хранится квадрат — иначе аватар
- * нельзя было бы показать в другой форме.
+ * Cropping is a step of its own rather than a crop by the center: the center of a
+ * photograph almost never coincides with a face, and "uploaded and cut by the center"
+ * would slice off half of the avatars. The circle is drawn by the interface while a
+ * square is what is stored — otherwise the avatar could not be shown in another shape.
  *
- * Загрузку выполняет эта модалка, а не форма профиля: кнопка обязана уйти в
- * состояние отправки и держать модалку открытой до ответа — закройся она
- * раньше, человек увидел бы прежний аватар и решил, что «на самом деле файл уже
- * новый». Состояние отправки и текст отказа принадлежат тому, кто ждёт ответа.
+ * The upload is carried out by this modal and not by the profile form: the button has
+ * to go into the submitting state and hold the modal open until the answer — were it to
+ * close earlier, a person would see the previous avatar and decide that "the file is
+ * actually the new one already". The submitting state and the text of a failure belong
+ * to whoever waits for the answer.
  *
- * Отказы приходят с сервера: клиент проверяет только очевидное (файл выбран,
- * браузер его декодировал, снимок не мельче минимальной рамки). Тип содержимого
- * подтверждает сигнатура на сервере — заявить `image/png` может кто угодно, а
- * `accept` у поля выбора фильтрует диалог, но не перетаскивание.
+ * The failures come from the server: the client checks only the obvious (a file is
+ * selected, the browser decoded it, the picture is not smaller than the minimum frame).
+ * The type of the content is confirmed by the signature on the server — anyone can
+ * declare `image/png`, while the `accept` of the selection field filters the dialog but
+ * not a drag and drop.
+ *
+ * Decisions held by the style section: the offset of the picture is set by the
+ * composable (`imageStyle`) in screen pixels, and the styles only give it its origin —
+ * the top left corner of the circle, which is why the picture is shifted off the center
+ * by half a diameter; and the darkening around the circle is the spread shadow of the
+ * ring itself rather than a stack of layers around it, while the ring stays out of the
+ * way of the drag through `pointer-events: none`.
  */
 
 // #region Imports
@@ -57,14 +66,14 @@ const emit = defineEmits<IAuthAvatarCropModalEmits>();
 // #endregion
 
 // #region Data
-/** Шаг ползунка масштаба: достаточно мелкий, чтобы кадр двигался плавно. */
+/** Step of the zoom slider: small enough for the frame to move smoothly. */
 const ZOOM_STEP = 0.01;
 
-/** Шаг сдвига кадра стрелками (px экрана) и его ускоренный вариант с Shift. */
+/** Step of moving the frame with the arrows (screen px) and its faster Shift variant. */
 const KEYBOARD_STEP_PX = 4;
 const KEYBOARD_STEP_LARGE_PX = 24;
 
-/** Направления сдвига: тянут снимок, поэтому знак обратен стрелке. */
+/** Directions of the move: the picture is dragged, so the sign is inverse to the arrow. */
 const KEYBOARD_SHIFTS: Record<string, { x: number; y: number } | undefined> = {
     ArrowLeft: { x: 1, y: 0 },
     ArrowRight: { x: -1, y: 0 },
@@ -79,7 +88,7 @@ const { imageUrl, zoom, maxZoom, imageStyle, frame, isReady, openFile, dragBy, r
 
 const isSubmitting = ref(false);
 const errorMessage = ref('');
-/** Идёт перетаскивание: id указателя, чтобы не путать пальцы на тач-экране. */
+/** A drag is under way: id of the pointer, so that fingers on a touch screen do not mix. */
 const draggingPointerId = ref<number | null>(null);
 let lastPointerX = 0;
 let lastPointerY = 0;
@@ -91,8 +100,9 @@ const canSubmit = computed<boolean>(
 );
 
 /**
- * Геометрия круга для разметки. Число одно и то же для CSS и для арифметики
- * показа: разъехавшись, они кадрировали бы не ту область, которую человек видит.
+ * Geometry of the circle for the markup, taken from `AUTH_AVATAR_CROP_CIRCLE_PX` — the
+ * same constant the arithmetic of the preview counts in. Why the two may not drift
+ * apart is written down at the constant.
  */
 const stageStyle = computed<Record<string, string>>(() => ({
     '--bricks-crop-circle': `${AUTH_AVATAR_CROP_CIRCLE_PX}px`,
@@ -101,10 +111,11 @@ const stageStyle = computed<Record<string, string>>(() => ({
 
 // #region Methods
 /**
- * Закрывает модалку.
+ * Closes the modal.
  *
- * Пока идёт отправка, закрытие не проходит: ответ ещё не получен, и закрытая
- * модалка показала бы прежний аватар при уже применённой правке.
+ * While the submitting is under way the closing does not go through: the answer has not
+ * arrived yet, and a closed modal would show the previous avatar with the edit already
+ * applied.
  */
 function handleClose(): void {
     if (isSubmitting.value) {
@@ -115,12 +126,12 @@ function handleClose(): void {
 }
 
 /**
- * Начинает перетаскивание снимка.
+ * Starts dragging the picture.
  *
- * Захват указателя обязателен: без него курсор, ушедший за край кадра, теряет
- * события, и снимок «залипает» на полпути.
+ * Capturing the pointer is mandatory: without it a cursor that has gone past the edge
+ * of the stage loses the events, and the picture "sticks" halfway.
  *
- * @param event - Событие указателя.
+ * @param event - Pointer event.
  */
 function handlePointerDown(event: PointerEvent): void {
     if (!isReady.value || isSubmitting.value) {
@@ -134,9 +145,9 @@ function handlePointerDown(event: PointerEvent): void {
 }
 
 /**
- * Двигает снимок под рамкой.
+ * Moves the picture under the frame.
  *
- * @param event - Событие указателя.
+ * @param event - Pointer event.
  */
 function handlePointerMove(event: PointerEvent): void {
     if (draggingPointerId.value !== event.pointerId) {
@@ -149,9 +160,9 @@ function handlePointerMove(event: PointerEvent): void {
 }
 
 /**
- * Завершает перетаскивание.
+ * Finishes the dragging.
  *
- * @param event - Событие указателя.
+ * @param event - Pointer event.
  */
 function handlePointerUp(event: PointerEvent): void {
     if (draggingPointerId.value !== event.pointerId) {
@@ -163,22 +174,22 @@ function handlePointerUp(event: PointerEvent): void {
 }
 
 /**
- * Меняет масштаб.
+ * Changes the zoom.
  *
- * @param value - Новое значение масштаба.
+ * @param value - New zoom value.
  */
 function handleZoom(value: number): void {
     zoom.value = value;
 }
 
 /**
- * Двигает кадр стрелками.
+ * Moves the frame with the arrows.
  *
- * Без этого положение области выбиралось бы только указателем: масштаб —
- * доступная дорожка, а сдвиг остался бы недостижим с клавиатуры, то есть человек
- * мог бы загрузить фото, но не выбрать в нём область.
+ * Without this the position of the area could only be chosen with a pointer: the zoom
+ * is an accessible track, while the moving would stay unreachable from the keyboard —
+ * that is, a person could upload a photo but not choose an area within it.
  *
- * @param event - Событие клавиатуры.
+ * @param event - Keyboard event.
  */
 function handleKeyDown(event: KeyboardEvent): void {
     if (!isReady.value || isSubmitting.value) {
@@ -197,7 +208,7 @@ function handleKeyDown(event: KeyboardEvent): void {
 }
 
 /**
- * Загружает кадрированное фото.
+ * Uploads the cropped photo.
  */
 async function handleSubmit(): Promise<void> {
     const currentFrame = frame.value;
@@ -213,9 +224,9 @@ async function handleSubmit(): Promise<void> {
         await uploadAvatar(props.file, currentFrame);
         emit('uploaded');
     } catch (error: unknown) {
-        // Потолок размера передаётся всем отказам: ключ выбирается по статусу, и
-        // проверять здесь, какой именно из них его печатает, значило бы дублировать
-        // разбор ошибки
+        // The size ceiling is passed to every failure: the key is chosen by the
+        // status, and checking here which of them actually prints it would mean
+        // duplicating the parsing of the error
         errorMessage.value = t(resolveAvatarErrorKey(error), {
             max: BRICKS_AVATAR_MAX_UPLOAD_MB,
         });
@@ -227,8 +238,8 @@ async function handleSubmit(): Promise<void> {
 // #endregion
 
 // #region Lifecycle
-// Файл открывается по появлению, а не по монтированию: модалка живёт вместе с
-// модалкой профиля и переиспользуется на каждое новое фото
+// The file is opened on its arrival rather than on the mount: the modal lives together
+// with the profile modal and is reused for every new photo
 watch(
     () => props.file,
     async (file) => {
@@ -270,10 +281,6 @@ watch(
             <BricksModalHeader :close-disabled="isSubmitting" @close="handleClose" />
 
             <div :class="$style.body">
-                <!--
-                    Кадр — интерактивная область: фокусируемый и с клавиатурой,
-                    иначе положение выбранной области недостижимо без мыши
-                -->
                 <div
                     :class="$style.stage"
                     :style="stageStyle"
@@ -359,9 +366,6 @@ watch(
     gap: 1.2rem;
 }
 
-/* Кадр: снимок двигается внутри, круг рисуется поверх затемнения.
-   Квадрат по размеру круга — при минимальном масштабе меньшая сторона снимка
-   ровно накрывает кадр, поэтому фотография заполняет его целиком. */
 .stage {
     position: relative;
     overflow: hidden;
@@ -387,9 +391,6 @@ watch(
     }
 }
 
-/* Размеры и сдвиг задаёт композабл (`imageStyle`) в пикселях экрана; здесь —
-   только точка отсчёта: левый верхний угол круга. Круг стоит в центре кадра,
-   поэтому от центра снимок сдвигается на половину диаметра. */
 .photo {
     position: absolute;
     top: 50%;
@@ -399,8 +400,6 @@ watch(
     margin: calc(var(--bricks-crop-circle) / -2) 0 0 calc(var(--bricks-crop-circle) / -2);
 }
 
-/* Затемнение вокруг круга: круг «прорезается» тенью, а не отдельным слоем —
-   иначе поверх снимка лежал бы второй элемент, перехватывающий перетаскивание. */
 .mask {
     position: absolute;
     top: 50%;
@@ -410,8 +409,6 @@ watch(
     border-radius: var(--bricks-border-radius-pill);
     border: 1px solid rgb(from var(--bricks-static-white) r g b / 60%);
     transform: translate(-50%, -50%);
-
-    /* Растяжка тени заведомо больше кадра — она и есть затемнение вокруг круга */
     box-shadow: 0 0 0 100rem var(--bricks-overlay-dark);
     pointer-events: none;
 }

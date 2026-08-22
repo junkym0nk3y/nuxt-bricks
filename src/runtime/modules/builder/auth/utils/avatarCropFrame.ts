@@ -5,36 +5,37 @@ import type { IAuthAvatarCropFrame } from '../types/auth';
 
 // #region Constants
 /**
- * Минимальная сторона рамки в пикселях исходника — та же граница, что у ручки
- * загрузки (`users/me/avatar.post.ts`). Копия здесь не ради проверки (её делает
- * сервер), а ради потолка масштаба: слайдер, уводящий сторону ниже этого числа,
- * готовил бы гарантированный отказ.
+ * Minimum frame side in pixels of the source image — the same bound the upload
+ * endpoint has (`users/me/avatar.post.ts`). The copy here is not for a check (the
+ * server does that) but for the zoom ceiling: a slider taking the side below this
+ * number would be preparing a guaranteed refusal.
  */
 export const AUTH_AVATAR_MIN_CROP_SIDE_PX = 32;
 
 /**
- * Диаметр круга кадрирования на экране (px).
+ * Diameter of the cropping circle on screen (px).
  *
- * Одно значение на разметку и на арифметику показа: круг рисует CSS, а перевод
- * пикселей исходника в пиксели экрана считает композабл, и разъехавшись, они
- * показали бы человеку не ту область, которая уедет на сервер. Рамка, уходящая в
- * запрос, от этого числа не зависит вовсе — она живёт в пикселях исходника.
+ * One value for the markup and for the arithmetic of the preview: CSS draws the
+ * circle while the composable converts source pixels into screen pixels, and once
+ * drifted apart they would show a person an area other than the one traveling to
+ * the server. The frame going into the request does not depend on this number at
+ * all — it lives in pixels of the source image.
  *
- * Кадр показа равен этому кругу и потому квадратный: при минимальном масштабе
- * меньшая сторона снимка ровно накрывает круг, то есть фотография заполняет кадр
- * целиком, а не висит полосой в широком прямоугольнике. Широкий кадр требовал бы
- * масштабировать показ иначе, чем считается рамка, — и человек кадрировал бы одну
- * область, а получал другую.
+ * The preview stage equals this circle and is therefore square: at the minimum zoom
+ * the shorter side of the photo covers the circle exactly, that is, the photo fills
+ * the stage whole instead of hanging as a stripe inside a wide rectangle. A wide
+ * stage would require scaling the preview differently from how the frame is
+ * computed — and a person would crop one area while getting another.
  */
 export const AUTH_AVATAR_CROP_CIRCLE_PX = 280;
 // #endregion
 
 /**
- * Потолок масштаба для снимка: дальше сторона рамки уходит под серверный минимум.
+ * Zoom ceiling for a photo: beyond it the frame side goes below the server minimum.
  *
- * @param width - Ширина ориентированного изображения.
- * @param height - Высота ориентированного изображения.
- * @returns Максимальное значение масштаба (не меньше 1).
+ * @param width - Width of the oriented image.
+ * @param height - Height of the oriented image.
+ * @returns Largest zoom value (never below 1).
  */
 export function resolveMaxCropZoom(width: number, height: number): number {
     const shortestSide = Math.min(width, height);
@@ -43,39 +44,42 @@ export function resolveMaxCropZoom(width: number, height: number): number {
 }
 
 /**
- * Можно ли кадрировать снимок вовсе.
+ * Whether the photo can be cropped at all.
  *
- * Меньше минимальной стороны — это не кадрирование, а растягивание нескольких
- * пикселей до 256: результат нечитаем, а причина человеку непонятна, поэтому
- * такой файл отсекается на выборе, до открытия кадра.
+ * Below the minimum side this is not cropping but stretching a few pixels up to
+ * 256: the result is unreadable while the reason is opaque to a person, so such a
+ * file is refused as soon as it is decoded — the stage stays empty and the modal
+ * shows the reason in place of a picture.
  *
- * @param width - Ширина ориентированного изображения.
- * @param height - Высота ориентированного изображения.
- * @returns Снимок пригоден для кадрирования.
+ * @param width - Width of the oriented image.
+ * @param height - Height of the oriented image.
+ * @returns The photo is suitable for cropping.
  */
 export function isCroppableImage(width: number, height: number): boolean {
     return Math.min(width, height) >= AUTH_AVATAR_MIN_CROP_SIDE_PX;
 }
 
 /**
- * Считает рамку кадрирования по масштабу и сдвигу снимка.
+ * Computes the cropping frame out of the zoom and the offset of the photo.
  *
- * Инварианты рамки держатся ПОРЯДКОМ операций, а не проверкой в конце: сторона
- * округляется вниз и подрезается по меньшей стороне снимка, и только потом
- * зажимаются координаты — поэтому `left + side <= width` и `top + side <= height`
- * выполняются по построению. Округление стороны ВВЕРХ дало бы рамку на пиксель за
- * краем, а это отказ сервера «рамка вне изображения» на законном кадрировании.
+ * The invariants of the frame are held by the ORDER of the operations rather than
+ * by a check at the end: the side is rounded down and clipped by the shorter side
+ * of the photo, and only then are the coordinates clamped — which is why
+ * `left + side <= width` and `top + side <= height` hold by construction. Rounding
+ * the side UP would give a frame a pixel past the edge, and that is the server
+ * refusal "the frame is outside the image" on a legitimate crop.
  *
- * Сдвиг задаётся в тех же пикселях исходника и означает положение левого верхнего
- * угла рамки. Значения вне снимка не ошибка вызывающего: жест ведёт палец
- * свободно, а держать рамку внутри — работа этой функции.
+ * The offset is given in those same source pixels and means the position of the top
+ * left corner of the frame. Values outside the photo are not a caller's mistake: a
+ * gesture leads the finger freely, and keeping the frame inside is this function's
+ * job.
  *
- * @param width - Ширина ориентированного изображения.
- * @param height - Высота ориентированного изображения.
- * @param zoom - Масштаб: 1 — меньшая сторона снимка ровно накрывает рамку.
- * @param offsetLeft - Желаемая левая граница рамки в пикселях исходника.
- * @param offsetTop - Желаемая верхняя граница рамки в пикселях исходника.
- * @returns Целочисленная рамка внутри изображения.
+ * @param width - Width of the oriented image.
+ * @param height - Height of the oriented image.
+ * @param zoom - Zoom: 1 — the shorter side of the photo covers the frame exactly.
+ * @param offsetLeft - Desired left bound of the frame in source pixels.
+ * @param offsetTop - Desired top bound of the frame in source pixels.
+ * @returns An integer frame inside the image.
  */
 export function resolveCropFrame(
     width: number,
@@ -95,16 +99,16 @@ export function resolveCropFrame(
 }
 
 /**
- * Зажимает координату рамки в допустимых границах, НЕ округляя.
+ * Clamps a frame coordinate within the allowed bounds, WITHOUT rounding.
  *
- * Дробное значение нужно жесту: он копит сдвиг между событиями, и округление на
- * каждом шаге теряло бы остаток (при сильном приближении — весь шаг целиком).
- * Округляет только `resolveCropFrame`, на выходе, потому что целые числа
- * требуются серверу, а не арифметике жеста.
+ * The fractional value is what the gesture needs: it accumulates the offset between
+ * events, and rounding at every step would lose the remainder (at a strong zoom —
+ * the whole step). Only `resolveCropFrame` rounds, on the way out, because integers
+ * are required by the server rather than by the arithmetic of the gesture.
  *
- * @param value - Желаемое значение.
- * @param max - Наибольшее допустимое значение (`размер - сторона`).
- * @returns Значение в диапазоне `[0, max]`.
+ * @param value - Desired value.
+ * @param max - Largest allowed value (`size - side`).
+ * @returns The value within `[0, max]`.
  */
 export function clampCropOffset(value: number, max: number): number {
     if (!Number.isFinite(value)) {
@@ -115,12 +119,12 @@ export function clampCropOffset(value: number, max: number): number {
 }
 
 /**
- * Центрирует рамку заданной стороны в изображении.
+ * Centers a frame of the given side inside the image.
  *
- * @param width - Ширина ориентированного изображения.
- * @param height - Высота ориентированного изображения.
- * @param side - Сторона рамки.
- * @returns Сдвиг левого верхнего угла рамки.
+ * @param width - Width of the oriented image.
+ * @param height - Height of the oriented image.
+ * @param side - Side of the frame.
+ * @returns Offset of the top left corner of the frame.
  */
 export function resolveCenteredOffset(
     width: number,

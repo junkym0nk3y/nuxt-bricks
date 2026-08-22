@@ -1,22 +1,31 @@
 <script setup lang="ts">
 /**
- * @description Модалка своего профиля: вкладка «Профиль» (фото, отображаемое
- * имя, логин и роль на просмотр) и вкладка «Пароль» (смена своего пароля).
+ * @description The modal of one's own profile: the "Profile" tab (the photo, the
+ * display name, the login and the role for viewing) and the "Password" tab (changing
+ * one's own password).
  *
- * Две вкладки вместо двух модалок: обе правят одну учётку, и разделение
- * заставляло бы искать, из какого угла экрана открывается вторая. При
- * `allowPasswordChange: false` вкладок нет вовсе — остаётся одна форма, потому
- * что дорожка из одного таба сообщает о выборе, которого нет.
+ * Two tabs instead of two modals: both edit one and the same account, and splitting
+ * them would leave a person hunting for the corner of the screen the second one opens
+ * from. At `allowPasswordChange: false` there are no tabs at all — one form is left,
+ * because a track of a single tab announces a choice that does not exist.
  *
- * Переключатель — `BricksTabBar`, то есть группа кнопок с `aria-pressed`, а не
- * `role="tablist"`. Решение осознанное: семантика вкладок обещает скринридеру
- * панель на каждую вкладку и активирует таб при получении фокуса, а вводить
- * второй примитив табов ради двух форм в одной модалке значило бы дублировать
- * стили пилюль ради обещания, которое здесь ничего не меняет.
+ * The switch is `BricksTabBar`, that is, a group of buttons with `aria-pressed` rather
+ * than a `role="tablist"`. The decision is deliberate: the semantics of tabs promise a
+ * screen reader a panel per tab and activate a tab as it receives focus, and bringing in
+ * a second tabs primitive for the sake of two forms in one modal would mean duplicating
+ * the styles of the pills for a promise that changes nothing here.
  *
- * Кадрирование живёт в отдельной вложенной модалке: показ круга требует своего
- * кадра и своего футера («Сохранить фото»), а прятать его внутрь формы —
- * значит смешивать два разных шага.
+ * Cropping lives in a nested modal of its own: showing the circle needs a stage of its
+ * own and a footer of its own ("Save photo"), while hiding it inside the form would
+ * mean mixing two different steps.
+ *
+ * Decisions held by the markup: the switch of the tab runs at `mode="out-in"`, because
+ * the forms are of different heights and with a simultaneous transition the arriving
+ * one would fade in over the leaving one, jumping vertically. The profile tab is drawn
+ * only with a profile in the shared session state — without one there is nothing to
+ * draw, and the avatar that leads here is not rendered either; the password tab needs
+ * no profile and stays reachable from the key in one's own row of the accounts
+ * section.
  */
 
 // #region Imports
@@ -64,16 +73,16 @@ const emit = defineEmits<IAuthProfileModalEmits>();
 const { t } = useI18n();
 const { profile } = useAuthProfile();
 
-/** Выбранная вкладка; при выключенной смене пароля вторая недостижима. */
+/** Selected tab; with the password change switched off the second is unreachable. */
 const activeTab = ref<TAuthProfileTab>('profile');
 
 /**
- * Выбранный для кадрирования файл; null — вложенная модалка закрыта.
+ * The file selected for cropping; null — the nested modal is closed.
  *
- * `shallowRef`, а не `ref`: обычный делает значение глубоко реактивным, то есть
- * заворачивает файл в Proxy, — а он уезжает в `FormData` и в `decode()`, где
- * нужен сам блоб, а не его обёртка. Реактивность внутри файла к тому же
- * бессмысленна: он неизменяем.
+ * `shallowRef` and not `ref`: the ordinary one makes the value deeply reactive, that
+ * is, wraps the file into a Proxy — while the file travels into `FormData` and into
+ * `decode()`, where the blob itself is needed and not a wrapper around it. Reactivity
+ * inside a file is meaningless anyway: it is immutable.
  */
 const pendingPhoto = shallowRef<File | null>(null);
 const isCropModalOpen = ref(false);
@@ -89,12 +98,12 @@ const tabs = computed(() => [
 
 // #region Methods
 /**
- * Закрывает модалку профиля.
+ * Closes the profile modal.
  *
- * Пока открыто кадрирование, закрытие не проходит: Esc в кропе иначе снял бы
- * обе модалки разом, а отменить он должен только выбор области. Через этот же
- * guard идут «Отмена» и «Сохранить» форм — иначе закрытие имело бы два пути, и
- * один из них обходил бы условие.
+ * While the cropping is open the closing does not go through: an Esc in the crop would
+ * otherwise take down both modals at once, whereas it must cancel the choice of the
+ * area only. "Cancel" and "Save" of the forms go through this same guard — otherwise
+ * the closing would have two paths and one of them would bypass the condition.
  */
 function handleClose(): void {
     if (isCropModalOpen.value) {
@@ -105,34 +114,34 @@ function handleClose(): void {
 }
 
 /**
- * Переключает вкладку.
+ * Switches the tab.
  *
- * @param value - Значение выбранного таба.
+ * @param value - Value of the selected tab.
  */
 function handleSelectTab(value: string): void {
     activeTab.value = value === 'password' ? 'password' : 'profile';
 }
 
 /**
- * Открывает системный выбор файла — кадрирование начинается с него.
+ * Opens the system file selection — the cropping starts with it.
  */
 function handlePickPhoto(): void {
     fileInputRef.value?.click();
 }
 
 /**
- * Принимает выбранный файл и открывает кадрирование.
+ * Takes the selected file and opens the cropping.
  *
- * Значение поля сбрасывается сразу: без этого повторный выбор того же файла не
- * даёт события `change`, и второй заход на то же фото выглядел бы как
- * неработающая кнопка.
+ * The value of the field is reset right away: without that a repeated selection of the
+ * same file yields no `change` event, and a second go at the same photo would look
+ * like a button that does not work.
  *
- * Размер проверяется здесь — единственная проверка содержимого, которую честно
- * сделать на клиенте: тип подтверждает сигнатура на сервере (заявить `image/png`
- * может кто угодно), а вот гонять через сеть файл, заведомо обречённый на 413,
- * незачем. Потолок — та же константа, которой отказывает ручка.
+ * The size is checked here — the one check of the content that can honestly be done on
+ * the client: the type is confirmed by the signature on the server (anyone can declare
+ * `image/png`), but there is no point in pushing a file doomed to a 413 through the
+ * network. The ceiling is the same constant the endpoint refuses by.
  *
- * @param event - Событие поля выбора файла.
+ * @param event - Event of the file selection field.
  */
 function handleFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -159,26 +168,26 @@ function handleFileSelected(event: Event): void {
 }
 
 /**
- * Закрывает кадрирование, не применяя фото.
+ * Closes the cropping without applying the photo.
  */
 function handleCloseCrop(): void {
     isCropModalOpen.value = false;
 }
 
 /**
- * Кадрирование ушло из DOM — снимаем файл.
+ * The cropping has left the DOM — the file is cleared.
  *
- * Именно по уходу, а не по закрытию: `force-mount` держит уезжающую модалку до
- * конца анимации, и снятый в начале файл оставил бы человека смотреть на пустой
- * кадр всё время, пока она гаснет.
+ * On the leaving exactly, not on the closing: `force-mount` holds the departing modal
+ * until the end of the animation, and a file cleared at the start would leave a person
+ * looking at an empty stage for the whole time it fades out.
  */
 function handleCropAfterLeave(): void {
     pendingPhoto.value = null;
 }
 
 /**
- * Фото применено: кадрирование закрывается, а ссылку в состоянии профиля уже
- * обновил ответ ручки.
+ * The photo is applied: the cropping closes, while the link in the profile state has
+ * already been updated by the answer of the endpoint.
  */
 function handlePhotoUploaded(): void {
     isCropModalOpen.value = false;
@@ -186,21 +195,22 @@ function handlePhotoUploaded(): void {
 }
 
 /**
- * Пробрасывает сообщение формы наверх — тост показывает хост.
+ * Forwards a message of a form upwards — the toast is shown by the host.
  *
- * @param message - Текст сообщения.
- * @param variant - Тип сообщения.
+ * @param message - Text of the message.
+ * @param variant - Kind of the message.
  */
 function handleNotify(message: string, variant: 'success' | 'error'): void {
     emit('notify', message, variant);
 }
 
 /**
- * Гасит интерактивность уходящего экрана: при `mode="out-in"` он живёт в DOM всю
- * фазу leave, а переход бывает и не по клику человека, то есть фокус внутри
- * возможен. `pointer-events` из transitions.scss закрывает только указатель.
+ * Kills the interactivity of the leaving view: at `mode="out-in"` it lives in the DOM
+ * for the whole leave phase, and the transition is not always driven by a click of the
+ * person, that is, focus inside it is possible. The `pointer-events` out of
+ * transitions.scss closes off the pointer only.
  *
- * @param element - Корневой элемент уходящего экрана.
+ * @param element - Root element of the leaving view.
  */
 function onViewLeave(element: Element): void {
     markLeavingInert(element);
@@ -208,11 +218,12 @@ function onViewLeave(element: Element): void {
 // #endregion
 
 // #region Lifecycle
-// Вкладка выбирается на КАЖДОМ открытии по запрошенной, а не запоминается между
-// ними: точек входа две — меню профиля просит «Профиль», ключ в своей строке
-// раздела учёток просит «Пароль», — и вкладка, оставшаяся с прошлого раза,
-// показала бы человеку не то, что он открывал. При выключенной смене пароля
-// запрос пароля безопасно сводится к профилю: вкладки в этом режиме нет вовсе
+// The tab is chosen from the requested one at EVERY open rather than remembered
+// between them: there are two entry points — the profile menu asks for "Profile", the
+// key in one's own row of the accounts section asks for "Password" — and a tab left
+// over from the last time would show a person something other than what they opened.
+// With the password change switched off a request for the password safely folds into
+// the profile: in that mode the tab does not exist at all
 watch(
     () => props.isOpen,
     (isOpen) => {
@@ -227,8 +238,8 @@ watch(
     { immediate: true }
 );
 
-// Выключение смены пароля посреди открытой модалки (перечитанный конфиг) не
-// должно оставить экран на недостижимой вкладке
+// The password change being switched off in the middle of an open modal (a re-read
+// config) must not leave the view on an unreachable tab
 watch(
     () => props.canChangePassword,
     (isAllowed) => {
@@ -261,16 +272,6 @@ watch(
                     @update:model-value="handleSelectTab"
                 />
 
-                <!--
-                    Смена вкладки — `mode="out-in"`: формы разной высоты, и при
-                    одновременном переходе новая проявлялась бы поверх уходящей,
-                    прыгая по вертикали. Ключи обязательны: без них Vue считает
-                    ветки v-if/v-else одним узлом и переход не запускается.
-
-                    Профиль приходит из общего состояния сессии; без него рисовать
-                    нечего — модалку в этот момент открыть невозможно (аватар,
-                    который её открывает, тоже не отрисован)
-                -->
                 <Transition name="bricks-view-switch" mode="out-in" @leave="onViewLeave">
                     <BuilderAuthProfileDetailsForm
                         v-if="profile && activeTab === 'profile'"

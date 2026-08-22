@@ -26,25 +26,26 @@ import { useRequestEvent, useState } from '#imports';
 // #endregion
 
 // #region Data
-/** Ключ общего состояния профиля: одно значение на приложение. */
+/** Key of the shared profile state: one value per application. */
 const PROFILE_STATE_KEY = 'bricks-session-profile';
 
 /**
- * Ключ состояния «пароль всё ещё дефолтный».
+ * Key of the "the password is still the default" state.
  *
- * Отдельно от профиля намеренно: профиль перезаписывается ответом каждой правки
- * (имя, фото), а флаг относится не к профилю, а к креденшелам — держи он одно
- * состояние с профилем, смена аватара стирала бы предупреждение.
+ * Kept apart from the profile deliberately: the profile is overwritten by the answer
+ * of every edit (the name, the photo), while the flag belongs not to the profile but
+ * to the credentials — were it to share one state with the profile, changing the
+ * avatar would erase the warning.
  */
 const DEFAULT_PASSWORD_STATE_KEY = 'bricks-session-default-password';
 
 /**
- * Пути ручек своего профиля.
+ * Paths of one's own profile endpoints.
  *
- * Совпадать с гардом они обязаны буквально: послабление прав держится
- * allowlist'ом пар «метод + путь» (`server/utils/auth/rolePolicy.ts`), и лишний
- * сегмент или слэш в конце превращают правку своего профиля в админский маршрут
- * — наблюдатель получил бы 403 на своё же фото.
+ * They have to match the guard literally: the relaxation of the permissions is held
+ * by an allowlist of "method + path" pairs (`server/utils/auth/rolePolicy.ts`), and
+ * an extra segment or a trailing slash turns an edit of one's own profile into an
+ * admin route — a viewer would get a 403 on their own photo.
  */
 const PROFILE_ENDPOINT = '/api/bricks/users/me';
 const AVATAR_ENDPOINT = '/api/bricks/users/me/avatar';
@@ -53,20 +54,21 @@ const OWN_PASSWORD_ENDPOINT = '/api/bricks/users/me/password';
 
 // #region Methods
 /**
- * Приводит пользователя сессии из контекста запроса к клиентскому профилю.
+ * Projects the session user out of the request context onto the client profile.
  *
- * Проекция обязательна, а не «положим объект как есть»: в контексте лежит
- * `authVersion` и признак активности, а это состояние уезжает в payload
- * гидрации, то есть в исходник страницы. Поколение креденшелов там не нужно
- * никому, кроме того, кто соберётся его подделать.
+ * The projection is mandatory rather than "let us pass the object on as it is": the
+ * context carries `authVersion` and the active flag, and this state travels into the
+ * hydration payload, that is, into the source of the page. The generation of the
+ * credentials is of no use to anyone there except whoever sets out to forge it.
  *
- * Принимается любая форма ответа «кто я» — и пользователь сессии из контекста, и
- * payload ручки `me`, где имя с фото объявлены необязательными (ответ логина их
- * не несёт). Наружу уходит одна форма, в которой «фото нет» — это `null`, а не
- * `undefined`: иначе угол экрана не может отличить «нет фото» от «ещё не знаем».
+ * Any shape of the "who am I" answer is accepted — both the session user out of the
+ * context and the payload of the `me` endpoint, where the name and the photo are
+ * declared optional (the login answer does not carry them). One shape leaves, in
+ * which "there is no photo" is `null` and not `undefined`: otherwise the corner of
+ * the screen cannot tell "there is no photo" from "we do not know yet".
  *
- * @param user - Пользователь сессии или payload ручки `me`.
- * @returns Публичная часть профиля или null, если сессии нет.
+ * @param user - Session user or the payload of the `me` endpoint.
+ * @returns The public part of the profile, or null when there is no session.
  */
 function toClientProfile(user: IAuthSessionUserPayload | undefined): IAuthProfile | null {
     if (!user) {
@@ -84,25 +86,27 @@ function toClientProfile(user: IAuthSessionUserPayload | undefined): IAuthProfil
 // #endregion
 
 /**
- * Профиль текущей сессии: имя, логин, роль и фото — плюс операции над ними.
+ * Profile of the current session: the name, the login, the role and the photo — plus
+ * the operations over them.
  *
- * Состояние одно на приложение и наполняется контекстом запроса на SSR: роль и
- * профиль уже разрешил auth-middleware для самой HTML-страницы, поэтому угол
- * экрана рисуется в первом кадре без запроса. Клиентская досылка (`ensureProfile`)
- * остаётся фоллбэком для сборок без SSR — там серверной разметки нет вовсе, и
- * расходиться с ней аватару не с чем.
+ * The state is one per application and is filled in by the request context on SSR:
+ * the role and the profile have already been resolved by the auth middleware for the
+ * HTML page itself, which is why the corner of the screen is drawn in the first frame
+ * without a request. The client-side fetch (`ensureProfile`) stays as a fallback for
+ * builds without SSR — there is no server markup there at all, so the avatar has
+ * nothing to diverge from.
  *
- * Роль здесь — для показа (шапка меню), а права по-прежнему считает
- * `useBuilderPermissions`: одно состояние на два разных вопроса свести нельзя, и
- * подхватывать свежую роль посреди сессии права не должны — канвас, панель
- * свойств и гарды собраны под прежнюю, а на понижении сервер всё равно откажет
- * в записи.
+ * The role here is for display (the header of the menu), while the permissions are
+ * still computed by `useBuilderPermissions`: one state cannot serve two different
+ * questions, and the permissions must not pick up a fresh role in the middle of a
+ * session — the canvas, the properties panel and the guards are assembled for the
+ * previous one, and on a demotion the server refuses the write anyway.
  *
- * Все четыре ручки профиля отдают ОДНУ проекцию (`toAuthProfileUser`), и каждая
- * успешная правка пишет её в это же состояние: угол дашборда, угол билдера и
- * модалка читают одно значение и не могут разойтись.
+ * All four profile endpoints give out ONE projection (`toAuthProfileUser`), and every
+ * successful edit writes it into this same state: the corner of the dashboard, the
+ * corner of the builder and the modal read one value and cannot diverge.
  *
- * @returns Профиль сессии и операции правки.
+ * @returns Session profile and the operations of editing it.
  */
 export function useAuthProfile(): IUseAuthProfileReturn {
     // #region Data
@@ -137,11 +141,13 @@ export function useAuthProfile(): IUseAuthProfileReturn {
 
     // #region Methods
     /**
-     * Досылает профиль запросом `me`, если контекст запроса его не дал.
+     * Fetches the profile with a `me` request when the request context did not carry
+     * it.
      *
-     * Отказ не бросается наружу: вызывают это композишн-руты до первого кадра, и
-     * упавший запрос унёс бы весь экран из-за аватара в углу. В basic-режиме
-     * запроса нет вовсе — учёток там не существует, править нечего.
+     * A failure is not thrown outwards: this is called by the composition roots
+     * before the first frame, and a failed request would take the whole screen down
+     * over an avatar in the corner. In basic mode there is no request at all — no
+     * accounts exist there, and there is nothing to edit.
      */
     async function ensureProfile(): Promise<void> {
         if (!isDatabaseMode || profileState.value !== null) {
@@ -159,19 +165,19 @@ export function useAuthProfile(): IUseAuthProfileReturn {
     }
 
     /**
-     * Пишет отображаемое имя.
+     * Writes the display name.
      *
-     * Пустая строка не отсекается на клиенте: сервер приводит её к `null` — это
-     * и есть просьба показывать логин вместо имени.
+     * An empty string is not cut off on the client: the server turns it into `null` —
+     * and that is exactly the request to show the login instead of a name.
      *
-     * @param displayName - Новое отображаемое имя.
+     * @param displayName - New display name.
      */
     async function saveDisplayName(displayName: string): Promise<void> {
         const response = await apiFetcher<IAuthProfileResponse>(PROFILE_ENDPOINT, {
             method: 'PATCH',
             body: { displayName },
-            // Короткая запись — один UPDATE строки учётки; общий потолок записи
-            // держал бы кнопку формы втрое дольше нужного
+            // A short write — one UPDATE of the account row; the shared write
+            // ceiling would keep the form button held three times longer than needed
             timeout: BRICKS_AUTH_REQUEST_TIMEOUT_MS,
         });
 
@@ -179,14 +185,14 @@ export function useAuthProfile(): IUseAuthProfileReturn {
     }
 
     /**
-     * Загружает фото с рамкой кадрирования.
+     * Uploads a photo with its cropping frame.
      *
-     * Content-type не ставится руками: его собирает `FormData` вместе с
-     * boundary, а заданный вручную оставил бы запрос без boundary — сервер
-     * ответил бы «ожидается multipart/form-data».
+     * The content type is not set by hand: `FormData` assembles it together with the
+     * boundary, while one given manually would leave the request without a boundary —
+     * and the server would answer "multipart/form-data expected".
      *
-     * @param file - Исходный файл фотографии.
-     * @param frame - Рамка в пикселях ориентированного изображения.
+     * @param file - Source file of the photo.
+     * @param frame - Frame in pixels of the oriented image.
      */
     async function uploadAvatar(file: File, frame: IAuthAvatarCropFrame): Promise<void> {
         const formData = new FormData();
@@ -199,8 +205,8 @@ export function useAuthProfile(): IUseAuthProfileReturn {
         const response = await apiFetcher<IAuthProfileResponse>(AVATAR_ENDPOINT, {
             method: 'POST',
             body: formData,
-            // Отдача файла плюс проход sharp и выгрузка в хранилище — тот же
-            // порядок работы, что у снимка превью страницы
+            // Sending the file plus a pass of sharp and the upload into the storage
+            // — the same order of work as the preview snapshot of a page
             timeout: BRICKS_THUMBNAIL_UPLOAD_TIMEOUT_MS,
         });
 
@@ -208,7 +214,7 @@ export function useAuthProfile(): IUseAuthProfileReturn {
     }
 
     /**
-     * Снимает фото профиля.
+     * Clears the profile photo.
      */
     async function removeAvatar(): Promise<void> {
         const response = await apiFetcher<IAuthProfileResponse>(AVATAR_ENDPOINT, {
@@ -219,18 +225,20 @@ export function useAuthProfile(): IUseAuthProfileReturn {
     }
 
     /**
-     * Меняет свой пароль.
+     * Changes one's own password.
      *
-     * Потолок — общий для записей (30 с), а не короткий как у логина: ручка
-     * делает ДВА прохода scrypt (проверка текущего и хеширование нового) под
-     * общим семафором, и на занятом сервере десяти секунд ей не хватит.
+     * The ceiling is the shared one for writes (30 s) rather than the short one of
+     * the login: the endpoint makes TWO scrypt passes (verifying the current one and
+     * hashing the new one) under a shared semaphore, and on a busy server ten seconds
+     * are not enough for it.
      *
-     * Ответа с профилем здесь нет и быть не может: успех рвёт все сессии, включая
-     * текущую, и cookie в этом же ответе гасится. Состояние профиля не трогаем —
-     * вызывающий уводит человека на форму логина.
+     * There is no answer carrying a profile here and there cannot be: success tears
+     * down every session, the current one included, and the cookie is cleared by that
+     * same answer. The profile state is left alone — the caller takes the person to
+     * the login form.
      *
-     * @param currentPassword - Текущий пароль (обязателен всегда).
-     * @param newPassword - Новый пароль.
+     * @param currentPassword - Current password (always required).
+     * @param newPassword - New password.
      */
     async function changeOwnPassword(currentPassword: string, newPassword: string): Promise<void> {
         await apiFetcher(OWN_PASSWORD_ENDPOINT, {

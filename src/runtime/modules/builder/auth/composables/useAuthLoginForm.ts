@@ -22,7 +22,7 @@ import { useForm } from 'vee-validate';
 import { navigateTo, useRoute } from '#imports';
 // #endregion
 
-/** Маппинг statusCode ответа логина → i18n-ключ сообщения. */
+/** Mapping of the login answer `statusCode` onto an i18n message key. */
 const LOGIN_ERROR_KEYS: Record<number, string> = {
     401: 'bricks.auth.errors.invalidCredentials',
     429: 'bricks.auth.errors.tooManyAttempts',
@@ -30,9 +30,10 @@ const LOGIN_ERROR_KEYS: Record<number, string> = {
 };
 
 /**
- * Форма страницы логина: vee-validate, сабмит через `useAuthSession().login`,
- * маппинг ошибок по statusCode, успех — переход на санитизированный
- * `?redirect` (защита от open redirect) или дашборд билдера.
+ * Form of the login page: vee-validate, the submit through
+ * `useAuthSession().login`, the mapping of errors by `statusCode`, and on success a
+ * navigation to the sanitized `?redirect` (protection against an open redirect) or
+ * to the builder dashboard.
  */
 export function useAuthLoginForm() {
     // #region Data
@@ -57,7 +58,7 @@ export function useAuthLoginForm() {
 
     // #region Methods
     /**
-     * Переводит ошибку запроса логина в локализованное сообщение.
+     * Turns a login request error into a localized message.
      */
     function resolveLoginErrorMessage(error: unknown): string {
         const statusCode = (error as TRequestErrorLike).statusCode;
@@ -67,7 +68,7 @@ export function useAuthLoginForm() {
     }
 
     /**
-     * Валидирует форму, логинит и уходит на возвратный путь.
+     * Validates the form, logs in and leaves for the return path.
      */
     const submitForm = handleSubmit(async (values) => {
         if (isSubmitting.value) {

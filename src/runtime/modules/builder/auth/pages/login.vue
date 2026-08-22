@@ -28,36 +28,37 @@ const { isDatabaseMode, fetchMe } = useAuthSession();
 const { builderRootPath } = useBricksRoutePaths();
 const { username, password, errors, isSubmitting, generalError, submitForm } = useAuthLoginForm();
 
-// Отказ стартовой проверки сессии: она фоновая, поэтому текст свой, а не сырое
-// сообщение транспорта
+// Failure of the initial session check: it is a background one, so it gets a text of
+// its own rather than the raw message of the transport
 const sessionCheckError = ref('');
 // #endregion
 
 // #region Computed
-// Ошибка самого входа приоритетнее: она относится к действию пользователя,
-// а стартовая проверка к этому моменту уже неактуальна
+// An error of the sign-in itself takes priority: it belongs to an action of the
+// person, while by that moment the initial check is no longer relevant
 const visibleError = computed<string>(() => generalError.value || sessionCheckError.value);
 // #endregion
 
 // #region Lifecycle
 onMounted(async () => {
-    // В basic-режиме страница логина не нужна — на дашборд
+    // In basic mode the login page is of no use — off to the dashboard
     if (!isDatabaseMode) {
         await navigateTo(builderRootPath);
         return;
     }
 
     try {
-        // Уже авторизован — сразу на возвратный путь
+        // Already signed in — straight to the return path
         const session = await fetchMe();
 
         if (session) {
             await navigateTo(sanitizeRedirectPath(route.query.redirect, builderRootPath));
         }
     } catch {
-        // Проверку выполнить не удалось (5xx, обрыв по потолку). Это не «не
-        // авторизован»: редиректить некуда, но и молчать нельзя — иначе форма
-        // выглядит рабочей, а вход упрётся в тот же недоступный сервер
+        // The check could not be carried out (5xx, an abort on the ceiling). This
+        // is not "not signed in": there is nowhere to redirect, but staying silent is
+        // not an option either — otherwise the form looks operable while the sign-in
+        // runs into that same unreachable server
         sessionCheckError.value = t('bricks.auth.errors.sessionCheckFailed');
     }
 });

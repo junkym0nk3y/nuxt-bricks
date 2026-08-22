@@ -1,19 +1,24 @@
 <script setup lang="ts">
 /**
- * @description Вкладка «Профиль»: фото, отображаемое имя, логин и роль.
+ * @description The "Profile" tab: the photo, the display name, the login and the role.
  *
- * Правится здесь ровно то, что человек может изменить себе сам. Логин показан
- * полем только для чтения, а не спрятан: по нему вход и по нему учётка видна в
- * списке, поэтому его нужно видеть и при желании скопировать — а переименование
- * учётки это отдельный разговор про чужие ссылки, уникальность и журналы. Роль —
- * плашка на просмотр: себе её не меняют, иначе последний администратор разжаловал
- * бы сам себя.
+ * What is edited here is exactly what a person may change about themselves. The login
+ * is shown as a read-only field rather than hidden: it is what the sign-in goes by and
+ * what the account is recognized by in the list, so it has to be visible and copyable
+ * if wanted — while renaming an account is a separate conversation about other
+ * people's links, uniqueness and journals. `readonly` and not `disabled`: a disabled
+ * field is dimmed to half opacity and reads as "not applicable right now", while this
+ * one is applicable — it stands there to be read. The role is a badge for viewing: one
+ * does not change it for oneself, otherwise the last administrator would demote
+ * themselves.
  *
- * Фото применяется СРАЗУ своими ручками, а имя — по «Сохранить». Это следствие
- * раздельных ручек, а не недосмотр: загрузка обязана быть отдельным запросом
- * («сначала ссылка, потом старый файл»), и откладывать её до общего сохранения
- * значило бы держать файл в памяти до конца формы. Поэтому «Отмена» снятое фото
- * не вернёт — об удалении сообщает тост, а вернуть букву можно тем же удалением.
+ * The photo is applied RIGHT AWAY by endpoints of its own, while the name waits for
+ * "Save". That follows from the endpoints being separate and is not an oversight: the
+ * upload has to be a request of its own ("the link first, the old file after"), and
+ * postponing it until the shared save would mean keeping the file in memory until the
+ * end of the form. Which is why "Cancel" will not bring a removed photo back — the
+ * removal is announced by a toast, and the letter can be brought back by that same
+ * removal.
  */
 
 // #region Imports
@@ -86,24 +91,24 @@ const hasPhoto = computed<boolean>(() => Boolean(props.profile.avatarUrl));
 
 const roleLabel = computed<string>(() => t(`bricks.auth.roles.${props.profile.role}`));
 
-/** Любая операция формы блокирует остальные: обе пишут одну учётку. */
+/** Any operation of the form blocks the others: both write one and the same account. */
 const isBusy = computed<boolean>(() => isSubmitting.value || isRemovingPhoto.value);
 // #endregion
 
 // #region Methods
 /**
- * Просит модалку открыть выбор файла: кадрирование живёт в её вложенной модалке.
+ * Asks the modal to open the file selection.
  */
 function handlePickPhoto(): void {
     emit('pick-photo');
 }
 
 /**
- * Снимает фото профиля.
+ * Clears the profile photo.
  *
- * Без подтверждения: вернуть букву стоит одного клика по «Загрузить фото», а
- * тост сообщает, что действие уже применено, — иначе человек ждал бы, что его
- * отменит «Отмена».
+ * Without a confirmation: putting the photo back costs one click on "Upload photo",
+ * and the toast says the action has already been applied — otherwise a person would
+ * expect "Cancel" to undo it.
  */
 async function handleRemovePhoto(): Promise<void> {
     if (isBusy.value) {
@@ -127,10 +132,10 @@ async function handleRemovePhoto(): Promise<void> {
 }
 
 /**
- * Сохраняет отображаемое имя и закрывает модалку.
+ * Saves the display name and closes the modal.
  *
- * Закрытие после успеха — как у создания страницы: форма отвечала на один
- * вопрос, и оставлять её открытой значит предлагать сохранить ещё раз.
+ * Closing after a success is as with the creation of a page: the form answered a
+ * single question, and leaving it open means offering to save one more time.
  */
 const submitForm = handleSubmit(async (values) => {
     if (isBusy.value) {
@@ -216,12 +221,6 @@ const submitForm = handleSubmit(async (values) => {
         </div>
 
         <div :class="$style.field">
-            <!--
-                Логин — read-only, а не выключенное поле: `disabled` гасит поле до
-                половинной прозрачности и означает «сейчас неприменимо», а логин
-                показывают ровно для того, чтобы его прочитали и при желании
-                скопировали
-            -->
             <BricksInput
                 :label="t('bricks.auth.login.username')"
                 :value="props.profile.username"

@@ -1,72 +1,76 @@
 /**
- * Типы UI-домена авторизации (страница логина, сессия, свой профиль).
+ * Types of the authorization UI domain (the login page, the session, one's own
+ * profile).
  */
 import type { ComputedRef, Ref } from 'vue';
 import type { TBricksUserRole } from '../../../common/types/auth';
 
-/** Значения формы логина. */
+/** Values of the login form. */
 export interface IAuthLoginFormValues {
     username: string;
     password: string;
 }
 
-/** Значения формы «Профиль». */
+/** Values of the "Profile" form. */
 export interface IAuthProfileFormValues {
     displayName: string;
 }
 
-/** Значения формы «Пароль» (смена своего пароля). */
+/** Values of the "Password" form (changing one's own password). */
 export interface IAuthOwnPasswordFormValues {
     currentPassword: string;
     newPassword: string;
 }
 
 /**
- * Контекст фабрик yup-схем auth-домена: переводчик передаётся снаружи, поэтому
- * сообщения-функции реактивны к смене локали. Параметры нужны сообщениям с
- * границами («не длиннее 64 символов») — число берётся из общей константы, а не
- * переписывается в текст перевода.
+ * Context of the yup schema factories of the auth domain: the translator is passed
+ * in from the outside, which is why the function-messages stay reactive to a locale
+ * change. The parameters are needed by the messages carrying a bound ("no longer
+ * than 64 characters") — the number comes from the shared constant instead of being
+ * rewritten into the text of the translation.
  */
 export interface IAuthValidationSchemaOptions {
     t: (key: string, params?: Record<string, unknown>) => string;
 }
 
-/** Пользователь сессии в ответах auth-ручек (login/me). */
+/** Session user in the answers of the auth endpoints (login/me). */
 export interface IAuthSessionUserPayload {
     id: number;
     username: string;
     role: TBricksUserRole;
     /**
-     * Профиль отдаётся только ручкой `me`: ответу логина он не нужен —
-     * форма сразу уходит с страницы, а угол экрана наполняет уже билдер.
+     * The profile is given out by the `me` endpoint only: the login answer has no
+     * use for it — the form leaves the page right away, and the corner of the
+     * screen is filled in by the builder already.
      */
     displayName?: string | null;
     avatarUrl?: string | null;
 }
 
-/** Ответ ручек login/me. */
+/** Answer of the login/me endpoints. */
 export interface IAuthSessionResponse {
     user: IAuthSessionUserPayload;
     /**
-     * Пароль учётки всё ещё дефолтный (сид миграции) — билдер просит его
-     * сменить. Отдаёт только `me`: ответу логина флаг не нужен, форма сразу
-     * уходит со страницы.
+     * The account password is still the default one (the migration seed) — the
+     * builder asks for it to be changed. Given out by `me` only: the login answer
+     * has no use for the flag, the form leaves the page right away.
      *
-     * Лежит рядом с `user`, а не внутри: ручки профиля отдают ту же форму
-     * пользователя, и правка имени или фото затирала бы флаг в состоянии — от
-     * смены аватара предупреждение молча исчезало бы.
+     * Why it travels next to `user` rather than inside it is written down at the
+     * endpoint (`server/api/bricks/auth/me.get.ts`) and, for the client state, at
+     * `DEFAULT_PASSWORD_STATE_KEY`.
      */
     isDefaultPassword?: boolean;
 }
 
 /**
- * Профиль текущей сессии в состоянии приложения.
+ * Profile of the current session in the application state.
  *
- * Отдельно от `IAuthSessionUserPayload` не по стилю: там имя и фото
- * необязательны, потому что ответ логина их не несёт, — а в состоянии «фото нет»
- * и «не знаем, есть ли фото» обязаны быть различимы, иначе угол экрана не может
- * решить, рисовать букву или ждать. Форма совпадает с серверной проекцией
- * `toAuthProfileUser`, одинаковой у `auth/me` и всех ручек профиля.
+ * Kept apart from `IAuthSessionUserPayload` not out of style: there the name and the
+ * photo are optional because the login answer does not carry them — while in the
+ * state "there is no photo" and "we do not know whether there is a photo" have to be
+ * distinguishable, otherwise the corner of the screen cannot decide whether to draw
+ * the letter or to wait. The shape matches the server projection
+ * `toAuthProfileUser`, the same one at `auth/me` and at every profile endpoint.
  */
 export interface IAuthProfile {
     id: number;
@@ -76,15 +80,15 @@ export interface IAuthProfile {
     avatarUrl: string | null;
 }
 
-/** Ответ ручек профиля (`PATCH /users/me`, оба `users/me/avatar`). */
+/** Answer of the profile endpoints (`PATCH /users/me`, both `users/me/avatar`). */
 export interface IAuthProfileResponse {
     user: IAuthProfile;
 }
 
 /**
- * Квадратная рамка кадрирования в пикселях ОРИЕНТИРОВАННОГО изображения — того,
- * что видит браузер после применения EXIF-ориентации. Сервер проверяет границы
- * по `metadata().autoOrient`, то есть в этих же координатах.
+ * Square cropping frame in pixels of the ORIENTED image — the one the browser sees
+ * after the EXIF orientation is applied. The server checks the bounds against
+ * `metadata().autoOrient`, that is, in these very coordinates.
  */
 export interface IAuthAvatarCropFrame {
     left: number;
@@ -92,121 +96,126 @@ export interface IAuthAvatarCropFrame {
     side: number;
 }
 
-/** Профиль сессии и операции над ним (`useAuthProfile`). */
+/** Session profile and the operations over it (`useAuthProfile`). */
 export interface IUseAuthProfileReturn {
-    /** Профиль сессии; null — учёток нет (basic-режим) либо профиль неизвестен. */
+    /** Session profile; null — there are no accounts (basic mode) or it is unknown. */
     profile: ComputedRef<IAuthProfile | null>;
     /**
-     * Подпись владельца: отображаемое имя, а без него — логин. Считается в одном
-     * месте, потому что читают её три поверхности (угол, меню, модалка), и
-     * разъехавшись, они показывали бы одному человеку два разных имени.
+     * Caption of the owner: the display name, and without one — the login. Computed
+     * in a single place because three surfaces read it (the corner, the menu, the
+     * modal), and once drifted apart they would show one person two different names.
      */
     displayLabel: ComputedRef<string>;
     /**
-     * Пароль текущей учётки всё ещё дефолтный (`admin` / `bricks-pass` из сида
-     * миграции). Пока это так, билдер показывает просьбу сменить пароль.
+     * The password of the current account is still the default one (`admin` /
+     * `bricks-pass` out of the migration seed). While it is, the builder shows the
+     * request to change it.
      */
     isDefaultPassword: ComputedRef<boolean>;
-    /** Досылает профиль, если контекст запроса его не дал (сборка без SSR). */
+    /** Fetches the profile when the request context did not carry it (build without SSR). */
     ensureProfile(): Promise<void>;
-    /** Пишет отображаемое имя; пустая строка снимает имя (показывается логин). */
+    /** Writes the display name; an empty string clears it (the login is shown). */
     saveDisplayName(displayName: string): Promise<void>;
-    /** Загружает фото с рамкой кадрирования; ставит новую ссылку в учётку. */
+    /** Uploads a photo with its cropping frame; puts the new link on the account. */
     uploadAvatar(file: File, frame: IAuthAvatarCropFrame): Promise<void>;
-    /** Снимает фото (идемпотентно). */
+    /** Clears the photo (idempotent). */
     removeAvatar(): Promise<void>;
     /**
-     * Меняет свой пароль. Успех рвёт ВСЕ сессии, включая текущую, — вызывающий
-     * обязан увести человека на форму логина.
+     * Changes one's own password. Success tears down EVERY session, the current one
+     * included — the caller has to take the person to the login form.
      */
     changeOwnPassword(currentPassword: string, newPassword: string): Promise<void>;
 }
 
-/** Props полосы «пароль всё ещё дефолтный» (`BuilderAuthDefaultPasswordNotice`). */
+/** Props of the "password is still the default" bar. */
 export interface IAuthDefaultPasswordNoticeProps {
     /**
-     * Доступна ли смена своего пароля (`auth.allowPasswordChange`). `false` —
-     * предупреждение остаётся, но без кнопки: вести ей некуда.
+     * Whether changing one's own password is available (`auth.allowPasswordChange`).
+     * `false` — the warning stays, but without the button: it would lead into a form
+     * that does not exist. The warning itself stays true — the password is the same
+     * one, it just has to be changed outside the builder.
      */
     canChangePassword?: boolean;
 }
 
-/** События полосы «пароль всё ещё дефолтный». */
+/** Events of the "password is still the default" bar. */
 export interface IAuthDefaultPasswordNoticeEmits {
-    /** Просьба открыть смену своего пароля. */
+    /** A request to open the change of one's own password. */
     'change-password': [];
 }
 
-/** Монтирование и открытость модалки профиля (`useAuthProfileModal`). */
-/** Вкладка модалки профиля, с которой она открывается. */
+/** Tab of the profile modal the modal opens on. */
 export type TAuthProfileTab = 'profile' | 'password';
 
+/** Mounting and openness of the profile modal (`useAuthProfileModal`). */
 export interface IUseAuthProfileModalReturn {
-    /** Компонент модалки нужно держать в разметке (латч первого открытия). */
+    /** The modal component has to be kept in the markup (latch of the first open). */
     shouldMount: Ref<boolean>;
     isOpen: Ref<boolean>;
     /**
-     * Вкладка, запрошенная при открытии. Нужна второй точке входа: ключ в своей
-     * строке раздела «Пользователи» ведёт именно в смену своего пароля, а
-     * админская ручка чужого пароля на своей учётке отказывает намеренно.
+     * The tab requested at the open. Needed by the second entry point: the key in
+     * one's own row of the "Users" section leads exactly into the change of one's
+     * own password, while the admin endpoint for someone else's password
+     * deliberately refuses on one's own account.
      */
     requestedTab: Ref<TAuthProfileTab>;
     open(tab?: TAuthProfileTab): void;
     close(): void;
 }
 
-/** Состояние кадрирования фото профиля (`useAuthAvatarCrop`). */
+/** State of the profile photo cropping (`useAuthAvatarCrop`). */
 export interface IUseAuthAvatarCropReturn {
-    /** Адрес выбранного файла для показа (object URL); null — файла нет. */
+    /** Address of the selected file for the preview (object URL); null — no file. */
     imageUrl: Ref<string | null>;
-    /** Масштаб: 1 — меньшая сторона снимка ровно накрывает круг. */
+    /** Zoom: 1 — the shorter side of the photo covers the circle exactly. */
     zoom: Ref<number>;
-    /** Потолок масштаба — дальше сторона рамки ушла бы под серверный минимум. */
+    /** Zoom ceiling — beyond it the frame side would go below the server minimum. */
     maxZoom: ComputedRef<number>;
-    /** Стиль показа снимка (сдвиг и масштаб) — ставится на элемент кадра. */
+    /** Preview style of the photo (offset and zoom) — set on the `<img>` in the stage. */
     imageStyle: ComputedRef<Record<string, string>>;
-    /** Рамка в пикселях ориентированного изображения — то, что уходит на сервер. */
+    /** Frame in pixels of the oriented image — what travels to the server. */
     frame: ComputedRef<IAuthAvatarCropFrame | null>;
-    /** Файл декодирован и рамку можно считать. */
+    /** The file is decoded and the frame can be computed. */
     isReady: ComputedRef<boolean>;
-    /** Открывает файл: декодирует, ставит начальный масштаб и центрирует. */
+    /** Opens a file: decodes it, sets the initial zoom and centers the frame. */
     openFile(file: File): Promise<void>;
-    /** Двигает снимок под кругом на смещение курсора в пикселях кадра. */
+    /** Moves the photo under the circle by a cursor delta in stage pixels. */
     dragBy(deltaX: number, deltaY: number): void;
-    /** Освобождает object URL и сбрасывает состояние. */
+    /** Releases the object URL and resets the state. */
     release(): void;
 }
 
-/** Пропы модалки профиля. */
+/** Props of the profile modal. */
 export interface IAuthProfileModalProps {
     isOpen: boolean;
     /**
-     * Доступна ли вкладка «Пароль». Приходит пропом от хоста, а не читается
-     * здесь: флаг живёт в правах билдера (`useBuilderPermissions`), которых
-     * auth-домен не видит по границам модулей.
+     * Whether the "Password" tab is available. It arrives as a prop from the host
+     * instead of being read here: the flag lives in the builder permissions
+     * (`useBuilderPermissions`), which the auth domain does not see by the module
+     * boundaries.
      */
     canChangePassword?: boolean;
     /**
-     * Вкладка, с которой открывается модалка. Применяется на КАЖДОМ открытии, а
-     * не однажды: иначе открытая раз паролем модалка так и продолжала бы
-     * открываться на пароле из меню профиля.
+     * The tab the modal opens on. Applied at EVERY open rather than once: otherwise
+     * a modal opened on the password once would keep opening on the password from
+     * the profile menu.
      */
     initialTab?: TAuthProfileTab;
 }
 
 export interface IAuthProfileModalEmits {
     close: [];
-    /** Текст для тоста хоста (сохранение имени, удаление фото). */
+    /** Text for the host's toast (a saved name, a removed photo). */
     notify: [message: string, variant: 'success' | 'error'];
 }
 
-/** Пропы формы «Профиль» (фото, имя, логин, роль). */
+/** Props of the "Profile" form (photo, name, login, role). */
 export interface IAuthProfileDetailsFormProps {
     profile: IAuthProfile;
 }
 
 export interface IAuthProfileDetailsFormEmits {
-    /** Запрос выбора файла — кадрирование живёт в отдельной модалке. */
+    /** A request for the file selection — cropping lives in a modal of its own. */
     'pick-photo': [];
     close: [];
     notify: [message: string, variant: 'success' | 'error'];
@@ -216,31 +225,33 @@ export interface IAuthProfilePasswordFormEmits {
     close: [];
 }
 
-/** Пропы модалки кадрирования фото. */
+/** Props of the photo cropping modal. */
 export interface IAuthAvatarCropModalProps {
     isOpen: boolean;
-    /** Выбранный файл; null — модалка закрыта и декодировать нечего. */
+    /** The selected file; null — the modal is closed and there is nothing to decode. */
     file: File | null;
 }
 
 export interface IAuthAvatarCropModalEmits {
     close: [];
-    /** Фото загружено и ссылка в учётке обновлена. */
+    /** The photo is uploaded and the link on the account is updated. */
     uploaded: [];
     /**
-     * Модалка ушла из DOM (конец leave-анимации). Нужен владельцу файла: снимать
-     * его в начале закрытия значило бы показывать пустой кадр всё время, пока
-     * модалка уезжает.
+     * The modal has left the DOM (the end of the leave animation). Needed by the
+     * owner of the file: clearing it at the start of the closing would mean showing
+     * an empty stage for the whole time the modal is traveling away.
      */
     afterLeave: [];
 }
 
 export interface IAuthProfileMenuProps {
     /**
-     * Рисовать вертикальную черту перед аватаром. Нужна в тулбаре билдера, где
-     * аватар стоит вплотную к кнопкам панели; в шапке дашборда — нет. Черта
-     * принадлежит компоненту, а не поверхности: вне database-режима он не
-     * рисуется вовсе, и линия иначе висела бы в панели одна.
+     * Whether to draw a vertical rule before the avatar. It is needed in the builder
+     * toolbar, where the avatar stands right next to the buttons of the panel; in the
+     * dashboard header it is not — there the avatar follows the "+ Page" button,
+     * which is an edge of a group by itself. The rule belongs to the component rather
+     * than to the surface: outside the database mode the component is not drawn at
+     * all, and the line would otherwise hang in the panel alone.
      */
     separated?: boolean;
 }

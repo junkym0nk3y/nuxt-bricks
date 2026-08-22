@@ -12,16 +12,18 @@ import { BRICKS_API_ERROR_CODES } from '../../../common/constants/apiErrors';
 
 // #region Data
 /**
- * Отказы загрузки фото по статусу.
+ * Photo upload failures by status.
  *
- * Именно по статусу, а не по машиночитаемому коду: ручка аватара отвечает
- * `createError({ statusCode, message })` без `data.code`, то есть различить её
- * отказы можно только статусом. Серверный текст в интерфейс не выводится — он
- * англоязычный («Avatar exceeds 5MB limit»), а человеку нужен локализованный.
+ * By status rather than by a machine-readable code: the avatar endpoint answers
+ * `createError({ statusCode, message })` without `data.code`, that is, its failures
+ * can be told apart by the status only. The server text does not reach the
+ * interface — it is English ("Avatar exceeds 5MB limit") while a person needs a
+ * localized one.
  *
- * 400 — общий случай: под ним и «не растр», и «рамка вне изображения», и
- * картинка сверх ста мегапикселей (её `metadata()` не читается вовсе), поэтому
- * текст говорит про файл, а не выдумывает конкретную причину.
+ * 400 is the general case: it covers "not a raster", and "the frame is outside the
+ * image", and a picture above a hundred megapixels (whose `metadata()` cannot be
+ * read at all), which is why the text speaks of the file instead of inventing a
+ * specific reason.
  */
 const AVATAR_UPLOAD_ERROR_KEYS: Record<number, string> = {
     400: 'bricks.auth.profile.errors.avatarRejected',
@@ -30,7 +32,7 @@ const AVATAR_UPLOAD_ERROR_KEYS: Record<number, string> = {
     503: 'bricks.auth.profile.errors.serverBusy',
 };
 
-/** Отказы смены своего пароля по статусу (код разбирается отдельно). */
+/** Own password change failures by status (the code is parsed separately). */
 const OWN_PASSWORD_ERROR_KEYS: Record<number, string> = {
     400: 'bricks.auth.profile.errors.passwordRejected',
     429: 'bricks.auth.profile.errors.tooManyAttempts',
@@ -39,14 +41,16 @@ const OWN_PASSWORD_ERROR_KEYS: Record<number, string> = {
 // #endregion
 
 /**
- * Ключ сообщения об отказе загрузки или снятия фото.
+ * Message key of a failed photo upload or removal.
  *
- * Обрыв по потолку ожидания получает свой текст: исход загрузки при нём
- * неизвестен (сервер мог успеть записать ссылку), и предлагать «попробуйте
- * снова» было бы неправдой — сначала стоит обновить страницу.
+ * An abort on the waiting ceiling gets a text of its own: under it the outcome is
+ * unknown (the server may have managed to write the new link — or to clear the old
+ * one), and offering "try again" would be untrue, refreshing the page comes first.
+ * The text of that message speaks of an upload, so on a removal it names the wrong
+ * direction of the doubt.
  *
- * @param error - Ошибка запроса.
- * @returns i18n-ключ сообщения.
+ * @param error - Request error.
+ * @returns i18n key of the message.
  */
 export function resolveAvatarErrorKey(error: unknown): string {
     if (isRequestTimeoutError(error)) {
@@ -62,10 +66,10 @@ export function resolveAvatarErrorKey(error: unknown): string {
 }
 
 /**
- * Ключ сообщения об отказе сохранения имени.
+ * Message key of a failed display name save.
  *
- * @param error - Ошибка запроса.
- * @returns i18n-ключ сообщения.
+ * @param error - Request error.
+ * @returns i18n key of the message.
  */
 export function resolveDisplayNameErrorKey(error: unknown): string {
     if (isRequestTimeoutError(error)) {
@@ -80,38 +84,39 @@ export function resolveDisplayNameErrorKey(error: unknown): string {
 }
 
 /**
- * Неверный текущий пароль.
+ * The current password is wrong.
  *
- * Ручка отвечает на это 400 с кодом, а не 401, ровно ради этой развилки:
- * клиентский интерцептор реагирует на статус и увёл бы человека с рабочей
- * сессией на форму логина вместо подсказки под одним полем.
+ * The endpoint answers this with a 400 carrying a code rather than a 401 for
+ * exactly this fork: the client interceptor reacts to the status and would take a
+ * person with a working session to the login form instead of a hint under a single
+ * field.
  *
- * @param error - Ошибка запроса.
- * @returns Текущий пароль не совпал.
+ * @param error - Request error.
+ * @returns The current password did not match.
  */
 export function isInvalidCurrentPasswordError(error: unknown): boolean {
     return getBricksErrorCode(error) === BRICKS_API_ERROR_CODES.invalidCurrentPassword;
 }
 
 /**
- * Смена пароля выключена настройкой установки.
+ * The password change is switched off by a setting of the installation.
  *
- * Наружу не экспортируется: единственный потребитель — разбор отказов ниже,
- * а форме нужен уже готовый текст, а не повторный разбор ошибки.
+ * Not exported: the only consumer is the failure parsing below, and the form needs
+ * a ready text rather than a second parsing of the error.
  *
- * @param error - Ошибка запроса.
- * @returns Ручки пароля закрыты флагом.
+ * @param error - Request error.
+ * @returns The password endpoints are closed by the flag.
  */
 function isPasswordChangeDisabledError(error: unknown): boolean {
     return getBricksErrorCode(error) === BRICKS_API_ERROR_CODES.passwordChangeDisabled;
 }
 
 /**
- * Ключ сообщения об отказе смены своего пароля — для случаев, которые не ложатся
- * под поле формы.
+ * Message key of a failed own password change — for the cases that do not fit under
+ * a form field.
  *
- * @param error - Ошибка запроса.
- * @returns i18n-ключ сообщения.
+ * @param error - Request error.
+ * @returns i18n key of the message.
  */
 export function resolveOwnPasswordErrorKey(error: unknown): string {
     if (isRequestTimeoutError(error)) {

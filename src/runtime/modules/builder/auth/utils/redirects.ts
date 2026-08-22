@@ -1,15 +1,15 @@
 /**
- * Санитизация возвратного redirect-пути после логина.
+ * Sanitizing of the return redirect path after a login.
  */
 
 /**
- * Возвращает безопасный внутренний путь из query-параметра redirect.
- * Допускаются только внутренние пути с одним ведущим `/`: `//host`, `/\`,
- * абсолютные URL и не-строки отбрасываются — защита от open redirect.
+ * Returns a safe internal path out of the `redirect` query parameter.
+ * Only internal paths with a single leading `/` are allowed: `//host`, `/\`,
+ * absolute URLs and non-strings are dropped — protection against an open redirect.
  *
- * @param raw - Значение query-параметра redirect.
- * @param fallbackPath - Путь по умолчанию (дашборд билдера из `bricks.routes`).
- * @returns Внутренний путь или fallbackPath.
+ * @param raw - Value of the `redirect` query parameter.
+ * @param fallbackPath - Default path (the builder dashboard out of `bricks.routes`).
+ * @returns An internal path or `fallbackPath`.
  */
 export function sanitizeRedirectPath(raw: unknown, fallbackPath: string): string {
     if (typeof raw !== 'string' || raw.length === 0) {

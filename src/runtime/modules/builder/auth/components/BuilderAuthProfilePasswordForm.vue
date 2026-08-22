@@ -1,18 +1,19 @@
 <script setup lang="ts">
 /**
- * @description Вкладка «Пароль»: смена своего пароля.
+ * @description The "Password" tab: changing one's own password.
  *
- * Текущий пароль спрашивается всегда — иначе украденная кука сама меняла бы
- * пароль, то есть отбирала учётку насовсем. Его несовпадение приходит с кодом
- * `INVALID_CURRENT_PASSWORD` и статусом 400 (не 401) ровно для того, чтобы
- * подсказка встала под поле: на 401 клиентский интерцептор увёл бы человека с
- * рабочей сессией на форму логина.
+ * The current password is always asked for — otherwise a stolen cookie would change
+ * the password by itself, that is, take the account away for good. A mismatch of it
+ * arrives with the code `INVALID_CURRENT_PASSWORD` and the status 400 (not 401) for
+ * exactly one purpose: so that the hint lands under the field. On a 401 the client
+ * interceptor would take a person with a working session to the login form.
  *
- * Успех рвёт ВСЕ сессии, включая текущую, и гасит cookie тем же ответом —
- * поэтому форма не «сохраняет и закрывается», а уводит на вход полной
- * перезагрузкой. Отдать это случайному следующему запросу нельзя: человек
- * остался бы в интерфейсе, который молча перестал работать. Чекбокса «завершить
- * остальные сессии» здесь нет намеренно — это не опция, а обещание ручки.
+ * Success tears down EVERY session, the current one included, and clears the cookie
+ * with that same answer — which is why the form does not "save and close" but leaves
+ * for the sign-in with a full reload. Handing that over to whatever request comes next
+ * is not an option: the person would stay inside an interface that has silently
+ * stopped working. There is deliberately no "end the other sessions" checkbox here —
+ * that is not an option but a promise of the endpoint.
  */
 
 // #region Imports
@@ -76,11 +77,11 @@ const generalError = ref('');
 
 // #region Methods
 /**
- * Меняет пароль и уводит на форму входа.
+ * Changes the password and leaves for the sign-in form.
  *
- * Флаг отправки НЕ снимается после успеха: сессии больше нет, и форма, ставшая
- * снова активной на время перезагрузки, приняла бы второй сабмит, который
- * заведомо ответит 401.
+ * The submitting flag is NOT lowered after a success: there is no session any more,
+ * and a form becoming active again for the duration of the reload would accept a
+ * second submit, which is bound to be answered with a 401.
  */
 const submitForm = handleSubmit(async (values) => {
     if (isSubmitting.value) {
@@ -93,9 +94,9 @@ const submitForm = handleSubmit(async (values) => {
     try {
         await changeOwnPassword(values.currentPassword, values.newPassword);
 
-        // Полная перезагрузка, а не роутер: сессии нет, и сторы билдера обязаны
-        // сброситься целиком — иначе на форме входа осталось бы состояние
-        // прежнего человека
+        // A full reload rather than the router: there is no session, and the builder
+        // stores have to be reset whole — otherwise the state of the previous person
+        // would stay behind on the sign-in form
         if (isDatabaseMode) {
             window.location.assign(withBase(builderLoginPath));
         }

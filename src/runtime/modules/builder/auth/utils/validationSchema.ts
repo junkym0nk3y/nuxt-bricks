@@ -16,12 +16,12 @@ import { object, string } from 'yup';
 // #endregion
 
 /**
- * Собирает yup-схему формы логина. Чистая фабрика по образцу
- * `publish/utils/validationSchema.ts` — переводчик передаётся снаружи,
- * сообщения-функции реактивны к смене локали.
+ * Assembles the yup schema of the login form. A pure factory shaped after
+ * `publish/utils/validationSchema.ts` — the translator is passed in from the
+ * outside, so the function-messages stay reactive to a locale change.
  *
- * @param options - Контекст валидации.
- * @returns Yup-схема формы логина.
+ * @param options - Validation context.
+ * @returns Yup schema of the login form.
  */
 export function createAuthLoginValidationSchema(options: IAuthValidationSchemaOptions) {
     const { t } = options;
@@ -33,15 +33,16 @@ export function createAuthLoginValidationSchema(options: IAuthValidationSchemaOp
 }
 
 /**
- * Собирает yup-схему формы «Профиль» (отображаемое имя).
+ * Assembles the yup schema of the "Profile" form (the display name).
  *
- * Имя необязательно: стёртое поле — просьба показывать логин, и сервер приводит
- * пустую строку к `null`. Границы взяты из общих константы и паттерна, а не
- * переписаны числом: разъехавшись с сервером, форма либо отклоняла бы принятое
- * имя, либо отправляла заведомо отказное.
+ * The name is optional: an erased field is a request to show the login, and the
+ * server turns an empty string into `null`. The bounds are taken from the shared
+ * constant and pattern rather than rewritten as a number: once drifted apart from
+ * the server, the form would either reject a name the server accepts or send one
+ * bound to be refused.
  *
- * @param options - Контекст валидации.
- * @returns Yup-схема формы профиля.
+ * @param options - Validation context.
+ * @returns Yup schema of the profile form.
  */
 export function createAuthProfileValidationSchema(options: IAuthValidationSchemaOptions) {
     const { t } = options;
@@ -53,10 +54,10 @@ export function createAuthProfileValidationSchema(options: IAuthValidationSchema
                     max: BRICKS_DISPLAY_NAME_MAX_LENGTH,
                 })
             )
-            // Управляющие символы: перенос строки внутри имени сломал бы строку
-            // списка и меню, а невидимые символы сделали бы два разных имени
-            // неотличимыми на экране. Пустое значение проверку проходит —
-            // паттерн применяется только к непустой строке
+            // Control characters: a line break inside a name would break the row
+            // of the list and of the menu, and invisible characters would make two
+            // different names indistinguishable on screen. An empty value passes
+            // the check — the pattern applies to a non-empty string only
             .test(
                 'no-control-characters',
                 () => t('bricks.auth.profile.validation.displayNameInvalid'),
@@ -66,17 +67,18 @@ export function createAuthProfileValidationSchema(options: IAuthValidationSchema
 }
 
 /**
- * Собирает yup-схему формы «Пароль» (смена своего пароля).
+ * Assembles the yup schema of the "Password" form (changing one's own password).
  *
- * К ТЕКУЩЕМУ паролю минимальная длина не применяется намеренно: пароль учётке
- * могли задать записью в базу, короче нынешней границы, и требование «не короче
- * восьми» не дало бы такому человеку сменить пароль вовсе. Границы НОВОГО — те
- * же, что на сервере, включая запрет дефолтного пароля сида: «сменить» пароль на
- * тот же самый — не смена, а способ погасить предупреждение, оставив учётку
- * общеизвестной.
+ * The minimum length deliberately does not apply to the CURRENT password: an
+ * account may have been given its password by a write into the database, shorter
+ * than today's bound, and a "no shorter than eight" requirement would leave such a
+ * person unable to change their password at all. The bounds of the NEW one are the
+ * same as on the server, the ban on the seed's default password included:
+ * "changing" a password to the very same one is not a change but a way to silence
+ * the warning while leaving the account publicly known.
  *
- * @param options - Контекст валидации.
- * @returns Yup-схема формы пароля.
+ * @param options - Validation context.
+ * @returns Yup schema of the password form.
  */
 export function createAuthOwnPasswordValidationSchema(options: IAuthValidationSchemaOptions) {
     const { t } = options;
