@@ -1,4 +1,22 @@
 <script setup lang="ts">
+/**
+ * @description One block on the canvas: the frame around the rendered block, its
+ * selection, hover and drag states, and the context menu.
+ *
+ * The rendered block stays inert (`pointer-events`), so a click selects the block instead
+ * of activating what is inside it. Nested canvas items are exempt from that ban, and the
+ * container blocks put `pointer-events: auto` back on themselves; both halves are needed —
+ * an explicit ban on a nested item hands the click to its parent, and the child block
+ * stops being selectable. Inline editing and interactive preview lift the ban for their
+ * own subtree.
+ *
+ * The context menu is teleported into body because the canvas sheet carries a
+ * `transform: scale()`: a `position: fixed` element inside it takes the scaled sheet as
+ * its containing block, so the menu would be shrunk and blurred along with the content.
+ * The Teleport itself stays inside the root div — the canvas TransitionGroup needs a
+ * single root element, and a second one would keep the block out of the smooth flow shift.
+ */
+
 // #region Imports
 // Types
 import type { ICanvasItemProps, IDragComposableCanvas } from '../../types/components';
@@ -38,11 +56,19 @@ const canvasStore = useCanvasStore();
 const dragComposable = inject<IDragComposableCanvas | undefined>('dragComposable');
 const { canEdit } = useBuilderPermissions();
 
-/** Активный viewport (в Figma mode — per-viewport от BuilderCanvasViewport); используется только при isFigmaMode */
+/**
+ * Active viewport (in Figma mode it comes per viewport from BuilderCanvasViewport); read
+ * only while isFigmaMode.
+ */
 const figmaViewport = inject(CANVAS_VIEWPORT_KEY, null);
 // #endregion
 
 // #region Computed
+/**
+ * Selection of the block. Both selection and hover raise its z-index together with the
+ * ring: neighbors stand flush, and without the lift they covered the outer shadow with
+ * their own background — the bottom edge of the ring went missing.
+ */
 const isSelected = computed<boolean>(() => componentsStore.isComponentSelected(props.component.id));
 const isHidden = computed<boolean>(() => Boolean(props.component.isHidden));
 
@@ -60,6 +86,14 @@ const componentBoundProps = computed<Record<string, unknown>>(() => {
     return result;
 });
 
+/**
+ * Whether the block is wrapped in `.bricks-container`.
+ *
+ * The ring of a wrapped root block is drawn on the container content, so it repeats the
+ * content width (accounting for the aside padding) instead of the whole canvas width. A
+ * full-width block has no container, and there the ring stays on the item itself and
+ * stretches across the canvas.
+ */
 const needsContainerWrapper = computed<boolean>(() => {
     if (props.component.parent) {
         return false;
@@ -70,11 +104,19 @@ const needsContainerWrapper = computed<boolean>(() => {
 const isInteractiveLayout = computed<boolean>(
     () => componentsStore.interactivePreviewId === props.component.id
 );
+
+/**
+ * The block being dragged. Its collapse starts from the measured height of the dragged
+ * block, which the store has already put into a canvas CSS variable — max-height animates
+ * from that value rather than from auto.
+ */
 const isDragSource = computed<boolean>(
     () =>
         canvasStore.dragState.source === 'canvas' &&
         canvasStore.dragState.componentId === props.component.id
 );
+
+/** The original of the dragged block frees its spot, and the neighbors close in smoothly */
 const isDragSourceVacated = computed<boolean>(
     () => isDragSource.value && canvasStore.dragState.sourceVacated
 );
@@ -86,7 +128,7 @@ provide('canvasIsInteractive', isInteractiveLayout);
 const { isLayout, layoutName, isSpaceLayout, itemStyle, layoutProps, childComponents } =
     useCanvasItemLayout(props);
 
-// Загрузка компонента + forceRender
+// Component loading plus forceRender
 const { ComponentInstance, forceRenderKey } = useCanvasItemLoader(props, isLayout);
 
 // Inline editing + provide('inlineEditingContext')
@@ -97,9 +139,9 @@ const { isInlineEditing, handleDoubleClick } = useCanvasItemInlineEditing(
 );
 
 /**
- * Блок можно тянуть. Роль без права правки не перетаскивает вовсе: снимаем
- * атрибут, а не гасим обработчик, — иначе браузер всё равно ведёт «призрак»
- * блока за курсором, обещая перенос, которого не будет.
+ * Whether the block can be dragged. A role without edit rights drags nothing at all: the
+ * attribute is removed rather than the handler suppressed — otherwise the browser still
+ * trails a "ghost" of the block behind the cursor, promising a move that will not happen.
  */
 const isDraggable = computed<boolean>(() => !isInlineEditing.value && canEdit.value);
 
@@ -164,10 +206,8 @@ const {
         @dragstart="handleDragStart"
         @dragend="handleDragEnd"
     >
-        <!-- Hidden Label -->
         <div v-if="isHidden && canvasStore.showGrid" :class="$style.hiddenLabel">Отключен</div>
 
-        <!-- Render Layout Component -->
         <BuilderCanvasItemLayout
             v-if="isLayout"
             :component="props.component"
@@ -178,7 +218,6 @@ const {
             :child-components="childComponents"
         />
 
-        <!-- Render UI Component -->
         <BuilderCanvasItemComponent
             v-else-if="ComponentInstance"
             :key="forceRenderKey"
@@ -188,14 +227,10 @@ const {
             :needs-container-wrapper="needsContainerWrapper"
         />
 
-        <!-- Fallback -->
         <div v-else :class="$style.placeholder">
             <span>{{ props.component.componentName }}</span>
         </div>
 
-        <!-- Контекстное меню — телепортируется в body для чёткого рендеринга без canvas blur.
-             Живёт внутри корневого div: единственный корень нужен TransitionGroup канваса,
-             иначе блок не участвует в плавном сдвиге потока. -->
         <Teleport to="body">
             <Transition name="bricks-canvas-context-menu">
                 <BuilderCanvasItemContextMenu
@@ -245,13 +280,10 @@ const {
         pointer-events: none;
     }
 
-    // Блокируем глубокие потомки (кнопки аккордеона и т.п.), но не child canvas-items
     > * *:not([data-layout-drop-item]) {
         pointer-events: none;
     }
 
-    // z-index поднимается вместе с кольцом: соседи стоят вплотную и без него
-    // перекрывают внешнюю тень своим фоном (нижняя грань «пропадала»).
     &:hover {
         z-index: 9;
         box-shadow: var(--bricks-canvas-ring-hover);
@@ -262,9 +294,6 @@ const {
         box-shadow: var(--bricks-canvas-ring-active);
     }
 
-    // Root-блок в контейнере: кольцо повторяет ширину контента (учитывает aside-отступы
-    // .bricks-container), а не всю ширину канваса. Full-width блок контейнера не имеет —
-    // там кольцо остаётся на самом item и растягивается по канвасу.
     &.contained {
         > :global(.bricks-container) > * {
             transition: box-shadow var(--bricks-default-transition);
@@ -311,13 +340,10 @@ const {
         }
     }
 
-    // Стартовая точка схлопывания: замер перетаскиваемого блока уже лежит в
-    // CSS-переменной канваса, поэтому max-height анимируется от него, а не от auto.
     &.dragSource {
         max-height: var(--bricks-drag-placeholder-height);
     }
 
-    // Оригинал перетаскиваемого блока освобождает место — соседи смыкаются плавно.
     &.dragSourceVacated {
         overflow: hidden;
         max-height: 0;

@@ -1,4 +1,17 @@
 <script setup lang="ts">
+/**
+ * @description Floating panel of inline editing: the header with the property switcher,
+ * the TipTap toolbar, the fallback editor and the footer.
+ *
+ * The surface is written by hand instead of being taken from `BricksPopoverSurface`: the
+ * reference to this node goes into the drag composable as an element, and swapping it for
+ * an instance of the component for the sake of an identical look is not worth it. The `md`
+ * shadow is the same elevation tier the other popovers use; while the panel is dragged it
+ * rises to `lg` as a state, not as a divergence. The Esc hint is kept from wrapping: the
+ * footer is narrow, and a wrapped line would stretch the panel in height right under the
+ * cursor.
+ */
+
 // #region Imports
 // Vue
 import { computed, ref, watch, useCssModule } from 'vue';
@@ -37,7 +50,7 @@ const componentsStore = useComponentsStore();
 const overlayRef = ref<HTMLElement | null>(null);
 
 /**
- * Форма ссылки для редактора, активного на канвасе.
+ * Link form of the editor active on the canvas.
  */
 const {
     isLinkModalOpen,
@@ -50,8 +63,9 @@ const {
 } = useTextEditorLink(() => inlineEditingStore.editor);
 
 /**
- * Toolbar-синк с TipTap-транзакциями: состояние selects + конфигурация групп.
- * Группы пустые вне textarea-типа (тулбар показывается только для него).
+ * Toolbar synced with the TipTap transactions: the state of the selects plus the
+ * configuration of the groups. Outside a textarea-typed property the groups stay empty —
+ * the toolbar is shown for that type only.
  */
 const { toolbarGroups, resetToolbarState } = useToolbarStateSync(() => inlineEditingStore.editor, {
     isEnabled: () => inlineEditingStore.propType === 'textarea',
@@ -59,8 +73,8 @@ const { toolbarGroups, resetToolbarState } = useToolbarStateSync(() => inlineEdi
 });
 
 /**
- * Fallback TipTap editor для brick-компонентов с textarea/inline-content:
- * создаётся, если ни один layout-компонент не инициализировал свой editor.
+ * Fallback TipTap editor of the overlay; when it is created and why lives in
+ * `useInlineEditingFallback`.
  */
 const {
     isFallbackMode,
@@ -74,9 +88,9 @@ const {
 } = useInlineEditingFallback({ onPropSwitch: resetToolbarState });
 
 /**
- * Перетаскивание и позиционирование overlay. В Figma Mode несколько экземпляров
- * одного компонента присутствуют в DOM одновременно, поэтому якорь — элемент
- * из стора (тот, на котором был dblclick), а не querySelector.
+ * Dragging and positioning of the overlay. In Figma mode several instances of one
+ * component are present in the DOM at once, so the anchor is the element kept in the store
+ * — the one the double click landed on — and not a querySelector result.
  */
 const { isDragging, overlayStyle, onDragHandleMousedown } = useDraggableOverlay({
     overlayRef,
@@ -88,13 +102,13 @@ const { isDragging, overlayStyle, onDragHandleMousedown } = useDraggableOverlay(
 
 // #region Computed
 /**
- * Показывать ли overlay.
+ * Whether to show the overlay.
  */
 const isVisible = computed<boolean>(() => inlineEditingStore.isEditing);
 
 /**
- * Label текущего свойства: ключи `bricks.*` из definitions резолвятся в перевод,
- * кастомные строки потребителя проходят как есть.
+ * Label of the current property: `bricks.*` keys from the definitions are resolved into a
+ * translation, while custom strings of the consumer pass through as they are.
  */
 const currentPropLabel = computed<string>(
     () =>
@@ -103,19 +117,20 @@ const currentPropLabel = computed<string>(
 );
 
 /**
- * Показывать ли TipTap-тулбар (только для textarea типа).
+ * Whether to show the TipTap toolbar (for a textarea-typed property only).
  */
 const showToolbar = computed<boolean>(
     () => isVisible.value && inlineEditingStore.propType === 'textarea'
 );
 
 /**
- * Показывать ли кнопку переключения фона (есть fallback wrapper).
+ * Whether the overlay renders the fallback editor: the toolbar is shown above it as well,
+ * outside a textarea-typed property too.
  */
 const hasFallbackWrapper = computed<boolean>(() => showFallbackEditor.value);
 
 /**
- * CSS классы для fallback wrapper с поддержкой тёмного фона.
+ * CSS classes of the fallback wrapper, including the dark background.
  */
 const fallbackWrapperClasses = computed(() => [
     $style.fallbackEditorWrapper,
@@ -127,7 +142,7 @@ const fallbackWrapperClasses = computed(() => [
 
 // #region Lifecycle
 /**
- * Закрывает тулбар, если редактируемый компонент перестал быть выбранным в билдере.
+ * Closes the panel once the edited component stops being the selected one in the builder.
  */
 watch(
     () => componentsStore.selectedComponent?.id,
@@ -139,7 +154,7 @@ watch(
 );
 
 /**
- * Закрывает тулбар при переключении адаптивов (viewport / Figma mode).
+ * Closes the panel on a switch between viewports or into Figma mode.
  */
 watch(
     () => canvasStore.isViewportSwitching,
@@ -151,10 +166,10 @@ watch(
 );
 
 /**
- * Закрывает форму ссылки вместе с выходом из inline-редактирования: редактор,
- * к выделению которого она применялась, к этому моменту уже уничтожен, и
- * оставшаяся форма применила бы ссылку в никуда. Флаг гасится напрямую —
- * closeLinkModal возвращал бы фокус в несуществующий редактор.
+ * Closes the link form together with the exit from inline editing: the editor whose
+ * selection it applied to is destroyed by then, and a form left open would apply the link
+ * to nowhere. The flag is cleared directly — closeLinkModal would return the focus into an
+ * editor that no longer exists.
  */
 watch(isVisible, (visible) => {
     if (!visible) {
@@ -165,7 +180,7 @@ watch(isVisible, (visible) => {
 
 // #region Methods
 /**
- * Переключает на предыдущее свойство.
+ * Switches to the previous property.
  */
 function handleSwitchPrev(): void {
     if (isFallbackMode.value) {
@@ -175,7 +190,7 @@ function handleSwitchPrev(): void {
 }
 
 /**
- * Переключает на следующее свойство.
+ * Switches to the next property.
  */
 function handleSwitchNext(): void {
     if (isFallbackMode.value) {
@@ -185,7 +200,7 @@ function handleSwitchNext(): void {
 }
 
 /**
- * Сохраняет и выходит из inline editing.
+ * Saves the value and leaves inline editing.
  */
 function handleDone(): void {
     if (isFallbackMode.value) {
@@ -197,8 +212,8 @@ function handleDone(): void {
 }
 
 /**
- * Запрашивает медиа из MediaGallery через inlineEditingStore.
- * При выборе вставляет изображение или видео в TipTap-редактор.
+ * Requests media from the media gallery through inlineEditingStore, and inserts the chosen
+ * image or video into the TipTap editor.
  */
 function handleRequestImage(): void {
     const ed = inlineEditingStore.editor;
@@ -223,7 +238,6 @@ function handleRequestImage(): void {
                 ]"
                 :style="overlayStyle"
             >
-                <!-- Drag handle -->
                 <div :class="$style.dragHandle" @mousedown="onDragHandleMousedown">
                     <svg width="16" height="10" viewBox="0 0 16 10" fill="currentColor">
                         <circle cx="4" cy="2" r="1.5" />
@@ -245,7 +259,6 @@ function handleRequestImage(): void {
                     @switch-next="handleSwitchNext"
                 />
 
-                <!-- TipTap Toolbar (только для textarea-типа или fallback wrapper) -->
                 <BricksTextEditorToolbar
                     v-if="(showToolbar && toolbarGroups.length > 0) || hasFallbackWrapper"
                     :groups="toolbarGroups"
@@ -255,7 +268,6 @@ function handleRequestImage(): void {
                     @request-image="handleRequestImage"
                 />
 
-                <!-- Fallback TipTap editor (для brick-компонентов с textarea/inline-content) -->
                 <div v-if="showFallbackEditor" :class="$style.fallbackEditorContainer">
                     <div :class="fallbackWrapperClasses">
                         <component :is="fallbackEditorContent!" :editor="fallbackEditor!" />
@@ -275,7 +287,6 @@ function handleRequestImage(): void {
                     </button>
                 </div>
 
-                <!-- Footer: Done button + hint -->
                 <div :class="$style.footer">
                     <button type="button" :class="$style.doneButton" @click="handleDone">
                         {{ t('bricks.textEditor.done') }}
@@ -301,13 +312,6 @@ function handleRequestImage(): void {
 </template>
 
 <style module lang="scss">
-/*
-    Поверхность написана руками, а не взята из `BricksPopoverSurface`: ссылка на
-    этот узел уходит в composable перетаскивания как элемент, и подменять её
-    инстансом компонента ради одинакового вида не стоит. Тень `md` — та же
-    ступень, что у остальных поповеров; на перетаскивании она поднимается до
-    `lg` как состояние, а не как расхождение.
-*/
 .BuilderCanvasInlineEditingOverlay {
     z-index: 1;
     overflow: hidden;
@@ -362,8 +366,6 @@ function handleRequestImage(): void {
     border-top: 1px solid var(--bricks-base-200);
 }
 
-/* Подсказка про Esc не переносится: футер узкий, а перенос растягивал бы панель
-   редактирования по высоте прямо под курсором. */
 .escHint {
     white-space: nowrap;
 }

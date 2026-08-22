@@ -43,9 +43,17 @@ const { t } = useI18n();
 const componentsStore = useComponentsStore();
 const canvasStore = useCanvasStore();
 const historyStore = useHistoryStore();
+
+/**
+ * Undo and redo are edits of the schema: without edit rights no history ever appears, so
+ * the pair is not rendered at all instead of standing there permanently empty.
+ */
 const { canEdit } = useBuilderPermissions();
 
-/** Значение таба «Figma Like»: режим стоит в одном ряду с вьюпортами, но не является ими. */
+/**
+ * Value of the "Figma Like" tab: the mode stands in the same row as the viewports without
+ * being one of them.
+ */
 const FIGMA_MODE_VALUE = 'figma';
 
 // #endregion
@@ -53,8 +61,8 @@ const FIGMA_MODE_VALUE = 'figma';
 // #region Computed
 const scalePercent = computed(() => Math.round(props.scale * 100));
 
-// Подписей у табов нет с прошлого редизайна — они уехали в тултип, поэтому
-// четвёртое устройство стоит бару ровно ширины ещё одной иконки
+// The tabs have carried no labels since the last redesign — they moved into the tooltip —
+// so a fourth device costs the bar exactly the width of one more icon
 const viewportItems = computed<IBricksTabItem[]>(() => [
     ...canvasStore.devices.map((device) => ({
         value: device.key,
@@ -70,7 +78,7 @@ const viewportItems = computed<IBricksTabItem[]>(() => [
     },
 ]);
 
-/** Figma mode вытесняет выбранный вьюпорт, поэтому в баре выбран либо он, либо вьюпорт. */
+/** Figma mode displaces the chosen viewport, so the bar has either it or a viewport selected */
 const activeViewportValue = computed<string>(() =>
     props.isFigmaMode ? FIGMA_MODE_VALUE : props.viewport
 );
@@ -86,8 +94,8 @@ const normalizedRightSidebarOffset = computed(() => {
 });
 
 /**
- * Центрирует бар относительно видимой области канваса между сайдбарами
- * (родитель уже не включает вертикальный рейл, поэтому 100%, а не 100vw).
+ * Centers the bar within the visible canvas area between the sidebars (the parent no
+ * longer includes the vertical rail, hence 100% and not 100vw).
  */
 const wrapperStyle = computed(() => {
     const offset = normalizedSidebarOffset.value;
@@ -122,11 +130,11 @@ function handleZoomReset(): void {
 }
 
 /**
- * Переключает режим просмотра канваса: три вьюпорта и Figma mode — одна группа
- * взаимоисключающих режимов. Повторный выбор активного таба ничего не делает,
- * поэтому выход из Figma mode — это выбор вьюпорта.
+ * Switches the view mode of the canvas: the viewports of the set and Figma mode form one
+ * group of mutually exclusive modes. Choosing the active tab again does nothing, so
+ * leaving Figma mode means picking a viewport.
  *
- * @param value - Значение выбранного таба.
+ * @param value - Value of the chosen tab.
  */
 function handleSelectViewport(value: string): void {
     if (value === FIGMA_MODE_VALUE) {
@@ -146,7 +154,7 @@ function handleSelectViewport(value: string): void {
 }
 
 /**
- * Отменяет последнее действие (Undo) через store компонентов.
+ * Undoes the last action through the components store.
  */
 function handleUndo(): void {
     if (historyStore.canUndo) {
@@ -155,7 +163,7 @@ function handleUndo(): void {
 }
 
 /**
- * Повторяет отменённое действие (Redo) через store компонентов.
+ * Redoes the undone action through the components store.
  */
 function handleRedo(): void {
     if (historyStore.canRedo) {
@@ -168,7 +176,6 @@ function handleRedo(): void {
 <template>
     <div :class="$style.BuilderCanvasBottomBar" :style="wrapperStyle">
         <div :class="$style.bar">
-            <!-- Viewport switcher -->
             <BricksTabBar
                 :model-value="activeViewportValue"
                 :items="viewportItems"
@@ -183,7 +190,6 @@ function handleRedo(): void {
 
             <div :class="$style.divider" />
 
-            <!-- Zoom controls -->
             <div :class="$style.group">
                 <BricksTooltip top>
                     <template #activator>
@@ -244,10 +250,6 @@ function handleRedo(): void {
             <template v-if="canEdit">
                 <div :class="$style.divider" />
 
-                <!--
-                    Отмена и повтор — правки схемы: без права правки истории не
-                    появится вовсе, и кнопки остались бы навсегда пустыми
-                -->
                 <div :class="$style.group">
                     <BricksTooltip top>
                         <template #activator>
@@ -294,7 +296,6 @@ function handleRedo(): void {
 
             <div :class="$style.divider" />
 
-            <!-- Grid toggle -->
             <div :class="$style.group">
                 <BricksTooltip top>
                     <template #activator>

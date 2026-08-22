@@ -5,17 +5,17 @@ import { onMounted, onBeforeUnmount } from 'vue';
 import { useComponentsStore } from '../../../core/stores/components';
 
 /**
- * Сброс интерактивного предпросмотра при клике вне компонента:
- * capture-обработчик pointerdown на document с подпиской/отпиской
- * в lifecycle вызывающего компонента.
+ * Drops the interactive preview on a click outside the component: a capture-phase
+ * pointerdown listener on the document, attached and detached in the lifecycle of the
+ * calling component.
  */
 export function useInteractivePreviewDismiss(): void {
     const componentsStore = useComponentsStore();
 
     /**
-     * Capture-фаза: сбрасывает интерактивный предпросмотр при клике вне компонента.
-     * Capture срабатывает ДО stopPropagation в дочерних элементах,
-     * поэтому работает даже когда интерактивный компонент перехватывает события.
+     * Capture phase: drops the interactive preview on a click outside the component.
+     * Capture runs BEFORE any stopPropagation in child elements, so it works even while
+     * the interactive component swallows events.
      */
     function handleInteractivePreviewOutsideClick(event: PointerEvent): void {
         const previewId = componentsStore.interactivePreviewId;
@@ -25,12 +25,12 @@ export function useInteractivePreviewDismiss(): void {
 
         const target = event.target as HTMLElement;
 
-        // Клик внутри самого интерактивного компонента — не сбрасываем
+        // A click inside the interactive component itself keeps the preview
         if (target.closest(`[data-component-id="${previewId}"]`)) {
             return;
         }
 
-        // Клик по контекстному меню (телепортировано в body) — не сбрасываем
+        // A click on the context menu (teleported into body) keeps the preview
         if (target.closest('[data-canvas-context-menu]')) {
             return;
         }

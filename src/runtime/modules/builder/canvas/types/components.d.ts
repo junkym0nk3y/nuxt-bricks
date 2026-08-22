@@ -46,9 +46,9 @@ export interface ICanvasContextMenuItem {
     label: string;
     shortcut?: string;
     disabled?: boolean;
-    /** Активное состояние toggle-пункта (точка-индикатор справа) */
+    /** Active state of a toggle item (the indicator dot on its right) */
     active?: boolean;
-    /** Закрывать ли меню после клика по пункту */
+    /** Whether a click on the item closes the menu */
     closesMenu?: boolean;
 }
 
@@ -120,7 +120,7 @@ export interface ICanvasViewportProps {
 }
 
 export interface ICanvasDropPlaceholderProps {
-    /** Место вставки лежит в корне канваса и попадёт внутрь `.bricks-container` */
+    /** The insertion point sits at the canvas root and lands inside `.bricks-container` */
     contained?: boolean;
 }
 

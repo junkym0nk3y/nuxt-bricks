@@ -14,15 +14,14 @@ import { useBrickMetadata } from '../../../core/composables/useBrickMetadata';
 // #endregion
 
 /**
- * Composable для управления слотами компонента.
- * Связывает слоты компонента с их дочерними элементами и добирает определения
- * слотов из метаданных манифеста, если в схеме их ещё нет.
+ * Manages the slots of a component: binds them to their children and picks the slot
+ * definitions up from the manifest metadata when the schema does not carry them yet.
  *
- * @param componentId - ID компонента для управления слотами
- * @param brickPath - Путь к brick-файлу компонента
- * @param isLayout - Является ли компонент layout-компонентом
- * @param componentProps - Пропсы компонента для извлечения строкового контента слота
- * @returns Объект с данными для рендеринга слотов и строковым контентом
+ * @param componentId - Id of the component whose slots are managed
+ * @param brickPath - Path to the brick file of the component
+ * @param isLayout - Whether the component is a layout one
+ * @param componentProps - Component props, the source of the string slot content
+ * @returns Slot render data and the string content
  */
 export function useComponentSlots(
     componentId: string,
@@ -37,7 +36,7 @@ export function useComponentSlots(
 
     // #region Computed
     /**
-     * Подготавливает данные для рендеринга слотов, связывая слоты с их дочерними компонентами
+     * Prepares the slot render data, binding every slot to its child components
      */
     const slotRenderData = computed<ISlotRenderData[]>(() => {
         const component = componentsStore.getComponentById(componentId);
@@ -59,7 +58,7 @@ export function useComponentSlots(
     });
 
     /**
-     * Извлекает строковый контент из пропсов компонента для дефолтного слота
+     * Pulls the string content for the default slot out of the component props
      */
     const slotStringContent = computed<string>(() => {
         const source = componentProps || {};
@@ -68,11 +67,11 @@ export function useComponentSlots(
     // #endregion
 
     // #region Lifecycle
-    // Слоты компонента и метаданные его брика — два независимых источника: в
-    // схеме слоты могут быть уже сохранены, а могут ждать манифеста. Признака
-    // «загрузка закончена» здесь нет намеренно: пока записи в индексе нет,
-    // вопрос «есть ли у брика слоты» остаётся без ответа, и зафиксировать
-    // «слотов нет» значило бы не добрать их после удачного повтора загрузки
+    // The slots of a component and the metadata of its brick are two independent
+    // sources: the schema may already hold the slots, or it may be waiting for the
+    // manifest. There is deliberately no "loading finished" flag here: while the index
+    // holds no record, the question "does this brick have slots" has no answer, and
+    // recording "it has none" would mean never picking them up after a retry succeeds
     watch(
         () => ({
             slots: componentsStore.getComponentById(componentId)?.slots,

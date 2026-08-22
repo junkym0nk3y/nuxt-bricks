@@ -2,9 +2,9 @@ import { onBeforeUnmount, ref, type Ref } from 'vue';
 import type { ICanvasPanState } from '../../types/canvas';
 
 /**
- * Предоставляет поведение перетаскивания средней кнопкой мыши для обертки канваса.
+ * Middle-button panning behavior for the canvas wrapper.
  *
- * @param containerRef - Ссылка на скроллируемый контейнер канваса.
+ * @param containerRef - Scrollable container of the canvas.
  */
 export function useCanvasPan(containerRef: Ref<HTMLElement | null>) {
     const isPanning = ref(false);
@@ -16,9 +16,9 @@ export function useCanvasPan(containerRef: Ref<HTMLElement | null>) {
     };
 
     /**
-     * Запускает режим панорамирования при нажатии средней кнопки.
+     * Starts panning on a middle-button press.
      *
-     * @param event - Pointer-событие, пришедшее от контейнера.
+     * @param event - Pointer event from the container.
      */
     function handleCanvasAreaPointerDown(event: PointerEvent): void {
         if (event.button !== 1) {
@@ -42,9 +42,9 @@ export function useCanvasPan(containerRef: Ref<HTMLElement | null>) {
     }
 
     /**
-     * Обновляет позицию скролла контейнера во время перемещения указателя.
+     * Updates the scroll position of the container while the pointer moves.
      *
-     * @param event - PointerMove-событие.
+     * @param event - PointerMove event.
      */
     function handleCanvasAreaPointerMove(event: PointerEvent): void {
         if (!isPanning.value) {
@@ -64,7 +64,7 @@ export function useCanvasPan(containerRef: Ref<HTMLElement | null>) {
     }
 
     /**
-     * Завершает панорамирование при отпускании кнопки мыши.
+     * Ends panning when the mouse button is released.
      */
     function handleCanvasAreaPointerUp(): void {
         if (!isPanning.value) {
@@ -76,7 +76,7 @@ export function useCanvasPan(containerRef: Ref<HTMLElement | null>) {
     }
 
     /**
-     * Вешает глобальные обработчики pointer-событий для панорамирования.
+     * Attaches the global pointer listeners used for panning.
      */
     function addPanListeners(): void {
         window.addEventListener('pointermove', handleCanvasAreaPointerMove);
@@ -85,7 +85,7 @@ export function useCanvasPan(containerRef: Ref<HTMLElement | null>) {
     }
 
     /**
-     * Снимает глобальные обработчики pointer-событий.
+     * Removes the global pointer listeners.
      */
     function cleanupPanListeners(): void {
         window.removeEventListener('pointermove', handleCanvasAreaPointerMove);
@@ -94,7 +94,7 @@ export function useCanvasPan(containerRef: Ref<HTMLElement | null>) {
     }
 
     /**
-     * Отключает глобальные обработчики во время размонтирования.
+     * Drops the global listeners on unmount.
      */
     onBeforeUnmount(() => {
         cleanupPanListeners();

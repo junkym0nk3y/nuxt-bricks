@@ -4,24 +4,25 @@ import { onMounted, onBeforeUnmount, watch, type Ref } from 'vue';
 // Pinia
 import { useCanvasStore } from '../../../core/stores/canvas';
 
-/** Ширина краевой зоны контейнера, в которой драг начинает подкручивать канвас. */
+/** Width of the container edge zone where a drag starts scrolling the canvas */
 const EDGE_ZONE_PX = 110;
 
-/** Максимальная скорость автоскролла (px за кадр) у самой границы контейнера. */
+/** Top auto-scroll speed (px per frame), reached at the very edge of the container */
 const MAX_SPEED_PX = 26;
 
 /**
- * Автоскролл канваса во время нативного drag & drop.
+ * Auto-scroll of the canvas during a native drag and drop.
  *
- * Нативный HTML5-драг забирает ввод себе: колесо и трекпад до `.canvasArea` не
- * доходят (в Blink проверено — событий нет), поэтому во время перетаскивания канвас
- * прокручивается только так: пока курсор держат у края контейнера, скролл
- * подкручиваем сами, скорость растёт линейно от границы зоны к самому краю.
+ * A native HTML5 drag takes the input for itself: neither the wheel nor the trackpad
+ * reaches `.canvasArea` (verified in Blink — no events arrive), so during a drag this
+ * is the only way the canvas scrolls at all: while the cursor is held near the edge of
+ * the container, the scroll is driven here, and the speed grows linearly from the
+ * boundary of the zone toward the edge itself.
  *
- * Работает и для canvas-драга, и для карточек библиотеки: события слушаются на
- * document, поэтому координаты приходят независимо от того, чей payload тащат.
+ * Works both for a canvas drag and for library cards: the events are listened for on
+ * the document, so the coordinates arrive no matter whose payload is being dragged.
  *
- * @param containerRef - Скроллируемый контейнер канваса (.canvasArea).
+ * @param containerRef - Scrollable container of the canvas (.canvasArea).
  */
 export function useCanvasDragAutoScroll(containerRef: Ref<HTMLElement | null>): void {
     const canvasStore = useCanvasStore();
@@ -31,15 +32,16 @@ export function useCanvasDragAutoScroll(containerRef: Ref<HTMLElement | null>): 
     let speedY = 0;
 
     /**
-     * Считает скорость подкрутки для одной оси.
+     * Computes the scroll speed for one axis.
      *
-     * Ноль — если курсор вне краевых зон или ушёл за пределы контейнера дальше
-     * ширины зоны (тащат в сайдбар — канвас крутиться не должен).
+     * Zero when the cursor is outside the edge zones, or left the container by more
+     * than the width of a zone (the payload is being dragged into a sidebar, and the
+     * canvas must not scroll then).
      *
-     * @param position - Координата курсора по оси.
-     * @param start - Начало контейнера по этой оси (left/top).
-     * @param end - Конец контейнера по этой оси (right/bottom).
-     * @returns Смещение скролла за кадр: отрицательное — к началу, положительное — к концу.
+     * @param position - Cursor coordinate along the axis.
+     * @param start - Start of the container along this axis (left/top).
+     * @param end - End of the container along this axis (right/bottom).
+     * @returns Scroll offset per frame: negative toward the start, positive toward the end.
      */
     function resolveAxisSpeed(position: number, start: number, end: number): number {
         const distanceToStart = position - start;
@@ -63,7 +65,7 @@ export function useCanvasDragAutoScroll(containerRef: Ref<HTMLElement | null>): 
     }
 
     /**
-     * Останавливает автоскролл и обнуляет накопленную скорость.
+     * Stops the auto-scroll and zeroes the accumulated speed.
      */
     function stopAutoScroll(): void {
         if (frameId !== null) {
@@ -75,10 +77,10 @@ export function useCanvasDragAutoScroll(containerRef: Ref<HTMLElement | null>): 
     }
 
     /**
-     * Кадр автоскролла: крутит контейнер с текущей скоростью.
+     * One auto-scroll frame: moves the container at the current speed.
      *
-     * Скорость живёт между кадрами, потому что при неподвижном курсоре браузер
-     * шлёт `dragover` лишь раз в ~350 мс — иначе скролл бы дёргался.
+     * The speed survives between frames because with a motionless cursor the browser
+     * sends `dragover` only once every ~350 ms — otherwise the scroll would stutter.
      */
     function scrollFrame(): void {
         const container = containerRef.value;
@@ -94,13 +96,13 @@ export function useCanvasDragAutoScroll(containerRef: Ref<HTMLElement | null>): 
     }
 
     /**
-     * Пересчитывает скорость по позиции курсора и поддерживает rAF-цикл живым.
+     * Recomputes the speed from the cursor position and keeps the rAF loop alive.
      *
-     * Слушаются оба события: `dragover` (летит от элемента под курсором) и `drag`
-     * (летит источнику независимо от того, что под курсором) — над областями, где
-     * `dragover` не приходит, координаты даёт `drag`.
+     * Both events are listened for: `dragover` (fired by the element under the cursor)
+     * and `drag` (fired at the source no matter what is under the cursor) — over areas
+     * where no `dragover` arrives, the coordinates come from `drag`.
      *
-     * @param event - Drag- или dragover-событие документа.
+     * @param event - Drag or dragover event of the document.
      */
     function handleDragPointerMove(event: DragEvent): void {
         const container = containerRef.value;
@@ -110,8 +112,9 @@ export function useCanvasDragAutoScroll(containerRef: Ref<HTMLElement | null>): 
             return;
         }
 
-        // Финальные `drag`-события Chrome шлёт с нулевыми координатами — это не
-        // «курсор в левом верхнем углу», а отсутствие позиции: скорость не трогаем
+        // Chrome sends the final `drag` events with zero coordinates — that is not
+        // "the cursor is in the top left corner" but the absence of a position, so the
+        // speed is left alone
         if (event.clientX === 0 && event.clientY === 0) {
             return;
         }
@@ -125,7 +128,7 @@ export function useCanvasDragAutoScroll(containerRef: Ref<HTMLElement | null>): 
         }
     }
 
-    // Страховка на случай, если drag-сессия закончилась без dragend/drop над документом
+    // Safety net for a drag session that ended without a dragend or drop over the document
     watch(
         () => canvasStore.dragState.source,
         (source) => {
@@ -135,9 +138,9 @@ export function useCanvasDragAutoScroll(containerRef: Ref<HTMLElement | null>): 
         }
     );
 
-    // Capture обязателен: слот- и layout-зоны глушат `dragover` через stopPropagation,
-    // и на всплытии автоскролл вставал бы ровно над ними — то есть над большей
-    // частью канваса.
+    // Capture is mandatory: slot and layout zones swallow `dragover` with
+    // stopPropagation, and on the bubbling phase the auto-scroll would stall exactly
+    // over them — that is, over most of the canvas.
     onMounted(() => {
         document.addEventListener('dragover', handleDragPointerMove, {
             capture: true,

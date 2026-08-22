@@ -5,10 +5,10 @@ import { convertRemToPx, convertPxToRem } from '../../../../common/utils/main';
 import { useCanvasRemBase } from './useCanvasRemBase';
 
 /**
- * Хук-обёртка над стором холста, предоставляющий готовые методы управления масштабом,
- * стилями контейнера и реакцию на изменение размеров окна.
+ * Wrapper hook over the canvas store: ready-made methods for scale control,
+ * container styles and the reaction to a window resize.
  *
- * @returns Объект с ссылками на DOM, реактивные стили и методы масштабирования.
+ * @returns DOM refs, reactive styles and scaling methods.
  */
 export function useCanvas() {
     const canvasStore = useCanvasStore();
@@ -16,26 +16,20 @@ export function useCanvas() {
     const { remCompensation, getRemCompensation } = useCanvasRemBase();
     const canvasContainer = ref<HTMLElement | null>(null);
 
-    /** Gap между viewport-ами в Figma Mode. */
+    /** Gap between the sheets in Figma mode */
     const FIGMA_GAP_REM = '28rem';
     const FIGMA_GAP_PX = convertRemToPx(FIGMA_GAP_REM);
 
-    /**
-     * Высчитывает оптимальный масштаб исходя из доступной ширины окна и состояния сайдбара.
-     * В Figma Mode учитывает суммарную ширину трёх viewport-ов.
-     *
-     * @returns Число от 0 до 1, отражающее рекомендуемый масштаб.
-     */
-    /** Ширина вертикальной навигационной панели. */
+    /** Width of the vertical navigation rail */
     const VERTICAL_NAV_WIDTH_REM = '7.2rem';
     const VERTICAL_NAV_WIDTH_PX = convertRemToPx(VERTICAL_NAV_WIDTH_REM);
 
     /**
-     * Визуальная ширина контента Figma Mode при scale = 1: все листы набора с
-     * rem-компенсацией плюс промежутки между ними.
+     * Visual width of the Figma mode content at scale = 1: every sheet of the set
+     * with its rem compensation plus the gaps between them.
      *
-     * Считается по набору, а не по трём зашитым устройствам: с четвёртым листом
-     * сумма растёт, и фиксированная тройка оставила бы вписывание завышенным.
+     * Measured over the set, not over three hardcoded devices: a fourth sheet grows
+     * the sum, and a fixed triple would leave the fit scale too high.
      */
     const getFigmaContentWidth = (): number => {
         const devices = canvasStore.devices;
@@ -52,6 +46,12 @@ export function useCanvas() {
         return sheets + FIGMA_GAP_PX * (devices.length - 1);
     };
 
+    /**
+     * Picks the fit scale from the width the window leaves free and the state of the
+     * sidebars. In Figma mode the whole row of sheets has to fit, not a single sheet.
+     *
+     * @returns Recommended scale, never above 1.
+     */
     const calculateOptimalScale = (): number => {
         if (typeof window === 'undefined') {
             return 1;
@@ -71,26 +71,29 @@ export function useCanvas() {
             return Math.min(availableWidth / getFigmaContentWidth(), 1);
         }
 
-        // Учитываем rem-компенсацию: канвас визуально увеличивается в remCompensation раз
+        // Account for the rem compensation: the canvas is visually remCompensation times wider
         const effectiveWidth = canvasStore.width * remCompensation.value;
         const scaleX = availableWidth / effectiveWidth;
         return Math.min(scaleX, 1);
     };
 
     /**
-     * Сигнатура геометрии набора: только то, что меняет размеры листов.
+     * Geometry signature of the device set: only what changes sheet sizes.
      *
-     * Подпись и глиф устройства сюда не входят — иначе ввод имени в редакторе
-     * набора пересчитывал бы масштаб и сбрасывал ручной зум на каждый символ.
+     * The label and the glyph of a device stay out of it — otherwise typing a name in
+     * the set editor would refit the canvas on every character. Dropping the manual
+     * zoom is the store's business, and it skips a label-only edit for the same reason
+     * (`setDevices`).
      */
     const devicesGeometry = computed(() =>
         canvasStore.devices.map((device) => `${device.key}:${device.width}`).join('|')
     );
 
-    // Обновляем масштаб при переключении сайдбаров, figma mode, viewport
-    // (rem compensation) или смене геометрии набора устройств.
-    // Ручной зум (wheel/кнопки) не перетираем — авто-фит только при !hasManualZoom
-    // (смена viewport сбрасывает флаг в store).
+    // Refit on a sidebar toggle, on Figma mode, on a viewport switch (rem compensation)
+    // and on a geometry change of the device set.
+    // A manual zoom (wheel or buttons) is never overwritten — auto-fit runs only while
+    // !hasManualZoom. The store drops that flag itself, both on a viewport switch and on
+    // a geometry change of the set.
     watch(
         () => [
             sidebarStore.left.visible,
@@ -109,32 +112,33 @@ export function useCanvas() {
         { immediate: true }
     );
 
-    // CSS-трансформация холста с учётом rem-компенсации (Normal mode)
+    // Canvas transform including the rem compensation (normal mode)
     const canvasTransform = computed(() => {
         const totalScale = canvasStore.scale * remCompensation.value;
         return `scale(${totalScale})`;
     });
 
-    // CSS-трансформация обёртки Figma Mode — без rem-компенсации,
-    // т.к. у каждого viewport своя компенсация (применяется в BuilderCanvasViewport)
+    // Transform of the Figma mode wrapper — without the rem compensation, because every
+    // viewport has its own (applied in BuilderCanvasViewport)
     const figmaBaseTransform = computed(() => {
         return `scale(${canvasStore.scale})`;
     });
 
-    // Layout-ширина обёртки канваса следует за визуальным масштабом: transform
-    // не влияет на layout, и без min-width при зуме больше fit-масштаба левый
-    // край канваса выпирал бы за пределы scroll-области (недостижим скроллом)
+    // The layout width of the canvas wrapper follows the visual scale: transform does
+    // not affect layout, and without min-width a zoom above the fit scale would push the
+    // left edge of the canvas outside the scroll area, where scrolling cannot reach it
     const canvasWrapperStyle = computed(() => {
         const totalScale = canvasStore.scale * remCompensation.value;
         return { minWidth: convertPxToRem(canvasStore.width * totalScale) };
     });
 
-    // Аналогичный min-width для обёртки Figma Mode
+    // The same min-width for the Figma mode wrapper
     const figmaWrapperMinWidth = computed(() => {
         return convertPxToRem(getFigmaContentWidth() * canvasStore.scale);
     });
 
-    // CSS-стили контейнера канваса относительно сайдбаров (левого и правой панели свойств)
+    // Styles of the canvas container relative to the sidebars (the left one and the
+    // right properties panel)
     const canvasContainerStyle = computed(() => {
         const leftWidth = sidebarStore.left.visible ? sidebarStore.left.width : '0px';
         const rightWidth = sidebarStore.right.visible ? sidebarStore.right.width : '0px';
@@ -148,8 +152,8 @@ export function useCanvas() {
     });
 
     /**
-     * Служебный обработчик ресайза окна, пересчитывающий актуальный масштаб.
-     * Ручной зум пользователя не перетирает.
+     * Window resize handler: recomputes the current scale.
+     * Leaves a manual zoom of the user alone.
      */
     const handleResize = (): void => {
         if (canvasStore.hasManualZoom) {
@@ -160,8 +164,8 @@ export function useCanvas() {
     };
 
     /**
-     * Возвращает масштаб к автоматически подобранному значению
-     * и снимает флаг ручного зума.
+     * Returns the scale to the automatically picked value and clears the manual zoom
+     * flag.
      */
     const resetZoom = (): void => {
         canvasStore.hasManualZoom = false;

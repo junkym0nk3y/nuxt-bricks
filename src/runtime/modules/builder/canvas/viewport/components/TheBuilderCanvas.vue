@@ -79,16 +79,16 @@ provide(
 
 provide(CANVAS_DRAG_ACTIVE_KEY, isCanvasDragActive);
 
-/** Активный viewport для обычного режима (в Figma mode перекрывается BuilderCanvasViewport) */
+/** Active viewport of the normal mode (in Figma mode BuilderCanvasViewport overrides it) */
 provide(
     CANVAS_VIEWPORT_KEY,
     computed(() => canvasStore.viewport)
 );
 
-/** Rem-компенсация для per-viewport scaling в Figma Mode */
+/** Rem compensation for the per-viewport scaling of Figma mode */
 provide('getRemCompensation', getRemCompensation);
 
-/** Порт inline editing к стору компонентов (text-editor не импортирует builder/core) */
+/** Port from inline editing to the components store (text-editor does not import builder/core) */
 provide(INLINE_EDITOR_HOST_KEY, {
     getPropValue: (componentId, propName) => {
         const component = componentsStore.getComponentById(componentId);
@@ -96,8 +96,8 @@ provide(INLINE_EDITOR_HOST_KEY, {
             return undefined;
         }
 
-        // Имя пропа объявляет brick-файл, объект пропсов приходит из схемы:
-        // `props['toString']` отдал бы редактору метод прототипа
+        // The prop name is declared by the brick file and the props object comes from the
+        // schema: `props['toString']` would hand the editor a method of the prototype
         return readOwnKey(component.props as Record<string, unknown>, propName);
     },
     updateProp: (componentId, propName, value) => {
@@ -130,11 +130,12 @@ const {
     containerRef,
 });
 
-// Зум и смена viewport двигают блоки на экране, не меняя порядок, — на это время
-// move-переходы потока выключаются, иначе канвас дрожит.
+// Silences the move transitions of the flow while the canvas geometry changes — why, in
+// the composable itself
 useCanvasFlowGuard(canvasRef);
 
-// Нативный драг забирает колесо себе — канвас подкручиваем сами, пока курсор у края
+// Scrolls the canvas while a drag is held near an edge — why the wheel cannot do it, in
+// the composable itself
 useCanvasDragAutoScroll(canvasContainer);
 
 const { isPanning, handleCanvasAreaPointerDown } = useCanvasPan(canvasContainer);
@@ -154,33 +155,37 @@ useInteractivePreviewDismiss();
 
 // #region Computed
 /**
- * Вычисляет отступ левого сайдбара для позиционирования toolbar
- * @returns Ширина левого сайдбара если он видимый, иначе '0px'
+ * Offset of the left sidebar, used to position the bottom bar.
+ *
+ * @returns Width of the left sidebar while it is visible, otherwise '0px'
  */
 const leftSidebarOffset = computed(() => {
     return sidebarStore.left.visible ? sidebarStore.left.width : '0px';
 });
 
 /**
- * Вычисляет отступ правой панели свойств для позиционирования toolbar
- * @returns Ширина правой панели если она видима, иначе '0px'
+ * Offset of the right properties panel, used to position the bottom bar.
+ *
+ * @returns Width of the right panel while it is visible, otherwise '0px'
  */
 const rightSidebarOffset = computed(() => {
     return sidebarStore.right.visible ? sidebarStore.right.width : '0px';
 });
 
 /**
- * Формирует стили для canvas элемента
+ * Styles of the canvas sheet: its size from the canvas store, the background color from
+ * the publish settings, the font from the config and the CSS variables of the drag
+ * placeholder. The transform joins them only after mount: on the server the fit scale
+ * cannot be measured (`calculateOptimalScale` answers 1 without a `window`), and writing
+ * that 1 into the markup would disagree with the scale the client computes on hydration.
  *
- * Базовые стили:
- * - width/height из canvasStore
- * - backgroundColor из настроек публикации
- * - fontFamily из конфига
+ * Fitting the sheet is the job of `transform: scale()` alone, and the sheet is
+ * `flex-shrink: 0` in the wrapper for exactly that reason: for a flex item the declared
+ * width behaves as a flex-basis, so the scale was applied twice (the transform plus a real
+ * shrink of the layout width), the grid computed 1fr from the wrong width, and the canvas
+ * showed something other than the published page.
  *
- * Динамические стили (только после монтирования):
- * - transform для масштабирования канваса
- *
- * @returns Объект стилей для canvas элемента
+ * @returns Style object of the canvas element
  */
 const canvasStyle = computed<Record<string, string>>(() => {
     const baseStyle = {
@@ -192,7 +197,7 @@ const canvasStyle = computed<Record<string, string>>(() => {
     };
 
     if (!isMounted.value) {
-        // Не применяем динамические стили при SSR
+        // No dynamic styles under SSR
         return baseStyle;
     }
 
@@ -202,14 +207,17 @@ const canvasStyle = computed<Record<string, string>>(() => {
     };
 });
 
-/** Root-поток: блоки страницы и место вставки одним keyed-списком для TransitionGroup. */
+/** Root flow: the page blocks and the insertion point as one keyed list for TransitionGroup */
 const rootFlowEntries = computed<TDropFlowEntry[]>(() =>
     buildDropFlowEntries(componentsStore.getRootComponents(), rootDropIndex.value, 'root-drop')
 );
 
 /**
- * Стили для обёртки Figma Mode — базовый scale без rem-компенсации.
- * Per-viewport компенсация применяется внутри каждого BuilderCanvasViewport.
+ * Styles of the Figma mode wrapper — the base scale without the rem compensation, which
+ * every BuilderCanvasViewport applies for itself.
+ *
+ * The transform lives on this inner wrapper, while the outer one carries the min-width of
+ * the visual width: putting both on one node would apply the scale twice.
  */
 const figmaWrapperStyle = computed<Record<string, string>>(() => {
     const style: Record<string, string> = {};
@@ -225,9 +233,9 @@ const figmaWrapperStyle = computed<Record<string, string>>(() => {
 
 // #region Methods
 /**
- * Debounced обработчик изменения размера окна
- * Пересчитывает масштаб канваса и центрирует его по горизонтали
- * Задержка 150мс для оптимизации производительности при resize
+ * Debounced window resize handler: refits the canvas scale and centers the canvas
+ * horizontally. The delay keeps a drag of the window edge from recomputing both on every
+ * frame.
  */
 const debouncedResize = useDebounceFn(() => {
     handleResize();
@@ -235,9 +243,9 @@ const debouncedResize = useDebounceFn(() => {
 }, 150);
 
 /**
- * Сбрасывает текущий выбор, если пользователь кликнул по пустому месту канваса.
+ * Drops the current selection when the click landed on an empty spot of the canvas.
  *
- * @param event - Событие клика по канвасу.
+ * @param event - Click event of the canvas.
  */
 function handleCanvasClick(event: MouseEvent): void {
     if (event.target === canvasRef.value) {
@@ -246,8 +254,8 @@ function handleCanvasClick(event: MouseEvent): void {
 }
 
 /**
- * Скроллит до выбранного компонента после смены viewport.
- * Если компонент скрыт на новом viewport (deviceVisibility) — снимает выделение.
+ * Scrolls to the selected component after a viewport switch.
+ * A component hidden on the new viewport (deviceVisibility) is deselected instead.
  */
 function scrollToSelectedAfterViewportSwitch(): void {
     const selected = componentsStore.selectedComponent;
@@ -266,15 +274,16 @@ function scrollToSelectedAfterViewportSwitch(): void {
         return;
     }
 
-    // Ждём рендера компонентов на новом viewport перед скроллом
+    // Wait for the components to render on the new viewport before scrolling
     setTimeout(() => {
         scrollToComponentOnCanvas(selected.id);
     }, 350);
 }
 
 /**
- * Страхует откат transient drag-состояния: `dragend` приходит и после успешного
- * drop, и после отмены (Esc, уход за окно), даже если источник свои хендлеры не отработал.
+ * Safety net for rolling the transient drag state back: `dragend` arrives both after a
+ * successful drop and after a cancellation (Esc, leaving the window), even when the source
+ * never ran its own handlers.
  */
 function handleDocumentDragEnd(): void {
     canvasStore.finishCanvasDrag();
@@ -283,28 +292,21 @@ function handleDocumentDragEnd(): void {
 
 // #region Lifecycle
 /**
- * Инициализация канваса при монтировании компонента
- *
- * Последовательность:
- * 1. Ожидание готовности DOM (nextTick)
- * 2. Установка флага isMounted для активации динамических стилей
- * 3. Повторное ожидание для применения стилей
- * 4. Подписка на resize окна с debounce
- * 5. Расчет начального масштаба и центрирование
- * 6. Настройка ResizeObserver для отслеживания изменений размера контейнера
- * 7. Подписка на кастомные события layout-drop и slot-drop для drag-and-drop
+ * Initializes the canvas on mount: the sheet size is synced with the config before any
+ * scale or centering is computed, the dynamic styles are switched on only once the first
+ * render is out, and the listeners are attached after those styles have been applied.
  */
 onMounted(async () => {
-    // Синхронизация размеров холста с конфигом до расчёта scale/центрирования
+    // Sheet size synced with the config before the scale and the centering are computed
     canvasStore.initCanvasSize();
 
-    // Ожидание полной готовности DOM
+    // Wait for the DOM to be fully ready
     await nextTick();
 
-    // Установка флага для включения динамических стилей
+    // The flag that turns the dynamic styles on
     isMounted.value = true;
 
-    // Инициализация после применения стилей
+    // Initialization once the styles have been applied
     await nextTick();
 
     window.addEventListener('resize', debouncedResize);
@@ -313,10 +315,10 @@ onMounted(async () => {
     updateContainerMetrics();
     scheduleCanvasCenter('auto');
 
-    // Отслеживание изменений размера контейнера
+    // Track size changes of the container
     initMetricsObserver();
 
-    // Подписка на события drag-and-drop для layout компонентов
+    // Subscribe to the drag and drop events of layout components
     if (canvasRef.value) {
         canvasRef.value.addEventListener('layout-drop', handleLayoutDrop as EventListener);
         canvasRef.value.addEventListener('slot-drop', handleSlotDrop as EventListener);
@@ -324,8 +326,8 @@ onMounted(async () => {
 });
 
 /**
- * Очистка ресурсов при размонтировании компонента
- * (ResizeObserver и rAF центрирования чистят свои composables).
+ * Releases the resources on unmount (the ResizeObserver and the centering rAF are cleaned
+ * up by their own composables).
  */
 onBeforeUnmount(() => {
     window.removeEventListener('resize', debouncedResize);
@@ -341,7 +343,6 @@ onBeforeUnmount(() => {
 
 <template>
     <div :class="$style.TheBuilderCanvas">
-        <!-- Canvas Area -->
         <div
             ref="canvasContainer"
             :class="[
@@ -352,7 +353,6 @@ onBeforeUnmount(() => {
             :style="canvasContainerStyle"
             @pointerdown="handleCanvasAreaPointerDown"
         >
-            <!-- Figma Mode: три viewport-а рядом -->
             <div
                 v-if="canvasStore.isFigmaMode"
                 :class="$style.figmaOuter"
@@ -371,7 +371,6 @@ onBeforeUnmount(() => {
                 </div>
             </div>
 
-            <!-- Normal Mode: один канвас -->
             <div
                 v-else
                 ref="canvasWrapperRef"
@@ -389,9 +388,7 @@ onBeforeUnmount(() => {
                     @dragover="handleCanvasDragOver"
                     @click="handleCanvasClick"
                 >
-                    <!-- Screen content -->
                     <div :class="$style.screenContent">
-                        <!-- Container (from default.scss) -->
                         <div
                             ref="containerRef"
                             :style="{
@@ -403,8 +400,6 @@ onBeforeUnmount(() => {
                             @dragover="handleRootDragOver"
                             @dragleave="handleRootDragLeave"
                         >
-                            <!-- Components (only root-level, children will be rendered inside layouts).
-                                 Плейсхолдер вставки идёт тем же потоком; TransitionGroup сглаживает сдвиг соседей -->
                             <TransitionGroup name="bricks-canvas-flow">
                                 <template v-for="entry in rootFlowEntries" :key="entry.key">
                                     <BuilderCanvasDropPlaceholder
@@ -425,7 +420,6 @@ onBeforeUnmount(() => {
             </div>
         </div>
 
-        <!-- Bottom floating bar: viewport + zoom + undo/redo + grid -->
         <BuilderCanvasBottomBar
             :scale="canvasStore.scale"
             :viewport="canvasStore.viewport"
@@ -439,7 +433,6 @@ onBeforeUnmount(() => {
             @toggle-figma-mode="canvasStore.toggleFigmaMode"
         />
 
-        <!-- Inline Editing Overlay -->
         <BuilderCanvasInlineEditingOverlay />
     </div>
 </template>
@@ -476,8 +469,6 @@ onBeforeUnmount(() => {
     padding: 6rem 0;
 }
 
-// Layout-обёртка Figma Mode: несёт min-width по визуальной ширине,
-// transform живёт на .figmaWrapper внутри (иначе масштаб применился бы дважды)
 .figmaOuter {
     display: flex;
     align-items: flex-start;
@@ -497,12 +488,6 @@ onBeforeUnmount(() => {
 .canvas {
     position: relative;
     overflow: visible;
-
-    // Лист — flex-item в .canvasWrapper, и без запрета сжатия заданная width
-    // ведёт себя как flex-basis: масштаб применялся дважды (transform + реальное
-    // сжатие layout-ширины), грид считал 1fr от неверной ширины, и канвас
-    // показывал не то, что будет на published. За вписывание отвечает только
-    // transform: scale()
     flex-shrink: 0;
     margin-top: 2rem;
     border-radius: var(--bricks-border-radius-xs);

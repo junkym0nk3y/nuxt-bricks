@@ -142,7 +142,7 @@ export const AREAS = [
     {
         id: '12',
         title: 'builder/canvas',
-        done: false,
+        done: true,
         match: ['src/runtime/modules/builder/canvas/'],
     },
     {

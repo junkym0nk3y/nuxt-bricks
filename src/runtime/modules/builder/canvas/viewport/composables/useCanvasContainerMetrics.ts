@@ -9,9 +9,9 @@ import { useCanvasStore } from '../../../core/stores/canvas';
 import { useComponentsStore } from '../../../core/stores/components';
 
 /**
- * Синхронизация высоты канваса с контентом: пересчёт метрик контейнера
- * при изменении состава компонентов / viewport / Figma mode и ResizeObserver
- * с переподключением при смене containerRef.
+ * Keeps the canvas height in sync with its content: recomputes the container metrics
+ * when the set of components, the viewport or Figma mode changes, and reattaches its
+ * ResizeObserver when containerRef is replaced.
  */
 export function useCanvasContainerMetrics(options: ICanvasContainerMetricsOptions) {
     const canvasStore = useCanvasStore();
@@ -21,7 +21,7 @@ export function useCanvasContainerMetrics(options: ICanvasContainerMetricsOption
     let containerResizeObserver: ResizeObserver | null = null;
 
     /**
-     * Обновляет высоту канваса исходя из содержимого корневого контейнера.
+     * Updates the canvas height from the content of the root container.
      */
     function updateContainerMetrics(): void {
         const container = containerRef.value;
@@ -37,8 +37,8 @@ export function useCanvasContainerMetrics(options: ICanvasContainerMetricsOption
     }
 
     /**
-     * Создаёт ResizeObserver контейнера (вызывается из onMounted компонента,
-     * когда containerRef уже отрендерен).
+     * Creates the ResizeObserver of the container (called from onMounted of the
+     * component, once containerRef is rendered).
      */
     function initMetricsObserver(): void {
         containerResizeObserver = new ResizeObserver(() => {
@@ -51,14 +51,16 @@ export function useCanvasContainerMetrics(options: ICanvasContainerMetricsOption
     }
 
     /**
-     * Пересчитывает высоту канваса при изменении состава компонентов.
+     * Recomputes the canvas height when the set of components changes.
      *
-     * Два источника покрывают все кейсы:
-     * - `components` (ссылка) — ловит полную замену массива (loadSchema, undo/redo)
-     * - `components.length` — ловит мутации (push в addComponent, splice в moveComponentToRoot)
+     * Two sources cover every case:
+     * - `components` (the reference) catches a full replacement of the array
+     *   (loadSchema, undo/redo)
+     * - `components.length` catches mutations (push in addComponent, splice in
+     *   moveComponentToRoot)
      *
-     * ResizeObserver не срабатывает при уменьшении контента (minHeight не даёт контейнеру сжаться),
-     * поэтому нужен явный пересчёт при add/remove/import.
+     * The ResizeObserver stays silent when the content shrinks (minHeight keeps the
+     * container from collapsing), so add/remove/import need an explicit recompute.
      */
     watch([() => componentsStore.components, () => componentsStore.components.length], () => {
         nextTick(() => {
@@ -67,12 +69,12 @@ export function useCanvasContainerMetrics(options: ICanvasContainerMetricsOption
     });
 
     /**
-     * Пересчитывает высоту канваса после смены viewport.
+     * Recomputes the canvas height after a viewport switch.
      *
-     * При смене адаптива (mobile → tablet → desktop) контент перестраивается:
-     * компоненты меняют высоту из-за другой ширины, grid-колонки перестраиваются,
-     * container queries переключаются. Высота сбрасывается до базовой в setViewport,
-     * здесь подбираем правильную после рендера.
+     * A sheet of another width rebuilds the content: components change height because
+     * of the different width, grid columns reflow, container queries switch over.
+     * setViewport resets the height to the base one, and the right one is picked up
+     * here, after the render.
      */
     watch(
         () => canvasStore.viewport,
@@ -85,11 +87,11 @@ export function useCanvasContainerMetrics(options: ICanvasContainerMetricsOption
     );
 
     /**
-     * Переподключает ResizeObserver при смене containerRef.
+     * Reattaches the ResizeObserver when containerRef changes.
      *
-     * При переключении Figma ↔ Normal режимов v-if уничтожает старый DOM-элемент
-     * и создаёт новый. ResizeObserver остаётся на старом (уничтоженном) элементе,
-     * поэтому updateContainerMetrics() перестаёт вызываться автоматически.
+     * Switching between Figma and normal mode makes v-if destroy the old DOM element
+     * and create a new one. The ResizeObserver stays on the old (destroyed) element,
+     * so updateContainerMetrics() stops being called on its own.
      */
     watch(containerRef, (newContainer, oldContainer) => {
         if (containerResizeObserver) {
@@ -103,9 +105,8 @@ export function useCanvasContainerMetrics(options: ICanvasContainerMetricsOption
     });
 
     /**
-     * Отслеживает переключение Figma Mode.
-     * Ждёт обновления DOM (v-if рендерит/убирает figmaWrapper),
-     * затем пересчитывает высоту канваса и центрирует его.
+     * Watches the Figma mode toggle: waits for the DOM update (v-if renders or removes
+     * figmaWrapper), then recomputes the canvas height and centers it.
      */
     watch(
         () => canvasStore.isFigmaMode,
@@ -114,7 +115,7 @@ export function useCanvasContainerMetrics(options: ICanvasContainerMetricsOption
                 updateContainerMetrics();
                 scheduleCanvasCenter('auto');
 
-                // При выходе из Figma mode — скроллим до выбранного компонента
+                // Leaving Figma mode scrolls to the selected component
                 if (!isFigma) {
                     scrollToSelected();
                 }

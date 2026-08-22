@@ -12,14 +12,14 @@ import { useComponentsStore } from '../../../core/stores/components';
 // Utils
 import { createTiptapEditor } from '../../../../text-editor/utils/createTiptapEditor';
 
-/** Время ожидания editor от layout-компонента перед созданием fallback. */
+/** How long to wait for an editor from a layout component before building the fallback */
 const FALLBACK_INIT_DELAY_MS = 300;
 
 /**
- * Lifecycle fallback TipTap-редактора в inline editing overlay: создаётся, когда
- * ни один layout-компонент не инициализировал свой editor (brick-компоненты
- * с textarea/inline-content), сохраняет значение в components store,
- * переинициализируется при переключении свойства.
+ * Lifecycle of the fallback TipTap editor inside the inline editing overlay: created
+ * when no layout component initialized an editor of its own (brick components with
+ * textarea or inline-content), saves the value into the components store, and is
+ * rebuilt when the edited property is switched.
  */
 export function useInlineEditingFallback(options: IInlineEditingFallbackOptions = {}) {
     const inlineEditingStore = useInlineEditingStore();
@@ -27,30 +27,30 @@ export function useInlineEditingFallback(options: IInlineEditingFallbackOptions 
 
     /**
      * Fallback TipTap editor.
-     * shallowRef — TipTap Editor нельзя делать глубоко реактивным.
+     * shallowRef, because a TipTap Editor must not be made deeply reactive.
      */
     const fallbackEditor = shallowRef<Editor | null>(null);
 
     /**
-     * Компонент EditorContent для рендеринга fallback-редактора в template.
+     * The EditorContent component that renders the fallback editor in the template.
      */
     const fallbackEditorContent = shallowRef<Component | null>(null);
 
     /**
-     * Флаг — используется ли fallback-редактор (overlay создал свой editor).
+     * Whether the fallback editor is in use (the overlay built an editor of its own).
      */
     const isFallbackMode = ref(false);
 
     /**
-     * Тёмный фон для fallback-редактора.
+     * Dark background of the fallback editor.
      */
     const isDarkEditorBackground = ref(false);
 
-    /** Таймер для ожидания инициализации editor из layout-компонента */
+    /** Timer that waits for an editor to be initialized by a layout component */
     let fallbackInitTimer: ReturnType<typeof setTimeout> | null = null;
 
     /**
-     * Показывать ли fallback EditorContent в overlay (для brick-компонентов).
+     * Whether to show the fallback EditorContent in the overlay (for brick components).
      */
     const showFallbackEditor = computed<boolean>(
         () =>
@@ -60,7 +60,7 @@ export function useInlineEditingFallback(options: IInlineEditingFallbackOptions 
     );
 
     /**
-     * Получает текущее значение редактируемого свойства из store.
+     * Reads the current value of the edited property from the store.
      */
     function getCurrentPropValue(): unknown {
         const cId = inlineEditingStore.componentId;
@@ -76,7 +76,7 @@ export function useInlineEditingFallback(options: IInlineEditingFallbackOptions 
     }
 
     /**
-     * Сохраняет значение fallback-редактора в store.
+     * Saves the value of the fallback editor into the store.
      */
     function saveFallbackToStore(): void {
         const cId = inlineEditingStore.componentId;
@@ -92,8 +92,8 @@ export function useInlineEditingFallback(options: IInlineEditingFallbackOptions 
     }
 
     /**
-     * Инициализирует fallback TipTap editor для textarea-типа.
-     * Вызывается когда layout-компонент не создал свой editor.
+     * Initializes the fallback TipTap editor for a textarea-typed property.
+     * Called when no layout component created an editor of its own.
      */
     async function initFallbackTiptapEditor(): Promise<void> {
         try {
@@ -122,7 +122,7 @@ export function useInlineEditingFallback(options: IInlineEditingFallbackOptions 
     }
 
     /**
-     * Очищает fallback-редактор.
+     * Tears the fallback editor down.
      */
     function destroyFallbackEditor(): void {
         if (fallbackInitTimer) {
@@ -140,15 +140,15 @@ export function useInlineEditingFallback(options: IInlineEditingFallbackOptions 
     }
 
     /**
-     * Переключает фон fallback-редактора между светлым и тёмным.
+     * Switches the background of the fallback editor between light and dark.
      */
     function toggleEditorBackground(): void {
         isDarkEditorBackground.value = !isDarkEditorBackground.value;
     }
 
     /**
-     * При переключении свойства: уведомляет вызывающего (сброс toolbar state)
-     * и переинициализирует fallback editor.
+     * On a property switch: notifies the caller (which resets the toolbar state) and
+     * rebuilds the fallback editor.
      */
     watch(
         () => inlineEditingStore.propName,
@@ -159,7 +159,7 @@ export function useInlineEditingFallback(options: IInlineEditingFallbackOptions 
 
             options.onPropSwitch?.();
 
-            // Переинициализация fallback editor при переключении свойства
+            // Rebuild the fallback editor for the newly selected property
             if (!isFallbackMode.value || !inlineEditingStore.isEditing) {
                 return;
             }
@@ -171,8 +171,8 @@ export function useInlineEditingFallback(options: IInlineEditingFallbackOptions 
     );
 
     /**
-     * Fallback: если editing активен, но через 300ms editor всё ещё null —
-     * ни один layout-компонент не создал editor → создаём fallback в overlay.
+     * Fallback: if editing is active but the editor is still null once the delay is out,
+     * no layout component created one, so the overlay builds its own.
      */
     watch(
         () => inlineEditingStore.isEditing,
@@ -189,7 +189,7 @@ export function useInlineEditingFallback(options: IInlineEditingFallbackOptions 
             fallbackInitTimer = setTimeout(() => {
                 fallbackInitTimer = null;
 
-                // Layout-компонент уже создал editor — fallback не нужен
+                // A layout component already created an editor — no fallback needed
                 if (inlineEditingStore.editor) {
                     return;
                 }

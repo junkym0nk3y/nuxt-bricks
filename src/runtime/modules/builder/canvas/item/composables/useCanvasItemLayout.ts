@@ -16,7 +16,7 @@ import { resolveBlockProps } from '../../../../layouts-blocks/registry';
 import { CANVAS_VIEWPORT_KEY } from '../../../../common/constants/injectionKeys';
 // #endregion
 
-/** Нормализует значение `grid-column`, чтобы не создавать implicit columns при смене viewport */
+/** Normalizes a `grid-column` value so a viewport switch creates no implicit columns */
 function clampGridColumnToColumns(gridColumn: string, columns: number): string | undefined {
     const normalizedColumns = Math.max(1, Math.floor(columns));
     const trimmed = gridColumn.trim();
@@ -65,17 +65,20 @@ function clampGridColumnToColumns(gridColumn: string, columns: number): string |
 }
 
 /**
- * Инкапсулирует логику layout-разрешения для элемента канваса:
- * itemStyle, layoutProps, layoutName, childComponents, isSpaceLayout.
- * Резолв пропсов по viewport делегирован registry (resolveBlockProps);
- * здесь остаётся item-level логика (grid-column clamp по родительскому Grid).
+ * Layout resolution of a canvas item: itemStyle, layoutProps, layoutName, childComponents,
+ * isSpaceLayout. Resolving props per viewport is delegated to the registry
+ * (resolveBlockProps); what stays here is the item-level logic (clamping grid-column
+ * against the parent Grid).
  */
 export function useCanvasItemLayout(props: ICanvasItemProps) {
     const componentsStore = useComponentsStore();
     const canvasStore = useCanvasStore();
     const injectedViewport = inject(CANVAS_VIEWPORT_KEY, null);
 
-    /** В Figma mode — per-viewport от BuilderCanvasViewport, в обычном — от TheBuilderCanvas (fallback — store) */
+    /**
+     * In Figma mode comes per viewport from BuilderCanvasViewport, in normal mode from
+     * TheBuilderCanvas; the store is the fallback.
+     */
     const effectiveViewport = computed<TBricksDeviceKey>(
         () => injectedViewport?.value ?? canvasStore.viewport
     );
@@ -85,7 +88,7 @@ export function useCanvasItemLayout(props: ICanvasItemProps) {
     const isSpaceLayout = computed<boolean>(() => isLayout.value && layoutName.value === 'space');
 
     /**
-     * Возвращает количество колонок родительского Grid-layout для текущего viewport.
+     * Returns the column count of the parent Grid layout for the current viewport.
      */
     function getParentGridColumns(
         component: IBricksComponent,

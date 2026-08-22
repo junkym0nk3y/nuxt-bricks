@@ -6,9 +6,9 @@ import { useCanvasStore } from '../../../core/stores/canvas';
 import { useSidebarStore } from '../../../core/stores/sidebar';
 
 /**
- * Горизонтальное центрирование канваса: rAF-планировщик с приоритетом
- * smooth-поведения + watcher'ы на появление контейнера, изменение
- * scale/width канваса и видимость/ширину левого сайдбара.
+ * Horizontal centering of the canvas: an rAF scheduler that gives smooth behavior
+ * priority, plus watchers on the container appearing, on the scale or width of the
+ * canvas and on the visibility and width of the sidebars.
  */
 export function useCanvasCentering(canvasContainer: Ref<HTMLElement | null>) {
     const canvasStore = useCanvasStore();
@@ -18,11 +18,11 @@ export function useCanvasCentering(canvasContainer: Ref<HTMLElement | null>) {
     let pendingCenterBehavior: ScrollBehavior = 'auto';
 
     /**
-     * Центрирует канвас по горизонтали относительно доступной ширины.
-     * При ручном зуме (wheel/кнопки) не вмешивается — позицией скролла
-     * управляет пользователь (zoom-to-cursor в useCanvasWheel).
+     * Centers the canvas horizontally within the available width.
+     * Stays out of the way under a manual zoom (wheel or buttons) — there the scroll
+     * position belongs to the user (zoom-to-cursor in useCanvasWheel).
      *
-     * @param options - Настройки прокрутки контейнера.
+     * @param options - Scroll settings of the container.
      */
     function centerCanvasHorizontally(options: { behavior?: ScrollBehavior } = {}): void {
         if (typeof window === 'undefined' || canvasStore.hasManualZoom) {
@@ -57,9 +57,9 @@ export function useCanvasCentering(canvasContainer: Ref<HTMLElement | null>) {
     }
 
     /**
-     * Планирует центрирование канваса в ближайшем кадре анимации.
+     * Schedules canvas centering for the next animation frame.
      *
-     * @param behavior - Поведение прокрутки (`auto` или `smooth`).
+     * @param behavior - Scroll behavior (`auto` or `smooth`).
      */
     function scheduleCanvasCenter(behavior: ScrollBehavior = 'auto'): void {
         if (behavior === 'smooth') {
@@ -80,8 +80,7 @@ export function useCanvasCentering(canvasContainer: Ref<HTMLElement | null>) {
     }
 
     /**
-     * Отслеживает появление canvasContainer и центрирует канвас
-     * При монтировании контейнера автоматически центрирует его по горизонтали
+     * Centers the canvas horizontally as soon as canvasContainer appears.
      */
     watch(
         () => canvasContainer.value,
@@ -93,8 +92,7 @@ export function useCanvasCentering(canvasContainer: Ref<HTMLElement | null>) {
     );
 
     /**
-     * Отслеживает изменения масштаба и ширины канваса.
-     * При изменении этих параметров пересчитывает центрирование.
+     * Recenters the canvas when its scale or width changes.
      */
     watch(
         () => [canvasStore.scale, canvasStore.width],
@@ -104,8 +102,8 @@ export function useCanvasCentering(canvasContainer: Ref<HTMLElement | null>) {
     );
 
     /**
-     * Отслеживает видимость и ширину левого сайдбара и правой панели свойств.
-     * При открытии/закрытии плавно центрирует канвас (с анимацией)
+     * Watches the visibility and the width of the left sidebar and of the right
+     * properties panel: opening or closing one recenters the canvas smoothly.
      */
     watch(
         () => [

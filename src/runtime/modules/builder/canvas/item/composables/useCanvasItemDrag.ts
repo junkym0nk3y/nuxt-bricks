@@ -13,8 +13,8 @@ import { measureDragSize } from '../../../../common/utils/dragAndDrop';
 // #endregion
 
 /**
- * Инкапсулирует логику drag-and-drop для элемента канваса:
- * создание лёгкого skeleton drag-image, установка dataTransfer и rollback transient-состояния.
+ * Drag and drop of a canvas item: building the lightweight skeleton drag image, filling
+ * dataTransfer and rolling the transient state back.
  */
 export function useCanvasItemDrag(
     props: ICanvasItemProps,
@@ -25,7 +25,7 @@ export function useCanvasItemDrag(
 
     // #region Methods
     /**
-     * Обрабатывает начало перетаскивания элемента канваса.
+     * Handles the start of a canvas item drag.
      */
     function handleDragStart(event: DragEvent): void {
         event.stopPropagation();
@@ -82,10 +82,11 @@ export function useCanvasItemDrag(
             placeholderSize,
         });
 
-        // Освобождаем место только после старта нативного drag, иначе синхронное
-        // схлопывание источника отменит перетаскивание. Кадров два: в первом браузер
-        // фиксирует стартовую max-height блока, во втором она уезжает в ноль —
-        // без этого переход схлопывания не запускается (нет исходного значения).
+        // The spot is freed only after the native drag has started, otherwise collapsing
+        // the source synchronously cancels the drag. Two frames are needed: in the first
+        // the browser records the starting max-height of the block, in the second it
+        // goes to zero — without that the collapse transition never starts, because
+        // there is no value to start from.
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
                 canvasStore.vacateDragSource();
@@ -94,7 +95,7 @@ export function useCanvasItemDrag(
     }
 
     /**
-     * Обрабатывает окончание перетаскивания для очистки состояния.
+     * Handles the end of a drag and clears the state.
      */
     function handleDragEnd(event: DragEvent): void {
         event.stopPropagation();

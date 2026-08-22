@@ -45,17 +45,18 @@ const {
 // #endregion
 
 // #region Computed
-/** Слот-контент схемы — недоверенный ввод: санитизация обязательна перед v-html. */
+/** Slot content of the schema is untrusted input: sanitizing it before v-html is mandatory */
 const sanitizedSlotContent = computed<string>(() => sanitizeRichTextHtml(slotStringContent.value));
 // #endregion
 
 // #region Methods
 /**
- * Собирает поток слота: дети и место вставки одним keyed-списком для TransitionGroup.
+ * Builds the flow of a slot: its children and the insertion point as one keyed list for
+ * TransitionGroup.
  *
- * @param slotName - Имя слота компонента.
- * @param children - Дети слота в порядке отображения.
- * @returns Записи потока для рендера.
+ * @param slotName - Slot name of the component.
+ * @param children - Children of the slot in display order.
+ * @returns Flow entries to render.
  */
 function getSlotFlowEntries(slotName: string, children: IBricksComponent[]): TDropFlowEntry[] {
     return buildDropFlowEntries(children, getSlotDropIndex(slotName), `slot-drop-${slotName}`);
@@ -82,7 +83,6 @@ function getSlotFlowEntries(slotName: string, children: IBricksComponent[]): TDr
                     @dragleave="handleSlotDragLeave(slotData.slot.name, $event)"
                     @drop="handleSlotDrop(slotData.slot.name, $event)"
                 >
-                    <!-- Место вставки раздвигает детей слота; TransitionGroup сглаживает сдвиг -->
                     <TransitionGroup name="bricks-canvas-flow">
                         <template
                             v-for="entry in getSlotFlowEntries(

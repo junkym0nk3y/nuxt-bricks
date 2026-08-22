@@ -22,9 +22,9 @@ import { scrollToComponentOnCanvas } from '../../../core/utils/scrollToComponent
 // #endregion
 
 /**
- * Инкапсулирует обработчики контекстного меню и логику выбора компонента:
- * действия (удаление, буфер обмена, скрытие, перемещение, избранное),
- * обработчик клика с загрузкой properties, состояние контекстного меню.
+ * Context menu handlers and selection logic of a canvas item: the actions (delete,
+ * clipboard, hiding, moving, favorites), the click handler that loads the properties, and
+ * the state of the context menu.
  */
 export function useCanvasItemActions(
     props: ICanvasItemProps,
@@ -39,27 +39,27 @@ export function useCanvasItemActions(
     const { t } = useI18n();
 
     // #region Data
-    /** Позиция открытого контекстного меню (null — меню закрыто) */
+    /** Position of the open context menu (null means the menu is closed) */
     const contextMenuPosition = ref<ICanvasContextMenuPosition | null>(null);
     // #endregion
 
     // #region Computed
     /**
-     * Проверяет, находится ли компонент в режиме интерактивного предпросмотра.
+     * Whether the component is in interactive preview mode.
      */
     const isInteractivePreview = computed<boolean>(
         () => componentsStore.interactivePreviewId === props.component.id
     );
 
     /**
-     * Проверяет, является ли компонент избранным по имени.
+     * Whether the component is a favorite, matched by name.
      */
     const isFavorite = computed<boolean>(() =>
         componentsStore.favorites.includes(props.component.componentName)
     );
 
     /**
-     * Можно ли переместить компонент вверх (не первый среди siblings).
+     * Whether the component can move up (it is not the first among its siblings).
      */
     const canMoveUp = computed<boolean>(() => {
         if (props.component.parent) {
@@ -75,7 +75,7 @@ export function useCanvasItemActions(
     });
 
     /**
-     * Можно ли переместить компонент вниз (не последний среди siblings).
+     * Whether the component can move down (it is not the last among its siblings).
      */
     const canMoveDown = computed<boolean>(() => {
         if (props.component.parent) {
@@ -93,15 +93,15 @@ export function useCanvasItemActions(
     });
 
     /**
-     * Доступна ли вставка из буфера обмена компонентов.
+     * Whether pasting from the component clipboard is available.
      */
     const canPaste = computed<boolean>(() => componentsStore.clipboard !== null);
     // #endregion
 
     // #region Methods
     /**
-     * Выделяет компонент: берёт properties из метаданных манифеста либо из
-     * layout definitions и синхронизирует активный viewport в Figma mode.
+     * Selects the component: takes its properties from the manifest metadata or from the
+     * layout definitions, and syncs the active viewport in Figma mode.
      */
     function selectSelf(): void {
         const { properties, description } = resolveComponentEditorMetadata(props.component);
@@ -114,18 +114,18 @@ export function useCanvasItemActions(
     }
 
     /**
-     * Выделяет компонент и скроллит канвас до него (открытие редактирования).
+     * Selects the component and scrolls the canvas to it (opening it for editing).
      */
     async function openEditor(): Promise<void> {
-        // Определяем, нужна ли анимация панели свойств (повлияет на размер канваса)
+        // Whether the properties panel has to animate open (that changes the canvas size)
         const sidebarAlreadyOpen = sidebarStore.right.visible;
 
         selectSelf();
 
-        // Скроллим до компонента после открытия сайдбара
-        // Если сайдбар уже был открыт — достаточно nextTick
-        // Если открывался — ждём завершения анимации (300ms transition + буфер)
-        // В Figma mode скоупим поиск на активный viewport
+        // Scroll to the component once the sidebar is open.
+        // If the sidebar was open already, nextTick is enough; if it had to open, wait
+        // out the animation (a 300ms transition plus a buffer).
+        // In Figma mode the search is scoped to the active viewport
         const componentId = props.component.id;
         const scrollViewport =
             canvasStore.isFigmaMode && figmaViewport ? figmaViewport.value : undefined;
@@ -142,8 +142,8 @@ export function useCanvasItemActions(
     }
 
     /**
-     * Обрабатывает клик по компоненту: выделяет его и скроллит канвас до компонента.
-     * Если компонент в режиме интерактивного предпросмотра — пропускает клик к children.
+     * Handles a click on the component: selects it and scrolls the canvas to it.
+     * A component in interactive preview mode lets the click through to its children.
      */
     async function handleClick(event: MouseEvent): Promise<void> {
         event.stopPropagation();
@@ -156,13 +156,14 @@ export function useCanvasItemActions(
     }
 
     /**
-     * Открывает контекстное меню в точке курсора. Компонент НЕ выделяется —
-     * панель свойств открывает только пункт «Редактировать».
+     * Opens the context menu at the cursor. The component is NOT selected — only the
+     * "Edit" item opens the properties panel.
      *
-     * Роли без права правки меню не открывается вовсе: все его пункты, кроме
-     * избранного, меняют схему, а отбирать их по одному значило бы оставить меню
-     * из одного пункта и держать список исключений в двух местах. Правой кнопкой
-     * при этом возвращается штатное меню браузера.
+     * For a role without edit rights the menu does not open at all: most of its items
+     * change the schema, and taking those away one by one would leave the four read-only
+     * ones (open the panel, copy, favorite, interactive preview) and keep the list of
+     * exceptions in two places. Right-click then falls through to the browser context
+     * menu.
      */
     function handleContextMenu(event: MouseEvent): void {
         if (isInteractivePreview.value || !canEdit.value) {
@@ -175,41 +176,41 @@ export function useCanvasItemActions(
         contextMenuPosition.value = { x: event.clientX, y: event.clientY };
     }
 
-    /** Пункт «Редактировать»: выделяет компонент и открывает панель свойств. */
+    /** The "Edit" item: selects the component and opens the properties panel */
     async function handleEdit(): Promise<void> {
         await openEditor();
     }
 
-    /** Закрывает контекстное меню. */
+    /** Closes the context menu */
     function closeContextMenu(): void {
         contextMenuPosition.value = null;
     }
 
-    /** Удаляет компонент с канваса. */
+    /** Deletes the component from the canvas */
     function handleDelete(): void {
         componentsStore.removeComponent(props.component.id);
         showToast(t('bricks.canvas.toastDeleted'));
     }
 
-    /** Копирует компонент в буфер обмена компонентов. */
+    /** Copies the component into the component clipboard */
     function handleCopy(): void {
         componentsStore.copyComponentToClipboard(props.component.id);
         showToast(t('bricks.canvas.toastCopied'));
     }
 
-    /** Вставляет дерево компонентов из буфера обмена. */
+    /** Pastes the component tree from the clipboard */
     function handlePaste(): void {
         componentsStore.pasteFromClipboard();
         showToast(t('bricks.canvas.toastPasted'));
     }
 
-    /** Дублирует компонент. */
+    /** Duplicates the component */
     function handleDuplicate(): void {
         componentsStore.duplicateComponent(props.component.id);
         showToast(t('bricks.canvas.toastPasted'));
     }
 
-    /** Переключает скрытие компонента (toast — только при отключении). */
+    /** Toggles hiding of the component (the toast shows only when it is switched off) */
     function handleToggleHidden(): void {
         const willHide = !props.component.isHidden;
         componentsStore.setComponentHidden(props.component.id, willHide);
@@ -219,23 +220,23 @@ export function useCanvasItemActions(
         }
     }
 
-    /** Переключает видимость на конкретном устройстве. */
+    /** Toggles visibility on one device */
     function handleToggleDevice(device: TBricksDeviceKey): void {
         const current = props.component.deviceVisibility?.[device] !== false;
         componentsStore.setComponentDeviceVisibilityFlag(props.component.id, device, !current);
     }
 
-    /** Перемещает компонент вверх. */
+    /** Moves the component up */
     function handleMoveUp(): void {
         componentsStore.moveComponentUp(props.component.id);
     }
 
-    /** Перемещает компонент вниз. */
+    /** Moves the component down */
     function handleMoveDown(): void {
         componentsStore.moveComponentDown(props.component.id);
     }
 
-    /** Переключает избранное (toast — только при добавлении). */
+    /** Toggles the favorite mark (the toast shows only when it is added) */
     function handleToggleFavorite(): void {
         const willAdd = !isFavorite.value;
         componentsStore.toggleFavorite(props.component.componentName);
@@ -246,7 +247,7 @@ export function useCanvasItemActions(
     }
 
     /**
-     * Переключает режим интерактивного предпросмотра для компонента.
+     * Toggles interactive preview mode for the component.
      */
     function handleToggleInteractivePreview(): void {
         componentsStore.toggleInteractivePreview(props.component.id);

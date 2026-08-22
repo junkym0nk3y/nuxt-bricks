@@ -13,12 +13,12 @@ const emit = defineEmits<IInlineEditingHeaderEmits>();
 // #endregion
 
 // #region Methods
-/** Переключает на предыдущее свойство. */
+/** Switches to the previous property */
 function handleSwitchPrev(): void {
     emit('switch-prev');
 }
 
-/** Переключает на следующее свойство. */
+/** Switches to the next property */
 function handleSwitchNext(): void {
     emit('switch-next');
 }

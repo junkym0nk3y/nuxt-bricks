@@ -8,14 +8,14 @@ import BuilderCanvasConditionalContainer from './BuilderCanvasConditionalContain
 // #endregion
 
 /**
- * Место будущей вставки блока: раздвигает соседей в потоке и повторяет
- * фактический размер перетаскиваемого блока. Размеры приходят из CSS-переменных
- * канваса (`--bricks-drag-placeholder-*`), которые заполняет drag-состояние стора.
+ * The spot a block is about to land in: it pushes the neighbors of the flow apart and
+ * repeats the actual size of the dragged block. The sizes come from the canvas CSS
+ * variables (`--bricks-drag-placeholder-*`), which the drag state of the store fills in.
  *
- * Root-блок без `fullWidth` рендерится внутри `.bricks-container`
- * (см. `needsContainerWrapper` в `BuilderCanvasItem`), поэтому место вставки
- * в корне тоже оборачивается в контейнер — иначе оно шире реального блока
- * на aside-отступы и не знает про `max-width`.
+ * A root block without `fullWidth` is rendered inside `.bricks-container` (see
+ * `needsContainerWrapper` in `BuilderCanvasItem`), so an insertion point at the root is
+ * wrapped in a container too — otherwise it is wider than the real block by the aside
+ * padding and knows nothing about `max-width`.
  */
 
 // #region Props

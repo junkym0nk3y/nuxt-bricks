@@ -19,20 +19,20 @@ import BuilderCanvasConditionalContainer from '../../viewport/components/Builder
 
 // #region Interfaces
 /**
- * Пропсы для компонента BuilderCanvasItemLayout
+ * Props of the BuilderCanvasItemLayout component
  */
 interface ICanvasItemLayoutProps {
-    /** Экземпляр компонента для рендеринга */
+    /** Component instance to render */
     component: IBricksComponent;
-    /** Имя типа layout в нижнем регистре (grid, flex, space, title, text, media) */
+    /** Lower-cased name of the block, as the registry knows it (grid, flex, section, …) */
     layoutName: string;
-    /** Специфичные пропсы layout-компонента */
+    /** Props specific to the layout component */
     layoutProps: TLayoutProps;
-    /** Вычисленные пропсы для передачи в компонент (исключая внутренние) */
+    /** Resolved props to pass into the component (internal ones excluded) */
     componentBoundProps: Record<string, unknown>;
-    /** Нужно ли оборачивать компонент в контейнер */
+    /** Whether the component has to be wrapped in a container */
     needsContainerWrapper: boolean;
-    /** Дочерние компоненты для layout-контейнеров */
+    /** Child components for layout containers */
     childComponents: IBricksComponent[];
 }
 // #endregion

@@ -1,5 +1,5 @@
 /**
- * Типы для composables домена canvas.
+ * Types for composables of the canvas domain.
  */
 
 import type { IComponentSlotDefinition, IBricksComponent } from '../../../common/types/brick';
@@ -7,7 +7,7 @@ import type { ComputedRef, MaybeRefOrGetter, Ref, VNodeRef } from 'vue';
 
 // #region useComponentSlots
 /**
- * Данные для рендеринга слота с дочерними компонентами.
+ * Data for rendering a slot together with its child components.
  */
 export interface ISlotRenderData {
     slot: IComponentSlotDefinition;
@@ -15,7 +15,7 @@ export interface ISlotRenderData {
 }
 
 /**
- * Возвращаемое значение composable useComponentSlots.
+ * Return value of the useComponentSlots composable.
  */
 export interface IUseComponentSlotsReturn {
     slotRenderData: ComputedRef<ISlotRenderData[]>;
@@ -25,7 +25,7 @@ export interface IUseComponentSlotsReturn {
 
 // #region useSlotDragDrop
 /**
- * Состояние drag-and-drop для одного слота.
+ * Drag-and-drop state of a single slot.
  */
 export interface ISlotState {
     dragDepth: number;
@@ -34,7 +34,7 @@ export interface ISlotState {
 }
 
 /**
- * Возвращаемое значение composable useSlotDragDrop.
+ * Return value of the useSlotDragDrop composable.
  */
 export interface IUseSlotDragDropReturn {
     getSlotDropIndex: (slotName: string) => number | null;
@@ -48,41 +48,41 @@ export interface IUseSlotDragDropReturn {
 
 // #region useDraggableOverlay
 /**
- * Опции composable useDraggableOverlay (перетаскиваемый fixed-overlay,
- * привязанный к якорному элементу на канвасе).
+ * Options of the useDraggableOverlay composable (a draggable fixed overlay
+ * bound to an anchor element on the canvas).
  */
 export interface IDraggableOverlayOptions {
-    /** Корневой элемент overlay (для ResizeObserver). */
+    /** Root element of the overlay (for ResizeObserver) */
     overlayRef: Ref<HTMLElement | null>;
-    /** Якорный элемент, к которому привязана позиция overlay. */
+    /** Anchor element the overlay position is bound to */
     anchorElement: MaybeRefOrGetter<HTMLElement | null>;
-    /** Смещение курсора в момент открытия (от верхнего левого угла якоря). */
+    /** Cursor offset at the moment of opening (from the top left corner of the anchor) */
     cursorOffset: () => { x: number; y: number } | null;
-    /** При смене значения drag-смещение сбрасывается. */
+    /** Changing this value resets the drag offset */
     resetKey: () => unknown;
 }
 // #endregion
 
 // #region useInlineEditingFallback
 /**
- * Опции composable useInlineEditingFallback.
+ * Options of the useInlineEditingFallback composable.
  */
 export interface IInlineEditingFallbackOptions {
-    /** Вызывается при переключении редактируемого свойства (сброс toolbar state). */
+    /** Called when the edited property is switched (resets the toolbar state) */
     onPropSwitch?: () => void;
 }
 // #endregion
 
 // #region useCanvasContainerMetrics
 /**
- * Опции composable useCanvasContainerMetrics.
+ * Options of the useCanvasContainerMetrics composable.
  */
 export interface ICanvasContainerMetricsOptions {
-    /** Корневой контейнер контента канваса (data-root-drop-zone). */
+    /** Root container of the canvas content (data-root-drop-zone) */
     containerRef: Ref<HTMLElement | null>;
-    /** Планировщик горизонтального центрирования канваса. */
+    /** Scheduler of horizontal canvas centering */
     scheduleCanvasCenter: (behavior?: ScrollBehavior) => void;
-    /** Скролл до выбранного компонента после смены viewport / выхода из Figma mode. */
+    /** Scrolls to the selected component after a viewport switch or on leaving Figma mode */
     scrollToSelected: () => void;
 }
 // #endregion

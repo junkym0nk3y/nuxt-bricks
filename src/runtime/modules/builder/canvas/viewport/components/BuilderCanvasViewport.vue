@@ -46,7 +46,10 @@ const getRemCompensation = inject<((viewport: TBricksDeviceKey) => number) | und
     'getRemCompensation'
 );
 
-/** Провайдим viewport для дочерних BuilderCanvasItem (Figma mode, ближайший провайдер выигрывает) */
+/**
+ * Provides the viewport to child BuilderCanvasItem components (Figma mode; the nearest
+ * provider wins).
+ */
 provide(
     CANVAS_VIEWPORT_KEY,
     computed(() => props.viewport)
@@ -76,13 +79,13 @@ const {
 
 let containerResizeObserver: ResizeObserver | null = null;
 
-// Figma mode: масштаб общий для всех viewport-ов — глушим переходы потока так же,
-// как в обычном канвасе.
+// Figma mode: the scale is shared by every viewport, so the flow transitions are silenced
+// here just as they are on the normal canvas.
 useCanvasFlowGuard(canvasRef);
 // #endregion
 
 // #region Computed
-/** Устройство набора, которому принадлежит этот лист. */
+/** Device of the set this sheet belongs to */
 const device = computed(() => canvasStore.devices.find((item) => item.key === props.viewport));
 
 const viewportWidth = computed<number>(() => canvasStore.getViewportWidth(props.viewport));
@@ -107,13 +110,19 @@ const canvasStyle = computed<Record<string, string>>(() => {
     return style;
 });
 
-/** Root-поток: блоки страницы и место вставки одним keyed-списком для TransitionGroup. */
+/** Root flow: the page blocks and the insertion point as one keyed list for TransitionGroup */
 const rootFlowEntries = computed<TDropFlowEntry[]>(() =>
     buildDropFlowEntries(componentsStore.getRootComponents(), rootDropIndex.value, 'root-drop')
 );
 
-// Подпись берётся из набора: имён Mobile/Tablet/Desktop в коде больше нет —
-// устройство может называться как угодно и быть четвёртым
+/**
+ * Label of the sheet, taken from the device set: the names Mobile/Tablet/Desktop are gone
+ * from the code — a device may be called anything and may be the fourth one.
+ *
+ * Its color is the workspace foreground rather than a theme-dependent `base-500`: the
+ * label lies on the background of the working area, and that background is the same in
+ * both themes, so `base-500` gave light text on a light surface in the dark theme.
+ */
 const viewportLabel = computed<string>(
     () => `${device.value?.label ?? props.viewport} — ${viewportWidth.value}px`
 );
@@ -121,7 +130,7 @@ const viewportLabel = computed<string>(
 
 // #region Methods
 /**
- * Синхронизирует высоту viewport-а с фактическим контентом.
+ * Syncs the height of the viewport with the actual content.
  */
 function updateViewportHeight(): void {
     const container = containerRef.value;
@@ -149,9 +158,9 @@ function updateViewportHeight(): void {
 }
 
 /**
- * Обрабатывает клик по канвасу — сбрасывает выбор.
+ * Handles a click on the canvas: drops the selection.
  *
- * @param event - Событие клика.
+ * @param event - Click event.
  */
 function handleCanvasClick(event: MouseEvent): void {
     if (event.target === event.currentTarget) {
@@ -160,11 +169,12 @@ function handleCanvasClick(event: MouseEvent): void {
 }
 
 /**
- * Обрабатывает drop на канвас viewport-а.
- * Делегирует позиционирование в handleCanvasDrop.
- * Если figmaDropPerViewport включён — ограничивает видимость только текущим viewport.
+ * Handles a drop on the canvas of this viewport: the positioning is delegated to
+ * handleCanvasDrop, and with figmaDropPerViewport on, a block the drop has just created
+ * is narrowed down to the current viewport. A block moved from elsewhere keeps the
+ * visibility it already had.
  *
- * @param event - Нативное drop-событие.
+ * @param event - Native drop event.
  */
 function handleViewportDrop(event: DragEvent): void {
     const idsBefore = new Set(componentsStore.components.map((c) => c.id));
@@ -177,8 +187,8 @@ function handleViewportDrop(event: DragEvent): void {
 
     const newComponent = componentsStore.components.find((c) => !idsBefore.has(c.id));
     if (newComponent) {
-        // One-hot по набору, а не по трём зашитым ключам: блок, брошенный на
-        // лист ноутбука, обязан скрыться и на всех остальных устройствах набора
+        // One-hot over the set rather than over three hardcoded keys: a block dropped on
+        // the laptop sheet has to be hidden on every other device of the set as well
         componentsStore.setComponentDeviceVisibility(
             newComponent.id,
             Object.fromEntries(
@@ -191,13 +201,9 @@ function handleViewportDrop(event: DragEvent): void {
 
 // #region Lifecycle
 /**
- * Пересчитывает высоту viewport-а при изменении состава компонентов.
- *
- * Два источника покрывают все кейсы:
- * - `components` (ссылка) — ловит полную замену массива (loadSchema, undo/redo)
- * - `components.length` — ловит мутации (push, splice)
- *
- * ResizeObserver не срабатывает при уменьшении контента (minHeight блокирует сжатие контейнера).
+ * Recomputes the height of the sheet when the set of components changes. Why two sources
+ * are watched, and why the ResizeObserver alone is not enough, is spelled out in
+ * `useCanvasContainerMetrics` — the same pair of watchers serves the normal canvas.
  */
 watch([() => componentsStore.components, () => componentsStore.components.length], () => {
     nextTick(() => {
@@ -264,7 +270,6 @@ onBeforeUnmount(() => {
                     @dragover="handleRootDragOver"
                     @dragleave="handleRootDragLeave"
                 >
-                    <!-- Плейсхолдер раздвигает соседей в потоке; TransitionGroup сглаживает сдвиг -->
                     <TransitionGroup name="bricks-canvas-flow">
                         <template v-for="entry in rootFlowEntries" :key="entry.key">
                             <BuilderCanvasDropPlaceholder
@@ -295,9 +300,6 @@ onBeforeUnmount(() => {
     font-size: 2.4rem;
     font-weight: 600;
     letter-spacing: 0.05rem;
-
-    // Подпись лежит на фоне рабочей области, а он один в обеих темах: с
-    // темозависимым base-500 в тёмной теме получался светлый текст на светлом
     color: var(--bricks-workspace-fg);
 }
 

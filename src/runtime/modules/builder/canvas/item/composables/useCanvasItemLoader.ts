@@ -26,8 +26,8 @@ import { buildForceRenderSnapshot } from '../utils/forceRenderSnapshot';
 const FORCE_RENDER_DEBOUNCE_MS = 500;
 
 /**
- * Управляет асинхронной загрузкой Vue-компонента из brick-модуля
- * и механизмом принудительного перерендера при изменении forceRender-пропов.
+ * Drives the async loading of the Vue component out of a brick module, and the forced
+ * re-render that follows a change of a forceRender prop.
  */
 export function useCanvasItemLoader(props: ICanvasItemProps, isLayout: ComputedRef<boolean>) {
     const { findImportModule } = useBrickImports();
@@ -69,9 +69,9 @@ export function useCanvasItemLoader(props: ICanvasItemProps, isLayout: ComputedR
 
     // #region Computed
     /**
-     * Пропы, правка которых требует полного пересоздания компонента.
-     * Берутся из метаданных манифеста, а не из загруженного модуля: до
-     * появления записи список пуст, и пересоздавать нечего.
+     * Props whose edit requires the component to be created from scratch.
+     * Taken from the manifest metadata rather than from the loaded module: until the
+     * record arrives the list is empty, and there is nothing to recreate.
      */
     const forceRenderProps = computed<string[]>(() =>
         Object.entries(readBrickMetadata(props.component.brickPath)?.values ?? {})
@@ -80,7 +80,7 @@ export function useCanvasItemLoader(props: ICanvasItemProps, isLayout: ComputedR
     );
 
     /**
-     * Сериализованные значения пропов с forceRender для отслеживания изменений.
+     * Serialized values of the forceRender props, used to detect a change.
      */
     const forceRenderPropsSnapshot = computed<string>(() =>
         buildForceRenderSnapshot(forceRenderProps.value, props.component.props || {})
@@ -88,9 +88,9 @@ export function useCanvasItemLoader(props: ICanvasItemProps, isLayout: ComputedR
     // #endregion
 
     watch(forceRenderPropsSnapshot, (newSnapshot, oldSnapshot) => {
-        // Пустой прежний снимок — это «список forceRender-пропов ещё не был
-        // известен», а не правка пользователя: метаданные приезжают отдельным
-        // запросом, и их появление само по себе пересоздавать компонент не должно
+        // An empty previous snapshot means "the list of forceRender props was not known
+        // yet", not an edit by the user: the metadata arrives in a separate request, and
+        // its arrival alone must not recreate the component
         if (!newSnapshot || !oldSnapshot || newSnapshot === oldSnapshot) {
             return;
         }

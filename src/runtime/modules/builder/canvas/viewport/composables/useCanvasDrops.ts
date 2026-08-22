@@ -15,9 +15,9 @@ import { suspendCanvasFlowTransitions } from '../../../core/utils/canvasFlow';
 // #endregion
 
 /**
- * Собирает всю drag & drop-логику корневой области канваса в одном месте.
+ * Collects the whole drag and drop logic of the canvas root area in one place.
  *
- * @param options - Параметры, необходимые для работы обработчиков.
+ * @param options - Parameters the handlers need.
  */
 export function useCanvasDrops({
     dragComposable,
@@ -26,17 +26,20 @@ export function useCanvasDrops({
     containerRef,
 }: ICanvasDropsOptions) {
     const canvasStore = useCanvasStore();
-    /** Индекс будущей вставки в root: он же позиция flow-плейсхолдера в шаблоне. */
+    /**
+     * Index of the upcoming insertion into the root: also the position of the flow
+     * placeholder in the template.
+     */
     const rootDropIndex = ref<number | null>(null);
     const rootDragDepth = ref(0);
 
     /**
-     * Попадёт ли будущий root-блок внутрь `.bricks-container`: контейнер отключает
-     * только `fullWidth`, поэтому место вставки должно повторять его геометрию
-     * (max-width + aside-отступы), а не всю ширину канваса.
+     * Whether the upcoming root block lands inside `.bricks-container`: only
+     * `fullWidth` turns the container off, so the insertion point has to repeat its
+     * geometry (max-width plus the aside padding) instead of the full canvas width.
      *
-     * Новый блок из библиотеки всегда создаётся без `fullWidth`; существующий
-     * сохраняет своё значение при переносе в корень.
+     * A new block from the library is always created without `fullWidth`; an existing
+     * one keeps its own value when moved to the root.
      */
     const isRootPlaceholderContained = computed<boolean>(() => {
         const { source, componentId } = canvasStore.dragState;
@@ -49,19 +52,20 @@ export function useCanvasDrops({
     });
 
     /**
-     * Отключает анимацию сдвига потока на время применения drop.
+     * Turns the flow shift animation off while the drop is applied.
      *
-     * Место под блок уже раздвинуто плейсхолдером, поэтому FLIP на этом патче
-     * рисовал бы «доезд» блока к позиции после отпускания курсора.
+     * The placeholder has already opened the gap for the block, so FLIP on this patch
+     * would draw the block "traveling" to a position it already occupies once the
+     * cursor is released.
      */
     function commitFlowInstantly(): void {
         suspendCanvasFlowTransitions(canvasRef.value);
     }
 
     /**
-     * Обрабатывает drop по корневой области канваса и передает данные drag-композиблу.
+     * Handles a drop on the canvas root area and hands the data to the drag composable.
      *
-     * @param event - Нативное drop-событие браузера.
+     * @param event - Native browser drop event.
      */
     function handleCanvasDrop(event: DragEvent): void {
         if (canvasRef.value && dragComposable?.handleDrop) {
@@ -73,27 +77,27 @@ export function useCanvasDrops({
             });
 
             resetRootDropPlaceholder();
-            // Drop-сессия закончена независимо от того, приняла ли зона payload:
-            // без этого исходное место оставалось схлопнутым до `dragend`, который
-            // браузер присылает на кадр-два позже — блок «возвращался» с задержкой.
+            // The drop session is over whether or not the zone accepted the payload:
+            // without this the original spot stayed collapsed until `dragend`, which the
+            // browser delivers a frame or two later — the block "came back" with a lag.
             finishDrag();
         }
     }
 
     /**
-     * Делегирует событие dragover активному drag-композиблу.
+     * Delegates a dragover event to the active drag composable.
      *
-     * @param event - Нативное dragover-событие.
+     * @param event - Native dragover event.
      */
     function handleCanvasDragOver(event: DragEvent): void {
         dragComposable?.handleDragOver?.(event);
     }
 
     /**
-     * Проверяет, можно ли обрабатывать drag-событие как корневое.
+     * Checks whether a drag event may be handled as a root-level one.
      *
-     * @param event - Текущее drag-событие.
-     * @returns Нужно ли обрабатывать событие на корневом уровне.
+     * @param event - Current drag event.
+     * @returns Whether the event belongs to the root level.
      */
     function shouldHandleRootDrag(event: DragEvent): boolean {
         const container = containerRef.value;
@@ -119,7 +123,7 @@ export function useCanvasDrops({
     }
 
     /**
-     * Сбрасывает позицию плейсхолдера и глубину drag-событий на корне.
+     * Resets the placeholder position and the drag event depth of the root.
      */
     function resetRootDropPlaceholder(): void {
         rootDropIndex.value = null;
@@ -127,9 +131,9 @@ export function useCanvasDrops({
     }
 
     /**
-     * Убирает корневой transient-плейсхолдер при окончании или отмене drag.
+     * Removes the transient root placeholder when a drag ends or is canceled.
      *
-     * @param source - Текущий источник drag-сессии.
+     * @param source - Current source of the drag session.
      */
     function handleDragSourceChange(source: TCanvasDragSource | null): void {
         if (source === null) {
@@ -140,9 +144,9 @@ export function useCanvasDrops({
     watch(() => canvasStore.dragState.source, handleDragSourceChange, { flush: 'sync' });
 
     /**
-     * Обрабатывает вход курсора в корневую drop-зону.
+     * Handles the cursor entering the root drop zone.
      *
-     * @param event - Drag-событие при входе указателя.
+     * @param event - Drag event of the pointer entering.
      */
     function handleRootDragEnter(event: DragEvent): void {
         if (!shouldHandleRootDrag(event)) {
@@ -155,9 +159,9 @@ export function useCanvasDrops({
     }
 
     /**
-     * Пересчитывает индикатор при перемещении курсора внутри drop-зоны.
+     * Recomputes the indicator as the cursor moves inside the drop zone.
      *
-     * @param event - Текущее dragover-событие.
+     * @param event - Current dragover event.
      */
     function handleRootDragOver(event: DragEvent): void {
         if (!shouldHandleRootDrag(event)) {
@@ -170,9 +174,9 @@ export function useCanvasDrops({
     }
 
     /**
-     * Завершает обработку drop-зоны при выходе курсора.
+     * Finishes handling the drop zone when the cursor leaves it.
      *
-     * @param event - Drag-событие при выходе указателя.
+     * @param event - Drag event of the pointer leaving.
      */
     function handleRootDragLeave(event: DragEvent): void {
         if (!shouldHandleRootDrag(event)) {
@@ -187,9 +191,9 @@ export function useCanvasDrops({
     }
 
     /**
-     * Пересчитывает индекс вставки корневой drop-зоны по позиции курсора.
+     * Recomputes the insertion index of the root drop zone from the cursor position.
      *
-     * @param event - Текущее dragover-событие.
+     * @param event - Current dragover event.
      */
     function updateRootDropPlaceholder(event: DragEvent): void {
         const container = containerRef.value;
@@ -215,7 +219,7 @@ export function useCanvasDrops({
     }
 
     /**
-     * Завершает успешную drag-сессию после мутации store.
+     * Closes a successful drag session after the store mutation.
      */
     function finishDrag(): void {
         dragComposable?.endDrag();
@@ -223,9 +227,9 @@ export function useCanvasDrops({
     }
 
     /**
-     * Обрабатывает кастомное событие `layout-drop` от дочерних layout-компонентов.
+     * Handles the custom `layout-drop` event from child layout components.
      *
-     * @param event - Событие layout-компонента.
+     * @param event - Event of the layout component.
      */
     function handleLayoutDrop(event: CustomEvent): void {
         resetRootDropPlaceholder();
@@ -249,9 +253,9 @@ export function useCanvasDrops({
     }
 
     /**
-     * Переносит существующий компонент в указанный layout.
+     * Moves an existing component into the given layout.
      *
-     * @param layoutDropDetail - Параметры перемещения.
+     * @param layoutDropDetail - Move parameters.
      */
     function moveExistingComponent({
         layoutId,
@@ -274,9 +278,9 @@ export function useCanvasDrops({
     }
 
     /**
-     * Создает новый компонент из библиотеки и вставляет его в выбранный layout.
+     * Creates a new component from the library and inserts it into the chosen layout.
      *
-     * @param layoutDropDetail - Параметры вставки.
+     * @param layoutDropDetail - Insertion parameters.
      */
     function addComponentFromLibrary({
         layoutId,
@@ -324,9 +328,9 @@ export function useCanvasDrops({
     }
 
     /**
-     * Обрабатывает кастомное событие `slot-drop` из дочерних слот-зон.
+     * Handles the custom `slot-drop` event from child slot zones.
      *
-     * @param event - Событие slot-компонента.
+     * @param event - Event of the slot component.
      */
     function handleSlotDrop(event: CustomEvent): void {
         commitFlowInstantly();

@@ -26,9 +26,9 @@ import {
 // #endregion
 
 /**
- * Управляет логикой inline-редактирования для элемента канваса:
- * определяет редактируемые пропы, запускает/останавливает редактирование,
- * обрабатывает Escape и смену viewport, пробрасывает контекст дочерним компонентам.
+ * Drives inline editing of a canvas item: finds the editable props, starts and stops
+ * editing, handles Escape and a viewport switch, and passes the context down to child
+ * components.
  */
 export function useCanvasItemInlineEditing(
     props: ICanvasItemProps,
@@ -46,7 +46,7 @@ export function useCanvasItemInlineEditing(
     );
     // #endregion
 
-    // Provide inline-editing контекст для дочерних layout-компонентов (BlockText)
+    // Provide the inline editing context for child layout components (BlockText)
     provide('inlineEditingContext', {
         componentId: computed(() => (isInlineEditing.value ? props.component.id : null)),
         propName: computed(() => (isInlineEditing.value ? inlineEditingStore.propName : null)),
@@ -56,8 +56,9 @@ export function useCanvasItemInlineEditing(
 
     // #region Methods
     /**
-     * Находит все inline-editable свойства у компонента.
-     * Для layout — из getLayoutProperties(), для brick — из метаданных манифеста.
+     * Finds every inline-editable property of the component.
+     * For a layout they come from getLayoutProperties(), for a brick from the manifest
+     * metadata.
      */
     function findAllInlineEditableProps(): IInlineEditableProp[] {
         if (isLayout.value) {
@@ -75,8 +76,8 @@ export function useCanvasItemInlineEditing(
     }
 
     /**
-     * Обрабатывает двойной клик для активации inline-editing.
-     * Роль без права правки в редактор текста не входит.
+     * Handles the double click that starts inline editing.
+     * A role without edit rights never enters the text editor.
      */
     function handleDoubleClick(event: MouseEvent): void {
         event.stopPropagation();

@@ -4,17 +4,17 @@ import { readOwnKey } from '../../../../common/utils/safeRecord';
 // #endregion
 
 /**
- * Снимок значений forceRender-пропов для сравнения между рендерами.
+ * Snapshot of forceRender prop values for comparison between renders.
  *
- * Сериализуется парами, а не объектом: имена пропов объявлены в brick-файле,
- * и проп `__proto__` в обычном объекте own-ключа не создаёт — его правка не
- * меняла бы снимок и принудительный перерендер не срабатывал бы. Значения
- * читаются по own-ключу, иначе проп с именем `toString` подставил бы метод
- * прототипа вместо значения из схемы.
+ * Serialized as pairs rather than as an object: prop names are declared in the
+ * brick file, and a `__proto__` prop creates no own key in a plain object — an
+ * edit of it would leave the snapshot unchanged and the forced re-render would
+ * never fire. Values are read by own key; otherwise a prop named `toString`
+ * would substitute the prototype method for the value from the schema.
  *
- * @param propNames - Имена пропов с `forceRender: true` из brick-файла.
- * @param componentProps - Пропсы компонента из схемы страницы.
- * @returns Стабильная строка снимка (пустая, если forceRender-пропов нет).
+ * @param propNames - Names of props with `forceRender: true` from the brick file.
+ * @param componentProps - Component props from the page schema.
+ * @returns Stable snapshot string (empty when the component has no forceRender props).
  */
 export function buildForceRenderSnapshot(
     propNames: string[],

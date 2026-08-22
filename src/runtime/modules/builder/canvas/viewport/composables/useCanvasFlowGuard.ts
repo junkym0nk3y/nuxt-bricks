@@ -13,18 +13,18 @@ import { clearCanvasFlowInstant, markCanvasFlowInstant } from '../../../core/uti
 // #endregion
 
 // #region Data
-/** Пауза после последнего изменения геометрии: колесо зума шлёт события пачкой. */
+/** Pause after the last geometry change: a zoom wheel sends its events in bursts */
 const FLOW_RELEASE_DELAY = 150;
 // #endregion
 
 /**
- * Глушит move-переходы потока, пока меняется геометрия канваса.
+ * Silences the move transitions of the flow while the canvas geometry changes.
  *
- * Зум, смена viewport и пересчёт размеров двигают блоки на экране, не меняя их
- * порядок. `<TransitionGroup>` этого не различает и анимирует «переезд» каждого
- * блока — при зуме канвас заметно дрожит.
+ * A zoom, a viewport switch and a size recompute move the blocks on screen without
+ * changing their order. `<TransitionGroup>` cannot tell the difference and animates
+ * every block "traveling" — under a zoom the canvas visibly shivers.
  *
- * @param canvasRef - Корневой элемент канваса.
+ * @param canvasRef - Root element of the canvas.
  */
 export function useCanvasFlowGuard(canvasRef: Ref<HTMLElement | null>): void {
     const canvasStore = useCanvasStore();
@@ -34,15 +34,16 @@ export function useCanvasFlowGuard(canvasRef: Ref<HTMLElement | null>): void {
     }, FLOW_RELEASE_DELAY);
 
     /**
-     * Помечает канвас на время изменения геометрии и снимает пометку после паузы.
+     * Marks the canvas for the duration of a geometry change and clears the mark after
+     * the pause.
      */
     function holdFlowTransitions(): void {
         markCanvasFlowInstant(canvasRef.value);
         releaseFlowTransitions();
     }
 
-    // flush: 'pre' (дефолт) — класс встаёт до патча, Vue успевает увидеть его
-    // при проверке transform-перехода.
+    // flush: 'pre' (the default) — the class lands before the patch, so Vue sees it
+    // while checking for a transform transition.
     watch(
         [
             () => canvasStore.scale,

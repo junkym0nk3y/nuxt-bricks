@@ -3569,6 +3569,404 @@ playground: в середине hover-волны у поднимающегося
 необходимое и потому маскирует настоящую ловушку регистра в этой же области — находку 11.1,
 где сравнение с литералом `'grid'` делается без него и не срабатывает никогда.
 
+## Этап 12 — builder/canvas
+
+### 12.1 Висячий JSDoc `calculateOptimalScale` стоял над константой и обещал сумму трёх viewport
+
+**Файл:** `src/runtime/modules/builder/canvas/viewport/composables/useCanvas.ts:23-28` (до правки)
+**Категория:** разъехавшийся комментарий
+**Статус:** текст исправлен в этапе 12
+
+Блок «Высчитывает оптимальный масштаб… В Figma Mode учитывает суммарную ширину трёх
+viewport-ов» стоял не над `calculateOptimalScale`, а над константой
+`VERTICAL_NAV_WIDTH_REM`: между описанием и функцией со временем вклинились две константы
+и ещё один блок, и сама функция осталась без шапки вовсе. Утверждение к тому же неверно —
+`getFigmaContentWidth` считает по набору (`canvasStore.devices`), а не по трём зашитым
+устройствам. Блок перенесён к функции и переписан по факту.
+
+### 12.2 Сброс ручного зума приписан watcher-у, который его не делает
+
+**Файл:** `src/runtime/modules/builder/canvas/viewport/composables/useCanvas.ts:80-85` (до правки)
+**Категория:** разъехавшийся комментарий
+**Статус:** текст исправлен в этапе 12
+
+Шапка `devicesGeometry` объясняла состав подписи так: «иначе ввод имени в редакторе набора
+пересчитывал бы масштаб и сбрасывал ручной зум на каждый символ». Watcher этой подписи
+ручной зум не сбрасывает и сбросить не может: при `hasManualZoom` он выходит первым же
+условием. Флаг гасит стор — `setDevices` (`builder/core/stores/canvas.ts:109`), и он же
+пропускает правку одной подписи ранним возвратом по совпадающей сигнатуре. Реальное
+следствие включения подписи в геометрию — пересчёт вписывания на каждый символ у того, у
+кого ручного зума нет. Формулировка исправлена, владелец сброса назван.
+
+### 12.3 `remBase`: ключ устройства описан фиксированной тройкой, Figma-режим — тремя листами
+
+**Файл:** `src/runtime/modules/builder/canvas/viewport/composables/useCanvasRemBase.ts:44`,
+`:80-86` (до правки)
+**Категория:** разъехавшийся комментарий
+**Статус:** текст исправлен в этапе 12
+
+`@param viewport - Тип viewport (mobile / tablet / desktop)` и «используется в Figma Mode,
+где три viewport-а рендерятся одновременно». Набор устройств настраиваемый
+(`TBricksDeviceKey` — `string`, `common/types/brick.ts:19`), а листов в Figma-режиме
+столько, сколько устройств в наборе. Та же закономерность, что в находках 11.14 и 11.15:
+одна и та же тройка расползлась по областям, и в этой области нашлась ещё четыре раза
+(12.1, 12.4, 12.7, 12.8); в `@example` этого же файла ключи набора вдобавок были подписаны
+по-русски.
+
+### 12.4 «При смене адаптива (mobile → tablet → desktop)» в пересчёте высоты
+
+**Файл:**
+`src/runtime/modules/builder/canvas/viewport/composables/useCanvasContainerMetrics.ts:72`
+(до правки)
+**Категория:** разъехавшийся комментарий
+**Статус:** текст исправлен в этапе 12
+
+Watcher реагирует на любую смену `canvasStore.viewport`, а не на переход по зашитой
+цепочке из трёх. Заменено на «лист другой ширины перестраивает контент» — механизм тот же,
+а от числа устройств не зависит.
+
+### 12.5 Шапка `canvasStyle` перечисляла три источника стилей из четырёх
+
+**Файл:** `src/runtime/modules/builder/canvas/viewport/components/TheBuilderCanvas.vue:172-184`
+(до правки)
+**Категория:** разъехавшийся комментарий
+**Статус:** текст исправлен в этапе 12
+
+«Базовые стили: width/height из canvasStore, backgroundColor из настроек публикации,
+fontFamily из конфига» — в объекте есть и четвёртый источник, `getDragPlaceholderVars`
+(CSS-переменные плейсхолдера драга, `builder/core/utils/dragVisuals.ts`). Ровно тот же
+дефект, что в находке 11.16: неполный перечень читается как исчерпывающий и разрешает
+выкинуть «лишнее» — здесь это сломало бы размер плейсхолдера вставки, который читает эти
+переменные (`BuilderCanvasDropPlaceholder`).
+
+### 12.6 Семишаговый список в шапке `onMounted` пропускал два шага из девяти
+
+**Файл:** `src/runtime/modules/builder/canvas/viewport/components/TheBuilderCanvas.vue:285-296`
+(до правки)
+**Категория:** разъехавшийся комментарий
+**Статус:** текст исправлен в этапе 12
+
+Нумерованная «последовательность» из семи пунктов не упоминала ни первый оператор тела —
+`canvasStore.initCanvasSize()`, ни подписку `document.addEventListener('dragend', …)`.
+Список, дословно повторяющий тело функции, устаревает при первой же правке и при этом
+выглядит контрактом. Заменён описанием инвариантов (что должно случиться до расчёта
+масштаба, почему динамические стили включаются только после первого рендера, когда
+навешиваются слушатели); пошаговые пометки остались у самих строк.
+
+### 12.7 Комментарий в шаблоне обещал три viewport рядом
+
+**Файл:** `src/runtime/modules/builder/canvas/viewport/components/TheBuilderCanvas.vue:355`
+(до удаления)
+**Категория:** разъехавшийся комментарий
+**Статус:** удалён в этапе 12 по правилу чистки `<template>`
+
+`<!-- Figma Mode: три viewport-а рядом -->` стоял прямо над
+`v-for="device in canvasStore.devices"`. Опровержение — в той же строке кода под
+комментарием.
+
+### 12.8 «Три вьюпорта и Figma mode — одна группа» при списке из набора
+
+**Файл:** `src/runtime/modules/builder/canvas/viewport/components/BuilderCanvasBottomBar.vue:125`
+(до правки)
+**Категория:** разъехавшийся комментарий
+**Статус:** текст исправлен в этапе 12
+
+`handleSelectViewport` описан через три вьюпорта, тогда как список табов собирается из
+`canvasStore.devices` двадцатью строками выше в том же файле, а сам обработчик ищет
+устройство по ключу в наборе.
+
+### 12.9 `layoutName` описан шестью блоками из девяти, и один из шести не существует
+
+**Файл:** `src/runtime/modules/builder/canvas/item/components/BuilderCanvasItemLayout.vue:27`
+(до правки)
+**Категория:** разъехавшийся комментарий
+**Статус:** текст исправлен в этапе 12
+
+`/** Имя типа layout в нижнем регистре (grid, flex, space, title, text, media) */` — в
+реестре девять блоков (`layouts-blocks/canvasBlockComponents.ts:24-34`: Grid, Flex,
+Section, Space, Slider, Text, Media, Accordion, Svg), а `title` среди них нет вовсе: такого
+блока в проекте не существует. Перечисление заменено описанием (имя блока, как его знает
+реестр) — по той же причине, что в находке 11.13.
+
+### 12.10 Рационал двух watch-ей скопирован в компонент из composable
+
+**Файл:** `src/runtime/modules/builder/canvas/viewport/components/BuilderCanvasViewport.vue:193-201`
+(до правки), владелец —
+`viewport/composables/useCanvasContainerMetrics.ts:53-62`
+**Категория:** дубль рационала
+**Статус:** заменён ссылкой в этапе 12
+
+Оба файла объясняли одно и то же почти дословно: почему смотрят два источника
+(`components` ссылкой и `components.length`) и почему ResizeObserver не ловит уменьшение
+контента. Владелец механики — composable обычного канваса; в компоненте оставлена ссылка
+на него по правилу «вместо копии — ссылка» (действует с этапа 0, внутри области искать
+дубли начал с этапа 11).
+
+### 12.11 Замер высоты по контенту и пара watch-ей продублированы кодом
+
+**Файл:** `src/runtime/modules/builder/canvas/viewport/composables/useCanvasContainerMetrics.ts:26-37`,
+`:65-69` и `viewport/components/BuilderCanvasViewport.vue:135-158`, `:207-211`
+**Категория:** нарушение DRY
+**Статус:** открыто
+
+Приём «снять `minHeight`, прочитать `scrollHeight`, вернуть `minHeight`» написан дважды, и
+дважды написана пара watch-ей на состав компонентов; в компоненте вдобавок свой
+`ResizeObserver` с собственным `onMounted`/`onBeforeUnmount`. Различие между копиями одно:
+composable кладёт результат в стор (`syncCanvasHeightWithContent`), а компонент — в
+локальный `viewportHeight` с буфером `CANVAS_HEIGHT_BUFFER`. Кандидат на общий composable
+с параметром «куда писать результат»; дубль рационала (12.10) — прямое следствие дубля
+кода.
+
+### 12.12 Сборка `componentData` из перетаскиваемой карточки написана трижды
+
+**Файл:** `src/runtime/modules/builder/canvas/viewport/composables/useCanvasDrops.ts:298-314`,
+`:362-376`, плюс маппинг слотов в `item/composables/useCanvasItemDrag.ts:45-52`
+**Категория:** нарушение DRY
+**Статус:** открыто
+
+`addComponentFromLibrary` и `handleSlotDrop` строят один и тот же объект — `componentName`,
+`brickPath`, нулевые `width`/`height`, глубокое копирование `defaultProps` через
+`JSON.parse(JSON.stringify(...))` и маппинг `slots` из четырёх полей. Отличий два:
+`gridColumn`/`gridRow` в первом и флаги истории во втором. Тот же маппинг слотов в третий
+раз лежит в `useCanvasItemDrag`. Правка формы слота (новое поле определения) требует
+сейчас трёх согласованных правок в двух файлах.
+
+### 12.13 Интерфейсы пропсов объявлены внутри SFC, а не в `types/`
+
+**Файл:** `src/runtime/modules/builder/canvas/item/components/BuilderCanvasItemLayout.vue:24-37`,
+`viewport/components/BuilderCanvasConditionalContainer.vue:6-9`
+**Категория:** нарушение соглашения (`.claude/rules/typescript.md`)
+**Статус:** открыто
+
+Правило требует объявлять интерфейсы только в файлах типов — «независимо от того,
+экспортируются они или нужны лишь здесь». У домена такой файл есть и уже содержит соседей
+(`canvas/types/components.d.ts`: `ICanvasItemComponentProps`, `ICanvasViewportProps`,
+`ICanvasDropPlaceholderProps`), так что оба объявления — исключения без причины. Сторож
+`test/module/typeLocations.spec.ts` их не видит: он проверяет `src/*.ts` и композаблы
+рантайм-доменов, а SFC — нет. Перенос в этом спринте не делался: это правка кода.
+
+### 12.14 Форс светлой темы в `.fallbackEditorWrapper` не описан в правилах, плюс дубль объявления
+
+**Файл:** `src/runtime/modules/builder/canvas/editing/components/BuilderCanvasInlineEditingOverlay.vue:435-447`
+**Категория:** расхождение кода с правилами репозитория
+**Статус:** открыто
+
+`.claude/rules/styles.md` перечисляет узлы с осознанным hex-переопределением
+(`--bricks-base-0: #fff`) поимённо: `TextEditorArea` (`.editor`, `.fallbackArea`) и
+`TheTextEditorModal` (`.editor`). Здесь третий такой узел, в списке его нет — значит либо
+список устарел, либо блок писан не по правилу; решать владельцу. Рядом две мелочи в том же
+правиле: `background` и `background-color` заданы одним и тем же значением подряд (второе
+объявление лишнее), а `color: initial` вместо переменной темы читается как случайный
+сброс — при том, что фон здесь намеренно белый и текст обязан быть тёмным.
+
+### 12.15 `isFallbackMode` включается без редактора: лишняя запись в историю и inline-правка `input` без редактора
+
+**Файл:** `src/runtime/modules/builder/canvas/editing/composables/useInlineEditingFallback.ts:177-205`
+**Категория:** кандидат на правку логики
+**Статус:** открыто, вживую не воспроизведено (в playground нет brick-компонентов)
+
+По истечении задержки флаг ставится всегда — `isFallbackMode.value = true`, — а редактор
+создаётся только для `textarea` и `inline-content`. Между тем inline-editable у brick-
+компонента бывает и `input` (`builder/core/utils/inlineEditableProp.ts:21`, «input included
+for headlines»). Для такого свойства получается: редактора нет ни от layout-компонента (иначе
+таймер бы не сработал), ни fallback-ного, то есть править значение в overlay нечем; а на
+выходе из редактирования ветка `if (isFallbackMode.value)` вызывает `saveFallbackToStore()`
+(пустая операция при `fallbackEditor === null`) и `componentsStore.saveToHistory()`.
+`historyStore.capture` пишет снимок без сравнения с предыдущим
+(`builder/core/stores/history.ts:36-47`), поэтому в историю уезжает дубль состояния: undo
+становится доступен, ничего не изменив. То же делает `handleDone` в overlay.
+
+### 12.16 Вложенный блок внутри слота brick-компонента, вероятно, не выделяется кликом
+
+**Файл:** `src/runtime/modules/builder/canvas/item/components/BuilderCanvasItem.vue:277-283`,
+`item/components/BuilderCanvasItemComponent.vue:118-124`
+**Категория:** кандидат на правку логики
+**Статус:** открыто, вживую не воспроизведено (в playground нет brick-компонентов со слотами)
+
+Вживую проверено (Playwright, страница `test`): вложенный canvas-item кликается потому, что
+контейнерные layout-блоки возвращают себе `pointer-events: auto` инлайном
+(`BlockGrid.vue:153`, `BlockFlex.vue:70`, `BlockSection.vue:40`, `BlockSlider.vue:183`), а
+исключение `:not([data-layout-drop-item])` не даёт навесить на сам вложенный item явный
+`none`. Проверено и обратное: при `pointer-events: none` на вложенном item попадание курсора
+уезжает родителю, то есть выделяется родительский блок.
+У слотов brick-компонента этой второй половины нет: `.slotContainer` ничего не возвращает,
+а `pointer-events` наследуется, поэтому дети слота должны наследовать `none` от контейнера и
+кликом не выделяться. Требует проверки на реальном brick-компоненте со слотом.
+
+### 12.17 `hasFallbackWrapper` описан как гейт кнопки фона, а гейтит тулбар
+
+**Файл:** `src/runtime/modules/builder/canvas/editing/components/BuilderCanvasInlineEditingOverlay.vue:112-114`
+(до правки)
+**Категория:** разъехавшийся комментарий
+**Статус:** текст исправлен в этапе 12
+
+«Показывать ли кнопку переключения фона (есть fallback wrapper)» — computed стоит в `v-if`
+тулбара (`(showToolbar && toolbarGroups.length > 0) || hasFallbackWrapper`), а кнопка фона
+гейтится другим условием, `showToolbar && toolbarGroups.length > 0`. Заодно видно, что сам
+computed — переименование `showFallbackEditor` один в один: два имени на одно значение,
+кандидат на упрощение.
+
+### 12.18 Мёртвый `canvasWrapperRef`
+
+**Файл:** `src/runtime/modules/builder/canvas/viewport/components/TheBuilderCanvas.vue:113`,
+`:375`
+**Категория:** мёртвый код
+**Статус:** открыто
+
+`ref` объявлен и привязан в шаблоне, но не читается ни в скрипте, ни в composables области:
+обёртке нужен только `:style`. Элемент при этом уже участвует в измерениях через
+`canvasContainer`.
+
+### 12.19 `navigator.platform` для определения macOS
+
+**Файл:** `src/runtime/modules/builder/canvas/item/components/BuilderCanvasItemContextMenu.vue:78`
+**Категория:** кандидат на правку логики (низкий приоритет)
+**Статус:** открыто
+
+`navigator.platform` объявлен deprecated и в части браузеров уже возвращает замороженное
+значение; от него зависит подпись шортката в меню (`⌘C` против `Ctrl+C`) и глиф удаления
+(`⌫` против `Del`). Живая замена — `navigator.userAgentData?.platform` с откатом на
+`userAgent`. Ошибка не критичная: неверная подпись, а не неработающая команда.
+
+### 12.20 «Все пункты меню, кроме избранного, меняют схему» — их четыре, и они не меняют
+
+**Файл:** `src/runtime/modules/builder/canvas/item/composables/useCanvasItemActions.ts:158-165`
+(до правки)
+**Категория:** разъехавшийся комментарий (находка ревью Codex, подтверждена)
+**Статус:** текст исправлен в этапе 12
+
+Рационал запрета меню для роли без права правки строился на утверждении, что схему не меняет
+только «избранное», и потому отбор пунктов по одному оставил бы меню из одного пункта. Схему
+не меняют четыре пункта: «Редактировать» (выделение плюс открытие панели), «Копировать»
+(пишет `clipboard` в сторе), «В избранное» и «Интерактивный предпросмотр» — последний правит
+только `interactivePreviewId` (`builder/core/stores/actions/selection.ts:79`). Само решение
+владельца (не открывать меню вовсе) осталось, ложная посылка и вывод про один пункт убраны.
+
+### 12.21 Ветка `figmaDropPerViewport` недостижима, а комментарий был шире реализации
+
+**Файл:** `src/runtime/modules/builder/canvas/viewport/components/BuilderCanvasViewport.vue:178-198`
+**Категория:** мёртвый код (находка ревью Codex, подтверждена)
+**Статус:** комментарий сужен в этапе 12, мёртвая ветка — открыто
+
+`canvasStore.figmaDropPerViewport` инициализируется `false`
+(`builder/core/stores/canvas.ts:58`) и больше не записывается нигде в репозитории: поле
+объявлено в типе (`common/types/brick.ts:158`), читается ровно в одном месте — этой ветке, —
+и потому one-hot видимость по листу сейчас не срабатывает никогда. Второе, помимо мёртвого
+флага: даже при включённом флаге видимость сужается только у компонента с новым id, а перенос
+существующего блока проходит через тот же `handleCanvasDrop` и сохраняет прежнюю видимость.
+Комментарий обещал сужение для любого дропа — исправлено на «блок, который дроп только что
+создал».
+
+### 12.22 Ложный рационал про SSR, внесённый переводом
+
+**Файл:** `src/runtime/modules/builder/canvas/viewport/components/TheBuilderCanvas.vue:176`
+(до правки)
+**Категория:** ошибка перевода (находка ревью Codex, подтверждена)
+**Статус:** текст исправлен в этапе 12
+
+Русский оригинал говорил только факт — «не применяем динамические стили при SSR», — а в
+переводе я дописал причину: «SSR has no scale to apply». Причина неверна: `calculateOptimalScale`
+специально возвращает `1` при отсутствии `window` (`useCanvas.ts:52-58`), watcher с
+`immediate: true` отрабатывает и на сервере, так что масштаб там есть — он равен единице.
+Настоящая причина гейта — согласование с гидратацией: единица, попавшая в разметку,
+разошлась бы с fit-масштабом, который клиент считает по `window.innerWidth`. Урок в копилку к
+находке 9.10 (там дословный перенос сохранил чужую ошибку факта, здесь перевод её создал):
+дописанная причина опаснее отсутствующей — она выглядит частью оригинала, и перепроверять её
+никто не станет.
+
+### 12.23 Рационал владельцев продублирован в местах вызова
+
+**Файл:** `src/runtime/modules/builder/canvas/viewport/components/TheBuilderCanvas.vue:133-140`
+(до правки), владельцы — `viewport/composables/useCanvasFlowGuard.ts:20-28` и
+`useCanvasDragAutoScroll.ts:13-25`; слабее — `editing/components/BuilderCanvasInlineEditingOverlay.vue:74-77`
+против `editing/composables/useInlineEditingFallback.ts:18-23`
+**Категория:** дубль рационала (находка ревью Codex, подтверждена)
+**Статус:** заменены ссылками в этапе 12
+
+Над вызовами `useCanvasFlowGuard` и `useCanvasDragAutoScroll` лежал пересказ шапок этих же
+composables (зачем глушить переходы потока; почему нативный драг забирает колесо себе).
+Правило «у вызывающего — ссылка, а не копия» действует с этапа 0; в этой области дубли
+внутри одного файла-владельца я нашёл (12.10), а дубли «вызывающий против composable» — нет.
+Третий случай, контракт fallback-редактора в overlay, тоже сокращён до ссылки.
+
+### 12.24 Регистр: четыре места слабее эталона
+
+**Файл:** `useCanvasDrops.ts:58`, `useCanvasFlowGuard.ts:25`,
+`BuilderCanvasInlineEditingOverlay.vue:8`, `useCanvasItemActions.ts:164`,
+`BuilderCanvasItem.vue:90` (до правки)
+**Категория:** качество перевода (находка ревью Codex, подтверждена)
+**Статус:** исправлено в этапе 12
+
+Британское `travelling` дважды при принятой американской орфографии (в проекте уже есть
+`traveling` — `common/types/devices.ts:73`). `the same step the other popovers use` — мимо
+терминологии проекта: у поверхностей есть проп `elevation`
+(`ui/base/surface/types.d.ts:34`), правильное слово — `elevation tier`. Калька
+`The right button then brings back the regular browser menu` заменена на
+`right-click falls through to the browser context menu`. И нюанс: `the aside padding included`
+читается как «padding входит в ширину кольца», тогда как кольцо рисуется на ребёнке внутри
+контейнера — стало `accounting for the aside padding`.
+
+### 12.25 Slot DnD: рекурсивный отбор детей и несимметричный `dragDepth`
+
+**Файл:** `src/runtime/modules/builder/canvas/item/composables/useSlotDragDrop.ts:134-141`,
+`:198-212`, `:239-255`
+**Категория:** кандидат на правку логики (находка ревью Codex, подтверждена по коду)
+**Статус:** открыто, вживую не воспроизведено (нужен brick-компонент со слотами)
+
+Две проблемы в одном обработчике. Первая: `getSlotChildElements` берёт
+`container.querySelectorAll('[data-slot-child="true"]')` — селектор рекурсивный, а атрибут
+получает любой canvas-item, у которого есть `slotName` (`BuilderCanvasItem.vue:199`), включая
+детей слота внутри слота. Индекс вставки тогда считается по расширенному списку и может
+превысить число непосредственных детей слота.
+
+Вторая: `dragDepth` растёт на каждом всплывшем `dragenter` (обработчик висит на контейнере
+слота, а события приходят и от потомков), тогда как `handleSlotDragLeave` при переходе между
+потомками выходит ранним `return` без уменьшения — `relatedTarget` внутри контейнера. После
+двух-трёх переходов внутри слота счётчик не возвращается к нулю, и плейсхолдер остаётся до
+конца drag-сессии, пока его не снимет watcher `handleCanvasDragActiveChange`.
+
+### 12.26 Локальная сигнатура геометрии не включает `remBase`
+
+**Файл:** `src/runtime/modules/builder/canvas/viewport/composables/useCanvas.ts:86-88`
+**Категория:** кандидат на правку логики (находка ревью Codex, подтверждена по коду)
+**Статус:** открыто
+
+`devicesGeometry` собирается из `key:width`, а rem-компенсация прямо меняет визуальную ширину
+листа (`canvasTransform` домножает scale на `remCompensation`). Владелец состояния это учёл:
+`getDevicesSignature` в сторе включает `remBase` четвёртой составляющей
+(`builder/core/stores/canvas.ts:24`, находка 11.16). Поэтому `setDevices` с прежними ключами
+и ширинами, но новым `remBase` сбросит ручной зум и пересчитает размеры листа, а watcher в
+`useCanvas` не проснётся — вписывание останется от прежней геометрии, и лист может уехать за
+пределы видимой области.
+
+### 12.27 `isInteractive`: поле схемы, которое теряется на части путей вставки и не читается вовсе
+
+**Файл:** `src/runtime/modules/builder/app/composables/useDraggableComponent.ts:211`,
+`src/runtime/modules/builder/canvas/viewport/composables/useCanvasDrops.ts:298-314`, `:362-376`,
+`common/types/brick.ts:100,115`
+**Категория:** мёртвый код (находка ревью Codex, подтверждена)
+**Статус:** открыто
+
+Вставка в корень сохраняет `isInteractive` из карточки библиотеки, вставка в layout и в слот
+— нет (обе строят `componentData` по-своему, см. 12.12). При этом само поле
+`IBricksComponent.isInteractive` не читается ни в билдере, ни в рендере: интерактивный
+предпросмотр включается через `interactivePreviewId` независимо от него, а источник значения
+— определение блока (`layouts-blocks/registry.ts:105`,
+`blockAccordion.definition.ts:51`). Решать заодно с 12.12: одна фабрика payload плюс решение,
+подключать поле к поведению или убрать из схемы.
+
+### 12.28 `useDraggableOverlay` не снимает drag при размонтировании
+
+**Файл:** `src/runtime/modules/builder/canvas/editing/composables/useDraggableOverlay.ts:81-108`
+**Категория:** кандидат на правку логики (находка ревью Codex, подтверждена по коду)
+**Статус:** открыто
+
+`mousemove`/`mouseup` навешиваются на `document` внутри обработчика нажатия и снимаются
+только в `handleMouseup`; lifecycle-очистки у composable нет. Если носитель overlay исчезнет,
+пока кнопка мыши зажата (уход со страницы билдера), на документе останутся два слушателя, а
+на `body` — `cursor: grabbing` и `user-select: none` до следующего `mouseup`. Штатное скрытие
+панели этим не бьёт: overlay смонтирован постоянно, а `v-if` снимает только внутренний узел.
+
 ## Известные находки из планирования (не закрыты)
 
 Перенесены из `comments-sprint.md` («затравка документа»). Правятся текстом по ходу

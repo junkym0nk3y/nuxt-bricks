@@ -13,18 +13,18 @@ import { CANVAS_DRAG_ACTIVE_KEY } from '../../../../common/constants/injectionKe
 // #endregion
 
 /**
- * Composable для управления поведением drag-and-drop в слотах.
- * Считает индекс вставки, держит состояние drag-over и диспатчит `slot-drop`.
- * Сам плейсхолдер рендерит шаблон по индексу из `getSlotDropIndex`.
+ * Drives the drag and drop behavior of slots: computes the insertion index, keeps the
+ * drag-over state and dispatches `slot-drop`. The placeholder itself is rendered by the
+ * template, at the index `getSlotDropIndex` reports.
  *
- * @param componentId - ID родительского компонента
- * @returns Объект с обработчиками drag-and-drop и состоянием.
+ * @param componentId - Id of the parent component
+ * @returns Drag and drop handlers plus the state.
  */
 export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
     // #region Data
-    // Имена слотов приходят из brick-файла: в обычном объекте `slotStates['__proto__']`
-    // читался бы как существующая корзина, и drag-обработчики писали бы
-    // dragDepth/isDragOver/dropInsertIndex в `Object.prototype`
+    // Slot names come from the brick file: in a plain object `slotStates['__proto__']`
+    // would read as an existing bucket, and the drag handlers would write
+    // dragDepth/isDragOver/dropInsertIndex into `Object.prototype`
     const slotStates = reactive(new Map<string, ISlotState>());
     const slotContainerRefs = new Map<string, HTMLElement>();
     const isCanvasDragActive = inject(CANVAS_DRAG_ACTIVE_KEY, null);
@@ -32,21 +32,22 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
 
     // #region Methods
     /**
-     * Позиция flow-плейсхолдера среди детей слота (читается шаблоном).
+     * Position of the flow placeholder among the children of the slot (read by the
+     * template).
      *
-     * @param slotName - Имя слота
-     * @returns Индекс будущей вставки либо null, если слот не под курсором.
+     * @param slotName - Slot name
+     * @returns Index of the upcoming insertion, or null when the slot is not under the cursor.
      */
     function getSlotDropIndex(slotName: string): number | null {
         return slotStates.get(slotName)?.dropInsertIndex ?? null;
     }
 
     /**
-     * Преобразует Vue ref в HTMLElement.
-     * Обрабатывает как прямые HTMLElements, так и ComponentPublicInstance refs.
+     * Converts a Vue ref into an HTMLElement.
+     * Handles both plain HTMLElements and ComponentPublicInstance refs.
      *
-     * @param ref - Vue ref, который может быть элементом или экземпляром компонента
-     * @returns HTMLElement или null
+     * @param ref - Vue ref, either an element or a component instance
+     * @returns HTMLElement or null
      */
     function resolveHTMLElement(ref: Element | ComponentPublicInstance | null): HTMLElement | null {
         if (!ref) {
@@ -67,10 +68,10 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
     }
 
     /**
-     * Обеспечивает существование состояния для заданного слота
+     * Makes sure the given slot has a state object
      *
-     * @param slotName - Имя слота
-     * @returns Объект состояния слота
+     * @param slotName - Slot name
+     * @returns State object of the slot
      */
     function ensureSlotState(slotName: string): ISlotState {
         const existing = slotStates.get(slotName);
@@ -85,15 +86,15 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
             dropInsertIndex: null,
         });
 
-        // Через get, а не через записанный литерал: реактивный прокси нужен,
-        // чтобы мутации dragDepth/isDragOver перерисовывали плейсхолдер
+        // Through get rather than through the literal just written: the reactive proxy is
+        // what makes a mutation of dragDepth/isDragOver repaint the placeholder
         return slotStates.get(slotName) as ISlotState;
     }
 
     /**
-     * Сбрасывает состояние слота к начальным значениям
+     * Resets the state of a slot to its initial values
      *
-     * @param slotName - Имя слота для сброса
+     * @param slotName - Name of the slot to reset
      */
     function resetSlotState(slotName: string): void {
         const state = ensureSlotState(slotName);
@@ -103,10 +104,10 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
     }
 
     /**
-     * Создаёт обработчик ref для элемента контейнера слота
+     * Builds the ref handler for the container element of a slot
      *
-     * @param slotName - Имя слота
-     * @returns Функция VNodeRef для привязки к template ref
+     * @param slotName - Slot name
+     * @returns VNodeRef function to bind to a template ref
      */
     function setSlotContainerRef(slotName: string): VNodeRef {
         const refHandler: VNodeRef = (element) => {
@@ -125,10 +126,10 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
     }
 
     /**
-     * Получает все дочерние элементы внутри контейнера слота
+     * Collects every child element inside the container of a slot
      *
-     * @param slotName - Имя слота
-     * @returns Массив дочерних HTMLElements
+     * @param slotName - Slot name
+     * @returns Array of child HTMLElements
      */
     function getSlotChildElements(slotName: string): HTMLElement[] {
         const container = slotContainerRefs.get(slotName);
@@ -140,10 +141,10 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
     }
 
     /**
-     * Обновляет индекс flow-плейсхолдера на основе позиции курсора.
+     * Updates the index of the flow placeholder from the cursor position.
      *
-     * @param slotName - Имя слота
-     * @param event - Событие drag с позицией курсора
+     * @param slotName - Slot name
+     * @param event - Drag event carrying the cursor position
      */
     function updateSlotDropTarget(slotName: string, event: DragEvent): void {
         const container = slotContainerRefs.get(slotName);
@@ -163,10 +164,10 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
     }
 
     /**
-     * Генерирует кастомное событие slot-drop с деталями drop
+     * Dispatches the custom slot-drop event with the details of the drop
      *
-     * @param slotName - Имя слота
-     * @param event - Событие drop
+     * @param slotName - Slot name
+     * @param event - Drop event
      */
     function emitSlotDrop(slotName: string, event: DragEvent): void {
         const state = ensureSlotState(slotName);
@@ -189,10 +190,10 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
     }
 
     /**
-     * Обрабатывает событие drag enter для слота
+     * Handles a drag enter event of a slot
      *
-     * @param slotName - Имя слота
-     * @param event - Событие drag enter
+     * @param slotName - Slot name
+     * @param event - Drag enter event
      */
     function handleSlotDragEnter(slotName: string, event: DragEvent): void {
         event.preventDefault();
@@ -211,10 +212,10 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
     }
 
     /**
-     * Обрабатывает событие drag over для слота
+     * Handles a drag over event of a slot
      *
-     * @param slotName - Имя слота
-     * @param event - Событие drag over
+     * @param slotName - Slot name
+     * @param event - Drag over event
      */
     function handleSlotDragOver(slotName: string, event: DragEvent): void {
         event.preventDefault();
@@ -230,10 +231,10 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
     }
 
     /**
-     * Обрабатывает событие drag leave для слота
+     * Handles a drag leave event of a slot
      *
-     * @param slotName - Имя слота
-     * @param event - Событие drag leave
+     * @param slotName - Slot name
+     * @param event - Drag leave event
      */
     function handleSlotDragLeave(slotName: string, event: DragEvent): void {
         event.stopPropagation();
@@ -254,10 +255,10 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
     }
 
     /**
-     * Обрабатывает событие drop для слота
+     * Handles a drop event of a slot
      *
-     * @param slotName - Имя слота
-     * @param event - Событие drop
+     * @param slotName - Slot name
+     * @param event - Drop event
      */
     function handleSlotDrop(slotName: string, event: DragEvent): void {
         event.preventDefault();
@@ -269,7 +270,7 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
     }
 
     /**
-     * Сбрасывает transient-состояние всех посещённых слотов.
+     * Resets the transient state of every slot visited so far.
      */
     function resetAllSlotStates(): void {
         for (const slotName of Array.from(slotStates.keys())) {
@@ -278,9 +279,9 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
     }
 
     /**
-     * Убирает плейсхолдеры слотов при окончании или отмене drag.
+     * Removes the slot placeholders when a drag ends or is canceled.
      *
-     * @param isActive - Активна ли глобальная drag-сессия canvas.
+     * @param isActive - Whether the global canvas drag session is active.
      */
     function handleCanvasDragActiveChange(isActive: boolean): void {
         if (!isActive) {

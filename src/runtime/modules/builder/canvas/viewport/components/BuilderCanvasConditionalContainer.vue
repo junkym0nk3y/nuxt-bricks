@@ -1,13 +1,10 @@
 <script setup lang="ts">
-// #region Imports
-// #endregion
-
 // #region Interfaces
 /**
- * Пропсы для компонента BuilderCanvasConditionalContainer
+ * Props of the BuilderCanvasConditionalContainer component
  */
 interface ICanvasConditionalContainerProps {
-    /** Нужно ли оборачивать контент в div.bricks-container */
+    /** Whether the content has to be wrapped in div.bricks-container */
     useContainer: boolean;
 }
 // #endregion

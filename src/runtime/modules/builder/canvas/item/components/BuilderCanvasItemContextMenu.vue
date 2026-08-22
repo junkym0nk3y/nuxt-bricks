@@ -1,4 +1,22 @@
 <script setup lang="ts">
+/**
+ * @description Context menu of a canvas block: sections of actions plus a flyout with
+ * per-device visibility.
+ *
+ * The surface is written by hand instead of being taken from `BricksPopoverSurface`: the
+ * reference to this node is needed as an element — hit-testing the cursor and placing the
+ * menu automatically both read it — and an instance of the component would drag `$el`
+ * into three places of the logic for the sake of an identical look. The `lg` shadow is
+ * deliberate: the menu floats above the content of the canvas, not above a panel of the
+ * interface.
+ *
+ * Its translucency with a blurred backdrop is a decision of the owner: the menu is meant
+ * to show which part of the page it hangs over. The general ban on `backdrop-filter` in
+ * the style rules does not reach this node (it stands on the list of conscious
+ * exceptions), and the pair works only together — without `opacity` there would be
+ * nothing to blur.
+ */
+
 // #region Imports
 // Types
 import type {
@@ -39,16 +57,21 @@ const { t } = useI18n();
 const canvasStore = useCanvasStore();
 const menuRef = ref<HTMLElement | null>(null);
 
-/** Позиция после подгонки под границы viewport; до замера меню скрыто */
+/** Position after clamping to the viewport bounds; until it is measured the menu is hidden */
 const clampedPosition = ref({ x: props.position.x, y: props.position.y });
 const isPositioned = ref(false);
 
+/**
+ * Whether the device visibility flyout is open. It follows hover and abuts the wrapper
+ * with no gap (`left: 100%`): a gap broke the mouseenter/mouseleave chain and closed the
+ * submenu while the cursor was crossing it.
+ */
 const isDeviceSubmenuOpen = ref(false);
 
-/** Сторона раскрытия flyout видимости устройств ('right' | 'left') */
+/** Side the device visibility flyout opens to ('right' | 'left') */
 const submenuSide = ref<'right' | 'left'>('right');
 
-/** Ширина flyout для проверки, помещается ли он справа от меню */
+/** Flyout width, used to check whether it fits to the right of the menu */
 const SUBMENU_WIDTH = 160;
 const VIEWPORT_MARGIN = 8;
 
@@ -63,9 +86,9 @@ const menuStyle = computed(() => ({
 }));
 
 /**
- * Секции пунктов меню: редактирование, буфер обмена, перемещение, toggles.
- * Пункт видимости на устройствах рендерится отдельно (flyout).
- * `closesMenu` — только для действий, после которых меню теряет смысл.
+ * Sections of menu items: editing, clipboard, moving, toggles.
+ * The device visibility item is rendered separately, as a flyout.
+ * `closesMenu` marks only the actions after which the menu makes no sense.
  */
 const sections = computed<ICanvasContextMenuItem[][]>(() => {
     const mod = isMac ? '⌘' : 'Ctrl+';
@@ -112,10 +135,10 @@ const sections = computed<ICanvasContextMenuItem[][]>(() => {
 });
 
 /**
- * Строки флайаута видимости: по одной на устройство набора страницы.
- * Отсутствие флага в схеме означает «видно» — набор у страниц разный, и
- * перечислять все ключи со значением `true` пришлось бы заново при каждой
- * правке набора.
+ * Rows of the visibility flyout: one per device of the page set.
+ * A missing flag in the schema means "visible" — the set differs from page to page, and
+ * listing every key with the value `true` would have to be redone on every edit of the
+ * set.
  */
 const deviceRows = computed(() =>
     canvasStore.devices.map((device) => ({
@@ -126,14 +149,15 @@ const deviceRows = computed(() =>
 );
 
 /**
- * Скрыт ли компонент хотя бы на одном устройстве (индикатор у пункта сабменю).
+ * Whether the component is hidden on at least one device (the indicator of the submenu
+ * item).
  */
 const hasDeviceOverrides = computed<boolean>(() => deviceRows.value.some((row) => !row.isVisible));
 // #endregion
 
 // #region Methods
 /**
- * Эмитит событие действия по идентификатору пункта меню.
+ * Emits the action event that matches the id of a menu item.
  */
 function emitAction(action: TCanvasContextMenuAction): void {
     const emitters: Record<TCanvasContextMenuAction, () => void> = {
@@ -153,8 +177,8 @@ function emitAction(action: TCanvasContextMenuAction): void {
 }
 
 /**
- * Обрабатывает клик по пункту меню: выполняет действие; меню закрывается
- * только для терминальных действий (`closesMenu`), toggles оставляют меню открытым.
+ * Handles a click on a menu item: runs the action. The menu closes only for terminal
+ * actions (`closesMenu`); toggles leave it open.
  */
 function handleItemClick(item: ICanvasContextMenuItem): void {
     if (item.disabled) {
@@ -169,15 +193,15 @@ function handleItemClick(item: ICanvasContextMenuItem): void {
 }
 
 /**
- * Переключает видимость на устройстве; flyout остаётся открытым
- * для переключения нескольких устройств подряд.
+ * Toggles visibility on a device; the flyout stays open so several devices can be
+ * switched one after another.
  */
 function handleToggleDevice(device: TBricksDeviceKey): void {
     emit('toggle-device', device);
 }
 
 /**
- * Подгоняет меню под границы viewport и выбирает сторону flyout.
+ * Fits the menu into the viewport bounds and picks the side of the flyout.
  */
 function clampToViewport(): void {
     const el = menuRef.value;
@@ -203,7 +227,8 @@ function clampToViewport(): void {
 }
 
 /**
- * Закрывает меню при pointerdown вне его (capture — до stopPropagation в канвасе).
+ * Closes the menu on a pointerdown outside it (capture phase — ahead of any
+ * stopPropagation on the canvas).
  */
 function handleOutsidePointerDown(event: PointerEvent): void {
     const target = event.target as HTMLElement;
@@ -213,8 +238,8 @@ function handleOutsidePointerDown(event: PointerEvent): void {
 }
 
 /**
- * Закрывает меню по Escape; stopPropagation защищает выделение компонента
- * от Escape-шортката билдера (сброс выбора).
+ * Closes the menu on Escape; stopPropagation shields the selected component from the
+ * Escape shortcut of the builder, which drops the selection.
  */
 function handleKeyDown(event: KeyboardEvent): void {
     if (event.key !== 'Escape') {
@@ -226,7 +251,8 @@ function handleKeyDown(event: KeyboardEvent): void {
 }
 
 /**
- * Закрывает меню при скролле/зуме канваса — иначе меню отрывается от компонента.
+ * Closes the menu when the canvas is scrolled or zoomed — otherwise the menu comes away
+ * from its component.
  */
 function handleWheel(): void {
     emit('close');
@@ -261,7 +287,6 @@ onBeforeUnmount(() => {
         @mousedown.stop
         @contextmenu.prevent.stop
     >
-        <!-- Имя компонента + закрытие -->
         <div :class="$style.header">
             <span :class="$style.headerName">{{ props.componentName }}</span>
             <BricksIconButton
@@ -291,7 +316,6 @@ onBeforeUnmount(() => {
 
         <div :class="$style.separator" />
 
-        <!-- Видимость на устройствах (flyout) -->
         <div
             :class="$style.submenuWrapper"
             @mouseenter="isDeviceSubmenuOpen = true"
@@ -326,19 +350,6 @@ onBeforeUnmount(() => {
 </template>
 
 <style module lang="scss">
-/*
-    Поверхность здесь написана руками, а не взята из `BricksPopoverSurface`:
-    ссылка на этот узел нужна как элемент — по нему проверяется попадание курсора
-    и считается место для авторазмещения меню. Инстанс компонента заставил бы
-    тащить `$el` в три места логики ради одинакового вида. Тень `lg` осознанная:
-    меню всплывает над содержимым канваса, а не над панелью интерфейса.
-
-    Полупрозрачность с размытием подложки — решение владельца: меню намеренно
-    показывает, над каким местом страницы оно висит. Общий запрет
-    `backdrop-filter` в правилах стилей на этот узел не распространяется (он
-    внесён в список осознанных исключений); пара работает только вместе —
-    без `opacity` размывать было бы нечего.
-*/
 .BuilderCanvasItemContextMenu {
     position: fixed;
     z-index: var(--bricks-z-popover);
@@ -452,8 +463,6 @@ onBeforeUnmount(() => {
     position: relative;
 }
 
-// Flyout примыкает к wrapper без зазора (left: 100%) — зазор разрывал
-// hover-цепочку mouseenter/mouseleave и закрывал сабменю при переходе курсора
 .flyout {
     position: absolute;
     top: -0.6rem;

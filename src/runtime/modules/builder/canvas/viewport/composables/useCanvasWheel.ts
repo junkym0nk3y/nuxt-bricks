@@ -7,22 +7,22 @@ import { useCanvasStore } from '../../../core/stores/canvas';
 // Constants
 import { CANVAS_ZOOM_STEP } from '../../../core/constants/canvasScale';
 
-/** Чувствительность мультипликативного зума колесом (px deltaY → множитель). */
+/** Sensitivity of the multiplicative wheel zoom (px of deltaY to a factor) */
 const WHEEL_ZOOM_INTENSITY = 0.002;
 
-/** px на строку для deltaMode = DOM_DELTA_LINE (Firefox). */
+/** Pixels per line for deltaMode = DOM_DELTA_LINE (Firefox) */
 const LINE_HEIGHT_PX = 16;
 
-/** Задержка восстановления CSS-transition после серии zoom-событий. */
+/** Delay before the CSS transition is restored after a burst of zoom events */
 const TRANSITION_RESTORE_DELAY_MS = 300;
 
 /**
- * Wheel-взаимодействия канваса: Ctrl(⌘)+scroll — зум к курсору
- * (ctrl+pinch трекпада попадает сюда же — браузер шлёт wheel с ctrlKey),
- * Shift+scroll — горизонтальный скролл для мыши. Кнопочный зум (±) идёт
- * через те же формулы с якорем в центре видимой области.
+ * Wheel interactions of the canvas: Ctrl(⌘)+scroll zooms to the cursor (a trackpad
+ * pinch lands here too — the browser sends a wheel event with ctrlKey), Shift+scroll
+ * scrolls horizontally for a mouse. The ± buttons run through the same formulas with
+ * the anchor in the center of the visible area.
  *
- * @param containerRef - Ссылка на скроллируемый контейнер канваса (.canvasArea).
+ * @param containerRef - Scrollable container of the canvas (.canvasArea).
  */
 export function useCanvasWheel(containerRef: Ref<HTMLElement | null>) {
     const canvasStore = useCanvasStore();
@@ -31,19 +31,19 @@ export function useCanvasWheel(containerRef: Ref<HTMLElement | null>) {
     let suppressedTarget: HTMLElement | null = null;
 
     /**
-     * Возвращает масштабируемый элемент внутри контейнера
-     * (.canvas в обычном режиме, .figmaWrapper в Figma mode).
+     * Returns the scaled element inside the container
+     * (.canvas in normal mode, .figmaWrapper in Figma mode).
      */
     function getZoomTarget(): HTMLElement | null {
         return containerRef.value?.querySelector<HTMLElement>('[data-canvas-zoom-target]') ?? null;
     }
 
     /**
-     * Временно отключает transition на масштабируемом элементе: transform
-     * должен применяться мгновенно, иначе scroll-коррекция zoom-to-cursor
-     * разъезжается с анимацией. Восстанавливается после паузы в зуме.
+     * Temporarily disables the transition on the scaled element: the transform has to
+     * apply instantly, otherwise the scroll correction of zoom-to-cursor drifts away
+     * from the animation. Restored once the zooming pauses.
      *
-     * @param target - Элемент с transform-масштабом.
+     * @param target - Element carrying the transform scale.
      */
     function suppressTransition(target: HTMLElement): void {
         target.style.transition = 'none';
@@ -59,7 +59,7 @@ export function useCanvasWheel(containerRef: Ref<HTMLElement | null>) {
     }
 
     /**
-     * Возвращает элементу transition из CSS (снимает inline-подавление).
+     * Gives the element its CSS transition back (drops the inline suppression).
      */
     function restoreTransition(): void {
         if (suppressedTarget) {
@@ -70,13 +70,13 @@ export function useCanvasWheel(containerRef: Ref<HTMLElement | null>) {
     }
 
     /**
-     * Меняет масштаб так, чтобы точка канваса под (clientX, clientY)
-     * осталась на месте: после применения нового transform корректирует
-     * scrollLeft/scrollTop по фактическим bounding rect до/после.
+     * Changes the scale so that the canvas point under (clientX, clientY) stays put:
+     * once the new transform is applied, scrollLeft/scrollTop are corrected by the
+     * actual bounding rects measured before and after.
      *
-     * @param targetScale - Желаемый масштаб (будет ограничен store'ом).
-     * @param clientX - Экранная X-координата якоря зума.
-     * @param clientY - Экранная Y-координата якоря зума.
+     * @param targetScale - Desired scale (the store clamps it).
+     * @param clientX - Screen X coordinate of the zoom anchor.
+     * @param clientY - Screen Y coordinate of the zoom anchor.
      */
     async function zoomAtPoint(
         targetScale: number,
@@ -99,10 +99,11 @@ export function useCanvasWheel(containerRef: Ref<HTMLElement | null>) {
             return;
         }
 
-        // Мгновенный transform (rect до/после должны быть честными, не анимационными)
+        // Instant transform: the rects before and after have to be real, not mid-animation
         suppressTransition(zoomTarget);
 
-        // DOM ещё со старым transform: позиция якоря в визуальных координатах канваса
+        // The DOM still carries the old transform: the anchor position in the visual
+        // coordinates of the canvas
         const rectBefore = zoomTarget.getBoundingClientRect();
         const pointX = clientX - rectBefore.left;
         const pointY = clientY - rectBefore.top;
@@ -110,16 +111,16 @@ export function useCanvasWheel(containerRef: Ref<HTMLElement | null>) {
 
         await nextTick();
 
-        // Новый transform применён — возвращаем якорь под курсор
+        // The new transform is applied — put the anchor back under the cursor
         const rectAfter = zoomTarget.getBoundingClientRect();
         container.scrollLeft += rectAfter.left + pointX * ratio - clientX;
         container.scrollTop += rectAfter.top + pointY * ratio - clientY;
     }
 
     /**
-     * Зум с якорем в центре видимой области канваса (для кнопок ±).
+     * Zoom anchored at the center of the visible canvas area (for the ± buttons).
      *
-     * @param targetScale - Желаемый масштаб.
+     * @param targetScale - Desired scale.
      */
     function zoomAtViewportCenter(targetScale: number): void {
         const container = containerRef.value;
@@ -134,23 +135,23 @@ export function useCanvasWheel(containerRef: Ref<HTMLElement | null>) {
     }
 
     /**
-     * Увеличивает масштаб на шаг кнопки (зум к центру видимой области).
+     * Increases the scale by one button step (zoom to the center of the visible area).
      */
     function zoomInAtCenter(): void {
         zoomAtViewportCenter(canvasStore.scale + CANVAS_ZOOM_STEP);
     }
 
     /**
-     * Уменьшает масштаб на шаг кнопки (зум к центру видимой области).
+     * Decreases the scale by one button step (zoom to the center of the visible area).
      */
     function zoomOutAtCenter(): void {
         zoomAtViewportCenter(canvasStore.scale - CANVAS_ZOOM_STEP);
     }
 
     /**
-     * Приводит deltaY к пикселям (Firefox шлёт deltaMode = DOM_DELTA_LINE).
+     * Normalizes deltaY to pixels (Firefox sends deltaMode = DOM_DELTA_LINE).
      *
-     * @param event - Wheel-событие.
+     * @param event - Wheel event.
      */
     function normalizeDeltaY(event: WheelEvent): number {
         return event.deltaMode === WheelEvent.DOM_DELTA_LINE
@@ -159,10 +160,10 @@ export function useCanvasWheel(containerRef: Ref<HTMLElement | null>) {
     }
 
     /**
-     * Обработчик wheel: ctrl/⌘ — зум к курсору, shift — горизонтальный
-     * скролл (только для мыши: трекпад macOS шлёт deltaX нативно).
+     * Wheel handler: ctrl/⌘ zooms to the cursor, shift scrolls horizontally (for a
+     * mouse only — a macOS trackpad sends deltaX natively).
      *
-     * @param event - Wheel-событие контейнера.
+     * @param event - Wheel event of the container.
      */
     function handleWheel(event: WheelEvent): void {
         const container = containerRef.value;
@@ -172,7 +173,7 @@ export function useCanvasWheel(containerRef: Ref<HTMLElement | null>) {
         }
 
         if (event.ctrlKey || event.metaKey) {
-            // Подавляем браузерный pinch-zoom страницы только внутри канваса
+            // Suppress the browser page pinch-zoom, but only inside the canvas
             event.preventDefault();
             const factor = Math.exp(-normalizeDeltaY(event) * WHEEL_ZOOM_INTENSITY);
             zoomAtPoint(canvasStore.scale * factor, event.clientX, event.clientY);
@@ -185,7 +186,7 @@ export function useCanvasWheel(containerRef: Ref<HTMLElement | null>) {
         }
     }
 
-    // Non-passive listener: preventDefault для ctrl+wheel обязан работать
+    // Non-passive listener: preventDefault for ctrl+wheel has to work
     watch(
         containerRef,
         (el, prev) => {
