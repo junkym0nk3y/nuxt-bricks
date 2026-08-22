@@ -15,8 +15,9 @@ import { useNuxtApp } from '#imports';
 // #endregion
 
 /**
- * Переводит ключ через глобальный i18n. Конфиг тулбара пересобирается на каждый
- * рендер, поэтому строки резолвятся лениво и следуют текущей локали.
+ * Translates a key through the global i18n. The toolbar config is recomputed on
+ * every editor transaction (`useToolbarStateSync`), so the strings are resolved
+ * lazily and follow the current locale.
  */
 function t(key: string): string {
     const i18n = useNuxtApp().$i18n as Composer | undefined;
@@ -50,9 +51,9 @@ function pxToRem(px: number): string {
 }
 
 /**
- * Синхронизирует toolbar state с текущей позицией курсора в редакторе.
- * Читает mark-атрибуты через getAttributes('textStyle'),
- * node-атрибуты — напрямую из parent-узла ($anchor.parent.attrs).
+ * Syncs the toolbar state with the current cursor position in the editor.
+ * Mark attributes are read through getAttributes('textStyle'), node attributes
+ * straight off the parent node ($anchor.parent.attrs).
  */
 export function syncToolbarState(editor: Editor, refs: IToolbarStateRefs): void {
     const textStyle = editor.getAttributes('textStyle');
@@ -67,14 +68,19 @@ export function syncToolbarState(editor: Editor, refs: IToolbarStateRefs): void 
 }
 
 /**
- * Создает конфигурацию toolbar для Text Editor
+ * Builds the toolbar configuration for the Text Editor.
  *
- * @param params.editor - Экземпляр Tiptap редактора
- * @param params.availableFonts - Список доступных шрифтов из конфига
- * @param params.currentFontSize - Ref с текущим размером шрифта
- * @param params.currentColor - Ref с текущим цветом текста
- * @param params.currentFontFamily - Ref с текущим выбранным семейством шрифта
- * @returns Массив групп элементов toolbar
+ * @param params.editor - The Tiptap editor instance.
+ * @param params.availableFonts - List of the fonts available from the config.
+ * @param params.currentFontSize - Ref holding the current font size.
+ * @param params.currentFontWeight - Ref holding the current font weight.
+ * @param params.currentColor - Ref holding the current text color.
+ * @param params.currentFontFamily - Ref holding the currently chosen font family.
+ * @param params.currentLineHeight - Ref holding the current line height.
+ * @param params.currentLetterSpacing - Ref holding the current letter spacing.
+ * @param params.onRequestLink - Opens the link modal; without it the toolbar has no
+ * link button at all.
+ * @returns Array of toolbar item groups.
  */
 export function createToolbarConfig({
     editor,
@@ -88,9 +94,10 @@ export function createToolbarConfig({
     onRequestLink,
 }: ITextEditorToolbarConfigParams): IToolbarGroup[] {
     /**
-     * Устанавливает толщину шрифта и синхронизирует select.
-     * Также снимает Bold mark (<strong>/<b>), чтобы жирность
-     * управлялась только через inline font-weight.
+     * Sets the font weight and syncs the select.
+     * Setting a weight also removes the Bold mark (<strong>/<b>), so that weight is
+     * driven by the inline font-weight alone. Clearing the weight only drops the
+     * inline value — a Bold mark set earlier survives it.
      */
     function setFontWeight(weight: string): void {
         const chain = editor.chain().focus();
@@ -105,7 +112,7 @@ export function createToolbarConfig({
     }
 
     /**
-     * Устанавливает размер шрифта и синхронизирует select
+     * Sets the font size and syncs the select
      */
     function setFontSize(size: string): void {
         editor.chain().focus().setMark('textStyle', { fontSize: size }).run();
@@ -113,7 +120,7 @@ export function createToolbarConfig({
     }
 
     /**
-     * Устанавливает цвет текста
+     * Sets the text color
      */
     function setTextColor(color: string): void {
         editor.chain().focus().setColor(color).run();
@@ -121,7 +128,7 @@ export function createToolbarConfig({
     }
 
     /**
-     * Устанавливает или сбрасывает семейство шрифта
+     * Sets or clears the font family
      */
     function setFontFamily(font: string): void {
         const chain = editor.chain().focus();
@@ -136,7 +143,7 @@ export function createToolbarConfig({
     }
 
     /**
-     * Устанавливает межстрочный интервал
+     * Sets the line height
      */
     function setLineHeight(lineHeight: string): void {
         const chain = editor.chain().focus();
@@ -151,7 +158,7 @@ export function createToolbarConfig({
     }
 
     /**
-     * Устанавливает межбуквенный интервал
+     * Sets the letter spacing
      */
     function setLetterSpacing(letterSpacing: string): void {
         const chain = editor.chain().focus();
@@ -166,7 +173,7 @@ export function createToolbarConfig({
     }
 
     return [
-        // Форматирование текста (B, I, U) и ссылка
+        // Text formatting (B, I, U) and the link
         {
             name: 'marks',
             items: [
@@ -188,8 +195,8 @@ export function createToolbarConfig({
                     run: () => editor.chain().focus().toggleUnderline().run(),
                     isActive: () => editor.isActive('underline'),
                 },
-                // Ссылка — там же, где остальные марки; кнопки нет у поверхностей,
-                // которые не смонтировали модалку ссылки
+                // The link sits with the rest of the marks; the button is absent on
+                // the surfaces that have not mounted the link modal
                 ...(onRequestLink
                     ? [
                           {
@@ -203,7 +210,7 @@ export function createToolbarConfig({
             ],
         },
 
-        // Выбор шрифта
+        // Font choice
         {
             name: 'font-family',
             items: [
@@ -221,7 +228,7 @@ export function createToolbarConfig({
             ],
         },
 
-        // Размер шрифта
+        // Font size
         {
             name: 'font-size',
             items: [
@@ -250,7 +257,7 @@ export function createToolbarConfig({
             ],
         },
 
-        // Метрики шрифта: толщина, межстрочный и межбуквенный интервалы
+        // Font metrics: weight, line height and letter spacing
         {
             name: 'typography-adjust',
             items: [
@@ -340,7 +347,7 @@ export function createToolbarConfig({
             ],
         },
 
-        // Цвет текста
+        // Text color
         {
             name: 'text-color',
             items: [
@@ -353,7 +360,7 @@ export function createToolbarConfig({
             ],
         },
 
-        // Выравнивание текста
+        // Text alignment
         {
             name: 'text-align',
             items: [
@@ -384,7 +391,7 @@ export function createToolbarConfig({
             ],
         },
 
-        // Списки
+        // Lists
         {
             name: 'lists',
             items: [
@@ -403,7 +410,7 @@ export function createToolbarConfig({
             ],
         },
 
-        // Разделитель (горизонтальная линия)
+        // Divider (a horizontal rule)
         {
             name: 'divider',
             items: [
@@ -419,11 +426,11 @@ export function createToolbarConfig({
 }
 
 /**
- * Провайдит `$textEditorToolbar` (утилиты конфигурации toolbar'а текстового
- * редактора). Вызывается lazy-чанком из plugins/text-editor-toolbar.ts
- * при первом заходе на /bricks.
+ * Provides `$textEditorToolbar` (the configuration utilities of the text editor
+ * toolbar). Called by a lazy chunk from plugins/text-editor-toolbar.ts on the
+ * first hit of a builder route.
  *
- * @param nuxtApp - Экземпляр Nuxt-приложения.
+ * @param nuxtApp - The Nuxt application instance.
  */
 export function installTextEditorToolbar(nuxtApp: NuxtApp): void {
     const textEditorToolbar: ITextEditorToolbar = {

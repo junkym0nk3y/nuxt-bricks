@@ -104,7 +104,7 @@ export const AREAS = [
     {
         id: '8',
         title: 'plugins + middleware + cli',
-        done: false,
+        done: true,
         match: [
             'src/runtime/plugins/',
             'src/runtime/middleware/',

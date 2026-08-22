@@ -31,47 +31,49 @@ import {
 } from '../modules/common/utils/bricks/previewRoute';
 
 /**
- * Статус неотвечающего backend'а. Таймаут lookup'а — не «страницы нет»: 404 на
- * него закешировался бы у CDN и был бы понят краулером как отсутствие страницы.
+ * The status of an unresponsive backend. A lookup timeout is not "there is no
+ * such page": a 404 for it would be cached by the CDN and understood by a crawler
+ * as the page being gone.
  */
 const HTTP_GATEWAY_TIMEOUT = 504;
 
 /**
- * Ограничивает SSR-lookup страницы по времени (детали политики — в утилите).
+ * Bounds the SSR page lookup in time (the policy itself lives in the utility).
  *
- * @param operation - Промис lookup'а.
- * @returns Промис lookup'а с дедлайном на SSR.
+ * @param operation - The lookup promise.
+ * @returns The lookup promise with a deadline on SSR.
  */
 function withLookupDeadline<T>(operation: Promise<T>): Promise<T> {
     return withPageLookupDeadline(operation, Boolean(import.meta.server));
 }
 
 /**
- * Возвращает статус, под которым отказ lookup'а уходит пользователю.
+ * Returns the status under which a failed lookup reaches the visitor.
  *
- * @param error - Ошибка lookup'а.
- * @param fallbackStatus - Статус для обычного отказа.
- * @returns HTTP-статус.
+ * @param error - The lookup error.
+ * @param fallbackStatus - Status of an ordinary failure.
+ * @returns The HTTP status.
  */
 function resolveLookupErrorStatus(error: unknown, fallbackStatus: number): number {
     return isRequestTimeoutError(error) ? HTTP_GATEWAY_TIMEOUT : fallbackStatus;
 }
 
 /**
- * Middleware для динамической установки layout на основе данных из БД.
- * Применяется к страницам лендингов:
- * - `<previewPrefix>/[pagename]` и `<previewPrefix>/[...urlPrefix]/[pagename]`
- *   (встроенные превью-маршруты, всегда preview-режим)
- * - /[pagename] и /[...urlPrefix]/[pagename] (статические catch-all маршруты
- *   bricks-page/bricks-page-prefixed из module.ts, live-режим)
+ * Middleware that sets the layout dynamically from the stored page data (whichever
+ * backend mode holds it).
+ * It applies to the landing pages:
+ * - `<previewPrefix>/[pagename]` and `<previewPrefix>/[...urlPrefix]/[pagename]`
+ *   (the built-in preview routes, always in preview mode)
+ * - /[pagename] and /[...urlPrefix]/[pagename] (the static catch-all routes
+ *   bricks-page/bricks-page-prefixed from module-setup.ts, live mode)
  *
- * Режим определяется чисто по роуту: query ?preview=true не используется.
- * Live-страница резолвится прямым lookup public read-model по адресу;
- * соответствие subdomain фактическому URL проверяется здесь же.
+ * The mode is decided by the route alone: the query `?preview=true` is not used.
+ * A live page is resolved by a direct lookup of the public read-model by address;
+ * the subdomain is checked against the actual URL right here.
  */
 // eslint-disable-next-line complexity
 export default defineNuxtRouteMiddleware(async (to) => {
-    // Применяем middleware к превью-маршруту или динамическим ЧПУ маршрутам
+    // Applies to a preview route or to the dynamic slug routes of published pages
     const isPreview = typeof to.name === 'string' && BRICKS_PREVIEW_ROUTE_NAMES.includes(to.name);
     const isDirectBricksRoute = to.meta?.isPublishedBricksPage === true;
 
@@ -80,36 +82,37 @@ export default defineNuxtRouteMiddleware(async (to) => {
     }
 
     const nuxtApp = useNuxtApp();
-    // Адрес, а не одно имя: и редактор, и превью, и live-рендер обслуживают пару
-    // маршрутов (с префиксом и без), а одноимённые страницы под разными
-    // префиксами — разные страницы
+    // An address rather than a name alone: the editor, the preview and the live
+    // render each serve a pair of routes (with a prefix and without), and pages of
+    // the same name under different prefixes are different pages
     const address = resolvePageAddressFromRoute(to.params);
 
-    // Версия превью живёт в URL: ключ payload'а обязан её учитывать, иначе
-    // вторая версия той же страницы подобрала бы данные первой
+    // The preview version lives in the URL: the payload key has to account for it,
+    // otherwise a second version of the same page would pick up the data of the first
     const previewVersionId = isPreview
         ? parsePreviewVersionId(to.query[PREVIEW_VERSION_QUERY_PARAM])
         : null;
 
     const pageDataKey = getBricksPageDataKey(address, isPreview, previewVersionId);
 
-    // Пытаемся получить данные из payload, если они уже были загружены этим middleware
-    // Это обрабатывает клиентскую навигацию, когда middleware может запуститься повторно
+    // Try the payload first, in case this middleware has already loaded the data.
+    // This covers client-side navigation, where the middleware may run a second time
     let page: IPublishedPage | null = nuxtApp.payload.data[pageDataKey] as IPublishedPage | null;
 
     if (!page) {
-        // Снапшот из localStorage — только для превью текущего состояния канваса
-        // (оно в БД не лежит). У превью версии источник один — сервер по `?version=`,
-        // и подмена его живым снапшотом показала бы вместо истории канвас билдера
+        // The localStorage snapshot is only for previewing the current state of the
+        // canvas (that state is not in the database). A version preview has a single
+        // source — the server, by `?version=` — and substituting the live snapshot
+        // for it would show the builder's canvas instead of the history
         if (isPreview && previewVersionId === null && import.meta.client) {
             const previewData = window.localStorage.getItem('bricks-preview-page');
 
             if (previewData) {
                 const tempPage = JSON.parse(previewData) as IPublishedPage;
 
-                // Сверяется адрес, а не имя: слот превью один на билдер, и
-                // снимок страницы `/blog/post` иначе показался бы в превью
-                // `/news/post` как её собственный
+                // The address is compared, not the name: there is one preview slot
+                // per builder, and otherwise the snapshot of `/blog/post` would
+                // show up in the preview of `/news/post` as if it were its own
                 if (
                     isSamePageAddress(toPageAddress(tempPage.pagename, tempPage.urlPrefix), address)
                 ) {
@@ -118,11 +121,12 @@ export default defineNuxtRouteMiddleware(async (to) => {
             }
         }
 
-        // Если данные не были получены из localStorage (или это не превью), загружаем из API
+        // If nothing came from localStorage (or this is not a preview), go to the API
         if (!page && isPreview) {
-            // Preview — авторизованный сценарий (матрица auth защищает весь previewPrefix):
-            // ищем среди всех страниц, включая drafts, через editorial API
-            // (админский клиент: cookie сессии билдера, 401-редирект на login)
+            // Preview is an authorized scenario (the auth matrix protects the whole
+            // previewPrefix, every role included): the search covers every page,
+            // drafts included, through the editorial API (the authenticated builder
+            // client: the builder's session cookie, a 401 redirect to login)
             const { apiFetcher } = useApiClient();
             const pagesList = useState<TPublishedPageSummary[]>('bricks-all-pages', () => []);
 
@@ -148,8 +152,9 @@ export default defineNuxtRouteMiddleware(async (to) => {
             );
 
             if (!targetPage) {
-                // Версия существует только вместе со строкой страницы, и подхватить
-                // её на клиенте нечем: пустое превью читалось бы как «версия пустая»
+                // A version exists only together with the page row, and there is
+                // nothing on the client to pick it up with: an empty preview would
+                // read as "the version is empty"
                 if (previewVersionId !== null) {
                     return createError({
                         statusCode: 404,
@@ -157,8 +162,9 @@ export default defineNuxtRouteMiddleware(async (to) => {
                     });
                 }
 
-                // Драфт может жить только в localStorage (недоступен на сервере).
-                // Не кидаем 404 — страница сама подхватит данные из localStorage на клиенте.
+                // A draft may live in localStorage alone (unavailable on the server).
+                // No 404 here — the page picks the data up from localStorage on the
+                // client itself.
                 return;
             }
 
@@ -169,8 +175,9 @@ export default defineNuxtRouteMiddleware(async (to) => {
                     );
                     page = normalizePublishedPage(response);
                 } else {
-                    // Снапшот версии приезжает с сервера, а не из localStorage: слот
-                    // там один, и открытый рядом билдер перетирал бы его живой схемой
+                    // The version snapshot arrives from the server rather than from
+                    // localStorage: there is a single slot there, and a builder open
+                    // alongside would overwrite it with its live schema
                     const response = await withLookupDeadline(
                         apiFetcher<IPageVersion>(
                             `/api/bricks/${targetPage.id}/versions/${previewVersionId}/`
@@ -192,16 +199,18 @@ export default defineNuxtRouteMiddleware(async (to) => {
         }
 
         if (!page && !isPreview) {
-            // Live — публичный read-model: прямой lookup по адресу, без list+find.
-            // Публичный клиент: без cookie/CSRF/401-редиректа — ошибка lookup'а не
-            // отправит посетителя на login билдера. Его собственный таймаут на SSR
-            // инертен, потолок держит внешний дедлайн (`withLookupDeadline`)
+            // Live is the public read-model: a direct lookup by address, without
+            // list+find. The public client: no cookie, no CSRF, no 401 redirect — a
+            // lookup error will not send the visitor to the builder's login. Its own
+            // timeout is inert on SSR, the ceiling is held by the external deadline
+            // (`withLookupDeadline`)
             const { publicPageFetcher } = usePublicPageClient();
 
             try {
-                // Адрес уходит остатком пути (`public/pages/blog/post`): сегменты
-                // ключа уже прошли `PAGE_ROUTE_SEGMENT`, поэтому кодировать их
-                // нечем — а encode всего ключа превратил бы разделитель в `%2F`
+                // The address travels as the tail of the path
+                // (`public/pages/blog/post`): the segments of the key have already
+                // passed `PAGE_ROUTE_SEGMENT`, so there is nothing left to encode —
+                // while encoding the whole key would turn the separator into `%2F`
                 const response = await withLookupDeadline(
                     publicPageFetcher<IPublishedPage>(
                         `/api/bricks/public/pages/${getPageAddressKey(address)}/`
@@ -218,17 +227,19 @@ export default defineNuxtRouteMiddleware(async (to) => {
                 );
             }
         }
-        // Сохраняем данные в payload, чтобы избежать повторной загрузки в компоненте страницы
+        // Store the data in the payload so the page component does not load it again
         (nuxtApp.payload.data as Record<string, unknown>)[pageDataKey] = page;
     }
 
-    // Live: catch-all маршрут матчит любой URL подходящей формы — соответствие
-    // адреса страницы фактическому URL и субдомена проверяем на каждую навигацию.
+    // Live: the catch-all route matches any URL of a fitting shape — the page
+    // address and the subdomain are checked against the actual URL on every
+    // navigation.
     //
-    // Lookup уже адресный, и встроенный адаптер чужой адрес вернуть не может, но
-    // контракт внешнего HTTP-backend'а непроверяем: он вправе проигнорировать
-    // префикс в пути и ответить страницей по одному имени. Тогда эта сверка —
-    // единственное, что не даст отрендерить чужую страницу под чужим URL.
+    // The lookup is already by address, and the built-in adapter cannot return
+    // someone else's address, but the contract of an external HTTP backend is
+    // unverifiable: it is free to ignore the prefix in the path and answer with the
+    // page of that name alone. This comparison is then the only thing that keeps a
+    // foreign page from being rendered under a foreign URL.
     if (page && !isPreview) {
         if (!isSamePageAddress(toPageAddress(page.pagename, page.urlPrefix), address)) {
             return createError({
@@ -241,9 +252,10 @@ export default defineNuxtRouteMiddleware(async (to) => {
             let currentHost = '';
 
             if (import.meta.server) {
-                // За доверенным прокси Host — адрес прокси; оригинальный хост —
-                // последний непустой токен x-forwarded-host (дописан ближайшим
-                // прокси-хопом, паттерн requestClientIp.ts; опт-ин bricks.trustProxy)
+                // Behind a trusted proxy the Host is the address of the proxy; the
+                // original host is the last non-empty token of x-forwarded-host
+                // (appended by the nearest proxy hop, the pattern of
+                // requestClientIp.ts; opt-in bricks.trustProxy)
                 const headers = useRequestHeaders(['host', 'x-forwarded-host']);
                 const trustProxy = parseBricksBooleanFlag(useRuntimeConfig().bricksTrustProxy);
                 const forwardedHost = trustProxy
@@ -275,7 +287,10 @@ export default defineNuxtRouteMiddleware(async (to) => {
             console.warn('[Bricks Middleware] Failed to apply layout:', layout, error);
         }
     } else if (!isPreview && !page) {
-        // Этот случай в идеале должен обрабатываться createError выше, но на всякий случай
+        // Unreachable under the current control flow: a live lookup either fills
+        // `page` or returns an error of its own, and a preview without a page row
+        // has already returned above. Kept as the last resort of a route that
+        // matches any URL of a fitting shape.
         return createError({
             statusCode: 404,
             statusMessage: 'Page not found',

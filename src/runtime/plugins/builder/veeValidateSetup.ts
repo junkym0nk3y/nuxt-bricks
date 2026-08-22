@@ -8,11 +8,11 @@ import { required, numeric, max, min } from '@vee-validate/rules';
 import { setLocale } from 'yup';
 
 /**
- * Регистрирует правила и локализованные сообщения vee-validate/yup.
- * Вызывается lazy-чанком из plugins/vee-validate.ts при первом заходе
- * на /bricks — published-страницы vee-validate/yup не грузят.
+ * Registers the rules and the localized messages of vee-validate/yup.
+ * Called by a lazy chunk from plugins/vee-validate.ts on the first hit of a builder
+ * route — published pages do not load vee-validate/yup.
  *
- * @param nuxtApp - Экземпляр Nuxt-приложения (для ленивого `$i18n`).
+ * @param nuxtApp - The Nuxt application instance (for the lazy `$i18n`).
  */
 export function installVeeValidate(nuxtApp: NuxtApp): void {
     defineRule('required', required);
@@ -21,16 +21,16 @@ export function installVeeValidate(nuxtApp: NuxtApp): void {
     defineRule('min', min);
 
     /**
-     * Правило для проверки десятичных чисел (поддерживает дробные значения).
-     * Пример валидных значений: "29.2", "100", "-5.5", "0.123"
-     * Текст ошибки формирует локализованный generateMessage.
+     * Rule for checking decimal numbers (fractional values supported).
+     * Examples of valid values: "29.2", "100", "-5.5", "0.123".
+     * The error text is composed by the localized generateMessage.
      */
     defineRule('decimal', (value: string | number) => {
         if (value === null || value === undefined || value === '') {
             return true;
         }
 
-        // Разрешаем целые и дробные числа, включая отрицательные
+        // Whole and fractional numbers are allowed, negative ones included
         return /^-?\d+(\.\d+)?$/.test(String(value));
     });
 
@@ -43,13 +43,13 @@ export function installVeeValidate(nuxtApp: NuxtApp): void {
     });
 
     /**
-     * Переводит ключ через глобальный i18n. Вызывается в момент валидации,
-     * поэтому смена локали подхватывается без ре-регистрации сообщений.
-     * `$i18n` резолвится лениво: плагин i18n может регистрироваться позже
-     * (если потребитель подключает @nuxtjs/i18n после nuxt-bricks).
+     * Translates a key through the global i18n. Called at the moment of validation,
+     * so a change of locale is picked up without re-registering the messages.
+     * `$i18n` is resolved lazily: the i18n plugin may be registered later (if the
+     * consumer plugs @nuxtjs/i18n in after nuxt-bricks).
      *
-     * @param key - Ключ перевода (`bricks.validation.*`).
-     * @param params - Именованные параметры интерполяции.
+     * @param key - Translation key (`bricks.validation.*`).
+     * @param params - Named interpolation parameters.
      */
     function t(key: string, params?: Record<string, unknown>): string {
         const i18n = nuxtApp.$i18n as Composer | undefined;
@@ -60,7 +60,8 @@ export function installVeeValidate(nuxtApp: NuxtApp): void {
         return params ? i18n.t(key, params) : i18n.t(key);
     }
 
-    // Сообщения yup — функции: резолвятся при валидации → всегда актуальная локаль
+    // The yup messages are functions: resolved at validation time → always the
+    // current locale
     setLocale({
         mixed: {
             required: () => t('bricks.validation.required'),
@@ -73,7 +74,7 @@ export function installVeeValidate(nuxtApp: NuxtApp): void {
         },
     });
 
-    /** Локализованные сообщения vee-validate по имени правила. */
+    /** Localized vee-validate messages, by rule name */
     const RULE_MESSAGES: Record<string, (field: string, params: Array<string | number>) => string> =
         {
             required: (field) => t('bricks.validation.fieldRequired', { field }),

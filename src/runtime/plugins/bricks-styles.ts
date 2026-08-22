@@ -10,13 +10,12 @@ import { useResponsiveLayoutStyles } from '../modules/layouts-blocks/composables
 // #endregion
 
 /**
- * Plugin for auto-initialization of bricks styles
- * Injects dynamic CSS (SSR-safe)
+ * Auto-initialization of the bricks styles: injects the dynamic CSS (SSR-safe).
  *
- * Пишет CSS набора ПРОЕКТА — он же SSR-дефолт и покрытие любой страницы
- * потребителя, где отрисован bricks-контент. Страница со своим набором
- * (`bricks_pages.viewport_config`) регистрирует те же ключи тегов позже и
- * вытесняет эти записи; при уходе с неё проектный CSS возвращается.
+ * It writes the CSS of the PROJECT set: that is the SSR default, and it covers any
+ * consumer page where bricks content is rendered. How a page with a set of its own
+ * (`page.viewportConfig`) displaces these entries is described at each of the three
+ * composables below.
  */
 export default defineNuxtPlugin(() => {
     const { projectDevices } = useBricksDevices();

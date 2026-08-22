@@ -6,9 +6,9 @@ import { defineNuxtPlugin } from '#imports';
 import { runOnBuilderRoute } from './utils/builderRouteScope';
 
 /**
- * Тонкий гейт: vee-validate + @vee-validate/rules + yup инициализируются
- * lazy-чанком только на роутах билдера (/bricks/**) — published-страницы
- * их не грузят (формы есть только в publish/sidebar билдера).
+ * A thin gate: vee-validate + @vee-validate/rules + yup are initialized by a lazy
+ * chunk on the builder routes alone (which routes those are — `runOnBuilderRoute`).
+ * Published pages do not load them: every form of the package lives in the builder.
  */
 export default defineNuxtPlugin(async (nuxtApp) => {
     await runOnBuilderRoute(async () => {

@@ -1,18 +1,24 @@
 /**
- * Глифы устройств набора — по одному на устройство каталога.
+ * The device glyphs of the set — one per catalog device.
  *
- * Отдельным чанком от `builderIcons.ts`, потому что грузятся они на разных
- * поверхностях: builder-набор нужен только на `/bricks`, а глиф устройства
- * всплывает ещё и в баннере превью — там `builderIcons` не загружается вовсе,
- * и выбранный «ноутбук» дал бы «Icon not found».
+ * A chunk separate from `builderIcons.ts`, because the two load on different
+ * surfaces: the builder set is only needed on the builder routes, whereas a device
+ * glyph surfaces in the preview banner as well — `builderIcons` is not loaded there
+ * at all, and a chosen "laptop" would give an "Icon not found".
  *
- * В `systemIconsRegistry.ts` их тоже не кладём: посетителю published-страницы
- * эти иконки не показываются, и в entry-бандл им незачем.
+ * Three of the four are in the core registry `systemIconsRegistry.ts` already —
+ * they are the glyphs of the default project set, which the preview device switcher
+ * reaches for; re-registering them here costs nothing. The laptop lives in this
+ * chunk alone: a set gets it either from `bricks.devices` at build time or from a
+ * page in the builder, and the entry bundle has no business carrying a glyph no
+ * published page renders.
  */
 // Types
 import type { Component } from 'vue';
 
-// Прямые импорты каждой иконки (избегаем barrel file)
+// Every icon imported by name, but through the package root — and that root is a
+// full barrel (`icons/all.js`). The other icon modules take the pack subpath
+// (`@kalimahapps/vue-icons/ta`), and this one should follow.
 import {
     TaOutlineDeviceDesktop,
     TaOutlineDeviceLaptop,

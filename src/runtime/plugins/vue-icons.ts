@@ -5,8 +5,9 @@ import { registerSystemIcons, resolveSystemIcon } from './icons/systemIconsRegis
 import { runOnBricksSurface, runOnBuilderRoute } from './utils/builderRouteScope';
 
 export default defineNuxtPlugin(async (nuxtApp) => {
-    // Регистрируем глобальный компонент BricksIcon (ядро иконок — published/preview);
-    // полный builder-набор доливается lazy-чанком только на /bricks
+    // Registering the global BricksIcon component (the icon core — published and
+    // preview); the full builder set is topped up by a lazy chunk on the builder
+    // routes alone
     nuxtApp.vueApp.component(
         'BricksIcon',
         defineComponent({
@@ -38,8 +39,9 @@ export default defineNuxtPlugin(async (nuxtApp) => {
         })
     );
 
-    // Глифы устройств нужны и билдеру (выбор иконки, табы, флайаут), и превью
-    // (баннер текущего устройства) — поэтому отдельным чанком на обе поверхности
+    // The device glyphs are needed by the builder (picking an icon, the tabs, the
+    // flyout) and by the preview (the banner of the current device) alike — hence a
+    // chunk of their own on both surfaces
     await runOnBricksSurface(async () => {
         const { DEVICE_ICONS } = await import('./icons/deviceIcons');
         registerSystemIcons(DEVICE_ICONS);

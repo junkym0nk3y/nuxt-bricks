@@ -1,8 +1,8 @@
 // Vue
 import { shallowReactive, type Component } from 'vue';
 
-// Icons: ядро, доступное на published/preview (BlockSvg/BlockMedia placeholders,
-// RendererCloseButton, device-переключатель превью)
+// Icons: the core available on published/preview (the BlockSvg/BlockMedia
+// placeholders, RendererCloseButton, the device switcher of the preview)
 import {
     TaOutlineDeviceDesktop,
     TaOutlineDeviceMobile,
@@ -13,11 +13,11 @@ import {
 } from '@kalimahapps/vue-icons/ta';
 
 /**
- * Реестр системных иконок `BricksIcon`. Ядро регистрируется сразу; полный
- * builder-набор доливается через `registerSystemIcons` при заходе на `/bricks`
- * (см. plugins/vue-icons.ts) и не попадает в бандл published-страниц.
- * `shallowReactive` — чтобы уже отрендеренные BricksIcon перерисовались
- * после доливки набора.
+ * The registry of the `BricksIcon` system icons. The core is registered right
+ * away; the full builder set is topped up through `registerSystemIcons` on a
+ * builder route (see plugins/vue-icons.ts) and never enters the bundle of published
+ * pages. `shallowReactive` — so that BricksIcon instances already rendered redraw
+ * once the set has been topped up.
  */
 const SYSTEM_ICONS = shallowReactive<Record<string, Component>>({
     'ta:outline-photo': TaOutlinePhoto,
@@ -29,19 +29,19 @@ const SYSTEM_ICONS = shallowReactive<Record<string, Component>>({
 });
 
 /**
- * Возвращает компонент системной иконки по имени.
+ * Returns the component of a system icon by name.
  *
- * @param name - Имя иконки вида 'prefix:name'.
- * @returns Компонент иконки или undefined, если не зарегистрирована.
+ * @param name - Icon name of the form 'prefix:name'.
+ * @returns The icon component, or undefined if it is not registered.
  */
 export function resolveSystemIcon(name: string): Component | undefined {
     return SYSTEM_ICONS[name];
 }
 
 /**
- * Добавляет иконки в реестр (используется lazy-загрузкой builder-набора).
+ * Adds icons to the registry (used by the lazy loading of the builder set).
  *
- * @param icons - Мапа «имя → компонент».
+ * @param icons - A "name → component" map.
  */
 export function registerSystemIcons(icons: Record<string, Component>): void {
     Object.assign(SYSTEM_ICONS, icons);

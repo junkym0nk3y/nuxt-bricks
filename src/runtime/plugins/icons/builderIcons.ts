@@ -1,14 +1,15 @@
 /**
- * Полный набор иконок builder-UI. Загружается lazy-чанком при заходе на `/bricks`
- * (см. plugins/vue-icons.ts) — в бандл published-страниц не попадает.
- * Ядро (photo/video/x/device-*) живёт в systemIconsRegistry.ts.
+ * The full icon set of the builder UI. Loaded as a lazy chunk on the first hit of a
+ * builder route (see plugins/vue-icons.ts) — it never enters the bundle of
+ * published pages. The core (photo/video/x/device-*) lives in
+ * systemIconsRegistry.ts.
  */
 // Types
 import type { Component } from 'vue';
 
-// Прямые импорты каждой иконки (избегаем barrel file)
+// A direct import of every icon (avoiding a barrel file)
 import {
-    // Иконки билдера (Tabler, единый стиль)
+    // Builder icons (Tabler, a single style)
     TaFilledMoon,
     TaFilledStar,
     TaFilledSun,
@@ -67,7 +68,7 @@ import {
     TaOutlineUsers,
     TaOutlineZoomIn,
     TaOutlineZoomOut,
-    // Иконки текстового редактора (уже Tabler)
+    // Text editor icons (already Tabler)
     TaOutlineAlignCenter,
     TaOutlineAlignJustified,
     TaOutlineAlignLeft,
@@ -82,7 +83,7 @@ import {
     TaOutlineTextSize,
     TaOutlineTypography,
 } from '@kalimahapps/vue-icons/ta';
-// Иконки текстового редактора вне Tabler (кандидаты на второй этап миграции)
+// Text editor icons outside Tabler (candidates for a second migration pass)
 import {
     PhArrowsOut,
     PhCircleHalfTilt,
@@ -102,7 +103,7 @@ import { LaTextWidthSolid } from '@kalimahapps/vue-icons/la';
 
 // Map string names to component objects
 export const BUILDER_ICONS: Record<string, Component> = {
-    // Viewport'ы канваса
+    // Canvas viewports
     'ta:outline-brand-figma': TaOutlineBrandFigma,
 
     // Canvas Toolbar
@@ -127,7 +128,7 @@ export const BUILDER_ICONS: Record<string, Component> = {
     'ta:outline-circle-check': TaOutlineCircleCheck,
     'ta:outline-circle-x': TaOutlineCircleX,
 
-    // Общие действия
+    // Shared actions
     'ta:outline-plus': TaOutlinePlus,
     'ta:outline-lock': TaOutlineLock,
     'ta:outline-minus': TaOutlineMinus,
@@ -151,7 +152,7 @@ export const BUILDER_ICONS: Record<string, Component> = {
     'ta:outline-user': TaOutlineUser,
     'ta:outline-eye-off': TaOutlineEyeOff,
 
-    // Раздел «Пользователи»: рейл, пароль учётки и переключение входа
+    // The Users section: the rail, the account password and the sign-in toggle
     'ta:outline-users': TaOutlineUsers,
     'ta:outline-key': TaOutlineKey,
     'ta:outline-user-off': TaOutlineUserOff,
@@ -178,7 +179,7 @@ export const BUILDER_ICONS: Record<string, Component> = {
     'ta:outline-download': TaOutlineDownload,
     'ta:outline-upload': TaOutlineUpload,
 
-    // Тема
+    // Theme
     'ta:filled-moon': TaFilledMoon,
     'ta:filled-sun': TaFilledSun,
 

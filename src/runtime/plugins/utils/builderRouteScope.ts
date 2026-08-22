@@ -11,37 +11,38 @@ import {
 import { useRequestURL, useRouter, useRuntimeConfig } from '#imports';
 
 /**
- * Выполняет `install` один раз при первом попадании на роут билдера
- * (`bricks.routes.builderPrefix`, дефолт `/bricks`): на начальной загрузке
- * (SSR и клиент — до рендера/гидрации, поэтому вызов нужно await'ить
- * из тела async-плагина) или в `beforeResolve` при SPA-переходе с published-страницы.
- * Тяжёлая часть плагина остаётся в lazy-чанке за `import()` и не попадает в бандл
- * published-страниц.
+ * Runs `install` once, on the first hit of a builder route
+ * (`bricks.routes.builderPrefix`, `/bricks` by default): either on the initial
+ * load (SSR and client alike — before the render/hydration, which is why the call
+ * has to be awaited from the body of an async plugin) or in `beforeResolve` on an
+ * SPA transition from a published page. The heavy part of the plugin stays in a
+ * lazy chunk behind `import()` and never enters the bundle of published pages.
  *
- * @param install - Асинхронная установка тяжёлой части плагина.
+ * @param install - Asynchronous installation of the heavy part of the plugin.
  */
 export async function runOnBuilderRoute(install: () => Promise<void>): Promise<void> {
     await runOnBricksRoute(install, isBuilderPath);
 }
 
 /**
- * То же для поверхностей билдера И превью.
+ * The same for the builder AND preview surfaces.
  *
- * Нужна тем чанкам, которые видны на обеих: набор устройств правится в билдере,
- * но глиф выбранного устройства показывает и баннер превью, а превью-роут
- * лежит за `previewPrefix` и в `runOnBuilderRoute` не попадает.
+ * Needed by the chunks that show up on both: the device set is edited in the
+ * builder, but the glyph of the chosen device is shown by the preview banner too,
+ * and the preview route sits behind `previewPrefix`, out of reach of
+ * `runOnBuilderRoute`.
  *
- * @param install - Асинхронная установка тяжёлой части плагина.
+ * @param install - Asynchronous installation of the heavy part of the plugin.
  */
 export async function runOnBricksSurface(install: () => Promise<void>): Promise<void> {
     await runOnBricksRoute(install, isProtectedBricksHtmlPath);
 }
 
 /**
- * Общая механика однократной установки по предикату пути.
+ * The shared mechanics of a one-time installation behind a path predicate.
  *
- * @param install - Асинхронная установка.
- * @param matches - Предикат «этот путь обслуживается».
+ * @param install - Asynchronous installation.
+ * @param matches - The "this path is served" predicate.
  */
 async function runOnBricksRoute(
     install: () => Promise<void>,
@@ -55,7 +56,7 @@ async function runOnBricksRoute(
     let isInstalled = false;
 
     /**
-     * Однократно запускает install, если путь принадлежит билдеру.
+     * Runs install once, if the path is one the predicate serves.
      */
     async function ensureInstalled(path: string): Promise<void> {
         if (isInstalled || !matches(prefixes, path)) {
@@ -66,14 +67,16 @@ async function runOnBricksRoute(
         await install();
     }
 
-    // SPA-переход на билдер с published-страницы; install await'ится до рендера
+    // An SPA transition onto a served surface from a published page; install is
+    // awaited before the render
     router.beforeResolve(async (to) => {
         await ensureInstalled(to.path);
     });
 
-    // Начальный URL запроса (router.currentRoute в момент плагина — ещё placeholder);
-    // фактический pathname содержит app.baseURL — стрипаем до логического пути.
-    // await блокирует bootstrap только на builder-роутах — published не задерживается.
+    // The initial URL of the request (`router.currentRoute` is still a placeholder at
+    // plugin time); the actual pathname carries app.baseURL — stripped down to the
+    // logical path. The await holds up the bootstrap on the served routes alone —
+    // published pages are not delayed.
     const baseURL = (config.app?.baseURL as string | undefined) || '/';
     await ensureInstalled(stripPathBase(useRequestURL().pathname, baseURL));
 }

@@ -1,52 +1,55 @@
 #!/usr/bin/env node
 /**
- * CLI версионированных миграций Postgres-схемы nuxt-bricks.
+ * CLI of the versioned migrations of the nuxt-bricks Postgres schema.
  *
- * Использование:
- *   npm run bricks:migrate -- status            # applied/pending список
- *   npm run bricks:migrate -- migrate           # применить pending миграции
+ * Usage:
+ *   npm run bricks:migrate -- status            # the applied/pending list
+ *   npm run bricks:migrate -- migrate           # apply the pending migrations
  *   npx bricks-migrate migrate --url postgres://user:pass@host:5432/db
  *
- * Подключение: --url, иначе NUXT_BRICKS_DATABASE_URL, иначе DATABASE_URL.
- * Файлы миграций — `migrations/*.sql` в корне пакета, применяются в
- * лексикографическом порядке; каждая — в своей транзакции, серия — под
- * pg_advisory_lock (параллельные deploy job не подерутся). Реестр применённых —
- * таблица bricks_schema_migrations. Роль подключения должна иметь DDL-права —
- * runtime-роли приложения они не нужны.
+ * Connection: --url, else NUXT_BRICKS_DATABASE_URL, else DATABASE_URL.
+ * The migration files are `migrations/*.sql` in the package root, applied in
+ * lexicographic order; each one in a transaction of its own, the series under a
+ * pg_advisory_lock (parallel deploy jobs will not fight). The registry of the
+ * applied ones is the bricks_schema_migrations table. The connecting role has to
+ * hold DDL rights — the application's runtime role does not need them.
  */
 import { readdir, readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import process from 'node:process';
 import { computeMigrationChecksum, findMigrationDrift } from './bricks-migrate-checksum.mjs';
 
-// Ключ pg_advisory_lock серии миграций (стабильный произвольный идентификатор)
+// pg_advisory_lock key of the migration series (a stable arbitrary identifier)
 const MIGRATION_LOCK_KEY = 793_452_101;
 
-/** Каталог миграций: и в репо (src/cli/../..), и в пакете (dist/cli/../..) — корень. */
+/**
+ * Migrations directory: the root — src/cli/../.. in the repo, dist/cli/../.. once
+ * installed.
+ */
 const MIGRATIONS_DIR = fileURLToPath(new URL('../../migrations/', import.meta.url));
 
 /**
- * Печатает usage и завершает процесс.
+ * Prints the usage and exits the process.
  */
 function printUsageAndExit() {
     console.log(
         [
-            'Использование: bricks-migrate <command> [--url <postgres-url>]',
+            'Usage: bricks-migrate <command> [--url <postgres-url>]',
             '',
-            'Команды:',
-            '  status    показать applied/pending миграции',
-            '  migrate   применить все pending миграции',
+            'Commands:',
+            '  status    show the applied/pending migrations',
+            '  migrate   apply every pending migration',
             '',
-            'Подключение: --url, иначе env NUXT_BRICKS_DATABASE_URL, иначе DATABASE_URL.',
+            'Connection: --url, else env NUXT_BRICKS_DATABASE_URL, else DATABASE_URL.',
         ].join('\n')
     );
     process.exit(1);
 }
 
 /**
- * Разбирает аргументы командной строки.
+ * Parses the command line arguments.
  *
- * @returns {{ command: string, url: string }} Команда и строка подключения.
+ * @returns {{ command: string, url: string }} The command and the connection string.
  */
 function parseArgs() {
     const args = process.argv.slice(2);
@@ -64,7 +67,7 @@ function parseArgs() {
 
     if (!url) {
         console.error(
-            '[bricks-migrate] Не задана строка подключения: --url, NUXT_BRICKS_DATABASE_URL или DATABASE_URL.'
+            '[bricks-migrate] No connection string given: --url, NUXT_BRICKS_DATABASE_URL or DATABASE_URL.'
         );
         process.exit(1);
     }
@@ -73,25 +76,25 @@ function parseArgs() {
 }
 
 /**
- * Динамически импортирует pg с понятной ошибкой (peer-зависимость database-режима).
+ * Imports pg dynamically, with a legible error (a peer dependency of database mode).
  *
- * @returns {Promise<import('pg')>} Модуль pg.
+ * @returns {Promise<import('pg')>} The pg module.
  */
 async function loadPg() {
     try {
         return (await import('pg')).default;
     } catch {
         console.error(
-            '[bricks-migrate] Пакет "pg" не установлен. Установите его в проекте: npm install pg'
+            '[bricks-migrate] The "pg" package is not installed. Install it in the project: npm install pg'
         );
         process.exit(1);
     }
 }
 
 /**
- * Читает файлы миграций в лексикографическом порядке.
+ * Reads the migration files in lexicographic order.
  *
- * @returns {Promise<string[]>} Имена *.sql файлов.
+ * @returns {Promise<string[]>} Names of the *.sql files.
  */
 async function listMigrationFiles() {
     let entries;
@@ -99,7 +102,7 @@ async function listMigrationFiles() {
     try {
         entries = await readdir(MIGRATIONS_DIR);
     } catch {
-        console.error(`[bricks-migrate] Каталог миграций не найден: ${MIGRATIONS_DIR}`);
+        console.error(`[bricks-migrate] Migrations directory not found: ${MIGRATIONS_DIR}`);
         process.exit(1);
     }
 
@@ -107,11 +110,11 @@ async function listMigrationFiles() {
 }
 
 /**
- * Создаёт (идемпотентно) реестр применённых миграций и возвращает его строки
- * (имя + checksum — контроль drift'а).
+ * Creates (idempotently) the registry of applied migrations and returns its rows
+ * (name plus checksum — the drift control).
  *
- * @param {import('pg').Client} client Подключённый клиент.
- * @returns {Promise<Array<{name: string, checksum: string}>>} Строки реестра.
+ * @param {import('pg').Client} client A connected client.
+ * @returns {Promise<Array<{name: string, checksum: string}>>} Registry rows.
  */
 async function readAppliedMigrations(client) {
     await client.query(`
@@ -129,10 +132,10 @@ async function readAppliedMigrations(client) {
 }
 
 /**
- * Читает содержимое миграций и считает checksums.
+ * Reads the contents of the migrations and computes their checksums.
  *
- * @param {string[]} files Имена файлов.
- * @returns {Promise<Map<string, {sql: string, checksum: string}>>} Имя файла → содержимое и checksum.
+ * @param {string[]} files File names.
+ * @returns {Promise<Map<string, {sql: string, checksum: string}>>} Per file name.
  */
 async function readMigrationContents(files) {
     const contents = new Map();
@@ -146,15 +149,15 @@ async function readMigrationContents(files) {
 }
 
 /**
- * Печатает статус миграций.
+ * Prints the migration status.
  *
- * @param {string[]} files Все файлы миграций.
- * @param {Set<string>} applied Применённые миграции.
- * @param {string[]} drifted Имена миграций с обнаруженным drift'ом.
+ * @param {string[]} files All the migration files.
+ * @param {Set<string>} applied The applied migrations.
+ * @param {string[]} drifted Names of the migrations found to have drifted.
  */
 function printStatus(files, applied, drifted) {
     if (files.length === 0) {
-        console.log('[bricks-migrate] Файлы миграций не найдены.');
+        console.log('[bricks-migrate] No migration files found.');
         return;
     }
 
@@ -173,23 +176,23 @@ function printStatus(files, applied, drifted) {
     console.log(`\n${files.length - pendingCount} applied, ${pendingCount} pending.`);
 
     if (driftedSet.size > 0) {
-        console.log(`${driftedSet.size} drifted (SQL изменён после применения).`);
+        console.log(`${driftedSet.size} drifted (the SQL changed after it was applied).`);
     }
 }
 
 /**
- * Применяет pending миграции: каждая — в своей транзакции.
+ * Applies the pending migrations: each one in a transaction of its own.
  *
- * @param {import('pg').Client} client Подключённый клиент.
- * @param {string[]} files Все файлы миграций.
- * @param {Set<string>} applied Применённые миграции.
- * @param {Map<string, {sql: string, checksum: string}>} contents Содержимое файлов (без повторного чтения).
+ * @param {import('pg').Client} client A connected client.
+ * @param {string[]} files All the migration files.
+ * @param {Set<string>} applied The applied migrations.
+ * @param {Map<string, {sql: string, checksum: string}>} contents Read once.
  */
 async function applyPendingMigrations(client, files, applied, contents) {
     const pending = files.filter((file) => !applied.has(file));
 
     if (pending.length === 0) {
-        console.log('[bricks-migrate] Все миграции уже применены.');
+        console.log('[bricks-migrate] Every migration has already been applied.');
         return;
     }
 
@@ -212,7 +215,7 @@ async function applyPendingMigrations(client, files, applied, contents) {
         }
     }
 
-    console.log(`\n[bricks-migrate] Применено миграций: ${pending.length}.`);
+    console.log(`\n[bricks-migrate] Migrations applied: ${pending.length}.`);
 }
 
 async function main() {
@@ -240,15 +243,16 @@ async function main() {
 
         if (drifted.length > 0) {
             console.error(
-                `[bricks-migrate] Drift применённых миграций (SQL изменён после применения): ${drifted.join(', ')}.\n` +
-                    'Выпущенные миграции не редактируются — изменения оформляются новой forward-миграцией.'
+                `[bricks-migrate] Drift of applied migrations (the SQL changed after it was applied): ${drifted.join(', ')}.\n` +
+                    'Released migrations must not be edited — ship the change as a new forward migration.'
             );
             process.exit(1);
         }
 
         await applyPendingMigrations(client, files, applied, contents);
     } finally {
-        // Неснятый advisory lock Postgres снимет сам при разрыве соединения
+        // An advisory lock left in place is released by Postgres itself once the
+        // connection drops
         await client
             .query('SELECT pg_advisory_unlock($1)', [MIGRATION_LOCK_KEY])
             .catch((error) => console.warn('[bricks-migrate] Failed to release lock:', error));
@@ -257,6 +261,6 @@ async function main() {
 }
 
 main().catch((error) => {
-    console.error('[bricks-migrate] Ошибка:', error.message || error);
+    console.error('[bricks-migrate] Error:', error.message || error);
     process.exit(1);
 });
