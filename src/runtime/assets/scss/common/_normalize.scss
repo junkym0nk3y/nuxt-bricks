@@ -1,16 +1,19 @@
 /**
  * Vendored normalize.css v8.0.1 (MIT, github.com/necolas/normalize.css),
- * транскрипция в mixin для включения под scoped-wrapper (см. default.scss,
- * зона контента @layer bricks-reset).
+ * transcribed into a mixin so it can be included under a scoped wrapper (see
+ * default.scss, the content zone @layer bricks-reset).
  *
- * Отличия от оригинала:
- * - правило html { line-height: 1.15; -webkit-text-size-adjust: 100% } исключено:
- *   миксин включается под body/element-wrapper и до html не достаёт. Html-уровень
- *   задают builder.vue (инлайн font-size: 10px + body.bricks-page) и
- *   render/pages/[pagename].vue (:where(html)-fallback нулевой специфичности);
- * - body { margin: 0 } — декларацией на верхнем уровне миксина (ложится на сам wrapper).
+ * Differences from the original:
+ * - the rule html { line-height: 1.15; -webkit-text-size-adjust: 100% } is left out:
+ *   the mixin is included under a body/element wrapper and does not reach up to
+ *   html. The html level is set by builder.vue (an inline font-size: 10px plus
+ *   body.bricks-page) and by render/pages/[pagename].vue (a :where(html) fallback of
+ *   zero specificity);
+ * - body { margin: 0 } — as a declaration at the top level of the mixin (it lands on
+ *   the wrapper itself).
  *
- * Значения в px/em — оригинал normalize, правила styles.md на vendored-код не распространяются.
+ * The px/em values are the original normalize; the rules of styles.md do not reach
+ * vendored code.
  */
 
 /* stylelint-disable */

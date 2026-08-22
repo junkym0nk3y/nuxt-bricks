@@ -21,6 +21,11 @@ export function useBricksConfig(): IUseBricksConfigReturn {
     const appConfig = useAppConfig() as IAppConfig;
 
     return {
+        // `Inter` is a plain string both here and in `--bricks-font-family-base`,
+        // while the only thing that registers the name is the `@font-face` of
+        // assets/scss/common/fonts.scss. Renaming its `font-family` breaks the
+        // default silently: the string still resolves, just to a font nobody
+        // declared.
         defaultFont: appConfig.bricks?.defaultFont ?? 'Inter, sans-serif',
         fonts: appConfig.bricks?.fonts,
         backgroundColor: appConfig.bricks?.backgroundColor ?? '#FFFFFF',

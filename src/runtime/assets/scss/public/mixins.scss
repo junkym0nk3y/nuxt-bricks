@@ -1,8 +1,8 @@
 ////
-/// Публичная точка входа SCSS-API пакета.
+/// Public entry point of the package SCSS API.
 ///
-/// Потребитель подключает её либо алиасом `#bricks-scss` (его пишет модуль,
-/// подставляя резолвнутую опцию `bricks.devices`), либо напрямую:
+/// The consumer pulls it in either through the `#bricks-scss` alias (written by the
+/// module, which substitutes the resolved `bricks.devices` option) or directly:
 ///
 /// ```scss
 /// @use 'nuxt-bricks/scss/mixins' as bricks with (
@@ -10,8 +10,8 @@
 /// );
 /// ```
 ///
-/// Файл — не партиал: mkdist кладёт в `dist` только не-партиалы, а `_*.scss`
-/// не копирует вовсе.
+/// How this folder reaches `dist` — and why it is copied rather than compiled — is
+/// in `build.config.ts`.
 ////
 
 @forward 'devices';

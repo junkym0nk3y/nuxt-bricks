@@ -1,44 +1,46 @@
 /**
  * nuxt-bricks - Default Styles
  *
- * Изоляция от host-приложения: глобальных селекторов нет. Двухзонная схема reset'а:
+ * Isolation from the host app: there are no global selectors. The reset comes in
+ * two zones.
  *
- * 1. Зона контента — @layer bricks-reset на :where(.bricks-canvas, body.bricks-render):
- *    vendored normalize (common/_normalize.scss) + strip-reset. Layered-стили проигрывают
- *    ЛЮБОМУ нелейерному правилу проекта-потребителя (даже голому `button {}`) → канвас
- *    и published/preview ведут себя одинаково и выглядят «как в проекте».
- *    Класс bricks-render ставит render/pages/[pagename].vue через useHead.
+ * 1. The content zone — @layer bricks-reset on :where(.bricks-canvas,
+ *    body.bricks-render): the vendored normalize (common/_normalize.scss) plus the
+ *    strip-reset. Layered styles lose to ANY non-layered rule of the consumer
+ *    project (even a bare `button {}`) → the canvas and published/preview behave
+ *    alike and look "the way the project looks". The bricks-render class is set by
+ *    render/pages/[pagename].vue through useHead.
  *
- * 2. Зона хрома билдера — нелейерный reset специфичности (0,0,1) под
- *    :where(body.bricks-page) с исключением :not(:where(.bricks-canvas *)):
- *    проигрывает CSS-модулям билдера (0,1,0), но выигрывает у element-стилей проекта
- *    по порядку загрузки (bricks-CSS пушится в nuxt.options.css после CSS потребителя).
- *    Класс ставит builder.vue через useHead; teleport-контент модалок — дочерние
- *    элементы body, поэтому тоже покрыт. Rem-базу билдера (html { font-size: 10px })
- *    builder.vue ставит инлайном.
+ * 2. The builder chrome zone — a non-layered reset of specificity (0,0,1) under
+ *    :where(body.bricks-page), with :not(:where(.bricks-canvas *)) carved out: it
+ *    loses to the CSS modules of the builder (0,1,0) but beats the element styles
+ *    of the project by load order (the bricks CSS is pushed into nuxt.options.css
+ *    after the consumer CSS). The class is set by builder.vue through useHead;
+ *    teleported modal content are children of body and therefore covered too. The
+ *    rem base of the builder (html { font-size: 10px }) builder.vue sets inline.
  *
- * Новые reset-правила добавлять только в эти две зоны; strip-reset-списки обеих зон
- * держать синхронными. Rem-fallback published (:where(html)) задаёт
- * render/pages/[pagename].vue через useHead.
+ * New reset rules go into these two zones only, and the strip-reset lists of both
+ * zones are kept in sync. The rem fallback of published (:where(html)) is set by
+ * render/pages/[pagename].vue through useHead.
  */
 @use 'common/normalize' as *;
 
-// Типографика TipTap (@layer ниже в файле) должна побеждать reset — обе layered,
-// порядок объявления фиксирует приоритет.
+// Declaration order is what fixes the priority between the two layers; the rule it
+// protects is asserted by test/module/styleIsolation.spec.ts.
 @layer bricks-reset, bricks-typography;
 
 /* ============================================================================
-   Зона контента: канвас билдера + published/preview.
-   Проектные стили любой специфичности побеждают (нелейерные > @layer).
+   Content zone: the builder canvas plus published/preview.
+   Project styles of any specificity win (non-layered beats @layer).
    ========================================================================== */
 @layer bricks-reset {
     :where(.bricks-canvas, body.bricks-render) {
         box-sizing: border-box;
 
-        // normalize (включает body { margin: 0 } декларацией на wrapper'е)
+        // normalize (carries body { margin: 0 } as a declaration on the wrapper)
         @include bricks-normalize;
 
-        // bricks strip-reset — держать в sync с зоной хрома ниже
+        // bricks strip-reset — keep in sync with the chrome zone below
         h1,
         h2,
         h3,
@@ -108,8 +110,9 @@
 }
 
 /* ============================================================================
-   Поверхность билдера: стили самого body — (0,1,1) сознательно, защищают хром
-   от проектного body { font-family } и т.п. CSS-модули на body не претендуют.
+   Builder surface: the styles of body itself — (0,1,1) deliberately, they guard
+   the chrome from the project's own body { font-family } and the like. CSS
+   modules make no claim on body.
    ========================================================================== */
 body.bricks-page {
     overflow: hidden;
@@ -119,7 +122,7 @@ body.bricks-page {
     font-family: var(--bricks-font-family-base), serif;
     font-size: var(--bricks-font-size-base);
 
-    /* Дефолт бывшего глобального normalize.css (html { line-height: 1.15 }) */
+    /* Default of the former global normalize.css (html { line-height: 1.15 }) */
     line-height: 1.15;
     color: var(--bricks-base-900);
     -ms-text-size-adjust: 100%;
@@ -130,8 +133,9 @@ body.bricks-page {
 }
 
 /* ============================================================================
-   Зона хрома билдера: reset (0,0,1) на всё под body.bricks-page, КРОМЕ канваса
-   (там правит зона контента). Списки правил — sync с strip-reset зоны контента.
+   Builder chrome zone: a reset (0,0,1) on everything under body.bricks-page
+   EXCEPT the canvas (the content zone rules there). The rule lists are kept in
+   sync with the strip-reset of the content zone.
    ========================================================================== */
 :where(body.bricks-page) {
     :is(h1, h2, h3, h4, h5, h6):not(:where(.bricks-canvas *)) {
@@ -142,9 +146,10 @@ body.bricks-page {
         box-sizing: border-box;
     }
 
-    /* .ProseMirror исключён вместе с канвасом: правило нелейерное, а типографика
-       TipTap-контента лежит в @layer — по происхождению каскада она проиграла бы
-       любой специфичности, и ссылка в редакторе осталась бы без подчёркивания */
+    /* .ProseMirror is carved out along with the canvas: this rule is non-layered,
+       while the typography of TipTap content lives in a @layer — by cascade origin
+       it would lose to any specificity, and a link in the editor would be left
+       without its underline */
     a:not(:where(.bricks-canvas *, .ProseMirror *)) {
         text-decoration: none;
         color: inherit;
@@ -196,21 +201,21 @@ body.bricks-page {
     }
 }
 
-/* Published/preview-контент: reset нулевой специфичности (:where()) — сохраняет
-   прежнее поведение bricks-блоков (border-box, ссылки inherit) у потребителя без
-   собственного reset, но любое правило проекта его перебивает */
+/* Published/preview content: a reset of zero specificity (:where()) — it keeps the
+   former behavior of bricks blocks (border-box, links inherit) for a consumer with
+   no reset of their own, while any rule of the project overrides it */
 :where(.bricks-container, .bricks-container *) {
     box-sizing: border-box;
 }
 
-/* Ссылки внутри rich-text (v-html блока и редактора) исключены по той же
-   причине: вид им задаёт @layer bricks-typography ниже */
+/* Links inside rich text (the v-html of the block and the editor) are carved out
+   for the same reason: their look is set by @layer bricks-typography below */
 :where(.bricks-container a):not(:where([data-tiptap-content] *, .ProseMirror *)) {
     text-decoration: none;
     color: inherit;
 }
 
-// Стили для HTML-контента в документации билдера
+// Styles for the HTML content of the builder documentation
 .bricks-docs {
     h1 {
         margin: 0 0 1.6rem;
@@ -335,13 +340,14 @@ body.bricks-page {
     }
 }
 
-// Типографика TipTap-контента — обёрнута в @layer для возможности переопределения в проекте-потребителе.
-// Чтобы переопределить — просто напишите те же селекторы вне @layer, они победят по каскаду.
-// Что не переопределено — остаётся из библиотеки.
+// Typography of TipTap content — wrapped in a @layer so the consumer project can
+// override it. To override, write the same selectors outside any @layer and they
+// win by the cascade. Whatever is left alone stays as the library has it.
 @layer bricks-typography {
-    // Inline-форматирование (strong, em) — безопасны для всех элементов.
-    // .ProseMirror всюду под body.bricks-page: TipTap-редакторы bricks живут только
-    // в билдере, а голый .ProseMirror протекал бы в собственный TipTap потребителя.
+    // Inline formatting (strong, em) — safe on every element.
+    // .ProseMirror is qualified by body.bricks-page throughout: the TipTap editors
+    // of bricks live in the builder only, while a bare .ProseMirror would leak into
+    // the consumer's own TipTap.
     .bricks-text,
     body.bricks-page .ProseMirror {
         strong,
@@ -355,9 +361,10 @@ body.bricks-page {
         }
     }
 
-    // Block-контент (ul, ol, p, blockquote) — только внутри rich-text контейнеров.
-    // [data-tiptap-content] — v-html в BlockText, .ProseMirror — TipTap-редактор.
-    // Без этого ограничения ul/ol в вёрстке компонентов (навигация, фичи и т.д.) получают лишний padding.
+    // Block content (ul, ol, p, blockquote) — inside rich-text containers only.
+    // [data-tiptap-content] is the v-html of BlockText, .ProseMirror is the TipTap
+    // editor. Without that limit, the ul/ol of component markup (navigation,
+    // features and so on) pick up a padding they never asked for.
     .bricks-text [data-tiptap-content],
     body.bricks-page .ProseMirror {
         p {
@@ -383,8 +390,8 @@ body.bricks-page {
             list-style: inherit;
         }
 
-        // Ссылка: reset снимает с `a` подчёркивание и цвет, поэтому без явного
-        // правила вставленная ссылка визуально не отличается от текста
+        // Link: the reset strips `a` of its underline and color, so without an
+        // explicit rule an inserted link looks no different from the text around it
         a {
             text-decoration: underline;
             text-underline-offset: 0.2rem;
@@ -418,7 +425,7 @@ body.bricks-page {
             }
         }
 
-        // Изображения из TipTap textarea-редактора
+        // Images coming from the TipTap textarea editor
         img[data-display='block'] {
             display: block;
         }
@@ -443,7 +450,7 @@ body.bricks-page {
             margin: 0 0 1.6rem 1.6rem;
         }
 
-        // Float через CSS-классы (TipTap v3 Image extension)
+        // Float through CSS classes (TipTap v3 Image extension)
         .float-left {
             float: left;
             margin: 0 1.6rem 1.6rem 0;
@@ -459,7 +466,7 @@ body.bricks-page {
             margin: 0;
         }
 
-        // Vertical-align через CSS-классы (TipTap Video extension)
+        // Vertical-align through CSS classes (TipTap Video extension)
         .valign-baseline {
             vertical-align: baseline;
         }
@@ -477,7 +484,7 @@ body.bricks-page {
         }
     }
 
-    // Ограничение размера картинок только для TipTap-контента (v-html и редактор)
+    // Image size capped for TipTap content only (v-html and editor)
     .bricks-text [data-tiptap-content] img,
     body.bricks-page .ProseMirror img {
         max-width: 100%;
@@ -485,7 +492,7 @@ body.bricks-page {
         border-radius: 0.4rem;
     }
 
-    // Видео в TipTap-контенте (v-html и редактор)
+    // Video inside TipTap content (v-html and editor)
     .bricks-text [data-tiptap-content] video,
     body.bricks-page .ProseMirror video {
         max-width: 100%;
@@ -494,22 +501,22 @@ body.bricks-page {
     }
 }
 
-// TipTap v3 Resizable Image — стили для хэндлов ресайза
+// TipTap v3 Resizable Image — styles for the resize handles
 body.bricks-page .ProseMirror {
-    // Обёртка NodeView — relative для позиционирования хэндлов
+    // NodeView wrapper — relative so the handles have something to position against
     [data-resize-wrapper] {
         position: relative;
         display: inline-block;
     }
 
-    // Визуальная обратная связь при выделении изображения/видео
+    // Visual feedback when an image or a video is selected
     .ProseMirror-selectednode [data-resize-wrapper] img,
     .ProseMirror-selectednode [data-resize-wrapper] video {
         outline: 2px solid var(--bricks-primary, #2563eb);
         outline-offset: 2px;
     }
 
-    // Resize хэндлы — dataset.resizeHandle = direction (e.g. "bottom-right")
+    // Resize handles — dataset.resizeHandle = direction (e.g. "bottom-right")
     [data-resize-handle] {
         position: absolute;
         z-index: 10;
@@ -525,7 +532,7 @@ body.bricks-page .ProseMirror {
             transform: scale(1.3);
         }
 
-        // Угловые хэндлы — позиции и курсоры
+        // Corner handles — positions and cursors
         &[data-resize-handle='top-left'] {
             top: -0.5rem;
             left: -0.5rem;
@@ -555,7 +562,7 @@ body.bricks-page .ProseMirror {
 .bricks-scrollbox {
     overflow: hidden;
 
-    // Резерв места под скроллбар: его появление не должно менять ширину контента
+    // Room held for the scrollbar: its arrival must not change the content width
     scrollbar-gutter: stable;
 
     // Modern CSS Scrollbars Styling (Firefox, Chrome 121+)

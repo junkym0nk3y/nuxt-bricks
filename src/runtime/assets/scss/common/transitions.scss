@@ -46,10 +46,11 @@
     transform: translate3d(0, 0, 0);
 }
 
-/* View switch (смена содержимого при переключении раздела дашборда, фильтра списка
-   или вкладки модалки). Одна фаза заметно короче --bricks-default-transition
-   намеренно: переход идёт `mode="out-in"`, то есть человек ждёт две фазы подряд,
-   и 300 мс на каждую превращают переключение таба в загрузку. */
+/* View switch (the content changing when a dashboard section, a list filter or a
+   modal tab is switched). One phase is markedly shorter than
+   --bricks-default-transition on purpose: the transition runs `mode="out-in"`, so a
+   person waits out two phases in a row, and 300 ms each turns switching a tab into
+   a loading screen. */
 .bricks-view-switch-enter-active,
 .bricks-view-switch-leave-active {
     transition:
@@ -58,17 +59,16 @@
 }
 
 /*
- * Уходящий экран кликов больше не принимает: при `mode="out-in"` он живёт в DOM
- * ещё всю фазу leave, и кнопка строки списка или submit формы срабатывали бы уже
- * после того, как экран сменился. Потомки перечислены явно — кнопки ставят себе
- * `pointer-events: auto`, и наследование от обёртки их не гасит (то же решение,
- * что у модалок ниже).
+ * The leaving screen takes no more clicks: under `mode="out-in"` it lives in the
+ * DOM for the whole leave phase, and a list-row button or a form submit would fire
+ * after the screen had already changed. Descendants are listed explicitly because
+ * buttons set `pointer-events: auto` on themselves, and inheritance from the wrapper
+ * does not put that out (the same decision as for the modals below).
  *
- * Указателем дело не ограничивается: клавиатура и assistive tech ходят мимо
- * `pointer-events`, а переход бывает и не по клику человека — раздел учёток
- * закрывается сам, когда его ручки начинают отвечать 403, и в этот момент фокус
- * остаётся внутри уходящего экрана. Поэтому парно к этому правилу хосты ставят
- * уходящему узлу `inert` (`common/utils/transitionInert.ts`).
+ * The pointer is only half of it: the keyboard and assistive tech walk past
+ * `pointer-events` entirely. That half is covered by `inert`, which the hosts set on
+ * the leaving node — why it is needed and why nothing removes it is in
+ * `common/utils/transitionInert.ts`.
  */
 .bricks-view-switch-leave-active,
 .bricks-view-switch-leave-active * {
@@ -85,7 +85,8 @@
     transform: translate3d(0, -0.4rem, 0);
 }
 
-/* Details panel slide (панель деталей дашборда, выезжает справа — зеркало sidebar-slide) */
+/* Details panel slide (the dashboard details panel, slides in from the right — a
+   mirror of sidebar-slide) */
 .bricks-details-slide-enter-active,
 .bricks-details-slide-leave-active {
     transition:
@@ -102,11 +103,8 @@
 /* Modal transitions */
 
 /*
- * Длительность берётся из переменной, которую BricksModal ставит инлайном по
- * пропу `duration`: тем же значением он ограничивает `<Transition>`, и константа
- * здесь обрезалась бы на модалках с укороченным переходом (подтверждения, восстановление
- * черновика и резолвер картинок просят 200 мс) — Vue снимал бы классы раньше, чем
- * доигрывает анимация, и окно доезжало бы скачком.
+ * The duration comes from a variable BricksModal sets inline out of its `duration`
+ * prop; why it is not a constant here is spelled out in that component.
  */
 .bricks-modal-fade-enter-active,
 .bricks-modal-fade-leave-active {
@@ -114,11 +112,10 @@
 }
 
 /*
- * Уезжающая модалка кликов больше не принимает: без этого её кнопки живут ещё всю
- * длительность leave-анимации, а состояние за ними уже сменилось — клик по
- * закрытой модалке восстановления черновика отвечал бы за следующую сессию
- * (находка ревью). Потомки перечислены явно: кнопки ставят себе
- * `pointer-events: auto`, и наследование от обёртки их не гасит (проверено живьём).
+ * The leaving modal takes no more clicks — the same reason and the same explicit
+ * list of descendants as the view switch above. Without it the buttons live on for
+ * the whole leave animation while the state behind them has already moved on: a
+ * click on the closed draft-restore modal answered for the next session.
  */
 .bricks-modal-fade-leave-active,
 .bricks-modal-fade-leave-active * {
@@ -131,24 +128,24 @@
 }
 
 /*
- * Само окно приезжает с масштабом, а фон под ним только гаснет.
+ * The window itself arrives scaled, while the backdrop under it only fades out.
  *
- * Прицел — прямые потомки `.bricks-modal-window` (это `DialogContent`), а не он
- * сам: контент стоит с `display: contents`, своего бокса не имеет, и transform
- * на нём не действует. Целить в корень перехода тоже нельзя — вместе с окном
- * съедет затемнение, обнажив края экрана.
+ * Why the target is the children of `.bricks-modal-window` and not the element
+ * itself is in `ui/base/modal/BricksModal.vue`. Aiming at the root of the transition
+ * is out as well — the dimming would travel along with the window and bare the edges
+ * of the screen.
  *
- * Вложенные самостоятельные диалоги исключены: медиа-галерея держит в слоте не
- * только своё окно, но и полноэкранный просмотр файла (`role="dialog"` со своим
- * затемнением на всю страницу и своим переходом). С клавиатуры они не пересекаются
- * — Esc галерея перехватывает и закрывает только просмотр, — но при закрытии
- * галереи извне (например, когда её гасит сброс сессии) просмотр уезжает внутри
- * уходящей модалки, и масштаб сжимал бы его затемнение, обнажая полосу подложки
- * по краям экрана.
+ * Nested standalone dialogs are excluded: the media gallery keeps in its slot not
+ * only its own window but a full-screen file preview as well (`role="dialog"`, with
+ * a page-wide dimming and a transition of its own). From the keyboard the two never
+ * collide — Esc is caught by the gallery and closes the preview alone — but when
+ * the gallery is closed from the outside (a session reset putting it out, say) the
+ * preview leaves inside the departing modal, and the scale would squeeze its dimming
+ * and bare a strip of backdrop along the edges of the screen.
  *
- * До этого правила были написаны на класс `.modal`, которого в разметке нет ни у
- * одной модалки: контент у всех на CSS Modules, то есть масштаб не проигрывался
- * вовсе и окна приезжали чистым fade.
+ * Before this, the rules were written against a `.modal` class that no modal has in
+ * its markup: the content of every one of them is on CSS Modules, so the scale never
+ * played at all and the windows arrived as a plain fade.
  */
 .bricks-modal-fade-enter-active .bricks-modal-window > *:not([role='dialog']),
 .bricks-modal-fade-leave-active .bricks-modal-window > *:not([role='dialog']) {
@@ -164,11 +161,12 @@
 }
 
 /*
- * Уменьшенная анимация: движение и масштаб снимаются, затухание остаётся — оно
- * вестибулярных жалоб не вызывает, а полностью убранный переход лишил бы подсказки
- * о смене экрана. Покрыты только переключение представлений и масштаб окна модалки;
- * остальные переходы этого файла режим не учитывают — долг с их появления, не трогаю
- * его заодно, чтобы правка не меняла поведение всего интерфейса.
+ * Reduced motion: movement and scale are dropped, the fade stays — a fade draws no
+ * vestibular complaints, while a transition taken away outright would lose the cue
+ * that the screen has changed. Covered are the view switch and the modal window
+ * scale only; the rest of the transitions in this file ignore the mode. That is a
+ * debt as old as they are, left alone here so this rule does not change the behavior
+ * of the whole interface in passing.
  */
 @media (prefers-reduced-motion: reduce) {
     .bricks-view-switch-enter-from,
@@ -256,11 +254,13 @@
     transform: translateY(0.4rem);
 }
 
-/* Canvas flow: сдвиг соседей при вставке/удалении блока и при переносе места вставки.
-   Только move + enter: leave-перехода нет намеренно — узел уходит из потока сразу,
-   и остающиеся блоки сразу же начинают плавно смыкаться.
-   Селектор с .bricks-canvas обязателен: у блоков канваса свой transition (box-shadow)
-   с той же специфичностью, и без веса правило проигрывало — FLIP молча отключался. */
+/* Canvas flow: the neighbors shifting when a block is inserted or removed and when
+   the insertion point moves. move + enter only: there is deliberately no leave
+   transition — the node leaves the flow at once, and the remaining blocks start
+   closing the gap right away.
+   The .bricks-canvas part of the selector is mandatory: canvas blocks carry a
+   transition of their own (box-shadow) at the same specificity, and without the
+   extra weight this rule lost — FLIP quietly switched itself off. */
 .bricks-canvas .bricks-canvas-flow-move {
     transition: transform 200ms cubic-bezier(0.2, 0, 0, 1);
 }
@@ -276,8 +276,9 @@
     transform: translateY(-0.4rem);
 }
 
-/* Кадр коммита drop: место под блок уже раздвинуто плейсхолдером, поэтому переезд
-   анимировать нечего — иначе блок «доезжает» до позиции уже после отпускания курсора. */
+/* The drop commit frame: the room for the block has already been opened up by the
+   placeholder, so there is no travel left to animate — otherwise the block "arrives"
+   at its position only after the cursor has been released. */
 .bricks-canvas--flow-instant .bricks-canvas-flow-move {
     transition: none;
 }
@@ -318,11 +319,11 @@
 /*
  * Builder loader overlay fade.
  *
- * Появление — без анимации, намеренно: лоадер обязан закрыть канвас раньше, чем
- * на нём сменится содержимое. При переключении страниц внутри приложения схема
- * приезжает за десятки миллисекунд, и за время проявления пользователь успевал
- * увидеть новую страницу до лоадера — то есть порядок читался наоборот.
- * Уход остаётся плавным: там открывается уже согласованное состояние.
+ * The appearance carries no animation, deliberately: the loader has to cover the
+ * canvas before the content on it changes. Switching pages inside the app brings the
+ * schema in within tens of milliseconds, and over the fade-in the user managed to
+ * see the new page before the loader — that is, the order read backwards. The
+ * departure stays smooth: what it uncovers is an already settled state.
  */
 .bricks-loader-fade-leave-active {
     transition: opacity var(--bricks-default-transition);
@@ -332,7 +333,8 @@
     opacity: 0;
 }
 
-/* Builder loader rotating phrase: короче самой ротации, интервал — в компоненте */
+/* Builder loader rotating phrase: shorter than the rotation itself, whose interval
+   lives in the component */
 .bricks-loader-phrase-fade-enter-active,
 .bricks-loader-phrase-fade-leave-active {
     transition: opacity 150ms ease;

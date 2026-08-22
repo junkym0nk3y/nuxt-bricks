@@ -1,6 +1,6 @@
-/* Схемы страниц и дефолт контента (useBricksConfig.defaultFont) ссылаются на
-   имя 'Inter' literal'ом; @font-face — только регистрация имени, стилями в
-   host-приложение не протекает */
+/* Do not rename this font-family: the name `Inter` is referenced as a plain string
+   elsewhere — see the `defaultFont` default in
+   common/composables/useBricksConfig.ts */
 @font-face {
     font-family: Inter;
     src: url('../../fonts/InterVariable.woff2') format('woff2-variations');

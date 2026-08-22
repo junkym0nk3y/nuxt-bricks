@@ -11,13 +11,14 @@
     --bricks-default-transition: 300ms ease;
 
     --bricks-border-radius-xs: 0.6rem;
-    /* Компактные квадратные контролы (close button, nav items) — 0.8rem из Figma */
+    /* Compact square controls (close button, nav items) — 0.8rem from the design */
     --bricks-border-radius-control: 0.8rem;
     --bricks-border-radius-sm: 1rem;
     --bricks-border-radius-md: 1.4rem;
     --bricks-border-radius-pill: 99.9rem;
 
-    /* Статический белый: текст на фиксированных фонах (primary, тёмные оверлеи) — не зависит от темы */
+    /* Static white: text over fixed backgrounds (primary, dark overlays) — it does
+       not follow the theme */
     --bricks-static-white: #fff;
     --bricks-rgb-white: 255 255 255;
 
@@ -34,12 +35,14 @@
     --bricks-base-800: #1f2937;
     --bricks-base-900: #111827;
 
-    /* Приподнятая поверхность: фон кнопок/инпутов/hover — контраст без бордеров */
+    /* Raised surface: the background of buttons, inputs and hover — contrast without
+       borders */
     --bricks-surface-raised: #f3f4f6;
 
-    /* Фон вертикального рейла билдера. В светлой теме — тот же тон, что у тулбара:
-       разница base-0/base-50 там на грани различимости и читалась как грязь на стыке.
-       В тёмной теме рейл остаётся темнее тулбара — там контраст заметный и нужный. */
+    /* Background of the builder vertical rail. In the light theme it is the same
+       tone as the toolbar: the base-0/base-50 difference there is on the edge of
+       being visible at all and read as dirt along the seam. In the dark theme the
+       rail stays darker than the toolbar — there the contrast is plain and wanted. */
     --bricks-surface-rail: var(--bricks-base-0);
 
     /* === Primary blue colors (light to dark) === */
@@ -67,8 +70,8 @@
     --bricks-rgb-base-0: 255 255 255; /* from #fff */
     --bricks-rgb-primary: 37 99 235; /* from --bricks-primary #2563eb */
     --bricks-rgb-gray: 150 150 150; /* neutral gray */
-    /* from --bricks-yellow: подложка предупреждений собирается прозрачностью —
-       готового светлого тона у акцента нет, а в тёмной теме он и не годился бы */
+    /* from --bricks-yellow: the warning backdrop is built out of transparency — the
+       accent has no ready light tone, and in the dark theme one would not do */
     --bricks-rgb-yellow: 245 158 11;
 
     /* Layout indicator colors */
@@ -92,31 +95,33 @@
         0 2.4rem 6.4rem rgb(var(--bricks-rgb-base-900) / 14%);
     --bricks-shadow-focus: 0 0 0 0.4rem rgb(var(--bricks-rgb-primary) / 18%);
 
-    /* === Canvas interaction rings (hover / выделение блока в билдере) ===
-       Толщина одинаковая: при дробном zoom канваса кольцо в 0.1rem местами
-       не доживало до пикселя и грань «пропадала». Различие — только в цвете. */
+    /* === Canvas interaction rings (hover / block selection in the builder) ===
+       The thickness is the same for both: at a fractional canvas zoom a 0.1rem ring
+       in places did not survive down to a whole pixel and the edge "went missing".
+       The only difference is the color. */
     --bricks-canvas-ring-hover: 0 0 0 0.2rem rgb(var(--bricks-rgb-primary) / 45%);
     --bricks-canvas-ring-active: 0 0 0 0.2rem var(--bricks-primary);
 
-    /* === Слои оверлеев ===
-       Оболочка билдера (тулбар 100, vertical nav 60, сайдбары 50) в шкалу не
-       входит: она участвует в потоке страницы и всегда ниже любого оверлея.
+    /* === Overlay layers ===
+       The builder shell (toolbar 100, vertical nav 60, sidebars 50) is not part of
+       this scale: it takes part in the page flow and always sits below any overlay.
 
-       Прежде каждый вызывающий подбирал число сам — 100, 200, 10000, 10001,
-       99999, 100000, 100001, 999999, 1000000, — и порядок держался на том, что
-       кто-то взял цифру больше соседа. Два следствия этого и починены здесь:
-       дропдаун `BricksSelect` (100) уезжал под медиа-галерею (99999), а контекстное
-       меню и тултипы (10000/10001) — под любую модалку.
+       Before, every caller picked a number of its own — 100, 200, 10000, 10001,
+       99999, 100000, 100001, 999999, 1000000 — and the order held on nothing but
+       somebody having taken a digit larger than their neighbor. Two consequences of
+       that are what is fixed here: the `BricksSelect` dropdown (100) went under the
+       media gallery (99999), and the context menu and the tooltips (10000/10001)
+       under any modal at all.
 
-       Четыре уровня модалок, а не один: порядок «подтверждение → резолвер
-       картинок → галерея → обычная модалка» существует в коде и обязан
-       сохраниться (см. комментарий у BricksConfirmModal в publish/pages/index.vue).
+       Four modal levels rather than one: the order "confirmation → image resolver →
+       gallery → ordinary modal" exists in the code and has to survive (see the
+       comment at BricksConfirmModal in publish/pages/index.vue).
 
-       Дропдауны и поповеры стоят ВЫШЕ всех модалок сознательно: их всегда
-       открывают из чего-то, что уже наверху.
+       Dropdowns and popovers stand ABOVE every modal deliberately: they are always
+       opened out of something that is on top already.
 
-       Тост выше блокировки сессии: сообщение о недоступном хранилище обязано
-       остаться закрываемым, когда всё остальное заблокировано. */
+       The toast is above the session block: the message about unreachable storage
+       has to stay dismissable while everything else is blocked. */
     --bricks-z-modal: 1000;
     --bricks-z-modal-nested: 1100;
     --bricks-z-modal-raised: 1200;
@@ -133,17 +138,18 @@
     --bricks-overlay-modal-start: rgb(var(--bricks-rgb-base-900) / 45%);
     --bricks-overlay-modal-end: rgb(var(--bricks-rgb-base-900) / 70%);
 
-    /* === Invariant surfaces (не зависят от темы) === */
-    --bricks-dark-surface: #1a1d24; /* dark-preview в текстовых редакторах */
-    /* Фон рабочей области вокруг листа канваса. Один тон в обеих темах — осознанно:
-       лист палитру не наследует (.bricks-dark .bricks-canvas сбрасывает её обратно
-       к светлой), и единый серый вокруг белого листа как раз и делает лист листом.
-       Прежний #f3f4f6 совпадал с base-100 и в тёмной теме превращался в самое яркое
-       пятно на экране, а граница листа почти не читалась. */
+    /* === Invariant surfaces (do not follow the theme) === */
+    --bricks-dark-surface: #1a1d24; /* dark preview in the text editors */
+    /* Background of the working area around the canvas sheet. One tone in both
+       themes, deliberately: the sheet does not inherit the palette
+       (.bricks-dark .bricks-canvas resets it back to the light one), and a single
+       gray around a white sheet is exactly what makes the sheet a sheet. The former
+       #f3f4f6 coincided with base-100, so in the dark theme it turned into the
+       brightest patch on the screen while the edge of the sheet was barely there. */
     --bricks-workspace-bg: #dfe0e7;
-    /* Текст поверх этого фона (подписи листов в Figma-режиме). Тоже инвариант:
-       фон темой не меняется, поэтому `base-500` в тёмной теме давал светло-серую
-       надпись на светло-сером — читалась едва. */
+    /* Text over that background (the sheet captions in Figma mode). An invariant
+       too: the background does not follow the theme, so `base-500` in the dark theme
+       gave a light-gray caption on light gray — barely readable. */
     --bricks-workspace-fg: #6b7280;
 }
 
@@ -197,7 +203,7 @@
     --bricks-overlay-modal-start: rgb(0 0 0 / 55%);
     --bricks-overlay-modal-end: rgb(0 0 0 / 75%);
 
-    /* === Canvas reset: компоненты на канвасе остаются в светлой теме === */
+    /* === Canvas reset: components on the canvas stay in the light theme === */
     .bricks-canvas {
         --bricks-base-0: #fff;
         --bricks-base-50: #f9fafb;
@@ -249,12 +255,13 @@
             0 2.4rem 6.4rem rgb(var(--bricks-rgb-base-900) / 14%);
         --bricks-shadow-focus: 0 0 0 0.4rem rgb(var(--bricks-rgb-primary) / 18%);
 
-        /* Наследуемый цвет текста тоже приходится сбрасывать: body билдера ставит
-           color: var(--bricks-base-900), и в тёмной теме это светлый #e8eaef.
-           Переопределение переменных выше на него не влияет — цвет уже вычислен
-           на body и наследуется в канвас, а блоки со своим color (BlockText и
-           прочий контент) его не задают. Без этой строки текст на белом листе
-           был бы почти невидимым. */
+        /* The inherited text color has to be reset as well: the builder body sets
+           color: var(--bricks-base-900), and in the dark theme that is a light
+           #e8eaef. Redefining the variables above does not reach it — the color has
+           been computed on body already and travels into the canvas by inheritance,
+           and the content blocks set no color of their own to stop it (BlockText
+           carries no `color` at all). Without this line the text on the white sheet
+           would be nearly invisible. */
         color: var(--bricks-base-900);
     }
 }

@@ -174,9 +174,11 @@ export default defineNuxtModule<IBricksModuleOptions>({
         // From src the `.scss` files are used; in the built package mkdist compiles
         // them into `.css` (the consumer needs no sass) — so we take whichever
         // extension exists.
-        // fonts is a separate entry: a url() pointing at a woff2 is only correct
-        // relative to that very file (sass does not rebase url on @use, see
-        // bundle.scss).
+        // fonts is a separate entry rather than a `@use` inside bundle.scss: sass
+        // does not rebase url() on @use, so the woff2 path would be resolved
+        // against bundle.scss and break in the built package. Kept on its own, the
+        // url() stays correct relative to the file that spells it out, both in src
+        // and in dist.
         for (const stylesheet of ['bundle', 'default', 'common/fonts']) {
             const scssPath = resolve(runtimeDir, `assets/scss/${stylesheet}.scss`);
             nuxt.options.css.push(

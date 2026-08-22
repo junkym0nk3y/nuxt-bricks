@@ -1,57 +1,60 @@
 ////
-/// Адаптивные миксины для авторов brick-компонентов.
+/// Responsive mixins for the authors of brick components.
 ///
-/// Задача, которую они решают: обычная `@media` в SFC считается по ширине ОКНА,
-/// а канвас билдера — лист фиксированной ширины ВНУТРИ окна другой ширины.
-/// Из-за этого брик, адаптивный на published, в билдере не перестраивался вовсе:
-/// окно там всегда шире листа.
+/// The problem they solve: an ordinary `@media` in an SFC is measured against the
+/// width of the WINDOW, while the builder canvas is a sheet of fixed width INSIDE a
+/// window of another width. Because of that a brick that was responsive on published
+/// did not rearrange itself in the builder at all: the window there is always wider
+/// than the sheet.
 ///
-/// Поэтому каждый миксин раскрывается в две ветки:
-///   * `@media` для окна, огороженная от потомков канваса (тем же по смыслу
-///     guard'ом, которым модуль отделяет published-правила от канвасных);
-///   * `@container bricks` для листа канваса — `.bricks-canvas` объявлен
-///     контейнером, а `transform: scale()` на размер контейнера не влияет,
-///     поэтому лист отдаёт свою честную ширину.
+/// So every mixin expands into two branches:
+///   * `@media` for the window, fenced off from the descendants of the canvas (by
+///     the same guard in spirit that the module uses to keep published rules apart
+///     from canvas ones);
+///   * `@container bricks` for the canvas sheet — `.bricks-canvas` is declared a
+///     container, and `transform: scale()` has no effect on container size, so the
+///     sheet reports its honest width.
 ///
-/// Карта `$devices` — набор устройств ПРОЕКТА. Набор конкретной страницы
-/// миксины не знают и знать не должны: брейкпоинт автора брика («уже 768 — в
-/// одну колонку») и ступень набора страницы («у этой страницы есть ноутбук») —
-/// разные вещи. Кто хочет следовать набору страницы, объявляет
-/// `responsiveCssVars` в своём `*.brick.ts` и получает значения per-device
-/// из схемы.
+/// The `$devices` map is the device set of the PROJECT. The set of one particular
+/// page the mixins do not know and are not meant to: the breakpoint of a brick
+/// author ("narrower than 768 — one column") and the step of a page set ("this page
+/// has a laptop") are different things. Whoever wants to follow the page set
+/// declares `responsiveCssVars` in their own `*.brick.ts` and gets per-device values
+/// out of the schema.
 ///
-/// Значения карты перекрывает опция модуля `bricks.devices`: она резолвится на
-/// сборке и пишется в файл под алиасом `#bricks-scss`, поэтому числа у миксинов
-/// и у рантайма одни. Прямой `@use ... with ($devices: ...)` тоже работает, но
-/// тогда за расхождение с рантаймом отвечает потребитель.
+/// The values of the map are overridden by the `bricks.devices` module option: it is
+/// resolved at build time and written into the file behind the `#bricks-scss` alias,
+/// so the numbers of the mixins and of the runtime are one. A direct
+/// `@use ... with ($devices: ...)` works too, but then the drift from the runtime is
+/// the consumer's own to answer for.
 ////
 
 @use 'sass:list';
 @use 'sass:map';
 
-// Sass-переменные и карты здесь — осознанное исключение из запрета
-// (.claude/rules/styles.md): публичный миксин-API без них не существует.
-// Исключение ограничено этой папкой, компонентных стилей оно не касается.
+// Sass variables and maps here are a deliberate exception to the ban
+// (.claude/rules/styles.md): a public mixin API does not exist without them. The
+// exception is limited to this folder and does not touch component styles.
 $devices: (
     mobile: 375,
     tablet: 768,
     desktop: 1600,
 ) !default;
 
-// Канвас в guard'е оконной ветки опознаётся по атрибуту, а не по классу
-// `.bricks-canvas`. Причина: миксины раскрываются в блоке стилей потребителя,
-// и в `<style module>` CSS Modules переписывает голый класс в хэшированный
-// (`._bricks-canvas_a1b2c3`). Такой guard не совпадает никогда — оконная ветка
-// переставала отсекаться, и брик на узком листе канваса получал раскладку по
-// ширине окна, то есть ровно тот баг, ради которого миксины и заведены.
-// Селектор по атрибуту CSS Modules не трогает, а `~=` сверяет токен класса
-// целиком, а не подстроку
+// In the guard of the window branch the canvas is recognized by an attribute, not
+// by the `.bricks-canvas` class. The reason: the mixins expand inside the consumer's
+// own style block, and in a `<style module>` CSS Modules rewrites a bare class into
+// a hashed one (`._bricks-canvas_a1b2c3`). Such a guard never matches — the window
+// branch stopped being fenced off, and a brick on a narrow canvas sheet got the
+// layout of the window width, that is, precisely the bug the mixins exist for. An
+// attribute selector CSS Modules leaves alone, and `~=` compares a whole class token
+// rather than a substring
 $canvas-guard: '[class~="bricks-canvas"]';
 
-/// Ширина устройства по ключу.
+/// Width of a device by its key.
 ///
-/// @param {String} $key - Ключ устройства из карты `$devices`.
-/// @return {Number} Ширина в px.
+/// @param {String} $key - Device key out of the `$devices` map.
+/// @return {Number} Width in px.
 @function bricks-device-width($key) {
     @if not map.has-key($devices, $key) {
         @error 'nuxt-bricks: unknown device "#{$key}". Known: #{map.keys($devices)}.';
@@ -60,10 +63,10 @@ $canvas-guard: '[class~="bricks-canvas"]';
     @return map.get($devices, $key);
 }
 
-/// Ключ следующего по ширине устройства; `null` — за ним ничего нет.
+/// Key of the next device by width; `null` — there is nothing past it.
 ///
-/// @param {String} $key - Ключ устройства.
-/// @return {String|null} Ключ соседа справа.
+/// @param {String} $key - Device key.
+/// @return {String|null} Key of the neighbor on the right.
 @function bricks-device-next($key) {
     $keys: map.keys($devices);
     $index: list.index($keys, $key);
@@ -75,10 +78,10 @@ $canvas-guard: '[class~="bricks-canvas"]';
     @return list.nth($keys, $index + 1);
 }
 
-/// Стили от ширины устройства и шире.
+/// Styles from the device width and wider.
 ///
-/// @param {String} $key - Ключ устройства.
-/// @content Правила ветки.
+/// @param {String} $key - Device key.
+/// @content Rules of the branch.
 @mixin bricks-up($key) {
     $min: bricks-device-width($key);
 
@@ -93,10 +96,10 @@ $canvas-guard: '[class~="bricks-canvas"]';
     }
 }
 
-/// Стили уже ширины устройства (граница не включается).
+/// Styles narrower than the device width (the boundary is not included).
 ///
-/// @param {String} $key - Ключ устройства.
-/// @content Правила ветки.
+/// @param {String} $key - Device key.
+/// @content Rules of the branch.
 @mixin bricks-down($key) {
     $max: bricks-device-width($key) - 1;
 
@@ -111,11 +114,11 @@ $canvas-guard: '[class~="bricks-canvas"]';
     }
 }
 
-/// Стили в диапазоне между двумя устройствами (верхняя граница не включается).
+/// Styles in the range between two devices (the upper boundary is not included).
 ///
-/// @param {String} $from - Ключ нижней границы.
-/// @param {String} $to - Ключ верхней границы.
-/// @content Правила ветки.
+/// @param {String} $from - Key of the lower boundary.
+/// @param {String} $to - Key of the upper boundary.
+/// @content Rules of the branch.
 @mixin bricks-between($from, $to) {
     $min: bricks-device-width($from);
     $max: bricks-device-width($to) - 1;
@@ -131,17 +134,17 @@ $canvas-guard: '[class~="bricks-canvas"]';
     }
 }
 
-/// Стили ровно на ступени устройства — той же, что считает рантайм.
+/// Styles exactly on the step of a device — the same step the runtime computes.
 ///
-/// Границы миксин считает сам — в этом и смысл: вручную их пришлось бы
-/// пересчитывать при каждой правке набора. У самого узкого устройства нижней
-/// границы НЕТ: его ступень начинается от нуля, как и в `deviceRanges`. Иначе
-/// `only(mobile)` дал бы `375–767`, и окно 360 на published осталось бы без
-/// правила, хотя лист 375 в билдере его получал — ровно то расхождение канваса и
-/// опубликованной страницы, ради которого миксины и заведены.
+/// The boundaries the mixin works out itself, and that is the whole point: by hand
+/// they would have to be recomputed on every edit of the set. The narrowest device
+/// has NO lower boundary: its step starts at zero, the same as in `deviceRanges`.
+/// Otherwise `only(mobile)` would give `375–767`, and a 360-wide window on published
+/// would be left without the rule while the 375 sheet in the builder still got it —
+/// precisely the divergence between canvas and published page the mixins exist for.
 ///
-/// @param {String} $key - Ключ устройства.
-/// @content Правила ветки.
+/// @param {String} $key - Device key.
+/// @content Rules of the branch.
 @mixin bricks-only($key) {
     $next: bricks-device-next($key);
     $is-narrowest: list.index(map.keys($devices), $key) == 1;
@@ -161,27 +164,27 @@ $canvas-guard: '[class~="bricks-canvas"]';
     }
 }
 
-/// Скрывает элемент от ширины устройства и шире.
+/// Hides the element from the device width and wider.
 ///
-/// @param {String} $key - Ключ устройства.
+/// @param {String} $key - Device key.
 @mixin bricks-hide-up($key) {
     @include bricks-up($key) {
         display: none;
     }
 }
 
-/// Скрывает элемент уже ширины устройства.
+/// Hides the element narrower than the device width.
 ///
-/// @param {String} $key - Ключ устройства.
+/// @param {String} $key - Device key.
 @mixin bricks-hide-down($key) {
     @include bricks-down($key) {
         display: none;
     }
 }
 
-/// Скрывает элемент ровно на ступени устройства.
+/// Hides the element exactly on the step of the device.
 ///
-/// @param {String} $key - Ключ устройства.
+/// @param {String} $key - Device key.
 @mixin bricks-hide-only($key) {
     @include bricks-only($key) {
         display: none;

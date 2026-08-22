@@ -31,11 +31,29 @@ export function listFiles(options = {}) {
 }
 
 /**
- * Files allowed to keep prose comments in a markup or style section. Vendored
- * `normalize.css` carries its MIT attribution, which the licence requires to
- * travel with the code; it still has to be translated like any other comment.
+ * Standalone stylesheets of the package.
+ *
+ * "A style section carries no comments" was written for the `<style>` of an SFC,
+ * where the rationale has a `<script>` next to it to move into. These files have no
+ * script: they are the style layer itself, and their rationale — the two reset zones,
+ * the z-index ladder, why a transition is shaped the way it is — owns no other home.
+ * By the owner's decision it stays where it is, in English, instead of being deleted.
+ * Vendored `normalize.css` lives here too, carrying the MIT attribution the license
+ * requires to travel with the code.
+ *
+ * Translation is not waived: a Cyrillic comment in these files still fails the check.
  */
-export const MARKUP_COMMENT_ALLOWED = new Set(['src/runtime/assets/scss/common/_normalize.scss']);
+const STANDALONE_STYLESHEETS = 'src/runtime/assets/scss/';
+
+/**
+ * Whether a file may keep prose comments in a markup or style section.
+ *
+ * @param {string} path - Repository-relative path.
+ * @returns {boolean} True when prose comments are allowed to stay.
+ */
+export function isMarkupCommentAllowed(path) {
+    return path.startsWith(STANDALONE_STYLESHEETS);
+}
 
 /**
  * Files whose template literals must lose their Cyrillic too.
@@ -119,7 +137,7 @@ export const AREAS = [
         match: ['src/types/', 'src/'],
         onlyDepth: true,
     },
-    { id: '10', title: 'assets/scss', done: false, match: ['src/runtime/assets/'] },
+    { id: '10', title: 'assets/scss', done: true, match: ['src/runtime/assets/'] },
     { id: '11', title: 'builder/core', done: false, match: ['src/runtime/modules/builder/core/'] },
     {
         id: '12',

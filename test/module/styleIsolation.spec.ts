@@ -141,6 +141,10 @@ describe('изоляция стилей от host-приложения', () => {
     });
 
     it('default.scss: порядок @layer фиксирует приоритет typography над reset', () => {
+        // TipTap typography has to beat the reset, and both of them are layered:
+        // between two layers neither specificity nor source order decides, only the
+        // order the layers are declared in. Swapping the two names in the statement
+        // is enough to strip the formatting of rich-text content.
         const firstLayerStatement = defaultCss.match(/@layer\s+([^;{]+);/);
 
         expect(firstLayerStatement?.[1].trim()).toBe('bricks-reset, bricks-typography');

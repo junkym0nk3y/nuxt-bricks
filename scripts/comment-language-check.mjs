@@ -36,7 +36,7 @@ import { collectComments, collectDevMessages, collectTestTitles } from './commen
 import {
     AREAS,
     LITERAL_GATED,
-    MARKUP_COMMENT_ALLOWED,
+    isMarkupCommentAllowed,
     MESSAGE_KEPT_RUSSIAN,
     ROOT,
     isExcluded,
@@ -75,7 +75,7 @@ function countFile(path, bucket) {
             hits.push({ line: entry.line, kind: 'cyrillic', text: entry.text.trim() });
         }
 
-        if (isMarkup && !entry.directive && !MARKUP_COMMENT_ALLOWED.has(path)) {
+        if (isMarkup && !entry.directive && !isMarkupCommentAllowed(path)) {
             bucket.markup += 1;
 
             if (!isCyrillic) {
@@ -299,22 +299,46 @@ function report(options) {
         }
     }
 
-    // An explicitly selected area is being closed, so anything left is a
-    // failure; without a selection only areas already marked done can fail,
-    // which keeps the gate usable while the sprint is in progress
+    /**
+     * Counters whose remaining work fails this run for the given area.
+     *
+     * An explicitly selected area is being closed, so every counter has to be at
+     * zero — unless `--metric` narrows it to one, which is how stages 21 and 22
+     * close: they walk the same tree one counter at a time. Without a selection only
+     * the counters an area has already closed can fail, which keeps the check usable
+     * while the sprint is in progress.
+     *
+     * @param {object} area - Area report.
+     * @returns {string[]} Counter names to sum.
+     */
+    function blockingMetrics(area) {
+        if (options.metric) {
+            return [options.metric];
+        }
+
+        if (options.area || area.done === true) {
+            return METRICS;
+        }
+
+        return Array.isArray(area.done) ? area.done.filter((name) => METRICS.includes(name)) : [];
+    }
+
     /**
      * Remaining work of an area that closing the stage must bring to zero.
+     *
+     * The counter names are the field names of the report bucket. They were once
+     * spelled out a second time here, misspelled, and the sum came out `NaN` — which
+     * is greater than nothing, so the check reported remaining work in its table and
+     * still exited zero. Read them off METRICS instead of retyping them.
      *
      * @param {object} area - Area report.
      * @returns {number} Blocking count.
      */
     function blocking(area) {
-        return area.cyrillicComments + area.markupComments + area.testTitles + area.gatedLiterals;
+        return blockingMetrics(area).reduce((total, name) => total + area[name], 0);
     }
 
-    const failing = selected.filter((area) =>
-        options.area ? blocking(area) > 0 : area.done && blocking(area) > 0
-    );
+    const failing = selected.filter((area) => blocking(area) > 0);
 
     if (!options.area && unassigned.length > 0) {
         console.error(`\nFAIL: ${unassigned.length} path(s) belong to no area:`);
