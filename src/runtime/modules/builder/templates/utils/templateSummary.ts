@@ -1,21 +1,22 @@
 /**
- * Приведение полной строки шаблона к сводке списка.
+ * Bringing the whole row of a template down to the summary the list holds.
  *
- * Нужно потому, что ручки записи (POST/PATCH) отдают шаблон ЦЕЛИКОМ — со схемой
- * и оформлением, — а список держит сводки: положить в него полную строку значило
- * бы хранить схему в состоянии приложения ради одной карточки и разойтись формой
- * с тем, что приедет следующим чтением.
+ * Needed because the write endpoints (POST/PATCH) answer with the template IN FULL —
+ * with its schema and its styling — while the list holds summaries: putting the whole
+ * row in there would mean keeping a schema in the state of the application for the
+ * sake of one card, and drifting in shape from what the next read brings.
  *
- * Число блоков считается здесь, а не берётся из ответа: в полной строке его нет
- * (сводку с ним собирает SQL), зато есть сама схема — источник того же числа.
+ * The number of blocks is counted here rather than taken from the answer: the whole row
+ * does not carry it (the summary that does is assembled by SQL), but it does carry the
+ * schema itself — the source of that same number.
  */
 import type { IBricksTemplateRow, TBricksTemplateSummary } from '../../../common/types/templates';
 
 /**
- * Собирает сводку шаблона из полной строки.
+ * Assembles the summary of a template out of its whole row.
  *
- * @param template - Полная строка шаблона из ответа ручки записи.
- * @returns Сводка для списка раздела.
+ * @param template - The whole row of the template, as a write endpoint answered it.
+ * @returns The summary for the list of the section.
  */
 export function toTemplateSummary(template: IBricksTemplateRow): TBricksTemplateSummary {
     return {

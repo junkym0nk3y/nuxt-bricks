@@ -1,6 +1,7 @@
 /**
- * Yup-схема формы шаблона — общая для сохранения и переименования: поля те же
- * (имя и описание), и разъехавшись, формы обещали бы разное об одной записи.
+ * The yup schema of the form of a template — one for saving and for renaming: the
+ * fields are the same (a name and a description), and once apart the two forms would
+ * promise different things about one record.
  */
 // #region Imports
 // Constants
@@ -15,17 +16,18 @@ import { object, string } from 'yup';
 // #endregion
 
 /**
- * Собирает схему валидации формы шаблона.
+ * Assembles the validation schema of the form of a template.
  *
- * Границы берутся из общих констант, а не переписаны числами: клиентская схема,
- * разъехавшаяся с серверной, либо отклоняет имя, которое сервер принял бы, либо
- * гоняет через сеть заведомо отказной запрос.
+ * The bounds are taken from the shared constants rather than written out as numbers: a
+ * client-side schema that has drifted from the server-side one either turns down a name
+ * the server would have taken, or sends a request over the network that is refused for
+ * certain.
  *
- * Занятость имени здесь не проверяется вовсе — это знает только сервер, и его
- * отказ встаёт под поле (см. `isTemplateNameTakenError`).
+ * Whether the name is taken is not checked here at all — only the server knows that,
+ * and its refusal lands under the field (see `isTemplateNameTakenError`).
  *
- * @param options - Переводчик сообщений.
- * @returns Yup-схема формы шаблона.
+ * @param options - The translator of the messages.
+ * @returns The yup schema of the form of a template.
  */
 export function createTemplateValidationSchema(options: {
     t: (key: string, params?: Record<string, unknown>) => string;
@@ -33,10 +35,10 @@ export function createTemplateValidationSchema(options: {
     const { t } = options;
 
     return object({
-        // `trim` до границ, а не после: формы отправляют обрезанные значения, и
-        // серверный валидатор мерит уже обрезанную строку — без него «  a  »
-        // проходил бы клиентский минимум и возвращался generic-отказом сервера
-        // вместо подсказки под полем
+        // `trim` before the bounds rather than after: the forms send trimmed values and
+        // the server-side validator measures an already trimmed string — without it
+        // "  a  " would pass the client-side minimum and come back as a generic refusal
+        // of the server instead of a hint under the field
         name: string()
             .trim()
             .required(() => t('bricks.templates.validation.nameRequired'))

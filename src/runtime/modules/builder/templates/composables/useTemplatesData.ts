@@ -21,54 +21,60 @@ import { useNuxtApp, useState } from '#imports';
 // #endregion
 
 // #region Data
-/** Ключ общего состояния списка шаблонов: одно значение на приложение. */
+/** The key of the shared template list state: one value per application */
 const TEMPLATES_STATE_KEY = 'bricks-templates';
 
 /**
- * Идущая загрузка — по экземпляру приложения Nuxt, а не переменной модуля.
+ * The load in flight — per Nuxt application instance rather than in a module variable.
  *
- * Модуль-глобальный промис на сервере общий для ВСЕХ запросов процесса: два
- * одновременных SSR-рендера дашборда получили бы один и тот же список, то есть
- * ответ, полученный по чужой сессии. `WeakMap` изолирует дедупликацию по запросу
- * и не держит ссылку после его завершения (паттерн `useUsersData`).
+ * On the server a module-global promise is shared by ALL requests of the process: two
+ * simultaneous SSR renders of the dashboard would receive one and the same list, that
+ * is, a response obtained under someone else's session. A `WeakMap` keyed by the
+ * application instance isolates the deduplication per request and keeps no reference
+ * once that request is over (the pattern of `useUsersData`).
  */
 const inflightRequests = new WeakMap<object, Promise<void>>();
 
 /**
- * Счётчик локальных правок списка — тоже по экземпляру приложения: служебному
- * значению не место в payload гидрации.
+ * The counter of local edits of the list — per application instance as well: `useState`
+ * travels into the hydration payload, and a housekeeping counter has no place there.
  */
 const localRevisions = new WeakMap<object, { count: number }>();
 // #endregion
 
 /**
- * Список шаблонов раздела «Шаблоны»: чтение с сервера и точечные правки
- * состояния после операций.
+ * The template list of the "Templates" section: reading it from the server and the
+ * targeted edits of the state after an operation.
  *
- * Состояние — `useState`, а не Pinia-store: список живёт на одной поверхности
- * (раздел дашборда и выбор источника новой страницы — она же), зато нужен
- * SSR-сид — счётчик в рейле рисуется в первом кадре вместе с пунктом раздела.
+ * The state is a `useState` rather than a Pinia store: the list lives on one surface
+ * (the section of the dashboard and the picker of the source of a new page are that
+ * same one), and what it does need is an SSR seed — the counter in the rail is drawn in
+ * the very first frame together with the item of the section.
  *
- * Правки после операций точечные (`upsertTemplate`, `removeTemplate`), а не
- * повторное чтение: ручки отдают полное состояние записи, и второй GET за тем
- * же, что уже приехало, добавил бы кадр с двойной перерисовкой. Полное
- * перечитывание остаётся у `refreshTemplates` — для повтора после отказа и
- * сверки, когда исход операции неизвестен.
+ * The edits after an operation are targeted (`upsertTemplate`, `removeTemplate`)
+ * instead of a re-read of the whole list: the endpoints hand back the full state of the
+ * record, and a second GET for what has already arrived would only add a frame in which
+ * the list managed to redraw twice. The full re-read stays with `refreshTemplates` — for
+ * a retry after a refusal and for a check when the outcome of an operation is unknown.
  *
- * @returns Список, признак готовности и операции над состоянием.
+ * @returns The list, how it was read and the operations on the state.
  */
 export function useTemplatesData(): IUseTemplatesDataReturn {
     // #region Data
     const nuxtApp = useNuxtApp();
 
-    // Состояние заменяется целиком, а не правится по полям: `useState` хранит
-    // объект, и точечная мутация внутри него не обязана оповещать подписчиков
+    // Every transition writes the state as one object rather than editing it field by
+    // field: an assignment then names the complete next state of the section, and no
+    // half-written combination has to be reasoned about. Reactivity is not the reason to
+    // do it this way — `useState` is a `toRef` onto a reactive payload, so a targeted
+    // write notifies subscribers just as well
     const state = useState<ITemplatesState>(TEMPLATES_STATE_KEY, () => ({
         templates: [],
         status: 'idle',
     }));
 
-    // Общий на приложение: композабл зовут и рейл, и раздел, и модалки
+    // Shared per application: the composable is called by the rail, by the section and
+    // by the modals
     const revision = localRevisions.get(nuxtApp) ?? { count: 0 };
 
     localRevisions.set(nuxtApp, revision);
@@ -83,34 +89,37 @@ export function useTemplatesData(): IUseTemplatesDataReturn {
     );
 
     /**
-     * Дата самого свежего шаблона для строки-сводки раздела. Берётся первый
-     * элемент, а не максимум: сервер отдаёт список по дате создания вниз, и
-     * второй проход по нему считал бы то же самое.
+     * The date of the freshest template, for the summary line of the section. The first
+     * element rather than a maximum: the server hands the list back by creation date
+     * downwards, and a second pass over it would count the very same thing.
      */
     const lastSavedAt = computed<string | null>(() => state.value.templates[0]?.createdAt ?? null);
     // #endregion
 
     // #region Methods
     /**
-     * Читает список с сервера и раскладывает исход по состоянию раздела.
+     * Reads the list from the server and lays the outcome out over the state of the
+     * section.
      *
-     * Отказ наружу не бросается: загрузку запускает composition root до первого
-     * кадра, и отклонённый промис унёс бы весь дашборд из-за раздела, которого
-     * человек мог и не открыть.
+     * A refusal is not thrown outwards: the read is started by the composition root
+     * before the first frame, and a rejected promise would take the whole dashboard down
+     * over a section the person may never have opened.
      */
     async function loadTemplates(): Promise<void> {
-        // Прочитанный список на время чтения не гасится: карточки на экране верны
-        // на момент прошлого ответа, а скелет вместо них при каждом входе в
-        // раздел отнимал бы то, зачем человек пришёл
+        // A list already read is not blanked out for the duration of the next read: the
+        // cards on the screen are true as of the previous answer, and a skeleton in
+        // their place on every entry into the section would take away what the person
+        // came for
         if (state.value.status !== 'ready') {
             state.value = { ...state.value, status: 'loading' };
         }
 
-        // Цикл, а не один запрос: ответ, обогнанный локальной правкой, применять
-        // нельзя, но и бросить чтение нельзя — раздел остался бы с состоянием, о
-        // котором неизвестно, свежее оно или нет. Итерация повторяется ровно
-        // тогда, когда между стартом запроса и ответом список правила операция,
-        // поэтому останавливается сама (паттерн `useUsersData`)
+        // A loop rather than a single request: an answer that a local edit has overtaken
+        // must not be applied, yet the read must not be abandoned either — the section
+        // would be left with a state nobody knows to be fresh or stale. An iteration
+        // repeats exactly when an operation edited the list between the start of the
+        // request and its answer, so it comes to a stop on its own (the pattern of
+        // `useUsersData`)
         for (;;) {
             const revisionAtStart = revision.count;
 
@@ -123,9 +132,9 @@ export function useTemplatesData(): IUseTemplatesDataReturn {
 
                 state.value = { templates: list, status: 'ready' };
             } catch (error: unknown) {
-                // Одно состояние отказа: ручки шаблонов приезжают вместе с
-                // модулем, поэтому «раздела нет в установке» тут не бывает —
-                // любой отказ имеет смысл повторить
+                // One state of refusal: the endpoints of the templates arrive
+                // together with the module, so "the installation has no such
+                // section" never happens here — every refusal is worth a retry
                 state.value = { ...state.value, status: 'error' };
 
                 console.error('[Builder] Failed to load templates list:', error);
@@ -136,13 +145,14 @@ export function useTemplatesData(): IUseTemplatesDataReturn {
     }
 
     /**
-     * Ограничивает ожидание списка на SSR.
+     * Bounds the wait for the list during SSR.
      *
-     * Потолок транспорта на сервере инертен: относительный URL уходит внутренним
-     * вызовом Nitro, а он `AbortSignal` не слушает. Без внешнего дедлайна
-     * зависший запрос держал бы не список шаблонов, а весь ответ страницы.
+     * The ceiling of the transport is inert on the server: a relative URL travels as an
+     * internal call of Nitro, and that one does not listen to an `AbortSignal`. Without
+     * an outer deadline a hung request would hold up not the list of templates but the
+     * whole answer of the page.
      *
-     * @returns Список сводок шаблонов.
+     * @returns The list of the summaries of the templates.
      */
     function requestWithinDeadline(): Promise<TBricksTemplateSummary[]> {
         const request = fetchTemplatesRequest();
@@ -161,13 +171,14 @@ export function useTemplatesData(): IUseTemplatesDataReturn {
     }
 
     /**
-     * Отдаёт идущую загрузку либо запускает новую.
+     * Hands back the read in flight, or starts a new one.
      *
-     * Дедупликация нужна от второго потребителя списка: рейл со счётчиком, сам
-     * раздел и модалка создания страницы спрашивают одно состояние, и без общего
-     * промиса первый кадр отправил бы два одинаковых GET.
+     * The deduplication is there because of the second consumer of the list: the rail
+     * with the counter, the section itself and the modal that creates a page all ask for
+     * one state, and without a shared promise the first frame would send two identical
+     * GETs.
      *
-     * @returns Промис текущей загрузки.
+     * @returns The promise of the read in progress.
      */
     function startLoad(): Promise<void> {
         const inflight = inflightRequests.get(nuxtApp);
@@ -186,10 +197,11 @@ export function useTemplatesData(): IUseTemplatesDataReturn {
     }
 
     /**
-     * Загружает список, если он ещё не прочитан.
+     * Reads the list unless it has been read already.
      *
-     * Готовый список повторно не читается: карточки на экране верны на момент
-     * прошлого ответа, а отказавшее чтение повторяет кнопка раздела.
+     * A list that is ready is not read again: the cards on the screen are true as of the
+     * previous answer, and a read that was refused is retried by the button of the
+     * section.
      */
     async function ensureTemplates(): Promise<void> {
         if (state.value.status === 'ready') {
@@ -200,22 +212,22 @@ export function useTemplatesData(): IUseTemplatesDataReturn {
     }
 
     /**
-     * Перечитывает список принудительно: повтор после временного отказа и сверка
-     * после операции с неизвестным исходом.
+     * Forces a re-read of the list: a retry after a temporary refusal, and a check after
+     * an operation whose outcome is unknown.
      */
     async function refreshTemplates(): Promise<void> {
         return startLoad();
     }
 
     /**
-     * Кладёт шаблон в список: известный — на его место, новый — в НАЧАЛО.
+     * Puts a template into the list: a known one in its place, a new one at the START.
      *
-     * В начало, а не в конец (в отличие от учёток): сервер отдаёт список по дате
-     * создания вниз, и только что сохранённый шаблон обязан оказаться там же, где
-     * окажется после следующего чтения, — иначе карточка прыгнула бы на другое
-     * место при первом обновлении.
+     * At the start rather than at the end (unlike the accounts): the server hands the
+     * list back by creation date downwards, and a template just saved has to land where
+     * it will land after the next read — otherwise its card would jump elsewhere on the
+     * very first refresh.
      *
-     * @param template - Сводка шаблона, полученная от ручки.
+     * @param template - The summary of the template as received from the endpoint.
      */
     function upsertTemplate(template: TBricksTemplateSummary): void {
         const isKnown = state.value.templates.some((item) => item.id === template.id);
@@ -231,9 +243,9 @@ export function useTemplatesData(): IUseTemplatesDataReturn {
     }
 
     /**
-     * Убирает шаблон из списка после подтверждённого удаления.
+     * Takes a template out of the list once its deletion has been confirmed.
      *
-     * @param templateId - Идентификатор удалённого шаблона.
+     * @param templateId - The identifier of the deleted template.
      */
     function removeTemplate(templateId: number): void {
         revision.count += 1;

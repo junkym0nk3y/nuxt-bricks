@@ -1,10 +1,16 @@
 <script setup lang="ts">
 /**
- * @description Сетка шаблонов и её края: загрузка, пустой раздел, пустой поиск.
+ * @description The grid of templates and its edges: the read, an empty section, an
+ * empty search.
  *
- * Пустое состояние раздела ведёт к списку страниц, а не показывает выключенную
- * кнопку: шаблон рождается только из готовой страницы, и человеку нужно туда,
- * где его можно создать.
+ * The empty state of the section leads to the page list instead of showing a disabled
+ * button: a template is born on the pages surface — from a row of the list or from the
+ * builder of a page, unsaved edits included — and there is nothing here to create one
+ * with, so the person needs to be where there is.
+ *
+ * A decision held by the style section: the minimum of a column is 24rem, which on the
+ * 1160 of the content gives four columns of 27.2rem, and on a narrower window three and
+ * then two — without breakpoints of its own.
  */
 
 // #region Imports
@@ -34,53 +40,52 @@ const emit = defineEmits<ITemplatesGridEmits>();
 const { t } = useI18n();
 
 /**
- * Число карточек-заглушек на время загрузки: ровно один ряд сетки при типичной
- * ширине дашборда. Скелет повторяет карточку, а не показывает спиннер по центру —
- * так не прыгает раскладка в момент появления настоящих карточек.
+ * The number of stand-in cards for the duration of the read: exactly one row of the
+ * grid at the typical width of the dashboard. The skeleton repeats the card instead of
+ * showing a spinner in the middle — that way the layout does not jump at the moment the
+ * real cards arrive.
  */
 const SKELETON_CARDS = 4;
 // #endregion
 
 // #region Methods
 /**
- * Пробрасывает создание страницы из шаблона.
+ * Passes the creation of a page from a template upwards.
  *
- * @param template - Шаблон.
+ * @param template - The template.
  */
 function handleCreatePage(template: TBricksTemplateSummary): void {
     emit('create-page', template);
 }
 
 /**
- * Пробрасывает просмотр снимка шаблона.
+ * Passes the viewing of the frame of a template upwards.
  *
- * @param template - Шаблон.
+ * @param template - The template.
  */
 function handlePreviewThumbnail(template: TBricksTemplateSummary): void {
     emit('preview-thumbnail', template);
 }
 
 /**
- * Пробрасывает правку подписи.
+ * Passes the edit of a caption upwards.
  *
- * @param template - Шаблон.
+ * @param template - The template.
  */
 function handleRename(template: TBricksTemplateSummary): void {
     emit('rename', template);
 }
 
 /**
- * Пробрасывает удаление шаблона.
+ * Passes the deletion of a template upwards.
  *
- * @param template - Шаблон.
+ * @param template - The template.
  */
 function handleDelete(template: TBricksTemplateSummary): void {
     emit('delete', template);
 }
 
-/**
- * Просит открыть раздел страниц (CTA пустого состояния).
- */
+/** Asks to open the section of pages (the call to action of the empty state) */
 function handleGoToPages(): void {
     emit('go-to-pages');
 }
@@ -147,9 +152,6 @@ function handleGoToPages(): void {
 
 .grid {
     display: grid;
-
-    // Колонка от 24rem: на 1160 контента даёт четыре колонки по 27.2rem, на
-    // узком окне — три и две, без своих брейкпоинтов
     grid-template-columns: repeat(auto-fill, minmax(24rem, 1fr));
     gap: 2.4rem;
 }

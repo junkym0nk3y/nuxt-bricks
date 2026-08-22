@@ -1,11 +1,12 @@
 <script setup lang="ts">
 /**
- * @description Модалка правки подписи шаблона: имя и описание.
+ * @description The modal that edits the caption of a template: the name and the
+ * description.
  *
- * Правится только подпись: содержимое шаблона — отпечаток момента, и «обновить
- * его текущей страницей» означало бы связь с источником, версии шаблона и
- * разрешение конфликтов. А вот опечатку в имени иначе было бы не исправить ничем,
- * кроме удаления и повторного сохранения.
+ * The caption alone is editable: the contents of a template are an imprint of a moment,
+ * and "refresh it from the current page" would mean a tie to the source, versions of the
+ * template and the resolving of conflicts. A typo in the name, on the other hand, would
+ * otherwise be fixable by nothing short of a deletion and another save.
  */
 
 // #region Imports
@@ -53,9 +54,7 @@ const { name, description, errors, generalError, isSubmitting, submitForm, reset
 // #endregion
 
 // #region Methods
-/**
- * Закрывает модалку; во время отправки закрытие заблокировано.
- */
+/** Closes the modal; while a submission is running the closing is blocked */
 function handleClose(): void {
     if (isSubmitting.value) {
         return;

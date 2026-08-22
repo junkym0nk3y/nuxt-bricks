@@ -1,13 +1,19 @@
 <script setup lang="ts">
 /**
- * @description Список выбора шаблона для новой страницы: строка со снимком,
- * именем и объёмом.
+ * @description The list a template for a new page is picked from: a row with the frame,
+ * the name and the size.
  *
- * Показывается по клику на карточке «Из шаблона» в форме создания — как диалог
- * выбора файла у карточки «Из JSON-файла»: вариант «из шаблона» без шаблона
- * ничего не значит. Поиск появляется от порога
- * (`TEMPLATE_PICKER_SEARCH_THRESHOLD`): над четырьмя строками поле было бы
- * лишним элементом.
+ * It is shown by a click on the "From a template" card in the creation form — the way
+ * the file dialog belongs to the "From a JSON file" card: the "from a template" choice
+ * means nothing without a template. The search appears from the eighth template
+ * (`TEMPLATE_PICKER_SEARCH_THRESHOLD`); below that the list is covered by scrolling
+ * alone.
+ *
+ * A decision held by the style section: the height of the list is capped at 28rem —
+ * five rows of 5.2rem with the sixth cut off — because the list lives inside the
+ * creation modal, and it must not grow at that modal's expense. The cap and the
+ * threshold do not meet: scrolling starts on the sixth template, the search field on
+ * the eighth.
  */
 
 // #region Imports
@@ -41,9 +47,9 @@ const emit = defineEmits<ITemplatesPickerListEmits>();
 const { t } = useI18n();
 
 /**
- * Поиск внутри списка — свой, не общий с шапкой дашборда: форма создания
- * открывается поверх раздела страниц, и запрос из шапки фильтровал бы там
- * страницы.
+ * The search inside the list is its own, not the one from the dashboard header: the
+ * creation form opens on top of the page list, and a query from the header would be
+ * filtering the pages there.
  */
 const searchQuery = ref('');
 // #endregion
@@ -72,10 +78,10 @@ const visibleTemplates = computed<TBricksTemplateSummary[]>(() => {
 
 // #region Methods
 /**
- * Формирует мета-строку шаблона: объём и дата сохранения.
+ * Builds the meta line of a template: its size and the date it was saved.
  *
- * @param template - Шаблон.
- * @returns Строка вида «12 блоков · 14.08.2026».
+ * @param template - The template.
+ * @returns A string of the "12 blocks · 14.08.2026" kind.
  */
 function buildMetaLine(template: TBricksTemplateSummary): string {
     return [
@@ -85,9 +91,9 @@ function buildMetaLine(template: TBricksTemplateSummary): string {
 }
 
 /**
- * Сообщает о выборе шаблона.
+ * Reports that a template has been picked.
  *
- * @param template - Шаблон.
+ * @param template - The template.
  */
 function handleSelect(template: TBricksTemplateSummary): void {
     emit('select', template);
@@ -163,9 +169,6 @@ function handleSelect(template: TBricksTemplateSummary): void {
 
 .list {
     overflow-y: auto;
-
-    // Потолок высоты — четыре строки со скроллом: список живёт внутри модалки
-    // создания, и вырасти он должен не за её счёт
     max-height: 28rem;
     margin: 0;
     padding: 0;

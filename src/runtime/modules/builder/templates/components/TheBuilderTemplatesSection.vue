@@ -1,16 +1,25 @@
 <script setup lang="ts">
 /**
- * @description Раздел «Шаблоны» целиком: строка-сводка, сетка, подтверждение
- * удаления и форма правки подписи.
+ * @description The whole "Templates" section: the summary line, the grid, the
+ * confirmation of a deletion and the form that edits a caption.
  *
- * Компонент-контроллер, а не разметка внутри хоста дашборда: у раздела своё
- * состояние (занятая карточка, цель подтверждения, правимый шаблон) и свои окна.
- * Хост остаётся composition root — он показывает тосты, держит поле поиска в
- * общей шапке, открывает форму создания страницы и лайтбокс превью.
+ * A controller component rather than markup inside the dashboard host: the section has
+ * state of its own (the busy card, the target of the confirmation, the template being
+ * edited) and windows of its own. The host stays the composition root: it shows the
+ * toasts, holds the search field in the shared header, opens the creation form and the
+ * lightbox of the preview.
  *
- * Наружу уходит ровно то, что разделу не принадлежит: тексты тостов, просьба
- * открыть раздел страниц (пустое состояние) и создание страницы из шаблона —
- * форма создания живёт в домене публикации, и раздел о ней не знает.
+ * What goes outward is exactly what does not belong to the section: the texts of the
+ * toasts, the request to open the page list (the empty state) and the creation of a
+ * page from a template — the creation form lives in the publishing domain, and the
+ * section knows nothing about it.
+ *
+ * Decisions held by the markup: a refused read does not hide the cards already read —
+ * they are true as of the previous answer, while an empty screen would report that
+ * there are no templates. The grid is not drawn at all when the refusal caught the
+ * section with no data: its own empty state would say "no templates yet", whereas in
+ * truth nobody knows whether there are any — that is what the strip with the retry
+ * button says instead.
  */
 
 // #region Imports
@@ -56,7 +65,7 @@ const actions = useTemplateActions({
     onNotify: (message, variant) => emit('notify', message, variant),
 });
 
-/** Шаблон, чью подпись правят; `null` — форма закрыта. */
+/** The template whose caption is being edited; `null` — the form is closed */
 const renameTarget = ref<TBricksTemplateSummary | null>(null);
 // #endregion
 
@@ -64,8 +73,8 @@ const renameTarget = ref<TBricksTemplateSummary | null>(null);
 const hasAnyTemplates = computed<boolean>(() => templates.value.length > 0);
 
 /**
- * Строка-сводка над сеткой: сколько шаблонов и когда сохранён последний. Дата
- * опускается у пустого списка — сообщать не о чем.
+ * The summary line above the grid: how many templates there are and when the last one
+ * was saved. The date is left out for an empty list — there is nothing to report.
  */
 const summaryLine = computed<string>(() => {
     if (!hasAnyTemplates.value) {
@@ -84,34 +93,30 @@ const isFailed = computed<boolean>(() => status.value === 'error');
 // #endregion
 
 // #region Methods
-/**
- * Повторяет чтение списка после временного отказа.
- */
+/** Repeats the read of the list after a temporary refusal */
 async function handleRetry(): Promise<void> {
     await refreshTemplates();
 }
 
 /**
- * Открывает форму правки подписи шаблона.
+ * Opens the form that edits the caption of a template.
  *
- * @param template - Шаблон.
+ * @param template - The template.
  */
 function handleRename(template: TBricksTemplateSummary): void {
     renameTarget.value = template;
 }
 
-/**
- * Закрывает форму правки подписи.
- */
+/** Closes the form that edits the caption */
 function handleCloseRename(): void {
     renameTarget.value = null;
 }
 
 /**
- * Подпись сохранена: закрываем форму и сообщаем. Карточку уже поправила сама
- * форма — ответом ручки, а не повторным чтением.
+ * The caption is saved: the form closes and the person is told. The card has already
+ * been corrected by the form itself — by the answer of the endpoint, not by a re-read.
  *
- * @param template - Шаблон после правки.
+ * @param template - The template after the edit.
  */
 function handleRenamed(template: TBricksTemplateSummary): void {
     renameTarget.value = null;
@@ -119,36 +124,35 @@ function handleRenamed(template: TBricksTemplateSummary): void {
 }
 
 /**
- * Просит хост создать страницу из шаблона.
+ * Asks the host to create a page from a template.
  *
- * @param template - Шаблон.
+ * @param template - The template.
  */
 function handleCreatePage(template: TBricksTemplateSummary): void {
     emit('create-page', template);
 }
 
 /**
- * Просит хост открыть снимок шаблона в лайтбоксе.
+ * Asks the host to open the frame of a template in the lightbox.
  *
- * @param template - Шаблон.
+ * @param template - The template.
  */
 function handlePreviewThumbnail(template: TBricksTemplateSummary): void {
     emit('preview-thumbnail', template);
 }
 
-/**
- * Просит хост открыть раздел страниц (пустое состояние).
- */
+/** Asks the host to open the section of pages (the empty state) */
 function handleGoToPages(): void {
     emit('go-to-pages');
 }
 // #endregion
 
 // #region Lifecycle
-// Список читается при монтировании раздела, а не только composition root'ом:
-// счётчик рейла запускает то же чтение, но раздел может открыться и в сборке без
-// SSR, где первый кадр дашборда рисуется до ответа. Готовый список повторно не
-// читается — гард внутри `ensureTemplates`
+// The list is read on the mounting of the section, and not by the composition root
+// alone: the counter of the rail starts that same read, yet the section can also be
+// opened in a build without SSR, where the first frame of the dashboard is drawn
+// before the answer. A list that is ready is not read again — the guard sits inside
+// `ensureTemplates`
 onMounted(() => {
     ensureTemplates();
 });
@@ -159,10 +163,6 @@ onMounted(() => {
     <div :class="$style.TheBuilderTemplatesSection">
         <div v-if="summaryLine" :class="$style.summary">{{ summaryLine }}</div>
 
-        <!--
-            Отказ чтения не прячет уже прочитанные карточки: они верны на момент
-            прошлого ответа, а пустой экран сообщил бы, что шаблонов нет
-        -->
         <div v-if="isFailed" :class="$style.failure">
             <span :class="$style.failureText">{{ t('bricks.templates.loadFailed') }}</span>
             <BricksButton size="sm" variant="secondary" @click="handleRetry">
@@ -170,11 +170,6 @@ onMounted(() => {
             </BricksButton>
         </div>
 
-        <!--
-            Сетка не рисуется, когда отказ чтения застал раздел без данных: её
-            пустое состояние сказало бы «шаблонов пока нет», а на деле неизвестно,
-            есть они или нет — об этом говорит полоса выше
-        -->
         <BuilderTemplatesGrid
             v-if="!isFailed || hasAnyTemplates"
             :templates="filteredTemplates"

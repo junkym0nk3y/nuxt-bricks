@@ -1,17 +1,21 @@
 /**
- * Типы для встроенной документации билдера.
+ * Types of the built-in documentation of the builder.
  */
 
 /**
- * Статья документации, извлечённая из .md файла.
+ * An article of the documentation, taken out of a .md file.
  */
 export interface IDocArticle {
-    /** Относительный путь файла (ключ glob) */
+    /** Relative path of the file (the key of the glob) */
     path: string;
-    /** Заголовок из первой строки `# Title` */
+    /**
+     * The heading from the first `# Title` line of the article. Until the headings of
+     * the locale have been read it holds the fallback built from the slug — and keeps it
+     * for good when the article carries no H1 or its chunk failed to arrive.
+     */
     title: string;
-    /** Числовой префикс для сортировки (01-, 02- и т.д.) */
+    /** The numeric prefix the list is ordered by (01-, 02- and so on) */
     order: number;
-    /** Имя файла без числового префикса и расширения */
+    /** File name without the numeric prefix and the extension */
     slug: string;
 }

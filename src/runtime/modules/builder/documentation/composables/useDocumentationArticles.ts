@@ -16,30 +16,32 @@ const mdFiles = import.meta.glob<string>('../docs/guide/**/*.md', {
     import: 'default',
 });
 
-// Локаль, статьи которой показываются, когда для активной локали статей нет
+// The locale whose articles are shown when the active one has none of its own
 const FALLBACK_DOC_LOCALE = 'ru';
 
-// Кэш заголовков статей (H1 из markdown), заполняется лениво по локали.
-// Второй eager-glob для заголовков не используем: он инлайнил весь markdown
-// в чанк модалки и дублировал lazy-чанки статей.
+// Cache of the headings of the articles (the H1 of the markdown), filled lazily per
+// locale. A second eager glob for the headings alone is not used: it inlined the whole
+// of the markdown into the chunk of the modal and duplicated the lazy chunks of the
+// articles.
 const articleTitles = ref<Record<string, string>>({});
 const loadedTitlePrefixes = new Set<string>();
 // #endregion
 
 // #region Methods
 /**
- * Возвращает glob-префикс папки статей для локали.
+ * Returns the glob prefix of the folder of articles of a locale.
  *
- * @param locale - Код локали (`ru` / `en`).
+ * @param locale - The code of the locale (`ru` / `en`).
  */
 function getLocalePrefix(locale: string): string {
     return `../docs/guide/${locale}/`;
 }
 
 /**
- * Заголовок-fallback из slug'а файла, пока H1 статьи ещё не загружен.
+ * The fallback heading built from the slug of the file, shown while the H1 of the
+ * article has not been read — and for good when there is no H1 to read.
  *
- * @param slug - Slug из имени файла (`02-interface` → `interface`).
+ * @param slug - The slug taken from the file name (`02-interface` → `interface`).
  */
 function titleFromSlug(slug: string): string {
     return slug
@@ -49,10 +51,11 @@ function titleFromSlug(slug: string): string {
 }
 
 /**
- * Лениво подгружает H1-заголовки всех статей локали в кэш `articleTitles`.
- * Каждая статья — собственный lazy-чанк; повторный вызов для локали — no-op.
+ * Reads the H1 headings of every article of a locale into the `articleTitles` cache.
+ * Each article is a lazy chunk of its own; a repeated call for the same locale is a
+ * no-op.
  *
- * @param prefix - Glob-префикс папки локали.
+ * @param prefix - The glob prefix of the folder of the locale.
  */
 async function loadTitlesForPrefix(prefix: string): Promise<void> {
     if (loadedTitlePrefixes.has(prefix)) {
@@ -73,7 +76,7 @@ async function loadTitlesForPrefix(prefix: string): Promise<void> {
                     };
                 }
             } catch {
-                // Заголовок останется fallback'ом из slug'а
+                // The heading stays the fallback built from the slug
             }
         })
     );
@@ -81,9 +84,11 @@ async function loadTitlesForPrefix(prefix: string): Promise<void> {
 // #endregion
 
 /**
- * Composable для автоматической загрузки и навигации по статьям документации.
- * Статьи разложены по папкам локалей (`docs/guide/ru/`, `docs/guide/en/`);
- * если для активной локали статей нет — используется fallback-локаль.
+ * Reading of the articles of the documentation and navigation over them.
+ *
+ * The articles are laid out in a folder per locale (`docs/guide/ru/`,
+ * `docs/guide/en/`); when the active locale has no articles of its own, those of the
+ * fallback locale are shown.
  */
 export function useDocumentationArticles() {
     // #region Data
@@ -96,8 +101,8 @@ export function useDocumentationArticles() {
 
     // #region Computed
     /**
-     * Локаль, папка которой реально содержит статьи:
-     * активная локаль либо fallback, если её папка пуста.
+     * The locale whose folder actually holds articles: the active one, or the fallback
+     * when the active locale has nothing.
      */
     const effectiveLocale = computed<string>(() => {
         const prefix = getLocalePrefix(locale.value);
@@ -106,8 +111,8 @@ export function useDocumentationArticles() {
     });
 
     /**
-     * Список статей активной локали, извлечённый из glob-результатов.
-     * Сортируется по числовому префиксу в имени файла.
+     * The articles of the active locale, taken out of the results of the glob. Ordered
+     * by the numeric prefix of the file name.
      */
     const articles = computed<IDocArticle[]>(() => {
         const result: IDocArticle[] = [];
@@ -140,9 +145,7 @@ export function useDocumentationArticles() {
         return result.sort((a, b) => a.order - b.order);
     });
 
-    /**
-     * Индекс текущей статьи в списке.
-     */
+    /** Position of the current article in the list */
     const activeArticleIndex = computed<number>(() =>
         articles.value.findIndex((a) => a.path === activeArticlePath.value)
     );
@@ -150,11 +153,14 @@ export function useDocumentationArticles() {
 
     // #region Methods
     /**
-     * Загружает и рендерит содержимое файла по пути.
-     * Спиннер показывается только при первой загрузке (когда контента ещё нет).
-     * При переключении между статьями старый контент остаётся видимым до замены.
+     * Reads and renders the contents of the file at a path.
      *
-     * @param path - Glob-путь к .md файлу.
+     * The spinner is shown on the first read alone, while there is nothing on screen
+     * yet. When the reader switches between articles the previous text stays visible
+     * until the new one replaces it: a spinner in its place would take away what the
+     * reader came for.
+     *
+     * @param path - The glob path of the .md file.
      */
     async function loadArticleContent(path: string): Promise<void> {
         const loader = mdFiles[path];
@@ -178,21 +184,22 @@ export function useDocumentationArticles() {
     }
 
     /**
-     * Переключает текущую статью. Поиск скоупится папкой активной локали,
-     * чтобы кросс-ссылка вида `./02-interface.md` не матчила чужую локаль.
+     * Switches the current article. The lookup is scoped to the folder of the active
+     * locale, so that a cross-link of the `./02-interface.md` kind cannot match the
+     * article of another locale.
      *
-     * @param pathOrSlug - Glob-путь или slug/имя файла для навигации.
+     * @param pathOrSlug - A glob path, or the slug / file name to navigate to.
      */
     function navigateTo(pathOrSlug: string): void {
         const prefix = getLocalePrefix(effectiveLocale.value);
 
-        // Попытка найти по точному пути (в пределах активной локали)
+        // By the exact path first (within the active locale)
         if (pathOrSlug.startsWith(prefix) && mdFiles[pathOrSlug]) {
             activeArticlePath.value = pathOrSlug;
             return;
         }
 
-        // Поиск по имени файла (для кросс-ссылок вида ./02-components.md)
+        // By the file name (for cross-links of the ./02-components.md kind)
         const normalized = pathOrSlug.replace(/^\.\//, '');
         const found = Object.keys(mdFiles).find(
             (path) => path.startsWith(prefix) && path.endsWith(`/${normalized}`)
@@ -202,16 +209,14 @@ export function useDocumentationArticles() {
             return;
         }
 
-        // Поиск по slug
+        // By the slug
         const article = articles.value.find((a) => a.slug === pathOrSlug);
         if (article) {
             activeArticlePath.value = article.path;
         }
     }
 
-    /**
-     * Инициализирует первую статью, если ещё не выбрана.
-     */
+    /** Opens the first article when none has been chosen yet */
     function initFirstArticle(): void {
         if (activeArticlePath.value || articles.value.length === 0) {
             return;
@@ -222,7 +227,7 @@ export function useDocumentationArticles() {
     // #endregion
 
     // #region Lifecycle
-    // Заголовки статей активной локали подтягиваются лениво при первом обращении
+    // The headings of the active locale are read lazily, on the first request for them
     watch(
         effectiveLocale,
         (newLocale) => {
@@ -241,7 +246,8 @@ export function useDocumentationArticles() {
         { immediate: true }
     );
 
-    // Смена локали: открываем ту же статью в новой локали (по slug), иначе первую
+    // A change of locale keeps the reader on the same article — the one whose file name
+    // matches — and falls back to the first article of the new locale
     watch(effectiveLocale, () => {
         if (!activeArticlePath.value) {
             return;

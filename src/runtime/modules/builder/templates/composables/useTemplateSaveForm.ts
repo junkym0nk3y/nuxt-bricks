@@ -21,15 +21,15 @@ import { useForm } from 'vee-validate';
 // #endregion
 
 /**
- * Форма «Сохранить как шаблон»: валидация общей схемой, создание через
- * `POST /api/bricks/templates`, разбор отказов по существу.
+ * The "Save as template" form: validation by the shared schema, creation through
+ * `POST /api/bricks/templates`, refusals told apart by what they mean.
  *
- * Содержимое приходит источником (`options.source`), а не собирается здесь: у
- * точек входа оно разное — сохранённая схема страницы против текущего канваса, —
- * и форма к этому различию отношения не имеет.
+ * The contents arrive as the source (`options.source`) rather than being assembled
+ * here: the entry points bring different things — the saved schema of a page against
+ * the current canvas — and the form has nothing to do with that difference.
  *
- * @param options - Источник содержимого и колбэк успеха.
- * @returns Поля формы, состояние отправки и операции.
+ * @param options - The source of the contents and the callback of a success.
+ * @returns The fields of the form, the state of the submission and the operations.
  */
 export function useTemplateSaveForm(options: IUseTemplateSaveFormOptions) {
     // #region Data
@@ -58,26 +58,31 @@ export function useTemplateSaveForm(options: IUseTemplateSaveFormOptions) {
     const generalError = ref('');
 
     /**
-     * Поколение отправки. Модалку закрывают и во время запроса (крестик, Esc), а
-     * следующее открытие сбрасывает форму — значит прежний запрос может
-     * завершиться, когда его формы уже нет, и его ошибка к чистой форме
-     * отношения не имеет.
+     * The generation of the submission: a reset of the form declares every submission
+     * still in flight somebody else's, so a late answer cannot write into a form that
+     * is no longer the one it was sent from.
+     *
+     * The interface leaves no way there today — while a request runs, the closing of
+     * the modal is refused (`handleClose`), and the cross and the Cancel button are
+     * disabled, so the form cannot be reset from under a submission at all. The counter
+     * stands as a precaution, not as a fix for an observed defect.
      */
     const submissionGeneration = ref(0);
     // #endregion
 
     // #region Methods
     /**
-     * Валидирует форму и сохраняет шаблон.
+     * Validates the form and saves the template.
      *
-     * Занятое имя уходит под поле, а не в общий текст: это единственный отказ,
-     * относящийся к конкретному полю. Проверить занятость заранее нельзя — список
-     * в браузере копия, и имя мог занять другой редактор.
+     * A taken name goes under the field rather than into the general text: it is the
+     * only refusal that belongs to one particular field. Whether a name is taken cannot
+     * be checked in advance — the list in the browser is a copy, and another editor may
+     * have taken the name.
      *
-     * Обрыв по потолку ожидания разбирается отдельно: сервер мог сохранить шаблон
-     * и не успеть ответить, поэтому список перечитывается, а человеку сообщается
-     * неопределённость — «не удалось» было бы неправдой, а повтор упёрся бы в
-     * собственное имя как в занятое.
+     * Hitting the ceiling of the wait is handled on its own: the server may have saved
+     * the template and failed to answer in time, so the list is re-read and the person
+     * is told that the outcome is uncertain — "it did not work" would be untrue, and a
+     * second attempt would run into the name it had itself taken.
      */
     const submitForm = handleSubmit(async (values) => {
         const source = options.source.value;
@@ -101,8 +106,9 @@ export function useTemplateSaveForm(options: IUseTemplateSaveFormOptions) {
                 thumbnailSourceUrl: source.thumbnailSourceUrl,
             });
 
-            // Список правится в любом случае: шаблон создан, и прятать его от
-            // раздела только потому, что окно успели закрыть, было бы враньём
+            // The list is edited whatever happened next: the template exists, and
+            // hiding it from the section merely because the window was closed in time
+            // would be a lie
             upsertTemplate(toTemplateSummary(created));
 
             if (generation !== submissionGeneration.value) {
@@ -135,11 +141,12 @@ export function useTemplateSaveForm(options: IUseTemplateSaveFormOptions) {
     });
 
     /**
-     * Ставит в форму подпись, предложенную источником (при открытии модалки).
+     * Puts the caption proposed by the source into the form (on the opening of the
+     * modal).
      *
-     * Прежняя отправка объявляется чужой: она может лететь до сих пор — окно
-     * закрывают и во время запроса. Вместе с ней снимается признак отправки,
-     * иначе чистая форма встречала бы человека выключенной кнопкой.
+     * Any submission in flight is declared somebody else's, and the flag of the
+     * submission comes off together with it — otherwise a clean form would greet the
+     * person with a disabled button.
      */
     function resetForm(): void {
         submissionGeneration.value += 1;

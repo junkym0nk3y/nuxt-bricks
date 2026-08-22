@@ -167,7 +167,7 @@ export const AREAS = [
     {
         id: '17',
         title: 'builder/templates + documentation',
-        done: false,
+        done: true,
         match: [
             'src/runtime/modules/builder/templates/',
             'src/runtime/modules/builder/documentation/',

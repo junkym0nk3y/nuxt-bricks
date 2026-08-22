@@ -1,6 +1,7 @@
 /**
- * Разбор отказов ручек шаблонов по существу: что показать под полем формы, что
- * тостом, а после чего перечитать список.
+ * Telling the refusals of the template endpoints apart by what they mean: what to show
+ * under a field of the form, what to show as a toast, and what to re-read the list
+ * after.
  */
 // #region Imports
 // Types
@@ -15,7 +16,7 @@ import { TEMPLATE_CONFLICT_CODES } from '../../../common/constants/templates';
 // #endregion
 
 // #region Data
-/** Отказы операций над шаблоном по статусу — то, что кодом не размечено. */
+/** Refusals of an operation on a template by status — what carries no code */
 const TEMPLATE_ACTION_STATUS_KEYS: Record<number, string> = {
     403: 'bricks.templates.errors.insufficientRole',
     404: 'bricks.templates.errors.templateGone',
@@ -26,11 +27,11 @@ const TEMPLATE_ACTION_STATUS_KEYS: Record<number, string> = {
 
 // #region Methods
 /**
- * Читает статус отказа, не спотыкаясь о пустую ошибку: сюда доходит всё, что
- * бросил транспорт, включая отменённый запрос без тела.
+ * Reads the refusal status without stumbling over an empty error: everything the
+ * transport threw reaches here, an aborted request with no body included.
  *
- * @param error - Ошибка запроса.
- * @returns HTTP-статус или undefined.
+ * @param error - Request error.
+ * @returns The HTTP status, or undefined.
  */
 function readStatusCode(error: unknown): number | undefined {
     return ((error ?? {}) as TRequestErrorLike).statusCode;
@@ -38,26 +39,28 @@ function readStatusCode(error: unknown): number | undefined {
 // #endregion
 
 /**
- * Имя шаблона занято — подсказка встаёт под полем имени, а не в общий текст:
- * отказ относится к одному полю. Проверить занятость заранее нечем — список в
- * браузере лишь копия, и имя мог занять другой редактор.
+ * The name of the template is taken — the hint goes under the name field rather than
+ * into the general error text: being taken concerns one field, and it is that very
+ * field a person has to fix. There is nothing to check it in advance with — the list in
+ * the browser is only a copy, and another editor may have taken the name.
  *
- * @param error - Ошибка запроса.
- * @returns Имя уже используется другим шаблоном.
+ * @param error - Request error.
+ * @returns The name is already used by another template.
  */
 export function isTemplateNameTakenError(error: unknown): boolean {
     return getBricksErrorCode(error) === TEMPLATE_CONFLICT_CODES.name;
 }
 
 /**
- * Ключ сообщения об отказе операции над шаблоном.
+ * The message key for a refused operation on a template.
  *
- * Обрыв по потолку ожидания получает свой текст: исход неизвестен — сервер мог
- * применить операцию и не успеть ответить, — поэтому «не удалось» было бы
- * неправдой; вызывающий в этом случае перечитывает список.
+ * An abort by the waiting ceiling gets a text of its own: under it the outcome of the
+ * operation is unknown — the server may have applied it and failed to answer in time —
+ * so "it did not work out" would be untrue. The caller re-reads the list in that case,
+ * and a person sees the actual state.
  *
- * @param error - Ошибка запроса.
- * @returns i18n-ключ сообщения.
+ * @param error - Request error.
+ * @returns The i18n key of the message.
  */
 export function resolveTemplateActionErrorKey(error: unknown): string {
     if (isRequestTimeoutError(error)) {

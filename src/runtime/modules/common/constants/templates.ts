@@ -26,7 +26,8 @@ export const TEMPLATE_CONFLICT_CODES = {
 
 /**
  * The number of templates at which the search appears in the source picker of a new
- * page. Below this threshold the list is visible in full, and a search field would be
- * a redundant element above four rows.
+ * page. Below it the field would be one extra element above a list that scrolling alone
+ * still covers — the same reasoning as for the page selector of the toolbar
+ * (`SEARCH_VISIBLE_FROM_PAGES`).
  */
 export const TEMPLATE_PICKER_SEARCH_THRESHOLD = 8;

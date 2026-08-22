@@ -39,18 +39,18 @@ const contentRef = ref<HTMLElement | null>(null);
 // #endregion
 
 // #region Methods
-/**
- * Закрывает модальное окно.
- */
+/** Asks the host to close the modal */
 function handleClose(): void {
     emit('close');
 }
 
 /**
- * Обрабатывает клик по ссылке в контенте.
- * Если ссылка ведёт на .md файл — навигация внутри модалки.
+ * Handles a click on a link inside an article.
  *
- * @param event - Событие клика.
+ * A link to a .md file navigates inside the modal; everything else is left to the
+ * browser.
+ *
+ * @param event - The click event.
  */
 function handleContentClick(event: MouseEvent): void {
     const target = event.target as HTMLElement;
@@ -94,9 +94,7 @@ watch(
         <div :class="$style.TheBuilderDocumentationModal">
             <BricksModalHeader size="lg" @close="handleClose" />
 
-            <!-- Body -->
             <div :class="$style.body">
-                <!-- Sidebar navigation -->
                 <nav :class="$style.sidebar">
                     <ul :class="$style.navList">
                         <li v-for="article in articles" :key="article.path">
@@ -115,7 +113,6 @@ watch(
                     </ul>
                 </nav>
 
-                <!-- Content -->
                 <div
                     ref="contentRef"
                     :class="[$style.content, 'bricks-scrollbox']"

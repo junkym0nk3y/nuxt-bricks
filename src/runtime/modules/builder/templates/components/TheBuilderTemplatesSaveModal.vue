@@ -1,14 +1,15 @@
 <script setup lang="ts">
 /**
- * @description Модалка «Сохранить как шаблон»: карточка источника, имя, описание
- * и объяснение состава шаблона.
+ * @description The "Save as template" modal: the card of the source, the name, the
+ * description and the explanation of what the template is made of.
  *
- * Одна на обе точки входа — строку списка страниц и сплит-кнопку билдера, —
- * потому что различаются они только источником содержимого, а он приходит
- * пропом. Подпись под полями это различие проговаривает прямо: из билдера в
- * шаблон уедет то, что сейчас на канвасе, вместе с несохранёнными правками, а
- * миниатюра — кадр последнего сохранения; без этой строки «Сохранить как шаблон»
- * из билдера тихо унесло бы в шаблон черновик.
+ * One modal for both entry points — a row of the list of pages and the split button of
+ * the builder — because the only thing they differ in is the source of the contents,
+ * and that arrives as a prop. The hint under the fields says that difference out loud:
+ * from the builder what travels into the template is what is on the canvas right now,
+ * edits that have not been saved included, while the thumbnail is the frame of the last
+ * save. Without that line "Save as template" from the builder would quietly carry a
+ * draft into the template.
  */
 
 // #region Imports
@@ -61,9 +62,9 @@ const { name, description, errors, generalError, isSubmitting, submitForm, reset
 
 // #region Computed
 /**
- * Мета-строка карточки источника: адрес, объём и дата последнего сохранения.
- * У несохранённой страницы даты нет — вместо неё говорится, что в шаблон уедет
- * текущее состояние канваса.
+ * The meta line of the card of the source: the address, the size and the date of the
+ * last save. A page that has never been saved has no date — in its place the line says
+ * that what travels into the template is the current state of the canvas.
  */
 const sourceMeta = computed<string>(() => {
     const source = props.source;
@@ -88,8 +89,8 @@ const sourceMeta = computed<string>(() => {
 
 // #region Methods
 /**
- * Закрывает модалку. Во время отправки не закрывается: запрос уже в пути, и
- * закрытая форма оставила бы человека без исхода.
+ * Closes the modal. It does not close during a submission: the request is already on its
+ * way, and a closed form would leave the person without an outcome.
  */
 function handleClose(): void {
     if (isSubmitting.value) {
@@ -101,15 +102,15 @@ function handleClose(): void {
 // #endregion
 
 // #region Lifecycle
-// Форма наполняется на КАЖДОМ открытии, а не при закрытии: сброс на закрытии
-// стёр бы поля прямо под уезжающей модалкой (её держит `force-mount` до конца
-// анимации).
+// The form is filled in on EVERY opening rather than on the closing: a reset on the
+// closing would wipe the fields right under the modal on its way out (`force-mount`
+// holds it until the animation ends).
 //
-// `immediate` обязателен: в билдере модалка подключена лениво и монтируется тем же
-// действием, которое её открывает, — то есть `isOpen` уже `true` к моменту
-// создания компонента, и watch без немедленного вызова не срабатывал бы вовсе.
-// Проверено вживую: первое открытие из сплит-кнопки давало пустые поля вместо
-// названия страницы, а второе — уже заполненные.
+// `immediate` is a must: in the builder the modal is wired in lazily and is mounted by
+// the very action that opens it — that is, `isOpen` is already `true` by the time the
+// component is created, and a watch without an immediate call would not fire at all.
+// Checked live: the first opening from the split button gave empty fields instead of the
+// title of the page, while the second one gave filled ones.
 watch(
     () => props.isOpen,
     (isOpen) => {

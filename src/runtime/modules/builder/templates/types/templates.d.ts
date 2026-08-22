@@ -1,10 +1,11 @@
 /**
- * Типы раздела «Шаблоны» дашборда: состояние списка, формы и контракты
- * компонентов.
+ * Types of the dashboard's "Templates" section: the state of the list, the forms and
+ * the component contracts.
  *
- * Сам шаблон описан в `common/types/templates` (`TBricksTemplateSummary`,
- * `IBricksTemplateRow`) — форма ответа ручек одна на сервер и клиент, и второе
- * объявление здесь разошлось бы с серверным молча.
+ * The template itself is described in `common/types/templates`
+ * (`TBricksTemplateSummary`, `IBricksTemplateRow`) — the shape of the endpoint response
+ * is one for the server and the client, and a second declaration here would silently
+ * diverge from the server one.
  */
 import type { ComputedRef, Ref } from 'vue';
 import type { IBricksSchema } from '../../../common/types/brick';
@@ -16,28 +17,28 @@ import type {
 import type { TBricksToastVariant } from '../../../ui/feedback/types';
 
 /**
- * Состояние загрузки раздела.
+ * The loading state of the section.
  *
- * Состояния «раздела в этой установке нет» здесь нет, в отличие от учёток: ручки
- * шаблонов приезжают вместе с модулем и не выключаются ни флагом, ни режимом
- * авторизации, поэтому любой отказ чтения — временная неисправность, у которой
- * есть смысл в кнопке повтора.
+ * There is no `unavailable` here, unlike the accounts: the template endpoints arrive
+ * together with the module and are switched off neither by a flag nor by the mode of
+ * authorization, so every refusal of a read is a temporary breakage — the kind a retry
+ * button makes sense for.
  */
 export type TTemplatesStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 /**
- * Общее состояние раздела: список сводок и признак готовности.
+ * The shared state of the section: the list of summaries and whether it has been read.
  *
- * Живёт в `useState` — счётчик рейла рисуется в первом кадре вместе с самим
- * пунктом раздела, а модуль-глобальный `ref` смешал бы списки разных запросов в
- * одном серверном процессе.
+ * It lives in `useState` — the rail counter is drawn in the first frame, together with
+ * the section item itself — and that also isolates it per request: a module-global
+ * `ref` would mix the lists of different requests inside one server process.
  */
 export interface ITemplatesState {
     templates: TBricksTemplateSummary[];
     status: TTemplatesStatus;
 }
 
-/** Ответ `GET /api/bricks/templates`. */
+/** The response of `GET /api/bricks/templates` */
 export interface ITemplatesListResponse {
     templates: TBricksTemplateSummary[];
 }
@@ -46,80 +47,82 @@ export interface IUseTemplatesDataReturn {
     templates: ComputedRef<TBricksTemplateSummary[]>;
     status: ComputedRef<TTemplatesStatus>;
     /**
-     * Число шаблонов для счётчика рейла; `null` — список ещё не прочитан.
-     * Ноль здесь — законное значение (шаблонов может не быть вовсе), поэтому
-     * состояние загрузки отличается от нуля именно `null`.
+     * The number of templates for the rail counter; `null` — the list has not been read
+     * yet. Zero is a legitimate value here, unlike the accounts (there may be no
+     * templates at all), which is why `null` is what tells a pending read from an empty
+     * list.
      */
     templatesCount: ComputedRef<number | null>;
-    /** Дата создания самого свежего шаблона; `null` — список пуст. */
+    /** The date the freshest template was created; `null` — the list is empty */
     lastSavedAt: ComputedRef<string | null>;
-    /** Загружает список, если он ещё не прочитан; повторные вызовы ждут первый. */
+    /** Loads the list unless it has been read already; repeat calls await the first */
     ensureTemplates: () => Promise<void>;
-    /** Перечитывает список принудительно (повтор после отказа). */
+    /** Forces a re-read of the list (a retry after a refusal) */
     refreshTemplates: () => Promise<void>;
-    /** Кладёт шаблон в список: новый — в начало, известный — на его место. */
+    /** Puts a template into the list: a new one at the start, a known one in its place */
     upsertTemplate: (template: TBricksTemplateSummary) => void;
-    /** Убирает шаблон из списка после удаления. */
+    /** Takes a template out of the list after a deletion */
     removeTemplate: (templateId: number) => void;
 }
 
 export interface IUseTemplatesListReturn {
-    /** Шаблоны, прошедшие поиск из шапки дашборда. */
+    /** The templates that passed the search of the header of the dashboard */
     filteredTemplates: ComputedRef<TBricksTemplateSummary[]>;
-    /** Поиск задан и ничего не нашёл — состояние «ничего не найдено». */
+    /** A search is set and matched nothing — the "nothing found" state */
     isSearchEmpty: ComputedRef<boolean>;
 }
 
 /**
- * Содержимое будущего шаблона плюс то, чем описать его источник в модалке.
+ * The contents of the template to be, plus what describes its source in the modal.
  *
- * Собирает источник ВЫЗЫВАЮЩИЙ, а не модалка: точек входа две и приносят они
- * разное — строка списка страниц отдаёт сохранённую схему из базы и готовый кадр,
- * билдер отдаёт текущий канвас с несохранёнными правками. Модалка при этом
- * одинакова, и знать про страницы ей не нужно вовсе.
+ * The source is assembled by the CALLER, not by the modal: there are two entry points
+ * and they bring different things — a row of the list of pages hands over the schema
+ * saved in the database along with a ready frame, the builder hands over the current
+ * canvas with the edits that have not been saved. The modal is the same for both, and
+ * it needs to know nothing about pages at all.
  */
 export interface ITemplateSaveSource {
-    /** Предложенное имя шаблона (название страницы). */
+    /** The name proposed for the template (the title of the page) */
     suggestedName: string;
-    /** Предложенное описание (описание страницы). */
+    /** The description proposed for the template (the description of the page) */
     suggestedDescription: string;
     schema: IBricksSchema;
     pageMeta: IBricksTemplatePageMeta;
     /**
-     * Кадр страницы, из которого сервер скопирует превью шаблона; `null` —
-     * страницу ни разу не сохраняли, и шаблон останется без картинки.
+     * The frame of the page the server copies the preview of the template from. With
+     * `null` the page has never been saved, and the template stays without a picture.
      */
     thumbnailSourceUrl: string | null;
-    /** Подпись источника в модалке: чем человек узнаёт страницу. */
+    /** The caption of the source in the modal: what the page is recognized by */
     pageLabel: string;
-    /** Адрес страницы-источника (`/blog/post`); пусто — страница ещё не сохранена. */
+    /** Address of the source page (`/blog/post`); empty — the page is not saved yet */
     pageAddressPath: string;
-    /** Число блоков в схеме — то же число покажет карточка шаблона. */
+    /** The number of blocks in the schema — the card of the template shows the same */
     blocksCount: number;
     /**
-     * Дата последнего сохранения страницы; `null` — страницы в базе ещё нет, и в
-     * шаблон уедет только то, что сейчас на канвасе.
+     * The date the page was last saved; `null` — the page is not in the database yet,
+     * and what travels into the template is only what is on the canvas right now.
      */
     pageUpdatedAt: string | null;
 }
 
-/** Значения формы шаблона — общие для сохранения и переименования. */
+/** The values of the form of a template — the same for saving and for renaming */
 export interface ITemplateFormValues {
     name: string;
     description: string;
 }
 
 export interface IUseTemplateSaveFormOptions {
-    /** Источник содержимого; `null` — модалка закрыта, форма не отправляется. */
+    /** Source of the contents; `null` — the modal is closed, the form is not sent */
     source: Ref<ITemplateSaveSource | null> | ComputedRef<ITemplateSaveSource | null>;
-    /** Шаблон сохранён: тост и закрытие — на вызывающем. */
+    /** The template is saved: the toast and the closing are up to the caller */
     onSaved: (template: TBricksTemplateSummary) => void;
 }
 
 export interface IUseTemplateRenameFormOptions {
-    /** Шаблон, чью подпись правят; `null` — модалка закрыта. */
+    /** The template whose caption is being edited; `null` — the modal is closed */
     template: Ref<TBricksTemplateSummary | null> | ComputedRef<TBricksTemplateSummary | null>;
-    /** Подпись сохранена. */
+    /** The caption is saved */
     onSaved: (template: TBricksTemplateSummary) => void;
 }
 
@@ -128,42 +131,42 @@ export interface IUseTemplateActionsOptions {
 }
 
 export interface IUseTemplateActionsReturn {
-    /** Шаблон, над которым идёт операция; `null` — свободны все. */
+    /** The template an operation is running over; `null` — all of them are free */
     pendingTemplateId: ComputedRef<number | null>;
     isDeleteConfirmOpen: ComputedRef<boolean>;
     deleteConfirmDescription: ComputedRef<string>;
     isDeleting: ComputedRef<boolean>;
-    /** Спрашивает подтверждение удаления шаблона. */
+    /** Asks for a confirmation of the deletion of a template */
     requestDelete: (template: TBricksTemplateSummary) => void;
-    /** Закрывает подтверждение, не удаляя. */
+    /** Closes the confirmation without deleting */
     closeDeleteConfirm: () => void;
-    /** Удаляет шаблон, чьё удаление подтвердили. */
+    /** Deletes the template whose deletion has been confirmed */
     confirmDelete: () => Promise<void>;
 }
 
 export interface ITemplatesSectionProps {
-    /** Запрос из поля поиска шапки — свой у каждого раздела дашборда. */
+    /** The query from the search field of the dashboard's shared header */
     searchQuery: string;
 }
 
 export interface ITemplatesSectionEmits {
     notify: [message: string, variant: TBricksToastVariant];
-    /** Пустой раздел ведёт к списку страниц: шаблон рождается из страницы. */
+    /** An empty section leads to the list of pages: a template is born from a page */
     'go-to-pages': [];
-    /** Создать страницу из шаблона — форму создания открывает хост дашборда. */
+    /** Create a page from a template — the host of the dashboard opens the form */
     'create-page': [template: TBricksTemplateSummary];
-    /** Открыть превью шаблона в лайтбоксе (лайтбокс живёт на дашборде). */
+    /** Open the preview of a template in the lightbox (it lives on the dashboard) */
     'preview-thumbnail': [template: TBricksTemplateSummary];
 }
 
 export interface ITemplatesGridProps {
     templates: TBricksTemplateSummary[];
     isLoading: boolean;
-    /** Список пуст сам по себе (а не из-за поиска) — разные пустые состояния. */
+    /** The list is empty by itself, not because of the search — two empty states */
     hasAnyTemplates: boolean;
-    /** Поиск ничего не нашёл. */
+    /** The search matched nothing */
     isSearchEmpty: boolean;
-    /** Шаблон, над которым идёт операция: его карточка занята. */
+    /** The template an operation is running over: its card is busy */
     pendingTemplateId: number | null;
 }
 
@@ -177,7 +180,7 @@ export interface ITemplatesGridEmits {
 
 export interface ITemplatesCardProps {
     template: TBricksTemplateSummary;
-    /** Над шаблоном идёт операция — действия карточки закрыты. */
+    /** An operation is running over the template — the actions of the card are shut */
     isPending?: boolean;
 }
 
@@ -190,7 +193,7 @@ export interface ITemplatesCardEmits {
 
 export interface ITemplatesSaveModalProps {
     isOpen: boolean;
-    /** Источник содержимого; `null` — модалка ещё не наполнена. */
+    /** Source of the contents; `null` — the modal has not been filled in yet */
     source: ITemplateSaveSource | null;
 }
 
@@ -212,7 +215,7 @@ export interface ITemplatesRenameModalEmits {
 export interface ITemplatesPickerListProps {
     templates: TBricksTemplateSummary[];
     isLoading: boolean;
-    /** Ключ выбранного шаблона; `null` — не выбран ни один. */
+    /** Key of the chosen template; `null` — none of them is chosen */
     selectedTemplateId: number | null;
 }
 
@@ -221,7 +224,7 @@ export interface ITemplatesPickerListEmits {
 }
 
 /**
- * Полный шаблон, прочитанный point-lookup'ом: содержимое и оформление для
- * создания страницы.
+ * The whole template as read by a point lookup: the contents and the styling a page is
+ * created from.
  */
 export type TTemplateContent = IBricksTemplateRow;

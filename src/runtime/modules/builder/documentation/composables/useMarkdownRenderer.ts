@@ -15,8 +15,10 @@ const isLoading = ref(false);
 // #endregion
 
 /**
- * Composable для рендеринга markdown через markdown-it.
- * Lazy-загрузка библиотеки при первом вызове.
+ * Rendering of markdown through markdown-it.
+ *
+ * The library is loaded on the first call: markdown lives in the documentation modal
+ * alone, and the builder must not carry a parser it may never open.
  */
 export function useMarkdownRenderer() {
     // #region Data
@@ -25,7 +27,7 @@ export function useMarkdownRenderer() {
 
     // #region Methods
     /**
-     * Инициализирует markdown-it при первом вызове (lazy).
+     * Loads markdown-it on the first call and keeps the instance for the next ones.
      */
     async function ensureLoaded(): Promise<MarkdownIt> {
         if (mdInstance) {
@@ -47,11 +49,11 @@ export function useMarkdownRenderer() {
     }
 
     /**
-     * Перезаписывает относительные пути к изображениям на публичный URL
-     * ассетов модуля (/_bricks/ с учётом app.baseURL).
+     * Rewrites the relative paths of the images to the public URL of the assets of the
+     * module (/_bricks/, with app.baseURL taken into account).
      *
-     * @param html - HTML-строка после рендеринга markdown.
-     * @returns HTML с исправленными путями к изображениям.
+     * @param html - The HTML string produced by rendering the markdown.
+     * @returns The HTML with the paths of the images corrected.
      */
     function rewriteImagePaths(html: string): string {
         const docsImagesBase = resolveAssetUrl('docs/guide/images/');
@@ -59,10 +61,10 @@ export function useMarkdownRenderer() {
     }
 
     /**
-     * Рендерит markdown-строку в HTML.
+     * Renders a markdown string into HTML.
      *
-     * @param raw - Исходный markdown-текст.
-     * @returns HTML-строка.
+     * @param raw - The source markdown text.
+     * @returns The HTML string.
      */
     async function renderMarkdown(raw: string): Promise<string> {
         const md = await ensureLoaded();

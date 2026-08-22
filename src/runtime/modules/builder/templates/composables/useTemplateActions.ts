@@ -17,25 +17,27 @@ import { useTemplatesData } from './useTemplatesData';
 // #endregion
 
 /**
- * Операции над шаблоном: подтверждение и удаление.
+ * The operations over a template: the confirmation and the deletion.
  *
- * Занятость — одна на раздел, а не набор занятых карточек: удаление уносит
- * запись из сетки, и вторая операция, начатая в это же время, целилась бы в
- * состояние, которого через мгновение не будет. Раздел с двумя карточками так же
- * прост, как с одной, и один занятый идентификатор проще набора.
+ * The busy state is one per section rather than a set of busy cards. On neighboring
+ * cards parallelism is technically possible — the list is edited by `id`, and the
+ * answers of different cards do not collide — but it is not needed: there is one
+ * confirmation dialog for the section, so the deletions are lined up by the interface
+ * anyway, and the price of a set would be a couple of busy cards on screen and a set of
+ * busy `id`s instead of one.
  *
- * Переименование сюда не входит: у него своя форма с полями и валидацией
- * (`useTemplateRenameForm`), а здесь — действия без ввода.
+ * Renaming does not belong here: it has a form of its own, with fields and validation
+ * (`useTemplateRenameForm`), while here are the actions that take no input.
  *
- * @param options - Показ тоста.
- * @returns Состояние подтверждения и операции.
+ * @param options - Showing a toast.
+ * @returns The state of the confirmation and the operations.
  */
 export function useTemplateActions(options: IUseTemplateActionsOptions): IUseTemplateActionsReturn {
     // #region Data
     const { t } = useI18n();
     const { removeTemplate, refreshTemplates } = useTemplatesData();
 
-    /** Шаблон, чьё удаление подтверждают; `null` — диалог закрыт. */
+    /** The template whose deletion is being confirmed; `null` — the dialog is closed */
     const confirmTarget = ref<TBricksTemplateSummary | null>(null);
     const pendingTemplateId = ref<number | null>(null);
     const isDeleting = ref(false);
@@ -45,9 +47,9 @@ export function useTemplateActions(options: IUseTemplateActionsOptions): IUseTem
     const isDeleteConfirmOpen = computed<boolean>(() => confirmTarget.value !== null);
 
     /**
-     * Текст подтверждения говорит именно то, что удаление ничего не ломает:
-     * страницы, созданные из шаблона, не изменятся — связи с ним у них нет.
-     * Без этого удаление читалось бы как рискованное.
+     * The text of the confirmation says exactly this much: the deletion breaks nothing.
+     * The pages created from the template do not change — they hold no tie to it.
+     * Without that said, the deletion would read as a risky one.
      */
     const deleteConfirmDescription = computed<string>(() =>
         confirmTarget.value
@@ -58,9 +60,9 @@ export function useTemplateActions(options: IUseTemplateActionsOptions): IUseTem
 
     // #region Methods
     /**
-     * Спрашивает подтверждение удаления шаблона.
+     * Asks for a confirmation of the deletion of a template.
      *
-     * @param template - Шаблон.
+     * @param template - The template.
      */
     function requestDelete(template: TBricksTemplateSummary): void {
         if (pendingTemplateId.value !== null) {
@@ -71,9 +73,9 @@ export function useTemplateActions(options: IUseTemplateActionsOptions): IUseTem
     }
 
     /**
-     * Закрывает подтверждение, не удаляя. Во время самой операции не закрывается:
-     * диалог показывает её ход, и убранный из-под руки он оставил бы человека без
-     * исхода.
+     * Closes the confirmation without deleting. It does not close while the deletion
+     * itself is running: the dialog is what shows how that is going, and taken out from
+     * under the hand it would leave the person without an outcome.
      */
     function closeDeleteConfirm(): void {
         if (isDeleting.value) {
@@ -84,12 +86,13 @@ export function useTemplateActions(options: IUseTemplateActionsOptions): IUseTem
     }
 
     /**
-     * Удаляет подтверждённый шаблон.
+     * Deletes the template that has been confirmed.
      *
-     * Строка убирается из списка ответом ручки, а не повторным чтением: удаление
-     * не оставляет о записи ничего, что стоило бы перечитывать. Обрыв по потолку
-     * ожидания — исключение: исход неизвестен (сервер мог удалить и не успеть
-     * ответить), и тогда список перечитывается, чтобы человек увидел факт.
+     * The row is taken out of the list by the answer of the endpoint rather than by
+     * another read: a deletion leaves nothing about the record worth re-reading. Hitting
+     * the ceiling of the wait is the exception: the outcome is unknown (the server may
+     * have deleted the record and failed to answer in time), and then the list is
+     * re-read so that the person sees what actually happened.
      */
     async function confirmDelete(): Promise<void> {
         const template = confirmTarget.value;

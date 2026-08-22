@@ -21,15 +21,17 @@ import { useForm } from 'vee-validate';
 // #endregion
 
 /**
- * Форма правки подписи шаблона: то же имя и описание, что при сохранении, но
- * PATCH существующей записи.
+ * The form that edits the caption of a template: the same name and description as when
+ * saving, but a PATCH of a record that already exists.
  *
- * Отдельная форма, а не режим формы сохранения: у той есть источник содержимого,
- * карточка страницы и объяснение состава шаблона — здесь ничего этого нет, а
- * общий у них ровно один предмет (схема валидации), и он вынесен в утилиту.
+ * A form of its own rather than a mode of the saving form: that one has a source of
+ * contents, the card of a page and the explanation of what a template is made of — none
+ * of which is here. The price of the split is a copy: only the schema of the validation
+ * has been taken out into a utility, while the generation of the submission, the ladder
+ * of refusals and the reset repeat the saving form line for line.
  *
- * @param options - Правимый шаблон и колбэк успеха.
- * @returns Поля формы, состояние отправки и операции.
+ * @param options - The template being edited and the callback of a success.
+ * @returns The fields of the form, the state of the submission and the operations.
  */
 export function useTemplateRenameForm(options: IUseTemplateRenameFormOptions) {
     // #region Data
@@ -56,17 +58,17 @@ export function useTemplateRenameForm(options: IUseTemplateRenameFormOptions) {
 
     const isSubmitting = ref(false);
     const generalError = ref('');
-    /** Поколение отправки — см. форму сохранения: окно закрывают и во время запроса. */
+    /** Generation of the submission — see the saving form for what it guards and why */
     const submissionGeneration = ref(0);
     // #endregion
 
     // #region Methods
     /**
-     * Валидирует форму и сохраняет подпись.
+     * Validates the form and saves the caption.
      *
-     * Занятое имя — под поле; обрыв по потолку ожидания означает неизвестный исход
-     * (сервер мог применить правку), поэтому список перечитывается, а не
-     * объявляется отказ.
+     * A taken name goes under the field; hitting the ceiling of the wait means the
+     * outcome is unknown (the server may have applied the edit), so the list is re-read
+     * instead of a refusal being announced.
      */
     const submitForm = handleSubmit(async (values) => {
         const template = options.template.value;
@@ -118,9 +120,7 @@ export function useTemplateRenameForm(options: IUseTemplateRenameFormOptions) {
         }
     });
 
-    /**
-     * Ставит в форму текущую подпись шаблона (при открытии модалки).
-     */
+    /** Puts the current caption of the template into the form (on opening the modal) */
     function resetForm(): void {
         submissionGeneration.value += 1;
 
