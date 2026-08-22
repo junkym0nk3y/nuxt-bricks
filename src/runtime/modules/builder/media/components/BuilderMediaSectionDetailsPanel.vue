@@ -1,16 +1,32 @@
 <script setup lang="ts">
 /**
- * @description Панель деталей файла в разделе «Медиатека»: превью, поля правки,
- * сведения о файле и действия над ним.
+ * @description The details panel of a file in the "Media" section: the preview, the
+ * fields to edit, the facts about the file and the actions over it.
  *
- * Контейнер тот же, что у панели деталей страницы, — раздел обязан читаться как
- * отдел дашборда, а не как встроенная модалка. Поэтому горизонтальная
- * мета-панель модалки сюда не переехала: у остальных отделов такой полосы нет.
+ * The container is the same as the details panel of a page has — the section has to
+ * read as a part of the dashboard rather than as a modal built into the page. That is
+ * why the horizontal meta panel of the modal did not move over here: no other part of
+ * the dashboard has such a band.
  *
- * Механизмы при этом старые: те же контролы кита, тот же коммит правки по уходу
- * фокуса (`useMediaMetaDrafts`) и та же техническая сводка, что у плитки и
- * мета-панели. Первичного действия у файла нет: «Отменить» и «Выбрать»
- * принадлежат пикеру, а он остался модалкой.
+ * The mechanisms behind it are the old ones: the same controls of the kit, the same
+ * commit of an edit when focus leaves (`useMediaMetaDrafts`), and the same technical
+ * summary as the tile and the meta panel show. A file has no primary action: "Cancel"
+ * and "Pick" belong to the picker, and the picker stayed a modal.
+ *
+ * The preview is a picture, and a glyph for a video: there is nothing to take a frame
+ * out of a video with, and an empty frame would read as a file that failed to load.
+ * The fields of a file are disabled rather than hidden for a role with no right to
+ * edit: the name, the alt and the category are facts about the file, and an observer
+ * needs them just as much. The commit happens when focus leaves the group of fields:
+ * the contract of `BricksInput` holds no blur event, while `focusout` bubbles. The URL
+ * field is `readonly` and not `disabled`: the address of a file is what people come
+ * here to take away, and a disabled field does not show it (a dimming tone, a selection
+ * out of reach). Deleting a file is a right of the administrator — an editor is refused
+ * by the endpoint and has no button at all; the full-screen view stays with everyone.
+ *
+ * Decisions held by the style section: the preview holds the height of the mock-up,
+ * because the proportion of a file is not known in advance and a panel without a frame
+ * of a fixed size would jump on every pick.
  */
 
 // #region Imports
@@ -57,9 +73,9 @@ const emit = defineEmits<IMediaSectionDetailsPanelEmits>();
 const { t } = useI18n();
 const { canEdit, canDelete } = useBuilderPermissions();
 /**
- * Черновики полей — тот же композабл, что у мета-панели модалки: правка
- * отправляется по уходу фокуса, а несохранённый ввод переживает серверные
- * обновления.
+ * The drafts of the fields — the same composable the meta panel of the modal uses: an
+ * edit is sent when focus leaves, and unsaved typing outlives the updates of the
+ * server.
  */
 const {
     filename: editableFilename,
@@ -73,9 +89,9 @@ const {
 
 // #region Computed
 /**
- * Первым вариантом — «Без категории»: категория необязательна, и снять её файлу
- * можно только отсюда. Пустая строка — контракт `BricksSelect` для пустого
- * значения.
+ * "No category" comes first: a category is optional, and taking one off a file can be
+ * done from here only. The empty string is the contract of `BricksSelect` for an empty
+ * value.
  */
 const categoryOptions = computed<IBrickUiCommonProp[]>(() => [
     { label: t('bricks.media.noCategory'), value: '' },
@@ -89,12 +105,13 @@ const categoryFacets = computed<TBrickDemoValues[]>(() =>
 );
 const selectedCategory = computed<string>(() => props.item.category ?? '');
 const isVideo = computed<boolean>(() => isVideoMedia(props.item));
-/** У видео alt не используется: рендерер отдаёт `<video>`, а не `<img>`. */
+/** A video does not use the alt: the renderer gives out a `<video>`, not an `<img>` */
 const isAltDisabled = computed<boolean>(() => isVideo.value || !canEdit.value);
 
 /**
- * Подзаголовок панели: откуда файл и когда попал в медиатеку. Категория —
- * подписью, а не slug'ом: в данных лежит `promo`, а человек заводил «Промо».
+ * The subtitle of the panel: where the file is from and when it got into the media
+ * library. The category by its caption rather than by its slug: the data holds `promo`,
+ * while the person created it under a caption of their own.
  */
 const originLine = computed<string>(() => {
     const category = props.item.category
@@ -107,9 +124,9 @@ const originLine = computed<string>(() => {
 });
 
 /**
- * Сведения о файле парами ключ-значение. Габариты — тем же хелпером, что у
- * плитки и мета-панели: у svg и видео он отдаёт подпись типа, и своя трактовка
- * в третьем месте разошлась бы с остальными двумя.
+ * The facts about a file, as key-value pairs. The dimensions come from the same helper
+ * the tile and the meta panel use: on an svg and on a video it gives out the caption of
+ * the type, and a reading of one's own in a third place would part from the other two.
  */
 const fileFacts = computed<{ key: string; label: string; value: string }[]>(() => [
     {
@@ -137,24 +154,24 @@ const fileFacts = computed<{ key: string; label: string; value: string }[]>(() =
 
 // #region Methods
 /**
- * Эмитит смену категории файла.
+ * Emits a change of the category of the file.
  *
- * Возвращать значение назад не нужно: `BricksSelect` контролируемый и
- * показывает то, что пришло пропом, — при отказе сервера источник не меняется.
+ * There is no need to put the value back: `BricksSelect` is controlled and shows what
+ * arrived in its prop — on a refusal of the server the source does not change.
  *
- * @param value - Значение селекта.
+ * @param value - The value of the selector.
  */
 function handleCategoryChange(value: TBrickDemoValues | null): void {
     if (typeof value !== 'string' || value === selectedCategory.value) {
         return;
     }
 
-    // Пустая строка от селекта — это «без категории», а не пустой slug
+    // An empty string out of the selector means "no category", not an empty slug
     emit('update-category', value || null);
 }
 
 /**
- * Копирует адрес файла в буфер обмена.
+ * Copies the address of the file into the clipboard.
  */
 async function handleCopyUrl(): Promise<void> {
     try {
@@ -166,21 +183,21 @@ async function handleCopyUrl(): Promise<void> {
 }
 
 /**
- * Просит хост открыть файл во весь экран.
+ * Asks the host to open the file full screen.
  */
 function handlePreview(): void {
     emit('preview');
 }
 
 /**
- * Просит хост подтвердить удаление файла.
+ * Asks the host to confirm the deletion of the file.
  */
 function handleRemove(): void {
     emit('remove');
 }
 
 /**
- * Закрывает панель.
+ * Closes the panel.
  */
 function handleClose(): void {
     emit('close');
@@ -199,10 +216,6 @@ function handleClose(): void {
         </div>
 
         <div :class="[$style.content, 'bricks-scrollbox']">
-            <!--
-                Превью — картинкой, у видео глифом: кадр из видео взять нечем, а
-                пустая рамка читалась бы как незагрузившийся файл
-            -->
             <div :class="$style.preview">
                 <BricksImage
                     v-if="!isVideo"
@@ -213,12 +226,6 @@ function handleClose(): void {
                 <BricksIcon v-else icon="ta:outline-video" :class="$style.previewIcon" />
             </div>
 
-            <!--
-                Поля файла без права правки заблокированы, а не скрыты: имя, alt
-                и категория — сведения о файле, и наблюдателю они нужны ровно так
-                же. Коммит — по уходу фокуса из группы полей: у `BricksInput`
-                события blur в контракте нет, а `focusout` всплывает.
-            -->
             <div :class="$style.fields" @focusout="handleMetaCommit">
                 <div :class="$style.field">
                     <span :class="$style.fieldLabel">{{ t('bricks.media.nameLabel') }}</span>
@@ -268,11 +275,6 @@ function handleClose(): void {
             <div :class="$style.field">
                 <span :class="$style.fieldLabel">{{ t('bricks.media.details.url') }}</span>
                 <div :class="$style.urlRow">
-                    <!--
-                        `readonly`, а не `disabled`: адрес файла — то, что
-                        отсюда уносят, и погашенное поле его не показывает
-                        (гасящий тон, недоступное выделение)
-                    -->
                     <BricksInput
                         :value="props.item.url"
                         :aria-label="t('bricks.media.details.url')"
@@ -288,10 +290,6 @@ function handleClose(): void {
             </div>
         </div>
 
-        <!--
-            Удаление файла — право администратора: редактору ручка откажет, и
-            кнопки у него нет вовсе. Просмотр во весь экран остаётся у всех
-        -->
         <div :class="$style.footer">
             <BricksButton
                 :class="$style.previewButton"
@@ -364,8 +362,6 @@ function handleClose(): void {
     padding: 1.6rem 2rem;
 }
 
-/* Превью держит высоту макета: пропорция файла неизвестна заранее, а панель без
-   фиксированной рамки прыгала бы на каждый выбор. */
 .preview {
     overflow: hidden;
     display: flex;

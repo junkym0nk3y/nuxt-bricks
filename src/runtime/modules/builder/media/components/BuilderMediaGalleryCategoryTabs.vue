@@ -1,24 +1,45 @@
 <script setup lang="ts">
 /**
- * @description Ряд табов-категорий медиатеки в underline-исполнении. Составной
- * таб: подпись со счётчиком — `ToggleGroupItem`, кнопка удаления — его сосед
- * внутри общей обёртки, которая и несёт подчёркивание выбранного.
+ * @description The row of the media library's category tabs, in the underline style.
+ * A tab is composite: the caption with the counter is a `ToggleGroupItem`, and the
+ * delete button is its neighbor inside a shared wrapper — the wrapper being what
+ * carries the underline of the selected one.
  *
- * Почему не `BricksTabBar`: он рендерит `items[]` сам, а внутрь
- * `ToggleGroupItem` кнопку удаления положить нельзя — это кнопка внутри кнопки,
- * недопустимая вложенность интерактивных элементов. Разнести их в одном
- * `ToggleGroupItem` тоже нельзя: любой item группы выбирается и эмитит
- * `update:modelValue`, то есть клик по крестику менял бы фильтр. Поэтому ряд
- * собран здесь напрямую на reka `ToggleGroup` — клавиатура, roving tabindex и
- * семантика группы остаются её, а нашей частью остаются обёртка и стили.
- * Значения стилей повторяют `BricksTabBarItem._underline`: ряд обязан читаться
- * так же, как таб-бары кита в остальном билдере.
+ * Why not `BricksTabBar`: it renders `items[]` itself, and a delete button cannot be
+ * put inside a `ToggleGroupItem` — that is a button within a button, a nesting of
+ * interactive elements that is not allowed. Standing them side by side within one
+ * `ToggleGroupItem` does not work either: any item of the group gets selected and emits
+ * `update:modelValue`, so a click on the cross would change the filter. Hence the row
+ * is assembled here straight on reka's `ToggleGroup` — the keyboard, the roving
+ * tabindex and the semantics of the group stay the library's, while the wrapper and
+ * the styles stay ours. The values of the styles repeat `BricksTabBarItem._underline`: the row has
+ * to read the same way the tab bars of the kit do everywhere else in the builder.
  *
- * Крестики показываются только в режиме управления (`isManaging`) и только у
- * пользовательских категорий. Постоянные крестики превратили бы ряд фильтров в
- * ряд кнопок удаления, а показ «только у выбранной» прятал удаление за
- * догадкой: чтобы понять, что категорию вообще можно удалить, её сначала надо
- * было выбрать.
+ * The crosses show only in the managing mode (`isManaging`), only on the categories of
+ * the user, and only for a role allowed to delete (creating a category stays with the
+ * editor; the rights are read in `useMediaCategoryActions`). Permanent crosses would
+ * turn a row of filters into a row of delete buttons, while showing one "on the
+ * selected tab only" hid the deletion behind a guess: to find out that a category can
+ * be deleted at all, one first had to select it. The counter is drawn only for the
+ * non-empty ones: a "· 0" on every category created but not filled yet is noise in the
+ * row rather than information.
+ *
+ * Decisions held by the style section. The underline is drawn on the wrapper and not on
+ * the `ToggleGroupItem` itself: on a tab with a cross it would otherwise break off
+ * halfway — under the caption but not under the cross. The selected state is put by
+ * reka on the item, so the wrapper reads it through `:has` — the alternative would be
+ * duplicating `modelValue` with a second class. On a tab with a cross the right padding
+ * of the caption is taken off, otherwise 1.2rem of padding piles up between the caption
+ * and the cross and the tab falls apart. The caption keeps the values of
+ * `BricksTabBar variant="underline" size="sm"` deliberately — the same 3.2rem box, the
+ * same `0 1.2rem` padding, the same 1.2rem/500 type and the same 0.2rem bar through
+ * `scaleX`; the copy has already managed to drift on the gap and on the color of the
+ * counter, and that has been put right. The delete button is taken in the `sm` size of
+ * the kit: next to a 1.2rem caption the standard 3.2rem would read as a separate button
+ * stuck onto the tab rather than as a part of it. From the outside only its place in
+ * the row is set — the side, the radius and the destructive tone arrive from the kit
+ * button, and an external class lands on the wrapper of the tooltip, from where rules
+ * of appearance never reach the button itself.
  */
 
 // #region Imports
@@ -60,11 +81,12 @@ const allFilterValue = ALL_MEDIA_CATEGORIES_FILTER;
 
 // #region Methods
 /**
- * Отдаёт выбор наверх, отсекая два случая, в которых группа сообщает о событии,
- * но выбор не меняется: `undefined` (повторный клик по выбранному — `ToggleGroup`
- * считает это снятием, а фильтр не может быть пустым) и то же значение.
+ * Hands the choice upward, cutting off the two cases in which the group reports an
+ * event while the choice does not change: `undefined` (a repeated click on the selected
+ * one — `ToggleGroup` counts that as a clearing, and the filter cannot be empty) and
+ * the very same value.
  *
- * @param value - Значение нажатого таба; при снятии выбора приходит пустое.
+ * @param value - The value of the tab that was pressed; on a clearing it arrives empty.
  */
 function handleValueChange(value: unknown): void {
     if (typeof value !== 'string' || value === props.modelValue) {
@@ -75,9 +97,9 @@ function handleValueChange(value: unknown): void {
 }
 
 /**
- * Эмитит запрос на удаление категории.
+ * Emits the request to delete a category.
  *
- * @param slug - Удаляемая категория.
+ * @param slug - The category being deleted.
  */
 function handleDelete(slug: string): void {
     emit('delete-category', slug);
@@ -109,17 +131,12 @@ function handleDelete(slug: string): void {
         >
             <ToggleGroupItem :class="$style.label" :value="category.slug">
                 <span>{{ category.label }}</span>
-                <!--
-                    Счётчик только у непустых: «· 0» у каждой заведённой, но пока
-                    не наполненной категории — шум в дорожке, а не информация.
-                -->
                 <span v-if="props.categoryCounts[category.slug]" :class="$style.count">
                     · {{ props.categoryCounts[category.slug] }}
                 </span>
             </ToggleGroupItem>
 
             <Transition name="bricks-fade-fast">
-                <!-- Удаление категории — право администратора, создание остаётся редактору -->
                 <BricksIconButton
                     v-if="props.isManaging && canDelete"
                     :class="$style.remove"
@@ -144,10 +161,6 @@ function handleDelete(slug: string): void {
     gap: 0.8rem;
 }
 
-/* Обёртка несёт подчёркивание, а подпись и крестик внутри остаются
-   самостоятельными интерактивными элементами. Полоса рисуется на ней, а не на
-   самом `ToggleGroupItem`, иначе у таба с крестиком она обрывалась бы на
-   середине — под подписью, но не под крестиком. */
 .tab {
     position: relative;
     display: inline-flex;
@@ -167,8 +180,6 @@ function handleDelete(slug: string): void {
         transition: transform var(--bricks-default-transition);
     }
 
-    /* Выбранное состояние ставит reka на сам item, поэтому обёртка читает его
-       через :has — иначе пришлось бы дублировать modelValue вторым классом. */
     &:has(.label[data-state='on']) {
         &:after {
             transform: scaleX(1);
@@ -183,19 +194,11 @@ function handleDelete(slug: string): void {
         }
     }
 
-    /* У таба с крестиком правый паддинг подписи снимается: иначе между подписью
-       и крестиком набегает 1.2rem паддинга и таб разъезжается. */
     &._deletable .label {
         padding-right: 0.2rem;
     }
 }
 
-/* Вид один в один с `BricksTabBar variant="underline" size="sm"` — тот же бокс
-   3.2rem, паддинг 0 1.2rem, кегль 1.2rem/500 и та же полоса 0.2rem через
-   scaleX. Компонент кита здесь не взят из-за крестика: вложить кнопку внутрь
-   `ToggleGroupItem` нельзя (кнопка в кнопке), а отдельным item она переключала бы
-   категорию. Значения держатся равными киту сознательно — копия уже успела
-   разъехаться по гэпу и цвету счётчика, и это выправлено. */
 .label {
     display: inline-flex;
     align-items: center;
@@ -227,13 +230,6 @@ function handleDelete(slug: string): void {
     transition: color var(--bricks-default-transition);
 }
 
-/* Кнопка кита в уменьшенном исполнении: рядом с подписью 1.2rem штатные 3.2rem
-   читались бы как отдельная кнопка, приставленная к табу, а не как его часть.
-   Квадратность при этом сохраняется — сторона и кегль уменьшены согласованно. */
-
-/* Снаружи задаётся только место в ряду: сторона, радиус и разрушающий тон
-   приезжают из кит-кнопки, а внешний класс достаётся обёртке тултипа — правила
-   вида на нём до самой кнопки не доходят. */
 .remove {
     margin-right: 0.8rem;
 }

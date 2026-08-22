@@ -1,10 +1,12 @@
 /**
- * Создание и удаление категорий медиатеки вместе с их состоянием подтверждения.
+ * Creating and deleting the categories of the media library, along with the state of
+ * their confirmation.
  *
- * Вынесено из модалки галереи: та и без этого была контроллером на пять
- * поверхностей, а с категориями перерастала потолок SFC. Здесь собрано всё, что
- * нужно только этому сценарию — флаги «идёт запись», выбранный к удалению чип и
- * текст подтверждения; сама модалка получает готовые обработчики.
+ * Taken out of the gallery modal: that one was a controller over five surfaces even
+ * without this, and with the categories it was outgrowing the ceiling of an SFC.
+ * Collected here is everything only this scenario needs — the "a write is running"
+ * flags, the tab picked for deletion and the text of the confirmation; the modal
+ * itself gets finished handlers.
  */
 
 // #region Imports
@@ -29,19 +31,19 @@ import { useBuilderPermissions } from '../../core/composables/useBuilderPermissi
 // #endregion
 
 /**
- * Собирает действия над категориями медиатеки.
+ * Assembles the actions over the categories of the media library.
  *
- * @param options - Доступ к списку категорий, сброс фильтра и показ ошибки.
- * @returns Состояние и обработчики для ряда чипов и подтверждения удаления.
+ * @param options - Access to the file counts, the filter reset and the error toast.
+ * @returns State and handlers for the row of tabs and for the delete confirmation.
  */
 export function useMediaCategoryActions(
     options: IMediaCategoryActionsOptions
 ): IMediaCategoryActions {
     const { t } = useI18n();
     const categoriesStore = useMediaCategoriesStore();
-    // Права проверяются и здесь, а не только скрытием кнопок: категории —
-    // запись (создание) и удаление (админ), а вход в галерею со временем
-    // появится не только из тулбара
+    // The rights are checked here too, not by hiding the buttons alone: categories
+    // are a write (creating one) and a deletion (an admin), and in time the gallery
+    // will be entered from more than the toolbar
     const { canEdit, canDelete } = useBuilderPermissions();
     const isCreatingCategory = ref(false);
     const categoryPendingDeletion = ref<string | null>(null);
@@ -73,9 +75,9 @@ export function useMediaCategoryActions(
     });
 
     /**
-     * Создаёт категорию; отказ доходит до пользователя тостом.
+     * Creates a category; a refusal reaches the user as a toast.
      *
-     * @param label - Подпись, введённая пользователем; slug считает сервер.
+     * @param label - The caption the user typed; the slug is the server's to compute.
      */
     async function handleCreateCategory(label: string): Promise<void> {
         if (!canEdit.value) {
@@ -94,26 +96,26 @@ export function useMediaCategoryActions(
     }
 
     /**
-     * Открывает подтверждение удаления категории.
+     * Opens the confirmation of a category deletion.
      *
-     * @param slug - Категория, выбранная к удалению.
+     * @param slug - The category picked for deletion.
      */
     function handleRequestCategoryDelete(slug: string): void {
         categoryPendingDeletion.value = slug;
     }
 
-    /** Закрывает подтверждение удаления категории. */
+    /** Closes the confirmation of a category deletion */
     function handleCloseCategoryDelete(): void {
         categoryPendingDeletion.value = null;
     }
 
     /**
-     * Подтверждает удаление категории.
+     * Confirms the deletion of a category.
      *
-     * Активный фильтр сбрасывается вызывающим: он указывал бы на категорию,
-     * которой больше нет, и сетка осталась бы демонстративно пустой. Обрыв по
-     * потолку ожидания закрывает подтверждение — исход неизвестен, а повтор
-     * получил бы 404.
+     * The active filter is dropped by the caller: it would point at a category that
+     * is gone, and the grid would be left demonstratively empty. A break by the
+     * waiting ceiling closes the confirmation — the outcome is unknown, and a repeat
+     * of a deletion that did go through answers 404.
      */
     async function handleConfirmCategoryDelete(): Promise<void> {
         const slug = categoryPendingDeletion.value;
@@ -139,7 +141,7 @@ export function useMediaCategoryActions(
         }
     }
 
-    /** Снимает подтверждение при закрытии галереи. */
+    /** Drops the confirmation when the gallery closes */
     function resetCategoryActions(): void {
         categoryPendingDeletion.value = null;
     }

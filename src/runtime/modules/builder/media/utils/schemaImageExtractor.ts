@@ -1,5 +1,5 @@
 /**
- * Извлечение и замена image URL в IBricksSchema.
+ * Extraction and replacement of the image URLs of an `IBricksSchema`.
  */
 
 // #region Imports
@@ -17,13 +17,16 @@ import { resolveBricksAssetUrl } from '../../../common/utils/bricks/assetPaths';
 // #endregion
 
 // #region Constants
-/** Asset-путь плейсхолдера внутри public/ модуля (URL строит resolveBricksAssetUrl). */
+/**
+ * Asset path of the placeholder inside the module's `public/` (the URL itself is
+ * built by `resolveBricksAssetUrl`).
+ */
 const PLACEHOLDER_IMAGE_ASSET_PATH = 'images/brick-empty.webp';
 
 /**
- * Суффикс для распознавания плейсхолдера в схеме: сравнение по суффиксу,
- * а не по полному URL, не зависит от app.baseURL окружения, в котором
- * схема была сохранена.
+ * The suffix the placeholder is recognized by in a schema: comparing by the suffix
+ * rather than by the whole URL does not depend on the `app.baseURL` of the
+ * environment the schema happened to be saved in.
  */
 const PLACEHOLDER_IMAGE_SUFFIX = '/images/brick-empty.webp';
 
@@ -32,36 +35,38 @@ const CDN_PATTERNS_RE = /storage\.yandexcloud\.net|amazonaws\.com|cdn\./i;
 const HTML_IMG_SRC_RE = /<img[^>]+src=["']([^"']+)["']/gi;
 const DATA_URI_RE = /^data:/;
 /**
- * Максимальная длина строки, которую можно считать голым URL.
- * HTML-строки всегда длиннее.
+ * The longest string that may still be taken for a bare URL — a ceiling against
+ * running the URL checks over long content. Markup is cut off before this one gets
+ * a say: a string with angle brackets or spaces is not a bare URL to begin with.
  */
 const MAX_BARE_URL_LENGTH = 2048;
 // #endregion
 
 // #region Helpers
 /**
- * Возвращает URL placeholder-изображения с учётом `app.baseURL`.
+ * Returns the URL of the placeholder image, honoring `app.baseURL`.
  *
- * @param baseURL - `app.baseURL` приложения (`/` — no-op).
+ * @param baseURL - `app.baseURL` of the application (`/` — a no-op).
  */
 export function getPlaceholderImageUrl(baseURL: string): string {
     return resolveBricksAssetUrl(baseURL, PLACEHOLDER_IMAGE_ASSET_PATH);
 }
 
 /**
- * URL — плейсхолдер модуля (в любой исторической форме записи в схеме).
+ * Whether the URL is the placeholder of the module (in any of the historical forms
+ * it was written into a schema in).
  *
- * @param url - Проверяемый URL.
+ * @param url - The URL being checked.
  */
 function isPlaceholderImageUrl(url: string): boolean {
     return url.endsWith(PLACEHOLDER_IMAGE_SUFFIX);
 }
 
 /**
- * Проверяет, является ли строка целиком URL изображения (не частью HTML).
+ * Checks whether the string as a whole is an image URL rather than a piece of HTML.
  *
- * @param value - Строка для проверки.
- * @returns true если строка — голый URL изображения.
+ * @param value - The string to check.
+ * @returns true when the string is a bare image URL.
  */
 function isBareImageUrl(value: string): boolean {
     if (!value || typeof value !== 'string') {
@@ -73,22 +78,22 @@ function isBareImageUrl(value: string): boolean {
         return false;
     }
 
-    // Исключаем data URI
+    // Data URIs are out
     if (DATA_URI_RE.test(trimmed)) {
         return false;
     }
 
-    // Исключаем placeholder
+    // The placeholder is out
     if (isPlaceholderImageUrl(trimmed)) {
         return false;
     }
 
-    // Строка не должна содержать HTML-теги или пробелы (это не голый URL)
+    // A bare URL carries neither tags nor spaces
     if (trimmed.includes('<') || trimmed.includes('>') || trimmed.includes(' ')) {
         return false;
     }
 
-    // Должна начинаться как URL
+    // And it has to start like a URL
     if (
         !trimmed.startsWith('http://') &&
         !trimmed.startsWith('https://') &&
@@ -97,14 +102,14 @@ function isBareImageUrl(value: string): boolean {
         return false;
     }
 
-    // Проверяем по расширению или CDN-паттерну
+    // Recognized either by the extension or by the CDN pattern
     return IMAGE_EXTENSIONS_RE.test(trimmed) || CDN_PATTERNS_RE.test(trimmed);
 }
 
 /**
- * Проверяет, является ли значение массивом gallery items.
+ * Checks whether the value is an array of gallery items.
  *
- * @param value - Значение для проверки.
+ * @param value - The value to check.
  */
 function isGalleryArray(value: unknown): value is IGalleryItem[] {
     if (!Array.isArray(value) || value.length === 0) {
@@ -122,9 +127,9 @@ function isGalleryArray(value: unknown): value is IGalleryItem[] {
 }
 
 /**
- * Проверяет, является ли значение массивом inline content segments.
+ * Checks whether the value is an array of inline content segments.
  *
- * @param value - Значение для проверки.
+ * @param value - The value to check.
  */
 function isInlineContentArray(value: unknown): value is IInlineContentSegment[] {
     if (!Array.isArray(value) || value.length === 0) {
@@ -141,11 +146,11 @@ function isInlineContentArray(value: unknown): value is IInlineContentSegment[] 
 }
 
 /**
- * Добавляет URL в Map с дедупликацией по URL.
+ * Adds a URL to the map, deduplicating by the URL itself.
  *
- * @param urlMap - Map для накопления результатов.
- * @param url - URL изображения.
- * @param location - Местоположение в схеме.
+ * @param urlMap - The map the results are collected into.
+ * @param url - URL of the image.
+ * @param location - Where in the schema it sits.
  */
 function addUrlToMap(
     urlMap: Map<string, IImageLocation[]>,
@@ -161,7 +166,7 @@ function addUrlToMap(
 }
 
 /**
- * Создаёт объект IImageLocation.
+ * Builds an `IImageLocation`.
  */
 function createLocation(
     componentIndex: number,
@@ -181,13 +186,13 @@ function createLocation(
 }
 
 /**
- * Извлекает URL из HTML-строки (textarea с TipTap контентом).
+ * Extracts the URLs out of an HTML string (a textarea holding TipTap content).
  *
- * @param html - HTML-строка.
- * @param componentIndex - Индекс компонента в схеме.
- * @param component - Компонент.
- * @param propName - Имя свойства.
- * @param urlMap - Map для накопления.
+ * @param html - The HTML string.
+ * @param componentIndex - Index of the component in the schema.
+ * @param component - The component.
+ * @param propName - Name of the prop.
+ * @param urlMap - The map the results are collected into.
  */
 function extractFromHtml(
     html: string,
@@ -214,10 +219,10 @@ function extractFromHtml(
 
 // #region Public API
 /**
- * Извлекает все уникальные URL изображений из схемы лендинга.
+ * Extracts every unique image URL out of a landing schema.
  *
- * @param schema - IBricksSchema для анализа.
- * @returns Массив уникальных URL с информацией о местоположениях.
+ * @param schema - The `IBricksSchema` to walk.
+ * @returns The unique URLs, each with every place it was met in.
  */
 export function extractSchemaImageUrls(schema: IBricksSchema): IExtractedImageUrl[] {
     const urlMap = new Map<string, IImageLocation[]>();
@@ -230,7 +235,7 @@ export function extractSchemaImageUrls(schema: IBricksSchema): IExtractedImageUr
         Object.entries(component.props).forEach(([propName, value]) => {
             // String prop
             if (typeof value === 'string') {
-                // Голый URL (вся строка — это URL)
+                // A bare URL (the whole string is the URL)
                 if (isBareImageUrl(value)) {
                     addUrlToMap(
                         urlMap,
@@ -240,7 +245,7 @@ export function extractSchemaImageUrls(schema: IBricksSchema): IExtractedImageUr
                     return;
                 }
 
-                // HTML-содержимое с <img> тегами
+                // HTML content carrying <img> tags
                 if (value.includes('<img')) {
                     extractFromHtml(value, componentIndex, component, propName, urlMap);
                 }
@@ -295,13 +300,17 @@ export function extractSchemaImageUrls(schema: IBricksSchema): IExtractedImageUr
 }
 
 /**
- * Заменяет URL изображений в схеме согласно маппингу.
- * Не мутирует входные данные — возвращает новую схему.
- * Заменяет только сами URL, остальной контент не трогает.
+ * Replaces the image URLs of a schema according to a mapping.
+ * The input is not mutated — a new schema is returned.
  *
- * @param schema - Исходная схема.
- * @param urlMap - Map<oldUrl, newUrl> для замен.
- * @returns Новая схема с заменёнными URL.
+ * A bare prop and a gallery or segment item are swapped whole, by an exact match. An
+ * HTML prop is a plain substring replacement over the entire string, so a match is
+ * taken wherever it sits — in a text node, in a `href`, inside a longer URL — and the
+ * promise there is only that nothing but the matched substrings changes.
+ *
+ * @param schema - The original schema.
+ * @param urlMap - `Map<oldUrl, newUrl>` of the replacements.
+ * @returns A new schema with the URLs replaced.
  */
 export function replaceSchemaImageUrls(
     schema: IBricksSchema,
@@ -317,28 +326,30 @@ export function replaceSchemaImageUrls(
         }
 
         let hasChanges = false;
-        // Имена пропов приходят из схемы (в том числе импортированной руками):
-        // `newProps['__proto__'] = value` подменял бы прототип собираемого
-        // объекта вместо записи ключа, и пропсы уезжали бы в него.
-        // Собираем парами: `Object.fromEntries` делает own-свойство даже для
-        // `__proto__` (CreateDataProperty, а не присваивание), поэтому прототип
-        // не подменяется и контракт «остальной контент не трогаем» соблюдён.
-        // `toSafeRecord` здесь не подходит — он отбрасывал бы такой ключ, причём
-        // только когда картинка поменялась; отбрасывание живёт на входе схемы
-        // в стор (`cloneComponentProps`), безусловно
+        // Prop names arrive out of a schema, a hand-imported one included:
+        // `newProps['__proto__'] = value` would replace the prototype of the object
+        // being assembled instead of writing a key, and the props would travel into
+        // it. Hence the pairs: `Object.fromEntries` makes an own property even out
+        // of `__proto__` (CreateDataProperty rather than an assignment), so the
+        // prototype is left alone and the "the rest of the content is left alone"
+        // contract holds. `toSafeRecord` does not fit here — it would drop such a
+        // key, and only when the picture changed; the dropping belongs at the
+        // entrance of a schema into the store (`cloneComponentProps`), where it
+        // happens unconditionally
         const newPropEntries: Array<[string, unknown]> = [];
 
         Object.entries(component.props).forEach(([propName, value]) => {
             // String prop
             if (typeof value === 'string') {
-                // Голый URL — заменяем целиком
+                // A bare URL — swapped whole
                 if (urlMap.has(value)) {
                     hasChanges = true;
                     newPropEntries.push([propName, urlMap.get(value) as string]);
                     return;
                 }
 
-                // HTML — заменяем только URL внутри src атрибутов
+                // HTML — every occurrence of the old URL is swapped, wherever in
+                // the markup it sits; nothing else is touched
                 if (value.includes('<img')) {
                     let replaced = value;
                     urlMap.forEach((newUrl, oldUrl) => {

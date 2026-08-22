@@ -1,16 +1,24 @@
 <script setup lang="ts">
 /**
- * @description Приёмник файлов: разворачивается над сеткой, пока файлы тащат
- * над модалкой.
+ * @description The drop target for files: it unfolds over the grid while files are
+ * being dragged over the modal.
  *
- * Накрывает только сетку, а не всё содержимое: строка фильтров обязана
- * оставаться видимой — по ней понятно, в какую категорию попадут файлы.
- * Заливка полупрозрачная по той же причине — под приёмником должно читаться,
- * куда именно он их положит.
+ * It covers the grid alone rather than the whole of the content: the row of filters
+ * has to stay visible — it is what tells which category the files will land in. The
+ * fill is semi-transparent for the same reason: what the target will put them into
+ * has to be readable underneath it.
  *
- * Параметры оптимизации печатаются прямо здесь: иначе проверить, с каким
- * качеством уйдут файлы, можно только открыв поповер, а во время перетаскивания
- * это уже невозможно.
+ * The optimization parameters are printed right here: otherwise the only way to check
+ * the quality the files will go with is to open the popover, and during a drag that is
+ * no longer possible.
+ *
+ * Decisions held by the style section. The target takes no place of its own in the
+ * flow — it exists only for the duration of a drag — so it lies over the grid
+ * absolutely positioned. Its `z-index` is a local layer inside the content of the
+ * modal rather than a step of the common `--bricks-z-*` scale: it covers nothing but
+ * the grid beneath it. And the message stands on a plate of its own: over a grid
+ * showing through, text with no ground of its own reads only half the time — the dark
+ * theme especially, where the tiles are lighter than the background.
  */
 
 // #region Imports
@@ -59,29 +67,19 @@ const hint = computed<string>(
 </template>
 
 <style module lang="scss">
-/* Слой поверх сетки внутри содержимого модалки: собственного места в потоке
-   приёмник не занимает — он существует только на время перетаскивания. */
 .BuilderMediaGalleryDropOverlay {
     position: absolute;
     inset: 0;
-
-    /* Локальный слой внутри содержимого модалки, а не уровень общей шкалы
-       --bricks-z-*: приёмник перекрывает только сетку под собой. */
     z-index: 1;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: var(--bricks-border-radius-md);
     border: 0.2rem dashed var(--bricks-primary);
-
-    /* Заливка не сплошная: под ней обязана читаться сетка, иначе приёмник
-       выглядит как пустая плита на пол-модалки. */
     background: color-mix(in srgb, var(--bricks-primary-50) 80%, transparent);
     pointer-events: none;
 }
 
-/* Плашка под сообщением: на просвечивающей сетке текст без своей подложки
-   читается через раз — особенно в тёмной теме, где плитки светлее фона. */
 .message {
     display: flex;
     align-items: center;

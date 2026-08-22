@@ -1,4 +1,14 @@
 <script setup lang="ts">
+/**
+ * @description One row of the image resolver: a preview, where the picture comes from
+ * in the schema, and the choice of what to do with it.
+ *
+ * The picker is a native `<select>` rather than the kit's `BricksSelect`, and the three
+ * `--bricks-*` overrides in the style section pin it to the light palette, so in the
+ * dark theme the control stays white. Neither is a recorded decision — no reason for
+ * either was ever written down.
+ */
+
 // #region Imports
 // Types
 import type { IExtractedImageUrl, TImageResolveAction } from '../types/schemaImageResolver';
@@ -52,9 +62,9 @@ const componentName = computed<string>(() => {
 
 // #region Methods
 /**
- * Обрабатывает смену действия для изображения.
+ * Handles a change of the action of an image.
  *
- * @param event - Событие select.
+ * @param event - The select event.
  */
 function handleActionChange(event: Event): void {
     const target = event.target as HTMLSelectElement;
@@ -62,7 +72,7 @@ function handleActionChange(event: Event): void {
 }
 
 /**
- * Обрабатывает ошибку загрузки превью.
+ * Handles a failure to load the preview.
  */
 function handleImgError(): void {
     imgError.value = true;
@@ -175,7 +185,6 @@ function handleImgError(): void {
 }
 
 .actionSelect {
-    /* Фиксируем светлую тему для select */
     --bricks-base-0: #fff;
     --bricks-base-200: #e5e7eb;
     --bricks-base-900: #111827;

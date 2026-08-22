@@ -1,9 +1,10 @@
 /**
- * Подпись параметров загрузки — одной строкой.
+ * The caption of the upload parameters — on a single line.
  *
- * Строку показывают два места (тултип кнопки загрузки и оверлей приёмника), и
- * состав её частей зависит от формата: у «Оригинала» ни качества, ни ширины
- * нет, и печатать рядом с ним «q70 · до 1920px» значило бы врать.
+ * Two places show that line (the tooltip of the upload button and the overlay of
+ * the drop target), and which parts it is made of depends on the format: "Original"
+ * has neither a quality nor a width, and printing "q70 · up to 1920px" next to it
+ * would be a lie.
  */
 
 // Types
@@ -11,11 +12,11 @@ import type { IBricksMediaOptimization } from '../../../common/types/media';
 import type { TTranslateFn } from '../../../common/utils/i18nLabels';
 
 /**
- * Возвращает подпись текущих параметров оптимизации.
+ * Returns the caption of the current optimization parameters.
  *
- * @param optimization - Параметры загрузки.
- * @param translate - Функция перевода вызывающего.
- * @returns Готовая строка.
+ * @param optimization - The upload parameters.
+ * @param translate - The translate function of the caller.
+ * @returns The finished string.
  */
 export function formatOptimizationSummary(
     optimization: IBricksMediaOptimization,

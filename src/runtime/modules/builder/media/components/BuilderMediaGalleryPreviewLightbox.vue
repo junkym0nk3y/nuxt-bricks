@@ -1,18 +1,21 @@
 <script setup lang="ts">
 /**
- * @description Полноэкранный предпросмотр файла поверх галереи.
+ * @description The full-screen preview of a file, over the gallery.
  *
- * Это диалог, а не просто оверлей: он перекрывает всю модалку, поэтому обязан
- * забрать фокус и не пускать Tab за свои пределы — иначе фокус остаётся на
- * плитке под затемнением и продолжает ходить по невидимой галерее. Реализовано
- * своими руками, а не `BricksModal`: тот телепортируется в body и создал бы
- * собственный слой поверх галереи, тогда как лайтбокс обязан жить ВНУТРИ её
- * контекста наложения.
+ * This is a dialog rather than a mere overlay: it covers the whole of the modal, so
+ * it is obliged to take the focus and to keep Tab from leaving it — otherwise the
+ * focus stays on the tile under the dimming and goes on walking an invisible gallery.
+ * Built by hand rather than out of `BricksModal`: that one teleports into the body and
+ * would make a layer of its own over the gallery, whereas the lightbox has to live
+ * INSIDE the gallery's stacking context. Why Escape is handled here — at
+ * `handleKeydown`.
  *
- * Escape обрабатывается здесь же: на дашборде лайтбокс открывается сам по себе
- * (снимок страницы, снимок шаблона, файл медиатеки), и Reka Dialog над ним нет —
- * наследовать закрытие не от кого. Внутри галереи это не двоится: её обработчик
- * гасит событие у модалки и закрывает тот же лайтбокс.
+ * Decisions held by the style section: the `z-index` is a local value rather than a
+ * step of the `--bricks-z-*` scale. Inside the gallery that is exact — the modal's root
+ * with a `z-index` opens a stacking context of its own, and the only rivals are the
+ * neighbors within it, which carry no `z-index` at all. On the dashboard, where the
+ * lightbox is mounted on its own, the value competes with the layers of the page
+ * instead, and 10 is above them by fact rather than by the scale.
  */
 
 // #region Imports
@@ -39,32 +42,32 @@ const emit = defineEmits<IMediaGalleryPreviewLightboxEmits>();
 const { t } = useI18n();
 const rootRef = ref<HTMLElement | null>(null);
 const closeRef = ref<HTMLButtonElement | null>(null);
-/** Что было в фокусе до открытия — туда фокус и возвращается. */
+/** What held the focus before the opening — that is where the focus goes back */
 let previouslyFocused: HTMLElement | null = null;
 // #endregion
 
 // #region Methods
-/** Закрывает полноэкранный предпросмотр. */
+/** Closes the full-screen preview */
 function handleClose(): void {
     emit('close');
 }
 
 /**
- * Закрывает просмотр по Escape и запирает Tab внутри диалога, замыкая его в цикл
- * по своим фокусируемым элементам.
+ * Closes the preview on Escape and locks Tab inside the dialog, closing it into a
+ * loop over the focusable elements of its own.
  *
- * Escape обрабатывается здесь, а не наследуется от родительской модалки: на
- * дашборде лайтбокс живёт сам по себе (снимок страницы, снимок шаблона, файл
- * медиатеки), и Reka-диалога над ним нет вовсе. Внутри галереи это не двоится:
- * её обработчик гасит событие у модалки и закрывает тот же просмотр.
+ * Escape is handled here rather than inherited from the parent modal: on the dashboard
+ * the lightbox lives on its own (a snapshot of a page, a snapshot of a template, a
+ * file of the media library), and there is no Reka dialog over it at all. Inside the
+ * gallery this does not fire twice: the gallery's handler swallows the event at the
+ * modal and closes that same preview.
  *
+ * Not "always send the focus back to the close button": a video carries `controls` and
+ * the `<video>` itself is focusable — folding the loop down to a single button would
+ * put its controls out of reach of the keyboard. Only the way out over the edges is
+ * intercepted; inside the dialog Tab works natively.
  *
- * Не «всегда возвращать фокус на закрытие»: у видео есть `controls`, и сам
- * `<video>` фокусируем — сведение цикла к одной кнопке делало бы его контролы
- * недостижимыми с клавиатуры. Перехватывается только выход за края, внутри
- * диалога Tab работает нативно.
- *
- * @param event - Событие клавиатуры.
+ * @param event - The keyboard event.
  */
 function handleKeydown(event: KeyboardEvent): void {
     if (event.key === 'Escape') {
@@ -160,11 +163,6 @@ watch(
 .BuilderMediaGalleryPreviewLightbox {
     position: fixed;
     inset: 0;
-
-    /* Локальное значение, не из шкалы `--bricks-z-*`: лайтбокс рендерится внутри
-       модалки галереи, а её корень с z-index создаёт свой контекст наложения —
-       соперничать здесь можно только с соседями внутри модалки, у которых
-       z-index нет вовсе. */
     z-index: 10;
     display: flex;
     align-items: center;

@@ -1,23 +1,25 @@
 /**
- * Подписи категорий медиа.
+ * Captions of the media categories.
  *
- * Подпись — то, что ввёл пользователь: предустановленных категорий нет, а
- * переводить пользовательский ввод нечем. Утилита остаётся ради поиска по
- * slug'у — он приходит из `bricks_media.category`, а показывать нужно подпись.
+ * A caption is whatever the user typed: there are no preset categories, and there
+ * is nothing to translate user input with. The utility stays for the lookup by
+ * slug — the slug is what `bricks_media.category` holds, while the caption is what
+ * has to be shown.
  */
 
 // Types
 import type { IMediaCategory } from '../../../common/types/media';
 
 /**
- * Ищет подпись категории по slug'у; для неизвестного slug'а возвращает сам slug.
+ * Looks up the caption of a category by its slug; an unknown slug is returned as is.
  *
- * Slug вместо «—»: категория могла быть удалена в другой сессии, и показать её
- * машинное имя честнее, чем скрыть факт рассинхрона.
+ * The slug rather than an em dash: the category could have been deleted in another
+ * session, and showing its machine name is more honest than hiding the fact that the
+ * two have drifted apart.
  *
- * @param slug - Slug категории.
- * @param categories - Известные категории.
- * @returns Подпись для показа пользователю.
+ * @param slug - Slug of the category.
+ * @param categories - The known categories.
+ * @returns The caption to show to the user.
  */
 export function resolveMediaCategoryLabelBySlug(
     slug: string,

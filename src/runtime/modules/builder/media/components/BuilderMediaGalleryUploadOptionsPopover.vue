@@ -1,12 +1,28 @@
 <script setup lang="ts">
 /**
- * @description Шестерёнка параметров оптимизации с поповером.
+ * @description The optimization parameters cog with its popover.
  *
- * Отдельным компонентом, потому что мест у неё два: контролы загрузки в шапке
- * модалки и строка фильтров раздела дашборда, где параметры стоят рядом с
- * действиями над категориями. Вторая копия этой связки разъехалась бы с первой:
- * привязка поповера здесь неочевидная и уже стоила отладки (см. `PopoverAnchor`
- * ниже).
+ * A component of its own, because it has two places: the upload controls in the header
+ * of the modal and the row of filters of the dashboard section, where the parameters
+ * stand next to the actions over the categories. A second copy of this wiring would
+ * drift away from the first: the anchoring of the popover here is not obvious and has
+ * cost debugging once already.
+ *
+ * That anchoring is the explicit `PopoverAnchor`, and it is a must: the `as-child` of
+ * the trigger hands its handlers to the tooltip WRAPPER inside the kit button, so with
+ * no anchor the popover has nothing to take as its point of attachment — the content
+ * opened past the top edge of the window. The click kept working all the while, so the
+ * breakage looked like "the popover does not open". `aria-expanded` stays on the button
+ * itself: it is put there by the `expanded` prop rather than by the trigger, because
+ * the wrapper takes no focus and a screen reader would not read an expansion announced
+ * on it.
+ *
+ * The content is composed through `as-child` for the reason `BricksPopoverSurface`
+ * gives. The animation of the style section hangs on `data-state` rather than on a Vue
+ * transition because it is reka that owns the presence of the content, and it waits the
+ * CSS animation out before unmounting; the look, the layer and the border arrive from
+ * the surface, while the width and the padding come from the parameters panel itself
+ * (the density scale of the surface holds no `1.6rem`).
  */
 
 // #region Imports
@@ -45,9 +61,9 @@ const isOpen = ref(false);
 
 // #region Methods
 /**
- * Пробрасывает изменённые параметры наверх.
+ * Passes the changed parameters upward.
  *
- * @param value - Новые параметры оптимизации.
+ * @param value - The new optimization parameters.
  */
 function handleOptimizationChange(value: IBricksMediaOptimization): void {
     emit('update:optimization', value);
@@ -57,17 +73,6 @@ function handleOptimizationChange(value: IBricksMediaOptimization): void {
 
 <template>
     <PopoverRoot v-model:open="isOpen">
-        <!--
-            Явный `PopoverAnchor` обязателен: `as-child` триггера отдаёт свои
-            обработчики ОБЁРТКЕ тултипа внутри кит-кнопки, и без якоря поповеру
-            нечего взять за точку привязки — контент открывался за верхним краем
-            окна. Клик при этом работал, поэтому поломка выглядела как «поповер
-            не открывается».
-
-            `aria-expanded` при этом остаётся на самой кнопке — его ставит проп
-            `expanded`, а не триггер: обёртка не фокусируется, и объявление
-            раскрытия на ней скринридер бы не прочитал.
-        -->
         <PopoverAnchor>
             <PopoverTrigger as-child>
                 <BricksIconButton
@@ -83,11 +88,6 @@ function handleOptimizationChange(value: IBricksMediaOptimization): void {
         </PopoverAnchor>
 
         <PopoverPortal>
-            <!--
-                `as-child`: поверхность и узел reka — один и тот же, иначе
-                позиционирование с `data-state` осталось бы на внешней обёртке,
-                а рамка с тенью — на внутренней.
-            -->
             <PopoverContent as-child align="end" :side-offset="8">
                 <BricksPopoverSurface density="flush" elevation="lg" :class="$style.popover">
                     <BuilderMediaGalleryUploadOptions
@@ -102,11 +102,6 @@ function handleOptimizationChange(value: IBricksMediaOptimization): void {
 </template>
 
 <style module lang="scss">
-/* Анимация по `data-state`, а не Vue-транзишеном: присутствием контента управляет
-   reka, и она сама ждёт окончания CSS-анимации перед размонтированием. Тот же
-   приём у `BricksActionButton` и контекстного меню канваса. Вид, слой и рамка
-   приезжают из `BricksPopoverSurface`; ширина и паддинг — из самой панели
-   параметров (`1.6rem` в шкале плотности поверхности нет). */
 .popover {
     &[data-state='open'] {
         animation: options-popover-in var(--bricks-default-transition);

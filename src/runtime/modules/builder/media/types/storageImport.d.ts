@@ -1,21 +1,24 @@
 /**
- * Типы импорта содержимого хранилища публикации в медиатеку.
+ * Types of the import of the publish storage's contents into the media library.
  */
 
 import type { IMediaItem } from '../../../common/types/media';
 
 /**
- * Исход попытки импорта.
+ * The outcome of an import attempt.
  *
- * Отдельный флаг вместо голого списка нужен затем, что «пусто» имеет два разных
- * смысла: импортировать было нечего (повторять незачем) и попытка не удалась
- * (повторить стоит). Свести их к одному значению — значит либо навсегда
- * запомнить сетевой сбой как выполненную попытку, либо повторять запрещённый
- * POST у роли, которой импорт не положен.
+ * A flag of its own rather than a bare list, because "empty" carries two different
+ * meanings: there was nothing to import (no point in repeating) and the attempt
+ * failed (worth repeating). Reducing them to one value means either remembering a
+ * network failure as a completed attempt forever, or repeating a forbidden POST for
+ * a role the import is not meant for.
  */
 export interface IMediaStorageImportResult {
-    /** Состав медиатеки после импорта; пустой — импортировать было нечего либо попытка не удалась. */
+    /**
+     * The contents of the media library after the import; empty — there was nothing
+     * to import, or the attempt failed.
+     */
     items: IMediaItem[];
-    /** Имеет ли смысл повторить попытку позже (временный отказ, а не отказ по правам). */
+    /** Whether retrying later makes sense (a temporary refusal, not one by rights) */
     isRetryable: boolean;
 }

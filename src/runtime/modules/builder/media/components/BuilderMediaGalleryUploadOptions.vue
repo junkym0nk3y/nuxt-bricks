@@ -1,19 +1,25 @@
 <script setup lang="ts">
 /**
- * @description Содержимое поповера параметров загрузки: формат, качество,
- * максимальная ширина и «загружать без оптимизации».
+ * @description The content of the upload parameters popover: the format, the quality,
+ * the maximum width and "upload with no optimization".
  *
- * Кнопки «Применить» нет: параметры действуют на следующую загрузку, поповер
- * закрывается кликом снаружи. Дефолты приезжают из `bricks.media.optimization` —
- * поповер их только переопределяет и в конфиг обратно ничего не пишет.
+ * There is no "Apply" button: the parameters take effect on the next upload, and the
+ * popover is closed by a click outside it. The defaults arrive from
+ * `bricks.media.optimization` — the popover only overrides them and writes nothing back
+ * into the config.
  *
- * «Загружать без оптимизации» — не отдельный флаг, а тот же `format: 'original'`:
- * два источника одного состояния разъехались бы. Поэтому чекбокс и селект
- * формата связаны, а качество с шириной при «Оригинале» гаснут — они ни на что
- * не влияют, но остаются видимыми, чтобы значения было где посмотреть.
+ * "Upload with no optimization" is not a flag of its own but the very same
+ * `format: 'original'`: two sources of one state would drift apart. Hence the checkbox
+ * and the format selector are tied together, and the quality with the width go out
+ * under "Original" — they affect nothing there, but they stay visible so that their
+ * values have somewhere to be read.
  *
- * Слайдера в ките нет и заводить его ради двух полей не нужно: качество и ширина
- * — числовые `BricksInput` со степпером.
+ * The kit holds no slider, and setting one up for the sake of two fields is not needed:
+ * the quality and the width are numeric `BricksInput`s with a stepper.
+ *
+ * The surface under all of this — the border, the shadow, the layer — is drawn by the
+ * owner of the popover, `BuilderMediaGalleryUploadOptionsPopover`; what is left to the
+ * style section here is the layout of the fields.
  */
 
 // #region Imports
@@ -67,9 +73,9 @@ const formatFacets = computed<TBrickDemoValues[]>(() =>
 );
 const isOriginal = computed<boolean>(() => props.optimization.format === 'original');
 /**
- * Границы поля ширины считаются от НЕИЗМЕННОГО значения конфига, а не от
- * текущего в поле: иначе верхняя граница убегала бы вслед за вводом и не
- * ограничивала бы ничего.
+ * The bounds of the width field are counted from the value of the config, which does
+ * not move, rather than from the one currently in the field: otherwise the upper bound
+ * would run away after the typing and would bound nothing at all.
  */
 const maxWidthBounds = computed<IMediaMaxWidthBounds>(() =>
     resolveMediaMaxWidthBounds(props.configuredMaxWidth)
@@ -78,16 +84,16 @@ const maxWidthBounds = computed<IMediaMaxWidthBounds>(() =>
 
 // #region Methods
 /**
- * Отдаёт наверх изменённый набор параметров целиком: значение контролируемое,
- * частичный патч заставил бы вызывающего склеивать состояние сам.
+ * Hands the changed set of parameters upward whole: the value is a controlled one, and
+ * a partial patch would leave the caller to glue the state together itself.
  *
- * @param patch - Изменённые поля.
+ * @param patch - The changed fields.
  */
 function emitPatch(patch: Partial<IMediaGalleryUploadOptionsProps['optimization']>): void {
     emit('update:optimization', { ...props.optimization, ...patch });
 }
 
-/** Обрабатывает выбор формата. */
+/** Handles the choice of a format */
 function handleFormatChange(value: TBrickDemoValues | null): void {
     if (typeof value !== 'string') {
         return;
@@ -97,19 +103,20 @@ function handleFormatChange(value: TBrickDemoValues | null): void {
 }
 
 /**
- * Читает число из поля ввода; пустое и нечисловое оставляют прежнее — иначе
- * стирание поля обнуляло бы качество.
+ * Reads a number out of the input field; an empty and a non-numeric one leave the
+ * former value in place — otherwise clearing the field would zero the quality out.
  *
- * Границы и округление намеренно НЕ применяются. Значение контролируемое:
- * `BricksInput` синхронизирует поле из пропа, поэтому кламп на каждый символ
- * подменял набираемое — «1» становилось минимумом, а следующая цифра
- * дописывалась уже к нему («1», «9», «2», «0» давали 16 → 169 → 1692 → 8000).
- * Границы остаются за blur'ом самого поля и за сервером, а дробное значение —
- * промежуточное состояние ввода, и округлять его до потери фокуса нечего.
+ * The bounds and the rounding are deliberately NOT applied. The value is a controlled
+ * one: `BricksInput` syncs the field from the prop, so a clamp on every character was
+ * substituting what was being typed — "1" became the minimum, and the next digit was
+ * then appended to that ("1", "9", "2", "0" gave 16 → 169 → 1692 → 8000). The bounds
+ * are left to the field's own blur and to the server, and a fractional value is an
+ * intermediate state of the typing — there is nothing to round about it until the focus
+ * is gone.
  *
- * @param raw - Строка из поля.
- * @param fallback - Прежнее значение.
- * @returns Введённое число либо прежнее значение.
+ * @param raw - The string out of the field.
+ * @param fallback - The former value.
+ * @returns The number that was typed, or the former value.
  */
 function parseFieldNumber(raw: string, fallback: number): number {
     const trimmed = raw.trim();
@@ -123,20 +130,20 @@ function parseFieldNumber(raw: string, fallback: number): number {
     return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-/** Обрабатывает ввод качества. */
+/** Handles the typing of the quality */
 function handleQualityChange(value: string): void {
     emitPatch({ quality: parseFieldNumber(value, props.optimization.quality) });
 }
 
-/** Обрабатывает ввод максимальной ширины. */
+/** Handles the typing of the maximum width */
 function handleMaxWidthChange(value: string): void {
     emitPatch({ maxWidth: parseFieldNumber(value, props.optimization.maxWidth) });
 }
 
 /**
- * Переключает «без оптимизации». Снятие возвращает формат в webp: вернуть
- * «прежний выбранный» нельзя — до включения чекбокса им мог быть и сам
- * «Оригинал», и тогда снятие ничего бы не меняло.
+ * Toggles "no optimization". Clearing it takes the format back to webp: taking it back
+ * to "the one picked before" is impossible — before the checkbox was ticked that one
+ * could have been "Original" itself, and clearing it would then change nothing.
  */
 function handleSkipOptimizationChange(value: boolean): void {
     emitPatch({ format: value ? 'original' : 'webp' });
@@ -201,8 +208,6 @@ function handleSkipOptimizationChange(value: boolean): void {
 </template>
 
 <style module lang="scss">
-/* Поверхность поповера рисует хозяин поверхности — `PopoverContent` в
-   `BuilderMediaGalleryUploadControls`; здесь остаётся раскладка полей. */
 .BuilderMediaGalleryUploadOptions {
     display: flex;
     flex-direction: column;

@@ -1,20 +1,20 @@
 /**
- * Разбор содержимого перетаскивания для приёмника галереи.
+ * Parsing of what a drag carries, for the drop target of the gallery.
  *
- * Отдельно от компонента ради проверяемости: в `dragenter` сами файлы браузер не
- * отдаёт (`dataTransfer.files` пуст до `drop`), доступен только список `items` с
- * их видом, поэтому «сколько файлов тащат» — единственное, что можно узнать
- * заранее, и считать это надо ровно одним способом.
+ * Kept out of the component to stay testable: on `dragenter` the browser does not
+ * hand over the files themselves (`dataTransfer.files` is empty until `drop`), only
+ * the list of `items` and their kind. So "how many files are being dragged" is the
+ * one thing that can be known in advance, and it has to be counted exactly one way.
  */
 
 /**
- * Сколько файлов в перетаскивании.
+ * How many files a drag carries.
  *
- * Учитываются только элементы с `kind === 'file'`: выделенный текст и ссылка
- * тоже приезжают в `items`, но `drop` их не принимает.
+ * Only the entries with `kind === 'file'` count: selected text and a dragged link
+ * arrive in `items` too, but `drop` does not accept them.
  *
- * @param dataTransfer - Данные события перетаскивания.
- * @returns Число перетаскиваемых файлов; 0, если файлов нет.
+ * @param dataTransfer - Data of the drag event.
+ * @returns The number of dragged files; 0 when there are none.
  */
 export function countDraggedFiles(dataTransfer: DataTransfer | null): number {
     if (!dataTransfer) {

@@ -1,10 +1,11 @@
 /**
- * Приёмник файлов медиа-галереи: разворачивание оверлея по перетаскиванию,
- * счётчик тащимых файлов и сам `drop`.
+ * The file drop target of the media gallery: unfolding the overlay on a drag, the
+ * counter of the dragged files, and the `drop` itself.
  *
- * Вынесено из модалки галереи: та собирает пять поверхностей сразу и перерастала
- * потолок SFC. Здесь всё, что нужно только приёмнику, — включая страховку от
- * залипшего оверлея, ради которой у состояния появился таймер и уборка.
+ * Taken out of the gallery modal: that one assembles five surfaces at once and was
+ * outgrowing the ceiling of an SFC. Here is everything only the target needs — the
+ * safeguard against a stuck overlay included, the one the state owes its timer and
+ * its cleanup to.
  */
 
 // #region Imports
@@ -20,47 +21,47 @@ import { computed, onUnmounted, ref } from 'vue';
 
 // #region Constants
 /**
- * Потолок тишины `dragover`, после которого перетаскивание считается
- * законченным (мс).
+ * The ceiling of `dragover` silence after which a drag counts as over (ms).
  *
- * Секунда, а не «поменьше и поотзывчивее»: браузер повторяет `dragover` на
- * текущей цели примерно трижды в секунду даже под неподвижным курсором, и
- * короткий потолок сворачивал бы приёмник под файлами, которые всё ещё держат.
- * Это страховка, а не основной механизм — обычное перетаскивание закрывает
+ * A second, not "something shorter and snappier": the browser repeats `dragover` on
+ * the current target about three times a second even under a motionless cursor, and
+ * a short ceiling would collapse the target under files that are still being held.
+ * This is a safeguard rather than the main mechanism — an ordinary drag is closed by
  * `dragleave`.
  */
 const DRAG_IDLE_TIMEOUT_MS = 1000;
 // #endregion
 
 /**
- * Собирает состояние и обработчики приёмника файлов.
+ * Assembles the state and the handlers of the file drop target.
  *
- * @param options - Куда отдавать брошенные файлы.
- * @returns Состояние приёмника и обработчики перетаскивания.
+ * @param options - Where the dropped files are to be handed.
+ * @returns State of the target and the handlers of the drag.
  */
 export function useMediaGalleryFileDrop(
     options: IMediaGalleryFileDropOptions
 ): IMediaGalleryFileDrop {
     const draggedFileCount = ref(0);
-    /** Глубина dragenter/dragleave — см. handleDragLeave. */
+    /** Depth of dragenter/dragleave — see `handleDragLeave` */
     const dragDepth = ref(0);
     let dragIdleTimer: ReturnType<typeof setTimeout> | null = null;
 
     /**
-     * Принимает ли приёмник файлы сейчас. Проверяется на каждом событии, а не
-     * один раз при создании: право приезжает контекстом запроса и в сборке без
-     * SSR доходит уже после первого кадра.
+     * Whether the target accepts files right now. Asked on every event rather than
+     * once at creation: the right arrives with the context of the request, and in a
+     * build without SSR it gets there only after the first frame.
      *
-     * Гейт живёт здесь, а не в разметке вызывающего: без `preventDefault` на
-     * `dragover` браузер откроет брошенный файл соседней вкладкой, а оверлей
-     * «отпустите — к загрузке» у роли без права обещал бы загрузку, которую
-     * потом молча отсекает проверка перед отправкой.
+     * The gate lives here rather than in the markup of the caller: without a
+     * `preventDefault` on `dragover` the browser opens the dropped file in a
+     * neighboring tab, and a "let go — and it uploads" overlay under a role with no
+     * such right would promise an upload that the check before sending then silently
+     * cuts off.
      */
     const isEnabled = (): boolean => options.isEnabled?.() ?? true;
 
     const isDraggingFiles = computed<boolean>(() => draggedFileCount.value > 0);
 
-    /** Гасит сторож тишины перетаскивания. */
+    /** Stops the watchdog of drag silence */
     function stopDragIdleWatchdog(): void {
         if (dragIdleTimer !== null) {
             clearTimeout(dragIdleTimer);
@@ -68,7 +69,7 @@ export function useMediaGalleryFileDrop(
         }
     }
 
-    /** Сворачивает приёмник и снимает всё состояние перетаскивания. */
+    /** Collapses the target and drops all of the drag state */
     function resetFileDrop(): void {
         stopDragIdleWatchdog();
         dragDepth.value = 0;
@@ -76,17 +77,17 @@ export function useMediaGalleryFileDrop(
     }
 
     /**
-     * Перезапускает сторож тишины перетаскивания.
+     * Restarts the watchdog of drag silence.
      *
-     * `dragover` приходит непрерывно, пока курсор с файлами над приёмником,
-     * поэтому его пропажа — единственный надёжный признак того, что
-     * перетаскивание кончилось. Пар `dragenter`/`dragleave` для этого мало: они
-     * теряются (перетаскивание отменили Escape'ом, `drop` приземлился в чужой
-     * обработчик, элемент под курсором исчез вместе с перерисовкой сетки), и
-     * тогда глубина оставалась положительной — оверлей приёмника залипал поверх
-     * сетки до следующего открытия галереи. `dragend` эту дыру не закрывает: у
-     * файлов из ОС источник перетаскивания лежит вне документа, и событие в нём
-     * не возникает.
+     * `dragover` keeps arriving for as long as the cursor with the files is over the
+     * target, so its disappearance is the one reliable sign that the drag is over.
+     * The `dragenter`/`dragleave` pairs are not enough for that: they get lost (the
+     * drag was called off with Escape, the `drop` landed in someone else's handler,
+     * the element under the cursor vanished along with a repaint of the grid), and
+     * the depth then stayed positive — the overlay of the target stuck over the grid
+     * until the next opening of the gallery. `dragend` does not close that hole: for
+     * files coming from the OS the source of the drag lies outside the document, and
+     * the event does not arise in it.
      */
     function restartDragIdleWatchdog(): void {
         stopDragIdleWatchdog();
@@ -94,39 +95,39 @@ export function useMediaGalleryFileDrop(
     }
 
     /**
-     * Держит `drop` включённым: без `preventDefault` на `dragover` браузер
-     * откроет файл в соседней вкладке вместо того, чтобы отдать его модалке.
+     * Keeps `drop` switched on: without a `preventDefault` on `dragover` the browser
+     * opens the file in a neighboring tab instead of handing it to the modal.
      *
-     * @param event - Событие перетаскивания.
+     * @param event - The drag event.
      */
     function handleDragOver(event: DragEvent): void {
-        // `preventDefault` идёт ДО гейта роли и без него: он не разрешает
-        // загрузку, а отбирает у браузера нативную обработку файла. Без него
-        // документ откроет брошенный файл соседней вкладкой — то есть роль без
-        // права записи получила бы не «ничего не произошло», а уход со страницы
+        // `preventDefault` goes BEFORE the gate of the role and regardless of it:
+        // it does not allow an upload, it takes the native handling of the file away
+        // from the browser. Without it the document opens the dropped file in a
+        // neighboring tab — that is, a role with no right to write would get not
+        // "nothing happened" but a departure from the page
         event.preventDefault();
 
         if (!isEnabled()) {
             return;
         }
 
-        // Сторож нужен только при развёрнутом приёмнике: над текстом и ссылками
-        // он создавал бы таймер на каждое движение курсора впустую
+        // The watchdog is only needed while the target is unfolded: over text and
+        // links it would create a timer on every move of the cursor for nothing
         if (draggedFileCount.value > 0) {
             restartDragIdleWatchdog();
         }
     }
 
     /**
-     * Разворачивает приёмник и запоминает, сколько файлов тащат.
+     * Unfolds the target and remembers how many files are being dragged.
      *
-     * Считаются только элементы с `kind === 'file'`: в `items` попадает и
-     * выделенный текст, и перетаскиваемая ссылка, а по их числу приёмник
-     * разворачивался на том, что `drop` принять не может, и молча ничего не
-     * делал. Ноль файлов оставляет приёмник свёрнутым — `isDraggingFiles`
-     * считается по этому же счётчику.
+     * Only the entries with `kind === 'file'` count: selected text and a dragged link
+     * land in `items` too, and counting those unfolded the target over something
+     * `drop` cannot accept, after which it silently did nothing. Zero files
+     * leave the target collapsed — `isDraggingFiles` is read off that same counter.
      *
-     * @param event - Событие перетаскивания.
+     * @param event - The drag event.
      */
     function handleDragEnter(event: DragEvent): void {
         event.preventDefault();
@@ -144,11 +145,11 @@ export function useMediaGalleryFileDrop(
     }
 
     /**
-     * Сворачивает приёмник.
+     * Collapses the target.
      *
-     * Считается глубина, а не просто снимается флаг: `dragleave` приходит и при
-     * переходе курсора на дочерний элемент, и без счётчика приёмник мигал бы на
-     * каждой плитке под курсором.
+     * A depth is counted rather than a flag simply cleared: `dragleave` arrives on a
+     * move of the cursor onto a child element as well, and without the counter the
+     * target would blink on every tile the cursor passes.
      */
     function handleDragLeave(): void {
         dragDepth.value = Math.max(0, dragDepth.value - 1);
@@ -159,13 +160,13 @@ export function useMediaGalleryFileDrop(
     }
 
     /**
-     * Принимает брошенные файлы.
+     * Takes the dropped files.
      *
-     * @param event - Событие drop.
+     * @param event - The drop event.
      */
     function handleDrop(event: DragEvent): void {
-        // Тот же порядок, что у `dragover`: брошенный файл гасится всегда, а
-        // дальше решает право
+        // The same order as in `dragover`: the dropped file is always swallowed
+        // first, and the right decides after that
         event.preventDefault();
 
         if (!isEnabled()) {
@@ -183,8 +184,8 @@ export function useMediaGalleryFileDrop(
         options.onFiles(Array.from(files));
     }
 
-    // Таймер обязан уйти вместе с компонентом: латч монтирования галерею не
-    // размонтирует, но сброс сессии билдера — размонтирует
+    // The timer has to leave along with the component: the mount latch does not
+    // unmount the gallery, but a reset of the builder session does
     onUnmounted(() => {
         stopDragIdleWatchdog();
     });

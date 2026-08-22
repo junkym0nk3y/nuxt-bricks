@@ -1,23 +1,23 @@
 /**
- * Типы для резолвинга изображений при импорте JSON-схемы.
+ * Types of the image resolution that runs when a JSON schema is imported.
  */
 
 import type { IBricksSchema } from '../../../common/types/brick';
 
 /**
- * Действие для обработки найденного изображения.
- * - keep: оставить URL как есть
- * - placeholder: заменить на placeholder-изображение
+ * What to do with an image that was found.
+ * - `keep` — leave the URL as it is;
+ * - `placeholder` — swap it for the placeholder image.
  */
 export type TImageResolveAction = 'keep' | 'placeholder';
 
 /**
- * Тип источника изображения внутри props компонента.
+ * The kind of place an image comes from inside the props of a component.
  */
 export type TImageSourceType = 'simple-prop' | 'gallery-item' | 'inline-segment' | 'html-img';
 
 /**
- * Местоположение изображения внутри схемы.
+ * Where an image sits inside a schema.
  */
 export interface IImageLocation {
     componentIndex: number;
@@ -30,7 +30,7 @@ export interface IImageLocation {
 }
 
 /**
- * Извлечённый URL изображения с информацией о местоположениях.
+ * An extracted image URL along with every place it was met in.
  */
 export interface IExtractedImageUrl {
     url: string;
@@ -38,13 +38,13 @@ export interface IExtractedImageUrl {
 }
 
 /**
- * Состояние резолвера изображений.
+ * State of the image resolver.
  *
- * `actions` — именно Map: ключ приходит из схемы (URL картинки), а
- * `<img src="__proto__">` в импортированном компоненте превратил бы
- * присваивание в вызов сеттера прототипа, и выбор «заменить на плейсхолдер»
- * для этой картинки молча игнорировался бы. Состояние локальное и в
- * payload не уезжает, поэтому ограничений на Map тут нет.
+ * `actions` is a Map on purpose: its key comes out of the schema (the URL of a
+ * picture), and `<img src="__proto__">` in an imported component would turn the
+ * assignment into a call of the prototype setter, so the "swap for the placeholder"
+ * choice for that picture would be silently ignored. The state is local and
+ * never travels into the payload, so nothing here stands against a Map.
  */
 export interface IImageResolverState {
     newImages: IExtractedImageUrl[];
@@ -53,20 +53,20 @@ export interface IImageResolverState {
 }
 
 /**
- * Отложенный ответ модалки резолвера: схема с применённым выбором пользователя
- * либо `null` (импорт отменён).
+ * The deferred answer of the resolver modal: the schema with the user's choice
+ * applied, or `null` (the import was canceled).
  */
 export interface IResolverPromise {
     resolve: (schema: IBricksSchema | null) => void;
 }
 
 /**
- * Результат резолвинга.
+ * The result of the resolution.
  *
- * `isComparisonSkipped` — сравнение с медиатекой не выполнено (её состав
- * неизвестен). Схема в этом случае возвращается нетронутой: разделить URL на
- * «новые» и «уже известные» не по чему, а предлагать выбор по ложной
- * классификации хуже, чем не предлагать вовсе.
+ * `isComparisonSkipped` — the comparison against the media library did not happen
+ * (its contents are unknown). The schema is then returned untouched: there is
+ * nothing to split the URLs into "new" and "already known" by, and offering a choice
+ * built on a false classification is worse than offering none at all.
  */
 export interface IImageResolverResult {
     schema: IBricksSchema | null;

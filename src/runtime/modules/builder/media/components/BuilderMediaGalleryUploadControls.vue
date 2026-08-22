@@ -1,17 +1,31 @@
 <script setup lang="ts">
 /**
- * @description Точка входа загрузки в шапке галереи: кнопка «Загрузить»,
- * скрытый file-input и поповер параметров оптимизации.
+ * @description The entry point of the upload in the header of the gallery: the
+ * "Upload" button, the hidden file input and the popover of the optimization
+ * parameters.
  *
- * Постоянной зоны загрузки в модалке нет. Полоса во всю ширину занимала верх
- * содержимого, а держать свою высоту не могла: flex сжимал её под заполненной
- * сеткой, и `overflow: hidden` срезал подсказку молча. Приёмник вместо неё
- * показывается ровно тогда, когда файлы уже над окном (оверлей), плюс первой
- * ячейкой сетки стоит плитка-приёмник.
+ * The modal has no permanent upload zone. A full-width band took up the top of the
+ * content and could not hold its own height: flex squeezed it under a filled grid, and
+ * `overflow: hidden` silently cut the hint off. What shows instead is the drop
+ * target, exactly when the files are already over the window (the overlay), plus the
+ * target tile standing as the first cell of the grid.
  *
- * Прогресс — на месте подписи кнопки: отдельной полосы больше нет, а считается
- * он по файлам набора, потому что отдача идёт одним запросом на файл и
- * байтового прогресса у неё нет.
+ * The progress sits where the caption of the button is: there is no separate band any
+ * more, and it is counted in the files of a set, because the sending is one request per
+ * file and has no byte progress to it.
+ *
+ * The button does not go out while an upload runs, it only changes its caption for a
+ * counter: the queue is built for sets added as it goes (one worker for all of them),
+ * and the target tile along with the drag kept taking files the whole while — one
+ * button going out meant three ways into the same upload living by different rules.
+ *
+ * Decisions held by the style section: the button is given an explicit height of
+ * `3.6rem`, exactly the height of the search field. The `md` buttons of the kit come to
+ * 39 (1rem of padding + a 1.2 × 1.4rem line + the border) and `BricksInput` comes to 36,
+ * and in one row that difference read as a button gone askew. The `height` rather than
+ * the paddings: the kit declares those on `.button._md`, two classes, which outweighs
+ * the single class of the caller — whereas `height` it does not declare at all, so
+ * there is nothing to outweigh.
  */
 
 // #region Imports
@@ -63,9 +77,10 @@ const buttonLabel = computed<string>(() => {
     });
 });
 /**
- * Подсказка кнопки: куда можно бросить файл плюс лимиты размеров. Область
- * приёмника задаёт вызывающий — в модалке это окно, в разделе дашборда только
- * тело раздела, и общий текст обещал бы приём там, где его нет.
+ * The tooltip of the button: where a file may be dropped, plus the size limits. The
+ * area of the target is the caller's to set — in the modal it is the window, in the
+ * dashboard section only the body of the section, and one shared text would promise
+ * acceptance where there is none.
  */
 const tooltipText = computed<string>(() => {
     const dropHint = props.dropHint || t('bricks.media.dropAnywhereHint');
@@ -79,18 +94,19 @@ const tooltipText = computed<string>(() => {
 // #endregion
 
 // #region Methods
-/** Открывает системный выбор файлов. */
+/** Opens the system file picker */
 function handleOpenFilePicker(): void {
     fileInputRef.value?.click();
 }
 
 /**
- * Отдаёт выбранные файлы наверх.
+ * Hands the picked files upward.
  *
- * Значение input'а сбрасывается сразу: без этого повторный выбор того же файла
- * не поднимал бы `change`, и вторая попытка загрузки выглядела бы как отказ.
+ * The value of the input is cleared right away: without that, picking the same file a
+ * second time would raise no `change`, and the second attempt at an upload would look
+ * like a refusal.
  *
- * @param event - Событие change нативного input'а.
+ * @param event - The change event of the native input.
  */
 function handleFileChange(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -105,16 +121,16 @@ function handleFileChange(event: Event): void {
 }
 
 /**
- * Пробрасывает изменённые параметры наверх.
+ * Passes the changed parameters upward.
  *
- * @param value - Новые параметры оптимизации.
+ * @param value - The new optimization parameters.
  */
 function handleOptimizationChange(value: IBricksMediaOptimization): void {
     emit('update:optimization', value);
 }
 
-// Плитка-приёмник в сетке открывает тот же выбор файлов: второй `input` рядом с
-// ней означал бы две точки правды о принимаемых типах
+// The target tile of the grid opens this very picker — the reason is at the
+// `request-upload` emit in `types/media.d.ts`
 defineExpose({ openFilePicker: handleOpenFilePicker });
 // #endregion
 </script>
@@ -132,13 +148,6 @@ defineExpose({ openFilePicker: handleOpenFilePicker });
 
         <BricksTooltip bottom>
             <template #activator>
-                <!--
-                    На время загрузки кнопка не гаснет, только меняет подпись на
-                    счётчик: очередь рассчитана на добавление наборов по ходу
-                    (один worker на все наборы), и плитка-приёмник с перетаскиванием
-                    их всё это время принимали — гасла одна кнопка, то есть три
-                    входа в одну и ту же загрузку жили по разным правилам.
-                -->
                 <BricksButton
                     :class="$style.uploadButton"
                     size="md"
@@ -154,11 +163,6 @@ defineExpose({ openFilePicker: handleOpenFilePicker });
             </template>
         </BricksTooltip>
 
-        <!--
-            Шестерёнка параметров — необязательная: в разделе дашборда она стоит
-            в строке фильтров, рядом с дорожкой категорий, и в шапке была бы
-            второй точкой правды о параметрах загрузки
-        -->
         <BuilderMediaGalleryUploadOptionsPopover
             v-if="props.showOptions"
             :optimization="props.optimization"
@@ -176,11 +180,6 @@ defineExpose({ openFilePicker: handleOpenFilePicker });
     gap: 0.8rem;
 }
 
-/* Ровно высота поля поиска: `md` кнопки кита набирают 39 (паддинг 1rem + строка
-   1.2 × 1.4rem + рамка), а `BricksInput` — 36, и в одном ряду разница читалась
-   как съехавшая кнопка. Задаётся `height`, а не паддинги: у кита они объявлены
-   на `.button._md` (два класса), то есть специфичнее одиночного класса
-   вызывающего, — а `height` не объявлен вовсе, и перебивать нечего. */
 .uploadButton {
     height: 3.6rem;
 }

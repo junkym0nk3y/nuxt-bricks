@@ -1,4 +1,14 @@
 <script setup lang="ts">
+/**
+ * @description The modal of the image resolver, shown when an imported schema carries
+ * pictures the media library does not hold: one action for all of them at the top, a
+ * row per picture below.
+ *
+ * The action picker here is the same native `<select>` with the same light-palette
+ * override as in `BuilderMediaImageResolverItem`, and with as little of a recorded
+ * reason.
+ */
+
 // #region Imports
 // Types
 import type { IImageResolverState, TImageResolveAction } from '../types/schemaImageResolver';
@@ -48,40 +58,40 @@ const imageCount = computed<number>(() => props.state.newImages.length);
 
 // #region Methods
 /**
- * Закрывает модалку (отмена).
+ * Closes the modal (a cancel).
  */
 function handleClose(): void {
     emit('cancel');
 }
 
 /**
- * Подтверждает выбранные действия.
+ * Confirms the actions that were picked.
  */
 function handleConfirm(): void {
     emit('confirm');
 }
 
 /**
- * Пропускает обработку изображений — загружает как есть.
+ * Skips the handling of the images — loads them as they are.
  */
 function handleSkip(): void {
     emit('skip');
 }
 
 /**
- * Обновляет действие для конкретного изображения.
+ * Updates the action of one particular image.
  *
- * @param url - URL изображения.
- * @param action - Выбранное действие.
+ * @param url - URL of the image.
+ * @param action - The action that was picked.
  */
 function handleImageAction(url: string, action: TImageResolveAction): void {
     emit('setImageAction', url, action);
 }
 
 /**
- * Обновляет глобальное действие.
+ * Updates the action that goes for every image.
  *
- * @param event - Событие select.
+ * @param event - The select event.
  */
 function handleGlobalActionChange(event: Event): void {
     const target = event.target as HTMLSelectElement;
@@ -197,7 +207,6 @@ function handleGlobalActionChange(event: Event): void {
 }
 
 .globalSelect {
-    /* Фиксируем светлую тему */
     --bricks-base-0: #fff;
     --bricks-base-200: #e5e7eb;
     --bricks-base-900: #111827;

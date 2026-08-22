@@ -9,28 +9,28 @@ import { isMediaListResponse } from './requestErrors';
 // #endregion
 
 // #region Data
-/** Отказ по правам: у роли ниже администраторской импорта нет и не будет. */
+/** Refusal by rights: a role below administrator has no import and never will */
 const FORBIDDEN_STATUS = 403;
 // #endregion
 
 /**
- * Просит сервер зарегистрировать в медиатеке файлы, уже лежащие в хранилище
- * публикации.
+ * Asks the server to register in the media library the files that already lie in
+ * the publish storage.
  *
- * Прежде это делала сама ручка списка при пустой таблице — то есть GET писал в
- * БД: безопасные методы проходят мимо CSRF-гейта, и запись досталась бы роли,
- * которой разрешено только чтение.
+ * Why this is a POST of its own and not the list endpoint doing the import itself —
+ * see `server/api/bricks/media/import.post.ts`, where that history and the `admin`
+ * requirement are written down.
  *
- * Отказ не показывается пользователю — импорт не то, ради чего открывали
- * галерею, — но исходы различаются. 403 окончателен: у наблюдателя и редактора
- * прав нет, и повторять запрещённый POST на каждое открытие пустой галереи
- * незачем. Прочие отказы (обрыв сети, 5xx, нераспознанный ответ) считаются
- * временными: свести их к тому же «не пробовать больше» значило бы, что один
- * сетевой сбой оставляет администратора с пустой галереей до перезагрузки
- * страницы.
+ * The refusal is not shown to the user — an import is not what the gallery was
+ * opened for — but the outcomes differ. 403 is final: an observer and an editor have
+ * no such right, and repeating a forbidden POST on every opening of an empty gallery
+ * is pointless. The rest (a broken connection, a 5xx, an unrecognized response) count
+ * as temporary: reducing them to the same "do not try again" would mean that a single
+ * network failure leaves an administrator with an empty gallery until the page is
+ * reloaded.
  *
- * @param apiFetcher - Клиент bricks-API.
- * @returns Состав медиатеки и признак того, имеет ли смысл повторить попытку.
+ * @param apiFetcher - The bricks-API client.
+ * @returns The contents of the media library, and whether retrying makes sense.
  */
 export async function requestMediaStorageImport(
     apiFetcher: IApiFetcher
@@ -44,8 +44,8 @@ export async function requestMediaStorageImport(
             return { items: response.items, isRetryable: false };
         }
 
-        // Нераспознанная форма ответа — не доказательство отказа сервера:
-        // импорт мог пройти, поэтому попытку не хороним
+        // An unrecognized response shape is no proof that the server refused: the
+        // import could well have gone through, so the attempt is not buried
         console.warn('[Media Store] Unexpected storage import response shape');
 
         return { items: [], isRetryable: true };

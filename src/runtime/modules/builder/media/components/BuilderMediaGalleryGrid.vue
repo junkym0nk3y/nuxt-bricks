@@ -1,15 +1,64 @@
 <script setup lang="ts">
 /**
- * @description Сетка плиток медиатеки. Плитка 210×172: превью 126 + инфо 46,
- * шесть колонок через 20 укладываются в ширину контента модалки ровно.
+ * @description The grid of the media library's tiles. The mock-up gives a tile of
+ * 210×172 — 126 of preview over 46 of info — and six columns with a gap of 20 in the
+ * content width of the modal. Only the height is fixed here: the width floats through
+ * `minmax(20rem, 1fr)` and comes out around 207 in the modal, wider in the dashboard
+ * section, where the area is wider. Six columns in the modal do hold.
  *
- * Углы превью разведены намеренно: кнопка полноэкранного просмотра — в правом
- * верхнем, бейдж выбора — в левом. У выбранной плитки под курсором они видны
- * одновременно и в одном углу наложились бы.
+ * The corners of the preview are kept apart on purpose: the full-screen button in the
+ * top right one, the badge of the selection in the left one. On a selected tile under
+ * the cursor both are visible at once and in one corner they would overlap.
  *
- * Светлым форсируется только окно превью — картинка остаётся на светлой подложке,
- * как канвас. Сама карточка живёт в токенах темы: раньше светлой была плитка
- * целиком, и в тёмной теме дюжина белых карточек читалась как световая стена.
+ * Only the window of the preview is forced light — a picture stays on a light ground,
+ * the way it does on the canvas. The card itself lives in the tokens of the theme: the
+ * whole tile used to be light, and in the dark theme a dozen white cards read as a wall
+ * of light.
+ *
+ * A tile is an `option` of a list rather than a button: it picks a file, it does not
+ * launch an action. Before that it was a mute `div` with a `@click` — a file could not
+ * be picked from the keyboard at all, although the full-screen button inside it did
+ * make it into the tab order. The `.self` on the keyboard handlers is a must: a real
+ * button lies inside the tile, and without it Enter on that button bubbled up to the
+ * tile, picked the file, while `prevent` canceled the native activation of the button
+ * — the lightbox did not open. A known limitation: `tabindex="0"` sits on EVERY tile,
+ * so a grid of a hundred files is walked through by Tab in full. A proper listbox is a
+ * roving tabindex with arrow keys, and building one by hand next to `selectedItemId` is
+ * easy to get out of sync; that is a separate pass, possibly on a ready reka primitive.
+ *
+ * The upload tile stands as the first cell: the modal has no permanent upload zone, and
+ * the entry point is obliged to stay visible. In the grid it cannot "collapse" — its
+ * size is set by the column of the grid rather than by the free space in the column of
+ * the content, which is what made the former band cut its own hint off. It is not taken
+ * out of the accessibility tree: it is the upload button. The skeleton stands first for
+ * a different reason — the grid runs from the new to the old, and the uploaded file will
+ * take exactly its place; that one IS taken out of the accessibility tree, being no
+ * option to pick but a place held for a file to come.
+ *
+ * Decisions held by the style section. The minimum of a column is 20rem rather than the
+ * 21rem of the tile in the mock-up: the vertical scrollbar of the content takes about
+ * 11px, and at 21rem the sixth column stops fitting — the grid drops to five and
+ * stretches the tiles to 254; at 20rem six columns hold, and `1fr` brings them to their
+ * actual ~208. A tile carries a border at rest: it used to be transparent, and against
+ * the white background of the modal the tile did not read as an object — only the
+ * picture and the captions were visible. `:focus-visible` shows the full-screen button
+ * along with the ring, because a tile is picked from the keyboard and otherwise that
+ * button can be reached by Tab but not found by eye. A selected tile takes a 2px border
+ * inward and no glow: on a grid of a dozen tiles the former `box-shadow` smeared the
+ * edges of the neighbors, while a border with a badge is unambiguous as it is. The
+ * upload tile is that same tile, only dashed and with no preview: in a row of files it
+ * has to read as a place rather than as one more file. The badge of the selection is the
+ * kit's, in a round guise — no colors of our own, `tone="primary"` already gives the
+ * primary fill and a static/white glyph; only the square under the check mark is our own
+ * geometry, the kit having no "circle of a fixed size" shape and no reason to grow one
+ * for a single place. The veil and the white glyph of the full-screen button arrive from
+ * the `overlay` variant of the kit button — what is left here is its place in the corner
+ * and its appearance on hover, with the focus caught through `:has` rather than
+ * `:focus-visible`: an external class of a kit button lands on the WRAPPER of the
+ * tooltip, and that wrapper takes no focus, so a rule on it would never fire and a
+ * button reached by Tab would stay invisible. The ground of the skeleton bars arrives
+ * from `BricksSkeleton`: here it used to be a local `base-200` against the `base-100`
+ * of the other three sets of placeholders.
  */
 
 // #region Imports
@@ -45,37 +94,38 @@ const emit = defineEmits<IMediaGalleryGridEmits>();
 // #region Data
 const { t } = useI18n();
 /**
- * Плитка-приёмник — вход в загрузку, поэтому её видит только роль с правом
- * записи: у наблюдателя она открывала бы выбор файлов, который ничем не
- * заканчивается (скрытый input живёт в контролах загрузки, а их роли уже не
- * показывают).
+ * The upload tile is a way into the upload, so it is seen only by a role with the
+ * right to write: for an observer it would open a file picker that ends in nothing (the
+ * hidden input lives in the upload controls, and those are not shown to that role in
+ * the first place).
  */
 const { canEdit } = useBuilderPermissions();
 // #endregion
 
 // #region Methods
-/** Эмитит выбор элемента галереи. */
+/** Emits the choice of a gallery item */
 function handleSelectItem(item: IMediaItem): void {
     emit('select', item);
 }
 
-/** Эмитит открытие полноэкранного предпросмотра. */
+/** Emits the opening of the full-screen preview */
 function handleOpenPreview(item: IMediaItem): void {
     emit('preview', item);
 }
 
-/** Просит вызывающего открыть выбор файлов. */
+/** Asks the caller to open the file picker */
 function handleUploadRequest(): void {
     emit('upload');
 }
 
 /**
- * Превью плитки: сама галерея показывает уменьшенный вариант, если он есть —
- * двенадцать полных файлов в сетке весили бы на порядок больше без всякой пользы.
- * Постепенная загрузка здесь не нужна: вариант и есть конечная картинка плитки.
+ * The preview of a tile: the gallery itself shows the downscaled variant when there is
+ * one — a dozen full files in the grid would weigh an order of magnitude more for no
+ * gain at all. Progressive loading is not needed here: the variant IS the final picture
+ * of the tile.
  *
- * @param item - Медиа-элемент.
- * @returns URL для показа в плитке.
+ * @param item - The media item.
+ * @returns The URL to show in the tile.
  */
 function resolveThumbSrc(item: IMediaItem): string {
     return item.previewUrl ?? item.url;
@@ -89,13 +139,6 @@ function resolveThumbSrc(item: IMediaItem): string {
         :aria-label="t('bricks.media.galleryTitle')"
         :class="$style.BuilderMediaGalleryGrid"
     >
-        <!--
-            Плитка-приёмник первой ячейкой: постоянной зоны загрузки в модалке
-            нет, и точка входа обязана остаться видимой. В сетке она не может
-            «схлопнуться» — её размер задаёт колонка грида, а не свободное место
-            в колонке контента, из-за которого прежняя полоса срезала себе
-            подсказку. Из accessibility tree не убрана: это кнопка загрузки.
-        -->
         <button
             v-if="props.showUploadTile && canEdit"
             type="button"
@@ -107,11 +150,6 @@ function resolveThumbSrc(item: IMediaItem): string {
             <span :class="$style.uploadHint">{{ t('bricks.media.tileUploadHint') }}</span>
         </button>
 
-        <!--
-            Скелет первым элементом: сетка идёт от новых к старым, и загруженный
-            файл встанет ровно на его место. Из accessibility tree убран — это не
-            выбираемый вариант, а место под будущий файл.
-        -->
         <div
             v-if="props.showSkeleton"
             aria-hidden="true"
@@ -126,22 +164,6 @@ function resolveThumbSrc(item: IMediaItem): string {
             </div>
         </div>
 
-        <!--
-            Плитка — `option` в списке, а не кнопка: она выбирает файл, а не
-            запускает действие. До этого она была немым `div` с `@click` — выбрать
-            файл с клавиатуры было нельзя вовсе, хотя кнопка полноэкранного
-            просмотра внутри неё в таб-порядок попадала.
-
-            `.self` на клавиатуре обязателен: внутри плитки лежит настоящая
-            кнопка, и без него Enter на ней всплывал до плитки, выбирал файл, а
-            `prevent` отменял нативную активацию кнопки — лайтбокс не открывался.
-
-            Известное ограничение: `tabindex="0"` у КАЖДОЙ плитки, то есть сетка
-            из сотни файлов проходится Tab'ом целиком. Правильный listbox — roving
-            tabindex со стрелками, и делать его руками рядом с `selectedItemId`
-            легко рассинхронизировать; это отдельный заход, возможно на готовом
-            примитиве reka.
-        -->
         <div
             v-for="item in props.items"
             :key="item.id"
@@ -196,10 +218,6 @@ function resolveThumbSrc(item: IMediaItem): string {
 </template>
 
 <style module lang="scss">
-/* Минимум колонки 20rem, а не 21rem по ширине плитки макета: на вертикальный
-   скроллбар контента уходит ~11px, и при 21rem шестая колонка перестаёт влезать —
-   сетка падает до пяти и растягивает плитки до 254. С 20rem шесть колонок
-   держатся, а `1fr` доводит их до фактических ~208. */
 .BuilderMediaGalleryGrid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
@@ -211,9 +229,6 @@ function resolveThumbSrc(item: IMediaItem): string {
     overflow: hidden;
     height: 17.2rem;
     border-radius: var(--bricks-border-radius-md);
-
-    /* Рамка в покое: до редизайна она была прозрачной, и на белом фоне модалки
-       плитка не читалась как объект — видны были только картинка и подписи. */
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
     transition:
@@ -230,9 +245,6 @@ function resolveThumbSrc(item: IMediaItem): string {
         }
     }
 
-    /* Плитка выбирается с клавиатуры, значит фокус обязан быть виден. Кнопка
-       полноэкранного просмотра при этом показывается тоже: иначе доехать до неё
-       Tab'ом можно, а понять, где она, — нет. */
     &:focus-visible {
         outline: none;
         box-shadow: var(--bricks-shadow-focus);
@@ -242,9 +254,6 @@ function resolveThumbSrc(item: IMediaItem): string {
         }
     }
 
-    /* Рамка 2px внутрь: свечения `box-shadow` из прежней версии здесь нет — на
-       сетке из двенадцати плиток оно мылило края соседей, а рамка с бейджем
-       и так однозначны. */
     &._selected {
         border-color: var(--bricks-primary);
         border-width: 0.2rem;
@@ -254,8 +263,6 @@ function resolveThumbSrc(item: IMediaItem): string {
         cursor: default;
     }
 
-    /* Приёмник — та же плитка, но пунктиром и без превью: в ряду с файлами он
-       обязан читаться как место, а не как ещё один файл. */
     &._upload {
         display: flex;
         align-items: center;
@@ -273,8 +280,6 @@ function resolveThumbSrc(item: IMediaItem): string {
     }
 }
 
-/* Окно превью — единственное место плитки, которое форсирует светлые токены:
-   картинка и снимок страницы остаются на светлой подложке, как канвас. */
 .thumb {
     --bricks-base-100: #f3f4f6;
     --bricks-base-400: #9ca3af;
@@ -300,10 +305,6 @@ function resolveThumbSrc(item: IMediaItem): string {
     height: 100%;
 }
 
-/* Плашка кита в круглом исполнении: своих цветов не задаём, `tone="primary"` уже
-   даёт заливку primary и подпись static/white. Квадрат под галочку — своя
-   геометрия: формы «круг фиксированного размера» в ките нет и заводить её ради
-   одного места не стоит. */
 .selectedBadge {
     position: absolute;
     top: 0.8rem;
@@ -314,12 +315,6 @@ function resolveThumbSrc(item: IMediaItem): string {
     padding: 0;
 }
 
-/* Вуаль и белый глиф приезжают из `overlay`-варианта кнопки кита — здесь только
-   место в углу превью и появление по наведению на плитку.
-
-   Фокус ловится через `:has`, а не `:focus-visible`: внешний класс кит-кнопки
-   достаётся ОБЁРТКЕ тултипа, а она не фокусируется — правило на ней самой не
-   сработало бы никогда, и доехавшая Tab'ом кнопка оставалась бы невидимой. */
 .previewBtn {
     position: absolute;
     top: 0.8rem;
@@ -368,8 +363,6 @@ function resolveThumbSrc(item: IMediaItem): string {
     color: var(--bricks-base-400);
 }
 
-/* Фон приезжает из `BricksSkeleton` — здесь он был `base-200` против `base-100`
-   у остальных трёх наборов заглушек. */
 .skeletonBar {
     width: 60%;
     height: 1rem;

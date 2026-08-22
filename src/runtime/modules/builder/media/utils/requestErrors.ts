@@ -1,11 +1,12 @@
 /**
- * Отказы media-запросов: проверка формы ответа списка и приведение ошибки к
- * пользовательскому виду.
+ * Refusals of the media requests: the shape check of a list response and the
+ * coercion of an error into what is shown to the user.
  *
- * Своя копия, а не переиспользование `publish/utils/requestErrors.ts`: media
- * не вправе зависеть от publish (границы `.dependency-cruiser.cjs`), а общее
- * знание — выбор текста по методу — вынесено в политику запросов
- * (`resolveRequestTimeoutMessageKey`), поэтому дублируется только проводка.
+ * A copy of its own rather than a reuse of `publish/utils/requestErrors.ts`: media
+ * is not allowed to depend on publish (the boundaries of `.dependency-cruiser.cjs`),
+ * and the shared knowledge — picking the text by the method — already lives in the
+ * request policy (`resolveRequestTimeoutMessageKey`), so only the wiring is
+ * duplicated.
  */
 
 // #region Imports
@@ -32,34 +33,34 @@ import {
 // #endregion
 
 /**
- * Проверяет, что ответ списка медиа имеет ожидаемую форму. Проверяется только
- * оболочка: непустой объект с `success: true` и массивом `items`. Валидация
- * каждого поля каждого элемента — отдельная задача, и её отсутствие здесь
- * осознанно.
+ * Checks that a media list response has the expected shape — the envelope of
+ * `isItemsEnvelope`, where the depth of the check is explained.
  *
- * @param value - Тело ответа ручки списка.
- * @returns Ответ пригоден к использованию как список медиа.
+ * @param value - Body of the list endpoint's response.
+ * @returns The response is usable as a media list.
  */
 export function isMediaListResponse(value: unknown): value is IMediaListResponse {
     return isItemsEnvelope(value);
 }
 
 /**
- * Проверяет форму ответа списка категорий — тот же envelope, что у списка медиа.
+ * Checks the shape of a category list response — the same envelope as the media
+ * list has.
  *
- * @param value - Тело ответа ручки категорий.
- * @returns Ответ пригоден к использованию как список категорий.
+ * @param value - Body of the categories endpoint's response.
+ * @returns The response is usable as a category list.
  */
 export function isMediaCategoryListResponse(value: unknown): value is IMediaCategoryListResponse {
     return isItemsEnvelope(value);
 }
 
 /**
- * Общая проверка оболочки `{ success: true, items: [] }`. Проверяется только
- * оболочка — валидация каждого поля каждого элемента здесь осознанно отсутствует.
+ * The shared check of the `{ success: true, items: [] }` envelope: a non-null
+ * object carrying those two. Only the envelope is checked — validating every field
+ * of every item is a separate job, and its absence here is deliberate.
  *
- * @param value - Тело ответа.
- * @returns Оболочка распознана.
+ * @param value - Body of the response.
+ * @returns The envelope is recognized.
  */
 function isItemsEnvelope(value: unknown): boolean {
     if (typeof value !== 'object' || value === null) {
@@ -72,19 +73,18 @@ function isItemsEnvelope(value: unknown): boolean {
 }
 
 /**
- * Выбирает текст отказа: обрыв по потолку ожидания и остановка запроса
- * серверным лимитом времени различаются по существу (в первом случае исход
- * записи неизвестен, во втором она определённо откатана), остальное — сообщение
- * сервера либо fallback.
+ * Picks the text of a refusal; which outcome gets which text is described at
+ * `toMediaRequestError`.
  *
- * Серверный отказ разбирается по машиночитаемому коду до `getBricksErrorMessage`:
- * иначе пользователь увидел бы англоязычный текст статуса.
+ * A refusal of the server is taken apart by its machine-readable code BEFORE
+ * `getBricksErrorMessage`: otherwise the user would be shown the English text of
+ * the status.
  *
- * @param error - Исходная ошибка запроса.
- * @param method - HTTP-метод запроса.
- * @param translate - Функция перевода вызывающего.
- * @param fallbackMessage - Локализованное сообщение на случай молчащей ошибки.
- * @returns Текст для показа пользователю.
+ * @param error - The original error of the request.
+ * @param method - HTTP method of the request.
+ * @param translate - The translate function of the caller.
+ * @param fallbackMessage - Localized message for an error that says nothing.
+ * @returns The text to show to the user.
  */
 function resolveMediaErrorMessage(
     error: unknown,
@@ -100,8 +100,9 @@ function resolveMediaErrorMessage(
         return translate(BRICKS_STATEMENT_TIMEOUT_MESSAGE_KEY);
     }
 
-    // Категорию могли удалить в другой вкладке между показом списка и записью:
-    // серверный текст такого отказа англоязычен, а причина пользователю понятна
+    // The category could have been deleted in another tab between the list being
+    // shown and the write: the server's text for that refusal is in English, while
+    // the reason itself is plain to the user
     if (getBricksErrorCode(error) === BRICKS_API_ERROR_CODES.unknownMediaCategory) {
         return translate('bricks.media.categoryUnknown');
     }
@@ -110,20 +111,21 @@ function resolveMediaErrorMessage(
 }
 
 /**
- * Приводит отказ media-запроса к пользовательскому виду: обрыв по потолку
- * ожидания получает честный текст (у записи исход неизвестен), остановка
- * серверным лимитом времени — свой, остальное — сообщение сервера либо
- * переданный fallback.
+ * Coerces a refusal of a media request into what is shown to the user: a break by
+ * the waiting ceiling gets an honest text (the outcome of the write is unknown), a
+ * request stopped by the server's own time limit gets one of its own (that one is
+ * definitely rolled back), everything else gets the message of the server or the
+ * fallback that was passed in.
  *
- * Исходная ошибка сохраняется в `cause`: по ней вызывающий отличает обрыв по
- * потолку от отказа сервера (`isRequestTimeoutError` обходит цепочку), а без
- * проброса обёртка уничтожала бы классификацию.
+ * The original error is kept in `cause`: by it the caller tells a break by the
+ * ceiling from a refusal of the server (`isRequestTimeoutError` walks the chain),
+ * and without passing it on the wrapper would destroy that classification.
  *
- * @param error - Исходная ошибка запроса.
- * @param method - HTTP-метод запроса.
- * @param translate - Функция перевода вызывающего.
- * @param fallbackMessage - Локализованное сообщение на случай молчащей ошибки.
- * @returns Ошибка для показа пользователю.
+ * @param error - The original error of the request.
+ * @param method - HTTP method of the request.
+ * @param translate - The translate function of the caller.
+ * @param fallbackMessage - Localized message for an error that says nothing.
+ * @returns The error to show to the user.
  */
 export function toMediaRequestError(
     error: unknown,

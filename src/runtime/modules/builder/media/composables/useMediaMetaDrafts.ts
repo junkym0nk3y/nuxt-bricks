@@ -8,22 +8,23 @@ import { ref, watch } from 'vue';
 // #endregion
 
 /**
- * Черновики имени и alt выбранного файла: ввод, коммит правки и защита от
- * серверных обновлений.
+ * Drafts of the name and the alt of the selected file: the typing, the commit of an
+ * edit, and the protection from the updates coming from the server.
  *
- * Один механизм на две поверхности — мета-панель модалки и панель деталей
- * раздела дашборда. Вторая копия этой синхронизации разъехалась бы с первой
- * молча: она вся состоит из краёв, каждый из которых уже был дефектом.
+ * One mechanism for two surfaces — the meta panel of the modal and the details panel
+ * of the dashboard section. A second copy of this synchronization would drift away
+ * from the first one silently: the whole of it is made of edge cases, and every
+ * one of them has been a defect already.
  */
 export function useMediaMetaDrafts(options: IMediaMetaDraftsOptions): IMediaMetaDrafts {
     // #region Data
     const filename = ref('');
     const alt = ref('');
     /**
-     * Последние принятые серверные значения — по ним отличается «поле не
-     * тронуто» от «в поле несохранённый ввод». Отдельного флага dirty нет
-     * намеренно: он завёл бы второй источник того же факта и разъехался бы с
-     * самим значением.
+     * The last accepted values of the server — by them "the field was not touched"
+     * is told from "the field holds unsaved typing". There is deliberately no dirty
+     * flag of its own: it would set up a second source of the same fact and would
+     * drift away from the value itself.
      */
     const syncedItemId = ref<number | null>(null);
     const syncedFilename = ref('');
@@ -32,16 +33,16 @@ export function useMediaMetaDrafts(options: IMediaMetaDraftsOptions): IMediaMeta
 
     // #region Methods
     /**
-     * Отправляет изменённые поля при уходе фокуса из ряда полей.
+     * Sends the changed fields when focus leaves the row of fields.
      *
-     * Черновик приводится к отправляемому виду до всякой проверки, и это не
-     * косметика: поле, черновик которого разошёлся с теневым значением, сторож
-     * ниже считает полем с несохранённым вводом и перестаёт доносить до него
-     * серверные обновления. Очищенное имя не отправляется (сервер требует
-     * минимум один символ), а ввод с хвостовым пробелом после trim совпадает с
-     * уже сохранённым — в обоих случаях без возврата к серверному значению поле
-     * залипало бы в этом состоянии навсегда, то есть внешняя правка имени в него
-     * уже не доехала бы.
+     * The draft is brought to the form it would be sent in before any check at all,
+     * and that is not cosmetics: a field whose draft has parted from its shadow value
+     * is taken by the watcher below for a field with unsaved typing, and the updates
+     * of the server stop reaching it. An emptied name is not sent (the server demands
+     * at least one character), and typing with a trailing space matches what is saved
+     * already once trimmed — in both cases, without a return to the value of the
+     * server, the field would stick in that state forever, that is, an edit of the
+     * name made elsewhere would no longer reach it.
      */
     function commit(): void {
         const item = options.item();
@@ -50,8 +51,8 @@ export function useMediaMetaDrafts(options: IMediaMetaDraftsOptions): IMediaMeta
             return;
         }
 
-        // Пустое имя недопустимо, и единственное значение, к которому его можно
-        // вернуть, — серверное: собственного «прежнего» у поля нет
+        // An empty name is not allowed, and the only value it can be taken back to
+        // is the one from the server: the field has no "previous" of its own
         const normalizedFilename = filename.value.trim() || item.filename;
         const normalizedAlt = alt.value.trim();
 
@@ -78,21 +79,21 @@ export function useMediaMetaDrafts(options: IMediaMetaDraftsOptions): IMediaMeta
 
     // #region Lifecycle
     /**
-     * Синхронизирует черновики с серверным состоянием — по полю, а не оптом.
+     * Syncs the drafts with the state of the server — field by field, not wholesale.
      *
-     * Два крайних варианта не работают оба. Сторож по объекту срабатывал на
-     * СОБСТВЕННОМ ответе PATCH (стор подменяет элемент списка новым объектом) и
-     * перетирал оба поля: правишь имя, уходишь Tab'ом в alt — это и отправляет
-     * PATCH, — печатаешь, и набранное исчезает, когда приходит ответ. Сторож
-     * только по `id` терял обратную задачу: файл заменился с тем же id
-     * (перечитывание списка после обрыва, правка с другой поверхности), поле
-     * осталось с прежним значением, и следующий коммит отправлял его назад — то
-     * есть откатывал чужое изменение.
+     * Both of the extreme options fail. A watcher on the object fired on the PATCH's
+     * OWN answer (the store puts a new object in place of the list item) and wiped
+     * both fields: you edit the name, you Tab over into alt — which is what sends the
+     * PATCH — you type, and what you typed disappears when the answer arrives. A
+     * watcher on `id` alone lost the opposite case: the file was replaced under the
+     * same id (a reread of the list after a break, an edit made on another surface),
+     * the field kept its former value, and the next commit sent that value back — that
+     * is, rolled somebody else's change back.
      *
-     * Поэтому решение по полю: поле, которого пользователь не касался, принимает
-     * серверное значение; поле с несохранённым вводом его переживает. «Не
-     * касался» — это «черновик совпадает с последним принятым серверным
-     * значением», для чего и нужны теневые ref'ы.
+     * Hence the decision per field: a field the user has not touched takes the value
+     * of the server; a field with unsaved typing outlives it. "Has not touched" means
+     * "the draft matches the last accepted value of the server", and that is what the
+     * shadow refs are for.
      */
     watch(
         () => {
@@ -106,8 +107,8 @@ export function useMediaMetaDrafts(options: IMediaMetaDraftsOptions): IMediaMeta
             const nextFilename = item?.filename ?? '';
             const nextAlt = item?.alt ?? '';
 
-            // Смена файла сбрасывает всё: черновик прошлого файла к новому
-            // отношения не имеет, даже если пользователь его не сохранил
+            // A change of file resets everything: the draft of the previous file has
+            // nothing to do with the new one, unsaved though it may be
             if (nextId !== syncedItemId.value) {
                 syncedItemId.value = nextId;
                 syncedFilename.value = nextFilename;

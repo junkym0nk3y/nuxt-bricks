@@ -1,9 +1,9 @@
 /**
- * Нормализация медиа-элемента из ответа API.
+ * Normalization of a media item out of an API response.
  *
- * Отдельно от стора: это чистое приведение данных, у которого свои правила по
- * каждому полю, и держать их среди действий стора значило бы прятать контракт
- * ответа внутри работы с сетью.
+ * Kept out of the store: this is a pure coercion of data with a rule of its own for
+ * every field, and holding those among the actions of the store would hide the
+ * contract of the response inside the work with the network.
  */
 
 // Types
@@ -15,31 +15,34 @@ import { toCamelCase } from '../../../common/utils/case-transform';
 const DEFAULT_MEDIA_MIME_TYPE = 'image/png';
 
 /**
- * Нормализует медиа-элемент из ответа API.
- * Конвертирует snake_case ключи из Django backend в camelCase.
+ * Normalizes a media item out of an API response.
  *
- * @param rawItem - Данные медиа из API (может быть в snake_case).
- * @returns Нормализованный медиа-элемент в camelCase.
+ * The keys go through `toCamelCase` (the reason lives in
+ * `common/utils/case-transform.ts`): the built-in PostgreSQL adapter aliases them
+ * in the SELECT already, but an external backend is free to answer in snake_case.
+ *
+ * @param rawItem - Media data from the API (possibly in snake_case).
+ * @returns The normalized media item, in camelCase.
  */
 export function normalizeMediaItem(rawItem: IMediaItem): IMediaItem {
-    // Конвертируем snake_case → camelCase
     const item = toCamelCase<IMediaItem>(rawItem);
 
     return {
         ...item,
         alt: item.alt ?? '',
-        // Пустая строка от внешнего backend'а — то же самое, что «без категории»
+        // An empty string from an external backend means the same as "no category"
         category: item.category || null,
         mimeType: item.mimeType || DEFAULT_MEDIA_MIME_TYPE,
-        // Внешний backend вправе не отдавать эти поля вовсе; `undefined` в них
-        // сломал бы проверки «вариант есть?» — потребитель ждёт строку или null.
-        // Размеры остаются на `??`: ноль здесь — полученное значение, а не
-        // «неизвестно», и пригодность его проверяет потребитель
+        // An external backend is free not to answer with these fields at all, and
+        // `undefined` is neither of the two states the type allows. The dimensions
+        // get `??`: a zero that did arrive is a value rather than "unknown", and
+        // whether it is usable is the consumer's call
         width: item.width ?? null,
         height: item.height ?? null,
-        // А у вариантов пустая строка равнозначна их отсутствию: потребитель
-        // берёт `previewUrl ?? url`, и `''` дошло бы до `<img src="">` —
-        // это запрос на саму страницу вместо картинки и битая плитка
+        // The variants get `||` instead: an empty string means their absence here,
+        // and it would not stay harmless — the consumer takes `previewUrl ?? url`,
+        // so `''` would reach `<img src="">`, a request for the page itself instead
+        // of a picture, and a broken tile
         previewUrl: item.previewUrl || null,
         mockUrl: item.mockUrl || null,
     };

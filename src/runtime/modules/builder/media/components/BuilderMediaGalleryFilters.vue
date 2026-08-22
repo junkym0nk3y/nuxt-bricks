@@ -1,20 +1,49 @@
 <script setup lang="ts">
 /**
- * @description Дорожка категорий: табы слева, действия над категориями справа.
+ * @description The track of categories: the tabs on the left, the actions over the
+ * categories on the right.
  *
- * Поиска здесь нет — он уехал в шапку модалки. Поле с рамкой, стоящее на той же
- * линии, что и подчёркивание активного таба, читалось как подчёркивание самого
- * поля; вдобавок поиск относится ко всей медиатеке, а не к дорожке категорий.
+ * There is no search here — it moved into the header of the modal. A bordered field
+ * standing on the same line as the underline of the active tab read as an underline of
+ * the field itself; besides, the search concerns the whole of the media library rather
+ * than the track of categories.
  *
- * Создание категории живёт здесь же: кнопка «+» превращается в поле ввода на
- * месте таба. Кнопка отдельная, а не элемент дорожки: любой item `ToggleGroup`
- * выбирается и менял бы фильтр (см. BuilderMediaGalleryCategoryTabs).
+ * Creating a category lives right here: the "+" button turns into an input field in the
+ * place of a tab. The button is a separate one rather than an element of the track: any
+ * item of a `ToggleGroup` gets selected and would change the filter (see
+ * `BuilderMediaGalleryCategoryTabs`). The two share one place in the row, so they
+ * replace one another through `out-in`: on screen at once they would look like two
+ * different ways to create a category. The whole block is an edit of the library —
+ * without the right to edit, the categories are only filtered.
  *
- * Рядом с ней — переключатель режима управления: в нём у пользовательских
- * категорий появляются крестики. Режим локальный, наверх не сообщается: удаление
- * приезжает готовым событием, а состояние ряда за пределами ряда никому не
- * нужно. Гасится сам, когда управлять больше нечем — иначе после удаления
- * последней своей категории режим остался бы включённым без единого крестика.
+ * Next to it stands the toggle of the managing mode, the one that brings the crosses
+ * out on the categories of the user. The mode is local and is not reported upward: a
+ * deletion arrives as a finished event, and the state of the row is of no use to anyone
+ * outside the row. It goes out on its own once there is nothing left to manage —
+ * otherwise, having deleted the last category of one's own, one would stay in a mode
+ * with not a single cross in sight.
+ *
+ * The `span` around the branch with the buttons is a must: `BricksTooltip` renders a
+ * fragment (the activator plus the portal of the hint), while `Transition` can work
+ * with one root element of a branch only. Without that span the `out-in` mode jams —
+ * the leaving branch never reports its end, and the entering one is not mounted at all.
+ * The same device is used in `BricksTabBar`.
+ *
+ * The tail of the row carries the actions of the caller: the dashboard section puts the
+ * upload parameters cog there — it belongs not to the track but to what will travel
+ * into the selected category. It stands outside the `Transition`, otherwise an opened
+ * category field would carry it away along with itself.
+ *
+ * Decisions held by the style section: everything is aligned to the bottom edge,
+ * because the underline of the selected tab has to lie exactly on the line of the
+ * track, and that line runs the full width — broken off after the last tab it would
+ * read as unfinished. The actions over the categories are pressed to the right edge of
+ * the row rather than following the last tab: right up against the track they read as
+ * two more tabs, and their place in the row would depend on how many categories had
+ * been created. The width of the create field is set to fit a category caption, while
+ * its look, its focus, its error and its clear cross are drawn by `BricksInput` — the
+ * duplicate error arrives through that component's own `errorMessage` prop, so there is
+ * no message of our own under the row any more.
  */
 
 // #region Imports
@@ -57,30 +86,33 @@ const createInputRef = ref<InstanceType<typeof BricksInput> | null>(null);
 
 // #region Computed
 /**
- * Есть ли что удалять: неудаляемых категорий не осталось, поэтому режим
- * управления показывается ровно тогда, когда хоть одна категория заведена.
+ * Whether there is anything to delete: no undeletable categories are left, so the
+ * managing mode shows exactly when at least one category has been created.
  */
 const hasDeletableCategories = computed<boolean>(() => props.categories.length > 0);
 /**
- * Дубликат ищется по двум признакам сразу, и ни один не лишний.
+ * A duplicate is looked for by two signs at once, and neither of them is spare.
  *
- * По slug'у — потому что уникальность сервер считает именно по нему: «Ёлка» и
- * «Елка», «Promo» и «Promo!» дают один slug, и такой POST возвращал
- * существующую категорию как успех — поле закрывалось, новой категории не
- * появлялось, ошибки не было. Сюда же расширяющая транслитерация: «щ» — три
- * символа slug'а, поэтому 17 и 20 таких букв упираются в потолок колонки и
- * обрезаются до одного и того же значения, хотя сами подписи короче своего
- * потолка в 50 символов и сервер их принимает.
+ * By the slug — because that is exactly what the server counts uniqueness by: two
+ * captions differing only by a diacritic, or only by a trailing "!", give one and the
+ * same slug, and such a POST used to return the existing category as a success — the
+ * field closed, no new category appeared, and there was no error. The expanding
+ * transliteration belongs here too: a single Cyrillic letter can take three characters
+ * of a slug, so 17 and 20 such letters run into the ceiling of the slug and are cut
+ * down to one and the same value, although the captions themselves are shorter than
+ * their own ceiling of 50 characters and the server takes them.
  *
- * По подписи — потому что совпадение slug'ов не покрывает обратный случай:
- * подпись и slug связаны только в момент создания, и у категории, заведённой
- * когда-то иначе, они разъехались (в живой базе «Иконки» лежит со slug'ом
- * `icons`, а из подписи считается `ikonki`). Сервер такую пару примет, и в
- * дорожке окажутся два неразличимых чипа.
+ * By the caption — because a match of the slugs does not cover the opposite case: a
+ * caption and a slug are tied only at the moment of creation, and on a category created
+ * some other way once they have drifted apart (in the live database one caption lies
+ * under the hand-written slug `icons`, while a transliteration of that same caption
+ * computes to `ikonki`). The server will take such a pair, and the track will end up
+ * with two tabs there is no telling apart.
  *
- * В сообщении — подпись НАЙДЕННОЙ категории, а не введённая: иначе на «Елка»
- * пользователь читал бы «Категория «Елка» уже есть», не находил её в дорожке и
- * считал ошибкой поля.
+ * The message names the caption of the category that was FOUND rather than the one that
+ * was typed: otherwise, having typed a caption that differs by one letter, one would
+ * read that very caption back as "already exists", fail to find it in the track and take
+ * it for an error of the field.
  */
 const duplicateError = computed<string | null>(() => {
     const label = newCategoryLabel.value.trim().toLowerCase();
@@ -102,23 +134,24 @@ const canSubmitCategory = computed<boolean>(
     () => Boolean(newCategoryLabel.value.trim()) && !duplicateError.value
 );
 
-/** Подпись переключателя режима управления — она же текст его подсказки. */
+/** Caption of the managing mode toggle — it doubles as the text of its hint */
 const manageLabel = computed<string>(() =>
     isManaging.value ? t('bricks.media.categoryManageDone') : t('bricks.media.categoryManage')
 );
 // #endregion
 
 // #region Methods
-/** Обрабатывает выбор категории-чипа. */
+/** Handles the choice of a category tab */
 function handleFilterChange(value: string): void {
     emit('update:categoryFilter', value);
 }
 
 /**
- * Открывает поле ввода новой категории на месте кнопки «+».
+ * Opens the input field of a new category in the place of the "+" button.
  *
- * Фокус ставится после `nextTick` и ищется в DOM компонента: своего метода
- * `focus()` у `BricksInput` в контракте нет, а нативный `<input>` лежит внутри.
+ * The focus is set after a `nextTick` and is looked up in the DOM of the component: the
+ * contract of `BricksInput` holds no `focus()` method of its own, and the native
+ * `<input>` lies inside it.
  */
 async function handleOpenCreate(): Promise<void> {
     isCreateOpen.value = true;
@@ -128,21 +161,22 @@ async function handleOpenCreate(): Promise<void> {
     createInputRef.value?.$el?.querySelector('input')?.focus();
 }
 
-/** Переключает режим управления категориями. */
+/** Toggles the managing mode of the categories */
 function handleToggleManaging(): void {
     isManaging.value = !isManaging.value;
 }
 
-/** Закрывает поле ввода, сбрасывая введённое. */
+/** Closes the input field, dropping what was typed */
 function handleCancelCreate(): void {
     isCreateOpen.value = false;
     newCategoryLabel.value = '';
 }
 
 /**
- * Отдаёт создание наверх. Поле закрывается сразу, не дожидаясь ответа: отказ
- * приезжает тостом, а держать поле открытым на время запроса значило бы
- * подвесить ряд фильтров — при успехе чип и так появляется сам.
+ * Hands the creation upward. The field closes at once without waiting for the answer:
+ * a refusal arrives as a toast, and holding the field open for the duration of the
+ * request would mean hanging the row of filters — on a success the tab shows up by
+ * itself anyway.
  */
 function handleSubmitCategory(): void {
     if (!canSubmitCategory.value || props.isCreatingCategory) {
@@ -153,16 +187,16 @@ function handleSubmitCategory(): void {
     handleCancelCreate();
 }
 
-/** Эмитит удаление категории. */
+/** Emits the deletion of a category */
 function handleDeleteCategory(slug: string): void {
     emit('delete-category', slug);
 }
 // #endregion
 
 // #region Lifecycle
-// Режим гаснет, когда управлять нечем: удалив последнюю свою категорию,
-// пользователь остался бы в режиме, который ничем себя не проявляет, а кнопка
-// выхода из него при этом пропадает вместе с ним
+// The mode goes out once there is nothing to manage: having deleted the last category
+// of their own, the user would be left in a mode that shows no sign of itself, while
+// the button for leaving it disappears along with it
 watch(hasDeletableCategories, (hasDeletable) => {
     if (!hasDeletable) {
         isManaging.value = false;
@@ -183,14 +217,6 @@ watch(hasDeletableCategories, (hasDeletable) => {
             @delete-category="handleDeleteCategory"
         />
 
-        <!--
-            Поле создания и кнопка «+» — одно место ряда, поэтому подмена идёт
-            через `out-in`: одновременно на экране они выглядели бы двумя
-            разными способами создать категорию.
-
-            Весь блок — правка библиотеки: без права правки категории только
-            фильтруют
-        -->
         <div v-if="canEdit" :class="$style.rowTail">
             <Transition mode="out-in" name="bricks-fade-fast">
                 <div v-if="isCreateOpen" :class="$style.createRow">
@@ -229,13 +255,6 @@ watch(hasDeletableCategories, (hasDeletable) => {
                     </BricksButton>
                 </div>
 
-                <!--
-                Обёртка обязательна: `BricksTooltip` рендерит фрагмент
-                (активатор + портал подсказки), а `Transition` умеет работать
-                только с одним корневым элементом ветки. Без span'а режим
-                `out-in` встаёт в клин — уходящая ветка не сообщает о конце, и
-                входящая не монтируется вовсе. Тот же приём у `BricksTabBar`.
-            -->
                 <span v-else :class="$style.rowActions">
                     <BricksIconButton
                         icon="ta:outline-plus"
@@ -246,11 +265,6 @@ watch(hasDeletableCategories, (hasDeletable) => {
                         @click="handleOpenCreate"
                     />
 
-                    <!--
-                    Режим управления открывает крестики удаления, а удаление —
-                    право администратора: редактору он показал бы ряд без единого
-                    крестика
-                -->
                     <BricksIconButton
                         v-if="hasDeletableCategories && canDelete"
                         :icon="isManaging ? 'ta:outline-check' : 'ta:outline-pencil'"
@@ -264,24 +278,11 @@ watch(hasDeletableCategories, (hasDeletable) => {
                 </span>
             </Transition>
 
-            <!--
-                Хвост ряда для действий вызывающего: раздел дашборда ставит сюда
-                шестерёнку параметров загрузки — она относится не к дорожке, а к
-                тому, что уедет в выбранную категорию. Вне `Transition`, иначе
-                открытое поле создания категории уносило бы её с собой
-            -->
             <slot name="actions" />
         </div>
     </div>
 </template>
 <style module lang="scss">
-/* Выравнивание по нижнему краю: подчёркивание выбранного таба обязано лежать
-   ровно на линии дорожки. Линия идёт на всю ширину — оборвавшись за последним
-   табом, она читалась бы как недорисованная.
-
-   Действия над категориями прижаты к правому краю строки, а не идут сразу за
-   последним табом: вплотную к дорожке они читались как ещё два таба, а место
-   их в ряду зависело бы от того, сколько категорий заведено. */
 .BuilderMediaGalleryFilters {
     display: flex;
     align-items: flex-end;
@@ -304,18 +305,12 @@ watch(hasDeletableCategories, (hasDeletable) => {
     gap: 0.2rem;
 }
 
-/* Хвост ряда: действия над категориями плюс то, что добавил вызывающий. Своя
-   обёртка нужна, потому что подмена «поле создания ↔ кнопки» живёт в
-   `Transition`, а слот обязан остаться на месте при обеих ветках. */
 .rowTail {
     display: inline-flex;
     align-items: center;
     gap: 0.2rem;
 }
 
-/* Ширина поля — по подписи категории; вид, фокус, ошибку и крестик очистки
-   рисует `BricksInput`. Ошибка дубликата приезжает его же пропом `errorMessage`,
-   поэтому своего сообщения под рядом здесь больше нет. */
 .createInput {
     width: 18rem;
 }

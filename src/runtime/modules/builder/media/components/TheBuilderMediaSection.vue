@@ -1,16 +1,35 @@
 <script setup lang="ts">
 /**
- * @description Тело раздела «Медиатека» на дашборде: дорожка категорий, сетка
- * файлов, пустые состояния и приёмник перетаскивания.
+ * @description The body of the "Media" section of the dashboard: the track of
+ * categories, the grid of files, the empty states and the drop target.
  *
- * Раздел, а не модалка: менеджер файлов — такой же отдел дашборда, как
- * «Страницы», «Шаблоны» и «Пользователи». Модалка осталась там, где выбор файла
- * — шаг внутри другой работы (сайдбар билдера, OG-изображение страницы).
+ * A section and not a modal: the file manager is a part of the dashboard just as
+ * "Pages", "Templates" and "Users" are. The modal stayed where picking a file is a step
+ * inside some other work (the sidebar of the builder, the OG image of a page).
  *
- * Компонент-контроллер по своей части: управление категориями и подтверждение их
- * удаления живут здесь. Загрузка и выбранный файл — нет: кнопка загрузки стоит в
- * шапке дашборда, панель деталей — в слоте оболочки, и оба состояния держит
- * `usePublishMediaSurface` в хосте.
+ * A controller component as far as its own part goes: managing the categories and
+ * confirming their deletion live here. The upload and the selected file do not: the
+ * upload button stands in the header of the dashboard, the details panel in a slot of
+ * the shell, and both states are held by `usePublishMediaSurface` in the host.
+ *
+ * The upload parameters stand in the row of filters rather than in the header: they are
+ * about what the file will look like when it goes, and their place is next to the track
+ * of categories — the thing that decides WHERE it goes. The gate of the role is at the
+ * row of filters itself: the tail of the row is drawn only with the right to edit.
+ *
+ * The dissolve of the grid, the key of the transition and the bounds of the drop target
+ * are the same here as in `TheBuilderMediaGalleryModal`, where the reasons are written
+ * down.
+ *
+ * Decisions held by the style section: the section stretches to the full height of the
+ * list area, otherwise the footer with the summary would stand right under the grid,
+ * that is, in the middle of the screen while there are few files; the area of the grid
+ * is the positioning container of the drop target, so it stretches over the grid's place
+ * rather than over the whole body of the section; and the summary band sticks to the
+ * bottom of the list area with negative margins that stretch it across the full width
+ * of the area along with its padding — without them the line would break off before
+ * reaching the edges. The footer stays put rather than traveling with the grid: the
+ * summary and the drag hint are about the whole media library.
  */
 
 // #region Imports
@@ -60,9 +79,10 @@ const { t } = useI18n();
 const mediaStore = useMediaStore();
 const categoriesStore = useMediaCategoriesStore();
 /**
- * Право записи решает не только судьбу кнопок: приёмник перетаскивания — такое
- * же приглашение загрузить файл, и у роли без права он разворачивал бы оверлей
- * «отпустите — к загрузке» на действие, которое молча отсекается гардом.
+ * The right to write decides more than the fate of the buttons: the drop target is
+ * just as much an invitation to upload a file, and under a role without that right it
+ * would unfold a "let go — and it uploads" overlay over an action the guard silently
+ * cuts off.
  */
 const { canEdit } = useBuilderPermissions();
 
@@ -85,8 +105,9 @@ const isUploading = computed<boolean>(() => mediaStore.isUploading);
 const hasItems = computed<boolean>(() => mediaItems.value.length > 0);
 
 /**
- * Счётчики табов считаются по уже загруженному списку — отдельного запроса нет.
- * Файлы без категории ни в один счётчик не попадают: их видно только во «Всех».
+ * The counters of the tabs are computed off the list already loaded — there is no
+ * request of their own. Files with no category fall into no counter at all: they are
+ * seen under "All" only.
  */
 const categoryCounts = computed<Record<string, number>>(() =>
     mediaItems.value.reduce<Record<string, number>>((counts, item) => {
@@ -99,9 +120,10 @@ const categoryCounts = computed<Record<string, number>>(() =>
 );
 
 /**
- * Действия над категориями. Ниже Computed, а не в Data: композабл читает
- * `categoryCounts` для текста подтверждения, а обращение к нему выше объявления
- * ломало бы порядок, даже будучи отложенным замыканием.
+ * The actions over the categories. Down here among the computeds rather than up in the
+ * data: the composable reads `categoryCounts` for the text of the confirmation, and
+ * reaching for it above its declaration would break the order even inside a deferred
+ * closure.
  */
 const {
     categories,
@@ -121,11 +143,13 @@ const {
 });
 
 /**
- * Отфильтрованный список сетки: категория из дорожки, затем строка поиска.
+ * The filtered list of the grid: the category out of the track, then the search
+ * string.
  *
- * Ниже `useMediaCategoryActions`, потому что поиск сверяет ПОДПИСЬ категории, а
- * список подписей приходит оттуда. Сверка с `item.category` не годится: там
- * лежит slug, то есть по «Фоны» не нашлось бы ничего — в данных `fony`.
+ * Below `useMediaCategoryActions`, because the search matches against the CAPTION of a
+ * category, and the list of captions comes from there. Matching against `item.category`
+ * will not do: what lies there is a slug, so a search by a caption would find nothing —
+ * the data holds its transliteration.
  */
 const filteredMediaItems = computed<IMediaItem[]>(() => {
     const filterValue = props.categoryFilter;
@@ -152,13 +176,13 @@ const filteredMediaItems = computed<IMediaItem[]>(() => {
 const hasFilteredItems = computed<boolean>(() => filteredMediaItems.value.length > 0);
 
 /**
- * Сводка медиатеки в футере раздела: сколько файлов, сколько весят и подсказка о
- * перетаскивании. Она про всю библиотеку, а не про отфильтрованное, поэтому
- * считается по полному списку — иначе выбранная категория выглядела бы как
- * «медиатека уменьшилась».
+ * The summary of the media library in the footer of the section: how many files there
+ * are, how much they weigh and the hint about dragging. It is about the whole library
+ * rather than about what the filter left, so it is counted off the full list —
+ * otherwise a selected category would look like "the media library has shrunk".
  *
- * Подсказка обязана быть видна всегда: постоянной зоны загрузки в интерфейсе
- * нет, а приёмник показывается, только когда файлы уже над окном.
+ * The hint has to be visible at all times: the interface has no permanent upload zone,
+ * and the drop target shows up only once the files are already over the window.
  */
 const librarySummary = computed<string>(() => {
     const totalSize = mediaItems.value.reduce((sum, item) => sum + item.size, 0);
@@ -171,54 +195,57 @@ const librarySummary = computed<string>(() => {
         return summary;
     }
 
-    // Подсказка своя, не модалочная: приёмник висит на теле раздела, а не на
-    // всём окне — файл, брошенный на рейл или шапку, не принимается
+    // A hint of its own rather than the modal's: the target hangs on the body of the
+    // section and not on the whole window — a file dropped on the rail or on the header
+    // is not taken
     return `${summary} · ${t('bricks.media.dropSectionHint')}`;
 });
 
 /**
- * Подсказка пустого состояния: как положить сюда первый файл. У роли без права
- * записи её нет вовсе — оба названных входа ей закрыты, и приглашение звало бы
- * в тупик. Текст свой, не модалочный: приёмник ограничен телом раздела.
+ * The hint of the empty state: how to put the first file in here. A role with no right
+ * to write has none of it — both of the ways it names are closed to that role, and the
+ * invitation would call it into a dead end. The text is its own rather than the modal's:
+ * the target is bounded by the body of the section.
  */
 const emptyStateHint = computed<string>(() =>
     canEdit.value ? t('bricks.media.emptyNoUploadsSectionHint') : ''
 );
 
 /**
- * Прочитан ли состав медиатеки. До первого удачного ответа «медиатека пуста»
- * показывать нельзя: список пуст и когда чтение не дошло, а такое сообщение
- * утверждает, что файлов нет.
+ * Whether the contents of the media library have been read. Until the first successful
+ * answer "the media library is empty" must not be shown: the list is empty when the read
+ * never got through as well, while such a message claims that there are no files.
  */
 const hasLibrarySnapshot = computed<boolean>(() => mediaStore.hasLoadedItemsSnapshot);
 // #endregion
 
 // #region Methods
 /**
- * Пробрасывает изменённые параметры загрузки наверх: ими владеет поверхность
- * хоста — по ним грузит файлы кнопка шапки.
+ * Passes the changed upload parameters upward: they are owned by the surface of the
+ * host — the button of the header uploads files by them.
  *
- * @param value - Новые параметры оптимизации.
+ * @param value - The new optimization parameters.
  */
 function handleOptimizationChange(value: IBricksMediaOptimization): void {
     emit('update:uploadOptimization', value);
 }
 
 /**
- * Пробрасывает смену категории наверх: ею владеет поверхность хоста — от неё
- * зависит категория загружаемых файлов, а кнопка загрузки стоит в шапке.
+ * Passes a change of the category upward: it is owned by the surface of the host — the
+ * category of the uploaded files depends on it, and the upload button stands in the
+ * header.
  *
- * @param value - Выбранная категория.
+ * @param value - The category that was picked.
  */
 function handleCategoryFilterChange(value: string): void {
     emit('update:categoryFilter', value);
 }
 
 /**
- * Снимает фильтр, указывающий на удалённую категорию: иначе он ссылался бы на
- * то, чего больше нет, и сетка осталась бы демонстративно пустой.
+ * Drops a filter pointing at a deleted category: otherwise it would refer to something
+ * that is gone, and the grid would be left demonstratively empty.
  *
- * @param slug - Удалённая категория.
+ * @param slug - The deleted category.
  */
 function handleCategoryDeleted(slug: string): void {
     if (props.categoryFilter === slug) {
@@ -227,44 +254,45 @@ function handleCategoryDeleted(slug: string): void {
 }
 
 /**
- * Просит хост открыть панель деталей файла.
+ * Asks the host to open the details panel of a file.
  *
- * @param item - Выбранный файл.
+ * @param item - The file that was picked.
  */
 function handleSelectItem(item: IMediaItem): void {
     emit('select', item);
 }
 
 /**
- * Просит хост открыть файл во весь экран.
+ * Asks the host to open a file full screen.
  *
- * @param item - Файл.
+ * @param item - The file.
  */
 function handlePreviewItem(item: IMediaItem): void {
     emit('preview', item);
 }
 
 /**
- * Плитка-приёмник просит открыть системный выбор файлов.
+ * The upload tile asks for the system file picker.
  */
 function handleUploadRequest(): void {
     emit('request-upload');
 }
 
 /**
- * Пустой результат фильтра: сбрасываются разом категория и строка поиска —
- * поиском владеет шапка, категорией поверхность хоста.
+ * An empty result of the filter: the category and the search string are dropped in one
+ * go — the search is owned by the header, the category by the surface of the host.
  */
 function handleResetFilter(): void {
     emit('reset-filters');
 }
 
 /**
- * Читает категории, если достоверного снимка ещё нет.
+ * Reads the categories when there is no trustworthy snapshot yet.
  *
- * Список файлов здесь не читается: его берёт хост — счётчик рейла рисуется до
- * открытия раздела. Категории же нужны только этому разделу, поэтому и читаются
- * при его первом показе, а не на старте дашборда.
+ * The list of files is not read here: the host takes it — the counter of the rail is
+ * drawn before the section is ever opened. The categories, on the other hand, are needed
+ * by this section alone, and so they are read on its first showing rather than at the
+ * start of the dashboard.
  */
 async function loadCategories(): Promise<void> {
     if (categoriesStore.hasLoadedCategoriesSnapshot) {
@@ -274,7 +302,8 @@ async function loadCategories(): Promise<void> {
     try {
         await categoriesStore.loadCategories();
     } catch (error: unknown) {
-        // Отказ категорий не отменяет раздел: файлы видны и без ряда чипов
+        // A refusal of the categories does not cancel the section: the files are
+        // visible without the row of tabs too
         emit('notify', getBricksErrorMessage(error, t('bricks.media.categoryLoadFailed')), 'error');
     }
 }
@@ -305,12 +334,6 @@ onMounted(() => {
             @create-category="handleCreateCategory"
             @delete-category="handleRequestCategoryDelete"
         >
-            <!--
-                Параметры загрузки стоят здесь, а не в шапке: они про то, каким
-                уедет файл, и место им рядом с дорожкой категорий — тем, что
-                решает, КУДА он уедет. Гейт роли — у самой строки фильтров:
-                хвост ряда рисуется только с правом правки
-            -->
             <template #actions>
                 <BuilderMediaGalleryUploadOptionsPopover
                     :optimization="props.uploadOptimization"
@@ -321,12 +344,6 @@ onMounted(() => {
             </template>
         </BuilderMediaGalleryFilters>
 
-        <!--
-            Смена содержимого — с растворением: переключение категории подменяло
-            сетку мгновенно, и по неподвижной раскладке было не видно, что список
-            обновился. Ключ — только категория, без поискового запроса: на нём
-            перебор шёл бы по букве и сетка мигала бы на каждом нажатии.
-        -->
         <div :class="$style.gridArea">
             <Transition mode="out-in" name="bricks-fade-fast">
                 <BuilderMediaGalleryGrid
@@ -341,7 +358,6 @@ onMounted(() => {
                     @upload="handleUploadRequest"
                 />
 
-                <!-- Фильтр ничего не нашёл -->
                 <BricksEmptyState
                     v-else-if="hasItems"
                     :class="$style.emptyState"
@@ -353,7 +369,6 @@ onMounted(() => {
                     </BricksButton>
                 </BricksEmptyState>
 
-                <!-- Медиатека пуста — только когда состав действительно прочитан -->
                 <BricksEmptyState
                     v-else-if="hasLibrarySnapshot"
                     :class="$style.emptyState"
@@ -363,10 +378,6 @@ onMounted(() => {
                 />
             </Transition>
 
-            <!--
-                Приёмник накрывает только сетку: дорожка категорий обязана
-                остаться видимой — по ней понятно, в какую категорию уйдут файлы.
-            -->
             <Transition name="bricks-fade-fast">
                 <BuilderMediaGalleryDropOverlay
                     v-if="isDraggingFiles"
@@ -378,11 +389,6 @@ onMounted(() => {
             </Transition>
         </div>
 
-        <!--
-            Футер раздела липнет к низу области списка: сводка и подсказка о
-            перетаскивании относятся ко всей медиатеке, и уезжать вместе с
-            сеткой им незачем. Фон обязателен — под полосой проходит контент
-        -->
         <p v-if="hasLibrarySnapshot" :class="$style.summary">{{ librarySummary }}</p>
 
         <BricksConfirmModal
@@ -399,8 +405,6 @@ onMounted(() => {
 </template>
 
 <style module lang="scss">
-/* Раздел тянется на всю высоту области списка, иначе футер со сводкой вставал бы
-   сразу под сеткой — то есть посреди экрана, пока файлов мало. */
 .TheBuilderMediaSection {
     display: flex;
     flex: 1;
@@ -409,8 +413,6 @@ onMounted(() => {
     min-height: 100%;
 }
 
-/* Позиционирующий контейнер приёмника: он накрывает сетку целиком, поэтому
-   растягивается по её месту, а не по всему телу раздела. */
 .gridArea {
     position: relative;
     display: flex;
@@ -418,14 +420,10 @@ onMounted(() => {
     flex: 1;
 }
 
-/* Отступы состояния задаёт раздел: у сетки их нет. */
 .emptyState {
     padding: 4rem 2rem;
 }
 
-/* Полоса-сводка внизу области списка. Отрицательные поля растягивают её на всю
-   ширину области вместе с её паддингом, иначе линия обрывалась бы, не доходя до
-   краёв. */
 .summary {
     position: sticky;
     bottom: -2rem;

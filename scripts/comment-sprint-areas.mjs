@@ -161,7 +161,7 @@ export const AREAS = [
     {
         id: '16',
         title: 'builder/media',
-        done: false,
+        done: true,
         match: ['src/runtime/modules/builder/media/'],
     },
     {

@@ -1,18 +1,39 @@
 <script setup lang="ts">
 /**
- * @description Футер галереи: два ряда вместо прежней одной строки. Верхний —
- * правки (миниатюра, имя, alt, категория), нижний — техническая сводка и
- * действия. Разделены потому, что набор действий зависит от типа файла (у видео
- * и вектора нет вариантов), и в одну строку с полями он не укладывается ни при
- * каком порядке.
+ * @description The footer of the gallery: two rows instead of the single line it used
+ * to be. The upper one holds the edits (the thumbnail, the name, the alt, the
+ * category), the lower one the technical summary and the actions. They are split
+ * because the set of actions depends on the type of the file (a video and a vector have
+ * no variants), and in one line with the fields it does not fit under any order.
  *
- * Без выбранного файла футер схлопывается в один ряд с подсказкой: прежде
- * компонент в этом состоянии не рисовал ничего, и полоса 76 висела пустой без
- * объяснений. Сводка по медиатеке живёт в шапке — там же, где кнопка загрузки,
- * то есть рядом с тем, что её меняет.
+ * With no file selected the footer folds into a single row with a hint: in that state
+ * the component used to draw nothing at all, and an empty band hung there with no
+ * explanation. The summary of the media library lives in the header — in the same place
+ * as the upload button, that is, next to what changes it.
  *
- * Кнопки «Отменить» / «Выбрать» живут только в контексте выбора картинки: в
- * менеджере выбирать нечего, файл правится на месте.
+ * The "Cancel" / "Pick" buttons live only in the picking context: in the manager there
+ * is nothing to pick, a file is edited where it lies.
+ *
+ * The fields of a file are disabled rather than hidden for a role with no right to
+ * edit: the name, the alt and the category are facts about the file, and an observer
+ * needs them just as much. The deletion stands with the fields of the file and not in
+ * the right corner — that corner is left to the confirming action — and it is a right of
+ * the administrator: the endpoint refuses an editor.
+ *
+ * Decisions held by the style section. The footer changes both its content and its
+ * height (one hint row with nothing selected against two rows with a file), so the swap
+ * goes through a transition: an instant one reads as the panel jumping under the cursor.
+ * The wrapper around the two rows exists for that same transition — it has to have one
+ * root. The
+ * delete button is pressed to the right edge of the row of edits, and its look comes
+ * from the kit's `danger`, the tone shared by the destructive actions of the product,
+ * as in the list rows and in the details panel of the section: the former "gray until
+ * hover" made this button the one exception to the rule. The widths of the fields come
+ * from the mock-up and do not stretch, because the row has to stay a single line:
+ * stretched, "Category" would travel off the edge in a narrow window. The hint row
+ * holds its height rather than shrinking to its line of text: otherwise the footer would
+ * jump from 47 to the two-row height on the very first file picked and shift the grid
+ * under the cursor.
  */
 
 // #region Imports
@@ -52,8 +73,9 @@ const emit = defineEmits<IMediaGalleryMetaPanelEmits>();
 const { t } = useI18n();
 const { canEdit, canDelete } = useBuilderPermissions();
 /**
- * Черновики полей файла — общий с панелью деталей раздела механизм: ввод,
- * нормализация и защита черновика от серверных обновлений живут в композабле.
+ * The drafts of the fields of a file — a mechanism shared with the details panel of the
+ * section: the typing, the normalization and the protection of a draft from the updates
+ * of the server all live in the composable.
  */
 const {
     filename: editableFilename,
@@ -67,10 +89,10 @@ const {
 
 // #region Computed
 /**
- * Первым вариантом — «Без категории»: категория необязательна, и снять её файлу
- * можно только отсюда. Пустая строка — контракт `BricksSelect` для пустого
- * значения (внутри reka она подменяется sentinel'ом, потому что item с value=''
- * ломает попап).
+ * "No category" comes first: a category is optional, and taking one off a file can be
+ * done from here only. The empty string is the contract of `BricksSelect` for an empty
+ * value (inside reka it is swapped for a sentinel, an item with `value=''` breaking the
+ * popup).
  */
 const categoryOptions = computed<IBrickUiCommonProp[]>(() => [
     { label: t('bricks.media.noCategory'), value: '' },
@@ -83,7 +105,7 @@ const categoryFacets = computed<TBrickDemoValues[]>(() =>
     categoryOptions.value.map((option) => option.value)
 );
 const selectedCategory = computed<string>(() => props.selectedItem?.category ?? '');
-/** У видео alt не используется: рендерер отдаёт `<video>`, а не `<img>`. */
+/** A video does not use the alt: the renderer gives out a `<video>`, not an `<img>` */
 const isAltDisabled = computed<boolean>(() =>
     props.selectedItem ? isVideoMedia(props.selectedItem) : true
 );
@@ -94,22 +116,23 @@ const technicalSummary = computed<string>(() =>
 
 // #region Methods
 /**
- * Эмитит смену категории выбранного элемента.
+ * Emits a change of the category of the selected item.
  *
- * Возвращать значение назад, как делал нативный `<select>`, не нужно:
- * `BricksSelect` контролируемый и показывает то, что пришло пропом, — при отказе
- * сервера источник не меняется, и селект остаётся на прежней категории сам.
+ * There is no need to put the value back the way the native `<select>` did:
+ * `BricksSelect` is controlled and shows what arrived in its prop — on a refusal of the
+ * server the source does not change, and the selector stays on the former category by
+ * itself.
  */
 function handleCategoryChange(value: TBrickDemoValues | null): void {
     if (typeof value !== 'string' || value === selectedCategory.value) {
         return;
     }
 
-    // Пустая строка от селекта — это «без категории», а не пустой slug
+    // An empty string out of the selector means "no category", not an empty slug
     emit('update-category', value || null);
 }
 
-/** Эмитит запрос на удаление выбранного элемента. */
+/** Emits the request to delete the selected item */
 function handleRemove(): void {
     emit('remove');
 }
@@ -118,10 +141,6 @@ function handleRemove(): void {
 
 <template>
     <div :class="$style.BuilderMediaGalleryMetaPanel">
-        <!--
-            Футер меняет и содержимое, и высоту (76 без выбора против 120 с ним):
-            мгновенная подмена читается как подскок панели под курсором
-        -->
         <Transition mode="out-in" name="bricks-fade-fast">
             <div v-if="props.selectedItem" :class="$style.selectedState">
                 <div :class="$style.fieldsRow" @focusout="handleMetaCommit">
@@ -138,11 +157,6 @@ function handleRemove(): void {
                     <div :class="$style.field">
                         <span :class="$style.fieldLabel">{{ t('bricks.media.nameLabel') }}</span>
                         <div :class="[$style.control, $style._name]">
-                            <!--
-                                Поля файла без права правки заблокированы, а не
-                                скрыты: имя, alt и категория — сведения о файле,
-                                и наблюдателю они нужны ровно так же
-                            -->
                             <BricksInput
                                 :value="editableFilename"
                                 :disabled="!canEdit"
@@ -184,15 +198,6 @@ function handleRemove(): void {
                         </div>
                     </div>
 
-                    <!--
-                        Удаление стоит у полей файла, а не в правом углу: угол
-                        оставлен подтверждающему действию. Тон — общий для
-                        разрушающих действий продукта (`danger` кита), как в
-                        строках списков и в панели деталей раздела: прежний
-                        «серый до наведения» делал эту кнопку единственным
-                        исключением из правила.
-                    -->
-                    <!-- Удаление файла — право администратора: редактору ручка откажет -->
                     <BricksIconButton
                         v-if="canDelete"
                         :class="$style.removeButton"
@@ -245,8 +250,6 @@ function handleRemove(): void {
     width: 100%;
 }
 
-/* Два ряда правок и техники; появилась обёрткой, потому что переключение
-   состояний футера обёрнуто в transition — у него должен быть один корень. */
 .selectedState {
     display: flex;
     flex-direction: column;
@@ -287,13 +290,10 @@ function handleRemove(): void {
     color: var(--bricks-base-500);
 }
 
-/* Кнопка прижата к правому краю ряда правок; вид даёт `danger` кита. */
 .removeButton {
     margin-left: auto;
 }
 
-/* Ширины из макета; поля не тянутся, потому что ряд обязан оставаться одной
-   строкой — при растяжении «Категория» уезжала бы за край на узком окне. */
 .control {
     &._name {
         width: 26rem;
@@ -321,8 +321,6 @@ function handleRemove(): void {
     gap: 1.2rem;
 }
 
-/* Ряд-подсказка держит высоту, а не сжимается по строке текста: иначе футер
-   прыгал бы с 47 до 120 при первом же выборе файла и сдвигал сетку под курсором. */
 .emptyRow {
     min-height: 4.4rem;
 }

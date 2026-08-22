@@ -1,12 +1,12 @@
 /**
- * Стор категорий медиатеки.
+ * The store of the media library's categories.
  *
- * Отдельно от `media.ts` по границе сущности: у категорий свои ручки, свой
- * список и свой номер запроса, они не пересекаются с файлами ни одним вызовом, а
- * вместе файл перерастал потолок в 500 строк. Единственная связь — удаление
- * категории: сервер той же транзакцией снимает её со своих файлов (`category`
- * становится `null`), и то же изменение нужно отразить в уже показанном списке
- * файлов.
+ * Kept apart from `media.ts` along the border of the entity: the categories have
+ * endpoints of their own, a list of their own and a request number of their own, they
+ * meet the files in not a single call, and together the file was outgrowing the
+ * ceiling of 500 lines. Their one tie is the deletion of a category: within the same
+ * transaction the server takes it off its files (`category` becomes `null`), and the
+ * very same change has to be shown in the list of files already on screen.
  */
 
 // #region Imports
@@ -27,8 +27,8 @@ import { useMediaStore } from './media';
 
 // #region Helpers
 /**
- * Переводит ключ через глобальный i18n (стор не имеет setup-контекста).
- * `$i18n` резолвится лениво на каждый вызов — безопасно при любом порядке плагинов.
+ * Translates a key through the global i18n (a store has no setup context).
+ * `$i18n` is resolved lazily on every call — safe under any order of the plugins.
  */
 function t(key: string): string {
     const i18n = useNuxtApp().$i18n as Composer | undefined;
@@ -36,16 +36,17 @@ function t(key: string): string {
 }
 
 /**
- * Летящее чтение категорий — по одному на экземпляр стора.
+ * The category read in flight — one per instance of the store.
  *
- * Второй вызов ждёт его, а не заводит свой запрос: раздел дашборда монтируется
- * на каждое переключение рейла, и быстрый уход-возврат давал два GET'а сразу.
- * Это не косметика — второй запрос обесценивает ответ первого номером запроса, и
- * если сам он потом откажет, ряд чипов остаётся пустым при удачном первом
- * ответе.
+ * A second call waits on it instead of starting a request of its own: the dashboard
+ * section is mounted on every switch of the rail, and a quick leave-and-return gave
+ * two GETs at once. This is not cosmetics — the second request invalidates the answer
+ * of the first one by the request number, and should the second then be refused, the
+ * row of tabs is left empty although the first answer had arrived intact.
  *
- * Держится вне state: это Promise, а state стора сериализуется. Ключ — сам стор,
- * а не модуль: общий Promise смешал бы SSR-запросы разных пользователей.
+ * Held outside the state: this is a Promise, and the state of a store is serialized.
+ * The key is the store itself rather than the module: a shared Promise would mix up
+ * the SSR requests of different users.
  */
 const pendingCategoriesLoads = new WeakMap<object, Promise<void>>();
 // #endregion
@@ -53,28 +54,29 @@ const pendingCategoriesLoads = new WeakMap<object, Promise<void>>();
 export const useMediaCategoriesStore = defineStore('bricksMediaCategories', {
     state: () => ({
         categories: [] as IMediaCategory[],
-        // Номер последнего стартовавшего запроса — тем же способом, что у списка
-        // медиа: локальная вставка чипа обгоняет летящий GET, и его ответ иначе
-        // скрыл бы созданную категорию или вернул удалённую
+        // The number of the request that started last — the same way the media list
+        // does it: a local insertion of a tab overtakes a GET in flight, and that
+        // GET's answer would otherwise hide the created category or bring back the
+        // deleted one
         categoriesRequestId: 0,
-        // Виден ли весь состав ряда чипов. `categories.length > 0` этого не
-        // означает: созданная категория ложится в список локально, до всякого
-        // GET'а. Разница нужна тем, кто открывает медиатеку повторно (раздел
-        // дашборда монтируется на каждое переключение) и не должен слать
-        // одинаковый GET на каждый показ.
+        // Whether the whole contents of the tab row have been seen.
+        // `categories.length > 0` does not mean that: a created category is put into
+        // the list locally, before any GET at all. The difference is there for those
+        // who open the media library again (the dashboard section is mounted on every
+        // switch) and must not send the same GET on every showing.
         //
-        // Отказом не сбрасывается: последний удачный ответ остаётся достоверным
-        // снимком, даже если следующий запрос не дошёл.
+        // A refusal does not clear it: the last successful answer stays a trustworthy
+        // snapshot even if the next request never got through.
         hasLoadedCategoriesSnapshot: false,
     }),
 
     actions: {
         /**
-         * Загружает категории медиатеки.
+         * Loads the categories of the media library.
          *
-         * Отказ не опустошает список — по той же причине, что у `loadItems`:
-         * уже показанный ряд чипов переживает transient-отказ, а сообщение
-         * получает вызывающий.
+         * A refusal does not empty the list — for the same reason as in `loadItems`:
+         * a row of tabs already on screen outlives a transient refusal, and it is the
+         * caller who gets the message.
          */
         async loadCategories(): Promise<void> {
             const pending = pendingCategoriesLoads.get(this);
@@ -90,8 +92,8 @@ export const useMediaCategoriesStore = defineStore('bricksMediaCategories', {
             try {
                 await request;
             } finally {
-                // Снимается ровно своё чтение: пока шло это, локальная запись
-                // могла обесценить его и завести новое
+                // Exactly one's own read is taken down: while this one was running, a
+                // local write could have invalidated it and started a new one
                 if (pendingCategoriesLoads.get(this) === request) {
                     pendingCategoriesLoads.delete(this);
                 }
@@ -99,8 +101,8 @@ export const useMediaCategoriesStore = defineStore('bricksMediaCategories', {
         },
 
         /**
-         * Само чтение категорий. Отдельно от `loadCategories`, потому что тот
-         * сводит одновременные вызовы к одному запросу.
+         * The category read itself. Kept apart from `loadCategories` because that one
+         * folds simultaneous calls into a single request.
          */
         async requestCategories(): Promise<void> {
             const { apiFetcher } = useApiClient();
@@ -118,12 +120,12 @@ export const useMediaCategoriesStore = defineStore('bricksMediaCategories', {
                 }
 
                 this.categories = response.items.map((item) => toCamelCase<IMediaCategory>(item));
-                // Только здесь: ответ принят, значит ряд равен составу категорий
-                // на момент ответа. У вытесненного запроса выход выше
+                // Only here: the answer was accepted, so the row equals the
+                // categories as of that answer. A displaced request leaves above
                 this.hasLoadedCategoriesSnapshot = true;
             } catch (error: unknown) {
-                // Отказ вытесненного запроса вызывающему не докладывается: тост об
-                // устаревшей попытке накрыл бы результат более свежей
+                // The refusal of a displaced request is not reported to the caller: a
+                // toast about a stale attempt would cover the result of a fresher one
                 if (requestId !== this.categoriesRequestId) {
                     return;
                 }
@@ -135,26 +137,26 @@ export const useMediaCategoriesStore = defineStore('bricksMediaCategories', {
         },
 
         /**
-         * Обесценивает уже летящий запрос категорий: его ответ ничего не знает о
-         * локальной вставке или удалении чипа.
+         * Invalidates a category request already in flight: its answer knows nothing
+         * of a tab inserted or deleted locally.
          */
         invalidatePendingCategoriesLoad(): void {
             this.categoriesRequestId += 1;
-            // Летящее чтение обесценено, и ждать его нельзя: следующий вызов
-            // обязан завести свой запрос, иначе он дождался бы ответа, который
-            // уже некуда применить
+            // The read in flight is invalidated, and there is no waiting on it: the
+            // next call is obliged to start a request of its own, otherwise it would
+            // wait out an answer there is nowhere left to apply
             pendingCategoriesLoads.delete(this);
         },
 
         /**
-         * Отпускает перечитывание категорий — по той же причине, что у списка
-         * медиа: после обрыва записи по потолку ожидания исход неизвестен, и это
-         * единственная возможность его увидеть. Отказ гасится здесь же.
+         * Starts a reread of the categories and forgets it — for the same reason as
+         * with the media list: after a write broke by the waiting ceiling its outcome is
+         * unknown, and this is the one chance to see it. A refusal is swallowed here.
          *
-         * Летящее чтение сначала обесценивается: оно могло стартовать ДО
-         * оборванной записи, а такой ответ об её исходе ничего не знает — без
-         * этого коалесинг подсунул бы его как достоверный снимок, и ряд чипов
-         * остался бы прежним.
+         * The read in flight is invalidated first: it could have started BEFORE the
+         * broken write, and such an answer knows nothing of that write's outcome —
+         * without this the coalescing would slip it in as a trustworthy snapshot, and
+         * the row of tabs would stay as it was.
          */
         reloadCategoriesDetached(): void {
             this.invalidatePendingCategoriesLoad();
@@ -165,22 +167,22 @@ export const useMediaCategoriesStore = defineStore('bricksMediaCategories', {
         },
 
         /**
-         * Приводит отказ записи категории к пользовательскому виду. Отдельно от
-         * `toWriteError`: тот перечитывает список файлов, а после обрыва
-         * POST/DELETE категории сверять нужно ряд чипов — иначе созданная
-         * категория осталась бы невидимой, а удалённая видимой, хотя сервер
-         * операцию уже применил.
+         * Coerces a refusal of a category write into what is shown to the user. Kept
+         * apart from `toWriteError`: that one rereads the list of files, while after a
+         * broken POST/DELETE of a category it is the row of tabs that has to be
+         * checked — otherwise a created category would stay invisible and a deleted
+         * one visible, although the server had applied the operation already.
          *
-         * @param error - Исходная ошибка запроса.
-         * @param method - HTTP-метод запроса.
-         * @param fallbackMessage - Локализованное сообщение на случай молчащей ошибки.
-         * @returns Ошибка для показа пользователю.
+         * @param error - The original error of the request.
+         * @param method - HTTP method of the request.
+         * @param fallbackMessage - Localized message for an error that says nothing.
+         * @returns The error to show to the user.
          */
         toCategoryWriteError(error: unknown, method: string, fallbackMessage: string): Error {
             if (isRequestTimeoutError(error)) {
                 this.reloadCategoriesDetached();
-                // Категория могла быть удалена вместе со снятием её с файлов —
-                // список файлов после этого тоже недостоверен
+                // The category could have been deleted along with being taken off its
+                // files — after that the list of files is not trustworthy either
                 useMediaStore().reloadItemsDetached();
             }
 
@@ -188,15 +190,15 @@ export const useMediaCategoriesStore = defineStore('bricksMediaCategories', {
         },
 
         /**
-         * Создаёт категорию и добавляет её в конец ряда.
+         * Creates a category and puts it at the end of the row.
          *
-         * Список не перечитывается: ответ несёт созданную запись целиком, а
-         * перечитывание обесценило бы её локальную вставку тем же способом, каким
-         * это происходит со списком медиа (см. invalidatePendingItemsLoad).
+         * The list is not reread: the answer carries the created record whole, and a
+         * reread would invalidate its local insertion the same way it happens with the
+         * media list (see `invalidatePendingItemsLoad`).
          *
-         * @param label - Подпись, введённая пользователем; slug считает сервер
-         *   nuxt-bricks (внешний backend получает уже готовое значение).
-         * @returns Созданная (или уже существовавшая) категория.
+         * @param label - The caption the user typed; the slug is computed by the
+         *   nuxt-bricks server (an external backend receives a finished value).
+         * @returns The created (or already existing) category.
          */
         async createCategory(label: string): Promise<IMediaCategory> {
             const { apiFetcher } = useApiClient();
@@ -233,11 +235,11 @@ export const useMediaCategoriesStore = defineStore('bricksMediaCategories', {
         },
 
         /**
-         * Удаляет категорию; сервер той же транзакцией снимает её со своих
-         * файлов, поэтому локально им правится категория без запроса.
+         * Deletes a category; within the same transaction the server takes it off its
+         * files, so locally their category is fixed without a request of its own.
          *
-         * @param slug - Удаляемая категория.
-         * @returns Сколько файлов осталось без категории.
+         * @param slug - The category being deleted.
+         * @returns How many files were left with no category.
          */
         async deleteCategory(slug: string): Promise<number> {
             const { apiFetcher } = useApiClient();
@@ -260,8 +262,9 @@ export const useMediaCategoriesStore = defineStore('bricksMediaCategories', {
 
             this.invalidatePendingCategoriesLoad();
             this.categories = this.categories.filter((item) => item.slug !== slug);
-            // Локальное зеркало серверного снятия категории: без него файлы
-            // удалённой категории пропали бы из всех фильтров до перезагрузки
+            // The local mirror of the server taking the category off: without it the
+            // files of a deleted category would drop out of every filter until a
+            // reload
             useMediaStore().clearCategoryLocally(slug);
 
             return response.clearedCount ?? 0;

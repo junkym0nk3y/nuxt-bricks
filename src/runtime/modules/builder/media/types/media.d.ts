@@ -1,7 +1,8 @@
 /**
  * Media gallery UI types.
- * Контрактные data-типы (IMediaItem, ответы API, TMediaGalleryContext)
- * живут в common/types/media.d.ts; серверные типы обработки — в persistence/types/media.d.ts.
+ * The contract data types (`IMediaItem`, the API responses, `TMediaGalleryContext`)
+ * live in `common/types/media.d.ts`; the server-side processing types live in
+ * `persistence/types/media.d.ts`.
  */
 
 import type { ComputedRef, Ref } from 'vue';
@@ -19,38 +20,39 @@ export interface IMediaGalleryProps {
 }
 
 /**
- * Поле элемента, которым владеет запись. Номер записи ведётся по полю, а не по
- * элементу: правки разных полей одного файла уходят разными PATCH'ами и друг
- * другу не противоречат — общий счётчик глушил бы ответ соседней правки.
+ * The field of an item a write owns. The number of a write is kept per field rather
+ * than per item: edits of different fields of one file travel as different PATCHes
+ * and do not contradict one another — a shared counter would mute the answer of a
+ * neighboring edit.
  */
 export type TMediaItemWriteField = 'filename' | 'alt' | 'category';
 
 /**
- * Зависимости приёмника файлов галереи.
+ * Dependencies of the file drop target of the gallery.
  */
 export interface IMediaGalleryFileDropOptions {
-    /** Принимает брошенные файлы. */
+    /** Takes the dropped files */
     onFiles: (files: File[]) => void;
     /**
-     * Принимает ли приёмник файлы сейчас; не задан — принимает всегда.
-     * Нужен там, где право на загрузку зависит от роли: оверлей приёмника —
-     * такое же приглашение загрузить файл, как и кнопка.
+     * Whether the target accepts files right now; unset — it always does. Needed
+     * where the right to upload depends on the role: the overlay of the target is
+     * just as much an invitation to upload a file as the button is.
      */
     isEnabled?: () => boolean;
 }
 
 /**
- * Состояние и обработчики приёмника файлов галереи.
+ * State and handlers of the file drop target of the gallery.
  */
 export interface IMediaGalleryFileDrop {
-    /** Сколько файлов тащат над модалкой; 0 — перетаскивания нет. */
+    /** How many files are being dragged over the modal; 0 — there is no drag */
     draggedFileCount: Ref<number>;
     isDraggingFiles: ComputedRef<boolean>;
     handleDragOver: (event: DragEvent) => void;
     handleDragEnter: (event: DragEvent) => void;
     handleDragLeave: () => void;
     handleDrop: (event: DragEvent) => void;
-    /** Сворачивает приёмник (закрытие галереи). */
+    /** Collapses the target (the gallery is closing) */
     resetFileDrop: () => void;
 }
 
@@ -61,37 +63,37 @@ export interface IMediaGalleryEmits {
 }
 
 /**
- * Прогресс загрузки набора файлов. Считается по файлам, а не по байтам: отдача
- * идёт одним `$fetch` на файл, и байтового прогресса у него нет.
+ * Progress of uploading a set of files. Counted in files rather than in bytes: the
+ * sending is one `$fetch` per file, and that one has no byte progress.
  */
 export interface IMediaUploadProgress {
-    /** Номер файла, который грузится сейчас (1-based). */
+    /** The number of the file being uploaded right now (1-based) */
     current: number;
     total: number;
     filename: string;
 }
 
 export interface IMediaUploadOptions {
-    /** Возвращает категорию для загружаемых файлов; null — загрузка без категории. */
+    /** Returns the category for the files being uploaded; null — no category */
     resolveCategory: () => string | null;
-    /** Возвращает параметры оптимизации для загрузки. */
+    /** Returns the optimization parameters of the upload */
     resolveOptimization: () => IBricksMediaOptimization;
-    /** Колбэк для ошибок валидации (превышение лимита размера). */
+    /** Callback for the validation errors (the size limit is exceeded) */
     onError: (message: string) => void;
 }
 
 export interface IMediaGalleryFiltersProps {
     categoryFilter: string;
     categories: IMediaCategory[];
-    /** Число файлов в каждой категории по slug — счётчик в табе. */
+    /** How many files each category holds, by slug — the counter of a tab */
     categoryCounts: Record<string, number>;
     /**
-     * Общее число файлов медиатеки — счётчик таба «Все»; `null` — состав ещё не
-     * прочитан, и счётчик не рисуется вовсе: ноль на его месте утверждал бы,
-     * что файлов нет.
+     * How many files the media library holds in total — the counter of the "All"
+     * tab; `null` — the contents have not been read yet, and the counter is not
+     * drawn at all: a zero in its place would claim that there are no files.
      */
     totalCount: number | null;
-    /** Идёт создание категории — поле ввода в состоянии ожидания. */
+    /** A category is being created — the input field is in its waiting state */
     isCreatingCategory: boolean;
 }
 
@@ -105,9 +107,9 @@ export interface IMediaGalleryCategoryTabsProps {
     modelValue: string;
     categories: IMediaCategory[];
     categoryCounts: Record<string, number>;
-    /** `null` — состав ещё не прочитан, счётчик таба «Все» скрыт. */
+    /** `null` — the contents have not been read yet, the "All" counter is hidden */
     totalCount: number | null;
-    /** Режим управления: у категорий показаны крестики удаления. */
+    /** The managing mode: the categories show their delete crosses */
     isManaging: boolean;
 }
 
@@ -120,20 +122,25 @@ export interface IMediaGalleryUploadControlsProps {
     maxImageSizeMb: number;
     maxVideoSizeMb: number;
     optimization: IBricksMediaOptimization;
-    /** Ширина из конфига — от неё считаются границы поля, см. одноимённый проп поповера. */
+    /**
+     * The width out of the config — the bounds of the field are counted from it, see
+     * the prop of the same name on the popover.
+     */
     configuredMaxWidth: number;
-    /** Прогресс текущей загрузки; null — загрузки нет. */
+    /** Progress of the current upload; null — nothing is being uploaded */
     uploadProgress: IMediaUploadProgress | null;
     /**
-     * Показывать шестерёнку параметров рядом с кнопкой. В разделе дашборда она
-     * стоит в строке фильтров — рядом с дорожкой категорий, то есть рядом с тем,
-     * от чего зависит категория загружаемых файлов, — и в шапке была бы второй.
+     * Whether to show the parameters cog next to the button. In the dashboard
+     * section the cog stands in the row of filters — next to the track of
+     * categories, that is, next to what the category of the uploaded files depends
+     * on — and in the header it would be a second one.
      */
     showOptions?: boolean;
     /**
-     * Подсказка о том, куда можно бросить файл. Не задана — «прямо в окно», как
-     * в модалке; раздел дашборда передаёт свою: приёмник там ограничен телом
-     * раздела, и шапка с рейлом файл не принимают.
+     * The hint about where a file may be dropped. Unset — "right into the window",
+     * as in the modal; the dashboard section passes its own: the target there is
+     * bounded by the body of the section, and neither the header nor the rail takes
+     * a file.
      */
     dropHint?: string;
 }
@@ -144,12 +151,13 @@ export interface IMediaGalleryUploadControlsEmits {
 }
 
 /**
- * Оверлей приёмника, разворачивающийся над сеткой при перетаскивании файлов.
- * Постоянной зоны загрузки нет — точка входа живёт в шапке и первой ячейкой
- * сетки, а приёмник показывается ровно тогда, когда файлы уже над окном.
+ * The overlay of the drop target, unfolding over the grid while files are being
+ * dragged. There is no permanent upload zone — the entry point lives in the header
+ * and as the first cell of the grid, and the target shows up exactly when the files
+ * are already over the window.
  */
 export interface IMediaGalleryDropOverlayProps {
-    /** Сколько файлов тащат — из dataTransfer.items. */
+    /** How many files are being dragged — out of `dataTransfer.items` */
     fileCount: number;
     maxImageSizeMb: number;
     maxVideoSizeMb: number;
@@ -157,13 +165,16 @@ export interface IMediaGalleryDropOverlayProps {
 }
 
 /**
- * Шестерёнка параметров оптимизации с поповером. Сторона подсказки — пропом:
- * в шапке модалки тултип уходит вниз, в строке фильтров раздела — вверх, чтобы
- * не накрывать сетку.
+ * The optimization parameters cog with its popover. The side of the tooltip is a
+ * prop: in the header of the modal the tooltip goes down, in the filters row of the
+ * section it goes up so as not to cover the grid.
  */
 export interface IMediaGalleryUploadOptionsPopoverProps {
     optimization: IBricksMediaOptimization;
-    /** Ширина из конфига — от неё считаются границы поля, см. панель параметров. */
+    /**
+     * The width out of the config — the bounds of the field are counted from it, see
+     * the parameters panel.
+     */
     configuredMaxWidth: number;
     tooltipSide?: 'top' | 'bottom';
 }
@@ -175,9 +186,9 @@ export interface IMediaGalleryUploadOptionsPopoverEmits {
 export interface IMediaGalleryUploadOptionsProps {
     optimization: IBricksMediaOptimization;
     /**
-     * Ширина из конфига модуля. Отдельным пропом, а не из `optimization`:
-     * границы поля должны считаться от неизменного значения, иначе введённое
-     * пользователем число само поднимало бы себе потолок.
+     * The width out of the module's config. A prop of its own rather than a field of
+     * `optimization`: the bounds of the field have to be counted from a value that
+     * does not move, otherwise the number the user typed would raise its own ceiling.
      */
     configuredMaxWidth: number;
 }
@@ -189,9 +200,9 @@ export interface IMediaGalleryUploadOptionsEmits {
 export interface IMediaGalleryGridProps {
     items: IMediaItem[];
     selectedItemId: number | null;
-    /** Показать плитку-скелет первым элементом (идёт загрузка). */
+    /** Show a skeleton tile as the first item (an upload is running) */
     showSkeleton: boolean;
-    /** Показать первой ячейкой плитку-приёмник загрузки. */
+    /** Show the upload target tile as the first cell */
     showUploadTile: boolean;
 }
 
@@ -202,19 +213,19 @@ export interface IMediaGalleryGridEmits {
 }
 
 /**
- * Что композаблу черновиков нужно от вызывающего: выбранный файл и приём
- * готовой правки.
+ * What the drafts composable needs from its caller: the selected file and someone
+ * to take the finished edit.
  *
- * Файл — геттером, а не `Ref`: у мета-панели он приходит пропом, который бывает
- * `null`, у панели деталей — пропом, который `null` быть не может, и общий
- * `Ref<IMediaItem | null>` не принял бы второй (Ref инвариантен).
+ * The file comes as a getter rather than as a `Ref`: the meta panel gets it in a
+ * prop that can be `null`, the details panel in a prop that cannot, and a shared
+ * `Ref<IMediaItem | null>` would not accept the second one (a Ref is invariant).
  */
 export interface IMediaMetaDraftsOptions {
     item: () => IMediaItem | null;
     onCommit: (meta: IMediaUpdateMetaRequest) => void;
 }
 
-/** Черновики полей файла и коммит правки по уходу фокуса. */
+/** Drafts of the fields of a file, and the commit of an edit when focus leaves */
 export interface IMediaMetaDrafts {
     filename: Ref<string>;
     alt: Ref<string>;
@@ -222,25 +233,33 @@ export interface IMediaMetaDrafts {
 }
 
 /**
- * Тело раздела «Медиатека» на дашборде: дорожка категорий, сетка и приёмник.
+ * The body of the "Media" section of the dashboard: the track of categories, the
+ * grid and the drop target.
  *
- * Категория, выбранный файл и параметры загрузки приходят пропами, а не живут
- * внутри: кнопка загрузки стоит в шапке дашборда, а панель деталей — в слоте
- * оболочки, то есть оба вне раздела. Разделу остаётся то, что целиком его:
- * управление категориями, фильтрация списка и перетаскивание файлов.
+ * The category, the selected file and the upload parameters arrive as props rather
+ * than living inside: the upload button stands in the header of the dashboard and
+ * the details panel in a slot of the shell, that is, both of them outside the
+ * section. What is left to the section is what is entirely its own: managing the
+ * categories, filtering the list and the dragging of files.
  */
 export interface IMediaSectionProps {
-    /** Строка поиска из шапки дашборда. */
+    /** The search string out of the dashboard header */
     searchQuery: string;
-    /** Активная категория дорожки. */
+    /** The active category of the track */
     categoryFilter: string;
-    /** Выбранный файл — подсвеченная плитка; `null` — выбора нет. */
+    /** The selected file — a highlighted tile; `null` — nothing is selected */
     selectedItemId: number | null;
     maxImageSizeMb: number;
     maxVideoSizeMb: number;
-    /** Параметры загрузки: их показывает оверлей приёмника и правит поповер ряда. */
+    /**
+     * The upload parameters: the overlay of the target shows them and the popover of
+     * the row edits them.
+     */
     uploadOptimization: IBricksMediaOptimization;
-    /** Ширина из конфига — от неё считаются границы поля в параметрах загрузки. */
+    /**
+     * The width out of the config — the bounds of the field in the upload parameters
+     * are counted from it.
+     */
     configuredMaxWidth: number;
 }
 
@@ -251,23 +270,23 @@ export interface IMediaSectionEmits {
     preview: [item: IMediaItem];
     upload: [files: File[]];
     /**
-     * Плитка-приёмник просит открыть системный выбор файлов: сам input живёт в
-     * контролах шапки, второй такой же означал бы две точки правды о том, какие
-     * типы файлов принимаются.
+     * The target tile asks for the system file picker: the input itself lives in the
+     * controls of the header, and a second one just like it would mean two points of
+     * truth about which file types are accepted.
      */
     'request-upload': [];
-    /** Пустой результат: снять разом и категорию, и строку поиска. */
+    /** An empty result: drop the category and the search string in one go */
     'reset-filters': [];
     notify: [message: string, variant: 'success' | 'error'];
 }
 
 /**
- * Панель деталей файла в разделе «Медиатека».
+ * The details panel of a file in the "Media" section.
  *
- * Тот же контейнер, что у панели деталей страницы, и те же контролы, что в
- * мета-панели модалки. Горизонтальная полоса модалки в раздел не переезжает: у
- * остальных отделов дашборда такой полосы нет, и раздел читался бы как
- * встроенная модалка.
+ * The same container as the details panel of a page has, and the same controls as
+ * the meta panel of the modal. The horizontal bar of the modal does not travel into
+ * the section: no other part of the dashboard has such a bar, and the section would
+ * read as a modal built into the page.
  */
 export interface IMediaSectionDetailsPanelProps {
     item: IMediaItem;
@@ -279,7 +298,7 @@ export interface IMediaSectionDetailsPanelEmits {
     'update-meta': [meta: IMediaUpdateMetaRequest];
     'update-category': [category: string | null];
     remove: [];
-    /** «Открыть во весь экран»: лайтбокс на дашборде один, и он в хосте. */
+    /** "Open full screen": the dashboard has one lightbox, and it lives in the host */
     preview: [];
     notify: [message: string, variant: 'success' | 'error'];
 }
@@ -287,7 +306,7 @@ export interface IMediaSectionDetailsPanelEmits {
 export interface IMediaGalleryMetaPanelProps {
     selectedItem: IMediaItem | null;
     categories: IMediaCategory[];
-    /** Показывать кнопки «Отменить» / «Выбрать» (контекст выбора картинки). */
+    /** Whether to show the "Cancel" / "Pick" buttons (the picking context) */
     showPickerActions: boolean;
 }
 
@@ -300,8 +319,8 @@ export interface IMediaGalleryMetaPanelEmits {
 }
 
 /**
- * Минимальные данные для полноэкранного лайтбокса — позволяет переиспользовать
- * его вне галереи (например, превью страницы в publish-дашборде).
+ * The least a full-screen lightbox needs — which lets it be reused outside the
+ * gallery (the page preview of the publish dashboard, for one).
  */
 export type TMediaLightboxItem = Pick<IMediaItem, 'url' | 'mimeType'> &
     Partial<Pick<IMediaItem, 'alt' | 'filename'>>;
@@ -315,21 +334,22 @@ export interface IMediaGalleryPreviewLightboxEmits {
 }
 
 /**
- * Файл в очереди загрузки вместе с параметрами своего набора: категория и
- * параметры оптимизации фиксируются на момент постановки в очередь, иначе смена
- * фильтра или настроек по ходу переписала бы уже принятое задание.
+ * A file in the upload queue together with the parameters of its own set: the
+ * category and the optimization parameters are frozen at the moment of queuing,
+ * otherwise a change of the filter or of the settings midway would rewrite a job
+ * that had already been taken.
  */
 export interface IMediaUploadQueueEntry {
     file: File;
-    /** null — файл грузится без категории. */
+    /** null — the file is uploaded with no category */
     category: string | null;
     optimization: IBricksMediaOptimization;
 }
 
 /**
- * Что композаблу действий над категориями нужно от вызывающего: счётчик файлов
- * для текста подтверждения, реакция на удаление (сброс фильтра, указывающего на
- * исчезнувшую категорию) и показ ошибки.
+ * What the category actions composable needs from its caller: the file counter for
+ * the text of the confirmation, the reaction to a deletion (dropping a filter that
+ * points at a category that is gone) and the showing of an error.
  */
 export interface IMediaCategoryActionsOptions {
     resolveCategoryCount: (slug: string) => number;
@@ -337,7 +357,10 @@ export interface IMediaCategoryActionsOptions {
     onError: (message: string) => void;
 }
 
-/** Состояние и обработчики ряда чипов категорий вместе с подтверждением удаления. */
+/**
+ * State and handlers of the row of category tabs, along with the deletion
+ * confirmation.
+ */
 export interface IMediaCategoryActions {
     categories: ComputedRef<IMediaCategory[]>;
     isCreatingCategory: Ref<boolean>;

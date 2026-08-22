@@ -2,7 +2,7 @@ const BYTES_IN_KB = 1024;
 const BYTES_IN_MB = 1024 * 1024;
 
 /**
- * Форматирует размер файла в человекочитаемый вид (B / KB / MB).
+ * Formats a file size into a human-readable form (B / KB / MB).
  */
 export function formatFileSize(bytes: number): string {
     if (bytes < BYTES_IN_KB) {

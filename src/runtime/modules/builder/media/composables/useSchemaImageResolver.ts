@@ -1,7 +1,7 @@
 /**
- * Composable для резолвинга изображений при импорте JSON-схемы.
- * Показывает модалку с найденными изображениями и позволяет выбрать:
- * оставить как есть или заменить на заглушку.
+ * Composable of the image resolution that runs when a JSON schema is imported.
+ * It shows a modal listing the images that were found and lets one choose: keep them
+ * as they are, or swap them for the placeholder.
  */
 
 // #region Imports
@@ -33,7 +33,7 @@ import {
 // #endregion
 
 /**
- * Оркестрирует процесс резолвинга изображений при импорте схемы.
+ * Orchestrates the image resolution of a schema import.
  */
 export function useSchemaImageResolver() {
     // #region Data
@@ -50,17 +50,18 @@ export function useSchemaImageResolver() {
         globalAction: 'keep',
     });
 
-    // Поколение резолвинга. Операция начинается до модалки — с ожидания списка
-    // медиатеки, и в этом окне гасить ещё нечего: `pendingPromise` не создан.
-    // `handleCancel` поднимает поколение, и доехавший позже ответ уже не
-    // открывает модалку прежней схемы поверх страницы, которую пользователь
-    // успел выбрать. Гасит вызывающий: смену цели импорта видит он, не резолвер.
+    // The generation of a resolution. The operation begins before the modal — by
+    // waiting for the list of the media library, and in that window there is nothing
+    // to cancel yet: `pendingPromise` has not been created. `handleCancel` raises the
+    // generation, and an answer that arrives later no longer opens the modal of the
+    // former schema over the page the user has since picked. Canceling is the caller's
+    // to do: a change of the import's target is seen by it, not by the resolver.
     let resolveGeneration = 0;
     // #endregion
 
     // #region Helpers
     /**
-     * Сбрасывает состояние резолвера.
+     * Resets the state of the resolver.
      */
     function resetState(): void {
         state.newImages = [];
@@ -70,10 +71,10 @@ export function useSchemaImageResolver() {
     }
 
     /**
-     * Фильтрует изображения, которых нет в медиа-галерее.
+     * Keeps the images the media gallery does not hold.
      *
-     * @param images - Все извлечённые URL из схемы.
-     * @returns Только новые URL, отсутствующие в галерее.
+     * @param images - Every URL extracted out of the schema.
+     * @returns Only the new URLs, the ones absent from the gallery.
      */
     function filterNewImages(images: IExtractedImageUrl[]): IExtractedImageUrl[] {
         const galleryUrls = new Set(mediaStore.items.map((item) => item.url));
@@ -84,30 +85,31 @@ export function useSchemaImageResolver() {
 
     // #region Public API
     /**
-     * Запускает процесс резолвинга изображений.
-     * Если новых изображений нет — возвращает схему без модалки.
+     * Starts the resolution of the images.
+     * When there are no new images, the schema is returned with no modal.
      *
-     * Модалка выбора показывается только после достоверного сравнения с
-     * медиатекой. Когда её состав неизвестен, «новыми» выглядят все URL схемы —
-     * включая те, что в медиатеке есть, — и предложение «оставить или заменить
-     * заглушкой» разбирало бы придуманный список. Такой импорт проходит без
-     * модалки и без изменений схемы, а вызывающий получает признак того, что
-     * сравнение не выполнено.
+     * The modal of the choice is shown only after a trustworthy comparison against
+     * the media library. While its contents are unknown, every URL of the schema
+     * looks "new" — the ones the library does hold included — and the offer to "keep
+     * or swap for the placeholder" would be working through an invented list. Such an
+     * import goes through with no modal and with no change to the schema, and the
+     * caller is told that the comparison did not happen.
      *
-     * @param schema - Импортируемая схема.
-     * @returns Схема (или `null` при отмене) и признак пропущенного сравнения.
+     * @param schema - The schema being imported.
+     * @returns The schema (or `null` on a cancel) and whether the comparison was
+     * skipped.
      */
     async function startResolving(schema: IBricksSchema): Promise<IImageResolverResult> {
-        // Начатый резолвинг вытесняется новым импортом: иначе его промис остался
-        // бы неразрешённым навсегда — `pendingPromise` переписывается, а ждущий
-        // вызывающий не получает ни схемы, ни отказа
+        // A resolution already under way is displaced by the new import: otherwise
+        // its promise would stay unresolved forever — `pendingPromise` is overwritten
+        // and the caller waiting on it gets neither a schema nor a refusal
         handleCancel();
 
         const startedIn = resolveGeneration;
         const allImages = extractSchemaImageUrls(schema);
 
-        // Схеме без изображений медиатека не нужна вовсе — запрашивать её здесь
-        // значило бы ждать сеть ради сравнения пустого списка
+        // A schema with no images does not need the media library at all — asking
+        // for it here would mean waiting on the network to compare an empty list
         if (allImages.length === 0) {
             return { schema, isComparisonSkipped: false };
         }
@@ -121,17 +123,19 @@ export function useSchemaImageResolver() {
                 isMediaUnavailable = true;
             }
 
-            // Проверка поколения — общая для обоих исходов запроса, и стоит она
-            // до разбора отказа. Иначе упавший запрос вытесненного импорта
-            // возвращал бы свою схему как «импортировать без сравнения», и она
-            // применилась бы поверх схемы более нового импорта
+            // The generation check is shared by both outcomes of the request, and it
+            // stands before the refusal is taken apart. Otherwise a failed request of
+            // a displaced import would return its own schema as "import without a
+            // comparison", and that schema would be applied over the schema of the
+            // newer import
             if (resolveGeneration !== startedIn) {
                 return { schema: null, isComparisonSkipped: false };
             }
 
-            // Проверка снимка, а не только `catch`: вытесненный более свежим
-            // запросом `loadItems` завершается без ошибки и без применения
-            // ответа, и его «успех» означал бы сравнение с прежним списком
+            // The snapshot is checked, not just the `catch`: a `loadItems` displaced
+            // by a fresher request finishes with no error and without applying its
+            // answer, so its "success" would mean a comparison against the former
+            // list
             if (isMediaUnavailable || !mediaStore.hasLoadedItemsSnapshot) {
                 return { schema, isComparisonSkipped: true };
             }
@@ -139,12 +143,12 @@ export function useSchemaImageResolver() {
 
         const newImages = filterNewImages(allImages);
 
-        // Нет новых изображений — возвращаем как есть
+        // No new images — returned as it is
         if (newImages.length === 0) {
             return { schema, isComparisonSkipped: false };
         }
 
-        // Инициализируем действия для каждого URL
+        // Every URL starts out with an action of its own
         state.newImages = newImages;
         newImages.forEach((img) => {
             state.actions.set(img.url, 'keep');
@@ -153,7 +157,7 @@ export function useSchemaImageResolver() {
         pendingSchema.value = schema;
         isModalOpen.value = true;
 
-        // Промис резолвится при confirm/cancel/skip
+        // The promise is settled by confirm/cancel/skip
         const resolvedSchema = await new Promise<IBricksSchema | null>((resolve) => {
             pendingPromise.value = { resolve };
         });
@@ -162,19 +166,19 @@ export function useSchemaImageResolver() {
     }
 
     /**
-     * Устанавливает действие для конкретного изображения.
+     * Sets the action for one particular image.
      *
-     * @param url - URL изображения.
-     * @param action - Выбранное действие.
+     * @param url - URL of the image.
+     * @param action - The action that was picked.
      */
     function setImageAction(url: string, action: TImageResolveAction): void {
         state.actions.set(url, action);
     }
 
     /**
-     * Устанавливает глобальное действие для всех изображений.
+     * Sets the one action that goes for every image.
      *
-     * @param action - Действие для применения ко всем.
+     * @param action - The action to apply to all of them.
      */
     function setGlobalAction(action: TImageResolveAction): void {
         state.globalAction = action;
@@ -184,7 +188,7 @@ export function useSchemaImageResolver() {
     }
 
     /**
-     * Подтверждает выбранные действия и обрабатывает изображения.
+     * Confirms the actions that were picked and applies them to the images.
      */
     function handleConfirm(): void {
         if (!pendingSchema.value || !pendingPromise.value) {
@@ -211,10 +215,10 @@ export function useSchemaImageResolver() {
     }
 
     /**
-     * Отменяет импорт — ничего не загружается.
+     * Cancels the import — nothing gets loaded.
      */
     function handleCancel(): void {
-        // Гасит и начатое ожидание списка медиатеки, и открытую модалку
+        // Cancels both a started wait for the media list and an opened modal
         resolveGeneration += 1;
         isModalOpen.value = false;
         const resolver = pendingPromise.value;
@@ -224,7 +228,7 @@ export function useSchemaImageResolver() {
     }
 
     /**
-     * Пропускает обработку — загружает схему как есть.
+     * Skips the handling — loads the schema as it is.
      */
     function handleSkip(): void {
         if (!pendingSchema.value) {

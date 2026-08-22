@@ -29,9 +29,9 @@ import { useMediaStore } from '../stores/media';
 const BYTES_IN_MB = 1024 * 1024;
 
 /**
- * Логика загрузки файлов в медиа-галерею: лимиты размеров и дефолтные параметры
- * оптимизации из app config, валидация типа/размера, прогресс по набору и
- * последовательная загрузка через media store.
+ * The logic of uploading files into the media gallery: the size limits and the
+ * default optimization parameters out of the app config, the checks of type and
+ * size, the progress over a set, and the sequential upload through the media store.
  */
 export function useMediaUpload(options: IMediaUploadOptions): {
     maxImageSizeMb: number;
@@ -46,14 +46,15 @@ export function useMediaUpload(options: IMediaUploadOptions): {
     const maxVideoSizeMb =
         mediaConfig?.maxVideoUploadSizeMb ?? DEFAULT_MEDIA_MAX_VIDEO_UPLOAD_SIZE_MB;
     /**
-     * Дефолты поповера параметров: конфиг модуля — единственный их источник,
-     * поповер лишь переопределяет их на текущую загрузку. Запасные значения
-     * общие с сервером, иначе поповер показывал бы и отправлял своё число, а
-     * серверный дефолт не применялся бы вовсе.
+     * The defaults of the parameters popover: the config of the module is their one
+     * source, and the popover only overrides them for the upload at hand. The
+     * fallback values are shared with the server, otherwise the popover would show
+     * and send a number of its own while the default of the server was never applied
+     * at all.
      *
-     * Ширина проходит ту же нормализацию, что и на сервере: от неё считаются
-     * границы поля ввода, и своя трактовка непригодного значения на каждой
-     * стороне разводила бы эти границы.
+     * The width goes through the same normalization as on the server: the bounds of
+     * the input field are counted from it, and a reading of an unfit value of one's
+     * own on each side would pull those bounds apart.
      */
     const defaultOptimization: IBricksMediaOptimization = {
         format: mediaConfig?.optimization?.format ?? DEFAULT_MEDIA_OPTIMIZATION.format,
@@ -64,19 +65,20 @@ export function useMediaUpload(options: IMediaUploadOptions): {
     const mediaStore = useMediaStore();
     const { t } = useI18n();
     const uploadProgress = ref<IMediaUploadProgress | null>(null);
-    /** Очередь файлов и активный worker: полоса прогресса в интерфейсе одна. */
+    /** The queue of files and the active worker: the interface has one progress bar */
     const queue: IMediaUploadQueueEntry[] = [];
     let activeDrain: Promise<void> | null = null;
 
     /**
-     * Проверяет, что файл является поддерживаемым медиа-типом (изображение или видео).
+     * Checks that the file is a supported media type (an image or a video).
      */
     function isSupportedMediaFile(file: File): boolean {
         return file.type.startsWith('image/') || file.type.startsWith('video/');
     }
 
     /**
-     * Валидирует размер файла и возвращает сообщение об ошибке, если лимит превышен.
+     * Checks the size of the file and returns an error message when the limit is
+     * exceeded.
      */
     function validateFileSize(file: File): string | null {
         const isVideo = file.type.startsWith('video/');
@@ -98,11 +100,11 @@ export function useMediaUpload(options: IMediaUploadOptions): {
     }
 
     /**
-     * Загружает один файл, доставляя отказ пользователю. Любой отказ —
-     * неподдерживаемый тип, превышение лимита, отказ сервера — доходит через
-     * onError: молча пропущенный файл выглядел бы загруженным.
+     * Uploads one file, delivering a refusal to the user. Every refusal — an
+     * unsupported type, a limit exceeded, a refusal of the server — gets there
+     * through `onError`: a silently skipped file would look uploaded.
      *
-     * @param entry - Файл вместе с параметрами своего набора.
+     * @param entry - The file together with the parameters of its own set.
      */
     async function uploadQueuedFile(entry: IMediaUploadQueueEntry): Promise<void> {
         const { file } = entry;
@@ -132,13 +134,14 @@ export function useMediaUpload(options: IMediaUploadOptions): {
     }
 
     /**
-     * Разбирает очередь до конца, ведя сквозной счётчик.
+     * Works the queue down to the end, keeping one counter across it.
      *
-     * Один worker на все наборы, а не задача на набор: полоса прогресса в
-     * интерфейсе одна, и два параллельных набора делили бы её — `finally`
-     * первого гасил бы полосу, пока второй ещё грузится. Категория и параметры
-     * запоминаются на момент добавления файла в очередь, поэтому смена фильтра
-     * или настроек по ходу не переписывает уже принятое задание.
+     * One worker for every set rather than a job per set: the interface has one
+     * progress bar, and two parallel sets would be sharing it — the `finally` of the
+     * first would put the bar out while the second was still uploading. The category
+     * and the parameters are remembered at the moment a file is put into the queue,
+     * so a change of the filter or of the settings midway does not rewrite a job that
+     * has already been taken.
      */
     async function drainQueue(): Promise<void> {
         let processed = 0;
@@ -153,7 +156,8 @@ export function useMediaUpload(options: IMediaUploadOptions): {
             processed += 1;
             uploadProgress.value = {
                 current: processed,
-                // Итог считается по факту: очередь могла подрасти новым набором
+                // The total is counted as things stand: the queue could have grown
+                // by a new set
                 total: processed + queue.length,
                 filename: entry.file.name,
             };
@@ -165,9 +169,9 @@ export function useMediaUpload(options: IMediaUploadOptions): {
     }
 
     /**
-     * Ставит набор файлов в очередь загрузки и, если worker не запущен, запускает
-     * его. Возвращается по завершении всей очереди — вызывающему достаточно
-     * знать, что его файлы обработаны.
+     * Puts a set of files into the upload queue and, when no worker is running,
+     * starts one. Returns once the whole queue is done — it is enough for the caller
+     * to know that its own files have been dealt with.
      */
     async function uploadFiles(files: File[]): Promise<void> {
         const category = options.resolveCategory();

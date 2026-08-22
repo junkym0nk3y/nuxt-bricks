@@ -1,4 +1,36 @@
 <script setup lang="ts">
+/**
+ * @description The media library as a modal: the header with the search and the upload,
+ * the track of categories, the grid, the footer with the meta panel of the selected file,
+ * and the full-screen preview over all of it.
+ *
+ * The modal is where picking a file is a step inside some other work — the sidebar of the
+ * builder, the OG image of a page. The manager of the dashboard is a section of its own,
+ * `TheBuilderMediaSection`; the two share the composables and the children, not the
+ * surface.
+ *
+ * The summary of the library and the drag hint share one line of the subtitle: the hint
+ * has to be visible at all times, the permanent upload zone that used to announce itself
+ * being gone. Uploading is a write, so its controls go to a role that has one. The
+ * counters and the filtered list are computed the same way `TheBuilderMediaSection`
+ * computes them.
+ *
+ * The content of the grid is swapped with a dissolve: switching a category used to
+ * replace the grid instantly, and against a layout that did not move (six tiles before,
+ * six after) there was no seeing that the list had been refreshed at all. The key is the
+ * category alone, without the search query: on the query the grid would be rebuilt letter
+ * by letter and would blink at every keystroke. The drop target covers the grid alone:
+ * the row of filters has to stay visible, it being what tells which category the files
+ * will go into.
+ *
+ * Decisions held by the style section: the area of the grid is the positioning container
+ * of the drop target, so it stretches over the grid's place rather than over the whole
+ * content of the modal; and the band at the bottom is one of metadata rather than one of
+ * actions — the properties panel of the selected file lives inside it, which is why
+ * `BricksModalFooter`, being about buttons, does not fit. Its height comes from its
+ * content: one hint row with nothing selected, two with a file.
+ */
+
 // #region Imports
 
 // Types
@@ -73,11 +105,12 @@ const toastMessage = ref('');
 const uploadControlsRef = ref<InstanceType<typeof BuilderMediaGalleryUploadControls> | null>(null);
 
 /**
- * Параметры загрузки живут в модалке, а не в сторе: они относятся к сессии работы
- * с галереей, а не к самой медиатеке, и при новом открытии обязаны вернуться к
- * дефолтам конфига. Инициализируются общими дефолтами и накрываются дефолтами
- * конфига сразу после `useMediaUpload` — раньше конфиг взять негде, а объявить
- * ref позже нельзя: композабл читает его в колбэке.
+ * The upload parameters live in the modal rather than in the store: they belong to a
+ * session of work with the gallery and not to the library itself, and on a new opening
+ * they are obliged to go back to the defaults of the config. They start out as the shared
+ * defaults and are covered with the config's right after `useMediaUpload` — there is
+ * nowhere to take the config from any earlier, and the ref cannot be declared any later:
+ * the composable reads it inside a callback.
  */
 const uploadOptimization = ref<IBricksMediaOptimization>({ ...DEFAULT_MEDIA_OPTIMIZATION });
 
@@ -107,16 +140,16 @@ const mediaItems = computed(() => mediaStore.items);
 const isUploading = computed(() => mediaStore.isUploading);
 const hasItems = computed(() => mediaItems.value.length > 0);
 /**
- * Прочитан ли состав медиатеки: до первого удачного ответа счётчик «Все» не
- * рисуется — ноль на его месте утверждал бы, что файлов нет.
+ * Whether the contents of the media library have been read: until the first successful
+ * answer the "All" counter is not drawn — a zero in its place would claim that there are
+ * no files.
  */
 const hasLibrarySnapshot = computed<boolean>(() => mediaStore.hasLoadedItemsSnapshot);
 const selectedItem = computed(
     () => mediaItems.value.find((item) => item.id === selectedItemId.value) ?? null
 );
 /**
- * Счётчики табов считаются по уже загруженному списку — отдельного запроса нет.
- * Файлы без категории ни в один счётчик не попадают: их видно только во «Всех».
+ * Files with no category fall into no counter: they are seen under "All" only.
  */
 const categoryCounts = computed<Record<string, number>>(() =>
     mediaItems.value.reduce<Record<string, number>>((counts, item) => {
@@ -131,9 +164,9 @@ const totalSize = computed<number>(() =>
     mediaItems.value.reduce((sum, item) => sum + item.size, 0)
 );
 /**
- * Сводка медиатеки в шапке: она про всю библиотеку, поэтому стоит рядом с
- * кнопкой загрузки — тем единственным, что её меняет, — а не в футере, который
- * занят выбранным файлом.
+ * The summary of the media library in the header: it is about the whole library, so it
+ * stands next to the upload button — the one thing that changes it — rather than in the
+ * footer, which is taken by the selected file.
  */
 const librarySummary = computed<string>(() =>
     t('bricks.media.librarySummaryShort', {
@@ -143,9 +176,9 @@ const librarySummary = computed<string>(() =>
 );
 
 /**
- * Действия над категориями. Ниже Computed, а не в Data: композабл читает
- * `categoryCounts` для текста подтверждения, а обращение к нему выше объявления
- * ломало бы порядок, даже будучи отложенным замыканием.
+ * The actions over the categories. Down here among the computeds rather than up in the
+ * data: the composable reads `categoryCounts` for the text of the confirmation, and
+ * reaching for it above its declaration would break the order even in a deferred closure.
  */
 const {
     categories,
@@ -166,11 +199,12 @@ const {
 });
 
 /**
- * Отфильтрованный список сетки: категория из дорожки, затем строка поиска.
+ * The filtered list of the grid: the category out of the track, then the search string.
  *
- * Ниже `useMediaCategoryActions`, потому что поиск сверяет ПОДПИСЬ категории, а
- * список подписей приходит оттуда. Сверка с `item.category` не годилась: там
- * лежит slug, то есть по «Фоны» не находилось ничего — в данных `fony`.
+ * Below `useMediaCategoryActions`, because the search matches against the CAPTION of a
+ * category, and the list of captions comes from there. Matching against `item.category`
+ * would not do: what lies there is a slug, so a search by a caption found nothing — the
+ * data holds its transliteration.
  */
 const filteredMediaItems = computed(() => {
     const filterValue = categoryFilter.value;
@@ -197,10 +231,10 @@ const hasFilteredItems = computed(() => filteredMediaItems.value.length > 0);
 
 // #region Methods
 /**
- * Загружает медиа и категории с обработкой ошибок.
+ * Loads the media and the categories, taking care of the errors.
  *
- * Параллельно: списки независимы, а последовательный запуск удваивал бы задержку
- * открытия галереи.
+ * In parallel: the lists are independent, and starting them one after the other would
+ * double the delay of opening the gallery.
  */
 async function loadGalleryData(): Promise<void> {
     const [itemsResult, categoriesResult] = await Promise.allSettled([
@@ -215,8 +249,9 @@ async function loadGalleryData(): Promise<void> {
         );
     }
 
-    // Отказ категорий не отменяет галерею: файлы видны и без ряда чипов, поэтому
-    // это тост, а не ошибка уровня всей модалки
+    // A refusal of the categories does not cancel the gallery: the files are visible
+    // without the row of tabs too, so this is a toast and not an error of the whole
+    // modal
     if (categoriesResult.status === 'rejected') {
         showErrorToast(
             getBricksErrorMessage(categoriesResult.reason, t('bricks.media.categoryLoadFailed'))
@@ -231,7 +266,7 @@ function handleClose(): void {
 }
 
 /**
- * Показывает toast-уведомление об ошибке.
+ * Shows a toast about an error.
  */
 function showErrorToast(message: string): void {
     toastMessage.value = message;
@@ -239,23 +274,23 @@ function showErrorToast(message: string): void {
 }
 
 /**
- * Возвращает категорию для загрузки на основе активного фильтра.
+ * Returns the category for an upload, out of the active filter.
  *
- * Приёмника для загрузки «из общего списка» больше нет: при фильтре «Все» файл
- * сохраняется без категории и виден только там же, во «Всех».
+ * There is no target for uploading "into the common list" any more: under the "All"
+ * filter a file is stored with no category and is seen in that same "All" only.
  *
- * @returns Категория сохраняемого файла или null.
+ * @returns The category of the file being stored, or null.
  */
 function resolveUploadCategory(): string | null {
     return categoryFilter.value !== ALL_MEDIA_CATEGORIES_FILTER ? categoryFilter.value : null;
 }
 
 /**
- * Загружает файлы из upload-зоны.
+ * Uploads the files coming out of the upload zone.
  *
- * Проверка права — не дубль скрытых контролов: приёмник файлов ловит перетаскивание
- * на всю сетку, и он остался бы рабочим входом в загрузку у роли, для которой
- * кнопки уже убраны.
+ * The check of the right is no duplicate of the hidden controls: the drop target catches
+ * a drag over the whole grid, and it would stay a working way into an upload for a role
+ * whose buttons have been taken away already.
  */
 async function handleUpload(files: File[]): Promise<void> {
     if (!canEdit.value) {
@@ -266,9 +301,9 @@ async function handleUpload(files: File[]): Promise<void> {
 }
 
 /**
- * Открывает системный выбор файлов из плитки-приёмника: сам input живёт в
- * контролах шапки, второй такой же в сетке означал бы две точки правды о том,
- * какие типы файлов принимаются.
+ * Opens the system file picker from the upload tile: the input itself lives in the
+ * controls of the header, and a second one just like it in the grid would mean two
+ * points of truth about which file types are accepted.
  */
 function handleUploadRequest(): void {
     if (!canEdit.value) {
@@ -278,7 +313,7 @@ function handleUploadRequest(): void {
     uploadControlsRef.value?.openFilePicker();
 }
 
-/** Принимает изменённые параметры оптимизации из поповера. */
+/** Takes the changed optimization parameters out of the popover */
 function handleOptimizationChange(value: IBricksMediaOptimization): void {
     uploadOptimization.value = value;
 }
@@ -304,16 +339,16 @@ function handleInsert(): void {
 }
 
 /**
- * Сбрасывает фильтр и поиск. Нужен пустому результату: без него выход из него —
- * это найти и нажать активный чип, а при выбранной категории вместе с введённым
- * запросом требуется два действия.
+ * Drops the filter and the search. The empty result needs it: without it, getting out
+ * of that result means finding and pressing the active tab, and with a category picked
+ * alongside a typed query that takes two actions.
  */
 function handleResetFilter(): void {
     categoryFilter.value = ALL_MEDIA_CATEGORIES_FILTER;
     searchQuery.value = '';
 }
 
-/** Сохраняет изменённые метаданные выбранного элемента; отказ — toast. */
+/** Saves the changed metadata of the selected item; a refusal becomes a toast */
 async function handleUpdateMeta(meta: IMediaUpdateMetaRequest): Promise<void> {
     const item = selectedItem.value;
 
@@ -329,13 +364,13 @@ async function handleUpdateMeta(meta: IMediaUpdateMetaRequest): Promise<void> {
 }
 
 /**
- * Обновляет категорию выбранного элемента; отказ — toast. null снимает
- * категорию с файла.
+ * Updates the category of the selected item; a refusal becomes a toast. null takes the
+ * category off the file.
  *
- * Отказ обязателен к обработке здесь: без ожидания реджект стора ушёл бы в
- * необслуженный промис.
+ * The refusal has to be handled right here: without the await, the rejection of the
+ * store would go into a promise nobody handles.
  *
- * @param category - Новая категория файла или null.
+ * @param category - The new category of the file, or null.
  */
 async function handleUpdateCategory(category: string | null): Promise<void> {
     const item = selectedItem.value;
@@ -352,10 +387,10 @@ async function handleUpdateCategory(category: string | null): Promise<void> {
 }
 
 /**
- * Снимает фильтр, указывающий на удалённую категорию: иначе он ссылался бы на
- * то, чего больше нет, и сетка осталась бы демонстративно пустой.
+ * Drops a filter pointing at a deleted category: otherwise it would refer to something
+ * that is gone, and the grid would be left demonstratively empty.
  *
- * @param slug - Удалённая категория.
+ * @param slug - The deleted category.
  */
 function handleCategoryDeleted(slug: string): void {
     if (categoryFilter.value === slug) {
@@ -363,7 +398,7 @@ function handleCategoryDeleted(slug: string): void {
     }
 }
 
-/** Открывает модалку подтверждения удаления. */
+/** Opens the deletion confirmation modal */
 function handleRemoveItem(): void {
     if (!selectedItemId.value) {
         return;
@@ -372,13 +407,13 @@ function handleRemoveItem(): void {
 }
 
 /**
- * Подтверждает удаление выбранного элемента.
+ * Confirms the deletion of the selected item.
  *
- * Определённый отказ сервера оставляет подтверждение открытым — элемент на
- * месте, повтор безопасен и находится под рукой. Обрыв по потолку ожидания
- * закрывает его: исход неизвестен, файл мог быть удалён, и повтор получил бы
- * 404 — сообщение об этом прямо просит сначала обновить данные, а список стор
- * уже перечитывает сам.
+ * A definite refusal of the server leaves the confirmation open — the item is where it
+ * was, a repeat is safe and right at hand. A break by the waiting ceiling closes it: the
+ * outcome is unknown, the file may well have been deleted, and a repeat would then answer
+ * 404 — the message about that asks outright to refresh the data first, and the store is
+ * already rereading the list on its own.
  */
 async function handleConfirmDelete(): Promise<void> {
     if (!selectedItemId.value || !canDelete.value) {
@@ -400,26 +435,26 @@ async function handleConfirmDelete(): Promise<void> {
     }
 }
 
-/** Закрывает модалку подтверждения удаления. */
+/** Closes the deletion confirmation modal */
 function handleCloseDeleteConfirm(): void {
     isDeleteConfirmOpen.value = false;
 }
 
-/** Открывает полноэкранный предпросмотр изображения. */
+/** Opens the full-screen preview of an image */
 function handleOpenPreview(item: IMediaItem): void {
     previewItem.value = item;
 }
 
-/** Закрывает полноэкранный предпросмотр. */
+/** Closes the full-screen preview */
 function handleClosePreview(): void {
     previewItem.value = null;
 }
 
 /**
- * Обрабатывает Escape внутри модалки: пока открыт предпросмотр,
- * закрывает только его, не давая Reka закрыть саму галерею.
+ * Handles Escape inside the modal: while the preview is open it closes that alone,
+ * keeping Reka from closing the gallery itself.
  *
- * @param event - Событие клавиатуры от Reka Dialog.
+ * @param event - The keyboard event coming from the Reka dialog.
  */
 function handleEscapeKeyDown(event: KeyboardEvent): void {
     if (previewItem.value) {
@@ -430,10 +465,10 @@ function handleEscapeKeyDown(event: KeyboardEvent): void {
 // #endregion
 
 // #region Lifecycle
-// Монтирование совпадает с первым открытием: вызывающие держат латч и до него
-// компонент не создают. Поэтому первый показ грузит данные отсюда — `visible`
-// уже `true` на момент монтирования, и watch ниже на нём не срабатывает; ему
-// остаются повторные открытия.
+// Mounting coincides with the first opening: the callers hold a latch and do not create
+// the component before it. So the first showing loads the data from here — `visible` is
+// already `true` by the time of the mount, and the watch below does not fire on it; what
+// is left to that watch is the repeated openings.
 onMounted(() => {
     loadGalleryData();
 });
@@ -450,11 +485,12 @@ watch(
             return;
         }
 
-        // Подтверждения рендерятся вне `BricksModal` галереи, то есть её закрытие
-        // их не снимает: диалог оставался висеть поверх приложения — в том числе
-        // поверх уже другой сессии билдера, когда галерею гасит сброс сессии.
-        // Лайтбокс живёт внутри модалки и размонтируется сам, но его
-        // `previewItem` иначе всплывал бы при следующем открытии галереи
+        // The confirmations render outside the gallery's `BricksModal`, so closing it
+        // does not take them down: the dialog went on hanging over the application — over
+        // an already different session of the builder among other things, when a reset of
+        // the session is what puts the gallery out. The lightbox lives inside the modal
+        // and unmounts on its own, but its `previewItem` would otherwise surface at the
+        // next opening
         isDeleteConfirmOpen.value = false;
         resetCategoryActions();
         previewItem.value = null;
@@ -482,10 +518,6 @@ watch(
             @drop="handleDrop"
         >
             <BricksModalHeader size="lg" @close="handleClose">
-                <!-- Сводка медиатеки и подсказка о перетаскивании одной строкой:
-                     подсказка обязана быть видна всегда — постоянной зоны
-                     загрузки, которая раньше о себе сообщала, в модалке больше
-                     нет. -->
                 <template #subtitle>
                     {{ librarySummary }} · {{ t('bricks.media.dropAnywhereHint') }}
                 </template>
@@ -498,7 +530,6 @@ watch(
                         @update:value="searchQuery = $event"
                     />
 
-                    <!-- Загрузка — запись: роли наблюдателя ручка откажет -->
                     <BuilderMediaGalleryUploadControls
                         v-if="canEdit"
                         ref="uploadControlsRef"
@@ -513,7 +544,6 @@ watch(
                 </template>
             </BricksModalHeader>
 
-            <!-- Content -->
             <div :class="[$style.content, 'bricks-scrollbox']">
                 <BuilderMediaGalleryFilters
                     v-model:category-filter="categoryFilter"
@@ -525,17 +555,6 @@ watch(
                     @delete-category="handleRequestCategoryDelete"
                 />
 
-                <!--
-                    Смена содержимого — с растворением: переключение категории
-                    подменяло сетку мгновенно, и по неподвижной раскладке
-                    (шесть плиток до и шесть после) было не видно, что список
-                    вообще обновился.
-
-                    Ключ — только категория, без поискового запроса: на нём
-                    перебор шёл бы по букве и сетка мигала бы на каждом
-                    нажатии. Переходы между сеткой и пустыми состояниями
-                    отрабатывают сами — это разные ветки `v-if`.
-                -->
                 <div :class="$style.gridArea">
                     <Transition mode="out-in" name="bricks-fade-fast">
                         <BuilderMediaGalleryGrid
@@ -550,7 +569,6 @@ watch(
                             @upload="handleUploadRequest"
                         />
 
-                        <!-- Фильтр ничего не нашёл -->
                         <BricksEmptyState
                             v-else-if="hasItems"
                             :class="$style.emptyState"
@@ -562,7 +580,6 @@ watch(
                             </BricksButton>
                         </BricksEmptyState>
 
-                        <!-- Медиатека пуста -->
                         <BricksEmptyState
                             v-else
                             :class="$style.emptyState"
@@ -572,11 +589,6 @@ watch(
                         />
                     </Transition>
 
-                    <!--
-                        Приёмник накрывает только сетку: строка фильтров обязана
-                        остаться видимой — по ней понятно, в какую категорию
-                        уйдут файлы.
-                    -->
                     <Transition name="bricks-fade-fast">
                         <BuilderMediaGalleryDropOverlay
                             v-if="isDraggingFiles"
@@ -589,7 +601,6 @@ watch(
                 </div>
             </div>
 
-            <!-- Footer -->
             <div :class="$style.footer">
                 <BuilderMediaGalleryMetaPanel
                     :selected-item="selectedItem"
@@ -604,14 +615,11 @@ watch(
             </div>
         </div>
 
-        <!-- Fullscreen Preview Lightbox -->
         <BuilderMediaGalleryPreviewLightbox :item="previewItem" @close="handleClosePreview" />
     </BricksModal>
 
-    <!-- Upload Error Toast -->
     <BricksToast v-model:visible="toastVisible" :message="toastMessage" variant="error" />
 
-    <!-- Delete Confirmation Modal -->
     <BricksConfirmModal
         :is-open="isDeleteConfirmOpen"
         :title="t('bricks.media.deleteImageTitle')"
@@ -623,7 +631,6 @@ watch(
         @close="handleCloseDeleteConfirm"
     />
 
-    <!-- Category Delete Confirmation -->
     <BricksConfirmModal
         :is-open="categoryPendingDeletion !== null"
         :title="deleteCategoryTitle"
@@ -653,8 +660,6 @@ watch(
     width: 28rem;
 }
 
-/* Позиционирующий контейнер приёмника: он накрывает сетку целиком, поэтому
-   растягивается по её месту, а не по всему содержимому модалки. */
 .gridArea {
     position: relative;
     display: flex;
@@ -671,14 +676,10 @@ watch(
     padding: 2.4rem;
 }
 
-/* Отступы состояния задаёт сетка модалки. */
 .emptyState {
     padding: 4rem 2rem;
 }
 
-/* Полоса метаданных, а не полоса действий: внутри неё живёт панель свойств
-   выбранного файла, поэтому `BricksModalFooter` тут не подходит — он про кнопки.
-   Высота приходит от содержимого: 120 с выбранным файлом и 76 без него. */
 .footer {
     display: flex;
     align-items: center;
