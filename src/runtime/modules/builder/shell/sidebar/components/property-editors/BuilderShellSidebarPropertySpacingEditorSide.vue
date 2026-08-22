@@ -38,27 +38,27 @@ const { t } = useI18n();
 
 // #region Methods
 /**
- * Возвращает локализованную подпись стороны для aria-атрибутов.
+ * Localized caption of the side, used by the aria attributes.
  *
- * @returns Локализованная подпись.
+ * @returns Localized caption.
  */
 function sideLabel(): string {
     return t(`bricks.properties.spacing.sides.${props.item.side}`);
 }
 
 /**
- * Пробрасывает текст инлайн-ввода наверх (v-model:editing-value).
+ * Forwards the text of the inline input upwards (v-model:editing-value).
  *
- * @param event - Событие input нативного инпута.
+ * @param event - Input event of the native input.
  */
 function onEditingInput(event: Event): void {
     emit('update:editingValue', (event.target as HTMLInputElement).value);
 }
 
 /**
- * Фокусирует и выделяет инпут инлайн-ввода при его появлении.
+ * Focuses the inline input and selects its text as soon as it appears.
  *
- * @param el - Элемент из function ref.
+ * @param el - Element from the function ref.
  */
 function focusInput(el: unknown): void {
     if (el instanceof HTMLInputElement && document.activeElement !== el) {

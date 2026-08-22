@@ -1,7 +1,7 @@
 /**
- * Превью карточки компонента библиотеки: lazy-загрузка brick-компонента
- * и contain-масштабирование под фиксированную область превью
- * (ResizeObserver + watchers на смену компонента/пропсов/режима).
+ * Preview of a library component card: the brick component is loaded lazily and
+ * scaled to contain inside the fixed preview area (a ResizeObserver plus watchers on
+ * a change of the component, its props or the card mode).
  */
 
 // Types
@@ -38,28 +38,31 @@ import {
 import { CANVAS_BLOCK_COMPONENTS } from '../../../../layouts-blocks/canvasBlockComponents';
 
 /**
- * Максимальное увеличение для маленьких компонентов
+ * Ceiling of the scale-up applied to small components
  */
 const MAX_SCALE_UP = 3;
 
 /**
- * Фиксированная высота превью (из CSS)
+ * Fixed height of the preview, repeated from the CSS
  */
 const PREVIEW_HEIGHT_REM = 18;
 const LAYOUT_PREVIEW_HEIGHT_REM = 12;
 
-/** id скрытого measure-инстанса: в схему не попадает, нужен только контексту рендера. */
+/**
+ * Id of the hidden measure instance: it never reaches the schema and only serves the
+ * render context
+ */
 const MEASURE_PROBE_ID = 'measure-probe';
 
 /**
- * Логика превью карточки: async-компонент, refs областей и масштаб.
+ * Logic of the card preview: the async component, the refs of its areas and the scale.
  */
 export function useComponentCardPreview(props: ISidebarComponentCardProps): IComponentCardPreview {
     const { findImportModule } = useBrickImports();
     const ComponentPreview = shallowRef<Component | null>(null);
     const previewWrapperRef = ref<HTMLElement | null>(null);
     const componentWrapperRef = ref<HTMLElement | null>(null);
-    /** Скрытый инстанс layout-блока для точного замера его реального размера. */
+    /** Hidden instance of the layout block, there to measure its real size exactly */
     const measureWrapperRef = ref<HTMLElement | null>(null);
     const previewScale = ref(1);
     let resizeObserver: ResizeObserver | null = null;
@@ -85,24 +88,27 @@ export function useComponentCardPreview(props: ISidebarComponentCardProps): ICom
     }
 
     /**
-     * Фильтрует slot-пропсы из defaultProps чтобы не передавать их как обычные пропсы
-     * @returns Объект пропсов без slot-пропсов
+     * Filters the slot props out of `defaultProps` so they are not passed as ordinary
+     * props.
+     *
+     * @returns Props object with no slot props in it.
      */
     const componentProps = computed<Record<string, unknown>>(() => {
         const propsObj = { ...(props.component.defaultProps || {}) };
-        // Удаляем slot prop если он есть (он должен передаваться как slot, а не prop)
+        // Drop the slot prop if there is one: it has to travel as a slot, not as a prop
         delete propsObj.slot;
         return propsObj;
     });
 
-    /** Definition встроенного layout-блока (для user-bricks — null). */
+    /** Definition of a built-in layout block (null for a user brick) */
     const blockDefinition = computed(() => getBlockDefinition(props.component.name) ?? null);
 
     /**
-     * Реальный canvas-компонент встроенного блока для скрытого замера (Grid/Flex/
-     * Media/…): у layout-карточки живого превью нет, только иконка. Берётся из
-     * canvas-реестра — sidebar builder-only, published-бандла не касается.
-     * User-bricks меряются по своему превью, скрытый инстанс им не нужен.
+     * The real canvas component of a built-in block for the hidden measurement
+     * (Grid/Flex/Media/…): a layout card has no live preview, only an icon. Taken
+     * from the canvas registry — the sidebar is builder-only and never touches the
+     * published bundle. A user brick is measured by its own preview and needs no
+     * hidden instance.
      */
     const measureComponent = computed<Component | null>(() => {
         if (!blockDefinition.value) {
@@ -113,8 +119,9 @@ export function useComponentCardPreview(props: ISidebarComponentCardProps): ICom
     });
 
     /**
-     * Биндинги measure-инстанса — точно как на канвасе (resolveCanvasBind),
-     * чтобы замеренный размер совпал с реальным блоком после вставки.
+     * Bindings of the measure instance — exactly the ones of the canvas
+     * (`resolveCanvasBind`), so that the measured size matches the real block once it
+     * is inserted.
      */
     const measureBindProps = computed<Record<string, unknown>>(() => {
         const definition = blockDefinition.value;
@@ -132,8 +139,9 @@ export function useComponentCardPreview(props: ISidebarComponentCardProps): ICom
         };
         const context: IBlockCanvasContext = {
             component: probeComponent,
-            // Превью карточки библиотеки меряется на базовом устройстве: карточка
-            // одна на все страницы, и набор конкретной страницы к ней отношения не имеет
+            // The library card preview is measured on the base device: there is one
+            // card for every page, and the set of a particular page has nothing to do
+            // with it
             layoutProps: resolveBlockProps(
                 props.component.name,
                 componentProps.value,
@@ -148,16 +156,16 @@ export function useComponentCardPreview(props: ISidebarComponentCardProps): ICom
     });
 
     /**
-     * Обновляет масштаб предпросмотра компонента
+     * Recomputes the scale of the component preview.
      *
-     * Измеряет РЕАЛЬНЫЙ размер компонента (не wrapper с фиксированной шириной).
-     * Стратегия: contain - компонент полностью влезает в превью.
-     * Маленькие компоненты увеличиваются (до MAX_SCALE_UP), большие уменьшаются.
+     * What is measured is the real size of the component, not the wrapper with its
+     * fixed width. The strategy is contain: the component fits into the preview
+     * whole, small ones scaled up (no further than MAX_SCALE_UP), large ones down.
      */
     async function updatePreviewScale(): Promise<void> {
         await nextTick();
 
-        // Даем время компоненту отрендериться
+        // Give the component time to render
         if (previewUpdateTimer) {
             clearTimeout(previewUpdateTimer);
         }
@@ -172,26 +180,26 @@ export function useComponentCardPreview(props: ISidebarComponentCardProps): ICom
                 return;
             }
 
-            // Получаем реальный компонент (первый child внутри componentWrapper)
+            // The real component is the first child inside componentWrapper
             const actualComponent = componentWrapper.firstElementChild as HTMLElement;
             if (!actualComponent) {
                 previewScale.value = 1;
                 return;
             }
 
-            // Размеры области превью
+            // Size of the preview area
             const previewWidth = wrapper.clientWidth || 200;
             const previewHeightRem = props.isLayout
                 ? LAYOUT_PREVIEW_HEIGHT_REM
                 : PREVIEW_HEIGHT_REM;
             const previewHeight = convertRemToPx(`${previewHeightRem}rem`);
 
-            // Измеряем РЕАЛЬНЫЙ размер компонента
-            // offsetWidth/offsetHeight дают размер без учёта transform родителя
+            // Measure the real size of the component: offsetWidth/offsetHeight give
+            // it without the transform of the parent
             let contentWidth = actualComponent.offsetWidth;
             let contentHeight = actualComponent.offsetHeight;
 
-            // Фолбек на scrollWidth/scrollHeight если offset вернул 0
+            // Fall back to scrollWidth/scrollHeight when offset came back as 0
             if (!contentWidth) {
                 contentWidth = actualComponent.scrollWidth || 100;
             }
@@ -199,8 +207,9 @@ export function useComponentCardPreview(props: ISidebarComponentCardProps): ICom
                 contentHeight = actualComponent.scrollHeight || 100;
             }
 
-            // Для полноширинных компонентов (занимают 100% wrapper) используем wrapper
-            // Это компоненты типа секций которые растягиваются на всю ширину
+            // A full-width component — a section and its kind, stretched across the
+            // whole width — takes 100% of the wrapper, so the wrapper is measured
+            // instead
             if (contentWidth >= componentWrapper.offsetWidth * 0.95) {
                 contentWidth = componentWrapper.scrollWidth;
                 contentHeight = componentWrapper.scrollHeight;
@@ -211,12 +220,12 @@ export function useComponentCardPreview(props: ISidebarComponentCardProps): ICom
                 return;
             }
 
-            // Вычисляем масштаб для contain (весь компонент влезает)
+            // Scale that makes the whole component fit
             const widthScale = previewWidth / contentWidth;
             const heightScale = previewHeight / contentHeight;
 
-            // Contain: берём меньший масштаб чтобы влезло по обоим осям
-            // Но разрешаем увеличение для маленьких компонентов (до MAX_SCALE_UP)
+            // Contain: take the smaller of the two so it fits along both axes, while
+            // still allowing a small component to grow up to MAX_SCALE_UP
             const containScale = Math.min(widthScale, heightScale);
             const scale = Math.min(containScale, MAX_SCALE_UP);
 
@@ -225,8 +234,8 @@ export function useComponentCardPreview(props: ISidebarComponentCardProps): ICom
     }
 
     /**
-     * Настраивает ResizeObserver для отслеживания изменений размера wrapper
-     * При изменении размера автоматически пересчитывает масштаб превью
+     * Sets up the ResizeObserver that watches the size of the wrapper and recomputes
+     * the preview scale whenever it changes.
      */
     function setupResizeObserver(): void {
         if (resizeObserver || typeof ResizeObserver === 'undefined') {
@@ -239,16 +248,18 @@ export function useComponentCardPreview(props: ISidebarComponentCardProps): ICom
     }
 
     /**
-     * Отдаёт фактический размер блока для canvas-плейсхолдера.
+     * The actual size of the block, for the canvas placeholder.
      *
-     * Источник истины — отрендеренный компонент на desktop-ширине (144rem):
-     * user-bricks и leaf-блоки берутся из живого превью, layout — из скрытого
-     * measure-инстанса. Хардкод-оценок по типу блока нет.
+     * The source of truth is the rendered component inside its host of a fixed 144rem
+     * width: a user brick and a leaf block are taken from the live preview, a layout
+     * block from the hidden measure instance. There are no hardcoded guesses per
+     * block type.
      *
-     * Если превью ещё не отрендерилось (async-brick в загрузке, компонент без
-     * DOM-корня), меряется сам host — плейсхолдер остаётся видимым.
+     * When the preview has not rendered yet (an async brick still loading, a
+     * component with no DOM root), the host itself is measured — the placeholder
+     * stays visible.
      *
-     * @returns Размер будущего canvas-плейсхолдера.
+     * @returns Size of the canvas placeholder to come.
      */
     function getDragPreviewSize(): IDragVisualSize {
         const host = props.isLayout ? measureWrapperRef.value : componentWrapperRef.value;
@@ -275,9 +286,9 @@ export function useComponentCardPreview(props: ISidebarComponentCardProps): ICom
         resizeObserver = null;
     });
 
-    // Watchers для автоматического пересчета масштаба при изменениях
+    // Watchers that recompute the scale on their own
 
-    // При изменении ref wrapper - переподписываем ResizeObserver
+    // A changed wrapper ref: resubscribe the ResizeObserver
     watch(
         previewWrapperRef,
         (el, prev) => {
@@ -291,13 +302,13 @@ export function useComponentCardPreview(props: ISidebarComponentCardProps): ICom
         { flush: 'post' }
     );
 
-    // При загрузке асинхронного компонента - пересчитываем масштаб
+    // The async component has loaded: recompute the scale
     watch(ComponentPreview, async () => {
         await nextTick();
         updatePreviewScale();
     });
 
-    // При изменении пропсов компонента - пересчитываем масштаб
+    // The props of the component have changed: recompute the scale
     watch(
         () => props.component.defaultProps,
         async () => {
@@ -306,7 +317,7 @@ export function useComponentCardPreview(props: ISidebarComponentCardProps): ICom
         }
     );
 
-    // При изменении isLayout - пересчитываем масштаб
+    // `isLayout` has changed: recompute the scale
     watch(
         () => props.isLayout,
         async () => {

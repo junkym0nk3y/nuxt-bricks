@@ -1,12 +1,19 @@
 <script setup lang="ts">
+/**
+ * @description JSON editor of an object or array property, wrapped around
+ * `json-editor-vue`.
+ *
+ * The whole editor pins the light theme with hex values of its own.
+ */
+
 // #region Imports
 // Vue
 import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Components
-// Локальный импорт (а не глобальный плагин): vanilla-jsoneditor (~200KB)
-// грузится только вместе с этим lazy-редактором, не на каждой странице
+// A local import rather than a global plugin: vanilla-jsoneditor (~200KB) then loads
+// together with this lazy editor only, instead of on every page
 import { Mode } from 'vanilla-jsoneditor';
 import JsonEditorVue from 'json-editor-vue';
 // #endregion
@@ -40,9 +47,9 @@ const internalValue = ref<unknown>(props.modelValue);
 
 // #region Methods
 /**
- * Обновляет значение при изменении в редакторе.
+ * Updates the value on a change inside the editor.
  *
- * @param value - Новое значение из редактора.
+ * @param value - New value from the editor.
  */
 function handleUpdate(value: unknown): void {
     internalValue.value = value;
@@ -90,7 +97,6 @@ watch(
 
 <style module lang="scss">
 .BuilderShellSidebarPropertyJsonEditor {
-    /* Фиксируем светлую тему для JSON-редактора */
     --bricks-base-0: #fff;
     --bricks-base-50: #f9fafb;
     --bricks-base-100: #f3f4f6;

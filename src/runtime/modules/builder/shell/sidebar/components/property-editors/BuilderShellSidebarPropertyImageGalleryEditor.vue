@@ -18,7 +18,7 @@ import BricksTagsEditor from '../../../../../ui/inputs/BricksTagsEditor.vue';
 interface IPropertyImageGalleryEditorProps {
     modelValue?: IGalleryItem[];
     label?: string;
-    /** Конфигурация дополнительных полей (title, tags) */
+    /** Configuration of the extra fields (title, tags) */
     fields?: IBrickGalleryFieldsConfig;
 }
 
@@ -56,31 +56,31 @@ const items = computed<IGalleryItem[]>(() => props.modelValue || []);
 const hasItems = computed<boolean>(() => items.value.length > 0);
 const displayLabel = computed<string>(() => props.label || t('bricks.properties.gallery.label'));
 
-/** Показывать поле title (по умолчанию true) */
+/** Whether to show the title field; on by default */
 const showTitle = computed<boolean>(() => props.fields?.title !== false);
-/** Показывать поле caption (по умолчанию false) */
+/** Whether to show the caption field; off by default */
 const showCaption = computed<boolean>(() => props.fields?.caption === true);
-/** Показывать редактор тегов (по умолчанию false) */
+/** Whether to show the tags editor; off by default */
 const showTags = computed<boolean>(() => props.fields?.tags === true);
 // #endregion
 
 // #region Methods
 /**
- * Клонирует массив элементов галереи.
+ * Clones the array of gallery items.
  */
 function cloneItems(source: IGalleryItem[]): IGalleryItem[] {
     return source.map((item) => ({ ...item }));
 }
 
 /**
- * Эмитит новое значение галереи.
+ * Emits the new value of the gallery.
  */
 function updateItems(value: IGalleryItem[]): void {
     emit('update:modelValue', value);
 }
 
 /**
- * Открывает медиа-галерею для добавления нового изображения.
+ * Opens the media gallery to add a new image.
  */
 function handleAddImage(): void {
     emit('openGallery', {
@@ -90,7 +90,7 @@ function handleAddImage(): void {
 }
 
 /**
- * Обновляет title элемента.
+ * Updates the title of an item.
  */
 function handleTitleChange(index: number, value: string): void {
     const next = cloneItems(items.value);
@@ -103,7 +103,7 @@ function handleTitleChange(index: number, value: string): void {
 }
 
 /**
- * Обновляет caption элемента.
+ * Updates the caption of an item.
  */
 function handleCaptionChange(index: number, value: string): void {
     const next = cloneItems(items.value);
@@ -116,14 +116,14 @@ function handleCaptionChange(index: number, value: string): void {
 }
 
 /**
- * Проверяет, является ли элемент видео по mimeType.
+ * Whether the item is a video, judged by its mimeType.
  */
 function isVideoItem(item: IGalleryItem): boolean {
     return Boolean(item.mimeType?.startsWith('video/'));
 }
 
 /**
- * Обновляет теги элемента.
+ * Updates the tags of an item.
  */
 function handleTagsChange(index: number, value: string[]): void {
     const next = cloneItems(items.value);
@@ -136,7 +136,7 @@ function handleTagsChange(index: number, value: string[]): void {
 }
 
 /**
- * Удаляет элемент из галереи.
+ * Removes an item from the gallery.
  */
 function handleRemoveItem(index: number): void {
     const next = cloneItems(items.value);
@@ -145,7 +145,7 @@ function handleRemoveItem(index: number): void {
 }
 
 /**
- * Перемещает элемент вверх.
+ * Moves an item up.
  */
 function handleMoveUp(index: number): void {
     if (index === 0) {
@@ -159,7 +159,7 @@ function handleMoveUp(index: number): void {
 }
 
 /**
- * Перемещает элемент вниз.
+ * Moves an item down.
  */
 function handleMoveDown(index: number): void {
     if (index >= items.value.length - 1) {
@@ -173,7 +173,7 @@ function handleMoveDown(index: number): void {
 }
 
 /**
- * Заменяет изображение элемента.
+ * Replaces the image of an item.
  */
 function handleReplaceImage(index: number): void {
     emit('openGallery', {

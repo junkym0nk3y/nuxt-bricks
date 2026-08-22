@@ -21,8 +21,8 @@ export interface IComponentVariant {
 }
 
 /**
- * Белый список числовых spacing-свойств: группа, целиком состоящая из них,
- * рендерится композитным box-model редактором вместо плоских инпутов.
+ * Allow-list of the numeric spacing properties: a group made up entirely of them is
+ * rendered by the composite box-model editor instead of flat inputs.
  */
 export const SPACING_PROPERTY_NAMES: ReadonlySet<string> = new Set([
     'paddingTop',
@@ -34,16 +34,16 @@ export const SPACING_PROPERTY_NAMES: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Имена пары числовых свойств, которую панель рисует одним составным редактором
- * размера сетки. Группы у этих свойств нет, поэтому пара перехватывается прямо
- * в плоском списке; блок без `rows` (flex) под правило не подпадает.
+ * Names of the pair of numeric properties the panel draws as a single composite grid
+ * size editor. These properties have no group, so the pair is intercepted right in
+ * the flat list; a block with no `rows` (flex) falls outside the rule.
  */
 export const GRID_SIZE_PROPERTY_NAMES = {
     columns: 'columns',
     rows: 'rows',
 } as const;
 
-/** Пара вариантов «колонки/строки», которую потребляет редактор размера сетки. */
+/** The "columns/rows" pair of variants consumed by the grid size editor */
 export interface IGridSizeVariants {
     columnsVariant: IComponentVariant;
     rowsVariant: IComponentVariant;
@@ -76,7 +76,7 @@ export interface IPropertyVariantContext {
 
 export type TSpacingSideKey = 'top' | 'bottom' | 'left' | 'right';
 
-/** Редактируемая сторона box-model: степпер со значением. */
+/** Editable side of the box model: a stepper with a value */
 export interface ISpacingStepperSlot {
     kind: 'stepper';
     side: TSpacingSideKey;
@@ -84,7 +84,7 @@ export interface ISpacingStepperSlot {
     value: number;
 }
 
-/** Read-only зеркало парной стороны (paddingX/paddingY показываются с двух сторон). */
+/** Read-only mirror of the paired side (paddingX/paddingY are shown on both sides) */
 interface ISpacingMirrorSlot {
     kind: 'mirror';
     side: TSpacingSideKey;

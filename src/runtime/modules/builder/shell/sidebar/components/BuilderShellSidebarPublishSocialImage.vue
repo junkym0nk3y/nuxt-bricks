@@ -27,14 +27,14 @@ const { t } = useI18n();
 
 // #region Methods
 /**
- * Запрашивает открытие медиагалереи для выбора social image.
+ * Asks for the media gallery so a social image can be picked.
  */
 function handleOpenMediaGallery(): void {
     emit('openMediaGallery');
 }
 
 /**
- * Сбрасывает выбранное social image.
+ * Clears the picked social image.
  */
 function handleClear(): void {
     emit('clear');

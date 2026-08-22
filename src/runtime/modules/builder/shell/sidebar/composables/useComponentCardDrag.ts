@@ -1,6 +1,6 @@
 /**
- * Drag-and-drop карточки компонента: делегирует старт перетаскивания
- * drag-композаблу, инжектированному родителем сайдбара.
+ * Drag and drop of a component card: the start of the drag is delegated to the drag
+ * composable injected by the sidebar parent.
  */
 
 // Types
@@ -12,7 +12,7 @@ import type { IComponentCardDrag } from '../types/composables';
 import { inject } from 'vue';
 
 /**
- * Обработчик dragstart карточки через инжектированный drag-композабл.
+ * Handlers of a card drag, wired to the injected drag composable.
  */
 export function useComponentCardDrag(
     props: ISidebarComponentCardProps,
@@ -21,8 +21,9 @@ export function useComponentCardDrag(
     const dragComposable = inject<IDragComposable | undefined>('dragComposable');
 
     /**
-     * Обрабатывает начало перетаскивания карточки компонента
-     * @param event - DragEvent от браузера
+     * Handles the start of a component card drag.
+     *
+     * @param event - DragEvent from the browser.
      */
     function handleDragStart(event: DragEvent): void {
         if (dragComposable) {
@@ -33,7 +34,7 @@ export function useComponentCardDrag(
     }
 
     /**
-     * Очищает transient drag-state; карточка-источник остаётся в списке.
+     * Clears the transient drag state; the source card stays in the list.
      */
     function handleDragEnd(): void {
         dragComposable?.endDrag();

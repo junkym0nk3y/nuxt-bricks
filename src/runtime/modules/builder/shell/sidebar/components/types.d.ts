@@ -13,9 +13,10 @@ export interface ISidebarComponentCardProps {
 }
 
 /**
- * Пропсы корня сайдбара. `isLibraryLoadFailed` идёт отдельно от состава
- * `components`: layout-блоки остаются в списке и при отказе ручки манифеста,
- * поэтому по длине списка отказ неотличим от успешной загрузки без бриков.
+ * Props of the sidebar root. `isLibraryLoadFailed` travels apart from the contents of
+ * `components`: the layout blocks stay in the list even when the manifest endpoint
+ * fails, so the length of the list tells nothing — a failure looks exactly like a
+ * successful load with no bricks in it.
  */
 export interface ISidebarProps {
     components: IComponentLibraryItem[];
@@ -32,8 +33,9 @@ export interface ISidebarEmits {
 export interface ISidebarComponentsViewProps {
     components: IComponentLibraryItem[];
     /**
-     * Записи манифеста, не доехавшие до библиотеки. Показываются рядом с блоком
-     * отказа, а не вместо него: причины разные, и видны они могут быть вместе.
+     * Manifest entries that never reached the library. Shown next to the failure
+     * block rather than instead of it: the causes differ, and both can be true at
+     * once.
      */
     skippedBricks: ISkippedBrick[];
     isLibraryLoadFailed: boolean;

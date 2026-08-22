@@ -10,26 +10,26 @@ export interface IToolbarProps {
     hasSelectedComponent: boolean;
     isPublishSettingsComplete: boolean;
     /**
-     * Сессия открыта до согласованного состояния. Пока нет — заблокированы
-     * сохранение, превью и медиагалерея: сохранять нельзя, потому что
-     * `startEditingPage` уже заполнил форму и `editingPageId`, а схемы на канвасе
-     * ещё нет — запись затёрла бы страницу в БД пустым холстом; выбор картинки в
-     * галерее уехал бы в `socialImage` и потерялся вместе с остальными правками
-     * до готовности; превью показало бы гибрид старого канваса и новой формы
-     *.
+     * The session has opened into a consistent state. Until it has, saving, preview
+     * and the media gallery are blocked: saving is out because `startEditingPage`
+     * has already filled the form and `editingPageId` while the canvas still holds
+     * no schema — the write would overwrite the stored page with an empty canvas;
+     * the preview would show a hybrid of the old canvas and the new form; and the
+     * gallery is a write surface of its own, where uploads and file edits would
+     * happen against a session that is not settled yet.
      */
     isSessionReady: boolean;
     sidebarOffset?: string;
     pageTitle?: string;
     isPublished?: boolean;
-    /** Сохранённые страницы для селектора в заголовке. */
+    /** Saved pages for the selector in the title */
     pages?: TPublishedPageSummary[];
-    /** Идентичность открытой страницы: у неё в списке стоит отметка. */
+    /** Identity of the open page: it is the one marked in the list */
     currentPageId?: string | number | null;
-    /** Список уже приезжал с сервера — пустота настоящая, а не «ещё не загрузили». */
+    /** The list has already arrived from the server — emptiness is real, not "not loaded yet" */
     isPagesLoaded?: boolean;
     isPagesLoading?: boolean;
-    /** Идёт запись: создание новой страницы на это время закрыто. */
+    /** A write is in flight: creating a new page is closed for its duration */
     isSubmittingPage?: boolean;
 }
 
@@ -37,7 +37,7 @@ export interface IToolbarEmits {
     openPagesManager: [];
     openMediaGallery: [];
     saveAsCopy: [];
-    /** Третий пункт сплит-кнопки: сохранить канвас как шаблон. */
+    /** Third option of the split button: save the canvas as a template */
     saveAsTemplate: [];
     saveDraft: [];
     preview: [];
@@ -45,21 +45,21 @@ export interface IToolbarEmits {
     openPageSelector: [];
     selectPage: [page: TPublishedPageSummary];
     createPage: [];
-    /** Меню профиля в углу: открыть модалку профиля. */
+    /** Profile menu in the corner: open the profile modal */
     openProfile: [];
-    /** Меню профиля в углу: выйти из сессии. */
+    /** Profile menu in the corner: leave the session */
     logout: [];
 }
 
 /**
- * Пропсы селектора страниц в заголовке тулбара.
+ * Props of the page selector in the toolbar title.
  */
 export interface IToolbarPageSelectorProps {
-    /** Заголовок открытой страницы — то, что видно на триггере. */
+    /** Title of the open page — what the trigger shows */
     pageTitle?: string;
     pages: TPublishedPageSummary[];
     currentPageId?: string | number | null;
-    /** Полный список уже получен: пустой результат можно показывать честно. */
+    /** The full list has been received: an empty result can be shown as the truth */
     isLoaded?: boolean;
     isLoading?: boolean;
     disabled?: boolean;
@@ -67,7 +67,7 @@ export interface IToolbarPageSelectorProps {
 }
 
 export interface IToolbarPageSelectorEmits {
-    /** Попап открыли — момент ленивой догрузки и освежения списка. */
+    /** The popup was opened — the moment the list is lazily fetched and refreshed */
     open: [];
     select: [page: TPublishedPageSummary];
     allPages: [];
@@ -75,8 +75,7 @@ export interface IToolbarPageSelectorEmits {
 }
 
 /**
- * Пустое состояние списка страниц: ключи i18n для заголовка и пояснения.
- * Разметка у всех пустых состояний одна, расходятся только тексты.
+ * Empty state of the page list: the i18n keys of its title and its explanation.
  */
 export interface IToolbarPageSelectorEmptyState {
     title: string;

@@ -42,6 +42,8 @@ const emit = defineEmits<{
 // #region Data
 const componentsStore = useComponentsStore();
 const canvasStore = useCanvasStore();
+// The tree stays navigation for every role, but moving blocks around with the mouse
+// is an edit of the schema: without the edit permission a row does not drag
 const { canEdit } = useBuilderPermissions();
 const dragOverPosition = ref<'before' | 'after' | null>(null);
 // #endregion
@@ -49,7 +51,7 @@ const dragOverPosition = ref<'before' | 'after' | null>(null);
 // #region Computed
 const isSelected = computed<boolean>(() => componentsStore.isComponentSelected(props.component.id));
 
-/** Индикаторы видимости — по одному на устройство набора страницы. */
+/** Visibility indicators — one per device of the page set */
 const deviceIndicators = computed(() =>
     canvasStore.devices.map((device) => ({
         key: device.key,
@@ -80,16 +82,16 @@ const hasChildren = computed<boolean>(() => childComponents.value.length > 0);
 
 // #region Methods
 /**
- * Выбирает компонент по клику на элемент дерева.
+ * Selects the component on a click on the tree row.
  */
 function handleSelect(): void {
     emit('select', props.component.id);
 }
 
 /**
- * Начинает drag элемента дерева.
+ * Starts the drag of a tree row.
  *
- * @param event - Событие dragstart.
+ * @param event - The dragstart event.
  */
 function handleDragStart(event: DragEvent): void {
     if (!event.dataTransfer) {
@@ -101,9 +103,9 @@ function handleDragStart(event: DragEvent): void {
 }
 
 /**
- * Определяет позицию drop (before/after) по координатам курсора.
+ * Works out the drop position (before or after) from the cursor coordinates.
  *
- * @param event - Событие dragover.
+ * @param event - The dragover event.
  */
 function handleDragOver(event: DragEvent): void {
     event.preventDefault();
@@ -121,16 +123,16 @@ function handleDragOver(event: DragEvent): void {
 }
 
 /**
- * Сбрасывает индикатор при выходе курсора.
+ * Clears the indicator when the cursor leaves.
  */
 function handleDragLeave(): void {
     dragOverPosition.value = null;
 }
 
 /**
- * Обрабатывает drop — вычисляет позицию и эмитит reorder.
+ * Handles the drop: works out the position and emits the reorder.
  *
- * @param event - Событие drop.
+ * @param event - The drop event.
  */
 function handleDrop(event: DragEvent): void {
     event.preventDefault();
@@ -154,7 +156,6 @@ function handleDrop(event: DragEvent): void {
         :class="[$style.BuilderShellSidebarSchemaTreeItem, { [$style._hasChildren]: hasChildren }]"
     >
         <div :class="$style.rowWrapper">
-            <!-- Линии дерева -->
             <div
                 v-if="props.depth > 0"
                 :class="$style.treeLine"
@@ -164,13 +165,8 @@ function handleDrop(event: DragEvent): void {
                 <div :class="$style.horizontalLine" />
             </div>
 
-            <!-- Drop indicator -->
             <div v-if="dragOverPosition === 'before'" :class="$style.dropIndicator" />
 
-            <!--
-                Дерево остаётся навигацией при любой роли, но перестановка блоков
-                мышью — правка схемы: без права правки строка не тянется
-            -->
             <button
                 type="button"
                 :draggable="canEdit"
@@ -208,7 +204,6 @@ function handleDrop(event: DragEvent): void {
                 </span>
             </button>
 
-            <!-- Drop indicator after -->
             <div v-if="dragOverPosition === 'after'" :class="$style.dropIndicator" />
         </div>
 
@@ -317,7 +312,6 @@ function handleDrop(event: DragEvent): void {
     width: 100%;
 }
 
-// Tree lines
 .treeLine {
     position: absolute;
     top: 0;

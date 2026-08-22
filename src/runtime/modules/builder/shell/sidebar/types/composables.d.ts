@@ -1,5 +1,5 @@
 /**
- * Типы для composables домена sidebar.
+ * Types for the composables of the sidebar domain.
  */
 
 import type {
@@ -20,12 +20,12 @@ import type { createPublishValidationSchema } from '../../../publish/utils/valid
 
 // #region usePropertyVariants
 /**
- * Данные выбранного компонента — единственное определение в core (см. modules-restructure.md).
+ * Data of the selected component — the one definition lives in the core.
  */
 export type { ISelectedComponentData } from '../../../core/stores/types';
 
 /**
- * Возвращаемое значение composable usePropertyVariants.
+ * Return value of the `usePropertyVariants` composable.
  */
 export interface IUsePropertyVariantsReturn {
     componentVariants: ComputedRef<TComponentVariantsMap>;
@@ -38,16 +38,16 @@ export interface IUsePropertyVariantsReturn {
 
 // #region useSpacingEditor
 /**
- * Возвращаемое значение composable useSpacingEditor (box-model редактор spacing-группы).
+ * Return value of the `useSpacingEditor` composable (box-model editor of a spacing group).
  */
 export interface IUseSpacingEditorReturn {
-    /** Сторона, в которой активен инлайн-ввод (null — ввод не активен). */
+    /** Side whose inline input is active (null — no input is active) */
     editingSide: Ref<TSpacingSideKey | null>;
-    /** Текущий текст инлайн-ввода. */
+    /** Current text of the inline input */
     editingValue: Ref<string>;
-    /** Группа состоит только из margin-свойств (степперы снаружи «блока»). */
+    /** The group consists of margin properties only (the steppers stand outside the "block") */
     isMargin: ComputedRef<boolean>;
-    /** Подпись центрального блока (Content/Block). */
+    /** Caption of the central block (Content/Block) */
     contentLabel: ComputedRef<string>;
     topSlot: ComputedRef<ISpacingStepperSlot | null>;
     bottomSlot: ComputedRef<TSpacingSlot | null>;
@@ -62,7 +62,7 @@ export interface IUseSpacingEditorReturn {
 
 // #region useSidebarPublishForm
 /**
- * Начальные значения vee-validate формы публикации (валидируемые поля).
+ * Initial values of the vee-validate publish form (the validated fields).
  */
 export interface IPublishFormInitialValues {
     pagename: string;
@@ -72,21 +72,24 @@ export interface IPublishFormInitialValues {
 }
 
 /**
- * Возвращаемое значение composable useSidebarPublishForm (форма публикации сайдбара).
+ * Return value of the `useSidebarPublishForm` composable (the publish form of the sidebar).
  */
 export interface IUseSidebarPublishFormReturn {
-    /** Текущее состояние формы из publish-стора. */
+    /** Current state of the form, taken from the publish store */
     settings: ComputedRef<TPublishFormState>;
     isSubmitting: ComputedRef<boolean>;
     defaultBackgroundColor: ComputedRef<string>;
     defaultLayout: ComputedRef<string>;
     initialValues: ComputedRef<IPublishFormInitialValues>;
-    /** Ключ формы — меняется только при смене editingPageId (иначе форма теряет фокус). */
+    /**
+     * Key of the form — changes on a change of `editingPageId` only, otherwise the
+     * form loses focus
+     */
     formKey: ComputedRef<string>;
     layoutOptions: ComputedRef<IBrickUiCommonProp[]>;
     layoutFacets: ComputedRef<TBrickDemoValues[]>;
     panelTitle: ComputedRef<string>;
-    /** Превью полного URL страницы (subdomain + prefix + pagename). */
+    /** Preview of the full page URL (subdomain + prefix + pagename) */
     fullUrlPreview: ComputedRef<string>;
     validationSchema: ReturnType<typeof createPublishValidationSchema>;
     handleUpdateField: <K extends keyof TPublishFormState>(
@@ -101,7 +104,7 @@ export interface IUseSidebarPublishFormReturn {
 
 // #region useComponentCardDrag
 /**
- * Возвращаемое значение composable useComponentCardDrag.
+ * Return value of the `useComponentCardDrag` composable.
  */
 export interface IComponentCardDrag {
     handleDragStart: (event: DragEvent) => void;

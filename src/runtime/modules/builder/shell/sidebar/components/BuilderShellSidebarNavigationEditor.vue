@@ -1,4 +1,13 @@
 <script setup lang="ts">
+/**
+ * @description Editor of the page navigation items inside the publish settings: the
+ * caption and the anchor of every item, their order and their removal.
+ *
+ * The tooltips of the row buttons open to the left: the column of buttons is pressed
+ * against the right edge of the sidebar, and a tooltip below would cover the next
+ * button of that same column.
+ */
+
 // #region Imports
 // Vue
 import { computed } from 'vue';
@@ -26,7 +35,7 @@ const items = computed(() => navigationStore.items);
 
 // #region Methods
 /**
- * Добавляет новый пустой навигационный пункт.
+ * Adds a new empty navigation item.
  */
 function handleAddItem(): void {
     navigationStore.addItem('', '');
@@ -34,9 +43,9 @@ function handleAddItem(): void {
 }
 
 /**
- * Удаляет навигационный пункт.
+ * Removes a navigation item.
  *
- * @param id - Идентификатор пункта.
+ * @param id - Identifier of the item.
  */
 function handleRemoveItem(id: string): void {
     navigationStore.removeItem(id);
@@ -44,29 +53,29 @@ function handleRemoveItem(id: string): void {
 }
 
 /**
- * Обновляет target навигационного пункта.
+ * Updates the target of a navigation item.
  *
- * @param id - Идентификатор пункта.
- * @param value - Новое значение target.
+ * @param id - Identifier of the item.
+ * @param value - New target value.
  */
 function handleUpdateTarget(id: string, value: string): void {
     navigationStore.updateItem(id, { target: value });
 }
 
 /**
- * Обновляет label навигационного пункта.
+ * Updates the label of a navigation item.
  *
- * @param id - Идентификатор пункта.
- * @param value - Новое значение label.
+ * @param id - Identifier of the item.
+ * @param value - New label value.
  */
 function handleUpdateLabel(id: string, value: string): void {
     navigationStore.updateItem(id, { label: value });
 }
 
 /**
- * Перемещает пункт вверх.
+ * Moves an item up.
  *
- * @param index - Текущий индекс пункта.
+ * @param index - Current index of the item.
  */
 function handleMoveUp(index: number): void {
     navigationStore.reorderItems(index, index - 1);
@@ -74,9 +83,9 @@ function handleMoveUp(index: number): void {
 }
 
 /**
- * Перемещает пункт вниз.
+ * Moves an item down.
  *
- * @param index - Текущий индекс пункта.
+ * @param index - Current index of the item.
  */
 function handleMoveDown(index: number): void {
     navigationStore.reorderItems(index, index + 1);
@@ -111,9 +120,6 @@ function handleMoveDown(index: number): void {
                     />
                 </div>
 
-                <!-- Подсказки уходят влево: колонка кнопок прижата к правому
-                     краю сайдбара, и снизу подсказка накрыла бы соседнюю
-                     кнопку той же колонки -->
                 <div :class="$style.itemActions">
                     <BricksIconButton
                         variant="ghost"

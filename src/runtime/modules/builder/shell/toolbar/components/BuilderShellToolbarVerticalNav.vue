@@ -1,4 +1,19 @@
 <script setup lang="ts">
+/**
+ * @description Vertical rail down the left edge of the workspace: the builder
+ * sections at the top, and documentation, interface language and the theme toggle at
+ * the bottom.
+ *
+ * Every rail button shares one look. There used to be three near-identical style
+ * blocks and they had drifted apart: the theme toggle took `base-100` on hover
+ * instead of `surface-raised` (the same `#f3f4f6` in the light theme, different
+ * tones in the dark one, so that button lit up unlike its neighbors), two of the
+ * three carried the radius as a number instead of a token, and the documentation
+ * button wore the `themeToggle` class. The lit theme toggle is the one state painted
+ * as a glyph rather than a fill: it reports the position of a switch, not a selected
+ * section.
+ */
+
 // #region Imports
 // Vue
 import { computed } from 'vue';
@@ -50,9 +65,10 @@ const { t, locale } = useI18n();
 const { canEdit } = useBuilderPermissions();
 
 /**
- * Разделы рейла. `isEditing` — раздел существует только для правки: библиотека
- * компонентов служит источником drag&drop, настройки публикации правят адрес и
- * мета-описание страницы. Дерево схемы остаётся всем — это навигация по канвасу.
+ * Sections of the rail. `isEditing` marks a section that exists for editing only: the
+ * component library is the source of drag and drop, and the publish settings edit the
+ * address and the meta description of the page. The schema tree stays for everybody —
+ * it is navigation over the canvas.
  */
 const NAV_ITEMS = [
     {
@@ -83,32 +99,32 @@ const NAV_ITEMS = [
 // #endregion
 
 // #region Computed
-/** Разделы, доступные текущей роли. */
+/** Sections available to the current role */
 const navItems = computed<readonly (typeof NAV_ITEMS)[number][]>(() =>
     NAV_ITEMS.filter((item) => canEdit.value || !item.isEditing)
 );
 
 /**
- * Проверяет, нужно ли показывать danger-индикатор на настройках.
+ * Whether the danger dot has to be shown on the settings section.
  */
 const showSettingsDanger = computed<boolean>(() => !props.isPublishSettingsComplete);
 
 /**
- * Возвращает иконку в зависимости от текущей темы.
+ * Icon of the theme toggle, picked by the theme currently on.
  */
 const darkModeIcon = computed<string>(() =>
     props.isDarkMode ? 'ta:filled-sun' : 'ta:filled-moon'
 );
 
 /**
- * Возвращает текст тултипа для переключателя темы.
+ * Tooltip of the theme toggle — the theme the click switches to.
  */
 const darkModeTooltip = computed<string>(() =>
     props.isDarkMode ? t('bricks.nav.themeLight') : t('bricks.nav.themeDark')
 );
 
 /**
- * Возвращает метку текущей локали для кнопки переключателя языка.
+ * Label of the language button: the current locale in upper case.
  */
 const localeLabel = computed<string>(() => locale.value.toUpperCase());
 // #endregion
@@ -123,30 +139,30 @@ const EMIT_MAP: Record<string, () => void> = {
 
 // #region Methods
 /**
- * Обрабатывает клик по элементу навигации.
+ * Handles a click on a navigation item.
  *
- * @param event - Имя события для emit.
+ * @param event - Name of the event to emit.
  */
 function handleClick(event: string): void {
     EMIT_MAP[event]?.();
 }
 
 /**
- * Открывает модальное окно документации.
+ * Asks for the documentation modal.
  */
 function handleOpenDocs(): void {
     emit('openDocs');
 }
 
 /**
- * Переключает тёмную/светлую тему билдера.
+ * Asks to switch the builder between the dark and the light theme.
  */
 function handleToggleDarkMode(): void {
     emit('toggleDarkMode');
 }
 
 /**
- * Переключает локаль интерфейса (ru ⇄ en).
+ * Asks to switch the interface locale (ru ⇄ en).
  */
 function handleToggleLocale(): void {
     emit('toggleLocale');
@@ -244,12 +260,6 @@ function handleToggleLocale(): void {
     gap: 0.4rem;
 }
 
-/* Один вид на все кнопки рейла — разделы, документация, язык, тема. Прежде их
-   было три почти одинаковых блока, и они успели разъехаться: у переключателя темы
-   ховер брал `base-100` вместо `surface-raised` (в светлой теме это один и тот же
-   `#f3f4f6`, а в тёмной — разные тона, и кнопка подсвечивалась иначе соседних), а
-   радиус у двух из трёх стоял числом вместо токена. Кнопка документации при этом
-   носила класс `themeToggle`. */
 .railButton {
     display: flex;
     align-items: center;
@@ -271,22 +281,18 @@ function handleToggleLocale(): void {
         color: var(--bricks-base-900);
     }
 
-    /* Выбранный раздел: заливка primary. Ховер вида не сбрасывает. */
     &._active,
     &._active:hover {
         background-color: var(--bricks-primary);
         color: var(--bricks-static-white);
     }
 
-    /* Включённая тёмная тема: не выбранный раздел, а состояние переключателя —
-       поэтому глиф, а не заливка. */
     &._lit,
     &._lit:hover {
         background-color: transparent;
         color: var(--bricks-yellow);
     }
 
-    /* Язык — подпись вместо глифа */
     &._locale {
         font-size: var(--bricks-font-size-sm);
         font-weight: 600;

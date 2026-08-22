@@ -30,7 +30,7 @@ const emit = defineEmits<ISidebarEmits>();
 const sidebarStore = useSidebarStore();
 const publishStore = usePublishStore();
 const publishViewRef = ref<InstanceType<typeof BuilderShellSidebarPublishView> | null>(null);
-/** Панель открывали хотя бы раз — с этого момента её содержимое смонтировано. */
+/** The panel has been opened at least once — its content is mounted from then on */
 const hasBeenVisible = ref(sidebarStore.left.visible);
 // #endregion
 
@@ -41,13 +41,14 @@ const activeView = computed(() => sidebarStore.activeView);
 const sidebarWidth = computed<string>(() => sidebarStore.left.width);
 
 /**
- * Вид, который смонтирован. До первого открытия панели — ни один: панель
- * скрывается через `v-show`, то есть её содержимое иначе монтируется вместе с
- * редактором, а карточки библиотеки рендерят превью и тянут brick-модули со
- * всеми их Vue-компонентами и стилями — при том что панель закрыта.
+ * The view that is mounted. None of them until the panel is opened for the first time:
+ * the panel hides through `v-show`, so its content would otherwise mount together with
+ * the editor, and the library cards would render their previews and pull in the brick
+ * modules with all of their Vue components and styles — with the panel closed all the
+ * while.
  *
- * Обратно латч не снимается: закрытие панели размонтировало бы список вместе с
- * поиском и прокруткой, а второе открытие всё равно ничего не грузит заново.
+ * The latch never comes back off: closing the panel would unmount the list along with
+ * its search and its scroll position, and a second opening loads nothing anew anyway.
  */
 const mountedView = computed<TSidebarView | null>(() =>
     hasBeenVisible.value ? activeView.value : null
@@ -97,7 +98,7 @@ function handleMediaSelect(item: IMediaItem): void {
 }
 
 /**
- * Пробрасывает запрос повторной загрузки библиотеки наверх.
+ * Forwards the request to load the library again upwards.
  */
 function handleRetryLibrary(): void {
     emit('retryLibrary');

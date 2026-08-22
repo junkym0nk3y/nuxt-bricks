@@ -30,12 +30,12 @@ import {
 // #endregion
 
 /**
- * Composable для управления вариантами свойств компонентов.
- * Преобразует определения свойств в варианты для различных типов редакторов
- * через реестр билдеров `VARIANT_BUILDERS` (utils/variantBuilders.ts).
+ * Variants of the component properties. Turns the property definitions into the
+ * variants of the various editor types through the `VARIANT_BUILDERS` registry
+ * (utils/variantBuilders.ts).
  *
- * @param selectedComponentData - Computed значение с данными выбранного компонента
- * @returns Объект с вариантами свойств и функцией нормализации пропсов
+ * @param selectedComponentData - Computed data of the selected component.
+ * @returns The property variants and the props normalizer.
  */
 export function usePropertyVariants(
     selectedComponentData: ComputedRef<ISelectedComponentData | null>
@@ -49,7 +49,7 @@ export function usePropertyVariants(
 
     // #region Computed
     /**
-     * Вычисляемые варианты свойств для всех типов редакторов
+     * Property variants of every editor type
      */
     const componentVariants = computed<TComponentVariantsMap>(() => {
         const selected = selectedComponentData.value;
@@ -64,9 +64,10 @@ export function usePropertyVariants(
                 return;
             }
 
-            /* Инлайн-контент правится прямо на канвасе (двойной клик по блоку), панельного
-               редактора у него нет. Без этого отсева свойство доехало бы до fallback-инпута
-               и показало пользователю массив сегментов строкой. */
+            /* Inline content is edited right on the canvas (a double click on the block)
+               and has no editor in the panel. Without this filter the property would
+               reach the fallback input and show the user an array of segments as a
+               string. */
             if (property.type === 'inline-content') {
                 return;
             }
@@ -87,11 +88,11 @@ export function usePropertyVariants(
 
     // #region Methods
     /**
-     * Добавляет вариант свойства в соответствующую коллекцию.
-     * Порядок диспатча: boolean → select-эвристика (options 2+) →
-     * реестр по типу → input-fallback.
+     * Adds the variant of a property to the collection it belongs to. Dispatch order:
+     * boolean → the select heuristic (two or more options) → the registry by type →
+     * the input fallback.
      *
-     * @param context - Контекст с информацией о свойстве и вариантах
+     * @param context - Context holding the property and the variants.
      */
     function addVariantForProperty(context: IPropertyVariantContext): void {
         if (!shouldRenderProperty(context.property, context.componentProps)) {
@@ -120,11 +121,12 @@ export function usePropertyVariants(
     }
 
     /**
-     * Проверяет условие показа свойства в панели.
+     * Checks the condition under which the property is shown in the panel.
      *
-     * Имя поля объявляет brick-файл: без сверки own-ключа `showWhen.field` вида
-     * `constructor` вернул бы член прототипа, сравнение с `equals` было бы
-     * ложным при любой схеме, и свойство молча исчезало бы из панели.
+     * The name of the field is declared by a brick file: without the own-key check a
+     * `showWhen.field` of `constructor` would return a prototype member, the
+     * comparison against `equals` would be false for any schema, and the property
+     * would silently vanish from the panel.
      */
     function shouldRenderProperty(
         property: IPropertyDefinition,
@@ -139,11 +141,11 @@ export function usePropertyVariants(
     }
 
     /**
-     * Нормализует пропсы для передачи в компоненты редакторов
+     * Normalizes the props handed over to the editor components.
      *
-     * @param data - Данные варианта свойства
-     * @param editorType - Тип редактора свойства
-     * @returns Нормализованный объект пропсов
+     * @param data - Data of the property variant.
+     * @param _editorType - Editor type, part of the contract and unused here.
+     * @returns Normalized props object.
      */
     function handleNormalizeProps(
         data: IComponentVariant,

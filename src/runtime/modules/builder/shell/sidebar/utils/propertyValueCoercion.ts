@@ -7,12 +7,12 @@ import { isPrimitiveArrayValue, parseListInput } from './propertyFormatters';
 // #endregion
 
 /**
- * Определяет источник с примитивными значениями (текущее или значение по умолчанию),
- * если они подходят для строкового парсинга.
+ * Picks the source of primitive values — the current one or the default — when either
+ * of them is fit for parsing from a string.
  *
- * @param currentArray - Значение из компонентов.
- * @param defaultArray - Значение по умолчанию из конфигурации.
- * @returns Массив примитивов или null, если источника нет.
+ * @param currentArray - Value taken from the components.
+ * @param defaultArray - Default value from the configuration.
+ * @returns Array of primitives, or null when there is no such source.
  */
 function resolvePrimitiveSource(
     currentArray?: unknown[],
@@ -28,11 +28,11 @@ function resolvePrimitiveSource(
 }
 
 /**
- * Преобразует строковое значение в массив примитивов, учитывая тип примера.
+ * Converts a string value into an array of primitives, taking the type from a sample.
  *
- * @param rawValue - Строковое значение из ввода.
- * @param primitiveSource - Примитивный пример для определения типа.
- * @returns Массив значений соответствующего типа.
+ * @param rawValue - String value from the input.
+ * @param primitiveSource - Primitive sample the type is read from.
+ * @returns Array of values of the matching type.
  */
 function parsePrimitiveArrayValue(
     rawValue: string,
@@ -54,10 +54,10 @@ function parsePrimitiveArrayValue(
     return items;
 }
 /**
- * Пытается распарсить сложный массив через JSON.
+ * Tries to parse a complex array through JSON.
  *
- * @param rawValue - Строковое значение (ожидается JSON).
- * @returns Массив либо null в случае ошибки.
+ * @param rawValue - String value, expected to be JSON.
+ * @returns The array, or null on a failure.
  */
 function parseJsonArrayValue(rawValue: string): unknown[] | null {
     const trimmed = rawValue.trim();
@@ -75,22 +75,22 @@ function parseJsonArrayValue(rawValue: string): unknown[] | null {
 }
 
 /**
- * Округляет число для устранения ошибок IEEE 754 floating point.
- * Например, 5.400000000000001 → 5.4
+ * Rounds a number to get rid of IEEE 754 floating point noise, for example
+ * 5.400000000000001 → 5.4.
  *
- * @param value - Числовое значение.
- * @returns Округлённое до 4 знаков после запятой число.
+ * @param value - Numeric value.
+ * @returns The number rounded to four decimal places.
  */
 function roundFloatingPoint(value: number): number {
     return Math.round(value * 10000) / 10000;
 }
 
 /**
- * Преобразует значение в число с учетом текущего значения
+ * Coerces a value into a number, falling back to the current value.
  *
- * @param value - Входное значение (строка, число или boolean)
- * @param currentValue - Текущее значение свойства
- * @returns Преобразованное число или null в случае ошибки
+ * @param value - Incoming value (a string, a number or a boolean).
+ * @param currentValue - Current value of the property.
+ * @returns The coerced number, or null on a failure.
  */
 export function coerceNumberValue(value: unknown, currentValue: unknown): number | null {
     if (typeof value === 'number') {
@@ -123,12 +123,12 @@ export function coerceNumberValue(value: unknown, currentValue: unknown): number
 }
 
 /**
- * Преобразует значение в массив с учетом типа элементов
+ * Coerces a value into an array, taking the type of its elements into account.
  *
- * @param property - Определение свойства
- * @param value - Входное значение
- * @param currentValue - Текущее значение свойства
- * @returns Преобразованный массив или null в случае ошибки
+ * @param property - Property definition.
+ * @param value - Incoming value.
+ * @param currentValue - Current value of the property.
+ * @returns The coerced array, or null on a failure.
  */
 export function coerceArrayValue(
     property: IPropertyDefinition,
@@ -153,12 +153,12 @@ export function coerceArrayValue(
 }
 
 /**
- * Преобразует значение в объект через JSON парсинг
+ * Coerces a value into an object by parsing it as JSON.
  *
- * @param property - Определение свойства
- * @param value - Входное значение
- * @param currentValue - Текущее значение свойства
- * @returns Преобразованный объект/массив или null в случае ошибки
+ * @param property - Property definition.
+ * @param value - Incoming value.
+ * @param currentValue - Current value of the property.
+ * @returns The coerced object or array, or null on a failure.
  */
 export function coerceObjectValue(
     property: IPropertyDefinition,

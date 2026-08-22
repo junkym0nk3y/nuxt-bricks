@@ -1,4 +1,13 @@
 <script setup lang="ts">
+/**
+ * @description Composite editor of the grid size: a clickable grid, a live "N × M"
+ * caption and two numeric fields for the values the grid cannot reach.
+ *
+ * The overflow marker stands next to the first row rather than in the middle of the
+ * grid: the grid ends where it stops being illustrative, and that way it is visible
+ * at once.
+ */
+
 // #region Imports
 // Types
 import type { ISidebarPropertyGridSizeEditorProps } from '../../types/sidebarProperties';
@@ -18,8 +27,8 @@ const props = withDefaults(defineProps<ISidebarPropertyGridSizeEditorProps>(), {
 
 // #region Data
 /**
- * Потолок наглядной сетки, а не свойства: значения больше вводятся числом в
- * полях под ней, сетка в этом случае честно упирается в край и показывает «⋯».
+ * Ceiling of the illustrative grid, not of the property: a larger value is typed into
+ * the fields below it, and the grid then honestly runs into its edge and shows a "⋯".
  */
 const GRID_COLS = 8;
 const GRID_ROWS = 6;
@@ -40,16 +49,20 @@ const isDisabled = computed<boolean>(
 const isHovering = computed<boolean>(() => hoverCol.value > 0 && hoverRow.value > 0);
 
 /**
- * Размер под курсором — уже прижатый к диапазонам свойств: подсветка и подпись
- * обещают ровно то, что запишет клик. Иначе у свойства с `max: 4` наведение на
- * восьмую колонку обещало бы восемь, а записывались бы четыре.
+ * The size under the cursor, already clamped to the ranges of the properties: the
+ * highlight and the caption promise exactly what a click is going to write. Otherwise
+ * a property with `max: 4` would promise eight on a hover over the eighth column and
+ * store four.
  */
 const hoveredColumns = computed<number>(() =>
     clampToPropertyRange(props.columnsVariant, hoverCol.value)
 );
 const hoveredRows = computed<number>(() => clampToPropertyRange(props.rowsVariant, hoverRow.value));
 
-/** Живая подпись: под курсором показывает размер будущего клика, иначе текущий. */
+/**
+ * Live caption: under the cursor it shows the size a click would write, otherwise the
+ * current one
+ */
 const sizeLabel = computed<string>(() =>
     isHovering.value
         ? formatSize(hoveredColumns.value, hoveredRows.value)
@@ -70,11 +83,12 @@ const rowsFieldValue = computed<string>(() => formatFieldValue(props.rowsVariant
 
 // #region Methods
 /**
- * Приводит значение свойства к числу ячеек: дробное усечь, мусор и пустое — 0
- * (ни одна ячейка не подсвечена, значение видно в поле).
+ * Turns a property value into a number of cells: a fraction is truncated, garbage and
+ * emptiness become 0 — no cell is highlighted then, and the value stays visible in the
+ * field.
  *
- * @param value - Сырое значение свойства из варианта панели.
- * @returns Неотрицательное целое число ячеек.
+ * @param value - Raw property value from the panel variant.
+ * @returns Non-negative whole number of cells.
  */
 function toCellCount(value: unknown): number {
     const parsed = Number(value);
@@ -82,55 +96,55 @@ function toCellCount(value: unknown): number {
 }
 
 /**
- * Собирает подпись размера «N × M».
+ * Builds the "N × M" size caption.
  *
- * @param cols - Количество колонок.
- * @param rows - Количество строк.
- * @returns Строка подписи.
+ * @param cols - Number of columns.
+ * @param rows - Number of rows.
+ * @returns Caption string.
  */
 function formatSize(cols: number, rows: number): string {
     return `${cols} × ${rows}`;
 }
 
 /**
- * Готовит значение для числового поля: пустое свойство остаётся пустым полем,
- * а не нулём, которого в схеме нет.
+ * Prepares the value for the numeric field: an empty property stays an empty field
+ * rather than becoming a zero the schema does not hold.
  *
- * @param value - Сырое значение свойства.
- * @returns Строка для BricksInput.
+ * @param value - Raw property value.
+ * @returns String for BricksInput.
  */
 function formatFieldValue(value: unknown): string {
     return value === null || value === undefined ? '' : String(value);
 }
 
 /**
- * Подсвечена ли ячейка текущим значением свойств.
+ * Whether the cell is highlighted by the current values of the properties.
  *
- * @param col - Номер колонки (с 1).
- * @param row - Номер строки (с 1).
- * @returns Признак попадания в текущий прямоугольник.
+ * @param col - Column number, counted from 1.
+ * @param row - Row number, counted from 1.
+ * @returns Whether the cell falls into the current rectangle.
  */
 function isCellSelected(col: number, row: number): boolean {
     return col <= columnsValue.value && row <= rowsValue.value;
 }
 
 /**
- * Попадает ли ячейка в прямоугольник под курсором. Наведение перекрывает
- * текущее значение намеренно: «куда кликнешь» должно читаться сильнее.
+ * Whether the cell falls into the rectangle under the cursor. The hover deliberately
+ * overrides the current value: "where the click lands" has to read stronger.
  *
- * @param col - Номер колонки (с 1).
- * @param row - Номер строки (с 1).
- * @returns Признак попадания в подсветку.
+ * @param col - Column number, counted from 1.
+ * @param row - Row number, counted from 1.
+ * @returns Whether the cell falls into the highlight.
  */
 function isCellHovered(col: number, row: number): boolean {
     return isHovering.value && col <= hoveredColumns.value && row <= hoveredRows.value;
 }
 
 /**
- * Запоминает ячейку под курсором для подсветки и живой подписи.
+ * Remembers the cell under the cursor for the highlight and the live caption.
  *
- * @param col - Номер колонки (с 1).
- * @param row - Номер строки (с 1).
+ * @param col - Column number, counted from 1.
+ * @param row - Row number, counted from 1.
  */
 function handleCellHover(col: number, row: number): void {
     hoverCol.value = col;
@@ -138,7 +152,7 @@ function handleCellHover(col: number, row: number): void {
 }
 
 /**
- * Сбрасывает подсветку, когда курсор уходит с сетки.
+ * Clears the highlight when the cursor leaves the grid.
  */
 function handleGridLeave(): void {
     hoverCol.value = 0;
@@ -146,13 +160,13 @@ function handleGridLeave(): void {
 }
 
 /**
- * Прижимает номер ячейки к диапазону свойства: сетка предлагает одни и те же
- * 8×6 любому блоку с парой «колонки/строки», а у свойства может быть свой
- * min/max — числовое поле его соблюдает, и клик по сетке обязан тоже.
+ * Clamps a cell number to the range of the property: the grid offers the same 8×6 to
+ * every block with a "columns/rows" pair, while a property may carry a min/max of its
+ * own — the numeric field respects it, and a click on the grid has to as well.
  *
- * @param variant - Вариант редактируемого свойства.
- * @param value - Номер ячейки, выбранный в сетке.
- * @returns Значение внутри диапазона свойства.
+ * @param variant - Variant of the property being edited.
+ * @param value - Cell number picked in the grid.
+ * @returns Value inside the range of the property.
  */
 function clampToPropertyRange(variant: IComponentVariant, value: number): number {
     const { min, max } = variant.property;
@@ -170,12 +184,12 @@ function clampToPropertyRange(variant: IComponentVariant, value: number): number
 }
 
 /**
- * Пишет оба свойства одним кликом по ячейке. Запись идёт двумя вызовами
- * общего обработчика панели — он же решает, писать в базовый проп или в
- * override активного устройства.
+ * Writes both properties from a single click on a cell. The write goes as two calls of
+ * the shared panel handler, and that handler is the one deciding whether it lands in
+ * the base prop or in the override of the active device.
  *
- * @param col - Номер колонки (с 1).
- * @param row - Номер строки (с 1).
+ * @param col - Column number, counted from 1.
+ * @param row - Row number, counted from 1.
  */
 function handleCellClick(col: number, row: number): void {
     props.handleChangeValues(
@@ -189,10 +203,11 @@ function handleCellClick(col: number, row: number): void {
 }
 
 /**
- * Пробрасывает ручной ввод числового поля (значения вне сетки — только отсюда).
+ * Forwards the manual input of a numeric field — a value outside the grid can only
+ * come from here.
  *
- * @param variant - Вариант редактируемого свойства.
- * @param value - Новое значение поля.
+ * @param variant - Variant of the property being edited.
+ * @param value - New value of the field.
  */
 function handleFieldChange(variant: IComponentVariant, value: string): void {
     props.handleChangeValues(variant.property, value);
@@ -364,8 +379,6 @@ function handleFieldChange(variant: IComponentVariant, value: string): void {
     }
 }
 
-// Маркер «значение не влезло в сетку» стоит у первой строки, а не по центру:
-// сетка заканчивается там, где кончается наглядность, и это видно сразу
 .overflowMark {
     font-size: 1.2rem;
     line-height: 2rem;

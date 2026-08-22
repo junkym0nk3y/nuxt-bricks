@@ -5,7 +5,7 @@ import type { TPropertyEditorType } from '../components/property-editors/types';
 import { defineAsyncComponent, type Component } from 'vue';
 
 /**
- * Мапа «тип свойства → асинхронный компонент-редактор» для панели свойств.
+ * Map of "property type → async editor component" for the properties panel.
  */
 export const componentEditors: Record<TPropertyEditorType, Component> = {
     boolean: defineAsyncComponent(() => import('../../../../ui/base/checkbox/BricksCheckbox.vue')),

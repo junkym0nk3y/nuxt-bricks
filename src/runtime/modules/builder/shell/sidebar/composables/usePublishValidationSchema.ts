@@ -11,15 +11,15 @@ import { useBricksPageAddress } from '../../../../common/composables/useBricksPa
 import { usePublishStore } from '../../../publish/stores/publish';
 
 /**
- * Composable для получения validation schema формы публикации сайдбара.
- * Обёртка над `createPublishValidationSchema` (publish/utils): подставляет
- * i18n, проверку уникальности из store и `editingPageId` текущей сессии
- * редактора как исключение при редактировании.
+ * Validation schema of the sidebar publish form. A wrapper over
+ * `createPublishValidationSchema` (publish/utils): it supplies i18n, the uniqueness
+ * check from the store, and the `editingPageId` of the current editor session as the
+ * exception to that check while a page is being edited.
  *
- * Редактируемая страница читается из стора в момент валидации, а не снимком на
- * создании схемы: панель настроек переживает переход на другую страницу, и
- * снимок «редактируем новую» заставлял бы существующую страницу считать свой же
- * pagename занятым.
+ * The page being edited is read from the store at validation time rather than
+ * snapshotted when the schema is created: the settings panel survives a move to
+ * another page, and a snapshot saying "a new page is being edited" would make an
+ * existing page treat its own pagename as taken.
  */
 export function usePublishValidationSchema() {
     const publishStore = usePublishStore();

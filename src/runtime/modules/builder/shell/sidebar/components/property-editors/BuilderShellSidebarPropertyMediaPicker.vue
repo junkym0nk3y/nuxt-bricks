@@ -1,4 +1,11 @@
 <script setup lang="ts">
+/**
+ * @description Media picker of a property: a preview of the picked image or video, the
+ * buttons that open the gallery and clear the choice, and the address of the file.
+ *
+ * The preview area pins the light theme with hex values of its own.
+ */
+
 // #region Imports
 // Vue
 import { computed } from 'vue';
@@ -64,9 +71,7 @@ function handleRemove(): void {
     <div :class="$style.BuilderShellSidebarPropertyMediaPicker">
         <label v-if="label" :class="$style.label">{{ label }}</label>
 
-        <!-- Media Preview -->
         <div :class="$style.preview">
-            <!-- Image Preview -->
             <img
                 v-if="hasMedia && mediaType === 'image'"
                 :src="modelValue"
@@ -76,7 +81,6 @@ function handleRemove(): void {
                 decoding="async"
             />
 
-            <!-- Video Preview -->
             <video
                 v-else-if="hasMedia && mediaType === 'video'"
                 :src="modelValue"
@@ -85,13 +89,11 @@ function handleRemove(): void {
                 playsinline
             />
 
-            <!-- Empty State -->
             <div v-else :class="$style.previewEmpty">
                 <BricksIcon :class="$style.previewIcon" :icon="previewIcon" />
             </div>
         </div>
 
-        <!-- Actions -->
         <div :class="$style.actions">
             <BricksButton
                 size="sm"
@@ -115,7 +117,6 @@ function handleRemove(): void {
             </BricksButton>
         </div>
 
-        <!-- URL Display -->
         <div v-if="hasMedia" :class="$style.urlDisplay">
             <span :class="$style.url">{{ modelValue }}</span>
         </div>
@@ -136,7 +137,6 @@ function handleRemove(): void {
 }
 
 .preview {
-    /* Фиксируем светлую тему для области превью */
     --bricks-base-50: #f9fafb;
     --bricks-base-300: #d1d5db;
 

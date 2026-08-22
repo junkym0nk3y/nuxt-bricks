@@ -70,43 +70,43 @@ const resolvedInputType = computed<string | undefined>(() => {
 
 // #region Methods
 /**
- * Обёртка для update:value/model-value стандартных редакторов.
+ * Wrapper over `update:value` and `update:model-value` of the standard editors.
  *
- * @param value - Новое значение свойства.
+ * @param value - New value of the property.
  */
 function handleValueChange(value: TBrickPropValue): void {
     props.handleChangeValues(props.variant.property, value);
 }
 
 /**
- * Делегирует открытие медиагалереи родительскому composable.
+ * Delegates the opening of the media gallery to the parent composable.
  *
- * @param payload - Параметры inline-редактора.
+ * @param payload - Parameters of the inline editor.
  */
 function handleOpenGallery(payload?: TInlineGalleryPayload): void {
     props.handleOpenMediaGallery(props.variant.property, payload);
 }
 
 /**
- * Оборачивает emit изменения значения image-gallery редактора.
+ * Wraps the value-change emit of the image gallery editor.
  *
- * @param value - Массив элементов галереи.
+ * @param value - Array of the gallery items.
  */
 function handleImageGalleryChange(value: IGalleryItem[]): void {
     props.handleChangeValues(props.variant.property, value);
 }
 
 /**
- * Враппер для image-gallery редактора — пробрасывает payload в composable.
+ * Wrapper for the image gallery editor: it forwards the payload to the composable.
  *
- * @param payload - Данные для вставки/замены элемента галереи.
+ * @param payload - Data of the gallery item to insert or replace.
  */
 function handleImageGalleryOpen(payload?: TInlineGalleryPayload): void {
     handleOpenGallery(payload);
 }
 
 /**
- * Открывает галерею для медиа-редакторов (image/video).
+ * Opens the gallery for the media editors (image and video).
  */
 function handleMediaOpen(): void {
     if (!isMediaEditor.value) {
@@ -117,9 +117,9 @@ function handleMediaOpen(): void {
 }
 
 /**
- * Оборачивает emit изменения значения accordion-items редактора.
+ * Wraps the value-change emit of the accordion items editor.
  *
- * @param value - Массив элементов аккордеона.
+ * @param value - Array of the accordion items.
  */
 function handleAccordionItemsChange(value: IAccordionItem[]): void {
     props.handleChangeValues(props.variant.property, value);

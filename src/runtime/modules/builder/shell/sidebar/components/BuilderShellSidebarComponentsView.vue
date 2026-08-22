@@ -1,4 +1,20 @@
 <script setup lang="ts">
+/**
+ * @description Library view of the sidebar: the search, the favorites filter and the
+ * component cards grouped by category.
+ *
+ * The favorites toggle is the kit icon button rather than one of our own: the button
+ * that stood here before had no accessible name at all, and a screen reader announced
+ * the library filter as an unnamed button. The pressed state is announced by the kit
+ * through `aria-pressed`.
+ *
+ * Two decisions held by the style section: an empty state takes the whole free height
+ * of the panel — it is narrow and tall, and a message in its center reads as the
+ * answer about an empty list rather than as one more line of text; and the names of
+ * the skipped bricks wrap anywhere, because a long brick name would push the sidebar
+ * wider otherwise.
+ */
+
 // #region Imports
 // Types
 import type { IComponentLibraryItem } from '../../../../common/types/brick';
@@ -37,8 +53,9 @@ const showFavoritesOnly = ref(false);
 
 // #region Computed
 /**
- * Фильтрует компоненты по поисковому запросу и избранному
- * @returns Массив компонентов, соответствующих фильтрам
+ * Filters the components by the search query and by the favorites flag.
+ *
+ * @returns Components that match the filters.
  */
 const filteredComponents = computed<IComponentLibraryItem[]>(() => {
     let result = props.components;
@@ -61,44 +78,48 @@ const filteredComponents = computed<IComponentLibraryItem[]>(() => {
 });
 
 /**
- * Группирует отфильтрованные компоненты по категориям для отображения.
+ * Groups the filtered components by category for display. The 'Layout' category is
+ * laid out as a two-column grid of compact cards, every other one as a single column
+ * of live previews; which categories are left out is decided by the grouping itself
+ * (utils/componentCategories.ts).
  *
- * Категории:
- * - 'Layout' - отображаются в grid 2 колонки с высотой миниатюры 12rem
- * - Остальные (Slider, Cards и т.д.) - отображаются в 1 колонку с высотой 18rem
- * - 'Modal' - исключается из отображения (модальные окна не добавляются на канвас)
- *
- * @returns Map, где ключ - название категории, значение - массив компонентов
+ * @returns Map of "category name → components".
  */
 const categorizedComponents = computed<Map<string, IComponentLibraryItem[]>>(() =>
     groupComponentsByCategory(filteredComponents.value)
 );
 
 /**
- * Проверяет наличие компонентов для отображения в библиотеке
- * @returns true если есть хотя бы один компонент
+ * Whether the library has anything to show.
+ *
+ * @returns True when there is at least one component.
  */
 const hasAvailableComponents = computed<boolean>(() => props.components.length > 0);
 
 /**
- * Проверяет, есть ли результаты после фильтрации
- * @returns true если есть хотя бы одна категория с компонентами
+ * Whether the filtering left any results.
+ *
+ * @returns True when at least one category still has components.
  */
 const hasFilteredResults = computed<boolean>(() => categorizedComponents.value.size > 0);
 
 /**
- * Имена пропущенных бриков одной строкой — по ним разработчик находит проблему,
- * а пользователь понимает, чего именно недостаёт в списке.
+ * Names of the skipped bricks in a single line — a developer finds the problem by
+ * them, and a user sees what exactly is missing from the list.
+ *
+ * They are listed apart from the failure block and with no retry button: the answer
+ * from the endpoint did arrive, individual bricks simply did not build, and a retry
+ * would not bring them back.
  */
 const skippedBrickNames = computed<string>(() =>
     props.skippedBricks.map((brick) => brick.name).join(', ')
 );
 
 /**
- * Подсказка про перезапуск нужна только там, где перезапуск и возможен. Всякий
- * пропуск теперь означает рассинхрон манифеста и сборки — библиотека собирается
- * из манифеста и brick-модулей не импортирует, так что упасть на импорте больше
- * нечему.
+ * The hint about a restart is only of use where a restart is possible. Every skip now
+ * means the manifest and the build have gone out of sync — the library is assembled
+ * from the manifest and imports no brick modules, so there is nothing left to fail on
+ * an import.
  */
 const isDevHintVisible = computed<boolean>(
     () => import.meta.dev === true && props.skippedBricks.length > 0
@@ -107,15 +128,15 @@ const isDevHintVisible = computed<boolean>(
 
 // #region Methods
 /**
- * Эмитит событие закрытия сайдбара для родительского компонента
+ * Emits the sidebar close event for the parent component.
  */
 function handleClose(): void {
     emit('close');
 }
 
 /**
- * Переводит название категории: известные категории — через мапу
- * `bricks.library.categories.*`, кастомные строки потребителя — как есть.
+ * Translates a category name: a known category through the
+ * `bricks.library.categories.*` map, a custom string of the consumer as it is.
  */
 function resolveCategoryLabel(category: string): string {
     const key = `bricks.library.categories.${category.toLowerCase()}`;
@@ -123,7 +144,7 @@ function resolveCategoryLabel(category: string): string {
 }
 
 /**
- * Запрашивает повторную загрузку библиотеки у composition root'а.
+ * Asks the composition root to load the library again.
  */
 function handleRetry(): void {
     emit('retry');
@@ -145,11 +166,6 @@ function handleRetry(): void {
                     :placeholder="t('bricks.library.searchPlaceholder')"
                     @update:value="(val: string) => (searchQuery = val)"
                 />
-                <!--
-                    Кнопка кита, а не своя: у прежней не было доступного имени
-                    вовсе — скринридер объявлял фильтр библиотеки безымянной
-                    кнопкой. Нажатое состояние кит объявляет `aria-pressed`.
-                -->
                 <BricksIconButton
                     :icon="showFavoritesOnly ? 'ta:filled-star' : 'ta:outline-star'"
                     :label="t('bricks.library.favoritesToggle')"
@@ -161,11 +177,6 @@ function handleRetry(): void {
         </div>
 
         <div :class="[$style.content, 'bricks-scrollbox']">
-            <!--
-                Блок отказа показывается независимо от состава списка: layout-блоки
-                в нём остаются и при отказе ручки, поэтому «список непуст» больше
-                не означает «библиотека загружена»
-            -->
             <div v-if="props.isLibraryLoadFailed" :class="$style.loadError">
                 <span :class="$style.loadErrorIcon">
                     <BricksIcon icon="ta:outline-circle-x" />
@@ -181,12 +192,6 @@ function handleRetry(): void {
                 </BricksButton>
             </div>
 
-            <!--
-                Отдельно от блока отказа и без кнопки повтора: ответ ручки дошёл,
-                а вот отдельные брики не собрались — повтор их не вернёт. Список
-                имён обязателен: без него неясно, чего именно не хватает среди
-                оставшихся карточек
-            -->
             <div v-if="props.skippedBricks.length > 0" :class="$style.skipped">
                 <span :class="$style.skippedIcon">
                     <BricksIcon icon="ta:outline-info-circle" />
@@ -317,8 +322,6 @@ function handleRetry(): void {
     grid-template-columns: 1fr;
 }
 
-/* Состояние занимает всю свободную высоту панели: она узкая и высокая, и
-   сообщение по её центру читается как ответ на пустой список, а не как строка. */
 .empty {
     height: 100%;
 }
@@ -381,8 +384,6 @@ function handleRetry(): void {
 
 .skippedNames {
     margin: 0;
-
-    /* Длинные имена бриков не должны распирать сайдбар */
     overflow-wrap: anywhere;
     font-size: 1.2rem;
     font-weight: 600;

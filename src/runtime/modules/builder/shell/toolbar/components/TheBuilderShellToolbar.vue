@@ -1,4 +1,17 @@
 <script setup lang="ts">
+/**
+ * @description Top bar of the builder: the logo, the selector of the open page next
+ * to the title, and the actions on the right — media gallery, preview, save and the
+ * profile menu.
+ *
+ * The avatar stands behind a vertical rule: it is not an action of the bar but "who
+ * is signed in", and without the rule it read as one more button next to Save. The
+ * rule is drawn by the menu itself, which also decides whether to render at all —
+ * outside database mode there is no profile, and the bar would otherwise carry a
+ * line with no avatar next to it. Before that menu the builder had no way out at
+ * all: logout lived only in the dashboard rail.
+ */
+
 // #region Imports
 // Types
 import type { IToolbarProps, IToolbarEmits } from './types';
@@ -37,40 +50,26 @@ const emit = defineEmits<IToolbarEmits>();
 
 // #region Data
 const { t } = useI18n();
+// The media gallery and saving are behind the edit permission: both are writes. From
+// here the gallery opens in its manager context, where uploading and editing files is
+// the whole point of it — and every one of those the endpoints turn a viewer down on
 const { canEdit } = useBuilderPermissions();
 
-// href дашборда: BuilderLogo рендерит обычный <a>, base роутер не подставит
+// Dashboard href: BuilderLogo renders a plain <a>, which the router leaves alone, so
+// the base has to be prepended here
 const { builderRootPath, withBase } = useBricksRoutePaths();
 const dashboardHref = withBase(builderRootPath);
 // #endregion
 
 // #region Computed
 /**
- * Нормализует значение отступа сайдбара для toolbar
- * Если offset пустой или '0', возвращает '0px'
- * @returns Нормализованное значение отступа в формате CSS
- */
-// const normalizedSidebarOffset = computed(() => {
-//     const offset = props.sidebarOffset?.trim();
-//     return offset && offset !== '0' ? offset : '0px';
-// });
-
-// /**
-//  * Вычисляет стили для toolbar с учетом отступа сайдбара
-//  * Применяет margin-left для сдвига центрального блока при открытом левом сайдбаре
-//  * @returns Объект стилей с marginLeft
-//  */
-// const toolbarStyle = computed(() => {
-//     const offset = normalizedSidebarOffset.value;
-//     return {
-//         marginLeft: offset,
-//     };
-// });
-
-/**
- * Возвращает заголовок текущей страницы для отображения в toolbar
- * Если заголовок пустой, возвращает null (не отображается)
- * @returns Заголовок страницы или null
+ * Title of the open page, empty title read as none.
+ *
+ * The page selector hangs off this title and appears only together with it: until the
+ * session opens the form is empty, and the server renders the same markup — showing
+ * the selector any earlier would come back as a hydration mismatch.
+ *
+ * @returns Page title, or null when the form has none.
  */
 const currentPageTitle = computed(() => {
     const title = props.pageTitle?.trim();
@@ -81,14 +80,14 @@ const currentPageTitle = computed(() => {
 });
 
 /**
- * Формирует конфигурацию кнопки публикации с учетом режима редактирования
+ * Builds the configuration of the save button.
  *
- * Опции:
- * - 'draft' — сохранить страницу
- * - 'copy' — сохранить как копию страницы
- * - 'template' — сохранить канвас как шаблон (страницу не пишет)
+ * Options:
+ * - 'draft' — save the page
+ * - 'copy' — save it as a copy of the page
+ * - 'template' — save the canvas as a template (writes no page)
  *
- * @returns Объект с label кнопки и массивом опций для dropdown
+ * @returns The button label and the array of dropdown options.
  */
 const publishButtonConfig = computed<{
     label: string;
@@ -118,89 +117,89 @@ const publishButtonConfig = computed<{
 
 // #region Methods
 /**
- * Открывает менеджер страниц (дашборд `/bricks`)
- * Позволяет просматривать, редактировать и удалять сохранённые страницы
+ * Asks for the page manager — the builder dashboard, where saved pages are browsed,
+ * opened and deleted.
  */
 function handleOpenPagesManager(): void {
     emit('openPagesManager');
 }
 
 /**
- * Сообщает об открытии селектора: список страниц догружается и освежается
- * ровно в этот момент, а не при загрузке билдера.
+ * Reports that the selector was opened: the list of pages is fetched and refreshed at
+ * exactly that moment, not when the builder loads.
  */
 function handleOpenPageSelector(): void {
     emit('openPageSelector');
 }
 
 /**
- * Передаёт выбранную в селекторе страницу наверх — переход выполняет
- * composition root.
+ * Passes the page picked in the selector upwards — the navigation itself is done by
+ * the composition root.
  *
- * @param page - Выбранная страница.
+ * @param page - Picked page.
  */
 function handleSelectPage(page: TPublishedPageSummary): void {
     emit('selectPage', page);
 }
 
 /**
- * Запрашивает создание новой страницы.
+ * Asks for a new page to be created.
  */
 function handleCreatePage(): void {
     emit('createPage');
 }
 
 /**
- * Открывает модальное окно галереи медиафайлов
- * Позволяет загружать и управлять изображениями/видео для лендингов
+ * Asks for the media gallery — uploading and managing the images and videos of the
+ * landing pages.
  */
 function handleOpenMediaGallery(): void {
     emit('openMediaGallery');
 }
 
 /**
- * Открывает модальное окно публикации текущего лендинга
- * Сохраняет текущую редактируемую страницу как новую копию
- * Создает дубликат страницы с возможностью задать новое имя
+ * Asks to save the open page as a copy: a new page with the same content, written
+ * straight away — the name is not asked for.
  */
 function handleSaveAsCopy(): void {
     emit('saveAsCopy');
 }
 
 /**
- * Просит сохранить содержимое канваса как шаблон. Саму страницу пункт не
- * записывает: шаблон — отпечаток содержимого, и сохранение страницы осталось бы
- * незаявленным побочным действием.
+ * Asks to save the canvas content as a template. The page itself is not written by
+ * this option: a template is an imprint of the content, and saving the page along
+ * with it would be an unannounced side effect.
  */
 function handleSaveAsTemplate(): void {
     emit('saveAsTemplate');
 }
 
 /**
- * Сохраняет текущий лендинг как черновик
- * Черновик не публикуется, но сохраняется в базе для последующего редактирования
+ * Asks to save the open page. Whether that publishes it is decided by the `published`
+ * flag of the publish form, not by this option.
  */
 function handleSaveDraft(): void {
     emit('saveDraft');
 }
 
 /**
- * Открывает превью текущего лендинга в новой вкладке
- * Позволяет просмотреть, как будет выглядеть опубликованная страница
+ * Asks for a preview of the open page in a new tab — how it is going to look once
+ * published.
  */
 function handlePreview(): void {
     emit('preview');
 }
 
 /**
- * Пробрасывает запрос модалки профиля наверх: монтирует её composition root.
+ * Forwards the request for the profile modal upwards: the composition root mounts it.
  */
 function handleOpenProfile(): void {
     emit('openProfile');
 }
 
 /**
- * Пробрасывает выход наверх: сессией и переходом на login владеет composition root.
+ * Forwards the logout upwards: the session and the trip to the login page belong to
+ * the composition root.
  */
 function handleLogout(): void {
     emit('logout');
@@ -215,11 +214,6 @@ function handleLogout(): void {
                 <span :class="$style.titlePrimary">
                     <BuilderLogo :class="$style.logo" :to="dashboardHref" />
                 </span>
-                <!--
-                    Заголовок появляется только с готовым названием: до открытия
-                    сессии форма пуста, и на сервере разметка та же — иначе
-                    вернулся бы hydration mismatch
-                -->
                 <template v-if="currentPageTitle">
                     <span :class="$style.titleDivider" aria-hidden="true">|</span>
                     <BuilderShellToolbarPageSelector
@@ -240,11 +234,6 @@ function handleLogout(): void {
         </div>
 
         <div :class="$style.right">
-            <!--
-                Медиатека — вход в загрузку и правку файлов: наблюдателю она
-                открылась бы галереей без единого доступного действия, потому что
-                выбирать картинку ему некуда (панели свойств у него нет)
-            -->
             <BricksIconButton
                 v-if="canEdit"
                 icon="ta:outline-photo-video"
@@ -264,7 +253,6 @@ function handleLogout(): void {
                 @click="handlePreview"
             />
 
-            <!-- Сохранение и публикация — записи: у наблюдателя их нет вовсе -->
             <BricksActionButton
                 v-if="canEdit"
                 :label="publishButtonConfig.label"
@@ -278,14 +266,6 @@ function handleLogout(): void {
                 <BricksIcon :class="$style.icon" icon="ta:outline-device-floppy" />
             </BricksActionButton>
 
-            <!--
-                Аватар за вертикальной чертой: он не действие панели, а «кем
-                вошёл», и без разделителя читался бы как ещё одна кнопка рядом с
-                «Сохранить». Черту рисует сам компонент — он же решает, рисоваться
-                ли вообще (вне database-режима профиля нет), иначе в basic-режиме
-                в панели висела бы линия без аватара. До него выхода в билдере не
-                было вовсе — logout жил только в рейле дашборда
-            -->
             <BuilderAuthProfileMenu
                 separated
                 @open-profile="handleOpenProfile"

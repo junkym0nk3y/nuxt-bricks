@@ -1,12 +1,13 @@
 /**
- * Утилиты для форматирования значений свойств компонентов
+ * Utilities that format the property values of components.
  */
 
 /**
- * Проверяет, является ли массив примитивным (содержит только строки, числа, boolean)
+ * Whether the array is a primitive one: every element is a string, a number, a boolean
+ * — or empty, since `null` and `undefined` pass the check as well.
  *
- * @param value - Проверяемое значение
- * @returns true, если массив содержит только примитивные значения
+ * @param value - Value to check.
+ * @returns True when the array holds no complex values.
  */
 export function isPrimitiveArrayValue(value: unknown): value is Array<string | number | boolean> {
     return (
@@ -21,10 +22,10 @@ export function isPrimitiveArrayValue(value: unknown): value is Array<string | n
 }
 
 /**
- * Форматирует примитивный массив в строку через запятую
+ * Formats a primitive array into a comma-separated string.
  *
- * @param value - Массив примитивных значений
- * @returns Строка с элементами, разделенными запятыми
+ * @param value - Array of primitive values.
+ * @returns String of the elements, separated by commas.
  */
 export function formatPrimitiveArrayValue(value: unknown): string {
     if (!Array.isArray(value)) {
@@ -35,10 +36,10 @@ export function formatPrimitiveArrayValue(value: unknown): string {
 }
 
 /**
- * Форматирует значение в JSON строку с отступами
+ * Formats a value into an indented JSON string.
  *
- * @param value - Значение для форматирования
- * @returns JSON строка или пустая строка в случае ошибки
+ * @param value - Value to format.
+ * @returns JSON string, or an empty string on a failure.
  */
 function formatJsonDisplayValue(value: unknown): string {
     try {
@@ -53,10 +54,10 @@ function formatJsonDisplayValue(value: unknown): string {
 }
 
 /**
- * Форматирует значение свойства для отображения в поле ввода
+ * Formats a property value for display in an input field.
  *
- * @param value - Значение для форматирования
- * @returns Отформатированная строка
+ * @param value - Value to format.
+ * @returns Formatted string.
  */
 export function formatDisplayValue(value: unknown): string {
     if (typeof value === 'number') {
@@ -78,10 +79,10 @@ export function formatDisplayValue(value: unknown): string {
 }
 
 /**
- * Парсит строку списка, разделенного запятыми
+ * Parses a comma-separated list string.
  *
- * @param value - Строка со значениями через запятую
- * @returns Массив очищенных строк
+ * @param value - String of comma-separated values.
+ * @returns Array of the trimmed strings.
  */
 export function parseListInput(value: string): string[] {
     if (!value) {

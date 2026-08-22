@@ -14,21 +14,21 @@ import { computed, ref, toValue } from 'vue';
 // #endregion
 
 /**
- * Порог показа поля поиска. Ровно та длина, на которой список перестаёт
- * помещаться в попап целиком: до неё поле было бы лишним элементом над списком,
- * который и так виден весь.
+ * Threshold at which the search field appears. Roughly the length past which the list
+ * stops fitting into the popup: below it the field would be one extra element above a
+ * list that scrolling alone still covers.
  */
 const SEARCH_VISIBLE_FROM_PAGES = 7;
 
 /**
- * Состояние селектора страниц в тулбаре: открытость попапа, строка поиска и
- * отфильтрованный список.
+ * State of the page selector in the toolbar: whether the popup is open, the search
+ * query and the filtered list.
  *
- * Данными не владеет — страницы приходят снаружи (composition root читает их из
- * стора публикации), здесь только то, что живёт ровно столько же, сколько
- * открытый попап.
+ * It owns no data — the pages arrive from the outside (the composition root reads
+ * them from the publish store), and what lives here lives exactly as long as the
+ * open popup does.
  *
- * @param options - Источник списка страниц.
+ * @param options - Source of the page list.
  */
 export function useToolbarPageSelector(
     options: IToolbarPageSelectorOptions
@@ -44,9 +44,9 @@ export function useToolbarPageSelector(
     );
 
     /**
-     * Запрос, который реально применяется. Скрытое поле не фильтрует: список мог
-     * сократиться (страницу удалили в другой вкладке) уже после набора, и тогда
-     * пользователь остался бы с урезанным списком и без поля, чтобы это увидеть.
+     * The query actually applied. A hidden field filters nothing: the list may have
+     * shrunk (a page deleted in another tab) after the query was typed, and the user
+     * would then be left with a cut-down list and no field to see why.
      */
     const effectiveQuery = computed<string>(() =>
         isSearchVisible.value ? searchQuery.value.trim().toLowerCase() : ''
@@ -60,9 +60,10 @@ export function useToolbarPageSelector(
             return pages;
         }
 
-        // По названию и по адресу сразу: страницу помнят то так, то так. Адрес —
-        // полный (`blog/post`), поэтому и запрос по префиксу находит свои страницы,
-        // а у одноимённых различие видно в самом совпадении
+        // By title and by address at once: a page is remembered one way or the other.
+        // The address is the full one (`blog/post`), so a query over the prefix finds
+        // its pages too, and among same-named ones the difference shows in the match
+        // itself
         return pages.filter((page) =>
             `${page.title ?? ''} ${getPageAddressKey(toPageAddress(page.pagename, page.urlPrefix))}`
                 .toLowerCase()
@@ -77,10 +78,10 @@ export function useToolbarPageSelector(
 
     // #region Methods
     /**
-     * Открывает и закрывает попап. Закрытие сбрасывает запрос: следующее открытие
-     * должно показывать весь список, а не хвост прошлого поиска.
+     * Opens and closes the popup. Closing resets the query: the next opening has to
+     * show the whole list, not the tail of the previous search.
      *
-     * @param nextOpen - Новое состояние попапа.
+     * @param nextOpen - New state of the popup.
      */
     function handleOpenChange(nextOpen: boolean): void {
         isOpen.value = nextOpen;

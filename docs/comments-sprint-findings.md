@@ -3967,15 +3967,475 @@ composables (зачем глушить переходы потока; почем
 на `body` — `cursor: grabbing` и `user-select: none` до следующего `mouseup`. Штатное скрытие
 панели этим не бьёт: overlay смонтирован постоянно, а `v-if` снимает только внутренний узел.
 
+## Этап 13 — builder/shell
+
+### 13.1 Контракт тулбара: пять пропов и одно событие, которых никто не читает
+
+**Файл:** `src/runtime/modules/builder/shell/toolbar/components/types.d.ts:8,10,11,22,24,44`
+**Категория:** мёртвый код
+**Статус:** открыто
+
+`IToolbarProps` объявляет `isEditingExistingPage`, `hasSelectedComponent`,
+`isPublishSettingsComplete`, `sidebarOffset` и `isPublished`; ни один из пяти в
+`TheBuilderShellToolbar.vue` не читается (грепом `props.<имя>` — ноль вхождений; единственное
+упоминание `sidebarOffset` было в закомментированном блоке, снятом в этом этапе). Четыре из
+пяти при этом честно передаются композиционным корнем
+(`builder/app/pages/[pagename].vue:511-516`), то есть корень считает и прокидывает значения,
+которые никуда не идут: `isEditingExistingPage` и `isPublishSettingsComplete` — вычисляемые.
+`isPublished` не передаётся вовсе.
+
+Там же `IToolbarEmits.clear` — событие, которого тулбар не эмитит и которое никто не слушает
+(грепом по `src/runtime/modules/builder` `emit('clear'` находится только в галерейных
+компонентах публикации, у них своё событие).
+
+### 13.2 `publishButtonConfig` описан как зависящий от режима редактирования
+
+**Файл:** `src/runtime/modules/builder/shell/toolbar/components/TheBuilderShellToolbar.vue:84`
+(до правки)
+**Категория:** разъехавшийся комментарий
+**Статус:** текст исправлен в этапе 13
+
+«Формирует конфигурацию кнопки публикации **с учётом режима редактирования**» — режим
+`computed` не читает вовсе: список опций собирается безусловно, метка всегда
+`bricks.toolbar.save`. Оговорка осталась от времён, когда конфигурация зависела от
+`isEditingExistingPage`, и этот же проп сегодня мёртв (13.1). В переводе оговорка убрана.
+
+### 13.3 `handleSaveAsCopy` обещал модалку публикации и ввод нового имени
+
+**Файл:** `src/runtime/modules/builder/shell/toolbar/components/TheBuilderShellToolbar.vue:162`
+(до правки)
+**Категория:** разъехавшийся комментарий
+**Статус:** текст исправлен в этапе 13
+
+Три строки: «Открывает модальное окно публикации… Сохраняет как новую копию… Создает дубликат
+страницы **с возможностью задать новое имя**». Метод эмитит `saveAsCopy`; дальше
+`useBuilderPageWrite.handleSaveAsCopy` (`builder/app/composables/useBuilderPageWrite.ts:186`)
+пишет копию сразу — ни модалки, ни запроса имени на пути нет. Из трёх утверждений верным было
+одно.
+
+### 13.4 `handleSaveDraft`: «черновик не публикуется»
+
+**Файл:** `src/runtime/modules/builder/shell/toolbar/components/TheBuilderShellToolbar.vue:180`
+(до правки)
+**Категория:** разъехавшийся комментарий
+**Статус:** текст исправлен в этапе 13
+
+«Сохраняет текущий лендинг как черновик. Черновик не публикуется, но сохраняется в базе».
+Пункт «Save changes» публикует ровно так же, как сохраняет: `handleSaveDraft`
+(`useBuilderPageWrite.ts:166`) читает `publishStore.currentFormState.published` и уходит в
+`submitPageWithPublishState(published, …)`, а тост выбирается из четырёх — «страница
+опубликована» в том числе. Публикацию решает флаг формы, а не пункт меню.
+
+### 13.5 Превью карточки меряется на 144rem, а лист базового устройства — 160rem
+
+**Файл:** `src/runtime/modules/builder/shell/sidebar/components/BuilderShellSidebarComponentCard.vue:237-238,301,317-318`,
+`sidebar/composables/useComponentCardPreview.ts:253`
+**Категория:** кандидат на правку логики плюс разъехавшийся комментарий
+**Статус:** открыто (текст комментария исправлен в этапе 13)
+
+Скрытый measure-инстанс и обёртка живого превью прибиты к `width: 144rem`, а шапка
+`getDragPreviewSize` называла эту ширину «desktop-шириной». Базовое устройство в каталоге —
+1600 px (`common/constants/devices.ts:83-90`, `desktop.width: 1600`), и лист канваса в
+playground действительно рисуется в `160rem` (замерено в живом DOM: у узла
+`[data-canvas-area="true"][data-bricks-viewport="desktop"]` инлайновая `width: 160rem`).
+То есть размер плейсхолдера драга снимается на ширине, которой канвас не пользуется, и
+расхождение растёт, если потребитель переопределит набор через `bricks.devices` —
+144rem не следует за настройкой вообще. Комментарий переписан по факту (фиксированные 144rem
+без слова «desktop»), сама ширина — вопрос отдельного спринта.
+
+### 13.6 Ключ базового устройства трижды написан литералом мимо `BASE_DEVICE_KEY`
+
+**Файл:** `src/runtime/modules/builder/shell/sidebar/components/BuilderShellSidebarComponentCard.vue:139,162`,
+`sidebar/composables/useSidebarPropertiesPanel.ts:195`,
+`sidebar/components/BuilderShellSidebarPropertiesView.vue:166`
+**Категория:** нарушение DRY
+**Статус:** открыто
+
+Константа `BASE_DEVICE_KEY` существует и в этих же файлах импортируется (карточка берёт её в
+`useComponentCardPreview`, панель — в `BuilderShellSidebarPropertiesView`), но рядом стоят
+`data-bricks-viewport="desktop"` в разметке и `scope !== 'desktop'` в условиях записи
+переопределений. Сегодня совпадает — `BASE_DEVICE_KEY = 'desktop'`, и ключ обязателен в наборе
+(`REQUIRED_DEVICE_KEYS`). Цена расхождения тем не менее асимметрична: если базовый ключ
+когда-нибудь сменится, гейт `scope !== 'desktop'` начнёт писать переопределения в базовое
+устройство молча.
+
+### 13.7 Интерфейсы пропсов и эмитов объявлены внутри одиннадцати SFC
+
+**Файл:** `BuilderShellToolbarVerticalNav.vue:31,39`,
+`BuilderShellSidebarPropertiesView.vue:33`, `TheBuilderShellSidebarPropertiesPanel.vue:18`,
+`BuilderShellSidebarSchemaTreeItem.vue:21,36`, `BuilderShellSidebarSchemaTreeView.vue:30`,
+`BuilderShellSidebarPublishView.vue:60`, `property-editors/BuilderShellSidebarPropertyJsonEditor.vue:22,27`,
+`property-editors/BuilderShellSidebarPropertyMediaPicker.vue:19,33`,
+`property-editors/BuilderShellSidebarPropertyAccordionItemsEditor.vue:16,21`,
+`property-editors/BuilderShellSidebarPropertyImageGalleryEditor.vue:18,25`,
+`property-editors/BuilderShellSidebarPropertySpacingEditorSide.vue:14`
+**Категория:** нарушение код-стайла
+**Статус:** открыто
+
+`.claude/rules/typescript.md` требует объявлять интерфейсы только в файлах типов; в области
+такие файлы есть и наполовину используются (`sidebar/types/`, `sidebar/components/types.d.ts`,
+`toolbar/components/types.d.ts`). Та же находка была в этапе 12 (12.13), здесь она втрое
+объёмнее. Отдельно: `IEmits` в `BuilderShellSidebarPropertySpacingEditorSide.vue` нарушает и
+правило нейминга — имя не называет сущность.
+
+### 13.8 Отладочный блок панели свойств уезжает в прод
+
+**Файл:** `src/runtime/modules/builder/shell/sidebar/components/BuilderShellSidebarPropertiesView.vue:187-191,305-315`
+**Категория:** мёртвый код
+**Статус:** открыто
+
+Ветка `v-if="!store.selectedComponentData"` печатает `No component selected` и два сырых дампа
+стора (`selectedComponent`, `selectedComponentData`) в блоке с классом `.debug`. Гейта по
+`import.meta.dev` нет, тексты не через i18n, стиль — серая плашка на `base-300`. В живой панели
+блок не всплывает только потому, что панель монтируется по выбранному компоненту, но это
+свойство внешнего условия, а не самой ветки.
+
+### 13.9 `showGroupLabel` и `.groupLabel` мертвы в строке редактора
+
+**Файл:** `src/runtime/modules/builder/shell/sidebar/types/sidebarProperties.d.ts:75`,
+`sidebar/components/BuilderShellSidebarPropertyEditorRow.vue:22,193-199`,
+`sidebar/components/BuilderShellSidebarPropertyEditors.vue:391,445`
+**Категория:** мёртвый код
+**Статус:** открыто
+
+Проп объявлен, дефолтится в `false`, дважды передаётся родителем — и ровно с тем же `false`;
+в шаблоне строки он не читается ни разу. Класс `.groupLabel` в том же файле тоже не
+используется: подпись группы рисует родитель своим `.groupToggle`.
+
+### 13.10 `._bool` — мёртвый класс CSS-модуля
+
+**Файл:** `src/runtime/modules/builder/shell/sidebar/components/BuilderShellSidebarPropertyEditors.vue:504-508`
+**Категория:** мёртвый код
+**Статус:** открыто
+
+Правило живёт в модуле `BuilderShellSidebarPropertyEditors`, а `$style._bool` навешивает
+`BuilderShellSidebarPropertyEditorRow` — у него свой модуль и своё правило `._bool`. Класс
+из родителя не попадает в разметку ни разу.
+
+### 13.11 Модификатор `._last` дерева схемы ничего не меняет — вместе с ним мёртв и проп
+
+**Файл:** `src/runtime/modules/builder/shell/sidebar/components/BuilderShellSidebarSchemaTreeItem.vue:24,163,337-339`
+**Категория:** мёртвый код
+**Статус:** открыто
+
+`.verticalLine` задаёт `height: calc(50% + 0.4rem)`, и `&._last` задаёт ровно ту же величину.
+Единственный потребитель пропа `isLast` — этот класс, значит и проп, и его вычисление
+`index === childComponents.length - 1` у обоих мест вызова не влияют ни на что. Похоже на
+недоделанный «обрыв линии у последнего ребёнка»: у последнего элемента вертикаль должна была
+кончаться на середине строки, а не тянуться дальше.
+
+### 13.12 Форс светлой темы в двух редакторах не записан в правила стилей
+
+**Файл:** `src/runtime/modules/builder/shell/sidebar/components/property-editors/BuilderShellSidebarPropertyMediaPicker.vue:139-140`,
+`property-editors/BuilderShellSidebarPropertyJsonEditor.vue:93-100`
+**Категория:** нарушение код-стайла
+**Статус:** открыто
+
+Два блока hex-переопределений `--bricks-base-*` и `--bricks-primary-*` (два значения у медиа-
+пикера, восемь у JSON-редактора). В живом DOM проверено, что пин работает: при `bricks-dark` на
+body фон превью остаётся `rgb(249, 250, 251)`, тогда как тулбар уходит в `rgb(40, 38, 42)`.
+Список легализованных исключений в `.claude/rules/styles.md` знает только про `TextEditorArea`
+и `TheTextEditorModal`; эти два в нём не значатся. Та же по природе находка, что 12.14: либо
+дополнить правило, либо снять форс.
+
+### 13.13 Четыре композабла области без явного типа возврата
+
+**Файл:** `sidebar/composables/usePublishValidationSchema.ts:24`,
+`useSidebarMediaSelection.ts:25`, `useSidebarResponsiveScope.ts:22`,
+`useSidebarPropertiesPanel.ts:42`
+**Категория:** нарушение код-стайла
+**Статус:** открыто
+
+`.claude/rules/vue-best-practices.md` требует типизировать возвращаемые значения, и половина
+композаблов области это делает через `types/composables.d.ts`
+(`IUseSpacingEditorReturn`, `IUseSidebarPublishFormReturn`, `IComponentCardDrag`,
+`IUsePropertyVariantsReturn`). У этих четырёх тип выводится, и `useSidebarPropertiesPanel`
+возвращает при этом двадцать четыре ключа, включая сам стор.
+
+### 13.14 `IPublishFormInitialValues` не описывает два поля, которые composable отдаёт
+
+**Файл:** `sidebar/types/composables.d.ts:67-72`,
+`sidebar/composables/useSidebarPublishForm.ts:40-47`
+**Категория:** разъехавшийся тип
+**Статус:** открыто
+
+Тип перечисляет четыре поля (`pagename`, `title`, `description`, `keywords`), а `initialValues`
+возвращает шесть — плюс `urlPrefix` и `subdomain`. Комментарий прямо над кодом объясняет, что
+без routing-полей yup видел бы `urlPrefix` пустым и проверка адреса не работала бы, то есть эти
+два поля не случайны. Присваивание проходит по ковариантности `ComputedRef`, так что компилятор
+молчит, а читатель типа получает неполный контракт.
+
+### 13.15 `handleNormalizeProps` игнорирует второй аргумент, объявленный контрактом
+
+**Файл:** `sidebar/composables/usePropertyVariants.ts:148-153`,
+`sidebar/types/composables.d.ts:32-35`
+**Категория:** нарушение KISS
+**Статус:** открыто
+
+Контракт объявляет `(data, editorType) => Record<string, unknown>`, реализация принимает
+`_editorType` и не смотрит на него — вся работа в `normalizeVariantProps(data)`. Через панель
+аргумент честно протаскивается двумя слоями (`ISidebarPropertyHandlers` →
+`BuilderShellSidebarPropertyEditorRow.vue:53`). Либо тип свойства нужен нормализации, и тогда
+она его не использует, либо не нужен — и тогда его протаскивают зря.
+
+### 13.16 Редакторы аккордеона и галереи повторяют один и тот же список операций
+
+**Файл:** `property-editors/BuilderShellSidebarPropertyAccordionItemsEditor.vue:49-146`,
+`property-editors/BuilderShellSidebarPropertyImageGalleryEditor.vue:69-186`
+**Категория:** нарушение DRY
+**Статус:** открыто
+
+`cloneItems`, `updateItems`, `handleRemoveItem`, `handleMoveUp`, `handleMoveDown` и
+`handleTitleChange` написаны в двух файлах посимвольно одинаково, с точностью до типа элемента;
+различаются только `handleAddItem` против `handleAddImage` и набор полей. Это готовый
+composable «редактируемый список объектов» на дженерике.
+
+### 13.17 `clampToPropertyRange` дублирует `clampValue`
+
+**Файл:** `property-editors/BuilderShellSidebarPropertyGridSizeEditor.vue:168-181`,
+`sidebar/composables/useSpacingEditor.ts:61-71`
+**Категория:** нарушение DRY
+**Статус:** открыто
+
+Обе функции берут `min`/`max` из `variant.property` и прижимают к ним число. Отличие одно:
+spacing-версия дополнительно округляет до одной десятой. Рядом в `useSpacingEditor` то же
+округление `Math.round(x * 10) / 10` написано трижды (`formatSpacingValue`, `toNumberValue`,
+`clampValue`).
+
+### 13.18 Ожидание 450 мс с комментарием про 400 мс и без имени
+
+**Файл:** `sidebar/components/BuilderShellSidebarSchemaTreeView.vue:145-150` (до правки)
+**Категория:** разъехавшийся комментарий плюс магическое число
+**Статус:** открыто (текст комментария исправлен в этапе 13)
+
+«Если viewport переключался, ждём завершения анимации (400ms + nextTick)» — в коде
+`setTimeout(…, 450)`. Анимации длительностью 400 мс в проекте не нашлось: переход листа канваса
+— `transform 250ms ease` (`TheBuilderCanvas.vue:496`), общий токен —
+`--bricks-default-transition: 300ms ease`. То есть названная в комментарии величина не совпадает
+ни с кодом рядом, ни с тем, чего ждут. Число к тому же голое: константы у него нет, и связь с
+источником задержки не выражена ничем.
+
+### 13.19 Инлайновый SVG-шеврон вместо иконки кита
+
+**Файл:** `sidebar/components/BuilderShellSidebarPropertyEditors.vue:409-426`
+**Категория:** нарушение KISS
+**Статус:** открыто
+
+Восемнадцать строк разметки `<svg>` с `width="12" height="12"` в пикселях там, где во всех
+соседних местах области стоит `<BricksIcon icon="ta:outline-chevron-down" />` (сравнить с
+`BuilderShellToolbarPageSelector.vue:213-216`, где направление шеврона тоже меняется по
+состоянию). Поворот у инлайнового варианта сделан классом `.groupChevron`/`.groupChevronOpen`,
+что тоже воспроизводимо на иконке.
+
+### 13.20 i18n-долг сайдбара: подписи и плейсхолдеры мимо словарей
+
+**Файл:** `sidebar/components/BuilderShellSidebarPublishView.vue:387,392,357,466`,
+`sidebar/components/BuilderShellSidebarPropertyEditors.vue:354,357`,
+`sidebar/components/BuilderShellSidebarNavigationEditor.vue:118`,
+`property-editors/BuilderShellSidebarPropertyMediaPicker.vue:20,73`,
+`property-editors/BuilderShellSidebarPropertyJsonEditor.vue:28`,
+`sidebar/utils/variantBuilders.ts:129,174`
+**Категория:** i18n-долг
+**Статус:** открыто
+
+Хардкод английского UI-текста рядом с полями, которые i18n используют: `Layout` (подпись и
+`aria-label`), `URL Prefix`, `OG/Twitter image`, `HTML ID`, плейсхолдеры `my-section`, `blog`,
+`spb`, `#section-id`, `alt="Preview"`, дефолты пропов `label: 'Media'` и `label: 'JSON'`, а в
+билдерах вариантов — `Enter ${property.label || property.name}` и `item1, item2, item3`. Часть
+из этого попадает в интерфейс потребителя рядом с переведёнными строками: в форме публикации
+`URL Prefix` стоит вплотную к `t('bricks.publish.subdomain')`.
+
+### 13.21 Три watcher-а превью карточки с одинаковым телом
+
+**Файл:** `sidebar/composables/useComponentCardPreview.ts:295-316`
+**Категория:** нарушение DRY
+**Статус:** открыто
+
+Три подряд идущих `watch` — на загрузку async-компонента, на `props.component.defaultProps` и
+на `props.isLayout` — содержат буквально одно и то же: `await nextTick(); updatePreviewScale();`.
+Сводится к одному `watch` по массиву источников.
+
+### 13.22 Два мелких отступления в стилях
+
+**Файл:** `sidebar/components/BuilderShellSidebarNavigationEditor.vue:182`,
+`sidebar/components/BuilderShellSidebarSchemaTreeItem.vue:259`
+**Категория:** нарушение код-стайла
+**Статус:** открыто
+
+`border-radius: 1rem` у счётчика навигации — пилюля числом, тогда как правило требует
+`var(--bricks-border-radius-pill)`. У выделенной строки дерева `background-color:
+var(--bricks-primary-100, var(--bricks-base-200))` — fallback никогда не срабатывает:
+`--bricks-primary-100` объявлена во всех трёх темах (`assets/scss/shared/_variables.scss:50,174,223`),
+и запасное значение только маскирует, какой токен на самом деле в силе.
+
+### 13.23 Высота превью продублирована из CSS константами
+
+**Файл:** `sidebar/composables/useComponentCardPreview.ts:45-49`,
+`sidebar/components/BuilderShellSidebarComponentCard.vue:285`
+**Категория:** нарушение DRY
+**Статус:** открыто
+
+`PREVIEW_HEIGHT_REM = 18` и `LAYOUT_PREVIEW_HEIGHT_REM = 12` объявлены в композабле с честной
+припиской «из CSS»; в самом CSS высота миниатюры задана как `height: 18rem`. Расчёт масштаба
+и вёрстка разъедутся молча — превью просто перестанет вписываться.
+
+### 13.24 Гейт медиагалереи по `isSessionReady` обоснован путём, которого у этой кнопки нет
+
+**Файл:** `src/runtime/modules/builder/shell/toolbar/components/types.d.ts:12-19` (до правки)
+**Категория:** разъехавшийся комментарий (находка ревью Codex, подтверждена по коду)
+**Статус:** текст исправлен в этапе 13
+
+Одно из трёх обоснований блокировки — «выбор картинки в галерее уехал бы в `socialImage` и
+потерялся вместе с остальными правками». Путь проверен целиком: кнопка тулбара эмитит
+`openMediaGallery` без аргумента, композиционный корень подставляет контекст `manager`
+(`useBuilderPage.ts:254`, дефолт параметра), а в этом контексте галерея выбор наружу не
+отдаёт — `handleSelectItem` только подсвечивает строку
+(`media/components/TheBuilderMediaGalleryModal.vue:287-293`), а кнопка Insert рисуется по
+`shouldShowPickerActions`, то есть исключительно при `context === 'properties'`
+(`:105`, `BuilderMediaGalleryMetaPanel.vue:213,227`). Остальные два обоснования — затирание
+страницы пустым холстом и гибрид в превью — держатся.
+
+Отдельный вопрос для спринта правок: путь до `socialImage` существует у **другой** кнопки —
+галереи из панели публикации (контекст `publish`, `TheBuilderShellSidebar.handleMediaSelect`
+→ `handleUpdateField('socialImage', …)`), и вот она `isSessionReady` не гейтится вовсе.
+Проверять, дефект это или нет, здесь не место: комментарий описывал не ту поверхность.
+
+### 13.25 Поиск появляется с седьмой страницы, а список перестаёт помещаться на шестой
+
+**Файл:** `src/runtime/modules/builder/shell/toolbar/composables/useToolbarPageSelector.ts:16-21`
+(до правки), `toolbar/components/BuilderShellToolbarPageSelector.vue:503-517`
+**Категория:** разъехавшийся комментарий (находка ревью Codex, подтверждена расчётом по
+живым замерам)
+**Статус:** текст исправлен в этапе 13
+
+Комментарий называл `SEARCH_VISIBLE_FROM_PAGES = 7` «ровно той длиной, на которой список
+перестаёт помещаться в попап целиком». Геометрия говорит другое: строка — `height: 5rem`,
+зазор — `gap: 0.2rem`, у списка `padding: 0.8rem` и `max-height: 28.8rem` (в живом DOM
+замерено `50px`, `288px`). Пять строк дают 274 px и помещаются, шесть — 326 px и уже нет.
+То есть на шести страницах список скроллится, а поля поиска ещё нет. Точность из
+комментария снята; должен ли порог стать шестёркой — вопрос отдельного спринта.
+
+### 13.26 `isPrimitiveArrayValue` сужает тип сильнее, чем проверяет
+
+**Файл:** `src/runtime/modules/builder/shell/sidebar/utils/propertyFormatters.ts:11-21`
+**Категория:** кандидат на правку логики (находка ревью Codex, подтверждена по коду)
+**Статус:** открыто (текст комментария исправлен в этапе 13)
+
+Реализация пропускает `null` и `undefined` наравне с примитивами
+(`item === null || item === undefined || ['string','number','boolean'].includes(typeof item)`),
+а type predicate объявляет результат как `value is Array<string | number | boolean>`. То есть
+после проверки TypeScript уверен, что дыр в массиве нет, хотя они есть. Комментарий это
+расхождение повторял («содержит только строки, числа, boolean»); текст поправлен, а сам
+предикат остаётся небезопасным. Потребители — `formatPrimitiveArrayValue` (там `String(item ?? '')`
+дыры терпит) и `resolvePrimitiveSource` → `parsePrimitiveArrayValue`, где `primitiveSource.find`
+ищет первый непустой элемент, то есть о дырах знает.
+
+### 13.27 Дерево схемы принимает drop на вложенный узел и молча ничего не делает
+
+**Файл:** `src/runtime/modules/builder/shell/sidebar/components/BuilderShellSidebarSchemaTreeItem.vue:176,212`,
+`sidebar/components/BuilderShellSidebarSchemaTreeView.vue:59-75`
+**Категория:** кандидат на правку логики (находка ревью Codex, подтверждена по коду)
+**Статус:** открыто (текст комментария исправлен в этапе 13)
+
+Рекурсивный item делает `draggable` любую строку, включая дочерние, рисует индикатор
+позиции и поднимает `reorder` наверх через цепочку родителей. `handleReorder` ищет `targetId`
+в `componentsStore.getRootComponents()` — а тот отдаёт только компоненты без родителя
+(`core/stores/actions/crud.ts:431`), — и на любом вложенном target выходит по `targetIndex === -1`.
+Пользователь видит подсветку «сюда можно», отпускает — и не происходит ничего. JSDoc обещал
+перестановку «внутри дерева»; формулировка сужена до корневого уровня, поведение остаётся
+вопросом спринта правок.
+
+### 13.28 Мёртвое поле `segmentIndex` в payload медиа-выбора
+
+**Файл:** `src/runtime/modules/builder/shell/sidebar/types/sidebarProperties.d.ts:16-21`
+**Категория:** мёртвый код (находка ревью Codex, подтверждена грепом)
+**Статус:** открыто (текст комментария исправлен в этапе 13)
+
+`TInlineGalleryPayload.segmentIndex` не пишется и не читается нигде в `src`: живые
+производители payload передают только `insertIndex` и `itemIndex`
+(`BuilderShellSidebarPropertyImageGalleryEditor.vue:84,186`). Одноимённое поле в
+`builder/media/types/schemaImageResolver.d.ts:28` — другой тип и другая механика. Там же был
+след того же прошлого: JSDoc `handleOpenMediaGallery` обещал ветку inline-контента, а
+`TMediaContext` знает только `property` и `image-gallery`.
+
+### 13.29 `hasGroups` не читается ни разу
+
+**Файл:** `src/runtime/modules/builder/shell/sidebar/components/BuilderShellSidebarPropertyEditors.vue:133`
+**Категория:** мёртвый код (находка ревью Codex, подтверждена грепом)
+**Статус:** открыто
+
+`const hasGroups = computed(() => groupedEditorItems.value.groups.size > 0)` — единственное
+вхождение символа во всём `src`. Шаблон обходит `groupedEditorItems.groups` напрямую.
+
+### 13.30 Рационал неделимой записи изображения скопирован из стора в место вызова
+
+**Файл:** `src/runtime/modules/builder/shell/sidebar/composables/useSidebarMediaSelection.ts:69-79`
+(до правки), владелец — `builder/core/stores/actions/properties.ts:62-78`
+**Категория:** нарушение DRY (находка ревью Codex, подтверждена по коду)
+**Статус:** текст исправлен в этапе 13
+
+Одиннадцать строк в shell пересказывали дефект, который целиком описан у
+`updateComponentIdentityProps`: `src` уходил в `responsive.mobile`, спутники — в базу, desktop
+получал гибрид, published per-device адрес не читает. Копия при этом уже была беднее
+оригинала — в ней не было второй половины гарантии (сброс переопределений, без которого тот же
+рассинхрон живёт в схемах, правленных до починки). Сокращено до ссылки на владельца плюс то,
+чего у него нет: почему в патч уходят и пустые значения.
+
+Тем же ревью найдены ещё три кластера, и все три — мои: шапка `BuilderShellSidebarPublishView`
+повторяла объяснение двойной записи store плюс vee-validate, уже стоящее у
+`handleSeoFieldUpdate`; шапка `BuilderShellToolbarPageSelector` повторяла историю трёх
+hover-тонов, принадлежащую `ui/base/popover/BricksMenuItem.vue:6`; JSDoc `emptyState` и
+`IToolbarPageSelectorEmptyState` вдвоём объясняли, что у двух пустых состояний одна разметка.
+Все сокращены до ссылок.
+
+### 13.31 Перевод перевернул смысл: «неотличим» стал «различает»
+
+**Файл:** `src/runtime/modules/builder/shell/sidebar/components/types.d.ts:15-19` (до правки)
+**Категория:** ошибка перевода (находка ревью Codex)
+**Статус:** текст исправлен в этапе 13
+
+Русский оригинал: «layout-блоки остаются в списке и при отказе ручки манифеста, поэтому по
+длине списка отказ **неотличим** от успешной загрузки без бриков» — то есть объяснение, зачем
+`isLibraryLoadFailed` нужен отдельным пропом. Перевод «the length of the list **tells** a
+failure **from** a successful load» утверждает ровно обратное: `tell A from B` — это
+«различает A и B». Смысл восстановлен.
+
+Урок в копилку к 12.22. Там перевод дописал причину, которой не было; здесь — перевернул
+имеющуюся идиомой, которая по отдельным словам выглядит буквальной. Оба раза текст читался
+гладко и оба раза прошёл мой редакторский проход: гладкость и есть то, что маскирует такие
+ошибки.
+
+### 13.32 Регистр: три оборота без прецедента в закрытых областях
+
+**Файл:** `sidebar/utils/componentCategories.ts:9`, `sidebar/composables/useSidebarResponsiveScope.ts:147`,
+`sidebar/components/BuilderShellSidebarPublishSocialImage.vue:30`,
+`sidebar/components/BuilderShellSidebarPublishView.vue:218`
+**Категория:** регистр (находка ревью Codex, подтверждена частично)
+**Статус:** текст исправлен в этапе 13
+
+Приняты три: `the groups pile up` (0 вхождений `pile` в закрытых областях),
+`the tab lives a life of its own` (0 вхождений оборота) и дважды `asks for the media gallery
+to pick the social image in` — предлог в хвосте, конструкции такого вида в проекте нет.
+Заменены на `are collected`, `keeps a state of its own` и `so a social image can be picked`.
+
+**Отклонена претензия к именным описаниям функций.** Ревью назвало калькой то, что
+`sideLabel`, `getDragPreviewSize`, `readPropValue` и `resolveArrayValue` описаны именными
+фразами («Localized caption of the side…»), а не глаголом в третьем лице. Замер по закрытым
+областям: из 455 JSDoc над функциями глаголом начинаются 372, именной фразой — 83, и среди
+вторых ровно те же геттеры-резолверы (`getPageAddressKey` — «Canonical key of an address»,
+`resolveRouteName` — «Name of the route that wins the path», `getPathSegments` —
+«Non-empty path segments»). Приняв правку, перевод уехал бы от собственного эталона —
+та же ловушка, что в этапе 9. Слово `latch`, тоже названное калькой, имеет прецедент
+(`ui/base/modal/BricksModal.vue:10`).
+
 ## Известные находки из планирования (не закрыты)
 
 Перенесены из `comments-sprint.md` («затравка документа»). Правятся текстом по ходу
 своего этапа.
 
-| №   | Файл                                                                | Что не так                                                                                                                                                                                                                      | Этап |
-| --- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
-| 1   | `builder/app/composables/useBuilderSession.ts:335`                  | ссылается на `armDraftSupersedeWatch`; такого символа нет, настоящий — `armDraftPrompt` (деструктуризация :117, вызов :243)                                                                                                     | 19   |
-| 2   | `builder/app/composables/usePageThumbnail.ts:170`                   | `fitScale` встречается только в этом комментарии; фактически (`canvas/viewport/composables/useCanvas.ts:113-116`) — `canvasStore.scale * remCompensation`                                                                       | 19   |
-| 3   | `builder/shell/toolbar/components/TheBuilderShellToolbar.vue:47-69` | живой JSDoc над функцией, закомментированной на :53-56 — файл читается как рабочий код; удалить блок целиком                                                                                                                    | 13   |
-| 5   | `builder/app/composables/usePageThumbnail.ts:176-180`               | цитирует внутренности библиотеки с прибитыми номерами строк (`modern-screenshot 4.7, index.mjs:452 и :1497`) при объявленном `^4.7.0` — минорный бамп обесценит ссылку молча; номера убрать, поведенческое утверждение оставить | 19   |
-| 8   | `server/utils/bricksComponents.ts:67`                               | русский текст в `createError({ data: { description } })` пересекает HTTP-границу и может отрендериться в интерфейсе — **i18n-долг, не переводить**                                                                              | 7    |
+| №   | Файл                                                  | Что не так                                                                                                                                                                                                                      | Этап |
+| --- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| 1   | `builder/app/composables/useBuilderSession.ts:335`    | ссылается на `armDraftSupersedeWatch`; такого символа нет, настоящий — `armDraftPrompt` (деструктуризация :117, вызов :243)                                                                                                     | 19   |
+| 2   | `builder/app/composables/usePageThumbnail.ts:170`     | `fitScale` встречается только в этом комментарии; фактически (`canvas/viewport/composables/useCanvas.ts:113-116`) — `canvasStore.scale * remCompensation`                                                                       | 19   |
+| 5   | `builder/app/composables/usePageThumbnail.ts:176-180` | цитирует внутренности библиотеки с прибитыми номерами строк (`modern-screenshot 4.7, index.mjs:452 и :1497`) при объявленном `^4.7.0` — минорный бамп обесценит ссылку молча; номера убрать, поведенческое утверждение оставить | 19   |
+| 8   | `server/utils/bricksComponents.ts:67`                 | русский текст в `createError({ data: { description } })` пересекает HTTP-границу и может отрендериться в интерфейсе — **i18n-долг, не переводить**                                                                              | 7    |

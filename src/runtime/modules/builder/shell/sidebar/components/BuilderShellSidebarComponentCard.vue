@@ -1,4 +1,23 @@
 <script setup lang="ts">
+/**
+ * @description Card of one library component: the source of the drag, with a live
+ * preview for a brick and a schematic icon for a layout block.
+ *
+ * The preview renders inside a wrapper of a fixed 144rem width. That width never
+ * reaches the CSS media queries — they react to the browser viewport — but it does
+ * set the context for grid and flex layouts and for CSS container queries, so the
+ * block looks the way it will on the sheet. The hidden instance next to it is there
+ * for measuring (`useComponentCardPreview`), and its default slot is deliberately
+ * empty: that reproduces the render of an empty container on the canvas
+ * (`isEmpty=false`), while otherwise Flex shows "Drop components here" and the
+ * measured height comes out too large.
+ *
+ * The thumbnail is a `.bricks-canvas` as well, so `base-900` here is the light canvas
+ * token in both themes: the text of the component stays dark on the white preview.
+ * The (i) glyph is 1.6rem and its hit area is widened by padding to about 2.8rem — it
+ * is a hard target to hit with the cursor otherwise.
+ */
+
 // #region Imports
 // Types
 import type { ISidebarComponentCardProps } from './types';
@@ -50,27 +69,29 @@ const { resolveAssetUrl } = useBricksAssetUrl();
 
 // #region Computed
 /**
- * Описание компонента: ключи `bricks.*` переводятся, кастомные строки — как есть.
+ * Description of the component, shown by the (i) glyph on hover: `bricks.*` keys are
+ * translated, custom strings are kept as they are.
  */
 const resolvedDescription = computed<string>(
     () => resolveBricksLabel(t, te, props.component.description) || ''
 );
 
 /**
- * Есть ли у компонента статичная превью-иконка (layout-блоки)
+ * Whether the component has a static preview icon — layout blocks do
  */
 const hasThumbnail = computed(() => props.isLayout && Boolean(props.component.thumbnail));
 
 /**
- * URL иконки layout-блока: definitions хранят asset-путь модуля
- * ('images/layouts/...'), URL строится с учётом /_bricks/ и app.baseURL.
+ * URL of the layout block icon: the definitions keep the asset path of the module
+ * ('images/layouts/...'), and the URL is built with the module asset prefix and
+ * `app.baseURL` taken into account.
  */
 const thumbnailUrl = computed<string>(() =>
     props.component.thumbnail ? resolveAssetUrl(props.component.thumbnail) : ''
 );
 
 /**
- * Является ли компонент избранным
+ * Whether the component is a favorite
  */
 const isFavorite = computed<boolean>(() =>
     componentsStore.favorites.includes(props.component.name)
@@ -85,7 +106,6 @@ const isFavorite = computed<boolean>(() =>
         @dragstart="handleDragStart"
         @dragend="handleDragEnd"
     >
-        <!-- Значок (i): описание блока показывается по наведению именно на него -->
         <BricksTooltip v-if="resolvedDescription" bottom :class="$style.infoTooltip">
             <template #activator>
                 <span :class="$style.infoIcon">
@@ -98,10 +118,8 @@ const isFavorite = computed<boolean>(() =>
             </template>
         </BricksTooltip>
 
-        <!-- Индикатор избранного -->
         <BricksIcon v-if="isFavorite" :class="$style.favoriteIndicator" icon="ta:filled-star" />
 
-        <!-- Компактный layout-блок: схематичная иконка + название -->
         <div v-if="props.isLayout" :class="$style.layoutBody">
             <img
                 v-if="hasThumbnail"
@@ -114,7 +132,6 @@ const isFavorite = computed<boolean>(() =>
             <BricksIcon v-else :class="$style.layoutIconFallback" icon="ta:outline-puzzle" />
             <span :class="$style.layoutName">{{ props.component.name }}</span>
 
-            <!-- Скрытый инстанс на desktop-ширине для точного замера реального размера блока -->
             <div
                 v-if="measureComponent"
                 ref="measureWrapperRef"
@@ -123,28 +140,22 @@ const isFavorite = computed<boolean>(() =>
                 aria-hidden="true"
             >
                 <component :is="measureComponent" v-bind="measureBindProps">
-                    <!-- Пустой default-слот воспроизводит рендер пустого контейнера на канвасе
-                         (isEmpty=false), иначе Flex показывает «Drop components here» и завышает высоту. -->
                     <template #default><span v-if="false" /></template>
                 </component>
             </div>
         </div>
 
-        <!-- Прочие компоненты: живое превью + название -->
         <div v-else :class="$style.cardInner">
             <div :class="[$style.thumbnail, 'bricks-canvas']">
-                <!-- Viewport с overflow: hidden -->
                 <div
                     v-if="ComponentPreview"
                     ref="previewWrapperRef"
                     :class="$style.previewViewport"
                 >
-                    <!-- Обёртка с transform: scale() для масштабирования -->
                     <div
                         :class="$style.previewInner"
                         :style="{ transform: `scale(${previewScale})` }"
                     >
-                        <!-- Wrapper с desktop viewport -->
                         <div
                             ref="componentWrapperRef"
                             :class="$style.componentWrapper"
@@ -188,7 +199,6 @@ const isFavorite = computed<boolean>(() =>
     }
 }
 
-/* ---- Значок (i) и избранное (углы карточки) ---- */
 .infoTooltip {
     position: absolute;
     top: 0;
@@ -201,8 +211,6 @@ const isFavorite = computed<boolean>(() =>
     display: flex;
     align-items: center;
     justify-content: center;
-
-    /* Иконка 1.6rem, но hit-область расширена паддингом (~2.8rem) — легче попасть курсором */
     padding: 0.6rem;
     color: var(--bricks-base-400);
     transition: color var(--bricks-default-transition);
@@ -228,7 +236,6 @@ const isFavorite = computed<boolean>(() =>
     color: var(--bricks-primary);
 }
 
-/* Скрытый measure-инстанс: desktop-ширина, вне потока, без визуального следа */
 .measureProbe {
     position: absolute;
     top: 0;
@@ -239,7 +246,6 @@ const isFavorite = computed<boolean>(() =>
     pointer-events: none;
 }
 
-/* ---- Компактный layout-блок ---- */
 .layoutBody {
     display: flex;
     flex-direction: column;
@@ -271,7 +277,6 @@ const isFavorite = computed<boolean>(() =>
     color: var(--bricks-base-900);
 }
 
-/* ---- Прочие компоненты: живое превью ---- */
 .cardInner {
     display: flex;
     flex-direction: column;
@@ -285,9 +290,6 @@ const isFavorite = computed<boolean>(() =>
     height: 18rem;
     border-bottom: 1px solid var(--bricks-base-300);
     background-color: var(--bricks-base-0);
-
-    /* Превью — тоже .bricks-canvas, поэтому base-900 здесь светлый токен канваса
-       в обеих темах: текст компонента остаётся тёмным на белой миниатюре. */
     color: var(--bricks-base-900);
 }
 
@@ -309,11 +311,6 @@ const isFavorite = computed<boolean>(() =>
 }
 
 .componentWrapper {
-    /**
-         * Фиксированная ширина эмулирует desktop viewport для компонента.
-         * Это не влияет на CSS media queries (они реагируют на viewport браузера),
-         * но задаёт контекст для grid/flex layouts и CSS container queries.
-         */
     width: 144rem;
     min-width: 144rem;
 }

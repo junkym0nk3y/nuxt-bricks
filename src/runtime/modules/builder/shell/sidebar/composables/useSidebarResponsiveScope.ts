@@ -15,9 +15,10 @@ import { BASE_DEVICE_KEY } from '../../../../common/constants/devices';
 import { getBlockDefinition } from '../../../../layouts-blocks/registry';
 
 /**
- * Responsive-scope панели свойств: определение адаптивности выбранного
- * компонента, активная вкладка устройства, merge overrides в props
- * для предпросмотра значений и синхронизация scope с viewport канваса.
+ * Responsive scope of the properties panel: whether the selected component is
+ * responsive at all, which device tab is active, the merge of the overrides into the
+ * props so the values can be previewed, and the sync of the scope with the canvas
+ * viewport.
  */
 export function useSidebarResponsiveScope() {
     const store = useComponentsStore();
@@ -37,7 +38,7 @@ export function useSidebarResponsiveScope() {
     });
 
     /**
-     * Есть ли у выбранного компонента brick-свойства с responsive: true.
+     * Whether the selected component has brick properties with `responsive: true`.
      */
     const hasResponsiveBrickValues = computed<boolean>(() => {
         const selected = store.selectedComponentData;
@@ -48,7 +49,8 @@ export function useSidebarResponsiveScope() {
     });
 
     /**
-     * Компонент поддерживает responsive: layout-компонент или обычный с responsive brick values.
+     * The component supports responsive values: either it is a layout component, or an
+     * ordinary one carrying responsive brick values.
      */
     const isResponsiveComponent = computed<boolean>(() => {
         return isResponsiveLayout.value || hasResponsiveBrickValues.value;
@@ -114,8 +116,8 @@ export function useSidebarResponsiveScope() {
     });
 
     /**
-     * При выборе другого компонента scope следует за viewport канваса
-     * (в Figma mode — desktop).
+     * When another component is selected, the scope follows the canvas viewport — in
+     * Figma mode, the base device.
      */
     watch(
         () => store.selectedComponentData?.id,
@@ -127,8 +129,8 @@ export function useSidebarResponsiveScope() {
     );
 
     /**
-     * Синхронизирует scope sidebar с viewport канваса при переключении viewport.
-     * В Figma mode сохраняет текущий выбранный scope.
+     * Syncs the sidebar scope with the canvas viewport whenever the viewport switches.
+     * In Figma mode the currently picked scope is kept.
      */
     watch(
         () => canvasStore.viewport,
@@ -140,11 +142,11 @@ export function useSidebarResponsiveScope() {
     );
 
     /**
-     * Возвращает scope на базовое устройство, если активное исчезло из набора.
+     * Returns the scope to the base device when the active one leaves the set.
      *
-     * Вкладка живёт своей жизнью и переживает правку набора: без сброса
-     * удалённый `laptop` остался бы выбранным, и панель продолжила бы писать
-     * переопределения в ключ, которого в наборе страницы больше нет.
+     * The tab keeps a state of its own and survives an edit of the set: without the
+     * reset a deleted `laptop` would stay picked, and the panel would go on writing
+     * overrides into a key the page set no longer has.
      */
     watch(
         () => canvasStore.devices,
@@ -157,16 +159,16 @@ export function useSidebarResponsiveScope() {
     );
 
     /**
-     * Устанавливает активную вкладку устройства для редактирования responsive overrides layout-компонентов.
+     * Sets the active device tab the responsive overrides are edited under.
      *
-     * @param scope - Ключ устройства (desktop/tablet/mobile).
+     * @param scope - Device key, one of the keys of the page set.
      */
     function handleSetLayoutDeviceScope(scope: TBricksDeviceKey): void {
         layoutDeviceScope.value = scope;
     }
 
     /**
-     * Сбрасывает overrides для выбранного устройства (кроме desktop).
+     * Drops the overrides of the picked device; the base device has none to drop.
      */
     function handleResetLayoutDeviceScopeOverrides(): void {
         const selected = store.selectedComponentData;

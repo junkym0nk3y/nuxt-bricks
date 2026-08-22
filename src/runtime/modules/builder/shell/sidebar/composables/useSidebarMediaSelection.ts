@@ -18,19 +18,20 @@ import { useComponentsStore } from '../../../core/stores/components';
 import { readOwnKey } from '../../../../common/utils/safeRecord';
 
 /**
- * Выбор медиа из галереи для панели свойств: контекст запроса
- * (обычное свойство / image-gallery) и применение выбранного элемента
- * к соответствующему свойству компонента.
+ * Picking media from the gallery for the properties panel: the context of the request
+ * (an ordinary property or an image gallery) and the application of the picked item to
+ * the property it belongs to.
  */
 export function useSidebarMediaSelection(options: IUseSidebarMediaSelectionOptions) {
     const store = useComponentsStore();
     const currentMediaContext = ref<TMediaContext | null>(null);
 
     /**
-     * Открывает медиагалерею для произвольного свойства, inline-контента или image-gallery.
+     * Opens the media gallery for a property: either an ordinary one, or an image
+     * gallery, where the pick also carries the place it lands in.
      *
-     * @param property - Свойство, которое редактирует медиа.
-     * @param inlinePayload - Дополнительные данные для inline/gallery редактора.
+     * @param property - Property whose media is being edited.
+     * @param inlinePayload - Where the picked item goes inside an image gallery.
      */
     function handleOpenMediaGallery(
         property: IPropertyDefinition,
@@ -53,9 +54,9 @@ export function useSidebarMediaSelection(options: IUseSidebarMediaSelectionOptio
     }
 
     /**
-     * Обрабатывает выбор медиафайла и обновляет соответствующее свойство компонента.
+     * Handles the pick of a media file and updates the property it belongs to.
      *
-     * @param item - Выбранный объект медиа.
+     * @param item - Picked media object.
      */
     function handleMediaSelect(item: IMediaItem): void {
         const context = currentMediaContext.value;
@@ -66,16 +67,12 @@ export function useSidebarMediaSelection(options: IUseSidebarMediaSelectionOptio
         }
 
         if (context.kind === 'property') {
-            // Адрес файла и его спутники пишутся ОДНИМ изменением и всегда в
-            // базовые props, минуя per-device scope панели. Причина не в
-            // атомарности: `src` — свойство responsive-блока, и на mobile он
-            // уходил в `responsive.mobile`, тогда как спутники ложились в базу.
-            // Канвас на desktop получал адрес прежнего файла с пропорцией и
-            // превью нового, а published per-device адрес не читает вовсе —
-            // то есть отдельная картинка на mobile была иллюзией канваса.
-            // Пустые значения пишутся тоже: у файла без вариантов или размеров
-            // (SVG, видео, загрузка до их появления) прежние иначе остались бы
-            // от предыдущей картинки.
+            // The address of the file and its companions go as ONE change, past the
+            // per-device scope of the panel: why an identity write is indivisible is
+            // spelled out at `updateComponentIdentityProps`. Empty values are part of
+            // the patch too — for a file with no variants or no dimensions (an SVG, a
+            // video, an upload before they appear) the previous ones would otherwise
+            // stay behind from the previous picture.
             const patch: Record<string, string | number> = {
                 [context.property.name]: item.url,
             };
@@ -103,11 +100,11 @@ export function useSidebarMediaSelection(options: IUseSidebarMediaSelectionOptio
     }
 
     /**
-     * Обрабатывает выбор медиа для image-gallery редактора.
+     * Handles the pick of media for the image gallery editor.
      *
-     * @param context - Контекст медиа с данными о действии.
-     * @param selected - Выбранный компонент.
-     * @param item - Выбранный медиа-элемент.
+     * @param context - Media context, carrying the action to perform.
+     * @param selected - Selected component.
+     * @param item - Picked media item.
      */
     function handleImageGalleryMediaSelect(
         context: TMediaContext & { kind: 'image-gallery' },
@@ -115,7 +112,7 @@ export function useSidebarMediaSelection(options: IUseSidebarMediaSelectionOptio
         item: IMediaItem
     ): void {
         const property = context.property;
-        // Имя пропа объявляет brick-файл, пропсы приходят из схемы
+        // The name of the prop is declared by a brick file, the props come from the schema
         const currentValue = readOwnKey(selected.component.props, property.name);
         const currentItems = Array.isArray(currentValue) ? (currentValue as IGalleryItem[]) : [];
 

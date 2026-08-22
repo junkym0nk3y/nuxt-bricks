@@ -46,22 +46,22 @@ const displayLabel = computed<string>(() => props.label || t('bricks.properties.
 
 // #region Methods
 /**
- * Клонирует массив элементов аккордеона.
+ * Clones the array of accordion items.
  */
 function cloneItems(source: IAccordionItem[]): IAccordionItem[] {
     return source.map((item) => ({ ...item }));
 }
 
 /**
- * Эмитит обновлённый массив элементов.
+ * Emits the updated array of items.
  */
 function updateItems(value: IAccordionItem[]): void {
     emit('update:modelValue', value);
 }
 
 /**
- * Добавляет новый элемент в конец списка.
- * Если есть предыдущие элементы — копирует данные из последнего.
+ * Adds a new item to the end of the list, copying the data of the last one when the
+ * list is not empty.
  */
 function handleAddItem(): void {
     const lastItem = items.value[items.value.length - 1];
@@ -69,7 +69,8 @@ function handleAddItem(): void {
         ? { ...lastItem, title: `${lastItem.title} ${t('bricks.properties.accordion.copySuffix')}` }
         : {
               title: t('bricks.properties.accordion.defaultTitle', { n: items.value.length + 1 }),
-              // HTML в словарях запрещён (unplugin-vue-i18n) — обёртка добавляется здесь
+              // HTML is banned in the dictionaries (unplugin-vue-i18n), so the
+              // wrapper is added here
               content: `<p>${t('bricks.properties.accordion.defaultContent')}</p>`,
           };
 
@@ -77,9 +78,9 @@ function handleAddItem(): void {
 }
 
 /**
- * Удаляет элемент по индексу.
+ * Removes the item at the index.
  *
- * @param index - Индекс удаляемого элемента
+ * @param index - Index of the item to remove.
  */
 function handleRemoveItem(index: number): void {
     const next = cloneItems(items.value);
@@ -88,10 +89,10 @@ function handleRemoveItem(index: number): void {
 }
 
 /**
- * Обновляет поле title элемента.
+ * Updates the title field of an item.
  *
- * @param index - Индекс элемента
- * @param value - Новое значение заголовка
+ * @param index - Index of the item.
+ * @param value - New title value.
  */
 function handleTitleChange(index: number, value: string): void {
     const next = cloneItems(items.value);
@@ -103,10 +104,10 @@ function handleTitleChange(index: number, value: string): void {
 }
 
 /**
- * Обновляет поле content элемента.
+ * Updates the content field of an item.
  *
- * @param index - Индекс элемента
- * @param value - Новое значение контента (HTML)
+ * @param index - Index of the item.
+ * @param value - New content value (HTML).
  */
 function handleContentChange(index: number, value: string): void {
     const next = cloneItems(items.value);
@@ -118,9 +119,9 @@ function handleContentChange(index: number, value: string): void {
 }
 
 /**
- * Перемещает элемент вверх на одну позицию.
+ * Moves the item one position up.
  *
- * @param index - Индекс элемента
+ * @param index - Index of the item.
  */
 function handleMoveUp(index: number): void {
     if (index === 0) {
@@ -133,9 +134,9 @@ function handleMoveUp(index: number): void {
 }
 
 /**
- * Перемещает элемент вниз на одну позицию.
+ * Moves the item one position down.
  *
- * @param index - Индекс элемента
+ * @param index - Index of the item.
  */
 function handleMoveDown(index: number): void {
     if (index >= items.value.length - 1) {

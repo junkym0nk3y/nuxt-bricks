@@ -1,4 +1,33 @@
 <script setup lang="ts">
+/**
+ * @description Selector of the open page in the toolbar title: a popover listing the
+ * saved pages, a search over them, and a footer leading either to the dashboard or to
+ * a new page.
+ *
+ * The popover is deliberately non-modal: Esc and the return of focus to the trigger
+ * come from PopoverContent itself, while a focus trap would only arrive together with
+ * `modal` on PopoverRoot — and that also kills `pointer-events` on body for as long
+ * as the popup stays mounted, so a click right after closing would be swallowed.
+ * Keyboard events are kept inside by `handleContentKeydown` instead. The search lives
+ * inside the list (`ListboxFilter`) rather than in a separate field above it: arrows
+ * and Enter then walk the rows out of the box, with no focus emulation of our own.
+ *
+ * Decisions held by the style section: the list is capped at 5.5 rows, so half of the
+ * sixth says by itself that it continues below; the rows carry `flex-shrink: 0`,
+ * because past that cap the flexbox starts squeezing them and the title runs into the
+ * address; the closing animation is shorter than the opening one and switches
+ * `pointer-events` off, because reka keeps the content mounted until the closed-state
+ * animation is over and the leaving popup would eat a click aimed at what was under
+ * it; and the keyframes are declared inside the module block, because CSS Modules
+ * scopes the animation name at the `animation:` reference and a global definition
+ * would no longer match it.
+ *
+ * Tones are borrowed rather than invented here: the row hover is the one of the kit
+ * menu item (`BricksMenuItem`, which carries the story of that tone), the opening
+ * animation repeats the other builder popovers (`BricksActionButton`), and the draft
+ * badge repeats the one in the dashboard page list.
+ */
+
 // #region Imports
 // Types
 import type { TPublishedPageSummary } from '../../../../common/types/bricks-api';
@@ -56,12 +85,13 @@ const emit = defineEmits<IToolbarPageSelectorEmits>();
 
 // #region Data
 const { t } = useI18n();
+// Creating a page is a write: the endpoint would turn a viewer down anyway
 const { canEdit } = useBuilderPermissions();
 
-/** Строк в скелете догрузки — столько же, сколько в макете. */
+/** Rows in the loading skeleton — as many as the design has */
 const SKELETON_ROWS = 3;
 
-/** Ключи i18n пустых состояний: ничего не нашлось поиском и страниц нет вовсе. */
+/** i18n keys of the empty states: the search found nothing, and there are no pages at all */
 const EMPTY_STATE_TEXT: Record<'noResults' | 'empty', IToolbarPageSelectorEmptyState> = {
     noResults: {
         title: 'bricks.toolbar.pageSelector.noResultsTitle',
@@ -81,8 +111,8 @@ const { isOpen, searchQuery, isSearchVisible, filteredPages, isEmptyResult, hand
 
 // #region Computed
 /**
- * Текущая страница как значение listbox. Строкой, потому что id страницы бывает
- * и числом, и строкой, а сравнение значений внутри listbox — по совпадению.
+ * The open page as a listbox value. A string, because a page id comes both as a
+ * number and as a string, while the listbox compares its values by equality.
  */
 const currentPageValue = computed<string | undefined>(() =>
     props.currentPageId === null || props.currentPageId === undefined
@@ -91,21 +121,20 @@ const currentPageValue = computed<string | undefined>(() =>
 );
 
 /**
- * Скелет показывается только до первого полного ответа. Фоновое освежение уже
- * загруженного списка строки не подменяет: подменять готовый список серыми
- * плашками — значит на секунду отбирать у пользователя то, что он открыл.
+ * The skeleton is shown up to the first complete answer only. A background refresh of
+ * an already loaded list does not replace its rows: swapping a ready list for gray
+ * plates means taking away, for a second, exactly what the user came to look at.
  */
 const isInitialLoading = computed<boolean>(() => props.isLoading && !props.isLoaded);
 
-/** Список пуст по-настоящему: ответ пришёл, страниц нет, поиск ни при чём. */
+/** The list is empty for real: the answer arrived, there are no pages, and no search is involved */
 const isEmptyList = computed<boolean>(
     () => !isInitialLoading.value && props.pages.length === 0 && !searchQuery.value
 );
 
 /**
- * Тексты пустого состояния или `null`, когда показывать нечего. Одна разметка на
- * оба случая: у них расходятся только строки, а копия блока разъезжается при
- * первой же правке вёрстки.
+ * Texts of the empty state, or `null` when there is nothing to show. Both cases share
+ * one markup: a copy of the block would drift apart at the first edit of the layout.
  */
 const emptyState = computed<IToolbarPageSelectorEmptyState | null>(() => {
     if (isEmptyResult.value) {
@@ -122,24 +151,24 @@ const emptyState = computed<IToolbarPageSelectorEmptyState | null>(() => {
 
 // #region Methods
 /**
- * Live-адрес страницы для строки списка (`/blog/post`).
+ * Live address of the page for a list row (`/blog/post`).
  *
- * Полный адрес, а не один `pagename`: имя уникально только внутри своего
- * префикса, и две одноимённые страницы под разными префиксами были бы в списке
- * неразличимы — выбрать нужную нельзя.
+ * The full address, not the `pagename` alone: a name is unique only within its own
+ * prefix, so two same-named pages under different prefixes would be indistinguishable
+ * in the list — there would be no way to pick the right one.
  *
- * @param page - Сводка страницы.
- * @returns Путь live-адреса.
+ * @param page - Page summary.
+ * @returns Path of the live address.
  */
 function resolvePageAddressPath(page: TPublishedPageSummary): string {
     return getPublishedPagePath(toPageAddress(page.pagename, page.urlPrefix));
 }
 
 /**
- * Открывает и закрывает попап; на открытии сообщает наружу — это момент, когда
- * список догружается и освежается.
+ * Opens and closes the popup; on opening it reports outwards — that is the moment the
+ * list is fetched and refreshed.
  *
- * @param nextOpen - Новое состояние попапа.
+ * @param nextOpen - New state of the popup.
  */
 function handleOpenUpdate(nextOpen: boolean): void {
     handleOpenChange(nextOpen);
@@ -150,14 +179,14 @@ function handleOpenUpdate(nextOpen: boolean): void {
 }
 
 /**
- * Выбирает страницу.
+ * Picks a page.
  *
- * Событие берётся у самой строки, а не у `update:modelValue` списка: повторный
- * выбор уже выбранного значения список не пересылает, и клик по текущей странице
- * оставил бы попап открытым — то есть выглядел бы как сломанная кнопка. Что
- * делать с выбором текущей страницы, решает уже родитель.
+ * The event is taken from the row itself rather than from `update:modelValue` of the
+ * list: the list does not forward a repeated pick of the already selected value, so a
+ * click on the current page would leave the popup open — that is, would look like a
+ * broken button. What to do with a pick of the current page is up to the parent.
  *
- * @param page - Выбранная страница.
+ * @param page - Picked page.
  */
 function handleSelect(page: TPublishedPageSummary): void {
     handleOpenChange(false);
@@ -165,14 +194,14 @@ function handleSelect(page: TPublishedPageSummary): void {
 }
 
 /**
- * Держит клавиатуру внутри попапа: горячие клавиши билдера висят на window и
- * пропускают только поля ввода, поэтому Delete на строке списка или кнопке
- * футера удалил бы выбранный компонент канваса за порталом.
+ * Keeps the keyboard inside the popup: the builder shortcuts hang on window and let
+ * only input fields through, so Delete on a list row or on a footer button would
+ * delete the selected canvas component behind the portal.
  *
- * Escape — исключение: попап закрывается обработчиком на document, и заглушённое
- * событие до него не доходит, то есть окно переставало закрываться с клавиатуры.
+ * Escape is the exception: the popup is closed by a handler on document, and a
+ * stopped event never reaches it — the window stopped closing from the keyboard.
  *
- * @param event - Событие клавиатуры внутри попапа.
+ * @param event - Keyboard event inside the popup.
  */
 function handleContentKeydown(event: KeyboardEvent): void {
     if (event.key === 'Escape') {
@@ -183,7 +212,7 @@ function handleContentKeydown(event: KeyboardEvent): void {
 }
 
 /**
- * Уводит на дашборд страниц.
+ * Leaves for the page dashboard.
  */
 function handleAllPages(): void {
     handleOpenChange(false);
@@ -191,7 +220,7 @@ function handleAllPages(): void {
 }
 
 /**
- * Открывает создание новой страницы.
+ * Asks for a new page to be created.
  */
 function handleCreatePage(): void {
     handleOpenChange(false);
@@ -218,20 +247,8 @@ function handleCreatePage(): void {
         </PopoverTrigger>
 
         <PopoverPortal>
-            <!--
-                Поповер немодальный: Esc и возврат фокуса на триггер даёт сам
-                PopoverContent, focus trap появился бы только от `modal` на
-                PopoverRoot — а он же гасит `pointer-events` у body, пока попап
-                смонтирован, и клик сразу после закрытия пропадал бы.
-                Перехват клавиатуры — в `handleContentKeydown`
-            -->
             <PopoverContent as-child align="start" :side-offset="8" @keydown="handleContentKeydown">
                 <BricksPopoverSurface density="flush" :class="[$style.dropdown, 'bricks-text']">
-                    <!--
-                    Поиск живёт внутри списка (ListboxFilter), а не отдельным
-                    полем над ним: так стрелки и Enter из поля ведут по строкам
-                    штатно, без своей эмуляции фокуса
-                -->
                     <ListboxRoot
                         :model-value="currentPageValue"
                         selection-behavior="replace"
@@ -307,7 +324,6 @@ function handleCreatePage(): void {
                                         <span :class="$style.rowTitle">
                                             {{ page.title || page.pagename }}
                                         </span>
-                                        <!-- Тон как у плашки черновика в списке страниц дашборда -->
                                         <BricksBadge v-if="!page.published" tone="muted">
                                             {{ t('bricks.toolbar.pageSelector.draft') }}
                                         </BricksBadge>
@@ -333,7 +349,6 @@ function handleCreatePage(): void {
                             {{ t('bricks.toolbar.pageSelector.allPages') }}
                         </button>
 
-                        <!-- Создание страницы — запись: наблюдателю ручка откажет -->
                         <button
                             v-if="canEdit"
                             :class="$style.footerAction"
@@ -398,15 +413,10 @@ function handleCreatePage(): void {
     width: 32rem;
     flex-direction: column;
 
-    // Появление — как у остальных поповеров билдера (BricksActionButton).
     &[data-state='open'] {
         animation: bricks-page-selector-in 0.2s ease;
     }
 
-    // Затухание короче появления: reka не размонтирует контент, пока не
-    // отработает анимация closed-состояния, и всё это время попап ещё висит
-    // над канвасом. `pointer-events: none` — чтобы клик по тому, что было под
-    // попапом, не съедался уходящим окном
     &[data-state='closed'] {
         animation: bricks-page-selector-out 0.15s ease;
         pointer-events: none;
@@ -420,8 +430,6 @@ function handleCreatePage(): void {
     }
 }
 
-// Keyframes — внутри module-блока: CSS Modules скоупит имя анимации в ссылке
-// `animation:` выше, и глобальное определение с ним не совпало бы
 @keyframes bricks-page-selector-in {
     from {
         opacity: 0;
@@ -491,9 +499,6 @@ function handleCreatePage(): void {
 .list {
     overflow-y: auto;
     display: flex;
-
-    // Потолок в 5,5 строки: половина шестой видна и сама говорит, что список
-    // продолжается ниже
     max-height: 28.8rem;
     padding: 0.8rem;
     flex-direction: column;
@@ -503,10 +508,6 @@ function handleCreatePage(): void {
 .row {
     display: flex;
     align-items: center;
-
-    // flex-shrink: 0 обязателен: как только список перерастает свой потолок,
-    // флексбокс начинает сжимать строки, и название с адресом налезают друг на
-    // друга — тем заметнее, чем больше страниц
     flex-shrink: 0;
     height: 5rem;
     padding: 0 0.8rem;
@@ -515,9 +516,6 @@ function handleCreatePage(): void {
     cursor: pointer;
     gap: 1rem;
 
-    /* Тот же фон наведения, что у пунктов меню в ките (`BricksMenuItem`): у одной
-       роли было три значения — `base-50`, `base-100` и `surface-raised`, причём
-       последние два — один и тот же цвет под разными именами. */
     &:hover,
     &[data-highlighted] {
         background: var(--bricks-base-50);
@@ -640,7 +638,6 @@ function handleCreatePage(): void {
     width: 40%;
 }
 
-/* Отступы состояния задаёт попап: список в нём идёт без внешних полей. */
 .empty {
     padding: 3.2rem 1.6rem;
 }

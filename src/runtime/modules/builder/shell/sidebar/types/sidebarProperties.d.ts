@@ -35,11 +35,11 @@ export interface IUseSidebarPropertiesPanelOptions {
 }
 
 export interface IUseSidebarMediaSelectionOptions {
-    /** Открывает модалку медиагалереи (внешний UI). */
+    /** Opens the media gallery modal (UI outside this domain) */
     onOpenMediaGallery: () => void;
 }
 
-/** Общие обработчики свойств, пробрасываемые в редакторы панели */
+/** Shared property handlers passed down into the editors of the panel */
 export interface ISidebarPropertyHandlers {
     handleNormalizeProps: (
         data: IComponentVariant,
@@ -76,7 +76,10 @@ export interface ISidebarPropertyEditorRowProps extends ISidebarPropertyHandlers
 }
 
 export interface ISidebarPropertySpacingEditorProps {
-    /** Варианты spacing-свойств группы (paddingTop/paddingBottom/paddingX/paddingY/marginTop/marginBottom). */
+    /**
+     * Variants of the spacing properties of the group (paddingTop, paddingBottom,
+     * paddingX, paddingY, marginTop, marginBottom)
+     */
     items: IComponentVariant[];
     handleChangeValues: (property: IPropertyDefinition, value: TBrickPropValue) => void;
 }
@@ -86,12 +89,12 @@ export interface ISidebarPropertyGridSizeEditorProps extends IGridSizeVariants {
 }
 
 export interface ISidebarPropertySpacingEditorSideProps {
-    /** Слот стороны box-model: степпер или read-only зеркало парной стороны. */
+    /** Slot of a box-model side: a stepper, or a read-only mirror of the paired side */
     item: TSpacingSlot;
-    /** Активен ли инлайн-ввод значения этой стороны. */
+    /** Whether the inline input of this side is active */
     isEditing?: boolean;
-    /** Текущий текст инлайн-ввода (v-model:editing-value). */
+    /** Current text of the inline input (v-model:editing-value) */
     editingValue?: string;
-    /** Вертикальная раскладка степпера (левая сторона box-model). */
+    /** Vertical layout of the stepper (the left side of the box model) */
     vertical?: boolean;
 }

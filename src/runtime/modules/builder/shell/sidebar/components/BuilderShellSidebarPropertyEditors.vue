@@ -102,7 +102,8 @@ type TEditorItem = {
 };
 
 /**
- * Разделяет свойства на негруппированные и сгруппированные по полю property.group
+ * Splits the properties into the ungrouped ones and the ones grouped by
+ * `property.group`
  */
 const groupedEditorItems = computed(() => {
     const items: TEditorItem[] = orderedEditorItems.value.length
@@ -132,12 +133,12 @@ const groupedEditorItems = computed(() => {
 const hasGroups = computed(() => groupedEditorItems.value.groups.size > 0);
 
 /**
- * Тумблеры видимости — по одному на устройство набора страницы.
+ * Visibility toggles — one per device of the page set.
  *
- * Список берётся из набора, а не из трёх фиксированных ключей: у страницы со
- * своим набором блок иначе нельзя было скрыть на добавленном устройстве из
- * панели свойств. Скрытие — это только явный `false`: отсутствующий ключ и
- * записанный `true` одинаково означают «видно».
+ * The list is taken from the set rather than from three fixed keys: on a page with a
+ * set of its own a block could otherwise not be hidden on an added device from the
+ * properties panel. Hiding is an explicit `false` only: a missing key and a stored
+ * `true` both mean "visible".
  */
 const deviceVisibilityToggles = computed(() =>
     canvasStore.devices.map((device) => ({
@@ -148,9 +149,9 @@ const deviceVisibilityToggles = computed(() =>
 );
 
 /**
- * Пара числовых «колонки/строки» из плоского списка: обе рисуются одним
- * составным редактором сетки. Группы у этих свойств нет, поэтому перехват
- * стоит здесь, а не в `groupBody`, как у spacing.
+ * The numeric "columns/rows" pair out of the flat list: both are drawn by a single
+ * composite grid editor. These properties have no group, so the interception stands
+ * here rather than in `groupBody` the way the spacing one does.
  */
 const gridSizeVariants = computed<IGridSizeVariants | null>(() => {
     const columns = findNumericUngroupedItem(GRID_SIZE_PROPERTY_NAMES.columns);
@@ -166,7 +167,7 @@ const gridSizeVariants = computed<IGridSizeVariants | null>(() => {
 
 // #region Methods
 /**
- * Переключает открытость группы аккордеона.
+ * Opens and closes an accordion group.
  */
 function toggleGroup(groupName: string): void {
     const next = new Set(openGroups.value);
@@ -179,23 +180,23 @@ function toggleGroup(groupName: string): void {
 }
 
 /**
- * Проверяет, открыта ли группа.
+ * Whether the group is open.
  */
 function isGroupOpen(groupName: string): boolean {
     return openGroups.value.has(groupName);
 }
 
 /**
- * Резолвит отображаемое имя группы: ключи `bricks.*` переводятся,
- * кастомные строки потребителя — как есть.
+ * Resolves the displayed name of a group: `bricks.*` keys are translated, custom
+ * strings of the consumer are kept as they are.
  */
 function resolveGroupLabel(groupName: string): string {
     return resolveBricksLabel(t, te, groupName) || groupName;
 }
 
 /**
- * Проверяет, состоит ли группа целиком из числовых spacing-свойств —
- * такая группа рендерится композитным box-model редактором.
+ * Whether the group consists entirely of numeric spacing properties — such a group is
+ * rendered by the composite box-model editor.
  */
 function isSpacingGroup(items: TEditorItem[]): boolean {
     return (
@@ -209,10 +210,10 @@ function isSpacingGroup(items: TEditorItem[]): boolean {
 }
 
 /**
- * Ищет негруппированное числовое свойство по имени.
+ * Looks up an ungrouped numeric property by name.
  *
- * @param propertyName - Имя свойства.
- * @returns Элемент плоского списка либо undefined.
+ * @param propertyName - Name of the property.
+ * @returns Item of the flat list, or undefined.
  */
 function findNumericUngroupedItem(propertyName: string): TEditorItem | undefined {
     return groupedEditorItems.value.ungrouped.find(
@@ -224,8 +225,8 @@ function findNumericUngroupedItem(propertyName: string): TEditorItem | undefined
 }
 
 /**
- * Отрисовано ли свойство составным редактором сетки — такую строку плоский
- * список пропускает. Блоку без `rows` (flex) поля остаются числовыми.
+ * Whether the property is drawn by the composite grid editor — the flat list skips
+ * such a row. For a block with no `rows` (flex) the fields stay numeric.
  */
 function isGridSizeProperty(propertyName: string): boolean {
     if (!gridSizeVariants.value) {
@@ -239,54 +240,54 @@ function isGridSizeProperty(propertyName: string): boolean {
 }
 
 /**
- * Обрабатывает переключение режима full width.
+ * Handles the toggle of the full width mode.
  *
- * @param value - Новое значение.
+ * @param value - New value.
  */
 function handleFullWidthToggle(value: boolean): void {
     props.handleToggleFullWidth(Boolean(value));
 }
 
 /**
- * Обрабатывает переключение видимости компонента (глобальный флаг isHidden).
+ * Handles the toggle of the component visibility (the global `isHidden` flag).
  *
- * @param value - Новое значение "показывать компонент".
+ * @param value - New value of "show the component".
  */
 function handleVisibilityToggle(value: boolean): void {
     props.handleToggleHidden(!value);
 }
 
 /**
- * Обрабатывает переключение видимости компонента на конкретном устройстве.
+ * Handles the toggle of the component visibility on one device.
  *
- * @param device - Ключ устройства.
- * @param value - Новый флаг видимости.
+ * @param device - Device key.
+ * @param value - New visibility flag.
  */
 function handleDeviceVisibilityToggle(device: TBricksDeviceKey, value: boolean): void {
     props.handleToggleDeviceVisibility(device, Boolean(value));
 }
 
 /**
- * Пробрасывает изменение значения пропса компонента.
+ * Forwards a change of a component prop value.
  *
- * @param property - Определение редактируемого свойства.
- * @param value - Новое значение.
+ * @param property - Definition of the property being edited.
+ * @param value - New value.
  */
 function emitChange(property: IPropertyDefinition, value: TBrickPropValue): void {
     props.handleChangeValues(property, value);
 }
 
 /**
- * Открывает медиагалерею для выбора изображения/видео
+ * Opens the media gallery to pick an image or a video
  */
 function openMedia(property: IPropertyDefinition, payload?: TInlineGalleryPayload): void {
     props.handleOpenMediaGallery(property, payload);
 }
 
 /**
- * Обновляет HTML id компонента.
+ * Updates the HTML id of the component.
  *
- * @param value - Новое значение slug-идентификатора.
+ * @param value - New value of the slug identifier.
  */
 function handleHtmlIdChange(value: unknown): void {
     props.handleSetHtmlId(value as string);
@@ -369,7 +370,6 @@ watch(
             </div>
 
             <div :class="$style.propsWrapper">
-                <!-- Негруппированные свойства (плоский список) -->
                 <template
                     v-for="(item, index) in groupedEditorItems.ungrouped"
                     :key="`ungrouped_${item.type}_${item.componentData.property.name}_${index}`"
@@ -395,7 +395,6 @@ watch(
                     />
                 </template>
 
-                <!-- Сгруппированные свойства (аккордеоны) -->
                 <div
                     v-for="[groupName, groupItems] in groupedEditorItems.groups"
                     :key="`group_${groupName}`"

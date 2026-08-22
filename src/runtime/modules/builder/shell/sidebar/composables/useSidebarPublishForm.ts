@@ -16,10 +16,10 @@ import { usePublishValidationSchema } from './usePublishValidationSchema';
 import { usePublishStore } from '../../../publish/stores/publish';
 
 /**
- * Форм-логика панели публикации сайдбара: значения формы из publish-стора,
- * validation schema, опции layout, превью URL и обработчики обновления полей.
- * Вызывать только из setup-контекста (регистрирует onMounted для дефолтов
- * backgroundColor/layout).
+ * Form logic of the sidebar publish panel: the form values from the publish store, the
+ * validation schema, the layout options, the URL preview and the field update
+ * handlers. Call it from a setup context only — it registers an `onMounted` that fills
+ * in the defaults of `backgroundColor` and `layout`.
  */
 export function useSidebarPublishForm(): IUseSidebarPublishFormReturn {
     const { t } = useI18n();
@@ -35,8 +35,9 @@ export function useSidebarPublishForm(): IUseSidebarPublishFormReturn {
         () => bricksConfig.backgroundColor || '#FFFFFF'
     );
     const defaultLayout = computed<string>(() => 'default');
-    // Routing-поля тоже отдаются форме: без них yup видел бы urlPrefix пустым, и
-    // проверка адреса страницы (пара urlPrefix+pagename) в сайдбаре не работала бы
+    // The routing fields are handed to the form too: without them yup would see an
+    // empty urlPrefix, and the page address check — the urlPrefix and pagename pair —
+    // would not work in the sidebar at all
     const initialValues = computed(() => ({
         pagename: settings.value.pagename || '',
         title: settings.value.title || '',
@@ -47,8 +48,8 @@ export function useSidebarPublishForm(): IUseSidebarPublishFormReturn {
     }));
 
     /**
-     * Ключ формы должен меняться ТОЛЬКО при смене страницы (editingPageId),
-     * НЕ при изменении полей формы. Иначе форма перерендерится и потеряет фокус.
+     * The key of the form has to change ONLY when the page changes (`editingPageId`),
+     * never when a field does: otherwise the form re-renders and loses focus.
      */
     const formKey = computed(() => {
         const base = publishStore.editingPageId ?? 'new';
@@ -83,11 +84,11 @@ export function useSidebarPublishForm(): IUseSidebarPublishFormReturn {
     });
 
     /**
-     * Обновляет поле настроек публикации в сторе.
-     * Валидация управляется vee-validate автоматически.
+     * Updates a publish settings field in the store. Validation is driven by
+     * vee-validate on its own.
      *
-     * @param field - имя поля настроек.
-     * @param value - новое значение поля.
+     * @param field - Name of the settings field.
+     * @param value - New value of the field.
      */
     function handleUpdateField<K extends keyof TPublishFormState>(
         field: K,
@@ -98,25 +99,25 @@ export function useSidebarPublishForm(): IUseSidebarPublishFormReturn {
     }
 
     /**
-     * Обрабатывает выбранный элемент медиагалереи (social image).
+     * Handles the item picked in the media gallery for the social image.
      *
-     * @param item - выбранный медиа-объект.
+     * @param item - Picked media object.
      */
     function handleMediaSelect(item: IMediaItem): void {
         handleUpdateField('socialImage', item.url);
     }
 
     /**
-     * Сбрасывает выбранное social image.
+     * Clears the picked social image.
      */
     function handleClearSocialImage(): void {
         handleUpdateField('socialImage', '');
     }
 
     /**
-     * Обновляет выбранный layout страницы.
+     * Updates the picked page layout.
      *
-     * @param value - выбранное значение layout.
+     * @param value - Picked layout value.
      */
     function handleLayoutChange(value: TBrickDemoValues): void {
         const nextLayout =

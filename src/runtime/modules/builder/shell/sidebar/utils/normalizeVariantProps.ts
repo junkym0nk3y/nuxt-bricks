@@ -4,12 +4,12 @@ import type { IComponentVariant } from '../components/property-editors/types';
 // #endregion
 
 /**
- * Нормализует данные варианта в пропсы для компонента-редактора:
- * select (specs/facets), switch (true/false-значения) и базовая форма
- * (label/value + опциональные min/max/step/unit из property).
+ * Normalizes the data of a variant into the props of an editor component: select
+ * (specs/facets), switch (the true/false values) and the base shape (label/value plus
+ * the optional min/max/step/unit taken from the property).
  *
- * @param data - Данные варианта свойства
- * @returns Нормализованный объект пропсов
+ * @param data - Data of the property variant.
+ * @returns Normalized props object.
  */
 export function normalizeVariantProps(data: IComponentVariant): Record<string, unknown> {
     if (data.specs) {

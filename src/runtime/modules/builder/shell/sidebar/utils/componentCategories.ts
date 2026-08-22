@@ -1,19 +1,19 @@
 import type { IComponentLibraryItem } from '../../../../common/types/brick';
 
-/** Модалки в библиотеку не попадают: на канвас их не кладут. */
+/** Modals never reach the library: they are not put on the canvas */
 const HIDDEN_CATEGORY = 'Modal';
 
 /**
- * Группирует компоненты библиотеки по категориям.
+ * Groups the library components by category.
  *
- * Группы копятся в `Map`, а не в объекте: категория приходит из brick-файла
- * потребителя и может быть валидной строкой `__proto__` или `constructor` —
- * у объекта такой ключ читается как член `Object.prototype`, инициализация
- * корзины пропускается и группировка падает на `.push`. Компонент рендерится
- * на SSR, так что падение уносит всю страницу редактора в 500.
+ * The groups are collected in a `Map` rather than in an object: the category comes from a
+ * brick file of the consumer and may be the perfectly valid string `__proto__` or
+ * `constructor` — on an object such a key reads as a member of `Object.prototype`,
+ * the bucket is never initialized and the grouping throws on `.push`. The component
+ * renders on SSR, so that throw takes the whole editor page down with a 500.
  *
- * @param components - Плоский список компонентов библиотеки.
- * @returns Map «категория → компоненты» в порядке первого появления категории.
+ * @param components - Flat list of the library components.
+ * @returns Map of "category → components", in the order the categories first appear.
  */
 export function groupComponentsByCategory(
     components: IComponentLibraryItem[]
@@ -23,9 +23,10 @@ export function groupComponentsByCategory(
         .reduce<Map<string, IComponentLibraryItem[]>>((grouped, component) => {
             const bucket = grouped.get(component.category);
 
-            // push, а не spread: аккумулятор создан здесь же и наружу не течёт,
-            // а копирование корзины на каждый элемент делало бы группировку
-            // квадратичной — computed пересчитывается на каждый символ поиска
+            // push, not spread: the accumulator is created right here and never
+            // leaks outwards, while copying the bucket for every element would make
+            // the grouping quadratic — and the computed recomputes on every typed
+            // character of the search
             if (bucket) {
                 bucket.push(component);
             } else {

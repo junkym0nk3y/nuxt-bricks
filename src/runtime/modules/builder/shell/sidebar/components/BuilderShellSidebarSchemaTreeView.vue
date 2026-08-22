@@ -41,7 +41,7 @@ const { resolveComponentEditorMetadata } = useComponentEditorMetadata();
 
 // #region Computed
 /**
- * Возвращает корневые компоненты (без parent) для построения дерева.
+ * Root components — the ones with no parent — the tree is built from.
  */
 const rootComponents = computed<IBricksComponent[]>(() => componentsStore.getRootComponents());
 
@@ -50,18 +50,19 @@ const hasComponents = computed<boolean>(() => componentsStore.hasComponents);
 
 // #region Methods
 /**
- * Закрывает панель схемы.
+ * Closes the schema panel.
  */
 function handleClose(): void {
     emit('close');
 }
 
 /**
- * Переставляет компонент в дереве на основе позиции drop.
+ * Moves a component among the root ones according to the drop position. A target with
+ * a parent is not found in the root list, and the drop then does nothing.
  *
- * @param draggedId - ID перетаскиваемого компонента.
- * @param targetId - ID целевого компонента (куда бросили).
- * @param position - Позиция относительно target: before или after.
+ * @param draggedId - Id of the dragged component.
+ * @param targetId - Id of the component it was dropped onto.
+ * @param position - Position relative to the target: before or after.
  */
 function handleReorder(draggedId: string, targetId: string, position: 'before' | 'after'): void {
     const rootComponents = componentsStore.getRootComponents();
@@ -76,17 +77,18 @@ function handleReorder(draggedId: string, targetId: string, position: 'before' |
 }
 
 /**
- * Переключает viewport на первый доступный для компонента, если текущий не подходит.
- * Если компонент видим на текущем viewport — ничего не делает.
+ * Switches the viewport to the first one the component is visible on, when the
+ * current one does not show it. Does nothing while the component is visible where it
+ * already is.
  *
- * @param component - Компонент для проверки видимости.
- * @returns true, если viewport был переключён.
+ * @param component - Component whose visibility is checked.
+ * @returns True when the viewport was switched.
  */
 function ensureViewportForComponent(component: IBricksComponent): boolean {
     const currentViewport = canvasStore.viewport;
     const visibility = component.deviceVisibility;
 
-    // Если нет ограничений по устройствам — всё видно
+    // No per-device restrictions at all means it is visible everywhere
     if (!visibility) {
         return false;
     }
@@ -96,8 +98,9 @@ function ensureViewportForComponent(component: IBricksComponent): boolean {
         return false;
     }
 
-    // Приоритет: базовое устройство, затем остальные от широкого к узкому —
-    // на широком листе блок виден целиком, и переключение туда информативнее
+    // Priority: the base device first, then the rest from the widest to the
+    // narrowest — a wide sheet shows the block whole, so switching there tells the
+    // user more
     const priority = [
         ...canvasStore.devices.filter((device) => device.key === BASE_DEVICE_KEY),
         ...[...canvasStore.devices].reverse().filter((device) => device.key !== BASE_DEVICE_KEY),
@@ -113,10 +116,11 @@ function ensureViewportForComponent(component: IBricksComponent): boolean {
 }
 
 /**
- * Выбирает компонент, берёт его properties из метаданных и открывает панель свойств.
- * Переключает viewport, если компонент не виден на текущем устройстве, и скроллит до него.
+ * Selects the component, takes its properties from the metadata and opens the
+ * properties panel. Switches the viewport when the component is invisible on the
+ * current device, then scrolls to it.
  *
- * @param id - ID выбранного компонента.
+ * @param id - Id of the selected component.
  */
 async function handleSelectComponent(id: string): Promise<void> {
     const component = componentsStore.getComponentById(id);
@@ -124,18 +128,18 @@ async function handleSelectComponent(id: string): Promise<void> {
         return;
     }
 
-    // 1. Переключаем viewport, если компонент не виден на текущем
+    // 1. Switch the viewport when the component is invisible on the current one
     const viewportSwitched = ensureViewportForComponent(component);
 
-    // 2. Берём properties — тем же резолвером, что и выбор кликом по канвасу
+    // 2. Take the properties — through the same resolver a click on the canvas uses
     const { properties, description } = resolveComponentEditorMetadata(component);
 
-    // 3. Выбираем компонент и открываем панель свойств
+    // 3. Select the component and open the properties panel
     componentsStore.selectComponent(id, properties, description);
 
-    // 4. Скроллим до компонента на канвасе
-    // В Figma mode скоупим поиск на активный viewport
-    // Если viewport переключался, ждём завершения анимации (400ms + nextTick)
+    // 4. Scroll to the component on the canvas. In Figma mode the search is scoped to
+    // the active viewport. After a viewport switch the scroll waits out the move of
+    // the sheet first, otherwise it would aim at the old geometry
     const scrollViewport =
         canvasStore.isFigmaMode && canvasStore.activeViewport
             ? canvasStore.activeViewport
@@ -220,7 +224,6 @@ async function handleSelectComponent(id: string): Promise<void> {
     flex-direction: column;
 }
 
-/* Состояние занимает всю свободную высоту панели. */
 .empty {
     height: 100%;
 }

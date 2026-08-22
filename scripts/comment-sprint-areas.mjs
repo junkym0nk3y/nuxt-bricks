@@ -148,7 +148,7 @@ export const AREAS = [
     {
         id: '13',
         title: 'builder/shell',
-        done: false,
+        done: true,
         match: ['src/runtime/modules/builder/shell/'],
     },
     { id: '14', title: 'builder/auth', done: false, match: ['src/runtime/modules/builder/auth/'] },

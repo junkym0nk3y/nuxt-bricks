@@ -1,4 +1,21 @@
 <script setup lang="ts">
+/**
+ * @description Publish settings inside the sidebar: the layout, the device set of the
+ * page, the SEO fields together with the address, the social image, the background
+ * color and the navigation items.
+ *
+ * The values come from the store rather than from the form: the source of truth of
+ * the sidebar is `currentFormState`, while the form holds the validation only — what
+ * that costs every write is spelled out at `handleSeoFieldUpdate`.
+ *
+ * Two decisions held by the style section: the device group is a column rather than a
+ * row, because inside the 28rem of the sidebar a button next to the chips shrank
+ * until its caption wrapped onto two lines, and the design puts it underneath at full
+ * width; and the prefix, the subdomain and the full URL preview live in the slot of
+ * the shared SEO component and keep its spacing between fields, because they are a
+ * continuation of the address field.
+ */
+
 // #region Imports
 // Types
 import type { TPublishFormErrors } from '../../../publish/types/dashboard';
@@ -72,20 +89,21 @@ const {
 } = useSidebarPublishForm();
 
 /**
- * Поля, которых пользователь уже касался.
+ * Fields the user has already touched.
  *
- * Схема валидируется формой сразу при монтировании и наполняет `errors` по всем
- * своим путям — у новой страницы это значит красные «обязательно» ещё до первого
- * клика. Раньше от этого спасали обёртки `<Field>`: они держали ошибку в своей
- * области и до взаимодействия её не показывали. Обёрток больше нет, поэтому
- * отметку «поле трогали» ведём сами.
+ * The form validates the schema right at mount and fills `errors` for every path in
+ * it — on a new page that means red "required" marks before the first click. The
+ * `<Field>` wrappers used to save us from that: they kept the error inside their own
+ * scope and did not show it until an interaction. The wrappers are gone, so the
+ * "field was touched" mark is kept here by hand.
  */
 const touchedFields = ref<Set<string>>(new Set());
 // #endregion
 
 // #region Computed
 /**
- * Подпись группы: наследует ли страница набор проекта и сколько в нём устройств.
+ * Caption of the group: whether the page inherits the project set, and how many
+ * devices it holds.
  */
 const devicesSummary = computed<string>(() => {
     const count = canvasStore.devices.length;
@@ -98,26 +116,26 @@ const devicesSummary = computed<string>(() => {
 
 // #region Methods
 /**
- * Записывает набор устройств в состояние редактора.
+ * Writes the device set into the editor state.
  *
- * На сервер он уедет общим сохранением страницы: набор и схема — одно
- * состояние, и точечный PATCH прошёл бы мимо снапшота версии.
+ * It travels to the server with the ordinary page save: the set and the schema are
+ * one state, and a targeted PATCH would go past the version snapshot.
  *
- * @param config - Набор страницы либо `null` (наследование).
+ * @param config - Set of the page, or `null` for inheritance.
  */
 function handleSaveDevices(config: TBricksPageDeviceSet | null): void {
     publishStore.currentFormState.viewportConfig = config;
 }
 
 /**
- * Ошибка одного поля из двух источников: живой yup-схемы формы (только по
- * тронутым полям) и проверки перед публикацией, которая пишет в стор. Второй
- * источник показывается всегда: он появляется по явному действию пользователя и
- * переживает уход с поля.
+ * The error of one field, out of two sources: the live yup schema of the form (for
+ * touched fields only) and the pre-publish check that writes into the store. The
+ * second source is always shown: it appears on an explicit action of the user and
+ * survives leaving the field.
  *
- * @param formErrors - Ошибки vee-validate текущей формы.
- * @param field - Имя поля формы.
- * @returns Текст ошибки либо undefined.
+ * @param formErrors - vee-validate errors of the current form.
+ * @param field - Name of the form field.
+ * @returns Error text, or undefined.
  */
 function fieldError(
     formErrors: Record<string, string | undefined>,
@@ -130,10 +148,10 @@ function fieldError(
 }
 
 /**
- * Сводит ошибки SEO-полей для общего компонента SEO.
+ * Collects the errors of the SEO fields for the shared SEO component.
  *
- * @param formErrors - Ошибки vee-validate текущей формы.
- * @returns Ошибки по полям.
+ * @param formErrors - vee-validate errors of the current form.
+ * @returns Errors keyed by field.
  */
 function mergeSeoErrors(formErrors: Record<string, string | undefined>): TPublishFormErrors {
     return {
@@ -145,12 +163,13 @@ function mergeSeoErrors(formErrors: Record<string, string | undefined>): TPublis
 }
 
 /**
- * Пишет значение SEO-поля и в стор (источник правды сайдбара), и в форму
- * vee-validate — иначе схема проверяла бы прежнее значение.
+ * Writes the value of an SEO field both into the store — the source of truth of the
+ * sidebar — and into the vee-validate form, otherwise the schema would check the
+ * previous value.
  *
- * @param setFieldValue - Сеттер значения формы из слота `<Form>`.
- * @param field - Имя поля.
- * @param value - Новое значение.
+ * @param setFieldValue - Form value setter from the `<Form>` slot.
+ * @param field - Name of the field.
+ * @param value - New value.
  */
 function handleSeoFieldUpdate(
     setFieldValue: (field: string, value: string) => void,
@@ -166,13 +185,13 @@ function handleSeoFieldUpdate(
 }
 
 /**
- * Пишет routing-поле в форму и в стор. В сторе пустая строка нормализуется в
- * null (так поле уезжает в payload), схеме же нужна строка — она сама приводит
- * пустое значение к null.
+ * Writes a routing field into the form and into the store. In the store an empty
+ * string is normalized to null — that is how the field travels in the payload — while
+ * the schema needs a string and coerces an empty value to null on its own.
  *
- * @param setFieldValue - Сеттер значения формы из слота `<Form>`.
- * @param field - Имя поля.
- * @param value - Новое значение.
+ * @param setFieldValue - Form value setter from the `<Form>` slot.
+ * @param field - Name of the field.
+ * @param value - New value.
  */
 function handleRoutingFieldUpdate(
     setFieldValue: (field: string, value: string) => void,
@@ -195,7 +214,7 @@ function handleClose(): void {
 }
 
 /**
- * Открывает медиагалерею для выбора social image.
+ * Asks for the media gallery so a social image can be picked.
  */
 function handleOpenMediaGallery(): void {
     emit('openMediaGallery');
@@ -207,8 +226,8 @@ defineExpose({
 // #endregion
 
 // #region Lifecycle
-// Смена страницы пересобирает форму (`formKey`) — отметки «поле трогали» от
-// прошлой страницы вместе с ней должны уйти, иначе чужие ошибки покажутся сразу
+// A change of page rebuilds the form (`formKey`), and the "field was touched" marks
+// of the previous page have to go with it, otherwise its errors show up at once
 watch(formKey, () => {
     touchedFields.value = new Set();
 });
@@ -271,11 +290,6 @@ watch(formKey, () => {
                 </div>
             </div>
 
-            <!--
-                Значения приходят из стора, а не из формы: источник правды сайдбара —
-                `currentFormState`, форма же держит только валидацию. Поэтому каждое
-                изменение пишется в оба места — иначе схема проверяла бы прошлый ввод
-            -->
             <BuilderPublishSeoFields
                 :class="$style.seoFields"
                 :title="settings.title || ''"
@@ -382,8 +396,6 @@ watch(formKey, () => {
 
 <style module lang="scss">
 .devices {
-    // Колонка, а не строка: в 28rem сайдбара кнопка рядом с чипами сжималась до
-    // переноса подписи на две строки. По макету она стоит под ними во всю ширину
     display: flex;
     padding: 1.2rem;
     border-radius: var(--bricks-border-radius-sm);
@@ -454,8 +466,6 @@ watch(formKey, () => {
     margin-bottom: 1.6rem;
 }
 
-// Префикс, поддомен и превью полного URL — продолжение поля адреса, поэтому
-// живут в слоте общего компонента и держат его же шаг между полями
 .addressFields {
     display: flex;
     flex-direction: column;

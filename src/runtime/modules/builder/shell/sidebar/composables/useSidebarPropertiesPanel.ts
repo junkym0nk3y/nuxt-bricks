@@ -33,11 +33,11 @@ import { readOwnKey } from '../../../../common/utils/safeRecord';
 // #endregion
 
 /**
- * Фасад панели свойств: собирает responsive scope, выбор медиа, описание brick
- * и предоставляет готовые обработчики для UI. API сохранён — компоненты не трогаем.
+ * Facade of the properties panel: it assembles the responsive scope, the media
+ * picking and the brick description, and hands the UI ready-made handlers.
  *
- * @param options - Колбэки взаимодействия с внешними частями интерфейса.
- * @returns Набор сторов, вычисляемых данных и методов для панели свойств.
+ * @param options - Callbacks into the parts of the interface that live outside.
+ * @returns The stores, the computed data and the methods of the properties panel.
  */
 export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOptions) {
     // #region Data
@@ -69,10 +69,10 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
         () => store.selectedComponentData?.component?.componentName || ''
     );
 
-    // Описание приезжает вместе с выбором компонента и лежит в сторе — второго
-    // источника (загрузки его же из brick-модуля) панели не нужно. Ключи
-    // `bricks.*` у layout-блоков переводятся, строки brick-файлов потребителя
-    // показываются как есть
+    // The description arrives together with the selection and sits in the store —
+    // the panel needs no second source, no loading of the same text from the brick
+    // module. The `bricks.*` keys of the layout blocks are translated, the strings of
+    // consumer brick files are shown as they are
     const selectedComponentDescription = computed<string>(
         () => resolveBricksLabel(t, te, store.selectedComponentData?.description ?? '') || ''
     );
@@ -153,10 +153,10 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
 
     // #region Methods
     /**
-     * Обрабатывает изменение значения свойства и приводит данные к нужному типу.
+     * Handles a change of a property value and coerces the data to the needed type.
      *
-     * @param property - Описание свойства.
-     * @param value - Новое значение из UI.
+     * @param property - Description of the property.
+     * @param value - New value coming from the UI.
      */
     function handleChangeValues(property: IPropertyDefinition, value: TBrickPropValue): void {
         const selected = store.selectedComponentData;
@@ -166,9 +166,10 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
 
         const previewProps =
             selectedComponentDataForVariants.value?.component.props ?? selected.component.props;
-        // Имя свойства объявляет brick-файл: `previewProps['toString']` вернул бы
-        // метод прототипа, и приведение (number/array/object) считало бы, что у
-        // пропа уже есть значение
+        // The name of the property is declared by a brick file:
+        // `previewProps['toString']` would return a prototype method, and the
+        // coercion (number/array/object) would take the prop for one that already
+        // holds a value
         const currentValue = readOwnKey(previewProps as Record<string, unknown>, property.name);
         let finalValue: unknown = value;
 
@@ -208,9 +209,9 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
     }
 
     /**
-     * Включает или выключает отображение компонента во всю ширину страницы.
+     * Turns the full-width display of the component on and off.
      *
-     * @param value - Новое состояние переключателя.
+     * @param value - New state of the toggle.
      */
     function handleToggleFullWidth(value: boolean): void {
         const selected = store.selectedComponentData;
@@ -222,9 +223,9 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
     }
 
     /**
-     * Включает или выключает скрытие компонента.
+     * Turns the hiding of the component on and off.
      *
-     * @param value - Новое состояние переключателя.
+     * @param value - New state of the toggle.
      */
     function handleToggleHidden(value: boolean): void {
         const selected = store.selectedComponentData;
@@ -236,10 +237,10 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
     }
 
     /**
-     * Переключает видимость компонента для выбранного устройства.
+     * Toggles the visibility of the component on the given device.
      *
-     * @param device - Ключ устройства (mobile/tablet/desktop).
-     * @param value - Новый флаг видимости.
+     * @param device - Device key, one of the keys of the page set.
+     * @param value - New visibility flag.
      */
     function handleToggleDeviceVisibility(device: TBricksDeviceKey, value: boolean): void {
         const selected = store.selectedComponentData;
@@ -251,9 +252,9 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
     }
 
     /**
-     * Устанавливает кастомный HTML id для якорной навигации.
+     * Sets a custom HTML id for anchor navigation.
      *
-     * @param htmlId - Новое значение id (пустая строка — удаляет).
+     * @param htmlId - New id; an empty string removes it.
      */
     function handleSetHtmlId(htmlId: string): void {
         const selected = store.selectedComponentData;

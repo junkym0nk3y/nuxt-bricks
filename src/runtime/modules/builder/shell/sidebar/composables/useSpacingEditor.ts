@@ -14,24 +14,25 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 // #endregion
 
-/** Шаг степпера по умолчанию, если в definition не задан `step`. */
+/** Default stepper step, used when the definition sets no `step` */
 const DEFAULT_SPACING_STEP = 0.2;
 
 /**
- * Форматирует значение стороны без хвостовых нулей (`1.2`, не `1.20`).
+ * Formats the value of a side with no trailing zeros (`1.2`, not `1.20`).
  *
- * @param value - Числовое значение стороны.
- * @returns Строка для отображения.
+ * @param value - Numeric value of the side.
+ * @returns String to display.
  */
 export function formatSpacingValue(value: number): string {
     return String(Math.round(value * 10) / 10);
 }
 
 /**
- * Приводит значение свойства к числу (строки из инпутов, undefined → 0).
+ * Coerces a property value to a number: strings arrive from the inputs, undefined
+ * becomes 0.
  *
- * @param value - Сырое значение свойства.
- * @returns Число, округлённое до одной десятой.
+ * @param value - Raw value of the property.
+ * @returns Number rounded to one decimal place.
  */
 function toNumberValue(value: unknown): number {
     const parsed = Number(value);
@@ -39,22 +40,23 @@ function toNumberValue(value: unknown): number {
 }
 
 /**
- * Собирает слот-степпер для редактируемой стороны.
+ * Assembles the stepper slot of an editable side.
  *
- * @param side - Сторона box-model.
- * @param variant - Вариант свойства из панели.
- * @returns Слот степпера.
+ * @param side - Side of the box model.
+ * @param variant - Property variant from the panel.
+ * @returns Stepper slot.
  */
 function makeStepperSlot(side: TSpacingSideKey, variant: IComponentVariant): ISpacingStepperSlot {
     return { kind: 'stepper', side, variant, value: toNumberValue(variant.value) };
 }
 
 /**
- * Ограничивает значение диапазоном min/max свойства и округляет до одной десятой.
+ * Clamps the value to the min/max range of the property and rounds it to one decimal
+ * place.
  *
- * @param slot - Слот редактируемой стороны.
- * @param value - Кандидат значения.
- * @returns Значение, готовое к записи в props.
+ * @param slot - Slot of the editable side.
+ * @param value - Candidate value.
+ * @returns Value ready to be written into the props.
  */
 function clampValue(slot: ISpacingStepperSlot, value: number): number {
     const { min, max } = slot.variant.property;
@@ -69,12 +71,13 @@ function clampValue(slot: ISpacingStepperSlot, value: number): number {
 }
 
 /**
- * Логика композитного box-model редактора spacing-группы: раскладка вариантов
- * по сторонам (степперы + read-only зеркала парных paddingX/paddingY),
- * шаг степпера и инлайн-ввод значения.
+ * Logic of the composite box-model editor of a spacing group: the variants laid out
+ * over the sides (steppers plus the read-only mirrors of the paired paddingX and
+ * paddingY), the stepper step and the inline input of a value.
  *
- * @param props - Пропсы spacing-редактора (варианты группы + обработчик записи).
- * @returns Слоты сторон, состояние инлайн-ввода и обработчики.
+ * @param props - Props of the spacing editor: the variants of the group and the write
+ *   handler.
+ * @returns The slots of the sides, the state of the inline input and the handlers.
  */
 export function useSpacingEditor(
     props: ISidebarPropertySpacingEditorProps
@@ -92,7 +95,7 @@ export function useSpacingEditor(
         return map;
     });
 
-    /** Margin-вариант: степперы снаружи «блока», без внешней рамки box-model. */
+    /** The margin variant: the steppers stand outside the "block", with no outer box-model frame */
     const isMargin = computed(() =>
         props.items.every((item) => item.property.name.startsWith('margin'))
     );
@@ -140,10 +143,10 @@ export function useSpacingEditor(
     );
 
     /**
-     * Меняет значение стороны на шаг степпера (зеркальные слоты игнорируются).
+     * Moves the value of a side by one stepper step; a mirror slot is ignored.
      *
-     * @param slot - Слот редактируемой стороны.
-     * @param direction - Направление изменения (1 или -1).
+     * @param slot - Slot of the editable side.
+     * @param direction - Direction of the change, 1 or -1.
      */
     function handleStep(slot: TSpacingSlot, direction: 1 | -1): void {
         if (slot.kind !== 'stepper') {
@@ -155,9 +158,9 @@ export function useSpacingEditor(
     }
 
     /**
-     * Включает инлайн-ввод значения по клику на число.
+     * Turns on the inline input of the value on a click on the number.
      *
-     * @param slot - Слот редактируемой стороны.
+     * @param slot - Slot of the editable side.
      */
     function startEdit(slot: TSpacingSlot): void {
         if (slot.kind !== 'stepper') {
@@ -168,9 +171,9 @@ export function useSpacingEditor(
     }
 
     /**
-     * Коммитит инлайн-ввод: парсит, клампит и записывает значение.
+     * Commits the inline input: parses, clamps and writes the value.
      *
-     * @param slot - Слот редактируемой стороны.
+     * @param slot - Slot of the editable side.
      */
     function commitEdit(slot: TSpacingSlot): void {
         if (slot.kind !== 'stepper' || editingSide.value !== slot.side) {
@@ -190,7 +193,7 @@ export function useSpacingEditor(
     }
 
     /**
-     * Отменяет инлайн-ввод без записи значения.
+     * Cancels the inline input, writing nothing.
      */
     function cancelEdit(): void {
         editingSide.value = null;

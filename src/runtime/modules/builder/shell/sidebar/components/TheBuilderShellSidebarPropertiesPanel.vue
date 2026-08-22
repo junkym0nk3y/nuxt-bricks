@@ -34,29 +34,29 @@ const panelWidth = computed<string>(() => sidebarStore.right.width);
 
 // #region Methods
 /**
- * Закрывает панель свойств и сбрасывает выбор компонента.
+ * Closes the properties panel and drops the component selection.
  */
 function handleClose(): void {
     componentsStore.deselectComponent();
 }
 
 /**
- * Пробрасывает запрос на открытие медиа-галереи наверх.
+ * Forwards the request to open the media gallery upwards.
  */
 function handleOpenMediaGallery(): void {
     emit('openMediaGallery');
 }
 
 /**
- * Передаёт выбранный медиа-элемент во вложенный вид свойств.
+ * Hands the picked media item over to the nested properties view.
  *
- * @param item - Выбранный медиа-элемент.
+ * @param item - Picked media item.
  */
 function handleMediaSelect(item: IMediaItem): void {
     propertiesViewRef.value?.handleMediaSelect(item);
 }
 
-// Expose метод для composition root: роутинг выбора медиа из галереи
+// Exposed for the composition root: it routes the media picked in the gallery here
 defineExpose({
     handleMediaSelect,
 });

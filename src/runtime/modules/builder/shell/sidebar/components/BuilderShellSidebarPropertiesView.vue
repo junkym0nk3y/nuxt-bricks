@@ -38,14 +38,14 @@ const { t } = useI18n();
 const canvasStore = useCanvasStore();
 
 /**
- * Вкладки «Устройство»: сначала базовый scope, потом переопределения.
- * Базовое устройство пишет в обычные пропы компонента, остальные — в
- * responsive-переопределения поверх него, поэтому обратный порядок читался бы
- * как «правки поверх ничего». С нижним баром канваса порядок намеренно не
- * совпадает: там ряд идёт от узкого к широкому.
+ * Tabs of the "Device" row: the base scope first, the overrides after it. The base
+ * device writes into the ordinary props of the component while the others write
+ * responsive overrides on top of them, so the reverse order would read as "edits on
+ * top of nothing". The order deliberately differs from the bottom bar of the canvas,
+ * where the row runs from the narrowest device to the widest.
  *
- * Только иконки: при четырёх устройствах подписи в полосу панели не помещаются,
- * поэтому имя устройства уезжает в тултип.
+ * Icons only: with four devices the captions do not fit into the strip of the panel,
+ * so the name of the device moves into the tooltip.
  */
 const deviceScopeItems = computed<IBricksTabItem[]>(() => {
     const devices = canvasStore.devices;
@@ -54,7 +54,7 @@ const deviceScopeItems = computed<IBricksTabItem[]>(() => {
 
     return [...base, ...rest].map((device) => ({
         value: device.key,
-        // Подпись не рисуется (iconOnly), но остаётся доступным именем таба
+        // The caption is not drawn (iconOnly) but stays the accessible name of the tab
         label: device.label,
         icon: resolveDeviceIcon(device.icon),
         tooltip: `${device.label} · ${device.width}px`,
@@ -95,16 +95,16 @@ const {
 
 // #region Methods
 /**
- * Закрывает панель свойств
+ * Closes the properties panel.
  */
 function handleClose(): void {
     emit('close');
 }
 
 /**
- * Переключает устройство, для которого правятся адаптивные свойства.
+ * Switches the device the responsive properties are edited for.
  *
- * @param value - Значение выбранного таба.
+ * @param value - Value of the picked tab.
  */
 function handleSelectDeviceScope(value: string): void {
     const device = canvasStore.devices.find((item) => item.key === value);
@@ -116,7 +116,7 @@ function handleSelectDeviceScope(value: string): void {
 }
 
 /**
- * Удаляет выбранный компонент
+ * Deletes the selected component.
  */
 function handleDelete(): void {
     const selected = store.selectedComponentData;
@@ -127,7 +127,7 @@ function handleDelete(): void {
 
 // #region Expose
 /**
- * Expose метод для вызова из родительского компонента при выборе медиа из галереи
+ * Exposed for the parent component to call when media is picked in the gallery.
  */
 defineExpose({
     handleMediaSelect,

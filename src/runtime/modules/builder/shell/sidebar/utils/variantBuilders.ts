@@ -22,9 +22,12 @@ import { readOwnKey } from '../../../../common/utils/safeRecord';
 
 // #region Interfaces
 export interface IVariantBuilderTools {
-    /** Резолвит label свойства (ключи `bricks.*` переводятся, кастомные строки — как есть). */
+    /**
+     * Resolves the label of a property: `bricks.*` keys are translated, custom strings
+     * are kept as they are
+     */
     resolveLabel: (property: IPropertyDefinition) => string;
-    /** i18n-переводчик для служебных подписей (например, label переключателя). */
+    /** i18n translator for the captions of the panel itself, the switch label among them */
     t: (key: string) => string;
 }
 
@@ -35,21 +38,21 @@ export type TVariantBuilder = (
 // #endregion
 
 /**
- * Возвращает текущее значение свойства из пропсов компонента.
+ * Current value of the property, read from the props of the component.
  *
- * Имя свойства объявляет brick-файл, а пропсы приходят из схемы, поэтому читаем
- * только own-ключ: `componentProps['toString']` иначе вернул бы метод прототипа,
- * и `Boolean(...)` от него был бы истинным при любой схеме.
+ * The name of the property is declared by a brick file while the props come from the
+ * schema, so only an own key is read: `componentProps['toString']` would otherwise
+ * return the prototype method, and `Boolean(...)` of it would be true for any schema.
  *
- * @param context - Контекст свойства (определение + пропсы компонента).
- * @returns Значение пропа либо undefined, если own-ключа нет.
+ * @param context - Context of the property (its definition plus the component props).
+ * @returns Value of the prop, or undefined when there is no own key.
  */
 function readPropValue(context: IPropertyVariantContext): unknown {
     return readOwnKey(context.componentProps, context.property.name);
 }
 
 /**
- * Возвращает значение-массив свойства с fallback на непустой default.
+ * Array value of the property, falling back to a non-empty default.
  */
 function resolveArrayValue(context: IPropertyVariantContext): Array<unknown> {
     const { property } = context;
@@ -60,7 +63,7 @@ function resolveArrayValue(context: IPropertyVariantContext): Array<unknown> {
 }
 
 /**
- * Билдер для редакторов, принимающих массив значений с fallback на default
+ * Builder for the editors that take an array of values with a fallback to the default
  * (image-gallery, accordion-items).
  */
 function createArrayValueBuilder(editorType: TPropertyEditorType): TVariantBuilder {
@@ -75,7 +78,7 @@ function createArrayValueBuilder(editorType: TPropertyEditorType): TVariantBuild
 }
 
 /**
- * Билдер для редакторов с отформатированным строковым значением (color, image, video).
+ * Builder for the editors with a formatted string value (color, image, video).
  */
 function createDisplayValueBuilder(editorType: TPropertyEditorType): TVariantBuilder {
     return (context, tools) => {
@@ -89,7 +92,7 @@ function createDisplayValueBuilder(editorType: TPropertyEditorType): TVariantBui
 }
 
 /**
- * Билдер boolean-варианта (чекбокс).
+ * Builder of the boolean variant (a checkbox).
  */
 function buildBooleanVariant(context: IPropertyVariantContext, tools: IVariantBuilderTools): void {
     context.variants.boolean.push({
@@ -101,7 +104,7 @@ function buildBooleanVariant(context: IPropertyVariantContext, tools: IVariantBu
 }
 
 /**
- * Билдер switch-варианта (переключатель).
+ * Builder of the switch variant (a toggle).
  */
 function buildSwitchVariant(context: IPropertyVariantContext, tools: IVariantBuilderTools): void {
     context.variants.switch.push({
@@ -118,7 +121,7 @@ function buildSwitchVariant(context: IPropertyVariantContext, tools: IVariantBui
 }
 
 /**
- * Билдер textarea-варианта (многострочный текст).
+ * Builder of the textarea variant (multi-line text).
  */
 function buildTextareaVariant(context: IPropertyVariantContext, tools: IVariantBuilderTools): void {
     const { property } = context;
@@ -132,7 +135,7 @@ function buildTextareaVariant(context: IPropertyVariantContext, tools: IVariantB
 }
 
 /**
- * Билдер tags-варианта (массив строк с chips-редактором).
+ * Builder of the tags variant (an array of strings edited as chips).
  */
 function buildTagsVariant(context: IPropertyVariantContext, tools: IVariantBuilderTools): void {
     const { property } = context;
@@ -150,7 +153,8 @@ function buildTagsVariant(context: IPropertyVariantContext, tools: IVariantBuild
 }
 
 /**
- * Билдер array-варианта: примитивные массивы — в input (CSV), остальные — в json.
+ * Builder of the array variant: a primitive array goes to the input as CSV, the rest
+ * go to the json editor.
  */
 function buildArrayVariant(context: IPropertyVariantContext, tools: IVariantBuilderTools): void {
     const { property } = context;
@@ -185,7 +189,7 @@ function buildArrayVariant(context: IPropertyVariantContext, tools: IVariantBuil
 }
 
 /**
- * Билдер object-варианта (json-редактор).
+ * Builder of the object variant (the json editor).
  */
 function buildObjectVariant(context: IPropertyVariantContext, tools: IVariantBuilderTools): void {
     const { property } = context;
@@ -198,8 +202,8 @@ function buildObjectVariant(context: IPropertyVariantContext, tools: IVariantBui
 }
 
 /**
- * Реестр билдеров вариантов по типу свойства. Типы без билдера
- * обрабатываются select-эвристикой либо fallback-инпутом (см. usePropertyVariants).
+ * Registry of the variant builders, keyed by property type. A type with no builder is
+ * handled by the select heuristic or by the fallback input (see `usePropertyVariants`).
  */
 export const VARIANT_BUILDERS: Partial<Record<TPropertyType, TVariantBuilder>> = {
     boolean: buildBooleanVariant,
@@ -216,8 +220,8 @@ export const VARIANT_BUILDERS: Partial<Record<TPropertyType, TVariantBuilder>> =
 };
 
 /**
- * Билдер select-варианта: срабатывает для любого свойства с options (2+),
- * независимо от типа. Возвращает true, если вариант добавлен.
+ * Builder of the select variant: fires for any property carrying two or more options,
+ * whatever its type. Returns true when the variant was added.
  */
 export function buildSelectVariant(
     context: IPropertyVariantContext,
@@ -247,7 +251,7 @@ export function buildSelectVariant(
 }
 
 /**
- * Fallback-билдер: input-вариант (текстовое поле по умолчанию).
+ * Fallback builder: the input variant, a plain text field.
  */
 export function buildInputVariant(
     context: IPropertyVariantContext,
@@ -262,7 +266,7 @@ export function buildInputVariant(
 }
 
 /**
- * Создает пустую структуру вариантов для всех типов редакторов.
+ * Creates the empty variant structure for every editor type.
  */
 export function createEmptyVariants(order: readonly TPropertyEditorType[]): TComponentVariantsMap {
     return order.reduce((acc, key) => {

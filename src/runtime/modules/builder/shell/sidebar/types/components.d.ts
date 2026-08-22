@@ -1,5 +1,5 @@
 /**
- * Типы для компонентов домена sidebar.
+ * Types for the components of the sidebar domain.
  */
 
 export interface ISidebarPublishSocialImageProps {
