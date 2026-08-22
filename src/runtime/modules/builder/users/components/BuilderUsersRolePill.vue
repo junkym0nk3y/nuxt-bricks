@@ -1,15 +1,22 @@
 <script setup lang="ts">
 /**
- * @description Пилюля роли в строке учётки: она же и кнопка выбора роли. Меню из
- * трёх ролей, выбор применяется сразу — отдельной формы «редактирование
- * учётки» в разделе нет вовсе, потому что у учётки нет содержимого, только
- * атрибуты, и каждый из них правится там, где показан.
+ * @description The role pill in an account row: it is the role picker button as well.
+ * A menu of three roles, the choice is applied at once — the section has no separate
+ * "edit the account" form at all, because an account has no content, only attributes,
+ * and each of them is edited where it is shown.
  *
- * Заблокированная роль (своя учётка, последний активный администратор) рисуется
- * НЕ выключенной кнопкой, а кнопкой с `aria-disabled` и объяснением причины:
- * выключенный элемент выпадает из обхода с клавиатуры вместе с причиной, а
- * причина здесь — единственное, что человеку нужно («сначала назначьте второго
- * администратора»). Меню при этом не подключается вовсе: нечего открывать.
+ * A locked role (one's own account, the last active administrator) is drawn NOT as a
+ * disabled button but as a button with `aria-disabled` and an explanation of the
+ * reason: a disabled element leaves the keyboard order together with the reason, while
+ * the reason is the only thing a person needs here ("appoint a second administrator
+ * first"). The menu is not wired up at all in that case: there is nothing to open.
+ *
+ * Decisions held by the style section: in both busy states — a request of its own and
+ * an operation in a neighboring row — the pill dims yet stays focusable, because
+ * otherwise focus would leave the list for the time the server takes to answer; the
+ * chevron appears on hover, on focus and on an open menu, so that a row at rest stays
+ * a list of data rather than a set of buttons, while the room for it is taken at all
+ * times — otherwise the pill would jerk in width under the cursor.
  */
 
 // #region Imports
@@ -55,14 +62,16 @@ const emit = defineEmits<IUsersRolePillEmits>();
 const { t } = useI18n();
 
 /**
- * Порядок ролей в меню — от самых широких прав к самым узким: перечисление,
- * повторяющее матрицу прав, читается как шкала, а не как случайный список.
+ * The order of the roles in the menu — from the widest rights to the narrowest: a
+ * listing that repeats the rights matrix reads as a scale rather than as a random
+ * list.
  */
 const ROLE_ORDER: TBricksUserRole[] = ['admin', 'editor', 'viewer'];
 
 /**
- * Тон плашки на роль. Карта, а не цвета в своих стилях: тона живут в ките, а
- * здесь остаётся только соответствие «роль → насколько её надо выделять».
+ * The badge tone per role. A map rather than colors in styles of its own: the tones
+ * live in the kit, and what is left here is only the mapping "role → how much it has
+ * to stand out".
  */
 const ROLE_TONE: Record<TBricksUserRole, TBricksBadgeTone> = {
     admin: 'accent',
@@ -70,14 +79,7 @@ const ROLE_TONE: Record<TBricksUserRole, TBricksBadgeTone> = {
     viewer: 'quiet',
 };
 
-/*
-    Тон редактора — `muted` (`base-100`/`base-600`). Своя пара до переезда в кит
-    была `base-100`/`base-700`; `base-500`, который тон нёс сначала, давал на
-    `base-100` 4.4:1 — ниже порога AA, поэтому подпись тона поднята до `base-600`
-    (6.9:1) в самом ките, а не перекрыта здесь.
-*/
-
-/** Меню открыто. Состоянием владеет компонент: открытие бывает отклонено. */
+/** The menu is open. The component owns the state: an opening can be refused */
 const isMenuOpen = ref<boolean>(false);
 // #endregion
 
@@ -87,9 +89,9 @@ const roleLabel = computed<string>(() => t(`bricks.auth.roles.${props.role}`));
 const roleTone = computed<TBricksBadgeTone>(() => ROLE_TONE[props.role]);
 
 /**
- * Доступное имя кнопки: роль, чья она и что с ней можно сделать. Внутри кнопки
- * только слово роли, и без имени владельца скринридер прочитал бы список из
- * одинаковых «Редактор».
+ * The accessible name of the button: the role, whose it is and what can be done with
+ * it. Inside the button there is only the word of the role, and without the owner's
+ * name a screen reader would read out a list of identical "Editor"s.
  */
 const triggerLabel = computed<string>(() => {
     const base = t('bricks.users.role.changeLabel', {
@@ -103,15 +105,17 @@ const triggerLabel = computed<string>(() => {
 
 // #region Methods
 /**
- * Открывает и закрывает меню ролей.
+ * Opens and closes the role menu.
  *
- * Открытие отклоняется, пока в разделе идёт операция: операции сериализованы, и
- * выбранная в этот момент роль была бы отброшена молча — меню обещало бы
- * действие, которого не будет. Отклоняется именно открытие, а не сам триггер:
- * выключенная кнопка (в том числе штатным `disabled` у триггера Reka) выпадает
- * из обхода с клавиатуры и уносит с собой фокус.
+ * An opening is refused while an operation is running in the section: the operations
+ * are serialized, and a role picked at that moment would be dropped silently — the
+ * menu would be promising an action that is not going to happen. It is the opening
+ * that is refused rather than the trigger itself: a disabled button (the stock
+ * `disabled` of the reka trigger included) leaves the keyboard order and carries the
+ * focus away with it — found by a live check, where a person who changed a role from
+ * the keyboard ended up at the top of the page.
  *
- * @param isOpen - Запрошенное состояние меню.
+ * @param isOpen - The requested state of the menu.
  */
 function handleMenuOpenChange(isOpen: boolean): void {
     if (isOpen && props.isOperationLocked) {
@@ -122,13 +126,13 @@ function handleMenuOpenChange(isOpen: boolean): void {
 }
 
 /**
- * Пробрасывает выбранную роль наверх.
+ * Forwards the chosen role upward.
  *
- * Значение радио-группы приходит из кита нетипизованным (Reka допускает любой
- * примитив), поэтому сверяется со списком известных ролей: значение мимо списка
- * ушло бы в тело запроса как есть.
+ * The value of the radio group arrives untyped (reka admits any primitive), so it is
+ * checked against the list of known roles: a value outside the list would travel into
+ * the request body as it is.
  *
- * @param value - Значение выбранного пункта.
+ * @param value - The value of the chosen item.
  */
 function handleSelect(value: AcceptableValue): void {
     const role = ROLE_ORDER.find((item) => item === value);
@@ -158,15 +162,6 @@ function handleSelect(value: AcceptableValue): void {
     </BricksBadge>
 
     <DropdownMenuRoot v-else :open="isMenuOpen" @update:open="handleMenuOpenChange">
-        <!--
-            Триггер НЕ выключается на время запроса, хотя соблазн есть: выключенная
-            кнопка выпадает из обхода, и Reka не может вернуть на неё фокус —
-            человек, сменивший роль с клавиатуры, оказывался в начале страницы
-            (найдено живой проверкой). От второго запроса защищает не кнопка, а
-            занятость раздела: она же отклоняет и открытие меню. Занятость строки
-            объявляет её корень (`aria-busy`), а не эта кнопка, — состояние не
-            хранит вида операции.
-        -->
         <DropdownMenuTrigger as-child>
             <BricksBadge
                 as="button"
@@ -222,11 +217,6 @@ function handleSelect(value: AcceptableValue): void {
 </template>
 
 <style module lang="scss">
-/*
-    Вид пилюли — плашка кита (`shape="pill"` + тон по роли); здесь остаются только
-    состояния: чем она отличается от плашки-подписи, так это тем, что по ней
-    щёлкают.
-*/
 .BuilderUsersRolePill {
     transition:
         background-color var(--bricks-default-transition),
@@ -246,24 +236,17 @@ function handleSelect(value: AcceptableValue): void {
         cursor: default;
     }
 
-    /* Идёт запрос: строка занята, но кнопка остаётся фокусируемой — иначе фокус
-       уезжает из списка на время ответа сервера. */
     &._pending {
         opacity: 0.7;
         cursor: progress;
     }
 
-    /* Операция идёт в соседней строке: роль этой сейчас не меняется, но кнопка
-       по той же причине остаётся фокусируемой. */
     &._busy {
         opacity: 0.7;
         cursor: default;
     }
 }
 
-/* Шеврон появляется на наведении и на фокусе: в покое строка остаётся списком
-   данных, а не набором кнопок. Место под него занято всегда — иначе пилюля
-   дёргалась бы по ширине под курсором. */
 .chevron {
     width: 1.2rem;
     height: 1.2rem;

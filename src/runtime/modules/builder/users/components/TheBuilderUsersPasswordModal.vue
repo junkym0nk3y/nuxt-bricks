@@ -1,17 +1,18 @@
 <script setup lang="ts">
 /**
- * @description Модалка «задать пароль» чужой учётке.
+ * @description The "set a password" modal for somebody else's account.
  *
- * Текущий пароль здесь не спрашивается: администратор его не знает, а сценарий —
- * вернуть доступ человеку, который свой пароль забыл. Свой пароль меняется
- * другой формой (вкладка профиля), и там текущий обязателен — иначе украденная
- * кука сменила бы пароль сама и заперла владельца. Поэтому это разные ручки и
- * разные формы, а не одна с необязательным полем.
+ * The current password is not asked for here: the administrator does not know it, and
+ * the scenario is giving access back to a person who forgot their own. One's own
+ * password is changed by another form (the profile tab), and there the current one is
+ * mandatory — otherwise a stolen cookie would change the password by itself and lock
+ * the owner out. That is why these are different endpoints and different forms rather
+ * than one with an optional field.
  *
- * Запрос выполняет сама модалка, а не общие операции раздела: кнопка обязана
- * уйти в состояние отправки и держать окно открытым до ответа — закройся оно
- * раньше, человек не узнал бы, задан ли пароль, а повторить операцию значило бы
- * задать третий пароль.
+ * The request is performed by the modal itself rather than by the shared operations of
+ * the section: the button has to go into its submitting state and hold the window open
+ * until the response — had it closed earlier, a person would not learn whether the
+ * password had been set, and repeating the operation would mean setting a third one.
  */
 
 // #region Imports
@@ -66,9 +67,9 @@ const { password, errors, generalError, isSubmitting, generatePassword, submitFo
 
 // #region Computed
 /**
- * Заголовок называет учётку: форма пароля выглядит одинаково для любой из них, и
- * без имени в шапке промах по строке остался бы незамеченным до того, как
- * человек не сможет войти.
+ * The title names the account: the password form looks the same for any of them, and
+ * without the name in the header a miss on the row would stay unnoticed until the
+ * person could not sign in.
  */
 const modalTitle = computed<string>(() =>
     props.user
@@ -79,8 +80,9 @@ const modalTitle = computed<string>(() =>
 
 // #region Methods
 /**
- * Закрывает модалку. Пока идёт отправка, закрытие не проходит: ответ ручки
- * некому будет показать, а пароль в этот момент уже мог примениться.
+ * Closes the modal. While a submission is running the closing does not go through:
+ * there would be nobody to show the answer of the endpoint to, and by that moment the
+ * password may already have been applied.
  */
 function handleClose(): void {
     if (isSubmitting.value) {
@@ -92,8 +94,8 @@ function handleClose(): void {
 // #endregion
 
 // #region Lifecycle
-// Поле чистится на каждом открытии: оставленный пароль предыдущей учётки был бы
-// задан следующей одним нажатием кнопки
+// The field is cleared on every opening: a password of the previous account left in it
+// would be set for the next one with a single press of the button
 watch(targetUser, (user) => {
     if (user) {
         resetToEmpty();
@@ -140,8 +142,6 @@ watch(targetUser, (user) => {
                     </BricksButton>
                 </div>
 
-                <!-- Отзыв сессий — следствие, о котором предупреждают заранее:
-                     человек, которому меняют пароль, вылетит из своих вкладок -->
                 <div :class="$style.notice">
                     <BricksIcon icon="ta:outline-info-circle" :class="$style.noticeIcon" />
                     <div :class="$style.noticeBody">

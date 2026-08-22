@@ -19,20 +19,21 @@ import { boolean, object, string } from 'yup';
 // #endregion
 
 /**
- * Собирает yup-схему формы создания учётки.
+ * Builds the yup schema of the account creation form.
  *
- * Все границы берутся из общих констант, а не переписаны числами: клиентская
- * схема, разъехавшаяся с серверной, либо отклоняет пароль, который сервер
- * принял бы, либо гоняет через сеть заведомо отказной запрос — и в обоих случаях
- * подсказка под полем врёт. По той же причине формат логина проверяется тем же
- * паттерном, что применяет ручка.
+ * Every bound is taken from the shared constants rather than rewritten as a number:
+ * a client schema that has drifted from the server one either rejects a password the
+ * server would have accepted or sends a guaranteed refusal over the network — and in
+ * both cases the hint under the field lies. For the same reason the username format
+ * is checked with the very pattern the endpoint applies.
  *
- * Занятость логина здесь не проверяется вовсе: список в браузере — копия, между
- * его чтением и отправкой формы логин мог занять другой администратор. Это знает
- * только сервер, и его отказ встаёт под поле.
+ * Whether the username is taken is not checked here at all: the list in the browser
+ * is a copy, and between reading it and submitting the form another administrator
+ * could have taken that username. Only the server knows this, and its refusal is
+ * what goes under the field.
  *
- * @param options - Контекст валидации.
- * @returns Yup-схема формы создания.
+ * @param options - Validation context.
+ * @returns The yup schema of the creation form.
  */
 export function createUsersCreateValidationSchema(options: IUsersValidationSchemaOptions) {
     const { t } = options;
@@ -50,9 +51,9 @@ export function createUsersCreateValidationSchema(options: IUsersValidationSchem
                     max: BRICKS_NEW_USERNAME_MAX_LENGTH,
                 })
             )
-            // Регистр снимается перед проверкой формата, как это делает сервер:
-            // `Anna.Kim` — законный ввод той же учётки `anna.kim`, и отказ
-            // «недопустимые символы» на заглавной букве был бы неправдой
+            // Case is dropped before the format check, exactly as the server does
+            // it: `Anna.Kim` is legitimate input for that same `anna.kim` account,
+            // and an "invalid characters" refusal on a capital letter would be untrue
             .test(
                 'username-pattern',
                 () => t('bricks.users.validation.usernameInvalid'),
@@ -64,10 +65,10 @@ export function createUsersCreateValidationSchema(options: IUsersValidationSchem
                     max: BRICKS_DISPLAY_NAME_MAX_LENGTH,
                 })
             )
-            // Управляющие символы: перенос строки внутри имени сломал бы строку
-            // списка и меню профиля, а невидимые символы сделали бы два разных
-            // имени неотличимыми на экране. Пустое значение проверку проходит —
-            // имя необязательно, и без него показывается логин
+            // Control characters: a line break inside a name would break the list
+            // row and the profile menu, while invisible characters would make two
+            // different names indistinguishable on screen. An empty value passes the
+            // check — the name is optional, and without it the username is shown
             .test(
                 'no-control-characters',
                 () => t('bricks.users.validation.displayNameInvalid'),
@@ -80,14 +81,14 @@ export function createUsersCreateValidationSchema(options: IUsersValidationSchem
 }
 
 /**
- * Собирает yup-схему формы «задать пароль другому».
+ * Builds the yup schema of the "set someone else's password" form.
  *
- * Текущего пароля здесь нет и быть не может: администратор его не знает, а
- * сценарий — восстановление доступа человеку, который свой пароль забыл. Своя
- * форма пароля (вкладка профиля) текущий требует, и это разные ручки.
+ * There is no current password field here, and there is nothing to validate about one:
+ * the endpoint does not ask for it (why — at `users/[id]/password.post.ts`), and the
+ * form for one's own password is a different schema against a different endpoint.
  *
- * @param options - Контекст валидации.
- * @returns Yup-схема формы пароля.
+ * @param options - Validation context.
+ * @returns The yup schema of the password form.
  */
 export function createUsersPasswordValidationSchema(options: IUsersValidationSchemaOptions) {
     return object({
@@ -97,12 +98,13 @@ export function createUsersPasswordValidationSchema(options: IUsersValidationSch
 
 // #region Methods
 /**
- * Правило нового пароля — общее для создания учётки и для сброса чужого пароля:
- * границы у обеих ручек одни и те же, и разъехавшись, формы обещали бы разное о
- * пароле одной и той же системы.
+ * The rule for a new password — shared by account creation and by resetting someone
+ * else's password: the bounds of both endpoints are the same, and once drifted apart
+ * the forms would promise different things about the password of one and the same
+ * system.
  *
- * @param options - Контекст валидации.
- * @returns Yup-правило строки пароля.
+ * @param options - Validation context.
+ * @returns The yup rule for the password string.
  */
 function createNewPasswordRule(options: IUsersValidationSchemaOptions) {
     const { t } = options;
@@ -116,10 +118,11 @@ function createNewPasswordRule(options: IUsersValidationSchemaOptions) {
             .max(BRICKS_PASSWORD_MAX_LENGTH, () =>
                 t('bricks.users.validation.passwordTooLong', { max: BRICKS_PASSWORD_MAX_LENGTH })
             )
-            // Дефолтный пароль сида запрещён и здесь: выданный администратором, он
-            // сделал бы чужую учётку общеизвестной, а распознавание «пароль всё ещё
-            // дефолтный» на неё не сработало бы вовсе — оно узнаёт только сидовый
-            // хеш, а у заново заданного пароля своя соль
+            // The seed default password is banned here as well. The rationale for
+            // the ban itself belongs to the endpoint (`requirePassword` in
+            // `server/utils/auth/userManagement.ts`) and is not copied: the form
+            // refuses the password before the request so that the ban reaches a
+            // person as a hint under the field rather than as a bare 400
             .test(
                 'not-default-password',
                 () => t('bricks.users.validation.passwordIsDefault'),

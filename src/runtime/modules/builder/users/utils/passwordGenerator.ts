@@ -1,41 +1,43 @@
 // #region Data
 /**
- * Длина генерируемого пароля.
+ * Length of the generated password.
  *
- * Заметно больше серверного минимума (8) намеренно: минимум — граница того, что
- * примут от человека, а генератор ставит пароль, который человек не запоминает,
- * а копирует один раз, и экономить на его длине нечем.
+ * Noticeably above the server minimum (8) on purpose: the minimum is the bound of
+ * what will be accepted from a person, while the generator sets a password nobody
+ * memorizes — it is copied once, and there is nothing to save on its length.
  */
 const GENERATED_PASSWORD_LENGTH = 20;
 
 /**
- * Алфавит генератора: латиница, цифры и часть знаков — без визуально
- * неотличимых символов (`0`, `O`, `o`, `1`, `l`, `I`) и без кавычек, слешей и
- * пробела.
+ * The generator's alphabet: Latin letters, digits and some of the signs — without
+ * the visually indistinguishable characters (`0`, `O`, `o`, `1`, `l`, `I`) and
+ * without quotes, slashes and the space.
  *
- * Причина не в стойкости, а в передаче: сгенерированный пароль администратор
- * диктует или вставляет в чат, и `l` вместо `1` превращается в «пароль не
- * подходит» без объяснения. Кавычки и слеши выбиты, потому что ломают вставку в
- * командную строку и в JSON.
+ * The reason is not strength but handover: an administrator either dictates the
+ * generated password or pastes it into a chat, and `l` instead of `1` turns into
+ * "the password does not work" with no explanation. Quotes and backslashes are out
+ * because both have to be escaped in a shell string and in JSON, and a password that
+ * needs escaping comes back mangled from wherever it was pasted.
  */
 const PASSWORD_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789-_.+@';
 // #endregion
 
 /**
- * Генерирует пароль для новой учётки и для сброса чужого пароля.
+ * Generates a password for a new account and for resetting someone else's.
  *
- * Источник случайности — `crypto.getRandomValues`, а не `Math.random`: второй
- * предсказуем по нескольким выданным значениям, а здесь генерируется реальный
- * доступ в систему. Выбор символа идёт через отбраковку остатка (`rejection
- * sampling`): взятие остатка от деления без неё сделало бы первые символы
- * алфавита вероятнее прочих, потому что 256 на длину алфавита не делится.
+ * The source of randomness is `crypto.getRandomValues` rather than `Math.random`:
+ * the latter is predictable from a handful of emitted values, and what is being
+ * generated here is real access to the system. A character is picked through
+ * rejection sampling: taking the remainder of the division without it would make
+ * the first characters of the alphabet likelier than the rest, because 256 is not
+ * divisible by the alphabet length.
  *
- * @returns Пароль длиной `GENERATED_PASSWORD_LENGTH`.
+ * @returns A password `GENERATED_PASSWORD_LENGTH` characters long.
  */
 export function generateUserPassword(): string {
     const alphabetLength = PASSWORD_ALPHABET.length;
-    // Потолок принимаемых байтов: значения выше отбраковываются, иначе
-    // распределение перекосилось бы в начало алфавита
+    // The first rejected byte value: everything from it upward is thrown away, without
+    // which the distribution would skew toward the start of the alphabet
     const acceptableCeiling = Math.floor(256 / alphabetLength) * alphabetLength;
     const password: string[] = [];
 

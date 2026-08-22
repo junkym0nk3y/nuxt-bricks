@@ -12,13 +12,13 @@ import { BRICKS_API_ERROR_CODES } from '../../../common/constants/apiErrors';
 
 // #region Data
 /**
- * Отказы операций над учёткой по машиночитаемому коду.
+ * Refusals of an operation on an account, by machine-readable code.
  *
- * По коду, а не по статусу: 409 отдают оба краевых правила, и различить «нельзя
- * тронуть последнего администратора» от «это ваша учётка» иначе нечем — а
- * человеку нужно ровно это различие, потому что первое означает «сначала
- * назначьте второго администратора», а второе — «интерфейс показал вам действие,
- * которого нет».
+ * By code rather than by status: both edge rules answer 409, and there is nothing
+ * else to tell "the last administrator must not be touched" from "this is your own
+ * account" — while a person needs exactly that difference, because the first one
+ * means "appoint a second administrator first" and the second one means "the
+ * interface showed you an action that does not exist".
  */
 const USER_ACTION_ERROR_KEYS: Record<string, string> = {
     [BRICKS_API_ERROR_CODES.lastActiveAdmin]: 'bricks.users.errors.lastActiveAdmin',
@@ -27,7 +27,7 @@ const USER_ACTION_ERROR_KEYS: Record<string, string> = {
     [BRICKS_API_ERROR_CODES.insufficientRole]: 'bricks.users.errors.insufficientRole',
 };
 
-/** Отказы операций над учёткой по статусу — то, что кодом не размечено. */
+/** Refusals of an operation on an account by status — what carries no code */
 const USER_ACTION_STATUS_KEYS: Record<number, string> = {
     404: 'bricks.users.errors.userGone',
     429: 'bricks.users.errors.tooManyRequests',
@@ -35,13 +35,13 @@ const USER_ACTION_STATUS_KEYS: Record<number, string> = {
 };
 
 /**
- * Коды, означающие, что список в браузере отстал от базы: показанное действие
- * сервер уже не считает возможным.
+ * The codes meaning that the list in the browser has fallen behind the database:
+ * the server no longer considers the shown action possible.
  *
- * Оба недостижимы через интерфейс (замок и своя строка закрывают их заранее),
- * поэтому их появление само по себе — сигнал устаревшего списка: пока строка
- * была на экране, другой администратор успел поменять роли. Поэтому после них
- * список перечитывается, а не только показывается тост.
+ * Both are unreachable through the interface (the lock and one's own row close them
+ * in advance), so their arrival is by itself a signal of a stale list: while the row
+ * was on screen, another administrator managed to change the roles. That is why the
+ * list is re-read after them rather than only a toast being shown.
  */
 const STALE_LIST_ERROR_CODES: ReadonlySet<string> = new Set([
     BRICKS_API_ERROR_CODES.lastActiveAdmin,
@@ -51,11 +51,12 @@ const STALE_LIST_ERROR_CODES: ReadonlySet<string> = new Set([
 
 // #region Methods
 /**
- * Читает статус отказа, не спотыкаясь о пустую ошибку: до этих функций доходит
- * всё, что бросил транспорт, включая отменённый запрос без тела.
+ * Reads the refusal status without stumbling over an empty error: everything the
+ * transport threw reaches these functions, an aborted request with no body
+ * included.
  *
- * @param error - Ошибка запроса.
- * @returns HTTP-статус или undefined.
+ * @param error - Request error.
+ * @returns The HTTP status, or undefined.
  */
 function readStatusCode(error: unknown): number | undefined {
     return ((error ?? {}) as TRequestErrorLike).statusCode;
@@ -63,23 +64,23 @@ function readStatusCode(error: unknown): number | undefined {
 // #endregion
 
 /**
- * Логин занят — подсказка встаёт под полем формы создания, а не в общий текст
- * ошибки: занятость относится к одному полю, и человеку нужно исправить именно
- * его.
+ * The username is taken — the hint goes under the field of the creation form
+ * rather than into the general error text: being taken concerns one field, and it
+ * is that very field a person has to fix.
  *
- * @param error - Ошибка запроса.
- * @returns Логин уже используется другой учёткой.
+ * @param error - Request error.
+ * @returns The username is already used by another account.
  */
 export function isUsernameTakenError(error: unknown): boolean {
     return getBricksErrorCode(error) === BRICKS_API_ERROR_CODES.usernameTaken;
 }
 
 /**
- * Отказ, после которого список обязателен к перечитыванию: краевое правило
- * сервера разошлось с тем, что показано на экране, либо целевой учётки уже нет.
+ * A refusal after which the list must be re-read: an edge rule of the server has
+ * diverged from what is shown on screen, or the target account is already gone.
  *
- * @param error - Ошибка запроса.
- * @returns Список в браузере устарел.
+ * @param error - Request error.
+ * @returns The list in the browser is stale.
  */
 export function isStaleListError(error: unknown): boolean {
     const code = getBricksErrorCode(error);
@@ -92,15 +93,15 @@ export function isStaleListError(error: unknown): boolean {
 }
 
 /**
- * Ключ сообщения об отказе операции над учёткой.
+ * The message key for a refused operation on an account.
  *
- * Обрыв по потолку ожидания получает свой текст: исход операции при нём
- * неизвестен — сервер мог применить её и не успеть ответить, — поэтому «не
- * удалось, попробуйте снова» было бы неправдой. Вызывающий в этом случае
- * перечитывает список, и человек видит фактическое состояние.
+ * An abort by the waiting ceiling gets a text of its own: under it the outcome of
+ * the operation is unknown — the server may have applied it and failed to answer in
+ * time — so "it did not work out, try again" would be untrue. The caller re-reads
+ * the list in that case, and a person sees the actual state.
  *
- * @param error - Ошибка запроса.
- * @returns i18n-ключ сообщения.
+ * @param error - Request error.
+ * @returns The i18n key of the message.
  */
 export function resolveUserActionErrorKey(error: unknown): string {
     if (isRequestTimeoutError(error)) {
@@ -122,16 +123,18 @@ export function resolveUserActionErrorKey(error: unknown): string {
 }
 
 /**
- * Отказ начальной загрузки списка означает, что раздела в этой установке нет
- * вовсе, а не что он временно не отвечает.
+ * A refusal of the initial list load that no retry can improve — as opposed to a
+ * section that is merely silent for now.
  *
- * 404 — ручек нет в сборке или раздел выключен флагом `allowUserManagement`;
- * 403 — роль запроса не администраторская, то есть локальные права разошлись с
- * серверной политикой. Повторять оба бессмысленно: раздел в этом состоянии
- * прячется целиком, а не показывает кнопку «ещё раз».
+ * 404 — the endpoints are absent from the build or the section is turned off by the
+ * `allowUserManagement` flag, that is, the section is not in this installation at all;
+ * 403 — the section is there, but the role of the request is not an administrator's,
+ * that is, the local rights have diverged from the server policy. Retrying either is
+ * pointless: in that state the section hides whole instead of showing a "once more"
+ * button.
  *
- * @param error - Ошибка запроса.
- * @returns Раздел недоступен окончательно.
+ * @param error - Request error.
+ * @returns The section is not going to answer this caller at all.
  */
 export function isUsersSectionUnavailableError(error: unknown): boolean {
     const statusCode = readStatusCode(error);

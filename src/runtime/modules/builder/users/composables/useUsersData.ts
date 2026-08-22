@@ -25,47 +25,49 @@ import { useNuxtApp, useState } from '#imports';
 // #endregion
 
 // #region Data
-/** Ключ общего состояния списка учёток: одно значение на приложение. */
+/** The key of the shared account list state: one value per application */
 const USERS_STATE_KEY = 'bricks-users';
 
-/** Ручка списка и создания учёток. */
+/** The endpoint listing and creating accounts */
 const USERS_ENDPOINT = '/api/bricks/users';
 
 /**
- * Идущая загрузка — по экземпляру приложения Nuxt, а не переменной модуля.
+ * The load in flight — per Nuxt application instance rather than in a module
+ * variable.
  *
- * Модуль-глобальный промис на сервере общий для ВСЕХ запросов процесса: два
- * одновременных SSR-рендера дашборда получили бы один и тот же список, то есть
- * администратор мог бы увидеть ответ, полученный по чужой сессии. `WeakMap` по
- * экземпляру приложения изолирует дедупликацию по запросу и не держит ссылку
- * после его завершения.
+ * On the server a module-global promise is shared by ALL requests of the process: two
+ * simultaneous SSR renders of the dashboard would receive one and the same list, that
+ * is, an administrator could see a response obtained under someone else's session. A
+ * `WeakMap` keyed by the application instance isolates the deduplication per request
+ * and keeps no reference once that request is over.
  */
 const inflightRequests = new WeakMap<object, Promise<void>>();
 
 /**
- * Счётчик локальных правок списка — тоже по экземпляру приложения.
+ * The counter of local edits of the list — per application instance as well.
  *
- * Живёт рядом с состоянием, а не внутри него: `useState` уезжает в payload
- * гидрации, и служебному счётчику там не место.
+ * It lives next to the state rather than inside it: `useState` travels into the
+ * hydration payload, and a housekeeping counter has no place there.
  */
 const localRevisions = new WeakMap<object, { count: number }>();
 // #endregion
 
 /**
- * Список учёток раздела «Пользователи»: чтение с сервера и точечные правки
- * состояния после операций.
+ * The account list of the "Users" section: reading it from the server and the
+ * targeted edits of the state after an operation.
  *
- * Состояние — `useState`, а не Pinia-store: список живёт на одной поверхности
- * (раздел дашборда), межповерхностного кеша ему не нужно, зато нужен SSR-сид —
- * счётчик в рейле рисуется в первом кадре, вместе с самим пунктом раздела.
+ * The state is `useState` rather than a Pinia store: the list lives on one surface
+ * (a section of the dashboard) and needs no cross-surface cache, while it does need
+ * an SSR seed — the rail counter is drawn in the first frame, together with the
+ * section item itself.
  *
- * Правки после операций точечные (`upsertUser`, `removeUser`), а не повторное
- * чтение всего списка: ручки отдают полное состояние учётки, и второй GET за тем
- * же, что уже приехало, только добавил бы кадр, в котором список успел
- * перерисоваться дважды. Полное перечитывание остаётся у `refreshUsers` — для
- * повтора после отказа и для сверки, когда сервер сообщил о расхождении.
+ * The edits after an operation are targeted (`upsertUser`, `removeUser`) instead of
+ * a re-read of the whole list: the endpoints hand back the full state of the account,
+ * and a second GET for what has already arrived would only add a frame in which the
+ * list managed to redraw twice. The full re-read stays with `refreshUsers` — for a
+ * retry after a refusal and for a check when the server has reported a divergence.
  *
- * @returns Список, признак готовности и операции над состоянием.
+ * @returns The list, whether it has been read and the operations on the state.
  */
 export function useUsersData(): IUseUsersDataReturn {
     // #region Data
@@ -73,12 +75,15 @@ export function useUsersData(): IUseUsersDataReturn {
     const { apiFetcher } = useApiClient();
     const { canManageUsers } = useBuilderPermissions();
 
-    // Состояние всегда заменяется целиком, а не правится по полям: `useState`
-    // хранит объект, и точечная мутация внутри него не обязана оповещать
-    // подписчиков — счётчик рейла и строки списка читают его через computed
+    // Every transition writes the state as one object rather than editing it field by
+    // field: an assignment then names the complete next state of the section, and no
+    // half-written combination has to be reasoned about. Reactivity is not the reason
+    // to do it this way — `useState` is a `toRef` onto a reactive payload, so a
+    // targeted write notifies subscribers just as well
     const state = useState<IUsersState>(USERS_STATE_KEY, () => ({ users: [], status: 'idle' }));
 
-    // Общий на приложение: композабл зовут и рейл, и раздел, и формы
+    // Shared per application: the composable is called by the rail, by the section
+    // and by the forms
     const revision = localRevisions.get(nuxtApp) ?? { count: 0 };
 
     localRevisions.set(nuxtApp, revision);
@@ -93,13 +98,14 @@ export function useUsersData(): IUseUsersDataReturn {
     );
 
     /**
-     * Единственный активный администратор — тот, кого нельзя ни понизить, ни
-     * выключить, ни удалить: система осталась бы без управления учётками.
+     * The only active administrator — the one who can be neither demoted, nor turned
+     * off, nor deleted: the system would be left with no management of accounts.
      *
-     * Считается по полному списку (поиск и фильтр на это правило не влияют) и
-     * остаётся подсказкой интерфейса: решает всё равно сервер, у которого набор
-     * администраторов заблокирован транзакцией. Значение здесь ровно для того,
-     * чтобы человек увидел замок с объяснением до клика, а не 409 после.
+     * Counted over the whole list (the search and the filter do not affect this rule)
+     * and remains a hint of the interface: the decision belongs to the server anyway,
+     * where the set of administrators is locked by a transaction. The value is here
+     * for exactly one purpose — so that a person sees a lock with an explanation
+     * before the click rather than a 409 after it.
      */
     const lastActiveAdminId = computed<number | null>(() => {
         const activeAdmins = state.value.users.filter(
@@ -112,30 +118,31 @@ export function useUsersData(): IUseUsersDataReturn {
 
     // #region Methods
     /**
-     * Читает список с сервера и раскладывает исход по состоянию раздела.
+     * Reads the list from the server and writes the outcome into the section state.
      *
-     * Отказ наружу не бросается: загрузку запускает composition root до первого
-     * кадра, и отклонённый промис унёс бы весь дашборд из-за раздела, которого
-     * человек мог и не открыть. Вместо этого состояние помечается — окончательно
-     * недоступным (раздела в установке нет) или временно отказавшим (сеть, 5xx),
-     * и второе показывает кнопку повтора.
+     * A refusal does not travel outward: the load is started by the composition root
+     * before the first frame, and a rejected promise would take the whole dashboard
+     * away because of a section a person might never have opened. The state is marked
+     * instead — either unavailable for good (the section does not exist in this
+     * installation) or temporarily refused (the network, 5xx), and the latter shows a
+     * retry button.
      */
     async function loadUsers(): Promise<void> {
-        // Прочитанный список на время чтения не гасится: строки на экране уже
-        // верны на момент прошлого ответа, а спиннер вместо них при каждом входе
-        // в раздел отнимал бы у человека то, что он пришёл посмотреть. Отказ
-        // состояние помечает по-прежнему — устаревший список молча выдавать за
-        // свежий нельзя
+        // A list already read is not dimmed while it is being read again: the rows on
+        // screen are true as of the previous response, and a spinner in their place on
+        // every entry into the section would take away from a person the very thing
+        // they came to look at. A refusal still marks the state — a stale list must
+        // not be passed off silently as a fresh one
         if (state.value.status !== 'ready') {
             state.value = { ...state.value, status: 'loading' };
         }
 
-        // Цикл, а не один запрос: ответ, обогнанный локальной правкой, применять
-        // нельзя, но и бросить чтение нельзя — раздел остался бы с состоянием,
-        // о котором никто уже не знает, свежее оно или нет. Итерация повторяется
-        // ровно тогда, когда между стартом запроса и его ответом список правила
-        // операция, поэтому останавливается она сама: правки делает человек, и
-        // они реже, чем ответы сервера
+        // A loop rather than a single request: a response overtaken by a local edit
+        // must not be applied, yet the read must not be abandoned either — the section
+        // would be left with a state nobody knows to be fresh or not. The iteration
+        // repeats exactly when an operation edited the list between the start of the
+        // request and its response, which is why it stops by itself: the edits are made
+        // by a person, and those are rarer than the answers of the server
         for (;;) {
             const revisionAtStart = revision.count;
 
@@ -161,15 +168,15 @@ export function useUsersData(): IUseUsersDataReturn {
     }
 
     /**
-     * Ограничивает ожидание списка на SSR.
+     * Bounds the waiting for the list during SSR.
      *
-     * Потолок транспорта на сервере инертен: относительный URL уходит внутренним
-     * вызовом Nitro, а он `AbortSignal` не слушает. Без внешнего дедлайна
-     * зависший запрос держал бы не список учёток, а весь ответ страницы —
-     * дашборд не приехал бы вовсе из-за раздела, который в первом кадре
-     * показывает одно число.
+     * The transport ceiling is inert on the server: a relative URL travels as an
+     * internal Nitro call, and that call does not listen to an `AbortSignal`. Without
+     * an external deadline a hung request would hold not the account list but the
+     * whole page response — the dashboard would not arrive at all because of a section
+     * that shows a single number in the first frame.
      *
-     * @returns Ответ ручки списка.
+     * @returns The response of the list endpoint.
      */
     function requestWithinDeadline(): Promise<IUsersListResponse> {
         const request = apiFetcher<IUsersListResponse>(USERS_ENDPOINT, {
@@ -190,15 +197,15 @@ export function useUsersData(): IUseUsersDataReturn {
     }
 
     /**
-     * Отдаёт идущую загрузку либо запускает новую.
+     * Hands back the load in flight, or starts a new one.
      *
-     * Дедупликация нужна не от повторных вызовов composition root, а от второго
-     * потребителя списка: рейл со счётчиком и сам раздел спрашивают одно
-     * состояние, и без общего промиса первый кадр отправил бы два одинаковых GET.
-     * Второй вызов во время идущей загрузки к ней и присоединяется — в том числе
-     * повтор по кнопке, нажатой дважды.
+     * The deduplication is needed not against repeat calls from the composition root
+     * but against the second consumer of the list: the rail with the counter and the
+     * section itself ask for one state, and without a shared promise the first frame
+     * would send two identical GETs. A second call during a running load joins it —
+     * a retry from a button pressed twice included.
      *
-     * @returns Промис текущей загрузки.
+     * @returns The promise of the current load.
      */
     function startLoad(): Promise<void> {
         const inflight = inflightRequests.get(nuxtApp);
@@ -217,17 +224,19 @@ export function useUsersData(): IUseUsersDataReturn {
     }
 
     /**
-     * Загружает список, если он ещё не прочитан.
+     * Loads the list unless it has been read already.
      *
-     * Право на раздел проверяется ЗДЕСЬ, а не у вызывающего: запрос без него
-     * заведомо получит отказ, и держать этот гард на стороне хоста значило бы
-     * терять его при появлении второго потребителя списка. Роль к моменту вызова
-     * обязана быть известна — в сборке без SSR это `ensureRole` composition
-     * root'а, иначе наблюдатель отправил бы запрос за отказом.
+     * The right to the section is checked HERE rather than at the caller: a request
+     * without it is guaranteed a refusal, and keeping this guard on the host side
+     * would mean losing it as soon as a second consumer of the list appears. The role
+     * has to be known by the time of the call — in a build without SSR that is
+     * `ensureRole` of the composition root, otherwise a viewer would send a request
+     * to fetch a refusal.
      *
-     * Готовый список повторно не читается, недоступный раздел — тоже: 403 и 404
-     * означают, что ручек в этой установке нет вовсе, и попытка «а вдруг
-     * появились» на каждом входе в раздел была бы запросом ради того же ответа.
+     * A list already read is not read again, and neither is an unavailable section: a
+     * 404 means the endpoints are not in this installation and a 403 means this caller
+     * will not be let into them, so a "what if that has changed" attempt on every entry
+     * into the section would be a request for the very same answer.
      */
     async function ensureUsers(): Promise<void> {
         if (!canManageUsers.value) {
@@ -243,24 +252,26 @@ export function useUsersData(): IUseUsersDataReturn {
     }
 
     /**
-     * Перечитывает список принудительно: повтор после временного отказа и сверка
-     * после отказа операции, показавшего, что список отстал от базы.
+     * Forces a re-read of the list: a retry after a temporary refusal and a check after
+     * a refused operation that showed the list to have fallen behind the database.
      *
-     * Прежний список при отказе повтора не исчезает — состояние лишь помечается
-     * отказавшим, а строки остаются: пустой экран сообщил бы, что учёток нет.
+     * The previous list does not disappear when the retry is refused — the state is
+     * only marked as refused while the rows stay: an empty screen would report that
+     * there are no accounts.
      */
     async function refreshUsers(): Promise<void> {
         return startLoad();
     }
 
     /**
-     * Кладёт учётку в список: известную — на её место, новую — в конец.
+     * Puts an account into the list: a known one in its place, a new one at the end.
      *
-     * В конец, а не в начало: сервер отдаёт список в порядке создания (по `id`),
-     * и созданная учётка обязана оказаться там же, где окажется после следующего
-     * чтения — иначе она прыгнула бы на другое место при первом же обновлении.
+     * At the end rather than at the start: the server hands the list back in creation
+     * order (by `id`), and a freshly created account has to land where it will land
+     * after the next read — otherwise it would jump elsewhere on the very first
+     * refresh.
      *
-     * @param user - Состояние учётки, полученное от ручки.
+     * @param user - The state of the account as received from the endpoint.
      */
     function upsertUser(user: IBricksUserSummary): void {
         const isKnown = state.value.users.some((item) => item.id === user.id);
@@ -276,9 +287,9 @@ export function useUsersData(): IUseUsersDataReturn {
     }
 
     /**
-     * Убирает учётку из списка после подтверждённого удаления.
+     * Takes an account out of the list after a confirmed deletion.
      *
-     * @param userId - Идентификатор удалённой учётки.
+     * @param userId - The id of the deleted account.
      */
     function removeUser(userId: number): void {
         revision.count += 1;

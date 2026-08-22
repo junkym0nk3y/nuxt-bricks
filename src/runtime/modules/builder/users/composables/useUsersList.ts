@@ -11,7 +11,7 @@ import { computed, ref, watch, type ComputedRef, type Ref } from 'vue';
 // #endregion
 
 // #region Data
-/** Задержка применения поискового запроса — та же, что в списке страниц. */
+/** The delay before a search query is applied — the same as in the page list */
 const SEARCH_DEBOUNCE_MS = 300;
 
 const FILTER_PREDICATES: Record<TUsersFilter, (user: IBricksUserSummary) => boolean> = {
@@ -22,33 +22,35 @@ const FILTER_PREDICATES: Record<TUsersFilter, (user: IBricksUserSummary) => bool
 // #endregion
 
 /**
- * Вид списка учёток: поиск из шапки (с debounce) и сегмент-фильтр по
- * возможности входа.
+ * The view of the account list: the search from the header (debounced) and the
+ * segment filter by the ability to sign in.
  *
- * Отдельно от `useUsersData` по той же границе, что у списка страниц: там —
- * чтение с сервера и состояние раздела, здесь — то, как прочитанное показано.
+ * Kept apart from `useUsersData` along the same border as in the page list: there —
+ * the reading from the server and the state of the section, here — the way what has
+ * been read is shown.
  *
- * Поисковый запрос приходит извне, а не рождается здесь (в отличие от списка
- * страниц): поле поиска живёт в общей шапке дашборда, и у каждого раздела свой
- * запрос — иначе переключение раздела тащило бы в учётки строку, набранную для
- * страниц, и список выглядел бы пустым.
+ * The search query arrives from outside instead of being born here (unlike in the
+ * page list): the search field lives in the shared header of the dashboard, and every
+ * section has a query of its own — otherwise switching sections would drag into the
+ * accounts a string typed for the pages, and the list would look empty.
  *
- * Фильтрация клиентская: список учёток заведомо мал (это команда, а не
- * содержимое сайта), и серверный поиск добавил бы запрос на каждую букву.
+ * The filtering is client-side: the account list is knowingly small (this is a team,
+ * not the content of a site), and a server-side search would add a request per
+ * keystroke.
  *
- * @param users - Реактивный список учёток.
- * @param searchQuery - Запрос из шапки дашборда.
- * @returns Состояние фильтра и отфильтрованный список.
+ * @param users - The reactive list of accounts.
+ * @param searchQuery - The query from the dashboard header.
+ * @returns The state of the filter and the filtered list.
  */
 export function useUsersList(
     users: Ref<IBricksUserSummary[]> | ComputedRef<IBricksUserSummary[]>,
     searchQuery: Ref<string> | ComputedRef<string>
 ): IUseUsersListReturn {
     // #region Data
-    // Начальное значение берётся из запроса, а не пустое: раздел монтируется
-    // заново при каждом возврате в него, а debounce срабатывает только на
-    // ИЗМЕНЕНИЕ — с пустым начальным значением человек возвращался бы к своему
-    // запросу в поле поиска и к неотфильтрованному списку под ним
+    // The initial value is taken from the query rather than left empty: the section
+    // is mounted anew on every return into it, while the debounce fires on a CHANGE
+    // only — with an empty initial value a person would come back to their query in
+    // the search field and to an unfiltered list under it
     const debouncedSearchQuery = ref(searchQuery.value);
     const activeFilter = ref<TUsersFilter>('all');
 
@@ -59,9 +61,9 @@ export function useUsersList(
 
     // #region Computed
     /**
-     * Учётки, прошедшие поиск (до сегмент-фильтра) — от них же считаются
-     * счётчики фильтров, иначе «Активные · 4» обещали бы четыре строки, которых
-     * поиск на экран не пустит.
+     * The accounts that passed the search (before the segment filter) — the filter
+     * counters are counted from them too, otherwise "Active · 4" would promise four
+     * rows the search will not let onto the screen.
      */
     const searchedUsers = computed<IBricksUserSummary[]>(() => {
         const query = debouncedSearchQuery.value.trim().toLowerCase();
@@ -70,9 +72,9 @@ export function useUsersList(
             return users.value;
         }
 
-        // Логин ищется вместе с именем: человека находят и по подписи, и по тому,
-        // чем он входит, а у учётки без отображаемого имени логин — единственное,
-        // что о ней вообще известно
+        // The username is searched along with the name: a person is found both by
+        // their caption and by what they sign in with, and for an account with no
+        // display name the username is the only thing known about it at all
         return users.value.filter((user) =>
             [user.displayName, user.username]
                 .filter(Boolean)

@@ -11,20 +11,21 @@ import { useI18n } from 'vue-i18n';
 // #endregion
 
 /**
- * Тексты строки учётки: подпись человека, мета-строка дат, доступные имена
- * кнопок и причины запретов.
+ * The texts of an account row: the caption of the person, the meta line of dates, the
+ * accessible names of the buttons and the reasons for the bans.
  *
- * Вынесено из строки целиком, потому что это её самая обособленная часть: тексты
- * не касаются ни разметки, ни событий наружу и зависят только от учётки и её
- * положения (своя, последний администратор). Разметке остаётся то, чем она и
- * является, — узлы и обработчики.
+ * Lifted out of the row whole, because this is its most self-contained part: the texts
+ * touch neither the markup nor the events going outward and depend only on the account
+ * and its standing (one's own, the last administrator). What is left to the markup is
+ * what it actually is — nodes and handlers.
  *
- * Замки объявляются здесь же, а не рядом с обработчиками, потому что замок — это
- * и есть текст причины: `isRoleLocked` и `isStateLocked` производны от подсказок,
- * и разнесение двух половин одного правила по файлам развело бы их молча.
+ * The locks are declared here as well rather than next to the handlers, because a lock
+ * IS the text of the reason: `isRoleLocked` and `isStateLocked` are derived from the
+ * hints, and taking the two halves of one rule into different files would let them
+ * drift apart silently.
  *
- * @param props - Свойства строки; читаются реактивно, снимок не делается.
- * @returns Подписи и подсказки строки.
+ * @param props - The properties of the row; read reactively, no snapshot is taken.
+ * @returns The captions and the hints of the row.
  */
 export function useUsersRowLabels(props: IUsersListRowProps): IUseUsersRowLabelsReturn {
     // #region Data
@@ -35,17 +36,18 @@ export function useUsersRowLabels(props: IUsersListRowProps): IUseUsersRowLabels
     const userLabel = computed<string>(() => resolveUserLabel(props.user));
 
     /**
-     * Логин рядом с именем — только если он отличается от показанного имени: у
-     * учётки без отображаемого имени в заголовке и так стоит логин, и повтор
-     * выглядел бы как две разные подписи одного человека.
+     * The username next to the name — only when it differs from the shown name: for an
+     * account with no display name the title carries the username anyway, and the
+     * repeat would look like two different captions of one person.
      */
     const hasSecondaryUsername = computed<boolean>(() => userLabel.value !== props.user.username);
 
     /**
-     * Мета-строка: когда учётку создали и когда по ней входили последний раз.
+     * The meta line: when the account was created and when it last signed in.
      *
-     * «Ни разу не входил» — не украшение: по нему администратор находит учётки,
-     * которые завели и забыли, а именно они и остаются лишним входом в систему.
+     * "Never signed in" is not decoration: it is how an administrator finds the
+     * accounts that were created and forgotten — and those are exactly the ones that
+     * stay as a spare way into the system.
      */
     const metaText = computed<string>(() => {
         const created = t('bricks.users.row.created', {
@@ -63,7 +65,7 @@ export function useUsersRowLabels(props: IUsersListRowProps): IUseUsersRowLabels
         return `${created} · ${loginText}`;
     });
 
-    /** Метка своей строки: её ищут глазами прежде, чем нажать на действие. */
+    /** The badge of one's own row: it is looked for before an action is pressed */
     const selfBadgeLabel = computed<string>(() => t('bricks.users.row.you'));
 
     const statusLabel = computed<string>(() =>
@@ -71,9 +73,9 @@ export function useUsersRowLabels(props: IUsersListRowProps): IUseUsersRowLabels
     );
 
     /**
-     * Причина, по которой роль не меняется. Своя учётка и последний
-     * администратор — разные причины, и общий текст «нельзя» не подсказал бы, что
-     * делать: во втором случае достаточно назначить второго администратора.
+     * Why the role does not change. One's own account and the last administrator are
+     * different reasons, and a shared "not allowed" text would not suggest what to do:
+     * in the second case it is enough to appoint a second administrator.
      */
     const roleLockHint = computed<string>(() => {
         if (props.isCurrentUser) {
@@ -86,7 +88,7 @@ export function useUsersRowLabels(props: IUsersListRowProps): IUseUsersRowLabels
     const isRoleLocked = computed<boolean>(() => roleLockHint.value !== '');
 
     /**
-     * Причина, по которой недоступны выключение входа и удаление.
+     * Why turning sign-in off and deletion are unavailable.
      */
     const stateLockHint = computed<string>(() => {
         if (props.isCurrentUser) {
@@ -98,14 +100,17 @@ export function useUsersRowLabels(props: IUsersListRowProps): IUseUsersRowLabels
 
     const isStateLocked = computed<boolean>(() => stateLockHint.value !== '');
 
-    /** Подпись кнопки пароля: своя форма и админская — разные операции. */
+    /**
+     * The caption of the password button: one's own form and the admin one are
+     * different operations.
+     */
     const passwordActionLabel = computed<string>(() =>
         props.isCurrentUser
             ? t('bricks.users.row.changeOwnPassword')
             : t('bricks.users.row.setPassword', { user: userLabel.value })
     );
 
-    /** Подпись кнопки входа — по текущему состоянию учётки. */
+    /** The caption of the sign-in button — by the current state of the account */
     const toggleActiveLabel = computed<string>(() =>
         props.user.isActive
             ? t('bricks.users.row.deactivate', { user: userLabel.value })
@@ -113,9 +118,9 @@ export function useUsersRowLabels(props: IUsersListRowProps): IUseUsersRowLabels
     );
 
     /**
-     * Подсказка кнопки: у заблокированной — причина запрета, у доступной — само
-     * действие. Доступное имя при этом остаётся действием всегда: подсказка
-     * объясняет, почему кнопка не срабатывает, но не отменяет того, чем она была.
+     * The hint of the button: a blocked one gets the reason for the ban, an available
+     * one the action itself. The accessible name stays the action throughout: the hint
+     * explains why the button does not fire but does not undo what it was.
      */
     const toggleActiveTitle = computed<string>(() =>
         isStateLocked.value ? stateLockHint.value : toggleActiveLabel.value

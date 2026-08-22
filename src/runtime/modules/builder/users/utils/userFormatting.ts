@@ -4,34 +4,41 @@ import type { IBricksUserSummary } from '../../../common/types/auth';
 // #endregion
 
 // #region Data
-/** Миллисекунды в сутках — шаг сравнения календарных дат «сегодня/вчера». */
+/** Milliseconds in a day — the step of the "today/yesterday" calendar comparison */
 const DAY_MS = 24 * 60 * 60 * 1000;
 // #endregion
 
 /**
- * Подпись учётки: отображаемое имя, если оно задано, иначе логин.
+ * The caption of an account: the display name when it is set, the username
+ * otherwise.
  *
- * Одна функция на строку списка, подтверждения и доступные имена кнопок: строка
- * называет человека именем, а подтверждение удаления — тем же самым, иначе
- * человек сверяет разные подписи в двух окнах одной операции.
+ * One function for the list row, the confirmations and the accessible names of the
+ * buttons: the row calls a person by their name and the delete confirmation calls
+ * them by the very same one, otherwise a person is left comparing two different
+ * captions across two windows of a single operation.
  *
- * @param user - Учётка.
- * @returns Имя для показа.
+ * @param user - The account.
+ * @returns The name to show.
  */
 export function resolveUserLabel(user: IBricksUserSummary): string {
     return user.displayName?.trim() || user.username;
 }
 
 /**
- * Форматирует дату в `DD.MM.YYYY`.
+ * Formats a date as `DD.MM.YYYY`.
  *
- * Формат тот же, что в списке страниц, и считается так же — по локальному
- * времени браузера: две даты в одном интерфейсе не должны считаться от разных
- * точек отсчёта. Пустое и битое значение — прочерк, а не «сегодня»: неизвестную
- * дату нельзя показывать конкретным днём.
+ * The same format as in the page list, and computed the same way — by the local
+ * time of the browser: two dates in one interface must not be counted from
+ * different origins. An empty or broken value becomes an em dash rather than
+ * "today": an unknown date must not be shown as a definite day.
  *
- * @param rawDate - ISO-строка даты.
- * @returns Дата или прочерк.
+ * The body repeats `formatPageDate` from `common/utils/bricks/dates.ts` field for
+ * field, and that copy is a debt rather than a decision: the header of that module
+ * says outright that a second copy of the format would drift away from the first on
+ * the very first edit.
+ *
+ * @param rawDate - ISO date string.
+ * @returns The date, or an em dash.
  */
 export function formatUserDate(rawDate: string | null | undefined): string {
     const parsed = toValidDate(rawDate);
@@ -47,17 +54,19 @@ export function formatUserDate(rawDate: string | null | undefined): string {
 }
 
 /**
- * Форматирует момент последнего входа: `сегодня, ЧЧ:ММ` и `вчера, ЧЧ:ММ` для
- * двух последних календарных дней, дальше — просто дата.
+ * Formats the moment of the last sign-in: `today, HH:mm` and `yesterday, HH:mm` for
+ * the two most recent calendar days, a plain date beyond them.
  *
- * Время показывается только у свежих входов, и это не украшение: «вошёл сегодня»
- * отвечает на вопрос «человек ещё работает?», а у входа месячной давности точный
- * час не значит ничего. Дни сравниваются календарно, а не разностью в 24 часа:
- * вход в 23:50 не должен называться сегодняшним на следующее утро.
+ * The time is shown for fresh sign-ins only, and that is not decoration: "signed in
+ * today" answers the question "is this person still working here?", while for a
+ * sign-in a month old the exact hour means nothing. The days are compared by the
+ * calendar rather than by a difference of 24 hours: a sign-in at 23:50 must not be
+ * called today's the next morning.
  *
- * @param rawDate - ISO-строка последнего входа; null — не входил ни разу.
- * @param labels - Подписи относительных дней (переводы приходят снаружи).
- * @returns Готовая подпись или null, если входа не было.
+ * @param rawDate - ISO string of the last sign-in; null — never signed in.
+ * @param labels - Captions of the relative days (the translations come from
+ * outside).
+ * @returns The ready caption, or null when there was no sign-in.
  */
 export function formatUserLoginDate(
     rawDate: string | null | undefined,
@@ -84,10 +93,10 @@ export function formatUserLoginDate(
 
 // #region Methods
 /**
- * Разбирает ISO-строку в дату, отбрасывая пустые и неразбираемые значения.
+ * Parses an ISO string into a date, dropping empty and unparsable values.
  *
- * @param rawDate - ISO-строка даты.
- * @returns Дата или null.
+ * @param rawDate - ISO date string.
+ * @returns The date, or null.
  */
 function toValidDate(rawDate: string | null | undefined): Date | null {
     if (!rawDate) {
@@ -100,15 +109,16 @@ function toValidDate(rawDate: string | null | undefined): Date | null {
 }
 
 /**
- * Считает, сколько КАЛЕНДАРНЫХ дней назад была дата: 0 — сегодня, 1 — вчера.
+ * Counts how many CALENDAR days ago the date was: 0 — today, 1 — yesterday.
  *
- * Обе точки приводятся к полуночи локального дня, поэтому переход суток
- * считается по календарю, а не по прошедшим часам. Отрицательный результат
- * (дата из будущего — рассинхронизация часов сервера и браузера) сводится к
- * нулю: «вошёл сегодня» здесь безобиднее, чем дата, которой ещё не было.
+ * Both points are brought to the midnight of their local day, so the turn of the
+ * day is counted by the calendar rather than by the hours that have passed. A
+ * negative result (a date from the future — the clocks of the server and the
+ * browser out of sync) is clamped to zero: "signed in today" is more harmless here
+ * than a date that has not arrived yet.
  *
- * @param date - Сравниваемая дата.
- * @returns Число календарных дней до сегодняшнего.
+ * @param date - The date being compared.
+ * @returns The number of calendar days up to today.
  */
 function countCalendarDaysAgo(date: Date): number {
     const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();

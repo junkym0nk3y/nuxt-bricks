@@ -1,16 +1,16 @@
 /**
- * Типы раздела «Пользователи» дашборда: состояние списка, фильтры, формы и
- * контракты компонентов.
+ * Types of the dashboard's "Users" section: the state of the list, the filters, the
+ * forms and the component contracts.
  *
- * Сама учётка описана в `common/types/auth` (`IBricksUserSummary`) — форма
- * ответа ручек одна на сервер и клиент, и второе объявление здесь разошлось бы
- * с серверным молча.
+ * The account itself is described in `common/types/auth` (`IBricksUserSummary`) —
+ * the shape of the endpoint response is one for the server and the client, and a
+ * second declaration here would silently diverge from the server one.
  */
 import type { ComputedRef, Ref } from 'vue';
 import type { IBricksUserSummary, TBricksUserRole } from '../../../common/types/auth';
 import type { TBricksToastVariant } from '../../../ui/feedback/types';
 
-/** Сегмент-фильтр списка по возможности входа. */
+/** The list's segment filter by the ability to sign in */
 export type TUsersFilter = 'all' | 'active' | 'inactive';
 
 export interface IUsersFilterCounts {
@@ -20,34 +20,35 @@ export interface IUsersFilterCounts {
 }
 
 /**
- * Состояние загрузки раздела.
+ * The loading state of the section.
  *
- * `unavailable` отделён от `error` намеренно: 403 и 404 означают, что раздела в
- * этой установке нет вовсе (выключен флагом, режим не database, роль не та), и
- * предлагать повтор нечего — пункт рейла в этом состоянии исчезает. Всё
- * остальное (сеть, 5xx, обрыв по потолку ожидания) — временная неисправность:
- * раздел остаётся на месте с кнопкой повтора.
+ * `unavailable` is kept apart from `error` on purpose: a 404 means the section is not
+ * in this installation at all (turned off by a flag, the mode is not database) and a
+ * 403 means the role of this caller is not an administrator's — neither of them gets
+ * better on a retry, and in that state the rail item disappears. Everything else (the
+ * network, 5xx, an abort by the waiting ceiling) is a temporary breakage: the section
+ * stays in place with a retry button.
  */
 export type TUsersStatus = 'idle' | 'loading' | 'ready' | 'error' | 'unavailable';
 
 /**
- * Общее состояние раздела: список и признак его готовности.
+ * The shared state of the section: the list and whether it has been read.
  *
- * Живёт в `useState`, то есть уезжает в payload гидрации и изолировано на
- * запрос: модуль-глобальный `ref` смешал бы списки разных пользователей в одном
- * серверном процессе.
+ * It lives in `useState`, that is, it travels into the hydration payload and is
+ * isolated per request: a module-global `ref` would mix the lists of different users
+ * inside one server process.
  */
 export interface IUsersState {
     users: IBricksUserSummary[];
     status: TUsersStatus;
 }
 
-/** Ответ `GET /api/bricks/users`. */
+/** The response of `GET /api/bricks/users` */
 export interface IUsersListResponse {
     users: IBricksUserSummary[];
 }
 
-/** Ответ ручек, отдающих одну учётку (создание и правка состояния). */
+/** The response of the endpoints handing back one account (creation and a state edit) */
 export interface IUserResponse {
     user: IBricksUserSummary;
 }
@@ -56,24 +57,26 @@ export interface IUseUsersDataReturn {
     users: ComputedRef<IBricksUserSummary[]>;
     status: ComputedRef<TUsersStatus>;
     /**
-     * Число учёток для счётчика рейла; `null` — список ещё не прочитан. Ноль
-     * здесь был бы утверждением: учёток не может быть меньше одной (кто-то же
-     * вошёл), и нарисованный во время загрузки ноль читался бы как поломка.
+     * The number of accounts for the rail counter; `null` — the list has not been
+     * read yet. A zero here would be an assertion: there cannot be fewer than one
+     * account (somebody did sign in), and a zero drawn during the load would read as
+     * a breakage.
      */
     usersCount: ComputedRef<number | null>;
-    /** Загружает список, если он ещё не прочитан; повторные вызовы ждут первый. */
+    /** Loads the list unless it has been read already; repeat calls await the first */
     ensureUsers: () => Promise<void>;
-    /** Перечитывает список принудительно (повтор после отказа, сверка после конфликта). */
+    /** Forces a re-read of the list (a retry after a refusal, a check after a conflict) */
     refreshUsers: () => Promise<void>;
     /**
-     * Идентификатор единственного активного администратора; `null` — их больше
-     * одного либо нет вовсе. Считается по ПОЛНОМУ списку, а не по видимому:
-     * поиск и фильтр не меняют того, останется ли система с администратором.
+     * The id of the only active administrator; `null` — there is more than one of
+     * them or none at all. Counted over the WHOLE list rather than over the visible
+     * one: the search and the filter do not change whether the system is left with
+     * an administrator.
      */
     lastActiveAdminId: ComputedRef<number | null>;
-    /** Кладёт учётку в список: новую — в конец, известную — на её место. */
+    /** Puts an account into the list: a new one at the end, a known one in its place */
     upsertUser: (user: IBricksUserSummary) => void;
-    /** Убирает учётку из списка после удаления. */
+    /** Takes an account out of the list after a deletion */
     removeUser: (userId: number) => void;
 }
 
@@ -83,46 +86,46 @@ export interface IUseUsersListReturn {
     filteredUsers: ComputedRef<IBricksUserSummary[]>;
 }
 
-/** Что подтверждает диалог раздела: выключение входа или удаление учётки. */
+/** What the section's dialog confirms: turning sign-in off or deleting an account */
 export type TUsersConfirmKind = 'deactivate' | 'delete';
 
 export interface IUseUsersActionsOptions {
-    /** Показ тоста; вариант отделяет успех от отказа. */
+    /** Showing a toast; the variant tells success from a refusal */
     onNotify: (message: string, variant: TBricksToastVariant) => void;
 }
 
 export interface IUseUsersActionsReturn {
     /**
-     * Учётка, над которой идёт операция; `null` — свободны все.
+     * The account an operation is running on; `null` — all of them are free.
      *
-     * Значение служит сразу двум вещам: сам `id` называет обновляемую строку, а
-     * ненулевое значение блокирует операции во ВСЁМ разделе — занятость здесь
-     * одна на раздел, а не набор занятых строк (почему — в `useUsersActions`).
-     * Разметка обязана читать оба смысла: строка с совпавшим `id` показана
-     * обновляемой, остальные — временно недоступными.
+     * The value serves two things at once: the `id` itself names the row being
+     * updated, while a non-null value blocks the row actions of EVERY row — the busy
+     * state here is one per section rather than a set of busy rows (why — in
+     * `useUsersActions`). The markup has to read both meanings: the row whose `id`
+     * matches is shown as updating, the rest as temporarily unavailable.
      */
     pendingUserId: ComputedRef<number | null>;
-    /** Открыт диалог подтверждения. */
+    /** The confirmation dialog is open */
     isConfirmOpen: ComputedRef<boolean>;
-    /** Заголовок и текст открытого подтверждения. */
+    /** The title and the text of the open confirmation */
     confirmTitle: ComputedRef<string>;
     confirmDescription: ComputedRef<string>;
     confirmActionText: ComputedRef<string>;
-    /** Идёт подтверждённая операция — кнопка диалога в состоянии ожидания. */
+    /** A confirmed operation is running — the dialog button is in its waiting state */
     isConfirmLoading: ComputedRef<boolean>;
-    /** Меняет роль учётки. */
+    /** Changes the role of an account */
     changeRole: (user: IBricksUserSummary, role: TBricksUserRole) => Promise<void>;
-    /** Включает вход учётке (обратное деактивации; подтверждения не требует). */
+    /** Turns sign-in on for an account (the reverse of deactivation; asks nothing) */
     activateUser: (user: IBricksUserSummary) => Promise<void>;
-    /** Спрашивает подтверждение выключения входа или удаления. */
+    /** Asks for confirmation of turning sign-in off or of a deletion */
     requestConfirm: (kind: TUsersConfirmKind, user: IBricksUserSummary) => void;
-    /** Закрывает подтверждение, не выполняя операцию. */
+    /** Closes the confirmation without performing the operation */
     closeConfirm: () => void;
-    /** Выполняет подтверждённую операцию. */
+    /** Performs the confirmed operation */
     confirmAction: () => Promise<void>;
 }
 
-/** Значения формы создания учётки. */
+/** The values of the account creation form */
 export interface IUsersCreateFormValues {
     username: string;
     displayName: string;
@@ -131,55 +134,56 @@ export interface IUsersCreateFormValues {
     isActive: boolean;
 }
 
-/** Значения формы «задать пароль другому». */
+/** The values of the "set someone else's password" form */
 export interface IUsersPasswordFormValues {
     password: string;
 }
 
 /**
- * Контекст фабрик yup-схем раздела: переводчик передаётся снаружи, поэтому
- * сообщения-функции реактивны к смене локали. Границы в сообщениях берутся из
- * общих константы, а не переписываются числом в текст перевода.
+ * The context of the section's yup schema factories: the translator is passed from
+ * outside, which is what makes the message functions reactive to a locale change.
+ * The bounds inside the messages are taken from the shared constants rather than
+ * rewritten as a number into the translation text.
  */
 export interface IUsersValidationSchemaOptions {
     t: (key: string, params?: Record<string, unknown>) => string;
 }
 
 /**
- * Возвращаемые значения форм не описаны интерфейсами намеренно: сигнатуру
- * обработчика отправки задаёт vee-validate, и переписанная руками копия чужого
- * контракта разошлась бы с ним на первом же обновлении библиотеки. Так же
- * устроены формы логина и создания страницы.
+ * The return values of the forms are deliberately left without interfaces: the
+ * signature of the submit handler is set by vee-validate, and a hand-written copy of
+ * someone else's contract would diverge from it on the very first update of the
+ * library. The login form and the page creation form are built the same way.
  */
 export interface IUseUsersCreateFormOptions {
-    /** Учётка создана — вызывающий закрывает модалку. */
+    /** The account is created — the caller closes the modal */
     onCreated: (user: IBricksUserSummary) => void;
 }
 
 export interface IUseUsersPasswordFormOptions {
-    /** Учётка, которой задаётся пароль; `null` — модалка закрыта. */
+    /** The account being given a password; `null` — the modal is closed */
     user: Ref<IBricksUserSummary | null> | ComputedRef<IBricksUserSummary | null>;
-    /** Пароль задан — вызывающий закрывает модалку и показывает тост. */
+    /** The password is set — the caller closes the modal and shows a toast */
     onSaved: (user: IBricksUserSummary) => void;
 }
 
 export interface IUsersSectionProps {
-    /** Запрос из поля поиска общей шапки дашборда. */
+    /** The query from the search field of the dashboard's shared header */
     searchQuery: string;
-    /** Открыта форма создания: её открывает первичная кнопка шапки. */
+    /** The creation form is open: the header's primary button opens it */
     isCreateModalOpen: boolean;
-    /** Идентификатор своей учётки; `null` — профиль ещё не известен. */
+    /** The id of one's own account; `null` — the profile is not known yet */
     currentUserId: number | null;
 }
 
 export interface IUsersSectionEmits {
-    /** Текст для тоста дашборда: тост один на всю поверхность. */
+    /** The text for the dashboard's toast: there is one toast per surface */
     notify: [message: string, variant: TBricksToastVariant];
-    /** Форму создания закрывает хост — он же ею и владеет. */
+    /** The creation form is closed by the host — the host owns it too */
     'close-create-modal': [];
-    /** Пустой список просит создать первую учётку. */
+    /** An empty list asks for the first account to be created */
     'create-user': [];
-    /** Ключ в своей строке: открыть модалку профиля на вкладке пароля. */
+    /** The key in one's own row: open the profile modal on the password tab */
     'change-own-password': [];
 }
 
@@ -188,15 +192,19 @@ export interface IUsersListProps {
     activeFilter: TUsersFilter;
     counts: IUsersFilterCounts;
     status: TUsersStatus;
-    /** Есть ли учётки вообще — отличает «поиск ничего не нашёл» от пустого списка. */
+    /**
+     * Whether there are any accounts at all — tells "the search found nothing" from
+     * an empty list.
+     */
     hasAnyUsers: boolean;
-    /** Идентификатор своей учётки: её строка помечается и теряет часть действий. */
+    /** The id of one's own account: its row is marked and loses part of the actions */
     currentUserId: number | null;
-    /** Единственный активный администратор: его строка получает замок. */
+    /** The only active administrator: their row gets a lock */
     lastActiveAdminId: number | null;
     /**
-     * Учётка, над которой идёт операция; `null` — раздел свободен. Занятость
-     * общая: её строка показывается обновляемой, действия остальных гасятся.
+     * The account an operation is running on; `null` — the section is free. The
+     * busy state is shared: that row is shown as updating and the actions of the rest
+     * go dim.
      */
     pendingUserId: number | null;
 }
@@ -204,11 +212,11 @@ export interface IUsersListProps {
 export interface IUsersListEmits {
     'update:activeFilter': [filter: TUsersFilter];
     'create-user': [];
-    /** Повтор загрузки после временного отказа. */
+    /** A retry of the load after a temporary refusal */
     retry: [];
     'change-role': [user: IBricksUserSummary, role: TBricksUserRole];
     'set-password': [user: IBricksUserSummary];
-    /** Ключ в своей строке: свой пароль меняется формой профиля, а не админской. */
+    /** The key in one's own row: one's own password is changed by the profile form */
     'change-own-password': [];
     activate: [user: IBricksUserSummary];
     deactivate: [user: IBricksUserSummary];
@@ -217,19 +225,20 @@ export interface IUsersListEmits {
 
 export interface IUsersListRowProps {
     user: IBricksUserSummary;
-    /** Строка своей учётки. */
+    /** The row of one's own account */
     isCurrentUser?: boolean;
     /**
-     * Учётка — единственный активный администратор: роль, выключение входа и
-     * удаление ей закрыты, иначе управление учётками потерялось бы целиком.
+     * The account is the only active administrator: the role, turning sign-in off
+     * and deletion are closed for it, otherwise the management of accounts would be
+     * lost whole.
      */
     isLastActiveAdmin?: boolean;
-    /** Идёт операция над этой учёткой. */
+    /** An operation on this very account is running */
     isPending?: boolean;
     /**
-     * В разделе идёт операция — над этой строкой или над соседней. Действия
-     * строки на это время недоступны: занятость общая на раздел, и клик по ним
-     * всё равно был бы отброшен.
+     * An operation is running in the section — on this row or on a neighboring one.
+     * The actions of the row are unavailable for that time: the busy state is shared
+     * per section, and a click on them would be dropped anyway.
      */
     isOperationLocked?: boolean;
 }
@@ -244,54 +253,56 @@ export interface IUsersListRowEmits {
 }
 
 /**
- * Тексты строки учётки: подписи, мета-строка и причины запретов.
+ * The texts of an account row: the captions, the meta line and the reasons for the
+ * bans.
  *
- * Замки здесь же, а не отдельным контрактом: `isRoleLocked` и `isStateLocked`
- * производны от подсказок (замок стоит ровно тогда, когда есть причина), и
- * разъезд двух половин одного правила по разным местам был бы молчаливым.
+ * The locks are here too rather than in a contract of their own: `isRoleLocked` and
+ * `isStateLocked` are derived from the hints (a lock stands exactly when there is a
+ * reason), and letting the two halves of one rule drift apart across places would be
+ * silent.
  */
 export interface IUseUsersRowLabelsReturn {
-    /** Отображаемое имя, если оно задано, иначе логин. */
+    /** The display name when it is set, the username otherwise */
     userLabel: ComputedRef<string>;
-    /** Логин показывается рядом с именем: он отличается от подписи строки. */
+    /** The username is shown next to the name: it differs from the row's caption */
     hasSecondaryUsername: ComputedRef<boolean>;
-    /** Когда учётку создали и когда по ней входили последний раз. */
+    /** When the account was created and when it last signed in */
     metaText: ComputedRef<string>;
-    /** Метка своей строки. */
+    /** The badge of one's own row */
     selfBadgeLabel: ComputedRef<string>;
     statusLabel: ComputedRef<string>;
-    /** Причина, по которой роль не меняется; пустая строка — замка нет. */
+    /** Why the role does not change; an empty string — there is no lock */
     roleLockHint: ComputedRef<string>;
     isRoleLocked: ComputedRef<boolean>;
     /**
-     * Выключение входа и удаление закрыты правилом. Причина наружу не отдаётся:
-     * она уже вошла в подсказки кнопок, а второй способ её получить развёл бы
-     * текст и флаг.
+     * Turning sign-in off and deletion are closed by a rule. The reason is not handed
+     * outward: it has already gone into the hints of the buttons, and a second way to
+     * obtain it would let the text and the flag drift apart.
      */
     isStateLocked: ComputedRef<boolean>;
-    /** Доступные имена кнопок — с подписью владельца: списком читают вслух. */
+    /** The accessible names of the buttons carry the owner's caption: a list is read aloud */
     passwordActionLabel: ComputedRef<string>;
     toggleActiveLabel: ComputedRef<string>;
     deleteLabel: ComputedRef<string>;
-    /** Подсказки: у заблокированной кнопки — причина, у доступной — действие. */
+    /** The hints: a blocked button gets the reason, an available one the action */
     toggleActiveTitle: ComputedRef<string>;
     deleteTitle: ComputedRef<string>;
 }
 
 export interface IUsersRolePillProps {
     role: TBricksUserRole;
-    /** Подпись владельца роли для доступного имени кнопки. */
+    /** The caption of the role's owner for the accessible name of the button */
     userLabel: string;
     /**
-     * Роль не меняется: своя учётка (права мимо второго администратора не
-     * правятся) либо последний активный администратор. Замок объясняет причину.
+     * The role does not change: one's own account (rights are not edited around a
+     * second administrator) or the last active administrator. The lock explains why.
      */
     isLocked?: boolean;
-    /** Причина замка для подсказки и доступного имени. */
+    /** The reason for the lock, for the hint and for the accessible name */
     lockedHint?: string;
-    /** Идёт запрос смены роли этой учётки. */
+    /** A request changing the role of this account is running */
     isPending?: boolean;
-    /** В разделе идёт операция: меню не открывается до её конца. */
+    /** An operation is running in the section: the menu does not open until it ends */
     isOperationLocked?: boolean;
 }
 
@@ -309,7 +320,7 @@ export interface IUsersCreateModalEmits {
 }
 
 export interface IUsersPasswordModalProps {
-    /** Учётка, которой задаётся пароль; `null` — модалка закрыта. */
+    /** The account being given a password; `null` — the modal is closed */
     user: IBricksUserSummary | null;
 }
 

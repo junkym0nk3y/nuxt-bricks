@@ -155,7 +155,7 @@ export const AREAS = [
     {
         id: '15',
         title: 'builder/users',
-        done: false,
+        done: true,
         match: ['src/runtime/modules/builder/users/'],
     },
     {

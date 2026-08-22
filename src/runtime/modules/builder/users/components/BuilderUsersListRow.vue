@@ -1,24 +1,49 @@
 <script setup lang="ts">
 /**
- * @description Строка учётки: аватар, имя с логином, дата создания и последнего
- * входа, пилюля роли, признак входа и действия.
+ * @description An account row: the avatar, the name with the username, the dates of
+ * creation and of the last sign-in, the role pill, the sign-in state and the actions.
  *
- * Строка, а не карточка с панелью деталей: у учётки нет содержимого, которое
- * стоило бы разворачивать сбоку, — только атрибуты, и каждый правится там, где
- * показан. Всё, что требует ввода (пароль) или необратимо (удаление), уходит в
- * модалку.
+ * A row rather than a card with a details panel: an account has no content worth
+ * unfolding to the side — only attributes, and each of them is edited where it is
+ * shown. Everything that needs input (the password) or is irreversible (the deletion)
+ * goes into a modal.
  *
- * Своя строка отличается меткой и составом действий: себя нельзя ни лишить
- * входа, ни удалить — иначе один неверный клик отнимает доступ у того, кто его
- * выдаёт, и вернуть его нечем. Свой пароль при этом меняется отсюда же, но
- * формой профиля: админская ручка чужого пароля текущий не спрашивает, и себе
- * она отказывает намеренно.
+ * One's own row differs by a badge and by the set of actions: one can neither take
+ * sign-in away from oneself nor delete oneself — otherwise one wrong click takes
+ * access away from the very person who hands it out, and there would be nothing to
+ * give it back with. One's own password is still changed from here, but by the profile
+ * form: the admin endpoint refuses one's own account deliberately (why — at the
+ * endpoint, `users/[id]/password.post.ts`).
  *
- * Занятость объявляет корень строки (`aria-busy`), а не её кнопки: состояние не
- * хранит вида операции, и busy на ключе во время смены роли называл бы занятым
- * то, что не менялось. Комментарием в разметке это не пояснить — комментарий
- * перед корневым узлом делает шаблон фрагментом, и строка перестаёт принимать
- * атрибуты снаружи.
+ * The busy state is announced by the root of the row (`aria-busy`) rather than by its
+ * buttons: the state keeps no kind of the operation, and a busy key during a role
+ * change would call busy the very thing that was not changing.
+ *
+ * Decisions held by the style section: an inactive row dims its data rather than itself,
+ * because `opacity` on the container would carry away with the data the button that
+ * turns sign-in back on — the only reason to come back to such a row — and the focus
+ * ring on it; a running operation puts a waiting cursor on the whole row, while the
+ * buttons announce it themselves through the `busy` prop, whose own cursor an inherited
+ * one would not override; the flex basis of the main cell is its preferred width, so a
+ * narrowing row wraps the trailing cells off the line one by one (measured: the actions
+ * first, the status next, the role last) instead of squeezing the name and the dates to
+ * nothing; the status column carries a width of its own,
+ * because the kit badge shrinks to its content while the columns have to line up between
+ * rows; and the actions appear on hover and on focus inside the row yet never leave the
+ * flow, because `display: none` would take them out of the keyboard order, that is, the
+ * section would stop working without a mouse (on devices with no hover they are visible
+ * at all times).
+ *
+ * The username is shown in full and is not clipped: it is what a person signs in with
+ * and what they are found by. The creation form keeps it short, but short it is not
+ * always — the ceiling of 14 characters is a rule of that form alone, while the column
+ * holds `VARCHAR(255)`, nothing rewrites the rows already in it, and a row can be
+ * written into the database by hand. That is why a long username wraps INSIDE the word:
+ * the allowed format admits a string without a single space or hyphen, so there may be
+ * no place for an ordinary line break in it at all. The wrap is made possible by
+ * `max-width`; shrinking under its neighbors the username still must not do
+ * (`flex-shrink: 0` — the name is what gets clipped first), yet it cannot be wider than
+ * the row either.
  */
 
 // #region Imports
@@ -76,35 +101,37 @@ const {
 
 // #region Computed
 /**
- * Выключение входа и удаление не сработают сейчас: либо запрещены правилом, либо
- * в разделе идёт операция, а операции сериализованы.
+ * Turning sign-in off and deleting will not fire right now: they are either forbidden
+ * by a rule or an operation is running in the section, and the operations are
+ * serialized.
  *
- * Оба состояния гасят кнопку одинаково, но объявляются по-разному: запрет
- * правилом постоянен и объясняется подсказкой, занятость длится доли секунды и
- * снимается сама.
+ * Both states dim the button in the same way but are announced differently: a ban by
+ * a rule is permanent and is explained by a hint, while the busy state lasts fractions
+ * of a second and lifts by itself.
  */
 const isStateActionBlocked = computed<boolean>(
     () => isStateLocked.value || props.isOperationLocked
 );
 
 /**
- * Ключ смены пароля есть и у деактивированной учётки: ручка активность цели не
- * проверяет, а безопасный порядок подготовки к включению — сначала заменить
- * пароль, потом открыть вход. Скрытый ключ навязывал бы обратный: включить
- * учётку со старым (возможно, скомпрометированным) паролем и лишь вторым
- * запросом закрыть дыру.
+ * A deactivated account has the password key as well: the endpoint does not check the
+ * activity of its target, and the safe order of preparing for a sign-in to be turned
+ * on is to replace the password first and open sign-in second. A hidden key would
+ * impose the reverse: turn the account on with its old (possibly compromised) password
+ * and close the hole only with a second request.
  *
- * Флаг установки (`allowPasswordChange`) убирает ключ у всех строк: ручка в
- * такой установке отвечает отказом, и кнопка обещала бы несуществующее.
+ * The installation flag (`allowPasswordChange`) takes the key away from every row: in
+ * such an installation the endpoint answers with a refusal, and the button would be
+ * promising something that does not exist.
  */
 const isPasswordActionVisible = computed<boolean>(() => canChangePassword.value);
 // #endregion
 
 // #region Methods
 /**
- * Просит сменить роль учётки.
+ * Asks for the role of the account to be changed.
  *
- * @param role - Выбранная роль.
+ * @param role - The chosen role.
  */
 function handleSelectRole(role: TBricksUserRole): void {
     if (props.isOperationLocked) {
@@ -115,11 +142,13 @@ function handleSelectRole(role: TBricksUserRole): void {
 }
 
 /**
- * Открывает форму пароля: свою (профиль) или админскую (чужая учётка).
+ * Opens a password form: one's own (the profile) or the admin one (somebody else's
+ * account).
  *
- * Занятость раздела закрывает и её: сама смена пароля через очередь операций не
- * идёт, но открытая поверх идущей операции форма показывала бы учётку в
- * состоянии, которое вот-вот заменится ответом сервера.
+ * The busy state of the section closes this one too: the password change itself does
+ * not go through the queue of operations, but a form opened on top of a running
+ * operation would show the account in a state that is about to be replaced by the
+ * answer of the server.
  */
 function handlePasswordAction(): void {
     if (props.isOperationLocked) {
@@ -135,8 +164,8 @@ function handlePasswordAction(): void {
 }
 
 /**
- * Переключает возможность входа: выключение спрашивает подтверждение у хоста,
- * включение применяется сразу.
+ * Toggles the ability to sign in: turning it off asks the host for a confirmation,
+ * turning it on is applied at once.
  */
 function handleToggleActive(): void {
     if (isStateActionBlocked.value) {
@@ -152,7 +181,7 @@ function handleToggleActive(): void {
 }
 
 /**
- * Просит удалить учётку.
+ * Asks for the account to be deleted.
  */
 function handleDelete(): void {
     if (isStateActionBlocked.value) {
@@ -214,14 +243,6 @@ function handleDelete(): void {
             {{ statusLabel }}
         </BricksBadge>
 
-        <!--
-            Кнопки строки гасятся `muted`, а не `disabled` — ни правилом, ни
-            занятостью. Причина у двух состояний разная, а следствие одно:
-            выключенная кнопка выпадает из обхода с клавиатуры вместе с причиной
-            запрета, а на включении входа ещё и теряет фокус посреди операции —
-            браузер снимает его с кнопки, и человек оказывается в начале
-            страницы. Клик гасит обработчик, а не разметка.
-        -->
         <div :class="$style.actions">
             <BricksIconButton
                 v-if="isPasswordActionVisible"
@@ -255,8 +276,6 @@ function handleDelete(): void {
 </template>
 
 <style module lang="scss">
-/* Вид поверхности — из кита (`BricksSurfaceCard`); здесь раскладка строки и её
-   состояния: выключенный вход и идущая операция. */
 .BuilderUsersListRow {
     display: flex;
     align-items: center;
@@ -272,11 +291,6 @@ function handleDelete(): void {
         }
     }
 
-    /*
-        Приглушается не вся строка, а её данные: `opacity` на контейнере унесла
-        бы вместе с ними и кнопку включения — единственное, зачем к такой строке
-        возвращаются, — и рамку фокуса на ней.
-    */
     &._inactive {
         background: var(--bricks-base-50);
 
@@ -290,19 +304,12 @@ function handleDelete(): void {
     }
 
     &._pending {
-        // Курсор ожидания на всей строке: пока идёт операция, ни одно её
-        // действие не начнётся вторым. Кнопкам его отдельно объявляет проп
-        // `busy` — свой курсор они ставят сами, и наследованием он не перекрылся
-        // бы
         cursor: progress;
     }
 }
 
 .main {
     display: flex;
-
-    // basis 24rem — порог переноса: роль, статус и действия уходят на вторую
-    // строку целой группой, не разрывая имя с датами
     flex: 1 1 24rem;
     flex-direction: column;
     gap: 0.4rem;
@@ -327,17 +334,6 @@ function handleDelete(): void {
     color: var(--bricks-base-900);
 }
 
-/*
-    Логин показан целиком и не обрезается: по нему человек входит и по нему его
-    находят. Форма создания держит его коротким, но короткий он не всегда —
-    учётку заводят и вручную (CLI печатает INSERT и длину не проверяет), а
-    прежние логины длиннее нынешнего предела остаются как есть. Поэтому длинный
-    логин переносится ВНУТРИ слова: разрешённый формат допускает строку без
-    единого пробела и дефиса, то есть места для штатного переноса в ней может не
-    быть вовсе. Перенос делает возможным `max-width` — сжиматься под соседями
-    логин по-прежнему не должен (`flex-shrink: 0`, первым обрезается имя), но и
-    шире строки быть не может.
-*/
 .username {
     flex-shrink: 0;
     max-width: 100%;
@@ -362,18 +358,11 @@ function handleDelete(): void {
     width: 21rem;
 }
 
-/* Ширина колонки статуса — своя: плашка кита по умолчанию сжимается по
-   содержимому, а колонки строки обязаны совпадать между строками. */
 .statusCell {
     width: 13rem;
     gap: 0.8rem;
 }
 
-/*
-    Действия проявляются на наведении и на фокусе внутри строки, но из потока не
-    уходят: `display: none` вынес бы их из обхода с клавиатуры, то есть без мыши
-    раздел стал бы нерабочим. На устройствах без наведения они видны всегда.
-*/
 .actions {
     display: flex;
     flex-shrink: 0;

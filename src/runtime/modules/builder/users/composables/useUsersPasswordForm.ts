@@ -22,20 +22,23 @@ import { useForm } from 'vee-validate';
 // #endregion
 
 /**
- * Форма «задать пароль другому»: один ввод, генератор и запрос
- * `POST /api/bricks/users/:id/password`.
+ * The "set someone else's password" form: one input, the generator and the
+ * `POST /api/bricks/users/:id/password` request.
  *
- * Запрос живёт здесь, а не в общих операциях раздела, по той же причине, по
- * которой загрузку фото профиля выполняет модалка кадрирования: кнопка обязана
- * уйти в состояние отправки и держать модалку открытой до ответа — закройся она
- * раньше, человек не узнал бы, задан ли пароль. Состояние отправки и текст отказа
- * принадлежат тому, кто ждёт ответа.
+ * The request lives here rather than among the shared operations of the section, for
+ * the same reason the profile photo upload is performed by the cropping modal: the
+ * button has to go into its submitting state and hold the modal open until the
+ * response — had it closed earlier, a person would not learn whether the password had
+ * been set. The submitting state and the text of a refusal belong to whoever is
+ * waiting for the response. This form therefore stands outside the row-action queue of
+ * `useUsersActions`: what it holds is its own button, not the list.
  *
- * Успех рвёт все сессии учётки, но состояние строки не меняет: список после
- * смены пароля обновлять нечем — ни роль, ни активность, ни имя не изменились.
+ * Success tears down every session of the account but changes no state of the row:
+ * there is nothing to refresh the list with after a password change — neither the
+ * role, nor the activity, nor the name have changed.
  *
- * @param options - Учётка-цель и колбэк успеха.
- * @returns Поле пароля, состояние отправки и операции.
+ * @param options - The target account and the success callback.
+ * @returns The password field, the submitting state and the operations.
  */
 export function useUsersPasswordForm(options: IUseUsersPasswordFormOptions) {
     // #region Data
@@ -59,7 +62,7 @@ export function useUsersPasswordForm(options: IUseUsersPasswordFormOptions) {
 
     // #region Methods
     /**
-     * Ставит в поле сгенерированный пароль.
+     * Puts a generated password into the field.
      */
     function generatePassword(): void {
         password.value = generateUserPassword();
@@ -67,16 +70,16 @@ export function useUsersPasswordForm(options: IUseUsersPasswordFormOptions) {
     }
 
     /**
-     * Валидирует форму и задаёт пароль выбранной учётке.
+     * Validates the form and sets the password of the chosen account.
      *
-     * Потолок ожидания общий для записей (30 с): ручка считает scrypt-хеш под
-     * общим семафором процесса, и короткого потолка ей на занятом сервере не
-     * хватит.
+     * The waiting ceiling is the shared one for writes (30 s): the endpoint computes
+     * the scrypt hash under the shared semaphore of the process, and the short ceiling
+     * would not be enough for it on a busy server.
      *
-     * Обрыв по потолку разбирается как остальные отказы, без сверки со списком:
-     * результат смены пароля в списке не виден вовсе — ни одно поле строки от неё
-     * не меняется, — поэтому проверить исход клиенту нечем, и текст об этом
-     * говорит прямо.
+     * An abort by the ceiling is taken apart like the other refusals, with no check
+     * against the list: the result of a password change is not visible in the list at
+     * all — not a single field of the row changes because of it — so the client has
+     * nothing to verify the outcome by, and the text says so outright.
      */
     const submitForm = handleSubmit(async (values) => {
         const user = options.user.value;
@@ -104,10 +107,10 @@ export function useUsersPasswordForm(options: IUseUsersPasswordFormOptions) {
     });
 
     /**
-     * Возвращает форму к пустому значению — при открытии на другой учётке.
+     * Brings the form back to an empty value — on an opening for another account.
      *
-     * Обязательно: оставленный в поле пароль предыдущей учётки был бы задан
-     * следующей одним нажатием кнопки.
+     * Mandatory: a password of the previous account left in the field would be set for
+     * the next one with a single press of the button.
      */
     function resetToEmpty(): void {
         resetForm({ values: { password: '' } });

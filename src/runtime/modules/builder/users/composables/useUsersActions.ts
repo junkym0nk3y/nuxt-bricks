@@ -26,31 +26,35 @@ import { BRICKS_AUTH_REQUEST_TIMEOUT_MS } from '../../../common/constants/apiTim
 // #endregion
 
 /**
- * Операции над чужими учётками: роль, вход и удаление — вместе с
- * подтверждениями и тостами.
+ * The operations on someone else's accounts: the role, sign-in and deletion —
+ * together with the confirmations and the toasts.
  *
- * Оптимистичных правок здесь нет ни у одной операции: ручки отдают полное
- * состояние строки, и ждать ответа дешевле, чем рисовать предположение, которое
- * при отказе надо откатывать. Пока запрос летит, занят весь раздел: вторая
- * операция не начинается ни над этой строкой, ни над соседней.
+ * Not a single operation here makes an optimistic edit: the endpoints hand back the
+ * full state of the row, and waiting for the response is cheaper than drawing a guess
+ * that has to be rolled back on a refusal. While a request is in flight the row actions
+ * of the whole list are closed: a second one starts neither on this row nor on a
+ * neighboring one. The forms of the section (creation, someone else's password) run
+ * outside this queue and hold a submitting state of their own.
  *
- * Над одной строкой — потому что два ответа с полным состоянием учётки
- * перезаписали бы друг друга в порядке прихода. Над соседними параллельность
- * технически возможна (список правится по `id`, ответы разных строк не
- * сталкиваются), но не нужна: операций над учётками мало и идут они по одной, а
- * платой была бы пара занятых строк на экране, набор занятых `id` вместо одного
- * и разбор порядка тостов. Занятость поэтому одна на раздел — и разметка обязана
- * гасить действия ВСЕХ строк, иначе кнопки соседних выглядят рабочими, а клик по
- * ним молча ничего не делает.
+ * On one row — because two responses carrying the full state of the account would
+ * overwrite each other in their order of arrival. On neighboring rows parallelism is
+ * technically possible (the list is edited by `id`, the responses of different rows do
+ * not collide), but it is not needed: there are few operations on accounts and they
+ * come one at a time, while the price would be a couple of busy rows on screen, a set
+ * of busy `id`s instead of one, and sorting out the order of the toasts. That is why
+ * the busy state is one per section — and the markup has to dim the actions of ALL
+ * rows, otherwise the buttons of the neighbors look operable while a click on them
+ * silently does nothing.
  *
- * Отказы разбираются по существу. Расхождение с сервером (краевое правило,
- * которого интерфейс не ждал, или исчезнувшая учётка) и обрыв по потолку
- * ожидания дополнительно перечитывают список: в первом случае показанное
- * состояние отстало от базы, во втором исход операции неизвестен — сервер мог её
- * применить и не успеть ответить, и «не удалось» было бы неправдой.
+ * The refusals are sorted out by what they mean. A divergence from the server (an edge
+ * rule the interface did not expect, or an account that is gone) and an abort by the
+ * waiting ceiling additionally re-read the list: in the first case the shown state has
+ * fallen behind the database, in the second the outcome of the operation is unknown —
+ * the server may have applied it and failed to answer in time, and "it did not work
+ * out" would be untrue.
  *
- * @param options - Показ тостов (владеет им дашборд).
- * @returns Состояние занятости, подтверждения и операции.
+ * @param options - Showing the toasts (the dashboard owns them).
+ * @returns The busy state, the confirmations and the operations.
  */
 export function useUsersActions(options: IUseUsersActionsOptions): IUseUsersActionsReturn {
     // #region Data
@@ -59,7 +63,7 @@ export function useUsersActions(options: IUseUsersActionsOptions): IUseUsersActi
     const { upsertUser, removeUser, refreshUsers } = useUsersData();
 
     const pendingUserId = ref<number | null>(null);
-    /** Что подтверждаем и над кем; `null` — диалог закрыт. */
+    /** What is being confirmed and on whom; `null` — the dialog is closed */
     const confirmKind = ref<TUsersConfirmKind | null>(null);
     const confirmTarget = ref<IBricksUserSummary | null>(null);
     const isConfirmLoading = ref(false);
@@ -69,9 +73,9 @@ export function useUsersActions(options: IUseUsersActionsOptions): IUseUsersActi
     const isConfirmOpen = computed<boolean>(() => confirmKind.value !== null);
 
     /**
-     * Подпись цели подтверждения. Берётся из снимка учётки, сделанного в момент
-     * запроса подтверждения: список за время открытого диалога может измениться,
-     * и заголовок обязан называть того, о ком спрашивали.
+     * The caption of the confirmation's target. Taken from the snapshot of the account
+     * made at the moment the confirmation was requested: the list can change while the
+     * dialog is open, and the title has to name the very person that was asked about.
      */
     const confirmUserLabel = computed<string>(() =>
         confirmTarget.value ? resolveUserLabel(confirmTarget.value) : ''
@@ -94,22 +98,23 @@ export function useUsersActions(options: IUseUsersActionsOptions): IUseUsersActi
 
     // #region Methods
     /**
-     * Выполняет операцию над учёткой под флагом занятости и разбирает отказ.
+     * Performs an operation on an account under the busy flag and sorts out a refusal.
      *
-     * Один порядок на все операции: занятость, запрос, разбор отказа, снятие
-     * занятости. Отдельные `try/catch` в каждой операции разъехались бы —
-     * например, перечитывание списка после обрыва появилось бы у одной из них.
+     * One order for every operation: busy, request, refusal analysis, busy released.
+     * Separate `try/catch` blocks in each operation would drift apart — the re-read of
+     * the list after an abort, for instance, would end up in only one of them.
      *
-     * @param user - Учётка-цель.
-     * @param operation - Сам запрос.
-     * @returns Признак успеха: вызывающему нужно знать, показывать ли тост успеха.
+     * @param user - The target account.
+     * @param operation - The request itself.
+     * @returns Whether it succeeded: the caller needs to know whether to show a
+     * success toast.
      */
     async function runUserOperation(
         user: IBricksUserSummary,
         operation: () => Promise<void>
     ): Promise<boolean> {
-        // Занятость общая на раздел: пока идёт операция, вторая не начинается
-        // ни здесь, ни в соседней строке
+        // The busy state is shared per section: while an operation is running, a second
+        // one starts neither here nor in a neighboring row
         if (pendingUserId.value !== null) {
             return false;
         }
@@ -134,11 +139,11 @@ export function useUsersActions(options: IUseUsersActionsOptions): IUseUsersActi
     }
 
     /**
-     * Правит состояние учётки (роль или возможность входа) и кладёт ответ в
-     * список.
+     * Edits the state of an account (the role or the ability to sign in) and puts the
+     * response into the list.
      *
-     * @param user - Учётка-цель.
-     * @param change - Изменяемые поля.
+     * @param user - The target account.
+     * @param change - The fields being changed.
      */
     async function patchUser(
         user: IBricksUserSummary,
@@ -147,8 +152,9 @@ export function useUsersActions(options: IUseUsersActionsOptions): IUseUsersActi
         const response = await apiFetcher<IUserResponse>(`/api/bricks/users/${user.id}`, {
             method: 'PATCH',
             body: change,
-            // Короткая запись — один UPDATE строки учётки с отзывом её сессий;
-            // общий потолок записи держал бы строку занятой втрое дольше нужного
+            // A short write — one UPDATE of the account row with the revocation of its
+            // sessions; the shared write ceiling would hold the row busy three times
+            // longer than needed
             timeout: BRICKS_AUTH_REQUEST_TIMEOUT_MS,
         });
 
@@ -156,15 +162,15 @@ export function useUsersActions(options: IUseUsersActionsOptions): IUseUsersActi
     }
 
     /**
-     * Меняет роль учётки.
+     * Changes the role of an account.
      *
-     * Повторный выбор текущей роли запроса не отправляет вовсе: сервер такую
-     * правку игнорирует (состояние не изменилось — сессии не рвутся), но тост
-     * «сессии завершены» после неё был бы ложью, а строка мигнула бы занятостью
-     * без причины.
+     * Picking the current role again sends no request at all: the server ignores such
+     * an edit anyway (the state has not changed, so the sessions are not torn down),
+     * but a "the sessions are over" toast after it would be a lie, and the row would
+     * blink busy for no reason.
      *
-     * @param user - Учётка-цель.
-     * @param role - Новая роль.
+     * @param user - The target account.
+     * @param role - The new role.
      */
     async function changeRole(user: IBricksUserSummary, role: TBricksUserRole): Promise<void> {
         if (user.role === role) {
@@ -179,13 +185,13 @@ export function useUsersActions(options: IUseUsersActionsOptions): IUseUsersActi
     }
 
     /**
-     * Включает вход учётке.
+     * Turns sign-in on for an account.
      *
-     * Подтверждения не требует, в отличие от выключения: включение расширяет
-     * доступ и отменяется тем же действием рядом, а вопрос перед безобидной
-     * операцией учит закрывать вопросы не читая.
+     * Asks for no confirmation, unlike turning it off: turning it on widens access and
+     * is undone by the very action next to it, while a question before a harmless
+     * operation teaches a person to dismiss questions unread.
      *
-     * @param user - Учётка-цель.
+     * @param user - The target account.
      */
     async function activateUser(user: IBricksUserSummary): Promise<void> {
         const isDone = await runUserOperation(user, () => patchUser(user, { isActive: true }));
@@ -196,15 +202,17 @@ export function useUsersActions(options: IUseUsersActionsOptions): IUseUsersActi
     }
 
     /**
-     * Спрашивает подтверждение операции, которую человек не ждёт отменить одним
-     * кликом: выключение входа рвёт живые сессии, удаление необратимо.
+     * Asks for confirmation of an operation a person does not expect to undo with a
+     * single click: turning sign-in off tears down live sessions, deletion is
+     * irreversible.
      *
-     * @param kind - Что подтверждаем.
-     * @param user - Учётка-цель.
+     * @param kind - What is being confirmed.
+     * @param user - The target account.
      */
     function requestConfirm(kind: TUsersConfirmKind, user: IBricksUserSummary): void {
-        // Диалог не открывается на время чужой операции: подтверждённая правка
-        // всё равно была бы отброшена занятостью, и вопрос остался бы без ответа
+        // The dialog does not open while somebody else's operation runs: a confirmed
+        // edit would be dropped by the busy state anyway, and the question would be left
+        // unanswered
         if (pendingUserId.value !== null) {
             return;
         }
@@ -214,10 +222,11 @@ export function useUsersActions(options: IUseUsersActionsOptions): IUseUsersActi
     }
 
     /**
-     * Закрывает подтверждение, не выполняя операцию.
+     * Closes the confirmation without performing the operation.
      *
-     * Цель снимается вместе с видом: оставленный снимок учётки читался бы
-     * заголовком следующего диалога до того, как в него положат новую цель.
+     * The target is dropped together with the kind: a snapshot of the account left
+     * behind would be read by the title of the next dialog before a new target is put
+     * into it.
      */
     function closeConfirm(): void {
         confirmKind.value = null;
@@ -225,9 +234,9 @@ export function useUsersActions(options: IUseUsersActionsOptions): IUseUsersActi
     }
 
     /**
-     * Выключает вход учётке.
+     * Turns sign-in off for an account.
      *
-     * @param user - Учётка-цель.
+     * @param user - The target account.
      */
     async function deactivateUser(user: IBricksUserSummary): Promise<void> {
         const isDone = await runUserOperation(user, () => patchUser(user, { isActive: false }));
@@ -238,13 +247,13 @@ export function useUsersActions(options: IUseUsersActionsOptions): IUseUsersActi
     }
 
     /**
-     * Удаляет учётку и убирает её строку из списка.
+     * Deletes an account and takes its row out of the list.
      *
-     * Строка снимается только после ответа: удаление, показанное до
-     * подтверждения сервером, при отказе пришлось бы возвращать на её место в
-     * порядке списка.
+     * The row is removed only after the response: a deletion shown before the server
+     * confirmed it would have to be put back into its place in the order of the list
+     * on a refusal.
      *
-     * @param user - Учётка-цель.
+     * @param user - The target account.
      */
     async function deleteUser(user: IBricksUserSummary): Promise<void> {
         const isDone = await runUserOperation(user, async () => {
@@ -265,11 +274,11 @@ export function useUsersActions(options: IUseUsersActionsOptions): IUseUsersActi
     }
 
     /**
-     * Выполняет подтверждённую операцию и закрывает диалог.
+     * Performs the confirmed operation and closes the dialog.
      *
-     * Диалог закрывается ПОСЛЕ ответа, а его кнопка держит состояние ожидания:
-     * закройся он раньше — и человек остался бы со списком, в котором строка ещё
-     * не изменилась, не зная, идёт ли операция.
+     * The dialog closes AFTER the response while its button holds the waiting state:
+     * had it closed earlier, a person would be left with a list in which the row has
+     * not changed yet, not knowing whether the operation is running.
      */
     async function confirmAction(): Promise<void> {
         const target = confirmTarget.value;

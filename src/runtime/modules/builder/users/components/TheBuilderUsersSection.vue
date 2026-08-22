@@ -1,18 +1,19 @@
 <script setup lang="ts">
 /**
- * @description Раздел «Пользователи» целиком: список, его модалки и
- * подтверждения.
+ * @description The whole "Users" section: the list, its modals and the
+ * confirmations.
  *
- * Компонент-контроллер, а не разметка внутри хоста дашборда: у раздела своё
- * состояние (фильтр, цель формы пароля, занятая строка) и свои четыре окна, и
- * собранный в хосте он добавил бы к списку страниц вторую независимую машину
- * состояний в том же файле. Хост остаётся composition root: он показывает
- * тосты, держит поле поиска в общей шапке и открывает модалку профиля.
+ * A controller component rather than markup inside the dashboard host: the section
+ * has state of its own (the filter, the target of the password form, the busy row)
+ * and four windows of its own, and assembled inside the host it would add a second
+ * independent state machine next to the page list in that same file. The host stays
+ * the composition root: it shows the toasts, holds the search field in the shared
+ * header and opens the profile modal.
  *
- * Наружу уходит ровно то, что разделу не принадлежит: тексты тостов (тост один
- * на дашборд) и просьба открыть свой профиль (модалка профиля живёт в
- * auth-домене, и раздел учёток о нём не знает — свой профиль и чужие учётки
- * разные вещи).
+ * What goes outward is exactly what does not belong to the section: the texts of the
+ * toasts (there is one toast per dashboard) and the request to open one's own profile
+ * (the profile modal lives in the auth domain, and the accounts section knows nothing
+ * about it — one's own profile and somebody else's accounts are different things).
  */
 
 // #region Imports
@@ -58,7 +59,7 @@ const actions = useUsersActions({
     onNotify: (message, variant) => emit('notify', message, variant),
 });
 
-/** Учётка, которой задают пароль; `null` — модалка закрыта. */
+/** The account being given a password; `null` — the modal is closed */
 const passwordTargetUser = ref<IBricksUserSummary | null>(null);
 // #endregion
 
@@ -68,36 +69,36 @@ const hasAnyUsers = computed<boolean>(() => users.value.length > 0);
 
 // #region Methods
 /**
- * Меняет роль учётки.
+ * Changes the role of an account.
  *
- * @param user - Учётка.
- * @param role - Новая роль.
+ * @param user - The account.
+ * @param role - The new role.
  */
 async function handleChangeRole(user: IBricksUserSummary, role: TBricksUserRole): Promise<void> {
     await actions.changeRole(user, role);
 }
 
 /**
- * Открывает форму пароля чужой учётки.
+ * Opens the password form of somebody else's account.
  *
- * @param user - Учётка.
+ * @param user - The account.
  */
 function handleSetPassword(user: IBricksUserSummary): void {
     passwordTargetUser.value = user;
 }
 
 /**
- * Закрывает форму пароля.
+ * Closes the password form.
  */
 function handleClosePasswordModal(): void {
     passwordTargetUser.value = null;
 }
 
 /**
- * Пароль задан: сообщаем и закрываем форму. Список при этом не меняется — ни
- * одно его поле от смены пароля не зависит.
+ * The password is set: report it and close the form. The list does not change with
+ * it — not a single field of the list depends on a password change.
  *
- * @param user - Учётка, которой задали пароль.
+ * @param user - The account whose password was set.
  */
 function handlePasswordSaved(user: IBricksUserSummary): void {
     passwordTargetUser.value = null;
@@ -109,13 +110,14 @@ function handlePasswordSaved(user: IBricksUserSummary): void {
 }
 
 /**
- * Учётка создана: закрываем форму и сообщаем.
+ * The account is created: close the form and report it.
  *
- * Строку в список уже положила сама форма — ответом ручки, а не повторным
- * чтением: новая учётка может не попасть на экран под активным поиском или
- * фильтром, и подтверждением успеха остаётся тост.
+ * The row has already been put into the list by the form itself — from the response
+ * of the endpoint rather than by a second read: a new account may not make it onto
+ * the screen under an active search or filter, which leaves the toast as the
+ * confirmation of success.
  *
- * @param user - Созданная учётка.
+ * @param user - The created account.
  */
 function handleUserCreated(user: IBricksUserSummary): void {
     emit('close-create-modal');
@@ -123,15 +125,15 @@ function handleUserCreated(user: IBricksUserSummary): void {
 }
 
 /**
- * Просит закрыть форму создания (кнопка «Отмена», крестик, Esc).
+ * Asks for the creation form to be closed (the "Cancel" button, the cross, Esc).
  */
 function handleCloseCreateModal(): void {
     emit('close-create-modal');
 }
 
 /**
- * Просит открыть свой профиль на вкладке пароля: свой пароль меняется формой
- * профиля, где текущий обязателен.
+ * Asks for one's own profile to be opened on the password tab: one's own password is
+ * changed by the profile form, where the current one is mandatory.
  */
 function handleChangeOwnPassword(): void {
     emit('change-own-password');
@@ -140,18 +142,18 @@ function handleChangeOwnPassword(): void {
 
 // #region Lifecycle
 /*
-    Список перечитывается на КАЖДОМ входе в раздел, а не только при первом.
-    Учётки правит не один человек: между двумя открытиями раздела соседний
-    администратор мог завести или выключить учётку, а созданная по оборванному
-    запросу строка появляется в базе уже после того, как форма о ней сказала.
-    Другого пути обновить список у раздела нет — кнопка повтора живёт только в
-    экране отказа, — и без этого чтения показанное состояние держалось бы до
-    перезагрузки страницы.
+    The list is re-read on EVERY entry into the section rather than on the first one
+    only. Accounts are edited by more than one person: between two openings of the
+    section a neighboring administrator could have created or turned off an account,
+    while a row created by an aborted request appears in the database only after the
+    form has spoken about it. The section has no other way to refresh the list — the
+    retry button lives on the refusal screen alone — and without this read the shown
+    state would hold until the page was reloaded.
 
-    Секция монтируется ровно при открытии раздела (хост рисует её слот по
-    активному разделу), поэтому `onMounted` здесь и означает «вход в раздел».
-    Чтение тихое: строки на экране не гаснут, спиннера при переключении не
-    видно.
+    The section mounts exactly when the section is opened (the host draws its slot by
+    the active section), which is what makes `onMounted` here mean "an entry into the
+    section". The read is quiet: the rows on screen do not dim, and no spinner is seen
+    while switching.
 */
 onMounted(() => {
     refreshUsers();

@@ -1,14 +1,15 @@
 <script setup lang="ts">
 /**
- * @description Список учёток раздела «Пользователи»: сегмент-фильтр по
- * возможности входа и строки. Состояния загрузки и пустого результата устроены
- * как в списке страниц — спиннер вместо «никого нет», пока список не прочитан:
- * пустое состояние утверждает, а до ответа утверждать нечего.
+ * @description The account list of the "Users" section: the segment filter by the
+ * ability to sign in, and the rows. The loading and the empty-result states are built
+ * as in the page list — a spinner instead of "nobody is here" until the list has been
+ * read: an empty state makes an assertion, and before the response there is nothing to
+ * assert.
  *
- * Временный отказ (сеть, 5xx) показывает повтор, а не пустой экран: раздел
- * существует, просто не ответил. Окончательная недоступность (выключен флагом,
- * не та роль) сюда не доходит вовсе — при ней пункт рейла исчезает, и
- * показывать список некому.
+ * A temporary refusal (the network, 5xx) shows a retry rather than an empty screen:
+ * the section exists, it merely did not answer. Unavailability for good (turned off by
+ * a flag, the wrong role) never reaches here at all — under it the rail item
+ * disappears, and there is nobody to show the list to.
  */
 
 // #region Imports
@@ -51,15 +52,18 @@ const filterItems = computed<IBricksTabItem[]>(() =>
     }))
 );
 
-/** Список читается: до ответа сервера ни строк, ни утверждений о их отсутствии. */
+/**
+ * The list is being read: until the server answers, neither rows nor claims about
+ * their absence.
+ */
 const isLoading = computed<boolean>(() => props.status === 'idle' || props.status === 'loading');
 // #endregion
 
 // #region Methods
 /**
- * Переключает активный сегмент-фильтр.
+ * Switches the active segment filter.
  *
- * @param value - Значение выбранного таба.
+ * @param value - The value of the chosen tab.
  */
 function handleSelectFilter(value: string): void {
     const filter = FILTERS.find((item) => item === value);
@@ -72,67 +76,67 @@ function handleSelectFilter(value: string): void {
 }
 
 /**
- * Просит открыть форму создания учётки.
+ * Asks for the account creation form to be opened.
  */
 function handleCreateUser(): void {
     emit('create-user');
 }
 
 /**
- * Просит повторить загрузку списка.
+ * Asks for the list load to be retried.
  */
 function handleRetry(): void {
     emit('retry');
 }
 
 /**
- * Пробрасывает смену роли.
+ * Forwards a role change.
  *
- * @param user - Учётка.
- * @param role - Новая роль.
+ * @param user - The account.
+ * @param role - The new role.
  */
 function handleChangeRole(user: IBricksUserSummary, role: TBricksUserRole): void {
     emit('change-role', user, role);
 }
 
 /**
- * Пробрасывает запрос админской формы пароля.
+ * Forwards a request for the admin password form.
  *
- * @param user - Учётка.
+ * @param user - The account.
  */
 function handleSetPassword(user: IBricksUserSummary): void {
     emit('set-password', user);
 }
 
 /**
- * Пробрасывает запрос своей формы пароля (вкладка профиля).
+ * Forwards a request for one's own password form (the profile tab).
  */
 function handleChangeOwnPassword(): void {
     emit('change-own-password');
 }
 
 /**
- * Пробрасывает включение входа.
+ * Forwards the turning of sign-in on.
  *
- * @param user - Учётка.
+ * @param user - The account.
  */
 function handleActivate(user: IBricksUserSummary): void {
     emit('activate', user);
 }
 
 /**
- * Пробрасывает выключение входа.
+ * Forwards the turning of sign-in off.
  *
- * @param user - Учётка.
+ * @param user - The account.
  */
 function handleDeactivate(user: IBricksUserSummary): void {
     emit('deactivate', user);
 }
 
 /**
- * Пробрасывает удаление учётки.
+ * Forwards the deletion of an account.
  *
- * @param user - Учётка.
+ * @param user - The account.
  */
 function handleDelete(user: IBricksUserSummary): void {
     emit('delete', user);
@@ -187,12 +191,6 @@ function handleDelete(user: IBricksUserSummary): void {
             :description="t('bricks.users.empty.noResultsDescription')"
         />
 
-        <!--
-            Занятость раздела приходит в строку двумя разными признаками:
-            обновляется одна строка, а недоступны на это время действия ВСЕХ —
-            операции сериализованы, и клик по соседней строке был бы отброшен
-            молча
-        -->
         <div v-else :class="$style.rows">
             <BuilderUsersListRow
                 v-for="user in props.users"
@@ -264,7 +262,6 @@ function handleDelete(user: IBricksUserSummary): void {
     font-size: 1.4rem;
 }
 
-/* Отступы состояния задаёт раздел: у списка это высокая полоса по центру. */
 .empty {
     padding: 8rem 2.4rem;
 }

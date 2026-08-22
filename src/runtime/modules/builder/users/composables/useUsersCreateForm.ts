@@ -29,14 +29,14 @@ import { useForm } from 'vee-validate';
 // #endregion
 
 // #region Data
-/** Роль новой учётки по умолчанию — самая ходовая и не дающая полных прав. */
+/** The default role of a new account — the most common one, and not a full-rights one */
 const DEFAULT_NEW_USER_ROLE: TBricksUserRole = 'editor';
 // #endregion
 
 /**
- * Пустые значения формы создания.
+ * The empty values of the creation form.
  *
- * @returns Начальные значения.
+ * @returns The initial values.
  */
 function buildEmptyFormValues(): IUsersCreateFormValues {
     return {
@@ -49,16 +49,17 @@ function buildEmptyFormValues(): IUsersCreateFormValues {
 }
 
 /**
- * Форма создания учётки: валидация общей схемой, создание через
- * `POST /api/bricks/users`, разбор отказов по существу.
+ * The account creation form: validation by the shared schema, creation through
+ * `POST /api/bricks/users`, every refusal told apart by what it actually means.
  *
- * Потолок ожидания здесь общий для записей (30 с), а не короткий: ручка считает
- * scrypt-хеш нового пароля под общим семафором процесса, и на занятом сервере
- * ей десяти секунд не хватит — оборванный запрос выглядел бы отказом при
- * созданной учётке.
+ * The waiting ceiling here is the shared one for writes (30 s) rather than the short
+ * one: the endpoint computes the scrypt hash of the new password under the shared
+ * semaphore of the process, and on a busy server ten seconds are not enough for it —
+ * an aborted request would look like a refusal while the account had been created.
  *
- * @param options - Колбэк успешного создания (модалку закрывает вызывающий).
- * @returns Поля формы, состояние отправки и операции.
+ * @param options - The callback of a successful creation (the caller closes the
+ * modal).
+ * @returns The fields of the form, the submission state and the operations.
  */
 export function useUsersCreateForm(options: IUseUsersCreateFormOptions) {
     // #region Data
@@ -84,27 +85,33 @@ export function useUsersCreateForm(options: IUseUsersCreateFormOptions) {
 
     const isSubmitting = ref(false);
     /**
-     * Отправка закрыта после обрыва по потолку ожидания — до сброса формы.
+     * Submission is sealed after an abort by the waiting ceiling — until the form is
+     * reset.
      *
-     * Текст об обрыве просит не отправлять форму заново, и просьба обязана быть
-     * подкреплена: серверный обработчик клиентским потолком не останавливается,
-     * поэтому повтор запускает ВТОРОЙ scrypt под тем же семафором и упирается в
-     * «логин занят» от собственной же первой отправки — то самое противоречие,
-     * ради которого исход и разбирается. Безопасного повтора у формы нет, пока
-     * операция не получит идентификатора, отправленного вместе с первым POST.
+     * The text about the abort asks a person not to submit the form again, and that
+     * request has to be backed: the server handler is not stopped by a client ceiling,
+     * so a repeat starts a SECOND scrypt under the same semaphore and runs into
+     * "the username is taken" from its own first submission — precisely the
+     * contradiction that made the outcome worth taking apart at all. The form has no
+     * safe repeat until the operation gets an identifier sent along with the first POST.
      *
-     * Закрыта именно отправка, а не форма целиком: отмена и закрытие остаются
-     * рабочими, а следующее открытие модалки сбрасывает признак вместе со
-     * значениями — другую учётку создают из чистой формы.
+     * It is the submission that is sealed rather than the form as a whole: cancelling
+     * and closing keep working, while the next opening of the modal clears the flag
+     * together with the values — another account is created from a clean form.
      */
     const isSubmitSealed = ref(false);
     /**
-     * Поколение отправки. Модалку закрывают и во время запроса (крестик, Esc и
-     * клик по фону этого не запрещают), а следующее открытие сбрасывает форму —
-     * значит прежний запрос может завершиться, когда его формы уже нет. Всё, что
-     * он вернёт, к чистой форме отношения не имеет: без этого счётчика обрыв
-     * старой отправки запечатывал бы новую и показывал бы ошибку о логине,
-     * который человек уже не вводит.
+     * The generation of a submission. The modal is closed during a request too (the
+     * cross, Esc and a click on the backdrop do not forbid it), while the next opening
+     * resets the form — which means the previous request can finish when its form is
+     * already gone. Nothing it returns has anything to do with the clean form: without
+     * this counter an abort of the old submission would seal the new one and would show
+     * an error about a username the person is no longer typing.
+     *
+     * The counter is read once per outcome, right after the response, and the tail of
+     * the timeout branch does not read it again: `reconcileTimedOutCreate` waits for a
+     * GET of its own, so a reopening during that GET still ends with the message of the
+     * previous attempt standing on a clean form.
      */
     const submissionGeneration = ref(0);
     const generalError = ref('');
@@ -112,11 +119,11 @@ export function useUsersCreateForm(options: IUseUsersCreateFormOptions) {
 
     // #region Methods
     /**
-     * Ставит в поле пароля сгенерированное значение.
+     * Puts a generated value into the password field.
      *
-     * Поле остаётся обычным полем ввода: сгенерированный пароль администратор
-     * копирует и передаёт человеку, поэтому он обязан быть видимым и заменяемым
-     * вручную, а не жить в скрытом состоянии формы.
+     * The field stays an ordinary input: an administrator copies the generated password
+     * and hands it over to a person, so it has to be visible and replaceable by hand
+     * rather than living in the hidden state of the form.
      */
     function generatePassword(): void {
         password.value = generateUserPassword();
@@ -124,33 +131,36 @@ export function useUsersCreateForm(options: IUseUsersCreateFormOptions) {
     }
 
     /**
-     * Разбирает исход оборванного по потолку ожидания создания.
+     * Takes apart the outcome of a creation aborted by the waiting ceiling.
      *
-     * Обрыв — не отказ и не успех: сервер мог создать учётку и не успеть ответить,
-     * а мог и отклонить её занятым логином. Поэтому ветка ТОЛЬКО перечитывает
-     * список и сообщает наблюдаемое состояние; успех объявляет исключительно ответ
-     * самого POST.
+     * An abort is neither a refusal nor a success: the server may have created the
+     * account and failed to answer in time, and it may just as well have rejected it
+     * over a taken username. That is why the branch ONLY re-reads the list and reports
+     * the observable state; success is declared exclusively by the response of the POST
+     * itself.
      *
-     * Найденная строка успеха не доказывает. Проверять это по списку нечем ни
-     * снимком логинов до отправки (список живёт в состоянии приложения и мог
-     * отстать от базы задолго до этой отправки — тогда чужая учётка выглядела бы
-     * новой), ни временем создания (расхождение часов браузера и сервера в любую
-     * сторону сдвигает границу), ни совпадением роли, имени и активности (их мог
-     * отправить и другой администратор, а заданный здесь пароль в списке не
-     * виден). Объявить такую строку своей значило бы закрыть форму тостом успеха о
-     * посторонней учётке. Доказательство требует идентификатора операции,
-     * отправленного вместе с первым POST и зарегистрированного сервером.
+     * A row that was found proves no success. There is nothing in the list to check it
+     * by: neither a snapshot of the usernames taken before the submission (the list
+     * lives in the application state and could have fallen behind the database long
+     * before this submission — and then somebody else's account would look new), nor
+     * the creation time (a drift between the clocks of the browser and the server moves
+     * the border either way), nor a match of the role, the name and the activity (they
+     * could have been sent by another administrator, while the password set here is not
+     * visible in the list). Declaring such a row one's own would mean closing the form
+     * with a success toast about an unrelated account. A proof requires an identifier of
+     * the operation, sent along with the first POST and registered by the server.
      *
-     * Исход перечитывания учитывается: `refreshUsers` отказ не бросает (иначе он
-     * унёс бы дашборд), и упавшее чтение оставляет прежний кеш — говорить по нему
-     * о списке нельзя вовсе.
+     * The outcome of the re-read is taken into account: `refreshUsers` throws no refusal
+     * (otherwise it would take the dashboard away), and a read that fell leaves the
+     * previous cache in place — there is nothing in it to speak about the list by at
+     * all.
      *
-     * Отдельно от исхода: серверный обработчик клиентским потолком не
-     * останавливается, поэтому «строки пока не видно» не означает, что её не
-     * будет, — тексты об этом и предупреждают, вместо того чтобы предлагать
-     * немедленный повтор.
+     * Apart from the outcome: the server handler is not stopped by a client ceiling, so
+     * "the row is not visible yet" does not mean it will not be there — which is what
+     * the texts warn about instead of offering an immediate repeat.
      *
-     * @param canonicalUsername - Логин в том виде, в котором его сохранил бы сервер.
+     * @param canonicalUsername - The username in the form the server would have stored
+     * it.
      */
     async function reconcileTimedOutCreate(canonicalUsername: string): Promise<void> {
         await refreshUsers();
@@ -170,13 +180,13 @@ export function useUsersCreateForm(options: IUseUsersCreateFormOptions) {
     }
 
     /**
-     * Валидирует форму и создаёт учётку.
+     * Validates the form and creates the account.
      *
-     * Занятый логин уходит под поле, а не в общий текст ошибки: это единственный
-     * отказ формы, относящийся к конкретному полю, и человеку нужно исправить
-     * именно его. Проверить занятость заранее нельзя — список в браузере лишь
-     * копия, и между его чтением и отправкой логин мог занять другой
-     * администратор.
+     * A taken username goes under the field rather than into the general error text: it
+     * is the only refusal of the form that concerns a particular field, and it is that
+     * field a person has to fix. Being taken cannot be checked in advance — the list in
+     * the browser is only a copy, and between reading it and the submission the
+     * username could have been taken by another administrator.
      */
     const submitForm = handleSubmit(async (values) => {
         if (isSubmitting.value || isSubmitSealed.value) {
@@ -204,10 +214,10 @@ export function useUsersCreateForm(options: IUseUsersCreateFormOptions) {
                 timeout: BRICKS_API_WRITE_TIMEOUT_MS,
             });
 
-            // Список правится в любом случае: учётка создана, и прятать её от
-            // раздела только потому, что окно успели закрыть, было бы враньём.
-            // А вот закрывать модалку и объявлять успех — уже не по адресу:
-            // форма перед человеком другая
+            // The list is edited in any case: the account has been created, and hiding
+            // it from the section merely because the window was closed in time would be
+            // a lie. Closing the modal and declaring success, however, would go to the
+            // wrong address: the form in front of the person is a different one
             upsertUser(response.user);
 
             if (generation !== submissionGeneration.value) {
@@ -240,13 +250,13 @@ export function useUsersCreateForm(options: IUseUsersCreateFormOptions) {
     });
 
     /**
-     * Возвращает форму к пустым значениям — при повторном открытии модалки.
+     * Brings the form back to its empty values — on a repeat opening of the modal.
      */
     function resetToEmpty(): void {
-        // Прежняя отправка объявляется чужой: она может лететь до сих пор — окно
-        // закрывают и во время запроса. Вместе с ней снимается и признак
-        // отправки, иначе чистая форма встречала бы человека выключенной кнопкой
-        // до конца запроса, которого он уже не ждёт
+        // The previous submission is declared somebody else's: it may still be in
+        // flight — the window is closed during a request too. The submission flags come
+        // off with it, otherwise a clean form would meet a person with a disabled button
+        // until the end of a request they are no longer waiting for
         submissionGeneration.value += 1;
 
         resetForm({ values: buildEmptyFormValues() });
