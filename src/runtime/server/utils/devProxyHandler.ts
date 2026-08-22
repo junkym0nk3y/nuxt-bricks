@@ -1,14 +1,19 @@
 /**
- * Фабрика event handler'а dev-проксирования (вынесена из middleware для
- * интеграционных тестов на реальных сокетах — test/server/devProxy.spec.ts:
- * middleware завязан на useRuntimeConfig nitropack и вне Nitro не импортируется).
+ * Factory of the dev proxying event handler (extracted out of the middleware for
+ * integration tests over real sockets — test/server/devProxy.spec.ts: the
+ * middleware is bound to nitropack's useRuntimeConfig and is not importable
+ * outside Nitro).
  *
- * Контракт передачи (план backend-connection-modes, PR1): метод, query, body,
- * статус и заголовки проходят как есть в обе стороны. Два отклонения h3
- * proxyRequest компенсируются явно:
- * - `accept` входит в ignoredHeaders h3 → восстанавливается из запроса;
- * - fetch по умолчанию следует редиректам (клиент получал бы финальный 200
- *   без Location) → `redirect: 'manual'` пробрасывает 3xx+Location как есть.
+ * The transfer contract: method, query, body, status and headers pass through
+ * unchanged in both directions, with one deliberate exception — the builder
+ * identity is stripped on the way out (`stripBricksIdentityHeaders`), because the
+ * upstream here is somebody else's service.
+ *
+ * Two deviations of the h3 proxyRequest are compensated explicitly:
+ * - `accept` is part of the h3 ignoredHeaders → it is restored from the request;
+ * - fetch follows redirects by default (the client would receive the final 200
+ *   with no Location) → `redirect: 'manual'` passes 3xx plus Location through
+ *   as they are.
  */
 
 import { createError, defineEventHandler, proxyRequest, type EventHandler, type H3Event } from 'h3';
@@ -23,29 +28,33 @@ import {
 
 // #region Types
 export interface IDevProxyHandlerOptions {
-    /** Base URL upstream (PROXY_URL); пустая строка — прокси выключен. */
+    /** Upstream base URL (PROXY_URL); an empty string turns the proxy off */
     proxyUrl: string;
-    /** Auth-режим bricks ('basic' | 'database') — управляет вырезанием Authorization. */
+    /**
+     * Bricks auth mode ('basic' | 'database') — governs the stripping of
+     * Authorization.
+     */
     authMode: string;
-    /** Таймаут upstream-запроса, мс (дефолт 30000). */
+    /** Upstream request timeout, ms (default 30000) */
     timeoutMs?: number;
 }
 // #endregion
 
 // #region Constants
-/** Таймаут по умолчанию: зависший backend не должен вешать dev-сервер. */
+/** Default timeout: a hung backend must not hang the dev server */
 const DEFAULT_PROXY_TIMEOUT_MS = 30000;
 // #endregion
 
 /**
- * Вырезает identity билдера из заголовков запроса перед проброской на внешний
- * backend: cookie сессии database-auth и Authorization в basic-режиме
- * (браузер шлёт креды bricks на все пути origin после первого challenge) —
- * секреты билдера внешнему сервису не предназначены. Остальные cookie
- * и заголовки проекта пробрасываются как есть.
+ * Strips the builder identity out of the request headers before forwarding to an
+ * external backend: the database-auth session cookie and, in basic mode,
+ * Authorization (after the first challenge the browser sends the bricks
+ * credentials to every path of the origin) — the builder secrets are not meant
+ * for an external service. The other cookies and headers of the project are
+ * forwarded as they are.
  *
- * @param event - Событие проксируемого запроса (заголовки мутируются in place).
- * @param authMode - Auth-режим bricks.
+ * @param event - Event of the proxied request (headers are mutated in place).
+ * @param authMode - Bricks auth mode.
  */
 function stripBricksIdentityHeaders(event: H3Event, authMode: string): void {
     const headers = event.node.req.headers;
@@ -65,10 +74,10 @@ function stripBricksIdentityHeaders(event: H3Event, authMode: string): void {
 }
 
 /**
- * Создаёт event handler dev-проксирования не-bricks /api/* на upstream.
+ * Creates the event handler that dev-proxies non-bricks /api/* to the upstream.
  *
- * @param options - Upstream URL, auth-режим и таймаут.
- * @returns h3 event handler (для middleware devProxy.ts и тестов).
+ * @param options - Upstream URL, auth mode and timeout.
+ * @returns An h3 event handler (for the devProxy.ts middleware and the tests).
  */
 export function createDevProxyEventHandler(options: IDevProxyHandlerOptions): EventHandler {
     const { proxyUrl, authMode } = options;
@@ -90,18 +99,19 @@ export function createDevProxyEventHandler(options: IDevProxyHandlerOptions): Ev
 
         try {
             return await proxyRequest(event, targetUrl, {
-                // accept — в ignoredHeaders h3: без явного восстановления
-                // upstream видел бы */* вместо заголовка клиента
+                // accept is in the h3 ignoredHeaders: without restoring it
+                // explicitly the upstream would see */* instead of the client header
                 headers: accept ? { accept } : undefined,
                 fetchOptions: {
-                    // 3xx отдаётся клиенту как есть (Location не разворачивается)
+                    // A 3xx is handed to the client as it is (Location is not followed)
                     redirect: 'manual',
                     signal: AbortSignal.timeout(timeoutMs),
                 },
             });
         } catch {
-            // Стабильный 502 вместо голого fetch-исключения: недоступный/зависший
-            // upstream — ошибка шлюза, детали причины наружу не отдаём
+            // A stable 502 instead of a raw fetch exception: an unreachable or
+            // hung upstream is a gateway error, and the details of the cause are
+            // not handed outward
             throw createError({ statusCode: 502, statusMessage: 'Bad Gateway' });
         }
     });

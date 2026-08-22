@@ -29,13 +29,13 @@ import type {
     IAuthLoginCredentials,
 } from '../../../utils/auth/types';
 
-/** Максимальная длина username (равна VARCHAR(255) в БД). */
+/** Maximum username length (equals VARCHAR(255) in the database) */
 const MAX_USERNAME_LENGTH = 255;
-/** Максимальная длина пароля (санитарная граница против DoS scrypt'ом). */
+/** Maximum password length (a sanity bound against a DoS through scrypt) */
 const MAX_PASSWORD_LENGTH = 1024;
 
 /**
- * Валидирует тело логина; 400 — если поля отсутствуют или выходят за границы.
+ * Validates the login body; 400 when the fields are missing or out of bounds.
  */
 function validateLoginBody(body: IAuthLoginBody): IAuthLoginCredentials {
     const { username, password } = body;
@@ -58,12 +58,13 @@ function validateLoginBody(body: IAuthLoginBody): IAuthLoginCredentials {
 }
 
 /**
- * Проверяет креденшелы: verify всегда выполняется (против DUMMY_PASSWORD_HASH
- * при неизвестном username) — выравнивание тайминга, анти-enumeration.
+ * Verifies the credentials: verify always runs (against DUMMY_PASSWORD_HASH when
+ * the username is unknown) — timing equalization, anti-enumeration.
  *
- * Возвращает и поколение учётных данных, прочитанное ДО проверки пароля: оно
- * уходит условием во вставку сессии, поэтому смена пароля или деактивация,
- * успевшая пройти за время scrypt-проверки, отменяет этот вход.
+ * It also returns the credential generation read BEFORE the password check: that
+ * generation goes into the session insert as a condition, so a password change or
+ * a deactivation that managed to land during the scrypt check cancels this
+ * sign-in.
  */
 async function verifyCredentials(
     auth: IAuthAdapter,
@@ -88,13 +89,14 @@ async function verifyCredentials(
 }
 
 /**
- * POST /api/bricks/auth/login — вход по username/password (database-режим).
- * Успех: создаёт cookie-сессию и возвращает { user: { id, username } }.
- * Неуспех — единый 401 'Invalid credentials' (нет юзера / неверный пароль /
- * деактивирован). Двухуровневый rate limit: 5 неудач за 15 минут
- * по ip|username, 30 неудач за то же окно по IP (сменяемые username) → 429 c
- * Retry-After; IP-lockout проверяется до scrypt. scrypt-верификация — под
- * bounded-семафором (`scryptGate`), переполнение очереди → 503.
+ * POST /api/bricks/auth/login — sign-in by username and password (database mode).
+ * On success: creates a cookie session and returns { user: { id, username } }.
+ * On failure — a single 401 'Invalid credentials' (no such user / wrong password
+ * / deactivated). A two-level rate limit: 5 failures in 15 minutes per
+ * ip|username, 30 failures in the same window per IP (with changing usernames) →
+ * 429 with Retry-After; the IP lockout is checked before scrypt. The scrypt
+ * verification runs under a bounded semaphore (`scryptGate`), and queue overflow
+ * gives a 503.
  */
 export default defineEventHandler(async (event) => {
     try {
@@ -156,7 +158,7 @@ export default defineEventHandler(async (event) => {
         try {
             await auth.deleteExpiredSessions();
         } catch (error: unknown) {
-            // Сбой уборки не должен валить логин
+            // A failed cleanup must not fail the sign-in
             console.error('[nuxt-bricks] Failed to delete expired sessions:', error);
         }
 
@@ -170,9 +172,10 @@ export default defineEventHandler(async (event) => {
             expectedAuthVersion: user.authVersion,
         });
 
-        // Учётку деактивировали или сменили ей пароль, пока шла scrypt-проверка:
-        // креденшелы, с которыми пришёл запрос, уже отозваны — сессии не будет.
-        // Ответ тот же 401, что и у неверного пароля: различать их наружу незачем
+        // The account was deactivated or had its password changed while the
+        // scrypt check was running: the credentials the request came with are
+        // already revoked, so there will be no session. The answer is the same 401
+        // as for a wrong password: there is no point in exposing the difference
         if (!isSessionCreated) {
             throw createError({ statusCode: 401, statusMessage: 'Invalid credentials' });
         }

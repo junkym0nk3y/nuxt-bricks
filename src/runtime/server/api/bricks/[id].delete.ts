@@ -11,16 +11,17 @@ import {
 } from '../../../modules/persistence/server/utils/handlerHelpers';
 
 /**
- * DELETE /api/bricks/:id — удаляет страницу по id (версии — каскадом БД)
- * и best-effort чистит файлы превью в хранилище публикации.
+ * DELETE /api/bricks/:id — deletes a page by id (its versions go by the database
+ * cascade) and cleans up the thumbnail files in the publication storage on a
+ * best-effort basis.
  *
- * Чистка идёт по префиксам страницы с пустым списком нужных URL: кадров у
- * страницы столько же, сколько версий, и один URL из её строки оставил бы
- * остальные сиротами. Защита свежих загрузок здесь снимается — следующего
- * прохода уборки у удалённой страницы не будет, и отложенный файл остался бы в
- * хранилище навсегда. Отдельным вызовом добирается сам `thumbnailUrl`: поле
- * доступно на запись через PATCH, и значение вне собственных префиксов
- * страницы префиксная уборка не увидит.
+ * The cleanup runs over the prefixes of the page with an empty list of needed
+ * URLs: a page has as many frames as it has versions, and a single URL taken from
+ * its row would leave the rest orphaned. The protection of recent uploads is
+ * lifted here — a deleted page will get no further cleanup pass, and a deferred
+ * file would stay in the storage forever. The `thumbnailUrl` itself is collected
+ * by a separate call: the field is writable through PATCH, and a value outside
+ * the page's own prefixes is invisible to the prefix cleanup.
  */
 export default defineEventHandler(async (event) => {
     const id = requireNumericId(event);

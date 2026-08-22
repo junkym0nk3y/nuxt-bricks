@@ -3,10 +3,12 @@ import { useBricksStorageAdapter } from '../../../../../modules/persistence/serv
 import { toHttpError } from '../../../../../modules/persistence/server/utils/handlerHelpers';
 
 /**
- * GET /api/bricks/media/categories — категории медиатеки в порядке показа.
+ * GET /api/bricks/media/categories — the media library categories in display
+ * order.
  *
- * Envelope `{ success, items }` — как у GET /api/bricks/media: клиент отличает
- * пустой список от нераспознанного ответа, а не трактует второе как первое.
+ * The `{ success, items }` envelope matches GET /api/bricks/media: the client
+ * tells an empty list from an unrecognized response instead of reading the second
+ * as the first.
  */
 export default defineEventHandler(async () => {
     try {

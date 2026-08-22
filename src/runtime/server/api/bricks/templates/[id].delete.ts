@@ -10,13 +10,15 @@ import {
 import { discardTemplateThumbnail } from '../../../../modules/persistence/server/utils/templateThumbnails';
 
 /**
- * DELETE /api/bricks/templates/:id — удаляет шаблон (admin по матрице прав).
+ * DELETE /api/bricks/templates/:id — deletes a template (admin by the access
+ * matrix).
  *
- * Страницы, созданные из шаблона, не меняются: связи с ними нет, шаблон был
- * отпечатком. Файл превью уходит вслед за строкой — ссылок на него больше нет
- * нигде, и без уборки он остался бы в хранилище навсегда. Уборка best-effort и
- * ПОСЛЕ удаления строки: отказ хранилища не должен превращать успешное удаление
- * в ошибку, повторить которую уже нечем (шаблона нет — ручка ответит 404).
+ * The pages created from the template do not change: there is no link to them,
+ * the template was an imprint. The thumbnail file goes away after the row —
+ * nothing points at it any more, and without the cleanup it would stay in the
+ * storage forever. The cleanup is best-effort and runs AFTER the row is deleted: a
+ * storage failure must not turn a successful deletion into an error that can no
+ * longer be retried (the template is gone, so the handler would answer 404).
  */
 export default defineEventHandler(async (event) => {
     try {

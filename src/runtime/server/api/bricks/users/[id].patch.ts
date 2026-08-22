@@ -13,17 +13,18 @@ import {
 } from '../../../utils/auth/userManagement';
 
 /**
- * PATCH /api/bricks/users/:id — роль и/или активность чужой учётки (admin).
+ * PATCH /api/bricks/users/:id — the role and/or the activity of someone else's
+ * account (admin).
  *
- * Оба поля применяются одной транзакцией адаптера вместе с отзывом сессий
- * учётки. Отказы: 409 `SELF_TARGET_FORBIDDEN` (своя учётка правится ручками
- * профиля), 409 `LAST_ACTIVE_ADMIN` (система осталась бы без администратора),
- * 404 (учётки нет).
+ * Both fields are applied in one adapter transaction together with the revocation
+ * of the account sessions. Refusals: 409 `SELF_TARGET_FORBIDDEN` (one's own
+ * account is edited by the profile handlers), 409 `LAST_ACTIVE_ADMIN` (the system
+ * would be left with no administrator), 404 (no such account).
  *
- * Роль требуется явно (`assertAdminRole`), хотя её же требует middleware: этим
- * маршрутом матчится и `/api/bricks/users/me`, поэтому послабление для
- * поддерева профиля не должно превращать нечисловой `:id` в единственную
- * преграду. Разбор `:id` при этом остаётся до всякой работы с телом запроса.
+ * The role is required explicitly (`assertAdminRole`) even though the middleware
+ * requires it too: this route also matches `/api/bricks/users/me`, so relaxing
+ * the profile subtree must not turn a non-numeric `:id` into the only obstacle.
+ * The parsing of `:id` still happens before any work with the request body.
  */
 export default defineEventHandler(async (event) => {
     try {

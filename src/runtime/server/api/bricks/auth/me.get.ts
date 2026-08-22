@@ -5,20 +5,23 @@ import { resolveSessionUser } from '../../../utils/auth/session';
 import { toAuthProfileUser } from '../../../utils/auth/profile';
 
 /**
- * GET /api/bricks/auth/me — текущий пользователь сессии (database-режим).
- * Используется login-страницей (гвард «уже авторизован») и композиционными
- * корнями билдера и дашборда, которые по роли решают, какие действия вообще
- * показывать; 401-интерцептор клиента пропускает страницу логина — петли нет.
+ * GET /api/bricks/auth/me — the current user of the session (database mode).
+ * Used by the login page (the "already signed in" guard) and by the composition
+ * roots of the builder and the dashboard, which decide from the role which
+ * actions to show at all; the 401 interceptor of the client lets the login page
+ * through — there is no loop.
  *
- * Проекция общая с ручками профиля (`toAuthProfileUser`): угол экрана
- * наполняется этим ответом и обновляется ответами профиля, и две разные формы
- * заставили бы его угадывать, что именно приехало.
+ * The projection is shared with the profile handlers (`toAuthProfileUser`): the
+ * corner of the screen is filled by this response and refreshed by the profile
+ * responses, and two different shapes would leave it guessing what exactly
+ * arrived.
  *
- * `isDefaultPassword` лежит РЯДОМ с проекцией, а не внутри неё: ручки профиля
- * отдают ту же форму `user`, и любая правка имени или фото затирала бы флаг в
- * состоянии клиента — предупреждение о дефолтном пароле исчезало бы от смены
- * аватара. Смена самого пароля рвёт сессию, поэтому обновлять флаг ответом
- * профиля не нужно вовсе: следующий вход считает его заново.
+ * `isDefaultPassword` lies NEXT TO the projection rather than inside it: the
+ * profile handlers return the same `user` shape, and any edit of the name or the
+ * photo would wipe the flag out of the client state — the default password
+ * warning would disappear when the avatar changed. Changing the password itself
+ * breaks the session, so there is no need to refresh the flag from a profile
+ * response at all: the next sign-in computes it anew.
  */
 export default defineEventHandler(async (event) => {
     try {

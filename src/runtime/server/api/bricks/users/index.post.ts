@@ -10,17 +10,19 @@ import {
 } from '../../../utils/auth/userManagement';
 
 /**
- * POST /api/bricks/users — создаёт учётку (admin).
+ * POST /api/bricks/users — creates an account (admin).
  *
- * Логин канонизируется в нижний регистр, пароль уходит в базу только хешем
- * (scrypt под общим семафором). Занятый логин — 409 с кодом `USERNAME_TAKEN`:
- * форма подставляет подсказку под поле, а не общий текст ошибки.
+ * The username is canonicalized to lower case, and the password reaches the
+ * database as a hash only (scrypt under the shared semaphore). A taken username
+ * is a 409 with the code `USERNAME_TAKEN`: the form puts a hint under the field
+ * instead of a generic error text.
  *
- * Отображаемое имя и активность необязательны: без них учётка активна и
- * показывается логином. Имя администратор задаёт только ЗДЕСЬ — список должен
- * читаться до первого входа новых людей; дальше подпись правит себе сам человек
- * ручкой профиля, и переписать её администратор уже не может. Заведённая
- * выключенной учётка входа не даёт, пока её не включат в строке списка.
+ * The display name and the activity flag are optional: without them the account
+ * is active and shown by its username. The administrator sets the name only HERE
+ * — the list has to be readable before new people first sign in; afterwards
+ * people edit their own signature through the profile handler, and the
+ * administrator can no longer rewrite it. An account created switched off gives
+ * no way in until it is switched on from the row of the list.
  */
 export default defineEventHandler(async (event) => {
     try {

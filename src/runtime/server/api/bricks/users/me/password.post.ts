@@ -23,12 +23,13 @@ import {
 } from '../../../../utils/requestRateLimiter';
 
 /**
- * Лимит попыток смены своего пароля с одного IP в минуту.
+ * Limit of own-password change attempts from one IP per minute.
  *
- * Нужен из-за ТЕКУЩЕГО пароля: ручка проверяет его, то есть отвечает на вопрос
- * «этот пароль верный?». Украденная кука иначе перебирала бы по нему сам пароль —
- * а пароль человек, скорее всего, использует и где-то ещё. Заодно граница
- * держит CPU: каждая попытка — две scrypt-дериватации.
+ * It exists because of the CURRENT password: the handler verifies it, that is,
+ * it answers the question "is this password correct?". Otherwise a stolen cookie
+ * would brute-force the password itself through it — and the person most likely
+ * uses that password somewhere else too. The bound also keeps the CPU in check:
+ * every attempt is two scrypt derivations.
  */
 const PASSWORD_CHANGES_PER_MINUTE = 10;
 const passwordChangeRateLimiter = createFixedWindowRateLimiter({
@@ -37,22 +38,25 @@ const passwordChangeRateLimiter = createFixedWindowRateLimiter({
 });
 
 /**
- * POST /api/bricks/users/me/password — смена СВОЕГО пароля (любая роль).
+ * POST /api/bricks/users/me/password — changing ONE'S OWN password (any role).
  *
- * Текущий пароль обязателен, и это главное отличие от админской ручки: без него
- * украденная кука сменила бы пароль сама и заперла владельца снаружи.
- * Администратор чужой пароль задаёт без текущего (он его не знает) — поэтому та
- * ручка отказывает на собственной учётке.
+ * The current password is mandatory, and that is the main difference from the
+ * admin handler: without it a stolen cookie would change the password on its own
+ * and lock the owner out. An administrator sets someone else's password without
+ * the current one (they do not know it) — which is why that handler refuses on
+ * the caller's own account.
  *
- * Успех отзывает ВСЕ сессии учётки, включая ту, из которой пришёл запрос:
- * поколение учётных данных поднимается одним UPDATE, и прежние сессии перестают
- * совпадать с учёткой. Так и задумано — если пароль меняют из-за подозрения на
- * кражу куки, выжившая сессия обесценила бы смену. Cookie чистится тем же
- * ответом, чтобы браузер не носил мёртвый токен до первого 401.
+ * Success revokes ALL sessions of the account, the one the request came from
+ * included: the credential generation is raised by a single UPDATE, and the
+ * former sessions stop matching the account. That is by design — if the password
+ * is being changed on suspicion of a stolen cookie, a surviving session would
+ * void the change. The cookie is cleared in the same response so that the browser
+ * does not carry a dead token until its first 401.
  *
- * Запись условна по поколению, прочитанному ДО проверки пароля: проверка идёт под
- * scrypt секунды, и за это время администратор мог сбросить пароль этой учётке,
- * чтобы отобрать её. Безусловная запись отменила бы сброс старым паролем.
+ * The write is conditional on the generation read BEFORE the password check: the
+ * check spends seconds inside scrypt, and in that time an administrator could
+ * have reset the password of this account to take it away. An unconditional write
+ * would undo that reset with the old password.
  */
 export default defineEventHandler(async (event) => {
     try {
@@ -61,8 +65,8 @@ export default defineEventHandler(async (event) => {
 
         const sessionUser = requireSessionUser(event);
 
-        // После проверок доступности: 404 выключенного режима и 403 флага не
-        // должны тратить бюджет попыток
+        // After the availability checks: the 404 of a disabled mode and the 403
+        // of the flag must not spend the attempt budget
         assertWithinRateLimit(
             event,
             passwordChangeRateLimiter,
@@ -75,16 +79,18 @@ export default defineEventHandler(async (event) => {
         const auth = useBricksAuthAdapter();
         const record = await auth.getUserByUsername(sessionUser.username);
 
-        // Учётку удалили или её логин занят уже другой строкой: обе ситуации
-        // означают, что сессия относится к тому, чего больше нет.
+        // The account was deleted, or its username is already held by a different
+        // row: both situations mean the session refers to something that no longer
+        // exists.
         //
-        // Поколение сверяется с ПОКОЛЕНИЕМ СЕССИИ, а не берётся из свежего
-        // чтения: смена роли поднимает поколение и отзывает сессии, но пароль при
-        // этом не меняет, — значит прежний пароль всё ещё подходит, и запись,
-        // условная по свежепрочитанному поколению, прошла бы из уже отозванной
-        // сессии. Тот же обход давала деактивация с быстрой повторной
-        // активацией. Профиль и аватар считают по поколению сессии по той же
-        // причине.
+        // The generation is compared against the GENERATION OF THE SESSION rather
+        // than taken from the fresh read: a role change raises the generation and
+        // revokes the sessions, yet it does not change the password — so the
+        // former password still fits, and a write conditional on the
+        // freshly read generation would go through from an already revoked
+        // session. Deactivation followed by a quick reactivation gave the same
+        // bypass. The profile and the avatar count by the session generation for
+        // the same reason.
         if (
             !record ||
             record.id !== sessionUser.id ||
@@ -120,9 +126,10 @@ export default defineEventHandler(async (event) => {
             expectedAuthVersion: sessionUser.authVersion,
         });
 
-        // Состояние учётки изменилось, пока шли scrypt-проверки: пароль сбросил
-        // администратор либо учётку отключили. Ответ — 401: сессия уже мертва, и
-        // клиент уйдёт на форму логина, где и выяснится, чей пароль в силе
+        // The state of the account changed while the scrypt checks were running:
+        // an administrator reset the password, or the account was disabled. The
+        // answer is 401: the session is already dead, and the client will go to
+        // the login form, where it becomes clear whose password is in force
         if (!isApplied) {
             throw createError({ statusCode: 401, statusMessage: 'Unauthorized' });
         }

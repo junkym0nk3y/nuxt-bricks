@@ -1,38 +1,39 @@
 /**
- * Cookie-сессии database-auth: генерация/хеширование opaque-токена и работа
- * с HttpOnly cookie `bricks-session`.
+ * Database-auth cookie sessions: generating and hashing the opaque token and
+ * working with the HttpOnly `bricks-session` cookie.
  *
- * В cookie — токен (32 байта base64url), в БД — только его SHA-256 hex:
- * утечка дампа БД не даёт готовых токенов, session-secret не нужен.
+ * The cookie carries the token (32 bytes, base64url), the database only its
+ * SHA-256 hex: a leaked database dump yields no ready-made tokens, and no
+ * session secret is needed.
  */
 import { createHash, randomBytes } from 'node:crypto';
 import { getCookie, setCookie, deleteCookie, type H3Event } from 'h3';
 import { useRuntimeConfig } from 'nitropack/runtime';
 import { BRICKS_SESSION_COOKIE_NAME } from '../../../modules/common/constants/auth';
 
-/** Имя cookie сессии (единый источник — common, см. фильтрацию proxy-заголовков). */
+/** Session cookie name (single source — common, see the proxy header filtering) */
 export const SESSION_COOKIE_NAME = BRICKS_SESSION_COOKIE_NAME;
 
-/** Дефолтный срок жизни сессии — 7 дней (зеркалит дефолт опции модуля). */
+/** Default session lifetime — 7 days (mirrors the default of the module option) */
 const DEFAULT_SESSION_MAX_AGE_SECONDS = 604800;
 
 /**
- * Генерирует opaque-токен сессии (32 байта, base64url).
+ * Generates the opaque session token (32 bytes, base64url).
  */
 export function generateSessionToken(): string {
     return randomBytes(32).toString('base64url');
 }
 
 /**
- * Возвращает SHA-256 hex токена — ключ сессии в БД.
+ * Returns the SHA-256 hex of the token — the session key in the database.
  */
 export function hashSessionToken(token: string): string {
     return createHash('sha256').update(token).digest('hex');
 }
 
 /**
- * Возвращает срок жизни сессии в секундах из runtimeConfig
- * (env-значение приходит строкой — приводится к числу).
+ * Returns the session lifetime in seconds from runtimeConfig
+ * (an env value arrives as a string and is coerced to a number).
  */
 export function resolveSessionMaxAgeSeconds(): number {
     const config = useRuntimeConfig();
@@ -43,18 +44,18 @@ export function resolveSessionMaxAgeSeconds(): number {
 }
 
 /**
- * Читает токен сессии из cookie запроса.
+ * Reads the session token from the request cookie.
  */
 export function getSessionTokenFromCookie(event: H3Event): string | null {
     return getCookie(event, SESSION_COOKIE_NAME) ?? null;
 }
 
 /**
- * Ставит HttpOnly cookie сессии (SameSite=Lax, Secure в production, path=/).
+ * Sets the HttpOnly session cookie (SameSite=Lax, Secure in production, path=/).
  *
- * @param event - Событие запроса.
- * @param token - Opaque-токен (не хеш).
- * @param maxAgeSeconds - Срок жизни cookie в секундах.
+ * @param event - Request event.
+ * @param token - The opaque token (not its hash).
+ * @param maxAgeSeconds - Cookie lifetime in seconds.
  */
 export function setSessionCookie(event: H3Event, token: string, maxAgeSeconds: number): void {
     setCookie(event, SESSION_COOKIE_NAME, token, {
@@ -67,7 +68,7 @@ export function setSessionCookie(event: H3Event, token: string, maxAgeSeconds: n
 }
 
 /**
- * Удаляет cookie сессии (logout / невалидная сессия).
+ * Deletes the session cookie (logout or an invalid session).
  */
 export function clearSessionCookie(event: H3Event): void {
     deleteCookie(event, SESSION_COOKIE_NAME, { path: '/' });

@@ -12,23 +12,25 @@ import {
 } from '../../../utils/auth/profile';
 
 /**
- * PATCH /api/bricks/users/me — отображаемое имя своего профиля.
+ * PATCH /api/bricks/users/me — the display name of one's own profile.
  *
- * Доступна любому вошедшему, включая `viewer`: своё имя и фото — единственное,
- * что наблюдатель вообще может изменить. Флаг `allowUserManagement` профиля не
- * касается — он про ведение ЧУЖИХ учёток снаружи.
+ * Available to anyone signed in, `viewer` included: their own name and photo are
+ * the only things a viewer can change at all. The `allowUserManagement` flag does
+ * not concern the profile — it is about keeping OTHER people's accounts outside
+ * the module.
  *
- * Целевая учётка берётся из сессии, а не из пути: параметр `:id` превратил бы
- * «свой профиль» в правку любого профиля, отличающуюся от админской ручки только
- * тем, что её забыли закрыть. Логин при этом неизменяем, роль и активность себе
- * не правятся, а ссылку на фото ставят только ручки аватара — иначе в колонку
- * уехал бы произвольный внешний адрес.
+ * The target account is taken from the session rather than from the path: an
+ * `:id` parameter would turn "own profile" into editing any profile, differing
+ * from the admin handler only in that someone forgot to close it. The username
+ * stays immutable, role and activity are not editable on oneself, and the photo
+ * link is set by the avatar handlers only — otherwise an arbitrary external
+ * address would reach the column.
  *
- * Сессии НЕ рвутся: имя — не креденшел, и переименование, выбрасывающее человека
- * из его сессии, не то, о чём он просил. Но сама запись условна по поколению
- * учётных данных из сессии: за время запроса администратор мог деактивировать
- * учётку или сбросить ей пароль, и правка не должна доезжать уже отозванными
- * креденшелами.
+ * Sessions are NOT broken: a name is not a credential, and a rename that throws
+ * a person out of their session is not what they asked for. But the write itself
+ * is conditional on the credential generation from the session: during the
+ * request an administrator could have deactivated the account or reset its
+ * password, and the edit must not land with already revoked credentials.
  */
 export default defineEventHandler(async (event) => {
     try {
@@ -44,9 +46,10 @@ export default defineEventHandler(async (event) => {
             sessionUser.authVersion
         );
 
-        // Живой учётки с этими креденшелами больше нет: удалена, отключена или
-        // поколение сдвинулось. Ответ 401 — сессия уже мертва, и клиент уйдёт на
-        // форму логина сам; 404 утверждал бы, что не существует самой ручки
+        // There is no live account with these credentials any more: deleted,
+        // disabled, or the credential generation was raised. The answer is 401 —
+        // the session is already dead and the client will go to the login form on
+        // its own; a 404 would claim that the handler itself does not exist
         if (!result) {
             throw createError({ statusCode: 401, statusMessage: 'Unauthorized' });
         }

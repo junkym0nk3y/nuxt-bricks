@@ -8,14 +8,16 @@ import {
 import { validateUpdateTemplatePayload } from '../../../../modules/persistence/server/utils/templatePayloadValidation';
 
 /**
- * PATCH /api/bricks/templates/:id — правит подпись шаблона (имя и описание).
+ * PATCH /api/bricks/templates/:id — edits the label of a template (its name and
+ * description).
  *
- * Содержимое шаблона этой ручкой не обновляется: шаблон — отпечаток момента, а
- * «обновить его текущей страницей» означало бы связь с источником, версии
- * шаблона и разрешение конфликтов. Опечатку же в имени иначе было бы не
- * исправить ничем, кроме удаления и повторного сохранения.
+ * The contents of a template are not updated by this handler: a template is an
+ * imprint of a moment, and "refresh it from the current page" would mean a link
+ * to the source, template versions and conflict resolution. A typo in the name,
+ * on the other hand, could otherwise be fixed by nothing short of deleting and
+ * saving it again.
  *
- * Занятое имя — 409 `TEMPLATE_NAME_CONFLICT` (тот же код, что у создания).
+ * A taken name is a 409 `TEMPLATE_NAME_CONFLICT` (the same code as on creation).
  */
 export default defineEventHandler(async (event) => {
     try {

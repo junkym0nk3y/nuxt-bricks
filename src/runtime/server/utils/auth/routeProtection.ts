@@ -1,25 +1,28 @@
 /**
- * Матрица защиты путей — общая для basic- и database-режимов
+ * Path protection matrix — shared by the basic and database modes
  * (`server/middleware/auth.ts`).
  *
- * Защищаются (префиксы билдера/превью — из `bricks.routes`, дефолты
- * `/bricks` и `/bricks-preview`):
- * - `<builderPrefix>/**` — менеджер страниц и редактор
- * - `<previewPrefix>/**` — превью рендера
- * - /api/bricks/** — весь editorial API, включая read (списки страниц
- *   с drafts/schema и медиатека не публичны), media proxy и page thumbnail
+ * Protected (builder/preview prefixes come from `bricks.routes`, defaults
+ * `/bricks` and `/bricks-preview`):
+ * - `<builderPrefix>/**` — page manager and editor
+ * - `<previewPrefix>/**` — render preview
+ * - /api/bricks/** — the entire editorial API, reads included (page lists with
+ *   drafts/schema and the media library are not public), media proxy and page
+ *   thumbnail
  *
- * Открыты только public read-model (GET/HEAD /api/bricks/public/** —
- * published-проекции для рендера), health-пробы (GET/HEAD /api/bricks/health
- * и /health/ready — LB не умеет авторизоваться) и библиотека компонентов
- * (GET/HEAD /api/bricks/components — манифест описывает состав библиотеки:
- * имена, категории, пути brick-файлов и их редакторские метаданные, то есть
- * ровно то, что и так уходит в клиентский бандл). Database-only исключения:
- * `<builderPrefix>/bricks-login` (страница логина) и /api/bricks/auth/**
- * (login/logout/me) — иначе на форму не попасть.
+ * Open are only the public read model (GET/HEAD /api/bricks/public/** —
+ * published projections for the renderer), the health probes (GET/HEAD
+ * /api/bricks/health and /health/ready — a load balancer cannot authenticate)
+ * and the component library (GET/HEAD /api/bricks/components — the manifest
+ * describes the contents of the library: names, categories, brick file paths
+ * and their editorial metadata, that is exactly what goes into the client
+ * bundle anyway). Database-only exceptions: `<builderPrefix>/bricks-login` (the
+ * login page) and /api/bricks/auth/** (login/logout/me) — otherwise the form is
+ * unreachable.
  *
- * Все функции принимают ЛОГИЧЕСКИЙ путь (без `app.baseURL`) — middleware
- * стрипает base до вызова матрицы.
+ * All functions take the LOGICAL path (without `app.baseURL`): h3 cuts the
+ * mount prefix of the middleware before calling it, so the middleware already
+ * hands the matrix a stripped path.
  */
 import type { TBricksAuthMode } from './types';
 import {
@@ -28,27 +31,27 @@ import {
     type IBricksRoutePrefixes,
 } from '../../../modules/common/utils/bricks/routePaths';
 
-/** HTTP методы чтения, разрешённые на public read-model без авторизации. */
+/** Read methods allowed on the public read model without authentication */
 const PUBLIC_READ_METHODS = ['GET', 'HEAD'];
 
 /**
- * Путь — HTML-страница билдера/превью (для выбора redirect-vs-401).
+ * The path is a builder/preview HTML page (used to choose redirect vs 401).
  *
- * @param pathname - Логический путь запроса (без baseURL и query).
- * @param prefixes - Активные префиксы маршрутов.
+ * @param pathname - Logical request path (without baseURL and query).
+ * @param prefixes - Active route prefixes.
  */
 export function isProtectedHtmlPath(pathname: string, prefixes: IBricksRoutePrefixes): boolean {
     return isProtectedBricksHtmlPath(prefixes, pathname);
 }
 
 /**
- * Проверяет, требует ли запрос авторизации в заданном режиме.
+ * Checks whether the request requires authentication in the given mode.
  *
- * @param pathname - Логический путь запроса (без baseURL и query).
- * @param method - HTTP-метод.
- * @param mode - Активный auth-режим.
- * @param prefixes - Активные префиксы маршрутов.
- * @returns true — если путь защищён.
+ * @param pathname - Logical request path (without baseURL and query).
+ * @param method - HTTP method.
+ * @param mode - Active auth mode.
+ * @param prefixes - Active route prefixes.
+ * @returns true — the path is protected.
  */
 export function requiresAuth(
     pathname: string,
@@ -56,7 +59,8 @@ export function requiresAuth(
     mode: TBricksAuthMode,
     prefixes: IBricksRoutePrefixes
 ): boolean {
-    // Database-режим: страница логина и auth-ручки открыты — иначе не войти
+    // Database mode: the login page and the auth handlers are open — otherwise
+    // there is no way to sign in
     if (mode === 'database') {
         if (
             pathname === getBuilderLoginPath(prefixes) ||
@@ -70,13 +74,13 @@ export function requiresAuth(
         return true;
     }
 
-    // Public read-model — единственная открытая часть /api/bricks (только чтение)
+    // Public read model — the only open part of /api/bricks (reads only)
     if (pathname.startsWith('/api/bricks/public/') && PUBLIC_READ_METHODS.includes(method)) {
         return false;
     }
 
-    // Health-пробы LB/оркестратора не умеют авторизоваться — открыты
-    // (только чтение; ручки не раскрывают деталей окружения)
+    // Health probes of a load balancer or orchestrator cannot authenticate — so
+    // they are open (reads only; the handlers disclose no environment details)
     if (
         (pathname === '/api/bricks/health' || pathname === '/api/bricks/health/ready') &&
         PUBLIC_READ_METHODS.includes(method)
@@ -84,17 +88,18 @@ export function requiresAuth(
         return false;
     }
 
-    // Библиотека компонентов открыта на чтение: манифест содержит только имена,
-    // категории и пути brick-файлов — ровно то, что и так уходит в клиентский
-    // бандл. Прежнее обоснование («SSR билдера не пробрасывает Authorization»)
-    // снято: identity запроса локальным ручкам теперь пробрасывается
-    // (useApiClient), то есть ручку можно и закрыть — это отдельное решение,
-    // а не следствие правки проброса
+    // The component library is open for reading: the manifest holds only names,
+    // categories and brick file paths — exactly what goes into the client bundle
+    // anyway. The former rationale ("the builder SSR does not forward
+    // Authorization") is withdrawn: request identity is now forwarded to local
+    // handlers (useApiClient), which means the handler could be closed too —
+    // that is a separate decision, not a consequence of fixing the forwarding
     if (pathname === '/api/bricks/components' && PUBLIC_READ_METHODS.includes(method)) {
         return false;
     }
 
-    // Editorial API — защищён целиком, включая GET (drafts, полная schema, медиатека)
+    // Editorial API — protected in full, GET included (drafts, full schema,
+    // media library)
     if (pathname.startsWith('/api/bricks')) {
         return true;
     }

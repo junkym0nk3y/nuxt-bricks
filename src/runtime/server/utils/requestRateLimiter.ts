@@ -1,47 +1,48 @@
 /**
- * In-memory fixed-window rate limiter для ingest-ручек (загрузка медиа,
- * снапшоты превью). Ключ — IP запроса.
+ * In-memory fixed-window rate limiter for the ingest handlers (media upload,
+ * preview snapshots). The key is the request IP.
  *
- * Без таймеров (дружелюбно к HMR/serverless) — просроченные окна убираются
- * opportunistic-sweep'ом при обращениях; жёсткая граница maxEntries защищает
- * память от распылённых по ключам атак.
+ * With no timers (friendly to HMR and serverless) — expired windows are dropped
+ * by an opportunistic sweep on access; the hard maxEntries limit protects memory
+ * from attacks spread across keys.
  *
- * Нюанс (как у loginRateLimiter): состояние per-process — multi-replica
- * деплой ослабляет лимит пропорционально числу реплик.
+ * A caveat (the same as loginRateLimiter): the state is per process — a
+ * multi-replica deployment weakens the limit proportionally to the number of
+ * replicas.
  */
 import { createError, setResponseHeader, type H3Event } from 'h3';
 import { resolveRequestClientIp } from './requestClientIp';
 
-/** Дефолтная жёсткая граница размера Map. */
+/** Default hard limit on the size of the Map */
 const DEFAULT_MAX_ENTRIES = 10_000;
 
-/** Состояние окна по одному ключу. */
+/** Window state for one key */
 interface IWindowEntry {
     count: number;
     windowStartedAt: number;
 }
 
-/** Параметры лимитера. */
+/** Limiter parameters */
 export interface IFixedWindowLimiterOptions {
-    /** Максимум запросов в окне. */
+    /** Maximum requests within the window */
     limit: number;
-    /** Длительность окна, мс. */
+    /** Window duration, ms */
     windowMs: number;
-    /** Жёсткая граница числа отслеживаемых ключей. */
+    /** Hard limit on the number of tracked keys */
     maxEntries?: number;
 }
 
-/** Fixed-window лимитер: hit возвращает секунды до конца окна (0 — разрешено). */
+/** Fixed-window limiter: hit returns seconds until the window ends (0 — allowed) */
 export interface IFixedWindowLimiter {
     hit(key: string): number;
     reset(): void;
 }
 
 /**
- * Создаёт fixed-window rate limiter.
+ * Creates a fixed-window rate limiter.
  *
- * @param options - Лимит, окно и граница памяти.
- * @returns Лимитер.
+ * @param options - Limit, window and memory bound.
+ * @returns The limiter.
  */
 export function createFixedWindowRateLimiter(
     options: IFixedWindowLimiterOptions
@@ -51,15 +52,15 @@ export function createFixedWindowRateLimiter(
     const entries = new Map<string, IWindowEntry>();
 
     /**
-     * Окно записи истекло.
+     * The window of the entry has expired.
      */
     function isExpired(entry: IWindowEntry, now: number): boolean {
         return now - entry.windowStartedAt >= windowMs;
     }
 
     /**
-     * Opportunistic sweep: удаляет истёкшие окна; при переполнении сверх
-     * maxEntries удаляет самые старые (Map хранит порядок вставки).
+     * Opportunistic sweep: removes expired windows; on overflow past maxEntries
+     * it removes the oldest ones (a Map keeps insertion order).
      */
     function sweep(now: number): void {
         for (const [key, entry] of entries) {
@@ -87,10 +88,11 @@ export function createFixedWindowRateLimiter(
 
     return {
         /**
-         * Регистрирует запрос по ключу.
+         * Registers a request under the key.
          *
-         * @param key - Ключ клиента (IP).
-         * @returns 0 — разрешено; иначе секунды до конца окна (для Retry-After).
+         * @param key - Client key (IP).
+         * @returns 0 — allowed; otherwise seconds until the window ends
+         * (for Retry-After).
          */
         hit(key: string): number {
             const now = Date.now();
@@ -103,7 +105,7 @@ export function createFixedWindowRateLimiter(
                 return 0;
             }
 
-            // Re-insert для актуализации порядка вставки (старые — первые на выселение)
+            // Re-insert to refresh the insertion order (the oldest are evicted first)
             entries.delete(key);
             entry.count += 1;
             entries.set(key, entry);
@@ -116,7 +118,7 @@ export function createFixedWindowRateLimiter(
         },
 
         /**
-         * Полный сброс состояния (только для тестов).
+         * Full state reset (tests only).
          */
         reset(): void {
             entries.clear();
@@ -125,11 +127,11 @@ export function createFixedWindowRateLimiter(
 }
 
 /**
- * Проверяет rate limit запроса по IP; при превышении — 429 с Retry-After.
+ * Checks the rate limit of a request by IP; on excess, 429 with Retry-After.
  *
- * @param event - Событие запроса.
- * @param limiter - Лимитер ручки.
- * @param message - Сообщение 429-ответа.
+ * @param event - Request event.
+ * @param limiter - Limiter of the handler.
+ * @param message - Message of the 429 response.
  */
 export function assertWithinRateLimit(
     event: H3Event,

@@ -37,6 +37,7 @@ import {
     AREAS,
     LITERAL_GATED,
     MARKUP_COMMENT_ALLOWED,
+    MESSAGE_KEPT_RUSSIAN,
     ROOT,
     isExcluded,
     isScannedPath,
@@ -89,7 +90,13 @@ function countFile(path, bucket) {
         hits.push({ line, kind: literalGated ? 'literal (gated)' : 'literal', text: '' });
     }
 
+    const keptRussian = MESSAGE_KEPT_RUSSIAN.get(path);
+
     for (const message of collectDevMessages(path, source)) {
+        if (keptRussian?.has(message.text)) {
+            continue;
+        }
+
         bucket.messages += 1;
         hits.push({ line: message.line, kind: 'message', text: message.text });
     }

@@ -8,9 +8,10 @@ import { validateCreatePagePayload } from '../../../modules/persistence/server/u
 import { getConfiguredPageAddressContext } from '../../../modules/persistence/server/utils/pageAddressContext';
 
 /**
- * POST /api/bricks — создаёт новую страницу и возвращает её полностью.
- * Уникальность pagename обеспечивает constraint БД: гонку одновременных
- * create ловит BricksPageAddressConflictError → 409 (pre-check SELECT не нужен).
+ * POST /api/bricks — creates a new page and returns it in full.
+ * Address uniqueness is enforced by a database constraint: a race of simultaneous
+ * creates is caught as BricksPageAddressConflictError → 409 (no pre-check SELECT
+ * is needed).
  */
 export default defineEventHandler(async (event) => {
     try {

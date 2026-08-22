@@ -1,13 +1,15 @@
 /**
- * Общая логика ручек `/api/bricks/users/**`: доступность раздела, требование
- * роли администратора, запрет операций над собой и валидация DTO.
+ * Logic shared by the `/api/bricks/users/**` handlers: availability of the
+ * section, the administrator role requirement, the ban on operating on oneself
+ * and DTO validation.
  *
- * Второго разборщика ПУТЕЙ здесь по-прежнему нет: сопоставление маршрута с
- * требуемым правом остаётся за auth-middleware (`rolePolicy.ts`), потому что
- * два разборщика неизбежно разошлись бы в краях — таким разрывом уже случался
- * обход гарда кодированным путём. `assertAdminRole` путей не разбирает вовсе:
- * ручка, вызывающая его, сама и есть админская, и роль читается из контекста
- * запроса, который положило то же middleware.
+ * There is still no second parser of PATHS here: matching a route against the
+ * required right stays with the auth middleware (`rolePolicy.ts`), because two
+ * parsers would inevitably diverge at the edges — such a gap has already
+ * allowed the guard to be bypassed with an encoded path. `assertAdminRole`
+ * parses no paths at all: the handler calling it is the admin handler itself,
+ * and the role is read from the request context put there by that same
+ * middleware.
  */
 import { createError, type H3Event } from 'h3';
 import { useRuntimeConfig } from 'nitropack/runtime';
@@ -43,7 +45,7 @@ import type {
     ICreateAuthUserPayload,
 } from '../../../modules/persistence/types/authAdapters';
 
-/** Разрешённые ключи тела создания учётки. */
+/** Keys allowed in the account creation body */
 const CREATE_USER_KEYS: ReadonlySet<string> = new Set([
     'username',
     'password',
@@ -52,28 +54,28 @@ const CREATE_USER_KEYS: ReadonlySet<string> = new Set([
     'isActive',
 ]);
 
-/** Разрешённые ключи тела правки учётки администратором. */
+/** Keys allowed in the body of an administrator editing an account */
 const UPDATE_USER_KEYS: ReadonlySet<string> = new Set(['role', 'isActive']);
 
-/** Разрешённые ключи тела смены чужого пароля. */
+/** Keys allowed in the body of changing someone else's password */
 const PASSWORD_KEYS: ReadonlySet<string> = new Set(['password']);
 
 /**
- * Проверяет, что значение — известная роль. Ключи `BRICKS_ROLE_RANK` типизованы
- * как `string`, поэтому проверка идёт по самому объекту ранга: отдельный список
- * ролей рядом с ним разошёлся бы молча.
+ * Checks that the value is a known role. The keys of `BRICKS_ROLE_RANK` are
+ * typed as `string`, so the check runs against the rank object itself: a
+ * separate list of roles next to it would diverge silently.
  *
- * @param value - Сырое значение поля.
+ * @param value - Raw field value.
  */
 function isBricksUserRole(value: unknown): value is TBricksUserRole {
     return typeof value === 'string' && Object.hasOwn(BRICKS_ROLE_RANK, value);
 }
 
 /**
- * Требует роль в теле запроса; 400 — если значение не роль.
+ * Requires a role in the request body; 400 if the value is not a role.
  *
- * @param value - Сырое значение поля.
- * @param field - Имя поля для сообщения об ошибке.
+ * @param value - Raw field value.
+ * @param field - Field name for the error message.
  */
 function requireRole(value: unknown, field: string): TBricksUserRole {
     if (!isBricksUserRole(value)) {
@@ -84,31 +86,33 @@ function requireRole(value: unknown, field: string): TBricksUserRole {
 }
 
 /**
- * Проверяет пароль как строку в допустимых границах. Пробелы НЕ обрезаются:
- * пробел — законный символ пароля, и `trim` менял бы то, что человек ввёл
- * (обрезанный пароль потом не подошёл бы при входе).
+ * Checks the password as a string within the allowed bounds. Whitespace is NOT
+ * trimmed: a space is a legitimate password character, and `trim` would change
+ * what the person typed (the trimmed password would then fail at sign-in).
  *
- * Экспортируется ручкам своего профиля намеренно: границы нового пароля обязаны
- * совпадать на обоих путях смены — иначе профиль принимал бы пароль, который
- * администратор задать не может, и минимальная длина перестала бы что-либо
- * значить.
+ * Exported to the own-profile handlers deliberately: the bounds of a new
+ * password must match on both change paths — otherwise the profile would accept
+ * a password an administrator cannot set, and the minimum length would stop
+ * meaning anything.
  *
- * @param value - Сырое значение поля.
- * @param field - Имя поля для сообщения об ошибке: у своего пароля оно
- * `newPassword`, и общее «password» отправило бы подсказку формы под чужое поле.
- * @returns Пароль в открытом виде.
+ * @param value - Raw field value.
+ * @param field - Field name for the error message: for one's own password it is
+ * `newPassword`, and a generic "password" would put the form hint under the
+ * wrong field.
+ * @returns The plaintext password.
  */
 export function requirePassword(value: unknown, field = 'password'): string {
     if (typeof value !== 'string') {
         invalid(`Field "${field}" must be a string`);
     }
 
-    // Дефолтный пароль сида запрещён кому бы то ни было: он одинаков во всех
-    // установках и напечатан в README. Без этого запрета человек мог бы «сменить»
-    // пароль на тот же самый — предупреждение о дефолтном пароле погасло бы
-    // (оно узнаёт дефолт по хешу, а у новой записи своя соль), а учётка осталась
-    // бы общеизвестной. Тем же запретом закрыт и обратный путь: администратор не
-    // может выдать этот пароль другому.
+    // The seed default password is forbidden to anyone: it is the same in every
+    // installation and printed in the README. Without this ban a person could
+    // "change" the password to the very same one — the default password warning
+    // would go out (it recognizes the default by its hash, and a new record gets
+    // its own salt), while the account stayed common knowledge. The same ban
+    // closes the reverse path: an administrator cannot hand that password to
+    // someone else.
     if (value === BRICKS_DEFAULT_ADMIN_PASSWORD) {
         invalid(`Field "${field}" must not be the default password`);
     }
@@ -125,15 +129,15 @@ export function requirePassword(value: unknown, field = 'password'): string {
 }
 
 /**
- * Приводит логин к канонической форме и проверяет формат.
+ * Brings the username to its canonical form and checks the format.
  *
- * Регистр снимается ДО проверки формата: уникальность держится индексом по
- * `lower(username)`, вход регистронезависим, и `Ivan` с `ivan` — одна учётка.
- * Хранить введённый регистр значило бы показывать в списке имя, отличающееся от
- * того, чем реально входят.
+ * Case is dropped BEFORE the format check: uniqueness is held by an index on
+ * `lower(username)`, sign-in is case-insensitive, and `Ivan` and `ivan` are one
+ * account. Storing the typed case would mean showing a name in the list that
+ * differs from what people actually sign in with.
  *
- * @param value - Сырое значение поля.
- * @returns Логин в нижнем регистре.
+ * @param value - Raw field value.
+ * @returns The lowercase username.
  */
 function requireUsername(value: unknown): string {
     const raw = requireString(value, 'username', {
@@ -150,14 +154,15 @@ function requireUsername(value: unknown): string {
 }
 
 /**
- * Считает scrypt-хеш под общим семафором; переполнение очереди — 503 (тот же
- * ответ, что у логина: сервер занят, повтор осмыслен).
+ * Computes the scrypt hash under the shared semaphore; queue overflow is 503
+ * (the same answer as at login: the server is busy, retrying makes sense).
  *
- * Через семафор, а не напрямую: derive занимает секунды CPU, и серия созданий
- * учёток иначе отняла бы процессор у входов. По той же причине через него идут и
- * ручки профиля — семафор общий на все scrypt-дериватации процесса.
+ * Through the semaphore rather than directly: a derivation takes seconds of CPU,
+ * and a burst of account creations would otherwise starve sign-ins of the
+ * processor. For the same reason the profile handlers go through it too — the
+ * semaphore is shared by every scrypt derivation in the process.
  *
- * @param password - Пароль в открытом виде.
+ * @param password - The plaintext password.
  */
 export async function hashPasswordUnderGate(password: string): Promise<string> {
     try {
@@ -175,19 +180,20 @@ export async function hashPasswordUnderGate(password: string): Promise<string> {
 }
 
 /**
- * Отказывает, если управление учётками недоступно: не database-режим или
- * выключено опцией `auth.allowUserManagement`.
+ * Refuses when account management is unavailable: not database mode, or turned
+ * off by the `auth.allowUserManagement` option.
  *
- * 404, а не 403: 403 подтверждал бы, что раздел в сборке есть и просто закрыт
- * администратору. Ответ обеих причин одинаков намеренно — снаружи они
- * неразличимы.
+ * 404, not 403: a 403 would confirm that the section is in the build and merely
+ * closed to the administrator. Both reasons answer the same on purpose — from
+ * the outside they are indistinguishable.
  *
- * Второй рубеж: первым тот же 404 отдаёт auth-middleware, до гарда по роли и
- * CSRF-гейта, — иначе выключенный раздел выдавал бы себя чужими статусами
- * (403 редактору, 401 анониму). Здесь проверка остаётся на случай ручки,
- * зарегистрированной вне матрицы путей middleware.
+ * A second line of defense: the same 404 is served first by the auth
+ * middleware, before the role guard and the CSRF gate — otherwise a disabled
+ * section would give itself away with foreign statuses (403 to an editor, 401 to
+ * an anonymous caller). The check stays here for a handler registered outside
+ * the path matrix of the middleware.
  *
- * @param event - Событие запроса.
+ * @param event - Request event.
  */
 export function assertUserManagementAvailable(event: H3Event): void {
     const config = useRuntimeConfig(event);
@@ -198,17 +204,20 @@ export function assertUserManagementAvailable(event: H3Event): void {
 }
 
 /**
- * Отказывает, если смена пароля выключена опцией `auth.allowPasswordChange`.
+ * Refuses when password change is turned off by the `auth.allowPasswordChange`
+ * option.
  *
- * 403 с машиночитаемым кодом, а не 404 раздела учёток: наличие паролей в
- * установке и так очевидно (ими же входят), скрывать нечего, а клиенту нужно
- * отличить «выключено настройкой» от «нет прав» — второе он предложил бы
- * повторить под другой учёткой.
+ * 403 with a machine-readable code rather than the 404 of the account section:
+ * that the installation has passwords is obvious anyway (people sign in with
+ * them), there is nothing to hide, and the client has to tell "turned off by a
+ * setting" from "no rights" — for the latter it would suggest retrying under a
+ * different account.
  *
- * Одна проверка на две ручки (свой пароль и чужой): установка, где пароли ведут
- * снаружи, иначе получила бы одну лазейку из двух.
+ * One check for two handlers (one's own password and someone else's): an
+ * installation that keeps passwords outside the module would otherwise be left
+ * with one loophole out of two.
  *
- * @param event - Событие запроса.
+ * @param event - Request event.
  */
 export function assertPasswordChangeAllowed(event: H3Event): void {
     const config = useRuntimeConfig(event);
@@ -225,17 +234,19 @@ export function assertPasswordChangeAllowed(event: H3Event): void {
 }
 
 /**
- * Требует роль администратора у уже авторизованного запроса.
+ * Requires the administrator role of an already authenticated request.
  *
- * Дубль ролевого гарда middleware — намеренный, и не ради «на всякий случай»:
- * ручки с параметром `:id` матчатся и путями, которых матрица прав не считает
- * админскими. `PATCH /api/bricks/users/me` попадает сюда же, потому что
- * отдельного маршрута профиля ещё нет, и стоит поддереву профиля получить
- * послабление, как единственным препятствием останется разбор `:id` —
- * совпадение, а не право доступа. Роль читается из контекста, положенного
- * middleware, поэтому проверка не зависит от того, как разобран путь.
+ * Duplicating the role guard of the middleware is deliberate, and not for the
+ * sake of "just in case": handlers with an `:id` parameter also match paths under
+ * `/users/me`, whose exact "method + path" pairs the access matrix relaxes to any
+ * session. Only the pairs that have a static handler of their own are routed away
+ * from here — `DELETE /api/bricks/users/me` has none and lands in
+ * `[id].delete.ts`. Add a route to the relaxed list without a static handler and
+ * the only obstacle left would be how `:id` parses: a coincidence, not an access
+ * right. The role is read from the context put there by the middleware, so the
+ * check does not depend on how the path parsed.
  *
- * @param event - Событие запроса.
+ * @param event - Request event.
  */
 export function assertAdminRole(event: H3Event): void {
     const role = event.context.bricksUser?.role;
@@ -252,17 +263,18 @@ export function assertAdminRole(event: H3Event): void {
 }
 
 /**
- * Отказывает, если запрос направлен на собственную учётку.
+ * Refuses when the request targets the caller's own account.
  *
- * Причина не в удобстве: админ-ручка пароля не спрашивает текущий пароль (его
- * незачем знать администратору, задающему пароль другому), а ручка своего
- * профиля спрашивает — иначе украденная кука меняет пароль сама и запирает
- * владельца. Разреши админ-путь для себя, и это требование обходится в один
- * запрос. Роль и активность себе не правятся по той же причине: собственные
- * права не должны меняться мимо второго администратора.
+ * The reason is not convenience: the admin password handler does not ask for the
+ * current password (an administrator setting a password for someone else has no
+ * reason to know it), while the own-profile handler does — otherwise a stolen
+ * cookie changes the password on its own and locks the owner out. Allow the
+ * admin path against oneself and that requirement is bypassed in a single
+ * request. Role and activity are not editable on oneself for the same reason:
+ * one's own rights must not change without a second administrator.
  *
- * @param event - Событие запроса.
- * @param targetUserId - Идентификатор учётки-цели.
+ * @param event - Request event.
+ * @param targetUserId - Identifier of the target account.
  */
 export function assertNotSelfTarget(event: H3Event, targetUserId: number): void {
     if (event.context.bricksUser?.id !== targetUserId) {
@@ -277,21 +289,23 @@ export function assertNotSelfTarget(event: H3Event, targetUserId: number): void 
 }
 
 /**
- * Валидирует тело создания учётки и хеширует пароль: адаптер пароля в открытом
- * виде не видит вовсе.
+ * Validates the account creation body and hashes the password: the adapter never
+ * sees the plaintext at all.
  *
- * Отображаемое имя и активность необязательны и разрешаются здесь, а не в
- * адаптере: `undefined` уехал бы в INSERT как NULL, а `is_active` объявлен NOT
- * NULL — дефолт таблицы при явном значении не применяется вовсе. Пустая строка
- * имени равна его отсутствию — это просьба показывать логин, та же трактовка,
- * что у правки своего профиля.
+ * The display name and the activity flag are optional and are resolved here
+ * rather than in the adapter: `undefined` would reach the INSERT as NULL, and
+ * `is_active` is declared NOT NULL — the table default does not apply at all
+ * once a value is given explicitly. An empty name string equals no name — it is
+ * a request to show the username, the same reading as when editing one's own
+ * profile.
  *
- * Имя задаётся ТОЛЬКО при создании, дальше его правит себе сам человек
- * (`PATCH /users/me`): администратор наполняет список читаемыми именами до
- * первого входа новых людей, но переписывать чужую подпись потом не может.
+ * The name is set ONLY at creation, after which people edit it themselves
+ * (`PATCH /users/me`): an administrator fills the list with readable names
+ * before new people first sign in, but cannot rewrite someone else's signature
+ * afterwards.
  *
- * @param body - Нормализованное тело запроса.
- * @returns Данные для адаптера.
+ * @param body - Normalized request body.
+ * @returns Data for the adapter.
  */
 export async function buildCreateUserPayload(
     body: Record<string, unknown>
@@ -317,9 +331,9 @@ export async function buildCreateUserPayload(
 }
 
 /**
- * Валидирует тело правки учётки: роль и/или активность, хотя бы одно поле.
+ * Validates the account edit body: role and/or activity, at least one field.
  *
- * @param body - Нормализованное тело запроса.
+ * @param body - Normalized request body.
  */
 export function validateUpdateUserPayload(body: Record<string, unknown>): IAuthUserStateChange {
     assertKnownKeys(body, UPDATE_USER_KEYS);
@@ -335,10 +349,10 @@ export function validateUpdateUserPayload(body: Record<string, unknown>): IAuthU
 }
 
 /**
- * Валидирует тело смены чужого пароля и хеширует его.
+ * Validates the body of changing someone else's password and hashes it.
  *
- * @param body - Нормализованное тело запроса.
- * @returns Хеш пароля для адаптера.
+ * @param body - Normalized request body.
+ * @returns The password hash for the adapter.
  */
 export async function buildUserPasswordHash(body: Record<string, unknown>): Promise<string> {
     assertKnownKeys(body, PASSWORD_KEYS);

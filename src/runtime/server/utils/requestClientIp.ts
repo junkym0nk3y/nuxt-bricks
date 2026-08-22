@@ -1,41 +1,42 @@
 /**
- * Резолв клиентского IP для rate limiter'ов.
+ * Resolving the client IP for the rate limiters.
  *
- * По умолчанию используется только socket-адрес соединения — заголовкам
- * x-forwarded-* модуль не доверяет (их может прислать сам клиент).
- * За reverse proxy socket-адрес у всех запросов одинаковый (адрес прокси),
- * и per-IP лимиты схлопываются в один общий bucket — для этого случая есть
- * опт-ин `bricks.trustProxy` (env NUXT_BRICKS_TRUST_PROXY): берётся
- * **последний** элемент `x-forwarded-for` — тот, что дописал ближайший
- * доверенный прокси-хоп; первый элемент клиент может подделать, прислав
- * собственный заголовок (аппендящий прокси его сохранит).
+ * By default only the socket address of the connection is used — the module does
+ * not trust the x-forwarded-* headers (the client itself may send them). Behind
+ * a reverse proxy the socket address is the same for every request (the address
+ * of the proxy), and the per-IP limits collapse into one shared bucket — for
+ * that case there is the `bricks.trustProxy` opt-in (env NUXT_BRICKS_TRUST_PROXY):
+ * the **last** element of `x-forwarded-for` is taken, the one appended by the
+ * nearest trusted proxy hop; the first element can be forged by the client by
+ * sending a header of its own (an appending proxy keeps it).
  *
- * Ограничение: trustProxy рассчитан ровно на один доверенный прокси-хоп
- * перед приложением. Цепочки из нескольких прокси требуют, чтобы внешний
- * хоп перезаписывал x-forwarded-for.
+ * A limitation: trustProxy is designed for exactly one trusted proxy hop in
+ * front of the application. Chains of several proxies require the outermost hop
+ * to overwrite x-forwarded-for.
  */
 import { getRequestHeader, type H3Event } from 'h3';
 import { useRuntimeConfig } from 'nitropack/runtime';
 import { parseBricksBooleanFlag } from '../../modules/common/utils/main';
 
-/** Ключ-заглушка, когда IP определить не удалось. */
+/** Placeholder key used when the IP could not be determined */
 const UNKNOWN_CLIENT_IP = 'unknown';
 
 /**
- * Приводит значение runtimeConfig/env к булеву флагу trustProxy.
+ * Coerces a runtimeConfig/env value into the boolean trustProxy flag.
  *
- * @param value - Значение `bricksTrustProxy` (boolean из опций или строка из env).
+ * @param value - Value of `bricksTrustProxy` (a boolean from the options or a
+ * string from env).
  */
 export function parseTrustProxyFlag(value: unknown): boolean {
     return parseBricksBooleanFlag(value);
 }
 
 /**
- * Чистый резолв клиентского IP из заголовка и socket-адреса.
+ * The pure resolution of the client IP from the header and the socket address.
  *
- * @param xForwardedFor - Значение заголовка x-forwarded-for (как пришло).
- * @param socketAddress - remoteAddress socket-соединения.
- * @param trustProxy - Доверять ли x-forwarded-for (ближайшему прокси-хопу).
+ * @param xForwardedFor - Value of the x-forwarded-for header, as received.
+ * @param socketAddress - remoteAddress of the socket connection.
+ * @param trustProxy - Whether to trust x-forwarded-for (the nearest proxy hop).
  */
 export function resolveClientIp(
     xForwardedFor: string | undefined,
@@ -58,9 +59,9 @@ export function resolveClientIp(
 }
 
 /**
- * Возвращает клиентский IP запроса с учётом конфигурации trustProxy.
+ * Returns the client IP of the request, honoring the trustProxy configuration.
  *
- * @param event - Событие запроса.
+ * @param event - Request event.
  */
 export function resolveRequestClientIp(event: H3Event): string {
     const trustProxy = parseTrustProxyFlag(useRuntimeConfig(event).bricksTrustProxy);

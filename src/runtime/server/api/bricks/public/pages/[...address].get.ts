@@ -6,24 +6,26 @@ import { toHttpError } from '../../../../../modules/persistence/server/utils/han
 import { toPublicPageProjection } from '../../../../../modules/persistence/server/utils/publicProjection';
 
 /**
- * GET /api/bricks/public/pages/<urlPrefix>/<pagename> — публичная проекция
- * опубликованной страницы (прямой lookup по адресу, без list+find).
- * Draft-страницы и editor-only поля (thumbnailUrl) наружу не отдаются:
- * не-published === 404.
+ * GET /api/bricks/public/pages/<urlPrefix>/<pagename> — the public projection of
+ * a published page (a direct lookup by address, without list plus find).
+ * Draft pages and editor-only fields (thumbnailUrl) are never handed outward:
+ * not published means 404.
  *
- * Адрес приходит остатком пути, а не парой параметров: страницу опознаёт полный
- * адрес, а его последний сегмент — `pagename`, всё до него — `urlPrefix`.
- * Одно имя страницу больше не определяет: `/blog/post` и `/news/post` — разные
- * страницы, и lookup по имени вернул бы произвольную из них.
+ * The address arrives as the rest of the path rather than as a pair of
+ * parameters: a page is identified by its full address, whose last segment is
+ * `pagename` and everything before it is `urlPrefix`. A name alone no longer
+ * identifies a page: `/blog/post` and `/news/post` are different pages, and a
+ * lookup by name would return an arbitrary one of them.
  */
 
 /**
- * Разбирает остаток пути в адрес страницы: последний сегмент — `pagename`,
- * предшествующие — `urlPrefix`. Пустые сегменты (двойной слэш, trailing slash)
- * отбрасываются, поэтому и `blog/post`, и `blog/post/` дают один адрес.
+ * Parses the rest of the path into a page address: the last segment is
+ * `pagename`, the preceding ones are `urlPrefix`. Empty segments (a double slash,
+ * a trailing slash) are dropped, so `blog/post` and `blog/post/` give one and the
+ * same address.
  *
- * @param rawAddress - Остаток пути после `public/pages/`.
- * @returns Адрес либо null, если сегментов нет вовсе.
+ * @param rawAddress - The rest of the path after `public/pages/`.
+ * @returns The address, or null when there are no segments at all.
  */
 function parseAddressPath(rawAddress: string): IBricksPageAddress | null {
     const segments = rawAddress.split('/').filter(Boolean);
@@ -42,9 +44,10 @@ function parseAddressPath(rawAddress: string): IBricksPageAddress | null {
 export default defineEventHandler(async (event) => {
     const address = parseAddressPath(getRouterParam(event, 'address', { decode: true }) ?? '');
 
-    // Невалидный формат неотличим от несуществующей страницы — 404 без деталей.
-    // Проверка — общая с формой и DTO (`isValidPageAddress`): своя копия правил
-    // здесь принимала бы адреса, которых запись не создаёт
+    // An invalid format is indistinguishable from a page that does not exist —
+    // 404 with no details. The check is shared with the form and the DTO
+    // (`isValidPageAddress`): a copy of the rules of its own here would accept
+    // addresses that the write path never creates
     if (!address || !isValidPageAddress(address)) {
         throw createError({ statusCode: 404, statusMessage: 'Page not found' });
     }

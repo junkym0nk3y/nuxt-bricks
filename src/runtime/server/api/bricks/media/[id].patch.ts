@@ -9,7 +9,7 @@ import { validateUpdateMediaPayload } from '../../../../modules/persistence/serv
 import { assertKnownMediaCategory } from '../../../../modules/persistence/server/utils/mediaCategoryRules';
 
 /**
- * PATCH /api/bricks/media/:id — частично обновляет метаданные медиа
+ * PATCH /api/bricks/media/:id — partially updates the media metadata
  * (filename / alt / category).
  */
 export default defineEventHandler(async (event) => {
@@ -21,9 +21,10 @@ export default defineEventHandler(async (event) => {
         );
         const storage = useBricksStorageAdapter();
 
-        // Существование категории проверяется до записи ради раннего отказа;
-        // гонку с удалением категории ловит уже FK базы, и оба пути дают
-        // клиенту один ответ. null проверять нечего — это снятие категории
+        // The existence of the category is checked before the write for an early
+        // refusal; the race with the deletion of a category is caught by the
+        // database FK, and both paths give the client one and the same answer.
+        // There is nothing to check for null — that is the removal of a category
         if (body.category) {
             await assertKnownMediaCategory(storage, body.category);
         }

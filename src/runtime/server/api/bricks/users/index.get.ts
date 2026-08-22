@@ -4,11 +4,12 @@ import { toUsersHttpError } from '../../../../modules/persistence/server/utils/h
 import { assertUserManagementAvailable } from '../../../utils/auth/userManagement';
 
 /**
- * GET /api/bricks/users — список учёток для раздела «Пользователи» (admin).
+ * GET /api/bricks/users — the account list for the Users section (admin).
  *
- * Отдаёт и собственную учётку запрашивающего: строка «это вы» — часть экрана,
- * а не лишняя запись. Секретов в ответе нет (ни хеша пароля, ни поколения
- * учётных данных), поэтому фильтровать поля клиенту не приходится.
+ * It returns the requester's own account too: the "this is you" row is part of
+ * the screen, not a redundant record. There are no secrets in the response
+ * (neither the password hash nor the credential generation), so the client never
+ * has to filter the fields.
  */
 export default defineEventHandler(async (event) => {
     try {

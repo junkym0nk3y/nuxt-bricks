@@ -33,16 +33,19 @@ interface IThumbnailUploadResponse {
 // #endregion
 
 // #region Constants
-/** Целевая ширина миниатюры страницы (px). */
+/** Target width of the page thumbnail (px) */
 const THUMBNAIL_WIDTH = 480;
 
-/** Качество webp-кодирования миниатюры. */
+/** Quality of the thumbnail webp encoding */
 const THUMBNAIL_WEBP_QUALITY = 80;
 
-/** Максимальный размер входного снапшота (МБ) — снапшот канваса не должен весить больше. */
+/**
+ * Maximum size of the incoming snapshot (MB) — a canvas snapshot must not weigh
+ * more.
+ */
 const MAX_THUMBNAIL_UPLOAD_MB = 10;
 
-/** Лимит снапшотов с одного IP в минуту. */
+/** Limit of snapshots from one IP per minute */
 const THUMBNAILS_PER_MINUTE = 30;
 const thumbnailRateLimiter = createFixedWindowRateLimiter({
     limit: THUMBNAILS_PER_MINUTE,
@@ -52,12 +55,12 @@ const thumbnailRateLimiter = createFixedWindowRateLimiter({
 
 // #region Helpers
 /**
- * Достаёт файл снапшота из multipart-формы и валидирует наличие данных,
- * лимит размера и растровую сигнатуру содержимого (снапшот канваса —
- * всегда растровое изображение).
+ * Pulls the snapshot file out of the multipart form and validates that it carries
+ * data, fits the size limit and has a raster signature (a canvas snapshot is
+ * always a raster image).
  *
- * @param formData - Коллекция multipart-полей.
- * @returns Найденный файл.
+ * @param formData - Collection of multipart fields.
+ * @returns The file that was found.
  */
 function assertUploadedFile(formData: IUploadedFilePart[]): IUploadedFilePart {
     const file = formData.find((item) => item.name === 'file');
@@ -89,10 +92,10 @@ function assertUploadedFile(formData: IUploadedFilePart[]): IUploadedFilePart {
 }
 
 /**
- * Достаёт и валидирует pageId из multipart-формы.
+ * Pulls the pageId out of the multipart form and validates it.
  *
- * @param formData - Коллекция multipart-полей.
- * @returns Положительный целочисленный идентификатор страницы.
+ * @param formData - Collection of multipart fields.
+ * @returns A positive integer page identifier.
  */
 function assertPageId(formData: IUploadedFilePart[]): number {
     const raw = formData.find((item) => item.name === 'pageId')?.data.toString();
@@ -109,11 +112,12 @@ function assertPageId(formData: IUploadedFilePart[]): number {
 }
 
 /**
- * Удаляет только что загруженный кадр, если страница исчезла: уборка удалённой
- * страницы прошла раньше, чем появился этот файл, и следующего прохода по её
- * префиксу уже не будет — без компенсации файл остался бы в хранилище навсегда.
+ * Deletes the frame that was just uploaded when the page has vanished: the
+ * cleanup of the deleted page ran before this file appeared, and there will be no
+ * further pass over its prefix — without the compensation the file would stay in
+ * the storage forever.
  *
- * @param uploadedUrl - URL загруженного кадра.
+ * @param uploadedUrl - URL of the uploaded frame.
  */
 async function discardUploadedThumbnail(uploadedUrl: string): Promise<void> {
     try {
@@ -125,19 +129,20 @@ async function discardUploadedThumbnail(uploadedUrl: string): Promise<void> {
 // #endregion
 
 /**
- * POST /api/bricks/media/s3-page-thumbnail — принимает снапшот канваса страницы,
- * пережимает в webp ≤480px и кладёт в хранилище публикации под уникальным на
- * загрузку ключом `page-{pageId}-{uuid}.webp` в thumbnail-namespace адаптера.
+ * POST /api/bricks/media/s3-page-thumbnail — takes a snapshot of the page canvas,
+ * re-encodes it into a webp of at most 480px and puts it into the publication
+ * storage under the per-upload unique key `page-{pageId}-{uuid}.webp` in the
+ * thumbnail namespace of the adapter.
  *
- * Ключ уникален, потому что кадр нужен не только странице, но и версии, которую
- * снапшотит сохранение: при одном перезаписываемом ключе вся история версий
- * показывала бы последний кадр. Сироты (кадры версий, вытесненных prune'ом
- * истории) убираются здесь же — по префиксу страницы с точным списком ещё
- * нужных URL.
+ * The key is unique because the frame is needed not only by the page but also by
+ * the version that a save snapshots: with a single overwritten key the whole
+ * version history would show the latest frame. Orphans (frames of versions
+ * evicted by the pruning of the history) are cleaned up right here — over the
+ * prefix of the page, with an exact list of the URLs still needed.
  *
- * Ingress-контроль: rate limit по IP, тело читается с жёстким лимитом,
- * содержимое подтверждается magic bytes, пережатие — через общий
- * sharp-семафор с limitInputPixels.
+ * Ingress control: a rate limit by IP, the body is read under a hard limit, the
+ * content is confirmed by magic bytes, and the re-encoding goes through the
+ * shared sharp semaphore with limitInputPixels.
  */
 export default defineEventHandler(async (event): Promise<IThumbnailUploadResponse> => {
     try {
@@ -146,8 +151,9 @@ export default defineEventHandler(async (event): Promise<IThumbnailUploadRespons
         const bodyLimitBytes =
             MAX_THUMBNAIL_UPLOAD_MB * 1024 * 1024 + MULTIPART_ENVELOPE_ALLOWANCE_BYTES;
 
-        // Обработка внутри колбэка: место в бюджете одновременного буферизования
-        // держится, пока живы буферы формы, — то есть до конца заливки кадра
+        // Everything happens inside the callback because the reservation in the
+        // concurrent buffering budget lives exactly as long as it runs — see
+        // `withMultipartFormData` for why the form is handed to a callback at all
         return await withMultipartFormData(event, bodyLimitBytes, async (formData) => {
             if (formData.length === 0) {
                 throw createError({
@@ -161,9 +167,10 @@ export default defineEventHandler(async (event): Promise<IThumbnailUploadRespons
 
             const storage = useBricksStorageAdapter();
 
-            // Существование страницы проверяется до пережатия и загрузки: кадр
-            // несуществующей страницы не убрать ничем — уборку по префиксу запускает
-            // сохранение или удаление той же страницы, а их не будет никогда
+            // The existence of the page is checked before the re-encoding and the
+            // upload: the frame of a page that does not exist cannot be cleaned up
+            // by anything — the cleanup over the prefix is started by a save or a
+            // deletion of that same page, and neither will ever happen
             if (!(await storage.getPage(pageId))) {
                 throw createError({
                     statusCode: 404,
@@ -183,9 +190,10 @@ export default defineEventHandler(async (event): Promise<IThumbnailUploadRespons
                 key: buildPageThumbnailKey(publishAdapter, pageId),
             });
 
-            // Повторное чтение — не дубль проверки выше: страницу могли удалить, пока
-            // шло пережатие. Оно же даёт первый кадр страницы для keep-list, и потому
-            // идёт раньше списка версий (см. prunePageThumbnailsAfterUpload)
+            // The repeated read is not a duplicate of the check above: the page
+            // could have been deleted while the re-encoding was running. It also
+            // supplies the first frame of the page for the keep list, which is why
+            // it comes before the version list (see prunePageThumbnailsAfterUpload)
             const page = await storage.getPage(pageId);
 
             if (!page) {
@@ -210,7 +218,7 @@ export default defineEventHandler(async (event): Promise<IThumbnailUploadRespons
             };
         });
     } catch (error: unknown) {
-        // h3-ошибки (лимиты, 429/413) пробрасываем со своим статусом
+        // h3 errors (limits, 429/413) are rethrown with their own status
         if (error && typeof error === 'object' && 'statusCode' in error) {
             throw error;
         }

@@ -18,17 +18,18 @@ import {
 } from '../../../../modules/persistence/server/utils/templateThumbnails';
 
 /**
- * Отвергнута ли запись шаблона ГАРАНТИРОВАННО — только тогда скопированный файл
- * превью можно удалить.
+ * Whether the template write was refused FOR CERTAIN — only then may the copied
+ * thumbnail file be deleted.
  *
- * Занятое имя означает нарушение unique-ограничения, то есть строки нет;
- * маркер отвергнутой записи адаптер ставит там, где знает то же про свою
- * операцию. Всё остальное (обрыв соединения, таймаут, 5xx внешнего backend'а) —
- * неизвестный исход: ответ мог потеряться уже после коммита, и удаление файла
- * оставило бы созданный шаблон с битой картинкой.
+ * A taken name means a violated unique constraint, that is, there is no row; the
+ * adapter marks a write as refused where it knows the same about its own
+ * operation. Everything else (a dropped connection, a timeout, a 5xx from the
+ * external backend) is an unknown outcome: the response could have been lost
+ * after the commit, and deleting the file would leave the created template with a
+ * broken image.
  *
- * @param error - Пойманная ошибка записи.
- * @returns Можно ли убирать скопированный файл.
+ * @param error - The write error that was caught.
+ * @returns Whether the copied file may be removed.
  */
 function isRejectedTemplateWrite(error: unknown): boolean {
     return (
@@ -38,20 +39,22 @@ function isRejectedTemplateWrite(error: unknown): boolean {
 }
 
 /**
- * POST /api/bricks/templates — сохраняет страницу как шаблон.
+ * POST /api/bricks/templates — saves a page as a template.
  *
- * Тело несёт содержимое и оформление, а не идентификатор страницы: точек входа
- * две, и приносят они разное. Строка списка страниц отправляет сохранённую схему
- * из базы, билдер — то, что сейчас на канвасе, вместе с несохранёнными правками.
- * Ручка, читающая страницу сама, второй сценарий обслужить не смогла бы вовсе.
+ * The body carries the content and the styling rather than a page identifier:
+ * there are two entry points, and they bring different things. A row of the page
+ * list sends the saved schema out of the database, the builder sends what is on
+ * the canvas right now, unsaved edits included. A handler that read the page
+ * itself could not serve the second scenario at all.
  *
- * Превью копируется в СВОЙ файл шаблона (`copyThumbnailForTemplate`), а ссылка
- * на кадр страницы не сохраняется: кадры страницы живут по её keep-list'у, и
- * первое же сохранение оставило бы шаблон с битой картинкой. Копия best-effort —
- * шаблон без превью законен, карточка рисует плейсхолдер.
+ * The thumbnail is copied into a file OF THE TEMPLATE'S OWN
+ * (`copyThumbnailForTemplate`), and the link to the page frame is not stored: the
+ * frames of a page live by its keep list, and the very first save would leave the
+ * template with a broken image. The copy is best-effort — a template without a
+ * thumbnail is legitimate, and the card draws a placeholder.
  *
- * Занятое имя — 409 `TEMPLATE_NAME_CONFLICT`: форма подставляет подсказку под
- * поле имени, а не показывает англоязычный текст статуса.
+ * A taken name is a 409 `TEMPLATE_NAME_CONFLICT`: the form puts a hint under the
+ * name field instead of showing the English status text.
  */
 export default defineEventHandler(async (event) => {
     const publishAdapter = useBricksPublishAdapter();
@@ -72,9 +75,10 @@ export default defineEventHandler(async (event) => {
             thumbnailUrl,
         });
     } catch (error: unknown) {
-        // Ожидание уборки обязательно (не fire-and-forget): ответ ручки
-        // завершает запрос, а в serverless-окружении процесс может закончиться
-        // вместе с ним — начатое удаление не доехало бы до хранилища
+        // Awaiting the cleanup is mandatory (not fire-and-forget): the response
+        // of the handler ends the request, and in a serverless environment the
+        // process may end along with it — a deletion that had begun would never
+        // reach the storage
         if (isRejectedTemplateWrite(error)) {
             await discardTemplateThumbnail(publishAdapter, thumbnailUrl);
         } else if (thumbnailUrl) {

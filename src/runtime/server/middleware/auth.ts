@@ -1,32 +1,34 @@
 /**
- * Auth middleware для защиты builder, preview и модифицирующих API.
- * Режим — `bricks.auth.mode` ('basic' | 'database', env BRICKS_AUTH_MODE).
+ * Auth middleware protecting the builder, the preview and the mutating API.
+ * The mode is `bricks.auth.mode` ('basic' | 'database', env BRICKS_AUTH_MODE).
  *
- * Защищает (префиксы страниц — из `bricks.routes`, дефолты /bricks и
- * /bricks-preview; матрицы работают с логическим путём — его отдаёт `event.path`,
- * из которого h3 уже срезал префикс монтирования middleware, то есть `app.baseURL`):
- * - <builderPrefix>/** — менеджер страниц и редактор лендингов
- * - <previewPrefix>/** — preview режим рендера
- * - /api/bricks/** — весь editorial API, включая GET (drafts, полная schema,
- *   медиатека, версии), media proxy и page thumbnail
+ * Protects (page prefixes come from `bricks.routes`, defaults /bricks and
+ * /bricks-preview; the matrices work with the logical path — it is supplied by
+ * `event.path`, from which h3 has already cut the middleware mount prefix, that
+ * is `app.baseURL`):
+ * - <builderPrefix>/** — page manager and landing editor
+ * - <previewPrefix>/** — preview render mode
+ * - /api/bricks/** — the entire editorial API, GET included (drafts, full
+ *   schema, media library, versions), media proxy and page thumbnail
  *
- * НЕ защищает:
- * - динамические ЧПУ маршруты опубликованных страниц
- * - GET/HEAD /api/bricks/public/** — public read-model для рендера
- * - GET/HEAD /api/bricks/components — библиотека компонентов (публичный
- *   манифест: состав библиотеки и её редакторские метаданные)
- * - в database-режиме: страница логина и /api/bricks/auth/** (иначе не войти)
+ * Does NOT protect:
+ * - dynamic human-readable routes of published pages
+ * - GET/HEAD /api/bricks/public/** — public read model for the renderer
+ * - GET/HEAD /api/bricks/components — component library (a public manifest:
+ *   the contents of the library and its editorial metadata)
+ * - in database mode: the login page and /api/bricks/auth/** (otherwise there
+ *   is no way to sign in)
  *
- * Basic-режим — HTTP Basic Auth, настройка через ENV:
- * - BASIC_AUTH_USERNAME (дефолт: admin)
- * - BASIC_AUTH_PASSWORD (дефолт: change-me — только для dev; в production
- *   с дефолтным паролем защищённые пути отвечают 503)
- * - невалидные креденшелы (заголовок присутствует) делят per-IP rate limit
- *   с database-логином: 30 неудач за 15 минут → 429
+ * Basic mode — HTTP Basic Auth, configured through ENV:
+ * - BASIC_AUTH_USERNAME (default: admin)
+ * - BASIC_AUTH_PASSWORD (default: change-me — for dev only; in production the
+ *   default password makes protected paths answer 503)
+ * - invalid credentials (the header is present) share the per-IP rate limit
+ *   with the database login: 30 failures in 15 minutes → 429
  *
- * Database-режим — cookie-сессии в Postgres: невалидная сессия на HTML-пути
- * редиректит на страницу логина (`getBuilderLoginPath`), на API — 401 без
- * WWW-Authenticate.
+ * Database mode — cookie sessions in Postgres: an invalid session on an HTML
+ * path redirects to the login page (`getBuilderLoginPath`), on the API it is
+ * 401 without WWW-Authenticate.
  */
 import { createHash, timingSafeEqual } from 'node:crypto';
 import {
@@ -71,12 +73,12 @@ import { getBricksDefaultStorageFactory } from '../../modules/persistence/server
 import { rethrowStatementTimeoutError } from '../../modules/persistence/server/utils/handlerHelpers';
 import type { IAuthRequestTarget, TBricksAuthMode } from '../utils/auth/types';
 
-/** Дефолтный пароль из module.ts — в production с ним защищённые пути недоступны */
+/** Default password from module.ts — in production protected paths are unavailable */
 const DEFAULT_PASSWORD = 'change-me';
 
 /**
- * Сравнивает строки за константное время (защита от timing-атак).
- * Сравниваются SHA-256 дайджесты — выравнивает длину входов для timingSafeEqual.
+ * Compares strings in constant time (protection from timing attacks).
+ * SHA-256 digests are compared — that equalizes input length for timingSafeEqual.
  */
 function safeCompare(a: string, b: string): boolean {
     const hashA = createHash('sha256').update(a).digest();
@@ -85,7 +87,7 @@ function safeCompare(a: string, b: string): boolean {
 }
 
 /**
- * Отправляет 401 Unauthorized с заголовком WWW-Authenticate (basic-режим).
+ * Sends 401 Unauthorized with the WWW-Authenticate header (basic mode).
  */
 function sendUnauthorized(event: H3Event): never {
     setResponseHeader(event, 'WWW-Authenticate', 'Basic realm="Builder Access"');
@@ -96,17 +98,17 @@ function sendUnauthorized(event: H3Event): never {
 }
 
 /**
- * HTTP Basic Auth — прежняя логика basic-auth.ts.
+ * HTTP Basic Auth of the basic mode.
  */
 function handleBasicAuth(event: H3Event): void {
     const config = useRuntimeConfig();
     const username = (config.basicAuthUsername as string | undefined) || 'admin';
     const password = (config.basicAuthPassword as string | undefined) || DEFAULT_PASSWORD;
 
-    // В production дефолтный пароль равнозначен отсутствию защиты — отказываем явно
+    // In production the default password equals no protection — refuse explicitly
     if (process.env.NODE_ENV === 'production' && password === DEFAULT_PASSWORD) {
         console.error(
-            '[nuxt-bricks] BASIC_AUTH_PASSWORD не задан (или равен дефолтному "change-me") — доступ к защищённым путям в production заблокирован.'
+            '[nuxt-bricks] BASIC_AUTH_PASSWORD is not set (or equals the default "change-me") — access to protected paths is blocked in production.'
         );
         throw createError({
             statusCode: 503,
@@ -120,8 +122,8 @@ function handleBasicAuth(event: H3Event): void {
         return sendUnauthorized(event);
     }
 
-    // Rate limit невалидных креденшелов: Basic Auth перебирается
-    // тем же IP-bucket'ом, что и database-login
+    // Rate limit for invalid credentials: Basic Auth is brute-forced through
+    // the same IP bucket as the database login
     const clientIp = resolveRequestClientIp(event);
     const lockoutSeconds = isIpLockedOut(clientIp);
 
@@ -136,7 +138,7 @@ function handleBasicAuth(event: H3Event): void {
     const user = separatorIndex === -1 ? credentials : credentials.slice(0, separatorIndex);
     const pass = separatorIndex === -1 ? '' : credentials.slice(separatorIndex + 1);
 
-    // Обе проверки выполняются всегда — без short-circuit по логину
+    // Both checks always run — no short-circuit on the username
     const userValid = safeCompare(user, username);
     const passValid = safeCompare(pass, password);
 
@@ -147,11 +149,13 @@ function handleBasicAuth(event: H3Event): void {
 }
 
 /**
- * Отказывает неавторизованному запросу в database-режиме:
- * HTML-путь → 302 на страницу логина с возвратным redirect, API → 401 без
- * WWW-Authenticate (чтобы браузер не показывал нативный Basic-диалог).
- * Redirect-параметр — логический путь (без baseURL): после логина он идёт
- * в `navigateTo`, где base подставит роутер; сам Location строится с base.
+ * Refuses an unauthorized request in database mode:
+ * an HTML path → 302 to the login page with a return redirect, the API → 401
+ * without WWW-Authenticate (so that the browser does not show the native Basic
+ * dialog).
+ * The redirect parameter is the logical path (without baseURL): after login it
+ * goes into `navigateTo`, where the router prepends base; the Location header
+ * itself is built with base.
  */
 function rejectDatabaseAuth(event: H3Event, target: IAuthRequestTarget): Promise<void> | never {
     clearSessionCookie(event);
@@ -169,15 +173,15 @@ function rejectDatabaseAuth(event: H3Event, target: IAuthRequestTarget): Promise
 }
 
 /**
- * Отказывает запросу, роль которого не покрывает требование пути.
+ * Refuses a request whose role does not cover what the path requires.
  *
- * 403, а не 404: сессия действительна, маршрут существует, и клиенту нужно
- * отличать «нет прав» от «не авторизован» — иначе билдер увёл бы наблюдателя
- * на форму логина, где повторный вход ничего не изменит.
+ * 403, not 404: the session is valid, the route exists, and the client has to
+ * tell "no rights" from "not authenticated" — otherwise the builder would send
+ * a viewer to the login form, where signing in again changes nothing.
  *
- * @param event - Событие запроса.
- * @param role - Роль пользователя запроса.
- * @param target - Разобранная цель запроса.
+ * @param event - Request event.
+ * @param role - Role of the requesting user.
+ * @param target - Parsed request target.
  */
 function assertRoleAllowed(
     event: H3Event,
@@ -199,8 +203,8 @@ function assertRoleAllowed(
 }
 
 /**
- * Sliding-продление сессии: если осталось меньше половины срока —
- * продлевает запись в БД и переустанавливает cookie.
+ * Sliding session renewal: when less than half of the lifetime is left,
+ * extends the database record and re-sets the cookie.
  */
 async function extendSessionIfNeeded(event: H3Event, expiresAt: string): Promise<void> {
     const maxAgeSeconds = resolveSessionMaxAgeSeconds();
@@ -222,24 +226,25 @@ async function extendSessionIfNeeded(event: H3Event, expiresAt: string): Promise
         await useBricksAuthAdapter().touchSession(hashSessionToken(token), nextExpiresAt);
         setSessionCookie(event, token, maxAgeSeconds);
     } catch (error: unknown) {
-        // Неудачное продление не должно валить авторизованный запрос
+        // A failed renewal must not fail an already authorized request
         console.error('[nuxt-bricks] Failed to extend session:', error);
     }
 }
 
 /**
- * Database-auth: cookie-сессия в Postgres + sliding-продление.
+ * Database auth: cookie session in Postgres plus sliding renewal.
  */
 async function handleDatabaseAuth(event: H3Event, target: IAuthRequestTarget): Promise<void> {
     const config = useRuntimeConfig();
 
-    // Runtime-defense: build-time запрет auth.mode=database + backend.mode=external
-    // обходим runtime-env (NUXT_BRICKS_AUTH_MODE + NUXT_BRICKS_DATABASE_URL) —
-    // сверяемся с неизменяемым носителем external-режима: build-time фабрика
-    // storage-адаптера ставится только Nitro-плагином externalBackendStorage
+    // Runtime defense: the build-time ban on auth.mode=database plus
+    // backend.mode=external is bypassable through runtime env
+    // (NUXT_BRICKS_AUTH_MODE + NUXT_BRICKS_DATABASE_URL) — so check against the
+    // immutable carrier of external mode instead: the build-time storage adapter
+    // factory is installed only by the externalBackendStorage Nitro plugin
     if (getBricksDefaultStorageFactory()) {
         console.error(
-            '[nuxt-bricks] auth.mode = "database" несовместим с backend.mode = "external" — защищённые пути отвечают 503'
+            '[nuxt-bricks] auth.mode = "database" is incompatible with backend.mode = "external" — protected paths answer 503'
         );
         throw createError({
             statusCode: 503,
@@ -247,8 +252,9 @@ async function handleDatabaseAuth(event: H3Event, target: IAuthRequestTarget): P
         });
     }
 
-    // Runtime-defense: database-auth без БД невозможен. Основная защита —
-    // build-ошибка module-backend-config (auth.mode=database + backend.mode=external)
+    // Runtime defense: database auth without a database is impossible. The main
+    // guard is the module-backend-config build error (auth.mode=database plus
+    // backend.mode=external)
     if (!config.bricksDatabaseUrl) {
         throw createError({
             statusCode: 503,
@@ -261,13 +267,13 @@ async function handleDatabaseAuth(event: H3Event, target: IAuthRequestTarget): P
     try {
         session = await resolveSessionUser(event);
     } catch (error: unknown) {
-        // Остановка серверным лимитом времени — не «хранилище недоступно»:
-        // у неё свой статус и машиночитаемый код, по которому билдер выбирает
-        // текст. Проверка сессии идёт перед каждым защищённым запросом, поэтому
-        // подмена статуса здесь накрыла бы весь editorial API
+        // A stop by the server statement timeout is not "storage unavailable":
+        // it has its own status and machine-readable code by which the builder
+        // picks the text. The session check runs before every protected request,
+        // so substituting the status here would cover the whole editorial API
         rethrowStatementTimeoutError(error);
 
-        // Недоступная БД — инфраструктурная проблема, не 401 и не 500
+        // An unreachable database is an infrastructure problem, neither 401 nor 500
         console.error('[nuxt-bricks] Auth storage error:', error);
         throw createError({
             statusCode: 503,
@@ -285,20 +291,22 @@ async function handleDatabaseAuth(event: H3Event, target: IAuthRequestTarget): P
 }
 
 export default defineEventHandler(async (event: H3Event) => {
-    // Путь берётся из `event.path` и приводится к тому же виду, в каком его
-    // сопоставляет роутер: h3 декодирует путь до вызова стека обработчиков, а
-    // radix3 отбрасывает завершающий слеш. Сверяйся матрицы с сырым URL —
-    // `/api/bricks/media/%69mport` и `/api/bricks/media/import/` не совпали бы
-    // с записями матрицы прав и получили бы права по умолчанию, а роутер вызвал
-    // бы ту же admin-ручку; ровно так editor и добирался до массового импорта.
+    // The path is taken from `event.path` and brought to the same shape the
+    // router matches against: h3 decodes the path before calling the handler
+    // stack, and radix3 drops the trailing slash. Were the matrices matched
+    // against the raw URL, `/api/bricks/media/%69mport` and
+    // `/api/bricks/media/import/` would miss the access matrix entries and get
+    // the default rights, while the router would still call the same admin
+    // handler; that is exactly how an editor reached the bulk import.
     //
-    // `app.baseURL` из пути НЕ снимается: Nitro монтирует глобальные middleware
-    // под base, а h3 перед вызовом слоя срезает его префикс, поэтому `event.path`
-    // — уже логический путь. Снимай базу ещё раз — при `baseURL = '/api/'`
-    // запрос к `/api/api/bricks/media/import` превращался бы в
-    // `/bricks/media/import`: матрица принимала бы ручку API за HTML-страницу
-    // билдера, CSRF-гейт не срабатывал бы, а требуемая роль падала до viewer.
-    // База нужна дальше только для сборки Location редиректа на логин.
+    // `app.baseURL` is NOT stripped from the path: Nitro mounts global
+    // middleware under base, and h3 cuts that prefix before calling the layer,
+    // so `event.path` is already the logical path. Strip base a second time and
+    // with `baseURL = '/api/'` a request to `/api/api/bricks/media/import`
+    // would turn into `/bricks/media/import`: the matrix would take an API
+    // handler for a builder HTML page, the CSRF gate would not fire, and the
+    // required role would fall to viewer. Further down base is needed only to
+    // build the Location of the login redirect.
     const url = event.path || event.node.req.url || '/';
     const queryIndex = url.indexOf('?');
     const rawPathname = queryIndex === -1 ? url : url.slice(0, queryIndex);
@@ -318,13 +326,13 @@ export default defineEventHandler(async (event: H3Event) => {
         baseURL,
     };
 
-    // Выключенный раздел учёток отвечает 404 РАНЬШЕ всех прочих гейтов.
-    // Проверка внутри ручек до этого не доходила: гард по роли требует от
-    // `/api/bricks/users/**` администратора, поэтому редактор получал 403,
-    // аноним — 401 или редирект на логин, а кросс-сайтовый POST — CSRF-403.
-    // Каждый из них подтверждает, что маршрут существует и просто закрыт, —
-    // ровно то, что 404 обещает скрыть. Ручки свою проверку сохраняют как
-    // второй рубеж
+    // A disabled user accounts section answers 404 BEFORE every other gate.
+    // The check inside the handlers was never reached: the role guard requires
+    // an administrator for `/api/bricks/users/**`, so an editor got 403, an
+    // anonymous caller got 401 or a login redirect, and a cross-site POST got a
+    // CSRF 403. Each of those confirms that the route exists and is merely
+    // closed — exactly what the 404 promises to hide. The handlers keep their
+    // own check as a second line of defense
     if (
         isUserManagementPath(target.logicalPathname, method) &&
         !isUserManagementAvailable(mode, config.bricksAuthAllowUserManagement)
@@ -332,14 +340,14 @@ export default defineEventHandler(async (event: H3Event) => {
         throw createError({ statusCode: 404, statusMessage: 'Not Found' });
     }
 
-    // CSRF-гейт unsafe-методов: ДО auth — login/logout не под
-    // requiresAuth, но под CSRF; неавторизованный кросс-сайтовый POST — 403
+    // CSRF gate for unsafe methods: BEFORE auth — login/logout are not under
+    // requiresAuth but are under CSRF; an unauthenticated cross-site POST is 403
     if (isCsrfProtectedPath(target.logicalPathname)) {
         assertCsrfSafe(event);
     }
 
     if (!requiresAuth(target.logicalPathname, method, mode, prefixes)) {
-        return; // Пропускаем незащищённые пути
+        return; // Unprotected paths pass through
     }
 
     if (mode === 'database') {
@@ -348,12 +356,12 @@ export default defineEventHandler(async (event: H3Event) => {
 
     handleBasicAuth(event);
 
-    // Basic-identity проходит ту же матрицу, что и учётка: учёток в этом режиме
-    // нет, сужать права не по кому, поэтому ей приписана роль с полными
-    // редакторскими правами и проверка сейчас проходит всегда. Она здесь не
-    // для отказа, а чтобы матрица прав применялась к обоим режимам одним
-    // вызовом: отдельная ветка «в basic роли не проверяем» стала бы дырой в
-    // тот день, когда basic-роль сузят. Ручки учёток при этом недоступны и в
-    // basic — они отвечают 404 вне database-режима
+    // The basic identity goes through the same matrix as an account: there are
+    // no accounts in this mode and no one to narrow rights for, so it is given
+    // a role with full editorial rights and the check currently always passes.
+    // It is here not to refuse but so that the access matrix applies to both
+    // modes through one call: a separate "no role check in basic" branch would
+    // become a hole the day the basic role is narrowed. Account handlers stay
+    // unavailable in basic anyway — outside database mode they answer 404
     assertRoleAllowed(event, BRICKS_BASIC_MODE_ROLE, target);
 });

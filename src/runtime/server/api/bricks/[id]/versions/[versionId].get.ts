@@ -6,7 +6,7 @@ import {
 } from '../../../../../modules/persistence/server/utils/handlerHelpers';
 
 /**
- * GET /api/bricks/:id/versions/:versionId — полный снапшот версии страницы.
+ * GET /api/bricks/:id/versions/:versionId — the full snapshot of a page version.
  */
 export default defineEventHandler(async (event) => {
     const id = requireNumericId(event);

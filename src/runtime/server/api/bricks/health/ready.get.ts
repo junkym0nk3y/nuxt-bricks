@@ -7,14 +7,15 @@ import {
 import { getBricksDefaultStorageFactory } from '../../../../modules/persistence/server/defaultStorage';
 import { resolveReadinessTarget } from '../../../utils/readinessTarget';
 
-/** Зависший коннект/дальний backend не должны вешать probe дольше таймаута. */
+/** A hung connection or a distant backend must not hang the probe past the timeout */
 const READINESS_TIMEOUT_MS = 5000;
 
 /**
- * Оборачивает промис таймаутом: reject по истечении, таймер всегда очищается.
+ * Wraps a promise in a timeout: it rejects when the time is up, and the timer is
+ * always cleared.
  *
- * @param promise - Проверяемый промис.
- * @param timeoutMs - Таймаут в миллисекундах.
+ * @param promise - The promise being checked.
+ * @param timeoutMs - Timeout in milliseconds.
  */
 async function withTimeout(promise: Promise<void>, timeoutMs: number): Promise<void> {
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -34,10 +35,10 @@ async function withTimeout(promise: Promise<void>, timeoutMs: number): Promise<v
 }
 
 /**
- * GET /api/bricks/health/ready — readiness probe. Подтверждает готовность
- * persistence-адаптера; ни БД, ни external backend, ни кастомного адаптера →
- * 503. Наружу деталей не отдаёт — полная ошибка уходит в
- * server-лог.
+ * GET /api/bricks/health/ready — the readiness probe. It confirms that the
+ * persistence adapter is ready; with neither a database, nor an external backend,
+ * nor a custom adapter it answers 503. No details are handed outward — the full
+ * error goes to the server log.
  */
 export default defineEventHandler(async (event) => {
     setResponseHeader(event, 'Cache-Control', 'no-store');
@@ -56,8 +57,8 @@ export default defineEventHandler(async (event) => {
 
         const adapter = useBricksStorageAdapter();
 
-        // Адаптер без checkHealth не считается готовым автоматически:
-        // fallback — минимальный реальный editorial-запрос
+        // An adapter without checkHealth is not considered ready automatically:
+        // the fallback is a minimal real editorial request
         const probe = adapter.checkHealth
             ? adapter.checkHealth()
             : adapter.listPages().then(() => undefined);

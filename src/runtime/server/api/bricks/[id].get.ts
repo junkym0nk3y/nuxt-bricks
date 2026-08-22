@@ -6,7 +6,7 @@ import {
 } from '../../../modules/persistence/server/utils/handlerHelpers';
 
 /**
- * GET /api/bricks/:id — возвращает страницу по id.
+ * GET /api/bricks/:id — returns a page by id.
  */
 export default defineEventHandler(async (event) => {
     const id = requireNumericId(event);

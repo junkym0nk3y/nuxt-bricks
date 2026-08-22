@@ -10,9 +10,9 @@ import {
 } from '../../../../modules/persistence/server/utils/handlerHelpers';
 
 /**
- * DELETE /api/bricks/media/:id — удаляет файл из хранилища публикации и
- * метаданные из БД одним запросом (file-first: при ошибке хранилища — 502,
- * запись остаётся и операция безопасно ретраится).
+ * DELETE /api/bricks/media/:id — deletes the file from the publication storage
+ * and the metadata from the database in one request (file first: on a storage
+ * error it answers 502, the record stays and the operation retries safely).
  */
 export default defineEventHandler(async (event) => {
     const id = requireNumericId(event);

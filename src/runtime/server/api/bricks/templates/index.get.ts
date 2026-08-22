@@ -3,12 +3,14 @@ import { useBricksStorageAdapter } from '../../../../modules/persistence/server/
 import { toHttpError } from '../../../../modules/persistence/server/utils/handlerHelpers';
 
 /**
- * GET /api/bricks/templates — сводки шаблонов для раздела «Шаблоны» и выбора
- * источника новой страницы (без `schema` и `pageMeta`, с числом блоков).
+ * GET /api/bricks/templates — template summaries for the Templates section and
+ * for choosing the source of a new page (no `schema` and no `pageMeta`, with the
+ * block count).
  *
- * Envelope `{ templates }`, а не голый массив: раздел читает список тем же
- * композаблом, что и учётки, и одинаковая форма ответа избавляет их от двух
- * разных разборов. Полный шаблон отдаёт point-lookup `GET /templates/:id`.
+ * A `{ templates }` envelope rather than a bare array: the section reads the list
+ * with the same composable as the accounts, and one response shape spares them
+ * two different parsers. The full template is served by the point lookup
+ * `GET /templates/:id`.
  */
 export default defineEventHandler(async () => {
     try {

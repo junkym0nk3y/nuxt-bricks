@@ -3,8 +3,8 @@ import { useBricksStorageAdapter } from '../../../modules/persistence/server/reg
 import { toHttpError } from '../../../modules/persistence/server/utils/handlerHelpers';
 
 /**
- * GET /api/bricks — сводки всех страниц билдера (без `schema`).
- * Полную строку со схемой отдаёт point-lookup GET /api/bricks/:id.
+ * GET /api/bricks — summaries of every builder page (no `schema`).
+ * The full row with the schema is served by the point lookup GET /api/bricks/:id.
  */
 export default defineEventHandler(async () => {
     try {

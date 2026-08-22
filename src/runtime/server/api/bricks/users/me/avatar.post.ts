@@ -24,8 +24,8 @@ import {
     requireSessionUser,
     toAuthProfileUser,
 } from '../../../../utils/auth/profile';
-// Потолок размера общий с формой профиля: она печатает его в подсказке и
-// отсекает по нему файл до отправки (modules/common/constants/auth.ts)
+// The size ceiling is shared with the profile form: the form prints it in its
+// hint and cuts the file off by it before sending (modules/common/constants/auth.ts)
 import { BRICKS_AVATAR_MAX_UPLOAD_MB } from '../../../../../modules/common/constants/auth';
 import {
     assertWithinRateLimit,
@@ -38,20 +38,20 @@ import type {
 // #endregion
 
 // #region Constants
-/** Сторона готового аватара (px): один файл на все размеры показа. */
+/** Side of the finished avatar (px): one file for every display size */
 const AVATAR_SIZE_PX = 256;
 
-/** Качество webp-кодирования аватара. */
+/** Quality of the avatar webp encoding */
 const AVATAR_WEBP_QUALITY = 82;
 
 /**
- * Минимальная сторона рамки (px). Меньше — не кадрирование, а увеличение
- * нескольких пикселей до 256: результат нечитаем, а причина пользователю
- * непонятна. Лучше отказать с внятным текстом.
+ * Minimum side of the crop frame (px). Anything smaller is not cropping but the
+ * blow-up of a handful of pixels to 256: the result is unreadable and the reason
+ * unclear to the user. Better to refuse with a comprehensible message.
  */
 const MIN_CROP_SIDE_PX = 32;
 
-/** Лимит загрузок аватара с одного IP в минуту (каждая — проход sharp). */
+/** Limit of avatar uploads from one IP per minute (each one is a sharp pass) */
 const AVATAR_UPLOADS_PER_MINUTE = 20;
 const avatarRateLimiter = createFixedWindowRateLimiter({
     limit: AVATAR_UPLOADS_PER_MINUTE,
@@ -61,16 +61,16 @@ const avatarRateLimiter = createFixedWindowRateLimiter({
 
 // #region Helpers
 /**
- * Достаёт файл фото из multipart-формы и проверяет размер и содержимое.
+ * Pulls the photo file out of the multipart form and checks its size and content.
  *
- * Содержимое подтверждается сигнатурой, а не MIME и не расширением: заявить
- * `image/png` может кто угодно. SVG отклоняется явно — вектор в аватаре означал
- * бы недоверенную разметку, которую пришлось бы санитизировать и отдавать как
- * документ, тогда как весь смысл этой ручки в том, что наружу уходит растр,
- * пережатый sharp.
+ * The content is confirmed by its signature, not by the MIME type and not by the
+ * extension: anyone can declare `image/png`. SVG is rejected explicitly — a
+ * vector in an avatar would mean untrusted markup that would have to be
+ * sanitized and served as a document, whereas the whole point of this handler is
+ * that what leaves it is a raster re-encoded by sharp.
  *
- * @param formData - Коллекция multipart-полей.
- * @returns Найденный файл.
+ * @param formData - Collection of multipart fields.
+ * @returns The file that was found.
  */
 function assertAvatarFile(formData: IUploadedFilePart[]): IUploadedFilePart {
     const file = formData.find((item) => item.name === 'file');
@@ -102,11 +102,11 @@ function assertAvatarFile(formData: IUploadedFilePart[]): IUploadedFilePart {
 }
 
 /**
- * Читает неотрицательное целое поле формы.
+ * Reads a non-negative integer field of the form.
  *
- * @param formData - Коллекция multipart-полей.
- * @param name - Имя поля.
- * @returns Значение поля.
+ * @param formData - Collection of multipart fields.
+ * @param name - Field name.
+ * @returns The field value.
  */
 function requireIntegerField(formData: IUploadedFilePart[], name: string): number {
     const raw = formData.find((item) => item.name === name)?.data.toString();
@@ -123,15 +123,15 @@ function requireIntegerField(formData: IUploadedFilePart[], name: string): numbe
 }
 
 /**
- * Читает рамку кадрирования из полей формы.
+ * Reads the crop frame out of the form fields.
  *
- * Рамка обязательна, а не «по умолчанию центр»: центр фотографии почти никогда
- * не совпадает с лицом, и молчаливый кроп по центру выдавал бы потерю рамки
- * (например, из-за правки формы) за нормальный результат — человек увидел бы
- * чужое кадрирование и не понял, почему.
+ * The frame is mandatory rather than "centered by default": the center of a
+ * photograph almost never coincides with the face, and a silent center crop would
+ * pass a lost frame (after an edit of the form, say) off as a normal result — the
+ * person would see someone else's framing and not understand why.
  *
- * @param formData - Коллекция multipart-полей.
- * @returns Квадратная рамка в координатах ориентированного изображения.
+ * @param formData - Collection of multipart fields.
+ * @returns A square frame in the coordinates of the oriented image.
  */
 function requireCropFrame(formData: IUploadedFilePart[]): IImageCropFrame {
     const side = requireIntegerField(formData, 'cropSide');
@@ -151,15 +151,16 @@ function requireCropFrame(formData: IUploadedFilePart[]): IImageCropFrame {
 }
 
 /**
- * Проверяет, что рамка целиком лежит внутри изображения.
+ * Checks that the frame lies entirely inside the image.
  *
- * Своя проверка, а не отказ sharp: `extract` за краем бросает
- * `extract_area: bad extract area`, и наружу это ушло бы как «не удалось
- * обработать изображение» — по такому тексту нельзя понять, что виновата рамка.
+ * A check of our own rather than the refusal of sharp: `extract` past the edge
+ * throws `extract_area: bad extract area`, which reaches the client as "failed to
+ * process the image" — a text from which one cannot tell that the frame is at
+ * fault.
  *
- * @param frame - Рамка кадрирования.
- * @param width - Ширина изображения с учётом EXIF-ориентации.
- * @param height - Высота изображения с учётом EXIF-ориентации.
+ * @param frame - Crop frame.
+ * @param width - Image width with the EXIF orientation applied.
+ * @param height - Image height with the EXIF orientation applied.
  */
 function assertFrameWithinImage(frame: IImageCropFrame, width: number, height: number): void {
     if (frame.left + frame.side > width || frame.top + frame.side > height) {
@@ -172,19 +173,21 @@ function assertFrameWithinImage(frame: IImageCropFrame, width: number, height: n
 // #endregion
 
 /**
- * POST /api/bricks/users/me/avatar — фото своего профиля (любая роль).
+ * POST /api/bricks/users/me/avatar — the photo of one's own profile (any role).
  *
- * Принимает исходный файл и рамку кадрирования (`cropX`, `cropY`, `cropSide` в
- * пикселях изображения, как его видит браузер — с применённой EXIF-ориентацией),
- * кладёт в хранилище ОДИН webp 256×256 и ставит ссылку на него в учётку.
+ * Takes the source file and the crop frame (`cropX`, `cropY`, `cropSide` in the
+ * pixels of the image as the browser sees it, with the EXIF orientation
+ * applied), puts ONE 256x256 webp into the storage and writes a link to it into
+ * the account.
  *
- * Через медиатеку фото не идёт: попади аватары в галерею, любой редактор увидел
- * бы их среди рабочих файлов и мог удалить чужое фото. Отсюда и свой
- * managed-префикс хранилища.
+ * The photo does not go through the media library: had avatars landed in the
+ * gallery, any editor would see them among the working files and could delete
+ * someone else's photo. Hence the managed storage prefix of their own.
  *
- * Порядок обязателен: сначала запись новой ссылки, потом удаление прежнего файла.
- * Обратный порядок оставлял бы учётку со ссылкой на удалённый объект, если запись
- * откажет, — то есть пустой квадрат вместо прежнего фото.
+ * The order is mandatory: first the write of the new link, then the deletion of
+ * the previous file. The reverse order would leave the account pointing at a
+ * deleted object should the write fail — that is, an empty square instead of the
+ * previous photo.
  */
 export default defineEventHandler(async (event) => {
     try {
@@ -197,8 +200,9 @@ export default defineEventHandler(async (event) => {
         const bodyLimitBytes =
             BRICKS_AVATAR_MAX_UPLOAD_MB * 1024 * 1024 + MULTIPART_ENVELOPE_ALLOWANCE_BYTES;
 
-        // Обработка внутри колбэка: место в бюджете одновременного буферизования
-        // держится, пока живы буферы формы, — то есть до конца заливки файла
+        // Everything happens inside the callback because the reservation in the
+        // concurrent buffering budget lives exactly as long as it runs — see
+        // `withMultipartFormData` for why the form is handed to a callback at all
         return await withMultipartFormData(event, bodyLimitBytes, async (formData) => {
             if (formData.length === 0) {
                 throw createError({
@@ -226,7 +230,7 @@ export default defineEventHandler(async (event) => {
             try {
                 cropped = await cropSquareImage(source, frame, AVATAR_SIZE_PX, AVATAR_WEBP_QUALITY);
             } catch (error: unknown) {
-                // 503 занятого семафора sharp пробрасываем со своим статусом
+                // The 503 of a busy sharp semaphore is rethrown with its own status
                 if (error && typeof error === 'object' && 'statusCode' in error) {
                     throw error;
                 }
@@ -251,18 +255,20 @@ export default defineEventHandler(async (event) => {
                 sessionUser.authVersion
             );
 
-            // Живой учётки с этими креденшелами больше нет: её удалили,
-            // деактивировали или сбросили ей пароль, пока шли sharp и заливка.
-            // Записи не было ТОЧНО (условие поколения не совпало), поэтому файл
-            // убирается — сослаться на него уже нечему, а ответ 401: сессия
-            // мертва.
+            // There is no live account with these credentials any more: it was
+            // deleted, deactivated or had its password reset while sharp and the
+            // upload were running. The write CERTAINLY did not happen (the
+            // generation condition did not match), so the file is removed —
+            // nothing is left to reference it — and the answer is 401: the
+            // session is dead.
             //
-            // Остальные отказы записи файл СОХРАНЯЮТ: их исход неизвестен —
-            // отмену по серверному лимиту времени `withTransaction` заворачивает
-            // одинаково и для UPDATE, и для COMMIT, а отменённый COMMIT мог
-            // успеть записать WAL. Удаление файла по такому отказу сняло бы
-            // объект из-под уже закоммиченной ссылки, то есть заменило бы
-            // невидимый мусор на пустой квадрат в углу экрана
+            // Every other write failure KEEPS the file: its outcome is unknown —
+            // `withTransaction` wraps a cancellation by the server statement
+            // timeout the same way for an UPDATE and for a COMMIT, and a
+            // canceled COMMIT may already have written the WAL. Deleting the
+            // file on such a failure would pull the object out from under an
+            // already committed link, that is, trade invisible garbage for an
+            // empty square in the corner of the screen
             if (!result) {
                 await discardAvatarFile(publish, uploaded.url);
 

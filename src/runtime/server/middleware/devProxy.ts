@@ -1,18 +1,19 @@
 /**
- * Dev-only server middleware: проксирование не-bricks /api/* запросов на
- * backend host-проекта (PROXY_URL). Регистрируется в module.ts только при
- * `nuxt.options.dev` — в production-сборке middleware не существует.
+ * Dev-only server middleware: proxying of non-bricks /api/* requests to the
+ * backend of the host project (PROXY_URL). Registered by module.ts only under
+ * `nuxt.options.dev` — in a production build the middleware does not exist.
  *
- * Логика проксирования (чистые правила — server/utils/proxyRouting.ts):
- * - /api/bricks/** → НИКОГДА не проксируется (локальные Nitro-роуты;
- *   persistence выбирает bricks.backend.mode, а не PROXY_URL)
- * - остальные /api/* → проксируются на PROXY_URL (если задан)
+ * The proxying logic (the pure rules live in server/utils/proxyRouting.ts):
+ * - /api/bricks/** → NEVER proxied (local Nitro routes; persistence is selected
+ *   by bricks.backend.mode, not by PROXY_URL)
+ * - the rest of /api/* → proxied to PROXY_URL when it is set
  *
- * Это позволяет компонентам билдера (.brick.ts) делать API запросы,
- * которые будут проксироваться на backend проекта.
+ * This is what lets builder components (.brick.ts) make API requests that get
+ * proxied to the backend of the project.
  *
- * Сам handler — createDevProxyEventHandler (server/utils/devProxyHandler.ts,
- * там же контракт передачи заголовков/статусов и интеграционные тесты).
+ * The handler itself is createDevProxyEventHandler
+ * (server/utils/devProxyHandler.ts, which also carries the transfer contract of
+ * headers and statuses and the integration tests).
  */
 
 import { useRuntimeConfig } from 'nitropack/runtime';

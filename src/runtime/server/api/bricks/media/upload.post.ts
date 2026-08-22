@@ -40,7 +40,7 @@ import type {
 } from '../../../../modules/persistence/types/media';
 import type { IBricksMediaOptimization } from '../../../../modules/common/types/media';
 
-/** Лимит загрузок с одного IP в минуту. */
+/** Limit of uploads from one IP per minute */
 const UPLOADS_PER_MINUTE = 30;
 const uploadRateLimiter = createFixedWindowRateLimiter({
     limit: UPLOADS_PER_MINUTE,
@@ -48,18 +48,19 @@ const uploadRateLimiter = createFixedWindowRateLimiter({
 });
 
 /**
- * Читает переопределения параметров оптимизации из multipart-полей и накрывает
- * ими дефолты конфига.
+ * Reads the optimization overrides out of the multipart fields and merges them
+ * over the config defaults.
  *
- * Параметры приходят с формой, а не из конфига, потому что выбираются в
- * поповере на каждую загрузку; конфиг остаётся источником дефолтов. Разбор,
- * подстановку дефолта и границы держит `resolveRequestedOptimization` — здесь
- * остаётся только достать строки, потому что отличать «поля не было» от
- * «пришло непригодное» обязан тот, кто применяет границы.
+ * The parameters arrive with the form rather than from the config, because they
+ * are picked in a popover on every upload; the config stays the source of the
+ * defaults. Parsing, default substitution and the bounds are kept by
+ * `resolveRequestedOptimization` — all that is left here is pulling out the
+ * strings, because telling "the field was absent" from "something unusable
+ * arrived" is the duty of whoever applies the bounds.
  *
- * @param formData - Коллекция multipart-полей.
- * @param fallback - Параметры из конфига.
- * @returns Эффективные параметры оптимизации.
+ * @param formData - Collection of multipart fields.
+ * @param fallback - Parameters from the config.
+ * @returns The effective optimization parameters.
  */
 function resolveUploadOptimization(
     formData: IUploadedFilePart[],
@@ -79,11 +80,11 @@ function resolveUploadOptimization(
 }
 
 /**
- * Достраивает вариантам имена объектов рядом с полным файлом.
+ * Completes the variants with object names next to the full file.
  *
- * @param variants - Готовые байты вариантов.
- * @param storedFilename - Имя объекта полного файла.
- * @returns Варианты с именами объектов.
+ * @param variants - Ready bytes of the variants.
+ * @param storedFilename - Object name of the full file.
+ * @returns The variants carrying object names.
  */
 function withVariantFilenames(
     variants: IValidatedImage['variants'],
@@ -106,10 +107,10 @@ function withVariantFilenames(
 }
 
 /**
- * Достаёт файл из multipart-формы и валидирует наличие данных.
+ * Pulls the file out of the multipart form and validates that it carries data.
  *
- * @param formData - Коллекция multipart-полей.
- * @returns Найденный файл.
+ * @param formData - Collection of multipart fields.
+ * @returns The file that was found.
  */
 function assertUploadedFile(formData: IUploadedFilePart[]): IUploadedFilePart {
     const file = formData.find((item) => item.name === 'file');
@@ -125,14 +126,14 @@ function assertUploadedFile(formData: IUploadedFilePart[]): IUploadedFilePart {
 }
 
 /**
- * Валидирует и подготавливает файл к загрузке: видео — как есть, изображение —
- * оптимизация в выбранный формат плюс уменьшенные варианты, SVG —
- * санитизированная разметка для предпросмотра.
+ * Validates a file and prepares it for upload: a video as it is, an image
+ * optimized into the chosen format plus the downscaled variants, an SVG as
+ * sanitized markup for the preview.
  *
- * @param file - Multipart-файл.
- * @param config - Разрешённые медиа-настройки (лимиты, оптимизация).
- * @param optimization - Эффективные параметры оптимизации (конфиг + форма).
- * @returns Буфер, MIME, расширение, svgContent, размеры и варианты.
+ * @param file - Multipart file.
+ * @param config - Resolved media settings (limits, optimization).
+ * @param optimization - Effective optimization parameters (config plus form).
+ * @returns Buffer, MIME type, extension, svgContent, dimensions and variants.
  */
 export async function prepareUpload(
     file: IUploadedFilePart,
@@ -178,8 +179,9 @@ export async function prepareUpload(
         };
     }
 
-    // Inline SVG — недоверенный ввод: в БД и в бакет уходит один и тот же
-    // санитизированный буфер (прежде в S3 летел исходный, непроверенный)
+    // An inline SVG is untrusted input: one and the same sanitized buffer goes
+    // into the database and into the bucket (previously the original, unchecked
+    // one flew to S3)
     const sanitizedSvg = sanitizeSvgMarkup(validated.optimizedBuffer.toString('utf8'));
 
     return {
@@ -194,21 +196,27 @@ export async function prepareUpload(
 }
 
 /**
- * POST /api/bricks/media/upload — атомарная загрузка медиа: файл в хранилище
- * публикации + запись метаданных в БД одним запросом. Ошибка записи в БД
- * компенсируется удалением загруженного файла (см. uploadAndRegisterMedia).
+ * POST /api/bricks/media/upload — the upload of media in one request: the file
+ * into the publication storage plus the metadata record in the database.
  *
- * Ingress-контроль: rate limit по IP, тело читается с жёстким лимитом
- * (Content-Length pre-check + стрим-лимит) и в пределах общего бюджета
- * одновременно буферизуемых форм — лимит в минуту не ограничивает число
- * ОДНОВРЕМЕННЫХ загрузок, а тело каждой собирается в память целиком. Содержимое
- * файла подтверждается magic bytes в validate*-хелперах; свой потолок размера
- * каждого типа они же и проверяют — до разбора формы тип файла неизвестен.
+ * The two writes are not one transaction, and what happens to the file when the
+ * second one fails depends on WHAT is known about its outcome — a guaranteed
+ * refusal is compensated by deleting the file, an unknown outcome is retried once
+ * and then keeps the file. The rule and the defect behind it live with
+ * `uploadAndRegisterMedia`; do not restate it here.
  *
- * Multipart-поля: `file` (обязателен), `category` (опционален — отсутствие поля
- * и пустое значение одинаково означают файл без категории, `null`),
- * `format` / `quality` / `maxWidth` (опциональны — переопределяют дефолты
- * `bricks.media.optimization` на эту загрузку).
+ * Ingress control: a rate limit by IP, the body is read under a hard limit (a
+ * Content-Length pre-check plus a stream limit) and within the shared budget of
+ * simultaneously buffered forms — the per-minute limit does not bound the number
+ * of SIMULTANEOUS uploads, and the body of each is assembled in memory in full.
+ * The content of the file is confirmed by magic bytes in the validate* helpers;
+ * they also check the size ceiling of each type — before the form is parsed the
+ * type of the file is unknown.
+ *
+ * Multipart fields: `file` (mandatory), `category` (optional — an absent field
+ * and an empty value both mean a file with no category, `null`),
+ * `format` / `quality` / `maxWidth` (optional — they override the
+ * `bricks.media.optimization` defaults for this upload).
  */
 export default defineEventHandler(async (event) => {
     try {
@@ -219,9 +227,9 @@ export default defineEventHandler(async (event) => {
             Math.max(config.maxUploadSizeBytes, config.maxVideoUploadSizeBytes) +
             MULTIPART_ENVELOPE_ALLOWANCE_BYTES;
 
-        // Вся обработка идёт ВНУТРИ колбэка: место в бюджете одновременного
-        // буферизования держится, пока буферы формы живы, — а живы они до конца
-        // заливки в хранилище
+        // Everything happens INSIDE the callback because the reservation in the
+        // concurrent buffering budget lives exactly as long as it runs — see
+        // `withMultipartFormData` for why the form is handed to a callback at all
         return await withMultipartFormData(event, bodyLimitBytes, async (formData) => {
             if (formData.length === 0) {
                 throw createError({
@@ -232,14 +240,15 @@ export default defineEventHandler(async (event) => {
 
             const file = assertUploadedFile(formData);
             const rawCategory = formData.find((item) => item.name === 'category')?.data.toString();
-            // Пустая форма-поле и отсутствие поля — одно и то же: загрузка без
-            // выбранной категории, файл остаётся без неё
+            // An empty form field and an absent field are one and the same: an
+            // upload with no category chosen, and the file stays without one
             const category = rawCategory ? validateMediaCategory(rawCategory) : null;
             const storage = useBricksStorageAdapter();
 
-            // До обработки файла: тратить sharp и заливку в бакет на вход, который
-            // всё равно некуда записать, незачем. Гонку с удалением категории эта
-            // проверка не закрывает — её ловит FK базы уже после заливки
+            // Before the file is processed: there is no point spending sharp and
+            // an upload into the bucket on input that has nowhere to be recorded
+            // anyway. This check does not close the race with the deletion of a
+            // category — that one is caught by the database FK after the upload
             if (category) {
                 await assertKnownMediaCategory(storage, category);
             }

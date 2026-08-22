@@ -4,13 +4,13 @@ import { toHttpError } from '../../../../../modules/persistence/server/utils/han
 import { validateMediaCategory } from '../../../../../modules/persistence/server/utils/mediaPayloadValidation';
 
 /**
- * DELETE /api/bricks/media/categories/:slug — удаляет категорию, сняв её с
- * файлов.
+ * DELETE /api/bricks/media/categories/:slug — deletes a category, clearing it off
+ * the files.
  *
- * Неудаляемых категорий нет: набор целиком заводит пользователь, приёмника для
- * осиротевших файлов не существует. Сами файлы не удаляются — они остаются в
- * медиатеке без категории и видны в фильтре «Все»; ответ говорит, скольких это
- * коснулось.
+ * There are no undeletable categories: the whole set is created by the user, and
+ * no receiving category exists for the orphaned files. The files themselves are
+ * not deleted — they stay in the media library without a category and are visible
+ * under the "All" filter; the response reports how many of them were affected.
  */
 export default defineEventHandler(async (event) => {
     try {

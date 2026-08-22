@@ -1,18 +1,19 @@
 /**
- * Общая логика ручек своего профиля (`/api/bricks/users/me/**`): доступность,
- * пользователь запроса, валидация DTO и проекция ответа.
+ * Logic shared by the own-profile handlers (`/api/bricks/users/me/**`):
+ * availability, the requesting user, DTO validation and the response projection.
  *
- * Профиль живёт отдельно от управления учётками (`userManagement.ts`) не по
- * стилю, а по правам: своё имя, фото и пароль правит любой вошедший, включая
- * наблюдателя, и флаг `allowUserManagement` профиля не касается — он про ведение
- * ЧУЖИХ учёток снаружи. Общее у них ровно то, что вынесено в
- * `userManagement.ts` и переиспользуется здесь: границы пароля, хеширование под
- * семафором и гейт флага смены пароля.
+ * The profile lives apart from account management (`userManagement.ts`) not by
+ * style but by rights: anyone signed in, a viewer included, edits their own
+ * name, photo and password, and the `allowUserManagement` flag does not concern
+ * the profile — it is about keeping OTHER people's accounts outside the module.
+ * What they share is exactly what is extracted into `userManagement.ts` and
+ * reused here: the password bounds, hashing under the semaphore and the gate of
+ * the password change flag.
  *
- * Целевая учётка здесь всегда одна — та, чья сессия пришла с запросом. Никакого
- * `:id` эти ручки не принимают вовсе: приняли бы — и «свой профиль» стал бы
- * ручкой правки любого профиля, отличающейся от админской только тем, что её
- * забыли закрыть.
+ * There is always exactly one target account here — the one whose session came
+ * with the request. These handlers accept no `:id` at all: were they to accept
+ * one, "own profile" would become a handler for editing any profile, differing
+ * from the admin one only in that someone forgot to close it.
  */
 import { createError, type H3Event } from 'h3';
 import { useRuntimeConfig } from 'nitropack/runtime';
@@ -31,25 +32,27 @@ import {
 import type { IAuthSessionUser } from '../../../modules/persistence/types/authAdapters';
 import type { IAuthOwnPasswordInput, IAuthProfileInput, IAuthProfileUser } from './types';
 
-/** Разрешённые ключи тела правки своего профиля. */
+/** Keys allowed in the body of editing one's own profile */
 const PROFILE_KEYS: ReadonlySet<string> = new Set(['displayName']);
 
-/** Разрешённые ключи тела смены своего пароля. */
+/** Keys allowed in the body of changing one's own password */
 const OWN_PASSWORD_KEYS: ReadonlySet<string> = new Set(['currentPassword', 'newPassword']);
 
 /**
- * Отказывает, если учёток нет вовсе: профиль существует только в
- * database-режиме, в basic identity одна на всех и задана окружением — править
- * в ней нечего.
+ * Refuses when there are no accounts at all: the profile exists only in database
+ * mode, while in basic the identity is one for everybody and is set by the
+ * environment — there is nothing in it to edit.
  *
- * 404 — тот же ответ, что у auth-ручки `me` вне database-режима: снаружи
- * «маршрута нет» и «режим другой» неразличимы, и различать их незачем.
+ * 404 — the same answer as the auth `me` handler gives outside database mode:
+ * from the outside "no such route" and "another mode" are indistinguishable, and
+ * there is no point in telling them apart.
  *
- * Флаг `allowUserManagement` здесь НЕ проверяется: он выключает ведение чужих
- * учёток из билдера, а не право человека сменить себе фото. Свой флаг у профиля
- * один — `allowPasswordChange`, и закрывает он только пароль.
+ * The `allowUserManagement` flag is NOT checked here: it turns off keeping other
+ * people's accounts from the builder, not a person's right to change their own
+ * photo. The profile has one flag of its own — `allowPasswordChange` — and it
+ * closes the password only.
  *
- * @param event - Событие запроса.
+ * @param event - Request event.
  */
 export function assertProfileAvailable(event: H3Event): void {
     const config = useRuntimeConfig(event);
@@ -60,14 +63,15 @@ export function assertProfileAvailable(event: H3Event): void {
 }
 
 /**
- * Возвращает пользователя сессии, поставленного auth-middleware.
+ * Returns the session user put in place by the auth middleware.
  *
- * Отказ здесь недостижим через маршруты модуля (профиль защищён матрицей путей),
- * но альтернатива — читать `id` из `undefined` и уйти в 500 либо, хуже,
- * применить правку не к той учётке. Поэтому «сессии нет» — явный 401.
+ * A refusal here is unreachable through the module routes (the profile is
+ * protected by the path matrix), but the alternative is reading `id` off
+ * `undefined` and ending in a 500 or, worse, applying the edit to the wrong
+ * account. Hence "no session" is an explicit 401.
  *
- * @param event - Событие запроса.
- * @returns Пользователь авторизованной сессии.
+ * @param event - Request event.
+ * @returns The user of the authorized session.
  */
 export function requireSessionUser(event: H3Event): IAuthSessionUser {
     const user = event.context.bricksUser;
@@ -80,14 +84,15 @@ export function requireSessionUser(event: H3Event): IAuthSessionUser {
 }
 
 /**
- * Проекция учётки для ответов профиля и ручки `me` — без активности, поколения
- * и даты создания.
+ * Account projection for the profile responses and the `me` handler — without
+ * the activity flag, the generation and the creation date.
  *
- * Форма одна на все ручки, отдающие «кто я»: разъехавшись, они заставили бы угол
- * экрана угадывать, что именно приехало после сохранения профиля.
+ * One shape for every handler that answers "who am I": had they diverged, the
+ * corner of the screen would be left guessing what exactly arrived after the
+ * profile was saved.
  *
- * @param user - Сессия или строка учётки (любая форма с этими полями).
- * @returns Публичная проекция профиля.
+ * @param user - A session or an account row (any shape carrying these fields).
+ * @returns The public projection of the profile.
  */
 export function toAuthProfileUser(user: IAuthProfileUser): IAuthProfileUser {
     return {
@@ -100,19 +105,20 @@ export function toAuthProfileUser(user: IAuthProfileUser): IAuthProfileUser {
 }
 
 /**
- * Валидирует тело правки своего профиля.
+ * Validates the body of editing one's own profile.
  *
- * Принимается ТОЛЬКО отображаемое имя. Ссылки на фото здесь нет намеренно: её
- * ставят ручки аватара, которые сам файл и загрузили. Разреши её в теле — и в
- * колонку уехал бы произвольный внешний адрес, то есть чужой ресурс, который
- * грузится в углу билдера у каждого, кто видит эту учётку. Логин неизменяем, а
- * роль и активность себе не правятся мимо второго администратора.
+ * ONLY the display name is accepted. The photo link is deliberately absent here:
+ * it is set by the avatar handlers, which uploaded the file themselves. Allow it
+ * in the body and an arbitrary external address would reach the column, that is
+ * a foreign resource loading in the corner of the builder for everyone who sees
+ * that account. The username is immutable, and role and activity are not
+ * editable on oneself without a second administrator.
  *
- * Пустая строка равна `null`: человек, стёрший имя, просит показывать логин, а не
- * пустое место.
+ * An empty string equals `null`: a person who erased the name is asking to show
+ * the username, not an empty spot.
  *
- * @param body - Нормализованное тело запроса.
- * @returns Проверенная правка.
+ * @param body - Normalized request body.
+ * @returns The validated edit.
  */
 export function validateProfilePayload(body: Record<string, unknown>): IAuthProfileInput {
     assertKnownKeys(body, PROFILE_KEYS);
@@ -131,17 +137,19 @@ export function validateProfilePayload(body: Record<string, unknown>): IAuthProf
 }
 
 /**
- * Валидирует тело смены своего пароля.
+ * Validates the body of changing one's own password.
  *
- * Текущий пароль проверяется только на непустоту и потолок длины: минимальную
- * длину к нему применять нельзя — пароль учётке могли задать записью в базу или
- * администратор во времена другой границы, и требование «не короче восьми» не
- * дало бы такому человеку сменить пароль вовсе. К НОВОМУ паролю применяются те
- * же границы, что на админском пути (`requirePassword`), включая запрет пароля
- * сида: сменой на тот же самый гасилось бы предупреждение о дефолтном пароле.
+ * The current password is checked only for being non-empty and within the length
+ * ceiling: the minimum length must not apply to it — the account password could
+ * have been set by a direct database write or by an administrator back when the
+ * bound was different, and a "no shorter than eight" requirement would leave such
+ * a person unable to change their password at all. The NEW password gets the same
+ * bounds as on the admin path (`requirePassword`), the ban on the seed password
+ * included: changing to the very same one would put out the default password
+ * warning.
  *
- * @param body - Нормализованное тело запроса.
- * @returns Текущий и новый пароль в открытом виде.
+ * @param body - Normalized request body.
+ * @returns The current and the new password in plaintext.
  */
 export function validateOwnPasswordPayload(body: Record<string, unknown>): IAuthOwnPasswordInput {
     assertKnownKeys(body, OWN_PASSWORD_KEYS);
@@ -160,11 +168,11 @@ export function validateOwnPasswordPayload(body: Record<string, unknown>): IAuth
 }
 
 /**
- * Отказ «текущий пароль не совпал».
+ * The "current password did not match" refusal.
  *
- * 400 с машиночитаемым кодом, а не 401: клиентский интерцептор реагирует на
- * статус, а не на путь, и 401 увёл бы человека с рабочей сессией на форму
- * логина — вместо подсказки под одним полем формы.
+ * 400 with a machine-readable code rather than 401: the client interceptor reacts
+ * to the status and not to the path, and a 401 would drag a person with a working
+ * session to the login form — instead of a hint under one field of the form.
  */
 export function invalidCurrentPassword(): never {
     throw createError({

@@ -14,21 +14,25 @@ import {
 } from '../../../../utils/auth/userManagement';
 
 /**
- * POST /api/bricks/users/:id/password — задаёт пароль чужой учётке (admin).
+ * POST /api/bricks/users/:id/password — sets the password of someone else's
+ * account (admin).
  *
- * Текущий пароль НЕ спрашивается: администратор его не знает, а сценарий —
- * восстановление доступа человеку, который свой пароль забыл. Именно поэтому
- * ручка отказывает на собственной учётке (409 `SELF_TARGET_FORBIDDEN`): свой
- * пароль меняется ручкой профиля, где текущий обязателен, иначе украденная кука
- * администратора сменила бы пароль сама и заперла владельца.
+ * The current password is NOT asked for: the administrator does not know it, and
+ * the scenario is restoring access for a person who forgot their own password.
+ * That is exactly why the handler refuses on the caller's own account (409
+ * `SELF_TARGET_FORBIDDEN`): one's own password is changed by the profile handler,
+ * where the current one is mandatory — otherwise a stolen administrator cookie
+ * would change the password on its own and lock the owner out.
  *
- * Успешная смена рвёт все сессии учётки (инкремент поколения в адаптере).
- * Ответ — без тела учётки: клиенту после смены пароля обновлять в строке нечего.
+ * A successful change breaks every session of the account (the generation is
+ * incremented in the adapter). The response carries no account body: after a
+ * password change the client has nothing to refresh in the row.
  *
- * Флаг `allowPasswordChange` закрывает эту ручку так же, как ручку своего пароля
- * (403 `PASSWORD_CHANGE_DISABLED`): установка, где пароли ведут снаружи, иначе
- * получила бы одну лазейку из двух. Проверка идёт ПОСЛЕ роли — состояние флага не
- * должно быть видно тому, у кого нет прав на раздел.
+ * The `allowPasswordChange` flag closes this handler exactly as it closes the
+ * own-password one (403 `PASSWORD_CHANGE_DISABLED`): an installation that keeps
+ * passwords outside the module would otherwise be left with one loophole out of
+ * two. The check comes AFTER the role — the state of the flag must not be visible
+ * to someone who has no rights to the section.
  */
 export default defineEventHandler(async (event) => {
     try {

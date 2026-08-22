@@ -3,12 +3,13 @@ import { useBricksStorageAdapter } from '../../../../modules/persistence/server/
 import { toHttpError } from '../../../../modules/persistence/server/utils/handlerHelpers';
 
 /**
- * GET /api/bricks/media — список медиа.
+ * GET /api/bricks/media — the media list.
  *
- * Чистое чтение. Прежде ручка при пустой таблице сама импортировала содержимое
- * бакета, то есть GET писал в БД: такой запрос проходит мимо CSRF-гейта
- * (безопасные методы он пропускает по определению) и достался бы роли, которой
- * разрешено только чтение. Импорт вынесен в POST /api/bricks/media/import.
+ * A pure read. The handler used to import the contents of the bucket itself when
+ * the table was empty, that is, a GET wrote to the database: such a request
+ * passes by the CSRF gate (which lets safe methods through by definition) and
+ * would have been available to a role allowed to read only. The import was moved
+ * out into POST /api/bricks/media/import.
  */
 export default defineEventHandler(async () => {
     try {

@@ -4,19 +4,22 @@ import { toHttpError } from '../../../../modules/persistence/server/utils/handle
 import { importMediaFromStorage } from '../../../../modules/persistence/server/utils/mediaImport';
 
 /**
- * POST /api/bricks/media/import — регистрирует в медиатеке файлы, лежащие в
- * managed-префиксе хранилища, но отсутствующие в БД.
+ * POST /api/bricks/media/import — registers in the media library the files that
+ * lie in the managed prefix of the storage but are absent from the database.
  *
- * Выделена из GET списка: там импорт был записью под безопасным методом (мимо
- * CSRF-гейта и мимо разделения прав). Требует `admin` — операция массовая и
- * заводит записи сразу обо всём префиксе, а не о файле, с которым работает
- * редактор.
+ * Split out of the GET list: there the import was a write under a safe method
+ * (past the CSRF gate and past the separation of rights). It requires `admin` —
+ * the operation is a bulk one and creates records for the whole prefix at once,
+ * not for the file an editor is working with.
  *
- * Идемпотентна: `createMedia` дефолтного адаптера при конфликте по url
- * возвращает существующую запись, поэтому повторный вызов дубликатов не плодит.
- * Пустой список в ответе означает «импортировать было нечего» — в том числе при
- * недоступном хранилище (импорт в этом случае молча пропускается, чтобы отказ
- * бакета не выглядел отказом медиатеки).
+ * Idempotent: `createMedia` of the default adapter returns the existing record on
+ * a url conflict, so a repeated call creates no duplicates.
+ *
+ * The response is the media library AFTER the import — the whole of it, not the
+ * records this call added: the caller refreshes the gallery from it, and a delta
+ * would leave it to merge two lists. The import result itself is deliberately not
+ * inspected. An unreachable storage yields no records and no error either, so
+ * that a failure of the bucket does not look like a failure of the media library.
  */
 export default defineEventHandler(async () => {
     try {

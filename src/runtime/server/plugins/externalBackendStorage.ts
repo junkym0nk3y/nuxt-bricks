@@ -1,15 +1,15 @@
 /**
- * Nitro-плагин external-режима data backend.
+ * Nitro plugin of the external data backend mode.
  *
- * Регистрируется module.ts ТОЛЬКО при build-time `bricks.backend.mode =
- * 'external'` — сама регистрация и есть носитель режима: mode не хранится в
- * runtimeConfig и не может быть переопределён NUXT_-env в обход build-time
- * валидации. Runtime-переопределяемыми остаются только URL/token/healthUrl
- * (NUXT_BRICKS_BACKEND_URL/TOKEN/HEALTH_URL) — они читаются лениво при первом
- * обращении к адаптеру.
+ * Registered by module.ts ONLY under the build-time `bricks.backend.mode =
+ * 'external'` — the registration itself is the carrier of the mode: the mode is
+ * not kept in runtimeConfig and cannot be overridden by a NUXT_ env variable
+ * around the build-time validation. Only the URL, the token and the healthUrl
+ * stay runtime-overridable (NUXT_BRICKS_BACKEND_URL/TOKEN/HEALTH_URL) — they are
+ * read lazily on the first call into the adapter.
  *
- * Кастомный адаптер потребителя (setBricksStorageAdapter из Nitro-плагина)
- * побеждает: он живёт в отдельном слоте registry и проверяется первым.
+ * A custom adapter of the consumer (setBricksStorageAdapter from a Nitro plugin)
+ * wins: it lives in a separate slot of the registry and is checked first.
  */
 import { defineNitroPlugin, useRuntimeConfig } from 'nitropack/runtime';
 import { setBricksDefaultStorageFactory } from '../../modules/persistence/server/defaultStorage';

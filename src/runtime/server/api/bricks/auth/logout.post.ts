@@ -9,8 +9,9 @@ import {
 } from '../../../utils/auth/sessionCookie';
 
 /**
- * POST /api/bricks/auth/logout — идемпотентный выход (database-режим):
- * удаляет сессию из БД (если cookie есть) и всегда чистит cookie.
+ * POST /api/bricks/auth/logout — an idempotent sign-out (database mode):
+ * deletes the session from the database (when a cookie is present) and always
+ * clears the cookie.
  */
 export default defineEventHandler(async (event) => {
     try {

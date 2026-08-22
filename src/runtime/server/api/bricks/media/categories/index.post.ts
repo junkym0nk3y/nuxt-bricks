@@ -7,13 +7,14 @@ import {
 import { validateCreateMediaCategoryPayload } from '../../../../../modules/persistence/server/utils/mediaPayloadValidation';
 
 /**
- * POST /api/bricks/media/categories — создаёт пользовательскую категорию.
+ * POST /api/bricks/media/categories — creates a user category.
  *
- * Slug выводится из подписи на сервере (см. validateCreateMediaCategoryPayload).
- * Повтор существующего slug'а возвращает существующую запись, а не 409:
- * состояние UI в обеих ветках одно, и двойной клик по «подтвердить» не должен
- * показывать ошибку на успешно созданной категории. Дубликат UI ловит сам —
- * сверяя введённую подпись с уже показанным рядом чипов.
+ * The slug is derived from the label on the server (see
+ * validateCreateMediaCategoryPayload). Repeating an existing slug returns the
+ * existing record rather than a 409: the UI state is the same in both branches,
+ * and a double click on "confirm" must not show an error over a category that was
+ * created successfully. The UI catches a duplicate itself — by matching the typed
+ * label against the row of chips already on screen.
  */
 export default defineEventHandler(async (event) => {
     try {

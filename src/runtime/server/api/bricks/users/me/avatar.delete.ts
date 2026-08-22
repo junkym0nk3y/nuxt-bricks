@@ -12,14 +12,16 @@ import {
 } from '../../../../utils/auth/profile';
 
 /**
- * DELETE /api/bricks/users/me/avatar — снимает фото своего профиля (любая роль).
+ * DELETE /api/bricks/users/me/avatar — removes the photo of one's own profile
+ * (any role).
  *
- * Идемпотентна: у учётки без фото снимать нечего, и ответ тот же — незачем
- * заставлять интерфейс различать «сняли» и «уже не было».
+ * Idempotent: an account without a photo has nothing to remove and gets the same
+ * answer — there is no point in making the interface tell "removed" from "there
+ * was none".
  *
- * Порядок тот же, что у загрузки: сначала снимается ссылка, потом убирается файл.
- * Обратный порядок оставлял бы учётку со ссылкой на удалённый объект, если запись
- * откажет.
+ * The order is the same as on upload: the link is cleared first, the file removed
+ * after. The reverse order would leave the account pointing at a deleted object
+ * should the write fail.
  */
 export default defineEventHandler(async (event) => {
     try {
@@ -32,8 +34,9 @@ export default defineEventHandler(async (event) => {
             sessionUser.authVersion
         );
 
-        // Учётки с этими креденшелами больше нет (удалена, отключена, поколение
-        // сдвинулось) — сессия мертва, и это 401, а не «нет такой ручки»
+        // There is no account with these credentials any more (deleted, disabled,
+        // or the credential generation was raised) — the session is dead, and that
+        // is a 401, not a "no such handler"
         if (!result) {
             throw createError({ statusCode: 401, statusMessage: 'Unauthorized' });
         }

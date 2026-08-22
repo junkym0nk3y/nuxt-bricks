@@ -1,16 +1,17 @@
 /**
- * Bounded-семафор scrypt-дериваций: поток login-запросов с
- * разными username не может занять CPU неограниченным числом одновременных
- * derive-операций. Переполнение очереди — GateOverflowError (ручка мапит в 503).
+ * A bounded semaphore over scrypt derivations: a stream of login requests with
+ * differing usernames cannot claim the CPU with an unbounded number of
+ * simultaneous derive operations. Queue overflow is a GateOverflowError (the
+ * handler maps it to 503).
  */
 import {
     createConcurrencyGate,
     GateOverflowError,
 } from '../../../modules/persistence/server/utils/concurrencyGate';
 
-/** Максимум одновременных scrypt-дериваций. */
+/** Maximum simultaneous scrypt derivations */
 const MAX_CONCURRENT_SCRYPT_TASKS = 4;
-/** Максимум ожидающих слот дериваций; сверх — GateOverflowError. */
+/** Maximum derivations waiting for a slot; beyond that, a GateOverflowError */
 const MAX_SCRYPT_QUEUE = 32;
 
 const scryptGate = createConcurrencyGate({
@@ -21,9 +22,9 @@ const scryptGate = createConcurrencyGate({
 export { GateOverflowError };
 
 /**
- * Исполняет scrypt-задачу в пределах общего лимита одновременности.
+ * Runs a scrypt task within the shared concurrency limit.
  *
- * @param task - Ленивая scrypt-операция (verifyPassword).
+ * @param task - A lazy scrypt operation (verifyPassword or hashPassword).
  */
 export function runScryptTask<T>(task: () => Promise<T>): Promise<T> {
     return scryptGate.run(task);

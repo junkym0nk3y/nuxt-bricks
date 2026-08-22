@@ -15,19 +15,20 @@ import {
 } from '../../../utils/auth/userManagement';
 
 /**
- * DELETE /api/bricks/users/:id — удаляет учётку (admin).
+ * DELETE /api/bricks/users/:id — deletes an account (admin).
  *
- * Сессии удалённой учётки уходят каскадом внешнего ключа. Отказы: 409
- * `SELF_TARGET_FORBIDDEN` (себя не удалить — иначе один неверный клик отнимает
- * доступ у того, кто его выдаёт), 409 `LAST_ACTIVE_ADMIN`, 404 (учётки нет).
+ * The sessions of a deleted account go away by the foreign key cascade.
+ * Refusals: 409 `SELF_TARGET_FORBIDDEN` (one cannot delete oneself — otherwise a
+ * single wrong click takes access away from the very person who hands it out),
+ * 409 `LAST_ACTIVE_ADMIN`, 404 (no such account).
  *
- * Фото профиля удаляется вслед за учёткой: ссылки на него больше нет нигде, и без
- * уборки файл остался бы в хранилище навсегда. Идёт она best-effort и ПОСЛЕ
- * удаления строки — отказ хранилища не должен превращать успешное удаление
- * учётки в ошибку, повторить которую уже нечем.
+ * The profile photo is deleted after the account: nothing points at it any more,
+ * and without the cleanup the file would stay in the storage forever. The cleanup
+ * is best-effort and runs AFTER the row is deleted — a storage failure must not
+ * turn a successful account deletion into an error that can no longer be retried.
  *
- * Страницы и медиа удалённого автора остаются: авторство в схеме не хранится, и
- * учётка — только вход в систему.
+ * The pages and the media of a deleted author remain: authorship is not stored in
+ * the schema, and an account is only a way into the system.
  */
 export default defineEventHandler(async (event) => {
     try {

@@ -9,25 +9,27 @@ import { validateRestoreVersionPayload } from '../../../../../../modules/persist
 import { restorePageVersion } from '../../../../../../modules/persistence/server/utils/pageVersionRestore';
 
 /**
- * POST /api/bricks/:id/versions/:versionId/restore — откат страницы к версии.
+ * POST /api/bricks/:id/versions/:versionId/restore — rolls a page back to a version.
  *
- * Применяет только schema + layout + backgroundColor: pagename/title/SEO/published
- * не трогаются (нет конфликтов уникальности pagename и неожиданных SEO-откатов).
- * Идёт через updatePage, который сам снапшотит текущее состояние перед откатом —
- * «откат отката» работает без дополнительного кода.
+ * Applies the state the page renders from: schema, layout, backgroundColor,
+ * thumbnailUrl and viewportConfig (the reasons the last two travel with the
+ * schema are spelled out in `pageVersionRestore.ts`). The address, the title, the
+ * SEO fields and `published` are left alone — no address uniqueness conflicts and
+ * no unexpected SEO rollbacks. It goes through updatePage, which snapshots the
+ * current state before the rollback itself — so "rolling back the rollback" works
+ * with no extra code.
  *
- * Optimistic locking: тело запроса обязано содержать `expectedRevision`
- * (precondition, НЕ записываемое поле) — несовпадение с текущей revision
- * страницы → 409 `data.code=REVISION_CONFLICT` через toPageHttpError, ничего
- * не меняется. В отличие от PUT/PATCH `/api/bricks/:id`, здесь precondition
- * обязателен (не опционален) — до этой ручки restore тихо перезаписывал
- * конкурентные правки, отправляя POST без тела вообще.
+ * Optimistic locking: the request body must carry `expectedRevision` (a
+ * precondition, NOT a writable field) — a mismatch with the current revision of
+ * the page gives a 409 `data.code=REVISION_CONFLICT` through toPageHttpError and
+ * changes nothing. Unlike PUT/PATCH `/api/bricks/:id`, here the precondition is
+ * mandatory rather than optional — before this handler restore quietly
+ * overwrote concurrent edits, sending a POST with no body at all.
  *
- * Остальные мутации versioned page state — сознательно last-write-wins, без
- * precondition (см. CLAUDE.md «Гонки записи и optimistic locking страниц»):
- * DELETE `/api/bricks/:id`, thumbnail-only PATCH (fire-and-forget превью после
- * снапшота канваса) и toggle `published` — однополевые операции, которые
- * ничего контентного не перетирают.
+ * The remaining mutations of versioned page state are deliberately
+ * last-write-wins, with no precondition: DELETE `/api/bricks/:id`, the
+ * thumbnail-only PATCH (the fire-and-forget preview after a canvas snapshot) and
+ * the `published` toggle — single-field operations that overwrite no content.
  */
 export default defineEventHandler(async (event) => {
     const id = requireNumericId(event);

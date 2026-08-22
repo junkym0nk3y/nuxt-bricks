@@ -55,6 +55,26 @@ export const LITERAL_GATED = new Set([
 ]);
 
 /**
+ * Developer messages that stay Russian by decision, keyed by path: the value is
+ * the exact literal as the scanner reports it, because line numbers drift with
+ * the first edit of a file.
+ *
+ * The one entry is the `description` of a `createError`, and it is the only
+ * translatable text in the sprint that leaves the process: it travels in the
+ * HTTP response body and a consumer application may render it to an end user.
+ * Rewriting it in English would be a change of product text, which this sprint
+ * does not make — so it is recorded as i18n debt in the findings instead. The
+ * exception is named here rather than left implicit, otherwise the stage could
+ * not close and the next reader would take it for missed work.
+ */
+export const MESSAGE_KEPT_RUSSIAN = new Map([
+    [
+        'src/runtime/server/utils/bricksComponents.ts',
+        new Set(["'Убедитесь, что brick-файлы этой категории существуют в components/'"]),
+    ],
+]);
+
+/**
  * Sprint areas, in the order stages run. `done: true` makes the area gating:
  * once a stage is closed, any Cyrillic comment coming back fails the check.
  *
@@ -80,7 +100,7 @@ export const AREAS = [
     { id: '4', title: 'text-editor', done: true, match: ['src/runtime/modules/text-editor/'] },
     { id: '5', title: 'render', done: true, match: ['src/runtime/modules/render/'] },
     { id: '6', title: 'persistence', done: true, match: ['src/runtime/modules/persistence/'] },
-    { id: '7', title: 'server', done: false, match: ['src/runtime/server/'] },
+    { id: '7', title: 'server', done: true, match: ['src/runtime/server/'] },
     {
         id: '8',
         title: 'plugins + middleware + cli',

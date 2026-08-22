@@ -6,11 +6,11 @@ import {
 } from '../../../../modules/persistence/server/utils/handlerHelpers';
 
 /**
- * GET /api/bricks/templates/:id — полный шаблон со схемой и оформлением.
+ * GET /api/bricks/templates/:id — the full template with its schema and styling.
  *
- * Нужен ровно одному сценарию — созданию страницы из шаблона: сводка списка
- * схему не несёт, а отдавать её всем карточкам разом значило бы возить мегабайты
- * ради сетки превью.
+ * Needed by exactly one scenario — creating a page from a template: the list
+ * summary carries no schema, and serving it to every card at once would mean
+ * hauling megabytes for the sake of a grid of thumbnails.
  */
 export default defineEventHandler(async (event) => {
     try {

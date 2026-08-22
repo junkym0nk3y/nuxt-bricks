@@ -9,19 +9,19 @@ import type { IBricksManifest, TBrickManifestRef } from '../../modules/common/ty
 const EMPTY_MANIFEST: IBricksManifest = { bricks: [], hash: '' };
 
 /**
- * Читает манифест brick-компонентов из Nitro server assets: в dev каталог
- * манифеста смонтирован fs-драйвером (перечитывается с диска после каждой
- * правки brick-файла), в prod содержимое запечено в серверный бандл — работает
- * из `.output` без опоры на process.cwd().
+ * Reads the brick component manifest from the Nitro server assets: in dev the
+ * manifest directory is mounted by the fs driver (it is re-read from disk after
+ * every edit of a brick file), in prod the contents are baked into the server
+ * bundle — so it works out of `.output` without relying on process.cwd().
  *
- * @returns Манифест или пустой список, если генератор ещё не отработал.
+ * @returns The manifest, or an empty list when the generator has not run yet.
  */
 async function readBricksManifest(): Promise<IBricksManifest> {
     const storage = useStorage(`assets:${BRICKS_MANIFEST_ASSET_BASE}`);
     const manifest = await storage.getItem<IBricksManifest>(BRICKS_MANIFEST_FILENAME);
 
     if (!manifest?.bricks) {
-        console.warn('[bricks] манифест компонентов не сгенерирован — библиотека будет пустой');
+        console.warn('[bricks] component manifest was not generated — the library will be empty');
         return EMPTY_MANIFEST;
     }
 
@@ -29,21 +29,22 @@ async function readBricksManifest(): Promise<IBricksManifest> {
 }
 
 /**
- * Возвращает манифест целиком или компоненты одной категории.
- * Бросает 404, если запрошенной категории в манифесте нет.
+ * Returns the whole manifest, or the components of a single category.
+ * Throws 404 when the requested category is not in the manifest.
  *
- * Отбор — прямая фильтрация, а не группировка всего манифеста: наружу уходит
- * ровно одна категория, корзины остальных строить незачем. Заодно категория,
- * пришедшая из brick-файла, не становится ключом объекта — строки `__proto__`
- * и `constructor` валидны как категории, но у объекта читаются как члены
- * `Object.prototype` и роняли обработчик.
+ * The selection is a straight filter rather than a grouping of the whole
+ * manifest: exactly one category leaves the handler, and there is no point in
+ * building buckets for the rest. It also keeps a category coming from a brick
+ * file from becoming an object key — the strings `__proto__` and `constructor`
+ * are valid categories, yet on an object they read as members of
+ * `Object.prototype` and used to crash the handler.
  *
- * Сравнение регистронезависимое в обе стороны, поэтому `Marketing` и
- * `marketing` считаются одной категорией: иначе поиск отдавал бы компоненты
- * только той из них, что встретилась первой.
+ * The comparison is case-insensitive on both sides, so `Marketing` and
+ * `marketing` count as one category: otherwise the lookup would return the
+ * components of whichever of them was encountered first only.
  *
- * @param category - Название категории из запроса (регистр не важен).
- * @returns Манифест либо список компонентов категории.
+ * @param category - Category name from the request (case does not matter).
+ * @returns The manifest, or the component list of the category.
  */
 export async function resolveBricksComponents(
     category?: string

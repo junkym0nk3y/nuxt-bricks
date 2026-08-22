@@ -1,28 +1,29 @@
 /**
- * Типы database-auth: режим, ролевой гард и augmentation H3EventContext.
+ * Database-auth types: the mode, the role guard and the H3EventContext augmentation.
  */
 import type { IAuthSessionUser } from '../../../modules/persistence/types/authAdapters';
 import type { IBricksRoutePrefixes } from '../../../modules/common/utils/bricks/routePaths';
 import type { TBricksUserRole } from '../../../modules/common/types/auth';
 
-/** Режим авторизации защищённых путей. */
+/** Authentication mode of the protected paths */
 export type TBricksAuthMode = 'basic' | 'database';
 
-/** Тело запроса логина (до валидации — поля произвольные). */
+/** Login request body (before validation the fields are arbitrary) */
 export interface IAuthLoginBody {
     username?: unknown;
     password?: unknown;
 }
 
-/** Проверенные креденшелы логина. */
+/** Validated login credentials */
 export interface IAuthLoginCredentials {
     username: string;
     password: string;
 }
 
 /**
- * Кандидат на вход: прошёл проверку пароля, но сессии ещё не имеет.
- * `authVersion` прочитан ДО scrypt-проверки и уходит условием во вставку.
+ * A sign-in candidate: the password check passed, but there is no session yet.
+ * `authVersion` was read BEFORE the scrypt check and goes into the insert as a
+ * condition.
  */
 export interface IAuthLoginCandidate {
     id: number;
@@ -32,62 +33,67 @@ export interface IAuthLoginCandidate {
 }
 
 /**
- * Проекция учётки в ответах «кто я»: ручка `me` и ручки своего профиля.
+ * Account projection in the "who am I" responses: the `me` handler and the
+ * own-profile handlers.
  *
- * Одна форма на все три источника (сессия, строка после правки профиля, строка
- * после смены фото) — иначе угол экрана угадывал бы, что именно приехало.
- * Активности, поколения и даты создания здесь нет: интерфейсу профиля они не
- * нужны, а неактивная учётка до ручек не доходит вовсе.
+ * One shape for all three sources (the session, the row after a profile edit,
+ * the row after a photo change) — otherwise the corner of the screen would be
+ * left guessing what exactly arrived. The activity flag, the generation and the
+ * creation date are absent here: the profile interface does not need them, and
+ * an inactive account never reaches these handlers at all.
  */
 export interface IAuthProfileUser {
     id: number;
     username: string;
     role: TBricksUserRole;
-    /** Отображаемое имя; null — показывается логин. */
+    /** Display name; null means the username is shown */
     displayName: string | null;
-    /** Ссылка на фото профиля; null — буквенная заглушка. */
+    /** Link to the profile photo; null means the letter placeholder */
     avatarUrl: string | null;
 }
 
-/** Проверенное тело правки своего профиля. */
+/** Validated body of editing one's own profile */
 export interface IAuthProfileInput {
-    /** Отображаемое имя; null — снять и показывать логин. */
+    /** Display name; null means clear it and show the username */
     displayName: string | null;
 }
 
-/** Проверенное тело смены своего пароля. */
+/** Validated body of changing one's own password */
 export interface IAuthOwnPasswordInput {
     /**
-     * Текущий пароль — обязателен именно здесь: без него украденная кука сменила
-     * бы пароль сама и заперла владельца снаружи.
+     * The current password is mandatory precisely here: without it a stolen
+     * cookie would change the password on its own and lock the owner out.
      */
     currentPassword: string;
     newPassword: string;
 }
 
 /**
- * Требование доступа к пути `/api/bricks/**`.
- * `null` — путь открыт всем (public read-model, health, манифест компонентов);
- * `'authenticated'` — достаточно любой валидной сессии (собственный профиль);
- * роль — минимальный ранг из `BRICKS_ROLE_RANK`.
+ * Access requirement for an `/api/bricks/**` path.
+ * `null` — the path is open to everyone (public read model, health, component
+ * manifest); `'authenticated'` — any valid session is enough (one's own
+ * profile); a role — the minimum rank from `BRICKS_ROLE_RANK`.
  */
 export type TBricksAccessRequirement = TBricksUserRole | 'authenticated' | null;
 
-/** Разобранная цель запроса для auth-middleware (логический путь без baseURL). */
+/** Parsed request target for the auth middleware (logical path without baseURL) */
 export interface IAuthRequestTarget {
-    /** Путь без `app.baseURL` и query — вход матрицы защиты. */
+    /** Path without `app.baseURL` and query — the input of the protection matrix */
     logicalPathname: string;
-    /** Query-строка запроса (с ведущим `?` или пустая). */
+    /** Query string of the request (with a leading `?`, or empty) */
     search: string;
-    /** Активные префиксы маршрутов bricks. */
+    /** Active bricks route prefixes */
     prefixes: IBricksRoutePrefixes;
-    /** `app.baseURL` приложения (для построения redirect-URL). */
+    /** `app.baseURL` of the application (used to build the redirect URL) */
     baseURL: string;
 }
 
 declare module 'h3' {
     interface H3EventContext {
-        /** Пользователь авторизованной database-auth сессии (ставит middleware auth). */
+        /**
+         * User of an authorized database-auth session (put here by the auth
+         * middleware).
+         */
         bricksUser?: IAuthSessionUser;
     }
 }

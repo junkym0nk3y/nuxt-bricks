@@ -1,33 +1,34 @@
 /**
- * Хеширование и проверка паролей database-auth: scrypt из node:crypto
- * (ноль зависимостей), самоописывающий формат хеша.
+ * Hashing and verification of database-auth passwords: scrypt from node:crypto
+ * (zero dependencies), a self-describing hash format.
  *
- * Формат: `scrypt:N:r:p:saltB64:hashB64` — verify парсит параметры из строки,
- * поэтому смена дефолтов не ломает существующие хеши. В том же формате записан
- * литерал сида миграции (учётка `admin` свежей базы).
+ * The format is `scrypt:N:r:p:saltB64:hashB64` — verify parses the parameters
+ * out of the string, so changing the defaults does not break existing hashes.
+ * The seed literal of the migration (the `admin` account of a fresh database) is
+ * written in that same format.
  */
 import { randomBytes, scrypt, timingSafeEqual, type ScryptOptions } from 'node:crypto';
 
-/** Стоимостной параметр CPU/memory (2^14). */
+/** CPU/memory cost parameter (2^14) */
 const SCRYPT_N = 16384;
-/** Размер блока. */
+/** Block size */
 const SCRYPT_R = 8;
-/** Параллелизм. */
+/** Parallelization */
 const SCRYPT_P = 1;
-/** Длина производного ключа в байтах. */
+/** Derived key length in bytes */
 const SCRYPT_KEYLEN = 64;
-/** Длина соли в байтах. */
+/** Salt length in bytes */
 const SALT_BYTES = 16;
 
 /**
- * Валидный scrypt-хеш несуществующего пароля — verify против него при
- * неизвестном username выравнивает тайминг ответа (анти-enumeration).
+ * A valid scrypt hash of a password that does not exist — verifying against it
+ * when the username is unknown equalizes response timing (anti-enumeration).
  */
 export const DUMMY_PASSWORD_HASH =
     'scrypt:16384:8:1:2TrXt4LM6wHYsT2gslc3yg==:5gQCTq5qTZCoxPmV39EzZVKzvLSLkEH68C95sTHMEqK/QXjZox7YxDECgGg0pxq4mV53+EzscJx2B9f/CBxRWw==';
 
 /**
- * Промисифицированный scrypt.
+ * Promisified scrypt.
  */
 function deriveKey(
     password: string,
@@ -48,10 +49,10 @@ function deriveKey(
 }
 
 /**
- * Хеширует пароль в самоописывающий формат scrypt:N:r:p:saltB64:hashB64.
+ * Hashes a password into the self-describing scrypt:N:r:p:saltB64:hashB64 format.
  *
- * @param password - Пароль в открытом виде.
- * @returns Строка хеша для колонки bricks_users.password_hash.
+ * @param password - The plaintext password.
+ * @returns The hash string for the bricks_users.password_hash column.
  */
 export async function hashPassword(password: string): Promise<string> {
     const salt = randomBytes(SALT_BYTES);
@@ -65,7 +66,7 @@ export async function hashPassword(password: string): Promise<string> {
 }
 
 /**
- * Разобранные параметры хеша из самоописывающей строки.
+ * Hash parameters parsed out of the self-describing string.
  */
 interface IParsedPasswordHash {
     n: number;
@@ -76,7 +77,7 @@ interface IParsedPasswordHash {
 }
 
 /**
- * Парсит строку хеша; null — если формат не распознан.
+ * Parses the hash string; null when the format is not recognized.
  */
 function parsePasswordHash(storedHash: string): IParsedPasswordHash | null {
     const parts = storedHash.split(':');
@@ -104,12 +105,12 @@ function parsePasswordHash(storedHash: string): IParsedPasswordHash | null {
 }
 
 /**
- * Проверяет пароль против хеша в самоописывающем формате.
- * Malformed-строка хеша → false (без исключения).
+ * Verifies a password against a hash in the self-describing format.
+ * A malformed hash string yields false, not an exception.
  *
- * @param password - Пароль в открытом виде.
- * @param storedHash - Строка scrypt:N:r:p:saltB64:hashB64 из БД.
- * @returns true — если пароль совпадает.
+ * @param password - The plaintext password.
+ * @param storedHash - The scrypt:N:r:p:saltB64:hashB64 string from the database.
+ * @returns true — the password matches.
  */
 export async function verifyPassword(password: string, storedHash: string): Promise<boolean> {
     const parsed = parsePasswordHash(storedHash);
@@ -127,7 +128,7 @@ export async function verifyPassword(password: string, storedHash: string): Prom
 
         return timingSafeEqual(candidate, parsed.hash);
     } catch {
-        // Невалидные scrypt-параметры (например, N не степень двойки)
+        // Invalid scrypt parameters (for example, N is not a power of two)
         return false;
     }
 }

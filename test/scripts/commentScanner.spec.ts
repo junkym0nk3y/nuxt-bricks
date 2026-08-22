@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
 import {
     collectComments,
     collectDevMessages,
     collectTestTitles,
     projectCode,
 } from '../../scripts/comment-lines.mjs';
+import { MESSAGE_KEPT_RUSSIAN, ROOT } from '../../scripts/comment-sprint-areas.mjs';
 
 /**
  * Reports the comment lines of a source string.
@@ -337,5 +341,27 @@ describe('code projection', () => {
         const after = 'const css = `\n    /* a heading */\n    .a { display: block; }\n`;';
 
         expect(projectCode('a.ts', before)).not.toEqual(projectCode('a.ts', after));
+    });
+});
+
+describe('messages kept Russian by decision', () => {
+    it('matches exactly one reported message each, so the exception cannot spread', () => {
+        // Two failure modes, and the exception is silent about both. It is keyed by
+        // the literal rather than by a line number, so a reworded message stops
+        // matching, the gate counts it again and the closed stage turns red for what
+        // looks like missed work. And a literal matches by text alone, so the same
+        // Russian string copied into a second place in the file would be waved
+        // through as well — an exception granted to one documented product string
+        // must not quietly cover a new one. Hence the count, not just presence
+        for (const [path, texts] of MESSAGE_KEPT_RUSSIAN) {
+            const source = readFileSync(resolve(ROOT, path), 'utf8');
+            const reported = collectDevMessages(path, source).map((message) => message.text);
+
+            for (const text of texts) {
+                const occurrences = reported.filter((message) => message === text);
+
+                expect(occurrences, `${path}: ${text}`).toHaveLength(1);
+            }
+        }
     });
 });
