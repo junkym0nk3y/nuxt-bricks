@@ -1,23 +1,24 @@
 # common/composables
 
-Общие композаблы (используются 2+ доменами). Доменные композаблы живут рядом со своим кодом —
-в каждой папке `composables/`/`utils/` есть свой README с таблицей файлов.
+Shared composables (used by 2+ domains). A domain's own composables live next to its code —
+every `composables/`/`utils/` folder has a README of its own with a table of its files.
 
-| Файл                      | Назначение                                                                                                                                                                                                                                      |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `useBricksConfig.ts`      | Конфигурация билдера с дефолтными значениями. Читает из `app.config.ts` (набора устройств здесь нет — см. `useBricksDevices.ts`)                                                                                                                |
-| `useBricksDevices.ts`     | Набор устройств проекта (опция модуля `bricks.devices` поверх `constants/devices.ts`) и резолв набора конкретной страницы поверх него; `deviceRanges` — диапазоны ширины окна. Ширина устройства служит и листом канваса, и порогом media-query |
-| `useApiClient.ts`         | Работа с API: пути `/api/bricks/**` всегда локальны (`utils/localApiPaths.ts`), остальные /api/\* — на API host-проекта (SSR-заголовки из `utils/ssrRequestHeaders.ts`, CSRF, 401 → login в database-auth)                                      |
-| `useBrickImports.ts`      | Динамический импорт brick-файлов компонентов: lookup лоадера по `brickPath` из схемы (ключи glob'а = записи манифеста, см. `src/bricks-manifest.ts`)                                                                                            |
-| `useBricksStyles.ts`      | Генерация и инъекция стилей `.bricks-container` в `<head>` (канвас + published media queries)                                                                                                                                                   |
-| `useBricksRoutePaths.ts`  | Пути поверхностей bricks (`bricks.routes` + `app.baseURL`) для `window.location`/`window.open`/`<a href>`; внутри Vue Router — именованные роуты                                                                                                |
-| `useBricksAssetUrl.ts`    | URL публичных ассетов модуля (`/_bricks/` + `app.baseURL`) — обёртка над `resolveBricksAssetUrl` для setup-контекста                                                                                                                            |
-| `useBricksPageAddress.ts` | Доступность адресов страницы по РЕАЛЬНОМУ роутингу (`router.resolve`): live-адрес и адрес редактора. Ловит и поверхности билдера, и страницы приложения-потребителя — списка зарезервированных имён нет                                         |
+| File                      | Purpose                                                                                                                                                                                                                                                                                            |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `useBricksConfig.ts`      | The builder's configuration with its default values. Reads out of `app.config.ts` (the device set is not here — see `useBricksDevices.ts`)                                                                                                                                                         |
+| `useBricksDevices.ts`     | The device set of the project (the `bricks.devices` module option over `constants/devices.ts`) and the resolve of a particular page's set on top of it; `deviceRanges` — the window width ranges. The width of a device serves both as a sheet of the canvas and as the threshold of a media query |
+| `useApiClient.ts`         | Working with the API: the `/api/bricks/**` paths are always local (`utils/localApiPaths.ts`), the rest of /api/\* go to the API host of the project (the SSR headers out of `utils/ssrRequestHeaders.ts`, CSRF, a 401 → login in database-auth)                                                    |
+| `useBrickImports.ts`      | The dynamic import of the brick files of the components: the loader lookup by the `brickPath` out of the schema (the keys of the glob = the entries of the manifest, see `src/bricks-manifest.ts`)                                                                                                 |
+| `useBricksStyles.ts`      | Generating the `.bricks-container` styles and injecting them into `<head>` (the canvas + the published media queries)                                                                                                                                                                              |
+| `useBricksRoutePaths.ts`  | The paths of the bricks surfaces (`bricks.routes` + `app.baseURL`) for `window.location`/`window.open`/`<a href>`; inside Vue Router the named routes are used instead                                                                                                                             |
+| `useBricksAssetUrl.ts`    | The URLs of the module's public assets (`/_bricks/` + `app.baseURL`) — a wrapper over `resolveBricksAssetUrl` for a setup context                                                                                                                                                                  |
+| `useBricksPageAddress.ts` | Whether the addresses of a page are available by the REAL routing (`router.resolve`): the live address and the editor's address. Catches both the builder's surfaces and the pages of the consumer application — there is no list of reserved names                                                |
 
-## Правила
+## Rules
 
-1. **Интерфейсы** хранятся в `types/` домена (`*.d.ts`), не инлайн в файлах
-2. **Комментарии** на русском языке
-3. **JSDoc** обязателен для всех публичных функций
-4. **#region** комментарии для группировки кода
-5. Новый композабл кладётся в домен-потребитель; в `common/` — только при использовании из 2+ доменов
+1. **Interfaces** are kept in the `types/` of the domain (`*.d.ts`), never inline in the files
+2. **Comments** are written in English
+3. **JSDoc** is mandatory for every public function
+4. **#region** comments group the code
+5. A new composable goes into the domain that consumes it; into `common/` only when 2+ domains
+   use it

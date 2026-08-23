@@ -1,7 +1,7 @@
 # builder/shell/toolbar/composables
 
-Композаблы верхней панели билдера.
+Composables of the builder's top bar.
 
-| Файл                        | Назначение                                                                               |
-| --------------------------- | ---------------------------------------------------------------------------------------- |
-| `useToolbarPageSelector.ts` | Состояние селектора страниц: открытость попапа, поиск (от 7 страниц) и фильтрация списка |
+| File                        | Purpose                                                                                                                     |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `useToolbarPageSelector.ts` | The state of the page selector: whether the popup is open, the search (shown from 7 pages on) and the filtering of the list |

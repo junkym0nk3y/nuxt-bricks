@@ -1,24 +1,24 @@
 # server/utils/auth
 
-HTTP-логика database-auth (не подменяемая адаптером — работа с cookie, scrypt,
-rate limiting и матрицами путей и прав). Хранилище пользователей/сессий — за
-`IAuthAdapter` (`modules/persistence/server/registry.ts`).
+The HTTP logic of database-auth (not replaceable by an adapter — working with the cookie, scrypt,
+the rate limiting and the matrices of the paths and the permissions). The store of the users and
+the sessions sits behind `IAuthAdapter` (`modules/persistence/server/registry.ts`).
 
-Две матрицы работают последовательно и отвечают на разные вопросы:
-`routeProtection` — «нужна ли этому пути авторизация вообще», `rolePolicy` —
-«хватает ли роли уже вошедшего». Вторая вызывается только для путей, которые
-первая сочла защищёнными.
+The two matrices run one after the other and answer different questions:
+`routeProtection` — "does this path need authorization at all", `rolePolicy` —
+"is the role of the already logged-in person enough". The second one is called only for the paths
+the first one found protected.
 
-| Файл                  | Назначение                                                                                                                                  |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `passwords.ts`        | scrypt hash/verify паролей (формат `scrypt:N:r:p:saltB64:hashB64`), `DUMMY_PASSWORD_HASH` (анти-enumeration)                                |
-| `sessionCookie.ts`    | Cookie `bricks-session`: генерация/SHA-256 токена, get/set/clear, срок жизни из runtimeConfig                                               |
-| `session.ts`          | `resolveSessionUser(event)` — cookie → hash → адаптер → сессия с пользователем или null                                                     |
-| `loginRateLimiter.ts` | In-memory лимитер логина: 5 неудач/15 мин → lockout 15 мин, opportunistic sweep, bound 10k записей                                          |
-| `routeProtection.ts`  | `requiresAuth(pathname, method, mode)` + `isProtectedHtmlPath()` — матрица защищённых путей                                                 |
-| `rolePolicy.ts`       | `resolveRequiredAccess(pathname, method)` + `isAccessSatisfied(role, requirement)` — матрица прав уже авторизованного запроса               |
-| `csrfProtection.ts`   | Гейт unsafe-методов: кастомный заголовок + сверка Origin/Referer, список защищённых путей                                                   |
-| `scryptGate.ts`       | Общий семафор scrypt-дериваций (вход и установка паролей); переполнение очереди → 503                                                       |
-| `userManagement.ts`   | Ручки чужих учёток: доступность раздела (404), гейт смены пароля (403), запрет операций над собой (409), валидация DTO и хеширование пароля |
-| `profile.ts`          | Ручки своего профиля `users/me/**`: доступность (404), пользователь запроса, валидация имени и своего пароля, проекция ответа               |
-| `types.d.ts`          | `TBricksAuthMode`, типы логина, профиля и требования доступа, augmentation `H3EventContext.bricksUser`                                      |
+| File                  | Purpose                                                                                                                                                                                                                                                                        |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `passwords.ts`        | The scrypt hash/verify of the passwords (the `scrypt:N:r:p:saltB64:hashB64` format), `DUMMY_PASSWORD_HASH` (anti-enumeration)                                                                                                                                                  |
+| `sessionCookie.ts`    | The `bricks-session` cookie: generating the token and its SHA-256, get/set/clear, the lifetime out of the runtimeConfig                                                                                                                                                        |
+| `session.ts`          | `resolveSessionUser(event)` — the cookie → the hash → the adapter → a session with its user, or null                                                                                                                                                                           |
+| `loginRateLimiter.ts` | The in-memory limiter of the login, on two levels: 5 failures per ip and username in 15 minutes and 30 failures per ip in the same window → a 15-minute lockout (the ip level is checked ahead of the expensive scrypt verify); an opportunistic sweep, bounded at 10k entries |
+| `routeProtection.ts`  | `requiresAuth(pathname, method, mode)` + `isProtectedHtmlPath()` — the matrix of the protected paths                                                                                                                                                                           |
+| `rolePolicy.ts`       | `resolveRequiredAccess(pathname, method)` + `isAccessSatisfied(role, requirement)` — the permission matrix of an already authorized request                                                                                                                                    |
+| `csrfProtection.ts`   | The gate over the unsafe methods: a custom header + the check of Origin/Referer, the list of the protected paths                                                                                                                                                               |
+| `scryptGate.ts`       | The shared semaphore of the scrypt derivations (logging in and setting passwords); an overflow of the queue → 503                                                                                                                                                              |
+| `userManagement.ts`   | The endpoints of other people's accounts: whether the section is available (404), the gate over changing a password (403), the ban on operations upon oneself (409), the DTO validation and the hashing of the password                                                        |
+| `profile.ts`          | The endpoints of one's own profile, `users/me/**`: the availability (404), the user of the request, validating the name and one's own password, the projection of the response                                                                                                 |
+| `types.d.ts`          | `TBricksAuthMode`, the types of the login, of the profile and of an access requirement, the augmentation `H3EventContext.bricksUser`                                                                                                                                           |

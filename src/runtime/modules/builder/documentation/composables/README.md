@@ -1,6 +1,6 @@
 # builder/documentation/composables
 
-| Файл                          | Назначение                                                                                |
-| ----------------------------- | ----------------------------------------------------------------------------------------- |
-| `useDocumentationArticles.ts` | Загрузка markdown-статей из `docs/guide/<locale>/` (`import.meta.glob`, fallback на `ru`) |
-| `useMarkdownRenderer.ts`      | Рендеринг markdown через markdown-it (lazy-загрузка при первом вызове)                    |
+| File                          | Purpose                                                                                                |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `useDocumentationArticles.ts` | Loading the markdown articles out of `docs/guide/<locale>/` (`import.meta.glob`, falling back to `ru`) |
+| `useMarkdownRenderer.ts`      | Rendering markdown through markdown-it (loaded lazily on the first call)                               |

@@ -1,9 +1,9 @@
 # builder/auth/composables
 
-| Файл                     | Назначение                                                                         |
-| ------------------------ | ---------------------------------------------------------------------------------- |
-| `useAuthSession.ts`      | Клиентская сессия database-auth: `isDatabaseMode`, `login`, `logout`, `fetchMe`    |
-| `useAuthLoginForm.ts`    | Форма страницы логина: vee-validate, маппинг ошибок по statusCode, redirect        |
-| `useAuthProfile.ts`      | Профиль сессии (имя, логин, роль, фото) и его правка: имя, аватар, свой пароль     |
-| `useAuthProfileModal.ts` | Латч монтирования и открытость модалки профиля — общие для дашборда и билдера      |
-| `useAuthAvatarCrop.ts`   | Кадрирование фото: декодирование файла, масштаб, сдвиг, рамка в пикселях исходника |
+| File                     | Purpose                                                                                                   |
+| ------------------------ | --------------------------------------------------------------------------------------------------------- |
+| `useAuthSession.ts`      | The client session of database-auth: `isDatabaseMode`, `login`, `logout`, `fetchMe`                       |
+| `useAuthLoginForm.ts`    | The form of the login page: vee-validate, mapping the errors by statusCode, the redirect                  |
+| `useAuthProfile.ts`      | The session's profile (name, login, role, photo) and editing it: the name, the avatar, one's own password |
+| `useAuthProfileModal.ts` | The mount latch and the openness of the profile modal — shared by the dashboard and the builder           |
+| `useAuthAvatarCrop.ts`   | Cropping a photo: decoding the file, the scale, the shift, the frame in the pixels of the original        |

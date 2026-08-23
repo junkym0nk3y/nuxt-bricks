@@ -1,16 +1,16 @@
 # builder/canvas/viewport/composables
 
-Композаблы корневой области канваса: масштаб, скролл, drag&drop на свободную область.
+Composables of the canvas root area: the scale, the scrolling, drag and drop onto free space.
 
-| Файл                              | Назначение                                                                                  |
-| --------------------------------- | ------------------------------------------------------------------------------------------- |
-| `useCanvas.ts`                    | Обёртка над стором холста: масштаб (`canvasTransform`), стили контейнера, реакция на resize |
-| `useCanvasCentering.ts`           | Горизонтальное центрирование канваса (rAF-планировщик, watcher'ы на scale/width/sidebar)    |
-| `useCanvasContainerMetrics.ts`    | Синхронизация высоты канваса с контентом (ResizeObserver, пересчёт при смене viewport)      |
-| `useCanvasDrops.ts`               | Drag&drop-логика корневой области канваса                                                   |
-| `useCanvasDragAutoScroll.ts`      | Автоскролл `.canvasArea`, пока курсор с драгом держат у края (нативный DnD глушит колесо)   |
-| `useCanvasFlowGuard.ts`           | Глушит move-переходы потока, пока меняется геометрия канваса (зум, viewport, размеры)       |
-| `useCanvasPan.ts`                 | Панорамирование средней кнопкой мыши                                                        |
-| `useCanvasWheel.ts`               | Ctrl(⌘)+scroll — зум к курсору, Shift+scroll — горизонтальный скролл; зум кнопок ± к центру |
-| `useCanvasRemBase.ts`             | Коэффициент rem-компенсации из `remBase` breakpoint'а (см. CLAUDE.md → Rem-компенсация)     |
-| `useInteractivePreviewDismiss.ts` | Сброс интерактивного предпросмотра при клике вне компонента (capture pointerdown)           |
+| File                              | Purpose                                                                                                                                                                       |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `useCanvas.ts`                    | A wrapper over the canvas store: the scale (`canvasTransform`), the container styles, the reaction to a resize                                                                |
+| `useCanvasCentering.ts`           | Horizontal centering of the canvas (an rAF scheduler, watchers over scale/width/sidebar)                                                                                      |
+| `useCanvasContainerMetrics.ts`    | Syncing the height of the canvas with its content (ResizeObserver, recomputed on a change of viewport)                                                                        |
+| `useCanvasDrops.ts`               | The drag-and-drop logic of the canvas root area                                                                                                                               |
+| `useCanvasDragAutoScroll.ts`      | Auto-scrolling `.canvasArea` while a drag is held at its edge (native DnD silences the wheel)                                                                                 |
+| `useCanvasFlowGuard.ts`           | Silences the move transitions of the flow while the geometry of the canvas changes (zoom, viewport, sizes)                                                                    |
+| `useCanvasPan.ts`                 | Panning with the middle mouse button                                                                                                                                          |
+| `useCanvasWheel.ts`               | Ctrl(⌘)+scroll — zoom to the cursor, Shift+scroll — horizontal scrolling; the zoom of the ± buttons goes to the center                                                        |
+| `useCanvasRemBase.ts`             | The rem compensation factor out of the `remBase` of a device of the project set (the builder forces `html { font-size: 10px }`, and the canvas has to match a published page) |
+| `useInteractivePreviewDismiss.ts` | Dismissing the interactive preview on a click outside the component (pointerdown in capture)                                                                                  |

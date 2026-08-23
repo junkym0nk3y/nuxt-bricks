@@ -1,35 +1,36 @@
 # Testing strategy
 
-В проекте два уровня автоматических тестов:
+There are two levels of automated tests in the project:
 
-- `npm test` — быстрые Vitest-тесты чистой логики, контрактов, ошибок и
-  детерминированных гонок;
-- `npm run test:e2e` — Playwright-сценарии критических пользовательских путей в
-  настоящем Nuxt-приложении и Chromium.
+- `npm test` — the fast Vitest tests of pure logic, contracts, errors and
+  deterministic races;
+- `npm run test:e2e` — the Playwright scenarios of the critical user paths in a
+  real Nuxt application and Chromium.
 
-Vitest не должен доказывать, что несколько Vue-файлов «правильно соединены»,
-читая их исходный текст. Такие гарантии хрупкие и проверяются E2E через
-наблюдаемое поведение. В unit-тестах остаются чистые функции и сложные ветки,
-которые в браузере воспроизводить дорого или недетерминированно.
+Vitest must not prove that several Vue files are "wired up correctly" by reading
+their source text. Guarantees like that are brittle, and E2E checks them through
+observable behavior instead. What stays in the unit tests is the pure functions
+and the complex branches that are expensive or non-deterministic to reproduce in
+a browser.
 
-## Когда добавлять тест
+## When to add a test
 
-Добавляйте Vitest-тест, если он защищает отдельное правило или класс ошибок:
+Add a Vitest test when it protects a separate rule or a class of errors:
 
-- публичный контракт функции, API или хранилища;
-- security boundary, валидацию, лимит либо обработку повреждённых данных;
-- детерминированную гонку, timeout или rollback;
-- регрессию, которую нельзя надёжно поймать на другом уровне.
+- the public contract of a function, an API or a store;
+- a security boundary, a validation, a limit or the handling of corrupted data;
+- a deterministic race, a timeout or a rollback;
+- a regression that cannot be caught reliably at another level.
 
-Не размножайте одинаковую матрицу adversarial-значений во всех вызывающих
-функциях. Полная матрица живёт у общего primitive/helper, а потребители
-проверяют по одному характерному значению и свою уникальную ветку.
+Do not multiply the same matrix of adversarial values across every calling
+function. The full matrix lives at the shared primitive or helper, while its
+consumers check one characteristic value and their own unique branch.
 
-Добавляйте Playwright-сценарий, если гарантия проходит через несколько слоёв:
-маршрут, гидратацию, UI, store, Nitro API или SSR. Сценарий должен проверять
-результат для пользователя, а не внутреннее устройство компонента.
+Add a Playwright scenario when a guarantee travels through several layers: the
+route, the hydration, the UI, a store, the Nitro API or SSR. A scenario has to
+check the result for a person, not the internals of a component.
 
-## Команды
+## Commands
 
 ```bash
 npm test
@@ -38,34 +39,41 @@ npm run test:e2e
 npm run test:e2e:ui
 ```
 
-Перед первым локальным E2E-запуском установите Chromium:
+Install Chromium before the first local E2E run:
 
 ```bash
 npx playwright install chromium
 ```
 
-Playwright сам запускает disposable external backend и consumer fixture из
-`e2e/fixture`; PostgreSQL, S3 и ручной запуск playground ему не нужны.
+Playwright starts the disposable external backend and the consumer fixture out of
+`e2e/fixture` by itself; it needs neither PostgreSQL, nor S3, nor a hand-started
+playground.
 
-## Что покрывает E2E
+## What E2E covers
 
-Небольшой smoke-набор держит самые дорогие сквозные гарантии:
+A small smoke set holds the most expensive end-to-end guarantees:
 
-- создание страницы через UI и discovery brick-компонента consumer-приложения;
-- восстановление последней правки формы после немедленной перезагрузки;
-- блокирующая ошибка bootstrap, фокус и успешный retry;
-- игнорирование позднего ответа save после перехода на другую страницу;
-- SSR опубликованной страницы с brick-компонентом consumer-приложения.
+- creating a page through the UI and discovering the brick component of the
+  consumer application;
+- restoring the last edit of the form after an immediate reload;
+- a blocking bootstrap error, the focus and a successful retry;
+- ignoring a late save response after a move to another page;
+- the SSR of a published page with the brick component of the consumer
+  application;
+- the keyboard of the viewport switcher (roving focus): moving the focus without
+  changing the selection, selecting on Enter, wrapping around.
 
-## Вспомогательные папки
+## Support folders
 
-- `helpers/publishFixtures.ts` — fixtures publish-домена.
-- `helpers/builderSessionHarness.ts` — harness для детерминированных
-  session/race-тестов билдера.
-- `helpers/h3Events.ts` — фейковое событие h3 для серверных тестов; единственное
-  место, где форма фейка приводится к `H3Event`.
-- `stubs/nuxt-imports.ts` — стаб Nuxt auto-imports для node-тестов.
+- `helpers/publishFixtures.ts` — the fixtures of the publish domain.
+- `helpers/builderSessionHarness.ts` — the harness for the deterministic
+  session and race tests of the builder.
+- `helpers/asyncData.ts` — the stub of `useAsyncData` for the composables that
+  read on SSR.
+- `helpers/h3Events.ts` — a fake h3 event for the server tests; the one place
+  where the shape of the fake is coerced to `H3Event`.
+- `stubs/nuxt-imports.ts` — the stub of the Nuxt auto-imports for the node tests.
 
-Директория спеки соответствует домену в `src/runtime/modules/` либо серверному
-или build-time слою. Новые типы тестовой инфраструктуры кладите в отдельный
-`types.d.ts`, как и production-типы.
+The directory of a spec matches a domain of `src/runtime/modules/`, or the server,
+the build-time or the scripts layer. Put the new types of the test infrastructure into a
+`types.d.ts` of their own, the same way production types go.

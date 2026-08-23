@@ -1,8 +1,8 @@
 # text-editor/composables
 
-| Файл                     | Назначение                                                                                                                                                                                      |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `useInlineEditor.ts`     | TipTap inline-editor на канвасе: lazy-загрузка, lifecycle, конвертация segments/HTML ↔ TipTap, публикация editor в inlineEditingStore. Доступ к схеме — через порт `IInlineEditorHost` (inject) |
-| `useTextEditorArea.ts`   | Логика TextEditorArea: lazy-инициализация/destroy TipTap, синхронизация props (value/disabled/placeholder), тогглы code-view и тёмного фона, обработчики контента и вставки медиа               |
-| `useTextEditorLink.ts`   | Состояние и операции модалки ссылки одного редактора: чтение атрибутов ссылки под курсором, применение к выделению (пустое — вставка адреса текстом), снятие                                    |
-| `useToolbarStateSync.ts` | Синхронизация состояния toolbar с транзакциями редактора (счётчик транзакций + watchEffect)                                                                                                     |
+| File                     | Purpose                                                                                                                                                                                                                                    |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `useInlineEditor.ts`     | The TipTap inline editor on the canvas: the lazy load, the lifecycle, the conversion of segments/HTML ↔ TipTap, publishing the editor into the inlineEditingStore. Access to the schema goes through the `IInlineEditorHost` port (inject) |
+| `useTextEditorArea.ts`   | The logic of TextEditorArea: the lazy init and destroy of TipTap, syncing the props (value/disabled/placeholder), the toggles of the code view and of the dark background, the handlers of the content and of pasting media                |
+| `useTextEditorLink.ts`   | The state and the operations of the link modal of a single editor: reading the attributes of the link under the cursor, applying it to the selection (an empty one — the address is inserted as text), removing it                         |
+| `useToolbarStateSync.ts` | Syncing the state of the toolbar with the transactions of the editor (a transaction counter + a watchEffect)                                                                                                                               |

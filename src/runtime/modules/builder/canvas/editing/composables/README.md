@@ -1,9 +1,9 @@
 # builder/canvas/editing/composables
 
-Композаблы inline-редактирования на канвасе (поверх TipTap из `text-editor/`).
+Composables of inline editing on the canvas (on top of TipTap out of `text-editor/`).
 
-| Файл                            | Назначение                                                                                 |
-| ------------------------------- | ------------------------------------------------------------------------------------------ |
-| `useCanvasItemInlineEditing.ts` | Логика inline-редактирования элемента: старт/стоп, Escape, смена viewport, контекст детям  |
-| `useDraggableOverlay.ts`        | Перетаскиваемый overlay (тулбар редактора): позиция у курсора, ограничение краями viewport |
-| `useInlineEditingFallback.ts`   | Fallback-редактор, если layout-компонент не отдал editor за таймаут ожидания               |
+| File                            | Purpose                                                                                                     |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `useCanvasItemInlineEditing.ts` | The inline editing logic of an item: start/stop, Escape, a change of viewport, the context for the children |
+| `useDraggableOverlay.ts`        | A draggable overlay (the editor toolbar): the position by the cursor, bounded by the edges of the viewport  |
+| `useInlineEditingFallback.ts`   | The fallback editor for when a layout component did not hand over an editor within the waiting timeout      |

@@ -1,7 +1,7 @@
 # builder/canvas/item/utils
 
-Чистые помощники элемента канваса (без реактивности).
+Pure helpers of a canvas item (with no reactivity).
 
-| Файл                     | Назначение                                                                                                                  |
-| ------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
-| `forceRenderSnapshot.ts` | Снимок значений forceRender-пропов для сравнения между рендерами (пары, а не объект — имена пропов приходят из brick-файла) |
+| File                     | Purpose                                                                                                                                            |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `forceRenderSnapshot.ts` | A snapshot of the forceRender prop values for comparison between renders (pairs rather than an object — the prop names arrive out of a brick file) |

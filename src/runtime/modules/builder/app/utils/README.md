@@ -1,8 +1,8 @@
 # builder/app/utils
 
-| Файл                        | Назначение                                                                                                       |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `componentLibraryItems.ts`  | Карточка библиотеки из записи манифеста: описание, слоты и `defaultProps` из `values`                            |
-| `componentLibraryPolicy.ts` | Опознаваемая ошибка SSR-дедлайна запроса манифеста (деградация вместо отказа загрузки)                           |
-| `draftStorageNotice.ts`     | Однократное на сессию сообщение о недоступном хранилище черновиков (латч по токену, гаснет на уходе со страницы) |
-| `sessionGuards.ts`          | Действия только в согласованную сессию: обёртка обработчика и ожидание готовности перед сохранением              |
+| File                        | Purpose                                                                                                                 |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `componentLibraryItems.ts`  | A library card out of a manifest entry: the description, the slots and the `defaultProps` out of `values`               |
+| `componentLibraryPolicy.ts` | Recognizing the SSR deadline error of the manifest request (degradation instead of a failed load)                       |
+| `draftStorageNotice.ts`     | A once-per-session message about the drafts storage being unavailable (latched by token, put out when the page is left) |
+| `sessionGuards.ts`          | Actions only into a consistent session: the handler wrapper and the wait for readiness before a save                    |

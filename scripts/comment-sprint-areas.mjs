@@ -180,7 +180,7 @@ export const AREAS = [
         match: ['src/runtime/modules/builder/publish/'],
     },
     { id: '19', title: 'builder/app', done: true, match: ['src/runtime/modules/builder/app/'] },
-    { id: '20', title: 'local README.md', done: false, match: [], markdown: true },
+    { id: '20', title: 'local README.md', done: true, match: [], markdown: true },
     {
         id: '21+22',
         title: 'test',

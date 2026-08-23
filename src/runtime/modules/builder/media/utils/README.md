@@ -1,13 +1,13 @@
 # builder/media/utils
 
-| Файл                      | Назначение                                                                                     |
-| ------------------------- | ---------------------------------------------------------------------------------------------- |
-| `categoryLabels.ts`       | Подпись категории по slug'у (подпись — пользовательский ввод, предустановленных категорий нет) |
-| `draggedFiles.ts`         | Сколько файлов в перетаскивании (текст и ссылки в счёт не идут)                                |
-| `formatFileSize.ts`       | Форматирование размера файла в человекочитаемый вид (B/KB/MB)                                  |
-| `mediaSummary.ts`         | Технические сводки файла для мета-панели: габариты, формат, веса вариантов                     |
-| `normalizeMediaItem.ts`   | Приведение элемента из ответа API: snake_case → camelCase, пустые строки и отсутствующие поля  |
-| `optimizationSummary.ts`  | Подпись параметров загрузки одной строкой (тултип кнопки загрузки, приёмник файлов)            |
-| `requestErrors.ts`        | Проверка формы ответов медиа и категорий, приведение отказа запроса к пользовательскому виду   |
-| `schemaImageExtractor.ts` | Извлечение и замена image URL в `IBricksSchema`                                                |
-| `storageImport.ts`        | Запрос регистрации в медиатеке файлов, уже лежащих в хранилище публикации (admin-операция)     |
+| File                      | Purpose                                                                                                                 |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `categoryLabels.ts`       | The label of a category by its slug (a label is user input, there are no preset categories)                             |
+| `draggedFiles.ts`         | How many files a drag carries (text and links do not count)                                                             |
+| `formatFileSize.ts`       | Formatting a file size into a human-readable form (B/KB/MB)                                                             |
+| `mediaSummary.ts`         | The technical summaries of a file for the meta panel: the dimensions, the format, the weights of the variants           |
+| `normalizeMediaItem.ts`   | Bringing an item of an API response into shape: snake_case → camelCase, empty strings and missing fields                |
+| `optimizationSummary.ts`  | The upload parameters as a single line (the tooltip of the upload button, the file receiver)                            |
+| `requestErrors.ts`        | Checking the shape of the media and category responses, bringing a refused request into a form fit for a person         |
+| `schemaImageExtractor.ts` | Extracting and replacing the image URLs of an `IBricksSchema`                                                           |
+| `storageImport.ts`        | The request to register in the media library the files that already lie in the publication storage (an admin operation) |

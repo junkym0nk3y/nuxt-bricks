@@ -1,9 +1,9 @@
 # builder/templates/composables
 
-| Файл                       | Назначение                                                                                                                                                                                 |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `useTemplatesData.ts`      | Список шаблонов в `useState`: чтение с SSR-дедлайном, состояние раздела (`error` — отказ чтения, повторяется кнопкой), точечные правки (`upsertTemplate`, `removeTemplate`), счётчик рейла |
-| `useTemplatesList.ts`      | Вид сетки: поиск из шапки дашборда с debounce, признак «поиск ничего не нашёл»                                                                                                             |
-| `useTemplateSaveForm.ts`   | Форма «Сохранить как шаблон»: валидация, `POST /api/bricks/templates`, занятое имя под поле, обрыв ожидания — сверка списка                                                                |
-| `useTemplateRenameForm.ts` | Форма правки подписи: `PATCH /api/bricks/templates/:id` (содержимое отпечатка не обновляется)                                                                                              |
-| `useTemplateActions.ts`    | Действия без ввода: подтверждение и удаление шаблона; занятость одна на раздел                                                                                                             |
+| File                       | Purpose                                                                                                                                                                                                                    |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `useTemplatesData.ts`      | The templates list in a `useState`: the read with an SSR deadline, the state of the section (`error` — a refused read, retried by a button), the point edits (`upsertTemplate`, `removeTemplate`), the counter of the rail |
+| `useTemplatesList.ts`      | The view of the grid: the debounced search out of the dashboard header, the "the search found nothing" flag                                                                                                                |
+| `useTemplateSaveForm.ts`   | The "Save as template" form: the validation, `POST /api/bricks/templates`, a taken name under the field, an aborted wait — the list is re-read                                                                             |
+| `useTemplateRenameForm.ts` | The form for editing the label: `PATCH /api/bricks/templates/:id` (the content of the shot is not updated)                                                                                                                 |
+| `useTemplateActions.ts`    | The actions that need no input: confirming and deleting a template; the busy state is one per section                                                                                                                      |

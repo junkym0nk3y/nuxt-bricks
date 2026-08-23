@@ -1,10 +1,10 @@
 # builder/users/composables
 
-| Файл                      | Назначение                                                                                    |
-| ------------------------- | --------------------------------------------------------------------------------------------- |
-| `useUsersData.ts`         | Список учёток: чтение с сервера (SSR-сид), состояние раздела, счётчик, точечные правки строк  |
-| `useUsersList.ts`         | Вид списка: поиск с debounce, сегмент-фильтр по возможности входа, счётчики фильтров          |
-| `useUsersActions.ts`      | Операции над чужой учёткой: роль, вход, удаление — с подтверждениями, тостами и занятостью    |
-| `useUsersCreateForm.ts`   | Форма создания учётки: валидация, генератор пароля, разбор отказов (занятый логин — под поле) |
-| `useUsersPasswordForm.ts` | Форма «задать пароль другому»: один ввод, генератор, запрос с состоянием отправки             |
-| `useUsersRowLabels.ts`    | Тексты строки учётки: подпись, мета-строка дат, доступные имена кнопок и причины запретов     |
+| File                      | Purpose                                                                                                                            |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `useUsersData.ts`         | The accounts list: the read from the server (an SSR seed), the state of the section, the counter, the point edits of the rows      |
+| `useUsersList.ts`         | The view of the list: the debounced search, the segment filter by whether logging in is possible, the filter counters              |
+| `useUsersActions.ts`      | The operations on someone else's account: the role, logging in, deletion — with the confirmations, the toasts and the busy state   |
+| `useUsersCreateForm.ts`   | The account creation form: the validation, the password generator, telling the refusals apart (a taken login goes under the field) |
+| `useUsersPasswordForm.ts` | The "set a password for someone else" form: one input, the generator, the request with its sending state                           |
+| `useUsersRowLabels.ts`    | The texts of an account row: the label, the meta line of dates, the available button names and the reasons behind the bans         |

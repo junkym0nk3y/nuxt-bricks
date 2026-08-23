@@ -1,10 +1,10 @@
 # builder/shell/sidebar/utils
 
-| Файл                          | Назначение                                                                                                   |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `componentCategories.ts`      | Группировка компонентов библиотеки по категориям для сайдбара (Map, чтобы категория не стала ключом объекта) |
-| `normalizeVariantProps.ts`    | Нормализация данных варианта в пропсы компонента-редактора (select/switch/базовая форма + min/max/step/unit) |
-| `propertyEditorComponents.ts` | Мапа «тип свойства → асинхронный компонент-редактор» для панели свойств                                      |
-| `propertyFormatters.ts`       | Форматирование значений свойств для отображения                                                              |
-| `propertyValueCoercion.ts`    | Приведение строкового ввода к типам значений свойств (массивы примитивов и т.п.)                             |
-| `variantBuilders.ts`          | Реестр билдеров вариантов свойств (`VARIANT_BUILDERS`) + select-эвристика и input-fallback                   |
+| File                          | Purpose                                                                                                                    |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `componentCategories.ts`      | Grouping the library components by category for the sidebar (a Map, so that a category never becomes a key of an object)   |
+| `normalizeVariantProps.ts`    | Normalizing the data of a variant into the props of an editor component (select/switch/the base shape + min/max/step/unit) |
+| `propertyEditorComponents.ts` | The map "a property type → an async editor component" for the properties panel                                             |
+| `propertyFormatters.ts`       | Formatting the property values for display                                                                                 |
+| `propertyValueCoercion.ts`    | Coercing the string input into the types of the property values (arrays of primitives and the like)                        |
+| `variantBuilders.ts`          | The registry of the property variant builders (`VARIANT_BUILDERS`) + the select heuristic and the input fallback           |

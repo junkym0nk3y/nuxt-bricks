@@ -1,15 +1,15 @@
 # layouts-blocks/utils
 
-| Файл                     | Назначение                                                                                       |
-| ------------------------ | ------------------------------------------------------------------------------------------------ |
-| `canvasBindings.ts`      | Канвас-биндинг leaf-блоков с inline editing (Text/Svg): boundProps + componentId                 |
-| `gridDropPlacement.ts`   | Вычисление targetIndex (ячейки грида) по курсору: canvas scale, padding, gap и фактические треки |
-| `gridOverlayGeometry.ts` | Чистая геометрия SVG-визуализации сетки BlockGrid (границы колонок/строк, прямоугольники gap'ов) |
-| `inlineContent.ts`       | `applyColorToSvgContent` — подстановка `currentColor` в fill/stroke inline-SVG (BlockSvg)        |
-| `publishedProps.ts`      | `resolvePublishedProps` — merge дефолтов definition с пропсами схемы для published-рендера       |
-| `responsiveCss.ts`       | Генерация CSS rules из `responsiveCssVars` definitions (брейкпоинты published-страницы)          |
-| `responsiveVars.ts`      | `makeResponsiveVars` — per-device CSS-переменные и grid-позиционирование для published-рендера   |
-| `sliderCaptions.ts`      | Парсинг подписей слайдера (`parseSliderCaptions`)                                                |
-| `slotContent.ts`         | `countSlotContent` — сколько узлов слота рисуют (анкоры v-if и пустые фрагменты не считаются)    |
-| `deviceVisibilityCss.ts` | `buildDeviceVisibilityCss` — правила скрытия по устройствам набора для канваса и published       |
-| `slider.ts`              | `normalizeSlidesPerView` — общая нормализация числа слайдов для SFC и definition                 |
+| File                     | Purpose                                                                                                               |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `canvasBindings.ts`      | The canvas binding of the leaf blocks with inline editing (Text/Svg): boundProps + componentId                        |
+| `gridDropPlacement.ts`   | Computing the targetIndex (the grid cell) by the cursor: the canvas scale, the padding, the gap and the actual tracks |
+| `gridOverlayGeometry.ts` | The pure geometry of the SVG visualization of a BlockGrid's grid (the column/row lines, the rectangles of the gaps)   |
+| `inlineContent.ts`       | `applyColorToSvgContent` — substituting `currentColor` into the fill/stroke of an inline SVG (BlockSvg)               |
+| `publishedProps.ts`      | `resolvePublishedProps` — merging the definition defaults with the schema props for the published render              |
+| `responsiveCss.ts`       | Generating the CSS rules out of the `responsiveCssVars` of the definitions (the breakpoints of a published page)      |
+| `responsiveVars.ts`      | `makeResponsiveVars` — the per-device CSS variables and the grid positioning for the published render                 |
+| `sliderCaptions.ts`      | Parsing the captions of a slider (`parseSliderCaptions`)                                                              |
+| `slotContent.ts`         | `countSlotContent` — how many nodes of a slot actually paint (v-if anchors and empty fragments do not count)          |
+| `deviceVisibilityCss.ts` | `buildDeviceVisibilityCss` — the rules that hide by the devices of the set, for the canvas and for published          |
+| `slider.ts`              | `normalizeSlidesPerView` — the shared normalization of the number of slides for the SFC and for the definition        |

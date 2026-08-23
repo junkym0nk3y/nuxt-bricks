@@ -1,8 +1,8 @@
 # builder/users/utils
 
-| Файл                   | Назначение                                                                                      |
-| ---------------------- | ----------------------------------------------------------------------------------------------- |
-| `userErrors.ts`        | Разбор отказов ручек учёток: код → текст, признаки занятого логина и устаревшего списка         |
-| `userFormatting.ts`    | Подпись учётки (имя или логин), дата создания и относительная дата последнего входа             |
-| `passwordGenerator.ts` | Генератор пароля на Web Crypto: алфавит без визуально неотличимых символов, без перекоса частот |
-| `validationSchema.ts`  | Yup-схемы форм раздела: границы логина, имени и пароля берутся из общих констант                |
+| File                   | Purpose                                                                                                                          |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `userErrors.ts`        | Telling the refusals of the account endpoints apart: a code → a text, the signs of a taken login and of a stale list             |
+| `userFormatting.ts`    | The label of an account (the name or the login), the creation date and the relative date of the last login                       |
+| `passwordGenerator.ts` | A password generator over Web Crypto: an alphabet with no visually indistinguishable characters, with no skew of the frequencies |
+| `validationSchema.ts`  | The yup schemas of the section's forms: the bounds of the login, the name and the password come out of the shared constants      |

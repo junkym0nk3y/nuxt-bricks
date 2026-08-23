@@ -1,8 +1,8 @@
 # layouts-blocks/composables
 
-| Файл                               | Назначение                                                                                      |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `useLayoutDropZone.ts`             | Диспатч bubbling-события `layout-drop` (слушается корнем канваса — связь без импорта builder)   |
-| `useResponsiveLayoutStyles.ts`     | Инжект CSS-правил выбора активных responsive-переменных (`--bricks-*`) по viewport/media query  |
-| `useResponsiveVisibilityStyles.ts` | Инжект CSS-правил скрытия по устройствам (builder: `data-bricks-viewport`, published: `@media`) |
-| `useSliderDropTarget.ts`           | Индекс и flow-цель вставки слайда по курсору (без Swiper-дубликатов при loop)                   |
+| File                               | Purpose                                                                                                           |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `useLayoutDropZone.ts`             | Dispatching the bubbling `layout-drop` event (listened for by the canvas root — a link with no import of builder) |
+| `useResponsiveLayoutStyles.ts`     | Injecting the CSS rules that pick the active responsive variables (`--bricks-*`) by viewport/media query          |
+| `useResponsiveVisibilityStyles.ts` | Injecting the CSS rules that hide by device (builder: `data-bricks-viewport`, published: `@media`)                |
+| `useSliderDropTarget.ts`           | The index and the flow target for inserting a slide by the cursor (with no Swiper duplicates under loop)          |
