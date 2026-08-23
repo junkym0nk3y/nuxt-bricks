@@ -1,8 +1,8 @@
 import type { Page } from '@playwright/test';
 
 /**
- * Ждёт, пока Nuxt гидрирует SSR-разметку. Клик по SSR-кнопке до этого момента
- * визуально проходит, но Vue-обработчик ещё не подключён.
+ * Waits until Nuxt hydrates the SSR markup. A click on an SSR button before that
+ * moment goes through visually, but the Vue handler is not attached yet.
  */
 export async function waitForNuxtHydration(page: Page): Promise<void> {
     await page.waitForFunction(() => {

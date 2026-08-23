@@ -1,3 +1,3 @@
-# Миграции всегда с LF: checksum-контроль bricks-migrate (аудит A-10) нормализует
-# line endings перед хешированием, но канонический вид файлов в репо — LF.
+# Migrations are always LF: the bricks-migrate checksum control normalizes line
+# endings before hashing, but the canonical form of these files in the repo is LF.
 *.sql text eol=lf

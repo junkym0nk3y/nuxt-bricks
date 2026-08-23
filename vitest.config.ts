@@ -3,37 +3,38 @@ import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vitest/config';
 
 /**
- * Registry layout-блоков импортирует `.vue`-компоненты (renderPublished leaf-блоков),
- * поэтому тестам нужен SFC-transform. Алиас `#imports` подменяет Nuxt auto-imports
- * стабом для модулей, которые импортируют их напрямую (stores/composables).
+ * The layout-block registry imports `.vue` components (the renderPublished of leaf
+ * blocks), so the tests need the SFC transform. The `#imports` alias replaces the Nuxt
+ * auto-imports with a stub for the modules that import them directly (stores,
+ * composables).
  */
 /**
- * Модули, которым в тестах нужен клиентский `import.meta.client`.
+ * Modules that need a client-side `import.meta.client` in tests.
  *
- * Список точечный, а не «весь рантайм»: флаг парный с `import.meta.server`, и
- * широкая подмена дала бы модулям, читающим оба, сочетание, невозможное в
- * реальном приложении. Каждая новая запись — осознанное решение, что спека
- * проверяет именно браузерную ветку этого модуля.
+ * The list is pointed rather than "the whole runtime": the flag is paired with
+ * `import.meta.server`, and a broad replacement would hand the modules reading both a
+ * combination impossible in a real application. Every new entry is a deliberate decision
+ * that the spec checks the browser branch of that very module.
  */
 const CLIENT_FLAG_MODULES = ['/builder/app/composables/usePreviewSync.ts'];
 
 /**
- * Клиентские ветки огорожены `import.meta.client`, который ставит сборка Nuxt;
- * в тестах он всегда `undefined`, и код, живущий только в браузере (синк
- * превью), недостижим — спека на него была бы зелёной ни на чём.
+ * Client-only branches are fenced off by `import.meta.client`, which the Nuxt build
+ * sets; in tests it is always `undefined`, and code that lives in the browser alone (the
+ * preview sync) is unreachable — a spec for it would be green on nothing.
  *
- * Флаг подменяется на глобальную переменную, а не на литерал `true`: по
- * умолчанию она не задана, то есть поведение прежнее, а спека, которой нужен
- * браузер, включает её сама.
+ * The flag is replaced by a global variable rather than by the literal `true`: the
+ * variable is unset by default, that is the behavior stays as it was, and a spec that
+ * needs the browser turns it on itself.
  */
 const clientFlagPlugin = {
     name: 'bricks-test-client-flag',
     enforce: 'pre' as const,
 
     /**
-     * @param code - Исходник модуля.
-     * @param id - Путь модуля.
-     * @returns Код с подменённым флагом либо `null`, если подменять нечего.
+     * @param code - Module source.
+     * @param id - Module path.
+     * @returns The code with the flag replaced, or `null` when there is nothing to replace.
      */
     transform(code: string, id: string) {
         if (!CLIENT_FLAG_MODULES.some((suffix) => id.includes(suffix))) {

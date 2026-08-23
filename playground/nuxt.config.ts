@@ -2,17 +2,18 @@ export default defineNuxtConfig({
     modules: ['../src/module'],
     bricks: {
         backend: {
-            mode: 'builtin', // 'builtin' (PostgreSQL) | 'external' (свой HTTP-backend)
+            mode: 'builtin', // 'builtin' (PostgreSQL) | 'external' (an own HTTP backend)
         },
         auth: {
-            mode: 'database', // 'basic' (дефолт) | 'database'
-            sessionMaxAgeSeconds: 604800, // срок cookie-сессии, 7 дней (только database)
+            mode: 'database', // 'basic' (the default) | 'database'
+            sessionMaxAgeSeconds: 604800, // cookie session lifetime, 7 days (database only)
         },
     },
     devtools: { enabled: true },
-    // Workaround гоночной баги Nuxt 3.x (nuxt/nuxt#33606): Vite сканирует manifest.js
-    // раньше, чем Nitro регистрирует виртуальный #app-manifest → Pre-transform error.
-    // Playground не использует routeRules/детект устаревшего деплоя — отключение безопасно.
+    // Works around a Nuxt 3.x race (nuxt/nuxt#33606): Vite scans manifest.js earlier than
+    // Nitro registers the virtual #app-manifest, which ends in a Pre-transform error. The
+    // playground uses neither routeRules nor stale-deployment detection, so turning the
+    // manifest off is safe here.
     experimental: { appManifest: false },
     compatibilityDate: '2025-01-01',
 });

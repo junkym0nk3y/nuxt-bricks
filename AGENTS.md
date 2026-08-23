@@ -26,9 +26,9 @@ from completed-work logs and real bugs or tracked issues.
   `.dependency-cruiser.cjs` — для границ между модулями.
 - Искать локальный `README.md` в затрагиваемых `composables/` и `utils/`.
 - Правила по темам лежат в `.claude/rules/`: код-стайл (`vue-sfc`, `typescript`,
-  `styles`, `naming`, `structure`, `vue-best-practices`) и грабли инструментов
-  (`environment` — оболочка, dev-сервер, HMR, git; `testing` — vitest). Живая
-  верификация — скилл `verify`.
+  `styles`, `naming`, `structure`, `vue-best-practices`, `comments` — язык и
+  место комментариев) и грабли инструментов (`environment` — оболочка,
+  dev-сервер, HMR, git; `testing` — vitest). Живая верификация — скилл `verify`.
 - Работа с макетом — `docs/figma-sync-workflow.md`. Оттуда же жёсткое правило:
   **новый компонент в коде — компонент и в макете** (сет на 🧩 Components плюс
   инстансы на экранах), копии фреймов по бордам запрещены.
@@ -68,7 +68,11 @@ from completed-work logs and real bugs or tracked issues.
 - При добавлении или удалении файла в `composables/` или `utils/` обновлять
   локальный `README.md` этой папки.
 
-## Комментарии в коде: никаких ID задач
+## Комментарии в коде: английский язык и никаких ID задач
+
+Полное правило — `.claude/rules/comments.md` (язык, dev-сообщения, запрет
+комментариев в `<template>`/`<style>`). Автоматической проверки нет — держится
+ревью. Ниже — часть про ссылки на задачи, потому что нарушают её чаще всего.
 
 **Запрещено** ссылаться в коде, тестах, докстрингах, локальных `README.md` и
 сообщениях коммитов на идентификаторы задач тех. спринтов (`BM-27`, `A-09`,

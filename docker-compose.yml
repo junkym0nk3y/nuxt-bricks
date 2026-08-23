@@ -1,7 +1,8 @@
-# ЛОКАЛЬНАЯ DEV-СРЕДА — не для production.
-# Production: managed PostgreSQL / собственный деплой + `npm run bricks:migrate`
-# (см. README «Production deployment»). Порт привязан к localhost, пароль
-# переопределяется env POSTGRES_PASSWORD (дефолт годится только локально).
+# LOCAL DEV ENVIRONMENT — not for production.
+# Production: managed PostgreSQL or an own deployment plus `npm run bricks:migrate`
+# (see the README, "Production deployment"). The port is bound to localhost and the
+# password is overridden by the POSTGRES_PASSWORD env var — the default is fit for
+# local use only.
 services:
     postgres:
         image: postgres:16-alpine
@@ -15,8 +16,9 @@ services:
             POSTGRES_DB: ${POSTGRES_DB:-bricks}
         volumes:
             - postgres_data:/var/lib/postgresql/data
-            # Инициализация пустого volume файлами миграций (лексикографический порядок).
-            # Канонический путь для внешней БД — `npm run bricks:migrate` (bricks-migrate CLI).
+            # Seeds an empty volume with the migration files, in lexicographic order.
+            # The canonical path for an external database is `npm run bricks:migrate`
+            # (the bricks-migrate CLI).
             - ./migrations:/docker-entrypoint-initdb.d:ro
         healthcheck:
             test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER:-postgres}']

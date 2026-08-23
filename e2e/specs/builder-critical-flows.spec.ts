@@ -35,9 +35,10 @@ test('restores the last form edit after an immediate page reload', async ({ page
     await title.fill('Survives reload');
     await page.reload();
 
-    // Предложение приходит тостом после загрузки: посреди неё спрашивать нечем —
-    // лоадер ещё на экране. Кнопка в тосте восстанавливает сразу; окно с датой и
-    // удалением открывает клик по самому тосту
+    // The offer arrives as a toast after the load: there is nothing to ask with in the
+    // middle of it, the loader is still on the screen. The button in the toast restores
+    // right away; a click on the toast itself opens the dialog with the date and the
+    // discard action
     await page.getByRole('button', { name: 'Restore', exact: true }).click();
     await page.getByRole('button', { name: 'Settings' }).click();
     await expect(page.getByRole('textbox', { name: 'Title *' })).toHaveValue('Survives reload');
@@ -123,8 +124,8 @@ test('ignores a late save response after the user opens another page', async ({
     await pageBRow.click();
     await page.getByRole('button', { name: 'Open in editor' }).click();
     await expect(page).toHaveURL(/\/bricks\/slow-save-b$/);
-    // Заголовок шапки, а не промежуточное состояние: он держится, пока открыта
-    // страница, поэтому проверка не зависит от того, что успело отрендериться
+    // The heading of the header, not an intermediate state: it holds as long as the page
+    // is open, so the check does not depend on what managed to render
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Page B');
 
     const lateResponse = page.waitForResponse(

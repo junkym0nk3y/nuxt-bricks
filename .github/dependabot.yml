@@ -1,5 +1,5 @@
-# Автообновление зависимостей (P1 «CI и package contract»): npm еженедельно
-# (minor/patch группируются в один PR, major — отдельными), GitHub Actions — еженедельно.
+# Dependency auto-updates: npm weekly (minor and patch grouped into a single PR,
+# major ones separately), GitHub Actions weekly.
 version: 2
 updates:
     - package-ecosystem: npm

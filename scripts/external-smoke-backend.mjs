@@ -1,16 +1,19 @@
 /**
- * Fake external backend для scripts/external-smoke.mjs: in-memory реализация
- * контрактных ручек external data backend (docs/external-backend-contract.md)
- * относительно BACKEND_BASE_PATH + журнал всех запросов для ассертов.
- * Вынесен из основного скрипта по паттерну integration-lifecycle.mjs.
+ * The fake external backend of scripts/external-smoke.mjs: an in-memory implementation
+ * of the contract endpoints of an external data backend
+ * (docs/external-backend-contract.md), served under BACKEND_BASE_PATH, plus a journal of
+ * every request for the assertions. Split out of the main script the same way
+ * integration-lifecycle.mjs is.
  */
 import { createServer } from 'node:http';
 
-// Полный base-префикс с сегментом пути — контракт «backend.url = полный префикс»
+// A full base prefix carrying a path segment — the contract is "backend.url is the
+// whole prefix"
 export const BACKEND_BASE_PATH = '/cms';
 
 /**
- * Fake external backend: http-сервер + журнал запросов + in-memory хранилище.
+ * The fake external backend: an http server plus a request journal plus in-memory
+ * storage.
  *
  * @returns {{ server: import('node:http').Server, requests: Array<{method: string, path: string, contentType: string, authorization: string, body: unknown}>, state: { pages: Map<number, Record<string, unknown>>, media: Map<number, Record<string, unknown>>, nextPageId: number, nextMediaId: number } }}
  */
@@ -41,11 +44,11 @@ export function createFakeExternalBackend() {
 }
 
 /**
- * Роутинг fake backend: контрактные ручки относительно BACKEND_BASE_PATH.
+ * Routing of the fake backend: the contract endpoints, relative to BACKEND_BASE_PATH.
  *
- * @param {{method: string, path: string, body: unknown}} recorded Запрос.
- * @param {ReturnType<typeof createFakeExternalBackend>['state']} state Хранилище.
- * @returns {{status: number, body?: unknown}} Ответ.
+ * @param {{method: string, path: string, body: unknown}} recorded - The request.
+ * @param {ReturnType<typeof createFakeExternalBackend>['state']} state - The storage.
+ * @returns {{status: number, body?: unknown}} The response.
  */
 function routeBackendRequest(recorded, state) {
     if (!recorded.path.startsWith(BACKEND_BASE_PATH)) {
@@ -63,12 +66,12 @@ function routeBackendRequest(recorded, state) {
 }
 
 /**
- * Собирает полную строку страницы из create payload.
+ * Assembles a full page row out of a create payload.
  *
- * @param {unknown} body Распарсенное JSON-тело.
- * @param {ReturnType<typeof createFakeExternalBackend>['state']} state Хранилище.
- * @param {string} now Время создания строки.
- * @returns {Record<string, unknown> & {id: number}} Строка страницы.
+ * @param {unknown} body - The parsed JSON body.
+ * @param {ReturnType<typeof createFakeExternalBackend>['state']} state - The storage.
+ * @param {string} now - Creation time of the row.
+ * @returns {Record<string, unknown> & {id: number}} The page row.
  */
 function createPageRow(body, state, now) {
     const payload = /** @type {Record<string, unknown>} */ (body);
@@ -94,14 +97,15 @@ function createPageRow(body, state, now) {
 }
 
 /**
- * Контрактные ручки страниц: GET/POST {base}, GET/PATCH/DELETE {base}/:id,
- * public lookup. GET {base} — одновременно readiness-проба probeHealth.
+ * The contract endpoints of pages: GET/POST {base}, GET/PATCH/DELETE {base}/:id and the
+ * public lookup. GET {base} doubles as the readiness probe of probeHealth.
  *
- * @param {string} method HTTP-метод.
- * @param {string} path Путь относительно base.
- * @param {unknown} body Распарсенное JSON-тело.
- * @param {ReturnType<typeof createFakeExternalBackend>['state']} state Хранилище.
- * @returns {{status: number, body?: unknown} | null} Ответ или null (не наш маршрут).
+ * @param {string} method - HTTP method.
+ * @param {string} path - Path relative to base.
+ * @param {unknown} body - The parsed JSON body.
+ * @param {ReturnType<typeof createFakeExternalBackend>['state']} state - The storage.
+ * @returns {{status: number, body?: unknown} | null} The response, or null when the route
+ * is not ours.
  */
 function routePagesRequest(method, path, body, state) {
     const now = new Date().toISOString();
@@ -117,9 +121,10 @@ function routePagesRequest(method, path, body, state) {
         state.pages.set(row.id, row);
         return { status: 201, body: row };
     }
-    // Адрес приходит остатком пути: последний сегмент — pagename, всё до него —
-    // urlPrefix. Ищем по ПАРЕ, а не по имени: одноимённые страницы под разными
-    // префиксами — разные страницы, и lookup по имени вернул бы произвольную
+    // The address arrives as the rest of the path: the last segment is the pagename and
+    // everything before it is the urlPrefix. The lookup goes by the PAIR rather than by
+    // the name: pages of the same name under different prefixes are different pages, and
+    // a lookup by name alone would return an arbitrary one
     const publicMatch = path.match(/^\/public\/pages\/(.+)$/);
     if (method === 'GET' && publicMatch) {
         const segments = publicMatch[1].split('/').filter(Boolean).map(decodeURIComponent);
@@ -161,13 +166,15 @@ function routePagesRequest(method, path, body, state) {
 }
 
 /**
- * Контрактные ручки media metadata: GET/POST {base}/media, DELETE {base}/media/:id.
+ * The contract endpoints of media metadata: GET/POST {base}/media, DELETE
+ * {base}/media/:id.
  *
- * @param {string} method HTTP-метод.
- * @param {string} path Путь относительно base.
- * @param {unknown} body Распарсенное JSON-тело.
- * @param {ReturnType<typeof createFakeExternalBackend>['state']} state Хранилище.
- * @returns {{status: number, body?: unknown} | null} Ответ или null (не наш маршрут).
+ * @param {string} method - HTTP method.
+ * @param {string} path - Path relative to base.
+ * @param {unknown} body - The parsed JSON body.
+ * @param {ReturnType<typeof createFakeExternalBackend>['state']} state - The storage.
+ * @returns {{status: number, body?: unknown} | null} The response, or null when the route
+ * is not ours.
  */
 function routeMediaRequest(method, path, body, state) {
     if (method === 'GET' && path === '/media') {

@@ -1,8 +1,11 @@
 /**
- * Правила слоистости доменов src/runtime/modules/ (см. CLAUDE.md → «Направления зависимостей»).
- * Структура 2026-06-12: builder/{app,core,shell,canvas,publish,documentation,media,users,auth,templates},
- * text-editor, render, layouts-blocks, persistence, ui, common.
- * builder/app — composition root, ограничений не имеет (кроме глобальных правил).
+ * Layering rules for the domains of src/runtime/modules/. This file is the ground truth
+ * for the allowed directions: the rules below are what a check runs against, and the
+ * comment next to a rule is why it is shaped the way it is.
+ *
+ * The domains: builder/{app,core,shell,canvas,publish,documentation,media,users,auth,
+ * templates}, text-editor, render, layouts-blocks, persistence, ui, common. builder/app
+ * is the composition root and carries no restriction of its own beyond the global rules.
  */
 const M = 'src/runtime/modules';
 
@@ -14,8 +17,9 @@ module.exports = {
             from: {},
             to: {
                 circular: true,
-                // легитимная рекурсия Vue-компонентов дерева канваса:
-                // BuilderCanvasItem ↔ BuilderCanvasItemLayout, BuilderCanvasItem ↔ BuilderCanvasItemComponent
+                // legitimate recursion of the Vue components of the canvas tree:
+                // BuilderCanvasItem ↔ BuilderCanvasItemLayout,
+                // BuilderCanvasItem ↔ BuilderCanvasItemComponent
                 viaNot: `^${M}/builder/canvas/item/components/BuilderCanvasItem(Layout|Component)\\.vue$`,
             },
         },
@@ -32,14 +36,15 @@ module.exports = {
             to: { path: `^${M}/(?!ui|common)` },
         },
         {
-            // render самодостаточен: только common + layouts-blocks, ничего из builder
+            // render is self-contained: common plus layouts-blocks only, nothing from builder
             name: 'render-lean',
             severity: 'error',
             from: { path: `^${M}/render` },
             to: { path: `^${M}/(?!render|common|layouts-blocks)` },
         },
         {
-            // блоки не знают про builder; viewport — через inject(CANVAS_VIEWPORT_KEY)
+            // the blocks know nothing about builder; the viewport arrives through
+            // inject(CANVAS_VIEWPORT_KEY)
             name: 'layouts-blocks-deps',
             severity: 'error',
             from: { path: `^${M}/layouts-blocks` },
@@ -50,7 +55,8 @@ module.exports = {
             severity: 'error',
             from: {
                 path: `^${M}/text-editor`,
-                // tech-debt: useInlineEditor → builder/core/stores/components (кандидат на DI)
+                // tech debt: useInlineEditor → builder/core/stores/components (a candidate
+                // for DI)
                 pathNot: `^${M}/text-editor/composables/useInlineEditor\\.ts$`,
             },
             to: { path: `^${M}/(?!text-editor|common|ui)` },
@@ -62,27 +68,28 @@ module.exports = {
             to: { path: `^${M}/(?!text-editor|common|ui|builder/core/stores)` },
         },
         {
-            // ядро состояния не знает про фичевые поддомены — иначе цикл canvas↔shell.
-            // Исключения нет: прежний выход в composition root (панель свойств →
-            // фасад модалок) ушёл вместе с самим фасадом — кеш модалок наполняет
-            // библиотека компонентов, а панель читает его из core
+            // the state core knows nothing about the feature subdomains — otherwise a
+            // canvas↔shell cycle. There is no exception: the former way out into the
+            // composition root (the properties panel reaching the modal facade) left
+            // together with the facade itself — the modal cache is filled by the component
+            // library, and the panel reads it from core
             name: 'builder-core-deps',
             severity: 'error',
             from: { path: `^${M}/builder/core` },
             to: { path: `^${M}/(?!builder/core|common|ui|layouts-blocks)` },
         },
         {
-            // canvas/shell → core/publish/media/auth + text-editor/layouts-blocks/ui/common;
-            // не друг в друга и не в composition root (app).
+            // canvas/shell → core/publish/media/auth plus text-editor/layouts-blocks/ui/
+            // common; not into each other and not into the composition root (app).
             //
-            // auth разрешён с появлением аватара в тулбаре билдера: меню профиля —
-            // один компонент на обе поверхности (шапка дашборда и тулбар), и
-            // подключить его в тулбар можно либо так, либо слотом из composition
-            // root — то есть двумя разными механизмами для одного компонента.
-            // Цикла это не создаёт по построению: сам auth ограничен
-            // `auth|ui|common` (см. `builder-auth-deps`), поэтому обратного пути
-            // из него в shell не существует. `core` в этот список добавлять
-            // нельзя — вот там и появился бы цикл canvas↔shell.
+            // auth is allowed since the avatar appeared in the builder toolbar: the profile
+            // menu is a single component for both surfaces (the dashboard header and the
+            // toolbar), and wiring it into the toolbar is possible either this way or
+            // through a slot from the composition root — that is, by two different
+            // mechanisms for one component. This creates no cycle by construction: auth
+            // itself is limited to `auth|ui|common` (see `builder-auth-deps`), so no way
+            // back from it into shell exists. `core` must not be added to this list — that
+            // is exactly where a canvas↔shell cycle would appear.
             name: 'builder-canvas-shell-deps',
             severity: 'error',
             from: { path: `^${M}/builder/(canvas|shell)` },
@@ -103,14 +110,13 @@ module.exports = {
             to: { path: `^${M}/builder/canvas` },
         },
         {
-            // дашборд /bricks (publish/pages/index.vue) — поверхность-хост:
-            // рендерит модалки документации и медиа-галереи (решение фазы 1
-            // pages-manager-плана), поэтому media/documentation разрешены.
-            // `builder/users` — раздел «Пользователи» того же дашборда: он живёт
-            // отдельным поддоменом (управление учётками — не публикация), а
-            // хостом ему остаётся дашборд. `builder/templates` — так же: раздел
-            // «Шаблоны» плюс выбор шаблона в форме создания страницы, и
-            // направление у пары одно (publish → templates)
+            // the /bricks dashboard (publish/pages/index.vue) is the hosting surface: it
+            // renders the documentation and media gallery modals, which is why media and
+            // documentation are allowed. `builder/users` is the "Users" section of the same
+            // dashboard: it lives as a subdomain of its own (managing accounts is not
+            // publishing), while the dashboard stays its host. `builder/templates` is the
+            // same: the "Templates" section plus the template choice in the page creation
+            // form, and the pair has a single direction (publish → templates)
             name: 'builder-publish-deps',
             severity: 'error',
             from: { path: `^${M}/builder/publish` },
@@ -119,30 +125,30 @@ module.exports = {
             },
         },
         {
-            // users — раздел учёток дашборда: читает права из core, всё
-            // остальное берёт из кита и common. `auth` в список НЕ входит
-            // намеренно: свой профиль и чужие учётки — разные вещи, и модалку
-            // профиля (свой пароль из своей строки) открывает хост по событию.
-            // `publish` тоже: раздел не знает ни о страницах, ни о дашборде —
-            // иначе появился бы цикл publish↔users
+            // users is the accounts section of the dashboard: it reads the permissions from
+            // core and takes everything else from the kit and common. `auth` is NOT on the
+            // list deliberately: an own profile and other people's accounts are different
+            // things, and the profile modal (an own password from an own row) is opened by
+            // the host on an event. `publish` likewise: the section knows neither about the
+            // pages nor about the dashboard — otherwise a publish↔users cycle would appear
             name: 'builder-users-deps',
             severity: 'error',
             from: { path: `^${M}/builder/users` },
             to: { path: `^${M}/(?!builder/users|builder/core|ui|common)` },
         },
         {
-            // templates — раздел шаблонов дашборда: читает права из core, всё
-            // остальное берёт из кита и common. `publish` в список НЕ входит:
-            // страницу из шаблона создаёт форма домена публикации, и знание о ней
-            // здесь дало бы цикл publish↔templates. Схему страницы-источника
-            // собирает вызывающий и передаёт значением
+            // templates is the templates section of the dashboard: it reads the permissions
+            // from core and takes everything else from the kit and common. `publish` is NOT
+            // on the list: a page out of a template is created by the form of the publishing
+            // domain, and knowing about it here would give a publish↔templates cycle. The
+            // schema of the source page is assembled by the caller and passed by value
             name: 'builder-templates-deps',
             severity: 'error',
             from: { path: `^${M}/builder/templates` },
             to: { path: `^${M}/(?!builder/templates|builder/core|ui|common)` },
         },
         {
-            // auth — малый самодостаточный поддомен (страница логина, сессия)
+            // auth is a small self-contained subdomain (the login page, the session)
             name: 'builder-auth-deps',
             severity: 'error',
             from: { path: `^${M}/builder/auth` },
@@ -161,7 +167,7 @@ module.exports = {
             to: { path: `^${M}/(?!builder/documentation|ui|common)` },
         },
         {
-            // серверные адаптеры: используются только из src/runtime/server/api/bricks/**
+            // the server adapters: used from src/runtime/server/api/bricks/** alone
             name: 'persistence-is-server-only',
             severity: 'error',
             from: { path: `^${M}/(?!persistence)` },
@@ -176,7 +182,7 @@ module.exports = {
     ],
     options: {
         doNotFollow: { path: 'node_modules' },
-        // контрактные типы — часть графа: учитывать type-only импорты
+        // the contract types are part of the graph: count type-only imports too
         tsPreCompilationDeps: true,
         tsConfig: { fileName: 'tsconfig.json' },
         enhancedResolveOptions: {

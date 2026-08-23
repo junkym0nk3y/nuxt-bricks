@@ -2,8 +2,8 @@ import stylelint from 'stylelint';
 
 const ruleName = 'custom-rule/margin-value';
 const messages = stylelint.utils.ruleMessages(ruleName, {
-    invalidPx: (value) => `margin px "${value}" должно быть четным`,
-    invalidRem: (value) => `margin rem "${value}" должно быть кратно 2 (0.2, 1.4 etc)`,
+    invalidPx: (value) => `margin px "${value}" must be an even number of pixels`,
+    invalidRem: (value) => `margin rem "${value}" must be a multiple of 0.2 (0.2, 1.4 etc)`,
 });
 
 const meta = {

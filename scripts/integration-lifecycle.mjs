@@ -1,27 +1,27 @@
 /**
- * Black-box HTTP lifecycle integration smoke: проверки против
- * запущенного production-сервера consumer'а. Оркестрация (pack, migrate,
- * build, boot) — scripts/integration-smoke.mjs.
+ * The black-box HTTP lifecycle of the integration smoke: the checks that run against a
+ * started production server of the consumer. The orchestration (pack, migrate, build,
+ * boot) lives in scripts/integration-smoke.mjs.
  */
 import { Buffer } from 'node:buffer';
 import { assertOk } from './smoke-shared.mjs';
 
-/** 1x1 png для media upload. */
+/** A 1x1 png for the media upload. */
 const PNG_1X1_BASE64 =
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 /**
- * Подпись категории media-этапа. Категория заводится самим этапом: в схеме
- * предустановленных категорий нет, и загрузка с незнакомым slug'ом законно
- * отвечает 400 — прежний хардкод `other` был зелёным только там, где категория
- * с таким slug'ом осталась в базе от ручных прогонов.
+ * The label of the category of the media stage. The category is created by the stage
+ * itself: the schema has no preset categories, and an upload with an unknown slug
+ * rightfully answers 400 — the former hardcoded `other` was green only where a category
+ * with that slug had been left in the database by manual runs.
  */
 const MEDIA_CATEGORY_LABEL = 'IT Smoke';
 
 /**
- * Заголовки авторизованных запросов: CSRF-заголовок + cookie.
+ * Headers of the authorized requests: the CSRF header plus the cookie.
  *
- * @param {string} [cookie] Cookie сессии.
- * @returns {Record<string, string>} Заголовки.
+ * @param {string} [cookie] - The session cookie.
+ * @returns {Record<string, string>} The headers.
  */
 function jsonHeaders(cookie) {
     return {
@@ -32,12 +32,12 @@ function jsonHeaders(cookie) {
 }
 
 /**
- * Создаёт API-клиент smoke-прогона: fetch с опциональной проверкой статуса
- * и JSON-разбором ответа.
+ * Creates the API client of the smoke run: a fetch with an optional status check and
+ * JSON parsing of the response.
  *
- * @param {string} origin Origin запущенного сервера.
+ * @param {string} origin - Origin of the started server.
  * @returns {(path: string, options?: { method?: string, cookie?: string, body?: unknown, expectStatus?: number }) => Promise<{ response: Response, data: any }>}
- * Функция запроса.
+ * The request function.
  */
 function createApiClient(origin) {
     return async function api(path, { method = 'GET', cookie, body, expectStatus } = {}) {
@@ -51,7 +51,7 @@ function createApiClient(origin) {
         if (expectStatus !== undefined) {
             assertOk(
                 response.status === expectStatus,
-                `${method} ${path}: ожидали ${expectStatus}, получили ${response.status}`
+                `${method} ${path}: expected ${expectStatus}, got ${response.status}`
             );
         }
 
@@ -61,7 +61,7 @@ function createApiClient(origin) {
         try {
             data = text ? JSON.parse(text) : null;
         } catch {
-            // не-JSON ответ допустим для ошибок
+            // a non-JSON response is acceptable for errors
         }
 
         return { response, data };
@@ -69,37 +69,37 @@ function createApiClient(origin) {
 }
 
 /**
- * Удаляет страницу lifecycle-прогона, если она осталась от прошлого запуска
- * (идемпотентность локальных повторов против одной БД).
+ * Deletes the page of the lifecycle run when it is left over from a previous one, which
+ * is what makes local repeats against a single database idempotent.
  *
- * @param {ReturnType<typeof createApiClient>} api API-клиент.
- * @param {string} pagename Имя страницы прогона.
- * @param {string} cookie Cookie сессии.
- * @returns {Promise<void>} Резолвится после зачистки.
+ * @param {ReturnType<typeof createApiClient>} api - The API client.
+ * @param {string} pagename - Name of the page of the run.
+ * @param {string} cookie - The session cookie.
+ * @returns {Promise<void>} Resolves once the cleanup is done.
  */
 async function cleanupStalePage(api, pagename, cookie) {
     const list = await api('/api/bricks', { cookie, expectStatus: 200 });
-    assertOk(Array.isArray(list.data), 'GET /api/bricks не вернул массив сводок');
+    assertOk(Array.isArray(list.data), 'GET /api/bricks returned no array of summaries');
     const stale = list.data.find((page) => page?.pagename === pagename);
 
     if (stale?.id) {
         await api(`/api/bricks/${stale.id}`, { method: 'DELETE', cookie, expectStatus: 200 });
-        console.info('[integration-smoke] Удалена страница прошлого прогона');
+        console.info('[integration-smoke] Removed the page of a previous run');
     }
 }
 
 /**
- * Media-этап (S3): категория → multipart upload → запись с id → delete файла и
- * категории.
+ * The media stage (S3): a category → a multipart upload → a record with an id → deleting
+ * the file and the category.
  *
- * Категория создаётся здесь же, а не берётся готовой: slug считает сервер, и
- * повторный POST с той же подписью возвращает существующую запись — то есть
- * этап идемпотентен против одной базы.
+ * The category is created right here instead of being taken ready-made: the slug is
+ * computed by the server, and a repeated POST with the same label returns the existing
+ * record — which makes the stage idempotent against a single database.
  *
- * @param {string} origin Origin запущенного сервера.
- * @param {ReturnType<typeof createApiClient>} api API-клиент.
- * @param {string} cookie Cookie сессии.
- * @returns {Promise<void>} Резолвится при зелёном этапе.
+ * @param {string} origin - Origin of the started server.
+ * @param {ReturnType<typeof createApiClient>} api - The API client.
+ * @param {string} cookie - The session cookie.
+ * @returns {Promise<void>} Resolves when the stage is green.
  */
 async function runMediaStage(origin, api, cookie) {
     const category = await api('/api/bricks/media/categories', {
@@ -109,10 +109,10 @@ async function runMediaStage(origin, api, cookie) {
     });
     assertOk(
         [200, 201].includes(category.response.status),
-        `создание категории: ${category.response.status}`
+        `creating the category: ${category.response.status}`
     );
     const slug = category.data?.slug;
-    assertOk(typeof slug === 'string' && slug.length > 0, 'POST категории не вернул slug');
+    assertOk(typeof slug === 'string' && slug.length > 0, 'the category POST returned no slug');
 
     const form = new FormData();
     form.append(
@@ -127,28 +127,28 @@ async function runMediaStage(origin, api, cookie) {
     });
     assertOk([200, 201].includes(upload.status), `media upload: ${upload.status}`);
     const media = await upload.json();
-    assertOk(Boolean(media?.id), 'upload не вернул id медиа');
-    assertOk(typeof media?.url === 'string' && media.url.length > 0, 'upload не вернул url');
-    assertOk(media?.category === slug, `upload не сохранил категорию: ${media?.category}`);
+    assertOk(Boolean(media?.id), 'the upload returned no media id');
+    assertOk(typeof media?.url === 'string' && media.url.length > 0, 'the upload returned no url');
+    assertOk(media?.category === slug, `the upload did not keep the category: ${media?.category}`);
 
-    // Файл раньше категории: удаление категории снимает её со своих файлов, то
-    // есть обратный порядок проверял бы уже не ту связь
+    // The file goes before the category: deleting a category takes it off its own files,
+    // so the reverse order would already be checking a different relation
     await api(`/api/bricks/media/${media.id}`, { method: 'DELETE', cookie, expectStatus: 200 });
     await api(`/api/bricks/media/categories/${slug}`, {
         method: 'DELETE',
         cookie,
         expectStatus: 200,
     });
-    console.info('[integration-smoke] Media upload/delete через S3 прошли');
+    console.info('[integration-smoke] Media upload and delete through S3 passed');
 }
 
 /**
- * Этап контракта схемы: невалидные компоненты и циклический граф — 400.
+ * The schema contract stage: invalid components and a cyclic graph both answer 400.
  *
- * @param {ReturnType<typeof createApiClient>} api API-клиент.
- * @param {number} pageId Id страницы.
- * @param {string} cookie Cookie сессии.
- * @returns {Promise<void>} Резолвится при зелёном этапе.
+ * @param {ReturnType<typeof createApiClient>} api - The API client.
+ * @param {number} pageId - Id of the page.
+ * @param {string} cookie - The session cookie.
+ * @returns {Promise<void>} Resolves when the stage is green.
  */
 async function runSchemaContractStage(api, pageId, cookie) {
     await api(`/api/bricks/${pageId}`, {
@@ -185,22 +185,22 @@ async function runSchemaContractStage(api, pageId, cookie) {
 }
 
 /**
- * Black-box HTTP lifecycle против запущенного consumer'а: CSRF-гейт → login →
- * CRUD страницы → контракт схемы → optimistic locking → publish → public
- * read-model → версии + restore → media (S3) → logout.
+ * The black-box HTTP lifecycle against a started consumer: the CSRF gate → login → CRUD
+ * of a page → the schema contract → optimistic locking → publish → the public read model
+ * → versions plus restore → media (S3) → logout.
  *
  * @param {{ origin: string, username: string, password: string, pagename: string, hasS3: boolean }} options
- * Параметры прогона.
- * @returns {Promise<void>} Резолвится при зелёном lifecycle.
+ * - Parameters of the run.
+ * @returns {Promise<void>} Resolves when the lifecycle is green.
  */
 export async function runLifecycle({ origin, username, password, pagename, hasS3 }) {
     const api = createApiClient(origin);
 
-    // Health / readiness с живой БД
+    // Health and readiness with a live database
     await api('/api/bricks/health', { expectStatus: 200 });
     await api('/api/bricks/health/ready', { expectStatus: 200 });
 
-    // CSRF-гейт: unsafe без заголовка/Origin/Sec-Fetch-Site — 403
+    // The CSRF gate: an unsafe request without the header, Origin or Sec-Fetch-Site — 403
     const bareLogin = await fetch(`${origin}/api/bricks/auth/login`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -208,25 +208,25 @@ export async function runLifecycle({ origin, username, password, pagename, hasS3
     });
     assertOk(
         bareLogin.status === 403,
-        `login без CSRF-признаков: ожидали 403, получили ${bareLogin.status}`
+        `login without the CSRF marks: expected 403, got ${bareLogin.status}`
     );
 
-    // Login → cookie сессии
+    // Login gives the session cookie
     const login = await api('/api/bricks/auth/login', {
         method: 'POST',
         body: { username, password },
         expectStatus: 200,
     });
-    assertOk(login.data?.user?.username === username, 'login не вернул пользователя');
+    assertOk(login.data?.user?.username === username, 'login returned no user');
     const setCookie = login.response.headers.get('set-cookie') || '';
     const cookie = setCookie.split(';')[0];
-    assertOk(cookie.startsWith('bricks-session='), 'login не вернул cookie сессии');
+    assertOk(cookie.startsWith('bricks-session='), 'login returned no session cookie');
 
-    // Неавторизованный editorial GET — 401; авторизованный список — 200
+    // An unauthorized editorial GET answers 401; an authorized listing answers 200
     await api('/api/bricks', { expectStatus: 401 });
     await cleanupStalePage(api, pagename, cookie);
 
-    // Create черновика (без явного published createPage дефолтит true)
+    // Creating a draft (without an explicit published, createPage defaults to true)
     const created = await api('/api/bricks', {
         method: 'POST',
         cookie,
@@ -234,16 +234,16 @@ export async function runLifecycle({ origin, username, password, pagename, hasS3
     });
     assertOk([200, 201].includes(created.response.status), `create: ${created.response.status}`);
     const pageId = created.data?.id;
-    assertOk(Boolean(pageId), 'create не вернул id страницы');
-    assertOk(Number.isInteger(created.data?.revision), 'create не вернул revision');
+    assertOk(Boolean(pageId), 'create returned no page id');
+    assertOk(Number.isInteger(created.data?.revision), 'create returned no revision');
 
-    // Черновик не отдаётся публичной read-model
+    // A draft is not served by the public read model
     await api(`/api/bricks/public/pages/${pagename}`, { expectStatus: 404 });
 
-    // Контракт схемы
+    // The schema contract
     await runSchemaContractStage(api, pageId, cookie);
 
-    // Update со schema → снапшот версии + инкремент revision
+    // An update carrying a schema takes a version snapshot and increments the revision
     const validSchema = {
         components: [
             {
@@ -265,10 +265,10 @@ export async function runLifecycle({ origin, username, password, pagename, hasS3
     const freshRevision = updated.data?.revision;
     assertOk(
         Number.isInteger(freshRevision) && freshRevision > created.data.revision,
-        'update не инкрементировал revision'
+        'update did not increment the revision'
     );
 
-    // Optimistic locking (гонки записи): устаревший expectedRevision — 409
+    // Optimistic locking (write races): a stale expectedRevision answers 409
     const conflict = await api(`/api/bricks/${pageId}`, {
         method: 'PUT',
         cookie,
@@ -277,11 +277,11 @@ export async function runLifecycle({ origin, username, password, pagename, hasS3
     });
     assertOk(
         conflict.data?.data?.code === 'REVISION_CONFLICT',
-        `409 без кода REVISION_CONFLICT: ${JSON.stringify(conflict.data)}`
+        `a 409 without the REVISION_CONFLICT code: ${JSON.stringify(conflict.data)}`
     );
 
-    // Publish → public read-model без editor-полей
-    // (PATCH published — контентный: revision инкрементируется и здесь)
+    // Publish, then the public read model without the editor fields
+    // (a PATCH of published counts as content: the revision is incremented here too)
     const publishPatch = await api(`/api/bricks/${pageId}`, {
         method: 'PATCH',
         cookie,
@@ -289,19 +289,20 @@ export async function runLifecycle({ origin, username, password, pagename, hasS3
         expectStatus: 200,
     });
     const publishedRevision = publishPatch.data?.revision;
-    assertOk(Number.isInteger(publishedRevision), 'publish-PATCH не вернул revision');
+    assertOk(Number.isInteger(publishedRevision), 'the publish PATCH returned no revision');
     const publicPage = await api(`/api/bricks/public/pages/${pagename}`, { expectStatus: 200 });
-    assertOk(publicPage.data?.pagename === pagename, 'public projection не вернула страницу');
+    assertOk(publicPage.data?.pagename === pagename, 'the public projection returned no page');
     assertOk(
         publicPage.data?.revision === undefined,
-        'public projection не должна отдавать revision'
+        'the public projection must not serve the revision'
     );
 
-    // Версии: снапшот появился после update со schema; restore с precondition
+    // Versions: the snapshot appeared after the update carrying a schema; restore runs
+    // with a precondition
     const versions = await api(`/api/bricks/${pageId}/versions`, { cookie, expectStatus: 200 });
     assertOk(
         Array.isArray(versions.data) && versions.data.length >= 1,
-        'после update со schema нет снапшотов версий'
+        'no version snapshots after an update carrying a schema'
     );
     const restored = await api(`/api/bricks/${pageId}/versions/${versions.data[0].id}/restore`, {
         method: 'POST',
@@ -311,20 +312,20 @@ export async function runLifecycle({ origin, username, password, pagename, hasS3
     });
     assertOk(
         Number.isInteger(restored.data?.revision) && restored.data.revision > publishedRevision,
-        'restore не вернул страницу с новой revision'
+        'restore returned no page with a new revision'
     );
 
-    // Media (S3): полный цикл против MinIO
+    // Media (S3): the full cycle against MinIO
     if (hasS3) {
         await runMediaStage(origin, api, cookie);
     } else {
-        console.warn('[integration-smoke] BRICKS_IT_S3_* не заданы — media-этап пропущен');
+        console.warn('[integration-smoke] BRICKS_IT_S3_* are unset — the media stage is skipped');
     }
 
-    // Cleanup + logout: мёртвая сессия снова 401
+    // Cleanup and logout: a dead session answers 401 again
     await api(`/api/bricks/${pageId}`, { method: 'DELETE', cookie, expectStatus: 200 });
     await api('/api/bricks/auth/logout', { method: 'POST', cookie, expectStatus: 200 });
     await api('/api/bricks', { cookie, expectStatus: 401 });
 
-    console.info('[integration-smoke] HTTP lifecycle зелёный');
+    console.info('[integration-smoke] The HTTP lifecycle is green');
 }

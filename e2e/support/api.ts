@@ -6,7 +6,7 @@ const MUTATION_HEADERS = {
 };
 
 /**
- * Очищает страницы fake backend через публичный editorial API приложения.
+ * Clears the pages of the fake backend through the public editorial API of the app.
  */
 export async function clearPages(request: APIRequestContext): Promise<void> {
     const listResponse = await request.get('/api/bricks/');
@@ -26,7 +26,7 @@ export async function clearPages(request: APIRequestContext): Promise<void> {
 }
 
 /**
- * Создаёт страницу через локальный Nitro API, то есть тем же маршрутом, что UI.
+ * Creates a page through the local Nitro API, that is by the same route the UI takes.
  */
 export async function createPage(
     request: APIRequestContext,

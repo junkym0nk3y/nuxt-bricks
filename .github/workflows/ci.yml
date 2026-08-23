@@ -1,7 +1,7 @@
-# CI-гейт (P1 «Сделать CI и package contract воспроизводимыми»):
-# format/lint/type/test → build (модуль + прод-сборка playground) → fresh-consumer
-# smoke из npm pack → npm audit. Все jobs обязаны быть зелёными для merge в main
-# (required checks настраиваются в branch protection репозитория).
+# The CI gate: format/lint/type/test → build (the module plus a production build of
+# the playground) → fresh-consumer smoke from npm pack → npm audit. Every job has to be
+# green to merge into main (required checks are configured in the branch protection of
+# the repository).
 name: CI
 
 permissions:
@@ -49,8 +49,8 @@ jobs:
             - run: npm run dev:prepare
             - run: npm run build
             - run: npm run dev:build
-            # Bundle budget: gzip-размер initial JS (entry и published-страница)
-            # не должен незаметно расти — бюджеты в scripts/bundle-budget.mjs.
+            # Bundle budget: the gzip size of the initial JS (the entry and a published
+            # page) must not grow unnoticed — the budgets live in scripts/bundle-budget.mjs.
             - run: npm run budget:bundle
 
     pack-smoke:
@@ -69,7 +69,8 @@ jobs:
         name: Integration smoke (Postgres + MinIO)
         runs-on: ubuntu-latest
         env:
-            # Не-UTC зона процесса — регрессия A-07 (timestamptz-инварианты)
+            # A non-UTC process timezone is what catches regressions of the
+            # timestamptz invariants
             TZ: Europe/Moscow
         services:
             postgres:
@@ -144,7 +145,8 @@ jobs:
             - uses: actions/setup-node@v4
               with:
                   node-version: 22
-            # Prod-зависимости — блокирующе (сейчас 0 уязвимостей, держим планку);
-            # полный audit (включая dev) — информационно, не валит сборку.
+            # Production dependencies are blocking (0 vulnerabilities right now, and the
+            # bar stays there); the full audit, dev included, is informational and does not
+            # fail the build.
             - run: npm audit --omit=dev
             - run: npm audit || true

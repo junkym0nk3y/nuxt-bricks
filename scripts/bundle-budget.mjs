@@ -1,16 +1,18 @@
 #!/usr/bin/env node
 /**
- * Bundle budget: проверяет размер клиентского JS прод-сборки playground.
+ * Bundle budget: checks the size of the client JS of the playground production build.
  *
- * Считает по клиентскому манифесту Nuxt (client.precomputed.mjs) транзитивное
- * замыкание чанков для двух поверхностей и сравнивает gzip-суммы с бюджетами:
- *   - entry        — то, что грузит каждый посетитель любой страницы;
- *   - published    — entry + route-чанк опубликованной страницы (render/pages/[pagename].vue),
- *                    т.е. полный initial JS посетителя published-страницы.
+ * Walking the Nuxt client manifest (client.precomputed.mjs), it takes the transitive
+ * closure of the chunks for two surfaces and compares the gzip totals with the budgets:
+ *   - entry        — what every visitor of any page loads;
+ *   - published    — entry plus the route chunk of a published page
+ *                    (render/pages/[pagename].vue), that is the full initial JS of a
+ *                    visitor of a published page.
  *
- * Запуск: `npm run budget:bundle` (требует свежий `npm run dev:build`).
- * Бюджеты — константы ниже; при осознанном росте поднять числом в этом файле
- * (ревьюер видит diff бюджета, незаметный рост ловится CI).
+ * Run it with `npm run budget:bundle` (a fresh `npm run dev:build` is required).
+ * The budgets are the constants below; a deliberate growth is raised by the number in
+ * this file — a reviewer sees the diff of the budget, and an unnoticed growth is caught
+ * by CI.
  */
 
 import { gzipSync } from 'node:zlib';
@@ -25,19 +27,19 @@ const CLIENT_DIR = resolve(OUTPUT_DIR, 'public/_nuxt');
 
 const PUBLISHED_PAGE_MODULE = '../src/runtime/modules/render/pages/[pagename].vue';
 
-// Бюджеты gzip, КБ. Зафиксированы от фактических размеров (2026-07-11:
-// entry 111 KB, published 120 KB) + ~10% headroom.
+// Gzip budgets, KB. Fixed from the actual sizes measured on 2026-07-11 (entry 111 KB,
+// published 120 KB) plus roughly 10% of headroom.
 const BUDGETS_GZIP_KB = {
     entry: 122,
     published: 132,
 };
 
 /**
- * Транзитивное замыкание script-чанков от набора ключей манифеста.
+ * Transitive closure of the script chunks from a set of manifest keys.
  *
- * @param {Record<string, any>} dependencies - Секция dependencies манифеста.
- * @param {string[]} startKeys - Стартовые ключи (entrypoint, route-модули).
- * @returns {Set<string>} Имена файлов чанков.
+ * @param {Record<string, any>} dependencies - The dependencies section of the manifest.
+ * @param {string[]} startKeys - Starting keys (the entrypoint, route modules).
+ * @returns {Set<string>} Chunk file names.
  */
 function collectChunkFiles(dependencies, startKeys) {
     const seen = new Set();
@@ -76,10 +78,10 @@ function collectChunkFiles(dependencies, startKeys) {
 }
 
 /**
- * Суммарный gzip-размер набора чанков в байтах.
+ * Total gzip size of a set of chunks, in bytes.
  *
- * @param {Set<string>} files - Имена файлов в CLIENT_DIR.
- * @returns {number} Сумма gzip-байтов.
+ * @param {Set<string>} files - File names inside CLIENT_DIR.
+ * @returns {number} The sum of the gzip byte sizes.
  */
 function gzipTotal(files) {
     let total = 0;
@@ -95,8 +97,8 @@ const manifest = manifestModule?.default ?? manifestModule;
 
 if (!manifest?.dependencies || !manifest?.entrypoints?.length) {
     console.error(
-        `[bundle-budget] Манифест не найден или пуст: ${MANIFEST_PATH}\n` +
-            'Сначала соберите playground: npm run dev:build'
+        `[bundle-budget] Manifest missing or empty: ${MANIFEST_PATH}\n` +
+            'Build the playground first: npm run dev:build'
     );
     process.exit(1);
 }
@@ -105,7 +107,7 @@ const { dependencies, entrypoints } = manifest;
 
 if (!dependencies[PUBLISHED_PAGE_MODULE]) {
     console.error(
-        `[bundle-budget] В манифесте нет route-модуля published-страницы: ${PUBLISHED_PAGE_MODULE}`
+        `[bundle-budget] The manifest has no route module of a published page: ${PUBLISHED_PAGE_MODULE}`
     );
     process.exit(1);
 }
@@ -123,13 +125,13 @@ for (const [name, files] of Object.entries(surfaces)) {
     const ok = gzipKb <= budgetKb;
     failed ||= !ok;
     console.log(
-        `[bundle-budget] ${name}: ${gzipKb} KB gzip (${files.size} chunks), budget ${budgetKb} KB — ${ok ? 'OK' : 'ПРЕВЫШЕН'}`
+        `[bundle-budget] ${name}: ${gzipKb} KB gzip (${files.size} chunks), budget ${budgetKb} KB — ${ok ? 'OK' : 'OVER BUDGET'}`
     );
     if (!ok) {
         console.error(
-            `[bundle-budget] Поверхность "${name}" превысила бюджет. ` +
-                'Проверьте, что в initial-граф не попал builder-only код (nuxi analyze playground), ' +
-                'либо осознанно поднимите бюджет в scripts/bundle-budget.mjs.'
+            `[bundle-budget] Surface "${name}" is over its budget. ` +
+                'Check that no builder-only code got into the initial graph (nuxi analyze playground), ' +
+                'or raise the budget in scripts/bundle-budget.mjs deliberately.'
         );
     }
 }

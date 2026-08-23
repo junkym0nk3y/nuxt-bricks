@@ -1,12 +1,12 @@
 /**
- * Клавиатура таб-бара проверяется здесь, а не в unit-тестах: и happy-dom, и
- * jsdom доводят событие до reka (та вызывает `preventDefault`), но сам перенос
- * фокуса — обход коллекции узлов с вызовом `focus()` — в эмуляторах не
- * срабатывает, и тесты «падали» бы на исправном коде.
+ * The keyboard of the tab bar is checked here rather than in unit tests: both
+ * happy-dom and jsdom deliver the event to reka (which does call `preventDefault`),
+ * but the focus move itself — a walk over the collection of nodes calling `focus()` —
+ * never happens in the emulators, so the tests would "fail" on healthy code.
  *
- * Фокус ставится кликом, а не `locator.focus()`: у кнопок группы `tabindex`
- * равен «-1» (внутрь ведут стрелки, а не Tab), и программная фокусировка такого
- * элемента в headless-браузере не поднимает фокус — он остаётся на `body`.
+ * Focus is placed by a click, not by `locator.focus()`: the buttons of the group carry
+ * `tabindex` of "-1" (arrows lead inside, not Tab), and focusing such an element
+ * programmatically in a headless browser raises no focus — it stays on `body`.
  */
 
 import { expect, test } from '@playwright/test';

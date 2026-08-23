@@ -10,12 +10,13 @@ export default {
         'src/runtime/modules/**/pages/**/*.vue',
         'src/runtime/modules/layouts-blocks/registry.ts',
         'src/runtime/modules/layouts-blocks/canvasBlockComponents.ts',
-        // Публичный API потребителя: nuxt-bricks/persistence и nuxt-bricks/sanitize (exports в package.json)
+        // Public API of the consumer: nuxt-bricks/persistence and
+        // nuxt-bricks/sanitize (both listed under exports in package.json)
         'src/runtime/modules/persistence/server/registry.ts',
         'src/runtime/modules/common/utils/sanitize/index.ts',
         'playground/**/*.{ts,vue}',
-        // Юнит-тесты — законные потребители экспортов (иначе тестируемые
-        // хелперы вроде RequestError флагаются как unused)
+        // Unit tests are legitimate consumers of the exports (otherwise tested
+        // helpers such as RequestError get flagged as unused)
         'test/**/*.spec.ts',
     ],
     project: ['src/**/*.{ts,vue}'],

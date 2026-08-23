@@ -2,16 +2,16 @@ import { defineBuildConfig } from 'unbuild';
 
 export default defineBuildConfig({
     entries: [
-        // CLI-скрипт миграций копируется в dist/cli как есть (без бандлинга).
+        // The migration CLI script is copied into dist/cli as is, unbundled.
         {
             builder: 'mkdist',
             input: 'src/cli',
             outDir: 'dist/cli',
         },
-        // Публичный SCSS-API — исходниками, а не скомпилированным CSS.
-        // Дефолтный mkdist партиалы `_*.scss` в dist не кладёт вовсе, а
-        // не-партиалы компилирует в `.css`: миксины не доехали бы до потребителя
-        // ни в каком виде. `builder: 'copy'` переносит файлы байт в байт.
+        // The public SCSS API ships as sources, not as compiled CSS. The default
+        // mkdist builder drops `_*.scss` partials from dist entirely and compiles
+        // non-partials into `.css`: the mixins would reach the consumer in no form
+        // at all. `builder: 'copy'` moves the files byte for byte.
         {
             builder: 'copy',
             input: 'src/runtime/assets/scss/public',
