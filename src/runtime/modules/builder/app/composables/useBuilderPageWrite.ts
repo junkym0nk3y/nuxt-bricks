@@ -19,16 +19,18 @@ import { usePublishStore } from '../../publish/stores/publish';
 // #endregion
 
 /**
- * Запись открытой страницы билдера: сохранение (черновик или публикация) и Save
- * as Copy вместе с переходом сессии, снимком превью для дашборда и тостами
- * исхода.
+ * Writing the open page of the builder: the save (a draft or a publication) and
+ * Save as Copy together with the move of the session, the preview snapshot for the
+ * dashboard and the toasts of the outcome.
  *
- * Выделено из фасада страницы: у операций записи своя цельная логика — сверка
- * токена сессии, порядок перехода на сохранённый адрес, контекст страницы в
- * сообщениях, — и в общем фасаде она мешалась с проводкой shell'а.
+ * Split out of the facade of the page: the writing operations hold a whole logic of
+ * their own — the check of the session token, the order of the move onto the saved
+ * address, the page context in the messages — and inside the shared facade it got
+ * in the way of the wiring of the shell.
  *
- * @param options - Токен сессии, переход/фиксация сессии и открытие панели
- * публикации: они принадлежат composition root'у, а не записи.
+ * @param options - The session token, the move and the commit of the session and
+ * the opening of the publish panel: they belong to the composition root rather than
+ * to the write.
  */
 export function useBuilderPageWrite(options: IBuilderPageWriteOptions): IUseBuilderPageWriteReturn {
     const { sessionToken, renameSession, switchToSavedPage, commitSavedSnapshot } = options;
@@ -51,13 +53,14 @@ export function useBuilderPageWrite(options: IBuilderPageWriteOptions): IUseBuil
 
     // #region Methods
     /**
-     * Приписывает сообщению страницу, к которой оно относится. Нужно только для
-     * операций, доехавших в уже другую сессию: там на экране чужая страница, и
-     * без метки сообщение выглядит относящимся к ней.
+     * Ascribes to a message the page it is about. Needed for the operations that
+     * arrived in an already different session only: another page is on the screen
+     * there, and without the label the message looks as if it were about that one.
      *
-     * @param message - Текст сообщения.
-     * @param pageLabel - Метка страницы, снятая на старте операции.
-     * @returns Сообщение с контекстом либо исходное, если метки нет.
+     * @param message - The text of the message.
+     * @param pageLabel - The page label taken at the start of the operation.
+     * @returns The message with the context, or the original one when there is no
+     * label.
      */
     function withPageContext(message: string, pageLabel: string): string {
         if (!pageLabel) {
@@ -68,22 +71,23 @@ export function useBuilderPageWrite(options: IBuilderPageWriteOptions): IUseBuil
     }
 
     /**
-     * Сохраняет лендинг с указанным статусом публикации.
-     * При успехе показывает toast с сообщением, при ошибке откатывает статус.
+     * Saves the landing with the given publication status. On a success it shows a
+     * toast with the message, on a failure it rolls the status back.
      *
-     * @param published - Флаг публикации (true = опубликовано, false = черновик).
-     * @param successMessage - Сообщение для отображения при успехе.
-     * @returns true при успешном сохранении, false при ошибке.
+     * @param published - The publication flag (true = published, false = a draft).
+     * @param successMessage - The message to show on a success.
+     * @returns true on a successful save, false on a failure.
      */
     async function submitPageWithPublishState(
         published: boolean,
         successMessage: string
     ): Promise<boolean> {
-        // Повторное действие при идущей записи — не отказ: сообщать о нём нечего,
-        // а без этого выхода `publishCurrentPage` вернул бы `null` (запись уже
-        // идёт) и путь отказа показал бы тост «не удалось сохранить» поверх
-        // нормально идущего сохранения. Сама подмена `published` ниже тоже
-        // недопустима до выхода — она пережила бы откат чужой операции
+        // A repeated action while a write is under way is not a failure: there is
+        // nothing to report about it, and without this exit `publishCurrentPage`
+        // would return `null` (a write is already running) and the failure path
+        // would show a "could not save" toast over a save going along normally. The
+        // substitution of `published` below is inadmissible before the exit as well
+        // — it would outlive the rollback of somebody else's operation
         if (publishStore.isSubmitting) {
             return false;
         }
@@ -92,18 +96,20 @@ export function useBuilderPageWrite(options: IBuilderPageWriteOptions): IUseBuil
         publishStore.setCurrentFormField('published', published);
         const schema = componentsStore.exportSchema();
         const startedIn = sessionToken.capture();
-        // Метка снимается до await: после него форма принадлежит уже открытой
-        // странице, и тост о вытесненной операции назвал бы чужую
+        // The label is taken before the await: after it the form belongs to the
+        // page open by then, and the toast of a displaced operation would name the
+        // wrong one
         const operationPageLabel = currentPublishPageTitle.value;
         const result = await publishStore.publishCurrentPage(schema, {
             isInitiatorCurrent: () => sessionToken.isCurrent(startedIn),
         });
 
-        // Сохранение прежней страницы, доехавшее после открытия новой, её состояния
-        // не касается: `startEditingPage` переписал бы форму, `commitSavedSnapshot`
-        // объявил бы её черновик лишним и удалил его, снимок превью снял бы чужой
-        // канвас, а `renameSession` увёл бы URL. Факт записи при этом сообщаем —
-        // страница пользователя действительно сохранена
+        // A save of the former page arriving after a new one has been opened is
+        // none of the new one's business: `startEditingPage` would rewrite the form,
+        // `commitSavedSnapshot` would declare its draft superfluous and remove it,
+        // the preview snapshot would shoot the wrong canvas, and `renameSession`
+        // would take the URL away. The fact of the write is still reported — the
+        // person's page really has been saved
         const isCurrent = sessionToken.isCurrent(startedIn);
 
         if (result !== null) {
@@ -118,31 +124,34 @@ export function useBuilderPageWrite(options: IBuilderPageWriteOptions): IUseBuil
                 publishStore.startEditingPage(result);
             }
 
-            // Fire-and-forget: превью страницы для дашборда, сохранение не блокируем
+            // Fire-and-forget: the page preview for the dashboard, the save is not
+            // blocked by it
             captureAndUploadThumbnail(result, startedIn);
 
-            // Адрес формы целиком: сохранение могло сменить и префикс, а URL
-            // редактора включает его — перенос по одному имени увёл бы редактор
-            // на адрес, которого у страницы нет
+            // The whole address of the form: a save may have changed the prefix
+            // too, and the URL of the editor includes it — a move by the name alone
+            // would take the editor onto an address the page does not have
             const currentAddress = toPageAddress(
                 publishStore.currentFormState.pagename,
                 publishStore.currentFormState.urlPrefix
             );
 
             if (currentAddress.pagename) {
-                // Переносим сессию на сохранённый адрес (URL + ключ черновиков),
-                // затем фиксируем снапшот и подчищаем черновик по актуальному ключу.
-                // Токен передаётся внутрь: `renameSession` ждёт `router.replace`, и
-                // перехваченная за это время навигация сделала бы фиксацию чужой
+                // The session is moved onto the saved address (the URL plus the
+                // key of the drafts), then the snapshot is committed and the draft
+                // under the current key is swept up. The token is passed inside:
+                // `renameSession` awaits `router.replace`, and a navigation caught
+                // within that time would make the commit somebody else's
                 await renameSession(currentAddress);
                 commitSavedSnapshot(startedIn);
             }
             return true;
         }
 
-        // `generalError` — поле формы уже открытой страницы: у вытесненной
-        // операции оно относится не к ней (или пусто, если новую форму уже
-        // очистили), поэтому в её тост идёт только общий текст с меткой страницы
+        // `generalError` is a field of the form of the page open by now: for a
+        // displaced operation it is not about that operation (or is empty, when the
+        // new form has been cleared already), so only the generic text with the page
+        // label goes into its toast
         if (!isCurrent) {
             showToast(
                 withPageContext(t('bricks.publish.toasts.savePageFailed'), operationPageLabel),
@@ -160,8 +169,8 @@ export function useBuilderPageWrite(options: IBuilderPageWriteOptions): IUseBuil
     }
 
     /**
-     * Сохраняет лендинг как черновик или обновляет существующую страницу.
-     * Сообщение зависит от того, редактируется ли существующая страница и её статуса публикации.
+     * Saves the landing as a draft or updates an existing page. The message depends
+     * on whether an existing page is being edited and on its publication status.
      */
     async function handleSaveDraft(): Promise<void> {
         const published = publishStore.currentFormState.published;
@@ -176,24 +185,26 @@ export function useBuilderPageWrite(options: IBuilderPageWriteOptions): IUseBuil
     }
 
     /**
-     * Сохраняет текущий лендинг как копию с новым ID.
-     * Единый переход сессии (`switchToSavedPage`, фиксированный порядок: store в
-     * edit mode → renameSession → savedSnapshot) выполняется до toast/thumbnail —
-     * иначе URL и ключ черновика localStorage остаются от оригинала (автосейв
-     * копии писал бы контент под slug оригинала, reload оригинала предлагал бы
-     * восстановить чужие данные).
+     * Saves the current landing as a copy with a new id. The single move of the
+     * session (`switchToSavedPage`, in the fixed order: the store into edit mode →
+     * renameSession → savedSnapshot) is carried out before the toast and the
+     * thumbnail — otherwise the URL and the key of the localStorage draft stay
+     * behind from the original (the autosave of the copy would write its content
+     * under the slug of the original, and a reload of the original would offer to
+     * restore somebody else's data).
      */
     async function handleSaveAsCopy(): Promise<void> {
-        // По той же причине, что и в обычном сохранении: отказ guard'а стора
-        // неотличим здесь от неудачи создания копии и дал бы ложный тост
+        // For the same reason as in the ordinary save: a refusal of the guard of
+        // the store is indistinguishable here from a failure to create the copy and
+        // would give a false toast
         if (publishStore.isSubmitting) {
             return;
         }
 
         const schema = componentsStore.exportSchema();
         const startedIn = sessionToken.capture();
-        // Метка исходной страницы — до await, по той же причине, что и в обычном
-        // сохранении
+        // The label of the source page is taken before the await, for the same
+        // reason as in the ordinary save
         const operationPageLabel = currentPublishPageTitle.value;
         const copy = await publishStore.saveCurrentPageAsCopy(schema, {
             isInitiatorCurrent: () => sessionToken.isCurrent(startedIn),
@@ -218,10 +229,11 @@ export function useBuilderPageWrite(options: IBuilderPageWriteOptions): IUseBuil
 
         const copySavedMessage = t('bricks.publish.toasts.copySaved');
 
-        // Пользователь ушёл на другую страницу, пока летел POST: копия создана и
-        // уже в списке — факт сообщаем, но переводить на неё чужую сессию нельзя,
-        // а снимок превью снял бы чужой канвас. Метка — созданной копии, а не
-        // исходной страницы: искать в списке пользователь будет именно копию
+        // The person left for another page while the POST was in flight: the copy
+        // is created and is in the list already — the fact is reported, but moving
+        // somebody else's session onto it is not allowed, and the preview snapshot
+        // would shoot the wrong canvas. The label is the created copy's rather than
+        // the source page's: what the person will look for in the list is the copy
         if (!isCurrent) {
             showToast(withPageContext(copySavedMessage, copy.title || copy.pagename), 'success');
             return;
@@ -229,10 +241,11 @@ export function useBuilderPageWrite(options: IBuilderPageWriteOptions): IUseBuil
 
         await switchToSavedPage(copy);
 
-        // Вторая асинхронная граница: переход ждёт `router.replace`, и за это время
-        // пользователя могло увести на другую страницу. `commitSavedSnapshot` и
-        // снимок превью защищены своими проверками токена, а тост — нет: без этой
-        // сверки он лёг бы поверх чужой страницы без имени копии
+        // The second asynchronous boundary: the move awaits `router.replace`, and
+        // within that time the person may have been taken onto another page.
+        // `commitSavedSnapshot` and the preview snapshot are protected by token
+        // checks of their own, the toast is not: without this check it would land
+        // over somebody else's page carrying no name of the copy
         if (!sessionToken.isCurrent(startedIn)) {
             showToast(withPageContext(copySavedMessage, copy.title || copy.pagename), 'success');
             return;
@@ -240,10 +253,11 @@ export function useBuilderPageWrite(options: IBuilderPageWriteOptions): IUseBuil
 
         showToast(copySavedMessage, 'success');
 
-        // Fire-and-forget: у копии свой S3-ключ превью — снимаем сразу после сохранения.
-        // Токен — от старта Save as Copy: `switchToSavedPage` выше ждёт
-        // `router.replace`, и перехваченная за это время навигация иначе дала бы
-        // съёмку чужого канваса под id копии
+        // Fire-and-forget: a copy has an S3 preview key of its own — the shot is
+        // taken right after the save. The token is the one from the start of Save as
+        // Copy: `switchToSavedPage` above awaits `router.replace`, and a navigation
+        // caught within that time would otherwise shoot the wrong canvas under the
+        // id of the copy
         captureAndUploadThumbnail(copy.id, startedIn);
     }
     // #endregion

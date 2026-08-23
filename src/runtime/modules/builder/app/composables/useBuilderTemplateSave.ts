@@ -21,21 +21,22 @@ import { usePublishStore } from '../../publish/stores/publish';
 // #endregion
 
 /**
- * Сохранение канваса как шаблона из билдера (третий пункт сплит-кнопки).
+ * Saving the canvas as a template out of the builder (the third item of the split
+ * button).
  *
- * Источник собирается на месте, синхронно: в шаблон уезжает то, что СЕЙЧАС на
- * канвасе, вместе с несохранёнными правками — читать страницу из базы здесь было
- * бы прямо неверно.
+ * The source is assembled on the spot, synchronously: what travels into a template
+ * is what is on the canvas NOW, unsaved edits included — reading the page out of
+ * the database here would be plainly wrong.
  *
- * Миниатюра — кадр последнего сохранения страницы (`thumbnailUrl` её строки в
- * списке): своего снимка у несохранённых правок нет, а съёмка канваса на месте
- * потребовала бы ещё одной ручки загрузки и своего namespace ключей. Модалка об
- * этом говорит подписью, поэтому расхождение картинки с содержимым не выглядит
- * поломкой. У страницы, которую ни разу не сохраняли, кадра нет вовсе — шаблон
- * останется с плейсхолдером.
+ * The thumbnail is the frame of the last save of the page (the `thumbnailUrl` of
+ * its row in the list): unsaved edits have no shot of their own, and shooting the
+ * canvas on the spot would take one more upload endpoint and a key namespace of its
+ * own. The window says so in a caption, so a divergence of the picture from the
+ * content does not look like a breakage. A page that has never been saved has no
+ * frame at all — the template will be left with a placeholder.
  *
- * @param options - Готовность сессии и показ тоста.
- * @returns Состояние формы шаблона и запрос её открытия.
+ * @param options - The readiness of the session and the showing of a toast.
+ * @returns The state of the template form and the request to open it.
  */
 export function useBuilderTemplateSave(
     options: IUseBuilderTemplateSaveOptions
@@ -48,20 +49,22 @@ export function useBuilderTemplateSave(
     const source = ref<ITemplateSaveSource | null>(null);
     const isModalOpen = ref(false);
     /**
-     * Латч монтирования формы: сама она подключена лениво, но без условия в
-     * шаблоне её чанк уехал бы к первому рендеру билдера. Обратно латч не
-     * снимается — иначе компонент пересоздавался бы и терял leave-анимацию.
+     * The mount latch of the form: the form itself is connected lazily, but without
+     * a condition in the markup its chunk would travel out by the first render of
+     * the builder. The latch is never lowered again — otherwise the component would
+     * be recreated and would lose its leave animation.
      */
     const shouldMountModal = ref(false);
     // #endregion
 
     // #region Methods
     /**
-     * Собирает источник из канваса и формы публикации и открывает форму шаблона.
+     * Assembles the source out of the canvas and the publish form and opens the
+     * template form.
      *
-     * Гард сессии здесь, а не у вызывающего: до её готовности схемы на канвасе
-     * ещё нет, и шаблон унёс бы пустой холст — то же правило, что у сохранения
-     * страницы.
+     * The session guard is here rather than at the caller: before readiness the
+     * canvas has no schema yet, and the template would carry an empty canvas away —
+     * the same rule as for the save of a page.
      */
     function requestFromCanvas(): void {
         if (!options.isSessionReady.value) {
@@ -92,8 +95,8 @@ export function useBuilderTemplateSave(
                 ? getPublishedPagePath(toPageAddress(formState.pagename, formState.urlPrefix))
                 : '',
             blocksCount: schema.components.length,
-            // `null` — страницы в базе ещё нет: модалка скажет, что уедет только
-            // то, что на канвасе
+            // `null` — the page is not in the database yet: the window will say
+            // that what travels out is what is on the canvas alone
             pageUpdatedAt: savedPage?.updatedAt ?? null,
         };
         shouldMountModal.value = true;
@@ -101,18 +104,18 @@ export function useBuilderTemplateSave(
     }
 
     /**
-     * Закрывает форму. Источник остаётся до следующего открытия: модалку держит в
-     * DOM `force-mount` до конца leave-анимации, и снятый источник опустошил бы
-     * карточку страницы прямо под уезжающим окном.
+     * Closes the form. The source stays until the next opening: `force-mount` holds
+     * the window in the DOM until the end of the leave animation, and a cleared
+     * source would empty the card of the page right under the leaving window.
      */
     function close(): void {
         isModalOpen.value = false;
     }
 
     /**
-     * Шаблон сохранён: закрываем форму и сообщаем.
+     * The template is saved: the form is closed and the fact is reported.
      *
-     * @param template - Сохранённый шаблон.
+     * @param template - The saved template.
      */
     function handleSaved(template: TBricksTemplateSummary): void {
         close();

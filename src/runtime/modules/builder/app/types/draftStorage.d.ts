@@ -1,27 +1,28 @@
 /**
- * Типы уведомления о недоступном хранилище черновиков.
+ * Types of the notice about an unreachable draft storage.
  */
 
 /**
- * Опции фабрики уведомления.
+ * Options of the notice factory.
  */
 export interface IDraftStorageNoticeOptions {
     /**
-     * Снимок токена текущей сессии — граница однократности. Берётся функцией, а
-     * не целым токеном: латчу нужно только значение, и с ним тип не зависит от
-     * контракта сессии.
+     * Snapshot of the token of the current session — the boundary of the one-time
+     * rule. Taken as a function rather than as the whole token: the latch needs
+     * the value alone, and with it the type does not depend on the contract of the
+     * session.
      */
     captureSessionToken: () => number;
-    /** Показ сообщения — тост принадлежит странице, утилита о нём не знает. */
+    /** Showing the message: the toast belongs to the page, not to the utility. */
     notify: () => void;
 }
 
 /**
- * Однократное на сессию сообщение о недоступном хранилище черновиков.
+ * The once-per-session message about an unreachable draft storage.
  */
 export interface IDraftStorageNotice {
-    /** Сообщает о недоступности — не чаще раза на сессию и не после ухода со страницы. */
+    /** Reports it unreachable: at most once per session, never after the page is left. */
     report: () => void;
-    /** Прекращает сообщения: страница уходит, показывать их уже некому. */
+    /** Stops the messages: the page is leaving, there is nobody left to show them to. */
     stop: () => void;
 }

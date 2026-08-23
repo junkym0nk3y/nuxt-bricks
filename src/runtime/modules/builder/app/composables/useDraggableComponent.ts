@@ -21,9 +21,9 @@ import { setSkeletonDragImage } from '../../core/utils/dragVisuals';
 // #endregion
 
 /**
- * Composable для управления перетаскиванием компонентов из библиотеки на canvas
+ * Dragging components out of the library onto the canvas.
  *
- * @returns Объект с состоянием и методами для drag-and-drop
+ * @returns The state and the methods of the drag-and-drop.
  */
 export function useComponentLibraryDrag() {
     // #region Data
@@ -33,11 +33,11 @@ export function useComponentLibraryDrag() {
 
     // #region Methods
     /**
-     * Начинает перетаскивание компонента из библиотеки
+     * Starts the drag of a component out of the library.
      *
-     * @param component - Компонент для перетаскивания
-     * @param event - Событие drag start.
-     * @param previewSize - Размер будущего canvas-плейсхолдера.
+     * @param component - The component being dragged.
+     * @param event - The drag start event.
+     * @param previewSize - The size of the future canvas placeholder.
      */
     function startDrag(
         component: IComponentLibraryItem,
@@ -69,7 +69,7 @@ export function useComponentLibraryDrag() {
     }
 
     /**
-     * Завершает library drag и очищает только transient-состояние.
+     * Finishes a library drag and clears the transient state alone.
      */
     function endDrag(): void {
         draggedComponent.value = null;
@@ -77,11 +77,11 @@ export function useComponentLibraryDrag() {
     }
 
     /**
-     * Извлекает данные из drop события
+     * Takes the data out of a drop event.
      *
-     * @param event - Событие drop
-     * @param options - Опции обработки drop
-     * @returns Извлеченные данные события
+     * @param event - The drop event.
+     * @param options - Options of handling the drop.
+     * @returns The data taken out of the event.
      */
     function extractDropEventData(event: DragEvent, options?: IDropOptions): IDropEventData {
         const movedComponentId =
@@ -95,11 +95,11 @@ export function useComponentLibraryDrag() {
     }
 
     /**
-     * Определяет зоны сброса и проверяет на self-drop
+     * Determines the drop zones and checks for a self-drop.
      *
-     * @param event - Событие drop
-     * @param movedComponentId - ID перемещаемого компонента
-     * @returns Данные о зонах сброса
+     * @param event - The drop event.
+     * @param movedComponentId - The id of the component being moved.
+     * @returns The drop zones the component was released over.
      */
     function analyzeDropZones(event: DragEvent, movedComponentId: string | null): IDropZoneData {
         const target = event.target as HTMLElement | null;
@@ -124,24 +124,25 @@ export function useComponentLibraryDrag() {
     }
 
     /**
-     * Проверяет, нужно ли прервать обработку drop
+     * Checks whether the handling of the drop is to be broken off.
      *
-     * @param dropZoneData - Данные о зонах сброса
-     * @returns true, если нужно прервать обработку
+     * @param dropZoneData - The drop zones the component was released over.
+     * @returns true when the handling is to be broken off.
      */
     function shouldAbortDrop(dropZoneData: IDropZoneData): boolean {
-        // Прерываем если сброшено в slot zone (обрабатывается отдельно)
+        // Broken off when released into a slot zone (handled separately)
         if (dropZoneData.slotDropZone) {
             return true;
         }
 
-        // Прерываем если сброшено в layout zone (обрабатывается layout компонентом)
+        // Broken off when released into a layout zone (handled by the layout
+        // component)
         if (dropZoneData.layoutDropZone && !dropZoneData.isSelfDrop) {
             console.log('[useDraggableComponent] Dropped into layout, waiting for event...');
             return true;
         }
 
-        // Прерываем если self-drop на layout
+        // Broken off on a self-drop onto a layout
         if (dropZoneData.isSelfDrop) {
             console.log(
                 '[useDraggableComponent] Ignoring self drop on layout:',
@@ -154,11 +155,11 @@ export function useComponentLibraryDrag() {
     }
 
     /**
-     * Перемещает существующий компонент в root
+     * Moves an existing component into the root.
      *
-     * @param componentId - ID компонента для перемещения
-     * @param store - Store с компонентами
-     * @param rootTargetIndex - Целевой индекс в root
+     * @param componentId - The id of the component being moved.
+     * @param store - The store of the components.
+     * @param rootTargetIndex - The target index in the root.
      */
     function moveExistingComponentToRoot(
         componentId: string,
@@ -174,7 +175,7 @@ export function useComponentLibraryDrag() {
             return;
         }
 
-        // Используем moveComponentToRoot если доступен
+        // moveComponentToRoot is used when it is available
         if (typeof store.moveComponentToRoot === 'function') {
             store.moveComponentToRoot(componentId, rootTargetIndex, { skipHistory: true });
             console.log(
@@ -182,26 +183,26 @@ export function useComponentLibraryDrag() {
                 store.getRootComponents()?.map((rootComp: IBricksComponent) => rootComp?.id) || []
             );
         } else if (component.parent) {
-            // Fallback: удаляем из layout вручную
+            // The fallback: the removal out of the layout by hand
             store.removeChildFromLayout(component.parent, componentId, { skipHistory: true });
             component.parent = undefined;
         }
 
-        // Сбрасываем grid позиционирование
+        // The grid positioning is dropped
         component.gridColumn = undefined;
         component.gridRow = undefined;
 
-        // Сохраняем в историю
+        // Recorded into the history
         if (typeof store.saveToHistory === 'function') {
             store.saveToHistory();
         }
     }
 
     /**
-     * Создает данные компонента для добавления на canvas
+     * Builds the data of a component for adding it onto the canvas.
      *
-     * @param draggedComp - Перетаскиваемый компонент из библиотеки
-     * @returns Данные компонента для store
+     * @param draggedComp - The component being dragged out of the library.
+     * @returns The data of the component for the store.
      */
     function createComponentData(draggedComp: IComponentLibraryItem): TComponentInsertPayload {
         return {
@@ -221,10 +222,10 @@ export function useComponentLibraryDrag() {
     }
 
     /**
-     * Добавляет новый компонент на canvas
+     * Adds a new component onto the canvas.
      *
-     * @param store - Store с компонентами
-     * @param rootTargetIndex - Целевой индекс в root
+     * @param store - The store of the components.
+     * @param rootTargetIndex - The target index in the root.
      */
     function addNewComponentToCanvas(
         store: TBricksComponentsStore,
@@ -237,18 +238,17 @@ export function useComponentLibraryDrag() {
 
         const componentData = createComponentData(draggedComponent.value);
 
-        // Проверяем нужно ли контролировать историю вручную
+        // Whether the history has to be controlled by hand
         const shouldControlHistory =
             rootTargetIndex !== null && typeof store.moveComponentToRoot === 'function';
 
-        // Добавляем компонент
         const id = store.addComponent(
             componentData,
             shouldControlHistory ? { skipHistory: true } : undefined
         );
         console.log('[useDraggableComponent] Component added with id:', id);
 
-        // Перемещаем на нужную позицию если указан индекс
+        // Moved into the target position when an index is given
         if (id && rootTargetIndex !== null && typeof store.moveComponentToRoot === 'function') {
             store.moveComponentToRoot(id, rootTargetIndex, { skipHistory: true });
             if (typeof store.saveToHistory === 'function') {
@@ -258,12 +258,12 @@ export function useComponentLibraryDrag() {
     }
 
     /**
-     * Обрабатывает событие drop компонента на canvas
+     * Handles the drop event of a component onto the canvas.
      *
-     * @param event - Событие drop
-     * @param canvasEl - Элемент canvas
-     * @param store - Store с компонентами
-     * @param options - Опции обработки drop
+     * @param event - The drop event.
+     * @param canvasEl - The canvas element.
+     * @param store - The store of the components.
+     * @param options - Options of handling the drop.
      */
     function handleDrop(
         event: DragEvent,
@@ -275,33 +275,27 @@ export function useComponentLibraryDrag() {
         console.log('[useDraggableComponent] Drop event triggered', event);
         console.log('[useDraggableComponent] Dragged component:', draggedComponent.value);
 
-        // Извлекаем данные события
         const { movedComponentId, rootTargetIndex } = extractDropEventData(event, options);
-
-        // Анализируем зоны сброса
         const dropZoneData = analyzeDropZones(event, movedComponentId);
 
-        // Проверяем нужно ли прервать обработку
         if (shouldAbortDrop(dropZoneData)) {
             return;
         }
 
-        // Обрабатываем перемещение существующего компонента
         if (movedComponentId) {
             moveExistingComponentToRoot(movedComponentId, store, rootTargetIndex);
             endDrag();
             return;
         }
 
-        // Обрабатываем добавление нового компонента
         addNewComponentToCanvas(store, rootTargetIndex);
         endDrag();
     }
 
     /**
-     * Обрабатывает событие dragover для установки правильного dropEffect
+     * Handles the dragover event to set the right dropEffect.
      *
-     * @param event - Событие dragover
+     * @param event - The dragover event.
      */
     function handleDragOver(event: DragEvent): void {
         event.preventDefault();

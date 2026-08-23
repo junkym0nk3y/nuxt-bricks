@@ -1,36 +1,39 @@
 /**
- * Однократное на сессию сообщение о недоступном хранилище черновиков.
+ * The once-per-session message about an unreachable draft storage.
  *
- * Общее на всех, кто с этим хранилищем работает: автосохранение (проба на входе
- * и отказ записи), открытие сессии и фиксация сохранённого состояния (отказ
- * удаления). Латч поэтому живёт здесь, а не в одном из них — иначе каждый
- * сообщал бы о той же поломке своим сообщением.
+ * Shared by everyone who works with that storage: the autosave (the probe on
+ * entry and a refused write), the opening of a session and the commit of a saved
+ * state (a refused removal). That is why the latch lives here rather than in one
+ * of them — otherwise each would report the same breakage in a message of its own.
  */
 import type { IDraftStorageNotice, IDraftStorageNoticeOptions } from '../types/draftStorage';
 
 /**
- * Создаёт уведомление о недоступном хранилище черновиков.
+ * Creates the notice about an unreachable draft storage.
  *
- * @param options - Снимок токена сессии (граница однократности) и показ сообщения.
- * @returns Сообщение с латчем на сессию и остановкой на уходе со страницы.
+ * @param options - Snapshot of the session token (the boundary of the one-time
+ * rule) and the showing of the message.
+ * @returns A notice latched to the session and stopped when the page is left.
  */
 export function createDraftStorageNotice(options: IDraftStorageNoticeOptions): IDraftStorageNotice {
-    // Сессия, которой уже сообщили. Латч по токену, а не по экземпляру страницы:
-    // переход между страницами билдера страницу не размонтирует (статический
-    // page key), и один флаг предупредил бы только о первой открытой. Save as
-    // Copy, наоборот, остаётся той же сессией — второй раз сообщать не о чем
+    // The session already told. The latch is on the token rather than on the
+    // page instance: moving between builder pages does not unmount the page
+    // (a static page key), and a single flag would have warned about the first
+    // page opened only. Save as Copy, the other way round, stays the same session
+    // — there is nothing to report a second time
     let notifiedSessionToken: number | null = null;
 
-    // Страница ещё на экране. Уход из редактора гасит сообщения: последнее, что
-    // делает страница, — синхронный сброс черновика, и его отказ иначе показал
-    // бы тост уже поверх дашборда. Вдобавок токен к этому моменту инвалидирован
-    // (dispose сессии зарегистрирован раньше), то есть латч пропустил бы такое
-    // сообщение как «новую сессию»
+    // The page is still on the screen. Leaving the editor puts the messages out:
+    // the last thing the page does is the synchronous flush of the draft, and a
+    // refusal of that one would otherwise show a toast over the dashboard
+    // already. On top of that the token is invalidated by then (the dispose of
+    // the session is registered earlier), so the latch would let such a message
+    // through as "a new session"
     let isActive = true;
 
     return {
         /**
-         * Сообщает о недоступности хранилища — не чаще раза на сессию.
+         * Reports the storage as unreachable — at most once per session.
          */
         report(): void {
             if (!isActive) {
@@ -48,7 +51,7 @@ export function createDraftStorageNotice(options: IDraftStorageNoticeOptions): I
         },
 
         /**
-         * Прекращает сообщения на уходе со страницы.
+         * Stops the messages when the page is left.
          */
         stop(): void {
             isActive = false;

@@ -31,21 +31,22 @@ const EMPTY_SCHEMA: IBricksSchema = {
 };
 
 /**
- * Предел ожидания bootstrap'а. Зависший (не отвечающий и не падающий) запрос иначе
- * оставляет рабочую область заблокированной навсегда: `catch`/`finally`
- * недостижимы, и пользователь видит лоадер без конца и без выхода. По таймауту
- * сессия уходит в состояние ошибки с кнопкой «Повторить».
+ * The waiting ceiling of the bootstrap. A hung request (one that neither answers nor
+ * fails) otherwise leaves the workspace blocked for good: `catch`/`finally` are
+ * unreachable, and a person sees a loader with no end and no way out. On the timeout
+ * the session goes into the error state with a "Retry" button.
  */
 const SESSION_BOOTSTRAP_TIMEOUT_MS = 30000;
 
 /**
- * Сессия билдера: открытие страницы по АДРЕСУ (существующая / новая) — имя
- * страницу не определяет, одноимённые под разными префиксами разные, и поиск по
- * имени открывал бы произвольную из них. Плюс обнаружение черновика в
- * localStorage и предложение его восстановить.
- * Watcher на routeAddress переоткрывает сессию при навигации; rename собственной
- * сессии (routeAddress догнал sessionAddress) повторного bootstrap не вызывает.
- * Первичное открытие — на стороне вызывающего (onMounted, см. [pagename].vue).
+ * The builder session: opening a page by its ADDRESS (an existing one or a new
+ * one) — a name does not identify a page, same-named pages under different
+ * prefixes are different ones, and a lookup by name would open an arbitrary one of
+ * them. Plus the discovery of a draft in localStorage and the offer to restore it.
+ *
+ * The watcher on routeAddress reopens the session on a navigation; a rename of the
+ * session's own address causes no second bootstrap. The first opening is the
+ * caller's (onMounted, see [pagename].vue).
  */
 export function useBuilderSession(options: IBuilderSessionOptions) {
     const {
@@ -59,11 +60,11 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
     } = options;
 
     /**
-     * Удаляет черновик и сообщает, если хранилище отказало. Тихий отказ здесь
-     * означал бы, что отклонённый или уже сохранённый черновик снова предложат
-     * восстановить при следующем заходе.
+     * Removes a draft and reports a refusal of the storage. A silent refusal here
+     * would mean that a draft turned down or already saved is offered for restoring
+     * again on the next visit.
      *
-     * @param address - Адрес сессии, по которому лежит черновик.
+     * @param address - The session address the draft lies under.
      */
     function discardDraft(address: IBricksPageAddress): void {
         if (!removeBuilderDraft(address)) {
@@ -76,40 +77,39 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
     const publishStore = usePublishStore();
 
     const isSessionLoading = ref(true);
-    // Сессия догрузилась до согласованного состояния. Отдельный признак от
-    // isSessionLoading: тот снимается и по ошибке bootstrap'а, после которой на
-    // канвасе и в форме лежит мусор (дефолты или остатки прошлой страницы), и его
-    // нельзя писать в черновик — затрёт валидную запись.
+    // The session has loaded through to a consistent state. A flag apart from
+    // isSessionLoading: that one is lowered on a bootstrap error too, after which the
+    // canvas and the form hold rubbish (the defaults or the remains of the previous
+    // page), and writing that into a draft would overwrite a valid record.
     const isSessionReady = ref(false);
-    // Причина отказа bootstrap'а — для блокирующего экрана. Пока значение стоит,
-    // сессия несогласована: править нечего, потому что автосейв и сохранение
-    // отклоняют всё по !isSessionReady. Снимается на входе в следующее
-    // открытие, в том числе на «Повторить».
+    // The reason of a refused bootstrap — for the blocking screen. While the value
+    // stands, the session is inconsistent: there is nothing to edit, because the
+    // autosave and the save turn everything down by !isSessionReady. Cleared on
+    // entering the next opening, "Retry" included.
     const sessionError = ref<string | null>(null);
     const savedSnapshot = ref<IBuilderDraftSnapshot | null>(null);
 
-    // Идентичность открытой страницы: id сохранённой либо null у новой. Меняется
-    // только на переходах сессии, поэтому пригодна как признак «эта страница
-    // открыта» для интерфейса. `publishStore.editingPageId` для этого не годится:
-    // Save as Copy на время POST сбрасывает его в null (форма выглядит как новая
-    // страница), и отметка текущей строки мигала бы на каждом сохранении копии.
-    // Сравнение по pagename не годится тем более — оно не отличает удалённую
-    // страницу от созданной заново под тем же слагом.
+    // The identity of the open page: the id of a saved one, or null for a new one. It
+    // changes on the moves of a session only, which makes it fit as the "this page is
+    // open" sign for the interface. `publishStore.editingPageId` does not do for that:
+    // for the duration of the POST Save as Copy resets it to null (the form looks like
+    // a new page), and the mark of the current row would blink on every save of a
+    // copy. A comparison by pagename does even less — it does not tell a deleted page
+    // from one created anew under the same slug.
     const sessionPageId = ref<string | number | null>(null);
 
-    // Поколение открытия сессии — общий токен билдера (useBuilderSessionToken):
-    // инкремент на каждый вход в openBuilderSession. Watcher маршрута зовёт
-    // открытие без сериализации, поэтому на быстрых переходах A → B → C ответ B
-    // может прийти после C. Применять его нельзя: схема B легла бы на канвас под
-    // ключом C, а сессия объявилась бы готовой — дальше автосейв и сохранение
-    // уехали бы под C с чужим содержимым. Тем же токеном сверяются
-    // операции за пределами этого файла — сохранение, снимок превью, синк
-    // превью-вкладки, портальные модалки.
+    // The generation of a session opening — the shared token of the builder
+    // (useBuilderSessionToken): one increment per entry into openBuilderSession. The
+    // route watcher calls the opening without serializing it, so on quick moves
+    // A → B → C the answer of B may arrive after C. Applying it is not allowed: the
+    // schema of B would land on the canvas under the key of C, and the session would
+    // declare itself ready — after which the autosave and the save would go out under
+    // C carrying somebody else's content.
     const isCurrentSession = sessionToken.isCurrent;
 
-    // Предложение восстановить найденный черновик: состояние, окно и три исхода.
-    // Отдельным композаблом, потому что своей готовности у него нет — оно живёт
-    // поверх открытой сессии и снимается её же событиями (переоткрытие, rename).
+    // The offer to restore a found draft: the state, the window and three outcomes.
+    // A composable of its own, because it lives on top of an open session and is
+    // taken down by that session's own events (a reopening, a rename).
     const {
         isDraftRestorePending,
         isRestoreDraftModalOpen,
@@ -130,34 +130,32 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
     });
 
     /**
-     * Гасит всё, начатое прежней сессией: и операции, сверяющие токен (открытие,
-     * сохранение, снимок превью, портальные модалки), и незавершённые записи в
-     * сторе. Одной точкой, потому что расходиться им нельзя: запись, оставшаяся
-     * в списке активных, держала бы индикатор и запрет второго submit на
-     * странице, к которой не относится.
-     *
-     * Сами запросы при этом продолжают лететь — их исход доходит до пользователя
-     * тостом с меткой своей страницы.
+     * Puts out everything the former session started: both the operations that check
+     * the token (an opening, a save, a preview snapshot, the portaled modals) and the
+     * unfinished writes in the store. In one point, because they are not allowed to
+     * diverge: a write left in the list of the active ones would hold the indicator
+     * and the ban on a second submit on a page it has nothing to do with. The
+     * requests themselves keep flying meanwhile — their outcome reaches the person in
+     * a toast labeled with its own page.
      */
     function abandonSessionOperations(): void {
         sessionToken.invalidate();
         publishStore.resetActiveWrites();
 
-        // Наблюдатель за первой правкой ставится вне setup (после await'ов
-        // bootstrap'а), поэтому активного scope в момент регистрации нет и сам он
-        // не остановится — снимаем его здесь, на общей точке гашения сессии
+        // The watcher of the first edit is set outside setup (after the awaits of the
+        // bootstrap), so there is no active scope at the moment of its registration
+        // and it will not stop itself — it is taken down here, at the shared point
+        // where a session is put out
         stopDraftPromptWatch();
     }
 
-    // Счётчик локален экземпляру, а незавершённое открытие переживает свой экземпляр:
-    // сторы живут на уровне приложения, поэтому поздний ответ покойной страницы
-    // (уход на дашборд → открытие другой страницы) писал бы схему в чужую сессию,
-    // пройдя проверку собственного, уже неактуального поколения. Инкремент на
-    // dispose гасит все открытия этого экземпляра разом.
+    // An unfinished opening outlives its page instance (the stores live at the level
+    // of the application), and the increment on dispose is what puts every opening of
+    // this instance out at once.
     onScopeDispose(abandonSessionOperations);
 
     /**
-     * Строит актуальный снапшот из стора канваса и publish настроек.
+     * Builds the current snapshot out of the canvas store and the publish settings.
      */
     function buildCurrentSnapshot(): IBuilderDraftSnapshot {
         return {
@@ -167,9 +165,9 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
     }
 
     /**
-     * Применяет снапшот в сторы билдера.
+     * Applies a snapshot into the builder stores.
      *
-     * @param snapshot - Снапшот для применения.
+     * @param snapshot - The snapshot to apply.
      */
     function applySnapshot(snapshot: IBuilderDraftSnapshot): void {
         componentsStore.loadSchema(snapshot.schema, { resetHistory: true });
@@ -177,22 +175,21 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
     }
 
     /**
-     * Приводит сторы билдера к состоянию открываемой страницы: сохранённая версия
-     * или чистый холст, плюс разбор найденного черновика. Бросает наружу — тогда
-     * сессия остаётся неготовой и автосейв её состояние не пишет.
+     * Brings the builder stores to the state of the page being opened: the saved
+     * version or a clean canvas, plus the handling of a found draft. It throws
+     * outwards — the session then stays unready and the autosave does not write its
+     * state.
      *
-     * Каждый await сверяется с поколением: вытесненное открытие выходит молча, до
-     * записи в сторы. Список страниц (`ensurePagesLoaded`) — исключение: он общий
-     * кеш, и ради него не стоит второго запроса. Его собственные гонки закрыты на
-     * стороне стора, а не поколением: устаревший ответ не заменяет более свежий
-     * список, и ошибка загрузки больше не пишется в `generalError`.
+     * Every await is checked against the generation: a displaced opening leaves
+     * quietly, before any write into the stores. The page list (`ensurePagesLoaded`)
+     * is the exception — it is a shared cache, its own races are closed on the side of
+     * the store, and a second request is not worth it for its sake. The "the list is
+     * empty" condition does not do instead: an empty list is a legitimate answer for
+     * the first page of a project, and the store is what tells emptiness from
+     * not-loaded.
      *
-     * Условие «список пуст» здесь не годится: пустой список — законный ответ для
-     * первой страницы проекта, и открытие сессии запрашивало бы его каждый раз.
-     * Пустоту от незагруженности отличает сам стор.
-     *
-     * @param address - Адрес страницы из URL.
-     * @param generation - Поколение этого открытия сессии.
+     * @param address - The page address out of the URL.
+     * @param generation - The generation of this session opening.
      */
     async function bootstrapSession(
         address: IBricksPageAddress,
@@ -205,14 +202,16 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
         }
 
         const existingPage = publishStore.getPageByAddress(address);
-        // Без права правки черновик не читается вовсе (почему — в IBuilderSessionOptions)
+        // Without the editing right a draft is not read at all (why — in
+        // IBuilderSessionOptions)
         const draft = canEdit.value ? getBuilderDraft(address) : null;
 
         if (existingPage) {
             publishStore.startEditingPage(existingPage.id);
             sessionPageId.value = existingPage.id;
 
-            // Список стора — сводки без schema: схему канваса грузим point-lookup'ом
+            // The list of the store holds summaries with no schema: the canvas
+            // schema is loaded with a point lookup
             const fullPage = await fetchPageRequest(existingPage.id);
 
             if (!isCurrentSession(generation)) {
@@ -223,11 +222,10 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
 
             savedSnapshot.value = buildCurrentSnapshot();
 
-            // Черновик предлагается на восстановление только если он точно
-            // принадлежит этой странице (draft.pageId === existingPage.id).
-            // Черновик без pageId или с чужим pageId (например, ключ сессии
-            // переиспользован после Save as Copy) — stale, не предлагается
-            // и подчищается ниже.
+            // A draft is offered for restoring only when it certainly belongs to this
+            // page (draft.pageId === existingPage.id). A draft with no pageId or with
+            // somebody else's (the session key reused after a Save as Copy, for one)
+            // is stale: it is not offered and is swept up below.
             const isDraftOwnedByPage = draft?.pageId === existingPage.id;
 
             if (
@@ -237,9 +235,10 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
                 isDraftOwnedByPage &&
                 !isSnapshotEqual(draft.draftSnapshot, savedSnapshot.value)
             ) {
-                // Только взводим предложение: спрашивать посреди загрузки нечем —
-                // модалка вылезала бы поверх лоадера. Тост поднимет страница, когда
-                // лоадер уйдёт, а модалку откроет уже клик по нему
+                // The offer is only armed here: there is nothing to ask with in the
+                // middle of a load — the window would climb over the loader. The page
+                // raises the toast once the loader has left, and a click on it opens
+                // the window
                 armDraftPrompt(draft, generation);
                 return;
             }
@@ -253,8 +252,9 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
 
         publishStore.startNewPublish();
         publishStore.setCurrentFormField('pagename', address.pagename);
-        // Префикс из URL — тоже часть открываемого адреса: без него форма новой
-        // страницы сохранила бы её в корень, а редактор открыт по `/blog/post`
+        // The prefix out of the URL is part of the address being opened as well:
+        // without it the form of a new page would save it into the root, while the
+        // editor stands at `/blog/post`
         publishStore.setCurrentFormField('urlPrefix', address.urlPrefix);
         componentsStore.loadSchema(EMPTY_SCHEMA, { resetHistory: true });
 
@@ -265,12 +265,12 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
     }
 
     /**
-     * Ограничивает ожидание bootstrap'а по времени. Отдельный таймер, а не
-     * `AbortSignal` у запроса: гасить надо всё открытие целиком, включая ветку,
-     * которая уже прошла список и ждёт схему.
+     * Bounds the waiting of the bootstrap in time. A timer of its own rather than an
+     * `AbortSignal` on the request: what has to be put out is the whole opening, the
+     * branch that has passed the list already and waits for the schema included.
      *
-     * @param bootstrap - Промис открытия сессии.
-     * @returns Промис, отклоняющийся по истечении лимита.
+     * @param bootstrap - The promise of the session opening.
+     * @returns A promise that rejects once the limit runs out.
      */
     async function withBootstrapTimeout(bootstrap: Promise<void>): Promise<void> {
         if (typeof window === 'undefined') {
@@ -294,9 +294,9 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
     }
 
     /**
-     * Загружает страницу в билдер по адресу, учитывая черновики.
+     * Loads a page into the builder by its address, drafts taken into account.
      *
-     * @param address - Адрес страницы из URL.
+     * @param address - The page address out of the URL.
      */
     async function openBuilderSession(address: IBricksPageAddress): Promise<void> {
         if (!address.pagename) {
@@ -306,8 +306,8 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
         abandonSessionOperations();
         const generation = sessionToken.capture();
 
-        // Фиксируем ключ сессии: черновики пишутся/удаляются по нему до следующего
-        // открытия или rename (см. useBuilderSessionAddress.renameSession)
+        // The session key is fixed here: drafts are written and removed under it until
+        // the next opening or rename (see useBuilderSessionAddress.renameSession)
         sessionAddress.value = address;
 
         isSessionLoading.value = true;
@@ -315,8 +315,8 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
         sessionError.value = null;
         resolveDraftPrompt();
         savedSnapshot.value = null;
-        // Открываемая страница ещё не опознана: до конца bootstrap'а она не
-        // «текущая» ни для одной строки списка
+        // The page being opened is not identified yet: until the bootstrap ends it
+        // is "the current one" for no row of the list
         sessionPageId.value = null;
 
         try {
@@ -326,49 +326,52 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
                 return;
             }
 
-            // Готовность — только после всех ветвей bootstrap'а, включая применение
-            // черновика: падение на нём с поднятым флагом означало бы, что сброс на
-            // выгрузке затрёт черновик недособранным состоянием.
+            // Readiness comes only after every branch of the bootstrap, the
+            // application of a draft included: a failure there with the flag already
+            // raised would mean the flush on unload overwrites the draft with a
+            // half-assembled state.
             //
-            // Ненайденный ответ на черновик готовность больше не держит: на канвасе
-            // лежит сохранённая версия страницы — состояние согласованное, править
-            // его можно, и первая же правка снимает предложение (`armDraftSupersedeWatch`).
-            // Пока ответа нет, автосейв не трогает запись черновика по
-            // `isDraftRestorePending` — иначе он удалил бы её как совпадающую с
-            // сохранённой версией
+            // An unanswered offer no longer holds readiness back: what lies on the
+            // canvas is the saved version — the state is consistent and may be edited,
+            // and the very first edit takes the offer down (`armSupersedeWatch`).
+            // While there is no answer, `isDraftRestorePending` keeps the autosave
+            // from REMOVING the record as matching the saved version; the write goes on
             isSessionReady.value = true;
         } catch (error: unknown) {
-            // Ошибка вытесненного открытия пользователя уже не касается: на экране
-            // другая страница, и её загрузка идёт своим поколением
+            // The error of a displaced opening no longer concerns the person: what is
+            // on the screen is another page, loading under a generation of its own
             if (!isCurrentSession(generation)) {
                 return;
             }
 
-            // Запрос, оборванный собственным потолком, для пользователя —
-            // то же событие, что и просроченный bootstrap целиком: показываем один
-            // и тот же продуктовый текст, а не транспортное сообщение о таймауте
-            // чтения. Иначе один и тот же экран объяснял бы неотвечающий сервер
-            // двумя разными фразами в зависимости от того, чей таймер сработал
+            // A request cut off by its own ceiling is, to a person, the same event as
+            // the whole bootstrap running out of time: the same product text is shown
+            // rather than the transport message about a read timeout. Otherwise one
+            // screen would explain an unresponsive server in two different phrases
+            // depending on whose timer fired
             const message = isRequestTimeoutError(error)
                 ? t('bricks.publish.session.errorTimeout')
                 : error instanceof Error
                   ? error.message
                   : t('bricks.publish.toasts.loadPageFailed');
 
-            // Открытие, брошенное по таймауту, может всё ещё лететь: гасим его
-            // поколением, иначе поздний ответ лёг бы на канвас поверх экрана ошибки.
-            // Лоадер снимаем здесь же — finally увидит поколение уже неактуальным
+            // An opening abandoned on the timeout may still be in flight: it is put
+            // out by the generation, otherwise a late answer would land on the canvas
+            // over the error screen. The loader is lowered right here — `finally` will
+            // see the generation as stale already
             sessionToken.invalidate();
             isSessionLoading.value = false;
 
-            // Экран и тост вместе не дублируют друг друга: экран объясняет состояние
-            // и держит рабочую область закрытой, тост отмечает сам факт неудачи —
-            // иначе повторный отказ по «Повторить» выглядел бы как «ничего не произошло»
+            // The screen and the toast do not duplicate each other: the screen
+            // explains the state and keeps the workspace closed, the toast marks the
+            // fact of the failure — otherwise a second refusal under "Retry" would
+            // look like "nothing happened"
             sessionError.value = message;
             showToast(message, 'error');
         } finally {
-            // Снимать лоадер имеет право только актуальное открытие: иначе поздний
-            // ответ вытесненного открывал бы канвас, пока текущее ещё грузится
+            // Only the current opening has the right to lower the loader: otherwise a
+            // late answer of a displaced one would open the canvas up while the
+            // current one is still loading
             if (isCurrentSession(generation)) {
                 isSessionLoading.value = false;
             }
@@ -376,31 +379,30 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
     }
 
     /**
-     * Повторяет открытие сессии после отказа bootstrap'а — кнопка «Повторить» на
-     * блокирующем экране. Адрес берётся из маршрута: он источник истины URL, а
-     * `sessionAddress` после неудачного открытия равен ему.
+     * Repeats the opening of a session after a refused bootstrap — the "Retry"
+     * button on the blocking screen. The address is taken out of the route: it is
+     * the source of truth of the URL, and after a failed opening `sessionAddress`
+     * equals it.
      */
     async function retryBuilderSession(): Promise<void> {
         await openBuilderSession(routeAddress.value);
     }
 
     /**
-     * Фиксирует текущее состояние как сохранённое: новый `savedSnapshot` и удаление
-     * черновика по актуальному ключу сессии. Единственная точка фиксации — её зовут
-     * и обычное сохранение (`useBuilderPage.submitPageWithPublishState`), и переход
-     * на копию (`switchToSavedPage`).
+     * Commits the current state as the saved one: a new `savedSnapshot` and the
+     * removal of the draft under the current session key. The single point of the
+     * commit, called by both writing paths
+     * (`useBuilderPageWrite.submitPageWithPublishState` and `switchToSavedPage`).
      *
-     * Явный вызов вместо прежнего watch'а на `publishStore.lastSuccessfulSaveAt`:
-     * watcher не знал инициатора, поэтому сохранение прежней страницы, доехавшее
-     * после открытия новой, объявляло снапшот новой сохранённым и удаляло её
-     * черновик — правки, сделанные до сохранения, терялись на reload.
+     * An explicit call instead of the former watcher on
+     * `publishStore.lastSuccessfulSaveAt`: the watcher did not know the initiator, so
+     * a save of the former page arriving after a new one had been opened declared the
+     * snapshot of the new one saved and removed its draft — the edits made before the
+     * save were lost on a reload. A navigation caught inside the `await renameSession`
+     * that both paths stand would bring exactly that defect back, which is why the
+     * token is checked here rather than at the caller.
      *
-     * Токен обязателен и сверяется здесь, а не у вызывающего: между его проверкой и
-     * фиксацией у обоих путей стоит `await renameSession` (внутри — `router.replace`),
-     * и перехваченная за это время навигация возвращала бы ровно тот же дефект —
-     * снапшот чужой страницы и удаление её черновика (находка ревью).
-     *
-     * @param capturedToken - Токен сессии, снятый на старте сохранения.
+     * @param capturedToken - The session token taken at the start of the save.
      */
     function commitSavedSnapshot(capturedToken: number): void {
         if (!isCurrentSession(capturedToken)) {
@@ -410,26 +412,24 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
         savedSnapshot.value = buildCurrentSnapshot();
         discardDraft(sessionAddress.value);
 
-        // Здесь же сессия принимает идентичность сохранённой страницы: обе записи
-        // (обычное сохранение и переход на копию) к этому моменту уже перевели
-        // стор в edit mode, а первое сохранение новой страницы иначе оставило бы
-        // сессию безымянной до перезагрузки — в списке не было бы отмечено, что
-        // открыто именно оно
+        // Right here the session takes on the identity of the saved page: both writes
+        // have put the store into edit mode by this moment, and the first save of a
+        // new page would otherwise leave the session nameless until a reload — the
+        // list would carry no mark that this is what is open
         sessionPageId.value = publishStore.editingPageId;
     }
 
     /**
-     * Единый переход сессии на сохранённую страницу (Save as Copy): переводит store
-     * в edit mode, переносит route/sessionAddress через `renameSession` (миграция
-     * черновика + `router.replace`) и только затем фиксирует новый `savedSnapshot`
-     * (удаляя черновик по актуальному ключу). Порядок фиксирован — иначе URL и
-     * ключ черновика остаются от оригинала: автосейв копии писал бы под адресом
-     * оригинала, а reload оригинала предлагал бы восстановить чужие данные (P1).
+     * The single move of a session onto a saved page (Save as Copy). The order is
+     * fixed — otherwise the URL and the key of the draft stay behind from the
+     * original: the autosave of the copy would write under the address of the
+     * original, and a reload of the original would offer to restore somebody else's
+     * data. The address is taken off the saved row whole: a copy inherits the
+     * `urlPrefix`, and a move by the name alone would take the URL of the editor into
+     * the root.
      *
-     * Адрес берётся у сохранённой строки целиком: копия наследует `urlPrefix`,
-     * и перенос по одному имени увёл бы URL редактора в корень.
-     *
-     * @param page - Нормализованная страница копии (обязательны `id` и адрес).
+     * @param page - The normalized page of the copy (`id` and the address are
+     * mandatory).
      */
     async function switchToSavedPage(page: IPublishedPage): Promise<void> {
         const startedIn = sessionToken.capture();
@@ -439,13 +439,12 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
         commitSavedSnapshot(startedIn);
     }
 
-    // Перенос сессии отменяет предложение восстановить черновик. `renameSession`
-    // зовут напрямую уже начатые save / Save as Copy, поэтому `sessionAddress`
-    // меняется без смены поколения, а `migrateBuilderDraft` к этому моменту уже
-    // перенёс запись под новый ключ: «Восстановить» применил бы снапшот прежней
-    // страницы, «Удалить» снесло бы пустой старый ключ. Ничего не трогаем:
-    // черновик остаётся на диске, предложение снимается, а пользователь при
-    // желании перезагрузит страницу и получит его заново.
+    // A move of the session cancels the offer to restore a draft. `renameSession` is
+    // called directly by an already started save or Save as Copy, so `sessionAddress`
+    // changes without a change of the generation, while `migrateBuilderDraft` has
+    // moved the record under the new key by then: "Restore" would apply the snapshot
+    // of the former page and "Discard" would sweep an empty old key. Nothing is
+    // touched — the draft stays on the disk, and a reload brings the offer back.
     watch(
         () => sessionAddress.value,
         (next, previous) => {
@@ -457,16 +456,18 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
         }
     );
 
-    // Без immediate: при immediate колбэк выполняется синхронно в setup ещё до гидрации
-    // и успевает заполнить publishStore.currentFormState (pagename из URL), из-за чего
-    // клиентский рендер расходится с SSR (hydration mismatch в TheBuilderShellToolbar).
-    // Первичное открытие сессии — в onMounted страницы, watcher отвечает только за смену маршрута.
+    // No immediate: under it the callback runs synchronously in setup before the
+    // hydration and manages to fill publishStore.currentFormState in (the pagename out
+    // of the URL), which makes the client render diverge from the SSR one (a hydration
+    // mismatch in TheBuilderShellToolbar). The first opening is in the onMounted of
+    // the page; the watcher answers for a change of the route only.
     watch(
         () => routeAddress.value,
         (next) => {
-            // routeAddress догнал sessionAddress после renameSession — это rename
-            // собственной сессии, а не навигация: повторный bootstrap не нужен.
-            // Сравнение адресом целиком: смена префикса — тоже другая страница
+            // routeAddress has caught up with sessionAddress after a renameSession
+            // — a rename of the session's own address rather than a navigation, so no
+            // second bootstrap is needed. The comparison is by the whole address: a
+            // change of the prefix is another page too
             if (!next.pagename || isSamePageAddress(next, sessionAddress.value)) {
                 return;
             }

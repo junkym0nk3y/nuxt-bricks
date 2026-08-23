@@ -22,33 +22,37 @@ import {
 import { useComponentsStore } from '../../core/stores/components';
 import { usePublishStore } from '../../publish/stores/publish';
 
-/** Целевая ширина снапшота канваса (px) — сервер дожимает webp до той же ширины. */
+/** Target width of the canvas snapshot (px) — the server recompresses the webp to it too. */
 const THUMBNAIL_TARGET_WIDTH = 480;
 
-/** Соотношение сторон миниатюры в дашборде (16:10). */
+/** Aspect ratio of the thumbnail in the dashboard (16:10). */
 const THUMBNAIL_ASPECT_RATIO = 0.625;
 
-/** Ограничение высоты снапшота — примерно два кадра 16:10, чтобы не рендерить очень длинные страницы. */
+/**
+ * Height limit of the snapshot — about two 16:10 frames, so that very long pages
+ * are not rendered.
+ */
 const THUMBNAIL_MAX_FRAMES = 2;
 
 /**
- * Снапшот канваса для превью страницы в дашборде /bricks: снимает DOM канваса
- * (modern-screenshot, lazy-чанк билдера), загружает в S3 и патчит `thumbnailUrl` страницы.
- * Fire-and-forget: любые ошибки гасятся `console.warn`, сохранение страницы не блокируется.
+ * The canvas snapshot for the page preview in the /bricks dashboard: it shoots the
+ * DOM of the canvas (modern-screenshot, a lazy chunk of the builder), uploads it
+ * into S3 and patches the `thumbnailUrl` of the page. Fire-and-forget: any error is
+ * put out with a `console.warn`, the save of the page is not blocked.
  *
- * @param sessionToken - Токен сессии: снимок канваса принадлежит той странице, из
- * которой запрос ушёл.
+ * @param sessionToken - The session token: a snapshot of the canvas belongs to the
+ * page the request went out of.
  */
 export function usePageThumbnail(sessionToken: IBuilderSessionToken): IUsePageThumbnailReturn {
     const componentsStore = useComponentsStore();
     const publishStore = usePublishStore();
 
     /**
-     * Находит DOM-ноду канваса для снапшота.
+     * Finds the DOM node of the canvas for the snapshot.
      *
-     * В Figma mode на странице несколько `.bricks-canvas` — берём лист базового
-     * устройства: снимок идёт в карточку страницы, и узкий лист показывал бы
-     * не ту раскладку, по которой страницу узнают.
+     * In the Figma mode there are several `.bricks-canvas` on the page — the sheet
+     * of the base device is taken: the shot goes into the card of the page, and a
+     * narrow sheet would show a layout other than the one the page is recognized by.
      */
     function findCanvasNode(): HTMLElement | null {
         return (
@@ -59,11 +63,13 @@ export function usePageThumbnail(sessionToken: IBuilderSessionToken): IUsePageTh
     }
 
     /**
-     * Собирает fetchFn для modern-screenshot: cross-origin медиа тянется через
-     * same-origin прокси (бакет без CORS-заголовков не отдаёт байты dom-to-image).
-     * Прокси пускает только URL из медиа-библиотеки; остальное — false (обычный fetch).
+     * Assembles the fetchFn for modern-screenshot: cross-origin media is pulled
+     * through a same-origin proxy (a bucket with no CORS headers gives the bytes to
+     * dom-to-image nowhere). The proxy lets through the URLs of the media library
+     * only; everything else gives false (an ordinary fetch).
      *
-     * @returns Функция-резолвер ресурса в data URL с кэшем на время снапшота.
+     * @returns The resolver of a resource into a data URL, cached for the duration
+     * of the snapshot.
      */
     function createProxyFetchFn(): (url: string) => Promise<string | false> {
         const { apiFetcher } = useApiClient();
@@ -82,14 +88,14 @@ export function usePageThumbnail(sessionToken: IBuilderSessionToken): IUsePageTh
             const request = apiFetcher<{ dataUrl: string }>('/api/bricks/media/s3-proxy', {
                 method: 'POST',
                 body: { url },
-                // Семантически чтение, выполненное POST'ом: без override'а
-                // сработал бы потолок записи (30 с), а нужен чуть выше
-                // собственного лимита ручки — тогда наверх доезжает её ошибка, а
-                // не наш обрыв. Размен: 15 с накрывают весь обмен, включая
-                // передачу base64 в ответе, поэтому крупный ресурс на медленном
-                // канале выпадет из снапшота. Съёмка превью — best-effort
-                // (`fetchFn` возвращает false, ресурс просто не попадёт в кадр),
-                // поэтому потолок здесь важнее полноты
+                // The override is what keeps the write ceiling (30 s) off a read
+                // performed with a POST; why the value is what it is — at the
+                // constant. The trade-off is local: the 15 s cover the whole
+                // exchange, the transfer of the base64 in the answer included, so a
+                // large resource on a slow link drops out of the snapshot. Taking a
+                // preview is best-effort (`fetchFn` returns false and the resource
+                // simply does not make it into the frame), so the ceiling matters
+                // more here than completeness
                 timeout: BRICKS_S3_PROXY_TIMEOUT_MS,
             }).then(
                 (response) => response.dataUrl || false,
@@ -102,32 +108,35 @@ export function usePageThumbnail(sessionToken: IBuilderSessionToken): IUsePageTh
     }
 
     /**
-     * Снимает канвас, загружает снапшот в S3 и сохраняет `thumbnailUrl` страницы PATCH'ем.
-     * Пустая схема пропускается (в канвасе — только watermark пустого состояния).
+     * Shoots the canvas, uploads the snapshot into S3 and saves the `thumbnailUrl`
+     * of the page with a PATCH. An empty schema is skipped (the canvas holds the
+     * watermark of the empty state alone).
      *
-     * Токен приходит от вызывающего, а не снимается здесь: съёмка — хвост
-     * сохранения, и «старт операции» — это момент, когда сохранение началось.
-     * Со снятым на месте токеном все проверки ниже становятся пустыми, если сама
-     * съёмка запущена уже после смены сессии, — так и было у `handleSaveAsCopy`,
-     * который зовёт её после `await switchToSavedPage` (находка ревью).
+     * The token comes from the caller rather than being taken here: the shot is the
+     * tail of a save, and "the start of the operation" is the moment the save began.
+     * With a token taken on the spot every check below becomes empty whenever the
+     * shot itself is started after a change of session already — which is exactly
+     * what `handleSaveAsCopy` does, calling it after `await switchToSavedPage`.
      *
-     * Границ три, и каждая отвечает за своё: на входе — до первой мутации общего
-     * стора; после подготовительных await — до чтения живого DOM; после
-     * `domToBlob` — до отправки результата. Ни одна не дублирует другую.
+     * There are three boundaries, and each answers for its own: on entry — before
+     * the first mutation of a shared store; after the preparatory awaits — before
+     * the live DOM is read; after `domToBlob` — before the result is sent. Not one
+     * of them duplicates another.
      *
-     * @param pageId - Идентификатор сохранённой страницы.
-     * @param startedIn - Токен сессии, снятый на старте сохранения.
+     * @param pageId - The identifier of the saved page.
+     * @param startedIn - The session token taken at the start of the save.
      */
     async function captureAndUploadThumbnail(
         pageId: string | number,
         startedIn: number
     ): Promise<void> {
         try {
-            // Проверка стоит до любого действия, а не только до съёмки: первым идёт
-            // `deselectComponent`, а это запись в общий стор — сброс выделения,
-            // выключение interactive preview и скрытие панели свойств. Вызванная из
-            // вытесненного сохранения, она снимала бы выделение на канвасе уже
-            // другой страницы (находка ревью)
+            // The check stands before any action rather than before the shot
+            // alone: the first thing is `deselectComponent`, and that is a write
+            // into a shared store — the reset of the selection, the switching off
+            // of the interactive preview and the hiding of the properties panel.
+            // Called out of a displaced save, it would drop the selection on the
+            // canvas of an already different page
             if (!sessionToken.isCurrent(startedIn)) {
                 return;
             }
@@ -136,17 +145,20 @@ export function usePageThumbnail(sessionToken: IBuilderSessionToken): IUsePageTh
                 return;
             }
 
-            // Сбрасываем выделение — outline выделенного компонента попал бы в снапшот
+            // The selection is dropped — the outline of a selected component would
+            // make it into the snapshot
             componentsStore.deselectComponent();
             await nextTick();
 
-            // Lazy import: библиотека попадает только в чанк билдера (bundle firewall)
+            // A lazy import: the library lands in the chunk of the builder only
+            // (the bundle firewall)
             const { domToBlob } = await import('modern-screenshot');
 
-            // `pageId` зафиксирован на старте, а снимается живой DOM канваса: после
-            // перехода кадр принадлежал бы уже другой странице, и превью сохранённой
-            // патчилось бы чужим содержимым. Эта проверка экономит работу — саму
-            // подмену ловит проверка после съёмки
+            // `pageId` is fixed at the start while what is shot is the live DOM of
+            // the canvas: after a move the frame would belong to an already
+            // different page, and the preview of the saved one would be patched
+            // with somebody else's content. This check saves work — the swap itself
+            // is caught by the check after the shot
             if (!sessionToken.isCurrent(startedIn)) {
                 return;
             }
@@ -160,24 +172,25 @@ export function usePageThumbnail(sessionToken: IBuilderSessionToken): IUsePageTh
                 scale: Math.min(1, THUMBNAIL_TARGET_WIDTH / node.offsetWidth),
                 type: 'image/jpeg',
                 quality: 0.8,
-                // Явные размеры в layout-пикселях: без width либа берёт ширину из
-                // boundingClientRect (уже ужатую canvasTransform'ом) и обрезает контент справа
+                // Explicit sizes in layout pixels: without a width the library
+                // takes the width out of boundingClientRect (already shrunk by the
+                // canvasTransform) and cuts the content off on the right
                 width: node.offsetWidth,
                 height: Math.min(
                     node.offsetHeight,
                     node.offsetWidth * THUMBNAIL_ASPECT_RATIO * THUMBNAIL_MAX_FRAMES
                 ),
-                // Нейтрализуем canvasTransform (fitScale * remCompensation) и рамку канваса
+                // The canvasTransform (`canvasStore.scale * remCompensation`, see
+                // `useCanvas`) and the frame of the canvas are neutralized
                 style: { transform: 'none', margin: '0', boxShadow: 'none', borderRadius: '0' },
                 fetchFn: createProxyFetchFn(),
             });
 
-            // Решающая проверка: `domToBlob` клонирует DOM не сразу. Сначала
-            // `createContext` ждёт загрузку всех `img`/`video` канваса
-            // (`waitUntilLoad`), и только потом идёт `cloneNode`
-            // (modern-screenshot 4.7, index.mjs:452 и :1497). Переход внутри этого
-            // окна означает, что снят уже канвас другой страницы, — такой кадр
-            // нельзя грузить под зафиксированный `pageId` (находка ревью)
+            // The decisive check: `domToBlob` does not clone the DOM at once. First
+            // `createContext` waits for every `img`/`video` of the canvas to load
+            // (`waitUntilLoad`), and only then comes `cloneNode`. A move inside that
+            // window means the canvas of another page has been shot — such a frame
+            // must not be uploaded under the fixed `pageId`
             if (!sessionToken.isCurrent(startedIn)) {
                 return;
             }
@@ -192,7 +205,6 @@ export function usePageThumbnail(sessionToken: IBuilderSessionToken): IUsePageTh
                 {
                     method: 'POST',
                     body: formData,
-                    // Кадр канваса плюс серверная дожимка в webp и выгрузка в S3
                     timeout: BRICKS_THUMBNAIL_UPLOAD_TIMEOUT_MS,
                 }
             );
@@ -201,10 +213,11 @@ export function usePageThumbnail(sessionToken: IBuilderSessionToken): IUsePageTh
                 throw new Error('Thumbnail upload failed');
             }
 
-            // Без cache-buster'а: ключ уникален на каждую загрузку, поэтому URL
-            // нового кадра сам по себе новый. Прежний `?v=<ts>` теперь только
-            // мешал бы — этот же URL уносит в историю снапшот версии, и версии
-            // отличались бы друг от друга параметром, а не файлом
+            // No cache buster: the key is unique per upload, so the URL of a new
+            // frame is a new one by itself. The former `?v=<ts>` would only get in
+            // the way now — the version snapshot carries this very URL into the
+            // history, and the versions would differ from one another by a query
+            // parameter rather than by the file
             await publishStore.patchPage(pageId, { thumbnailUrl: response.url });
         } catch (error: unknown) {
             console.warn('[Bricks Thumbnail] Capture failed:', error);

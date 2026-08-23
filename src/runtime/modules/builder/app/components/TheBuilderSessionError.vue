@@ -1,4 +1,17 @@
 <script setup lang="ts">
+/**
+ * @description The blocking screen of a session that did not open: the technical
+ * reason of the refusal plus the two actions left — a retry and the way out onto the
+ * dashboard.
+ *
+ * Decisions held by the style section: the screen covers the whole workspace of the
+ * editor rather than the canvas alone, because until the session opens neither the
+ * canvas nor the panels of the properties and of the publish settings can save a
+ * change. Hence `position: absolute; inset: 0` over `.content` and a z-index above
+ * the sidebars (50) and the vertical navigation (60), yet below the loader — a
+ * repeated attempt stays visible over the screen.
+ */
+
 // #region Imports
 // Types
 import type { IBuilderSessionErrorProps, IBuilderSessionErrorEmits } from '../types/builder';
@@ -24,21 +37,21 @@ const emit = defineEmits<IBuilderSessionErrorEmits>();
 // #region Data
 const { t } = useI18n();
 
-/** Кнопка повтора — на неё уводится фокус: рабочая область под inert. */
+/** The retry button — the focus is taken onto it on mount. */
 const retryButtonRef = useTemplateRef<InstanceType<typeof BricksButton>>('retryButton');
 // #endregion
 
 // #region Methods
 /**
- * Просит владельца сессии повторить открытие страницы.
+ * Asks the owner of the session to repeat the opening of the page.
  */
 function handleRetry(): void {
     emit('retry');
 }
 
 /**
- * Уводит пользователя на дашборд — единственный безопасный выход из
- * несогласованной сессии.
+ * Takes the person onto the dashboard — the only safe way out of an inconsistent
+ * session.
  */
 function handleOpenPagesManager(): void {
     emit('openPagesManager');
@@ -47,8 +60,9 @@ function handleOpenPagesManager(): void {
 
 // #region Lifecycle
 onMounted(() => {
-    // Фокус мог остаться в поле формы, которое уехало под inert: без переноса
-    // клавиатура оказалась бы вообще без цели, а скринридер — без объявления
+    // The focus may have stayed in a field of the workspace, which this screen has
+    // just covered: without the move the keyboard would be left pointing at what
+    // nobody can see and the screen reader with nothing announced
     retryButtonRef.value?.$el?.focus?.();
 });
 // #endregion
@@ -92,12 +106,6 @@ onMounted(() => {
 </template>
 
 <style module lang="scss">
-/*
- * Перекрывает всю рабочую область редактора, а не только канвас: пока сессия не
- * открылась, ни канвас, ни панели свойств и настроек публикации сохранить
- * изменения не смогут. z-index выше сайдбаров (50) и вертикальной
- * навигации (60), но ниже лоадера — повторная попытка видна поверх экрана.
- */
 .TheBuilderSessionError {
     position: absolute;
     z-index: 90;

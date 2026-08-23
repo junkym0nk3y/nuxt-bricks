@@ -1,26 +1,28 @@
 /**
- * Политика загрузки библиотеки компонентов (чистые функции).
+ * The policy of loading the component library (pure functions).
  *
- * Здесь живёт знание об одном исходе запроса манифеста — «ответ не дошёл за
- * SSR-дедлайн», — который обрабатывается иначе, чем остальные отказы: результат
- * деградирует до layout-блоков вместо отклонения загрузки.
+ * What lives here is the knowledge of one outcome of the manifest request — "the
+ * answer did not arrive within the SSR deadline" — which is handled unlike every
+ * other refusal: the result degrades to the layout blocks instead of the load
+ * being rejected.
  */
 
 // #region Constants
 /**
- * Имя ошибки SSR-дедлайна запроса манифеста. Отдельное имя, а не `TimeoutError`:
- * по нему загрузка отличает свой дедлайн от обрыва запроса на потолке транспорта
- * и от чужой ошибки с тем же именем. Совпади имена — любой транспортный таймаут
- * молча превращался бы в деградированную библиотеку с клиентским повтором.
+ * The name of the SSR deadline error of the manifest request. A name of its own
+ * rather than `TimeoutError`: by it the load tells its own deadline apart from a
+ * request cut off at the transport ceiling and from somebody else's error of the
+ * same name. Were the names to coincide, any transport timeout would quietly turn
+ * into a degraded library with a client-side retry.
  */
 const COMPONENT_MANIFEST_DEADLINE_ERROR_NAME = 'BricksComponentManifestDeadlineError';
 // #endregion
 
 /**
- * Создаёт ошибку SSR-дедлайна запроса манифеста компонентов.
+ * Creates the SSR deadline error of the component manifest request.
  *
- * @param deadlineMs - Дедлайн ожидания ответа ручки, мс.
- * @returns Ошибка с опознаваемым именем.
+ * @param deadlineMs - Deadline of waiting for the endpoint's answer, ms.
+ * @returns An error with a recognizable name.
  */
 export function createComponentManifestDeadlineError(deadlineMs: number): Error {
     const error = new Error(
@@ -32,10 +34,10 @@ export function createComponentManifestDeadlineError(deadlineMs: number): Error 
 }
 
 /**
- * Ошибка — SSR-дедлайн запроса манифеста компонентов.
+ * Whether the error is the SSR deadline of the component manifest request.
  *
- * @param error - Произвольная ошибка.
- * @returns Это дедлайн запроса манифеста.
+ * @param error - An arbitrary error.
+ * @returns This is the deadline of the manifest request.
  */
 export function isComponentManifestDeadlineError(error: unknown): boolean {
     return error instanceof Error && error.name === COMPONENT_MANIFEST_DEADLINE_ERROR_NAME;

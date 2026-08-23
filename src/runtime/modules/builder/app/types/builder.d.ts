@@ -5,33 +5,41 @@ export interface ISidebarExpose {
 }
 
 /**
- * Пропсы оверлея загрузки билдера (TheBuilderLoader).
+ * Props of the loading overlay of the builder (TheBuilderLoader).
  */
 export interface IBuilderLoaderProps {
-    /** Идёт открытие сессии; оверлей держится до её конца, но не меньше цикла анимации. */
+    /**
+     * A session is opening; the overlay holds until it ends, but no less than one
+     * cycle of the animation.
+     */
     isLoading: boolean;
 }
 
 /**
- * События оверлея загрузки.
+ * Events of the loading overlay.
  */
 export interface IBuilderLoaderEmits {
-    /** Оверлей ушёл с экрана вместе с анимацией — рабочая область открыта. */
+    /**
+     * The overlay has left the screen along with its animation — the workspace is
+     * open. It is the departure that is announced rather than the end of loading:
+     * the offer to restore a draft waits for exactly a freed screen, and shown any
+     * earlier it would climb over the loader.
+     */
     hidden: [];
 }
 
 /**
- * Пропсы блокирующего экрана «сессия не открылась» (TheBuilderSessionError).
+ * Props of the blocking "the session did not open" screen (TheBuilderSessionError).
  */
 export interface IBuilderSessionErrorProps {
-    /** Техническая причина отказа из ошибки bootstrap'а. */
+    /** The technical reason of the refusal, out of the bootstrap error. */
     message: string;
-    /** Идёт повторная попытка — кнопка «Повторить» заблокирована. */
+    /** A retry is under way — the "Retry" button is disabled. */
     isRetrying?: boolean;
 }
 
 /**
- * События блокирующего экрана «сессия не открылась».
+ * Events of the blocking "the session did not open" screen.
  */
 export interface IBuilderSessionErrorEmits {
     retry: [];
@@ -39,17 +47,17 @@ export interface IBuilderSessionErrorEmits {
 }
 
 /**
- * Пропсы окна выбора по найденному черновику (TheBuilderDraftRestoreModal).
+ * Props of the choice window over a found draft (TheBuilderDraftRestoreModal).
  */
 export interface IBuilderDraftRestoreModalProps {
     isOpen: boolean;
-    /** Время последней записи черновика (ISO) — по нему пользователь и решает. */
+    /** The time of the last write of the draft (ISO) — what a person decides by. */
     updatedAt?: string | null;
 }
 
 /**
- * События окна выбора по найденному черновику. Закрытие (`close`) — не ответ:
- * черновик остаётся, предложение тоже. Удаляет только `discard`.
+ * Events of the choice window over a found draft. Closing (`close`) is not an
+ * answer: the draft stays and so does the offer. Only `discard` removes it.
  */
 export interface IBuilderDraftRestoreModalEmits {
     close: [];
@@ -58,13 +66,13 @@ export interface IBuilderDraftRestoreModalEmits {
 }
 
 /**
- * Аргументы guard'а сохранения (`runSaveWhenSessionReady`).
+ * Arguments of the save guard (`runSaveWhenSessionReady`).
  */
 export interface ISessionSaveGuardOptions {
-    /** Открыта ли сессия до согласованного состояния. */
+    /** Whether the session is open to a consistent state. */
     isSessionReady: () => boolean;
-    /** Само сохранение — выполняется только в согласованной сессии. */
+    /** The save itself — carried out in a consistent session only. */
     save: () => Promise<void>;
-    /** Реакция на отказ: объяснение пользователю. */
+    /** The reaction to a refusal: an explanation to the person. */
     onBlocked: () => void;
 }

@@ -18,9 +18,10 @@ import { usePublishStore } from '../../publish/stores/publish';
 
 // #region Data
 /**
- * Actions стора компонентов, не меняющие схему: выбор, избранное, копирование
- * в буфер, чтение. Всё остальное (включая новые actions) по умолчанию триггерит
- * синк превью — false positive безопасен, false negative сломал бы синк.
+ * The actions of the components store that do not change the schema: the
+ * selection, the favorites, the copy into the clipboard, the reads. Everything else
+ * (new actions included) triggers the preview sync by default — a false positive is
+ * safe, a false negative would break the sync.
  */
 const NON_SCHEMA_ACTIONS = new Set([
     'selectComponent',
@@ -35,19 +36,22 @@ const NON_SCHEMA_ACTIONS = new Set([
 // #endregion
 
 /**
- * Синхронизация схемы канваса с открытой preview-вкладкой через BroadcastChannel.
+ * Synchronization of the canvas schema with an open preview tab through a
+ * BroadcastChannel.
  *
- * Канал открыт всё время жизни билдера: превью при монтировании шлёт
- * `request-schema`, и билдер отвечает снимком содержимого (схема + набор
- * устройств) — синк самовосстанавливается
- * после перезагрузки любой из вкладок. Изменения компонентов отправляются
- * с debounce 300ms; канал закрывается при unmount.
+ * The channel is open for the whole life of the builder: on mounting, the preview
+ * sends a `request-schema` and the builder answers with a snapshot of the content
+ * (the schema plus the device set) — the sync heals itself after a reload of either
+ * tab. The changes of the components are sent with a debounce of 300 ms; the
+ * channel is closed on unmount.
  *
- * Страницу в канале опознаёт КЛЮЧ АДРЕСА, а не имя: у `/blog/post` и
- * `/news/post` имя одно, и превью первой принимало бы схему второй как свою.
+ * What identifies a page in the channel is the KEY OF THE ADDRESS rather than the
+ * name: `/blog/post` and `/news/post` share a name, and the preview of the first
+ * would take the schema of the second for its own.
  *
- * @param sessionToken - Токен сессии: открытие другой страницы обрывает синк,
- * иначе её схема уезжала бы под адресом прежней.
+ * @param sessionToken - The session token: the opening of another page breaks the
+ * sync off, otherwise its schema would travel out under the address of the former
+ * one.
  */
 export function usePreviewSync(sessionToken: IBuilderSessionToken) {
     const componentsStore = useComponentsStore();
@@ -55,17 +59,18 @@ export function usePreviewSync(sessionToken: IBuilderSessionToken) {
 
     let previewBroadcastChannel: BroadcastChannel | null = null;
     let previewSyncTimer: ReturnType<typeof setTimeout> | null = null;
-    // Ключ адреса открытой превью-вкладки; пустая строка — синка нет
+    // The address key of the open preview tab; an empty string means there is no
+    // sync
     let previewAddressKey = '';
 
     /**
-     * Отправляет снимок содержимого канваса в открытую вкладку превью через
-     * BroadcastChannel. Параллельно обновляет localStorage (вместе со `storedAt`),
-     * чтобы перезагрузка вкладки показывала свежие данные.
+     * Sends a snapshot of the content of the canvas into the open preview tab
+     * through the BroadcastChannel. Alongside it updates localStorage (`storedAt`
+     * included), so that a reload of the tab shows fresh data.
      *
-     * Снимок — схема И набор устройств: набор задаёт пороги media-query и ширины
-     * контейнера, поэтому превью без него показывало бы новую схему в старой
-     * раскладке.
+     * The snapshot is the schema AND the device set: the set holds the thresholds of
+     * the media queries and the widths of the container, so without it a preview
+     * would show the new schema in the old layout.
      */
     function sendPreviewContentUpdate(): void {
         if (!previewBroadcastChannel || !previewAddressKey) {
@@ -73,10 +78,11 @@ export function usePreviewSync(sessionToken: IBuilderSessionToken) {
         }
 
         const schema = componentsStore.exportSchema();
-        // Копия, а не значение из состояния формы: там лежит reactive-прокси, а
-        // structured clone на Proxy бросает DataCloneError — postMessage падал
-        // целиком, и превью переставало обновляться до перезагрузки вкладки.
-        // Запись в localStorage идёт ниже и проходила бы, маскируя отказ
+        // A copy rather than the value out of the form state: what lies there is a
+        // reactive proxy, and a structured clone over a Proxy throws a
+        // DataCloneError — postMessage used to fail whole, and the preview stopped
+        // updating until the tab was reloaded. The write into localStorage goes
+        // below and would go through, masking the refusal
         const viewportConfig = cloneDeviceSet(publishStore.currentFormState.viewportConfig);
 
         if (typeof window !== 'undefined') {
@@ -84,8 +90,9 @@ export function usePreviewSync(sessionToken: IBuilderSessionToken) {
                 const stored = window.localStorage.getItem('bricks-preview-page');
                 if (stored) {
                     const parsed = JSON.parse(stored) as IPreviewStoredPage;
-                    // Сверка по адресу: слот один на билдер, и снимок соседней
-                    // одноимённой страницы иначе получил бы схему этой
+                    // The check is by the address: there is one slot per builder,
+                    // and the snapshot of a neighboring same-named page would
+                    // otherwise receive the schema of this one
                     if (
                         getPageAddressKey(toPageAddress(parsed.pagename, parsed.urlPrefix)) ===
                         previewAddressKey
@@ -110,9 +117,9 @@ export function usePreviewSync(sessionToken: IBuilderSessionToken) {
     }
 
     /**
-     * Создаёт BroadcastChannel и подписывается на `request-schema` от превью-вкладки:
-     * если запрошен адрес страницы, открытой в билдере, восстанавливает синк
-     * и немедленно отвечает свежей схемой.
+     * Creates the BroadcastChannel and subscribes to the `request-schema` of the
+     * preview tab: when the address asked for is the one of the page open in the
+     * builder, it restores the sync and answers with a fresh schema at once.
      */
     function ensurePreviewChannel(): void {
         if (!import.meta.client || previewBroadcastChannel) {
@@ -144,9 +151,10 @@ export function usePreviewSync(sessionToken: IBuilderSessionToken) {
     }
 
     /**
-     * Запоминает адрес открытой превью-вкладки (вызывается при клике «Превью»).
+     * Remembers the address of the open preview tab (called on a click of
+     * "Preview").
      *
-     * @param address - Адрес страницы, открытой в превью.
+     * @param address - The address of the page opened in the preview.
      */
     function startPreviewSync(address: IBricksPageAddress): void {
         if (!import.meta.client) {
@@ -157,12 +165,12 @@ export function usePreviewSync(sessionToken: IBuilderSessionToken) {
         ensurePreviewChannel();
     }
 
-    // Канал открывается сразу, чтобы превью-вкладка могла восстановить синк
-    // через request-schema после перезагрузки билдера
+    // The channel is opened at once so that a preview tab can restore the sync
+    // through a request-schema after a reload of the builder
     ensurePreviewChannel();
 
     /**
-     * Планирует отправку схемы в превью с debounce 300ms.
+     * Schedules the sending of the schema into the preview with a debounce of 300 ms.
      */
     function schedulePreviewContentUpdate(): void {
         if (!previewBroadcastChannel || !previewAddressKey) {
@@ -179,9 +187,10 @@ export function usePreviewSync(sessionToken: IBuilderSessionToken) {
         }, 300);
     }
 
-    // Синк по завершении мутирующих actions стора вместо deep-watch всей схемы
-    // (deep-обход всех компонентов на каждую мутацию был дорог при drag/вводе текста).
-    // Прямые мутации вне actions (useDraggableComponent) завершаются saveToHistory — покрыты.
+    // The sync runs at the end of the mutating actions of the store instead of a
+    // deep watch of the whole schema (a deep walk of every component per mutation
+    // was expensive during a drag or the typing of text). The direct mutations
+    // outside the actions (useDraggableComponent) end in a saveToHistory — covered.
     componentsStore.$onAction(({ name, after }) => {
         if (NON_SCHEMA_ACTIONS.has(name)) {
             return;
@@ -192,9 +201,10 @@ export function usePreviewSync(sessionToken: IBuilderSessionToken) {
         });
     });
 
-    // Отдельный триггер на набор устройств: подписка выше ловит только actions
-    // стора компонентов, а правка набора блоков не трогает — превью осталось бы
-    // на прежней раскладке до следующей правки схемы
+    // A trigger of its own on the device set: the subscription above catches the
+    // actions of the components store only, while an edit of the set touches no
+    // block — the preview would stay in the former layout until the next edit of the
+    // schema
     watch(
         () => publishStore.currentFormState.viewportConfig,
         () => {
@@ -203,13 +213,15 @@ export function usePreviewSync(sessionToken: IBuilderSessionToken) {
         { deep: true }
     );
 
-    // Открытие другой страницы обрывает синк. Канал и `previewAddressKey` живут
-    // дольше сессии, поэтому схема новой страницы уезжала в localStorage и
-    // BroadcastChannel под адресом прежней — превью-вкладка показывала чужой
-    // контент под своим адресом. Вкладка просто перестаёт обновляться:
-    // её `request-schema` дальше отсекается сравнением с адресом формы.
-    // flush: 'sync' — сброс обязан произойти в момент инвалидации токена, до
-    // того как `openBuilderSession` уйдёт в await и схема сменится на канвасе
+    // The opening of another page breaks the sync off. The channel and
+    // `previewAddressKey` live longer than a session, so the schema of the new page
+    // used to travel into localStorage and into the BroadcastChannel under the
+    // address of the former one — the preview tab showed somebody else's content
+    // under its own address. The tab simply stops updating: its `request-schema` is
+    // cut off from then on by the comparison with the address of the form.
+    // flush: 'sync' — the reset is obliged to happen at the moment the token is
+    // invalidated, before `openBuilderSession` goes into an await and the schema on
+    // the canvas changes
     watch(
         sessionToken.token,
         () => {

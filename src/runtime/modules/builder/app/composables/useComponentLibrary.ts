@@ -38,25 +38,26 @@ import {
 } from '../../../common/constants/apiTimeouts';
 // #endregion
 
-/** Категория бриков, попадающих в селектор модалок панели свойств. */
+/** The brick category that lands in the modal selector of the properties panel. */
 const MODAL_CATEGORY = 'Modal';
 
 /**
- * Ограничивает ожидание манифеста на SSR.
+ * Bounds the waiting of the manifest on SSR.
  *
- * Дедлайн накрывает **только сам запрос**: страницу редактора ждёт `setup`
- * (`useBuilderPage`), а на сервере потолок транспорта инертен — относительный URL
- * уходит внутренним вызовом Nitro, который `AbortSignal` не слушает.
- * Оборачивать весь handler нельзя: в нём ещё импорт brick-модулей, и общий
- * дедлайн отдавал бы им остаток бюджета запроса — быстрый ответ ручки и медленные
- * импорты обнуляли бы библиотеку целиком, вместе с layout-компонентами (находка
- * ревью). Зависший импорт этим дедлайном не ограничен — на такое нужен свой
- * честно названный бюджет, которого пока нет.
+ * The deadline covers **the request alone**: the page of the editor is awaited by
+ * `setup` (`useBuilderPage`), while on the server the transport ceiling is inert —
+ * a relative URL goes out as an internal Nitro call, which does not listen to an
+ * `AbortSignal`. Wrapping the whole handler is not allowed: it also holds the
+ * import of the brick modules, and a shared deadline would hand them whatever is
+ * left of the budget of the request — a quick answer of the endpoint and slow
+ * imports would zero the library out whole, the layout components included. A hung
+ * import is not bounded by this deadline — that calls for a budget of its own,
+ * honestly named, and there is none yet.
  *
- * На клиенте потолок транспорта работает сам, дедлайн там не нужен.
+ * On the client the transport ceiling works by itself, no deadline is needed there.
  *
- * @param request - Промис запроса манифеста.
- * @returns Ответ ручки компонентов.
+ * @param request - The promise of the manifest request.
+ * @returns The answer of the components endpoint.
  */
 function fetchManifestWithinDeadline(request: Promise<IBricksManifest>): Promise<IBricksManifest> {
     if (!import.meta.server) {
@@ -71,12 +72,13 @@ function fetchManifestWithinDeadline(request: Promise<IBricksManifest>): Promise
 }
 
 /**
- * Собирает записи модалок для селектора свойств из того же ответа манифеста.
- * Отсутствие лоадера здесь не отсеивается: селектору нужны только имя и путь, а
- * рассинхрон сборки и манифеста показывает библиотека.
+ * Collects the modal entries for the properties selector out of the same manifest
+ * answer. A missing loader is not filtered out here: the selector needs the name
+ * and the path alone, while a drift between the build and the manifest is what the
+ * library shows.
  *
- * @param bricks - Записи манифеста brick-компонентов.
- * @returns Записи модалок для кеша.
+ * @param bricks - The entries of the brick component manifest.
+ * @returns The modal entries for the cache.
  */
 function collectModalEntries(bricks: IBrickManifestEntry[]): TCachedModal[] {
     return bricks
@@ -85,23 +87,24 @@ function collectModalEntries(bricks: IBrickManifestEntry[]): TCachedModal[] {
 }
 
 /**
- * Загружает библиотеку компонентов: записи манифеста с бэкенда (метаданные в
- * них уже разобраны на build-time) + layout-компоненты.
+ * Loads the component library: the manifest entries out of the backend (their
+ * metadata is parsed at build time already) plus the layout components.
  *
- * Этим же ответом наполняются кеш модалок панели свойств и индекс метаданных,
- * из которого живут панель свойств, слоты и inline-редактирование: манифест
- * один, и второй запрос за ним означал бы два независимых кеша одного ответа,
- * каждый со своей судьбой при отказе.
+ * The same answer fills in the modal cache of the properties panel and the
+ * metadata index the properties panel, the slots and the inline editing live off:
+ * there is one manifest, and a second request for it would mean two independent
+ * caches of one answer, each with a fate of its own under a refusal.
  *
- * Рядом с записями хранится хеш манифеста из ответа ручки. Потребителя у него
- * пока нет: правка brick-файла в dev перезагружает страницу целиком, потому что
- * тот же файл лежит в графе Vite и после первого превью компонента.
+ * Next to the entries lies the hash of the manifest out of the endpoint's answer.
+ * It has no consumer yet: in dev an edit of a brick file reloads the whole page,
+ * because that same file lies in the graph of Vite after the first preview of the
+ * component too.
  *
- * Неудачный SSR-прогон восстанавливается одним запросом с клиента: без него
- * отказ на сервере оставлял бы сайдбар пустым до полной перезагрузки страницы, а
- * перезагрузка снова уходила бы в тот же SSR.
+ * A failed SSR run is recovered with one request from the client: without it a
+ * refusal on the server would leave the sidebar empty until a full reload of the
+ * page, and the reload would go into the same SSR again.
  *
- * @returns Список компонентов, признак отказа загрузки и повтор.
+ * @returns The list of the components, the sign of a refused load and the retry.
  */
 export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn> {
     const { hasBrickModule } = useBrickImports();
@@ -109,27 +112,27 @@ export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn>
     const { resolveComponentEditorMetadata } = useComponentEditorMetadata();
     const componentsStore = useComponentsStore();
 
-    // Снимок последней успешной загрузки. Нужен из-за поведения `useAsyncData`:
-    // при отказе он сбрасывает `data` в дефолт (`asyncData.js`: `data.value =
-    // unref(options.default())`), то есть неудачный повтор забирал бы у
-    // пользователя уже загруженные брики — вместе с возможностью работать дальше
-    // тем, что и так работало.
+    // The snapshot of the last successful load. Needed because of the behavior of
+    // `useAsyncData`: on a refusal it resets `data` to the default (`asyncData.js`:
+    // `data.value = unref(options.default())`), that is, a failed retry would take
+    // the already loaded bricks away from a person — along with the chance to go on
+    // working with what worked anyway.
     //
-    // Состояние уровня приложения, а не локальный `ref`: кеш keyed-запроса
-    // очищается при размонтировании последнего потребителя
-    // (`purgeCachedData`), поэтому снимок в экземпляре страницы жил бы короче
-    // кеша модалок из того же ответа — при повторном заходе с отказом ручки
-    // селектор модалок показывал бы записи, которых уже нет в библиотеке.
-    // Заводится до `await`: после него композабл вне Nuxt-контекста.
+    // State at the level of the application rather than a local `ref`: the cache of
+    // a keyed request is cleared when the last consumer unmounts (`purgeCachedData`),
+    // so a snapshot inside the page instance would live shorter than the modal cache
+    // built out of the same answer — on a second visit with the endpoint refusing,
+    // the modal selector would show entries that are no longer in the library. It is
+    // set up before the `await`: after it the composable is outside the Nuxt context.
     const lastLoadedData = useState<IComponentLibraryData | null>(
         'bricks-components-last-loaded',
         () => null
     );
 
-    // Промис `useAsyncData` намеренно не await'ится здесь: до await нужно
-    // синхронно зарегистрировать восстановление после SSR-отказа, а после него
-    // активный scope потерян (то же ограничение, из-за которого вся проводка
-    // `useBuilderPage` идёт до его единственного await)
+    // The promise of `useAsyncData` is deliberately not awaited here: before the
+    // await the recovery after an SSR refusal has to be registered synchronously,
+    // and after it the active scope is lost (the same limitation the whole wiring of
+    // `useBuilderPage` goes before its single await because of)
     const componentLibrary = useAsyncData<IComponentLibraryData>('bricks-components', async () => {
         const { apiFetcher } = useApiClient();
         let response: IBricksManifest;
@@ -139,8 +142,8 @@ export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn>
                 apiFetcher<IBricksManifest>('/api/bricks/components')
             );
         } catch (error: unknown) {
-            // Прочие отказы уходят наружу: `error` нужен интерфейсу как
-            // признак отказа, а повтор их чинит не всегда
+            // Every other refusal goes outwards: the interface needs `error` as
+            // the sign of a refusal, and a retry does not always mend them
             if (!isComponentManifestDeadlineError(error)) {
                 throw error;
             }
@@ -150,11 +153,12 @@ export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn>
                 error
             );
 
-            // Отклонять загрузку нельзя: ошибка легла бы в `payload._errors`,
-            // а при гидрации с ошибкой Nuxt пропускает первый запрос — сайдбар
-            // остался бы пустым до полной перезагрузки, и та снова ушла бы в
-            // SSR и снова прождала бы дедлайн. Маркер неполноты — чтобы
-            // деградированный ответ не осел в payload как полный
+            // Rejecting the load is not allowed: the error would land in
+            // `payload._errors`, and on a hydration carrying an error Nuxt skips
+            // the first request — the sidebar would stay empty until a full reload,
+            // and that one would go into the SSR again and would wait out the
+            // deadline again. The incompleteness marker is there so that a degraded
+            // answer does not settle in the payload as a complete one
             return {
                 hash: '',
                 isPartial: true,
@@ -170,16 +174,18 @@ export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn>
     });
 
     /**
-     * Фиксирует результат успешной загрузки: снимок ответа, кеш модалок панели
-     * свойств и индекс метаданных. Оба кеша обновляются здесь, а не внутри
-     * handler'а: на гидрации handler не исполняется вовсе (ответ приезжает
-     * готовым в payload), и они остались бы пустыми на клиенте — именно там, где
-     * ими и пользуются. Пишутся из одного значения, чтобы список, опции модалок
-     * и свойства выбранного компонента не могли разъехаться.
+     * Commits the result of a successful load: the snapshot of the answer, the modal
+     * cache of the properties panel and the metadata index. Both caches are updated
+     * here rather than inside the handler: on hydration the handler does not run at
+     * all (the answer arrives ready in the payload), and they would stay empty on the
+     * client — exactly where they are used. They are written out of one value so that
+     * the list, the modal options and the properties of the selected component cannot
+     * drift apart.
      *
-     * Деградированный ответ не фиксируется: снимок «последней успешной загрузки»
-     * стал бы списком из одних layout-блоков, а обнулённые кеши забрали бы опции
-     * модалок и свойства, пришедшие с прошлой удачной загрузки.
+     * A degraded answer is not committed: the snapshot of "the last successful load"
+     * would become a list of the layout blocks alone, and the zeroed caches would take
+     * away the modal options and the properties that came with the previous successful
+     * load.
      */
     function commitLoadedData(): void {
         const data = componentLibrary.data.value;
@@ -189,21 +195,23 @@ export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn>
         }
 
         lastLoadedData.value = data;
-        // Раньше метаданных: опции модалок читает `brickValuesToProperties`,
-        // которым панель свойств наполняется из того же индекса
+        // Before the metadata: the modal options are read by
+        // `brickValuesToProperties`, which is what fills the properties panel out of
+        // that same index
         replaceModalsCache(collectModalEntries(data.bricks));
         replaceBrickMetadata(data.bricks);
         refreshSelectedComponentMetadata();
     }
 
     /**
-     * Пересобирает свойства уже выбранного компонента.
+     * Reassembles the properties of the component already selected.
      *
-     * Панель свойств наполняется в момент выбора, а метаданные приезжают
-     * манифестом: если он не дошёл, панель осталась пустой, и без этого шага
-     * удачный повтор ничего бы в ней не изменил — пользователю пришлось бы
-     * выбрать компонент заново. Обратная сторона того же шага: брик, исчезнувший
-     * из манифеста, очищает панель, а не оставляет свойства от прошлой загрузки.
+     * The properties panel is filled at the moment of the selection while the
+     * metadata arrives in the manifest: if that never came, the panel stayed empty,
+     * and without this step a successful retry would change nothing in it — a person
+     * would have to select the component anew. The other side of the same step: a
+     * brick that has disappeared from the manifest clears the panel rather than
+     * leaving the properties of the previous load behind.
      */
     function refreshSelectedComponentMetadata(): void {
         const selected = componentsStore.selectedComponentData;
@@ -217,16 +225,16 @@ export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn>
         componentsStore.setSelectedComponentMetadata(selected.id, properties, description);
     }
 
-    // Ответ, по которому живёт интерфейс: свежий полный, иначе снимок последней
-    // удачной загрузки, иначе деградированный.
+    // The answer the interface lives off: the fresh complete one, otherwise the
+    // snapshot of the last successful load, otherwise the degraded one.
     //
-    // Деградированный ответ уступает снимку: в нём только layout-блоки, и он
-    // иначе перекрыл бы полный список, загруженный до ухода из билдера. Обратный
-    // порядок («снимок всегда важнее») неверен — тогда снимок перекрывал бы
-    // свежий полный ответ.
+    // A degraded answer gives way to the snapshot: it holds the layout blocks alone
+    // and would otherwise cover the complete list loaded before the builder was
+    // left. The opposite order ("the snapshot always wins") is wrong — the snapshot
+    // would then cover a fresh complete answer.
     //
-    // Один источник и для списка, и для пропусков: иначе на экране оказались бы
-    // компоненты одной загрузки и предупреждение от другой
+    // One source for both the list and the skips: otherwise the components of one
+    // load and the warning of another would end up on the screen together
     const effectiveLibraryData = computed<IComponentLibraryData | null>(() => {
         const data = componentLibrary.data.value;
 
@@ -237,48 +245,50 @@ export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn>
         return lastLoadedData.value ?? data ?? null;
     });
 
-    // Записи, под которые в сборке есть лоадер. Проверяется на клиенте, а не в
-    // handler'е: карта загрузчиков разворачивается в бандл, и авторитетна
-    // именно та, что попала в текущую сборку
+    // The entries the build holds a loader for. Checked on the client rather than in
+    // the handler: the map of the loaders is unrolled into the bundle, and the
+    // authoritative one is exactly the one that made it into the current build
     const loadableBricks = computed<IBrickManifestEntry[]>(() =>
         (effectiveLibraryData.value?.bricks ?? []).filter((brick) =>
             hasBrickModule(brick.brickPath)
         )
     );
 
-    // Layout-блоки манифеста не требуют: отказ ручки не должен забирать у
-    // пользователя ещё и их — иначе на канвас нельзя положить вообще ничего
+    // The layout blocks need no manifest: a refusal of the endpoint must not take
+    // those away from a person as well — otherwise nothing at all can be put onto
+    // the canvas
     const componentLibraryList = computed<IComponentLibraryItem[]>(() => [
         ...LAYOUT_COMPONENTS,
         ...loadableBricks.value.map(toComponentLibraryItem),
     ]);
 
-    // Пропуск брика отказом загрузки не считается: ответ ручки дошёл и разобран,
-    // повтор такой пропуск не исправит (лоадеров в готовой сборке не
-    // прибавится). Поэтому — отдельный признак, живущий рядом с отказом, а не
-    // вместо него: в сайдбаре они могут быть видны одновременно
+    // A skipped brick does not count as a refused load: the answer of the endpoint
+    // arrived and was parsed, and a retry will not mend such a skip (a finished
+    // build gains no loaders). Hence a sign of its own, living next to the refusal
+    // rather than instead of it: in the sidebar both may be visible at once
     const skippedBricks = computed<ISkippedBrick[]>(() =>
         (effectiveLibraryData.value?.bricks ?? [])
             .filter((brick) => !hasBrickModule(brick.brickPath))
             .map((brick) => ({ name: brick.name, brickPath: brick.brickPath }))
     );
 
-    // Отказ отличается от «библиотека пуста»: список непуст и при отказе
-    // (layout-блоки), поэтому признак нужен отдельным полем. Деградация — тоже
-    // отказ для интерфейса: тост и блок повтора в сайдбаре нужны и тогда, когда
-    // манифест не дошёл за дедлайн. Признак снимется сам, если восстановление
-    // ниже успеет донести библиотеку
+    // A refusal differs from "the library is empty": the list is non-empty under a
+    // refusal too (the layout blocks), which is why the sign has to be a field of its
+    // own. A degradation is a refusal for the interface as well: the toast and the
+    // retry block in the sidebar are needed when the manifest missed the deadline
+    // too. The sign will lower itself should the recovery below manage to bring the
+    // library in
     const isComponentLibraryLoadFailed = computed<boolean>(
         () =>
             componentLibrary.error.value !== null || componentLibrary.data.value?.isPartial === true
     );
 
     /**
-     * Повторяет загрузку манифеста. Ни во время повтора, ни после неудачного
-     * прежний список не исчезает: исчезновение карточек читалось бы как потеря
-     * библиотеки, хотя работать с уже загруженной ничто не мешает.
+     * Retries the load of the manifest. Neither during a retry nor after a failed one
+     * does the previous list disappear: cards vanishing would read as the loss of the
+     * library, although nothing prevents work with the one already loaded.
      *
-     * @returns Загрузка удалась.
+     * @returns The load succeeded.
      */
     async function refreshComponentLibrary(): Promise<boolean> {
         await componentLibrary.refresh();
@@ -292,29 +302,34 @@ export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn>
         return true;
     }
 
-    // Страница ещё смонтирована на момент запуска восстановления. Проверка не
-    // отменяет уже улетевший запрос — только не начинает новый: пользователь
-    // успевает уйти, пока восстановление ждёт конца гидрации. Начатый же запрос
-    // после ухода вернётся в очищенный кеш (`purgeCachedData` при размонтировании
-    // не удаляет промис из `_asyncDataPromises`, поэтому Nuxt его результат
-    // применит и заведёт запись заново) — вреда нет, но и смысла тоже
+    // The page is still mounted as of the start of the recovery. The check cancels
+    // no request already in flight — it merely starts no new one: a person has time
+    // to leave while the recovery waits for the end of the hydration. A request
+    // already started is thrown away by Nuxt itself after the departure: unmounting
+    // the last consumer clears the entry (`clearNuxtDataByKey` out of
+    // `purgeCachedData`) along with the slot in `_asyncDataPromises`, and the
+    // continuation of a displaced promise leaves without applying anything. No harm
+    // in it, but no point either
     let isPageAlive = true;
     let isRecoveryStarted = false;
 
     /**
-     * Восстанавливает библиотеку после неудачного SSR-прогона: один запрос с
-     * клиента, где ни SSR-дедлайна, ни инертного потолка транспорта уже нет.
+     * Recovers the library after a failed SSR run: one request from the client,
+     * where neither the SSR deadline nor the inert transport ceiling is there any
+     * more.
      *
-     * Повторяются два исхода: деградация по дедлайну и обычный отказ ручки. Для
-     * второго повтор — единственный шанс: ошибка SSR лежит в `payload._errors`, а
-     * при гидрации с ошибкой Nuxt первый запрос пропускает, то есть сайдбар
-     * остался бы пустым до полной перезагрузки страницы.
+     * Two outcomes are retried: a degradation on the deadline and an ordinary refusal
+     * of the endpoint. For the second one the retry is the only chance: the SSR error
+     * lies in `payload._errors`, and on a hydration carrying an error Nuxt skips the
+     * first request, that is, the sidebar would stay empty until a full reload of the
+     * page.
      *
-     * Ровно одна попытка. Сегодня к этому обязывает только договорённость:
-     * `onNuxtReady` зовёт колбэк единожды, поэтому цикла нет и без флага. Флаг
-     * защищает от второго вызывающего — а он появится, как только повтор
-     * захочется повесить ещё и на возврат сети или на смену видимости вкладки.
-     * Дальше повтор только руками, кнопкой сайдбара.
+     * Exactly one attempt. Today nothing but the agreement obliges that:
+     * `onNuxtReady` calls the callback once, so there is no loop even without the
+     * flag. The flag guards against a second caller — and one will appear as soon as
+     * the retry is wanted on the return of the network or on a change of the tab
+     * visibility as well. After that a retry is by hand only, with the button of the
+     * sidebar.
      */
     function recoverFailedLibrary(): void {
         const isRecoverable =
@@ -327,29 +342,32 @@ export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn>
 
         isRecoveryStarted = true;
 
-        // Отпускаем: результат ждать некому, а исход виден по состоянию
-        // библиотеки. `void` не пишем — правило `no-void` в oxlint
+        // Let go: there is nobody to await the result, and the outcome is visible
+        // in the state of the library. No `void` is written — the `no-void` rule in
+        // oxlint
         refreshComponentLibrary().catch((error: unknown) => {
             console.warn('[BricksBuilder] Components library recovery failed:', error);
         });
     }
 
-    // `onScopeDispose` вместо `onUnmounted`: со вторым аргументом он молчит вне
-    // компонента, поэтому композабл остаётся вызываемым в unit-тестах без
-    // предупреждения Vue о потерянном хуке
+    // `onScopeDispose` instead of `onUnmounted`: with the second argument it stays
+    // silent outside a component, so the composable remains callable in unit tests
+    // without a Vue warning about a lost hook
     onScopeDispose(() => {
         isPageAlive = false;
     }, true);
 
-    // Не `onMounted`: mounted-хуки успевают отработать до того, как Nuxt снимет
-    // `isHydrating`, а пока гидрация идёт, `refresh()` возвращает тот же ответ из
-    // payload, не обращаясь к ручке (`getDefaultCachedData`). `onNuxtReady`
-    // привязан к `app:suspense:resolve`, то есть к моменту, когда повтор реально
-    // уйдёт в сеть. На сервере он не делает ничего.
+    // Not `onMounted`: the mounted hooks manage to run before Nuxt lowers
+    // `isHydrating`, and while the hydration is going on `refresh()` returns the same
+    // answer out of the payload without addressing the endpoint
+    // (`getDefaultCachedData`). `onNuxtReady` is tied to `app:suspense:resolve`, that
+    // is, to the moment a retry really goes out into the network. On the server it
+    // does nothing.
     //
-    // Цена: колбэк идёт через `requestIdleCallback` без потолка ожидания, поэтому
-    // под непрерывной нагрузкой восстановление отложится. Это принято: библиотека уже
-    // показывает layout-блоки, и её догрузка — работа фоновая, а не срочная
+    // The price: the callback goes through `requestIdleCallback` with no waiting
+    // ceiling, so under continuous load the recovery will be put off. That is
+    // accepted: the library shows the layout blocks already, and loading the rest of
+    // it is background work rather than urgent
     onNuxtReady(recoverFailedLibrary);
 
     await componentLibrary;

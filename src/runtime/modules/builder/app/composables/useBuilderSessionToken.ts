@@ -7,19 +7,22 @@ import { computed, ref } from 'vue';
 // #endregion
 
 /**
- * Токен сессии билдера — общая точка отсечения для операций, которые начинаются в
- * одной сессии, а завершаются в другой. Операция снимает токен на старте
- * (`capture`) и сверяет его (`isCurrent`) перед тем, как применить результат или
- * побочный эффект; `invalidate` гасит все начатые операции разом.
+ * The token of a builder session — the shared cut-off point for the operations
+ * that begin in one session and finish in another. An operation takes the token at
+ * its start (`capture`) and checks it (`isCurrent`) before applying a result or a
+ * side effect; `invalidate` cuts every started operation off at once. Nothing is
+ * aborted by that: the requests keep flying, they merely stop being applied.
  *
- * Владелец инкрементов один — `useBuilderSession` (вход в открытие сессии и
- * `onScopeDispose` экземпляра). Остальные потребители получают токен из
- * composition root'а и только читают, поэтому счётчик на страницу ровно один.
+ * There is one owner of the increments — `useBuilderSession` (the entry into a
+ * session opening and the `onScopeDispose` of the instance). The other consumers
+ * receive the token from the composition root and only read it, so there is
+ * exactly one counter per page.
  *
- * Токен намеренно локален экземпляру страницы, а не глобален: незавершённая
- * операция переживает unmount (сторы живут на уровне приложения), и гасит её
- * именно инкремент на dispose — новый экземпляр начинает со своим счётчиком, а
- * операции покойного остаются отсечёнными по своему.
+ * The token is local to the page instance on purpose rather than global: an
+ * unfinished operation outlives the unmount (the stores live at the level of the
+ * application), and what puts it out is exactly the increment on dispose — a new
+ * instance starts with a counter of its own, while the operations of the dead one
+ * stay cut off by theirs.
  */
 export function useBuilderSessionToken(): IBuilderSessionToken {
     const token = ref(0);
@@ -28,26 +31,26 @@ export function useBuilderSessionToken(): IBuilderSessionToken {
         token: computed(() => token.value),
 
         /**
-         * Снимает токен на старте операции.
+         * Takes the token at the start of an operation.
          *
-         * @returns Значение токена, с которым операция началась.
+         * @returns The value of the token the operation started with.
          */
         capture(): number {
             return token.value;
         },
 
         /**
-         * Проверяет, что сессия, в которой операция началась, всё ещё актуальна.
+         * Checks that the session an operation started in is still the current one.
          *
-         * @param captured - Токен, снятый на старте операции.
-         * @returns Можно ли применять результат и побочные эффекты.
+         * @param captured - The token taken at the start of the operation.
+         * @returns Whether the result and the side effects may be applied.
          */
         isCurrent(captured: number): boolean {
             return captured === token.value;
         },
 
         /**
-         * Гасит все начатые операции: их `isCurrent` с этого момента ложен.
+         * Cuts every started operation off: their `isCurrent` is false from now on.
          */
         invalidate(): void {
             token.value += 1;

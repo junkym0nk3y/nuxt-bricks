@@ -1,10 +1,10 @@
-// Фразы экрана загрузки билдера (TheBuilderLoader.vue).
-// Лоадер берёт случайную фразу и меняет её по своему интервалу ротации.
-// Свободно добавляй / редактируй / удаляй строки — больше ничего менять не нужно.
+// The phrases of the loading screen of the builder (TheBuilderLoader.vue).
+// The loader picks a random phrase and changes it at its own rotation interval.
+// Add, edit and remove lines freely — nothing else has to be changed.
 
 export type TLoaderPhraseLocale = 'ru' | 'en';
 
-/** Дефолтная подпись: видна с первого кадра (SSR-safe), пока не начнётся ротация рандомных фраз. */
+/** The default caption: visible from the first frame (SSR-safe) until the rotation starts. */
 export const LOADER_DEFAULT_PHRASE: Record<TLoaderPhraseLocale, string> = {
     ru: 'Загрузка…',
     en: 'Loading…',

@@ -30,20 +30,20 @@ import { usePublishSchemaImport } from '../../publish/composables/usePublishSche
 // #endregion
 
 /**
- * Дольше обычного тоста: сообщение объясняет разошедшееся состояние и то, что
- * делать дальше, — прочитать его нужно успеть.
+ * Longer than an ordinary toast: the message explains a state that has diverged
+ * and what to do next — there has to be time to read it.
  */
 const REPLACED_PAGE_NOTICE_MS = 10000;
 
 /**
- * Обвязка селектора страниц в тулбаре: догрузка и освежение списка, переход на
- * выбранную страницу и создание новой.
+ * The wiring of the page selector in the toolbar: loading and refreshing the list,
+ * the move onto a chosen page and the creation of a new one.
  *
- * Живёт рядом с composition root, а не в самом тулбаре: список принадлежит
- * publish-стору, а навигация — маршрутизатору страницы, и тулбар не должен знать
- * ни о том, ни о другом.
+ * It lives next to the composition root rather than in the toolbar itself: the
+ * list belongs to the publish store and the navigation to the router of the page,
+ * and the toolbar is to know about neither of them.
  *
- * @param options - Идентичность открытой сессии и способ её переоткрыть.
+ * @param options - The identity of the open session and the way to reopen it.
  */
 export function useBuilderPageSelector(
     options: IBuilderPageSelectorOptions
@@ -55,32 +55,34 @@ export function useBuilderPageSelector(
 
     const isPagesRefreshing = ref(false);
 
-    // Незавершённое освежение: частые открытия попапа не должны множить запросы
+    // An unfinished refresh: frequent openings of the popup are not to multiply
+    // the requests
     let pagesRefreshPromise: Promise<void> | null = null;
 
-    // Создание страницы модалкой менеджера страниц — вместе с резолвером картинок
-    // импортируемой схемы, иначе импорт вёл бы себя по-разному в двух местах.
-    // Латч монтирования обратно не снимается: снятый, он пересоздавал бы
-    // компонент и терял анимацию закрытия
+    // The creation of a page by the window of the pages manager — together with the
+    // resolver of the images of an imported schema, otherwise the import would
+    // behave differently in the two places. The mount latch is never lowered again:
+    // lowered, it would recreate the component and lose the closing animation
     const shouldMountCreatePageModal = ref(false);
     const isCreatePageModalOpen = ref(false);
     const schemaImport = usePublishSchemaImport({ onNotify: options.showToast });
 
-    // Поколение сессии на момент открытия модалки создания. Страница билдера
-    // переживает смену `:pagename` (статический page key), поэтому модалка и её
-    // запрос живут дольше сессии, в которой их открыли
+    // The generation of the session as of the moment the create window was opened.
+    // The builder page outlives a change of `:pagename` (a static page key), so the
+    // window and its request live longer than the session they were opened in
     let createStartedIn: number | null = null;
     // #endregion
 
     // #region Methods
     /**
-     * Догружает и освежает список страниц к открытию селектора: страницы создают
-     * и удаляют и в соседней вкладке, а список живёт в сторе до перезагрузки
-     * приложения.
+     * Loads and refreshes the page list for the opening of the selector: pages are
+     * created and deleted in a neighboring tab too, while the list lives in the
+     * store until the application is reloaded.
      *
-     * Отказ гасится в консоль: список — кеш, а не данные сессии. Тост объявил бы
-     * сломанным попап, в котором лежит вполне пригодный прежний список, а
-     * блокирующий экран сессии к нему тем более не относится.
+     * A refusal is put out into the console: the list is a cache rather than the
+     * data of a session. A toast would declare broken a popup that holds a perfectly
+     * usable previous list, and the blocking screen of the session has even less to
+     * do with it.
      */
     async function handleOpenPageSelector(): Promise<void> {
         if (pagesRefreshPromise) {
@@ -107,22 +109,22 @@ export function useBuilderPageSelector(
     }
 
     /**
-     * Переходит к выбранной странице.
+     * Moves onto the chosen page.
      *
-     * Несохранённые правки переживают переход: автосейв синхронно сбрасывает
-     * черновик на смене маршрута, а на возврате его предложат восстановить.
+     * Unsaved edits outlive the move: the autosave flushes the draft synchronously
+     * on a change of the route, and on the way back a restore of it will be offered.
      *
-     * Совпадение адреса при другом идентификаторе — особый случай: страницу по
-     * этому адресу заменили в другом месте (удалили и создали заново). Открыть
-     * её здесь нельзя: маршрут тот же, поэтому сессию пришлось бы переоткрывать
-     * напрямую, а такой переход обходит синхронный сброс черновика и приводит к
-     * его удалению — bootstrap признаёт запись принадлежащей прежней странице.
-     * Правки открытой страницы к этому моменту и так не сохранить (её строки
-     * больше нет в списке), и черновик — единственная их копия, поэтому вместо
-     * молчаливой замены содержимого объясняем ситуацию: перезагрузка редактора
-     * остаётся за пользователем, и до неё он может сохранить копию.
+     * A matching address under a different identifier is a special case: the page at
+     * that address has been replaced elsewhere (deleted and created anew). It cannot
+     * be opened here: the route is the same one, so the session would have to be
+     * reopened directly, and such a move goes around the synchronous flush of the
+     * draft and leads to its removal — the bootstrap finds the record belonging to
+     * the former page. The edits of the open page cannot be saved by this moment
+     * anyway (its row is no longer in the list), and the draft is their only copy, so
+     * instead of quietly replacing the content the situation is explained: reloading
+     * the editor is left to the person, and until then they may save a copy.
      *
-     * @param page - Выбранная страница.
+     * @param page - The chosen page.
      */
     async function handleSelectPage(page: TPublishedPageSummary): Promise<void> {
         if (String(page.id) === String(options.sessionPageId.value)) {
@@ -146,7 +148,7 @@ export function useBuilderPageSelector(
     }
 
     /**
-     * Открывает модалку создания страницы.
+     * Opens the create-page window.
      */
     function handleOpenCreatePage(): void {
         createStartedIn = options.sessionToken.capture();
@@ -155,23 +157,23 @@ export function useBuilderPageSelector(
     }
 
     /**
-     * Закрывает модалку создания страницы.
+     * Closes the create-page window.
      */
     function handleCloseCreatePage(): void {
         isCreatePageModalOpen.value = false;
     }
 
     /**
-     * Уводит в редактор созданной страницы.
+     * Takes the person into the editor of the created page.
      *
-     * Переход — только если сессия та же, в которой открывали модалку. Резолвер
-     * картинок и сам POST переживают навигацию (страница билдера не
-     * перемонтируется при смене `:pagename`), и увести пользователя с той
-     * страницы, куда он тем временем ушёл, значило бы отменить его же действие.
-     * О созданной странице в этом случае сообщаем тостом — она создана, и знать
-     * об этом нужно.
+     * The move happens only when the session is the one the window was opened in.
+     * The image resolver and the POST itself outlive a navigation (the builder page
+     * is not remounted on a change of `:pagename`), and to take the person away from
+     * the page they have gone to meanwhile would be to undo their own action. In
+     * that case the created page is reported with a toast — it has been created, and
+     * that has to be known.
      *
-     * @param address - Адрес созданной страницы.
+     * @param address - The address of the created page.
      */
     async function handlePageCreated(address: IBricksPageAddress): Promise<void> {
         isCreatePageModalOpen.value = false;

@@ -23,19 +23,19 @@ import { useRoute, useRouter } from '#imports';
 // #endregion
 
 /**
- * Владелец адреса сессии билдера — единый источник истины для URL и ключа
- * черновиков.
+ * The owner of the address of a builder session — the single source of truth for
+ * the URL and for the key of the drafts.
  *
- * `routeAddress` — адрес из параметров маршрута (источник истины URL);
- * `sessionAddress` — адрес, на который открыта текущая сессия (ключ черновиков
- * localStorage). Расхождение значений означает навигацию на другую страницу —
- * её отслеживает watcher в `useBuilderSession`.
+ * `routeAddress` is the address out of the route params (the source of truth of
+ * the URL); `sessionAddress` is the address the current session is open on (the
+ * key of the localStorage drafts). A divergence of the values means a navigation
+ * onto another page — the watcher in `useBuilderSession` follows that.
  *
- * Адрес, а не один `pagename`: у `/blog/post` и `/news/post` редакторы и
- * черновики обязаны различаться, а имя у них одно.
+ * The address rather than the `pagename` alone: the editors and the drafts of
+ * `/blog/post` and `/news/post` are obliged to differ, and their name is one.
  *
- * @param options - Сообщение о недоступном хранилище: перенос черновика — ещё
- * один путь, на котором отказ storage иначе остался бы в консоли.
+ * @param options - The message about an unreachable storage: moving a draft is one
+ * more path on which a refusal of the storage would otherwise stay in the console.
  */
 export function useBuilderSessionAddress(
     options: IBuilderSessionAddressOptions
@@ -49,25 +49,26 @@ export function useBuilderSessionAddress(
     const sessionAddress = ref<IBricksPageAddress>(routeAddress.value);
 
     /**
-     * Переносит открытую сессию на новый адрес: мигрирует черновик localStorage
-     * и синхронизирует URL через Vue Router — `route.params` обновляется, поэтому
-     * autosave и восстановление после reload работают по актуальному ключу.
-     * Повторного bootstrap сессии не происходит: `sessionAddress` обновляется до
-     * навигации, а страница билдера имеет статический page key
-     * (см. `definePageMeta` в `pages/[pagename].vue`).
+     * Moves the open session onto a new address: migrates the localStorage draft
+     * and synchronizes the URL through Vue Router — `route.params` is updated, so
+     * the autosave and the restore after a reload work under the current key. No
+     * second bootstrap of the session happens: `sessionAddress` is updated before
+     * the navigation, and the builder page has a static page key (see
+     * `definePageMeta` in `pages/[pagename].vue`).
      *
-     * Смена префикса — тот же перенос, что и смена имени: адрес редактора
-     * включает префикс, поэтому URL и ключ черновика обязаны догнать обе
-     * половины пары.
+     * A change of the prefix is the same move as a change of the name: the address
+     * of the editor includes the prefix, so the URL and the key of the draft are
+     * obliged to catch up with both halves of the pair.
      *
-     * @param next - Новый адрес страницы.
+     * @param next - The new address of the page.
      */
     async function renameSession(next: IBricksPageAddress): Promise<void> {
         if (!next.pagename.trim() || isSamePageAddress(next, sessionAddress.value)) {
             return;
         }
 
-        // Страница билдера уже покинута (например, переход на дашборд) — URL не трогаем
+        // The builder page has been left already (a move onto the dashboard, for
+        // one) — the URL is not touched
         if (
             typeof route.name !== 'string' ||
             !BRICKS_BUILDER_PAGE_ROUTE_NAMES.includes(route.name)
@@ -76,10 +77,10 @@ export function useBuilderSessionAddress(
         }
 
         if (sessionAddress.value.pagename) {
-            // Занятый целевой ключ — обычная ситуация (сессия владеет своим
-            // ключом), а отказ хранилища означает, что черновик мог остаться под
-            // прежним адресом: автосейв дальше пишет по новому ключу и сам о
-            // поломке не сообщит
+            // A taken target key is an ordinary thing (a session owns a key of
+            // its own), while a refusal of the storage means the draft may have
+            // stayed behind under the previous address: the autosave goes on
+            // writing under the new key and reports the breakage nowhere itself
             if (migrateBuilderDraft(sessionAddress.value, next) === 'storage-unavailable') {
                 options.draftStorageNotice.report();
             }

@@ -1,5 +1,5 @@
 /**
- * Типы для composables.
+ * Types of the composables.
  */
 
 import type { IComponentLibraryItem } from '../../../common/types/brick';
@@ -21,7 +21,7 @@ import type { TBricksTemplateSummary } from '../../../common/types/templates';
 import type { ITemplateSaveSource } from '../../templates/types/templates';
 
 /**
- * Функция показа toast-уведомления билдера.
+ * The function showing a toast notification of the builder.
  */
 export type TShowToast = (
     message: string,
@@ -31,28 +31,30 @@ export type TShowToast = (
 
 // #region useBuilderSessionAddress / useBuilderSession / useBuilderDraftPersistence
 /**
- * Переносит открытую сессию билдера на новый адрес (`urlPrefix + pagename`):
- * миграция черновика localStorage + синхронизация URL через Vue Router.
+ * Moves the open builder session onto a new address (`urlPrefix + pagename`):
+ * migration of the localStorage draft plus synchronization of the URL through Vue
+ * Router.
  */
 export type TRenameBuilderSession = (next: IBricksPageAddress) => Promise<void>;
 
 /**
- * Единый переход сессии на сохранённую страницу (Save as Copy): store в edit mode
- * → renameSession (route + sessionAddress + миграция черновика) → фиксация
- * savedSnapshot. Реализация — `useBuilderSession.switchToSavedPage`; toast/thumbnail
- * после resolve — ответственность вызывающего (`useBuilderPage.handleSaveAsCopy`).
+ * The single move of a session onto a saved page (Save as Copy): the store into
+ * edit mode → renameSession (route + sessionAddress + migration of the draft) →
+ * the commit of savedSnapshot. Implemented by
+ * `useBuilderSession.switchToSavedPage`; the toast and the thumbnail after the
+ * resolve are the caller's job (`useBuilderPageWrite.handleSaveAsCopy`).
  */
 export type TSwitchToSavedPage = (page: IPublishedPage) => Promise<void>;
 
 /**
- * Опции composable useBuilderSessionAddress.
+ * Options of the useBuilderSessionAddress composable.
  */
 export interface IBuilderSessionAddressOptions {
     draftStorageNotice: IDraftStorageNotice;
 }
 
 /**
- * Возвращаемое значение composable useBuilderSessionAddress.
+ * Return value of the useBuilderSessionAddress composable.
  */
 export interface IUseBuilderSessionAddressReturn {
     routeAddress: ComputedRef<IBricksPageAddress>;
@@ -61,33 +63,33 @@ export interface IUseBuilderSessionAddressReturn {
 }
 
 /**
- * Токен сессии билдера: снимается операцией на старте и сверяется перед
- * применением результата и побочных эффектов. Реализация —
- * `useBuilderSessionToken`; инкременты принадлежат только `useBuilderSession`.
+ * The token of a builder session: taken by an operation at its start and checked
+ * before its result and its side effects are applied. Implemented by
+ * `useBuilderSessionToken`; the increments belong to `useBuilderSession` alone.
  */
 export interface IBuilderSessionToken {
-    /** Текущее значение — для watch'ей сброса поверхностей, переживающих сессию. */
+    /** The current value — for the watchers resetting surfaces that outlive a session. */
     token: ComputedRef<number>;
-    /** Снимает токен на старте операции. */
+    /** Takes the token at the start of an operation. */
     capture: () => number;
-    /** Актуальна ли сессия, в которой операция началась. */
+    /** Whether the session an operation started in is still the current one. */
     isCurrent: (captured: number) => boolean;
-    /** Гасит все начатые операции: новое открытие сессии, dispose экземпляра. */
+    /** Puts out every started operation: a new session opening, the dispose of the instance. */
     invalidate: () => void;
 }
 
 /**
- * Фиксирует текущее состояние сессии как сохранённое: новый `savedSnapshot` и
- * удаление черновика по актуальному ключу. Реализация —
- * `useBuilderSession.commitSavedSnapshot`; зовётся явно из обоих путей записи
- * (обычное сохранение и переход на копию). Принимает токен сессии,
- * снятый на старте сохранения, и сверяет его сам — между проверкой у вызывающего
- * и фиксацией стоит `await renameSession`.
+ * Commits the current state of the session as the saved one: a new
+ * `savedSnapshot` and the removal of the draft under the current key. Implemented
+ * by `useBuilderSession.commitSavedSnapshot`; called explicitly from both writing
+ * paths (the ordinary save and the move onto a copy). It takes the session token
+ * captured at the start of the save and checks it itself — between the caller's
+ * own check and the commit stands `await renameSession`.
  */
 export type TCommitSavedSnapshot = (capturedToken: number) => void;
 
 /**
- * Опции composable useBuilderSession.
+ * Options of the useBuilderSession composable.
  */
 export interface IBuilderSessionOptions {
     routeAddress: ComputedRef<IBricksPageAddress>;
@@ -96,46 +98,49 @@ export interface IBuilderSessionOptions {
     renameSession: TRenameBuilderSession;
     sessionToken: IBuilderSessionToken;
     /**
-     * Сообщение о недоступном хранилище черновиков. Сессия удаляет черновик в
-     * трёх местах (stale-запись, фиксация сохранённого, отказ от восстановления),
-     * и тихий отказ удаления вернул бы предложение восстановить уже отклонённое.
+     * The message about an unreachable draft storage. The session removes a draft
+     * in three places (a stale record, the commit of a saved state, a refusal to
+     * restore), and a silent refusal of the removal would bring back the offer to
+     * restore what has already been turned down.
      */
     draftStorageNotice: IDraftStorageNotice;
     /**
-     * Право правки текущей роли: от него зависит, читается ли черновик.
+     * The editing right of the current role: whether a draft is read at all
+     * depends on it.
      *
-     * Ключ черновика адресный — один на всех, кто откроет эту страницу в этом
-     * браузере, — поэтому роль без права правки его не читает вовсе: иначе
-     * наблюдатель увидел бы незавершённую работу редактора, а ответом «удалить»
-     * в окне восстановления унёс бы её насовсем. Приходит из composition root,
-     * а не из композабла прав напрямую: так его подменяет тест.
+     * The key of a draft is the address — one for everyone who opens this page in
+     * this browser — so a role without the editing right does not read it at all:
+     * otherwise an observer would see the unfinished work of an editor and, by
+     * answering "discard" in the restore window, would take it away for good. It
+     * comes from the composition root rather than from the permissions composable
+     * directly: that is how a test substitutes it.
      */
     canEdit: ComputedRef<boolean>;
 }
 
 /**
- * Опции composable useBuilderDraftPrompt: предложение восстановить черновик
- * живёт поверх открытой сессии, поэтому всё, что связывает его с ней, приходит
- * снаружи — своего состояния сессии у предложения нет.
+ * Options of the useBuilderDraftPrompt composable: the offer to restore a draft
+ * lives on top of an open session, so everything tying it to that session comes
+ * from the outside — the offer holds no session state of its own.
  */
 export interface IBuilderDraftPromptOptions {
-    /** Проверка поколения открытия: отсекает ответ по предложению прежней сессии. */
+    /** The generation check of an opening: cuts off an answer to the offer of a former session. */
     isCurrentSession: (generation: number) => boolean;
-    /** Применение снапшота черновика в сторы билдера. */
+    /** Applies the snapshot of a draft into the builder stores. */
     applySnapshot: (snapshot: IBuilderDraftSnapshot) => void;
-    /** Удаление черновика с сообщением о недоступном хранилище. */
+    /** Removes a draft, reporting an unreachable storage. */
     discardDraft: (address: IBricksPageAddress) => void;
-    /** Адрес сессии — запасной ключ удаления, если у самого черновика его нет. */
+    /** The session address — the fallback removal key when the draft itself carries none. */
     sessionAddress: Ref<IBricksPageAddress>;
     /**
-     * Сохранённая версия открытой страницы — эталон, по которому правка
-     * пользователя отличается от служебной перезаписи формы.
+     * The saved version of the open page — the reference an edit made by a person
+     * is told apart from a housekeeping rewrite of the form by.
      */
     savedSnapshot: Ref<IBuilderDraftSnapshot | null>;
 }
 
 /**
- * Опции composable useBuilderDraftPersistence.
+ * Options of the useBuilderDraftPersistence composable.
  */
 export interface IBuilderDraftPersistenceOptions {
     routeAddress: ComputedRef<IBricksPageAddress>;
@@ -143,30 +148,33 @@ export interface IBuilderDraftPersistenceOptions {
     isSessionLoading: Ref<boolean>;
     isSessionReady: Ref<boolean>;
     /**
-     * Черновик найден, ответа на него нет. Запрещает автосейву и трогать запись
-     * черновика, и удалять её: на канвасе сохранённая версия, и сравнение с
-     * `savedSnapshot` снесло бы предложенный снапшот до ответа пользователя.
+     * A draft is found and unanswered. What it forbids the autosave is the REMOVAL
+     * of the record, not the write: what is on the canvas is the saved version, so
+     * the "matches `savedSnapshot`" branch would sweep the offered snapshot away
+     * before a person had answered. The write goes on unconditionally — why, at the
+     * flush of `useBuilderDraftPersistence`.
      */
     isDraftRestorePending: Ref<boolean>;
     savedSnapshot: Ref<IBuilderDraftSnapshot | null>;
     buildCurrentSnapshot: () => IBuilderDraftSnapshot;
     /**
-     * Сообщение о недоступном хранилище: проба на входе в сессию и отказ записи
-     * по ходу работы ведут в него же. Латч — внутри самого уведомления, автосейв
-     * повторяет попытку каждые ~800 мс, и сообщение на каждую было бы шумом.
+     * The message about an unreachable storage: the probe on entering a session
+     * and a refused write during the work both lead into the same one. The latch
+     * is inside the notice itself — the autosave retries about every 800 ms, and a
+     * message per attempt would be noise.
      */
     draftStorageNotice: IDraftStorageNotice;
     /**
-     * Право правки текущей роли: без него автосейв не пишет и не удаляет запись.
-     * Ключ черновика адресный, поэтому запись наблюдателя затёрла бы
-     * незавершённую работу редактора, а удаление (ветка «совпадает с сохранённой
-     * версией») унесло бы её насовсем.
+     * The editing right of the current role: without it the autosave neither
+     * writes the record nor removes it. The key of a draft is the address, so a
+     * write by an observer would overwrite the unfinished work of an editor, and a
+     * removal (the "matches the saved version" branch) would take it away for good.
      */
     canEdit: ComputedRef<boolean>;
 }
 
 /**
- * Опции composable useBuilderSessionAddressSync.
+ * Options of the useBuilderSessionAddressSync composable.
  */
 export interface IBuilderSessionAddressSyncOptions {
     renameSession: TRenameBuilderSession;
@@ -176,66 +184,69 @@ export interface IBuilderSessionAddressSyncOptions {
 
 // #region useComponentLibrary
 /**
- * Данные библиотеки компонентов в кеше `useAsyncData('bricks-components')`:
- * записи манифеста и хеш, с которым пришёл ответ ручки. Хеш лежит рядом с
- * записями, чтобы сверять было с чем — заготовка под сверку хешей в dev,
- * потребителя у поля пока нет.
+ * The data of the component library in the `useAsyncData('bricks-components')`
+ * cache: the manifest entries and the hash the endpoint's answer arrived with. The
+ * hash lies next to the entries so that there is something to compare against — a
+ * groundwork for comparing hashes in dev, the field has no consumer yet.
  *
- * Метаданные и хеш описывают один и тот же ответ: и то и другое приходит
- * манифестом, который генератор собирает разбором brick-файлов на build-time.
+ * The metadata and the hash describe one and the same answer: both arrive in the
+ * manifest the generator assembles by parsing the brick files at build time.
  */
 export interface IComponentLibraryData {
-    /** Хеш манифеста brick-компонентов из ответа ручки компонентов. */
+    /** The hash of the brick component manifest, out of the components endpoint answer. */
     hash: string;
     /**
-     * Прогон деградировал: манифест не дошёл за SSR-дедлайн, записей нет и в
-     * библиотеке остаются одни layout-блоки. Поле обязательное, а не
-     * опциональное, чтобы ветка, забывшая его выставить, не выдавала неполный
-     * результат за полный.
+     * The run degraded: the manifest did not arrive within the SSR deadline, there
+     * are no entries and the library is left with the layout blocks alone. The
+     * field is required rather than optional so that a branch which forgot to set
+     * it cannot pass an incomplete result off as a complete one.
      *
-     * Смысл узкий: «ответ ручки не дошёл за дедлайн, поэтому список деградирован».
-     * Обычный отказ ручки маркером не кодируется — он живёт в `error` того же
-     * `useAsyncData` (клиентское восстановление повторяет оба исхода, но различает
-     * их по источнику). Запись без лоадера в сборке сюда не попадает вовсе:
-     * список после неё полон настолько, насколько это возможно, и повтор такой
-     * пропуск не исправит.
+     * The meaning is narrow: "the endpoint's answer missed the deadline, therefore
+     * the list is degraded". An ordinary refusal of the endpoint is not encoded by
+     * the marker — it lives in the `error` of the same `useAsyncData` (the
+     * client-side recovery retries both outcomes but tells them apart by their
+     * source). An entry with no loader in the build does not reach here at all: the
+     * list after one is as full as it can be, and a retry will not mend such a
+     * skip.
      */
     isPartial: boolean;
     /**
-     * Записи манифеста как есть. Хранится именно ответ ручки, а не собранный по
-     * нему список: из одних и тех же записей выводятся карточки библиотеки,
-     * опции модалок, пропуски и индекс метаданных, и две копии одного ответа
-     * рано или поздно разъехались бы. На гидрации handler не исполняется —
-     * записи приезжают в payload и восстанавливают всё перечисленное.
+     * The manifest entries as they are. What is stored is the endpoint's answer
+     * rather than the list built out of it: the library cards, the modal options,
+     * the skips and the metadata index are all derived from the same entries, and
+     * two copies of one answer would sooner or later drift apart. On hydration the
+     * handler does not run — the entries arrive in the payload and restore
+     * everything listed.
      */
     bricks: IBrickManifestEntry[];
 }
 
 /**
- * Возвращаемое значение composable useComponentLibrary.
+ * Return value of the useComponentLibrary composable.
  */
 export interface IUseComponentLibraryReturn {
     componentLibraryList: ComputedRef<IComponentLibraryItem[]>;
     /**
-     * Записи манифеста, не доехавшие до библиотеки. Показанного списка по ним не
-     * восстановить: пользователь иначе видит библиотеку, молча лишённую части
-     * компонентов, при полном отсутствии признаков отказа.
+     * The manifest entries that never made it into the library. The list on the
+     * screen does not give them away: otherwise a person sees a library quietly
+     * short of some of its components, with no sign of a refusal at all.
      */
     skippedBricks: ComputedRef<ISkippedBrick[]>;
     /**
-     * Отказ загрузки манифеста. Отдельно от пустого списка: layout-блоки
-     * остаются доступны и при отказе, то есть по составу списка отказ неотличим.
+     * A refused load of the manifest. Apart from an empty list: the layout blocks
+     * stay available under a refusal too, so a refusal cannot be told by what the
+     * list holds.
      */
     isComponentLibraryLoadFailed: ComputedRef<boolean>;
     isComponentLibraryLoading: ComputedRef<boolean>;
-    /** Повторяет загрузку; возвращает признак успеха. */
+    /** Retries the load; returns whether it succeeded. */
     refreshComponentLibrary: () => Promise<boolean>;
 }
 // #endregion
 
 // #region usePageThumbnail
 /**
- * Ответ POST /api/bricks/media/s3-page-thumbnail.
+ * The answer of POST /api/bricks/media/s3-page-thumbnail.
  */
 export interface IThumbnailUploadResponse {
     success: boolean;
@@ -243,7 +254,7 @@ export interface IThumbnailUploadResponse {
 }
 
 /**
- * Возвращаемое значение composable usePageThumbnail.
+ * Return value of the usePageThumbnail composable.
  */
 export interface IUsePageThumbnailReturn {
     captureAndUploadThumbnail: (pageId: string | number, startedIn: number) => Promise<void>;
@@ -252,9 +263,10 @@ export interface IUsePageThumbnailReturn {
 
 // #region useBuilderPageWrite
 /**
- * Опции composable useBuilderPageWrite: всё, что принадлежит composition root'у,
- * а не самой записи — токен сессии, её перенос и фиксация, открытие панели
- * публикации для подсветки полей.
+ * Options of the useBuilderPageWrite composable: everything that belongs to the
+ * composition root rather than to the write itself — the session token, the move
+ * and the commit of the session, the opening of the publish panel to light the
+ * fields up.
  */
 export interface IBuilderPageWriteOptions {
     sessionToken: IBuilderSessionToken;
@@ -265,7 +277,7 @@ export interface IBuilderPageWriteOptions {
 }
 
 /**
- * Возвращаемое значение composable useBuilderPageWrite.
+ * Return value of the useBuilderPageWrite composable.
  */
 export interface IUseBuilderPageWriteReturn {
     isEditingExistingPage: ComputedRef<boolean>;
@@ -277,24 +289,24 @@ export interface IUseBuilderPageWriteReturn {
 
 // #region useBuilderPage
 /**
- * Мост inline-редактора (editor → media-галерея и сброс сессии).
- * Собирается composition root'ом из editor-store, чтобы builder-ядро не импортировало editor.
+ * The bridge of the inline editor (editor → the media gallery and the reset of a
+ * session). Assembled by the composition root out of the editor store so that the
+ * core of the builder does not import the editor.
  */
 export interface IInlineMediaBridge {
     isRequestingMedia: ComputedRef<boolean>;
     resolveMediaRequest: (item: IMediaItem) => void;
     cancelMediaRequest: () => void;
     /**
-     * Гасит inline-редактирование. Его состояние переживает смену схемы канваса:
-     * `loadSchema` сбрасывает только `selectedComponent`, а `componentId` и
-     * экземпляр редактора остаются от компонента, которого на новом канвасе
-     * уже нет.
+     * Puts inline editing out. Its state outlives a change of the canvas schema:
+     * `loadSchema` resets `selectedComponent` alone, while `componentId` and the
+     * editor instance stay behind from a component the new canvas no longer holds.
      */
     cancelInlineEditing: () => void;
 }
 
 /**
- * Опции composable useBuilderPage.
+ * Options of the useBuilderPage composable.
  */
 export interface IBuilderPageOptions {
     inlineMediaBridge: IInlineMediaBridge;
@@ -305,20 +317,21 @@ export interface IBuilderPageOptions {
 }
 
 /**
- * Возвращаемое значение composable useBuilderPage.
+ * Return value of the useBuilderPage composable.
  */
 export interface IUseBuilderPageReturn {
     sidebarStore: ReturnType<typeof useSidebarStore>;
     publishStore: ReturnType<typeof usePublishStore>;
     componentLibraryList: ComputedRef<IComponentLibraryItem[]>;
-    /** Записи манифеста, не доехавшие до библиотеки, — для предупреждения в сайдбаре. */
+    /** The manifest entries that never made it into the library — for the sidebar warning. */
     skippedBricks: ComputedRef<ISkippedBrick[]>;
     isComponentLibraryLoadFailed: ComputedRef<boolean>;
     isComponentLibraryLoading: ComputedRef<boolean>;
     handleRetryComponentLibrary: () => Promise<void>;
     /**
-     * Сообщает об отказе загрузки библиотеки тостом. Зовётся страницей из
-     * `onMounted`: composable await'ится и на SSR, где показывать его некому.
+     * Reports a refused load of the library with a toast. Called by the page out of
+     * `onMounted`: the composable is awaited on SSR too, where there is nobody to
+     * show it to.
      */
     notifyComponentLibraryFailure: () => void;
     isDocumentationModalOpen: Ref<boolean>;
@@ -351,29 +364,29 @@ export interface IUseBuilderPageReturn {
 
 // #region useBuilderPageSelector
 /**
- * Опции composable useBuilderPageSelector: всё, чем селектор связан с открытой
- * сессией. Своего состояния сессии у него нет.
+ * Options of the useBuilderPageSelector composable: everything the selector is
+ * tied to the open session by. It holds no session state of its own.
  */
 export interface IBuilderPageSelectorOptions {
-    /** Идентичность открытой страницы: по ней отсекается выбор самой себя. */
+    /** The identity of the open page: picking the page itself is cut off by it. */
     sessionPageId: Ref<string | number | null>;
     routeAddress: ComputedRef<IBricksPageAddress>;
     /**
-     * Токен сессии: создание страницы переживает переход на другую страницу
-     * билдера (модалка портальная, страница не перемонтируется), и переход в
-     * созданную страницу имеет смысл только для той сессии, где её создавали.
+     * The session token: the creation of a page outlives a move onto another
+     * builder page (the modal is portaled, the page is not remounted), and moving
+     * into the created page only makes sense for the session it was created in.
      */
     sessionToken: IBuilderSessionToken;
     showToast: TShowToast;
 }
 
 /**
- * Возвращаемое значение composable useBuilderPageSelector.
+ * Return value of the useBuilderPageSelector composable.
  */
 export interface IUseBuilderPageSelectorReturn {
-    /** Идёт догрузка или освежение списка страниц. */
+    /** The page list is being loaded or refreshed. */
     isPagesRefreshing: Ref<boolean>;
-    /** Модалку создания уже открывали — с этого момента её чанк смонтирован. */
+    /** The create window has been opened once — its chunk is mounted from then on. */
     shouldMountCreatePageModal: Ref<boolean>;
     isCreatePageModalOpen: Ref<boolean>;
     schemaImport: IUsePublishSchemaImportReturn;
@@ -387,27 +400,27 @@ export interface IUseBuilderPageSelectorReturn {
 
 // #region useBuilderTemplateSave
 /**
- * Опции composable useBuilderTemplateSave.
+ * Options of the useBuilderTemplateSave composable.
  */
 export interface IUseBuilderTemplateSaveOptions {
-    /** Сессия открыта до согласованного состояния: до этого канвас пуст. */
+    /** The session is open to a consistent state: before that the canvas is empty. */
     isSessionReady: Ref<boolean> | ComputedRef<boolean>;
     showToast: TShowToast;
 }
 
 /**
- * Возвращаемое значение composable useBuilderTemplateSave.
+ * Return value of the useBuilderTemplateSave composable.
  */
 export interface IUseBuilderTemplateSaveReturn {
-    /** Содержимое будущего шаблона и подпись его источника; `null` — не собрано. */
+    /** The content of the future template and the caption of its source; `null` — none. */
     source: ComputedRef<ITemplateSaveSource | null>;
     isModalOpen: ComputedRef<boolean>;
-    /** Форму уже открывали — с этого момента её чанк смонтирован. */
+    /** The form has been opened once — its chunk is mounted from then on. */
     shouldMountModal: ComputedRef<boolean>;
-    /** Собирает источник из канваса и открывает форму шаблона. */
+    /** Assembles the source out of the canvas and opens the template form. */
     requestFromCanvas: () => void;
     close: () => void;
-    /** Шаблон сохранён: закрыть форму и показать тост. */
+    /** The template is saved: close the form and show a toast. */
     handleSaved: (template: TBricksTemplateSummary) => void;
 }
 // #endregion

@@ -35,11 +35,13 @@ import { usePublishStore } from '../../publish/stores/publish';
 // #endregion
 
 /**
- * Собирает всю бизнес-логику страницы билдера и отдаёт Vue-компоненту только необходимые состояния.
+ * Assembles the whole business logic of the builder page and hands the Vue
+ * component the states it needs alone.
  *
- * @param options - Мост inline-редактора, перенос и фиксация сессии, токен сессии;
- * всё собирается composition root'ом (`pages/[pagename].vue`), чтобы builder-ядро
- * не зависело от editor и владело сессией в одном месте.
+ * @param options - The bridge of the inline editor, the move and the commit of the
+ * session, the session token; everything is assembled by the composition root
+ * (`pages/[pagename].vue`) so that the core of the builder does not depend on the
+ * editor and owns the session in one place.
  */
 export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUseBuilderPageReturn> {
     const {
@@ -59,16 +61,17 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
     const dragComposable = useComponentLibraryDrag();
     const bricksConfig = useBricksConfig();
 
-    // Кэшируем backgroundColor для использования в store (вне Vue контекста)
+    // The backgroundColor is cached for use in the store (outside a Vue context)
     setPublishStoreBackgroundColor(bricksConfig.backgroundColor || '#FFFFFF');
 
-    // Набор устройств кладёт composition root: `builder/core` не имеет права
-    // импортировать `builder/publish`, где живёт форма с `viewportConfig`.
-    // Watcher, а не разовый вызов на bootstrap: страница билдера намеренно не
-    // перемонтируется при смене адреса, набор правится модалкой и приезжает с
-    // восстановленным черновиком — каждый из этих источников проходит через форму.
-    // `flush: 'sync'` — канвас смонтирован с самого начала (под лоадером), и
-    // отложенное применение оставило бы его на прежних размерах.
+    // The device set is put in by the composition root: `builder/core` has no right
+    // to import `builder/publish`, where the form with the `viewportConfig` lives. A
+    // watcher rather than a one-off call on the bootstrap: the builder page is
+    // deliberately not remounted on a change of the address, the set is edited by a
+    // window and arrives with a restored draft — every one of these sources goes
+    // through the form. `flush: 'sync'` — the canvas is mounted from the very
+    // beginning (under the loader), and a deferred application would leave it at the
+    // former sizes.
     const { resolvePageDevices } = useBricksDevices();
 
     watch(
@@ -79,8 +82,9 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
 
             canvasStore.setDevices(devices);
 
-            // Первый прогон (immediate) сравнивать не с чем: прежнего набора
-            // ещё не было, и «исчезнувшими» оказались бы все ключи схемы
+            // The first run (immediate) has nothing to compare against: there was
+            // no former set yet, and every key of the schema would come out as
+            // "disappeared"
             if (previousConfig === undefined) {
                 return;
             }
@@ -97,15 +101,17 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
         { immediate: true, deep: true, flush: 'sync' }
     );
 
-    // Блокам, которым мало CSS-переменных (Slider строит JS-брейкпоинты Swiper),
-    // набор нужен значением — отдаём инъекцией
+    // The blocks that CSS variables are not enough for (the Slider builds the JS
+    // breakpoints of Swiper) need the set as a value — it is handed over by
+    // injection
     provide(
         BRICKS_DEVICES_KEY,
         computed(() => canvasStore.devices)
     );
 
-    // Тот же набор — источник CSS страницы билдера: вытесняет проектные теги
-    // плагина по ключу, канвас получает правила своих устройств
+    // That same set is the source of the CSS of the builder page: it displaces the
+    // project tags of the plugin by their key, and the canvas gets the rules of its
+    // own devices
     const getPageDevices = () => canvasStore.devices;
 
     useBricksStyles(getPageDevices);
@@ -122,20 +128,21 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
 
     // #region State
     const isDocumentationModalOpen = ref(false);
-    // Галерея монтируется только с первым открытием: смонтированная сразу, она на
-    // старте билдера тянула списки файлов и категорий, которых у неоткрытой
-    // галереи никто не спрашивает (импорт схемы догружает медиатеку сам).
-    // Латч обратно не снимается — как у модалки создания страницы: пересоздание
-    // компонента теряло бы анимацию закрытия
+    // The gallery is mounted with the first opening only: mounted right away, it
+    // used to pull the lists of the files and the categories at the start of the
+    // builder — the ones nobody asks an unopened gallery for (the import of a schema
+    // loads the media library itself). The latch is never lowered again, as with the
+    // create-page window: recreating the component would lose the closing animation
     const shouldMountMediaGallery = ref(false);
     const isMediaGalleryModalOpen = ref(false);
     const mediaGalleryContext = ref<TMediaGalleryContext>('manager');
     const sidebarRef = ref<ISidebarExpose | null>(null);
     const propertiesPanelRef = ref<ISidebarExpose | null>(null);
 
-    // Токен сессии, в которой открыли галерею: выбор применяется к панели свойств
-    // и сайдбару текущей страницы, а сама галерея телепортирована в body — то есть
-    // лежит вне `inert`-барьера рабочей области и переживает смену сессии
+    // The token of the session the gallery was opened in: the choice is applied to
+    // the properties panel and to the sidebar of the current page, while the gallery
+    // itself is teleported into body — that is, it lies outside the `inert` barrier
+    // of the workspace and outlives a change of session
     let mediaGalleryToken: number | null = null;
     // #endregion
 
@@ -148,14 +155,14 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
 
     // #region Sidebar toggles
     /**
-     * Переключает видимость библиотеки компонентов в сайдбаре.
+     * Toggles the visibility of the component library in the sidebar.
      */
     function handleToggleLibrary(): void {
         sidebarStore.toggleSidebarView('components');
     }
 
     /**
-     * Переключает видимость схемы компонентов в сайдбаре.
+     * Toggles the visibility of the component schema in the sidebar.
      */
     function handleToggleSchema(): void {
         sidebarStore.toggleSidebarView('schema');
@@ -164,8 +171,8 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
 
     // #region Publish handlers
     /**
-     * Открывает панель настроек публикации.
-     * Если панель ещё не видна и нет черновых данных, инициализирует новую публикацию.
+     * Opens the panel of the publish settings. When the panel is not visible yet and
+     * there is no draft data, it initializes a new publication.
      */
     function handleOpenPublishSettings(): void {
         const isPublishViewVisible =
@@ -187,24 +194,24 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
     }
 
     /**
-     * Гарантирует видимость панели настроек публикации.
-     * Всегда открывает панель публикации при ошибках валидации, чтобы подсветить поля.
+     * Guarantees the visibility of the panel of the publish settings. It always
+     * opens the publish panel on validation errors, so that the fields are lit up.
      *
-     * @param _message - Сообщение об ошибке (не используется напрямую).
+     * @param _message - The error message (not used directly).
      */
     function ensurePublishSettingsVisible(_message: string): void {
         handleOpenPublishSettings();
     }
 
     /**
-     * Открывает модальное окно документации.
+     * Opens the documentation window.
      */
     function handleOpenDocs(): void {
         isDocumentationModalOpen.value = true;
     }
 
     /**
-     * Закрывает модальное окно документации.
+     * Closes the documentation window.
      */
     function handleCloseDocs(): void {
         isDocumentationModalOpen.value = false;
@@ -220,8 +227,9 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
         });
 
     /**
-     * Открывает превью текущего лендинга в новой вкладке.
-     * После открытия запускает синхронизацию — изменения на канвасе будут отражаться в превью в реальном времени.
+     * Opens the preview of the current landing in a new tab. After the opening it
+     * starts the synchronization — the changes on the canvas will show up in the
+     * preview in real time.
      */
     async function handlePreview(): Promise<void> {
         const schema = componentsStore.exportSchema();
@@ -238,9 +246,9 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
     }
 
     /**
-     * Показывает ошибку медиа-галереи (например, недоступна БД).
+     * Shows an error of the media gallery (an unreachable database, for one).
      *
-     * @param message - Текст ошибки.
+     * @param message - The text of the error.
      */
     function handleMediaError(message: string): void {
         showToast(message, 'error');
@@ -249,7 +257,7 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
 
     // #region Media gallery
     /**
-     * Открывает модальное окно медиа-галереи.
+     * Opens the window of the media gallery.
      */
     function handleOpenMediaGallery(context: TMediaGalleryContext = 'manager'): void {
         mediaGalleryContext.value = context;
@@ -259,7 +267,7 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
     }
 
     /**
-     * Закрывает модальное окно медиа-галереи.
+     * Closes the window of the media gallery.
      */
     function handleCloseMediaGallery(): void {
         isMediaGalleryModalOpen.value = false;
@@ -269,15 +277,17 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
     }
 
     /**
-     * Обрабатывает выбор медиа-элемента из галереи.
-     * Передаёт выбранный элемент в панель свойств, сайдбар или inline editor и закрывает галерею.
+     * Handles the choice of a media item out of the gallery. It passes the chosen
+     * item into the properties panel, the sidebar or the inline editor and closes
+     * the gallery.
      *
-     * @param item - Выбранный медиа-элемент.
+     * @param item - The chosen media item.
      */
     function handleMediaSelect(item: IMediaItem): void {
-        // Второй барьер к сбросу ниже: уезжающая модалка ещё может отдать клик, а
-        // цели выбора (панель свойств, сайдбар, inline-редактор) принадлежат уже
-        // другой странице — как и у модалки восстановления черновика
+        // A second barrier to the reset below: a leaving window can still give a
+        // click away, while the targets of the choice (the properties panel, the
+        // sidebar, the inline editor) belong to an already different page — as with
+        // the draft restore window
         if (mediaGalleryToken !== null && !sessionToken.isCurrent(mediaGalleryToken)) {
             handleCloseMediaGallery();
             return;
@@ -301,7 +311,7 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
         mediaGalleryToken = null;
     }
 
-    // Открываем MediaGallery когда inline editor запрашивает изображение
+    // The MediaGallery is opened when the inline editor asks for an image
     watch(inlineMediaBridge.isRequestingMedia, (requesting) => {
         if (requesting) {
             handleOpenMediaGallery('properties');
@@ -310,17 +320,19 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
     // #endregion
 
     // #region Session reset
-    // Поверхности, телепортированные в body, лежат вне `.workspace`, поэтому
-    // барьер `inert` рабочей области их не закрывает и они переживают смену сессии:
-    // галерея пишет `socialImage` или проп компонента через контекст выбора прежней
-    // страницы; inline-редактирование остаётся привязанным к компоненту, которого
-    // на новом канвасе нет (`loadSchema` сбрасывает только `selectedComponent`).
-    // Проверки готовности здесь мало — к моменту подтверждения новая сессия уже
-    // готова, — поэтому открытие сессии гасит их явно.
+    // The surfaces teleported into body lie outside `.workspace`, so the `inert`
+    // barrier of the workspace does not close them and they outlive a change of
+    // session: the gallery writes a `socialImage` or a prop of a component through
+    // the choice context of the former page; inline editing stays tied to a component
+    // the new canvas does not hold (`loadSchema` resets `selectedComponent` alone). A
+    // readiness check is not enough here — by the moment of the confirmation the new
+    // session is ready already — so the opening of a session puts them out
+    // explicitly.
     //
-    // flush: 'sync' — сброс обязан произойти в момент инвалидации токена, а не на
-    // следующем тике: `openBuilderSession` сразу уходит в await, и отложенный
-    // колбэк выполнился бы уже вперемешку с bootstrap'ом новой страницы.
+    // flush: 'sync' — the reset is obliged to happen at the moment the token is
+    // invalidated rather than on the next tick: `openBuilderSession` goes into an
+    // await right away, and a deferred callback would run intermixed with the
+    // bootstrap of the new page.
     watch(
         sessionToken.token,
         () => {
@@ -331,13 +343,14 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
     );
     // #endregion
 
-    // Единственный await composable'а — и он последний. После него активный
-    // effect scope теряется (`getCurrentScope()` → undefined), а `watch`,
-    // зарегистрированный в потерянном scope, не останавливается на unmount:
-    // каждый повторный заход в билдер оставлял бы живое замыкание на мёртвые refs,
-    // и мутация глобального стора дёргала бы обработчики всех прошлых экземпляров.
-    // Поэтому вся синхронная проводка (включая оба watcher'а) идёт выше, а
-    // библиотека компонентов дожидается здесь — её значение нужно только в return.
+    // The single await of the composable — and it is the last statement of the
+    // wiring. After it the active effect scope is lost (`getCurrentScope()` →
+    // undefined), and a `watch` registered in a lost scope does not stop on unmount:
+    // every repeated visit to the builder would leave a live closure over dead refs,
+    // and a mutation of a global store would poke the handlers of every past
+    // instance. That is why the whole synchronous wiring (both watchers included)
+    // goes above, while the component library is awaited here — its value is needed
+    // in the return alone.
     const {
         componentLibraryList,
         skippedBricks,
@@ -347,8 +360,8 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
     } = await useComponentLibrary();
 
     /**
-     * Повторяет загрузку библиотеки по кнопке сайдбара; повторный отказ снова
-     * сообщается тостом — сама кнопка остаётся на месте.
+     * Retries the load of the library on the button of the sidebar; a second refusal
+     * is reported with a toast again — the button itself stays where it is.
      */
     async function handleRetryComponentLibrary(): Promise<void> {
         const isLoaded = await refreshComponentLibrary();
@@ -359,19 +372,20 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
     }
 
     /**
-     * Сообщает об отказе загрузки библиотеки. Показ не делается здесь же, а отдан
-     * странице (её `onMounted`): composable await'ится в setup, в том числе на
-     * SSR, где показывать тост некому, а сам toast принадлежит странице — она же
-     * владеет его монтированием.
+     * Reports a refused load of the library. The showing is not done right here but
+     * left to the page (its `onMounted`): the composable is awaited in setup, on SSR
+     * too, where there is nobody to show a toast to, and the toast itself belongs to
+     * the page — the page is what owns its mounting.
      *
-     * Тост нужен вместе с блоком повтора в сайдбаре, а не вместо него: блок
-     * виден только при открытой библиотеке, то есть об отказе иначе можно узнать
-     * лишь случайно.
+     * The toast is needed together with the retry block in the sidebar rather than
+     * instead of it: the block is visible only while the library is open, that is,
+     * one could otherwise learn of a refusal by chance alone.
      *
-     * Отказ и пропуски могут быть истинны одновременно (список приехал из
-     * снимка прошлой загрузки, свежий запрос не дошёл), но тост — один: toast
-     * синглтонный, и второй просто затёр бы первый. Приоритет у отказа ручки —
-     * он и свежее, и чинится повтором.
+     * A refusal and the skips may both be true at once (the list arrived out of the
+     * snapshot of a previous load and the fresh request never came), but the toast is
+     * one: the toast is a singleton, and a second one would simply overwrite the
+     * first. The priority is with the refusal of the endpoint — it is both fresher
+     * and mended by a retry.
      */
     function notifyComponentLibraryFailure(): void {
         if (isComponentLibraryLoadFailed.value) {

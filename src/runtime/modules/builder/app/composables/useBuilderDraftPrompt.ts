@@ -16,17 +16,18 @@ import { usePublishStore } from '../../publish/stores/publish';
 // #endregion
 
 /**
- * Предложение восстановить найденный черновик: состояние «черновик есть, ответа
- * нет», окно с выбором и три исхода — восстановить, удалить, отложить.
+ * The offer to restore a found draft: the "there is a draft and no answer" state,
+ * the window with the choice and three outcomes — restore, discard, defer.
  *
- * Готовность сессии предложением не держится: на канвасе лежит сохранённая
- * версия страницы, править её можно, а предложение висит рядом тостом. Взамен
- * готовности состояние охраняет запись черновика — пока ответа нет, автосейв её
- * не трогает (`useBuilderDraftPersistence`), иначе совпадение с сохранённой
- * версией удалило бы предложенный снапшот до ответа.
+ * The offer does not hold the readiness of the session back: what lies on the
+ * canvas is the saved version of the page, it may be edited, and the offer hangs
+ * beside it as a toast. Instead of readiness the state guards the draft record from
+ * REMOVAL — while there is no answer the autosave does not delete it
+ * (`useBuilderDraftPersistence`), otherwise a match with the saved version would
+ * take the offered snapshot away before the answer. The write is not held back.
  *
- * Владелец предложения — `useBuilderSession`: он взводит его на bootstrap'е и
- * снимает при переоткрытии сессии.
+ * The owner of the offer is `useBuilderSession`: it arms the offer on the bootstrap
+ * and takes it down when the session is reopened.
  */
 export function useBuilderDraftPrompt(options: IBuilderDraftPromptOptions) {
     const { isCurrentSession, applySnapshot, discardDraft, sessionAddress, savedSnapshot } =
@@ -35,37 +36,38 @@ export function useBuilderDraftPrompt(options: IBuilderDraftPromptOptions) {
     const historyStore = useHistoryStore();
     const publishStore = usePublishStore();
 
-    // Черновик найден, ответа на него нет: держит тост на экране и запрет
-    // автосейву трогать запись
+    // A draft is found and unanswered: it holds the toast on the screen and the
+    // ban on the autosave touching the record
     const isDraftRestorePending = ref(false);
     const isRestoreDraftModalOpen = ref(false);
     const pendingDraft = ref<IBuilderDraftEntry | null>(null);
 
-    // Поколение открытия, нашедшего черновик, — вместе с `pointer-events: none`
-    // на уезжающей модалке (transitions.scss) закрывает запоздалый ответ: клик по
-    // уже сброшенному предложению отвечал бы за другую — грузящуюся или упавшую —
-    // сессию. Обнуляется после ответа, поэтому ответ ещё и одноразовый: повторный
-    // клик по той же модалке — no-op.
+    // The generation of the opening that found the draft — together with the
+    // `pointer-events: none` on the leaving modal (transitions.scss) it closes a
+    // late answer: a click on an offer already taken down would answer for another
+    // session, one still loading or one that failed. It is nulled after an answer,
+    // which makes an answer one-shot as well: a second click on the same window is
+    // a no-op.
     let promptGeneration: number | null = null;
 
-    /** Остановка наблюдателя за первой собственной правкой (см. `armSupersedeWatch`). */
+    /** Stops the watcher of the first edit of one's own (see `armSupersedeWatch`). */
     let stopSupersedeWatch: (() => void) | null = null;
 
     /**
-     * Принадлежит ли ответ актуальному открытию сессии. Отсекает и запоздалый клик
-     * по предложению прежней сессии, и повторный ответ.
+     * Whether the answer belongs to the current opening of the session. It cuts off
+     * both a late click on the offer of a former session and a second answer.
      *
-     * @returns Можно ли применять ответ.
+     * @returns Whether the answer may be applied.
      */
     function isAnswerCurrent(): boolean {
         return promptGeneration !== null && isCurrentSession(promptGeneration);
     }
 
     /**
-     * Снимает предложение целиком: тост, окно, снапшот в памяти и запрет
-     * автосейва. Единая точка выхода из состояния «черновик найден, ответа нет» —
-     * ею пользуются и ответы пользователя, и вытеснение предложения (первая
-     * правка, перенос или переоткрытие сессии).
+     * Takes the offer down whole: the toast, the window, the snapshot in memory and
+     * the ban on the autosave. The single exit out of the "a draft is found and
+     * unanswered" state — used both by the answers of a person and by the offer
+     * being displaced (the first edit, a move or a reopening of the session).
      */
     function resolveDraftPrompt(): void {
         stopSupersedeWatch?.();
@@ -78,24 +80,25 @@ export function useBuilderDraftPrompt(options: IBuilderDraftPromptOptions) {
     }
 
     /**
-     * Снимает предложение при первой собственной правке пользователя: с этого
-     * момента автосейв перезапишет черновик текущим состоянием, и восстанавливать
-     * станет нечего — предложенный снапшот уже вытеснен.
+     * Takes the offer down on the first edit made by the person: from that moment
+     * on the autosave will rewrite the draft with the current state, and there will
+     * be nothing left to restore — the offered snapshot is displaced already.
      *
-     * Два наблюдателя вместо одного, потому что источники неравноценны:
+     * Two watchers rather than one, because the sources are not of equal worth:
      *
-     * - новая запись в истории канваса бывает только от действия пользователя —
-     *   снимаем сразу;
-     * - форму публикации переписывает и служебный код. Сохранение на каждом заходе
-     *   заново присваивает `published` (`useBuilderPageWrite`), в том числе тем же
-     *   значением, — приняв это за правку, предложение снималось бы само, а
-     *   автосейв следом удалял бы черновик как совпадающий с сохранённой версией.
-     *   Поэтому здесь сверяемся с сохранённой версией: пока форма от неё не
-     *   отличается, правки не было.
+     * - a new record in the history of the canvas only ever comes from an action of
+     *   a person — the offer is taken down at once;
+     * - the publish form is rewritten by housekeeping code as well. Every save
+     *   assigns `published` anew (`useBuilderPageWrite`), with the same value
+     *   included — taken for an edit, that would take the offer down by itself and
+     *   the autosave would then remove the draft as matching the saved version. So
+     *   here the check is against the saved version: while the form does not differ
+     *   from it, there has been no edit.
      *
-     * `flush: 'sync'` — чтобы предложение снималось в момент мутации, а не через
-     * очередь: между pre-watcher'ами и синхронным сбросом черновика на выгрузке
-     * страницы порядок иначе не гарантирован.
+     * `flush: 'sync'` is there so that the offer is taken down at the moment of the
+     * mutation rather than through the queue: between the pre-watchers and the
+     * synchronous flush of the draft on the unload of the page the order is
+     * otherwise not guaranteed.
      */
     function armSupersedeWatch(): void {
         stopSupersedeWatch?.();
@@ -129,12 +132,12 @@ export function useBuilderDraftPrompt(options: IBuilderDraftPromptOptions) {
     }
 
     /**
-     * Взводит предложение по найденному черновику. Зовётся на bootstrap'е, до
-     * подъёма готовности: спрашивать посреди загрузки нечем — окно вылезло бы
-     * поверх лоадера, поэтому показ тоста остаётся за страницей.
+     * Arms the offer over a found draft. Called on the bootstrap, before readiness
+     * is raised: there is nothing to ask with in the middle of a load — the window
+     * would climb over the loader, so showing the toast is left to the page.
      *
-     * @param draft - Найденная запись черновика.
-     * @param generation - Поколение открытия сессии, нашедшего её.
+     * @param draft - The draft record that was found.
+     * @param generation - The generation of the session opening that found it.
      */
     function armDraftPrompt(draft: IBuilderDraftEntry, generation: number): void {
         pendingDraft.value = draft;
@@ -144,9 +147,9 @@ export function useBuilderDraftPrompt(options: IBuilderDraftPromptOptions) {
     }
 
     /**
-     * Останавливает наблюдатель, не снимая самого предложения. Нужен на гашении
-     * сессии: наблюдатель ставится вне активного scope (после await'ов
-     * bootstrap'а) и сам бы не остановился.
+     * Stops the watcher without taking the offer itself down. Needed when a session
+     * is put out: the watcher is set outside an active scope (after the awaits of
+     * the bootstrap) and would not stop itself.
      */
     function stopDraftPromptWatch(): void {
         stopSupersedeWatch?.();
@@ -154,8 +157,9 @@ export function useBuilderDraftPrompt(options: IBuilderDraftPromptOptions) {
     }
 
     /**
-     * Открывает окно с выбором — по клику в тосте. Запоздалый клик по тосту
-     * прежней сессии отсекается тем же поколением, что и ответы в самом окне.
+     * Opens the window with the choice — on a click in the toast. A late click on
+     * the toast of a former session is cut off by the same generation as the
+     * answers in the window itself.
      */
     function openRestoreDraftModal(): void {
         if (!isAnswerCurrent()) {
@@ -166,17 +170,17 @@ export function useBuilderDraftPrompt(options: IBuilderDraftPromptOptions) {
     }
 
     /**
-     * Закрывает окно, не отвечая: X, Esc и клик по фону. Черновик остаётся на
-     * диске, предложение — на экране. Закрытие перестало быть удалением: раньше
-     * промах мимо кнопки уносил несохранённую работу без возврата.
+     * Closes the window without answering: X, Esc and a click on the backdrop. The
+     * draft stays on the disk, the offer stays on the screen. Closing has stopped
+     * being a removal: a miss of the button used to carry unsaved work away with no
+     * way back.
      */
     function handleDeferDraft(): void {
         isRestoreDraftModalOpen.value = false;
     }
 
     /**
-     * Восстанавливает изменения из черновика поверх уже открытой сохранённой
-     * версии.
+     * Restores the changes out of a draft on top of the already open saved version.
      */
     function handleRestoreDraft(): void {
         if (!isAnswerCurrent()) {
@@ -185,9 +189,10 @@ export function useBuilderDraftPrompt(options: IBuilderDraftPromptOptions) {
 
         const draft = pendingDraft.value;
 
-        // Снимаем предложение до применения: снапшот идёт в сторы, а наблюдатель за
-        // первой правкой смотрит ровно на них — иначе он снял бы предложение сам,
-        // уже после того как окно закрылось, и порядок стал бы неочевидным
+        // The offer is taken down before the application: the snapshot goes into
+        // the stores, and the watcher of the first edit looks at exactly those —
+        // otherwise it would take the offer down itself, after the window had
+        // closed already, and the order would become non-obvious
         resolveDraftPrompt();
 
         if (draft?.draftSnapshot) {
@@ -196,18 +201,18 @@ export function useBuilderDraftPrompt(options: IBuilderDraftPromptOptions) {
     }
 
     /**
-     * Удаляет черновик по явному требованию пользователя и оставляет на канвасе
-     * сохранённую версию. Единственный путь, на котором черновик исчезает по
-     * ответу: закрытие окна и закрытие тоста — только откладывают.
+     * Removes a draft on an explicit demand of the person and leaves the saved
+     * version on the canvas. The only path on which a draft disappears by an
+     * answer: closing the window and closing the toast merely defer.
      */
     function handleDiscardDraft(): void {
         if (!isAnswerCurrent()) {
             return;
         }
 
-        // Ключ берём у самого черновика: он и есть предмет ответа. Расходиться с
-        // `sessionAddress` он не успевает — перенос сессии снимает предложение
-        // целиком (watcher в useBuilderSession)
+        // The key is taken off the draft itself: it is what the answer is about.
+        // It has no time to diverge from `sessionAddress` — a move of the session
+        // takes the offer down whole (the watcher in useBuilderSession)
         const draft = pendingDraft.value;
         const address = draft
             ? toPageAddress(draft.pagename, draft.urlPrefix)

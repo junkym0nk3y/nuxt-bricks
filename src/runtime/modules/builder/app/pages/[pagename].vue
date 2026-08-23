@@ -57,29 +57,25 @@ import TheBuilderSessionError from '../components/TheBuilderSessionError.vue';
 import TheBuilderDraftRestoreModal from '../components/TheBuilderDraftRestoreModal.vue';
 import BricksToast from '../../../ui/feedback/BricksToast.vue';
 
-// Модалки — lazy-чанки: не нужны до открытия
+// The windows are lazy chunks. The ones below a `v-if` need that condition as much
+// as the import: without it the chunk would travel out by the first render and the
+// laziness would be on paper only. A mount latch is never lowered again — a
+// recreated component loses its closing animation
 const TheBuilderDocumentationModal = defineAsyncComponent(
     () => import('../../documentation/components/TheBuilderDocumentationModal.vue')
 );
 const TheBuilderMediaGalleryModal = defineAsyncComponent(
     () => import('../../media/components/TheBuilderMediaGalleryModal.vue')
 );
-// Создание страницы и резолвер картинок его импорта: монтируются по требованию
-// (v-if ниже), иначе их чанки уехали бы к первому рендеру билдера — ленивыми они
-// были бы только на бумаге
 const TheBuilderPublishCreatePageModal = defineAsyncComponent(
     () => import('../../publish/components/TheBuilderPublishCreatePageModal.vue')
 );
 const TheBuilderMediaImageResolverModal = defineAsyncComponent(
     () => import('../../media/components/TheBuilderMediaImageResolverModal.vue')
 );
-// Профиль открывают из меню в углу тулбара — до этого ни разметка, ни чанк не
-// нужны (в модалке форма пароля, кадрирование и vee-validate)
 const TheBuilderAuthProfileModal = defineAsyncComponent(
     () => import('../../auth/components/TheBuilderAuthProfileModal.vue')
 );
-// Форма шаблона открывается пунктом сплит-кнопки — до этого ни разметка, ни чанк
-// не нужны (в ней своя форма с vee-validate)
 const TheBuilderTemplatesSaveModal = defineAsyncComponent(
     () => import('../../templates/components/TheBuilderTemplatesSaveModal.vue')
 );
@@ -88,10 +84,10 @@ const TheBuilderTemplatesSaveModal = defineAsyncComponent(
 // #region Meta
 definePageMeta({
     layout: 'bricks',
-    // Статический page key: дефолтный key Nuxt — интерполированный path, из-за чего
-    // смена :pagename перемонтировала бы страницу. Rename сессии (router.replace из
-    // useBuilderSessionAddress.renameSession) остаётся на живом канвасе; навигация на другую
-    // страницу обрабатывается watcher'ом useBuilderSession.
+    // A static page key: the default key of Nuxt is the interpolated path, which
+    // would make a change of :pagename remount the page. A rename of the session
+    // (`useBuilderSessionAddress.renameSession`) stays on a live canvas; a navigation
+    // onto another page is handled by the watcher of useBuilderSession.
     key: 'bricks-builder-pagename',
 });
 // #endregion
@@ -104,51 +100,45 @@ const componentsStore = useComponentsStore();
 const sidebarStore = useSidebarStore();
 const publishStore = usePublishStore();
 
-// Toast — модульный синглтон (useBuilderToast): нужен useBuilderSession раньше
-// useBuilderPage (switchToSavedPage требуется useBuilderPage для Save as Copy)
+// The toast is a module singleton (useBuilderToast): useBuilderSession needs it
+// before useBuilderPage does, and useBuilderPage needs switchToSavedPage in turn
 const { showToast, showActionToast, hideToast } = useBuilderToast();
 
-// Права и профиль сессии: на SSR оба приходят из контекста запроса, и до первого
-// кадра известно, рисовать ли действия правки и чем наполнить аватар в углу.
-// Досылка ручкой `me` нужна только сборкам без SSR — там контекста запроса нет
-// вовсе, и уходит она ОДНА на два состояния: роль `ensureRole` берёт из уже
-// полученного профиля
+// The rights and the profile of the session. One request covers both states: the
+// role of `ensureRole` is taken out of the profile already received (why there is a
+// request at all — in useBuilderPermissions)
 const { canEdit, canChangePassword, ensureRole } = useBuilderPermissions();
 const { logout } = useAuthSession();
 const { profile, ensureProfile } = useAuthProfile();
-// Модалку профиля открывает меню в углу тулбара
 const profileModal = useAuthProfileModal();
 
 await ensureProfile();
 await ensureRole(() => Promise.resolve(profile.value?.role ?? null));
 
-// Токен сессии — общая точка отсечения операций, которые начинаются в одной
-// сессии и завершаются в другой (сохранение, снимок превью, синк превью-вкладки,
-// портальные модалки). Инкрементами владеет useBuilderSession, остальные читают
+// The session token — the shared cut-off point of the operations that outlive the
+// session they began in; useBuilderSession owns the increments, the rest only read
 const sessionToken = useBuilderSessionToken();
 
-// Общее на сессию сообщение о недоступном хранилище черновиков: о нём сообщают
-// автосейв, открытие сессии и перенос черновика при rename. `stop()`
-// регистрируется здесь, до всех остальных хуков очистки: cleanup идёт в порядке
-// регистрации, а последним делом уходящей страницы будет синхронный сброс
-// черновика — его отказ иначе показал бы тост уже поверх дашборда
+// The message about an unreachable draft storage. `stop()` is registered here,
+// before every other cleanup hook: the cleanups run in the order of their
+// registration, and the last thing a leaving page does is the synchronous flush of
+// the draft — a refusal of that would otherwise show a toast over the dashboard
 const draftStorageNotice = createDraftStorageNotice({
     captureSessionToken: sessionToken.capture,
-    // Дольше обычного: сообщение говорит о постоянном условии работы в этой
-    // сессии, а не о разовой неудаче, и повторено оно не будет
+    // Longer than usual: the message speaks of a standing condition of the work in
+    // this session rather than of a one-off failure, and it will not be repeated
     notify: () => showToast(t('bricks.publish.draft.storageUnavailable'), 'error', 10000),
 });
 onScopeDispose(() => {
     draftStorageNotice.stop();
 });
 
-// Владелец адреса: route.params — источник истины URL, sessionAddress — ключ черновиков
+// The owner of the address of the session: the URL and the key of the drafts
 const { routeAddress, sessionAddress, renameSession } = useBuilderSessionAddress({
     draftStorageNotice,
 });
 
-// Сессия билдера: открытие страницы, черновики, модалка восстановления,
-// единый переход на сохранённую копию (switchToSavedPage)
+// The builder session: the opening of a page, the drafts and the move onto a copy
 const {
     isSessionLoading,
     isSessionReady,
@@ -177,7 +167,7 @@ const {
     canEdit,
 });
 
-// Мост inline-редактора: editor подключается только здесь (composition root)
+// The bridge of the inline editor: the editor is connected here alone
 const inlineEditingStore = useInlineEditingStore();
 const builder = await useBuilderPage({
     inlineMediaBridge: {
@@ -225,18 +215,17 @@ const {
     handlePreview,
 } = builder;
 
-// Лоадер на экране. Отдельно от `isSessionReady`, потому что расходятся они
-// всегда: сессия открывается быстрее, чем идёт цикл анимации лоадера, и в этом
-// хвосте (до ~2 с на быстрой загрузке) интерфейс уже отпущен, а пользователь
-// видит «идёт загрузка» — клики в тулбар и рейл уходили под лоадер. Начальное
-// true: лоадер монтируется вместе со страницей, `isSessionLoading` стартует
-// поднятым
+// The loader is on the screen. Apart from `isSessionReady`, because the two always
+// diverge: a session opens faster than the animation cycle of the loader runs, and
+// in that tail (up to about 2 s on a quick load) the interface is released already
+// while a person sees "loading" — the clicks into the toolbar and the rail used to go
+// under the loader. It starts true: the loader is mounted along with the page
 const isLoaderVisible = ref(true);
 
-// Номер показа тоста с предложением восстановить черновик: им же он и гасится,
-// когда предложение снимается первой правкой пользователя. Гасим по номеру, а не
-// флагом видимости, — состояние тоста одно на приложение, и чужое сообщение,
-// успевшее заменить наше, снимать нельзя
+// The number of the showing of the toast offering to restore a draft: it is what
+// puts the toast out as well. By the number rather than by a visibility flag — the
+// state of the toast is one per application, and somebody else's message that
+// replaced ours must not be taken down
 const draftToastToken = ref<number | null>(null);
 
 const darkModeCookie = useCookie<boolean>('bricks-dark-mode', {
@@ -245,7 +234,7 @@ const darkModeCookie = useCookie<boolean>('bricks-dark-mode', {
 });
 const isDarkMode = ref(darkModeCookie.value ?? false);
 
-// Селектор страниц в тулбаре: список, переход и создание новой страницы
+// The page selector in the toolbar: the list, the move and the creation of a page
 const {
     isPagesRefreshing,
     shouldMountCreatePageModal,
@@ -263,14 +252,13 @@ const {
     showToast,
 });
 
-// Горячие клавиши — только в согласованную сессию: обработчик висит на window,
-// поэтому ни щит, ни inert его не останавливают (правило — в sessionGuards)
+// The hotkeys work in a consistent session only (the rule is in sessionGuards)
 const handleGuardedKeyDown = withSessionReadyGuard<KeyboardEvent>(
     () => isSessionReady.value,
     handleKeyDown
 );
 
-// Автосохранение черновика (debounce) + синхронизация URL с адресом формы
+// The autosave of the draft plus the sync of the URL with the address of the form
 useBuilderDraftPersistence({
     routeAddress,
     sessionAddress,
@@ -284,22 +272,35 @@ useBuilderDraftPersistence({
 });
 useBuilderSessionAddressSync({ renameSession, isSessionReady });
 
-// Шаблон из канваса: собирает источник, гасит попытку до готовности сессии и
-// держит форму. Своё состояние, поэтому композабл, а не пара ref'ов в этом файле
+// A template out of the canvas: the source, the session guard and the form
 const templateSave = useBuilderTemplateSave({ isSessionReady, showToast });
 
-// Правая панель свойств монтируется ниже по `canEdit` — сайдбар-стор обязан
-// знать об этом, иначе выбор блока резервирует её ширину и роли без панели
+// The properties panel on the right is mounted below by `canEdit`: an editing
+// surface is taken away from an observer whole rather than dimmed field by field.
+// The selection of a block goes on working — it is the highlight on the canvas
 usePropertiesPanelAvailability(canEdit);
 // #endregion
 
 // #region Computed
 const toastDuration = computed<number>(() => toast.duration ?? 4000);
 
-// Интерфейс закрыт, пока сессия не согласована ИЛИ пока на экране лоадер: он
-// обещает, что работать ещё нельзя, и это обещание должно быть правдой.
-// Экран ошибки — исключение: он сам перекрывает рабочую область и держит
-// единственные оставшиеся действия (повтор и уход на дашборд)
+// The interface is closed while the session is inconsistent OR while the loader is
+// on the screen: the loader promises that work is not possible yet, and the promise
+// has to be true. The error screen is the exception — it lies over the workspace
+// itself and holds the only actions left (the retry and the way onto the dashboard).
+// Over it for the pointer, that is: Tab still reaches the workspace behind it.
+//
+// What is at stake is a silently lost edit: before readiness the autosave turns one
+// down by !isSessionReady, the canvas is then overwritten by the incoming schema,
+// and an edit of the form travels into savedSnapshot as "already saved", so no draft
+// is created and a reload loses it. Hence three layers in the markup, none of them
+// enough alone. The transparent blocker (`cursor: progress` its only visible sign,
+// `position: fixed` because the root is not positioned) holds the pointer, while the
+// keyboard, an already focused field and the accessibility tree walk past it — that
+// half is closed by `inert` on `.workspace` and on the toolbar. The toolbar is a
+// neighbor of the workspace rather than a part of it, so both it and the blocker sit
+// in the root: its buttons hold the way onto the dashboard, the very path the edits
+// used to be lost on.
 const isBuilderLocked = computed<boolean>(
     () => !sessionError.value && (!isSessionReady.value || isLoaderVisible.value)
 );
@@ -320,26 +321,23 @@ const isSchemaActive = computed<boolean>(
 // #endregion
 
 // #region Methods
-/**
- * Открывает менеджер страниц — полноэкранный дашборд `/bricks`.
- * Несохранённые изменения переживают переход через черновик (draft persistence).
- */
+/** Opens the pages manager — the `/bricks` dashboard; the draft outlives the move */
 async function handleOpenPagesManager(): Promise<void> {
     await router.push({ name: BRICKS_ROUTE_NAMES.builderIndex });
 }
 
 /**
- * Повторяет открытие сессии с блокирующего экрана ошибки.
+ * Repeats the opening of a session from the blocking error screen.
  */
 async function handleRetrySession(): Promise<void> {
     await retryBuilderSession();
 }
 
 /**
- * Держит на экране предложение восстановить черновик, пока на него не ответили:
- * тост — единственный путь к окну с выбором, и потерять его нельзя. Уехать он
- * может не только по воле пользователя — например, его вытеснит чужое сообщение
- * (состояние тоста одно на приложение).
+ * Keeps the offer to restore a draft on the screen until it has been answered: the
+ * toast is the only path to the window with the choice, and it must not be lost — it
+ * can leave not only by the will of the person, somebody else's message may displace
+ * it (the state of the toast is one per application).
  */
 function ensureDraftToast(): void {
     const isOwnToastVisible =
@@ -353,18 +351,19 @@ function ensureDraftToast(): void {
         message: t('bricks.publish.draft.pendingTitle'),
         actionLabel: t('bricks.publish.draft.pendingAction'),
         variant: 'info',
-        // Кнопка — короткий путь: пользователь уже выбрал восстановление, и окно
-        // спросило бы то же самое второй раз. Клик по телу ведёт в окно: там дата
-        // черновика и удаление
+        // The button is the short path: the person has chosen the restore already,
+        // and the window would ask the same thing a second time. A click on the body
+        // leads into the window: the date of the draft and the removal are there
         onAction: handleRestoreDraft,
         onSelect: openRestoreDraftModal,
     });
 }
 
 /**
- * Лоадер ушёл с экрана: интерфейс отпускается, и если у сессии есть
- * неотвеченный черновик — самое время предложить его. Раньше нельзя: модалка и
- * тост посреди загрузки ломали бы вид лоадера.
+ * The loader has left the screen: the interface is released, and when the session
+ * holds an unanswered draft this is the very time to offer it. Any earlier is not
+ * allowed: a window and a toast in the middle of a load would spoil the look of the
+ * loader.
  */
 function handleLoaderHidden(): void {
     isLoaderVisible.value = false;
@@ -372,7 +371,8 @@ function handleLoaderHidden(): void {
 }
 
 /**
- * Сохраняет страницу, если сессия согласована (правило — в `runSaveWhenSessionReady`).
+ * Saves the page when the session is consistent (the rule is in
+ * `runSaveWhenSessionReady`).
  */
 async function handleSaveDraftGuarded(): Promise<void> {
     await runSaveWhenSessionReady({
@@ -383,7 +383,7 @@ async function handleSaveDraftGuarded(): Promise<void> {
 }
 
 /**
- * Сохраняет страницу копией, если сессия согласована.
+ * Saves the page as a copy when the session is consistent.
  */
 async function handleSaveAsCopyGuarded(): Promise<void> {
     await runSaveWhenSessionReady({
@@ -394,16 +394,16 @@ async function handleSaveAsCopyGuarded(): Promise<void> {
 }
 
 /**
- * Делегирует открытие галереи медиа с контекстом.
+ * Delegates the opening of the media gallery with a context.
  *
- * @param context - Контекст вызова.
+ * @param context - The context of the call.
  */
 function handleOpenMediaGalleryWithContext(context?: TMediaGalleryContext): void {
     handleOpenMediaGallery(context);
 }
 
 /**
- * Переключает тёмную/светлую тему билдера и сохраняет выбор в cookie.
+ * Toggles the dark and light theme of the builder and saves the choice in a cookie.
  */
 function handleToggleDarkMode(): void {
     isDarkMode.value = !isDarkMode.value;
@@ -411,18 +411,18 @@ function handleToggleDarkMode(): void {
 }
 
 /**
- * Переключает локаль интерфейса (ru ⇄ en); cookie `bricks-locale` пишет сам i18n.
+ * Toggles the locale of the interface (ru ⇄ en); the `bricks-locale` cookie is
+ * written by i18n itself.
  */
 async function handleToggleLocale(): Promise<void> {
     await setLocale(locale.value === 'ru' ? 'en' : 'ru');
 }
 
 /**
- * Выходит из сессии; при отказе показывает тост.
- *
- * Подтверждения нет намеренно: несохранённая правка не теряется — переход уводит
- * страницу, а `pagehide` синхронно допишет отложенный черновик, и после входа
- * билдер предложит его восстановить.
+ * Signs out of the session; on a refusal it shows a toast. There is no confirmation
+ * on purpose: an unsaved edit is not lost — the move takes the page away, `pagehide`
+ * synchronously writes the deferred draft out, and after the next sign-in the builder
+ * will offer to restore it.
  */
 async function handleLogout(): Promise<void> {
     try {
@@ -434,8 +434,7 @@ async function handleLogout(): Promise<void> {
 // #endregion
 
 // #region Watchers
-// Переоткрытие сессии (навигация на другую страницу билдера) заново поднимает
-// лоадер — вместе с ним возвращается и блокировка
+// A reopening of the session raises the loader anew — and the block with it
 watch(isSessionLoading, (isLoading) => {
     if (!isLoading) {
         return;
@@ -444,10 +443,9 @@ watch(isSessionLoading, (isLoading) => {
     isLoaderVisible.value = true;
 });
 
-// Предложение снято — снимаем и тост: его собственный жизненный цикл кончается
-// вместе с предложением, в том числе когда его вытеснила первая правка
-// пользователя (восстанавливать после неё нечего — автосейв уже перезаписал
-// черновик текущим состоянием)
+// The offer is taken down — so is the toast: its own life ends together with the
+// offer, the case where the first edit displaced it included (after one there is
+// nothing to restore, the autosave has rewritten the draft with the current state)
 watch(isDraftRestorePending, (isPending) => {
     if (isPending || draftToastToken.value === null) {
         return;
@@ -457,8 +455,8 @@ watch(isDraftRestorePending, (isPending) => {
     draftToastToken.value = null;
 });
 
-// Окно закрыли без ответа — вопрос возвращается на экран (см. `ensureDraftToast`).
-// На ответах сюда же приходит уже снятое предложение, и показывать нечего
+// The window was closed without an answer — the question comes back onto the screen
+// (see `ensureDraftToast`). On an answer an offer already taken down arrives here
 watch(isRestoreDraftModalOpen, (isOpen) => {
     if (isOpen) {
         return;
@@ -470,8 +468,9 @@ watch(isRestoreDraftModalOpen, (isOpen) => {
 
 // #region Lifecycle
 /**
- * Класс body формируется реактивно — включает bricks-dark при активной тёмной теме.
- * Работает на SSR: cookie читается на сервере, класс рендерится сразу.
+ * The class of body is built reactively: it includes bricks-dark under the active
+ * dark theme. It works on SSR — the cookie is read on the server and the class is
+ * rendered at once.
  */
 const bodyClass = computed(() => (isDarkMode.value ? 'bricks-page bricks-dark' : 'bricks-page'));
 
@@ -501,11 +500,6 @@ onBeforeUnmount(() => {
 
 <template>
     <div :class="[$style.BricksBuilder, 'bricks-text']">
-        <!--
-            inert и на тулбаре: блокировщик ниже держит только мышь, а тулбар —
-            сосед рабочей области, и Tab из него уводил бы в кнопки недозагруженной
-            сессии
-        -->
         <TheBuilderShellToolbar
             :inert="isBuilderLocked"
             :is-editing-existing-page="isEditingExistingPage"
@@ -534,11 +528,6 @@ onBeforeUnmount(() => {
         />
 
         <div :class="$style.content">
-            <!--
-                inert на всё время незавершённой сессии: блокировщик держит только
-                мышь, а Tab, уже сфокусированное поле и accessibility tree он не
-                закрывает — правка через клавиатуру всё равно потерялась бы молча
-            -->
             <div :class="$style.workspace" :inert="isBuilderLocked">
                 <BuilderShellToolbarVerticalNav
                     :is-library-active="isLibraryActive"
@@ -564,11 +553,6 @@ onBeforeUnmount(() => {
                     @retry-library="handleRetryComponentLibrary"
                 />
 
-                <!--
-                    Панель свойств — редакторская поверхность целиком: у роли
-                    наблюдателя она не монтируется вовсе, а не гасится полями.
-                    Выбор блока при этом работает — он же подсветка на канвасе
-                -->
                 <TheBuilderShellSidebarPropertiesPanel
                     v-if="canEdit"
                     ref="propertiesPanelRef"
@@ -581,11 +565,6 @@ onBeforeUnmount(() => {
                 </div>
             </div>
 
-            <!--
-                Сессия не открылась: экран перекрывает всю рабочую область, включая
-                сайдбары, — правки канваса и настроек публикации отклоняются
-                автосейвом по !isSessionReady, то есть терялись бы молча
-            -->
             <TheBuilderSessionError
                 v-if="sessionError"
                 :message="sessionError"
@@ -595,14 +574,6 @@ onBeforeUnmount(() => {
             />
         </div>
 
-        <!--
-            Пока сессия открывается или пока на экране лоадер: правка до готовности
-            либо затирается пришедшей схемой, либо уезжает в savedSnapshot как «уже
-            сохранённая» — и теряется на reload. Лежит в корне, а не в .content:
-            тулбар — сосед рабочей области, и внутри неё он не закрывался, а из его
-            кнопок открыт был выход на дашборд — тот самый путь, на котором правки и
-            терялись
-        -->
         <div v-if="isBuilderLocked" :class="$style.sessionBlocker" aria-hidden="true"></div>
 
         <TheBuilderAuthProfileModal
@@ -635,12 +606,6 @@ onBeforeUnmount(() => {
             @created="handlePageCreated"
         />
 
-        <!--
-            Условие монтирования обязательно: без него чанк формы шаблона уехал бы
-            к первому рендеру билдера, и ленивым импорт был бы только на бумаге.
-            Латч не снимается — иначе компонент пересоздавался бы и терял
-            leave-анимацию
-        -->
         <TheBuilderTemplatesSaveModal
             v-if="templateSave.shouldMountModal.value"
             :is-open="templateSave.isModalOpen.value"
@@ -698,7 +663,6 @@ onBeforeUnmount(() => {
     flex: 1;
 }
 
-/* Обёртка рабочей области — носитель inert; раскладку .content повторяет один в один */
 .workspace {
     display: flex;
     flex: 1;
@@ -712,21 +676,6 @@ onBeforeUnmount(() => {
     flex: 1;
 }
 
-/*
- * Блокировщик на время открытия сессии. До готовности правки терять нельзя, а
- * именно это и происходило: автосейв их отклоняет по !isSessionReady, канвас
- * потом затирается пришедшей схемой, а правка формы уезжает в savedSnapshot как
- * «уже сохранённая» — черновик не создаётся, и reload её теряет. Лоадер не
- * защита: он закрывает только канвас.
- *
- * Прозрачный и без собственного вида: подменять фон полупрозрачной вуалью, как
- * было, — значит объяснять ожидание сменой цвета, которую пользователь читает
- * как «интерфейс сломался». Единственный видимый признак — курсор.
- *
- * position: fixed, потому что корень билдера не позиционирован; слой
- * `--bricks-z-blocking` — выше оболочки и модалок, но ниже тоста, чтобы
- * сообщение о недоступном хранилище оставалось закрываемым, и ниже лоадера.
- */
 .sessionBlocker {
     position: fixed;
     z-index: var(--bricks-z-blocking);

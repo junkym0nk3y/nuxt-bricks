@@ -7,32 +7,34 @@ import { useBuilderPermissions } from '../../core/composables/useBuilderPermissi
 // #endregion
 
 /**
- * Горячие клавиши билдера: Delete/Backspace (удаление), Ctrl/Cmd+C/V (копирование/вставка),
- * Ctrl/Cmd+Z и Ctrl/Cmd+Shift+Z (undo/redo), Escape (сброс выбора → скрытие панели свойств).
- * Возвращает обработчик для `keydown` на window — подписку/отписку выполняет вызывающий
- * (composition root).
+ * The hotkeys of the builder: Delete/Backspace (removal), Ctrl/Cmd+C/V (copy and
+ * paste), Ctrl/Cmd+Z and Ctrl/Cmd+Shift+Z (undo/redo), Escape (dropping the
+ * selection → hiding the properties panel). It returns the handler for the
+ * `keydown` on window — subscribing and unsubscribing is the caller's (the
+ * composition root's).
  *
- * Роли без права правки остаётся только Escape: клавиатура — путь мимо
- * интерфейса, и спрятанных кнопок для неё недостаточно (Ctrl+V вставил бы блок
- * на канвас, у которого нет ни одной видимой кнопки правки).
+ * A role without the editing right is left with Escape alone: the keyboard is a
+ * path around the interface, and hidden buttons are not enough against it (Ctrl+V
+ * would paste a block onto a canvas that carries no visible editing button at all).
  */
 export function useBuilderShortcuts() {
     const componentsStore = useComponentsStore();
     const { canEdit } = useBuilderPermissions();
 
     /**
-     * Проверяет, следует ли игнорировать событие клавиатуры.
+     * Checks whether a keyboard event is to be ignored.
      *
-     * Игнорируются события в полях ввода, текстовых областях и редактируемых
-     * элементах, а также всё, что происходит внутри открытого диалога.
+     * Ignored are the events inside input fields, text areas and editable elements,
+     * as well as everything that happens inside an open dialog.
      *
-     * Диалоги — не перестраховка: обработчик висит на window, а модалки
-     * телепортированы в body, поэтому Delete на их кнопке (например, «Отмена» в
-     * окне создания страницы) удалял выбранный на канвасе блок за модалкой, а
-     * Ctrl/Cmd+Z правил канвас, которого на экране не видно.
+     * The dialogs are not a belt-and-braces measure: the handler sits on window
+     * while the modals are teleported into body, so Delete on a button of theirs
+     * ("Cancel" in the create-page window, for one) used to remove the block
+     * selected on the canvas behind the modal, and Ctrl/Cmd+Z used to edit a canvas
+     * that is not visible on the screen.
      *
-     * @param target - HTML-элемент, на котором произошло событие.
-     * @returns true, если событие следует игнорировать.
+     * @param target - The HTML element the event happened on.
+     * @returns true when the event is to be ignored.
      */
     function shouldIgnoreKeyEvent(target: HTMLElement): boolean {
         return (
@@ -44,10 +46,10 @@ export function useBuilderShortcuts() {
     }
 
     /**
-     * Обрабатывает горячую клавишу удаления компонента (Delete/Backspace).
+     * Handles the hotkey removing a component (Delete/Backspace).
      *
-     * @param event - Событие клавиатуры.
-     * @returns true, если событие было обработано.
+     * @param event - The keyboard event.
+     * @returns true when the event has been handled.
      */
     function handleDeleteShortcut(event: KeyboardEvent): boolean {
         if (event.key !== 'Delete' && event.key !== 'Backspace') {
@@ -62,10 +64,10 @@ export function useBuilderShortcuts() {
     }
 
     /**
-     * Обрабатывает горячую клавишу копирования компонента (Ctrl/Cmd+C).
+     * Handles the hotkey copying a component (Ctrl/Cmd+C).
      *
-     * @param event - Событие клавиатуры.
-     * @returns true, если событие было обработано.
+     * @param event - The keyboard event.
+     * @returns true when the event has been handled.
      */
     function handleCopyShortcut(event: KeyboardEvent): boolean {
         if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'c') {
@@ -80,10 +82,10 @@ export function useBuilderShortcuts() {
     }
 
     /**
-     * Обрабатывает горячую клавишу вставки компонента (Ctrl/Cmd+V).
+     * Handles the hotkey pasting a component (Ctrl/Cmd+V).
      *
-     * @param event - Событие клавиатуры.
-     * @returns true, если событие было обработано.
+     * @param event - The keyboard event.
+     * @returns true when the event has been handled.
      */
     function handlePasteShortcut(event: KeyboardEvent): boolean {
         if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'v') {
@@ -95,16 +97,18 @@ export function useBuilderShortcuts() {
     }
 
     /**
-     * Обрабатывает Escape: сбрасывает выбор компонента (панель свойств уезжает).
+     * Handles Escape: drops the selection of a component (the properties panel
+     * leaves).
      *
-     * @param event - Событие клавиатуры.
-     * @returns true, если событие было обработано.
+     * @param event - The keyboard event.
+     * @returns true when the event has been handled.
      */
     function handleEscapeShortcut(event: KeyboardEvent): boolean {
         if (event.key !== 'Escape') {
             return false;
         }
-        // Событие уже обработано (например, закрытием модалки) — выбор не сбрасываем
+        // The event has been handled already (by the closing of a modal, for one)
+        // — the selection is not dropped
         if (event.defaultPrevented) {
             return true;
         }
@@ -116,9 +120,9 @@ export function useBuilderShortcuts() {
     }
 
     /**
-     * Обрабатывает горячие клавиши отмены/повтора действий (Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z).
+     * Handles the undo/redo hotkeys (Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z).
      *
-     * @param event - Событие клавиатуры.
+     * @param event - The keyboard event.
      */
     function handleUndoRedoShortcut(event: KeyboardEvent): void {
         if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'z') {
@@ -133,10 +137,10 @@ export function useBuilderShortcuts() {
     }
 
     /**
-     * Главный обработчик событий клавиатуры.
-     * Делегирует обработку специализированным функциям в зависимости от нажатой клавиши.
+     * The main handler of the keyboard events. It delegates the handling to the
+     * specialized functions depending on the key that was pressed.
      *
-     * @param event - Событие клавиатуры.
+     * @param event - The keyboard event.
      */
     function handleKeyDown(event: KeyboardEvent): void {
         const target = event.target as HTMLElement;
@@ -144,7 +148,7 @@ export function useBuilderShortcuts() {
             return;
         }
         if (!canEdit.value) {
-            // Escape только снимает выбор — единственное, что и так доступно
+            // Escape merely drops the selection — the only thing available anyway
             handleEscapeShortcut(event);
             return;
         }

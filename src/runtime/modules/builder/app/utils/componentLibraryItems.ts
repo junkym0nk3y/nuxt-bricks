@@ -8,14 +8,14 @@ import { toSafeRecord } from '../../../common/utils/safeRecord';
 // #endregion
 
 /**
- * Превращает запись манифеста в карточку библиотеки.
+ * Turns a manifest entry into a card of the library.
  *
- * Метаданные приходят готовыми: `values` и `slots` разобраны на build-time,
- * поэтому карточка собирается без импорта brick-модуля — а значит, без
- * Vue-компонента и его стилей, которые brick-файл тянет своим импортом.
+ * The metadata arrives ready: `values` and `slots` are parsed at build time, so
+ * the card is assembled without importing the brick module — that is, without the
+ * Vue component and its styles, which a brick file pulls in with its own import.
  *
- * @param entry - Запись манифеста brick-компонентов.
- * @returns Элемент библиотеки компонентов.
+ * @param entry - Entry of the brick component manifest.
+ * @returns Item of the component library.
  */
 export function toComponentLibraryItem(entry: IBrickManifestEntry): IComponentLibraryItem {
     return {
@@ -24,9 +24,9 @@ export function toComponentLibraryItem(entry: IBrickManifestEntry): IComponentLi
         brickPath: entry.brickPath,
         description: entry.description,
         thumbnail: '',
-        // Имена пропов приходят из brick-файла: `acc['__proto__'] = …` подменял
-        // бы прототип аккумулятора вместо записи ключа, а own-ключ `__proto__`
-        // не пережил бы Nuxt payload
+        // The prop names come out of a brick file: `acc['__proto__'] = …` would
+        // replace the prototype of the accumulator instead of writing a key, and
+        // an own `__proto__` key would not survive the Nuxt payload
         defaultProps: toSafeRecord(
             Object.entries(entry.values).map(([name, value]) => [name, value.default])
         ),

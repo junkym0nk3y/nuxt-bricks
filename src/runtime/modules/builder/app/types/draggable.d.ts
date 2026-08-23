@@ -1,9 +1,9 @@
 /**
- * Типы для drag-and-drop функциональности
+ * Types of the drag-and-drop.
  */
 
 /**
- * Данные о зоне сброса компонента
+ * The drop zones a component was released over.
  */
 export interface IDropZoneData {
     layoutDropZone: HTMLElement | null;
@@ -13,7 +13,7 @@ export interface IDropZoneData {
 }
 
 /**
- * Данные извлеченные из drop события
+ * The data taken out of a drop event.
  */
 export interface IDropEventData {
     movedComponentId: string | null;
@@ -21,7 +21,7 @@ export interface IDropEventData {
 }
 
 /**
- * Опции для обработки drop события
+ * Options of handling a drop event.
  */
 export interface IDropOptions {
     rootTargetIndex?: number | null;

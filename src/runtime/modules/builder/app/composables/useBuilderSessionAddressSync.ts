@@ -23,14 +23,16 @@ import { usePublishStore } from '../../publish/stores/publish';
 const ADDRESS_SYNC_DEBOUNCE_MS = 600;
 
 /**
- * Синхронизация URL с адресом из настроек публикации (debounce 600ms):
- * для новой (несохранённой) страницы переносит сессию на новый адрес через
- * `renameSession` — черновик localStorage мигрирует, URL меняется через Vue Router.
- * Для существующей страницы rename применяется при сохранении (см. useBuilderPage).
+ * Synchronization of the URL with the address out of the publish settings
+ * (debounce 600 ms): for a new (unsaved) page it moves the session onto the new
+ * address through `renameSession` — the localStorage draft migrates, the URL
+ * changes through Vue Router. For an existing page the rename is applied on the
+ * save instead (see `useBuilderPageWrite`).
  *
- * Следит за парой `pagename + urlPrefix`, а не за одним именем: адрес редактора
- * включает префикс, поэтому смена префикса — такой же перенос сессии, как
- * переименование, и без неё URL с ключом черновика остались бы на прежнем адресе.
+ * It follows the `pagename + urlPrefix` pair rather than the name alone: the
+ * address of the editor includes the prefix, so a change of the prefix is as much
+ * a move of the session as a rename is, and without it the URL and the key of the
+ * draft would stay behind on the previous address.
  */
 export function useBuilderSessionAddressSync(options: IBuilderSessionAddressSyncOptions): void {
     const { renameSession, isSessionReady } = options;
@@ -40,7 +42,7 @@ export function useBuilderSessionAddressSync(options: IBuilderSessionAddressSync
     let addressRouteTimer: number | null = null;
 
     /**
-     * Останавливает отложенную синхронизацию.
+     * Stops the deferred synchronization.
      */
     function clearAddressTimer(): void {
         if (addressRouteTimer !== null) {
@@ -50,24 +52,27 @@ export function useBuilderSessionAddressSync(options: IBuilderSessionAddressSync
     }
 
     /**
-     * Разрешает ли состояние стора переносить сессию по форме: сессия открыта до
-     * согласованного состояния, страница ещё не сохранена (rename существующей
-     * применяется при сохранении, см. useBuilderPage) и запись не идёт.
+     * Whether the state of the store allows the session to be moved by the form:
+     * the session is open to a consistent state, the page is not saved yet (the
+     * rename of an existing one is applied on the save, see `useBuilderPageWrite`)
+     * and no write is under way.
      *
-     * Проверка `isSubmitting` — не перестраховка: `saveCurrentPageAsCopy` на время
-     * POST ставит `editingPageId = null` и адрес копии в форму, то есть для этого
-     * watcher'а форма выглядит как новая страница. Адрес копии на сервере ещё не
-     * занят, поэтому перенос проходил бы все остальные проверки, а при ошибке
-     * запроса store откатывал бы форму — URL и ключ черновика оставались бы на
-     * адресе несуществующей копии.
+     * The `isSubmitting` check is not a belt-and-braces one: for the duration of
+     * the POST `saveCurrentPageAsCopy` puts `editingPageId = null` and the address
+     * of the copy into the form, that is, to this watcher the form looks like a new
+     * page. The address of the copy is not taken on the server yet, so the move
+     * would pass every other check, and on a failed request the store would roll
+     * the form back — the URL and the key of the draft would stay on the address of
+     * a copy that does not exist.
      *
-     * Проверка готовности закрывает вторую дыру того же класса: переименование в
-     * незавершённом открытии меняет `sessionAddress` и URL, но не поколение сессии,
-     * а watcher маршрута новое открытие после этого сознательно пропускает
-     * (route догнал sessionAddress). Незавершённый bootstrap считался бы актуальным
-     * и применил бы прежнюю страницу под новым ключом (находка ревью).
+     * The readiness check closes the second hole of the same class: a rename inside
+     * an unfinished opening changes `sessionAddress` and the URL but not the
+     * generation of the session, and the route watcher then skips the new opening
+     * deliberately (the route has caught up with sessionAddress). The unfinished
+     * bootstrap would count as the current one and would apply the former page
+     * under the new key.
      *
-     * @returns Можно ли переносить сессию сейчас.
+     * @returns Whether the session may be moved right now.
      */
     function isSessionRenamable(): boolean {
         return (
@@ -78,13 +83,14 @@ export function useBuilderSessionAddressSync(options: IBuilderSessionAddressSync
     }
 
     /**
-     * Проверяет, что адрес пригоден для переноса сессии: валидный формат,
-     * свободный адрес РЕДАКТОРА, не занят другой страницей.
+     * Checks that the address fits a move of the session: a valid format, a free
+     * address of the EDITOR, not taken by another page.
      *
-     * Live-адрес здесь не при чём: перенос меняет URL редактора, а занятый
-     * live-адрес и так держит форму невалидной и блокирует запись.
+     * The live address has nothing to do with it: the move changes the URL of the
+     * editor, while a taken live address keeps the form invalid and blocks the
+     * write anyway.
      *
-     * @param address - Адрес-кандидат из формы.
+     * @param address - The candidate address out of the form.
      */
     function isRenameTarget(address: IBricksPageAddress): boolean {
         return (
@@ -95,9 +101,9 @@ export function useBuilderSessionAddressSync(options: IBuilderSessionAddressSync
     }
 
     /**
-     * Адрес, собранный из текущих полей формы.
+     * The address assembled out of the current fields of the form.
      *
-     * @returns Нормализованный адрес формы.
+     * @returns The normalized address of the form.
      */
     function resolveFormAddress(): IBricksPageAddress {
         return toPageAddress(
@@ -106,11 +112,11 @@ export function useBuilderSessionAddressSync(options: IBuilderSessionAddressSync
         );
     }
 
-    // Наблюдаем КЛЮЧ адреса, а не сам объект: объект пересобирается на каждый
-    // прогон геттера, поэтому сравнение по ссылке считало бы изменением любую
-    // перезапись формы — например служебную (`setCurrentFormState` после
-    // сохранения). Ключ — строка, и watcher срабатывает только на настоящую
-    // смену адреса.
+    // What is watched is the KEY of the address rather than the object itself: the
+    // object is reassembled on every run of the getter, so a comparison by
+    // reference would count any rewrite of the form as a change — a housekeeping
+    // one, for instance (`setCurrentFormState` after a save). The key is a string,
+    // and the watcher fires on a real change of the address only.
     watch(
         () => getPageAddressKey(resolveFormAddress()),
         () => {
@@ -118,8 +124,9 @@ export function useBuilderSessionAddressSync(options: IBuilderSessionAddressSync
                 return;
             }
 
-            // Ранние выходы снимают уже поставленный таймер: он планировался под
-            // прежнее состояние формы, а к моменту срабатывания оно другое
+            // The early exits clear the timer already set: it was planned for
+            // the former state of the form, and by the time it fires that state
+            // is a different one
             if (!isSessionRenamable()) {
                 clearAddressTimer();
                 return;
@@ -130,13 +137,15 @@ export function useBuilderSessionAddressSync(options: IBuilderSessionAddressSync
                 return;
             }
 
-            // Debounce: URL и ключ черновика догоняют форму после паузы в наборе
+            // Debounce: the URL and the key of the draft catch up with the form
+            // after a pause in the typing
             clearAddressTimer();
             addressRouteTimer = window.setTimeout(() => {
                 addressRouteTimer = null;
 
-                // Режим и запись перепроверяем на момент срабатывания: за окно
-                // debounce страницу могли сохранить или начать сохранять
+                // The mode and the write are rechecked as of the moment of
+                // firing: within the debounce window the page may have been saved
+                // or started being saved
                 if (!isSessionRenamable()) {
                     return;
                 }

@@ -4,18 +4,21 @@ import type { ISessionSaveGuardOptions } from '../types/builder';
 // #endregion
 
 /**
- * Пропускает сохранение только в согласованную сессию. Пока готовности нет,
- * `startEditingPage` уже заполнил форму и `editingPageId`, а схемы на канвасе ещё
- * нет — PUT ушёл бы с пустым холстом и затёр страницу в БД. Окно открыто не только
- * при отказе bootstrap'а, но и на обычной загрузке: лоадер прячется через один
- * цикл анимации независимо от `isSessionLoading`.
+ * Lets a save through into a consistent session only. While there is no readiness,
+ * `startEditingPage` has filled the form and `editingPageId` in already, and the
+ * canvas has no schema yet — the PUT would go out with an empty canvas and
+ * overwrite the page in the database. On an ordinary load the barrier of the
+ * composition root closes that window (the toolbar goes under `inert` until both
+ * the session and the loader are done), but a refused bootstrap deliberately leaves
+ * the toolbar live: the error screen holds the retry, and Save sits next to it.
  *
- * Правило вынесено из composition root'а сюда, чтобы проверяться поведением:
- * в шаблоне его можно было бы сверить только по тексту, а такой кейс остаётся
- * зелёным, например, на потерянном `return`.
+ * The rule is moved out of the composition root and into here so that it is
+ * checked by behavior: in a template it could only be verified by its text, and
+ * such a case stays green over, say, a lost `return`.
  *
- * @param options - Готовность сессии, действие сохранения и реакция на отказ.
- * @returns Было ли выполнено сохранение.
+ * @param options - Readiness of the session, the save action and the reaction to
+ * a refusal.
+ * @returns Whether the save was carried out.
  */
 export async function runSaveWhenSessionReady(options: ISessionSaveGuardOptions): Promise<boolean> {
     if (!options.isSessionReady()) {
@@ -29,14 +32,14 @@ export async function runSaveWhenSessionReady(options: ISessionSaveGuardOptions)
 }
 
 /**
- * Оборачивает обработчик события правилом готовности сессии. Нужен там, где
- * барьеры разметки не работают: глобальный `keydown` висит на `window`, поэтому
- * ни щит, ни `inert` его не останавливают, а undo/delete/paste до готовности
- * правят канвас, который вот-вот затрёт пришедшая схема.
+ * Wraps an event handler in the readiness rule of the session. Needed where the
+ * barriers of the markup do not work: the global `keydown` sits on `window`, so
+ * neither the shield nor `inert` stops it, while undo/delete/paste before
+ * readiness edit a canvas the incoming schema is about to overwrite.
  *
- * @param isSessionReady - Открыта ли сессия до согласованного состояния.
- * @param handler - Обработчик, вызываемый только в согласованной сессии.
- * @returns Обработчик с проверкой готовности.
+ * @param isSessionReady - Whether the session is open to a consistent state.
+ * @param handler - The handler, called in a consistent session only.
+ * @returns The handler with the readiness check.
  */
 export function withSessionReadyGuard<TEvent>(
     isSessionReady: () => boolean,

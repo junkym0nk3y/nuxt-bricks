@@ -36,8 +36,9 @@ const { t } = useI18n();
 
 // #region Computed
 /**
- * Описание с датой черновика: выбирать между двумя состояниями страницы, не зная
- * возраста второго, — угадывание. Без даты (битая запись) остаётся общий текст.
+ * The description carrying the date of the draft: choosing between two states of a
+ * page without knowing the age of the second one is guesswork. With no date (a
+ * corrupted record) the generic text is what stays.
  */
 const description = computed<string>(() => {
     if (!props.updatedAt) {
@@ -52,21 +53,25 @@ const description = computed<string>(() => {
 
 // #region Methods
 /**
- * Закрывает окно, не отвечая: черновик остаётся, предложение — тоже.
+ * Closes the window without answering: the draft stays and so does the offer.
  */
 function handleClose(): void {
     emit('close');
 }
 
 /**
- * Применяет черновик поверх открытой сохранённой версии.
+ * Applies the draft on top of the open saved version.
  */
 function handleRestore(): void {
     emit('restore');
 }
 
 /**
- * Удаляет черновик — единственное необратимое действие этого окна.
+ * Removes the draft — the only irreversible action of this window.
+ *
+ * It stands in the leading slot of the footer, apart from the restore: two buttons
+ * in the right corner stand side by side, and a miss of the irreversible one would
+ * become a matter of a couple of pixels.
  */
 function handleDiscard(): void {
     emit('discard');
@@ -90,11 +95,6 @@ function handleDiscard(): void {
                 <p :class="$style.description">{{ description }}</p>
             </div>
 
-            <!--
-                Отказ от черновика стоит слева и отдельно от восстановления: обе
-                кнопки в правом углу стоят рядом, и промах по необратимой стал бы
-                вопросом пары пикселей.
-            -->
             <BricksModalFooter>
                 <template #leading>
                     <BricksButton size="sm" variant="ghost" @click="handleDiscard">
