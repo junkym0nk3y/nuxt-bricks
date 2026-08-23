@@ -159,3 +159,66 @@ describe('импорт схемы: ключи устройств вне набо
         ]);
     });
 });
+
+describe('импорт схемы: снимок подтверждения', () => {
+    beforeEach(() => {
+        toasts.length = 0;
+        publishStoreMock.patchPage.mockReset();
+        publishStoreMock.patchPage.mockResolvedValue(undefined);
+        resolverMock.startResolving.mockReset();
+    });
+
+    it('новый выбранный файл не подменяет уже подтверждённую схему', async () => {
+        const page = buildPageSummary({ id: 1, pagename: 'page-a', revision: 3 });
+        const confirmedSchema = {
+            components: [
+                {
+                    id: 'confirmed-grid',
+                    type: 'layout' as const,
+                    componentName: 'Grid',
+                    brickPath: '/layouts/grid',
+                    zIndex: 1,
+                    props: {},
+                    children: [],
+                },
+            ],
+        };
+        const pendingSchema = {
+            components: [{ ...confirmedSchema.components[0], id: 'pending-grid' }],
+        };
+        const confirmedFile = buildTransferFile('confirmed.json', {
+            schema: confirmedSchema,
+            blocksCount: 1,
+        });
+        const pendingFile = buildTransferFile('pending.json', {
+            schema: pendingSchema,
+            blocksCount: 1,
+        });
+        publishStoreMock.pages = [page];
+        resolverMock.startResolving.mockImplementation((schema) =>
+            Promise.resolve({ schema, isComparisonSkipped: false })
+        );
+
+        const scope = effectScope();
+        const coordinator = scope.run(() =>
+            usePublishSchemaImport({
+                onNotify: (message, variant) => toasts.push({ message, variant }),
+                isTargetSelected: () => true,
+            })
+        ) as IUsePublishSchemaImportReturn;
+
+        coordinator.requestPageImport(page, confirmedFile);
+        coordinator.confirmReplace();
+        coordinator.requestPageImport(page, pendingFile);
+        await coordinator.handleConfirmationAfterLeave();
+
+        expect(resolverMock.startResolving).toHaveBeenCalledWith(confirmedSchema);
+        expect(publishStoreMock.patchPage).toHaveBeenCalledWith(1, {
+            schema: confirmedSchema,
+            viewportConfig: null,
+            expectedRevision: 3,
+        });
+
+        scope.stop();
+    });
+});

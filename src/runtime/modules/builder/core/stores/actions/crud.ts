@@ -6,6 +6,7 @@ import {
     removeChildFromLayout as removeChildFromLayoutHelper,
 } from '../../../../common/utils/bricks/components';
 import { normalizeBrickPath } from '../../../../common/utils/bricks/paths';
+import { getBlockDefinition } from '../../../../layouts-blocks/registry';
 import { generateComponentId } from '../../utils/ids';
 import { useSidebarStore } from '../sidebar';
 import { adjustReorderTargetIndex } from './order';
@@ -42,6 +43,11 @@ function resolveGridProperty(
     }
 
     return isGridLayout ? currentValue : undefined;
+}
+
+/** Checks whether a schema component names the Grid layout block */
+function isGridLayout(componentName: string): boolean {
+    return getBlockDefinition(componentName)?.name === 'Grid';
 }
 
 /**
@@ -221,7 +227,7 @@ export const crudActions: IComponentsCrudActions = {
         layout.children.splice(insertIndex, 0, childId);
         child.parent = layoutId;
         child.slotName = undefined;
-        if (layout.componentName !== 'grid') {
+        if (!isGridLayout(layout.componentName)) {
             child.gridColumn = undefined;
             child.gridRow = undefined;
         }
@@ -340,7 +346,7 @@ export const crudActions: IComponentsCrudActions = {
         }
 
         const hasExplicitIndex = typeof options?.targetIndex === 'number';
-        const isGrid = layout.componentName === 'grid';
+        const isGrid = isGridLayout(layout.componentName);
 
         component.gridColumn = resolveGridProperty(
             options?.gridColumn,

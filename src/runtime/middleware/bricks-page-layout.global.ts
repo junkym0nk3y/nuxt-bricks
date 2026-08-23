@@ -105,19 +105,26 @@ export default defineNuxtRouteMiddleware(async (to) => {
         // source — the server, by `?version=` — and substituting the live snapshot
         // for it would show the builder's canvas instead of the history
         if (isPreview && previewVersionId === null && import.meta.client) {
-            const previewData = window.localStorage.getItem('bricks-preview-page');
+            try {
+                const previewData = window.localStorage.getItem('bricks-preview-page');
 
-            if (previewData) {
-                const tempPage = JSON.parse(previewData) as IPublishedPage;
+                if (previewData) {
+                    const tempPage = JSON.parse(previewData) as IPublishedPage;
 
-                // The address is compared, not the name: there is one preview slot
-                // per builder, and otherwise the snapshot of `/blog/post` would
-                // show up in the preview of `/news/post` as if it were its own
-                if (
-                    isSamePageAddress(toPageAddress(tempPage.pagename, tempPage.urlPrefix), address)
-                ) {
-                    page = tempPage;
+                    // The address is compared, not the name: there is one preview slot
+                    // per builder, and otherwise the snapshot of `/blog/post` would
+                    // show up in the preview of `/news/post` as if it were its own
+                    if (
+                        isSamePageAddress(
+                            toPageAddress(tempPage.pagename, tempPage.urlPrefix),
+                            address
+                        )
+                    ) {
+                        page = tempPage;
+                    }
                 }
+            } catch {
+                // Ignore stale or malformed preview data and fall back to the API
             }
         }
 

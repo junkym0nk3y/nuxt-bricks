@@ -16,7 +16,10 @@ import { defineConfig } from 'vitest/config';
  * combination impossible in a real application. Every new entry is a deliberate decision
  * that the spec checks the browser branch of that very module.
  */
-const CLIENT_FLAG_MODULES = ['/builder/app/composables/usePreviewSync.ts'];
+const CLIENT_FLAG_MODULES = [
+    '/builder/app/composables/usePreviewSync.ts',
+    '/middleware/bricks-page-layout.global.ts',
+];
 
 /**
  * Client-only branches are fenced off by `import.meta.client`, which the Nuxt build

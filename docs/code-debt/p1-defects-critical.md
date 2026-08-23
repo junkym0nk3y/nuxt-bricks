@@ -4,90 +4,13 @@
 получает неверный результат или тишину вместо сообщения об отказе. Индекс и
 правила чтения — [README.md](README.md).
 
----
-
-## 1. Ветка grid в `crud.ts` не срабатывает никогда: сравнение с `'grid'` при данных `'Grid'`
-
-**Файл:** `src/runtime/modules/builder/core/stores/actions/crud.ts:224`, `:343`
-
-Оба места решают судьбу `gridColumn`/`gridRow` по сравнению имени контейнера с
-литералом в нижнем регистре: `addChildToLayout` чистит сеточные координаты
-ребёнка, если `layout.componentName !== 'grid'`, а `moveComponentToLayout`
-считает `isGrid` через `=== 'grid'`. Имя в схеме — `'Grid'`: библиотека собирает
-пункт из `definition.name` реестра (`layouts-blocks/registry.ts:98`,
-`name: definition.name`), а путь дропа кладёт в компонент именно его
-(`useCanvasDrops.ts:295,359`, `useDraggableComponent.ts:208` —
-`componentName: draggedComponent.name`). Подтверждено данными playground: в
-`bricks_pages.schema` все layout-блоки лежат с большой буквы (`Grid`, `Flex`,
-`Section`, `Media`, `Text`, `Space`).
-
-Следствия: ребёнок, добавленный в Grid, теряет назначенную ячейку, хотя ветка
-писалась, чтобы её сохранить; при перемещении внутри Grid без явной ячейки и без
-`targetIndex` `resolveGridProperty` получает `isGridLayout: false` и обнуляет
-координаты вместо того, чтобы сохранить текущие. Явный дроп в ячейку не задет —
-там `options.gridColumn` приходит значением и возвращается первым же приоритетом.
-
-Рядом в том же домене эта ловушка учтена: `useComponentEditorMetadata.ts:48`
-приводит имя к нижнему регистру перед обращением к реестру, а сам реестр ищет
-определение case-insensitive и в комментарии называет расхождение регистров
-прямо. Контракт схемы регистр не нормализует
-(`common/utils/bricks/schemaContract.ts:129` проверяет только непустую строку),
-поэтому импортированная схема может нести `'grid'` — и тогда те же две строки
-поведут себя иначе, чем для блока, созданного на канвасе.
-
-**Чинить:** сравнивать через тот же case-insensitive путь, что и реестр. Ни один
-спек `moveComponentToLayout`/`addChildToLayout` сейчас не покрывает — тест писать
-вместе с правкой. Рядом стоит лишнее приведение регистра, замаскировавшее эту
-ловушку: см. «Лишний `toLowerCase()` перед case-insensitive реестром» в
-[П4](p4-duplication.md).
+**Закрыл пункт — удали его из этого файла** и перенумеруй остальные: список
+сокращается, а не помечается галочками. Отметка «сделано» превращает файл в
+журнал, а журнал никто не перечитывает — история правки и так лежит в git.
 
 ---
 
-## 2. Импорт схемы может записать в страницу файл, который не подтверждали
-
-**Файлы:** `builder/publish/composables/usePublishSchemaImport.ts`
-(`confirmReplace` `:192-198`, `handleConfirmationAfterLeave` `:203-213`),
-`builder/publish/pages/index.vue` (слушатель `@after-leave` подтверждения замены),
-`BuilderPublishDetailsPanelSchema.vue` (`isBusy`)
-
-Запись схемы в published-страницу идёт не по клику «Импортировать», а по уходу
-подтверждения из DOM: `handleConfirmationAfterLeave` читает `pendingTarget` и
-`pendingFile` в момент своего вызова. Между подтверждением и этим моментом лежит
-leave-анимация (200 мс), и внутри неё значения успевают смениться на другой файл.
-
-Достижимый путь: выбрать страницу, раскрыть «Схема», нажать «Импорт JSON» и взять
-крупный файл A; пока он читается, нажать «Импорт JSON» ещё раз и взять файл B —
-кнопка доступна, потому что чтение файла не входит в `isBusy` панели; A дочитывается
-первым и открывает подтверждение; нажать «Импортировать»; если B дочитается после
-начала затухания, но до конца leave, то `requestPageImport(B)` перезапишет обе
-pending-ссылки (его гарды пропускают: страница та же, а `isImporting` ещё `false` —
-импорт стартует только в `afterLeave`), Vue досрочно завершит leave прежнего узла, и
-PATCH уедет со схемой B. Человек подтверждал A, страница получит B.
-
-Досрочный `afterLeave` — не гипотеза: при возврате однотипного узла рантайм Vue
-завершает прежний уходящий как успешный, то есть вызывает `afterLeave`, а не отмену.
-Окно узкое с двух сторон: успел B раньше клика — человек подтвердит уже B; успел
-позже конца leave — импорт A уже поднял `isImporting`, и B отклонится как занято.
-
-**Чинить:** снимать подтверждённое в `confirmReplace` (отдельные `confirmedTarget` и
-`confirmedFile`) и применять в `handleConfirmationAfterLeave` этот снимок, а не
-текущие ссылки. Вариант «эмитить `afterLeave` только при закрытой модалке» решает то
-же в `BricksModal`, но меняет контракт события для всех потребителей (снятие файла
-модалкой кадрирования), поэтому снимок в композабле безопаснее.
-
-Цена бездействия: это единственный путь, которым содержимое страницы
-перезаписывается без подтверждения, причём необратимо — PATCH уходит на сервер сразу,
-отмены в билдере нет.
-
-**Различающего теста нет:** существующие `test/publish/schemaImportFlow.spec.ts` и
-`schemaImportOrphanDevices.spec.ts` вызывают `confirmReplace` как шаг других
-сценариев. Нужный кейс: `requestPageImport(A)` → `confirmReplace()` →
-`requestPageImport(B)` → `handleConfirmationAfterLeave()`: сейчас записывается B,
-после правки — A.
-
----
-
-## 3. Переключатель публикации допускает гонку двух PATCH'ей
+## 1. Переключатель публикации допускает гонку двух PATCH'ей
 
 **Файлы:** `builder/publish/composables/usePublishPageActions.ts`
 (`togglePublished`), `components/BuilderPublishDetailsPanel.vue` (тумблер)
@@ -112,7 +35,7 @@ last-write-wins PATCH, и `syncPageInList` безусловно применяе
 
 ---
 
-## 4. При экране ошибки сессии рабочая область остаётся доступной с клавиатуры
+## 2. При экране ошибки сессии рабочая область остаётся доступной с клавиатуры
 
 **Файл:** `builder/app/pages/[pagename].vue` (`isBuilderLocked`)
 
@@ -132,7 +55,7 @@ last-write-wins PATCH, и `syncPageInList` безусловно применяе
 
 ---
 
-## 5. `handlePreview` — единственное действие тулбара без гарда готовности сессии
+## 3. `handlePreview` — единственное действие тулбара без гарда готовности сессии
 
 **Файл:** `builder/app/composables/useBuilderPage.ts`
 
@@ -147,7 +70,7 @@ last-write-wins PATCH, и `syncPageInList` безусловно применяе
 
 ---
 
-## 6. `isInstalled` поднимается до успешной установки чанка
+## 4. `isInstalled` поднимается до успешной установки чанка
 
 **Файл:** `src/runtime/plugins/utils/builderRouteScope.ts:65-66`
 
@@ -162,7 +85,7 @@ vee-validate или builder-набора иконок — без единого 
 
 ---
 
-## 7. `createPage` и `createTemplate` маскируют любой `unique_violation`
+## 5. `createPage` и `createTemplate` маскируют любой `unique_violation`
 
 **Файлы:** `src/runtime/modules/persistence/server/postgres/postgresStorageAdapter.ts:245`,
 `src/runtime/modules/persistence/server/postgres/postgresTemplateMethods.ts:93`
@@ -182,7 +105,7 @@ vee-validate или builder-набора иконок — без единого 
 
 ---
 
-## 8. `/api/bricks` сопоставляется без границы сегмента
+## 6. `/api/bricks` сопоставляется без границы сегмента
 
 **Файлы:** `src/runtime/server/utils/auth/routeProtection.ts:103`,
 `src/runtime/server/utils/auth/csrfProtection.ts:86`,
@@ -211,7 +134,7 @@ vee-validate или builder-набора иконок — без единого 
 
 ---
 
-## 9. Импорт из бакета пишет ложный MIME всем форматам кроме четырёх
+## 7. Импорт из бакета пишет ложный MIME всем форматам кроме четырёх
 
 **Файлы:** `src/runtime/modules/persistence/server/utils/mediaProcessing.ts`
 (`detectMimeTypeByFilename`),
@@ -232,7 +155,7 @@ vee-validate или builder-набора иконок — без единого 
 
 ---
 
-## 10. Непроверенный каст параметров: объект уезжает в URL как `[object Object]`
+## 8. Непроверенный каст параметров: объект уезжает в URL как `[object Object]`
 
 **Файл:** `src/runtime/modules/render/composables/useBricksDataSources.ts`
 (`executeDataSource`, сборка `params`)
@@ -250,7 +173,7 @@ vee-validate или builder-набора иконок — без единого 
 
 ---
 
-## 11. `hasUnresolvedParams` ищет любое двоеточие, а не `:paramName`
+## 9. `hasUnresolvedParams` ищет любое двоеточие, а не `:paramName`
 
 **Файл:** `src/runtime/modules/render/composables/useBricksDataSources.ts`
 
@@ -266,7 +189,7 @@ vee-validate или builder-набора иконок — без единого 
 
 ---
 
-## 12. Отказ layout-блока по циклу неотличим от «это не layout»
+## 10. Отказ layout-блока по циклу неотличим от «это не layout»
 
 **Файлы:** `src/runtime/modules/render/composables/useRendererLayouts.ts`
 (`renderLayoutComponent`), `render/components/TheRenderer.vue`
@@ -291,7 +214,7 @@ vee-validate или builder-набора иконок — без единого 
 
 ---
 
-## 13. Замена URL в схеме идёт по всей строке, а префиксные URL ломаются
+## 11. Замена URL в схеме идёт по всей строке, а префиксные URL ломаются
 
 **Файл:** `builder/media/utils/schemaImageExtractor.ts` (`replaceSchemaImageUrls`,
 ветка HTML)
@@ -312,7 +235,7 @@ vee-validate или builder-набора иконок — без единого 
 
 ---
 
-## 14. Поздний разбор оборванного создания пишет сообщение в уже очищенную форму
+## 12. Поздний разбор оборванного создания пишет сообщение в уже очищенную форму
 
 **Файл:** `builder/users/composables/useUsersCreateForm.ts:160-175`, `:233-236`,
 `:250-256`
@@ -335,7 +258,7 @@ vee-validate или builder-набора иконок — без единого 
 
 ---
 
-## 15. Клиент не может связать созданную учётку со своим запросом
+## 13. Клиент не может связать созданную учётку со своим запросом
 
 **Файлы:** `builder/users/composables/useUsersCreateForm.ts`
 (`reconcileTimedOutCreate` `:155`, вызов `:230`),
@@ -390,7 +313,7 @@ POST (`Idempotency-Key`), атомарно зарегистрированный 
 
 ---
 
-## 16. Гонка загрузки статьи: медленный ответ переписывает открытую статью
+## 14. Гонка загрузки статьи: медленный ответ переписывает открытую статью
 
 **Файл:** `builder/documentation/composables/useDocumentationArticles.ts:165-190`
 (`loadArticleContent`), watcher — `:239-246`
@@ -412,7 +335,7 @@ playground с восемью локальными статьями поймат�
 
 ---
 
-## 17. Дерево схемы принимает drop на вложенный узел и молча ничего не делает
+## 15. Дерево схемы принимает drop на вложенный узел и молча ничего не делает
 
 **Файлы:** `builder/shell/sidebar/components/BuilderShellSidebarSchemaTreeItem.vue:176,212`,
 `sidebar/components/BuilderShellSidebarSchemaTreeView.vue:59-75`
@@ -430,7 +353,7 @@ playground с восемью локальными статьями поймат�
 
 ---
 
-## 18. Гейт `isDatabaseMode` в форме пароля недостижим и оставляет форму заблокированной
+## 16. Гейт `isDatabaseMode` в форме пароля недостижим и оставляет форму заблокированной
 
 **Файл:** `builder/auth/components/BuilderAuthProfilePasswordForm.vue:99-101`
 
@@ -450,19 +373,7 @@ playground с восемью локальными статьями поймат�
 
 ---
 
-## 19. `JSON.parse` слота превью в middleware не защищён
-
-**Файл:** `src/runtime/middleware/bricks-page-layout.global.ts:110`
-
-Повреждённая или устаревшая запись `bricks-preview-page` роняет клиентскую
-навигацию прямо в middleware. Соседний потребитель того же слота такие ошибки уже
-игнорирует — `render/composables/useRendererPreviewSync.ts:109-116` и `:190-199`
-оба оборачивают разбор в `try/catch`. То есть два читателя одного ключа
-localStorage расходятся в устойчивости.
-
----
-
-## 20. `cycleUnit` записывает число пикселей как проценты
+## 17. `cycleUnit` записывает число пикселей как проценты
 
 **Файлы:** `src/runtime/modules/text-editor/utils/sizeUnits.ts` (`convertFromPx`),
 `src/runtime/modules/text-editor/components/TextEditorImageSizePanel.vue`
@@ -481,7 +392,7 @@ localStorage расходятся в устойчивости.
 
 ---
 
-## 21. Slot DnD: рекурсивный отбор детей и несимметричный `dragDepth`
+## 18. Slot DnD: рекурсивный отбор детей и несимметричный `dragDepth`
 
 **Файл:** `builder/canvas/item/composables/useSlotDragDrop.ts:134-141`, `:198-212`,
 `:239-255`
@@ -504,7 +415,7 @@ localStorage расходятся в устойчивости.
 
 ---
 
-## 22. `isFallbackMode` включается без редактора: лишняя запись в историю и inline-правка `input` без редактора
+## 19. `isFallbackMode` включается без редактора: лишняя запись в историю и inline-правка `input` без редактора
 
 **Файл:** `builder/canvas/editing/composables/useInlineEditingFallback.ts:177-205`
 **Состояние:** вживую не воспроизведено — в playground нет brick-компонентов.

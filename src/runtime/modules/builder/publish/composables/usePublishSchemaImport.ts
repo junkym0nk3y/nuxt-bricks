@@ -60,6 +60,8 @@ export function usePublishSchemaImport(
 
     const pendingTarget = ref<IPublishSchemaImportTarget | null>(null);
     const pendingFile = ref<IParsedSchemaFile | null>(null);
+    const confirmedTarget = ref<IPublishSchemaImportTarget | null>(null);
+    const confirmedFile = ref<IParsedSchemaFile | null>(null);
     const isReplaceConfirmationOpen = ref(false);
     const isImporting = ref(false);
     const shouldMountResolver = ref(false);
@@ -110,6 +112,8 @@ export function usePublishSchemaImport(
         operationGeneration += 1;
         pendingTarget.value = null;
         pendingFile.value = null;
+        confirmedTarget.value = null;
+        confirmedFile.value = null;
         isReplaceConfirmationOpen.value = false;
         imageResolver.handleCancel();
     }
@@ -200,6 +204,8 @@ export function usePublishSchemaImport(
             return;
         }
 
+        confirmedTarget.value = pendingTarget.value;
+        confirmedFile.value = pendingFile.value;
         isReplaceConfirmationOpen.value = false;
     }
 
@@ -207,8 +213,11 @@ export function usePublishSchemaImport(
      * Waits for the confirmation to leave and applies the schema to the page.
      */
     async function handleConfirmationAfterLeave(): Promise<void> {
-        const target = pendingTarget.value;
-        const file = pendingFile.value;
+        const target = confirmedTarget.value;
+        const file = confirmedFile.value;
+
+        confirmedTarget.value = null;
+        confirmedFile.value = null;
 
         // The dialog departs after a cancellation too — there is nothing left to
         // put out then

@@ -45,7 +45,7 @@ export function useComponentEditorMetadata(): IUseComponentEditorMetadataReturn 
     function resolveComponentEditorMetadata(component: IBricksComponent): IComponentEditorMetadata {
         if (component.type === 'layout') {
             return {
-                properties: getLayoutProperties(component.componentName.toLowerCase()),
+                properties: getLayoutProperties(component.componentName),
                 description: LAYOUT_COMPONENTS.find(
                     (item) => item.brickPath === component.brickPath
                 )?.description,
