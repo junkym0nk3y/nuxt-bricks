@@ -864,6 +864,19 @@ npm run dev
 | `npm run smoke:external`    | lifecycle внешнего HTTP backend         |
 | `npm run budget:bundle`     | проверить gzip-бюджеты initial bundle   |
 
+Три smoke-команды ставят зависимости чистого consumer'а с нуля, и npm 10 — тот, что
+идёт с Node 22 — на этом падает: `Cannot read properties of null (reading 'edgesOut')`
+при разборе peer-графа `nuxt`. Он же не может пересобрать лок-файл с нуля. Ставьте
+версию из `packageManager`: `npm i -g npm@11.13.0` — патч точный, потому что npm 11.19
+перестал выполнять install-скрипты зависимостей без поштучного разрешения. Остальные
+команды и `npm ci` по готовому локу работают на любой из двух версий.
+
+`@modelcontextprotocol/sdk`, `fuse.js` и `zod` стоят в `devDependencies` не ради своего
+кода: их импортирует `dist/mcp` пакета `@kalimahapps/vue-icons`, который с версии 1.9.7
+перестал объявлять их сам. Локальный MCP-сервер поиска иконок (`.claude/mcp/`, вне git)
+запускает именно этот bin и без объявления падает на неразрешённом импорте — снимать эти
+три пакета можно только вместе с ним.
+
 Runtime-код разделён на домены в `src/runtime/modules/`, тесты лежат в `test/`,
 browser-сценарии — в `e2e/`, миграции — в `migrations/`. Перед первым локальным
 E2E-запуском выполните `npx playwright install chromium`; backend и test

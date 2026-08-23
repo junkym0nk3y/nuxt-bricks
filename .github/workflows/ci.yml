@@ -2,6 +2,13 @@
 # the playground) → fresh-consumer smoke from npm pack → npm audit. Every job has to be
 # green to merge into main (required checks are configured in the branch protection of
 # the repository).
+#
+# The three smoke jobs install a clean consumer from scratch, and the npm 10 bundled with
+# Node 22 dies doing that: "Cannot read properties of null (reading 'edgesOut')" while it
+# resolves the peer graph of nuxt. Those jobs upgrade npm first; `npm ci` from the lockfile
+# and the audit are fine on either version. The version is pinned instead of floating on
+# 11.x because npm 11.19 stopped running the install scripts of dependencies until each one
+# is approved by hand.
 name: CI
 
 permissions:
@@ -62,6 +69,7 @@ jobs:
               with:
                   node-version: 22
                   cache: npm
+            - run: npm i -g npm@11.13.0
             - run: npm ci
             - run: npm run smoke:pack
 
@@ -92,6 +100,7 @@ jobs:
               with:
                   node-version: 22
                   cache: npm
+            - run: npm i -g npm@11.13.0
             - name: Start MinIO
               run: |
                   docker run -d --name minio -p 9000:9000 \
@@ -115,6 +124,7 @@ jobs:
               with:
                   node-version: 22
                   cache: npm
+            - run: npm i -g npm@11.13.0
             - run: npm ci
             - run: npm run smoke:external
 
@@ -145,8 +155,7 @@ jobs:
             - uses: actions/setup-node@v4
               with:
                   node-version: 22
-            # Production dependencies are blocking (0 vulnerabilities right now, and the
-            # bar stays there); the full audit, dev included, is informational and does not
-            # fail the build.
+            # Production dependencies are blocking; the full audit, dev included, is
+            # informational and does not fail the build.
             - run: npm audit --omit=dev
             - run: npm audit || true

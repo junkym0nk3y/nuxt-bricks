@@ -51,7 +51,7 @@
     "engines": {
         "node": ">=22.17"
     },
-    "packageManager": "npm@10.9.2",
+    "packageManager": "npm@11.13.0",
     "scripts": {
         "prepare": "simple-git-hooks",
         "prepack": "nuxt-module-build build",
@@ -88,14 +88,14 @@
     "dependencies": {
         "@aws-sdk/client-s3": "^3.914.0",
         "@nuxt/kit": "^3.21.1",
-        "@nuxtjs/i18n": "^10.4.0",
+        "@nuxtjs/i18n": "^10.6.0",
         "defu": "^6.1.4",
         "globby": "^16.1.1",
         "markdown-it": "^14.2.0",
         "modern-screenshot": "^4.7.0",
         "oxc-parser": "^0.132.0",
         "pathe": "^1.1.0",
-        "sharp": "^0.34.5",
+        "sharp": "^0.35.3",
         "ufo": "^1.6.4",
         "xss": "^1.0.15"
     },
@@ -138,6 +138,7 @@
     "devDependencies": {
         "@commitlint/cli": "^19.8.1",
         "@commitlint/config-conventional": "^19.8.1",
+        "@modelcontextprotocol/sdk": "^1.29.0",
         "@nuxt/module-builder": "^1.0.2",
         "@nuxt/test-utils": "^3.15.0",
         "@pinia/nuxt": "^0.11.3",
@@ -148,6 +149,7 @@
         "@vitejs/plugin-vue": "^6.0.7",
         "@vue/test-utils": "^2.4.11",
         "dependency-cruiser": "^17.4.3",
+        "fuse.js": "^7.3.0",
         "happy-dom": "^20.11.1",
         "knip": "^6.25.0",
         "lint-staged": "^15.5.2",
@@ -169,6 +171,7 @@
         "typescript": "^5.9.3",
         "vitest": "^3.2.0",
         "vue": "3.5.39",
-        "vue-tsc": "^3.2.4"
+        "vue-tsc": "^3.2.4",
+        "zod": "^4.4.3"
     }
 }
