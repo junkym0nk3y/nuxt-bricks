@@ -6,33 +6,34 @@ import {
 } from '../../../common/utils/bricks/publishedPage';
 
 /**
- * Кэш цвета фона из app config (устанавливается из Vue контекста).
+ * The cached background color from the app config (set from a Vue context).
  */
 let cachedBackgroundColor: string | null = null;
 
 /**
- * Устанавливает кэшированный цвет фона из app config.
- * Вызывать из Vue setup контекста (например, в useBuilderPage).
+ * Sets the cached background color from the app config.
+ * To be called from a Vue setup context (in useBuilderPage, for one).
  *
- * @param color - Цвет фона из конфига.
+ * @param color - The background color from the config.
  */
 export function setPublishStoreBackgroundColor(color: string): void {
     cachedBackgroundColor = color;
 }
 
 /**
- * Возвращает цвет фона из кэша или дефолт.
+ * Returns the background color from the cache, or the default one.
  *
- * @returns Цвет фона по умолчанию.
+ * @returns The default background color.
  */
 export function resolveDefaultBackgroundColor(): string {
     return cachedBackgroundColor || DEFAULT_BACKGROUND_COLOR;
 }
 
 /**
- * Собирает дефолтное состояние формы публикации с учётом конфигурации.
+ * Builds the default state of the publish form, the configuration taken into
+ * account.
  *
- * @returns Дефолтное состояние формы публикации.
+ * @returns The default state of the publish form.
  */
 export function buildDefaultFormState(): TPublishFormState {
     const backgroundColor = resolveDefaultBackgroundColor();
@@ -55,12 +56,12 @@ export function buildDefaultFormState(): TPublishFormState {
 }
 
 /**
- * Собирает состояние формы для копии страницы: клонирует meta, копия — черновик
- * с переданным `pagename` и суффиксом «(copy)» в названии.
+ * Builds the form state for a copy of a page: clones the meta; the copy is a draft
+ * with the given `pagename` and the "(copy)" suffix in its title.
  *
- * @param page - Исходная страница.
- * @param pagename - Уникальный `pagename` копии.
- * @returns Состояние формы публикации копии.
+ * @param page - The source page.
+ * @param pagename - The unique `pagename` of the copy.
+ * @returns The publish form state of the copy.
  */
 export function buildCopyFormState(
     page: TPublishedPageSummary,
@@ -77,8 +78,8 @@ export function buildCopyFormState(
         socialImage: page.socialImage,
         urlPrefix: page.urlPrefix,
         subdomain: page.subdomain,
-        // Глубокая копия: с общей ссылкой правка набора у копии меняла бы набор
-        // оригинала, пока обе формы открыты
+        // A deep copy: with a shared reference an edit of the device set on the
+        // copy would change the set of the original while both forms are open
         viewportConfig: cloneDeviceSet(page.viewportConfig),
         createdAt: '',
         updatedAt: '',
@@ -86,13 +87,13 @@ export function buildCopyFormState(
 }
 
 /**
- * Собирает состояние формы из сохранённой страницы — режим редактирования.
+ * Builds the form state out of a saved page — the editing mode.
  *
- * Отличие от `buildCopyFormState`: страница открывается «как есть», со своими
- * датами и статусом публикации, а не превращается в новый черновик.
+ * The difference from `buildCopyFormState`: the page opens "as is", with its own
+ * dates and publication status, instead of turning into a new draft.
  *
- * @param page - Сводка страницы из списка стора.
- * @returns Состояние формы публикации.
+ * @param page - Page summary from the list in the store.
+ * @returns The publish form state.
  */
 export function buildEditFormState(page: TPublishedPageSummary): TPublishFormState {
     return {
@@ -113,10 +114,11 @@ export function buildEditFormState(page: TPublishedPageSummary): TPublishFormSta
 }
 
 /**
- * Стабилизирует состояние формы публикации: заполняет отсутствующие поля дефолтами.
+ * Stabilizes the publish form state: fills the missing fields in with the
+ * defaults.
  *
- * @param formState - Произвольное состояние формы (например из localStorage).
- * @returns Полная структура TPublishFormState.
+ * @param formState - An arbitrary form state (out of localStorage, for one).
+ * @returns The complete TPublishFormState structure.
  */
 export function normalizeFormState(formState: Partial<TPublishFormState>): TPublishFormState {
     const defaults = buildDefaultFormState();
@@ -134,8 +136,9 @@ export function normalizeFormState(formState: Partial<TPublishFormState>): TPubl
         socialImage: formState.socialImage ?? defaults.socialImage,
         urlPrefix: formState.urlPrefix ?? null,
         subdomain: formState.subdomain ?? null,
-        // Черновики, записанные до появления набора, поля не содержат — это
-        // законное «наследует набор проекта», а не потеря данных
+        // The drafts written before the device set appeared carry no such field
+        // — that is a legitimate "inherits the set of the project" rather than a
+        // loss of data
         viewportConfig: cloneDeviceSet(formState.viewportConfig),
         createdAt: formState.createdAt ?? defaults.createdAt,
         updatedAt: formState.updatedAt ?? defaults.updatedAt,

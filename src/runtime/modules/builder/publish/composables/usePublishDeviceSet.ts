@@ -30,28 +30,30 @@ import {
 // #endregion
 
 /**
- * Черновик набора устройств страницы для модалки «Устройства страницы».
+ * The draft of the device set of a page for the "Page devices" modal.
  *
- * Правки живут здесь и уезжают в форму публикации только по «Сохранить»:
- * набор задаёт раскладку всей страницы, и применять его на каждый введённый
- * символ означало бы дёргать канвас и превью на промежуточных состояниях.
+ * The edits live here and travel into the publish form only on "Save": the set
+ * dictates the layout of the whole page, and applying it on every character typed
+ * would mean jerking the canvas and the preview around on intermediate states.
  *
- * @param options - Исходный набор страницы, набор проекта и активное устройство.
+ * @param options - The initial set of the page, the set of the project and the
+ * active device.
  */
 export function usePublishDeviceSet(options: IPublishDeviceSetOptions) {
     // #region Data
     const { t } = useI18n();
 
-    /** Свой набор у страницы (положение тумблера). */
+    /** The page has a set of its own (the position of the switch) */
     const isCustom = ref(false);
 
-    /** Черновик: правится свободно, в форму уходит только по «Сохранить». */
+    /** The draft: edited freely, travels into the form only on "Save" */
     const draft = ref<TBricksPageDeviceSet>([]);
     // #endregion
 
     // #region Computed
     /**
-     * Показываемый набор: свой черновик либо набор проекта в режиме чтения.
+     * The set that is shown: either the own draft or the set of the project in
+     * read-only mode.
      */
     const shownDevices = computed<TBricksPageDeviceSet>(() =>
         isCustom.value
@@ -60,13 +62,13 @@ export function usePublishDeviceSet(options: IPublishDeviceSetOptions) {
     );
 
     /**
-     * Границы диапазона промежуточных устройств.
+     * The bounds of the range of the intermediate devices.
      *
-     * По КЛЮЧАМ, а не по позициям: список пересортировывается на каждый ввод
-     * ширины, и «первый»/«последний» — это просто самое узкое и самое широкое
-     * на данный момент. Если задать мобильному 1400, он уедет в конец, и по
-     * позициям крайними оказались бы планшет с десктопом — замок встал бы не на
-     * то устройство, а невалидный набор прошёл бы проверку.
+     * By KEYS rather than by positions: the list is re-sorted on every width typed,
+     * and "the first"/"the last" are merely the narrowest and the widest at that
+     * moment. Give the mobile 1400 and it travels to the end, so by positions the
+     * edges would turn out to be the tablet and the desktop — the lock would land
+     * on the wrong device, and an invalid set would pass the check.
      */
     const bounds = computed(() => {
         const devices = shownDevices.value;
@@ -91,19 +93,20 @@ export function usePublishDeviceSet(options: IPublishDeviceSetOptions) {
     );
 
     /**
-     * Тот же набор, но упорядоченный по ширине.
+     * The same set, ordered by width.
      *
-     * Порядок задаётся шириной, однако СТРОКИ таблицы, пока модалка открыта, не
-     * переставляются: перестановка переносит DOM-узел строки, и всё, что в этот
-     * момент связано с её позицией, ломается — ввод в поле ширины терял фокус
-     * после первой цифры, а крестик соседней строки успевал приехать под
-     * курсор между нажатием и отпусканием кнопки, из-за чего подтверждение
-     * предлагало удалить не то устройство. Сортировка нужна не глазу, а
-     * данным: `deviceRanges` берёт верхнюю границу у соседа справа, а серверный
-     * контракт несортированный массив отклоняет — поэтому диапазоны, проверка
-     * сохранения и значение для формы считаются по этой копии. Пользователь
-     * видит новый порядок в шкале диапазонов сразу, а в таблице — при следующем
-     * открытии модалки.
+     * The order is dictated by the width, yet the ROWS of the table are not
+     * rearranged while the modal is open: a rearrangement moves the DOM node of a
+     * row, and everything tied to its position at that moment breaks — typing into
+     * the width field lost the focus after the first digit, and the cross of the
+     * neighboring row managed to travel under the cursor between the press and the
+     * release of the button, which made the confirmation offer to remove the wrong
+     * device. The sorting is needed by the data rather than by the eye:
+     * `deviceRanges` takes the upper bound from the neighbor on the right, and the
+     * server contract rejects an unsorted array — so the ranges, the save check and
+     * the value for the form are all computed over this copy. A person sees the new
+     * order in the range scale at once, and in the table on the next opening of the
+     * modal.
      */
     const sortedDevices = computed<TBricksPageDeviceSet>(() =>
         [...shownDevices.value].sort((a, b) => a.width - b.width)
@@ -125,12 +128,13 @@ export function usePublishDeviceSet(options: IPublishDeviceSetOptions) {
     });
 
     /**
-     * Устройства каталога, доступные к добавлению: ещё не в наборе и по ширине
-     * попадают строго между крайними.
+     * The devices of the catalog available to be added: not in the set yet, and by
+     * width falling strictly between the edges.
      *
-     * Список, а не одна заготовка: устройство выбирается пользователем из меню, а
-     * не подставляется молча — иначе «Добавить» на наборе из трёх давало бы
-     * ровно один возможный исход, о котором пользователь узнавал бы после факта.
+     * A list rather than one prepared entry: the device is picked by a person out of
+     * a menu instead of being substituted silently — otherwise "Add" on a set of
+     * three would have exactly one possible outcome, which a person would learn
+     * about after the fact.
      */
     const availableChoices = computed<IBricksDeviceChoice[]>(() => {
         const occupied = new Set(draft.value.map((device) => device.key));
@@ -155,12 +159,13 @@ export function usePublishDeviceSet(options: IPublishDeviceSetOptions) {
     );
 
     /**
-     * Сохранение доступно, только если черновик проходит тот же контракт, что и
-     * сервер.
+     * Saving is available only when the draft passes the same contract as the
+     * server's.
      *
-     * Полевых ошибок мало: они не покрывают ни rem-поля, ни порядок массива, и
-     * набор, прошедший только их, уехал бы в форму и упал бы 400 при сохранении
-     * страницы — когда модалка уже закрыта и показать ошибку негде.
+     * The per-field errors are not enough: they cover neither the rem fields nor the
+     * order of the array, and a set that passed only them would travel into the form
+     * and would fail with a 400 on the save of the page — by which time the modal is
+     * closed and there is nowhere to show the error.
      */
     const canSave = computed<boolean>(
         () => !hasErrors.value && (!isCustom.value || validateDeviceSet(sortedDevices.value).ok)
@@ -169,11 +174,11 @@ export function usePublishDeviceSet(options: IPublishDeviceSetOptions) {
 
     // #region Methods
     /**
-     * Проверяет ширину устройства по правилам макета.
+     * Checks the width of a device against the rules of the design.
      *
-     * @param device - Проверяемая запись.
-     * @param index - Позиция записи в наборе.
-     * @returns Текст ошибки либо пустая строка.
+     * @param device - The record being checked.
+     * @param index - The position of the record in the set.
+     * @returns The error text, or an empty string.
      */
     function validateWidth(device: { key: string; width: number }, index: number): string {
         const devices = shownDevices.value;
@@ -196,16 +201,17 @@ export function usePublishDeviceSet(options: IPublishDeviceSetOptions) {
 
         const isEdge = device.key === NARROW_DEVICE_KEY || device.key === BASE_DEVICE_KEY;
 
-        // Крайние обязаны остаться крайними: мобильный не шире всех
-        // промежуточных, десктоп не уже
+        // The edges are obliged to stay the edges: the mobile no wider than any
+        // intermediate device, the desktop no narrower
         if (isEdge && bounds.value.min >= bounds.value.max) {
             return t('bricks.devices.errors.edgeOrder');
         }
 
         if (!isEdge && (device.width <= bounds.value.min || device.width >= bounds.value.max)) {
-            // Подписи крайних — по КЛЮЧАМ, как и сами границы: список
-            // пересортирован по ширине, и позиционный `devices[0]` назвал бы
-            // ошибке не то устройство ровно в тот момент, когда порядок нарушен
+            // The labels of the edges come by KEYS, like the bounds themselves:
+            // the list is re-sorted by width, and a positional `devices[0]` would
+            // name the wrong device to the error at exactly the moment the order is
+            // broken
             return t('bricks.devices.errors.widthBetween', {
                 min: bounds.value.min,
                 minLabel: bounds.value.minLabel,
@@ -218,14 +224,14 @@ export function usePublishDeviceSet(options: IPublishDeviceSetOptions) {
     }
 
     /**
-     * Включает или выключает собственный набор страницы.
+     * Turns the page's own set on or off.
      *
-     * @param value - Новое положение тумблера.
+     * @param value - The new position of the switch.
      */
     function setCustom(value: boolean): void {
-        // Копия снимается ДО переключения флага: `shownDevices` смотрит на него
-        // и после переключения вернул бы уже пустой черновик — набор копировался
-        // бы сам в себя
+        // The copy is taken BEFORE the flag is switched: `shownDevices` looks at it
+        // and after the switch would return the empty draft already — the set would
+        // be copying itself into itself
         if (value && draft.value.length === 0) {
             draft.value = shownDevices.value.map((device) => ({ ...device }));
         }
@@ -234,10 +240,10 @@ export function usePublishDeviceSet(options: IPublishDeviceSetOptions) {
     }
 
     /**
-     * Правит поле устройства в черновике.
+     * Edits a field of a device in the draft.
      *
-     * @param key - Ключ устройства.
-     * @param patch - Изменяемые поля.
+     * @param key - Device key.
+     * @param patch - The fields being changed.
      */
     function updateDevice(key: string, patch: Partial<IPublishDeviceRow>): void {
         draft.value = draft.value.map((device) =>
@@ -246,13 +252,14 @@ export function usePublishDeviceSet(options: IPublishDeviceSetOptions) {
     }
 
     /**
-     * Добавляет выбранное устройство каталога.
+     * Adds the picked device of the catalog.
      *
-     * Ключ берётся из каталога и дальше не меняется: подпись правится свободно, а
-     * пересчёт ключа осиротил бы все `props.responsive[key]` блоков. Уникальность
-     * ключа гарантирует сам выбор — занятые устройства в меню не показываются.
+     * The key comes from the catalog and never changes afterwards: the label is
+     * edited freely, while recomputing the key would orphan every
+     * `props.responsive[key]` of the blocks. The uniqueness of the key is guaranteed
+     * by the pick itself — the devices already taken are not shown in the menu.
      *
-     * @param key - Ключ устройства каталога.
+     * @param key - The key of the catalog device.
      */
     function addDevice(key: string): void {
         const choice = availableChoices.value.find((item) => item.key === key);
@@ -261,9 +268,9 @@ export function usePublishDeviceSet(options: IPublishDeviceSetOptions) {
             return;
         }
 
-        // Новая строка встаёт на своё место по ширине сразу: перестановка здесь
-        // безопасна, курсор в этот момент не над таблицей и не в поле ввода —
-        // пользователь только что выбрал устройство в меню
+        // The new row takes its place by width right away: a rearrangement is safe
+        // here, the cursor is neither over the table nor in an input at that moment
+        // — a person has just picked the device in the menu
         draft.value = [
             ...draft.value,
             {
@@ -278,9 +285,9 @@ export function usePublishDeviceSet(options: IPublishDeviceSetOptions) {
     }
 
     /**
-     * Удаляет промежуточное устройство из черновика.
+     * Removes an intermediate device from the draft.
      *
-     * @param key - Ключ устройства.
+     * @param key - Device key.
      */
     function removeDevice(key: string): void {
         if (key === NARROW_DEVICE_KEY || key === BASE_DEVICE_KEY) {
@@ -291,12 +298,13 @@ export function usePublishDeviceSet(options: IPublishDeviceSetOptions) {
     }
 
     /**
-     * Собирает значение для формы публикации.
+     * Builds the value for the publish form.
      *
-     * Отдаётся отсортированный набор независимо от порядка строк: перестановка
-     * отложена до конца ввода, а сервер несортированный массив отклоняет.
+     * The set is handed over sorted regardless of the order of the rows: the
+     * rearrangement is postponed until the typing is over, while the server rejects
+     * an unsorted array.
      *
-     * @returns Набор страницы либо `null` (наследование набора проекта).
+     * @returns The set of the page, or `null` (inheriting the set of the project).
      */
     function toFormValue(): TBricksPageDeviceSet | null {
         return isCustom.value ? cloneDeviceSet(sortedDevices.value) : null;
@@ -305,7 +313,7 @@ export function usePublishDeviceSet(options: IPublishDeviceSetOptions) {
 
     // #region Lifecycle
     /**
-     * Пересобирает черновик из набора страницы.
+     * Rebuilds the draft out of the set of the page.
      */
     function resetDraft(): void {
         const config = options.initial();
@@ -315,16 +323,16 @@ export function usePublishDeviceSet(options: IPublishDeviceSetOptions) {
     }
 
     /**
-     * Черновик пересобирается на КАЖДОЕ открытие модалки, а не только при смене
-     * набора.
+     * The draft is rebuilt on EVERY opening of the modal rather than only on a
+     * change of the set.
      *
-     * Модалка остаётся смонтированной у обоих родителей, поэтому «поправил
-     * ширину → Отмена → открыл снова» показывал бы прежние несохранённые
-     * правки: отменять было нечему, watcher по `initial` не срабатывал —
-     * сохранённый набор не менялся.
+     * The modal stays mounted in both of its parents, so "edited a width, hit
+     * Cancel, opened it again" used to show the previous unsaved edits: there was
+     * nothing for the cancelling to undo, and the watcher on `initial` did not fire
+     * — the saved set had not changed.
      */
-    // `flush: 'sync'` — черновик обязан быть свежим до первого рендера строк,
-    // иначе кадр показывает прежние правки
+    // `flush: 'sync'` — the draft is obliged to be fresh before the first render of
+    // the rows, otherwise the frame shows the previous edits
     watch(
         options.isOpen,
         (isOpen) => {
@@ -335,8 +343,8 @@ export function usePublishDeviceSet(options: IPublishDeviceSetOptions) {
         { flush: 'sync' }
     );
 
-    // Смена набора извне (переключение страницы в билдере, восстановление
-    // черновика) тоже должна доезжать до модалки
+    // A change of the set from the outside (a page being switched in the builder, a
+    // draft being restored) has to reach the modal too
     watch(options.initial, resetDraft, { immediate: true });
     // #endregion
 

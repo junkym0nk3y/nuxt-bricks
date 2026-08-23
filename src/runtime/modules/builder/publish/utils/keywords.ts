@@ -1,20 +1,21 @@
 /**
- * Граница между списком тегов в редакторе и строкой `keywords` страницы.
+ * The boundary between the tag list in the editor and the `keywords` string of a
+ * page.
  *
- * Хранение остаётся строкой (`keywords TEXT` в БД, `string` в API-пейлоадах),
- * поэтому конверсия делается только на входе и выходе формы — ни адаптеры, ни
- * контракт внешнего backend об этом не знают.
+ * Storage stays a string (`keywords TEXT` in the database, `string` in the API
+ * payloads), so the conversion happens only on the way in and out of the form —
+ * neither the adapters nor the contract of an external backend know about it.
  */
 
 // Utils
 import { TAGS_SEPARATOR } from '../../../ui/inputs/utils/tags';
 
 /**
- * Разбирает строку ключевых слов в список тегов: split по запятой, trim,
- * отбрасывание пустых, дедуп с сохранением порядка.
+ * Parses a keywords string into a tag list: split on the comma, trim, drop the
+ * empty ones, dedupe keeping the order.
  *
- * @param value - Строка ключевых слов (может быть null/пустой).
- * @returns Список тегов без дублей и пустых значений.
+ * @param value - Keywords string (may be null or empty).
+ * @returns Tag list without duplicates and empty values.
  */
 export function parseKeywords(value: string | null | undefined): string[] {
     if (!value) {
@@ -36,10 +37,10 @@ export function parseKeywords(value: string | null | undefined): string[] {
 }
 
 /**
- * Склеивает список тегов в строку ключевых слов.
+ * Joins a tag list into a keywords string.
  *
- * @param tags - Список тегов.
- * @returns Строка для `keywords` страницы.
+ * @param tags - Tag list.
+ * @returns The `keywords` string of a page.
  */
 export function serializeKeywords(tags: string[]): string {
     return tags.join(TAGS_SEPARATOR);

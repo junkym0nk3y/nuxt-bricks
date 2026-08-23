@@ -2,9 +2,9 @@ import type { TPublishFormState } from '../../../common/types/bricks-api';
 import type { IBuilderDraftSnapshot } from '../types/builderDrafts';
 
 /**
- * Формирует объект для сравнения из настроек публикации.
+ * Builds the object to compare out of the publish settings.
  *
- * @param formState - Состояние формы.
+ * @param formState - Form state.
  */
 function pickComparableFormState(formState: TPublishFormState): Record<string, unknown> {
     return {
@@ -18,19 +18,20 @@ function pickComparableFormState(formState: TPublishFormState): Record<string, u
         socialImage: formState.socialImage ?? '',
         urlPrefix: formState.urlPrefix ?? '',
         subdomain: formState.subdomain ?? '',
-        // Без этого правка ширины устройства не считалась бы изменением: форма
-        // помечалась бы чистой, и «Сохранить» уходило бы без набора
+        // Without this an edit of a device width would not count as a change: the
+        // form would be marked clean, and "Save" would go out without the set
         viewportConfig: formState.viewportConfig ?? null,
     };
 }
 
 /**
- * Сравнивает только настройки публикации. Отдельно от снапшота целиком, потому
- * что схему для этого пришлось бы сериализовать — а форма меняется на каждый
- * символ в поле, и сравнивать по ней весь канвас незачем.
+ * Compares the publish settings only. Apart from the whole snapshot because the
+ * schema would have to be serialized for that — and the form changes on every
+ * character typed into a field, so there is no point in comparing the entire
+ * canvas over it.
  *
- * @param a - Первое состояние формы.
- * @param b - Второе состояние формы.
+ * @param a - The first form state.
+ * @param b - The second form state.
  */
 export function isFormStateEqual(a: TPublishFormState, b: TPublishFormState): boolean {
     return (
@@ -39,10 +40,10 @@ export function isFormStateEqual(a: TPublishFormState, b: TPublishFormState): bo
 }
 
 /**
- * Сравнивает два снапшота (schema + publish settings).
+ * Compares two snapshots (schema + publish settings).
  *
- * @param a - Первый снапшот.
- * @param b - Второй снапшот.
+ * @param a - The first snapshot.
+ * @param b - The second snapshot.
  */
 export function isSnapshotEqual(a: IBuilderDraftSnapshot, b: IBuilderDraftSnapshot): boolean {
     const schemaEqual = JSON.stringify(a.schema) === JSON.stringify(b.schema);

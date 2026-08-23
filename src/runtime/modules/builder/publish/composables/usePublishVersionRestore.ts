@@ -11,9 +11,10 @@ import { usePublishStore } from '../stores/publish';
 import { formatPageVersionDateTime } from '../utils/dates';
 
 /**
- * Confirm-флоу отката страницы к версии для дашборда: состояние модалки
- * подтверждения, описание с датой версии и выполнение отката через publish-стор
- * (тосты успеха/ошибки — через `onNotify`).
+ * The confirm flow of rolling a page back to a version for the dashboard: the
+ * state of the confirmation modal, the description carrying the date of the
+ * version and the rollback performed through the publish store (the success and
+ * error toasts go through `onNotify`).
  */
 export function usePublishVersionRestore(
     options: IUsePublishVersionRestoreOptions
@@ -31,18 +32,19 @@ export function usePublishVersionRestore(
             return '';
         }
 
-        // Та же дата, которой подписана карточка версии в галерее: подтверждение
-        // необратимого действия обязано называть выбранное состояние так же
+        // The same date the version card in the gallery is signed with: the
+        // confirmation of an irreversible action is obliged to name the chosen
+        // state the same way
         return t('bricks.publish.dashboard.details.versions.restoreConfirm.description', {
             date: formatPageVersionDateTime(restore.version),
         });
     });
 
     /**
-     * Запрашивает подтверждение отката страницы к сохранённой версии.
+     * Asks for the rollback of the page to a saved version to be confirmed.
      *
-     * @param page - Страница.
-     * @param version - Сводка версии.
+     * @param page - The page.
+     * @param version - Version summary.
      */
     function requestRestoreVersion(
         page: TPublishedPageSummary,
@@ -53,9 +55,9 @@ export function usePublishVersionRestore(
     }
 
     /**
-     * Закрывает подтверждение отката.
+     * Closes the rollback confirmation.
      *
-     * @param force - Закрыть даже во время выполнения отката.
+     * @param force - Close it even while the rollback is running.
      */
     function closeRestoreConfirmation(force = false): void {
         if (!force && isRestoring.value) {
@@ -67,12 +69,14 @@ export function usePublishVersionRestore(
     }
 
     /**
-     * Подтверждает и выполняет откат к версии (schema + layout + backgroundColor).
+     * Confirms and performs the rollback to a version (schema + layout +
+     * backgroundColor).
      *
-     * Определённый отказ оставляет подтверждение открытым — повтор безопасен и
-     * под рукой. Обрыв по потолку ожидания его закрывает: исход неизвестен, откат
-     * мог примениться, и сообщение об этом просит сначала обновить данные (список
-     * стор перечитывает сам), а повторный откат ушёл бы с устаревшей revision.
+     * A settled refusal leaves the confirmation open — a retry is safe and at
+     * hand. An abort by the waiting ceiling closes it: the outcome is unknown, the
+     * rollback may have been applied, and the message about it asks to refresh the
+     * data first (the store re-reads the list itself), while a repeated rollback
+     * would go out with a stale revision.
      */
     async function confirmRestoreVersion(): Promise<void> {
         const restore = pendingRestore.value;

@@ -22,13 +22,14 @@ import {
 } from '../../../common/constants/publish';
 
 /**
- * Собирает yup-схему валидации meta-полей страницы. Чистая фабрика без привязки
- * к store/i18n — контекст (переводчик, проверка уникальности, исключаемый id)
- * передаётся снаружи, поэтому схему переиспользуют и сайдбар билдера
- * (`usePublishValidationSchema`), и панель деталей дашборда (`usePublishPageForm`).
+ * Builds the yup schema validating the meta fields of a page. A pure factory bound
+ * to neither the store nor i18n — the context (the translator, the uniqueness
+ * check, the id to exclude) is passed from the outside, which is why the schema is
+ * reused both by the sidebar of the builder (`usePublishValidationSchema`) and by
+ * the details panel of the dashboard (`usePublishPageForm`).
  *
- * @param options - Контекст валидации.
- * @returns Yup-схема формы публикации.
+ * @param options - Validation context.
+ * @returns The yup schema of the publish form.
  */
 export function createPublishValidationSchema(options: IPublishValidationSchemaOptions) {
     const { t, isPageAddressFree, isEditorAddressFree, isAddressAvailable, getExcludeId } = options;
@@ -39,9 +40,10 @@ export function createPublishValidationSchema(options: IPublishValidationSchemaO
             .min(PAGENAME_MIN_LENGTH, () => t('bricks.publish.validation.pagenameMin'))
             .max(PAGENAME_MAX_LENGTH, () => t('bricks.publish.validation.pagenameMax'))
             .matches(/^[a-z0-9-]+$/, () => t('bricks.publish.validation.pagenameFormat'))
-            // Адрес редактора теперь включает префикс, поэтому проверяется пара:
-            // `bricks-login` без префикса действительно отбирает путь у страницы
-            // логина, а `blog/bricks-login` живёт по свободному пути
+            // The editor address includes the prefix, so it is the pair that is
+            // checked: `bricks-login` with no prefix really does take the path
+            // away from the login page, while `blog/bricks-login` lives under a
+            // free path
             .test(
                 'editorAddress',
                 () => t('bricks.publish.validation.pagenameEditorTaken'),
@@ -51,8 +53,9 @@ export function createPublishValidationSchema(options: IPublishValidationSchemaO
                     return !value || isEditorAddressFree(toPageAddress(value, urlPrefix));
                 }
             )
-            // Live-адрес — только когда префикса нет: с префиксом за адрес
-            // отвечает поле urlPrefix, и краснеть должно оно
+            // The live address only when there is no prefix: with one the
+            // address is the urlPrefix field's responsibility, and that is the
+            // field that has to go red
             .test(
                 'liveAddress',
                 () => t('bricks.publish.validation.pagenameAddressTaken'),
@@ -66,8 +69,9 @@ export function createPublishValidationSchema(options: IPublishValidationSchemaO
                     );
                 }
             ),
-        // trim: сервер меряет длину уже обрезанной строки и её же кладёт в базу —
-        // без этого поле из одних пробелов проходило бы клиентскую проверку
+        // trim: the server measures the length of the already trimmed string and
+        // puts that very one into the database — without this a field of nothing
+        // but spaces would pass the client-side check
         title: string()
             .trim()
             .required(() => t('bricks.publish.validation.titleRequired'))
@@ -93,10 +97,11 @@ export function createPublishValidationSchema(options: IPublishValidationSchemaO
                 t('bricks.publish.validation.urlPrefixFormat')
             )
             .max(URL_PREFIX_MAX_LENGTH, () => t('bricks.publish.validation.urlPrefixMax'))
-            // Проверяется пара с pagename, а не префикс сам по себе: адрес
-            // страницы перекрывает их сумма. Ошибка садится на urlPrefix —
-            // pagename в этот момент валиден сам по себе (без префикса адрес
-            // страницы свободен), и краснеть должно поле, которое ломает адрес
+            // It is the pair with the pagename that is checked rather than the
+            // prefix on its own: the address of a page is covered by their sum.
+            // The error lands on urlPrefix — the pagename is valid by itself at
+            // that moment (with no prefix the address of the page is free), and
+            // the field that breaks the address is the one that has to go red
             .test(
                 'addressTaken',
                 () => t('bricks.publish.validation.urlPrefixAddressTaken'),
@@ -112,9 +117,10 @@ export function createPublishValidationSchema(options: IPublishValidationSchemaO
             .matches(/^[a-z0-9-]*$/, () => t('bricks.publish.validation.subdomainFormat'))
             .max(SUBDOMAIN_MAX_LENGTH, () => t('bricks.publish.validation.subdomainMax')),
     }).test('addressUnique', function (form): boolean | ValidationError {
-        // Уникальность проверяется на уровне объекта, а не в тесте поля: занят
-        // адрес целиком, и тест, висящий на одном поле, не пересчитывался бы при
-        // правке второго — смена pagename оставляла бы ошибку от прежней пары.
+        // Uniqueness is checked at the level of the object rather than in a test
+        // of a field: it is the whole address that is taken, and a test hanging on
+        // one field would not be recomputed on an edit of the other — a change of
+        // the pagename would leave the error of the previous pair standing.
         if (!form?.pagename) {
             return true;
         }
@@ -125,9 +131,10 @@ export function createPublishValidationSchema(options: IPublishValidationSchemaO
             return true;
         }
 
-        // Поле ошибки — то, которое пользователь и правит, чтобы разойтись с
-        // занятым адресом: с префиксом это urlPrefix, без него — само имя. Та же
-        // конвенция, что у адреса, занятого роутингом приложения.
+        // The field of the error is the one a person edits to part with the taken
+        // address: with a prefix that is urlPrefix, without one it is the name
+        // itself. The same convention as for an address taken by the routing of
+        // the application.
         return this.createError({
             path: address.urlPrefix === null ? 'pagename' : 'urlPrefix',
             message: t('bricks.publish.validation.addressTaken'),

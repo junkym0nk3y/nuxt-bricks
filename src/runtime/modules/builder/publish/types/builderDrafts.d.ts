@@ -9,16 +9,17 @@ export interface IBuilderDraftSnapshot {
 export type TBuilderDraftMode = 'new' | 'edit';
 
 /**
- * Исход переноса черновика на новый ключ.
+ * The outcome of moving a draft to a new key.
  *
- * - `migrated` — запись перенесена;
- * - `nothing-to-migrate` — переносить нечего (ключ тот же или черновика нет);
- * - `target-taken` — под целевым ключом лежит чужой черновик, он не тронут;
- * - `storage-unavailable` — хранилище отказало, исход переноса неизвестен.
+ * - `migrated` — the record was moved;
+ * - `nothing-to-migrate` — there is nothing to move (the key is the same, or there
+ *   is no draft);
+ * - `target-taken` — another draft lies under the target key and was left alone;
+ * - `storage-unavailable` — the storage refused, the outcome of the move is unknown.
  *
- * Последние два различаются не для красоты: занятый ключ — обычная ситуация
- * (сессия владеет своим ключом), а отказ хранилища означает, что черновик мог
- * остаться под прежним слагом и позже воскреснуть.
+ * The last two are told apart for a reason: a taken key is an ordinary situation
+ * (a session owns its key), while a refusal of the storage means the draft may
+ * have stayed under the previous slug and may come back to life later.
  */
 export type TBuilderDraftMigration =
     | 'migrated'
@@ -29,9 +30,9 @@ export type TBuilderDraftMigration =
 export interface IBuilderDraftEntry {
     pagename: string;
     /**
-     * Префикс адреса страницы, которой принадлежит черновик (`null` — без
-     * префикса). Вместе с `pagename` даёт адрес: он же ключ записи, и по нему
-     * сессия отличает свой черновик от чужого.
+     * The prefix of the address of the page the draft belongs to (`null` — no
+     * prefix). Together with `pagename` it gives the address: that is also the key
+     * of the record, and by it a session tells its own draft from another one.
      */
     urlPrefix: string | null;
     updatedAt: string;

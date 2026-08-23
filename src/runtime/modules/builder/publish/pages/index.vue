@@ -1,4 +1,18 @@
 <script setup lang="ts">
+/**
+ * @description The dashboard host: it assembles the shell, the sections and every
+ * modal of the dashboard, owns the selected page and shows the toasts.
+ *
+ * Decisions held by the markup: the templates, the accounts and the media library
+ * each arrive as a controller component of their own — assembled here, every one of
+ * them would add another state machine into this file next to the pages, while the
+ * host stays the one that shows the toasts, opens the page creation form and the
+ * lightbox. The confirmations of a media deletion and of a schema replacement live
+ * here for the mirror reason: both are requested out of a slot of the shell whose
+ * state this host owns, and neither closes on its own. The template save form is one
+ * per dashboard — an action of a page row opens it.
+ */
+
 // #region Imports
 // Types
 import type { TPublishedPageSummary } from '../../../common/types/bricks-api';
@@ -62,21 +76,24 @@ import BuilderAuthDefaultPasswordNotice from '../../auth/components/BuilderAuthD
 import BricksConfirmModal from '../../../ui/feedback/BricksConfirmModal.vue';
 import BricksToast from '../../../ui/feedback/BricksToast.vue';
 
-// Модалки — lazy-чанки: не нужны до открытия (документация тянет markdown-it и статьи)
+// The modals are lazy chunks: they are not needed before an opening (the
+// documentation pulls markdown-it and the articles along)
 const TheBuilderDocumentationModal = defineAsyncComponent(
     () => import('../../documentation/components/TheBuilderDocumentationModal.vue')
 );
 const TheBuilderMediaGalleryModal = defineAsyncComponent(
     () => import('../../media/components/TheBuilderMediaGalleryModal.vue')
 );
-// Профиль открывают с меню в углу — до этого модалка не нужна ни разметкой, ни
-// чанком (в ней форма пароля, кадрирование и vee-validate)
+// The profile is opened from the menu in the corner — before that the modal is
+// needed neither by the markup nor as a chunk (it holds the password form, the
+// cropping and vee-validate)
 const TheBuilderAuthProfileModal = defineAsyncComponent(
     () => import('../../auth/components/TheBuilderAuthProfileModal.vue')
 );
-// Резолвер картинок нужен только импорту схемы — держим его в отдельном чанке.
-// Условие монтирования в шаблоне обязательно: без него чанк уехал бы к первому
-// рендеру дашборда, и ленивым импорт был бы только на бумаге
+// The image resolver is needed by the schema import alone — it is kept in a chunk of
+// its own. The mounting condition in the template is mandatory: without it the chunk
+// would travel out by the first render of the dashboard, and the import would be lazy
+// on paper only
 const TheBuilderMediaImageResolverModal = defineAsyncComponent(
     () => import('../../media/components/TheBuilderMediaImageResolverModal.vue')
 );
@@ -86,16 +103,16 @@ const TheBuilderMediaImageResolverModal = defineAsyncComponent(
 const { t } = useI18n();
 const router = useRouter();
 const publishStore = usePublishStore();
-// Ряд категорий читает раздел, а показывает ещё и панель деталей — источник
-// один, стор
+// The row of categories is read by the section and shown by the details panel as
+// well — there is one source, the store
 const mediaCategoriesStore = useMediaCategoriesStore();
 const { toast, showToast } = useBuilderToast();
 const { logout } = useAuthSession();
-// Композабл создаётся здесь, синхронно: внутри `useState`/`useRequestEvent`, а
-// они обязаны вызваться до первого `await` этого setup — досылка профиля идёт
-// ниже, вместе с ролью
+// The composable is created here, synchronously: `useState`/`useRequestEvent` live
+// inside it, and those are obliged to be called before the first `await` of this
+// setup — the profile itself is sent for below, together with the role
 const { profile, ensureProfile } = useAuthProfile();
-// Модалку профиля открывает меню в углу шапки
+// The profile modal is opened by the menu in the corner of the header
 const profileModal = useAuthProfileModal();
 const { canChangePassword, canManageUsers, ensureRole } = useBuilderPermissions();
 const { searchQuery, activeFilter, filterCounts, filteredPages, hasAnyPages } = usePublishDashboard(
@@ -112,20 +129,23 @@ const {
 } = usePublishPageActions({ onNotify: showToast });
 const { isDarkMode, bodyClass, toggleDarkMode, toggleLocale } = usePublishDashboardPreferences();
 const mediaGallery = usePublishMediaGallery();
-// Поверхность медиатеки: загрузка живёт в шапке дашборда, а выбранный файл — в
-// панели деталей, то есть по разные стороны от самого раздела. Общее состояние
-// держит хост — ровно как выбранную страницу
+// The media library surface: the upload lives in the header of the dashboard while
+// the selected file lives in the details panel, that is, on either side of the
+// section itself. The shared state is held by the host — exactly as the selected page
+// is
 const media = usePublishMediaSurface({ onNotify: showToast });
 const uploadControlsRef = ref<InstanceType<typeof BuilderMediaGalleryUploadControls> | null>(null);
-// Список учёток нужен дашборду и до открытия раздела: пункт рейла показывает
-// счётчик. Сам раздел читает то же состояние — оно одно на приложение
+// The dashboard needs the account list before the section is opened too: the rail
+// item shows a counter. The section reads that same state — there is one of it per
+// application
 const { usersCount, status: usersStatus, ensureUsers } = useUsersData();
-// То же со шаблонами: счётчик рейла рисуется до открытия раздела, а список один
-// на приложение — его же читают раздел и выбор источника новой страницы
+// The same with the templates: the rail counter is drawn before the section is
+// opened, and the list is one per application — it is read both by the section and by
+// the source picker of a new page
 const { templatesCount, ensureTemplates } = useTemplatesData();
-// Поверхность шаблонов: подготовка источника из строки списка (схему страницы
-// приходится читать point-lookup'ом), предвыбор шаблона формы создания и снимок
-// для лайтбокса
+// The templates surface: preparing a source out of a row of the list (the schema of
+// the page has to be read by a point lookup), the pre-pick of a template for the
+// creation form and the snapshot for the lightbox
 const templates = usePublishTemplatesSurface({ onNotify: showToast });
 const isCreatePageModalOpen = ref(false);
 const isCreateUserModalOpen = ref(false);
@@ -158,11 +178,10 @@ const {
     },
 });
 
-// Импорт схемы: подтверждение замены, резолвинг картинок и запись. Живёт здесь,
-// а не в панели деталей, потому что обслуживает и модалку создания, и потому что
-// его модалки телепортированы в body — то есть переживают и смену выбранной
-// страницы, и закрытие панели. Не разбирается по именам: полями пользуется
-// только шаблон, а россыпь из семнадцати переменных читается хуже
+// The schema import lives here rather than in the details panel because it serves
+// the creation modal too, and because its modals outlive both a change of the
+// selected page and the closing of the panel. It is not destructured by name: only
+// the template uses its fields, and a scatter of seventeen variables reads worse
 const schemaImport = usePublishSchemaImport({
     onNotify: showToast,
     isTargetSelected: (pageId) => selectedPageId.value === String(pageId),
@@ -176,7 +195,8 @@ const mediaCategories = computed<IMediaCategory[]>(() => mediaCategoriesStore.ca
 const toastDuration = computed<number>(() => toast.duration ?? 4000);
 
 /**
- * Выбранная страница — из store, чтобы панель видела результат patch/удаления.
+ * The selected page comes from the store, so that the panel sees the result of a
+ * patch or a deletion.
  */
 const selectedPage = computed<TPublishedPageSummary | null>(() => {
     if (selectedPageId.value === null) {
@@ -186,20 +206,21 @@ const selectedPage = computed<TPublishedPageSummary | null>(() => {
 });
 
 /**
- * Раздел «Пользователи» показывается, когда права есть И ручки отвечают:
- * `unavailable` ставится на 403 и 404 первой загрузки, то есть «раздела в этой
- * установке нет». Оставить пункт в этом состоянии значило бы вести человека на
- * пустой экран, который ничем не наполнится.
+ * The "Users" section is shown when the rights are there AND the endpoints answer:
+ * `unavailable` is set on a 403 and on a 404 of the first load, that is, on "there is
+ * no such section in this installation". Leaving the item in that state would mean
+ * leading a person onto an empty screen that nothing is going to fill.
  */
 const isUsersSectionVisible = computed<boolean>(
     () => canManageUsers.value && usersStatus.value !== 'unavailable'
 );
 
 /**
- * Открытый раздел и строка поиска этого раздела: у каждого списка запрос свой,
- * а поле в шапке одно. Ниже Computed, а не в Data: композабл гасит открытый
- * раздел учёток, когда тот пропадает, — то есть читает доступность раздела,
- * которая складывается прямо над ним.
+ * The open section and the search string of that section: every list has a query of
+ * its own while the field in the header is single. Down here among the Computed
+ * rather than in Data: the composable puts the open accounts section out when it
+ * disappears — that is, it reads the availability of the section, which adds up right
+ * above it.
  */
 const {
     activeSection,
@@ -216,13 +237,13 @@ const {
     onEnterMedia: media.ensureMedia,
 });
 
-/** Своя учётка: её строка в списке помечается и теряет часть действий. */
+/** One's own account: its row in the list is marked and loses some of the actions */
 const currentUserId = computed<number | null>(() => profile.value?.id ?? null);
 
 /**
- * Что показывает лайтбокс: снимок страницы, снимок шаблона либо файл медиатеки.
- * Один компонент на все разделы — открыт всегда ровно один из них, и второй
- * экземпляр лайтбокса добавил бы в разметку вторую копию диалога с focus trap.
+ * What the lightbox shows: a page snapshot, a template snapshot or a media file. One
+ * component for every section — exactly one of them is open at a time, and a second
+ * instance would add another copy of the dialog, focus trap and all, into the markup.
  */
 const lightboxItem = computed<TMediaLightboxItem | null>(
     () => media.previewItem.value ?? templates.previewItem.value ?? thumbnailPreviewItem.value
@@ -232,7 +253,7 @@ const lightboxItem = computed<TMediaLightboxItem | null>(
 
 // #region Methods
 /**
- * Открывает модалку создания страницы (кнопка шапки и CTA пустого списка).
+ * Opens the page creation modal (the header button and the CTA of the empty list).
  */
 function handleCreatePage(): void {
     templates.clearCreateSelection();
@@ -240,13 +261,12 @@ function handleCreatePage(): void {
 }
 
 /**
- * Открывает форму создания страницы с выбранным шаблоном-источником.
+ * Opens the page creation form with a picked source template. The form is the same
+ * one the header button opens: a page made out of a template has the same address,
+ * the same SEO fields and the same occupancy check — a separate form would repeat all
+ * of that for the sake of one pre-picked source.
  *
- * Форма та же, что у кнопки шапки: у страницы из шаблона тот же адрес, те же SEO
- * поля и та же проверка занятости — отдельная форма повторяла бы всё это ради
- * одного предвыбранного источника.
- *
- * @param template - Шаблон-источник.
+ * @param template - The source template.
  */
 function handleCreatePageFromTemplate(template: TBricksTemplateSummary): void {
     templates.selectForCreate(template);
@@ -254,8 +274,8 @@ function handleCreatePageFromTemplate(template: TBricksTemplateSummary): void {
 }
 
 /**
- * Закрывает лайтбокс: гасятся оба источника снимка — какой из них был открыт,
- * компоненту неизвестно, а лишний сброс ничего не стоит.
+ * Closes the lightbox: every source of a snapshot is put out — which of them was open
+ * the component does not know, and an extra reset costs nothing.
  */
 function handleCloseLightbox(): void {
     media.closePreview();
@@ -264,9 +284,9 @@ function handleCloseLightbox(): void {
 }
 
 /**
- * Шаблон сохранён: закрываем форму и сообщаем.
+ * The template was saved: the form closes and a message goes out.
  *
- * @param template - Сохранённый шаблон.
+ * @param template - The saved template.
  */
 function handleTemplateSaved(template: TBricksTemplateSummary): void {
     templates.close();
@@ -274,16 +294,16 @@ function handleTemplateSaved(template: TBricksTemplateSummary): void {
 }
 
 /**
- * Закрывает модалку создания страницы.
+ * Closes the page creation modal.
  */
 function handleCloseCreatePageModal(): void {
     isCreatePageModalOpen.value = false;
 }
 
 /**
- * После создания страницы переходит в редактор билдера.
+ * Moves into the builder editor after a page has been created.
  *
- * @param address - Адрес созданной страницы.
+ * @param address - The address of the created page.
  */
 async function handlePageCreated(address: IBricksPageAddress): Promise<void> {
     isCreatePageModalOpen.value = false;
@@ -291,73 +311,73 @@ async function handlePageCreated(address: IBricksPageAddress): Promise<void> {
 }
 
 /**
- * Открывает форму создания учётки (кнопка шапки и CTA пустого списка).
+ * Opens the account creation form (the header button and the CTA of the empty list).
  */
 function handleCreateUser(): void {
     isCreateUserModalOpen.value = true;
 }
 
 /**
- * Закрывает форму создания учётки.
+ * Closes the account creation form.
  */
 function handleCloseCreateUserModal(): void {
     isCreateUserModalOpen.value = false;
 }
 
 /**
- * Открывает свой профиль на вкладке пароля — ключ в своей строке раздела
- * учёток. Админская ручка чужого пароля на своей учётке отказывает намеренно:
- * свой пароль меняется только с вводом текущего.
+ * Opens one's own profile on the password tab — the key in one's own row of the
+ * accounts section. The admin endpoint for somebody else's password refuses one's own
+ * account deliberately: one's own password is changed only by typing the current one.
  */
 function handleChangeOwnPassword(): void {
     profileModal.open('password');
 }
 
 /**
- * Выбирает страницу — открывает панель деталей.
+ * Selects a page — opens the details panel.
  *
- * @param page - Страница.
+ * @param page - The page.
  */
 function handleSelectPage(page: TPublishedPageSummary): void {
     selectedPageId.value = String(page.id);
 }
 
 /**
- * Закрывает панель деталей.
+ * Closes the details panel.
  */
 function handleCloseDetails(): void {
     selectedPageId.value = null;
 }
 
-// Смена выбранной страницы (в том числе её закрытие и удаление) гасит начатый
-// импорт: его подтверждение и резолвер лежат в body, вне панели деталей, поэтому
-// сами по себе не закрываются — а подтверждение, данное для прежней страницы,
-// относилось к её содержимому
+// A change of the selected page (its closing and its deletion included) puts a
+// started import out: its confirmation and its resolver lie in the body, outside the
+// details panel, so they do not close on their own — while a confirmation given for
+// the previous page concerned that page's content
 watch(selectedPageId, () => {
     schemaImport.cancelImport();
 });
 
 /**
- * Открывает страницу в редакторе билдера.
+ * Opens the page in the builder editor.
  *
- * @param page - Страница.
+ * @param page - The page.
  */
 async function handleEditPage(page: TPublishedPageSummary): Promise<void> {
     await router.push(getBuilderPageRouteLocation(toPageAddress(page.pagename, page.urlPrefix)));
 }
 
 /**
- * Показывает тост из панели деталей (сохранение, копирование URL).
+ * Shows a toast raised by the details panel (a save, a URL copied).
  *
- * @param message - Текст уведомления.
- * @param variant - Тип уведомления.
+ * @param message - The text of the notification.
+ * @param variant - The kind of the notification.
  */
 function handleDetailsNotify(message: string, variant: 'success' | 'error'): void {
     showToast(message, variant);
 }
 
 /**
- * Выходит из database-auth сессии; при ошибке показывает тост.
+ * Signs out of the database-auth session; shows a toast on an error.
  */
 async function handleLogout(): Promise<void> {
     try {
@@ -368,27 +388,25 @@ async function handleLogout(): Promise<void> {
 }
 
 /**
- * Открывает модалку документации.
+ * Opens the documentation modal.
  */
 function handleOpenDocs(): void {
     isDocumentationModalOpen.value = true;
 }
 
 /**
- * Закрывает модалку документации.
+ * Closes the documentation modal.
  */
 function handleCloseDocs(): void {
     isDocumentationModalOpen.value = false;
 }
 
 /**
- * Передаёт выбранное в галерее изображение в форму панели деталей.
+ * Passes the image picked in the gallery into the form of the details panel. There is
+ * no context left to check: the modal on the dashboard is left as the OG image picker
+ * alone — the file manager is the rail section, and it returns nothing anywhere.
  *
- * Проверять контекст больше нечего: модалка на дашборде осталась только пикером
- * OG-изображения — менеджером файлов работает раздел рейла, а он ничего никуда
- * не возвращает.
- *
- * @param item - Выбранный медиа-объект.
+ * @param item - The picked media object.
  */
 function handleMediaSelect(item: IMediaItem): void {
     detailsPanelRef.value?.handleMediaSelect(item);
@@ -396,25 +414,25 @@ function handleMediaSelect(item: IMediaItem): void {
 }
 
 /**
- * Показывает тост об ошибке медиа-галереи.
+ * Shows a toast about an error of the media gallery.
  *
- * @param message - Текст ошибки.
+ * @param message - The text of the error.
  */
 function handleMediaError(message: string): void {
     showToast(message, 'error');
 }
 
 /**
- * Открывает системный выбор файлов из плитки-приёмника: сам input живёт в
- * контролах шапки, второй такой же в сетке означал бы две точки правды о том,
- * какие типы файлов принимаются.
+ * Opens the system file picker from the drop tile: the input itself lives in the
+ * controls of the header, and a second one of the same kind in the grid would mean
+ * two points of truth about which file types are accepted.
  */
 function handleMediaUploadRequest(): void {
     uploadControlsRef.value?.openFilePicker();
 }
 
 /**
- * Открывает выбранный файл во весь экран (действие панели деталей).
+ * Opens the selected file full screen (an action of the details panel).
  */
 function handleMediaPreviewSelected(): void {
     const item = media.selectedItem.value;
@@ -427,8 +445,8 @@ function handleMediaPreviewSelected(): void {
 }
 
 /**
- * Пустой результат в медиатеке: снимаются разом категория и строка поиска —
- * владельцы у них разные (поверхность и шапка).
+ * An empty result in the media library: the category and the search string are
+ * dropped at once — their owners are different (the surface and the header).
  */
 function handleResetMediaFilters(): void {
     media.categoryFilter.value = ALL_MEDIA_CATEGORIES_FILTER;
@@ -444,40 +462,35 @@ useHead({
     },
 });
 
-// Загрузка данных — последними операторами setup: `await` делает компонент
-// асинхронным, поэтому всё, что зависит от Nuxt-контекста (`useCookie`,
-// `useHead`), объявлено выше. На сервере ожидание обязательно: без него
-// разметка первого кадра уедет пользователю с пустым списком — ровно то, что
-// раньше делала загрузка из `onMounted`.
+// The loading of the data comes as the last statements of the setup: an `await`
+// makes the component asynchronous, so everything that depends on the Nuxt context
+// (`useCookie`, `useHead`) is declared above.
 //
-// Список страниц СТАРТУЕТ здесь, а ждём его ниже: он не зависит ни от профиля,
-// ни от роли, и последовательное ожидание сложило бы задержки трёх запросов в
-// одну задержку HTML
+// The page list STARTS here while it is awaited below: it depends on neither the
+// profile nor the role, and awaiting them in sequence would add the delays of three
+// requests up into one delay of the HTML
 const pagesDataPromise = usePublishPagesData({
     onLoadFailed: () => showToast(t('bricks.publish.dashboard.toasts.loadFailed'), 'error'),
 });
 
-// Профиль и роль сессии — до первого кадра: список страниц рисует действия по
-// правам, и показать их «пока не выяснили» значило бы отобрать у наблюдателя
-// кнопки уже после того, как он их увидел; аватар в углу без профиля рисовать
-// нечем. На SSR оба приходят из контекста запроса, ручка `me` нужна только
-// сборкам без SSR — и уходит она ОДНА на два состояния: роль `ensureRole` берёт
-// из уже полученного профиля, а не запрашивает вторым разом
+// The profile and the role of the session come before the first frame: the page list
+// draws its actions by the rights, and showing them "until we find out" would mean
+// taking the buttons away from a viewer after they had already seen them; and there
+// is nothing to draw the avatar in the corner with without a profile. On SSR both
+// arrive from the request context, and the `me` endpoint is needed by the builds
+// without SSR alone — where it goes out ONCE for both states: `ensureRole` takes the
+// role out of the profile already received rather than requesting it a second time
 await ensureProfile();
 await ensureRole(() => Promise.resolve(profile.value?.role ?? null));
 
-// Учётки читаются ПОСЛЕ роли: до `ensureRole` сборка без SSR считает роль самой
-// узкой, и запрос ушёл бы от наблюдателя за заведомым отказом. Право на раздел
-// проверяет сам `ensureUsers` — гард живёт рядом с запросом, а не здесь. Отказ
-// загрузки наружу не выходит: он остаётся состоянием раздела, поэтому дашборд
-// приезжает даже с недоступными учётками
-// Шаблоны читаются в той же группе, что и учётки: их счётчик тоже рисуется в
-// первом кадре рейла, а отказ загрузки остаётся состоянием раздела и дашборд не
-// уносит. Права на чтение шаблонов есть у любой роли, поэтому ждать `ensureRole`
-// им не нужно — но и отдельной очереди они не заводят
-// Список файлов читается в той же группе: счётчик медиатеки рисуется в первом
-// кадре рейла, а сам раздел получает готовые данные и своего ожидания не
-// заводит. Отказ остаётся тостом и дашборд не уносит
+// The accounts are read AFTER the role: before `ensureRole` a build without SSR
+// takes the role for the narrowest one, and the request would go out on behalf of a
+// viewer for a refusal known in advance. The right to the section is checked by
+// `ensureUsers` itself — the guard lives next to the request rather than here. The
+// templates and the files go in the same group: every counter of the rail is drawn
+// in the first frame, and a refused load stays a state of its own section instead of
+// carrying the dashboard away. Neither of those two waits for the role (any role may
+// read them), and neither starts a queue of its own
 const [{ isLoadingPages }] = await Promise.all([
     pagesDataPromise,
     ensureUsers(),
@@ -508,16 +521,6 @@ const [{ isLoadingPages }] = await Promise.all([
             @open-profile="profileModal.open()"
             @logout="handleLogout"
         >
-            <!--
-                Полоса дефолтного пароля рисуется сама и только когда он
-                дефолтный: условие живёт внутри компонента, вместе с флагом
-                сессии, который он читает.
-            -->
-            <!--
-                Первичное действие медиатеки: кнопка загрузки, скрытый input и
-                поповер параметров. Оболочка их не рисует сама — за ними тянется
-                весь домен медиа; она лишь решает, показывать ли слот
-            -->
             <template #headerAction>
                 <BuilderMediaGalleryUploadControls
                     ref="uploadControlsRef"
@@ -561,11 +564,6 @@ const [{ isLoadingPages }] = await Promise.all([
                 />
             </template>
 
-            <!--
-                Раздел шаблонов — тоже компонент-контроллер: своё состояние, свои
-                окна, а хост остаётся тем, кто показывает тосты, открывает форму
-                создания страницы и лайтбокс
-            -->
             <template #templates>
                 <TheBuilderTemplatesSection
                     :search-query="templatesSearchQuery"
@@ -576,11 +574,6 @@ const [{ isLoadingPages }] = await Promise.all([
                 />
             </template>
 
-            <!--
-                Раздел учёток — компонент-контроллер: у него своё состояние и свои
-                четыре окна, и собранный здесь он добавил бы в этот файл вторую
-                машину состояний рядом со страницами
-            -->
             <template v-if="isUsersSectionVisible" #users>
                 <TheBuilderUsersSection
                     :search-query="usersSearchQuery"
@@ -593,11 +586,6 @@ const [{ isLoadingPages }] = await Promise.all([
                 />
             </template>
 
-            <!--
-                Раздел медиатеки: дорожка категорий, сетка и приёмник. Загрузка и
-                выбранный файл им не владеют — они по разные стороны от раздела
-                (шапка дашборда и панель деталей), поэтому приходят пропами
-            -->
             <template #media>
                 <TheBuilderMediaSection
                     :search-query="mediaSearchQuery"
@@ -658,10 +646,6 @@ const [{ isLoadingPages }] = await Promise.all([
             @created="handlePageCreated"
         />
 
-        <!--
-            Форма шаблона одна на дашборд: её открывает действие строки списка
-            страниц, а содержимое приносит `usePublishTemplateSave`
-        -->
         <TheBuilderTemplatesSaveModal
             :is-open="templates.isModalOpen.value"
             :source="templates.source.value"
@@ -683,10 +667,6 @@ const [{ isLoadingPages }] = await Promise.all([
             @close="handleCloseDocs"
         />
 
-        <!--
-            Модалка галереи осталась одним — пикером OG-изображения панели
-            деталей страницы. Менеджером файлов работает раздел рейла
-        -->
         <TheBuilderMediaGalleryModal
             v-if="mediaGallery.shouldMount.value"
             :visible="mediaGallery.isOpen.value"
@@ -707,11 +687,6 @@ const [{ isLoadingPages }] = await Promise.all([
             @confirm="confirmDeletePage"
         />
 
-        <!--
-            Подтверждение удаления файла — здесь, а не в разделе: удаление
-            запрашивает панель деталей, которая живёт в слоте оболочки, и её
-            состоянием владеет тот же хост
-        -->
         <BricksConfirmModal
             :is-open="media.isDeleteConfirmOpen.value"
             :title="t('bricks.media.deleteImageTitle')"
@@ -734,13 +709,6 @@ const [{ isLoadingPages }] = await Promise.all([
             @confirm="confirmRestoreVersion"
         />
 
-        <!--
-            Подтверждение замены содержимого. Резолвер картинок запускается не по
-            confirm, а по уходу диалога из DOM: `force-mount` держит уезжающее
-            подтверждение до конца анимации, и открытая синхронно модалка
-            резолвера встала бы под ним (z-index подтверждения выше) со вторым
-            focus trap
-        -->
         <BricksConfirmModal
             :is-open="schemaImport.isReplaceConfirmationOpen.value"
             :title="t('bricks.publish.dashboard.details.schema.replaceConfirm.title')"

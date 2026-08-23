@@ -24,10 +24,10 @@ import { usePublishStore } from '../stores/publish';
 // #endregion
 
 /**
- * Пустые значения формы создания. `layout`/`backgroundColor` не редактируются
- * модалкой, но нужны общей схеме валидации.
+ * The empty values of the creation form. `layout`/`backgroundColor` are not edited
+ * by the modal but are needed by the shared validation schema.
  *
- * @returns Начальные значения формы.
+ * @returns The initial values of the form.
  */
 function buildEmptyFormValues(): IPublishPageFormValues {
     return {
@@ -44,13 +44,14 @@ function buildEmptyFormValues(): IPublishPageFormValues {
 }
 
 /**
- * Форма модалки создания страницы: авто-slugify pagename от названия
- * (до первого ручного редактирования slug), валидация общей схемой
- * `createPublishValidationSchema`, создание через `createPage` store'а
- * (POST с `published: false`).
+ * The form of the page creation modal: the pagename auto-slugified from the title
+ * (until the slug is first edited by hand), the validation by the shared
+ * `createPublishValidationSchema`, the creation through the `createPage` action of
+ * the store (a POST carrying `published: false`).
  *
- * @param options - Источник схемы, набор устройств, оформление (из шаблона) и
- * колбэк успешного создания (переход в редактор — на стороне вызывающего).
+ * @param options - The source of the schema, the device set, the appearance (from
+ * a template) and the callback of a successful creation (the move into the editor
+ * is the caller's).
  */
 export function usePublishCreatePageForm(options: IPublishCreatePageFormOptions) {
     // #region Data
@@ -81,7 +82,7 @@ export function usePublishCreatePageForm(options: IPublishCreatePageFormOptions)
 
     const isSubmitting = ref(false);
     const generalError = ref('');
-    /** Пользователь редактировал slug вручную — авто-slugify от названия отключён. */
+    /** The slug was edited by hand — the auto-slugify from the title is off */
     const isSlugEdited = ref(false);
     // #endregion
 
@@ -91,9 +92,10 @@ export function usePublishCreatePageForm(options: IPublishCreatePageFormOptions)
 
     // #region Methods
     /**
-     * Ручной ввод pagename: отключает авто-slugify; полная очистка поля включает его снова.
+     * Typing the pagename by hand: turns the auto-slugify off; clearing the field
+     * entirely turns it back on.
      *
-     * @param value - Введённый slug.
+     * @param value - The slug that was typed.
      */
     function setPagename(value: string): void {
         isSlugEdited.value = value.trim() !== '';
@@ -101,11 +103,11 @@ export function usePublishCreatePageForm(options: IPublishCreatePageFormOptions)
     }
 
     /**
-     * Валидирует форму и создаёт страницу-черновик.
+     * Validates the form and creates a draft page.
      *
-     * Схему отдаёт вызывающий (`resolveSchema`): пустой холст или разобранный
-     * JSON-файл. Отказ оттуда прекращает создание — это отмена, а не ошибка,
-     * поэтому сообщение не показывается.
+     * The schema is handed over by the caller (`resolveSchema`): a blank canvas or
+     * a parsed JSON file. A refusal from there stops the creation — that is a
+     * cancellation rather than an error, so no message is shown.
      */
     const submitForm = handleSubmit(async (values) => {
         if (isSubmitting.value) {
@@ -123,10 +125,11 @@ export function usePublishCreatePageForm(options: IPublishCreatePageFormOptions)
 
             const address = toPageAddress(values.pagename, values.urlPrefix);
             const defaults = buildDefaultFormState();
-            // Оформление шаблона поверх дефолтов, но только заполненными полями:
-            // шаблон мог не иметь ни раскладки, ни фона (страница-источник их не
-            // задавала), и пустое значение обязано оставить дефолт проекта, а не
-            // записать странице `null`
+            // The appearance of the template goes on top of the defaults, but only
+            // with the fields that are filled in: a template may have had neither a
+            // layout nor a background (the source page set none), and an empty value
+            // is obliged to leave the default of the project rather than to write a
+            // `null` onto the page
             const appearance = options.resolveAppearance?.() ?? null;
 
             await publishStore.createPage(schema, {
@@ -153,7 +156,7 @@ export function usePublishCreatePageForm(options: IPublishCreatePageFormOptions)
     });
 
     /**
-     * Сбрасывает форму к пустым значениям (при повторном открытии модалки).
+     * Resets the form to the empty values (on a second opening of the modal).
      */
     function resetToEmpty(): void {
         resetForm({ values: buildEmptyFormValues() });

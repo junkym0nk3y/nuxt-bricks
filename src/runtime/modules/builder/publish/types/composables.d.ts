@@ -1,5 +1,5 @@
 /**
- * Типы композаблов домена publish.
+ * Types of the composables of the publish domain.
  */
 
 import type { TBricksPageDeviceSet } from '../../../common/types/devices';
@@ -20,14 +20,14 @@ import type {
 
 // #region usePublishVersionRestore
 /**
- * Опции `usePublishVersionRestore`.
+ * Options of `usePublishVersionRestore`.
  */
 export interface IUsePublishVersionRestoreOptions {
     onNotify: (message: string, variant: 'success' | 'error') => void;
 }
 
 /**
- * Страница и версия, ожидающие подтверждения отката.
+ * The page and the version waiting for the rollback to be confirmed.
  */
 export interface IPendingVersionRestore {
     page: TPublishedPageSummary;
@@ -35,7 +35,7 @@ export interface IPendingVersionRestore {
 }
 
 /**
- * Возвращаемое значение `usePublishVersionRestore`.
+ * The return value of `usePublishVersionRestore`.
  */
 export interface IUsePublishVersionRestoreReturn {
     isRestoreConfirmationOpen: Ref<boolean>;
@@ -51,14 +51,14 @@ export interface IUsePublishVersionRestoreReturn {
 export interface IUsePublishPageDeleteOptions {
     onNotify: (message: string, variant: 'success' | 'error') => void;
     /**
-     * Страница удалена. Хосту нужно снять выделение, если удалили открытую в
-     * панели деталей: сама панель об удалении не узнаёт.
+     * The page was deleted. The host has to drop the selection when the deleted one
+     * was open in the details panel: the panel itself never learns about a deletion.
      */
     onDeleted: (pageId: string) => void;
 }
 
 /**
- * Возвращаемое значение `usePublishPageDelete`.
+ * The return value of `usePublishPageDelete`.
  */
 export interface IUsePublishPageDeleteReturn {
     isDeleteConfirmationOpen: Ref<boolean>;
@@ -72,11 +72,11 @@ export interface IUsePublishPageDeleteReturn {
 
 // #region usePublishDashboardPreferences
 /**
- * Возвращаемое значение `usePublishDashboardPreferences`.
+ * The return value of `usePublishDashboardPreferences`.
  */
 export interface IUsePublishDashboardPreferencesReturn {
     isDarkMode: ComputedRef<boolean>;
-    /** Класс `body` дашборда: несёт `bricks-dark` при тёмной теме. */
+    /** The `body` class of the dashboard: carries `bricks-dark` under the dark theme */
     bodyClass: ComputedRef<string>;
     toggleDarkMode: () => void;
     toggleLocale: () => Promise<void>;
@@ -85,10 +85,10 @@ export interface IUsePublishDashboardPreferencesReturn {
 
 // #region usePublishMediaGallery
 /**
- * Возвращаемое значение `usePublishMediaGallery`.
+ * The return value of `usePublishMediaGallery`.
  */
 export interface IUsePublishMediaGalleryReturn {
-    /** Компонент галереи нужно держать в разметке (латч первого открытия). */
+    /** The gallery component has to be kept in the markup (the first-opening latch) */
     shouldMount: Ref<boolean>;
     isOpen: Ref<boolean>;
     open: () => void;
@@ -98,42 +98,43 @@ export interface IUsePublishMediaGalleryReturn {
 
 // #region usePublishMediaSurface
 /**
- * Опции `usePublishMediaSurface`.
+ * Options of `usePublishMediaSurface`.
  */
 export interface IUsePublishMediaSurfaceOptions {
     onNotify: (message: string, variant: 'success' | 'error') => void;
 }
 
 /**
- * Возвращаемое значение `usePublishMediaSurface`: состояние медиатеки, общее у
- * шапки дашборда, тела раздела и панели деталей файла.
+ * The return value of `usePublishMediaSurface`: the state of the media library
+ * shared by the header of the dashboard, the body of the section and the details
+ * panel of a file.
  */
 export interface IUsePublishMediaSurfaceReturn {
     /**
-     * Активная категория дорожки. Живёт здесь, а не в разделе, потому что
-     * определяет категорию загружаемых файлов, а кнопка загрузки стоит в шапке
-     * дашборда — то есть вне раздела.
+     * The active category of the track. Lives here rather than in the section
+     * because it decides the category of the files being uploaded, while the upload
+     * button stands in the header of the dashboard — that is, outside the section.
      */
     categoryFilter: Ref<string>;
-    /** Потолок размера картинки из конфига модуля — подсказка загрузки. */
+    /** The image size ceiling from the module config — the hint of the upload */
     maxImageSizeMb: number;
-    /** Потолок размера видео из конфига модуля. */
+    /** The video size ceiling from the module config */
     maxVideoSizeMb: number;
-    /** Параметры оптимизации из конфига — к ним возвращается поповер. */
+    /** The optimization parameters from the config — what the popover returns to */
     defaultOptimization: IBricksMediaOptimization;
     uploadOptimization: Ref<IBricksMediaOptimization>;
-    /** Прогресс текущей загрузки; `null` — загрузки нет. */
+    /** The progress of the current upload; `null` — no upload is running */
     uploadProgress: Ref<IMediaUploadProgress | null>;
-    /** Выбранный файл; `null` — панель деталей закрыта. */
+    /** The selected file; `null` — the details panel is closed */
     selectedItemId: Ref<number | null>;
     selectedItem: ComputedRef<IMediaItem | null>;
-    /** Файл, открытый во весь экран; `null` — лайтбокс закрыт. */
+    /** The file open full screen; `null` — the lightbox is closed */
     previewItem: Ref<IMediaItem | null>;
-    /** Число файлов для счётчика рейла; `null` — список ещё не прочитан. */
+    /** The number of files for the rail counter; `null` — the list was never read */
     mediaCount: ComputedRef<number | null>;
     isDeleteConfirmOpen: Ref<boolean>;
     isDeleting: Ref<boolean>;
-    /** Читает список файлов, если достоверного снимка ещё нет. */
+    /** Reads the file list unless a trustworthy snapshot is in already */
     ensureMedia: () => Promise<void>;
     uploadFiles: (files: File[]) => Promise<void>;
     setOptimization: (value: IBricksMediaOptimization) => void;
@@ -146,7 +147,7 @@ export interface IUsePublishMediaSurfaceReturn {
     requestDelete: () => void;
     closeDeleteConfirm: () => void;
     confirmDelete: () => Promise<void>;
-    /** Сбрасывает фильтр, поиск-независимое состояние и параметры загрузки. */
+    /** Resets the filter, the search-independent state and the upload parameters */
     resetSurface: () => void;
 }
 // #endregion
@@ -157,13 +158,13 @@ export interface IUsePublishPageActionsOptions {
 }
 
 /**
- * Возвращаемое значение `usePublishPageActions`: действия строки и панели
- * деталей, не требующие подтверждения.
+ * The return value of `usePublishPageActions`: the actions of a row and of the
+ * details panel that need no confirmation.
  */
 export interface IUsePublishPageActionsReturn {
-    /** Идентификатор дублируемой страницы; `null` — копирования нет. */
+    /** The identifier of the page being duplicated; `null` — no copying is running */
     duplicatingPageId: Ref<string | null>;
-    /** Миниатюра, открытая в лайтбоксе; `null` — лайтбокс закрыт. */
+    /** The thumbnail open in the lightbox; `null` — the lightbox is closed */
     thumbnailPreviewItem: Ref<TMediaLightboxItem | null>;
     togglePublished: (page: TPublishedPageSummary, published: boolean) => Promise<void>;
     duplicatePage: (page: TPublishedPageSummary) => Promise<void>;
@@ -175,54 +176,57 @@ export interface IUsePublishPageActionsReturn {
 
 // #region usePublishPageVersions
 /**
- * Возвращаемое значение `usePublishPageVersions`.
+ * The return value of `usePublishPageVersions`.
  */
 export interface IUsePublishPageVersionsReturn {
     versions: Ref<IPageVersionSummary[]>;
     isLoading: ComputedRef<boolean>;
     loadVersions: (pageId: string | number) => Promise<void>;
     /**
-     * Открывает превью версии в новой вкладке. Синхронно: снапшот тянет сервер по
-     * `?version=`, клиенту грузить нечего. `false` — вкладка не открылась.
+     * Opens the preview of a version in a new tab. Synchronously: the server pulls
+     * the snapshot by `?version=`, the client has nothing to load. `false` — the
+     * tab did not open.
      */
     previewVersion: (page: TPublishedPageSummary, versionId: number) => boolean;
-    /** Очищает список и обесценивает летящий запрос (переключение страницы). */
+    /** Clears the list and devalues the request in flight (a change of page) */
     resetVersions: () => void;
 }
 // #endregion
 
 // #region usePublishPagesData
 /**
- * Данные списка страниц в кеше `useAsyncData('bricks-pages')`.
+ * The data of the page list in the `useAsyncData('bricks-pages')` cache.
  *
- * Самих страниц здесь нет: список лежит в `publishStore.publishedPages` —
- * единственном источнике и для дашборда, и для билдера. Вторая копия в payload
- * разъехалась бы с ним при первой же локальной записи (создание, удаление,
- * переключение публикации), а на SSR ещё и удвоила бы вес страницы: состояние
- * сторов Pinia и так уезжает клиенту payload'ом.
+ * The pages themselves are not here: the list lies in
+ * `publishStore.publishedPages` — the single source for both the dashboard and the
+ * builder. A second copy in the payload would part ways with it on the very first
+ * local write (a creation, a deletion, a publication toggled), and on SSR it would
+ * double the weight of the page on top of that: the state of the Pinia stores
+ * travels to the client in the payload anyway.
  */
 export interface IPublishPagesData {
     /**
-     * SSR-прогон деградировал: список не загружен, и его обязан догрузить
-     * клиент. Поле обязательное, а не опциональное, чтобы ветка, забывшая его
-     * выставить, не выдавала пустой список за загруженный.
+     * The SSR run degraded: the list is not loaded, and the client is obliged to
+     * load it. The field is mandatory rather than optional so that a branch which
+     * forgot to set it does not pass an empty list off as a loaded one.
      *
-     * Отказ на клиенте маркером не кодируется — он живёт в `error` того же
-     * `useAsyncData`: там его видно вызывающему, и повтор возможен сразу.
+     * A refusal on the client is not encoded by a marker — it lives in the `error`
+     * of the same `useAsyncData`: there the caller can see it, and a retry is
+     * possible right away.
      */
     isPartial: boolean;
 }
 
 /**
- * Опции `usePublishPagesData`.
+ * Options of `usePublishPagesData`.
  */
 export interface IUsePublishPagesDataOptions {
-    /** Сообщает об отказе загрузки на клиенте (тост дашборда). */
+    /** Reports a refused load on the client (a toast of the dashboard) */
     onLoadFailed: () => void;
 }
 
 /**
- * Возвращаемое значение `usePublishPagesData`.
+ * The return value of `usePublishPagesData`.
  */
 export interface IUsePublishPagesDataReturn {
     isLoadingPages: ComputedRef<boolean>;
@@ -231,7 +235,7 @@ export interface IUsePublishPagesDataReturn {
 
 // #region usePublishDetailsUrl
 /**
- * Реактивные поля формы панели деталей, участвующие в live-URL.
+ * The reactive fields of the details panel form that take part in the live URL.
  */
 export interface IPublishDetailsUrlFields {
     pagename: Ref<string>;
@@ -240,7 +244,7 @@ export interface IPublishDetailsUrlFields {
 }
 
 /**
- * Возвращаемое значение `usePublishDetailsUrl`.
+ * The return value of `usePublishDetailsUrl`.
  */
 export interface IPublishDetailsUrlReturn {
     liveUrl: ComputedRef<string>;
@@ -250,46 +254,48 @@ export interface IPublishDetailsUrlReturn {
 
 // #region useSchemaFileTransfer
 /**
- * Разобранный и провалидированный JSON-файл схемы вместе с метаданными выбора.
+ * A parsed and validated JSON schema file together with the metadata of the pick.
  *
- * Метаданные лежат рядом со схемой одним объектом, а не отдельными ref'ами:
- * подтверждение замены печатает имя файла, а строка выбора в модалке создания —
- * имя и число блоков. Раздельное хранение расходилось бы при повторном выборе
- * файла (новая схема, прежнее имя).
+ * The metadata lies next to the schema as one object rather than as separate refs:
+ * the replacement confirmation prints the name of the file, while the pick row in
+ * the creation modal prints the name and the number of blocks. Storing them apart
+ * would let them part ways on a second pick of a file (a new schema, the previous
+ * name).
  */
 export interface IParsedSchemaFile {
     schema: IBricksSchema;
     filename: string;
-    /** Число корневых блоков схемы — то, что показывает строка выбранного файла. */
+    /** The number of root blocks of the schema — what the picked file row shows */
     blocksCount: number;
     /**
-     * Откуда взялся файл: `envelope` несёт набор устройств, `legacy` — голая
-     * схема из файлов, записанных до появления набора.
+     * Where the file came from: an `envelope` carries a device set, `legacy` is a
+     * bare schema out of the files written before the set appeared.
      *
-     * Различать обязательно: у legacy-файла набора нет, и подставлять ему
-     * какой-либо — значит менять раскладку целевой страницы без спроса.
+     * Telling them apart is mandatory: a legacy file has no set, and substituting
+     * any set for it means changing the layout of the target page unasked.
      */
     kind: 'envelope' | 'legacy';
     /**
-     * Набор устройств из файла. Три состояния, и третье обязательно:
+     * The device set out of the file. Three states, and the third one is mandatory:
      *
-     * - набор — файл описывает свои ступени;
-     * - `null` — файл прямо говорит «страница наследует набор проекта»;
-     * - `undefined` — файл про набор не говорит **ничего**: legacy-схема или
-     *   конверт, в котором поля нет. Целевая страница сохраняет свой набор.
+     * - a set — the file describes steps of its own;
+     * - `null` — the file says outright "the page inherits the set of the project";
+     * - `undefined` — the file says **nothing** about a set: a legacy schema, or an
+     *   envelope the field is absent from. The target page keeps its own set.
      *
-     * Без третьего состояния конверт без поля читался бы как явный `null` и
-     * молча снимал бы собственный набор страницы, в которую импортируют.
+     * Without the third state an envelope with no such field would read as an
+     * explicit `null` and would silently strip the page being imported into of its
+     * own set.
      */
     viewportConfig?: TBricksPageDeviceSet | null;
 }
 
 /**
- * Формат файла переноса страницы.
+ * The format of a page transfer file.
  *
- * Версия в файле, а не в имени: голая схема (файлы до появления набора
- * устройств) продолжает приниматься, и отличить её от конверта нужно по
- * содержимому.
+ * The version is inside the file rather than in its name: a bare schema (the files
+ * from before the device set appeared) is still accepted, and telling it from an
+ * envelope has to happen by the content.
  */
 export interface IBricksPageTransferFile {
     version: 1;
@@ -298,32 +304,33 @@ export interface IBricksPageTransferFile {
 }
 
 /**
- * Конверт после разбора чужого файла.
+ * An envelope after somebody else's file has been parsed.
  *
- * Отличается от записываемого формата одним: поля `viewportConfig` в файле может
- * не быть вовсе. Свои файлы пакет всегда пишет с ним, но разбирать приходится и
- * то, что собрал кто-то другой.
+ * It differs from the written format in one thing: the `viewportConfig` field may
+ * be absent from the file altogether. The package always writes its own files with
+ * it, but what has to be parsed also includes what somebody else assembled.
  */
 export interface IParsedEnvelope extends Omit<IBricksPageTransferFile, 'viewportConfig'> {
     viewportConfig?: TBricksPageDeviceSet | null;
 }
 
 /**
- * Исход чтения выбранного файла. Union, а не колбэк: у двух потребителей разные
- * жизненные циклы — панель деталей применяет схему сразу, модалка создания
- * держит файл до сабмита, — и общий `onImport` навязывал бы им один.
+ * The outcome of reading the picked file. A union rather than a callback: the two
+ * consumers have different life cycles — the details panel applies the schema at
+ * once, the creation modal holds the file until the submit — and a shared
+ * `onImport` would impose one life cycle on both.
  */
 export type TSchemaFileReadResult =
     | { status: 'success'; file: IParsedSchemaFile }
     | { status: 'error'; message: string };
 
 /**
- * Минимальная форма файлового input'а, нужная чтению: выбранные файлы и
- * сбрасываемое значение. `HTMLInputElement` ей соответствует структурно.
+ * The minimal shape of a file input the reading needs: the picked files and a
+ * resettable value. `HTMLInputElement` matches it structurally.
  *
- * Чтение принимает эту форму, а не `Event`: событие приносило бы цель, которую
- * всё равно приходится приводить к типу, — а композабл уже владеет ref'ом
- * input'а. Заодно чтение проверяется без DOM.
+ * The reading takes this shape rather than an `Event`: an event would bring a
+ * target that has to be cast anyway — and the composable owns the ref of the input
+ * already. As a bonus, the reading is testable without a DOM.
  */
 export interface ISchemaFileInput {
     files: FileList | File[] | null;
@@ -331,21 +338,21 @@ export interface ISchemaFileInput {
 }
 
 /**
- * Возвращаемое значение `useSchemaFileTransfer`.
+ * The return value of `useSchemaFileTransfer`.
  */
 export interface IUseSchemaFileTransferReturn {
     fileInputRef: Ref<HTMLInputElement | null>;
     openFilePicker: () => void;
     /**
-     * Читает выбранный файл; `null` — файла не было (диалог отменён).
-     * `value` input'а сбрасывается на любом исходе, иначе повторный выбор того же
-     * файла не поднимет `change`.
+     * Reads the picked file; `null` — there was no file (the dialog was canceled).
+     * The `value` of the input is reset on every outcome, otherwise picking the
+     * same file again would raise no `change`.
      */
     readSelectedFile: (input: ISchemaFileInput | null) => Promise<TSchemaFileReadResult | null>;
     /**
-     * Скачивает страницу конвертом: схема вместе с набором устройств. Без
-     * набора round-trip терял бы описание диапазонов, и импортированная
-     * страница показывала бы `props.responsive` ступеней, которых у неё нет.
+     * Downloads the page as an envelope: the schema together with the device set.
+     * Without the set the round trip would lose the description of the ranges, and
+     * an imported page would show `props.responsive` of steps it does not have.
      */
     downloadSchema: (
         schema: IBricksSchema,
@@ -357,13 +364,15 @@ export interface IUseSchemaFileTransferReturn {
 
 // #region usePublishSchemaImport
 /**
- * Цель импорта в существующую страницу, снятая в момент выбора файла.
+ * The target of an import into an existing page, taken at the moment the file was
+ * picked.
  *
- * Снимок, а не ссылка на выбранную страницу: между выбором файла и PATCH'ем
- * стоят чтение файла, подтверждение и резолвер картинок, и в этом окне
- * пользователь успевает выбрать в списке другую страницу. `expectedRevision`
- * тоже из момента выбора — подтверждение относится к тому состоянию, которое
- * пользователь видел, а не к тому, что успело приехать после.
+ * A snapshot rather than a reference to the selected page: between the pick of the
+ * file and the PATCH stand the reading of the file, the confirmation and the image
+ * resolver, and in that window a person has time to select another page in the
+ * list. `expectedRevision` comes from the moment of the pick as well — the
+ * confirmation concerns the state the person saw, not the one that managed to
+ * arrive afterwards.
  */
 export interface IPublishSchemaImportTarget {
     pageId: string | number;
@@ -372,34 +381,35 @@ export interface IPublishSchemaImportTarget {
 }
 
 /**
- * Опции `usePublishTemplatesSurface`.
+ * Options of `usePublishTemplatesSurface`.
  */
 export interface IUsePublishTemplateSurfaceOptions {
-    /** Показ тоста: отказ чтения схемы страницы-источника. */
+    /** Showing a toast: the schema of the source page could not be read */
     onNotify: (message: string, variant: 'success' | 'error') => void;
 }
 
 /**
- * Опции `usePublishSchemaImport`.
+ * Options of `usePublishSchemaImport`.
  */
 export interface IUsePublishSchemaImportOptions {
     onNotify: (message: string, variant: 'success' | 'error') => void;
     /**
-     * Актуальна ли цель: id ещё выбран в списке (панель деталей открыта).
+     * Whether the target is still current: the id is still selected in the list
+     * (the details panel is open).
      *
-     * Необязательна: проверка принадлежит хосту со списком страниц. Там, где
-     * списка нет (создание страницы из редактора), импорт в существующую
-     * страницу недоступен, и сверять нечего.
+     * Optional: the check belongs to the host that owns the page list. Where there
+     * is no list (creating a page from the editor) an import into an existing page
+     * is unavailable, so there is nothing to check against.
      */
     isTargetSelected?: (pageId: string | number) => boolean;
 }
 
 /**
- * Возвращаемое значение `usePublishSchemaImport`.
+ * The return value of `usePublishSchemaImport`.
  */
 export interface IUsePublishSchemaImportReturn {
     isResolverModalOpen: Ref<boolean>;
-    /** Модалку резолвера уже открывали — с этого момента её чанк смонтирован. */
+    /** The resolver modal has been opened — from then on its chunk stays mounted */
     shouldMountResolver: Ref<boolean>;
     resolverState: IImageResolverState;
     isReplaceConfirmationOpen: Ref<boolean>;
@@ -408,14 +418,17 @@ export interface IUsePublishSchemaImportReturn {
     requestPageImport: (page: TPublishedPageSummary, file: IParsedSchemaFile) => void;
     closeReplaceConfirmation: () => void;
     confirmReplace: () => void;
-    /** Запускает резолвер после ухода диалога подтверждения из DOM. */
+    /** Starts the resolver once the confirmation dialog has left the DOM */
     handleConfirmationAfterLeave: () => Promise<void>;
     /**
-     * Прогоняет схему через резолвер картинок для создания страницы.
-     * `null` — импорт отменён или вытеснен; вызывающий не создаёт страницу.
+     * Runs a schema through the image resolver for the creation of a page.
+     * `null` — the import was canceled or displaced; the caller creates no page.
      */
     resolveSchemaForCreate: (schema: IBricksSchema) => Promise<IBricksSchema | null>;
-    /** Гасит операцию: смена выбранной страницы, закрытие панели, размонтирование. */
+    /**
+     * Puts the operation out: a change of the selected page, the panel closing, an
+     * unmount.
+     */
     cancelImport: () => void;
     handleResolverConfirm: () => void;
     handleResolverCancel: () => void;
@@ -427,11 +440,11 @@ export interface IUsePublishSchemaImportReturn {
 
 // #region usePublishPreview
 /**
- * Возвращаемое значение `usePublishPreview`.
+ * The return value of `usePublishPreview`.
  */
 export interface IUsePublishPreviewReturn {
     previewCurrentPage: (schema: IBricksSchema) => IBricksPageAddress | null;
-    /** Превью сохранённой версии: `?version=` в превью-роуте, без localStorage. */
+    /** The preview of a saved version: `?version=` in the preview route, no storage */
     previewPageVersion: (
         address: IBricksPageAddress,
         versionId: number

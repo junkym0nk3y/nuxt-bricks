@@ -10,13 +10,14 @@ import {
 import { isStatementTimeoutError } from '../../../common/utils/main';
 
 /**
- * Ошибка API-запроса с сохранённым HTTP-статусом и машиночитаемым кодом
- * конфликта (`data.code` ответа) — по ним вызывающие различают 409-конфликты
- * (occupied pagename, revision mismatch) без разбора текста сообщения.
+ * An API request error carrying the HTTP status and the machine-readable conflict
+ * code (`data.code` of the response) — by them the callers tell the 409 conflicts
+ * apart (an occupied pagename, a revision mismatch) without parsing the text of
+ * the message.
  *
- * Исходная ошибка сохраняется в `cause`: по ней вызывающие отличают обрыв по
- * таймауту от отказа сервера (`isRequestTimeoutError` обходит цепочку), а без
- * проброса обёртка уничтожала бы классификацию.
+ * The original error is kept in `cause`: by it the callers tell an abort by the
+ * timeout from a refusal of the server (`isRequestTimeoutError` walks the chain),
+ * and without passing it through the wrapper would destroy that classification.
  */
 export class RequestError extends Error {
     readonly statusCode?: number;
@@ -31,10 +32,10 @@ export class RequestError extends Error {
 }
 
 /**
- * Проверяет, что ошибка — конфликт optimistic locking (страница изменена
- * после чтения переданного клиентом expectedRevision). Понимает обе формы:
- * RequestError (обёртка toRequestError) и сырую ошибку ofetch — ту
- * toRequestError возвращает как есть (message уже содержит «/api/»).
+ * Whether the error is an optimistic locking conflict (the page changed after the
+ * expectedRevision passed by the client had been read). Understands both shapes:
+ * a RequestError (the wrapper of toRequestError) and a raw ofetch error — the
+ * latter toRequestError returns as is, its message already containing "/api/".
  */
 export function isRevisionConflictError(error: unknown): boolean {
     if (error instanceof RequestError) {
@@ -45,9 +46,11 @@ export function isRevisionConflictError(error: unknown): boolean {
 }
 
 /**
- * Переводит ключ через глобальный i18n; вне Nuxt-контекста (юнит-тесты)
- * падает обратно на ключ. `$i18n` резолвится лениво: утилиты вызываются
- * вне setup-контекста.
+ * Translates a key through the global i18n. `$i18n` is resolved lazily: these
+ * utilities are called outside a setup context, and the fallback covers a Nuxt app
+ * with no i18n plugin registered. It does not cover the absence of a Nuxt context
+ * altogether — `useNuxtApp()` throws there, and in the units the call goes through
+ * only because `#imports` is stubbed.
  */
 function translate(key: string, fallback?: string): string {
     const i18n = useNuxtApp().$i18n as Composer | undefined;
@@ -55,39 +58,42 @@ function translate(key: string, fallback?: string): string {
 }
 
 /**
- * Возвращает локализованное сообщение «Неизвестная ошибка».
+ * Returns the localized "unknown error" message.
  */
 function unknownErrorMessage(): string {
     return translate('bricks.common.unknownError', 'Неизвестная ошибка');
 }
 
 /**
- * Возвращает локализованный текст обрыва по таймауту; выбор ключа —
- * за политикой запросов, чтобы правило «чтение повторяемо, запись могла
- * примениться» жило в одном месте на все домены.
+ * Returns the localized text of an abort by the timeout; the choice of the key is
+ * left to the request policy, so that the rule "a read is repeatable, a write may
+ * have been applied" lives in one place for every domain.
  *
- * @param method - HTTP-метод оборванного запроса.
- * @returns Сообщение для пользователя.
+ * @param method - HTTP method of the aborted request.
+ * @returns The message for the user.
  */
 function timeoutMessage(method: string): string {
-    // Без fallback-строки: дублировать текст локали в коде незачем, а вне
-    // Nuxt-контекста (юниты) `translate` отдаёт сам ключ — как у конфликта ревизии
+    // No fallback string: there is no point in duplicating the locale text in
+    // the code, and outside a Nuxt context (units) `translate` returns the key
+    // itself — same as for the revision conflict
     return translate(resolveRequestTimeoutMessageKey(method));
 }
 
 /**
- * Достаёт revision страницы из сводки локального списка для precondition;
- * бросает понятную ошибку, если страница/revision не найдены.
+ * Takes the revision of a page out of the summary in the local list for the
+ * precondition; throws a readable error when the page or the revision is not
+ * found.
  *
- * Используется откатом версии и импортом схемы из списка страниц. В отличие от
- * update/patch (которые допускают запись без precondition — см.
- * `IPublishedPage.revision`), обе эти операции перезаписывают содержимое
- * страницы целиком и обязаны идти с revision всегда, поэтому здесь нет
- * молчаливой деградации.
+ * The server allows a PATCH with no precondition (see
+ * `IUpdatePagePayload.expectedRevision`), and two writes do go out that way — the
+ * publication toggle and the thumbnail. Used by the version rollback and by the
+ * schema import from the page list: both overwrite the content of the page whole,
+ * so both are obliged to always carry a revision, and there is no silent
+ * degradation here.
  *
- * @param page - Сводка страницы из локального списка (или undefined).
- * @param fallbackMessage - Локализованное сообщение об ошибке.
- * @returns Revision страницы.
+ * @param page - Page summary from the local list (or undefined).
+ * @param fallbackMessage - Localized error message.
+ * @returns The revision of the page.
  */
 export function requirePageRevision(
     page: { revision?: number } | undefined,
@@ -101,32 +107,35 @@ export function requirePageRevision(
 }
 
 /**
- * Предел ожидания обновления списка перед показом конфликта ревизии. Пять секунд:
- * нормальный refresh успевает, а зависший запрос не превращает конфликт в
- * бессрочный spinner.
+ * The waiting limit for the list refresh before the revision conflict is shown.
+ * Five seconds: a normal refresh makes it in time, while a hung request does not
+ * turn the conflict into an endless spinner.
  *
- * Это UX-дедлайн, а не потолок транспорта, и он намеренно вдвое короче потолка
- * чтения: показать конфликт нужно раньше, чем оборвётся сам запрос.
+ * This is a UX deadline, not a transport ceiling, and it is deliberately half of
+ * the read ceiling: the conflict has to be shown before the request itself is
+ * aborted.
  */
 const PAGE_CONFLICT_REFRESH_TIMEOUT_MS = 5000;
 
 /**
- * Ждёт обновления списка перед показом конфликта, но не дольше дедлайна.
+ * Waits for the list refresh before the conflict is shown, but no longer than the
+ * deadline.
  *
- * Ответ здесь нужен по существу — с ним повторная попытка уйдёт со свежей
- * revision, — поэтому в отличие от освежения после создания (`currentPageWrite`)
- * запрос не просто отпускается. Но и ждать его до потолка транспорта нельзя: до
- * возврата отсюда не отработает `finally`, закрывающий операцию записи, то есть
- * медленный GET держал бы кнопку сохранения заблокированной и запрещал бы
- * следующую попытку — ту самую, ради которой список и обновляется. Отказ гасится
- * по той же причине, что и раньше: конфликт показываем в любом случае.
+ * The answer itself matters here — with it the retry goes out with a fresh
+ * revision — so unlike the refresh after a creation (`currentPageWrite`) the
+ * request is not simply let go. But waiting for it up to the transport
+ * ceiling is not allowed either: the `finally` closing the write operation does
+ * not run before the return from here, that is, a slow GET would keep the save
+ * button blocked and forbid the next attempt — the very one the list is being
+ * refreshed for. A refusal is swallowed for the same reason as before: the
+ * conflict is shown in any case.
  *
- * Размен по истечении дедлайна: конфликт показан со старой revision, и немедленный
- * повтор может получить второй 409. Сам запрос при этом продолжает лететь и
- * обновит список позже — а поздний ответ уже не затрёт локальные записи, их
- * отсекает счётчик `pagesRequestId`.
+ * The trade-off once the deadline expires: the conflict is shown with the stale
+ * revision, and an immediate retry may get a second 409. The request itself keeps
+ * flying meanwhile and will refresh the list later — and a late answer no longer
+ * overwrites the local records, the `pagesRequestId` counter cuts it off.
  *
- * @param refreshPages - Колбэк обновления списка страниц.
+ * @param refreshPages - Callback refreshing the page list.
  */
 async function refreshPagesWithinDeadline(refreshPages: () => Promise<void>): Promise<void> {
     let deadlineTimer: ReturnType<typeof setTimeout> | null = null;
@@ -137,7 +146,7 @@ async function refreshPagesWithinDeadline(refreshPages: () => Promise<void>): Pr
     try {
         await Promise.race([refreshPages(), deadline]);
     } catch {
-        // best-effort: не смогли обновить список — конфликт всё равно показываем
+        // best-effort: the list could not be refreshed — the conflict is shown anyway
     } finally {
         if (deadlineTimer !== null) {
             clearTimeout(deadlineTimer);
@@ -146,44 +155,45 @@ async function refreshPagesWithinDeadline(refreshPages: () => Promise<void>): Pr
 }
 
 /**
- * Запускает обновление списка и отпускает его: вызывающему нужен сам факт
- * запуска, а не результат — и результат тут ничего не гарантирует, запрос
- * способен обогнать незавершённую серверную запись. Отказ гасится здесь же —
- * иначе реджект ушёл бы в необслуженный промис.
+ * Starts the list refresh and lets it go: the caller needs the fact of the start
+ * rather than the result — and the result guarantees nothing here, the request is
+ * able to outrun an unfinished server-side write. The refusal is swallowed right
+ * here, otherwise the rejection would end up in an unhandled promise.
  *
- * @param refreshPages - Колбэк обновления списка страниц.
+ * @param refreshPages - Callback refreshing the page list.
  */
 function refreshPagesDetached(refreshPages: () => Promise<void>): void {
-    // `void` не пишем — правило `no-void` в oxlint
+    // No `void` here — the `no-void` rule of oxlint
     refreshPages().catch((error: unknown) => {
         console.warn('[Publish Store] Pages refresh after write timeout failed:', error);
     });
 }
 
 /**
- * Приводит ошибку записи страницы к пользовательскому виду: конфликт
- * optimistic locking превращается в локализованное сообщение, а перед этим
- * обновляется список страниц (свежие revision) — повторное сохранение уйдёт с
- * актуальным precondition и осознанно перезапишет чужие изменения. Обновление
- * ограничено дедлайном, см. `refreshPagesWithinDeadline`. Обрыв по таймауту —
- * своя ветка: там обновление отпускается без ожидания. Прочие ошибки
- * возвращаются как есть.
+ * Brings a page write error into the shape shown to a person: an optimistic
+ * locking conflict turns into a localized message, and before that the page list
+ * is refreshed (fresh revisions) — so a repeated save goes out with an up-to-date
+ * precondition and knowingly overwrites somebody else's changes. The refresh is
+ * bounded by a deadline, see `refreshPagesWithinDeadline`. An abort by the timeout
+ * is a branch of its own: there the refresh is let go without being waited for.
+ * The remaining errors are returned as they are.
  *
- * @param error - Исходная ошибка запроса.
- * @param refreshPages - Колбэк обновления списка страниц.
- * @returns Ошибка для показа пользователю.
+ * @param error - The original request error.
+ * @param refreshPages - Callback refreshing the page list.
+ * @returns The error to show to the user.
  */
 export async function toPageWriteError(
     error: unknown,
     refreshPages: () => Promise<void>
 ): Promise<Error> {
-    // Обрыв записи по таймауту оставляет исход неизвестным, поэтому список
-    // обновляется: это единственная попытка увидеть, применилась ли операция —
-    // но не доказательство. GET уходит немедленно и может обогнать ещё
-    // работающий серверный handler, вернув прежний список; выяснить исход
-    // наверняка можно только idempotency key'ем, то есть расширением серверного
-    // контракта. Результат обновления в отказ не входит и ждать его нельзя:
-    // сообщение об исходе должно дойти сразу, а не через ещё один потолок чтения
+    // A write aborted by the timeout leaves the outcome unknown, so the list is
+    // refreshed: this is the only attempt to see whether the operation was
+    // applied — not a proof of it. The GET goes out immediately and may outrun a
+    // still running server-side handler, returning the previous list; finding
+    // the outcome out for certain would take an idempotency key, that is, an
+    // extension of the server contract. The result of the refresh is not part of
+    // the refusal and must not be waited for: the message about the outcome has
+    // to arrive at once rather than through one more read ceiling
     if (isRequestTimeoutError(error)) {
         refreshPagesDetached(refreshPages);
 
@@ -200,12 +210,12 @@ export async function toPageWriteError(
 }
 
 /**
- * Достаёт машиночитаемый код конфликта из ошибки ofetch: h3 сериализует
- * `createError({ data })` в тело ответа, ofetch кладёт тело в `error.data` —
- * наш код оказывается в `error.data.data.code`.
+ * Takes the machine-readable conflict code out of an ofetch error: h3 serializes
+ * `createError({ data })` into the response body, ofetch puts the body into
+ * `error.data` — so our code ends up at `error.data.data.code`.
  *
- * @param payload - Ошибка запроса.
- * @returns Код конфликта или undefined.
+ * @param payload - Request error.
+ * @returns The conflict code, or undefined.
  */
 function extractConflictCode(payload: TRequestErrorLike): string | undefined {
     const nested = (payload.data as { data?: { code?: unknown } } | undefined)?.data?.code;
@@ -215,10 +225,11 @@ function extractConflictCode(payload: TRequestErrorLike): string | undefined {
 }
 
 /**
- * Достаёт HTTP-статус из ошибки ofetch (statusCode самой ошибки либо тела ответа).
+ * Takes the HTTP status out of an ofetch error (the statusCode of the error
+ * itself, or the one of the response body).
  *
- * @param payload - Ошибка запроса.
- * @returns Числовой статус или undefined.
+ * @param payload - Request error.
+ * @returns The numeric status, or undefined.
  */
 function extractStatusCode(payload: TRequestErrorLike): number | undefined {
     const value = payload.statusCode ?? payload.data?.statusCode;
@@ -227,11 +238,11 @@ function extractStatusCode(payload: TRequestErrorLike): number | undefined {
 }
 
 /**
- * Форматирует ошибку запроса в человекочитаемое сообщение.
+ * Formats a request error into a human-readable message.
  *
- * @param method - HTTP-метод.
- * @param url - URL запроса.
- * @param error - Исходная ошибка.
+ * @param method - HTTP method.
+ * @param url - Request URL.
+ * @param error - The original error.
  */
 function formatRequestError(method: string, url: string, error: unknown): string {
     const payload = (error ?? {}) as TRequestErrorLike;
@@ -246,24 +257,26 @@ function formatRequestError(method: string, url: string, error: unknown): string
 }
 
 /**
- * Приводит произвольную ошибку к RequestError с понятным текстом,
- * сохраняя HTTP-статус и код конфликта.
+ * Brings an arbitrary error to a RequestError with a readable text, keeping the
+ * HTTP status and the conflict code.
  *
- * @param method - HTTP-метод.
- * @param url - URL запроса.
- * @param error - Исходная ошибка.
+ * @param method - HTTP method.
+ * @param url - Request URL.
+ * @param error - The original error.
  */
 export function toRequestError(method: string, url: string, error: unknown): Error {
-    // Проверка стоит первой намеренно: сообщение `FetchError` содержит URL, то
-    // есть подстроку «/api/», и ранний возврат ниже пропустил бы таймаут наружу
-    // с англоязычным текстом транспорта вместо честного объяснения
+    // This check comes first on purpose: the message of a `FetchError` contains
+    // the URL, that is, the "/api/" substring, and the early return below would
+    // let the timeout out carrying the transport text instead of an honest
+    // explanation
     if (isRequestTimeoutError(error)) {
         return new RequestError(timeoutMessage(method), undefined, undefined, error);
     }
 
-    // Остановка запроса серверным лимитом времени — по той же причине выше
-    // транспортного passthrough. Текст свой: в отличие от обрыва по потолку
-    // ожидания исход здесь определён, незавершённая запись откатана
+    // A request stopped by the server-side time limit — above the transport
+    // passthrough for the same reason. The text is its own: unlike an abort by
+    // the waiting ceiling, the outcome here is settled, the unfinished write is
+    // rolled back
     if (isStatementTimeoutError(error)) {
         return new RequestError(
             translate(BRICKS_STATEMENT_TIMEOUT_MESSAGE_KEY),

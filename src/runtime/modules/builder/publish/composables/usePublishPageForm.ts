@@ -23,11 +23,12 @@ import { usePublishStore } from '../stores/publish';
 // #endregion
 
 /**
- * Собирает значения формы из страницы (null-поля приводятся к пустым строкам).
- * `layout`/`backgroundColor` панелью не редактируются, но нужны общей схеме валидации.
+ * Builds the form values out of a page (the null fields become empty strings).
+ * `layout`/`backgroundColor` are not edited by the panel but are needed by the
+ * shared validation schema.
  *
- * @param page - Страница или null.
- * @returns Значения формы meta.
+ * @param page - A page, or null.
+ * @returns The values of the meta form.
  */
 function buildFormValues(page: TPublishedPageSummary | null): IPublishPageFormValues {
     return {
@@ -44,13 +45,14 @@ function buildFormValues(page: TPublishedPageSummary | null): IPublishPageFormVa
 }
 
 /**
- * Локальная форма meta выбранной страницы для панели деталей дашборда.
- * Работает поверх `patchPage` и НЕ трогает `currentFormState` store'а —
- * тот привязан к сессии редактора. Dirty-детект и валидация — vee-validate
- * (`useForm` + общая схема `createPublishValidationSchema`).
+ * The local meta form of the selected page for the details panel of the dashboard.
+ * Works on top of `patchPage` and does NOT touch the `currentFormState` of the
+ * store — that one is bound to an editor session. The dirty detection and the
+ * validation are vee-validate's (`useForm` plus the shared
+ * `createPublishValidationSchema`).
  *
- * @param page - Реактивная выбранная страница.
- * @param options - Колбэки результата сохранения (тосты — на стороне вызывающего).
+ * @param page - The reactive selected page.
+ * @param options - Callbacks of the save result (the toasts are the caller's).
  */
 export function usePublishPageForm(
     page: Ref<TPublishedPageSummary | null> | ComputedRef<TPublishedPageSummary | null>,
@@ -92,10 +94,11 @@ export function usePublishPageForm(
 
     // #region Methods
     /**
-     * Валидирует и сохраняет meta-поля через PATCH; при успехе сбрасывает
-     * dirty-состояние на сохранённые значения. PATCH идёт с precondition
-     * (revision выбранной страницы): конфликт вернёт понятную ошибку, стор
-     * обновит список — повторное сохранение перезапишет чужие изменения.
+     * Validates and saves the meta fields through a PATCH; on success resets the
+     * dirty state onto the saved values. The PATCH goes out with a precondition
+     * (the revision of the selected page): a conflict comes back as a readable
+     * error, the store refreshes the list — and a repeated save overwrites somebody
+     * else's changes.
      */
     const submitForm = handleSubmit(async (values) => {
         const target = page.value;
@@ -119,16 +122,16 @@ export function usePublishPageForm(
     });
 
     /**
-     * Откатывает форму к значениям выбранной страницы.
+     * Rolls the form back to the values of the selected page.
      */
     function resetToPage(): void {
         resetForm({ values: buildFormValues(page.value) });
     }
 
     /**
-     * Устанавливает OG-изображение (выбор из медиа-галереи).
+     * Sets the OG image (a pick from the media gallery).
      *
-     * @param url - URL изображения (пустая строка — сброс).
+     * @param url - The URL of the image (an empty string resets it).
      */
     function setSocialImage(url: string): void {
         socialImage.value = url;

@@ -17,20 +17,23 @@ import { useI18n } from 'vue-i18n';
 // #endregion
 
 /**
- * Поверхность шаблонов на дашборде: подготовка источника из строки списка
- * страниц, предвыбранный шаблон формы создания и снимок для лайтбокса.
+ * The templates surface on the dashboard: preparing a source out of a row of the
+ * page list, the template pre-picked for the creation form and the snapshot for the
+ * lightbox.
  *
- * Живёт в домене публикации, а не в шаблонах: чтобы сохранить страницу как
- * шаблон, нужна её СХЕМА, а сводка списка схему не несёт — её приходится читать
- * point-lookup'ом (`GET /api/bricks/:id`), то есть знать про страницы. Обратное
- * направление запрещено правилами слоёв: домен шаблонов о страницах не знает и
- * получает готовое содержимое значением.
+ * Lives in the publish domain rather than in the templates one: saving a page as a
+ * template takes its SCHEMA, and a list summary carries no schema — it has to be
+ * read by a point lookup (`GET /api/bricks/:id`), that is, by knowing about pages.
+ * The opposite direction is forbidden by the layer rules: the templates domain
+ * knows nothing about pages and receives ready content as a value.
  *
- * Здесь же предвыбор шаблона и снимок лайтбокса — состояние, которое иначе
- * лежало бы в хосте дашборда третьей машиной рядом со страницами и учётками.
+ * The pre-pick of a template and the lightbox snapshot are here too — state that
+ * would otherwise sit in the dashboard host as a third machine next to the pages
+ * and the accounts.
  *
- * @param options - Показ тоста об отказе чтения.
- * @returns Состояние формы шаблона, предвыбор источника и снимок лайтбокса.
+ * @param options - Showing the toast about a refused read.
+ * @returns The state of the template form, the pre-picked source and the lightbox
+ * snapshot.
  */
 export function usePublishTemplatesSurface(options: IUsePublishTemplateSurfaceOptions) {
     // #region Data
@@ -38,38 +41,42 @@ export function usePublishTemplatesSurface(options: IUsePublishTemplateSurfaceOp
 
     const source = ref<ITemplateSaveSource | null>(null);
     const isModalOpen = ref(false);
-    /** Страница, чью схему читают сейчас; `null` — чтения нет. */
+    /** The page whose schema is being read right now; `null` — no read is running */
     const preparingPageId = ref<string | null>(null);
-    /** Шаблон, выбранный источником открываемой формы создания; `null` — нет. */
+    /**
+     * The template picked as the source of the creation form to be opened; `null` —
+     * none is picked.
+     */
     const createTemplate = ref<TBricksTemplateSummary | null>(null);
-    /** Снимок шаблона, открытый в лайтбоксе; `null` — закрыт. */
+    /** The template snapshot open in the lightbox; `null` — it is closed */
     const previewItem = ref<TMediaLightboxItem | null>(null);
 
     /**
-     * Поколение подготовки: чтение схемы асинхронно, и за это время человек
-     * успевает нажать действие у другой строки. Без счётчика доехавший первым
-     * ответ открыл бы форму с содержимым не той страницы, которую выбрали
-     * последней.
+     * The generation of the preparation: reading a schema is asynchronous, and in
+     * that time a person has time to hit the action of another row. Without the
+     * counter whichever answer arrived first would open the form carrying the content
+     * of a page other than the one picked last.
      */
     let preparationGeneration = 0;
     // #endregion
 
     // #region Methods
     /**
-     * Читает страницу point-lookup'ом и открывает форму сохранения шаблона.
+     * Reads the page by a point lookup and opens the template save form.
      *
-     * Второй клик по другой строке НЕ отвергается: занятость видна только у своей
-     * строки, а поколение ниже уже реализует last-click-wins — ранний `return`
-     * делал кнопки остальных строк немыми, хотя выглядят они активными. Цена —
-     * два параллельных GET на быстрый перещёлк; зато открывается ровно последний
-     * выбор.
+     * A second click on another row is NOT turned down: the busy state is visible
+     * only on its own row, while the generation below implements last-click-wins
+     * already — an early `return` used to make the buttons of the other rows mute
+     * even though they look active. The price is two parallel GETs on a fast
+     * switch-over; in exchange exactly the last pick is what opens.
      *
-     * Источник собирается ЦЕЛИКОМ из прочитанной строки, а не половина из неё,
-     * половина из сводки списка: список мог отстать (страницу сохранил другой
-     * редактор), и шаблон вышел бы из двух поколений данных — свежая схема со
-     * старым оформлением и чужим кадром.
+     * The source is assembled WHOLE out of the row that was read rather than half
+     * out of it and half out of the list summary: the list may have fallen behind
+     * (another editor saved the page), and the template would come out of two
+     * generations of data — a fresh schema with an old appearance and somebody
+     * else's snapshot.
      *
-     * @param page - Страница-источник из списка; из неё берётся только `id`.
+     * @param page - The source page from the list; only its `id` is taken from it.
      */
     async function requestFromPage(page: TPublishedPageSummary): Promise<void> {
         preparationGeneration += 1;
@@ -96,7 +103,8 @@ export function usePublishTemplatesSurface(options: IUsePublishTemplateSurfaceOp
                     backgroundColor: fullPage.backgroundColor,
                     viewportConfig: fullPage.viewportConfig,
                 },
-                // Кадр страницы: сервер скопирует его в собственный файл шаблона
+                // The snapshot of the page: the server will copy it into a file of
+                // the template's own
                 thumbnailSourceUrl: fullPage.thumbnailUrl,
                 pageLabel: label,
                 pageAddressPath: getPublishedPagePath(
@@ -121,34 +129,36 @@ export function usePublishTemplatesSurface(options: IUsePublishTemplateSurfaceOp
     }
 
     /**
-     * Закрывает форму. Источник остаётся до следующего открытия: модалку держит в
-     * DOM `force-mount` до конца leave-анимации, и снятый источник опустошил бы
-     * карточку страницы прямо под уезжающим окном.
+     * Closes the form. The source stays until the next opening: `force-mount` keeps
+     * the modal in the DOM until the leave animation ends, and a source taken away
+     * would empty the page card right under the departing window.
      */
     function close(): void {
         isModalOpen.value = false;
     }
 
     /**
-     * Делает шаблон источником следующей открываемой формы создания страницы.
+     * Makes the template the source of the next page creation form to be opened.
      *
-     * @param template - Шаблон-источник.
+     * @param template - The source template.
      */
     function selectForCreate(template: TBricksTemplateSummary): void {
         createTemplate.value = template;
     }
 
     /**
-     * Снимает предвыбор источника: форму открыли кнопкой шапки, а не карточкой.
+     * Drops the pre-picked source: the form was opened by the header button rather
+     * than by a card.
      */
     function clearCreateSelection(): void {
         createTemplate.value = null;
     }
 
     /**
-     * Готовит снимок шаблона для лайтбокса; шаблон без снимка не открывается.
+     * Prepares the snapshot of a template for the lightbox; a template with no
+     * snapshot does not open.
      *
-     * @param template - Шаблон.
+     * @param template - The template.
      */
     function previewThumbnail(template: TBricksTemplateSummary): void {
         if (!template.thumbnailUrl) {
@@ -164,7 +174,7 @@ export function usePublishTemplatesSurface(options: IUsePublishTemplateSurfaceOp
     }
 
     /**
-     * Закрывает лайтбокс шаблона.
+     * Closes the template lightbox.
      */
     function closePreview(): void {
         previewItem.value = null;

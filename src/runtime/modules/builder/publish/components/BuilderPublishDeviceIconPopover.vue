@@ -1,4 +1,13 @@
 <script setup lang="ts">
+/**
+ * @description The picker of a device glyph: a trigger with the current glyph and a
+ * popover with the catalog.
+ *
+ * One decision is held by the style section: the glyph is 2rem by the design — with no
+ * explicit size it inherited the font size of the text (1.4rem) and got lost inside
+ * the 3.6rem button.
+ */
+
 // #region Imports
 // Vue
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
@@ -47,7 +56,7 @@ const choices = computed(() =>
 
 // #region Methods
 /**
- * Открывает или закрывает поповер выбора глифа.
+ * Opens or closes the glyph picker popover.
  */
 function handleToggle(): void {
     if (props.disabled) {
@@ -58,9 +67,9 @@ function handleToggle(): void {
 }
 
 /**
- * Выбирает глиф и закрывает поповер.
+ * Picks a glyph and closes the popover.
  *
- * @param value - Короткий ключ глифа.
+ * @param value - The short key of the glyph.
  */
 function handleSelect(value: string): void {
     emit('update:icon', value);
@@ -68,9 +77,9 @@ function handleSelect(value: string): void {
 }
 
 /**
- * Закрывает поповер по клику вне его области.
+ * Closes the popover on a click outside its area.
  *
- * @param event - Событие указателя.
+ * @param event - Pointer event.
  */
 function handleOutside(event: MouseEvent): void {
     if (isOpen.value && !rootRef.value?.contains(event.target as Node)) {
@@ -79,9 +88,9 @@ function handleOutside(event: MouseEvent): void {
 }
 
 /**
- * Закрывает поповер по Escape, не давая событию закрыть саму модалку.
+ * Closes the popover on Escape without letting the event close the modal itself.
  *
- * @param event - Событие клавиатуры.
+ * @param event - Keyboard event.
  */
 function handleEscape(event: KeyboardEvent): void {
     if (event.key === 'Escape' && isOpen.value) {
@@ -154,9 +163,6 @@ onBeforeUnmount(() => {
     border-radius: var(--bricks-border-radius-control);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
-
-    // Глиф устройства — 2rem по макету; без явного размера он наследовал кегль
-    // текста (1.4rem) и терялся в 3.6rem-кнопке
     font-size: 2rem;
     color: var(--bricks-base-600);
     transition: var(--bricks-default-transition);

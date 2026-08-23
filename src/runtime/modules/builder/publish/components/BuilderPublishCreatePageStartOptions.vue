@@ -1,4 +1,17 @@
 <script setup lang="ts">
+/**
+ * @description The choice of the content source for a new page: three cards (a blank
+ * canvas, a template, a JSON file) and the row of whatever is picked.
+ *
+ * Decisions held by the markup and the style section: the picked template gets the
+ * same row as the picked file — both say "a source is picked, and here is which one",
+ * and one shared place makes it obvious that they replace each other. The name of the
+ * file and the number of blocks go into that row under the cards, because they do not
+ * fit the width of a card. The three cards go in one row: the width of the modal
+ * content divides between them with the gap taken into account, and the cards line up
+ * in height.
+ */
+
 // #region Imports
 // Types
 import type {
@@ -28,7 +41,7 @@ const { t } = useI18n();
 
 // #region Methods
 /**
- * Выбирает пустую страницу как источник содержимого.
+ * Picks a blank page as the source of the content.
  */
 function handleSelectBlank(): void {
     if (props.isSubmitting) {
@@ -39,8 +52,8 @@ function handleSelectBlank(): void {
 }
 
 /**
- * Открывает выбор JSON-файла. Клик по карточке сразу ведёт к диалогу: вариант
- * «из файла» без файла ничего не значит.
+ * Opens the JSON file picker. A click on the card leads straight to the dialog: the
+ * "from a file" option means nothing without a file.
  */
 function handlePickFile(): void {
     if (props.isSubmitting) {
@@ -51,7 +64,7 @@ function handlePickFile(): void {
 }
 
 /**
- * Снимает выбранный файл — источник возвращается к пустой странице.
+ * Drops the picked file — the source goes back to a blank page.
  */
 function handleClearFile(): void {
     if (props.isSubmitting) {
@@ -62,8 +75,9 @@ function handleClearFile(): void {
 }
 
 /**
- * Открывает выбор шаблона. Клик по карточке сразу ведёт к списку: вариант «из
- * шаблона» без шаблона ничего не значит — та же логика, что у выбора файла.
+ * Opens the template picker. A click on the card leads straight to the list: the
+ * "from a template" option means nothing without a template — the same reasoning as
+ * for picking a file.
  */
 function handlePickTemplate(): void {
     if (props.isSubmitting) {
@@ -74,7 +88,7 @@ function handlePickTemplate(): void {
 }
 
 /**
- * Снимает выбранный шаблон — источник возвращается к пустой странице.
+ * Drops the picked template — the source goes back to a blank page.
  */
 function handleClearTemplate(): void {
     if (props.isSubmitting) {
@@ -139,11 +153,6 @@ function handleClearTemplate(): void {
             </button>
         </div>
 
-        <!--
-            Выбранный шаблон — той же строкой, что и выбранный файл: оба сообщают
-            «источник выбран, вот какой», и одинаковое место делает их
-            взаимозаменяемость очевидной
-        -->
         <div v-if="props.selectedTemplate" :class="$style.selectedFile">
             <BricksIcon icon="ta:outline-package" :class="$style.selectedFileIcon" />
             <span :class="$style.selectedFileName">{{ props.selectedTemplate.name }}</span>
@@ -163,10 +172,6 @@ function handleClearTemplate(): void {
             />
         </div>
 
-        <!--
-            Имя файла и число блоков — строкой под карточками: в ширину карточки
-            они не помещаются
-        -->
         <div v-if="props.selectedFile" :class="$style.selectedFile">
             <BricksIcon icon="ta:outline-files" :class="$style.selectedFileIcon" />
             <span :class="$style.selectedFileName">{{ props.selectedFile.filename }}</span>
@@ -205,9 +210,6 @@ function handleClearTemplate(): void {
 
 .cards {
     display: flex;
-
-    // Три карточки в ряд: ширина контента модалки делится на них при этом gap,
-    // и карточки выравниваются по высоте
     gap: 1rem;
     align-items: stretch;
 }

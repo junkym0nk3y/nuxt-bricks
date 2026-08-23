@@ -1,4 +1,13 @@
 <script setup lang="ts">
+/**
+ * @description The scale of the width ranges under the device table: what each step
+ * gets and which of them is open on the canvas.
+ *
+ * One decision is held by the style section: the device open on the canvas is marked
+ * with an outline rather than with a fill, so that the segment stays readable next to
+ * its neighbors.
+ */
+
 // #region Imports
 // Types
 import type { IPublishDeviceRange } from '../types/devices';
@@ -76,8 +85,6 @@ const { t } = useI18n();
     gap: 0.2rem;
 }
 
-// Устройство, открытое на канвасе: рамкой, а не заливкой — сегмент остаётся
-// читаемым рядом с соседями
 .segmentActive {
     border-color: var(--bricks-primary-default);
     background: var(--bricks-primary-50);

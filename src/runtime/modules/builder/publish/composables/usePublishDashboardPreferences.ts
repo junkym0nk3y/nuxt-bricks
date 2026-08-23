@@ -11,22 +11,24 @@ import { useCookie } from '#imports';
 // #endregion
 
 // #region Data
-/** Cookie темы интерфейса — общая с редактором билдера. */
+/** The cookie of the interface theme — shared with the builder editor */
 const DARK_MODE_COOKIE = 'bricks-dark-mode';
 
-/** Год жизни cookie: выбор темы человек делает один раз. */
+/** A year of cookie life: a person picks a theme once */
 const DARK_MODE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 // #endregion
 
 /**
- * Настройки оболочки дашборда: тема интерфейса и язык.
+ * The settings of the dashboard shell: the theme of the interface and the
+ * language.
  *
- * Тема живёт в cookie, а не в состоянии приложения, по одной причине: класс
- * `bricks-dark` обязан оказаться на `body` в ПЕРВОМ кадре — cookie читается на
- * сервере, и тёмный дашборд не мигает светлым во время гидрации. Cookie общая с
- * редактором: переход между поверхностями не должен переключать тему.
+ * The theme lives in a cookie rather than in the state of the application for one
+ * reason: the `bricks-dark` class is obliged to land on the `body` in the FIRST
+ * frame — a cookie is read on the server, and a dark dashboard does not flash
+ * light during the hydration. The cookie is shared with the editor: moving between
+ * the surfaces must not switch the theme.
  *
- * @returns Признак тёмной темы, класс `body` и переключатели.
+ * @returns The dark theme flag, the `body` class and the switches.
  */
 export function usePublishDashboardPreferences(): IUsePublishDashboardPreferencesReturn {
     // #region Data
@@ -42,8 +44,8 @@ export function usePublishDashboardPreferences(): IUsePublishDashboardPreference
     const isDarkMode = computed<boolean>(() => darkModeCookie.value ?? false);
 
     /**
-     * Класс `body` — реактивный: `useHead` пересобирает атрибут при переключении,
-     * и тема применяется без перезагрузки.
+     * The `body` class is reactive: `useHead` reassembles the attribute on a
+     * switch, and the theme applies with no reload.
      */
     const bodyClass = computed<string>(() =>
         darkModeCookie.value ? 'bricks-page bricks-dark' : 'bricks-page'
@@ -52,15 +54,15 @@ export function usePublishDashboardPreferences(): IUsePublishDashboardPreference
 
     // #region Methods
     /**
-     * Переключает тёмную и светлую тему интерфейса.
+     * Switches the dark and the light theme of the interface.
      */
     function toggleDarkMode(): void {
         darkModeCookie.value = !darkModeCookie.value;
     }
 
     /**
-     * Переключает локаль интерфейса (ru ⇄ en); cookie `bricks-locale` пишет сам
-     * i18n.
+     * Switches the locale of the interface (ru to en and back); the `bricks-locale`
+     * cookie is written by i18n itself.
      */
     async function toggleLocale(): Promise<void> {
         await setLocale(locale.value === 'ru' ? 'en' : 'ru');

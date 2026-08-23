@@ -1,12 +1,12 @@
 /**
- * Запись страниц вне сессии редактора: создание черновика из модалки дашборда
- * (пустым холстом или сразу из JSON-файла) и дублирование произвольной
- * страницы. Общая черта — `currentFormState` не
- * трогается: форма принадлежит открытой в редакторе странице, а эти операции
- * работают со списком.
+ * Writing pages outside an editor session: creating a draft from the dashboard
+ * modal (with an empty canvas or straight from a JSON file) and duplicating an
+ * arbitrary page. What they have in common is that `currentFormState` is left
+ * alone: the form belongs to the page open in the editor, while these operations
+ * work with the list.
  *
- * Зависимость стора передаётся узким контрактом — логика тестируется юнитом без
- * Pinia (паттерн `currentPageWrite.ts`).
+ * The store dependency is passed as a narrow contract — the logic is unit-tested
+ * without Pinia (the pattern of `currentPageWrite.ts`).
  */
 import type { IBricksSchema } from '../../../common/types/brick';
 import type { TPublishFormState } from '../../../common/types/bricks-api';
@@ -17,19 +17,20 @@ import { generateCopyPagename } from './slugify';
 import { toPageAddress } from '../../../common/utils/bricks/pageAddress';
 
 /**
- * Создаёт страницу-черновик с заданной схемой.
+ * Creates a draft page with the given schema.
  *
- * Схема приходит параметром, а не подставляется пустой здесь: страницу можно
- * создать как чистый холст, так и сразу из JSON-файла, и выбор источника — дело
- * вызывающего. Пустой холст передаёт `{ components: [] }` явно.
+ * The schema arrives as a parameter rather than being substituted empty here: a
+ * page can be created both as a blank canvas and straight from a JSON file, and
+ * the choice of the source is the caller's. A blank canvas passes
+ * `{ components: [] }` explicitly.
  *
- * `published: false` навязывается здесь, а не оставляется на форму: страница без
- * содержимого, опубликованная сразу, немедленно уходит в выдачу пустой.
+ * `published: false` is imposed here rather than left to the form: a page with no
+ * content published right away goes into the public output empty at once.
  *
- * @param store - Узкий контракт стора.
- * @param schema - Схема новой страницы.
- * @param formState - Meta-поля новой страницы.
- * @returns ID созданной страницы.
+ * @param store - Narrow contract of the store.
+ * @param schema - Schema of the new page.
+ * @param formState - Meta fields of the new page.
+ * @returns The id of the created page.
  */
 export async function runCreatePage(
     store: IPageLibraryWriteStoreDeps,
@@ -40,13 +41,13 @@ export async function runCreatePage(
 }
 
 /**
- * Дублирует страницу по идентификатору: клонирует meta и схему, создаёт черновик
- * с уникальным `pagename` (суффикс «-copy»).
+ * Duplicates a page by its identifier: clones the meta and the schema, creates a
+ * draft with a unique `pagename` (the "-copy" suffix).
  *
- * @param store - Узкий контракт стора.
- * @param id - Идентификатор исходной страницы.
- * @param failedMessage - Сообщение на случай, если страницы нет в списке.
- * @returns ID созданной копии.
+ * @param store - Narrow contract of the store.
+ * @param id - Identifier of the source page.
+ * @param failedMessage - The message for the case of the page not being in the list.
+ * @returns The id of the created copy.
  */
 export async function runDuplicatePage(
     store: IPageLibraryWriteStoreDeps,
@@ -64,7 +65,8 @@ export async function runDuplicatePage(
         (candidate) => store.isAddressAvailable(candidate)
     );
 
-    // Сводка списка схему не несёт — исходная схема запрашивается point-lookup'ом
+    // A list summary carries no schema — the source schema is requested by a
+    // point lookup
     const fullPage = await fetchPageRequest(page.id);
 
     return await store.publishPage(fullPage.schema, buildCopyFormState(page, copyPagename));

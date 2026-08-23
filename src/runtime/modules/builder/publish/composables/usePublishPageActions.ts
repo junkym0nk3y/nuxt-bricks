@@ -22,17 +22,18 @@ import { usePublishPreview } from './usePublishPreview';
 // #endregion
 
 /**
- * Действия над страницей, не требующие подтверждения: публикация, копия,
- * превью страницы и превью её миниатюры.
+ * The actions on a page that need no confirmation: the publication, the copy, the
+ * preview of the page and the preview of its thumbnail.
  *
- * Вынесены из хоста дашборда не «для порядка»: хост уже перерос потолок в 500
- * строк, а эти четыре действия связаны между собой только тем, что все относятся
- * к строке списка, — то есть выносятся одной группой и без остатка. Подтверждаемые
- * операции (удаление страницы, откат версии) живут в своих композаблах по тому же
- * образцу.
+ * Taken out of the dashboard host not "for tidiness": the host had outgrown the
+ * 500-line ceiling, while these four actions have nothing in common except that
+ * all of them belong to a row of the list — that is, they come out as one group
+ * and leave no remainder. The operations that ask for a confirmation (deleting a
+ * page, rolling back to a version) live in composables of their own following the
+ * same pattern.
  *
- * @param options - Показ тостов (владеет им дашборд).
- * @returns Состояние копирования, лайтбокс миниатюры и сами действия.
+ * @param options - Showing the toasts (owned by the dashboard).
+ * @returns The copying state, the thumbnail lightbox and the actions themselves.
  */
 export function usePublishPageActions(
     options: IUsePublishPageActionsOptions
@@ -48,15 +49,17 @@ export function usePublishPageActions(
 
     // #region Methods
     /**
-     * Оптимистично переключает статус публикации; при отказе возвращает прежний.
+     * Optimistically toggles the publication status; on a refusal brings the
+     * previous one back.
      *
-     * Оптимистично — в отличие от операций над учётками: тумблер публикации
-     * человек щёлкает и сразу смотрит на результат, и задержка на круг до сервера
-     * читалась бы как незалипающая кнопка. Цена — откат при отказе, и он
-     * возможен, потому что прежнее значение известно точно.
+     * Optimistically, unlike the operations on accounts: a person clicks the
+     * publication switch and looks at the result at once, and a delay of one round
+     * trip to the server would read as a button that does not latch. The price is
+     * the rollback on a refusal, and it is possible because the previous value is
+     * known for certain.
      *
-     * @param page - Страница.
-     * @param published - Новый флаг публикации.
+     * @param page - The page.
+     * @param published - The new publication flag.
      */
     async function togglePublished(page: TPublishedPageSummary, published: boolean): Promise<void> {
         const target = publishStore.getPageById(page.id);
@@ -87,9 +90,9 @@ export function usePublishPageActions(
     }
 
     /**
-     * Дублирует страницу: копия создаётся черновиком с уникальным именем.
+     * Duplicates a page: the copy is created as a draft carrying a unique name.
      *
-     * @param page - Исходная страница.
+     * @param page - The source page.
      */
     async function duplicatePage(page: TPublishedPageSummary): Promise<void> {
         if (duplicatingPageId.value !== null) {
@@ -114,18 +117,18 @@ export function usePublishPageActions(
     }
 
     /**
-     * Открывает превью страницы в новой вкладке.
+     * Opens the preview of the page in a new tab.
      *
-     * @param page - Страница.
+     * @param page - The page.
      */
     function previewPage(page: TPublishedPageSummary): void {
         window.open(generatePreviewUrl(toPageAddress(page.pagename, page.urlPrefix)), '_blank');
     }
 
     /**
-     * Открывает миниатюру страницы в лайтбоксе медиа-галереи.
+     * Opens the thumbnail of the page in the lightbox of the media gallery.
      *
-     * @param page - Страница со снимком.
+     * @param page - A page carrying a snapshot.
      */
     function previewThumbnail(page: TPublishedPageSummary): void {
         if (!page.thumbnailUrl) {
@@ -141,7 +144,7 @@ export function usePublishPageActions(
     }
 
     /**
-     * Закрывает лайтбокс миниатюры.
+     * Closes the thumbnail lightbox.
      */
     function closeThumbnailPreview(): void {
         thumbnailPreviewItem.value = null;

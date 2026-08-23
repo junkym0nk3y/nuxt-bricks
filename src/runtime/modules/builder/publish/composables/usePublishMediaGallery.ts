@@ -7,18 +7,18 @@ import { ref } from 'vue';
 // #endregion
 
 /**
- * Модалка медиа-галереи на дашборде: латч монтирования и видимость.
+ * The media gallery modal on the dashboard: the mounting latch and the visibility.
  *
- * Роль у неё осталась одна — пикер OG-изображения панели деталей страницы:
- * выбор файла здесь шаг внутри другой работы, поэтому окно поверх формы уместно.
- * Менеджером файлов работает раздел рейла «Медиатека», и различать контексты
- * больше не нужно.
+ * It is left with one role — the OG image picker of the page details panel: here
+ * picking a file is a step inside another piece of work, so a window on top of the
+ * form is appropriate. The file manager is the "Media" section of the rail, and
+ * there is no longer a need to tell the contexts apart.
  *
- * Латч монтирования обратно не снимается: галерея на старте дашборда тянула бы
- * списки файлов и категорий, которых у неоткрытой галереи никто не спрашивает, а
- * пересоздание компонента после закрытия теряло бы анимацию.
+ * The mounting latch is never released: at the start of the dashboard the gallery
+ * would pull the lists of files and categories nobody asks an unopened gallery
+ * for, while recreating the component after a close would lose the animation.
  *
- * @returns Состояние галереи и способ её открыть.
+ * @returns The state of the gallery and the way to open it.
  */
 export function usePublishMediaGallery(): IUsePublishMediaGalleryReturn {
     // #region Data
@@ -28,7 +28,7 @@ export function usePublishMediaGallery(): IUsePublishMediaGalleryReturn {
 
     // #region Methods
     /**
-     * Открывает галерею пикером OG-изображения.
+     * Opens the gallery as the OG image picker.
      */
     function open(): void {
         shouldMount.value = true;
@@ -36,7 +36,7 @@ export function usePublishMediaGallery(): IUsePublishMediaGalleryReturn {
     }
 
     /**
-     * Закрывает галерею, оставляя компонент смонтированным.
+     * Closes the gallery, leaving the component mounted.
      */
     function close(): void {
         isOpen.value = false;

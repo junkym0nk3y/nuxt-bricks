@@ -1,4 +1,21 @@
 <script setup lang="ts">
+/**
+ * @description The shared block of SEO fields of a page: the title, the address, the
+ * description and the keywords. The two hosts — the sidebar of the builder and the
+ * details panel of the dashboard — own the form differently, so the values and the
+ * errors arrive as props.
+ *
+ * Decisions held by the markup and the style section: the address slot exists because
+ * the two hosts frame an address differently — in the sidebar the prefix, the
+ * subdomain and the preview of the full URL sit right next to it, while in the details
+ * panel the routing lives as a section of its own. That is not a reason to grow a
+ * second fields component. `fieldLabel` repeats the label row of
+ * BricksInput/BricksTextarea: the tags editor has no label of its own, being a shared
+ * element of the kit that is labeled from the outside in the block properties. Its
+ * 0.2rem bottom margin adds up with the 0.6rem gap of the column to the 0.8rem the kit
+ * fields indent their label by.
+ */
+
 // #region Imports
 // Types
 import type { IPublishSeoFieldsProps, IPublishSeoFieldsEmits } from '../types/seoFields';
@@ -44,10 +61,10 @@ const keywordTags = computed<string[]>(() => parseKeywords(props.keywords));
 
 // #region Methods
 /**
- * Переводит список тегов обратно в строку `keywords`: наружу поле уходит в том
- * же виде, в котором хранится, — теги живут только внутри редактора.
+ * Turns the tag list back into a `keywords` string: the field travels outwards in
+ * the same shape it is stored in — the tags live inside the editor only.
  *
- * @param tags - Актуальный список тегов.
+ * @param tags - The current tag list.
  */
 function handleKeywordsChange(tags: string[]): void {
     emit('update:keywords', serializeKeywords(tags));
@@ -89,11 +106,6 @@ function handleKeywordsChange(tags: string[]): void {
             />
         </div>
 
-        <!--
-            Слот адреса: у сайдбара к адресу примыкают префикс, поддомен и превью
-            полного URL, у панели деталей маршрутизация живёт отдельной секцией.
-            Разводить из-за этого два компонента полей незачем
-        -->
         <slot name="address"></slot>
 
         <div :class="$style.field">
@@ -150,14 +162,10 @@ function handleKeywordsChange(tags: string[]): void {
     gap: 0.6rem;
 }
 
-// Повторяет строку лейбла BricksInput/BricksTextarea: у редактора тегов своего
-// лейбла нет — он общий элемент кита и в свойствах блоков подписывается снаружи
 .fieldLabel {
     display: flex;
     align-items: center;
     justify-content: space-between;
-
-    // 0.6rem gap колонки + 0.2rem = 0.8rem, как отступ лейбла внутри полей кита
     margin-bottom: 0.2rem;
     font-size: 1.4rem;
     font-weight: 500;

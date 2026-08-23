@@ -1,4 +1,32 @@
 <script setup lang="ts">
+/**
+ * @description The versions section of the details panel: the gallery of snapshots
+ * with the current state first, the preview of a version and the request for a
+ * rollback.
+ *
+ * Decisions held by the markup: the skeleton is shown only while there is nothing to
+ * show — a reload of an open section (after a rollback or a save) must not flash an
+ * empty grid over the versions already on screen. The `alt` of a snapshot is empty on
+ * purpose: there is nothing to describe a screenshot of a page with in words, and the
+ * date is already spoken by the line next to it — with `alt="the date"` a screen
+ * reader would repeat it twice in a row. The labels of the action buttons are
+ * mandatory rather than nice to have: an unlabeled "restore" arrow reads as "undo",
+ * and the price of that mistake here is the overwritten content of a page. Restoring
+ * a version is an edit of the page, so it is available to an editor and above.
+ *
+ * Decisions held by the style section: two cards per row — `repeat(2, minmax(0, 1fr))`
+ * splits the 28.8rem of the panel content (34rem less the padding and the scrollbar)
+ * into two 13.8rem cards with a 1.2rem gap between them. The preview holds an exact
+ * 16:10 at any card width, the same ratio the thumbnail in the page list holds. The
+ * place of the "Current" pill is ours while its look comes from the kit
+ * (the `primary` fill rather than the former `primary-500`: the status pill of the
+ * kit has one fill for every place it appears in). The dimming of the actions is not
+ * a layer of its own: its background both puts the preview out and catches the mouse
+ * while the actions are visible. The "no snapshot" mark under that veil collides with
+ * the action icons, since it is centered too — while the actions are open there is
+ * nothing to show, so the placeholder leaves.
+ */
+
 // #region Imports
 // Types
 import type { IPageVersionSummary } from '../../../common/types/bricks-api';
@@ -36,7 +64,7 @@ const emit = defineEmits<IPublishDetailsPanelVersionsEmits>();
 // #endregion
 
 // #region Data
-/** Сколько карточек-заглушек держат высоту панели, пока список едет. */
+/** How many placeholder cards hold the height of the panel while the list travels */
 const SKELETON_CARDS_COUNT = 4;
 
 const { t } = useI18n();
@@ -50,9 +78,9 @@ const isOpen = ref(false);
 
 // #region Computed
 /**
- * Карточки галереи: текущее состояние страницы первым, за ним история.
- * Пока истории нет, текущая карточка не показывается — сравнивать не с чем,
- * и секция честно отвечает пустым состоянием.
+ * The cards of the gallery: the current state of the page first, the history behind
+ * it. While there is no history the current card is not shown — there is nothing to
+ * compare against, and the section honestly answers with its empty state.
  */
 const versionCards = computed<IPublishVersionCard[]>(() => {
     if (versions.value.length === 0) {
@@ -66,9 +94,9 @@ const versionCards = computed<IPublishVersionCard[]>(() => {
             thumbnailUrl: props.page.thumbnailUrl,
             date: formatPageDateTime(props.page.updatedAt),
         },
-        // Дата карточки — момент, когда снятое состояние сохранили, а не когда
-        // его вытеснили (см. formatPageVersionDateTime); той же датой
-        // подписывается подтверждение отката
+        // The date of a card is the moment the captured state was saved rather than
+        // the moment it was displaced (see formatPageVersionDateTime); the rollback
+        // confirmation is signed with that same date
         ...versions.value.map((version) => ({
             key: `version-${version.id}`,
             version,
@@ -81,7 +109,7 @@ const versionCards = computed<IPublishVersionCard[]>(() => {
 
 // #region Methods
 /**
- * Загружает список версий; при ошибке уведомляет контроллер.
+ * Loads the version list; notifies the controller on an error.
  */
 async function reloadVersions(): Promise<void> {
     try {
@@ -92,12 +120,12 @@ async function reloadVersions(): Promise<void> {
 }
 
 /**
- * Разворачивает/сворачивает секцию версий; при открытии загружает свежий список.
+ * Expands or collapses the versions section; on an opening loads a fresh list.
  *
- * Открытость приходит от складной секции, а не переворачивается здесь: список
- * закрывает и смена страницы, и хозяин состояния должен быть один.
+ * The open state arrives from the disclosure rather than being flipped here: a
+ * change of page closes the list too, and the state must have a single owner.
  *
- * @param value - Запрошенное состояние секции.
+ * @param value - The requested state of the section.
  */
 async function handleToggle(value: boolean): Promise<void> {
     isOpen.value = value;
@@ -108,10 +136,11 @@ async function handleToggle(value: boolean): Promise<void> {
 }
 
 /**
- * Открывает превью версии в новой вкладке. Загружать нечего — версия уходит в
- * URL превью-роута; сообщаем только о неоткрывшейся вкладке.
+ * Opens the preview of a version in a new tab. There is nothing to load — the
+ * version travels in the URL of the preview route; the only thing reported is a tab
+ * that did not open.
  *
- * @param version - Сводка версии.
+ * @param version - Version summary.
  */
 function handlePreview(version: IPageVersionSummary): void {
     if (!previewVersion(props.page, version.id)) {
@@ -124,9 +153,10 @@ function handlePreview(version: IPageVersionSummary): void {
 }
 
 /**
- * Запрашивает откат страницы к версии (подтверждение — в контроллере).
+ * Asks for the page to be rolled back to a version (the confirmation lives in the
+ * controller).
  *
- * @param version - Сводка версии.
+ * @param version - Version summary.
  */
 function handleRestore(version: IPageVersionSummary): void {
     emit('restore', version);
@@ -138,16 +168,17 @@ watch(
     () => props.page.id,
     () => {
         isOpen.value = false;
-        // Через композабл, а не присваиванием в `versions`: сброс обязан
-        // обесценить и уже летящий запрос прежней страницы
+        // Through the composable rather than by assigning into `versions`: the
+        // reset is obliged to devalue the request of the previous page in flight
+        // as well
         resetVersions();
     }
 );
 
-// Любая запись страницы (откат, сохранение meta, импорт схемы) вытесняет версию
-// — перезагружаем открытый список. Слежение за `revision`, а не за `updatedAt`:
-// revision монотонна по контракту, а две быстрые записи могут получить
-// неразличимый timestamp, и обновление истории тогда потерялось бы
+// Any write of the page (a rollback, a save of the meta, a schema import) displaces
+// a version — so an open list is reloaded. The watch is on `revision` rather than on
+// `updatedAt`: a revision is monotonic by contract, while two fast writes may get an
+// indistinguishable timestamp and the update of the history would then be lost
 watch(
     () => props.page.revision,
     () => {
@@ -166,9 +197,6 @@ watch(
         @update:value="handleToggle"
     >
         <div :class="$style.versionsContent">
-            <!-- Скелет — только пока показывать нечего: перезагрузка открытой
-                 секции (после отката или сохранения) не должна мигать пустой
-                 сеткой поверх уже показанных версий -->
             <div v-if="isLoading && versions.length === 0" :class="$style.grid">
                 <div v-for="index in SKELETON_CARDS_COUNT" :key="index" :class="$style.card">
                     <BricksSkeleton shape="block" :class="[$style.thumb, $style.thumbSkeleton]" />
@@ -187,10 +215,6 @@ watch(
                     :class="[$style.card, !card.version && $style.cardCurrent]"
                 >
                     <div :class="$style.thumb">
-                        <!-- alt пустой намеренно: описать скриншот страницы
-                             текстом нечем, а дата уже озвучена соседней
-                             строкой — с `alt="дата"` скринридер повторял бы её
-                             дважды подряд -->
                         <img
                             v-if="card.thumbnailUrl"
                             :class="$style.thumbImage"
@@ -214,10 +238,6 @@ watch(
                             {{ t('bricks.publish.dashboard.details.versions.current') }}
                         </BricksBadge>
 
-                        <!-- Подписи обязательны, а не желательны: стрелка
-                             «восстановить» без подписи читается как «отменить»,
-                             а цена ошибки здесь — перезаписанное содержимое
-                             страницы -->
                         <div v-if="card.version" :class="$style.actions">
                             <BricksIconButton
                                 variant="overlay"
@@ -226,7 +246,6 @@ watch(
                                 @click="handlePreview(card.version)"
                             />
 
-                            <!-- Восстановление версии — правка страницы: только редактору и выше -->
                             <BricksIconButton
                                 v-if="canEdit"
                                 variant="overlay"
@@ -260,9 +279,6 @@ watch(
 
 .grid {
     display: grid;
-
-    // Две карточки в ряд — ширина контента панели (34rem минус паддинги)
-    // делится ровно на 14.4rem + 1.2rem + 14.4rem, и превью получает точное 16:10
     margin: 0;
     padding: 0;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -280,8 +296,6 @@ watch(
 .thumb {
     position: relative;
     overflow: hidden;
-
-    // 16:10 — то же соотношение, что у миниатюры в списке страниц
     aspect-ratio: 16 / 10;
     border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-base-200);
@@ -321,8 +335,6 @@ watch(
     color: var(--bricks-base-400);
 }
 
-/* Место на превью — своё, вид — из кита (заливка `primary`, а не прежний
-   `primary-500`: у плашки статуса в ките одна заливка на все места). */
 .currentBadge {
     position: absolute;
     top: 0.8rem;
@@ -343,9 +355,6 @@ watch(
     align-items: center;
     justify-content: center;
     gap: 1.2rem;
-
-    // Затемнение — не отдельный слой: своим фоном оно и гасит превью,
-    // и ловит мышь, пока действия видны
     background: var(--bricks-overlay-dark);
     opacity: 0;
     pointer-events: none;
@@ -358,8 +367,6 @@ watch(
     pointer-events: auto;
 }
 
-// Знак «снимка нет» под вуалью сталкивается с иконками действий: он тоже
-// по центру. Пока действия открыты, показывать нечего — плейсхолдер уходит
 .card:hover .placeholder,
 .card:focus-within .placeholder {
     opacity: 0;

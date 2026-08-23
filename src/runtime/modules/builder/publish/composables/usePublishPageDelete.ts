@@ -20,16 +20,17 @@ import { usePublishStore } from '../stores/publish';
 // #endregion
 
 /**
- * Confirm-флоу удаления страницы для дашборда: состояние подтверждения, описание
- * с адресом страницы и удаление через publish-стор.
+ * The confirm flow of deleting a page for the dashboard: the state of the
+ * confirmation, the description carrying the address of the page and the deletion
+ * through the publish store.
  *
- * Отдельно от хоста по той же причине, что и откат к версии
- * (`usePublishVersionRestore`): подтверждение необратимого действия — это своё
- * состояние, свой текст и своя политика отказов, а хост дашборда и без него
- * собирает шесть модалок.
+ * Apart from the host for the same reason as the rollback to a version
+ * (`usePublishVersionRestore`): the confirmation of an irreversible action is a
+ * state of its own, a text of its own and a refusal policy of its own, and the
+ * dashboard host assembles six modals even without it.
  *
- * @param options - Уведомления и реакция на удаление.
- * @returns Состояние подтверждения и операции удаления.
+ * @param options - The notifications and the reaction to a deletion.
+ * @returns The state of the confirmation and the deletion operations.
  */
 export function usePublishPageDelete(
     options: IUsePublishPageDeleteOptions
@@ -53,9 +54,9 @@ export function usePublishPageDelete(
 
         return t('bricks.publish.dashboard.deleteConfirm.named', {
             title: page.title,
-            // Полный адрес: у одноимённых страниц под разными префиксами путь по
-            // одному имени совпадал бы, и при равных заголовках пользователь не
-            // понимал бы, какую из них удаляет
+            // The full address: for pages sharing a name under different prefixes
+            // a path built out of the name alone would coincide, and with equal
+            // titles a person would not know which of them they are deleting
             path: getPublishedPagePath(toPageAddress(page.pagename, page.urlPrefix)),
         });
     });
@@ -63,9 +64,9 @@ export function usePublishPageDelete(
 
     // #region Methods
     /**
-     * Запрашивает подтверждение удаления страницы.
+     * Asks for the deletion of the page to be confirmed.
      *
-     * @param page - Страница.
+     * @param page - The page.
      */
     function requestDeletePage(page: TPublishedPageSummary): void {
         pendingDeletePage.value = page;
@@ -73,9 +74,9 @@ export function usePublishPageDelete(
     }
 
     /**
-     * Закрывает подтверждение удаления.
+     * Closes the deletion confirmation.
      *
-     * @param force - Закрыть даже во время выполнения удаления.
+     * @param force - Close it even while the deletion is running.
      */
     function closeDeleteConfirmation(force = false): void {
         if (!force && isDeleting.value) {
@@ -87,13 +88,14 @@ export function usePublishPageDelete(
     }
 
     /**
-     * Подтверждает и выполняет удаление страницы (файл превью в хранилище
-     * best-effort чистит сервер в DELETE /api/bricks/:id).
+     * Confirms and performs the deletion of the page (the preview file in the
+     * storage is cleaned up best-effort by the server in DELETE /api/bricks/:id).
      *
-     * Определённый отказ сервера оставляет подтверждение открытым — страница на
-     * месте, и повтор под рукой. Обрыв по потолку ожидания его закрывает: исход
-     * неизвестен, страница могла быть удалена, и сообщение об этом прямо просит
-     * сначала обновить данные (список стор перечитывает сам), а не повторять.
+     * A settled refusal of the server leaves the confirmation open — the page is
+     * where it was, and the retry is at hand. An abort by the waiting ceiling
+     * closes it: the outcome is unknown, the page may have been deleted, and the
+     * message about it asks outright to refresh the data first (the store re-reads
+     * the list itself) rather than to retry.
      */
     async function confirmDeletePage(): Promise<void> {
         const page = pendingDeletePage.value;

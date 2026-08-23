@@ -18,13 +18,14 @@ import { toRequestError } from './requestErrors';
 import { buildPagePayload } from './pagePayload';
 
 /**
- * Создаёт страницу через POST /api/bricks.
+ * Creates a page through POST /api/bricks.
  *
- * @param schema - Схема лендинга.
- * @param formState - Данные формы публикации.
- * @returns Нормализованная страница из ответа (сервер отдаёт полную строку,
- * включая `revision`) — вызывающие, которым нужен только id, читают `response.id`.
- * @throws Ошибка запроса, приведённая через `toRequestError`.
+ * @param schema - Landing schema.
+ * @param formState - Publish form data.
+ * @returns The normalized page from the response (the server answers with the
+ * whole row, `revision` included) — the callers that need only the id read
+ * `response.id`.
+ * @throws A request error brought to shape by `toRequestError`.
  */
 export async function publishPageRequest(
     schema: IBricksSchema,
@@ -45,15 +46,15 @@ export async function publishPageRequest(
 }
 
 /**
- * Полностью обновляет страницу через PUT /api/bricks/:id.
+ * Fully updates a page through PUT /api/bricks/:id.
  *
- * @param id - Идентификатор страницы.
- * @param schema - Схема лендинга.
- * @param formState - Данные формы публикации.
- * @param expectedRevision - Precondition optimistic locking (revision страницы
- * на момент чтения) — обязателен, несовпадение на сервере → 409.
- * @returns Нормализованная страница из ответа (со свежей revision).
- * @throws Ошибка запроса, приведённая через `toRequestError`.
+ * @param id - Page identifier.
+ * @param schema - Landing schema.
+ * @param formState - Publish form data.
+ * @param expectedRevision - The optimistic locking precondition (the revision of
+ * the page at the moment it was read) — mandatory; a mismatch on the server → 409.
+ * @returns The normalized page from the response (with a fresh revision).
+ * @throws A request error brought to shape by `toRequestError`.
  */
 export async function updatePageRequest(
     id: string | number,
@@ -80,12 +81,12 @@ export async function updatePageRequest(
 }
 
 /**
- * Частично обновляет страницу через PATCH /api/bricks/:id.
+ * Partially updates a page through PATCH /api/bricks/:id.
  *
- * @param id - Идентификатор страницы.
- * @param payload - Частичный payload обновления.
- * @returns Нормализованная страница из ответа.
- * @throws Ошибка запроса, приведённая через `toRequestError`.
+ * @param id - Page identifier.
+ * @param payload - Partial update payload.
+ * @returns The normalized page from the response.
+ * @throws A request error brought to shape by `toRequestError`.
  */
 export async function patchPageRequest(
     id: string | number,
@@ -106,10 +107,10 @@ export async function patchPageRequest(
 }
 
 /**
- * Удаляет страницу через DELETE /api/bricks/:id.
+ * Deletes a page through DELETE /api/bricks/:id.
  *
- * @param id - Идентификатор страницы.
- * @throws Ошибка запроса, приведённая через `toRequestError`.
+ * @param id - Page identifier.
+ * @throws A request error brought to shape by `toRequestError`.
  */
 export async function deletePageRequest(id: string | number): Promise<void> {
     const { apiFetcher } = useApiClient();
@@ -122,11 +123,12 @@ export async function deletePageRequest(id: string | number): Promise<void> {
 }
 
 /**
- * Загружает сводки сохранённых версий страницы через GET /api/bricks/:id/versions.
+ * Loads the summaries of the saved versions of a page through
+ * GET /api/bricks/:id/versions.
  *
- * @param id - Идентификатор страницы.
- * @returns Сводки версий (без schema), новые сверху.
- * @throws Ошибка запроса, приведённая через `toRequestError`.
+ * @param id - Page identifier.
+ * @returns Version summaries (without the schema), the newest on top.
+ * @throws A request error brought to shape by `toRequestError`.
  */
 export async function fetchPageVersionsRequest(
     id: string | number
@@ -141,15 +143,17 @@ export async function fetchPageVersionsRequest(
 }
 
 /**
- * Откатывает страницу к версии через POST /api/bricks/:id/versions/:versionId/restore.
- * Сервер применяет только schema + layout + backgroundColor.
+ * Rolls a page back to a version through
+ * POST /api/bricks/:id/versions/:versionId/restore. The server applies only
+ * schema + layout + backgroundColor.
  *
- * @param id - Идентификатор страницы.
- * @param versionId - Идентификатор версии.
- * @param expectedRevision - Precondition optimistic locking (revision страницы
- * на момент чтения) — сервер требует поле, несовпадение → 409.
- * @returns Нормализованная страница после отката.
- * @throws Ошибка запроса, приведённая через `toRequestError`.
+ * @param id - Page identifier.
+ * @param versionId - Version identifier.
+ * @param expectedRevision - The optimistic locking precondition (the revision of
+ * the page at the moment it was read) — the server demands the field; a mismatch
+ * → 409.
+ * @returns The normalized page after the rollback.
+ * @throws A request error brought to shape by `toRequestError`.
  */
 export async function restorePageVersionRequest(
     id: string | number,
@@ -171,11 +175,11 @@ export async function restorePageVersionRequest(
 }
 
 /**
- * Загружает сводки всех страниц (editorial-список без `schema`).
- * Полную страницу со схемой отдаёт `fetchPageRequest`.
+ * Loads the summaries of every page (the editorial list without the `schema`).
+ * The full page with the schema is answered by `fetchPageRequest`.
  *
- * @returns Нормализованные сводки страниц.
- * @throws Ошибка запроса, приведённая через `toRequestError`.
+ * @returns Normalized page summaries.
+ * @throws A request error brought to shape by `toRequestError`.
  */
 export async function fetchAllPagesRequest(): Promise<TPublishedPageSummary[]> {
     const { apiFetcher } = useApiClient();
@@ -191,11 +195,11 @@ export async function fetchAllPagesRequest(): Promise<TPublishedPageSummary[]> {
 }
 
 /**
- * Загружает полную страницу (со `schema`) point-lookup'ом по id.
+ * Loads a full page (with the `schema`) by a point lookup on the id.
  *
- * @param id - Идентификатор страницы.
- * @returns Нормализованная страница.
- * @throws Ошибка запроса, приведённая через `toRequestError`.
+ * @param id - Page identifier.
+ * @returns The normalized page.
+ * @throws A request error brought to shape by `toRequestError`.
  */
 export async function fetchPageRequest(id: string | number): Promise<IPublishedPage> {
     const { apiFetcher } = useApiClient();

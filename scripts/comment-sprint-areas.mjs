@@ -176,7 +176,7 @@ export const AREAS = [
     {
         id: '18',
         title: 'builder/publish',
-        done: false,
+        done: true,
         match: ['src/runtime/modules/builder/publish/'],
     },
     { id: '19', title: 'builder/app', done: false, match: ['src/runtime/modules/builder/app/'] },

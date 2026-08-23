@@ -11,16 +11,16 @@ import {
 // #endregion
 
 /**
- * Считает переопределения свойств блоков, привязанные к устройству.
+ * Counts the property overrides of the blocks bound to a device.
  *
- * Считаются именно переопределения, а не блоки: подтверждение из макета
- * обещает удалить «переопределения свойств... сейчас их N», и число блоков
- * назвало бы пользователю не ту величину. Флаг видимости — тоже
- * переопределение устройства: он исчезнет вместе с ключом.
+ * It is the overrides that are counted rather than the blocks: the confirmation
+ * promises to remove "the property overrides ... there are N of them right now",
+ * and the number of blocks would name a different quantity to a person. The
+ * visibility flag is a device override too: it disappears along with the key.
  *
- * @param components - Компоненты схемы страницы.
- * @param deviceKey - Ключ удаляемого устройства.
- * @returns Число значений, которые исчезнут.
+ * @param components - Components of the page schema.
+ * @param deviceKey - Key of the device being removed.
+ * @returns The number of values that will disappear.
  */
 export function countDeviceOverrides(
     components: ReadonlyArray<IBricksComponent>,
@@ -46,16 +46,16 @@ export function countDeviceOverrides(
 }
 
 /**
- * Описывает, какому устройству достанется диапазон удаляемого.
+ * Describes which device the range of the removed one goes to.
  *
- * Диапазон никуда не девается — его забирает сосед слева (у самого узкого
- * соседа нет, но крайние устройства и не удаляются). Пользователю важно
- * увидеть именно это: раскладка удаляемой ступени не исчезает, а сливается
- * с соседней.
+ * The range does not go anywhere — the narrower neighbor takes it over (the
+ * narrowest device has no such neighbor, but the edge devices are not removable
+ * either). That is exactly what a person needs to see: the layout of the removed
+ * step does not disappear, it merges with the neighboring one.
  *
- * @param devices - Набор, отсортированный по возрастанию ширины.
- * @param deviceKey - Ключ удаляемого устройства.
- * @returns Подпись устройства-приёмника и переходящий диапазон.
+ * @param devices - The set, sorted by ascending width.
+ * @param deviceKey - Key of the device being removed.
+ * @returns The label of the receiving device and the range moving over to it.
  */
 export function describeAbsorbedRange(
     devices: ReadonlyArray<{ key: string; label: string; width: number }>,
@@ -77,21 +77,22 @@ export function describeAbsorbedRange(
 }
 
 /**
- * Приводит схему к новому набору устройств: убирает ключи тех, что исчезли.
+ * Brings a schema to a new device set: strips the keys of the devices that are
+ * gone.
  *
- * Нужна там, где схема ещё не в сторе билдера, а лежит в форме создания
- * страницы: watcher composition root чистит только открытую страницу, а
- * подтверждение удаления обещает удалить переопределения устройства и в момент
- * создания тоже. Без этого страница создавалась бы ровно с тем, что обещали
- * удалить.
+ * Needed where the schema is not in the builder store yet but sits in the page
+ * creation form: the watcher of the composition root cleans up the open page only,
+ * while the removal confirmation promises to remove the overrides of the device at
+ * the moment of a creation too. Without this the page would be created carrying
+ * exactly what was promised to be removed.
  *
- * Схема возвращается той же ссылкой, если удалять нечего — вызывающему не нужно
- * гадать, менялось ли что-то.
+ * The schema comes back by the same reference when there is nothing to remove —
+ * the caller does not have to guess whether anything changed.
  *
- * @param schema - Схема, которая уедет в создаваемую страницу.
- * @param previousKeys - Ключи набора до правки.
- * @param nextKeys - Ключи набора после правки.
- * @returns Схема без ключей исчезнувших устройств.
+ * @param schema - The schema that will travel into the page being created.
+ * @param previousKeys - Keys of the set before the edit.
+ * @param nextKeys - Keys of the set after the edit.
+ * @returns The schema without the keys of the devices that are gone.
  */
 export function applyDeviceSetToSchema(
     schema: IBricksSchema,
@@ -104,21 +105,23 @@ export function applyDeviceSetToSchema(
 }
 
 /**
- * Собирает ключи устройств, которые встречаются в схеме, но в наборе отсутствуют.
+ * Collects the device keys that occur in the schema but are absent from the set.
  *
- * Такие переопределения не удаляются — молчаливой потери данных быть не должно, —
- * но и не применяются: правил CSS для них не генерируется. Пользователю об этом
- * говорят прямо, потому что иначе расхождение раскладки выглядит как баг рендера.
+ * Such overrides are not removed — there must be no silent loss of data — but they
+ * are not applied either: no CSS rules are generated for them. A person is told
+ * that outright, because otherwise the divergence of the layout looks like a bug
+ * of the renderer.
  *
- * Сопоставить чужой ключ со своим устройством автоматически неоткуда: `watch` или
- * `screen-2` могут значить что угодно, поэтому remap не делается.
+ * There is nowhere to automatically map a foreign key onto a device of our own:
+ * `watch` or `screen-2` may mean anything, so no remapping is done.
  *
- * Считать нужно против ФАКТИЧЕСКОГО набора цели, а не набора файла: файл может о
- * наборе вообще молчать, и тогда ступени задаёт страница, в которую импортируют.
+ * The counting has to run against the ACTUAL set of the target rather than the set
+ * of the file: a file may say nothing about a set at all, and then the steps are
+ * dictated by the page being imported into.
  *
- * @param components - Компоненты схемы.
- * @param deviceKeys - Ключи устройств набора, который будет действовать.
- * @returns Отсортированные уникальные ключи-сироты.
+ * @param components - Components of the schema.
+ * @param deviceKeys - Device keys of the set that is going to apply.
+ * @returns The sorted unique orphan keys.
  */
 export function collectOrphanDeviceKeys(
     components: ReadonlyArray<IBricksComponent>,

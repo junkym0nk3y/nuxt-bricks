@@ -1,4 +1,30 @@
 <script setup lang="ts">
+/**
+ * @description A page row of the dashboard list: the status dot, the thumbnail, the
+ * title with the live address, the date of the last change and the actions.
+ *
+ * Decisions held by the markup: the status of a page used to rest on one color alone
+ * — the "Draft" pill stands next to the name, while a published page announced its
+ * status to nobody, neither to a screen reader nor to a person who does not tell
+ * green apart; the dot gets a name through `role="img"` with a label, and the look of
+ * the row does not change by it. The pill carries the `muted` tone rather than the
+ * default `primary`, because "Draft" is a quiet status while a primary fill in the
+ * kit means "this is the main thing here" ("Current" on a version, the picked file in
+ * the media library) — with a blue pill every unpublished page shouted an accent even
+ * though the dot next to it already carries the status. The copy and the template are
+ * both a creation of a record, so they are available to an editor and above, and the
+ * deletion to an administrator only; the template action stands between the copy and
+ * the deletion, because both of its neighbors create or destroy an entity rather than
+ * edit the current one.
+ *
+ * Decisions held by the style section: the look of the surface comes from the kit
+ * (`BricksSurfaceCard`), so what is left here is the layout of the row and what it
+ * does to its content on hover. The flex basis of the main cell is 18rem — the
+ * wrapping threshold at which the date and the actions leave for the second line
+ * without tearing the block away from the status dot (an auto basis would blow up to
+ * max-content).
+ */
+
 // #region Imports
 // Types
 import type { IPublishPagesListRowProps, IPublishPagesListRowEmits } from '../types/dashboard';
@@ -40,16 +66,17 @@ const { canEdit, canDelete } = useBuilderPermissions();
 
 // #region Computed
 /**
- * Дата последнего изменения (updatedAt || createdAt) в формате DD.MM.YYYY.
+ * The date of the last change (updatedAt || createdAt) in the DD.MM.YYYY format.
  */
 const formattedDate = computed<string>(() =>
     formatPageDate(props.page.updatedAt || props.page.createdAt)
 );
 
 /**
- * Подпись статуса — доступное имя точки в начале строки. Видимой подписи у
- * статуса здесь нет: у черновика рядом с именем стоит плашка «Черновик», а у
- * опубликованной страницы статус читается только цветом точки.
+ * The status label — the accessible name of the dot at the start of the row. The
+ * status has no visible label here: a draft carries the "Draft" pill next to its
+ * name, while on a published page the status is read out of the color of the dot
+ * alone.
  */
 const statusLabel = computed<string>(() =>
     props.page.published
@@ -58,9 +85,10 @@ const statusLabel = computed<string>(() =>
 );
 
 /**
- * Live-адрес страницы (`/blog/post`). Полный адрес, а не один `pagename`: имя
- * уникально только внутри своего префикса, и две одноимённые страницы под разными
- * префиксами выглядели бы в списке одинаково — `/post` и `/post`.
+ * The live address of the page (`/blog/post`). The full address rather than the
+ * `pagename` alone: a name is unique only within its own prefix, and two pages
+ * sharing a name under different prefixes would look identical in the list —
+ * `/post` and `/post`.
  */
 const pageAddressPath = computed<string>(() =>
     getPublishedPagePath(toPageAddress(props.page.pagename, props.page.urlPrefix))
@@ -69,49 +97,49 @@ const pageAddressPath = computed<string>(() =>
 
 // #region Methods
 /**
- * Эмитит выбор страницы (открытие панели деталей).
+ * Emits the selection of the page (the opening of the details panel).
  */
 function handleSelect(): void {
     emit('select', props.page);
 }
 
 /**
- * Эмитит открытие превью-миниатюры страницы в лайтбоксе.
+ * Emits the opening of the page thumbnail in the lightbox.
  */
 function handlePreviewThumbnail(): void {
     emit('preview-thumbnail', props.page);
 }
 
 /**
- * Эмитит переход к редактированию страницы.
+ * Emits the move to editing the page.
  */
 function handleEdit(): void {
     emit('edit', props.page);
 }
 
 /**
- * Эмитит открытие превью страницы.
+ * Emits the opening of the page preview.
  */
 function handlePreview(): void {
     emit('preview', props.page);
 }
 
 /**
- * Эмитит дублирование страницы.
+ * Emits the duplication of the page.
  */
 function handleDuplicate(): void {
     emit('duplicate', props.page);
 }
 
 /**
- * Эмитит сохранение страницы как шаблона.
+ * Emits the saving of the page as a template.
  */
 function handleSaveAsTemplate(): void {
     emit('save-as-template', props.page);
 }
 
 /**
- * Эмитит удаление страницы.
+ * Emits the deletion of the page.
  */
 function handleDelete(): void {
     emit('delete', props.page);
@@ -127,12 +155,6 @@ function handleDelete(): void {
         :class="$style.BuilderPublishPagesListRow"
         @click="handleSelect"
     >
-        <!--
-            Статус страницы держался на одном цвете: подпись «Черновик» стоит
-            рядом с именем, а опубликованная страница не объявляла статус вовсе —
-            ни скринридеру, ни человеку, не различающему зелёный. Имя даёт
-            `role="img"` с подписью: вид строки при этом не меняется.
-        -->
         <BricksBadge
             tone="plain"
             :dot="props.page.published ? 'positive' : 'neutral'"
@@ -164,13 +186,6 @@ function handleDelete(): void {
             <div :class="$style.titleRow">
                 <h3 :class="$style.title">{{ props.page.title }}</h3>
                 <span :class="$style.pagename">{{ pageAddressPath }}</span>
-                <!--
-                    Тон `muted`, а не дефолтный `primary`: «Черновик» — тихий
-                    статус, а заливка primary в ките значит «главное здесь»
-                    («Текущая» у версии, выбранный файл в медиатеке). Синей
-                    плашкой каждая неопубликованная страница кричала акцентом,
-                    хотя статус рядом уже несёт точка.
-                -->
                 <BricksBadge v-if="!props.page.published" tone="muted">
                     {{ t('bricks.publish.dashboard.row.draft') }}
                 </BricksBadge>
@@ -197,7 +212,6 @@ function handleDelete(): void {
                 @click="handlePreview"
             />
 
-            <!-- Копия — создание страницы: доступно редактору и выше -->
             <BricksIconButton
                 v-if="canEdit"
                 icon="ta:outline-copy"
@@ -206,11 +220,6 @@ function handleDelete(): void {
                 @click="handleDuplicate"
             />
 
-            <!--
-                Шаблон из страницы — между копией и удалением: обе соседки тоже
-                создают или уничтожают сущность, а не правят текущую. Как и
-                копия, это создание записи — доступно редактору и выше
-            -->
             <BricksIconButton
                 v-if="canEdit"
                 icon="ta:outline-package"
@@ -219,7 +228,6 @@ function handleDelete(): void {
                 @click="handleSaveAsTemplate"
             />
 
-            <!-- Удаление страницы — только администратору -->
             <BricksIconButton
                 v-if="canDelete"
                 icon="ta:outline-trash"
@@ -232,8 +240,6 @@ function handleDelete(): void {
 </template>
 
 <style module lang="scss">
-/* Вид поверхности — из кита (`BricksSurfaceCard`); здесь только раскладка строки
-   и то, что она делает с содержимым на наведении. */
 .BuilderPublishPagesListRow {
     display: flex;
     align-items: center;
@@ -291,9 +297,6 @@ function handleDelete(): void {
 
 .main {
     display: flex;
-
-    // basis 18rem — порог переноса: дата и действия уходят на вторую строку,
-    // не отрывая блок от статус-точки (auto-basis раздувался бы до max-content)
     flex: 1 1 18rem;
     flex-direction: column;
     gap: 0.4rem;

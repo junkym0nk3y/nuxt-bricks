@@ -1,5 +1,5 @@
 /**
- * Типы редактора набора устройств страницы.
+ * Types of the editor of the device set of a page.
  */
 
 import type {
@@ -9,65 +9,69 @@ import type {
     TBricksPageDeviceSet,
 } from '../../../common/types/devices';
 
-/** Пропсы меню добавления устройства. */
+/** Props of the "add a device" menu */
 export interface IPublishDeviceAddMenuProps {
-    /** Устройства каталога, доступные к добавлению. */
+    /** Devices of the catalog available to be added */
     choices: IBricksDeviceChoice[];
-    /** Счётчик набора рядом с подписью: «3 из 4». */
+    /** The counter of the set next to the label: "3 of 4" */
     counter: string;
     disabled?: boolean;
 }
 
-/** События меню добавления устройства. */
+/** Events of the "add a device" menu */
 export interface IPublishDeviceAddMenuEmits {
-    /** Выбрано устройство каталога. */
+    /** A device of the catalog was picked */
     select: [key: string];
 }
 
 /**
- * Строка таблицы редактора.
+ * A row of the editor table.
  *
- * Ошибка ширины лежит в строке, а не общим списком: она печатается под своим
- * полем, и связать её с записью по индексу после пересортировки было бы нечем.
+ * The width error lies in the row rather than in a shared list: it is printed
+ * under its own field, and after a re-sorting there would be nothing to tie it to
+ * its record by an index with.
  */
 export interface IPublishDeviceRow extends IBricksPageDevice {
-    /** Крайнее устройство: удалить нельзя, вместо крестика — замок. */
+    /** An edge device: it cannot be removed, and carries a lock instead of a cross */
     isLocked: boolean;
-    /** Текст ошибки поля ширины; пустая строка — ошибки нет. */
+    /** The error text of the width field; an empty string means there is no error */
     widthError: string;
-    /** Текст ошибки поля названия; пустая строка — ошибки нет. */
+    /** The error text of the name field; an empty string means there is no error */
     labelError: string;
 }
 
-/** Сегмент шкалы диапазонов под таблицей. */
+/** A segment of the range scale under the table */
 export interface IPublishDeviceRange {
     key: string;
     label: string;
     icon: string;
-    /** Подпись диапазона: «0 – 767» либо «от 1600». */
+    /** The label of the range: "0 - 767" or "from 1600" */
     text: string;
-    /** Устройство открыто на канвасе — сегмент подсвечен рамкой. */
+    /** The device is open on the canvas — the segment is outlined */
     isActive: boolean;
 }
 
-/** Что теряется при удалении устройства — для текста подтверждения. */
+/** What is lost when a device is removed — for the text of the confirmation */
 export interface IPublishDeviceRemovalImpact {
-    /** Число переопределений свойств блоков, привязанных к устройству. */
+    /** The number of the block property overrides bound to the device */
     overridesCount: number;
-    /** Подпись устройства, которому достаётся освободившийся диапазон. */
+    /** The label of the device the freed range goes to */
     absorbedBy: string;
-    /** Диапазон, который переходит соседу: «1280–1599». */
+    /** The range moving over to the neighbor: "1280-1599" */
     absorbedRange: string;
 }
 
-/** Опции редактора набора. */
+/** Options of the set editor */
 export interface IPublishDeviceSetOptions {
-    /** Открыта ли модалка: на каждое открытие черновик пересобирается заново. */
+    /** Whether the modal is open: the draft is rebuilt from scratch on every opening */
     isOpen: () => boolean;
-    /** Набор страницы на момент открытия; `null` — наследуется от проекта. */
+    /**
+     * The set of the page at the moment of the opening; `null` — inherited from
+     * the project.
+     */
     initial: () => TBricksPageDeviceSet | null;
-    /** Резолвнутый набор проекта — то, что показывает выключенный тумблер. */
+    /** The resolved set of the project — what the switch shows when turned off */
     projectDevices: () => IBricksResolvedDevice[];
-    /** Ключ устройства, открытого на канвасе (подсветка сегмента шкалы). */
+    /** The key of the device open on the canvas (the highlight of the scale segment) */
     activeDeviceKey: () => string;
 }

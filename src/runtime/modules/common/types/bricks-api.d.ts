@@ -85,8 +85,9 @@ export interface IPublishedPage {
     published: boolean;
     /**
      * Revision of the editorial row for optimistic locking. Optional only because
-     * the public projection (`/api/bricks/public/**`) does not return the field;
-     * no editorial write happens without a revision (`requirePageRevision`).
+     * the public projection (`/api/bricks/public/**`) does not return the field.
+     * Which writes carry it as a precondition and which go last-write-wins is
+     * decided by `IUpdatePagePayload.expectedRevision`.
      */
     revision?: number;
     createdAt: string;

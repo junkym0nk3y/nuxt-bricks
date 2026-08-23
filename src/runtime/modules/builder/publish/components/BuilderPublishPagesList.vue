@@ -1,4 +1,20 @@
 <script setup lang="ts">
+/**
+ * @description The page list of the dashboard: the segment filter, the loading state,
+ * the two empty states and the rows themselves.
+ *
+ * Decisions held by the markup: the transition covers both the states of the list and
+ * the sets of the filter. `mode="out-in"` — the loading, the empty states and the list
+ * itself differ a lot in height, and a simultaneous transition would jerk the page
+ * around. The key of the list includes the filter, otherwise a change of the segment
+ * changes the rows inside the same node and there is no transition at all: to Vue it
+ * is the same element. The rows are recreated by that, but they carry no state worth
+ * keeping between the sets.
+ *
+ * One decision is held by the style section: the padding of an empty state is dictated
+ * by the section, and for the list it is a tall band in the middle.
+ */
+
 // #region Imports
 // Types
 import type { TPublishedPageSummary } from '../../../common/types/bricks-api';
@@ -53,9 +69,9 @@ const filterItems = computed<IBricksTabItem[]>(() =>
 
 // #region Methods
 /**
- * Переключает активный сегмент-фильтр.
+ * Switches the active segment filter.
  *
- * @param value - Значение выбранного таба.
+ * @param value - The value of the picked tab.
  */
 function handleSelectFilter(value: string): void {
     const filter = FILTERS.find((item) => item === value);
@@ -67,81 +83,82 @@ function handleSelectFilter(value: string): void {
 }
 
 /**
- * Эмитит создание первой страницы из пустого состояния.
+ * Emits the creation of the first page out of the empty state.
  */
 function handleCreatePage(): void {
     emit('create-page');
 }
 
 /**
- * Пробрасывает выбор страницы (панель деталей).
+ * Passes the selection of a page through (the details panel).
  *
- * @param page - Страница.
+ * @param page - The page.
  */
 function handleSelect(page: TPublishedPageSummary): void {
     emit('select', page);
 }
 
 /**
- * Пробрасывает открытие превью-миниатюры страницы в лайтбоксе.
+ * Passes through the opening of the page thumbnail in the lightbox.
  *
- * @param page - Страница.
+ * @param page - The page.
  */
 function handlePreviewThumbnail(page: TPublishedPageSummary): void {
     emit('preview-thumbnail', page);
 }
 
 /**
- * Пробрасывает переход к редактированию страницы.
+ * Passes through the move to editing the page.
  *
- * @param page - Страница.
+ * @param page - The page.
  */
 function handleEdit(page: TPublishedPageSummary): void {
     emit('edit', page);
 }
 
 /**
- * Пробрасывает открытие превью страницы.
+ * Passes through the opening of the page preview.
  *
- * @param page - Страница.
+ * @param page - The page.
  */
 function handlePreview(page: TPublishedPageSummary): void {
     emit('preview', page);
 }
 
 /**
- * Пробрасывает дублирование страницы.
+ * Passes the duplication of the page through.
  *
- * @param page - Страница.
+ * @param page - The page.
  */
 function handleDuplicate(page: TPublishedPageSummary): void {
     emit('duplicate', page);
 }
 
 /**
- * Пробрасывает сохранение страницы как шаблона.
+ * Passes through the saving of the page as a template.
  *
- * @param page - Страница.
+ * @param page - The page.
  */
 function handleSaveAsTemplate(page: TPublishedPageSummary): void {
     emit('save-as-template', page);
 }
 
 /**
- * Пробрасывает удаление страницы.
+ * Passes the deletion of the page through.
  *
- * @param page - Страница.
+ * @param page - The page.
  */
 function handleDelete(page: TPublishedPageSummary): void {
     emit('delete', page);
 }
 
 /**
- * Гасит интерактивность уходящего экрана: при `mode="out-in"` он живёт в DOM всю
- * фазу leave, а переход бывает и не по клику человека, то есть фокус внутри
- * возможен. `pointer-events` из transitions.scss закрывает только указатель.
+ * Puts the interactivity of the departing screen out: under `mode="out-in"` it
+ * lives in the DOM through the whole leave phase, and the transition is not always
+ * caused by a person's click, which means the focus may be inside. The
+ * `pointer-events` from transitions.scss closes off the pointer only.
  *
- * @param element - Корневой элемент уходящего экрана.
+ * @param element - The root element of the departing screen.
  */
 function onViewLeave(element: Element): void {
     markLeavingInert(element);
@@ -159,16 +176,6 @@ function onViewLeave(element: Element): void {
             @update:model-value="handleSelectFilter"
         />
 
-        <!--
-            Переход между состояниями списка и между наборами фильтра.
-            `mode="out-in"`: загрузка, пустые состояния и сам список сильно
-            разной высоты, и одновременный переход дёргал бы страницу.
-
-            Ключ списка включает фильтр — иначе смена сегмента меняет строки
-            внутри того же узла, и перехода нет вовсе: для Vue это тот же
-            элемент. Строки при этом пересоздаются, но состояния, которое
-            стоило бы сохранять между наборами, у них нет.
-        -->
         <Transition name="bricks-view-switch" mode="out-in" @leave="onViewLeave">
             <div v-if="props.isLoading" key="loading" :class="$style.loading">
                 <span :class="$style.spinner" />
@@ -269,7 +276,6 @@ function onViewLeave(element: Element): void {
     font-size: 1.4rem;
 }
 
-/* Отступы состояния задаёт раздел: у списка это высокая полоса по центру. */
 .empty {
     padding: 8rem 2.4rem;
 }

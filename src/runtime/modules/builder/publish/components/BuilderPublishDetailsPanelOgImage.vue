@@ -30,14 +30,14 @@ const { t } = useI18n();
 
 // #region Methods
 /**
- * Запрашивает выбор OG-изображения из медиа-галереи.
+ * Asks for an OG image to be picked from the media gallery.
  */
 function handleOpenMediaGallery(): void {
     emit('open-media');
 }
 
 /**
- * Сбрасывает выбранное OG-изображение.
+ * Drops the picked OG image.
  */
 function handleClear(): void {
     emit('clear');

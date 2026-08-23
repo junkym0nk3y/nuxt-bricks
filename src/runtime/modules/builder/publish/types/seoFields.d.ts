@@ -1,7 +1,8 @@
 /**
- * Общий набор SEO-полей страницы: сайдбар билдера и панель деталей дашборда
- * рисуют его одним компонентом, но владеют формой по-своему (vee-validate
- * `<Form>` против `useForm`), поэтому значения и ошибки приходят пропами.
+ * The shared set of the SEO fields of a page: the sidebar of the builder and the
+ * details panel of the dashboard draw it with one component but own the form each
+ * in their own way (the vee-validate `<Form>` against `useForm`), so the values and
+ * the errors arrive as props.
  */
 
 import type { TPublishFormErrors } from './dashboard';
@@ -10,10 +11,10 @@ export interface IPublishSeoFieldsProps {
     title: string;
     pagename: string;
     description: string;
-    /** Ключевые слова строкой — ровно в том виде, в котором они и хранятся. */
+    /** The keywords as a string — exactly the shape they are stored in */
     keywords: string;
     errors: TPublishFormErrors;
-    /** Форма занята записью — поля блокируются целиком. */
+    /** The form is busy writing — the fields are blocked whole */
     disabled?: boolean;
 }
 

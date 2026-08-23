@@ -1,12 +1,12 @@
 /**
- * Запись текущего лендинга из сессии редактора: обычное сохранение
- * (`publishCurrentPage`) и сохранение копией (`saveCurrentPageAsCopy`). Обе
- * операции переживают свою сессию — за время запроса пользователь может открыть
- * другую страницу, — поэтому обе принимают `IPublishOperationOptions` и пишут в
- * общее состояние формы только по согласию инициатора.
+ * Writing the current landing from an editor session: the ordinary save
+ * (`publishCurrentPage`) and the save as a copy (`saveCurrentPageAsCopy`). Both
+ * operations outlive their session — while the request is in flight a person may
+ * open another page — so both take `IPublishOperationOptions` and write into the
+ * shared form state only with the consent of the initiator.
  *
- * Зависимость стора передаётся узким контрактом — логика тестируется юнитом без
- * Pinia (паттерн `pageVersionRestore.ts`).
+ * The store dependency is passed as a narrow contract — the logic is unit-tested
+ * without Pinia (the pattern of `pageVersionRestore.ts`).
  */
 import type { IBricksSchema } from '../../../common/types/brick';
 import type { IPublishedPage, TPublishFormState } from '../../../common/types/bricks-api';
@@ -17,23 +17,25 @@ import { generateCopyPagename } from './slugify';
 import { publishPageRequest } from './publishApi';
 
 /**
- * Актуальна ли сессия, из которой ушёл запрос. Без опции — да: дашборд и прямые
- * вызовы вне редактора сессии не имеют.
+ * Whether the session the request went out from is still the current one. With no
+ * option — yes: the dashboard and the direct calls outside the editor have no
+ * session at all.
  *
- * @param options - Опции записывающей операции стора.
- * @returns Можно ли писать в общее состояние формы.
+ * @param options - Options of a writing operation of the store.
+ * @returns Whether writing into the shared form state is allowed.
  */
 function isInitiatorCurrent(options?: IPublishOperationOptions): boolean {
     return options?.isInitiatorCurrent?.() ?? true;
 }
 
 /**
- * Освежает общий список страниц после попытки создания. Отказ и задержка на
- * результат вызывающего не влияют: при успешном ответе страница уже в списке
- * (её положил туда `syncPageInList`), а при обрыве по таймауту исход неизвестен —
- * тогда это единственная попытка увидеть, применил ли сервер запись.
+ * Refreshes the shared page list after an attempt to create. Neither a refusal
+ * nor a delay affects the result of the caller: on a successful answer the page is
+ * in the list already (`syncPageInList` put it there), and on an abort by the
+ * timeout the outcome is unknown — then this is the only attempt to see whether
+ * the server applied the write.
  *
- * @param store - Узкий контракт стора.
+ * @param store - Narrow contract of the store.
  */
 async function refreshPagesAfterPublish(store: ICurrentPageWriteStoreDeps): Promise<void> {
     try {
@@ -44,35 +46,37 @@ async function refreshPagesAfterPublish(store: ICurrentPageWriteStoreDeps): Prom
 }
 
 /**
- * Создаёт страницу через API, сразу кладёт её в локальный список и запускает
- * освежение списка целиком.
+ * Creates a page through the API, puts it into the local list right away and
+ * starts a refresh of the whole list.
  *
- * Синхронизация ответом обязательна, а не подстраховка: `loadAllPages` может быть
- * обесценен параллельной локальной записью, и тогда созданной страницы в списке не
- * окажется. Дальше `startEditingPage(id)` молча не найдёт её и оставит
- * `editingPageId === null` — следующее сохранение ушло бы вторым созданием вместо
- * обновления, а открытие нового слага с дашборда дало бы пустой черновик поверх
- * существующей страницы (guard списка сам породил эту дыру).
+ * Synchronizing by the response is mandatory rather than a safety net:
+ * `loadAllPages` may be devalued by a parallel local write, and then the created
+ * page would not be in the list. `startEditingPage(id)` would silently fail to
+ * find it after that and leave `editingPageId === null` — the next save would go
+ * out as a second creation instead of an update, and opening the new slug from the
+ * dashboard would give an empty draft on top of an existing page (the guard of the
+ * list is what opened this hole in the first place).
  *
- * Освежение списка **не входит в результат операции**: оно запускается и
- * отпускается. Сначала его отказ летел наружу как отказ создания — билдер
- * показывал «сохранить не удалось», а повторная попытка упиралась в собственный
- * slug как в занятый; модалка создания не закрывалась; дублирование плодило лишнюю
- * копию. Но и `await` с перехватом ошибки мало: операция записи считается
- * незавершённой до возврата отсюда, то есть медленный GET держал бы кнопку
- * сохранения заблокированной и запрещал бы следующую запись. Потолок ожидания у
- * запроса есть (политика транспорта), но он на порядок больше самой записи —
- * ждать его здесь значит расплачиваться заблокированной кнопкой за данные,
- * которые результату создания не нужны.
+ * The list refresh is **not part of the result of the operation**: it is started
+ * and let go. At first its refusal flew out as a refusal to create — the builder
+ * showed "the save did not work out", and the retry ran into its own slug as into
+ * a taken one; the creation modal did not close; the duplication bred an extra
+ * copy. But an `await` with the error caught is not enough either: the write
+ * operation counts as unfinished until the return from here, that is, a slow GET
+ * would keep the save button blocked and forbid the next write. The request does
+ * have a waiting ceiling (the transport policy), but it is an order of magnitude
+ * above the write itself — waiting for it here means paying with a blocked button
+ * for data the result of the creation does not need.
  *
- * Порядок обязателен: `syncPageInList` строго до запуска освежения. Иначе GET
- * стартует раньше локальной записи, та обесценит его своим номером — и созданная
- * страница исчезнет из списка вместе с отброшенным ответом.
+ * The order is mandatory: `syncPageInList` strictly before the refresh is started.
+ * Otherwise the GET starts before the local write, that write devalues it with its
+ * own number — and the created page disappears from the list along with the
+ * discarded answer.
  *
- * @param store - Узкий контракт стора.
- * @param schema - Схема лендинга.
- * @param formState - Данные формы публикации.
- * @returns ID созданной страницы.
+ * @param store - Narrow contract of the store.
+ * @param schema - Landing schema.
+ * @param formState - Publish form data.
+ * @returns The id of the created page.
  */
 export async function runPublishPage(
     store: ICurrentPageWriteStoreDeps,
@@ -86,14 +90,15 @@ export async function runPublishPage(
     } catch (error: unknown) {
         console.error('[Publish Store] Failed to publish page:', error);
 
-        // Обрыв по таймауту не означает, что страница не создана: сервер мог
-        // применить POST и не успеть ответить. Освежаем список — это шанс, что
-        // созданная страница появится в дашборде и попадёт в проверку занятости
-        // слага (иначе повтор упёрся бы в собственный слаг как в чужой), но не
-        // гарантия: GET уходит немедленно и может обогнать ещё работающий
-        // серверный handler. Гарантия требует idempotency key, то есть
-        // расширения серверного контракта. Ждать ответ всё равно нельзя —
-        // сообщение об исходе должно дойти сразу
+        // An abort by the timeout does not mean the page was not created: the
+        // server may have applied the POST and failed to answer in time. The
+        // list is refreshed — that is a chance for the created page to show up in
+        // the dashboard and to reach the slug occupancy check (otherwise the
+        // retry would run into its own slug as into somebody else's), but not a
+        // guarantee: the GET goes out immediately and may outrun a still running
+        // server-side handler. A guarantee would take an idempotency key, that
+        // is, an extension of the server contract. The answer must not be waited
+        // for anyway — the message about the outcome has to arrive at once
         if (isRequestTimeoutError(error)) {
             refreshPagesAfterPublish(store);
         }
@@ -103,21 +108,22 @@ export async function runPublishPage(
 
     store.syncPageInList(created);
 
-    // Промис намеренно не ожидается: ошибки гасятся внутри, а результат создания
-    // от освежения не зависит. `void` здесь не пишем — правило `no-void`
+    // The promise is deliberately not awaited: the errors are swallowed inside,
+    // and the result of the creation does not depend on the refresh. No `void`
+    // here — the `no-void` rule
     refreshPagesAfterPublish(store);
 
     return created.id;
 }
 
 /**
- * Публикует или обновляет текущий лендинг.
+ * Publishes or updates the current landing.
  *
- * @param store - Узкий контракт стора.
- * @param schema - Схема лендинга из канваса.
- * @param failedMessage - Сообщение по умолчанию при отказе записи.
- * @param options - Проверка актуальности сессии-инициатора.
- * @returns ID страницы или null при ошибке.
+ * @param store - Narrow contract of the store.
+ * @param schema - Landing schema from the canvas.
+ * @param failedMessage - Default message for a refused write.
+ * @param options - The check of whether the initiating session is current.
+ * @returns The id of the page, or null on an error.
  */
 export async function runPublishCurrentPage(
     store: ICurrentPageWriteStoreDeps,
@@ -125,20 +131,21 @@ export async function runPublishCurrentPage(
     failedMessage: string,
     options?: IPublishOperationOptions
 ): Promise<string | number | null> {
-    // Заявка на запись — до валидации: она пишет `validationErrors` и
-    // `generalError`, то есть второй submit успел бы переписать сообщения формы,
-    // относящиеся к уже идущей операции
+    // The write is claimed before validation runs: validation writes
+    // `validationErrors` and `generalError`, so a second submit would manage to
+    // overwrite the form messages belonging to an operation already in flight
     const writeId = store.beginWrite();
     if (writeId === null) {
         return null;
     }
 
-    // `try` открывается сразу после заявки, а не перед запросом: между ними стоит
-    // валидация, и её исключение и оставляло бы запись активной навсегда (кнопки
-    // заблокированы до перезагрузки), и уходило бы наружу мимо контракта «ID или
-    // null при ошибке» — то есть в необслуженный промис вместо тоста. Форма
-    // приходит в том числе из черновика localStorage (`JSON.parse` без проверки
-    // типов), так что нестроковое поле в валидаторе — не гипотеза (находка ревью)
+    // The `try` opens right after the claim rather than before the request:
+    // validation stands between them, and an exception of its own would both
+    // leave the write active forever (the buttons blocked until a reload) and fly
+    // out past the "an id or null on an error" contract — that is, into an
+    // unhandled promise instead of a toast. The form arrives from a localStorage
+    // draft among other places (`JSON.parse` with no type checking), so a
+    // non-string field reaching the validator is not a hypothesis
     try {
         if (!store.validateCurrentFormState()) {
             return null;
@@ -158,9 +165,9 @@ export async function runPublishCurrentPage(
     } catch (error: unknown) {
         console.error('[Publish Store] publishCurrentPage failed:', error);
 
-        // Сообщение уходит в общее поле формы, то есть в сайдбар той страницы,
-        // что открыта сейчас: сохранение прежней, доехавшее после перехода,
-        // писало бы свою ошибку в чужую форму
+        // The message goes into the shared field of the form, that is, into the
+        // sidebar of the page open right now: a save of the previous one arriving
+        // after the navigation would write its error into somebody else's form
         if (isInitiatorCurrent(options)) {
             store.generalError = (error as Error)?.message || failedMessage;
         }
@@ -172,14 +179,14 @@ export async function runPublishCurrentPage(
 }
 
 /**
- * Сохраняет текущую конфигурацию как копию страницы; сама синхронизирует список
- * (без `loadAllPages()`).
+ * Saves the current configuration as a copy of the page; synchronizes the list on
+ * its own (with no `loadAllPages()`).
  *
- * @param store - Узкий контракт стора.
- * @param schema - Схема лендинга из канваса.
- * @param failedMessage - Сообщение по умолчанию при отказе записи.
- * @param options - Проверка актуальности сессии-инициатора.
- * @returns Нормализованная страница копии или null при ошибке.
+ * @param store - Narrow contract of the store.
+ * @param schema - Landing schema from the canvas.
+ * @param failedMessage - Default message for a refused write.
+ * @param options - The check of whether the initiating session is current.
+ * @returns The normalized page of the copy, or null on an error.
  */
 export async function runSaveCurrentPageAsCopy(
     store: ICurrentPageWriteStoreDeps,
@@ -187,9 +194,10 @@ export async function runSaveCurrentPageAsCopy(
     failedMessage: string,
     options?: IPublishOperationOptions
 ): Promise<IPublishedPage | null> {
-    // Заявка на запись — до подмены формы: копия временно ставит `editingPageId
-    // = null` и свой pagename, и второй вызов, пройдя сюда, снял бы «оригинал»
-    // уже с подменённого состояния — откат вернул бы форму в состояние копии
+    // The write is claimed before the form is substituted: a copy temporarily
+    // sets `editingPageId = null` and a pagename of its own, and a second call
+    // getting through here would take its "original" off the already substituted
+    // state — the rollback would then return the form into the state of the copy
     const writeId = store.beginWrite();
     if (writeId === null) {
         return null;
@@ -200,12 +208,13 @@ export async function runSaveCurrentPageAsCopy(
     const originalValidationErrors = { ...store.validationErrors };
     const originalGeneralError = store.generalError;
 
-    // Всё, что после заявки, — под общим `try`: генерация имени копии и валидация
-    // работают с формой, пришедшей в том числе из черновика localStorage. Их
-    // исключение иначе оставляло бы запись активной навсегда и уходило наружу
-    // мимо контракта «страница или null при ошибке» — то есть в необслуженный
-    // промис вместо сообщения пользователю (находка ревью). Форма при этом
-    // осталась бы подменённой состоянием копии — откат в `finally`
+    // Everything after the claim is under one `try`: generating the name of the
+    // copy and validating work with a form that arrives from a localStorage draft
+    // among other places. An exception of theirs would otherwise leave the write
+    // active forever and fly out past the "a page or null on an error" contract —
+    // that is, into an unhandled promise instead of a message to the person. The
+    // form would stay substituted with the state of the copy on top of that —
+    // hence the rollback in `finally`
     try {
         const copyPagename = generateCopyPagename(
             toPageAddress(originalFormState.pagename, originalFormState.urlPrefix),
@@ -243,27 +252,29 @@ export async function runSaveCurrentPageAsCopy(
     } catch (error: unknown) {
         console.error('[Publish Store] saveCurrentPageAsCopy failed:', error);
 
-        // Копия могла быть создана — см. `runPublishPage`
+        // The copy may have been created — see `runPublishPage`
         if (isRequestTimeoutError(error)) {
             refreshPagesAfterPublish(store);
         }
 
-        // generalError НЕ восстанавливается вместе с формой — ошибка копии
-        // должна пережить откат и дойти до пользователя
+        // generalError is NOT restored along with the form — the error of the
+        // copy has to outlive the rollback and reach the person
         if (isInitiatorCurrent(options)) {
             store.generalError = (error as Error)?.message || failedMessage;
         }
 
         return null;
     } finally {
-        // Закрывать операцию обязан любой исход: копия действительно создана,
-        // и список уже синхронизирован
+        // Every outcome closes the operation, a refused validation and an abort by
+        // the timeout included: what the `finally` owes is the release of the write
+        // claim, not a statement about whether the copy was created
         store.endWrite(writeId);
 
-        // Форма откатывается только в ту сессию, из которой копия ушла: за время
-        // POST пользователь мог открыть другую страницу, и её форму (уже
-        // заполненную bootstrap'ом) откат затёр бы состоянием прежней, а
-        // `switchToSavedPage` увёл бы маршрут на слаг копии
+        // The form is rolled back only into the session the copy went out from:
+        // while the POST was in flight a person may have opened another page, and
+        // the rollback would smear the state of the previous one over that page's
+        // form (already filled in by the bootstrap), while `switchToSavedPage`
+        // would take the route to the slug of the copy
         if (isInitiatorCurrent(options)) {
             store.currentFormState = originalFormState;
             store.editingPageId = originalEditingPageId;

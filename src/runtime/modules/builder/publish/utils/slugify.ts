@@ -4,7 +4,7 @@ import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 // Constants
 import { PAGENAME_MAX_LENGTH } from '../../../common/constants/publish';
 
-/** Транслитерация кириллицы для авто-генерации slug из названия страницы. */
+/** Cyrillic transliteration for auto-generating a slug from a page title */
 const CYRILLIC_TO_LATIN: Record<string, string> = {
     а: 'a',
     б: 'b',
@@ -42,12 +42,13 @@ const CYRILLIC_TO_LATIN: Record<string, string> = {
 };
 
 /**
- * Генерирует slug (pagename) из названия страницы: транслитерирует кириллицу,
- * приводит к нижнему регистру, заменяет прочие символы дефисами и обрезает
- * до допустимой длины.
+ * Generates a slug (pagename) from a page title: transliterates Cyrillic, lowers
+ * the case, replaces the remaining characters with hyphens and cuts the result to
+ * the allowed length.
  *
- * @param title - Название страницы.
- * @returns Slug формата `[a-z0-9-]` (может быть пустым при «непереводимом» названии).
+ * @param title - Page title.
+ * @returns A slug of the `[a-z0-9-]` shape (may come out empty for a title with
+ * nothing to transliterate).
  */
 export function slugifyPageTitle(title: string): string {
     const transliterated = title
@@ -64,18 +65,19 @@ export function slugifyPageTitle(title: string): string {
 }
 
 /**
- * Генерирует свободный `pagename` для копии страницы: суффикс «-copy»,
- * при коллизиях — «-copy-1», «-copy-2» и т.д.
+ * Generates a free `pagename` for a copy of a page: the "-copy" suffix, and
+ * "-copy-1", "-copy-2" and so on on a collision.
  *
- * Свобода проверяется по АДРЕСУ, а не по имени: копия наследует `urlPrefix`
- * оригинала (`buildCopyFormState`), поэтому занятое имя в чужом префиксе копии не
- * мешает, а свободное в своём — единственное, что имеет значение. Проверка по
- * одному имени уводила бы копию в `-copy-3` только потому, что `post-copy` занят
- * под другим префиксом.
+ * Freedom is checked by the ADDRESS, not by the name: a copy inherits the
+ * `urlPrefix` of the original (`buildCopyFormState`), so a name taken under
+ * somebody else's prefix does not stand in the way of the copy, and a free one
+ * under its own prefix is the only thing that matters. Checking the name alone
+ * would push a copy to `-copy-3` only because `post-copy` is taken under another
+ * prefix.
  *
- * @param address - Адрес исходной страницы (префикс копии — тот же).
- * @param isAddressAvailable - Проверка доступности адреса-кандидата.
- * @returns Уникальный в своём префиксе `pagename` для копии.
+ * @param address - Address of the source page (the prefix of the copy is the same).
+ * @param isAddressAvailable - Availability check for a candidate address.
+ * @returns A `pagename` unique within its own prefix for the copy.
  */
 export function generateCopyPagename(
     address: IBricksPageAddress,

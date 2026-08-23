@@ -55,19 +55,21 @@ const NAV_SECTIONS: INavSection[] = [
 
 // #region Computed
 /**
- * Пункты рейла: раздел учёток есть не в каждой установке — его убирают роль без
- * права управления, выключенный флаг и режим без учёток вовсе.
+ * The items of the rail: the accounts section is not present in every installation
+ * — it is taken away by a role with no right to manage, by the flag being off and
+ * by a mode with no accounts at all.
  */
 const visibleSections = computed<INavSection[]>(() =>
     NAV_SECTIONS.filter((section) => section.key !== 'users' || props.isUsersSectionVisible)
 );
 
 /**
- * Счётчики разделов. `null` — значение неизвестно, и счётчик не рисуется: у
- * учёток, шаблонов и медиатеки он появляется только после успешной загрузки
- * списка. У учёток ноль на его месте читался бы как «учёток нет» (чего не
- * бывает — кто-то же вошёл), у шаблонов и файлов ноль — законное значение, и от
- * «ещё не прочитано» его отличает как раз `null`.
+ * The counters of the sections. `null` means the value is unknown and the counter
+ * is not drawn: for the accounts, the templates and the media library it shows up
+ * only after the list has loaded successfully. For the accounts a zero in its place
+ * would read as "there are no accounts" (which never happens — somebody did log
+ * in), while for the templates and the files a zero is a legitimate value, and what
+ * tells it from "not read yet" is exactly the `null`.
  */
 const sectionCounters = computed<Record<TPublishDashboardSection, number | null>>(() => ({
     pages: props.pagesCount,
@@ -87,30 +89,30 @@ const darkModeLabel = computed<string>(() =>
 
 // #region Methods
 /**
- * Выбирает раздел дашборда.
+ * Picks a section of the dashboard.
  *
- * @param section - Ключ раздела.
+ * @param section - Section key.
  */
 function handleSelectSection(section: TPublishDashboardSection): void {
     emit('select-section', section);
 }
 
 /**
- * Открывает модалку документации.
+ * Opens the documentation modal.
  */
 function handleOpenDocs(): void {
     emit('open-docs');
 }
 
 /**
- * Переключает тёмную/светлую тему интерфейса.
+ * Switches the dark and light theme of the interface.
  */
 function handleToggleDarkMode(): void {
     emit('toggle-dark-mode');
 }
 
 /**
- * Переключает локаль интерфейса.
+ * Switches the locale of the interface.
  */
 function handleToggleLocale(): void {
     emit('toggle-locale');

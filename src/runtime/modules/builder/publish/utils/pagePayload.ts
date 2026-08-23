@@ -12,12 +12,13 @@ import {
 } from '../../../common/utils/bricks/publishedPage';
 
 /**
- * Собирает payload создания/обновления страницы из схемы и формы публикации.
- * Ключи — camelCase; в snake_case для API конвертирует `toSnakeCaseShallow` на месте вызова.
+ * Builds the create/update payload of a page out of the schema and the publish
+ * form. The keys are camelCase; `toSnakeCaseShallow` converts them to snake_case
+ * for the API at the call site.
  *
- * @param schema - Схема лендинга.
- * @param formState - Данные формы публикации.
- * @returns Полный payload страницы.
+ * @param schema - Landing schema.
+ * @param formState - Publish form data.
+ * @returns Full page payload.
  */
 export function buildPagePayload(
     schema: IBricksSchema,
@@ -40,11 +41,12 @@ export function buildPagePayload(
 }
 
 /**
- * Собирает частичный PATCH-payload meta-полей из значений формы панели деталей.
- * Схема, layout, backgroundColor и статус публикации не затрагиваются.
+ * Builds the partial PATCH payload of the meta fields out of the values of the
+ * details panel form. The schema, the layout, the background color and the
+ * publication status are left alone.
  *
- * @param values - Значения формы meta.
- * @returns Payload для `patchPage`.
+ * @param values - Meta form values.
+ * @returns Payload for `patchPage`.
  */
 export function buildMetaPatchPayload(values: IPublishPageFormValues): IUpdatePagePayload {
     return {

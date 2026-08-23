@@ -26,25 +26,28 @@ import { useBricksDevices } from '../../../common/composables/useBricksDevices';
 // #endregion
 
 /**
- * Координатор импорта схемы на дашборде: подтверждение замены, резолвинг
- * картинок и запись схемы в страницу.
+ * The coordinator of a schema import on the dashboard: the replacement
+ * confirmation, the resolving of the images and the write of the schema into the
+ * page.
  *
- * Зачем координатор, а не обработчик в каждой точке входа. Импорт — операция из
- * нескольких асинхронных этапов (чтение файла, подтверждение, ожидание
- * медиатеки, модалка резолвера, PATCH), и всё это время пользователь свободно
- * ходит по списку страниц. Резолвер и подтверждение телепортированы в body,
- * поэтому переживают и смену выбранной страницы, и закрытие панели деталей.
- * Отсюда два инварианта:
+ * Why a coordinator rather than a handler at every entry point. An import is an
+ * operation made of several asynchronous stages (reading the file, the
+ * confirmation, waiting for the media library, the resolver modal, the PATCH), and
+ * all that time a person walks the page list freely. The resolver and the
+ * confirmation are teleported into the body, so they outlive both a change of the
+ * selected page and the closing of the details panel. Hence two invariants:
  *
- * 1. Цель снимается **до** первого await и дальше не перечитывается. Иначе файл,
- *    выбранный для одной страницы, лёг бы в другую.
- * 2. Каждый этап сверяется с поколением операции. Одного сравнения id мало:
- *    уход со страницы и возврат на неё оставили бы прежнюю операцию годной, и
- *    подтверждение, данное до ухода, применилось бы к состоянию после.
+ * 1. The target is taken **before** the first await and is never re-read after
+ *    that. Otherwise a file picked for one page would land in another.
+ * 2. Every stage checks itself against the generation of the operation. Comparing
+ *    ids alone is not enough: leaving a page and coming back to it would leave the
+ *    previous operation valid, and a confirmation given before the departure would
+ *    apply to the state after it.
  *
- * Резолвер один на обе точки входа: два экземпляра открыли бы две модалки
- * поверх друг друга и параллельно правили бы одно состояние медиатеки. Цена —
- * второй импорт не вытесняет первый, а получает отказ, пока тот не завершён.
+ * There is one resolver for both entry points: two instances would open two modals
+ * on top of each other and would edit one state of the media library in parallel.
+ * The price is that a second import does not displace the first one but gets a
+ * refusal until that one is finished.
  */
 export function usePublishSchemaImport(
     options: IUsePublishSchemaImportOptions
@@ -62,8 +65,9 @@ export function usePublishSchemaImport(
     const shouldMountResolver = ref(false);
 
     /**
-     * Поколение операции импорта. Растёт на каждом старте и на каждом гашении;
-     * этапы, стартовавшие в прежнем поколении, свои результаты не применяют.
+     * The generation of the import operation. Grows on every start and on every
+     * cancellation; the stages that started in a previous generation do not apply
+     * their results.
      */
     let operationGeneration = 0;
     // #endregion
@@ -86,21 +90,21 @@ export function usePublishSchemaImport(
 
     // #region Methods
     /**
-     * Выбрана ли страница-цель. Хост без списка страниц (создание из редактора)
-     * проверки не передаёт: импорт в существующую страницу оттуда недоступен,
-     * а единственная его операция — резолвинг схемы для новой страницы.
+     * Whether the target page is selected. A host with no page list (a creation from
+     * the editor) passes no check: an import into an existing page is unavailable
+     * from there, and its only operation is resolving the schema of a new page.
      *
-     * @param pageId - Идентификатор страницы-цели.
-     * @returns Актуальна ли цель импорта.
+     * @param pageId - Identifier of the target page.
+     * @returns Whether the target of the import is still current.
      */
     function isTargetSelected(pageId: string | number): boolean {
         return options.isTargetSelected?.(pageId) ?? true;
     }
 
     /**
-     * Гасит операцию импорта: поднимает поколение, отменяет резолвер и убирает
-     * подтверждение. Зовётся при смене выбранной страницы, закрытии панели и
-     * размонтировании дашборда.
+     * Puts the import operation out: raises the generation, cancels the resolver and
+     * takes the confirmation away. Called on a change of the selected page, on the
+     * closing of the panel and on the unmounting of the dashboard.
      */
     function cancelImport(): void {
         operationGeneration += 1;
@@ -111,31 +115,32 @@ export function usePublishSchemaImport(
     }
 
     /**
-     * Принимает выбранный файл и спрашивает подтверждение замены содержимого.
+     * Takes the picked file in and asks for the replacement of the content to be
+     * confirmed.
      *
-     * Подтверждение обязательно, в отличие от редактора: там импорт кладёт схему
-     * на канвас и ждёт «Сохранить», а здесь один промах по кнопке перезаписывает
-     * страницу на сервере.
+     * The confirmation is mandatory, unlike in the editor: there an import puts the
+     * schema onto the canvas and waits for "Save", while here one miss of a button
+     * overwrites the page on the server.
      *
-     * Цель снимается здесь — синхронно, до подтверждения и резолвера: за это
-     * время пользователь успевает выбрать в списке другую страницу.
+     * The target is taken here — synchronously, before the confirmation and the
+     * resolver: in that time a person has time to select another page in the list.
      *
-     * @param page - Страница, для которой выбрали файл.
-     * @param file - Разобранный файл схемы.
+     * @param page - The page the file was picked for.
+     * @param file - The parsed schema file.
      */
     function requestPageImport(page: TPublishedPageSummary, file: IParsedSchemaFile): void {
-        // Цель уже не выбрана: чтение файла асинхронно и переживает смену
-        // страницы, поэтому файл, выбранный для одной страницы, доезжает сюда
-        // уже после ухода на другую. Подтверждение замены для неё было бы
-        // предложением перезаписать не то, что открывал пользователь. Молча:
-        // выбор относился к странице, которой на экране больше нет
+        // The target is no longer selected: reading a file is asynchronous and
+        // outlives a change of page, so a file picked for one page arrives here
+        // after the departure to another. A replacement confirmation for that one
+        // would be an offer to overwrite something other than what the person had
+        // open. Silently: the pick concerned a page that is no longer on screen
         if (!isTargetSelected(page.id)) {
             return;
         }
 
-        // Вытеснять идущий импорт нельзя: его резолвер уже ждёт ответа
-        // пользователя, а второй `startResolving` оставил бы первый промис
-        // неразрешённым
+        // Displacing an import in progress is not allowed: its resolver is already
+        // waiting for an answer from the person, and a second `startResolving` would
+        // leave the first promise unresolved
         if (isImporting.value) {
             options.onNotify(t('bricks.publish.dashboard.details.schema.busy'), 'error');
             return;
@@ -146,8 +151,9 @@ export function usePublishSchemaImport(
         try {
             target = {
                 pageId: page.id,
-                // Сводка без revision означала бы запись без precondition, то
-                // есть молчаливую перезапись поверх чужих изменений
+                // A summary with no revision would mean a write with no
+                // precondition, that is, a silent overwrite on top of somebody
+                // else's changes
                 expectedRevision: requirePageRevision(
                     page,
                     t('bricks.publish.dashboard.details.schema.importFailed')
@@ -171,7 +177,7 @@ export function usePublishSchemaImport(
     }
 
     /**
-     * Закрывает подтверждение и отменяет импорт целиком.
+     * Closes the confirmation and cancels the whole import.
      */
     function closeReplaceConfirmation(): void {
         if (isImporting.value) {
@@ -182,12 +188,12 @@ export function usePublishSchemaImport(
     }
 
     /**
-     * Принимает подтверждение: закрывает диалог, сохраняя цель и файл.
+     * Takes the confirmation: closes the dialog, keeping the target and the file.
      *
-     * Резолвер здесь не запускается — он ждёт ухода диалога из DOM
-     * (`handleConfirmationAfterLeave`): `force-mount` держит уезжающее
-     * подтверждение до конца анимации, и открытая синхронно модалка резолвера
-     * встала бы под ним со вторым focus trap.
+     * The resolver is not started here — it waits for the dialog to leave the DOM
+     * (`handleConfirmationAfterLeave`): `force-mount` holds the departing
+     * confirmation until the animation ends, and a resolver modal opened
+     * synchronously would end up under it with a second focus trap.
      */
     function confirmReplace(): void {
         if (!pendingTarget.value || !pendingFile.value) {
@@ -198,13 +204,14 @@ export function usePublishSchemaImport(
     }
 
     /**
-     * Дожидается ухода подтверждения и применяет схему к странице.
+     * Waits for the confirmation to leave and applies the schema to the page.
      */
     async function handleConfirmationAfterLeave(): Promise<void> {
         const target = pendingTarget.value;
         const file = pendingFile.value;
 
-        // Диалог уезжает и после отмены — там гасить уже нечего
+        // The dialog departs after a cancellation too — there is nothing left to
+        // put out then
         if (!target || !file) {
             return;
         }
@@ -213,10 +220,10 @@ export function usePublishSchemaImport(
     }
 
     /**
-     * Прогоняет схему через резолвер и пишет её в страницу.
+     * Runs the schema through the resolver and writes it into the page.
      *
-     * @param target - Снимок цели импорта.
-     * @param file - Разобранный файл переноса.
+     * @param target - The snapshot of the import target.
+     * @param file - The parsed transfer file.
      */
     async function applySchemaToPage(
         target: IPublishSchemaImportTarget,
@@ -230,18 +237,19 @@ export function usePublishSchemaImport(
                 file.schema
             );
 
-            // Отмена резолвера — отмена всей операции: подтверждение ещё ничего
-            // не записало
+            // Cancelling the resolver cancels the whole operation: the
+            // confirmation has written nothing yet
             if (!resolved || !isOperationCurrent(startedIn, target)) {
                 return;
             }
 
-            // Схема и набор устройств уезжают одним PATCH'ем: ключи
-            // `props.responsive` в файле относятся к его набору, и раздельная
-            // запись оставила бы страницу в состоянии, где одно уже новое, а
-            // другое ещё старое. Условие — по наличию набора, а не по `kind`:
-            // файл, который про набор ничего не говорит (legacy-схема или
-            // конверт без поля), не должен снимать набор целевой страницы
+            // The schema and the device set travel in one PATCH: the keys of
+            // `props.responsive` in the file refer to its own set, and writing them
+            // apart would leave the page in a state where one of them is new
+            // already while the other is still old. The condition is the presence of
+            // a set rather than the `kind`: a file that says nothing about a set (a
+            // legacy schema or an envelope with no field) must not strip the target
+            // page of its set
             await publishStore.patchPage(target.pageId, {
                 schema: resolved,
                 ...(file.viewportConfig === undefined
@@ -250,21 +258,24 @@ export function usePublishSchemaImport(
                 expectedRevision: target.expectedRevision,
             });
 
-            // Один тост на исход, а не два подряд: toast — синглтон, и сообщение
-            // об успехе немедленно затёрло бы предупреждение о пропущенном
-            // сравнении с медиатекой. Оба показываются только после успешной
-            // записи — иначе отказ сервера сопровождался бы обещанием, что схема
-            // импортирована
+            // One toast per outcome rather than two in a row: the toast is a
+            // singleton, and the success message would immediately overwrite the
+            // warning about the comparison with the media library being skipped.
+            // Both are shown only after a successful write — otherwise a refusal of
+            // the server would come with a promise that the schema was imported
             if (isComparisonSkipped) {
                 options.onNotify(t('bricks.media.resolver.importedWithoutComparison'), 'error');
                 return;
             }
 
-            // Ключи устройств, которых в наборе страницы нет, остаются в схеме, но
-            // CSS их не выбирает. Молчать об этом нельзя: раскладка разойдётся с
-            // той, что была у источника, и это выглядит как баг рендера
-            // Набор считается ПОСЛЕ записи: файл со своим набором его и задал, а
-            // молчащий файл оставил странице её собственный
+            // The device keys absent from the set of the page stay in the schema,
+            // but the CSS does not select them. Keeping quiet about that is not
+            // allowed: the layout will part ways with the one the source had, and
+            // that looks like a bug of the renderer.
+            //
+            // The set is computed AFTER the write: a file carrying a set of its own
+            // is what dictated it, while a file that said nothing left the page its
+            // own
             const effectiveConfig =
                 file.viewportConfig === undefined
                     ? (publishStore.getPageById(target.pageId)?.viewportConfig ?? null)
@@ -298,12 +309,13 @@ export function usePublishSchemaImport(
     }
 
     /**
-     * Годна ли операция к записи: поколение не сменилось, страница ещё выбрана,
-     * лежит в списке и не была перезаписана после подтверждения.
+     * Whether the operation is still fit to write: the generation has not changed,
+     * the page is still selected, lies in the list and was not overwritten after the
+     * confirmation.
      *
-     * @param startedIn - Поколение на момент старта этапа.
-     * @param target - Снимок цели импорта.
-     * @returns Можно ли писать схему.
+     * @param startedIn - The generation at the moment the stage started.
+     * @param target - The snapshot of the import target.
+     * @returns Whether the schema may be written.
      */
     function isOperationCurrent(startedIn: number, target: IPublishSchemaImportTarget): boolean {
         if (startedIn !== operationGeneration) {
@@ -316,17 +328,19 @@ export function usePublishSchemaImport(
 
         const current = publishStore.getPageById(target.pageId);
 
-        // Проверяется и наличие записи, и её revision: страницу могли удалить, а
-        // совпадение revision у другой строки ничего не значит
+        // Both the presence of the record and its revision are checked: the page may
+        // have been deleted, and a revision matching on another row means nothing
         return Boolean(current) && current?.revision === target.expectedRevision;
     }
 
     /**
-     * Прогоняет схему через резолвер картинок для создания новой страницы.
-     * Подтверждение здесь не нужно — заменять нечего, страницы ещё нет.
+     * Runs a schema through the image resolver for the creation of a new page. No
+     * confirmation is needed here — there is nothing to replace, the page does not
+     * exist yet.
      *
-     * @param schema - Схема из выбранного файла.
-     * @returns Схема к записи либо `null`, если импорт отменён или вытеснен.
+     * @param schema - The schema out of the picked file.
+     * @returns The schema to write, or `null` when the import was canceled or
+     * displaced.
      */
     async function resolveSchemaForCreate(schema: IBricksSchema): Promise<IBricksSchema | null> {
         if (isImporting.value) {
@@ -346,9 +360,9 @@ export function usePublishSchemaImport(
                 return null;
             }
 
-            // Предупреждение о пропущенном сравнении уходит до создания: сам
-            // POST сообщит о своём исходе сам, а знать про непроверенные URL
-            // пользователю нужно независимо от него
+            // The warning about the skipped comparison goes out before the
+            // creation: the POST will report its own outcome itself, and a person
+            // needs to know about the unchecked URLs regardless of it
             if (isComparisonSkipped) {
                 options.onNotify(t('bricks.media.resolver.importedWithoutComparison'), 'error');
             }
@@ -361,10 +375,11 @@ export function usePublishSchemaImport(
     // #endregion
 
     // #region Lifecycle
-    // Латч монтирования модалки резолвера: сама модалка подключена лениво, но
-    // без условия в шаблоне её чанк уехал бы к первому рендеру дашборда, то есть
-    // ленивой она была бы только на бумаге. Обратно латч не снимается — иначе
-    // компонент пересоздавался бы и терял leave-анимацию.
+    // The mounting latch of the resolver modal: the modal itself is wired in
+    // lazily, but without a condition in the template its chunk would travel out by
+    // the first render of the dashboard, that is, it would be lazy on paper only.
+    // The latch is never released — otherwise the component would be recreated and
+    // would lose the leave animation.
     watch(imageResolver.isModalOpen, (isOpen) => {
         if (isOpen) {
             shouldMountResolver.value = true;

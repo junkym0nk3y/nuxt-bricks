@@ -29,22 +29,25 @@ import { useMediaUpload } from '../../media/composables/useMediaUpload';
 // #endregion
 
 /**
- * Поверхность медиатеки на дашборде: загрузка, выбранный файл и его правки.
+ * The media library surface on the dashboard: the upload, the selected file and
+ * the edits made to it.
  *
- * Живёт в хосте дашборда, а не в самом разделе, потому что состояние медиатеки
- * разорвано между тремя местами разметки. Кнопка загрузки с поповером параметров
- * стоит в шапке дашборда (там же, где «Создать страницу» у страниц), тело
- * раздела рисует дорожку категорий и сетку, а свойства выбранного файла уезжают
- * в панель деталей — в тот же слот оболочки, что и панель страницы. Раздел,
- * который держал бы это у себя, не смог бы отдать шапке ни прогресс, ни
- * параметры оптимизации.
+ * Lives in the dashboard host rather than in the section itself because the state
+ * of the media library is torn between three places in the markup. The upload
+ * button with the parameters popover stands in the header of the dashboard (where
+ * "Create a page" stands for the pages), the body of the section draws the category
+ * track and the grid, and the properties of the selected file travel into the
+ * details panel — the same slot of the shell the page panel uses. A section keeping
+ * this to itself would be able to hand the header neither the progress nor the
+ * optimization parameters.
  *
- * Стора для этого нет намеренно: параметры оптимизации и выбранная категория
- * относятся к сессии работы с медиатекой, а не к самой медиатеке, — уход с
- * раздела обязан вернуть их к дефолтам конфига (`resetSurface`).
+ * There is deliberately no store for it: the optimization parameters and the
+ * selected category belong to the session of working with the media library rather
+ * than to the library itself — leaving the section is obliged to return them to the
+ * defaults of the config (`resetSurface`).
  *
- * @param options - Показ тостов об отказах.
- * @returns Состояние медиатеки и действия над файлом.
+ * @param options - Showing the toasts about refusals.
+ * @returns The state of the media library and the actions on a file.
  */
 export function usePublishMediaSurface(
     options: IUsePublishMediaSurfaceOptions
@@ -61,13 +64,14 @@ export function usePublishMediaSurface(
     const isDeleting = ref(false);
 
     /**
-     * Параметры загрузки. Инициализируются общими дефолтами и накрываются
-     * дефолтами конфига сразу после `useMediaUpload` — раньше конфиг взять
-     * негде, а объявить ref позже нельзя: композабл читает его в колбэке.
+     * The upload parameters. Initialized with the shared defaults and covered with
+     * the defaults of the config right after `useMediaUpload` — there is nowhere to
+     * take the config from any earlier, and the ref cannot be declared any later:
+     * the composable reads it inside a callback.
      */
     const uploadOptimization = ref<IBricksMediaOptimization>({ ...DEFAULT_MEDIA_OPTIMIZATION });
 
-    /** Летящее чтение списка; `null` — чтения нет. См. `ensureMedia`. */
+    /** The list read in flight; `null` — no read is running. See `ensureMedia` */
     let pendingLoad: Promise<void> | null = null;
 
     const { maxImageSizeMb, maxVideoSizeMb, defaultOptimization, uploadProgress, uploadFiles } =
@@ -82,17 +86,18 @@ export function usePublishMediaSurface(
 
     // #region Computed
     /**
-     * Выбранный файл — из стора, а не снимком на момент клика: панель деталей
-     * обязана видеть результат PATCH'а и исчезновение файла после удаления.
+     * The selected file comes from the store rather than as a snapshot taken at the
+     * moment of the click: the details panel is obliged to see the result of a PATCH
+     * and the disappearance of the file after a deletion.
      */
     const selectedItem = computed<IMediaItem | null>(
         () => mediaStore.items.find((item) => item.id === selectedItemId.value) ?? null
     );
 
     /**
-     * Счётчик рейла. `null` до первого успешного ответа: длина списка сама по
-     * себе о составе медиатеки не говорит — только что загруженный файл лежит в
-     * нём ещё до всякого GET'а.
+     * The counter of the rail. `null` until the first successful answer: the length
+     * of the list says nothing about the contents of the media library on its own —
+     * a file just uploaded lies in it before any GET at all.
      */
     const mediaCount = computed<number | null>(() =>
         mediaStore.hasLoadedItemsSnapshot ? mediaStore.items.length : null
@@ -102,31 +107,34 @@ export function usePublishMediaSurface(
 
     // #region Methods
     /**
-     * Категория загружаемых файлов — активная категория дорожки. При фильтре
-     * «Все» файл сохраняется без категории и виден только там же.
+     * The category of the files being uploaded — the active category of the track.
+     * Under the "All" filter a file is saved with no category and is visible only
+     * there.
      *
-     * @returns Slug категории или null.
+     * @returns The slug of the category, or null.
      */
     function resolveUploadCategory(): string | null {
         return categoryFilter.value !== ALL_MEDIA_CATEGORIES_FILTER ? categoryFilter.value : null;
     }
 
     /**
-     * Читает список файлов, если достоверного снимка ещё нет.
+     * Reads the file list unless a trustworthy snapshot is in already.
      *
-     * Отказ остаётся тостом и раздел не уносит: медиатека — не тот раздел, ради
-     * которого стоит рушить дашборд, а повтор придёт со следующим открытием.
+     * A refusal stays a toast and does not carry the section away: the media library
+     * is not the section worth bringing the dashboard down for, and the retry
+     * arrives with the next opening.
      */
     async function ensureMedia(): Promise<void> {
         if (mediaStore.hasLoadedItemsSnapshot) {
             return;
         }
 
-        // Второй вход в раздел ждёт уже летящее чтение, а не заводит своё.
-        // Сам стор этого не делает намеренно: у списка latest-wins по номеру
-        // запроса — модалка при каждом открытии обязана читать заново. Здесь же
-        // два параллельных чтения дали бы и лишний GET, и худшее: поздний отказ
-        // обесценил бы уже пришедший успех, и снимка не осталось бы вовсе
+        // A second entry into the section waits for the read already in flight
+        // instead of starting one of its own. The store deliberately does not do
+        // that: the list is latest-wins by the request number — the modal is obliged
+        // to read anew on every opening. Here two parallel reads would give both an
+        // extra GET and something worse: a late refusal would devalue a success
+        // that had already arrived, and no snapshot would be left at all
         if (pendingLoad) {
             return pendingLoad;
         }
@@ -147,13 +155,14 @@ export function usePublishMediaSurface(
     }
 
     /**
-     * Загружает набор файлов.
+     * Uploads a batch of files.
      *
-     * Проверка права — не дубль скрытой кнопки: приёмник ловит перетаскивание на
-     * всю сетку раздела и остался бы рабочим входом в загрузку у роли, для
-     * которой кнопка уже убрана.
+     * The rights check is not a duplicate of the hidden button: the drop target
+     * catches a drag over the whole grid of the section and would stay a working
+     * entrance into the upload for a role the button has already been taken away
+     * from.
      *
-     * @param files - Выбранные или брошенные файлы.
+     * @param files - The files picked or dropped.
      */
     async function handleUploadFiles(files: File[]): Promise<void> {
         if (!canEdit.value) {
@@ -164,50 +173,51 @@ export function usePublishMediaSurface(
     }
 
     /**
-     * Принимает параметры оптимизации из поповера шапки.
+     * Takes the optimization parameters from the popover in the header.
      *
-     * @param value - Новые параметры.
+     * @param value - The new parameters.
      */
     function setOptimization(value: IBricksMediaOptimization): void {
         uploadOptimization.value = value;
     }
 
     /**
-     * Открывает панель деталей файла.
+     * Opens the details panel of a file.
      *
-     * @param item - Выбранный файл.
+     * @param item - The selected file.
      */
     function selectItem(item: IMediaItem): void {
         selectedItemId.value = item.id;
     }
 
     /**
-     * Закрывает панель деталей.
+     * Closes the details panel.
      */
     function closeDetails(): void {
         selectedItemId.value = null;
     }
 
     /**
-     * Открывает файл во весь экран.
+     * Opens a file full screen.
      *
-     * @param item - Файл.
+     * @param item - The file.
      */
     function openPreview(item: IMediaItem): void {
         previewItem.value = item;
     }
 
     /**
-     * Закрывает полноэкранный просмотр.
+     * Closes the full-screen view.
      */
     function closePreview(): void {
         previewItem.value = null;
     }
 
     /**
-     * Сохраняет правку имени и alt выбранного файла; отказ — тост.
+     * Saves the edit of the name and the alt of the selected file; a refusal becomes
+     * a toast.
      *
-     * @param meta - Изменённые поля.
+     * @param meta - The changed fields.
      */
     async function updateMeta(meta: IMediaUpdateMetaRequest): Promise<void> {
         const item = selectedItem.value;
@@ -227,9 +237,9 @@ export function usePublishMediaSurface(
     }
 
     /**
-     * Меняет категорию выбранного файла; `null` — снять категорию.
+     * Changes the category of the selected file; `null` drops the category.
      *
-     * @param category - Новая категория или null.
+     * @param category - The new category, or null.
      */
     async function updateCategory(category: string | null): Promise<void> {
         const item = selectedItem.value;
@@ -249,7 +259,7 @@ export function usePublishMediaSurface(
     }
 
     /**
-     * Спрашивает подтверждение удаления выбранного файла.
+     * Asks for the deletion of the selected file to be confirmed.
      */
     function requestDelete(): void {
         if (selectedItemId.value === null) {
@@ -260,18 +270,19 @@ export function usePublishMediaSurface(
     }
 
     /**
-     * Закрывает подтверждение удаления.
+     * Closes the deletion confirmation.
      */
     function closeDeleteConfirm(): void {
         isDeleteConfirmOpen.value = false;
     }
 
     /**
-     * Удаляет выбранный файл.
+     * Deletes the selected file.
      *
-     * Определённый отказ сервера оставляет подтверждение открытым — файл на
-     * месте, повтор безопасен и под рукой. Обрыв по потолку ожидания закрывает
-     * его: исход неизвестен, файл мог быть удалён, и повтор получил бы 404.
+     * A settled refusal of the server leaves the confirmation open — the file is
+     * where it was, and a retry is safe and at hand. An abort by the waiting ceiling
+     * closes it: the outcome is unknown, the file may have been deleted, and a retry
+     * would get a 404.
      */
     async function confirmDelete(): Promise<void> {
         const id = selectedItemId.value;
@@ -298,12 +309,13 @@ export function usePublishMediaSurface(
     }
 
     /**
-     * Сбрасывает сессию работы с медиатекой: уход с раздела обязан вернуть
-     * фильтр, выбор и параметры загрузки к исходным — иначе следующее открытие
-     * показывало бы чужую категорию и грузило файлы с чужими настройками.
+     * Resets the session of working with the media library: leaving the section is
+     * obliged to return the filter, the selection and the upload parameters to their
+     * initial values — otherwise the next opening would show the wrong category and
+     * would upload files with the wrong settings.
      *
-     * Подтверждение удаления гасится здесь же: оно рендерится в хосте, вне
-     * раздела, и само по себе не закрывается.
+     * The deletion confirmation is put out right here: it is rendered in the host,
+     * outside the section, and does not close on its own.
      */
     function resetSurface(): void {
         categoryFilter.value = ALL_MEDIA_CATEGORIES_FILTER;

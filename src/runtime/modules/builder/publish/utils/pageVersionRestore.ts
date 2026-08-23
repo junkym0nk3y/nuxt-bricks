@@ -1,18 +1,19 @@
 /**
- * Оркестрация отката страницы к версии для publish-стора: revision-precondition
- * (обязателен, в отличие от update/patch — см. `requirePageRevision`), запрос
- * отката, синхронизация локального списка и приведение 409-конфликта к
- * понятному сообщению (`toPageWriteError`).
+ * Orchestration of a page rollback to a version for the publish store: the
+ * revision precondition (mandatory, unlike for update/patch — see
+ * `requirePageRevision`), the rollback request, synchronizing the local list and
+ * bringing a 409 conflict to a readable message (`toPageWriteError`).
  *
- * Зависимость стора передаётся узким Pick-контрактом — логика тестируется
- * юнитом без Pinia (паттерн persistence/server/utils/mediaOrchestration.ts).
+ * The store dependency is passed as a narrow Pick contract — the logic is
+ * unit-tested without Pinia (the pattern of
+ * persistence/server/utils/mediaOrchestration.ts).
  */
 import type { IPublishedPage } from '../../../common/types/bricks-api';
 import { restorePageVersionRequest } from './publishApi';
 import { requirePageRevision, toPageWriteError } from './requestErrors';
 
 /**
- * Узкий контракт стора, нужный для отката версии.
+ * The narrow contract of the store the version rollback needs.
  */
 export interface IVersionRestoreStoreDeps {
     getPageById: (id: string | number) => { revision?: number } | undefined;
@@ -21,15 +22,15 @@ export interface IVersionRestoreStoreDeps {
 }
 
 /**
- * Откатывает страницу к версии с обязательным revision-precondition.
+ * Rolls a page back to a version with a mandatory revision precondition.
  *
- * @param deps - Узкий контракт стора (getPageById/syncPageInList/loadAllPages).
- * @param id - Идентификатор страницы.
- * @param versionId - Идентификатор версии.
- * @param revisionMissingMessage - Сообщение об ошибке, если у страницы нет revision.
- * @returns Нормализованная страница после отката.
- * @throws Локализованная ошибка: revision не найден, конфликт precondition
- * (`toPageWriteError`) либо иная ошибка запроса.
+ * @param deps - Narrow contract of the store (getPageById/syncPageInList/loadAllPages).
+ * @param id - Page identifier.
+ * @param versionId - Version identifier.
+ * @param revisionMissingMessage - Error message for a page with no revision.
+ * @returns The normalized page after the rollback.
+ * @throws A localized error: the revision was not found, the precondition
+ * conflicted (`toPageWriteError`), or the request failed some other way.
  */
 export async function restorePageVersionWithPrecondition(
     deps: IVersionRestoreStoreDeps,

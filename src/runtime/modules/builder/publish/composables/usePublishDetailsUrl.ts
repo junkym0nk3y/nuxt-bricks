@@ -12,11 +12,12 @@ import { useI18n } from 'vue-i18n';
 // #endregion
 
 /**
- * Live-URL страницы от текущих значений формы панели деталей
- * (pagename/urlPrefix/subdomain) + копирование его в буфер обмена.
- * Хост берётся из `window.location` на mount (SSR-safe), до этого — стаб домена.
+ * The live URL of a page built out of the current values of the details panel form
+ * (pagename/urlPrefix/subdomain), plus copying it to the clipboard.
+ * The host is taken from `window.location` on mount (SSR-safe); until then a
+ * domain stub stands in.
  *
- * @param fields - Реактивные поля формы, участвующие в URL.
+ * @param fields - The reactive fields of the form that take part in the URL.
  */
 export function usePublishDetailsUrl(fields: IPublishDetailsUrlFields): IPublishDetailsUrlReturn {
     // #region Data
@@ -33,9 +34,10 @@ export function usePublishDetailsUrl(fields: IPublishDetailsUrlFields): IPublish
         }
 
         const sub = String(fields.subdomain.value ?? '').trim();
-        // Путь адреса — общим хелпером, а не своей склейкой сегментов: третья
-        // копия правила разошлась бы с адресом, по которому страница реально
-        // открывается, и панель показывала бы ссылку не на неё
+        // The path of the address comes from the shared helper rather than from a
+        // joining of segments of our own: a third copy of the rule would part ways
+        // with the address the page really opens under, and the panel would show a
+        // link to something else
         const path = getPublishedPagePath(address);
         const domain = host.value || t('bricks.publish.domainStub');
         return sub ? `${sub}.${domain}${path}` : `${domain}${path}`;
@@ -44,9 +46,10 @@ export function usePublishDetailsUrl(fields: IPublishDetailsUrlFields): IPublish
 
     // #region Methods
     /**
-     * Копирует live-URL в буфер обмена.
+     * Copies the live URL to the clipboard.
      *
-     * @returns `true` при успехе, `false` — если clipboard недоступен/запрещён.
+     * @returns `true` on success, `false` when the clipboard is unavailable or
+     * blocked.
      */
     async function copyLiveUrl(): Promise<boolean> {
         try {

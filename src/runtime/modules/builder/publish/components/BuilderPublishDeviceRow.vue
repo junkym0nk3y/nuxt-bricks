@@ -1,4 +1,17 @@
 <script setup lang="ts">
+/**
+ * @description A device row of the set editor: the glyph, the label, the width and the
+ * three rem fields, plus the removal of an intermediate device.
+ *
+ * Decisions held by the style section: the cells are centered rather than aligned to
+ * the top — they share a height (a 3.6rem field, a 3.6rem icon button, a 3.2rem lock),
+ * and aligned to the top the lock and the cross sat higher than the row of values. The
+ * cross appears on hover over the row and reaches the dangerous color only on hover
+ * over the cross itself: a removal is a destructive action. The glyph is 1.6rem by the
+ * design — with no explicit size the icon inherited the font size of the surrounding
+ * text and dangled in the middle of its 3.2rem box as a small dot.
+ */
+
 // #region Imports
 // Types
 import type { IPublishDeviceRow } from '../types/devices';
@@ -35,34 +48,35 @@ const { t } = useI18n();
 
 // #region Methods
 /**
- * Отдаёт наверх правку подписи устройства.
+ * Passes an edit of the device label upwards.
  *
- * Ключ при этом не меняется: он построен при создании строки, и пересчёт
- * осиротил бы переопределения блоков, привязанные к прежнему ключу.
+ * The key does not change with it: it was built when the row was created, and
+ * recomputing it would orphan the block overrides bound to the previous key.
  *
- * @param value - Новая подпись.
+ * @param value - The new label.
  */
 function handleLabel(value: string): void {
     emit('update', props.row.key, { label: value });
 }
 
 /**
- * Отдаёт наверх правку ширины устройства.
+ * Passes an edit of the device width upwards.
  *
- * @param value - Новое значение поля.
+ * @param value - The new value of the field.
  */
 function handleWidth(value: string): void {
     emit('update', props.row.key, { width: Number.parseInt(value, 10) });
 }
 
 /**
- * Отдаёт наверх правку rem-поля.
+ * Passes an edit of a rem field upwards.
  *
- * Пустое поле у `maxWidth`/`minWidth` — законное «не задано»: в CSS такие
- * свойства просто не пишутся, поэтому значение снимается, а не обнуляется.
+ * An empty field of `maxWidth`/`minWidth` is a legitimate "not set": in the CSS
+ * such properties are simply not written, so the value is dropped rather than
+ * zeroed.
  *
- * @param field - Имя поля.
- * @param value - Новое значение поля.
+ * @param field - Field name.
+ * @param value - The new value of the field.
  */
 function handleRem(field: 'aside' | 'maxWidth' | 'minWidth', value: string): void {
     const trimmed = value.trim();
@@ -76,7 +90,7 @@ function handleRem(field: 'aside' | 'maxWidth' | 'minWidth', value: string): voi
 }
 
 /**
- * Запрашивает удаление устройства.
+ * Asks for the device to be removed.
  */
 function handleRemove(): void {
     emit('remove', props.row.key);
@@ -160,16 +174,10 @@ function handleRemove(): void {
 .BuilderPublishDeviceRow {
     display: grid;
     grid-template-columns: 23.6rem 9.6rem 9.6rem 9.6rem 9.6rem 3.2rem;
-
-    // По центру, а не по верху: у ячеек одна высота (поле 3.6rem, icon-кнопка
-    // 3.6rem, замок 3.2rem), и при выравнивании по верху замок с крестиком
-    // всплывали выше строки значений
     align-items: center;
     gap: 1.2rem;
     padding: 0.8rem 0;
 
-    // Крестик проявляется при наведении на строку и доходит до опасного цвета
-    // только при наведении на сам крестик: удаление — разрушающее действие
     &:hover .remove {
         color: var(--bricks-base-500);
     }
@@ -188,9 +196,6 @@ function handleRemove(): void {
     justify-content: center;
     width: 3.2rem;
     height: 3.2rem;
-
-    // Глиф 1.6rem по макету: без явного размера иконка наследовала кегль
-    // окружающего текста и болталась в центре 3.2rem-бокса мелкой точкой
     font-size: 1.6rem;
     color: var(--bricks-base-300);
 }

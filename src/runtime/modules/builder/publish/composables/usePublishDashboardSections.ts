@@ -11,16 +11,16 @@ import { computed, ref, watch } from 'vue';
 // #endregion
 
 /**
- * Открытый раздел дашборда и строка поиска этого раздела.
+ * The open section of the dashboard and the search string of that section.
  *
- * Запрос у каждого раздела свой: списки разные, и общая строка искала бы в одном
- * по запросу, набранному для другого — раздел выглядел бы сломанным. Поле в
- * шапке при этом одно, поэтому маршрутизация ввода собрана здесь, а не
- * россыпью условий в хосте.
+ * Every section has a query of its own: the lists are different, and one shared
+ * string would search in one of them by a query typed for another — the section
+ * would look broken. The field in the header is single, though, so the routing of
+ * the input is gathered here rather than scattered as conditions across the host.
  *
- * @param options - Строка поиска страниц, доступность раздела учёток и уход с
- *   медиатеки.
- * @returns Активный раздел, запросы разделов и переключатели.
+ * @param options - The page search string, the availability of the accounts
+ *   section and the leaving of the media library.
+ * @returns The active section, the queries of the sections and the switches.
  */
 export function usePublishDashboardSections(
     options: IUsePublishDashboardSectionsOptions
@@ -33,7 +33,7 @@ export function usePublishDashboardSections(
     // #endregion
 
     // #region Computed
-    /** Запрос из поля шапки — того раздела, который открыт. */
+    /** The query from the header field — of whichever section is open */
     const activeSearchQuery = computed<string>(() => {
         if (activeSection.value === 'users') {
             return usersSearchQuery.value;
@@ -51,13 +51,13 @@ export function usePublishDashboardSections(
 
     // #region Methods
     /**
-     * Переключает активный раздел рейла.
+     * Switches the active section of the rail.
      *
-     * Раздел, которого нет в этой установке, не открывается даже по прямому
-     * вызову: пункт рейла при выключенном разделе не рисуется, но состояние
-     * `unavailable` может прийти уже после того, как человек в разделе оказался.
+     * A section absent from this installation does not open even on a direct call:
+     * the rail item of a turned-off section is not drawn, but the `unavailable`
+     * state may arrive after a person has already ended up in the section.
      *
-     * @param section - Ключ раздела.
+     * @param section - Section key.
      */
     function selectSection(section: TPublishDashboardSection): void {
         if (section === 'users' && !options.isUsersSectionVisible.value) {
@@ -68,9 +68,9 @@ export function usePublishDashboardSections(
     }
 
     /**
-     * Пишет запрос поиска в тот раздел, который открыт.
+     * Writes the search query into whichever section is open.
      *
-     * @param value - Введённый запрос.
+     * @param value - The query that was typed.
      */
     function setSearchQuery(value: string): void {
         if (activeSection.value === 'users') {
@@ -93,19 +93,20 @@ export function usePublishDashboardSections(
     // #endregion
 
     // #region Lifecycle
-    // Раздел учёток мог исчезнуть под руками: 403 или 404 на его ручках
-    // означают, что в этой установке его нет, — оставшийся открытым, он
-    // показывал бы пустой экран без объяснения
+    // The accounts section may have vanished under one's hands: a 403 or a 404 on
+    // its endpoints means it is absent from this installation — left open, it
+    // would show an empty screen with no explanation
     watch(options.isUsersSectionVisible, (isVisible) => {
         if (!isVisible && activeSection.value === 'users') {
             activeSection.value = 'pages';
         }
     });
 
-    // Уход с медиатеки закрывает сессию работы с ней: выбранный файл, категория
-    // и параметры загрузки обязаны вернуться к исходным — иначе следующее
-    // открытие раздела грузило бы файлы в чужую категорию и с чужими
-    // настройками оптимизации. Запрос сбрасывается здесь же
+    // Leaving the media library closes the session of working with it: the
+    // selected file, the category and the upload parameters are obliged to return
+    // to their initial values — otherwise the next opening of the section would
+    // upload files into the wrong category and with the wrong optimization
+    // settings. The query is reset right here
     watch(activeSection, (section, previousSection) => {
         if (previousSection === 'media' && section !== 'media') {
             mediaSearchQuery.value = '';
@@ -113,9 +114,10 @@ export function usePublishDashboardSections(
             return;
         }
 
-        // Вход в раздел досылает список файлов: первое чтение идёт на старте
-        // дашборда и могло не дойти, а раздел без данных показывает «медиатека
-        // пуста» — то есть врёт про состав. Повторное чтение отсекает снимок
+        // Entering the section sends for the file list: the first read runs at the
+        // start of the dashboard and may never have arrived, and a section with no
+        // data says "the media library is empty" — that is, it lies about the
+        // contents. A repeated read is cut off by the snapshot
         if (section === 'media') {
             options.onEnterMedia();
         }

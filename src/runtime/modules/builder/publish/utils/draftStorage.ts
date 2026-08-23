@@ -4,40 +4,41 @@ import { getPageAddressKey, toPageAddress } from '../../../common/utils/bricks/p
 import { normalizeFormState } from './formState';
 
 /**
- * Формирует ключ localStorage для черновика билдера.
+ * Builds the localStorage key of a builder draft.
  *
- * Ключ адресный (`…:draft:blog/post`), а не по одному имени: у `/blog/post` и
- * `/news/post` черновик был бы общим — открытая рядом вторая страница
- * предлагала бы восстановить правки первой и затирала бы их своим автосейвом.
- * У страницы без префикса ключ совпадает с прежним, поэтому её черновики
- * переход на адресную идентичность переживают.
+ * The key is the address (`…:draft:blog/post`) rather than the name alone: for
+ * `/blog/post` and `/news/post` the draft would be shared — the second page,
+ * opened alongside, would offer to restore the edits of the first and would smear
+ * its own autosave over them. For a page with no prefix the key is the same as the
+ * old one, which is why its drafts survive the move to identity by address.
  *
- * @param address - Адрес страницы.
- * @returns Ключ для localStorage.
+ * @param address - Page address.
+ * @returns The key for localStorage.
  */
 function buildBuilderDraftKey(address: IBricksPageAddress): string {
     return `bricks-builder:draft:${getPageAddressKey(address)}`;
 }
 
 /**
- * Ключ пробной записи. Свой неймспейс, а не `…:draft:<pagename>` — иначе проба
- * заняла бы ключ страницы с таким именем.
+ * The key of the probe write. A namespace of its own rather than
+ * `…:draft:<pagename>` — otherwise the probe would take the key of the page
+ * carrying that name.
  */
 const BUILDER_DRAFT_PROBE_KEY = 'bricks-builder:storage-probe';
 
 /**
- * Проверяет, доступно ли хранилище черновиков, пробной записью.
+ * Checks whether the draft storage is available by writing a probe.
  *
- * Именно записью: `localStorage` существует и в приватном режиме, и при
- * запрещённых данных сайта — отказ приходит только на `setItem`. Без пробы
- * пользователь узнавал бы о неработающем восстановлении через ~800 мс после
- * первой правки, а то и вовсе не узнавал.
+ * By a write specifically: `localStorage` exists both in a private window and with
+ * the site data blocked — the refusal arrives only on `setItem`. Without the probe
+ * a person would learn that the restoring does not work some 800 ms after the
+ * first edit, and might not learn it at all.
  *
- * @returns Доступна ли запись черновиков.
+ * @returns Whether writing drafts is available.
  */
 export function isBuilderDraftStorageAvailable(): boolean {
-    // Вызывается только с клиента (по готовности сессии): на сервере черновиков
-    // нет вовсе, и сообщать там некому
+    // Called from the client only (once the session is ready): on the server
+    // there are no drafts at all, and nobody there to tell about them
     if (typeof window === 'undefined') {
         return false;
     }
@@ -55,9 +56,9 @@ export function isBuilderDraftStorageAvailable(): boolean {
 }
 
 /**
- * Возвращает черновик билдера из localStorage.
+ * Returns a builder draft out of localStorage.
  *
- * @param address - Адрес страницы.
+ * @param address - Page address.
  */
 export function getBuilderDraft(address: IBricksPageAddress): IBuilderDraftEntry | null {
     if (typeof window === 'undefined') {
@@ -66,10 +67,10 @@ export function getBuilderDraft(address: IBricksPageAddress): IBuilderDraftEntry
 
     const key = buildBuilderDraftKey(address);
 
-    // Само обращение к хранилищу — тоже внутри try: при запрещённых данных сайта
-    // бросает и `getItem`, а чтение черновика идёт из bootstrap'а сессии — оттуда
-    // исключение уронило бы открытие страницы целиком, хотя терялось бы всего
-    // лишь восстановление несохранённых правок
+    // The access to the storage itself is inside the try as well: with the site
+    // data blocked `getItem` throws too, and a draft is read from the session
+    // bootstrap — an exception from there would bring the opening of the page down
+    // whole, while all that would be lost is the restoring of unsaved edits
     try {
         const raw = window.localStorage.getItem(key);
         if (!raw) {
@@ -84,16 +85,16 @@ export function getBuilderDraft(address: IBricksPageAddress): IBuilderDraftEntry
 }
 
 /**
- * Сохраняет черновик билдера в localStorage.
+ * Saves a builder draft into localStorage.
  *
- * Возвращает исход, а не молчит: отказ записи означает, что восстановление после
- * перезагрузки не работает, — и пользователь, считающий правки защищёнными,
- * должен об этом узнать. Сам механизм автосейва при этом не отключается: запрет
- * может быть снят (освободилась квота, изменилась настройка), и следующая
- * попытка пройдёт.
+ * Returns the outcome instead of keeping quiet: a refused write means the
+ * restoring after a reload does not work — and a person who considers their edits
+ * protected has to learn about that. The autosave mechanism itself is not turned
+ * off by it: the ban may be lifted (the quota freed up, the setting changed), and
+ * the next attempt will go through.
  *
- * @param draft - Данные черновика.
- * @returns Записан ли черновик.
+ * @param draft - Draft data.
+ * @returns Whether the draft was written.
  */
 export function setBuilderDraft(draft: IBuilderDraftEntry): boolean {
     if (typeof window === 'undefined') {
@@ -127,14 +128,14 @@ export function setBuilderDraft(draft: IBuilderDraftEntry): boolean {
 }
 
 /**
- * Удаляет черновик билдера.
+ * Removes a builder draft.
  *
- * Возвращает исход: неудаленный черновик переживёт и сохранение страницы, и
- * явное «открыть сохранённую» — и при следующем заходе снова предложит
- * восстановить состояние, от которого пользователь уже отказался.
+ * Returns the outcome: a draft left behind outlives both a save of the page and an
+ * explicit "open the saved one" — and on the next visit it offers to restore the
+ * state a person has already turned down.
  *
- * @param address - Адрес страницы.
- * @returns Удалён ли черновик.
+ * @param address - Page address.
+ * @returns Whether the draft was removed.
  */
 export function removeBuilderDraft(address: IBricksPageAddress): boolean {
     if (typeof window === 'undefined') {
@@ -143,9 +144,9 @@ export function removeBuilderDraft(address: IBricksPageAddress): boolean {
 
     const key = buildBuilderDraftKey(address);
 
-    // Удаление зовут и после успешного сохранения страницы: исключение
-    // запрещённого хранилища провалило бы фиксацию сохранённого состояния,
-    // хотя сама страница уже записана на сервер
+    // The removal is also called after a page has been saved successfully: an
+    // exception of a blocked storage would fail the committing of the saved state,
+    // even though the page itself is written to the server already
     try {
         window.localStorage.removeItem(key);
 
@@ -158,16 +159,17 @@ export function removeBuilderDraft(address: IBricksPageAddress): boolean {
 }
 
 /**
- * Переносит черновик билдера на новый адрес.
+ * Moves a builder draft to a new address.
  *
- * Занятый ключ назначения не перезаписывается: под ним лежит черновик другой
- * страницы, и перенос уничтожал бы его молча. Исходная запись при отказе
- * остаётся на месте — потерь на самом переносе нет. Остаток осознан: автосейв
- * сессии через ~800 мс всё равно займёт новый ключ, но это уже обычное «сессия
- * владеет своим ключом», а не тихая подмена во время rename.
+ * A taken destination key is not overwritten: the draft of another page lies under
+ * it, and the move would destroy that one silently. On a refusal the source record
+ * stays where it is — the move itself loses nothing. What is left is a conscious
+ * trade-off: the autosave of the session will take the new key some 800 ms later
+ * anyway, but that is the ordinary "a session owns its key" rather than a quiet
+ * substitution during a rename.
  *
- * @param fromAddress - Старый адрес.
- * @param toAddress - Новый адрес.
+ * @param fromAddress - The old address.
+ * @param toAddress - The new address.
  */
 export function migrateBuilderDraft(
     fromAddress: IBricksPageAddress,
@@ -184,8 +186,9 @@ export function migrateBuilderDraft(
         return 'nothing-to-migrate';
     }
 
-    // Чтение — тоже в try: перенос идёт из `renameSession`, а тот ждёт
-    // `router.replace`, и исключение отсюда сорвало бы саму навигацию
+    // The read is inside the try as well: the move runs from `renameSession`,
+    // which awaits `router.replace`, and an exception from here would tear the
+    // navigation itself off
     try {
         const raw = window.localStorage.getItem(fromKey);
         if (!raw) {
@@ -203,11 +206,12 @@ export function migrateBuilderDraft(
 
         let parsed: unknown;
 
-        // Разбор — в своём `try`: повреждённая запись не имеет отношения к
-        // доступности хранилища, а общий `catch` ниже выдавал бы её за отказ
-        // storage — и пользователь получил бы сообщение о запрете localStorage,
-        // которого не было. Переносить при этом всё равно нечего: нечитаемый
-        // черновик не восстановит ни один ключ
+        // The parsing gets a `try` of its own: a corrupted record has nothing to
+        // do with the availability of the storage, while the shared `catch` below
+        // would pass it off as a refusal of the storage — and a person would get
+        // a message about a localStorage ban that never happened. There is
+        // nothing to move either way: an unreadable draft is restored under no
+        // key at all
         try {
             parsed = JSON.parse(raw);
         } catch (error) {
@@ -219,10 +223,10 @@ export function migrateBuilderDraft(
             return 'nothing-to-migrate';
         }
 
-        // Форму проверяем отдельно: синтаксически валидным JSON бывает и `null`,
-        // и строка, и число — присваивание поля такому значению бросает уже
-        // после разбора, и внешний `catch` снова выдал бы порчу данных за отказ
-        // хранилища
+        // The shape is checked separately: `null`, a string and a number are all
+        // syntactically valid JSON — assigning a field on such a value throws
+        // after the parsing, and the outer `catch` would again pass corrupted
+        // data off as a refusal of the storage
         if (parsed === null || typeof parsed !== 'object') {
             console.warn(
                 '[Publish Store] Builder draft migration skipped: unexpected draft shape',
@@ -234,17 +238,19 @@ export function migrateBuilderDraft(
             return 'nothing-to-migrate';
         }
 
-        // Обе половины адреса, а не одно имя: перенос бывает и сменой префикса, и
-        // после него запись с прежним `urlPrefix` считалась бы черновиком чужого
-        // адреса — bootstrap сессии сверяет владельца записи
+        // Both halves of the address rather than the name alone: a move can be a
+        // change of the prefix too, and after one a record carrying the previous
+        // `urlPrefix` would count as the draft of another address — the session
+        // bootstrap checks the owner of a record
         const draft = parsed as IBuilderDraftEntry;
         draft.pagename = toAddress.pagename;
         draft.urlPrefix = toAddress.urlPrefix;
         window.localStorage.setItem(toKey, JSON.stringify(draft));
-        // Отдельный `try` не нужен, а вот исход — да: если запись под новым
-        // ключом прошла, а удаление старого нет, автосейв дальше будет успешно
-        // писать по новому ключу и о поломке никто не узнает, — а черновик под
-        // прежним слагом останется и позже предложит восстановление
+        // A `try` of its own is not needed here, but the outcome is: should the
+        // write under the new key go through while the removal of the old one does
+        // not, the autosave will keep writing under the new key successfully and
+        // nobody will learn about the breakage — while the draft under the previous
+        // slug stays behind and later offers to restore itself
         window.localStorage.removeItem(fromKey);
 
         return 'migrated';

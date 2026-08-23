@@ -1,5 +1,5 @@
 /**
- * Типы публичного контракта publish-стора.
+ * Types of the public contract of the publish store.
  */
 
 import type { IBricksSchema } from '../../../common/types/brick';
@@ -11,22 +11,23 @@ import type {
 import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 
 /**
- * Опции записывающей операции стора, которая переживает свою сессию.
+ * Options of a writing operation of the store that outlives its own session.
  *
- * `currentFormState`, `editingPageId` и `generalError` — общее состояние: за время
- * запроса пользователь может открыть другую страницу, и её форму (уже заполненную
- * bootstrap'ом) откат или сообщение об ошибке прежней затрут. Стор про сессии не
- * знает, поэтому решение отдаётся вызывающему — билдер передаёт сюда проверку
- * своего токена, дашборд и прямые вызовы не передают ничего.
+ * `currentFormState`, `editingPageId` and `generalError` are shared state: while
+ * the request is in flight a person may open another page, and the rollback or the
+ * error message of the previous one would smear over that page's form (already
+ * filled in by the bootstrap). The store knows nothing about sessions, so the
+ * decision is handed to the caller — the builder passes the check of its own token
+ * in here, while the dashboard and the direct calls pass nothing.
  */
 export interface IPublishOperationOptions {
-    /** Актуальна ли сессия, из которой ушёл запрос. По умолчанию — да. */
+    /** Whether the session the request went out from is still current. Yes by default */
     isInitiatorCurrent?: () => boolean;
 }
 
 /**
- * Состояние реестра незавершённых операций записи — то, чем оперирует
- * `utils/activeWrites.ts`.
+ * The state of the registry of the unfinished write operations — what
+ * `utils/activeWrites.ts` operates on.
  */
 export interface IActiveWriteRegistry {
     activeWriteIds: number[];
@@ -34,20 +35,23 @@ export interface IActiveWriteRegistry {
 }
 
 /**
- * Узкий контракт стора для однократной загрузки полного списка страниц
+ * The narrow contract of the store for the one-off load of the full page list
  * (`utils/pagesLoad.ts`).
  */
 export interface IPagesLoadStoreDeps {
-    /** Момент последнего полного ответа сервера; `null` — список ещё не загружали. */
+    /**
+     * The moment of the last full answer of the server; `null` — the list was
+     * never loaded.
+     */
     pagesLoadedAt: number | null;
-    /** Номер последнего стартовавшего запроса — им отсекаются устаревшие ответы. */
+    /** The number of the last request started — stale answers are cut off by it */
     pagesRequestId: number;
     publishedPages: TPublishedPageSummary[];
     loadAllPages: () => Promise<void>;
 }
 
 /**
- * Узкий контракт стора для записи страниц вне сессии редактора
+ * The narrow contract of the store for writing pages outside an editor session
  * (`utils/pageLibraryWrite.ts`).
  */
 export interface IPageLibraryWriteStoreDeps {
@@ -57,9 +61,9 @@ export interface IPageLibraryWriteStoreDeps {
 }
 
 /**
- * Узкий контракт стора для операций записи текущего лендинга
- * (`utils/currentPageWrite.ts`) — DI вместо прямого импорта стора, чтобы логика
- * тестировалась без Pinia.
+ * The narrow contract of the store for the write operations of the current landing
+ * (`utils/currentPageWrite.ts`) — DI instead of a direct import of the store, so
+ * that the logic is tested without Pinia.
  */
 export interface ICurrentPageWriteStoreDeps {
     currentFormState: TPublishFormState;

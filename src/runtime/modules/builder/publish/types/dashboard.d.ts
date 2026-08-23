@@ -15,31 +15,32 @@ export type TPublishDashboardSection = 'pages' | 'templates' | 'users' | 'media'
 
 // #region usePublishDashboardSections
 /**
- * Опции `usePublishDashboardSections`.
+ * Options of `usePublishDashboardSections`.
  */
 export interface IUsePublishDashboardSectionsOptions {
     /**
-     * Строка поиска страниц. Приходит снаружи, а не заводится здесь: ею владеет
-     * `usePublishDashboard` — там же, где фильтры и отфильтрованный список.
+     * The search string of the pages. Arrives from the outside instead of being
+     * started here: it is owned by `usePublishDashboard` — the same place the
+     * filters and the filtered list live.
      */
     pagesSearchQuery: Ref<string>;
-    /** Доступен ли раздел учёток: права плюс ответившие ручки. */
+    /** Whether the accounts section is available: the rights plus answering endpoints */
     isUsersSectionVisible: ComputedRef<boolean>;
-    /** Ушли с медиатеки: закрыть сессию работы с ней. */
+    /** The media library was left: close the session of working with it */
     onLeaveMedia: () => void;
-    /** Вошли в медиатеку: дослать список файлов, если снимка ещё нет. */
+    /** The media library was entered: send for the file list unless a snapshot is in */
     onEnterMedia: () => void;
 }
 
 /**
- * Возвращаемое значение `usePublishDashboardSections`.
+ * The return value of `usePublishDashboardSections`.
  */
 export interface IUsePublishDashboardSectionsReturn {
     activeSection: Ref<TPublishDashboardSection>;
     usersSearchQuery: Ref<string>;
     templatesSearchQuery: Ref<string>;
     mediaSearchQuery: Ref<string>;
-    /** Запрос открытого раздела — то, что показывает поле шапки. */
+    /** The query of the open section — what the field in the header shows */
     activeSearchQuery: ComputedRef<string>;
     selectSection: (section: TPublishDashboardSection) => void;
     setSearchQuery: (value: string) => void;
@@ -59,28 +60,19 @@ export interface IPublishDashboardProps {
     searchQuery: string;
     pagesCount: number;
     /**
-     * Число шаблонов для счётчика рейла; `null` — список ещё не прочитан.
-     * Ноль здесь — законное значение (шаблонов может не быть вовсе), поэтому
-     * состояние загрузки отличается от нуля именно `null`.
+     * Counts for the rail, `null` while the list has not been read yet. Why the
+     * three of them are nullable at all and zero is not enough is decided by the
+     * rail itself — see `sectionCounters` in `BuilderPublishDashboardNav`.
      */
     templatesCount: number | null;
-    /**
-     * Число учёток для счётчика рейла; `null` — список ещё не прочитан, и
-     * счётчик не рисуется вовсе: ноль во время загрузки читался бы как «учёток
-     * нет», чего не бывает — кто-то же вошёл.
-     */
     usersCount: number | null;
-    /**
-     * Число файлов медиатеки для счётчика рейла; `null` — список ещё не
-     * прочитан. Ноль здесь законен (пустая медиатека), поэтому «ещё не читали»
-     * отличается именно `null`.
-     */
     mediaCount: number | null;
     /**
-     * Показывать ли раздел «Пользователи». Складывается из двух разных вещей —
-     * прав на управление учётками и того, отвечают ли ручки вообще (в установке
-     * без них раздела нет), — поэтому решает хост, а не сам рейл: право он
-     * прочитал бы сам, а состояние загрузки правом не является.
+     * Whether to show the "Users" section. It adds up out of two different things
+     * — the right to manage accounts and whether the endpoints answer at all (in
+     * an installation without them there is no section) — which is why the host
+     * decides rather than the rail itself: the right the rail would read on its
+     * own, but a loading state is not a right.
      */
     isUsersSectionVisible: boolean;
     isDarkMode: boolean;
@@ -90,12 +82,12 @@ export interface IPublishDashboardEmits {
     'update:searchQuery': [value: string];
     'select-section': [section: TPublishDashboardSection];
     'create-page': [];
-    /** Первичная кнопка шапки в разделе «Пользователи». */
+    /** The primary button of the header in the "Users" section */
     'create-user': [];
     'open-docs': [];
     'toggle-dark-mode': [];
     'toggle-locale': [];
-    /** Меню профиля в углу шапки: открыть модалку профиля. */
+    /** The profile menu in the corner of the header: open the profile modal */
     'open-profile': [];
     logout: [];
 }
@@ -103,13 +95,11 @@ export interface IPublishDashboardEmits {
 export interface IPublishDashboardNavProps {
     activeSection: TPublishDashboardSection;
     pagesCount: number;
-    /** Число шаблонов; `null` — не прочитано, счётчик скрыт. */
+    /** Counts; `null` — not read yet, and the counter is not drawn */
     templatesCount: number | null;
-    /** Число учёток; `null` — не прочитано, счётчик скрыт. */
     usersCount: number | null;
-    /** Число файлов медиатеки; `null` — не прочитано, счётчик скрыт. */
     mediaCount: number | null;
-    /** Раздел «Пользователи» доступен: есть права и ручки отвечают. */
+    /** The "Users" section is available: the rights are there and the endpoints answer */
     isUsersSectionVisible: boolean;
     locale: string;
     isDarkMode: boolean;
@@ -130,9 +120,9 @@ export interface IPublishPagesListProps {
     hasAnyPages: boolean;
     duplicatingPageId: string | null;
     /**
-     * Страница, чью схему читают для сохранения шаблона; `null` — свободны все.
-     * Строка при этом ждёт: сводка списка схему не несёт, и до её чтения формы
-     * шаблона показывать нечего.
+     * The page whose schema is being read to save a template; `null` — every row
+     * is free. The row waits meanwhile: a list summary carries no schema, and
+     * until it is read there is no template form to show.
      */
     templateSourcePageId: string | null;
     selectedPageId: string | null;
@@ -146,7 +136,7 @@ export interface IPublishPagesListEmits {
     edit: [page: TPublishedPageSummary];
     preview: [page: TPublishedPageSummary];
     duplicate: [page: TPublishedPageSummary];
-    /** Сохранить страницу как шаблон: схему читает и форму открывает хост. */
+    /** Save the page as a template: the host reads the schema and opens the form */
     'save-as-template': [page: TPublishedPageSummary];
     delete: [page: TPublishedPageSummary];
 }
@@ -154,7 +144,7 @@ export interface IPublishPagesListEmits {
 export interface IPublishPagesListRowProps {
     page: TPublishedPageSummary;
     isDuplicating?: boolean;
-    /** Идёт подготовка шаблона из этой страницы (чтение её схемы). */
+    /** A template is being prepared out of this page (its schema is being read) */
     isPreparingTemplate?: boolean;
     isSelected?: boolean;
 }
@@ -170,8 +160,9 @@ export interface IPublishPagesListRowEmits {
 }
 
 /**
- * Значения формы meta панели деталей. `layout`/`backgroundColor` не редактируются
- * панелью, но входят в значения — их требует общая схема валидации.
+ * The values of the meta form of the details panel. `layout`/`backgroundColor` are
+ * not edited by the panel but are part of the values — the shared validation
+ * schema demands them.
  */
 export interface IPublishPageFormValues {
     pagename: string;
@@ -192,59 +183,63 @@ export interface IPublishPageFormOptions {
 
 export interface IPublishCreatePageFormOptions {
     /**
-     * Созданная страница — адресом, а не одним именем: вызывающий уводит в её
-     * редактор, а адрес редактора включает префикс. По одному имени переход
-     * открывал бы `<builderPrefix>/<pagename>` — либо чужую одноимённую
-     * страницу, либо пустую форму новой.
+     * The created page, as an address rather than a name alone: the caller takes
+     * the person into its editor, and the editor address includes the prefix. By
+     * the name alone the navigation would open `<builderPrefix>/<pagename>` —
+     * either another page carrying that name, or the empty form of a new one.
      */
     onCreated: (address: IBricksPageAddress) => void;
     /**
-     * Отдаёт схему новой страницы: пустой холст либо разобранный JSON-файл,
-     * прогнанный через резолвер картинок. `null` — создание отменено (резолвер
-     * закрыли), POST не уходит.
+     * Hands over the schema of the new page: a blank canvas, or a parsed JSON file
+     * run through the image resolver. `null` — the creation was canceled (the
+     * resolver was closed) and the POST does not go out.
      */
     resolveSchema: () => Promise<IBricksSchema | null>;
     /**
-     * Отдаёт набор устройств новой страницы: правку из группы «Устройства» либо
-     * набор из импортированного конверта. `null` — страница наследует набор
-     * проекта.
+     * Hands over the device set of the new page: the edit made in the "Devices"
+     * group, or the set out of an imported envelope. `null` — the page inherits
+     * the set of the project.
      *
-     * Отдельным колбэком, а не полем формы: набор правится своей модалкой, и
-     * его состояние живёт рядом с ней, а не в схеме валидации meta-полей.
+     * A callback of its own rather than a field of the form: the set is edited by
+     * a modal of its own, and its state lives next to that modal rather than in
+     * the validation schema of the meta fields.
      */
     resolveViewportConfig?: () => TBricksPageDeviceSet | null;
     /**
-     * Отдаёт оформление новой страницы (раскладка и фон) — им наполняет форму
-     * выбранный шаблон. `null` — оформление по умолчанию.
+     * Hands over the appearance of the new page (the layout and the background) —
+     * what the chosen template fills the form with. `null` — the default
+     * appearance.
      *
-     * Отдельно от набора устройств: набор правится своей модалкой и живёт в форме
-     * независимо от источника содержимого, а раскладка с фоном приходят только из
-     * шаблона и в форме не редактируются вовсе.
+     * Apart from the device set: the set is edited by a modal of its own and lives
+     * in the form no matter where the content comes from, while the layout and the
+     * background arrive from a template only and are not edited in the form at all.
      */
     resolveAppearance?: () => IPublishCreatePageAppearance | null;
 }
 
-/** Оформление страницы, приходящее из шаблона в форму создания. */
+/** The appearance of a page arriving from a template into the creation form */
 export interface IPublishCreatePageAppearance {
     layout: string | null;
     backgroundColor: string | null;
 }
 
 /**
- * Прогон схемы через резолвер картинок дашборда. `null` — импорт отменён.
+ * Running a schema through the image resolver of the dashboard. `null` — the
+ * import was canceled.
  *
- * Функцией-пропом, а не своим экземпляром резолвера в модалке: резолвер один на
- * весь дашборд, иначе две его модалки открывались бы поверх друг друга и
- * параллельно правили одно состояние медиатеки.
+ * As a function prop rather than as an instance of the resolver inside the modal:
+ * there is one resolver for the whole dashboard, otherwise two of its modals would
+ * open on top of each other and edit one state of the media library in parallel.
  */
 export type TResolveImportedSchema = (schema: IBricksSchema) => Promise<IBricksSchema | null>;
 
 export interface IPublishCreatePageModalProps {
     isOpen: boolean;
     /**
-     * Шаблон, выбранный источником заранее (форму открыла карточка шаблона);
-     * `null` — источник выбирают в самой форме. Необязателен: билдер открывает ту
-     * же форму без раздела шаблонов рядом, и предвыбирать ему нечем.
+     * The template picked as the source in advance (a template card opened the
+     * form); `null` — the source is picked in the form itself. Optional: the
+     * builder opens the same form with no templates section next to it, so it has
+     * nothing to pre-pick with.
      */
     initialTemplate?: TBricksTemplateSummary | null;
     resolveImportedSchema: TResolveImportedSchema;
@@ -258,7 +253,7 @@ export interface IPublishCreatePageModalEmits {
 export interface IPublishDetailsPanelProps {
     page: TPublishedPageSummary;
     isDuplicating?: boolean;
-    /** Идёт импорт схемы (координатор импорта живёт в контроллере дашборда). */
+    /** A schema import is running (its coordinator lives in the dashboard controller) */
     isImporting?: boolean;
 }
 
@@ -270,23 +265,27 @@ export interface IPublishDetailsPanelEmits {
     'toggle-published': [page: TPublishedPageSummary, published: boolean];
     'open-media': [];
     'restore-version': [page: TPublishedPageSummary, version: IPageVersionSummary];
-    /** Файл схемы выбран и разобран; подтверждение и запись — на контроллере. */
+    /**
+     * A schema file was picked and parsed; the confirmation and the write belong to
+     * the controller.
+     */
     'import-schema-file': [page: TPublishedPageSummary, file: IParsedSchemaFile];
     notify: [message: string, variant: 'success' | 'error'];
 }
 
-/** Ошибки валидации формы meta по полям (vee-validate `errors`). */
+/** Per-field validation errors of the meta form (the vee-validate `errors`) */
 export type TPublishFormErrors = Partial<Record<keyof IPublishPageFormValues, string>>;
 
 export interface IPublishDetailsPanelOgImageProps {
     socialImage: string;
     error?: string;
     /**
-     * Управление выбором картинки закрыто. Причин две и они разной природы:
-     * идёт сохранение (временно) и роль без права правки (постоянно), поэтому
-     * проп называется по следствию, а не по одной из причин: имя `isSaving`
-     * обещало бы временное состояние, и естественный для него спиннер достался
-     * бы наблюдателю навсегда.
+     * The control over picking an image is closed. There are two reasons and they
+     * are of different natures: a save is running (temporary) and the role has no
+     * right to edit (permanent), which is why the prop is named after the
+     * consequence rather than after one of the reasons: the name `isSaving` would
+     * promise a temporary state, and the spinner natural for it would fall to a
+     * viewer forever.
      */
     isDisabled: boolean;
 }
@@ -301,7 +300,7 @@ export interface IPublishDetailsPanelRoutingProps {
     urlPrefix: string;
     subdomain: string;
     errors: TPublishFormErrors;
-    /** Поля закрыты для ввода: идёт сохранение либо у роли нет права правки. */
+    /** The fields are closed for input: a save is running, or the role may not edit */
     isDisabled: boolean;
 }
 
@@ -321,29 +320,30 @@ export interface IPublishDetailsPanelVersionsEmits {
 
 export interface IPublishDetailsPanelSchemaProps {
     page: TPublishedPageSummary;
-    /** Идёт импорт схемы этой страницы (владеет им координатор на дашборде). */
+    /** A schema import of this page is running (the dashboard coordinator owns it) */
     isImporting: boolean;
-    /** Идёт сохранение meta-формы — запись схемы в это окно не начинают. */
+    /** The meta form is being saved — a schema write is not started in that window */
     isSaving: boolean;
 }
 
 export interface IPublishDetailsPanelSchemaEmits {
     /**
-     * Файл разобран и готов к применению; подтверждение спрашивает контроллер.
-     * Страница передаётся снимком на момент выбора файла, а не читается из пропа
-     * получателем: чтение файла переживает смену выбранной страницы.
+     * The file is parsed and ready to be applied; the controller asks for the
+     * confirmation. The page travels as a snapshot taken at the moment the file
+     * was picked rather than being read out of a prop by the receiver: reading a
+     * file outlives a change of the selected page.
      */
     'import-file': [page: TPublishedPageSummary, file: IParsedSchemaFile];
 }
 
-/** Источник содержимого новой страницы в модалке создания. */
+/** The source of the content of a new page in the creation modal */
 export type TPublishCreatePageSource = 'blank' | 'template' | 'file';
 
 export interface IPublishCreatePageStartOptionsProps {
     source: TPublishCreatePageSource;
-    /** Разобранный JSON-файл, выбранный как источник (ждёт сабмита). */
+    /** The parsed JSON file picked as the source (waiting for the submit) */
     selectedFile: IParsedSchemaFile | null;
-    /** Выбранный шаблон-источник; `null` — не выбран. */
+    /** The template picked as the source; `null` — none is picked */
     selectedTemplate: TBricksTemplateSummary | null;
     error: string;
     isSubmitting: boolean;
@@ -353,18 +353,18 @@ export interface IPublishCreatePageStartOptionsEmits {
     'select-blank': [];
     'pick-file': [];
     'clear-file': [];
-    /** Клик по карточке «Из шаблона»: открыть выбор шаблона. */
+    /** A click on the "From a template" card: open the template picker */
     'pick-template': [];
-    /** Снять выбранный шаблон — источник вернётся к пустой странице. */
+    /** Drop the picked template — the source goes back to a blank page */
     'clear-template': [];
 }
 
 /**
- * Карточка галереи версий. `version === null` — текущее состояние страницы:
- * оно в списке версий не лежит (версия — снимок состояния, которое сохранение
- * вытеснило), но без него галерее не с чем сравнивать историю.
- * У текущей карточки нет действий: восстанавливать нечего, страница уже в этом
- * состоянии.
+ * A card of the version gallery. `version === null` is the current state of the
+ * page: it does not lie in the list of versions (a version is a snapshot of the
+ * state a save displaced), but without it the gallery has nothing to compare the
+ * history against. The current card carries no actions: there is nothing to
+ * restore, the page is in that state already.
  */
 export interface IPublishVersionCard {
     key: string;
@@ -374,31 +374,36 @@ export interface IPublishVersionCard {
 }
 
 /**
- * Пропсы модалки «Устройства страницы».
+ * Props of the "Page devices" modal.
  *
- * Набор приходит значением, а не читается из стора: модалка открывается и из
- * настроек сохранённой страницы, и из формы ещё не созданной, — у второй стора
- * с её набором нет вовсе.
+ * The set arrives as a value instead of being read out of the store: the modal
+ * opens both from the settings of a saved page and from the form of a page not
+ * created yet — and the second one has no store holding its set at all.
  */
 export interface IPublishDevicesModalProps {
     isOpen: boolean;
-    /** Набор страницы; `null` — наследует набор проекта. */
+    /** The set of the page; `null` — inherits the set of the project */
     viewportConfig: TBricksPageDeviceSet | null;
-    /** Резолвнутый набор проекта — то, что показывает выключенный тумблер. */
+    /** The resolved set of the project — what the switch shows when turned off */
     projectDevices: IBricksResolvedDevice[];
-    /** Ключ устройства, открытого на канвасе (подсветка сегмента шкалы). */
+    /** The key of the device open on the canvas (the highlight of the scale segment) */
     activeDeviceKey: string;
     /**
-     * Компоненты схемы: по ним считается число теряемых переопределений в
-     * подтверждении удаления. У ещё не созданной страницы список пуст.
+     * Components of the schema: the number of the overrides lost, shown in the
+     * removal confirmation, is counted over them. For a page not created yet these
+     * are the components of the picked source — an imported file or a template — and
+     * the list is empty only for a blank canvas.
      */
     schemaComponents: IBricksComponent[];
-    /** `nested` — модалка открыта поверх другой (форма создания страницы). */
+    /** `nested` — the modal is open on top of another one (the page creation form) */
     layer?: TBricksModalLayer;
 }
 
 export interface IPublishDevicesModalEmits {
     close: [];
-    /** Набор подтверждён: уезжает в состояние редактора, а не на сервер. */
+    /**
+     * The set is confirmed: it travels into the state of the host — the editor or the
+     * creation form — rather than to the server.
+     */
     save: [viewportConfig: TBricksPageDeviceSet | null];
 }

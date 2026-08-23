@@ -6,32 +6,33 @@ import { fetchPageVersionsRequest } from '../utils/publishApi';
 import { usePublishPreview } from './usePublishPreview';
 
 /**
- * Версии страницы для панели деталей дашборда: список сводок и превью версии
- * через общий превью-роут `<previewPrefix>/<адрес>?version=<id>`
- * (см. `usePublishPreview`).
- * Ошибки запросов пробрасываются — уведомления показывает вызывающий компонент.
+ * The versions of a page for the details panel of the dashboard: the list of
+ * summaries and the preview of a version through the shared preview route
+ * `<previewPrefix>/<address>?version=<id>` (see `usePublishPreview`).
+ * The request errors are rethrown — the notifications are shown by the calling
+ * component.
  */
 export function usePublishPageVersions(): IUsePublishPageVersionsReturn {
     const { previewPageVersion } = usePublishPreview();
 
     const versions = ref<IPageVersionSummary[]>([]);
 
-    // Номер последнего стартовавшего запроса: им отсекается ответ, пришедший
-    // после переключения панели на другую страницу или после более свежей
-    // загрузки той же (список версий меняется откатом и сохранением)
+    // The number of the last request started: by it an answer is cut off when it
+    // arrives after the panel has switched to another page, or after a fresher load
+    // of the same one (the version list changes on a rollback and on a save)
     let versionsRequestId = 0;
 
-    // Счётчик, а не флаг: у двух параллельных загрузок (раскрытие секции плюс
-    // перезагрузка по изменившемуся updatedAt) `finally` первой снимал бы
-    // индикатор, пока вторая ещё идёт
+    // A counter rather than a flag: with two parallel loads (the section being
+    // expanded plus a reload on a changed revision) the `finally` of the first one
+    // would clear the indicator while the second is still running
     const pendingLoads = ref(0);
     const isLoading = computed<boolean>(() => pendingLoads.value > 0);
 
     /**
-     * Очищает список и обесценивает уже летящий запрос. Зовётся при
-     * переключении панели на другую страницу: без обесценивания ответ прежней
-     * страницы приземлился бы после очистки и показал бы её версии как версии
-     * новой — с ними и уходил бы откат.
+     * Clears the list and devalues the request already in flight. Called when the
+     * panel switches to another page: without the devaluing the answer of the
+     * previous page would land after the clearing and would show its versions as
+     * the versions of the new one — and a rollback would go out carrying them.
      */
     function resetVersions(): void {
         versionsRequestId += 1;
@@ -39,13 +40,14 @@ export function usePublishPageVersions(): IUsePublishPageVersionsReturn {
     }
 
     /**
-     * Загружает сводки версий страницы.
+     * Loads the version summaries of a page.
      *
-     * Отказ список не стирает: уже показанные версии переживают transient-отказ,
-     * а сообщение получает вызывающий. Отказ вытесненного запроса не
-     * докладывается — уведомление о нём накрыло бы результат более свежего.
+     * A refusal does not wipe the list: the versions already shown outlive a
+     * transient refusal, and the message reaches the caller. The refusal of a
+     * displaced request is not reported — a notification about it would cover the
+     * result of a fresher one.
      *
-     * @param pageId - Идентификатор страницы.
+     * @param pageId - Page identifier.
      */
     async function loadVersions(pageId: string | number): Promise<void> {
         const requestId = ++versionsRequestId;
@@ -71,15 +73,16 @@ export function usePublishPageVersions(): IUsePublishPageVersionsReturn {
     }
 
     /**
-     * Открывает превью версии в новой вкладке.
+     * Opens the preview of a version in a new tab.
      *
-     * Снапшот не загружается: версия уходит в URL (`?version=`), и её тянет
-     * middleware превью-роута — вкладка рендерится сервером сразу нужным
-     * состоянием, а клиенту ждать нечего.
+     * The snapshot is not loaded: the version travels in the URL (`?version=`) and
+     * is pulled by the middleware of the preview route — the tab is rendered by the
+     * server in the needed state right away, and the client has nothing to wait
+     * for.
      *
-     * @param page - Текущая страница (источник pagename превью-роута).
-     * @param versionId - Идентификатор версии.
-     * @returns false, если вкладка не открылась (блокировщик попапов).
+     * @param page - The current page (the source of the pagename of the preview route).
+     * @param versionId - Version identifier.
+     * @returns false when the tab did not open (a popup blocker).
      */
     function previewVersion(page: TPublishedPageSummary, versionId: number): boolean {
         return previewPageVersion(toPageAddress(page.pagename, page.urlPrefix), versionId) !== null;

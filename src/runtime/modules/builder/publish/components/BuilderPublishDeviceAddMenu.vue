@@ -34,7 +34,7 @@ const rootRef = ref<HTMLElement | null>(null);
 
 // #region Methods
 /**
- * Открывает или закрывает меню выбора устройства.
+ * Opens or closes the device picker menu.
  */
 function handleToggle(): void {
     if (props.disabled) {
@@ -45,9 +45,9 @@ function handleToggle(): void {
 }
 
 /**
- * Выбирает устройство каталога и закрывает меню.
+ * Picks a device of the catalog and closes the menu.
  *
- * @param key - Ключ устройства каталога.
+ * @param key - The key of the catalog device.
  */
 function handleSelect(key: string): void {
     emit('select', key);
@@ -55,9 +55,9 @@ function handleSelect(key: string): void {
 }
 
 /**
- * Закрывает меню по клику вне его области.
+ * Closes the menu on a click outside its area.
  *
- * @param event - Событие указателя.
+ * @param event - Pointer event.
  */
 function handleOutside(event: MouseEvent): void {
     if (isOpen.value && !rootRef.value?.contains(event.target as Node)) {
@@ -66,9 +66,9 @@ function handleOutside(event: MouseEvent): void {
 }
 
 /**
- * Закрывает меню по Escape, не давая событию закрыть саму модалку.
+ * Closes the menu on Escape without letting the event close the modal itself.
  *
- * @param event - Событие клавиатуры.
+ * @param event - Keyboard event.
  */
 function handleEscape(event: KeyboardEvent): void {
     if (event.key === 'Escape' && isOpen.value) {

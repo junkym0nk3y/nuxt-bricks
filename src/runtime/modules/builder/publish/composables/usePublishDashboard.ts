@@ -24,10 +24,11 @@ const FILTER_PREDICATES: Record<TPublishPagesFilter, (page: TPublishedPageSummar
 // #endregion
 
 /**
- * Состояние дашборда страниц: поиск из шапки (с debounce) и сегмент-фильтр списка.
- * Фильтрация клиентская — по `title`, `pagename` и `description`.
+ * The state of the pages dashboard: the search from the header (debounced) and the
+ * segment filter of the list. The filtering is client-side — over `title`,
+ * `pagename` and `description`.
  *
- * @param pages - Реактивный список страниц (из publish-store).
+ * @param pages - The reactive page list (from the publish store).
  */
 export function usePublishDashboard(
     pages: Ref<TPublishedPageSummary[]> | ComputedRef<TPublishedPageSummary[]>
@@ -44,8 +45,8 @@ export function usePublishDashboard(
 
     // #region Computed
     /**
-     * Страницы, прошедшие поиск (до сегмент-фильтра) —
-     * от них же считаются счётчики фильтров.
+     * The pages that passed the search (before the segment filter) — the filter
+     * counters are counted over them as well.
      */
     const searchedPages = computed<TPublishedPageSummary[]>(() => {
         const query = debouncedSearchQuery.value.trim().toLowerCase();
@@ -54,9 +55,10 @@ export function usePublishDashboard(
         }
 
         return pages.value.filter((page) => {
-            // Адрес целиком, а не один `pagename`: строка списка показывает
-            // `/news/post`, и запрос `news` обязан её находить — после появления
-            // одноимённых страниц префикс и есть различающая часть адреса
+            // The whole address rather than the `pagename` alone: a row of the
+            // list shows `/news/post`, and the query `news` is obliged to find it
+            // — once pages could share a name, the prefix became the telling part
+            // of an address
             const haystack = [
                 page.title,
                 getPageAddressKey(toPageAddress(page.pagename, page.urlPrefix)),

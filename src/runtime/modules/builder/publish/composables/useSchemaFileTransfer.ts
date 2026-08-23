@@ -20,14 +20,14 @@ import { useI18n } from 'vue-i18n';
 // #endregion
 
 /**
- * Распознаёт конверт переноса страницы.
+ * Recognizes a page transfer envelope.
  *
- * Голая схема (файлы, записанные до появления набора устройств) конвертом не
- * считается и продолжает приниматься: сломать уже сохранённые у пользователей
- * файлы сменой формата нельзя.
+ * A bare schema (the files written before the device set appeared) does not count
+ * as an envelope and is still accepted: breaking the files people have already
+ * saved by a change of format is not allowed.
  *
- * @param raw - Разобранный JSON файла.
- * @returns Конверт либо `null`, если это не он.
+ * @param raw - The parsed JSON of the file.
+ * @returns The envelope, or `null` when it is not one.
  */
 function readEnvelope(raw: unknown): IParsedEnvelope | null {
     if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
@@ -40,10 +40,11 @@ function readEnvelope(raw: unknown): IParsedEnvelope | null {
         return null;
     }
 
-    // Отсутствие поля и явный `null` — разные вещи, и подменять первое вторым
-    // нельзя: `null` означает «источник наследовал набор проекта» и снимает
-    // собственный набор целевой страницы, а конверт без поля про набор просто
-    // ничего не говорит. Свои файлы пакет всегда пишет с полем
+    // The absence of the field and an explicit `null` are different things, and
+    // substituting the second for the first is not allowed: `null` means "the source
+    // inherited the set of the project" and strips the target page of its own set,
+    // while an envelope with no such field simply says nothing about a set. The
+    // package always writes its own files with the field
     const hasViewportConfig = Object.hasOwn(record, 'viewportConfig');
 
     return {
@@ -56,16 +57,16 @@ function readEnvelope(raw: unknown): IParsedEnvelope | null {
 }
 
 /**
- * Перенос схемы страницы файлом: скачивание JSON и чтение выбранного файла с
- * валидацией структуры и ошибками чтения/парсинга.
+ * Transferring a page schema through a file: downloading the JSON and reading the
+ * picked file with the structure validated and the read/parse errors reported.
  *
- * Схема приходит аргументом, а не берётся из стора канваса: композабл работает в
- * списке страниц, где канваса нет вовсе, — экспортируемую схему туда приносит
- * точечный запрос полной страницы.
+ * The schema arrives as an argument instead of being taken from the canvas store:
+ * the composable works in the page list, where there is no canvas at all — the
+ * schema to be exported is brought there by a point request for the full page.
  *
- * Ошибку композабл не хранит: он отдаёт исход чтения, а показывает его каждый
- * потребитель у себя. Общее поле ошибки роняло бы сообщение из модалки создания
- * в панель деталей и наоборот.
+ * The composable stores no error: it hands over the outcome of the read, and every
+ * consumer shows it in its own place. A shared error field would drop the message
+ * from the creation modal into the details panel and the other way round.
  */
 export function useSchemaFileTransfer(): IUseSchemaFileTransferReturn {
     const { t } = useI18n();
@@ -73,15 +74,15 @@ export function useSchemaFileTransfer(): IUseSchemaFileTransferReturn {
     const fileInputRef = ref<HTMLInputElement | null>(null);
 
     /**
-     * Собирает JSON-файл переноса страницы и скачивает его.
+     * Assembles the JSON transfer file of a page and downloads it.
      *
-     * Пишется конверт со схемой и набором устройств: ключи `props.responsive` в
-     * схеме относятся к набору страницы, и файл без него описывал бы раскладку,
-     * которую нечем восстановить.
+     * What is written is an envelope carrying the schema and the device set: the
+     * keys of `props.responsive` in the schema refer to the set of the page, and a
+     * file without it would describe a layout there is nothing to restore with.
      *
-     * @param schema - Схема страницы.
-     * @param filename - Имя файла вместе с расширением.
-     * @param viewportConfig - Набор устройств страницы либо `null`.
+     * @param schema - Page schema.
+     * @param filename - The name of the file together with its extension.
+     * @param viewportConfig - The device set of the page, or `null`.
      */
     function downloadSchema(
         schema: IBricksSchema,
@@ -101,17 +102,17 @@ export function useSchemaFileTransfer(): IUseSchemaFileTransferReturn {
     }
 
     /**
-     * Открывает системный диалог выбора JSON-файла.
+     * Opens the system dialog for picking a JSON file.
      */
     function openFilePicker(): void {
         fileInputRef.value?.click();
     }
 
     /**
-     * Читает выбранный JSON-файл, разбирает и валидирует схему.
+     * Reads the picked JSON file, parses it and validates the schema.
      *
-     * @param input - Файловый input, в котором лежит выбор пользователя.
-     * @returns Исход чтения либо `null`, если файл не выбран.
+     * @param input - The file input holding what the person picked.
+     * @returns The outcome of the read, or `null` when no file was picked.
      */
     async function readSelectedFile(
         input: ISchemaFileInput | null
@@ -122,9 +123,9 @@ export function useSchemaFileTransfer(): IUseSchemaFileTransferReturn {
             return null;
         }
 
-        // Сброс на любом исходе (успех, ранний возврат, отказ чтения) — иначе
-        // повторный выбор того же файла после отклонённого импорта не вызовет
-        // change-событие, и кнопка выглядела бы неработающей
+        // The reset happens on every outcome (a success, an early return, a refused
+        // read) — otherwise picking the same file again after a rejected import
+        // would raise no change event, and the button would look broken
         try {
             if (!file.name.endsWith('.json')) {
                 return { status: 'error', message: t('bricks.schema.importErrorFileType') };
@@ -145,11 +146,12 @@ export function useSchemaFileTransfer(): IUseSchemaFileTransferReturn {
     }
 
     /**
-     * Разбирает текст файла в схему и проверяет контракт графа компонентов.
+     * Parses the text of the file into a schema and checks the contract of the
+     * component graph.
      *
-     * @param text - Содержимое файла.
-     * @param filename - Имя файла для метаданных выбора.
-     * @returns Исход разбора.
+     * @param text - The content of the file.
+     * @param filename - The file name for the metadata of the pick.
+     * @returns The outcome of the parsing.
      */
     function parseSchemaText(text: string, filename: string): TSchemaFileReadResult {
         let raw: unknown;
@@ -176,8 +178,9 @@ export function useSchemaFileTransfer(): IUseSchemaFileTransferReturn {
             };
         }
 
-        // `undefined`, а не `null`: legacy-схема и конверт без поля про набор
-        // ничего не говорят, и целевая страница обязана сохранить свой
+        // `undefined` rather than `null`: a legacy schema and an envelope with no
+        // field say nothing about a set, and the target page is obliged to keep its
+        // own
         let viewportConfig = envelope?.viewportConfig;
 
         if (envelope?.viewportConfig) {
@@ -192,9 +195,9 @@ export function useSchemaFileTransfer(): IUseSchemaFileTransferReturn {
                 };
             }
 
-            // Дальше едет нормализованный набор, а не вход файла: валидатор
-            // подрезает подписи и оставляет только объявленные поля, и записывать
-            // в страницу надо именно его
+            // What travels on is the normalized set rather than the input of the
+            // file: the validator trims the labels and keeps only the declared
+            // fields, and that is what has to be written onto the page
             viewportConfig = validation.value;
         }
 

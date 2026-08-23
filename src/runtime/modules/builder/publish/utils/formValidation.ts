@@ -16,8 +16,9 @@ import {
 import { useBricksPageAddress } from '../../../common/composables/useBricksPageAddress';
 
 /**
- * Переводит ключ через глобальный i18n (утилита вызывается вне setup-контекста).
- * `$i18n` резолвится лениво на каждый вызов — безопасно при любом порядке плагинов.
+ * Translates a key through the global i18n (this utility is called outside a setup
+ * context). `$i18n` is resolved lazily on every call — safe under any order of the
+ * plugins.
  */
 function t(key: string): string {
     const i18n = useNuxtApp().$i18n as Composer | undefined;
@@ -25,12 +26,12 @@ function t(key: string): string {
 }
 
 /**
- * Проверяет обязательное текстовое поле: непустота и границы длины.
- * Длина меряется по обрезанному значению — сервер сохраняет именно его.
+ * Checks a mandatory text field: not empty, and within the length bounds.
+ * The length is measured on the trimmed value — that is what the server saves.
  *
- * @param value - Значение поля.
- * @param rule - Границы длины и ключи сообщений.
- * @returns Текст ошибки либо пустая строка.
+ * @param value - Field value.
+ * @param rule - Length bounds and message keys.
+ * @returns The error text, or an empty string.
  */
 function validateRequiredText(value: string | null | undefined, rule: IRequiredTextRule): string {
     const trimmed = value?.trim() || '';
@@ -51,19 +52,21 @@ function validateRequiredText(value: string | null | undefined, rule: IRequiredT
 }
 
 /**
- * Проверяет pagename: непустота, формат, границы длины и доступность адресов.
+ * Checks the pagename: not empty, the shape, the length bounds and the
+ * availability of the addresses.
  *
- * Адреса проверяются по роутингу приложения, а не по списку имён. Проверка нужна
- * и здесь, хотя её держит yup-схема формы: этот валидатор стоит последним гейтом
- * перед записью, и форма ему не единственный источник — состояние приходит и из
- * черновика localStorage, минуя поля с их схемой.
+ * The addresses are checked against the routing of the application rather than
+ * against a list of names. The check is needed here too, even though the yup
+ * schema of the form holds it as well: this validator is the last gate before a
+ * write, and the form is not its only source — the state also arrives from a
+ * localStorage draft, bypassing the fields together with their schema.
  *
- * Занятость адреса другой страницей проверяется не здесь, а отдельно
- * (`validateAddressUniqueness`): она принадлежит паре целиком, и её ошибка
- * садится на то поле, которым пользователь адрес и разведёт.
+ * Whether the address is taken by another page is checked not here but separately
+ * (`validateAddressUniqueness`): that belongs to the pair as a whole, and its
+ * error lands on the field a person will actually part the addresses with.
  *
- * @param address - Нормализованный адрес страницы.
- * @returns Текст ошибки либо пустая строка.
+ * @param address - Normalized page address.
+ * @returns The error text, or an empty string.
  */
 function validatePagename(address: IBricksPageAddress): string {
     const { pagename } = address;
@@ -90,7 +93,8 @@ function validatePagename(address: IBricksPageAddress): string {
         return t('bricks.publish.validation.pagenameEditorTaken');
     }
 
-    // С префиксом за адрес отвечает поле urlPrefix — ошибка ставится там
+    // With a prefix the address is the urlPrefix field's responsibility — the
+    // error is put there
     if (address.urlPrefix === null && !isPageAddressFree(address)) {
         return t('bricks.publish.validation.pagenameAddressTaken');
     }
@@ -99,13 +103,14 @@ function validatePagename(address: IBricksPageAddress): string {
 }
 
 /**
- * Ставит ошибку занятого адреса на то поле, которым его и разводят: с префиксом
- * — на `urlPrefix`, без него — на `pagename`. Та же конвенция, что у yup-схемы и
- * у адреса, занятого роутингом приложения.
+ * Puts the "address taken" error on the field a person parts the addresses with:
+ * on `urlPrefix` when there is a prefix, on `pagename` when there is none. The
+ * same convention as in the yup schema and for an address taken by the routing of
+ * the application.
  *
- * @param address - Нормализованный адрес страницы.
- * @param isAddressAvailable - Проверка, свободен ли адрес у других страниц.
- * @param errors - Аккумулятор ошибок (мутируется).
+ * @param address - Normalized page address.
+ * @param isAddressAvailable - The check of whether the address is free of other pages.
+ * @param errors - Error accumulator (mutated).
  */
 function validateAddressUniqueness(
     address: IBricksPageAddress,
@@ -118,18 +123,19 @@ function validateAddressUniqueness(
 
     const field = address.urlPrefix === null ? 'pagename' : 'urlPrefix';
 
-    // Уже стоящую ошибку не затираем: формат и границы объясняют поле точнее,
-    // чем занятость пары, собранной из невалидного значения
+    // An error already standing is not overwritten: the shape and the bounds
+    // explain the field more precisely than the pair — assembled out of an
+    // invalid value — being taken
     if (!errors[field]) {
         errors[field] = t('bricks.publish.validation.addressTaken');
     }
 }
 
 /**
- * Валидирует опциональные поля маршрутизации (urlPrefix, subdomain).
+ * Validates the optional routing fields (urlPrefix, subdomain).
  *
- * @param formState - Нормализованное состояние формы (уже trim'нутое).
- * @param errors - Аккумулятор ошибок (мутируется).
+ * @param formState - Normalized form state (trimmed already).
+ * @param errors - Error accumulator (mutated).
  */
 function validateOptionalRoutingFields(
     formState: TPublishFormState,
@@ -143,8 +149,8 @@ function validateOptionalRoutingFields(
             toPageAddress(formState.pagename, formState.urlPrefix)
         )
     ) {
-        // Адрес пары urlPrefix+pagename занят в роутинге приложения: сохранённая
-        // страница по нему уже не откроется
+        // The address of the urlPrefix+pagename pair is taken in the routing of
+        // the application: a page saved under it would no longer open
         errors.urlPrefix = t('bricks.publish.validation.urlPrefixAddressTaken');
     }
 
@@ -154,17 +160,19 @@ function validateOptionalRoutingFields(
 }
 
 /**
- * Валидирует настройки публикации перед превью или публикацией:
- * обязательные pagename/title/description, их длины, формат pagename и полей
- * маршрутизации, уникальность pagename.
+ * Validates the publish settings before a preview or a publication: the mandatory
+ * pagename/title/description, their lengths, the shape of the pagename and of the
+ * routing fields, the uniqueness of the address.
  *
- * Границы длины — те же константы, что у yup-схемы формы и у серверной проверки
- * DTO. Без них сайдбар подсвечивал поле красным по схеме, а сохранение всё равно
- * проходило: две проверки жили каждая со своим набором правил.
+ * The length bounds are the same constants as in the yup schema of the form and in
+ * the server-side DTO check. Without them the sidebar used to light a field up in
+ * red by the schema while the save went through anyway: the two checks each lived
+ * with a rule set of their own.
  *
- * @param formState - Текущее состояние формы.
- * @param isAddressAvailable - Проверка, свободен ли адрес (с учётом редактируемой страницы).
- * @returns Нормализованное состояние формы и ошибки по полям.
+ * @param formState - The current form state.
+ * @param isAddressAvailable - The check of whether the address is free (the page
+ * being edited taken into account).
+ * @returns The normalized form state and the per-field errors.
  */
 export function validatePublishFormState(
     formState: TPublishFormState,

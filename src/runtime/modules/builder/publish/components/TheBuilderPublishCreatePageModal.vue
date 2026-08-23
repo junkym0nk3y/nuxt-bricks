@@ -1,4 +1,24 @@
 <script setup lang="ts">
+/**
+ * @description The page creation form: the meta fields, the choice of the content
+ * source (a blank canvas, a template or a JSON file), the "Advanced" section with the
+ * routing, the keywords and the device set, and the nested template picker.
+ *
+ * Decisions held by the markup: the warning about the orphan device keys stands
+ * before the submit rather than becoming a toast after it — while the page is not
+ * created the set can still be fixed. The action band carries no separator: the body
+ * of the modal scrolls with its content, and a line above the buttons would read as
+ * the edge of a list. The template picker is a nested window over the form, opened by
+ * the "From a template" card the way the file dialog is opened by its neighbor and
+ * closed by a pick; it is as wide as the content of the form, since it lists the very
+ * templates that end up as a row under the cards.
+ *
+ * Decisions held by the style section: `fieldLabel` is the label above the tags
+ * editor, built the way `BuilderPublishSeoFields` builds its own and for the same
+ * reason. The device glyphs are 1.8rem by the design: with no explicit size they
+ * inherit the font size of the text.
+ */
+
 // #region Imports
 // Types
 import type { IBricksSchema } from '../../../common/types/brick';
@@ -61,49 +81,47 @@ const emit = defineEmits<IPublishCreatePageModalEmits>();
 const { t } = useI18n();
 const { fileInputRef, openFilePicker, readSelectedFile } = useSchemaFileTransfer();
 
-/** Источник содержимого: выбранный файл делает страницу непустой. */
+/** The source of the content: a picked file makes the page non-empty */
 const source = ref<TPublishCreatePageSource>('blank');
 const selectedFile = ref<IParsedSchemaFile | null>(null);
 const fileError = ref('');
 
 /**
- * Набор устройств создаваемой страницы: `null` — наследует набор проекта.
- * Правится группой «Устройства» в секции «Дополнительно» и приезжает из
- * источника содержимого — конверта JSON-файла либо шаблона.
+ * The device set of the page being created: `null` — it inherits the set of the
+ * project. Edited by the "Devices" group of the "Advanced" section and arrives from
+ * the content source — the envelope of a JSON file, or a template.
  */
 const viewportConfig = ref<TBricksPageDeviceSet | null>(null);
 
 /**
- * Откуда взялся набор устройств: `source` — принёс выбранный шаблон или файл,
- * `manual` — правка человека.
- *
- * Различие нужно смене источника: набор, пришедший вместе с источником, обязан
- * уйти вместе с ним (иначе пустая страница родилась бы со ступенями шаблона), а
- * ручную правку смена источника стирать не вправе — её делали осознанно.
+ * Where the device set came from: from the source (a picked template or file), or
+ * from an edit made by hand. A change of the source needs the difference: a set that
+ * arrived with the source is obliged to leave with it (otherwise a blank page would
+ * be born carrying the steps of a template), while an edit made deliberately by hand
+ * a change of the source has no right to wipe.
  */
 const isViewportConfigFromSource = ref(false);
 
 const isDevicesModalOpen = ref(false);
 const { projectDevices } = useBricksDevices();
 
-/** Список шаблонов для выбора источника — то же состояние, что у раздела. */
+/** The template list for picking a source — the same state the section uses */
 const { templates, status: templatesStatus, ensureTemplates } = useTemplatesData();
 
 const isTemplatePickerOpen = ref(false);
-/** Выбранный шаблон (сводка) — им подписана строка под карточками. */
+/** The picked template (a summary) — it signs the row under the cards */
 const selectedTemplate = ref<TBricksTemplateSummary | null>(null);
 /**
- * Содержимое выбранного шаблона: читается сразу при выборе, а не при сабмите.
- *
- * Иначе набор устройств шаблона и его оформление приезжали бы уже после
- * подтверждения формы — то есть группа «Устройства» показывала бы проектный
- * набор, а создалась бы страница с другим.
+ * The content of the picked template: read right at the pick rather than at the
+ * submit. Otherwise the device set of the template and its appearance would arrive
+ * after the form had been confirmed — that is, the "Devices" group would show the set
+ * of the project while the page would be created with another one.
  */
 const selectedTemplateContent = ref<IBricksTemplateRow | null>(null);
 const isTemplateLoading = ref(false);
 /**
- * Поколение выбора шаблона: чтение содержимого асинхронно, и за это время можно
- * выбрать другой шаблон либо снять выбор вовсе.
+ * The generation of the template pick: reading the content is asynchronous, and in
+ * that time another template may be picked, or the pick dropped altogether.
  */
 let templateGeneration = 0;
 
@@ -125,10 +143,11 @@ const {
     onCreated: (createdAddress) => emit('created', createdAddress),
     resolveSchema: resolveCreateSchema,
     resolveViewportConfig: () => viewportConfig.value,
-    // Оформление отдаётся только пока шаблон и есть активный источник: сверка с
-    // `source` — не перестраховка, а инвариант. Прочитанное содержимое шаблона
-    // живёт в форме, и без неё выбор JSON-файла поверх шаблона создал бы страницу
-    // из файла, но с раскладкой и фоном шаблона
+    // The appearance is handed over only while a template is the active source: the
+    // check against `source` is an invariant rather than a belt and braces. The read
+    // content of a template lives in the form, and without the check picking a JSON
+    // file on top of a template would create a page out of the file but carrying the
+    // layout and the background of the template
     resolveAppearance: () =>
         source.value === 'template' && selectedTemplateContent.value
             ? {
@@ -143,16 +162,14 @@ const host = ref('');
 const titleFieldRef = ref<HTMLDivElement | null>(null);
 
 /**
- * Поколение формы: растёт на каждом открытии модалки. Им отсекается разбор
- * файла, завершившийся уже после закрытия — см. `handleFileSelect`.
+ * The generation of the form: grows on every opening of the modal. By it the parsing
+ * of a file that finished after the closing is cut off — see `handleFileSelect`.
  */
 let formGeneration = 0;
 // #endregion
 
 // #region Computed
-/**
- * Live-подсказка URL будущей страницы от текущих значений формы.
- */
+/** The live hint of the URL of the page to be, built out of the current form values */
 const urlHint = computed<string>(() => {
     if (!slugPreview.value) {
         return '';
@@ -169,7 +186,7 @@ const keywordTags = computed<string[]>(() => parseKeywords(String(keywords.value
 // #endregion
 
 // #region Computed
-/** Набор, который показывает строка: свой у страницы либо проектный. */
+/** The set the row shows: either the page's own one or the project's */
 const shownDevices = computed(() => viewportConfig.value ?? projectDevices);
 
 const devicesSummary = computed<string>(() => {
@@ -181,9 +198,9 @@ const devicesSummary = computed<string>(() => {
 });
 
 /**
- * Компоненты схемы выбранного источника — файла или шаблона: по ним редактор
- * набора считает, сколько переопределений унесёт удаление устройства. Пустая
- * страница компонентов не имеет, и счётчик там честно нулевой.
+ * The schema components of the picked source — a file or a template: over them the
+ * set editor counts how many overrides a removal of a device will carry away. A blank
+ * page has no components, and the counter there is honestly zero.
  */
 const importedComponents = computed<IBricksSchema['components']>(
     () =>
@@ -193,12 +210,11 @@ const importedComponents = computed<IBricksSchema['components']>(
 );
 
 /**
- * Ключи устройств из импортируемой схемы, которых в наборе страницы нет.
- *
- * Считаются против набора, который реально будет действовать: файл может о
- * наборе молчать, и тогда ступени задаёт проект. Такие переопределения не
- * удаляются, но и не применяются — без предупреждения расхождение раскладки
- * выглядит как баг рендера.
+ * The device keys of the imported schema that are absent from the set of the page.
+ * They are counted against the set that is really going to apply: a file may say
+ * nothing about a set, and then the steps are dictated by the project. Such overrides
+ * are not removed but are not applied either — without a warning the divergence of
+ * the layout looks like a bug of the renderer.
  */
 const orphanDeviceKeys = computed<string[]>(() =>
     collectOrphanDeviceKeys(
@@ -210,15 +226,15 @@ const orphanDeviceKeys = computed<string[]>(() =>
 
 // #region Methods
 /**
- * Применяет набор устройств к создаваемой странице.
+ * Applies a device set to the page being created. The keys that are gone get swept
+ * out of the schema of the picked source: the removal confirmation promises to remove
+ * the overrides of the device, and the page is created out of that very schema —
+ * leaving them in would write exactly what was promised to be removed. The file is
+ * replaced whole rather than edited in place: the number of blocks and the list of
+ * orphans lie next to it, and editing the schema past them would give an object out
+ * of step with itself.
  *
- * Исчезнувшие ключи вычищаются из схемы выбранного файла: подтверждение удаления
- * обещает удалить переопределения устройства, а страница создаётся из этой самой
- * схемы — оставив их, мы записали бы ровно то, что обещали удалить. Файл
- * заменяется целиком, а не правится на месте: у него рядом лежат число блоков и
- * список сирот, и правка схемы в обход них дала бы рассогласованный объект.
- *
- * @param config - Набор страницы либо `null` (наследование набора проекта).
+ * @param config - The set of the page, or `null` (inheriting the set of the project).
  */
 function handleDevicesSave(config: TBricksPageDeviceSet | null): void {
     const previousKeys = shownDevices.value.map((device) => device.key);
@@ -233,10 +249,8 @@ function handleDevicesSave(config: TBricksPageDeviceSet | null): void {
         }
     }
 
-    // Та же чистка у шаблона-источника, и по той же причине: страница создаётся
-    // из этой схемы, и оставленные переопределения были бы ровно тем, что
-    // подтверждение обещало удалить. Сам шаблон в базе при этом не меняется —
-    // правится только копия, лежащая в форме
+    // The same sweep on the source template. The template in the database is not
+    // changed by it — only the copy lying in the form is edited
     const templateContent = selectedTemplateContent.value;
 
     if (templateContent) {
@@ -251,9 +265,7 @@ function handleDevicesSave(config: TBricksPageDeviceSet | null): void {
     isViewportConfigFromSource.value = false;
 }
 
-/**
- * Закрывает модалку (форма сбрасывается при следующем открытии).
- */
+/** Closes the modal (the form is reset on the next opening) */
 function handleClose(): void {
     if (isSubmitting.value) {
         return;
@@ -262,22 +274,22 @@ function handleClose(): void {
 }
 
 /**
- * Возвращает ключевые слова в форму строкой — теги живут только в редакторе.
+ * Returns the keywords into the form as a string — the tags live inside the editor
+ * only.
  *
- * @param tags - Актуальный список тегов.
+ * @param tags - The current tag list.
  */
 function handleKeywordsChange(tags: string[]): void {
     keywords.value = serializeKeywords(tags);
 }
 
 /**
- * Отдаёт схему создаваемой страницы форме.
+ * Hands the schema of the page being created over to the form. A blank canvas is
+ * handed over at once, while a picked file first travels into the image resolver of
+ * the dashboard owner: before the page is created a decision has to be made about the
+ * URLs absent from the media library.
  *
- * Пустой холст отдаётся сразу. Выбранный файл сначала уходит в резолвер картинок
- * владельца дашборда: до создания страницы нужно решить, что делать с URL,
- * которых нет в медиатеке.
- *
- * @returns Схема к записи либо `null`, если создание отменено.
+ * @returns The schema to write, or `null` when the creation was canceled.
  */
 async function resolveCreateSchema(): Promise<IBricksSchema | null> {
     if (source.value === 'file' && selectedFile.value) {
@@ -285,26 +297,26 @@ async function resolveCreateSchema(): Promise<IBricksSchema | null> {
     }
 
     if (source.value === 'template') {
-        // Содержимого нет — сабмит прорвался мимо выключенной кнопки (пока идёт
-        // чтение, она заблокирована). Пустой холст здесь был бы худшим исходом:
-        // человек уверен, что создаёт страницу из шаблона, а получил бы чистую
+        // There is no content — the submit broke past the disabled button (while
+        // the reading runs it is blocked). A blank canvas would be the worst outcome
+        // here: a person is sure they are creating a page out of a template and
+        // would get an empty one
         if (!selectedTemplateContent.value) {
             fileError.value = t('bricks.templates.errors.contentReadFailed');
             return null;
         }
 
-        // Схема шаблона тоже идёт через резолвер картинок, хотя пришла из своей же
-        // базы: файл, на который она ссылается, могли удалить из медиатеки после
-        // сохранения шаблона, и тогда решение о битой ссылке принимает человек
+        // The schema of a template goes through the image resolver as well, even
+        // though it came out of our own database: the file it refers to may have
+        // been deleted from the media library after the template was saved, and then
+        // the decision about the broken link is a person's to make
         return await props.resolveImportedSchema(selectedTemplateContent.value.schema);
     }
 
     return { components: [] };
 }
 
-/**
- * Возвращает источник к пустой странице.
- */
+/** Returns the source to a blank page */
 function handleSelectBlank(): void {
     clearTemplateSelection();
     source.value = 'blank';
@@ -313,15 +325,11 @@ function handleSelectBlank(): void {
 }
 
 /**
- * Снимает выбранный шаблон вместе с прочитанным содержимым и набором устройств,
- * который он принёс.
- *
- * Поколение растёт здесь же: снятие обязано отсечь ещё летящее чтение
- * содержимого — иначе оно доехало бы и вернуло источник к шаблону, которого
- * человек уже не выбирает.
- *
- * Набор устройств сбрасывается только если его принёс источник: правку из группы
- * «Устройства» смена источника стирать не вправе.
+ * Drops the picked template together with the content that was read and with the
+ * device set it brought along. The generation grows right here: the dropping is
+ * obliged to cut off a read of the content still in flight — otherwise it would
+ * arrive and would return the source to a template the person is no longer picking.
+ * The device set is reset only when the source brought it.
  */
 function clearTemplateSelection(): void {
     templateGeneration += 1;
@@ -335,23 +343,20 @@ function clearTemplateSelection(): void {
     }
 }
 
-/**
- * Открывает диалог выбора JSON-файла.
- */
+/** Opens the dialog for picking a JSON file */
 function handlePickFile(): void {
     fileError.value = '';
     openFilePicker();
 }
 
 /**
- * Разбирает выбранный файл и делает его источником содержимого.
+ * Parses the picked file and makes it the source of the content. A parsing error
+ * leaves the choice on a blank page and does not block the creation: a person will
+ * either take another file or create a blank canvas.
  *
- * Ошибка разбора оставляет выбор на пустой странице и не блокирует создание:
- * пользователь либо возьмёт другой файл, либо создаст чистый холст.
- *
- * Исход применяется только к тому открытию модалки, в котором файл выбрали:
- * чтение большого файла переживает закрытие, и без этой сверки завершившийся
- * разбор подставил бы файл прошлой сессии в форму уже новой страницы.
+ * The outcome is applied only to the opening of the modal the file was picked in:
+ * reading a large file outlives a closing, and without this check a parsing that
+ * finished would put the file of the previous session into the form of a new page.
  */
 async function handleFileSelect(): Promise<void> {
     const startedIn = formGeneration;
@@ -362,10 +367,10 @@ async function handleFileSelect(): Promise<void> {
     }
 
     if (result.status === 'error') {
-        // Битый файл возвращает источник к пустой странице — вместе с шаблоном,
-        // если он был выбран: иначе форма показывала бы его строку, считала
-        // активной пустую страницу и создала бы пустую схему, но с набором
-        // устройств шаблона
+        // A broken file returns the source to a blank page — together with the
+        // template if one was picked: otherwise the form would show its row, would
+        // count a blank page as the active source and would create an empty schema
+        // carrying the device set of the template
         clearTemplateSelection();
         fileError.value = result.message;
         source.value = 'blank';
@@ -373,47 +378,42 @@ async function handleFileSelect(): Promise<void> {
         return;
     }
 
-    // Файл вытесняет шаблон целиком: источник один, и оставленное содержимое
-    // шаблона уехало бы в страницу своим оформлением
+    // A file displaces a template whole: there is one source, and the content of a
+    // template left behind would travel into the page as its appearance
     clearTemplateSelection();
     fileError.value = '';
     selectedFile.value = result.file;
     source.value = 'file';
 
-    // Конверт несёт набор устройств — берём его: ключи `props.responsive` в
-    // импортируемой схеме относятся именно к нему. Файл, который про набор
-    // ничего не говорит (legacy-схема или конверт без поля), оставляет
-    // создаваемую страницу наследующей
+    // An envelope carries a device set, so it is taken: the `props.responsive` keys
+    // of the imported schema refer to that very set. A file that says nothing about a
+    // set leaves the page being created inheriting
     if (result.file.viewportConfig !== undefined) {
         viewportConfig.value = result.file.viewportConfig;
         isViewportConfigFromSource.value = true;
     }
 }
 
-/**
- * Открывает выбор шаблона и запускает чтение списка, если он ещё не прочитан.
- */
+/** Opens the template picker and starts a read of the list unless it has been read */
 function handlePickTemplate(): void {
     fileError.value = '';
     isTemplatePickerOpen.value = true;
     ensureTemplates();
 }
 
-/**
- * Закрывает выбор шаблона, не меняя источник.
- */
+/** Closes the template picker without changing the source */
 function handleCloseTemplatePicker(): void {
     isTemplatePickerOpen.value = false;
 }
 
 /**
- * Принимает выбранный шаблон: читает его содержимое и делает источником.
+ * Takes the picked template: reads its content and makes it the source. The content
+ * is read here rather than at the submit, because the device set and the appearance
+ * are taken out of it and a person has to see them in the form before the page is
+ * created. A refused read returns the source to a blank page — creating one is still
+ * possible.
  *
- * Содержимое читается здесь, а не при сабмите: из него берутся набор устройств и
- * оформление, и человек должен увидеть их в форме до создания страницы. Отказ
- * чтения возвращает источник к пустой странице — создать её всё ещё можно.
- *
- * @param template - Сводка выбранного шаблона.
+ * @param template - The summary of the picked template.
  */
 async function handleTemplateSelect(template: TBricksTemplateSummary): Promise<void> {
     templateGeneration += 1;
@@ -436,9 +436,8 @@ async function handleTemplateSelect(template: TBricksTemplateSummary): Promise<v
         }
 
         selectedTemplateContent.value = content;
-        // Набор устройств шаблона — то, в чём его страницу собирали: ключи
-        // `props.responsive` схемы относятся именно к нему. `null` в шаблоне —
-        // законное «наследует набор проекта»
+        // The device set of a template is what its page was assembled in; a `null`
+        // there is a legitimate "inherits the set of the project"
         viewportConfig.value = content.pageMeta.viewportConfig;
         isViewportConfigFromSource.value = true;
     } catch (error: unknown) {
@@ -469,15 +468,16 @@ watch(
         resetToEmpty();
         isAdvancedOpen.value = false;
         isTemplatePickerOpen.value = false;
-        // Набор прошлой создаваемой страницы не должен доехать до следующей
+        // The set of the previously created page must not reach the next one
         viewportConfig.value = null;
         isViewportConfigFromSource.value = false;
-        // Источник, шаблон и его содержимое сбрасываются здесь же
+        // The source, the template and its content are reset right here
         handleSelectBlank();
 
-        // Форму могли открыть карточкой шаблона — тогда источник выбран заранее.
-        // Промис намеренно не ожидается: фокус в поле названия обязан встать
-        // сразу, а не после чтения содержимого шаблона
+        // The form may have been opened by a template card — then the source is
+        // picked in advance. The promise is deliberately not awaited: the focus has
+        // to land in the title field at once rather than after the content of the
+        // template has been read
         if (props.initialTemplate) {
             handleTemplateSelect(props.initialTemplate);
         }
@@ -643,10 +643,6 @@ onMounted(() => {
                                     {{ t('bricks.devices.settingsAction') }}
                                 </BricksButton>
                             </div>
-                            <!--
-                                Предупреждение до сабмита, а не тост после: пока
-                                страница не создана, набор ещё можно поправить
-                            -->
                             <span v-if="orphanDeviceKeys.length > 0" :class="$style.devicesOrphans">
                                 {{
                                     t('bricks.devices.orphanKeys', {
@@ -661,10 +657,6 @@ onMounted(() => {
                 <BricksFieldError :message="generalError" />
             </div>
 
-            <!--
-                Полоса действий без разделителя: тело модалки скроллится по
-                содержимому, и линия над кнопками читалась бы как край списка.
-            -->
             <BricksModalFooter variant="plain">
                 <BricksButton
                     size="md"
@@ -674,11 +666,6 @@ onMounted(() => {
                 >
                     {{ t('bricks.common.cancel') }}
                 </BricksButton>
-                <!--
-                    Пока содержимое шаблона читается, создавать нечего: сабмит
-                    ушёл бы с пустой схемой и создал бы чистую страницу вместо
-                    выбранного шаблона
-                -->
                 <BricksButton
                     size="md"
                     variant="primary"
@@ -702,11 +689,6 @@ onMounted(() => {
         @save="handleDevicesSave"
     />
 
-    <!--
-        Выбор шаблона — вложенное окно поверх формы: список открывается по клику на
-        карточке «Из шаблона», как диалог файла у карточки «Из JSON-файла», и
-        закрывается выбором
-    -->
     <BricksModal
         :is-open="isTemplatePickerOpen"
         :title="t('bricks.templates.picker.title')"
@@ -755,14 +737,10 @@ onMounted(() => {
     gap: 0.6rem;
 }
 
-// Подпись над редактором тегов: своего лейбла у него нет — он общий элемент
-// кита и в свойствах блоков подписывается снаружи
 .fieldLabel {
     display: flex;
     align-items: center;
     justify-content: space-between;
-
-    // 0.6rem gap колонки + 0.2rem = 0.8rem, как отступ лейбла внутри полей кита
     margin-bottom: 0.2rem;
     font-size: 1.4rem;
     font-weight: 500;
@@ -799,8 +777,6 @@ onMounted(() => {
 .deviceIcons {
     display: flex;
     align-items: center;
-
-    // Глифы 1.8rem по макету: без явного размера они наследуют кегль текста
     font-size: 1.8rem;
     color: var(--bricks-base-600);
     gap: 0.8rem;
@@ -828,9 +804,6 @@ onMounted(() => {
     overflow: hidden;
     display: flex;
     width: 100%;
-
-    // По ширине содержимого формы создания: список тех же шаблонов, что встанут
-    // строкой под её карточками
     max-width: 48rem;
     border-radius: var(--bricks-border-radius-md);
     background: var(--bricks-base-0);

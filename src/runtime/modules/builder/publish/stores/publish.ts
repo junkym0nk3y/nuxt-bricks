@@ -26,8 +26,8 @@ import {
 import { updatePageRequest, patchPageRequest, deletePageRequest } from '../utils/publishApi';
 
 /**
- * Переводит ключ через глобальный i18n (стор не имеет setup-контекста).
- * `$i18n` резолвится лениво на каждый вызов — безопасно при любом порядке плагинов.
+ * Translates a key through the global i18n (the store has no setup context).
+ * `$i18n` is resolved lazily on every call — safe under any order of the plugins.
  */
 function t(key: string): string {
     const i18n = useNuxtApp().$i18n as Composer | undefined;
@@ -35,48 +35,50 @@ function t(key: string): string {
 }
 
 /**
- * Pinia-стор для публикации, черновиков и загрузки страниц лендинга.
- * API-слой — в `utils/publishApi.ts`, валидация — в `utils/formValidation.ts`,
- * превью — в `composables/usePublishPreview.ts`.
+ * The Pinia store of publication, drafts and loading of the landing pages.
+ * The API layer is in `utils/publishApi.ts`, the validation in
+ * `utils/formValidation.ts`, the preview in `composables/usePublishPreview.ts`.
  */
 export const usePublishStore = defineStore('bricksPublish', {
     state: () => ({
-        // Список — сводки без schema (editorial-список лёгкий); полная страница
-        // со схемой запрашивается point-lookup'ом fetchPageById по необходимости
+        // The list holds summaries with no schema (the editorial list is light);
+        // the full page with its schema is requested by the `fetchPageRequest`
+        // point lookup when needed
         publishedPages: [] as TPublishedPageSummary[],
         currentFormState: buildDefaultFormState(),
         validationErrors: {} as Record<string, string>,
         generalError: '',
-        // Реестр незавершённых операций записи — см. `utils/activeWrites`
+        // The registry of the unfinished write operations — see `utils/activeWrites`
         activeWriteIds: [] as number[],
         nextWriteId: 0,
         editingPageId: null as string | number | null,
         lastSuccessfulSaveAt: 0,
-        // Номер последнего стартовавшего запроса списка — им отсекаются ответы,
-        // пришедшие не в том порядке, в каком уходили (см. loadAllPages)
+        // The number of the last list request started — by it the answers that
+        // arrived out of the order they went out in are cut off (see loadAllPages)
         pagesRequestId: 0,
-        // Момент последнего полного ответа сервера; `null` — список не загружали.
-        // Отдельно от длины массива: пустой список законен (новая страница)
+        // The moment of the last full answer of the server; `null` — the list was
+        // never loaded. Apart from the length of the array: an empty list is
+        // legitimate (a new page)
         pagesLoadedAt: null as number | null,
     }),
 
     getters: {
         /**
-         * Идёт ли запись текущего лендинга.
+         * Whether a write of the current landing is running.
          */
         isSubmitting: (state): boolean => state.activeWriteIds.length > 0,
 
         /**
-         * Находит страницу по идентификатору.
+         * Finds a page by its identifier.
          */
         getPageById: (state) => (id: string | number) => {
             return state.publishedPages.find((page) => String(page.id) === String(id));
         },
 
         /**
-         * Находит страницу по адресу. По адресу, а не по имени: имя уникально
-         * только внутри своего префикса, и поиск по нему возвращал бы
-         * произвольную из одноимённых страниц.
+         * Finds a page by its address. By the address rather than by the name: a
+         * name is unique only within its own prefix, and a search by it would
+         * return an arbitrary one of the pages sharing that name.
          */
         getPageByAddress: (state) => (address: IBricksPageAddress) => {
             const key = getPageAddressKey(address);
@@ -87,7 +89,8 @@ export const usePublishStore = defineStore('bricksPublish', {
         },
 
         /**
-         * Проверяет, свободен ли адрес, учитывая возможное исключение по id.
+         * Whether the address is free, a possible exclusion by id taken into
+         * account.
          */
         isAddressAvailable:
             (state) => (address: IBricksPageAddress, excludeId?: string | number) => {
@@ -103,61 +106,63 @@ export const usePublishStore = defineStore('bricksPublish', {
 
     actions: {
         /**
-         * Открывает операцию записи текущего лендинга — см. `utils/activeWrites`.
+         * Opens a write operation of the current landing — see `utils/activeWrites`.
          *
-         * @returns Идентификатор операции либо `null`, если запись уже идёт.
+         * @returns The operation identifier, or `null` when a write is already
+         * running.
          */
         beginWrite(): number | null {
             return beginActiveWrite(this);
         },
 
         /**
-         * Закрывает операцию записи по её идентификатору.
+         * Closes a write operation by its identifier.
          *
-         * @param writeId - Идентификатор, выданный `beginWrite`.
+         * @param writeId - The identifier issued by `beginWrite`.
          */
         endWrite(writeId: number): void {
             endActiveWrite(this, writeId);
         },
 
         /**
-         * Забывает незавершённые операции при смене сессии билдера. Запрос при этом
-         * продолжает лететь, и его исход дойдёт до пользователя тостом с меткой
-         * страницы — но новая страница не должна ни показывать индикатор чужой
-         * записи, ни ждать её конца, чтобы сохраниться.
+         * Forgets the unfinished operations on a change of the builder session. The
+         * request keeps flying meanwhile, and its outcome reaches the person as a
+         * toast labeled with the page — but the new page must neither show the
+         * indicator of somebody else's write nor wait for its end to be saved.
          */
         resetActiveWrites(): void {
             this.activeWriteIds = [];
         },
 
         /**
-         * Полностью заменяет состояние формы публикации (например, при восстановлении черновика).
+         * Fully replaces the publish form state (when a draft is restored, for one).
          *
-         * @param formState - Новое состояние формы.
+         * @param formState - The new form state.
          */
         setCurrentFormState(formState: TPublishFormState): void {
             this.currentFormState = normalizeFormState(formState);
         },
 
         /**
-         * Публикует новую страницу — см. `utils/currentPageWrite.runPublishPage`.
+         * Publishes a new page — see `utils/currentPageWrite.runPublishPage`.
          *
-         * @param schema - Схема лендинга.
-         * @param formState - Данные формы публикации.
-         * @returns ID созданной страницы.
+         * @param schema - Landing schema.
+         * @param formState - Publish form data.
+         * @returns The id of the created page.
          */
         async publishPage(schema: IBricksSchema, formState: TPublishFormState): Promise<number> {
             return await runPublishPage(this, schema, formState);
         },
 
         /**
-         * Синхронизирует страницу в локальном списке: заменяет существующую
-         * запись ответом сервера (свежие updatedAt/revision) либо добавляет новую.
+         * Synchronizes a page in the local list: replaces the existing record with
+         * the answer of the server (a fresh updatedAt/revision), or adds a new one.
          *
-         * @param page - Нормализованная страница из ответа API.
+         * @param page - The normalized page from the API answer.
          */
         syncPageInList(page: IPublishedPage): void {
-            // Список хранит сводки — schema из ответа PUT/PATCH в стор не кладём
+            // The list stores summaries — the schema from a PUT/PATCH answer is
+            // not put into the store
             const { schema: _schema, isPreview: _isPreview, ...summary } = page;
             const index = this.publishedPages.findIndex(
                 (existing) => String(existing.id) === String(page.id)
@@ -173,24 +178,26 @@ export const usePublishStore = defineStore('bricksPublish', {
         },
 
         /**
-         * Обесценивает уже летящие запросы списка. Локальная запись свежее любого
-         * GET'а, стартовавшего до неё: без этого ответ такого GET'а возвращал список
-         * без только что созданной копии и с прежней revision — страница пропадала
-         * из дашборда, а следующее сохранение падало ложным 409 (находка ревью:
-         * счётчик сам по себе упорядочивал только GET относительно GET).
+         * Devalues the list requests already in flight. A local write is fresher
+         * than any GET that started before it: without this the answer of such a
+         * GET used to bring back a list with no copy just created in it and with
+         * the previous revision — the page disappeared from the dashboard, and the
+         * next save failed with a false 409. On its own the counter ordered a GET
+         * only against another GET.
          */
         invalidatePendingPagesLoad(): void {
             this.pagesRequestId += 1;
         },
 
         /**
-         * Обновляет страницу и синхронизирует её в локальном списке. PUT всегда
-         * идёт с precondition (`requirePageRevision`): при конфликте — 409,
-         * список обновляется (toPageWriteError), повтор перезапишет осознанно.
+         * Updates a page and synchronizes it in the local list. A PUT always goes
+         * out with a precondition (`requirePageRevision`): on a conflict it is a
+         * 409, the list is refreshed (toPageWriteError), and a retry overwrites
+         * knowingly.
          *
-         * @param id - Идентификатор страницы.
-         * @param schema - Схема лендинга.
-         * @param formState - Данные формы публикации.
+         * @param id - Page identifier.
+         * @param schema - Landing schema.
+         * @param formState - Publish form data.
          */
         async updatePage(
             id: string | number,
@@ -212,12 +219,12 @@ export const usePublishStore = defineStore('bricksPublish', {
         },
 
         /**
-         * Частично обновляет страницу и синхронизирует её в локальном списке.
-         * Конфликт precondition (payload с expectedRevision) обрабатывается
-         * как в updatePage.
+         * Partially updates a page and synchronizes it in the local list. A
+         * precondition conflict (a payload carrying expectedRevision) is handled
+         * the way updatePage handles it.
          *
-         * @param id - Идентификатор страницы.
-         * @param payload - Частичный payload обновления.
+         * @param id - Page identifier.
+         * @param payload - Partial update payload.
          */
         async patchPage(id: string | number, payload: IUpdatePagePayload): Promise<IPublishedPage> {
             try {
@@ -232,11 +239,11 @@ export const usePublishStore = defineStore('bricksPublish', {
         },
 
         /**
-         * Откатывает страницу к версии (обязательный revision-precondition) —
-         * см. `restorePageVersionWithPrecondition`.
+         * Rolls a page back to a version (with a mandatory revision precondition) —
+         * see `restorePageVersionWithPrecondition`.
          *
-         * @param id - Идентификатор страницы.
-         * @param versionId - Идентификатор версии.
+         * @param id - Page identifier.
+         * @param versionId - Version identifier.
          */
         async restorePageVersion(id: string | number, versionId: number): Promise<IPublishedPage> {
             return restorePageVersionWithPrecondition(
@@ -248,9 +255,9 @@ export const usePublishStore = defineStore('bricksPublish', {
         },
 
         /**
-         * Удаляет страницу из БД и локального списка.
+         * Deletes a page from the database and from the local list.
          *
-         * @param id - Идентификатор страницы.
+         * @param id - Page identifier.
          */
         async deletePage(id: string | number): Promise<void> {
             try {
@@ -267,43 +274,36 @@ export const usePublishStore = defineStore('bricksPublish', {
                 this.invalidatePendingPagesLoad();
             } catch (error: unknown) {
                 console.error('[Publish Store] Failed to delete page:', error);
-                // Через ту же политику, что update/patch/restore: обрыв по таймауту
-                // не означает, что страница не удалена — по освежённому списку это
-                // видно, а иначе удалённая страница осталась бы в дашборде и повтор
-                // получил бы 404 (находка ревью)
+                // Through the same policy as update/patch/restore: an abort by the
+                // timeout does not mean the page was not deleted — a refreshed list
+                // shows that, and without it a deleted page would stay in the
+                // dashboard and a retry would get a 404
                 throw await toPageWriteError(error, () => this.loadAllPages());
             }
         },
 
         /**
-         * Загружает список всех страниц.
-         *
-         * Ошибку только бросает: `generalError` — поле формы публикации, и запись
-         * туда доносила текст чужой страницы до открытой. Запрос списка уходит из
-         * bootstrap'а сессии, поэтому падение загрузки на покинутой странице
-         * подсвечивало ошибку в сайдбаре той, что уже открыта. Каждый вызывающий
-         * обрабатывает отказ сам: дашборд — своим тостом, bootstrap сессии —
-         * блокирующим экраном, `toPageWriteError` — конфликтом ревизии, освежение
-         * после создания (`runPublishPage`) — предупреждением в консоль.
+         * Loads the list of every page. The error is only thrown, and who handles
+         * it how is decided by `utils/pagesLoad.runLoadAllPages`.
          */
         async loadAllPages(): Promise<void> {
             await runLoadAllPages(this);
         },
 
         /**
-         * Гарантирует полный список страниц, не запрашивая его повторно, — см.
-         * `utils/pagesLoad`. Ошибку не глушит: её смысл разный у открытия сессии
-         * и у селектора страниц.
+         * Guarantees a full page list without requesting it a second time — see
+         * `utils/pagesLoad`. The error is not swallowed: it means different things
+         * to the opening of a session and to the page selector.
          */
         async ensurePagesLoaded(): Promise<void> {
             await ensureAllPagesLoaded(this, t('bricks.publish.toasts.loadPageFailed'));
         },
 
         /**
-         * Обновляет отдельное поле в текущих настройках.
+         * Updates a single field of the current settings.
          *
-         * @param field - Название поля.
-         * @param value - Значение поля.
+         * @param field - Field name.
+         * @param value - Field value.
          */
         setCurrentFormField<K extends keyof TPublishFormState>(
             field: K,
@@ -316,14 +316,14 @@ export const usePublishStore = defineStore('bricksPublish', {
         },
 
         /**
-         * Сбрасывает текущие настройки к значениям по умолчанию.
+         * Resets the current settings to the default values.
          */
         resetCurrentFormState(): void {
             this.currentFormState = buildDefaultFormState();
         },
 
         /**
-         * Очищает ошибки валидации и общую ошибку.
+         * Clears the validation errors and the general error.
          */
         clearErrors(): void {
             this.validationErrors = {};
@@ -331,9 +331,9 @@ export const usePublishStore = defineStore('bricksPublish', {
         },
 
         /**
-         * Очищает ошибку валидации для конкретного поля.
+         * Clears the validation error of one particular field.
          *
-         * @param field - Поле формы публикации.
+         * @param field - A field of the publish form.
          */
         clearValidationError(field: keyof TPublishFormState): void {
             const key = String(field);
@@ -351,7 +351,7 @@ export const usePublishStore = defineStore('bricksPublish', {
         },
 
         /**
-         * Начинает новую сессию публикации.
+         * Starts a new publication session.
          */
         startNewPublish(): void {
             this.resetCurrentFormState();
@@ -360,9 +360,10 @@ export const usePublishStore = defineStore('bricksPublish', {
         },
 
         /**
-         * Загружает настройки существующей страницы и переводит стор в режим редактирования.
+         * Loads the settings of an existing page and puts the store into the
+         * editing mode.
          *
-         * @param pageId - Идентификатор страницы.
+         * @param pageId - Page identifier.
          */
         startEditingPage(pageId: string | number): void {
             const page = this.getPageById(pageId);
@@ -377,9 +378,9 @@ export const usePublishStore = defineStore('bricksPublish', {
         },
 
         /**
-         * Валидирует текущие настройки перед превью или публикацией.
+         * Validates the current settings before a preview or a publication.
          *
-         * @returns Пройдена ли валидация.
+         * @returns Whether the validation passed.
          */
         validateCurrentFormState(): boolean {
             const { formState, errors } = validatePublishFormState(
@@ -403,11 +404,11 @@ export const usePublishStore = defineStore('bricksPublish', {
         },
 
         /**
-         * Публикует или обновляет текущий лендинг.
+         * Publishes or updates the current landing.
          *
-         * @param schema - Схема лендинга из канваса.
-         * @param options - Проверка актуальности сессии-инициатора.
-         * @returns ID страницы или null при ошибке.
+         * @param schema - Landing schema from the canvas.
+         * @param options - The check of whether the initiating session is current.
+         * @returns The id of the page, or null on an error.
          */
         async publishCurrentPage(
             schema: IBricksSchema,
@@ -422,24 +423,24 @@ export const usePublishStore = defineStore('bricksPublish', {
         },
 
         /**
-         * Создаёт новую страницу-черновик (модалка создания дашборда) — см.
-         * `utils/pageLibraryWrite.runCreatePage`. Схема приходит от вызывающего:
-         * пустой холст или разобранный JSON-файл.
+         * Creates a new draft page (the creation modal of the dashboard) — see
+         * `utils/pageLibraryWrite.runCreatePage`. The schema arrives from the
+         * caller: a blank canvas or a parsed JSON file.
          *
-         * @param schema - Схема новой страницы.
-         * @param formState - Meta-поля новой страницы.
-         * @returns ID созданной страницы.
+         * @param schema - Schema of the new page.
+         * @param formState - Meta fields of the new page.
+         * @returns The id of the created page.
          */
         async createPage(schema: IBricksSchema, formState: TPublishFormState): Promise<number> {
             return await runCreatePage(this, schema, formState);
         },
 
         /**
-         * Дублирует произвольную страницу — см.
+         * Duplicates an arbitrary page — see
          * `utils/pageLibraryWrite.runDuplicatePage`.
          *
-         * @param id - Идентификатор исходной страницы.
-         * @returns ID созданной копии.
+         * @param id - Identifier of the source page.
+         * @returns The id of the created copy.
          */
         async duplicatePage(id: string | number): Promise<number> {
             return await runDuplicatePage(
@@ -450,11 +451,12 @@ export const usePublishStore = defineStore('bricksPublish', {
         },
 
         /**
-         * Сохраняет текущую конфигурацию как копию страницы; сама синхронизирует список (без loadAllPages()).
+         * Saves the current configuration as a copy of the page; synchronizes the
+         * list on its own (with no loadAllPages()).
          *
-         * @param schema - Схема лендинга из канваса.
-         * @param options - Проверка актуальности сессии-инициатора.
-         * @returns Нормализованная страница копии или null при ошибке.
+         * @param schema - Landing schema from the canvas.
+         * @param options - The check of whether the initiating session is current.
+         * @returns The normalized page of the copy, or null on an error.
          */
         async saveCurrentPageAsCopy(
             schema: IBricksSchema,

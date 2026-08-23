@@ -1,4 +1,34 @@
 <script setup lang="ts">
+/**
+ * @description The shell of the dashboard: the header with the search and the primary
+ * action, the rail of sections and the body, whose content the host brings in through
+ * slots.
+ *
+ * Decisions held by the markup: the avatar is last in the right group, the way it is
+ * in the builder toolbar — it is not an action of the panel but "who is signed in",
+ * and outside the database mode it does not draw itself at all. The warning band (a
+ * default password) sits between the header and the body: above the rail and the
+ * list, yet below the logo so that it does not stand in for the title of the section;
+ * the slot is empty the rest of the time and takes up no space.
+ *
+ * A change of the rail section is a `mode="out-in"` transition with a key on every
+ * branch: without the keys Vue reuses one and the same div (the v-if/v-else-if/v-else
+ * branches of one tag) and there is no transition at all, while without `out-in` the
+ * departing section would overlap the arriving one — the lists of pages and of
+ * accounts differ in height. The wrapper is obliged to be a single element:
+ * `<Transition>` takes exactly one child, while the pages section consists of the
+ * list and the details panel. The media library is laid out like the pages: the grid
+ * plus the details panel of the selected file in the same 34rem container — a
+ * department of the dashboard rather than a window over it. The accounts section has
+ * no details panel, because an account carries no content worth unfolding to the
+ * side, and the templates section is a grid of its own across the full width for the
+ * same reason (the card is everything known about a template).
+ *
+ * Decisions held by the style section: `splitArea` repeats the layout of `.main`
+ * because it ended up between it and its content — the wrapper was demanded by the
+ * transition between the sections.
+ */
+
 // #region Imports
 // Types
 import type {
@@ -48,10 +78,12 @@ const searchPlaceholder = computed<string>(() =>
 );
 
 /**
- * Первичная кнопка шапки принадлежит разделу, а не панели: в страницах она
- * создаёт страницу, в учётках — учётку, в шаблонах её нет вовсе (сохранить
- * шаблон можно только из готовой страницы). Одна кнопка на все разделы
- * предлагала бы создать страницу из списка людей.
+ * The primary button of the header belongs to the section rather than to the panel:
+ * in the pages it creates a page, in the accounts an account, and in the templates
+ * there is none at all — a template is saved from wherever a page already is, a row
+ * of the list or the builder, and the templates section has nothing to make one out
+ * of. One button for every section would offer to create a page out of a list of
+ * people.
  */
 const isCreatePageVisible = computed<boolean>(
     () => props.activeSection === 'pages' && canEdit.value
@@ -62,11 +94,12 @@ const isCreateUserVisible = computed<boolean>(
 );
 
 /**
- * Первичное действие медиатеки — загрузка файлов, и её контролы оболочка не
- * рисует сама: за ними тянутся `useMediaUpload`, скрытый file-input и поповер
- * параметров, то есть весь домен медиа в оболочке дашборда. Приходят они
- * слотом, а решение «показывать ли» остаётся здесь — рядом с решениями про
- * страницы и учётки, чтобы права на первичное действие читались одним местом.
+ * The primary action of the media library is uploading files, and the shell does not
+ * draw its controls itself: `useMediaUpload`, a hidden file input and the parameters
+ * popover trail behind them, that is, the whole media domain inside the shell of the
+ * dashboard. They arrive through a slot, while the decision of whether to show them
+ * stays here — next to the decisions about the pages and the accounts, so that the
+ * rights to the primary action are read in one place.
  */
 const isMediaUploadVisible = computed<boolean>(
     () => props.activeSection === 'media' && canEdit.value
@@ -75,78 +108,79 @@ const isMediaUploadVisible = computed<boolean>(
 
 // #region Methods
 /**
- * Пробрасывает ввод строки поиска наверх.
+ * Passes the input of the search string upwards.
  *
- * @param value - Введённый запрос.
+ * @param value - The query that was typed.
  */
 function onSearchInput(value: string): void {
     emit('update:searchQuery', value);
 }
 
 /**
- * Пробрасывает выбор раздела рейла.
+ * Passes the pick of a rail section through.
  *
- * @param section - Ключ раздела.
+ * @param section - Section key.
  */
 function handleSelectSection(section: TPublishDashboardSection): void {
     emit('select-section', section);
 }
 
 /**
- * Открывает создание страницы.
+ * Opens the creation of a page.
  */
 function handleCreatePage(): void {
     emit('create-page');
 }
 
 /**
- * Открывает создание учётки.
+ * Opens the creation of an account.
  */
 function handleCreateUser(): void {
     emit('create-user');
 }
 
 /**
- * Открывает документацию.
+ * Opens the documentation.
  */
 function handleOpenDocs(): void {
     emit('open-docs');
 }
 
 /**
- * Переключает тёмную/светлую тему интерфейса.
+ * Switches the dark and light theme of the interface.
  */
 function handleToggleDarkMode(): void {
     emit('toggle-dark-mode');
 }
 
 /**
- * Переключает локаль интерфейса.
+ * Switches the locale of the interface.
  */
 function handleToggleLocale(): void {
     emit('toggle-locale');
 }
 
 /**
- * Пробрасывает выход из database-auth сессии наверх.
+ * Passes the sign-out of the database-auth session upwards.
  */
 function handleLogout(): void {
     emit('logout');
 }
 
 /**
- * Пробрасывает запрос модалки профиля наверх: монтирует её хост.
+ * Passes the request for the profile modal upwards: its host mounts it.
  */
 function handleOpenProfile(): void {
     emit('open-profile');
 }
 
 /**
- * Гасит интерактивность уходящего экрана: при `mode="out-in"` он живёт в DOM всю
- * фазу leave, а переход бывает и не по клику человека, то есть фокус внутри
- * возможен. `pointer-events` из transitions.scss закрывает только указатель.
+ * Puts the interactivity of the departing screen out: under `mode="out-in"` it lives
+ * in the DOM through the whole leave phase, and the transition is not always caused
+ * by a person's click, which means the focus may be inside. The `pointer-events` from
+ * transitions.scss closes off the pointer only.
  *
- * @param element - Корневой элемент уходящего экрана.
+ * @param element - The root element of the departing screen.
  */
 function onViewLeave(element: Element): void {
     markLeavingInert(element);
@@ -170,7 +204,6 @@ function onViewLeave(element: Element): void {
                     @update:value="onSearchInput"
                 />
 
-                <!-- Создание страницы — запись: наблюдателю ручка откажет -->
                 <BricksButton
                     v-if="isCreatePageVisible"
                     size="md"
@@ -189,24 +222,12 @@ function onViewLeave(element: Element): void {
                     + {{ t('bricks.users.createUser') }}
                 </BricksButton>
 
-                <!-- Загрузка файлов: контролы приносит хост, гейт роли — здесь -->
                 <slot v-else-if="isMediaUploadVisible" name="headerAction" />
 
-                <!--
-                    Аватар — последний в правой группе, как в тулбаре билдера: он
-                    не действие панели, а «кем вошёл». Вне database-режима не
-                    рисуется сам
-                -->
                 <BuilderAuthProfileMenu @open-profile="handleOpenProfile" @logout="handleLogout" />
             </div>
         </header>
 
-        <!--
-            Полоса-предупреждение (дефолтный пароль) — между шапкой и телом:
-            выше рейла и списка, но ниже логотипа, чтобы не подменять собой
-            заголовок раздела. Слот пустует всё остальное время и места не
-            занимает.
-        -->
         <slot name="notice" />
 
         <div :class="$style.body">
@@ -226,19 +247,7 @@ function onViewLeave(element: Element): void {
             />
 
             <main :class="$style.main">
-                <!--
-                    Смена раздела рейла — `mode="out-in"` с ключом на каждой
-                    ветке: без ключей Vue переиспользует один и тот же div
-                    (ветки v-if/v-else-if/v-else одного тега) и перехода нет
-                    вовсе, а без `out-in` уходящий раздел наложился бы на
-                    приходящий — списки страниц и учёток разной высоты.
-                -->
                 <Transition name="bricks-view-switch" mode="out-in" @leave="onViewLeave">
-                    <!--
-                        Обёртка обязана быть одним элементом: у `<Transition>`
-                        ровно один потомок, а раздел страниц состоит из списка и
-                        панели деталей
-                    -->
                     <div
                         v-if="props.activeSection === 'pages'"
                         key="pages"
@@ -254,11 +263,6 @@ function onViewLeave(element: Element): void {
                         </Transition>
                     </div>
 
-                    <!--
-                        Медиатека раскладывается как страницы: сетка плюс панель
-                        деталей выбранного файла в том же контейнере 34rem —
-                        отдел дашборда, а не окно поверх него
-                    -->
                     <div
                         v-else-if="props.activeSection === 'media'"
                         key="media"
@@ -274,10 +278,6 @@ function onViewLeave(element: Element): void {
                         </Transition>
                     </div>
 
-                    <!--
-                        Раздел учёток панели деталей не имеет: у учётки нет
-                        содержимого, которое стоило бы разворачивать сбоку
-                    -->
                     <div
                         v-else-if="props.activeSection === 'users'"
                         key="users"
@@ -286,11 +286,6 @@ function onViewLeave(element: Element): void {
                         <slot name="users" />
                     </div>
 
-                    <!--
-                        Раздел шаблонов — своя сетка на всю ширину: панели деталей
-                        у шаблона нет, разворачивать сбоку нечего (карточка и есть
-                        всё, что о нём известно)
-                    -->
                     <div v-else key="templates" :class="$style.listArea">
                         <slot name="templates" />
                     </div>
@@ -360,9 +355,6 @@ function onViewLeave(element: Element): void {
     flex: 1;
 }
 
-/* Раздел с панелью деталей целиком (страницы и медиатека): список плюс панель.
-   Повторяет раскладку `.main`, потому что встал между ним и своим содержимым —
-   обёртку потребовал переход между разделами. */
 .splitArea {
     overflow: hidden;
     display: flex;

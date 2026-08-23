@@ -1,39 +1,49 @@
 /**
- * Типы валидации формы публикации: контекст yup-фабрики и проверки перед записью.
+ * Types of the publish form validation: the context of the yup factory and of the
+ * checks before a write.
  */
 
 import type { TPublishFormState } from '../../../common/types/bricks-api';
 import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 
 export interface IPublishValidationSchemaOptions {
-    /** Переводчик i18n-ключей (сообщения резолвятся в момент валидации). */
+    /** Translator of the i18n keys (the messages are resolved at validation time) */
     t: (key: string) => string;
     /**
-     * Свободен ли live-адрес страницы в роутинге приложения
-     * (`useBricksPageAddress`) — ловит и поверхности билдера, и страницы
-     * потребителя, перекрывающие published-адрес.
+     * Whether the live address of the page is free in the routing of the
+     * application (`useBricksPageAddress`) — catches both the surfaces of the
+     * builder and the pages of the consumer that cover a published address.
      */
     isPageAddressFree: (address: IBricksPageAddress) => boolean;
-    /** Свободен ли адрес редактора страницы (`<builderPrefix>/<urlPrefix>/<pagename>`). */
+    /**
+     * Whether the editor address of the page is free
+     * (`<builderPrefix>/<urlPrefix>/<pagename>`).
+     */
     isEditorAddressFree: (address: IBricksPageAddress) => boolean;
-    /** Свободен ли адрес у других страниц (обычно `publishStore.isAddressAvailable`). */
+    /**
+     * Whether the address is free of other pages (usually
+     * `publishStore.isAddressAvailable`).
+     */
     isAddressAvailable: (address: IBricksPageAddress, excludeId?: string | number) => boolean;
-    /** Возвращает id страницы, исключаемой из проверки уникальности адреса. */
+    /** Returns the id of the page excluded from the address uniqueness check */
     getExcludeId: () => string | number | undefined;
 }
 
 /**
- * Результат валидации формы публикации перед превью или записью.
+ * The result of validating the publish form before a preview or a write.
  */
 export interface IPublishFormValidationResult {
-    /** Состояние формы с trim'нутыми pagename/urlPrefix/subdomain (та же ссылка, если ничего не изменилось). */
+    /**
+     * The form state with pagename/urlPrefix/subdomain trimmed (the same reference
+     * when nothing changed).
+     */
     formState: TPublishFormState;
-    /** Ошибки валидации по полям (пусто — валидация пройдена). */
+    /** Per-field validation errors (empty means the validation passed) */
     errors: Record<string, string>;
 }
 
 /**
- * Правило обязательного текстового поля: границы длины и ключи сообщений.
+ * The rule of a mandatory text field: the length bounds and the message keys.
  */
 export interface IRequiredTextRule {
     minLength: number;

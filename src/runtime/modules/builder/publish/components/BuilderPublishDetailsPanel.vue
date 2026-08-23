@@ -1,4 +1,23 @@
 <script setup lang="ts">
+/**
+ * @description The details panel of the selected page: the publication switch with
+ * the live URL, the meta form, the OG image, the routing, the versions, the schema
+ * and the actions on the page.
+ *
+ * Decisions held by the markup: with no right to edit, the publication switch stays
+ * on screen but blocked — it is also the only place the published state of a page is
+ * shown; the meta and routing fields are shown blocked rather than hidden for the
+ * same reason, because the address and the description of a page are facts about it
+ * and a viewer needs them just the same. Saving the meta is blocked while a schema
+ * import runs too: both operations are a PATCH carrying the same
+ * `expectedRevision`, and the second one would get a 409, forcing a person to pick
+ * the JSON file all over again — the precondition allows no loss of data, but the
+ * conflict here would be man-made. The copy is a creation of a page (an editor's
+ * right), the deletion an administrator's. The side of the delete button is `xl`,
+ * that is 40, to line up with "Duplicate" next to it: the `md` kit button is 39 tall,
+ * and a smaller side read as a button sagging in the pair.
+ */
+
 // #region Imports
 // Types
 import type { IPageVersionSummary, TPublishedPageSummary } from '../../../common/types/bricks-api';
@@ -83,8 +102,8 @@ const panelSubtitle = computed<string>(() => {
     const created = t('bricks.publish.dashboard.details.created', {
         date: formatPageDate(props.page.createdAt),
     });
-    // Адрес целиком: подпись обязана называть ту же страницу, что открыта, а
-    // `/post` у `/blog/post` и `/news/post` неразличим
+    // The whole address: the subtitle is obliged to name the same page that is
+    // open, and `/post` is indistinguishable between `/blog/post` and `/news/post`
     const path = getPublishedPagePath(toPageAddress(props.page.pagename, props.page.urlPrefix));
 
     return `${path} · ${created}`;
@@ -93,23 +112,24 @@ const panelSubtitle = computed<string>(() => {
 
 // #region Methods
 /**
- * Закрывает панель деталей.
+ * Closes the details panel.
  */
 function handleClose(): void {
     emit('close');
 }
 
 /**
- * Переключает статус публикации (оптимистичный patch — в контроллере).
+ * Toggles the publication status (the optimistic patch lives in the controller).
  *
- * @param value - Новый флаг публикации.
+ * @param value - The new publication flag.
  */
 function handleTogglePublished(value: boolean | string): void {
     emit('toggle-published', props.page, Boolean(value));
 }
 
 /**
- * Копирует live-URL страницы в буфер обмена и показывает тост с результатом.
+ * Copies the live URL of the page to the clipboard and shows a toast with the
+ * result.
  */
 async function handleCopyUrl(): Promise<void> {
     const copied = await copyLiveUrl();
@@ -121,77 +141,80 @@ async function handleCopyUrl(): Promise<void> {
 }
 
 /**
- * Запрашивает выбор OG-изображения из медиа-галереи.
+ * Asks for an OG image to be picked from the media gallery.
  */
 function handleOpenMediaGallery(): void {
     emit('open-media');
 }
 
 /**
- * Принимает выбранный в медиа-галерее элемент (вызывается контроллером через ref).
+ * Takes the item picked in the media gallery (called by the controller through a
+ * ref).
  *
- * @param item - Выбранный медиа-объект.
+ * @param item - The picked media object.
  */
 function handleMediaSelect(item: IMediaItem): void {
     setSocialImage(item.url);
 }
 
 /**
- * Сбрасывает выбранное OG-изображение.
+ * Drops the picked OG image.
  */
 function handleClearSocialImage(): void {
     setSocialImage('');
 }
 
 /**
- * Открывает страницу в редакторе билдера.
+ * Opens the page in the builder editor.
  */
 function handleEdit(): void {
     emit('edit', props.page);
 }
 
 /**
- * Дублирует страницу.
+ * Duplicates the page.
  */
 function handleDuplicate(): void {
     emit('duplicate', props.page);
 }
 
 /**
- * Пробрасывает запрос отката к версии контроллеру (подтверждение и тосты — там).
+ * Passes the rollback request through to the controller (the confirmation and the
+ * toasts live there).
  *
- * @param version - Сводка версии.
+ * @param version - Version summary.
  */
 function handleRestoreVersion(version: IPageVersionSummary): void {
     emit('restore-version', props.page, version);
 }
 
 /**
- * Пробрасывает уведомление секции версий контроллеру.
+ * Passes a notification of the versions section through to the controller.
  *
- * @param message - Текст уведомления.
- * @param variant - Тип уведомления.
+ * @param message - The text of the notification.
+ * @param variant - The kind of the notification.
  */
 function handleVersionsNotify(message: string, variant: 'success' | 'error'): void {
     emit('notify', message, variant);
 }
 
 /**
- * Пробрасывает разобранный файл схемы контроллеру: подтверждение замены,
- * резолвинг картинок и запись принадлежат ему.
+ * Passes the parsed schema file through to the controller: the replacement
+ * confirmation, the resolving of the images and the write belong to it.
  *
- * Страница берётся из события, а не из пропа: секция снимает её до чтения файла,
- * и к моменту эмита проп может указывать уже на другую страницу.
+ * The page is taken out of the event rather than out of the prop: the section takes
+ * it before the file is read, and by the time of the emit the prop may already point
+ * at another page.
  *
- * @param page - Страница на момент выбора файла.
- * @param file - Разобранный JSON-файл схемы.
+ * @param page - The page as of the moment the file was picked.
+ * @param file - The parsed JSON schema file.
  */
 function handleImportFile(page: TPublishedPageSummary, file: IParsedSchemaFile): void {
     emit('import-schema-file', page, file);
 }
 
 /**
- * Запрашивает удаление страницы.
+ * Asks for the page to be deleted.
  */
 function handleDelete(): void {
     emit('delete', props.page);
@@ -215,11 +238,6 @@ defineExpose({
 
         <div :class="[$style.content, 'bricks-scrollbox']">
             <div :class="$style.publication">
-                <!--
-                    Тумблер публикации остаётся на экране и без права правки, но
-                    заблокирован: он же — единственный показ того, опубликована
-                    страница или нет
-                -->
                 <BricksSwitch
                     :value="props.page.published"
                     :true-value="true"
@@ -241,11 +259,6 @@ defineExpose({
                 </div>
             </div>
 
-            <!--
-                Поля мета-описания и маршрутизации без права правки показываются
-                заблокированными, а не прячутся: адрес и описание страницы —
-                сведения о ней, и наблюдателю они нужны ровно так же
-            -->
             <BuilderPublishSeoFields
                 v-model:title="title"
                 v-model:pagename="pagename"
@@ -284,12 +297,6 @@ defineExpose({
                 @import-file="handleImportFile"
             />
 
-            <!--
-                Сохранение meta заблокировано и на время импорта схемы: обе
-                операции — PATCH с одним и тем же `expectedRevision`, и второй
-                получил бы 409, заставив заново выбирать JSON-файл. Потери данных
-                precondition не допускает, но конфликт здесь рукотворный
-            -->
             <div v-if="canEdit && (isDirty || isSaving)" :class="$style.saveBar">
                 <BricksButton
                     size="md"
@@ -322,7 +329,6 @@ defineExpose({
                 {{ t('bricks.publish.dashboard.details.openInEditor') }}
             </BricksButton>
             <div :class="$style.footerRow">
-                <!-- Копия — создание страницы (редактор), удаление — администратор -->
                 <BricksButton
                     v-if="canEdit"
                     :class="$style.duplicateButton"
@@ -333,11 +339,6 @@ defineExpose({
                 >
                     {{ t('bricks.publish.dashboard.row.duplicate') }}
                 </BricksButton>
-                <!--
-                    Сторона `xl` 40 — вровень с «Дублировать» рядом: у кнопки
-                    кита `md` высота 39, и меньшая сторона читалась как
-                    просевшая кнопка в паре
-                -->
                 <BricksIconButton
                     v-if="canDelete"
                     icon="ta:outline-trash"
